@@ -61,7 +61,7 @@
 
 #include <matrix/matrix/math.hpp>   // matrix, vectors, dcm, quaterions
 #include <conversion/rotation.h>    // math::radians,
-#include <lib/geo/geo.h>        // to get the physical constants
+#include <lib/atmosphere/atmosphere.h>        // to get the physical constants
 #include <drivers/drv_hrt.h>        // to get the real time
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -134,7 +134,7 @@ private:
 	// hard constants
 	static constexpr uint16_t NB_MOTORS = 6;
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
-	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;   // ground temperature in Kelvin
+	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
 	// Aerodynamic coefficients
 	static constexpr float RHO = 1.225f; 		// air density at sea level [kg/m^3]

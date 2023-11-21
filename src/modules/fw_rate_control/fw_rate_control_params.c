@@ -41,37 +41,6 @@
  */
 
 /**
- * Minimum Airspeed (CAS)
- *
- * The minimal airspeed (calibrated airspeed) the user is able to command.
- * Further, if the airspeed falls below this value, the TECS controller will try to
- * increase airspeed more aggressively.
- * Should be set (with some margin) above the vehicle stall speed.
- * This value corresponds to the desired minimum speed with the default load factor (level flight, default weight),
- * and is automatically adapated to the current load factor (calculated from roll setpoint and WEIGHT_GROSS/WEIGHT_BASE).
- *
- * @unit m/s
- * @min 0.5
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
-
-/**
- * Maximum Airspeed (CAS)
- *
- * The maximal airspeed (calibrated airspeed) the user is able to command.
- *
- * @unit m/s
- * @min 0.5
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
-
-/**
  * Airspeed mode
  *
  * On vehicles without airspeed sensor this parameter can be used to
@@ -82,35 +51,6 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  * @group FW Rate Control
  */
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
-
-/**
- * Trim (Cruise) Airspeed
- *
- * The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active,
- * this is the default airspeed setpoint that the controller will try to achieve.
- *
- * @unit m/s
- * @min 0.5
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
-
-/**
- * Stall Airspeed (CAS)
- *
- * The stall airspeed (calibrated airspeed) of the vehicle.
- * It is used for airspeed sensor failure detection and for the control
- * surface scaling airspeed limits.
- *
- * @unit m/s
- * @min 0.5
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_STALL, 7.0f);
 
 /**
  * Pitch rate proportional gain.

@@ -48,7 +48,7 @@
 #include <px4_platform_common/time.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/math.hpp>
-#include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 #include <lib/sensor_calibration/Barometer.hpp>
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
@@ -60,36 +60,11 @@
 
 using namespace matrix;
 using namespace time_literals;
+using namespace atmosphere;
 
 static constexpr char sensor_name[] {"baro"};
 
 static constexpr int MAX_SENSOR_COUNT = 4;
-
-static float PressureToAltitude(float pressure_pa, float temperature)
-{
-	// calculate altitude using the hypsometric equation
-	static constexpr float T1 = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-	static constexpr float a = -6.5f / 1000.f; // temperature gradient in degrees per metre
-
-	// current pressure at MSL in kPa (QNH in hPa)
-	const float p1 = 1013.25f * 0.1f;
-
-	// measured pressure in kPa
-	const float p = pressure_pa * 0.001f;
-
-	/*
-	 * Solve:
-	 *
-	 *     /        -(aR / g)     \
-	 *    | (p / p1)          . T1 | - T1
-	 *     \                      /
-	 * h = -------------------------------  + h1
-	 *                   a
-	 */
-	float altitude = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
-
-	return altitude;
-}
 
 int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 {
@@ -172,7 +147,7 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 			const float pressure_pa = data_sum[instance] / data_sum_count[instance];
 			const float temperature = temperature_sum[instance] / data_sum_count[instance];
 
-			float pressure_altitude = PressureToAltitude(pressure_pa, temperature);
+			float pressure_altitude = getAltitudeFromPressure(pressure_pa, temperature);
 
 			// Use GPS altitude as a reference to compute the baro bias measurement
 			const float baro_bias = pressure_altitude - gps_altitude;
@@ -189,7 +164,7 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 			// perform a binary search
 			while (front <= last) {
 				middle = front + (last - front) / 2;
-				float altitude_calibrated = PressureToAltitude(pressure_pa - middle, temperature);
+				float altitude_calibrated = getAltitudeFromPressure(pressure_pa - middle, temperature);
 
 				if (altitude_calibrated > altitude + 0.1f) {
 					last = middle;

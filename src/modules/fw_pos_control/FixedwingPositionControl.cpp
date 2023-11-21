@@ -80,7 +80,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	/* fetch initial parameter values */
 	parameters_update();
 
-	_airspeed_slew_rate_controller.setForcedValue(_param_fw_airspd_trim.get());
+	_airspeed_slew_rate_controller.setForcedValue(_performance_model.getCalibratedTrimAirspeed());
 }
 
 FixedwingPositionControl::~FixedwingPositionControl()
@@ -99,10 +99,12 @@ FixedwingPositionControl::init()
 	return true;
 }
 
-int
+void
 FixedwingPositionControl::parameters_update()
 {
 	updateParams();
+
+	_performance_model.updateParameters();
 
 	// VTOL parameter VT_ARSP_TRANS
 	if (_param_handle_airspeed_trans != PARAM_INVALID) {
@@ -126,12 +128,12 @@ FixedwingPositionControl::parameters_update()
 	_npfg.setPeriodSafetyFactor(_param_npfg_period_safety_factor.get());
 
 	// TECS parameters
-	_tecs.set_max_climb_rate(_param_fw_t_clmb_max.get());
+	_tecs.set_max_climb_rate(_performance_model.getMaximumClimbRate(_air_density));
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
-	_tecs.set_min_sink_rate(_param_fw_t_sink_min.get());
+	_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
-	_tecs.set_equivalent_airspeed_trim(_param_fw_airspd_trim.get());
-	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get());
+	_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
+	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damp.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
 	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
@@ -148,61 +150,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_airspeed_rate_measurement_std_dev(_param_speed_rate_standard_dev.get());
 	_tecs.set_airspeed_filter_process_std_dev(_param_process_noise_standard_dev.get());
 
-	int check_ret = PX4_OK;
-
-	// sanity check parameters
-	if (_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) {
-		/* EVENT
-		 * @description
-		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
-		 * - <param>FW_AIRSPD_MIN</param>: {2:.1}
-		 */
-		events::send<float, float>(events::ID("fixedwing_position_control_conf_invalid_airspeed"), events::Log::Error,
-					   "Invalid configuration: Airspeed max smaller than min",
-					   _param_fw_airspd_max.get(), _param_fw_airspd_min.get());
-		check_ret = PX4_ERROR;
-	}
-
-	if (_param_fw_airspd_max.get() < 5.0f || _param_fw_airspd_min.get() > 100.0f) {
-		/* EVENT
-		 * @description
-		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
-		 * - <param>FW_AIRSPD_MIN</param>: {2:.1}
-		 */
-		events::send<float, float>(events::ID("fixedwing_position_control_conf_invalid_airspeed_bounds"), events::Log::Error,
-					   "Invalid configuration: Airspeed max \\< 5 m/s or min \\> 100 m/s",
-					   _param_fw_airspd_max.get(), _param_fw_airspd_min.get());
-		check_ret = PX4_ERROR;
-	}
-
-	if (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get() ||
-	    _param_fw_airspd_trim.get() > _param_fw_airspd_max.get()) {
-		/* EVENT
-		 * @description
-		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
-		 * - <param>FW_AIRSPD_MIN</param>: {2:.1}
-		 * - <param>FW_AIRSPD_TRIM</param>: {3:.1}
-		 */
-		events::send<float, float, float>(events::ID("fixedwing_position_control_conf_invalid_trim_bounds"),
-						  events::Log::Error,
-						  "Invalid configuration: Airspeed trim out of min or max bounds",
-						  _param_fw_airspd_max.get(), _param_fw_airspd_min.get(), _param_fw_airspd_trim.get());
-		check_ret = PX4_ERROR;
-	}
-
-	if (_param_fw_airspd_stall.get() > _param_fw_airspd_min.get()) {
-		/* EVENT
-		 * @description
-		 * - <param>FW_AIRSPD_MIN</param>: {1:.1}
-		 * - <param>FW_AIRSPD_STALL</param>: {2:.1}
-		 */
-		events::send<float, float>(events::ID("fixedwing_position_control_conf_invalid_stall"), events::Log::Error,
-					   "Invalid configuration: FW_AIRSPD_STALL higher FW_AIRSPD_MIN",
-					   _param_fw_airspd_min.get(), _param_fw_airspd_stall.get());
-		check_ret = PX4_ERROR;
-	}
-
-	return check_ret;
+	_performance_model.runSanityChecks();
 }
 
 void
@@ -378,24 +326,26 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		_body_velocity_x = body_velocity(0);
 
 		// load factor due to banking
-		const float load_factor = 1.f / cosf(euler_angles(0));
-		_tecs.set_load_factor(load_factor);
+		_tecs.set_load_factor(getLoadFactor());
 	}
 }
 
 float
 FixedwingPositionControl::get_manual_airspeed_setpoint()
 {
-	float altctrl_airspeed = _param_fw_airspd_trim.get();
+
+	float altctrl_airspeed = _performance_model.getCalibratedTrimAirspeed();
 
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT) {
 		// neutral throttle corresponds to trim airspeed
 		return math::interpolateNXY(_manual_control_setpoint_for_airspeed,
 		{-1.f, 0.f, 1.f},
-		{_param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_airspd_max.get()});
+		{_performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), altctrl_airspeed, _performance_model.getMaximumCalibratedAirspeed()});
 
 	} else if (PX4_ISFINITE(_commanded_manual_airspeed_setpoint)) {
-		altctrl_airspeed = _commanded_manual_airspeed_setpoint;
+		altctrl_airspeed = constrain(_commanded_manual_airspeed_setpoint,
+					     _performance_model.getMinimumCalibratedAirspeed(getLoadFactor()),
+					     _performance_model.getMaximumCalibratedAirspeed());
 	}
 
 	return altctrl_airspeed;
@@ -407,36 +357,16 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 {
 	// --- airspeed *constraint adjustments ---
 
-	float load_factor_from_bank_angle = 1.0f;
-
-	if (PX4_ISFINITE(_att_sp.roll_body)) {
-		load_factor_from_bank_angle = 1.0f / cosf(_att_sp.roll_body);
-	}
-
-	float weight_ratio = 1.0f;
-
-	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
-		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
-					       MAX_WEIGHT_RATIO);
-	}
-
-	// Here we make sure that the set minimum airspeed is automatically adapted to the current load factor.
-	// The minimum airspeed is the controller limit (FW_AIRSPD_MIN, unless either in takeoff or landing) that should
-	// resemble the vehicles stall speed (CAS) with a 1g load plus some safety margin (as no controller tracks perfectly).
-	// Stall speed increases with the square root of the load factor: V_stall ~ sqrt(load_factor).
-	// The load_factor is composed of a term from the bank angle and a term from the weight ratio.
-	calibrated_min_airspeed *= sqrtf(load_factor_from_bank_angle * weight_ratio);
-
 	// Aditional option to increase the min airspeed setpoint based on wind estimate for more stability in higher winds.
 	if (!in_takeoff_situation && _airspeed_valid && _wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON) {
 		calibrated_min_airspeed = math::min(calibrated_min_airspeed + _param_fw_wind_arsp_sc.get() *
-						    _wind_vel.length(), _param_fw_airspd_max.get());
+						    _wind_vel.length(), _performance_model.getMaximumCalibratedAirspeed());
 	}
 
 	// --- airspeed *setpoint adjustments ---
 
 	if (!PX4_ISFINITE(calibrated_airspeed_setpoint) || calibrated_airspeed_setpoint <= FLT_EPSILON) {
-		calibrated_airspeed_setpoint = _param_fw_airspd_trim.get();
+		calibrated_airspeed_setpoint = _performance_model.getCalibratedTrimAirspeed();
 	}
 
 	// Adapt cruise airspeed when otherwise the min groundspeed couldn't be maintained
@@ -455,7 +385,7 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 	}
 
 	calibrated_airspeed_setpoint = constrain(calibrated_airspeed_setpoint, calibrated_min_airspeed,
-				       _param_fw_airspd_max.get());
+				       _performance_model.getMaximumCalibratedAirspeed());
 
 	if (!PX4_ISFINITE(_airspeed_slew_rate_controller.getState())) {
 		_airspeed_slew_rate_controller.setForcedValue(calibrated_airspeed_setpoint);
@@ -470,8 +400,8 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 		_airspeed_slew_rate_controller.setForcedValue(calibrated_min_airspeed);
 	}
 
-	if (_airspeed_slew_rate_controller.getState() > _param_fw_airspd_max.get()) {
-		_airspeed_slew_rate_controller.setForcedValue(_param_fw_airspd_max.get());
+	if (_airspeed_slew_rate_controller.getState() > _performance_model.getMaximumCalibratedAirspeed()) {
+		_airspeed_slew_rate_controller.setForcedValue(_performance_model.getMaximumCalibratedAirspeed());
 	}
 
 	return _airspeed_slew_rate_controller.getState();
@@ -694,7 +624,7 @@ void
 FixedwingPositionControl::updateManualTakeoffStatus()
 {
 	if (!_completed_manual_takeoff) {
-		const bool at_controllable_airspeed = _airspeed > _param_fw_airspd_min.get()
+		const bool at_controllable_airspeed = _airspeed > _performance_model.getMinimumCalibratedAirspeed(getLoadFactor())
 						      || !_airspeed_valid;
 		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					 && _control_mode.flag_armed;
@@ -966,7 +896,7 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 
 	tecs_update_pitch_throttle(control_interval,
 				   _current_altitude,
-				   _param_fw_airspd_trim.get(),
+				   _performance_model.getCalibratedTrimAirspeed(),
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
 				   _param_fw_thr_min.get(),
@@ -997,7 +927,7 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 
 	tecs_update_pitch_throttle(control_interval,
 				   _current_altitude,
-				   _param_fw_airspd_trim.get(),
+				   _performance_model.getCalibratedTrimAirspeed(),
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
 				   _param_fw_thr_min.get(),
@@ -1113,13 +1043,13 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	}
 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
-				_param_fw_airspd_min.get(), ground_speed);
+				_performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), ground_speed);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
 	if (_control_mode.flag_control_offboard_enabled && PX4_ISFINITE(pos_sp_curr.vx) && PX4_ISFINITE(pos_sp_curr.vy)) {
 		// Navigate directly on position setpoint and path tangent
@@ -1180,11 +1110,11 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	_target_bearing = wrap_pi(atan2f(target_velocity(1), target_velocity(0)));
 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
-				_param_fw_airspd_min.get(), ground_speed);
+				_performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), ground_speed);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 	navigateBearing(curr_pos_local, _target_bearing, ground_speed, _wind_vel);
 	_att_sp.roll_body = _npfg.getRollSetpoint();
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
@@ -1265,17 +1195,19 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		// landing airspeed and potentially tighter altitude control) already such that we don't
 		// have to do this switch (which can cause significant altitude errors) close to the ground.
 		_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
-		airspeed_sp = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() : _param_fw_airspd_min.get();
+		airspeed_sp = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
+			      _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 		_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
 		_spoilers_setpoint = _param_fw_spoilers_lnd.get();
 		_new_landing_gear_position = landing_gear_s::GEAR_DOWN;
 	}
 
-	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_sp, _param_fw_airspd_min.get(),
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_sp,
+				_performance_model.getMinimumCalibratedAirspeed(getLoadFactor()),
 				ground_speed);
 
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 	navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius, pos_sp_curr.loiter_direction_counter_clockwise,
 		       ground_speed,
 		       _wind_vel);
@@ -1317,7 +1249,7 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 {
 	// airspeed settings
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
-				_param_fw_airspd_min.get(), ground_speed);
+				_performance_model.getMinimumCalibratedAirspeed(), ground_speed);
 
 	// Lateral Control
 
@@ -1403,11 +1335,11 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 	Vector2f local_2D_position{_local_pos.x, _local_pos.y};
 
 	const float takeoff_airspeed = (_param_fw_tko_airspd.get() > FLT_EPSILON) ? _param_fw_tko_airspd.get() :
-				       _param_fw_airspd_min.get();
+				       _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 
-	float adjusted_min_airspeed = _param_fw_airspd_min.get();
+	float adjusted_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 
-	if (takeoff_airspeed < _param_fw_airspd_min.get()) {
+	if (takeoff_airspeed < adjusted_min_airspeed) {
 		// adjust underspeed detection bounds for takeoff airspeed
 		_tecs.set_equivalent_airspeed_min(takeoff_airspeed);
 		adjusted_min_airspeed = takeoff_airspeed;
@@ -1464,7 +1396,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					true);
 
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+		_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 		navigateLine(start_pos_local, takeoff_bearing, local_2D_position, ground_speed, _wind_vel);
 
 		_att_sp.roll_body = _runway_takeoff.getRoll(_npfg.getRollSetpoint());
@@ -1498,9 +1430,9 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					   _param_fw_thr_min.get(),
 					   _param_fw_thr_max.get(),
 					   _param_sinkrate_target.get(),
-					   _param_fw_t_clmb_max.get());
+					   _performance_model.getMaximumClimbRate(_air_density));
 
-		_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
+		_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed()); // reset after TECS calculation
 
 		_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
 		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(_param_fw_thr_idle.get(), get_tecs_thrust());
@@ -1563,7 +1495,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 						true);
 
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+			_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 			navigateLine(launch_local_position, takeoff_bearing, local_2D_position, ground_speed, _wind_vel);
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
@@ -1580,7 +1512,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 						   _param_fw_thr_min.get(),
 						   max_takeoff_throttle,
 						   _param_sinkrate_target.get(),
-						   _param_fw_t_clmb_max.get());
+						   _performance_model.getMaximumClimbRate(_air_density));
 
 			if (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 				// explicitly set idle throttle until motors are enabled
@@ -1622,10 +1554,10 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 {
 	// first handle non-position things like airspeed and tecs settings
 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
-				    _param_fw_airspd_min.get();
-	float adjusted_min_airspeed = _param_fw_airspd_min.get();
+				    _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
+	float adjusted_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 
-	if (airspeed_land < _param_fw_airspd_min.get()) {
+	if (airspeed_land < adjusted_min_airspeed) {
 		// adjust underspeed detection bounds for landing airspeed
 		_tecs.set_equivalent_airspeed_min(airspeed_land);
 		adjusted_min_airspeed = airspeed_land;
@@ -1711,7 +1643,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
 
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+		_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 		navigateLine(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 		_att_sp.roll_body = _npfg.getRollSetpoint();
@@ -1790,7 +1722,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
 
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+		_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 		navigateLine(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 		_att_sp.roll_body = _npfg.getRollSetpoint();
@@ -1826,7 +1758,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : get_tecs_thrust();
 	}
 
-	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
+	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed()); // reset after TECS calculation
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
@@ -1849,10 +1781,10 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 {
 	// first handle non-position things like airspeed and tecs settings
 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
-				    _param_fw_airspd_min.get();
-	float adjusted_min_airspeed = _param_fw_airspd_min.get();
+				    _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
+	float adjusted_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 
-	if (airspeed_land < _param_fw_airspd_min.get()) {
+	if (airspeed_land < adjusted_min_airspeed) {
 		// adjust underspeed detection bounds for landing airspeed
 		_tecs.set_equivalent_airspeed_min(airspeed_land);
 		adjusted_min_airspeed = airspeed_land;
@@ -1913,7 +1845,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 
 		_npfg.setPeriod(ground_roll_npfg_period);
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+		_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
 		navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
 			       pos_sp_curr.loiter_direction_counter_clockwise,
@@ -1990,7 +1922,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 
 		/* lateral guidance */
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+		_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
 		navigateLoiter(local_landing_orbit_center, local_position, loiter_radius,
 			       pos_sp_curr.loiter_direction_counter_clockwise,
@@ -2031,7 +1963,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : get_tecs_thrust();
 	}
 
-	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
+	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed()); // reset after TECS calculation
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
@@ -2053,7 +1985,7 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 	updateManualTakeoffStatus();
 
 	const float calibrated_airspeed_sp = adapt_airspeed_setpoint(control_interval, get_manual_airspeed_setpoint(),
-					     _param_fw_airspd_min.get(), ground_speed, !_completed_manual_takeoff);
+					     _performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), ground_speed, !_completed_manual_takeoff);
 	const float height_rate_sp = getManualHeightRateSetpoint();
 
 	// TECS may try to pitch down to gain airspeed if we underspeed, constrain the pitch when underspeeding if we are
@@ -2094,7 +2026,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	updateManualTakeoffStatus();
 
 	float calibrated_airspeed_sp = adapt_airspeed_setpoint(control_interval, get_manual_airspeed_setpoint(),
-				       _param_fw_airspd_min.get(), ground_speed, !_completed_manual_takeoff);
+				       _performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), ground_speed, !_completed_manual_takeoff);
 	const float height_rate_sp = getManualHeightRateSetpoint();
 
 	// TECS may try to pitch down to gain airspeed if we underspeed, constrain the pitch when underspeeding if we are
@@ -2143,7 +2075,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 			Vector2f curr_wp_local = _global_local_proj_ref.project(_hdg_hold_position.lat, _hdg_hold_position.lon);
 
 			_npfg.setAirspeedNom(calibrated_airspeed_sp * _eas2tas);
-			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
+			_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 			navigateLine(curr_wp_local, _hdg_hold_yaw, curr_pos_local, ground_speed, _wind_vel);
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 			calibrated_airspeed_sp = _npfg.getAirspeedRef() / _eas2tas;
@@ -2378,6 +2310,8 @@ FixedwingPositionControl::Run()
 
 		if (_vehicle_air_data_sub.update(&air_data)) {
 			_air_density = PX4_ISFINITE(air_data.rho) ? air_data.rho : _air_density;
+			_tecs.set_max_climb_rate(_performance_model.getMaximumClimbRate(_air_density));
+			_tecs.set_min_sink_rate(_performance_model.getMinimumSinkRate(_air_density));
 		}
 
 		if (_vehicle_land_detected_sub.updated()) {
@@ -2572,48 +2506,6 @@ FixedwingPositionControl::reset_landing_state()
 	}
 }
 
-float FixedwingPositionControl::calculateTrimThrottle(float throttle_min,
-		float throttle_max, float airspeed_sp)
-{
-	float throttle_trim =
-		_param_fw_thr_trim.get(); // throttle required for level flight at trim airspeed, at sea level (standard atmosphere)
-
-	// Drag modelling (parasite drag): calculate mapping airspeed-->throttle, assuming a linear relation with different gradients
-	// above and below trim. This is tunable thorugh FW_THR_ASPD_MIN and FW_THR_ASPD_MAX.
-	const float slope_below_trim = (_param_fw_thr_trim.get() - _param_fw_thr_aspd_min.get()) /
-				       (_param_fw_airspd_trim.get() - _param_fw_airspd_min.get());
-	const float slope_above_trim = (_param_fw_thr_aspd_max.get() - _param_fw_thr_trim.get()) /
-				       (_param_fw_airspd_max.get() - _param_fw_airspd_trim.get());
-
-	if (PX4_ISFINITE(airspeed_sp) && PX4_ISFINITE(slope_below_trim) && _param_fw_thr_aspd_min.get() > FLT_EPSILON
-	    && airspeed_sp < _param_fw_airspd_trim.get()) {
-		throttle_trim = _param_fw_thr_trim.get() - slope_below_trim * (_param_fw_airspd_trim.get() - airspeed_sp);
-
-	} else if (PX4_ISFINITE(airspeed_sp) && PX4_ISFINITE(slope_above_trim) && _param_fw_thr_aspd_max.get() > FLT_EPSILON
-		   && airspeed_sp > _param_fw_airspd_trim.get()) {
-		throttle_trim = _param_fw_thr_trim.get() + slope_above_trim * (airspeed_sp - _param_fw_airspd_trim.get());
-	}
-
-	float weight_ratio = 1.0f;
-
-	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
-		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
-					       MAX_WEIGHT_RATIO);
-	}
-
-	float air_density_throttle_scale = 1.0f;
-
-	if (PX4_ISFINITE(_air_density)) {
-		// scale throttle as a function of sqrt(rho0/rho)
-		const float eas2tas = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / _air_density);
-		const float eas2tas_at_5000m_amsl = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / AIR_DENSITY_STANDARD_ATMOS_5000_AMSL);
-		air_density_throttle_scale = constrain(eas2tas, 1.f, eas2tas_at_5000m_amsl);
-	}
-
-	// compensate trim throttle for both weight and air density
-	return math::constrain(throttle_trim * sqrtf(weight_ratio) * air_density_throttle_scale, throttle_min, throttle_max);
-}
-
 void
 FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
 		float pitch_min_rad, float pitch_max_rad, float throttle_min, float throttle_max,
@@ -2642,8 +2534,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 				_airspeed_after_transition = _airspeed;
 			}
 
-			_airspeed_after_transition = constrain(_airspeed_after_transition, _param_fw_airspd_min.get(),
-							       _param_fw_airspd_max.get());
+			_airspeed_after_transition = constrain(_airspeed_after_transition,
+							       _performance_model.getMinimumCalibratedAirspeed(getLoadFactor()),
+							       _performance_model.getMaximumCalibratedAirspeed());
 
 		} else if (_was_in_transition) {
 			// after transition we ramp up desired airspeed from the speed we had coming out of the transition
@@ -2683,8 +2576,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	}
 
 	/* update TECS vehicle state estimates */
-	const float throttle_trim_adjusted = calculateTrimThrottle(throttle_min,
-					     throttle_max, airspeed_sp);
+	const float throttle_trim_compensated = _performance_model.getTrimThrottle(throttle_min,
+						throttle_max, airspeed_sp, _air_density);
 
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
@@ -2698,8 +2591,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     _eas2tas,
 		     throttle_min,
 		     throttle_max,
-		     _param_fw_thr_trim.get(),
-		     throttle_trim_adjusted,
+		     throttle_trim_compensated,
 		     pitch_min_rad - radians(_param_fw_psp_off.get()),
 		     pitch_max_rad - radians(_param_fw_psp_off.get()),
 		     desired_max_climbrate,
@@ -2708,7 +2600,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     -_local_pos.vz,
 		     hgt_rate_sp);
 
-	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_adjusted);
+	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated);
 }
 
 float
@@ -3143,6 +3035,17 @@ fw_pos_control is the fixed-wing position controller.
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+}
+float FixedwingPositionControl::getLoadFactor()
+{
+	float load_factor_from_bank_angle = 1.0f;
+
+	if (PX4_ISFINITE(_att_sp.roll_body)) {
+		load_factor_from_bank_angle = 1.0f / math::max(cosf(_att_sp.roll_body), FLT_EPSILON);
+	}
+
+	return load_factor_from_bank_angle;
+
 }
 
 extern "C" __EXPORT int fw_pos_control_main(int argc, char *argv[])

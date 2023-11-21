@@ -38,7 +38,7 @@
 #include "differential_pressure.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
 
@@ -71,7 +71,7 @@ void UavcanDifferentialPressureBridge::air_sub_cb(const
 	_device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
 
 	float diff_press_pa = msg.differential_pressure;
-	float temperature_c = msg.static_air_temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	float temperature_c = msg.static_air_temperature + atmosphere::kAbsoluteNullCelsius;
 
 	differential_pressure_s report{};
 	report.timestamp_sample = timestamp_sample;

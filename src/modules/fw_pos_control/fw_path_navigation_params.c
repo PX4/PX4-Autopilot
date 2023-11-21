@@ -177,19 +177,6 @@ PARAM_DEFINE_FLOAT(NPFG_SW_DST_MLT, 0.32f);
  */
 PARAM_DEFINE_FLOAT(NPFG_PERIOD_SF, 1.5f);
 
-/**
- * Trim throttle
- *
- * This is the throttle setting required to achieve FW_AIRSPD_TRIM during level flight.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_THR_TRIM, 0.6f);
 
 /**
  * Throttle max slew rate
@@ -447,45 +434,10 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD, -1.f);
  */
 PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
-
-
 /*
  * TECS parameters
  *
  */
-
-/**
- * Maximum climb rate
- *
- * This is the maximum climb rate that the aircraft can achieve with
- * the throttle set to THR_MAX and the airspeed set to the
- * trim value. For electric aircraft make sure this number can be
- * achieved towards the end of flight when the battery voltage has reduced.
- *
- * @unit m/s
- * @min 1.0
- * @max 15.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
-
-/**
- * Minimum descent rate
- *
- * This is the sink rate of the aircraft with the throttle
- * set to THR_MIN and flown at the same airspeed as used
- * to measure FW_T_CLMB_MAX.
- *
- * @unit m/s
- * @min 1.0
- * @max 5.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
 
 /**
  * Maximum descent rate
@@ -818,32 +770,6 @@ PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
  */
 PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);
 
-/**
- * Vehicle base weight.
- *
- * This is the weight of the vehicle at which it's performance limits were derived. A zero or negative value
- * disables trim throttle and minimum airspeed compensation based on weight.
- *
- * @unit kg
- * @decimal 1
- * @increment 0.5
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(WEIGHT_BASE, -1.0f);
-
-/**
- * Vehicle gross weight.
- *
- * This is the actual weight of the vehicle at any time. This value will differ from WEIGHT_BASE in case weight was added
- * or removed from the base weight. Examples are the addition of payloads or larger batteries. A zero or negative value
- * disables trim throttle and minimum airspeed compensation based on weight.
- *
- * @unit kg
- * @decimal 1
- * @increment 0.1
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);
 
 /**
  * The aircraft's wing span (length from tip to tip).
@@ -1054,33 +980,3 @@ PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
-
-/**
- * Throttle at min airspeed
- *
- * Required throttle for level flight at minimum airspeed FW_AIRSPD_MIN (sea level, standard atmosphere)
- *
- * Set to 0 to disable mapping of airspeed to trim throttle below FW_AIRSPD_TRIM.
- *
- * @min 0
- * @max 1
- * @decimal 2
- * @increment 0.01
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_THR_ASPD_MIN, 0.f);
-
-/**
- * Throttle at max airspeed
- *
- * Required throttle for level flight at maximum airspeed FW_AIRSPD_MAX (sea level, standard atmosphere)
- *
- * Set to 0 to disable mapping of airspeed to trim throttle.
- *
- * @min 0
- * @max 1
- * @decimal 2
- * @increment 0.01
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_THR_ASPD_MAX, 0.f);

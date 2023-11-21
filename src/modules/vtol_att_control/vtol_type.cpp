@@ -45,6 +45,7 @@
 #include <float.h>
 #include <px4_platform_common/defines.h>
 #include <matrix/math.hpp>
+#include <lib/atmosphere/atmosphere.h>
 
 using namespace matrix;
 
@@ -565,7 +566,7 @@ float VtolType::getFrontTransitionTimeFactor() const
 	const float rho = math::constrain(_attc->getAirDensity(), 0.7f, 1.5f);
 
 	if (PX4_ISFINITE(rho)) {
-		float rho0_over_rho = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / rho;
+		float rho0_over_rho = atmosphere::kAirDensitySeaLevelStandardAtmos / rho;
 		return sqrtf(rho0_over_rho) * rho0_over_rho;
 	}
 
