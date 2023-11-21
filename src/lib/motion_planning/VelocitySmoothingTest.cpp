@@ -43,6 +43,65 @@
 
 using namespace matrix;
 
+TEST(VelocitySmoothingBasicTest, AllZeroCase)
+{
+	// GIVEN: An unconfigured VelocitySmoothing instance
+	VelocitySmoothing trajectory;
+
+	// WHEN: We update it
+	trajectory.updateDurations(0.f);
+	trajectory.updateTraj(0.f);
+
+	// THEN: All the trajectories should still be zero
+	EXPECT_FLOAT_EQ(trajectory.getTotalTime(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentJerk(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentAcceleration(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentVelocity(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentPosition(), 0.f);
+}
+
+TEST(VelocitySmoothingBasicTest, DivisionByZeroComputeT1)
+{
+	// GIVEN: A try to trigger division by zero in computeT1()
+	// zero jerk but enough input to go that code path
+	VelocitySmoothing trajectory;
+	trajectory.setMaxJerk(0.f);
+	trajectory.setMaxAccel(0.f);
+	trajectory.setMaxVel(1.f);
+
+	// WHEN: We update it
+	trajectory.updateDurations(1.f);
+	trajectory.updateTraj(1.f);
+
+	// THEN: All the trajectories should still be zero
+	EXPECT_FLOAT_EQ(trajectory.getTotalTime(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentJerk(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentAcceleration(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentVelocity(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentPosition(), 0.f);
+}
+
+TEST(VelocitySmoothingBasicTest, DivisionByZeroSaturateT1ForAccel)
+{
+	// GIVEN: We trigger division by zero in saturateT1ForAccel()
+	// zero jerk but enough input to go that code path
+	VelocitySmoothing trajectory(1.f, 0.f, 0.f);
+	trajectory.setMaxJerk(0.f);
+	trajectory.setMaxAccel(0.f);
+	trajectory.setMaxVel(1.f);
+
+	// WHEN: We update it
+	trajectory.updateDurations(1.f);
+	trajectory.updateTraj(1.f);
+
+	// THEN: All the trajectories should still be zero
+	EXPECT_FLOAT_EQ(trajectory.getTotalTime(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentJerk(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentAcceleration(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentVelocity(), 0.f);
+	EXPECT_FLOAT_EQ(trajectory.getCurrentPosition(), 0.f);
+}
+
 class VelocitySmoothingTest : public ::testing::Test
 {
 public:
@@ -174,7 +233,7 @@ TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 		updateTrajectories(dt, velocity_setpoints);
 	}
 
-	// THEN: All the trajectories should have reach their
+	// THEN: All the trajectories should have reached their
 	// final state: desired velocity target and zero acceleration
 	for (int i = 0; i < 3; i++) {
 		EXPECT_LE(fabsf(_trajectories[i].getCurrentVelocity() - velocity_setpoints(i)), 0.01f);
