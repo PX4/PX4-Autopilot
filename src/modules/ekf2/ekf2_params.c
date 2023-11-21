@@ -345,7 +345,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
 PARAM_DEFINE_FLOAT(EKF2_WIND_NSD, 5.0e-2f);
 
 /**
- * Measurement noise for gps horizontal velocity.
+ * Measurement noise for GNSS velocity.
  *
  * @group EKF2
  * @min 0.01
@@ -356,7 +356,7 @@ PARAM_DEFINE_FLOAT(EKF2_WIND_NSD, 5.0e-2f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.3f);
 
 /**
- * Measurement noise for gps position.
+ * Measurement noise for GNSS position.
  *
  * @group EKF2
  * @min 0.01
@@ -568,7 +568,7 @@ PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 4.0f);
 PARAM_DEFINE_FLOAT(EKF2_GND_MAX_HGT, 0.5f);
 
 /**
- * Gate size for GPS horizontal position fusion
+ * Gate size for GNSS position fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
  *
@@ -580,7 +580,7 @@ PARAM_DEFINE_FLOAT(EKF2_GND_MAX_HGT, 0.5f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 
 /**
- * Gate size for GPS velocity fusion
+ * Gate size for GNSS velocity fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
  *
