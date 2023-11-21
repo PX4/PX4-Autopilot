@@ -56,7 +56,8 @@ private:
 	/* Checks for all airframes */
 	bool checkGeofence(const mission_s &mission, float home_alt, bool home_valid);
 
-	bool checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid);
+	bool checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid,
+				       bool allow_wp_below_home);
 
 	bool checkMissionItemValidity(const mission_s &mission);
 
@@ -88,6 +89,6 @@ public:
 	 */
 	bool checkMissionFeasible(const mission_s &mission,
 				  float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
-				  bool land_start_req);
+				  bool land_start_req, bool allow_wp_below_home);
 
 };

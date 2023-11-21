@@ -57,7 +57,7 @@
 bool
 MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 		float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
-		bool land_start_req)
+		bool land_start_req, bool allow_wp_below_home)
 {
 	// Reset warning flag
 	_navigator->get_mission_result()->warning = false;
@@ -88,7 +88,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	failed = failed || !checkMissionItemValidity(mission);
 	failed = failed || !checkDistancesBetweenWaypoints(mission, max_distance_between_waypoints);
 	failed = failed || !checkGeofence(mission, home_alt, home_valid);
-	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid);
+	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid, allow_wp_below_home);
 
 	if (_navigator->get_vstatus()->is_vtol) {
 		failed = failed || !checkVTOL(mission, home_alt, false);
@@ -181,7 +181,8 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 }
 
 bool
-MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid)
+MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid,
+		bool allow_wp_below_home)
 {
 	/* Check if all waypoints are above the home altitude */
 	for (size_t i = 0; i < mission.count; i++) {
@@ -207,16 +208,18 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 
 		}
 
-		/* calculate the global waypoint altitude */
-		float wp_alt = (missionitem.altitude_is_relative) ? missionitem.altitude + home_alt : missionitem.altitude;
+		if (!allow_wp_below_home) {
+			/* calculate the global waypoint altitude */
+			float wp_alt = (missionitem.altitude_is_relative) ? missionitem.altitude + home_alt : missionitem.altitude;
 
-		if (home_alt_valid && home_alt > wp_alt && MissionBlock::item_contains_position(missionitem)) {
+			if (home_alt_valid && home_alt > wp_alt && MissionBlock::item_contains_position(missionitem)) {
 
-			_navigator->get_mission_result()->warning = true;
+				_navigator->get_mission_result()->warning = true;
 
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %zu below home\t", i + 1);
-			events::send<int16_t>(events::ID("navigator_mis_wp_below_home"), {events::Log::Warning, events::LogInternal::Info},
-					      "Waypoint {1} below home", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %zu below home\t", i + 1);
+				events::send<int16_t>(events::ID("navigator_mis_wp_below_home"), {events::Log::Warning, events::LogInternal::Info},
+						      "Waypoint {1} below home", i + 1);
+			}
 		}
 	}
 
