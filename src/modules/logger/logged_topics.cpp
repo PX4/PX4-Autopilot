@@ -129,6 +129,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_roi", 1000);
 	add_topic("vehicle_status");
+	add_topic("velocity_ctrl_status", 200);
 	add_optional_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
 
@@ -310,7 +311,7 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
-
+	add_topic("velocity_ctrl_status", 20);
 	add_topic("actuator_motors");
 	add_topic("vehicle_thrust_setpoint");
 	add_topic("vehicle_torque_setpoint");
