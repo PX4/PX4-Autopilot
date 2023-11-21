@@ -286,6 +286,10 @@ int main(int argc, char **argv)
 			commands_file = "etc/init.d-posix/rcS";
 		}
 
+		if (working_directory.empty()){
+			working_directory = PX4_SOURCE_DIR"/build/px4_sitl_default/rootfs";
+		}
+
 		// change the CWD befre setting up links and other directories
 		if (!working_directory.empty()) {
 
