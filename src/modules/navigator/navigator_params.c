@@ -155,6 +155,31 @@ PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADM, 500);
 PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADU, 10);
 
 /**
+ * Ignore this ICAO address for traffic avoidance.
+ *
+ * Also ignore subsequent addresses if NAV_TRAFF_IGNCNT is greater than 1.
+ * Not used if NAV_TRAFF_IGNCNT is 0.
+ *
+ * @min 0
+ * @max 16777215
+
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_TRAFF_IGNADR, 0);
+
+/**
+ * Ignore number of ICAO addresses to ignore for traffic avoidance.
+ *
+ * Starting with NAV_TRAFF_IGNADR. Set to 0 to disable.
+ *
+ * @min 0
+ * @max 16777215
+
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_TRAFF_IGNCNT, 0);
+
+/**
  * Airfield home Lat
  *
  * Latitude of airfield home waypoint
