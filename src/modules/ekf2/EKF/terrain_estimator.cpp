@@ -199,7 +199,6 @@ void Ekf::resetHaglRng()
 	_terrain_var = getRngVar();
 	_terrain_vpos_reset_counter++;
 	_time_last_hagl_fuse = _time_delayed_us;
-	_time_last_healthy_rng_data = 0;
 }
 
 void Ekf::stopHaglRngFusion()
