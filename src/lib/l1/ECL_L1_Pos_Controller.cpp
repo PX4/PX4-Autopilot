@@ -83,7 +83,7 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 	Vector2f vector_A_to_airplane = vector_curr_position - vector_A;
 
 	/* calculate crosstrack error (output only) */
-	_crosstrack_error = vector_AB % vector_A_to_airplane;
+	_crosstrack_error = vector_AB % vector_A_to_airplane.normalized();
 
 	/*
 	 * If the current position is in a +-135 degree angle behind waypoint A
