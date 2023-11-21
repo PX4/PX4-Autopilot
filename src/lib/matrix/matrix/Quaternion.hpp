@@ -458,7 +458,7 @@ public:
 
 		for (size_t i = 0; i < 4; i++) {
 			if (std::fabs(q(i)) > FLT_EPSILON) {
-				return q * Type(matrix::sign(q(i)));
+				return q * Type(sign(q(i)));
 			}
 		}
 
