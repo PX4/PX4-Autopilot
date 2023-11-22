@@ -25,6 +25,7 @@ exec find boards msg src platforms test \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/crypto/libtomcrypt -prune -o \
     -path src/lib/crypto/libtommath -prune -o \
+    -path src/lib/heatshrink/heatshrink -prune -o \
     -path src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client -prune -o \
     -path src/lib/cdrstream/cyclonedds -prune -o \
     -path src/lib/cdrstream/rosidl -prune -o \

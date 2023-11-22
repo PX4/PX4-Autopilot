@@ -266,11 +266,11 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::FLOW) {
 		flowSample flow_sample;
-		flow_sample.flow_xy_rad = Vector2f(sample.sensor_data[0],
-						   sample.sensor_data[1]);
-		flow_sample.gyro_xyz = Vector3f(sample.sensor_data[2],
-						sample.sensor_data[3],
-						sample.sensor_data[4]);
+		flow_sample.flow_rate = Vector2f(sample.sensor_data[0],
+						 sample.sensor_data[1]);
+		flow_sample.gyro_rate = Vector3f(sample.sensor_data[2],
+						 sample.sensor_data[3],
+						 sample.sensor_data[4]);
 		flow_sample.quality = sample.sensor_data[5];
 		_flow.setData(flow_sample);
 
@@ -373,9 +373,9 @@ void SensorSimulator::setSensorDataFromTrajectory()
 	if (_flow.isRunning()) {
 		flowSample flow_sample = _flow.dataAtRest();
 		const Vector3f vel_body = R_world_to_body * vel_world;
-		flow_sample.flow_xy_rad =
-			Vector2f(vel_body(1) * flow_sample.dt / distance_to_ground,
-				 -vel_body(0) * flow_sample.dt / distance_to_ground);
+		flow_sample.flow_rate =
+			Vector2f(vel_body(1) / distance_to_ground,
+				 -vel_body(0) / distance_to_ground);
 		_flow.setData(flow_sample);
 	}
 

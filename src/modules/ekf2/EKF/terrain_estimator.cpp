@@ -45,19 +45,19 @@
 
 void Ekf::initHagl()
 {
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	stopHaglFlowFusion();
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	stopHaglRngFusion();
-#endif // CONFIG_EKF2_RANGE_FINDER
-
 	// assume a ground clearance
 	_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
 
 	// use the ground clearance value as our uncertainty
 	_terrain_var = sq(_params.rng_gnd_clearance);
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	_aid_src_terrain_range_finder.time_last_fuse = _time_delayed_us;
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	_aid_src_terrain_optical_flow.time_last_fuse = _time_delayed_us;
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
 void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
@@ -66,6 +66,12 @@ void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
 	if (!_control_status.flags.in_air) {
 		_last_on_ground_posD = _state.pos(2);
 		_control_status.flags.rng_fault = false;
+
+	} else if (!_control_status_prev.flags.in_air) {
+		// Let the estimator run freely before arming for bench testing purposes, but reset on takeoff
+		// because when using optical flow measurements, it is safer to start with a small distance to ground
+		// as an overestimated distance leads to an overestimated velocity, causing a dangerous behavior.
+		initHagl();
 	}
 
 	predictHagl(imu_delayed);
@@ -117,9 +123,8 @@ void Ekf::controlHaglRngFusion()
 
 	if (_range_sensor.isDataHealthy()) {
 
-		const bool continuing_conditions_passing = _control_status.flags.in_air
+		const bool continuing_conditions_passing = _rng_consistency_check.isKinematicallyConsistent();
 				//&& !_control_status.flags.rng_hgt // TODO: should not be fused when using range height
-				&& _rng_consistency_check.isKinematicallyConsistent();
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _range_sensor.isRegularlySendingData()
@@ -231,7 +236,7 @@ void Ekf::updateHaglRng(estimator_aid_source1d_s &aid_src) const
 
 	aid_src.timestamp_sample = _time_delayed_us; // TODO
 
-	aid_src.observation = pred_hagl;
+	aid_src.observation = meas_hagl;
 	aid_src.observation_variance = obs_variance;
 
 	aid_src.innovation = hagl_innov;
@@ -419,17 +424,33 @@ void Ekf::controlHaglFakeFusion()
 	    && !_hagl_sensor_status.flags.range_finder
 	    && !_hagl_sensor_status.flags.flow) {
 
-		initHagl();
+		bool recent_terrain_aiding = false;
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+		recent_terrain_aiding |= isRecent(_aid_src_terrain_range_finder.time_last_fuse, (uint64_t)1e6);
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+		recent_terrain_aiding |= isRecent(_aid_src_terrain_optical_flow.time_last_fuse, (uint64_t)1e6);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+		if (_control_status.flags.vehicle_at_rest || !recent_terrain_aiding) {
+			initHagl();
+		}
 	}
 }
 
 bool Ekf::isTerrainEstimateValid() const
 {
+	bool valid = false;
+
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 	// we have been fusing range finder measurements in the last 5 seconds
-	if (_hagl_sensor_status.flags.range_finder && isRecent(_aid_src_terrain_range_finder.time_last_fuse, (uint64_t)5e6)) {
-		return true;
+	if (isRecent(_aid_src_terrain_range_finder.time_last_fuse, (uint64_t)5e6)) {
+		if (_hagl_sensor_status.flags.range_finder || !_control_status.flags.in_air) {
+			valid = true;
+		}
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -439,12 +460,12 @@ bool Ekf::isTerrainEstimateValid() const
 	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds
 	// this can only be the case if the main filter does not fuse optical flow
 	if (_hagl_sensor_status.flags.flow && isRecent(_aid_src_terrain_optical_flow.time_last_fuse, (uint64_t)5e6)) {
-		return true;
+		valid = true;
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	return false;
+	return valid;
 }
 
 void Ekf::terrainHandleVerticalPositionReset(const float delta_z) {

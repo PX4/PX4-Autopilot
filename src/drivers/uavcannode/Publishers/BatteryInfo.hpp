@@ -39,6 +39,7 @@
 
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/battery_status.h>
+#include <lib/atmosphere/atmosphere.h>
 
 namespace uavcannode
 {
@@ -76,7 +77,7 @@ public:
 			uavcan::equipment::power::BatteryInfo battery_info{};
 			battery_info.voltage = battery.voltage_v;
 			battery_info.current = fabs(battery.current_a);
-			battery_info.temperature = battery.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // convert from C to K
+			battery_info.temperature = battery.temperature - atmosphere::kAbsoluteNullCelsius; // convert from C to K
 			battery_info.full_charge_capacity_wh = battery.capacity;
 			battery_info.remaining_capacity_wh = battery.remaining * battery.capacity;
 			battery_info.state_of_charge_pct = battery.remaining * 100;

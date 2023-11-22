@@ -819,197 +819,6 @@ void EKF2::Run()
 
 void EKF2::VerifyParams()
 {
-#if defined(CONFIG_EKF2_GNSS)
-
-	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS)
-	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS_YAW)) {
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_GPS |
-					 SensorFusionMask::DEPRECATED_USE_GPS_YAW));
-		_param_ekf2_aid_mask.commit();
-		mavlink_log_critical(&_mavlink_log_pub, "Use EKF2_GPS_CTRL instead\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_gps"), events::Log::Warning,
-				    "Use EKF2_GPS_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
-	if ((_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::HPOS)) {
-		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() & ~GnssCtrl::VPOS);
-		_param_ekf2_gps_ctrl.commit();
-		mavlink_log_critical(&_mavlink_log_pub, "GPS lon/lat is required for altitude fusion\n");
-		/* EVENT
-		 * @description <param>EKF2_GPS_CTRL</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_gps_ctrl_alt"), events::Log::Warning,
-				    "GPS lon/lat is required for altitude fusion", _param_ekf2_gps_ctrl.get());
-	}
-
-#endif // CONFIG_EKF2_GNSS
-
-#if defined(CONFIG_EKF2_BAROMETER)
-
-	if ((_param_ekf2_hgt_ref.get() == HeightSensor::BARO) && (_param_ekf2_baro_ctrl.get() == 0)) {
-		_param_ekf2_baro_ctrl.set(1);
-		_param_ekf2_baro_ctrl.commit();
-		mavlink_log_critical(&_mavlink_log_pub, "Baro enabled by EKF2_HGT_REF\n");
-		/* EVENT
-		 * @description <param>EKF2_BARO_CTRL</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_hgt_ref_baro"), events::Log::Warning,
-				    "Baro enabled by EKF2_HGT_REF", _param_ekf2_baro_ctrl.get());
-	}
-
-#endif // CONFIG_EKF2_BAROMETER
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-
-	if ((_param_ekf2_hgt_ref.get() == HeightSensor::RANGE) && (_param_ekf2_rng_ctrl.get() == RngCtrl::DISABLED)) {
-		_param_ekf2_rng_ctrl.set(1);
-		_param_ekf2_rng_ctrl.commit();
-		mavlink_log_critical(&_mavlink_log_pub, "Range enabled by EKF2_HGT_REF\n");
-		/* EVENT
-		 * @description <param>EKF2_RNG_CTRL</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_hgt_ref_rng"), events::Log::Warning,
-				    "Range enabled by EKF2_HGT_REF", _param_ekf2_rng_ctrl.get());
-	}
-
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_GNSS)
-
-	if ((_param_ekf2_hgt_ref.get() == HeightSensor::GNSS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS)) {
-		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() | (GnssCtrl::VPOS | GnssCtrl::HPOS | GnssCtrl::VEL));
-		_param_ekf2_gps_ctrl.commit();
-		mavlink_log_critical(&_mavlink_log_pub, "GPS enabled by EKF2_HGT_REF\n");
-		/* EVENT
-		 * @description <param>EKF2_GPS_CTRL</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_hgt_ref_gps"), events::Log::Warning,
-				    "GPS enabled by EKF2_HGT_REF", _param_ekf2_gps_ctrl.get());
-	}
-
-#endif // CONFIG_EKF2_GNSS
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-
-	if ((_param_ekf2_hgt_ref.get() == HeightSensor::EV)
-	    && !(_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::VPOS))) {
-		_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VPOS));
-		_param_ekf2_ev_ctrl.commit();
-		mavlink_log_critical(&_mavlink_log_pub, "EV vertical position enabled by EKF2_HGT_REF\n");
-		/* EVENT
-		 * @description <param>EKF2_EV_CTRL</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_hgt_ref_ev"), events::Log::Warning,
-				    "EV vertical position enabled by EKF2_HGT_REF", _param_ekf2_ev_ctrl.get());
-	}
-
-	// EV EKF2_AID_MASK -> EKF2_EV_CTRL
-	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)
-	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS)
-	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW)
-	   ) {
-
-		// EKF2_EV_CTRL set VEL bit
-		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)) {
-			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VEL));
-		}
-
-		// EKF2_EV_CTRL set HPOS/VPOS bits
-		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS)) {
-			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get()
-						| static_cast<int32_t>(EvCtrl::HPOS) | static_cast<int32_t>(EvCtrl::VPOS));
-		}
-
-		// EKF2_EV_CTRL set YAW bit
-		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW)) {
-			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::YAW));
-		}
-
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL));
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS));
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW));
-
-		_param_ekf2_ev_ctrl.commit();
-		_param_ekf2_aid_mask.commit();
-
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2 EV use EKF2_EV_CTRL instead of EKF2_AID_MASK\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_ev"), events::Log::Warning,
-				    "Use EKF2_EV_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-	// IMU EKF2_AID_MASK -> EKF2_IMU_CTRL (2023-01-31)
-	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_INHIBIT_ACC_BIAS) {
-
-		// EKF2_IMU_CTRL set disable accel bias bit
-		_param_ekf2_imu_ctrl.set(_param_ekf2_imu_ctrl.get() & ~(static_cast<int32_t>(ImuCtrl::AccelBias)));
-
-		// EKF2_AID_MASK clear inhibit accel bias bit
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_INHIBIT_ACC_BIAS));
-
-		_param_ekf2_imu_ctrl.commit();
-		_param_ekf2_aid_mask.commit();
-
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2 IMU accel bias inhibit use EKF2_IMU_CTRL instead of EKF2_AID_MASK\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_imu"), events::Log::Warning,
-				    "Use EKF2_IMU_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-
-	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_DRAG) {
-		// EKF2_DRAG_CTRL enable drag fusion
-		_param_ekf2_drag_ctrl.set(1);
-
-		// EKF2_AID_MASK clear deprecated bits
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_DRAG));
-
-		_param_ekf2_drag_ctrl.commit();
-		_param_ekf2_aid_mask.commit();
-
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2 drag fusion use EKF2_DRAG_CTRL instead of EKF2_AID_MASK\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_drag"), events::Log::Warning,
-				    "Use EKF2_DRAG_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
-#endif // CONFIG_EKF2_DRAG_FUSION
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-	// IMU EKF2_AID_MASK -> EKF2_OF_CTRL (2023-04-26)
-	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_OPT_FLOW) {
-		// EKF2_OF_CTRL enable flow fusion
-		_param_ekf2_of_ctrl.set(1);
-
-		// EKF2_AID_MASK clear deprecated bit
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_OPT_FLOW));
-
-		_param_ekf2_of_ctrl.commit();
-		_param_ekf2_aid_mask.commit();
-
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2 optical flow use EKF2_OF_CTRL instead of EKF2_AID_MASK\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_opt_flow"), events::Log::Warning,
-				    "Use EKF2_OF_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 
 	// EKF2_MAG_TYPE obsolete options
@@ -1020,7 +829,7 @@ void EKF2::VerifyParams()
 
 		mavlink_log_critical(&_mavlink_log_pub, "EKF2_MAG_TYPE invalid, resetting to default");
 		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 * @description <param>EKF2_MAG_TYPE</param> is set to {1:.0}.
 		 */
 		events::send<float>(events::ID("ekf2_mag_type_invalid"), events::Log::Warning,
 				    "EKF2_MAG_TYPE invalid, resetting to default", _param_ekf2_mag_type.get());
@@ -2193,15 +2002,13 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
 		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
 
-		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_uncompensated_integral);
-		_ekf.getFlowCompensated().copyTo(flow_vel.flow_compensated_integral);
+		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_rate_uncompensated);
+		_ekf.getFlowCompensated().copyTo(flow_vel.flow_rate_compensated);
 
 		_ekf.getFlowGyro().copyTo(flow_vel.gyro_rate);
-		_ekf.getFlowGyroIntegral().copyTo(flow_vel.gyro_rate_integral);
 
 		_ekf.getFlowGyroBias().copyTo(flow_vel.gyro_bias);
 		_ekf.getRefBodyRate().copyTo(flow_vel.ref_gyro);
-		_ekf.getMeasuredBodyRate().copyTo(flow_vel.meas_gyro);
 
 		flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
@@ -2552,17 +2359,30 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			perf_count(_msg_missed_optical_flow_perf);
 		}
 
-		flowSample flow {
-			.time_us = optical_flow.timestamp_sample,
+		const float dt = 1e-6f * (float)optical_flow.integration_timespan_us;
+		Vector2f flow_rate;
+		Vector3f gyro_rate;
+
+		if (dt > FLT_EPSILON) {
 			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
 			// is produced by a RH rotation of the image about the sensor axis.
-			.flow_xy_rad = Vector2f{-optical_flow.pixel_flow[0], -optical_flow.pixel_flow[1]},
-			.gyro_xyz = Vector3f{-optical_flow.delta_angle[0], -optical_flow.delta_angle[1], -optical_flow.delta_angle[2]},
-			.dt = 1e-6f * (float)optical_flow.integration_timespan_us,
-			.quality = optical_flow.quality,
+			flow_rate = Vector2f(-optical_flow.pixel_flow[0], -optical_flow.pixel_flow[1]) / dt;
+			gyro_rate = Vector3f(-optical_flow.delta_angle[0], -optical_flow.delta_angle[1], -optical_flow.delta_angle[2]) / dt;
+
+		} else if (optical_flow.quality == 0) {
+			// handle special case of SITL and PX4Flow where dt is forced to zero when the quaity is 0
+			flow_rate.zero();
+			gyro_rate.zero();
+		}
+
+		flowSample flow {
+			.time_us = optical_flow.timestamp_sample - optical_flow.integration_timespan_us / 2, // correct timestamp to midpoint of integration interval as the data is converted to rates
+			.flow_rate = flow_rate,
+			.gyro_rate = gyro_rate,
+			.quality = optical_flow.quality
 		};
 
-		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && flow.dt < 1) {
+		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && optical_flow.integration_timespan_us < 1e6) {
 
 			// Save sensor limits reported by the optical flow sensor
 			_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,

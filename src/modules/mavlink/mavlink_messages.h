@@ -75,6 +75,4 @@ MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink);
 
 MavlinkStream *create_mavlink_stream(const uint16_t msg_id, Mavlink *mavlink);
 
-union px4_custom_mode get_px4_custom_mode(uint8_t nav_state);
-
 #endif /* MAVLINK_MESSAGES_H_ */

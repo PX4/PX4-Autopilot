@@ -1,5 +1,6 @@
 from xml.sax.saxutils import escape
 import codecs
+import html
 
 class MarkdownTablesOutput():
     def __init__(self, groups):
@@ -45,7 +46,9 @@ table {
             for param in group.GetParams():
                 code = param.GetName()
                 name = param.GetFieldValue("short_desc") or ''
+                name = html.escape(name)
                 long_desc = param.GetFieldValue("long_desc") or ''
+                long_desc = html.escape(long_desc)
                 min_val = param.GetFieldValue("min") or ''
                 max_val = param.GetFieldValue("max") or ''
                 increment = param.GetFieldValue("increment") or ''
@@ -68,16 +71,16 @@ table {
                         min_val='?'
                     if not max_val:
                         max_val='?'
-                    max_min_combined+='[%s, %s] ' % (min_val, max_val)
+                    max_min_combined+=f"[{min_val}, {max_val}] "
                 if increment:
                     max_min_combined+='(%s)' % increment
 
                 if long_desc != '':
-                    long_desc = '<p><strong>Comment:</strong> %s</p>' % long_desc
+                    long_desc = f"<p><strong>Comment:</strong> {long_desc}</p>"
 
                 if name == code:
                     name = ""
-                code='<strong id="%s">%s</strong>' % (code, code)
+                code=f"<strong id=\"{code}\">{code}</strong>"
 
                 if reboot_required:
                     reboot_required='<p><b>Reboot required:</b> %s</p>\n' % reboot_required
@@ -89,8 +92,8 @@ table {
                     enum_output+='<strong>Values:</strong><ul>'
                     enum_codes=sorted(enum_codes,key=float)
                     for item in enum_codes:
-                        enum_output+='\n<li><strong>%s:</strong> %s</li> \n' % (item, param.GetEnumValue(item))
-                    enum_output+='</ul>\n'
+                        enum_output+=f"\n<li><strong>{item}:</strong> {html.escape(param.GetEnumValue(item))}</li>"
+                    enum_output+='\n</ul>'
 
 
                 bitmask_list=param.GetBitmaskList() #Gets bitmask values for parameter
@@ -100,7 +103,8 @@ table {
                     bitmask_output+='<strong>Bitmask:</strong><ul>'
                     for bit in bitmask_list:
                         bit_text = param.GetBitmaskBit(bit)
-                        bitmask_output+='  <li><strong>%s:</strong> %s</li> \n' % (bit, bit_text)
+                        bit_text = html.escape(bit_text)
+                        bitmask_output+=f"  <li><strong>{bit}:</strong> {bit_text}</li>\n"
                     bitmask_output+='</ul>\n'
 
                 if is_boolean and def_val=='1':
@@ -108,7 +112,7 @@ table {
                 if is_boolean and def_val=='0':
                     def_val='Disabled (0)'
 
-                result += '<tr>\n <td>%s (%s)</td>\n <td>%s %s %s %s %s</td>\n <td>%s</td>\n <td>%s</td>\n <td>%s</td>\n</tr>\n' % (code, type, name, long_desc, enum_output, bitmask_output, reboot_required, max_min_combined, def_val, unit)
+                result += f"<tr>\n <td>{code} ({type})</td>\n <td>{name} {long_desc} {enum_output} {bitmask_output} {reboot_required}</td>\n <td>{max_min_combined}</td>\n <td>{def_val}</td>\n <td>{unit}</td>\n</tr>\n"
 
             #Close the table.
             result += '</tbody></table>\n\n'

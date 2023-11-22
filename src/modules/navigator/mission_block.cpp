@@ -747,7 +747,8 @@ MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *it
 	item->lat = pos_sp_triplet->current.lat;
 	item->lon = pos_sp_triplet->current.lon;
 	item->altitude = pos_sp_triplet->current.alt;
-	item->loiter_radius = pos_sp_triplet->current.loiter_radius;
+	item->loiter_radius = pos_sp_triplet->current.loiter_direction_counter_clockwise ?
+			      -pos_sp_triplet->current.loiter_radius : pos_sp_triplet->current.loiter_radius;
 }
 
 void
@@ -874,29 +875,6 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 	}
 
 	item->autocontinue = true;
-}
-
-void
-MissionBlock::mission_apply_limitation(mission_item_s &item)
-{
-	// Limit altitude
-	const float maximum_altitude = _navigator->get_lndmc_alt_max();
-
-	/* do nothing if altitude max is negative */
-	if (maximum_altitude > 0.0f) {
-
-		/* absolute altitude */
-		float altitude_abs = item.altitude_is_relative
-				     ? item.altitude + _navigator->get_home_position()->alt
-				     : item.altitude;
-
-		/* limit altitude to maximum allowed altitude */
-		if ((maximum_altitude + _navigator->get_home_position()->alt) < altitude_abs) {
-			item.altitude = item.altitude_is_relative ?
-					maximum_altitude :
-					maximum_altitude + _navigator->get_home_position()->alt;
-		}
-	}
 }
 
 float

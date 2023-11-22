@@ -132,11 +132,9 @@ void RtlMissionFast::setActiveMissionItems()
 
 
 		if (num_found_items > 0) {
-			mission_apply_limitation(next_mission_items[0u]);
 			mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->next);
 		}
 
-		mission_apply_limitation(_mission_item);
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	}
 

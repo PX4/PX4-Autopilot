@@ -222,7 +222,6 @@ void Mission::setActiveMissionItems()
 
 		// TODO Precision land needs to be refactored: https://github.com/PX4/Firmware/issues/14320
 		if (new_work_item_type != WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND) {
-			mission_apply_limitation(_mission_item);
 			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		}
 
@@ -256,13 +255,11 @@ void Mission::setActiveMissionItems()
 
 		if (num_found_items > 0u) {
 			// We have a position, convert it to the setpoint and update setpoint triplet
-			mission_apply_limitation(next_mission_items[0u]);
 			mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->current);
 		}
 
 		if (num_found_items >= 2u) {
 			/* got next mission item, update setpoint triplet */
-			mission_apply_limitation(next_mission_items[1u]);
 			mission_item_to_position_setpoint(next_mission_items[1u], &pos_sp_triplet->next);
 
 		} else {
@@ -439,7 +436,6 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
 
 		/* set position setpoint to target during the transition */
-		mission_apply_limitation(_mission_item);
 		mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->current);
 	}
 

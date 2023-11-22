@@ -112,6 +112,7 @@ if(gazebo_FOUND)
 		empty
 		ksql_airport
 		mcmillan_airfield
+		ramped_up_wind
 		sonoma_raceway
 		warehouse
 		windy

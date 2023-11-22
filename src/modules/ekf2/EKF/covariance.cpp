@@ -108,27 +108,28 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// delta angle noise variance
 	float gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
-	const float d_ang_var = sq(imu_delayed.delta_ang_dt * gyro_noise);
+	const float gyro_var = sq(gyro_noise);
 
 	// delta velocity noise variance
 	float accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
-	Vector3f d_vel_var;
+	Vector3f accel_var;
 
 	for (unsigned i = 0; i < 3; i++) {
 		if (_fault_status.flags.bad_acc_vertical || imu_delayed.delta_vel_clipping[i]) {
 			// Increase accelerometer process noise if bad accel data is detected
-			d_vel_var(i) = sq(imu_delayed.delta_vel_dt * BADACC_BIAS_PNOISE);
+			accel_var(i) = sq(BADACC_BIAS_PNOISE);
 
 		} else {
-			d_vel_var(i) = sq(imu_delayed.delta_vel_dt * accel_noise);
+			accel_var(i) = sq(accel_noise);
 		}
 	}
 
 	// predict the covariance
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	P = sym::PredictCovariance(_state.vector(), P,
-		imu_delayed.delta_vel, imu_delayed.delta_vel_dt, d_vel_var,
-		imu_delayed.delta_ang, imu_delayed.delta_ang_dt, d_ang_var);
+		imu_delayed.delta_vel / math::max(imu_delayed.delta_vel_dt, FLT_EPSILON), accel_var,
+		imu_delayed.delta_ang / math::max(imu_delayed.delta_ang_dt, FLT_EPSILON), gyro_var,
+		0.5f * (imu_delayed.delta_vel_dt + imu_delayed.delta_ang_dt));
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances

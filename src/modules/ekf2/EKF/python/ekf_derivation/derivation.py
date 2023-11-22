@@ -31,6 +31,10 @@
 
 File: derivation.py
 Description:
+    Derivation of an error-state EKF based on
+    Sola, Joan. "Quaternion kinematics for the error-state Kalman filter." arXiv preprint arXiv:1711.02508 (2017).
+    The derivation is directly done in discrete-time as this allows us to define the desired type of discretization
+    for each element while defining the equations (easier than a continuous-time derivation followed by a block-wise discretization).
 """
 
 import argparse
@@ -42,6 +46,8 @@ import symforce.symbolic as sf
 from symforce import typing as T
 from symforce import ops
 from symforce.values import Values
+
+import sympy as sp
 from derivation_utils import *
 
 # Initialize parser
@@ -108,12 +114,11 @@ def vstate_to_state(v: VState):
 def predict_covariance(
     state: VState,
     P: MTangent,
-    d_vel: sf.V3,
-    d_vel_dt: sf.Scalar,
-    d_vel_var: sf.V3,
-    d_ang: sf.V3,
-    d_ang_dt: sf.Scalar,
-    d_ang_var: sf.Scalar
+    accel: sf.V3,
+    accel_var: sf.V3,
+    gyro: sf.V3,
+    gyro_var: sf.Scalar,
+    dt: sf.Scalar
 ) -> MTangent:
 
     state = vstate_to_state(state)
@@ -143,37 +148,37 @@ def predict_covariance(
     for key in state.keys():
         if key == "quat_nominal":
             # Create true quaternion using small angle approximation of the error rotation
-            state_t["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * state_error["theta"]), w=1))
+            state_t["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(state_error["theta"] / 2), w=1))
         else:
             state_t[key] = state[key] + state_error[key]
 
     noise = Values(
-        d_vel = sf.V3.symbolic("a_n"),
-        d_ang = sf.V3.symbolic("w_n"),
+        accel = sf.V3.symbolic("a_n"),
+        gyro = sf.V3.symbolic("w_n"),
     )
 
     input_t = Values(
-        d_vel =  d_vel - state_t["accel_bias"] * d_vel_dt - noise["d_vel"],
-        d_ang = d_ang - state_t["gyro_bias"] * d_ang_dt - noise["d_ang"]
+        accel = accel - state_t["accel_bias"] - noise["accel"],
+        gyro = gyro - state_t["gyro_bias"] - noise["gyro"]
     )
 
     R_t = state_t["quat_nominal"]
     state_t_pred = state_t.copy()
-    state_t_pred["quat_nominal"] = state_t["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * input_t["d_ang"]), w=1))
-    state_t_pred["vel"] = state_t["vel"] + R_t * input_t["d_vel"] + sf.V3(0, 0, g) * d_vel_dt
-    state_t_pred["pos"] = state_t["pos"] + state_t["vel"] * d_vel_dt
+    state_t_pred["quat_nominal"] = state_t["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(input_t["gyro"] * dt / 2), w=1))
+    state_t_pred["vel"] = state_t["vel"] + (R_t * input_t["accel"] + sf.V3(0, 0, g)) * dt
+    state_t_pred["pos"] = state_t["pos"] + state_t["vel"] * dt
 
     # Nominal state kinematics
     input = Values(
-        d_vel =  d_vel - state["accel_bias"] * d_vel_dt,
-        d_ang = d_ang - state["gyro_bias"] * d_ang_dt
+        accel = accel - state["accel_bias"],
+        gyro = gyro - state["gyro_bias"]
     )
 
     R = state["quat_nominal"]
     state_pred = state.copy()
-    state_pred["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * input["d_ang"]), w=1))
-    state_pred["vel"] = state["vel"] + R * input["d_vel"] + sf.V3(0, 0, g) * d_vel_dt
-    state_pred["pos"] = state["pos"] + state["vel"] * d_vel_dt
+    state_pred["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(input["gyro"] * dt / 2), w=1))
+    state_pred["vel"] = state["vel"] + (R * input["accel"] + sf.V3(0, 0, g)) * dt
+    state_pred["pos"] = state["pos"] + state["vel"] * dt
 
     # Error state kinematics
     state_error_pred = Values()
@@ -184,6 +189,12 @@ def predict_covariance(
         else:
             state_error_pred[key] = state_t_pred[key] - state_pred[key]
 
+    # Simplify angular error state prediction
+    for i in range(state_error_pred["theta"].storage_dim()):
+        state_error_pred["theta"][i] = sp.expand(state_error_pred["theta"][i]).subs(dt**2, 0) # do not consider dt**2 effects in the derivation
+        q_est = sf.Quaternion.from_storage(state["quat_nominal"].to_storage())
+        state_error_pred["theta"][i] = sp.factor(state_error_pred["theta"][i]).subs(q_est.w**2 + q_est.x**2 + q_est.y**2 + q_est.z**2, 1) # unit norm quaternion
+
     zero_state_error = {state_error[key]: state_error[key].zero() for key in state_error.keys()}
     zero_noise = {noise[key]: noise[key].zero() for key in noise.keys()}
 
@@ -192,7 +203,7 @@ def predict_covariance(
     G = VTangent(state_error_pred.to_storage()).jacobian(noise).subs(zero_state_error).subs(zero_noise)
 
     # Covariance propagation
-    var_u = sf.Matrix.diag([d_vel_var[0], d_vel_var[1], d_vel_var[2], d_ang_var, d_ang_var, d_ang_var])
+    var_u = sf.Matrix.diag([accel_var[0], accel_var[1], accel_var[2], gyro_var, gyro_var, gyro_var])
     P_new = A * P * A.T + G * var_u * G.T
 
     # Generate the equations for the upper triangular matrix and the diagonal only

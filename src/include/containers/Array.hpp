@@ -99,6 +99,12 @@ public:
 	const T *begin() const { return &_items[0]; }
 	const T *end() const { return &_items[_size]; }
 
+	void clear()
+	{
+		_size = 0;
+		_overflow = false;
+	}
+
 private:
 	T        _items[N];
 	size_t      _size{0};

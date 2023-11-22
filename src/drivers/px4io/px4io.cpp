@@ -336,8 +336,7 @@ private:
 		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
 		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_themal,
-		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
-		(ParamInt<px4::params::SYS_USE_IO>) _param_sys_use_io
+		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 	)
 };
 
@@ -468,7 +467,7 @@ int PX4IO::init()
 	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	if (_param_sys_hitl.get() <= 0 && _param_sys_use_io.get() == 1) {
+	if (_param_sys_hitl.get() <= 0) {
 		_mixing_output.setMaxTopicUpdateRate(MIN_TOPIC_UPDATE_INTERVAL);
 	}
 
@@ -1557,6 +1556,10 @@ int PX4IO::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
+	if (!strcmp(verb, "supported")) {
+		return 0;
+	}
+
 	if (!strcmp(verb, "checkcrc")) {
 		if (is_running()) {
 			PX4_ERR("io must be stopped");
@@ -1762,7 +1765,7 @@ Output driver communicating with the IO co-processor.
 extern "C" __EXPORT int px4io_main(int argc, char *argv[])
 {
 	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
-		PX4_ERR("PX4IO Not Supported");
+		PX4_INFO("PX4IO Not Supported");
 		return -1;
 	}
 	return PX4IO::main(argc, argv);

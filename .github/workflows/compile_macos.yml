@@ -18,6 +18,11 @@ jobs:
           px4_sitl
           ]
     steps:
+    - name: install Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
     - uses: actions/checkout@v1
       with:
         token: ${{secrets.ACCESS_TOKEN}}

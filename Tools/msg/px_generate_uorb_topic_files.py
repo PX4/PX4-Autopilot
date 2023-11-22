@@ -70,9 +70,8 @@ __license__ = "BSD"
 __email__ = "thomasgubler@gmail.com"
 
 
-TEMPLATE_FILE = ['msg.h.em', 'msg.cpp.em', 'uorb_idl_header.h.em']
-TOPICS_LIST_TEMPLATE_FILE = ['uORBTopics.hpp.em', 'uORBTopics.cpp.em']
-OUTPUT_FILE_EXT = ['.h', '.cpp', '.h']
+TEMPLATE_FILE = ['msg.h.em', 'msg.cpp.em', 'uorb_idl_header.h.em', 'msg.json.em']
+TOPICS_LIST_TEMPLATE_FILE = ['uORBTopics.hpp.em', 'uORBTopics.cpp.em', None, None]
 INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
@@ -105,7 +104,7 @@ def get_topics(filename):
     return result
 
 
-def generate_output_from_file(format_idx, filename, outputdir, package, templatedir, includepath):
+def generate_output_from_file(format_idx, filename, outputdir, package, templatedir, includepath, all_topics):
     """
     Converts a single .msg file to an uorb header/source file
     """
@@ -155,6 +154,7 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
         "msg_context": msg_context,
         "spec": spec,
         "topics": topics,
+        "all_topics": all_topics,
     }
 
     # Make sure output directory exists:
@@ -162,10 +162,11 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
         os.makedirs(outputdir)
 
     template_file = os.path.join(templatedir, TEMPLATE_FILE[format_idx])
+    extension = os.path.splitext(os.path.splitext(TEMPLATE_FILE[format_idx])[0])[1]
     if format_idx == 2:
-        output_file = os.path.join(outputdir, file_base_name + OUTPUT_FILE_EXT[format_idx])
+        output_file = os.path.join(outputdir, file_base_name + extension)
     else:
-        output_file = os.path.join(outputdir, full_type_name_snake + OUTPUT_FILE_EXT[format_idx])
+        output_file = os.path.join(outputdir, full_type_name_snake + extension)
 
     return generate_by_template(output_file, template_file, em_globals)
 
@@ -195,17 +196,13 @@ def generate_by_template(output_file, template_file, em_globals):
     return True
 
 
-def generate_topics_list_file_from_files(files, outputdir, template_filename, templatedir):
+def generate_topics_list_file_from_files(files, outputdir, template_filename, templatedir, all_topics):
     # generate cpp file with topics list
     filenames = []
     for filename in [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]:
         filenames.append(re.sub(r'(?<!^)(?=[A-Z])', '_', filename).lower())
 
-    topics = []
-    for msg_filename in files:
-        topics.extend(get_topics(msg_filename))
-
-    tl_globals = {"msgs": filenames, "topics": topics}
+    tl_globals = {"msgs": filenames, "all_topics": all_topics}
     tl_template_file = os.path.join(templatedir, template_filename)
     tl_out_file = os.path.join(outputdir, template_filename.replace(".em", ""))
 
@@ -222,8 +219,9 @@ if __name__ == "__main__":
     parser.add_argument('--headers', help='Generate header files', action='store_true')
     parser.add_argument('--sources', help='Generate source files', action='store_true')
     parser.add_argument('--uorb-idl-header', help='Generate uORB compatible idl header', action='store_true')
+    parser.add_argument('--json', help='Generate json files', action='store_true')
     parser.add_argument('-f', dest='file',
-                        help="files to convert (use only without -d)",
+                        help="files to convert",
                         nargs="+")
     parser.add_argument('-i', dest="include_paths",
                         help='Additional Include Paths', nargs="*",
@@ -247,17 +245,21 @@ if __name__ == "__main__":
     elif args.sources:
         generate_idx = 1
     elif args.uorb_idl_header:
-        for f in args.file:
-            print(f)
-            generate_output_from_file(2, f, args.outputdir, args.package, args.templatedir, INCL_DEFAULT)
-        exit(0)
+        generate_idx = 2
+    elif args.json:
+        generate_idx = 3
     else:
-        print('Error: either --headers or --sources must be specified')
+        print('Error: either --headers, --sources or --json must be specified')
         exit(-1)
     if args.file is not None:
+        all_topics = []
+        for msg_filename in args.file:
+            all_topics.extend(get_topics(msg_filename))
+        all_topics.sort()
+
         for f in args.file:
-            generate_output_from_file(generate_idx, f, args.outputdir, args.package, args.templatedir, INCL_DEFAULT)
+            generate_output_from_file(generate_idx, f, args.outputdir, args.package, args.templatedir, INCL_DEFAULT, all_topics)
 
         # Generate topics list header and source file
-        if os.path.isfile(os.path.join(args.templatedir, TOPICS_LIST_TEMPLATE_FILE[generate_idx])):
-            generate_topics_list_file_from_files(args.file, args.outputdir, TOPICS_LIST_TEMPLATE_FILE[generate_idx], args.templatedir)
+        if TOPICS_LIST_TEMPLATE_FILE[generate_idx] is not None and os.path.isfile(os.path.join(args.templatedir, TOPICS_LIST_TEMPLATE_FILE[generate_idx])):
+            generate_topics_list_file_from_files(args.file, args.outputdir, TOPICS_LIST_TEMPLATE_FILE[generate_idx], args.templatedir, all_topics)
