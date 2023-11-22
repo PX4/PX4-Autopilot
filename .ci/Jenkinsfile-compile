@@ -88,7 +88,6 @@ pipeline {
                      "nxp_fmuk66-e_socketcan",
                      "nxp_fmuk66-v3_default",
                      "nxp_fmuk66-v3_socketcan",
-                     "nxp_fmurt1062-v1_default",
                      "nxp_mr-canhubk3_default",
                      "nxp_ucans32k146_canbootloader",
                      "nxp_ucans32k146_default",
