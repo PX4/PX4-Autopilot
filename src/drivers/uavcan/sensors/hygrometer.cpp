@@ -34,7 +34,7 @@
 #include "hygrometer.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 
 const char *const UavcanHygrometerBridge::NAME = "hygrometer_sensor";
 
@@ -65,7 +65,7 @@ void UavcanHygrometerBridge::hygro_sub_cb(const uavcan::ReceivedDataStructure<dr
 	sensor_hygrometer_s report{};
 	report.timestamp_sample = timestamp_sample;
 	report.device_id = 0; // TODO
-	report.temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	report.temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius;
 	report.humidity = msg.humidity;
 	report.timestamp = hrt_absolute_time();
 

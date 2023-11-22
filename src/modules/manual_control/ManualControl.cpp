@@ -154,7 +154,8 @@ void ManualControl::processInput(hrt_abstime now)
 		_throttle_diff.reset();
 		_stick_arm_hysteresis.set_state_and_update(false, now);
 		_stick_disarm_hysteresis.set_state_and_update(false, now);
-		_button_hysteresis.set_state_and_update(false, now);
+		_stick_kill_hysteresis.set_state_and_update(false, now);
+		_button_arm_hysteresis.set_state_and_update(false, now);
 	}
 
 	processSwitches(now);
@@ -178,10 +179,10 @@ void ManualControl::processSwitches(hrt_abstime &now)
 
 				if (_param_com_arm_swisbtn.get()) {
 					// Arming button
-					const bool previous_button_hysteresis = _button_hysteresis.get_state();
-					_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
+					const bool previous_button_arm_hysteresis = _button_arm_hysteresis.get_state();
+					_button_arm_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
 
-					if (!previous_button_hysteresis && _button_hysteresis.get_state()) {
+					if (!previous_button_arm_hysteresis && _button_arm_hysteresis.get_state()) {
 						sendActionRequest(action_request_s::ACTION_TOGGLE_ARMING, action_request_s::SOURCE_RC_BUTTON);
 					}
 
@@ -291,7 +292,8 @@ void ManualControl::updateParams()
 
 	_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
 	_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-	_button_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+	_button_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+	_stick_kill_hysteresis.set_hysteresis_time_from(false, _param_man_kill_gest_t.get() * 1_s);
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
 	_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
@@ -365,6 +367,18 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 
 	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_STICK_GESTURE);
+	}
+
+	// Kill gesture
+	if (_param_man_kill_gest_t.get() > 0.f) {
+		const bool right_stick_lower_right = (input.pitch < -0.9f) && (input.roll > 0.9f);
+
+		const bool previous_stick_kill_hysteresis = _stick_kill_hysteresis.get_state();
+		_stick_kill_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_lower_right, input.timestamp);
+
+		if (!previous_stick_kill_hysteresis && _stick_kill_hysteresis.get_state()) {
+			sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_RC_STICK_GESTURE);
+		}
 	}
 }
 
@@ -555,6 +569,15 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 		case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 		case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
 		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+
+		case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
+		case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;
+		case 102: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL3;
+		case 103: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL4;
+		case 104: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL5;
+		case 105: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL6;
+		case 106: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL7;
+		case 107: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL8;
 	}
 	return -1;
 }

@@ -246,6 +246,19 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 
 /**
+ * Allow disarming via switch/stick/button on multicopters in manual thrust modes
+ *
+ * 0: Disallow disarming when not landed
+ * 1: Allow disarming in multicopter flight in modes where
+ * the thrust is directly controlled by thr throttle stick
+ * e.g. Stabilized, Acro
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_DISARM_MAN, 1);
+
+/**
  * Battery failsafe mode
  *
  * Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
@@ -344,150 +357,6 @@ PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(COM_OBC_LOSS_T, 5.0f);
-
-/**
- * First flightmode slot (1000-1160)
- *
- * If the main switch channel is in this range the
- * selected flight mode will be applied.
- *
- * @value -1 Unassigned
- * @value 0 Manual
- * @value 1 Altitude
- * @value 2 Position
- * @value 3 Mission
- * @value 4 Hold
- * @value 10 Takeoff
- * @value 11 Land
- * @value 5 Return
- * @value 6 Acro
- * @value 7 Offboard
- * @value 8 Stabilized
- * @value 12 Follow Me
- * @value 13 Precision Land
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_FLTMODE1, -1);
-
-/**
- * Second flightmode slot (1160-1320)
- *
- * If the main switch channel is in this range the
- * selected flight mode will be applied.
- *
- * @value -1 Unassigned
- * @value 0 Manual
- * @value 1 Altitude
- * @value 2 Position
- * @value 3 Mission
- * @value 4 Hold
- * @value 10 Takeoff
- * @value 11 Land
- * @value 5 Return
- * @value 6 Acro
- * @value 7 Offboard
- * @value 8 Stabilized
- * @value 12 Follow Me
- * @value 13 Precision Land
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_FLTMODE2, -1);
-
-/**
- * Third flightmode slot (1320-1480)
- *
- * If the main switch channel is in this range the
- * selected flight mode will be applied.
- *
- * @value -1 Unassigned
- * @value 0 Manual
- * @value 1 Altitude
- * @value 2 Position
- * @value 3 Mission
- * @value 4 Hold
- * @value 10 Takeoff
- * @value 11 Land
- * @value 5 Return
- * @value 6 Acro
- * @value 7 Offboard
- * @value 8 Stabilized
- * @value 12 Follow Me
- * @value 13 Precision Land
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_FLTMODE3, -1);
-
-/**
- * Fourth flightmode slot (1480-1640)
- *
- * If the main switch channel is in this range the
- * selected flight mode will be applied.
- *
- * @value -1 Unassigned
- * @value 0 Manual
- * @value 1 Altitude
- * @value 2 Position
- * @value 3 Mission
- * @value 4 Hold
- * @value 10 Takeoff
- * @value 11 Land
- * @value 5 Return
- * @value 6 Acro
- * @value 7 Offboard
- * @value 8 Stabilized
- * @value 12 Follow Me
- * @value 13 Precision Land
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_FLTMODE4, -1);
-
-/**
- * Fifth flightmode slot (1640-1800)
- *
- * If the main switch channel is in this range the
- * selected flight mode will be applied.
- *
- * @value -1 Unassigned
- * @value 0 Manual
- * @value 1 Altitude
- * @value 2 Position
- * @value 3 Mission
- * @value 4 Hold
- * @value 10 Takeoff
- * @value 11 Land
- * @value 5 Return
- * @value 6 Acro
- * @value 7 Offboard
- * @value 8 Stabilized
- * @value 12 Follow Me
- * @value 13 Precision Land
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
-
-/**
- * Sixth flightmode slot (1800-2000)
- *
- * If the main switch channel is in this range the
- * selected flight mode will be applied.
- *
- * @value -1 Unassigned
- * @value 0 Manual
- * @value 1 Altitude
- * @value 2 Position
- * @value 3 Mission
- * @value 4 Hold
- * @value 10 Takeoff
- * @value 11 Land
- * @value 5 Return
- * @value 6 Acro
- * @value 7 Offboard
- * @value 8 Stabilized
- * @value 12 Follow Me
- * @value 13 Precision Land
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
 
 /**
  * Maximum EKF position innovation test ratio that will allow arming
@@ -1134,3 +1003,30 @@ PARAM_DEFINE_INT32(COM_ARMABLE, 1);
  * @group Commander
  */
 PARAM_DEFINE_FLOAT(COM_ARM_BAT_MIN, 0.f);
+
+/**
+ * Enable throw-start
+ *
+ * Allows to start the vehicle by throwing it into the air.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_THROW_EN, 0);
+
+/**
+ * Minimum speed for the throw start
+ *
+ * When the throw launch is enabled, the drone will only arm after this speed is exceeded before detecting
+ * the freefall. This is a safety feature to ensure the drone does not turn on after accidental drop or
+ * a rapid movement before the throw.
+ *
+ * Set to 0 to disable.
+ *
+ * @group Commander
+ * @min 0
+ * @decimal 1
+ * @increment 0.1
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);

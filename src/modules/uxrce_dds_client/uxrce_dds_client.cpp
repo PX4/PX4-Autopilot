@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,9 @@
 #include <px4_platform_common/posix.h>
 
 #include "uxrce_dds_client.h"
+
+// services
+#include "vehicle_command_srv.h"
 
 #include <uxr/client/client.h>
 #include <uxr/client/util/ping.h>
@@ -73,8 +76,6 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 		Timesync *timesync = static_cast<Timesync *>(args);
 		timesync->update(current_time / 1000, transmit_timestamp, originate_timestamp);
 
-		//fprintf(stderr, "time_offset: %ld, timesync: %ld, diff: %ld\n", session->time_offset/1000, timesync->offset(), session->time_offset/1000 + timesync->offset());
-
 		session->time_offset = -timesync->offset() * 1000; // us -> ns
 	}
 }
@@ -83,6 +84,27 @@ void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received
 		     int64_t originate_timestamp, void *args)
 {
 	session->time_offset = 0;
+}
+
+
+void on_request(
+	uxrSession *session,
+	uxrObjectId object_id,
+	uint16_t request_id,
+	SampleIdentity *sample_id,
+	ucdrBuffer *ub,
+	uint16_t length,
+	void *args)
+{
+	(void) request_id;
+	(void) length;
+	(void) args;
+
+	const int64_t time_offset_us = session->time_offset / 1000; // ns -> us
+
+	UxrceddsClient *client = (UxrceddsClient *)args;
+
+	client->process_requests(object_id, sample_id, ub, time_offset_us);
 }
 
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
@@ -153,6 +175,8 @@ UxrceddsClient::~UxrceddsClient()
 	delete _subs;
 	delete _pubs;
 
+	delete_repliers();
+
 	if (_transport_serial) {
 		uxr_close_serial_transport(_transport_serial);
 		delete _transport_serial;
@@ -161,6 +185,67 @@ UxrceddsClient::~UxrceddsClient()
 	if (_transport_udp) {
 		uxr_close_udp_transport(_transport_udp);
 		delete _transport_udp;
+	}
+}
+
+static void fillMessageFormatResponse(const message_format_request_s &message_format_request,
+				      message_format_response_s &message_format_response)
+{
+	message_format_response.protocol_version = message_format_request_s::LATEST_PROTOCOL_VERSION;
+	message_format_response.success = false;
+
+	if (message_format_request.protocol_version == message_format_request_s::LATEST_PROTOCOL_VERSION) {
+		static_assert(sizeof(message_format_request.topic_name) == sizeof(message_format_response.topic_name), "size mismatch");
+		memcpy(message_format_response.topic_name, message_format_request.topic_name,
+		       sizeof(message_format_response.topic_name));
+
+		// Get the topic name by searching for the last '/'
+		int idx_last_slash = -1;
+		bool found_null = false;
+
+		for (int i = 0; i < (int)sizeof(message_format_request.topic_name); ++i) {
+			if (message_format_request.topic_name[i] == 0) {
+				found_null = true;
+				break;
+			}
+
+			if (message_format_request.topic_name[i] == '/') {
+				idx_last_slash = i;
+			}
+		}
+
+		if (found_null && idx_last_slash != -1) {
+			const char *topic_name = message_format_request.topic_name + idx_last_slash + 1;
+			// Find the format
+			const orb_metadata *const *topics = orb_get_topics();
+			const orb_metadata *topic_meta{nullptr};
+
+			for (size_t i = 0; i < orb_topics_count(); i++) {
+				if (strcmp(topic_name, topics[i]->o_name) == 0) {
+					topic_meta = topics[i];
+					break;
+				}
+			}
+
+			if (topic_meta) {
+				message_format_response.message_hash = topic_meta->message_hash;
+				// The topic type is already checked by DDS
+				message_format_response.success = true;
+			}
+		}
+	}
+
+	message_format_response.timestamp = hrt_absolute_time();
+}
+
+void UxrceddsClient::handleMessageFormatRequest()
+{
+	message_format_request_s message_format_request;
+
+	if (_message_format_request_sub.update(&message_format_request)) {
+		message_format_response_s message_format_response;
+		fillMessageFormatResponse(message_format_request, message_format_response);
+		_message_format_response_pub.publish(message_format_response);
 	}
 }
 
@@ -225,10 +310,8 @@ void UxrceddsClient::run()
 		uxrStreamId reliable_in = uxr_create_input_reliable_stream(&session, input_reliable_stream_buffer,
 					  sizeof(input_reliable_stream_buffer),
 					  STREAM_HISTORY);
-		(void)reliable_in;
 
 		uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(&session);
-		(void)best_effort_in;
 
 		// Create entities
 		uxrObjectId participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
@@ -300,6 +383,15 @@ void UxrceddsClient::run()
 			return;
 		}
 
+		// create VehicleCommand replier
+		if (num_of_repliers < MAX_NUM_REPLIERS) {
+			if (add_replier(new VehicleCommandSrv(&session, reliable_out, reliable_in, participant_id, _client_namespace,
+							      num_of_repliers))) {
+				PX4_ERR("replier init failed");
+				return;
+			}
+		}
+
 		_connected = true;
 
 		// Set time-callback.
@@ -309,6 +401,8 @@ void UxrceddsClient::run()
 		} else {
 			uxr_set_time_callback(&session, on_time_no_sync, nullptr);
 		}
+
+		uxr_set_request_callback(&session, on_request, this);
 
 		// Synchronize with the Agent
 		bool synchronized = false;
@@ -359,7 +453,20 @@ void UxrceddsClient::run()
 
 			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
 
-			uxr_run_session_timeout(&session, 0);
+			// check if there are available replies
+			process_replies();
+
+			// Run the session until we receive no more data or up to a maximum number of iterations.
+			// The maximum observed number of iterations was 6 (SITL). If we were to run only once, data starts to get
+			// delayed, causing registered flight modes to time out.
+			for (int i = 0; i < 10; ++i) {
+				const uint32_t prev_num_payload_received = _pubs->num_payload_received;
+				uxr_run_session_timeout(&session, 0);
+
+				if (_pubs->num_payload_received == prev_num_payload_received) {
+					break;
+				}
+			}
 
 			// time sync session
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
@@ -368,6 +475,8 @@ void UxrceddsClient::run()
 					last_sync_session = hrt_absolute_time();
 				}
 			}
+
+			handleMessageFormatRequest();
 
 			// Check for a ping response
 			/* PONG_IN_SESSION_STATUS */
@@ -408,6 +517,8 @@ void UxrceddsClient::run()
 			}
 
 		}
+
+		delete_repliers();
 
 		uxr_delete_session_retries(&session, _connected ? 1 : 0);
 		_last_payload_tx_rate = 0;
@@ -551,6 +662,46 @@ int UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	}
 
 	return 0;
+}
+
+bool UxrceddsClient::add_replier(SrvBase *replier)
+{
+	if (num_of_repliers < MAX_NUM_REPLIERS) {
+		repliers_[num_of_repliers] = replier;
+
+		num_of_repliers++;
+	}
+
+	return false;
+}
+
+void UxrceddsClient::process_requests(uxrObjectId object_id, SampleIdentity *sample_id, ucdrBuffer *ub,
+				      const int64_t time_offset_us)
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		if (object_id.id == repliers_[i]->replier_id_.id
+		    && object_id.type == repliers_[i]->replier_id_.type) {
+			repliers_[i]->process_request(ub, time_offset_us);
+			memcpy(&(repliers_[i]->sample_id_), sample_id, sizeof(repliers_[i]->sample_id_));
+			break;
+		}
+	}
+}
+
+void UxrceddsClient::process_replies()
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		repliers_[i]->process_reply();
+	}
+}
+
+void UxrceddsClient::delete_repliers()
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		delete (repliers_[i]);
+	}
+
+	num_of_repliers = 0;
 }
 
 int UxrceddsClient::custom_command(int argc, char *argv[])

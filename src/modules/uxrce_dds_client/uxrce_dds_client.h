@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,15 @@
 
 #include <src/modules/uxrce_dds_client/dds_topics.h>
 
+#include <uORB/topics/message_format_request.h>
+#include <uORB/topics/message_format_response.h>
+#include <uORB/Subscription.hpp>
+
 #include <lib/timesync/Timesync.hpp>
+
+#include "srv_base.h"
+
+#define MAX_NUM_REPLIERS 5
 
 class UxrceddsClient : public ModuleBase<UxrceddsClient>, public ModuleParams
 {
@@ -71,14 +79,46 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
+	/**
+	 * @brief Method to add a new replyer to the replier array.
+	 * @param replier pointer to the new replier.
+	 * @return Returns false iff successful, otherwise false.
+	 */
+	bool add_replier(SrvBase *replier);
+
+	/**
+	 * @brief Method to process new incoming requests and dispatch them to the appropriate server.
+	 * @param object_id replier object id
+	 * @param sample_id pointer to specific request.
+	 * @param time_offset_us time offset between agent and client.
+	 * @param ub pointer to the received request data
+	 */
+	void process_requests(uxrObjectId object_id, SampleIdentity *sample_id, ucdrBuffer *ub, const int64_t time_offset_us);
+
+	/**
+	 * @brief Method to process the available replies.
+	 * @return Returns false iff successful, otherwise false.
+	 */
+	void process_replies();
+
+	/**
+	 * @brief Method to delete all repliers.
+	 * @return Returns false iff successful, otherwise false.
+	 */
+	void delete_repliers();
+
 private:
 	int setBaudrate(int fd, unsigned baud);
+
+	void handleMessageFormatRequest();
+
+	uORB::Publication<message_format_response_s> _message_format_response_pub{ORB_ID(message_format_response)};
+	uORB::Subscription _message_format_request_sub{ORB_ID(message_format_request)};
 
 	const bool _localhost_only;
 	const bool _custom_participant;
 	const char *_client_namespace;
 	const bool _synchronize_timestamps;
-
 
 	// max port characters (5+'\0')
 	static const uint8_t PORT_MAX_LENGTH = 6;
@@ -92,6 +132,9 @@ private:
 
 	SendTopicsSubs *_subs{nullptr};
 	RcvTopicsPubs *_pubs{nullptr};
+
+	SrvBase *repliers_[MAX_NUM_REPLIERS];
+	uint8_t num_of_repliers{0};
 
 	uxrSerialTransport *_transport_serial{nullptr};
 	uxrUDPTransport *_transport_udp{nullptr};

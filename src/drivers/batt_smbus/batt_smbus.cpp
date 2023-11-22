@@ -44,6 +44,7 @@
  */
 
 #include "batt_smbus.h"
+#include <lib/atmosphere/atmosphere.h>
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
@@ -160,7 +161,7 @@ void BATT_SMBUS::RunImpl()
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
-	new_report.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+	new_report.temperature = ((float)result / 10.0f) + atmosphere::kAbsoluteNullCelsius;
 
 	// Only publish if no errors.
 	if (ret == PX4_OK) {

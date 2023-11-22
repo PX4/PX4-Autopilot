@@ -142,6 +142,10 @@ else()
 			${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 			uxrce_dds_client.cpp
 			uxrce_dds_client.h
+			vehicle_command_srv.cpp
+			vehicle_command_srv.h
+			srv_base.cpp
+			srv_base.h
 		DEPENDS
 			microxrceddsclient
 			libmicroxrceddsclient

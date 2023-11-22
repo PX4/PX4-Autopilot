@@ -250,6 +250,22 @@ class SourceParser(object):
                             event.group = "arming_check"
                         event.prepend_arguments([('navigation_mode_group_t', 'modes'),
                                 ('uint8_t', 'health_component_index')])
+                    elif call in ['reporter.healthFailureExt', 'reporter.armingCheckFailureExt']: # from ROS2
+                        assert len(args_split) == num_args + 3, \
+                            "Unexpected Number of arguments for: {:}, {:}".format(args_split, num_args)
+                        m = self.re_event_id.search(args_split[0])
+                        if m:
+                            _, event_name = m.group(1, 2)
+                        else:
+                            raise Exception("Could not extract event ID from {:}".format(args_split[0]))
+                        event.name = event_name
+                        event.message = args_split[2][1:-1]
+                        if 'health' in call:
+                            event.group = "health"
+                        else:
+                            event.group = "arming_check"
+                        event.prepend_arguments([('navigation_mode_group_t', 'modes'),
+                                ('uint8_t', 'health_component_index')])
                     else:
                         raise Exception("unknown event method call: {}, args: {}".format(call, args))
 

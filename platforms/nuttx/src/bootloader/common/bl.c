@@ -294,13 +294,13 @@ void
 jump_to_app()
 {
 	const uint32_t *app_base = (const uint32_t *)APP_LOAD_ADDRESS;
-	const uint32_t *vec_base = (const uint32_t *)app_base;
+	const uint32_t *vec_base = (const uint32_t *)app_base + APP_VECTOR_OFFSET;
 
 	/*
 	 * We refuse to program the first word of the app until the upload is marked
 	 * complete by the host.  So if it's not 0xffffffff, we should try booting it.
 	 */
-	if (app_base[0] == 0xffffffff) {
+	if (app_base[APP_VECTOR_OFFSET_WORDS] == 0xffffffff) {
 		return;
 	}
 
@@ -382,11 +382,11 @@ jump_to_app()
 	 * The second word of the app is the entrypoint; it must point within the
 	 * flash area (or we have a bad flash).
 	 */
-	if (app_base[1] < APP_LOAD_ADDRESS) {
+	if (app_base[APP_VECTOR_OFFSET_WORDS + 1] < APP_LOAD_ADDRESS) {
 		return;
 	}
 
-	if (app_base[1] >= (APP_LOAD_ADDRESS + board_info.fw_size)) {
+	if (app_base[APP_VECTOR_OFFSET_WORDS + 1] >= (APP_LOAD_ADDRESS + board_info.fw_size)) {
 		return;
 	}
 
@@ -816,15 +816,17 @@ bootloader(unsigned timeout)
 				goto cmd_bad;
 			}
 
-			if (address == 0) {
+#if APP_VECTOR_OFFSET == 0
 
-#if defined(TARGET_HW_PX4_FMU_V4)
+			if (address == APP_VECTOR_OFFSET) {
+
+#  if defined(TARGET_HW_PX4_FMU_V4)
 
 				if (check_silicon()) {
 					goto bad_silicon;
 				}
 
-#endif
+# endif
 
 				// save the first word and don't program it until everything else is done
 				first_word = flash_buffer.w[0];
@@ -832,10 +834,20 @@ bootloader(unsigned timeout)
 				flash_buffer.w[0] = 0xffffffff;
 			}
 
+#endif
 			arg /= 4;
 
 			for (int i = 0; i < arg; i++) {
+#if APP_VECTOR_OFFSET != 0
 
+				if (address == APP_VECTOR_OFFSET) {
+					// save the first word from vector table and don't program it until everything else is done
+					first_word = flash_buffer.w[i];
+					// replace first word with bits we can overwrite later
+					flash_buffer.w[i] = 0xffffffff;
+				}
+
+#endif
 				// program the word
 				flash_func_write_word(address, flash_buffer.w[i]);
 
@@ -869,7 +881,7 @@ bootloader(unsigned timeout)
 			for (unsigned p = 0; p < board_info.fw_size; p += 4) {
 				uint32_t bytes;
 
-				if ((p == 0) && (first_word != 0xffffffff)) {
+				if ((p == APP_VECTOR_OFFSET) && (first_word != 0xffffffff)) {
 					bytes = first_word;
 
 				} else {
@@ -1032,9 +1044,9 @@ bootloader(unsigned timeout)
 
 			// program the deferred first word
 			if (first_word != 0xffffffff) {
-				flash_func_write_word(0, first_word);
+				flash_func_write_word(APP_VECTOR_OFFSET, first_word);
 
-				if (flash_func_read_word(0) != first_word) {
+				if (flash_func_read_word(APP_VECTOR_OFFSET) != first_word) {
 					goto cmd_fail;
 				}
 

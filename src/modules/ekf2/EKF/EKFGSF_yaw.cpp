@@ -283,6 +283,7 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 	const float sin_yaw = sinf(_ekf_gsf[model_index].X(2));
 	const float dvx =   del_vel_NED(0) * cos_yaw + del_vel_NED(1) * sin_yaw;
 	const float dvy = - del_vel_NED(0) * sin_yaw + del_vel_NED(1) * cos_yaw;
+	const float daz = Vector3f(_ahrs_ekf_gsf[model_index].R * delta_ang)(2);
 
 	// delta velocity process noise double if we're not in air
 	const float accel_noise = in_air ? _accel_noise : 2.f * _accel_noise;
@@ -292,7 +293,7 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 	const float d_ang_var = sq(_gyro_noise * delta_ang_dt);
 
 	sym::YawEstPredictCovariance(_ekf_gsf[model_index].X, _ekf_gsf[model_index].P,
-				     Vector2f(dvx, dvy), d_vel_var, d_ang_var, &_ekf_gsf[model_index].P);
+				     Vector2f(dvx, dvy), d_vel_var, daz, d_ang_var, &_ekf_gsf[model_index].P);
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	_ekf_gsf[model_index].P(1, 0) = _ekf_gsf[model_index].P(0, 1);

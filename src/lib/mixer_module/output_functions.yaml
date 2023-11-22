@@ -13,7 +13,7 @@ functions:
     Servo:
       start: 201
       count: 8
-    Offboard_Actuator_Set:
+    Peripheral_via_Actuator_Set:
       start: 301
       count: 6
 

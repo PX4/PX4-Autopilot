@@ -349,8 +349,6 @@ void RtlDirect::set_rtl_item()
 
 	} else {
 		// Convert mission item to current position setpoint and make it valid.
-		mission_apply_limitation(_mission_item);
-
 		if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
 			_navigator->set_position_setpoint_triplet_updated();
 		}

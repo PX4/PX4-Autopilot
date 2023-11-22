@@ -71,6 +71,7 @@ uint16 VEHICLE_CMD_PREFLIGHT_UAVCAN = 243		# UAVCAN configuration. If param 1 ==
 uint16 VEHICLE_CMD_PREFLIGHT_STORAGE = 245		# Request storage of different parameter values and logs. This command will be only accepted if in pre-flight mode. |Parameter storage: 0: READ FROM FLASH/EEPROM, 1: WRITE CURRENT TO FLASH/EEPROM| Mission storage: 0: READ FROM FLASH/EEPROM, 1: WRITE CURRENT TO FLASH/EEPROM| Reserved| Reserved| Empty| Empty| Empty|
 uint16 VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN = 246	# Request the reboot or shutdown of system components. |0: Do nothing for autopilot, 1: Reboot autopilot, 2: Shutdown autopilot.| 0: Do nothing for onboard computer, 1: Reboot onboard computer, 2: Shutdown onboard computer.| Reserved| Reserved| Empty| Empty| Empty|
 uint16 VEHICLE_CMD_OBLIQUE_SURVEY=260			# Mission command to set a Camera Auto Mount Pivoting Oblique Survey for this flight|Camera trigger distance (meters)| Shutter integration time (ms)| Camera minimum trigger interval| Number of positions| Roll| Pitch| Empty|
+uint16 VEHICLE_CMD_DO_SET_STANDARD_MODE=262		# Enable the specified standard MAVLink mode |MAV_STANDARD_MODE|
 uint16 VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION = 283	# Command to ask information about a low level gimbal
 
 uint16 VEHICLE_CMD_MISSION_START = 300			# start running a mission |first_item: the first mission item to run| last_item:  the last mission item to run (after this item is run, the mission ends)|
@@ -103,6 +104,7 @@ uint16 VEHICLE_CMD_DO_WINCH = 42600			# Command to operate winch.
 # PX4 vehicle commands (beyond 16 bit mavlink commands)
 uint32 VEHICLE_CMD_PX4_INTERNAL_START    = 65537        # start of PX4 internal only vehicle commands (> UINT16_MAX)
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000       # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Empty|Empty|Empty|Empty|Latitude|Longitude|Altitude|
+uint32 VEHICLE_CMD_SET_NAV_STATE = 100001               # Change mode by specifying nav_state directly. |nav_state|Empty|Empty|Empty|Empty|Empty|Empty|
 
 uint8 VEHICLE_MOUNT_MODE_RETRACT = 0			# Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization |
 uint8 VEHICLE_MOUNT_MODE_NEUTRAL = 1			# Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory. |
@@ -174,8 +176,10 @@ uint32 command			# Command ID
 uint8 target_system		# System which should execute the command
 uint8 target_component		# Component which should execute the command, 0 for all components
 uint8 source_system		# System sending the command
-uint8 source_component		# Component sending the command
+uint16 source_component	# Component / mode executor sending the command
 uint8 confirmation		# 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command)
 bool from_external
 
-# TOPICS vehicle_command gimbal_v1_command
+uint16 COMPONENT_MODE_EXECUTOR_START = 1000
+
+# TOPICS vehicle_command gimbal_v1_command vehicle_command_mode_executor

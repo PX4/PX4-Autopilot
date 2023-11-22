@@ -87,6 +87,30 @@ Report::EventBufferHeader *Report::addEventToBuffer(uint32_t event_id, const eve
 	return header;
 }
 
+bool Report::addExternalEvent(const event_s &event, NavModes modes)
+{
+	unsigned args_size = sizeof(event.arguments);
+
+	// trim 0's
+	while (args_size > 0 && event.arguments[args_size - 1] == '\0') {
+		--args_size;
+	}
+
+	unsigned total_size = sizeof(EventBufferHeader) + args_size;
+
+	if (total_size > sizeof(_event_buffer) - _next_buffer_idx) {
+		_buffer_overflowed = true;
+		return false;
+	}
+
+	events::LogLevels log_levels{events::externalLogLevel(event.log_levels), events::internalLogLevel((event.log_levels))};
+	memcpy(_event_buffer + _next_buffer_idx + sizeof(EventBufferHeader), &event.arguments, args_size);
+	addEventToBuffer(event.id, log_levels, (uint32_t)modes, args_size);
+	return true;
+}
+
+
+
 NavModes Report::reportedModes(NavModes required_modes)
 {
 	// Make sure optional checks are still shown in the UI

@@ -395,7 +395,7 @@ Replay::readFormat(std::ifstream &file, uint16_t msg_size)
 string Replay::getOrbFields(const orb_metadata *meta)
 {
 	char format[3000];
-	char buffer[512];
+	char buffer[2048];
 	uORB::MessageFormatReader format_reader(buffer, sizeof(buffer));
 
 	if (!format_reader.readUntilFormat(meta->o_id)) {

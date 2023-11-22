@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    Copyright (c) 2022 PX4 Development Team
+    Copyright (c) 2022-2023 PX4 Development Team
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
     are met:
@@ -37,51 +37,86 @@ import symforce
 symforce.set_epsilon_to_symbol()
 
 import symforce.symbolic as sf
+from symforce.values import Values
 from derivation_utils import *
 
-class State:
-    vx = 0
-    vy = 1
-    yaw = 2
-    n_states = 3
+State = Values(
+    vel = sf.V2(),
+    R = sf.Rot2() # 2D rotation to handle angle wrap
+)
 
-class VState(sf.Matrix):
-    SHAPE = (State.n_states, 1)
+class VTangent(sf.Matrix):
+    SHAPE = (State.tangent_dim(), 1)
 
-class MState(sf.Matrix):
-    SHAPE = (State.n_states, State.n_states)
+class MTangent(sf.Matrix):
+    SHAPE = (State.tangent_dim(), State.tangent_dim())
+
+def rot2_small_angle(angle: sf.V1):
+    # Approximation for small "delta angles" to avoid trigonometric functions
+    return sf.Rot2(sf.Complex(1, angle[0]))
 
 def yaw_est_predict_covariance(
-        state: VState,
-        P: MState,
+        state: VTangent,
+        P: MTangent,
         d_vel: sf.V2,
         d_vel_var: sf.Scalar,
-        d_ang_var: sf.Scalar
+        d_ang: sf.Scalar,
+        d_ang_var: sf.Scalar,
 ):
-    d_ang = sf.Symbol("d_ang") # does not appear in the jacobians
+    state = State.from_tangent(state)
+    d_ang = sf.V1(d_ang) # cast to vector to gain group properties (e.g.: to_tangent)
 
-    # derive the body to nav direction transformation matrix
-    Tbn = sf.Matrix([[sf.cos(state[State.yaw]) , -sf.sin(state[State.yaw])],
-                [sf.sin(state[State.yaw]) ,  sf.cos(state[State.yaw])]])
+    state_error = Values(
+        vel = sf.V2.symbolic("delta_vel"),
+        yaw = sf.V1.symbolic("delta_yaw")
+    )
 
-    # attitude update equation
-    yaw_new = state[State.yaw] + d_ang
+    # True state kinematics
+    state_t = Values(
+        vel = state["vel"] + state_error["vel"],
+        R = state["R"] * rot2_small_angle(state_error["yaw"])
+    )
 
-    # velocity update equations
-    v_new = sf.V2(state[State.vx], state[State.vy]) + Tbn * d_vel
+    noise = Values(
+        d_vel = sf.V2.symbolic("a_n"),
+        d_ang = sf.V1.symbolic("w_n"),
+    )
 
-    # Define vector of process equations
-    state_new = VState.block_matrix([[v_new], [sf.V1(yaw_new)]])
+    input_t = Values(
+        d_vel = d_vel - noise["d_vel"],
+        d_ang = d_ang - noise["d_ang"]
+    )
+
+    state_t_pred = Values(
+        vel = state_t["vel"] + state_t["R"] * input_t["d_vel"],
+        R = state_t["R"] * rot2_small_angle(input_t["d_ang"])
+    )
+
+    # Nominal state kinematics
+    state_pred = Values(
+        vel = state["vel"] + state["R"] * d_vel,
+        R = state["R"] * rot2_small_angle(d_ang)
+    )
+
+    # Error state kinematics
+    delta_rot = (state_pred["R"].inverse() * state_t_pred["R"])
+    state_error_pred = Values(
+        vel = state_t_pred["vel"] - state_pred["vel"],
+        yaw = sf.simplify(delta_rot.z.imag) # small angle appriximation; use simplify to cancel R.T*R
+    )
+
+    zero_state_error = {state_error[key]: state_error[key].zero() for key in state_error.keys()}
+    zero_noise = {noise[key]: noise[key].zero() for key in noise.keys()}
 
     # Calculate state transition matrix
-    F = state_new.jacobian(state)
+    F = VTangent(state_error_pred.to_storage()).jacobian(state_error).subs(zero_state_error).subs(zero_noise)
 
     # Derive the covariance prediction equations
     # Error growth in the inertial solution is assumed to be driven by 'noise' in the delta angles and
     # velocities, after bias effects have been removed.
 
-    # derive the control(disturbance) influence matrix from IMU noise to state noise
-    G = state_new.jacobian(sf.V3.block_matrix([[d_vel], [sf.V1(d_ang)]]))
+    # derive the control(disturbance) influence matrix from IMU noise to error-state noise
+    G = VTangent(state_error_pred.to_storage()).jacobian(noise).subs(zero_state_error).subs(zero_noise)
 
     # derive the state error matrix
     var_u = sf.Matrix.diag([d_vel_var, d_vel_var, d_ang_var])
@@ -93,15 +128,15 @@ def yaw_est_predict_covariance(
     # Generate the equations for the upper triangular matrix and the diagonal only
     # Since the matrix is symmetric, the lower triangle does not need to be derived
     # and can simply be copied in the implementation
-    for index in range(State.n_states):
-        for j in range(State.n_states):
+    for index in range(State.tangent_dim()):
+        for j in range(State.tangent_dim()):
             if index > j:
                 P_new[index,j] = 0
 
     return P_new
 
 def yaw_est_compute_measurement_update(
-        P: MState,
+        P: MTangent,
         vel_obs_var: sf.Scalar,
         epsilon : sf.Scalar
 ):
@@ -123,8 +158,8 @@ def yaw_est_compute_measurement_update(
     # Generate the equations for the upper triangular matrix and the diagonal only
     # Since the matrix is symmetric, the lower triangle does not need to be derived
     # and can simply be copied in the implementation
-    for index in range(State.n_states):
-        for j in range(State.n_states):
+    for index in range(State.tangent_dim()):
+        for j in range(State.tangent_dim()):
             if index > j:
                 P_new[index,j] = 0
 

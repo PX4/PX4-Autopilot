@@ -1556,6 +1556,10 @@ int PX4IO::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
+	if (!strcmp(verb, "supported")) {
+		return 0;
+	}
+
 	if (!strcmp(verb, "checkcrc")) {
 		if (is_running()) {
 			PX4_ERR("io must be stopped");
@@ -1761,7 +1765,7 @@ Output driver communicating with the IO co-processor.
 extern "C" __EXPORT int px4io_main(int argc, char *argv[])
 {
 	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
-		PX4_ERR("PX4IO Not Supported");
+		PX4_INFO("PX4IO Not Supported");
 		return -1;
 	}
 	return PX4IO::main(argc, argv);
