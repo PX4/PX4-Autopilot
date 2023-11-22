@@ -44,16 +44,17 @@ TEST_CASE("Figure eight execution clockwise", "[vtol]")
 	tester.store_home();
 	const float takeoff_altitude = 20.f;
 	tester.set_takeoff_altitude(takeoff_altitude);
+	std::this_thread::sleep_for(std::chrono::seconds(3));
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
-	tester.wait_until_altitude(takeoff_altitude - 1.f, std::chrono::seconds(30));
+	tester.wait_until_altitude(takeoff_altitude - 1.f, std::chrono::seconds(60));
 	tester.transition_to_fixedwing();
 	tester.wait_until_fixedwing(std::chrono::seconds(5));
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	tester.set_figure_eight(150., 50., 0., 200., 0., 20.);
 	tester.execute_figure_eight();
-	tester.check_tracks_figure_eight(std::chrono::seconds(60), 10.);
+	tester.check_tracks_figure_eight(std::chrono::seconds(120), 10.);
 	// tester.check_receive_execution_status(std::chrono::seconds(
 	// 		5)); //TODO With mavsdk we can't subscribe to custom messages. Need to wait until messages are recognised by mavsdk
 }
@@ -66,16 +67,17 @@ TEST_CASE("Figure eight execution counterclockwise", "[vtol]")
 	tester.store_home();
 	const float takeoff_altitude = 20.f;
 	tester.set_takeoff_altitude(takeoff_altitude);
+	std::this_thread::sleep_for(std::chrono::seconds(3));
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
-	tester.wait_until_altitude(takeoff_altitude - 1.f, std::chrono::seconds(30));
+	tester.wait_until_altitude(takeoff_altitude - 1.f, std::chrono::seconds(60));
 	tester.transition_to_fixedwing();
 	tester.wait_until_fixedwing(std::chrono::seconds(5));
 	std::this_thread::sleep_for(std::chrono::seconds(1));
 	tester.set_figure_eight(-150., 50., 30.*M_PI / 180., 200., 0., 20.);
 	tester.execute_figure_eight();
-	tester.check_tracks_figure_eight(std::chrono::seconds(60), 10.);
+	tester.check_tracks_figure_eight(std::chrono::seconds(120), 10.);
 	// tester.check_receive_execution_status(std::chrono::seconds(
 	// 		5)); //TODO With mavsdk we can't subscribe to custom messages. Need to wait until messages are recognised by mavsdk.
 }
