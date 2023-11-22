@@ -69,12 +69,12 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 	const Vector3f feedforward_velocity{};
 	const bool force_zero_velocity_setpoint = false;
 	PositionSmoothing::PositionSmoothingSetpoints out_setpoints;
-	_position_smoother.generateSetpoints(position, position_setpoint, feedforward_velocity, dt,
-					     force_zero_velocity_setpoint, out_setpoints);
+	_position_smoothing.generateSetpoints(position, position_setpoint, feedforward_velocity, dt,
+					      force_zero_velocity_setpoint, out_setpoints);
 
-	_position_smoother.getCurrentPosition().copyTo(trajectory_setpoint.position);
-	_position_smoother.getCurrentVelocity().copyTo(trajectory_setpoint.velocity);
-	_position_smoother.getCurrentAcceleration().copyTo(trajectory_setpoint.acceleration);
+	_position_smoothing.getCurrentPosition().copyTo(trajectory_setpoint.position);
+	_position_smoothing.getCurrentVelocity().copyTo(trajectory_setpoint.velocity);
+	_position_smoothing.getCurrentAcceleration().copyTo(trajectory_setpoint.acceleration);
 	out_setpoints.jerk.copyTo(trajectory_setpoint.jerk);
 
 	if (goto_setpoint.flag_control_heading && PX4_ISFINITE(goto_setpoint.heading) && PX4_ISFINITE(heading)) {
@@ -83,10 +83,10 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 		}
 
 		setHeadingSmootherLimits(goto_setpoint);
-		_heading_smoother.update(goto_setpoint.heading, dt);
+		_heading_smoothing.update(goto_setpoint.heading, dt);
 
-		trajectory_setpoint.yaw = _heading_smoother.getSmoothedHeading();
-		trajectory_setpoint.yawspeed = _heading_smoother.getSmoothedHeadingRate();
+		trajectory_setpoint.yaw = _heading_smoothing.getSmoothedHeading();
+		trajectory_setpoint.yawspeed = _heading_smoothing.getSmoothedHeadingRate();
 
 		_controlling_heading = true;
 
@@ -114,7 +114,7 @@ void GotoControl::resetPositionSmoother(const matrix::Vector3f &position)
 
 	const Vector3f initial_acceleration{};
 	const Vector3f initial_velocity{};
-	_position_smoother.reset(initial_acceleration, initial_velocity, position);
+	_position_smoothing.reset(initial_acceleration, initial_velocity, position);
 
 	_need_smoother_reset = false;
 }
@@ -128,41 +128,41 @@ void GotoControl::resetHeadingSmoother(const float heading)
 	}
 
 	const float initial_heading_rate{0.f};
-	_heading_smoother.reset(heading, initial_heading_rate);
+	_heading_smoothing.reset(heading, initial_heading_rate);
 }
 
 void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint)
 {
 	// constrain horizontal velocity
-	float max_horizontal_speed = _vehicle_constraints.max_horizontal_speed;
-	float max_horizontal_accel = _vehicle_constraints.max_horizontal_accel;
+	float max_horizontal_speed = _goto_constraints.max_horizontal_speed;
+	float max_horizontal_accel = _goto_constraints.max_horizontal_accel;
 
 	if (goto_setpoint.flag_set_max_horizontal_speed
 	    && PX4_ISFINITE(goto_setpoint.max_horizontal_speed)) {
 		max_horizontal_speed = math::constrain(goto_setpoint.max_horizontal_speed, 0.f,
-						       _vehicle_constraints.max_horizontal_speed);
+						       _goto_constraints.max_horizontal_speed);
 
 		// linearly scale horizontal acceleration limit with horizontal speed limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints
-		if (_position_smoother.getCurrentVelocityXY().norm() <= max_horizontal_speed) {
-			const float speed_scale = max_horizontal_speed / _vehicle_constraints.max_horizontal_speed;
-			max_horizontal_accel = math::constrain(_vehicle_constraints.max_horizontal_accel * speed_scale,
-							       VelocitySmoothing::kMinAccel,
-							       _vehicle_constraints.max_horizontal_accel);
+		if (_position_smoothing.getCurrentVelocityXY().norm() <= max_horizontal_speed) {
+			const float speed_scale = max_horizontal_speed / _goto_constraints.max_horizontal_speed;
+			max_horizontal_accel = math::constrain(_goto_constraints.max_horizontal_accel * speed_scale,
+							       0.f,
+							       _goto_constraints.max_horizontal_accel);
 		}
 	}
 
-	_position_smoother.setCruiseSpeed(max_horizontal_speed);
-	_position_smoother.setMaxVelocityXY(max_horizontal_speed);
-	_position_smoother.setMaxAccelerationXY(max_horizontal_accel);
+	_position_smoothing.setCruiseSpeed(max_horizontal_speed);
+	_position_smoothing.setMaxVelocityXY(max_horizontal_speed);
+	_position_smoothing.setMaxAccelerationXY(max_horizontal_accel);
 
 	// constrain vertical velocity
-	const bool pos_setpoint_is_below_smooth_pos = goto_setpoint.position[2] - _position_smoother.getCurrentPositionZ() >
+	const bool pos_setpoint_is_below_smooth_pos = goto_setpoint.position[2] - _position_smoothing.getCurrentPositionZ() >
 			0.f;
-	const float vehicle_max_vertical_speed = (pos_setpoint_is_below_smooth_pos) ? _vehicle_constraints.max_down_speed :
-			_vehicle_constraints.max_up_speed;
-	const float vehicle_max_vertical_accel = (pos_setpoint_is_below_smooth_pos) ? _vehicle_constraints.max_down_accel :
-			_vehicle_constraints.max_up_accel;
+	const float vehicle_max_vertical_speed = (pos_setpoint_is_below_smooth_pos) ? _goto_constraints.max_down_speed :
+			_goto_constraints.max_up_speed;
+	const float vehicle_max_vertical_accel = (pos_setpoint_is_below_smooth_pos) ? _goto_constraints.max_down_accel :
+			_goto_constraints.max_up_accel;
 
 	float max_vertical_speed = vehicle_max_vertical_speed;
 	float max_vertical_accel = vehicle_max_vertical_accel;
@@ -173,38 +173,38 @@ void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint
 
 		// linearly scale vertical acceleration limit with vertical speed limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints
-		if (fabsf(_position_smoother.getCurrentVelocityZ()) <= max_vertical_speed) {
+		if (fabsf(_position_smoothing.getCurrentVelocityZ()) <= max_vertical_speed) {
 			const float speed_scale = max_vertical_speed / vehicle_max_vertical_speed;
-			max_vertical_accel = math::constrain(vehicle_max_vertical_accel * speed_scale, VelocitySmoothing::kMinAccel,
+			max_vertical_accel = math::constrain(vehicle_max_vertical_accel * speed_scale, 0.f,
 							     vehicle_max_vertical_accel);
 		}
 	}
 
-	_position_smoother.setMaxVelocityZ(max_vertical_speed);
-	_position_smoother.setMaxAccelerationZ(max_vertical_accel);
+	_position_smoothing.setMaxVelocityZ(max_vertical_speed);
+	_position_smoothing.setMaxAccelerationZ(max_vertical_accel);
 
-	_position_smoother.setMaxJerkXY(_vehicle_constraints.max_jerk);
-	_position_smoother.setMaxJerkZ(_vehicle_constraints.max_jerk);
+	_position_smoothing.setMaxJerkXY(_goto_constraints.max_jerk);
+	_position_smoothing.setMaxJerkZ(_goto_constraints.max_jerk);
 }
 
 void GotoControl::setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint)
 {
-	float max_heading_rate =  _vehicle_constraints.max_heading_rate;
-	float max_heading_accel = _vehicle_constraints.max_heading_accel;
+	float max_heading_rate =  _goto_constraints.max_heading_rate;
+	float max_heading_accel = _goto_constraints.max_heading_accel;
 
 	if (goto_setpoint.flag_set_max_heading_rate && PX4_ISFINITE(goto_setpoint.max_heading_rate)) {
-		max_heading_rate = math::constrain(goto_setpoint.max_heading_rate, HeadingSmoother::kMinHeadingRate,
-						   _vehicle_constraints.max_heading_rate);
+		max_heading_rate = math::constrain(goto_setpoint.max_heading_rate, 0.f,
+						   _goto_constraints.max_heading_rate);
 
 		// linearly scale heading acceleration limit with heading rate limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints
-		if (fabsf(_heading_smoother.getSmoothedHeadingRate()) <= max_heading_rate) {
-			const float rate_scale = max_heading_rate / _vehicle_constraints.max_heading_rate;
-			max_heading_accel = math::constrain(_vehicle_constraints.max_heading_accel * rate_scale,
-							    HeadingSmoother::kMinHeadingAccel, _vehicle_constraints.max_heading_accel);
+		if (fabsf(_heading_smoothing.getSmoothedHeadingRate()) <= max_heading_rate) {
+			const float rate_scale = max_heading_rate / _goto_constraints.max_heading_rate;
+			max_heading_accel = math::constrain(_goto_constraints.max_heading_accel * rate_scale,
+							    0.f, _goto_constraints.max_heading_accel);
 		}
 	}
 
-	_heading_smoother.setMaxHeadingRate(max_heading_rate);
-	_heading_smoother.setMaxHeadingAccel(max_heading_accel);
+	_heading_smoothing.setMaxHeadingRate(max_heading_rate);
+	_heading_smoothing.setMaxHeadingAccel(max_heading_accel);
 }
