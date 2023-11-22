@@ -386,7 +386,7 @@ void MulticopterPositionControl::Run()
 				_goto_control.resetHeadingSmoother(states.yaw);
 			}
 
-			const GotoControl::VehicleConstraints vehicle_constraints = {
+			const GotoControl::GotoConstraints goto_constraints = {
 				_param_mpc_xy_cruise.get(),
 				_param_mpc_z_v_auto_dn.get(),
 				_param_mpc_z_v_auto_up.get(),
@@ -398,7 +398,7 @@ void MulticopterPositionControl::Run()
 				_param_mpc_yawaauto_max.get()
 			};
 
-			_goto_control.setVehicleConstraints(vehicle_constraints);
+			_goto_control.setGotoConstraints(goto_constraints);
 			_goto_control.setMaxAllowedHorizontalPositionError(_param_mpc_xy_err_max.get());
 
 			_goto_control.update(dt, states.position, states.yaw, _goto_setpoint, _setpoint);
