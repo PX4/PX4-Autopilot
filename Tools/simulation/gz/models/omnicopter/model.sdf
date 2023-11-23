@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<sdf version='1.9'>
-  <include>
-      <name>omnicopter</name>
-      <pose>0 0 0.2 0 0 0</pose>
-      <uri>https://fuel.gazebosim.org/1.0/PX4/models/Omnicopter</uri>
-    </include>
-</sdf>
