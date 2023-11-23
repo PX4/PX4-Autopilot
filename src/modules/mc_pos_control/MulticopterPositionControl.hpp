@@ -58,7 +58,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/goto_setpoint.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
@@ -97,14 +96,12 @@ private:
 	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub{ORB_ID(takeoff_status)};
 	uORB::Publication<vehicle_attitude_setpoint_s>	     _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
-	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
-	uORB::Subscription _goto_setpoint_sub{ORB_ID(goto_setpoint)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -113,7 +110,6 @@ private:
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
 
-	goto_setpoint_s _goto_setpoint{};
 	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
@@ -131,8 +127,6 @@ private:
 		.maybe_landed = true,
 		.landed = true,
 	};
-
-	GotoControl _goto_control{this};
 
 	DEFINE_PARAMETERS(
 		// Position Control
@@ -190,7 +184,8 @@ private:
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
-	PositionControl _control;  /**< class for core PID position control */
+	GotoControl _goto_control{this}; ///< class for handling smooth goto position setpoints
+	PositionControl _control; ///< class for core PID position control
 
 	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
 
