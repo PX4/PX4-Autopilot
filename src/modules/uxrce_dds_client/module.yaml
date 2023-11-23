@@ -95,3 +95,13 @@ parameters:
             category: System
             reboot_required: true
             default: 1
+
+        UXRCE_DDS_SYNCC:
+            description:
+                short: Enable uXRCE-DDS system clock synchronization
+                long: When enabled along with UXRCE_DDS_SYNCT, uxrce_dds_client will
+                    set the system clock using the agents UTC timestamp.
+            type: boolean
+            category: System
+            reboot_required: true
+            default: 1

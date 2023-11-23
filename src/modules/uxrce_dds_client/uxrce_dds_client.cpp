@@ -108,11 +108,9 @@ void on_request(
 }
 
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
-			       const char *port, bool localhost_only, bool custom_participant, const char *client_namespace,
-			       bool synchronize_timestamps) :
+			       const char *port, const char *client_namespace) :
 	ModuleParams(nullptr),
-	_localhost_only(localhost_only), _custom_participant(custom_participant),
-	_client_namespace(client_namespace), _synchronize_timestamps(synchronize_timestamps)
+	_client_namespace(client_namespace)
 {
 	if (transport == Transport::Serial) {
 
@@ -124,7 +122,7 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 			if (fd < 0) {
 				PX4_ERR("open %s failed (%i)", device, errno);
 				// sleep before trying again
-				usleep(1'000'000);
+				px4_usleep(1_s);
 
 			} else {
 				break;
@@ -164,10 +162,14 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 			}
 		}
 
+
 #else
 		PX4_ERR("UDP not supported");
 #endif
 	}
+
+	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
+	_synchronize_timestamps = _param_uxrce_dds_synct.get() > 0;
 }
 
 UxrceddsClient::~UxrceddsClient()
@@ -249,6 +251,39 @@ void UxrceddsClient::handleMessageFormatRequest()
 	}
 }
 
+void UxrceddsClient::syncSystemClock(uxrSession *session)
+{
+	struct timespec ts = {};
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
+
+	// UTC timestamps in microseconds
+	int64_t system_utc = int64_t(ts.tv_sec) * 1000000LL + int64_t(ts.tv_nsec / 1000L);
+	int64_t agent_utc = int64_t(hrt_absolute_time()) + (session->time_offset / 1000LL); // ns to us
+
+	uint64_t delta = abs(system_utc - agent_utc);
+
+	if (delta < 5_s) {
+		// Only set the time if it's more than 5 seconds off (matches Mavlink and GPS logic)
+		PX4_DEBUG("agents UTC time is %s by %lld us, not setting clock", agent_utc > system_utc ? "ahead" : "behind",
+			  abs(system_utc - agent_utc));
+		return;
+	}
+
+	ts.tv_sec = agent_utc / 1_s;
+	ts.tv_nsec = (agent_utc % 1_s) * 1000;
+
+	if (px4_clock_settime(CLOCK_REALTIME, &ts)) {
+		PX4_ERR("failed setting system clock");
+
+	} else {
+		char buf[40];
+		struct tm date_time;
+		localtime_r(&ts.tv_sec, &date_time);
+		strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &date_time);
+		PX4_INFO("successfully set system clock: %s", buf);
+	}
+}
+
 void UxrceddsClient::run()
 {
 	if (!_comm) {
@@ -278,7 +313,7 @@ void UxrceddsClient::run()
 
 		// Session
 		// The key identifier of the Client. All Clients connected to an Agent must have a different key.
-		const uint32_t key = (uint32_t)_param_xrce_key.get();
+		const uint32_t key = (uint32_t)_param_uxrce_key.get();
 
 		if (key == 0) {
 			PX4_ERR("session key must be different from zero");
@@ -316,11 +351,11 @@ void UxrceddsClient::run()
 		// Create entities
 		uxrObjectId participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
 
-		uint16_t domain_id = _param_xrce_dds_dom_id.get();
+		uint16_t domain_id = _param_uxrce_dds_dom_id.get();
 
 		uint16_t participant_req{};
 
-		if (_custom_participant) {
+		if (_participant_config == ParticipantConfig::Custom) {
 			// Create participant by reference (XML not required)
 			participant_req = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id, domain_id,
 					  "px4_participant", UXR_REPLACE);
@@ -329,7 +364,7 @@ void UxrceddsClient::run()
 			// Construct participant XML and create participant by XML
 			char participant_xml[PARTICIPANT_XML_SIZE];
 			int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
-					   _localhost_only ?
+					   (_participant_config == ParticipantConfig::LocalHostOnly) ?
 					   "<dds>"
 					   "<profiles>"
 					   "<transport_descriptors>"
@@ -350,7 +385,7 @@ void UxrceddsClient::run()
 					   _client_namespace
 					   :
 					   "",
-					   _localhost_only ?
+					   (_participant_config == ParticipantConfig::LocalHostOnly) ?
 					   "<useBuiltinTransports>false</useBuiltinTransports>"
 					   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
 					   "</rtps>"
@@ -404,19 +439,19 @@ void UxrceddsClient::run()
 
 		uxr_set_request_callback(&session, on_request, this);
 
-		// Synchronize with the Agent
-		bool synchronized = false;
-
-		while (_synchronize_timestamps && !synchronized) {
-			synchronized = uxr_sync_session(&session, 1000);
-
-			if (synchronized) {
+		// Spin until sync with the Agent
+		while (_synchronize_timestamps) {
+			if (uxr_sync_session(&session, 1000)) {
 				PX4_INFO("synchronized with time offset %-5" PRId64 "us", session.time_offset / 1000);
-				//sleep(1);
 
-			} else {
-				usleep(10000);
+				if (_param_uxrce_dds_syncc.get() > 0) {
+					syncSystemClock(&session);
+				}
+
+				break;
 			}
+
+			px4_usleep(10_ms);
 		}
 
 		hrt_abstime last_sync_session = 0;
@@ -473,6 +508,10 @@ void UxrceddsClient::run()
 				if (uxr_sync_session(&session, 100)) {
 					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
+
+					if (_param_uxrce_dds_syncc.get() > 0) {
+						syncSystemClock(&session);
+					}
 				}
 			}
 
@@ -735,8 +774,8 @@ int UxrceddsClient::print_status()
 		PX4_INFO("Using transport:     udp");
 		PX4_INFO("Agent IP:            %s", _agent_ip);
 		PX4_INFO("Agent port:          %s", _port);
-		PX4_INFO("Custom participant:  %s", _custom_participant ? "yes" : "no");
-		PX4_INFO("Localhost only:      %s", _localhost_only ? "yes" : "no");
+		PX4_INFO("Custom participant:  %s", _participant_config == ParticipantConfig::Custom ? "yes" : "no");
+		PX4_INFO("Localhost only:      %s", _participant_config == ParticipantConfig::LocalHostOnly ? "yes" : "no");
 	}
 
 #endif
@@ -770,9 +809,6 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 #endif
 	const char *device = nullptr;
 	int baudrate = 921600;
-
-	bool localhost_only = false;
-	bool custom_participant = false;
 
 	const char *client_namespace = nullptr;//"px4";
 
@@ -855,19 +891,6 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 			 static_cast<uint8_t>(ip_i & 0xff));
 	}
 
-	int32_t participant_config = 0;
-	param_get(param_find("UXRCE_DDS_PTCFG"), &participant_config);
-
-	switch (participant_config) {
-	case 1:
-		localhost_only = true;
-		break;
-
-	case 2:
-		custom_participant = true;
-		break;
-	}
-
 #endif // UXRCE_DDS_CLIENT_UDP
 
 	if (error_flag) {
@@ -881,17 +904,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
-	// determines if timestamps should be synchronized
-	int32_t synchronize_timestamps = 0;
-	param_get(param_find("UXRCE_DDS_SYNCT"), &synchronize_timestamps);
-
-	if ((synchronize_timestamps != 1) && (synchronize_timestamps != 0)) {
-		PX4_ERR("UXRCE_DDS_SYNCT must be either 0 or 1");
-	}
-
-
-	return new UxrceddsClient(transport, device, baudrate, agent_ip, port, localhost_only, custom_participant,
-				  client_namespace, synchronize_timestamps);
+	return new UxrceddsClient(transport, device, baudrate, agent_ip, port, client_namespace);
 }
 
 int UxrceddsClient::print_usage(const char *reason)
