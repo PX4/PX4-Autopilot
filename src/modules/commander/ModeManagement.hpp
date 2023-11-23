@@ -92,8 +92,8 @@ public:
 			config_control_setpoint_.flag_control_altitude_enabled = true;
 			config_control_setpoint_.flag_control_climb_rate_enabled = true;
 			config_control_setpoint_.flag_control_acceleration_enabled = true;
-			config_control_setpoint_.flag_control_rates_enabled = true;
 			config_control_setpoint_.flag_control_attitude_enabled = true;
+			config_control_setpoint_.flag_control_rates_enabled = true;
 			config_control_setpoint_.flag_control_allocation_enabled = true;
 		}
 
