@@ -40,6 +40,9 @@ using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector3f;
 
+static constexpr float kDefaultExternalPosAccuracy = 50.0f; // [m]
+static constexpr float kMaxDelaySecondsExternalPosMeasurement = 15.0f; // [s]
+
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
@@ -552,6 +555,26 @@ void EKF2::Run()
 				} else {
 					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
 						_instance, latitude, longitude, static_cast<double>(altitude));
+				}
+			}
+
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
+				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning) &&
+				    PX4_ISFINITE(vehicle_command.param2) && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)) {
+
+					const float measurement_delay_seconds = math::constrain(vehicle_command.param2, 0.0f,
+										kMaxDelaySecondsExternalPosMeasurement);
+					const uint64_t timestamp_observation = vehicle_command.timestamp - measurement_delay_seconds * 1_s;
+
+					float accuracy = kDefaultExternalPosAccuracy;
+
+					if (PX4_ISFINITE(vehicle_command.param3) && vehicle_command.param3 > FLT_EPSILON) {
+						accuracy = vehicle_command.param3;
+					}
+
+					// TODO add check for lat and long validity
+					_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
+							accuracy, timestamp_observation);
 				}
 			}
 		}
