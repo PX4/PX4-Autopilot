@@ -132,12 +132,7 @@ private:
 		.landed = true,
 	};
 
-	enum SetpointInterface {
-		kTrajectory = 0,
-		kGoto
-	} _last_active_setpoint_interface{kTrajectory};
-
-	GotoControl _goto_control;
+	GotoControl _goto_control{this};
 
 	DEFINE_PARAMETERS(
 		// Position Control
@@ -188,11 +183,7 @@ private:
 		(ParamFloat<px4::params::MPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
 
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
-		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all,
-
-		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
-		(ParamFloat<px4::params::MPC_YAWAAUTO_MAX>) _param_mpc_yawaauto_max,
-		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max
+		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */

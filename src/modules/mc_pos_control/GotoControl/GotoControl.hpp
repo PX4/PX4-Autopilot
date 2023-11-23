@@ -46,49 +46,15 @@
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <mathlib/math/Limits.hpp>
 #include <matrix/matrix/math.hpp>
+#include <px4_platform_common/module_params.h>
 #include <uORB/topics/goto_setpoint.h>
 #include <uORB/topics/trajectory_setpoint.h>
 
-class GotoControl
+class GotoControl : public ModuleParams
 {
 public:
-	GotoControl() = default;
+	GotoControl(ModuleParams *parent) : ModuleParams(parent) {};
 	~GotoControl() = default;
-
-	/** @brief struct containing maximum vehicle translational and rotational constraints */
-	struct GotoConstraints {
-		float max_horizontal_speed; // [m/s]
-		float max_down_speed; // [m/s]
-		float max_up_speed; // [m/s]
-		float max_horizontal_accel; // [m/s^2]
-		float max_down_accel; // [m/s^2]
-		float max_up_accel; // [m/s^2]
-		float max_jerk; // [m/s^3]
-		float max_heading_rate; // [rad/s]
-		float max_heading_accel; // [rad/s^2]
-	};
-
-	/**
-	 * @brief sets the maximum vehicle translational and rotational constraints. note these can be more conservatively
-	 * overriden (e.g. slowed down) via the speed scalers in the go-to setpoint.
-	 *
-	 * @param vehicle_constraints Struct containing desired vehicle constraints
-	 */
-	void setGotoConstraints(const GotoConstraints &vehicle_constraints)
-	{
-		_goto_constraints.max_horizontal_speed = math::max(0.f, vehicle_constraints.max_horizontal_speed);
-		_goto_constraints.max_down_speed = math::max(0.f, vehicle_constraints.max_down_speed);
-		_goto_constraints.max_up_speed = math::max(0.f, vehicle_constraints.max_up_speed);
-		_goto_constraints.max_horizontal_accel = math::max(0.f,
-				vehicle_constraints.max_horizontal_accel);
-		_goto_constraints.max_down_accel = math::max(0.f, vehicle_constraints.max_down_accel);
-		_goto_constraints.max_up_accel = math::max(0.f, vehicle_constraints.max_up_accel);
-		_goto_constraints.max_jerk = math::max(0.f, vehicle_constraints.max_jerk);
-		_goto_constraints.max_heading_rate = math::max(0.f,
-						     vehicle_constraints.max_heading_rate);
-		_goto_constraints.max_heading_accel = math::max(0.f,
-						      vehicle_constraints.max_heading_accel);
-	}
 
 	/** @param error [m] position smoother's maximum allowed horizontal position error at which trajectory integration halts */
 	void setMaxAllowedHorizontalPositionError(const float error) { _position_smoothing.setMaxAllowedHorizontalError(error); }
@@ -120,7 +86,11 @@ public:
 	void update(const float dt, const matrix::Vector3f &position, const float heading,
 		    const goto_setpoint_s &goto_setpoint, trajectory_setpoint_s &trajectory_setpoint);
 
+	bool is_initialized{false};
+
 private:
+	void updateParams() override;
+
 	/**
 	 * @brief optionally sets dynamic translational speed limits with corresponding scale on acceleration
 	 *
@@ -135,8 +105,6 @@ private:
 	 */
 	void setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint);
 
-	GotoConstraints _goto_constraints{};
-
 	PositionSmoothing _position_smoothing;
 	HeadingSmoothing _heading_smoothing;
 
@@ -145,4 +113,17 @@ private:
 
 	// flags if the last update() was controlling heading
 	bool _controlling_heading{false};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_XY_CRUISE>)    _param_mpc_xy_cruise,
+		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>)  _param_mpc_z_v_auto_dn,
+		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>)  _param_mpc_z_v_auto_up,
+		(ParamFloat<px4::params::MPC_ACC_HOR>)      _param_mpc_acc_hor,
+		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
+		(ParamFloat<px4::params::MPC_ACC_UP_MAX>)   _param_mpc_acc_up_max,
+		(ParamFloat<px4::params::MPC_JERK_AUTO>)    _param_mpc_jerk_auto,
+		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
+		(ParamFloat<px4::params::MPC_YAWAAUTO_MAX>) _param_mpc_yawaauto_max,
+		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max
+	);
 };
