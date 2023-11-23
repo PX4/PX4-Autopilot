@@ -38,15 +38,37 @@
 #include "GotoControl.hpp"
 #include "PositionControl.hpp"
 
+#include <drivers/drv_hrt.h>
 #include <float.h>
 #include <lib/mathlib/mathlib.h>
 
-void GotoControl::update(const float dt, const matrix::Vector3f &position, const float heading,
-			 const goto_setpoint_s &goto_setpoint, trajectory_setpoint_s &trajectory_setpoint)
-{
-	trajectory_setpoint = PositionControl::empty_trajectory_setpoint;
+using namespace time_literals;
 
-	const Vector3f position_setpoint(goto_setpoint.position);
+bool GotoControl::checkForSetpoint(const hrt_abstime &now, const bool enabled)
+{
+	_goto_setpoint_sub.update();
+	const bool timestamp_initialized = _goto_setpoint_sub.get().timestamp != 0;
+	const bool no_timeout = now < (_goto_setpoint_sub.get().timestamp + 500_ms);
+	const bool need_to_run = timestamp_initialized && no_timeout && enabled;
+
+	if (!need_to_run) {
+		_is_initialized = false;
+	}
+
+	return need_to_run;
+}
+
+void GotoControl::update(const float dt, const matrix::Vector3f &position, const float heading)
+{
+	if (!_is_initialized) {
+		resetPositionSmoother(position);
+		resetHeadingSmoother(heading);
+		_is_initialized = true;
+	}
+
+	const goto_setpoint_s &goto_setpoint = _goto_setpoint_sub.get();
+
+	const Vector3f position_setpoint(_goto_setpoint_sub.get().position);
 
 	if (!position_setpoint.isAllFinite()) {
 		// TODO: error messaging
@@ -71,6 +93,8 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 	PositionSmoothing::PositionSmoothingSetpoints out_setpoints;
 	_position_smoothing.generateSetpoints(position, position_setpoint, feedforward_velocity, dt,
 					      force_zero_velocity_setpoint, out_setpoints);
+
+	trajectory_setpoint_s trajectory_setpoint = PositionControl::empty_trajectory_setpoint;
 
 	_position_smoothing.getCurrentPosition().copyTo(trajectory_setpoint.position);
 	_position_smoothing.getCurrentVelocity().copyTo(trajectory_setpoint.velocity);
@@ -99,9 +123,18 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 		_controlling_heading = false;
 	}
 
-	trajectory_setpoint.timestamp = goto_setpoint.timestamp;
-
 	_need_smoother_reset = false;
+
+	trajectory_setpoint.timestamp = goto_setpoint.timestamp;
+	_trajectory_setpoint_pub.publish(trajectory_setpoint);
+
+	vehicle_constraints_s vehicle_constraints{
+		.timestamp = goto_setpoint.timestamp,
+		.speed_up = NAN,
+		.speed_down = NAN,
+		.want_takeoff = false
+	};
+	_vehicle_constraints_pub.publish(vehicle_constraints);
 }
 
 void GotoControl::resetPositionSmoother(const matrix::Vector3f &position)

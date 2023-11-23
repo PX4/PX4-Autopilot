@@ -370,36 +370,13 @@ void MulticopterPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
 
-		_trajectory_setpoint_sub.update(&_setpoint);
-
-		const hrt_abstime last_goto_timestamp = _goto_setpoint.timestamp;
-		_goto_setpoint_sub.update(&_goto_setpoint);
-
-		if ((_goto_setpoint.timestamp != 0)
-		    && (_goto_setpoint.timestamp >= _time_position_control_enabled)
-		    && (hrt_elapsed_time(&last_goto_timestamp) < 200_ms)
-		    && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
-			// take goto setpoint as priority over trajectory setpoint
-
-			if (!_goto_control.is_initialized) {
-				_goto_control.resetPositionSmoother(states.position);
-				_goto_control.resetHeadingSmoother(states.yaw);
-			}
-
-			_goto_control.update(dt, states.position, states.yaw, _goto_setpoint, _setpoint);
-
-			// for logging
-			_trajectory_setpoint_pub.publish(_setpoint);
-
-			_vehicle_constraints.timestamp = hrt_absolute_time();
-			_vehicle_constraints.want_takeoff = false;
-			_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
-			_vehicle_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
-
-		} else {
-			_goto_control.is_initialized = false;
-			_vehicle_constraints_sub.update(&_vehicle_constraints);
+		// if a goto setpoint available this publishes a trajectory setpoint to go there
+		if (_goto_control.checkForSetpoint(vehicle_local_position.timestamp_sample,
+						   _vehicle_control_mode.flag_multicopter_position_control_enabled)) {
+			_goto_control.update(dt, states.position, states.yaw);
 		}
+
+		_trajectory_setpoint_sub.update(&_setpoint);
 
 		adjustSetpointForEKFResets(vehicle_local_position, _setpoint);
 
@@ -415,6 +392,9 @@ void MulticopterPositionControl::Run()
 
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled
 		    && (_setpoint.timestamp >= _time_position_control_enabled)) {
+
+			// update vehicle constraints and handle smooth takeoff
+			_vehicle_constraints_sub.update(&_vehicle_constraints);
 
 			// fix to prevent the takeoff ramp to ramp to a too high value or get stuck because of NAN
 			// TODO: this should get obsolete once the takeoff limiting moves into the flight tasks

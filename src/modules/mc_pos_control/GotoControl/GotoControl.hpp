@@ -47,8 +47,12 @@
 #include <mathlib/math/Limits.hpp>
 #include <matrix/matrix/math.hpp>
 #include <px4_platform_common/module_params.h>
+
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/goto_setpoint.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/vehicle_constraints.h>
 
 class GotoControl : public ModuleParams
 {
@@ -58,6 +62,8 @@ public:
 
 	/** @param error [m] position smoother's maximum allowed horizontal position error at which trajectory integration halts */
 	void setMaxAllowedHorizontalPositionError(const float error) { _position_smoothing.setMaxAllowedHorizontalError(error); }
+
+	bool checkForSetpoint(const hrt_abstime &now, const bool enabled);
 
 	/**
 	 * @brief resets the position smoother at the current position with zero velocity and acceleration.
@@ -83,10 +89,7 @@ public:
 	 * @param[in] goto_setpoint struct containing current go-to setpoints
 	 * @param[out] trajectory_setpoint struct containing trajectory (tracking) setpoints
 	 */
-	void update(const float dt, const matrix::Vector3f &position, const float heading,
-		    const goto_setpoint_s &goto_setpoint, trajectory_setpoint_s &trajectory_setpoint);
-
-	bool is_initialized{false};
+	void update(const float dt, const matrix::Vector3f &position, const float heading);
 
 private:
 	void updateParams() override;
@@ -105,8 +108,14 @@ private:
 	 */
 	void setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint);
 
+	uORB::SubscriptionData<goto_setpoint_s> _goto_setpoint_sub{ORB_ID(goto_setpoint)};
+	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
+	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
+
 	PositionSmoothing _position_smoothing;
 	HeadingSmoothing _heading_smoothing;
+
+	bool _is_initialized{false}; ///< true if smoothers were reset to current state
 
 	// flags that the next update() requires a valid current vehicle position to reset the smoothers
 	bool _need_smoother_reset{true};
