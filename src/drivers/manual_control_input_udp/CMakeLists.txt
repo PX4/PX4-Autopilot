@@ -32,10 +32,10 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__mc_in_udp
-	MAIN mc_in_udp
+	MODULE drivers__manual_control_input_udp
+	MAIN manual_control_input_udp
 	SRCS
-		mc_in_udp.cpp
+		manual_control_input_udp.cpp
 		bind_socket.cpp
 		deserialise_msg.cpp
 	)

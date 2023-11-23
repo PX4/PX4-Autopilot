@@ -1,5 +1,0 @@
-menuconfig DRIVERS_MC_IN_UDP
-	bool "mc_in_udp"
-	default n
-	---help---
-		Enable manual control input via UDP

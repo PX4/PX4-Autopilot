@@ -188,8 +188,8 @@ int ManualControlInUDP::print_usage(const char *reason)
 }
 
 
-extern "C" __EXPORT int mc_in_udp_main(int argc, char *argv[]);
-int mc_in_udp_main(int argc, char *argv[])
+extern "C" __EXPORT int manual_control_input_udp_main(int argc, char *argv[]);
+int manual_control_input_udp_main(int argc, char *argv[])
 {
 	return ManualControlInUDP::main(argc, argv);
 }

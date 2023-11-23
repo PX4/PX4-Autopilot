@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MANUAL_CONTROL_INPUT_UDP
+	bool "manual_control_input_udp"
+	default n
+	---help---
+		Enable manual control input via UDP
