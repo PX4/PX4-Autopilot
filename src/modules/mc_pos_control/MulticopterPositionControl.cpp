@@ -379,27 +379,12 @@ void MulticopterPositionControl::Run()
 		    && (_goto_setpoint.timestamp >= _time_position_control_enabled)
 		    && (hrt_elapsed_time(&last_goto_timestamp) < 200_ms)
 		    && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
-			// take position heading setpoint as priority over trajectory setpoint
+			// take goto setpoint as priority over trajectory setpoint
 
-			if (_last_active_setpoint_interface == SetpointInterface::kTrajectory) {
+			if (!_goto_control.is_initialized) {
 				_goto_control.resetPositionSmoother(states.position);
 				_goto_control.resetHeadingSmoother(states.yaw);
 			}
-
-			const GotoControl::GotoConstraints goto_constraints = {
-				_param_mpc_xy_cruise.get(),
-				_param_mpc_z_v_auto_dn.get(),
-				_param_mpc_z_v_auto_up.get(),
-				_param_mpc_acc_hor.get(),
-				_param_mpc_acc_down_max.get(),
-				_param_mpc_acc_up_max.get(),
-				_param_mpc_jerk_auto.get(),
-				_param_mpc_yawrauto_max.get(),
-				_param_mpc_yawaauto_max.get()
-			};
-
-			_goto_control.setGotoConstraints(goto_constraints);
-			_goto_control.setMaxAllowedHorizontalPositionError(_param_mpc_xy_err_max.get());
 
 			_goto_control.update(dt, states.position, states.yaw, _goto_setpoint, _setpoint);
 
@@ -411,10 +396,8 @@ void MulticopterPositionControl::Run()
 			_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 			_vehicle_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
 
-			_last_active_setpoint_interface = SetpointInterface::kGoto;
-
 		} else {
-			_last_active_setpoint_interface = SetpointInterface::kTrajectory;
+			_goto_control.is_initialized = false;
 			_vehicle_constraints_sub.update(&_vehicle_constraints);
 		}
 
