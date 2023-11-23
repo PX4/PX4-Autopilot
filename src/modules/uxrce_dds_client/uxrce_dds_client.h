@@ -57,7 +57,7 @@ public:
 	};
 
 	UxrceddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
-		       bool localhost_only, bool custom_participant, const char *client_namespace, bool synchornize_timestamps);
+		       const char *client_namespace);
 
 	~UxrceddsClient();
 
@@ -115,10 +115,18 @@ private:
 	uORB::Publication<message_format_response_s> _message_format_response_pub{ORB_ID(message_format_response)};
 	uORB::Subscription _message_format_request_sub{ORB_ID(message_format_request)};
 
-	const bool _localhost_only;
-	const bool _custom_participant;
+	/** Synchronizes the system clock if the time is off by more than 5 seconds */
+	void syncSystemClock(uxrSession *session);
+
 	const char *_client_namespace;
-	const bool _synchronize_timestamps;
+
+	enum class ParticipantConfig {
+		Default,
+		LocalHostOnly,
+		Custom,
+	} _participant_config{ParticipantConfig::Default};
+
+	bool _synchronize_timestamps;
 
 	// max port characters (5+'\0')
 	static const uint8_t PORT_MAX_LENGTH = 6;
@@ -148,7 +156,10 @@ private:
 	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UXRCE_DDS_DOM_ID>) _param_xrce_dds_dom_id,
-		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_xrce_key
+		(ParamInt<px4::params::UXRCE_DDS_DOM_ID>) _param_uxrce_dds_dom_id,
+		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_uxrce_key,
+		(ParamInt<px4::params::UXRCE_DDS_PTCFG>) _param_uxrce_dds_ptcfg,
+		(ParamInt<px4::params::UXRCE_DDS_SYNCC>) _param_uxrce_dds_syncc,
+		(ParamInt<px4::params::UXRCE_DDS_SYNCT>) _param_uxrce_dds_synct
 	)
 };
