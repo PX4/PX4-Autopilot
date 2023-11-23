@@ -190,11 +190,11 @@ private:
 	/**
 	 * @brief calculate normalized and rotated relative vehicle position to pattern center.
 	 *
-	 * @param[out] pos_to_center_normalized_rotated is the calculated normalized and rotated relative vehicle position to pattern center.
+	 * @param[out] center_to_pos_local_normalized_rotated is the calculated normalized and rotated relative vehicle position with respect to the pattern center.
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
 	 */
-	void calculatePositionToCenterNormalizedRotated(matrix::Vector2f &pos_to_center_normalized_rotated,
+	void calculatePositionToCenterNormalizedRotated(matrix::Vector2f &center_to_pos_local_normalized_rotated,
 			const matrix::Vector2f &curr_pos_local, const FigureEightPatternParameters &parameters) const;
 	/**
 	 * @brief Calculate rotation angle.
