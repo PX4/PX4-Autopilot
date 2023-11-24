@@ -60,7 +60,6 @@ if __name__ == "__main__":
                 summary_description = msg_description
             print('msg_description: Z%sZ' % msg_description)
             print('summary_description: Z%sZ' % summary_description)
-            summary_description
         msg_contents = ""
         #Get msg contents (read the file)
         with open(msg_filename, 'r') as source_file:
