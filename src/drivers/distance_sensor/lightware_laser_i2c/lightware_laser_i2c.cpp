@@ -46,18 +46,22 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <drivers/device/i2c.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/rangefinder/PX4Rangefinder.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
 /* Configuration Constants */
 #define LIGHTWARE_LASER_BASEADDR		0x66
 
-class LightwareLaser : public device::I2C, public I2CSPIDriver<LightwareLaser>
+class LightwareLaser : public device::I2C, public I2CSPIDriver<LightwareLaser>, public ModuleParams
 {
 public:
 	LightwareLaser(const I2CSPIDriverConfig &config);
@@ -75,12 +79,14 @@ public:
 private:
 	// I2C (legacy) binary protocol command
 	static constexpr uint8_t I2C_LEGACY_CMD_READ_ALTITUDE = 0;
+	static constexpr uint8_t I2C_LEGACY_CMD_WRITE_LASER_CONTROL = 5;
 
 	enum class Register : uint8_t {
 		// see http://support.lightware.co.za/sf20/#/commands
 		ProductName = 0,
 		DistanceOutput = 27,
 		DistanceData = 44,
+		LaserFiring = 50,
 		MeasurementMode = 93,
 		ZeroOffset = 94,
 		LostSignalCounter = 95,
@@ -117,6 +123,8 @@ private:
 	int enableI2CBinaryProtocol();
 	int collect();
 
+	int updateRestriction();
+
 	PX4Rangefinder _px4_rangefinder;
 
 	int _conversion_interval{-1};
@@ -127,11 +135,22 @@ private:
 	Type _type{Type::Generic};
 	State _state{State::Configuring};
 	int _consecutive_errors{0};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SENS_EN_SF1XX>) _param_sens_en_sf1xx,
+		(ParamInt<px4::params::SF1XX_MODE>) _param_sf1xx_mode
+	)
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	typeof(px4::msg::VehicleStatus::vehicle_type) _vehicle_type{px4::msg::VehicleStatus::VEHICLE_TYPE_UNKNOWN};
+	bool _restriction{false};
+	bool _auto_restriction{false};
 };
 
 LightwareLaser::LightwareLaser(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
+	ModuleParams(nullptr),
 	_px4_rangefinder(get_device_id(), config.rotation)
 {
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
@@ -147,8 +166,8 @@ LightwareLaser::~LightwareLaser()
 int LightwareLaser::init()
 {
 	int ret = PX4_ERROR;
-	int32_t hw_model = 0;
-	param_get(param_find("SENS_EN_SF1XX"), &hw_model);
+	updateParams();
+	const int32_t hw_model = _param_sens_en_sf1xx.get();
 
 	switch (hw_model) {
 	case 0:
@@ -292,8 +311,10 @@ int LightwareLaser::configure()
 {
 	switch (_type) {
 	case Type::Generic: {
-			uint8_t cmd = I2C_LEGACY_CMD_READ_ALTITUDE;
-			int ret = transfer(&cmd, 1, nullptr, 0);
+			uint8_t cmd1 = I2C_LEGACY_CMD_READ_ALTITUDE;
+			int ret = transfer(&cmd1, 1, nullptr, 0);
+			const uint8_t cmd2[] = {I2C_LEGACY_CMD_WRITE_LASER_CONTROL, (uint8_t)(_restriction ? 0 : 1)};
+			ret |= transfer(cmd2, sizeof(cmd2), nullptr, 0);
 
 			if (PX4_OK != ret) {
 				perf_count(_comms_errors);
@@ -318,6 +339,8 @@ int LightwareLaser::configure()
 		ret |= transfer(cmd4, sizeof(cmd4), nullptr, 0);
 		const uint8_t cmd5[] = {(uint8_t)Register::LostSignalCounter, 0, 0, 0, 0}; // immediately report lost signal
 		ret |= transfer(cmd5, sizeof(cmd5), nullptr, 0);
+		const uint8_t cmd6[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
+		ret |= transfer(cmd6, sizeof(cmd6), nullptr, 0);
 
 		return ret;
 		break;
@@ -386,8 +409,78 @@ void LightwareLaser::start()
 	ScheduleDelayed(_conversion_interval);
 }
 
+int LightwareLaser::updateRestriction()
+{
+	px4::msg::VehicleStatus vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		// Check if vehicle type changed
+		if (vehicle_status.vehicle_type != _vehicle_type) {
+			// Transition VTOL -> Fixed Wing
+			if (_vehicle_type == px4::msg::VehicleStatus::VEHICLE_TYPE_ROTARY_WING &&
+			    vehicle_status.vehicle_type == px4::msg::VehicleStatus::VEHICLE_TYPE_FIXED_WING) {
+				_auto_restriction = true;
+			}
+
+			// Transition Fixed Wing -> VTOL
+			else if (_vehicle_type == px4::msg::VehicleStatus::VEHICLE_TYPE_FIXED_WING &&
+				 vehicle_status.vehicle_type == px4::msg::VehicleStatus::VEHICLE_TYPE_ROTARY_WING) {
+				_auto_restriction = false;
+			}
+
+			_vehicle_type = vehicle_status.vehicle_type;
+		}
+	}
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+		updateParams();
+	}
+
+	bool _prev_restriction{_restriction};
+
+	switch (_param_sf1xx_mode.get()) {
+	case 0: // Sensor disabled
+		_restriction = true;
+		break;
+
+	case 1: // Sensor enabled
+	default:
+		_restriction = false;
+		break;
+
+	case 2:
+		_restriction = _auto_restriction;
+		break;
+	}
+
+	if (_prev_restriction != _restriction) {
+		PX4_INFO("Emission Control: %sabling sensor!", _restriction ? "dis" : "en");
+
+		switch (_type) {
+		case Type::Generic: {
+				const uint8_t cmd[] = {I2C_LEGACY_CMD_WRITE_LASER_CONTROL, (uint8_t)(_restriction ? 0 : 1)};
+				return transfer(cmd, sizeof(cmd), nullptr, 0);
+			}
+
+		case Type::LW20c: {
+				const uint8_t cmd[] = {(uint8_t)Register::LaserFiring, (uint8_t)(_restriction ? 0 : 1)};
+				return transfer(cmd, sizeof(cmd), nullptr, 0);
+			}
+		}
+	}
+
+	return 0;
+}
+
 void LightwareLaser::RunImpl()
 {
+	if (PX4_OK != updateRestriction()) {
+		PX4_DEBUG("restriction error");
+		perf_count(_comms_errors);
+	}
+
 	switch (_state) {
 	case State::Configuring: {
 			if (configure() == 0) {
@@ -404,12 +497,14 @@ void LightwareLaser::RunImpl()
 		}
 
 	case State::Running:
-		if (PX4_OK != collect()) {
-			PX4_DEBUG("collection error");
+		if (!_restriction) {
+			if (PX4_OK != collect()) {
+				PX4_DEBUG("collection error");
 
-			if (++_consecutive_errors > 3) {
-				_state = State::Configuring;
-				_consecutive_errors = 0;
+				if (++_consecutive_errors > 3) {
+					_state = State::Configuring;
+					_consecutive_errors = 0;
+				}
 			}
 		}
 
