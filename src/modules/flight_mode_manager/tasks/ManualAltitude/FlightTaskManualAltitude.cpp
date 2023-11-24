@@ -115,8 +115,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		float spd_xy = Vector2f(_velocity).length();
 
 		// Use presence of horizontal stick inputs as a transition criteria
-		float stick_xy = Vector2f(_sticks.getPitchRollExpo()).length();
-		bool stick_input = stick_xy > 0.001f;
+		bool stick_input = _sticks.getPitchRollExpo().longerThan(FLT_EPSILON);
 
 		if (_terrain_hold) {
 			bool too_fast = spd_xy > _param_mpc_hold_max_xy.get();
@@ -147,7 +146,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 				}
 			}
 		}
-
 	}
 
 	if ((_param_mpc_alt_mode.get() == 1 || _terrain_hold) && PX4_ISFINITE(_dist_to_bottom)) {
