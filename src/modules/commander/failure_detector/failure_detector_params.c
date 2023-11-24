@@ -162,7 +162,7 @@ PARAM_DEFINE_INT32(FD_IMB_PROP_THR, 30);
  *
  * If enabled, failure detector will verify that for motors, a minimum amount of ESC current per throttle
  * level is being consumed.
- * Otherwise this indicates an motor failure.
+ * Otherwise this indicates a motor failure.
  *
  * @boolean
  * @reboot_required true
