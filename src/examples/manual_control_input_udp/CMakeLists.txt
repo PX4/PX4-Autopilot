@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__manual_control_input_udp
+	MODULE manual_control_input_udp
 	MAIN manual_control_input_udp
 	SRCS
 		manual_control_input_udp.cpp
