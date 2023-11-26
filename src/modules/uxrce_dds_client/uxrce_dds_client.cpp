@@ -264,8 +264,8 @@ void UxrceddsClient::syncSystemClock(uxrSession *session)
 
 	if (delta < 5_s) {
 		// Only set the time if it's more than 5 seconds off (matches Mavlink and GPS logic)
-		PX4_DEBUG("agents UTC time is %s by %lld us, not setting clock", agent_utc > system_utc ? "ahead" : "behind",
-			  abs(system_utc - agent_utc));
+		PX4_DEBUG("agents UTC time is %s by %-5" PRId64 "us, not setting clock", agent_utc > system_utc ? "ahead" : "behind",
+			  llabs(system_utc - agent_utc));
 		return;
 	}
 
