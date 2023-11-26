@@ -4,6 +4,7 @@
 #------------------------------------------------------------------------------
 
 param set-default IMU_GYRO_RATEMAX 1000
+param set-default SENS_IMU_CLPNOTI 0
 
 # Internal SPI
 if ! paw3902 -s start -Y 180
