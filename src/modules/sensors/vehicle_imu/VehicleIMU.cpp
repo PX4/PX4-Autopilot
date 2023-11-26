@@ -70,6 +70,8 @@ VehicleIMU::VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, co
 	_sensor_gyro_sub.set_required_updates(sensor_gyro_s::ORB_QUEUE_LENGTH / 2);
 #endif
 
+	_notify_clipping = _param_sens_imu_notify_clipping.get();
+
 	// advertise immediately to ensure consistent ordering
 	_vehicle_imu_pub.advertise();
 	_vehicle_imu_status_pub.advertise();
@@ -374,7 +376,7 @@ bool VehicleIMU::UpdateAccel()
 
 			_publish_status = true;
 
-			if (_accel_calibration.enabled() && (hrt_elapsed_time(&_last_accel_clipping_notify_time) > 3_s)) {
+			if (_notify_clipping && _accel_calibration.enabled() && (hrt_elapsed_time(&_last_accel_clipping_notify_time) > 3_s)) {
 				// start notifying the user periodically if there's significant continuous clipping
 				const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
 
@@ -503,7 +505,7 @@ bool VehicleIMU::UpdateGyro()
 
 			_publish_status = true;
 
-			if (_gyro_calibration.enabled() && (hrt_elapsed_time(&_last_gyro_clipping_notify_time) > 3_s)) {
+			if (_notify_clipping && _gyro_calibration.enabled() && (hrt_elapsed_time(&_last_gyro_clipping_notify_time) > 3_s)) {
 				// start notifying the user periodically if there's significant continuous clipping
 				const uint64_t clipping_total = _status.gyro_clipping[0] + _status.gyro_clipping[1] + _status.gyro_clipping[2];
 
