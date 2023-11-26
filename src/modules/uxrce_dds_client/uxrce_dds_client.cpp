@@ -441,7 +441,7 @@ void UxrceddsClient::run()
 
 		// Spin until sync with the Agent
 		while (_synchronize_timestamps) {
-			if (uxr_sync_session(&session, 1000)) {
+			if (uxr_sync_session(&session, 1000) && _timesync.sync_converged()) {
 				PX4_INFO("synchronized with time offset %-5" PRId64 "us", session.time_offset / 1000);
 
 				if (_param_uxrce_dds_syncc.get() > 0) {
@@ -505,7 +505,7 @@ void UxrceddsClient::run()
 
 			// time sync session
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
-				if (uxr_sync_session(&session, 100)) {
+				if (uxr_sync_session(&session, 100) && _timesync.sync_converged()) {
 					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
 
@@ -563,6 +563,7 @@ void UxrceddsClient::run()
 		_last_payload_tx_rate = 0;
 		_last_payload_tx_rate = 0;
 		_subs->reset();
+		_timesync.reset_filter();
 	}
 }
 
