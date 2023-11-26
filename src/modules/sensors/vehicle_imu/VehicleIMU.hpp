@@ -158,6 +158,8 @@ private:
 	uint8_t     _delta_angle_clipping{0};
 	uint8_t     _delta_velocity_clipping{0};
 
+	bool _notify_clipping{true};
+
 	hrt_abstime _last_accel_clipping_notify_time{0};
 	hrt_abstime _last_gyro_clipping_notify_time{0};
 
@@ -198,7 +200,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
-		(ParamBool<px4::params::SENS_IMU_AUTOCAL>) _param_sens_imu_autocal
+		(ParamBool<px4::params::SENS_IMU_AUTOCAL>) _param_sens_imu_autocal,
+		(ParamBool<px4::params::SENS_IMU_CLPNOTI>) _param_sens_imu_notify_clipping
 	)
 };
 
