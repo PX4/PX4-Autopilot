@@ -106,13 +106,6 @@ public:
 
 	int64_t offset() const { return (int64_t)_time_offset; }
 
-private:
-
-	/**
-	 * Online exponential filter to smooth time offset
-	 */
-	void add_sample(int64_t offset_us);
-
 	/**
 	 * Return true if the timesync algorithm converged to a good estimate,
 	 * return false otherwise
@@ -124,6 +117,13 @@ private:
 	 */
 	void reset_filter();
 
+
+private:
+
+	/**
+	 * Online exponential filter to smooth time offset
+	 */
+	void add_sample(int64_t offset_us);
 	uORB::PublicationMulti<timesync_status_s>  _timesync_status_pub{ORB_ID(timesync_status)};
 
 	uint32_t _sequence{0};
