@@ -113,15 +113,9 @@ void RtlDirect::on_active()
 	if (_rtl_state == RTLState::LAND && _mission_item.land_precision > 0) {
 		// Need to update the position and type on the current setpoint triplet.
 		_navigator->get_precland()->on_active();
-#if !defined(CONSTRAINED_FLASH)
-		_publish_prec_land_status(true);
-#endif
 
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
-#if !defined(CONSTRAINED_FLASH)
-		_publish_prec_land_status(false);
-#endif
 	}
 }
 
