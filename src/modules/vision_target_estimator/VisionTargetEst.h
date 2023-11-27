@@ -103,7 +103,7 @@ private:
 	void updateParams() override;
 
 	void update_task_topics();
-	bool should_task_start();
+	bool new_task_available();
 	bool is_current_task_done();
 	bool start_position_estimator();
 	void stop_position_estimator();
@@ -145,7 +145,6 @@ private:
 	bool _is_in_prec_land{false}; // Start target estimator during precision landing
 	uint64_t _vte_position_stop_time{0};
 	uint64_t _vte_orientation_stop_time{0};
-	bool _vte_task_running{false};
 
 	bool _vte_orientation_enabled{false};
 	VTEOrientation *_vte_orientation {nullptr};
