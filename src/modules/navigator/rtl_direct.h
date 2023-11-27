@@ -48,9 +48,6 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/parameter_update.h>
-#if !defined(CONSTRAINED_FLASH)
-#include <uORB/topics/prec_land_status.h>
-#endif
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
