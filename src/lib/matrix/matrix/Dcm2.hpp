@@ -102,8 +102,8 @@ public:
 	Dcm2(const Type angle)
 	{
 		Dcm2 &dcm = *this;
-		Type sin_angle = sin(angle);
-		Type cos_angle = cos(angle);
+		Type sin_angle = std::sin(angle);
+		Type cos_angle = std::cos(angle);
 
 		dcm(0, 0) = cos_angle;
 		dcm(0, 1) = -sin_angle;
