@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -172,7 +172,7 @@ void GotoControl::updateParams()
 
 void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint)
 {
-	// constrain horizontal velocity
+	// Horizontal constraints
 	float max_horizontal_speed = _param_mpc_xy_cruise.get();
 	float max_horizontal_accel = _param_mpc_acc_hor.get();
 
@@ -183,46 +183,42 @@ void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint
 
 		// linearly scale horizontal acceleration limit with horizontal speed limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints
-		if (_position_smoothing.getCurrentVelocityXY().norm() <= max_horizontal_speed) {
+		if (!_position_smoothing.getCurrentVelocityXY().longerThan(max_horizontal_speed)) {
 			const float speed_scale = max_horizontal_speed / _param_mpc_xy_cruise.get();
-			max_horizontal_accel = math::constrain(_param_mpc_acc_hor.get() * speed_scale,
-							       0.f,
-							       _param_mpc_acc_hor.get());
+			max_horizontal_accel = math::constrain(_param_mpc_acc_hor.get() * speed_scale, 0.f, _param_mpc_acc_hor.get());
 		}
 	}
 
+	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
 	_position_smoothing.setCruiseSpeed(max_horizontal_speed);
-	_position_smoothing.setMaxVelocityXY(max_horizontal_speed);
 	_position_smoothing.setMaxAccelerationXY(max_horizontal_accel);
+	_position_smoothing.setMaxJerkXY(_param_mpc_jerk_auto.get());
 
-	// constrain vertical velocity
-	const bool pos_setpoint_is_below_smooth_pos = goto_setpoint.position[2] - _position_smoothing.getCurrentPositionZ() >
-			0.f;
-	const float vehicle_max_vertical_speed = (pos_setpoint_is_below_smooth_pos) ? _param_mpc_z_v_auto_dn.get() :
-			_param_mpc_z_v_auto_up.get();
-	const float vehicle_max_vertical_accel = (pos_setpoint_is_below_smooth_pos) ? _param_mpc_acc_down_max.get() :
-			_param_mpc_acc_up_max.get();
+	// Vertical constraints
+	float vehicle_max_vertical_speed = _param_mpc_z_v_auto_dn.get();
+	float vehicle_max_vertical_accel = _param_mpc_acc_down_max.get();
+
+	if (goto_setpoint.position[2] < _position_smoothing.getCurrentPositionZ()) { // goto higher -> more negative
+		vehicle_max_vertical_speed = _param_mpc_z_v_auto_up.get();
+		vehicle_max_vertical_accel = _param_mpc_acc_up_max.get();
+	}
 
 	float max_vertical_speed = vehicle_max_vertical_speed;
 	float max_vertical_accel = vehicle_max_vertical_accel;
 
 	if (goto_setpoint.flag_set_max_vertical_speed && PX4_ISFINITE(goto_setpoint.max_vertical_speed)) {
-
 		max_vertical_speed = math::constrain(goto_setpoint.max_vertical_speed, 0.f, vehicle_max_vertical_speed);
 
 		// linearly scale vertical acceleration limit with vertical speed limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints
 		if (fabsf(_position_smoothing.getCurrentVelocityZ()) <= max_vertical_speed) {
 			const float speed_scale = max_vertical_speed / vehicle_max_vertical_speed;
-			max_vertical_accel = math::constrain(vehicle_max_vertical_accel * speed_scale, 0.f,
-							     vehicle_max_vertical_accel);
+			max_vertical_accel = math::constrain(vehicle_max_vertical_accel * speed_scale, 0.f, vehicle_max_vertical_accel);
 		}
 	}
 
 	_position_smoothing.setMaxVelocityZ(max_vertical_speed);
 	_position_smoothing.setMaxAccelerationZ(max_vertical_accel);
-
-	_position_smoothing.setMaxJerkXY(_param_mpc_jerk_auto.get());
 	_position_smoothing.setMaxJerkZ(_param_mpc_jerk_auto.get());
 }
 

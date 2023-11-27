@@ -124,15 +124,16 @@ private:
 	bool _controlling_heading{false};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_XY_CRUISE>)    _param_mpc_xy_cruise,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>)  _param_mpc_z_v_auto_dn,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>)  _param_mpc_z_v_auto_up,
-		(ParamFloat<px4::params::MPC_ACC_HOR>)      _param_mpc_acc_hor,
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor,
 		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>)   _param_mpc_acc_up_max,
-		(ParamFloat<px4::params::MPC_JERK_AUTO>)    _param_mpc_jerk_auto,
+		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+		(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
+		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
 		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
 		(ParamFloat<px4::params::MPC_YAWRAUTO_ACC>) _param_mpc_yawrauto_acc,
-		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max
+		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
+		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up
 	);
 };
