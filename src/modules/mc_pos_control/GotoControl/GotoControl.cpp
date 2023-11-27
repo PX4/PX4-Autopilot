@@ -36,7 +36,6 @@
  */
 
 #include "GotoControl.hpp"
-#include "PositionControl.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <float.h>
@@ -94,7 +93,8 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 	_position_smoothing.generateSetpoints(position, position_setpoint, feedforward_velocity, dt,
 					      force_zero_velocity_setpoint, out_setpoints);
 
-	trajectory_setpoint_s trajectory_setpoint = PositionControl::empty_trajectory_setpoint;
+	const trajectory_setpoint_s empty_trajectory_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN};
+	trajectory_setpoint_s trajectory_setpoint = empty_trajectory_setpoint;
 
 	_position_smoothing.getCurrentPosition().copyTo(trajectory_setpoint.position);
 	_position_smoothing.getCurrentVelocity().copyTo(trajectory_setpoint.velocity);
@@ -115,8 +115,6 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 		_controlling_heading = true;
 
 	} else {
-		// TODO: error messaging for non-finite headings
-
 		trajectory_setpoint.yaw = NAN;
 		trajectory_setpoint.yawspeed = NAN;
 
@@ -224,19 +222,17 @@ void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint
 
 void GotoControl::setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint)
 {
-	float max_heading_rate =  _param_mpc_yawrauto_max.get();
+	float max_heading_rate = _param_mpc_yawrauto_max.get();
 	float max_heading_accel = _param_mpc_yawrauto_acc.get();
 
-	if (goto_setpoint.flag_set_max_heading_rate && PX4_ISFINITE(_param_mpc_yawrauto_max.get())) {
-		max_heading_rate = math::constrain(_param_mpc_yawrauto_max.get(), 0.f,
-						   _param_mpc_yawrauto_max.get());
+	if (goto_setpoint.flag_set_max_heading_rate && PX4_ISFINITE(goto_setpoint.max_heading_rate)) {
+		max_heading_rate = math::constrain(goto_setpoint.max_heading_rate, 0.f, _param_mpc_yawrauto_max.get());
 
 		// linearly scale heading acceleration limit with heading rate limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints
 		if (fabsf(_heading_smoothing.getSmoothedHeadingRate()) <= max_heading_rate) {
 			const float rate_scale = max_heading_rate / _param_mpc_yawrauto_max.get();
-			max_heading_accel = math::constrain(_param_mpc_yawrauto_acc.get() * rate_scale,
-							    0.f, _param_mpc_yawrauto_acc.get());
+			max_heading_accel = math::constrain(_param_mpc_yawrauto_acc.get() * rate_scale, 0.f, _param_mpc_yawrauto_acc.get());
 		}
 	}
 
