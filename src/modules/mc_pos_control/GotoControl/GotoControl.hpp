@@ -132,7 +132,7 @@ private:
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>)   _param_mpc_acc_up_max,
 		(ParamFloat<px4::params::MPC_JERK_AUTO>)    _param_mpc_jerk_auto,
 		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
-		(ParamFloat<px4::params::MPC_YAWAAUTO_MAX>) _param_mpc_yawaauto_max,
+		(ParamFloat<px4::params::MPC_YAWRAUTO_ACC>) _param_mpc_yawrauto_acc,
 		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max
 	);
 };
