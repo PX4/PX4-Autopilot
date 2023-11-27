@@ -229,7 +229,7 @@ void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint
 void GotoControl::setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint)
 {
 	float max_heading_rate =  _param_mpc_yawrauto_max.get();
-	float max_heading_accel = _param_mpc_yawaauto_max.get();
+	float max_heading_accel = _param_mpc_yawrauto_acc.get();
 
 	if (goto_setpoint.flag_set_max_heading_rate && PX4_ISFINITE(_param_mpc_yawrauto_max.get())) {
 		max_heading_rate = math::constrain(_param_mpc_yawrauto_max.get(), 0.f,
@@ -239,8 +239,8 @@ void GotoControl::setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint)
 		// only limit acceleration once within velocity constraints
 		if (fabsf(_heading_smoothing.getSmoothedHeadingRate()) <= max_heading_rate) {
 			const float rate_scale = max_heading_rate / _param_mpc_yawrauto_max.get();
-			max_heading_accel = math::constrain(_param_mpc_yawaauto_max.get() * rate_scale,
-							    0.f, _param_mpc_yawaauto_max.get());
+			max_heading_accel = math::constrain(_param_mpc_yawrauto_acc.get() * rate_scale,
+							    0.f, _param_mpc_yawrauto_acc.get());
 		}
 	}
 
