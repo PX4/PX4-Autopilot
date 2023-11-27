@@ -207,7 +207,7 @@ bool VisionTargetEst::start_position_estimator()
 
 		if (_pos_sp_triplet_sub.update(&pos_sp_triplet)) {
 			next_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-			current_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+			current_sp_is_land = (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND);
 		}
 
 		if (next_sp_is_land) {
@@ -229,14 +229,24 @@ bool VisionTargetEst::start_position_estimator()
 	return true;
 }
 
-bool VisionTargetEst::should_task_start()
+bool VisionTargetEst::new_task_available()
 {
-	// Start target estimator for precision landing
+
 	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND && _is_in_prec_land) {
-		_vte_current_task = VisionTargetEstTask::VTE_FOR_PREC_LAND;
+
+		// Precision land task already running
+		if (_vte_current_task == VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+			return false;
+		}
+
 		PX4_INFO("VTE, precision landing task requested.");
+		_vte_current_task = VisionTargetEstTask::VTE_FOR_PREC_LAND;
 		return true;
+
 	}
+
+	// To add a new task:
+	// else if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_NEW_TASK && _is_in_new_task) {...}
 
 	return false;
 }
@@ -296,12 +306,20 @@ void VisionTargetEst::Run()
 
 	update_task_topics();
 
-	// Only check for new task once the previous one is done
-	if (!_vte_task_running) {
-		_vte_task_running = should_task_start();
+	// If a new task is available, stop the estimators if they were already running
+	if (new_task_available()) {
+		if (_vte_position_enabled && _position_estimator_running) {
+			stop_position_estimator();
+		}
+
+		if (_vte_orientation_enabled && _orientation_estimator_running) {
+			stop_orientation_estimator();
+		}
+
 	}
 
-	if (!_vte_task_running) {
+	// No task running, early return
+	if (_vte_current_task == 0) {
 		return;
 	}
 
@@ -321,7 +339,6 @@ void VisionTargetEst::Run()
 			|| !_position_estimator_running)) {
 
 		if (is_current_task_done()) {
-			_vte_task_running = false;
 			_vte_current_task = 0;
 		}
 
@@ -339,7 +356,6 @@ void VisionTargetEst::Run()
 			stop_orientation_estimator();
 		}
 
-		_vte_task_running = false;
 		_vte_current_task = 0;
 
 		return;
