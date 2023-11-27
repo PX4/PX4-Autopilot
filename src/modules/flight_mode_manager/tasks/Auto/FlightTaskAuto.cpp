@@ -636,7 +636,11 @@ State FlightTaskAuto::_getCurrentState()
 
 	State return_state = State::none;
 
-	if (u_prev_to_target_xy * pos_to_target_xy < 0.0f) {
+	if (u_prev_to_target_xy.length() < FLT_EPSILON) {
+		// Previous and target are the same point, so we better don't try to do any special line following
+		return_state = State::none;
+
+	} else if (u_prev_to_target_xy * pos_to_target_xy < 0.0f) {
 		// Target is behind
 		return_state = State::target_behind;
 
