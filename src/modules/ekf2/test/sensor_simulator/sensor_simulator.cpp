@@ -15,6 +15,12 @@ SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
 	setSensorRateToDefault();
 	setSensorDataToDefault();
 	startBasicSensor();
+
+	for (int i = 0; i < 3; i++) {
+		_trajectory[i].setMaxJerk(22.f);
+		_trajectory[i].setMaxAccel(8.f);
+		_trajectory[i].setMaxVel(6.f);
+	}
 }
 
 void SensorSimulator::loadSensorDataFromFile(std::string file_name)
