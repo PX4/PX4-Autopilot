@@ -306,11 +306,12 @@ float Battery::computeRemainingTime(float current_a)
 {
 	float time_remaining_s = NAN;
 
-	vehicle_status_s vehicle_status;
-
 	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		}
 	}
 
@@ -322,9 +323,8 @@ float Battery::computeRemainingTime(float current_a)
 
 	if (_armed && PX4_ISFINITE(current_a)) {
 		// For FW only update when we are in level flight
-		if (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-		    || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
-			&& _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
+		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
+					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
 			// only update with positive numbers
 			_current_average_filter_a.update(fmaxf(current_a, 0.f));
 		}
