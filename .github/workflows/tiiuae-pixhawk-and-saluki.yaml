@@ -105,7 +105,7 @@ jobs:
             type=semver,pattern={{version}}
             type=sha
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -150,14 +150,14 @@ jobs:
             type=semver,pattern={{version}}
             type=sha
       - name: Login to SSRC JFrog Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: artifactory.ssrcdevops.tii.ae
           username: ${{ secrets.UAE_RT_USER }}
           password: ${{ secrets.UAE_RT_APIKEY }}
       # have to login to ghcr as well to download fpga and BL
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
