@@ -36,4 +36,3 @@ px4_add_library(GotoControl
 	GotoControl.hpp
 )
 target_include_directories(GotoControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(GotoControl PUBLIC PositionControl)
