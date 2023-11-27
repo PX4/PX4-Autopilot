@@ -613,3 +613,21 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 	sp_x = sp_curr(0);
 	sp_y = sp_curr(1);
 }
+
+
+#if !defined(CONSTRAINED_FLASH)
+void PrecLand::_publish_prec_land_status(const bool prec_land_ongoing)
+{
+	prec_land_status_s prec_land_status{};
+
+	if (prec_land_ongoing) {
+		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_ONGOING;
+
+	} else {
+		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_STOPPED;
+	}
+
+	prec_land_status.nav_state = (int)_state;
+	_prec_land_status_pub.publish(prec_land_status);
+}
+#endif

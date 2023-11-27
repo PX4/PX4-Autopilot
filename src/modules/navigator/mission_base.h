@@ -55,10 +55,6 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/Publication.hpp>
 
-#if !defined(CONSTRAINED_FLASH)
-#include <uORB/topics/prec_land_status.h>
-#endif
-
 #include "mission_block.h"
 #include "navigation.h"
 
@@ -349,10 +345,7 @@ protected:
 	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item}; /**< Navigator mission item publication*/
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)}; /**< Mission publication*/
-#if !defined(CONSTRAINED_FLASH)
-	uORB::Publication<prec_land_status_s> _prec_land_status_pub {ORB_ID(prec_land_status)};
-	void _publish_prec_land_status(const bool prec_land_ongoing);
-#endif
+
 private:
 	/**
 	 * @brief Maximum number of jump mission items iterations
