@@ -133,7 +133,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
 PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.f);
 
 /**
- * Max yaw rate in autonomous modes
+ * Maximum yaw rate in autonomous modes
  *
  * Limits the rate of change of the yaw setpoint to avoid large
  * control output and mixer saturation.
@@ -148,7 +148,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.f);
 PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.f);
 
 /**
- * Max yaw acceleration in autonomous modes
+ * Maximum yaw acceleration in autonomous modes
  *
  * Limits the acceleration of the yaw setpoint to avoid large
  * control output and mixer saturation.
@@ -160,7 +160,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.f);
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MPC_YAWAAUTO_MAX, 60.f);
+PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_ACC, 60.f);
 
 /**
  * Heading behavior in autonomous modes
