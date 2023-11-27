@@ -1225,7 +1225,7 @@ void Navigator::check_traffic()
 		}
 
 		// Check if the icao address is within the range we will ignore
-		if (tr.icao_address > ignore_icao_start && tr.icao_address < ignore_icao_end) {
+		if (tr.icao_address >= ignore_icao_start && tr.icao_address < ignore_icao_end) {
 			changed = _traffic_sub.updated();
 			continue;
 		}
