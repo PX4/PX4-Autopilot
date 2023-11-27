@@ -54,7 +54,7 @@
 class HeadingSmoothing
 {
 public:
-	HeadingSmoothing() = default;
+	HeadingSmoothing();
 	~HeadingSmoothing() = default;
 
 	/** @param max_heading_rate [rad/s] */

@@ -33,6 +33,11 @@
 
 #include "HeadingSmoothing.hpp"
 
+HeadingSmoothing::HeadingSmoothing()
+{
+	_velocity_smoothing.setMaxVel(M_PI_F); // smoothed "velocity" is heading [-pi, pi]
+}
+
 void HeadingSmoothing::reset(const float heading, const float heading_rate)
 {
 	const float wrapped_heading = matrix::wrap_pi(heading);
