@@ -46,7 +46,6 @@
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <mathlib/math/Limits.hpp>
 #include <matrix/matrix/math.hpp>
-#include <px4_platform_common/module_params.h>
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -54,14 +53,11 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
 
-class GotoControl : public ModuleParams
+class GotoControl
 {
 public:
-	GotoControl(ModuleParams *parent) : ModuleParams(parent) {};
+	GotoControl() = default;
 	~GotoControl() = default;
-
-	/** @param error [m] position smoother's maximum allowed horizontal position error at which trajectory integration halts */
-	void setMaxAllowedHorizontalPositionError(const float error) { _position_smoothing.setMaxAllowedHorizontalError(error); }
 
 	bool checkForSetpoint(const hrt_abstime &now, const bool enabled);
 
@@ -91,9 +87,20 @@ public:
 	 */
 	void update(const float dt, const matrix::Vector3f &position, const float heading);
 
-private:
-	void updateParams() override;
+	// Setting all parameters from the outside saves 300bytes flash
+	void setParamMpcAccHor(const float param_mpc_acc_hor) { _param_mpc_acc_hor = param_mpc_acc_hor; }
+	void setParamMpcAccDownMax(const float param_mpc_acc_down_max) { _param_mpc_acc_down_max = param_mpc_acc_down_max; }
+	void setParamMpcAccUpMax(const float param_mpc_acc_up_max) { _param_mpc_acc_up_max = param_mpc_acc_up_max; }
+	void setParamMpcJerkAuto(const float param_mpc_jerk_auto) { _position_smoothing.setMaxJerk(param_mpc_jerk_auto); }
+	void setParamMpcXyCruise(const float param_mpc_xy_cruise) { _param_mpc_xy_cruise = param_mpc_xy_cruise; }
+	void setParamMpcXyErrMax(const float param_mpc_xy_err_max) { _position_smoothing.setMaxAllowedHorizontalError(param_mpc_xy_err_max); }
+	void setParamMpcXyVelMax(const float param_mpc_xy_vel_max) { _position_smoothing.setMaxVelocityXY(param_mpc_xy_vel_max); }
+	void setParamMpcYawrautoMax(const float param_mpc_yawrauto_max) { _param_mpc_yawrauto_max = param_mpc_yawrauto_max; }
+	void setParamMpcYawrautoAcc(const float param_mpc_yawrauto_acc) { _param_mpc_yawrauto_acc = param_mpc_yawrauto_acc; }
+	void setParamMpcZVAutoDn(const float param_mpc_z_v_auto_dn) { _param_mpc_z_v_auto_dn = param_mpc_z_v_auto_dn; }
+	void setParamMpcZVAutoUp(const float param_mpc_z_v_auto_up) { _param_mpc_z_v_auto_up = param_mpc_z_v_auto_up; }
 
+private:
 	/**
 	 * @brief optionally sets dynamic translational speed limits with corresponding scale on acceleration
 	 *
@@ -123,17 +130,12 @@ private:
 	// flags if the last update() was controlling heading
 	bool _controlling_heading{false};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor,
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-		(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
-		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
-		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
-		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
-		(ParamFloat<px4::params::MPC_YAWRAUTO_ACC>) _param_mpc_yawrauto_acc,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up
-	);
+	float _param_mpc_acc_hor{0.f};
+	float _param_mpc_acc_down_max{0.f};
+	float _param_mpc_acc_up_max{0.f};
+	float _param_mpc_xy_cruise{0.f};
+	float _param_mpc_yawrauto_max{0.f};
+	float _param_mpc_yawrauto_acc{0.f};
+	float _param_mpc_z_v_auto_dn{0.f};
+	float _param_mpc_z_v_auto_up{0.f};
 };

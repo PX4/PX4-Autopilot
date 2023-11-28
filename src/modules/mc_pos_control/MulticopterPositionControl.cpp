@@ -167,6 +167,17 @@ void MulticopterPositionControl::parameters_update(bool force)
 			Vector3f(_param_mpc_xy_vel_i_acc.get(), _param_mpc_xy_vel_i_acc.get(), _param_mpc_z_vel_i_acc.get()),
 			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
 		_control.setHorizontalThrustMargin(_param_mpc_thr_xy_marg.get());
+		_goto_control.setParamMpcAccHor(_param_mpc_acc_hor.get());
+		_goto_control.setParamMpcAccDownMax(_param_mpc_acc_down_max.get());
+		_goto_control.setParamMpcAccUpMax(_param_mpc_acc_up_max.get());
+		_goto_control.setParamMpcJerkAuto(_param_mpc_jerk_auto.get());
+		_goto_control.setParamMpcXyCruise(_param_mpc_xy_cruise.get());
+		_goto_control.setParamMpcXyErrMax(_param_mpc_xy_err_max.get());
+		_goto_control.setParamMpcXyVelMax(_param_mpc_xy_vel_max.get());
+		_goto_control.setParamMpcYawrautoMax(_param_mpc_yawrauto_max.get());
+		_goto_control.setParamMpcYawrautoAcc(_param_mpc_yawrauto_acc.get());
+		_goto_control.setParamMpcZVAutoDn(_param_mpc_z_v_auto_dn.get());
+		_goto_control.setParamMpcZVAutoUp(_param_mpc_z_v_auto_up.get());
 
 		// Check that the design parameters are inside the absolute maximum constraints
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
