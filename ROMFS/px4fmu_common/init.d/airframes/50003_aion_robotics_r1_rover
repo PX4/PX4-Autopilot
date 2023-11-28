@@ -57,6 +57,6 @@ param set-default CA_R_REV 3
 
 
 param set-default RBCLW_ADDRESS 128
-param set-default ROBOCLAW_FUNC1 101
-param set-default ROBOCLAW_FUNC2 102
-param set-default ROBOCLAW_REV 1
+param set-default RBCLW_FUNC1 101
+param set-default RBCLW_FUNC2 102
+param set-default RBCLW_REV 1

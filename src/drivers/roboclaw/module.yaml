@@ -7,7 +7,7 @@ serial_config:
 
 actuator_output:
   output_groups:
-    - param_prefix: ROBOCLAW
+    - param_prefix: RBCLW
       channel_label: 'Channel'
       standard_params:
         disarmed: { min: 128, max: 128, default: 128 }
