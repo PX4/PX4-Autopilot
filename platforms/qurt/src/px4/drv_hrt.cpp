@@ -116,7 +116,7 @@ hrt_abstime hrt_absolute_time()
 
 int hrt_set_absolute_time_offset(int32_t time_diff_us)
 {
-	dsp_offset = time_diff_us;
+	// dsp_offset = time_diff_us;
 	return 0;
 }
 
