@@ -48,8 +48,6 @@ using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT{0.1f};
-
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
