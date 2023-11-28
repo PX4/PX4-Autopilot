@@ -1,0 +1,56 @@
+name: tiiuae-blackduck-scan
+
+on:
+  push:
+    tags:
+      - 'v1.14.0-*'
+  workflow_dispatch:
+
+jobs:
+  scan:
+    name: run blackduck scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_REPO_TOKEN }}
+          submodules: 'recursive'
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Run the scan
+        run: |
+          set -exu
+
+          # initialise configuration values
+          bd_project_name=px4-1.14.0
+          bd_project_version=${{ github.ref_name }}
+          bd_project_phase=DEVELOPMENT
+          workdir=$(pwd)
+          blackduck_url="https://blackduck.ssrc.fi"
+          blackduck_token=${{ secrets.BLACKDUCK_ACCESS_TOKEN }}
+          project_id="7900cb41-3b7e-4985-8935-5d6c6b996db3"
+          bdscan_output_file=bdscan_output.log
+
+          # run the actual scan
+          bash <(curl -s -L https://detect.synopsys.com/detect8.sh) \
+            --blackduck.api.token=$blackduck_token \
+            --blackduck.trust.cert=true \
+            --blackduck.url=$blackduck_url \
+            --detect.blackduck.signature.scanner.snippet.matching=FULL_SNIPPET_MATCHING \
+            --detect.blackduck.signature.scanner.upload.source.mode=true \
+            --detect.excluded.detector.types=PEAR \
+            --detect.impact.analysis.enabled=true \
+            --detect.project.application.id=$bd_project_name \
+            --detect.project.name=$bd_project_name \
+            --detect.project.version.name=$bd_project_version \
+            --detect.project.version.phase=$bd_project_phase \
+            --detect.source.path=$workdir \
+            --detect.target.type=SOURCE \
+            --detect.timeout=6000 \
+            --detect.tools=ALL \
+            --detect.wait.for.results=true \
+            | tee ${bdscan_output_file}
+
+            # find blackduck link from output log:
+            grep 'Black Duck Project BOM:' ${bdscan_output_file} |sed 's/^.*Black Duck Project BOM: //g' >> $GITHUB_STEP_SUMMARY
