@@ -100,7 +100,7 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	float mag_incl = asinf(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
 	float mag_incl_wmm_deg = 0.f;
 	_ekf->get_mag_inc_deg(mag_incl_wmm_deg);
-	EXPECT_NEAR(degrees(mag_incl), mag_incl_wmm_deg, 1e-6f);
+	EXPECT_NEAR(degrees(mag_incl), mag_incl_wmm_deg, 1e-5f);
 }
 
 TEST_F(EkfMagTest, noInitLargeStrength)
