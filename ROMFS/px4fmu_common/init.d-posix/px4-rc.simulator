@@ -129,7 +129,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 			exit 1
 		fi
 
-	elif [ -n "${PX4_GZ_MODEL_NAME}" ] && [ -z "${PX4_SIM_MODEL#*gz_}" ]; then
+	elif [ -n "${PX4_GZ_MODEL_NAME}" ]; then
 		# model name specificed, gz_bridge will attach to existing model
 
 		if gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
