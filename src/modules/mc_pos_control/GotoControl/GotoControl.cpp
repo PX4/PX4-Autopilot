@@ -93,12 +93,10 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 	_position_smoothing.generateSetpoints(position, position_setpoint, feedforward_velocity, dt,
 					      force_zero_velocity_setpoint, out_setpoints);
 
-	const trajectory_setpoint_s empty_trajectory_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN};
-	trajectory_setpoint_s trajectory_setpoint = empty_trajectory_setpoint;
-
-	_position_smoothing.getCurrentPosition().copyTo(trajectory_setpoint.position);
-	_position_smoothing.getCurrentVelocity().copyTo(trajectory_setpoint.velocity);
-	_position_smoothing.getCurrentAcceleration().copyTo(trajectory_setpoint.acceleration);
+	trajectory_setpoint_s trajectory_setpoint{};
+	out_setpoints.position.copyTo(trajectory_setpoint.position);
+	out_setpoints.velocity.copyTo(trajectory_setpoint.velocity);
+	out_setpoints.acceleration.copyTo(trajectory_setpoint.acceleration);
 	out_setpoints.jerk.copyTo(trajectory_setpoint.jerk);
 
 	if (goto_setpoint.flag_control_heading && PX4_ISFINITE(goto_setpoint.heading) && PX4_ISFINITE(heading)) {
@@ -162,43 +160,35 @@ void GotoControl::resetHeadingSmoother(const float heading)
 	_heading_smoothing.reset(heading, initial_heading_rate);
 }
 
-void GotoControl::updateParams()
-{
-	ModuleParams::updateParams();
-	setMaxAllowedHorizontalPositionError(_param_mpc_xy_err_max.get());
-}
-
 void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint)
 {
 	// Horizontal constraints
-	float max_horizontal_speed = _param_mpc_xy_cruise.get();
-	float max_horizontal_accel = _param_mpc_acc_hor.get();
+	float max_horizontal_speed = _param_mpc_xy_cruise;
+	float max_horizontal_accel = _param_mpc_acc_hor;
 
 	if (goto_setpoint.flag_set_max_horizontal_speed
 	    && PX4_ISFINITE(goto_setpoint.max_horizontal_speed)) {
 		max_horizontal_speed = math::constrain(goto_setpoint.max_horizontal_speed, 0.f,
-						       _param_mpc_xy_cruise.get());
+						       _param_mpc_xy_cruise);
 
 		// linearly scale horizontal acceleration limit with horizontal speed limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints
 		if (!_position_smoothing.getCurrentVelocityXY().longerThan(max_horizontal_speed)) {
-			const float speed_scale = max_horizontal_speed / _param_mpc_xy_cruise.get();
-			max_horizontal_accel = math::constrain(_param_mpc_acc_hor.get() * speed_scale, 0.f, _param_mpc_acc_hor.get());
+			const float speed_scale = max_horizontal_speed / _param_mpc_xy_cruise;
+			max_horizontal_accel = math::constrain(_param_mpc_acc_hor * speed_scale, 0.f, _param_mpc_acc_hor);
 		}
 	}
 
-	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
 	_position_smoothing.setCruiseSpeed(max_horizontal_speed);
 	_position_smoothing.setMaxAccelerationXY(max_horizontal_accel);
-	_position_smoothing.setMaxJerkXY(_param_mpc_jerk_auto.get());
 
 	// Vertical constraints
-	float vehicle_max_vertical_speed = _param_mpc_z_v_auto_dn.get();
-	float vehicle_max_vertical_accel = _param_mpc_acc_down_max.get();
+	float vehicle_max_vertical_speed = _param_mpc_z_v_auto_dn;
+	float vehicle_max_vertical_accel = _param_mpc_acc_down_max;
 
 	if (goto_setpoint.position[2] < _position_smoothing.getCurrentPositionZ()) { // goto higher -> more negative
-		vehicle_max_vertical_speed = _param_mpc_z_v_auto_up.get();
-		vehicle_max_vertical_accel = _param_mpc_acc_up_max.get();
+		vehicle_max_vertical_speed = _param_mpc_z_v_auto_up;
+		vehicle_max_vertical_accel = _param_mpc_acc_up_max;
 	}
 
 	float max_vertical_speed = vehicle_max_vertical_speed;
@@ -217,22 +207,21 @@ void GotoControl::setPositionSmootherLimits(const goto_setpoint_s &goto_setpoint
 
 	_position_smoothing.setMaxVelocityZ(max_vertical_speed);
 	_position_smoothing.setMaxAccelerationZ(max_vertical_accel);
-	_position_smoothing.setMaxJerkZ(_param_mpc_jerk_auto.get());
 }
 
 void GotoControl::setHeadingSmootherLimits(const goto_setpoint_s &goto_setpoint)
 {
-	float max_heading_rate = _param_mpc_yawrauto_max.get();
-	float max_heading_accel = _param_mpc_yawrauto_acc.get();
+	float max_heading_rate = _param_mpc_yawrauto_max;
+	float max_heading_accel = _param_mpc_yawrauto_acc;
 
 	if (goto_setpoint.flag_set_max_heading_rate && PX4_ISFINITE(goto_setpoint.max_heading_rate)) {
-		max_heading_rate = math::constrain(goto_setpoint.max_heading_rate, 0.f, _param_mpc_yawrauto_max.get());
+		max_heading_rate = math::constrain(goto_setpoint.max_heading_rate, 0.f, _param_mpc_yawrauto_max);
 
 		// linearly scale heading acceleration limit with heading rate limit to maintain smoothing dynamic
 		// only limit acceleration once within velocity constraints
 		if (fabsf(_heading_smoothing.getSmoothedHeadingRate()) <= max_heading_rate) {
-			const float rate_scale = max_heading_rate / _param_mpc_yawrauto_max.get();
-			max_heading_accel = math::constrain(_param_mpc_yawrauto_acc.get() * rate_scale, 0.f, _param_mpc_yawrauto_acc.get());
+			const float rate_scale = max_heading_rate / _param_mpc_yawrauto_max;
+			max_heading_accel = math::constrain(_param_mpc_yawrauto_acc * rate_scale, 0.f, _param_mpc_yawrauto_acc);
 		}
 	}
 

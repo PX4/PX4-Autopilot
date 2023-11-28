@@ -43,7 +43,7 @@ public:
 
 	PositionSmoothingTest()
 	{
-		_position_smoothing.setMaxJerk({MAX_JERK, MAX_JERK, MAX_JERK});
+		_position_smoothing.setMaxJerk(MAX_JERK);
 		_position_smoothing.setMaxAcceleration({MAX_ACCELERATION, MAX_ACCELERATION, MAX_ACCELERATION});
 		_position_smoothing.setMaxVelocity({MAX_VELOCITY, MAX_VELOCITY, MAX_VELOCITY});
 		_position_smoothing.setMaxAllowedHorizontalError(MAX_ALLOWED_HOR_ERR);
