@@ -103,7 +103,7 @@ private:
 	};
 
 	static constexpr int MAX_ACTUATORS = 2;
-	MixingOutput _mixing_output{"ROBOCLAW", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
+	MixingOutput _mixing_output{"RBCLW", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
 
 	uORB::SubscriptionData<actuator_armed_s> _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
