@@ -389,7 +389,6 @@ private:
 	TECS _tecs;
 
 	bool _tecs_is_running{false};
-	float _last_tecs_alt_sp{0.f}; //< last tecs altitude setpoint [m]
 
 	// VTOL / TRANSITION
 	bool _is_vtol_tailsitter{false};

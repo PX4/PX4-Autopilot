@@ -2625,29 +2625,25 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 
 	if (_tecs_is_running && !_vehicle_status.in_transition_mode
 	    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+		const TECS::DebugOutput &tecs_output{_tecs.getStatus()};
+
 		// Check level flight: the height rate setpoint is not set or set to 0 and we are close to the target altitude and target altitude is not moving
-		if ((!PX4_ISFINITE(hgt_rate_sp) || fabsf(hgt_rate_sp) < MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) &&
-		    fabsf(_current_altitude - alt_sp) < _param_nav_fw_alt_rad.get() &&
-		    fabsf((alt_sp - _last_tecs_alt_sp) / control_interval) < MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) {
+		if ((fabsf(tecs_output.height_rate_reference) < MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) &&
+		    fabsf(_current_altitude - tecs_output.altitude_reference) < _param_nav_fw_alt_rad.get()) {
 			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_LEVEL;
 
-		} else if ((alt_sp - _current_altitude) >= _param_nav_fw_alt_rad.get() ||
-			   (PX4_ISFINITE(hgt_rate_sp) && hgt_rate_sp >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) ||
-			   (((alt_sp - _last_tecs_alt_sp) / control_interval) >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
+		} else if (((tecs_output.altitude_reference - _current_altitude) >= _param_nav_fw_alt_rad.get()) ||
+			   (tecs_output.height_rate_reference >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
 			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_CLIMB;
 
-		} else if ((_current_altitude - alt_sp) >= _param_nav_fw_alt_rad.get() ||
-			   (PX4_ISFINITE(hgt_rate_sp) && hgt_rate_sp <= -MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) ||
-			   (((_last_tecs_alt_sp - alt_sp) / control_interval) >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
+		} else if (((_current_altitude - tecs_output.altitude_reference) >= _param_nav_fw_alt_rad.get()) ||
+			   (tecs_output.height_rate_reference <= -MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
 			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_DESCEND;
 
 		} else {
 			//We can't infer the flight phase , do nothing, estimation is reset at each step
 		}
 	}
-
-	_last_tecs_alt_sp = alt_sp;
-
 }
 
 float
