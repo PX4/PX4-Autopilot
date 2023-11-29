@@ -189,6 +189,7 @@ MissionBase::on_inactivation()
 	_navigator->disable_camera_trigger();
 
 	_navigator->stop_capturing_images();
+	_navigator->set_gimbal_neutral(); // point forward
 	_navigator->release_gimbal_control();
 
 	if (_navigator->get_precland()->is_activated()) {
