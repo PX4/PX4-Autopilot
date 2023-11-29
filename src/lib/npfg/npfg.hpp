@@ -250,20 +250,6 @@ public:
 	/*
 	 * [Copied directly from ECL_L1_Pos_Controller]
 	 *
-	 * Set roll angle slew rate. Set to zero to deactivate.
-	 */
-	void setRollSlewRate(float roll_slew_rate) { roll_slew_rate_ = roll_slew_rate; }
-
-	/*
-	 * [Copied directly from ECL_L1_Pos_Controller]
-	 *
-	 * Set control loop dt. The value will be used to apply roll angle setpoint slew rate limiting.
-	 */
-	void setDt(const float dt) { dt_ = dt; }
-
-	/*
-	 * [Copied directly from ECL_L1_Pos_Controller]
-	 *
 	 * Get the switch distance
 	 *
 	 * This is the distance at which the system will switch to the next waypoint.
@@ -364,10 +350,8 @@ private:
 	 * ECL_L1_Pos_Controller functionality
 	 */
 
-	float dt_{0}; // control loop time [s]
 	float roll_lim_rad_{math::radians(30.0f)}; // maximum roll angle [rad]
 	float roll_setpoint_{0.0f}; // current roll angle setpoint [rad]
-	float roll_slew_rate_{0.0f}; // roll angle setpoint slew rate limit [rad/s]
 
 	/*
 	 * Adapts the controller period considering user defined inputs, current flight
