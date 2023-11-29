@@ -115,6 +115,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlGpsFusion(imu_delayed);
 #endif // CONFIG_EKF2_GNSS
 
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+	_aux_global_position.update(*this, imu_delayed);
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
 #if defined(CONFIG_EKF2_AIRSPEED)
 	controlAirDataFusion(imu_delayed);
 #endif // CONFIG_EKF2_AIRSPEED
