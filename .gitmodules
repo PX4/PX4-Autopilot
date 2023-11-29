@@ -78,4 +78,4 @@
 	branch = px4
 [submodule "Tools/simulation/gz"]
 	path = Tools/simulation/gz
-	url = git@github.com:PX4/PX4-gazebo-models.git
+	url = https://github.com/PX4/PX4-gazebo-models.git
