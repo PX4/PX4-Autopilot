@@ -65,6 +65,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -276,6 +277,7 @@ public:
 
 	void acquire_gimbal_control();
 	void release_gimbal_control();
+	void set_gimbal_neutral();
 
 	void calculate_breaking_stop(double &lat, double &lon, float &yaw);
 
