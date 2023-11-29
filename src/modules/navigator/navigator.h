@@ -268,6 +268,7 @@ public:
 	float get_param_mis_takeoff_alt() const { return _param_mis_takeoff_alt.get(); }
 	int  get_takeoff_land_required() const { return _para_mis_takeoff_land_req.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
+	bool get_weathervane_enabled() const { return _param_wv_en.get(); }
 	float get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
 
 	float get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
@@ -406,6 +407,7 @@ private:
 		(ParamInt<px4::params::MIS_TKO_LAND_REQ>)  _para_mis_takeoff_land_req,
 		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
+		(ParamBool<px4::params::WV_EN>)	           _param_wv_en,
 		(ParamFloat<px4::params::MIS_PD_TO>)       _param_mis_payload_delivery_timeout,
 		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt
 	)
