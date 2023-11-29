@@ -659,6 +659,7 @@ private:
 		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_ver,
 		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_sik_radio_id,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
+		(ParamInt<px4::params::MAV_USB_MODE>) _param_mav_usb_mode,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,

@@ -2,7 +2,6 @@
 
 add_library(px4_layer
 		${KERNEL_SRCS}
-		cdc_acm_check.cpp
 	)
 
 target_link_libraries(px4_layer

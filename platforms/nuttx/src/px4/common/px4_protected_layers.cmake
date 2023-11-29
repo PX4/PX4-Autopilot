@@ -6,7 +6,6 @@ add_library(px4_layer
 	board_fat_dma_alloc.c
 	tasks.cpp
 	console_buffer_usr.cpp
-	cdc_acm_check.cpp
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/print_load.cpp
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp
 	px4_userspace_init.cpp
