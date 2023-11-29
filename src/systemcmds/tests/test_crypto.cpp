@@ -72,9 +72,21 @@ static uint32_t test_nonce[64 / 4] = {
 };
 
 // Output of the encryption
-static uint32_t test_output[2048 / 4];
+static uint32_t test_output1[2048 / 4];
+static uint32_t test_output2[2048 / 4];
 
 static const uint8_t test_color[4] = {0xef, 0xbe, 0xad, 0xde};
+
+static uint32_t rsa_sig[] = {
+	0x8ad828c5, 0x7f38a88e, 0x8cd2ea5d, 0xb7b879f0, 0xe40f7fb9, 0x38b63aad, 0xa65cd35b, 0x48762e55,
+	0x60544615, 0xf5c97d41, 0xb11661dd, 0x57aadc70, 0xa484687b, 0x329fbde0, 0xb49aa5a6, 0xb77d944b,
+	0xe44ceef9, 0xdec23633, 0x624ec5c0, 0xee80b11f, 0xc1bf23f6, 0x0f5179a2, 0xed23a7f0, 0xca15f9cd,
+	0xdfde03ca, 0xf969102d, 0x55747617, 0xb8f8c10c, 0xf2593e3a, 0xd7a4741f, 0xe87c87be, 0xae66829f,
+	0x3d82069a, 0x0edb316a, 0x9f125c10, 0xbe98f1c1, 0x1fe76e6f, 0x38999bf3, 0xed4f6f7f, 0x80390541,
+	0x0ca57ab5, 0x7ee0422b, 0xbf00044f, 0x23c396a3, 0x78465678, 0xfea6d77f, 0xefad237f, 0x363c889b,
+	0xc841ddae, 0x6586b9b7, 0xcbf66c5d, 0x831cc395, 0xd0078a79, 0xec833561, 0x261f91eb, 0x2f640291,
+	0x9303ebe0, 0x8414b231, 0xbeec5418, 0x088cc7bb, 0x5e345fe3, 0xb7c954a3, 0x54d08308, 0xcaae3c41,
+};
 
 class CryptoTest : public UnitTest
 {
@@ -83,6 +95,7 @@ public:
 
 	bool test_aes();
 	bool test_chacha();
+	bool test_rsa_sign();
 
 private:
 	void color_output(void *buf, size_t sz);
@@ -106,9 +119,10 @@ bool CryptoTest::test_aes()
 	const uint8_t *key = (uint8_t *)test_key;
 
 	const uint8_t *plaintext = (uint8_t *)test_input;
-	uint8_t *enc_data = (uint8_t *)&test_output[512 / 4];
-	uint8_t *dec_data = (uint8_t *)&test_output[1024 / 4];
-	const void *outbuf_end = (uint8_t *)&test_output[sizeof(test_output) / 4];
+	uint8_t *enc_data = (uint8_t *)&test_output1[512 / 4];
+	uint8_t *dec_data = (uint8_t *)&test_output2[512 / 4];
+	const void *outbuf1_end = (uint8_t *)&test_output1[sizeof(test_output1) / 4];
+	const void *outbuf2_end = (uint8_t *)&test_output2[sizeof(test_output2) / 4];
 	PX4Crypto crypto;
 
 	if (!crypto.open(CRYPTO_AES)) {
@@ -119,7 +133,8 @@ bool CryptoTest::test_aes()
 		ERROUT("Generate key failed");
 	}
 
-	color_output(test_output, sizeof(test_output));
+	color_output(test_output1, sizeof(test_output1));
+	color_output(test_output2, sizeof(test_output2));
 
 	/* Encrypt data (in-place) */
 
@@ -129,15 +144,18 @@ bool CryptoTest::test_aes()
 
 	crypto.renew_nonce((uint8_t *)test_nonce, 12);
 
+	const size_t text_size = 247;
+	const size_t aligned_text_sz = (text_size + 0x3) & (~0x3);
+
 	/* Encrypt */
 
-	memcpy(enc_data, plaintext, 247);
+	memcpy(enc_data, plaintext, text_size);
 
-	out = 247;
+	out = 1024;
 	ret = crypto.encrypt_data(
 		      4,
 		      enc_data,
-		      out,
+		      text_size,
 		      enc_data,
 		      &out,
 		      (uint8_t *)mac,
@@ -149,13 +167,13 @@ bool CryptoTest::test_aes()
 
 	/* Check for memory corruption */
 
-	if (!check_color(test_output, enc_data) ||
-	    !check_color(enc_data + 256, outbuf_end)) {
-		dump_data32(enc_data - 32, 512);
+	if (!check_color(test_output1, enc_data) ||
+	    !check_color(enc_data + aligned_text_sz, outbuf1_end)) {
+		dump_data32(enc_data - 16, aligned_text_sz + 32);
 		ERROUT("Memory corruption in encryption");
 	}
 
-	if (out != 247) {
+	if (out != text_size) {
 		ERROUT("Encrypt: output size mismatch");
 	}
 
@@ -163,10 +181,11 @@ bool CryptoTest::test_aes()
 
 	crypto.renew_nonce((const uint8_t *)test_nonce, 12);
 
+	out = 1024;
 	ret = crypto.decrypt_data(
 		      4,
 		      enc_data,
-		      out,
+		      text_size,
 		      (uint8_t *)mac,
 		      mac_size,
 		      dec_data,
@@ -176,13 +195,13 @@ bool CryptoTest::test_aes()
 		ERROUT("Decrypt failed");
 	}
 
-	if (!check_color(enc_data + 256, dec_data) ||
-	    !check_color(dec_data + 256, outbuf_end)) {
-		dump_data(dec_data - 16, 256 + 32);
+	if (!check_color(test_output2, dec_data) ||
+	    !check_color(dec_data + aligned_text_sz, outbuf2_end)) {
+		dump_data(dec_data - 16, aligned_text_sz + 32);
 		ERROUT("Memory corruption in decryption");
 	}
 
-	if (out != 247) {
+	if (out != text_size) {
 		ERROUT("Decrypt: output size mismatch");
 	}
 
@@ -200,9 +219,10 @@ bool CryptoTest::test_chacha()
 	const uint8_t *key = (uint8_t *)test_key;
 
 	const uint8_t *plaintext = (uint8_t *)test_input;
-	uint8_t *enc_data = (uint8_t *)&test_output[512 / 4];
-	uint8_t *dec_data = (uint8_t *)&test_output[1024 / 4];
-	const void *outbuf_end = (uint8_t *)&test_output[sizeof(test_output) / 4];
+	uint8_t *enc_data = (uint8_t *)&test_output1[512 / 4];
+	uint8_t *dec_data = (uint8_t *)&test_output2[512 / 4];
+	const void *outbuf1_end = (uint8_t *)&test_output1[sizeof(test_output1) / 4];
+	const void *outbuf2_end = (uint8_t *)&test_output2[sizeof(test_output2) / 4];
 	PX4Crypto crypto;
 
 	if (!crypto.open(CRYPTO_XCHACHA20)) {
@@ -213,42 +233,44 @@ bool CryptoTest::test_chacha()
 		ERROUT("Generate key failed");
 	}
 
-	color_output(test_output, sizeof(test_output));
+	color_output(test_output1, sizeof(test_output1));
+	color_output(test_output2, sizeof(test_output2));
 
 	/* Encrypt data (in-place) */
 
-	uint32_t mac[4];
-	size_t mac_size = sizeof(mac);
 	size_t out;
+
+	const size_t text_size = 247;
 
 	crypto.renew_nonce((const uint8_t *)test_nonce, 24);
 
 	/* Encrypt */
 
-	memcpy(enc_data, plaintext, 256);
+	memcpy(enc_data, plaintext, text_size);
 
-	out = 256;
+	out = 1024;
 	ret = crypto.encrypt_data(
 		      4,
 		      enc_data,
-		      out,
+		      text_size,
 		      enc_data,
 		      &out,
-		      (uint8_t *)mac,
-		      &mac_size);
+		      NULL,
+		      0);
 
 	if (!ret) {
 		ERROUT("Encrypt failed");
 	}
 
-	if (out != 256) {
+	if (out != text_size) {
 		ERROUT("Encrypt: output size mismatch");
 	}
 
 	/* Check for memory corruption */
 
-	if (!check_color(test_output, enc_data) ||
-	    !check_color(enc_data + 256, outbuf_end)) {
+	if (!check_color(test_output1, enc_data) ||
+	    !check_color(enc_data + text_size, outbuf1_end)) {
+		dump_data(enc_data - 16, text_size + 32);
 		ERROUT("Memory corruption in encryption");
 	}
 
@@ -258,13 +280,13 @@ bool CryptoTest::test_chacha()
 
 	crypto.renew_nonce((const uint8_t *)test_nonce, 24);
 
-	out = 256;
+	out = 1024;
 	ret = crypto.decrypt_data(
 		      4,
 		      enc_data,
-		      out,
-		      (uint8_t *)mac,
-		      mac_size,
+		      text_size,
+		      NULL,
+		      0,
 		      dec_data,
 		      &out);
 
@@ -272,17 +294,17 @@ bool CryptoTest::test_chacha()
 		ERROUT("Decrypt failed");
 	}
 
-	if (out != 256) {
+	if (out != text_size) {
 		ERROUT("Decrypt: output size mismatch");
 	}
 
-	if (!check_color(enc_data + 256, dec_data) ||
-	    !check_color(dec_data + 256, outbuf_end)) {
-		dump_data(dec_data - 16, 256 + 32);
+	if (!check_color(test_output2, dec_data) ||
+	    !check_color(dec_data + text_size, outbuf2_end)) {
+		dump_data(dec_data - 16, text_size + 32);
 		ERROUT("Memory corruption in decryption");
 	}
 
-	if (memcmp(test_input, dec_data, 256)) {
+	if (memcmp(test_input, dec_data, text_size)) {
 		ERROUT("Data doesn't match");
 	}
 
@@ -290,10 +312,34 @@ bool CryptoTest::test_chacha()
 	return true;
 }
 
+// openssl dgst -sha256 -sign Tools/saluki-sec-scripts/test_keys/saluki-v2/rsa2048_test_key.pem sig_data.bin > rsa_sig.bin
+// openssl dgst -sha256 -verify rsa2048.pub -signature rsa_sig.bin sig_data.bin
+
+bool CryptoTest::test_rsa_sign()
+{
+	bool ret = true;
+
+	PX4Crypto crypto;
+
+	if (!crypto.open(CRYPTO_RSA_SIG)) {
+		ERROUT("Crypto open failed");
+	}
+
+	ret = crypto.signature_check(2,
+				     (uint8_t *)rsa_sig,
+				     (uint8_t *)test_input,
+				     5);
+
+	crypto.close();
+
+	return ret;
+}
+
 bool CryptoTest::run_tests()
 {
 	ut_run_test(test_aes);
 	ut_run_test(test_chacha);
+	//	ut_run_test(test_rsa_sign);
 
 	return (_tests_failed == 0);
 }
