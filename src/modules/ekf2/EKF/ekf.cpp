@@ -340,3 +340,10 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	float alpha_height_rate_lpf = 0.1f * imu_delayed.delta_vel_dt; // 10 seconds time constant
 	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
 }
+
+void Ekf::updateParameters()
+{
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+	_aux_global_position.updateParameters();
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+}

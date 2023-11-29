@@ -56,6 +56,10 @@ if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS airspeed_fusion.cpp)
 endif()
 
+if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	list(APPEND EKF_SRCS aux_global_position.cpp)
+endif()
+
 if(CONFIG_EKF2_AUXVEL)
 	list(APPEND EKF_SRCS auxvel_fusion.cpp)
 endif()
