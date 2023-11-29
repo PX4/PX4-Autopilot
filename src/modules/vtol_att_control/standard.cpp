@@ -185,7 +185,21 @@ void Standard::update_vtol_state()
 
 			if (minimum_trans_time_elapsed) {
 				if (airspeed_triggers_transition) {
-					transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _params->transition_airspeed;
+
+					// The logic that will prevent spikes in airspeed measurements to trigger the transition
+					if ((_timestamp_transition_speed_detected == 0) &&
+					    (_airspeed_validated->calibrated_airspeed_m_s >= _params->transition_airspeed)) {
+						_timestamp_transition_speed_detected = hrt_absolute_time();
+
+					} else if (_airspeed_validated->calibrated_airspeed_m_s < _params->transition_airspeed) {
+						_timestamp_transition_speed_detected = 0;
+					}
+
+					if ((_timestamp_transition_speed_detected != 0) &&
+					    (hrt_elapsed_time(&_timestamp_transition_speed_detected) >= 250_ms)) {
+						transition_to_fw = true;
+						_timestamp_transition_speed_detected = 0;
+					}
 
 				} else {
 					transition_to_fw = true;
