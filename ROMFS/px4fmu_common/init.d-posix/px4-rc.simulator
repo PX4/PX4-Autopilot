@@ -92,7 +92,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 	fi
 
 	# start gz_bridge
-	if [ -n "${PX4_GZ_MODEL}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
+	if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 		# model specified, gz_bridge will spawn model
 
 		if [ -n "${PX4_GZ_MODEL_POSE}" ]; then
@@ -106,7 +106,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 		fi
 
 		# start gz bridge with pose arg.
-		if gz_bridge start -p "${model_pose}" -m "${PX4_GZ_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+		if gz_bridge start -p "${model_pose}" -m "${PX4_SIM_MODEL#*gz_}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
 			if param compare -s SENS_EN_BAROSIM 1
 			then
 				sensor_baro_sim start
@@ -129,7 +129,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 			exit 1
 		fi
 
-	elif [ -n "${PX4_GZ_MODEL_NAME}" ] && [ -z "${PX4_GZ_MODEL}" ]; then
+	elif [ -n "${PX4_GZ_MODEL_NAME}" ]; then
 		# model name specificed, gz_bridge will attach to existing model
 
 		if gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
@@ -155,35 +155,8 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 			exit 1
 		fi
 
-	elif [ -n "${PX4_SIM_MODEL}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ] && [ -z "${PX4_GZ_MODEL}" ]; then
-
-		echo "WARN  [init] PX4_GZ_MODEL_NAME or PX4_GZ_MODEL not set using PX4_SIM_MODEL."
-
-		if gz_bridge start -m "${PX4_SIM_MODEL#*gz_}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
-			if param compare -s SENS_EN_BAROSIM 1
-			then
-				sensor_baro_sim start
-			fi
-			if param compare -s SENS_EN_GPSSIM 1
-			then
-				sensor_gps_sim start
-			fi
-			if param compare -s SENS_EN_MAGSIM 1
-			then
-				sensor_mag_sim start
-			fi
-			if param compare -s SENS_EN_ARSPDSIM 1
-			then
-				sensor_airspeed_sim start
-			fi
-
-		else
-			echo "ERROR [init] gz_bridge failed to start"
-			exit 1
-		fi
-
 	else
-		echo "ERROR [init] failed to pass only PX4_GZ_MODEL_NAME or PX4_GZ_MODEL"
+		echo "ERROR [init] failed to pass only PX4_GZ_MODEL_NAME or PX4_SIM_MODEL"
 		exit 1
 	fi
 
