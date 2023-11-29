@@ -426,7 +426,7 @@ else
 	if ! cdcacm_autostart start
 	then
 		sercon
-		sleep 3
+		echo "Starting MAVLink on /dev/ttyACM0"
 		mavlink start -d /dev/ttyACM0
 	fi
 
