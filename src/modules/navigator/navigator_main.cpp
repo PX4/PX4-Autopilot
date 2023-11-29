@@ -1508,6 +1508,18 @@ void Navigator::disable_camera_trigger()
 	publish_vehicle_cmd(&cmd);
 }
 
+void Navigator::set_gimbal_neutral()
+{
+	vehicle_command_s vcmd = {};
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
+	vcmd.param1 = NAN;
+	vcmd.param2 = NAN;
+	vcmd.param3 = NAN;
+	vcmd.param4 = NAN;
+	vcmd.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
+	publish_vehicle_cmd(&vcmd);
+}
+
 int Navigator::print_usage(const char *reason)
 {
 	if (reason) {
