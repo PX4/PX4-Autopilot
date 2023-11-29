@@ -155,3 +155,32 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
  * @max 250
  */
 PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+
+/**
+ * Always start MAVLink on USB
+ *
+ * @value 0 Auto-detect
+ * @value 1 Always MAVLink
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_USB_ENABLE, 1);
+
+/**
+ * Specify MAVLink mode for USB port
+ *
+ * @value 0 normal
+ * @value 1 custom
+ * @value 2 onboard
+ * @value 3 osd
+ * @value 4 magic
+ * @value 5 config
+ * @value 6 iridium
+ * @value 7 minimal
+ * @value 8 extvision
+ * @value 9 extvisionmin
+ * @value 10 gimbal
+ * @value 11 onboard_low_bandwidth
+ * @value 12 uavionix
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_USB_MODE, 2);
