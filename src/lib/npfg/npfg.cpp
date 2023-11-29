@@ -502,11 +502,6 @@ void NPFG::updateRollSetpoint()
 	float roll_new = atanf(lateral_accel_ * 1.0f / CONSTANTS_ONE_G);
 	roll_new = math::constrain(roll_new, -roll_lim_rad_, roll_lim_rad_);
 
-	if (dt_ > 0.0f && roll_slew_rate_ > 0.0f) {
-		// slew rate limiting active
-		roll_new = math::constrain(roll_new, roll_setpoint_ - roll_slew_rate_ * dt_, roll_setpoint_ + roll_slew_rate_ * dt_);
-	}
-
 	if (PX4_ISFINITE(roll_new)) {
 		roll_setpoint_ = roll_new;
 	}
