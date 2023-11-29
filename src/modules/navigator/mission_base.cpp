@@ -619,6 +619,11 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
+			// set gimbal to neutral position (level with horizon) to reduce change of damage on landing
+			_navigator->acquire_gimbal_control();
+			_navigator->set_gimbal_neutral();
+			_navigator->release_gimbal_control();
+
 		} else {
 
 			if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
