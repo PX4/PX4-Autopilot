@@ -211,7 +211,7 @@ void CdcAcmAutostart::state_connecting()
 
 	// If MAV_USB_EN is true then only try to start mavlink
 	if (_mav_usb_enable.get()) {
-		PX4_INFO("%s: Starting mavlink (MAV_USB_ENABLE=1)", USB_DEVICE_PATH);
+		PX4_INFO("Starting mavlink on %s (MAV_USB_ENABLE=1)", USB_DEVICE_PATH);
 
 		if (start_mavlink()) {
 			_state = UsbAutoStartState::connected;
