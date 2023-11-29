@@ -438,6 +438,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 				_navigator->set_mission_failure_heading_timeout();
 			}
+
 			// If Weathervane is enabled, ignore yaw setpoint
 			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
