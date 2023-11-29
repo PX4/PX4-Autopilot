@@ -17,7 +17,7 @@ param set-default COM_POS_FS_DELAY 5
 
 # there is a 2.5 factor applied on the _FS thresholds if for invalidation
 param set-default COM_POS_FS_EPH 50
-param set-default COM_VEL_FS_EVH 5
+param set-default COM_VEL_FS_EVH 3
 
 param set-default COM_POS_LOW_EPH 50
 
