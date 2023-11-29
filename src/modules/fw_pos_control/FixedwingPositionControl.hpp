@@ -256,6 +256,7 @@ private:
 	double _current_longitude{0};
 	float _current_altitude{0.f};
 
+	float _roll{0.f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
@@ -720,6 +721,7 @@ private:
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
 
 	SlewRate<float> _airspeed_slew_rate_controller;
+	SlewRate<float> _roll_slew_rate;
 
 	/**
 	 * @brief A wrapper function to call the TECS implementation
