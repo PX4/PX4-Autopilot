@@ -82,7 +82,7 @@ public:
 	// Init: x_0
 	void setPosition(float pos) override { _state(0) = pos; };
 	void setVelocity(float vel) override { _state(1) = vel; };
-	void setBias(float bias) override { _state(2) = bias; };
+	void setBias(float state_bias) override { _state(2) = state_bias; };
 
 	// Init: P_0
 	void setStatePosVar(float pos_unc) override { _state_covariance(0, 0) = pos_unc; };
@@ -115,6 +115,13 @@ public:
 	void setTargetVel(float accVect) override {};
 
 private:
+
+	enum State {
+		pos_rel = 0,
+		vel_rel = 1,
+		bias = 2,
+	};
+
 	matrix::Vector<float, 3> _state;
 
 	matrix::Vector<float, 3> _sync_state;
