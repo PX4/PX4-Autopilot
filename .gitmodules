@@ -65,3 +65,6 @@
 [submodule "boards/modalai/voxl2/src/lib/libmodal-pipe"]
 	path = boards/modalai/voxl2/src/lib/libmodal-pipe
 	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libmodal-pipe.git
+[submodule "boards/modalai/voxl2/libfc-sensor-api"]
+	path = boards/modalai/voxl2/libfc-sensor-api
+	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libfc-sensor-api.git
