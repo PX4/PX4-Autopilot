@@ -231,7 +231,7 @@ void LoadMon::cpuload()
 	cpuload.load = 1.f - interval_idletime / interval;
 #elif defined(__PX4_QURT)
 	cpuload.ram_usage = 0.0f;
-	cpuload.load = px4muorb_get_cpu_load();
+	cpuload.load = px4muorb_get_cpu_load() / 100.0f;
 #endif
 	cpuload.timestamp = hrt_absolute_time();
 
