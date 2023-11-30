@@ -97,6 +97,12 @@ public:
 	float getTestRatio() override {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
 private:
+
+	enum State {
+		yaw = 0,
+		yaw_rate = 1,
+	};
+
 	matrix::Vector<float, 2> _state;
 
 	matrix::Vector<float, 2> _sync_state;

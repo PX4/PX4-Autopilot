@@ -33,7 +33,7 @@
 
 /**
  * @file KF_xyzb_v_decoupled_moving.cpp
- * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
+ * @brief Filter to estimate the pose of moving targets. State: [pos_rel, vel_uav, bias, acc_target, vel_target]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -46,16 +46,13 @@
 namespace vision_target_estimator
 {
 
-void KF_xyzb_v_decoupled_moving::predictState(float dt, float acc)
+void KF_xyzb_v_decoupled_moving::predictState(float dt, float acc_uav)
 {
-	// _state [r, vd, b, at, vt]
-	// idx    [0,   1,  2,   3,   4 ]
-
-	const float tmp0 = 0.5f * dt * dt;
-
-	_state(0) = _state(0) - tmp0 * acc + tmp0 * _state(3) - dt * _state(1) + dt * _state(4);
-	_state(1) = _state(1) + acc * dt;
-	_state(4) = _state(4) + dt * _state(3);
+	// Constant acceleration model. Prediction: x(t1) = Phi*x(t0) + G*u
+	_state(State::pos_rel) = _state(State::pos_rel) + dt * (_state(State::vel_target) - _state(
+					 State::vel_uav)) + 0.5f * dt * dt * (_state(State::acc_target) - acc_uav);
+	_state(State::vel_uav) = _state(State::vel_uav) + acc_uav * dt;
+	_state(State::vel_target) = _state(State::vel_target) + dt * _state(State::acc_target);
 }
 
 void KF_xyzb_v_decoupled_moving::predictCov(float dt)
@@ -118,16 +115,15 @@ void KF_xyzb_v_decoupled_moving::setH(matrix::Vector<float, 15> h_meas, int dire
 
 }
 
-void KF_xyzb_v_decoupled_moving::syncState(float dt, float acc)
+void KF_xyzb_v_decoupled_moving::syncState(float dt, float acc_uav)
 {
-
-	const float _tmp0 = 0.5f * dt * dt;
-
-	_sync_state(0) = _state(0) - _tmp0 * acc + _tmp0 * _state(3) + _state(1) * dt - _state(4) * dt;
-	_sync_state(1) = _state(1) - acc * dt;
-	_sync_state(2) = _state(2);
-	_sync_state(3) = _state(3);
-	_sync_state(4) = _state(4) - _state(3) * dt;
+	// Prediction: x(t1) = Phi*x(t0) + G*u <--> Backwards prediction: x(t0) = Phi.inv()*[x(t1) - G*u]
+	_sync_state(State::pos_rel) = _state(State::pos_rel) - dt * (_state(State::vel_target) - _state(
+					      State::vel_uav)) + 0.5f * dt * dt * (_state(State::acc_target) - acc_uav);
+	_sync_state(State::vel_uav) = _state(State::vel_uav) - acc_uav * dt;
+	_sync_state(State::bias) = _state(State::bias);
+	_sync_state(State::acc_target) = _state(State::acc_target);
+	_sync_state(State::vel_target) = _state(State::vel_target) - _state(State::acc_target) * dt;
 }
 
 float KF_xyzb_v_decoupled_moving::computeInnovCov(float meas_unc)

@@ -47,12 +47,12 @@ namespace vision_target_estimator
 void KF_orientation_moving::predictState(float dt)
 {
 	/*
-	⎡dt⋅theta_dot + theta⎤
-	⎣      theta_dot     ⎦
+	⎡dt⋅yaw_rate +  yaw ⎤
+	⎣      yaw_rate     ⎦
 	*/
 
-	_state(0) = _state(0) + _state(1) * dt;
-	_state(1) = _state(1);
+	_state(State::yaw) = _state(State::yaw) + _state(State::yaw_rate) * dt;
+	_state(State::yaw_rate) = _state(State::yaw_rate);
 }
 
 void KF_orientation_moving::predictCov(float dt)
@@ -88,8 +88,8 @@ bool KF_orientation_moving::update()
 
 	_state = _state + kalmanGain * _innov;
 
-	_state(0) = matrix::wrap_pi(_state(0));
-	_state(1) = matrix::wrap_pi(_state(1));
+	_state(State::yaw) = matrix::wrap_pi(_state(State::yaw));
+	_state(State::yaw_rate) = matrix::wrap_pi(_state(State::yaw_rate));
 
 	_state_covariance = _state_covariance - kalmanGain * _meas_matrix * _state_covariance;
 
@@ -106,8 +106,8 @@ void KF_orientation_moving::setH(matrix::Vector<float, 2> h_meas)
 
 void KF_orientation_moving::syncState(float dt)
 {
-	_sync_state(0) = matrix::wrap_pi(_state(0) - _state(1) * dt);
-	_sync_state(1) = _state(1);
+	_sync_state(State::yaw) = matrix::wrap_pi(_state(State::yaw) - _state(State::yaw_rate) * dt);
+	_sync_state(State::yaw_rate) = _state(State::yaw_rate);
 }
 
 float KF_orientation_moving::computeInnovCov(float meas_unc)
