@@ -104,8 +104,6 @@ def predictState(dt: sf.Scalar, state: VState, acc: VInput) -> (VState):
 
     G = sf.Matrix([-0.5*dt*dt, -dt, 0])
 
-    print((Phi * state + G*acc).simplify())
-
     return (Phi * state + G*acc).simplify()
 
 
@@ -116,8 +114,6 @@ def syncState(dt: sf.Scalar, state: VState, acc: VInput) -> (VState):
                         [0, 0, 1]])
 
     G = sf.Matrix([-0.5*dt*dt, -dt, 0])
-
-    print((Phi.inv() * (state - G*acc)).simplify())
 
     return (Phi.inv() * (state - G*acc)).simplify()
 
