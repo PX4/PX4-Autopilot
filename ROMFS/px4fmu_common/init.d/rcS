@@ -36,6 +36,7 @@ set SDCARD_FORMAT no
 set STARTUP_TUNE 1
 set VEHICLE_TYPE none
 set SDCARD_DEVPATH /dev/mmcsd0
+set SDCARD_SCRIPT_ENABLED no
 
 #
 # Optional board path defaults: rc.board_paths
@@ -47,6 +48,12 @@ then
 	. $BOARD_RC_PATHS
 fi
 unset BOARD_RC_PATHS
+
+if rdfeat cmp FEATURE_ENABLE_PX4_SDCARD_SCRIPT
+then
+	echo "SD card script execution enabled"
+	set SDCARD_SCRIPT_ENABLED yes
+fi
 
 #
 # Print full system version.
@@ -115,7 +122,7 @@ unset SDCARD_DEVPATH
 # Look for an init script on the microSD card.
 # Disable autostart if the script found.
 #
-if [ -f $FRC ]
+if [ -f $FRC -a $SDCARD_SCRIPT_ENABLED = yes ]
 then
 	. $FRC
 else
@@ -146,7 +153,7 @@ else
 
 		bsondump $PARAM_FILE
 
-		if [ -d "/fs/microsd" ]
+		if [ -d "/fs/microsd" -a $SDCARD_SCRIPT_ENABLED = yes ]
 		then
 			# try to make a backup copy
 			cp $PARAM_FILE /fs/microsd/param_import_fail.bson
@@ -171,7 +178,7 @@ else
 		fi
 	fi
 
-	if [ $SDCARD_AVAILABLE = yes ]
+	if [ $SDCARD_AVAILABLE = yes -a $SDCARD_SCRIPT_ENABLED = yes ]
 	then
 		param select-backup $PARAM_BACKUP_FILE
 	fi
@@ -221,7 +228,7 @@ else
 		if param greater SYS_AUTOSTART 1000000
 		then
 			# Use external startup file
-			if [ $SDCARD_AVAILABLE = yes ]
+			if [ $SDCARD_AVAILABLE = yes -a $SDCARD_SCRIPT_ENABLED = yes ]
 			then
 				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
 			else
@@ -274,7 +281,7 @@ else
 	#
 	# Override parameters from user configuration file.
 	#
-	if [ -f $FCONFIG ]
+	if [ -f $FCONFIG -a $SDCARD_SCRIPT_ENABLED = yes ]
 	then
 		echo "Custom: ${FCONFIG}"
 		. $FCONFIG
@@ -486,7 +493,7 @@ else
 	#
 	# Start any custom addons from the sdcard.
 	#
-	if [ -f $FEXTRAS ]
+	if [ -f $FEXTRAS -a $SDCARD_SCRIPT_ENABLED = yes ]
 	then
 		echo "Addons script: ${FEXTRAS}"
 		. $FEXTRAS
