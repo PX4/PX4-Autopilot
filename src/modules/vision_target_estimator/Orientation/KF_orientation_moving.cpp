@@ -63,10 +63,10 @@ void KF_orientation_moving::predictCov(float dt)
 	⎣             dt⋅p(1;1) + p(0;1)                         p(1;1)      ⎦
 	*/
 
-	const float off_diag = dt * _covariance(1, 1) + _covariance(0, 1);
-	_covariance(0, 0) += dt * _covariance(0, 1) + dt * (dt * _covariance(1, 1) + _covariance(0, 1));
-	_covariance(1, 0) = off_diag;
-	_covariance(0, 1) = off_diag;
+	const float off_diag = dt * _state_covariance(1, 1) + _state_covariance(0, 1);
+	_state_covariance(0, 0) += dt * _state_covariance(0, 1) + dt * (dt * _state_covariance(1, 1) + _state_covariance(0, 1));
+	_state_covariance(1, 0) = off_diag;
+	_state_covariance(0, 1) = off_diag;
 }
 
 
@@ -84,14 +84,14 @@ bool KF_orientation_moving::update()
 		return false;
 	}
 
-	const matrix::Matrix<float, 2, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
+	const matrix::Matrix<float, 2, 1> kalmanGain = _state_covariance * _meas_matrix.transpose() / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
 
 	_state(0, 0) = matrix::wrap_pi(_state(0, 0));
 	_state(1, 0) = matrix::wrap_pi(_state(1, 0));
 
-	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
+	_state_covariance = _state_covariance - kalmanGain * _meas_matrix * _state_covariance;
 
 	return true;
 }
@@ -116,8 +116,8 @@ float KF_orientation_moving::computeInnovCov(float meas_unc)
 	[h(0)⋅(cov(0;0)⋅h(0) + cov(0;1)⋅h(1)) + h(1)⋅(cov(0;1)⋅h(0) + cov(1;1)⋅h(1)) + r]
 	*/
 
-	_innov_cov = _meas_matrix(0, 0) * (_covariance(0, 0) * _meas_matrix(0, 0) + _covariance(0,
-					   1) * _meas_matrix(0, 1)) + _meas_matrix(0, 1) * (_covariance(0, 1) * _meas_matrix(0, 0) + _covariance(1,
+	_innov_cov = _meas_matrix(0, 0) * (_state_covariance(0, 0) * _meas_matrix(0, 0) + _state_covariance(0,
+					   1) * _meas_matrix(0, 1)) + _meas_matrix(0, 1) * (_state_covariance(0, 1) * _meas_matrix(0, 0) + _state_covariance(1,
 							   1) * _meas_matrix(0, 1)) + meas_unc;
 	return _innov_cov;
 }

@@ -87,11 +87,11 @@ public:
 	void setTargetVel(float target_vel) override {_state(4, 0) = target_vel; };
 
 	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; };
-	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; };
-	void setStateBiasVar(float bias_unc) override { _covariance(2, 2) = bias_unc; };
-	void setStateAccVar(float acc_unc) override { _covariance(3, 3) = acc_unc; };
-	void setStateTargetVelVar(float target_vel_unc) override {_covariance(4, 4) = target_vel_unc; };
+	void setStatePosVar(float pos_unc) override { _state_covariance(0, 0) = pos_unc; };
+	void setStateVelVar(float vel_unc) override { _state_covariance(1, 1) = vel_unc; };
+	void setStateBiasVar(float bias_unc) override { _state_covariance(2, 2) = bias_unc; };
+	void setStateAccVar(float acc_unc) override { _state_covariance(3, 3) = acc_unc; };
+	void setStateTargetVelVar(float target_vel_unc) override {_state_covariance(4, 4) = target_vel_unc; };
 
 	// Retreive output of filter
 	float getPosition() override { return _state(0, 0); };
@@ -100,11 +100,11 @@ public:
 	float getAcceleration() override { return _state(3, 0); };
 	float getTargetVel() override { return _state(4, 0); };
 
-	float getPosVar() override { return _covariance(0, 0); };
-	float getVelVar() override { return _covariance(1, 1); };
-	float getBiasVar() override { return _covariance(2, 2); };
-	float getAccVar() override { return _covariance(3, 3); };
-	float getTargetVelVar() override { return _covariance(4, 4); };
+	float getPosVar() override { return _state_covariance(0, 0); };
+	float getVelVar() override { return _state_covariance(1, 1); };
+	float getBiasVar() override { return _state_covariance(2, 2); };
+	float getAccVar() override { return _state_covariance(3, 3); };
+	float getTargetVelVar() override { return _state_covariance(4, 4); };
 
 	float getTestRatio() override {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
@@ -113,13 +113,13 @@ public:
 	void setTargetAccVar(float var) override { _acc_var = var; };
 
 private:
-	matrix::Matrix<float, 5, 1> _state; // state
+	matrix::Matrix<float, 5, 1> _state;
 
-	matrix::Matrix<float, 5, 1> _sync_state; // state
+	matrix::Matrix<float, 5, 1> _sync_state;
 
 	matrix::Matrix<float, 1, 5> _meas_matrix; // row of measurement matrix
 
-	matrix::Matrix<float, 5, 5> _covariance; // state covariance
+	matrix::Matrix<float, 5, 5> _state_covariance;
 
 	float _bias_var{0.f}; // target/UAV GPS bias variance
 

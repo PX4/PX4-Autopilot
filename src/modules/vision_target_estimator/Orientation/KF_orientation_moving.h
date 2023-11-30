@@ -84,26 +84,26 @@ public:
 	void setVelocity(float vel) override { _state(1, 0) = vel; };
 
 	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; };
-	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; };
+	void setStatePosVar(float pos_unc) override { _state_covariance(0, 0) = pos_unc; };
+	void setStateVelVar(float vel_unc) override { _state_covariance(1, 1) = vel_unc; };
 
 	// Retreive output of filter
 	float getPosition() override { return _state(0, 0); };
 	float getVelocity() override { return _state(1, 0); };
 
-	float getPosVar() override { return _covariance(0, 0); };
-	float getVelVar() override { return _covariance(1, 1); };
+	float getPosVar() override { return _state_covariance(0, 0); };
+	float getVelVar() override { return _state_covariance(1, 1); };
 
 	float getTestRatio() override {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
 private:
-	matrix::Matrix<float, 2, 1> _state; // state
+	matrix::Matrix<float, 2, 1> _state;
 
-	matrix::Matrix<float, 2, 1> _sync_state; // state
+	matrix::Matrix<float, 2, 1> _sync_state;
 
 	matrix::Matrix<float, 1, 2> _meas_matrix; // row of measurement matrix
 
-	matrix::Matrix<float, 2, 2> _covariance; // state covariance
+	matrix::Matrix<float, 2, 2> _state_covariance;
 
 	float _innov{0.0f}; // residual of last measurement update
 

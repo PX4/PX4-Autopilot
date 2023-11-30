@@ -55,8 +55,8 @@ void KF_xyzb_decoupled_static::predictState(float dt, float acc)
 void KF_xyzb_decoupled_static::predictCov(float dt)
 {
 	matrix::Matrix<float, 3, 3> cov_updated;
-	sym::Predictcov(dt, _input_var, _bias_var, _covariance, &cov_updated);
-	_covariance = cov_updated;
+	sym::Predictcov(dt, _input_var, _bias_var, _state_covariance, &cov_updated);
+	_state_covariance = cov_updated;
 }
 
 
@@ -74,10 +74,10 @@ bool KF_xyzb_decoupled_static::update()
 		return false;
 	}
 
-	const matrix::Matrix<float, 3, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
+	const matrix::Matrix<float, 3, 1> kalmanGain = _state_covariance * _meas_matrix.transpose() / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
-	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
+	_state_covariance = _state_covariance - kalmanGain * _meas_matrix * _state_covariance;
 
 	return true;
 }
@@ -114,7 +114,7 @@ void KF_xyzb_decoupled_static::syncState(float dt, float acc)
 float KF_xyzb_decoupled_static::computeInnovCov(float meas_unc)
 {
 	float innov_cov_updated;
-	sym::Computeinnovcov(meas_unc, _covariance, _meas_matrix, &innov_cov_updated);
+	sym::Computeinnovcov(meas_unc, _state_covariance, _meas_matrix, &innov_cov_updated);
 	_innov_cov = innov_cov_updated;
 
 	return _innov_cov;

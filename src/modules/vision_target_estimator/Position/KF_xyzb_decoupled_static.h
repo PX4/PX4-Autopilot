@@ -85,18 +85,18 @@ public:
 	void setBias(float bias) override { _state(2, 0) = bias; };
 
 	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; };
-	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; };
-	void setStateBiasVar(float bias_unc) override { _covariance(2, 2) = bias_unc; };
+	void setStatePosVar(float pos_unc) override { _state_covariance(0, 0) = pos_unc; };
+	void setStateVelVar(float vel_unc) override { _state_covariance(1, 1) = vel_unc; };
+	void setStateBiasVar(float bias_unc) override { _state_covariance(2, 2) = bias_unc; };
 
 	// Retreive output of filter
 	float getPosition() override { return _state(0, 0); };
 	float getVelocity() override { return _state(1, 0); };
 	float getBias() override { return _state(2, 0); };
 
-	float getPosVar() override { return _covariance(0, 0); };
-	float getVelVar() override { return _covariance(1, 1); };
-	float getBiasVar() override { return _covariance(2, 2); };
+	float getPosVar() override { return _state_covariance(0, 0); };
+	float getVelVar() override { return _state_covariance(1, 1); };
+	float getBiasVar() override { return _state_covariance(2, 2); };
 
 	float getTestRatio() override {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
@@ -115,13 +115,13 @@ public:
 	void setTargetVel(float accVect) override {};
 
 private:
-	matrix::Matrix<float, 3, 1> _state; // state
+	matrix::Matrix<float, 3, 1> _state;
 
-	matrix::Matrix<float, 3, 1> _sync_state; // state
+	matrix::Matrix<float, 3, 1> _sync_state;
 
 	matrix::Matrix<float, 1, 3> _meas_matrix; // row of measurement matrix
 
-	matrix::Matrix<float, 3, 3> _covariance; // state covariance
+	matrix::Matrix<float, 3, 3> _state_covariance;
 
 	float _bias_var{0.f}; // target/UAV GPS bias variance
 
