@@ -180,11 +180,17 @@ PrecLand::on_active()
 		break;
 	}
 
+#if !defined(CONSTRAINED_FLASH)
+	_publish_prec_land_status(true);
+#endif
 }
 
 void
 PrecLand::on_inactivation()
 {
+#if !defined(CONSTRAINED_FLASH)
+	_publish_prec_land_status(false);
+#endif
 	_is_activated = false;
 }
 
