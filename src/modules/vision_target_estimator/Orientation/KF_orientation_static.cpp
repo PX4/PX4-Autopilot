@@ -33,7 +33,7 @@
 
 /**
  * @file KF_orientation_static.cpp
- * @brief Filter to estimate the orientation of static targets. State: [theta]
+ * @brief Filter to estimate the orientation of static targets. State: [yaw]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *

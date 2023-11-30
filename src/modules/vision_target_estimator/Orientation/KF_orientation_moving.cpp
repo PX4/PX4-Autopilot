@@ -33,7 +33,7 @@
 
 /**
  * @file KF_orientation_moving.cpp
- * @brief Filter to estimate the orientation of moving targets. State: [theta, theta_dot]
+ * @brief Filter to estimate the orientation of moving targets. State: [yaw, yaw_rate]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
