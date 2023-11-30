@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_RDFEAT
+	bool "rdfeat"
+	default y
+	---help---
+		Enable support for rdfeat
