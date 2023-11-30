@@ -104,8 +104,6 @@ typedef struct __attribute__((__packed__)) image_toc_entry {
    Certificate signature follows the data
 */
 
-#define RDCT_CAPS0_ALLOW_UNSIGNED_BOOT 0x1
-
 typedef struct __attribute__((__packed__))
 {
 	uint8_t device_uuid[16];
