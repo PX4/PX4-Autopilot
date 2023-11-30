@@ -86,9 +86,40 @@ class MState(sf.Matrix):
 class VMeas(sf.Matrix):
     SHAPE = (1, State.n_states)
 
+class VState(sf.Matrix):
+    SHAPE = (State.n_states, 1)
+
+class VInput(sf.Matrix):
+    SHAPE = (Input.n_inputs, 1)
+
 class MDirections(sf.Matrix):
     SHAPE = (Directions.nb_directions, Directions.nb_directions)
 
+
+def predictState(dt: sf.Scalar, state: VState, acc: VInput) -> (VState):
+
+    Phi = sf.Matrix([   [1, dt, 0],
+                        [0, 1, 0],
+                        [0, 0, 1]])
+
+    G = sf.Matrix([-0.5*dt*dt, -dt, 0])
+
+    print((Phi * state + G*acc).simplify())
+
+    return (Phi * state + G*acc).simplify()
+
+
+def syncState(dt: sf.Scalar, state: VState, acc: VInput) -> (VState):
+
+    Phi = sf.Matrix([   [1, dt, 0],
+                        [0, 1, 0],
+                        [0, 0, 1]])
+
+    G = sf.Matrix([-0.5*dt*dt, -dt, 0])
+
+    print((Phi.inv() * (state - G*acc)).simplify())
+
+    return (Phi.inv() * (state - G*acc)).simplify()
 
 def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, covariance: MState) -> (MState):
     Phi = sf.Matrix([   [1, dt, 0],
@@ -106,5 +137,7 @@ def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, covaria
 def computeInnovCov(meas_unc: sf.Scalar, covariance: MState, meas_matrix: VMeas) -> (sf.Scalar):
     return (meas_matrix*covariance*meas_matrix.T)[0,0] + meas_unc
 
+# generate_px4_function(predictState, output_names=["predict_state"])
+# generate_px4_function(syncState, output_names=["sync_state"])
 generate_px4_function(predictCov, output_names=["cov_updated"])
 generate_px4_function(computeInnovCov, output_names=["innov_cov_updated"])
