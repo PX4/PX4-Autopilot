@@ -152,5 +152,7 @@ def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, acc_var
 def computeInnovCov(meas_unc: sf.Scalar, covariance: MState, meas_matrix: VMeas) -> (sf.Scalar):
     return (meas_matrix*covariance*meas_matrix.T)[0,0] + meas_unc
 
+# generate_px4_function(predictState, output_names=["predict_state"])
+# generate_px4_function(syncState, output_names=["sync_state"])
 generate_px4_function(predictCov, output_names=["cov_updated"])
 generate_px4_function(computeInnovCov, output_names=["innov_cov_updated"])
