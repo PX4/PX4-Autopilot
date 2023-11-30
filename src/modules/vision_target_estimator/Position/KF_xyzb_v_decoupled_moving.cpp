@@ -53,9 +53,9 @@ void KF_xyzb_v_decoupled_moving::predictState(float dt, float acc)
 
 	const float tmp0 = 0.5f * dt * dt;
 
-	_state(0, 0) = _state(0, 0) - tmp0 * acc + tmp0 * _state(3, 0) - dt * _state(1, 0) + dt * _state(4, 0);
-	_state(1, 0) = _state(1, 0) + acc * dt;
-	_state(4, 0) = _state(4, 0) + dt * _state(3, 0);
+	_state(0) = _state(0) - tmp0 * acc + tmp0 * _state(3) - dt * _state(1) + dt * _state(4);
+	_state(1) = _state(1) + acc * dt;
+	_state(4) = _state(4) + dt * _state(3);
 }
 
 void KF_xyzb_v_decoupled_moving::predictCov(float dt)
@@ -123,11 +123,11 @@ void KF_xyzb_v_decoupled_moving::syncState(float dt, float acc)
 
 	const float _tmp0 = 0.5f * dt * dt;
 
-	_sync_state(0, 0) = _state(0, 0) - _tmp0 * acc + _tmp0 * _state(3, 0) + _state(1, 0) * dt - _state(4, 0) * dt;
-	_sync_state(1, 0) = _state(1, 0) - acc * dt;
-	_sync_state(2, 0) = _state(2, 0);
-	_sync_state(3, 0) = _state(3, 0);
-	_sync_state(4, 0) = _state(4, 0) - _state(3, 0) * dt;
+	_sync_state(0) = _state(0) - _tmp0 * acc + _tmp0 * _state(3) + _state(1) * dt - _state(4) * dt;
+	_sync_state(1) = _state(1) - acc * dt;
+	_sync_state(2) = _state(2);
+	_sync_state(3) = _state(3);
+	_sync_state(4) = _state(4) - _state(3) * dt;
 }
 
 float KF_xyzb_v_decoupled_moving::computeInnovCov(float meas_unc)

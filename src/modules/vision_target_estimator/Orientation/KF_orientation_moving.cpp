@@ -51,8 +51,8 @@ void KF_orientation_moving::predictState(float dt)
 	⎣      theta_dot     ⎦
 	*/
 
-	_state(0, 0) = _state(0, 0) + _state(1, 0) * dt;
-	_state(1, 0) = _state(1, 0);
+	_state(0) = _state(0) + _state(1) * dt;
+	_state(1) = _state(1);
 }
 
 void KF_orientation_moving::predictCov(float dt)
@@ -88,8 +88,8 @@ bool KF_orientation_moving::update()
 
 	_state = _state + kalmanGain * _innov;
 
-	_state(0, 0) = matrix::wrap_pi(_state(0, 0));
-	_state(1, 0) = matrix::wrap_pi(_state(1, 0));
+	_state(0) = matrix::wrap_pi(_state(0));
+	_state(1) = matrix::wrap_pi(_state(1));
 
 	_state_covariance = _state_covariance - kalmanGain * _meas_matrix * _state_covariance;
 
@@ -106,8 +106,8 @@ void KF_orientation_moving::setH(matrix::Vector<float, 2> h_meas)
 
 void KF_orientation_moving::syncState(float dt)
 {
-	_sync_state(0, 0) = matrix::wrap_pi(_state(0, 0) - _state(1, 0) * dt);
-	_sync_state(1, 0) = _state(1, 0);
+	_sync_state(0) = matrix::wrap_pi(_state(0) - _state(1) * dt);
+	_sync_state(1) = _state(1);
 }
 
 float KF_orientation_moving::computeInnovCov(float meas_unc)
