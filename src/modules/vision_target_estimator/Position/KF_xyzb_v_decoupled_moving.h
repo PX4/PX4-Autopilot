@@ -80,11 +80,11 @@ public:
 	void setNISthreshold(float nis_threshold) override { _nis_threshold = nis_threshold; };
 
 	// Init: x_0
-	void setPosition(float pos) override { _state(0, 0) = pos; };
-	void setVelocity(float vel) override { _state(1, 0) = vel; };
-	void setBias(float bias) override { _state(2, 0) = bias; };
-	void setTargetAcc(float acc) override { _state(3, 0) = acc; };
-	void setTargetVel(float target_vel) override {_state(4, 0) = target_vel; };
+	void setPosition(float pos) override { _state(0) = pos; };
+	void setVelocity(float vel) override { _state(1) = vel; };
+	void setBias(float bias) override { _state(2) = bias; };
+	void setTargetAcc(float acc) override { _state(3) = acc; };
+	void setTargetVel(float target_vel) override {_state(4) = target_vel; };
 
 	// Init: P_0
 	void setStatePosVar(float pos_unc) override { _state_covariance(0, 0) = pos_unc; };
@@ -94,11 +94,11 @@ public:
 	void setStateTargetVelVar(float target_vel_unc) override {_state_covariance(4, 4) = target_vel_unc; };
 
 	// Retreive output of filter
-	float getPosition() override { return _state(0, 0); };
-	float getVelocity() override { return _state(1, 0); };
-	float getBias() override { return _state(2, 0); };
-	float getAcceleration() override { return _state(3, 0); };
-	float getTargetVel() override { return _state(4, 0); };
+	float getPosition() override { return _state(0); };
+	float getVelocity() override { return _state(1); };
+	float getBias() override { return _state(2); };
+	float getAcceleration() override { return _state(3); };
+	float getTargetVel() override { return _state(4); };
 
 	float getPosVar() override { return _state_covariance(0, 0); };
 	float getVelVar() override { return _state_covariance(1, 1); };
@@ -113,9 +113,9 @@ public:
 	void setTargetAccVar(float var) override { _acc_var = var; };
 
 private:
-	matrix::Matrix<float, 5, 1> _state;
+	matrix::Vector<float, 5> _state;
 
-	matrix::Matrix<float, 5, 1> _sync_state;
+	matrix::Vector<float, 5> _sync_state;
 
 	matrix::Matrix<float, 1, 5> _meas_matrix; // row of measurement matrix
 

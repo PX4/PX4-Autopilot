@@ -48,8 +48,8 @@ namespace vision_target_estimator
 
 void KF_xyzb_decoupled_static::predictState(float dt, float acc)
 {
-	_state(0, 0) = _state(0, 0) + _state(1, 0) * dt - 0.5f * acc * dt * dt;
-	_state(1, 0) = _state(1, 0) - acc * dt;
+	_state(0) = _state(0) + _state(1) * dt - 0.5f * acc * dt * dt;
+	_state(1) = _state(1) - acc * dt;
 }
 
 void KF_xyzb_decoupled_static::predictCov(float dt)
@@ -106,9 +106,9 @@ void KF_xyzb_decoupled_static::setH(matrix::Vector<float, 15> h_meas, int direct
 
 void KF_xyzb_decoupled_static::syncState(float dt, float acc)
 {
-	_sync_state(0, 0) = _state(0, 0) - _state(1, 0) * dt - 0.5f * acc * dt * dt;
-	_sync_state(1, 0) = _state(1, 0) + acc * dt;
-	_sync_state(2, 0) = _state(2, 0);
+	_sync_state(0) = _state(0) - _state(1) * dt - 0.5f * acc * dt * dt;
+	_sync_state(1) = _state(1) + acc * dt;
+	_sync_state(2) = _state(2);
 }
 
 float KF_xyzb_decoupled_static::computeInnovCov(float meas_unc)

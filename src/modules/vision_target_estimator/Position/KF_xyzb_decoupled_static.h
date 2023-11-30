@@ -80,9 +80,9 @@ public:
 	void setNISthreshold(float nis_threshold) override { _nis_threshold = nis_threshold; };
 
 	// Init: x_0
-	void setPosition(float pos) override { _state(0, 0) = pos; };
-	void setVelocity(float vel) override { _state(1, 0) = vel; };
-	void setBias(float bias) override { _state(2, 0) = bias; };
+	void setPosition(float pos) override { _state(0) = pos; };
+	void setVelocity(float vel) override { _state(1) = vel; };
+	void setBias(float bias) override { _state(2) = bias; };
 
 	// Init: P_0
 	void setStatePosVar(float pos_unc) override { _state_covariance(0, 0) = pos_unc; };
@@ -90,9 +90,9 @@ public:
 	void setStateBiasVar(float bias_unc) override { _state_covariance(2, 2) = bias_unc; };
 
 	// Retreive output of filter
-	float getPosition() override { return _state(0, 0); };
-	float getVelocity() override { return _state(1, 0); };
-	float getBias() override { return _state(2, 0); };
+	float getPosition() override { return _state(0); };
+	float getVelocity() override { return _state(1); };
+	float getBias() override { return _state(2); };
 
 	float getPosVar() override { return _state_covariance(0, 0); };
 	float getVelVar() override { return _state_covariance(1, 1); };
@@ -115,9 +115,9 @@ public:
 	void setTargetVel(float accVect) override {};
 
 private:
-	matrix::Matrix<float, 3, 1> _state;
+	matrix::Vector<float, 3> _state;
 
-	matrix::Matrix<float, 3, 1> _sync_state;
+	matrix::Vector<float, 3> _sync_state;
 
 	matrix::Matrix<float, 1, 3> _meas_matrix; // row of measurement matrix
 
