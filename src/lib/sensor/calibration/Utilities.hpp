@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,8 @@
 #include <lib/parameters/param.h>
 #include <matrix/math.hpp>
 
+namespace sensor
+{
 namespace calibration
 {
 
@@ -85,9 +87,9 @@ float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, ui
 template<typename T>
 bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, T value)
 {
-	char str[20] {};
+	char str[16 + 1] {};
 
-	// eg CAL_MAGn_ID/CAL_MAGn_ROT
+	// eg CAL_{}n_ID
 	snprintf(str, sizeof(str), "CAL_%s%u_%s", sensor_type, instance, cal_type);
 
 	int ret = param_set_no_notification(param_find(str), &value);
@@ -99,54 +101,5 @@ bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t 
 	return ret == PX4_OK;
 }
 
-/**
- * @brief Get the Calibration Params Vector 3f object
- *
- * @param sensor_type Calibration parameter abbreviated sensor string ("ACC", "GYRO", "MAG")
- * @param cal_type Calibration parameter abbreviated type ("OFF", "SCALE", "ROT", "PRIO")
- * @param instance Calibration index (0 - 3)
- * @return matrix::Vector3f Vector of calibration values.
- */
-matrix::Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance);
-
-/**
- * @brief Set the Calibration Params Vector 3f object
- *
- * @param sensor_type Calibration parameter abbreviated sensor string ("ACC", "GYRO", "MAG")
- * @param cal_type Calibration parameter abbreviated type ("OFF", "SCALE", "ROT", "PRIO")
- * @param instance Calibration index (0 - 3)
- * @param values Vector of calibration values x, y, z.
- * @return true if the parameter name was valid and all values saved successfully, false otherwise.
- */
-bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance,
-				  matrix::Vector3f values);
-
-/**
- * @brief Get the board sensor level adjustment (SENS_BOARD_X_OFF, SENS_BOARD_Y_OFF, SENS_BOARD_Z_OFF).
- *
- * @return matrix::Eulerf
- */
-matrix::Eulerf GetSensorLevelAdjustment();
-
-/**
- * @brief Get the board rotation.
- *
- * @return enum Rotation
- */
-Rotation GetBoardRotation();
-
-/**
- * @brief Get the board rotation Dcm.
- *
- * @return matrix::Dcmf
- */
-matrix::Dcmf GetBoardRotationMatrix();
-
-/**
- * @brief Determine if device is on an external bus
- *
- * @return true if device is on an external bus
- */
-bool DeviceExternal(uint32_t device_id);
-
-} // namespace calibration
+} // namespace utilities
+} // namespace sensor

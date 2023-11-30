@@ -39,7 +39,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/estimator_status.h>
-#include <lib/sensor_calibration/Barometer.hpp>
+#include <lib/sensor/calibration/Barometer.hpp>
 
 class BaroChecks : public HealthAndArmingCheckBase
 {
@@ -52,7 +52,7 @@ public:
 private:
 	bool isBaroRequired(int instance);
 
-	uORB::SubscriptionMultiArray<sensor_baro_s, calibration::Barometer::MAX_SENSOR_COUNT> _sensor_baro_sub{ORB_ID::sensor_baro};
+	uORB::SubscriptionMultiArray<sensor_baro_s, sensor::calibration::Barometer::MAX_SENSOR_COUNT> _sensor_baro_sub{ORB_ID::sensor_baro};
 	uORB::SubscriptionMultiArray<estimator_status_s> _estimator_status_sub{ORB_ID::estimator_status};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,

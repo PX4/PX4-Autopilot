@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,34 +33,68 @@
 
 #pragma once
 
-#include "../Common.hpp"
+#include <px4_platform_common/px4_config.h>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/sensor_preflight_mag.h>
-#include <uORB/topics/sensor_mag.h>
-#include <uORB/topics/estimator_status.h>
-#include <lib/sensor/calibration/Magnetometer.hpp>
+#include <lib/conversion/rotation.h>
+#include <lib/matrix/matrix/math.hpp>
 
-class MagnetometerChecks : public HealthAndArmingCheckBase
+namespace sensor
+{
+namespace configuration
+{
+
+class Accelerometer
 {
 public:
-	MagnetometerChecks() = default;
-	~MagnetometerChecks() = default;
+	static constexpr int MAX_SENSOR_COUNT = 4;
 
-	void checkAndReport(const Context &context, Report &reporter) override;
+	static constexpr uint8_t DEFAULT_PRIORITY = 50;
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
+
+	static constexpr const char *SensorString() { return "ACC"; }
+
+	Accelerometer();
+	explicit Accelerometer(uint32_t device_id);
+
+	~Accelerometer() = default;
+
+	void PrintStatus();
+
+	bool set_configuration_index(int configuration_index);
+	void set_device_id(uint32_t device_id);
+
+	void set_rotation(Rotation rotation);
+
+	bool configured() const { return (_device_id != 0) && (_configuration_index >= 0); }
+	uint8_t configuration_count() const { return _configuration_count; }
+	int8_t configuration_index() const { return _configuration_index; }
+	uint32_t device_id() const { return _device_id; }
+	bool enabled() const { return (_priority > 0); }
+	bool external() const { return _external; }
+
+	const int32_t &priority() const { return _priority; }
+	const matrix::Dcmf &rotation() const { return _rotation; }
+	const Rotation &rotation_enum() const { return _rotation_enum; }
+
+	bool ParametersLoad();
+	bool ParametersSave(int desired_configuration_index = -1, bool force = false);
+	void ParametersUpdate();
+
+	void Reset();
 
 private:
-	bool isMagRequired(int instance, bool &mag_fault);
-	void consistencyCheck(const Context &context, Report &reporter);
+	Rotation _rotation_enum{ROTATION_NONE};
 
-	uORB::SubscriptionMultiArray<sensor_mag_s, sensor::calibration::Magnetometer::MAX_SENSOR_COUNT> _sensor_mag_sub{ORB_ID::sensor_mag};
-	uORB::SubscriptionMultiArray<estimator_status_s> _estimator_status_sub{ORB_ID::estimator_status};
+	matrix::Dcmf _rotation;
 
-	uORB::Subscription _sensor_preflight_mag_sub{ORB_ID(sensor_preflight_mag)};
+	uint32_t _device_id{0};
+	int32_t _priority{-1};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
-					(ParamInt<px4::params::COM_ARM_MAG_ANG>) _param_com_arm_mag_ang
-				       )
+	bool _external{false};
+
+	int8_t _configuration_index{-1};
+	uint8_t _configuration_count{0};
 };
+
+} // namespace configuration
+} // namespace sensor

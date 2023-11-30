@@ -39,7 +39,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_gyro.h>
-#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/sensor/calibration/Gyroscope.hpp>
 
 class GyroChecks : public HealthAndArmingCheckBase
 {
@@ -52,6 +52,6 @@ public:
 private:
 	bool isGyroRequired(int instance);
 
-	uORB::SubscriptionMultiArray<sensor_gyro_s, calibration::Gyroscope::MAX_SENSOR_COUNT> _sensor_gyro_sub{ORB_ID::sensor_gyro};
+	uORB::SubscriptionMultiArray<sensor_gyro_s, sensor::calibration::Gyroscope::MAX_SENSOR_COUNT> _sensor_gyro_sub{ORB_ID::sensor_gyro};
 	uORB::SubscriptionMultiArray<estimator_status_s> _estimator_status_sub{ORB_ID::estimator_status};
 };

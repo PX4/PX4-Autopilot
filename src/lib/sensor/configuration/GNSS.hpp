@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,63 @@
  *
  ****************************************************************************/
 
-#include "param_translation.h"
+#pragma once
 
+#include <px4_platform_common/px4_config.h>
 
-#include <px4_platform_common/log.h>
-#include <lib/drivers/device/Device.hpp>
-#include <drivers/drv_sensor.h>
-#include <lib/parameters/param.h>
-#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 
-bool param_modify_on_import(bson_node_t node)
+namespace sensor
+{
+namespace configuration
 {
 
+class GNSS
+{
+public:
+	static constexpr int MAX_SENSOR_COUNT = 4;
 
-	// TODO:
-	// ACC, BARO, GYRO, MAG
-	//  prio, rot
+	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 
-	// 2023-11-30: translate sensor calibration to configuration
-	{
-		if (strcmp("CAL_ACC0_PRIO", node->name) == 0) {
-			strcpy(node->name, "SENS_ACC0_PRIO");
-			PX4_INFO("copying %s -> %s", "CAL_ACC0_PRIO", "SENS_ACC0_PRIO");
+	static constexpr const char *SensorString() { return "GNSS"; }
 
-			// TODO: set SENS_ACC0_ID=CAL_ACC0_ID
+	GNSS();
+	explicit GNSS(uint32_t device_id);
 
+	~GNSS() = default;
 
-			return true;
-		}
-	}
+	void PrintStatus();
 
+	bool set_configuration_index(int configuration_index);
+	void set_device_id(uint32_t device_id);
 
+	bool set_position(const matrix::Vector3f &position);
 
-	return false;
-}
+	bool configured() const { return (_device_id != 0) && (_configuration_index >= 0); }
+	uint8_t configuration_count() const { return _configuration_count; }
+	int8_t configuration_index() const { return _configuration_index; }
+	uint32_t device_id() const { return _device_id; }
+	bool enabled() const { return (_priority > 0); }
+
+	const matrix::Vector3f &position() const { return _position; }
+	const int32_t &priority() const { return _priority; }
+
+	bool ParametersLoad();
+	bool ParametersSave(int desired_configuration_index = -1, bool force = false);
+	void ParametersUpdate();
+
+	void Reset();
+
+private:
+
+	uint32_t _device_id{0};
+	int32_t _priority{-1};
+
+	matrix::Vector3f _position{};
+
+	int8_t _configuration_index{-1};
+	uint8_t _configuration_count{0};
+};
+
+} // namespace configuration
+} // namespace sensor

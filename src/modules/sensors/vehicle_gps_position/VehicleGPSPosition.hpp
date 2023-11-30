@@ -36,6 +36,7 @@
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/sensor/configuration/GNSS.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -92,10 +93,11 @@ private:
 
 	GpsBlending _gps_blending;
 
+	sensor::configuration::GNSS _configuration[GPS_MAX_RECEIVERS] {};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
-		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
-		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime
+		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau
 	)
 };
 }; // namespace sensors

@@ -14,81 +14,6 @@ parameters:
             category: System
             type: int32
             default: 0
-            decimal: 3
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_PRIO:
-            description:
-                short: Accelerometer ${i} priority
-            category: System
-            type: enum
-            values:
-                -1: Uninitialized
-                0: Disabled
-                1: Min
-                25: Low
-                50: Medium (Default)
-                75: High
-                100: Max
-            default: -1
-            decimal: 3
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_ACC${i}_ROT:
-            description:
-                short: Accelerometer ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
-            category: System
-            type: enum
-            values:
-                -1: Internal
-                0: No rotation
-                1: Yaw 45°
-                2: Yaw 90°
-                3: Yaw 135°
-                4: Yaw 180°
-                5: Yaw 225°
-                6: Yaw 270°
-                7: Yaw 315°
-                8: Roll 180°
-                9: Roll 180°, Yaw 45°
-                10: Roll 180°, Yaw 90°
-                11: Roll 180°, Yaw 135°
-                12: Pitch 180°
-                13: Roll 180°, Yaw 225°
-                14: Roll 180°, Yaw 270°
-                15: Roll 180°, Yaw 315°
-                16: Roll 90°
-                17: Roll 90°, Yaw 45°
-                18: Roll 90°, Yaw 90°
-                19: Roll 90°, Yaw 135°
-                20: Roll 270°
-                21: Roll 270°, Yaw 45°
-                22: Roll 270°, Yaw 90°
-                23: Roll 270°, Yaw 135°
-                24: Pitch 90°
-                25: Pitch 270°
-                26: Pitch 180°, Yaw 90°
-                27: Pitch 180°, Yaw 270°
-                28: Roll 90°, Pitch 90°
-                29: Roll 180°, Pitch 90°
-                30: Roll 270°, Pitch 90°
-                31: Roll 90°, Pitch 180°
-                32: Roll 270°, Pitch 180°
-                33: Roll 90°, Pitch 270°
-                34: Roll 180°, Pitch 270°
-                35: Roll 270°, Pitch 270°
-                36: Roll 90°, Pitch 180°, Yaw 90°
-                37: Roll 90°, Yaw 270°
-                38: Roll 90°, Pitch 68°, Yaw 293°
-                39: Pitch 315°
-                40: Roll 90°, Pitch 315°
-            min: -1
-            max: 40
-            default: -1
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
@@ -167,6 +92,7 @@ parameters:
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
+
         # Barometer calibration
         CAL_BARO${i}_ID:
             description:
@@ -175,23 +101,6 @@ parameters:
             category: System
             type: int32
             default: 0
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_BARO${i}_PRIO:
-            description:
-                short: Barometer ${i} priority
-            category: System
-            type: enum
-            values:
-                -1: Uninitialized
-                0: Disabled
-                1: Min
-                25: Low
-                50: Medium (Default)
-                75: High
-                100: Max
-            default: -1
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
@@ -207,6 +116,7 @@ parameters:
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
+
         # Gyroscope calibration
         CAL_GYRO${i}_ID:
             description:
@@ -215,79 +125,6 @@ parameters:
             category: System
             type: int32
             default: 0
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_GYRO${i}_PRIO:
-            description:
-                short: Gyroscope ${i} priority
-            category: System
-            type: enum
-            values:
-                -1: Uninitialized
-                0: Disabled
-                1: Min
-                25: Low
-                50: Medium (Default)
-                75: High
-                100: Max
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_GYRO${i}_ROT:
-            description:
-                short: Gyroscope ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
-            category: System
-            type: enum
-            values:
-                -1: Internal
-                0: No rotation
-                1: Yaw 45°
-                2: Yaw 90°
-                3: Yaw 135°
-                4: Yaw 180°
-                5: Yaw 225°
-                6: Yaw 270°
-                7: Yaw 315°
-                8: Roll 180°
-                9: Roll 180°, Yaw 45°
-                10: Roll 180°, Yaw 90°
-                11: Roll 180°, Yaw 135°
-                12: Pitch 180°
-                13: Roll 180°, Yaw 225°
-                14: Roll 180°, Yaw 270°
-                15: Roll 180°, Yaw 315°
-                16: Roll 90°
-                17: Roll 90°, Yaw 45°
-                18: Roll 90°, Yaw 90°
-                19: Roll 90°, Yaw 135°
-                20: Roll 270°
-                21: Roll 270°, Yaw 45°
-                22: Roll 270°, Yaw 90°
-                23: Roll 270°, Yaw 135°
-                24: Pitch 90°
-                25: Pitch 270°
-                26: Pitch 180°, Yaw 90°
-                27: Pitch 180°, Yaw 270°
-                28: Roll 90°, Pitch 90°
-                29: Roll 180°, Pitch 90°
-                30: Roll 270°, Pitch 90°
-                31: Roll 90°, Pitch 180°
-                32: Roll 270°, Pitch 180°
-                33: Roll 90°, Pitch 270°
-                34: Roll 180°, Pitch 270°
-                35: Roll 270°, Pitch 270°
-                36: Roll 90°, Pitch 180°, Yaw 90°
-                37: Roll 90°, Yaw 270°
-                38: Roll 90°, Pitch 68°, Yaw 293°
-                39: Pitch 315°
-                40: Roll 90°, Pitch 315°
-            min: -1
-            max: 40
-            default: -1
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
@@ -327,6 +164,7 @@ parameters:
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
+
         # Magnetometer calibration
         CAL_MAG${i}_ID:
             description:
@@ -335,120 +173,6 @@ parameters:
             category: System
             type: int32
             default: 0
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_PRIO:
-            description:
-                short: Magnetometer ${i} priority
-            category: System
-            type: enum
-            values:
-                -1: Uninitialized
-                0: Disabled
-                1: Min
-                25: Low
-                50: Medium (Default)
-                75: High
-                100: Max
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_ROT:
-            description:
-                short: Magnetometer ${i} rotation relative to airframe
-                long: |
-                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
-                    Set to "Custom Euler Angle" to define the rotation using CAL_MAG${i}_ROLL, CAL_MAG${i}_PITCH and CAL_MAG${i}_YAW.
-            category: System
-            type: enum
-            values:
-                -1: Internal
-                0: No rotation
-                1: Yaw 45°
-                2: Yaw 90°
-                3: Yaw 135°
-                4: Yaw 180°
-                5: Yaw 225°
-                6: Yaw 270°
-                7: Yaw 315°
-                8: Roll 180°
-                9: Roll 180°, Yaw 45°
-                10: Roll 180°, Yaw 90°
-                11: Roll 180°, Yaw 135°
-                12: Pitch 180°
-                13: Roll 180°, Yaw 225°
-                14: Roll 180°, Yaw 270°
-                15: Roll 180°, Yaw 315°
-                16: Roll 90°
-                17: Roll 90°, Yaw 45°
-                18: Roll 90°, Yaw 90°
-                19: Roll 90°, Yaw 135°
-                20: Roll 270°
-                21: Roll 270°, Yaw 45°
-                22: Roll 270°, Yaw 90°
-                23: Roll 270°, Yaw 135°
-                24: Pitch 90°
-                25: Pitch 270°
-                26: Pitch 180°, Yaw 90°
-                27: Pitch 180°, Yaw 270°
-                28: Roll 90°, Pitch 90°
-                29: Roll 180°, Pitch 90°
-                30: Roll 270°, Pitch 90°
-                31: Roll 90°, Pitch 180°
-                32: Roll 270°, Pitch 180°
-                33: Roll 90°, Pitch 270°
-                34: Roll 180°, Pitch 270°
-                35: Roll 270°, Pitch 270°
-                36: Roll 90°, Pitch 180°, Yaw 90°
-                37: Roll 90°, Yaw 270°
-                38: Roll 90°, Pitch 68°, Yaw 293°
-                39: Pitch 315°
-                40: Roll 90°, Pitch 315°
-                100: Custom Euler Angle
-            min: -1
-            max: 100
-            default: -1
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_ROLL:
-            description:
-                short: Magnetometer ${i} Custom Euler Roll Angle
-                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
-            category: System
-            type: float
-            default: 0.0
-            min: -180
-            max: 180
-            unit: deg
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_PITCH:
-            description:
-                short: Magnetometer ${i} Custom Euler Pitch Angle
-                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
-            category: System
-            type: float
-            default: 0.0
-            min: -180
-            max: 180
-            unit: deg
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_YAW:
-            description:
-                short: Magnetometer ${i} Custom Euler Yaw Angle
-                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
-            category: System
-            type: float
-            default: 0.0
-            min: -180
-            max: 180
-            unit: deg
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
@@ -607,5 +331,401 @@ parameters:
             default: 0.0
             decimal: 3
             volatile: true
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+
+    - group: Sensor Configuration
+      definitions:
+
+        # Accelerometer configuration
+        SENS_ACC${i}_ID:
+            description:
+                short: Accelerometer ${i} configuration device ID
+                long: Device ID of the accelerometer this configuration applies to.
+            category: System
+            type: int32
+            default: 0
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_ACC${i}_PRIO:
+            description:
+                short: Accelerometer ${i} priority
+            category: System
+            type: enum
+            values:
+                -1: Uninitialized
+                0: Disabled
+                1: Min
+                25: Low
+                50: Medium (Default)
+                75: High
+                100: Max
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_ACC${i}_ROT:
+            description:
+                short: Accelerometer ${i} rotation relative to airframe
+                long: |
+                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+            category: System
+            type: enum
+            values:
+                -1: Internal
+                0: No rotation
+                1: Yaw 45°
+                2: Yaw 90°
+                3: Yaw 135°
+                4: Yaw 180°
+                5: Yaw 225°
+                6: Yaw 270°
+                7: Yaw 315°
+                8: Roll 180°
+                9: Roll 180°, Yaw 45°
+                10: Roll 180°, Yaw 90°
+                11: Roll 180°, Yaw 135°
+                12: Pitch 180°
+                13: Roll 180°, Yaw 225°
+                14: Roll 180°, Yaw 270°
+                15: Roll 180°, Yaw 315°
+                16: Roll 90°
+                17: Roll 90°, Yaw 45°
+                18: Roll 90°, Yaw 90°
+                19: Roll 90°, Yaw 135°
+                20: Roll 270°
+                21: Roll 270°, Yaw 45°
+                22: Roll 270°, Yaw 90°
+                23: Roll 270°, Yaw 135°
+                24: Pitch 90°
+                25: Pitch 270°
+                26: Pitch 180°, Yaw 90°
+                27: Pitch 180°, Yaw 270°
+                28: Roll 90°, Pitch 90°
+                29: Roll 180°, Pitch 90°
+                30: Roll 270°, Pitch 90°
+                31: Roll 90°, Pitch 180°
+                32: Roll 270°, Pitch 180°
+                33: Roll 90°, Pitch 270°
+                34: Roll 180°, Pitch 270°
+                35: Roll 270°, Pitch 270°
+                36: Roll 90°, Pitch 180°, Yaw 90°
+                37: Roll 90°, Yaw 270°
+                38: Roll 90°, Pitch 68°, Yaw 293°
+                39: Pitch 315°
+                40: Roll 90°, Pitch 315°
+            min: -1
+            max: 40
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+
+        # Barometer configuration
+        SENS_BARO${i}_ID:
+            description:
+                short: Barometer ${i} configuration device ID
+                long: Device ID of the barometer this configuration applies to.
+            category: System
+            type: int32
+            default: 0
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_BARO${i}_PRIO:
+            description:
+                short: Barometer ${i} priority
+            category: System
+            type: enum
+            values:
+                -1: Uninitialized
+                0: Disabled
+                1: Min
+                25: Low
+                50: Medium (Default)
+                75: High
+                100: Max
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+
+        # GNSS configuration
+        SENS_GNSS${i}_ID:
+            description:
+                short: GNSS ${i} configuration device ID
+                long: Device ID of the GNSS this configuration applies to.
+            category: System
+            type: int32
+            default: 0
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_PRIO:
+            description:
+                short: GNSS ${i} priority
+            category: System
+            type: enum
+            values:
+                -1: Uninitialized
+                0: Disabled
+                1: Min
+                25: Low
+                50: Medium (Default)
+                75: High
+                100: Max
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_XPOS:
+            description:
+                short: GNSS ${i} antenna X position
+                long: |
+                    X position of GNSS antenna in body frame (forward axis with origin relative to vehicle centre of gravity)
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            volatile: true
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_YPOS:
+            description:
+                short: GNSS ${i} antenna Y position
+                long: |
+                    Y position of GNSS antenna in body frame (forward axis with origin relative to vehicle centre of gravity)
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            volatile: true
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_ZPOS:
+            description:
+                short: GNSS ${i} antenna Z position
+                long: |
+                    Z position of GNSS antenna in body frame (forward axis with origin relative to vehicle centre of gravity)
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            volatile: true
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+
+        # Gyroscope configuration
+        SENS_GYRO${i}_ID:
+            description:
+                short: Gyroscope ${i} configuration device ID
+                long: Device ID of the gyroscope this configuration applies to.
+            category: System
+            type: int32
+            default: 0
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GYRO${i}_PRIO:
+            description:
+                short: Gyroscope ${i} priority
+            category: System
+            type: enum
+            values:
+                -1: Uninitialized
+                0: Disabled
+                1: Min
+                25: Low
+                50: Medium (Default)
+                75: High
+                100: Max
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GYRO${i}_ROT:
+            description:
+                short: Gyroscope ${i} rotation relative to airframe
+                long: |
+                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+            category: System
+            type: enum
+            values:
+                -1: Internal
+                0: No rotation
+                1: Yaw 45°
+                2: Yaw 90°
+                3: Yaw 135°
+                4: Yaw 180°
+                5: Yaw 225°
+                6: Yaw 270°
+                7: Yaw 315°
+                8: Roll 180°
+                9: Roll 180°, Yaw 45°
+                10: Roll 180°, Yaw 90°
+                11: Roll 180°, Yaw 135°
+                12: Pitch 180°
+                13: Roll 180°, Yaw 225°
+                14: Roll 180°, Yaw 270°
+                15: Roll 180°, Yaw 315°
+                16: Roll 90°
+                17: Roll 90°, Yaw 45°
+                18: Roll 90°, Yaw 90°
+                19: Roll 90°, Yaw 135°
+                20: Roll 270°
+                21: Roll 270°, Yaw 45°
+                22: Roll 270°, Yaw 90°
+                23: Roll 270°, Yaw 135°
+                24: Pitch 90°
+                25: Pitch 270°
+                26: Pitch 180°, Yaw 90°
+                27: Pitch 180°, Yaw 270°
+                28: Roll 90°, Pitch 90°
+                29: Roll 180°, Pitch 90°
+                30: Roll 270°, Pitch 90°
+                31: Roll 90°, Pitch 180°
+                32: Roll 270°, Pitch 180°
+                33: Roll 90°, Pitch 270°
+                34: Roll 180°, Pitch 270°
+                35: Roll 270°, Pitch 270°
+                36: Roll 90°, Pitch 180°, Yaw 90°
+                37: Roll 90°, Yaw 270°
+                38: Roll 90°, Pitch 68°, Yaw 293°
+                39: Pitch 315°
+                40: Roll 90°, Pitch 315°
+            min: -1
+            max: 40
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+
+        # Magnetometer configuration
+        SENS_MAG${i}_ID:
+            description:
+                short: Magnetometer ${i} configuration device ID
+                long: Device ID of the magnetometer this configuration applies to.
+            category: System
+            type: int32
+            default: 0
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_MAG${i}_PRIO:
+            description:
+                short: Magnetometer ${i} priority
+            category: System
+            type: enum
+            values:
+                -1: Uninitialized
+                0: Disabled
+                1: Min
+                25: Low
+                50: Medium (Default)
+                75: High
+                100: Max
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_MAG${i}_ROT:
+            description:
+                short: Magnetometer ${i} rotation relative to airframe
+                long: |
+                    An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+                    Set to "Custom Euler Angle" to define the rotation using CAL_MAG${i}_ROLL, CAL_MAG${i}_PITCH and CAL_MAG${i}_YAW.
+            category: System
+            type: enum
+            values:
+                -1: Internal
+                0: No rotation
+                1: Yaw 45°
+                2: Yaw 90°
+                3: Yaw 135°
+                4: Yaw 180°
+                5: Yaw 225°
+                6: Yaw 270°
+                7: Yaw 315°
+                8: Roll 180°
+                9: Roll 180°, Yaw 45°
+                10: Roll 180°, Yaw 90°
+                11: Roll 180°, Yaw 135°
+                12: Pitch 180°
+                13: Roll 180°, Yaw 225°
+                14: Roll 180°, Yaw 270°
+                15: Roll 180°, Yaw 315°
+                16: Roll 90°
+                17: Roll 90°, Yaw 45°
+                18: Roll 90°, Yaw 90°
+                19: Roll 90°, Yaw 135°
+                20: Roll 270°
+                21: Roll 270°, Yaw 45°
+                22: Roll 270°, Yaw 90°
+                23: Roll 270°, Yaw 135°
+                24: Pitch 90°
+                25: Pitch 270°
+                26: Pitch 180°, Yaw 90°
+                27: Pitch 180°, Yaw 270°
+                28: Roll 90°, Pitch 90°
+                29: Roll 180°, Pitch 90°
+                30: Roll 270°, Pitch 90°
+                31: Roll 90°, Pitch 180°
+                32: Roll 270°, Pitch 180°
+                33: Roll 90°, Pitch 270°
+                34: Roll 180°, Pitch 270°
+                35: Roll 270°, Pitch 270°
+                36: Roll 90°, Pitch 180°, Yaw 90°
+                37: Roll 90°, Yaw 270°
+                38: Roll 90°, Pitch 68°, Yaw 293°
+                39: Pitch 315°
+                40: Roll 90°, Pitch 315°
+                100: Custom Euler Angle
+            min: -1
+            max: 100
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_MAG${i}_ROLL:
+            description:
+                short: Magnetometer ${i} Custom Euler Roll Angle
+                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
+            category: System
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_MAG${i}_PITCH:
+            description:
+                short: Magnetometer ${i} Custom Euler Pitch Angle
+                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
+            category: System
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_MAG${i}_YAW:
+            description:
+                short: Magnetometer ${i} Custom Euler Yaw Angle
+                long: Setting this parameter changes CAL_MAG${i}_ROT to "Custom Euler Angle"
+            category: System
+            type: float
+            default: 0.0
+            min: -180
+            max: 180
+            unit: deg
             num_instances: *max_num_sensor_instances
             instance_start: 0

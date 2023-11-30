@@ -62,4 +62,6 @@ uint8 RTCM_MSG_USED_NOT_USED = 1
 uint8 RTCM_MSG_USED_USED = 2
 uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
 
+float32[3] position_offset      # position of GNSS antenna in body frame (forward axis with origin relative to vehicle centre of gravity)
+
 # TOPICS sensor_gps vehicle_gps_position

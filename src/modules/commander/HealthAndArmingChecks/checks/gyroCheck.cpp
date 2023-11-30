@@ -33,7 +33,7 @@
 
 #include "gyroCheck.hpp"
 
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Utilities.hpp>
 
 using namespace time_literals;
 
@@ -59,7 +59,7 @@ void GyroChecks::checkAndReport(const Context &context, Report &reporter)
 				is_calibration_valid = true;
 
 			} else {
-				is_calibration_valid = (calibration::FindCurrentCalibrationIndex("GYRO", gyro_data.device_id) >= 0);
+				is_calibration_valid = (sensor::calibration::FindCurrentCalibrationIndex("GYRO", gyro_data.device_id) >= 0);
 			}
 
 			reporter.setIsPresent(health_component_t::gyro);

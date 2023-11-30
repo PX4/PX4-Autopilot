@@ -33,7 +33,7 @@
 
 #include "accelerometerCheck.hpp"
 
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Utilities.hpp>
 
 using namespace time_literals;
 
@@ -59,7 +59,7 @@ void AccelerometerChecks::checkAndReport(const Context &context, Report &reporte
 				is_calibration_valid = true;
 
 			} else {
-				is_calibration_valid = (calibration::FindCurrentCalibrationIndex("ACC", accel_data.device_id) >= 0);
+				is_calibration_valid = (sensor::calibration::FindCurrentCalibrationIndex("ACC", accel_data.device_id) >= 0);
 			}
 
 			reporter.setIsPresent(health_component_t::gyro);

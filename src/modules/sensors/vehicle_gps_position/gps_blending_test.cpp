@@ -204,9 +204,9 @@ TEST_F(GpsBlendingTest, dualReceiverBlendingHPos)
 	gps_blending.setGpsData(gps_data1, 1);
 	gps_blending.update(_time_now_us);
 
-	// THEN: the blended instance should be selected (2)
+	// THEN: the blended instance should be selected (3)
 	// and the eph should be adjusted
-	EXPECT_EQ(gps_blending.getSelectedGps(), 2);
+	EXPECT_EQ(gps_blending.getSelectedGps(), 3);
 	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 2);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 	EXPECT_LT(gps_blending.getOutputGpsData().eph, gps_data0.eph);

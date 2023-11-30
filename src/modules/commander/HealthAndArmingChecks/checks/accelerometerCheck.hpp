@@ -39,7 +39,7 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_accel.h>
-#include <lib/sensor_calibration/Accelerometer.hpp>
+#include <lib/sensor/calibration/Accelerometer.hpp>
 
 class AccelerometerChecks : public HealthAndArmingCheckBase
 {
@@ -52,6 +52,6 @@ public:
 private:
 	bool isAccelRequired(int instance);
 
-	uORB::SubscriptionMultiArray<sensor_accel_s, calibration::Accelerometer::MAX_SENSOR_COUNT> _sensor_accel_sub{ORB_ID::sensor_accel};
+	uORB::SubscriptionMultiArray<sensor_accel_s, sensor::calibration::Accelerometer::MAX_SENSOR_COUNT> _sensor_accel_sub{ORB_ID::sensor_accel};
 	uORB::SubscriptionMultiArray<estimator_status_s> _estimator_status_sub{ORB_ID::estimator_status};
 };

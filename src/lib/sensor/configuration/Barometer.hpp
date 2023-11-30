@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +33,16 @@
 
 #pragma once
 
-#include <lib/conversion/rotation.h>
-#include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/sensor_correction.h>
 
-namespace calibration
+#include <lib/matrix/matrix/math.hpp>
+
+namespace sensor
 {
-class Gyroscope
+namespace configuration
+{
+
+class Barometer
 {
 public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
@@ -50,74 +50,43 @@ public:
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
 
-	static constexpr const char *SensorString() { return "GYRO"; }
+	static constexpr const char *SensorString() { return "BARO"; }
 
-	Gyroscope();
-	explicit Gyroscope(uint32_t device_id);
+	Barometer();
+	explicit Barometer(uint32_t device_id);
 
-	~Gyroscope() = default;
+	~Barometer() = default;
 
 	void PrintStatus();
 
-	bool set_calibration_index(int calibration_index);
+	bool set_configuration_index(int configuration_index);
 	void set_device_id(uint32_t device_id);
-	bool set_offset(const matrix::Vector3f &offset);
-	void set_rotation(Rotation rotation);
 
-	bool calibrated() const { return (_device_id != 0) && (_calibration_index >= 0); }
-	uint8_t calibration_count() const { return _calibration_count; }
-	int8_t calibration_index() const { return _calibration_index; }
+	bool configured() const { return (_device_id != 0) && (_configuration_index >= 0); }
+	uint8_t configuration_count() const { return _configuration_count; }
+	int8_t configuration_index() const { return _configuration_index; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
-	const matrix::Vector3f &offset() const { return _offset; }
+
 	const int32_t &priority() const { return _priority; }
-	const matrix::Dcmf &rotation() const { return _rotation; }
-	const Rotation &rotation_enum() const { return _rotation_enum; }
-	const matrix::Vector3f &thermal_offset() const { return _thermal_offset; }
-
-	// apply offsets and scale
-	// rotate corrected measurements from sensor to body frame
-	inline matrix::Vector3f Correct(const matrix::Vector3f &data) const
-	{
-		return _rotation * matrix::Vector3f{data - _thermal_offset - _offset};
-	}
-
-	inline matrix::Vector3f Uncorrect(const matrix::Vector3f &corrected_data) const
-	{
-		return (_rotation.I() * corrected_data) + _thermal_offset + _offset;
-	}
-
-	// Compute sensor offset from bias (board frame)
-	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
-	{
-		// updated calibration offset = existing offset + bias rotated to sensor frame
-		return _offset + (_rotation.I() * bias);
-	}
 
 	bool ParametersLoad();
-	bool ParametersSave(int desired_calibration_index = -1, bool force = false);
+	bool ParametersSave(int desired_configuration_index = -1, bool force = false);
 	void ParametersUpdate();
 
 	void Reset();
 
-	void SensorCorrectionsUpdate(bool force = false);
-
 private:
-	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
 
-	Rotation _rotation_enum{ROTATION_NONE};
-
-	matrix::Dcmf _rotation;
-	matrix::Vector3f _offset;
-	matrix::Vector3f _thermal_offset;
-
-	int8_t _calibration_index{-1};
 	uint32_t _device_id{0};
 	int32_t _priority{-1};
 
 	bool _external{false};
 
-	uint8_t _calibration_count{0};
+	int8_t _configuration_index{-1};
+	uint8_t _configuration_count{0};
 };
-} // namespace calibration
+
+} // namespace configuration
+} // namespace sensor

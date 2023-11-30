@@ -217,6 +217,8 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 			gps_sample_new.pos(1) = 0.0f;
 		}
 
+		gps_sample_new.position_body = gps.position_body;
+
 		_gps_buffer->push(gps_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 
