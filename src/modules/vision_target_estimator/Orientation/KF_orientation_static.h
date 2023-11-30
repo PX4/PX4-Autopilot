@@ -83,12 +83,12 @@ public:
 	void setPosition(float pos) override { _state = pos; };
 
 	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _covariance = pos_unc; };
+	void setStatePosVar(float pos_unc) override { _state_covariance = pos_unc; };
 
 	// Retreive output of filter
 	float getPosition() override { return _state; };
 
-	float getPosVar() override { return _covariance; };
+	float getPosVar() override { return _state_covariance; };
 
 	float getTestRatio() override {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
@@ -100,13 +100,13 @@ public:
 
 private:
 
-	float _state; // state
+	float _state;
 
-	float _sync_state; // state
+	float _sync_state;
 
 	float _meas_matrix; // row of measurement matrix
 
-	float _covariance; // state covariance
+	float _state_covariance;
 
 	float _innov{0.0f}; // residual of last measurement update
 
