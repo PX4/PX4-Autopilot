@@ -58,11 +58,11 @@ bool KF_orientation_static::update()
 		return false;
 	}
 
-	const float kalmanGain = _covariance * _meas_matrix / _innov_cov;
+	const float kalmanGain = _state_covariance * _meas_matrix / _innov_cov;
 
 	_state = matrix::wrap_pi(_state + kalmanGain * _innov);
 
-	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
+	_state_covariance = _state_covariance - kalmanGain * _meas_matrix * _state_covariance;
 
 	return true;
 }
@@ -83,7 +83,7 @@ void KF_orientation_static::syncState(float dt)
 
 float KF_orientation_static::computeInnovCov(float meas_unc)
 {
-	_innov_cov = _meas_matrix * _covariance * _meas_matrix + meas_unc;
+	_innov_cov = _meas_matrix * _state_covariance * _meas_matrix + meas_unc;
 	return _innov_cov;
 }
 
