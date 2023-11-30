@@ -95,6 +95,12 @@ int GZBridge::init()
 				model_pose_v.push_back(0.0);
 			}
 
+			// If model position z is less equal than 0, move above floor to prevent floor glitching
+			if (model_pose_v[2] <= 0.0) {
+				PX4_INFO("Model position z is less or equal 0.0, moving upwards");
+				model_pose_v[2] = 1.0;
+			}
+
 			gz::msgs::Pose *p = req.mutable_pose();
 			gz::msgs::Vector3d *position = p->mutable_position();
 			position->set_x(model_pose_v[0]);
@@ -116,15 +122,44 @@ int GZBridge::init()
 		bool result;
 		std::string create_service = "/world/" + _world_name + "/create";
 
-		if (_node.Request(create_service, req, 1000, rep, result)) {
-			if (!rep.data() || !result) {
-				PX4_ERR("EntityFactory service call failed");
+		bool gz_called = false;
+		// Check if STANDALONE has been set.
+		char *standalone_val = std::getenv("STANDALONE");
+
+		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "1") == 0)) {
+			// Check if Gazebo has been called and if not attempt to reconnect.
+			while (gz_called == false) {
+				if (_node.Request(create_service, req, 1000, rep, result)) {
+					if (!rep.data() || !result) {
+						PX4_ERR("EntityFactory service call failed");
+						return PX4_ERROR;
+
+					} else {
+						gz_called = true;
+					}
+				}
+
+				// If Gazebo has not been called, wait 2 seconds and try again.
+				else {
+					printf("WARN  [gz_bridge] Service call timed out as Gazebo has not been detected. \n");
+					system_usleep(2000000);
+				}
+			}
+		}
+
+
+		// If STANDALONE has not been set, do not retry to reconnect.
+		else {
+			if (_node.Request(create_service, req, 1000, rep, result)) {
+				if (!rep.data() || !result) {
+					PX4_ERR("EntityFactory service call failed");
+					return PX4_ERROR;
+				}
+
+			} else {
+				PX4_ERR("Service call timed out");
 				return PX4_ERROR;
 			}
-
-		} else {
-			PX4_ERR("Service call timed out");
-			return PX4_ERROR;
 		}
 	}
 
