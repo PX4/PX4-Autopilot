@@ -67,7 +67,7 @@ bool KF_orientation_static::update()
 	return true;
 }
 
-void KF_orientation_static::setH(matrix::Vector<float, 2> h_meas)
+void KF_orientation_static::setH(const matrix::Vector<float, 2> &h_meas)
 {
 	// h_meas = [theta, theta_dot]
 
