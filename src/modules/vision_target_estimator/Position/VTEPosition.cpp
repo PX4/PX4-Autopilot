@@ -33,7 +33,7 @@
 
 /**
  * @file VTEPosition.cpp
- * @brief Estimate the state of a target by processessing and fusing sensor data in a Kalman Filter.
+ * @brief Estimate the state of a target by processing and fusing sensor data in a Kalman Filter.
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -288,18 +288,18 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		_uav_gps_vel.timestamp = vehicle_gps_position.timestamp;
 		_uav_gps_vel.valid = (vehicle_gps_position.vel_ned_valid && (PX4_ISFINITE(vehicle_gps_position.vel_n_m_s)
 				      && PX4_ISFINITE(vehicle_gps_position.vel_e_m_s) && PX4_ISFINITE(vehicle_gps_position.vel_d_m_s)));
-		_uav_gps_vel.xyz(0) = vehicle_gps_position.vel_n_m_s;
-		_uav_gps_vel.xyz(1) = vehicle_gps_position.vel_e_m_s;
-		_uav_gps_vel.xyz(2) = vehicle_gps_position.vel_d_m_s;
+		_uav_gps_vel.xyz(Direction::x) = vehicle_gps_position.vel_n_m_s;
+		_uav_gps_vel.xyz(Direction::y) = vehicle_gps_position.vel_e_m_s;
+		_uav_gps_vel.xyz(Direction::z) = vehicle_gps_position.vel_d_m_s;
 
 		// Keep track of the target GPS velocity
 		_target_gps_vel.timestamp = target_GNSS_report.timestamp;
 		_target_gps_vel.valid = (target_GNSS_report.vel_ned_updated && PX4_ISFINITE(target_GNSS_report.vel_n_m_s)
 					 && PX4_ISFINITE(target_GNSS_report.vel_e_m_s)
 					 && PX4_ISFINITE(target_GNSS_report.vel_d_m_s));
-		_target_gps_vel.xyz(0) = target_GNSS_report.vel_n_m_s;
-		_target_gps_vel.xyz(1) = target_GNSS_report.vel_e_m_s;
-		_target_gps_vel.xyz(2) = target_GNSS_report.vel_d_m_s;
+		_target_gps_vel.xyz(Direction::x) = target_GNSS_report.vel_n_m_s;
+		_target_gps_vel.xyz(Direction::y) = target_GNSS_report.vel_e_m_s;
+		_target_gps_vel.xyz(Direction::z) = target_GNSS_report.vel_d_m_s;
 
 		if ((_vte_aid_mask & SensorFusionMask::USE_GPS_REL_VEL)) {
 
@@ -530,18 +530,16 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_
 		obs.updated_xyz.setAll(true);
 
 		// Assume noise correlation negligible:
-
-		// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
-		obs.meas_h_xyz(0, 0) = 1;
-		obs.meas_h_xyz(1, 1) = 1;
-		obs.meas_h_xyz(2, 2) = 1;
+		obs.meas_h_xyz(Direction::x, ExtendedState::pos_rel_x) = 1;
+		obs.meas_h_xyz(Direction::y, ExtendedState::pos_rel_y) = 1;
+		obs.meas_h_xyz(Direction::z, ExtendedState::pos_rel_z) = 1;
 
 		obs.meas_xyz = vision_ned;
 
 		// Assume off diag elements ~ 0
-		obs.meas_unc_xyz(0) = Cov_rotated(0, 0);
-		obs.meas_unc_xyz(1) = Cov_rotated(1, 1);
-		obs.meas_unc_xyz(2) = Cov_rotated(2, 2);
+		obs.meas_unc_xyz(Direction::x) = Cov_rotated(0, 0);
+		obs.meas_unc_xyz(Direction::y) = Cov_rotated(1, 1);
+		obs.meas_unc_xyz(Direction::z) = Cov_rotated(2, 2);
 
 		return true;
 	}
@@ -574,26 +572,17 @@ bool VTEPosition::processObsGNSSVelRel(const sensor_gps_s &vehicle_gps_position,
 			}
 		}
 
-		if (_target_mode == TargetMode::Stationary) {
-			obs.meas_xyz = vel_uav_ned * (-1.f);
+		obs.meas_xyz = vel_uav_ned;
 
-		} else if (_target_mode == TargetMode::Moving) {
-			obs.meas_xyz = vel_uav_ned;
-		}
-
-
-		// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
-		// Obs: [r_dotx, r_doty, r_dotz]
-
-		obs.meas_h_xyz(0, 3) = 1; // x direction
-		obs.meas_h_xyz(1, 4) = 1; // y direction
-		obs.meas_h_xyz(2, 5) = 1; // z direction
+		obs.meas_h_xyz(Direction::x, ExtendedState::vel_uav_x) = 1;
+		obs.meas_h_xyz(Direction::y, ExtendedState::vel_uav_y) = 1;
+		obs.meas_h_xyz(Direction::z, ExtendedState::vel_uav_z) = 1;
 
 		const float unc = fmaxf(vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s,
 					_gps_vel_noise * _gps_vel_noise);
-		obs.meas_unc_xyz(0) = unc;
-		obs.meas_unc_xyz(1) = unc;
-		obs.meas_unc_xyz(2) = unc;
+		obs.meas_unc_xyz(Direction::x) = unc;
+		obs.meas_unc_xyz(Direction::y) = unc;
+		obs.meas_unc_xyz(Direction::z) = unc;
 
 		obs.timestamp = vehicle_gps_position.timestamp;
 
@@ -619,23 +608,20 @@ bool VTEPosition::processObsGNSSVelTarget(const target_gnss_s &target_GNSS_repor
 	} else {
 
 		// If the target is moving, the relative velocity is expressed as the drone verlocity - the target velocity
-		obs.meas_xyz(0) = target_GNSS_report.vel_n_m_s;
-		obs.meas_xyz(1) = target_GNSS_report.vel_e_m_s;
-		obs.meas_xyz(2) = target_GNSS_report.vel_d_m_s;
+		obs.meas_xyz(Direction::x) = target_GNSS_report.vel_n_m_s;
+		obs.meas_xyz(Direction::y) = target_GNSS_report.vel_e_m_s;
+		obs.meas_xyz(Direction::z) = target_GNSS_report.vel_d_m_s;
 
 		const float unc = fmaxf(target_GNSS_report.s_variance_m_s * target_GNSS_report.s_variance_m_s,
 					_gps_vel_noise * _gps_vel_noise);
 
-		obs.meas_unc_xyz(0) = unc;
-		obs.meas_unc_xyz(1) = unc;
-		obs.meas_unc_xyz(2) = unc;
+		obs.meas_unc_xyz(Direction::x) = unc;
+		obs.meas_unc_xyz(Direction::y) = unc;
+		obs.meas_unc_xyz(Direction::z) = unc;
 
-		// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz, vty, vty, vtz]
-		// Obs: [vtx, vty, vtz]
-
-		obs.meas_h_xyz(0, 12) = 1; // x direction
-		obs.meas_h_xyz(1, 13) = 1; // y direction
-		obs.meas_h_xyz(2, 14) = 1; // z direction
+		obs.meas_h_xyz(Direction::x, ExtendedState::vel_target_x) = 1;
+		obs.meas_h_xyz(Direction::y, ExtendedState::vel_target_y) = 1;
+		obs.meas_h_xyz(Direction::z, ExtendedState::vel_target_z) = 1;
 
 		obs.timestamp = target_GNSS_report.timestamp;
 
@@ -685,31 +671,24 @@ bool VTEPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_posit
 					     _gps_pos_noise * _gps_pos_noise);
 
 	// GPS already in NED, no rotation required.
-	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
-	// Obs: [rx + bx, ry + by, rz + bz]
-
-	// x direction H = [1, 0, 0, 0, 0, 0, 1, 0, 0, ...]
-	obs.meas_h_xyz(0, 0) = 1;
-
-	// y direction H = [0, 1, 0, 0, 0, 0, 0, 1, 0, ...]
-	obs.meas_h_xyz(1, 1) = 1;
-
-	// z direction H = [0, 0, 1, 0, 0, 0, 0, 0, 1, ...]
-	obs.meas_h_xyz(2, 2) = 1;
+	// Obs: [pos_rel_x + bias_x, pos_rel_y + bias_y, pos_rel_z + bias_z]
+	obs.meas_h_xyz(Direction::x, ExtendedState::pos_rel_x) = 1;
+	obs.meas_h_xyz(Direction::y, ExtendedState::pos_rel_y) = 1;
+	obs.meas_h_xyz(Direction::z, ExtendedState::pos_rel_z) = 1;
 
 	if (_bias_set) {
-		obs.meas_h_xyz(0, 6) = 1;
-		obs.meas_h_xyz(1, 7) = 1;
-		obs.meas_h_xyz(2, 8) = 1;
+		obs.meas_h_xyz(Direction::x, ExtendedState::bias_x) = 1;
+		obs.meas_h_xyz(Direction::y, ExtendedState::bias_y) = 1;
+		obs.meas_h_xyz(Direction::z, ExtendedState::bias_z) = 1;
 	}
 
 	obs.timestamp = vehicle_gps_position.timestamp;
 
 	obs.meas_xyz = gps_relative_pos;
 
-	obs.meas_unc_xyz(0) = gps_unc_horizontal;
-	obs.meas_unc_xyz(1) = gps_unc_horizontal;
-	obs.meas_unc_xyz(2) = gps_unc_vertical;
+	obs.meas_unc_xyz(Direction::x) = gps_unc_horizontal;
+	obs.meas_unc_xyz(Direction::y) = gps_unc_horizontal;
+	obs.meas_unc_xyz(Direction::z) = gps_unc_vertical;
 
 	obs.updated_xyz.setAll(true);
 
@@ -777,31 +756,24 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_GNSS_repor
 							     _gps_pos_noise * _gps_pos_noise);
 
 	// GPS already in NED, no rotation required.
-	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
-	// Obs: [rx + bx, ry + by, rz + bz]
-
-	// x direction H = [1, 0, 0, 0, 0, 0, 1, 0, 0, ...]
-	obs.meas_h_xyz(0, 0) = 1;
-
-	// y direction H = [0, 1, 0, 0, 0, 0, 0, 1, 0, ...]
-	obs.meas_h_xyz(1, 1) = 1;
-
-	// z direction H = [0, 0, 1, 0, 0, 0, 0, 0, 1, ...]
-	obs.meas_h_xyz(2, 2) = 1;
+	// Obs: [pos_rel_x + bias_x, pos_rel_y + bias_y, pos_rel_z + bias_z]
+	obs.meas_h_xyz(Direction::x, ExtendedState::pos_rel_x) = 1;
+	obs.meas_h_xyz(Direction::y, ExtendedState::pos_rel_y) = 1;
+	obs.meas_h_xyz(Direction::z, ExtendedState::pos_rel_z) = 1;
 
 	if (_bias_set) {
-		obs.meas_h_xyz(0, 6) = 1;
-		obs.meas_h_xyz(1, 7) = 1;
-		obs.meas_h_xyz(2, 8) = 1;
+		obs.meas_h_xyz(Direction::x, ExtendedState::bias_x) = 1;
+		obs.meas_h_xyz(Direction::y, ExtendedState::bias_y) = 1;
+		obs.meas_h_xyz(Direction::z, ExtendedState::bias_z) = 1;
 	}
 
 	obs.timestamp = target_GNSS_report.timestamp;
 
 	obs.meas_xyz = gps_relative_pos;
 
-	obs.meas_unc_xyz(0) = gps_unc_horizontal;
-	obs.meas_unc_xyz(1) = gps_unc_horizontal;
-	obs.meas_unc_xyz(2) = gps_unc_vertical;
+	obs.meas_unc_xyz(Direction::x) = gps_unc_horizontal;
+	obs.meas_unc_xyz(Direction::y) = gps_unc_horizontal;
+	obs.meas_unc_xyz(Direction::z) = gps_unc_vertical;
 
 	obs.updated_xyz.setAll(true);
 
@@ -944,31 +916,31 @@ void VTEPosition::publishTarget()
 	target_pose.rel_pos_valid =	_is_meas_valid(_last_update);
 
 	// Fill target pose
-	target_pose.x_rel = _target_estimator[x]->getPosition();
-	target_pose.y_rel = _target_estimator[y]->getPosition();
-	target_pose.z_rel = _target_estimator[z]->getPosition();
+	target_pose.x_rel = _target_estimator[Direction::x]->getPosition();
+	target_pose.y_rel = _target_estimator[Direction::y]->getPosition();
+	target_pose.z_rel = _target_estimator[Direction::z]->getPosition();
 
-	target_pose.cov_x_rel = _target_estimator[x]->getPosVar();
-	target_pose.cov_y_rel = _target_estimator[y]->getPosVar();
-	target_pose.cov_z_rel = _target_estimator[z]->getPosVar();
+	target_pose.cov_x_rel = _target_estimator[Direction::x]->getPosVar();
+	target_pose.cov_y_rel = _target_estimator[Direction::y]->getPosVar();
+	target_pose.cov_z_rel = _target_estimator[Direction::z]->getPosVar();
 
-	target_pose.vx_rel = _target_estimator[x]->getVelocity();
-	target_pose.vy_rel = _target_estimator[y]->getVelocity();
-	target_pose.vz_rel = _target_estimator[z]->getVelocity();
+	target_pose.vx_rel = _target_estimator[Direction::x]->getVelocity();
+	target_pose.vy_rel = _target_estimator[Direction::y]->getVelocity();
+	target_pose.vz_rel = _target_estimator[Direction::z]->getVelocity();
 
-	target_pose.cov_vx_rel = _target_estimator[x]->getVelVar();
-	target_pose.cov_vy_rel = _target_estimator[y]->getVelVar();
-	target_pose.cov_vz_rel = _target_estimator[z]->getVelVar();
+	target_pose.cov_vx_rel = _target_estimator[Direction::x]->getVelVar();
+	target_pose.cov_vy_rel = _target_estimator[Direction::y]->getVelVar();
+	target_pose.cov_vz_rel = _target_estimator[Direction::z]->getVelVar();
 
 	if (_target_mode == TargetMode::Moving) {
 
-		vte_state.vx_target = _target_estimator[x]->getTargetVel();
-		vte_state.vy_target = _target_estimator[y]->getTargetVel();
-		vte_state.vz_target = _target_estimator[z]->getTargetVel();
+		vte_state.vx_target = _target_estimator[Direction::x]->getTargetVel();
+		vte_state.vy_target = _target_estimator[Direction::y]->getTargetVel();
+		vte_state.vz_target = _target_estimator[Direction::z]->getTargetVel();
 
-		vte_state.cov_vx_target = _target_estimator[x]->getTargetVelVar();
-		vte_state.cov_vy_target = _target_estimator[y]->getTargetVelVar();
-		vte_state.cov_vz_target = _target_estimator[z]->getTargetVelVar();
+		vte_state.cov_vx_target = _target_estimator[Direction::x]->getTargetVelVar();
+		vte_state.cov_vy_target = _target_estimator[Direction::y]->getTargetVelVar();
+		vte_state.cov_vz_target = _target_estimator[Direction::z]->getTargetVelVar();
 
 		target_pose.vx_rel = vte_state.vx_target - target_pose.vx_rel;
 		target_pose.vy_rel = vte_state.vy_target - target_pose.vy_rel;
@@ -997,22 +969,22 @@ void VTEPosition::publishTarget()
 	vte_state.cov_vy_rel = target_pose.cov_vy_rel;
 	vte_state.cov_vz_rel = target_pose.cov_vz_rel;
 
-	vte_state.x_bias = _target_estimator[x]->getBias();
-	vte_state.y_bias = _target_estimator[y]->getBias();
-	vte_state.z_bias = _target_estimator[z]->getBias();
+	vte_state.x_bias = _target_estimator[Direction::x]->getBias();
+	vte_state.y_bias = _target_estimator[Direction::y]->getBias();
+	vte_state.z_bias = _target_estimator[Direction::z]->getBias();
 
-	vte_state.cov_x_bias = _target_estimator[x]->getBiasVar();
-	vte_state.cov_y_bias = _target_estimator[y]->getBiasVar();
-	vte_state.cov_z_bias = _target_estimator[z]->getBiasVar();
+	vte_state.cov_x_bias = _target_estimator[Direction::x]->getBiasVar();
+	vte_state.cov_y_bias = _target_estimator[Direction::y]->getBiasVar();
+	vte_state.cov_z_bias = _target_estimator[Direction::z]->getBiasVar();
 
 	if (_target_mode == TargetMode::Moving) {
-		vte_state.ax_target = _target_estimator[x]->getAcceleration();
-		vte_state.ay_target = _target_estimator[y]->getAcceleration();
-		vte_state.az_target = _target_estimator[z]->getAcceleration();
+		vte_state.ax_target = _target_estimator[Direction::x]->getAcceleration();
+		vte_state.ay_target = _target_estimator[Direction::y]->getAcceleration();
+		vte_state.az_target = _target_estimator[Direction::z]->getAcceleration();
 
-		vte_state.cov_ax_target = _target_estimator[x]->getAccVar();
-		vte_state.cov_ay_target = _target_estimator[y]->getAccVar();
-		vte_state.cov_az_target = _target_estimator[z]->getAccVar();
+		vte_state.cov_ax_target = _target_estimator[Direction::x]->getAccVar();
+		vte_state.cov_ay_target = _target_estimator[Direction::y]->getAccVar();
+		vte_state.cov_az_target = _target_estimator[Direction::z]->getAccVar();
 	}
 
 	// Prec land does not check target_pose.abs_pos_valid. Only send the target if abs pose valid.
@@ -1199,13 +1171,13 @@ bool VTEPosition::selectTargetEstimator()
 
 	} else {
 
-		delete _target_estimator[x];
-		delete _target_estimator[y];
-		delete _target_estimator[z];
+		delete _target_estimator[Direction::x];
+		delete _target_estimator[Direction::y];
+		delete _target_estimator[Direction::z];
 
-		_target_estimator[x] = tmp_x;
-		_target_estimator[y] = tmp_y;
-		_target_estimator[z] = tmp_z;
+		_target_estimator[Direction::x] = tmp_x;
+		_target_estimator[Direction::y] = tmp_y;
+		_target_estimator[Direction::z] = tmp_z;
 
 		return true;
 	}
