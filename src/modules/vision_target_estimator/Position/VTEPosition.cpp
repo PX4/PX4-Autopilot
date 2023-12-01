@@ -1166,6 +1166,10 @@ bool VTEPosition::selectTargetEstimator()
 	const bool init_failed = ((tmp_x == nullptr) || (tmp_y == nullptr) || (tmp_z == nullptr));
 
 	if (init_failed) {
+		delete tmp_x;
+		delete tmp_y;
+		delete tmp_z;
+
 		PX4_ERR("VTE position init failed");
 		return false;
 
