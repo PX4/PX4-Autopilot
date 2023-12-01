@@ -15,7 +15,7 @@ ekf2 start &
 #
 # Start manual rover differential drive controller.
 #
-# differential_drive_control start
+differential_drive_control start
 
 
 #
