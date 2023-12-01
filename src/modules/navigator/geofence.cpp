@@ -262,7 +262,7 @@ void Geofence::_updateFence()
 				const bool current_mission_check_okay = checkMissionRequirementsForGeofence(polygon);
 				
 				// discard the polygon if at least one check fails by not incrementing the counter in that case
-				if (home_check_okay && current_position_check_okay) {
+				if (home_check_okay && current_position_check_okay && current_mission_check_okay) {
 					++_num_polygons;
 
 				}
