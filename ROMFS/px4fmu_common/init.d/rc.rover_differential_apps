@@ -13,14 +13,10 @@ ekf2 start &
 #local_position_estimator start
 
 #
-# Start Control Allocator
+# Start manual rover differential drive controller.
 #
-control_allocator start
+# differential_drive_control start
 
-#
-# Start attitude controllers.
-#
-rover_pos_control start
 
 #
 # Start Land Detector.
