@@ -16,4 +16,3 @@ uint8 source_id                  # ID depending on source_type
 uint8 ORB_QUEUE_LENGTH = 4
 
 # TOPICS config_overrides config_overrides_request
-

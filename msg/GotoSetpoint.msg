@@ -22,4 +22,3 @@ float32 max_vertical_speed # (optional) [m/s] maximum speed (absolute) in the D-
 
 bool flag_set_max_heading_rate # true if setting a non-default heading rate limit
 float32 max_heading_rate # (optional) [rad/s] maximum heading rate (absolute)
-

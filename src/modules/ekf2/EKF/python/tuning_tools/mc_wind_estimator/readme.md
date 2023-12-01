@@ -34,6 +34,6 @@ param set EKF2_BCOEF_Y 62.1
 param set EKF2_MCOEF 0.16
 
 # EXPERIMENTAL
-param set EKF2_DRAG_NOISE 0.31  
+param set EKF2_DRAG_NOISE 0.31
 ```
 ![DeepinScreenshot_matplotlib_20220329100027](https://user-images.githubusercontent.com/14822839/160563024-efddd100-d7db-46f7-8676-cf4296e9f737.png)
