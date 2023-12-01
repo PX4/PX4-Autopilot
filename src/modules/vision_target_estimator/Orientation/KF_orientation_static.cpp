@@ -58,11 +58,11 @@ bool KF_orientation_static::update()
 		return false;
 	}
 
-	const float kalmanGain = _state_covariance * _meas_matrix / _innov_cov;
+	const float kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = matrix::wrap_pi(_state + kalmanGain * _innov);
 
-	_state_covariance = _state_covariance - kalmanGain * _meas_matrix * _state_covariance;
+	_state_covariance = _state_covariance - kalmanGain * _meas_matrix_row_vect * _state_covariance;
 
 	return true;
 }
@@ -73,7 +73,7 @@ void KF_orientation_static::setH(const matrix::Vector<float, 2> &h_meas)
 
 	// For this filter: [theta]
 
-	_meas_matrix = h_meas(0);
+	_meas_matrix_row_vect = h_meas(0);
 }
 
 void KF_orientation_static::syncState(float dt)
@@ -83,14 +83,14 @@ void KF_orientation_static::syncState(float dt)
 
 float KF_orientation_static::computeInnovCov(float meas_unc)
 {
-	_innov_cov = _meas_matrix * _state_covariance * _meas_matrix + meas_unc;
+	_innov_cov = _meas_matrix_row_vect * _state_covariance * _meas_matrix_row_vect + meas_unc;
 	return _innov_cov;
 }
 
 float KF_orientation_static::computeInnov(float meas)
 {
 	/* z - H*x */
-	_innov = matrix::wrap_pi(meas - (_meas_matrix * _sync_state));
+	_innov = matrix::wrap_pi(meas - (_meas_matrix_row_vect * _sync_state));
 	return _innov;
 }
 

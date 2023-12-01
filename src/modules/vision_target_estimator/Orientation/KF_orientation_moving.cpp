@@ -84,14 +84,14 @@ bool KF_orientation_moving::update()
 		return false;
 	}
 
-	const matrix::Matrix<float, 2, 1> kalmanGain = _state_covariance * _meas_matrix.transpose() / _innov_cov;
+	const matrix::Matrix<float, 2, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
 
 	_state(State::yaw) = matrix::wrap_pi(_state(State::yaw));
 	_state(State::yaw_rate) = matrix::wrap_pi(_state(State::yaw_rate));
 
-	_state_covariance = _state_covariance - kalmanGain * _meas_matrix * _state_covariance;
+	_state_covariance = _state_covariance - kalmanGain * _meas_matrix_row_vect.transpose() * _state_covariance;
 
 	return true;
 }
@@ -100,8 +100,8 @@ void KF_orientation_moving::setH(const matrix::Vector<float, 2> &h_meas)
 {
 	// h_meas = [theta, theta_dot]; For this filter: [theta, theta_dot]
 
-	_meas_matrix(0, 0) = h_meas(0);
-	_meas_matrix(0, 1) = h_meas(1);
+	_meas_matrix_row_vect(0) = h_meas(0);
+	_meas_matrix_row_vect(1) = h_meas(1);
 }
 
 void KF_orientation_moving::syncState(float dt)
@@ -116,16 +116,17 @@ float KF_orientation_moving::computeInnovCov(float meas_unc)
 	[h(0)⋅(cov(0;0)⋅h(0) + cov(0;1)⋅h(1)) + h(1)⋅(cov(0;1)⋅h(0) + cov(1;1)⋅h(1)) + r]
 	*/
 
-	_innov_cov = _meas_matrix(0, 0) * (_state_covariance(0, 0) * _meas_matrix(0, 0) + _state_covariance(0,
-					   1) * _meas_matrix(0, 1)) + _meas_matrix(0, 1) * (_state_covariance(0, 1) * _meas_matrix(0, 0) + _state_covariance(1,
-							   1) * _meas_matrix(0, 1)) + meas_unc;
+	_innov_cov = _meas_matrix_row_vect(0) * (_state_covariance(0, 0) * _meas_matrix_row_vect(0) + _state_covariance(0,
+			1) * _meas_matrix_row_vect(1)) + _meas_matrix_row_vect(1) * (_state_covariance(0,
+					1) * _meas_matrix_row_vect(0) + _state_covariance(1,
+							1) * _meas_matrix_row_vect(1)) + meas_unc;
 	return _innov_cov;
 }
 
 float KF_orientation_moving::computeInnov(float meas)
 {
 	/* z - H*x */
-	_innov = matrix::wrap_pi(meas - (_meas_matrix * _sync_state)(0, 0));
+	_innov = matrix::wrap_pi(meas - (_meas_matrix_row_vect.transpose() * _sync_state)(0, 0));
 	return _innov;
 }
 
