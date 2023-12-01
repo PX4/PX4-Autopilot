@@ -70,7 +70,24 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt, float acc) override;
 
-	void setH(const matrix::Vector<float, 15> &h_meas, int direction) override;
+	void setH(const matrix::Vector<float, 5> &h_meas) override {_meas_matrix_row_vect = h_meas;}
+
+
+	void setState(const matrix::Vector<float, 5> &state) override {_state = state;}
+
+	void setStateVar(const matrix::Vector<float, 5> &var) override
+	{
+		const matrix::SquareMatrix<float, 5> var_mat = diag(var);
+		_state_covariance = var_mat;
+	};
+
+	matrix::Vector<float, 5> getAugmentedState() { return _state;}
+
+	matrix::Vector<float, 5> getAugmentedStateVar()
+	{
+		const matrix::SquareMatrix<float, 5> var_mat = _state_covariance;
+		return var_mat.diag();
+	};
 
 	float computeInnovCov(float measUnc) override;
 	float computeInnov(float meas) override;
@@ -78,33 +95,6 @@ public:
 	bool update() override;
 
 	void setNISthreshold(float nis_threshold) override { _nis_threshold = nis_threshold; };
-
-	// Init: x_0
-	void setPosition(float pos) override { _state(0) = pos; };
-	void setVelocity(float vel) override { _state(1) = vel; };
-	void setBias(float state_bias) override { _state(2) = state_bias; };
-	void setTargetAcc(float acc) override { _state(3) = acc; };
-	void setTargetVel(float target_vel) override {_state(4) = target_vel; };
-
-	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _state_covariance(0, 0) = pos_unc; };
-	void setStateVelVar(float vel_unc) override { _state_covariance(1, 1) = vel_unc; };
-	void setStateBiasVar(float bias_unc) override { _state_covariance(2, 2) = bias_unc; };
-	void setStateAccVar(float acc_unc) override { _state_covariance(3, 3) = acc_unc; };
-	void setStateTargetVelVar(float target_vel_unc) override {_state_covariance(4, 4) = target_vel_unc; };
-
-	// Retreive output of filter
-	float getPosition() override { return _state(0); };
-	float getVelocity() override { return _state(1); };
-	float getBias() override { return _state(2); };
-	float getAcceleration() override { return _state(3); };
-	float getTargetVel() override { return _state(4); };
-
-	float getPosVar() override { return _state_covariance(0, 0); };
-	float getVelVar() override { return _state_covariance(1, 1); };
-	float getBiasVar() override { return _state_covariance(2, 2); };
-	float getAccVar() override { return _state_covariance(3, 3); };
-	float getTargetVelVar() override { return _state_covariance(4, 4); };
 
 	float getTestRatio() override {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
