@@ -185,15 +185,18 @@ bool VTEPosition::initEstimator(const Vector3f &pos_init, const Vector3f &vel_in
 		_target_estimator[i]->setPosition(pos_init(i));
 		_target_estimator[i]->setVelocity(vel_init(i));
 		_target_estimator[i]->setBias(bias_init(i));
-		_target_estimator[i]->setTargetAcc(target_acc_init(i));
-		_target_estimator[i]->setTargetVel(state_target_vel(i));
 
 		/* Set initial state variance */
 		_target_estimator[i]->setStatePosVar(state_pos_var_vect(i));
 		_target_estimator[i]->setStateVelVar(state_vel_var_vect(i));
 		_target_estimator[i]->setStateBiasVar(state_bias_var_vect(i));
-		_target_estimator[i]->setStateAccVar(state_acc_var_vect(i));
-		_target_estimator[i]->setStateTargetVelVar(state_target_vel_var_vect(i));
+
+		if (_target_mode == TargetMode::Moving) {
+			_target_estimator[i]->setTargetAcc(target_acc_init(i));
+			_target_estimator[i]->setTargetVel(state_target_vel(i));
+			_target_estimator[i]->setStateAccVar(state_acc_var_vect(i));
+			_target_estimator[i]->setStateTargetVelVar(state_target_vel_var_vect(i));
+		}
 	}
 
 	return true;
@@ -465,6 +468,14 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 			}
 		}
 
+		/*VISION*/
+		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
+
+			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
+				pos_fused = true;
+			}
+		}
+
 		/*GPS RELATIVE VELOCITY*/
 		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL) {
 			fuse_meas(vehicle_acc_ned, obs_gps_vel_rel);
@@ -473,14 +484,6 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		/*TARGET GPS VELOCITY*/
 		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) {
 			fuse_meas(vehicle_acc_ned, obs_gps_vel_target);
-		}
-
-		/*VISION*/
-		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
-
-			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
-				pos_fused = true;
-			}
 		}
 
 		// If at least one pos measurement was fused, consider the filter updated
