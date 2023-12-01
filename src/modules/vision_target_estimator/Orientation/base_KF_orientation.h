@@ -79,7 +79,7 @@ public:
 
 	virtual float getTestRatio() = 0;
 
-	enum ExtendedState {
+	enum AugmentedState {
 		yaw = 0,
 		yaw_rate = 1,
 	};

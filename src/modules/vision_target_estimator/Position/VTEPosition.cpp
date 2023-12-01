@@ -153,18 +153,9 @@ void VTEPosition::update(const Vector3f &acc_ned)
 	if (_estimator_initialized) {publishTarget();}
 }
 
-bool VTEPosition::initEstimator(const Vector3f &pos_init, const Vector3f &vel_init, const Vector3f &target_acc_init,
-				const Vector3f &bias_init, const Vector3f &target_vel_init)
+bool VTEPosition::initEstimator(const Matrix<float, 3, 5> &state_init)
 {
-
-	PX4_INFO("Pos init %.2f %.2f %.2f", (double)pos_init(0), (double)pos_init(1), (double)pos_init(2));
-	PX4_INFO("Vel init %.2f %.2f %.2f", (double)vel_init(0), (double)vel_init(1), (double)vel_init(2));
-	PX4_INFO("Target acc init %.2f %.2f %.2f", (double)target_acc_init(0), (double)target_acc_init(1),
-		 (double)target_acc_init(2));
-	PX4_INFO("Target vel init %.2f %.2f %.2f", (double)target_vel_init(0), (double)target_vel_init(1),
-		 (double)target_vel_init(2));
-	PX4_INFO("Bias init %.2f %.2f %.2f", (double)bias_init(0), (double)bias_init(1), (double)bias_init(2));
-
+	// Get initial variance from params
 	const float state_pos_var = _param_vte_pos_unc_in.get();
 	const float state_vel_var = _param_vte_vel_unc_in.get();
 	const float state_bias_var = _param_vte_bias_unc_in.get();
@@ -177,27 +168,32 @@ bool VTEPosition::initEstimator(const Vector3f &pos_init, const Vector3f &vel_in
 	const Vector3f state_acc_var_vect(state_acc_var, state_acc_var, state_acc_var);
 	const Vector3f state_target_vel_var_vect(state_target_vel_var, state_target_vel_var, state_target_vel_var);
 
-	Vector3f state_target_vel;
+	matrix::Matrix <float, 3, 5> state_var_init;
+	state_var_init.col(AugmentedState::pos_rel) = state_pos_var_vect;
+	state_var_init.col(AugmentedState::vel_uav) = state_vel_var_vect;
+	state_var_init.col(AugmentedState::bias) = state_bias_var_vect;
+	state_var_init.col(AugmentedState::acc_target) = state_acc_var_vect;
+	state_var_init.col(AugmentedState::vel_target) = state_target_vel_var_vect;
 
 	for (int i = 0; i < 3; i++) {
 
-		/* Set filter initial state */
-		_target_estimator[i]->setPosition(pos_init(i));
-		_target_estimator[i]->setVelocity(vel_init(i));
-		_target_estimator[i]->setBias(bias_init(i));
-
-		/* Set initial state variance */
-		_target_estimator[i]->setStatePosVar(state_pos_var_vect(i));
-		_target_estimator[i]->setStateVelVar(state_vel_var_vect(i));
-		_target_estimator[i]->setStateBiasVar(state_bias_var_vect(i));
-
-		if (_target_mode == TargetMode::Moving) {
-			_target_estimator[i]->setTargetAcc(target_acc_init(i));
-			_target_estimator[i]->setTargetVel(state_target_vel(i));
-			_target_estimator[i]->setStateAccVar(state_acc_var_vect(i));
-			_target_estimator[i]->setStateTargetVelVar(state_target_vel_var_vect(i));
-		}
+		_target_estimator[i]->setState(state_init.row(i));
+		_target_estimator[i]->setStateVar(state_var_init.row(i));
 	}
+
+	// Debug INFO
+	PX4_INFO("Pos init %.2f %.2f %.2f", (double)state_init(Direction::x, AugmentedState::pos_rel),
+		 (double)state_init(Direction::y, AugmentedState::pos_rel), (double)state_init(Direction::z, AugmentedState::pos_rel));
+	PX4_INFO("Vel uav init %.2f %.2f %.2f", (double)state_init(Direction::x, AugmentedState::vel_uav),
+		 (double)state_init(Direction::y, AugmentedState::vel_uav), (double)state_init(Direction::z, AugmentedState::vel_uav));
+	PX4_INFO("Bias init %.2f %.2f %.2f", (double)state_init(Direction::x, AugmentedState::bias),
+		 (double)state_init(Direction::y, AugmentedState::bias), (double)state_init(Direction::z, AugmentedState::bias));
+	PX4_INFO("Target acc init %.2f %.2f %.2f", (double)state_init(Direction::x, AugmentedState::acc_target),
+		 (double)state_init(Direction::y, AugmentedState::acc_target), (double)state_init(Direction::z,
+				 AugmentedState::acc_target));
+	PX4_INFO("Target vel init %.2f %.2f %.2f", (double)state_init(Direction::x, AugmentedState::vel_target),
+		 (double)state_init(Direction::y, AugmentedState::vel_target), (double)state_init(Direction::z,
+				 AugmentedState::vel_target));
 
 	return true;
 }
@@ -353,7 +349,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		}
 
 		Vector3f pos_init;
-		Vector3f vel_init;
+		Vector3f uav_vel_init;
 		Vector3f target_acc_init;	// Assume null target absolute acceleration
 		Vector3f bias_init;
 		Vector3f target_vel_init;
@@ -384,24 +380,22 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		// Define initial relative velocity of the target w.r.t. to the drone in NED frame
 		if (_uav_gps_vel.valid && (_is_meas_valid(_uav_gps_vel.timestamp))) {
 
-			if (_target_mode == TargetMode::Stationary) {
-				vel_init = -_uav_gps_vel.xyz;
-
-			} else if (_target_mode == TargetMode::Moving) {
-				vel_init = _uav_gps_vel.xyz;
-			}
+			uav_vel_init = _uav_gps_vel.xyz;
 
 		} else if (_local_velocity.valid && (_is_meas_valid(_local_velocity.timestamp))) {
 
-			if (_target_mode == TargetMode::Stationary) {
-				vel_init = -_local_velocity.xyz;
-
-			} else if (_target_mode == TargetMode::Moving) {
-				vel_init = _local_velocity.xyz;
-			}
+			uav_vel_init = _local_velocity.xyz;
 		}
 
-		if (initEstimator(pos_init, vel_init, target_acc_init, bias_init, target_vel_init)) {
+		// Initial state
+		matrix::Matrix <float, 3, 5> state_init;
+		state_init.col(AugmentedState::pos_rel) = pos_init;
+		state_init.col(AugmentedState::vel_uav) = uav_vel_init;
+		state_init.col(AugmentedState::bias) = bias_init;
+		state_init.col(AugmentedState::acc_target) = target_acc_init;
+		state_init.col(AugmentedState::vel_target) = target_vel_init;
+
+		if (initEstimator(state_init)) {
 			PX4_INFO("VTE Position Estimator properly initialized.");
 			_estimator_initialized = true;
 			_uav_gps_vel.valid = false;
@@ -434,14 +428,18 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		// We assume that gnss observations have a bias but other position obs don't. It follows: gnss_obs = state + bias <--> bias = gnss_obs - state
 		const Vector3f bias_init =  _pos_rel_gnss.xyz - pos_init;
 
+		/* Reset filter's state and variance*/
 		for (int i = 0; i < 3; i++) {
-			/* Reset filter initial state */
-			_target_estimator[i]->setPosition(pos_init(i));
-			_target_estimator[i]->setBias(bias_init(i));
 
-			/* Reset initial state variance */
-			_target_estimator[i]->setStatePosVar(state_pos_var_vect(i));
-			_target_estimator[i]->setStateBiasVar(state_bias_var_vect(i));
+			matrix::Vector<float, 5> temp_state = _target_estimator[i]->getAugmentedState();
+			temp_state(AugmentedState::bias) = bias_init(i);
+			temp_state(AugmentedState::pos_rel) = pos_init(i);
+			_target_estimator[i]->setState(temp_state);
+
+			matrix::Vector<float, 5> temp_state_var = _target_estimator[i]->getAugmentedStateVar();
+			temp_state_var(AugmentedState::bias) = state_bias_var_vect(i);
+			temp_state_var(AugmentedState::pos_rel) = state_pos_var_vect(i);
+			_target_estimator[i]->setStateVar(temp_state_var);
 		}
 
 		_bias_set = true;
@@ -533,9 +531,9 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_
 		obs.updated_xyz.setAll(true);
 
 		// Assume noise correlation negligible:
-		obs.meas_h_xyz(Direction::x, ExtendedState::pos_rel_x) = 1;
-		obs.meas_h_xyz(Direction::y, ExtendedState::pos_rel_y) = 1;
-		obs.meas_h_xyz(Direction::z, ExtendedState::pos_rel_z) = 1;
+		obs.meas_h_xyz(Direction::x, AugmentedState::pos_rel) = 1;
+		obs.meas_h_xyz(Direction::y, AugmentedState::pos_rel) = 1;
+		obs.meas_h_xyz(Direction::z, AugmentedState::pos_rel) = 1;
 
 		obs.meas_xyz = vision_ned;
 
@@ -577,9 +575,9 @@ bool VTEPosition::processObsGNSSVelRel(const sensor_gps_s &vehicle_gps_position,
 
 		obs.meas_xyz = vel_uav_ned;
 
-		obs.meas_h_xyz(Direction::x, ExtendedState::vel_uav_x) = 1;
-		obs.meas_h_xyz(Direction::y, ExtendedState::vel_uav_y) = 1;
-		obs.meas_h_xyz(Direction::z, ExtendedState::vel_uav_z) = 1;
+		obs.meas_h_xyz(Direction::x, AugmentedState::vel_uav) = 1;
+		obs.meas_h_xyz(Direction::y, AugmentedState::vel_uav) = 1;
+		obs.meas_h_xyz(Direction::z, AugmentedState::vel_uav) = 1;
 
 		const float unc = fmaxf(vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s,
 					_gps_vel_noise * _gps_vel_noise);
@@ -622,9 +620,9 @@ bool VTEPosition::processObsGNSSVelTarget(const target_gnss_s &target_GNSS_repor
 		obs.meas_unc_xyz(Direction::y) = unc;
 		obs.meas_unc_xyz(Direction::z) = unc;
 
-		obs.meas_h_xyz(Direction::x, ExtendedState::vel_target_x) = 1;
-		obs.meas_h_xyz(Direction::y, ExtendedState::vel_target_y) = 1;
-		obs.meas_h_xyz(Direction::z, ExtendedState::vel_target_z) = 1;
+		obs.meas_h_xyz(Direction::x, AugmentedState::vel_target) = 1;
+		obs.meas_h_xyz(Direction::y, AugmentedState::vel_target) = 1;
+		obs.meas_h_xyz(Direction::z, AugmentedState::vel_target) = 1;
 
 		obs.timestamp = target_GNSS_report.timestamp;
 
@@ -674,15 +672,15 @@ bool VTEPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_posit
 					     _gps_pos_noise * _gps_pos_noise);
 
 	// GPS already in NED, no rotation required.
-	// Obs: [pos_rel_x + bias_x, pos_rel_y + bias_y, pos_rel_z + bias_z]
-	obs.meas_h_xyz(Direction::x, ExtendedState::pos_rel_x) = 1;
-	obs.meas_h_xyz(Direction::y, ExtendedState::pos_rel_y) = 1;
-	obs.meas_h_xyz(Direction::z, ExtendedState::pos_rel_z) = 1;
+	// Obs: [pos_rel + bias]
+	obs.meas_h_xyz(Direction::x, AugmentedState::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::y, AugmentedState::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::z, AugmentedState::pos_rel) = 1;
 
 	if (_bias_set) {
-		obs.meas_h_xyz(Direction::x, ExtendedState::bias_x) = 1;
-		obs.meas_h_xyz(Direction::y, ExtendedState::bias_y) = 1;
-		obs.meas_h_xyz(Direction::z, ExtendedState::bias_z) = 1;
+		obs.meas_h_xyz(Direction::x, AugmentedState::bias) = 1;
+		obs.meas_h_xyz(Direction::y, AugmentedState::bias) = 1;
+		obs.meas_h_xyz(Direction::z, AugmentedState::bias) = 1;
 	}
 
 	obs.timestamp = vehicle_gps_position.timestamp;
@@ -759,15 +757,15 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_GNSS_repor
 							     _gps_pos_noise * _gps_pos_noise);
 
 	// GPS already in NED, no rotation required.
-	// Obs: [pos_rel_x + bias_x, pos_rel_y + bias_y, pos_rel_z + bias_z]
-	obs.meas_h_xyz(Direction::x, ExtendedState::pos_rel_x) = 1;
-	obs.meas_h_xyz(Direction::y, ExtendedState::pos_rel_y) = 1;
-	obs.meas_h_xyz(Direction::z, ExtendedState::pos_rel_z) = 1;
+	// Obs: [pos_rel + bias]
+	obs.meas_h_xyz(Direction::x, AugmentedState::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::y, AugmentedState::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::z, AugmentedState::pos_rel) = 1;
 
 	if (_bias_set) {
-		obs.meas_h_xyz(Direction::x, ExtendedState::bias_x) = 1;
-		obs.meas_h_xyz(Direction::y, ExtendedState::bias_y) = 1;
-		obs.meas_h_xyz(Direction::z, ExtendedState::bias_z) = 1;
+		obs.meas_h_xyz(Direction::x, AugmentedState::bias) = 1;
+		obs.meas_h_xyz(Direction::y, AugmentedState::bias) = 1;
+		obs.meas_h_xyz(Direction::z, AugmentedState::bias) = 1;
 	}
 
 	obs.timestamp = target_GNSS_report.timestamp;
@@ -796,7 +794,7 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 	estimator_aid_source3d_s target_innov;
 	Vector<bool, 3> meas_xyz_fused{};
 	bool all_directions_fused = false;
-	Vector<float, 15> meas_h_row;
+	Vector<float, 5> meas_h_row;
 
 	// Compute the measurement's time delay (difference between state and measurement time on validity)
 	const float dt_sync_us = (_last_predict - target_pos_obs.timestamp);
@@ -843,7 +841,7 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 
 				// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
 				_target_estimator[j]->syncState(dt_sync_s, vehicle_acc_ned(j));
-				_target_estimator[j]->setH(meas_h_row, j);
+				_target_estimator[j]->setH(meas_h_row);
 				// Compute innovations and fill thet target innovation message
 				target_innov.innovation_variance[j] = _target_estimator[j]->computeInnovCov(
 						target_pos_obs.meas_unc_xyz(j));
@@ -918,44 +916,36 @@ void VTEPosition::publishTarget()
 
 	target_pose.rel_pos_valid =	_is_meas_valid(_last_update);
 
+	matrix::Vector<float, 5> augmented_state_x = _target_estimator[Direction::x]->getAugmentedState();
+	matrix::Vector<float, 5> augmented_state_y = _target_estimator[Direction::y]->getAugmentedState();
+	matrix::Vector<float, 5> augmented_state_z = _target_estimator[Direction::z]->getAugmentedState();
+
+	matrix::Vector<float, 5> augmented_state_var_x = _target_estimator[Direction::x]->getAugmentedStateVar();
+	matrix::Vector<float, 5> augmented_state_var_y = _target_estimator[Direction::y]->getAugmentedStateVar();
+	matrix::Vector<float, 5> augmented_state_var_z = _target_estimator[Direction::z]->getAugmentedStateVar();
+
 	// Fill target pose
-	target_pose.x_rel = _target_estimator[Direction::x]->getPosition();
-	target_pose.y_rel = _target_estimator[Direction::y]->getPosition();
-	target_pose.z_rel = _target_estimator[Direction::z]->getPosition();
+	target_pose.x_rel = augmented_state_x(AugmentedState::pos_rel);
+	target_pose.y_rel = augmented_state_y(AugmentedState::pos_rel);
+	target_pose.z_rel = augmented_state_z(AugmentedState::pos_rel);
 
-	target_pose.cov_x_rel = _target_estimator[Direction::x]->getPosVar();
-	target_pose.cov_y_rel = _target_estimator[Direction::y]->getPosVar();
-	target_pose.cov_z_rel = _target_estimator[Direction::z]->getPosVar();
+	target_pose.cov_x_rel = augmented_state_var_x(AugmentedState::pos_rel);
+	target_pose.cov_y_rel = augmented_state_var_y(AugmentedState::pos_rel);
+	target_pose.cov_z_rel = augmented_state_var_z(AugmentedState::pos_rel);
 
-	target_pose.vx_rel = _target_estimator[Direction::x]->getVelocity();
-	target_pose.vy_rel = _target_estimator[Direction::y]->getVelocity();
-	target_pose.vz_rel = _target_estimator[Direction::z]->getVelocity();
+	target_pose.vx_rel = augmented_state_x(AugmentedState::vel_target) - augmented_state_x(AugmentedState::vel_uav);
+	target_pose.vy_rel = augmented_state_y(AugmentedState::vel_target) - augmented_state_y(AugmentedState::vel_uav);
+	target_pose.vz_rel = augmented_state_z(AugmentedState::vel_target) - augmented_state_z(AugmentedState::vel_uav);
 
-	target_pose.cov_vx_rel = _target_estimator[Direction::x]->getVelVar();
-	target_pose.cov_vy_rel = _target_estimator[Direction::y]->getVelVar();
-	target_pose.cov_vz_rel = _target_estimator[Direction::z]->getVelVar();
+	/* Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y) */
+	target_pose.cov_vx_rel = augmented_state_var_x(AugmentedState::vel_target) + augmented_state_var_x(
+					 AugmentedState::vel_uav);
+	target_pose.cov_vy_rel = augmented_state_var_y(AugmentedState::vel_target) + augmented_state_var_y(
+					 AugmentedState::vel_uav);
+	target_pose.cov_vz_rel = augmented_state_var_z(AugmentedState::vel_target) + augmented_state_var_z(
+					 AugmentedState::vel_uav);
 
-	if (_target_mode == TargetMode::Moving) {
-
-		vte_state.vx_target = _target_estimator[Direction::x]->getTargetVel();
-		vte_state.vy_target = _target_estimator[Direction::y]->getTargetVel();
-		vte_state.vz_target = _target_estimator[Direction::z]->getTargetVel();
-
-		vte_state.cov_vx_target = _target_estimator[Direction::x]->getTargetVelVar();
-		vte_state.cov_vy_target = _target_estimator[Direction::y]->getTargetVelVar();
-		vte_state.cov_vz_target = _target_estimator[Direction::z]->getTargetVelVar();
-
-		target_pose.vx_rel = vte_state.vx_target - target_pose.vx_rel;
-		target_pose.vy_rel = vte_state.vy_target - target_pose.vy_rel;
-		target_pose.vz_rel = vte_state.vz_target - target_pose.vz_rel;
-
-		/* Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y) */
-		target_pose.cov_vx_rel += vte_state.cov_vx_target;
-		target_pose.cov_vy_rel += vte_state.cov_vy_target;
-		target_pose.cov_vz_rel += vte_state.cov_vz_target;
-	}
-
-	// Fill target estimator state
+	// Fill vision target estimator state
 	vte_state.x_rel = target_pose.x_rel;
 	vte_state.y_rel = target_pose.y_rel;
 	vte_state.z_rel = target_pose.z_rel;
@@ -972,23 +962,29 @@ void VTEPosition::publishTarget()
 	vte_state.cov_vy_rel = target_pose.cov_vy_rel;
 	vte_state.cov_vz_rel = target_pose.cov_vz_rel;
 
-	vte_state.x_bias = _target_estimator[Direction::x]->getBias();
-	vte_state.y_bias = _target_estimator[Direction::y]->getBias();
-	vte_state.z_bias = _target_estimator[Direction::z]->getBias();
+	vte_state.vx_target = augmented_state_x(AugmentedState::vel_target);
+	vte_state.vy_target = augmented_state_y(AugmentedState::vel_target);
+	vte_state.vz_target = augmented_state_z(AugmentedState::vel_target);
 
-	vte_state.cov_x_bias = _target_estimator[Direction::x]->getBiasVar();
-	vte_state.cov_y_bias = _target_estimator[Direction::y]->getBiasVar();
-	vte_state.cov_z_bias = _target_estimator[Direction::z]->getBiasVar();
+	vte_state.cov_vx_target = augmented_state_var_x(AugmentedState::vel_target);
+	vte_state.cov_vy_target = augmented_state_var_y(AugmentedState::vel_target);
+	vte_state.cov_vz_target = augmented_state_var_z(AugmentedState::vel_target);
 
-	if (_target_mode == TargetMode::Moving) {
-		vte_state.ax_target = _target_estimator[Direction::x]->getAcceleration();
-		vte_state.ay_target = _target_estimator[Direction::y]->getAcceleration();
-		vte_state.az_target = _target_estimator[Direction::z]->getAcceleration();
+	vte_state.x_bias = augmented_state_x(AugmentedState::bias);
+	vte_state.y_bias = augmented_state_y(AugmentedState::bias);
+	vte_state.z_bias = augmented_state_z(AugmentedState::bias);
 
-		vte_state.cov_ax_target = _target_estimator[Direction::x]->getAccVar();
-		vte_state.cov_ay_target = _target_estimator[Direction::y]->getAccVar();
-		vte_state.cov_az_target = _target_estimator[Direction::z]->getAccVar();
-	}
+	vte_state.cov_x_bias = augmented_state_var_x(AugmentedState::bias);
+	vte_state.cov_y_bias = augmented_state_var_y(AugmentedState::bias);
+	vte_state.cov_z_bias = augmented_state_var_z(AugmentedState::bias);
+
+	vte_state.ax_target = augmented_state_x(AugmentedState::acc_target);
+	vte_state.ay_target = augmented_state_y(AugmentedState::acc_target);
+	vte_state.az_target = augmented_state_z(AugmentedState::acc_target);
+
+	vte_state.cov_ax_target = augmented_state_var_x(AugmentedState::acc_target);
+	vte_state.cov_ay_target = augmented_state_var_y(AugmentedState::acc_target);
+	vte_state.cov_az_target = augmented_state_var_z(AugmentedState::acc_target);
 
 	// Prec land does not check target_pose.abs_pos_valid. Only send the target if abs pose valid.
 	if (_local_position.valid && target_pose.rel_pos_valid) {

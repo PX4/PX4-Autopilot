@@ -86,32 +86,6 @@ bool KF_xyzb_v_decoupled_moving::update()
 	return true;
 }
 
-void KF_xyzb_v_decoupled_moving::setH(const matrix::Vector<float, 15> &h_meas, int direction)
-{
-	if (direction == Direction::x) {
-		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_x);
-		_meas_matrix_row_vect(State::vel_uav) = h_meas(ExtendedState::vel_uav_x);
-		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_x);
-		_meas_matrix_row_vect(State::acc_target) = h_meas(ExtendedState::acc_target_x);
-		_meas_matrix_row_vect(State::vel_target) = h_meas(ExtendedState::vel_target_x);
-
-	} else if (direction == Direction::y) {
-		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_y);
-		_meas_matrix_row_vect(State::vel_uav) = h_meas(ExtendedState::vel_uav_y);
-		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_y);
-		_meas_matrix_row_vect(State::acc_target) = h_meas(ExtendedState::acc_target_y);
-		_meas_matrix_row_vect(State::vel_target) = h_meas(ExtendedState::vel_target_y);
-
-	} else if (direction == Direction::z)  {
-		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_z);
-		_meas_matrix_row_vect(State::vel_uav) = h_meas(ExtendedState::vel_uav_z);
-		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_z);
-		_meas_matrix_row_vect(State::acc_target) = h_meas(ExtendedState::acc_target_z);
-		_meas_matrix_row_vect(State::vel_target) = h_meas(ExtendedState::vel_target_z);
-	}
-
-}
-
 void KF_xyzb_v_decoupled_moving::syncState(float dt, float acc_uav)
 {
 	// Prediction: x(t1) = Phi*x(t0) + G*u <--> Backwards prediction: x(t0) = Phi.inv()*[x(t1) - G*u]

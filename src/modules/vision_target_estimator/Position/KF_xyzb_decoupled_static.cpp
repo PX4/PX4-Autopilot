@@ -82,27 +82,6 @@ bool KF_xyzb_decoupled_static::update()
 	return true;
 }
 
-void KF_xyzb_decoupled_static::setH(const matrix::Vector<float, 15> &h_meas, int direction)
-{
-
-	// For a static target, the relative velocity = - uav velocity
-	if (direction == Direction::x) {
-		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_x);
-		_meas_matrix_row_vect(State::vel_rel) = -h_meas(ExtendedState::vel_uav_x);
-		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_x);
-
-	} else if (direction == Direction::y) {
-		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_y);
-		_meas_matrix_row_vect(State::vel_rel) = -h_meas(ExtendedState::vel_uav_y);
-		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_y);
-
-	} else {
-		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_z);
-		_meas_matrix_row_vect(State::vel_rel) = -h_meas(ExtendedState::vel_uav_z);
-		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_z);
-	}
-}
-
 void KF_xyzb_decoupled_static::syncState(float dt, float acc_uav)
 {
 	// Prediction: x(t1) = Phi*x(t0) + G*u <--> Backwards prediction: x(t0) = Phi.inv()*[x(t1) - G*u]
