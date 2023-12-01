@@ -235,5 +235,3 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 	fflush(stdout);
 	return 0;
 }
-
-

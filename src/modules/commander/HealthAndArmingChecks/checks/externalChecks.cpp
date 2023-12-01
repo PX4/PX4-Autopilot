@@ -332,4 +332,3 @@ void ExternalChecks::checkNonRegisteredModes(const Context &context, Report &rep
 					    events::Log::Error, "Mode is not registered");
 	}
 }
-

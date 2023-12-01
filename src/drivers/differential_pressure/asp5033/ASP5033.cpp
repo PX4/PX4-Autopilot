@@ -39,8 +39,6 @@
  *@author Denislav Petrov <denislavamitoba@gmail.com>
  */
 
-
-
 #include "ASP5033.hpp"
 
 ASP5033::ASP5033(const I2CSPIDriverConfig &config) :
@@ -80,9 +78,6 @@ int ASP5033::sensor_id_check()
 	if ((transfer(&cmd_3, 1, &id[0], sizeof(id)) != PX4_OK) || (*id != REG_WHOAMI_RECHECK_ID_ASP5033)) { return 0; }
 
 	return 1;
-
-
-
 }
 
 int ASP5033::init()
@@ -123,13 +118,11 @@ bool ASP5033::get_differential_pressure()
 	press_sum = 0.;
 	press_count = 0;
 	return true;
-
 }
 
 
 void ASP5033::print_status()
 {
-
 	I2CSPIDriverBase::print_status();
 
 	perf_print_counter(_sample_perf);
@@ -209,7 +202,6 @@ int ASP5033::collect()
 	perf_begin(_sample_perf);
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-
 	// Read pressure and temperature as one block
 	uint8_t val[5] {0, 0, 0, 0, 0};
 	uint8_t cmd = REG_PRESS_DATA_ASP5033;
@@ -251,8 +243,3 @@ int ASP5033::collect()
 
 	return PX4_OK;
 }
-
-
-
-
-
