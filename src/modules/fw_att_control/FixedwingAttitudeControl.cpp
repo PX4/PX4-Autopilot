@@ -322,21 +322,6 @@ void FixedwingAttitudeControl::Run()
 				}
 			}
 
-			/* Prepare data for attitude controllers */
-			ECL_ControlData control_input{};
-			control_input.roll = euler_angles.phi();
-			control_input.pitch = euler_angles.theta();
-			control_input.yaw = euler_angles.psi();
-			control_input.body_z_rate = angular_velocity.xyz[2];
-			control_input.roll_setpoint = _att_sp.roll_body;
-			control_input.pitch_setpoint = _att_sp.pitch_body;
-			control_input.yaw_setpoint = _att_sp.yaw_body;
-			control_input.euler_pitch_rate_setpoint = _pitch_ctrl.get_euler_rate_setpoint();
-			control_input.euler_yaw_rate_setpoint = _yaw_ctrl.get_euler_rate_setpoint();
-			control_input.airspeed_constrained = get_airspeed_constrained();
-			control_input.groundspeed = _groundspeed;
-			control_input.groundspeed_scaler = groundspeed_scale;
-
 			/* Run attitude controllers */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
