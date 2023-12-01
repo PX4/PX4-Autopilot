@@ -74,10 +74,10 @@ bool KF_xyzb_decoupled_static::update()
 		return false;
 	}
 
-	const matrix::Matrix<float, 3, 1> kalmanGain = _state_covariance * _meas_matrix.transpose() / _innov_cov;
+	const matrix::Matrix<float, 3, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
-	_state_covariance = _state_covariance - kalmanGain * _meas_matrix * _state_covariance;
+	_state_covariance = _state_covariance - kalmanGain * _meas_matrix_row_vect.transpose() * _state_covariance;
 
 	return true;
 }
@@ -88,19 +88,19 @@ void KF_xyzb_decoupled_static::setH(const matrix::Vector<float, 15> &h_meas, int
 	// idx    = [0,   1,  2,      3,      4,      5,  6,  7,  8,   9,  10,  11,  12,  13,  14]
 
 	if (direction == Directions::x) {
-		_meas_matrix(0, 0) = h_meas(0);
-		_meas_matrix(0, 1) = h_meas(3);
-		_meas_matrix(0, 2) = h_meas(6);
+		_meas_matrix_row_vect(0) = h_meas(0);
+		_meas_matrix_row_vect(1) = h_meas(3);
+		_meas_matrix_row_vect(2) = h_meas(6);
 
 	} else if (direction == Directions::y) {
-		_meas_matrix(0, 0) = h_meas(1);
-		_meas_matrix(0, 1) = h_meas(4);
-		_meas_matrix(0, 2) = h_meas(7);
+		_meas_matrix_row_vect(0) = h_meas(1);
+		_meas_matrix_row_vect(1) = h_meas(4);
+		_meas_matrix_row_vect(2) = h_meas(7);
 
 	} else {
-		_meas_matrix(0, 0) = h_meas(2);
-		_meas_matrix(0, 1) = h_meas(5);
-		_meas_matrix(0, 2) = h_meas(8);
+		_meas_matrix_row_vect(0) = h_meas(2);
+		_meas_matrix_row_vect(1) = h_meas(5);
+		_meas_matrix_row_vect(2) = h_meas(8);
 	}
 }
 
@@ -115,7 +115,7 @@ void KF_xyzb_decoupled_static::syncState(float dt, float acc_uav)
 float KF_xyzb_decoupled_static::computeInnovCov(float meas_unc)
 {
 	float innov_cov_updated;
-	sym::Computeinnovcov(meas_unc, _state_covariance, _meas_matrix, &innov_cov_updated);
+	sym::Computeinnovcov(meas_unc, _state_covariance, _meas_matrix_row_vect.transpose(), &innov_cov_updated);
 	_innov_cov = innov_cov_updated;
 
 	return _innov_cov;
@@ -124,7 +124,7 @@ float KF_xyzb_decoupled_static::computeInnovCov(float meas_unc)
 float KF_xyzb_decoupled_static::computeInnov(float meas)
 {
 	/* z - H*x */
-	_innov = meas - (_meas_matrix * _sync_state)(0, 0);
+	_innov = meas - (_meas_matrix_row_vect.transpose() * _sync_state)(0, 0);
 	return _innov;
 }
 
