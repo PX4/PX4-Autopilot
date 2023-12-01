@@ -123,8 +123,8 @@ int GZBridge::init()
 		std::string create_service = "/world/" + _world_name + "/create";
 
 		bool gz_called = false;
-		// Check if STANDALONE has been set.
-		char *standalone_val = std::getenv("STANDALONE");
+		// Check if PX4_GZ_STANDALONE has been set.
+		char *standalone_val = std::getenv("PX4_GZ_STANDALONE");
 
 		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "1") == 0)) {
 			// Check if Gazebo has been called and if not attempt to reconnect.
@@ -148,7 +148,7 @@ int GZBridge::init()
 		}
 
 
-		// If STANDALONE has not been set, do not retry to reconnect.
+		// If PX4_GZ_STANDALONE has not been set, do not retry to reconnect.
 		else {
 			if (_node.Request(create_service, req, 1000, rep, result)) {
 				if (!rep.data() || !result) {
