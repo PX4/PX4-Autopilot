@@ -104,7 +104,7 @@ private:
 
 	float _sync_state;
 
-	float _meas_matrix; // row of measurement matrix
+	float _meas_matrix_row_vect;
 
 	float _state_covariance;
 
