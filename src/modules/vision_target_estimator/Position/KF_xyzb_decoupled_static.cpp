@@ -82,7 +82,7 @@ bool KF_xyzb_decoupled_static::update()
 	return true;
 }
 
-void KF_xyzb_decoupled_static::setH(matrix::Vector<float, 15> h_meas, int direction)
+void KF_xyzb_decoupled_static::setH(const matrix::Vector<float, 15> &h_meas, int direction)
 {
 	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
 	// idx    = [0,   1,  2,      3,      4,      5,  6,  7,  8,   9,  10,  11,  12,  13,  14]
