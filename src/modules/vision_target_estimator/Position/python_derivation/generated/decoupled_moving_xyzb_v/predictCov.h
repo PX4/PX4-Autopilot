@@ -36,7 +36,7 @@ void Predictcov(const Scalar dt, const Scalar input_var, const Scalar bias_var,
 	// Input arrays
 
 	// Intermediate terms (16)
-	const Scalar _tmp0 = dt * dt;
+	const Scalar _tmp0 = std::pow(dt, Scalar(2));
 	const Scalar _tmp1 = Scalar(0.5) * _tmp0;
 	const Scalar _tmp2 = -covariance(1, 1) * dt;
 	const Scalar _tmp3 = _tmp1 * covariance(3, 1) + _tmp2 + covariance(0, 1) + covariance(4, 1) * dt;
@@ -62,7 +62,7 @@ void Predictcov(const Scalar dt, const Scalar input_var, const Scalar bias_var,
 
 		_cov_updated(0, 0) = _tmp1 * _tmp8 + _tmp1 * covariance(3, 0) - _tmp3 * dt + _tmp5 * dt +
 				     covariance(0, 0) - covariance(1, 0) * dt + covariance(4, 0) * dt +
-				     Scalar(0.25) * dt * dt * dt * dt * input_var;
+				     Scalar(0.25) * std::pow(dt, Scalar(4)) * input_var;
 		_cov_updated(1, 0) = _tmp1 * covariance(1, 3) + _tmp2 + _tmp4 + _tmp9 + covariance(1, 0);
 		_cov_updated(2, 0) =
 			_tmp1 * covariance(2, 3) + covariance(2, 0) - covariance(2, 1) * dt + covariance(2, 4) * dt;
