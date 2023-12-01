@@ -57,7 +57,7 @@ public:
 	virtual float computeInnovCov(float measUnc) = 0;
 	virtual float computeInnov(float meas) = 0;
 
-	virtual bool update() { return true; }
+	virtual bool update() = 0;
 
 	// Normalized innovation squared (NIS) threshold. Used to reject measurements.
 	virtual void setNISthreshold(float nis_threshold) = 0;
@@ -77,18 +77,18 @@ public:
 	virtual void setStateTargetVelVar(float var) = 0;
 
 	// Retreive output of filter
-	virtual float getPosition() { return 0.f; };
-	virtual float getVelocity() { return 0.f; };
-	virtual float getBias() { return 0.f; };
-	virtual float getAcceleration() { return 0.f; };
-	virtual float getTargetVel() { return 0.f; };
+	virtual float getPosition() = 0;
+	virtual float getVelocity() = 0;
+	virtual float getBias() = 0;
+	virtual float getAcceleration() = 0;
+	virtual float getTargetVel() = 0;
 
-	virtual float getPosVar() { return 0.f; };
-	virtual float getVelVar() { return 0.f; };
-	virtual float getBiasVar() { return 0.f; };
-	virtual float getAccVar() { return 0.f; };
-	virtual float getTargetVelVar() { return 0.f; };
-	virtual float getTestRatio() { return 0.f; };
+	virtual float getPosVar() = 0;
+	virtual float getVelVar() = 0;
+	virtual float getBiasVar() = 0;
+	virtual float getAccVar() = 0;
+	virtual float getTargetVelVar() = 0;
+	virtual float getTestRatio() = 0;
 
 	virtual void setInputAccVar(float var) = 0;
 	virtual void setTargetAccVar(float var) = 0;
