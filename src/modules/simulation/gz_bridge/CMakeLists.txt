@@ -130,7 +130,12 @@ if(gz-transport_FOUND)
 			endif()
 		endforeach()
 
-		if(gz_airframe_found)
+		# Check if model is in no_airframe_models.txt These models don't require a corresponding airframe
+		file(READ no_airframe_models.txt models_raw)
+		string(REPLACE "\n" ";" models_no_airframe "${models_raw}")
+		list(FIND models_no_airframe ${model} no_airframe_found)
+
+		if(gz_airframe_found OR no_airframe_found GREATER -1)
 			#message(STATUS "gz model: ${model} (${airframe_model_only}), airframe: ${gz_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
 		else()
 			message(WARNING "gz missing model: ${model} (${airframe_model_only}), airframe: ${gz_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
