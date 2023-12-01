@@ -61,7 +61,7 @@ public:
 	/**
 	 * Default desctructor
 	 */
-	virtual ~KF_xyzb_v_decoupled_moving() {};
+	~KF_xyzb_v_decoupled_moving() {};
 
 	//Prediction step:
 	void predictState(float dt, float acc) override;
@@ -72,8 +72,8 @@ public:
 
 	void setH(const matrix::Vector<float, 15> &h_meas, int direction) override;
 
-	virtual float computeInnovCov(float measUnc) override;
-	virtual float computeInnov(float meas) override;
+	float computeInnovCov(float measUnc) override;
+	float computeInnov(float meas) override;
 
 	bool update() override;
 

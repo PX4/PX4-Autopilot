@@ -61,7 +61,7 @@ public:
 	/**
 	 * Default desctructor
 	 */
-	virtual ~KF_xyzb_decoupled_static() {};
+	~KF_xyzb_decoupled_static() {};
 
 	//Prediction step:
 	void predictState(float dt, float acc) override;
@@ -72,8 +72,8 @@ public:
 
 	void setH(const matrix::Vector<float, 15> &h_meas, int direction) override;
 
-	virtual float computeInnovCov(float measUnc) override;
-	virtual float computeInnov(float meas) override;
+	float computeInnovCov(float measUnc) override;
+	float computeInnov(float meas) override;
 
 	bool update() override;
 
@@ -104,13 +104,14 @@ public:
 	void setBiasVar(float var) override { _bias_var = var; };
 
 	/* Unused functions:  */
-	void setTargetAcc(float acc) override {}
-	void setStateAccVar(float acc_unc) override {};
 	float getAcceleration() override { return 0.f; };
 	float getAccVar() override { return 0.f; };
-	void setTargetAccVar(float var) override {};
 	float getTargetVelVar() override { return 0.f; };
 	float getTargetVel() override { return 0.f; };
+
+	void setTargetAcc(float acc) override {}
+	void setStateAccVar(float acc_unc) override {};
+	void setTargetAccVar(float var) override {};
 	void setStateTargetVelVar(float posVect) override {};
 	void setTargetVel(float accVect) override {};
 
