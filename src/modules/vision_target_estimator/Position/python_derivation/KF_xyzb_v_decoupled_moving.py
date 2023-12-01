@@ -46,7 +46,7 @@ def generate_px4_function(function_name, output_names):
             output_names=output_names,
             config=CppConfig())
     metadata = codegen.generate_function(
-            output_dir="src/modules/vision_target_estimator/python_derivation/generated/decoupled_moving_xyzb_v",
+            output_dir="src/modules/vision_target_estimator/Position/python_derivation/generated/decoupled_moving_xyzb_v",
             skip_directory_nesting=True)
 
     print("Files generated in {}:\n".format(metadata.output_dir))
