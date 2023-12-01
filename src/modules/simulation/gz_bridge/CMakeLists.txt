@@ -72,14 +72,35 @@ if(gz-transport_FOUND)
 			module.yaml
 	)
 
-	file(GLOB gz_models
-		LIST_DIRECTORIES true
-		RELATIVE ${PX4_SOURCE_DIR}/Tools/simulation/gz/models
-		${PX4_SOURCE_DIR}/Tools/simulation/gz/models/*
+	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
+	include(ExternalProject)
+	ExternalProject_Add(gz
+		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
+		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		BINARY_DIR ${PX4_BINARY_DIR}/build_gz
+		INSTALL_COMMAND ""
+		DEPENDS git_gz
+		USES_TERMINAL_CONFIGURE true
+		USES_TERMINAL_BUILD true
+		EXCLUDE_FROM_ALL true
+		BUILD_ALWAYS 1
 	)
 
-	file(GLOB gz_worlds
-		${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf
+	set(gz_models
+		advanced_plane
+		omnicopter
+		px4vision
+		rc_cessna
+		standard_vtol
+		x500_base
+		x500
+		x500_depth
+		x500_vision
+	)
+
+	set(gz_worlds
+		default
+		windy
 	)
 
 	# find corresponding airframes
