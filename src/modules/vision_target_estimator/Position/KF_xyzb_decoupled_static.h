@@ -126,7 +126,7 @@ private:
 
 	matrix::Vector<float, 3> _sync_state;
 
-	matrix::Matrix<float, 1, 3> _meas_matrix; // row of measurement matrix
+	matrix::Vector<float, 3> _meas_matrix_row_vect;
 
 	matrix::Matrix<float, 3, 3> _state_covariance;
 
