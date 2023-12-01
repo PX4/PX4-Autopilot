@@ -57,7 +57,7 @@ public:
 	virtual float computeInnovCov(float measUnc) = 0;
 	virtual float computeInnov(float meas) = 0;
 
-	virtual bool update() { return true; }
+	virtual bool update() = 0;
 
 	// Normalized innovation squared (NIS) threshold. Used to reject measurements.
 	virtual void setNISthreshold(float nis_threshold) = 0;
@@ -71,13 +71,13 @@ public:
 	virtual void setStateVelVar(float var) = 0;
 
 	// Retreive output of filter
-	virtual float getPosition() { return 0.f; };
-	virtual float getVelocity() { return 0.f; };
+	virtual float getPosition() = 0;
+	virtual float getVelocity() = 0;
 
-	virtual float getPosVar() { return 0.f; };
-	virtual float getVelVar() { return 0.f; };
+	virtual float getPosVar() = 0;
+	virtual float getVelVar() = 0;
 
-	virtual float getTestRatio() { return 0.f; };
+	virtual float getTestRatio() = 0;
 
 	enum ExtendedState {
 		yaw = 0,

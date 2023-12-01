@@ -61,7 +61,7 @@ public:
 	/**
 	 * Default desctructor
 	 */
-	virtual ~KF_orientation_static() {};
+	~KF_orientation_static() {};
 
 	//Prediction step:
 	void predictState(float dt) override {};
@@ -72,8 +72,8 @@ public:
 
 	void setH(const matrix::Vector<float, 2> &h_meas) override;
 
-	virtual float computeInnovCov(float measUnc) override;
-	virtual float computeInnov(float meas) override;
+	float computeInnovCov(float measUnc) override;
+	float computeInnov(float meas) override;
 
 	bool update() override;
 
