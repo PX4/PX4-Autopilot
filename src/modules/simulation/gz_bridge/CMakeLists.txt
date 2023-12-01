@@ -111,56 +111,28 @@ if(gz-transport_FOUND)
 		else()
 			message(WARNING "model directory ${PX4_SOURCE_DIR}/Tools/simulation/gz/models/${model_only} not found")
 		endif()
-	endforeach()
-
-	foreach(model ${gz_models})
-
-		# match model to airframe
-		set(airframe_model_only)
-		set(airframe_sys_autostart)
-		set(gz_airframe_found)
-		foreach(gz_airframe IN LISTS gz_airframes)
-
-			string(REGEX REPLACE ".*_gz_" "" airframe_model_only ${gz_airframe})
-			string(REGEX REPLACE "_gz_.*" "" airframe_sys_autostart ${gz_airframe})
-
-			if(model STREQUAL ${airframe_model_only})
-				set(gz_airframe_found ${gz_airframe})
-				break()
-			endif()
-		endforeach()
-
-		# Check if model is in no_airframe_models.txt These models don't require a corresponding airframe
-		file(READ no_airframe_models.txt models_raw)
-		string(REPLACE "\n" ";" models_no_airframe "${models_raw}")
-		list(FIND models_no_airframe ${model} no_airframe_found)
-
-		if(gz_airframe_found OR no_airframe_found GREATER -1)
-			#message(STATUS "gz model: ${model} (${airframe_model_only}), airframe: ${gz_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
-		else()
-			message(WARNING "gz missing model: ${model} (${airframe_model_only}), airframe: ${gz_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
-		endif()
 
 		foreach(world ${gz_worlds})
 
 			get_filename_component("world_name" ${world} NAME_WE)
 
 			if(world_name STREQUAL "default")
-				add_custom_target(gz_${model}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model} $<TARGET_FILE:px4>
+				add_custom_target(gz_${model_only}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
 					DEPENDS px4
 				)
 			else()
-				add_custom_target(gz_${model}_${world_name}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
+				add_custom_target(gz_${model_only}_${world_name}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
 					DEPENDS px4
 				)
 			endif()
 		endforeach()
+
 	endforeach()
 
 	# PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
