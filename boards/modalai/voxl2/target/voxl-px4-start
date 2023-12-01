@@ -149,7 +149,9 @@ elif [ "$RC" == "GHST" ]; then
     /bin/echo "Starting GHST RC driver"
     qshell ghst_rc start -d 7
 elif [ "$RC" == "M0065_SBUS" ]; then
-	if [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
+	if [ $PLATFORM = "M0052" ]; then
+		apps_sbus start
+	elif [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
     	/bin/echo "Attempting to start M0065 SBUS RC driver for original M0065 FW"
     	qshell dsp_sbus start
 		retVal=$?

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,17 +31,11 @@
 #
 ############################################################################
 
-# Need to make sure that the Linux processor on VOXL2
-# knows about all parameters since it is acting as the
-# parameter server for other processors that may define
-# parameters that it doesn't normally know about.
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
-
-add_library(drivers_board
-	board_config.h
-	init.c
-    )
-
-# Add custom drivers
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/modal_io_bridge)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/apps_sbus)
+px4_add_module(
+	MODULE drivers__apps_sbus
+	MAIN apps_sbus
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+	SRCS
+		apps_sbus.cpp
+	)
