@@ -86,7 +86,7 @@ bool KF_xyzb_v_decoupled_moving::update()
 	return true;
 }
 
-void KF_xyzb_v_decoupled_moving::setH(matrix::Vector<float, 15> h_meas, int direction)
+void KF_xyzb_v_decoupled_moving::setH(const matrix::Vector<float, 15> &h_meas, int direction)
 {
 	// _state [rx, ry, rz, vdx, vdy, vdz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
 	// idx    [0,   1,  2,   3,   4,   5,  6,  7,  8,   9,  10,  11,  12,  13,  14]
