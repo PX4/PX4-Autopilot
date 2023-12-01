@@ -11,7 +11,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.rover_defaults
+. ${R}etc/init.d/rc.rover_differential_defaults
 
 
 

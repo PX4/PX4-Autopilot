@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# UGV default parameters.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+set VEHICLE_TYPE rover_differential
+
+# MAV_TYPE_GROUND_ROVER 10
+param set-default MAV_TYPE 10
