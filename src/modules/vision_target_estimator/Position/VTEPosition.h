@@ -148,23 +148,13 @@ protected:
 
 private:
 
-	enum ExtendedState {
-		pos_rel_x = 0,
-		pos_rel_y = 1,
-		pos_rel_z = 2,
-		vel_uav_x = 3,
-		vel_uav_y = 4,
-		vel_uav_z = 5,
-		bias_x = 6,
-		bias_y = 7,
-		bias_z = 8,
-		acc_target_x = 9,
-		acc_target_y = 10,
-		acc_target_z = 11,
-		vel_target_x = 12,
-		vel_target_y = 13,
-		vel_target_z = 14,
-		nb_extended_state = 15,
+	enum AugmentedState {
+		pos_rel = 0,
+		vel_uav = 1,
+		bias = 2,
+		acc_target = 3,
+		vel_target = 4,
+		nb_filter_state = 5,
 	};
 
 	static inline bool _is_meas_valid(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_valid_TIMEOUT_US;};
@@ -196,8 +186,8 @@ private:
 		matrix::Vector<bool, 3> updated_xyz; // Indicates if we have an observation in the x, y or z direction
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
-		matrix::Matrix<float, 3, 15>
-		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the ExtendedState
+		matrix::Matrix<float, 3, 5>
+		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the AugmentedState
 	};
 
 	enum Direction {
@@ -225,9 +215,7 @@ private:
 	};
 
 	bool selectTargetEstimator();
-	bool initEstimator(const matrix::Vector3f &pos_init, const matrix::Vector3f &vel_rel_init,
-			   const matrix::Vector3f &acc_init,
-			   const matrix::Vector3f &bias_init, const matrix::Vector3f &target_vel_init);
+	bool initEstimator(const matrix::Matrix <float, 3, 5> &state_init);
 	bool update_step(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc);
 

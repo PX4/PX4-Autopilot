@@ -52,7 +52,13 @@ public:
 	// Backwards state prediciton
 	virtual void syncState(float dt, float acc) = 0;
 
-	virtual void setH(const matrix::Vector<float, 15> &h_meas, int direction) = 0;
+	virtual void setH(const matrix::Vector<float, 5> &h_meas) = 0;
+
+	virtual void setState(const matrix::Vector<float, 5> &state) = 0;
+	virtual void setStateVar(const matrix::Vector<float, 5> &stateVar) = 0;
+
+	virtual matrix::Vector<float, 5> getAugmentedState() = 0;
+	virtual matrix::Vector<float, 5> getAugmentedStateVar() = 0;
 
 	virtual float computeInnovCov(float measUnc) = 0;
 	virtual float computeInnov(float meas) = 0;
@@ -62,37 +68,20 @@ public:
 	// Normalized innovation squared (NIS) threshold. Used to reject measurements.
 	virtual void setNISthreshold(float nis_threshold) = 0;
 
-	// Init: x_0
-	virtual void setPosition(float pos) = 0;
-	virtual void setVelocity(float vel) = 0;
-	virtual void setTargetAcc(float acc) = 0;
-	virtual void setBias(float bias) = 0;
-	virtual void setTargetVel(float targetVel) = 0;
-
-	// Init: P_0
-	virtual void setStatePosVar(float var) = 0;
-	virtual void setStateVelVar(float var) = 0;
-	virtual void setStateAccVar(float var) = 0;
-	virtual void setStateBiasVar(float var) = 0;
-	virtual void setStateTargetVelVar(float var) = 0;
-
-	// Retreive output of filter
-	virtual float getPosition() = 0;
-	virtual float getVelocity() = 0;
-	virtual float getBias() = 0;
-	virtual float getAcceleration() = 0;
-	virtual float getTargetVel() = 0;
-
-	virtual float getPosVar() = 0;
-	virtual float getVelVar() = 0;
-	virtual float getBiasVar() = 0;
-	virtual float getAccVar() = 0;
-	virtual float getTargetVelVar() = 0;
 	virtual float getTestRatio() = 0;
 
 	virtual void setInputAccVar(float var) = 0;
 	virtual void setTargetAccVar(float var) = 0;
 	virtual void setBiasVar(float var) = 0;
+
+	enum AugmentedState {
+		pos_rel = 0,
+		vel_uav = 1,
+		bias = 2,
+		acc_target = 3,
+		vel_target = 4,
+		nb_filter_state = 5,
+	};
 
 	enum Direction {
 		x = 0,
@@ -100,24 +89,4 @@ public:
 		z = 2,
 		nb_directions = 3,
 	};
-
-	enum ExtendedState {
-		pos_rel_x = 0,
-		pos_rel_y = 1,
-		pos_rel_z = 2,
-		vel_uav_x = 3,
-		vel_uav_y = 4,
-		vel_uav_z = 5,
-		bias_x = 6,
-		bias_y = 7,
-		bias_z = 8,
-		acc_target_x = 9,
-		acc_target_y = 10,
-		acc_target_z = 11,
-		vel_target_x = 12,
-		vel_target_y = 13,
-		vel_target_z = 14,
-		nb_extended_state = 15,
-	};
-
 };

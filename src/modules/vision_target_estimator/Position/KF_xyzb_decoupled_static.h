@@ -70,7 +70,47 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt, float acc) override;
 
-	void setH(const matrix::Vector<float, 15> &h_meas, int direction) override;
+	void setH(const matrix::Vector<float, 5> &h_meas) override
+	{
+		_meas_matrix_row_vect(State::pos_rel) = h_meas(AugmentedState::pos_rel);
+		_meas_matrix_row_vect(State::vel_rel) = -h_meas(AugmentedState::vel_uav);
+		_meas_matrix_row_vect(State::bias) = h_meas(AugmentedState::bias);
+	};
+
+	void setState(const matrix::Vector<float, 5> &state) override
+	{
+		_state(State::pos_rel) = state(AugmentedState::pos_rel);
+		_state(State::vel_rel) = -state(AugmentedState::vel_uav);
+		_state(State::bias) = state(AugmentedState::bias);
+	};
+
+	void setStateVar(const matrix::Vector<float, 5> &var) override
+	{
+		_state_covariance(State::pos_rel, State::pos_rel) = var(AugmentedState::pos_rel);
+		_state_covariance(State::vel_rel, State::vel_rel) = var(
+					AugmentedState::vel_uav); // Variance of vel_uav is equivalent to the variance of vel_rel because Var(aX) = a^2 Var(X)
+		_state_covariance(State::bias, State::bias) = var(AugmentedState::bias);
+	};
+
+	matrix::Vector<float, 5> getAugmentedState()
+	{
+		matrix::Vector<float, 5> augmented_state;
+		augmented_state(AugmentedState::pos_rel) = _state(State::pos_rel);
+		augmented_state(AugmentedState::vel_uav) = -_state(State::vel_rel);
+		augmented_state(AugmentedState::bias) = _state(State::bias);
+
+		return augmented_state;
+	};
+
+	matrix::Vector<float, 5> getAugmentedStateVar()
+	{
+		matrix::Vector<float, 5> augmented_state_var;
+		augmented_state_var(AugmentedState::pos_rel) = _state_covariance(State::pos_rel, State::pos_rel);
+		augmented_state_var(AugmentedState::vel_uav) = _state_covariance(State::vel_rel, State::vel_rel);
+		augmented_state_var(AugmentedState::bias) = _state_covariance(State::bias, State::bias);
+
+		return augmented_state_var;
+	};
 
 	float computeInnovCov(float measUnc) override;
 	float computeInnov(float meas) override;
@@ -79,41 +119,12 @@ public:
 
 	void setNISthreshold(float nis_threshold) override { _nis_threshold = nis_threshold; };
 
-	// Init: x_0
-	void setPosition(float pos) override { _state(0) = pos; };
-	void setVelocity(float vel) override { _state(1) = vel; };
-	void setBias(float state_bias) override { _state(2) = state_bias; };
-
-	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _state_covariance(0, 0) = pos_unc; };
-	void setStateVelVar(float vel_unc) override { _state_covariance(1, 1) = vel_unc; };
-	void setStateBiasVar(float bias_unc) override { _state_covariance(2, 2) = bias_unc; };
-
-	// Retreive output of filter
-	float getPosition() override { return _state(0); };
-	float getVelocity() override { return _state(1); };
-	float getBias() override { return _state(2); };
-
-	float getPosVar() override { return _state_covariance(0, 0); };
-	float getVelVar() override { return _state_covariance(1, 1); };
-	float getBiasVar() override { return _state_covariance(2, 2); };
-
 	float getTestRatio() override {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
-
 	void setInputAccVar(float var) override { _input_var = var; };
 	void setBiasVar(float var) override { _bias_var = var; };
 
-	/* Unused functions:  */
-	float getAcceleration() override { return 0.f; };
-	float getAccVar() override { return 0.f; };
-	float getTargetVelVar() override { return 0.f; };
-	float getTargetVel() override { return 0.f; };
-
-	void setTargetAcc(float acc) override {}
-	void setStateAccVar(float acc_unc) override {};
-	void setTargetAccVar(float var) override {};
-	void setStateTargetVelVar(float posVect) override {};
-	void setTargetVel(float accVect) override {};
+	// Unused function
+	void setTargetAccVar(float var)override {};
 
 private:
 

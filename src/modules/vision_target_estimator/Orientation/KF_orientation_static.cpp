@@ -69,7 +69,7 @@ bool KF_orientation_static::update()
 
 void KF_orientation_static::setH(const matrix::Vector<float, 2> &h_meas)
 {
-	_meas_matrix_row_vect = h_meas(ExtendedState::yaw);
+	_meas_matrix_row_vect = h_meas(AugmentedState::yaw);
 }
 
 void KF_orientation_static::syncState(float dt)

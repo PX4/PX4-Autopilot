@@ -117,7 +117,7 @@ protected:
 
 private:
 
-	enum ExtendedState {
+	enum AugmentedState {
 		yaw = 0,
 		yaw_rate = 1,
 	};
