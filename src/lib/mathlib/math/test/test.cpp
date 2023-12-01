@@ -134,5 +134,3 @@ void __EXPORT float2SigExp(const float &num, float &sig, int &exp)
 		for (int i = 0; i < abs(exp); i++) { sig *= 10; }
 	}
 }
-
-
