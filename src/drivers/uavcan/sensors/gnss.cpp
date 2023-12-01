@@ -58,6 +58,7 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 	_sub_auxiliary(node),
 	_sub_fix(node),
 	_sub_fix2(node),
+	_sub_moving_baseline_data(node),
 	_pub_moving_baseline_data(node),
 	_pub_rtcm_stream(node),
 	_channel_using_fix2(new bool[_max_channels])
@@ -100,7 +101,6 @@ UavcanGnssBridge::init()
 		return res;
 	}
 
-
 	// UAVCAN_PUB_RTCM
 	int32_t uavcan_pub_rtcm = 0;
 	param_get(param_find("UAVCAN_PUB_RTCM"), &uavcan_pub_rtcm);
@@ -111,12 +111,30 @@ UavcanGnssBridge::init()
 		_rtcm_stream_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: rtcm stream pub");
 	}
 
+	// UAVCAN_FWD_MBD
+	int32_t uavcan_fwd_mbd = 0;
+	param_get(param_find("UAVCAN_FWD_MBD"), &uavcan_fwd_mbd);
+
+	if (uavcan_fwd_mbd == 1) {
+		res = _sub_moving_baseline_data.start(MovingBaselineDataBinder(this, &UavcanGnssBridge::moving_baseline_sub_cb));
+
+		if (res < 0) {
+			PX4_WARN("Subscriber for MBD forwarding failed %i", res);
+			return res;
+		}
+
+		_forward_moving_baseline_data = true;
+	}
+
 	// UAVCAN_PUB_MBD
 	int32_t uavcan_pub_mbd = 0;
 	param_get(param_find("UAVCAN_PUB_MBD"), &uavcan_pub_mbd);
 
 	if (uavcan_pub_mbd == 1) {
 		_publish_moving_baseline_data = true;
+	}
+
+	if (uavcan_pub_mbd == 1 || uavcan_fwd_mbd == 1) {
 		_pub_moving_baseline_data.setPriority(uavcan::TransferPriority::NumericallyMax);
 		_moving_baseline_data_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: moving baseline data rtcm stream pub");
 	}
@@ -166,6 +184,20 @@ UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 	msg.velocity_covariance.unpackSquareMatrix(vel_cov);
 
 	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, NAN, NAN, NAN);
+}
+
+void UavcanGnssBridge::moving_baseline_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData>
+		&msg)
+{
+	if (_forward_moving_baseline_data == 0) {
+		return;
+	}
+
+	// Do not broadcast on back to the originating interface.
+	const uint8_t iface_mask = ~(uint8_t{1} << msg.getIfaceIndex());
+
+	_pub_moving_baseline_data.broadcast(iface_mask, uavcan::NodeID(msg.getSrcNodeID().get()), msg);
+	perf_count(_moving_baseline_data_pub_perf);
 }
 
 void

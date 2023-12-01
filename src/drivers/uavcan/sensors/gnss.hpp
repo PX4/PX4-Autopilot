@@ -81,6 +81,7 @@ private:
 	void gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg);
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 	void gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg);
+	void moving_baseline_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData> &msg);
 
 	template <typename FixType>
 	void process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
@@ -110,11 +111,16 @@ private:
 		void (UavcanGnssBridge::*)(const uavcan::TimerEvent &)>
 		TimerCbBinder;
 
+	typedef uavcan::MethodBinder<UavcanGnssBridge *,
+		void (UavcanGnssBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::gnss::MovingBaselineData>&)>
+		MovingBaselineDataBinder;
+
 	uavcan::INode &_node;
 
 	uavcan::Subscriber<uavcan::equipment::gnss::Auxiliary, AuxiliaryCbBinder> _sub_auxiliary;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix, FixCbBinder> _sub_fix;
 	uavcan::Subscriber<uavcan::equipment::gnss::Fix2, Fix2CbBinder> _sub_fix2;
+	uavcan::Subscriber<ardupilot::gnss::MovingBaselineData, MovingBaselineDataBinder> _sub_moving_baseline_data;
 
 	uavcan::Publisher<ardupilot::gnss::MovingBaselineData> _pub_moving_baseline_data;
 	uavcan::Publisher<uavcan::equipment::gnss::RTCMStream> _pub_rtcm_stream;
@@ -131,6 +137,7 @@ private:
 
 	bool _publish_rtcm_stream{false};
 	bool _publish_moving_baseline_data{false};
+	bool _forward_moving_baseline_data{false};
 
 	perf_counter_t _rtcm_stream_pub_perf{nullptr};
 	perf_counter_t _moving_baseline_data_pub_perf{nullptr};

@@ -369,6 +369,20 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
 PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);
 
 /**
+ * forwarding of moving baseline data
+ *
+ * Subscribe to moving baseline messages on UAVCAN, and broadcast
+ * any incoming messages to all UAVCAN interfaces.
+ * This is useful for operating a GPS-for-yaw system with GPSes on
+ * different CAN buses.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_FWD_MBD, 0);
+
+/**
  * logging verbosity
  *
  * Log messages received on uavcan if they have given severity level or higher.
