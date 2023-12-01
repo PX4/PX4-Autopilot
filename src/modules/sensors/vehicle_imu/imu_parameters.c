@@ -60,3 +60,15 @@ PARAM_DEFINE_INT32(IMU_INTEG_RATE, 200);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_IMU_AUTOCAL, 1);
+
+/**
+ * IMU notify clipping
+ *
+ * Notify the user if the IMU is clipping
+ *
+ * @boolean
+ *
+ * @category system
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_IMU_CLPNOTI, 1);

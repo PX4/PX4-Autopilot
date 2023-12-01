@@ -107,8 +107,6 @@ public:
 	void setCurrentPosition(const float pos) { _state.x = _state_init.x = pos; }
 	float getCurrentPosition() const { return _state.x; }
 
-	float getVelSp() const { return _vel_sp; }
-
 	float getT1() const { return _T1; }
 	float getT2() const { return _T2; }
 	float getT3() const { return _T3; }
@@ -192,12 +190,12 @@ private:
 	inline Trajectory evaluatePoly(float j, float a0, float v0, float x0, float t, int d) const;
 
 	/* Input */
-	float _vel_sp{0.0f};
+	float _vel_sp{0.f};
 
 	/* Constraints */
-	float _max_jerk = 22.f;
-	float _max_accel = 8.f;
-	float _max_vel = 6.f;
+	float _max_jerk{0.f};
+	float _max_accel{0.f};
+	float _max_vel{0.f};
 
 	/* State (previous setpoints) */
 	Trajectory _state{};
@@ -207,9 +205,9 @@ private:
 	Trajectory _state_init{};
 
 	/* Duration of each phase */
-	float _T1 = 0.f; ///< Increasing acceleration [s]
-	float _T2 = 0.f; ///< Constant acceleration [s]
-	float _T3 = 0.f; ///< Decreasing acceleration [s]
+	float _T1{0.f}; ///< Increasing acceleration [s]
+	float _T2{0.f}; ///< Constant acceleration [s]
+	float _T3{0.f}; ///< Decreasing acceleration [s]
 
-	float _local_time = 0.f; ///< Current local time
+	float _local_time{0.f}; ///< Current local time
 };

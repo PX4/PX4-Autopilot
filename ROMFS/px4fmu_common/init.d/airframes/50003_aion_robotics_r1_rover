@@ -13,6 +13,8 @@
 
 . ${R}etc/init.d/rc.rover_defaults
 
+
+
 param set-default BAT1_N_CELLS 4
 
 param set-default EKF2_GBIAS_INIT 0.01
@@ -52,10 +54,9 @@ param set-default GND_MAX_ANG 3.1415
 # Set geometry & output configration
 param set-default CA_AIRFRAME 6
 param set-default CA_R_REV 3
-param set-default PWM_MAIN_FUNC1 101
-param set-default PWM_MAIN_FUNC2 102
-param set-default PWM_MAIN_DIS1 1500
-param set-default PWM_MAIN_DIS2 1500
-param set-default PWM_MAIN_TIM0 50
-param set-default PWM_MAIN_TIM1 50
 
+
+param set-default RBCLW_ADDRESS 128
+param set-default RBCLW_FUNC1 101
+param set-default RBCLW_FUNC2 102
+param set-default RBCLW_REV 1

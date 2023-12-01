@@ -35,8 +35,6 @@
 #include "TrajectoryConstraints.hpp"
 #include <mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
-#include <matrix/matrix/helper_functions.hpp>
-
 
 void PositionSmoothing::_generateSetpoints(
 	const Vector3f &position,
@@ -279,9 +277,14 @@ void PositionSmoothing::_generateTrajectory(
 	Vector2f drone_to_trajectory_xy(position_trajectory_xy - position_xy);
 	float position_error = drone_to_trajectory_xy.length();
 
-	float time_stretch = 1.f - math::constrain(position_error / _max_allowed_horizontal_error, 0.f, 1.f);
+	float time_stretch = 1.f;
 
-	// Don't stretch time if the drone is ahead of the position setpoint
+	// Only stretch time if there's no division by zero and the drone isn't ahead of the position setpoint
+	if ((_max_allowed_horizontal_error > FLT_EPSILON)
+	    && drone_to_trajectory_xy.dot(vel_traj_xy) >= 0) {
+		time_stretch = 1.f - math::constrain(position_error / _max_allowed_horizontal_error, 0.f, 1.f);
+	}
+
 	if (drone_to_trajectory_xy.dot(vel_traj_xy) < 0.f) {
 		time_stretch = 1.f;
 	}

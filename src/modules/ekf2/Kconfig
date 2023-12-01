@@ -22,6 +22,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 airspeed fusion support.
 
+menuconfig EKF2_AUX_GLOBAL_POSITION
+depends on MODULES_EKF2
+	bool "aux global position fusion support"
+	default n
+	---help---
+		EKF2 auxiliary global position fusion support.
+
 menuconfig EKF2_AUXVEL
 depends on MODULES_EKF2
         bool "aux velocity fusion support"

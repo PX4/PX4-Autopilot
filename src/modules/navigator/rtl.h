@@ -190,13 +190,13 @@ private:
 
 	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
-	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, safe points data was updated
+	uint32_t _opaque_id{0}; ///< dataman safepoint id: if it does not match, safe points data was updated
 	bool _safe_points_updated{false}; ///< flag indicating if safe points are updated to dataman cache
 	mutable DatamanCache _dataman_cache_safepoint{"rtl_dm_cache_miss_geo", 4};
 	DatamanClient	&_dataman_client_safepoint = _dataman_cache_safepoint.client();
 	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
 	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
-	int16_t _mission_counter = -1;
+	uint32_t _mission_id = 0u;
 
 	mission_stats_entry_s _stats;
 

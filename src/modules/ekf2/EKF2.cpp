@@ -511,6 +511,8 @@ void EKF2::Run()
 		}
 
 #endif // CONFIG_EKF2_MAGNETOMETER
+
+		_ekf.updateParameters();
 	}
 
 	if (!_callback_registered) {
@@ -1896,6 +1898,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_mag                     = _ekf.control_status_flags().mag;
 		status_flags.cs_ev_yaw_fault            = _ekf.control_status_flags().ev_yaw_fault;
 		status_flags.cs_mag_heading_consistent  = _ekf.control_status_flags().mag_heading_consistent;
+		status_flags.cs_aux_gpos                = _ekf.control_status_flags().aux_gpos;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;

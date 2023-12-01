@@ -45,12 +45,8 @@ param set-default MAV_1_MODE 9
 param set-default SER_TEL1_BAUD 921600
 
 # Vehicle attitude PID tuning
-param set-default MC_ACRO_EXPO 0
-param set-default MC_ACRO_EXPO_Y 0
 param set-default MC_ACRO_P_MAX 200
 param set-default MC_ACRO_R_MAX 200
-param set-default MC_ACRO_SUPEXPO 0
-param set-default MC_ACRO_SUPEXPOY 0
 param set-default MC_ACRO_Y_MAX 150
 param set-default MC_PITCHRATE_D 0.0015
 param set-default MC_ROLLRATE_D 0.0015

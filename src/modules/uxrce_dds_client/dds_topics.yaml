@@ -106,6 +106,9 @@ subscriptions:
   - topic: /fmu/in/sensor_optical_flow
     type: px4_msgs::msg::SensorOpticalFlow
 
+  - topic: /fmu/in/goto_setpoint
+    type: px4_msgs::msg::GotoSetpoint
+
   - topic: /fmu/in/telemetry_status
     type: px4_msgs::msg::TelemetryStatus
 
@@ -147,6 +150,9 @@ subscriptions:
 
   - topic: /fmu/in/actuator_servos
     type: px4_msgs::msg::ActuatorServos
+
+  - topic: /fmu/in/aux_global_position
+    type: px4_msgs::msg::VehicleGlobalPosition
 
 # Create uORB::PublicationMulti
 subscriptions_multi:

@@ -58,7 +58,6 @@ px4_add_romfs_files(
 	4017_nxp_hovergames
 	4019_x500_v2
 	4020_holybro_px4vision_v1_5
-	4040_reaper
 	4041_beta75x
 	4050_generic_250
 	4052_holybro_qav250
@@ -67,7 +66,6 @@ px4_add_romfs_files(
 	4071_ifo
 	4073_ifo-s
 	4500_clover4
-	4900_crazyflie
 	4901_crazyflie21
 
 	# [5000, 5999] Quadrotor +"

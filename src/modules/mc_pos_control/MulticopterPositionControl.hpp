@@ -39,6 +39,7 @@
 
 #include "PositionControl/PositionControl.hpp"
 #include "Takeoff/Takeoff.hpp"
+#include "GotoControl/GotoControl.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <lib/controllib/blocks.hpp>
@@ -176,14 +177,19 @@ private:
 		(ParamFloat<px4::params::MPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
 
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
-		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
+		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all,
+
+		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
+		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
+		(ParamFloat<px4::params::MPC_YAWRAUTO_ACC>) _param_mpc_yawrauto_acc
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
-	PositionControl _control;  /**< class for core PID position control */
+	GotoControl _goto_control; ///< class for handling smooth goto position setpoints
+	PositionControl _control; ///< class for core PID position control
 
 	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
 
@@ -225,4 +231,13 @@ private:
 	 * This should only happen briefly when transitioning and never during mode operation or by design.
 	 */
 	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states, bool warn);
+
+	/**
+	 * @brief adjust existing (or older) setpoint with any EKF reset deltas and update the local counters
+	 *
+	 * @param[in] vehicle_local_position struct containing EKF reset deltas and counters
+	 * @param[out] setpoint trajectory setpoint struct to be adjusted
+	 */
+	void adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
+					trajectory_setpoint_s &setpoint);
 };

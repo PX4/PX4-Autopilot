@@ -302,7 +302,7 @@ bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &lo
 	return _NED_origin_initialised;
 }
 
-bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude)
+bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude, const float eph, const float epv)
 {
 	// sanity check valid latitude/longitude and altitude anywhere between the Mariana Trench and edge of Space
 	if (PX4_ISFINITE(latitude) && (abs(latitude) <= 90)
@@ -339,9 +339,8 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-		// We don't know the uncertainty of the origin
-		_gpos_origin_eph = 0.f;
-		_gpos_origin_epv = 0.f;
+		_gpos_origin_eph = eph;
+		_gpos_origin_epv = epv;
 
 		_NED_origin_initialised = true;
 
@@ -789,7 +788,7 @@ void Ekf::updateDeadReckoningStatus()
 
 void Ekf::updateHorizontalDeadReckoningstatus()
 {
-	const bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel)
+	const bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.aux_gpos)
 				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 				      || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max));
 

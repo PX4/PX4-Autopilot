@@ -57,7 +57,6 @@
 #include <uORB/topics/vehicle_command.h>
 
 #include <lib/mathlib/math/filter/second_order_reference_model.hpp>
-#include <lib/matrix/matrix/helper_functions.hpp>
 #include <motion_planning/VelocitySmoothing.hpp>
 
 // << Follow Target Behavior related constants >>
