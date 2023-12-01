@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,45 +31,12 @@
 #
 ############################################################################
 
-px4_add_library(ActuatorEffectiveness
-	ActuatorEffectiveness.cpp
-	ActuatorEffectiveness.hpp
-	ActuatorEffectivenessUUV.cpp
-	ActuatorEffectivenessUUV.hpp
-	ActuatorEffectivenessControlSurfaces.cpp
-	ActuatorEffectivenessControlSurfaces.hpp
-	ActuatorEffectivenessCustom.cpp
-	ActuatorEffectivenessCustom.hpp
-	ActuatorEffectivenessFixedWing.cpp
-	ActuatorEffectivenessFixedWing.hpp
-	ActuatorEffectivenessHelicopter.cpp
-	ActuatorEffectivenessHelicopter.hpp
-	ActuatorEffectivenessHelicopterCoaxial.cpp
-	ActuatorEffectivenessHelicopterCoaxial.hpp
-	ActuatorEffectivenessMCTilt.cpp
-	ActuatorEffectivenessMCTilt.hpp
-	ActuatorEffectivenessMultirotor.cpp
-	ActuatorEffectivenessMultirotor.hpp
-	ActuatorEffectivenessTilts.cpp
-	ActuatorEffectivenessTilts.hpp
-	ActuatorEffectivenessRotors.cpp
-	ActuatorEffectivenessRotors.hpp
-	ActuatorEffectivenessStandardVTOL.cpp
-	ActuatorEffectivenessStandardVTOL.hpp
-	ActuatorEffectivenessTiltrotorVTOL.cpp
-	ActuatorEffectivenessTiltrotorVTOL.hpp
-	ActuatorEffectivenessTailsitterVTOL.cpp
-	ActuatorEffectivenessTailsitterVTOL.hpp
-	ActuatorEffectivenessRoverAckermann.hpp
-	ActuatorEffectivenessRoverAckermann.cpp
+px4_add_library(DifferentialDriveKinematics
+	DifferentialDriveKinematics.cpp
+	DifferentialDriveKinematics.hpp
 )
 
-target_compile_options(ActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-target_include_directories(ActuatorEffectiveness PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ActuatorEffectiveness
-	PRIVATE
-		mathlib
-)
+target_compile_options(DifferentialDriveKinematics PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(DifferentialDriveKinematics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-px4_add_functional_gtest(SRC ActuatorEffectivenessHelicopterTest.cpp LINKLIBS ActuatorEffectiveness)
-px4_add_functional_gtest(SRC ActuatorEffectivenessRotorsTest.cpp LINKLIBS ActuatorEffectiveness)
+px4_add_unit_gtest(SRC DifferentialDriveKinematicsTest.cpp LINKLIBS DifferentialDriveKinematics)

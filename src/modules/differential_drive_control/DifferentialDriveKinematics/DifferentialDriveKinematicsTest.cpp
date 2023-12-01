@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,54 @@
  *
  ****************************************************************************/
 
-#include "ActuatorEffectivenessRoverDifferential.hpp"
-#include <ControlAllocation/ControlAllocation.hpp>
+#include <gtest/gtest.h>
+#include "DifferentialDriveKinematics.hpp"
+#include <mathlib/math/Functions.hpp>
 
 using namespace matrix;
 
-bool
-ActuatorEffectivenessRoverDifferential::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
+TEST(DifferentialDriveKinematicsTest, AllZeroCaseInverse)
 {
-	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
-		return false;
-	}
-
-	configuration.addActuator(ActuatorType::MOTORS, Vector3f{0.f, 0.f, 0.5f}, Vector3f{0.5f, 0.f, 0.f});
-	configuration.addActuator(ActuatorType::MOTORS, Vector3f{0.f, 0.f, -0.5f}, Vector3f{0.5f, 0.f, 0.f});
-	_motors_mask = (1u << 0) | (1u << 1);
-	return true;
+	DifferentialDriveKinematics kinematics;
+	kinematics.setWheelBase(1.f);
+	kinematics.setWheelRadius(1.f);
+	Vector2f rate_setpoint = {0.f, 0.f};
+	kinematics.setInput(rate_setpoint, true);
+	Vector2f wheel_output = kinematics.getOutput(true);
+	EXPECT_EQ(wheel_output, Vector2f());
 }
 
-void ActuatorEffectivenessRoverDifferential::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+TEST(DifferentialDriveKinematicsTest, InvalidCaseInverse)
 {
-	stopMaskedMotorsWithZeroThrust(_motors_mask, actuator_sp);
+	DifferentialDriveKinematics kinematics;
+	kinematics.setWheelBase(0.f);
+	kinematics.setWheelRadius(0.f);
+	Vector2f rate_setpoint = {0.f, 0.f};
+	kinematics.setInput(rate_setpoint, true);
+	Vector2f wheel_output = kinematics.getOutput(true);
+	EXPECT_EQ(wheel_output, Vector2f());
 }
 
+TEST(DifferentialDriveKinematicsTest, UnitCaseInverse)
+{
+	DifferentialDriveKinematics kinematics;
+	kinematics.setWheelBase(1.f);
+	kinematics.setWheelRadius(1.f);
+	Vector2f rate_setpoint = {1.f, 1.f};
+	kinematics.setInput(rate_setpoint, true);
+	Vector2f wheel_output = kinematics.getOutput(true);
+	Vector2f expected_output = {1.5f, 0.5f};
+	EXPECT_EQ(wheel_output, expected_output);
+}
+
+TEST(DifferentialDriveKinematicsTest, UnitCase)
+{
+	DifferentialDriveKinematics kinematics;
+	kinematics.setWheelBase(1.f);
+	kinematics.setWheelRadius(1.f);
+	Vector2f wheel_input = {1.f, 1.f};
+	kinematics.setInput(wheel_input, false);
+	Vector2f rate_output = kinematics.getOutput(false);
+	Vector2f expected_output = {1.f, 0.f};
+	EXPECT_EQ(rate_output, expected_output);
+}
