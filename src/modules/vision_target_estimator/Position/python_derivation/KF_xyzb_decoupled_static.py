@@ -76,7 +76,7 @@ class Input:
     a = 0
     n_inputs = 1
 
-class Directions:
+class Direction:
     x = 0,
     nb_directions = 1
 
@@ -93,7 +93,7 @@ class VInput(sf.Matrix):
     SHAPE = (Input.n_inputs, 1)
 
 class MDirections(sf.Matrix):
-    SHAPE = (Directions.nb_directions, Directions.nb_directions)
+    SHAPE = (Direction.nb_directions, Direction.nb_directions)
 
 
 def predictState(dt: sf.Scalar, state: VState, acc: VInput) -> (VState):

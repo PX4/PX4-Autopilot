@@ -148,6 +148,25 @@ protected:
 
 private:
 
+	enum ExtendedState {
+		pos_rel_x = 0,
+		pos_rel_y = 1,
+		pos_rel_z = 2,
+		vel_uav_x = 3,
+		vel_uav_y = 4,
+		vel_uav_z = 5,
+		bias_x = 6,
+		bias_y = 7,
+		bias_z = 8,
+		acc_target_x = 9,
+		acc_target_y = 10,
+		acc_target_z = 11,
+		vel_target_x = 12,
+		vel_target_y = 13,
+		vel_target_z = 14,
+		nb_extended_state = 15,
+	};
+
 	static inline bool _is_meas_valid(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_valid_TIMEOUT_US;};
 	static inline bool _is_meas_updated(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_updated_TIMEOUT_US;};
 
@@ -178,10 +197,10 @@ private:
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
 		matrix::Matrix<float, 3, 15>
-		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state = [r_xyz, v_drone_xyz, b_xyz, v_target_xyz, a_target_xyz]
+		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the ExtendedState
 	};
 
-	enum Directions {
+	enum Direction {
 		x = 0,
 		y = 1,
 		z = 2,
