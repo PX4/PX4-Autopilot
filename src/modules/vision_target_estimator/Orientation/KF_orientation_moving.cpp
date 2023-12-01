@@ -96,7 +96,7 @@ bool KF_orientation_moving::update()
 	return true;
 }
 
-void KF_orientation_moving::setH(matrix::Vector<float, 2> h_meas)
+void KF_orientation_moving::setH(const matrix::Vector<float, 2> &h_meas)
 {
 	// h_meas = [theta, theta_dot]; For this filter: [theta, theta_dot]
 
