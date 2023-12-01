@@ -94,10 +94,30 @@ public:
 	virtual void setTargetAccVar(float var) = 0;
 	virtual void setBiasVar(float var) = 0;
 
-	enum Directions {
+	enum Direction {
 		x = 0,
 		y = 1,
 		z = 2,
 		nb_directions = 3,
 	};
+
+	enum ExtendedState {
+		pos_rel_x = 0,
+		pos_rel_y = 1,
+		pos_rel_z = 2,
+		vel_uav_x = 3,
+		vel_uav_y = 4,
+		vel_uav_z = 5,
+		bias_x = 6,
+		bias_y = 7,
+		bias_z = 8,
+		acc_target_x = 9,
+		acc_target_y = 10,
+		acc_target_z = 11,
+		vel_target_x = 12,
+		vel_target_y = 13,
+		vel_target_z = 14,
+		nb_extended_state = 15,
+	};
+
 };

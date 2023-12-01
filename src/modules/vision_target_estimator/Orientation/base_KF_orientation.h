@@ -78,4 +78,10 @@ public:
 	virtual float getVelVar() { return 0.f; };
 
 	virtual float getTestRatio() { return 0.f; };
+
+	enum ExtendedState {
+		yaw = 0,
+		yaw_rate = 1,
+	};
+
 };

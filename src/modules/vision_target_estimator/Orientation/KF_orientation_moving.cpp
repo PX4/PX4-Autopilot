@@ -98,10 +98,8 @@ bool KF_orientation_moving::update()
 
 void KF_orientation_moving::setH(const matrix::Vector<float, 2> &h_meas)
 {
-	// h_meas = [theta, theta_dot]; For this filter: [theta, theta_dot]
-
-	_meas_matrix_row_vect(0) = h_meas(0);
-	_meas_matrix_row_vect(1) = h_meas(1);
+	_meas_matrix_row_vect(State::yaw) = h_meas(ExtendedState::yaw);
+	_meas_matrix_row_vect(State::yaw_rate) = h_meas(ExtendedState::yaw_rate);
 }
 
 void KF_orientation_moving::syncState(float dt)
@@ -116,10 +114,11 @@ float KF_orientation_moving::computeInnovCov(float meas_unc)
 	[h(0)⋅(cov(0;0)⋅h(0) + cov(0;1)⋅h(1)) + h(1)⋅(cov(0;1)⋅h(0) + cov(1;1)⋅h(1)) + r]
 	*/
 
-	_innov_cov = _meas_matrix_row_vect(0) * (_state_covariance(0, 0) * _meas_matrix_row_vect(0) + _state_covariance(0,
-			1) * _meas_matrix_row_vect(1)) + _meas_matrix_row_vect(1) * (_state_covariance(0,
-					1) * _meas_matrix_row_vect(0) + _state_covariance(1,
-							1) * _meas_matrix_row_vect(1)) + meas_unc;
+	_innov_cov = _meas_matrix_row_vect(State::yaw) * (_state_covariance(0,
+			0) * _meas_matrix_row_vect(State::yaw) + _state_covariance(0,
+					1) * _meas_matrix_row_vect(State::yaw_rate)) + _meas_matrix_row_vect(State::yaw_rate) * (_state_covariance(0,
+							1) * _meas_matrix_row_vect(State::yaw) + _state_covariance(1,
+									1) * _meas_matrix_row_vect(State::yaw_rate)) + meas_unc;
 	return _innov_cov;
 }
 

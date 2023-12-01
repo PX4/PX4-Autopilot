@@ -88,29 +88,26 @@ bool KF_xyzb_v_decoupled_moving::update()
 
 void KF_xyzb_v_decoupled_moving::setH(const matrix::Vector<float, 15> &h_meas, int direction)
 {
-	// _state [rx, ry, rz, vdx, vdy, vdz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
-	// idx    [0,   1,  2,   3,   4,   5,  6,  7,  8,   9,  10,  11,  12,  13,  14]
+	if (direction == Direction::x) {
+		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_x);
+		_meas_matrix_row_vect(State::vel_uav) = h_meas(ExtendedState::vel_uav_x);
+		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_x);
+		_meas_matrix_row_vect(State::acc_target) = h_meas(ExtendedState::acc_target_x);
+		_meas_matrix_row_vect(State::vel_target) = h_meas(ExtendedState::vel_target_x);
 
-	if (direction == Directions::x) {
-		_meas_matrix_row_vect(0) = h_meas(0);
-		_meas_matrix_row_vect(1) = h_meas(3);
-		_meas_matrix_row_vect(2) = h_meas(6);
-		_meas_matrix_row_vect(3) = h_meas(9);
-		_meas_matrix_row_vect(4) = h_meas(12);
+	} else if (direction == Direction::y) {
+		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_y);
+		_meas_matrix_row_vect(State::vel_uav) = h_meas(ExtendedState::vel_uav_y);
+		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_y);
+		_meas_matrix_row_vect(State::acc_target) = h_meas(ExtendedState::acc_target_y);
+		_meas_matrix_row_vect(State::vel_target) = h_meas(ExtendedState::vel_target_y);
 
-	} else if (direction == Directions::y) {
-		_meas_matrix_row_vect(0) = h_meas(1);
-		_meas_matrix_row_vect(1) = h_meas(4);
-		_meas_matrix_row_vect(2) = h_meas(7);
-		_meas_matrix_row_vect(3) = h_meas(10);
-		_meas_matrix_row_vect(4) = h_meas(13);
-
-	} else {
-		_meas_matrix_row_vect(0) = h_meas(2);
-		_meas_matrix_row_vect(1) = h_meas(5);
-		_meas_matrix_row_vect(2) = h_meas(8);
-		_meas_matrix_row_vect(3) = h_meas(11);
-		_meas_matrix_row_vect(4) = h_meas(14);
+	} else if (direction == Direction::z)  {
+		_meas_matrix_row_vect(State::pos_rel) = h_meas(ExtendedState::pos_rel_z);
+		_meas_matrix_row_vect(State::vel_uav) = h_meas(ExtendedState::vel_uav_z);
+		_meas_matrix_row_vect(State::bias) = h_meas(ExtendedState::bias_z);
+		_meas_matrix_row_vect(State::acc_target) = h_meas(ExtendedState::acc_target_z);
+		_meas_matrix_row_vect(State::vel_target) = h_meas(ExtendedState::vel_target_z);
 	}
 
 }
