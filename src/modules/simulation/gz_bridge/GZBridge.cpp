@@ -98,7 +98,7 @@ int GZBridge::init()
 			// If model position z is less equal than 0, move above floor to prevent floor glitching
 			if (model_pose_v[2] <= 0.0) {
 				PX4_INFO("Model position z is less or equal 0.0, moving upwards");
-				model_pose_v[2] = 1.0;
+				model_pose_v[2] = 0.5;
 			}
 
 			gz::msgs::Pose *p = req.mutable_pose();
