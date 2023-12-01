@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# @name Aion Robotics R1 Rover
+# @type Rover
+# @class Rover
+
+. ${R}etc/init.d/rc.rover_differential_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=r1_rover}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+
+param set-default COM_PREARM_MODE 2
+
+param set-default NAV_ACC_RAD 0.5
+param set-default NAV_LOITER_RAD 2
+
+param set-default GND_MAX_ANG 0.6
+param set-default GND_WHEEL_BASE 2.0
+
+param set-default CA_R_REV 3
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_MIN1 0
+param set-default SIM_GZ_EC_MAX1 200
+param set-default SIM_GZ_EC_DIS1 100
+
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_MIN2 0
+param set-default SIM_GZ_EC_MAX2 200
+param set-default SIM_GZ_EC_DIS2 100
+
+param set-default SIM_GZ_MT_FUNC1 101
+param set-default SIM_GZ_MT_MIN1 0
+param set-default SIM_GZ_MT_MAX1 200
+param set-default SIM_GZ_MT_DIS1 100
+
+param set-default SIM_GZ_MT_FUNC2 102
+param set-default SIM_GZ_MT_MIN2 0
+param set-default SIM_GZ_MT_MAX2 200
+param set-default SIM_GZ_MT_DIS2 100
