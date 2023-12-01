@@ -69,11 +69,7 @@ bool KF_orientation_static::update()
 
 void KF_orientation_static::setH(const matrix::Vector<float, 2> &h_meas)
 {
-	// h_meas = [theta, theta_dot]
-
-	// For this filter: [theta]
-
-	_meas_matrix_row_vect = h_meas(0);
+	_meas_matrix_row_vect = h_meas(ExtendedState::yaw);
 }
 
 void KF_orientation_static::syncState(float dt)

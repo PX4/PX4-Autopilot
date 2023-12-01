@@ -117,6 +117,11 @@ protected:
 
 private:
 
+	enum ExtendedState {
+		yaw = 0,
+		yaw_rate = 1,
+	};
+
 	bool _has_timed_out{false};
 
 	enum class TargetMode {
