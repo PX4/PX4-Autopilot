@@ -70,7 +70,7 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt, float acc) override;
 
-	void setH(matrix::Vector<float, 15> h_meas, int direction) override;
+	void setH(const matrix::Vector<float, 15> &h_meas, int direction) override;
 
 	virtual float computeInnovCov(float measUnc) override;
 	virtual float computeInnov(float meas) override;
