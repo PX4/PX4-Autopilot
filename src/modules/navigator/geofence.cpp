@@ -155,6 +155,7 @@ void Geofence::_updateFence()
 				polygon.dataman_index = current_seq;
 				polygon.fence_type = mission_fence_point.nav_cmd;
 				polygon.fence_action = mission_fence_point.fence_action;
+				polygon.max_alt = mission_fence_point.alt;
 
 				if (is_circle_area) {
 					polygon.circle_radius = mission_fence_point.circle_radius;
@@ -205,7 +206,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 	// to be inside the geofence both fences have to report being inside
 	// as they both report being inside when not enabled
-	inside_fence = inside_fence && isInsidePolygonOrCircle(lat, lon, altitude);
+	inside_fence = inside_fence && isInsideFence(lat, lon, altitude);
 
 	if (inside_fence) {
 		_outside_counter = 0;
@@ -314,7 +315,7 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 	return inside_fence;
 }
 
-bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
+bool Geofence::isInsideFence(double lat, double lon, float altitude)
 {
 	// the following uses dm_read, so first we try to lock all items. If that fails, it (most likely) means
 	// the data is currently being updated (via a mavlink geofence transfer), and we do not check for a violation now
@@ -348,23 +349,28 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	/* Horizontal check: iterate all polygons & circles.
 	Search for a breached fence with the highest severity. */
 	bool inside_fence = true;
+	_is_max_altitude_exceeded = false;
 
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
 
-		bool polygon_breached = false;
+		bool fence_breached = false;
 
 		if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
 			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
 
 			if (!inside) {
-				polygon_breached = true;
+				fence_breached = true;
+
+			} else if (altitude > _polygons[polygon_index].max_alt) {
+				fence_breached = true;
+				_is_max_altitude_exceeded = true;
 			}
 
 		} else if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
 
 			if (inside) {
-				polygon_breached = true;
+				fence_breached = true;
 			}
 
 		} else { // it's a polygon
@@ -372,17 +378,21 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 
 			if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
 				if (!inside) {
-					polygon_breached = true;
+					fence_breached = true;
+
+				} else if (altitude > _polygons[polygon_index].max_alt) {
+					fence_breached = true;
+					_is_max_altitude_exceeded = true;
 				}
 
 			} else { // exclusion
 				if (inside) {
-					polygon_breached = true;
+					fence_breached = true;
 				}
 			}
 		}
 
-		if (polygon_breached) {
+		if (fence_breached) {
 			inside_fence = false;
 
 			if (_breached_fence_action < _polygons[polygon_index].fence_action) {
@@ -394,6 +404,11 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	dm_unlock(DM_KEY_FENCE_POINTS);
 
 	return inside_fence;
+}
+
+bool Geofence::isMaxAltitudeExceeded()
+{
+	return _is_max_altitude_exceeded;
 }
 
 bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude)

@@ -113,13 +113,13 @@ GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type
 		waypoint_from_heading_and_distance(_current_pos_lat_lon(0), _current_pos_lat_lon(1), bearing_90_left,
 						   _test_point_distance, &fence_violation_test_point_lat, &fence_violation_test_point_lon);
 
-		const bool left_side_is_inside_fence = geofence->isInsidePolygonOrCircle(fence_violation_test_point_lat,
+		const bool left_side_is_inside_fence = geofence->isInsideFence(fence_violation_test_point_lat,
 						       fence_violation_test_point_lon, _current_alt_amsl);
 
 		waypoint_from_heading_and_distance(_current_pos_lat_lon(0), _current_pos_lat_lon(1), bearing_90_right,
 						   _test_point_distance, &fence_violation_test_point_lat, &fence_violation_test_point_lon);
 
-		const bool right_side_is_inside_fence = geofence->isInsidePolygonOrCircle(fence_violation_test_point_lat,
+		const bool right_side_is_inside_fence = geofence->isInsideFence(fence_violation_test_point_lat,
 							fence_violation_test_point_lon, _current_alt_amsl);
 
 		float bearing_to_loiter_point;
@@ -162,7 +162,7 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 		while (abs(current_max - current_min) > 0.5f) {
 			test_point = waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, current_distance);
 
-			if (!geofence->isInsidePolygonOrCircle(test_point(0), test_point(1), _current_alt_amsl)) {
+			if (!geofence->isInsideFence(test_point(0), test_point(1), _current_alt_amsl)) {
 				current_max = current_distance;
 
 			} else {

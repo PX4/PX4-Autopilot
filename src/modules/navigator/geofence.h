@@ -110,7 +110,9 @@ public:
 
 	bool isBelowMaxAltitude(float altitude);
 
-	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
+	virtual bool isInsideFence(double lat, double lon, float altitude);
+
+	bool isMaxAltitudeExceeded();
 
 	int clearDm();
 
@@ -158,7 +160,8 @@ private:
 
 	struct PolygonInfo {
 		uint16_t fence_type;	///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
-		uint8_t fence_action; 	///< fence action when this fence is breached
+		uint8_t fence_action;	///< fence action when this fence is breached
+		float max_alt;		///< Maximum altitude (AMSL) for polygon
 		uint16_t dataman_index;
 		union {
 			uint16_t vertex_count;
@@ -178,6 +181,7 @@ private:
 	int _num_polygons{0};
 	bool _has_rtl_action{false}; ///< at least one of the fences has GF_ACTION_RTL
 	bool _action_required{false}; ///< flag indicating if a fence with an action different than GF_ACTION_NONE exists
+	bool _is_max_altitude_exceeded{false}; ///< flag indicating if the vehicle exceeded the maximum allowed altitude for the fence
 
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 

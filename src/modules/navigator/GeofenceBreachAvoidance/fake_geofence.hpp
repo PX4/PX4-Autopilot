@@ -51,7 +51,7 @@ public:
 
 	virtual ~FakeGeofence() {};
 
-	bool isInsidePolygonOrCircle(double lat, double lon, float altitude) override
+	bool isInsideFence(double lat, double lon, float altitude) override
 	{
 		switch (_probe_function_behavior) {
 		case ProbeFunction::ALL_POINTS_OUTSIDE: {
