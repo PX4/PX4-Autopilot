@@ -361,7 +361,8 @@ bool Geofence::isInsideFence(double lat, double lon, float altitude)
 			if (!inside) {
 				fence_breached = true;
 
-			} else if (altitude > _polygons[polygon_index].max_alt) {
+			} else if ((static_cast<int32_t>(_polygons[polygon_index].max_alt) != DISABLED_MAX_ALTITUDE_CHECK) &&
+				   (altitude > _polygons[polygon_index].max_alt)) {
 				fence_breached = true;
 				_is_max_altitude_exceeded = true;
 			}
@@ -380,7 +381,8 @@ bool Geofence::isInsideFence(double lat, double lon, float altitude)
 				if (!inside) {
 					fence_breached = true;
 
-				} else if (altitude > _polygons[polygon_index].max_alt) {
+				} else if ((static_cast<int32_t>(_polygons[polygon_index].max_alt) != DISABLED_MAX_ALTITUDE_CHECK) &&
+					   (altitude > _polygons[polygon_index].max_alt)) {
 					fence_breached = true;
 					_is_max_altitude_exceeded = true;
 				}
@@ -394,9 +396,17 @@ bool Geofence::isInsideFence(double lat, double lon, float altitude)
 
 		if (fence_breached) {
 			inside_fence = false;
+			uint8_t current_fence_action = geofence_result_s::GF_ACTION_NONE;
 
-			if (_breached_fence_action < _polygons[polygon_index].fence_action) {
-				_breached_fence_action = _polygons[polygon_index].fence_action;
+			if (geofence_result_s::GF_ACTION_DEFAULT == _polygons[polygon_index].fence_action) {
+				current_fence_action = legacyActionTranslator(_param_geofence_action.get());
+
+			} else {
+				current_fence_action = _polygons[polygon_index].fence_action;
+			}
+
+			if (_breached_fence_action < current_fence_action) {
+				_breached_fence_action = current_fence_action;
 			}
 		}
 	}
@@ -620,6 +630,61 @@ int Geofence::clearDm()
 	dm_clear(DM_KEY_FENCE_POINTS);
 	updateFence();
 	return PX4_OK;
+}
+
+uint8_t Geofence::getGeofenceAction()
+{
+	uint8_t fence_action;
+
+	if (geofence_result_s::GF_ACTION_DEFAULT == _breached_fence_action) {
+		fence_action = legacyActionTranslator(_param_geofence_action.get());
+
+	} else {
+		fence_action = _breached_fence_action;
+	}
+
+	return fence_action;
+}
+
+uint8_t Geofence::legacyActionTranslator(uint8_t param_action)
+{
+	uint8_t actual_action = geofence_result_s::GF_ACTION_NONE;
+
+	switch (param_action) {
+	case GF_PARAM_ACTION_NONE:
+		actual_action = geofence_result_s::GF_ACTION_NONE;
+		break;
+
+	case GF_PARAM_ACTION_WARNING:
+		actual_action = geofence_result_s::GF_ACTION_WARN;
+		break;
+
+	case GF_PARAM_ACTION_HOLD_MODE:
+		actual_action = geofence_result_s::GF_ACTION_LOITER;
+		break;
+
+	case GF_PARAM_ACTION_RETURN_MODE:
+		actual_action = geofence_result_s::GF_ACTION_RTL;
+		break;
+
+	case GF_PARAM_ACTION_TERMINATE:
+		actual_action = geofence_result_s::GF_ACTION_TERMINATE;
+		break;
+
+	case GF_PARAM_ACTION_LAND_MODE:
+		actual_action = geofence_result_s::GF_ACTION_LAND;
+		break;
+
+	default:
+		break;
+	}
+
+	return actual_action;
+}
+
+bool Geofence::isActionRequired()
+{
+	return _action_required || _param_geofence_action.get() != GF_PARAM_ACTION_NONE;
 }
 
 bool Geofence::isHomeRequired()

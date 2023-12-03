@@ -78,6 +78,16 @@ public:
 		GF_SOURCE_GPS = 1
 	};
 
+	/* Legacy actions from parameters */
+	enum {
+		GF_PARAM_ACTION_NONE = 0,
+		GF_PARAM_ACTION_WARNING = 1,
+		GF_PARAM_ACTION_HOLD_MODE = 2,
+		GF_PARAM_ACTION_RETURN_MODE = 3,
+		GF_PARAM_ACTION_TERMINATE = 4,
+		GF_PARAM_ACTION_LAND_MODE = 5
+	};
+
 	/**
 	 * update the geofence from dataman.
 	 * It's generally not necessary to call this as it will automatically update when the data is changed.
@@ -142,13 +152,14 @@ public:
 	bool isEmpty() { return _num_polygons == 0; }
 
 	int getSource() { return _param_gf_source.get(); }
-	uint8_t getGeofenceAction() { return _breached_fence_action; }
+	uint8_t getGeofenceAction();
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
 
-	bool isActionRequired() { return _action_required; }
+	uint8_t legacyActionTranslator(uint8_t param_action);
+	bool isActionRequired();
 	bool isHomeRequired();
 
 	/**
@@ -190,7 +201,7 @@ private:
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
 
-	uint8_t _breached_fence_action{geofence_result_s::GF_ACTION_NONE}; ///< Most severe fence action from the breached fence
+	uint8_t _breached_fence_action{geofence_result_s::GF_ACTION_DEFAULT}; ///< Most severe fence action from the breached fence
 
 	/**
 	 * implementation of updateFence(), but without locking
@@ -227,7 +238,10 @@ private:
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
+	static constexpr int32_t DISABLED_MAX_ALTITUDE_CHECK = 0;
+
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::GF_ACTION>)         _param_geofence_action,
 		(ParamInt<px4::params::GF_ALTMODE>)        _param_gf_altmode,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
