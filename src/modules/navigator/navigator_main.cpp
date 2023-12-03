@@ -934,6 +934,8 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 			/* Reset the _geofence_violation_warning_sent field */
 			_geofence_violation_warning_sent = false;
+
+			_geofence.resetGeofenceAction();
 		}
 
 		_geofence_result_pub.publish(_geofence_result);

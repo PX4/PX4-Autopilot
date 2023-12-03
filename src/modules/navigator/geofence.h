@@ -152,6 +152,7 @@ public:
 	bool isEmpty() { return _num_polygons == 0; }
 
 	int getSource() { return _param_gf_source.get(); }
+	void resetGeofenceAction() { _breached_fence_action = geofence_result_s::GF_ACTION_DEFAULT; }
 	uint8_t getGeofenceAction();
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }

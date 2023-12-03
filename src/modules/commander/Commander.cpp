@@ -2543,8 +2543,15 @@ Commander::run()
 		    && geofence_action_enabled
 		    && !in_low_battery_failsafe_delay) {
 
+			if (!_geofence_result.geofence_violated) {
+				// keep the previous action to NONE if there is no violation, and use the same fence action multiple times.
+				_geofence_action_prev = geofence_result_s::GF_ACTION_NONE;
+			}
+
 			// check for geofence violation transition
 			if (_geofence_result.geofence_violated && _geofence_action_prev != _geofence_result.geofence_action) {
+
+				_geofence_action_prev = _geofence_result.geofence_action;
 
 				switch (_geofence_result.geofence_action) {
 				case (geofence_result_s::GF_ACTION_NONE) : {
@@ -2601,8 +2608,6 @@ Commander::run()
 					}
 				}
 			}
-
-			_geofence_action_prev = _geofence_result.geofence_action;
 
 			// reset if no longer in LOITER or if manually switched to LOITER
 			const bool in_loiter_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
