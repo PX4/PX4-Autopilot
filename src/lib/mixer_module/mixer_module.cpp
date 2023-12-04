@@ -528,10 +528,10 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	uint16_t effective_output = value * (_max_value[i] - _min_value[i]) / 2 + (_max_value[i] + _min_value[i]) / 2;
+	const float output = math::interpolate(value, -1.f, 1.f,
+					       static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
 
-	// last line of defense against invalid inputs
-	return math::constrain(effective_output, _min_value[i], _max_value[i]);
+	return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
 }
 
 void
