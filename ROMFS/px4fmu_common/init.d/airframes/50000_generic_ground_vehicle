@@ -13,7 +13,7 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.rover_ackermann_defaults
+. ${R}etc/init.d/rc.rover_defaults
 
 
 param set-default BAT1_N_CELLS 2

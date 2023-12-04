@@ -30,13 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 add_subdirectory(DifferentialDriveKinematics)
 
 px4_add_module(
 	MODULE modules__differential_drive_control
 	MAIN differential_drive_control
-	COMPILE_FLAGS
-		#-DDEBUG_BUILD
 	SRCS
 		DifferentialDriveControl.cpp
 		DifferentialDriveControl.hpp

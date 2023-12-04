@@ -1,11 +1,11 @@
 #!/bin/sh
-#
-# UGV default parameters.
-#
-# NOTE: Script variables are declared/initialized/unset in the rcS script.
-#
+# Differential rover parameters.
 
 set VEHICLE_TYPE rover_differential
 
-# MAV_TYPE_GROUND_ROVER 10
-param set-default MAV_TYPE 10
+param set-default MAV_TYPE 10 # MAV_TYPE_GROUND_ROVER
+
+param set-default CA_AIRFRAME 6 # Rover (Differential)
+param set-default CA_R_REV 3 # Right and left motors reversible
+
+param set-default EKF2_MAG_TYPE 1 # make sure magnetometer is fused even when not flying
