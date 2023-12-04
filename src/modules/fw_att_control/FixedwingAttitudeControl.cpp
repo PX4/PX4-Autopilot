@@ -379,6 +379,16 @@ void FixedwingAttitudeControl::Run()
 					_rates_sp.timestamp = hrt_absolute_time();
 
 					_rate_sp_pub.publish(_rates_sp);
+
+					fixed_wing_attitude_control_helper_s fixed_wing_attitude_control_helper{};
+					fixed_wing_attitude_control_helper.timestamp = hrt_absolute_time();
+					fixed_wing_attitude_control_helper.roll = euler_sp.phi();
+					fixed_wing_attitude_control_helper.pitch = euler_sp.theta();
+					fixed_wing_attitude_control_helper.yaw = euler_sp.psi();
+					fixed_wing_attitude_control_helper.euler_rate_setpoint_roll = _roll_ctrl.get_euler_rate_setpoint();
+					fixed_wing_attitude_control_helper.euler_rate_setpoint_pitch = _pitch_ctrl.get_euler_rate_setpoint();
+					fixed_wing_attitude_control_helper.euler_rate_setpoint_yaw = _yaw_ctrl.get_euler_rate_setpoint();
+					_fixed_wing_attitude_control_helper_pub.publish(fixed_wing_attitude_control_helper);
 				}
 			}
 

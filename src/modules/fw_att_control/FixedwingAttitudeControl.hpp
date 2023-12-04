@@ -66,6 +66,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/fixed_wing_attitude_control_helper.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -114,6 +115,7 @@ private:
 	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub;
 	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<landing_gear_wheel_s>		_landing_gear_wheel_pub{ORB_ID(landing_gear_wheel)};
+	uORB::Publication<fixed_wing_attitude_control_helper_s>	_fixed_wing_attitude_control_helper_pub{ORB_ID(fixed_wing_attitude_control_helper)};
 
 	manual_control_setpoint_s		_manual_control_setpoint{};
 	vehicle_attitude_setpoint_s		_att_sp{};
