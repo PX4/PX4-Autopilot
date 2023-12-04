@@ -33,10 +33,8 @@
 
 px4_add_library(DifferentialDriveKinematics
 	DifferentialDriveKinematics.cpp
-	DifferentialDriveKinematics.hpp
 )
 
-target_compile_options(DifferentialDriveKinematics PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_include_directories(DifferentialDriveKinematics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_unit_gtest(SRC DifferentialDriveKinematicsTest.cpp LINKLIBS DifferentialDriveKinematics)

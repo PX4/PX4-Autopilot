@@ -77,8 +77,9 @@ bool GZMixingInterfaceWheel::updateOutputs(bool stop_wheels, uint16_t outputs[MA
 		wheel_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
 
 		for (unsigned i = 0; i < active_output_count; i++) {
-			float output_scaler = 100.0f;
-			float scaled_output = (float)outputs[i] - output_scaler;
+			// Offsetting the output allows for negative values despite unsigned integer to reverse the wheels
+			static constexpr float output_offset = 100.0f;
+			float scaled_output = (float)outputs[i] - output_offset;
 			wheel_velocity_message.set_velocity(i, scaled_output);
 		}
 
