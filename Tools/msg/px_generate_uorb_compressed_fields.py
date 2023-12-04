@@ -146,6 +146,7 @@ def write_fields_to_hpp_file(file_name: str, definitions: dict, window_length: i
                              format_list: [str]):
     max_tokenized_field_length, max_tokenized_field_length_msg = max(
         ((len(definitions[k]['fields']), k) for k in definitions), key=itemgetter(0))
+    max_untokenized_field_length = max(definitions[k]['fields_total_length'] for k in definitions)
     max_num_orb_ids = max(len(definitions[k]['orb_ids']) for k in definitions)
     max_num_orb_id_dependencies = max(len(definitions[k]['dependencies']) for k in definitions)
 
@@ -167,6 +168,7 @@ const uint8_t* orb_compressed_message_formats();
 unsigned orb_compressed_message_formats_size();
 
 static constexpr unsigned orb_tokenized_fields_max_length = {MAX_TOKENIZED_FIELD_LENGTH}; // {MAX_TOKENIZED_FIELD_LENGTH_MSG}
+static constexpr unsigned orb_untokenized_fields_max_length = {MAX_UNTOKENIZED_FIELD_LENGTH};
 static constexpr unsigned orb_compressed_max_num_orb_ids = {MAX_NUM_ORB_IDS};
 static constexpr unsigned orb_compressed_max_num_orb_id_dependencies = {MAX_NUM_ORB_ID_DEPENDENCIES};
 
@@ -179,6 +181,7 @@ static constexpr unsigned orb_compressed_heatshrink_lookahead_length = {LOOKAHEA
 '''
                           .replace('{MAX_TOKENIZED_FIELD_LENGTH}', str(max_tokenized_field_length))
                           .replace('{MAX_TOKENIZED_FIELD_LENGTH_MSG}', max_tokenized_field_length_msg)
+                          .replace('{MAX_UNTOKENIZED_FIELD_LENGTH}', str(max_untokenized_field_length))
                           .replace('{MAX_NUM_ORB_IDS}', str(max_num_orb_ids))
                           .replace('{MAX_NUM_ORB_ID_DEPENDENCIES}', str(max_num_orb_id_dependencies))
                           .replace('{WINDOW_LENGTH}', str(window_length))
