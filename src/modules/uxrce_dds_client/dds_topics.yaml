@@ -76,9 +76,6 @@ subscriptions:
   - topic: /fmu/in/register_ext_component_request
     type: px4_msgs::msg::RegisterExtComponentRequest
 
-  - topic: /fmu/in/differential_drive_setpoint
-    type: px4_msgs::msg::DifferentialDriveSetpoint
-
   - topic: /fmu/in/unregister_ext_component
     type: px4_msgs::msg::UnregisterExtComponent
 
@@ -129,6 +126,9 @@ subscriptions:
 
   - topic: /fmu/in/vehicle_rates_setpoint
     type: px4_msgs::msg::VehicleRatesSetpoint
+
+  - topic: /fmu/in/differential_drive_setpoint
+    type: px4_msgs::msg::DifferentialDriveSetpoint
 
   - topic: /fmu/in/vehicle_visual_odometry
     type: px4_msgs::msg::VehicleOdometry

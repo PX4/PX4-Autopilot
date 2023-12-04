@@ -33,20 +33,36 @@
 
 #include "DifferentialDriveKinematics.hpp"
 
-void DifferentialDriveKinematics::setWheelBase(float wheel_base)
+#include <mathlib/mathlib.h>
+
+using namespace matrix;
+
+matrix::Vector2f DifferentialDriveKinematics::computeInverseKinematics(float linear_velocity_x, float yaw_rate)
 {
-	_wheel_base = wheel_base;
+	if (_max_speed < FLT_EPSILON) {
+		return Vector2f();
+	}
+
+	linear_velocity_x = math::constrain(linear_velocity_x, -_max_speed, _max_speed);
+	yaw_rate = math::constrain(yaw_rate, -_max_angular_velocity, _max_angular_velocity);
+
+	const float rotational_velocity = (_wheel_base / 2.f) * yaw_rate;
+	float combined_velocity = fabsf(linear_velocity_x) + fabsf(rotational_velocity);
+
+	// Compute an initial gain
+	float gain = 1.0f;
+
+	if (combined_velocity > _max_speed) {
+		float excess_velocity = fabsf(combined_velocity - _max_speed);
+		float adjusted_linear_velocity = fabsf(linear_velocity_x) - excess_velocity;
+		gain = adjusted_linear_velocity / fabsf(linear_velocity_x);
+	}
+
+	// Apply the gain
+	linear_velocity_x *= gain;
+
+	// Calculate the left and right wheel speeds
+	return Vector2f(linear_velocity_x - rotational_velocity,
+			linear_velocity_x + rotational_velocity) / _max_speed;
 }
 
-void DifferentialDriveKinematics::setWheelRadius(float wheel_radius)
-{
-	_wheel_radius = wheel_radius;
-}
-
-matrix::Vector2f DifferentialDriveKinematics::computeInverseKinematics(float linear_vel_x, float yaw_rate)
-{
-	float motor_vel_right = linear_vel_x / _wheel_radius - _wheel_base / 2.f * yaw_rate / _wheel_radius;
-	float motor_vel_left = linear_vel_x / _wheel_radius + _wheel_base / 2.f * yaw_rate / _wheel_radius;
-
-	return matrix::Vector2f(motor_vel_right, motor_vel_left);
-}

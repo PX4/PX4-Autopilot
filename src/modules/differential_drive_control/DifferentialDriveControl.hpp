@@ -51,9 +51,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
-
-// Cruise mode
-#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/differential_drive_setpoint.h>
 
 // Standard library includes
@@ -72,55 +69,47 @@ public:
 	DifferentialDriveControl();
 	~DifferentialDriveControl() override = default;
 
+	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[])
-	{
-		return print_usage("unknown command");
-	}
+	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
+	bool init();
 
-	void start();
+protected:
+	void updateParams() override;
 
 private:
-
 	void Run() override;
-	void publishWheelControl();
-	void vehicle_control_mode_poll();
 
-	uORB::PublicationMulti<actuator_motors_s> _outputs_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
-
-
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _differential_drive_setpoint_sub{ORB_ID(differential_drive_setpoint)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _differential_drive_setpoint_sub{ORB_ID(differential_drive_setpoint)};
+
+	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
 
 	differential_drive_setpoint_s _differential_drive_setpoint{};
-	vehicle_control_mode_s _vehicle_control_mode{};
-	actuator_motors_s _actuator_motors{};
+	DifferentialDriveKinematics _differential_drive_kinematics{};
 
-	DifferentialDriveKinematics _differential_drive_kinematics;
-
-	matrix::Vector2f _velocity_control_inputs{0.f, 0.f}; // [m/s] collective roll-off speed in body x-axis, [rad/s] yaw rate
-	matrix::Vector2f _output_inverse{0.0f, 0.0f}; // [rad/s] Right Motor, [rad/s] Left Motor
-
-	float _last_timestamp{0.f};
-	float _current_timestamp{0.f};
+	bool _armed = false;
+	bool _manual_driving = false;
+	float _max_speed{0.f};
+	float _max_angular_velocity{0.f};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RDD_MAX_SPEED>) _param_rdd_max_speed,
-		(ParamFloat<px4::params::RDD_MAX_ANG_VEL>) _param_rdd_max_angular_velocity,
+		(ParamFloat<px4::params::RDD_SPEED_SCALE>) _param_rdd_speed_scale,
+		(ParamFloat<px4::params::RDD_ANG_SCALE>) _param_rdd_ang_velocity_scale,
+		(ParamFloat<px4::params::RDD_WHL_SPEED>) _param_rdd_max_wheel_speed,
 		(ParamFloat<px4::params::RDD_WHEEL_BASE>) _param_rdd_wheel_base,
-		(ParamFloat<px4::params::RDD_WHEEL_RADIUS>) _param_rdd_wheel_radius
+		(ParamFloat<px4::params::RDD_WHEEL_RADIUS>) _param_rdd_wheel_radius,
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
 	)
 };
 

@@ -2,4 +2,4 @@ menuconfig MODULES_DIFFERENTIAL_DRIVE_CONTROL
 	bool "differential_drive_control"
 	default y
 	---help---
-		Enable support for differential_drive_control
+		Enable support for control of differential drive rovers

@@ -1,24 +1,11 @@
 #!/bin/sh
-#
-# Standard apps for unmanned ground vehicles (UGV).
-#
-# NOTE: Script variables are declared/initialized/unset in the rcS script.
-#
+# Standard apps for a differential drive rover.
 
-#
 # Start the attitude and position estimator.
-#
 ekf2 start &
-#attitude_estimator_q start
-#local_position_estimator start
 
-#
-# Start manual rover differential drive controller.
-#
+# Start rover differential drive controller.
 differential_drive_control start
 
-
-#
 # Start Land Detector.
-#
 land_detector start rover
