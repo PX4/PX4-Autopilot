@@ -172,21 +172,20 @@ void Tailsitter::update_transition_state()
 			// calculate rotation axis for transition.
 			_q_trans_start = Quatf(_v_att->q);
 			Vector3f z = -_q_trans_start.dcm_z();
-			_trans_rot_axis = z.cross(Vector3f(0, 0, -1));
+			_trans_rot_axis = z.cross(Vector3f(0.f, 0.f, -1.f));
 
 			// as heading setpoint we choose the heading given by the direction the vehicle points
-			float yaw_sp = atan2f(z(1), z(0));
+			const float yaw_sp = atan2f(z(1), z(0));
 
 			// the intial attitude setpoint for a backtransition is a combination of the current fw pitch setpoint,
 			// the yaw setpoint and zero roll since we want wings level transition.
-			// If for some reason the fw attitude setpoint is not recent then don't sue it and assume 0 pitch
+			// If for some reason the fw attitude setpoint is not recent then don't use it and assume 0 pitch
 			if (_fw_virtual_att_sp->timestamp > (now - 1_s)) {
-				_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+				_q_trans_start = Eulerf(0.f, _fw_virtual_att_sp->pitch_body, yaw_sp);
 
 			} else {
-				_q_trans_start = Eulerf(0.0f, 0.f, yaw_sp);
+				_q_trans_start = Eulerf(0.f, 0.f, yaw_sp);
 			}
-
 
 			// attitude during transitions are controlled by mc attitude control so rotate the desired attitude to the
 			// multirotor frame
@@ -194,9 +193,9 @@ void Tailsitter::update_transition_state()
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
 			// initial attitude setpoint for the transition should be with wings level
-			_q_trans_start = Eulerf(0.0f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
-			Vector3f x = Dcmf(Quatf(_v_att->q)) * Vector3f(1, 0, 0);
-			_trans_rot_axis = -x.cross(Vector3f(0, 0, -1));
+			_q_trans_start = Eulerf(0.f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
+			Vector3f x = Dcmf(Quatf(_v_att->q)) * Vector3f(1.f, 0.f, 0.f);
+			_trans_rot_axis = -x.cross(Vector3f(0.f, 0.f, -1.f));
 		}
 
 		_q_trans_sp = _q_trans_start;
@@ -206,10 +205,8 @@ void Tailsitter::update_transition_state()
 	_q_trans_sp.normalize();
 
 	// tilt angle (zero if vehicle nose points up (hover))
-	float cos_tilt = _q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) *
-			 _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3);
-	cos_tilt = cos_tilt >  1.0f ?  1.0f : cos_tilt;
-	cos_tilt = cos_tilt < -1.0f ? -1.0f : cos_tilt;
+	const float cos_tilt = math::constrain(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) -
+					       _q_trans_sp(2) * _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3), -1.f, 1.f);
 	const float tilt = acosf(cos_tilt);
 
 	if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
