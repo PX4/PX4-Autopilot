@@ -79,7 +79,7 @@ void RTL::updateDatamanCache()
 	case DatamanState::Read:
 
 		_dataman_state	= DatamanState::ReadWait;
-		success = _dataman_client_safepoint.readAsync(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&_stats),
+		success = _dataman_client_safepoint.readAsync(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&_stats),
 				sizeof(mission_stats_entry_s));
 
 		if (!success) {
@@ -110,8 +110,8 @@ void RTL::updateDatamanCache()
 					_dataman_cache_safepoint.resize(_stats.num_items);
 				}
 
-				for (int index = 1; index <= _dataman_cache_safepoint.size(); ++index) {
-					_dataman_cache_safepoint.load(DM_KEY_SAFE_POINTS, index);
+				for (int index = 0; index < _dataman_cache_safepoint.size(); ++index) {
+					_dataman_cache_safepoint.load(DM_KEY_SAFE_POINTS_0, index);
 				}
 
 				_dataman_state = DatamanState::Load;
@@ -394,10 +394,10 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 
 	if (_safe_points_updated) {
 
-		for (int current_seq = 1; current_seq <= _dataman_cache_safepoint.size(); ++current_seq) {
+		for (int current_seq = 0; current_seq < _dataman_cache_safepoint.size(); ++current_seq) {
 			mission_item_s mission_safe_point;
 
-			bool success = _dataman_cache_safepoint.loadWait(DM_KEY_SAFE_POINTS, current_seq,
+			bool success = _dataman_cache_safepoint.loadWait(DM_KEY_SAFE_POINTS_0, current_seq,
 					reinterpret_cast<uint8_t *>(&mission_safe_point),
 					sizeof(mission_item_s), 500_ms);
 
@@ -626,10 +626,10 @@ land_approaches_s RTL::readVtolLandApproaches(DestinationPosition rtl_position) 
 	bool foundHomeLandApproaches = false;
 	uint8_t sector_counter = 0;
 
-	for (int current_seq = 1; current_seq <= _stats.num_items; ++current_seq) {
+	for (int current_seq = 0; current_seq < _stats.num_items; ++current_seq) {
 		mission_item_s mission_item{};
 
-		bool success_mission_item = _dataman_cache_safepoint.loadWait(DM_KEY_SAFE_POINTS, current_seq,
+		bool success_mission_item = _dataman_cache_safepoint.loadWait(DM_KEY_SAFE_POINTS_0, current_seq,
 					    reinterpret_cast<uint8_t *>(&mission_item),
 					    sizeof(mission_item_s));
 
