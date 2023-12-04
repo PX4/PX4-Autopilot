@@ -93,11 +93,15 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_COMPAT_MAX
 };
 
+struct dataman_compat_s {
+	uint64_t key;
+};
+
 constexpr uint32_t MISSION_SAFE_POINT_SIZE = sizeof(struct mission_item_s);
 constexpr uint32_t MISSION_FENCE_POINT_SIZE = sizeof(struct mission_fence_point_s);
 constexpr uint32_t MISSION_ITEM_SIZE = sizeof(struct mission_item_s);
 constexpr uint32_t MISSION_SIZE = sizeof(struct mission_s);
-constexpr uint32_t DATAMAN_COMPAT_SIZE = sizeof(struct mission_s);
+constexpr uint32_t DATAMAN_COMPAT_SIZE = sizeof(struct dataman_compat_s);
 
 /** The table of the size of each item type */
 static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
@@ -107,10 +111,6 @@ static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 	MISSION_ITEM_SIZE,
 	MISSION_SIZE,
 	DATAMAN_COMPAT_SIZE
-};
-
-struct dataman_compat_s {
-	uint64_t key;
 };
 
 /* increment this define whenever a binary incompatible change is performed */
