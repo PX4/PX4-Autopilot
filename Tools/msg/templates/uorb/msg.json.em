@@ -42,6 +42,7 @@ for field in spec.parsed_fields():
 {
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed;"
 		"fields": @( json.dumps(bytearray(";".join(topic_fields)+";", 'utf-8').decode('unicode_escape')) ),
+		"fields_total_length": @(sum([len(convert_type(field.type))+1+len(field.name)+1 for field in sorted_fields])),
 		"orb_ids": @( json.dumps([ all_topics.index(topic) for topic in topics]) ),
 		"main_orb_id": @( all_topics.index(name_snake_case) if name_snake_case in all_topics else -1 ),
 		"dependencies": @( json.dumps(list(set(dependencies))) ),
