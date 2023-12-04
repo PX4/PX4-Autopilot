@@ -141,7 +141,7 @@ int GZBridge::init()
 
 				// If Gazebo has not been called, wait 2 seconds and try again.
 				else {
-					printf("WARN  [gz_bridge] Service call timed out as Gazebo has not been detected. \n");
+					PX4_WARN("Service call timed out as Gazebo has not been detected.");
 					system_usleep(2000000);
 				}
 			}
