@@ -129,8 +129,12 @@ static unsigned g_func_counts[DM_NUMBER_OF_FUNCS];
 
 /* Table of the len of each item type including HDR size */
 static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
-	g_per_item_size[DM_KEY_SAFE_POINTS] + DM_SECTOR_HDR_SIZE,
-	g_per_item_size[DM_KEY_FENCE_POINTS] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_0] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_1] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_STATE] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_0] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_1] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_STATE] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_0] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_1] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_MISSION_STATE] + DM_SECTOR_HDR_SIZE,
@@ -564,7 +568,7 @@ _file_initialize(unsigned max_offset)
 			PX4_ERR("Failed writing compat: %d", ret);
 		}
 
-		for (uint32_t item = DM_KEY_SAFE_POINTS; item <= DM_KEY_MISSION_STATE; ++item) {
+		for (uint32_t item = DM_KEY_SAFE_POINTS_0; item <= DM_KEY_MISSION_STATE; ++item) {
 			g_dm_ops->clear((dm_item_t)item);
 		}
 
@@ -582,8 +586,8 @@ _file_initialize(unsigned max_offset)
 		stats.opaque_id = 0;
 
 		g_dm_ops->write(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s));
-		g_dm_ops->write(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
-		g_dm_ops->write(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+		g_dm_ops->write(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+		g_dm_ops->write(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
 	}
 
 	dm_operations_data.running = true;
@@ -876,10 +880,6 @@ Each type has a specific type and a fixed maximum amount of storage items, so th
 
 ### Implementation
 Reading and writing a single item is always atomic.
-
-**DM_KEY_FENCE_POINTS** and **DM_KEY_SAFE_POINTS** items: the first data element is a `mission_stats_entry_s` struct,
-which stores the number of items for these types. These items are always updated atomically in one transaction (from
-the mavlink mission manager).
 
 )DESCR_STR");
 
