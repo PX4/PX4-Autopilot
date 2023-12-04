@@ -1,0 +1,69 @@
+__max_tf_driver: &max_tf_driver 6
+
+module_name: Benewake i2c Driver
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_EN_TFI2C:
+            description:
+                short: Number of Benewake i2c Driver
+                long: |
+                    Number of Benewake TF Rangefinder i2c Driver, number 0 for disable
+            type: int32
+            min: 0
+            max: 6
+            default: 0
+            reboot_required: true
+
+        SENS_TF_ADDR${i}:
+            description:
+                short: Benewake TF Sensor ${i} Address
+                long: |
+                    This parameter defines the address of the TFi2c sensor.
+            type: int32
+            min: 1
+            max: 254
+            num_instances: *max_tf_driver
+            instance_start: 0
+            default: 16
+
+        SENS_TF_ROT${i}:
+            description:
+                short: Benewake TF Sensor ${i} Rotation
+                long: |
+                    This parameter defines the rotation of the sensor relative to the platform.
+            type: enum
+            values:
+                25: ROTATION_DOWNWARD_FACING
+                24: ROTATION_UPWARD_FACING
+                4: ROTATION_BACKWARD_FACING
+                0: ROTATION_FORWARD_FACING
+                6: ROTATION_LEFT_FACING
+                2: ROTATION_RIGHT_FACING
+            reboot_required: true
+            min: 0
+            max: 25
+            num_instances: *max_tf_driver
+            instance_start: 0
+            default: 0
+
+        SENS_TF_TYPE${i}:
+            description:
+                short: Benewake TF Sensor hardware type
+                long: |
+                    This parameter defines hardware type of the Benewake TF ranging sensor
+            type: enum
+            values:
+                0: TFMINI
+                1: TFminPlus (10cm-1200cm, 3.6°)
+                2: TFminiS (10cm-1200cm, 3.6°)
+                3: TF02Pro (10cm-1200cm, 2°)
+                4: TF03 (10-10000cm, 0.5°)
+                5: TFLuna (20cm-800cm, 2°)
+            reboot_required: true
+            min: 0
+            max: 5
+            num_instances: *max_tf_driver
+            instance_start: 0
+            default: 0
