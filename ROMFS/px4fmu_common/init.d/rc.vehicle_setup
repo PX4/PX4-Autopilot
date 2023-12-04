@@ -24,30 +24,21 @@ then
 fi
 
 #
-# Differential Rover setup.
-#
-if [ $VEHICLE_TYPE = rover_differential ]
-then
-	# Start standard UGV apps.
-	. ${R}etc/init.d/rc.rover_differential_apps
-fi
-
-#
-# Ackermann Rover setup.
-#
-if [ $VEHICLE_TYPE = rover_ackermann ]
-then
-	# Start standard UGV apps.
-	. ${R}etc/init.d/rc.rover_ackermann_apps
-fi
-
-#
 # UGV setup.
 #
 if [ $VEHICLE_TYPE = rover ]
 then
 	# Start standard UGV apps.
 	. ${R}etc/init.d/rc.rover_apps
+fi
+
+#
+# Differential Rover setup.
+#
+if [ $VEHICLE_TYPE = rover_differential ]
+then
+	# Start differential drive rover apps.
+	. ${R}etc/init.d/rc.rover_differential_apps
 fi
 
 #

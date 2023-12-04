@@ -61,7 +61,6 @@ ControlAllocator::ControlAllocator() :
 	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
 
-
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
 		char buffer[17];
 		snprintf(buffer, sizeof(buffer), "CA_R%u_SLEW", i);
@@ -240,7 +239,7 @@ ControlAllocator::update_effectiveness_source()
 			break;
 
 		case EffectivenessSource::ROVER_DIFFERENTIAL:
-			// actuator_motors message is published directly from the differential drive controller
+			// differential_drive_control does allocation and publishes directly to actuator_motors topic
 			break;
 
 		case EffectivenessSource::FIXED_WING:
