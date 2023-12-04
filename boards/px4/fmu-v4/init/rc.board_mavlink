@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# PX4 FMUv4 specific board MAVLink startup script.
+#------------------------------------------------------------------------------
+
+# Pixracer: start MAVLink on Wifi (ESP8266 port)
+mavlink start -r 20000 -b 921600 -d /dev/ttyS0
