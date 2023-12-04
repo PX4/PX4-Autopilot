@@ -120,20 +120,6 @@ int hrt_set_absolute_time_offset(int32_t time_diff_us)
 	return 0;
 }
 
-hrt_abstime hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
-{
-	hrt_abstime now = hrt_absolute_time();
-
-	// Cannot allow a negative elapsed time as this would appear
-	// to be a huge positive elapsed time when represented as an
-	// unsigned value!
-	if (*then > now) {
-		return 0;
-	}
-
-	return now - *then;
-}
-
 void hrt_store_absolute_time(volatile hrt_abstime *t)
 {
 	*t = hrt_absolute_time();
