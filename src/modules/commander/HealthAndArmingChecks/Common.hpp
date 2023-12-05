@@ -206,11 +206,31 @@ public:
 		       (uint32_t)(_results[_current_result].arming_checks.can_arm & getModeGroup(nav_state)) != 0;
 	}
 
+
 	/**
 	 * Whether a navigation mode can be run (while already armed)
 	 */
 	bool canRun(uint8_t nav_state) const
 	{
+
+		PX4_ERR("canRun  %d %d %d %d",
+				_current_result,
+				_results[_current_result].arming_checks.valid,
+				(uint32_t)_results[_current_result].arming_checks.can_run,
+				(uint32_t)getModeGroup(nav_state));
+
+
+		PX4_ERR("canRun DEFs  %d %d %d %d %d %d %d  -- %d %d ",
+				(uint32_t)NavModes::None,
+				(uint32_t)NavModes::Manual,
+				(uint32_t)NavModes::Stabilized,
+				(uint32_t)NavModes::PositionControl,
+				(uint32_t)NavModes::Mission,
+				(uint32_t)NavModes::Takeoff,
+				(uint32_t)NavModes::All,
+				(uint32_t) nav_state,
+				(uint32_t)getModeGroup(nav_state));
+
 		return _results[_current_result].arming_checks.valid &&
 		       (uint32_t)(_results[_current_result].arming_checks.can_run & getModeGroup(nav_state)) != 0;
 	}

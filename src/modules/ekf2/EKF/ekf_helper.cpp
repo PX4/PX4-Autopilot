@@ -404,6 +404,7 @@ bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &lo
 	latitude = _pos_ref.getProjectionReferenceLat();
 	longitude = _pos_ref.getProjectionReferenceLon();
 	origin_alt  = getEkfGlobalOriginAltitude();
+
 	return _NED_origin_initialised;
 }
 
@@ -453,6 +454,10 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 			// preserve GPS height bias
 			_gps_hgt_b_est.setBias(gps_hgt_bias);
 		}
+
+		// sim GPS as needed
+		PX4_WARN("Forcing user based origin in NED");
+		_NED_origin_initialised = true;
 
 		return true;
 	}

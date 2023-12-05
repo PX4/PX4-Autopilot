@@ -702,6 +702,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 				} else {
+					PX4_ERR("vehicle_command_s::VEHICLE_CMD_DO_REPOSITION");
 					printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
@@ -723,6 +724,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
+				PX4_ERR("vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE");
+
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
@@ -731,6 +734,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MODE: {
+
+			PX4_ERR("vehicle_command_s::VEHICLE_CMD_DO_SET_MODE");
+
 			uint8_t base_mode = (uint8_t)cmd.param1;
 			uint8_t custom_main_mode = (uint8_t)cmd.param2;
 			uint8_t custom_sub_mode = (uint8_t)cmd.param3;
@@ -827,6 +833,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else {
 					if (cmd.from_external && cmd.source_component == 190) { // MAV_COMP_ID_MISSIONPLANNER
+						PX4_ERR("MAV_COMP_ID_MISSIONPLANNER");
+
 						printRejectMode(desired_nav_state);
 					}
 
@@ -932,6 +940,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_HOME: {
+
+			PX4_ERR("vehicle_command_s::VEHICLE_CMD_DO_SET_HOME");
+
 			if (_param_com_home_en.get()) {
 				bool use_current = cmd.param1 > 0.5f;
 
@@ -953,11 +964,15 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 					if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)) {
 
+						PX4_ERR("_home_position.setManually: %f %f %f %f", (double) lat, (double)lon, (double)alt, (double)yaw);
+
 						if (_home_position.setManually(lat, lon, alt, yaw)) {
 
+							PX4_ERR("_home_position.setManually SUCCESS");
 							cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 						} else {
+							PX4_ERR("_home_position.setManually FAIL");
 							cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 						}
 
@@ -981,6 +996,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
+				PX4_ERR("vehicle_status_s::NAVIGATION_STATE_AUTO_RTL");
+
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
@@ -993,6 +1010,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
+				PX4_ERR("vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF");
+
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
@@ -1006,6 +1025,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else {
+			PX4_ERR("vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF");
+
 			printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 		}
@@ -1034,6 +1055,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
+				PX4_ERR("vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND");
+
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
@@ -1057,6 +1080,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 					} else {
+						PX4_ERR("vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION");
+
 						printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
@@ -1554,6 +1579,8 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 	case action_request_s::ACTION_SWITCH_MODE:
 
 		if (!_user_mode_intention.change(action_request.mode, true)) {
+			PX4_ERR("action_request_s::ACTION_SWITCH_MODE");
+
 			printRejectMode(action_request.mode);
 		}
 

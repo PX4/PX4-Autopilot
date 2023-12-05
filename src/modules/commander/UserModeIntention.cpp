@@ -48,13 +48,18 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, bool allow_fallb
 	bool always_allow = force || !isArmed();
 	bool allow_change = true;
 
+	PX4_ERR("Allow change 0 %d %d %d", allow_change, force, !isArmed());
+
+
 	if (!always_allow) {
 		allow_change = _health_and_arming_checks.canRun(user_intended_nav_state);
+		PX4_ERR("Allow change A %d", allow_change);
 
 		// Check fallback
 		if (!allow_change && allow_fallback && _param_com_posctl_navl.get() == 0) {
 			if (user_intended_nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL) {
 				allow_change = _health_and_arming_checks.canRun(vehicle_status_s::NAVIGATION_STATE_ALTCTL);
+				PX4_ERR("Allow change B %d", allow_change);
 				// We still use the original user intended mode. The failsafe state machine will then set the
 				// fallback and once can_run becomes true, the actual user intended mode will be selected.
 			}
@@ -67,6 +72,10 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, bool allow_fallb
 
 		if (!_health_and_arming_checks.modePreventsArming(user_intended_nav_state)) {
 			_nav_state_after_disarming = user_intended_nav_state;
+		}
+		else
+		{
+			PX4_ERR("_health_and_arming_checks.modePreventsArming was true");
 		}
 	}
 

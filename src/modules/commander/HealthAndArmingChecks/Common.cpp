@@ -197,6 +197,7 @@ bool Report::finalize()
 
 bool Report::report(bool is_armed, bool force)
 {
+
 	const hrt_abstime now = hrt_absolute_time();
 	const bool has_difference = _had_unreported_difference || _results_changed;
 

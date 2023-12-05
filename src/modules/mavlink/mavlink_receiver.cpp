@@ -125,12 +125,15 @@ MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, ui
 void
 MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
+
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_COMMAND_LONG:
+		PX4_ERR("MavlinkReceiver::handle_message MAVLINK_MSG_ID_COMMAND_LONG: %d", msg->msgid);
 		handle_message_command_long(msg);
 		break;
 
 	case MAVLINK_MSG_ID_COMMAND_INT:
+		PX4_ERR("MavlinkReceiver::handle_message MAVLINK_MSG_ID_COMMAND_INT: %d", msg->msgid);
 		handle_message_command_int(msg);
 		break;
 
@@ -175,6 +178,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_SET_GPS_GLOBAL_ORIGIN:
+		PX4_ERR("MavlinkReceiver::handle_message MAVLINK_MSG_ID_SET_GPS_GLOBAL_ORIGIN: %d", msg->msgid);
+
 		handle_message_set_gps_global_origin(msg);
 		break;
 
@@ -215,6 +220,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_UTM_GLOBAL_POSITION:
+		PX4_ERR("MavlinkReceiver::handle_message MAVLINK_MSG_ID_UTM_GLOBAL_POSITION: %d", msg->msgid);
+
 		handle_message_utm_global_position(msg);
 		break;
 
@@ -1179,11 +1186,15 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 void
 MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 {
+	PX4_ERR("MavlinkReceiver::handle_message_set_gps_global_origin");
 	mavlink_set_gps_global_origin_t gps_global_origin;
 	mavlink_msg_set_gps_global_origin_decode(msg, &gps_global_origin);
 
 	if (gps_global_origin.target_system == _mavlink->get_system_id()) {
+		PX4_ERR("gps_global_origin.target_system == _mavlink->get_system_id publish");
 		vehicle_command_s vcmd{};
+
+		vcmd.param4 = 0; // YAW TBD need a user friendly solution to set this
 		vcmd.param5 = (double)gps_global_origin.latitude * 1.e-7;
 		vcmd.param6 = (double)gps_global_origin.longitude * 1.e-7;
 		vcmd.param7 = (float)gps_global_origin.altitude * 1.e-3f;
@@ -1196,8 +1207,41 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 		vcmd.from_external = true;
 		vcmd.timestamp = hrt_absolute_time();
 		_cmd_pub.publish(vcmd);
+
+		// need to wait until EKF updates
+		uORB::Subscription g_pos_sub{ORB_ID(vehicle_global_position)};
+		vehicle_global_position_s		g_pos{};			/**< global vehicle position */
+		while(g_pos.lat < 1e-5 && g_pos.lon < 1e-5 && g_pos.alt < 1e-5f)
+		{
+			g_pos_sub.update(&g_pos);
+		}
+
+		// set and send home position
+		home_position_s home_position{};
+		_home_position_sub.copy(&home_position);
+		PX4_ERR("NEW  Home: %f %f %f", (double)home_position.lat, (double)home_position.lon, (double)home_position.alt);
+//
+//		vehicle_command_s home_pos_cmd{};
+//		home_pos_cmd.command = vehicle_command_s::VEHICLE_CMD_DO_SET_HOME;
+//		home_pos_cmd.target_system = _mavlink->get_system_id();
+//		home_pos_cmd.target_component = MAV_COMP_ID_ALL;
+//		home_pos_cmd.source_system = msg->sysid;
+//		home_pos_cmd.source_component = msg->compid;
+//		home_pos_cmd.confirmation = false;
+//		home_pos_cmd.from_external = false;
+//		home_pos_cmd.timestamp = hrt_absolute_time();
+//		home_pos_cmd.param4 = 0.0;
+//		home_pos_cmd.param5 = vcmd.param5;
+//		home_pos_cmd.param6 = vcmd.param6;
+//		home_pos_cmd.param7 = vcmd.param7;
+//		_cmd_pub.publish(home_pos_cmd);
+//
+//		_home_position_sub.copy(&home_position);
+//		PX4_ERR("NOW Home: %f %f %f", (double)home_position.lat, (double)home_position.lon, (double)home_position.alt);
+
 	}
 
+	PX4_ERR("handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN");
 	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
 }
 

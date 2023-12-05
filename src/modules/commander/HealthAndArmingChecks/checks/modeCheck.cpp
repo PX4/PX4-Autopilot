@@ -35,6 +35,7 @@
 
 void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 {
+
 	if (!context.isArmed()) {
 		checkArmingRequirement(context, reporter);
 	}
@@ -109,6 +110,12 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (reporter.failsafeFlags().auto_mission_missing && mission_required_modes != NavModes::None) {
+
+//		PX4_ERR("No valid mission! %d %d %d",
+//				(int) reporter.failsafeFlags().auto_mission_missing,
+//				(int)mission_required_modes,
+//				(int)NavModes::None);
+
 		/* EVENT
 		 * @description
 		 * Upload a mission first.
@@ -121,6 +128,8 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 					    events::ID("check_modes_mission"),
 					    events::Log::Info, "No valid mission available");
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_mission);
+
+
 	}
 
 	if (reporter.failsafeFlags().offboard_control_signal_lost && reporter.failsafeFlags().mode_req_offboard_signal != 0) {
