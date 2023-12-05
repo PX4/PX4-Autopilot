@@ -134,7 +134,7 @@ enum class ImuCtrl : uint8_t {
 	GravityVector = (1<<2),
 };
 
-enum GnssCtrl : uint8_t {
+enum class GnssCtrl : uint8_t {
 	HPOS  = (1<<0),
 	VPOS  = (1<<1),
 	VEL  = (1<<2),
@@ -325,7 +325,7 @@ struct parameters {
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
+	int32_t gnss_ctrl{static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
 	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
 
 	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)

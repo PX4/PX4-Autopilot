@@ -99,7 +99,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 					   vel_obs_var,                                                // observation variance
 					   math::max(_params.gps_vel_innov_gate, 1.f),                 // innovation gate
 					   _aid_src_gnss_vel);
-		const bool gnss_vel_enabled = (_params.gnss_ctrl & GnssCtrl::VEL);
+		const bool gnss_vel_enabled = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VEL));
 
 		// GNSS position
 		const Vector2f position{gps_sample.pos};
@@ -121,7 +121,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 						     pos_obs_var,                                // observation variance
 						     math::max(_params.gps_pos_innov_gate, 1.f), // innovation gate
 						     _aid_src_gnss_pos);
-		const bool gnss_pos_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
+		const bool gnss_pos_enabled = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::HPOS));
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
@@ -310,7 +310,7 @@ bool Ekf::shouldResetGpsFusion() const
 #if defined(CONFIG_EKF2_GNSS_YAW)
 void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing)
 {
-	if (!(_params.gnss_ctrl & GnssCtrl::YAW)
+	if (!(_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
 	    || _control_status.flags.gps_yaw_fault) {
 
 		stopGpsYawFusion();
