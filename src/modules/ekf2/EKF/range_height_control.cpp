@@ -121,8 +121,8 @@ void Ekf::controlRangeHeightFusion()
 		}
 
 		// determine if we should use height aiding
-		const bool do_conditional_range_aid = (_params.rng_ctrl == RngCtrl::CONDITIONAL) && isConditionalRangeAidSuitable();
-		const bool continuing_conditions_passing = ((_params.rng_ctrl == RngCtrl::ENABLED) || do_conditional_range_aid)
+		const bool do_conditional_range_aid = (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL)) && isConditionalRangeAidSuitable();
+		const bool continuing_conditions_passing = ((_params.rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED)) || do_conditional_range_aid)
 				&& measurement_valid
 				&& _range_sensor.isDataHealthy();
 
@@ -165,13 +165,13 @@ void Ekf::controlRangeHeightFusion()
 
 		} else {
 			if (starting_conditions_passing) {
-				if ((_params.height_sensor_ref == HeightSensor::RANGE) && (_params.rng_ctrl == RngCtrl::CONDITIONAL)) {
+				if ((_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE)) && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))) {
 					// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
 					ECL_INFO("starting conditional %s height fusion", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::RANGE;
 					bias_est.setBias(_state.pos(2) + measurement);
 
-				} else if ((_params.height_sensor_ref == HeightSensor::RANGE) && (_params.rng_ctrl != RngCtrl::CONDITIONAL)) {
+				} else if ((_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE)) && (_params.rng_ctrl != static_cast<int32_t>(RngCtrl::CONDITIONAL))) {
 					// Range finder is the primary height source, the ground is now the datum used
 					// to compute the local vertical position
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);

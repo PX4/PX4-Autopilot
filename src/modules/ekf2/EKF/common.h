@@ -141,7 +141,7 @@ enum class GnssCtrl : uint8_t {
 	YAW  = (1<<3)
 };
 
-enum RngCtrl : uint8_t {
+enum class RngCtrl : uint8_t {
 	DISABLED    = 0,
 	CONDITIONAL = 1,
 	ENABLED     = 2
@@ -418,7 +418,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range finder fusion
-	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
+	int32_t rng_ctrl{static_cast<int32_t>(RngCtrl::CONDITIONAL)};
 
 	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)

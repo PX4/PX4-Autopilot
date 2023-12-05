@@ -586,7 +586,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// using range finder
-	if ((_params.rng_ctrl != RngCtrl::DISABLED)) {
+	if ((_params.rng_ctrl != static_cast<int32_t>(RngCtrl::DISABLED))) {
 		max_time_delay_ms = math::max(_params.range_delay_ms, max_time_delay_ms);
 	}
 #endif // CONFIG_EKF2_RANGE_FINDER
