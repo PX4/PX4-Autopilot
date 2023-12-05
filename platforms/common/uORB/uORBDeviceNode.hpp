@@ -222,9 +222,15 @@ public:
 
 	static uorb_cb_handle_t register_callback(orb_advert_t &node_handle, SubscriptionCallback *callback_sub,
 			int8_t poll_lock,
-			hrt_abstime last_update, uint32_t interval_us);
+			hrt_abstime last_update, uint32_t interval_us)
+	{
+		return node(node_handle)->_register_callback(callback_sub, poll_lock, last_update, interval_us);
+	}
 
-	static void unregister_callback(orb_advert_t &node_handle, uorb_cb_handle_t cb_handle);
+	static void unregister_callback(orb_advert_t &node_handle, uorb_cb_handle_t cb_handle)
+	{
+		node(node_handle)->_unregister_callback(cb_handle);
+	}
 
 	void *operator new (size_t, void *p)
 	{
@@ -313,20 +319,6 @@ private:
 
 	void _add_subscriber(unsigned *initial_generation);
 
-	/**
-	 * Each device node instance has its own lock/semaphore.
-	 *
-	 * Note that we must loop as the wait may be interrupted by a signal.
-	 *
-	 * Careful: lock() calls cannot be nested!
-	 */
-	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
-
-	/**
-	 * Release the device node lock.
-	 */
-	void		unlock() { px4_sem_post(&_lock); }
-
 	void remap_data(orb_advert_t &handle, size_t new_size, bool advertiser);
 
 	inline static DeviceNode *node(const orb_advert_t &handle) { return static_cast<DeviceNode *>(handle.node); }
@@ -336,12 +328,24 @@ private:
 	inline static void *node_data(const orb_advert_t &handle) { return handle.data; }
 #endif
 
-	px4_sem_t	_lock; /**< lock to protect access to all class members */
+	uorb_cb_handle_t _register_callback(SubscriptionCallback *callback_sub,
+					    int8_t poll_lock,
+					    hrt_abstime last_update, uint32_t interval_us);
+	void _unregister_callback(uorb_cb_handle_t cb_handle);
 
 #ifdef CONFIG_BUILD_FLAT
 	char *_devname;
 	void *_data{nullptr};
 #else
+
+	/**
+	 * Mutex for protecting node's internal data
+	 */
+
+	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
+	void		unlock() { px4_sem_post(&_lock); }
+	px4_sem_t	_lock; /**< lock to protect access to all class members */
+
 	char _devname[NAME_MAX + 1];
 #endif
 };

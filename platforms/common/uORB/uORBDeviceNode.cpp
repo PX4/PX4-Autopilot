@@ -420,19 +420,18 @@ uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char
 	}
 
 	strncpy(_devname, path, sizeof(_devname));
-#endif
 
 	int ret = px4_sem_init(&_lock, 1, 1);
 
 	if (ret != 0) {
 		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
 	}
+
+#endif
 }
 
 uORB::DeviceNode::~DeviceNode()
 {
-	px4_sem_destroy(&_lock);
-
 #if defined(CONFIG_BUILD_FLAT)
 
 	// Delete all the allocated free callback items.
@@ -448,6 +447,8 @@ uORB::DeviceNode::~DeviceNode()
 	}
 
 	free(_devname);
+#else
+	px4_sem_destroy(&_lock);
 #endif
 }
 
@@ -700,13 +701,13 @@ bool
 uORB::DeviceNode::print_statistics(int max_topic_length)
 {
 
-	lock();
+	ATOMIC_ENTER;
 
 	const uint8_t instance = get_instance();
 	const int8_t sub_count = subscriber_count();
 	const uint8_t queue_size = get_queue_size();
 
-	unlock();
+	ATOMIC_LEAVE;
 
 	const orb_metadata *meta = get_meta();
 
@@ -748,7 +749,6 @@ void uORB::DeviceNode::_add_subscriber(unsigned *initial_generation)
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && _subscriber_count > 0) {
-		unlock(); //make sure we cannot deadlock if add_subscription calls back into DeviceNode
 		ch->add_subscription(get_name(), 1);
 
 	}
@@ -856,38 +856,39 @@ int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
 
 //TODO: make this a normal member function
 uorb_cb_handle_t
-uORB::DeviceNode::register_callback(orb_advert_t &node_handle, uORB::SubscriptionCallback *callback_sub,
-				    int8_t poll_lock, hrt_abstime last_update, uint32_t interval_us)
+uORB::DeviceNode::_register_callback(uORB::SubscriptionCallback *cb_sub,
+				     int8_t poll_lock, hrt_abstime last_update, uint32_t interval_us)
 {
-	uORB::DeviceNode *n = node(node_handle);
-
-	n->lock();
-
 #ifndef CONFIG_BUILD_FLAT
 	// Get the cb lock for this process from the Manager
-	int8_t lock = poll_lock == -1 ? Manager::getCallbackLock() : poll_lock;
+	int8_t cb_lock = poll_lock == -1 ? Manager::getCallbackLock() : poll_lock;
 #else
-	int8_t lock = poll_lock;
+	int8_t cb_lock = poll_lock;
 #endif
 
 	// TODO: Check for duplicate registrations?
 
-	IndexedStackHandle<CB_LIST_T> callbacks(n->_callbacks);
+	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
+
+	ATOMIC_ENTER;
+
 	uorb_cb_handle_t i = callbacks.pop_free();
 	EventWaitItem *item = callbacks.peek(i);
 
 #ifdef CONFIG_BUILD_FLAT
 
 	if (!item) {
+		px4_leave_critical_section(flags);
 		item = new EventWaitItem;
+		flags = px4_enter_critical_section();
 		i = item;
 	}
 
 #endif
 
 	if (item != nullptr) {
-		item->lock = lock;
-		item->subscriber = callback_sub;
+		item->lock = cb_lock;
+		item->subscriber = cb_sub;
 		item->last_update = last_update;
 		item->interval_us = interval_us;
 
@@ -897,20 +898,18 @@ uORB::DeviceNode::register_callback(orb_advert_t &node_handle, uORB::Subscriptio
 		PX4_ERR("register fail\n");
 	}
 
-	n->unlock();
+	ATOMIC_LEAVE;
 
 	return i;
 }
 
 //TODO: make this a normal member function?
 void
-uORB::DeviceNode::unregister_callback(orb_advert_t &node_handle, uorb_cb_handle_t cb_handle)
+uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t cb_handle)
 {
-	uORB::DeviceNode *n = node(node_handle);
+	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
 
-	n->lock();
-
-	IndexedStackHandle<CB_LIST_T> callbacks(n->_callbacks);
+	ATOMIC_ENTER;
 
 	if (!callbacks.rm(cb_handle)) {
 		PX4_ERR("unregister fail\n");
@@ -919,5 +918,5 @@ uORB::DeviceNode::unregister_callback(orb_advert_t &node_handle, uorb_cb_handle_
 		callbacks.push_free(cb_handle);
 	}
 
-	n->unlock();
+	ATOMIC_LEAVE;
 }
