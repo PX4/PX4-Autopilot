@@ -39,11 +39,12 @@
 #define EKF_POSITION_BIAS_ESTIMATOR_HPP
 
 #include "bias_estimator.hpp"
+#include "common.h"
 
 class PositionBiasEstimator
 {
 public:
-	PositionBiasEstimator(uint8_t sensor, const uint8_t &sensor_ref):
+	PositionBiasEstimator(PositionSensor sensor, const PositionSensor &sensor_ref):
 		_sensor(sensor),
 		_sensor_ref(sensor_ref)
 	{}
@@ -107,8 +108,8 @@ public:
 private:
 	BiasEstimator _bias[2] {};
 
-	const uint8_t _sensor;
-	const uint8_t &_sensor_ref;
+	const PositionSensor _sensor;
+	const PositionSensor &_sensor_ref;
 
 	bool _is_sensor_fusion_active{false}; // TODO: replace by const ref and remove setter when migrating _control_status.flags from union to bool
 };
