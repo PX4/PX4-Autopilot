@@ -57,12 +57,12 @@ void EkfWrapper::setRangeHeightRef()
 
 void EkfWrapper::enableRangeHeightFusion()
 {
-	_ekf_params->rng_ctrl = RngCtrl::ENABLED;
+	_ekf_params->rng_ctrl = static_cast<int32_t>(RngCtrl::ENABLED);
 }
 
 void EkfWrapper::disableRangeHeightFusion()
 {
-	_ekf_params->rng_ctrl = RngCtrl::DISABLED;
+	_ekf_params->rng_ctrl = static_cast<int32_t>(RngCtrl::DISABLED);
 }
 
 bool EkfWrapper::isIntendingRangeHeightFusion() const
