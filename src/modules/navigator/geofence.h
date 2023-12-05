@@ -108,8 +108,6 @@ public:
 
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
-	int clearDm();
-
 	bool valid();
 
 	/**

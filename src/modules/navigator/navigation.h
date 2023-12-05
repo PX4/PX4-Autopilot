@@ -205,7 +205,8 @@ struct mission_item_s {
 struct mission_stats_entry_s {
 	uint32_t opaque_id;			/**< opaque identifier for current stored mission stats */
 	uint16_t num_items;			/**< total number of items stored (excluding this one) */
-	uint8_t padding[2];
+	uint8_t dataman_id;			/**< dm_item_t storage place*/
+	uint8_t padding[1];
 };
 
 /**

@@ -140,7 +140,7 @@ void Geofence::run()
 				}
 
 				for (int index = 0; index < _dataman_cache.size(); ++index) {
-					_dataman_cache.load(DM_KEY_FENCE_POINTS_0, index);
+					_dataman_cache.load(static_cast<dm_item_t>(_stats.dataman_id), index);
 				}
 
 				_dataman_state = DatamanState::Load;
@@ -191,7 +191,7 @@ void Geofence::_updateFence()
 
 	while (current_seq < _dataman_cache.size()) {
 
-		bool success = _dataman_cache.loadWait(DM_KEY_FENCE_POINTS_0, current_seq,
+		bool success = _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), current_seq,
 						       reinterpret_cast<uint8_t *>(&mission_fence_point),
 						       sizeof(mission_fence_point_s));
 
@@ -412,14 +412,15 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 
 	for (unsigned i = 0, j = polygon.vertex_count - 1; i < polygon.vertex_count; j = i++) {
 
-		bool success = _dataman_cache.loadWait(DM_KEY_FENCE_POINTS_0, polygon.dataman_index + i,
+		dm_item_t fence_dataman_id{static_cast<dm_item_t>(_stats.dataman_id)};
+		bool success = _dataman_cache.loadWait(fence_dataman_id, polygon.dataman_index + i,
 						       reinterpret_cast<uint8_t *>(&temp_vertex_i), sizeof(mission_fence_point_s));
 
 		if (!success) {
 			break;
 		}
 
-		success = _dataman_cache.loadWait(DM_KEY_FENCE_POINTS_0, polygon.dataman_index + j,
+		success = _dataman_cache.loadWait(fence_dataman_id, polygon.dataman_index + j,
 						  reinterpret_cast<uint8_t *>(&temp_vertex_j), sizeof(mission_fence_point_s));
 
 		if (!success) {
@@ -448,7 +449,7 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 {
 
 	mission_fence_point_s circle_point{};
-	bool success = _dataman_cache.loadWait(DM_KEY_FENCE_POINTS_0, polygon.dataman_index,
+	bool success = _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), polygon.dataman_index,
 					       reinterpret_cast<uint8_t *>(&circle_point), sizeof(mission_fence_point_s));
 
 	if (!success) {
@@ -491,8 +492,18 @@ Geofence::loadFromFile(const char *filename)
 	const char commentChar = '#';
 	int ret_val = PX4_ERROR;
 
-	/* Make sure no data is left in the datamanager */
-	clearDm();
+	mission_stats_entry_s stat;
+	{
+		const bool success = _dataman_client.readAsync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stat),
+				     sizeof(mission_stats_entry_s));
+
+		if (!success) {
+			PX4_ERR("Could not read fence dataman state");
+			return PX4_ERROR;
+		}
+	}
+
+	dm_item_t write_fence_dataman_id{static_cast<dm_item_t>(stat.dataman_id) == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0};
 
 	/* open the mixer definition file */
 	fp = fopen(GEOFENCE_FILENAME, "r");
@@ -554,7 +565,7 @@ Geofence::loadFromFile(const char *filename)
 				}
 			}
 
-			bool success = _dataman_client.writeSync(DM_KEY_FENCE_POINTS_0, pointCounter, reinterpret_cast<uint8_t *>(&vertex),
+			bool success = _dataman_client.writeSync(write_fence_dataman_id, pointCounter, reinterpret_cast<uint8_t *>(&vertex),
 					sizeof(vertex));
 
 			if (!success) {
@@ -588,13 +599,13 @@ Geofence::loadFromFile(const char *filename)
 		for (int seq = 0; seq < pointCounter; ++seq) {
 			mission_fence_point_s mission_fence_point;
 
-			bool success = _dataman_client.readSync(DM_KEY_FENCE_POINTS_0, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
+			bool success = _dataman_client.readSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
 								sizeof(mission_fence_point_s));
 
 			if (success) {
 				mission_fence_point.vertex_count = pointCounter;
 				crc32 = crc32_for_fence_point(mission_fence_point, crc32);
-				_dataman_client.writeSync(DM_KEY_FENCE_POINTS_0, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
+				_dataman_client.writeSync(write_fence_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
 							  sizeof(mission_fence_point_s));
 			}
 		}
@@ -620,13 +631,6 @@ Geofence::loadFromFile(const char *filename)
 error:
 	fclose(fp);
 	return ret_val;
-}
-
-int Geofence::clearDm()
-{
-	_dataman_client.clearSync(DM_KEY_FENCE_POINTS_STATE);
-	updateFence();
-	return PX4_OK;
 }
 
 bool Geofence::isHomeRequired()
