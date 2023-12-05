@@ -57,7 +57,7 @@
 
 using matrix::wrap_2pi;
 
-dm_item_t MavlinkMissionManager::_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+dm_item_t MavlinkMissionManager::_mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 bool MavlinkMissionManager::_dataman_init = false;
 uint16_t MavlinkMissionManager::_count[3] = { 0, 0, 0 };
 uint32_t MavlinkMissionManager::_crc32[3] = { 0, 0, 0 };
@@ -90,13 +90,14 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 		}
 	}
 
-	_my_dataman_id = _dataman_id;
+	_my_mission_dataman_id = _mission_dataman_id;
 }
 
 void
 MavlinkMissionManager::init_offboard_mission(const mission_s &mission_state)
 {
-	_dataman_id = (dm_item_t)mission_state.dataman_id;
+	_mission_dataman_id = (dm_item_t)mission_state.mission_dataman_id;
+	_my_mission_dataman_id = _mission_dataman_id;
 	_count[MAV_MISSION_TYPE_MISSION] = mission_state.count;
 	_crc32[MAV_MISSION_TYPE_MISSION] = mission_state.mission_id;
 	_current_seq = mission_state.current_seq;
@@ -140,19 +141,19 @@ MavlinkMissionManager::load_safepoint_stats()
  * Publish mission topic to notify navigator about changes.
  */
 void
-MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
+MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
 		bool write_to_dataman)
 {
 	/* update active mission state */
-	_dataman_id = dataman_id;
+	_mission_dataman_id = mission_dataman_id;
 	_count[MAV_MISSION_TYPE_MISSION] = count;
 	_crc32[MAV_MISSION_TYPE_MISSION] = crc32;
 	_current_seq = seq;
-	_my_dataman_id = _dataman_id;
+	_my_mission_dataman_id = _mission_dataman_id;
 
 	mission_s mission{};
 	mission.timestamp = hrt_absolute_time();
-	mission.dataman_id = dataman_id;
+	mission.mission_dataman_id = mission_dataman_id;
 	mission.count = count;
 	mission.current_seq = seq;
 	mission.mission_id = _crc32[MAV_MISSION_TYPE_MISSION];
@@ -199,7 +200,8 @@ MavlinkMissionManager::update_geofence_count(unsigned count, uint32_t crc32)
 		return PX4_ERROR;
 	}
 
-	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq, _crc32[MAV_MISSION_TYPE_MISSION],
+	update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
+			      _crc32[MAV_MISSION_TYPE_MISSION],
 			      false);
 	return PX4_OK;
 }
@@ -230,7 +232,8 @@ MavlinkMissionManager::update_safepoint_count(unsigned count, uint32_t crc32)
 		return PX4_ERROR;
 	}
 
-	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq, _crc32[MAV_MISSION_TYPE_MISSION],
+	update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
+			      _crc32[MAV_MISSION_TYPE_MISSION],
 			      false);
 	return PX4_OK;
 }
@@ -293,7 +296,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 	switch (_mission_type) {
 
 	case MAV_MISSION_TYPE_MISSION: {
-			read_success = _dataman_client.readSync(_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_item),
+			read_success = _dataman_client.readSync(_mission_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_item),
 								sizeof(mission_item_s));
 		}
 		break;
@@ -375,7 +378,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 					      "Mission: Unable to read from storage", _mission_type);
 		}
 
-		PX4_DEBUG("WPM: Send MISSION_ITEM ERROR: could not read seq %u from dataman ID %i", seq, _dataman_id);
+		PX4_DEBUG("WPM: Send MISSION_ITEM ERROR: could not read seq %u from dataman ID %i", seq, _mission_dataman_id);
 	}
 }
 
@@ -670,7 +673,7 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 			_time_last_recv = hrt_absolute_time();
 
 			if (wpc.seq < _count[MAV_MISSION_TYPE_MISSION]) {
-				update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq, _crc32[MAV_MISSION_TYPE_MISSION]);
+				update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq, _crc32[MAV_MISSION_TYPE_MISSION]);
 
 			} else {
 				PX4_ERR("WPM: MISSION_SET_CURRENT seq=%d ERROR: not in list", wpc.seq);
@@ -904,7 +907,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 
 					/* alternate dataman ID anyway to let navigator know about changes */
 
-					if (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0) {
+					if (_mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0) {
 						update_active_mission(DM_KEY_WAYPOINTS_OFFBOARD_1, 0, 0, 0);
 
 					} else {
@@ -938,8 +941,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_transfer_partner_sysid = msg->sysid;
 			_transfer_partner_compid = msg->compid;
 			_transfer_count = wpc.count;
-			_transfer_dataman_id = (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-						DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
+			_transfer_mission_dataman_id = (_mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+							DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
 			_transfer_current_seq = -1;
 			_transfer_land_start_marker = -1;
 			_transfer_land_marker = -1;
@@ -1096,7 +1099,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 				} else {
 
-					write_failed = !_dataman_client.writeSync(_transfer_dataman_id, wp.seq, reinterpret_cast<uint8_t *>(&mission_item),
+					write_failed = !_dataman_client.writeSync(_transfer_mission_dataman_id, wp.seq,
+							reinterpret_cast<uint8_t *>(&mission_item),
 							sizeof(struct mission_item_s));
 
 					// Check for land start marker
@@ -1169,7 +1173,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 		}
 
 		if (write_failed || check_failed) {
-			PX4_DEBUG("WPM: MISSION_ITEM ERROR: error writing seq %u to dataman ID %i", wp.seq, _transfer_dataman_id);
+			PX4_DEBUG("WPM: MISSION_ITEM ERROR: error writing seq %u to dataman ID %i", wp.seq, _transfer_mission_dataman_id);
 
 			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 
@@ -1204,7 +1208,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			case MAV_MISSION_TYPE_MISSION:
 				_land_start_marker = _transfer_land_start_marker;
 				_land_marker = _transfer_land_marker;
-				update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq, _transfer_current_crc32);
+				update_active_mission(_transfer_mission_dataman_id, _transfer_count, _transfer_current_seq, _transfer_current_crc32);
 				break;
 
 			case MAV_MISSION_TYPE_FENCE:
@@ -1260,7 +1264,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 			case MAV_MISSION_TYPE_MISSION:
 				_land_start_marker = -1;
 				_land_marker = -1;
-				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+				update_active_mission(_mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
 						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, 0);
 				break;
 
@@ -1275,7 +1279,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 			case MAV_MISSION_TYPE_ALL:
 				_land_start_marker = -1;
 				_land_marker = -1;
-				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+				update_active_mission(_mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
 						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, 0);
 				ret = update_geofence_count(0, 0);
 				ret = update_safepoint_count(0, 0) || ret;
@@ -1790,10 +1794,10 @@ void MavlinkMissionManager::check_active_mission()
 		}
 
 		if ((_mission_sub.get().mission_id != _crc32[MAV_MISSION_TYPE_MISSION])
-		    || (_my_dataman_id != (dm_item_t)_mission_sub.get().dataman_id)) {
+		    || (_my_mission_dataman_id != (dm_item_t)_mission_sub.get().mission_dataman_id)) {
 			PX4_DEBUG("WPM: New mission detected (possibly over different Mavlink instance) Updating");
 			init_offboard_mission(_mission_sub.get());
-			_my_dataman_id = _dataman_id;
+			_my_mission_dataman_id = _mission_dataman_id;
 			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _count[MAV_MISSION_TYPE_MISSION],
 					   MAV_MISSION_TYPE_MISSION, _crc32[MAV_MISSION_TYPE_MISSION]);
 		}

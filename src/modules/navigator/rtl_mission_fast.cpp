@@ -97,11 +97,11 @@ void RtlMissionFast::setActiveMissionItems()
 		getNextPositionItems(_mission.current_seq + 1, next_mission_items_index, num_found_items, max_num_next_items);
 
 		mission_item_s next_mission_items[max_num_next_items];
-		const dm_item_t dataman_id = static_cast<dm_item_t>(_mission.dataman_id);
+		const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 
 		for (size_t i = 0U; i < num_found_items; i++) {
 			mission_item_s next_mission_item;
-			bool success = _dataman_cache.loadWait(dataman_id, next_mission_items_index[i],
+			bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_items_index[i],
 							       reinterpret_cast<uint8_t *>(&next_mission_item), sizeof(next_mission_item), MAX_DATAMAN_LOAD_WAIT);
 
 			if (success) {
