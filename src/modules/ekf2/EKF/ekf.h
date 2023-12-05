@@ -407,7 +407,7 @@ public:
 
 	float getYawVar() const;
 
-	uint8_t getHeightSensorRef() const { return _height_sensor_ref; }
+	HeightSensor getHeightSensorRef() const { return _height_sensor_ref; }
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	const auto &aid_src_airspeed() const { return _aid_src_airspeed; }
@@ -1139,7 +1139,7 @@ private:
 	// yaw_variance : yaw error variance (rad^2)
 	void resetQuatStateYaw(float yaw, float yaw_variance);
 
-	uint8_t _height_sensor_ref{HeightSensor::UNKNOWN};
+	HeightSensor _height_sensor_ref{HeightSensor::UNKNOWN};
 	uint8_t _position_sensor_ref{static_cast<uint8_t>(PositionSensor::GNSS)};
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)

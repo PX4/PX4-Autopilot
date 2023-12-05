@@ -191,7 +191,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 	} else {
 		if (starting_conditions_passing) {
 			// activate fusion, only reset if necessary
-			if (_params.height_sensor_ref == HeightSensor::EV) {
+			if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::EV)) {
 				ECL_INFO("starting %s fusion, resetting state", AID_SRC_NAME);
 				_information_events.flags.reset_hgt_to_ev = true;
 				resetVerticalPositionTo(measurement, measurement_var);

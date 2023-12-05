@@ -12,7 +12,7 @@ EkfWrapper::~EkfWrapper()
 
 void EkfWrapper::setBaroHeightRef()
 {
-	_ekf_params->height_sensor_ref = HeightSensor::BARO;
+	_ekf_params->height_sensor_ref = static_cast<int32_t>(HeightSensor::BARO);
 }
 
 void EkfWrapper::enableBaroHeightFusion()
@@ -32,7 +32,7 @@ bool EkfWrapper::isIntendingBaroHeightFusion() const
 
 void EkfWrapper::setGpsHeightRef()
 {
-	_ekf_params->height_sensor_ref = HeightSensor::GNSS;
+	_ekf_params->height_sensor_ref = static_cast<int32_t>(HeightSensor::GNSS);
 }
 
 void EkfWrapper::enableGpsHeightFusion()
@@ -52,7 +52,7 @@ bool EkfWrapper::isIntendingGpsHeightFusion() const
 
 void EkfWrapper::setRangeHeightRef()
 {
-	_ekf_params->height_sensor_ref = HeightSensor::RANGE;
+	_ekf_params->height_sensor_ref = static_cast<int32_t>(HeightSensor::RANGE);
 }
 
 void EkfWrapper::enableRangeHeightFusion()
@@ -72,7 +72,7 @@ bool EkfWrapper::isIntendingRangeHeightFusion() const
 
 void EkfWrapper::setExternalVisionHeightRef()
 {
-	_ekf_params->height_sensor_ref = HeightSensor::EV;
+	_ekf_params->height_sensor_ref = static_cast<int32_t>(HeightSensor::EV);
 }
 
 void EkfWrapper::enableExternalVisionHeightFusion()
