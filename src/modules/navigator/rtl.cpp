@@ -146,7 +146,7 @@ void RTL::updateDatamanCache()
 
 	if (_mission_id != _mission_sub.get().mission_id) {
 		_mission_id = _mission_sub.get().mission_id;
-		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().dataman_id);
+		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().mission_dataman_id);
 		_dataman_cache_landItem.invalidate();
 
 		if (_mission_sub.get().land_index > 0) {
@@ -365,7 +365,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 	if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == 3) || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON))
 	    && hasMissionLandStart()) {
 		mission_item_s land_mission_item;
-		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().dataman_id);
+		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().mission_dataman_id);
 		bool success = _dataman_cache_landItem.loadWait(dm_item, _mission_sub.get().land_index,
 				reinterpret_cast<uint8_t *>(&land_mission_item), sizeof(mission_item_s), 500_ms);
 
