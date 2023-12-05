@@ -111,7 +111,7 @@ void RTL::updateDatamanCache()
 				}
 
 				for (int index = 0; index < _dataman_cache_safepoint.size(); ++index) {
-					_dataman_cache_safepoint.load(DM_KEY_SAFE_POINTS_0, index);
+					_dataman_cache_safepoint.load(static_cast<dm_item_t>(_stats.dataman_id), index);
 				}
 
 				_dataman_state = DatamanState::Load;
@@ -397,7 +397,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 		for (int current_seq = 0; current_seq < _dataman_cache_safepoint.size(); ++current_seq) {
 			mission_item_s mission_safe_point;
 
-			bool success = _dataman_cache_safepoint.loadWait(DM_KEY_SAFE_POINTS_0, current_seq,
+			bool success = _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_stats.dataman_id), current_seq,
 					reinterpret_cast<uint8_t *>(&mission_safe_point),
 					sizeof(mission_item_s), 500_ms);
 
@@ -629,7 +629,7 @@ land_approaches_s RTL::readVtolLandApproaches(DestinationPosition rtl_position) 
 	for (int current_seq = 0; current_seq < _stats.num_items; ++current_seq) {
 		mission_item_s mission_item{};
 
-		bool success_mission_item = _dataman_cache_safepoint.loadWait(DM_KEY_SAFE_POINTS_0, current_seq,
+		bool success_mission_item = _dataman_cache_safepoint.loadWait(static_cast<dm_item_t>(_stats.dataman_id), current_seq,
 					    reinterpret_cast<uint8_t *>(&mission_item),
 					    sizeof(mission_item_s));
 
