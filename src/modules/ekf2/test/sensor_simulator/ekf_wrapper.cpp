@@ -37,12 +37,12 @@ void EkfWrapper::setGpsHeightRef()
 
 void EkfWrapper::enableGpsHeightFusion()
 {
-	_ekf_params->gnss_ctrl |= GnssCtrl::VPOS;
+	_ekf_params->gnss_ctrl |= static_cast<int32_t>(GnssCtrl::VPOS);
 }
 
 void EkfWrapper::disableGpsHeightFusion()
 {
-	_ekf_params->gnss_ctrl &= ~GnssCtrl::VPOS;
+	_ekf_params->gnss_ctrl &= ~static_cast<int32_t>(GnssCtrl::VPOS);
 }
 
 bool EkfWrapper::isIntendingGpsHeightFusion() const
@@ -102,12 +102,12 @@ bool EkfWrapper::isIntendingBetaFusion() const
 
 void EkfWrapper::enableGpsFusion()
 {
-	_ekf_params->gnss_ctrl |= GnssCtrl::HPOS | GnssCtrl::VEL;
+	_ekf_params->gnss_ctrl |= static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL);
 }
 
 void EkfWrapper::disableGpsFusion()
 {
-	_ekf_params->gnss_ctrl &= ~(GnssCtrl::HPOS | GnssCtrl::VEL);
+	_ekf_params->gnss_ctrl &= ~(static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL));
 }
 
 bool EkfWrapper::isIntendingGpsFusion() const
@@ -117,12 +117,12 @@ bool EkfWrapper::isIntendingGpsFusion() const
 
 void EkfWrapper::enableGpsHeadingFusion()
 {
-	_ekf_params->gnss_ctrl |= GnssCtrl::YAW;
+	_ekf_params->gnss_ctrl |= static_cast<int32_t>(GnssCtrl::YAW);
 }
 
 void EkfWrapper::disableGpsHeadingFusion()
 {
-	_ekf_params->gnss_ctrl &= ~GnssCtrl::YAW;
+	_ekf_params->gnss_ctrl &= ~static_cast<int32_t>(GnssCtrl::YAW);
 }
 
 bool EkfWrapper::isIntendingGpsHeadingFusion() const

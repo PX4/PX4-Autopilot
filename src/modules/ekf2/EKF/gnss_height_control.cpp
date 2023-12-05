@@ -86,7 +86,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 		}
 
 		// determine if we should use height aiding
-		const bool continuing_conditions_passing = (_params.gnss_ctrl & GnssCtrl::VPOS)
+		const bool continuing_conditions_passing = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
 				&& measurement_valid
 				&& _NED_origin_initialised
 				&& _gps_checks_passed;
@@ -113,7 +113,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 					bias_est.setBias(_state.pos(2) + measurement);
 
 					// reset vertical velocity
-					if (PX4_ISFINITE(gps_sample.vel(2)) && (_params.gnss_ctrl & GnssCtrl::VEL)) {
+					if (PX4_ISFINITE(gps_sample.vel(2)) && (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VEL))) {
 						// use 1.5 as a typical ratio of vacc/hacc
 						resetVerticalVelocityTo(gps_sample.vel(2), sq(math::max(1.5f * gps_sample.sacc, _params.gps_vel_noise)));
 
