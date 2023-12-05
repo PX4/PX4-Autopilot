@@ -50,12 +50,11 @@
 #define PARAM_PREFIX "HIL_ACT"
 #endif
 
-static constexpr int max_num_outputs = 8;
-
-static constexpr int disarmed_value = 900;
-static constexpr int failsafe_value = 800;
-static constexpr int min_value = 1000;
-static constexpr int max_value = 2000;
+static constexpr int MAX_NUM_OUTPUTS = 8;
+static constexpr int DISARMED_VALUE = 900;
+static constexpr int FAILSAFE_VALUE = 800;
+static constexpr int MIN_VALUE = 1000;
+static constexpr int MAX_VALUE = 2000;
 
 class MixerModuleTest : public ::testing::Test
 {
@@ -101,9 +100,9 @@ public:
 		mixer_changed = true;
 	}
 
-	void configureFunctions(const std::array<int32_t, max_num_outputs> &functions)
+	void configureFunctions(const std::array<int32_t, MAX_NUM_OUTPUTS> &functions)
 	{
-		for (int i = 0; i < max_num_outputs; ++i) {
+		for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
 			char buffer[17];
 
 			snprintf(buffer, sizeof(buffer), "%s_FUNC%u", PARAM_PREFIX, i + 1);
@@ -185,11 +184,11 @@ TEST_F(MixerModuleTest, basic)
 {
 	OutputModuleTest test_module;
 	test_module.configureFunctions({});
-	MixingOutput mixing_output{PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
-	mixing_output.setAllDisarmedValues(disarmed_value);
-	mixing_output.setAllFailsafeValues(failsafe_value);
-	mixing_output.setAllMinValues(min_value);
-	mixing_output.setAllMaxValues(max_value);
+	MixingOutput mixing_output{PARAM_PREFIX, MAX_NUM_OUTPUTS, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
+	mixing_output.setAllDisarmedValues(DISARMED_VALUE);
+	mixing_output.setAllFailsafeValues(FAILSAFE_VALUE);
+	mixing_output.setAllMinValues(MIN_VALUE);
+	mixing_output.setAllMaxValues(MAX_VALUE);
 	EXPECT_EQ(test_module.num_updates, 0);
 
 	// all functions disabled: not expected to get an update
@@ -204,10 +203,10 @@ TEST_F(MixerModuleTest, basic)
 	mixing_output.updateSubscriptions(false);
 	EXPECT_TRUE(test_module.mixer_changed);
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
-	EXPECT_EQ(test_module.num_outputs, max_num_outputs);
+	EXPECT_EQ(test_module.num_outputs, MAX_NUM_OUTPUTS);
 
 	for (int i = 0; i < test_module.num_outputs; ++i) {
-		EXPECT_EQ(test_module.outputs[i], disarmed_value);
+		EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 	}
 
 	test_module.reset();
@@ -222,10 +221,10 @@ TEST_F(MixerModuleTest, basic)
 
 	mixing_output.updateSubscriptions(false);
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
-	EXPECT_EQ(test_module.num_outputs, max_num_outputs);
+	EXPECT_EQ(test_module.num_outputs, MAX_NUM_OUTPUTS);
 
 	for (int i = 0; i < test_module.num_outputs; ++i) {
-		EXPECT_EQ(test_module.outputs[i], disarmed_value);
+		EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 	}
 
 	test_module.reset();
@@ -236,14 +235,14 @@ TEST_F(MixerModuleTest, basic)
 	test_module.sendMotors({1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f});
 	mixing_output.updateSubscriptions(false);
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
-	EXPECT_EQ(test_module.num_outputs, max_num_outputs);
+	EXPECT_EQ(test_module.num_outputs, MAX_NUM_OUTPUTS);
 
 	for (int i = 0; i < test_module.num_outputs; ++i) {
 		if (i == 3) {
-			EXPECT_EQ(test_module.outputs[i], max_value);
+			EXPECT_EQ(test_module.outputs[i], MAX_VALUE);
 
 		} else {
-			EXPECT_EQ(test_module.outputs[i], disarmed_value);
+			EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 		}
 	}
 
@@ -254,10 +253,10 @@ TEST_F(MixerModuleTest, basic)
 	test_module.sendMotors({1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f});
 	mixing_output.updateSubscriptions(false);
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
-	EXPECT_EQ(test_module.num_outputs, max_num_outputs);
+	EXPECT_EQ(test_module.num_outputs, MAX_NUM_OUTPUTS);
 
 	for (int i = 0; i < test_module.num_outputs; ++i) {
-		EXPECT_EQ(test_module.outputs[i], disarmed_value);
+		EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 	}
 
 	test_module.reset();
@@ -274,11 +273,11 @@ TEST_F(MixerModuleTest, arming)
 		(int)OutputFunction::Motor1,
 		(int)OutputFunction::Motor5,
 		(int)OutputFunction::Servo3});
-	MixingOutput mixing_output{PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
-	mixing_output.setAllDisarmedValues(disarmed_value);
-	mixing_output.setAllFailsafeValues(failsafe_value);
-	mixing_output.setAllMinValues(min_value);
-	mixing_output.setAllMaxValues(max_value);
+	MixingOutput mixing_output{PARAM_PREFIX, MAX_NUM_OUTPUTS, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
+	mixing_output.setAllDisarmedValues(DISARMED_VALUE);
+	mixing_output.setAllFailsafeValues(FAILSAFE_VALUE);
+	mixing_output.setAllMinValues(MIN_VALUE);
+	mixing_output.setAllMaxValues(MAX_VALUE);
 
 	test_module.sendMotors({1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f});
 	test_module.sendActuatorArmed(false);
@@ -286,10 +285,10 @@ TEST_F(MixerModuleTest, arming)
 	// ensure all disarmed
 	mixing_output.updateSubscriptions(false);
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
-	EXPECT_EQ(test_module.num_outputs, max_num_outputs);
+	EXPECT_EQ(test_module.num_outputs, MAX_NUM_OUTPUTS);
 
-	for (int i = 0; i < max_num_outputs; ++i) {
-		EXPECT_EQ(test_module.outputs[i], disarmed_value);
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
+		EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 	}
 
 	test_module.reset();
@@ -299,20 +298,20 @@ TEST_F(MixerModuleTest, arming)
 	test_module.sendActuatorArmed(true);
 
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
-	EXPECT_EQ(test_module.num_outputs, max_num_outputs);
+	EXPECT_EQ(test_module.num_outputs, MAX_NUM_OUTPUTS);
 
-	for (int i = 0; i < max_num_outputs; ++i) {
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
 		if (i == 1) {
-			EXPECT_EQ(test_module.outputs[i], (max_value - min_value) * 0.1f + min_value);
+			EXPECT_EQ(test_module.outputs[i], (MAX_VALUE - MIN_VALUE) * 0.1f + MIN_VALUE);
 
 		} else if (i == 2) {
-			EXPECT_EQ(test_module.outputs[i], (max_value - min_value) * 0.5f + min_value);
+			EXPECT_EQ(test_module.outputs[i], (MAX_VALUE - MIN_VALUE) * 0.5f + MIN_VALUE);
 
 		} else if (i == 3) {
-			EXPECT_EQ(test_module.outputs[i], max_value);
+			EXPECT_EQ(test_module.outputs[i], MAX_VALUE);
 
 		} else {
-			EXPECT_EQ(test_module.outputs[i], disarmed_value);
+			EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 		}
 	}
 
@@ -323,18 +322,18 @@ TEST_F(MixerModuleTest, arming)
 	mixing_output.updateSubscriptions(false);
 	mixing_output.update();
 
-	for (int i = 0; i < max_num_outputs; ++i) {
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
 		if (i == 1) {
-			EXPECT_EQ(test_module.outputs[i], (max_value - min_value) * 0.24f + min_value);
+			EXPECT_EQ(test_module.outputs[i], (MAX_VALUE - MIN_VALUE) * 0.24f + MIN_VALUE);
 
 		} else if (i == 2) {
-			EXPECT_EQ(test_module.outputs[i], (max_value - min_value) * 0.9f + min_value);
+			EXPECT_EQ(test_module.outputs[i], (MAX_VALUE - MIN_VALUE) * 0.9f + MIN_VALUE);
 
 		} else if (i == 3) {
-			EXPECT_EQ(test_module.outputs[i], min_value);
+			EXPECT_EQ(test_module.outputs[i], MIN_VALUE);
 
 		} else {
-			EXPECT_EQ(test_module.outputs[i], disarmed_value);
+			EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 		}
 	}
 
@@ -345,8 +344,8 @@ TEST_F(MixerModuleTest, arming)
 	test_module.sendMotors({0.5f, 1.f, 0.1f, 0.2f, 1.f, 1.f, 1.f, 1.f});
 	mixing_output.update();
 
-	for (int i = 0; i < max_num_outputs; ++i) {
-		EXPECT_EQ(test_module.outputs[i], failsafe_value);
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
+		EXPECT_EQ(test_module.outputs[i], FAILSAFE_VALUE);
 	}
 
 	test_module.reset();
@@ -356,12 +355,12 @@ TEST_F(MixerModuleTest, arming)
 	test_module.sendMotors({1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f});
 	mixing_output.update();
 
-	for (int i = 0; i < max_num_outputs; ++i) {
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
 		if (i >= 1 && i <= 3) {
-			EXPECT_EQ(test_module.outputs[i], max_value);
+			EXPECT_EQ(test_module.outputs[i], MAX_VALUE);
 
 		} else {
-			EXPECT_EQ(test_module.outputs[i], disarmed_value);
+			EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 		}
 	}
 
@@ -372,8 +371,8 @@ TEST_F(MixerModuleTest, arming)
 	test_module.sendMotors({0.5f, 1.f, 0.1f, 0.2f, 1.f, 1.f, 1.f, 1.f});
 	mixing_output.update();
 
-	for (int i = 0; i < max_num_outputs; ++i) {
-		EXPECT_EQ(test_module.outputs[i], disarmed_value);
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
+		EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 	}
 
 	test_module.reset();
@@ -383,12 +382,12 @@ TEST_F(MixerModuleTest, arming)
 	test_module.sendMotors({0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 1.f, 1.f});
 	mixing_output.update();
 
-	for (int i = 0; i < max_num_outputs; ++i) {
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
 		if (i >= 1 && i <= 3) {
-			EXPECT_EQ(test_module.outputs[i], min_value);
+			EXPECT_EQ(test_module.outputs[i], MIN_VALUE);
 
 		} else {
-			EXPECT_EQ(test_module.outputs[i], disarmed_value);
+			EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 		}
 	}
 
@@ -400,18 +399,18 @@ TEST_F(MixerModuleTest, arming)
 	mixing_output.update();
 	EXPECT_EQ(mixing_output.reversibleOutputs(), 1u << 3);
 
-	for (int i = 0; i < max_num_outputs; ++i) {
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
 		if (i == 1) {
-			EXPECT_EQ(test_module.outputs[i], min_value);
+			EXPECT_EQ(test_module.outputs[i], MIN_VALUE);
 
 		} else if (i == 2) {
-			EXPECT_EQ(test_module.outputs[i], min_value);
+			EXPECT_EQ(test_module.outputs[i], MIN_VALUE);
 
 		} else if (i == 3) {
-			EXPECT_EQ(test_module.outputs[i], (max_value - min_value) * 0.5f + min_value);
+			EXPECT_EQ(test_module.outputs[i], (MAX_VALUE - MIN_VALUE) * 0.5f + MIN_VALUE);
 
 		} else {
-			EXPECT_EQ(test_module.outputs[i], disarmed_value);
+			EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 		}
 	}
 
@@ -422,8 +421,8 @@ TEST_F(MixerModuleTest, arming)
 	test_module.sendMotors({0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 1.f, 1.f}, 1u << 4);
 	mixing_output.update();
 
-	for (int i = 0; i < max_num_outputs; ++i) {
-		EXPECT_EQ(test_module.outputs[i], disarmed_value);
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
+		EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 	}
 
 	test_module.reset();
@@ -437,11 +436,11 @@ TEST_F(MixerModuleTest, prearm)
 	test_module.configureFunctions({
 		(int)OutputFunction::Motor1,
 		(int)OutputFunction::Servo1});
-	MixingOutput mixing_output{PARAM_PREFIX, max_num_outputs, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
-	mixing_output.setAllDisarmedValues(disarmed_value);
-	mixing_output.setAllFailsafeValues(failsafe_value);
-	mixing_output.setAllMinValues(min_value);
-	mixing_output.setAllMaxValues(max_value);
+	MixingOutput mixing_output{PARAM_PREFIX, MAX_NUM_OUTPUTS, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
+	mixing_output.setAllDisarmedValues(DISARMED_VALUE);
+	mixing_output.setAllFailsafeValues(FAILSAFE_VALUE);
+	mixing_output.setAllMinValues(MIN_VALUE);
+	mixing_output.setAllMaxValues(MAX_VALUE);
 
 	test_module.sendMotors({1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f});
 	test_module.sendServos({1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f});
@@ -450,18 +449,81 @@ TEST_F(MixerModuleTest, prearm)
 	// ensure all disarmed, except the servo
 	mixing_output.updateSubscriptions(false);
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
-	EXPECT_EQ(test_module.num_outputs, max_num_outputs);
+	EXPECT_EQ(test_module.num_outputs, MAX_NUM_OUTPUTS);
 
-	for (int i = 0; i < max_num_outputs; ++i) {
+	for (int i = 0; i < MAX_NUM_OUTPUTS; ++i) {
 		if (i == 1) {
-			EXPECT_EQ(test_module.outputs[i], max_value);
+			EXPECT_EQ(test_module.outputs[i], MAX_VALUE);
 
 		} else {
-			EXPECT_EQ(test_module.outputs[i], disarmed_value);
+			EXPECT_EQ(test_module.outputs[i], DISARMED_VALUE);
 		}
 	}
 
 	test_module.reset();
 
 	EXPECT_FALSE(test_module.was_scheduled);
+}
+
+class TestMixingOutput : public MixingOutput
+{
+public:
+	TestMixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
+			 SchedulingPolicy scheduling_policy,
+			 bool support_esc_calibration, bool ramp_up = true)
+		: MixingOutput(param_prefix, max_num_outputs, interface, scheduling_policy, support_esc_calibration, ramp_up)
+	{};
+	uint16_t output_limit_calc_single(int i, float value) const { return MixingOutput::output_limit_calc_single(i, value); }
+};
+
+TEST_F(MixerModuleTest, OutputLimitCalcSingle)
+{
+	OutputModuleTest test_module;
+	test_module.configureFunctions({(int)OutputFunction::Motor1});
+	TestMixingOutput mixing_output{PARAM_PREFIX, MAX_NUM_OUTPUTS, test_module, MixingOutput::SchedulingPolicy::Disabled, false, false};
+
+	mixing_output.setAllMinValues(MIN_VALUE); // default range [1000,2000]
+	mixing_output.setAllMaxValues(MAX_VALUE);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 1000); // In range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 1250);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 1500);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, .5f), 1750);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.f), 2000);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.1f), 1000); // Out of range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 2000);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 1000); // Way ouf of range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 2000);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0005), 1500); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.0015), 1501); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.002), 1501); // Exact value
+
+	mixing_output.setAllMinValues(0); // lower range [0,20]
+	mixing_output.setAllMaxValues(20);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 0); // In range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 5);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 10);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, .5f), 15);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.f), 20);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.1f), 0); // Out of range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 20);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 0); // Way ouf of range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 20);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 10); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 11); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.1), 11); // Exact value
+
+	mixing_output.setAllMinValues(20); // inverted range [20,0]
+	mixing_output.setAllMaxValues(0);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 20); // In range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 15);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 10);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, .5f), 5);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.f), 0);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.1f), 20); // Out of range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1.1f), 0);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1000.f), 20); // Way ouf of range
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 1000.f), 0);
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.025), 10); // Rounding down
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.075), 9); // Rounding up
+	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.1), 9); // Exact value
 }
