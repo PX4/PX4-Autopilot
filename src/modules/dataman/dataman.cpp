@@ -570,7 +570,7 @@ _file_initialize(unsigned max_offset)
 
 		mission_s mission{};
 		mission.timestamp = hrt_absolute_time();
-		mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 		mission.count = 0;
 		mission.current_seq = 0;
 		mission.mission_id = 0u;

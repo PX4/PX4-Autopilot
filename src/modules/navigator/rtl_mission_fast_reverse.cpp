@@ -120,9 +120,9 @@ void RtlMissionFastReverse::setActiveMissionItems()
 
 		if (num_found_items > 0) {
 
-			const dm_item_t dataman_id = static_cast<dm_item_t>(_mission.dataman_id);
+			const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 			mission_item_s next_mission_item;
-			bool success = _dataman_cache.loadWait(dataman_id, next_mission_item_index,
+			bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_item_index,
 							       reinterpret_cast<uint8_t *>(&next_mission_item), sizeof(mission_item_s), MAX_DATAMAN_LOAD_WAIT);
 
 			if (success) {

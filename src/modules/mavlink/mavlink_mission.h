@@ -106,8 +106,8 @@ private:
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
-	static dm_item_t		_dataman_id;				///< Global Dataman storage ID for active mission
-	dm_item_t			_my_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};			///< class Dataman storage ID
+	static dm_item_t	_mission_dataman_id;			///< Global Dataman storage ID for active mission
+	dm_item_t		_my_mission_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};		///< class Dataman storage ID for mission
 
 	static bool		_dataman_init;				///< Dataman initialized
 
@@ -117,7 +117,7 @@ private:
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
 
-	dm_item_t			_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};		///< Dataman storage ID for current transmission
+	dm_item_t		_transfer_mission_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};	///< Dataman storage ID for current mission transmission
 
 	uint16_t		_transfer_count{0};			///< Items count in current transmission
 	uint32_t		_transfer_current_crc32{0};		///< Current CRC32 checksum of current transmission
@@ -168,7 +168,7 @@ private:
 
 	void init_offboard_mission(const mission_s &mission_state);
 
-	void update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
+	void update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
 				   bool write_to_dataman = true);
 
 	/** store the geofence count to dataman */
