@@ -68,7 +68,7 @@ void Ekf::checkHeightSensorRefFallback()
 
 	HeightSensor fallback_list[4];
 
-	switch (_params.height_sensor_ref) {
+	switch (static_cast<HeightSensor>(_params.height_sensor_ref)) {
 	default:
 
 	/* FALLTHROUGH */

@@ -155,7 +155,7 @@ void Ekf::controlBaroHeightFusion()
 
 		} else {
 			if (starting_conditions_passing) {
-				if (_params.height_sensor_ref == HeightSensor::BARO) {
+				if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::BARO)) {
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::BARO;
 

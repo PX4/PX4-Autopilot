@@ -136,7 +136,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 
 		} else {
 			if (starting_conditions_passing) {
-				if (_params.height_sensor_ref == HeightSensor::GNSS) {
+				if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::GNSS)) {
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::GNSS;
 

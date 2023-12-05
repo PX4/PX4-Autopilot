@@ -114,7 +114,7 @@ enum TerrainFusionMask : uint8_t {
 };
 #endif // CONFIG_EKF2_TERRAIN
 
-enum HeightSensor : uint8_t {
+enum class HeightSensor : uint8_t {
 	BARO  = 0,
 	GNSS  = 1,
 	RANGE = 2,
@@ -277,7 +277,7 @@ struct parameters {
 	int32_t imu_ctrl{static_cast<int32_t>(ImuCtrl::GyroBias) | static_cast<int32_t>(ImuCtrl::AccelBias)};
 
 	// measurement source control
-	int32_t height_sensor_ref{HeightSensor::BARO};
+	int32_t height_sensor_ref{static_cast<int32_t>(HeightSensor::BARO)};
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
 
 	int32_t sensor_interval_max_ms{10};     ///< maximum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
