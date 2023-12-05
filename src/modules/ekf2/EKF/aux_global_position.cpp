@@ -68,7 +68,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 	if (_aux_global_position_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
 
-		if (!(_param_ekf2_agp_ctrl.get() & static_cast<int32_t>(Ctrl::HPOS))) {
+		if (!(_param_ekf2_agp_ctrl.get() & static_cast<int32_t>(GnssCtrl::HPOS))) {
 			return;
 		}
 
