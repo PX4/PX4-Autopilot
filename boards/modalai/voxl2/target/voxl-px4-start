@@ -6,6 +6,7 @@
 echo -e "\n*************************"
 echo "GPS: $GPS"
 echo "RC: $RC"
+echo "ESC: $ESC"
 echo "POWER MANAGER: $POWER_MANAGER"
 echo "DISTANCE SENSOR: $DISTANCE_SENSOR"
 echo "OSD: $OSD"
@@ -109,7 +110,21 @@ qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 param touch SYS_AUTOCONFIG
 
 # ESC driver
-qshell modal_io start
+if [ "$ESC" == "VOXL_ESC" ]; then
+    /bin/echo "Starting VOXL ESC driver"
+	qshell voxl_esc start
+elif [ "$ESC" == "VOXL2_IO_PWM_ESC" ]; then
+	if [ "$RC" == "M0065_SBUS" ]; then
+		/bin/echo "Starting VOXL IO for PWM ESC with SBUS RC"
+		qshell voxl2_io start
+	else
+		/bin/echo "Starting VOXL IO for PWM ESC without SBUS RC"
+		qshell voxl2_io start -e
+	fi
+else
+	/bin/echo "No ESC type specified, not starting an ESC driver"
+fi
+
 
 # RC driver
 if [ "$RC" == "FAKE_RC_INPUT" ]; then
@@ -121,9 +136,6 @@ elif [ "$RC" == "CRSF_RAW" ]; then
 elif [ "$RC" == "CRSF_MAV" ]; then
     /bin/echo "Starting TBS crossfire RC - MAV Mode"
     qshell mavlink_rc_in start -m -p 7 -b 115200
-elif [ "$RC" == "M0065_SBUS" ]; then
-    /bin/echo "Starting DSP M0065 SBUS RC driver"
-    qshell dsp_sbus start
 elif [ "$RC" == "SPEKTRUM" ]; then
     /bin/echo "Starting Spektrum RC"
 	# On M0052 the RC driver runs on the apps processor
@@ -132,6 +144,24 @@ elif [ "$RC" == "SPEKTRUM" ]; then
 	# On M0054 and M0104 the RC driver runs on SLPI DSP
 	else
         qshell spektrum_rc start
+	fi
+elif [ "$RC" == "GHST" ]; then
+    /bin/echo "Starting GHST RC driver"
+    qshell ghst_rc start -d 7
+elif [ "$RC" == "M0065_SBUS" ]; then
+	if [ $PLATFORM = "M0052" ]; then
+		apps_sbus start
+	elif [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
+    	/bin/echo "Attempting to start M0065 SBUS RC driver for original M0065 FW"
+    	qshell dsp_sbus start
+		retVal=$?
+		if [ $retVal -ne 0 ]; then
+	    	/bin/echo "Starting M0065 SBUS RC driver for original M0065 FW failed"
+	    	/bin/echo "Attempting to start M0065 SBUS RC driver for new M0065 FW"
+			qshell voxl2_io start -d -p 7
+		fi
+	else
+    	/bin/echo "M0065 SBUS RC driver already started with PWM ESC start"
 	fi
 fi
 
@@ -177,6 +207,7 @@ qshell flight_mode_manager start
 # Start all of the processing modules on the applications processor
 dataman start
 navigator start
+load_mon start
 
 # This bridge allows raw data packets to be sent over UART to the ESC
 modal_io_bridge start

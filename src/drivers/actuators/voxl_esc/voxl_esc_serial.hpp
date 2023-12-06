@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +31,39 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * VOXL2 internal definitions
- */
-
 #pragma once
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-/*
- * I2C buses
- */
-#define CONFIG_I2C 1
-#define PX4_NUMBER_I2C_BUSES    4
+#include <px4_log.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <termios.h>
 
-/*
- * SPI buses
- */
-#define CONFIG_SPI 1
-#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
+#ifdef __PX4_QURT
+#include <drivers/device/qurt/uart.h>
+#define FAR
+#endif
 
-/*
- * Include these last to make use of the definitions above
- */
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+class VoxlEscSerial
+{
+public:
+	VoxlEscSerial();
+	virtual ~VoxlEscSerial();
 
-/*
- *  Default port for the ESC
- */
-#define VOXL_ESC_DEFAULT_PORT 	"2"
+	int		uart_open(const char *dev, speed_t speed);
+	int		uart_set_baud(speed_t speed);
+	int		uart_close();
+	int		uart_write(FAR void *buf, size_t len);
+	int		uart_read(FAR void *buf, size_t len);
+	bool		is_open() { return _uart_fd >= 0; };
+	int		uart_get_baud() {return _speed; }
 
-/*
- *  Default port for the GHST RC
- */
-#define GHST_RC_DEFAULT_PORT 	"7"
+private:
+	int			_uart_fd = -1;
 
-/*
- * Default port for M0065
-*/
-#define VOXL2_IO_DEFAULT_PORT 	"2"
+#if ! defined(__PX4_QURT)
+	struct termios		_orig_cfg;
+	struct termios		_cfg;
+#endif
 
-
-/*
- * M0065 PWM 
- */
-#define DIRECT_PWM_OUTPUT_CHANNELS 4
-#define MAX_IO_TIMERS 3
+	int   _speed = -1;
+};

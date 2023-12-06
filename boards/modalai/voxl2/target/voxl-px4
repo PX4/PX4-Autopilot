@@ -4,6 +4,7 @@ CONFIG_FILE="/etc/modalai/voxl-px4.conf"
 
 GPS=NONE
 RC=SPEKTRUM
+ESC=VOXL_ESC
 POWER_MANAGER=VOXLPM
 DISTANCE_SENSOR=NONE
 OSD=DISABLE
@@ -40,7 +41,7 @@ fi
 print_usage() {
     echo -e "\nUsage: voxl-px4 [-b (Specify Holybro GPS unit)]"
     echo "                [-c delete configuration file and exit]"
-    echo "                [-d start px4 in daemon mode]"
+    echo "                [-d start px4 without daemon mode]"
     echo "                [-f (Use fake rc input instead of from a real transmitter)]"
     echo "                [-m (Specify Matek GPS unit)]"
     echo "                [-o (Start OSD module on the apps processor)]"
@@ -56,6 +57,7 @@ print_config_settings(){
     echo -e "\n*************************"
     echo "GPS=$GPS"
     echo "RC=$RC"
+    echo "ESC=$ESC"
     echo "POWER MANAGER=$POWER_MANAGER"
     echo "DISTANCE SENSOR=$DISTANCE_SENSOR"
     echo "OSD=$OSD"
@@ -84,8 +86,8 @@ do
             exit 0
             ;;
         d) 
-            echo "[INFO] Enabling daemon mode"
-            DAEMON_MODE=ENABLE
+            echo "[INFO] Disabling daemon mode"
+            DAEMON_MODE=DISABLE
             ;;
         h) 
             print_usage
@@ -141,5 +143,5 @@ fi
 
 print_config_settings
 
-GPS=$GPS RC=$RC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
+GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
 OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS px4 $DAEMON -s /usr/bin/voxl-px4-start

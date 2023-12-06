@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,51 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file board_config.h
+ * UART M0065 baud rate
  *
- * VOXL2 internal definitions
+ * Default rate is 921600, which is used for communicating with M0065.
+ *
+ * @group VOXL2 IO
+ * @unit bit/s
  */
+PARAM_DEFINE_INT32(VOXL2_IO_BAUD, 921600);
 
-#pragma once
-
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-/*
- * I2C buses
+/**
+ * M0065 PWM Min
+ *
+ * Minimum duration (microseconds) for M0065 PWM
+ *
+ * @min 0
+ * @max 2000
+ * @group VOXL2 IO
+ * @unit us
  */
-#define CONFIG_I2C 1
-#define PX4_NUMBER_I2C_BUSES    4
+PARAM_DEFINE_INT32(VOXL2_IO_MIN, 1000);
 
-/*
- * SPI buses
+/**
+ * M0065 PWM Max
+ *
+ * Maximum duration (microseconds) for M0065 PWM
+ * @min 0
+ * @max 2000
+ * @group VOXL2 IO
+ * @unit us
  */
-#define CONFIG_SPI 1
-#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
+PARAM_DEFINE_INT32(VOXL2_IO_MAX, 2000);
 
-/*
- * Include these last to make use of the definitions above
- */
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
-
-/*
- *  Default port for the ESC
- */
-#define VOXL_ESC_DEFAULT_PORT 	"2"
-
-/*
- *  Default port for the GHST RC
- */
-#define GHST_RC_DEFAULT_PORT 	"7"
-
-/*
- * Default port for M0065
-*/
-#define VOXL2_IO_DEFAULT_PORT 	"2"
-
-
-/*
- * M0065 PWM 
- */
-#define DIRECT_PWM_OUTPUT_CHANNELS 4
-#define MAX_IO_TIMERS 3

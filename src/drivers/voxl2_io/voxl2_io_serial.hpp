@@ -43,11 +43,11 @@
 #define FAR
 #endif
 
-class ModalIoSerial
+class Voxl2IoSerial
 {
 public:
-	ModalIoSerial();
-	virtual ~ModalIoSerial();
+	Voxl2IoSerial();
+	virtual ~Voxl2IoSerial();
 
 	int		uart_open(const char *dev, speed_t speed);
 	int		uart_set_baud(speed_t speed);

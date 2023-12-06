@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,25 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-# Need to make sure that the DSP processor on VOXL2
-# knows about all parameters since some modules need parameters
-# from other modules that are not running on the DSP.
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
-
-add_library(drivers_board
-	board_config.h
-	i2c.cpp
-	init.c
-	spi.cpp
-    )
-
-# Add custom drivers for SLPI
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/icm42688p)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/rc_controller)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/mavlink_rc_in)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/spektrum_rc)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/ghst_rc)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/dsp_hitl)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/dsp_sbus)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/elrs_led)
+px4_add_module(
+	MODULE drivers__ghst_rc
+	MAIN ghst_rc
+	COMPILE_FLAGS
+	INCLUDES
+	${PX4_SOURCE_DIR}/src/drivers/rc_input
+	${PX4_SOURCE_DIR}/src/lib/rc/spektrum_rssi.h
+	SRCS
+		ghst_rc.cpp
+		ghst_rc.hpp
+	MODULE_CONFIG
+		module.yaml
+	DEPENDS
+		rc
+	)

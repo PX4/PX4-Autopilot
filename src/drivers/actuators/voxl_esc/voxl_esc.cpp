@@ -35,32 +35,32 @@
 
 #include <px4_platform_common/getopt.h>
 
-#include "modal_io.hpp"
-#include "modal_io_serial.hpp"
+#include "voxl_esc.hpp"
+#include "voxl_esc_serial.hpp"
 
 // future use:
 #define MODALAI_PUBLISH_ESC_STATUS	0
 
 const char *_device;
 
-ModalIo::ModalIo() :
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_IO_DEFAULT_PORT)),
-	_mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
+VoxlEsc::VoxlEsc() :
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(VOXL_ESC_DEFAULT_PORT)),
+	_mixing_output{"VOXL_ESC", VOXL_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")),
 	_battery(1, nullptr, _battery_report_interval, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
-	_device = MODAL_IO_DEFAULT_PORT;
+	_device = VOXL_ESC_DEFAULT_PORT;
 
 	_mixing_output.setAllFailsafeValues(0);
 	_mixing_output.setAllDisarmedValues(0);
 
 	_esc_status.timestamp          = hrt_absolute_time();
 	_esc_status.counter            = 0;
-	_esc_status.esc_count          = MODAL_IO_OUTPUT_CHANNELS;
+	_esc_status.esc_count          = VOXL_ESC_OUTPUT_CHANNELS;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 
-	for (unsigned i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
+	for (unsigned i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		_esc_status.esc[i].timestamp       = 0;
 		_esc_status.esc[i].esc_address     = 0;
 		_esc_status.esc[i].esc_rpm         = 0;
@@ -79,7 +79,7 @@ ModalIo::ModalIo() :
 	_fb_idx = 0;
 }
 
-ModalIo::~ModalIo()
+VoxlEsc::~VoxlEsc()
 {
 	_outputs_on = false;
 
@@ -92,7 +92,7 @@ ModalIo::~ModalIo()
 	perf_free(_output_update_perf);
 }
 
-int ModalIo::init()
+int VoxlEsc::init()
 {
 
 	/* Getting initial parameter values */
@@ -102,7 +102,7 @@ int ModalIo::init()
 		return ret;
 	}
 
-	_uart_port = new ModalIoSerial();
+	_uart_port = new VoxlEscSerial();
 	memset(&_esc_chans, 0x00, sizeof(_esc_chans));
 
 	//get_instance()->ScheduleOnInterval(10000); //100hz
@@ -112,82 +112,82 @@ int ModalIo::init()
 	return 0;
 }
 
-int ModalIo::load_params(modal_io_params_t *params, ch_assign_t *map)
+int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 {
 	int ret = PX4_OK;
 
 	// initialize out
-	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		params->function_map[i] = (int)OutputFunction::Disabled;
 		params->direction_map[i] = 0;
 		params->motor_map[i] = 0;
 	}
 
-	param_get(param_find("MODAL_IO_CONFIG"),  &params->config);
-	param_get(param_find("MODAL_IO_MODE"),    &params->mode);
-	param_get(param_find("MODAL_IO_BAUD"),    &params->baud_rate);
+	param_get(param_find("VOXL_ESC_CONFIG"),  &params->config);
+	param_get(param_find("VOXL_ESC_MODE"),    &params->mode);
+	param_get(param_find("VOXL_ESC_BAUD"),    &params->baud_rate);
 
-	param_get(param_find("MODAL_IO_T_PERC"),  &params->turtle_motor_percent);
-	param_get(param_find("MODAL_IO_T_DEAD"),  &params->turtle_motor_deadband);
-	param_get(param_find("MODAL_IO_T_EXPO"),  &params->turtle_motor_expo);
-	param_get(param_find("MODAL_IO_T_MINF"),  &params->turtle_stick_minf);
-	param_get(param_find("MODAL_IO_T_COSP"),  &params->turtle_cosphi);
+	param_get(param_find("VOXL_ESC_T_PERC"),  &params->turtle_motor_percent);
+	param_get(param_find("VOXL_ESC_T_DEAD"),  &params->turtle_motor_deadband);
+	param_get(param_find("VOXL_ESC_T_EXPO"),  &params->turtle_motor_expo);
+	param_get(param_find("VOXL_ESC_T_MINF"),  &params->turtle_stick_minf);
+	param_get(param_find("VOXL_ESC_T_COSP"),  &params->turtle_cosphi);
 
-	param_get(param_find("MODAL_IO_FUNC1"),  &params->function_map[0]);
-	param_get(param_find("MODAL_IO_FUNC2"),  &params->function_map[1]);
-	param_get(param_find("MODAL_IO_FUNC3"),  &params->function_map[2]);
-	param_get(param_find("MODAL_IO_FUNC4"),  &params->function_map[3]);
+	param_get(param_find("VOXL_ESC_FUNC1"),  &params->function_map[0]);
+	param_get(param_find("VOXL_ESC_FUNC2"),  &params->function_map[1]);
+	param_get(param_find("VOXL_ESC_FUNC3"),  &params->function_map[2]);
+	param_get(param_find("VOXL_ESC_FUNC4"),  &params->function_map[3]);
 
-	param_get(param_find("MODAL_IO_SDIR1"),  &params->direction_map[0]);
-	param_get(param_find("MODAL_IO_SDIR2"),  &params->direction_map[1]);
-	param_get(param_find("MODAL_IO_SDIR3"),  &params->direction_map[2]);
-	param_get(param_find("MODAL_IO_SDIR4"),  &params->direction_map[3]);
+	param_get(param_find("VOXL_ESC_SDIR1"),  &params->direction_map[0]);
+	param_get(param_find("VOXL_ESC_SDIR2"),  &params->direction_map[1]);
+	param_get(param_find("VOXL_ESC_SDIR3"),  &params->direction_map[2]);
+	param_get(param_find("VOXL_ESC_SDIR4"),  &params->direction_map[3]);
 
-	param_get(param_find("MODAL_IO_RPM_MIN"), &params->rpm_min);
-	param_get(param_find("MODAL_IO_RPM_MAX"), &params->rpm_max);
+	param_get(param_find("VOXL_ESC_RPM_MIN"), &params->rpm_min);
+	param_get(param_find("VOXL_ESC_RPM_MAX"), &params->rpm_max);
 
-	param_get(param_find("MODAL_IO_VLOG"),    &params->verbose_logging);
-	param_get(param_find("MODAL_IO_PUB_BST"), &params->publish_battery_status);
+	param_get(param_find("VOXL_ESC_VLOG"),    &params->verbose_logging);
+	param_get(param_find("VOXL_ESC_PUB_BST"), &params->publish_battery_status);
 
 	if (params->rpm_min >= params->rpm_max) {
-		PX4_ERR("Invalid parameter MODAL_IO_RPM_MIN.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
 		params->rpm_min = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_percent < 0 || params->turtle_motor_percent > 100) {
-		PX4_ERR("Invalid parameter MODAL_IO_T_PERC.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_PERC.  Please verify parameters.");
 		params->turtle_motor_percent = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_deadband < 0 || params->turtle_motor_deadband > 100) {
-		PX4_ERR("Invalid parameter MODAL_IO_T_DEAD.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_DEAD.  Please verify parameters.");
 		params->turtle_motor_deadband = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_expo < 0 || params->turtle_motor_expo > 100) {
-		PX4_ERR("Invalid parameter MODAL_IO_T_EXPO.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_EXPO.  Please verify parameters.");
 		params->turtle_motor_expo = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_stick_minf < 0.0f || params->turtle_stick_minf > 100.0f) {
-		PX4_ERR("Invalid parameter MODAL_IO_T_MINF.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_MINF.  Please verify parameters.");
 		params->turtle_stick_minf = 0.0f;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_cosphi < 0.0f || params->turtle_cosphi > 100.0f) {
-		PX4_ERR("Invalid parameter MODAL_IO_T_COSP.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL_ESC_T_COSP.  Please verify parameters.");
 		params->turtle_cosphi = 0.0f;
 		ret = PX4_ERROR;
 	}
 
-	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		if (params->function_map[i] < (int)OutputFunction::Motor1 || params->function_map[i] > (int)OutputFunction::Motor4) {
-			PX4_ERR("Invalid parameter MODAL_IO_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
+			PX4_ERR("Invalid parameter VOXL_ESC_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
 			params->function_map[i] = 0;
 			ret = PX4_ERROR;
 
@@ -201,11 +201,11 @@ int ModalIo::load_params(modal_io_params_t *params, ch_assign_t *map)
 		}
 	}
 
-	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
-		if (params->motor_map[i] == MODAL_IO_OUTPUT_DISABLED ||
-		    params->motor_map[i] < -(MODAL_IO_OUTPUT_CHANNELS) ||
-		    params->motor_map[i] > MODAL_IO_OUTPUT_CHANNELS) {
-			PX4_ERR("Invalid parameter MODAL_IO_MOTORX.  Please verify parameters.");
+	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
+		if (params->motor_map[i] == VOXL_ESC_OUTPUT_DISABLED ||
+		    params->motor_map[i] < -(VOXL_ESC_OUTPUT_CHANNELS) ||
+		    params->motor_map[i] > VOXL_ESC_OUTPUT_CHANNELS) {
+			PX4_ERR("Invalid parameter VOXL_ESC_MOTORX.  Please verify parameters.");
 			params->motor_map[i] = 0;
 			ret = PX4_ERROR;
 		}
@@ -218,7 +218,7 @@ int ModalIo::load_params(modal_io_params_t *params, ch_assign_t *map)
 	return ret;
 }
 
-int ModalIo::task_spawn(int argc, char *argv[])
+int VoxlEsc::task_spawn(int argc, char *argv[])
 {
 	int myoptind = 0;
 	int ch;
@@ -235,7 +235,7 @@ int ModalIo::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	ModalIo *instance = new ModalIo();
+	VoxlEsc *instance = new VoxlEsc();
 
 	if (instance) {
 		_object.store(instance);
@@ -258,14 +258,14 @@ int ModalIo::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int ModalIo::flush_uart_rx()
+int VoxlEsc::flush_uart_rx()
 {
 	while (_uart_port->uart_read(_read_buf, sizeof(_read_buf)) > 0) {}
 
 	return 0;
 }
 
-int ModalIo::read_response(Command *out_cmd)
+int VoxlEsc::read_response(Command *out_cmd)
 {
 	px4_usleep(_current_cmd.resp_delay_us);
 
@@ -288,7 +288,7 @@ int ModalIo::read_response(Command *out_cmd)
 	return 0;
 }
 
-int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
+int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 {
 	hrt_abstime tnow = hrt_absolute_time();
 
@@ -308,7 +308,7 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 				uint32_t id             = (fb.id_state & 0xF0) >> 4;  //ID of the ESC based on hardware address
 
-				if (id < MODAL_IO_OUTPUT_CHANNELS) {
+				if (id < VOXL_ESC_OUTPUT_CHANNELS) {
 
 					int motor_idx = _output_map[id].number - 1; // mapped motor id.. user defined mapping is 1-4, array is 0-3
 
@@ -430,19 +430,19 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 	return 0;
 }
 
-int ModalIo::check_for_esc_timeout()
+int VoxlEsc::check_for_esc_timeout()
 {
 	hrt_abstime tnow = hrt_absolute_time();
 
-	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		// PX4 motor indexed user defined mapping is 1-4, we want to use in bitmask (0-3)
 		uint8_t motor_idx = _output_map[i].number - 1;
 
-		if (motor_idx < MODAL_IO_OUTPUT_CHANNELS) {
+		if (motor_idx < VOXL_ESC_OUTPUT_CHANNELS) {
 			// we are using PX4 motor index in the bitmask
 			if (_esc_status.esc_online_flags & (1 << motor_idx)) {
 				// using index i here for esc_chans enumeration stored in ESC ID order
-				if ((tnow - _esc_chans[i].feedback_time) > MODAL_IO_DISCONNECT_TIMEOUT_US) {
+				if ((tnow - _esc_chans[i].feedback_time) > VOXL_ESC_DISCONNECT_TIMEOUT_US) {
 					// stale data, assume offline and clear armed
 					_esc_status.esc_online_flags &= ~(1 << motor_idx);
 					_esc_status.esc_armed_flags &= ~(1 << motor_idx);
@@ -455,7 +455,7 @@ int ModalIo::check_for_esc_timeout()
 
 }
 
-int ModalIo::send_cmd_thread_safe(Command *cmd)
+int VoxlEsc::send_cmd_thread_safe(Command *cmd)
 {
 	cmd->id = _cmd_id++;
 	_pending_cmd.store(cmd);
@@ -470,7 +470,7 @@ int ModalIo::send_cmd_thread_safe(Command *cmd)
 
 
 
-int ModalIo::custom_command(int argc, char *argv[])
+int VoxlEsc::custom_command(int argc, char *argv[])
 {
 	int myoptind = 0;
 	int ch;
@@ -496,7 +496,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 	/* start the FMU if not running */
 	if (!strcmp(verb, "start")) {
 		if (!is_running()) {
-			return ModalIo::task_spawn(argc, argv);
+			return VoxlEsc::task_spawn(argc, argv);
 		}
 	}
 
@@ -559,7 +559,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "reset")) {
-		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
+		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
 			PX4_INFO("Reset ESC: %i", esc_id);
 			cmd.len = qc_esc_create_reset_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
@@ -571,7 +571,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(verb, "version")) {
-		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
+		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
 			PX4_INFO("Request version for ESC: %i", esc_id);
 			cmd.len = qc_esc_create_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
@@ -584,7 +584,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(verb, "version-ext")) {
-		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
+		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
 			PX4_INFO("Request extended version for ESC: %i", esc_id);
 			cmd.len = qc_esc_create_extended_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
@@ -597,7 +597,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(verb, "tone")) {
-		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
+		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
 			PX4_INFO("Request tone for ESC mask: %i", esc_id);
 			cmd.len = qc_esc_create_sound_packet(period, duration, power, esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
@@ -626,12 +626,12 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	}  else if (!strcmp(verb, "rpm")) {
-		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
+		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
 			PX4_INFO("Request RPM for ESC ID: %i - RPM: %i", esc_id, rate);
-			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+			int16_t rate_req[VOXL_ESC_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
-			if (esc_id == 0xFF) {  //WARNING: this condition is not possible due to check 'if (esc_id < MODAL_IO_OUTPUT_CHANNELS)'.
+			if (esc_id == 0xFF) {  //WARNING: this condition is not possible due to check 'if (esc_id < VOXL_ESC_OUTPUT_CHANNELS)'.
 				rate_req[0] = rate;
 				rate_req[1] = rate;
 				rate_req[2] = rate;
@@ -671,12 +671,12 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(verb, "pwm")) {
-		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
+		if (esc_id < VOXL_ESC_OUTPUT_CHANNELS) {
 			PX4_INFO("Request PWM for ESC ID: %i - PWM: %i", esc_id, rate);
-			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+			int16_t rate_req[VOXL_ESC_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
-			if (esc_id == 0xFF) {  //WARNING: this condition is not possible due to check 'if (esc_id < MODAL_IO_OUTPUT_CHANNELS)'.
+			if (esc_id == 0xFF) {  //WARNING: this condition is not possible due to check 'if (esc_id < VOXL_ESC_OUTPUT_CHANNELS)'.
 				rate_req[0] = rate;
 				rate_req[1] = rate;
 				rate_req[2] = rate;
@@ -719,7 +719,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int ModalIo::update_params()
+int VoxlEsc::update_params()
 {
 	int ret = PX4_ERROR;
 
@@ -738,7 +738,7 @@ int ModalIo::update_params()
 	return ret;
 }
 
-void ModalIo::update_leds(vehicle_control_mode_s mode, led_control_s control)
+void VoxlEsc::update_leds(vehicle_control_mode_s mode, led_control_s control)
 {
 	int i = 0;
 	uint8_t led_mask = _led_rsc.led_mask;
@@ -838,12 +838,12 @@ void ModalIo::update_leds(vehicle_control_mode_s mode, led_control_s control)
 		}
 	}
 
-	for (i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
+	for (i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		_esc_chans[i].led = led_mask;
 	}
 }
 
-void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
+void VoxlEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 {
 	bool use_pitch = true;
 	bool use_roll  = true;
@@ -1018,13 +1018,13 @@ void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
 
-	if (num_outputs != MODAL_IO_OUTPUT_CHANNELS) {
+	if (num_outputs != VOXL_ESC_OUTPUT_CHANNELS) {
 		return false;
 	}
 
@@ -1033,7 +1033,7 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		mix_turtle_mode(outputs);
 	}
 
-	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++) {
 		if (!_outputs_on || stop_motors) {
 			_esc_chans[i].rate_req = 0;
 
@@ -1068,7 +1068,7 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	}
 
 	// increment ESC id from which to request feedback in round robin order
-	_fb_idx = (_fb_idx + 1) % MODAL_IO_OUTPUT_CHANNELS;
+	_fb_idx = (_fb_idx + 1) % VOXL_ESC_OUTPUT_CHANNELS;
 
 
 	/*
@@ -1125,7 +1125,7 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 }
 
 
-void ModalIo::Run()
+void VoxlEsc::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -1190,16 +1190,16 @@ void ModalIo::Run()
 
 			if (!_outputs_on) {
 
-				float setpoint = MODAL_IO_MODE_DISABLED_SETPOINT;
+				float setpoint = VOXL_ESC_MODE_DISABLED_SETPOINT;
 
-				if (_parameters.mode == MODAL_IO_MODE_TURTLE_AUX1) {
+				if (_parameters.mode == VOXL_ESC_MODE_TURTLE_AUX1) {
 					setpoint = _manual_control_setpoint.aux1;
 
-				} else if (_parameters.mode == MODAL_IO_MODE_TURTLE_AUX2) {
+				} else if (_parameters.mode == VOXL_ESC_MODE_TURTLE_AUX2) {
 					setpoint = _manual_control_setpoint.aux2;
 				}
 
-				if (setpoint > MODAL_IO_MODE_THRESHOLD) {
+				if (setpoint > VOXL_ESC_MODE_THRESHOLD) {
 					_turtle_mode_en = true;
 
 				} else {
@@ -1270,7 +1270,7 @@ void ModalIo::Run()
 }
 
 
-int ModalIo::print_usage(const char *reason)
+int VoxlEsc::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -1290,7 +1290,7 @@ $ todo
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("modal_io", "driver");
+	PRINT_MODULE_USAGE_NAME("voxl_esc", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Send reset request to ESC");
@@ -1328,7 +1328,7 @@ $ todo
 	return 0;
 }
 
-int ModalIo::print_status()
+int VoxlEsc::print_status()
 {
 	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
@@ -1337,25 +1337,25 @@ int ModalIo::print_status()
 
 	PX4_INFO("");
 
-	PX4_INFO("Params: MODAL_IO_CONFIG: %" PRId32, _parameters.config);
-	PX4_INFO("Params: MODAL_IO_BAUD: %" PRId32, _parameters.baud_rate);
+	PX4_INFO("Params: VOXL_ESC_CONFIG: %" PRId32, _parameters.config);
+	PX4_INFO("Params: VOXL_ESC_BAUD: %" PRId32, _parameters.baud_rate);
 
-	PX4_INFO("Params: MODAL_IO_FUNC1: %" PRId32, _parameters.function_map[0]);
-	PX4_INFO("Params: MODAL_IO_FUNC2: %" PRId32, _parameters.function_map[1]);
-	PX4_INFO("Params: MODAL_IO_FUNC3: %" PRId32, _parameters.function_map[2]);
-	PX4_INFO("Params: MODAL_IO_FUNC4: %" PRId32, _parameters.function_map[3]);
+	PX4_INFO("Params: VOXL_ESC_FUNC1: %" PRId32, _parameters.function_map[0]);
+	PX4_INFO("Params: VOXL_ESC_FUNC2: %" PRId32, _parameters.function_map[1]);
+	PX4_INFO("Params: VOXL_ESC_FUNC3: %" PRId32, _parameters.function_map[2]);
+	PX4_INFO("Params: VOXL_ESC_FUNC4: %" PRId32, _parameters.function_map[3]);
 
-	PX4_INFO("Params: MODAL_IO_SDIR1: %" PRId32, _parameters.direction_map[0]);
-	PX4_INFO("Params: MODAL_IO_SDIR2: %" PRId32, _parameters.direction_map[1]);
-	PX4_INFO("Params: MODAL_IO_SDIR3: %" PRId32, _parameters.direction_map[2]);
-	PX4_INFO("Params: MODAL_IO_SDIR4: %" PRId32, _parameters.direction_map[3]);
+	PX4_INFO("Params: VOXL_ESC_SDIR1: %" PRId32, _parameters.direction_map[0]);
+	PX4_INFO("Params: VOXL_ESC_SDIR2: %" PRId32, _parameters.direction_map[1]);
+	PX4_INFO("Params: VOXL_ESC_SDIR3: %" PRId32, _parameters.direction_map[2]);
+	PX4_INFO("Params: VOXL_ESC_SDIR4: %" PRId32, _parameters.direction_map[3]);
 
-	PX4_INFO("Params: MODAL_IO_RPM_MIN: %" PRId32, _parameters.rpm_min);
-	PX4_INFO("Params: MODAL_IO_RPM_MAX: %" PRId32, _parameters.rpm_max);
+	PX4_INFO("Params: VOXL_ESC_RPM_MIN: %" PRId32, _parameters.rpm_min);
+	PX4_INFO("Params: VOXL_ESC_RPM_MAX: %" PRId32, _parameters.rpm_max);
 
 	PX4_INFO("");
 
-	for( int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++){
+	for( int i = 0; i < VOXL_ESC_OUTPUT_CHANNELS; i++){
 		PX4_INFO("-- ID: %i", i);
 		PX4_INFO("   Motor:           %i", _output_map[i].number);
 		PX4_INFO("   Direction:       %i", _output_map[i].direction);
@@ -1375,9 +1375,9 @@ int ModalIo::print_status()
 	return 0;
 }
 
-extern "C" __EXPORT int modal_io_main(int argc, char *argv[]);
+extern "C" __EXPORT int voxl_esc_main(int argc, char *argv[]);
 
-int modal_io_main(int argc, char *argv[])
+int voxl_esc_main(int argc, char *argv[])
 {
-	return ModalIo::main(argc, argv);
+	return VoxlEsc::main(argc, argv);
 }
