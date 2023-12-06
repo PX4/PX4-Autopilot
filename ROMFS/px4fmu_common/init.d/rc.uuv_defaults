@@ -9,6 +9,3 @@ set VEHICLE_TYPE uuv
 
 # MAV_TYPE_SUBMARINE 12
 param set-default MAV_TYPE 12
-
-# UUV don't have an airspeed sensor, so disable checks around it
-param set-default CBRK_AIRSPD_CHK 162128
