@@ -217,6 +217,19 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
 PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
 
 /**
+ * Control if the vehicle has an airspeed sensor
+ *
+ * Set this to 0 if the board has no airspeed sensor.
+ * If set to 0, the preflight checks will not check for the presence of an
+ * airspeed sensor.
+ *
+ * @group System
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(SYS_HAS_NUM_ASPD, 0);
+
+/**
  * Number of distance sensors to check being available
  *
  * The preflight check will fail if fewer than this number of distance sensors with valid data is present.

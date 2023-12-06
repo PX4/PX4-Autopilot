@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,6 +52,6 @@ private:
 	const param_t _param_fw_airspd_max_handle;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk
+					(ParamInt<px4::params::SYS_HAS_NUM_ASPD>) _param_sys_has_num_aspd
 				       )
 };
