@@ -208,7 +208,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-			&& !_param_fw_arsp_mode.get();
+			&& _param_fw_use_airspd.get();
 	const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
 	const bool openloop_trans_time_elapsed = _time_since_trans_start > getOpenLoopFrontTransitionTime();
 

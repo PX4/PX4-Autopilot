@@ -354,7 +354,7 @@ protected:
 					(ParamFloat<px4::params::VT_ARSP_TRANS>) _param_vt_arsp_trans,
 					(ParamFloat<px4::params::VT_F_TRANS_THR>) _param_vt_f_trans_thr,
 					(ParamFloat<px4::params::VT_ARSP_BLEND>) _param_vt_arsp_blend,
-					(ParamBool<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
+					(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamInt<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
