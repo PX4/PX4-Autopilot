@@ -85,7 +85,7 @@ public:
 
 	float canRun(const vehicle_local_position_s &local_pos, bool is_wind_valid) const;
 	/*
-	 * Computes the lateral acceleration and airspeed references necessary to track
+	 * Computes the lateral acceleration and true airspeed references necessary to track
 	 * a path in wind (including excess wind conditions).
 	 *
 	 * @param[in] curr_pos_local Current horizontal vehicle position in local coordinates [m]
@@ -150,12 +150,12 @@ public:
 	void setMaxTrackKeepingMinGroundSpeed(float min_gsp) { min_gsp_track_keeping_max_ = math::max(min_gsp, 0.0f); }
 
 	/*
-	 * Set the nominal airspeed reference [m/s].
+	 * Set the nominal airspeed reference (true airspeed) [m/s].
 	 */
 	void setAirspeedNom(float airsp) { airspeed_nom_ = math::max(airsp, 0.1f); }
 
 	/*
-	 * Set the maximum airspeed reference [m/s].
+	 * Set the maximum airspeed reference (true airspeed) [m/s].
 	 */
 	void setAirspeedMax(float airsp) { airspeed_max_ = math::max(airsp, 0.1f); }
 
@@ -306,8 +306,8 @@ private:
 	// ^disabling this parameter disables all other excess wind handling options, using only the nominal airspeed for reference
 
 	// guidance settings
-	float airspeed_nom_{15.0f}; // nominal (desired) airspeed reference (generally equivalent to cruise optimized airspeed) [m/s]
-	float airspeed_max_{20.0f}; // maximum airspeed reference - the maximum achievable/allowed airspeed reference [m/s]
+	float airspeed_nom_{15.0f}; // nominal (desired) true airspeed reference (generally equivalent to cruise optimized airspeed) [m/s]
+	float airspeed_max_{20.0f}; // maximum true airspeed reference - the maximum achievable/allowed airspeed reference [m/s]
 	float roll_time_const_{0.0f}; // autopilot roll response time constant [s]
 	float min_gsp_desired_{0.0f}; // user defined miminum desired forward ground speed [m/s]
 	float min_gsp_track_keeping_max_{5.0f}; // maximum, minimum forward ground speed demand from track keeping logic [m/s]
@@ -341,8 +341,8 @@ private:
 	 * guidance outputs
 	 */
 
-	float airspeed_ref_{15.0f}; // airspeed reference [m/s]
-	matrix::Vector2f air_vel_ref_{matrix::Vector2f{15.0f, 0.0f}}; // air velocity reference vector [m/s]
+	float airspeed_ref_{15.0f}; // true airspeed reference [m/s]
+	matrix::Vector2f air_vel_ref_{matrix::Vector2f{15.0f, 0.0f}}; // true air velocity reference vector [m/s]
 	float lateral_accel_{0.0f}; // lateral acceleration reference [m/s^2]
 	float lateral_accel_ff_{0.0f}; // lateral acceleration demand to maintain path curvature [m/s^2]
 
@@ -358,7 +358,7 @@ private:
 	 * condition, path properties, and stability bounds.
 	 *
 	 * @param[in] ground_speed Vehicle ground speed [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @param[in] track_error Track error (magnitude) [m]
 	 * @param[in] path_curvature Path curvature at closest point on track [m^-1]
@@ -384,7 +384,7 @@ private:
 	/*
 	 * Cacluates an approximation of the wind factor (see [TODO: include citation]).
 	 *
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @return Non-dimensional wind factor approximation
 	 */
@@ -395,7 +395,7 @@ private:
 	 * track keeping stability.
 	 *
 	 * @param[in] air_turn_rate The turn rate required to track the current path
-	 *            curvature at the current airspeed, in a no-wind condition [rad/s]
+	 *            curvature at the current true airspeed, in a no-wind condition [rad/s]
 	 * @param[in] wind_factor Non-dimensional wind factor (see [TODO: include citation])
 	 * @return Period upper bound [s]
 	 */
@@ -408,7 +408,7 @@ private:
 	 * and a safety factor should be applied in addition to the returned value.
 	 *
 	 * @param[in] air_turn_rate The turn rate required to track the current path
-	 *            curvature at the current airspeed, in a no-wind condition [rad/s]
+	 *            curvature at the current true airspeed, in a no-wind condition [rad/s]
 	 * @param[in] wind_factor Non-dimensional wind factor (see [TODO: include citation])
 	 * @return Period lower bound [s]
 	 */
@@ -493,8 +493,8 @@ private:
 
 	/*
 	 * Determines a reference air velocity *without curvature compensation, but
-	 * including "optimal" airspeed reference compensation in excess wind conditions.
-	 * Nominal and maximum airspeed member variables must be set before using this method.
+	 * including "optimal" true airspeed reference compensation in excess wind conditions.
+	 * Nominal and maximum true airspeed member variables must be set before using this method.
 	 *
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 * @param[in] bearing_vec Bearing vector
@@ -512,7 +512,7 @@ private:
 	 * Projection of the air velocity vector onto the bearing line considering
 	 * a connected wind triangle.
 	 *
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @return Projection of air velocity vector on bearing vector [m/s]
 	 */
@@ -523,7 +523,7 @@ private:
 	 *
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @param[in] wind_dot_bearing 2D dot product of wind velocity and bearing vector [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @return Binary bearing feasibility: 1 if feasible, 0 if infeasible
 	 */
@@ -549,7 +549,7 @@ private:
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 * @param[in] bearing_vec Bearing vector
 	 * @param[in] wind_speed Wind speed [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @return Air velocity vector [m/s]
 	 */
 	matrix::Vector2f infeasibleAirVelRef(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,
@@ -562,7 +562,7 @@ private:
 	 *
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @param[in] wind_dot_bearing 2D dot product of wind velocity and bearing vector [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @return bearing feasibility
 	 */
@@ -577,7 +577,7 @@ private:
 	 *            in direction of path
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @param[in] signed_track_error Signed error to track at closest point (sign
 	 *             determined by path normal direction) [m]
@@ -594,7 +594,7 @@ private:
 	 *
 	 * @param[in] air_vel Vechile air velocity vector [m/s]
 	 * @param[in] air_vel_ref Reference air velocity vector [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @return Lateral acceleration demand [m/s^2]
 	 */
 	float lateralAccel(const matrix::Vector2f &air_vel, const matrix::Vector2f &air_vel_ref,
