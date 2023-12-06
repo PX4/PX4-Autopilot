@@ -37,7 +37,7 @@
 using namespace time_literals;
 
 AirspeedChecks::AirspeedChecks()
-	: _param_fw_arsp_mode_handle(param_find("FW_ARSP_MODE")), _param_fw_airspd_max_handle(param_find("FW_AIRSPD_MAX"))
+	: _param_fw_airspd_max_handle(param_find("FW_AIRSPD_MAX"))
 {
 }
 
@@ -47,10 +47,6 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 	    (context.status().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !context.status().is_vtol)) {
 		return;
 	}
-
-	int32_t airspeed_mode = 0;
-	param_get(_param_fw_arsp_mode_handle, &airspeed_mode);
-	const bool optional = (airspeed_mode == 1);
 
 	airspeed_validated_s airspeed_validated;
 
@@ -100,7 +96,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-	} else if (!optional) {
+	} else {
 
 		/* EVENT
 		 * @description
