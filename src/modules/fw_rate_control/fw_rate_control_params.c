@@ -41,16 +41,18 @@
  */
 
 /**
- * Airspeed mode
+ * Use airspeed for control
  *
- * On vehicles without airspeed sensor this parameter can be used to
- * enable flying without an airspeed reading
+ * If set to 1, the airspeed measurement data, if valid, is used in the following controllers:
+ * - Rate controller: output scaling
+ * - Attitude controller: coordinated turn controller
+ * - Position controller: airspeed setpoint tracking, takeoff logic
+ * - VTOL: transition logic
  *
- * @value 0 Use airspeed in controller
- * @value 1 Do not use airspeed in controller
+ * @boolean
  * @group FW Rate Control
  */
-PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
+PARAM_DEFINE_INT32(FW_USE_AIRSPD, 1);
 
 /**
  * Pitch rate proportional gain.
