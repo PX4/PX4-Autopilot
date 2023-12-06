@@ -220,12 +220,12 @@ FixedwingPositionControl::airspeed_poll()
 
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
 		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-		    && (airspeed_validated.calibrated_airspeed_m_s > 0.0f)) {
+		    && (airspeed_validated.calibrated_airspeed_m_s > FLT_EPSILON)) {
 
 			airspeed_valid = true;
 
 			_time_airspeed_last_valid = airspeed_validated.timestamp;
-			_airspeed = airspeed_validated.calibrated_airspeed_m_s;
+			_airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
 
 			_eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s, 0.9f, 2.0f);
 		}
@@ -648,7 +648,7 @@ void
 FixedwingPositionControl::updateManualTakeoffStatus()
 {
 	if (!_completed_manual_takeoff) {
-		const bool at_controllable_airspeed = _airspeed > _performance_model.getMinimumCalibratedAirspeed(getLoadFactor())
+		const bool at_controllable_airspeed = _airspeed_eas > _performance_model.getMinimumCalibratedAirspeed(getLoadFactor())
 						      || !_airspeed_valid;
 		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					 && _control_mode.flag_armed;
@@ -1372,7 +1372,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_runway_takeoff.forceSetFlyState();
 		}
 
-		_runway_takeoff.update(now, takeoff_airspeed, _airspeed, _current_altitude - _takeoff_ground_alt,
+		_runway_takeoff.update(now, takeoff_airspeed, _airspeed_eas, _current_altitude - _takeoff_ground_alt,
 				       clearance_altitude_amsl - _takeoff_ground_alt);
 
 		// yaw control is disabled once in "taking off" state
@@ -2535,7 +2535,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 				_airspeed_after_transition = _param_airspeed_trans;
 
 			} else {
-				_airspeed_after_transition = _airspeed;
+				_airspeed_after_transition = _airspeed_eas;
 			}
 
 			_airspeed_after_transition = constrain(_airspeed_after_transition,
@@ -2546,8 +2546,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 			// after transition we ramp up desired airspeed from the speed we had coming out of the transition
 			_airspeed_after_transition += control_interval * 2.0f; // increase 2m/s
 
-			if (_airspeed_after_transition < airspeed_sp && _airspeed < airspeed_sp) {
-				airspeed_sp = max(_airspeed_after_transition, _airspeed);
+			if (_airspeed_after_transition < airspeed_sp && _airspeed_eas < airspeed_sp) {
+				airspeed_sp = max(_airspeed_after_transition, _airspeed_eas);
 
 			} else {
 				_was_in_transition = false;
@@ -2575,7 +2575,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     _current_altitude,
 		     alt_sp,
 		     airspeed_sp,
-		     _airspeed,
+		     _airspeed_eas,
 		     _eas2tas,
 		     throttle_min,
 		     throttle_max,
