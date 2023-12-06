@@ -228,6 +228,9 @@ FixedwingPositionControl::airspeed_poll()
 			_airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
 
 			_eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s, 0.9f, 2.0f);
+
+		} else {
+			airspeed_valid = false;
 		}
 
 	} else {
