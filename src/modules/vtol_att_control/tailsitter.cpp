@@ -324,7 +324,7 @@ void Tailsitter::fill_actuator_outputs()
 bool Tailsitter::isFrontTransitionCompletedBase()
 {
 	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-			&& !_param_fw_arsp_mode.get() ;
+			&& _param_fw_use_airspd.get();
 
 	bool transition_to_fw = false;
 	const float pitch = Eulerf(Quatf(_v_att->q)).theta();

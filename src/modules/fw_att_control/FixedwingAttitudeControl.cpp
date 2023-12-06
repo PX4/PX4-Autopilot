@@ -150,7 +150,7 @@ float FixedwingAttitudeControl::get_airspeed_constrained()
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
 	float airspeed = _param_fw_airspd_trim.get();
 
-	if ((_param_fw_arsp_mode.get() == 0) && airspeed_valid) {
+	if (_param_fw_use_airspd.get() && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
 
