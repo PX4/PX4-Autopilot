@@ -324,19 +324,21 @@ void RtlDirect::set_rtl_item()
 
 			startPrecLand(_mission_item.land_precision);
 
-			_rtl_state = RTLState::IDLE;
+			_rtl_state = RTLState::COMPLETED;
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
 			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "RTL: land at destination");
 			break;
 		}
 
-	case RTLState::IDLE: {
+	case RTLState::COMPLETED: {
 			set_idle_item(&_mission_item);
 			_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+			_rtl_state = RTLState::IDLE;
 			break;
 		}
 
+	case RTLState::IDLE:
 	default:
 		break;
 	}
@@ -489,6 +491,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 			break;
 
+		case RTLState::COMPLETED:
 		case RTLState::IDLE:
 			// Remaining time is 0
 			break;

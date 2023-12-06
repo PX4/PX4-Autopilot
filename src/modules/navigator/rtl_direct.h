@@ -115,6 +115,7 @@ private:
 		TRANSITION_TO_MC,
 		MOVE_TO_LAND_HOVER,
 		LAND,
+		COMPLETED,
 		IDLE
 	} _rtl_state{RTLState::IDLE}; /*< Current state in the state machine.*/
 
