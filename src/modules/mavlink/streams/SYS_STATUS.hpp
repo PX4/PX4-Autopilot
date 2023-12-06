@@ -155,7 +155,7 @@ private:
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE, health_component_t::differential_pressure,
 					 msg);
 
-			msg.load = cpuload.load * 1000.0f;
+			msg.load = cpuload.system_load * 1000.0f;
 
 			// TODO: Determine what data should be put here when there are multiple batteries.
 			//  Right now, it uses the lowest battery. This is a safety decision, because if a client is only checking

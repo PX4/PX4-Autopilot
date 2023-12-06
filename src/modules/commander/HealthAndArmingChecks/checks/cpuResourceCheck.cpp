@@ -60,7 +60,7 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 
 	} else {
-		const float cpuload_percent = cpuload.load * 100.f;
+		const float cpuload_percent = cpuload.system_load * 100.f;
 
 		if (cpuload_percent > _param_com_cpu_max.get()) {
 

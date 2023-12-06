@@ -223,17 +223,50 @@ void LoadMon::cpuload()
 		cpuload.ram_usage = -1;
 	}
 
-	cpuload.load = interval_spent_time / interval;
+	cpuload.process_load = interval_spent_time / interval;
+
+	FILE *stat_file = fopen("/proc/stat", "r");
+	if (!stat_file) {
+		PX4_ERR("Failed to open /proc/stat");
+		cpuload.system_load = -1;
+	} else {
+		double total, idle{0};
+		char cpu_line[256];
+		fgets(cpu_line, sizeof(line), stat_file);
+
+		// Assuming the first line in /proc/stat is the line with overall CPU usage
+		char *token = strtok(cpu_line, " ");
+		double total_time = 0;
+		int i = 0;
+		while (token != NULL) {
+			token = strtok(NULL, " ");
+			if (token != NULL) {
+				total_time += atof(token);
+				if (i == 3) {
+					idle = atof(token);
+				}
+				i++;
+			}	
+		}
+
+		total = total_time;
+		fclose(stat_file);
+		float total_usage = (total - idle) / total;
+		cpuload.system_load = total_usage;
+	}
+
 	strncpy(cpuload.platform, "POSIX", sizeof(cpuload.platform));
 #elif defined(__PX4_NUTTX)
 	// get ram usage
 	struct mallinfo mem = mallinfo();
 	cpuload.ram_usage = (float)mem.uordblks / mem.arena;
-	cpuload.load = 1.f - interval_idletime / interval;
+	cpuload.process_load = 1.f - interval_idletime / interval;
+	cpuload.system_load = cpuload.process_load;
 	strncpy(cpuload.platform, "NUTTX", sizeof(cpuload.platform));
 #elif defined(__PX4_QURT)
 	cpuload.ram_usage = 0.0f;
-	cpuload.load = px4muorb_get_cpu_load() / 100.0f;
+	cpuload.process_load = px4muorb_get_cpu_load() / 100.0f;
+	cpuload.system_load = cpuload.process_load;
 	strncpy(cpuload.platform, "QURT", sizeof(cpuload.platform));
 #endif
 	cpuload.timestamp = hrt_absolute_time();
