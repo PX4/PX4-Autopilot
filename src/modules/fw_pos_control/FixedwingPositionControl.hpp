@@ -360,8 +360,8 @@ private:
 
 	// AIRSPEED
 
-	float _airspeed{0.0f};
-	float _eas2tas{1.0f};
+	float _airspeed_eas{0.f};
+	float _eas2tas{1.f};
 	bool _airspeed_valid{false};
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
 
