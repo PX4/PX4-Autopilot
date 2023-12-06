@@ -516,10 +516,12 @@ public:
 		ev_yaw_offset_2_G_NED = yaw;
 
 		// Reset global yaw by user input
-		// TODO This is experimental!
+		// TODO Modalai -- This is experimental!
 		/////////////////////////////////////
+		//
 		_R_to_earth = updateYawInRotMat(yaw, Dcmf(_state.quat_nominal));
 		_state.quat_nominal = _R_to_earth;
+
 		// reset the output predictor state history to match the EKF initial values
 		_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);
 

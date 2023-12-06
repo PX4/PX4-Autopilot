@@ -51,7 +51,7 @@ void MissionChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Mission cannot be completed");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Mission cannot be completed\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Mission cannot be completed. Do you have a position lock (GPS 3D lock, VIO Lock)\t");
 			}
 		}
 		// This is a mode requirement, no need to report

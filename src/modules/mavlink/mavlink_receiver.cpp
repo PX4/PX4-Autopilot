@@ -128,12 +128,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_COMMAND_LONG:
-		PX4_ERR("MavlinkReceiver::handle_message MAVLINK_MSG_ID_COMMAND_LONG: %d", msg->msgid);
 		handle_message_command_long(msg);
 		break;
 
 	case MAVLINK_MSG_ID_COMMAND_INT:
-		PX4_ERR("MavlinkReceiver::handle_message MAVLINK_MSG_ID_COMMAND_INT: %d", msg->msgid);
 		handle_message_command_int(msg);
 		break;
 
@@ -178,8 +176,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_SET_GPS_GLOBAL_ORIGIN:
-		PX4_ERR("MavlinkReceiver::handle_message MAVLINK_MSG_ID_SET_GPS_GLOBAL_ORIGIN: %d", msg->msgid);
-
 		handle_message_set_gps_global_origin(msg);
 		break;
 
@@ -220,8 +216,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_UTM_GLOBAL_POSITION:
-		PX4_ERR("MavlinkReceiver::handle_message MAVLINK_MSG_ID_UTM_GLOBAL_POSITION: %d", msg->msgid);
-
 		handle_message_utm_global_position(msg);
 		break;
 
@@ -1186,12 +1180,11 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 void
 MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 {
-	PX4_ERR("MavlinkReceiver::handle_message_set_gps_global_origin");
+	PX4_DEBUG("MavlinkReceiver::handle_message_set_gps_global_origin");
 	mavlink_set_gps_global_origin_t gps_global_origin;
 	mavlink_msg_set_gps_global_origin_decode(msg, &gps_global_origin);
 
 	if (gps_global_origin.target_system == _mavlink->get_system_id()) {
-		PX4_ERR("gps_global_origin.target_system == _mavlink->get_system_id publish");
 		vehicle_command_s vcmd{};
 
 		vcmd.param4 = 0; // YAW TBD need a user friendly solution to set this
@@ -1219,7 +1212,10 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 		// set and send home position
 		home_position_s home_position{};
 		_home_position_sub.copy(&home_position);
-		PX4_ERR("NEW  Home: %f %f %f", (double)home_position.lat, (double)home_position.lon, (double)home_position.alt);
+		PX4_DEBUG("NEW Home: %f %f %f", (double)home_position.lat, (double)home_position.lon, (double)home_position.alt);
+
+//
+// TODO may not need this
 //
 //		vehicle_command_s home_pos_cmd{};
 //		home_pos_cmd.command = vehicle_command_s::VEHICLE_CMD_DO_SET_HOME;
@@ -1237,11 +1233,10 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 //		_cmd_pub.publish(home_pos_cmd);
 //
 //		_home_position_sub.copy(&home_position);
-//		PX4_ERR("NOW Home: %f %f %f", (double)home_position.lat, (double)home_position.lon, (double)home_position.alt);
+//		PX4_DEBUG("NOW Home: %f %f %f", (double)home_position.lat, (double)home_position.lon, (double)home_position.alt);
 
 	}
 
-	PX4_ERR("handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN");
 	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
 }
 

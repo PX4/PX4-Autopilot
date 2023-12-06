@@ -480,7 +480,7 @@ void EKF2::Run()
 					double x,y;
 					float z;
 					bool rtn = _ekf.getEkfGlobalOrigin(origin_time, x, y, z);
-					PX4_ERR("%d %d - SET UP! NED origin (LLA): %3.10f, %3.10f, %4.3f\n\n",
+					PX4_WARN("%d %d - Force ekf origin set up! NED origin (LLA): %3.10f, %3.10f, %4.3f\n\n",
 						 rtn, _instance, x, y, static_cast<double>(z));
 					print_status();
 
@@ -491,7 +491,7 @@ void EKF2::Run()
 
 
 				// TODO fix EV yaw value as it becomes used as global not local.
-				//PX4_ERR("Attempting to reset EKF global Yaw!");
+				PX4_WARN("Attempting to reset EKF global Yaw rotation to %f", (double)vehicle_command.param4);
 				_ekf.forceResetQuatStateYaw(vehicle_command.param4, 0.0);
 
 			}

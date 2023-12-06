@@ -110,12 +110,6 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (reporter.failsafeFlags().auto_mission_missing && mission_required_modes != NavModes::None) {
-
-//		PX4_ERR("No valid mission! %d %d %d",
-//				(int) reporter.failsafeFlags().auto_mission_missing,
-//				(int)mission_required_modes,
-//				(int)NavModes::None);
-
 		/* EVENT
 		 * @description
 		 * Upload a mission first.

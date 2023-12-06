@@ -187,7 +187,6 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 
 	} else {
 		PX4_ERR("WPM: can't save mission state");
-
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
 			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD\t");
 			events::send(events::ID("mavlink_mission_storage_write_failure"), events::Log::Critical,
@@ -1572,7 +1571,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 	} else if (mavlink_mission_item->frame == MAV_FRAME_MISSION) {
 
-		PX4_ERR("mavlink_mission_item->frame == MAV_FRAME_MISSION");
 		// This is a mission item with no coordinates
 
 		mission_item->params[0] = mavlink_mission_item->param1;
@@ -1624,7 +1622,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			break;
 
 		case MAV_CMD_DO_SET_HOME:
-			PX4_ERR("MAV_CMD_DO_SET_HOME mavlink frame mission");
 			break;
 
 		case MAV_CMD_DO_CHANGE_SPEED:
@@ -1723,7 +1720,6 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		case MAV_CMD_DO_SET_HOME:
-			PX4_ERR("MAV_CMD_DO_SET_HOME mavlink mission");
 			break;
 
 		case NAV_CMD_DO_CHANGE_SPEED:
