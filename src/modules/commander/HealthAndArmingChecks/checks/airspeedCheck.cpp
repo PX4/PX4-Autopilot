@@ -50,7 +50,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 
 	airspeed_validated_s airspeed_validated;
 
-	if (_airspeed_validated_sub.copy(&airspeed_validated) && hrt_elapsed_time(&airspeed_validated.timestamp) < 1_s) {
+	if (_airspeed_validated_sub.copy(&airspeed_validated) && hrt_elapsed_time(&airspeed_validated.timestamp) < 2_s) {
 
 		reporter.setIsPresent(health_component_t::differential_pressure);
 
