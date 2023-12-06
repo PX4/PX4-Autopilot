@@ -384,13 +384,8 @@ private:
 
 	bool _tecs_is_running{false};
 	// VTOL / TRANSITION
-
-	float _airspeed_after_transition{0.0f};
-	bool _was_in_transition{false};
 	bool _is_vtol_tailsitter{false};
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
-	param_t _param_handle_airspeed_trans{PARAM_INVALID};
-	float _param_airspeed_trans{NAN}; // [m/s]
 
 	// ESTIMATOR RESET COUNTERS
 
