@@ -66,7 +66,6 @@ param set-default SIM_GZ_SV_FUNC2 202
 param set-default SIM_GZ_SV_FUNC3 203
 
 param set-default COM_RC_IN_MODE 1
-param set-default ASPD_PRIMARY 1
 
 param set-default CA_SV_CS_COUNT 3
 param set-default CA_SV_CS0_TYPE 1

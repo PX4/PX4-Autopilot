@@ -132,7 +132,6 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_3, 1.0f);
 /**
  * Index or primary airspeed measurement source
  *
- * @value -1 Disabled
  * @value 0 Groundspeed minus windspeed
  * @value 1 First airspeed sensor
  * @value 2 Second airspeed sensor
