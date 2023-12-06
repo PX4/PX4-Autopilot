@@ -54,3 +54,5 @@ param set-default MIS_TKO_LAND_REQ 2
 # FW takeoff acceleration can easily exceed ublox GPS 2G default.
 #
 param set-default GPS_UBX_DYNMODEL 8
+
+param set-default SYS_HAS_NUM_ASPD 1 # by default require an airspeed sensor

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@ AirspeedChecks::AirspeedChecks()
 
 void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	if (circuit_breaker_enabled_by_val(_param_cbrk_airspd_chk.get(), CBRK_AIRSPD_CHK_KEY) ||
+	if (_param_sys_has_num_aspd.get() <= 0 ||
 	    (context.status().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !context.status().is_vtol)) {
 		return;
 	}
@@ -102,7 +102,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 		 * @description
 		 * <profile name="dev">
 		 * Most likely the airspeed selector module is not running.
-		 * This check can be configured via <param>CBRK_AIRSPD_CHK</param> parameter.
+		 * This check can be configured via <param>SYS_HAS_NUM_ASPD</param> parameter.
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::differential_pressure,
