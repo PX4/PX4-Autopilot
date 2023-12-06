@@ -376,3 +376,29 @@ class TestRunnerMavsdk(Runner):
                      "--url", mavlink_connection,
                      "--speed-factor", str(speed_factor),
                      case]
+
+class TestRunnerRos(Runner):
+    def __init__(self,
+                 workspace_dir: str,
+                 log_dir: str,
+                 model: str,
+                 case: str,
+                 verbose: bool,
+                 ros_package_build_dir: str):
+        super().__init__(log_dir, model, case, verbose)
+        self.name = "integration_tests"
+        self.cwd = workspace_dir
+        self.cmd = "nice"
+        self.args = ["-17",
+                     os.path.join(
+                         ros_package_build_dir,
+                         "integration_tests"),
+                     "--gtest_filter="+case, "--gtest_color=yes"]
+
+    def get_output_line(self) -> Optional[str]:
+        line = super().get_output_line()
+        if line is not None:
+            # colorize assertion failures & errors
+            if 'Failure' in line or '[ERROR]' in line or '[FATAL]' in line:
+                line = colorize(line, color.RED)
+        return line

@@ -1,0 +1,13 @@
+{
+    "mode": "sitl",
+    "simulator": "gazebo",
+    "tests":
+    [
+        {
+            "model": "iris",
+            "vehicle": "iris",
+            "test_filter": "Tester.*",
+            "timeout_min": 10
+        }
+    ]
+}
