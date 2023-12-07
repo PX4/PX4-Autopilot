@@ -353,7 +353,7 @@ TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const Alt
 
 void TECSControl::_detectUnderspeed(const Input &input, const Param &param, const Flag &flag)
 {
-	if (!flag.detect_underspeed_enabled) {
+	if (!flag.detect_underspeed_enabled || !flag.airspeed_enabled) {
 		_ratio_undersped = 0.0f;
 		return;
 	}
