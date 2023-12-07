@@ -655,9 +655,9 @@ task_main(int argc, char *argv[])
 	g_task_should_exit = false;
 
 	uORB::Publication<dataman_response_s> dataman_response_pub{ORB_ID(dataman_response)};
-	const int dataman_request_sub = orb_subscribe(ORB_ID(dataman_request));
+	const orb_sub_t dataman_request_sub = orb_subscribe(ORB_ID(dataman_request));
 
-	if (dataman_request_sub < 0) {
+	if (!orb_sub_valid(dataman_request_sub)) {
 		PX4_ERR("Failed to subscribe (%i)", errno);
 	}
 
