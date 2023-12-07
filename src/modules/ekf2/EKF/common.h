@@ -329,6 +329,7 @@ struct parameters {
 	float req_pdop{2.0f};			///< maximum acceptable position dilution of precision
 	float req_hdrift{0.3f};			///< maximum acceptable horizontal drift speed (m/s)
 	float req_vdrift{0.5f};			///< maximum acceptable vertical drift speed (m/s)
+	int32_t req_fixtype{3};        ///< minimum acceptable fix type
 
 	// XYZ offset of sensors in body axes (m)
 	Vector3f imu_pos_body;			///< xyz position of IMU in body frame (m)

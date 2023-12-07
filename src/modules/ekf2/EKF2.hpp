@@ -407,6 +407,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>)
 		_param_ekf2_req_hdrift,	///< maximum acceptable horizontal drift speed (m/s)
 		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,	///< maximum acceptable vertical drift speed (m/s)
+		(ParamExtInt<px4::params::EKF2_REQ_FIXTYPE>) _param_ekf2_req_fixtype,   ///< minimum acceptable fix type
 
 		// measurement source control
 		(ParamExtInt<px4::params::EKF2_AID_MASK>)

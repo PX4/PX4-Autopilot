@@ -254,6 +254,20 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_HDRIFT, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.2f);
 
 /**
+ * Required minimum GNSS fix type.
+ *
+ * These match the MAVLink enum type GPS_FIX_TYPE.
+ *
+ * @group EKF2
+ * @value 3 3D Fix
+ * @value 4 DGNSS (code differential)
+ * @value 5 RTK float
+ * @value 6 RTK fixed/integer
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(EKF2_REQ_FIXTYPE, 3);
+
+/**
  * Rate gyro noise for covariance prediction.
  *
  * @group EKF2
