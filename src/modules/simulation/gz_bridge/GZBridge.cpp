@@ -72,7 +72,7 @@ int GZBridge::init()
 
 		// service call to create model
 		gz::msgs::EntityFactory req{};
-		req.set_sdf_filename("models/" + _model_sim + "/model.sdf");
+		req.set_sdf_filename(_model_sim + "/model.sdf");
 
 		req.set_name(_model_name); // New name for the entity, overrides the name on the SDF.
 
