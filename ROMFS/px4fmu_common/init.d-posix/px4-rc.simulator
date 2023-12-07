@@ -71,12 +71,11 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 
 		# shellcheck disable=SC2153
 		echo "INFO  [init] PX4_GZ_WORLD: ${PX4_GZ_WORLD}"
-		echo "INFO  [init] GZ_SIM_RESOURCE_PATH: ${GZ_SIM_RESOURCE_PATH}"
 		if [ -z "${gz_world}" ] && [ -n "${GZ_SIM_RESOURCE_PATH}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
 
-			echo "INFO  [init] starting gazebo with world: ${GZ_SIM_RESOURCE_PATH}/worlds/${PX4_GZ_WORLD}.sdf"
+			echo "INFO  [init] starting gazebo with world: ${GZ_SIM_RESOURCE_PATH%/models}/worlds/${PX4_GZ_WORLD}.sdf"
 
-			${gz_command} ${gz_sub_command} --verbose=1 -r -s "${GZ_SIM_RESOURCE_PATH}/worlds/${PX4_GZ_WORLD}.sdf" &
+			${gz_command} ${gz_sub_command} --verbose=1 -r -s "${GZ_SIM_RESOURCE_PATH%/models}/worlds/${PX4_GZ_WORLD}.sdf" &
 
 			if [ -z "${HEADLESS}" ]; then
 				# HEADLESS not set, starting gui
