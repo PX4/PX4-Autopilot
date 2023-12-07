@@ -3,6 +3,8 @@ name: tiiuae-pixhawk-and-saluki
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v1.14.0-*'
   pull_request:
     branches: [ main ]
   # Allows you to run this workflow manually from the Actions tab
@@ -19,10 +21,9 @@ permissions:
   packages: write
 
 env:
-  saluki_pi_fpga_version: "sha-6dc384d"
-  saluki_v2_fpga_version: "sha-6dc384d"
-  saluki_v3_fpga_version: "sha-6dc384d"
-  bootloader_v2_version: "master"
+  saluki_pi_fpga_version: "sha-d4ab4c3"
+  saluki_v2_fpga_version: "sha-d4ab4c3"
+  saluki_v3_fpga_version: "sha-d4ab4c3"
 
 jobs:
   fc_matrix:
@@ -30,10 +31,18 @@ jobs:
       fail-fast: false
       matrix:
         product: [pixhawk, saluki-v2_default, saluki-v2_amp, saluki-v2_protected, saluki-v2_kernel, saluki-pi_default, saluki-pi_amp, saluki-pi_protected, saluki-v3_default, saluki-v3_amp]
+        include:
+          - product: saluki-v2_custom_keys
+            keys: Tools/saluki-sec-scripts/custom_keys/saluki-v2/px4_bin_ed25519_private.pem
+          - product: saluki-v3_custom_keys
+            keys: Tools/saluki-sec-scripts/custom_keys/saluki-v3/px4_bin_ed25519_private.pem
+          - product: saluki-pi_custom_keys
+            keys: Tools/saluki-sec-scripts/custom_keys/saluki-pi/px4_bin_ed25519_private.pem
 
     uses: ./.github/workflows/tiiuae-pixhawk-and-saluki-builder.yaml
     with:
       product: ${{ matrix.product }}
+      keys: ${{ matrix.keys }}
       # old workflow had condition to run only if PR is done to current repo (or triggered with other event)
       enabled: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
     secrets: inherit
@@ -113,7 +122,6 @@ jobs:
             "saluki_pi_fpga_version=${{ env.saluki_pi_fpga_version }}"
             "saluki_v2_fpga_version=${{ env.saluki_v2_fpga_version }}"
             "saluki_v3_fpga_version=${{ env.saluki_v3_fpga_version }}"
-            "bootloader_v2_version=${{ env.bootloader_v2_version }}"
 
   upload-px4fwupdater-uae:
     name: upload px4fwupdater to UAE docker registry
@@ -166,7 +174,6 @@ jobs:
             "saluki_pi_fpga_version=${{ env.saluki_pi_fpga_version }}"
             "saluki_v2_fpga_version=${{ env.saluki_v2_fpga_version }}"
             "saluki_v3_fpga_version=${{ env.saluki_v3_fpga_version }}"
-            "bootloader_v2_version=${{ env.bootloader_v2_version }}"
 
   artifactory:
     name: upload builds to artifactory

@@ -4,6 +4,9 @@ on:
       product:
         required: true
         type: string
+      keys:
+        required: true
+        type: string
       enabled:
         required: false
         type: boolean
@@ -27,6 +30,9 @@ jobs:
       - name: Run px4-firmware ${{ inputs.product }} build
         run: |
           set -eux
+          if [ -n ${{ inputs.keys }} ]; then
+            export SIGNING_ARGS=${{ inputs.keys }}
+          fi
           mkdir -p bin
           cd px4-firmware/
           # run clone_public.sh if clone_public flag is provided
