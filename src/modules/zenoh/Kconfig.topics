@@ -269,6 +269,10 @@ menu "Zenoh publishers/subscribers"
 		bool "gimbal_manager_status"
 		default n
 
+	config ZENOH_PUBSUB_GOTO_SETPOINT
+		bool "goto_setpoint"
+		default n
+
 	config ZENOH_PUBSUB_GPIO_CONFIG
 		bool "gpio_config"
 		default n
@@ -873,6 +877,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_GIMBAL_MANAGER_SET_ATTITUDE
 	select ZENOH_PUBSUB_GIMBAL_MANAGER_SET_MANUAL_CONTROL
 	select ZENOH_PUBSUB_GIMBAL_MANAGER_STATUS
+	select ZENOH_PUBSUB_GOTO_SETPOINT
 	select ZENOH_PUBSUB_GPIO_CONFIG
 	select ZENOH_PUBSUB_GPIO_IN
 	select ZENOH_PUBSUB_GPIO_OUT
