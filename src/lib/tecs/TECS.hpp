@@ -88,8 +88,11 @@ public:
 	 * @brief Initialize filter
 	 *
 	 * @param[in] equivalent_airspeed is the equivalent airspeed in [m/s].
+	 * @param[in] equivalent_airspeed_trim is the equivalent airspeed trim (vehicle setting) in [m/s].
+	 * @param[in] airspeed_sensor_available boolean if the airspeed sensor is available.
 	 */
-	void initialize(float equivalent_airspeed);
+	void initialize(float equivalent_airspeed, const float equivalent_airspeed_trim,
+			const bool airspeed_sensor_available);
 
 	/**
 	 * @brief Update filter
