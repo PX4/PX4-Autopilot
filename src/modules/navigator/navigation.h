@@ -128,6 +128,13 @@ enum NAV_FRAME {
 	NAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
 };
 
+enum SAFE_POINT_TYPE {
+	SAFE_POINT_TYPE_NORMAL = 0,
+	SAFE_POINT_TYPE_MR_ONLY = 1,
+	SAFE_POINT_TYPE_FW_ONLY = 2,
+	SAFE_POINT_TYPE_END = 3  // Used to validate input
+};
+
 /**
  * @addtogroup topics
  * @{
@@ -234,8 +241,9 @@ struct mission_safe_point_s {
 	double lon;
 	float alt;
 	uint8_t frame;					/**< MAV_FRAME */
+	uint8_t type;					/**< SAFE_POINT_TYPE */
 
-	uint8_t _padding0[3];				/**< padding struct size to alignment boundary  */
+	uint8_t _padding0[2];				/**< padding struct size to alignment boundary  */
 };
 
 #if (__GNUC__ >= 5) || __clang__
