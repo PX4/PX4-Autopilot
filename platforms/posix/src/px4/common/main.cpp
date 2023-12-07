@@ -279,9 +279,6 @@ int main(int argc, char **argv)
 		if (test_data_path.empty() && dir_exists(PX4_SOURCE_DIR"/test_data")) {
 			test_data_path = PX4_SOURCE_DIR"/test_data";
 		}
-		if (working_directory.empty() && dir_exists(PX4_SOURCE_DIR"/build/px4_sitl_default/rootfs")){
-			working_directory = PX4_SOURCE_DIR"/build/px4_sitl_default/rootfs";
-		}
 
 #endif // PX4_SOURCE_DIR
 
@@ -289,6 +286,10 @@ int main(int argc, char **argv)
 			commands_file = "etc/init.d-posix/rcS";
 		}
 
+		if (working_directory.empty() && dir_exists(PX4_SOURCE_DIR"/build/px4_sitl_default/rootfs")){
+			working_directory = PX4_SOURCE_DIR"/build/px4_sitl_default/rootfs";
+		}
+		
 		// change the CWD befre setting up links and other directories
 		if (!working_directory.empty()) {
 
