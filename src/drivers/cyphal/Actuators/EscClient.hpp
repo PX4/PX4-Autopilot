@@ -97,7 +97,7 @@ public:
 		}
 	};
 
-	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+	void update_outputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 	{
 		if (_port_id > 0) {
 			reg_udral_service_actuator_common_sp_Vector31_0_1 msg_sp {0};
@@ -105,7 +105,7 @@ public:
 
 			for (uint8_t i = 0; i < MAX_ACTUATORS; i++) {
 				if (i < num_outputs) {
-					msg_sp.value[i] = static_cast<float>(outputs[i]);
+					msg_sp.value[i] = outputs[i];
 
 				} else {
 					// "unset" values published as NaN

@@ -241,8 +241,7 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
-bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-			    unsigned num_control_groups_updated)
+bool TAP_ESC::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	if (_initialized) {
 		uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM] {};

@@ -877,7 +877,7 @@ void ModalIo::update_leds(vehicle_control_mode_s mode, led_control_s control)
 	}
 }
 
-void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
+void ModalIo::mix_turtle_mode(float outputs[MAX_ACTUATORS])
 {
 	bool use_pitch = true;
 	bool use_roll  = true;
@@ -1052,8 +1052,7 @@ void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			    unsigned num_outputs, unsigned num_control_groups_updated)
+bool ModalIo::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	if (num_outputs != MODAL_IO_OUTPUT_CHANNELS) {
 		return false;

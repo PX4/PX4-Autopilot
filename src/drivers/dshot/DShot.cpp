@@ -336,8 +336,7 @@ void DShot::mixerChanged()
 	update_telemetry_num_motors();
 }
 
-bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			  unsigned num_outputs, unsigned num_control_groups_updated)
+bool DShot::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	if (!_outputs_on) {
 		return false;
@@ -388,7 +387,7 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 		for (int i = 0; i < (int)num_outputs; i++) {
 
-			uint16_t output = outputs[i];
+			uint16_t output = math::constrain((int)lroundf(outputs[i]), 0, UINT16_MAX);
 
 			if (output == DSHOT_DISARM_VALUE) {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);

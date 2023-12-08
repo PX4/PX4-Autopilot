@@ -34,8 +34,10 @@
 #include <px4_log.h>
 #include <px4_defines.h>
 #include <cmath>
+
 #include "PCA9685.h"
 
+#include <lib/mathlib/mathlib.h>
 
 #ifdef CONFIG_PCA9685_USE_EXTERNAL_CRYSTAL
 #define PCA9685_CLOCK_REFERENCE CONFIG_PCA9685_EXTERNAL_CRYSTAL_FREQ
@@ -95,15 +97,18 @@ int PCA9685::init()
 	return PX4_OK;
 }
 
-int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
+int PCA9685::updatePWM(const float outputs[PCA9685_PWM_CHANNEL_COUNT], unsigned num_outputs)
 {
 	if (num_outputs > PCA9685_PWM_CHANNEL_COUNT) {
 		num_outputs = PCA9685_PWM_CHANNEL_COUNT;
 		PX4_DEBUG("PCA9685 can only drive up to 16 channels");
 	}
 
-	uint16_t out[PCA9685_PWM_CHANNEL_COUNT];
-	memcpy(out, outputs, sizeof(uint16_t) * num_outputs);
+	uint16_t out[PCA9685_PWM_CHANNEL_COUNT] {};
+
+	for (unsigned i = 0; i < num_outputs; ++i) {
+		out[i] = math::constrain((int)lroundf(outputs[i]), 0, UINT16_MAX);
+	}
 
 	for (unsigned i = 0; i < num_outputs; ++i) {
 		out[i] = calcRawFromPulse(out[i]);
