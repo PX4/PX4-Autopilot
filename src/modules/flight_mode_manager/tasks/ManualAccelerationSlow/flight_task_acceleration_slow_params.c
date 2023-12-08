@@ -43,7 +43,7 @@
  * @value 6 AUX6
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_INT32(POSSLOW_MAP_HVEL, 0);
+PARAM_DEFINE_INT32(MC_SLOW_MAP_HVEL, 0);
 
 /**
  * Manual input mapped to scale vertical velocity in position slow mode
@@ -57,7 +57,7 @@ PARAM_DEFINE_INT32(POSSLOW_MAP_HVEL, 0);
  * @value 6 AUX6
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_INT32(POSSLOW_MAP_VVEL, 0);
+PARAM_DEFINE_INT32(MC_SLOW_MAP_VVEL, 0);
 
 /**
  * Manual input mapped to scale yaw rate in position slow mode
@@ -71,7 +71,7 @@ PARAM_DEFINE_INT32(POSSLOW_MAP_VVEL, 0);
  * @value 6 AUX6
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_INT32(POSSLOW_MAP_YAWR, 0);
+PARAM_DEFINE_INT32(MC_SLOW_MAP_YAWR, 0);
 
 /**
  * Horizontal velocity lower limit
@@ -84,7 +84,7 @@ PARAM_DEFINE_INT32(POSSLOW_MAP_YAWR, 0);
  * @decimal 2
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_FLOAT(POSSLOW_MIN_HVEL, .3f);
+PARAM_DEFINE_FLOAT(MC_SLOW_MIN_HVEL, .3f);
 
 /**
  * Vertical velocity lower limit
@@ -97,7 +97,7 @@ PARAM_DEFINE_FLOAT(POSSLOW_MIN_HVEL, .3f);
  * @decimal 2
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_FLOAT(POSSLOW_MIN_VVEL, .3f);
+PARAM_DEFINE_FLOAT(MC_SLOW_MIN_VVEL, .3f);
 
 /**
  * Yaw rate lower limit
@@ -110,7 +110,7 @@ PARAM_DEFINE_FLOAT(POSSLOW_MIN_VVEL, .3f);
  * @decimal 0
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_FLOAT(POSSLOW_MIN_YAWR, 3.f);
+PARAM_DEFINE_FLOAT(MC_SLOW_MIN_YAWR, 3.f);
 
 /**
  * Default horizontal velocity limit
@@ -125,7 +125,7 @@ PARAM_DEFINE_FLOAT(POSSLOW_MIN_YAWR, 3.f);
  * @decimal 2
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_FLOAT(POSSLOW_DEF_HVEL, 3.f);
+PARAM_DEFINE_FLOAT(MC_SLOW_DEF_HVEL, 3.f);
 
 /**
  * Default vertical velocity limit
@@ -140,7 +140,7 @@ PARAM_DEFINE_FLOAT(POSSLOW_DEF_HVEL, 3.f);
  * @decimal 2
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_FLOAT(POSSLOW_DEF_VVEL, 1.f);
+PARAM_DEFINE_FLOAT(MC_SLOW_DEF_VVEL, 1.f);
 
 /**
  * Default yaw rate limit
@@ -155,4 +155,4 @@ PARAM_DEFINE_FLOAT(POSSLOW_DEF_VVEL, 1.f);
  * @decimal 0
  * @group Multicopter Position Slow Mode
  */
-PARAM_DEFINE_FLOAT(POSSLOW_DEF_YAWR, 45.f);
+PARAM_DEFINE_FLOAT(MC_SLOW_DEF_YAWR, 45.f);
