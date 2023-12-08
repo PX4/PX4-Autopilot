@@ -52,6 +52,11 @@ extern "C" {
 #define QC_ESC_LED_GREEN_ON 2
 #define QC_ESC_LED_BLUE_ON  4
 
+// Define RPM command max and min values
+#define ESC_RPM_MAX INT16_MAX-1			//  32k
+#define ESC_RPM_MIN INT16_MIN+1			// -32k
+#define ESC_RPM_MAX_EXT UINT16_MAX-5	//  65k
+#define ESC_RPM_MIN_EXT -UINT16_MAX+5	// -65k
 
 // Header of the packet. Each packet must start with this header
 #define ESC_PACKET_HEADER    0xAF
@@ -210,15 +215,15 @@ int32_t qc_esc_create_pwm_packet4_fb(int16_t pwm0, int16_t pwm1, int16_t pwm2, i
 
 // Create a packet for sending closed-loop RPM command and LED command to 4 ESCs without requesting any feedback
 // Return value is the length of generated packet (if positive), otherwise error code
-int32_t qc_esc_create_rpm_packet4(int16_t rpm0, int16_t rpm1, int16_t rpm2, int16_t rpm3,
+int32_t qc_esc_create_rpm_packet4(int32_t rpm0, int32_t rpm1, int32_t rpm2, int32_t rpm3,
 				  uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				  uint8_t *out, uint16_t out_size);
+				  uint8_t *out, uint16_t out_size, uint8_t ext_rpm);
 
-// Create a packet for sending closed-loop RPM command and LED command to 4 ESCs, also request feedback from one ESC (with id=fb_id)
+// Create a packet for sending closed-loop RPM command (32766 or 65530 max RPM) and LED command to 4 ESCs, also request feedback from one ESC (with id=fb_id)
 // Return value is the length of generated packet (if positive), otherwise error code
-int32_t qc_esc_create_rpm_packet4_fb(int16_t rpm0, int16_t rpm1, int16_t rpm2, int16_t rpm3,
+int32_t qc_esc_create_rpm_packet4_fb(int32_t rpm0, int32_t rpm1, int32_t rpm2, int32_t rpm3,
 				     uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				     int32_t fb_id, uint8_t *out, uint16_t out_size);
+				     int32_t fb_id, uint8_t *out, uint16_t out_size, uint8_t ext_rpm);
 
 
 //-------------------------------------------------------------------------
