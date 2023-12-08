@@ -43,6 +43,7 @@
 #include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
 #include <px4_platform_common/px4_config.h>
+#include <containers/List.hpp>
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 #include "ORBSet.hpp"
@@ -370,15 +371,7 @@ public:
 #ifndef CONFIG_BUILD_FLAT
 	static uint8_t getCallbackLock()
 	{
-		uint8_t cbLock;
-
-		// TODO: think about if this needs protection, maybe not use the
-		// same lock as for node advertise/subscribe
-
-		_Instance->lock();
-		cbLock = per_process_lock >= 0 ? per_process_lock : launchCallbackThread();
-		_Instance->unlock();
-		return cbLock;
+		return per_process_lock >= 0 ? per_process_lock : launchCallbackThread();
 	}
 #endif
 
@@ -430,9 +423,17 @@ public:
 		px4_munmap(p, sizeof(uORB::Manager));
 	}
 
-	static void lockThread(int idx)
+	static bool registerCallback(orb_advert_t &node_handle, class SubscriptionCallback *callback_sub,
+				     hrt_abstime last_update, uint32_t interval_us, uorb_cb_handle_t &cb_handle);
+
+	static void unregisterCallback(orb_advert_t &node_handle, class SubscriptionCallback *callback_sub,
+				       uorb_cb_handle_t &cb_handle);
+
+	static void lockThread(int idx, unsigned count = 1)
 	{
-		_Instance->g_sem_pool.take(idx);
+		while (count--) {
+			_Instance->g_sem_pool.take(idx);
+		}
 	}
 
 	static void unlockThread(int idx)
@@ -443,27 +444,6 @@ public:
 	static void freeThreadLock(int i) {_Instance->g_sem_pool.free(i);}
 
 	static int8_t getThreadLock() {return _Instance->g_sem_pool.reserve();}
-
-	static void queueCallback(class SubscriptionCallback *sub, int idx)
-	{
-		if (idx >= 0) {
-			_Instance->g_sem_pool.cb_lock(idx);
-			_Instance->g_sem_pool.cb_set(idx, sub);
-			// The manager is unlocked in callback thread
-		}
-	}
-
-	static class SubscriptionCallback *dequeueCallback(int idx)
-	{
-		class SubscriptionCallback *sub = nullptr;
-
-		if (idx >= 0) {
-			sub = _Instance->g_sem_pool.cb_get(idx);
-			_Instance->g_sem_pool.cb_unlock(idx);
-		}
-
-		return sub;
-	}
 
 	static bool isThreadAlive(int idx)
 	{
@@ -647,24 +627,16 @@ private: //class methods
 		void release(int8_t i) {_global_sem[i].release(); }
 		int value(int8_t i) { return _global_sem[i].value(); }
 
-		void cb_lock(int8_t i) { do {} while (_global_sem[i].cb_lock() != 0); }
-		void cb_unlock(int8_t i) { _global_sem[i].cb_unlock(); }
-		void cb_set(int8_t i, class SubscriptionCallback *callback_ptr) { _global_sem[i].cb_set(callback_ptr); }
-		class SubscriptionCallback *cb_get(int8_t i) { return _global_sem[i].cb_get(); }
-
 		class GlobalLock
 		{
 		public:
 			void init()
 			{
 				px4_sem_init(&_sem, 1, 0);
-				px4_sem_init(&_lock, 1, 1);
 #if defined(__PX4_NUTTX)
 				sem_setprotocol(&_sem, SEM_PRIO_NONE);
-				sem_setprotocol(&_lock, SEM_PRIO_NONE);
 #endif
 				in_use = false;
-				_callback_ptr = nullptr;
 			}
 			void free() { px4_sem_destroy(&_sem); }
 			int take() { return px4_sem_wait(&_sem); }
@@ -673,14 +645,8 @@ private: //class methods
 			int value() { int value; px4_sem_getvalue(&_sem, &value); return value; }
 			bool in_use{false};
 
-			int  cb_lock() { return px4_sem_wait(&_lock); }
-			void cb_unlock() { px4_sem_post(&_lock); }
-			void cb_set(class SubscriptionCallback *callback_ptr) { _callback_ptr = callback_ptr; }
-			class SubscriptionCallback *cb_get() { return _callback_ptr; }
 		private:
-			class SubscriptionCallback *_callback_ptr {nullptr};
 			px4_sem_t _sem; /* For signaling to the callback thread */
-			px4_sem_t _lock; /* For signaling back from the callback thread */
 		};
 	private:
 
@@ -692,8 +658,13 @@ private: //class methods
 	} g_sem_pool;
 
 #ifndef CONFIG_BUILD_FLAT
+	static void lock_cb_list() { do {} while (px4_sem_wait(&per_process_cb_list_mutex) != 0); }
+	static void unlock_cb_list() { px4_sem_post(&per_process_cb_list_mutex); }
+
 	static int8_t per_process_lock;
 	static pid_t per_process_cb_thread;
+	static List<class SubscriptionCallback *> per_process_cb_list;
+	static px4_sem_t per_process_cb_list_mutex;
 #endif
 };
 } // namespace uORB

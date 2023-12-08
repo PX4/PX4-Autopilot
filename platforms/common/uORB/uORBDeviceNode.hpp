@@ -218,18 +218,15 @@ public:
 	 */
 	bool copy(void *dst, orb_advert_t &handle, unsigned &generation);
 
-	static void orb_callback(int signo, siginfo_t *si_info, void *data);
-
-	static uorb_cb_handle_t register_callback(orb_advert_t &node_handle, SubscriptionCallback *callback_sub,
-			int8_t poll_lock,
-			hrt_abstime last_update, uint32_t interval_us)
+	static bool register_callback(orb_advert_t &node_handle, SubscriptionCallback *callback_sub, int8_t poll_lock,
+				      hrt_abstime last_update, uint32_t interval_us, uorb_cb_handle_t &cb_handle)
 	{
-		return node(node_handle)->_register_callback(callback_sub, poll_lock, last_update, interval_us);
+		return node(node_handle)->_register_callback(callback_sub, poll_lock, last_update, interval_us, cb_handle);
 	}
 
-	static void unregister_callback(orb_advert_t &node_handle, uorb_cb_handle_t cb_handle)
+	static bool unregister_callback(orb_advert_t &node_handle, uorb_cb_handle_t &cb_handle)
 	{
-		node(node_handle)->_unregister_callback(cb_handle);
+		return node(node_handle)->_unregister_callback(cb_handle);
 	}
 
 	void *operator new (size_t, void *p)
@@ -243,6 +240,21 @@ public:
 
 	const char *get_devname() const {return _devname;}
 
+#ifndef CONFIG_BUILD_FLAT
+	static bool cb_dequeue(orb_advert_t &node_handle, uorb_cb_handle_t cb)
+	{
+		IndexedStackHandle<CB_LIST_T> callbacks(node(node_handle)->_callbacks);
+		EventWaitItem *item = callbacks.peek(cb);
+
+		if (__atomic_load_n(&item->cb_triggered, __ATOMIC_SEQ_CST) > 0) {
+			__atomic_fetch_sub(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
+			return true;
+		}
+
+		return false;
+	}
+#endif
+
 private:
 	friend uORBTest::UnitTest;
 
@@ -253,11 +265,15 @@ private:
 	px4::atomic<unsigned>  _generation{0};  /**< object generation count */
 
 	struct EventWaitItem {
-		class SubscriptionCallback *subscriber;
 		hrt_abstime last_update;
+#ifdef CONFIG_BUILD_FLAT
+		class SubscriptionCallback *subscriber;
+#else
+		uint32_t cb_triggered;
+#endif
 		uint32_t interval_us;
-		int8_t lock;
 		uorb_cb_handle_t next; // List ptr
+		int8_t lock;
 	};
 
 	IndexedStack<CB_LIST_T> _callbacks;
@@ -328,10 +344,9 @@ private:
 	inline static void *node_data(const orb_advert_t &handle) { return handle.data; }
 #endif
 
-	uorb_cb_handle_t _register_callback(SubscriptionCallback *callback_sub,
-					    int8_t poll_lock,
-					    hrt_abstime last_update, uint32_t interval_us);
-	void _unregister_callback(uorb_cb_handle_t cb_handle);
+	bool _register_callback(SubscriptionCallback *callback_sub, int8_t poll_lock, hrt_abstime last_update,
+				uint32_t interval_us, uorb_cb_handle_t &cb_handle);
+	bool _unregister_callback(uorb_cb_handle_t &cb_handle);
 
 #ifdef CONFIG_BUILD_FLAT
 	char *_devname;
