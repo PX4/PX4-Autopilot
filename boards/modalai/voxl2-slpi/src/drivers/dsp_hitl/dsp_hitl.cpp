@@ -93,6 +93,7 @@ std::string port = "2";
 int baudrate = 921600;
 const unsigned mode_flag_custom = 1;
 const unsigned mode_flag_armed = 128;
+bool _send_gps = false;
 
 uORB::Publication<battery_status_s>				_battery_pub{ORB_ID(battery_status)};
 uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
@@ -178,7 +179,7 @@ handle_message_dsp(mavlink_message_t *msg)
 		handle_message_hil_sensor_dsp(msg);
 		break;
 	case MAVLINK_MSG_ID_HIL_GPS:
-		handle_message_hil_gps_dsp(msg);
+		if (_send_gps) handle_message_hil_gps_dsp(msg);
 		break;
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		handle_message_vision_position_estimate_dsp(msg);
@@ -271,7 +272,7 @@ void task_main(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
-	while ((ch = px4_getopt(argc, argv, "vsdcp:b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "vsdcgp:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 's':
 			_use_software_mav_throttling = true;
@@ -284,6 +285,9 @@ void task_main(int argc, char *argv[])
 			break;
 		case 'b':
 			baudrate = atoi(myoptarg);
+			break;
+		case 'g':
+			_send_gps = true;
 			break;
 		default:
 			break;
