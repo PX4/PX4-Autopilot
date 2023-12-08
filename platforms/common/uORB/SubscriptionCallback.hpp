@@ -42,19 +42,14 @@
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/posix.h>
 
-#ifdef CONFIG_BUILD_FLAT
-#define CB_LOCK()
-#define CB_UNLOCK()
-#else
-#define CB_LOCK() lock()
-#define CB_UNLOCK() unlock()
-#endif
-
 namespace uORB
 {
 
 // Subscription wrapper class with callbacks on new publications
 class SubscriptionCallback : public SubscriptionInterval
+#ifndef CONFIG_BUILD_FLAT
+	, public ListNode<SubscriptionCallback *>
+#endif
 {
 public:
 	/**
@@ -67,52 +62,34 @@ public:
 	SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
 		SubscriptionInterval(meta, interval_us, instance)
 	{
-#ifndef CONFIG_BUILD_FLAT
-		px4_sem_init(&_lock, 1, 1);
-#endif
 	}
 
 	virtual ~SubscriptionCallback()
 	{
 		unregisterCallback();
-#ifndef CONFIG_BUILD_FLAT
-		px4_sem_destroy(&_lock);
-#endif
 	};
 
 	bool registerCallback()
 	{
-		CB_LOCK();
-
-		if (!registered()) {
-			if (!orb_advert_valid(_subscription.get_node())) {
-				// force topic creation
-				if (!_subscription.subscribe(true)) {
-					CB_UNLOCK();
-					return false;
-				}
-			}
-
-			if (orb_advert_valid(_subscription.get_node())) {
-				_cb_handle = DeviceNode::register_callback(_subscription.get_node(), this, -1, _last_update, _interval_us);
+		if (!orb_advert_valid(_subscription.get_node())) {
+			// force topic creation
+			if (!_subscription.subscribe(true)) {
+				return false;
 			}
 		}
 
-		CB_UNLOCK();
-		return registered();
+		bool ret = false;
+
+		if (orb_advert_valid(_subscription.get_node())) {
+			ret = Manager::registerCallback(_subscription.get_node(), this, _last_update, _interval_us, _cb_handle);
+		}
+
+		return ret;
 	}
 
 	void unregisterCallback()
 	{
-		CB_LOCK();
-
-		if (registered()) {
-			uorb_cb_handle_t handle = _cb_handle;
-			_cb_handle = UORB_INVALID_CB_HANDLE;
-			DeviceNode::unregister_callback(_subscription.get_node(), handle);
-		}
-
-		CB_UNLOCK();
+		Manager::unregisterCallback(_subscription.get_node(), this, _cb_handle);
 	}
 
 	/**
@@ -148,28 +125,21 @@ public:
 
 	virtual void call() = 0;
 
-	void do_call()
+#ifndef CONFIG_BUILD_FLAT
+	bool do_call()
 	{
-		CB_LOCK();
+		bool dequeued = DeviceNode::cb_dequeue(_subscription.get_node(), _cb_handle);
 
-		// Run the callback if it is still valid
-		if (registered()) {
+		if (dequeued) {
 			call();
 		}
 
-		CB_UNLOCK();
+		return dequeued;
 	}
+#endif
 
 	bool registered() const { return uorb_cb_handle_valid(_cb_handle); }
 
-private:
-#ifndef CONFIG_BUILD_FLAT
-	/* Make sure the callback remains valid during callback execution */
-
-	void lock() { do {} while (px4_sem_wait(&_lock) != 0); }
-	void unlock() { px4_sem_post(&_lock); }
-	px4_sem_t _lock; /* Lock to protect registered callback */
-#endif
 protected:
 
 	uorb_cb_handle_t _cb_handle{UORB_INVALID_CB_HANDLE};
@@ -240,14 +210,15 @@ public:
 
 	void registerPoll(int8_t lock_idx)
 	{
-		_cb_handle = DeviceNode::register_callback(_subscription.get_node(), nullptr, lock_idx, _last_update, _interval_us);
+		DeviceNode::register_callback(_subscription.get_node(), nullptr, lock_idx, _last_update, _interval_us, _cb_handle);
 	}
 
 	void unregisterPoll()
 	{
-		uorb_cb_handle_t handle = _cb_handle;
-		_cb_handle = UORB_INVALID_CB_HANDLE;
-		DeviceNode::unregister_callback(_subscription.get_node(), handle);
+		// Calling this while a poll is not registered is a no-op
+		if (uorb_cb_handle_valid(_cb_handle)) {
+			DeviceNode::unregister_callback(_subscription.get_node(), _cb_handle);
+		}
 	}
 private:
 	uorb_cb_handle_t _cb_handle{UORB_INVALID_CB_HANDLE};

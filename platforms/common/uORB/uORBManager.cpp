@@ -65,6 +65,8 @@ uORB::Manager *uORB::Manager::_Instance = nullptr;
 #ifndef CONFIG_BUILD_FLAT
 int8_t uORB::Manager::per_process_lock = -1;
 pid_t uORB::Manager::per_process_cb_thread = -1;
+List<class uORB::SubscriptionCallback *> uORB::Manager::per_process_cb_list;
+px4_sem_t uORB::Manager::per_process_cb_list_mutex;
 #endif
 
 void uORB::Manager::cleanup()
@@ -460,6 +462,11 @@ int uORB::Manager::orb_poll(orb_poll_struct_t *fds, unsigned int nfds, int timeo
 int8_t
 uORB::Manager::launchCallbackThread()
 {
+	if (px4_sem_init(&per_process_cb_list_mutex, 1, 1) != 0) {
+		PX4_ERR("Can't initialize cb mutex");
+		return -1;
+	}
+
 	per_process_lock = Manager::getThreadLock();
 
 	if (per_process_lock < 0) {
@@ -488,17 +495,26 @@ uORB::Manager::launchCallbackThread()
 int
 uORB::Manager::callback_thread(int argc, char *argv[])
 {
+	int count = 1;
+
 	while (true) {
-		lockThread(per_process_lock);
+		/* Sleep here waiting for callbacks, lock as many times as it has been unlocked */
+		lockThread(per_process_lock, count);
 
-		class SubscriptionCallback *sub = dequeueCallback(per_process_lock);
+		lock_cb_list();
 
-		// Pass nullptr to this thread to exit
-		if (sub == nullptr) {
-			break;
+		count = 0;
+
+		for (auto sub : per_process_cb_list) {
+			/* Just in cast the callback thread has been starved,
+			 * run all the queued callbacks now
+			 */
+			while (sub->do_call()) {
+				count++;
+			}
 		}
 
-		sub->do_call();
+		unlock_cb_list();
 	}
 
 	Manager::freeThreadLock(per_process_lock);
@@ -509,6 +525,55 @@ uORB::Manager::callback_thread(int argc, char *argv[])
 
 #endif
 
+bool
+uORB::Manager::registerCallback(orb_advert_t &node_handle, SubscriptionCallback *callback_sub,
+				hrt_abstime last_update, uint32_t interval_us, uorb_cb_handle_t &cb_handle)
+{
+	if (uorb_cb_handle_valid(cb_handle)) {
+		// double registration, ok
+		return true;
+	}
+
+	bool ret = false;
+	int8_t cb_lock = -1;
+#ifndef CONFIG_BUILD_FLAT
+	cb_lock = getCallbackLock();
+
+	if (cb_lock >= 0) {
+#endif
+		ret = uORB::DeviceNode::register_callback(node_handle, callback_sub, cb_lock, last_update,
+
+				interval_us, cb_handle);
+#ifndef CONFIG_BUILD_FLAT
+	}
+
+	if (ret) {
+		lock_cb_list();
+		per_process_cb_list.add(callback_sub);
+		unlock_cb_list();
+	}
+
+#endif
+
+	return ret;
+}
+
+void
+uORB::Manager::unregisterCallback(orb_advert_t &node_handle, SubscriptionCallback *callback_sub,
+				  uorb_cb_handle_t &cb_handle)
+{
+	if (!uorb_cb_handle_valid(cb_handle)) {
+		// not registered
+		return;
+	}
+
+#ifndef CONFIG_BUILD_FLAT
+	lock_cb_list();
+	per_process_cb_list.remove(callback_sub);
+	unlock_cb_list();
+#endif
+	DeviceNode::unregister_callback(node_handle, cb_handle);
+}
 
 void uORB::Manager::GlobalSemPool::init(void)
 {
