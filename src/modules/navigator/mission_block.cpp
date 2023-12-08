@@ -694,6 +694,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		break;
 
 	case NAV_CMD_TAKEOFF:
+	case NAV_CMD_VTOL_TAKEOFF:
 
 		// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
 		if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
@@ -705,10 +706,6 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		}
 
-		break;
-
-	case NAV_CMD_VTOL_TAKEOFF:
-		sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 		break;
 
 	case NAV_CMD_LAND:
