@@ -62,35 +62,35 @@ bool FlightTaskManualAccelerationSlow::update()
 	if (_velocity_limits_received_before) {
 		// message received once since mode was started
 		if (PX4_ISFINITE(_velocity_limits.horizontal_velocity)) {
-			velocity_horizontal = fmaxf(_velocity_limits.horizontal_velocity, _param_posslow_min_hvel.get());
+			velocity_horizontal = fmaxf(_velocity_limits.horizontal_velocity, _param_mc_slow_min_hvel.get());
 			velocity_horizontal_limited = true;
 		}
 
 		if (PX4_ISFINITE(_velocity_limits.vertical_velocity)) {
-			velocity_up = velocity_down = fmaxf(_velocity_limits.vertical_velocity, _param_posslow_min_vvel.get());
+			velocity_up = velocity_down = fmaxf(_velocity_limits.vertical_velocity, _param_mc_slow_min_vvel.get());
 			velocity_vertical_limited = true;
 		}
 
 		if (PX4_ISFINITE(_velocity_limits.yaw_rate)) {
-			yaw_rate = fmaxf(_velocity_limits.yaw_rate, math::radians(_param_posslow_min_yawr.get()));
+			yaw_rate = fmaxf(_velocity_limits.yaw_rate, math::radians(_param_mc_slow_min_yawr.get()));
 			yaw_rate_limited = true;
 		}
 	}
 
 	// Remote knob commanded limits
-	if (_param_posslow_map_hvel.get() != 0) {
-		const float min_horizontal_velocity_scale = _param_posslow_min_hvel.get() / fmaxf(velocity_horizontal, FLT_EPSILON);
-		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_posslow_map_hvel.get());
+	if (_param_mc_slow_map_hvel.get() != 0) {
+		const float min_horizontal_velocity_scale = _param_mc_slow_min_hvel.get() / fmaxf(velocity_horizontal, FLT_EPSILON);
+		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_hvel.get());
 		const float aux_based_scale =
 			math::interpolate(aux_input, -1.f, 1.f, min_horizontal_velocity_scale, 1.f);
 		velocity_horizontal *= aux_based_scale;
 		velocity_horizontal_limited = true;
 	}
 
-	if (_param_posslow_map_vvel.get() != 0) {
-		const float min_up_speed_scale = _param_posslow_min_vvel.get() / fmaxf(velocity_up, FLT_EPSILON);
-		const float min_down_speed_scale = _param_posslow_min_vvel.get() / fmaxf(velocity_down, FLT_EPSILON);
-		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_posslow_map_vvel.get());
+	if (_param_mc_slow_map_vvel.get() != 0) {
+		const float min_up_speed_scale = _param_mc_slow_min_vvel.get() / fmaxf(velocity_up, FLT_EPSILON);
+		const float min_down_speed_scale = _param_mc_slow_min_vvel.get() / fmaxf(velocity_down, FLT_EPSILON);
+		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_vvel.get());
 		const float up_aux_based_scale =
 			math::interpolate(aux_input, -1.f, 1.f, min_up_speed_scale, 1.f);
 		const float down_aux_based_scale =
@@ -100,9 +100,9 @@ bool FlightTaskManualAccelerationSlow::update()
 		velocity_vertical_limited = true;
 	}
 
-	if (_param_posslow_map_yawr.get() != 0) {
-		const float min_yaw_rate_scale = math::radians(_param_posslow_min_yawr.get()) / fmaxf(yaw_rate, FLT_EPSILON);
-		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_posslow_map_yawr.get());
+	if (_param_mc_slow_map_yawr.get() != 0) {
+		const float min_yaw_rate_scale = math::radians(_param_mc_slow_min_yawr.get()) / fmaxf(yaw_rate, FLT_EPSILON);
+		const float aux_input = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_yawr.get());
 		const float aux_based_scale =
 			math::interpolate(aux_input, -1.f, 1.f, min_yaw_rate_scale, 1.f);
 		yaw_rate *= aux_based_scale;
@@ -111,15 +111,15 @@ bool FlightTaskManualAccelerationSlow::update()
 
 	// No input from remote and MAVLink -> use default slow mode limits
 	if (!velocity_horizontal_limited) {
-		velocity_horizontal = _param_posslow_def_hvel.get();
+		velocity_horizontal = _param_mc_slow_def_hvel.get();
 	}
 
 	if (!velocity_vertical_limited) {
-		velocity_up = velocity_down = _param_posslow_def_vvel.get();
+		velocity_up = velocity_down = _param_mc_slow_def_vvel.get();
 	}
 
 	if (!yaw_rate_limited) {
-		yaw_rate = math::radians(_param_posslow_def_yawr.get());
+		yaw_rate = math::radians(_param_mc_slow_def_yawr.get());
 	}
 
 	// Interface to set resulting velocity limits
