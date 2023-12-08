@@ -94,6 +94,7 @@ int baudrate = 921600;
 const unsigned mode_flag_custom = 1;
 const unsigned mode_flag_armed = 128;
 bool _send_gps = false;
+bool _send_mag = false;
 
 uORB::Publication<battery_status_s>				_battery_pub{ORB_ID(battery_status)};
 uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
@@ -272,7 +273,7 @@ void task_main(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
-	while ((ch = px4_getopt(argc, argv, "vsdcgp:b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "vsdcmgp:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 's':
 			_use_software_mav_throttling = true;
@@ -285,6 +286,9 @@ void task_main(int argc, char *argv[])
 			break;
 		case 'b':
 			baudrate = atoi(myoptarg);
+			break;
+		case 'm':
+			_send_mag = true;
 			break;
 		case 'g':
 			_send_gps = true;
@@ -881,7 +885,7 @@ handle_message_hil_sensor_dsp(mavlink_message_t *msg)
 
 
 	// magnetometer
-	if ((hil_sensor.fields_updated & SensorSource::MAG) == SensorSource::MAG) {
+	if ((_send_mag) && ((hil_sensor.fields_updated & SensorSource::MAG) == SensorSource::MAG)) {
 		if (_px4_mag == nullptr) {
 			// 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 			_px4_mag = new PX4Magnetometer(197388);

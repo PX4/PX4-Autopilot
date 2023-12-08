@@ -82,7 +82,7 @@ load_mon start
 microdds_client start -t udp -h 127.0.0.1 -p 8888
 
 qshell pwm_out_sim start -m hil
-qshell dsp_hitl start -g
+qshell dsp_hitl start -g -m
 
 # start the onboard fast link to connect to voxl-mavlink-server
 mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard
