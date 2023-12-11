@@ -777,21 +777,11 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 void
 FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 {
-	/* save time when airplane is in air */
-	if (!_was_in_air && !_landed) {
-		_was_in_air = true;
-		_time_went_in_air = now;
-
-		_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
-	}
-
 	/* reset flag when airplane landed */
 	if (_landed) {
-		_was_in_air = false;
 		_completed_manual_takeoff = false;
-
-		_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 	}
+
 }
 
 void
@@ -2420,9 +2410,6 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_OTHER: {
 				_att_sp.thrust_body[0] = min(_att_sp.thrust_body[0], _param_fw_thr_max.get());
-
-				_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
-
 				break;
 			}
 
@@ -2569,31 +2556,15 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	}
 
 	if (!_tecs_is_running) {
-		// next time we run TECS we should reinitialize states
-		_reinitialize_tecs = true;
 		return;
-	}
-
-	// We need an altitude lock to calculate the TECS control
-	if (_local_pos.timestamp == 0) {
-		_reinitialize_tecs = true;
-	}
-
-	if (_reinitialize_tecs) {
-		_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
-		_reinitialize_tecs = false;
-	}
-
-	/* No underspeed protection in landing mode */
-	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
-
-	if (_landed) {
-		_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 	}
 
 	/* update TECS vehicle state estimates */
 	const float throttle_trim_compensated = _performance_model.getTrimThrottle(throttle_min,
 						throttle_max, airspeed_sp, _air_density);
+
+	/* No underspeed protection in landing mode */
+	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
