@@ -481,8 +481,15 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const Co
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
 		const Flag &flag) const
 {
+	float airspeed_for_seb_rate = param.equivalent_airspeed_trim;
+
+	// avoid division by zero by checking if airspeed is finite and greater than zero
+	if (flag.airspeed_enabled && PX4_ISFINITE(input.tas) && input.tas > FLT_EPSILON) {
+		airspeed_for_seb_rate = input.tas;
+	}
+
 	// Calculate derivative from change in climb angle to rate of change of specific energy balance
-	const float climb_angle_to_SEB_rate = input.tas * CONSTANTS_ONE_G;
+	const float climb_angle_to_SEB_rate = airspeed_for_seb_rate * CONSTANTS_ONE_G;
 
 	// Calculate a specific energy correction that doesn't include the integrator contribution
 	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain +
