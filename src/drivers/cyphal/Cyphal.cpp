@@ -62,7 +62,7 @@ using namespace time_literals;
 
 CyphalNode *CyphalNode::_instance;
 
-CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes, const char* can_iface) :
+CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes, const char *can_iface) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	_canard_handle(node_id, capacity, mtu_bytes)
@@ -124,7 +124,7 @@ int CyphalNode::start(uint32_t node_id, uint32_t bitrate, const char *can_iface)
 	bool can_fd = false;
 
 
-	
+
 	if (can_fd) {
 
 		_instance = new CyphalNode(node_id, 8, CANARD_MTU_CAN_FD, can_iface);
@@ -150,8 +150,9 @@ int CyphalNode::start(uint32_t node_id, uint32_t bitrate, const char *can_iface)
 void CyphalNode::init()
 {
 	// interface init
-	
-  PX4_INFO("Cyphal node init interface: %s", _can_iface_name);
+
+	PX4_INFO("Cyphal node init interface: %s", _can_iface_name);
+
 	if (_canard_handle.init(_can_iface_name)) {
 		_initialized = true;
 	}
@@ -312,7 +313,7 @@ static void print_usage()
 extern "C" __EXPORT int cyphal_main(int argc, char *argv[])
 {
 
-  const char *can_if;
+	const char *can_if;
 
 	if (argc < 2) {
 		print_usage();
@@ -337,16 +338,16 @@ extern "C" __EXPORT int cyphal_main(int argc, char *argv[])
 			node_id = CANARD_NODE_ID_UNSET;
 		}
 
-    if(!strcmp(argv[2], "-i")) {
-			if(argv[3]) {
-      	can_if = argv[3];
-      	PX4_INFO("CAN interface: %s", can_if);
-			}
-			else {
+		if (!strcmp(argv[2], "-i")) {
+			if (argv[3]) {
+				can_if = argv[3];
+				PX4_INFO("CAN interface: %s", can_if);
+
+			} else {
 				print_usage();
 				return 1;
 			}
-    }
+		}
 
 		// Start
 		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);

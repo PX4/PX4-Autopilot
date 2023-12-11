@@ -65,7 +65,8 @@ int CanardSocketCAN::init(const char *can_iface_name)
 		PX4_ERR("socket");
 		return -1;
 	}
-  PX4_INFO("Iface chosen: %s", can_iface_name);
+
+	PX4_INFO("Iface chosen: %s", can_iface_name);
 	strncpy(ifr.ifr_name, can_iface_name, IFNAMSIZ - 1);
 	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
 	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
