@@ -2831,32 +2831,22 @@ int EKF2::task_spawn(int argc, char *argv[])
 			}
 		}
 
-		int32_t acc0_prio = 0;
-		int32_t acc1_prio = 0;
-		int32_t acc2_prio = 0;
-		int32_t acc3_prio = 0;
-		int32_t mag0_prio = 0;
-		int32_t mag1_prio = 0;
-		int32_t mag2_prio = 0;
-		int32_t mag3_prio = 0;
+		uORB::SubscriptionData<sensors_status_s> sensors_status_mag_sub{ORB_ID(sensors_status_mag)};
+		uORB::SubscriptionData<sensors_status_imu_s> sensors_status_imu_sub{ORB_ID(sensors_status_imu)};
+		sensors_status_s mag_status_data = {};
+		sensors_status_imu_s imu_status_data = {};
 
-		param_get(param_find("CAL_ACC0_PRIO"), &acc0_prio);
-		param_get(param_find("CAL_ACC1_PRIO"), &acc1_prio);
-		param_get(param_find("CAL_ACC2_PRIO"), &acc2_prio);
-		param_get(param_find("CAL_ACC3_PRIO"), &acc3_prio);
-		param_get(param_find("CAL_MAG0_PRIO"), &mag0_prio);
-		param_get(param_find("CAL_MAG1_PRIO"), &mag1_prio);
-		param_get(param_find("CAL_MAG2_PRIO"), &mag2_prio);
-		param_get(param_find("CAL_MAG3_PRIO"), &mag3_prio);
+		mag_status_data = sensors_status_mag_sub.get();
+		imu_status_data = sensors_status_imu_sub.get();
 
-		const int32_t mag_param_priorities[MAX_NUM_MAGS] {mag0_prio, mag1_prio, mag2_prio, mag3_prio};
-		const int32_t imu_param_priorities[MAX_NUM_IMUS] {acc0_prio, acc1_prio, acc2_prio, acc3_prio};
-		// Define two arrays to store the sensor priorities and the original sensor instance number
-		int32_t mag_priorities[MAX_NUM_MAGS] {};
+		const uint8_t mag_param_priorities[MAX_NUM_MAGS] {mag_status_data.priority[0], mag_status_data.priority[1], mag_status_data.priority[2], mag_status_data.priority[3]};
+		const uint8_t imu_param_priorities[MAX_NUM_IMUS] {imu_status_data.accel_priority[0], imu_status_data.accel_priority[1], imu_status_data.accel_priority[2], imu_status_data.accel_priority[3]};
+
+		// Define two arrays to store the sensor priorities and the original sensor instance index
+		uint8_t mag_priorities[MAX_NUM_MAGS] {};
 		uint8_t mag_priorities_sensor_indexes[MAX_NUM_MAGS] {};
-		int32_t imu_priorities[MAX_NUM_IMUS] {};
+		uint8_t imu_priorities[MAX_NUM_IMUS] {};
 		uint8_t imu_priorities_sensor_indexes[MAX_NUM_IMUS] {};
-
 
 		uint8_t mag_instances_valid = 0;
 		uint8_t imu_instances_valid = 0;
@@ -2889,15 +2879,17 @@ int EKF2::task_spawn(int argc, char *argv[])
 		sortPair(mag_priorities, mag_priorities_sensor_indexes, MAX_NUM_MAGS, true);
 		sortPair(imu_priorities, imu_priorities_sensor_indexes, MAX_NUM_IMUS, true);
 
+		PX4_INFO("Initialized MAGs (positive priority): %d", mag_instances_valid);
+
 		for (int i = 0; i < MAX_NUM_MAGS; i++) {
-			PX4_INFO("MAGs priorities - i: %d  MAG%u  Priority: %" PRId32, i, mag_priorities_sensor_indexes[i],
+			PX4_INFO("MAGs priorities - i: %" PRIu8 "  MAG%" PRIu8 "  Priority: %" PRIu8, i, mag_priorities_sensor_indexes[i],
 				 mag_priorities[i]);
 		}
 
 		PX4_INFO("Initialized IMUs (positive priority): %d", imu_instances_valid);
 
 		for (int i = 0; i < MAX_NUM_IMUS; i++) {
-			PX4_INFO("IMUs priorities - i: %d  ACC%u  Priority: %" PRId32, i, imu_priorities_sensor_indexes[i],
+			PX4_INFO("IMUs priorities - i: %" PRIu8 "  ACC%" PRIu8 "  Priority: %" PRIu8, i, imu_priorities_sensor_indexes[i],
 				 imu_priorities[i]);
 		}
 
