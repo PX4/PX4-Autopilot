@@ -123,10 +123,10 @@ int GZBridge::init()
 		std::string create_service = "/world/" + _world_name + "/create";
 
 		bool gz_called = false;
-		// Check if PX4_GZ_SIM has been set.
-		char *standalone_val = std::getenv("PX4_GZ_SIM");
+		// Check if PX4_GZ_STANDALONE has been set.
+		char *standalone_val = std::getenv("PX4_GZ_STANDALONE");
 
-		if ((standalone_val == nullptr) || (std::strcmp(standalone_val, "1") != 0)) {
+		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "1") == 0)) {
 			// Check if Gazebo has been called and if not attempt to reconnect.
 			while (gz_called == false) {
 				if (_node.Request(create_service, req, 1000, rep, result)) {
@@ -148,7 +148,7 @@ int GZBridge::init()
 		}
 
 
-		// If PX4_GZ_SIM has been set, you can try to connect but GZ_SIM_RESOURCE_PATH needs to be set correctly to work.
+		// If PX4_GZ_STANDALONE has been set, you can try to connect but GZ_SIM_RESOURCE_PATH needs to be set correctly to work.
 		else {
 			if (_node.Request(create_service, req, 1000, rep, result)) {
 				if (!rep.data() || !result) {
