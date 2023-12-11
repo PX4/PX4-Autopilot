@@ -67,7 +67,7 @@ private:
 
 		if (!handle_valid(handle) ||
 		    !handle_valid(p)) {
-			return r;
+			return false;
 		}
 
 		if (p == handle) {
