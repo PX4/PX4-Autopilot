@@ -88,8 +88,7 @@ private:
 	bool isFrontTransitionCompletedBase() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
-					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
-					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_tilt_max
+					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off
 				       )
 
 
