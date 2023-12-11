@@ -20,6 +20,9 @@ publications:
   - topic: /fmu/out/collision_constraints
     type: px4_msgs::msg::CollisionConstraints
 
+  - topic: /fmu/out/estimator_status_flags
+    type: px4_msgs::msg::EstimatorStatusFlags
+
   - topic: /fmu/out/failsafe_flags
     type: px4_msgs::msg::FailsafeFlags
 
