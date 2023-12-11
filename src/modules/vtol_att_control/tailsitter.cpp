@@ -88,15 +88,8 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_BACK:
 			const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-			float pitch_threshold_mc = PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC;
-
-			// if doing transition in Stabilized mode set threshold to max angle plus 5° margin
-			if (!_v_control_mode->flag_control_altitude_enabled) {
-				pitch_threshold_mc = math::radians(-_param_mpc_tilt_max.get() - 5.f);
-			}
-
 			// check if we have reached pitch angle to switch to MC mode
-			if (pitch >= pitch_threshold_mc || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
+			if (pitch >= PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
 				_vtol_mode = vtol_mode::MC_MODE;
 			}
 
@@ -326,14 +319,7 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 	bool transition_to_fw = false;
 	const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	float pitch_threshold_fw = PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW;
-
-	// if doing transition in Stabilized mode set threshold to max angle minus 5° margin
-	if (!_v_control_mode->flag_control_altitude_enabled) {
-		pitch_threshold_fw = math::radians(-_param_mpc_tilt_max.get() + 5.f);
-	}
-
-	if (pitch <= pitch_threshold_fw) {
+	if (pitch <= PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW) {
 		if (airspeed_triggers_transition) {
 			transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
 
