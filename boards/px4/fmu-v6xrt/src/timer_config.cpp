@@ -91,14 +91,14 @@
 
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOPWM(PWM::FlexPWM1, PWM::Submodule0),
-	initIOPWM(PWM::FlexPWM1, PWM::Submodule1),
-	initIOPWM(PWM::FlexPWM1, PWM::Submodule2),
-	initIOPWM(PWM::FlexPWM2, PWM::Submodule0),
-	initIOPWM(PWM::FlexPWM2, PWM::Submodule1),
-	initIOPWM(PWM::FlexPWM2, PWM::Submodule2),
-	initIOPWM(PWM::FlexPWM2, PWM::Submodule3),
-	initIOPWM(PWM::FlexPWM3, PWM::Submodule0),
+	initIOPWMDshot(PWM::FlexPWM1, PWM::Submodule0, GPIO_FLEXIO1_FLEXIO23_1, 23),
+	initIOPWMDshot(PWM::FlexPWM1, PWM::Submodule1, GPIO_FLEXIO1_FLEXIO25_1, 25),
+	initIOPWMDshot(PWM::FlexPWM1, PWM::Submodule2, GPIO_FLEXIO1_FLEXIO27_1, 27),
+	initIOPWMDshot(PWM::FlexPWM2, PWM::Submodule0, GPIO_FLEXIO1_FLEXIO06_1, 6),
+	initIOPWMDshot(PWM::FlexPWM2, PWM::Submodule1, GPIO_FLEXIO1_FLEXIO08_1, 8),
+	initIOPWMDshot(PWM::FlexPWM2, PWM::Submodule2, GPIO_FLEXIO1_FLEXIO10_1, 10),
+	initIOPWMDshot(PWM::FlexPWM2, PWM::Submodule3, GPIO_FLEXIO1_FLEXIO19_1, 19),
+	initIOPWMDshot(PWM::FlexPWM3, PWM::Submodule0, GPIO_FLEXIO1_FLEXIO29_1, 29),
 	initIOPWM(PWM::FlexPWM3, PWM::Submodule1),
 	initIOPWM(PWM::FlexPWM3, PWM::Submodule3),
 	initIOPWM(PWM::FlexPWM4, PWM::Submodule0),

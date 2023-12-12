@@ -80,6 +80,8 @@ def get_timer_groups(timer_config_file, verbose=False):
             max_num_channels = 16 # Just add a fixed number of timers
             timers = [str(i) for i in range(max_num_channels)]
             dshot_support = {str(i): False for i in range(max_num_channels)}
+            for i in range(8): # First 8 channels support dshot
+                dshot_support[str(i)] = True
             break
 
         if timer:

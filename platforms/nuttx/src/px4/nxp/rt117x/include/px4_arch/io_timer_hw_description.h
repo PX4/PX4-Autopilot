@@ -698,3 +698,15 @@ static inline constexpr io_timers_t initIOPWM(PWM::FlexPWM pwm, PWM::FlexPWMSubm
 	ret.submodle = sub;
 	return ret;
 }
+
+static inline constexpr io_timers_t initIOPWMDshot(PWM::FlexPWM pwm, PWM::FlexPWMSubmodule sub, uint32_t pinmux,
+		uint32_t flexio_pin)
+{
+	io_timers_t ret{};
+
+	ret.base = getFlexPWMBaseRegister(pwm);
+	ret.submodle = sub;
+	ret.dshot.pinmux = pinmux;
+	ret.dshot.flexio_pin = flexio_pin;
+	return ret;
+}
