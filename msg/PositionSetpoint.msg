@@ -24,8 +24,6 @@ float64 lon			# longitude, in deg
 float32 alt			# altitude AMSL, in m
 float32 yaw			# yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw
 
-float32 yawspeed		# yawspeed (only for multirotors, in rad/s)
-
 float32 loiter_radius		# loiter major axis radius in m
 float32 loiter_minor_radius	# loiter minor axis radius (used for non-circular loiter shapes) in m
 bool loiter_direction_counter_clockwise # loiter direction is clockwise by default and can be changed using this field
