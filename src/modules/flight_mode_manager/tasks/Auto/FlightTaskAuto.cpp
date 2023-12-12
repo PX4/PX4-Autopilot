@@ -481,7 +481,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_obstacle_avoidance.updateAvoidanceDesiredWaypoints(_triplet_target, _yaw_setpoint, _yawspeed_setpoint,
 				_triplet_next_wp,
 				_sub_triplet_setpoint.get().next.yaw,
-				_sub_triplet_setpoint.get().next.yawspeed_valid ? _sub_triplet_setpoint.get().next.yawspeed : (float)NAN,
+				(float)NAN,
 				_weathervane.isActive(), _sub_triplet_setpoint.get().current.type);
 		_obstacle_avoidance.checkAvoidanceProgress(
 			_position, _triplet_prev_wp, _target_acceptance_radius, Vector2f(_closest_pt));
