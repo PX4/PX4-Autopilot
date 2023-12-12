@@ -52,4 +52,72 @@ parameters:
         max: 100
         increment: 0.01
         decimal: 2
-        default: 10
+        default: 0.3
+      RDD_P_HEADING:
+        description:
+          short: Proportional gain for heading controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1.0
+      RDD_P_SPEED:
+        description:
+          short: Proportional gain for speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1.0
+      RDD_I_SPEED:
+        description:
+          short: Integral gain for ground speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.0
+      RDD_P_ANG_VEL:
+        description:
+          short: Proportional gain for angular velocity controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1.0
+      RDD_I_ANG_VEL:
+        description:
+          short: Integral gain for angular velocity controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.0
+      RDD_MAX_JERK:
+        description:
+          short: Maximum jerk
+          long: Limit for forwards acc/deceleration change.
+        type: float
+        unit: m/s^3
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.5
+      RDD_MAX_ACCEL:
+        description:
+          short: Maximum acceleration
+          long: Maximum acceleration is used to limit the acceleration of the rover
+        type: float
+        unit: m/s^2
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.5
+

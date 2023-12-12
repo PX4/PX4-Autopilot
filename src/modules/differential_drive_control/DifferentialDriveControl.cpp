@@ -43,6 +43,9 @@ DifferentialDriveControl::DifferentialDriveControl() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	updateParams();
+
+	pid_init(&_angular_velocity_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
+	pid_init(&_speed_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
 bool DifferentialDriveControl::init()
@@ -54,12 +57,29 @@ bool DifferentialDriveControl::init()
 void DifferentialDriveControl::updateParams()
 {
 	ModuleParams::updateParams();
+
+	pid_set_parameters(&_angular_velocity_pid,
+			   _param_rdd_p_gain_angular_velocity.get(),  // Proportional gain
+			   _param_rdd_i_gain_angular_velocity.get(),  // Integral gain
+			   0,  // Derivative gain
+			   20,  // Integral limit
+			   200);  // Output limit
+
+	pid_set_parameters(&_speed_pid,
+			   _param_rdd_p_gain_speed.get(),  // Proportional gain
+			   _param_rdd_i_gain_speed.get(),  // Integral gain
+			   0,  // Derivative gain
+			   2,  // Integral limit
+			   200);  // Output limit
+
 	_max_speed = _param_rdd_max_wheel_speed.get() * _param_rdd_wheel_radius.get();
 	_max_angular_velocity = _max_speed / (_param_rdd_wheel_base.get() / 2.f);
 
 	_differential_drive_kinematics.setWheelBase(_param_rdd_wheel_base.get());
 	_differential_drive_kinematics.setMaxSpeed(_max_speed);
+	_differential_guidance_controller.setMaxSpeed(_max_speed);
 	_differential_drive_kinematics.setMaxAngularVelocity(_max_angular_velocity);
+	_differential_guidance_controller.setMaxAngularVelocity(_max_angular_velocity);
 }
 
 void DifferentialDriveControl::Run()
@@ -70,21 +90,43 @@ void DifferentialDriveControl::Run()
 	}
 
 	hrt_abstime now = hrt_absolute_time();
+	const double dt = static_cast<double>(math::min((now - _time_stamp_last), kTimeoutUs)) / 1e6;
+	_time_stamp_last = now;
 
 	if (_parameter_update_sub.updated()) {
-		parameter_update_s pupdate;
+		parameter_update_s pupdate{};
 		_parameter_update_sub.copy(&pupdate);
 
 		updateParams();
 	}
 
 	if (_vehicle_control_mode_sub.updated()) {
-		vehicle_control_mode_s vehicle_control_mode;
+		vehicle_control_mode_s vehicle_control_mode{};
 
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
 			_armed = vehicle_control_mode.flag_armed;
-			_manual_driving = vehicle_control_mode.flag_control_manual_enabled; // change this when more modes are supported
+			_manual_driving = vehicle_control_mode.flag_control_manual_enabled;
+			_mission_driving = vehicle_control_mode.flag_control_auto_enabled;
 		}
+	}
+
+	if (_vehicle_attitude_sub.updated()) {
+		_vehicle_attitude_sub.copy(&_vehicle_attitude);
+
+		_vehicle_yaw = matrix::Eulerf(matrix::Quatf(_vehicle_attitude.q)).psi();
+	}
+
+	if (_vehicle_angular_velocity_sub.updated()) {
+		_vehicle_angular_velocity_sub.copy(&_vehicle_angular_velocity);
+	}
+
+	if (_vehicle_local_position_sub.updated()) {
+		_vehicle_local_position_sub.copy(&_vehicle_local_position);
+
+		matrix::Vector3f ground_speed(_vehicle_local_position.vx, _vehicle_local_position.vy,  _vehicle_local_position.vz);
+
+		// rotate the velocity vector from the local frame to the body frame
+		_velocity_in_body_frame = Quatf(_vehicle_attitude.q).rotateVectorInverse(ground_speed);
 	}
 
 	if (_manual_driving) {
@@ -98,18 +140,46 @@ void DifferentialDriveControl::Run()
 				_differential_drive_setpoint.speed = manual_control_setpoint.throttle * _param_rdd_speed_scale.get() * _max_speed;
 				_differential_drive_setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() *
 									_max_angular_velocity;
-				_differential_drive_setpoint_pub.publish(_differential_drive_setpoint);
+				_feed_forward_differential_drive_setpoint_pub.publish(_differential_drive_setpoint);
 			}
 		}
+
+	} else if (_mission_driving) {
+		// Mission mode
+		// directly receive setpoints from the guidance library
+		matrix::Vector2f guidance_output =
+			_differential_guidance_controller.computeGuidance(
+				_vehicle_yaw,
+				_vehicle_angular_velocity.xyz[2],
+				dt
+			);
+
+		_differential_drive_setpoint.timestamp = now;
+		_differential_drive_setpoint.speed = guidance_output(0);
+		_differential_drive_setpoint.yaw_rate = guidance_output(1);
+		_closed_loop_differential_drive_setpoint_pub.publish(_differential_drive_setpoint);
 	}
 
-	_differential_drive_setpoint_sub.update(&_differential_drive_setpoint);
+	// no need for any bools, just check if the topic is updated and update the setpoint
+	if (_feed_forward_differential_drive_setpoint_sub.updated()) {
+		_feed_forward_differential_drive_setpoint_sub.copy(&_differential_drive_setpoint);
 
-	// publish data to actuator_motors (output module)
-	// get the wheel speeds from the inverse kinematics class (DifferentialDriveKinematics)
+		_speed_pid_output = 0;
+		_angular_velocity_pid_output = 0;
+	}
+
+	if (_closed_loop_differential_drive_setpoint_sub.updated()) {
+		_closed_loop_differential_drive_setpoint_sub.copy(&_differential_drive_setpoint);
+
+		_speed_pid_output = pid_calculate(&_speed_pid, _differential_drive_setpoint.speed, _velocity_in_body_frame(0), 0, dt);
+		_angular_velocity_pid_output = pid_calculate(&_angular_velocity_pid, _differential_drive_setpoint.yaw_rate,
+					       _vehicle_angular_velocity.xyz[2], 0, dt);
+	}
+
+	// get the normalized wheel speeds from the inverse kinematics class (DifferentialDriveKinematics)
 	Vector2f wheel_speeds = _differential_drive_kinematics.computeInverseKinematics(
-					_differential_drive_setpoint.speed,
-					_differential_drive_setpoint.yaw_rate);
+					_differential_drive_setpoint.speed + _speed_pid_output,
+					_differential_drive_setpoint.yaw_rate + _angular_velocity_pid_output);
 
 	// Check if max_angular_wheel_speed is zero
 	const bool setpoint_timeout = (_differential_drive_setpoint.timestamp + 100_ms) < now;
