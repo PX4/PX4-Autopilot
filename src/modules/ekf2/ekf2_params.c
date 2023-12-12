@@ -1185,7 +1185,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
 
 /**
- * Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
+ * Minimum duration during which the reported range finder signal quality needs to be >= EKF2_RNG_QMIN in order to be declared valid (s)
  *
  *
  * @group EKF2
@@ -1194,6 +1194,15 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
  * @max 5
 */
 PARAM_DEFINE_FLOAT(EKF2_RNG_QLTY_T, 1.0f);
+
+/**
+ * Range data will only be used in air if the sensor reports a quality metric >= EKF2_RNG_QMIN.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 100
+*/
+PARAM_DEFINE_FLOAT(EKF2_RNG_QMIN, 27.0f);
 
 /**
  * Gate size used for range finder kinematic consistency check

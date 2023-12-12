@@ -76,6 +76,7 @@ void Ekf::reset()
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 	_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 	_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
+	_range_sensor.setQualityMinimum(_params.range_valid_quality_min);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	_control_status.value = 0;

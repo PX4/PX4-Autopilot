@@ -74,7 +74,7 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 	if (_is_sample_ready) {
 		_is_sample_valid = false;
 
-		if (_sample.quality == 0) {
+		if (_sample.quality < _quality_minimum) {
 			_time_bad_quality_us = current_time_us;
 
 		} else if (current_time_us - _time_bad_quality_us > _quality_hyst_us) {

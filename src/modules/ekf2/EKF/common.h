@@ -430,7 +430,8 @@ struct parameters {
 	float max_hagl_for_range_aid{5.0f};     ///< maximum height above ground for which we allow to use the range finder as height source (if rng_control == 1)
 	float max_vel_for_range_aid{1.0f};      ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float range_aid_innov_gate{1.0f};       ///< gate size used for innovation consistency checks for range aid fusion
-	float range_valid_quality_s{1.0f};      ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
+	float range_valid_quality_s{1.0f};      ///< Minimum duration during which the reported range finder signal quality needs to be >= EKF2_RNG_QMIN in order to be declared valid (s)
+	float range_valid_quality_min{0.0f};	///< Range data will only be used in air if the sensor reports a quality metric >= EKF2_RNG_QMIN.
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
 	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
 
