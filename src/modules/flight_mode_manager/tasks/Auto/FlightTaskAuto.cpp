@@ -510,7 +510,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_yawspeed_setpoint = 0.f;
 
 		} else if ((_type != WaypointType::takeoff || _sub_triplet_setpoint.get().current.disable_weather_vane)
-			   && _sub_triplet_setpoint.get().current.yaw_valid) {
+			   && PX4_ISFINITE(_sub_triplet_setpoint.get().current.yaw)) {
 			// Use the yaw computed in Navigator except during takeoff because
 			// Navigator is not handling the yaw reset properly.
 			// But: use if from Navigator during takeoff if disable_weather_vane is true,

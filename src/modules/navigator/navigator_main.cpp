@@ -309,11 +309,9 @@ void Navigator::run()
 					// Go on and check which changes had been requested
 					if (PX4_ISFINITE(cmd.param4)) {
 						rep->current.yaw = cmd.param4;
-						rep->current.yaw_valid = true;
 
 					} else {
 						rep->current.yaw = NAN;
-						rep->current.yaw_valid = false;
 					}
 
 					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
@@ -349,7 +347,6 @@ void Navigator::run()
 						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
 							calculate_breaking_stop(rep->current.lat, rep->current.lon, rep->current.yaw);
-							rep->current.yaw_valid = true;
 
 						} else {
 							// For fixedwings we can use the current vehicle's position to define the loiter point
@@ -446,7 +443,6 @@ void Navigator::run()
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.yaw = NAN;
-					rep->current.yaw_valid = false;
 
 					// Position is not changing, thus we keep the setpoint
 					rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
@@ -459,7 +455,6 @@ void Navigator::run()
 					    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
 						calculate_breaking_stop(rep->current.lat, rep->current.lon, rep->current.yaw);
-						rep->current.yaw_valid = true;
 					}
 
 					if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
@@ -1040,7 +1035,6 @@ void Navigator::geofence_breach_check()
 
 				rep->current.timestamp = hrt_absolute_time();
 				rep->current.yaw = get_local_position()->heading;
-				rep->current.yaw_valid = true;
 				rep->current.lat = loiter_latitude;
 				rep->current.lon = loiter_longitude;
 				rep->current.alt = loiter_altitude_amsl;
