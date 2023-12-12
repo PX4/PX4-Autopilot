@@ -48,7 +48,7 @@ TEST_CASE("Figure eight execution clockwise", "[vtol]")
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
-	tester.wait_until_altitude(takeoff_altitude - 1.f, std::chrono::seconds(60));
+	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30));
 	tester.transition_to_fixedwing();
 	tester.wait_until_fixedwing(std::chrono::seconds(5));
 	std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -71,7 +71,7 @@ TEST_CASE("Figure eight execution counterclockwise", "[vtol]")
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
-	tester.wait_until_altitude(takeoff_altitude - 1.f, std::chrono::seconds(60));
+	tester.wait_until_altitude(takeoff_altitude, std::chrono::seconds(30));
 	tester.transition_to_fixedwing();
 	tester.wait_until_fixedwing(std::chrono::seconds(5));
 	std::this_thread::sleep_for(std::chrono::seconds(1));
