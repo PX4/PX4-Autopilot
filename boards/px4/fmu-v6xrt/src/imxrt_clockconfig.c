@@ -117,8 +117,8 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		.flexio1_clk_root =
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = FLEXIO1_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 2,
+			.mux           = FLEXIO1_CLK_ROOT_SYS_PLL3_DIV2,
 		},
 		.flexio2_clk_root =
 		{
