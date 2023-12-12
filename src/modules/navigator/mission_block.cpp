@@ -703,6 +703,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 		} else {
 			sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+			// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
+			// The yaw setpoint generation is handled by FlightTaskAuto.
+			sp->yaw = NAN;
 		}
 
 		break;

@@ -594,18 +594,17 @@ void Navigator::run()
 				rep->current.cruising_speed = -1.f; // reset to default
 
 				if (home_global_position_valid()) {
-					// Only set yaw if we know the true heading
-					// We assume that the heading is valid when the global position is valid because true heading
-					// is required to fuse NE (e.g.: GNSS) data. // TODO: we should be more explicit here
-					rep->current.yaw = cmd.param4;
 
 					rep->previous.valid = true;
 					rep->previous.timestamp = hrt_absolute_time();
 
 				} else {
-					rep->current.yaw = get_local_position()->heading;
 					rep->previous.valid = false;
 				}
+
+				// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
+				// The yaw setpoint generation is handled by FlightTaskAuto.
+				rep->current.yaw = NAN;
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 					rep->current.lat = cmd.param5;
