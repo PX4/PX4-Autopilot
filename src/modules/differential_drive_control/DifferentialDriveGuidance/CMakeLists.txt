@@ -31,21 +31,12 @@
 #
 ############################################################################
 
-add_subdirectory(DifferentialDriveKinematics)
-add_subdirectory(DifferentialDriveGuidance)
-
-px4_add_module(
-	MODULE modules__differential_drive_control
-	MAIN differential_drive_control
-	SRCS
-		DifferentialDriveControl.cpp
-		DifferentialDriveControl.hpp
-	DEPENDS
-		DifferentialDriveKinematics
-		DifferentialDriveGuidance
-		pid
-		px4_work_queue
-		modules__control_allocator # for parameter CA_R_REV
-	MODULE_CONFIG
-		module.yaml
+px4_add_library(DifferentialDriveGuidance
+	DifferentialDriveGuidance.cpp
+	DifferentialDriveGuidance.hpp
 )
+
+target_compile_options(DifferentialDriveGuidance PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(DifferentialDriveGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# px4_add_unit_gtest(SRC DifferentialDriveGuidanceTest.cpp LINKLIBS DifferentialDriveGuidance)
