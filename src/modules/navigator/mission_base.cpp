@@ -831,7 +831,7 @@ MissionBase::do_abort_landing()
 
 	} else {
 		// move mission index back (landing approach point)
-		_is_current_planned_mission_item_valid = goToPreviousItem(false);
+		_is_current_planned_mission_item_valid = (goToPreviousItem(false) == PX4_OK);
 	}
 
 	// send reposition cmd to get out of mission
