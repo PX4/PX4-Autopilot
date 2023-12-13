@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+param set-default SYS_HAS_MAG 0
+param set-default IMU_GYRO_RATEMAX 2000
