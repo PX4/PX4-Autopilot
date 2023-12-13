@@ -270,12 +270,6 @@ private:
 
 	bool _landed{true};
 
-	// indicates whether the plane was in the air in the previous interation
-	bool _was_in_air{false};
-
-	// [us] time at which the plane went in the air
-	hrt_abstime _time_went_in_air{0};
-
 	// MANUAL MODES
 
 	// indicates whether we have completed a manual takeoff in a position control mode
@@ -388,10 +382,7 @@ private:
 	// total energy control system - airspeed / altitude control
 	TECS _tecs;
 
-	bool _reinitialize_tecs{true};
 	bool _tecs_is_running{false};
-	hrt_abstime _time_last_tecs_update{0}; // [us]
-
 	// VTOL / TRANSITION
 
 	float _airspeed_after_transition{0.0f};

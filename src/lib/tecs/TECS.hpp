@@ -88,8 +88,11 @@ public:
 	 * @brief Initialize filter
 	 *
 	 * @param[in] equivalent_airspeed is the equivalent airspeed in [m/s].
+	 * @param[in] equivalent_airspeed_trim is the equivalent airspeed trim (vehicle setting) in [m/s].
+	 * @param[in] airspeed_sensor_available boolean if the airspeed sensor is available.
 	 */
-	void initialize(float equivalent_airspeed);
+	void initialize(float equivalent_airspeed, const float equivalent_airspeed_trim,
+			const bool airspeed_sensor_available);
 
 	/**
 	 * @brief Update filter
@@ -579,12 +582,6 @@ public:
 		    float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
 		    float target_sinkrate, float speed_deriv_forward, float hgt_rate, float hgt_rate_sp = NAN);
 
-	/**
-	 * @brief Initialize the control loop
-	 *
-	 */
-	void initialize(float altitude, float altitude_rate, float equivalent_airspeed, float eas_to_tas);
-
 	void resetIntegrals()
 	{
 		_control.resetIntegrals();
@@ -648,6 +645,20 @@ public:
 	float get_underspeed_ratio() { return _control.getRatioUndersped(); }
 
 private:
+	/**
+	 * @brief Initialize the control parameters
+	 *
+	 */
+	void initControlParams(float target_climbrate, float target_sinkrate, float eas_to_tas, float pitch_limit_max,
+			       float pitch_limit_min, float throttle_min, float throttle_setpoint_max, float throttle_trim);
+
+	/**
+	 * @brief Initialize the control loop
+	 *
+	 */
+	void initialize(const float altitude, const float altitude_rate, const float equivalent_airspeed,
+			float eas_to_tas);
+
 	TECSControl 			_control;			///< Control submodule.
 	TECSAirspeedFilter 		_airspeed_filter;		///< Airspeed filter submodule.
 	TECSAltitudeReferenceModel 	_altitude_reference_model;	///< Setpoint reference model submodule.
@@ -685,9 +696,9 @@ private:
 		.max_climb_rate = 5.0f,
 		.vert_accel_limit = 0.0f,
 		.equivalent_airspeed_trim = 15.0f,
-		.tas_min = 3.0f,
-		.pitch_max = 5.0f,
-		.pitch_min = -5.0f,
+		.tas_min = 10.0f,
+		.pitch_max = 0.5f,
+		.pitch_min = -0.5f,
 		.throttle_trim = 0.0f,
 		.throttle_max = 1.0f,
 		.throttle_min = 0.1f,
