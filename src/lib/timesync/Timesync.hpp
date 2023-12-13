@@ -87,8 +87,8 @@ static constexpr uint32_t CONVERGENCE_WINDOW = 500;
 // TODO : automatically determine these using ping statistics?
 static constexpr uint64_t MAX_RTT_SAMPLE = 10_ms;
 static constexpr uint64_t MAX_DEVIATION_SAMPLE = 100_ms;
-static constexpr uint32_t MAX_CONSECUTIVE_HIGH_RTT = 5;
-static constexpr uint32_t MAX_CONSECUTIVE_HIGH_DEVIATION = 5;
+static constexpr uint32_t MAX_CONSECUTIVE_HIGH_RTT = 10;
+static constexpr uint32_t MAX_CONSECUTIVE_HIGH_DEVIATION = 10;
 
 class Timesync
 {
