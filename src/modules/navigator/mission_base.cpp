@@ -111,20 +111,22 @@ void MissionBase::updateMavlinkMission()
 		mission_s new_mission;
 		_mission_sub.update(&new_mission);
 
-		if (isMissionValid(new_mission)) {
-			/* Relevant mission items updated externally*/
-			if (checkMissionDataChanged(new_mission)) {
-				bool mission_items_changed = (new_mission.mission_id != _mission.mission_id);
+		const bool mission_items_changed = (new_mission.mission_id != _mission.mission_id);
+		const bool mission_data_changed = checkMissionDataChanged(new_mission);
 
-				if (new_mission.current_seq < 0) {
-					new_mission.current_seq = math::max(math::min(_mission.current_seq, static_cast<int32_t>(new_mission.count) - 1),
-									    INT32_C(0));
-				}
+		if (new_mission.current_seq < 0) {
+			new_mission.current_seq = math::max(math::min(_mission.current_seq, static_cast<int32_t>(new_mission.count) - 1),
+							    INT32_C(0));
+		}
 
-				_mission = new_mission;
+		_mission = new_mission;
 
-				onMissionUpdate(mission_items_changed);
-			}
+		_is_current_planned_mission_item_valid = isMissionValid(_mission);
+
+		/* Relevant mission items updated externally*/
+		if (mission_data_changed) {
+
+			onMissionUpdate(mission_items_changed);
 		}
 	}
 }
