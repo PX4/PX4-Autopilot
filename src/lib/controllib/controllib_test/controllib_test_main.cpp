@@ -46,7 +46,7 @@
 
 using namespace control;
 
-#define ASSERT_CL(T) if (!(T)) { printf("FAIL\n"); return -1; }
+#define ASSERT_CL(T) if (!(T)) { PX4_INFO("FAIL"); return -1; }
 
 int basicBlocksTest();
 int blockLimitTest();
@@ -102,7 +102,7 @@ int blockLimitTest()
 	ASSERT_CL(equal(-1.0f, limit.update(-2.0f)));
 	ASSERT_CL(equal(1.0f, limit.update(2.0f)));
 	ASSERT_CL(equal(0.0f, limit.update(0.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -117,7 +117,7 @@ int blockLimitSymTest()
 	ASSERT_CL(equal(-1.0f, limit.update(-2.0f)));
 	ASSERT_CL(equal(1.0f, limit.update(2.0f)));
 	ASSERT_CL(equal(0.0f, limit.update(0.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -145,7 +145,7 @@ int blockLowPassTest()
 
 	ASSERT_CL(equal(2.0f, lowPass.getState()));
 	ASSERT_CL(equal(2.0f, lowPass.update(2.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 };
 
@@ -176,7 +176,7 @@ int blockHighPassTest()
 
 	ASSERT_CL(equal(0.0f, highPass.getY()));
 	ASSERT_CL(equal(0.0f, highPass.update(2.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -204,7 +204,7 @@ int blockLowPass2Test()
 
 	ASSERT_CL(equal(2.0f, lowPass.getState()));
 	ASSERT_CL(equal(2.0f, lowPass.update(2.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 };
 
@@ -241,7 +241,7 @@ int blockIntegralTest()
 	integral.setY(0.1f);
 	ASSERT_CL(equal(0.2f, integral.update(1.0)));
 	ASSERT_CL(equal(0.2f, integral.getY()));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -284,7 +284,7 @@ int blockIntegralTrapTest()
 	ASSERT_CL(equal(0.25f, integral.update(1.0)));
 	ASSERT_CL(equal(0.25f, integral.getY()));
 	ASSERT_CL(equal(1.0f, integral.getU()));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -307,7 +307,7 @@ int blockDerivativeTest()
 	// test  update
 	ASSERT_CL(equal(8.6269744f, derivative.update(2.0f)));
 	ASSERT_CL(equal(2.0f, derivative.getU()));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -323,7 +323,7 @@ int blockPTest()
 	ASSERT_CL(equal(0.1f, blockP.getDt()));
 	// test  update
 	ASSERT_CL(equal(0.4f, blockP.update(2.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -345,7 +345,7 @@ int blockPITest()
 	// test  update
 	// 0.2*2 + 0.1*(2*0.1 + 0.1) = 0.43
 	ASSERT_CL(equal(0.43f, blockPI.update(2.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -370,7 +370,7 @@ int blockPDTest()
 	// test  update
 	// 0.2*2 + 0.1*(0.1*8.626...) = 0.486269744
 	ASSERT_CL(equal(0.486269744f, blockPD.update(2.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -400,7 +400,7 @@ int blockPIDTest()
 	// test  update
 	// 0.2*2 + 0.1*(2*0.1 + 0.1) + 0.1*(0.1*8.626...) = 0.5162697
 	ASSERT_CL(equal(0.5162697f, blockPID.update(2.0f)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -422,7 +422,7 @@ int blockOutputTest()
 	// test trim
 	blockOutput.update(0.0f);
 	ASSERT_CL(equal(0.5f, blockOutput.get()));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -448,7 +448,7 @@ int blockRandUniformTest()
 
 	ASSERT_CL(equal(mean, (blockRandUniform.getMin() +
 			       blockRandUniform.getMax()) / 2, 1e-1));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -478,7 +478,7 @@ int blockRandGaussTest()
 	(void)(stdDev);
 	ASSERT_CL(equal(mean, blockRandGauss.getMean(), 1e-1));
 	ASSERT_CL(equal(stdDev, blockRandGauss.getStdDev(), 1e-1));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -495,7 +495,7 @@ int blockStatsTest()
 	stats.reset();
 	ASSERT_CL(equal(0.0f, stats.getMean()(0)));
 	ASSERT_CL(equal(0.0f, stats.getStdDev()(0)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
@@ -523,7 +523,7 @@ int blockDelayTest()
 	Vector2f y4 = delay.update(u4);
 	ASSERT_CL(equal(y4(0), u2(0)));
 	ASSERT_CL(equal(y4(1), u2(1)));
-	printf("PASS\n");
+	PX4_INFO("PASS");
 	return 0;
 }
 
