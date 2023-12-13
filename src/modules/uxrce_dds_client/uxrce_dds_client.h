@@ -44,6 +44,10 @@
 
 #include <lib/timesync/Timesync.hpp>
 
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+# define UXRCE_DDS_CLIENT_UDP 1
+#endif
+
 #include "srv_base.h"
 
 #define MAX_NUM_REPLIERS 5
@@ -108,7 +112,11 @@ public:
 	void delete_repliers();
 
 private:
-	int setBaudrate(int fd, unsigned baud);
+
+	bool init();
+	void deinit();
+
+	bool setBaudrate(int fd, unsigned baud);
 
 	void handleMessageFormatRequest();
 
@@ -117,6 +125,12 @@ private:
 
 	/** Synchronizes the system clock if the time is off by more than 5 seconds */
 	void syncSystemClock(uxrSession *session);
+
+	Transport _transport{};
+
+	uxrSerialTransport *_transport_serial{nullptr};
+	char _device[32] {};
+	int _baudrate{};
 
 	const char *_client_namespace;
 
@@ -130,13 +144,15 @@ private:
 
 	// max port characters (5+'\0')
 	static const uint8_t PORT_MAX_LENGTH = 6;
+
 	// max agent ip characters (15+'\0')
 	static const uint8_t AGENT_IP_MAX_LENGTH = 16;
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	char _port[PORT_MAX_LENGTH];
-	char _agent_ip[AGENT_IP_MAX_LENGTH];
-#endif
+#if defined(UXRCE_DDS_CLIENT_UDP)
+	char _port[PORT_MAX_LENGTH] {};
+	char _agent_ip[AGENT_IP_MAX_LENGTH] {};
+	uxrUDPTransport *_transport_udp{nullptr};
+#endif // UXRCE_DDS_CLIENT_UDP
 
 	SendTopicsSubs *_subs{nullptr};
 	RcvTopicsPubs *_pubs{nullptr};
@@ -144,8 +160,6 @@ private:
 	SrvBase *repliers_[MAX_NUM_REPLIERS];
 	uint8_t num_of_repliers{0};
 
-	uxrSerialTransport *_transport_serial{nullptr};
-	uxrUDPTransport *_transport_udp{nullptr};
 	uxrCommunication *_comm{nullptr};
 	int _fd{-1};
 
