@@ -1185,7 +1185,7 @@ float Navigator::get_acceptance_radius()
 	return acceptance_radius;
 }
 
-float Navigator::get_yaw_acceptance(float mission_item_yaw)
+bool Navigator::get_yaw_to_be_accepted(float mission_item_yaw)
 {
 	float yaw = mission_item_yaw;
 
@@ -1197,7 +1197,7 @@ float Navigator::get_yaw_acceptance(float mission_item_yaw)
 		yaw = pos_ctrl_status.yaw_acceptance;
 	}
 
-	return yaw;
+	return PX4_ISFINITE(yaw);
 }
 
 void Navigator::load_fence_from_file(const char *filename)
