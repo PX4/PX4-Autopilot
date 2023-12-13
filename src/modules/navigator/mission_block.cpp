@@ -796,7 +796,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	/* use current position */
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
-	item->yaw = _navigator->get_local_position()->heading;
+	item->yaw = NAN;
 
 	item->altitude = abs_altitude;
 	item->altitude_is_relative = false;
@@ -826,7 +826,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 	// set land item to current position
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
-	item->yaw = _navigator->get_local_position()->heading;
+	item->yaw = NAN;
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
@@ -863,7 +863,7 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 	// Keep yaw from previous mission item if valid, as that is containing the transition heading.
 	// If not valid use current yaw as yaw setpoint
 	if (!PX4_ISFINITE(item->yaw)) {
-		item->yaw = _navigator->get_local_position()->heading; // ideally that would be course and not heading
+		item->yaw = NAN; // ideally that would be course and not heading
 	}
 
 	item->autocontinue = true;
