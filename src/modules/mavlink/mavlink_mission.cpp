@@ -90,6 +90,9 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 		} else {
 			PX4_WARN("offboard mission init failed");
 		}
+
+		update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
+				      _crc32[MAV_MISSION_TYPE_MISSION], false);
 	}
 
 	_my_mission_dataman_id = _mission_dataman_id;
