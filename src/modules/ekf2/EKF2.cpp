@@ -475,14 +475,17 @@ void EKF2::Run()
 				if (_ekf.setEkfGlobalOrigin(latitude, longitude, altitude)) {
 					// Validate the ekf origin status.
 					uint64_t origin_time {};
-					_ekf.getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
-					PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
-						 _instance, latitude, longitude, static_cast<double>(altitude));
+					bool rtn = _ekf.getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
+					PX4_INFO("%d %d - New NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
+						 rtn, _instance, latitude, longitude, static_cast<double>(altitude));
 
 				} else {
 					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
 						_instance, latitude, longitude, static_cast<double>(altitude));
 				}
+
+				// TODO fix EV yaw value as it becomes used as global not local.
+				_ekf.forceResetQuatStateYaw(vehicle_command.param4, 0.0);
 			}
 		}
 	}

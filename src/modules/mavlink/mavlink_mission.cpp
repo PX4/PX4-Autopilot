@@ -1399,11 +1399,65 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			break;
 
 		case MAV_CMD_NAV_TAKEOFF:
+		{
 			mission_item->nav_cmd = NAV_CMD_TAKEOFF;
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 
-			break;
+			int gps_enabled = 0;
+			int ev_enabled = 0;
+			param_get(param_find("SYS_HAS_GPS"), &gps_enabled);
+			param_get(param_find("EKF2_EV_CTRL"), &ev_enabled);
 
+			if (!gps_enabled && ev_enabled >= 9)
+			{
+				if (!(mission_item->yaw >=0 && mission_item->yaw < (float)(2 * M_PI_PRECISE))) {
+					mission_item->yaw = 0.0; // north FRD space!
+				}
+
+				PX4_WARN("GPS DISABLED, Using Takeoff as HOME:");
+				PX4_WARN("lat: %f lon: %f alt: %f yaw: %f (%f)",
+						mission_item->lat,
+						mission_item->lon,
+						(double)mission_item->altitude,
+						(double)mission_item->yaw,
+						(double)mavlink_mission_item->param4);
+				events::send(events::ID("mavlink_mission_nav_takeoff"), events::Log::Error,
+					     "Using takeoff position as HOME");
+
+				uORB::Publication<vehicle_command_s>     _cmd_pub{ORB_ID(vehicle_command)};
+
+				vehicle_command_s vcmd{};
+				vcmd.param4 = mission_item->yaw; // YAW TBD need a user friendly solution to set this
+				vcmd.param5 = (double)mission_item->lat;
+				vcmd.param6 = (double)mission_item->lon;
+				vcmd.param7 = (float)mission_item->altitude;
+				vcmd.command = vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN;
+				vcmd.target_system = _mavlink->get_system_id();
+				vcmd.target_component = MAV_COMP_ID_ALL;
+				vcmd.source_system = _mavlink->get_system_id();
+				vcmd.source_component = MAV_COMP_ID_ALL;
+				vcmd.confirmation = false;
+				vcmd.from_external = true;
+				vcmd.timestamp = hrt_absolute_time();
+				_cmd_pub.publish(vcmd);
+
+				// need to wait until EKF updates
+				uORB::Subscription g_pos_sub{ORB_ID(vehicle_global_position)};
+				vehicle_global_position_s		g_pos{};			/**< global vehicle position */
+				while(g_pos.lat < 1e-5 && g_pos.lon < 1e-5 && g_pos.alt < 1e-5f)
+				{
+					g_pos_sub.update(&g_pos);
+				}
+
+				uORB::Subscription	_home_position_sub{ORB_ID(home_position)};
+				// set and send home position
+				home_position_s home_position{};
+				_home_position_sub.copy(&home_position);
+				PX4_ERR("NEW  Home: %f %f %f", (double)home_position.lat, (double)home_position.lon, (double)home_position.alt);
+			}
+
+			break;
+		}
 		case MAV_CMD_NAV_LOITER_TO_ALT:
 			mission_item->nav_cmd = NAV_CMD_LOITER_TO_ALT;
 			mission_item->force_heading = (mavlink_mission_item->param1 > 0);
