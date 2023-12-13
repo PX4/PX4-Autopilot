@@ -240,6 +240,8 @@ void RTL::on_activation()
 {
 	setRtlTypeAndDestination();
 
+	bool check_home_result = check_home_valid();
+
 	switch (_rtl_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:	// Fall through
 	case RtlType::RTL_MISSION_FAST: // Fall through
@@ -666,4 +668,29 @@ land_approaches_s RTL::readVtolLandApproaches(DestinationPosition rtl_position) 
 	}
 
 	return vtol_land_approaches;
+}
+
+
+bool RTL::check_home_valid()
+{
+	_home_pos_sub.update();
+	if (_navigator->get_geofence().valid()) {
+
+		_vehicle_gps_position_sub.copy(&_home_check_gps_pos);
+
+		vehicle_global_position_s home_pos_check{};
+
+		home_pos_check.lat = _home_pos_sub.get().lat;
+		home_pos_check.lon = _home_pos_sub.get().lon;
+		home_pos_check.alt = _home_pos_sub.get().alt;
+
+		if ((_navigator->get_geofence().getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+		(_navigator->get_geofence().getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
+			if (PX4_ISFINITE(_home_pos_sub.get().alt) && PX4_ISFINITE(_home_pos_sub.get().lon)) {
+				return _navigator->get_geofence().check(home_pos_check, _home_check_gps_pos);
+			}
+		}
+
+	}
+	return true;
 }

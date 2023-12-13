@@ -59,6 +59,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rtl_time_estimate.h>
+#include <uORB/topics/sensor_gps.h>
 
 class Navigator;
 
@@ -165,6 +166,12 @@ private:
 	bool hasVtolLandApproach(const DestinationPosition &rtl_position) const;
 
 	/**
+	 * @brief Check if the home point is valid when switching to RTL mode
+	 *
+	 */
+	bool check_home_valid();
+
+	/**
 	 * @brief Choose best landing approach
 	 *
 	 * Choose best landing approach for home considering wind
@@ -198,6 +205,8 @@ private:
 	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
 	uint32_t _mission_id = 0u;
 
+	sensor_gps_s				_home_check_gps_pos{};
+
 	mission_stats_entry_s _stats;
 
 	RtlDirect _rtl_direct;
@@ -214,6 +223,8 @@ private:
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	uORB::Subscription			_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 
 	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle status subscription */
