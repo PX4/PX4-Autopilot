@@ -42,7 +42,6 @@ px4_add_module(
 	DEPENDS
 		DifferentialDriveKinematics
 		px4_work_queue
-		modules__control_allocator # for parameter CA_R_REV
 	MODULE_CONFIG
 		module.yaml
 )
