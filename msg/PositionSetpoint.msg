@@ -22,7 +22,7 @@ float32 vz			# local velocity setpoint in m/s in NED
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg
 float32 alt			# altitude AMSL, in m
-float32 yaw			# yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw
+float32 yaw			# yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task
 
 float32 loiter_radius		# loiter major axis radius in m
 float32 loiter_minor_radius	# loiter minor axis radius (used for non-circular loiter shapes) in m
