@@ -88,6 +88,7 @@ set(msg_files
 	EstimatorStatus.msg
 	EstimatorStatusFlags.msg
 	Event.msg
+	ExternalAdc.msg
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
