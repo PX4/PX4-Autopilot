@@ -108,7 +108,7 @@ jobs:
       - fc_matrix
     steps:
       - name: Checkout px4-firmware
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: px4-firmware
           fetch-depth: 0
@@ -140,7 +140,7 @@ jobs:
       - variables
     steps:
       - name: Checkout px4-firmware
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: px4-firmware
           fetch-depth: 0
@@ -151,7 +151,7 @@ jobs:
           path: bin
       - name: Firmware flasher - Container metadata
         id: containermeta # referenced from later step
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/tiiuae/px4-firmware
           tags: |
@@ -166,7 +166,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Firmware flasher - Build and push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           push: true
           context: .
@@ -275,7 +275,7 @@ jobs:
       - variables
     steps:
       - name: Checkout px4-firmware
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: px4-firmware
           fetch-depth: 0
@@ -286,7 +286,7 @@ jobs:
           path: bin
       - name: Firmware flasher - Container metadata
         id: containermeta # referenced from later step
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: artifactory.ssrcdevops.tii.ae/tiiuae/px4-firmware
           tags: |
@@ -308,7 +308,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Firmware flasher - Build and push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           push: true
           context: .

@@ -20,7 +20,7 @@ jobs:
     if: ${{ inputs.enabled }}
     steps:
       - name: Checkout px4-firmware
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_REPO_TOKEN }}
           # if we clone_public, then do not clone submodules, otherwise 'recursive'
