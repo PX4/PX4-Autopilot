@@ -858,14 +858,7 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 {
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 	item->params[0] = (float) new_mode;
-	item->params[1] = 0.0f;
-
-	// Keep yaw from previous mission item if valid, as that is containing the transition heading.
-	// If not valid use current yaw as yaw setpoint
-	if (!PX4_ISFINITE(item->yaw)) {
-		item->yaw = NAN; // ideally that would be course and not heading
-	}
-
+	item->params[1] = 0.0f; // not immediate transition
 	item->autocontinue = true;
 }
 
