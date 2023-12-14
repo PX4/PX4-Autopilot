@@ -20,7 +20,7 @@ jobs:
     steps:
 
       - name: Checkout px4-firmware
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: px4-firmware
           fetch-depth: 0
@@ -44,7 +44,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/tiiuae/tii-px4-sitl
           tags: |
@@ -62,7 +62,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build tii-px4-sitl image and push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./px4-firmware/packaging/Dockerfile.sitl

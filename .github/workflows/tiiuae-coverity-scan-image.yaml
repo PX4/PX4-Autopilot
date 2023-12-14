@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout px4-firmware
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: px4-firmware
           fetch-depth: 0
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/tiiuae/px4-coverity-scan-image
           tags: |
@@ -33,7 +33,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push coverity scan image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./px4-firmware/packaging/Dockerfile.coverity

@@ -9,7 +9,7 @@ jobs:
     runs-on: px4-self-hosted-coverity
     steps:
       - name: Checkout px4-firmware
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_REPO_TOKEN }}
           submodules: 'recursive'
