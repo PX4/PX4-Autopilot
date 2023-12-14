@@ -769,7 +769,7 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBreaking(struct mission_item_s
 {
 	setLoiterItemCommonFields(item);
 
-	_navigator->calculate_breaking_stop(item->lat, item->lon, item->yaw);
+	_navigator->calculate_breaking_stop(item->lat, item->lon);
 
 	item->altitude = _navigator->get_global_position()->alt;
 	item->loiter_radius = _navigator->get_loiter_radius();
