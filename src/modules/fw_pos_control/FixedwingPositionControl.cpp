@@ -710,6 +710,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 				}
 
 			} else {
+				_control_mode_current = FW_POSCTRL_MODE_AUTO;
 				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
 				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 			}
