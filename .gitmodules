@@ -76,3 +76,6 @@
 	path = src/lib/heatshrink/heatshrink
 	url = https://github.com/PX4/heatshrink.git
 	branch = px4
+[submodule "Tools/simulation/gz"]
+	path = Tools/simulation/gz
+	url = https://github.com/PX4/PX4-gazebo-models.git

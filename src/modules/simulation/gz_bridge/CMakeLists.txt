@@ -72,9 +72,25 @@ if(gz-transport_FOUND)
 			module.yaml
 	)
 
-	# # Read worlds list from file
-	file(READ worlds_list worlds_list)
-	string(REPLACE "\n" ";" gz_worlds ${worlds_list})
+	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
+	include(ExternalProject)
+	ExternalProject_Add(gz
+		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
+		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		BINARY_DIR ${PX4_BINARY_DIR}/build_gz
+		INSTALL_COMMAND ""
+		DEPENDS git_gz
+		USES_TERMINAL_CONFIGURE true
+		USES_TERMINAL_BUILD true
+		EXCLUDE_FROM_ALL true
+		BUILD_ALWAYS 1
+	)
+
+	set(gz_worlds
+		default
+		windy
+		baylands
+	)
 
 	# find corresponding airframes
 	file(GLOB gz_airframes
@@ -115,5 +131,7 @@ if(gz-transport_FOUND)
 			endif()
 		endforeach()
 	endforeach()
+	# PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
+	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
 
 endif()
