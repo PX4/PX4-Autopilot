@@ -741,6 +741,7 @@ MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *it
 	item->altitude = pos_sp_triplet->current.alt;
 	item->loiter_radius = pos_sp_triplet->current.loiter_direction_counter_clockwise ?
 			      -pos_sp_triplet->current.loiter_radius : pos_sp_triplet->current.loiter_radius;
+	item->yaw = pos_sp_triplet->current.yaw;
 }
 
 void
@@ -760,8 +761,8 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 	}
 
 	item->altitude = loiter_altitude_amsl;
-
 	item->loiter_radius = _navigator->get_loiter_radius();
+	item->yaw = NAN;
 }
 
 void
@@ -773,6 +774,7 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBreaking(struct mission_item_s
 
 	item->altitude = _navigator->get_global_position()->alt;
 	item->loiter_radius = _navigator->get_loiter_radius();
+	item->yaw = NAN;
 }
 
 void

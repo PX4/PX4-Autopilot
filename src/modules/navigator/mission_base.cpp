@@ -773,7 +773,7 @@ MissionBase::heading_sp_update()
 
 		} else {
 			if (!PX4_ISFINITE(pos_sp_triplet->current.yaw)) {
-				_mission_item.yaw = _navigator->get_local_position()->heading;
+				_mission_item.yaw = NAN;
 				pos_sp_triplet->current.yaw = _mission_item.yaw;
 			}
 		}

@@ -1033,7 +1033,7 @@ void Navigator::geofence_breach_check()
 				}
 
 				rep->current.timestamp = hrt_absolute_time();
-				rep->current.yaw = get_local_position()->heading;
+				rep->current.yaw = NAN;
 				rep->current.lat = loiter_latitude;
 				rep->current.lon = loiter_longitude;
 				rep->current.alt = loiter_altitude_amsl;
