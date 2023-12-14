@@ -6,7 +6,7 @@
         {
             "model": "iris",
             "vehicle": "iris",
-            "test_filter": "Tester.*",
+            "test_filter": "*",
             "timeout_min": 10
         }
     ]
