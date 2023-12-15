@@ -147,7 +147,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-void EstimatorInterface::setGpsData(const gpsMessage &gps)
+void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 {
 	if (!_initialised) {
 		return;
@@ -155,7 +155,7 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 
 	// Allocate the required buffer size if not previously done
 	if (_gps_buffer == nullptr) {
-		_gps_buffer = new RingBuffer<gpsSample>(_obs_buffer_length);
+		_gps_buffer = new RingBuffer<gnssSample>(_obs_buffer_length);
 
 		if (_gps_buffer == nullptr || !_gps_buffer->valid()) {
 			delete _gps_buffer;
@@ -165,61 +165,24 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		}
 	}
 
-	const int64_t time_us = gps.time_usec
+	const int64_t time_us = gnss_sample.time_us
 				- static_cast<int64_t>(_params.gps_delay_ms * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	if (time_us >= static_cast<int64_t>(_gps_buffer->get_newest().time_us + _min_obs_interval_us)) {
 
-		if (!gps.vel_ned_valid || (gps.fix_type == 0)) {
-			return;
-		}
+		gnssSample gnss_sample_new(gnss_sample);
 
-		gpsSample gps_sample_new;
+		gnss_sample_new.time_us = time_us;
 
-		gps_sample_new.time_us = time_us;
-
-		gps_sample_new.vel = gps.vel_ned;
-
-		gps_sample_new.sacc = gps.sacc;
-		gps_sample_new.hacc = gps.eph;
-		gps_sample_new.vacc = gps.epv;
-
-		gps_sample_new.hgt = (float)gps.alt * 1e-3f;
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (PX4_ISFINITE(gps.yaw)) {
-			_time_last_gps_yaw_buffer_push = _time_latest_us;
-			gps_sample_new.yaw = gps.yaw;
-			gps_sample_new.yaw_acc = PX4_ISFINITE(gps.yaw_accuracy) ? gps.yaw_accuracy : 0.f;
-
-		} else {
-			gps_sample_new.yaw = NAN;
-			gps_sample_new.yaw_acc = 0.f;
-		}
-
-		if (PX4_ISFINITE(gps.yaw_offset)) {
-			_gps_yaw_offset = gps.yaw_offset;
-
-		} else {
-			_gps_yaw_offset = 0.0f;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-		// Only calculate the relative position if the WGS-84 location of the origin is set
-		if (collect_gps(gps)) {
-			gps_sample_new.pos = _pos_ref.project((gps.lat / 1.0e7), (gps.lon / 1.0e7));
-
-		} else {
-			gps_sample_new.pos(0) = 0.0f;
-			gps_sample_new.pos(1) = 0.0f;
-		}
-
-		_gps_buffer->push(gps_sample_new);
+		_gps_buffer->push(gnss_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+		if (PX4_ISFINITE(gnss_sample.yaw)) {
+			_time_last_gps_yaw_buffer_push = _time_latest_us;
+		}
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	} else {
 		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
