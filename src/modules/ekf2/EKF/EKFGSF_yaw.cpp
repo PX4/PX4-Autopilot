@@ -44,13 +44,12 @@ EKFGSF_yaw::EKFGSF_yaw()
 
 void EKFGSF_yaw::reset()
 {
-	_vel_data_updated = false;
 	_ekf_gsf_vel_fuse_started = false;
 
 	_gsf_yaw_variance = INFINITY;
 }
 
-void EKFGSF_yaw::update(const imuSample &imu_sample, bool in_air)
+void EKFGSF_yaw::predict(const imuSample &imu_sample, bool in_air)
 {
 	const Vector3f accel = imu_sample.delta_vel / imu_sample.delta_vel_dt;
 
@@ -85,64 +84,60 @@ void EKFGSF_yaw::update(const imuSample &imu_sample, bool in_air)
 		}
 	}
 
-	// we don't start running the EKF part of the algorithm until there are regular velocity observations
-	if (!_ekf_gsf_vel_fuse_started && _vel_data_updated) {
-
-		_vel_data_updated = false;
-
-		initialiseEKFGSF(_vel_NE, _vel_accuracy);
-
-		ahrsAlignYaw();
-
-		// don't start until in air or velocity is not negligible
-		if (in_air || _vel_NE.longerThan(_vel_accuracy)) {
-			_ekf_gsf_vel_fuse_started = true;
-		}
-	}
-
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 		predictEKF(model_index, imu_sample.delta_ang, imu_sample.delta_ang_dt,
 			   imu_sample.delta_vel, imu_sample.delta_vel_dt, in_air);
 	}
+}
 
-	if (_ekf_gsf_vel_fuse_started) {
-		if (_vel_data_updated) {
-			_vel_data_updated = false;
+void EKFGSF_yaw::fuseVelocity(const Vector2f &vel_NE, const float vel_accuracy, const bool in_air)
+{
+	// we don't start running the EKF part of the algorithm until there are regular velocity observations
+	if (!_ekf_gsf_vel_fuse_started) {
 
-			bool bad_update = false;
+		initialiseEKFGSF(vel_NE, vel_accuracy);
 
-			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-				// subsequent measurements are fused as direct state observations
-				if (!updateEKF(model_index, _vel_NE, _vel_accuracy)) {
-					bad_update = true;
+		ahrsAlignYaw();
+
+		// don't start until in air or velocity is not negligible
+		if (in_air || vel_NE.longerThan(vel_accuracy)) {
+			_ekf_gsf_vel_fuse_started = true;
+		}
+
+	} else {
+		bool bad_update = false;
+
+		for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
+			// subsequent measurements are fused as direct state observations
+			if (!updateEKF(model_index, vel_NE, vel_accuracy)) {
+				bad_update = true;
+			}
+		}
+
+		if (!bad_update) {
+			float total_weight = 0.0f;
+			// calculate weighting for each model assuming a normal distribution
+			const float min_weight = 1e-5f;
+			uint8_t n_weight_clips = 0;
+
+			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
+				_model_weights(model_index) = gaussianDensity(model_index) * _model_weights(model_index);
+
+				if (_model_weights(model_index) < min_weight) {
+					n_weight_clips++;
+					_model_weights(model_index) = min_weight;
 				}
+
+				total_weight += _model_weights(model_index);
 			}
 
-			if (!bad_update) {
-				float total_weight = 0.0f;
-				// calculate weighting for each model assuming a normal distribution
-				const float min_weight = 1e-5f;
-				uint8_t n_weight_clips = 0;
+			// normalise the weighting function
+			if (n_weight_clips < N_MODELS_EKFGSF) {
+				_model_weights /= total_weight;
 
-				for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-					_model_weights(model_index) = gaussianDensity(model_index) * _model_weights(model_index);
-
-					if (_model_weights(model_index) < min_weight) {
-						n_weight_clips++;
-						_model_weights(model_index) = min_weight;
-					}
-
-					total_weight += _model_weights(model_index);
-				}
-
-				// normalise the weighting function
-				if (n_weight_clips < N_MODELS_EKFGSF) {
-					_model_weights /= total_weight;
-
-				} else {
-					// all weights have collapsed due to excessive innovation variances so reset filters
-					reset();
-				}
+			} else {
+				// all weights have collapsed due to excessive innovation variances so reset filters
+				reset();
 			}
 		}
 
@@ -480,11 +475,4 @@ Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
 	}
 
 	return ret;
-}
-
-void EKFGSF_yaw::setVelocity(const Vector2f &velocity, float accuracy)
-{
-	_vel_NE = velocity;
-	_vel_accuracy = accuracy;
-	_vel_data_updated = true;
 }

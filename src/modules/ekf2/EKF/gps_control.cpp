@@ -51,7 +51,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 
 	// run EKF-GSF yaw estimator once per imu_delayed update
-	_yawEstimator.update(imu_delayed, _control_status.flags.in_air && !_control_status.flags.vehicle_at_rest);
+	_yawEstimator.predict(imu_delayed, _control_status.flags.in_air && !_control_status.flags.vehicle_at_rest);
 
 	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
@@ -224,7 +224,7 @@ void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
 	    && (vel_var < _params.req_sacc)
 	    && vel_xy.isAllFinite()) {
 
-		_yawEstimator.setVelocity(vel_xy, vel_var);
+		_yawEstimator.fuseVelocity(vel_xy, vel_var, _control_status.flags.in_air);
 
 		// Try to align yaw using estimate if available
 		if (((_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VEL))
