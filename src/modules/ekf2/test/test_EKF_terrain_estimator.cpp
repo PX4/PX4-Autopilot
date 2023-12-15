@@ -81,8 +81,7 @@ public:
 		_ekf->set_vehicle_at_rest(true);
 
 		_ekf_wrapper.enableGpsFusion();
-		_sensor_simulator.runSeconds(2); // Run to pass the GPS checks
-		_sensor_simulator.runSeconds(3.5); // And a bit more to start the GPS fusion TODO: this shouldn't be necessary
+		_sensor_simulator.runSeconds(1.5); // Run to pass the GPS checks
 		EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
 		const Vector3f simulated_velocity(0.5f, -1.0f, 0.f);

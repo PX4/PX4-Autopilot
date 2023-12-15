@@ -38,7 +38,7 @@
 
 #include "ekf.h"
 
-void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
+void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 {
 	static constexpr const char *HGT_SRC_NAME = "GNSS";
 
@@ -60,7 +60,11 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 			}
 		}
 
-		const float measurement = gps_sample.hgt - getEkfGlobalOriginAltitude();
+		const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+		const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+		const float gnss_alt = _gps_sample_delayed.alt + pos_offset_earth(2);
+
+		const float measurement = gnss_alt - getEkfGlobalOriginAltitude();
 		const float measurement_var = sq(noise);
 
 		const float innov_gate = math::max(_params.gps_pos_innov_gate, 1.f);
@@ -74,12 +78,9 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 						   innov_gate,
 						   aid_src);
 
-		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
-		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
-
 		// update the bias estimator before updating the main filter but after
 		// using its current state to compute the vertical position innovation
-		if (measurement_valid && gps_checks_passing && !gps_checks_failing) {
+		if (measurement_valid) {
 			bias_est.setMaxStateNoise(sqrtf(measurement_var));
 			bias_est.setProcessNoiseSpectralDensity(_params.gps_hgt_bias_nsd);
 			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
@@ -92,10 +93,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 				&& _gps_checks_passed;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
-				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL)
-				&& _gps_checks_passed
-				&& gps_checks_passing
-				&& !gps_checks_failing;
+				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 		if (_control_status.flags.gps_hgt) {
 			if (continuing_conditions_passing) {
