@@ -79,3 +79,5 @@ mc_pos_control start
 # Start Multicopter Land Detector.
 #
 land_detector start multicopter
+
+offboard_switch start
