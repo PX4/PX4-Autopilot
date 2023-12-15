@@ -429,6 +429,7 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD, -1.f);
  * @unit
  * @min 0.2
  * @max 1.0
+ * @decimal 1
  * @increment 0.1
  * @group FW Auto Landing
  */
