@@ -79,7 +79,11 @@ private:
 			mavlink_open_drone_id_arm_status_t msg{};
 
 			msg.status = drone_id_arm.status;
+			for (uint8_t i = 0; i < sizeof(drone_id_arm.error); ++i) {
 
+				msg.error[i] = drone_id_arm.error[i];
+
+			}
 			mavlink_msg_open_drone_id_arm_status_send_struct(_mavlink->get_channel(),
 					&msg);
 
