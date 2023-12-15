@@ -45,7 +45,6 @@
 #include <lib/parameters/param.h>
 
 #include <uORB/topics/adc_report.h>
-#include <uORB/topics/external_adc.h>
 #include <uORB/Publication.hpp>
 
 #include <lib/drivers/device/Device.hpp>
@@ -78,8 +77,8 @@ using namespace device;
 
 using namespace time_literals;
 
-typedef enum _operation_modes{
-	ADC_SELECT= 1,
+typedef enum _operation_modes {
+	ADC_SELECT = 1,
 	ADC_READ = 2
 } operation_modes;
 
@@ -125,11 +124,11 @@ protected:
 
 private:
 
-	uORB::Publication<external_adc_s>		_to_external_adc{ORB_ID(external_adc)};
+	uORB::Publication<adc_report_s>		_to_external_adc{ORB_ID(external_adc)};
 
 	static const hrt_abstime	SAMPLE_INTERVAL{2000_ms};
 
-	external_adc_s _ext_adc_report{};
+	adc_report_s _ext_adc_report{};
 
 	perf_counter_t			_cycle_perf;
 

@@ -41,7 +41,8 @@ ADS7953::ADS7953(const I2CSPIDriverConfig &config) :
 	_ext_adc_report.device_id =  this->get_device_id();
 	_ext_adc_report.resolution = 4095;
 	_ext_adc_report.v_ref = 3.3f;
-	for(unsigned i=0;i<MAX_ADC_CHANNELS;i++){
+
+	for (unsigned i = 0; i < MAX_ADC_CHANNELS; i++) {
 		_ext_adc_report.channel_id[i] = -1;
 		_ext_adc_report.raw_data[i] = -1;
 	}
@@ -66,6 +67,7 @@ void ADS7953::RunImpl()
 {
 	uint16_t adc_channel_data[12] = {0};
 	uint16_t temp = 0;
+
 	if (should_exit()) {
 		PX4_INFO("stopping");
 		return;	// stop and return immediately to avoid unexpected schedule from stopping procedure
@@ -76,12 +78,14 @@ void ADS7953::RunImpl()
 	_ext_adc_report.timestamp = hrt_absolute_time();
 
 	ADC_Operate(adc_channel_data);	//operate the ADC
-	for(int i=0;i<MAX_ADC_CHANNELS;i++){
+
+	for (int i = 0; i < MAX_ADC_CHANNELS; i++) {
 		_ext_adc_report.channel_id[i] = adc_channel_data[i] >> 12;	//channel ID
 		temp = adc_channel_data[i] & 0x0fff;	//12 bit data
-		_ext_adc_report.raw_data[i] = (double)(2.5*temp)/4095.0;	//prepare raw data to get actual adc data
+		_ext_adc_report.raw_data[i] = (double)(2.5 * temp) / 4095.0;	//prepare raw data to get actual adc data
 		temp = 0;
 	}
+
 	_to_external_adc.publish(_ext_adc_report);
 	perf_end(_cycle_perf);
 }
@@ -121,6 +125,7 @@ void ADS7953::ADC_Operate(uint16_t *adc_channels)
 	px4_mdelay(1);
 	ADC_AUTO_2_Program();
 	px4_mdelay(1);
+
 	for (int i = 0; i < MAX_ADC_CHANNELS; i++) {
 		Auto_2_Select_ADC(ADC_READ, adc_data);		//data read cycle
 		px4_mdelay(1);
@@ -150,6 +155,7 @@ ADC_SELECT
 void ADS7953::Auto_2_Select_ADC(operation_modes mode, uint8_t *adc_data)
 {
 	uint8_t command[2] = {0};
+
 	switch (mode) {
 	case ADC_SELECT:
 		command[0] = AUTO_2_MODE_1 & 0xff;
