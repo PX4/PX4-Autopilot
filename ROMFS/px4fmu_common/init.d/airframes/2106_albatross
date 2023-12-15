@@ -35,17 +35,17 @@ param set-default FW_W_RMAX 0
 param set-default CA_AIRFRAME 1
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_SV_CS_COUNT 7
-param set-default CA_SV_CS0_TRQ_R -0.5000
+param set-default CA_SV_CS0_TRQ_R -0.5
 param set-default CA_SV_CS0_TYPE 1 #left aileron
-param set-default CA_SV_CS1_TRQ_R 0.5000
+param set-default CA_SV_CS1_TRQ_R 0.5
 param set-default CA_SV_CS1_TYPE 2 #right aileron
-param set-default CA_SV_CS2_TRQ_P 0.5000
-param set-default CA_SV_CS2_TRQ_Y -0.5000
+param set-default CA_SV_CS2_TRQ_P 0.5
+param set-default CA_SV_CS2_TRQ_Y -0.5
 param set-default CA_SV_CS2_TYPE 13 #left A-tail
-param set-default CA_SV_CS3_TRQ_P 0.5000
-param set-default CA_SV_CS3_TRQ_Y 0.5000
+param set-default CA_SV_CS3_TRQ_P 0.5
+param set-default CA_SV_CS3_TRQ_Y 0.5
 param set-default CA_SV_CS3_TYPE 14 #right A-tail
-param set-default CA_SV_CS4_TRQ_Y 1.0000
+param set-default CA_SV_CS4_TRQ_Y 1
 param set-default CA_SV_CS4_TYPE 12
 param set-default CA_SV_CS5_TYPE 9 #left flap
 param set-default CA_SV_CS6_TYPE 10 #right flap
