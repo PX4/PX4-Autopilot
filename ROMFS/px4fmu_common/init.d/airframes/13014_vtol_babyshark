@@ -96,12 +96,12 @@ param set-default CA_ROTOR4_AZ 0.0
 param set-default CA_SV_CS_COUNT 3
 param set-default CA_SV_CS0_TYPE 15
 param set-default CA_SV_CS0_TRQ_R 1.0
-param set-default CA_SV_CS1_TRQ_P 0.5000
-param set-default CA_SV_CS1_TRQ_R 0.0000
-param set-default CA_SV_CS1_TRQ_Y -0.5000
+param set-default CA_SV_CS1_TRQ_P 0.5
+param set-default CA_SV_CS1_TRQ_R 0
+param set-default CA_SV_CS1_TRQ_Y -0.5
 param set-default CA_SV_CS1_TYPE 13
-param set-default CA_SV_CS2_TRQ_P 0.5000
-param set-default CA_SV_CS2_TRQ_Y 0.5000
+param set-default CA_SV_CS2_TRQ_P 0.5
+param set-default CA_SV_CS2_TRQ_Y 0.5
 param set-default CA_SV_CS2_TYPE 14
 
 param set-default PWM_MAIN_FUNC1 201
