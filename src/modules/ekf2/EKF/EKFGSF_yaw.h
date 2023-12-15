@@ -59,10 +59,11 @@ public:
 	EKFGSF_yaw();
 
 	// Update Filter States - this should be called whenever new IMU data is available
-	void update(const imuSample &imu_sample, bool in_air = false);
+	void predict(const imuSample &imu_sample, bool in_air = false);
 
-	void setVelocity(const Vector2f &velocity, // NE velocity measurement (m/s)
-			 float accuracy);	   // 1-sigma accuracy of velocity measurement (m/s)
+	void fuseVelocity(const Vector2f &vel_NE, // NE velocity measurement (m/s)
+			  float vel_accuracy,	  // 1-sigma accuracy of velocity measurement (m/s)
+			  bool in_air);
 
 	void setTrueAirspeed(float true_airspeed) { _true_airspeed = true_airspeed; }
 
@@ -137,9 +138,6 @@ private:
 		matrix::Vector2f innov{};                   // Velocity N,E innovation (m/s)
 	} _ekf_gsf[N_MODELS_EKFGSF] {};
 
-	bool _vel_data_updated{};	// true when velocity data has been updated
-	Vector2f _vel_NE{};        // NE velocity observations (m/s)
-	float _vel_accuracy{};     // 1-sigma accuracy of velocity observations (m/s)
 	bool _ekf_gsf_vel_fuse_started{}; // true when the EKF's have started fusing velocity data and the prediction and update processing is active
 
 	// initialise states and covariance data for the GSF and EKF filters
