@@ -6,9 +6,9 @@ board_adc start
 
 if ver hwtypecmp V6C000002 V6C002002
 then
-	# Internal SPI BMI088 accel/gyro
-	bmi088 -A -R 4 -s start
-	bmi088 -G -R 4 -s start
+       # Internal SPI BMI088 accel/gyro
+       bmi088 -A -R 4 -s start
+       bmi088 -G -R 4 -s start
 else
        # Internal SPI bus BMI055 accel/gyro
        bmi055 -A -R 4 -s start
