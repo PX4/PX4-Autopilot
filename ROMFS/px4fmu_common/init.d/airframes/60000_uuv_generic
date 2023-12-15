@@ -5,8 +5,6 @@
 # @type Underwater Robot
 # @class Underwater Robot
 #
-# @maintainer
-#
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
 #
