@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,62 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file ToneAlarm.h
- *
- * Low Level Driver for the PX4 audio alarm port. Subscribes to
- * tune_control and plays notes on this architecture specific timer HW.
+ * @file ToneAlarm_params.c
+ * Tone Alarm driver parameters for ToneAlarm
  */
 
-#pragma once
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/circuit_breaker/circuit_breaker.h>
-#include <lib/parameters/param.h>
-#include <lib/tunes/tunes.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/tune_control.h>
-
-#include <drivers/drv_tone_alarm.h>
-
-#include <string.h>
-
-class ToneAlarm : public ModuleBase<ToneAlarm>, public px4::ScheduledWorkItem
-{
-public:
-	ToneAlarm();
-	~ToneAlarm() override;
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]) { return 0; };
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-private:
-	static void InterruptStopNote(void *arg);
-
-	bool Init();
-	void Run() override;
-
-	hrt_call _hrt_call{};
-
-	Tunes _tunes;
-
-	hrt_abstime _next_note_time{0};
-
-	uORB::SubscriptionCallbackWorkItem _tune_control_sub{this, ORB_ID(tune_control)};
-
-	bool _circuit_break_initialized{false};
-	bool _play_tone{false};
-	int32_t _tone_num_notice{0};
-
-	orb_advert_t _mavlink_log_pub{nullptr};
-};
+/**
+ * Enable Tone alarm number notification
+ *
+ * @reboot_required true
+ * @value 0 Disable
+ * @value 1 Enable
+ * @min 0
+ * @max 1
+ * @group ToneAlarm
+ */
+PARAM_DEFINE_INT32(TONE_NUM_NOTICE, 0);

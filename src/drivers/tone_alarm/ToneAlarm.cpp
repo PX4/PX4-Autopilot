@@ -39,6 +39,7 @@
 
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
+#include <lib/systemlib/mavlink_log.h>
 
 using namespace time_literals;
 
@@ -47,6 +48,9 @@ ToneAlarm::ToneAlarm() :
 {
 	// ensure ORB_ID(tune_control) is advertised with correct queue depth
 	orb_advertise_queue(ORB_ID(tune_control), nullptr, tune_control_s::ORB_QUEUE_LENGTH);
+
+	// Enable Tone alarm number notification
+	param_get(param_find("TONE_NUM_NOTICE"), &_tone_num_notice);
 }
 
 ToneAlarm::~ToneAlarm()
@@ -104,6 +108,10 @@ void ToneAlarm::Run()
 				switch (tune_result) {
 				case Tunes::ControlResult::Success:
 					PX4_DEBUG("new tune %d", tune_control.tune_id);
+
+					if (_tone_num_notice) {
+						mavlink_log_info(&_mavlink_log_pub, "new tune %d", tune_control.tune_id);
+					}
 
 					if (tune_control.tune_override) {
 						// clear existing
