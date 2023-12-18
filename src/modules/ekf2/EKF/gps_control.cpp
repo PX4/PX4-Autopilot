@@ -64,10 +64,17 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		_gps_sample_delayed.hgt += pos_offset_earth(2);
 
 		// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
-		if ((_gps_sample_delayed.sacc > 0.f) && (_gps_sample_delayed.sacc < _params.req_sacc)
-		    && _gps_sample_delayed.vel.isAllFinite()
-		   ) {
-			_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), math::max(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+		if ((_gps_sample_delayed.sacc > 0.f) && _gps_sample_delayed.vel.isAllFinite()) {
+
+			const bool sacc_great = (_gps_sample_delayed.sacc < _params.req_sacc);
+			const bool sacc_ok = (_gps_sample_delayed.sacc < 2.f * _params.req_sacc);
+
+			const bool moving = _control_status.flags.in_air && !_control_status.flags.vehicle_at_rest
+					    && ((_accel_lpf_NE.norm() > 0.5f) || _gps_sample_delayed.vel.xy().longerThan(_params.req_sacc));
+
+			if (sacc_great || (sacc_ok && moving)) {
+				_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), math::max(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+			}
 		}
 	}
 
