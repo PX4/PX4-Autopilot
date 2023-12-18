@@ -121,15 +121,16 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 
 		# start gz bridge with pose arg.
 		if ! gz_bridge start -p "${model_pose}" -m "${PX4_SIM_MODEL#*gz_}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
-			echo "ERROR [init] gz_bridge failed to start"
+			echo "ERROR [init] gz_bridge failed to start and spawn model"
 			exit 1
 		fi
 
 	elif [ -n "${PX4_GZ_MODEL_NAME}" ]; then
 		# model name specificed, gz_bridge will attach to existing model
 
+		echo "INFO  [init] PX4_GZ_MODEL_NAME set, PX4 will attach to existing model"
 		if ! gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
-			echo "ERROR [init] gz_bridge failed to start"
+			echo "ERROR [init] gz_bridge failed to start and attach to existing model"
 			exit 1
 		fi
 
