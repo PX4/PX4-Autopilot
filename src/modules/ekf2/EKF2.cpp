@@ -237,7 +237,6 @@ EKF2::~EKF2()
 bool EKF2::multi_init(int imu, int mag)
 {
 	// advertise all topics to ensure consistent uORB instance numbering
-	_ekf2_timestamps_pub.advertise();
 	_estimator_event_flags_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
