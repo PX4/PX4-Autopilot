@@ -39,7 +39,7 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 	# Use Gazebo Gareden or Harmonic
 
-	echo "INFO  [init] Gazebo Garden/Harmonic simulator"
+	echo "INFO  [init] Gazebo simulator"
 
 	# set local coordinate frame reference
 	if [ -n "${PX4_HOME_LAT}" ]; then
