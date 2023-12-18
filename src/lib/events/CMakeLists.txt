@@ -35,7 +35,7 @@ px4_add_git_submodule(TARGET git_libevents PATH "libevents")
 
 get_property(all_px4_src_files GLOBAL PROPERTY PX4_SRC_FILES)
 
-# Use relative path list to wrok around Makefile command character limit
+# Use relative path list to work around Makefile command character limit
 set(all_px4_src_files_relative "")
 foreach(f ${all_px4_src_files})
 	file(RELATIVE_PATH relative_path ${PX4_SOURCE_DIR}/src ${f})
