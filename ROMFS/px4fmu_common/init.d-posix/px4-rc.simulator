@@ -37,7 +37,7 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 	fi
 
 elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
-	# Use Gazebo Gareden or Harmonic
+	# Use Gazebo
 
 	echo "INFO  [init] Gazebo simulator"
 
