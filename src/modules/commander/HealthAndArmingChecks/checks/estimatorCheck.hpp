@@ -106,7 +106,6 @@ private:
 	bool _nav_failure_imminent_warned{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::SYS_MC_EST_GROUP>) _param_sys_mc_est_group,
 					(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode,
 					(ParamInt<px4::params::COM_ARM_MAG_STR>) _param_com_arm_mag_str,
 					(ParamFloat<px4::params::COM_ARM_EKF_HGT>) _param_com_arm_ekf_hgt,

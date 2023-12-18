@@ -40,6 +40,14 @@
  */
 
 /**
+ * EKF2 enable
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_EN, 1);
+
+/**
  * EKF prediction period
  *
  * EKF prediction period in microseconds. This should ideally be an integer multiple of the IMU time delta.

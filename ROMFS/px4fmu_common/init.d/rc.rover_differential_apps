@@ -1,9 +1,6 @@
 #!/bin/sh
 # Standard apps for a differential drive rover.
 
-# Start the attitude and position estimator.
-ekf2 start &
-
 # Start rover differential drive controller.
 differential_drive start
 
