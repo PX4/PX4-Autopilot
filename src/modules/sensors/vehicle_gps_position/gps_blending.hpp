@@ -72,6 +72,7 @@ public:
 			_gps_updated[instance] = true;
 		}
 	}
+
 	void setBlendingUseSpeedAccuracy(bool enabled) { _blend_use_spd_acc = enabled; }
 	void setBlendingUseHPosAccuracy(bool enabled) { _blend_use_hpos_acc = enabled; }
 	void setBlendingUseVPosAccuracy(bool enabled) { _blend_use_vpos_acc = enabled; }
@@ -82,6 +83,7 @@ public:
 
 	bool isNewOutputDataAvailable() const { return _is_new_output_data_available; }
 	int getNumberOfGpsSuitableForBlending() const { return _np_gps_suitable_for_blending; }
+
 	const sensor_gps_s &getOutputGpsData() const
 	{
 		if (_selected_gps < GPS_MAX_RECEIVERS_BLEND) {
@@ -91,6 +93,7 @@ public:
 			return _gps_blended_state;
 		}
 	}
+
 	int getSelectedGps() const { return _selected_gps; }
 
 private:
@@ -122,11 +125,12 @@ private:
 
 	sensor_gps_s _gps_state[GPS_MAX_RECEIVERS_BLEND] {}; ///< internal state data for the physical GPS
 	sensor_gps_s _gps_blended_state {};
+
 	bool _gps_updated[GPS_MAX_RECEIVERS_BLEND] {};
 	int _selected_gps{0};
 	int _np_gps_suitable_for_blending{0};
-	int _primary_instance{0}; ///< if -1, there is no primary isntance and the best receiver is used // TODO: use device_id
-	bool _fallback_allowed{false};
+	int _primary_instance{0}; ///< if -1, there is no primary instance and the best receiver is used // TODO: use device_id
+	bool _fallback_allowed{true};
 
 	bool _is_new_output_data_available{false};
 

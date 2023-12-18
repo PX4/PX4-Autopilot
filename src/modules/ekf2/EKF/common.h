@@ -177,6 +177,7 @@ struct gpsMessage {
 	bool        vel_ned_valid{};    ///< GPS ground speed is valid
 	uint8_t     nsats{};            ///< number of satellites used
 	float       pdop{};             ///< position dilution of precision
+	Vector3f    position_body{};    ///< xyz position of the GPS antenna in body frame (m)
 };
 
 struct imuSample {
@@ -198,6 +199,7 @@ struct gpsSample {
 	float       vacc{};     ///< 1-std vertical position error (m)
 	float       sacc{};     ///< 1-std speed error (m/sec)
 	float       yaw_acc{};  ///< 1-std yaw error (rad)
+	Vector3f    position_body{}; ///< xyz position of the GPS antenna in body frame (m)
 };
 
 struct magSample {

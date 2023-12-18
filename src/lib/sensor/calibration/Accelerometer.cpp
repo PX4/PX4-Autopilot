@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,10 +36,14 @@
 #include "Utilities.hpp"
 
 #include <lib/parameters/param.h>
+#include <lib/sensor/Utilities.hpp>
 
 using namespace matrix;
 using namespace time_literals;
+using namespace sensor::utilities;
 
+namespace sensor
+{
 namespace calibration
 {
 
@@ -48,7 +52,8 @@ Accelerometer::Accelerometer()
 	Reset();
 }
 
-Accelerometer::Accelerometer(uint32_t device_id)
+Accelerometer::Accelerometer(uint32_t device_id) :
+	_configuration(device_id)
 {
 	set_device_id(device_id);
 }
@@ -57,10 +62,9 @@ void Accelerometer::set_device_id(uint32_t device_id)
 {
 	bool external = DeviceExternal(device_id);
 
-	if (_device_id != device_id || _external != external) {
+	if (_configuration.device_id() != device_id || _configuration.external() != external) {
 
-		_device_id = device_id;
-		_external = external;
+		_configuration.set_device_id(device_id);
 
 		Reset();
 
@@ -75,7 +79,7 @@ void Accelerometer::SensorCorrectionsUpdate(bool force)
 	if (_sensor_correction_sub.updated() || force) {
 
 		// valid device id required
-		if (_device_id == 0) {
+		if (device_id() == 0) {
 			return;
 		}
 
@@ -84,17 +88,20 @@ void Accelerometer::SensorCorrectionsUpdate(bool force)
 		if (_sensor_correction_sub.copy(&corrections)) {
 			// find sensor_corrections index
 			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-				if (corrections.accel_device_ids[i] == _device_id) {
+				if (corrections.accel_device_ids[i] == device_id()) {
 					switch (i) {
 					case 0:
 						_thermal_offset = Vector3f{corrections.accel_offset_0};
 						return;
+
 					case 1:
 						_thermal_offset = Vector3f{corrections.accel_offset_1};
 						return;
+
 					case 2:
 						_thermal_offset = Vector3f{corrections.accel_offset_2};
 						return;
+
 					case 3:
 						_thermal_offset = Vector3f{corrections.accel_offset_3};
 						return;
@@ -110,12 +117,15 @@ void Accelerometer::SensorCorrectionsUpdate(bool force)
 
 bool Accelerometer::set_offset(const Vector3f &offset)
 {
-	if (Vector3f(_offset - offset).longerThan(0.01f)) {
-		if (offset.isAllFinite()) {
-			_offset = offset;
-			_calibration_count++;
-			return true;
-		}
+	static constexpr float MIN_OFFSET_CHANGE = 0.01f;
+
+	if (offset.isAllFinite()
+	    && (Vector3f(_offset - offset).longerThan(MIN_OFFSET_CHANGE) || (_calibration_count == 0))
+	   ) {
+		_offset = offset;
+
+		_calibration_count++;
+		return true;
 	}
 
 	return false;
@@ -123,23 +133,18 @@ bool Accelerometer::set_offset(const Vector3f &offset)
 
 bool Accelerometer::set_scale(const Vector3f &scale)
 {
-	if (Vector3f(_scale - scale).longerThan(0.01f)) {
-		if (scale.isAllFinite() && (scale(0) > 0.f) && (scale(1) > 0.f) && (scale(2) > 0.f)) {
-			_scale = scale;
-			_calibration_count++;
-			return true;
-		}
+	static constexpr float MIN_SCALE_CHANGE = 0.01f;
+
+	if (scale.isAllFinite() && scale.longerThan(0.f)
+	    && (Vector3f(_scale - scale).longerThan(MIN_SCALE_CHANGE) || (_calibration_count == 0))
+	   ) {
+		_scale = scale;
+
+		_calibration_count++;
+		return true;
 	}
 
 	return false;
-}
-
-void Accelerometer::set_rotation(Rotation rotation)
-{
-	_rotation_enum = rotation;
-
-	// always apply board level adjustments
-	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(rotation);
 }
 
 bool Accelerometer::set_calibration_index(int calibration_index)
@@ -154,11 +159,11 @@ bool Accelerometer::set_calibration_index(int calibration_index)
 
 void Accelerometer::ParametersUpdate()
 {
-	if (_device_id == 0) {
+	if (device_id() == 0) {
 		return;
 	}
 
-	_calibration_index = FindCurrentCalibrationIndex(SensorString(), _device_id);
+	_calibration_index = FindCurrentCalibrationIndex(SensorString(), device_id());
 
 	if (_calibration_index == -1) {
 		// no saved calibration available
@@ -166,52 +171,32 @@ void Accelerometer::ParametersUpdate()
 
 	} else {
 		ParametersLoad();
+
+		if (calibrated() && !_configuration.configured()) {
+			_configuration.ParametersSave(calibration_index());
+		}
 	}
 }
 
 bool Accelerometer::ParametersLoad()
 {
 	if (_calibration_index >= 0 && _calibration_index < MAX_SENSOR_COUNT) {
-		// CAL_ACCx_ROT
-		int32_t rotation_value = GetCalibrationParamInt32(SensorString(), "ROT", _calibration_index);
 
-		if (_external) {
-			if ((rotation_value >= ROTATION_MAX) || (rotation_value < 0)) {
-				// invalid rotation, resetting
-				rotation_value = ROTATION_NONE;
-			}
+		// CAL_{}n_{X,Y,Z}OFF
+		Vector3f offset{
+			GetCalibrationParamFloat(SensorString(), "XOFF", _calibration_index),
+			GetCalibrationParamFloat(SensorString(), "YOFF", _calibration_index),
+			GetCalibrationParamFloat(SensorString(), "ZOFF", _calibration_index)
+		};
 
-			set_rotation(static_cast<Rotation>(rotation_value));
+		// CAL_{}n_{X,Y,Z}SCALE
+		Vector3f scale{
+			GetCalibrationParamFloat(SensorString(), "XSCALE", _calibration_index),
+			GetCalibrationParamFloat(SensorString(), "YSCALE", _calibration_index),
+			GetCalibrationParamFloat(SensorString(), "ZSCALE", _calibration_index)
+		};
 
-		} else {
-			// internal sensors follow board rotation
-			set_rotation(GetBoardRotation());
-		}
-
-		// CAL_ACCx_PRIO
-		_priority = GetCalibrationParamInt32(SensorString(), "PRIO", _calibration_index);
-
-		if ((_priority < 0) || (_priority > 100)) {
-			// reset to default, -1 is the uninitialized parameter value
-			static constexpr int32_t CAL_PRIO_UNINITIALIZED = -1;
-
-			if (_priority != CAL_PRIO_UNINITIALIZED) {
-				PX4_ERR("%s %" PRIu32 " (%" PRId8 ") invalid priority %" PRId32 ", resetting", SensorString(), _device_id,
-					_calibration_index, _priority);
-
-				SetCalibrationParam(SensorString(), "PRIO", _calibration_index, CAL_PRIO_UNINITIALIZED);
-			}
-
-			_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
-		}
-
-		// CAL_ACCx_OFF{X,Y,Z}
-		set_offset(GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index));
-
-		// CAL_ACCx_SCALE{X,Y,Z}
-		set_scale(GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index));
-
-		return true;
+		return set_offset(offset) && set_scale(scale);
 	}
 
 	return false;
@@ -219,20 +204,10 @@ bool Accelerometer::ParametersLoad()
 
 void Accelerometer::Reset()
 {
-	if (_external) {
-		set_rotation(ROTATION_NONE);
-
-	} else {
-		// internal sensors follow board rotation
-		set_rotation(GetBoardRotation());
-	}
-
 	_offset.zero();
 	_scale = Vector3f{1.f, 1.f, 1.f};
 
 	_thermal_offset.zero();
-
-	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
 	_calibration_index = -1;
 
@@ -241,6 +216,8 @@ void Accelerometer::Reset()
 
 bool Accelerometer::ParametersSave(int desired_calibration_index, bool force)
 {
+	_configuration.ParametersSave();
+
 	if (force && desired_calibration_index >= 0 && desired_calibration_index < MAX_SENSOR_COUNT) {
 		_calibration_index = desired_calibration_index;
 
@@ -249,10 +226,10 @@ bool Accelerometer::ParametersSave(int desired_calibration_index, bool force)
 
 		// ensure we have a valid calibration slot (matching existing or first available slot)
 		int8_t calibration_index_prev = _calibration_index;
-		_calibration_index = FindAvailableCalibrationIndex(SensorString(), _device_id, desired_calibration_index);
+		_calibration_index = FindAvailableCalibrationIndex(SensorString(), device_id(), desired_calibration_index);
 
 		if (calibration_index_prev >= 0 && (calibration_index_prev != _calibration_index)) {
-			PX4_WARN("%s %" PRIu32 " calibration index changed %" PRIi8 " -> %" PRIi8, SensorString(), _device_id,
+			PX4_WARN("%s %" PRIu32 " calibration index changed %" PRIi8 " -> %" PRIi8, SensorString(), device_id(),
 				 calibration_index_prev, _calibration_index);
 		}
 	}
@@ -260,17 +237,18 @@ bool Accelerometer::ParametersSave(int desired_calibration_index, bool force)
 	if (_calibration_index >= 0 && _calibration_index < MAX_SENSOR_COUNT) {
 		// save calibration
 		bool success = true;
-		success &= SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
-		success &= SetCalibrationParam(SensorString(), "PRIO", _calibration_index, _priority);
-		success &= SetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index, _offset);
-		success &= SetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index, _scale);
 
-		if (_external) {
-			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
+		success &= SetCalibrationParam(SensorString(), "ID", _calibration_index, device_id());
 
-		} else {
-			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1); // internal
-		}
+		// CAL_{}n_{X,Y,Z}OFF
+		success &= SetCalibrationParam(SensorString(), "XOFF", _calibration_index, _offset(0));
+		success &= SetCalibrationParam(SensorString(), "YOFF", _calibration_index, _offset(1));
+		success &= SetCalibrationParam(SensorString(), "ZOFF", _calibration_index, _offset(2));
+
+		// CAL_{}n_{X,Y,Z}SCALE
+		success &= SetCalibrationParam(SensorString(), "XSCALE", _calibration_index, _scale(0));
+		success &= SetCalibrationParam(SensorString(), "YSCALE", _calibration_index, _scale(1));
+		success &= SetCalibrationParam(SensorString(), "ZSCALE", _calibration_index, _scale(2));
 
 		return success;
 	}
@@ -297,9 +275,10 @@ void Accelerometer::PrintStatus()
 	}
 
 	if (_thermal_offset.norm() > 0.f) {
-		PX4_INFO_RAW("%s %" PRIu32 " temperature offset: [%.4f %.4f %.4f]\n", SensorString(), _device_id,
+		PX4_INFO_RAW("%s %" PRIu32 " temperature offset: [%.4f %.4f %.4f]\n", SensorString(), device_id(),
 			     (double)_thermal_offset(0), (double)_thermal_offset(1), (double)_thermal_offset(2));
 	}
 }
 
 } // namespace calibration
+} // namespace sensor

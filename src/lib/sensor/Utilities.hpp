@@ -31,37 +31,47 @@
  *
  ****************************************************************************/
 
-#include "param_translation.h"
+#pragma once
 
-
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
-#include <lib/drivers/device/Device.hpp>
-#include <drivers/drv_sensor.h>
-#include <lib/parameters/param.h>
+#include <lib/conversion/rotation.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
+#include <matrix/math.hpp>
 
-bool param_modify_on_import(bson_node_t node)
+namespace sensor
+{
+namespace utilities
 {
 
+/**
+ * @brief Get the board sensor level adjustment (SENS_BOARD_X_OFF, SENS_BOARD_Y_OFF, SENS_BOARD_Z_OFF).
+ *
+ * @return matrix::Eulerf
+ */
+matrix::Eulerf GetSensorLevelAdjustment();
 
-	// TODO:
-	// ACC, BARO, GYRO, MAG
-	//  prio, rot
+/**
+ * @brief Get the board rotation.
+ *
+ * @return enum Rotation
+ */
+Rotation GetBoardRotation();
 
-	// 2023-11-30: translate sensor calibration to configuration
-	{
-		if (strcmp("CAL_ACC0_PRIO", node->name) == 0) {
-			strcpy(node->name, "SENS_ACC0_PRIO");
-			PX4_INFO("copying %s -> %s", "CAL_ACC0_PRIO", "SENS_ACC0_PRIO");
+/**
+ * @brief Get the board rotation Dcm.
+ *
+ * @return matrix::Dcmf
+ */
+matrix::Dcmf GetBoardRotationMatrix();
 
-			// TODO: set SENS_ACC0_ID=CAL_ACC0_ID
+/**
+ * @brief Determine if device is on an external bus
+ *
+ * @return true if device is on an external bus
+ */
+bool DeviceExternal(uint32_t device_id);
 
-
-			return true;
-		}
-	}
-
-
-
-	return false;
-}
+} // namespace utilities
+} // namespace sensor

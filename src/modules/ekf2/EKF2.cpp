@@ -76,9 +76,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #if defined(CONFIG_EKF2_GNSS)
 	_param_ekf2_gps_ctrl(_params->gnss_ctrl),
 	_param_ekf2_gps_delay(_params->gps_delay_ms),
-	_param_ekf2_gps_pos_x(_params->gps_pos_body(0)),
-	_param_ekf2_gps_pos_y(_params->gps_pos_body(1)),
-	_param_ekf2_gps_pos_z(_params->gps_pos_body(2)),
 	_param_ekf2_gps_v_noise(_params->gps_vel_noise),
 	_param_ekf2_gps_p_noise(_params->gps_pos_noise),
 	_param_ekf2_gps_p_gate(_params->gps_pos_innov_gate),
@@ -2457,6 +2454,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.nsats = vehicle_gps_position.satellites_used,
 			.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
 				      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
+			.position_body = Vector3f{vehicle_gps_position.position_offset},
 		};
 		_ekf.setGpsData(gps_msg);
 

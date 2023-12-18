@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <lib/sensor_calibration/Accelerometer.hpp>
+#include <lib/sensor/calibration/Accelerometer.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
@@ -87,7 +87,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_accel)};
 
-	calibration::Accelerometer _calibration{};
+	sensor::calibration::Accelerometer _calibration{};
 
 	matrix::Vector3f _bias{};
 

@@ -54,6 +54,7 @@ void GpsBlending::update(uint64_t hrt_now_us)
 		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 			if (_gps_state[i].fix_type > best_fix) {
 				best_fix = _gps_state[i].fix_type;
+				gps_select_index = i;
 			}
 		}
 
@@ -73,15 +74,8 @@ void GpsBlending::update(uint64_t hrt_now_us)
 			_hgt_offset_m[i] = 0.0;
 		}
 
-		// Only use a secondary instance if the fallback is allowed
-		if ((_primary_instance > -1)
-		    && (gps_select_index != _primary_instance)
-		    && !_fallback_allowed) {
-			gps_select_index = _primary_instance;
-		}
-
 		_selected_gps = gps_select_index;
-		_is_new_output_data_available =  _gps_updated[gps_select_index];
+		_is_new_output_data_available = _gps_updated[gps_select_index];
 
 		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 			_gps_updated[gps_select_index] = false;
@@ -109,7 +103,7 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 		float raw_dt = 0.f;
 
 		if (_gps_state[i].timestamp > _time_prev_us[i]) {
-			raw_dt = 1e-6f * (_gps_state[i].timestamp - _time_prev_us[i]);
+			raw_dt = 1e-6f * ((int64_t)_gps_state[i].timestamp - (int64_t)_time_prev_us[i]);
 		}
 
 		float present_dt = 0.f;
@@ -372,6 +366,14 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 	gps_blended_state.vel_e_m_s = 0;
 	gps_blended_state.vel_d_m_s = 0;
 
+	// these will be a sum of weighted values and must start from zero.
+	gps_blended_state.timestamp = 0;
+	gps_blended_state.timestamp_sample = 0;
+	gps_blended_state.vel_m_s = 0;
+	gps_blended_state.vel_n_m_s = 0;
+	gps_blended_state.vel_e_m_s = 0;
+	gps_blended_state.vel_d_m_s = 0;
+
 	// combine the the GPS states into a blended solution using the weights calculated in calc_blend_weights()
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 		// Assume blended error magnitude, DOP and sat count is equal to the best value from contributing receivers
@@ -429,11 +431,6 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 				gps_blended_state.vel_ned_valid = true;
 			}
 		}
-
-		// TODO read parameters for individual GPS antenna positions and blend
-		// Vector3f temp_antenna_offset = _antenna_offset[i];
-		// temp_antenna_offset *= blend_weights[i];
-		// _blended_antenna_offset += temp_antenna_offset;
 	}
 
 	/*
@@ -515,14 +512,15 @@ void GpsBlending::update_gps_offsets(const sensor_gps_s &gps_blended_state)
 {
 	// Calculate filter coefficients to be applied to the offsets for each GPS position and height offset
 	// A weighting of 1 will make the offset adjust the slowest, a weighting of 0 will make it adjust with zero filtering
+	// A weighting of 0 will make the offset adjust the slowest, a weighting of 1 will make it adjust with zero filtering
 	float alpha[GPS_MAX_RECEIVERS_BLEND] {};
 	float omega_lpf = 1.0f / fmaxf(_blending_time_constant, 1.0f);
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 		if (_gps_state[i].timestamp > _time_prev_us[i]) {
 			// calculate the filter coefficient that achieves the time constant specified by the user adjustable parameter
-			alpha[i] = constrain(omega_lpf * 1e-6f * (float)(_gps_state[i].timestamp - _time_prev_us[i]),
-					     0.0f, 1.0f);
+			alpha[i] = constrain(omega_lpf * 1e-6f * (float)((int64_t)_gps_state[i].timestamp - (int64_t)_time_prev_us[i]), 0.f,
+					     1.f);
 
 			_time_prev_us[i] = _gps_state[i].timestamp;
 		}

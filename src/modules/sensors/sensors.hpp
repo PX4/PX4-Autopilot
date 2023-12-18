@@ -41,7 +41,7 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Utilities.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -80,7 +80,7 @@
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 # include "vehicle_magnetometer/VehicleMagnetometer.hpp"
-# include <lib/sensor_calibration/Magnetometer.hpp>
+# include <lib/sensor/calibration/Magnetometer.hpp>
 # include <uORB/topics/sensor_mag.h>
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
