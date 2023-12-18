@@ -51,44 +51,50 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 		param set SIM_GZ_HOME_ALT ${PX4_HOME_LON}
 	fi
 
-	# source generated gz_env.sh for GZ_SIM_RESOURCE_PATH
-	if [ -f ./gz_env.sh ]; then
-		. ./gz_env.sh
+	# Only start up Gazebo if PX4_GZ_STANDALONE is not set.
+	if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
-	elif [ -f ../gz_env.sh ]; then
-		. ../gz_env.sh
-	fi
-
-	# "gz sim" only avaiilable in Garden and later
-	GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
-	if [ $? -eq 0 ] && [ "${GZ_SIM_VERSIONS}" != "" ]
-	then
-		# "gz sim" from Garden on
-		gz_command="gz"
-		gz_sub_command="sim"
-	else
-		echo "ERROR [init] Gazebo gz please install gz-garden"
-		exit 1
-	fi
-
-	# look for running ${gz_command} gazebo world
-	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
-
-	# shellcheck disable=SC2153
-	if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLDS}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
-
-		echo "INFO  [init] starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
-
-		${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
-
-		if [ -z "${HEADLESS}" ]; then
-			# HEADLESS not set, starting gui
-			${gz_command} ${gz_sub_command} -g &
+		# "gz sim" only available in Garden and later
+		GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
+		if [ $? -eq 0 ] && [ "${GZ_SIM_VERSIONS}" != "" ]
+		then
+			# "gz sim" from Garden on
+			gz_command="gz"
+			gz_sub_command="sim"
+		else
+			echo "ERROR [init] Gazebo gz please install gz-garden"
+			exit 1
 		fi
 
+		# look for running ${gz_command} gazebo world
+		gz_world=$( ${gz_command} topic -l | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+
+		# shellcheck disable=SC2153
+		if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
+
+			# source generated gz_env.sh for GZ_SIM_RESOURCE_PATH
+			if [ -f ./gz_env.sh ]; then
+				. ./gz_env.sh
+
+			elif [ -f ../gz_env.sh ]; then
+				. ../gz_env.sh
+			fi
+
+			echo "INFO  [init] starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
+
+			${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
+
+			if [ -z "${HEADLESS}" ]; then
+				# HEADLESS not set, starting gui
+				${gz_command} ${gz_sub_command} -g &
+			fi
+
+		else
+			echo "INFO  [init] gazebo already running world: ${gz_world}"
+			PX4_GZ_WORLD=${gz_world}
+		fi
 	else
-		echo "INFO  [init] gazebo already running world: ${gz_world}"
-		PX4_GZ_WORLD=${gz_world}
+		echo "INFO  [init] Standalone PX4 launch, waiting for Gazebo"
 	fi
 
 	# start gz_bridge

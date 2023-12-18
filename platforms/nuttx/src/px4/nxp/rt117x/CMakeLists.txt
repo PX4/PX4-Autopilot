@@ -43,6 +43,7 @@ add_subdirectory(../imxrt/io_pins io_pins)
 add_subdirectory(../imxrt/tone_alarm tone_alarm)
 add_subdirectory(../imxrt/version version)
 add_subdirectory(../imxrt/spi spi)
+add_subdirectory(../imxrt/dshot dshot)
 
 add_subdirectory(px4io_serial)
 add_subdirectory(ssarc)
