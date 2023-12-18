@@ -83,7 +83,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 
 		if [ -z "${HEADLESS}" ]; then
 			# HEADLESS not set, starting gui
-			${gz_command} ${gz_sub_command} -g &
+			${gz_command} ${gz_sub_command} -g --render-engine ogre &
 		fi
 
 	else
