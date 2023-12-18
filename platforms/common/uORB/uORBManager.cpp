@@ -43,6 +43,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
 #include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
@@ -474,10 +475,14 @@ uORB::Manager::launchCallbackThread()
 		return -1;
 	}
 
+	/* Set the priority to 1 higher than the highest controller, which is always nav_and_controllers */
+
+	int priority = sched_get_priority_max(SCHED_FIFO) + px4::wq_configurations::nav_and_controllers.relative_priority + 1;
+
 	if (per_process_cb_thread == -1) {
 		per_process_cb_thread = px4_task_spawn_cmd("orb_callback",
 					SCHED_DEFAULT,
-					SCHED_PRIORITY_MAX - 1,
+					priority,
 					PX4_STACK_ADJUSTED(1024),
 					callback_thread,
 					nullptr);
