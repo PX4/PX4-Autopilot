@@ -148,6 +148,7 @@ define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
                  BRIEF_DOCS "PX4 module paths"
                  FULL_DOCS "List of paths to all PX4 modules"
                  )
+
 define_property(GLOBAL PROPERTY PX4_SRC_FILES
                  BRIEF_DOCS "src files from all PX4 modules & libs"
                  FULL_DOCS "SRC files from px4_add_{module,library}"
