@@ -54,7 +54,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 	# Only start up Gazebo if PX4_GZ_STANDALONE is not set.
 	if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
-		# "gz sim" only avaiilable in Garden and later
+		# "gz sim" only available in Garden and later
 		GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
 		if [ $? -eq 0 ] && [ "${GZ_SIM_VERSIONS}" != "" ]
 		then
