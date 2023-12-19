@@ -56,7 +56,7 @@ def main():
                         nargs='*',
                         help="one or more paths/files to source files to scan for events")
     parser.add_argument("-b", "--base-path",
-                        default=[""],
+                        default="",
                         metavar="PATH",
                         help="path prefix for everything passed with --src-path")
     parser.add_argument("-j", "--json",
