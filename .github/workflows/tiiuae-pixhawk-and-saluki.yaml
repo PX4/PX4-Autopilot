@@ -15,6 +15,21 @@ on:
         required: false
         default: true
         type: boolean
+      saluki-v2-manual-fpga-version:
+        description: 'saluki-v2 optional fpga version (e.g. sha-3b85ccc)'
+        required: false
+        default: ''
+        type: string
+      saluki-v3-manual-fpga-version:
+        description: 'saluki-v3 optional fpga version (e.g. sha-3b85ccc)'
+        required: false
+        default: ''
+        type: string
+      saluki-pi-manual-fpga-version:
+        description: 'saluki-pi optional fpga version (e.g. sha-cd7bb6b)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -171,9 +186,9 @@ jobs:
           tags: ${{ steps.containermeta.outputs.tags }}
           labels: ${{ steps.containermeta.outputs.labels }}
           build-args: |
-            "saluki_pi_fpga_version=${{ env.saluki_pi_fpga_version }}"
-            "saluki_v2_fpga_version=${{ env.saluki_v2_fpga_version }}"
-            "saluki_v3_fpga_version=${{ env.saluki_v3_fpga_version }}"
+            "saluki_pi_fpga_version=${{ inputs.saluki-pi-manual-fpga-version != '' && inputs.saluki-pi-manual-fpga-version || env.saluki_pi_fpga_version }}"
+            "saluki_v2_fpga_version=${{ inputs.saluki-v2-manual-fpga-version != '' && inputs.saluki-v2-manual-fpga-version || env.saluki_v2_fpga_version }}"
+            "saluki_v3_fpga_version=${{ inputs.saluki-v3-manual-fpga-version != '' && inputs.saluki-v3-manual-fpga-version || env.saluki_v3_fpga_version }}"
 
   artifactory:
     name: upload builds to artifactory
