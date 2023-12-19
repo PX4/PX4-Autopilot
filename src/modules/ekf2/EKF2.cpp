@@ -2435,32 +2435,38 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			perf_count(_msg_missed_gps_perf);
 		}
 
-		gpsMessage gps_msg{
-			.time_usec = vehicle_gps_position.timestamp,
-			.lat = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7)),
-			.lon = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7)),
-			.alt = static_cast<int32_t>(round(vehicle_gps_position.altitude_msl_m * 1e3)),
-			.yaw = vehicle_gps_position.heading,
-			.yaw_offset = vehicle_gps_position.heading_offset,
-			.yaw_accuracy = vehicle_gps_position.heading_accuracy,
-			.fix_type = vehicle_gps_position.fix_type,
-			.eph = vehicle_gps_position.eph,
-			.epv = vehicle_gps_position.epv,
+		Vector3f vel_ned;
+
+		if (vehicle_gps_position.vel_ned_valid) {
+			vel_ned = Vector3f(vehicle_gps_position.vel_n_m_s,
+					   vehicle_gps_position.vel_e_m_s,
+					   vehicle_gps_position.vel_d_m_s);
+
+		} else {
+			return; //TODO: change and set to NAN
+		}
+
+		gnssSample gnss_sample{
+			.time_us = vehicle_gps_position.timestamp,
+			.lat = vehicle_gps_position.latitude_deg,
+			.lon = vehicle_gps_position.longitude_deg,
+			.alt = static_cast<float>(vehicle_gps_position.altitude_msl_m),
+			.vel = vel_ned,
+			.hacc = vehicle_gps_position.eph,
+			.vacc = vehicle_gps_position.epv,
 			.sacc = vehicle_gps_position.s_variance_m_s,
-			.vel_m_s = vehicle_gps_position.vel_m_s,
-			.vel_ned = Vector3f{
-				vehicle_gps_position.vel_n_m_s,
-				vehicle_gps_position.vel_e_m_s,
-				vehicle_gps_position.vel_d_m_s
-			},
-			.vel_ned_valid = vehicle_gps_position.vel_ned_valid,
+			.fix_type = vehicle_gps_position.fix_type,
 			.nsats = vehicle_gps_position.satellites_used,
 			.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
 				      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
+			.yaw = vehicle_gps_position.heading, //TODO: move to different message
+			.yaw_acc = vehicle_gps_position.heading_accuracy,
+			.yaw_offset = vehicle_gps_position.heading_offset,
 		};
-		_ekf.setGpsData(gps_msg);
 
-		_gps_time_usec = gps_msg.time_usec;
+		_ekf.setGpsData(gnss_sample);
+
+		_gps_time_usec = gnss_sample.time_us;
 		_gps_alttitude_ellipsoid = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3));
 	}
 }

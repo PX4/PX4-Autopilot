@@ -431,8 +431,7 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
-	bool collect_gps(const gpsMessage &gps) override;
+	void collect_gps(const gnssSample &gps);
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
@@ -636,7 +635,6 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 
 	// variables used for the GPS quality checks
@@ -989,29 +987,38 @@ private:
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
 	void stopGpsFusion();
-
+	void updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
+	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
+	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
+	bool tryYawEmergencyReset();
+	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);
+	void resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src);
 	bool shouldResetGpsFusion() const;
 
-	// return true id the GPS quality is good enough to set an origin and start aiding
-	bool gps_is_good(const gpsMessage &gps);
+	/*
+	 * Return true if the GPS solution quality is adequate.
+	 * Checks are activated using the EKF2_GPS_CHECK bitmask parameter
+	 * Checks are adjusted using the EKF2_REQ_* parameters
+	*/
+	bool runGnssChecks(const gnssSample &gps);
 
-	void controlGnssHeightFusion(const gpsSample &gps_sample);
+	void controlGnssHeightFusion(const gnssSample &gps_sample);
 	void stopGpsHgtFusion();
 
 	void resetGpsDriftCheckFilters();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
+	void controlGpsYawFusion(const gnssSample &gps_sample);
 	void stopGpsYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw();
+	void fuseGpsYaw(float antenna_yaw_offset);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetYawToGps(const float gnss_yaw);
+	bool resetYawToGps(float gnss_yaw, float gnss_yaw_offset);
 
-	void updateGpsYaw(const gpsSample &gps_sample);
+	void updateGpsYaw(const gnssSample &gps_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
 

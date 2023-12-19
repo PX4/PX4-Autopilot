@@ -195,15 +195,15 @@ TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow)
 
 	// WHEN: GPS data stops
 	_sensor_simulator.stopGps();
-	_sensor_simulator.runSeconds(2);
+	_sensor_simulator.runSeconds(10);
 
-	// THEN: immediately switch to flow only
+	// THEN: GNSS fusion stops after a timing out
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
 
-	// BUT WHEN: GPS starts again
+	// BUT WHEN: GPS starts after passing the checks again
 	_sensor_simulator.startGps();
-	_sensor_simulator.runSeconds(1);
+	_sensor_simulator.runSeconds(6);
 
 	// THEN: use it again
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
