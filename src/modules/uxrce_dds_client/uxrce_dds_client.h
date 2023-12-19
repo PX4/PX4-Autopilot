@@ -44,6 +44,8 @@
 
 #include <lib/timesync/Timesync.hpp>
 
+#include <lib/perf/perf_counter.h>
+
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
 # define UXRCE_DDS_CLIENT_UDP 1
 #endif
@@ -157,8 +159,8 @@ private:
 	SendTopicsSubs *_subs{nullptr};
 	RcvTopicsPubs *_pubs{nullptr};
 
-	SrvBase *repliers_[MAX_NUM_REPLIERS];
-	uint8_t num_of_repliers{0};
+	SrvBase *_repliers[MAX_NUM_REPLIERS];
+	uint8_t _num_of_repliers{0};
 
 	uxrCommunication *_comm{nullptr};
 	int _fd{-1};
@@ -167,7 +169,12 @@ private:
 	int _last_payload_rx_rate{}; ///< in B/s
 	bool _connected{false};
 
+	bool _timesync_converged{false};
+
 	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
+
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UXRCE_DDS_DOM_ID>) _param_uxrce_dds_dom_id,
