@@ -58,16 +58,17 @@
 
 // Local includes
 #include <DifferentialDriveKinematics.hpp>
+#include "DifferentialDriveControl.hpp"
 
-namespace differential_drive_control
+namespace rover_control
 {
 
-class DifferentialDriveControl : public ModuleBase<DifferentialDriveControl>, public ModuleParams,
+class RoverControl : public ModuleBase<RoverControl>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
-	DifferentialDriveControl();
-	~DifferentialDriveControl() override = default;
+	RoverControl();
+	~RoverControl() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -95,8 +96,9 @@ private:
 	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
 
-	differential_drive_setpoint_s _differential_drive_setpoint{};
-	DifferentialDriveKinematics _differential_drive_kinematics{};
+	// differential_drive_setpoint_s _differential_drive_setpoint{};
+	// DifferentialDriveKinematics _differential_drive_kinematics{};
+	differential_drive_control::DifferentialDriveControl _differential_drive_control;
 
 	bool _armed = false;
 	bool _manual_driving = false;
@@ -113,4 +115,4 @@ private:
 	)
 };
 
-} // namespace differential_drive_control
+} // namespace rover_control

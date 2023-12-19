@@ -38,8 +38,8 @@ using namespace matrix;
 namespace differential_drive_control
 {
 
-DifferentialDriveControl::DifferentialDriveControl() :
-	ModuleParams(nullptr),
+DifferentialDriveControl::DifferentialDriveControl(ModuleParams *parent) :
+	ModuleParams(parent),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	updateParams();
@@ -47,7 +47,7 @@ DifferentialDriveControl::DifferentialDriveControl() :
 
 bool DifferentialDriveControl::init()
 {
-	ScheduleOnInterval(10_ms); // 100 Hz
+	// ScheduleOnInterval(10_ms); // 100 Hz
 	return true;
 }
 
@@ -128,27 +128,33 @@ void DifferentialDriveControl::Run()
 	_actuator_motors_pub.publish(actuator_motors);
 }
 
+void DifferentialDriveControl::Update()
+{
+	Run();
+}
+
 int DifferentialDriveControl::task_spawn(int argc, char *argv[])
 {
-	DifferentialDriveControl *instance = new DifferentialDriveControl();
+	// DifferentialDriveControl *instance = new DifferentialDriveControl();
 
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+	// if (instance) {
+	// 	_object.store(instance);
+	// 	_task_id = task_id_is_work_queue;
 
-		if (instance->init()) {
-			return PX4_OK;
-		}
+	// 	if (instance->init()) {
+	// 		return PX4_OK;
+	// 	}
 
-	} else {
-		PX4_ERR("alloc failed");
-	}
+	// } else {
+	// 	PX4_ERR("alloc failed");
+	// }
 
-	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
+	// delete instance;
+	// _object.store(nullptr);
+	// _task_id = -1;
 
-	return PX4_ERROR;
+	// return PX4_ERROR;
+	return PX4_OK;
 }
 
 int DifferentialDriveControl::custom_command(int argc, char *argv[])

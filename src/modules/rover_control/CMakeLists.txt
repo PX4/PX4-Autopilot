@@ -34,11 +34,13 @@
 add_subdirectory(DifferentialDriveKinematics)
 
 px4_add_module(
-	MODULE modules__differential_drive_control
-	MAIN differential_drive_control
+	MODULE modules__rover_control
+	MAIN rover_control
 	SRCS
 		DifferentialDriveControl.cpp
 		DifferentialDriveControl.hpp
+		RoverControl.cpp
+		RoverControl.hpp
 	DEPENDS
 		DifferentialDriveKinematics
 		px4_work_queue
