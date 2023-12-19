@@ -1404,8 +1404,8 @@ int VoxlEsc::print_status()
 		PX4_INFO("   Motor:           %i", _output_map[i].number);
 		PX4_INFO("   Direction:       %i", _output_map[i].direction);
 		PX4_INFO("   State:           %i", _esc_chans[i].state);
-		PX4_INFO("   Requested:       %i RPM", _esc_chans[i].rate_req);
-		PX4_INFO("   Measured:        %i RPM", _esc_chans[i].rate_meas);
+		PX4_INFO("   Requested:       %li RPM", _esc_chans[i].rate_req);
+		PX4_INFO("   Measured:        %li RPM", _esc_chans[i].rate_meas);
 		PX4_INFO("   Command Counter: %i", _esc_chans[i].cmd_counter);
 		PX4_INFO("   Voltage:         %f VDC", (double)_esc_chans[i].voltage);
 		PX4_INFO("");

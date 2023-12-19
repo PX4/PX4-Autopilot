@@ -155,7 +155,7 @@ private:
 	struct EscChan {
 		int32_t		rate_req;
 		uint8_t		state;
-		uint16_t	rate_meas;
+		uint32_t	rate_meas;
 		uint8_t		power_applied;
 		uint8_t		led;
 		uint8_t		cmd_counter;
