@@ -262,3 +262,12 @@ TEST(MatrixSliceTest, Slice)
 	float O_check_data_12 [4] = {2.5, 3, 4, 5};
 	EXPECT_EQ(res_12, (SquareMatrix<float, 2>(O_check_data_12)));
 }
+
+TEST(MatrixSliceTest, XYAssignmentTest)
+{
+	Vector3f a(1, 2, 3);
+	Vector3f b(4, 5, 6);
+	// Assign first two elements from b to first two slot of a
+	a.xy() = b.xy();
+	EXPECT_EQ(a, Vector3f(4, 5, 3));
+}
