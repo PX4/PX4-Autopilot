@@ -392,6 +392,23 @@ else
 	fi
 
 	#
+	# state estimator selection
+	if param compare -s EKF2_EN 1
+	then
+		ekf2 start &
+	fi
+
+	if param compare -s LPE_EN 1
+	then
+		local_position_estimator start
+	fi
+
+	if param compare -s ATT_EN 1
+	then
+		attitude_estimator_q start
+	fi
+
+	#
 	# Configure vehicle type specific parameters.
 	# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
 	. ${R}etc/init.d/rc.vehicle_setup

@@ -99,7 +99,10 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (missing_data && _param_sys_mc_est_group.get() == 2) {
+	int32_t param_ekf2_en = 0;
+	param_get(param_find_no_notification("EKF2_EN"), &param_ekf2_en);
+
+	if (missing_data && (param_ekf2_en == 1)) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,

@@ -62,10 +62,6 @@ VectorNav::VectorNav(const char *port) :
 		v = 0;
 		param_set(param_find("EKF2_EN"), &v);
 
-		// SYS_MC_EST_GROUP 0 (disabled)
-		v = 0;
-		param_set(param_find("SYS_MC_EST_GROUP"), &v);
-
 		// SENS_IMU_MODE (VN handles sensor selection)
 		v = 0;
 		param_set(param_find("SENS_IMU_MODE"), &v);

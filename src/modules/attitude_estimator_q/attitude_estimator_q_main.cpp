@@ -180,6 +180,14 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 
 bool AttitudeEstimatorQ::init()
 {
+	uORB::SubscriptionData<vehicle_attitude_s> vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	vehicle_attitude_sub.update();
+
+	if (vehicle_attitude_sub.advertised() && (hrt_elapsed_time(&vehicle_attitude_sub.get().timestamp) < 1_s)) {
+		PX4_ERR("init failed, vehicle_attitude already advertised");
+		return false;
+	}
+
 	if (!_sensors_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;

@@ -1,6 +1,12 @@
 #include <parameters/param.h>
 
-// 16 is max name length
+/**
+ * Local position estimator enable (unsupported)
+ *
+ * @group Local Position Estimator
+ * @boolean
+ */
+PARAM_DEFINE_INT32(LPE_EN, 0);
 
 /**
  * Optical flow z offset from center

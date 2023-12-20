@@ -14,10 +14,7 @@
             "model": "iris",
             "vehicle": "iris",
             "test_filter": "[offboard_attitude]",
-            "timeout_min": 10,
-            "env": {
-                "SYS_MC_EST_GROUP": 3
-            }
+            "timeout_min": 10
         },
         {
             "model": "standard_vtol",

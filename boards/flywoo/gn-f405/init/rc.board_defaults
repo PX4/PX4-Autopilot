@@ -12,8 +12,6 @@ param set-default CBRK_SUPPLY_CHK 894281
 # Disable safety switch by default
 param set-default CBRK_IO_SAFETY 22027
 
-# EKF2 can be enabled when baro is avaialble and EKF2_MAG_TYPE is set to 5
-param set-default SYS_MC_EST_GROUP 2
 param set-default EKF2_MAG_TYPE 5
 param set-default SENS_BOARD_ROT 6
 
