@@ -140,6 +140,8 @@ private:
 
 	bool _armed{false};
 
+	matrix::Vector3f _angular_velocity{};
+
 	matrix::Vector3f _kid{};
 	matrix::Vector3f _rate_k{};
 	matrix::Vector3f _rate_i{};
@@ -157,13 +159,11 @@ private:
 	hrt_abstime _last_model_update{0};
 
 	float _interval_sum{0.f};
-	float _interval_count{0.f};
+	uint32_t _interval_count{0};
 	float _sample_interval_avg{0.01f};
 	float _filter_dt{0.01f};
 	bool _are_filters_initialized{false};
 
-	static constexpr float _model_dt_min{2e-3f}; // 2ms = 500Hz
-	static constexpr float _model_dt_max{10e-3f}; // 10ms = 100Hz
 	int _model_update_scaler{1};
 	int _model_update_counter{0};
 

@@ -89,9 +89,7 @@ void McAutotuneAttitudeControl::Run()
 		updateStateMachine(hrt_absolute_time());
 	}
 
-	// new control data needed every iteration
-	if (_state == state::idle
-	    || !_vehicle_torque_setpoint_sub.updated()) {
+	if (_state == state::idle) {
 		return;
 	}
 
@@ -111,17 +109,23 @@ void McAutotuneAttitudeControl::Run()
 		}
 	}
 
-	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_angular_velocity_s angular_velocity;
 
-	if (!_vehicle_torque_setpoint_sub.copy(&vehicle_torque_setpoint)
-	    || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
+	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
+		_angular_velocity(0) = angular_velocity.xyz[0];
+		_angular_velocity(1) = angular_velocity.xyz[1];
+		_angular_velocity(2) = angular_velocity.xyz[2];
+	}
+
+	vehicle_torque_setpoint_s torque_setpoint;
+
+	if (!_vehicle_torque_setpoint_sub.update(&torque_setpoint)) {
 		return;
 	}
 
 	perf_begin(_cycle_perf);
 
-	const hrt_abstime timestamp_sample = vehicle_torque_setpoint.timestamp;
+	const hrt_abstime timestamp_sample = torque_setpoint.timestamp;
 
 	// collect sample interval average for filters
 	if (_last_run > 0) {
@@ -141,16 +145,16 @@ void McAutotuneAttitudeControl::Run()
 
 	// Send data to the filters at maximum frequency
 	if (_state == state::roll) {
-		_sys_id.updateFilters(vehicle_torque_setpoint.xyz[0],
-				      angular_velocity.xyz[0]);
+		_sys_id.updateFilters(torque_setpoint.xyz[0],
+				      _angular_velocity(0));
 
 	} else if (_state == state::pitch) {
-		_sys_id.updateFilters(vehicle_torque_setpoint.xyz[1],
-				      angular_velocity.xyz[1]);
+		_sys_id.updateFilters(torque_setpoint.xyz[1],
+				      _angular_velocity(1));
 
 	} else if (_state == state::yaw) {
-		_sys_id.updateFilters(vehicle_torque_setpoint.xyz[2],
-				      angular_velocity.xyz[2]);
+		_sys_id.updateFilters(torque_setpoint.xyz[2],
+				      _angular_velocity(2));
 	}
 
 	// Update the model at a lower frequency
@@ -230,38 +234,33 @@ void McAutotuneAttitudeControl::Run()
 
 void McAutotuneAttitudeControl::checkFilters()
 {
-	if (_interval_count > 1000) {
-		// calculate sensor update rate
-		_sample_interval_avg = _interval_sum / _interval_count;
+	if (_interval_count < 1000) {
+		return;
+	}
 
-		// check if sample rate error is greater than 1%
-		bool reset_filters = false;
+	// calculate sensor update rate
+	const float sample_interval = _interval_sum / static_cast<float>(_interval_count);
 
-		if ((fabsf(_filter_dt - _sample_interval_avg) / _filter_dt) > 0.01f) {
-			reset_filters = true;
-		}
+	// check if sample rate error is greater than 1%
+	const bool reset_filters = (fabsf(_filter_dt - sample_interval) / _filter_dt) > 0.01f;
 
-		if (reset_filters || !_are_filters_initialized) {
-			_filter_dt = _sample_interval_avg;
+	if (reset_filters || !_are_filters_initialized) {
+		_filter_dt = sample_interval;
 
-			const float filter_rate_hz = 1.f / _filter_dt;
+		const float filter_rate_hz = 1.f / _filter_dt;
 
-			_sys_id.setLpfCutoffFrequency(filter_rate_hz, _param_imu_gyro_cutoff.get());
-			_sys_id.setHpfCutoffFrequency(filter_rate_hz, .1f);
+		_sys_id.setLpfCutoffFrequency(filter_rate_hz, 30.f);
+		_sys_id.setHpfCutoffFrequency(filter_rate_hz, .1f);
 
-			// Set the model sampling time depending on the gyro cutoff frequency
-			// as this is a good indicator of the maximum control loop bandwidth
-			float model_dt = math::constrain(math::max(1.f / (2.f * _param_imu_gyro_cutoff.get()), _filter_dt), _model_dt_min,
-							 _model_dt_max);
+		// Make sure the model dt is a integer multiple of the data update rate
+		float model_dt = 0.01f;
+		_model_update_scaler = math::max(int(model_dt / _filter_dt), 1);
+		model_dt = _model_update_scaler * _filter_dt;
 
-			_model_update_scaler = math::max(int(model_dt / _filter_dt), 1);
-			model_dt = _model_update_scaler * _filter_dt;
+		_sys_id.setForgettingFactor(60.f, model_dt);
+		_sys_id.setFitnessLpfTimeConstant(1.f, model_dt);
 
-			_sys_id.setForgettingFactor(60.f, model_dt);
-			_sys_id.setFitnessLpfTimeConstant(1.f, model_dt);
-
-			_are_filters_initialized = true;
-		}
+		_are_filters_initialized = true;
 
 		// reset sample interval accumulator
 		_last_run = 0;
