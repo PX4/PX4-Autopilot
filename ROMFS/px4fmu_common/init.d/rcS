@@ -439,7 +439,12 @@ else
 	#
 	# Start a thermal calibration if required.
 	#
-	. ${R}etc/init.d/rc.thermal_cal
+	set RC_THERMAL_CAL ${R}etc/init.d/rc.thermal_cal
+	if [ -f ${RC_THERMAL_CAL} ]
+	then
+		. ${RC_THERMAL_CAL}
+	fi
+	unset RC_THERMAL_CAL
 
 	#
 	# Start gimbal to control mounts such as gimbals, disabled by default.
@@ -500,7 +505,12 @@ else
 	#
 	# Start the logger.
 	#
-	. ${R}etc/init.d/rc.logging
+	set RC_LOGGING ${R}etc/init.d/rc.logging
+	if [ -f ${RC_LOGGING} ]
+	then
+		. ${RC_LOGGING}
+	fi
+	unset RC_LOGGING
 
 	#
 	# Set additional parameters and env variables for selected AUTOSTART.
