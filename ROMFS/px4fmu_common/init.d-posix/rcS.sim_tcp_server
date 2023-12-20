@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# search path for sourcing rcS
+PATH="$PATH:${R}etc/init.d-posix"
+
+# Define TCP server
+export PX4_SIM_USE_TCP_SERVER=1
+
+# Continue to the main startup script
+. rcS
