@@ -241,7 +241,7 @@ void McAutotuneAttitudeControl::checkFilters()
 			const float filter_rate_hz = 1.f / _filter_dt;
 
 			_sys_id.setLpfCutoffFrequency(filter_rate_hz, _param_imu_gyro_cutoff.get());
-			_sys_id.setHpfCutoffFrequency(filter_rate_hz, .5f);
+			_sys_id.setHpfCutoffFrequency(filter_rate_hz, .1f);
 
 			// Set the model sampling time depending on the gyro cutoff frequency
 			// as this is a good indicator of the maximum control loop bandwidth

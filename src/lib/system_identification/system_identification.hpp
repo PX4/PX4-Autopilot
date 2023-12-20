@@ -70,7 +70,7 @@ public:
 		_u_lpf.set_cutoff_frequency(sample_freq, cutoff);
 		_y_lpf.set_cutoff_frequency(sample_freq, cutoff);
 	}
-	void setHpfCutoffFrequency(float sample_freq, float cutoff) { _alpha_hpf = sample_freq / (sample_freq + 2.f * M_PI_F * cutoff); }
+	void setHpfCutoffFrequency(float sample_freq, float cutoff) { _gamma_hpf = tanf(M_PI_F * cutoff / sample_freq); }
 
 	void setForgettingFactor(float time_constant, float dt) { _rls.setForgettingFactor(time_constant, dt); }
 	void setFitnessLpfTimeConstant(float time_constant, float dt)
@@ -88,7 +88,7 @@ private:
 	math::LowPassFilter2p<float> _y_lpf{400.f, 30.f};
 
 	//TODO: replace by HighPassFilter class
-	float _alpha_hpf{0.f};
+	float _gamma_hpf{0.f};
 	float _u_hpf{0.f};
 	float _y_hpf{0.f};
 

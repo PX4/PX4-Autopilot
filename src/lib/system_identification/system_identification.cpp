@@ -79,8 +79,8 @@ void SystemIdentification::updateFilters(float u, float y)
 
 	const float u_lpf = _u_lpf.apply(u);
 	const float y_lpf = _y_lpf.apply(y);
-	_u_hpf = _alpha_hpf * _u_hpf + _alpha_hpf * (u_lpf - _u_prev);
-	_y_hpf = _alpha_hpf * _y_hpf + _alpha_hpf * (y_lpf - _y_prev);
+	_u_hpf = u_lpf - _u_prev - (_gamma_hpf - 1.f) * _u_hpf;
+	_y_hpf = y_lpf - _y_prev - (_gamma_hpf - 1.f) * _y_hpf;
 
 	_u_prev = u_lpf;
 	_y_prev = y_lpf;
