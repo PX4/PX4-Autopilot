@@ -234,6 +234,7 @@ elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)"
 else
 	# otherwise start simulator (mavlink) module
 	simulator_tcp_port=$((4560+px4_instance))
+	simulator_udp_port=$((14560+px4_instance))
 
 	# Check if PX4_SIM_HOSTNAME environment variable is empty
 	# If empty check if PX4_SIM_HOST_ADDR environment variable is empty
@@ -241,8 +242,16 @@ else
 	if [ -z "${PX4_SIM_HOSTNAME}" ]; then
 
 		if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
-			echo "INFO  [init] PX4_SIM_HOSTNAME: localhost"
-			simulator_mavlink start -c $simulator_tcp_port
+			if [ ! -z "${PX4_SIM_USE_TCP_SERVER}" ]; then
+				echo "INFO  [init] PX4_SIM_USE_TCP_SERVER"
+				simulator_mavlink start -s $simulator_tcp_port
+			elif [ ! -z "${PX4_SIM_USE_UDP}" ]; then
+				echo "INFO  [init] PX4_SIM_USE_UDP"
+				simulator_mavlink start -u $simulator_udp_port
+			else
+				echo "INFO  [init] PX4_SIM_HOSTNAME: localhost"
+				simulator_mavlink start -c $simulator_tcp_port
+			fi
 		else
 			echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOST_ADDR}"
 			simulator_mavlink start -t "${PX4_SIM_HOST_ADDR}" "${simulator_tcp_port}"
