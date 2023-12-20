@@ -35,6 +35,8 @@ public:
 		assert(y0 + Q <= N);
 	}
 
+	Slice(const Slice<Type, P, Q, M, N> &other) = default;
+
 	const Type &operator()(size_t i, size_t j) const
 	{
 		assert(i < P);
@@ -50,6 +52,12 @@ public:
 		assert(j < Q);
 
 		return (*_data)(_x0 + i, _y0 + j);
+	}
+
+	// Separate function needed otherwise the default copy constructor matches before the deep copy implementation
+	Slice<Type, P, Q, M, N> &operator=(const Slice<Type, P, Q, M, N> &other)
+	{
+		return this->operator=<M, N>(other);
 	}
 
 	template<size_t MM, size_t NN>
