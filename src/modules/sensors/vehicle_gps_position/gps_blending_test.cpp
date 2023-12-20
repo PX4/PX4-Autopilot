@@ -243,8 +243,7 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 
 	// BUT WHEN: the data of the primary receiver is avaialbe
 	sensor_gps_s gps_data0 = getDefaultGpsData();
-	gps_blending.setGpsData(gps_data0, 0);
-	gps_blending.update(_time_now_us);
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
 
 	// THEN: the primary instance is selected and the data
 	// is available
@@ -272,6 +271,15 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
 
 	// THEN: the primary receiver should be used again
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
+
+	// BUT IF: the secondary receiver has better metrics than the primary one
+	gps_data1.satellites_used = gps_data0.satellites_used + 2;
+
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the selector shouldn't switch again as the primary one is available
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 }
