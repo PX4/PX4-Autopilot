@@ -141,15 +141,15 @@ void McAutotuneAttitudeControl::Run()
 
 	// Send data to the filters at maximum frequency
 	if (_state == state::roll) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[0],
+		_sys_id.updateFilters(vehicle_torque_setpoint.xyz[0],
 				      angular_velocity.xyz[0]);
 
 	} else if (_state == state::pitch) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[1],
+		_sys_id.updateFilters(vehicle_torque_setpoint.xyz[1],
 				      angular_velocity.xyz[1]);
 
 	} else if (_state == state::yaw) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[2],
+		_sys_id.updateFilters(vehicle_torque_setpoint.xyz[2],
 				      angular_velocity.xyz[2]);
 	}
 
@@ -170,9 +170,6 @@ void McAutotuneAttitudeControl::Run()
 		updateStateMachine(now);
 
 		Vector<float, 5> coeff = _sys_id.getCoefficients();
-		coeff(2) *= _input_scale;
-		coeff(3) *= _input_scale;
-		coeff(4) *= _input_scale;
 
 		const Vector3f num(coeff(2), coeff(3), coeff(4));
 		const Vector3f den(1.f, coeff(0), coeff(1));
@@ -287,7 +284,6 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			_state = state::roll;
 			_state_start_time = now;
 			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_rollrate_p.get() * _param_mc_rollrate_k.get());
 			_gains_backup_available = false;
 		}
 
@@ -310,7 +306,6 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			_state = state::pitch;
 			_state_start_time = now;
 			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_pitchrate_p.get() * _param_mc_pitchrate_k.get());
 		}
 
 		break;
@@ -330,7 +325,6 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			_state = state::yaw;
 			_state_start_time = now;
 			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_yawrate_p.get() * _param_mc_yawrate_k.get());
 		}
 
 		break;

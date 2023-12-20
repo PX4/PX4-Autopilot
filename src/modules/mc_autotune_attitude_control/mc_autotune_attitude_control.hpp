@@ -152,13 +152,6 @@ private:
 
 	bool _gains_backup_available{false}; // true if a backup of the parameters has been done
 
-	/**
-	 * Scale factor applied to the input data to have the same input/output range
-	 * When input and output scales are a lot different, some elements of the covariance
-	 * matrix will collapse much faster than other ones, creating an ill-conditionned matrix
-	 */
-	float _input_scale{1.f};
-
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_publish{0};
 	hrt_abstime _last_model_update{0};
