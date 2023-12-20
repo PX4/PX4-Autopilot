@@ -76,7 +76,8 @@ void GpsBlending::update(uint64_t hrt_now_us)
 		// Only use a secondary instance if the fallback is allowed
 		if ((_primary_instance > -1)
 		    && (gps_select_index != _primary_instance)
-		    && _primary_instance_available) {
+		    && _primary_instance_available
+		    && (_gps_state[_primary_instance].fix_type >= 3)) {
 			gps_select_index = _primary_instance;
 		}
 
