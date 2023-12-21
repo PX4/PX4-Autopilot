@@ -440,13 +440,13 @@ public:
 	template<size_t P, size_t Q>
 	const Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0) const
 	{
-		return Slice<Type, P, Q, M, N>(x0, y0, this);
+		return {x0, y0, this};
 	}
 
 	template<size_t P, size_t Q>
 	Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0)
 	{
-		return Slice<Type, P, Q, M, N>(x0, y0, this);
+		return {x0, y0, this};
 	}
 
 	const Slice<Type, 1, N, M, N> row(size_t i) const
