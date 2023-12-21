@@ -29,7 +29,7 @@ fi
 set VEHICLE_TYPE                none
 set LOGGER_ARGS                 ""
 set LOGGER_BUF                  1000
-
+set SDCARD_AVAILABLE            no
 set RUN_MINIMAL_SHELL           no
 
 set SYS_AUTOSTART=0
