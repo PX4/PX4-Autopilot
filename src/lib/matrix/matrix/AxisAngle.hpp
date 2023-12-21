@@ -6,19 +6,16 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "Vector3.hpp"
 
 namespace matrix
 {
 
 template <typename Type>
-class Dcm;
-
-template <typename Type>
 class Euler;
 
-template <typename Type>
-class AxisAngle;
+template<typename Type>
+class Quaternion;
 
 /**
  * AxisAngle class

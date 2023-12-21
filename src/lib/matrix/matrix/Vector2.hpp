@@ -8,13 +8,10 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "Vector.hpp"
 
 namespace matrix
 {
-
-template <typename Type, size_t M>
-class Vector;
 
 template<typename Type>
 class Vector2 : public Vector<Type, 2>

@@ -28,20 +28,19 @@
 
 #pragma once
 
-#include "math.hpp"
+#include <float.h> // FLT_EPSILON
+
+#include "Vector3.hpp"
+#include "Vector4.hpp"
 
 namespace matrix
 {
-
-template <typename Type>
-class Dcm;
 
 template <typename Type>
 class Euler;
 
 template <typename Type>
 class AxisAngle;
-
 
 /**
  * Quaternion class
