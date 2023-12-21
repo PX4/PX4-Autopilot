@@ -39,7 +39,7 @@
 
 #include "system_identification.hpp"
 
-void SystemIdentification::reset(const matrix::Vector<float, 5> &id_state_init)
+void SystemIdentification::reset(const matrix::Vector<float, _kParameters> &id_state_init)
 {
 	_rls.reset(id_state_init);
 	_u_lpf.reset(0.f);
@@ -88,10 +88,10 @@ void SystemIdentification::updateFilters(float u, float y)
 
 void SystemIdentification::updateFitness()
 {
-	const matrix::Vector<float, 5> &diff = _rls.getDiffEstimate();
+	const matrix::Vector<float, _kParameters> &diff = _rls.getDiffEstimate();
 	float sum = 0.f;
 
-	for (size_t i = 0; i < 5; i++) {
+	for (size_t i = 0; i < _kParameters; i++) {
 		sum += diff(i);
 	}
 

@@ -169,10 +169,19 @@ void McAutotuneAttitudeControl::Run()
 		const hrt_abstime now = hrt_absolute_time();
 		updateStateMachine(now);
 
-		Vector<float, 5> coeff = _sys_id.getCoefficients();
+		Vector<float, SystemIdentification::_kParameters> coeff = _sys_id.getCoefficients();
 
-		const Vector3f num(coeff(2), coeff(3), coeff(4));
-		const Vector3f den(1.f, coeff(0), coeff(1));
+		Vector3f den(1.f, 0.f, 0.f);
+
+		for (int i = 0; i < SystemIdentification::_kPoles; i++) {
+			den(i + 1) = coeff(i);
+		}
+
+		Vector3f num;
+
+		for (int i = 0; i < SystemIdentification::_kZeros + 1; i++) {
+			num(i) = coeff(SystemIdentification::_kPoles + i);
+		}
 
 		const float model_dt = static_cast<float>(_model_update_scaler) * _filter_dt;
 
@@ -190,7 +199,7 @@ void McAutotuneAttitudeControl::Run()
 		// or K_att * K_rate * rad(60) = 1
 		_attitude_p = math::constrain(1.f / (math::radians(60.f) * _kid(0)), 2.f, 6.5f);
 
-		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
+		const Vector<float, SystemIdentification::_kParameters> &coeff_var = _sys_id.getVariances();
 
 		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
 					 ? getIdentificationSignal(now)

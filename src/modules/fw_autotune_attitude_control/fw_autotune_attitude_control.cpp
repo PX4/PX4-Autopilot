@@ -169,14 +169,22 @@ void FwAutotuneAttitudeControl::Run()
 		const hrt_abstime now = hrt_absolute_time();
 		updateStateMachine(now);
 
-		Vector<float, 5> coeff = _sys_id.getCoefficients();
-		coeff(2) *= _input_scale;
-		coeff(3) *= _input_scale;
-		coeff(4) *= _input_scale;
+		Vector<float, SystemIdentification::_kParameters> coeff = _sys_id.getCoefficients();
 
-		const Vector3f num(coeff(2), coeff(3), coeff(4));
-		const Vector3f den(1.f, coeff(0), coeff(1));
-		_kiff(2) = (1.f + coeff(0) + coeff(1)) / (coeff(2) + coeff(3) + coeff(4)); // inverse of the static gain
+		Vector3f den(1.f, 0.f, 0.f);
+
+		for (int i = 0; i < SystemIdentification::_kPoles; i++) {
+			den(i + 1) = coeff(i);
+		}
+
+		Vector3f num;
+
+		for (int i = 0; i < SystemIdentification::_kZeros + 1; i++) {
+			coeff(SystemIdentification::_kPoles + i) *= _input_scale;
+			num(i) = coeff(SystemIdentification::_kPoles + i);
+		}
+
+		_kiff(2) = (den(0) + den(1) + den(2)) / (num(0) + num(1) + num(2)); // inverse of the static gain
 		const Vector3f num_design = num * _kiff(2); // PID algorithm design works better with systems having unit static gain
 		Vector3f kid = pid_design::computePidGmvc(num_design, den, _sample_interval_avg, 0.2f, 0.f, 0.4f);
 		_kiff(0) = kid(0);
@@ -187,7 +195,7 @@ void FwAutotuneAttitudeControl::Run()
 		// or K_att * (K_rate + K_ff) * rad(60) = 1
 		_attitude_p = math::constrain(1.f / (math::radians(60.f) * (_kiff(0) + _kiff(2))), 1.f, 5.f);
 
-		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
+		const Vector<float, SystemIdentification::_kParameters> &coeff_var = _sys_id.getVariances();
 		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
 					 ? getIdentificationSignal()
 					 : Vector3f();
@@ -291,8 +299,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	// when identifying an axis, check if the estimate has converged
 	const float converged_thr = 1.f;
 
-	const float temp[5] = {0.f, 0.f, 0.f, 0.f, 0.f};
-	const Vector<float, 5> sys_id_init(temp);
+	const Vector<float, SystemIdentification::_kParameters> sys_id_init;
 
 	switch (_state) {
 	case state::idle:
