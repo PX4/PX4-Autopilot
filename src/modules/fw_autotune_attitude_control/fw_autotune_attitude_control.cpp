@@ -75,6 +75,7 @@ bool FwAutotuneAttitudeControl::init()
 
 void FwAutotuneAttitudeControl::reset()
 {
+	_param_fw_at_start.reset();
 }
 
 void FwAutotuneAttitudeControl::Run()
