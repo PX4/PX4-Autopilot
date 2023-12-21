@@ -75,7 +75,6 @@ VtolTakeoff::on_active()
 							    _mission_item.lon, _loiter_location(0), _loiter_location(1)));
 				_mission_item.force_heading = true;
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
-				pos_sp_triplet->current.disable_weather_vane = true;
 				pos_sp_triplet->current.cruising_speed = -1.f;
 				_navigator->set_position_setpoint_triplet_updated();
 
@@ -182,7 +181,6 @@ VtolTakeoff::set_takeoff_position()
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
 	pos_sp_triplet->previous.valid = false;
-	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();
