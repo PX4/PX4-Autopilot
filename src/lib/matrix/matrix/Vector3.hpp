@@ -43,15 +43,8 @@ public:
 		v(2) = z;
 	}
 
-	template<size_t P, size_t Q>
-	Vector3(const Slice<Type, 3, 1, P, Q> &slice_in) : Vector<Type, 3>(slice_in)
-	{
-	}
-
-	template<size_t P, size_t Q>
-	Vector3(const Slice<Type, 1, 3, P, Q> &slice_in) : Vector<Type, 3>(slice_in)
-	{
-	}
+	using base = Vector<Type, 3>;
+	using base::base;
 
 	Vector3 cross(const Matrix31 &b) const
 	{
@@ -103,7 +96,7 @@ public:
 		return (*this).cross(b);
 	}
 
-	const Slice<Type, 2, 1, 3, 1> xy() const
+	ConstSlice<Type, 2, 1, 3, 1> xy() const
 	{
 		return {0, 0, this};
 	}

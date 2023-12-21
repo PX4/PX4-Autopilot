@@ -36,10 +36,8 @@ public:
 	{
 	}
 
-	template<size_t P, size_t Q>
-	SquareMatrix(const Slice<Type, M, M, P, Q> &in_slice) : Matrix<Type, M, M>(in_slice)
-	{
-	}
+	using base = Matrix<Type, M, M>;
+	using base::base;
 
 	SquareMatrix<Type, M> &operator=(const Matrix<Type, M, M> &other)
 	{
@@ -55,7 +53,7 @@ public:
 	}
 
 	template<size_t P, size_t Q>
-	const Slice<Type, P, Q, M, M> slice(size_t x0, size_t y0) const
+	ConstSlice<Type, P, Q, M, M> slice(size_t x0, size_t y0) const
 	{
 		return {x0, y0, this};
 	}

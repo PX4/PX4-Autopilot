@@ -67,6 +67,18 @@ public:
 		}
 	}
 
+	template<size_t P, size_t Q>
+	Matrix(const ConstSlice<Type, M, N, P, Q> &in_slice)
+	{
+		Matrix<Type, M, N> &self = *this;
+
+		for (size_t i = 0; i < M; i++) {
+			for (size_t j = 0; j < N; j++) {
+				self(i, j) = in_slice(i, j);
+			}
+		}
+	}
+
 	/**
 	 * Accessors/ Assignment etc.
 	 */
@@ -438,7 +450,7 @@ public:
 	}
 
 	template<size_t P, size_t Q>
-	const Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0) const
+	ConstSlice<Type, P, Q, M, N> slice(size_t x0, size_t y0) const
 	{
 		return {x0, y0, this};
 	}
@@ -449,7 +461,7 @@ public:
 		return {x0, y0, this};
 	}
 
-	const Slice<Type, 1, N, M, N> row(size_t i) const
+	ConstSlice<Type, 1, N, M, N> row(size_t i) const
 	{
 		return slice<1, N>(i, 0);
 	}
@@ -459,7 +471,7 @@ public:
 		return slice<1, N>(i, 0);
 	}
 
-	const Slice<Type, M, 1, M, N> col(size_t j) const
+	ConstSlice<Type, M, 1, M, N> col(size_t j) const
 	{
 		return slice<M, 1>(0, j);
 	}
