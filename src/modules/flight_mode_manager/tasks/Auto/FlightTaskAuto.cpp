@@ -466,7 +466,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
-	_weathervane.setNavigatorForceDisabled(_sub_triplet_setpoint.get().current.disable_weather_vane);
+	_weathervane.setNavigatorForceDisabled(PX4_ISFINITE(_sub_triplet_setpoint.get().current.yaw));
 
 	// Calculate the current vehicle state and check if it has updated.
 	State previous_state = _current_state;
@@ -481,7 +481,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_obstacle_avoidance.updateAvoidanceDesiredWaypoints(_triplet_target, _yaw_setpoint, _yawspeed_setpoint,
 				_triplet_next_wp,
 				_sub_triplet_setpoint.get().next.yaw,
-				_sub_triplet_setpoint.get().next.yawspeed_valid ? _sub_triplet_setpoint.get().next.yawspeed : (float)NAN,
+				(float)NAN,
 				_weathervane.isActive(), _sub_triplet_setpoint.get().current.type);
 		_obstacle_avoidance.checkAvoidanceProgress(
 			_position, _triplet_prev_wp, _target_acceptance_radius, Vector2f(_closest_pt));
@@ -509,13 +509,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_yaw_setpoint = NAN;
 			_yawspeed_setpoint = 0.f;
 
-		} else if ((_type != WaypointType::takeoff || _sub_triplet_setpoint.get().current.disable_weather_vane)
-			   && _sub_triplet_setpoint.get().current.yaw_valid) {
-			// Use the yaw computed in Navigator except during takeoff because
-			// Navigator is not handling the yaw reset properly.
-			// But: use if from Navigator during takeoff if disable_weather_vane is true,
-			// because we're then aligning to the transition waypoint.
-			// TODO: fix in navigator
+		} else if (PX4_ISFINITE(_sub_triplet_setpoint.get().current.yaw)) {
 			_yaw_setpoint = _sub_triplet_setpoint.get().current.yaw;
 			_yawspeed_setpoint = NAN;
 
