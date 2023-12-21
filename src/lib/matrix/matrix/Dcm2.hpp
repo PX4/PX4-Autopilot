@@ -48,7 +48,8 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "SquareMatrix.hpp"
+#include "Vector2.hpp"
 
 namespace matrix
 {

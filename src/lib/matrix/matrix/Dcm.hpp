@@ -15,19 +15,20 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "SquareMatrix.hpp"
+#include "Vector3.hpp"
 
 namespace matrix
 {
 
 template<typename Type>
-class Quaternion;
+class AxisAngle;
 
 template<typename Type>
 class Euler;
 
 template<typename Type>
-class AxisAngle;
+class Quaternion;
 
 /**
  * Direction cosine matrix class

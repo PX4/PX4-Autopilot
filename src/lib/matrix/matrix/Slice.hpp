@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include "math.hpp"
-
+#include <cassert>
+#include <cstdio>
+#include <cmath>
 
 namespace matrix
 {
