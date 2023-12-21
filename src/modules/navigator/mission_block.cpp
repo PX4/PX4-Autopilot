@@ -465,8 +465,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 							 && curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER
 							 && (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
 
-			// can only enforce exit course if next waypoint is not within loiter radius of current waypoint
-			const bool exit_course_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
+			// can only enforce exit course if next waypoint is not within loiter radius of current waypoint (with small margin)
+			const bool exit_course_is_reachable = dist_current_next > 1.05f * curr_sp_new->loiter_radius;
 
 			if (enforce_exit_course && exit_course_is_reachable) {
 
