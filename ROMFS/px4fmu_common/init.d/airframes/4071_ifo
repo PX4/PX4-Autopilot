@@ -73,23 +73,22 @@ param set-default MAV_1_CONFIG 102
 param set-default MAV_1_MODE 0
 param set-default SER_TEL2_BAUD 57600
 
-
-param set-default CA_ROTOR_COUNT 4
-param set-default CA_ROTOR0_PX 0.15
-param set-default CA_ROTOR0_PY 0.15
-param set-default CA_ROTOR1_PX -0.15
-param set-default CA_ROTOR1_PY -0.15
-param set-default CA_ROTOR2_PX 0.15
-param set-default CA_ROTOR2_PY -0.15
-param set-default CA_ROTOR2_KM -0.05
-param set-default CA_ROTOR3_PX -0.15
-param set-default CA_ROTOR3_PY 0.15
-param set-default CA_ROTOR3_KM -0.05
-
 param set-default PWM_MAIN_TIM0 0
+
+# Square quadrotor X PX4 numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_KM -0.05
 
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
 param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
-
