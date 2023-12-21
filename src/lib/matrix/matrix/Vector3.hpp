@@ -103,29 +103,15 @@ public:
 		return (*this).cross(b);
 	}
 
-	/**
-	 * Override vector ops so Vector3 type is returned
-	 */
-	inline Vector3 unit() const
-	{
-		return Vector3(Vector<Type, 3>::unit());
-	}
-
-	inline Vector3 normalized() const
-	{
-		return unit();
-	}
-
 	const Slice<Type, 2, 1, 3, 1> xy() const
 	{
-		return Slice<Type, 2, 1, 3, 1>(0, 0, this);
+		return {0, 0, this};
 	}
 
 	Slice<Type, 2, 1, 3, 1> xy()
 	{
-		return Slice<Type, 2, 1, 3, 1>(0, 0, this);
+		return {0, 0, this};
 	}
-
 
 	Dcm<Type> hat() const      // inverse to Dcm.vee() operation
 	{

@@ -57,13 +57,13 @@ public:
 	template<size_t P, size_t Q>
 	const Slice<Type, P, Q, M, M> slice(size_t x0, size_t y0) const
 	{
-		return Slice<Type, P, Q, M, M>(x0, y0, this);
+		return {x0, y0, this};
 	}
 
 	template<size_t P, size_t Q>
 	Slice<Type, P, Q, M, M> slice(size_t x0, size_t y0)
 	{
-		return Slice<Type, P, Q, M, M>(x0, y0, this);
+		return {x0, y0, this};
 	}
 
 	// inverse alias
