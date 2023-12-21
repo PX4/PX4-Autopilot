@@ -139,6 +139,11 @@ if(CONFIG_MODULES_ROVER_POS_CONTROL)
 	px4_add_romfs_files(
 		50000_generic_ground_vehicle
 		50004_nxpcup_car_dfrobot_gpx
+	)
+endif()
+
+if(CONFIG_MODULES_DIFFERENTIAL_DRIVE_CONTROL)
+	px4_add_romfs_files(
 		50003_aion_robotics_r1_rover
 	)
 endif()
