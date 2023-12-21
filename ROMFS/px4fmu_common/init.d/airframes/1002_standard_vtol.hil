@@ -14,7 +14,6 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-
 param set-default BAT1_N_CELLS 3
 
 param set-default COM_RC_IN_MODE 1
@@ -69,6 +68,19 @@ param set-default CA_ROTOR4_AX 1.0
 param set-default CA_ROTOR4_AZ 0.0
 param set-default CA_ROTOR4_PX 0.2
 
+# Square quadrotor X PX4 numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_KM -0.05
+
 param set-default CA_SV_CS_COUNT 3
 param set-default CA_SV_CS0_TRQ_R -0.5
 param set-default CA_SV_CS0_TYPE 1
@@ -98,5 +110,3 @@ param set-default CBRK_SUPPLY_CHK 894281
 param set-default CBRK_IO_SAFETY 22027
 
 param set-default MAV_TYPE 22
-
-
