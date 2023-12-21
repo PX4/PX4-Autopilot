@@ -12,19 +12,11 @@
 #include <cstdio>
 #include <cstring>
 
-#include "math.hpp"
+#include "helper_functions.hpp"
+#include "Slice.hpp"
 
 namespace matrix
 {
-
-template <typename Type, size_t M>
-class Vector;
-
-template<typename Type, size_t M, size_t N>
-class Matrix;
-
-template <typename Type, size_t P, size_t Q, size_t M, size_t N>
-class Slice;
 
 template<typename Type, size_t M, size_t N>
 class Matrix
