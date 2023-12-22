@@ -131,7 +131,9 @@ private:
 
 	void init_telemetry(const char *device);
 
-	void handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data);
+	int handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data);
+
+	int handle_new_bdshot_erpm(void);
 
 	int request_esc_info();
 
@@ -158,6 +160,7 @@ private:
 	bool _outputs_initialized{false};
 	bool _outputs_on{false};
 	bool _waiting_for_esc_info{false};
+	bool _bdshot{false};
 
 	static constexpr unsigned _num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 	uint32_t _output_mask{0};
@@ -169,12 +172,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uint16_t _esc_status_counter{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,
 		(ParamBool<px4::params::DSHOT_3D_ENABLE>) _param_dshot_3d_enable,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
 		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
-		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count
+		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count,
+		(ParamBool<px4::params::DSHOT_BIDIR_EN>) _param_bidirectional_enable
 	)
 };

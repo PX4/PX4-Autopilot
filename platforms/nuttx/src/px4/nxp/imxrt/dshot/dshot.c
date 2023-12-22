@@ -89,6 +89,7 @@ static uint32_t dshot_tcmp;
 static uint32_t bdshot_tcmp;
 static uint32_t dshot_mask;
 static uint32_t bdshot_recv_mask;
+static uint32_t bdshot_parsed_recv_mask;
 
 static inline uint32_t flexio_getreg32(uint32_t offset)
 {
@@ -350,12 +351,13 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 	return channel_mask;
 }
 
-
 void up_bdshot_erpm(void)
 {
 	uint32_t value;
 	uint32_t erpm;
 	uint32_t csum_data;
+
+	bdshot_parsed_recv_mask = 0;
 
 	// Decode each individual channel
 	for (uint8_t channel = 0; (channel < DSHOT_TIMERS); channel++) {
@@ -391,13 +393,25 @@ void up_bdshot_erpm(void)
 			}
 		}
 	}
+
+	bdshot_parsed_recv_mask = bdshot_recv_mask;
 }
+
+
+
+int up_bdshot_get_erpm(uint8_t channel, int *erpm)
+{
+	if (bdshot_parsed_recv_mask & (1 << channel)) {
+		*erpm = dshot_inst[channel].erpm;
+		return 0;
+	}
+
+	return -1;
+}
+
 
 void up_bdshot_status(void)
 {
-	/* Call this function to calculate last ERPM ideally a workqueue does this.
-	   For now this to debug using the dshot status cli command */
-	up_bdshot_erpm();
 
 	for (uint8_t channel = 0; (channel < DSHOT_TIMERS); channel++) {
 
@@ -423,6 +437,9 @@ void up_dshot_trigger(void)
 			flexio_putreg32(dshot_inst[channel].data_seg1, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
 		}
 	}
+
+	// Calc data now since we're not event driven
+	up_bdshot_erpm();
 
 	bdshot_recv_mask = 0x0;
 

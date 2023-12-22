@@ -144,7 +144,9 @@ void DShot::enable_dshot_outputs(const bool enabled)
 			}
 		}
 
-		int ret = up_dshot_init(_output_mask, dshot_frequency);
+		_bdshot = _param_bidirectional_enable.get();
+
+		int ret = up_dshot_init(_output_mask, dshot_frequency, _bdshot);
 
 		if (ret < 0) {
 			PX4_ERR("up_dshot_init failed (%i)", ret);
@@ -167,6 +169,10 @@ void DShot::enable_dshot_outputs(const bool enabled)
 		}
 
 		_outputs_initialized = true;
+
+		if (_bdshot) {
+			init_telemetry(NULL);
+		}
 	}
 
 	if (_outputs_initialized) {
@@ -206,17 +212,20 @@ void DShot::init_telemetry(const char *device)
 
 	_telemetry->esc_status_pub.advertise();
 
-	int ret = _telemetry->handler.init(device);
+	if (device != NULL) {
+		int ret = _telemetry->handler.init(device);
 
-	if (ret != 0) {
-		PX4_ERR("telemetry init failed (%i)", ret);
+		if (ret != 0) {
+			PX4_ERR("telemetry init failed (%i)", ret);
+		}
 	}
 
 	update_telemetry_num_motors();
 }
 
-void DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data)
+int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data)
 {
+	int ret = 0;
 	// fill in new motor data
 	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
 
@@ -243,7 +252,7 @@ void DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTele
 		esc_status.esc_online_flags = (1 << esc_status.esc_count) - 1;
 		esc_status.esc_armed_flags = (1 << esc_status.esc_count) - 1;
 
-		_telemetry->esc_status_pub.update();
+		ret = 1; // Indicate we wrapped, so we publish data
 
 		// reset esc data (in case a motor times out, so we won't send stale data)
 		memset(&esc_status.esc, 0, sizeof(_telemetry->esc_status_pub.get().esc));
@@ -251,6 +260,35 @@ void DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTele
 	}
 
 	_telemetry->last_telemetry_index = telemetry_index;
+
+	return ret;
+}
+
+int DShot::handle_new_bdshot_erpm(void)
+{
+	int num_erpms = 0;
+	int erpm;
+	uint8_t channel;
+	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
+
+	esc_status.timestamp = hrt_absolute_time();
+	esc_status.counter = _esc_status_counter++;
+	esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
+	esc_status.esc_armed_flags = _outputs_on;
+
+	for (channel = 0; channel < 8; channel++) {
+		if (up_bdshot_get_erpm(channel, &erpm) == 0) {
+			num_erpms++;
+			esc_status.esc[channel].timestamp = hrt_absolute_time();
+			esc_status.esc[channel].esc_rpm = (erpm * 100) /
+							  (_param_mot_pole_count.get() / 2);
+		}
+
+	}
+
+	esc_status.esc_count = num_erpms;
+
+	return num_erpms;
 }
 
 int DShot::send_command_thread_safe(const dshot_command_t command, const int num_repetitions, const int motor_index)
@@ -463,6 +501,7 @@ void DShot::Run()
 
 	if (_telemetry) {
 		int telem_update = _telemetry->handler.update();
+		int need_to_publish = 0;
 
 		// Are we waiting for ESC info?
 		if (_waiting_for_esc_info) {
@@ -472,9 +511,20 @@ void DShot::Run()
 			}
 
 		} else if (telem_update >= 0) {
-			handle_new_telemetry_data(telem_update, _telemetry->handler.latestESCData());
+			need_to_publish = handle_new_telemetry_data(telem_update, _telemetry->handler.latestESCData());
+		}
+
+		if (_bdshot) {
+			// Add bdshot data to esc status
+			need_to_publish += handle_new_bdshot_erpm();
+		}
+
+		if (need_to_publish > 0) {
+			// ESC telem wrap around or bdshot update
+			_telemetry->esc_status_pub.update();
 		}
 	}
+
 
 	if (_parameter_update_sub.updated()) {
 		update_params();
@@ -712,6 +762,9 @@ int DShot::print_status()
 		PX4_INFO("telemetry on: %s", _telemetry_device);
 		_telemetry->handler.printStatus();
 	}
+
+	/* Print dshot status */
+	up_bdshot_status();
 
 	return 0;
 }
