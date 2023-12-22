@@ -91,7 +91,7 @@ typedef enum {
  * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, DSHOT600 or DSHOT1200
  * @return <0 on error, the initialized channels mask.
  */
-__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq);
+__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot);
 
 /**
  * Set Dshot motor data, used by up_dshot_motor_data_set() and up_dshot_motor_command() (internal method)
@@ -136,5 +136,20 @@ __EXPORT extern void up_dshot_trigger(void);
  *			are disarmed.
  */
 __EXPORT extern int up_dshot_arm(bool armed);
+
+/**
+ * Print bidrectional dshot status
+ */
+__EXPORT extern void up_bdshot_status(void);
+
+
+/**
+ * Get bidrectional dshot erpm for a channel
+ * @param channel	Dshot channel
+ * @param erpm		pointer to write the erpm value
+ * @return <0 on error, OK on succes
+ */
+__EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
+
 
 __END_DECLS
