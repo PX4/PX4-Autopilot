@@ -127,7 +127,7 @@ bool UxrceddsClient::init()
 	deinit();
 
 	if (_transport == Transport::Serial) {
-		int fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+		int fd = open(_device, O_RDWR | O_NOCTTY);
 
 		if (fd < 0) {
 			PX4_ERR("open %s failed (%i)", _device, errno);
@@ -187,15 +187,15 @@ bool UxrceddsClient::init()
 
 void UxrceddsClient::deinit()
 {
-	if (_fd >= 0) {
-		close(_fd);
-		_fd = -1;
-	}
-
 	if (_transport_serial) {
 		uxr_close_serial_transport(_transport_serial);
 		delete _transport_serial;
 		_transport_serial = nullptr;
+	}
+
+	if (_fd >= 0) {
+		close(_fd);
+		_fd = -1;
 	}
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
@@ -218,22 +218,10 @@ UxrceddsClient::~UxrceddsClient()
 
 	delete_repliers();
 
-	if (_transport_serial) {
-		uxr_close_serial_transport(_transport_serial);
-		delete _transport_serial;
-	}
+	deinit();
 
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
-
-#if defined(UXRCE_DDS_CLIENT_UDP)
-
-	if (_transport_udp) {
-		uxr_close_udp_transport(_transport_udp);
-		delete _transport_udp;
-	}
-
-#endif // UXRCE_DDS_CLIENT_UDP
 }
 
 static void fillMessageFormatResponse(const message_format_request_s &message_format_request,
@@ -522,18 +510,8 @@ void UxrceddsClient::run()
 			perf_begin(_loop_perf);
 			perf_count(_loop_interval_perf);
 
-			int orb_poll_timeout_ms = 10;
-
-			int bytes_available = 0;
-
-			if (ioctl(_fd, FIONREAD, (unsigned long)&bytes_available) == OK) {
-				if (bytes_available > 10) {
-					orb_poll_timeout_ms = 0;
-				}
-			}
-
 			/* Wait for topic updates for max 10 ms */
-			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), orb_poll_timeout_ms);
+			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), 10);
 
 			/* Handle the poll results */
 			if (poll > 0) {
