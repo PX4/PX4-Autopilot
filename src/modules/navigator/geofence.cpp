@@ -291,11 +291,9 @@ bool Geofence::checkMissionRequirementsForGeofence(const PolygonInfo &polygon)
 		//missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 		checks_pass = checkPointAgainstPolygonCircle(polygon,missionitem.lat, missionitem.lon, missionitem.altitude);
 		if (!checks_pass) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, against mission waypoint {1}\t",i+1);
-		events::send(events::ID("navigator_geofence_invalid_against_mission"), {events::Log::Critical, events::LogInternal::Warning},
-			     "Geofence invalid, against mission");
-
-
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, against mission waypoint %zu\t",i + 1);
+		events::send<int16_t>(events::ID("navigator_geofence_invalid_against_mission"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Geofence invalid, against mission waypoint {1} ",i + 1);
 		break;
 		}
 	}
