@@ -22,6 +22,7 @@ import os
 #include <ucdr/microcdr.h>
 
 #include <mathlib/mathlib.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/uORB.h>
@@ -29,8 +30,6 @@ import os
 #include <uORB/ucdr/@(include).h>
 #include <uORB/topics/@(include).h>
 @[end for]@
-
-#define UXRCE_DEFAULT_POLL_RATE 10
 
 typedef bool (*UcdrSerializeMethod)(const void* data, ucdrBuffer& buf, int64_t time_offset);
 
@@ -40,7 +39,7 @@ static_assert(sizeof(@(pub['simple_base_type'])_s) <= max_topic_size, "topic too
 @[    end for]@
 
 struct SendSubscription {
-	const struct orb_metadata *orb_meta;
+	uORB::Subscription subscription;
 	uxrObjectId data_writer;
 	const char* dds_type_name;
 	uint32_t topic_size;
@@ -51,7 +50,7 @@ struct SendSubscription {
 struct SendTopicsSubs {
 	SendSubscription send_subscriptions[@(len(publications))] = {
 @[    for pub in publications]@
-			{ ORB_ID(@(pub['topic_simple'])),
+			{ uORB::Subscription(ORB_ID(@(pub['topic_simple']))),
 			  uxr_object_id(0, UXR_INVALID_ID),
 			  "@(pub['dds_type'])",
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
@@ -60,23 +59,12 @@ struct SendTopicsSubs {
 @[    end for]@
 	};
 
-	px4_pollfd_struct_t fds[@(len(publications))] {};
-
 	uint32_t num_payload_sent{};
 	uint32_t num_tx_buffer_overruns{};
 
-	void init();
-	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace, int fd);
+	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace);
 	void reset();
 };
-
-void SendTopicsSubs::init() {
-	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
-		fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
-		fds[idx].events = POLLIN;
-		orb_set_interval(fds[idx].fd, UXRCE_DEFAULT_POLL_RATE);
-	}
-}
 
 void SendTopicsSubs::reset() {
 	num_payload_sent = 0;
@@ -85,19 +73,17 @@ void SendTopicsSubs::reset() {
 	}
 };
 
-void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace, int fd)
+void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace)
 {
 	int64_t time_offset_us = session->time_offset / 1000; // ns -> us
 
 	alignas(sizeof(uint64_t)) char topic_data[max_topic_size];
 
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
-		if (fds[idx].revents & POLLIN) {
-			// Topic updated, copy data and send
-			orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
+		if (send_subscriptions[idx].subscription.update(&topic_data)) {
 			if (send_subscriptions[idx].data_writer.id == UXR_INVALID_ID) {
 				// data writer not created yet
-				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].orb_meta->o_name,
+				create_data_writer(session, reliable_out_stream_id, participant_id, send_subscriptions[idx].subscription.orb_id(), client_namespace, send_subscriptions[idx].subscription.get_topic()->o_name,
 								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
 			}
 
@@ -108,24 +94,8 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 				if (uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub, topic_size) != UXR_INVALID_REQUEST_ID) {
 					send_subscriptions[idx].ucdr_serialize_method(&topic_data, ub, time_offset_us);
 					// TODO: fill up the MTU and then flush, which reduces the packet overhead
-
-					uint32_t buf_free = 0;
-#if defined(__PX4_NUTTX)
-					(void) ioctl(fd, FIONSPACE, (unsigned long)&buf_free);
-#else
-					// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
-					//Linux cp210x does not support TIOCOUTQ
-					buf_free = max_topic_size;
-#endif
-
-					if (topic_size > buf_free) {
-						//PX4_ERR("Error topic_size > buf_free %s", send_subscriptions[idx].subscription.get_topic()->o_name);
-						num_tx_buffer_overruns += (topic_size - buf_free);
-						continue;
-					} else {
-						uxr_flash_output_streams(session);
-						num_payload_sent += topic_size;
-					}
+					uxr_flash_output_streams(session);
+					num_payload_sent += topic_size;
 				} else {
 					//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
 				}

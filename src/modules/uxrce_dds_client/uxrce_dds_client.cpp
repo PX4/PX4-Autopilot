@@ -127,7 +127,7 @@ bool UxrceddsClient::init()
 	deinit();
 
 	if (_transport == Transport::Serial) {
-		int fd = open(_device, O_RDWR | O_NOCTTY);
+		int fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 		if (fd < 0) {
 			PX4_ERR("open %s failed (%i)", _device, errno);
@@ -503,33 +503,13 @@ void UxrceddsClient::run()
 		bool had_ping_reply = false;
 		uint32_t last_num_payload_sent{};
 		uint32_t last_num_payload_received{};
-		int poll_error_counter = 0;
-
-		_subs->init();
 
 		while (!should_exit() && _connected) {
 
 			perf_begin(_loop_perf);
 			perf_count(_loop_interval_perf);
 
-			/* Wait for topic updates for max 10 ms */
-			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), 10);
-
-			/* Handle the poll results */
-			if (poll > 0) {
-				_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace, _fd);
-
-			} else {
-				if (poll < 0) {
-					// poll error
-					if (poll_error_counter < 10 || poll_error_counter % 50 == 0) {
-						// prevent flooding
-						PX4_ERR("ERROR while polling uorbs: %d", poll);
-					}
-
-					poll_error_counter++;
-				}
-			}
+			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
 
 			// run session with 0 timeout (non-blocking)
 			bool ret = uxr_run_session_timeout(&session, 0);
@@ -579,39 +559,35 @@ void UxrceddsClient::run()
 				_last_payload_rx_rate = (_pubs->num_payload_received - last_num_payload_received) / dt;
 				last_num_payload_sent = _subs->num_payload_sent;
 				last_num_payload_received = _pubs->num_payload_received;
-				_num_tx_buffer_overruns = _subs->num_tx_buffer_overruns;
 				last_status_update = now;
 			}
 
-			// Handle ping, unless we're actively sending & receiving payloads successfully
-			if ((_last_payload_tx_rate > 0) && (_last_payload_rx_rate > 0)) {
-				_connected = true;
-				num_pings_missed = 0;
+			// Handle ping to verify full tx and rx loop
+			if (hrt_elapsed_time(&last_ping) > 1_s) {
 				last_ping = now;
 
-			} else {
-				if (hrt_elapsed_time(&last_ping) > 1_s) {
-					last_ping = now;
+				if (had_ping_reply) {
+					num_pings_missed = 0;
 
-					if (had_ping_reply) {
-						num_pings_missed = 0;
+				} else {
+					++num_pings_missed;
 
-					} else {
-						++num_pings_missed;
+					if (num_pings_missed > _max_pings_missed) {
+						_max_pings_missed = num_pings_missed;
 					}
-
-					int timeout_ms = 1'000; // 1 second
-					uint8_t attempts = 1;
-					uxr_ping_agent_session(&session, timeout_ms, attempts);
-
-					had_ping_reply = false;
 				}
 
-				if (num_pings_missed >= 3) {
-					PX4_INFO("No ping response, disconnecting");
-					_connected = false;
-				}
+				int timeout_ms = 20;
+				uint8_t attempts = 1;
+				had_ping_reply = uxr_ping_agent_session(&session, timeout_ms, attempts);
 			}
+
+			if (num_pings_missed > 20) {
+				PX4_INFO("No ping response, disconnecting");
+				_connected = false;
+			}
+
+			px4_usleep(1000);
 
 			perf_end(_loop_perf);
 
@@ -850,9 +826,9 @@ int UxrceddsClient::print_status()
 	if (_connected) {
 		PX4_INFO("Payload tx:          %i B/s", _last_payload_tx_rate);
 		PX4_INFO("Payload rx:          %i B/s", _last_payload_rx_rate);
-		PX4_INFO("Payload tx buffer overruns: %i B", _num_tx_buffer_overruns);
 	}
 
+	PX4_INFO("Max pings missed:    %i", _max_pings_missed);
 	PX4_INFO("timesync converged: %s", _timesync.sync_converged() ? "true" : "false");
 
 	perf_print_counter(_loop_perf);

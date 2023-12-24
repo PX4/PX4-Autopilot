@@ -167,7 +167,7 @@ private:
 
 	int _last_payload_tx_rate{}; ///< in B/s
 	int _last_payload_rx_rate{}; ///< in B/s
-	int _num_tx_buffer_overruns{}; ///< in B
+	int _max_pings_missed{0}; ///< maximum number of pings missed
 	bool _connected{false};
 
 	bool _timesync_converged{false};
