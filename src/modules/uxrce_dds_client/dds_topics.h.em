@@ -63,9 +63,10 @@ struct SendTopicsSubs {
 	px4_pollfd_struct_t fds[@(len(publications))] {};
 
 	uint32_t num_payload_sent{};
+	uint32_t num_tx_buffer_overruns{};
 
 	void init();
-	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace);
+	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace, int fd);
 	void reset();
 };
 
@@ -84,7 +85,7 @@ void SendTopicsSubs::reset() {
 	}
 };
 
-void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace)
+void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace, int fd)
 {
 	int64_t time_offset_us = session->time_offset / 1000; // ns -> us
 
@@ -107,9 +108,24 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 				if (uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub, topic_size) != UXR_INVALID_REQUEST_ID) {
 					send_subscriptions[idx].ucdr_serialize_method(&topic_data, ub, time_offset_us);
 					// TODO: fill up the MTU and then flush, which reduces the packet overhead
-					uxr_flash_output_streams(session);
-					num_payload_sent += topic_size;
 
+					uint32_t buf_free = 0;
+#if defined(__PX4_NUTTX)
+					(void) ioctl(fd, FIONSPACE, (unsigned long)&buf_free);
+#else
+					// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
+					//Linux cp210x does not support TIOCOUTQ
+					buf_free = max_topic_size;
+#endif
+
+					if (topic_size > buf_free) {
+						//PX4_ERR("Error topic_size > buf_free %s", send_subscriptions[idx].subscription.get_topic()->o_name);
+						num_tx_buffer_overruns += (topic_size - buf_free);
+						continue;
+					} else {
+						uxr_flash_output_streams(session);
+						num_payload_sent += topic_size;
+					}
 				} else {
 					//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID %s", send_subscriptions[idx].subscription.get_topic()->o_name);
 				}

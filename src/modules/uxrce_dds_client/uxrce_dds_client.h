@@ -167,6 +167,7 @@ private:
 
 	int _last_payload_tx_rate{}; ///< in B/s
 	int _last_payload_rx_rate{}; ///< in B/s
+	int _num_tx_buffer_overruns{}; ///< in B
 	bool _connected{false};
 
 	bool _timesync_converged{false};

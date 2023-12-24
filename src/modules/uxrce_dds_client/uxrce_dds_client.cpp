@@ -153,6 +153,7 @@ bool UxrceddsClient::init()
 		}
 
 		PX4_ERR("init serial %s @ %d baud failed", _device, _baudrate);
+		tcflush(fd, TCIOFLUSH);
 		close(fd);
 
 		delete _transport_serial;
@@ -194,6 +195,7 @@ void UxrceddsClient::deinit()
 	}
 
 	if (_fd >= 0) {
+		tcflush(_fd, TCIOFLUSH);
 		close(_fd);
 		_fd = -1;
 	}
@@ -515,7 +517,7 @@ void UxrceddsClient::run()
 
 			/* Handle the poll results */
 			if (poll > 0) {
-				_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
+				_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace, _fd);
 
 			} else {
 				if (poll < 0) {
@@ -530,7 +532,11 @@ void UxrceddsClient::run()
 			}
 
 			// run session with 0 timeout (non-blocking)
-			uxr_run_session_timeout(&session, 0);
+			bool ret = uxr_run_session_timeout(&session, 0);
+
+			if (!ret) {
+				PX4_ERR("uxr_run_session_timeout failed");
+			}
 
 			// check if there are available replies
 			process_replies();
@@ -573,6 +579,7 @@ void UxrceddsClient::run()
 				_last_payload_rx_rate = (_pubs->num_payload_received - last_num_payload_received) / dt;
 				last_num_payload_sent = _subs->num_payload_sent;
 				last_num_payload_received = _pubs->num_payload_received;
+				_num_tx_buffer_overruns = _subs->num_tx_buffer_overruns;
 				last_status_update = now;
 			}
 
@@ -843,6 +850,7 @@ int UxrceddsClient::print_status()
 	if (_connected) {
 		PX4_INFO("Payload tx:          %i B/s", _last_payload_tx_rate);
 		PX4_INFO("Payload rx:          %i B/s", _last_payload_rx_rate);
+		PX4_INFO("Payload tx buffer overruns: %i B", _num_tx_buffer_overruns);
 	}
 
 	PX4_INFO("timesync converged: %s", _timesync.sync_converged() ? "true" : "false");
