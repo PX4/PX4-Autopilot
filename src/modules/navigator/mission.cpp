@@ -322,8 +322,7 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 
 		_mission_item.lat = _global_pos_sub.get().lat;
 		_mission_item.lon = _global_pos_sub.get().lon;
-		/* hold heading for takeoff items */
-		_mission_item.yaw = _navigator->get_local_position()->heading;
+		_mission_item.yaw = NAN; // FlightTaskAuto handles yaw directly
 		_mission_item.altitude = _mission_init_climb_altitude_amsl;
 		_mission_item.altitude_is_relative = false;
 		_mission_item.autocontinue = true;
@@ -366,9 +365,6 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
 
-		/* disable weathervane before front transition for allowing yaw to align */
-		pos_sp_triplet->current.disable_weather_vane = true;
-
 		/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
 		_mission_item.yaw = get_bearing_to_next_waypoint(
 					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
@@ -389,16 +385,13 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
 
-		/* re-enable weather vane again after alignment */
-		pos_sp_triplet->current.disable_weather_vane = false;
-
 		/* check if the vtol_takeoff waypoint is on top of us */
 		if (do_need_move_to_takeoff()) {
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 		}
 
 		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-		_mission_item.yaw = _navigator->get_local_position()->heading;
+		_mission_item.yaw = NAN;
 
 		// keep current setpoints (FW position controller generates wp to track during transition)
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -428,9 +421,6 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 	    && !_land_detected_sub.get().landed
 	    && (num_found_items > 0u)) {
 
-		/* disable weathervane before front transition for allowing yaw to align */
-		pos_sp_triplet->current.disable_weather_vane = true;
-
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
 
 		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
@@ -444,9 +434,6 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 	    new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-
-		/* re-enable weather vane again after alignment */
-		pos_sp_triplet->current.disable_weather_vane = false;
 
 		pos_sp_triplet->previous = pos_sp_triplet->current;
 		// keep current setpoints (FW position controller generates wp to track during transition)

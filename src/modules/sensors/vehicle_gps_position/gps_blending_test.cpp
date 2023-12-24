@@ -235,16 +235,14 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 	const float duration_s = 10.f;
 	runSeconds(duration_s, gps_blending, gps_data1, 1);
 
-	// THEN: the primary instance should be selected even if
-	// not available. No data is then available
-	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+	// THEN: the secondary instance as the primary one is not available
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 	EXPECT_EQ(gps_blending.getNumberOfGpsSuitableForBlending(), 1);
-	EXPECT_FALSE(gps_blending.isNewOutputDataAvailable());
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 
 	// BUT WHEN: the data of the primary receiver is avaialbe
 	sensor_gps_s gps_data0 = getDefaultGpsData();
-	gps_blending.setGpsData(gps_data0, 0);
-	gps_blending.update(_time_now_us);
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
 
 	// THEN: the primary instance is selected and the data
 	// is available
@@ -273,6 +271,24 @@ TEST_F(GpsBlendingTest, dualReceiverFailover)
 
 	// THEN: the primary receiver should be used again
 	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
+
+	// BUT IF: the secondary receiver has better metrics than the primary one
+	gps_data1.satellites_used = gps_data0.satellites_used + 2;
+
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the selector shouldn't switch again as the primary one is available
+	EXPECT_EQ(gps_blending.getSelectedGps(), 0);
+	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
+
+	// BUT IF: the primary receiver looses its fix
+	gps_data0.fix_type = 1;
+
+	runSeconds(1.f, gps_blending, gps_data0, gps_data1);
+
+	// THEN: the selector should switch as the primary one is unable to provide correct data
+	EXPECT_EQ(gps_blending.getSelectedGps(), 1);
 	EXPECT_TRUE(gps_blending.isNewOutputDataAvailable());
 }
 

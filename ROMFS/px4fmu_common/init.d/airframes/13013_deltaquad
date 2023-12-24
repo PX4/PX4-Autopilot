@@ -28,13 +28,13 @@ param set-default BAT1_CAPACITY 23000
 param set-default BAT1_N_CELLS 4
 param set-default BAT1_R_INTERNAL 0.0025
 
-param set-default CBRK_AIRSPD_CHK 162128
+param set-default SYS_HAS_NUM_ASPD 0
 param set-default CBRK_IO_SAFETY 22027
 
 param set-default EKF2_GPS_POS_X -0.12
 param set-default EKF2_IMU_POS_X -0.12
 
-param set-default FW_ARSP_MODE 1
+param set-default FW_USE_AIRSPD 0
 param set-default NPFG_PERIOD 25
 param set-default FW_PR_FF 0.7
 param set-default FW_PR_I 0.18

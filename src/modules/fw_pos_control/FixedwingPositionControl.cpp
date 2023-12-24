@@ -59,9 +59,6 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	, _figure_eight(_npfg, _wind_vel, _eas2tas)
 #endif // CONFIG_FIGURE_OF_EIGHT
 {
-	if (vtol) {
-		_param_handle_airspeed_trans = param_find("VT_ARSP_TRANS");
-	}
 
 	// limit to 50 Hz
 	_local_pos_sub.set_interval_ms(20);
@@ -80,7 +77,6 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	/* fetch initial parameter values */
 	parameters_update();
 
-	_airspeed_slew_rate_controller.setForcedValue(_performance_model.getCalibratedTrimAirspeed());
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 	_roll_slew_rate.setForcedValue(0.f);
 
@@ -110,11 +106,6 @@ FixedwingPositionControl::parameters_update()
 	_performance_model.updateParameters();
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
-
-	// VTOL parameter VT_ARSP_TRANS
-	if (_param_handle_airspeed_trans != PARAM_INVALID) {
-		param_get(_param_handle_airspeed_trans, &_param_airspeed_trans);
-	}
 
 	// NPFG parameters
 	_npfg.setPeriod(_param_npfg_period.get());
@@ -214,20 +205,23 @@ FixedwingPositionControl::airspeed_poll()
 	bool airspeed_valid = _airspeed_valid;
 	airspeed_validated_s airspeed_validated;
 
-	if ((_param_fw_arsp_mode.get() == 0) && _airspeed_validated_sub.update(&airspeed_validated)) {
+	if (_param_fw_use_airspd.get() && _airspeed_validated_sub.update(&airspeed_validated)) {
 
 		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
 		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-		    && (airspeed_validated.calibrated_airspeed_m_s > 0.0f)) {
+		    && (airspeed_validated.calibrated_airspeed_m_s > FLT_EPSILON)) {
 
 			airspeed_valid = true;
 
 			_time_airspeed_last_valid = airspeed_validated.timestamp;
-			_airspeed = airspeed_validated.calibrated_airspeed_m_s;
+			_airspeed_eas = airspeed_validated.calibrated_airspeed_m_s;
 
 			_eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s, 0.9f, 2.0f);
+
+		} else {
+			airspeed_valid = false;
 		}
 
 	} else {
@@ -391,17 +385,20 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 	calibrated_airspeed_setpoint = constrain(calibrated_airspeed_setpoint, calibrated_min_airspeed,
 				       _performance_model.getMaximumCalibratedAirspeed());
 
-	if (!PX4_ISFINITE(_airspeed_slew_rate_controller.getState())) {
-		_airspeed_slew_rate_controller.setForcedValue(calibrated_airspeed_setpoint);
+	// initialize the airspeed setpoint to the max(current airsped, min airspeed)
+	if (!PX4_ISFINITE(_airspeed_slew_rate_controller.getState())
+	    || !_tecs_is_running) {
+		_airspeed_slew_rate_controller.setForcedValue(math::max(calibrated_min_airspeed, _airspeed_eas));
+	}
+
+	// reset the airspeed setpoint to the min airspeed if the min airspeed changes while in operation
+	if (_airspeed_slew_rate_controller.getState() < calibrated_min_airspeed) {
+		_airspeed_slew_rate_controller.setForcedValue(calibrated_min_airspeed);
 	}
 
 	if (control_interval > FLT_EPSILON) {
 		// constrain airspeed setpoint changes with slew rate of ASPD_SP_SLEW_RATE m/s/s
 		_airspeed_slew_rate_controller.update(calibrated_airspeed_setpoint, control_interval);
-	}
-
-	if (_airspeed_slew_rate_controller.getState() < calibrated_min_airspeed) {
-		_airspeed_slew_rate_controller.setForcedValue(calibrated_min_airspeed);
 	}
 
 	if (_airspeed_slew_rate_controller.getState() > _performance_model.getMaximumCalibratedAirspeed()) {
@@ -648,7 +645,7 @@ void
 FixedwingPositionControl::updateManualTakeoffStatus()
 {
 	if (!_completed_manual_takeoff) {
-		const bool at_controllable_airspeed = _airspeed > _performance_model.getMinimumCalibratedAirspeed(getLoadFactor())
+		const bool at_controllable_airspeed = _airspeed_eas > _performance_model.getMinimumCalibratedAirspeed(getLoadFactor())
 						      || !_airspeed_valid;
 		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					 && _control_mode.flag_armed;
@@ -1372,7 +1369,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_runway_takeoff.forceSetFlyState();
 		}
 
-		_runway_takeoff.update(now, takeoff_airspeed, _airspeed, _current_altitude - _takeoff_ground_alt,
+		_runway_takeoff.update(now, takeoff_airspeed, _airspeed_eas, _current_altitude - _takeoff_ground_alt,
 				       clearance_altitude_amsl - _takeoff_ground_alt);
 
 		// yaw control is disabled once in "taking off" state
@@ -2516,48 +2513,14 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		const float desired_max_sinkrate, const float desired_max_climbrate,
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
-	_tecs_is_running = true;
-
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
-	// (it should also not run during VTOL blending because airspeed is too low still)
-	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
-			_tecs_is_running = false;
-		}
-
-		if (_vehicle_status.in_transition_mode) {
-			// we're in transition
-			_was_in_transition = true;
-
-			// set this to transition airspeed to init tecs correctly
-			if (_param_fw_arsp_mode.get() == 1 && PX4_ISFINITE(_param_airspeed_trans)) {
-				// some vtols fly without airspeed sensor
-				_airspeed_after_transition = _param_airspeed_trans;
-
-			} else {
-				_airspeed_after_transition = _airspeed;
-			}
-
-			_airspeed_after_transition = constrain(_airspeed_after_transition,
-							       _performance_model.getMinimumCalibratedAirspeed(getLoadFactor()),
-							       _performance_model.getMaximumCalibratedAirspeed());
-
-		} else if (_was_in_transition) {
-			// after transition we ramp up desired airspeed from the speed we had coming out of the transition
-			_airspeed_after_transition += control_interval * 2.0f; // increase 2m/s
-
-			if (_airspeed_after_transition < airspeed_sp && _airspeed < airspeed_sp) {
-				airspeed_sp = max(_airspeed_after_transition, _airspeed);
-
-			} else {
-				_was_in_transition = false;
-				_airspeed_after_transition = 0.0f;
-			}
-		}
-	}
-
-	if (!_tecs_is_running) {
+	if (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					|| _vehicle_status.in_transition_mode)) {
+		_tecs_is_running = false;
 		return;
+
+	} else {
+		_tecs_is_running = true;
 	}
 
 	/* update TECS vehicle state estimates */
@@ -2575,7 +2538,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     _current_altitude,
 		     alt_sp,
 		     airspeed_sp,
-		     _airspeed,
+		     _airspeed_eas,
 		     _eas2tas,
 		     throttle_min,
 		     throttle_max,

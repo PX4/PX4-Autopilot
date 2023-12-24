@@ -42,4 +42,6 @@ param set-default MPC_MAN_Y_MAX 90
 
 param set-default RTL_TYPE 1
 
+param set-default SYS_HAS_NUM_ASPD 1 # by default require an airspeed sensor
+
 param set-default WV_EN 1

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,21 +33,56 @@
 
 #pragma once
 
-#include "ActuatorEffectiveness.hpp"
+#include <lib/mixer_module/mixer_module.hpp>
 
-class ActuatorEffectivenessRoverDifferential: public ActuatorEffectiveness
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
+
+
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/wheel_encoders.h>
+
+
+// GZBridge mixing class for Wheels.
+// It is separate from GZBridge to have separate WorkItems and therefore allowing independent scheduling
+// All work items are expected to run on the same work queue.
+class GZMixingInterfaceWheel : public OutputModuleInterface
 {
 public:
-	ActuatorEffectivenessRoverDifferential() = default;
-	virtual ~ActuatorEffectivenessRoverDifferential() = default;
+	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+	GZMixingInterfaceWheel(gz::transport::Node &node, pthread_mutex_t &node_mutex) :
+		OutputModuleInterface(MODULE_NAME "-actuators-wheel", px4::wq_configurations::rate_ctrl),
+		_node(node),
+		_node_mutex(node_mutex)
+	{}
 
-	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+	bool updateOutputs(bool stop_wheels, uint16_t outputs[MAX_ACTUATORS],
+			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
-	const char *name() const override { return "Rover (Differential)"; }
+	MixingOutput &mixingOutput() { return _mixing_output; }
+
+	bool init(const std::string &model_name);
+
+	void stop()
+	{
+		_mixing_output.unregister();
+		ScheduleClear();
+	}
+
 private:
-	uint32_t _motors_mask{};
+	friend class GZBridge;
+
+	void Run() override;
+
+	void wheelSpeedCallback(const gz::msgs::Actuators &actuators);
+
+	gz::transport::Node &_node;
+	pthread_mutex_t &_node_mutex;
+
+	MixingOutput _mixing_output{"SIM_GZ_WH", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+
+	gz::transport::Node::Publisher _actuators_pub;
+
+	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};
 };

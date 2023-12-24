@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,54 @@
  *
  ****************************************************************************/
 
-#include "ActuatorEffectivenessRoverDifferential.hpp"
-#include <ControlAllocation/ControlAllocation.hpp>
+#pragma once
 
-using namespace matrix;
+#include <matrix/matrix/math.hpp>
 
-bool
-ActuatorEffectivenessRoverDifferential::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
+/**
+ * @brief Differential Drive Kinematics class for computing the kinematics of a differential drive robot.
+ *
+ * This class provides functions to set the wheel base and radius, and to compute the inverse kinematics
+ * given linear velocity and yaw rate.
+ */
+class DifferentialDriveKinematics
 {
-	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
-		return false;
-	}
+public:
+	DifferentialDriveKinematics() = default;
+	~DifferentialDriveKinematics() = default;
 
-	configuration.addActuator(ActuatorType::MOTORS, Vector3f{0.f, 0.f, 0.5f}, Vector3f{0.5f, 0.f, 0.f});
-	configuration.addActuator(ActuatorType::MOTORS, Vector3f{0.f, 0.f, -0.5f}, Vector3f{0.5f, 0.f, 0.f});
-	_motors_mask = (1u << 0) | (1u << 1);
-	return true;
-}
+	/**
+	 * @brief Sets the wheel base of the robot.
+	 *
+	 * @param wheel_base The distance between the centers of the wheels.
+	 */
+	void setWheelBase(const float wheel_base) { _wheel_base = wheel_base; };
 
-void ActuatorEffectivenessRoverDifferential::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
-		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
-{
-	stopMaskedMotorsWithZeroThrust(_motors_mask, actuator_sp);
-}
+	/**
+	 * @brief Sets the maximum speed of the robot.
+	 *
+	 * @param max_speed The maximum speed of the robot.
+	 */
+	void setMaxSpeed(const float max_speed) { _max_speed = max_speed; };
 
+	/**
+	 * @brief Sets the maximum angular speed of the robot.
+	 *
+	 * @param max_angular_speed The maximum angular speed of the robot.
+	 */
+	void setMaxAngularVelocity(const float max_angular_velocity) { _max_angular_velocity = max_angular_velocity; };
+
+	/**
+	 * @brief Computes the inverse kinematics for differential drive.
+	 *
+	 * @param linear_velocity_x Linear velocity along the x-axis.
+	 * @param yaw_rate Yaw rate of the robot.
+	 * @return matrix::Vector2f Motor velocities for the right and left motors.
+	 */
+	matrix::Vector2f computeInverseKinematics(float linear_velocity_x, float yaw_rate);
+
+private:
+	float _wheel_base{0.f};
+	float _max_speed{0.f};
+	float _max_angular_velocity{0.f};
+};

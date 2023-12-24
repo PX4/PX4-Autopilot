@@ -360,8 +360,8 @@ private:
 
 	// AIRSPEED
 
-	float _airspeed{0.0f};
-	float _eas2tas{1.0f};
+	float _airspeed_eas{0.f};
+	float _eas2tas{1.f};
 	bool _airspeed_valid{false};
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
 
@@ -384,13 +384,8 @@ private:
 
 	bool _tecs_is_running{false};
 	// VTOL / TRANSITION
-
-	float _airspeed_after_transition{0.0f};
-	bool _was_in_transition{false};
 	bool _is_vtol_tailsitter{false};
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
-	param_t _param_handle_airspeed_trans{PARAM_INVALID};
-	float _param_airspeed_trans{NAN}; // [m/s]
 
 	// ESTIMATOR RESET COUNTERS
 
@@ -959,7 +954,7 @@ private:
 		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
 
 		// external parameters
-		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
+		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 

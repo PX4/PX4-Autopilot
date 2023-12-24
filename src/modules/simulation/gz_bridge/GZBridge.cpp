@@ -226,6 +226,11 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	if (!_mixing_interface_wheel.init(_model_name)) {
+		PX4_ERR("failed to init motor output");
+		return PX4_ERROR;
+	}
+
 	ScheduleNow();
 	return OK;
 }
@@ -724,6 +729,7 @@ void GZBridge::Run()
 
 		_mixing_interface_esc.stop();
 		_mixing_interface_servo.stop();
+		_mixing_interface_wheel.stop();
 
 		exit_and_cleanup();
 		return;
@@ -739,6 +745,7 @@ void GZBridge::Run()
 
 		_mixing_interface_esc.updateParams();
 		_mixing_interface_servo.updateParams();
+		_mixing_interface_wheel.updateParams();
 	}
 
 	ScheduleDelayed(10_ms);
@@ -753,6 +760,9 @@ int GZBridge::print_status()
 
 	PX4_INFO_RAW("Servo outputs:\n");
 	_mixing_interface_servo.mixingOutput().printStatus();
+
+	PX4_INFO_RAW("Wheel outputs:\n");
+	_mixing_interface_wheel.mixingOutput().printStatus();
 
 	return 0;
 }

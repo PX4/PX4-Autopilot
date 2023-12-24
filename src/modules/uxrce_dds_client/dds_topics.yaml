@@ -127,6 +127,9 @@ subscriptions:
   - topic: /fmu/in/vehicle_rates_setpoint
     type: px4_msgs::msg::VehicleRatesSetpoint
 
+  - topic: /fmu/in/differential_drive_setpoint
+    type: px4_msgs::msg::DifferentialDriveSetpoint
+
   - topic: /fmu/in/vehicle_visual_odometry
     type: px4_msgs::msg::VehicleOdometry
 
