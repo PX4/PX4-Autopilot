@@ -151,12 +151,13 @@ void task_main(int argc, char *argv[])
 #endif
 
 		uint8_t protocol_version = rx_buf[1] & 0x0F;
+
 		if (newbytes <= 0) {
 			if (print_msg) { PX4_INFO("Spektrum RC: Read no bytes from UART"); }
 
 		} else if (((newbytes != DSM_FRAME_SIZE) ||
-					((protocol_version != 0x02) && (protocol_version != 0x01))) &&
-				   (! first_correct_frame_received)) {
+			    ((protocol_version != 0x02) && (protocol_version != 0x01))) &&
+			   (! first_correct_frame_received)) {
 			PX4_ERR("Spektrum RC: Invalid DSM frame. %d bytes. Protocol byte 0x%.2x",
 				newbytes, rx_buf[1]);
 

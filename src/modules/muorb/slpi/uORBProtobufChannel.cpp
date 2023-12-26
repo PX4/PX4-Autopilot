@@ -483,7 +483,8 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 }
 
 
-float px4muorb_get_cpu_load(void) {
+float px4muorb_get_cpu_load(void)
+{
 
 	// Default value to return if the SLPI code doesn't support
 	// queries for the CPU load
@@ -497,6 +498,7 @@ float px4muorb_get_cpu_load(void) {
 		// isn't supported the only return values can be 0 or -1. If it is
 		// supported then it will be some positive integer.
 		int16_t int_cpu_load = channel->add_subscription("CPULOAD", 0);
+
 		if (int_cpu_load > 1) {
 			// Yay! CPU Load query is supported!
 			cpu_load = (float) int_cpu_load;

@@ -179,36 +179,46 @@ handle_message_dsp(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_HIL_SENSOR:
 		handle_message_hil_sensor_dsp(msg);
 		break;
+
 	case MAVLINK_MSG_ID_HIL_GPS:
-		if (_send_gps) handle_message_hil_gps_dsp(msg);
+		if (_send_gps) { handle_message_hil_gps_dsp(msg); }
+
 		break;
+
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		handle_message_vision_position_estimate_dsp(msg);
 		break;
+
 	case MAVLINK_MSG_ID_ODOMETRY:
 		handle_message_odometry_dsp(msg);
 		break;
+
 	case MAVLINK_MSG_ID_COMMAND_LONG:
 		handle_message_command_long_dsp(msg);
 		break;
+
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		PX4_DEBUG("Heartbeat msg received");
 		break;
+
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
 		PX4_DEBUG("MAVLINK SYSTEM TIME");
 		break;
+
 	default:
 		PX4_DEBUG("Unknown msg ID: %d", msg->msgid);
 		break;
 	}
 }
 
-void *send_actuator(void *){
+void *send_actuator(void *)
+{
 	send_actuator_data();
 	return nullptr;
 }
 
-void send_actuator_data(){
+void send_actuator_data()
+{
 
 	int _actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs_sim), 0);
 	int _vehicle_control_mode_sub_ = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -217,21 +227,22 @@ void send_actuator_data(){
 	int differential = 0;
 	bool first_sent = false;
 
-	while (true){
+	while (true) {
 
 		bool controls_updated = false;
 		(void) orb_check(_vehicle_control_mode_sub_, &controls_updated);
 
-		if(controls_updated){
+		if (controls_updated) {
 			orb_copy(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub_, &_control_mode);
 		}
 
 		bool actuator_updated = false;
 		(void) orb_check(_actuator_outputs_sub, &actuator_updated);
 
-		if(actuator_updated){
+		if (actuator_updated) {
 			orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuator_outputs);
 			px4_lockstep_wait_for_components();
+
 			if (_actuator_outputs.timestamp > 0) {
 				mavlink_hil_actuator_controls_t hil_act_control;
 				actuator_controls_from_outputs_dsp(&hil_act_control);
@@ -248,7 +259,8 @@ void send_actuator_data(){
 				first_sent = true;
 				send_esc_telemetry_dsp(hil_act_control);
 			}
-		} else if(!actuator_updated && first_sent && differential > 4000){
+
+		} else if (!actuator_updated && first_sent && differential > 4000) {
 			mavlink_hil_actuator_controls_t hil_act_control;
 			actuator_controls_from_outputs_dsp(&hil_act_control);
 			previous_timestamp = hrt_absolute_time();
@@ -264,6 +276,7 @@ void send_actuator_data(){
 			PX4_DEBUG("Succesful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time());
 			send_esc_telemetry_dsp(hil_act_control);
 		}
+
 		differential = hrt_absolute_time() - previous_timestamp;
 	}
 }
@@ -273,35 +286,43 @@ void task_main(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
+
 	while ((ch = px4_getopt(argc, argv, "vsdcmgp:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 's':
 			_use_software_mav_throttling = true;
 			break;
+
 		case 'd':
 			debug = true;
 			break;
+
 		case 'p':
 			port = myoptarg;
 			break;
+
 		case 'b':
 			baudrate = atoi(myoptarg);
 			break;
+
 		case 'm':
 			_send_mag = true;
 			break;
+
 		case 'g':
 			_send_gps = true;
 			break;
+
 		default:
 			break;
 		}
 	}
 
-	const char* charport = port.c_str();
+	const char *charport = port.c_str();
 	int openRetval = openPort(charport, (speed_t) baudrate);
 	int open = isOpen();
-	if(open){
+
+	if (open) {
 		PX4_ERR("Port is open: %d", openRetval);
 	}
 
@@ -325,7 +346,7 @@ void task_main(int argc, char *argv[])
 
 	_is_running = true;
 
-	while (!_task_should_exit){
+	while (!_task_should_exit) {
 
 		uint8_t rx_buf[1024];
 		//rx_buf[511] = '\0';
@@ -335,9 +356,11 @@ void task_main(int argc, char *argv[])
 		// Send out sensor messages every 10ms
 		if (got_first_sensor_msg) {
 			uint64_t delta_time = timestamp - last_imu_update_timestamp;
+
 			if (delta_time > 15000) {
 				PX4_ERR("Sending updates at %llu, delta %llu", timestamp, delta_time);
 			}
+
 			uint64_t _px4_gyro_accel_timestamp = hrt_absolute_time();
 			_px4_gyro->update(_px4_gyro_accel_timestamp, x_gyro, y_gyro, z_gyro);
 			_px4_accel->update(_px4_gyro_accel_timestamp, x_accel, y_accel, z_accel);
@@ -347,17 +370,20 @@ void task_main(int argc, char *argv[])
 
 		// Check for incoming messages from the simulator
 		int readRetval = readResponse(&rx_buf[0], sizeof(rx_buf));
+
 		if (readRetval) {
 			//Take readRetval and convert it into mavlink msg
 			mavlink_message_t msg;
 			mavlink_status_t _status{};
-			for (int i = 0; i <= readRetval; i++){
-				if(mavlink_parse_char(MAVLINK_COMM_0, rx_buf[i], &msg, &_status)){
+
+			for (int i = 0; i <= readRetval; i++) {
+				if (mavlink_parse_char(MAVLINK_COMM_0, rx_buf[i], &msg, &_status)) {
 					//PX4_INFO("Value of msg id: %i", msg.msgid);
 					handle_message_dsp(&msg);
 				}
 			}
 		}
+
 		if ((timestamp - last_heartbeat_timestamp) > 1000000) {
 			mavlink_heartbeat_t hb = {};
 			mavlink_message_t hb_message = {};
@@ -375,7 +401,8 @@ void task_main(int argc, char *argv[])
 
 		bool vehicle_updated = false;
 		(void) orb_check(_vehicle_status_sub, &vehicle_updated);
-		if (vehicle_updated){
+
+		if (vehicle_updated) {
 			// PX4_INFO("Value of updated vehicle status: %d", vehicle_updated);
 			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 		}
@@ -383,7 +410,7 @@ void task_main(int argc, char *argv[])
 		uint64_t elapsed_time = hrt_absolute_time() - timestamp;
 		// if (elapsed_time < 10000) usleep(10000 - elapsed_time);
 
-		if (elapsed_time < 5000) usleep(5000 - elapsed_time);
+		if (elapsed_time < 5000) { usleep(5000 - elapsed_time); }
 	}
 
 	_is_running = false;
@@ -398,6 +425,7 @@ void send_esc_telemetry_dsp(mavlink_hil_actuator_controls_t hil_act_control)
 	const bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 	int max_esc_index = 0;
 	_battery_status_sub.update(&_battery_status);
+
 	for (int i = 0; i < max_esc_count; i++) {
 		if (_output_functions[i] != 0) {
 			max_esc_index = i;
@@ -428,7 +456,7 @@ handle_message_command_long_dsp(mavlink_message_t *msg)
 	mavlink_command_long_t cmd_mavlink;
 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-	if(debug){
+	if (debug) {
 		PX4_INFO("Value of command_long.command: %d", cmd_mavlink.command);
 	}
 
@@ -710,6 +738,7 @@ void actuator_controls_from_outputs_dsp(mavlink_hil_actuator_controls_t *msg)
 		for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
 			msg->controls[i] = _actuator_outputs.output[i];
 		}
+
 		//PX4_INFO("Value of actuator data: %f, %f, %f, %f", (double)msg->controls[0], (double)msg->controls[1], (double)msg->controls[2], (double)msg->controls[3]);
 	}
 
@@ -753,7 +782,8 @@ int readResponse(void *buf, size_t len)
 		PX4_ERR("invalid state for reading or buffer");
 		return -1;
 	}
-    return qurt_uart_read(_uart_fd, (char*) buf, len, ASYNC_UART_READ_WAIT_US);
+
+	return qurt_uart_read(_uart_fd, (char *) buf, len, ASYNC_UART_READ_WAIT_US);
 }
 
 int writeResponse(void *buf, size_t len)
@@ -763,7 +793,7 @@ int writeResponse(void *buf, size_t len)
 		return -1;
 	}
 
-    return qurt_uart_write(_uart_fd, (const char*) buf, len);
+	return qurt_uart_write(_uart_fd, (const char *) buf, len);
 }
 
 int start(int argc, char *argv[])
@@ -859,6 +889,7 @@ handle_message_hil_sensor_dsp(mavlink_message_t *msg)
 			if (PX4_ISFINITE(temperature)) {
 				_px4_gyro->set_temperature(temperature);
 			}
+
 			x_gyro = hil_sensor.xgyro;
 			y_gyro = hil_sensor.ygyro;
 			z_gyro = hil_sensor.zgyro;
@@ -1022,7 +1053,7 @@ int dsp_hitl_main(int argc, char *argv[])
 		return dsp_hitl::stop();
 	}
 
-	else if(!strcmp(verb, "status")){
+	else if (!strcmp(verb, "status")) {
 		return dsp_hitl::get_status();
 	}
 

@@ -123,9 +123,9 @@ int GhstRc::task_spawn(int argc, char *argv[])
 }
 
 void GhstRc::fill_rc_in(uint16_t raw_rc_count_local,
-		    uint16_t raw_rc_values_local[GHST_MAX_NUM_CHANNELS],
-		    hrt_abstime now, bool frame_drop, bool failsafe,
-		    unsigned frame_drops, int rssi = -1)
+			uint16_t raw_rc_values_local[GHST_MAX_NUM_CHANNELS],
+			hrt_abstime now, bool frame_drop, bool failsafe,
+			unsigned frame_drops, int rssi = -1)
 {
 	// fill rc_in struct for publishing
 	_rc_in.channel_count = raw_rc_count_local;
@@ -154,6 +154,7 @@ void GhstRc::fill_rc_in(uint16_t raw_rc_count_local,
 	/* fake rssi if no value was provided */
 	if (rssi == -1) {
 		_rc_in.rssi = 255;
+
 	} else {
 		_rc_in.rssi = rssi;
 	}
@@ -208,7 +209,7 @@ void GhstRc::Run()
 		_bytes_rx += new_bytes;
 		int8_t ghst_rssi = -1;
 		bool rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], new_bytes, &_raw_rc_values[0], &ghst_rssi,
-					&_raw_rc_count, GHST_MAX_NUM_CHANNELS);
+					     &_raw_rc_count, GHST_MAX_NUM_CHANNELS);
 
 		if (rc_updated) {
 			_last_packet_seen = time_now_us;
@@ -228,6 +229,7 @@ void GhstRc::Run()
 			if (_ghst_telemetry) {
 				_ghst_telemetry->update(cycle_timestamp);
 			}
+
 #endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 		}
 	}

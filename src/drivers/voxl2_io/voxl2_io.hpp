@@ -87,7 +87,7 @@ public:
 
 	void update_pwm_config();
 	int get_version_info();
-			   
+
 	struct Command {
 		uint16_t	id                 = 0;
 		uint8_t 	len                = 0;
@@ -109,17 +109,17 @@ public:
 	int receive_sbus();
 
 	void fill_rc_in(uint16_t raw_rc_count_local,
-		    uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
-		    hrt_abstime now, bool frame_drop, bool failsafe,
-		    unsigned frame_drops, int rssi, input_rc_s &input_rc);
+			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
+			hrt_abstime now, bool frame_drop, bool failsafe,
+			unsigned frame_drops, int rssi, input_rc_s &input_rc);
 private:
 	void Run() override;
 	bool stop_all_pwms();
-	
+
 	/* PWM Parameters */
 	static constexpr uint32_t VOXL2_IO_CONFIG = 0;				// Default to off
 	static constexpr uint32_t VOXL2_IO_BOARD_CONFIG_SIZE = 4;	// PWM_MIN, PWM_MAX, 4 bytes
-	static constexpr uint32_t VOXL2_IO_ESC_CAL_SIZE = 1;		
+	static constexpr uint32_t VOXL2_IO_ESC_CAL_SIZE = 1;
 	static constexpr uint32_t VOXL2_IO_DEFAULT_BAUD = 921600;
 	static constexpr uint16_t VOXL2_IO_OUTPUT_CHANNELS = 4;
 	static constexpr uint16_t VOXL2_IO_OUTPUT_DISABLED = 0;
@@ -180,19 +180,19 @@ private:
 	} _rc_mode{RC_MODE::SCAN};
 
 	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
-	char 				_device[10]{VOXL2_IO_DEFAULT_PORT};
+	char 				_device[10] {VOXL2_IO_DEFAULT_PORT};
 	Voxl2IoSerial 		*_uart_port;
-	
+
 	/* Mixer output */
 	MixingOutput 	_mixing_output;
 
 	/* RC input */
 	VOXL2_IOPacket _sbus_packet;
-	uint64_t _rc_last_valid;		
+	uint64_t _rc_last_valid;
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
 	unsigned _sbus_frame_drops{0};
 	uint16_t _sbus_total_frames{0};
-	bool	 _new_packet{false};		
+	bool	 _new_packet{false};
 
 	/* Publications */
 	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};

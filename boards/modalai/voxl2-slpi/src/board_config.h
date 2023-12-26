@@ -76,7 +76,7 @@
 
 
 /*
- * M0065 PWM 
+ * M0065 PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS 4
 #define MAX_IO_TIMERS 3

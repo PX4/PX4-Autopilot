@@ -143,16 +143,15 @@ typedef struct {
 
 
 // Definition of the feedback response packet from ESC, which contains battery voltage and total current
-typedef struct
-{
-  	uint8_t  header;
-  	uint8_t  length;
-  	uint8_t  type;
-  	uint8_t  id;       //ESC Id (could be used as system ID elsewhere)
-  	uint16_t voltage;  //Input voltage (Millivolts)
-  	int16_t  current;  //Total Current (8mA resolution)
-  	uint16_t crc;
-}   __attribute__ ((__packed__)) VOXL2_IO_FB_POWER_STATUS;
+typedef struct {
+	uint8_t  header;
+	uint8_t  length;
+	uint8_t  type;
+	uint8_t  id;       //ESC Id (could be used as system ID elsewhere)
+	uint16_t voltage;  //Input voltage (Millivolts)
+	int16_t  current;  //Total Current (8mA resolution)
+	uint16_t crc;
+}   __attribute__((__packed__)) VOXL2_IO_FB_POWER_STATUS;
 
 
 //-------------------------------------------------------------------------
@@ -164,7 +163,7 @@ typedef struct
 // Resulting packet will be placed in the output data array together with appropriate header and checksum
 // Output value represents total length of the created packet (if positive), otherwise error code
 int32_t voxl2_io_create_packet(uint8_t type, uint8_t *input_data, uint16_t input_size, uint8_t *out_data,
-			     uint16_t out_data_size);
+			       uint16_t out_data_size);
 
 // Create a packet for requesting version information from ESC with desired id
 // If an ESC with this id is connected and receives this command, it will reply with it's version information
@@ -181,7 +180,7 @@ int32_t voxl2_io_create_reset_packet(uint8_t id, uint8_t *out, uint16_t out_size
 // Bit mask definition: if bit i is set to 1, then ESC with ID=i will generate the tone
 // Note that tones can only be generated when motor is not spinning
 int32_t voxl2_io_create_sound_packet(uint8_t frequency, uint8_t duration, uint8_t power, uint8_t mask, uint8_t *out,
-				   uint16_t out_size);
+				     uint16_t out_size);
 
 // Create a packet for standalone LED control
 // Bit mask definition:
@@ -199,26 +198,26 @@ int32_t voxl2_io_create_set_id_packet(uint8_t id, uint8_t *out, uint16_t out_siz
 // Create a packet for sending open-loop command and LED command to 4 ESCs without requesting any feedback
 // Return value is the length of generated packet (if positive), otherwise error code
 int32_t voxl2_io_create_pwm_packet4(int16_t pwm0, int16_t pwm1, int16_t pwm2, int16_t pwm3,
-				  uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				  uint8_t *out, uint16_t out_size);
+				    uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
+				    uint8_t *out, uint16_t out_size);
 
 // Create a packet for sending open-loop command and LED command to 4 ESCs, also request feedback from one ESC (with id=fb_id)
 // Return value is the length of generated packet (if positive), otherwise error code
 int32_t voxl2_io_create_pwm_packet4_fb(int16_t pwm0, int16_t pwm1, int16_t pwm2, int16_t pwm3,
-				     uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				     int32_t fb_id, uint8_t *out, uint16_t out_size);
+				       uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
+				       int32_t fb_id, uint8_t *out, uint16_t out_size);
 
 // Create a packet for sending closed-loop RPM command and LED command to 4 ESCs without requesting any feedback
 // Return value is the length of generated packet (if positive), otherwise error code
 int32_t voxl2_io_create_rpm_packet4(int16_t rpm0, int16_t rpm1, int16_t rpm2, int16_t rpm3,
-				  uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				  uint8_t *out, uint16_t out_size);
+				    uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
+				    uint8_t *out, uint16_t out_size);
 
 // Create a packet for sending closed-loop RPM command and LED command to 4 ESCs, also request feedback from one ESC (with id=fb_id)
 // Return value is the length of generated packet (if positive), otherwise error code
 int32_t voxl2_io_create_rpm_packet4_fb(int16_t rpm0, int16_t rpm1, int16_t rpm2, int16_t rpm3,
-				     uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				     int32_t fb_id, uint8_t *out, uint16_t out_size);
+				       uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
+				       int32_t fb_id, uint8_t *out, uint16_t out_size);
 
 
 //-------------------------------------------------------------------------

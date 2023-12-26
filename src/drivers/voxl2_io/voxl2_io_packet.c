@@ -58,7 +58,7 @@ int32_t voxl2_io_create_reset_packet(uint8_t id, uint8_t *out, uint16_t out_size
 
 
 int32_t voxl2_io_create_sound_packet(uint8_t frequency, uint8_t duration, uint8_t power, uint8_t mask, uint8_t *out,
-				   uint16_t out_size)
+				     uint16_t out_size)
 {
 	uint8_t data[4] = {frequency, duration, power, mask};
 	return voxl2_io_create_packet(VOXL2_IO_PACKET_TYPE_SOUND_CMD, (uint8_t *) & (data[0]), 4, out, out_size);
@@ -76,15 +76,15 @@ int32_t voxl2_io_create_set_id_packet(uint8_t id, uint8_t *out, uint16_t out_siz
 }
 
 int32_t voxl2_io_create_pwm_packet4(int16_t pwm0, int16_t pwm1, int16_t pwm2, int16_t pwm3,
-				  uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				  uint8_t *out, uint16_t out_size)
+				    uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
+				    uint8_t *out, uint16_t out_size)
 {
 	return voxl2_io_create_pwm_packet4_fb(pwm0, pwm1, pwm2, pwm3, led0, led1, led2, led3, -1, out, out_size);
 }
 
 int32_t voxl2_io_create_pwm_packet4_fb(int16_t pwm0, int16_t pwm1, int16_t pwm2, int16_t pwm3,
-				     uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				     int32_t fb_id, uint8_t *out, uint16_t out_size)
+				       uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
+				       int32_t fb_id, uint8_t *out, uint16_t out_size)
 {
 	uint16_t data[5];
 	uint16_t leds = 0;
@@ -119,15 +119,15 @@ int32_t voxl2_io_create_pwm_packet4_fb(int16_t pwm0, int16_t pwm1, int16_t pwm2,
 
 
 int32_t voxl2_io_create_rpm_packet4(int16_t rpm0, int16_t rpm1, int16_t rpm2, int16_t rpm3,
-				  uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				  uint8_t *out, uint16_t out_size)
+				    uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
+				    uint8_t *out, uint16_t out_size)
 {
 	return voxl2_io_create_rpm_packet4_fb(rpm0, rpm1, rpm2, rpm3, led0, led1, led2, led3, -1, out, out_size);
 }
 
 int32_t voxl2_io_create_rpm_packet4_fb(int16_t rpm0, int16_t rpm1, int16_t rpm2, int16_t rpm3,
-				     uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
-				     int32_t fb_id, uint8_t *out, uint16_t out_size)
+				       uint8_t led0, uint8_t led1, uint8_t led2, uint8_t led3,
+				       int32_t fb_id, uint8_t *out, uint16_t out_size)
 {
 	uint16_t data[5];
 	uint16_t leds = 0;

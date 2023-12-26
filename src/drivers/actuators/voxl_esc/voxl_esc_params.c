@@ -220,7 +220,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_VLOG, 0);
 
 /**
  * UART ESC Enable publishing of battery status
- * 
+ *
  * Only applicable to ESCs that report total battery voltage and current
  *
  * @reboot_required true

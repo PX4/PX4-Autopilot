@@ -161,7 +161,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 		return -1;
 	}
 
-	char* charPointer = const_cast<char*>(name);
+	char *charPointer = const_cast<char *>(name);
 	taskmap[task_index].argv[0] = charPointer;
 
 	for (i = 0; i < PX4_TASK_MAX_ARGC; i++) {

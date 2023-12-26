@@ -104,7 +104,8 @@ int VoxlEsc::init()
 
 	_uart_port = new VoxlEscSerial();
 	memset(&_esc_chans, 0x00, sizeof(_esc_chans));
-	for (int esc_id=0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id){
+
+	for (int esc_id = 0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id) {
 		_version_info[esc_id].sw_version = UINT16_MAX;
 		_version_info[esc_id].hw_version = UINT16_MAX;
 		_version_info[esc_id].id = esc_id;
@@ -270,17 +271,20 @@ int VoxlEsc::flush_uart_rx()
 	return 0;
 }
 
-bool VoxlEsc::check_versions_updated(){
-	for (int esc_id=0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id){
-		if (_version_info[esc_id].sw_version == UINT16_MAX) return false;
+bool VoxlEsc::check_versions_updated()
+{
+	for (int esc_id = 0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id) {
+		if (_version_info[esc_id].sw_version == UINT16_MAX) { return false; }
 	}
 
 	// PX4_INFO("Got all ESC Version info!");
 	_extended_rpm = true;
 	_need_version_info = false;
-	for (int esc_id=0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id){
-		if (_version_info[esc_id].sw_version < VOXL_ESC_EXT_RPM) _extended_rpm = false;
+
+	for (int esc_id = 0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id) {
+		if (_version_info[esc_id].sw_version < VOXL_ESC_EXT_RPM) { _extended_rpm = false; }
 	}
+
 	return true;
 }
 
@@ -392,11 +396,13 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 			else if (packet_type == ESC_PACKET_TYPE_VERSION_RESPONSE && packet_size == sizeof(QC_ESC_VERSION_INFO)) {
 				QC_ESC_VERSION_INFO ver;
 				memcpy(&ver, _fb_packet.buffer, packet_size);
-				if (_need_version_info){
+
+				if (_need_version_info) {
 					memcpy(&_version_info[ver.id], &ver, sizeof(QC_ESC_VERSION_INFO));
 					check_versions_updated();
 					break;
-				}				
+				}
+
 				PX4_INFO("ESC ID: %i", ver.id);
 				PX4_INFO("HW Version: %i", ver.hw_version);
 				PX4_INFO("SW Version: %i", ver.sw_version);
@@ -415,10 +421,11 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 				PX4_INFO("\tFirmware   : version %4d, hash %.12s", ver.sw_version, ver.firmware_git_version);
 				PX4_INFO("\tBootloader : version %4d, hash %.12s", ver.bootloader_version, ver.bootloader_git_version);
+
 			} else if (packet_type == ESC_PACKET_TYPE_FB_POWER_STATUS && packet_size == sizeof(QC_ESC_FB_POWER_STATUS)) {
 				QC_ESC_FB_POWER_STATUS packet;
-				memcpy(&packet,_fb_packet.buffer, packet_size);
-				
+				memcpy(&packet, _fb_packet.buffer, packet_size);
+
 				float voltage = packet.voltage * 0.001f; // Voltage is reported at 1 mV resolution
 				float current = packet.current * 0.008f; // Total current is reported at 8mA resolution
 
@@ -429,12 +436,13 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					_battery.updateCurrent(current);
 
 					hrt_abstime current_time = hrt_absolute_time();
+
 					if ((current_time - _last_battery_report_time) >= _battery_report_interval) {
 						_last_battery_report_time = current_time;
 						_battery.updateAndPublishBatteryStatus(current_time);
 					}
 				}
-				
+
 			}
 
 		} else { //parser error
@@ -677,7 +685,7 @@ int VoxlEsc::custom_command(int argc, char *argv[])
 							       id_fb,
 							       cmd.buf,
 							       sizeof(cmd.buf),
-								   get_instance()->_extended_rpm);
+							       get_instance()->_extended_rpm);
 
 			cmd.response        = true;
 			cmd.repeats         = repeat_count;
@@ -1064,10 +1072,12 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 		} else {
 			if (_extended_rpm) {
-				if (outputs[i] > VOXL_ESC_RPM_MAX_EXT) outputs[i] = VOXL_ESC_RPM_MAX_EXT;
+				if (outputs[i] > VOXL_ESC_RPM_MAX_EXT) { outputs[i] = VOXL_ESC_RPM_MAX_EXT; }
+
 			} else {
-				if (outputs[i] > VOXL_ESC_RPM_MAX) outputs[i] = VOXL_ESC_RPM_MAX;
+				if (outputs[i] > VOXL_ESC_RPM_MAX) { outputs[i] = VOXL_ESC_RPM_MAX; }
 			}
+
 			if (!_turtle_mode_en) {
 				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction;
 
@@ -1077,21 +1087,21 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			}
 		}
 	}
-	
+
 
 	Command cmd;
 	cmd.len = qc_esc_create_rpm_packet4_fb(_esc_chans[0].rate_req,
-			_esc_chans[1].rate_req,
-			_esc_chans[2].rate_req,
-			_esc_chans[3].rate_req,
-			_esc_chans[0].led,
-			_esc_chans[1].led,
-			_esc_chans[2].led,
-			_esc_chans[3].led,
-			_fb_idx,
-			cmd.buf,
-			sizeof(cmd.buf),
-			_extended_rpm);
+					       _esc_chans[1].rate_req,
+					       _esc_chans[2].rate_req,
+					       _esc_chans[3].rate_req,
+					       _esc_chans[0].led,
+					       _esc_chans[1].led,
+					       _esc_chans[2].led,
+					       _esc_chans[3].led,
+					       _fb_idx,
+					       cmd.buf,
+					       sizeof(cmd.buf),
+					       _extended_rpm);
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send packet");
@@ -1140,6 +1150,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	while (_voxl2_io_data_sub.updated()) {
 		voxl2_io_data_s io_data{};
 		_voxl2_io_data_sub.copy(&io_data);
+
 		// PX4_INFO("Got Modal IO data: %u bytes", io_data.len);
 		// PX4_INFO("   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
 		// 		 io_data.data[0], io_data.data[1], io_data.data[2], io_data.data[3],
@@ -1180,12 +1191,14 @@ void VoxlEsc::Run()
 	}
 
 	/* Get ESC FW version info */
-	if (_need_version_info){
-		for (uint8_t esc_id=0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id){
+	if (_need_version_info) {
+		for (uint8_t esc_id = 0; esc_id < VOXL_ESC_OUTPUT_CHANNELS; ++esc_id) {
 			Command cmd;
 			cmd.len = qc_esc_create_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
+
 			if (_uart_port->uart_write(cmd.buf, cmd.len) == cmd.len) {
-				if (read_response(&_current_cmd) != 0) PX4_ERR("Failed to parse version request response packet!");
+				if (read_response(&_current_cmd) != 0) { PX4_ERR("Failed to parse version request response packet!"); }
+
 			} else {
 				PX4_ERR("Failed to send version request packet!");
 			}

@@ -76,11 +76,11 @@ static std::map<ControllerInput, std::string> ControllerInputMap{
 	{ControllerInput::STICK_LEFT, "STICK_LEFT"},
 	{ControllerInput::BUMPER_RIGHT, "BUMPER_RIGHT"},
 	{ControllerInput::BUMPER_LEFT, "BUMPER_LEFT"},
-    {ControllerInput::DEFAULT, "Unkown"}
+	{ControllerInput::DEFAULT, "Unkown"}
 };
 static px4_task_t _task_handle = -1;
-void debug_info(LEDState, uint8_t*);
-void make_packet(LEDState, uint8_t*);
+void debug_info(LEDState, uint8_t *);
+void make_packet(LEDState, uint8_t *);
 
 int initialize()
 {
@@ -103,7 +103,8 @@ int initialize()
 	return 0;
 }
 
-void elrs_led_task() {
+void elrs_led_task()
+{
 
 	PX4_INFO("Starting task for elrs_led");
 
@@ -111,7 +112,7 @@ void elrs_led_task() {
 	int manual_control_input_fd  = orb_subscribe(ORB_ID(manual_control_input));
 	uint8_t pwmPacket[11] = {0xEC, 0x09, 0x32, 0x70, 0x77, 0x6D, 0x07, 0x75, 0x00, 0x00, 0x00};
 
-	px4_pollfd_struct_t fds[1] = { { .fd = manual_control_input_fd,  .events = POLLIN }	};	
+	px4_pollfd_struct_t fds[1] = { { .fd = manual_control_input_fd,  .events = POLLIN }	};
 
 	struct manual_control_setpoint_s setpoint_req;
 
@@ -123,38 +124,41 @@ void elrs_led_task() {
 		if (fds[0].revents & POLLIN) {
 
 			orb_copy(ORB_ID(manual_control_input), manual_control_input_fd, &setpoint_req);
-			
+
 			_cmd = (ControllerInput)setpoint_req.aux1;
 
 			// skip duplicate cmds
-			if(_cmd == _prev_cmd){
+			if (_cmd == _prev_cmd) {
 				continue;
-			}			
+			}
 
-			if (_cmd == _off){
+			if (_cmd == _off) {
 				_prev_cmd = _cmd;
 				_state = LEDState::OFF;
 				make_packet(_state, pwmPacket);
-				ret = qurt_uart_write(_uart_fd, (char*) &pwmPacket[0], sizeof(pwmPacket));
-				if (_debug){
-					debug_info(_state, pwmPacket);
-				}
-				
-			} else if (_cmd ==_on){
-				_prev_cmd = _cmd;
-				_state = LEDState::ON;
-				make_packet(_state, pwmPacket);
-				ret = qurt_uart_write(_uart_fd, (char*) &pwmPacket[0], sizeof(pwmPacket));
-				if (_debug){
+				ret = qurt_uart_write(_uart_fd, (char *) &pwmPacket[0], sizeof(pwmPacket));
+
+				if (_debug) {
 					debug_info(_state, pwmPacket);
 				}
 
-			} else if (_cmd == _ir){
+			} else if (_cmd == _on) {
+				_prev_cmd = _cmd;
+				_state = LEDState::ON;
+				make_packet(_state, pwmPacket);
+				ret = qurt_uart_write(_uart_fd, (char *) &pwmPacket[0], sizeof(pwmPacket));
+
+				if (_debug) {
+					debug_info(_state, pwmPacket);
+				}
+
+			} else if (_cmd == _ir) {
 				_prev_cmd = _cmd;
 				_state = LEDState::IR;
 				make_packet(_state, pwmPacket);
-				ret = qurt_uart_write(_uart_fd, (char*) &pwmPacket[0], sizeof(pwmPacket));
-				if (_debug){
+				ret = qurt_uart_write(_uart_fd, (char *) &pwmPacket[0], sizeof(pwmPacket));
+
+				if (_debug) {
 					debug_info(_state, pwmPacket);
 				}
 
@@ -164,7 +168,8 @@ void elrs_led_task() {
 	}
 }
 
-int start(int argc, char *argv[]) {
+int start(int argc, char *argv[])
+{
 
 	int ch;
 	int myoptind = 1;
@@ -175,24 +180,29 @@ int start(int argc, char *argv[]) {
 		case 'p':
 			_port = myoptarg;
 			break;
+
 		case 'o':
 			_off = getKey(ControllerInputMap, myoptarg);
 			break;
+
 		case 'l':
 			_on = getKey(ControllerInputMap, myoptarg);
 			break;
+
 		case 'i':
 			_ir = getKey(ControllerInputMap, myoptarg);
 			break;
+
 		case 'd':
 			_debug = true;
-			break;		
+			break;
+
 		default:
 			break;
 		}
 	}
 
-	if (_debug){
+	if (_debug) {
 		PX4_INFO("ELRS LED Debug Mode Enabled");
 		PX4_INFO("Port: %s", _port.c_str());
 		PX4_INFO("Button Configuration:");
@@ -238,35 +248,45 @@ usage()
 	PX4_INFO("Options: -d <number>    enable debug messages");
 }
 
-void debug_info(LEDState led_state, uint8_t *pwmPacket){
+void debug_info(LEDState led_state, uint8_t *pwmPacket)
+{
 	PX4_INFO("");
-	if (led_state == LEDState::ON){
+
+	if (led_state == LEDState::ON) {
 		PX4_INFO("Turning LEDs on");
-	}else if (led_state == LEDState::OFF){
-		PX4_INFO("Turning LEDs off");				
-	}else if (led_state == LEDState::IR){
+
+	} else if (led_state == LEDState::OFF) {
+		PX4_INFO("Turning LEDs off");
+
+	} else if (led_state == LEDState::IR) {
 		PX4_INFO("Turning IR LEDs on");
-	}else{
+
+	} else {
 		PX4_WARN("ELRS LED: LED state unknown: 0x%x", led_state);
 	}
-	PX4_INFO("Wrote packet: [0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x]", 
-			pwmPacket[0], pwmPacket[1], pwmPacket[2], pwmPacket[3], pwmPacket[4], pwmPacket[5], 
-			pwmPacket[6], pwmPacket[7], pwmPacket[8], pwmPacket[9], pwmPacket[10]);
+
+	PX4_INFO("Wrote packet: [0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x]",
+		 pwmPacket[0], pwmPacket[1], pwmPacket[2], pwmPacket[3], pwmPacket[4], pwmPacket[5],
+		 pwmPacket[6], pwmPacket[7], pwmPacket[8], pwmPacket[9], pwmPacket[10]);
 }
 
-void make_packet(LEDState led_state, uint8_t* pwmPacket){
-	if (led_state == LEDState::OFF){
+void make_packet(LEDState led_state, uint8_t *pwmPacket)
+{
+	if (led_state == LEDState::OFF) {
 		pwmPacket[8] = 0x03;
 		pwmPacket[9] = 0x84;
 		pwmPacket[10] = crsf_crc.calc(&pwmPacket[CRSF_FRAME_NOT_COUNTED_BYTES], PWM_FRAME_SIZE - 1, 0);
-	} else if (led_state == LEDState::ON){
+
+	} else if (led_state == LEDState::ON) {
 		pwmPacket[8] = 0x05;
 		pwmPacket[9] = 0xAA;
 		pwmPacket[10] = crsf_crc.calc(&pwmPacket[CRSF_FRAME_NOT_COUNTED_BYTES], PWM_FRAME_SIZE - 1, 0);
-	} else if (led_state == LEDState::IR){
+
+	} else if (led_state == LEDState::IR) {
 		pwmPacket[8] = 0x07;
 		pwmPacket[9] = 0xFF;
 		pwmPacket[10] = crsf_crc.calc(&pwmPacket[CRSF_FRAME_NOT_COUNTED_BYTES], PWM_FRAME_SIZE - 1, 0);
+
 	} else {
 		PX4_WARN("ELRS LED: Unknown LED state.");
 	}
@@ -287,6 +307,7 @@ int elrs_led_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		return elrs_led::start(argc - 1, argv + 1);
+
 	} else {
 		elrs_led::usage();
 		return -1;

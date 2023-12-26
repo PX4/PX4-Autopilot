@@ -24,14 +24,14 @@
 
 
 
-typedef void sink_simple_cb(int ch, char* data, int bytes, void* context);
+typedef void sink_simple_cb(int ch, char *data, int bytes, void *context);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int pipe_sink_create(int ch, const char* path, int flags, int pipe_size, int buf_len);
-int pipe_sink_set_simple_cb(int ch, sink_simple_cb* cb, void* context);
+int pipe_sink_create(int ch, const char *path, int flags, int pipe_size, int buf_len);
+int pipe_sink_set_simple_cb(int ch, sink_simple_cb *cb, void *context);
 
 #ifdef __cplusplus
 }

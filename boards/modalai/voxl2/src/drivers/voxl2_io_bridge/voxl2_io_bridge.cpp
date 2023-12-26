@@ -52,26 +52,30 @@
 #include <limits.h>     // for PATH_MAX
 #include <sys/stat.h>   // for mkdir
 
-extern "C" { 
-int _mkdir_recursive(const char* dir)
-{
-    char tmp[PATH_MAX];
-    char* p = NULL;
+extern "C" {
+	int _mkdir_recursive(const char *dir)
+	{
+		char tmp[PATH_MAX];
+		char *p = NULL;
 
-    snprintf(tmp, sizeof(tmp),"%s",dir);
-    for(p = tmp + 1; *p!=0; p++){
-        if(*p == '/'){
-            *p = 0;
-            if(mkdir(tmp, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) && errno!=EEXIST){
-                perror("ERROR calling mkdir");
-                printf("tried to make %s\n", tmp);
-                return -1;
-            }
-            *p = '/';
-        }
-    }
-    return 0;
-}
+		snprintf(tmp, sizeof(tmp), "%s", dir);
+
+		for (p = tmp + 1; *p != 0; p++) {
+			if (*p == '/') {
+				*p = 0;
+
+				if (mkdir(tmp, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) && errno != EEXIST) {
+					perror("ERROR calling mkdir");
+					printf("tried to make %s\n", tmp);
+					return -1;
+				}
+
+				*p = '/';
+			}
+		}
+
+		return 0;
+	}
 }
 
 extern "C" { __EXPORT int voxl2_io_bridge_main(int argc, char *argv[]); }
@@ -92,20 +96,22 @@ px4_sem_t _new_data_sem;
 
 uORB::Publication<voxl2_io_data_s> _data_pub{ORB_ID(voxl2_io_data)};
 
-static void simple_cb(int ch, char* data, int bytes, __attribute__((unused)) void* context) {
+static void simple_cb(int ch, char *data, int bytes, __attribute__((unused)) void *context)
+{
 
 	if (bytes) {
-		memcpy(_data_buffer, (uint8_t*) data, bytes);
+		memcpy(_data_buffer, (uint8_t *) data, bytes);
 		_data_len = bytes;
 
 		if (_debug) {
 			PX4_INFO("Received %d bytes on channel %d", bytes, ch);
 			PX4_INFO("   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
-					 _data_buffer[0], _data_buffer[1], _data_buffer[2], _data_buffer[3],
-					 _data_buffer[4], _data_buffer[5], _data_buffer[6], _data_buffer[7]);
+				 _data_buffer[0], _data_buffer[1], _data_buffer[2], _data_buffer[3],
+				 _data_buffer[4], _data_buffer[5], _data_buffer[6], _data_buffer[7]);
 		}
 
 		px4_sem_post(&_new_data_sem);
+
 	} else if (_debug) {
 		PX4_ERR("Got callback with zero data available");
 	}
@@ -120,7 +126,7 @@ int initialize()
 		return 0;
 	}
 
-   (void) px4_sem_init(&_new_data_sem, 0, 0);
+	(void) px4_sem_init(&_new_data_sem, 0, 0);
 
 	if (pipe_sink_create(0, SINK_PATH, SINK_FLAG_EN_SIMPLE_HELPER, PIPE_SIZE, READ_BUF_SIZE)) {
 		return -1;
@@ -133,8 +139,9 @@ int initialize()
 	return 0;
 }
 
-void voxl2_io_bridge_task() {
-	
+void voxl2_io_bridge_task()
+{
+
 	voxl2_io_data_s	io_data;
 
 	_is_running = true;
@@ -157,13 +164,15 @@ void voxl2_io_bridge_task() {
 			}
 
 			_data_pub.publish(io_data);
+
 		} else if (_debug) {
 			PX4_ERR("Got semaphore with zero data to be sent");
 		}
 	}
 }
 
-int start(int argc, char *argv[]) {
+int start(int argc, char *argv[])
+{
 
 	int ch;
 	int myoptind = 1;
@@ -175,6 +184,7 @@ int start(int argc, char *argv[]) {
 			_debug = true;
 			PX4_INFO("Setting debug flag to true");
 			break;
+
 		default:
 			break;
 		}
@@ -228,6 +238,7 @@ int voxl2_io_bridge_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		return voxl2_io_bridge::start(argc - 1, argv + 1);
+
 	} else {
 		voxl2_io_bridge::usage();
 		return -1;

@@ -693,26 +693,27 @@ void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA
 
 	for (int i = 0; i < samples; i++) {
 		_imu_server_decimator++;
+
 		if (_imu_server_decimator == 8) {
 			_imu_server_decimator = 0;
 			// 20 bit hires mode
-			
+
 			// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
 			// Accel data is 18 bit
 			int32_t temp_accel_x = reassemble_20bit(fifo[i].ACCEL_DATA_X1, fifo[i].ACCEL_DATA_X0,
-								   fifo[i].Ext_Accel_X_Gyro_X & 0xF0 >> 4);
+								fifo[i].Ext_Accel_X_Gyro_X & 0xF0 >> 4);
 			int32_t temp_accel_y = reassemble_20bit(fifo[i].ACCEL_DATA_Y1, fifo[i].ACCEL_DATA_Y0,
-								   fifo[i].Ext_Accel_Y_Gyro_Y & 0xF0 >> 4);
+								fifo[i].Ext_Accel_Y_Gyro_Y & 0xF0 >> 4);
 			int32_t temp_accel_z = reassemble_20bit(fifo[i].ACCEL_DATA_Z1, fifo[i].ACCEL_DATA_Z0,
-								   fifo[i].Ext_Accel_Z_Gyro_Z & 0xF0 >> 4);
-			
+								fifo[i].Ext_Accel_Z_Gyro_Z & 0xF0 >> 4);
+
 			// Gyro [19:12] + Gyro [11:4] + Gyro [3:0] (bottom 4 bits of 20 bit extension byte)
 			int32_t temp_gyro_x = reassemble_20bit(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0,
-								  fifo[i].Ext_Accel_X_Gyro_X & 0x0F);
+							       fifo[i].Ext_Accel_X_Gyro_X & 0x0F);
 			int32_t temp_gyro_y = reassemble_20bit(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0,
-								  fifo[i].Ext_Accel_Y_Gyro_Y & 0x0F);
+							       fifo[i].Ext_Accel_Y_Gyro_Y & 0x0F);
 			int32_t temp_gyro_z = reassemble_20bit(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0,
-								  fifo[i].Ext_Accel_Z_Gyro_Z & 0x0F);
+							       fifo[i].Ext_Accel_Z_Gyro_Z & 0x0F);
 
 			// accel samples invalid if -524288
 			if (temp_accel_x != -524288 && temp_accel_y != -524288 && temp_accel_z != -524288) {
@@ -720,12 +721,12 @@ void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA
 				accel_x = (float) temp_accel_x / 4.f;
 				accel_y = (float) temp_accel_y / 4.f;
 				accel_z = (float) temp_accel_z / 4.f;
-			
+
 				// shift gyro by 1 (least significant bit is always 0)
 				gyro_x = (float) temp_gyro_x / 2.f;
 				gyro_y = (float) temp_gyro_y / 2.f;
 				gyro_z = (float) temp_gyro_z / 2.f;
-			
+
 				// correct frame for publication
 				// sensor's frame is +x forward, +y left, +z up
 				// flip y & z to publish right handed with z down (x forward, y right, z down)
@@ -733,18 +734,18 @@ void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA
 				accel_z = -accel_z;
 				gyro_y  = -gyro_y;
 				gyro_z  = -gyro_z;
-			
+
 				// Scale everything appropriately
 				float accel_scale_factor = (CONSTANTS_ONE_G / 8192.f);
 				accel_x *= accel_scale_factor;
 				accel_y *= accel_scale_factor;
 				accel_z *= accel_scale_factor;
-			
+
 				float gyro_scale_factor = math::radians(1.f / 131.f);
 				gyro_x *= gyro_scale_factor;
 				gyro_y *= gyro_scale_factor;
 				gyro_z *= gyro_scale_factor;
-			
+
 				// Store the data in our array
 				_imu_server_data.accel_x[_imu_server_index] = accel_x;
 				_imu_server_data.accel_y[_imu_server_index] = accel_y;
@@ -754,7 +755,7 @@ void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA
 				_imu_server_data.gyro_z[_imu_server_index]  = gyro_z;
 				_imu_server_data.ts[_imu_server_index]      = timestamp_sample - (125 * (samples - 1 - i));
 				_imu_server_index++;
-			
+
 				// If array is full, publish the data
 				if (_imu_server_index == 10) {
 					_imu_server_index = 0;

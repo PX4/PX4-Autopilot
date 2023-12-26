@@ -126,8 +126,10 @@ private:
 	static constexpr uint32_t VOXL_ESC_MODE_TURTLE_AUX2 = 2;
 
 	static constexpr uint16_t VOXL_ESC_EXT_RPM = 39;
-	static constexpr uint16_t VOXL_ESC_RPM_MAX = INT16_MAX-1;		// 32K, Limit max standard range RPM to prevent overflow (rpm packet packing function accepts int32_t)
-	static constexpr uint16_t VOXL_ESC_RPM_MAX_EXT = UINT16_MAX-5;	// 65K, Limit max extended range RPM to prevent overflow (rpm packet packing function accepts int32_t)
+	static constexpr uint16_t VOXL_ESC_RPM_MAX = INT16_MAX -
+			1;		// 32K, Limit max standard range RPM to prevent overflow (rpm packet packing function accepts int32_t)
+	static constexpr uint16_t VOXL_ESC_RPM_MAX_EXT = UINT16_MAX -
+			5;	// 65K, Limit max extended range RPM to prevent overflow (rpm packet packing function accepts int32_t)
 
 	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, VOXL_ESC_PWM_MAX); }
 	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, VOXL_ESC_RPM_MAX); }

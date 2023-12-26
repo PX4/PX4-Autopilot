@@ -73,9 +73,9 @@ public:
 	int print_status() override;
 
 	void fill_rc_in(uint16_t raw_rc_count_local,
-		uint16_t raw_rc_values_local[GHST_MAX_NUM_CHANNELS],
-		hrt_abstime now, bool frame_drop, bool failsafe,
-		unsigned frame_drops, int rssi);
+			uint16_t raw_rc_values_local[GHST_MAX_NUM_CHANNELS],
+			hrt_abstime now, bool frame_drop, bool failsafe,
+			unsigned frame_drops, int rssi);
 
 private:
 	void Run() override;
@@ -120,7 +120,7 @@ private:
 	perf_counter_t	_publish_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval")};
 
 	// DEFINE_PARAMETERS(
-		// (ParamBool<px4::params::RC_GHST_TEL_EN>) _param_rc_ghst_tel_en
+	// (ParamBool<px4::params::RC_GHST_TEL_EN>) _param_rc_ghst_tel_en
 	// )
 };
 
