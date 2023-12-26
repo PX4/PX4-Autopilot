@@ -62,8 +62,6 @@
 #include <px4_platform/board_ctrl.h>
 #endif
 
-extern void cdcacm_init(void);
-
 #if !defined(CONFIG_BUILD_FLAT)
 typedef CODE void (*initializer_t)(void);
 extern initializer_t _sinit;
@@ -195,10 +193,6 @@ int px4_platform_init()
 	uorb_start();
 
 	px4_log_initialize();
-
-#if defined(CONFIG_SYSTEM_CDCACM) && defined(CONFIG_BUILD_FLAT)
-	cdcacm_init();
-#endif
 
 	return PX4_OK;
 }

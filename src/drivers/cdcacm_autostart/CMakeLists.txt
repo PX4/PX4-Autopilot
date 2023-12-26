@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,57 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-# skip for px4_layer support on an IO board
-if(NOT PX4_BOARD MATCHES "io-v2")
-	# Kernel side & nuttx flat build common sources
-	set(KERNEL_SRCS
-		board_crashdump.c
-		board_dma_alloc.c
-		board_fat_dma_alloc.c
-		console_buffer.cpp
-		cpuload.cpp
-		gpio.c
-		print_load.cpp
-		tasks.cpp
-		px4_nuttx_impl.cpp
-		px4_init.cpp
-		px4_manifest.cpp
-		px4_mtd.cpp
-		px4_24xxxx_mtd.c
-		px4_crypto.cpp
-		progmem_dump.c
+px4_add_module(
+	MODULE drivers__cdcacm_autostart
+	MAIN cdcacm_autostart
+	COMPILE_FLAGS
+		# -DDEBUG_BUILD
+	SRCS
+		cdcacm_autostart.cpp
 	)
-
-	# Kernel side & nuttx flat build common libraries
-	set(KERNEL_LIBS
-		arch_board_reset
-		arch_board_critmon
-		arch_version
-		nuttx_sched
-	)
-
-if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
-	# Build the NuttX user and kernel space px4 layers
-	include(${CMAKE_CURRENT_SOURCE_DIR}/px4_protected_layers.cmake)
-
-else()
-	# Build the flat build px4_layer
-	include(${CMAKE_CURRENT_SOURCE_DIR}/px4_layer.cmake)
-endif()
-
-else()
-	# Build the px4 layer for io_v2
-	add_library(px4_layer ${PX4_SOURCE_DIR}/platforms/common/empty.c)
-endif()
-
-add_dependencies(px4_layer prebuild_targets)
-
-add_subdirectory(gpio)
-add_subdirectory(srgbled)
-
-# Build px4_random
-if (DEFINED PX4_CRYPTO)
-	add_library(px4_random nuttx_random.c)
-	target_link_libraries(px4_random PRIVATE nuttx_crypto)
-endif()
