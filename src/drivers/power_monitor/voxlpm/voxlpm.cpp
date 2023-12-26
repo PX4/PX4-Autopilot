@@ -74,12 +74,16 @@ VOXLPM::init()
 		_battery.setConnected(false);
 		_battery.updateVoltage(0.f);
 		_battery.updateCurrent(0.f);
-		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 	}
 
 	/* do I2C init, it will probe the bus for two possible configurations, LTC2946 or INA231 */
 	if (I2C::init() != OK) {
 		return ret;
+	}
+
+	// Don't actually publish anything unless we have had a successful probe
+	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
+		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 	}
 
 	/* If we've probed and succeeded we'll have an accurate address here for the VBat addr */
@@ -420,7 +424,7 @@ VOXLPM::measure_ina231()
 
 	int16_t vshunt = -1;
 	uint16_t vbus = -1;
-	uint16_t amps = 0;
+	int16_t amps = 0;
 
 	int vshunt_ret = read_reg_buf(INA231_REG_SHUNTVOLTAGE, raw_vshunt, sizeof(raw_vshunt));
 	int vbus_ret = read_reg_buf(INA231_REG_BUSVOLTAGE, raw_vbus, sizeof(raw_vbus));

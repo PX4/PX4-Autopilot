@@ -10,14 +10,19 @@ adb push build/modalai_voxl2_default/bin/px4 /usr/bin
 adb push build/modalai_voxl2_default/bin/px4-alias.sh /usr/bin
 adb push boards/modalai/voxl2/target/voxl-px4 /usr/bin
 adb push boards/modalai/voxl2/target/voxl-px4-start /usr/bin
+adb push boards/modalai/voxl2/target/voxl-px4-hitl /usr/bin
+adb push boards/modalai/voxl2/target/voxl-px4-hitl-start /usr/bin
 adb shell chmod a+x /usr/bin/px4-alias.sh
 adb shell chmod a+x /usr/bin/voxl-px4
 adb shell chmod a+x /usr/bin/voxl-px4-start
+adb shell chmod a+x /usr/bin/voxl-px4-hitl
+adb shell chmod a+x /usr/bin/voxl-px4-hitl-start
 
 # Push configuration file
 adb shell mkdir -p /etc/modalai
 adb push boards/modalai/voxl2/target/voxl-px4-set-default-parameters.config /etc/modalai
 adb push boards/modalai/voxl2/target/voxl-px4-fake-imu-calibration.config /etc/modalai
+adb push boards/modalai/voxl2/target/voxl-px4-hitl-set-default-parameters.config /etc/modalai
 
 # Make sure to setup all of the needed px4 aliases.
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-accelsim"
@@ -34,6 +39,7 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-commander_tests"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-control_allocator"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-controllib_test"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-dataman"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-dsp_hitl"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-ekf2"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-esc_calib"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-ets_airspeed"
@@ -65,7 +71,9 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mb12xx"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mc_att_control"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mc_pos_control"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-measairspeedsim"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-microdds_client"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-mixer"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-voxl2_io_bridge"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-motor_ramp"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-modalai_gps_timer"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-ms4525_airspeed"
@@ -119,6 +127,7 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-rc_controller"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-uart_esc_driver"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-flight_mode_manager"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-imu_server"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-apps_sbus"
 
 # Make sure any required directories exist
 adb shell "/bin/mkdir -p /data/px4/param"

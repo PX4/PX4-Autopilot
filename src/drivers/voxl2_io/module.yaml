@@ -1,0 +1,13 @@
+module_name: VOXL2 IO Output
+actuator_output:
+  config_parameters:
+    - param: 'VOXL2_IO_MIN'
+      label: 'PWM min value'
+    - param: 'VOXL2_IO_MAX'
+      label: 'PWM max value'
+  output_groups:
+    - param_prefix: VOXL2_IO
+      group_label: 'PWMs'
+      channel_label: 'PWM Channel'
+      num_channels: 4
+
