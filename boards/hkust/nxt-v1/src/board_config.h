@@ -83,8 +83,13 @@
  */
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
-#define ADC1_CH(n)		(n)
-#define ADC2_CH(n)		(n)
+
+#define BOARD_HAS_NBAT_V              1//useless
+#define BOARD_HAS_NBAT_I              1//useless
+
+#define SYSTEM_ADC_BASE STM32_ADC1_BASE
+
+#define ADC12_CH(n)		(n)
 
 #define PX4_ADC_GPIO  \
 	/* PB0  */  GPIO_ADC12_INP5,   \
@@ -92,14 +97,16 @@
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 /* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_BATTERY_VOLTAGE_CHANNEL             ADC1_CH(9)
-#define ADC_BATTERY_CURRENT_CHANNEL             ADC2_CH(5)
+#define ADC_BATTERY_VOLTAGE_CHANNEL             ADC12_CH(9)
+#define ADC_BATTERY_CURRENT_CHANNEL             ADC12_CH(5)
 
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
 	 (1 << ADC_BATTERY_CURRENT_CHANNEL))
 
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
+
+
 
 /* Define Battery 1 Voltage Divider and A per V
  */
@@ -137,7 +144,9 @@
  * PE2  OTG_FS_VBUS VBUS sensing
  */
 
+
 #define GPIO_OTGFS_VBUS         /* PA15 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN15)
+#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 
 /* High-resolution timer */
 #define HRT_TIMER               8  /* use timer1 for the HRT */
@@ -167,9 +176,9 @@
 #define BOARD_HAS_ON_RESET 1
 
 #define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO, \
-		GPIO_TONE_ALARM_IDLE, \
-	}
+	PX4_ADC_GPIO, \
+	GPIO_TONE_ALARM_IDLE, \
+}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
