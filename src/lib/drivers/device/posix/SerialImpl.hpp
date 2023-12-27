@@ -36,7 +36,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include <px4_platform_common/SerialCommon.hpp>
+#include <drivers/device/SerialCommon.hpp>
 
 using device::SerialConfig::ByteSize;
 using device::SerialConfig::Parity;
