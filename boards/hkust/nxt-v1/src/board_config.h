@@ -84,9 +84,6 @@
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
 
-#define BOARD_HAS_NBAT_V              1//useless
-#define BOARD_HAS_NBAT_I              1//useless
-
 #define SYSTEM_ADC_BASE STM32_ADC1_BASE
 
 #define ADC12_CH(n)		(n)
@@ -123,20 +120,18 @@
 
 
 /* Spare GPIO */
-
-#define GPIO_PD4                        /* PG6  */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN4)
-#define GPIO_PC13                       /* PD15 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTC|GPIO_PIN13)
-#define GPIO_PH1                       /* PG15 */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTH|GPIO_PIN1)
+#define GPIO_PD4                        /* PD4  */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTD|GPIO_PIN4)
+#define GPIO_PC13                       /* PC13 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTC|GPIO_PIN13)
+#define GPIO_PH1                        /* PH1 */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTH|GPIO_PIN1)
 
 /* Tone alarm output */
 
-#define TONE_ALARM_TIMER        3 /* Timer 3 */
-#define TONE_ALARM_CHANNEL      2  /* PC7 GPIO_TIM3_CH2 */
-
-#define GPIO_BUZZER_1           /* PC7 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN7)
+#define TONE_ALARM_TIMER        1 /* Timer 3 */
+#define TONE_ALARM_CHANNEL      1  /* PC7 GPIO_TIM3_CH2 */
+/*NC can be modified with Spare GPIO then connected with hardware */
+#define GPIO_BUZZER_1           /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
 #define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
-// #define GPIO_TONE_ALARM         GPIO_TIM3_CH2OUT_4
 #define GPIO_TONE_ALARM         GPIO_BUZZER_1
 
 /* USB OTG FS
