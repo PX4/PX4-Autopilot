@@ -106,6 +106,8 @@ private:
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 
+	std::string model_name_trim_nesting();
+
 	/**
 	*
 	* Convert a quaterion from FLU_to_ENU frames (ROS convention)

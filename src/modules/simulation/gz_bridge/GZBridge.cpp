@@ -68,8 +68,9 @@ GZBridge::~GZBridge()
 
 int GZBridge::init()
 {
-	if (!_model_sim.empty()) {
+	std::string model_name_no_nesting = model_name_trim_nesting();
 
+	if (!_model_sim.empty()) {
 		// service call to create model
 		gz::msgs::EntityFactory req{};
 		req.set_sdf_filename(_model_sim + "/model.sdf");
@@ -216,12 +217,12 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	if (!_mixing_interface_esc.init(_model_name)) {
+	if (!_mixing_interface_esc.init(model_name_no_nesting)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
 	}
 
-	if (!_mixing_interface_servo.init(_model_name)) {
+	if (!_mixing_interface_servo.init(model_name_no_nesting)) {
 		PX4_ERR("failed to init servo output");
 		return PX4_ERROR;
 	}
@@ -511,8 +512,10 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 
 	pthread_mutex_lock(&_node_mutex);
 
+	std::string model_name_no_nesting = model_name_trim_nesting();
+
 	for (int p = 0; p < pose.pose_size(); p++) {
-		if (pose.pose(p).name() == _model_name) {
+		if (pose.pose(p).name() == model_name_no_nesting) {
 
 			const uint64_t time_us = (pose.header().stamp().sec() * 1000000) + (pose.header().stamp().nsec() / 1000);
 
@@ -794,6 +797,20 @@ int GZBridge::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+}
+
+std::string GZBridge::model_name_trim_nesting()
+{
+	int ind_slash = _model_name.find_last_of("/");
+	std::string model_name_no_nesting = "";
+
+	if(ind_slash >= 0){
+		model_name_no_nesting = _model_name.substr(ind_slash+1, _model_name.length());
+	}else{
+		model_name_no_nesting = _model_name;
+	}
+
+	return model_name_no_nesting;
 }
 
 extern "C" __EXPORT int gz_bridge_main(int argc, char *argv[])
