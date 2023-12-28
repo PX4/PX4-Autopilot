@@ -179,6 +179,7 @@ set(msg_files
 	SensorSelection.msg
 	SensorsStatus.msg
 	SensorsStatusImu.msg
+	SensorTvs.msg
 	SensorUwb.msg
 	SystemPower.msg
 	SystemVersion.msg

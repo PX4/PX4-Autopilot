@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 Technology Innovation Institute. All rights reserved.
+#   Copyright (c) 2024 Technology Innoavation Institute. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,13 @@
 #
 ############################################################################
 
-
-add_subdirectory(board_critmon)
-add_subdirectory(board_reset board_reset)
-add_subdirectory(hrt hrt)
-add_subdirectory(version version)
-add_subdirectory(tone_alarm tone_alarm)
-add_subdirectory(../microchip_common/adc adc)
-add_subdirectory(px4io_serial)
-add_subdirectory(tvs)
+px4_add_module(
+	MODULE drivers__tvs
+	MAIN tvs
+	COMPILE_FLAGS
+	SRCS
+		tvs.cpp
+	DEPENDS
+		px4_work_queue
+		arch_tvs
+)
