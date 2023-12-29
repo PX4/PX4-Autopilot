@@ -40,13 +40,7 @@
 namespace device
 {
 
-SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, Parity parity, StopBits stopbits,
-		       FlowControl flowcontrol) :
-	_baudrate(baudrate),
-	_bytesize(bytesize),
-	_parity(parity),
-	_stopbits(stopbits),
-	_flowcontrol(flowcontrol)
+SerialImpl::SerialImpl(const char *port, uint32_t baudrate)
 {
 	if (port) {
 		strncpy(_port, port, sizeof(_port) - 1);
@@ -54,6 +48,14 @@ SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, P
 
 	} else {
 		_port[0] = 0;
+	}
+
+ 	if (baudrate) {
+		_baudrate = baudrate;
+	} else {
+		// If baudrate is zero then choose a reasonable default.
+		// The default is the GPS UBX M10 default rate.
+		_baudrate = 115200;
 	}
 }
 
@@ -64,26 +66,6 @@ SerialImpl::~SerialImpl()
 	}
 }
 
-bool SerialImpl::validateBaudrate(uint32_t baudrate)
-{
-	if ((baudrate != 9600)   &&
-	    (baudrate != 38400)  &&
-	    (baudrate != 57600)  &&
-	    (baudrate != 115200) &&
-	    (baudrate != 230400) &&
-	    (baudrate != 250000) &&
-	    (baudrate != 420000) &&
-	    (baudrate != 460800) &&
-	    (baudrate != 921600) &&
-	    (baudrate != 1000000) &&
-	    (baudrate != 1843200) &&
-	    (baudrate != 2000000)) {
-		return false;
-	}
-
-	return true;
-}
-
 bool SerialImpl::open()
 {
 	// There's no harm in calling open multiple times on the same port.
@@ -92,36 +74,12 @@ bool SerialImpl::open()
 	_open = false;
 	_serial_fd = -1;
 
-	if (! validateBaudrate(_baudrate)) {
-		PX4_ERR("Invalid baudrate: %u", _baudrate);
-		return false;
-	}
-
-	if (_bytesize != ByteSize::EightBits) {
-		PX4_ERR("Qurt platform only supports ByteSize::EightBits");
-		return false;
-	}
-
-	if (_parity != Parity::None) {
-		PX4_ERR("Qurt platform only supports Parity::None");
-		return false;
-	}
-
-	if (_stopbits != StopBits::One) {
-		PX4_ERR("Qurt platform only supports StopBits::One");
-		return false;
-	}
-
-	if (_flowcontrol != FlowControl::Disabled) {
-		PX4_ERR("Qurt platform only supports FlowControl::Disabled");
-		return false;
-	}
-
 	// qurt_uart_open will check validity of port and baudrate
 	int serial_fd = qurt_uart_open(_port, _baudrate);
 
 	if (serial_fd < 0) {
-		PX4_ERR("failed to open %s, fd returned: %d", _port, serial_fd);
+		PX4_ERR("failed to open %s at baudrate %u, fd: %d", _port, _baudrate, serial_fd);
+		close();
 		return false;
 
 	} else {
@@ -263,11 +221,6 @@ uint32_t SerialImpl::getBaudrate() const
 
 bool SerialImpl::setBaudrate(uint32_t baudrate)
 {
-	if (! validateBaudrate(baudrate)) {
-		PX4_ERR("Invalid baudrate: %u", baudrate);
-		return false;
-	}
-
 	// check if already configured
 	if (baudrate == _baudrate) {
 		return true;
@@ -281,46 +234,6 @@ bool SerialImpl::setBaudrate(uint32_t baudrate)
 	}
 
 	return true;
-}
-
-ByteSize SerialImpl::getBytesize() const
-{
-	return _bytesize;
-}
-
-bool SerialImpl::setBytesize(ByteSize bytesize)
-{
-	return bytesize == ByteSize::EightBits;
-}
-
-Parity SerialImpl::getParity() const
-{
-	return _parity;
-}
-
-bool SerialImpl::setParity(Parity parity)
-{
-	return parity == Parity::None;
-}
-
-StopBits SerialImpl::getStopbits() const
-{
-	return _stopbits;
-}
-
-bool SerialImpl::setStopbits(StopBits stopbits)
-{
-	return stopbits == StopBits::One;
-}
-
-FlowControl SerialImpl::getFlowcontrol() const
-{
-	return _flowcontrol;
-}
-
-bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
-{
-	return flowcontrol == FlowControl::Disabled;
 }
 
 } // namespace device

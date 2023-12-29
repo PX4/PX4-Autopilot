@@ -33,14 +33,7 @@
 
 #pragma once
 
-#include <unistd.h>
-
-#include <drivers/device/SerialCommon.hpp>
-
-using device::SerialConfig::ByteSize;
-using device::SerialConfig::Parity;
-using device::SerialConfig::StopBits;
-using device::SerialConfig::FlowControl;
+#include <stdint.h>
 
 namespace device
 {
@@ -49,8 +42,7 @@ class SerialImpl
 {
 public:
 
-	SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, Parity parity, StopBits stopbits,
-		   FlowControl flowcontrol);
+	SerialImpl(const char *port, uint32_t baudrate);
 	virtual ~SerialImpl();
 
 	bool open();
@@ -64,22 +56,13 @@ public:
 	ssize_t write(const void *buffer, size_t buffer_size);
 
 	const char *getPort() const;
-	bool setPort(const char *port);
 
 	uint32_t getBaudrate() const;
 	bool setBaudrate(uint32_t baudrate);
 
-	ByteSize getBytesize() const;
-	bool setBytesize(ByteSize bytesize);
-
-	Parity getParity() const;
-	bool setParity(Parity parity);
-
-	StopBits getStopbits() const;
-	bool setStopbits(StopBits stopbits);
-
-	FlowControl getFlowcontrol() const;
-	bool setFlowcontrol(FlowControl flowcontrol);
+	// Cannot configure Qurt UARTs for SBUS!
+	bool getSBUSMode() const { return false; }
+	bool setSBUSMode(bool enable) { return false; }
 
 private:
 
@@ -91,18 +74,7 @@ private:
 
 	uint32_t _baudrate{0};
 
-	ByteSize _bytesize{ByteSize::EightBits};
-	Parity _parity{Parity::None};
-	StopBits _stopbits{StopBits::One};
-	FlowControl _flowcontrol{FlowControl::Disabled};
-
 	bool validateBaudrate(uint32_t baudrate);
-
-	// Mutex used to lock the read functions
-	//pthread_mutex_t read_mutex;
-
-	// Mutex used to lock the write functions
-	//pthread_mutex_t write_mutex;
 };
 
 } // namespace device

@@ -791,7 +791,7 @@ GPS::run()
 
 			if (_uart == nullptr) {
 				PX4_ERR("Error creating serial device %s", _port);
-				px4_sleep(1);
+				px4_usleep(100000);
 				continue;
 			}
 		}
@@ -802,7 +802,7 @@ GPS::run()
 			if (_configured_baudrate) {
 				if (! _uart->setBaudrate(_configured_baudrate)) {
 					PX4_ERR("Error setting baudrate to %u on %s", _configured_baudrate, _port);
-					px4_sleep(1);
+					px4_usleep(100000);
 					continue;
 				}
 			}
@@ -810,7 +810,7 @@ GPS::run()
 			// Open the UART. If this is successful then the UART is ready to use.
 			if (! _uart->open()) {
 				PX4_ERR("Error opening serial device  %s", _port);
-				px4_sleep(1);
+				px4_usleep(100000);
 				continue;
 			}
 

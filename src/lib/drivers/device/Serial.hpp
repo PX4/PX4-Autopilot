@@ -33,6 +33,7 @@
 
 #pragma once
 
+// Bring in the correct platform implementation
 #ifdef __PX4_NUTTX
 #include "nuttx/SerialImpl.hpp"
 #elif defined(__PX4_QURT)
@@ -41,25 +42,18 @@
 #include "posix/SerialImpl.hpp"
 #endif
 
-#include "SerialCommon.hpp"
-
-using device::SerialConfig::ByteSize;
-using device::SerialConfig::Parity;
-using device::SerialConfig::StopBits;
-using device::SerialConfig::FlowControl;
-
 namespace device __EXPORT
 {
 
 class Serial
 {
 public:
-	Serial(const char *port, uint32_t baudrate = 57600,
-	       ByteSize bytesize = ByteSize::EightBits, Parity parity = Parity::None,
-	       StopBits stopbits = StopBits::One, FlowControl flowcontrol = FlowControl::Disabled);
+	// Baud rate can be selected with constructor or by using setBaudrate
+	Serial(const char *port, uint32_t baudrate = 0);
 	virtual ~Serial();
 
-	// Open sets up the port and gets it configured based on desired configuration
+	// Open sets up the port and gets it configured. Unless an alternate mode
+	// is selected the port will be configured with parity disabled and 1 stop bit.
 	bool open();
 	bool isOpen() const;
 
@@ -70,24 +64,16 @@ public:
 
 	ssize_t write(const void *buffer, size_t buffer_size);
 
-	// If port is already open then the following configuration functions
-	// will reconfigure the port. If the port is not yet open then they will
-	// simply store the configuration in preparation for the port to be opened.
-
 	uint32_t getBaudrate() const;
+
+	// If the port has already been opened it will be reconfigured with a change
+	// of baudrate.
 	bool setBaudrate(uint32_t baudrate);
 
-	ByteSize getBytesize() const;
-	bool setBytesize(ByteSize bytesize);
-
-	Parity getParity() const;
-	bool setParity(Parity parity);
-
-	StopBits getStopbits() const;
-	bool setStopbits(StopBits stopbits);
-
-	FlowControl getFlowcontrol() const;
-	bool setFlowcontrol(FlowControl flowcontrol);
+	// SBUS has special configuration considerations and methods so it
+	// is given a special mode. It has parity enabled and 2 stop bits
+	bool getSBUSMode() const;
+	bool setSBUSMode(bool enable);
 
 	const char *getPort() const;
 

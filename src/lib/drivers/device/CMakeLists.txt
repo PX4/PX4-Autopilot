@@ -58,6 +58,8 @@ elseif(UNIX AND NOT APPLE) #TODO: add linux PX4 platform type
 	endif()
 
 	list(APPEND SRCS_PLATFORM posix/SerialImpl.cpp)
+	list(APPEND SRCS_PLATFORM posix/SerialSBUSImpl.cpp)
+	list(APPEND SRCS_PLATFORM posix/SerialStandardImpl.cpp)
 endif()
 
 px4_add_library(drivers__device

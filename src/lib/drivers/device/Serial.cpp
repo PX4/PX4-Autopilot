@@ -36,14 +36,9 @@
 namespace device
 {
 
-Serial::Serial(const char *port, uint32_t baudrate, ByteSize bytesize, Parity parity, StopBits stopbits,
-	       FlowControl flowcontrol) :
-	_impl(port, baudrate, bytesize, parity, stopbits, flowcontrol)
+Serial::Serial(const char *port, uint32_t baudrate) :
+	_impl(port, baudrate)
 {
-	// If no baudrate was specified then set it to a reasonable default value
-	if (baudrate == 0) {
-		(void) _impl.setBaudrate(9600);
-	}
 }
 
 Serial::~Serial()
@@ -90,44 +85,14 @@ bool Serial::setBaudrate(uint32_t baudrate)
 	return _impl.setBaudrate(baudrate);
 }
 
-ByteSize Serial::getBytesize() const
+bool Serial::getSBUSMode() const
 {
-	return _impl.getBytesize();
+	return _impl.getSBUSMode();
 }
 
-bool Serial::setBytesize(ByteSize bytesize)
+bool Serial::setSBUSMode(bool enable)
 {
-	return _impl.setBytesize(bytesize);
-}
-
-Parity Serial::getParity() const
-{
-	return _impl.getParity();
-}
-
-bool Serial::setParity(Parity parity)
-{
-	return _impl.setParity(parity);
-}
-
-StopBits Serial::getStopbits() const
-{
-	return _impl.getStopbits();
-}
-
-bool Serial::setStopbits(StopBits stopbits)
-{
-	return _impl.setStopbits(stopbits);
-}
-
-FlowControl Serial::getFlowcontrol() const
-{
-	return _impl.getFlowcontrol();
-}
-
-bool Serial::setFlowcontrol(FlowControl flowcontrol)
-{
-	return _impl.setFlowcontrol(flowcontrol);
+	return _impl.setSBUSMode(enable);
 }
 
 const char *Serial::getPort() const

@@ -34,14 +34,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <unistd.h>
 
-#include <drivers/device/SerialCommon.hpp>
-
-using device::SerialConfig::ByteSize;
-using device::SerialConfig::Parity;
-using device::SerialConfig::StopBits;
-using device::SerialConfig::FlowControl;
+#include "SerialSBUSImpl.hpp"
+#include "SerialStandardImpl.hpp"
 
 namespace device
 {
@@ -50,8 +45,7 @@ class SerialImpl
 {
 public:
 
-	SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, Parity parity, StopBits stopbits,
-		   FlowControl flowcontrol);
+	SerialImpl(const char *port, uint32_t baudrate);
 	virtual ~SerialImpl();
 
 	bool open();
@@ -69,17 +63,8 @@ public:
 	uint32_t getBaudrate() const;
 	bool setBaudrate(uint32_t baudrate);
 
-	ByteSize getBytesize() const;
-	bool setBytesize(ByteSize bytesize);
-
-	Parity getParity() const;
-	bool setParity(Parity parity);
-
-	StopBits getStopbits() const;
-	bool setStopbits(StopBits stopbits);
-
-	FlowControl getFlowcontrol() const;
-	bool setFlowcontrol(FlowControl flowcontrol);
+	bool getSBUSMode() const;
+	bool setSBUSMode(bool enable);
 
 private:
 
@@ -91,12 +76,13 @@ private:
 
 	uint32_t _baudrate{0};
 
-	ByteSize _bytesize{ByteSize::EightBits};
-	Parity _parity{Parity::None};
-	StopBits _stopbits{StopBits::One};
-	FlowControl _flowcontrol{FlowControl::Disabled};
+	bool _SBUSMode{false};
 
-	bool validateBaudrate(uint32_t baudrate);
+	// The configuration routines for SBUS versus other needed to be separated
+	// out because they use different methods with different, conflicting header files
+	SerialSBUSImpl _sbus;
+	SerialStandardImpl _standard;
+
 	bool configure();
 };
 

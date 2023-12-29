@@ -32,8 +32,10 @@
  ****************************************************************************/
 
 #include "SerialImpl.hpp"
+
+#include <unistd.h>
+
 #include <string.h> // strncpy
-#include <termios.h>
 #include <px4_log.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -43,13 +45,7 @@
 namespace device
 {
 
-SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, Parity parity, StopBits stopbits,
-		       FlowControl flowcontrol) :
-	_baudrate(baudrate),
-	_bytesize(bytesize),
-	_parity(parity),
-	_stopbits(stopbits),
-	_flowcontrol(flowcontrol)
+SerialImpl::SerialImpl(const char *port, uint32_t baudrate)
 {
 	if (port) {
 		strncpy(_port, port, sizeof(_port) - 1);
@@ -57,6 +53,13 @@ SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, P
 
 	} else {
 		_port[0] = 0;
+	}
+
+ 	if (baudrate) {
+		_baudrate = baudrate;
+	} else {
+		// If baudrate is zero then choose a reasonable default
+		_baudrate = 9600;
 	}
 }
 
@@ -67,121 +70,13 @@ SerialImpl::~SerialImpl()
 	}
 }
 
-bool SerialImpl::validateBaudrate(uint32_t baudrate)
-{
-	return ((baudrate == 9600) ||
-		(baudrate == 19200) ||
-		(baudrate == 38400) ||
-		(baudrate == 57600) ||
-		(baudrate == 115200) ||
-		(baudrate == 230400) ||
-		(baudrate == 460800) ||
-		(baudrate == 921600));
-}
-
 bool SerialImpl::configure()
 {
-	/* process baud rate */
-	int speed;
-
-	if (! validateBaudrate(_baudrate)) {
-		PX4_ERR("ERR: unknown baudrate: %u", _baudrate);
-		return false;
+	if (_SBUSMode) {
+		return _sbus.configure(_serial_fd, _baudrate);
 	}
 
-	switch (_baudrate) {
-	case 9600:   speed = B9600;   break;
-
-	case 19200:  speed = B19200;  break;
-
-	case 38400:  speed = B38400;  break;
-
-	case 57600:  speed = B57600;  break;
-
-	case 115200: speed = B115200; break;
-
-	case 230400: speed = B230400; break;
-
-#ifndef B460800
-#define B460800 460800
-#endif
-
-	case 460800: speed = B460800; break;
-
-#ifndef B921600
-#define B921600 921600
-#endif
-
-	case 921600: speed = B921600; break;
-
-	default:
-		PX4_ERR("ERR: unknown baudrate: %d", _baudrate);
-		return false;
-	}
-
-	struct termios uart_config;
-
-	int termios_state;
-
-	/* fill the struct for the new configuration */
-	if ((termios_state = tcgetattr(_serial_fd, &uart_config)) < 0) {
-		PX4_ERR("ERR: %d (tcgetattr)", termios_state);
-		return false;
-	}
-
-	/* properly configure the terminal (see also https://en.wikibooks.org/wiki/Serial_Programming/termios ) */
-
-	//
-	// Input flags - Turn off input processing
-	//
-	// convert break to null byte, no CR to NL translation,
-	// no NL to CR translation, don't mark parity errors or breaks
-	// no input parity check, don't strip high bit off,
-	// no XON/XOFF software flow control
-	//
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |
-				 INLCR | PARMRK | INPCK | ISTRIP | IXON);
-
-	//
-	// Output flags - Turn off output processing
-	//
-	// no CR to NL translation, no NL to CR-NL translation,
-	// no NL to CR translation, no column 0 CR suppression,
-	// no Ctrl-D suppression, no fill characters, no case mapping,
-	// no local output processing
-	//
-	// config.c_oflag &= ~(OCRNL | ONLCR | ONLRET |
-	//                     ONOCR | ONOEOT| OFILL | OLCUC | OPOST);
-	uart_config.c_oflag = 0;
-
-	//
-	// No line processing
-	//
-	// echo off, echo newline off, canonical mode off,
-	// extended input processing off, signal chars off
-	//
-	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-
-	/* no parity, one stop bit, disable flow control */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
-
-	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
-		return false;
-	}
-
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
-		return false;
-	}
-
-	if ((termios_state = tcsetattr(_serial_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
-		return false;
-	}
-
-	return true;
+	return _standard.configure(_serial_fd, _baudrate);
 }
 
 bool SerialImpl::open()
@@ -203,6 +98,7 @@ bool SerialImpl::open()
 	// Configure the serial port
 	if (! configure()) {
 		PX4_ERR("failed to configure %s err: %d", _port, errno);
+		close();
 		return false;
 	}
 
@@ -218,7 +114,6 @@ bool SerialImpl::isOpen() const
 
 bool SerialImpl::close()
 {
-
 	if (_serial_fd >= 0) {
 		::close(_serial_fd);
 	}
@@ -240,7 +135,6 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 
 	if (ret < 0) {
 		PX4_DEBUG("%s read error %d", _port, ret);
-
 	}
 
 	return ret;
@@ -321,64 +215,39 @@ uint32_t SerialImpl::getBaudrate() const
 
 bool SerialImpl::setBaudrate(uint32_t baudrate)
 {
-	if (! validateBaudrate(baudrate)) {
-		PX4_ERR("ERR: invalid baudrate: %u", baudrate);
-		return false;
-	}
-
 	// check if already configured
-	if ((baudrate == _baudrate) && _open) {
+	if (baudrate == _baudrate) {
 		return true;
 	}
 
 	_baudrate = baudrate;
 
 	// process baud rate change now if port is already open
-	if (_open) {
-		return configure();
+	if ((_open) && (configure() != 0)) {
+		// Configure failed! Close the port
+		close();
+		return false;
 	}
 
 	return true;
 }
 
-ByteSize SerialImpl::getBytesize() const
+bool SerialImpl::getSBUSMode() const
 {
-	return _bytesize;
+	return _SBUSMode;
 }
 
-bool SerialImpl::setBytesize(ByteSize bytesize)
+bool SerialImpl::setSBUSMode(bool enable)
 {
-	return bytesize == ByteSize::EightBits;
-}
+	if (_open) {
+		PX4_ERR("Cannot configure SBUS mode after port has already been opened");
+		return false;
+	}
 
-Parity SerialImpl::getParity() const
-{
-	return _parity;
-}
+	_SBUSMode = enable;
+	_baudrate = SerialSBUSImpl::DEFAULT_BAUDRATE;
 
-bool SerialImpl::setParity(Parity parity)
-{
-	return parity == Parity::None;
-}
-
-StopBits SerialImpl::getStopbits() const
-{
-	return _stopbits;
-}
-
-bool SerialImpl::setStopbits(StopBits stopbits)
-{
-	return stopbits == StopBits::One;
-}
-
-FlowControl SerialImpl::getFlowcontrol() const
-{
-	return _flowcontrol;
-}
-
-bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
-{
-	return flowcontrol == FlowControl::Disabled;
+	return true;
 }
 
 } // namespace device

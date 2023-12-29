@@ -38,46 +38,16 @@
 namespace device
 {
 
-class SerialImpl
+class SerialSBUSImpl
 {
 public:
 
-	SerialImpl(const char *port, uint32_t baudrate);
-	virtual ~SerialImpl();
+	SerialSBUSImpl() {};
+	virtual ~SerialSBUSImpl() {};
 
-	bool open();
-	bool isOpen() const;
+	bool configure(int fd, uint32_t baud);
 
-	bool close();
-
-	ssize_t read(uint8_t *buffer, size_t buffer_size);
-	ssize_t readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count = 1, uint32_t timeout_us = 0);
-
-	ssize_t write(const void *buffer, size_t buffer_size);
-
-	const char *getPort() const;
-
-	uint32_t getBaudrate() const;
-	bool setBaudrate(uint32_t baudrate);
-
-	bool getSBUSMode() const;
-	bool setSBUSMode(bool enable);
-
-private:
-
-	int _serial_fd{-1};
-
-	bool _open{false};
-
-	char _port[32] {};
-
-	uint32_t _baudrate{0};
-
-	bool _SBUSMode{false};
-	static const uint32_t DEFAULT_SBUS_BAUDRATE{100000};
-
-	bool configure();
-
+	static const uint32_t DEFAULT_BAUDRATE{100000};
 };
 
 } // namespace device
