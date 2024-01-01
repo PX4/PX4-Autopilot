@@ -89,8 +89,8 @@
 #define ADC12_CH(n)		(n)
 
 #define PX4_ADC_GPIO  \
-	/* PB0  */  GPIO_ADC12_INP4,   \
-	/* PB1  */  GPIO_ADC12_INP8
+	/* PC4  */  GPIO_ADC12_INP4,   \
+	/* PC5  */  GPIO_ADC12_INP8
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 /* Define Channel numbers must match above GPIO pin IN(n)*/
@@ -148,8 +148,9 @@
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
-#define GPIO_SBUS_INV                  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN14)
-#define RC_INVERT_INPUT(_invert_true)  px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true);
+// #define GPIO_SBUS_INV                  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
+// #define RC_INVERT_INPUT(_invert_true)  px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true);
+
 /* SD card bringup does not work if performed on the IDLE thread because it
  * will cause waiting.  Use either:
  *
@@ -173,7 +174,6 @@
 	PX4_ADC_GPIO, \
 	GPIO_TONE_ALARM_IDLE, \
 	GPIO_SPL_ADDR_SET, \
-	GPIO_SBUS_INV, \
 	GPIO_PC0, \
 	GPIO_PC1, \
 }
