@@ -1,14 +1,14 @@
 /****************************************************************************
- * boards/px4/fmu-v6xrt/src/imxrt_romapi.c
+ * platforms/nuttx/src/px4/nxp/imrt/include/px4_arch/imxrt_romapi.h
  *
- * Copyright 2017-2020 NXP
+ * Copyright 2017-2024 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
  *
 ****************************************************************************/
-#ifndef __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_ROMAPI_H
-#define __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_ROMAPI_H
+#ifndef __PX4_ARCH_IMXRT_ROMAPI_H
+#define __PX4_ARCH_IMXRT_ROMAPI_H
 
 /****************************************************************************
  *
@@ -370,4 +370,8 @@ void ROM_FLEXSPI_NorFlash_ClearCache(uint32_t instance);
 
 /*@}*/
 
-#endif /* __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_ROMAPI_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __PX4_ARCH_IMXRT_ROMAPI_H */
