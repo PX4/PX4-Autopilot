@@ -66,8 +66,7 @@
 
 #include "arm_internal.h"
 #include "imxrt_flexspi_nor_boot.h"
-#include "imxrt_flexspi_nor_flash.h"
-#include "imxrt_romapi.h"
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
 #include "imxrt_iomuxc.h"
 #include "imxrt_flexcan.h"
 #include "imxrt_enet.h"
@@ -79,10 +78,12 @@
 
 #include <arch/board/board.h>
 
+
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
 #include <px4_arch/io_timer.h>
+#include <px4_arch/imxrt_romapi.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>

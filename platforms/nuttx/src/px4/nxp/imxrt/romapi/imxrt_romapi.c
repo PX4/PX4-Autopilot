@@ -1,7 +1,7 @@
 /****************************************************************************
- * boards/px4/fmu-v6xrt/src/imxrt_romapi.c
+ * platforms/nuttx/src/px4/nxp/imrt/romapi/imxrt_romapi.c
  *
- * Copyright 2017-2020 NXP
+ * Copyright 2017-2024 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -22,8 +22,8 @@
 
 #include "arm_internal.h"
 
-#include "imxrt_flexspi_nor_flash.h"
-#include "imxrt_romapi.h"
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
+#include <px4_arch/imxrt_romapi.h>
 
 #include <hardware/rt117x/imxrt117x_anadig.h>
 
