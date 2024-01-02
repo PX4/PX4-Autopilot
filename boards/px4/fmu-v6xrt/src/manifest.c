@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018, 2021, 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,12 +46,14 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
+#include <nuttx/config.h>
+#include <board_config.h>
+
+#include <inttypes.h>
 #include <stdbool.h>
 #include <syslog.h>
 
 #include "systemlib/px4_macros.h"
-#include "px4_log.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -98,8 +100,30 @@ static const px4_hw_mft_item_t hw_mft_list_V00[] = {
 	},
 };
 
+static const px4_hw_mft_item_t hw_mft_list_V50[] = {
+	{
+		//  PX4_MFT_PX4IO
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		// PX4_MFT_USB
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+};
+
 static px4_hw_mft_list_entry_t mft_lists[] = {
 	{V6XRT_00, hw_mft_list_V00, arraySize(hw_mft_list_V00)},
+	{V6XRT_50, hw_mft_list_V50, arraySize(hw_mft_list_V50)}, // HB Mini
 };
 
 /************************************************************************************
@@ -122,7 +146,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 	static px4_hw_mft_list_entry boards_manifest = px4_hw_mft_list_uninitialized;
 
 	if (boards_manifest == px4_hw_mft_list_uninitialized) {
-		uint32_t ver_rev = board_get_hw_version() << 8;
+		uint32_t ver_rev = board_get_hw_version() << 16;
 		ver_rev |= board_get_hw_revision();
 
 		for (unsigned i = 0; i < arraySize(mft_lists); i++) {
@@ -133,7 +157,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			PX4_ERR("Board %4" PRIx32 " is not supported!", ver_rev);
+			syslog(LOG_ERR, "[boot] Board %08" PRIx32 " is not supported!\n", ver_rev);
 		}
 	}
 
