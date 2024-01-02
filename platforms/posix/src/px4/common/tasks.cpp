@@ -58,6 +58,7 @@
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
 #include <systemlib/err.h>
+#include <bionic_pthread_cancel.h>
 
 #define PX4_MAX_TASKS 50
 
@@ -83,6 +84,10 @@ typedef struct {
 static void *entry_adapter(void *ptr)
 {
 	pthdata_t *data = (pthdata_t *) ptr;
+
+#ifdef __ANDROID__
+	register_handler_pthread_cancel();
+#endif
 
 	// set the threads name
 #ifdef __PX4_DARWIN

@@ -43,8 +43,12 @@ namespace px4_daemon
 
 std::string get_socket_path(int instance_id)
 {
+#ifdef __ANDROID__
+	return "/data/local/tmp/px4-sock-" + std::to_string(instance_id);
+#else
 	// TODO: Use /var/run/px4/$instance/sock (or /var/run/user/$UID/... for non-root).
 	return "/tmp/px4-sock-" + std::to_string(instance_id);
+#endif
 }
 
 } // namespace px4_daemon
