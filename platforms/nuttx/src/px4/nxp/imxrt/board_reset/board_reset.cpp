@@ -43,6 +43,10 @@
 #include <arm_internal.h>
 #include <hardware/rt117x/imxrt117x_snvs.h>
 
+
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
+#include <px4_arch/imxrt_romapi.h>
+
 #define BOOT_RTC_SIGNATURE                0xb007b007
 #define PX4_IMXRT_RTC_REBOOT_REG          3
 #define PX4_IMXRT_RTC_REBOOT_REG_ADDRESS  IMXRT_SNVS_LPGPR3
@@ -63,6 +67,11 @@ int board_reset(int status)
 {
 	if (status == 1) {
 		board_reset_enter_bootloader();
+
+	} else if (status == REBOOT_TO_ISP) {
+		uint32_t arg = 0xeb100000;
+		ROM_API_Init();
+		ROM_RunBootloader(&arg);
 	}
 
 #if defined(BOARD_HAS_ON_RESET)
