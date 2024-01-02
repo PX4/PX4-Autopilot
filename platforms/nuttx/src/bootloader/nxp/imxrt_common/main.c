@@ -7,8 +7,8 @@
 #include <px4_defines.h>
 
 #include "hw_config.h"
-#include "imxrt_flexspi_nor_flash.h"
-#include "imxrt_romapi.h"
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
+#include <px4_arch/imxrt_romapi.h>
 #include <hardware/rt117x/imxrt117x_ocotp.h>
 #include <hardware/rt117x/imxrt117x_anadig.h>
 #include <hardware/rt117x/imxrt117x_snvs.h>
