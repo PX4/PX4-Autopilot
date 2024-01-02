@@ -375,7 +375,7 @@ write_reboot:
 
 	sleep(1);
 
-	px4_reboot_request(false);
+	px4_reboot_request(REBOOT_REQUEST);
 
 	while (1) { px4_usleep(1); } // this command should not return on success
 
