@@ -25,7 +25,7 @@ void register_handler_pthread_cancel()
 	sigemptyset(&actions.sa_mask);
 	actions.sa_flags = 0;
 	actions.sa_handler = handler_pthread_cancel;
-	sigaction(SIGCANCEL,&actions,NULL);
+	sigaction(SIGCANCEL, &actions, NULL);
 }
 }
 
