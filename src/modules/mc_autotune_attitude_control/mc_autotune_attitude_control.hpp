@@ -174,6 +174,7 @@ private:
 		(ParamFloat<px4::params::MC_AT_SYSID_AMP>) _param_mc_at_sysid_amp,
 		(ParamFloat<px4::params::MC_AT_SYSID_F0>) _param_mc_at_sysid_f0,
 		(ParamFloat<px4::params::MC_AT_SYSID_F1>) _param_mc_at_sysid_f1,
+		(ParamFloat<px4::params::MC_AT_SYSID_FYAW>) _param_mc_at_sysid_fyaw,
 		(ParamFloat<px4::params::MC_AT_SYSID_TIME>) _param_mc_at_sysid_time,
 		(ParamInt<px4::params::MC_AT_SYSID_TYPE>) _param_mc_at_sysid_type,
 		(ParamInt<px4::params::MC_AT_APPLY>) _param_mc_at_apply,

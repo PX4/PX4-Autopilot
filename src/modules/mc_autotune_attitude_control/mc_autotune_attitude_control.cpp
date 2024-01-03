@@ -198,6 +198,11 @@ void McAutotuneAttitudeControl::Run()
 			_kid(2) = 0.f;
 		}
 
+		// Do not use derivative on the yaw axis as it often only amplifies noise
+		if ((_state == state::yaw) || (_state == state::yaw_pause)) {
+			_kid(2) = 0.f;
+		}
+
 		// To compute the attitude gain, use the following empirical rule:
 		// "An error of 60 degrees should produce the maximum control output"
 		// or K_att * K_rate * rad(60) = 1
@@ -564,11 +569,13 @@ const Vector3f McAutotuneAttitudeControl::getIdentificationSignal(hrt_abstime no
 	float signal;
 
 	if (_param_mc_at_sysid_type.get() == static_cast<int32_t>(SignalType::kLinearSineSweep)) {
-		signal = signal_generator::getLinearSineSweep(_param_mc_at_sysid_f0.get(), _param_mc_at_sysid_f1.get(),
+		const float f_max = (_state == state::yaw) ? _param_mc_at_sysid_fyaw.get() : _param_mc_at_sysid_f1.get();
+		signal = signal_generator::getLinearSineSweep(_param_mc_at_sysid_f0.get(), f_max,
 				_param_mc_at_sysid_time.get(), t);
 
 	} else if (_param_mc_at_sysid_type.get() == static_cast<int32_t>(SignalType::kLogSineSweep)) {
-		signal = signal_generator::getLogSineSweep(_param_mc_at_sysid_f0.get(), _param_mc_at_sysid_f1.get(),
+		const float f_max = (_state == state::yaw) ? _param_mc_at_sysid_fyaw.get() : _param_mc_at_sysid_f1.get();
+		signal = signal_generator::getLogSineSweep(_param_mc_at_sysid_f0.get(), f_max,
 				_param_mc_at_sysid_time.get(), t);
 
 	} else {

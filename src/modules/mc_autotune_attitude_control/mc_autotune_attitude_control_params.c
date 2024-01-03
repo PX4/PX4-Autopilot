@@ -103,6 +103,21 @@ PARAM_DEFINE_FLOAT(MC_AT_SYSID_F0, 1.f);
 PARAM_DEFINE_FLOAT(MC_AT_SYSID_F1, 20.f);
 
 /**
+ * Yaw axis maximum frequency
+ *
+ * End frequency of the identification for the yaw axis.
+ * This is usually set lower than the roll and pitch axes
+ * to only consider the yaw actuation produced by propeller drag.
+ *
+ * @min 0.1
+ * @max 30.0
+ * @decimal 1
+ * @unit Hz
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(MC_AT_SYSID_FYAW, 5.f);
+
+/**
  * Maneuver time for each axis
  *
  * Duration of the input signal sent on each axis during system identification
