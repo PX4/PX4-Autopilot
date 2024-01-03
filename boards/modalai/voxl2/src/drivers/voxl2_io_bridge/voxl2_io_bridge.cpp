@@ -39,7 +39,7 @@
 #include <px4_platform_common/getopt.h>
 #include <uORB/Publication.hpp>
 #include <drivers/drv_hrt.h>
-#include <uORB/topics/voxl2_io_data.h>
+#include <uORB/topics/opaque_data.h>
 #include <lib/parameters/param.h>
 
 
@@ -94,7 +94,7 @@ uint32_t _data_len = 0;
 
 px4_sem_t _new_data_sem;
 
-uORB::Publication<voxl2_io_data_s> _data_pub{ORB_ID(voxl2_io_data)};
+uORB::Publication<opaque_data_s> _data_pub{ORB_ID(voxl2_io_data)};
 
 static void simple_cb(int ch, char *data, int bytes, __attribute__((unused)) void *context)
 {
@@ -142,7 +142,7 @@ int initialize()
 void voxl2_io_bridge_task()
 {
 
-	voxl2_io_data_s	io_data;
+	opaque_data_s	io_data;
 
 	_is_running = true;
 
@@ -153,7 +153,7 @@ void voxl2_io_bridge_task()
 		do {} while (px4_sem_wait(&_new_data_sem) != 0);
 
 		if (_data_len) {
-			memset(&io_data, 0, sizeof(voxl2_io_data_s));
+			memset(&io_data, 0, sizeof(opaque_data_s));
 
 			io_data.timestamp = hrt_absolute_time();
 			io_data.len = _data_len;

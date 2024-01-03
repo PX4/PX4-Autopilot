@@ -147,6 +147,7 @@ set(msg_files
 	ObstacleDistance.msg
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
+	OpaqueData.msg
 	OrbitStatus.msg
 	OrbTest.msg
 	OrbTestLarge.msg
@@ -236,7 +237,6 @@ set(msg_files
 	VehicleTrajectoryBezier.msg
 	VehicleTrajectoryWaypoint.msg
 	VelocityLimits.msg
-	Voxl2IoData.msg
 	VtolVehicleStatus.msg
 	WheelEncoders.msg
 	Wind.msg

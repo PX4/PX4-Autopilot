@@ -1148,7 +1148,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	// If any extra external modal io data has been received then
 	// send it over as well
 	while (_voxl2_io_data_sub.updated()) {
-		voxl2_io_data_s io_data{};
+		opaque_data_s io_data{};
 		_voxl2_io_data_sub.copy(&io_data);
 
 		// PX4_INFO("Got Modal IO data: %u bytes", io_data.len);
