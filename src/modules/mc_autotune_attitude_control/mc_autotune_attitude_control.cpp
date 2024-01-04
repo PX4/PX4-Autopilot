@@ -275,7 +275,10 @@ void McAutotuneAttitudeControl::checkFilters()
 void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 {
 	// when identifying an axis, check if the estimate has converged
-	const float converged_thr = 50.f;
+	const float converged_thr = 10.f;
+	Vector<float, 5> state_init;
+	state_init(0) = -1.5f;
+	state_init(1) = 0.5f;
 
 	switch (_state) {
 	case state::idle:
@@ -296,7 +299,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if (_are_filters_initialized) {
 			_state = state::roll;
 			_state_start_time = now;
-			_sys_id.reset();
+			_sys_id.reset(state_init);
 			_gains_backup_available = false;
 		}
 
@@ -318,7 +321,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if ((now - _state_start_time) > 2_s) {
 			_state = state::pitch;
 			_state_start_time = now;
-			_sys_id.reset();
+			_sys_id.reset(state_init);
 		}
 
 		break;
@@ -337,7 +340,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if ((now - _state_start_time) > 2_s) {
 			_state = state::yaw;
 			_state_start_time = now;
-			_sys_id.reset();
+			_sys_id.reset(state_init);
 		}
 
 		break;

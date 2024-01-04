@@ -90,7 +90,7 @@ public:
 		_P.setZero();
 
 		for (size_t i = 0; i < (N + M + 1); i++) {
-			_P(i, i) = 10e3f;
+			_P(i, i) = 10.f;
 		}
 
 		_diff_theta_hat.setZero();
@@ -115,18 +115,14 @@ public:
 
 		addInputOutput(u, y);
 
-		if (!isBufferFull()) {
-			// Do not start to update the RLS algorithm when the
-			// buffer still contains zeros
-			return;
-		}
-
 		const matrix::Vector < float, N + M + 1 > phi = constructDesignVector();
 		const matrix::Matrix < float, 1, N + M + 1 > phi_t = phi.transpose();
 
-		_P = (_P - _P * phi * phi_t * _P / (_lambda + (phi_t * _P * phi)(0, 0))) / _lambda;
+		auto K = _P * phi / ((phi_t * _P * phi)(0, 0) + _lambda);
 		_innovation = _y[N] - (phi_t * _theta_hat)(0, 0);
-		_theta_hat = _theta_hat + _P * phi * _innovation;
+
+		_theta_hat = _theta_hat + K * _innovation;
+		_P = (_P - K * (phi_t * _P)) / _lambda;
 
 		for (size_t i = 0; i < N + M + 1; i++) {
 			_diff_theta_hat(i) = fabsf(_theta_hat(i) - theta_prev(i));
@@ -135,16 +131,11 @@ public:
 		/* fixCovarianceErrors(); // TODO: this could help against ill-conditioned matrix but needs more testing*/
 	}
 
-private:
 	void addInputOutput(float u, float y)
 	{
 		shiftRegisters();
 		_u[M + D] = u;
 		_y[N] = y;
-
-		if (!isBufferFull()) {
-			_nb_samples++;
-		}
 	}
 
 	void shiftRegisters()
@@ -157,8 +148,6 @@ private:
 			_u[i] = _u[i + 1];
 		}
 	}
-
-	bool isBufferFull() const { return _nb_samples > (M + N + D); }
 
 	matrix::Vector < float, N + M + 1 > constructDesignVector() const
 	{
