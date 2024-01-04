@@ -55,6 +55,9 @@ void VertiqIo::Run()
 	//Update our serial rx
 	_serial_interface.process_serial_rx();
 
+	//Update our serial tx
+	_serial_interface.process_serial_tx();
+
 	//stop our timer
 	perf_end(_loop_perf);
 }

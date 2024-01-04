@@ -35,11 +35,17 @@ public:
 	*/
 	int process_serial_rx();
 
+	/**
+	* @brief check to see if there is any data that we need to transmit over serial
+	*/
+	int process_serial_tx();
+
 private:
 
 	GenericInterface _iquart_interface;
 	uint8_t _bytes_available;
 	uint8_t _rx_buf[128];
+	uint8_t _tx_buf[128];
 
 	static constexpr int FRAME_SIZE = 10;
 	int _uart_fd{-1};
