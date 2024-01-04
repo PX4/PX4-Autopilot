@@ -388,6 +388,7 @@ else
 		commander start
 
 		dshot start
+		vertiq_io start
 		pwm_out start
 	fi
 

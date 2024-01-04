@@ -1,0 +1,6 @@
+module_name: Vertiq IO
+serial_config:
+    - command: vertiq_io telemetry ${SERIAL_DEV}
+      port_config_param:
+        name: VERTIQ_IO_CFG
+        group: Vertiq IO

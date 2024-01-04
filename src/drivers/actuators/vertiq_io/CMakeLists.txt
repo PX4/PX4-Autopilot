@@ -39,4 +39,6 @@ px4_add_module(
 		vertiq_io.hpp
 	DEPENDS
 		px4_work_queue
+	MODULE_CONFIG
+		module.yaml
 	)
