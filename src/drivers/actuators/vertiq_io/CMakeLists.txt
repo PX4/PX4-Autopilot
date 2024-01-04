@@ -37,6 +37,8 @@ px4_add_module(
 	SRCS
 		vertiq_io.cpp
 		vertiq_io.hpp
+		vertiq_serial_interface.cpp
+		vertiq_serial_interface.hpp
 	DEPENDS
 		px4_work_queue
 	MODULE_CONFIG
