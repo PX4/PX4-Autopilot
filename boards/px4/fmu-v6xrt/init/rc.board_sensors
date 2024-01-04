@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# PX4 FMUv5 specific board sensors init
+# PX4 FMUv6X-RT specific board sensors init
 #------------------------------------------------------------------------------
 #
 # UART mapping on PX4 FMU-V6XRT:
@@ -18,10 +18,12 @@
 
 set HAVE_PM2 yes
 
-if ver hwtypecmp V5X005000 V5X005001 V5X005002
+if ver hwtypecmp V6XRT000000 V6XRT009000 V6XRT010000
 then
+else
 	set HAVE_PM2 no
 fi
+
 if param compare -s ADC_ADS1115_EN 1
 then
 	ads1115 start -X
@@ -86,4 +88,5 @@ then
 	bmp388 -I -b 3 -a 0x77 start
 	bmp388 -X -b 2 start
 fi
+
 unset HAVE_PM2
