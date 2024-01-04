@@ -22,7 +22,7 @@
  * Included Files
  ****************************************************************************/
 
-#include "imxrt_flexspi_nor_flash.h"
+#include <px4_arch/imxrt_flexspi_nor_flash.h>
 
 /****************************************************************************
  * Public Data
