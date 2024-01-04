@@ -299,7 +299,9 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	// when identifying an axis, check if the estimate has converged
 	const float converged_thr = 1.f;
 
-	const Vector<float, SystemIdentification::_kParameters> sys_id_init;
+	Vector<float, 5> sys_id_init;
+	sys_id_init(0) = -1.5f;
+	sys_id_init(1) = 0.5f;
 
 	switch (_state) {
 	case state::idle:

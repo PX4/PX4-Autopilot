@@ -200,4 +200,5 @@ private:
 	)
 
 	static constexpr float _publishing_dt_s = 5e-3f;
+	static constexpr float _kInitVar = 10.f;
 };

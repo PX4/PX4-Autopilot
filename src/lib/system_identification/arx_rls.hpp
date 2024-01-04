@@ -84,13 +84,13 @@ public:
 	float getInnovation() const { return _innovation; }
 	const matrix::Vector < float, N + M + 1 > &getDiffEstimate() const { return _diff_theta_hat; }
 
-	void reset(const matrix::Vector < float, N + M + 1 > &theta_init = {})
+	void reset(const matrix::Vector < float, N + M + 1 > &theta_init = {}, const float var_init = 100.f)
 	{
 		/* _P.uncorrelateCovarianceSetVariance<N + M + 1>(0, 10e3f); // does not work */
 		_P.setZero();
 
 		for (size_t i = 0; i < (N + M + 1); i++) {
-			_P(i, i) = 10.f;
+			_P(i, i) = var_init;
 		}
 
 		_diff_theta_hat.setZero();

@@ -274,8 +274,6 @@ void McAutotuneAttitudeControl::checkFilters()
 
 void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 {
-	// when identifying an axis, check if the estimate has converged
-	const float converged_thr = 10.f;
 	Vector<float, 5> state_init;
 	state_init(0) = -1.5f;
 	state_init(1) = 0.5f;
@@ -299,14 +297,14 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if (_are_filters_initialized) {
 			_state = state::roll;
 			_state_start_time = now;
-			_sys_id.reset(state_init);
+			_sys_id.reset(state_init, _kInitVar);
 			_gains_backup_available = false;
 		}
 
 		break;
 
 	case state::roll:
-		if ((_sys_id.getVariances().max() < converged_thr)
+		if ((_sys_id.getVariances().max() < _kInitVar)
 		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(0);
 
@@ -321,13 +319,13 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if ((now - _state_start_time) > 2_s) {
 			_state = state::pitch;
 			_state_start_time = now;
-			_sys_id.reset(state_init);
+			_sys_id.reset(state_init, _kInitVar);
 		}
 
 		break;
 
 	case state::pitch:
-		if ((_sys_id.getVariances().max() < converged_thr)
+		if ((_sys_id.getVariances().max() < _kInitVar)
 		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(1);
 			_state = state::pitch_pause;
@@ -340,13 +338,13 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if ((now - _state_start_time) > 2_s) {
 			_state = state::yaw;
 			_state_start_time = now;
-			_sys_id.reset(state_init);
+			_sys_id.reset(state_init, _kInitVar);
 		}
 
 		break;
 
 	case state::yaw:
-		if ((_sys_id.getVariances().max() < converged_thr)
+		if ((_sys_id.getVariances().max() < _kInitVar)
 		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(2);
 			_state = state::yaw_pause;

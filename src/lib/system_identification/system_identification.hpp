@@ -58,7 +58,7 @@ public:
 	SystemIdentification() = default;
 	~SystemIdentification() = default;
 
-	void reset(const matrix::Vector<float, _kParameters> &id_state_init = {});
+	void reset(const matrix::Vector<float, _kParameters> &id_state_init = {}, float var_init = 100.f);
 	void update(float u, float y); // update filters and model
 	void update(); // update model only (to be called after updateFilters)
 	void updateFilters(float u, float y);
