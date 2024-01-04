@@ -144,13 +144,11 @@ int VertiqIo::updateSerial(){
 
 		int num_read = read(_uart_fd, buf, buf_length);
 		for(uint8_t i = 0; i < num_read; i++){
-			PX4_INFO("Got char %c", buf[i]);
+			uint8_t char_to_write = buf[i];
+			write(_uart_fd, &char_to_write, 1);
 		}
 	}
 
-	uint8_t output[] = "hello world\n\r";
-	// ssize_t write(int fd, FAR const void *buf, size_t nbytes)
-	write(_uart_fd, output, sizeof(output));
 	return 1;
 }
 
@@ -170,7 +168,7 @@ bool VertiqIo::init()
 
 	//Schedule to run every 100 ms
 	//calls Run() every second
-	ScheduleOnInterval(1_s);
+	ScheduleOnInterval(2500_us);
 
 	return true;
 }
