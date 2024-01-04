@@ -52,7 +52,7 @@ void VertiqIo::Run()
 		_request_telemetry_init.store(false);
 	}
 
-	//Update our serial tx/rx
+	//Update our serial rx
 	_serial_interface.process_serial_rx();
 
 	//stop our timer

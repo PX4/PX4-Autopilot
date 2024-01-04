@@ -110,27 +110,30 @@ int VertiqSerialInterface::process_serial_rx()
 	}
 
 	// read from the uart. This must be non-blocking, so check first if there is data available
-	int bytes_available = 0;
-	int ret = ioctl(_uart_fd, FIONREAD, (unsigned long)&bytes_available);
+	_bytes_available = 0;
+	int ret = ioctl(_uart_fd, FIONREAD, (unsigned long)&_bytes_available);
 
 	if (ret != 0) {
 		PX4_ERR("Reading error");
 		return -1;
-
-	} else {
-		PX4_INFO("able to check the port for data and found %d bytes of data", bytes_available);
 	}
 
-	if (bytes_available > 0) {
-		const int buf_length = FRAME_SIZE;
-		uint8_t buf[buf_length];
+	if (_bytes_available > 0) {
+		//Read the bytes available for us
+		read(_uart_fd, _rx_buf, _bytes_available);
 
-		int num_read = read(_uart_fd, buf, buf_length);
+		//Put the data into our IQUART handler
+		_iquart_interface.SetRxBytes(_rx_buf, _bytes_available);
 
-		for (uint8_t i = 0; i < num_read; i++) {
-			uint8_t char_to_write = buf[i];
-			write(_uart_fd, &char_to_write, 1);
+		//Pointer to our RX data
+		uint8_t * rx_buf_ptr = _rx_buf;
+
+		//While we've got packets to look at
+		while(_iquart_interface.PeekPacket(&rx_buf_ptr, &_bytes_available) == 1){
+			write(_uart_fd, _rx_buf, 7);
+			_iquart_interface.DropPacket();
 		}
+
 	}
 
 	return 1;

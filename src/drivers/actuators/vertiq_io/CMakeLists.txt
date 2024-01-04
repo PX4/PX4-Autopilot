@@ -39,6 +39,15 @@ px4_add_module(
 		vertiq_io.hpp
 		vertiq_serial_interface.cpp
 		vertiq_serial_interface.hpp
+		iq-module-communication-cpp/inc/bipbuffer.h
+		iq-module-communication-cpp/inc/crc_helper.h
+		iq-module-communication-cpp/inc/byte_queue.h
+		iq-module-communication-cpp/inc/generic_interface.hpp
+		iq-module-communication-cpp/inc/packet_finder.h
+		iq-module-communication-cpp/src/crc_helper.c
+		iq-module-communication-cpp/src/byte_queue.c
+		iq-module-communication-cpp/src/generic_interface.cpp
+		iq-module-communication-cpp/src/packet_finder.c
 	DEPENDS
 		px4_work_queue
 	MODULE_CONFIG

@@ -7,6 +7,8 @@
 #include <termios.h>
 #include <errno.h>
 
+#include "iq-module-communication-cpp/inc/generic_interface.hpp"
+
 class VertiqSerialInterface
 {
 public:
@@ -34,6 +36,11 @@ public:
 	int process_serial_rx();
 
 private:
+
+	GenericInterface _iquart_interface;
+	uint8_t _bytes_available;
+	uint8_t _rx_buf[128];
+
 	static constexpr int FRAME_SIZE = 10;
 	int _uart_fd{-1};
 
