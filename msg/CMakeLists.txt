@@ -53,6 +53,7 @@ set(msg_files
 	ArmingCheckRequest.msg
 	AutotuneAttitudeControlStatus.msg
 	BatteryStatus.msg
+	Buffer128.msg
 	ButtonEvent.msg
 	CameraCapture.msg
 	CameraStatus.msg
@@ -147,7 +148,6 @@ set(msg_files
 	ObstacleDistance.msg
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
-	OpaqueData.msg
 	OrbitStatus.msg
 	OrbTest.msg
 	OrbTestLarge.msg

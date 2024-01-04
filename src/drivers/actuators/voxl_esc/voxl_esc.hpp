@@ -49,7 +49,7 @@
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_test.h>
-#include <uORB/topics/opaque_data.h>
+#include <uORB/topics/buffer128.h>
 
 #include "voxl_esc_serial.hpp"
 
