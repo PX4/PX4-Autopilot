@@ -175,3 +175,35 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
 }
+
+// This tests that a control setpoint for z-thrust returns the desired actuator setpoint.
+// Each motor should have an actuator setpoint that when summed together should be equal to
+// control setpoint. 
+TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
+{
+	ControlAllocationSequentialDesaturation allocator;
+	setup_quad_allocator(allocator);
+	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
+	constexpr float THRUST_Z_TOTAL{0.75};
+	constexpr float YAW_CONTROL_SP{0.25};
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
+	allocator.setControlSetpoint(control_sp);
+
+	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
+	allocator.allocate();
+
+	const auto &actuator_sp = allocator.getActuatorSetpoint();
+	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4};
+	actuator_sp.print();
+	for (size_t i{0}; i < 4; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), THRUST_Z_PER_MOTOR));
+	}
+	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
+	}
+}
