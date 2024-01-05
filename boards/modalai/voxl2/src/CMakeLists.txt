@@ -43,5 +43,4 @@ add_library(drivers_board
     )
 
 # Add custom drivers
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/voxl2_io_bridge)
 add_subdirectory(${PX4_BOARD_DIR}/src/drivers/apps_sbus)

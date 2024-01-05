@@ -30,5 +30,4 @@ exec find boards msg src platforms test \
     -path src/lib/cdrstream/cyclonedds -prune -o \
     -path src/lib/cdrstream/rosidl -prune -o \
     -path src/modules/zenoh/zenoh-pico -prune -o \
-    -path boards/modalai/voxl2/src/lib/libmodal-pipe -prune -o \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) | grep $PATTERN
