@@ -90,6 +90,7 @@ ActuatorEffectivenessRotors::Geometry make_quad_geometry() {
 	return geometry;
 }
 
+// Returns an effective matrix for a sample quad-copter configuration.
 ActuatorEffectiveness::EffectivenessMatrix make_quad_effectiveness() {
 	ActuatorEffectiveness::EffectivenessMatrix effectiveness;
 	effectiveness.setZero();
@@ -98,58 +99,79 @@ ActuatorEffectiveness::EffectivenessMatrix make_quad_effectiveness() {
 	return effectiveness;
 }
 
-} // namespace
-
-// This tests that yaw-only control setpoint at zero actuator setpoint results in zero actuator
-// allocation.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledOnlyYaw)
-{
-	ControlAllocationSequentialDesaturation method;
-
+// Configures a ControlAllocationSequentialDesaturation object for a sample quad-copter.
+void setup_quad_allocator(ControlAllocationSequentialDesaturation &allocator) {
 	const auto effectiveness = make_quad_effectiveness();
 	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> actuator_trim;
 	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> linearization_point;
 	constexpr bool UPDATE_NORMALIZATION_SCALE{false};
-	method.setEffectivenessMatrix(
+	allocator.setEffectivenessMatrix(
 		effectiveness,
 		actuator_trim,
 		linearization_point,
 		ActuatorEffectiveness::NUM_ACTUATORS,
 		UPDATE_NORMALIZATION_SCALE
 	);
+}
 
+// Returns true if the 2 input values are within TOLERANCE of each other.
+bool is_similar(float a, float b) {
+	constexpr float TOLERANCE{1e-4};
+	const auto diff = std::abs(a - b);
+	return diff <= TOLERANCE;
+}
+
+} // namespace
+
+// This tests that yaw-only control setpoint at zero actuator setpoint results in zero actuator
+// allocation.
+TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledOnlyYaw)
+{
+	ControlAllocationSequentialDesaturation allocator;
+	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	control_sp(ControlAxis::ROLL) = 0;
-	control_sp(ControlAxis::PITCH) = 0;
-	control_sp(ControlAxis::YAW) = 1;
-	control_sp(ControlAxis::THRUST_X) = 0;
-	control_sp(ControlAxis::THRUST_Y) = 0;
-	control_sp(ControlAxis::THRUST_Z) = 0;
-	method.setControlSetpoint(control_sp);
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::YAW) = 1;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = 0;
+	allocator.setControlSetpoint(control_sp);
 
 	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	method.allocate();
+	allocator.allocate();
 
-	const auto &actuator_sp = method.getActuatorSetpoint()
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> zero;
+	const auto &actuator_sp = allocator.getActuatorSetpoint();
+	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> zero;
 	EXPECT_EQ(actuator_sp, zero);
- /*
-	matrix::Vector<float, 6> control_sp;
-	matrix::Vector<float, 6> control_allocated;
-	matrix::Vector<float, 6> control_allocated_expected;
-	matrix::Matrix<float, 6, 16> effectiveness;
-	matrix::Vector<float, 16> actuator_sp;
-	matrix::Vector<float, 16> linearization_point;
-	matrix::Vector<float, 16> actuator_sp_expected;
+}
 
-	method.setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, 16, false);
-	method.setControlSetpoint(control_sp);
-	method.allocate();
-	method.clipActuatorSetpoint();
-	actuator_sp = method.getActuatorSetpoint();
-	control_allocated_expected = method.getAllocatedControl();
+// This tests that a control setpoint for z-thrust returns the desired actuator setpoint.
+// Each motor should have an actuator setpoint that when summed together should be equal to
+// control setpoint. 
+TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
+{
+	ControlAllocationSequentialDesaturation allocator;
+	setup_quad_allocator(allocator);
+	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
+	constexpr float THRUST_Z_TOTAL{0.75};
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::YAW) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
+	allocator.setControlSetpoint(control_sp);
 
-	EXPECT_EQ(actuator_sp, actuator_sp_expected);
-	EXPECT_EQ(control_allocated, control_allocated_expected);
- */
+	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
+	allocator.allocate();
+
+	const auto &actuator_sp = allocator.getActuatorSetpoint();
+	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4};
+	for (size_t i{0}; i < 4; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), THRUST_Z_PER_MOTOR));
+	}
+	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
+	}
 }
