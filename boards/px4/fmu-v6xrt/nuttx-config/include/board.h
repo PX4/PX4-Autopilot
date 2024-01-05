@@ -267,12 +267,42 @@
 
 // This is the ENET_1G interface.
 
+// Compile time selection
 #if defined(CONFIG_ETH0_PHY_TJA1103)
 #  define BOARD_PHY_ADDR (18)
 #endif
 #if defined(CONFIG_ETH0_PHY_LAN8742A)
 #  define BOARD_PHY_ADDR (0)
 #endif
+
+/* Run time selection see mii.h */
+
+#define BOARD_ETH0_PHY_LIST \
+	{                                   \
+		"LAN8742A",                      \
+		MII_PHYID1_LAN8742A,             \
+		MII_PHYID2_LAN8742A,             \
+		MII_LAN8740_SCSR,                \
+		0,                               \
+		0xffff,                          \
+		MII_LAN8720_SPSCR_10MBPS,        \
+		MII_LAN8720_SPSCR_100MBPS,       \
+		MII_LAN8720_SPSCR_DUPLEX,        \
+		22,                              \
+	},                                  \
+	{                                   \
+		"TJA1103",                       \
+		MII_PHYID1_TJA1103,              \
+		MII_PHYID2_TJA1103,              \
+		0xffff,                          \
+		18,                              \
+		0xffff,                          \
+		0,                               \
+		MII_LAN8720_SPSCR_100MBPS,       \
+		MII_LAN8720_SPSCR_DUPLEX,        \
+		45,                              \
+	},                                  \
+
 
 #define GPIO_ENET2_TX_DATA00  (GPIO_ENET_1G_TX_DATA0_1|IOMUX_ENET_DATA_DEFAULT)  /* GPIO_DISP_B1_09 */
 #define GPIO_ENET2_TX_DATA01  (GPIO_ENET_1G_TX_DATA1_1|IOMUX_ENET_DATA_DEFAULT)  /* GPIO_DISP_B1_08 */
