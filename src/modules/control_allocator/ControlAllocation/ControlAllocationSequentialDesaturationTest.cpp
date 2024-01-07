@@ -154,7 +154,8 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
 	ControlAllocationSequentialDesaturation allocator;
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	constexpr float THRUST_Z_TOTAL{0.75};
+	// Negative, because +z is "downward".
+	constexpr float THRUST_Z_TOTAL{-0.75};
 	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
 	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
 	control_sp(ControlAllocation::ControlAxis::YAW) = 0;
@@ -176,15 +177,56 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
 	}
 }
 
-// This tests that a control setpoint for z-thrust returns the desired actuator setpoint.
-// Each motor should have an actuator setpoint that when summed together should be equal to
-// control setpoint. 
+// This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint.
+// This test does not saturate the yaw response.
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
 {
 	ControlAllocationSequentialDesaturation allocator;
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	constexpr float THRUST_Z_TOTAL{0.75};
+	// Negative, because +z is "downward".
+	constexpr float THRUST_Z_TOTAL{-0.75};
+	// This is low enough to not saturate the motors.
+	constexpr float YAW_CONTROL_SP{0.02};
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
+	allocator.setControlSetpoint(control_sp);
+
+	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
+	allocator.allocate();
+
+	const auto &actuator_sp = allocator.getActuatorSetpoint();
+	// This value is based off of the effectiveness matrix. If the effectiveness matrix is changed,
+	// this will need to be changed.
+	constexpr float YAW_DIFF_PER_MOTOR{YAW_CONTROL_SP * 5}; 
+	// At yaw condition, there will be 2 different actuator values.
+	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 + YAW_DIFF_PER_MOTOR};
+	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 - YAW_DIFF_PER_MOTOR};
+	for (size_t i{0}; i < 2; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), HIGH_THRUST_Z_PER_MOTOR));
+	}
+	for (size_t i{2}; i < 4; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), LOW_THRUST_Z_PER_MOTOR));
+	}
+	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
+	}
+}
+
+// This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint.
+// This test saturates the yaw response.
+TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndSaturatedYaw)
+{
+	ControlAllocationSequentialDesaturation allocator;
+	setup_quad_allocator(allocator);
+	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
+	// Negative, because +z is "downward".
+	constexpr float THRUST_Z_TOTAL{-0.75};
+	// This is arbitrarily high to trigger strongest possible (saturated) yaw response.
 	constexpr float YAW_CONTROL_SP{0.25};
 	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
 	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
@@ -198,11 +240,128 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
 	allocator.allocate();
 
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4};
-	actuator_sp.print();
-	for (size_t i{0}; i < 4; ++i) {
+	// At max yaw, only 2 motors will carry all of the thrust.
+	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 2};
+	for (size_t i{0}; i < 2; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), THRUST_Z_PER_MOTOR));
 	}
+	for (size_t i{2}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
+	}
+}
+
+// This tests that a control setpoint for z-thrust + pitch returns the desired actuator setpoint.
+// This test does not saturate the pitch response.
+TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
+{
+	ControlAllocationSequentialDesaturation allocator;
+	setup_quad_allocator(allocator);
+	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
+	// Negative, because +z is "downward".
+	constexpr float THRUST_Z_TOTAL{-0.75};
+	// This is low enough to not saturate the motors. 
+	constexpr float PITCH_CONTROL_SP{0.1};
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
+	control_sp(ControlAllocation::ControlAxis::YAW) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
+	allocator.setControlSetpoint(control_sp);
+
+	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
+	allocator.allocate();
+
+	const auto &actuator_sp = allocator.getActuatorSetpoint();
+	// This value is based off of the effectiveness matrix. If the effectiveness matrix is changed,
+	// this will need to be changed.
+	constexpr float PITCH_DIFF_PER_MOTOR{PITCH_CONTROL_SP / 4}; 
+	// At control set point, there will be 2 different actuator values.
+	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 + PITCH_DIFF_PER_MOTOR};
+	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 - PITCH_DIFF_PER_MOTOR};
+	EXPECT_TRUE(is_similar(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(1), LOW_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
+	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
+	}
+}
+
+// This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint.
+// This test demonstrates a trade-off between thrust and yaw.
+TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAndYaw)
+{
+	ControlAllocationSequentialDesaturation allocator;
+	setup_quad_allocator(allocator);
+	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
+	// Negative, because +z is "downward".
+	constexpr float DESIRED_THRUST_Z_PER_MOTOR{0.8};
+	constexpr float THRUST_Z_TOTAL{-DESIRED_THRUST_Z_PER_MOTOR * 4};
+	// This is arbitrarily high to trigger strongest possible (saturated) yaw response.
+	constexpr float YAW_CONTROL_SP{1};
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
+	allocator.setControlSetpoint(control_sp);
+
+	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
+	allocator.allocate();
+
+	const auto &actuator_sp = allocator.getActuatorSetpoint();
+	// In the case of yaw saturation, thrust per motor will be reduced by the hard-coded
+	// magic-number yaw margin of 0.15f. 
+	constexpr float YAW_MARGIN{0.15f}; // get this from a centralized source when available.
+	constexpr float YAW_DIFF_PER_MOTOR{1.0f + YAW_MARGIN - DESIRED_THRUST_Z_PER_MOTOR};
+	// At control set point, there will be 2 different actuator values.
+	constexpr float HIGH_THRUST_Z_PER_MOTOR{DESIRED_THRUST_Z_PER_MOTOR + YAW_DIFF_PER_MOTOR - YAW_MARGIN};
+	constexpr float LOW_THRUST_Z_PER_MOTOR{DESIRED_THRUST_Z_PER_MOTOR - YAW_DIFF_PER_MOTOR - YAW_MARGIN};
+	EXPECT_TRUE(is_similar(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(1), HIGH_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(2), LOW_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
+	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
+	}
+}
+
+// This tests that a control setpoint for z-thrust + pitch returns the desired actuator setpoint.
+// This test saturates the pitch response such that thrust is reduced to (partially) compensate.
+TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAndPitch)
+{
+	ControlAllocationSequentialDesaturation allocator;
+	setup_quad_allocator(allocator);
+	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
+	// Negative, because +z is "downward".
+	constexpr float THRUST_Z_TOTAL{-0.75 * 4};
+	// This is high enough to saturate the pitch control. 
+	constexpr float PITCH_CONTROL_SP{2};
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
+	control_sp(ControlAllocation::ControlAxis::YAW) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
+	allocator.setControlSetpoint(control_sp);
+
+	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
+	allocator.allocate();
+
+	const auto &actuator_sp = allocator.getActuatorSetpoint();
+	// The maximum actuator value is THRUST_Z_TOTAL / 4 + PITCH_CONTROL_SP / 4.
+	// The amount over 1 is the amount that each motor is reduced by.
+	// At control set point, there will be 2 different actuator values.
+	constexpr float OVERAGE_PER_MOTOR{-THRUST_Z_TOTAL / 4 + PITCH_CONTROL_SP / 4 - 1};
+	EXPECT_TRUE(OVERAGE_PER_MOTOR > 0);
+	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 + PITCH_CONTROL_SP / 4 - OVERAGE_PER_MOTOR};
+	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 - PITCH_CONTROL_SP / 4 - OVERAGE_PER_MOTOR};
+	EXPECT_TRUE(is_similar(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(1), LOW_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR));
+	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
