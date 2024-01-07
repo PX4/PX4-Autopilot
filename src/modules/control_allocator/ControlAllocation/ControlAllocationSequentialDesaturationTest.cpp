@@ -218,7 +218,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
 }
 
 // This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint.
-// This test saturates the yaw response.
+// This test saturates the yaw response, but does not reduce total thrust.
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndSaturatedYaw)
 {
 	ControlAllocationSequentialDesaturation allocator;
@@ -289,7 +289,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
 }
 
 // This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint.
-// This test demonstrates a trade-off between thrust and yaw.
+// This test saturates yaw and demonstrates reduction of thrust for yaw.
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAndYaw)
 {
 	ControlAllocationSequentialDesaturation allocator;
