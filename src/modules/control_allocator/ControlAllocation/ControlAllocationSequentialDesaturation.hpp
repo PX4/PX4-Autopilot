@@ -61,6 +61,9 @@ public:
 	// This is the minimum actuator yaw granted when the controller is saturated.
 	// In the yaw-only case where outputs are saturated, thrust is reduced by up to this amount.
 	static constexpr float MINIMUM_YAW_MARGIN{0.15f};
+
+	void set_disable_thrust_reduction(bool disable_thrust_reduction) { _disable_thrust_reduction = disable_thrust_reduction; }
+
 private:
 
 	/**
@@ -129,4 +132,9 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
 	);
+
+	// If true, thrust is never reduced to increase attitude control.
+	// If true, the MINIMUM_YAW_MARGIN parameter has no effect.
+	// Only applies when airmode is disabled.
+	bool _disable_thrust_reduction{false};
 };
