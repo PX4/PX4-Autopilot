@@ -148,7 +148,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledOnlyYaw)
 
 // This tests that a control setpoint for z-thrust returns the desired actuator setpoint.
 // Each motor should have an actuator setpoint that when summed together should be equal to
-// control setpoint. 
+// control setpoint.
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
 {
 	ControlAllocationSequentialDesaturation allocator;
@@ -202,7 +202,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	// This value is based off of the effectiveness matrix. If the effectiveness matrix is changed,
 	// this will need to be changed.
-	constexpr float YAW_DIFF_PER_MOTOR{YAW_CONTROL_SP * 5}; 
+	constexpr float YAW_DIFF_PER_MOTOR{YAW_CONTROL_SP * 5};
 	// At yaw condition, there will be 2 different actuator values.
 	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 + YAW_DIFF_PER_MOTOR};
 	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 - YAW_DIFF_PER_MOTOR};
@@ -259,7 +259,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
 	constexpr float THRUST_Z_TOTAL{-0.75};
-	// This is low enough to not saturate the motors. 
+	// This is low enough to not saturate the motors.
 	constexpr float PITCH_CONTROL_SP{0.1};
 	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
 	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
@@ -275,7 +275,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	// This value is based off of the effectiveness matrix. If the effectiveness matrix is changed,
 	// this will need to be changed.
-	constexpr float PITCH_DIFF_PER_MOTOR{PITCH_CONTROL_SP / 4}; 
+	constexpr float PITCH_DIFF_PER_MOTOR{PITCH_CONTROL_SP / 4};
 	// At control set point, there will be 2 different actuator values.
 	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 + PITCH_DIFF_PER_MOTOR};
 	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 - PITCH_DIFF_PER_MOTOR};
@@ -341,7 +341,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
 	constexpr float THRUST_Z_TOTAL{-0.75 * 4};
-	// This is high enough to saturate the pitch control. 
+	// This is high enough to saturate the pitch control.
 	constexpr float PITCH_CONTROL_SP{2};
 	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
 	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
@@ -376,13 +376,13 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledPitch)
 {
 	ControlAllocationSequentialDesaturation allocator;
-	allocator.set_disable_thrust_reduction(true);
+	allocator.set_reduce_thrust(false);
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
 	constexpr float DESIRED_THRUST_Z_PER_MOTOR{0.8};
 	constexpr float THRUST_Z_TOTAL{-DESIRED_THRUST_Z_PER_MOTOR * 4};
-	// This is high enough to saturate the pitch control. 
+	// This is high enough to saturate the pitch control.
 	constexpr float PITCH_CONTROL_SP{2};
 	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
 	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
@@ -416,7 +416,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledYaw)
 {
 	ControlAllocationSequentialDesaturation allocator;
-	allocator.set_disable_thrust_reduction(true);
+	allocator.set_reduce_thrust(false);
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
@@ -457,7 +457,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledRollAndYaw)
 {
 	ControlAllocationSequentialDesaturation allocator;
-	allocator.set_disable_thrust_reduction(true);
+	allocator.set_reduce_thrust(false);
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
@@ -500,7 +500,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledRollAndYaw2)
 {
 	ControlAllocationSequentialDesaturation allocator;
-	allocator.set_disable_thrust_reduction(true);
+	allocator.set_reduce_thrust(false);
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
@@ -541,7 +541,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledRollAndPitch)
 {
 	ControlAllocationSequentialDesaturation allocator;
-	allocator.set_disable_thrust_reduction(true);
+	allocator.set_reduce_thrust(false);
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
@@ -586,7 +586,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledRollPitchAndYaw)
 {
 	ControlAllocationSequentialDesaturation allocator;
-	allocator.set_disable_thrust_reduction(true);
+	allocator.set_reduce_thrust(false);
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
@@ -639,7 +639,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledRollPitchAndYaw2)
 {
 	ControlAllocationSequentialDesaturation allocator;
-	allocator.set_disable_thrust_reduction(true);
+	allocator.set_reduce_thrust(false);
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".

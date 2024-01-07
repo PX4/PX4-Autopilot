@@ -192,7 +192,7 @@ ControlAllocationSequentialDesaturation::mixAirmodeDisabled()
 		pitch(i) = _mix(i, ControlAxis::PITCH);
 	}
 
-	if (!_disable_thrust_reduction) {
+	if (_param_mc_reduce_thrust.get()) {
 		// only reduce thrust
 		desaturateActuators(_actuator_sp, thrust_z, true);
 	}
@@ -221,13 +221,13 @@ ControlAllocationSequentialDesaturation::mixYaw()
 	// Change yaw acceleration to unsaturate the outputs if needed (do not change roll/pitch),
 	// and allow some yaw response at maximum thrust
 	ActuatorVector max_prev = _actuator_max;
-	if (!_disable_thrust_reduction) {
+	if (_param_mc_reduce_thrust.get()) {
 		_actuator_max += (_actuator_max - _actuator_min) * MINIMUM_YAW_MARGIN;
 	}
 	desaturateActuators(_actuator_sp, yaw);
 	_actuator_max = max_prev;
 
-	if (!_disable_thrust_reduction) {
+	if (_param_mc_reduce_thrust.get()) {
 		// reduce thrust only
 		desaturateActuators(_actuator_sp, thrust_z, true);
 	}
