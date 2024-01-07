@@ -44,10 +44,12 @@
 
 using namespace matrix;
 
-namespace {
+namespace
+{
 
 // Makes and returns a Geometry object for a "standard" quadcopter.
-ActuatorEffectivenessRotors::Geometry make_quad_geometry() {
+ActuatorEffectivenessRotors::Geometry make_quad_geometry()
+{
 	ActuatorEffectivenessRotors::Geometry geometry = {};
 	geometry.rotors[0].position(0) = 1.0f;
 	geometry.rotors[0].position(1) = 1.0f;
@@ -91,7 +93,8 @@ ActuatorEffectivenessRotors::Geometry make_quad_geometry() {
 }
 
 // Returns an effective matrix for a sample quad-copter configuration.
-ActuatorEffectiveness::EffectivenessMatrix make_quad_effectiveness() {
+ActuatorEffectiveness::EffectivenessMatrix make_quad_effectiveness()
+{
 	ActuatorEffectiveness::EffectivenessMatrix effectiveness;
 	effectiveness.setZero();
 	const auto geometry = make_quad_geometry();
@@ -100,7 +103,8 @@ ActuatorEffectiveness::EffectivenessMatrix make_quad_effectiveness() {
 }
 
 // Configures a ControlAllocationSequentialDesaturation object for a sample quad-copter.
-void setup_quad_allocator(ControlAllocationSequentialDesaturation &allocator) {
+void setup_quad_allocator(ControlAllocationSequentialDesaturation &allocator)
+{
 	const auto effectiveness = make_quad_effectiveness();
 	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> actuator_trim;
 	matrix::Vector<float, ActuatorEffectiveness::NUM_ACTUATORS> linearization_point;
@@ -115,7 +119,8 @@ void setup_quad_allocator(ControlAllocationSequentialDesaturation &allocator) {
 }
 
 // Returns true if the 2 input values are within TOLERANCE of each other.
-bool is_similar(float a, float b) {
+bool is_similar(float a, float b)
+{
 	constexpr float TOLERANCE{1e-4};
 	const auto diff = std::abs(a - b);
 	return diff <= TOLERANCE;
@@ -169,9 +174,11 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
 
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4};
+
 	for (size_t i{0}; i < 4; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), THRUST_Z_PER_MOTOR));
 	}
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -206,12 +213,15 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
 	// At yaw condition, there will be 2 different actuator values.
 	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 + YAW_DIFF_PER_MOTOR};
 	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 4 - YAW_DIFF_PER_MOTOR};
+
 	for (size_t i{0}; i < 2; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), HIGH_THRUST_Z_PER_MOTOR));
 	}
+
 	for (size_t i{2}; i < 4; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), LOW_THRUST_Z_PER_MOTOR));
 	}
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -242,9 +252,11 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndSatura
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	// At max yaw, only 2 motors will carry all of the thrust.
 	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / 2};
+
 	for (size_t i{0}; i < 2; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), THRUST_Z_PER_MOTOR));
 	}
+
 	for (size_t i{2}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -283,6 +295,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
 	EXPECT_TRUE(is_similar(actuator_sp(1), LOW_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -315,7 +328,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	// In the case of yaw saturation, thrust per motor will be reduced by
 	// ControlAllocationSequentialDesaturation::MINIMUM_YAW_MARGIN.
 	constexpr float YAW_DIFF_PER_MOTOR{1.0f +
-		ControlAllocationSequentialDesaturation::MINIMUM_YAW_MARGIN - DESIRED_THRUST_Z_PER_MOTOR};
+					   ControlAllocationSequentialDesaturation::MINIMUM_YAW_MARGIN - DESIRED_THRUST_Z_PER_MOTOR};
 	// At control set point, there will be 2 different actuator values.
 	constexpr float HIGH_THRUST_Z_PER_MOTOR{
 		DESIRED_THRUST_Z_PER_MOTOR + YAW_DIFF_PER_MOTOR
@@ -327,6 +340,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	EXPECT_TRUE(is_similar(actuator_sp(1), HIGH_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(2), LOW_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -366,6 +380,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	EXPECT_TRUE(is_similar(actuator_sp(1), LOW_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -406,6 +421,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 	EXPECT_TRUE(is_similar(actuator_sp(1), LOW_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -446,6 +462,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 	EXPECT_TRUE(is_similar(actuator_sp(1), HIGH_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(2), LOW_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -489,6 +506,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 	EXPECT_TRUE(is_similar(actuator_sp(1), HIGH_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -531,6 +549,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 	EXPECT_TRUE(is_similar(actuator_sp(1), 1.0f));
 	EXPECT_TRUE(is_similar(actuator_sp(2), 1.0f - 2 * YAW_LEFTOVER_PER_MOTOR));
 	EXPECT_TRUE(is_similar(actuator_sp(3), DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP - YAW_LEFTOVER_PER_MOTOR));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -568,13 +587,18 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	// low roll, high pitch
-	EXPECT_TRUE(is_similar(actuator_sp(0), DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP + DESIRED_PITCH_ACTUATOR_SP));
+	EXPECT_TRUE(is_similar(actuator_sp(0),
+			       DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP + DESIRED_PITCH_ACTUATOR_SP));
 	// high roll, low pitch
-	EXPECT_TRUE(is_similar(actuator_sp(1), DESIRED_THRUST_Z_PER_MOTOR + DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP));
+	EXPECT_TRUE(is_similar(actuator_sp(1),
+			       DESIRED_THRUST_Z_PER_MOTOR + DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP));
 	// high roll, high pitch
-	EXPECT_TRUE(is_similar(actuator_sp(2), DESIRED_THRUST_Z_PER_MOTOR + DESIRED_ROLL_ACTUATOR_SP + DESIRED_PITCH_ACTUATOR_SP));
+	EXPECT_TRUE(is_similar(actuator_sp(2),
+			       DESIRED_THRUST_Z_PER_MOTOR + DESIRED_ROLL_ACTUATOR_SP + DESIRED_PITCH_ACTUATOR_SP));
 	// low roll, low pitch
-	EXPECT_TRUE(is_similar(actuator_sp(3), DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP));
+	EXPECT_TRUE(is_similar(actuator_sp(3),
+			       DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -616,19 +640,21 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	// Thrust reduction is disabled, so the available actuator output for yaw is simply the
 	// the smallest leftover of motors 1 and 2.
-	constexpr float YAW_LEFTOVER_PER_MOTOR = 1.0f - DESIRED_THRUST_Z_PER_MOTOR - std::abs(DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP);
+	constexpr float YAW_LEFTOVER_PER_MOTOR = 1.0f - DESIRED_THRUST_Z_PER_MOTOR - std::abs(
+				DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP);
 	// low roll, high pitch, high yaw
 	EXPECT_TRUE(is_similar(actuator_sp(0),
-		DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP + DESIRED_PITCH_ACTUATOR_SP + YAW_LEFTOVER_PER_MOTOR));
+			       DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP + DESIRED_PITCH_ACTUATOR_SP + YAW_LEFTOVER_PER_MOTOR));
 	// high roll, low pitch, high yaw
 	EXPECT_TRUE(is_similar(actuator_sp(1),
-		DESIRED_THRUST_Z_PER_MOTOR + DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP + YAW_LEFTOVER_PER_MOTOR));
+			       DESIRED_THRUST_Z_PER_MOTOR + DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP + YAW_LEFTOVER_PER_MOTOR));
 	// high roll, high pitch, low yaw
 	EXPECT_TRUE(is_similar(actuator_sp(2),
-		DESIRED_THRUST_Z_PER_MOTOR + DESIRED_ROLL_ACTUATOR_SP + DESIRED_PITCH_ACTUATOR_SP - YAW_LEFTOVER_PER_MOTOR));
+			       DESIRED_THRUST_Z_PER_MOTOR + DESIRED_ROLL_ACTUATOR_SP + DESIRED_PITCH_ACTUATOR_SP - YAW_LEFTOVER_PER_MOTOR));
 	// low roll, low pitch, low yaw
 	EXPECT_TRUE(is_similar(actuator_sp(3),
-		DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP - YAW_LEFTOVER_PER_MOTOR));
+			       DESIRED_THRUST_Z_PER_MOTOR - DESIRED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP - YAW_LEFTOVER_PER_MOTOR));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}
@@ -684,6 +710,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReduction
 	// low roll, low pitch, low yaw
 	constexpr float ACTUATOR_3{DESIRED_THRUST_Z_PER_MOTOR - ADJUSTED_ROLL_ACTUATOR_SP - DESIRED_PITCH_ACTUATOR_SP - YAW_ROOM};
 	EXPECT_TRUE(is_similar(actuator_sp(3), ACTUATOR_3));
+
 	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_TRUE(is_similar(actuator_sp(i), 0));
 	}

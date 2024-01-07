@@ -62,7 +62,8 @@ public:
 	// In the yaw-only case where outputs are saturated, thrust is reduced by up to this amount.
 	static constexpr float MINIMUM_YAW_MARGIN{0.15f};
 
-	void set_reduce_thrust(bool reduce_thrust) {
+	void set_reduce_thrust(bool reduce_thrust)
+	{
 		_param_mc_reduce_thrust.set(reduce_thrust);
 	}
 
