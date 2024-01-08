@@ -6,12 +6,6 @@ serial_config:
         group: Vertiq IO
 
 actuator_output:
-  config_parameters:
-    - param: 'VERTIQ_ENABLE'
-      label: 'Configure'
-      function: 'enable'
-    - param: 'VERTIQ_BAUDRATE'
-      label: 'Bitrate'
   output_groups:
     - param_prefix: VERTIQ_IO
       group_label: 'ESCs'
@@ -32,3 +26,17 @@ parameters:
                     I just want this stupid thing to stupid show up!!! grrrrr
             type: int32
             default: 26
+        VERTIQ_ENABLE:
+            description:
+                short: Enable the IQUART driver
+                long: |
+                    Determine whether or not to enable the IQUART driver. If this value is greater than 0, the driver is enabled.
+            type: int32
+            default: 1
+        VERTIQ_BAUD:
+            description:
+                short: The IQUART driver's baud rate
+                long: |
+                    The baud rate (in bits per second) used by the serial port connected with IQUART communication
+            type: int32
+            default: 115200

@@ -81,7 +81,9 @@ private:
 	VertiqSerialInterface _serial_interface;
 
 	DEFINE_PARAMETERS(
-	(ParamInt<px4::params::VERTIQ_TEST>) _param_vertiq_test
+	(ParamInt<px4::params::VERTIQ_TEST>) _param_vertiq_test,
+	(ParamInt<px4::params::VERTIQ_ENABLE>) _param_vertiq_enable,
+	(ParamInt<px4::params::VERTIQ_BAUD>) _param_vertiq_baud
 	)
 };
 
