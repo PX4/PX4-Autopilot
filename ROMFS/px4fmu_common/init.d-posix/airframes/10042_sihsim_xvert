@@ -35,14 +35,14 @@ param set-default CBRK_IO_SAFETY 22027
 
 param set-default BAT_N_CELLS 3
 
-param set-default SIH_T_MAX 2.0
+param set-default SIH_T_MAX 2
 param set-default SIH_Q_MAX 0.0165
 param set-default SIH_MASS 0.2
 # IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
 param set-default SIH_IXX 0.00354
 param set-default SIH_IYY 0.000625
 param set-default SIH_IZZ 0.00300
-param set-default SIH_IXZ 0.0
+param set-default SIH_IXZ 0
 param set-default SIH_KDV 0.2
 param set-default SIH_L_ROLL 0.145
 

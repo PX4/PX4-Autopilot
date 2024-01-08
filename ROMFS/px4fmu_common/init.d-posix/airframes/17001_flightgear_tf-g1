@@ -14,7 +14,7 @@
 
 param set-default FW_AIRSPD_STALL 8
 
-param set-default FW_P_RMAX_NEG 20.0
+param set-default FW_P_RMAX_NEG 20
 param set-default FW_W_RMAX 10
 param set-default FW_W_EN 1
 
@@ -37,7 +37,7 @@ param set-default FW_P_LIM_MAX 25
 param set-default FW_P_LIM_MIN -5
 param set-default FW_R_LIM 30
 
-param set-default FW_MAN_R_MAX 30.0
+param set-default FW_MAN_R_MAX 30
 
 param set-default FW_THR_TRIM 0.8
 param set-default FW_THR_IDLE 0

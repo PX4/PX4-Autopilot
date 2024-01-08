@@ -16,10 +16,10 @@
 param set-default MAV_TYPE 13
 
 param set-default CA_ROTOR_COUNT 6
-param set-default CA_ROTOR0_PX 0.0
+param set-default CA_ROTOR0_PX 0
 param set-default CA_ROTOR0_PY 0.5
 param set-default CA_ROTOR0_KM -0.05
-param set-default CA_ROTOR1_PX 0.0
+param set-default CA_ROTOR1_PX 0
 param set-default CA_ROTOR1_PY -0.5
 param set-default CA_ROTOR2_PX 0.43
 param set-default CA_ROTOR2_PY -0.25
