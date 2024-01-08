@@ -76,19 +76,6 @@ int Voxl2IO::init()
 		}
 	}
 
-	/* Verify connectivity and protocol version number */
-	if (get_version_info() < 0) {
-		PX4_ERR("Failed to detect voxl2_io protocol version.");
-		return PX4_ERROR;
-	} else {
-		if (_version_info.sw_version == VOXL2_IO_SW_PROTOCOL_VERSION && _version_info.hw_version == VOXL2_IO_HW_PROTOCOL_VERSION){
-			PX4_INFO("Detected M0065 protocol version. SW: %u HW: %u", _version_info.sw_version, _version_info.hw_version);
-		} else {
-			PX4_ERR("Detected incorrect M0065 protocol version. SW: %u HW: %u", _version_info.sw_version, _version_info.hw_version);
-			return PX4_ERROR;
-		}
-	}
-
 	/* Getting initial parameter values */
 	ret = update_params();
 
@@ -182,9 +169,11 @@ int Voxl2IO::get_version_info()
 	int res = 0 ;
 	int header = -1 ;
 	int info_packet = -1;
-	int read_retries = 3;
+	int read_retries = 100;
 	int read_succeeded = 0;
 	Command cmd;	
+
+	if(!_need_version_info) return 0;
 
 	/* Request protocol version info from M0065 */
 	cmd.len = voxl2_io_create_version_request_packet(0, cmd.buf, VOXL2_IO_VERSION_INFO_SIZE);
@@ -195,11 +184,13 @@ int Voxl2IO::get_version_info()
 		_packets_sent++;
 	}
 
-	/* Read response */
-	px4_usleep(10000);
-	memset(&_read_buf, 0x00, READ_BUF_SIZE);
-	res = _uart_port->uart_read(_read_buf, READ_BUF_SIZE);
+	/* Read response, wait 500ms */
 	while(read_retries){
+		px4_usleep(500000);
+		memset(&_read_buf, 0x00, READ_BUF_SIZE);
+		res = _uart_port->uart_read(_read_buf, READ_BUF_SIZE);
+
+		/* We got some kind of response, check if it's valid */
 		if (res) {
 			/* Get index of packer header */
 			for (int index = 0; index < READ_BUF_SIZE; ++index){
@@ -212,24 +203,24 @@ int Voxl2IO::get_version_info()
 				}
 			}
 
-			/* Try again in a bit if packet header not present yet... */
+			/* Bad data, try again... */
 			if (header == -1 || info_packet == -1){
-				if (_debug && header == -1) PX4_ERR("Failed to find voxl2_io packet header, trying again... retries left: %i", read_retries);
-				if (_debug && info_packet == -1) PX4_ERR("Failed to find version info packet header, trying again... retries left: %i", read_retries);
 				read_retries--;
 				flush_uart_rx();
+				if (_debug && header == -1) PX4_ERR("Failed to find voxl2_io packet header, trying again... retries left: %i", read_retries);
+				if (_debug && info_packet == -1) PX4_ERR("Failed to find version info packet header, trying again... retries left: %i", read_retries);
 				if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 					PX4_ERR("Failed to send version info packet");
 				} else {
 					_bytes_sent+=cmd.len;
 					_packets_sent++;
-					px4_usleep(2000);
 				}
 				continue;
 			}
 
 			/* Check if we got a valid packet...*/
 			if (parse_response(&_read_buf[header], (uint8_t)VOXL2_IO_VERSION_INFO_SIZE)){
+				/* If we get here then the packet was not valid, try again... */
 				if(_debug) {
 					PX4_ERR("Error parsing version info packet");
 					PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
@@ -248,27 +239,30 @@ int Voxl2IO::get_version_info()
 				} else {
 					_bytes_sent+=cmd.len;
 					_packets_sent++;
-					px4_usleep(2000);
 				}
 				break;
 
+			/* We got a valid response! Update version info */
 			}  else {
 				memcpy(&_version_info, &_read_buf[header], sizeof(VOXL2_IO_VERSION_INFO));
 				read_succeeded = 1;
 				break;
 			}
+
+		/* We didn't get a response from Voxl2 IO board, try again... */
 		} else {
 			read_retries--;
+			if (_debug) PX4_INFO("Failed to receive version info, %i retries left...", read_retries);
 			if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 				PX4_ERR("Failed to send version info packet");
 			} else {
 				_bytes_sent+=cmd.len;
 				_packets_sent++;
-				px4_usleep(2000);
 			}
 		}
 	}
 
+	/* Failed to read version info in alloted time */
 	if (! read_succeeded){
 		return -EIO;
 	}
@@ -574,6 +568,23 @@ void Voxl2IO::Run()
 	}
 
 	perf_begin(_cycle_perf);
+
+	/* Verify protocol version info */
+	if (_need_version_info){
+		if (get_version_info() < 0) PX4_ERR("Failed to detect voxl2_io protocol version.");
+		if (_version_info.sw_version == VOXL2_IO_SW_PROTOCOL_VERSION && _version_info.hw_version == VOXL2_IO_HW_PROTOCOL_VERSION){
+			_need_version_info = false;
+			PX4_INFO("Detected M0065 protocol version. SW: %u HW: %u", _version_info.sw_version, _version_info.hw_version);
+		} else if (_protocol_read_retries > 0) {	// If Voxl2 IO gets powered up late, the initial values read are sometimes garbage
+			if (_debug) PX4_INFO("Detected incorrect M0065 protocol version. SW: %u HW: %u. Retrying, %i attempts left...", _version_info.sw_version, _version_info.hw_version, _protocol_read_retries);
+			_protocol_read_retries--;
+			return;
+		} else {
+			if (_debug) PX4_INFO("Retries exhausted, exiting now.");
+			request_stop();
+			return;
+		}
+	}
 
 	/* Handle RC */
 	if (_rc_mode == RC_MODE::SCAN){
@@ -968,7 +979,8 @@ int Voxl2IO::print_status()
 	PX4_INFO("Max update rate: %u Hz", 1000000/_current_update_interval);
 	PX4_INFO("PWM Rate: 400 Hz");	// Only support 400 Hz for now
 	PX4_INFO("Outputs on: %s", _pwm_on ? "yes" : "no");
-	PX4_INFO("FW version: v%u.%u", _version_info.sw_version, _version_info.hw_version);
+	PX4_INFO("SW version: %u", _version_info.sw_version);
+	PX4_INFO("HW version: %u", _version_info.hw_version);
 	PX4_INFO("RC Type: SBUS");		// Only support SBUS through M0065 for now 
 	PX4_INFO("RC Connected: %s", hrt_absolute_time() - _rc_last_valid > 500000 ? "no" : "yes");
 	PX4_INFO("RC Packets Received: %" PRIu16, _sbus_total_frames);

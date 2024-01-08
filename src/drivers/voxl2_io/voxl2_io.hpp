@@ -147,6 +147,8 @@ private:
 	static constexpr uint16_t VOXL2_IO_VERSION_INFO_SIZE = 6;
 	static constexpr uint16_t VOXL2_IO_SW_PROTOCOL_VERSION = 1;
 	static constexpr uint16_t VOXL2_IO_HW_PROTOCOL_VERSION = 35;
+	int  _protocol_read_retries{3};
+	bool _need_version_info{true};
 	VOXL2_IO_VERSION_INFO _version_info;
 
 	/* Module update interval */
