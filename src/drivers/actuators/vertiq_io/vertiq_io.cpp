@@ -7,9 +7,13 @@ px4::atomic_bool VertiqIo::_request_telemetry_init{false};
 char VertiqIo::_telemetry_device[] {};
 
 VertiqIo::VertiqIo() :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::ttyS3)
+	OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::hp_default),
+	prop_test(0),
+	brushless_drive_test(0),
+	_serial_interface(num_clients)
 {
-
+	test[0] = &prop_test;
+	test[1] = &brushless_drive_test;
 }
 
 VertiqIo::~VertiqIo()
@@ -52,11 +56,20 @@ void VertiqIo::Run()
 		_request_telemetry_init.store(false);
 	}
 
+	prop_test.ctrl_velocity_.set(*_serial_interface.get_iquart_interface(), 400);
+	brushless_drive_test.obs_velocity_.get(*_serial_interface.get_iquart_interface());
+
 	//Update our serial rx
-	_serial_interface.process_serial_rx();
+	_serial_interface.process_serial_rx(test);
 
 	//Update our serial tx
 	_serial_interface.process_serial_tx();
+
+	//Read the velo we got
+	if (brushless_drive_test.obs_velocity_.IsFresh()) {
+		PX4_INFO("Got velocity response %f", (double)brushless_drive_test.obs_velocity_.get_reply());
+
+	}
 
 	//stop our timer
 	perf_end(_loop_perf);

@@ -17,6 +17,9 @@
 
 #include "vertiq_serial_interface.hpp"
 
+#include "iq-module-communication-cpp/inc/propeller_motor_control_client.hpp"
+#include "iq-module-communication-cpp/inc/brushless_drive_client.hpp"
+
 class VertiqIo : public ModuleBase<VertiqIo>, public OutputModuleInterface
 {
 
@@ -60,15 +63,26 @@ private:
 	//Determines whether or not we should initialize or re-initialize the serial connection
 	static px4::atomic_bool _request_telemetry_init;
 
+	MixingOutput _mixing_output{"VERTIQ_IO", 4, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+
 	//The name of the device we're connecting to. this will be something like /dev/ttyS3
 	static char _telemetry_device[20];
-
-	//We need a serial handler in order to talk over the serial port
-	VertiqSerialInterface _serial_interface;
 
 	//Counters/timers to track our status
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")};
+
+	uint8_t num_clients = 2;
+	PropellerMotorControlClient prop_test;
+	BrushlessDriveClient brushless_drive_test;
+	ClientAbstract * test[2];
+
+	//We need a serial handler in order to talk over the serial port
+	VertiqSerialInterface _serial_interface;
+
+	DEFINE_PARAMETERS(
+	(ParamInt<px4::params::VERTIQ_TEST>) _param_vertiq_test
+	)
 };
 
 

@@ -3,6 +3,10 @@
 
 #define UART_BAUDRATE 115200
 
+VertiqSerialInterface::VertiqSerialInterface(uint8_t num_clients) :
+	_number_of_clients(num_clients)
+{}
+
 void VertiqSerialInterface::deinit_serial()
 {
 	if (_uart_fd >= 0) {
@@ -103,7 +107,7 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	return 0;
 }
 
-int VertiqSerialInterface::process_serial_rx()
+int VertiqSerialInterface::process_serial_rx(ClientAbstract *test[2])
 {
 	if (_uart_fd < 0) {
 		return -1;
@@ -126,10 +130,14 @@ int VertiqSerialInterface::process_serial_rx()
 		_iquart_interface.SetRxBytes(_rx_buf, _bytes_available);
 
 		//Pointer to our RX data
-		uint8_t * rx_buf_ptr = _rx_buf;
+		uint8_t *rx_buf_ptr = _rx_buf;
 
 		//While we've got packets to look at
-		while(_iquart_interface.PeekPacket(&rx_buf_ptr, &_bytes_available) == 1){
+		while (_iquart_interface.PeekPacket(&rx_buf_ptr, &_bytes_available) == 1) {
+			for (uint8_t i = 0; i < _number_of_clients; i++) {
+				test[i]->ReadMsg(rx_buf_ptr, _bytes_available);
+			}
+
 			_iquart_interface.DropPacket();
 		}
 
@@ -140,21 +148,16 @@ int VertiqSerialInterface::process_serial_rx()
 
 int VertiqSerialInterface::process_serial_tx()
 {
-	//Testing buffer -> set prop motor control velo to 100
-	// uint8_t buf[] = {85, 6, 52, 5, 1, 0, 0, 200, 66, 149, 55};
-
-	uint8_t set_velo_msg[6]; //stores subtype, access, and data (for a float 4 bytes)
-	set_velo_msg[0] = 5;
-	set_velo_msg[1] = 1;
-	float velo = 200;
-	memcpy(&(set_velo_msg[2]), &velo, sizeof(velo));
-
-	_iquart_interface.SendPacket(52, set_velo_msg, 6);
-
 	//while there's stuff to write, write it
-	while(_iquart_interface.GetTxBytes(_tx_buf, _bytes_available)){
+	//Clients are responsible for adding TX messages to the buffer through get/set/save commands
+	while (_iquart_interface.GetTxBytes(_tx_buf, _bytes_available)) {
 		write(_uart_fd, _tx_buf, _bytes_available);
 	}
 
 	return 1;
+}
+
+GenericInterface *VertiqSerialInterface::get_iquart_interface()
+{
+	return &_iquart_interface;
 }

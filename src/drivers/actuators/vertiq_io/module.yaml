@@ -4,3 +4,31 @@ serial_config:
       port_config_param:
         name: VERTIQ_IO_CFG
         group: Vertiq IO
+
+actuator_output:
+  config_parameters:
+    - param: 'VERTIQ_ENABLE'
+      label: 'Configure'
+      function: 'enable'
+    - param: 'VERTIQ_BAUDRATE'
+      label: 'Bitrate'
+  output_groups:
+    - param_prefix: VERTIQ_IO
+      group_label: 'ESCs'
+      channel_label: 'ESC'
+      standard_params:
+        min: { min: 0, max: 8191, default: 1 }
+        max: { min: 0, max: 8191, default: 8191 }
+        failsafe: { min: 0, max: 8191 }
+      num_channels: 8
+
+parameters:
+    - group: Vertiq IO
+      definitions:
+        VERTIQ_TEST:
+            description:
+                short: testing to see if I can get this to show
+                long: |
+                    I just want this stupid thing to stupid show up!!! grrrrr
+            type: int32
+            default: 26
