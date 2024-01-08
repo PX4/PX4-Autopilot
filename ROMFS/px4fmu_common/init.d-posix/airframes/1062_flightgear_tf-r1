@@ -29,7 +29,7 @@ param set-default NAV_ACC_RAD 0.5
 param set-default NAV_LOITER_RAD 2
 
 param set-default GND_MAX_ANG 0.6
-param set-default GND_WHEEL_BASE 3.0
+param set-default GND_WHEEL_BASE 3
 
 param set-default CA_AIRFRAME 5
 

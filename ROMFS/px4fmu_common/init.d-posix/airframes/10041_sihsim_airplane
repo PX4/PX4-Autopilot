@@ -26,7 +26,7 @@ param set-default CBRK_IO_SAFETY 22027
 
 param set-default BAT_N_CELLS 3
 
-param set-default SIH_T_MAX 6.0
+param set-default SIH_T_MAX 6
 param set-default SIH_MASS 0.3
 param set-default SIH_IXX 0.00402
 param set-default SIH_IYY 0.0144
@@ -45,9 +45,9 @@ param set-default CA_ROTOR_COUNT 1
 param set-default CA_SV_CS_COUNT 3
 param set-default CA_SV_CS0_TRQ_R -0.5
 param set-default CA_SV_CS0_TYPE 1
-param set-default CA_SV_CS1_TRQ_P 1.0
+param set-default CA_SV_CS1_TRQ_P 1
 param set-default CA_SV_CS1_TYPE 3
-param set-default CA_SV_CS2_TRQ_Y 1.0
+param set-default CA_SV_CS2_TRQ_Y 1
 param set-default CA_SV_CS2_TYPE 4
 param set-default PWM_MAIN_FUNC3 201
 param set-default PWM_MAIN_FUNC4 202
