@@ -30,7 +30,7 @@ param set-default MAV_1_CONFIG 102
 
 param set-default BAT1_A_PER_V 37.8798
 param set-default BAT1_CAPACITY 18000
-param set-default BAT1_V_DIV 11.0
+param set-default BAT1_V_DIV 11
 param set-default BAT1_N_CELLS 4
 param set-default BAT_V_OFFS_CURR 0.33
 
