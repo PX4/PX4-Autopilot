@@ -48,6 +48,7 @@
 #define TOC_FLAG1_DECRYPT 0x8
 #define TOC_FLAG1_COPY 0x10
 
+#define TOC_FLAG1_ICFG 0x40
 #define TOC_FLAG1_RDCT 0x80
 
 #define TOC_START_MAGIC 0x00434f54 /* "TOC" */

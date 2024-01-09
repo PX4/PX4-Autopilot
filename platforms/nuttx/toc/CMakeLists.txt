@@ -60,8 +60,14 @@ if(NOT USE_LD_GOLD)
 	target_link_libraries(toc PRIVATE -Wl,--print-memory-usage)
 endif()
 
-target_link_libraries(toc PRIVATE board_toc)
-target_link_libraries(drivers_board PRIVATE board_toc)
+set(toc_libs board_toc)
+
+if (TARGET image_cfg)
+	list(APPEND toc_libs image_cfg)
+endif()
+
+target_link_libraries(toc PRIVATE ${toc_libs})
+target_link_libraries(drivers_board PRIVATE ${toc_libs})
 
 set(TOC_BINARY_OUTPUT ${PX4_BINARY_DIR}/toc.bin)
 
