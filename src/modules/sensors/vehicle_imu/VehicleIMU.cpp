@@ -647,6 +647,7 @@ bool VehicleIMU::Publish()
 			imu.gyro_device_id = _gyro_calibration.device_id();
 			delta_angle_corrected.copyTo(imu.delta_angle);
 			delta_velocity_corrected.copyTo(imu.delta_velocity);
+			imu.delta_angle_clipping = _delta_angle_clipping;
 			imu.delta_velocity_clipping = _delta_velocity_clipping;
 			imu.accel_calibration_count = _accel_calibration.calibration_count();
 			imu.gyro_calibration_count = _gyro_calibration.calibration_count();
@@ -654,6 +655,7 @@ bool VehicleIMU::Publish()
 			_vehicle_imu_pub.publish(imu);
 
 			// reset clip counts
+			_delta_angle_clipping = 0;
 			_delta_velocity_clipping = 0;
 
 			// record gyro publication latency and integrated samples
