@@ -759,9 +759,21 @@ void EKF2::Run()
 		if (_ekf.update()) {
 			perf_set_elapsed(_ecl_ekf_update_full_perf, hrt_elapsed_time(&ekf_update_start));
 
-			PublishLocalPosition(now);
-			PublishOdometry(now, imu_sample_new);
-			PublishGlobalPosition(now);
+			if (_ekf.output_predictor().aligned()) {
+				// publish output predictor
+				PublishLocalPosition(now);
+				PublishOdometry(now, imu_sample_new);
+				PublishGlobalPosition(now);
+			}
+
+			// update sensor calibration (in-run bias) before publishing sensor bias
+			UpdateAccelCalibration(now);
+			UpdateGyroCalibration(now);
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+			UpdateMagCalibration(now);
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+			// publish other state output used by the system not dependent on output predictor
 			PublishSensorBias(now);
 
 #if defined(CONFIG_EKF2_WIND)
@@ -770,13 +782,15 @@ void EKF2::Run()
 
 			// publish status/logging messages
 			PublishEventFlags(now);
+			PublishStatus(now);
+			PublishStatusFlags(now);
+
+			// verbose logging
+			PublishAidSourceStatus(now);
 			PublishInnovations(now);
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
 			PublishStates(now);
-			PublishStatus(now);
-			PublishStatusFlags(now);
-			PublishAidSourceStatus(now);
 
 #if defined(CONFIG_EKF2_BAROMETER)
 			PublishBaroBias(now);
@@ -799,12 +813,6 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 			PublishOpticalFlowVel(now);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
-
-			UpdateAccelCalibration(now);
-			UpdateGyroCalibration(now);
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-			UpdateMagCalibration(now);
-#endif // CONFIG_EKF2_MAGNETOMETER
 
 		} else {
 			// ekf no update
@@ -931,7 +939,7 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 {
-	if (_ekf.attitude_valid()) {
+	if (_ekf.output_predictor().aligned()) {
 		// generate vehicle attitude quaternion data
 		vehicle_attitude_s att;
 		att.timestamp_sample = timestamp;
@@ -941,7 +949,7 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 		att.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_attitude_pub.publish(att);
 
-	}  else if (_replay_mode) {
+	} else if (_replay_mode) {
 		// in replay mode we have to tell the replay module not to wait for an update
 		// we do this by publishing an attitude with zero timestamp
 		vehicle_attitude_s att{};
