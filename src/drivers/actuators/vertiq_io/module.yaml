@@ -11,21 +11,14 @@ actuator_output:
       group_label: 'ESCs'
       channel_label: 'ESC'
       standard_params:
-        min: { min: 0, max: 8191, default: 1 }
-        max: { min: 0, max: 8191, default: 8191 }
-        failsafe: { min: 0, max: 8191 }
+        min: { min: 0, max: 500, default: 1 }
+        max: { min: 0, max: 500, default: 500 }
+        failsafe: { min: 0, max: 500 }
       num_channels: 8
 
 parameters:
     - group: Vertiq IO
       definitions:
-        VERTIQ_TEST:
-            description:
-                short: testing to see if I can get this to show
-                long: |
-                    I just want this stupid thing to stupid show up!!! grrrrr
-            type: int32
-            default: 26
         VERTIQ_ENABLE:
             description:
                 short: Enable the IQUART driver
@@ -40,3 +33,4 @@ parameters:
                     The baud rate (in bits per second) used by the serial port connected with IQUART communication
             type: int32
             default: 115200
+            reboot_required: true

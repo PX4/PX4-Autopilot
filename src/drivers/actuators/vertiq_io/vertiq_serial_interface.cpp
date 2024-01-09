@@ -1,8 +1,6 @@
 
 #include "vertiq_serial_interface.hpp"
 
-#define UART_BAUDRATE 115200
-
 VertiqSerialInterface::VertiqSerialInterface(uint8_t num_clients) :
 	_number_of_clients(num_clients)
 {}
@@ -15,9 +13,12 @@ void VertiqSerialInterface::deinit_serial()
 	}
 }
 
-int VertiqSerialInterface::init_serial(const char *uart_device)
+int VertiqSerialInterface::init_serial(const char *uart_device, unsigned baud)
 {
+	//Make sure we're starting clean
 	deinit_serial();
+
+	//Open up the port with read/write permissions and O_NOCTTY which is, "/* Required by POSIX */"
 	_uart_fd = ::open(uart_device, O_RDWR | O_NOCTTY);
 
 	if (_uart_fd < 0) {
@@ -27,7 +28,8 @@ int VertiqSerialInterface::init_serial(const char *uart_device)
 
 	PX4_INFO("Opened serial port successfully");
 
-	return configure_serial_peripheral(UART_BAUDRATE);
+	//Now that we've opened the port, fully configure it for baud/bit num
+	return configure_serial_peripheral(baud);
 }
 
 int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
@@ -46,6 +48,14 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	case 115200: speed = B115200; break;
 
 	case 230400: speed = B230400; break;
+
+	case 460800: speed = B460800; break;
+
+	case 500000: speed = B500000; break;
+
+	case 921600: speed = B921600; break;
+
+	case 1000000: speed = B1000000; break;
 
 	default:
 		return -EINVAL;
@@ -122,6 +132,7 @@ int VertiqSerialInterface::process_serial_rx(ClientAbstract *test[2])
 		return -1;
 	}
 
+	//We have bytes
 	if (_bytes_available > 0) {
 		//Read the bytes available for us
 		read(_uart_fd, _rx_buf, _bytes_available);
@@ -132,7 +143,8 @@ int VertiqSerialInterface::process_serial_rx(ClientAbstract *test[2])
 		//Pointer to our RX data
 		uint8_t *rx_buf_ptr = _rx_buf;
 
-		//While we've got packets to look at
+		//While we've got packets to look at, give the packet to each of the clients so that each
+		//can decide what to do with it
 		while (_iquart_interface.PeekPacket(&rx_buf_ptr, &_bytes_available) == 1) {
 			for (uint8_t i = 0; i < _number_of_clients; i++) {
 				test[i]->ReadMsg(rx_buf_ptr, _bytes_available);

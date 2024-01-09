@@ -59,6 +59,17 @@ public:
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
+
+	/**
+	* @brief Grab the most recent version of our parameters from the higher level
+	*/
+	void update_params();
+
+	/**
+	* @brief Handle the IQUART interface. Make sure that we update TX and RX buffers
+	*/
+	void handle_iquart();
+
 	//Variables and functions necessary for properly configuring the serial interface
 	//Determines whether or not we should initialize or re-initialize the serial connection
 	static px4::atomic_bool _request_telemetry_init;
@@ -72,16 +83,18 @@ private:
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")};
 
-	uint8_t num_clients = 2;
-	PropellerMotorControlClient prop_test;
-	BrushlessDriveClient brushless_drive_test;
-	ClientAbstract * test[2];
+	//IQUART Client configuration
+	static const uint8_t NUM_CLIENTS = 2;
+	PropellerMotorControlClient _prop_motor_control;
+	BrushlessDriveClient _brushless_drive;
+	ClientAbstract * _client_array[NUM_CLIENTS];
 
 	//We need a serial handler in order to talk over the serial port
 	VertiqSerialInterface _serial_interface;
 
+	//We need to bring in the parameters that we define in module.yaml in order to view them in the
+	//control station, as well as to use them in the firmware
 	DEFINE_PARAMETERS(
-	(ParamInt<px4::params::VERTIQ_TEST>) _param_vertiq_test,
 	(ParamInt<px4::params::VERTIQ_ENABLE>) _param_vertiq_enable,
 	(ParamInt<px4::params::VERTIQ_BAUD>) _param_vertiq_baud
 	)

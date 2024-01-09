@@ -19,7 +19,7 @@ public:
 	/**
 	* @brief Initialize our serial peripheral
 	*/
-	int init_serial(const char *uart_device);
+	int init_serial(const char *uart_device, unsigned baud);
 
 	/**
 	* Turn off and close the serial connection

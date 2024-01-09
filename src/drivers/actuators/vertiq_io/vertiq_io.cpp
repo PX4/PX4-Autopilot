@@ -7,17 +7,21 @@ px4::atomic_bool VertiqIo::_request_telemetry_init{false};
 char VertiqIo::_telemetry_device[] {};
 
 VertiqIo::VertiqIo() :
-	OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::hp_default),
-	prop_test(0),
-	brushless_drive_test(0),
-	_serial_interface(num_clients)
+	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
+	_prop_motor_control(0), //Initialize with a module ID of 0
+	_brushless_drive(0), //Initialize with a module ID of 0
+	_serial_interface(NUM_CLIENTS)
 {
-	test[0] = &prop_test;
-	test[1] = &brushless_drive_test;
+	_client_array[0] = &_prop_motor_control;
+	_client_array[1] = &_brushless_drive;
+
+	//Make sure we get the correct initial values for our parameters
+	update_params();
 }
 
 VertiqIo::~VertiqIo()
 {
+	//Free our counters/timers
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 }
@@ -25,9 +29,8 @@ VertiqIo::~VertiqIo()
 //called by our task_spawn function
 bool VertiqIo::init()
 {
-	//Schedule to run every 2.5 ms
-	//calls Run() every second
-	ScheduleOnInterval(2500_us);
+	//Make sure we get our thread into execution
+	ScheduleNow();
 
 	return true;
 }
@@ -49,27 +52,22 @@ void VertiqIo::Run()
 	}
 
 	// telemetry device update request?
+	//This happens whenever the module is started
 	if (_request_telemetry_init.load()) {
-		PX4_INFO("Asked for serial init");
-		_serial_interface.init_serial(_telemetry_device);
-		// init_serial(_telemetry_device);
+		// PX4_INFO("Asked for serial init");
+		_serial_interface.init_serial(_telemetry_device, _param_vertiq_baud.get());
 		_request_telemetry_init.store(false);
 	}
 
-	prop_test.ctrl_velocity_.set(*_serial_interface.get_iquart_interface(), 400);
-	brushless_drive_test.obs_velocity_.get(*_serial_interface.get_iquart_interface());
+	//Handle IQUART reception and transmission
+	handle_iquart();
 
-	//Update our serial rx
-	_serial_interface.process_serial_rx(test);
+	//Get the most up to date version of our parameters
+	update_params();
 
-	//Update our serial tx
-	_serial_interface.process_serial_tx();
-
-	//Read the velo we got
-	if (brushless_drive_test.obs_velocity_.IsFresh()) {
-		PX4_INFO("Got velocity response %f", (double)brushless_drive_test.obs_velocity_.get_reply());
-
-	}
+	//Make sure we also update the mixing output to get the most up to date configuration
+	_mixing_output.update();
+	_mixing_output.updateSubscriptions(true);
 
 	//stop our timer
 	perf_end(_loop_perf);
@@ -102,6 +100,8 @@ int VertiqIo::print_status()
 {
 	perf_print_counter(_loop_perf);
 	perf_print_counter(_loop_interval_perf);
+
+	_mixing_output.printStatus();
 	return 0;
 }
 
@@ -140,9 +140,37 @@ int VertiqIo::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+void VertiqIo::handle_iquart(){
+	//Add a get message to our transmission queue
+	_brushless_drive.obs_velocity_.get(*_serial_interface.get_iquart_interface());
+
+	//Update our serial rx
+	_serial_interface.process_serial_rx(_client_array);
+
+	//Update our serial tx
+	_serial_interface.process_serial_tx();
+
+	//Read the velo we got
+	if (_brushless_drive.obs_velocity_.IsFresh()) {
+		// PX4_INFO("Got velocity response %f", (double)_brushless_drive.obs_velocity_.get_reply());
+	}
+}
+
+void VertiqIo::update_params()
+{
+	updateParams();
+}
+
 bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			     unsigned num_control_groups_updated)
 {
+	// PX4_INFO("Motor %d getting output %f", 0, (double)outputs[0]);
+	if(_param_vertiq_enable.get() > 0 && ((float)outputs[0] >= 10)){
+		_prop_motor_control.ctrl_velocity_.set(*_serial_interface.get_iquart_interface(), (float)outputs[0]);
+	}else{
+		_prop_motor_control.ctrl_coast_.set(*_serial_interface.get_iquart_interface());
+	}
+
 	return true;
 }
 
