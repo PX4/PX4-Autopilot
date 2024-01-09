@@ -354,7 +354,7 @@ static void printRingBuffer(const char *name, RingBuffer<T> *rb)
 	if (rb) {
 		printf("%s: %d/%d entries (%d/%d Bytes) (%d Bytes per entry)\n",
 		       name,
-		       rb->entries(), rb->get_length(), rb->get_total_size(), rb->get_total_size(),
+		       rb->entries(), rb->get_length(), rb->get_used_size(), rb->get_total_size(),
 		       sizeof(T));
 	}
 }
