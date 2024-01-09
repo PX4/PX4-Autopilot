@@ -8,9 +8,10 @@ char VertiqIo::_telemetry_device[] {};
 
 VertiqIo::VertiqIo() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
+	_serial_interface(NUM_CLIENTS),
 	_prop_motor_control(0), //Initialize with a module ID of 0
-	_brushless_drive(0), //Initialize with a module ID of 0
-	_serial_interface(NUM_CLIENTS)
+	_brushless_drive(0) //Initialize with a module ID of 0
+
 {
 	_client_array[0] = &_prop_motor_control;
 	_client_array[1] = &_brushless_drive;
@@ -29,6 +30,17 @@ VertiqIo::~VertiqIo()
 //called by our task_spawn function
 bool VertiqIo::init()
 {
+	//Grab the number of IFCI control values the user wants to use
+        _cvs_in_use = (uint8_t)_param_vertiq_number_of_cvs.get();
+
+	//Grab the bitmask that we're going to use to decide who we get telemetry from
+	_telem_bitmask = _param_vertiq_telemetry_mask.get();
+
+	//Go find the first and last positions of modules whose telemetry we need
+	find_first_and_last_telemetry_positions();
+
+	PX4_INFO("first telem: %d last telem: %d", _first_module_for_telem, _last_module_for_telem);
+
 	//Make sure we get our thread into execution
 	ScheduleNow();
 
@@ -140,6 +152,27 @@ int VertiqIo::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+void VertiqIo::find_first_and_last_telemetry_positions(){
+	uint16_t shift_val = 0x0001;
+	bool found_first = false;
+
+	//Go through from 0 to the max number of CVs we can have, and determine the first and last place we have a 1
+	for(uint8_t i = 0; i < MAX_SUPPORTABLE_IFCI_CVS; i++){
+		if(shift_val & _telem_bitmask){
+			//We only want to set the lowest value once
+			if(!found_first){
+				_first_module_for_telem = i;
+				found_first = true;
+			}
+
+			//Keep updating the last module for every time we hit a 1
+			_last_module_for_telem = i;
+		}
+
+		shift_val = shift_val << 1;
+	}
+}
+
 void VertiqIo::handle_iquart(){
 	//Add a get message to our transmission queue
 	_brushless_drive.obs_velocity_.get(*_serial_interface.get_iquart_interface());
@@ -165,11 +198,15 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 			     unsigned num_control_groups_updated)
 {
 	// PX4_INFO("Motor %d getting output %f", 0, (double)outputs[0]);
-	if(_param_vertiq_enable.get() > 0 && ((float)outputs[0] >= 10)){
-		_prop_motor_control.ctrl_velocity_.set(*_serial_interface.get_iquart_interface(), (float)outputs[0]);
-	}else{
-		_prop_motor_control.ctrl_coast_.set(*_serial_interface.get_iquart_interface());
-	}
+	// if(_param_vertiq_enable.get() > 0 && ((float)outputs[0] >= 10)){
+	// 	_prop_motor_control.ctrl_velocity_.set(*_serial_interface.get_iquart_interface(), (float)outputs[0]);
+	// }else{
+	// 	_prop_motor_control.ctrl_coast_.set(*_serial_interface.get_iquart_interface());
+	// }
+
+	//IFCI sends values as raw throttle [0,1]. We need to convert the output from the mixer to that range
+	//We're being given a value [0, 65535] from the mixer
+	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, 0);
 
 	return true;
 }

@@ -39,6 +39,9 @@ px4_add_module(
 		vertiq_io.hpp
 		vertiq_serial_interface.cpp
 		vertiq_serial_interface.hpp
+		ifci_telemetry.h
+		ifci.hpp
+		ifci.cpp
 
 		iq-module-communication-cpp/inc/bipbuffer.h
 		iq-module-communication-cpp/inc/byte_queue.h
