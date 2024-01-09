@@ -398,6 +398,9 @@ public:
 					// print fixed width zero
 					printf(" 0       ");
 
+				} else if (fabs(d) < 1e-4) {
+					printf("% .1e ", d);
+
 				} else {
 					printf("% 6.5f ", d);
 				}

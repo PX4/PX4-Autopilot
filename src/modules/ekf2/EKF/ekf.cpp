@@ -362,38 +362,35 @@ static void printRingBuffer(const char *name, RingBuffer<T> *rb)
 void Ekf::print_status()
 {
 	printf("\nStates: (%.4f seconds ago)\n", (_time_latest_us - _time_delayed_us) * 1e-6);
-	printf("Orientation (0,1,2,3): [%.4f, %.4f, %.4f, %.4f] (Euler [%.3f, %.3f, %.3f])\n",
+	printf("Orientation: [%.4f, %.4f, %.4f, %.4f] (Euler [%.3f, %.3f, %.3f])\n",
 	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2),
 	       (double)_state.quat_nominal(3),
 	       (double)matrix::Eulerf(_state.quat_nominal).phi(), (double)matrix::Eulerf(_state.quat_nominal).theta(),
 	       (double)matrix::Eulerf(_state.quat_nominal).psi());
 
-	printf("Velocity (states 4,5,6): [%.3f, %.3f, %.3f]\n",
+	printf("Velocity: [%.3f, %.3f, %.3f]\n",
 	       (double)_state.vel(0), (double)_state.vel(1), (double)_state.vel(2));
 
-	printf("Position (states 7,8,9): [%.3f, %.3f, %.3f]\n",
+	printf("Position: [%.3f, %.3f, %.3f]\n",
 	       (double)_state.pos(0), (double)_state.pos(1), (double)_state.pos(2));
 
-	printf("Delta Angle Bias (states 10,11,12): [%.6f, %.6f, %.6f] (DT: %.4fs)\n",
-	       (double)_state.delta_ang_bias(0), (double)_state.delta_ang_bias(1), (double)_state.delta_ang_bias(2),
-	       (double)_dt_ekf_avg);
+	printf("Gyro Bias: [%.6f, %.6f, %.6f]\n",
+	       (double)_state.gyro_bias(0), (double)_state.gyro_bias(1), (double)_state.gyro_bias(2));
 
-	printf("Delta Velocity Bias (states 13,14,15): [%.6f, %.6f, %.6f] (DT: %.4fs)\n",
-	       (double)_state.delta_vel_bias(0), (double)_state.delta_vel_bias(1), (double)_state.delta_vel_bias(2),
-	       (double)_dt_ekf_avg);
+	printf("Accel Bias: [%.6f, %.6f, %.6f]\n",
+	       (double)_state.accel_bias(0), (double)_state.accel_bias(1), (double)_state.accel_bias(2));
 
-	printf("Magnetic Field (states 16,17,18): [%.3f, %.3f, %.3f]\n",
+	printf("Magnetic Field: [%.3f, %.3f, %.3f]\n",
 	       (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2));
 
-	printf("Magnetic Bias (states 19,20,21): [%.3f, %.3f, %.3f]\n",
+	printf("Magnetic Bias: [%.3f, %.3f, %.3f]\n",
 	       (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2));
 
-	printf("Wind velocity (states 22,23): [%.3f, %.3f]\n", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
+	printf("Wind velocity: [%.3f, %.3f]\n", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
 
 	printf("\nP:\n");
 	P.print();
 
-	printf("IMU average dt: %.6f seconds\n", (double)_dt_imu_avg);
 	printf("EKF average dt: %.6f seconds\n", (double)_dt_ekf_avg);
 	printf("minimum observation interval %d us\n", _min_obs_interval_us);
 
@@ -409,7 +406,4 @@ void Ekf::print_status()
 	printRingBuffer("drag buffer", _drag_buffer);
 	printRingBuffer("aux vel buffer", _auxvel_buffer);
 	printRingBuffer("system flag buffer", _system_flag_buffer);
-
-	printf("output buffer: %d/%d (%d Bytes)\n", _output_buffer.entries(), _output_buffer.get_length(), _output_buffer.get_total_size());
-	printf("output vert buffer: %d/%d (%d Bytes)\n", _output_vert_buffer.entries(), _output_vert_buffer.get_length(), _output_vert_buffer.get_total_size());
 }
