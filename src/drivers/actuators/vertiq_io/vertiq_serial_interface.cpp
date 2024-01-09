@@ -117,7 +117,7 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	return 0;
 }
 
-int VertiqSerialInterface::process_serial_rx(ClientAbstract *test[2])
+int VertiqSerialInterface::process_serial_rx(IFCI * motor_interface, ClientAbstract *test[2])
 {
 	if (_uart_fd < 0) {
 		return -1;
@@ -146,6 +146,8 @@ int VertiqSerialInterface::process_serial_rx(ClientAbstract *test[2])
 		//While we've got packets to look at, give the packet to each of the clients so that each
 		//can decide what to do with it
 		while (_iquart_interface.PeekPacket(&rx_buf_ptr, &_bytes_available) == 1) {
+			motor_interface->ReadTelemetry(rx_buf_ptr, _bytes_available);
+
 			for (uint8_t i = 0; i < _number_of_clients; i++) {
 				test[i]->ReadMsg(rx_buf_ptr, _bytes_available);
 			}

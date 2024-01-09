@@ -34,12 +34,16 @@ bool VertiqIo::init()
         _cvs_in_use = (uint8_t)_param_vertiq_number_of_cvs.get();
 
 	//Grab the bitmask that we're going to use to decide who we get telemetry from
-	_telem_bitmask = _param_vertiq_telemetry_mask.get();
+	_telem_bitmask = (uint16_t)_param_vertiq_telemetry_mask.get();
 
 	//Go find the first and last positions of modules whose telemetry we need
 	find_first_and_last_telemetry_positions();
-
 	PX4_INFO("first telem: %d last telem: %d", _first_module_for_telem, _last_module_for_telem);
+
+	find_next_motor_for_telemetry();
+	find_next_motor_for_telemetry();
+	find_next_motor_for_telemetry();
+	find_next_motor_for_telemetry();
 
 	//Make sure we get our thread into execution
 	ScheduleNow();
@@ -73,6 +77,10 @@ void VertiqIo::Run()
 
 	//Handle IQUART reception and transmission
 	handle_iquart();
+
+	if(_telem_bitmask){
+		update_telemetry();
+	}
 
 	//Get the most up to date version of our parameters
 	update_params();
@@ -152,6 +160,46 @@ int VertiqIo::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+void VertiqIo::update_telemetry(){
+	bool got_reply = false;
+
+	//We got a telemetry response
+	if(_motor_interface.telemetry_.IsFresh()){
+		got_reply = true;
+	}
+
+	if(got_reply){
+		//update the telem target
+		find_next_motor_for_telemetry();
+	}
+}
+
+void VertiqIo::find_next_motor_for_telemetry(){
+	//If the current telemetry is the highest available, wrap around to the first one
+	//If we're below the max, find the next available.
+
+	//The bitmask shifted by the number of telemetry targets we've alredy hit
+	uint16_t next_telem_target_mask = _telem_bitmask >> (_current_telemetry_target_module_id + 1);
+
+	//The bit position of the next telemetry target
+	uint16_t next_telem_target_position = _current_telemetry_target_module_id  + 1;
+
+	//Keep trying to find the next value until you're out of bits. if you run out of bits, your next telem is the lowest value that we saved before
+	while(next_telem_target_mask > 0){
+		if(next_telem_target_mask & 0x0001){
+			_current_telemetry_target_module_id = next_telem_target_position;
+			return; //get out
+		}
+
+		//keep trying
+		next_telem_target_position++;
+		next_telem_target_mask = next_telem_target_mask >> 1;
+	}
+
+	//We didn't find anyone new. Go back to the start.
+	_current_telemetry_target_module_id = _first_module_for_telem;
+}
+
 void VertiqIo::find_first_and_last_telemetry_positions(){
 	uint16_t shift_val = 0x0001;
 	bool found_first = false;
@@ -159,9 +207,13 @@ void VertiqIo::find_first_and_last_telemetry_positions(){
 	//Go through from 0 to the max number of CVs we can have, and determine the first and last place we have a 1
 	for(uint8_t i = 0; i < MAX_SUPPORTABLE_IFCI_CVS; i++){
 		if(shift_val & _telem_bitmask){
+
 			//We only want to set the lowest value once
 			if(!found_first){
 				_first_module_for_telem = i;
+
+				//Also initialize the current target
+				_current_telemetry_target_module_id = _first_module_for_telem;
 				found_first = true;
 			}
 
@@ -178,7 +230,7 @@ void VertiqIo::handle_iquart(){
 	_brushless_drive.obs_velocity_.get(*_serial_interface.get_iquart_interface());
 
 	//Update our serial rx
-	_serial_interface.process_serial_rx(_client_array);
+	_serial_interface.process_serial_rx(&_motor_interface, _client_array);
 
 	//Update our serial tx
 	_serial_interface.process_serial_tx();
@@ -197,15 +249,8 @@ void VertiqIo::update_params()
 bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			     unsigned num_control_groups_updated)
 {
-	// PX4_INFO("Motor %d getting output %f", 0, (double)outputs[0]);
-	// if(_param_vertiq_enable.get() > 0 && ((float)outputs[0] >= 10)){
-	// 	_prop_motor_control.ctrl_velocity_.set(*_serial_interface.get_iquart_interface(), (float)outputs[0]);
-	// }else{
-	// 	_prop_motor_control.ctrl_coast_.set(*_serial_interface.get_iquart_interface());
-	// }
-
-	//IFCI sends values as raw throttle [0,1]. We need to convert the output from the mixer to that range
-	//We're being given a value [0, 65535] from the mixer
+	//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
+	//conversions
 	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, 0);
 
 	return true;

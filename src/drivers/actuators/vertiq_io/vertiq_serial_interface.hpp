@@ -9,6 +9,7 @@
 
 #include "iq-module-communication-cpp/inc/generic_interface.hpp"
 #include "iq-module-communication-cpp/inc/propeller_motor_control_client.hpp"
+#include "ifci.hpp"
 
 class VertiqSerialInterface
 {
@@ -36,7 +37,7 @@ public:
 	/**
 	* @brief check to see if there is any data for us coming in over the serial port
 	*/
-	int process_serial_rx(ClientAbstract *test[2]);
+	int process_serial_rx(IFCI * motor_interface, ClientAbstract *test[2]);
 
 	/**
 	* @brief check to see if there is any data that we need to transmit over serial

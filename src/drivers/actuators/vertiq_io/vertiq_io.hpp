@@ -74,6 +74,8 @@ private:
 	void handle_iquart();
 
 	void find_first_and_last_telemetry_positions();
+	void update_telemetry();
+	void find_next_motor_for_telemetry();
 
 	//Variables and functions necessary for properly configuring the serial interface
 	//Determines whether or not we should initialize or re-initialize the serial connection
@@ -102,15 +104,17 @@ private:
 
 	//The bit position of the first module whose telemetry we should get
 	uint16_t _first_module_for_telem = 0;
+
 	//The bit position of the last module whose telemetry we should get
 	uint16_t _last_module_for_telem = 0;
+
+	//Current target for telemetry
+	uint16_t _current_telemetry_target_module_id = 0;
+
 
 	static const uint8_t _kSubCtrlCoast                  =  2;
 	static const uint8_t _kTypePropellerMotorControl     = 52;
 	static const uint8_t _kBroadcastID                   = 63;
-
-
-
 
 
 	static const uint8_t NUM_CLIENTS = 2;
