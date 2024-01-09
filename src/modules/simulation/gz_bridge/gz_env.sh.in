@@ -2,5 +2,7 @@
 
 export PX4_GZ_MODELS=@PX4_SOURCE_DIR@/Tools/simulation/gz/models
 export PX4_GZ_WORLDS=@PX4_SOURCE_DIR@/Tools/simulation/gz/worlds
+export PX4_GZ_PLUGINS=@PX4_SOURCE_DIR@/build/px4_sitl_default/build_gz
 
 export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:$PX4_GZ_MODELS:$PX4_GZ_WORLDS
+export GZ_SIM_SYSTEM_PLUGIN_PATH=$GZ_SIM_SYSTEM_PLUGIN_PATH:$PX4_GZ_PLUGINS

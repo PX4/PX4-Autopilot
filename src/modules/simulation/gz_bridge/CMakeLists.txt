@@ -76,8 +76,8 @@ if(gz-transport_FOUND)
 
 	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 	include(ExternalProject)
-	ExternalProject_Add(gz
-		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
+	ExternalProject_Add(px4_gz_plugins
+		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz/plugins
 		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 		BINARY_DIR ${PX4_BINARY_DIR}/build_gz
 		INSTALL_COMMAND ""
@@ -121,14 +121,14 @@ if(gz-transport_FOUND)
 					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
-					DEPENDS px4
+					DEPENDS px4 px4_gz_plugins
 				)
 			else()
 				add_custom_target(gz_${model_only}_${world_name}
 					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
-					DEPENDS px4
+					DEPENDS px4 px4_gz_plugins
 				)
 			endif()
 		endforeach()
