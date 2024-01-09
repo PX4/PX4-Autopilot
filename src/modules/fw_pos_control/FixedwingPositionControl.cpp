@@ -1363,7 +1363,7 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 
 	// Navigate directly on position setpoint and path tangent
 	matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
-	float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
+	const float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
 			  0.0f;
 	navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed, _wind_vel, curvature);
 
