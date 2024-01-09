@@ -144,7 +144,8 @@ bool Ekf::collect_gps(const gps_message &gps)
 bool Ekf::gps_is_good(const gps_message &gps)
 {
 	// Check the fix type
-	_gps_check_fail_status.flags.fix = (gps.fix_type < 3);
+	const int32_t min_fixtype = 3;
+	_gps_check_fail_status.flags.fix = (gps.fix_type < math::max(min_fixtype, _params.req_fixtype));
 
 	// Check the number of satellites
 	_gps_check_fail_status.flags.nsats = (gps.nsats < _params.req_nsats);
