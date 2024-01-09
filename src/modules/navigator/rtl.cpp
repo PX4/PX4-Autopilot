@@ -192,6 +192,15 @@ void RTL::find_RTL_destination()
 			continue;
 		}
 
+		// Discard safe point if it does not match MR/FW type
+		if ((mission_safe_point.type == SAFE_POINT_TYPE_MR_ONLY
+		     && (_navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			 || _navigator->get_vstatus()->in_transition_to_fw))
+		    || (mission_safe_point.type == SAFE_POINT_TYPE_FW_ONLY
+			&& _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+			continue;
+		}
+
 		// TODO: take altitude into account for distance measurement
 		dlat = mission_safe_point.lat - global_position.lat;
 		dlon = mission_safe_point.lon - global_position.lon;

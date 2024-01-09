@@ -338,6 +338,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 			mission_item.lat = mission_safe_point.lat;
 			mission_item.lon = mission_safe_point.lon;
 			mission_item.altitude = mission_safe_point.alt;
+			mission_item.params[0] = static_cast<float>(mission_safe_point.type);
 		}
 		break;
 
@@ -1173,6 +1174,13 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				mission_safe_point.lon = mission_item.lon;
 				mission_safe_point.alt = mission_item.altitude;
 				mission_safe_point.frame = mission_item.frame;
+				mission_safe_point.type = static_cast<uint8_t>(mission_item.params[0]);
+
+				if (mission_safe_point.type >= SAFE_POINT_TYPE_END) {
+					// Invalid type, set to default
+					mission_safe_point.type = SAFE_POINT_TYPE_NORMAL;
+				}
+
 				write_failed = dm_write(DM_KEY_SAFE_POINTS, wp.seq + 1, &mission_safe_point,
 							sizeof(mission_safe_point_s)) != sizeof(mission_safe_point_s);
 			}
@@ -1452,6 +1460,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_NAV_RALLY_POINT:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->params[0] = mavlink_mission_item->param1;
 			break;
 
 		default:
@@ -1732,6 +1741,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		case MAV_CMD_NAV_RALLY_POINT:
+			mavlink_mission_item->param1 = mission_item->params[0];
 			break;
 
 
