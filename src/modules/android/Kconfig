@@ -1,0 +1,11 @@
+menu "Android"
+    menuconfig COMMON_ANDROID
+        bool "Common android modules"
+        default n
+        select MODULES_ANDROID_SENSOR_ACCEL_NDK
+        select MODULES_ANDROID_SENSOR_GYRO_NDK
+        select MODULES_ANDROID_SENSOR_MAG_NDK
+        ---help---
+            Enable default set of android modules
+    rsource "*/Kconfig"
+endmenu
