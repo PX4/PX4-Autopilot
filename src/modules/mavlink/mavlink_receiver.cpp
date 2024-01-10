@@ -61,6 +61,9 @@
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
+#include <cstdio>
+#include <iostream>
+
 #include <lib/drivers/device/Device.hpp> // For DeviceId union
 
 #ifdef CONFIG_NET
@@ -325,6 +328,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
 		handle_message_gimbal_device_attitude_status(msg);
+		break;
+
+	case MAVLINK_MSG_ID_KEYBOARD_COMMAND_PAYLOAD:
+		handle_message_keyboard_command(msg);
 		break;
 
 #if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
@@ -3112,6 +3119,21 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.received_from_mavlink = true;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void
+MavlinkReceiver::handle_message_keyboard_command(mavlink_message_t *msg)
+{
+	mavlink_keyboard_command_payload_t key_command;
+	mavlink_msg_keyboard_command_payload_decode(msg , &key_command);
+
+	keyboard_command_s keyboard_command{};
+	keyboard_command.timestamp = hrt_absolute_time();
+	keyboard_command.key_number = key_command.key_number;
+
+	_keyboard_command_pub.publish(keyboard_command);
+	std::cout <<"ORB Custom topic published , keyboard number "<<keyboard_command.key_number<<std::endl;
+
 }
 
 void
