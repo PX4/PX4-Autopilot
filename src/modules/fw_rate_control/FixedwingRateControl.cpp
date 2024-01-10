@@ -276,12 +276,14 @@ void FixedwingRateControl::Run()
 			/* reset integrals where needed */
 			if (_rates_sp.reset_integral) {
 				_rate_control.resetIntegral();
+				_auto_trim.reset(Vector3f());
 			}
 
 			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
 			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition) {
 
 				_rate_control.resetIntegral();
+				_auto_trim.reset(Vector3f());
 			}
 
 			// Update saturation status from control allocation feedback
@@ -344,6 +346,8 @@ void FixedwingRateControl::Run()
 						       _param_fw_dtrim_y_vmax.get());
 			}
 
+			trim += _auto_trim.getState();
+
 			if (_vcontrol_mode.flag_control_rates_enabled) {
 				_rates_sp_sub.update(&_rates_sp);
 
@@ -386,6 +390,10 @@ void FixedwingRateControl::Run()
 				_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(control_u(2)) ? math::constrain(control_u(2) + trim(2), -1.f,
 								  1.f) : trim(2);
 
+				// TODO: finite checks
+				_auto_trim.setParameters(dt, _kAutoTrimTimeConstant);
+				_auto_trim.update(control_u + _auto_trim.getState());
+
 				/* throttle passed through if it is finite */
 				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
 
@@ -407,6 +415,7 @@ void FixedwingRateControl::Run()
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
 			_rate_control.getRateControlStatus(rate_ctrl_status);
+			trim.copyTo(rate_ctrl_status.trim);
 			rate_ctrl_status.timestamp = hrt_absolute_time();
 
 			_rate_ctrl_status_pub.publish(rate_ctrl_status);
@@ -414,6 +423,7 @@ void FixedwingRateControl::Run()
 		} else {
 			// full manual
 			_rate_control.resetIntegral();
+			_auto_trim.reset(Vector3f());
 		}
 
 		// Add feed-forward from roll control output to yaw control output

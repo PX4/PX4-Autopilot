@@ -36,6 +36,7 @@
 #include <lib/rate_control/rate_control.hpp>
 
 #include <drivers/drv_hrt.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -131,6 +132,9 @@ private:
 	perf_counter_t _loop_perf;
 
 	hrt_abstime _last_run{0};
+
+	AlphaFilter<matrix::Vector3f> _auto_trim{};
+	static constexpr float _kAutoTrimTimeConstant{30.f};
 
 	float _airspeed_scaling{1.0f};
 
