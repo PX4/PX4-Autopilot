@@ -362,27 +362,29 @@ void FixedwingRateControl::Run()
 				const float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
 				const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
 
-				const float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
-				const float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
+				Vector3f control_u{};
+				control_u(0) = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
+				control_u(1) = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
 
 				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
-				float yaw_u = 0.f;
-
 				if (_vcontrol_mode.flag_control_attitude_enabled || _param_fw_acro_yaw_en.get()) {
-					yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
+					control_u(2) = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
 
 				} else {
-					yaw_u = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
+					control_u(2) = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
 					_rate_control.resetIntegral(2);
 				}
 
-				if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
+				if (!control_u.isAllFinite()) {
 					_rate_control.resetIntegral();
 				}
 
-				_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(roll_u) ? math::constrain(roll_u + trim(0), -1.f, 1.f) : trim(0);
-				_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(pitch_u) ? math::constrain(pitch_u + trim(1), -1.f, 1.f) : trim(1);
-				_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(yaw_u) ? math::constrain(yaw_u + trim(2), -1.f, 1.f) : trim(2);
+				_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(control_u(0)) ? math::constrain(control_u(0) + trim(0), -1.f,
+								  1.f) : trim(0);
+				_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(control_u(1)) ? math::constrain(control_u(1) + trim(1), -1.f,
+								  1.f) : trim(1);
+				_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(control_u(2)) ? math::constrain(control_u(2) + trim(2), -1.f,
+								  1.f) : trim(2);
 
 				/* throttle passed through if it is finite */
 				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
