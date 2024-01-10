@@ -485,7 +485,7 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMPING, 0.05f);
  * @increment 0.005
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_I_GAIN_THR, 0.02f);
+PARAM_DEFINE_FLOAT(FW_T_THR_INTEG, 0.02f);
 
 /**
  * Integrator gain pitch

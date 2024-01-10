@@ -130,7 +130,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
 	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damping.get());
-	_tecs.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
+	_tecs.set_integrator_gain_throttle(_param_fw_t_thr_integ.get());
 	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
 	_tecs.set_throttle_slewrate(_param_fw_thr_slew_max.get());
 	_tecs.set_vertical_accel_limit(_param_fw_t_vert_acc.get());
