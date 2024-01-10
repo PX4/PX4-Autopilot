@@ -38,12 +38,6 @@ bool VertiqIo::init()
 
 	//Go find the first and last positions of modules whose telemetry we need
 	find_first_and_last_telemetry_positions();
-	PX4_INFO("first telem: %d last telem: %d", _first_module_for_telem, _last_module_for_telem);
-
-	find_next_motor_for_telemetry();
-	find_next_motor_for_telemetry();
-	find_next_motor_for_telemetry();
-	find_next_motor_for_telemetry();
 
 	//Make sure we get our thread into execution
 	ScheduleNow();
@@ -70,7 +64,6 @@ void VertiqIo::Run()
 	// telemetry device update request?
 	//This happens whenever the module is started
 	if (_request_telemetry_init.load()) {
-		// PX4_INFO("Asked for serial init");
 		_serial_interface.init_serial(_telemetry_device, _param_vertiq_baud.get());
 		_request_telemetry_init.store(false);
 	}
@@ -78,6 +71,7 @@ void VertiqIo::Run()
 	//Handle IQUART reception and transmission
 	handle_iquart();
 
+	//If we're supposed to ask for telemetry from someone
 	if(_telem_bitmask){
 		update_telemetry();
 	}
@@ -172,7 +166,9 @@ void VertiqIo::update_telemetry(){
 	//We got a telemetry response
 	if(_motor_interface.telemetry_.IsFresh()){
 		//grab the data
-		_motor_interface.telemetry_.get_reply();
+		IFCITelemetryData telem_response = _motor_interface.telemetry_.get_reply();
+
+		PX4_INFO("Velo gotten from telemetry on module id %d %d", _current_telemetry_target_module_id, telem_response.speed);
 		got_reply = true;
 	}
 
@@ -180,7 +176,6 @@ void VertiqIo::update_telemetry(){
 		//update the telem target
 		find_next_motor_for_telemetry();
 		_time_of_last_telem_request = hrt_absolute_time();
-		PX4_INFO("Target telem is now %d", _current_telemetry_target_module_id);
 	}
 }
 
@@ -198,6 +193,7 @@ void VertiqIo::find_next_motor_for_telemetry(){
 	while(next_telem_target_mask > 0){
 		if(next_telem_target_mask & 0x0001){
 			_current_telemetry_target_module_id = next_telem_target_position;
+			_telemetry_request_id = _current_telemetry_target_module_id;
 			return; //get out
 		}
 
@@ -208,6 +204,7 @@ void VertiqIo::find_next_motor_for_telemetry(){
 
 	//We didn't find anyone new. Go back to the start.
 	_current_telemetry_target_module_id = _first_module_for_telem;
+	_telemetry_request_id = _current_telemetry_target_module_id;
 }
 
 void VertiqIo::find_first_and_last_telemetry_positions(){
@@ -235,20 +232,13 @@ void VertiqIo::find_first_and_last_telemetry_positions(){
 	}
 }
 
-void VertiqIo::handle_iquart(){
-	//Add a get message to our transmission queue
-	_brushless_drive.obs_velocity_.get(*_serial_interface.get_iquart_interface());
-
+void VertiqIo::handle_iquart()
+{
 	//Update our serial rx
 	_serial_interface.process_serial_rx(&_motor_interface, _client_array);
 
 	//Update our serial tx
 	_serial_interface.process_serial_tx();
-
-	//Read the velo we got
-	if (_brushless_drive.obs_velocity_.IsFresh()) {
-		// PX4_INFO("Got velocity response %f", (double)_brushless_drive.obs_velocity_.get_reply());
-	}
 }
 
 void VertiqIo::update_params()
@@ -261,7 +251,8 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 {
 	//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
 	//conversions
-	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _current_telemetry_target_module_id);
+	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _telemetry_request_id);
+	_telemetry_request_id = _impossible_module_id;
 
 	return true;
 }
