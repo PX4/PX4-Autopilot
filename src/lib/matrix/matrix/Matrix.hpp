@@ -398,7 +398,7 @@ public:
 					// print fixed width zero
 					printf(" 0       ");
 
-				} else if (fabs(d) < 1e-4) {
+				} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
 					printf("% .1e ", d);
 
 				} else {
