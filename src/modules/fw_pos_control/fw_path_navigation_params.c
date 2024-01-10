@@ -470,7 +470,7 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
  * @increment 0.01
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_THR_DAMPING, 0.05f);
 
 /**
  * Integrator gain throttle
