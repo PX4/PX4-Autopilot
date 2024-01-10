@@ -10,3 +10,11 @@ menuconfig USER_NETMAN
 	depends on BOARD_PROTECTED && SYSTEMCMDS_NETMAN
 	---help---
 		Put netman in userspace memory
+
+config NETMAN_FALLBACK_IPADDR
+	hex "Fallback IPv4 address"
+	default 0XC0A80003
+	depends on SYSTEMCMDS_NETMAN
+	---help---
+		If NETINIT_DHCPC is set, getting an IP from DHCP server is first attempted.
+		If this fails, this IP address is used as a static fallback.
