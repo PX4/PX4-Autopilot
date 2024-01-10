@@ -39,6 +39,28 @@ bool VertiqIo::init()
 	//Go find the first and last positions of modules whose telemetry we need
 	find_first_and_last_telemetry_positions();
 
+
+	_esc_status.timestamp          = hrt_absolute_time();
+	_esc_status.counter            = 0;
+	_esc_status.esc_count          = _number_of_modules_for_telem;
+	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
+
+	for (unsigned i = 0; i < _number_of_modules_for_telem; i++) {
+		_esc_status.esc[i].timestamp       = 0;
+		_esc_status.esc[i].esc_address     = 0;
+		_esc_status.esc[i].esc_rpm         = 0;
+		_esc_status.esc[i].esc_state       = 0;
+		_esc_status.esc[i].esc_cmdcount    = 0;
+		_esc_status.esc[i].esc_voltage     = 0;
+		_esc_status.esc[i].esc_current     = 0;
+		_esc_status.esc[i].esc_temperature = 0;
+		_esc_status.esc[i].esc_errorcount  = 0;
+		_esc_status.esc[i].failures        = 0;
+		_esc_status.esc[i].esc_power       = 0;
+	}
+
+	_esc_status_pub.advertise();
+
 	//Make sure we get our thread into execution
 	ScheduleNow();
 
@@ -155,6 +177,7 @@ int VertiqIo::custom_command(int argc, char *argv[])
 }
 
 void VertiqIo::update_telemetry(){
+
 	bool got_reply = false;
 
 	//Get the current time to check for timeout
@@ -168,7 +191,18 @@ void VertiqIo::update_telemetry(){
 		//grab the data
 		IFCITelemetryData telem_response = _motor_interface.telemetry_.get_reply();
 
-		PX4_INFO("Velo gotten from telemetry on module id %d %d", _current_telemetry_target_module_id, telem_response.speed);
+		// also update our internal report for logging
+		_esc_status.esc[_current_telemetry_target_module_id].esc_address  = _current_telemetry_target_module_id;
+		_esc_status.esc[_current_telemetry_target_module_id].timestamp    = hrt_absolute_time();
+		_esc_status.esc[_current_telemetry_target_module_id].esc_rpm      = telem_response.speed;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_power    = telem_response.voltage * telem_response.current;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_state    = 0;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_cmdcount = 0;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_voltage  = telem_response.voltage;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_current  = telem_response.current;
+		_esc_status.esc[_current_telemetry_target_module_id].failures     = 0; //not implemented
+
+		// PX4_INFO("Velo gotten from telemetry on module id %d %d", _current_telemetry_target_module_id, telem_response.speed);
 		got_reply = true;
 	}
 
@@ -226,6 +260,9 @@ void VertiqIo::find_first_and_last_telemetry_positions(){
 
 			//Keep updating the last module for every time we hit a 1
 			_last_module_for_telem = i;
+
+			//We found another module for telemetry
+			_number_of_modules_for_telem++;
 		}
 
 		shift_val = shift_val << 1;
@@ -253,6 +290,8 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 	//conversions
 	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _telemetry_request_id);
 	_telemetry_request_id = _impossible_module_id;
+
+	_esc_status_pub.publish(_esc_status);
 
 	return true;
 }

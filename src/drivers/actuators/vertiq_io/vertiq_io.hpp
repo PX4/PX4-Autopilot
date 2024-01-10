@@ -102,6 +102,9 @@ private:
 	//Store the telemetry bitmask for who we want to get telemetry from
 	uint16_t _telem_bitmask = 0;
 
+	//The number of modules that we're going to request telemetry from
+	uint8_t _number_of_modules_for_telem = 0;
+
 	//The bit position of the first module whose telemetry we should get
 	uint16_t _first_module_for_telem = 0;
 
@@ -125,6 +128,8 @@ private:
 	//The system time the last time that we got telemetry
 	hrt_abstime _time_of_last_telem_request = 0;
 
+	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	esc_status_s		_esc_status;
 
 	static const uint8_t _kSubCtrlCoast                  =  2;
 	static const uint8_t _kTypePropellerMotorControl     = 52;
