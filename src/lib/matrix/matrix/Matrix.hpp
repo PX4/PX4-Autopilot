@@ -365,7 +365,7 @@ public:
 		}
 	}
 
-	void print(float eps = 0.00001f) const
+	void print(float eps = 1e-9) const
 	{
 		// print column numbering
 		if (N > 1) {
@@ -393,16 +393,25 @@ public:
 					printf("\033[1m");
 				}
 
-				// avoid -0.0 for display
-				if (fabs(d - 0.0) < (double)eps) {
-					// print fixed width zero
-					printf(" 0       ");
-
-				} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
-					printf("% .1e ", d);
+				// if symmetric don't print upper triangular elements
+				if ((M == N) && (j > i) && (i < N) && (j < M)
+				    && (fabs(d - static_cast<double>(self(j, i))) < (double)eps)
+				   ) {
+					// print empty space
+					printf("         ");
 
 				} else {
-					printf("% 6.5f ", d);
+					// avoid -0.0 for display
+					if (fabs(d - 0.0) < (double)eps) {
+						// print fixed width zero
+						printf(" 0       ");
+
+					} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+						printf("% .1e ", d);
+
+					} else {
+						printf("% 6.5f ", d);
+					}
 				}
 
 				// Matrix diagonal elements
