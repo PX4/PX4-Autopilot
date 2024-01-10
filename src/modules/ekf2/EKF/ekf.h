@@ -255,7 +255,10 @@ public:
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
 	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
+	float getTiltVariance() const { return getStateVariance<State::quat_nominal>()(0) + getStateVariance<State::quat_nominal>()(1); };
+
 	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
+
 	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
