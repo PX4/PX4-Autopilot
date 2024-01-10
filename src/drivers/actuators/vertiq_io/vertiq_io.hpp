@@ -111,6 +111,12 @@ private:
 	//Current target for telemetry
 	uint16_t _current_telemetry_target_module_id = 0;
 
+	//The amount of time (in ms) that we'll wait for a telemetry response
+	static const hrt_abstime _telem_timeout = 5_s;
+
+	//The system time the last time that we got telemetry
+	hrt_abstime _time_of_last_telem_request = 0;
+
 
 	static const uint8_t _kSubCtrlCoast                  =  2;
 	static const uint8_t _kTypePropellerMotorControl     = 52;

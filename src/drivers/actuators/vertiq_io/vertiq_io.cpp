@@ -163,14 +163,24 @@ int VertiqIo::custom_command(int argc, char *argv[])
 void VertiqIo::update_telemetry(){
 	bool got_reply = false;
 
+	//Get the current time to check for timeout
+	hrt_abstime timestamp_for_timeout = hrt_absolute_time();
+
+	//We timed out for this request if the time since the last request going out is greater than our timeout period
+	bool timed_out = (timestamp_for_timeout - _time_of_last_telem_request) > _telem_timeout;
+
 	//We got a telemetry response
 	if(_motor_interface.telemetry_.IsFresh()){
+		//grab the data
+		_motor_interface.telemetry_.get_reply();
 		got_reply = true;
 	}
 
-	if(got_reply){
+	if(got_reply || timed_out){//} || (hrt_elapsed_time(&timestamp_for_timeout) > _telem_timeout)){
 		//update the telem target
 		find_next_motor_for_telemetry();
+		_time_of_last_telem_request = hrt_absolute_time();
+		PX4_INFO("Target telem is now %d", _current_telemetry_target_module_id);
 	}
 }
 
@@ -251,7 +261,7 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 {
 	//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
 	//conversions
-	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, 0);
+	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _current_telemetry_target_module_id);
 
 	return true;
 }
