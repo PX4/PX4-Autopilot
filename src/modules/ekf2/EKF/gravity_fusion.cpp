@@ -46,16 +46,21 @@
 
 void Ekf::controlGravityFusion(const imuSample &imu)
 {
-	// fuse gravity observation if our overall acceleration isn't too big
-	const float gravity_scale = _accel_vec_filt.norm() / CONSTANTS_ONE_G;
-
-	_control_status.flags.gravity_vector = (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
-					       && (((gravity_scale >= 0.9f && gravity_scale <= 1.1f)) || _control_status.flags.vehicle_at_rest)
-					       && !isHorizontalAidingActive();
-
 	// get raw accelerometer reading at delayed horizon and expected measurement noise (gaussian)
-	const Vector3f measurement = imu.delta_vel / imu.delta_vel_dt - getAccelBias();
-	const float measurement_var = sq(_params.gravity_noise);
+	const Vector3f measurement = imu.delta_vel / imu.delta_vel_dt - _state.accel_bias;
+	const float measurement_var = math::max(sq(_params.gravity_noise), sq(0.01f));
+
+	const float accel_lpf_norm_sq = _accel_vec_filt.norm_squared();
+	const float accel_norm_sq = measurement.norm_squared();
+	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
+	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
+	const bool accel_lpf_norm_good = (accel_lpf_norm_sq > sq(lower_accel_limit)) && (accel_lpf_norm_sq < sq(upper_accel_limit));
+	const bool accel_norm_good = (accel_norm_sq > sq(lower_accel_limit)) && (accel_norm_sq < sq(upper_accel_limit));
+
+	// fuse gravity observation if our overall acceleration isn't too big
+	_control_status.flags.gravity_vector = (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
+					       && ((accel_lpf_norm_good && accel_norm_good) || _control_status.flags.vehicle_at_rest)
+					       && !isHorizontalAidingActive();
 
 	// calculate kalman gains and innovation variances
 	Vector3f innovation; // innovation of the last gravity fusion observation (m/s**2)
