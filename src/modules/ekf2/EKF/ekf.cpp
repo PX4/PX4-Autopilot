@@ -347,3 +347,96 @@ void Ekf::updateParameters()
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 }
+
+template<typename T>
+static void printRingBuffer(const char *name, RingBuffer<T> *rb)
+{
+	if (rb) {
+		printf("%s: %d/%d entries (%d/%d Bytes) (%zu Bytes per entry)\n",
+		       name,
+		       rb->entries(), rb->get_length(), rb->get_used_size(), rb->get_total_size(),
+		       sizeof(T));
+	}
+}
+
+void Ekf::print_status()
+{
+	printf("\nStates: (%.4f seconds ago)\n", (_time_latest_us - _time_delayed_us) * 1e-6);
+	printf("Orientation: [%.4f, %.4f, %.4f, %.4f] (Euler [%.3f, %.3f, %.3f])\n",
+	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2),
+	       (double)_state.quat_nominal(3),
+	       (double)matrix::Eulerf(_state.quat_nominal).phi(), (double)matrix::Eulerf(_state.quat_nominal).theta(),
+	       (double)matrix::Eulerf(_state.quat_nominal).psi());
+
+	printf("Velocity: [%.3f, %.3f, %.3f]\n",
+	       (double)_state.vel(0), (double)_state.vel(1), (double)_state.vel(2));
+
+	printf("Position: [%.3f, %.3f, %.3f]\n",
+	       (double)_state.pos(0), (double)_state.pos(1), (double)_state.pos(2));
+
+	printf("Gyro Bias: [%.6f, %.6f, %.6f]\n",
+	       (double)_state.gyro_bias(0), (double)_state.gyro_bias(1), (double)_state.gyro_bias(2));
+
+	printf("Accel Bias: [%.6f, %.6f, %.6f]\n",
+	       (double)_state.accel_bias(0), (double)_state.accel_bias(1), (double)_state.accel_bias(2));
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	printf("Magnetic Field: [%.3f, %.3f, %.3f]\n",
+	       (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2));
+
+	printf("Magnetic Bias: [%.3f, %.3f, %.3f]\n",
+	       (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2));
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_WIND)
+	printf("Wind velocity: [%.3f, %.3f]\n", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
+#endif // CONFIG_EKF2_WIND
+
+	printf("\nP:\n");
+	P.print();
+
+	printf("EKF average dt: %.6f seconds\n", (double)_dt_ekf_avg);
+	printf("minimum observation interval %d us\n", _min_obs_interval_us);
+
+	printRingBuffer("IMU buffer", &_imu_buffer);
+	printRingBuffer("system flag buffer", _system_flag_buffer);
+
+#if defined(CONFIG_EKF2_AIRSPEED)
+	printRingBuffer("airspeed buffer", _airspeed_buffer);
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_AUXVEL)
+	printRingBuffer("aux vel buffer", _auxvel_buffer);
+#endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_BAROMETER)
+	printRingBuffer("baro buffer", _baro_buffer);
+#endif // CONFIG_EKF2_BAROMETER
+
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	printRingBuffer("drag buffer", _drag_buffer);
+#endif // CONFIG_EKF2_DRAG_FUSION
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	printRingBuffer("ext vision buffer", _ext_vision_buffer);
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+#if defined(CONFIG_EKF2_GNSS)
+	printRingBuffer("gps buffer", _gps_buffer);
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	printRingBuffer("mag buffer", _mag_buffer);
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	printRingBuffer("flow buffer", _flow_buffer);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	printRingBuffer("range buffer", _range_buffer);
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+
+	_output_predictor.print_status();
+}
