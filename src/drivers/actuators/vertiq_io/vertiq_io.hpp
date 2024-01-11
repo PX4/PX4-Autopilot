@@ -137,7 +137,7 @@ private:
 
 
 	static const uint8_t NUM_CLIENTS = 2;
-	PropellerMotorControlClient _prop_motor_control;
+	PropellerMotorControlClient _broadcast_prop_motor_control;
 	BrushlessDriveClient _brushless_drive;
 	ClientAbstract * _client_array[NUM_CLIENTS];
 

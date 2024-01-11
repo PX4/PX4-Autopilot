@@ -9,11 +9,11 @@ char VertiqIo::_telemetry_device[] {};
 VertiqIo::VertiqIo() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_serial_interface(NUM_CLIENTS),
-	_prop_motor_control(0), //Initialize with a module ID of 0
+	_broadcast_prop_motor_control(_kBroadcastID), //Initialize with a module ID of 63 for broadcasting
 	_brushless_drive(0) //Initialize with a module ID of 0
 
 {
-	_client_array[0] = &_prop_motor_control;
+	_client_array[0] = &_broadcast_prop_motor_control;
 	_client_array[1] = &_brushless_drive;
 
 	//Make sure we get the correct initial values for our parameters
@@ -286,14 +286,20 @@ void VertiqIo::update_params()
 bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			     unsigned num_control_groups_updated)
 {
-	//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
-	//conversions
-	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _telemetry_request_id);
+	if(_mixing_output.armed().armed){
+		//_mixing_output.armed().armed;
+		//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
+		//conversions
+		_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _telemetry_request_id);
 
-	//We want to make sure that we send a valid telem request only once to ensure that we're not getting extraneous responses.
-	//So, here we'll set the telem request ID to something that no one will respond to. Another function will take charge of setting it to a
-	//proper value when necessary
-	_telemetry_request_id = _impossible_module_id;
+		//We want to make sure that we send a valid telem request only once to ensure that we're not getting extraneous responses.
+		//So, here we'll set the telem request ID to something that no one will respond to. Another function will take charge of setting it to a
+		//proper value when necessary
+		_telemetry_request_id = _impossible_module_id;
+	}else{
+		//Put the modules into coast
+		_broadcast_prop_motor_control.ctrl_coast_.set(*_serial_interface.get_iquart_interface());
+	}
 
 	//Publish our esc status
 	_esc_status_pub.publish(_esc_status);
