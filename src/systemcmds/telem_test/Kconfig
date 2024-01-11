@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_TELEM_TEST
+	bool "telem_test"
+	default n
+	---help---
+		Enable support for telemetry uart test
+
+menuconfig USER_TELEM_TEST
+	bool "telemetry uart test running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_TELEM_TEST
+	---help---
+		Put telemetry uart test in userspace memory
