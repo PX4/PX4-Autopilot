@@ -88,6 +88,16 @@ static inline int px4_board_hw_revision(void)
 	return board_get_hw_revision();
 }
 
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+/**
+ * get the base board type
+ */
+static inline const char *px4_board_base_type(void)
+{
+	return board_get_hw_base_type_name();
+}
+#endif
+
 /**
  * get the build URI (used for crash logging)
  */
