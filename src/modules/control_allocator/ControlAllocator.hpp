@@ -209,6 +209,7 @@ private:
 	ParamHandles _param_handles{};
 	Params _params{};
 	bool _has_slew_rate{false};
+	ActuatorEffectiveness::FlightPhase _flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,

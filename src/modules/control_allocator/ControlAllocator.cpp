@@ -338,28 +338,26 @@ ControlAllocator::Run()
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 
-			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
-
 			// Check if the current flight phase is HOVER or FIXED_WING
 			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				flight_phase = ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT;
+				_flight_phase = ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT;
 
 			} else {
-				flight_phase = ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
+				_flight_phase = ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
 			}
 
 			// Special cases for VTOL in transition
 			if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
 				if (vehicle_status.in_transition_to_fw) {
-					flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_HF_TO_FF;
+					_flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_HF_TO_FF;
 
 				} else {
-					flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
+					_flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
 				}
 			}
 
 			// Forward to effectiveness source
-			_actuator_effectiveness->setFlightPhase(flight_phase);
+			_actuator_effectiveness->setFlightPhase(_flight_phase);
 		}
 	}
 
