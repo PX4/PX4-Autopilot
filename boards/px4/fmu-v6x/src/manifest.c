@@ -73,7 +73,9 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 // List of components on a specific board configuration
 // The index of those components is given by the enum (px4_hw_mft_item_id_t)
 // declared in board_common.h
-static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
+
+// BASE ID 0
+static const px4_hw_mft_item_t base_configuration_0[] = {
 	{
 		//  PX4_MFT_PX4IO
 		.present     = 1,
@@ -92,9 +94,16 @@ static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
 	},
+	{
+		// PX4_MFT_CAN3
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
 };
 
-static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
+// BASE ID 1
+static const px4_hw_mft_item_t base_configuration_1[] = {
 	{
 		//  PX4_MFT_PX4IO
 		.present     = 0,
@@ -113,14 +122,21 @@ static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
 	},
+	{
+		// PX4_MFT_CAN3
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
 };
 
-static const px4_hw_mft_item_t hw_mft_list_v0650[] = {
+// BASE ID 5
+static const px4_hw_mft_item_t base_configuration_5[] = {
 	{
 		//  PX4_MFT_PX4IO
 		.present     = 1,
 		.mandatory   = 1,
-		.connection  = px4_hw_con_unknown,
+		.connection  = px4_hw_con_onboard,
 	},
 	{
 		// PX4_MFT_USB
@@ -130,6 +146,12 @@ static const px4_hw_mft_item_t hw_mft_list_v0650[] = {
 	},
 	{
 		// PX4_MFT_CAN2
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		// PX4_MFT_CAN3
 		.present     = 0,
 		.mandatory   = 0,
 		.connection  = px4_hw_con_unknown,
@@ -139,27 +161,13 @@ static const px4_hw_mft_item_t hw_mft_list_v0650[] = {
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
-	{V6X00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
-	{V6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
-	{V6X03, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 3
-	{V6X04, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 4
-	{V6X06, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 6
-	{V6X40, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, //                       HB CM4 base
-	{V6X41, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2  HB CM4 base
-	{V6X43, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 3
-	{V6X44, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 4
-	{V6X46, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 6
-	{V6X50, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, //                       HB Mini
-	{V6X51, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2  HB Mini
-	{V6X53, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 3
-	{V6X54, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 4
-	{V6X56, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 6
-	{V6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
-	{V6X13, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 3
-	{V6X14, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 4
-	{V6X21, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
-	{V6X0910, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // FMUV6X,     rev from EEPROM     Auterion Skynode ver9
-	{V6X1010, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // FMUV6X,     rev from EEPROM     Auterion Skynode ver10
+	{HW_BASE_ID(0),  base_configuration_0, arraySize(base_configuration_0)},  // std Base with PX4IO
+	{HW_BASE_ID(1),  base_configuration_1, arraySize(base_configuration_1)},  // std Base No PX4IO
+	{HW_BASE_ID(2),  base_configuration_0, arraySize(base_configuration_0)},  // CUAV Base
+	{HW_BASE_ID(4),  base_configuration_0, arraySize(base_configuration_0)},  // HB CM4 base
+	{HW_BASE_ID(5),  base_configuration_5, arraySize(base_configuration_5)},  // HB Mini
+	{HW_BASE_ID(9),  base_configuration_0, arraySize(base_configuration_0)},  // Auterion Skynode ver 9
+	{HW_BASE_ID(16), base_configuration_0, arraySize(base_configuration_0)}, // Auterion Skynode ver 16
 };
 
 /************************************************************************************
