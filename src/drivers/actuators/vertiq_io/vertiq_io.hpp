@@ -128,17 +128,14 @@ private:
 	//The system time the last time that we got telemetry
 	hrt_abstime _time_of_last_telem_request = 0;
 
+	//We want to publish our ESC Status to anyone who will listen
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	esc_status_s		_esc_status;
 
-	static const uint8_t _kSubCtrlCoast                  =  2;
-	static const uint8_t _kTypePropellerMotorControl     = 52;
+	//Vertiq client information
 	static const uint8_t _kBroadcastID                   = 63;
-
-
-	static const uint8_t NUM_CLIENTS = 2;
+	static const uint8_t NUM_CLIENTS = 1;
 	PropellerMotorControlClient _broadcast_prop_motor_control;
-	BrushlessDriveClient _brushless_drive;
 	ClientAbstract * _client_array[NUM_CLIENTS];
 
 	//We need to bring in the parameters that we define in module.yaml in order to view them in the
