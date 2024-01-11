@@ -155,10 +155,6 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 	// Check the reported speed accuracy
 	_gps_check_fail_status.flags.sacc = (gps.sacc > _params.req_sacc);
 
-	// check if GPS quality is degraded
-	_gps_error_norm = fmaxf((gps.hacc / _params.req_hacc), (gps.vacc / _params.req_vacc));
-	_gps_error_norm = fmaxf(_gps_error_norm, (gps.sacc / _params.req_sacc));
-
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	constexpr float filt_time_const = 10.0f;
 	const float dt = math::constrain(float(int64_t(gps.time_us) - int64_t(_gps_pos_prev.getProjectionReferenceTimestamp())) * 1e-6f, 0.001f, filt_time_const);
