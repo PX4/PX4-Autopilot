@@ -60,6 +60,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 
 	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && (_params.drag_ctrl == 0))) {
 		_control_status.flags.wind = false;
+		P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, 0.f);
 	}
 
 #if defined(CONFIG_EKF2_GNSS)
