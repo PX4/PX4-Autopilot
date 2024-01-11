@@ -598,18 +598,19 @@ float VtolType::getOpenLoopFrontTransitionTime() const
 }
 float VtolType::getTransitionAirspeed() const
 {
-	return  math::max(_param_vt_arsp_trans.get(), getMinimumTransitionAirspeed());
-}
-float VtolType::getMinimumTransitionAirspeed() const
-{
+	// Since the stall airspeed increases with vehicle weight, we increase the transition airspeed
+	// by the same factor.
+
 	float weight_ratio = 1.0f;
 
 	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
-		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), kMinWeightRatio, kMaxWeightRatio);
+		weight_ratio = math::constrain(_param_weight_gross.get() /
+					       _param_weight_base.get(), kMinWeightRatio, kMaxWeightRatio);
 	}
 
-	return sqrtf(weight_ratio) * _param_airspeed_min.get();
+	return sqrtf(weight_ratio) * _param_vt_arsp_trans.get();
 }
+
 float VtolType::getBlendAirspeed() const
 {
 	return _param_vt_arsp_blend.get();

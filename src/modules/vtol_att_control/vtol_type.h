@@ -239,12 +239,6 @@ public:
 
 	/**
 	 *
-	 * @return The minimum calibrated airspeed compensated for weight [m/s]
-	 */
-	float getMinimumTransitionAirspeed() const;
-
-	/**
-	 *
 	 * @return The calibrated blending airspeed [m/s]
 	 */
 	float getBlendAirspeed() const;
@@ -371,8 +365,7 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
 					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
 					(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
-					(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
-					(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_airspeed_min
+					(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross
 
 				       )
 
