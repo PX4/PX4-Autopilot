@@ -502,7 +502,7 @@ public:
 		return is_healthy;
 	}
 
-    void resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
+	void resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
 
 	void updateParameters();
 
@@ -814,7 +814,7 @@ private:
 
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
 	void resetHorizontalPositionToLastKnown();
-    void resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy);
+	void resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy);
 
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }

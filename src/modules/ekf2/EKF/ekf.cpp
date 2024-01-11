@@ -341,20 +341,21 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
 }
 
-void
-Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation) {
+void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation)
+{
 
-   if (!_pos_ref.isInitialized()) {
-       return;
-   }
+	if (!_pos_ref.isInitialized()) {
+		return;
+	}
 
-   // apply a first order correction using velocity at the delated time horizon and the delta time
-   timestamp_observation = math::min(_time_latest_us, timestamp_observation);
-   const float dt = _time_delayed_us > timestamp_observation ? static_cast<float>(_time_delayed_us - timestamp_observation) * 1e-6f : -static_cast<float>(timestamp_observation - _time_delayed_us) * 1e-6f;
+	// apply a first order correction using velocity at the delated time horizon and the delta time
+	timestamp_observation = math::min(_time_latest_us, timestamp_observation);
+	const float dt = _time_delayed_us > timestamp_observation ? static_cast<float>(_time_delayed_us - timestamp_observation)
+			 * 1e-6f : -static_cast<float>(timestamp_observation - _time_delayed_us) * 1e-6f;
 
-   Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
+	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
 
-    resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
+	resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
 }
 
 void Ekf::updateParameters()
