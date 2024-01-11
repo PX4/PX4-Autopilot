@@ -136,6 +136,21 @@ static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI
 struct px4_spi_bus_array_t {
 	px4_spi_bus_t item[SPI_BUS_MAX_BUS_ITEMS];
 };
+
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+static inline constexpr px4_spi_bus_all_hw_t initSPIFmumID(hw_fmun_id_t hw_fmun_id,
+		const px4_spi_bus_array_t &bus_items)
+{
+	px4_spi_bus_all_hw_t ret{};
+
+	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+		ret.buses[i] = bus_items.item[i];
+	}
+
+	ret.board_hw_fmun_id = hw_fmun_id;
+	return ret;
+}
+#else
 static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version_revision,
 		const px4_spi_bus_array_t &bus_items)
 {
@@ -148,6 +163,7 @@ static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version_rev
 	ret.board_hw_version_revision = hw_version_revision;
 	return ret;
 }
+#endif
 constexpr bool validateSPIConfig(const px4_spi_bus_t spi_buses_conf[SPI_BUS_MAX_BUS_ITEMS]);
 
 constexpr bool validateSPIConfig(const px4_spi_bus_all_hw_t spi_buses_conf[BOARD_NUM_SPI_CFG_HW_VERSIONS])
