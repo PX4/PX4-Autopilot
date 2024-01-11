@@ -9,11 +9,12 @@ char VertiqIo::_telemetry_device[] {};
 VertiqIo::VertiqIo() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_serial_interface(NUM_CLIENTS),
-	_broadcast_prop_motor_control(_kBroadcastID) //Initialize with a module ID of 63 for broadcasting
+	_broadcast_prop_motor_control(_kBroadcastID), //Initialize with a module ID of 63 for broadcasting
+	_arming_handler(_kBroadcastID)
 
 {
 	_client_array[0] = &_broadcast_prop_motor_control;
-
+	_client_array[1] = &_arming_handler;
 	//Make sure we get the correct initial values for our parameters
 	update_params();
 }
@@ -296,7 +297,22 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 		_telemetry_request_id = _impossible_module_id;
 	}else{
 		//Put the modules into coast
-		_broadcast_prop_motor_control.ctrl_coast_.set(*_serial_interface.get_iquart_interface());
+		switch(_param_vertiq_disarm_behavior.get()){
+			case TRIGGER_MOTOR_DISARM:
+				_arming_handler.motor_armed_.set(*_serial_interface.get_iquart_interface(), 0);
+			break;
+
+			case COAST_MOTOR:
+				_broadcast_prop_motor_control.ctrl_coast_.set(*_serial_interface.get_iquart_interface());
+			break;
+
+			case SEND_PREDEFINED_THROTTLE:
+				_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface.get_iquart_interface(), _param_vertiq_disarm_throttle.get());
+			break;
+
+			default:
+			break;
+		}
 	}
 
 	//Publish our esc status to uORB

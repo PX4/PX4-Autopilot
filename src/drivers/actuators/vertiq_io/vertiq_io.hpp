@@ -20,6 +20,7 @@
 
 #include "iq-module-communication-cpp/inc/propeller_motor_control_client.hpp"
 #include "iq-module-communication-cpp/inc/brushless_drive_client.hpp"
+#include "iq-module-communication-cpp/inc/arming_handler_client.hpp"
 
 class VertiqIo : public ModuleBase<VertiqIo>, public OutputModuleInterface
 {
@@ -62,6 +63,8 @@ public:
 private:
 
 	static const uint8_t MAX_SUPPORTABLE_IFCI_CVS = 16;
+
+	enum DISARM_BEHAVIORS {TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_THROTTLE};
 
 	/**
 	* @brief Grab the most recent version of our parameters from the higher level
@@ -134,8 +137,9 @@ private:
 
 	//Vertiq client information
 	static const uint8_t _kBroadcastID                   = 63;
-	static const uint8_t NUM_CLIENTS = 1;
+	static const uint8_t NUM_CLIENTS = 2;
 	PropellerMotorControlClient _broadcast_prop_motor_control;
+	ArmingHandlerClient _arming_handler;
 	ClientAbstract * _client_array[NUM_CLIENTS];
 
 	//We need to bring in the parameters that we define in module.yaml in order to view them in the
@@ -144,7 +148,9 @@ private:
 	(ParamInt<px4::params::VERTIQ_ENABLE>) _param_vertiq_enable,
 	(ParamInt<px4::params::VERTIQ_BAUD>) _param_vertiq_baud,
 	(ParamInt<px4::params::VERTIQ_NUM_CVS>) _param_vertiq_number_of_cvs,
-	(ParamInt<px4::params::VERTIQ_TEL_MSK>) _param_vertiq_telemetry_mask
+	(ParamInt<px4::params::VERTIQ_TEL_MSK>) _param_vertiq_telemetry_mask,
+	(ParamInt<px4::params::DISARM_THROTTLE>) _param_vertiq_disarm_throttle,
+	(ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior
 	)
 };
 
