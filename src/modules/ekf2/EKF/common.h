@@ -655,6 +655,7 @@ union information_event_status_u {
 		bool reset_hgt_to_gps           : 1; ///< 14 - true when the vertical position state is reset to the gps measurement
 		bool reset_hgt_to_rng           : 1; ///< 15 - true when the vertical position state is reset to the rng measurement
 		bool reset_hgt_to_ev            : 1; ///< 16 - true when the vertical position state is reset to the ev measurement
+		bool reset_pos_to_ext_obs       : 1; ///< 17 - true when horizontal position was reset to an external observation while deadreckoning
 	} flags;
 	uint32_t value;
 };
