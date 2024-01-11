@@ -265,6 +265,18 @@
 #  define HW_VER_REV(v,r)       ((uint32_t)((v) & 0xffff) << 16) | ((uint32_t)(r) & 0xffff)
 #endif
 
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+typedef uint16_t hw_fmun_id_t;
+typedef uint16_t hw_base_id_t;
+// Original Signals GPIO_HW_REV_SENSE/GPIO_HW_VER_REV_DRIVE is used to ID the FMUM
+// Original Signals GPIO_HW_VER_SENSE/GPIO_HW_VER_REV_DRIVE is used to ID the BASE
+#  define BOARD_HAS_VERSIONING 1
+#  define HW_FMUM_ID(rev)       ((hw_fmun_id_t)(rev) & 0xffff)
+#  define HW_BASE_ID(ver)       ((hw_base_id_t)(ver) & 0xffff)
+#  define GET_HW_FMUM_ID()      (HW_FMUM_ID(board_get_hw_revision()))
+#  define GET_HW_BASE_ID()      (HW_BASE_ID(board_get_hw_version()))
+#endif
+
 #define HW_INFO_REV_DIGITS    3
 #define HW_INFO_VER_DIGITS    3
 
@@ -750,6 +762,26 @@ inline uint16_t board_get_can_interfaces(void) { return 0x7; }
 __EXPORT const char *board_get_hw_type_name(void);
 #else
 #define board_get_hw_type_name() ""
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_base_type_name
+ *
+ * Description:
+ *   Optional returns a 0 terminated string defining the HW type.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   a 0 terminated string defining the HW type. This may be a 0 length string ""
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+__EXPORT const char *board_get_hw_base_type_name(void);
+#else
+#define board_get_hw_base_type_name() ""
 #endif
 
 /************************************************************************************
