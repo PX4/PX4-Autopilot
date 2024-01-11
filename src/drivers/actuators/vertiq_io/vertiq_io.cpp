@@ -286,7 +286,11 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 			     unsigned num_control_groups_updated)
 {
 	if(_mixing_output.armed().armed){
-		//_mixing_output.armed().armed;
+
+		if(_param_vertiq_arm_behavior.get() == FORCE_ARMING){
+			_arming_handler.motor_armed_.set(*_serial_interface.get_iquart_interface(), 1);
+		}
+
 		//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
 		//conversions
 		_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _telemetry_request_id);

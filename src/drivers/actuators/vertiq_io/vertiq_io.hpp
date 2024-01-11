@@ -61,10 +61,10 @@ public:
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
-
 	static const uint8_t MAX_SUPPORTABLE_IFCI_CVS = 16;
 
 	enum DISARM_BEHAVIORS {TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_THROTTLE};
+	enum ARM_BEHAVIORS {USE_MOTOR_ARMING, FORCE_ARMING};
 
 	/**
 	* @brief Grab the most recent version of our parameters from the higher level
@@ -150,7 +150,8 @@ private:
 	(ParamInt<px4::params::VERTIQ_NUM_CVS>) _param_vertiq_number_of_cvs,
 	(ParamInt<px4::params::VERTIQ_TEL_MSK>) _param_vertiq_telemetry_mask,
 	(ParamInt<px4::params::DISARM_THROTTLE>) _param_vertiq_disarm_throttle,
-	(ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior
+	(ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior,
+	(ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
 	)
 };
 

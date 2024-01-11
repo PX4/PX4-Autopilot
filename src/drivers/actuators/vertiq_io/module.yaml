@@ -75,5 +75,14 @@ parameters:
             default: 0
             min: 0
             max: 65535
-
+        ARMING_BEHAVE:
+            description:
+                short: The triggered behavior on PX4 arm
+                long: |
+                    The behavior triggered when the flight controller arms. You have the option to use your motors' arming behaviors, or to force all of your motors to arm
+            type: enum
+            values:
+                0: Use Motor Arm Behavior
+                1: Force Arming
+            default: 0
 
