@@ -288,7 +288,7 @@
 
 /* HW Version and Revision drive signals Default to 1 to detect */
 
-#define BOARD_HAS_HW_VERSIONING
+#define BOARD_HAS_HW_VERSIONING // migrate to Split
 
 #define HW_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_PULL_NONE | IOMUX_SLEW_FAST)
 
