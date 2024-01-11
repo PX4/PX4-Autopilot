@@ -195,11 +195,11 @@ void VertiqIo::update_telemetry(){
 		_esc_status.esc[_current_telemetry_target_module_id].esc_address  = _current_telemetry_target_module_id;
 		_esc_status.esc[_current_telemetry_target_module_id].timestamp    = hrt_absolute_time();
 		_esc_status.esc[_current_telemetry_target_module_id].esc_rpm      = telem_response.speed;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_power    = telem_response.voltage * telem_response.current;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_state    = 0;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_cmdcount = 0;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_voltage  = telem_response.voltage;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_current  = telem_response.current;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_voltage  = telem_response.voltage * 0.01;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_current  = telem_response.current * 0.01;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_power    = _esc_status.esc[_current_telemetry_target_module_id].esc_voltage * _esc_status.esc[_current_telemetry_target_module_id].esc_current;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_state    = 0; //not implemented
+		_esc_status.esc[_current_telemetry_target_module_id].esc_cmdcount = 0; //not implemented
 		_esc_status.esc[_current_telemetry_target_module_id].failures     = 0; //not implemented
 
 		// PX4_INFO("Velo gotten from telemetry on module id %d %d", _current_telemetry_target_module_id, telem_response.speed);
@@ -289,8 +289,13 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 	//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
 	//conversions
 	_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _telemetry_request_id);
+
+	//We want to make sure that we send a valid telem request only once to ensure that we're not getting extraneous responses.
+	//So, here we'll set the telem request ID to something that no one will respond to. Another function will take charge of setting it to a
+	//proper value when necessary
 	_telemetry_request_id = _impossible_module_id;
 
+	//Publish our esc status
 	_esc_status_pub.publish(_esc_status);
 
 	return true;
