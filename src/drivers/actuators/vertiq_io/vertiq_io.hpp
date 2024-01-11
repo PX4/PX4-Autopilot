@@ -131,6 +131,8 @@ private:
 	//The system time the last time that we got telemetry
 	hrt_abstime _time_of_last_telem_request = 0;
 
+	bool _send_forced_arm = true;
+
 	//We want to publish our ESC Status to anyone who will listen
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	esc_status_s		_esc_status;

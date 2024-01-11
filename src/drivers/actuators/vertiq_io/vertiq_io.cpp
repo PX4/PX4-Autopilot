@@ -205,7 +205,8 @@ void VertiqIo::update_telemetry(){
 		got_reply = true;
 	}
 
-	if(got_reply || timed_out){//} || (hrt_elapsed_time(&timestamp_for_timeout) > _telem_timeout)){
+	//If we got a new response or if we ran out of time to get a response from this motor move on
+	if(got_reply || timed_out){
 		//update the telem target
 		find_next_motor_for_telemetry();
 		_time_of_last_telem_request = hrt_absolute_time();
@@ -287,8 +288,9 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 {
 	if(_mixing_output.armed().armed){
 
-		if(_param_vertiq_arm_behavior.get() == FORCE_ARMING){
+		if(_param_vertiq_arm_behavior.get() == FORCE_ARMING && _send_forced_arm){
 			_arming_handler.motor_armed_.set(*_serial_interface.get_iquart_interface(), 1);
+			_send_forced_arm = false;
 		}
 
 		//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
@@ -316,6 +318,10 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 
 			default:
 			break;
+		}
+
+		if(!_send_forced_arm){
+			_send_forced_arm = true;
 		}
 	}
 
