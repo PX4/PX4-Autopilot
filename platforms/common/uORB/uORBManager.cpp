@@ -663,8 +663,11 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName)
 			PX4_DEBUG("DeviceNode(%s) not created yet", messageName);
 
 		} else {
-			// node is present.
-			node->process_add_subscription();
+			// node is present. But don't send any data to it if it
+			// is a node advertised by the remote side
+			if (_remote_topics.find(messageName) == false) {
+				node->process_add_subscription();
+			}
 		}
 
 	} else {
