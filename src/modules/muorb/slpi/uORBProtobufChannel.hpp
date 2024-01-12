@@ -155,12 +155,7 @@ public:
 
 	bool DebugEnabled()	{ return _debug; }
 
-	void SendAggregateData()
-	{
-		pthread_mutex_lock(&_tx_mutex);
-		_Aggregator.SendData();
-		pthread_mutex_unlock(&_tx_mutex);
-	}
+	void SendAggregateData(hrt_abstime timeout);
 
 	void PrintStatus();
 
