@@ -180,10 +180,10 @@ void VertiqIo::update_telemetry(){
 	bool got_reply = false;
 
 	//Get the current time to check for timeout
-	hrt_abstime timestamp_for_timeout = hrt_absolute_time();
+	hrt_abstime time_now = hrt_absolute_time();
 
 	//We timed out for this request if the time since the last request going out is greater than our timeout period
-	bool timed_out = (timestamp_for_timeout - _time_of_last_telem_request) > _telem_timeout;
+	bool timed_out = (time_now - _time_of_last_telem_request) > _telem_timeout;
 
 	//We got a telemetry response
 	if(_motor_interface.telemetry_.IsFresh()){
@@ -192,14 +192,19 @@ void VertiqIo::update_telemetry(){
 
 		// also update our internal report for logging
 		_esc_status.esc[_current_telemetry_target_module_id].esc_address  = _current_telemetry_target_module_id;
-		_esc_status.esc[_current_telemetry_target_module_id].timestamp    = hrt_absolute_time();
+		_esc_status.esc[_current_telemetry_target_module_id].timestamp    = time_now;
 		_esc_status.esc[_current_telemetry_target_module_id].esc_rpm      = telem_response.speed;
 		_esc_status.esc[_current_telemetry_target_module_id].esc_voltage  = telem_response.voltage * 0.01;
 		_esc_status.esc[_current_telemetry_target_module_id].esc_current  = telem_response.current * 0.01;
 		_esc_status.esc[_current_telemetry_target_module_id].esc_power    = _esc_status.esc[_current_telemetry_target_module_id].esc_voltage * _esc_status.esc[_current_telemetry_target_module_id].esc_current;
+		_esc_status.esc[_current_telemetry_target_module_id].esc_temperature = telem_response.mcu_temp * 0.01; //from matt: If you ask other escs for their temp, they're giving you the micro temp, so go with that
 		_esc_status.esc[_current_telemetry_target_module_id].esc_state    = 0; //not implemented
 		_esc_status.esc[_current_telemetry_target_module_id].esc_cmdcount = 0; //not implemented
 		_esc_status.esc[_current_telemetry_target_module_id].failures     = 0; //not implemented
+
+		//Update the overall _esc_status timestamp and our counter
+		_esc_status.timestamp = time_now;
+		_esc_status.counter++;
 
 		// PX4_INFO("Velo gotten from telemetry on module id %d %d", _current_telemetry_target_module_id, telem_response.speed);
 		got_reply = true;
