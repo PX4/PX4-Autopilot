@@ -138,7 +138,7 @@ private:
 	esc_status_s		_esc_status;
 
 	//Vertiq client information
-	static const uint8_t _kBroadcastID                   = 63;
+	static const uint8_t _kBroadcastID = 63;
 	static const uint8_t NUM_CLIENTS = 2;
 	PropellerMotorControlClient _broadcast_prop_motor_control;
 	ArmingHandlerClient _arming_handler;
