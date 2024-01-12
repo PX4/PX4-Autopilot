@@ -110,5 +110,4 @@ private:
 	 */
 	int		parameters_update();
 
-
 };
