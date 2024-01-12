@@ -666,20 +666,51 @@ bool board_booted_by_px4(void);
  ************************************************************************************/
 
 typedef enum {
-	PX4_MFT_PX4IO = 0,
-	PX4_MFT_USB   = 1,
-	PX4_MFT_CAN2  = 2,
-	PX4_MFT_CAN3  = 3,
+	PX4_MFT_PX4IO      = 0,
+	PX4_MFT_USB        = 1,
+	PX4_MFT_CAN2       = 2,
+	PX4_MFT_CAN3       = 3,
+	PX4_MFT_PM2        = 4,
+	PX4_MFT_ETHERNET   = 5,
+	PX4_MFT_T1_ETH     = 6,
+	PX4_MFT_T100_ETH   = 7,
+	PX4_MFT_T1000_ETH  = 8,
 } px4_hw_mft_item_id_t;
 
+typedef int (*system_query_func_t)(const char *sub,  const char *val, void *out);
+
+#define PX4_MFT_MFT_TYPES  { \
+		PX4_MFT_PX4IO,           \
+		PX4_MFT_USB,             \
+		PX4_MFT_CAN2,            \
+		PX4_MFT_CAN3,            \
+		PX4_MFT_PM2,             \
+		PX4_MFT_ETHERNET,        \
+		PX4_MFT_T1_ETH,          \
+		PX4_MFT_T100_ETH,        \
+		PX4_MFT_T1000_ETH }
+
+#define PX4_MFT_MFT_STR_TYPES  { \
+		"MFT_PX4IO",             \
+		"MFT_USB",               \
+		"MFT_CAN2",              \
+		"MFT_CAN3",              \
+		"MFT_PM2",               \
+		"MFT_ETHERNET",          \
+		"MFT_T1_ETH",            \
+		"MFT_T100_ETH",          \
+		"MFT_T1000_ETH",         \
+		"MFT_T1000_ETH"}
+
 typedef enum {
-	px4_hw_con_unknown  = 0,
-	px4_hw_con_onboard  = 1,
+	px4_hw_con_unknown   = 0,
+	px4_hw_con_onboard   = 1,
 	px4_hw_con_connector = 3,
 } px4_hw_connection_t;
 
 
 typedef struct {
+	unsigned int id:         16;  /* The id px4_hw_mft_item_id_t */
 	unsigned int present:    1;   /* 1 if this board have this item */
 	unsigned int mandatory:  1;   /* 1 if this item has to be present and working */
 	unsigned int connection: 2;   /* See px4_hw_connection_t */
@@ -691,7 +722,7 @@ typedef const px4_hw_mft_item_t  *px4_hw_mft_item;
 
 #if defined(BOARD_HAS_VERSIONING)
 __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
-
+__EXPORT int system_query_manifest(const char *sub,  const char *val, void *out);
 #  define PX4_MFT_HW_SUPPORTED(ID)           (board_query_manifest((ID))->present)
 #  define PX4_MFT_HW_REQUIRED(ID)            (board_query_manifest((ID))->mandatory)
 #  define PX4_MFT_HW_IS_ONBOARD(ID)          (board_query_manifest((ID))->connection == px4_hw_con_onboard)
