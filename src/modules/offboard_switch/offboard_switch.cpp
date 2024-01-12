@@ -68,9 +68,6 @@ OffboardSwitch::parameters_update()
 	return PX4_OK;
 }
 
-// void OffboardSwitch::trajectorySetpointCheck() {
-// 	if ()
-// }
 
 void OffboardSwitch::Run()
 {
