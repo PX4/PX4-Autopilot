@@ -540,6 +540,8 @@
 
 /* This board provides the board_on_reset interface */
 
+#define BOARD_HAS_ISP_BOOTLOADER 1
+
 #define BOARD_HAS_ON_RESET 1
 
 #define PX4_GPIO_INIT_LIST { \

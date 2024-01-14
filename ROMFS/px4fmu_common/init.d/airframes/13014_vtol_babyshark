@@ -80,6 +80,10 @@ param set-default VT_TYPE 2
 
 param set-default CA_AIRFRAME 2
 param set-default CA_ROTOR_COUNT 5
+param set-default CA_ROTOR4_AX 1
+param set-default CA_ROTOR4_AZ 0
+
+# Square quadrotor X PX4 numbering
 param set-default CA_ROTOR0_PX 1
 param set-default CA_ROTOR0_PY 1
 param set-default CA_ROTOR1_PX -1
@@ -90,18 +94,16 @@ param set-default CA_ROTOR2_KM -0.05
 param set-default CA_ROTOR3_PX -1
 param set-default CA_ROTOR3_PY 1
 param set-default CA_ROTOR3_KM -0.05
-param set-default CA_ROTOR4_AX 1.0
-param set-default CA_ROTOR4_AZ 0.0
 
 param set-default CA_SV_CS_COUNT 3
 param set-default CA_SV_CS0_TYPE 15
-param set-default CA_SV_CS0_TRQ_R 1.0
-param set-default CA_SV_CS1_TRQ_P 0.5000
-param set-default CA_SV_CS1_TRQ_R 0.0000
-param set-default CA_SV_CS1_TRQ_Y -0.5000
+param set-default CA_SV_CS0_TRQ_R 1
+param set-default CA_SV_CS1_TRQ_P 0.5
+param set-default CA_SV_CS1_TRQ_R 0
+param set-default CA_SV_CS1_TRQ_Y -0.5
 param set-default CA_SV_CS1_TYPE 13
-param set-default CA_SV_CS2_TRQ_P 0.5000
-param set-default CA_SV_CS2_TRQ_Y 0.5000
+param set-default CA_SV_CS2_TRQ_P 0.5
+param set-default CA_SV_CS2_TRQ_Y 0.5
 param set-default CA_SV_CS2_TYPE 14
 
 param set-default PWM_MAIN_FUNC1 201

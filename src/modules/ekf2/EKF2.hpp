@@ -276,10 +276,8 @@ private:
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
-	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
-	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
+	perf_counter_t _ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": EKF update")};
 	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
-	perf_counter_t _msg_missed_odometry_perf{nullptr};
 
 	InFlightCalibration _accel_cal{};
 	InFlightCalibration _gyro_cal{};
@@ -300,8 +298,6 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	uint32_t _device_id_mag {0};
-
-	perf_counter_t _msg_missed_magnetometer_perf {nullptr};
 
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
@@ -341,8 +337,6 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
 	hrt_abstime _status_aux_vel_pub_last{0};
-
-	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -365,13 +359,9 @@ private:
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
 	hrt_abstime _status_optical_flow_pub_last{0};
 	hrt_abstime _optical_flow_vel_pub_last{0};
-
-	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	perf_counter_t _msg_missed_air_data_perf {nullptr};
-
 	uint8_t _baro_calibration_count {0};
 	uint32_t _device_id_baro{0};
 	hrt_abstime _status_baro_hgt_pub_last{0};
@@ -398,9 +388,6 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_airspeed_pub {ORB_ID(estimator_aid_src_airspeed)};
 	hrt_abstime _status_airspeed_pub_last{0};
-
-	perf_counter_t _msg_missed_airspeed_perf{nullptr};
-	perf_counter_t _msg_missed_airspeed_validated_perf{nullptr};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
@@ -430,8 +417,6 @@ private:
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	hrt_abstime _last_range_sensor_update{0};
 	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
-	unsigned _distance_sensor_last_generation{0};
-	perf_counter_t _msg_missed_distance_sensor_perf{nullptr};
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	bool _callback_registered{false};
@@ -473,9 +458,7 @@ private:
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_GNSS)
-	perf_counter_t _msg_missed_gps_perf {nullptr};
-
-	uint64_t _gps_time_usec{0};
+	uint64_t _gps_time_usec {0};
 	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
