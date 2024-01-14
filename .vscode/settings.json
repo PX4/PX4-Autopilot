@@ -127,5 +127,19 @@
         "terminal.integrated.scrollback": 15000,
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
-        }
+        },
+        "python.autoComplete.extraPaths": [
+                "/home/roque/ros2_astrobee_ws/install/ff_msgs/local/lib/python3.10/dist-packages",
+                "/home/roque/ros2_astrobee_ws/install/ff_hw_msgs/local/lib/python3.10/dist-packages",
+                "/home/roque/ros2_astrobee_ws/install/astrobee/local/lib/python3.10/dist-packages",
+                "/opt/ros/humble/lib/python3.10/site-packages",
+                "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ],
+        "python.analysis.extraPaths": [
+                "/home/roque/ros2_astrobee_ws/install/ff_msgs/local/lib/python3.10/dist-packages",
+                "/home/roque/ros2_astrobee_ws/install/ff_hw_msgs/local/lib/python3.10/dist-packages",
+                "/home/roque/ros2_astrobee_ws/install/astrobee/local/lib/python3.10/dist-packages",
+                "/opt/ros/humble/lib/python3.10/site-packages",
+                "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ]
 }
