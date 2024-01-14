@@ -487,3 +487,18 @@ add_custom_target(install_python_requirements
 if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/finalize.cmake")
 	include(finalize)
 endif()
+
+# Install SITL build files
+file(GLOB RESULT build/*)
+list(LENGTH RESULT RES_LEN)
+if(RES_LEN GREATER 0)
+ install(DIRECTORY build/
+  DESTINATION share/${PROJECT_NAME}
+  PATTERN ".svn" EXCLUDE)
+  # Install ROMFS
+ install(DIRECTORY ROMFS/
+  DESTINATION share/${PROJECT_NAME}
+  PATTERN ".svn" EXCLUDE)
+else()
+	 message(STATUS "No PX4 build files to install.")
+endif()
