@@ -1,3 +1,15 @@
+# Build on ubuntu
+
+run the following commands to clone the repo and install dependencies:
+```
+git clone https://github.com/marecustos/PX4-Autopilot.git --recursive
+bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
+```
+To run for example gazebo simulation :
+```
+make px4_sitl gazebo-classic
+```
+
 # PX4 Drone Autopilot
 
 [![Releases](https://img.shields.io/github/release/PX4/PX4-Autopilot.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![DOI](https://zenodo.org/badge/22634/PX4/PX4-Autopilot.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/PX4-Autopilot)
