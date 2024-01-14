@@ -17,7 +17,6 @@
 #
 . ${R}etc/init.d/rc.mc_defaults
 
-
 param set-default SYS_MC_EST_GROUP 2
 param set-default SYS_HAS_MAG 0
 param set-default EKF2_OF_CTRL 1
@@ -50,21 +49,21 @@ param set-default MPC_MAX_FLOW_HGT 3
 
 param set-default NAV_RCL_ACT 3
 
-param set-default CA_ROTOR_COUNT 4
-param set-default CA_ROTOR0_PX 0.03
-param set-default CA_ROTOR0_PY 0.03
-param set-default CA_ROTOR1_PX -0.03
-param set-default CA_ROTOR1_PY 0.03
-param set-default CA_ROTOR1_KM -0.05
-param set-default CA_ROTOR2_PX -0.03
-param set-default CA_ROTOR2_PY -0.03
-param set-default CA_ROTOR3_PX 0.03
-param set-default CA_ROTOR3_PY -0.03
-param set-default CA_ROTOR3_KM -0.05
-
 # Run the motors at 328.125 kHz (recommended)
 param set-default PWM_MAIN_TIM0 3921
 param set-default PWM_MAIN_TIM1 3921
+
+# Square quadrotor X clockwise numbering
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY 1
+param set-default CA_ROTOR1_KM -0.05
+param set-default CA_ROTOR2_PX -1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR3_PX 1
+param set-default CA_ROTOR3_PY -1
+param set-default CA_ROTOR3_KM -0.05
 
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102

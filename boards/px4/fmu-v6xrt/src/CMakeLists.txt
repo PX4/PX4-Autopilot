@@ -36,7 +36,6 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 		bootloader_main.c
 		init.c
 		usb.c
-		imxrt_romapi.c
 		imxrt_flexspi_nor_boot.c
 		imxrt_flexspi_nor_flash.c
 		imxrt_clockconfig.c
@@ -48,6 +47,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 			nuttx_drivers # sdio
 			px4_layer #gpio
 			arch_io_pins # iotimer
+			arch_board_romapi
 			bootloader
 	)
 	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
@@ -72,7 +72,6 @@ else()
 		spi.cpp
 		timer_config.cpp
 		usb.c
-		imxrt_romapi.c
 		imxrt_flexspi_fram.c
 		imxrt_flexspi_nor_boot.c
 		imxrt_flexspi_nor_flash.c
@@ -83,6 +82,7 @@ else()
 	target_link_libraries(drivers_board
 		PRIVATE
 			arch_board_hw_info
+			arch_board_romapi
 			arch_spi
 			drivers__led # drv_led_start
 			nuttx_arch # sdio

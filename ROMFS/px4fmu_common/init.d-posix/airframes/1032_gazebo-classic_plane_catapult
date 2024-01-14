@@ -57,9 +57,9 @@ param set-default CA_SV_CS0_TRQ_R -0.5
 param set-default CA_SV_CS0_TYPE 1
 param set-default CA_SV_CS1_TRQ_R 0.5
 param set-default CA_SV_CS1_TYPE 2
-param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TRQ_P 1
 param set-default CA_SV_CS2_TYPE 3
-param set-default CA_SV_CS3_TRQ_Y 1.0
+param set-default CA_SV_CS3_TRQ_Y 1
 param set-default CA_SV_CS3_TYPE 4
 param set-default CA_SV_CS4_TYPE 9
 param set-default CA_SV_CS5_TYPE 10

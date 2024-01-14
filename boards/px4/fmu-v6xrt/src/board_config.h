@@ -297,6 +297,7 @@
 #define GPIO_HW_VER_SENSE     /* GPIO_AD_23 GPIO9 Pin 22 */  ADC_GPIO(5, 22)
 #define HW_INFO_INIT_PREFIX   "V6XRT"
 #define V6XRT_00             HW_VER_REV(0x0,0x0) // First Release
+#define V6XRT_50             HW_VER_REV(0x5,0x0) // HB Mini Rev 0
 
 #define BOARD_I2C_LATEINIT 1 /* See Note about SE550 Eanable */
 
@@ -538,6 +539,8 @@
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 /* This board provides the board_on_reset interface */
+
+#define BOARD_HAS_ISP_BOOTLOADER 1
 
 #define BOARD_HAS_ON_RESET 1
 

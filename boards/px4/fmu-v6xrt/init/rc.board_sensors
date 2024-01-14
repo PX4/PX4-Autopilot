@@ -18,7 +18,7 @@
 
 set HAVE_PM2 yes
 
-if ver hwtypecmp V5X005000 V5X005001 V5X005002
+if ver hwtypecmp V6XRT005000
 then
 	set HAVE_PM2 no
 fi
@@ -84,6 +84,8 @@ ist8310 -X -b 1 -R 10 start
 if param compare SENS_INT_BARO_EN 1
 then
 	bmp388 -I -b 3 -a 0x77 start
-	bmp388 -X -b 2 start
 fi
+
+bmp388 -X -b 2 start
+
 unset HAVE_PM2
