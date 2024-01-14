@@ -61,6 +61,8 @@ static const char  *sync_thread_name = "client_sync_thread";
 static orb_advert_t parameter_set_used_h  = nullptr;
 static orb_advert_t parameter_set_value_h = nullptr;
 
+static struct param_client_counters param_client_counters;
+
 static int param_set_used_rsp_fd  = PX4_ERROR;
 static int param_set_value_rsp_fd = PX4_ERROR;
 
@@ -99,6 +101,8 @@ static int param_sync_thread(int argc, char *argv[])
 
 			if (debug) { PX4_INFO("Got parameter_client_set_value_request for %s", s_req.parameter_name); }
 
+			param_client_counters.set_value_received++;
+
 			// This will find the parameter and also set its used flag
 			param_t param = param_find(s_req.parameter_name);
 
@@ -132,6 +136,8 @@ static int param_sync_thread(int argc, char *argv[])
 			orb_copy(ORB_ID(parameter_client_reset_request), param_reset_req_fd, &r_req);
 
 			if (debug) { PX4_INFO("Got parameter_client_reset_request"); }
+
+			param_client_counters.reset_received++;
 
 			if (r_req.reset_all) {
 				param_reset_all();
@@ -218,6 +224,8 @@ void param_client_set(param_t param, const void *val)
 			orb_publish(ORB_ID(parameter_server_set_value_request), parameter_set_value_h, &req);
 		}
 
+		param_client_counters.set_value_sent++;
+
 		// Wait for response
 		bool updated = false;
 		PX4_DEBUG("Waiting for parameter_server_set_value_response for %s", req.parameter_name);
@@ -264,6 +272,8 @@ param_client_set_used(param_t param)
 		orb_publish(ORB_ID(parameter_server_set_used_request), parameter_set_used_h, &req);
 	}
 
+	param_client_counters.set_used_sent++;
+
 	if (param_set_used_rsp_fd == PX4_ERROR) {
 		if (debug) { PX4_INFO("Subscribing to parameter_server_set_used_response"); }
 
@@ -303,4 +313,9 @@ param_client_set_used(param_t param)
 	if (! count) {
 		PX4_ERR("Timeout waiting for parameter_server_set_used_response for %s", req.parameter_name);
 	}
+}
+
+void param_client_get_counters(struct param_client_counters *cnt)
+{
+	*cnt = param_client_counters;
 }

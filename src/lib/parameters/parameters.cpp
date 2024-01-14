@@ -1804,4 +1804,22 @@ void param_print_status()
 	perf_print_counter(param_find_perf);
 	perf_print_counter(param_get_perf);
 	perf_print_counter(param_set_perf);
+
+#if defined(CONFIG_PARAM_SERVER)
+	struct param_server_counters counts;
+	param_server_get_counters(&counts);
+	PX4_INFO("set value received: %u, set used received: %u",
+			 counts.set_value_received, counts.set_used_received);
+	PX4_INFO("set value sent: %u, reset sent: %u",
+			 counts.set_value_sent, counts.reset_sent);
+#endif
+
+#if defined(CONFIG_PARAM_CLIENT)
+	struct param_client_counters counts;
+	param_client_get_counters(&counts);
+	PX4_INFO("set value received: %u, reset received: %u",
+			 counts.set_value_received, counts.reset_received);
+	PX4_INFO("set value sent: %u, set used sent: %u",
+			 counts.set_value_sent, counts.set_used_sent);
+#endif
 }

@@ -35,7 +35,15 @@
 
 #include "param.h"
 
+struct param_server_counters {
+    uint32_t set_value_received;
+    uint32_t set_used_received;
+    uint32_t set_value_sent;
+    uint32_t reset_sent;
+};
+
 void param_server_init();
 void param_server_set(param_t param, const void *val, bool from_file);
 void param_server_reset(param_t param);
 void param_server_reset_all();
+void param_server_get_counters(struct param_server_counters *cnt);

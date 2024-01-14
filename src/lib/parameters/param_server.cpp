@@ -71,6 +71,8 @@ static int param_reset_rsp_fd = PX4_ERROR;
 static px4_task_t   sync_thread_tid;
 static const char  *sync_thread_name = "server_sync_thread";
 
+static struct param_server_counters param_server_counters;
+
 using namespace std;
 
 static void save_calibration_parameter_to_file(const char *name, param_type_t type, param_value_u value) {
@@ -182,6 +184,8 @@ static int param_sync_thread(int argc, char *argv[])
 
 			if (debug) { PX4_INFO("Got parameter_server_set_used_request for %s", u_req.parameter_name); }
 
+			param_server_counters.set_used_received++;
+
 			(void) param_find(u_req.parameter_name);
 
 			u_rsp.timestamp = hrt_absolute_time();
@@ -195,7 +199,11 @@ static int param_sync_thread(int argc, char *argv[])
 
 		} else if (fds[1].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_server_set_value_request), parameter_server_set_value_fd, &v_req);
+
 			PX4_DEBUG("Got parameter_server_set_value_request for %s", v_req.parameter_name);
+
+			param_server_counters.set_value_received++;
+
 			param_t param = param_find(v_req.parameter_name);
 			param_value_u value;
 			value.i = 0;
@@ -303,6 +311,8 @@ void param_server_set(param_t param, const void *val, bool from_file)
 
 		orb_publish(ORB_ID(parameter_client_set_value_request), param_set_value_req_h, &req);
 
+		param_server_counters.set_value_sent++;
+
 		// Wait for response
 		bool updated = false;
 
@@ -369,6 +379,8 @@ static void param_server_reset_internal(param_t param, bool reset_all)
 
 	orb_publish(ORB_ID(parameter_client_reset_request), param_reset_req_h, &req);
 
+	param_server_counters.reset_sent++;
+
 	// Wait for response
 	if (debug) { PX4_INFO("Waiting for parameter_client_reset_response"); }
 
@@ -405,4 +417,9 @@ void param_server_reset(param_t param)
 void param_server_reset_all()
 {
 	param_server_reset_internal(0, true);
+}
+
+void param_server_get_counters(struct param_server_counters *cnt)
+{
+	*cnt = param_server_counters;
 }

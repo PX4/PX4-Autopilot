@@ -35,6 +35,14 @@
 
 #include "param.h"
 
+struct param_client_counters {
+    uint32_t set_value_received;
+    uint32_t reset_received;
+    uint32_t set_value_sent;
+    uint32_t set_used_sent;
+};
+
 void param_client_init();
 void param_client_set(param_t param, const void *val);
 void param_client_set_used(param_t param);
+void param_client_get_counters(struct param_client_counters *cnt);
