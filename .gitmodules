@@ -1,7 +1,7 @@
 [submodule "src/modules/mavlink/mavlink"]
 	path = src/modules/mavlink/mavlink
-	url = https://github.com/mavlink/mavlink.git
-	branch = master
+	url = https://github.com/marecustos/mavlink.git
+	branch = add_custom_mavlink_message_def
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
 	url = https://github.com/dronecan/libuavcan.git
