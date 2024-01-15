@@ -1568,8 +1568,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	Quatf delta_q_reset;
 	_ekf.get_quat_reset(&delta_q_reset(0), &lpos.heading_reset_counter);
 
-	lpos.heading = Eulerf(_ekf.getQuaternion()).psi();
-	lpos.unaided_heading = _ekf.getUnaidedYaw();
+	const Quatf q = _ekf.getQuaternion();
+	lpos.heading = 2.f * atan2f(q(3), q(0));
+	lpos.unaided_heading = _ekf.getUnaidedYaw(); // TODO: Needs to change as well
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
 
