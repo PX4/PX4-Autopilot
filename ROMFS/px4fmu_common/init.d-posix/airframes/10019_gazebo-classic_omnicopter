@@ -7,7 +7,7 @@
 # @maintainer Jaeyoung Lim <jalim@ethz.ch>
 #
 
-. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/rc.sr_apps
 
 
 param set-default CA_AIRFRAME 0
