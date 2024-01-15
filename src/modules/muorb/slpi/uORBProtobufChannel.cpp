@@ -62,6 +62,12 @@ std::map<std::string, int> uORB::ProtobufChannel::_AppsSubscriberCache;
 pthread_mutex_t uORB::ProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::ProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+uint32_t uORB::ProtobufChannel::_total_bytes_sent = 0;
+uint32_t uORB::ProtobufChannel::_bytes_sent_since_last_status_check = 0;
+uint32_t uORB::ProtobufChannel::_total_bytes_received = 0;
+uint32_t uORB::ProtobufChannel::_bytes_received_since_last_status_check = 0;
+hrt_abstime uORB::ProtobufChannel::_last_status_check_time = 0;
+
 bool uORB::ProtobufChannel::_debug = false;
 bool _px4_muorb_debug = false;
 static bool px4muorb_orb_initialized = false;
@@ -170,6 +176,8 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 				PX4_INFO("Sending message for topic %s", messageName);
 			}
 
+
+
 			int16_t rc = 0;
 			pthread_mutex_lock(&_tx_mutex);
 
@@ -177,6 +185,9 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 				rc = _Aggregator.ProcessTransmitTopic(messageName, data, length);
 
 			} else {
+				_total_bytes_sent += length;
+				_bytes_sent_since_last_status_check += length;
+
 				// SLPI logs don't go through the aggregator
 				rc = muorb_func_ptrs.topic_data_func_ptr(messageName, data, length);
 			}
@@ -197,6 +208,23 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 	}
 
 	return -1;
+}
+
+void uORB::ProtobufChannel::PrintStatus()
+{
+	PX4_INFO("total bytes sent: %u, total bytes received: %u", _total_bytes_sent, _total_bytes_received);
+	PX4_INFO("sent since last status: %u, received since last status: %u", _bytes_sent_since_last_status_check, _bytes_received_since_last_status_check);
+
+	hrt_abstime elapsed = hrt_elapsed_time(&_last_status_check_time);
+	double seconds = (double) elapsed / 1000000.0;
+	double sent_kbps = ((double) _bytes_sent_since_last_status_check / seconds) / 1000.0;
+	double rxed_kbps = ((double) _bytes_received_since_last_status_check / seconds) / 1000.0;
+
+	PX4_INFO("Current tx rate: %.2f KBps, rx rate %.2f KBps", sent_kbps, rxed_kbps);
+
+	_bytes_sent_since_last_status_check = 0;
+	_bytes_received_since_last_status_check = 0;
+	_last_status_check_time = hrt_absolute_time();
 }
 
 static void *test_runner(void *)
@@ -239,6 +267,17 @@ __BEGIN_DECLS
 extern int slpi_main(int argc, char *argv[]);
 __END_DECLS
 
+static int slpi_send_aggregated_topics(const char *name, const uint8_t *data, int len) {
+
+	uORB::ProtobufChannel *channel = uORB::ProtobufChannel::GetInstance();
+
+	if (channel) channel->RecordAggregateSend(len);
+
+	muorb_func_ptrs.topic_data_func_ptr(name, data, len);
+
+	return 0;
+}
+
 int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 {
 	hrt_set_absolute_time_offset(clock_offset_us);
@@ -279,7 +318,7 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 
 		px4::WorkQueueManagerStart();
 
-		uORB::ProtobufChannel::GetInstance()->RegisterSendHandler(muorb_func_ptrs.topic_data_func_ptr);
+		uORB::ProtobufChannel::GetInstance()->RegisterSendHandler(slpi_send_aggregated_topics);
 
 		// Configure the I2C driver function pointers
 		device::I2C::configure_callbacks(muorb_func_ptrs._config_i2c_bus_func_t, muorb_func_ptrs._set_i2c_address_func_t,
@@ -464,6 +503,8 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 	uORB::ProtobufChannel *channel = uORB::ProtobufChannel::GetInstance();
 
 	if (channel) {
+		channel->UpdateRxStatistics(data_len_in_bytes);
+
 		uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
 
 		if (rxHandler) {

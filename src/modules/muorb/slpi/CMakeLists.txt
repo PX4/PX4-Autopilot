@@ -31,6 +31,17 @@
 #
 ############################################################################
 
+px4_add_module(
+	MODULE modules__muorb__slpi__main
+	MAIN muorb
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+	INCLUDES
+		../aggregator
+	SRCS
+		muorb_main.cpp
+)
+
 px4_add_library(modules__muorb__slpi
 	uORBProtobufChannel.cpp
 	../test/MUORBTest.cpp

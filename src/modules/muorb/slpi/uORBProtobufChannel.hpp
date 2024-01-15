@@ -39,6 +39,7 @@
 #include <map>
 #include <pthread.h>
 #include <termios.h>
+#include <drivers/drv_hrt.h>
 
 #include "uORB/uORBCommunicator.hpp"
 #include "mUORBAggregator.hpp"
@@ -161,6 +162,20 @@ public:
 		pthread_mutex_unlock(&_tx_mutex);
 	}
 
+	void PrintStatus();
+
+	void UpdateRxStatistics(uint32_t cnt)
+	{
+		_total_bytes_received += cnt;
+		_bytes_received_since_last_status_check += cnt;
+	}
+
+	void RecordAggregateSend(int length)
+	{
+		_total_bytes_sent += length;
+		_bytes_sent_since_last_status_check += length;
+	}
+
 private:
 	/**
 	 * Data Members
@@ -172,6 +187,15 @@ private:
 	static pthread_mutex_t                      _tx_mutex;
 	static pthread_mutex_t                      _rx_mutex;
 	static bool                                 _debug;
+
+	/*
+	 * Status
+	 */
+	static uint32_t                             _total_bytes_sent;
+	static uint32_t                             _bytes_sent_since_last_status_check;
+	static uint32_t                             _total_bytes_received;
+	static uint32_t                             _bytes_received_since_last_status_check;
+	static hrt_abstime                          _last_status_check_time;
 
 	/**
 	 * Class Members
