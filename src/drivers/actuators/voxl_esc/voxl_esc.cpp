@@ -153,6 +153,9 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 
 	param_get(param_find("VOXL_ESC_VLOG"),    &params->verbose_logging);
 	param_get(param_find("VOXL_ESC_PUB_BST"), &params->publish_battery_status);
+	
+	param_get(param_find("VOXL_ESC_T_WARN"), &params->esc_warn_temp_threshold);
+	param_get(param_find("VOXL_ESC_T_OVER"), &params->esc_over_temp_threshold);
 
 	if (params->rpm_min >= params->rpm_max) {
 		PX4_ERR("Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
@@ -377,6 +380,19 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 					_esc_status.timestamp = _esc_status.esc[id].timestamp;
 					_esc_status.counter++;
+					
+					
+					if ((_parameters.esc_over_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_over_temp_threshold))
+					{
+					  _esc_status.esc[id].failures |= 1<<(esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
+					}
+					
+					//TODO: do we also issue a warning if over-temperature threshold is exceeded?
+					if ((_parameters.esc_warn_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_warn_temp_threshold))
+					{
+					  _esc_status.esc[id].failures |= 1<<(esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
+					}
+					
 
 					//print ESC status just for debugging
 					/*

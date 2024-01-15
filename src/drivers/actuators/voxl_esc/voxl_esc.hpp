@@ -150,6 +150,8 @@ private:
 		int32_t		direction_map[VOXL_ESC_OUTPUT_CHANNELS] {1, 1, 1, 1};
 		int32_t		verbose_logging{0};
 		int32_t 	publish_battery_status{0};
+		int32_t 	esc_warn_temp_threshold{0};
+		int32_t 	esc_over_temp_threshold{0};
 	} voxl_esc_params_t;
 
 	struct EscChan {
