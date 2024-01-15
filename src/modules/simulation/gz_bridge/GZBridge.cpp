@@ -216,6 +216,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// GPS: /world/$WORLD/model/$MODEL/link/base_link/sensor/navsat_sensor/navsat
+	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/navsat_sensor/navsat";
+
+	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -565,10 +573,6 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			vehicle_angular_velocity_groundtruth.timestamp = hrt_absolute_time();
 			_angular_velocity_ground_truth_pub.publish(vehicle_angular_velocity_groundtruth);
 
-			if (!_pos_ref.isInitialized()) {
-				_pos_ref.initReference((double)_param_sim_home_lat.get(), (double)_param_sim_home_lon.get(), hrt_absolute_time());
-			}
-
 			vehicle_local_position_s local_position_groundtruth{};
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 			local_position_groundtruth.timestamp_sample = time_us;
@@ -615,7 +619,7 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 				_pos_ref.reproject(local_position_groundtruth.x, local_position_groundtruth.y,
 						   global_position_groundtruth.lat, global_position_groundtruth.lon);
 
-				global_position_groundtruth.alt = _param_sim_home_alt.get() - static_cast<float>(position(2));
+				global_position_groundtruth.alt = static_cast<float>(_alt_ref) - static_cast<float>(position(2));
 				global_position_groundtruth.timestamp = hrt_absolute_time();
 				_gpos_ground_truth_pub.publish(global_position_groundtruth);
 			}
@@ -702,6 +706,34 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry
 	_visual_odometry_pub.publish(odom);
 
 	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	const uint64_t time_us = (nav_sat.header().stamp().sec() * 1000000) + (nav_sat.header().stamp().nsec() / 1000);
+	if (time_us > _world_time_us.load()) {
+		updateClock(nav_sat.header().stamp().sec(), nav_sat.header().stamp().nsec());
+	}
+	_timestamp_prev = time_us;
+
+	double latitude_deg = nav_sat.latitude_deg();
+	double longitude_deg = nav_sat.longitude_deg();
+	double altitude = nav_sat.altitude();
+
+	// initialize gps position
+	if(!_pos_ref.isInitialized()) {
+		_pos_ref.initReference(latitude_deg, longitude_deg, hrt_absolute_time());
+		_alt_ref = altitude;
+	}
+
+	pthread_mutex_unlock(&_node_mutex);
+
 }
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
