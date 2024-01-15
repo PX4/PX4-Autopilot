@@ -52,6 +52,9 @@ struct orb_metadata {
 	const uint16_t o_size_no_padding;	/**< object size w/o padding at the end (for logger) */
 	const char *o_fields;		/**< semicolon separated list of fields (with type) */
 	uint8_t o_id;			/**< ORB_ID enum */
+#ifdef CONFIG_ORB_COMMUNICATOR
+	uint8_t o_queue;		/**< queue size */
+#endif
 };
 
 typedef const struct orb_metadata *orb_id_t;
@@ -101,8 +104,20 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _size_no_padding	Struct size w/o padding at the end
  * @param _fields	All fields in a semicolon separated list e.g: "float[3] position;bool armed"
  * @param _orb_id_enum	ORB ID enum e.g.: ORB_ID::vehicle_status
+ * @param _queue_size Queue size for remote topics in communicator interface
  */
-#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields, _orb_id_enum)		\
+#ifdef CONFIG_ORB_COMMUNICATOR
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields, _orb_id_enum, _queue_size)		\
+	const struct orb_metadata __orb_##_name = {	\
+		#_name,					\
+		sizeof(_struct),		\
+		_size_no_padding,			\
+		_fields,				\
+		_orb_id_enum,				\
+		_queue_size				\
+	}; struct hack
+#else
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields, _orb_id_enum, _queue_size)		\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
 		sizeof(_struct),		\
@@ -110,6 +125,7 @@ typedef const struct orb_metadata *orb_id_t;
 		_fields,				\
 		_orb_id_enum				\
 	}; struct hack
+#endif
 
 __BEGIN_DECLS
 

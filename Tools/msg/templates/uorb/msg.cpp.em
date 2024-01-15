@@ -76,8 +76,15 @@ topic_fields = ["%s %s" % (convert_type(field.type, True), field.name) for field
 @# This is used for the logger
 constexpr char __orb_@(name_snake_case)_fields[] = "@( ";".join(topic_fields) );";
 
+@{
+queue_length = 1
+for constant in spec.constants:
+    if constant.name == 'ORB_QUEUE_LENGTH':
+        queue_length = constant.val
+}@
+
 @[for topic in topics]@
-ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(name_snake_case)_fields, static_cast<uint8_t>(ORB_ID::@topic));
+ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(name_snake_case)_fields, static_cast<uint8_t>(ORB_ID::@topic), @queue_length);
 @[end for]
 
 void print_message(const orb_metadata *meta, const @uorb_struct& message)

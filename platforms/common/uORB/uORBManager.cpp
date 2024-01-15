@@ -602,6 +602,22 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 {
 	PX4_DEBUG("entering process_remote_topic: name: %s", topic_name);
 
+	// First make sure this is a valid topic
+	const struct orb_metadata *const *topic_list = orb_get_topics();
+	orb_id_t topic_ptr = nullptr;
+
+	for (size_t i = 0; i < orb_topics_count(); i++) {
+		if (strcmp(topic_list[i]->o_name, topic_name) == 0) {
+			topic_ptr = topic_list[i];
+			break;
+		}
+	}
+
+	if (! topic_ptr) {
+		PX4_ERR("process_remote_topic meta not found for %s\n", topic_name);
+		return -1;
+	}
+
 	// Look to see if we already have a node for this topic
 	char nodepath[orb_maxpath];
 	int ret = uORB::Utils::node_mkpath(nodepath, topic_name);
@@ -614,6 +630,7 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 
 			if (node) {
 				PX4_INFO("Marking DeviceNode(%s) as advertised in process_remote_topic", topic_name);
+				node->update_queue_size(topic_ptr->o_queue);
 				node->mark_as_advertised();
 				_remote_topics.insert(topic_name);
 				return 0;
@@ -622,27 +639,9 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 	}
 
 	// We didn't find a node so we need to create it via an advertisement
-	const struct orb_metadata *const *topic_list = orb_get_topics();
-	orb_id_t topic_ptr = nullptr;
-
-	for (size_t i = 0; i < orb_topics_count(); i++) {
-		if (strcmp(topic_list[i]->o_name, topic_name) == 0) {
-			topic_ptr = topic_list[i];
-			break;
-		}
-	}
-
-	if (topic_ptr) {
-		PX4_INFO("Advertising remote topic %s", topic_name);
-		_remote_topics.insert(topic_name);
-		// Add some queue depth when advertising remote topics. These
-		// topics may get aggregated and thus delivered in a batch that
-		// requires some buffering in a queue.
-		orb_advertise(topic_ptr, nullptr, 16);
-
-	} else {
-		PX4_INFO("process_remote_topic meta not found for %s\n", topic_name);
-	}
+	PX4_INFO("Advertising remote topic %s", topic_name);
+	_remote_topics.insert(topic_name);
+	orb_advertise(topic_ptr, nullptr, topic_ptr->o_queue);
 
 	return 0;
 }
