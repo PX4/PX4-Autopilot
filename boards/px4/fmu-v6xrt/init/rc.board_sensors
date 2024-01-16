@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# PX4 FMUv6X-RT specific board sensors init
+# PX4 FMUv6xrt specific board sensors init
 #------------------------------------------------------------------------------
 #
 # UART mapping on PX4 FMU-V6XRT:
@@ -18,7 +18,7 @@
 
 set HAVE_PM2 yes
 
-if ver hwtypecmp V6XRT005000
+if mft query -q -k MFT -s MFT_PM2 -v 0
 then
 	set HAVE_PM2 no
 fi
