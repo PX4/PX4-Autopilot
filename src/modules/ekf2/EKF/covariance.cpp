@@ -143,9 +143,6 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 			if (!_gyro_bias_inhibit[index]) {
 				P(i, i) += gyro_bias_process_noise;
-
-			} else {
-				P.uncorrelateCovariance<1>(State::gyro_bias.idx + index);
 			}
 		}
 	}
@@ -160,9 +157,6 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 			if (!_accel_bias_inhibit[index]) {
 				P(i, i) += accel_bias_process_noise;
-
-			} else {
-				P.uncorrelateCovariance<1>(State::accel_bias.idx + index);
 			}
 		}
 	}

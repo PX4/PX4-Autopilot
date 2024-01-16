@@ -207,9 +207,5 @@ void Ekf::stopMagFusion()
 		_fault_status.flags.bad_mag_z = false;
 
 		_fault_status.flags.bad_mag_decl = false;
-
-		// clear covariance with other states
-		P.uncorrelateCovarianceBlock<State::mag_I.dof>(State::mag_I.idx);
-		P.uncorrelateCovarianceBlock<State::mag_B.dof>(State::mag_B.idx);
 	}
 }

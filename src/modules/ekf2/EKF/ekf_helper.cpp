@@ -987,19 +987,9 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	const bool do_inhibit_all_gyro_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
 
 	for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
-
 		bool is_bias_observable = true; // TODO: gyro bias conditions
-
-		const bool bias_inhibit = do_inhibit_all_gyro_axes || !is_bias_observable;
-
-		if (!_gyro_bias_inhibit[index] && bias_inhibit) {
-			// bias now inhibited, clear covariances
-			P.uncorrelateCovariance<1>(State::gyro_bias.idx + index);
-		}
-
-		 _gyro_bias_inhibit[index] = bias_inhibit;
+		_gyro_bias_inhibit[index] = do_inhibit_all_gyro_axes || !is_bias_observable;
 	}
-
 
 	// accel bias inhibit
 	const bool do_inhibit_all_accel_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
@@ -1007,7 +997,6 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 					 || _fault_status.flags.bad_acc_vertical;
 
 	for (unsigned index = 0; index < State::accel_bias.dof; index++) {
-
 		bool is_bias_observable = true;
 
 		if (_control_status.flags.vehicle_at_rest) {
@@ -1021,13 +1010,6 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
 		}
 
-		const bool bias_inhibit = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
-
-		if (!_accel_bias_inhibit[index] && bias_inhibit) {
-			// bias now inhibited, clear covariances
-			P.uncorrelateCovariance<1>(State::accel_bias.idx + index);
-		}
-
-		_accel_bias_inhibit[index] = bias_inhibit;
+		_accel_bias_inhibit[index] = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
 	}
 }
