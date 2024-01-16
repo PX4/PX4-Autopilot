@@ -115,11 +115,6 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	/**
-	 * Load fence from file
-	 */
-	void load_fence_from_file(const char *filename);
-
 	void publish_vehicle_cmd(vehicle_command_s *vcmd);
 
 	/**

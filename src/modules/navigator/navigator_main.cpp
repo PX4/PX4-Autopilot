@@ -145,15 +145,6 @@ void Navigator::run()
 {
 	bool have_geofence_position_data = false;
 
-	/* Try to load the geofence:
-	 * if /fs/microsd/etc/geofence.txt load from this file */
-	struct stat buffer;
-
-	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
-		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
-		_geofence.loadFromFile(GEOFENCE_FILENAME);
-	}
-
 	params_update();
 
 	/* wakeup source(s) */
@@ -1130,11 +1121,6 @@ float Navigator::get_yaw_acceptance(float mission_item_yaw)
 	return yaw;
 }
 
-void Navigator::load_fence_from_file(const char *filename)
-{
-	_geofence.loadFromFile(filename);
-}
-
 void Navigator::fake_traffic(const char *callsign, float distance, float direction, float traffic_heading,
 			     float altitude_diff, float hor_velocity, float ver_velocity, int emitter_type)
 {
@@ -1461,11 +1447,7 @@ int Navigator::custom_command(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcmp(argv[0], "fencefile")) {
-		get_instance()->load_fence_from_file(GEOFENCE_FILENAME);
-		return 0;
-
-	} else if (!strcmp(argv[0], "fake_traffic")) {
+	if (!strcmp(argv[0], "fake_traffic")) {
 		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f,
 					     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT);
 		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f, transponder_report_s::ADSB_EMITTER_TYPE_SMALL);
@@ -1629,7 +1611,6 @@ controller.
 
 	PRINT_MODULE_USAGE_NAME("navigator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 4 fake transponder_report_s uORB messages");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

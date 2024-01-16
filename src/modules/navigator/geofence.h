@@ -127,27 +127,6 @@ public:
 
 	bool valid();
 
-	/**
-	 * Load a single inclusion polygon, replacing any already existing polygons.
-	 * The file has one of the following formats:
-	 * - Decimal Degrees:
-	 * 0 900
-	 * 47.475273548913222 8.52672100067138672
-	 * 47.4608261578541359 8.53414535522460938
-	 * 47.4613484218861217 8.56444358825683594
-	 * 47.4830758091035534 8.53470325469970703
-	 *
-	 * - Degree-Minute-Second:
-	 * 0 900
-	 * DMS -26 -34 -10.4304 151 50 14.5428
-	 * DMS -26 -34 -11.8416 151 50 21.8580
-	 * DMS -26 -34 -36.5628 151 50 28.1112
-	 * DMS -26 -34 -37.1640 151 50 24.1620
-	 *
-	 * Where the first line is min, max altitude in meters AMSL.
-	 */
-	int loadFromFile(const char *filename);
-
 	bool isEmpty() { return _num_polygons == 0; }
 
 	int getSource() { return _param_gf_source.get(); }
@@ -182,9 +161,6 @@ private:
 
 	hrt_abstime _last_horizontal_range_warning{0};
 	hrt_abstime _last_vertical_range_warning{0};
-
-	float _altitude_min{0.0f};
-	float _altitude_max{0.0f};
 
 	int _num_polygons{0};
 	bool _has_rtl_action{false}; ///< at least one of the fences has GF_ACTION_RTL
