@@ -65,6 +65,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target", 500);
 	add_topic("fw_virtual_attitude_setpoint", 50);
 	add_optional_topic("generator_status");
+	add_topic("geofence_result");
 	add_optional_topic("gps_dump");
 	add_optional_topic("heater_status");
 	add_topic("home_position");
