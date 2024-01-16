@@ -718,9 +718,11 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (nav_sat.header().stamp().sec() * 1000000) + (nav_sat.header().stamp().nsec() / 1000);
+
 	if (time_us > _world_time_us.load()) {
 		updateClock(nav_sat.header().stamp().sec(), nav_sat.header().stamp().nsec());
 	}
+
 	_timestamp_prev = time_us;
 
 	double latitude_deg = nav_sat.latitude_deg();
