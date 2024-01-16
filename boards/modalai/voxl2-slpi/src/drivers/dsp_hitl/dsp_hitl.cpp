@@ -134,6 +134,7 @@ int heartbeat_counter = 0;
 int imu_counter = 0;
 int hil_sensor_counter = 0;
 int vision_msg_counter = 0;
+int odometry_msg_counter = 0;
 int gps_counter = 0;
 
 vehicle_status_s _vehicle_status{};
@@ -302,7 +303,7 @@ void task_main(int argc, char *argv[])
 	int openRetval = openPort(charport, (speed_t) baudrate);
 	int open = isOpen();
 	if(open){
-		PX4_ERR("Port is open: %d", openRetval);
+		PX4_INFO("DSP HITL Serial Port is open: %d", openRetval);
 	}
 
 	uint64_t last_heartbeat_timestamp = hrt_absolute_time();
@@ -489,6 +490,8 @@ handle_message_odometry_dsp(mavlink_message_t *msg)
 {
 	mavlink_odometry_t odom_in;
 	mavlink_msg_odometry_decode(msg, &odom_in);
+
+	odometry_msg_counter++;
 
 	// fill vehicle_odometry from Mavlink ODOMETRY
 	vehicle_odometry_s odom{};
@@ -822,6 +825,7 @@ int get_status()
 	PX4_INFO("Value of HIL_Sensor counter: %i", hil_sensor_counter);
 	PX4_INFO("Value of Heartbeat counter: %i", heartbeat_counter);
 	PX4_INFO("Value of Vision data counter: %i", vision_msg_counter);
+	PX4_INFO("Value of odometry counter: %i", odometry_msg_counter);
 	PX4_INFO("Value of GPS Data counter: %i", gps_counter);
 	return 0;
 }
