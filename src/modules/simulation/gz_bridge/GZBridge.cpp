@@ -217,7 +217,8 @@ int GZBridge::init()
 	}
 
 	// GPS: /world/$WORLD/model/$MODEL/link/base_link/sensor/navsat_sensor/navsat
-	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/base_link/sensor/navsat_sensor/navsat";
+	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name +
+								"/link/base_link/sensor/navsat_sensor/navsat";
 
 	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
@@ -727,7 +728,7 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	double altitude = nav_sat.altitude();
 
 	// initialize gps position
-	if(!_pos_ref.isInitialized()) {
+	if (!_pos_ref.isInitialized()) {
 		_pos_ref.initReference(latitude_deg, longitude_deg, hrt_absolute_time());
 		_alt_ref = altitude;
 	}
