@@ -881,9 +881,12 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 			/* Issue a warning about the geofence violation once and only if we are armed */
 			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				mavlink_log_critical(&_mavlink_log_pub, "%s", geofence_violation_warning);
-				events::send(events::ID("navigator_geofence_violation"), {events::Log::Warning, events::LogInternal::Info},
-					     geofence_violation_warning);
+				if (_geofence_result.geofence_action > geofence_result_s::GF_ACTION_NONE) {
+					// Only send if action is more severe than GF_ACTION_NONE
+					mavlink_log_critical(&_mavlink_log_pub, "%s", geofence_violation_warning);
+					events::send(events::ID("navigator_geofence_violation"), {events::Log::Warning, events::LogInternal::Info},
+						     geofence_violation_warning);
+				}
 
 				// we have predicted a geofence violation and if the action is to loiter then
 				// demand a reposition to a location which is inside the geofence
