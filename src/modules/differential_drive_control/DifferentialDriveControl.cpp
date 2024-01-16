@@ -43,7 +43,6 @@ DifferentialDriveControl::DifferentialDriveControl() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	updateParams();
-
 	pid_init(&_angular_velocity_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
 	pid_init(&_speed_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
@@ -94,8 +93,8 @@ void DifferentialDriveControl::Run()
 	_time_stamp_last = now;
 
 	if (_parameter_update_sub.updated()) {
-		parameter_update_s pupdate{};
-		_parameter_update_sub.copy(&pupdate);
+		parameter_update_s parameter_update;
+		_parameter_update_sub.copy(&parameter_update);
 
 		updateParams();
 	}
@@ -111,9 +110,12 @@ void DifferentialDriveControl::Run()
 	}
 
 	if (_vehicle_attitude_sub.updated()) {
-		_vehicle_attitude_sub.copy(&_vehicle_attitude);
+		vehicle_attitude_s vehicle_attitude{};
 
-		_vehicle_yaw = matrix::Eulerf(matrix::Quatf(_vehicle_attitude.q)).psi();
+		if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+			_vehicle_attitude_quaternion = Quatf(vehicle_attitude.q);
+			_vehicle_yaw = matrix::Eulerf(_vehicle_attitude_quaternion).psi();
+		}
 	}
 
 	if (_vehicle_angular_velocity_sub.updated()) {
@@ -121,12 +123,12 @@ void DifferentialDriveControl::Run()
 	}
 
 	if (_vehicle_local_position_sub.updated()) {
-		_vehicle_local_position_sub.copy(&_vehicle_local_position);
+		vehicle_local_position_s vehicle_local_position{};
 
-		matrix::Vector3f ground_speed(_vehicle_local_position.vx, _vehicle_local_position.vy,  _vehicle_local_position.vz);
-
-		// rotate the velocity vector from the local frame to the body frame
-		_velocity_in_body_frame = Quatf(_vehicle_attitude.q).rotateVectorInverse(ground_speed);
+		if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
+			Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
+			_velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
+		}
 	}
 
 	if (_manual_driving) {
@@ -160,7 +162,7 @@ void DifferentialDriveControl::Run()
 		_closed_loop_differential_drive_setpoint_pub.publish(_differential_drive_setpoint);
 	}
 
-	// no need for any bools, just check if the topic is updated and update the setpoint
+	// check if the topic is updated and update the setpoint
 	if (_feed_forward_differential_drive_setpoint_sub.updated()) {
 		_feed_forward_differential_drive_setpoint_sub.copy(&_differential_drive_setpoint);
 
