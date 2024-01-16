@@ -43,6 +43,11 @@ else
     param load
 fi
 
+# We do not change the following parameters but QGC will complain if they aren't
+# being reported as "used" by px4. "Touching" them accomplishes that.
+param touch SYS_AUTOCONFIG
+param touch SDLOG_MODE
+
 # Start logging and use timestamps for log files when possible.
 # Add the "-e" option to start logging immediately. Default is
 # to log only when armed. Caution must be used with the "-e" option
