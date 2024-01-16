@@ -496,9 +496,9 @@ if(RES_LEN GREATER 0)
   DESTINATION share/${PROJECT_NAME}
   PATTERN ".svn" EXCLUDE)
   # Install ROMFS
- install(DIRECTORY ROMFS/
-  DESTINATION share/${PROJECT_NAME}
-  PATTERN ".svn" EXCLUDE)
+#  install(DIRECTORY ROMFS/
+#   DESTINATION share/${PROJECT_NAME}
+#   PATTERN ".svn" EXCLUDE)
 else()
 	 message(STATUS "No PX4 build files to install.")
 endif()
