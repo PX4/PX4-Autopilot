@@ -99,6 +99,7 @@ void Geofence::_updateFence()
 	// iterate over all polygons and store their starting vertices
 	_num_polygons = 0;
 	_has_rtl_action = false;
+	_has_default_action = false;
 	int current_seq = 1;
 
 	while (current_seq <= num_fence_items) {
@@ -165,8 +166,12 @@ void Geofence::_updateFence()
 					current_seq += mission_fence_point.vertex_count;
 				}
 
-				if (geofence_result_s::GF_ACTION_RTL == polygon.fence_action) {
+				if (polygon.fence_action == geofence_result_s::GF_ACTION_RTL) {
 					_has_rtl_action = true;
+				}
+
+				if (polygon.fence_action == geofence_result_s::GF_ACTION_DEFAULT) {
+					_has_default_action = true;
 				}
 
 				++_num_polygons;
@@ -657,7 +662,10 @@ bool Geofence::isHomeRequired()
 	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON);
 	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
 
-	return max_horizontal_enabled || max_vertical_enabled || _has_rtl_action;
+	bool has_default_rtl_actions = _has_default_action
+				       && legacyActionTranslator(_param_gf_action.get()) == geofence_result_s::GF_ACTION_RTL;
+
+	return max_horizontal_enabled || max_vertical_enabled || _has_rtl_action || has_default_rtl_actions;
 }
 
 void Geofence::printStatus()

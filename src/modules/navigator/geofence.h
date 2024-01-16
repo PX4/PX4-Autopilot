@@ -188,6 +188,7 @@ private:
 
 	int _num_polygons{0};
 	bool _has_rtl_action{false}; ///< at least one of the fences has GF_ACTION_RTL
+	bool _has_default_action{false}; ///< at least one of the fences has GF_ACTION_DEFAULT
 
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
