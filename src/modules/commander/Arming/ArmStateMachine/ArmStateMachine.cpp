@@ -63,7 +63,7 @@ events::px4::enums::arming_state_t ArmStateMachine::eventArmingState(uint8_t arm
 transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &status,
 		const vehicle_control_mode_s &control_mode, const safety_s &safety,
 		const arming_state_t new_arming_state, actuator_armed_s &armed, const bool fRunPreArmChecks,
-		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s &status_flags,
+		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s &status_flags, const geofence_result_s &geofence_result,
 		const PreFlightCheck::arm_requirements_t &arm_requirements,
 		const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason)
 {
@@ -136,7 +136,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 					if (fRunPreArmChecks && preflight_check_ret) {
 						// only bother running prearm if preflight was successful
 						prearm_check_ret = PreFlightCheck::preArmCheck(mavlink_log_pub, status_flags, control_mode, safety, arm_requirements,
-								   status);
+								   status, geofence_result);
 					}
 
 					if (!preflight_check_ret || !prearm_check_ret) {

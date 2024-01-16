@@ -40,7 +40,8 @@
 
 bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
 				 const vehicle_control_mode_s &control_mode,
-				 const safety_s &safety, const arm_requirements_t &arm_requirements, vehicle_status_s &status, bool report_fail)
+				 const safety_s &safety, const arm_requirements_t &arm_requirements, vehicle_status_s &status,
+				 const geofence_result_s &geofence_result, bool report_fail)
 {
 	bool prearm_ok = true;
 
@@ -210,7 +211,7 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		}
 	}
 
-	if (arm_requirements.geofence && status.geofence_violated) {
+	if (geofence_result.geofence_violated && geofence_result.geofence_action > geofence_result_s::GF_ACTION_NONE) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Arming denied, vehicle outside geofence");
 		}
