@@ -1079,7 +1079,13 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
-		navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+
+		if (isDoingBackTransition()) {
+			navigateLine(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+
+		} else {
+			navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+		}
 
 	} else {
 		navigateWaypoint(curr_wp_local, curr_pos_local, ground_speed, _wind_vel);

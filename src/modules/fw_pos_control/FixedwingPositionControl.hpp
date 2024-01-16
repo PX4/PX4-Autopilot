@@ -457,6 +457,11 @@ private:
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 	float getLoadFactor();
 
+	bool isDoingBackTransition()
+	{
+		return _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
+	}
+
 	/**
 	 * @brief Get the NPFG roll setpoint with mitigation strategy if npfg is not certain about its output
 	 *
