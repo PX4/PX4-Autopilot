@@ -114,9 +114,7 @@ private:
 	uORB::Publication<differential_drive_setpoint_s> _closed_loop_differential_drive_setpoint_pub{ORB_ID(closed_loop_differential_drive_setpoint)};
 
 	differential_drive_setpoint_s _differential_drive_setpoint{};
-	vehicle_attitude_s _vehicle_attitude{};
 	vehicle_angular_velocity_s _vehicle_angular_velocity{};
-	vehicle_local_position_s _vehicle_local_position{};
 	bool _armed = false;
 	bool _manual_driving = false;
 	bool _mission_driving = false;
@@ -129,6 +127,7 @@ private:
 	float _max_speed{0.f};
 	float _max_angular_velocity{0.f};
 
+	matrix::Quatf _vehicle_attitude_quaternion{};
 	float _vehicle_yaw{0.f};
 	Vector3f _velocity_in_body_frame{0.f, 0.f, 0.f};
 
