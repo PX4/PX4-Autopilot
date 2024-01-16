@@ -199,7 +199,6 @@ private:
 
 	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
-	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
 
 	uint8_t _breached_fence_action{geofence_result_s::GF_ACTION_DEFAULT}; ///< Most severe fence action from the breached fence
@@ -245,7 +244,6 @@ private:
 		(ParamInt<px4::params::GF_ACTION>)         _param_geofence_action,
 		(ParamInt<px4::params::GF_ALTMODE>)        _param_gf_altmode,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
-		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
 		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict

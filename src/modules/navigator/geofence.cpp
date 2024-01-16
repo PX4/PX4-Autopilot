@@ -208,20 +208,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 	// as they both report being inside when not enabled
 	inside_fence = inside_fence && isInsideFence(lat, lon, altitude);
 
-	if (inside_fence) {
-		_outside_counter = 0;
-		return inside_fence;
-
-	} else {
-		_outside_counter++;
-
-		if (_outside_counter > _param_gf_count.get()) {
-			return inside_fence;
-
-		} else {
-			return true;
-		}
-	}
+	return inside_fence;
 }
 
 bool Geofence::check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position)
