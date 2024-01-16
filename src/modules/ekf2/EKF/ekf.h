@@ -950,7 +950,7 @@ private:
 	void forceCovarianceSymmetry();
 
 	void constrainStateVar(const IdxDof &state, float min, float max);
-	void constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio = 1000.f);
+	void constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio = 1.e6f);
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
