@@ -166,7 +166,10 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 			// Geofence function checks against home altitude amsl
 			missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 
-			if (MissionBlock::item_contains_position(missionitem) && !_navigator->get_geofence().check(missionitem)) {
+			uint8_t breach_action = 0;  // not used in this function
+
+			if (MissionBlock::item_contains_position(missionitem)
+			    && !_navigator->get_geofence().check(missionitem, &breach_action)) {
 
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", i + 1);
 				events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Error, events::LogInternal::Info},

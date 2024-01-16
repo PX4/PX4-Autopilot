@@ -860,18 +860,19 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		gf_violation_type.flags.max_altitude_exceeded = !_geofence.isBelowMaxAltitude(_global_pos.alt +
 				vertical_test_point_distance);
 
+		uint8_t breach_action = geofence_result_s::GF_ACTION_NONE;
+		bool max_altitude_exceeded = false;
 		gf_violation_type.flags.fence_violation = !_geofence.isInsideFence(fence_violation_test_point(0),
 				fence_violation_test_point(1),
-				_global_pos.alt + vertical_test_point_distance);
+				_global_pos.alt + vertical_test_point_distance, &max_altitude_exceeded, &breach_action);
 
-		gf_violation_type.flags.max_altitude_exceeded |= _geofence.isMaxAltitudeExceeded();
+		gf_violation_type.flags.max_altitude_exceeded |= max_altitude_exceeded;
 
 		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;
 
 		_geofence_result.timestamp = hrt_absolute_time();
-		_geofence_result.geofence_action = _geofence.getGeofenceAction();
-		_geofence_result.action_required = _geofence.isActionRequired();
+		_geofence_result.geofence_action = breach_action;
 		_geofence_result.home_required = _geofence.isHomeRequired();
 
 		if (gf_violation_type.value) {
@@ -886,7 +887,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 				// we have predicted a geofence violation and if the action is to loiter then
 				// demand a reposition to a location which is inside the geofence
-				if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
+				if (_geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 
 					matrix::Vector2<double> loiter_center_lat_lon;
@@ -934,8 +935,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 			/* Reset the _geofence_violation_warning_sent field */
 			_geofence_violation_warning_sent = false;
-
-			_geofence.resetGeofenceAction();
 		}
 
 		_geofence_result_pub.publish(_geofence_result);
@@ -1576,12 +1575,11 @@ void Navigator::release_gimbal_control()
 
 bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 {
-	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
-	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
-
-		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
-			return _geofence.check(pos, _gps_pos);
-		}
+	if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
+		uint8_t breach_action;
+		bool inside = _geofence.check(pos, _gps_pos, &breach_action);
+		// Allow reposition outside fence if type is NONE or WARNING
+		return inside || breach_action <= geofence_result_s::GF_ACTION_WARN;
 	}
 
 	return true;

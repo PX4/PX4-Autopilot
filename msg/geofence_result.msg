@@ -9,6 +9,5 @@ uint8 GF_ACTION_TERMINATE = 6   # flight termination
 
 bool geofence_violated          # true if the geofence is violated
 uint8 geofence_action           # action to take when geofence is violated
-bool action_required            # fence with action with different than GF_ACTION_NONE exist
 
 bool home_required              # true if the geofence requires a valid home position
