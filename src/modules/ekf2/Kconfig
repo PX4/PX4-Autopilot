@@ -4,6 +4,15 @@ menuconfig MODULES_EKF2
 	---help---
 		Enable support for ekf2
 
+menuconfig EKF2_VERBOSE_STATUS
+depends on MODULES_EKF2
+	bool "verbose status output"
+	default n
+	depends on !BOARD_CONSTRAINED_MEMORY
+	depends on !BOARD_CONSTRAINED_FLASH
+	---help---
+		ekf2 status verbose output.
+
 menuconfig EKF2_MULTI_INSTANCE
 depends on MODULES_EKF2
         bool "multi-EKF support"

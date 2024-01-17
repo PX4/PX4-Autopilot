@@ -139,7 +139,7 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	int print_status();
+	int print_status(bool verbose = false);
 
 	bool should_exit() const { return _task_should_exit.load(); }
 
