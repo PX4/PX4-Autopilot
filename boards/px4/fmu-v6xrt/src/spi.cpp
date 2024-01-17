@@ -41,47 +41,65 @@
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_log.h>
+constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
+	initSPIHWVersion(V6XRT_00, {
+		initSPIBus(SPI::Bus::LPSPI1, {
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42686P, SPI::CS{GPIO::Port2, GPIO::Pin11}, SPI::DRDY{GPIO::Port3, GPIO::Pin19}), /* GPIO_EMC_B2_01 GPIO2_IO11, GPIO_AD_20, GPIO3_IO19 */
+		}, {GPIO::Port2, GPIO::Pin1}), // Power GPIO_EMC_B1_33  GPIO2_IO01
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
+		initSPIBus(SPI::Bus::LPSPI2, {
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::Port3, GPIO::Pin24}, SPI::DRDY{GPIO::Port2, GPIO::Pin7}), /* GPIO_AD_25 GPIO3_IO24, GPIO_EMC_B1_39 GPIO2_IO07 */
+		}, {GPIO::Port1, GPIO::Pin22}), // Power GPIO_EMC_B1_22  GPIO1_IO22
 
-#include <nuttx/spi/spi.h>
-#include <arch/board/board.h>
-#include <systemlib/px4_macros.h>
-#include <px4_platform/gpio.h>
+		initSPIBus(SPI::Bus::LPSPI3, {
+			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin18}, SPI::DRDY{GPIO::Port2, GPIO::Pin28}), /* GPIO_EMC_B2_08 GPIO2_IO18, GPIO_EMC_B2_18 GPIO2_IO28 */
+			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin15}),                                      /* GPIO_EMC_B2_05 GPIO2_IO15 */
+		}, {GPIO::Port1, GPIO::Pin14}), // Power GPIO_EMC_B1_14  GPIO1_IO14
 
-#include <arm_internal.h>
-#include <chip.h>
-#include "imxrt_lpspi.h"
-#include "imxrt_gpio.h"
-#include "board_config.h"
-#include <systemlib/err.h>
+		initSPIBusExternal(SPI::Bus::LPSPI6, {
+			initSPIConfigExternal(SPI::CS{GPIO::Port6, GPIO::Pin9}, SPI::DRDY{GPIO::Port1, GPIO::Pin5}), /* GPIO_LPSR_09 GPIO6_IO09 GPIO_EMC_B1_05 GPIO1_IO05*/
+			initSPIConfigExternal(SPI::CS{GPIO::Port6, GPIO::Pin8}, SPI::DRDY{GPIO::Port1, GPIO::Pin7}), /* GPIO_LPSR_08 GPIO6_IO08  GPIO_EMC_B1_07  GPIO1_IO07*/
+		}),
+	}),
 
-#ifdef CONFIG_IMXRT_LPSPI
+	initSPIHWVersion(V6XRT_30, {
+		initSPIBus(SPI::Bus::LPSPI1, {
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42686P, SPI::CS{GPIO::Port2, GPIO::Pin11}, SPI::DRDY{GPIO::Port3, GPIO::Pin19}), /* GPIO_EMC_B2_01 GPIO2_IO11, GPIO_AD_20, GPIO3_IO19 */
+		}, {GPIO::Port2, GPIO::Pin1}), // Power GPIO_EMC_B1_33  GPIO2_IO01
 
+		initSPIBus(SPI::Bus::LPSPI2, {
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::Port3, GPIO::Pin24}, SPI::DRDY{GPIO::Port2, GPIO::Pin7}), /* GPIO_AD_25 GPIO3_IO24, GPIO_EMC_B1_39 GPIO2_IO07 */
+		}, {GPIO::Port1, GPIO::Pin22}), // Power GPIO_EMC_B1_22  GPIO1_IO22
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::LPSPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42686P, SPI::CS{GPIO::Port2, GPIO::Pin11}, SPI::DRDY{GPIO::Port3, GPIO::Pin19}), /* GPIO_EMC_B2_01 GPIO2_IO11, GPIO_AD_20, GPIO3_IO19 */
-	}, {GPIO::Port2, GPIO::Pin1}), // Power GPIO_EMC_B1_33  GPIO2_IO01
+		initSPIBus(SPI::Bus::LPSPI3, {
+			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin18}, SPI::DRDY{GPIO::Port2, GPIO::Pin28}), /* GPIO_EMC_B2_08 GPIO2_IO18, GPIO_EMC_B2_18 GPIO2_IO28 */
+			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin15}),                                      /* GPIO_EMC_B2_05 GPIO2_IO15 */
+		}, {GPIO::Port1, GPIO::Pin14}), // Power GPIO_EMC_B1_14  GPIO1_IO14
 
-	initSPIBus(SPI::Bus::LPSPI2, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::Port3, GPIO::Pin24}, SPI::DRDY{GPIO::Port2, GPIO::Pin7}), /* GPIO_AD_25 GPIO3_IO24, GPIO_EMC_B1_39 GPIO2_IO07 */
-	}, {GPIO::Port1, GPIO::Pin22}), // Power GPIO_EMC_B1_22  GPIO1_IO22
+		initSPIBusExternal(SPI::Bus::LPSPI6, {
+			initSPIConfigExternal(SPI::CS{GPIO::Port6, GPIO::Pin9}, SPI::DRDY{GPIO::Port1, GPIO::Pin5}), /* GPIO_LPSR_09 GPIO6_IO09 GPIO_EMC_B1_05 GPIO1_IO05*/
+			initSPIConfigExternal(SPI::CS{GPIO::Port6, GPIO::Pin8}, SPI::DRDY{GPIO::Port1, GPIO::Pin7}), /* GPIO_LPSR_08 GPIO6_IO08  GPIO_EMC_B1_07  GPIO1_IO07*/
+		}),
+	}),
+	initSPIHWVersion(V6XRT_50, {
+		initSPIBus(SPI::Bus::LPSPI1, {
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42686P, SPI::CS{GPIO::Port2, GPIO::Pin11}, SPI::DRDY{GPIO::Port3, GPIO::Pin19}), /* GPIO_EMC_B2_01 GPIO2_IO11, GPIO_AD_20, GPIO3_IO19 */
+		}, {GPIO::Port2, GPIO::Pin1}), // Power GPIO_EMC_B1_33  GPIO2_IO01
 
-	initSPIBus(SPI::Bus::LPSPI3, {
-		initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin18}, SPI::DRDY{GPIO::Port2, GPIO::Pin28}), /* GPIO_EMC_B2_08 GPIO2_IO18, GPIO_EMC_B2_18 GPIO2_IO28 */
-		initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin15}),                                      /* GPIO_EMC_B2_05 GPIO2_IO15 */
-	}, {GPIO::Port1, GPIO::Pin14}), // Power GPIO_EMC_B1_14  GPIO1_IO14
+		initSPIBus(SPI::Bus::LPSPI2, {
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::Port3, GPIO::Pin24}, SPI::DRDY{GPIO::Port2, GPIO::Pin7}), /* GPIO_AD_25 GPIO3_IO24, GPIO_EMC_B1_39 GPIO2_IO07 */
+		}, {GPIO::Port1, GPIO::Pin22}), // Power GPIO_EMC_B1_22  GPIO1_IO22
 
-	initSPIBusExternal(SPI::Bus::LPSPI6, {
-		initSPIConfigExternal(SPI::CS{GPIO::Port6, GPIO::Pin9}, SPI::DRDY{GPIO::Port1, GPIO::Pin5}), /* GPIO_LPSR_09 GPIO6_IO09 GPIO_EMC_B1_05 GPIO1_IO05*/
-		initSPIConfigExternal(SPI::CS{GPIO::Port6, GPIO::Pin8}, SPI::DRDY{GPIO::Port1, GPIO::Pin7}), /* GPIO_LPSR_08 GPIO6_IO08  GPIO_EMC_B1_07  GPIO1_IO07*/
+		initSPIBus(SPI::Bus::LPSPI3, {
+			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin18}, SPI::DRDY{GPIO::Port2, GPIO::Pin28}), /* GPIO_EMC_B2_08 GPIO2_IO18, GPIO_EMC_B2_18 GPIO2_IO28 */
+			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::Port2, GPIO::Pin15}),                                      /* GPIO_EMC_B2_05 GPIO2_IO15 */
+		}, {GPIO::Port1, GPIO::Pin14}), // Power GPIO_EMC_B1_14  GPIO1_IO14
+
+		initSPIBusExternal(SPI::Bus::LPSPI6, {
+			initSPIConfigExternal(SPI::CS{GPIO::Port6, GPIO::Pin9}, SPI::DRDY{GPIO::Port1, GPIO::Pin5}), /* GPIO_LPSR_09 GPIO6_IO09 GPIO_EMC_B1_05 GPIO1_IO05*/
+			initSPIConfigExternal(SPI::CS{GPIO::Port6, GPIO::Pin8}, SPI::DRDY{GPIO::Port1, GPIO::Pin7}), /* GPIO_LPSR_08 GPIO6_IO08  GPIO_EMC_B1_07  GPIO1_IO07*/
+		}),
 	}),
 };
 
-#endif
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+static constexpr bool unused = validateSPIConfig(px4_spi_buses_all_hw);

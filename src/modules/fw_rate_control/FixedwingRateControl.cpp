@@ -322,28 +322,26 @@ void FixedwingRateControl::Run()
 			}
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */
-			float trim_roll = _param_trim_roll.get();
-			float trim_pitch = _param_trim_pitch.get();
-			float trim_yaw = _param_trim_yaw.get();
+			Vector3f trim(_param_trim_roll.get(), _param_trim_pitch.get(), _param_trim_yaw.get());
 
 			if (airspeed < _param_fw_airspd_trim.get()) {
-				trim_roll += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-							 _param_fw_dtrim_r_vmin.get(),
-							 0.0f);
-				trim_pitch += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-							  _param_fw_dtrim_p_vmin.get(),
-							  0.0f);
-				trim_yaw += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-							_param_fw_dtrim_y_vmin.get(),
-							0.0f);
+				trim(0) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
+						       _param_fw_dtrim_r_vmin.get(),
+						       0.0f);
+				trim(1) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
+						       _param_fw_dtrim_p_vmin.get(),
+						       0.0f);
+				trim(2) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
+						       _param_fw_dtrim_y_vmin.get(),
+						       0.0f);
 
 			} else {
-				trim_roll += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-							 _param_fw_dtrim_r_vmax.get());
-				trim_pitch += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-							  _param_fw_dtrim_p_vmax.get());
-				trim_yaw += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-							_param_fw_dtrim_y_vmax.get());
+				trim(0) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+						       _param_fw_dtrim_r_vmax.get());
+				trim(1) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+						       _param_fw_dtrim_p_vmax.get());
+				trim(2) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
+						       _param_fw_dtrim_y_vmax.get());
 			}
 
 			if (_vcontrol_mode.flag_control_rates_enabled) {
@@ -360,31 +358,24 @@ void FixedwingRateControl::Run()
 				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
 						_landed);
 
-				const float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
-				const float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
-				const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
+				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
+				const Vector3f feedforward = gain_ff.emult(body_rates_setpoint) * _airspeed_scaling;
 
-				const float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
-				const float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
+				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling + feedforward;
 
 				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
-				float yaw_u = 0.f;
-
-				if (_vcontrol_mode.flag_control_attitude_enabled || _param_fw_acro_yaw_en.get()) {
-					yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
-
-				} else {
-					yaw_u = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
+				if (!_vcontrol_mode.flag_control_attitude_enabled && !_param_fw_acro_yaw_en.get()) {
+					control_u(2) = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
 					_rate_control.resetIntegral(2);
 				}
 
-				if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
-					_rate_control.resetIntegral();
-				}
+				if (control_u.isAllFinite()) {
+					matrix::constrain(control_u + trim, -1.f, 1.f).copyTo(_vehicle_torque_setpoint.xyz);
 
-				_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(roll_u) ? math::constrain(roll_u + trim_roll, -1.f, 1.f) : trim_roll;
-				_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(pitch_u) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
-				_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(yaw_u) ? math::constrain(yaw_u + trim_yaw, -1.f, 1.f) : trim_yaw;
+				} else {
+					_rate_control.resetIntegral();
+					trim.copyTo(_vehicle_torque_setpoint.xyz);
+				}
 
 				/* throttle passed through if it is finite */
 				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
