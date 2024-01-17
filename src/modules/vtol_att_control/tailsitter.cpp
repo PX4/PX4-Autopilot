@@ -88,15 +88,8 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_BACK:
 			const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-			float pitch_threshold_mc = PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC;
-
-			// if doing transition in Stabilized mode set threshold to max angle plus 5° margin
-			if (!_v_control_mode->flag_control_altitude_enabled) {
-				pitch_threshold_mc = math::radians(-_param_mpc_tilt_max.get() - 5.f);
-			}
-
 			// check if we have reached pitch angle to switch to MC mode
-			if (pitch >= pitch_threshold_mc || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
+			if (pitch >= PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
 				_vtol_mode = vtol_mode::MC_MODE;
 			}
 
@@ -172,21 +165,20 @@ void Tailsitter::update_transition_state()
 			// calculate rotation axis for transition.
 			_q_trans_start = Quatf(_v_att->q);
 			Vector3f z = -_q_trans_start.dcm_z();
-			_trans_rot_axis = z.cross(Vector3f(0, 0, -1));
+			_trans_rot_axis = z.cross(Vector3f(0.f, 0.f, -1.f));
 
 			// as heading setpoint we choose the heading given by the direction the vehicle points
-			float yaw_sp = atan2f(z(1), z(0));
+			const float yaw_sp = atan2f(z(1), z(0));
 
 			// the intial attitude setpoint for a backtransition is a combination of the current fw pitch setpoint,
 			// the yaw setpoint and zero roll since we want wings level transition.
-			// If for some reason the fw attitude setpoint is not recent then don't sue it and assume 0 pitch
+			// If for some reason the fw attitude setpoint is not recent then don't use it and assume 0 pitch
 			if (_fw_virtual_att_sp->timestamp > (now - 1_s)) {
-				_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+				_q_trans_start = Eulerf(0.f, _fw_virtual_att_sp->pitch_body, yaw_sp);
 
 			} else {
-				_q_trans_start = Eulerf(0.0f, 0.f, yaw_sp);
+				_q_trans_start = Eulerf(0.f, 0.f, yaw_sp);
 			}
-
 
 			// attitude during transitions are controlled by mc attitude control so rotate the desired attitude to the
 			// multirotor frame
@@ -194,9 +186,9 @@ void Tailsitter::update_transition_state()
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
 			// initial attitude setpoint for the transition should be with wings level
-			_q_trans_start = Eulerf(0.0f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
-			Vector3f x = Dcmf(Quatf(_v_att->q)) * Vector3f(1, 0, 0);
-			_trans_rot_axis = -x.cross(Vector3f(0, 0, -1));
+			_q_trans_start = Eulerf(0.f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
+			Vector3f x = Dcmf(Quatf(_v_att->q)) * Vector3f(1.f, 0.f, 0.f);
+			_trans_rot_axis = -x.cross(Vector3f(0.f, 0.f, -1.f));
 		}
 
 		_q_trans_sp = _q_trans_start;
@@ -206,10 +198,8 @@ void Tailsitter::update_transition_state()
 	_q_trans_sp.normalize();
 
 	// tilt angle (zero if vehicle nose points up (hover))
-	float cos_tilt = _q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) *
-			 _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3);
-	cos_tilt = cos_tilt >  1.0f ?  1.0f : cos_tilt;
-	cos_tilt = cos_tilt < -1.0f ? -1.0f : cos_tilt;
+	const float cos_tilt = math::constrain(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) -
+					       _q_trans_sp(2) * _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3), -1.f, 1.f);
 	const float tilt = acosf(cos_tilt);
 
 	if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
@@ -329,14 +319,7 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 	bool transition_to_fw = false;
 	const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	float pitch_threshold_fw = PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW;
-
-	// if doing transition in Stabilized mode set threshold to max angle minus 5° margin
-	if (!_v_control_mode->flag_control_altitude_enabled) {
-		pitch_threshold_fw = math::radians(-_param_mpc_tilt_max.get() + 5.f);
-	}
-
-	if (pitch <= pitch_threshold_fw) {
+	if (pitch <= PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW) {
 		if (airspeed_triggers_transition) {
 			transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
 

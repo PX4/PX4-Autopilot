@@ -240,6 +240,7 @@ private:
 		FW_POSCTRL_MODE_AUTO_TAKEOFF,
 		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
 		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
+		FW_POSCTRL_MODE_AUTO_PATH,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
 		FW_POSCTRL_MODE_OTHER
@@ -601,6 +602,18 @@ private:
 
 
 	/**
+	 * @brief Vehicle control for following a path.
+	 *
+	 * @param control_interval Time since last position control call [s]
+	 * @param curr_pos Current 2D local position vector of vehicle [m]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_prev previous position setpoint
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void control_auto_path(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
+			       const position_setpoint_s &pos_sp_curr);
+
+	/**
 	 * @brief Controls a desired airspeed, bearing, and height rate.
 	 *
 	 * @param control_interval Time since last position control call [s]
@@ -921,14 +934,14 @@ private:
 
 		(ParamFloat<px4::params::FW_T_HRATE_FF>) _param_fw_t_hrate_ff,
 		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_h_error_tc,
-		(ParamFloat<px4::params::FW_T_I_GAIN_THR>) _param_fw_t_I_gain_thr,
+		(ParamFloat<px4::params::FW_T_THR_INTEG>) _param_fw_t_thr_integ,
 		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>) _param_fw_t_I_gain_pit,
 		(ParamFloat<px4::params::FW_T_PTCH_DAMP>) _param_fw_t_ptch_damp,
 		(ParamFloat<px4::params::FW_T_RLL2THR>) _param_fw_t_rll2thr,
 		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
 		(ParamFloat<px4::params::FW_T_TAS_TC>) _param_fw_t_tas_error_tc,
-		(ParamFloat<px4::params::FW_T_THR_DAMP>) _param_fw_t_thr_damp,
+		(ParamFloat<px4::params::FW_T_THR_DAMPING>) _param_fw_t_thr_damping,
 		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
 		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
 		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,

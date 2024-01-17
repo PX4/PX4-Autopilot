@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# PX4 FMUv5 specific board sensors init
+# PX4 FMUv6X-RT specific board sensors init
 #------------------------------------------------------------------------------
 #
 # UART mapping on PX4 FMU-V6XRT:
@@ -8,17 +8,17 @@
 # LPUART1       /dev/ttyS0      CONSOLE
 # LPUART3       /dev/ttyS1      GPS
 # LPUART4       /dev/ttyS2      TELEM1
-# LPUART5       /dev/ttyS4      GPS2
-# LPUART6       /dev/ttyS5      PX4IO
-# LPUART8       /dev/ttyS6      TELEM2
-# LPUART10      /dev/ttyS7      TELEM3
-# LPUART11      /dev/ttyS8      EXT2
+# LPUART5       /dev/ttyS3      GPS2
+# LPUART6       /dev/ttyS4      PX4IO
+# LPUART8       /dev/ttyS5      TELEM2
+# LPUART10      /dev/ttyS6      TELEM3
+# LPUART11      /dev/ttyS7      EXT2
 #
 #------------------------------------------------------------------------------
 
 set HAVE_PM2 yes
 
-if ver hwtypecmp V5X005000 V5X005001 V5X005002
+if ver hwtypecmp V6XRT005000
 then
 	set HAVE_PM2 no
 fi
@@ -84,6 +84,8 @@ ist8310 -X -b 1 -R 10 start
 if param compare SENS_INT_BARO_EN 1
 then
 	bmp388 -I -b 3 -a 0x77 start
-	bmp388 -X -b 2 start
 fi
+
+bmp388 -X -b 2 start
+
 unset HAVE_PM2

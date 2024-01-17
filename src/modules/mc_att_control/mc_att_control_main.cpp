@@ -193,9 +193,12 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	attitude_setpoint.timestamp = hrt_absolute_time();
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
-	// update attitude controller setpoint immediately
-	_attitude_control.setAttitudeSetpoint(q_sp, attitude_setpoint.yaw_sp_move_rate);
-	_thrust_setpoint_body = Vector3f(attitude_setpoint.thrust_body);
+	// update attitude controller setpoint immediately (don't do it in vtol transition, then the VTOL module generates the attitude setpoint)
+	if (!_vtol_in_transition_mode) {
+		_attitude_control.setAttitudeSetpoint(q_sp, attitude_setpoint.yaw_sp_move_rate);
+		_thrust_setpoint_body = Vector3f(attitude_setpoint.thrust_body);
+	}
+
 	_last_attitude_setpoint = attitude_setpoint.timestamp;
 }
 

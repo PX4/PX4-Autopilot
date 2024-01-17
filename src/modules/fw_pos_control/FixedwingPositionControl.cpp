@@ -129,8 +129,8 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 	_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
 	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed());
-	_tecs.set_throttle_damp(_param_fw_t_thr_damp.get());
-	_tecs.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
+	_tecs.set_throttle_damp(_param_fw_t_thr_damping.get());
+	_tecs.set_integrator_gain_throttle(_param_fw_t_thr_integ.get());
 	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
 	_tecs.set_throttle_slewrate(_param_fw_thr_slew_max.get());
 	_tecs.set_vertical_accel_limit(_param_fw_t_vert_acc.get());
@@ -666,9 +666,23 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 	_skipping_takeoff_detection = false;
 
-	if (((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled) ||
-	     _control_mode.flag_control_offboard_enabled) && (_position_setpoint_current_valid
-			     || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
+	    && _control_mode.flag_control_position_enabled) {
+		if (PX4_ISFINITE(_pos_sp_triplet.current.vx) && PX4_ISFINITE(_pos_sp_triplet.current.vy)
+		    && PX4_ISFINITE(_pos_sp_triplet.current.vz)) {
+			// Offboard position with velocity setpoints
+			_control_mode_current = FW_POSCTRL_MODE_AUTO_PATH;
+			return;
+
+		} else {
+			// Offboard position setpoint only
+			_control_mode_current = FW_POSCTRL_MODE_AUTO;
+			return;
+		}
+
+	} else if ((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled)
+		   && (_position_setpoint_current_valid
+		       || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
 		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
 		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
@@ -1063,15 +1077,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
-	if (_control_mode.flag_control_offboard_enabled && PX4_ISFINITE(pos_sp_curr.vx) && PX4_ISFINITE(pos_sp_curr.vy)) {
-		// Navigate directly on position setpoint and path tangent
-		matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
-		float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
-				  0.0f;
-		navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed,
-				    _wind_vel, curvature);
-
-	} else if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+	if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
 		navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 
@@ -1325,6 +1331,58 @@ void FixedwingPositionControl::publishFigureEightStatus(const position_setpoint_
 	_figure_eight_status_pub.publish(figure_eight_status);
 }
 #endif // CONFIG_FIGURE_OF_EIGHT
+
+void
+FixedwingPositionControl::control_auto_path(const float control_interval, const Vector2d &curr_pos,
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
+{
+
+	float tecs_fw_thr_min;
+	float tecs_fw_thr_max;
+
+	if (pos_sp_curr.gliding_enabled) {
+		/* enable gliding with this waypoint */
+		_tecs.set_speed_weight(2.0f);
+		tecs_fw_thr_min = 0.0;
+		tecs_fw_thr_max = 0.0;
+
+	} else {
+		tecs_fw_thr_min = _param_fw_thr_min.get();
+		tecs_fw_thr_max = _param_fw_thr_max.get();
+	}
+
+	// waypoint is a plain navigation waypoint
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
+				_performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), ground_speed);
+
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
+
+	// Navigate directly on position setpoint and path tangent
+	matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
+	const float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 /
+				_pos_sp_triplet.current.loiter_radius :
+				0.0f;
+	navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed, _wind_vel, curvature);
+
+	_att_sp.roll_body = _npfg.getRollSetpoint();
+	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+
+	tecs_update_pitch_throttle(control_interval,
+				   pos_sp_curr.alt,
+				   target_airspeed,
+				   radians(_param_fw_p_lim_min.get()),
+				   radians(_param_fw_p_lim_max.get()),
+				   tecs_fw_thr_min,
+				   tecs_fw_thr_max,
+				   _param_sinkrate_target.get(),
+				   _param_climbrate_target.get());
+}
 
 void
 FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const float control_interval,
@@ -2388,6 +2446,11 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR: {
 				control_auto_landing_circular(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_PATH: {
+				control_auto_path(control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 

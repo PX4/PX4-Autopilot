@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,58 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-/**
- * @file board_reset.cpp
- * Implementation of kinetis based Board RESET API
- */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/shutdown.h>
-#include <errno.h>
-#include <nuttx/board.h>
-
-#ifdef CONFIG_BOARDCTL_RESET
-
-static int board_reset_enter_bootloader()
-{
-	uint32_t regvalue = 0xb007b007;
-	*((uint32_t *) KINETIS_VBATR_BASE) = regvalue;
-	return OK;
-}
-
-/****************************************************************************
- * Name: board_reset
- *
- * Description:
- *   Reset board.  Support for this function is required by board-level
- *   logic if CONFIG_BOARDCTL_RESET is selected.
- *
- * Input Parameters:
- *   status - Status information provided with the reset event.  This
- *            meaning of this status information is board-specific.  If not
- *            used by a board, the value zero may be provided in calls to
- *            board_reset().
- *
- * Returned Value:
- *   If this function returns, then it was not possible to power-off the
- *   board due to some constraints.  The return value int this case is a
- *   board-specific reason for the failure to shutdown.
- *
- ****************************************************************************/
-
-int board_reset(int status)
-{
-	if (status == REBOOT_TO_BOOTLOADER) {
-		board_reset_enter_bootloader();
-	}
-
-#if defined(BOARD_HAS_ON_RESET)
-	board_on_reset(status);
-#endif
-
-	up_systemreset();
-	return 0;
-}
-
-#endif /* CONFIG_BOARDCTL_RESET */
+#include "../../../imxrt/include/px4_arch/imxrt_romapi.h"

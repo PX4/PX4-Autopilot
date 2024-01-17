@@ -36,9 +36,9 @@ param set-default GND_THR_MAX 0.5
 param set-default GND_MAX_ANG 1.042
 param set-default GND_WHEEL_BASE 0.17
 
-# TODO: Set to -1.0, to allow reversing. This will require many changes in the codebase
+# TODO: Set to -1, to allow reversing. This will require many changes in the codebase
 # to support negative throttle.
-param set-default GND_THR_MIN 0.0
+param set-default GND_THR_MIN 0
 param set-default GND_SPEED_P 0.25
 param set-default GND_SPEED_I 3
 param set-default GND_SPEED_D 0.001

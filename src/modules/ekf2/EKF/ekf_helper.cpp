@@ -171,6 +171,12 @@ bool Ekf::isHeightResetRequired() const
 	return (continuous_bad_accel_hgt || hgt_fusion_timeout);
 }
 
+void Ekf::resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy) {
+    _information_events.flags.reset_pos_to_ext_obs = true;
+    ECL_INFO("reset position to external observation");
+    resetHorizontalPositionTo(new_horiz_pos, sq(horiz_accuracy));
+}
+
 void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_var)
 {
 	const float old_vert_pos = _state.pos(2);

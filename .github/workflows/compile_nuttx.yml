@@ -48,6 +48,7 @@ jobs:
           matek_h743-slim,
           modalai_fc-v1,
           modalai_fc-v2,
+          mro_ctrl-zero-classic,
           mro_ctrl-zero-f7,
           mro_ctrl-zero-f7-oem,
           mro_ctrl-zero-h7,

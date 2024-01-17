@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/px4/fmu-v6xrt/src/imxrt_flexspi_nor_flash.h
+ * platforms/nuttx/src/px4/nxp/imrt/include/px4_arch/imxrt_flexspi_nor_flash.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,8 @@
  *
  ****************************************************************************/
 
-#ifndef __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_FLEXSPI_NOR_FLASH_H
-#define __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_FLEXSPI_NOR_FLASH_H
+#ifndef __PX4_ARCH_IMXRT_FLEXSPI_NOR_FLASH_H
+#define __PX4_ARCH_IMXRT_FLEXSPI_NOR_FLASH_H
 
 /****************************************************************************
  * Included Files
@@ -349,4 +349,4 @@ extern const struct flexspi_nor_config_s g_flash_config;
 extern const struct flexspi_nor_config_s g_flash_fast_config;
 
 
-#endif /* __BOARDS_PX4_FMU_V6XRT_SRC_IMXRT_FLEXSPI_NOR_FLASH_H */
+#endif /* __PX4_ARCH_IMXRT_FLEXSPI_NOR_FLASH_H */
