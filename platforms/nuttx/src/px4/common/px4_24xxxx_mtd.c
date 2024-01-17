@@ -71,6 +71,7 @@
 
 #include <perf/perf_counter.h>
 #include <board_config.h>
+#include <lib/crc/crc.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -155,6 +156,9 @@
 #  define CONFIG_AT24XX_WRITE_TIMEOUT_MS  20
 #endif
 
+/* Length of the CRC code of each block, in bytes */
+#define CRC_LEN 2
+
 /************************************************************************************
  * Private Types
  ************************************************************************************/
@@ -220,10 +224,14 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 
 	memset(&buf[2], 0xff, priv->pagesize);
 
+	uint16_t crc = crc16_signature(0xffff, priv->pagesize, &buf[2]);
+	buf[2 + priv->pagesize] = crc & 0xff;
+	buf[2 + priv->pagesize + 1] = crc >> 8;
+
 	BOARD_EEPROM_WP_CTRL(false);
 
 	for (startblock = 0; startblock < priv->npages; startblock++) {
-		uint16_t offset = startblock * priv->pagesize;
+		uint16_t offset = startblock * (priv->pagesize + CRC_LEN);
 		buf[1] = offset & 0xff;
 		buf[0] = (offset >> 8) & 0xff;
 
@@ -288,7 +296,10 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 	FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
 	size_t blocksleft;
 	uint8_t addr[2];
+	uint8_t buf[AT24XX_PAGESIZE];
 	int ret;
+	FAR uint8_t *buffer_start = buffer;
+	bool crc_error = false;
 
 	struct i2c_msg_s msgv[2] = {
 		{
@@ -302,8 +313,8 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 			.frequency = 400000,
 			.addr = priv->addr,
 			.flags = I2C_M_READ,
-			.buffer = 0,
-			.length = priv->pagesize,
+			.buffer = buf,
+			.length = priv->pagesize + CRC_LEN,
 		}
 	};
 
@@ -324,21 +335,27 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 	}
 
 	while (blocksleft-- > 0) {
-		uint16_t offset = startblock * priv->pagesize;
+		uint16_t offset = startblock * (priv->pagesize + CRC_LEN);
 		unsigned tries = CONFIG_AT24XX_WRITE_TIMEOUT_MS;
-
 		addr[1] = offset & 0xff;
 		addr[0] = (offset >> 8) & 0xff;
-		msgv[1].buffer = buffer;
 
 		for (;;) {
-
 			perf_begin(priv->perf_transfers);
 			ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
 			perf_end(priv->perf_transfers);
 
 			if (ret >= 0) {
-				break;
+				uint16_t crc_expected = ((uint16_t)buf[priv->pagesize + 1]) << 8 | buf[priv->pagesize];
+
+				if (crc_expected == crc16_signature(0xffff, priv->pagesize, buf)) {
+					memcpy(buffer, buf, priv->pagesize);
+					break;
+
+				} else {
+					crc_error = true;
+					ferr("read error, retrying");
+				}
 			}
 
 			finfo("read stall");
@@ -354,6 +371,15 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 
 			if (--tries == 0) {
 				perf_count(priv->perf_errors);
+				memset(buffer_start, 0xff, priv->pagesize * nblocks);
+
+				if (crc_error) {
+					// The data in this block is permanently corrupt. Try to reset the block so that
+					// it becomes usable again
+					ferr("CRC error, resetting block %jd\n", (intmax_t)startblock);
+					at24c_bwrite(dev, startblock, 1, buffer);
+				}
+
 				return ERROR;
 			}
 		}
@@ -413,12 +439,16 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 	BOARD_EEPROM_WP_CTRL(false);
 
 	while (blocksleft-- > 0) {
-		uint16_t offset = startblock * priv->pagesize;
+		uint16_t offset = startblock * (priv->pagesize + CRC_LEN);
 		unsigned tries = CONFIG_AT24XX_WRITE_TIMEOUT_MS;
 
 		buf[1] = offset & 0xff;
 		buf[0] = (offset >> 8) & 0xff;
 		memcpy(&buf[2], buffer, priv->pagesize);
+
+		uint16_t crc = crc16_signature(0xffff, priv->pagesize, &buf[2]);
+		buf[2 + priv->pagesize] = crc & 0xff;
+		buf[2 + priv->pagesize + 1] = crc >> 8;
 
 		for (;;) {
 
@@ -494,8 +524,8 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 				 */
 
 #if CONFIG_AT24XX_MTD_BLOCKSIZE > AT24XX_PAGESIZE
-				geo->blocksize    = CONFIG_AT24XX_MTD_BLOCKSIZE;
-				geo->erasesize    = CONFIG_AT24XX_MTD_BLOCKSIZE;
+				geo->blocksize    = priv->pagesize * (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
+				geo->erasesize    = priv->pagesize * (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
 				geo->neraseblocks = (CONFIG_AT24XX_SIZE * 1024 / 8) / CONFIG_AT24XX_MTD_BLOCKSIZE;
 #else
 				geo->blocksize    = priv->pagesize;
@@ -559,7 +589,7 @@ int px4_at24c_initialize(FAR struct i2c_master_s *dev,
 	if (priv) {
 		/* Initialize the allocated structure */
 		priv->addr       = address;
-		priv->pagesize   = AT24XX_PAGESIZE;
+		priv->pagesize   = AT24XX_PAGESIZE - CRC_LEN;
 		priv->npages     = AT24XX_NPAGES;
 
 		priv->mtd.erase  = at24c_erase;
