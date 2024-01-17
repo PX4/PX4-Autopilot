@@ -59,6 +59,7 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 		arch_board_critmon
 		arch_version
 		nuttx_sched
+		crc
 	)
 
 if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
