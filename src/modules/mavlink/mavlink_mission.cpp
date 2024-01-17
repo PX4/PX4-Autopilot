@@ -1430,7 +1430,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				vcmd.param4 = mission_item->yaw; // YAW TBD need a user friendly solution to set this
 				vcmd.param5 = (double)mission_item->lat;
 				vcmd.param6 = (double)mission_item->lon;
-				vcmd.param7 = (float)mission_item->altitude;
+				vcmd.param7 = 0.0f;  // ignore takeoff alt as it's the 1st waypoint, not HOME
 				vcmd.command = vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN;
 				vcmd.target_system = _mavlink->get_system_id();
 				vcmd.target_component = MAV_COMP_ID_ALL;
