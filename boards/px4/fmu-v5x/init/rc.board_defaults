@@ -16,7 +16,7 @@ param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 1
 
-if ver hwtypecmp V5X009000 V5X009001 V5X00a000 V5X00a001 V5X008000 V5X008001 V5X010001
+if ver hwbasecmp 008 009 00a 010
 then
 	# Skynode: use the "custom participant" config for uxrce_dds_client
 	param set-default UXRCE_DDS_PTCFG 2
@@ -25,12 +25,12 @@ fi
 safety_button start
 
 # GPIO Expander driver on external I2C3
-if ver hwtypecmp V5X009000 V5X009001
+if ver hwbasecmp 009
 then
 	# No USB
 	mcp23009 start -b 3 -X -D 0xf0 -O 0xf0 -P 0x0f -U 10
 fi
-if ver hwtypecmp V5X00a000 V5X00a001 V5X008000 V5X008001
+if ver hwbasecmp 00a 008
 then
 	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -U 10
 fi
