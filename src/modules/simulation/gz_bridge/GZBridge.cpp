@@ -218,7 +218,7 @@ int GZBridge::init()
 
 	// GPS: /world/$WORLD/model/$MODEL/link/base_link/sensor/navsat_sensor/navsat
 	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name +
-								"/link/base_link/sensor/navsat_sensor/navsat";
+				    "/link/base_link/sensor/navsat_sensor/navsat";
 
 	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
