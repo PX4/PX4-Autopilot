@@ -95,6 +95,7 @@ const unsigned mode_flag_custom = 1;
 const unsigned mode_flag_armed = 128;
 bool _send_gps = false;
 bool _send_mag = false;
+bool _send_odometry = false;
 
 uORB::Publication<battery_status_s>				_battery_pub{ORB_ID(battery_status)};
 uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
@@ -187,7 +188,7 @@ handle_message_dsp(mavlink_message_t *msg)
 		handle_message_vision_position_estimate_dsp(msg);
 		break;
 	case MAVLINK_MSG_ID_ODOMETRY:
-		handle_message_odometry_dsp(msg);
+		if (_send_odometry) handle_message_odometry_dsp(msg);
 		break;
 	case MAVLINK_MSG_ID_COMMAND_LONG:
 		handle_message_command_long_dsp(msg);
@@ -274,7 +275,7 @@ void task_main(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
-	while ((ch = px4_getopt(argc, argv, "vsdcmgp:b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "osdmgp:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 's':
 			_use_software_mav_throttling = true;
@@ -293,6 +294,9 @@ void task_main(int argc, char *argv[])
 			break;
 		case 'g':
 			_send_gps = true;
+			break;
+		case 'o':
+			_send_odometry = true;
 			break;
 		default:
 			break;
