@@ -15,6 +15,7 @@
             "test_filter": "LocalPositionInterfaceTest.*",
             "timeout_min": 10,
             "env": {
+                "PX4_EKF2_GPS_CTRL": 0,
                 "PX4_PARAM_EKF2_EV_CTRL": 15
             }
         },
