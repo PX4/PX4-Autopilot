@@ -45,6 +45,7 @@ struct SendSubscription {
 	const char* dds_type_name;
 	uint32_t topic_size;
 	UcdrSerializeMethod ucdr_serialize_method;
+	bool reliable_qos;
 };
 
 // Subscribers for messages to send
@@ -56,6 +57,7 @@ struct SendTopicsSubs {
 			  "@(pub['dds_type'])",
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
 			  &ucdr_serialize_@(pub['simple_base_type']),
+			  @(pub['reliable_qos']),
 			},
 @[    end for]@
 	};
@@ -97,14 +99,15 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 			if (send_subscriptions[idx].data_writer.id == UXR_INVALID_ID) {
 				// data writer not created yet
 				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].orb_meta->o_name,
-								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
+								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer, send_subscriptions[idx].reliable_qos);
 			}
 
 			if (send_subscriptions[idx].data_writer.id != UXR_INVALID_ID) {
 
 				ucdrBuffer ub;
 				uint32_t topic_size = send_subscriptions[idx].topic_size;
-				if (uxr_prepare_output_stream(session, best_effort_stream_id, send_subscriptions[idx].data_writer, &ub, topic_size) != UXR_INVALID_REQUEST_ID) {
+				const uxrStreamId stream_id = send_subscriptions[idx].reliable_qos ? reliable_out_stream_id : best_effort_stream_id;
+				if (uxr_prepare_output_stream(session, stream_id, send_subscriptions[idx].data_writer, &ub, topic_size) != UXR_INVALID_REQUEST_ID) {
 					send_subscriptions[idx].ucdr_serialize_method(&topic_data, ub, time_offset_us);
 					// TODO: fill up the MTU and then flush, which reduces the packet overhead
 					uxr_flash_output_streams(session);
@@ -169,7 +172,8 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 @[    for idx, sub in enumerate(subscriptions + subscriptions_multi)]@
 	{
 			uint16_t queue_depth = uORB::DefaultQueueSize<@(sub['simple_base_type'])_s>::value * 2; // use a bit larger queue size than internal
-			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic_simple'])", "@(sub['dds_type'])", queue_depth);
+			const uxrStreamId stream_in_id = @(sub['reliable_qos']) ? reliable_in_stream_id : best_effort_in_stream_id;
+			create_data_reader(session, reliable_out_stream_id, stream_in_id, participant_id, @(idx), client_namespace, "@(sub['topic_simple'])", "@(sub['dds_type'])", queue_depth, @(sub['reliable_qos']));
 	}
 @[    end for]@
 

@@ -36,7 +36,7 @@ static bool generate_topic_name(char *topic, const char *client_namespace, const
 
 static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrObjectId participant_id,
 			       ORB_ID orb_id, const char *client_namespace, const char *topic_name_simple, const char *type_name,
-			       uxrObjectId &datawriter_id)
+			       uxrObjectId &datawriter_id, bool reliable_qos)
 {
 	// topic
 	char topic_name[TOPIC_NAME_SIZE];
@@ -62,7 +62,7 @@ static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_str
 
 	uxrQoS_t qos = {
 		.durability = UXR_DURABILITY_TRANSIENT_LOCAL,
-		.reliability = UXR_RELIABILITY_BEST_EFFORT,
+		.reliability = reliable_qos ? UXR_RELIABILITY_RELIABLE : UXR_RELIABILITY_BEST_EFFORT,
 		.history = UXR_HISTORY_KEEP_LAST,
 		.depth = 0,
 	};
@@ -88,7 +88,7 @@ static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_str
 
 static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId input_stream_id,
 			       uxrObjectId participant_id, uint16_t index, const char *client_namespace, const char *topic_name_simple,
-			       const char *type_name, uint16_t queue_depth)
+			       const char *type_name, uint16_t queue_depth, bool reliable_qos)
 {
 	// topic
 	char topic_name[TOPIC_NAME_SIZE];
@@ -118,7 +118,7 @@ static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_str
 
 	uxrQoS_t qos = {
 		.durability = UXR_DURABILITY_VOLATILE,
-		.reliability = UXR_RELIABILITY_BEST_EFFORT,
+		.reliability = reliable_qos ? UXR_RELIABILITY_RELIABLE : UXR_RELIABILITY_BEST_EFFORT,
 		.history = UXR_HISTORY_KEEP_LAST,
 		.depth = queue_depth,
 	};

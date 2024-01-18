@@ -99,6 +99,8 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+    msg_type['reliable_qos'] = 'true' if msg_type.get('reliable_qos', False) else 'false'
+
 pubs_not_empty = msg_map['publications'] is not None
 if pubs_not_empty:
     for p in msg_map['publications']:
