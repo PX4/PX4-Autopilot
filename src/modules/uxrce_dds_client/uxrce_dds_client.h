@@ -197,7 +197,6 @@ private:
 	bool _connected{false};
 	bool _session_created{false};
 	bool _timesync_converged{false};
-	bool _subs_initialized{false};
 
 	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
 
