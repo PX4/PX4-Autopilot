@@ -335,6 +335,8 @@ private:
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check = 0;
 
+	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
+
 	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
 	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
