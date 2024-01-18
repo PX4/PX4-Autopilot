@@ -418,6 +418,11 @@ void UxrceddsClient::run()
 			return;
 		}
 
+		if (!_subs->init(&session, reliable_out, reliable_in, best_effort_in, participant_id, _client_namespace)) {
+			PX4_ERR("subs init failed");
+			return;
+		}
+
 		// create VehicleCommand replier
 		if (num_of_repliers < MAX_NUM_REPLIERS) {
 			if (add_replier(new VehicleCommandSrv(&session, reliable_out, reliable_in, participant_id, _client_namespace,
@@ -462,8 +467,6 @@ void UxrceddsClient::run()
 		uint32_t last_num_payload_sent{};
 		uint32_t last_num_payload_received{};
 		int poll_error_counter = 0;
-
-		_subs->init();
 
 		while (!should_exit() && _connected) {
 
