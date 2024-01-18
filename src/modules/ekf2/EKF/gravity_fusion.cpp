@@ -79,7 +79,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	innovation.copyTo(_aid_src_gravity.innovation);
 	innovation_variance.copyTo(_aid_src_gravity.innovation_variance);
 
-	float innovation_gate = 1.f;
+	float innovation_gate = 0.25f;
 	setEstimatorAidStatusTestRatio(_aid_src_gravity, innovation_gate);
 
 	const bool accel_clipping = imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2];
