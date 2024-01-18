@@ -607,35 +607,64 @@ def compute_drag_y_innov_var_and_k(
 
     return (innov_var, K)
 
-def compute_gravity_innov_var_and_k_and_h(
-        state: VState,
-        P: MTangent,
-        meas: sf.V3,
-        R: sf.Scalar,
-        epsilon: sf.Scalar
-) -> (sf.V3, sf.V3, VTangent, VTangent, VTangent):
-
-    state = vstate_to_state(state)
+def predict_gravity_direction(state: State):
     # get transform from earth to body frame
     R_to_body = state["quat_nominal"].inverse()
 
     # the innovation is the error between measured acceleration
     #  and predicted (body frame), assuming no body acceleration
-    meas_pred = R_to_body * sf.Matrix([0,0,-9.80665])
-    innov = meas_pred - 9.80665 * meas.normalized(epsilon=epsilon)
+    return R_to_body * sf.Matrix([0,0,-1])
+
+def compute_gravity_xyz_innov_var_and_hx(
+        state: VState,
+        P: MTangent,
+        R: sf.Scalar
+) -> (sf.V3, VTangent):
+
+    state = vstate_to_state(state)
+    meas_pred = predict_gravity_direction(state)
 
     # initialize outputs
     innov_var = sf.V3()
-    K = [None] * 3
+    H = [None] * 3
 
     # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
     #  for each axis
     for i in range(3):
-        H = sf.V1(meas_pred[i]).jacobian(state)
-        innov_var[i] = (H * P * H.T + R)[0,0]
-        K[i] = P * H.T / innov_var[i]
+        H[i] = sf.V1(meas_pred[i]).jacobian(state)
+        innov_var[i] = (H[i] * P * H[i].T + R)[0,0]
 
-    return (innov, innov_var, K[0], K[1], K[2])
+    return (innov_var, H[0].T)
+
+def compute_gravity_y_innov_var_and_h(
+        state: VState,
+        P: MTangent,
+        R: sf.Scalar
+) -> (sf.V3, VTangent, VTangent, VTangent):
+
+    state = vstate_to_state(state)
+    meas_pred = predict_gravity_direction(state)
+
+    # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
+    H = sf.V1(meas_pred[1]).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_gravity_z_innov_var_and_h(
+        state: VState,
+        P: MTangent,
+        R: sf.Scalar
+) -> (sf.V3, VTangent, VTangent, VTangent):
+
+    state = vstate_to_state(state)
+    meas_pred = predict_gravity_direction(state)
+
+    # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
+    H = sf.V1(meas_pred[2]).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
 
 print("Derive EKF2 equations...")
 generate_px4_function(predict_covariance, output_names=None)
@@ -662,6 +691,8 @@ generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["
 generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas_pred", "innov_var", "H"])
-generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])
+generate_px4_function(compute_gravity_xyz_innov_var_and_hx, output_names=["innov_var", "Hx"])
+generate_px4_function(compute_gravity_y_innov_var_and_h, output_names=["innov_var", "Hy"])
+generate_px4_function(compute_gravity_z_innov_var_and_h, output_names=["innov_var", "Hz"])
 
 generate_px4_state(State, tangent_idx)
