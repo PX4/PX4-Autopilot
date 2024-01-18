@@ -239,7 +239,8 @@ void Navigator::run()
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 
-		while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+		while (_wait_for_vehicle_status_timestamp == 0 && _vehicle_command_sub.updated()
+		       && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
 			vehicle_command_updates++;
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 
@@ -260,6 +261,9 @@ void Navigator::run()
 				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				// only update the reposition setpoint if armed, as it otherwise won't get executed until the vehicle switches to loiter,
 				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
+
+				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
 				vehicle_global_position_s position_setpoint{};
 
@@ -420,6 +424,9 @@ void Navigator::run()
 				position_setpoint.lon = get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
 
+				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
@@ -493,6 +500,9 @@ void Navigator::run()
 				position_setpoint.lon = PX4_ISFINITE(cmd.param6) ? cmd.param6 : get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
+				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
@@ -537,6 +547,9 @@ void Navigator::run()
 				position_setpoint.lat = PX4_ISFINITE(cmd.param5) ? cmd.param5 : get_global_position()->lat;
 				position_setpoint.lon = PX4_ISFINITE(cmd.param6) ? cmd.param6 : get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+
+				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -868,6 +881,10 @@ void Navigator::run()
 		}
 
 		_navigation_mode = navigation_mode_new;
+
+		if (_wait_for_vehicle_status_timestamp != 0 && _vstatus.timestamp > _wait_for_vehicle_status_timestamp) {
+			_wait_for_vehicle_status_timestamp = 0;
+		}
 
 		/* iterate through navigation modes and set active/inactive for each */
 		for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
