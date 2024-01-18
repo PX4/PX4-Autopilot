@@ -987,7 +987,6 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 		const float beta = 1.f - alpha;
 
 		_accel_magnitude_filt = fmaxf(imu_delayed.delta_vel.norm() / imu_delayed.delta_vel_dt, beta * _accel_magnitude_filt);
-		_accel_vec_filt = alpha * imu_delayed.delta_vel / imu_delayed.delta_vel_dt + beta * _accel_vec_filt;
 	}
 
 
