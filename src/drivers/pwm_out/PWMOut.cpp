@@ -332,5 +332,7 @@ px4io driver is used for main ones.
 
 extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 {
+  PROBE_INIT(0x1ff);
+  return 0;
 	return PWMOut::main(argc, argv);
 }

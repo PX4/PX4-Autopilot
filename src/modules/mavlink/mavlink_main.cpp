@@ -766,7 +766,9 @@ void Mavlink::send_finish()
 
 	// send message to UART
 	if (get_protocol() == Protocol::SERIAL) {
+		PROBE(8, 0);
 		ret = ::write(_uart_fd, _buf, _buf_fill);
+		PROBE(8, 1);
 	}
 
 #if defined(MAVLINK_UDP)
