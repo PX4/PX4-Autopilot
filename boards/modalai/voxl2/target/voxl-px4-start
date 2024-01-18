@@ -6,7 +6,9 @@
 echo -e "\n*************************"
 echo "GPS: $GPS"
 echo "RC: $RC"
-echo "IMU ROTATION: $IMU_ROTATION"
+echo "ESC: $ESC"
+echo "POWER MANAGER: $POWER_MANAGER"
+echo "DISTANCE SENSOR: $DISTANCE_SENSOR"
 echo "OSD: $OSD"
 echo "EXTRA STEPS:"
 for i in "${EXTRA_STEPS[@]}"
@@ -21,6 +23,32 @@ echo -e "*************************\n"
 # and modules manually from the px4 command shell
 if [ ! -z $MINIMAL_PX4 ]; then
     /bin/echo "Running minimal script"
+    exit 0
+fi
+
+# Figure out what platform we are running on.
+PLATFORM=`/usr/bin/voxl-platform 2> /dev/null`
+RETURNCODE=$?
+if [ $RETURNCODE -ne 0 ]; then
+    # If we couldn't get the platform from the voxl-platform utility then check
+    # /etc/version to see if there is an M0052 substring in the version string. If so,
+    # then we assume that we are on M0052.
+    VERSIONSTRING=$(</etc/version)
+    M0052SUBSTRING="M0052"
+    if [[ "$VERSIONSTRING" == *"$M0052SUBSTRING"* ]]; then
+        PLATFORM="M0052"
+    fi
+fi
+
+# We can only run on M0052, M0054, or M0104 so exit with error if that is not the case
+if [ $PLATFORM = "M0052" ]; then
+    /bin/echo "Running on M0052"
+elif [ $PLATFORM = "M0054" ]; then
+    /bin/echo "Running on M0054"
+elif [ $PLATFORM = "M0104" ]; then
+    /bin/echo "Running on M0104"
+else
+    /bin/echo "Error, cannot determine platform!"
     exit 0
 fi
 
@@ -41,49 +69,40 @@ param load
 # the log file may be corrupted.
 logger start -t
 
-/bin/sleep 1
-
 # IMU (accelerometer / gyroscope)
-if [ "$IMU_ROTATION" != "NONE" ]; then
-    /bin/echo "Starting IMU driver with rotation: $IMU_ROTATION"
-    qshell icm42688p start -s -R $IMU_ROTATION
+if [ "$PLATFORM" == "M0104" ]; then
+    /bin/echo "Starting IMU driver with rotation 12"
+    qshell icm42688p start -s -R 12
 else
+    /bin/echo "Starting IMU driver with no rotation"
     qshell icm42688p start -s
 fi
-
-
-/bin/sleep 1
 
 # Start Invensense ICP 101xx barometer built on to VOXL 2
 qshell icp101xx start -I -b 5
 
-# Magnetometer
-if [ "$GPS" == "MATEK" ]; then
-    # Use this line for the magnetometer in the Matek Systems M8Q-5883 module
-    /bin/echo "Starting Mateksys M8Q-5883 magnetometer"
-    qshell qmc5883l start -R 10 -X -b 1
-elif [ "$GPS" == "HOLYBRO" ]; then
-    # Use this line for the magnetometer in the Holybro GPS module
-    /bin/echo "Starting Holybro magnetometer"
-    qshell ist8310 start -R 10 -X -b 1
+# Auto detect the magnetometer. If one or both of these devices
+# are not connected it will fail but not cause any harm.
+/bin/echo "Looking for qmc5883l magnetometer"
+qshell qmc5883l start -R 10 -X -b 1
+/bin/echo "Looking for ist8310 magnetometer"
+qshell ist8310 start -R 10 -X -b 1
+
+# GPS and magnetometer
+if [ "$GPS" != "NONE" ]; then
+	# On M0052 the GPS driver runs on the apps processor
+	if [ $PLATFORM = "M0052" ]; then
+	    gps start -d /dev/ttyHS2
+	# On M0054 and M0104 the GPS driver runs on SLPI DSP
+	else
+	    qshell gps start
+	fi
 fi
 
-# GPS
-if [ "$GPS" == "MATEK" ]; then
-    # Use this gps start line instead for Matek Systems M8Q-5883 module
-    /bin/echo "Starting Mateksys M8Q-5883 GPS"
-    qshell gps start
-elif [ "$GPS" == "HOLYBRO" ]; then
-    # Only the newer Holybro unit is supported on M0054
-    /bin/echo "Starting Holybro GPS"
-    qshell gps start -b 115200
-fi
-
-# LED driver for the Pixhawk 4 GPS module
-if [ "$GPS" == "HOLYBRO" ]; then
-    /bin/echo "Starting Holybro LED driver"
-    qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
-fi
+# Auto detect an ncp5623c i2c RGB LED. If one isn't connected this will
+# fail but not cause any harm. 
+/bin/echo "Looking for ncp5623c RGB LED"
+qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 
 # We do not change the value of SYS_AUTOCONFIG but if it does not
 # show up as used then it is not reported to QGC and we get a
@@ -91,10 +110,23 @@ fi
 param touch SYS_AUTOCONFIG
 
 # ESC driver
-qshell modal_io start
+if [ "$ESC" == "VOXL_ESC" ]; then
+    /bin/echo "Starting VOXL ESC driver"
+	qshell voxl_esc start
+elif [ "$ESC" == "VOXL2_IO_PWM_ESC" ]; then
+	if [ "$RC" == "M0065_SBUS" ]; then
+		/bin/echo "Starting VOXL IO for PWM ESC with SBUS RC"
+		qshell voxl2_io start
+	else
+		/bin/echo "Starting VOXL IO for PWM ESC without SBUS RC"
+		qshell voxl2_io start -e
+	fi
+else
+	/bin/echo "No ESC type specified, not starting an ESC driver"
+fi
 
-/bin/sleep 1
 
+# RC driver
 if [ "$RC" == "FAKE_RC_INPUT" ]; then
     /bin/echo "Starting fake RC driver"
     qshell rc_controller start
@@ -106,13 +138,46 @@ elif [ "$RC" == "CRSF_MAV" ]; then
     qshell mavlink_rc_in start -m -p 7 -b 115200
 elif [ "$RC" == "SPEKTRUM" ]; then
     /bin/echo "Starting Spektrum RC"
-    qshell spektrum_rc start
+	# On M0052 the RC driver runs on the apps processor
+	if [ $PLATFORM = "M0052" ]; then
+        rc_input start -d /dev/ttyHS1
+	# On M0054 and M0104 the RC driver runs on SLPI DSP
+	else
+        qshell spektrum_rc start
+	fi
+elif [ "$RC" == "GHST" ]; then
+    /bin/echo "Starting GHST RC driver"
+    qshell ghst_rc start -d 7
+elif [ "$RC" == "M0065_SBUS" ]; then
+	if [ $PLATFORM = "M0052" ]; then
+		apps_sbus start
+	elif [ "$ESC" != "VOXL2_IO_PWM_ESC" ]; then
+    	/bin/echo "Attempting to start M0065 SBUS RC driver for original M0065 FW"
+    	qshell dsp_sbus start
+		retVal=$?
+		if [ $retVal -ne 0 ]; then
+	    	/bin/echo "Starting M0065 SBUS RC driver for original M0065 FW failed"
+	    	/bin/echo "Attempting to start M0065 SBUS RC driver for new M0065 FW"
+			qshell voxl2_io start -d -p 7
+		fi
+	else
+    	/bin/echo "M0065 SBUS RC driver already started with PWM ESC start"
+	fi
 fi
 
-/bin/sleep 1
+if [ "$DISTANCE_SENSOR" == "LIGHTWARE_SF000" ]; then
+	# Make sure to set the parameter SENS_EN_SF0X to 8 for sf000/b sensor
+	qshell lightware_laser_serial start -d 7
+fi
 
-# APM power monitor
-qshell voxlpm start -X -b 2
+if [ "$POWER_MANAGER" == "VOXLPM" ]; then
+	# APM power monitor
+	qshell voxlpm start -X -b 2
+fi
+
+# Optional distance sensor on spare i2c
+# qshell vl53l0x start -X -b 4
+# qshell vl53l1x start -X -b 4
 
 # Start all of the processing modules on DSP
 qshell sensors start
@@ -121,32 +186,53 @@ qshell mc_pos_control start
 qshell mc_att_control start
 qshell mc_rate_control start
 qshell mc_hover_thrust_estimator start
+qshell mc_autotune_attitude_control start
 qshell land_detector start multicopter
 qshell manual_control start
 qshell control_allocator start
-qshell rc_update start
-qshell commander start
-qshell commander mode manual
+qshell load_mon start
 
-/bin/sleep 1
+# Only start the rc_update module if an actual RC driver
+# is publishing input_rc topics. Otherwise for external RC
+# over Mavlink this isn't needed.
+if [ "$RC" != "EXTERNAL" ]; then
+	qshell rc_update start
+fi
+
+qshell commander start
+
+# This is needed for altitude and position hold modes
+qshell flight_mode_manager start
 
 # Start all of the processing modules on the applications processor
 dataman start
 navigator start
+load_mon start
 
-# This is needed for altitude and position hold modes
-flight_mode_manager start
+# This bridge allows raw data packets to be sent over UART to the ESC
+voxl2_io_bridge start
 
+# Start microdds_client for ros2 offboard messages from agent over localhost
+microdds_client start -t udp -h 127.0.0.1 -p 8888
+
+# On M0052 there is only one IMU. So, PX4 needs to
+# publish IMU samples externally for VIO to use.
+if [ $PLATFORM = "M0052" ]; then
+	imu_server start
+fi
+
+# start the onboard fast link to connect to voxl-mavlink-server
 mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard
 
-# slow down some of the fastest streams in onboard mode
+# slow down some of the fastest streams
 mavlink stream -u 14556 -s HIGHRES_IMU -r 10
 mavlink stream -u 14556 -s ATTITUDE -r 10
 mavlink stream -u 14556 -s ATTITUDE_QUATERNION -r 10
-# speed up rc_channels
-mavlink stream -u 14556 -s RC_CHANNELS -r 50
+mavlink stream -u 14556 -s GLOBAL_POSITION_INT -r 30
+mavlink stream -u 14556 -s SCALED_PRESSURE -r 10
 
-/bin/sleep 1
+# start the slow normal mode for voxl-mavlink-server to forward to GCS
+mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
 
 mavlink boot_complete
 
