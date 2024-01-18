@@ -1403,22 +1403,29 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = NAV_CMD_TAKEOFF;
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 
-			int gps_enabled = 0;
-			int ev_enabled = 0;
+			// TODO may want to just have a new PX4 param to globally rule them all on this feature vs
+			// looking at has nag and ev_ctrl
+
+			// VIO missions /////////////////////////////////////////////////
+
+			// enable vio missions using the takeoff point as the HOME position in global NED space
+			// This enable user to trigger this feature either thru UI or programatically
+			int32_t gps_enabled = 0;
+			int32_t ev_enabled = 0;
 			param_get(param_find("SYS_HAS_GPS"), &gps_enabled);
 			param_get(param_find("EKF2_EV_CTRL"), &ev_enabled);
 
 			if (!gps_enabled && ev_enabled >= 9)
 			{
 				if (!(mission_item->yaw >=0 && mission_item->yaw < (float)(2 * M_PI_PRECISE))) {
-					mission_item->yaw = 0.0; // north FRD space!
+					mission_item->yaw = FP_ZERO;
 				}
 
 				PX4_WARN("GPS DISABLED, Using Takeoff as HOME:");
 				PX4_WARN("lat: %f lon: %f alt: %f yaw: %f (%f)",
 						mission_item->lat,
 						mission_item->lon,
-						(double)mission_item->altitude,
+						0.0,
 						(double)mission_item->yaw,
 						(double)mavlink_mission_item->param4);
 				events::send(events::ID("mavlink_mission_nav_takeoff"), events::Log::Error,
@@ -1430,7 +1437,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				vcmd.param4 = mission_item->yaw; // YAW TBD need a user friendly solution to set this
 				vcmd.param5 = (double)mission_item->lat;
 				vcmd.param6 = (double)mission_item->lon;
-				vcmd.param7 = 0.0f;  // ignore takeoff alt as it's the 1st waypoint, not HOME
+				vcmd.param7 = 0.0f;
 				vcmd.command = vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN;
 				vcmd.target_system = _mavlink->get_system_id();
 				vcmd.target_component = MAV_COMP_ID_ALL;
@@ -1444,17 +1451,23 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				// need to wait until EKF updates
 				uORB::Subscription g_pos_sub{ORB_ID(vehicle_global_position)};
 				vehicle_global_position_s		g_pos{};			/**< global vehicle position */
-				while(g_pos.lat < 1e-5 && g_pos.lon < 1e-5 && g_pos.alt < 1e-5f)
+				while(g_pos.lat < 1e-6 && g_pos.lon < 1e-6 && g_pos.alt < 1e-6f)
 				{
 					g_pos_sub.update(&g_pos);
+					usleep(2);
 				}
 
+				/*
+				 * TODO: may not be needed
 				uORB::Subscription	_home_position_sub{ORB_ID(home_position)};
 				// set and send home position
 				home_position_s home_position{};
 				_home_position_sub.copy(&home_position);
 				PX4_ERR("NEW  Home: %f %f %f", (double)home_position.lat, (double)home_position.lon, (double)home_position.alt);
+				*/
 			}
+
+			///////////////////////////////////////
 
 			break;
 		}

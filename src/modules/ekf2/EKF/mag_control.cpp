@@ -39,6 +39,37 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
+// VIO Missions
+// Collects mag data to get a avg heading to be used in the NED frame
+// Then shuts down mag fusion as it will create wild drifts depending on location and
+// theres logic that shuts down EV_YAW control.
+// TODO: fix ev yaw control WITH mag fusion.
+void Ekf::get_NED_heading(float mag_value)
+{
+    // if MAG is turned on, we need to realign the EV space from FRD to NED
+    // So wait until  a R_toEarth is established by MAG
+    static int16_t sample_size = 42;
+    static int16_t sample_ctn = 0;
+
+    if (sample_ctn < sample_size)
+    {
+            avg_mag_heading += mag_value;
+            sample_ctn++;
+
+            if (sample_ctn >= sample_size)
+            {
+                    avg_mag_heading /= (sample_size-1);
+                    stopMagFusion();
+                	resetQuatStateYaw(avg_mag_heading, 0);
+                    has_ev_heading_ned = true;
+
+                    PX4_ERR("====> GLOBAL R to Earth: %f (%d)", (double) avg_mag_heading * 180.0 / 3.141, sample_ctn );
+            }
+//            else
+//            		PX4_ERR("Mag %f (%d)", (double) mag_value * 180.0 / 3.141, sample_ctn );
+    }
+}
+
 void Ekf::controlMagFusion()
 {
 	bool mag_data_ready = false;
@@ -97,6 +128,10 @@ void Ekf::controlMagFusion()
 			_aid_src_mag_heading.timestamp_sample = mag_sample.time_us;
 			_aid_src_mag_heading.observation = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 			_aid_src_mag_heading.innovation = wrap_pi(getEulerYaw(_R_to_earth) - _aid_src_mag_heading.observation);
+
+			// VIO missions, collect data at power up
+			if (rotate_ev_to_ned && !has_ev_heading_ned)
+				get_NED_heading( _aid_src_mag_heading.observation);
 
 			// compute magnetometer innovations (for estimator_aid_src_mag logging)
 			//  rotate magnetometer earth field state into body frame
