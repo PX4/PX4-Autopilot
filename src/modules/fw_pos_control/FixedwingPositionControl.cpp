@@ -708,7 +708,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			if (!_vehicle_status.in_transition_mode) {
+			if (!(_vehicle_status.is_vtol && _param_nav_force_vtol.get() > 0)) {
 
 				// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
 				// Straight landings are currently only possible in Missions, and there the previous WP
@@ -721,9 +721,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 				}
 
 			} else {
-				_control_mode_current = FW_POSCTRL_MODE_AUTO;
-				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
-				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+				_control_mode_current = FW_POSCTRL_MODE_APPROACH_TRANSITON;
 			}
 
 		} else {
@@ -1079,13 +1077,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
-
-		if (isDoingBackTransition()) {
-			navigateLine(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
-
-		} else {
-			navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
-		}
+		navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 
 	} else {
 		navigateWaypoint(curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
@@ -2184,6 +2176,42 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	_att_sp.pitch_body = get_tecs_pitch();
 }
 
+void FixedwingPositionControl::control_approach_transition(const float control_interval, const Vector2f &ground_speed,
+		const position_setpoint_s &pos_sp_prev,
+		const position_setpoint_s &pos_sp_curr)
+{
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
+				_performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), ground_speed);
+
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
+
+	if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
+		navigateLine(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+
+	} else {
+		navigateWaypoint(curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+	}
+
+	_att_sp.roll_body = getCorrectedNpfgRollSetpoint();
+	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+
+	tecs_update_pitch_throttle(control_interval,
+				   pos_sp_curr.alt,
+				   target_airspeed,
+				   radians(_param_fw_p_lim_min.get()),
+				   radians(_param_fw_p_lim_max.get()),
+				   _param_fw_thr_min.get(),
+				   _param_fw_thr_max.get(),
+				   _param_sinkrate_target.get(),
+				   _param_climbrate_target.get());
+}
 float
 FixedwingPositionControl::get_tecs_pitch()
 {
@@ -2480,7 +2508,13 @@ FixedwingPositionControl::Run()
 				break;
 			}
 
+		case FW_POSCTRL_MODE_APPROACH_TRANSITON: {
+				control_approach_transition(control_interval, ground_speed, _pos_sp_triplet.previous,
+							    _pos_sp_triplet.current);
+				break;
+			}
 		}
+
 
 		if (_control_mode_current != FW_POSCTRL_MODE_OTHER) {
 
@@ -3067,6 +3101,7 @@ float FixedwingPositionControl::getLoadFactor()
 	return load_factor_from_bank_angle;
 
 }
+
 
 extern "C" __EXPORT int fw_pos_control_main(int argc, char *argv[])
 {

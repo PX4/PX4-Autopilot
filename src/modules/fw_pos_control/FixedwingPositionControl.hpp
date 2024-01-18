@@ -243,6 +243,7 @@ private:
 		FW_POSCTRL_MODE_AUTO_PATH,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
+		FW_POSCTRL_MODE_APPROACH_TRANSITON,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
 
@@ -456,11 +457,6 @@ private:
 				 float throttle_trim);
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 	float getLoadFactor();
-
-	bool isDoingBackTransition()
-	{
-		return _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
-	}
 
 	/**
 	 * @brief Get the NPFG roll setpoint with mitigation strategy if npfg is not certain about its output
@@ -689,6 +685,18 @@ private:
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 */
 	void control_manual_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
+
+	/**
+	 * @brief Controls flying towards a transition waypoint and then transitioning to MC mode.
+	 *
+	 * @param control_interval Time since last position control call [s]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_prev previous position setpoint
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void control_approach_transition(const float control_interval, const Vector2f &ground_speed,
+					 const position_setpoint_s &pos_sp_prev,
+					 const position_setpoint_s &pos_sp_curr);
 
 	float get_tecs_pitch();
 	float get_tecs_thrust();
@@ -1000,7 +1008,8 @@ private:
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
 
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
-		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on
+		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
+		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vtol
 	)
 
 };
