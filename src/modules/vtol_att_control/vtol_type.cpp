@@ -286,13 +286,17 @@ bool VtolType::isUncommandedDescent()
 	    && (current_altitude < _tecs_status->altitude_reference)
 	    && hrt_elapsed_time(&_tecs_status->timestamp) < 1_s) {
 
+		if (!PX4_ISFINITE(_quadchute_ref_alt)) {
+			_quadchute_ref_alt = current_altitude;
+		}
+
 		_quadchute_ref_alt = math::min(math::max(_quadchute_ref_alt, current_altitude),
 					       _tecs_status->altitude_reference);
 
 		return (_quadchute_ref_alt - current_altitude) > _param_vt_qc_alt_loss.get();
 
 	} else {
-		_quadchute_ref_alt = -MAXFLOAT;
+		_quadchute_ref_alt = NAN;
 	}
 
 	return false;
@@ -318,6 +322,11 @@ void VtolType::handleEkfResets()
 	if (_local_pos->z_reset_counter != _altitude_reset_counter) {
 		_local_position_z_start_of_transition += _local_pos->delta_z;
 		_altitude_reset_counter = _local_pos->z_reset_counter;
+
+		if (PX4_ISFINITE(_quadchute_ref_alt)) {
+			_quadchute_ref_alt += _local_pos->delta_z;
+		}
+
 	}
 }
 
