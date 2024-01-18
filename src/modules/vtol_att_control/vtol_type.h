@@ -316,7 +316,7 @@ protected:
 	hrt_abstime _last_loop_ts = 0;
 	float _transition_dt = 0;
 
-	float _quadchute_ref_alt{-MAXFLOAT};	// altitude (AMSL) reference to compute quad-chute altitude loss condition
+	float _quadchute_ref_alt{NAN};	// altitude (AMSL) reference to compute quad-chute altitude loss condition
 
 	float _accel_to_pitch_integ = 0;
 
