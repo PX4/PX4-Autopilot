@@ -826,10 +826,10 @@ PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.1f);
  * @group EKF2
  * @min 0.1
  * @max 10.0
- * @unit m/s^2
+ * @unit g
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_GRAV_NOISE, 5.0f);
+PARAM_DEFINE_FLOAT(EKF2_GRAV_NOISE, 1.0f);
 
 /**
  * Optical flow aiding
