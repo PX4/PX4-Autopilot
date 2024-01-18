@@ -98,6 +98,12 @@ static void cxx_initialize(void)
 		}
 	}
 }
+
+int __cxa_atexit(CODE void (*func)(FAR void *), FAR void *arg,
+		 FAR void *dso_handle)
+{
+	return -ENOTSUP;
+}
 #endif
 
 int px4_platform_init()
