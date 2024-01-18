@@ -96,6 +96,12 @@ static void cxx_initialize(void)
 		}
 	}
 }
+
+int __cxa_atexit(CODE void (*func)(FAR void *), FAR void *arg,
+		 FAR void *dso_handle)
+{
+	return -ENOTSUP;
+}
 #endif
 
 #if defined(CONFIG_I2C)
