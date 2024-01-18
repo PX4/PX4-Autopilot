@@ -38,23 +38,23 @@
  *
  * @reboot_required true
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @value 0 - Disabled
  * @value 1 - VOXL ESC
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(MODAL_IO_CONFIG, 0);
+PARAM_DEFINE_INT32(VOXL_ESC_CONFIG, 0);
 
 /**
  * UART ESC baud rate
  *
  * Default rate is 250Kbps, which is used in off-the-shelf MoadalAI ESC products.
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @unit bit/s
  */
-PARAM_DEFINE_INT32(MODAL_IO_BAUD, 250000);
+PARAM_DEFINE_INT32(VOXL_ESC_BAUD, 250000);
 
 /**
  * Motor mappings for ModalAI ESC
@@ -68,33 +68,33 @@ PARAM_DEFINE_INT32(MODAL_IO_BAUD, 250000);
 // The following are auto generated params from control allocator pattern, put here for reference
 
 // Default ESC1 to motor2
-//PARAM_DEFINE_INT32(MODAL_IO_FUNC1, 102);
+//PARAM_DEFINE_INT32(VOXL_ESC_FUNC1, 102);
 
-//PARAM_DEFINE_INT32(MODAL_IO_FUNC2, 103);
+//PARAM_DEFINE_INT32(VOXL_ESC_FUNC2, 103);
 
-//PARAM_DEFINE_INT32(MODAL_IO_FUNC3, 101);
+//PARAM_DEFINE_INT32(VOXL_ESC_FUNC3, 101);
 
-//PARAM_DEFINE_INT32(MODAL_IO_FUNC4, 104);
+//PARAM_DEFINE_INT32(VOXL_ESC_FUNC4, 104);
 
 /**
  * UART ESC RPM Min
  *
  * Minimum RPM for ESC
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @unit rpm
  */
-PARAM_DEFINE_INT32(MODAL_IO_RPM_MIN, 5500);
+PARAM_DEFINE_INT32(VOXL_ESC_RPM_MIN, 5500);
 
 /**
  * UART ESC RPM Max
  *
  * Maximum RPM for ESC
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @unit rpm
  */
-PARAM_DEFINE_INT32(MODAL_IO_RPM_MAX, 15000);
+PARAM_DEFINE_INT32(VOXL_ESC_RPM_MAX, 15000);
 
 /**
  * UART ESC Mode
@@ -103,7 +103,7 @@ PARAM_DEFINE_INT32(MODAL_IO_RPM_MAX, 15000);
  *
  * @reboot_required true
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @value 0 - None
  * @value 1 - Turtle Mode enabled via AUX1
  * @value 2 - Turtle Mode enabled via AUX2
@@ -111,108 +111,124 @@ PARAM_DEFINE_INT32(MODAL_IO_RPM_MAX, 15000);
  * @min 0
  * @max 2
  */
-PARAM_DEFINE_INT32(MODAL_IO_MODE, 0);
+PARAM_DEFINE_INT32(VOXL_ESC_MODE, 0);
 
 /**
  * UART ESC ID 1 Spin Direction Flag
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @value 0 - Default
  * @value 1 - Reverse
  */
-PARAM_DEFINE_INT32(MODAL_IO_SDIR1, 0);
+PARAM_DEFINE_INT32(VOXL_ESC_SDIR1, 0);
 
 /**
  * UART ESC ID 2 Spin Direction Flag
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @value 0 - Default
  * @value 1 - Reverse
  */
-PARAM_DEFINE_INT32(MODAL_IO_SDIR2, 0);
+PARAM_DEFINE_INT32(VOXL_ESC_SDIR2, 0);
 
 /**
  * UART ESC ID 3 Spin Direction Flag
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @value 0 - Default
  * @value 1 - Reverse
  */
-PARAM_DEFINE_INT32(MODAL_IO_SDIR3, 0);
+PARAM_DEFINE_INT32(VOXL_ESC_SDIR3, 0);
 
 /**
  * UART ESC ID 4 Spin Direction Flag
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @value 0 - Default
  * @value 1 - Reverse
  */
-PARAM_DEFINE_INT32(MODAL_IO_SDIR4, 0);
+PARAM_DEFINE_INT32(VOXL_ESC_SDIR4, 0);
 
 /**
  * UART ESC Turtle Mode Crash Flip Motor Percent
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @min 1
  * @max 100
  * @decimal 10
  * @increment 1
  */
-PARAM_DEFINE_INT32(MODAL_IO_T_PERC, 90);
+PARAM_DEFINE_INT32(VOXL_ESC_T_PERC, 90);
 
 /**
  * UART ESC Turtle Mode Crash Flip Motor Deadband
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @min 0
  * @max 100
  * @decimal 10
  * @increment 1
  */
-PARAM_DEFINE_INT32(MODAL_IO_T_DEAD, 20);
+PARAM_DEFINE_INT32(VOXL_ESC_T_DEAD, 20);
 
 /**
  * UART ESC Turtle Mode Crash Flip Motor STICK_MINF
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @min 0.0
  * @max 100.0
  * @decimal 10
  * @increment 1.0
  */
-PARAM_DEFINE_FLOAT(MODAL_IO_T_MINF, 0.15);
+PARAM_DEFINE_FLOAT(VOXL_ESC_T_MINF, 0.15);
 
 /**
  * UART ESC Turtle Mode Crash Flip Motor expo
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @min 0
  * @max 100
  * @decimal 10
  * @increment 1
  */
-PARAM_DEFINE_INT32(MODAL_IO_T_EXPO, 35);
+PARAM_DEFINE_INT32(VOXL_ESC_T_EXPO, 35);
 
 /**
  * UART ESC Turtle Mode Cosphi
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @min 0.000
  * @max 1.000
  * @decimal 10
  * @increment 0.001
  */
-PARAM_DEFINE_FLOAT(MODAL_IO_T_COSP, 0.990);
+PARAM_DEFINE_FLOAT(VOXL_ESC_T_COSP, 0.990);
 
 /**
  * UART ESC verbose logging
  *
  * @reboot_required true
  *
- * @group MODAL IO
+ * @group VOXL ESC
  * @value 0 - Disabled
  * @value 1 - Enabled
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(MODAL_IO_VLOG, 0);
+PARAM_DEFINE_INT32(VOXL_ESC_VLOG, 0);
+
+
+/**
+ * UART ESC Enable publishing of battery status
+ *
+ * Only applicable to ESCs that report total battery voltage and current
+ *
+ * @reboot_required true
+ *
+ * @group VOXL ESC
+ * @value 0 - Disabled
+ * @value 1 - Enabled
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(VOXL_ESC_PUB_BST, 1);

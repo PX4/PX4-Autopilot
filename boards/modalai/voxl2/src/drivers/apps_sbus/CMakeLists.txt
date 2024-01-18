@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,22 +32,10 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__actuators__modal_io
-	MAIN modal_io
+	MODULE drivers__apps_sbus
+	MAIN apps_sbus
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		crc16.c
-		crc16.h
-
-		modal_io_serial.cpp
-		modal_io_serial.hpp
-		modal_io.cpp
-		modal_io.hpp
-		qc_esc_packet_types.h
-		qc_esc_packet.c
-		qc_esc_packet.h
-	DEPENDS
-		px4_work_queue
-		mixer_module
-	MODULE_CONFIG
-		module.yaml
+		apps_sbus.cpp
 	)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,39 @@
  *
  ****************************************************************************/
 
-#ifndef FC_SENSOR_H
-#define FC_SENSOR_H
+#pragma once
 
-#ifdef __cplusplus
-extern "C" {
+#include <px4_log.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <termios.h>
+
+#ifdef __PX4_QURT
+#include <drivers/device/qurt/uart.h>
+#define FAR
 #endif
 
-#include <stdint.h>
-#include <stdbool.h>
+class Voxl2IoSerial
+{
+public:
+	Voxl2IoSerial();
+	virtual ~Voxl2IoSerial();
 
-typedef void (*fc_receive_cb)(const char *topic,
-			      const uint8_t *data,
-			      uint32_t length_in_bytes);
-typedef void (*fc_advertise_cb)(const char *topic);
-typedef void (*fc_add_subscription_cb)(const char *topic);
-typedef void (*fc_remove_subscription_cb)(const char *topic);
+	int		uart_open(const char *dev, speed_t speed);
+	int		uart_set_baud(speed_t speed);
+	int		uart_close();
+	int		uart_write(FAR void *buf, size_t len);
+	int		uart_read(FAR void *buf, size_t len);
+	bool		is_open() { return _uart_fd >= 0; };
+	int		uart_get_baud() {return _speed; }
 
-typedef struct {
-	fc_receive_cb               rx_callback;
-	fc_advertise_cb             ad_callback;
-	fc_add_subscription_cb      sub_callback;
-	fc_remove_subscription_cb   remove_sub_callback;
-} fc_callbacks;
+private:
+	int			_uart_fd = -1;
 
-int fc_sensor_initialize(bool enable_debug_messages, fc_callbacks *callbacks);
-int fc_sensor_advertise(const char *topic);
-int fc_sensor_subscribe(const char *topic);
-int fc_sensor_unsubscribe(const char *topic);
-int fc_sensor_send_data(const char *topic,
-			const uint8_t *data,
-			uint32_t length_in_bytes);
-#ifdef __cplusplus
-}
+#if ! defined(__PX4_QURT)
+	struct termios		_orig_cfg;
+	struct termios		_cfg;
 #endif
 
-#endif // FC_SENSOR_H
+	int   _speed = -1;
+};
