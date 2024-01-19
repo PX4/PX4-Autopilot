@@ -853,10 +853,11 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 		uint8_t breach_action = geofence_result_s::GF_ACTION_NONE;
 		bool max_altitude_exceeded = false;
-		gf_violation_type.flags.fence_violation = !_geofence.isInsideFence(fence_violation_test_point(0),
-				fence_violation_test_point(1),
-				_global_pos.alt + vertical_test_point_distance, &max_altitude_exceeded, &breach_action);
+		bool lateral_breach = false;
+		_geofence.isInsideFence(fence_violation_test_point(0), fence_violation_test_point(1),
+					_global_pos.alt + vertical_test_point_distance, &lateral_breach, &max_altitude_exceeded, &breach_action);
 
+		gf_violation_type.flags.fence_violation = lateral_breach;
 		gf_violation_type.flags.max_altitude_exceeded |= max_altitude_exceeded;
 
 		_last_geofence_check = hrt_absolute_time();

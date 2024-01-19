@@ -121,7 +121,8 @@ public:
 
 	bool isBelowMaxAltitude(float altitude);
 
-	virtual bool isInsideFence(double lat, double lon, float altitude, bool *max_altitude_exceeded, uint8_t *breach_action);
+	virtual bool isInsideFence(double lat, double lon, float altitude, bool *lateral_breach, bool *max_altitude_exceeded,
+				   uint8_t *breach_action);
 
 	int clearDm();
 

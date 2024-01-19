@@ -202,7 +202,8 @@ bool Geofence::checkAll(const struct vehicle_global_position_s &global_position,
 bool Geofence::checkAll(double lat, double lon, float altitude, uint8_t *breach_action)
 {
 	bool max_altitude_exceeded = false;  // Not used in this function
-	bool inside_fence = isInsideFence(lat, lon, altitude, &max_altitude_exceeded, breach_action);
+	bool lateral_breach = false;  // Not used in this function
+	bool inside_fence = isInsideFence(lat, lon, altitude, &lateral_breach, &max_altitude_exceeded, breach_action);
 
 	if (!isCloserThanMaxDistToHome(lat, lon, altitude) || !isBelowMaxAltitude(altitude)) {
 		inside_fence = false;
@@ -305,12 +306,14 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 	return inside_fence;
 }
 
-bool Geofence::isInsideFence(double lat, double lon, float altitude, bool *max_altitude_exceeded,
+bool Geofence::isInsideFence(double lat, double lon, float altitude, bool *lateral_breach, bool *max_altitude_exceeded,
 			     uint8_t *breach_action)
 {
 	// Set default for these first, so we have defined values if e.g. dm is locked and we return early
+	// These values will refere to the most severe breach only
 	*breach_action = geofence_result_s::GF_ACTION_NONE;
 	*max_altitude_exceeded = false;
+	*lateral_breach = false;
 
 	// the following uses dm_read, so first we try to lock all items. If that fails, it (most likely) means
 	// the data is currently being updated (via a mavlink geofence transfer), and we do not check for a violation now
@@ -332,55 +335,29 @@ bool Geofence::isInsideFence(double lat, double lon, float altitude, bool *max_a
 		return true;
 	}
 
-	/* Horizontal check: iterate all polygons & circles.
-	Search for a breached fence with the highest severity. */
-	bool inside_fence = true;
-
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
 
-		bool fence_breached = false;
+		bool fence_max_altitude_exceeded = false;
+		bool fence_lateral_breached = false;
 
 		if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
-			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
-
-			if (!inside) {
-				fence_breached = true;
-
-			} else if ((static_cast<int32_t>(_polygons[polygon_index].max_alt) != DISABLED_MAX_ALTITUDE_CHECK) &&
-				   (altitude > _polygons[polygon_index].max_alt)) {
-				fence_breached = true;
-				*max_altitude_exceeded = true;
-			}
+			fence_lateral_breached = !insideCircle(_polygons[polygon_index], lat, lon, altitude);
+			fence_max_altitude_exceeded = ((static_cast<int32_t>(_polygons[polygon_index].max_alt) != DISABLED_MAX_ALTITUDE_CHECK)
+						       && (altitude > _polygons[polygon_index].max_alt));
 
 		} else if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
+			fence_lateral_breached = insideCircle(_polygons[polygon_index], lat, lon, altitude);
 
-			if (inside) {
-				fence_breached = true;
-			}
+		} else if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
+			fence_lateral_breached = !insidePolygon(_polygons[polygon_index], lat, lon, altitude);
+			fence_max_altitude_exceeded = ((static_cast<int32_t>(_polygons[polygon_index].max_alt) != DISABLED_MAX_ALTITUDE_CHECK)
+						       && (altitude > _polygons[polygon_index].max_alt));
 
-		} else { // it's a polygon
-			bool inside = insidePolygon(_polygons[polygon_index], lat, lon, altitude);
-
-			if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
-				if (!inside) {
-					fence_breached = true;
-
-				} else if ((static_cast<int32_t>(_polygons[polygon_index].max_alt) != DISABLED_MAX_ALTITUDE_CHECK) &&
-					   (altitude > _polygons[polygon_index].max_alt)) {
-					fence_breached = true;
-					*max_altitude_exceeded = true;
-				}
-
-			} else { // exclusion
-				if (inside) {
-					fence_breached = true;
-				}
-			}
+		} else { // NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION
+			fence_lateral_breached = insidePolygon(_polygons[polygon_index], lat, lon, altitude);
 		}
 
-		if (fence_breached) {
-			inside_fence = false;
+		if (fence_max_altitude_exceeded || fence_lateral_breached) {
 			uint8_t current_fence_action = geofence_result_s::GF_ACTION_NONE;
 
 			if (geofence_result_s::GF_ACTION_DEFAULT == _polygons[polygon_index].fence_action) {
@@ -390,15 +367,18 @@ bool Geofence::isInsideFence(double lat, double lon, float altitude, bool *max_a
 				current_fence_action = _polygons[polygon_index].fence_action;
 			}
 
-			if (*breach_action < current_fence_action) {
+			if (*breach_action <= current_fence_action) {
+				// Use breach action and type of breach if at least as severe as any other breach found this iteration
 				*breach_action = current_fence_action;
+				*max_altitude_exceeded = fence_max_altitude_exceeded;
+				*lateral_breach = fence_lateral_breached;
 			}
 		}
 	}
 
 	dm_unlock(DM_KEY_FENCE_POINTS);
 
-	return inside_fence;
+	return !(*max_altitude_exceeded || *lateral_breach);
 }
 
 bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude)

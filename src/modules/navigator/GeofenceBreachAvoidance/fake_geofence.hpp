@@ -51,7 +51,7 @@ public:
 
 	virtual ~FakeGeofence() {};
 
-	bool isInsideFence(double lat, double lon, float altitude, bool * /*max_altitude_exceeded*/,
+	bool isInsideFence(double lat, double lon, float altitude, bool *lateral_breach, bool *max_altitude_exceeded,
 			   uint8_t *breach_action) override
 	{
 		bool inside = false;
@@ -83,6 +83,8 @@ public:
 		}
 
 		*breach_action = inside ? geofence_result_s::GF_ACTION_NONE : _action_type;
+		*lateral_breach = !inside;
+		*max_altitude_exceeded = false;  // Currently no altitude breach simulated
 		return inside;
 	}
 
