@@ -100,6 +100,7 @@
 #include <uORB/topics/tune_control.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -306,7 +307,10 @@ private:
 	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
-	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_angular_velocity_s>	_angular_velocity_groundtruth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
+	uORB::Publication<vehicle_attitude_s>					_attitude_groundtruth_pub{ORB_ID(vehicle_attitude_groundtruth)};
+	uORB::Publication<vehicle_global_position_s>	_gpos_groundtruth_pub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Publication<vehicle_local_position_s>		_lpos_groundtruth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_mc_virtual_att_sp_pub{ORB_ID(mc_virtual_attitude_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_fw_virtual_att_sp_pub{ORB_ID(fw_virtual_attitude_setpoint)};
@@ -365,10 +369,13 @@ private:
 	PX4Gyroscope *_px4_gyro{nullptr};
 	PX4Magnetometer *_px4_mag{nullptr};
 
-	float _global_local_alt0{NAN};
-	MapProjection _global_local_proj_ref{};
+	hrt_abstime _last_utm_global_pos_com{0};
 
-	hrt_abstime			_last_utm_global_pos_com{0};
+	hrt_abstime _hil_timestamp_prev{};
+	matrix::Vector3d _hil_position_prev{};
+	matrix::Vector3d _hil_velocity_prev{};
+	matrix::Vector3f _hil_euler_prev{};
+	MapProjection _hil_pos_ref{};
 
 	// Allocated if needed.
 	TunePublisher *_tune_publisher{nullptr};
@@ -396,7 +403,10 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
-		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr
+		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
+		(ParamFloat<px4::params::MAV_HITL_LAT>) _param_hil_home_lat,
+		(ParamFloat<px4::params::MAV_HITL_LON>) _param_hil_home_lon,
+		(ParamFloat<px4::params::MAV_HITL_ALT>) _param_hil_home_alt
 	);
 
 	// Disallow copy construction and move assignment.
