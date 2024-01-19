@@ -119,6 +119,11 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			if (continuing_conditions) {
 				ekf.fuseHorizontalPosition(aid_src);
 
+				if (isTimedOut(aid_src.time_last_fuse, imu_delayed.time_us, ekf._params.no_aid_timeout_max)) {
+					ekf.resetHorizontalPositionTo(Vector2f(aid_src.observation), Vector2f(aid_src.observation_variance));
+					aid_src.time_last_fuse = imu_delayed.time_us;
+				}
+
 			} else {
 				ekf.disableControlStatusAuxGpos();
 				_state = State::stopped;
