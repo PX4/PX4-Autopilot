@@ -222,6 +222,8 @@ private:
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
 
+	Vector2f _lpos_where_backtrans_started;
+
 	bool _position_setpoint_previous_valid{false};
 	bool _position_setpoint_current_valid{false};
 	bool _position_setpoint_next_valid{false};
@@ -694,9 +696,9 @@ private:
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_approach_transition(const float control_interval, const Vector2f &ground_speed,
-					 const position_setpoint_s &pos_sp_prev,
-					 const position_setpoint_s &pos_sp_curr);
+	void control_backtransition(const float control_interval, const Vector2f &ground_speed,
+				    const position_setpoint_s &pos_sp_prev,
+				    const position_setpoint_s &pos_sp_curr);
 
 	float get_tecs_pitch();
 	float get_tecs_thrust();

@@ -279,7 +279,7 @@ void RtlDirect::set_rtl_item()
 			DestinationPosition dest{_destination};
 			dest.alt = loiter_altitude;
 
-			setLandMissionItem(_mission_item, dest, rtl_heading_mode);
+			setMoveToPositionMissionItem(_mission_item, dest, rtl_heading_mode);
 
 			// Prepare for transition
 			_mission_item.vtol_back_transition = true;

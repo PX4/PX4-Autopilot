@@ -686,8 +686,12 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
 		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
+		const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		if (doing_backtransition) {
+			_control_mode_current = FW_POSCTRL_MODE_APPROACH_TRANSITON;
+
+		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
 			if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
 				_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -708,20 +712,14 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			if (!(_vehicle_status.is_vtol && _param_nav_force_vtol.get() > 0)) {
-
-				// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
-				// Straight landings are currently only possible in Missions, and there the previous WP
-				// is valid, and circular ones are used outside of Missions, as the land mode sets prev_valid=false.
-				if (_position_setpoint_previous_valid) {
-					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
-
-				} else {
-					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
-				}
+			// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
+			// Straight landings are currently only possible in Missions, and there the previous WP
+			// is valid, and circular ones are used outside of Missions, as the land mode sets prev_valid=false.
+			if (_position_setpoint_previous_valid) {
+				_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
 
 			} else {
-				_control_mode_current = FW_POSCTRL_MODE_APPROACH_TRANSITON;
+				_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
 			}
 
 		} else {
@@ -2176,7 +2174,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	_att_sp.pitch_body = get_tecs_pitch();
 }
 
-void FixedwingPositionControl::control_approach_transition(const float control_interval, const Vector2f &ground_speed,
+void FixedwingPositionControl::control_backtransition(const float control_interval, const Vector2f &ground_speed,
 		const position_setpoint_s &pos_sp_prev,
 		const position_setpoint_s &pos_sp_curr)
 {
@@ -2194,7 +2192,14 @@ void FixedwingPositionControl::control_approach_transition(const float control_i
 		navigateLine(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 
 	} else {
-		navigateWaypoint(curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+
+		// if we don't have a previous waypoint for line following, then create one using the current position at the
+		// start of the transition
+		if (!_lpos_where_backtrans_started.isAllFinite()) {
+			_lpos_where_backtrans_started = curr_pos_local;
+		}
+
+		navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 	}
 
 	_att_sp.roll_body = getCorrectedNpfgRollSetpoint();
@@ -2415,7 +2420,11 @@ FixedwingPositionControl::Run()
 			}
 		}
 
-		_vehicle_status_sub.update(&_vehicle_status);
+		if (_vehicle_status_sub.update(&_vehicle_status)) {
+			if (!_vehicle_status.in_transition_mode) {
+				_lpos_where_backtrans_started = Vector2f(NAN, NAN);
+			}
+		}
 
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
@@ -2509,8 +2518,8 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_APPROACH_TRANSITON: {
-				control_approach_transition(control_interval, ground_speed, _pos_sp_triplet.previous,
-							    _pos_sp_triplet.current);
+				control_backtransition(control_interval, ground_speed, _pos_sp_triplet.previous,
+						       _pos_sp_triplet.current);
 				break;
 			}
 		}
