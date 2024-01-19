@@ -189,7 +189,7 @@ private:
 	MixingOutput 	_mixing_output;
 
 	/* RC input */
-	VOXL2_IOPacket _sbus_packet;
+	VOXL2_IOPacket _voxl2_io_packet;
 	uint64_t _rc_last_valid;		
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
 	unsigned _sbus_frame_drops{0};
