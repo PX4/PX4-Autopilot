@@ -364,6 +364,24 @@ else
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
+		# start PX4 simulated sensors
+		if param compare -s SENS_EN_BAROSIM 1
+		then
+			sensor_baro_sim start
+		fi
+		if param compare -s SENS_EN_GPSSIM 1
+		then
+			sensor_gps_sim start
+		fi
+		if param compare -s SENS_EN_MAGSIM 1
+		then
+			sensor_mag_sim start
+		fi
+		if param compare -s SENS_EN_ARSPDSIM 1
+		then
+			sensor_airspeed_sim start
+		fi
+
 		# start the simulator in hardware if needed
 		if param compare SYS_HITL 2
 		then
