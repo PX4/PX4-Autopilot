@@ -60,7 +60,11 @@ class Ekf;
 class AuxGlobalPosition : public ModuleParams
 {
 public:
-	AuxGlobalPosition() : ModuleParams(nullptr) {}
+	AuxGlobalPosition() : ModuleParams(nullptr)
+	{
+		_estimator_aid_src_aux_global_position_pub.advertise();
+	}
+
 	~AuxGlobalPosition() = default;
 
 	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
