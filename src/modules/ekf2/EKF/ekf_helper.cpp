@@ -384,36 +384,30 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 	return false;
 }
 
-// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 {
-	// report absolute accuracy taking into account the uncertainty in location of the origin
-	// If not aiding, return 0 for horizontal position estimate as no estimate is available
-	// TODO - allow for baro drift in vertical position error
-	float hpos_err = sqrtf(P.trace<2>(State::pos.idx) + sq(_gpos_origin_eph));
+	float eph = INFINITY;
+	float epv = INFINITY;
 
-	// If we are dead-reckoning, use the innovations as a conservative alternate measure of the horizontal position error
-	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
-	// and using state variances for accuracy reporting is overly optimistic in these situations
-	if (_control_status.flags.inertial_dead_reckoning) {
-#if defined(CONFIG_EKF2_GNSS)
-		if (_control_status.flags.gps) {
-			hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
-		}
-#endif // CONFIG_EKF2_GNSS
+	if (global_origin_valid()) {
+		// report absolute accuracy taking into account the uncertainty in location of the origin
+		eph = sqrtf(P.trace<2>(State::pos.idx + 0) + sq(_gpos_origin_eph));
+		epv = sqrtf(P.trace<1>(State::pos.idx + 2) + sq(_gpos_origin_epv));
 
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-		if (_control_status.flags.ev_pos) {
-			hpos_err = math::max(hpos_err, Vector2f(_aid_src_ev_pos.innovation).norm());
+		if (_horizontal_deadreckon_time_exceeded) {
+			float lpos_eph = 0.f;
+			float lpos_epv = 0.f;
+			get_ekf_lpos_accuracy(&lpos_eph, &lpos_epv);
+
+			eph = math::max(eph, lpos_eph);
+			epv = math::max(epv, lpos_epv);
 		}
-#endif // CONFIG_EKF2_EXTERNAL_VISION
 	}
 
-	*ekf_eph = hpos_err;
-	*ekf_epv = sqrtf(P(State::pos.idx + 2, State::pos.idx + 2) + sq(_gpos_origin_epv));
+	*ekf_eph = eph;
+	*ekf_epv = epv;
 }
 
-// get the 1-sigma horizontal and vertical position uncertainty of the ekf local position
 void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 {
 	// TODO - allow for baro drift in vertical position error
