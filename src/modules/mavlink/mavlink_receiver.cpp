@@ -326,6 +326,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	 *
 	 * Accept HIL GPS messages if use_hil_gps flag is true.
 	 * This allows to provide fake gps measurements to the system.
+	 *
+	 * SSRC:
+	 * in HIL mode, MAVLINK_MSG_ID_HIL_SENSOR only contains imu sensor data from
+	 * from gz sim.
+	 * MAVLINK_MSG_ID_HIL_STATE_QUATERNION contains vehicle pose info from gz sim
+	 * Following that, local, global, attitude and angle velocity ground truth
+	 * will be published. These are needed by PX4 simulated sensors (GPS, Mag, Baro)
 	 */
 	if (_mavlink->get_hil_enabled()) {
 		switch (msg->msgid) {
@@ -2637,15 +2644,101 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	const uint64_t timestamp_sample = hrt_absolute_time();
 
+	const double dt = math::constrain((timestamp_sample - _hil_timestamp_prev) * 1e-6, 0.001, 0.1);
+	_hil_timestamp_prev = timestamp_sample;
+
 	/* airspeed */
-	{
-		airspeed_s airspeed{};
-		airspeed.timestamp_sample = timestamp_sample;
-		airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
-		airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
-		airspeed.air_temperature_celsius = 15.f;
-		airspeed.timestamp = hrt_absolute_time();
-		_airspeed_pub.publish(airspeed);
+	airspeed_s airspeed{};
+	airspeed.timestamp_sample = timestamp_sample;
+	airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
+	airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
+	airspeed.air_temperature_celsius = 15.f;
+	airspeed.timestamp = hrt_absolute_time();
+	_airspeed_pub.publish(airspeed);
+
+	/* Receive attitude quaternion from gz-sim and publish vehicle attitude
+	 * groundtruth and angular velocity ground truth
+	 */
+
+	/* Publish attitude ground truth */
+	vehicle_attitude_s hil_attitude_groundtruth{};
+	hil_attitude_groundtruth.timestamp_sample = timestamp_sample;
+	matrix::Quatf q(hil_state.attitude_quaternion);
+	q.copyTo(hil_attitude_groundtruth.q);
+	hil_attitude_groundtruth.timestamp = hrt_absolute_time();
+	_attitude_groundtruth_pub.publish(hil_attitude_groundtruth);
+
+	/* Publish angular velocity ground truth */
+	const matrix::Eulerf euler{q};
+	vehicle_angular_velocity_s hil_angular_velocity_groundtruth{};
+	hil_angular_velocity_groundtruth.timestamp_sample = timestamp_sample;
+	const matrix::Vector3f angular_velocity = (euler - _hil_euler_prev) / dt;
+	_hil_euler_prev = euler;
+	angular_velocity.copyTo(hil_angular_velocity_groundtruth.xyz);
+	hil_angular_velocity_groundtruth.timestamp = hrt_absolute_time();
+	_angular_velocity_groundtruth_pub.publish(hil_angular_velocity_groundtruth);
+
+	/* Receive local position (pose info) from gz-sim and publish local position
+	 * global position ground truth. Note that the HIL_STATE_QUATERNION msg type
+	 * does not support local position ENU info, so we have to the LAT, LON, ALT
+	 * fields (mmE3) with east in LAT, north in LON, up in ALT
+	 *[TODO create a new mavlink msg maybe called HIL_POSE_INFO for this]
+	 */
+
+	if (!_hil_pos_ref.isInitialized()) {
+		_hil_pos_ref.initReference((double)_param_hil_home_lat.get(), (double)_param_hil_home_lon.get(), hrt_absolute_time());
+	}
+
+	vehicle_local_position_s hil_local_position_groundtruth{};
+
+	hil_local_position_groundtruth.timestamp_sample = timestamp_sample;
+
+	/* position ENU -> NED */
+	const matrix::Vector3d position{static_cast<double>(hil_state.lon) / 1e3,
+					static_cast<double>(hil_state.lat) / 1e3,
+					-static_cast<double>(hil_state.alt) / 1e3};
+	const matrix::Vector3d velocity{(position - _hil_position_prev) / dt};
+	const matrix::Vector3d acceleration{(velocity - _hil_velocity_prev) / dt};
+
+	_hil_position_prev = position;
+	_hil_velocity_prev = velocity;
+
+	hil_local_position_groundtruth.ax = acceleration(0);
+	hil_local_position_groundtruth.ay = acceleration(1);
+	hil_local_position_groundtruth.az = acceleration(2);
+	hil_local_position_groundtruth.vx = velocity(0);
+	hil_local_position_groundtruth.vy = velocity(1);
+	hil_local_position_groundtruth.vz = velocity(2);
+	hil_local_position_groundtruth.x = position(0);
+	hil_local_position_groundtruth.y = position(1);
+	hil_local_position_groundtruth.z = position(2);
+
+	hil_local_position_groundtruth.heading = euler.psi();
+
+	hil_local_position_groundtruth.ref_lat =
+		_hil_pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
+	hil_local_position_groundtruth.ref_lon =
+		_hil_pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
+	hil_local_position_groundtruth.ref_alt = _param_hil_home_alt.get();
+	hil_local_position_groundtruth.ref_timestamp = _hil_pos_ref.getProjectionReferenceTimestamp();
+
+	hil_local_position_groundtruth.timestamp = hrt_absolute_time();
+	_lpos_groundtruth_pub.publish(hil_local_position_groundtruth);
+
+	if (_hil_pos_ref.isInitialized()) {
+		/* publish position groundtruth */
+		vehicle_global_position_s hil_global_position_groundtruth{};
+
+		hil_global_position_groundtruth.timestamp_sample = hrt_absolute_time();
+
+		_hil_pos_ref.reproject(hil_local_position_groundtruth.x,
+				       hil_local_position_groundtruth.y,
+				       hil_global_position_groundtruth.lat,
+				       hil_global_position_groundtruth.lon);
+
+		hil_global_position_groundtruth.alt = _param_hil_home_alt.get() - static_cast<float>(position(2));
+		hil_global_position_groundtruth.timestamp = hrt_absolute_time();
+		_gpos_groundtruth_pub.publish(hil_global_position_groundtruth);
 	}
 }
 

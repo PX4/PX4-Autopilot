@@ -155,3 +155,27 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
  * @max 250
  */
 PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+
+/**
+ * mavlink receiver HITL simulated origin latitude
+ *
+ * @unit deg
+ * @group MAVLink
+ */
+PARAM_DEFINE_FLOAT(MAV_HITL_LAT, 47.397742f);
+
+/**
+ * mavlink receiver HITL simulated origin longitude
+ *
+ * @unit deg
+ * @group MAVLink
+ */
+PARAM_DEFINE_FLOAT(MAV_HITL_LON, 8.545594);
+
+/**
+ * mavlink receiver HITL simulated origin altitude
+ *
+ * @unit m
+ * @group MAVLink
+ */
+PARAM_DEFINE_FLOAT(MAV_HITL_ALT, 488.0);
