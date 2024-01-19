@@ -61,10 +61,25 @@ param set-default HIL_ACT_FUNC4 104
 param set-default MPC_XY_VEL_P_ACC 2.4
 
 # Battery parameters
-param set-default BAT1_N_CELLS 4
-param set-default BAT1_V_CHARGED 4.2
-param set-default BAT1_V_EMPTY 3.6
+# Ref: t-drone 22000mah 6s Lion
+param set-default BAT1_N_CELLS 6
+param set-default BAT1_V_CHARGED 4.1
+param set-default BAT1_V_EMPTY 3.2
 param set-default BAT1_V_DIV 18.1
+param set-default BAT1_SOURCE 0
+# Rough guess 50 mOhm
+param set-default BAT1_R_INTERNAL 0.0050
+param set-default BAT1_CAPACITY 22000
+
+# Ref: t-drone 22000mah 6s Lion
+param set-default BAT2_N_CELLS 6
+param set-default BAT2_V_CHARGED 4.1
+param set-default BAT2_V_EMPTY 3.2
+param set-default BAT2_V_DIV 18.1
+param set-default BAT2_SOURCE 0
+# Rough guess 50 mOhm
+param set-default BAT2_R_INTERNAL 0.0050
+param set-default BAT2_CAPACITY 22000
 
 # Enable LL40LS in i2c
 param set-default SENS_EN_LL40LS 2
@@ -95,4 +110,4 @@ param set-default GPS_SAT_INFO 1
 param set-default COM_RC_OVERRIDE 0
 
 # Change current sense shunt resistor value
-param set-default INA226_SHUNT 0.00025
+param set-default INA226_SHUNT 0.0005

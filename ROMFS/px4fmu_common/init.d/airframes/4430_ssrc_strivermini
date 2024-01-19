@@ -81,10 +81,25 @@ param set-default FW_AIRSPD_STALL 12.0
 param set-default FW_AIRSPD_TRIM 18.0
 
 # Battery parameters
-param set-default BAT1_N_CELLS 4
-param set-default BAT1_V_CHARGED 4.2
-param set-default BAT1_V_EMPTY 3.6
+# Ref: t-drone 22000mah 6s Lion
+param set-default BAT1_N_CELLS 6
+param set-default BAT1_V_CHARGED 4.1
+param set-default BAT1_V_EMPTY 3.2
 param set-default BAT1_V_DIV 18.1
+param set-default BAT1_SOURCE 0
+# Rough guess 50 mOhm
+param set-default BAT1_R_INTERNAL 0.0050
+param set-default BAT1_CAPACITY 22000
+
+# Ref: t-drone 22000mah 6s Lion
+param set-default BAT2_N_CELLS 6
+param set-default BAT2_V_CHARGED 4.1
+param set-default BAT2_V_EMPTY 3.2
+param set-default BAT2_V_DIV 18.1
+param set-default BAT2_SOURCE 0
+# Rough guess 50 mOhm
+param set-default BAT2_R_INTERNAL 0.0050
+param set-default BAT2_CAPACITY 22000
 
 # Disable internal magnetometer
 param set CAL_MAG0_PRIO 0
@@ -124,3 +139,6 @@ param set-default VT_FW_MIN_ALT 5
 # QuadChute angle limits
 param set-default VT_FW_QC_P 35
 param set-default VT_FW_QC_R 60
+
+# Change current sense shunt resistor value
+param set-default INA226_SHUNT 0.0005
