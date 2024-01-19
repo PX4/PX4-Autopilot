@@ -2538,62 +2538,13 @@ Commander::run()
 
 		const bool in_low_battery_failsafe_delay = _battery_failsafe_timestamp != 0;
 
-		// Geofence actions
-		const bool geofence_action_enabled = _geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
+		if (_armed.armed && !in_low_battery_failsafe_delay) {
 
-		if (_armed.armed
-		    && geofence_action_enabled
-		    && !in_low_battery_failsafe_delay) {
-
-			if (!_geofence_result.geofence_violated) {
-				// keep the previous action to NONE if there is no violation, and use the same fence action multiple times.
-				_geofence_action_prev = geofence_result_s::GF_ACTION_NONE;
-			}
-
-			// check for geofence violation transition
-			if (_geofence_result.geofence_violated && _geofence_action_prev != _geofence_result.geofence_action) {
-
-				_geofence_action_prev = _geofence_result.geofence_action;
-
-				switch (_geofence_result.geofence_action) {
-				case (geofence_result_s::GF_ACTION_NONE) : {
-						// do nothing
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_WARN) : {
-						// do nothing, mavlink critical messages are sent by navigator
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_LOITER) : {
-						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags,
-								_internal_state)) {
-							_geofence_loiter_on = true;
-						}
-
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_RTL) : {
-						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags,
-								_internal_state)) {
-							_geofence_rtl_on = true;
-						}
-
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_LAND) : {
-						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LAND, _status_flags,
-								_internal_state)) {
-							_geofence_land_on = true;
-						}
-
-						break;
-					}
-
-				case (geofence_result_s::GF_ACTION_TERMINATE) : {
+			// check for geofence violation, with breach actions ordered from most to least severe
+			// do not check for less severe action of a more severe action is latched (e.g. do not abort RTL for a loiter action)
+			if (_geofence_result.geofence_violated) {
+				if (_geofence_result.geofence_action != _geofence_action_prev) {
+					if (_geofence_result.geofence_action == geofence_result_s::GF_ACTION_TERMINATE) {
 						PX4_WARN("Flight termination because of geofence");
 
 						if (!_flight_termination_triggered && !_lockdown_triggered) {
@@ -2606,32 +2557,48 @@ Commander::run()
 							send_parachute_command();
 						}
 
-						break;
+					} else if (_geofence_land_on) {
+						// We have a latched geofence land action, do not take any action less severe than terminate
+					} else if (_geofence_result.geofence_action == geofence_result_s::GF_ACTION_LAND) {
+						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LAND, _status_flags,
+								_internal_state)) {
+							_geofence_land_on = true;
+						}
+
+					} else if (_geofence_rtl_on) {
+						// We have a latched geofence RTL action, do not take any action less severe than land
+					} else if (_geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL) {
+						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags,
+								_internal_state)) {
+							_geofence_rtl_on = true;
+						}
+
+					} else if (_geofence_loiter_on) {
+						// We have a latched geofence loiter/hold action, do not take any action less severe than land
+					} else if (_geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER) {
+						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags,
+								_internal_state)) {
+							_geofence_loiter_on = true;
+						}
+
+					} else if (_geofence_result.geofence_action == geofence_result_s::GF_ACTION_WARN) {
+						// do nothing, mavlink critical messages are sent by navigator
+					} else if (_geofence_result.geofence_action == geofence_result_s::GF_ACTION_NONE) {
+						// do nothing
 					}
+
+					_geofence_action_prev = _geofence_result.geofence_action;
 				}
+
+			} else {
+				// reset to none when no active breach
+				_geofence_action_prev = geofence_result_s::GF_ACTION_NONE;
 			}
 
-			// reset if no longer in LOITER or if manually switched to LOITER
-			const bool in_loiter_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
-
-			if (!in_loiter_mode) {
-				_geofence_loiter_on = false;
-			}
-
-
-			// reset if no longer in RTL or if manually switched to RTL
-			const bool in_rtl_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL;
-
-			if (!in_rtl_mode) {
-				_geofence_rtl_on = false;
-			}
-
-			// reset if no longer in LAND or if manually switched to LAND
-			const bool in_land_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND;
-
-			if (!in_land_mode) {
-				_geofence_land_on = false;
-			}
+			// reset latched actions if leaving the relevant state
+			_geofence_land_on = _geofence_land_on && _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND;
+			_geofence_rtl_on = _geofence_rtl_on && _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL;
+			_geofence_loiter_on = _geofence_loiter_on && _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
 
 			_geofence_warning_action_on = _geofence_warning_action_on || (_geofence_loiter_on || _geofence_rtl_on
 						      || _geofence_land_on);
