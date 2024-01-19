@@ -41,14 +41,23 @@ param set-default FW_AIRSPD_STALL 12.0
 param set-default FW_AIRSPD_TRIM 18.0
 
 # Battery parameters
+# Ref: tattu 6500mah 4s
 param set-default BAT1_N_CELLS 4
-param set-default BAT1_R_INTERNAL 0.0050
-param set-default BAT1_V_EMPTY 3.6000
-param set-default BAT1_V_LOAD_DROP 0.1000
+param set-default BAT1_V_CHARGED 4.2
+param set-default BAT1_V_DIV 18.1
+param set-default BAT1_R_INTERNAL 0.0011
+param set-default BAT1_V_EMPTY 3.5000
+param set-default BAT1_SOURCE 0
+param set-default BAT1_CAPACITY 1800
 
-param set-default BAT2_R_INTERNAL 0.0050
-param set-default BAT2_V_EMPTY 3.6000
-param set-default BAT2_V_LOAD_DROP 0.1000
+
+param set-default BAT2_N_CELLS 4
+param set-default BAT2_V_CHARGED 4.2
+param set-default BAT2_V_DIV 18.1
+param set-default BAT2_R_INTERNAL 0.0011
+param set-default BAT2_V_EMPTY 3.5000
+param set-default BAT2_SOURCE 0
+param set-default BAT2_CAPACITY 1800
 
 # Disable internal magnetometer
 param set CAL_MAG0_PRIO 0

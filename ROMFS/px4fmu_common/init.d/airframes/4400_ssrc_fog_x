@@ -65,23 +65,23 @@ param set-default UAVCAN_EC_FUNC4 104
 param set-default MPC_XY_VEL_P_ACC 2.4
 
 # Battery parameters
+# Ref: tattu 6500mah 4s
 param set-default BAT1_N_CELLS 4
 param set-default BAT1_V_CHARGED 4.2
-param set-default BAT1_V_EMPTY 3.6
 param set-default BAT1_V_DIV 18.1
-param set-default BAT1_R_INTERNAL -1.0
-param set-default BAT1_V_LOAD_DROP 0.3000
+param set-default BAT1_R_INTERNAL 0.0011
 param set-default BAT1_V_EMPTY 3.5000
 param set-default BAT1_SOURCE 0
+param set-default BAT1_CAPACITY 6000
+
 
 param set-default BAT2_N_CELLS 4
 param set-default BAT2_V_CHARGED 4.2
-param set-default BAT2_V_EMPTY 3.6
 param set-default BAT2_V_DIV 18.1
-param set-default BAT2_R_INTERNAL -1.0
-param set-default BAT2_V_LOAD_DROP 0.3000
+param set-default BAT2_R_INTERNAL 0.0011
 param set-default BAT2_V_EMPTY 3.5000
 param set-default BAT2_SOURCE 0
+param set-default BAT2_CAPACITY 6000
 
 # Enable LL40LS in i2c
 param set-default SENS_EN_LL40LS 2
