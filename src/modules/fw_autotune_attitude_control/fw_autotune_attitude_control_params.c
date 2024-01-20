@@ -121,3 +121,82 @@ PARAM_DEFINE_INT32(FW_AT_AXES, 3);
  * @group Autotune
  */
 PARAM_DEFINE_INT32(FW_AT_MAN_AUX, 0);
+
+/**
+ * Frequency of the injected signal
+ *
+ * This parameter define frequency of
+ * signal measured in hertz
+ *
+ * @unit Hz
+ * @min 0.1
+ * @max 10.0
+ * @decimal 1
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(FW_AT_SYSID_FREQ, 1.0);
+
+
+/**
+ * Phase angle of the injected signal
+ *
+ * This parameter define phase angle of
+ * signal
+ *
+ * @unit rad
+ * @min 0.1
+ * @max 10.0
+ * @decimal 1
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(FW_AT_SYSID_PHASE, 0.0);
+
+/**
+ * Start Frequency of the injected chirp signal
+ *
+ *
+ * @unit Hz
+ * @min 0.1
+ * @max 10.0
+ * @decimal 1
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(FW_AT_SYSID_SFREQ, 1.0);
+
+/**
+ * End Frequency of the injected chirp signal
+ *
+ *
+ * @unit Hz
+ * @min 0.1
+ * @max 10.0
+ * @decimal 1
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(FW_AT_SYSID_EFREQ, 1.0);
+
+/**
+ * Duration of time for chirp signal
+ *
+ *
+ * @unit second
+ * @min 0.1
+ * @max 10.0
+ * @decimal 1
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(FW_AT_SYSID_DT, 1.0);
+
+
+/**
+ * Select signal type
+ *
+ *
+ * @value 0 Sinus Signal
+ * @value 1 Chirp Signal
+ * @min 0
+ * @max 2
+ * @group Autotune
+ */
+PARAM_DEFINE_INT32(FW_AT_SYSID_DT, 1.0);
+
