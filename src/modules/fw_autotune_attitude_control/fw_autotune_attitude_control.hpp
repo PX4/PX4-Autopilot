@@ -64,6 +64,12 @@
 
 using namespace time_literals;
 
+enum signal_types {
+	step=0,
+	sinüs,
+	chirp
+}
+
 class FwAutotuneAttitudeControl : public ModuleBase<FwAutotuneAttitudeControl>, public ModuleParams,
 	public px4::WorkItem
 {

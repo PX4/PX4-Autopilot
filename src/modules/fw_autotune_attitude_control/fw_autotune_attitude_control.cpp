@@ -620,17 +620,39 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 
 const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 {
-	if (_steps_counter > _max_steps) {
-		_signal_sign = (_signal_sign == 1) ? 0 : 1;
-		_steps_counter = 0;
 
-		if (_max_steps > 1) {
+	_signal_gen.setSignalAmpiltude(_param_fw_at_sysid_amp.get());
+	_signal_gen.setSignalFrequency(_param_fw_sysid_freq.get());
+	_signal_gen.setSignalPhase(_param_fw_sysid_phase.get());
+	_signal_gen.setSignalStartFrequency(_param_fw_sysid_start_frequency.get());
+	_signal_gen.setSignalEndFrequency(_param_fw_sysid_end_frequency.get());
+	_signal_gen.setSignalDuration(_param_fw_sysid_duration.get());
+
+	switch (_param_fw_sysid_signal_type.get())
+	{
+	case signal_types::step:
+		{
+		if (_steps_counter > _max_steps) {
+			_signal_sign = (_signal_sign == 1) ? 0 : 1;
+			_steps_counter = 0;
+
+			if (_max_steps > 1) {
 			_max_steps--;
 
-		} else {
+			} else {
 			_max_steps = 5;
+			}
 		}
+		}
+		break;
+	case signal_types::sinüs:
+		break;
+	case signal_types::chirp:
+		break;
+	default:
+		break;
 	}
+
 
 	_steps_counter++;
 
