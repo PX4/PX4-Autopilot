@@ -50,15 +50,69 @@ public:
 	SignalGenerator() = default;
 	~SignalGenerator() = default;
 
+	/**
+	 * @brief Set the Signal Ampiltude Function
+	 *
+	 * @param amplitude Amplitude od Signal
+	 */
+	void setSignalAmpiltude(float amplitude) { _amplitude = amplitude;}
+	/**
+	 * @brief Set the Signal Frequency Function
+	 *
+	 * @param frequency Frequecny of Signal
+	 */
+	void setSignalFrequency(float frequency) { _frequency = frequency;}
+	/**
+	 * @brief Set the Signal Phase Function
+	 *
+	 * @param phase Phase Angle
+	 */
+	void setSignalPhase(float phase) { _phase = phase;}
+	/**
+	 * @brief Set the Signal Start Frequency Function
+	 *
+	 * @param phase Start Frequency
+	 */
+	void setSignalStartFrequency(float phase) { _start_frequency = phase;}
+	/**
+	 * @brief Set the Signal End Frequency Function
+	 *
+	 * @param phase End Frequency
+	 */
+	void setSignalEndFrequency(float phase) { _end_frequency = phase;}
+	/**
+	 * @brief Set the Signal Duration Function
+	 *
+	 * @param duration Duration of Generated Signal
+	 */
+	void setSignalDuration(float duration) { _duration = duration;}
 
-	void setSignalAmpiltude(float amplitude) { _amplitude = amplitude; }
 
-	float generateSinusSignal();
+
+	/**
+	 * @brief To Generate Sinüs Signal
+	 *
+	 * @param dt Delta Time
+	 * @return Sinüs Signal
+	 */
+	float generateSinusSignal(const float dt);
+
+	/**
+	 * @brief To Generate Chirp Signal
+	 *
+	 * @param dt Delta Time
+	 * @return Chirp Signal
+	 */
+	float generateChirpSignal(const float dt);
 
 
 private:
+	// Define variables
 	float _amplitude{0.0f};
 	float _frequency{0.0f};
+	float _phase{0.0f};
+	float _start_frequency{0.0f};
+	float _end_frequency{0.0f};
+	float _duration{0.0f};
 
-	float _dt{0.1f};
 };

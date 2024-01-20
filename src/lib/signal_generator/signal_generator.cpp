@@ -40,7 +40,16 @@
 #include "signal_generator.hpp"
 
 
-float SignalGenerator::generateSinusSignal()
+float SignalGenerator::generateChirpSignal(const float dt)
 {
-	return _amplitude * sin(2.0 * pi * _frequency * 0.1);
+	float frequency = _start_frequency + (_end_frequency - _start_frequency) * dt / duration;
+
+	return  sin(2.0 * pi * frequency * dt);
 }
+
+
+float SignalGenerator::generateSinusSignal(const float dt)
+{
+	return _amplitude * sin(2.0 * pi * _frequency * dt + _phase);
+}
+
