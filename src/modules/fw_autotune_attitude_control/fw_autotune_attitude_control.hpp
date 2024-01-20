@@ -119,6 +119,7 @@ private:
 	uORB::PublicationData<autotune_attitude_control_status_s> _autotune_attitude_control_status_pub{ORB_ID(autotune_attitude_control_status)};
 
 	SystemIdentification _sys_id;
+	SignalGenerator      _signal_gen;
 
 	enum class state {
 		idle = autotune_attitude_control_status_s::STATE_IDLE,
@@ -204,7 +205,17 @@ private:
 		(ParamFloat<px4::params::FW_YR_P>) _param_fw_yr_p,
 		(ParamFloat<px4::params::FW_YR_I>) _param_fw_yr_i,
 		(ParamFloat<px4::params::FW_YR_FF>) _param_fw_yr_ff,
-		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax
+		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
+
+		(ParamFloat<px4::params::FW_AT_SYSID_FREQ>) _param_fw_sysid_freq,
+		(ParamFloat<px4::params::FW_AT_SYSID_PHASE>) _param_fw_sysid_phase,
+		(ParamFloat<px4::params::FW_AT_SYSID_SFREQ>) _param_fw_sysid_start_frequency,
+		(ParamFloat<px4::params::FW_AT_SYSID_EFREQ>) _param_fw_sysid_end_frequency,
+		(ParamFloat<px4::params::FW_AT_SYSID_DT>) _param_fw_sysid_duration,
+		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
+
+
+
 	)
 
 	static constexpr float _publishing_dt_s = 100e-3f;
