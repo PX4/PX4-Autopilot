@@ -1,0 +1,15 @@
+module_name: Boat Position Control
+
+parameters:
+  - group: Boat Position Control
+    definitions:
+      USV_SPEED_P:
+        description:
+          short: Speed proportional gain
+        type: float
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 1
+
