@@ -1,5 +1,5 @@
-menuconfig MODULES_DIFFERENTIAL_DRIVE_CONTROL
-	bool "differential_drive_control"
+menuconfig MODULES_DIFFERENTIAL_DRIVE
+	bool "differential_drive"
 	default n
 	depends on MODULES_CONTROL_ALLOCATOR
 	---help---

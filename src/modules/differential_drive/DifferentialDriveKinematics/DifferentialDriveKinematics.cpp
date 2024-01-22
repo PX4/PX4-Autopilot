@@ -65,4 +65,3 @@ matrix::Vector2f DifferentialDriveKinematics::computeInverseKinematics(float lin
 	return Vector2f(linear_velocity_x - rotational_velocity,
 			linear_velocity_x + rotational_velocity) / _max_speed;
 }
-

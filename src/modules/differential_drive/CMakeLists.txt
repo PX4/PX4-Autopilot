@@ -35,11 +35,11 @@ add_subdirectory(DifferentialDriveKinematics)
 add_subdirectory(DifferentialDriveGuidance)
 
 px4_add_module(
-	MODULE modules__differential_drive_control
-	MAIN differential_drive_control
+	MODULE modules__differential_drive
+	MAIN differential_drive
 	SRCS
-		DifferentialDriveControl.cpp
-		DifferentialDriveControl.hpp
+		DifferentialDrive.cpp
+		DifferentialDrive.hpp
 	DEPENDS
 		DifferentialDriveKinematics
 		DifferentialDriveGuidance
