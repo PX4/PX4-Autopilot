@@ -31,6 +31,14 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 airspeed fusion support.
 
+menuconfig EKF2_AIRSPEED2D
+depends on MODULES_EKF2
+	bool "airspeed 2D fusion support"
+	default n
+	depends on EKF2_WIND
+	---help---
+		EKF2 airspeed 2D fusion support.
+
 menuconfig EKF2_AUX_GLOBAL_POSITION
 depends on MODULES_EKF2
 	bool "aux global position fusion support"
