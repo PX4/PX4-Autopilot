@@ -133,15 +133,6 @@ enum INT_CONFIG_BIT : uint8_t {
 	INT1_POLARITY       = Bit0,
 };
 
-// INTF_CONFIG0
-enum INTF_CONFIG0_BIT : uint8_t {
-	FIFO_HOLD_LAST_DATA_EN  = Bit7,
-	FIFO_COUNT_REC          = Bit6,
-	FIFO_COUNT_ENDIAN       = Bit5,
-	SENSOR_DATA_ENDIAN      = Bit4,
-	UI_SIFS_CFG_DISABLE_I2C = Bit1 | Bit0,
-};
-
 // FIFO_CONFIG
 enum FIFO_CONFIG_BIT : uint8_t {
 	// 7:6 FIFO_MODE

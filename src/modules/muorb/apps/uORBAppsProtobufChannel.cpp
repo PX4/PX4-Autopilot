@@ -113,6 +113,11 @@ void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 		test_flag = true;
 		return;
 
+	} else if (strcmp(topic, "CPULOAD") == 0) {
+		// PX4_ERR("Got CPULOAD subscription");
+		// This will happen when a newer PX4 version is talking to a
+		// SLPI image that doesn't support the CPULOAD request. If the
+		// SLPI image does support it then we wouldn't get this.
 	} else if (_RxHandler) {
 		pthread_mutex_lock(&_rx_mutex);
 		_SlpiSubscriberCache[topic]++;
