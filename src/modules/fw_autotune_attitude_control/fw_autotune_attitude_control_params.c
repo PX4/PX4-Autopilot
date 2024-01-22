@@ -192,8 +192,9 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_DT, 1.0);
  * Select signal type
  *
  *
- * @value 0 Sinus Signal
- * @value 1 Chirp Signal
+ * @value 0 Step Signal
+ * @value 1 Sinus Signal
+ * @value 2 Chirp Signal
  * @min 0
  * @max 2
  * @group Autotune
