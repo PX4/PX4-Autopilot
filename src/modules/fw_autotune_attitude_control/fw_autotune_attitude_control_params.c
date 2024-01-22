@@ -144,12 +144,12 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_FREQ, 1.0);
  * signal
  *
  * @unit rad
- * @min 0.1
+ * @min 0.0
  * @max 10.0
  * @decimal 1
  * @group Autotune
  */
-PARAM_DEFINE_FLOAT(FW_AT_SYSID_PHASE, 0.0);
+PARAM_DEFINE_FLOAT(FW_AT_SYSIDPHASE, 0.0);
 
 /**
  * Start Frequency of the injected chirp signal
@@ -161,7 +161,7 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_PHASE, 0.0);
  * @decimal 1
  * @group Autotune
  */
-PARAM_DEFINE_FLOAT(FW_AT_SYSID_SFREQ, 1.0);
+PARAM_DEFINE_FLOAT(FW_AT_SYSIDSFREQ, 1.0);
 
 /**
  * End Frequency of the injected chirp signal
@@ -173,13 +173,13 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_SFREQ, 1.0);
  * @decimal 1
  * @group Autotune
  */
-PARAM_DEFINE_FLOAT(FW_AT_SYSID_EFREQ, 1.0);
+PARAM_DEFINE_FLOAT(FW_AT_SYSIDEFREQ, 1.0);
 
 /**
  * Duration of time for chirp signal
  *
  *
- * @unit second
+ *
  * @min 0.1
  * @max 10.0
  * @decimal 1
@@ -198,5 +198,5 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_DT, 1.0);
  * @max 2
  * @group Autotune
  */
-PARAM_DEFINE_INT32(FW_AT_SYSID_TYPE, 1.0);
+PARAM_DEFINE_INT32(FW_AT_SYSID_TYPE, 1);
 
