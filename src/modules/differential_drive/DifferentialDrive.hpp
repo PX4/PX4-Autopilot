@@ -72,15 +72,12 @@ using namespace time_literals;
 
 static constexpr uint64_t kTimeoutUs = 5000_ms; // Maximal time in microseconds before a loop or data times out
 
-namespace differential_drive_control
-{
-
-class DifferentialDriveControl : public ModuleBase<DifferentialDriveControl>, public ModuleParams,
+class DifferentialDrive : public ModuleBase<DifferentialDrive>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
-	DifferentialDriveControl();
-	~DifferentialDriveControl() override = default;
+	DifferentialDrive();
+	~DifferentialDrive() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -150,5 +147,3 @@ private:
 		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
 	)
 };
-
-} // namespace differential_drive_control

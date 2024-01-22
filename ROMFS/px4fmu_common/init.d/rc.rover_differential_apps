@@ -5,7 +5,7 @@
 ekf2 start &
 
 # Start rover differential drive controller.
-differential_drive_control start
+differential_drive start
 
 # Start Land Detector.
 land_detector start rover
