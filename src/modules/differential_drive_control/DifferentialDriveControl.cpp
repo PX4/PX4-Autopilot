@@ -142,7 +142,7 @@ void DifferentialDriveControl::Run()
 				_differential_drive_setpoint.speed = manual_control_setpoint.throttle * _param_rdd_speed_scale.get() * _max_speed;
 				_differential_drive_setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() *
 									_max_angular_velocity;
-				_feed_forward_differential_drive_setpoint_pub.publish(_differential_drive_setpoint);
+				_differential_drive_control_output_pub.publish(_differential_drive_setpoint);
 			}
 		}
 
@@ -159,19 +159,19 @@ void DifferentialDriveControl::Run()
 		_differential_drive_setpoint.timestamp = now;
 		_differential_drive_setpoint.speed = guidance_output(0);
 		_differential_drive_setpoint.yaw_rate = guidance_output(1);
-		_closed_loop_differential_drive_setpoint_pub.publish(_differential_drive_setpoint);
+		_differential_drive_setpoint_pub.publish(_differential_drive_setpoint);
 	}
 
 	// check if the topic is updated and update the setpoint
-	if (_feed_forward_differential_drive_setpoint_sub.updated()) {
-		_feed_forward_differential_drive_setpoint_sub.copy(&_differential_drive_setpoint);
+	if (_differential_drive_control_output_sub.updated()) {
+		_differential_drive_control_output_sub.copy(&_differential_drive_setpoint);
 
 		_speed_pid_output = 0;
 		_angular_velocity_pid_output = 0;
 	}
 
-	if (_closed_loop_differential_drive_setpoint_sub.updated()) {
-		_closed_loop_differential_drive_setpoint_sub.copy(&_differential_drive_setpoint);
+	if (_differential_drive_setpoint_sub.updated()) {
+		_differential_drive_setpoint_sub.copy(&_differential_drive_setpoint);
 
 		_speed_pid_output = pid_calculate(&_speed_pid, _differential_drive_setpoint.speed, _velocity_in_body_frame(0), 0, dt);
 		_angular_velocity_pid_output = pid_calculate(&_angular_velocity_pid, _differential_drive_setpoint.yaw_rate,

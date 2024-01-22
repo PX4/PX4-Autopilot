@@ -99,8 +99,8 @@ protected:
 private:
 	void Run() override;
 
-	uORB::Subscription _feed_forward_differential_drive_setpoint_sub{ORB_ID(feed_forward_differential_drive_setpoint)};
-	uORB::Subscription _closed_loop_differential_drive_setpoint_sub{ORB_ID(closed_loop_differential_drive_setpoint)};
+	uORB::Subscription _differential_drive_control_output_sub{ORB_ID(differential_drive_control_output)};
+	uORB::Subscription _differential_drive_setpoint_sub{ORB_ID(differential_drive_setpoint)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -110,8 +110,8 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<differential_drive_setpoint_s> _feed_forward_differential_drive_setpoint_pub{ORB_ID(feed_forward_differential_drive_setpoint)};
-	uORB::Publication<differential_drive_setpoint_s> _closed_loop_differential_drive_setpoint_pub{ORB_ID(closed_loop_differential_drive_setpoint)};
+	uORB::Publication<differential_drive_setpoint_s> _differential_drive_control_output_pub{ORB_ID(differential_drive_control_output)};
+	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
 
 	differential_drive_setpoint_s _differential_drive_setpoint{};
 	vehicle_angular_velocity_s _vehicle_angular_velocity{};
