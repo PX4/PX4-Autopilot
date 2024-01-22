@@ -56,13 +56,13 @@ public:
 	 * Set maximum rate of change for the value
 	 * @param slew_rate maximum rate of change
 	 */
-	void setSlewRate(const Type slew_rate) { _slew_rate = slew_rate; }
+	void setSlewRate(const Type &slew_rate) { _slew_rate = slew_rate; }
 
 	/**
 	 * Set value ignoring slew rate for initialization purpose
 	 * @param value new applied value
 	 */
-	void setForcedValue(const Type value) { _value = value; }
+	void setForcedValue(const Type &value) { _value = value; }
 
 	/**
 	 * Get value from last update of the slew rate
@@ -76,7 +76,7 @@ public:
 	 * @param deltatime time in seconds since last update
 	 * @return actual value that complies with the slew rate
 	 */
-	Type update(const Type new_value, const float deltatime)
+	Type update(const Type &new_value, const float deltatime)
 	{
 		// Limit the rate of change of the value
 		const Type dvalue_desired = new_value - _value;
@@ -90,3 +90,14 @@ protected:
 	Type _slew_rate{}; ///< maximum rate of change for the value
 	Type _value{}; ///< state to keep last value of the slew rate
 };
+
+template<>
+inline matrix::Vector3f SlewRate<matrix::Vector3f>::update(const matrix::Vector3f &new_value, const float deltatime)
+{
+	// Limit the rate of change of the value
+	const matrix::Vector3f dvalue_desired = new_value - _value;
+	const matrix::Vector3f dvalue_max = _slew_rate * deltatime;
+	const matrix::Vector3f dvalue = matrix::constrain(dvalue_desired, -dvalue_max, dvalue_max);
+	_value += dvalue;
+	return _value;
+}
