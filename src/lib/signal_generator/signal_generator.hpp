@@ -92,18 +92,18 @@ public:
 	/**
 	 * @brief To Generate Sinüs Signal
 	 *
-	 * @param dt Delta Time
+	 * @param time Time
 	 * @return Sinüs Signal
 	 */
-	float generateSinusSignal(const float dt);
+	float generateSinusSignal(const float time);
 
 	/**
 	 * @brief To Generate Chirp Signal
 	 *
-	 * @param dt Delta Time
+	 * @param time Time
 	 * @return Chirp Signal
 	 */
-	float generateChirpSignal(const float dt);
+	float generateChirpSignal(const float time);
 
 
 private:
