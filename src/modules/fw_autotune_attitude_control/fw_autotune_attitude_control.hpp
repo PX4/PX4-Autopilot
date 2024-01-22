@@ -61,14 +61,21 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/signal_generator/signal_generator.hpp>
+
 
 using namespace time_literals;
 
 enum signal_types {
 	step=0,
-	sinüs,
+	sinus,
 	chirp
-}
+};
+// [s] minimum time step between auto tune updates
+static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
+
+// [s] maximum time step between auto tune updates
+static constexpr float MAX_AUTO_TIMESTEP = 0.05f;
 
 class FwAutotuneAttitudeControl : public ModuleBase<FwAutotuneAttitudeControl>, public ModuleParams,
 	public px4::WorkItem
@@ -184,6 +191,12 @@ private:
 	float _filter_sample_rate{1.f};
 	bool _are_filters_initialized{false};
 
+
+	float signal{0.0f};
+	float duration{0.0f};
+	float signal_counter{0.0f};
+	hrt_abstime last_time_signal_generator_called{0};
+
 	AlphaFilter<float> _signal_filter; ///< used to create a wash-out filter
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
@@ -214,9 +227,9 @@ private:
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
 
 		(ParamFloat<px4::params::FW_AT_SYSID_FREQ>) _param_fw_sysid_freq,
-		(ParamFloat<px4::params::FW_AT_SYSID_PHASE>) _param_fw_sysid_phase,
-		(ParamFloat<px4::params::FW_AT_SYSID_SFREQ>) _param_fw_sysid_start_frequency,
-		(ParamFloat<px4::params::FW_AT_SYSID_EFREQ>) _param_fw_sysid_end_frequency,
+		(ParamFloat<px4::params::FW_AT_SYSIDPHASE>) _param_fw_sysid_phase,
+		(ParamFloat<px4::params::FW_AT_SYSIDSFREQ>) _param_fw_sysid_start_frequency,
+		(ParamFloat<px4::params::FW_AT_SYSIDEFREQ>) _param_fw_sysid_end_frequency,
 		(ParamFloat<px4::params::FW_AT_SYSID_DT>) _param_fw_sysid_duration,
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
 
