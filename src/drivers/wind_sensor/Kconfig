@@ -1,0 +1,10 @@
+menu "Wind Sensors"
+    menuconfig COMMON_WIND_SENSOR
+        bool "Common wind sensor's"
+        default n
+        select DRIVERS_WIND_SENSOR_FT_TECHNOLOGIES
+        ---help---
+            Enable default set of wind sensor drivers
+
+    rsource "*/Kconfig"
+endmenu
