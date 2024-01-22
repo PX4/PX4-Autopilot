@@ -1,4 +1,4 @@
-module_name: Differential Drive Control
+module_name: Differential Drive
 
 parameters:
   - group: Rover Differential Drive
@@ -120,4 +120,3 @@ parameters:
         increment: 0.01
         decimal: 2
         default: 0.5
-

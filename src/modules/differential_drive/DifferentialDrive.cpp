@@ -31,14 +31,12 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDriveControl.hpp"
+#include "DifferentialDrive.hpp"
 
 using namespace time_literals;
 using namespace matrix;
-namespace differential_drive_control
-{
 
-DifferentialDriveControl::DifferentialDriveControl() :
+DifferentialDrive::DifferentialDrive() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
@@ -47,13 +45,13 @@ DifferentialDriveControl::DifferentialDriveControl() :
 	pid_init(&_speed_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
-bool DifferentialDriveControl::init()
+bool DifferentialDrive::init()
 {
 	ScheduleOnInterval(10_ms); // 100 Hz
 	return true;
 }
 
-void DifferentialDriveControl::updateParams()
+void DifferentialDrive::updateParams()
 {
 	ModuleParams::updateParams();
 
@@ -81,7 +79,7 @@ void DifferentialDriveControl::updateParams()
 	_differential_guidance_controller.setMaxAngularVelocity(_max_angular_velocity);
 }
 
-void DifferentialDriveControl::Run()
+void DifferentialDrive::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -200,9 +198,9 @@ void DifferentialDriveControl::Run()
 	_actuator_motors_pub.publish(actuator_motors);
 }
 
-int DifferentialDriveControl::task_spawn(int argc, char *argv[])
+int DifferentialDrive::task_spawn(int argc, char *argv[])
 {
-	DifferentialDriveControl *instance = new DifferentialDriveControl();
+	DifferentialDrive *instance = new DifferentialDrive();
 
 	if (instance) {
 		_object.store(instance);
@@ -223,12 +221,12 @@ int DifferentialDriveControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int DifferentialDriveControl::custom_command(int argc, char *argv[])
+int DifferentialDrive::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int DifferentialDriveControl::print_usage(const char *reason)
+int DifferentialDrive::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_ERR("%s\n", reason);
@@ -240,15 +238,13 @@ int DifferentialDriveControl::print_usage(const char *reason)
 Rover Differential Drive controller.
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("differential_drive_control", "controller");
+	PRINT_MODULE_USAGE_NAME("differential_drive", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
 
-extern "C" __EXPORT int differential_drive_control_main(int argc, char *argv[])
+extern "C" __EXPORT int differential_drive_main(int argc, char *argv[])
 {
-	return DifferentialDriveControl::main(argc, argv);
+	return DifferentialDrive::main(argc, argv);
 }
-
-} // namespace differential_drive_control
