@@ -14,18 +14,23 @@
 . /etc/init.d/rc.mc_defaults
 
 # Default rates
-param set-default IMU_GYRO_CUTOFF 60
-param set-default IMU_DGYRO_CUTOFF 30
+param set-default IMU_GYRO_CUTOFF 30
+param set-default IMU_DGYRO_CUTOFF 15
+param set-default IMU_GYRO_RATEMAX 800
 param set-default MC_ROLLRATE_P 0.14
 param set-default MC_PITCHRATE_P 0.14
-param set-default MC_ROLLRATE_I 0.3
-param set-default MC_PITCHRATE_I 0.3
-param set-default MC_ROLLRATE_D 0.004
-param set-default MC_PITCHRATE_D 0.004
-
-# Master gain parameters
-param set-default MC_ROLLRATE_K 0.4
-param set-default MC_PITCHRATE_K 0.4
+param set-default MC_ROLLRATE_I 0.350
+param set-default MC_PITCHRATE_I 0.300
+param set-default MC_ROLLRATE_D 0.0052
+param set-default MC_PITCHRATE_D 0.0048
+param set-default MC_PITCHRATE_K 1.10
+param set-default MC_PITCH_P 6.50
+param set-default MC_ROLLRATE_K 1.15
+param set-default MC_ROLL_P 6.00
+param set-default MC_YAWRATE_I 0.24
+param set-default MC_YAWRATE_K 1.75
+param set-default MC_YAWRATE_P 0.20
+param set-default MC_YAW_P 3.50
 
 # Control allocator parameters
 param set-default CA_ROTOR_COUNT 4
