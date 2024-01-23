@@ -194,7 +194,7 @@ private:
 
 	float signal{0.0f};
 	float duration{0.0f};
-	float signal_counter{0.0f};
+
 	hrt_abstime last_time_signal_generator_called{0};
 
 	AlphaFilter<float> _signal_filter; ///< used to create a wash-out filter
