@@ -485,7 +485,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	// the identification sequence is aborted immediately
 	if (_state != state::wait_for_disarm && _state != state::idle && _state != state::fail && _state != state::complete) {
 		if (now - _state_start_time > 20_s
-		    ) {
+		   ) {
 			orb_advert_t mavlink_log_pub = nullptr;
 			mavlink_log_critical(&mavlink_log_pub, "Autotune aborted before finishing");
 			_state = state::fail;
@@ -628,54 +628,51 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 	_signal_gen.setSignalDuration(_param_fw_sysid_duration.get());
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain((now - last_time_signal_generator_called) * 1e-6f,
-					       MIN_AUTO_TIMESTEP, MAX_AUTO_TIMESTEP);
+					 MIN_AUTO_TIMESTEP, MAX_AUTO_TIMESTEP);
 	last_time_signal_generator_called = now;
-	switch (_param_fw_sysid_signal_type.get())
-	{
-	case signal_types::step:
-		{
-		if (_steps_counter > _max_steps) {
-			_signal_sign = (_signal_sign == 1) ? 0 : 1;
-			_steps_counter = 0;
 
-			if (_max_steps > 1) {
-			_max_steps--;
+	switch (_param_fw_sysid_signal_type.get()) {
+	case signal_types::step: {
+			if (_steps_counter > _max_steps) {
+				_signal_sign = (_signal_sign == 1) ? 0 : 1;
+				_steps_counter = 0;
+
+				if (_max_steps > 1) {
+					_max_steps--;
+
+				} else {
+					_max_steps = 5;
+				}
+			}
+
+			signal = float(_signal_sign) * _param_fw_at_sysid_amp.get();
+		}
+		break;
+
+	case signal_types::sinus: {
+			if (_param_fw_sysid_duration.get() >= duration) {
+				duration = duration + dt;
+				signal = _signal_gen.generateSinusSignal(duration);
 
 			} else {
-			_max_steps = 5;
+				duration = 0.0f;
 			}
-		}
-		signal = float(_signal_sign) * _param_fw_at_sysid_amp.get();
-		}
-		break;
-	case signal_types::sinus:
-		{
-		if(_param_fw_sysid_duration.get()>= duration){
-			duration = duration + dt;
-			signal = _signal_gen.generateSinusSignal(duration);
-
-		}
-		else
-		{
-			duration = 0.0f;
-		}
 
 		}
 		break;
-	case signal_types::chirp:
-		{
-		if(_param_fw_sysid_duration.get()>= duration){
-			duration = duration + dt;
-			signal = _signal_gen.generateSinusSignal(duration);
 
-		}
-		else
-		{
-			duration = 0.0f;
-		}
+	case signal_types::chirp: {
+			if (_param_fw_sysid_duration.get() >= duration) {
+				duration = duration + dt;
+				signal = _signal_gen.generateSinusSignal(duration);
+
+			} else {
+				duration = 0.0f;
+			}
 
 		}
 		break;
+
 	default:
 		break;
 	}

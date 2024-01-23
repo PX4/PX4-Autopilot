@@ -67,7 +67,7 @@
 using namespace time_literals;
 
 enum signal_types {
-	step=0,
+	step = 0,
 	sinus,
 	chirp
 };
