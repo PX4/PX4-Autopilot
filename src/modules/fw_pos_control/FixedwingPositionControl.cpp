@@ -834,7 +834,7 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	position_setpoint_s current_sp = pos_sp_curr;
 	move_position_setpoint_for_vtol_transition(current_sp);
 
-	const uint8_t position_sp_type = handle_setpoint_type(current_sp);
+	const uint8_t position_sp_type = handle_setpoint_type(current_sp, pos_sp_next);
 
 	_position_sp_type = position_sp_type;
 
@@ -967,7 +967,8 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 }
 
 uint8_t
-FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp_curr)
+FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp_curr,
+		const position_setpoint_s &pos_sp_next)
 {
 	uint8_t position_sp_type = pos_sp_curr.type;
 
@@ -982,8 +983,13 @@ FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp
 
 	const float acc_rad = _npfg.switchDistance(500.0f);
 
-	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION
-	    || pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+	const bool approaching_vtol_backtransition = _vehicle_status.is_vtol
+			&& pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION && _position_setpoint_current_valid
+			&& pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && _position_setpoint_next_valid;
+
+
+	// check if we should switch to loiter but only if we are not expecting a backtransition to happen
+	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION && !approaching_vtol_backtransition) {
 
 		float dist_xy = -1.f;
 		float dist_z = -1.f;
@@ -993,17 +999,15 @@ FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp
 					   _current_latitude, _current_longitude, _current_altitude,
 					   &dist_xy, &dist_z);
 
-		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-			// Achieve position setpoint altitude via loiter when laterally close to WP.
-			// Detect if system has switchted into a Loiter before (check _position_sp_type), and in that
-			// case remove the dist_xy check (not switch out of Loiter until altitude is reached).
-			if ((!_vehicle_status.in_transition_mode) && (dist >= 0.f)
-			    && (dist_z > _param_nav_fw_alt_rad.get())
-			    && (dist_xy < acc_rad || _position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+		// Achieve position setpoint altitude via loiter when laterally close to WP.
+		// Detect if system has switchted into a Loiter before (check _position_sp_type), and in that
+		// case remove the dist_xy check (not switch out of Loiter until altitude is reached).
+		if ((!_vehicle_status.in_transition_mode) && (dist >= 0.f)
+		    && (dist_z > _param_nav_fw_alt_rad.get())
+		    && (dist_xy < acc_rad || _position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
-				// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
-				position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-			}
+			// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
+			position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		}
 	}
 
@@ -2187,7 +2191,8 @@ void FixedwingPositionControl::control_backtransition(const float control_interv
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
-	if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+
+	if (_position_setpoint_previous_valid) {
 		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
 		navigateLine(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 
@@ -2216,6 +2221,9 @@ void FixedwingPositionControl::control_backtransition(const float control_interv
 				   _param_fw_thr_max.get(),
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get());
+
+	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
+	_att_sp.pitch_body = get_tecs_pitch();
 }
 float
 FixedwingPositionControl::get_tecs_pitch()

@@ -564,6 +564,8 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
 			_mission_item.vtol_back_transition = true;
+
+			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 		}
 
 		/* transition to MC */

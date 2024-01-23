@@ -101,6 +101,7 @@
 #ifdef CONFIG_FIGURE_OF_EIGHT
 #include "figure_eight/FigureEight.hpp"
 #include <uORB/topics/figure_eight_status.h>
+
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 using namespace launchdetection;
@@ -543,7 +544,8 @@ private:
 	 * @param pos_sp_curr Current position setpoint
 	 * @return Adjusted position setpoint type
 	 */
-	uint8_t	handle_setpoint_type(const position_setpoint_s &pos_sp_curr);
+	uint8_t handle_setpoint_type(const position_setpoint_s &pos_sp_curr,
+				     const position_setpoint_s &pos_sp_next);
 
 	/* automatic control methods */
 
