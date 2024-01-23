@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,6 @@
 
 #pragma once
 
-#include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 
 #include <matrix/matrix/math.hpp>
@@ -48,6 +47,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/differential_drive_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 
@@ -74,10 +74,6 @@ public:
 	 * @param parent The parent ModuleParams object.
 	 */
 	DifferentialDriveGuidance(ModuleParams *parent);
-
-	/**
-	 * @brief Default destructor.
-	 */
 	~DifferentialDriveGuidance() = default;
 
 	/**
@@ -89,10 +85,8 @@ public:
 	 * @param body_velocity The velocity of the vehicle in m/s.
 	 * @param angular_velocity The angular velocity of the vehicle in rad/s.
 	 * @param dt The time step in seconds.
-	 * @return A 2D vector containing the computed guidance (speed in m/s, yaw rate in rad/s).
 	 */
-	matrix::Vector2f computeGuidance(float vehicle_yaw,
-					 float angular_velocity, float dt);
+	void computeGuidance(float yaw, float angular_velocity, float dt);
 
 	/**
 	 * @brief Set the maximum speed for the vehicle.
@@ -116,9 +110,10 @@ protected:
 	void updateParams() override;
 
 private:
-
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+
+	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
 
 	position_setpoint_triplet_s _position_setpoint_triplet{};
 	vehicle_global_position_s _vehicle_global_position{};
@@ -143,5 +138,4 @@ private:
 		(ParamFloat<px4::params::RDD_MAX_JERK>) _param_rdd_max_jerk,
 		(ParamFloat<px4::params::RDD_MAX_ACCEL>) _param_rdd_max_accel
 	)
-
 };

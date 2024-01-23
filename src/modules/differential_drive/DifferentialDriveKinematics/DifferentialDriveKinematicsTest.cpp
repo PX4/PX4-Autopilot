@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,9 +37,14 @@
 
 using namespace matrix;
 
-TEST(DifferentialDriveKinematicsTest, AllZeroInputCase)
+class DifferentialDriveKinematicsTest : public ::testing::Test
 {
-	DifferentialDriveKinematics kinematics;
+public:
+	DifferentialDriveKinematics kinematics{nullptr};
+};
+
+TEST_F(DifferentialDriveKinematicsTest, AllZeroInputCase)
+{
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(10.f);
 	kinematics.setMaxAngularVelocity(10.f);
@@ -49,9 +54,8 @@ TEST(DifferentialDriveKinematicsTest, AllZeroInputCase)
 }
 
 
-TEST(DifferentialDriveKinematicsTest, InvalidParameterCase)
+TEST_F(DifferentialDriveKinematicsTest, InvalidParameterCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(0.f);
 	kinematics.setMaxSpeed(10.f);
 	kinematics.setMaxAngularVelocity(10.f);
@@ -61,9 +65,8 @@ TEST(DifferentialDriveKinematicsTest, InvalidParameterCase)
 }
 
 
-TEST(DifferentialDriveKinematicsTest, UnitCase)
+TEST_F(DifferentialDriveKinematicsTest, UnitCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(10.f);
 	kinematics.setMaxAngularVelocity(10.f);
@@ -73,9 +76,8 @@ TEST(DifferentialDriveKinematicsTest, UnitCase)
 }
 
 
-TEST(DifferentialDriveKinematicsTest, UnitSaturationCase)
+TEST_F(DifferentialDriveKinematicsTest, UnitSaturationCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
 	kinematics.setMaxAngularVelocity(1.f);
@@ -85,9 +87,8 @@ TEST(DifferentialDriveKinematicsTest, UnitSaturationCase)
 }
 
 
-TEST(DifferentialDriveKinematicsTest, OppositeUnitSaturationCase)
+TEST_F(DifferentialDriveKinematicsTest, OppositeUnitSaturationCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
 	kinematics.setMaxAngularVelocity(1.f);
@@ -96,9 +97,8 @@ TEST(DifferentialDriveKinematicsTest, OppositeUnitSaturationCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(-1.f, 1.f), Vector2f(-1, 0));
 }
 
-TEST(DifferentialDriveKinematicsTest, RandomCase)
+TEST_F(DifferentialDriveKinematicsTest, RandomCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(2.f);
 	kinematics.setMaxSpeed(1.f);
 	kinematics.setMaxAngularVelocity(1.f);
@@ -107,9 +107,8 @@ TEST(DifferentialDriveKinematicsTest, RandomCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(0.5f, 0.7f), Vector2f(-0.4f, 1.0f));
 }
 
-TEST(DifferentialDriveKinematicsTest, RotateInPlaceCase)
+TEST_F(DifferentialDriveKinematicsTest, RotateInPlaceCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
 	kinematics.setMaxAngularVelocity(1.f);
@@ -118,9 +117,8 @@ TEST(DifferentialDriveKinematicsTest, RotateInPlaceCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(0.f, 1.f), Vector2f(-0.5f, 0.5f));
 }
 
-TEST(DifferentialDriveKinematicsTest, StraightMovementCase)
+TEST_F(DifferentialDriveKinematicsTest, StraightMovementCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
 	kinematics.setMaxAngularVelocity(1.f);
@@ -129,9 +127,8 @@ TEST(DifferentialDriveKinematicsTest, StraightMovementCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(1.f, 0.f), Vector2f(1.f, 1.f));
 }
 
-TEST(DifferentialDriveKinematicsTest, MinInputValuesCase)
+TEST_F(DifferentialDriveKinematicsTest, MinInputValuesCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(FLT_MIN);
 	kinematics.setMaxSpeed(FLT_MIN);
 	kinematics.setMaxAngularVelocity(FLT_MIN);
@@ -140,9 +137,8 @@ TEST(DifferentialDriveKinematicsTest, MinInputValuesCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(FLT_MIN, FLT_MIN), Vector2f(0.f, 0.f));
 }
 
-TEST(DifferentialDriveKinematicsTest, MaxSpeedLimitCase)
+TEST_F(DifferentialDriveKinematicsTest, MaxSpeedLimitCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
 	kinematics.setMaxAngularVelocity(1.f);
@@ -151,9 +147,8 @@ TEST(DifferentialDriveKinematicsTest, MaxSpeedLimitCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(10.f, 10.f), Vector2f(0.f, 1.f));
 }
 
-TEST(DifferentialDriveKinematicsTest, MaxSpeedForwardsCase)
+TEST_F(DifferentialDriveKinematicsTest, MaxSpeedForwardsCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
 	kinematics.setMaxAngularVelocity(1.f);
@@ -162,9 +157,8 @@ TEST(DifferentialDriveKinematicsTest, MaxSpeedForwardsCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(10.f, 0.f), Vector2f(1.f, 1.f));
 }
 
-TEST(DifferentialDriveKinematicsTest, MaxAngularCase)
+TEST_F(DifferentialDriveKinematicsTest, MaxAngularCase)
 {
-	DifferentialDriveKinematics kinematics;
 	kinematics.setWheelBase(2.f);
 	kinematics.setMaxSpeed(1.f);
 	kinematics.setMaxAngularVelocity(1.f);

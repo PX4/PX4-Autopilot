@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +33,11 @@
 
 #include "DifferentialDrive.hpp"
 
-using namespace time_literals;
-using namespace matrix;
-
 DifferentialDrive::DifferentialDrive() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	updateParams();
-	pid_init(&_angular_velocity_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
-	pid_init(&_speed_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
 bool DifferentialDrive::init()
@@ -55,28 +50,15 @@ void DifferentialDrive::updateParams()
 {
 	ModuleParams::updateParams();
 
-	pid_set_parameters(&_angular_velocity_pid,
-			   _param_rdd_p_gain_angular_velocity.get(),  // Proportional gain
-			   _param_rdd_i_gain_angular_velocity.get(),  // Integral gain
-			   0,  // Derivative gain
-			   20,  // Integral limit
-			   200);  // Output limit
-
-	pid_set_parameters(&_speed_pid,
-			   _param_rdd_p_gain_speed.get(),  // Proportional gain
-			   _param_rdd_i_gain_speed.get(),  // Integral gain
-			   0,  // Derivative gain
-			   2,  // Integral limit
-			   200);  // Output limit
-
-	_max_speed = _param_rdd_max_wheel_speed.get() * _param_rdd_wheel_radius.get();
-	_max_angular_velocity = _max_speed / (_param_rdd_wheel_base.get() / 2.f);
-
 	_differential_drive_kinematics.setWheelBase(_param_rdd_wheel_base.get());
+
+	_max_speed = _param_rdd_wheel_speed.get() * _param_rdd_wheel_radius.get();
+	_differential_drive_guidance.setMaxSpeed(_max_speed);
 	_differential_drive_kinematics.setMaxSpeed(_max_speed);
-	_differential_guidance_controller.setMaxSpeed(_max_speed);
+
+	_max_angular_velocity = _max_speed / (_param_rdd_wheel_base.get() / 2.f);
+	_differential_drive_guidance.setMaxAngularVelocity(_max_angular_velocity);
 	_differential_drive_kinematics.setMaxAngularVelocity(_max_angular_velocity);
-	_differential_guidance_controller.setMaxAngularVelocity(_max_angular_velocity);
 }
 
 void DifferentialDrive::Run()
@@ -87,13 +69,12 @@ void DifferentialDrive::Run()
 	}
 
 	hrt_abstime now = hrt_absolute_time();
-	const double dt = static_cast<double>(math::min((now - _time_stamp_last), kTimeoutUs)) / 1e6;
+	const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e6f;
 	_time_stamp_last = now;
 
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s parameter_update;
 		_parameter_update_sub.copy(&parameter_update);
-
 		updateParams();
 	}
 
@@ -101,31 +82,9 @@ void DifferentialDrive::Run()
 		vehicle_control_mode_s vehicle_control_mode{};
 
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
-			_armed = vehicle_control_mode.flag_armed;
+			_differential_drive_kinematics.setArmed(vehicle_control_mode.flag_armed);
 			_manual_driving = vehicle_control_mode.flag_control_manual_enabled;
 			_mission_driving = vehicle_control_mode.flag_control_auto_enabled;
-		}
-	}
-
-	if (_vehicle_attitude_sub.updated()) {
-		vehicle_attitude_s vehicle_attitude{};
-
-		if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
-			_vehicle_attitude_quaternion = Quatf(vehicle_attitude.q);
-			_vehicle_yaw = matrix::Eulerf(_vehicle_attitude_quaternion).psi();
-		}
-	}
-
-	if (_vehicle_angular_velocity_sub.updated()) {
-		_vehicle_angular_velocity_sub.copy(&_vehicle_angular_velocity);
-	}
-
-	if (_vehicle_local_position_sub.updated()) {
-		vehicle_local_position_s vehicle_local_position{};
-
-		if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
-			Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
-			_velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
 		}
 	}
 
@@ -136,66 +95,26 @@ void DifferentialDrive::Run()
 			manual_control_setpoint_s manual_control_setpoint{};
 
 			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
-				_differential_drive_setpoint.timestamp = now;
-				_differential_drive_setpoint.speed = manual_control_setpoint.throttle * _param_rdd_speed_scale.get() * _max_speed;
-				_differential_drive_setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() *
-									_max_angular_velocity;
-				_differential_drive_control_output_pub.publish(_differential_drive_setpoint);
+				differential_drive_setpoint_s setpoint{};
+				setpoint.speed = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
+				setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() * _max_angular_velocity;
+				setpoint.timestamp = now;
+				_differential_drive_setpoint_pub.publish(setpoint);
 			}
 		}
 
 	} else if (_mission_driving) {
 		// Mission mode
 		// directly receive setpoints from the guidance library
-		matrix::Vector2f guidance_output =
-			_differential_guidance_controller.computeGuidance(
-				_vehicle_yaw,
-				_vehicle_angular_velocity.xyz[2],
-				dt
-			);
-
-		_differential_drive_setpoint.timestamp = now;
-		_differential_drive_setpoint.speed = guidance_output(0);
-		_differential_drive_setpoint.yaw_rate = guidance_output(1);
-		_differential_drive_setpoint_pub.publish(_differential_drive_setpoint);
+		_differential_drive_guidance.computeGuidance(
+			_differential_drive_control.getVehicleYaw(),
+			_differential_drive_control.getVehicleBodyYawRate(),
+			dt
+		);
 	}
 
-	// check if the topic is updated and update the setpoint
-	if (_differential_drive_control_output_sub.updated()) {
-		_differential_drive_control_output_sub.copy(&_differential_drive_setpoint);
-
-		_speed_pid_output = 0;
-		_angular_velocity_pid_output = 0;
-	}
-
-	if (_differential_drive_setpoint_sub.updated()) {
-		_differential_drive_setpoint_sub.copy(&_differential_drive_setpoint);
-
-		_speed_pid_output = pid_calculate(&_speed_pid, _differential_drive_setpoint.speed, _velocity_in_body_frame(0), 0, dt);
-		_angular_velocity_pid_output = pid_calculate(&_angular_velocity_pid, _differential_drive_setpoint.yaw_rate,
-					       _vehicle_angular_velocity.xyz[2], 0, dt);
-	}
-
-	// get the normalized wheel speeds from the inverse kinematics class (DifferentialDriveKinematics)
-	Vector2f wheel_speeds = _differential_drive_kinematics.computeInverseKinematics(
-					_differential_drive_setpoint.speed + _speed_pid_output,
-					_differential_drive_setpoint.yaw_rate + _angular_velocity_pid_output);
-
-	// Check if max_angular_wheel_speed is zero
-	const bool setpoint_timeout = (_differential_drive_setpoint.timestamp + 100_ms) < now;
-	const bool valid_max_speed = _param_rdd_speed_scale.get() > FLT_EPSILON;
-
-	if (!_armed || setpoint_timeout || !valid_max_speed) {
-		wheel_speeds = {}; // stop
-	}
-
-	wheel_speeds = matrix::constrain(wheel_speeds, -1.f, 1.f);
-
-	actuator_motors_s actuator_motors{};
-	actuator_motors.reversible_flags = _param_r_rev.get(); // should be 3 see rc.rover_differential_defaults
-	wheel_speeds.copyTo(actuator_motors.control);
-	actuator_motors.timestamp = now;
-	_actuator_motors_pub.publish(actuator_motors);
+	_differential_drive_control.control(dt);
+	_differential_drive_kinematics.allocate();
 }
 
 int DifferentialDrive::task_spawn(int argc, char *argv[])
