@@ -43,7 +43,7 @@ parameters:
         increment: 0.01
         decimal: 2
         default: 1
-      RDD_WHL_SPEED:
+      RDD_WHEEL_SPEED:
         description:
           short: Maximum wheel speed
         type: float

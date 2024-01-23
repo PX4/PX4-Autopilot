@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,8 +36,38 @@
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
+using namespace time_literals;
 
-matrix::Vector2f DifferentialDriveKinematics::computeInverseKinematics(float linear_velocity_x, float yaw_rate)
+DifferentialDriveKinematics::DifferentialDriveKinematics(ModuleParams *parent) : ModuleParams(parent)
+{}
+
+void DifferentialDriveKinematics::allocate()
+{
+	hrt_abstime now = hrt_absolute_time();
+
+	if (_differential_drive_control_output_sub.updated()) {
+		_differential_drive_control_output_sub.copy(&_differential_drive_control_output);
+	}
+
+	const bool setpoint_timeout = (_differential_drive_control_output.timestamp + 100_ms) < now;
+
+	Vector2f wheel_speeds =
+		computeInverseKinematics(_differential_drive_control_output.speed, _differential_drive_control_output.yaw_rate);
+
+	if (!_armed || setpoint_timeout) {
+		wheel_speeds = {}; // stop
+	}
+
+	wheel_speeds = matrix::constrain(wheel_speeds, -1.f, 1.f);
+
+	actuator_motors_s actuator_motors{};
+	actuator_motors.reversible_flags = _param_r_rev.get(); // should be 3 see rc.rover_differential_defaults
+	wheel_speeds.copyTo(actuator_motors.control);
+	actuator_motors.timestamp = now;
+	_actuator_motors_pub.publish(actuator_motors);
+}
+
+matrix::Vector2f DifferentialDriveKinematics::computeInverseKinematics(float linear_velocity_x, float yaw_rate) const
 {
 	if (_max_speed < FLT_EPSILON) {
 		return Vector2f();
@@ -54,7 +84,7 @@ matrix::Vector2f DifferentialDriveKinematics::computeInverseKinematics(float lin
 
 	if (combined_velocity > _max_speed) {
 		float excess_velocity = fabsf(combined_velocity - _max_speed);
-		float adjusted_linear_velocity = fabsf(linear_velocity_x) - excess_velocity;
+		const float adjusted_linear_velocity = fabsf(linear_velocity_x) - excess_velocity;
 		gain = adjusted_linear_velocity / fabsf(linear_velocity_x);
 	}
 

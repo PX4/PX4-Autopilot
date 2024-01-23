@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,11 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
+#include <px4_platform_common/module_params.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/differential_drive_setpoint.h>
 
 /**
  * @brief Differential Drive Kinematics class for computing the kinematics of a differential drive robot.
@@ -41,10 +46,10 @@
  * This class provides functions to set the wheel base and radius, and to compute the inverse kinematics
  * given linear velocity and yaw rate.
  */
-class DifferentialDriveKinematics
+class DifferentialDriveKinematics : public ModuleParams
 {
 public:
-	DifferentialDriveKinematics() = default;
+	DifferentialDriveKinematics(ModuleParams *parent);
 	~DifferentialDriveKinematics() = default;
 
 	/**
@@ -68,6 +73,10 @@ public:
 	 */
 	void setMaxAngularVelocity(const float max_angular_velocity) { _max_angular_velocity = max_angular_velocity; };
 
+	void setArmed(const bool armed) { _armed = armed; };
+
+	void allocate();
+
 	/**
 	 * @brief Computes the inverse kinematics for differential drive.
 	 *
@@ -75,10 +84,20 @@ public:
 	 * @param yaw_rate Yaw rate of the robot.
 	 * @return matrix::Vector2f Motor velocities for the right and left motors.
 	 */
-	matrix::Vector2f computeInverseKinematics(float linear_velocity_x, float yaw_rate);
+	matrix::Vector2f computeInverseKinematics(float linear_velocity_x, float yaw_rate) const;
 
 private:
+	uORB::Subscription _differential_drive_control_output_sub{ORB_ID(differential_drive_control_output)};
+	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+
+	differential_drive_setpoint_s _differential_drive_control_output{};
+	bool _armed = false;
+
 	float _wheel_base{0.f};
 	float _max_speed{0.f};
 	float _max_angular_velocity{0.f};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+	)
 };
