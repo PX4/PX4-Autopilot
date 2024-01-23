@@ -144,6 +144,13 @@ public:
 	 */
 	void printStatus();
 
+	/**
+	 * Checks if the given argument is a valid geofence action (one of GF_ACTION_*).
+	 *
+	 * @return true if action is valid
+	 */
+	static bool validateAction(uint8_t action);
+
 private:
 
 	struct PolygonInfo {

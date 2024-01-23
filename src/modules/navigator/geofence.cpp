@@ -542,3 +542,20 @@ void Geofence::printStatus()
 		 num_inclusion_polygons, num_exclusion_polygons, num_inclusion_circles, num_exclusion_circles,
 		 total_num_vertices);
 }
+
+bool Geofence::validateAction(uint8_t action)
+{
+	switch (action) {
+	case geofence_result_s::GF_ACTION_DEFAULT:
+	case geofence_result_s::GF_ACTION_NONE:
+	case geofence_result_s::GF_ACTION_WARN:
+	case geofence_result_s::GF_ACTION_LOITER:
+	case geofence_result_s::GF_ACTION_RTL:
+	case geofence_result_s::GF_ACTION_LAND:
+	case geofence_result_s::GF_ACTION_TERMINATE:
+		return true;
+
+	default:
+		return false;
+	}
+}

@@ -51,6 +51,7 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <navigator/navigation.h>
+#include <navigator/geofence.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
@@ -1145,6 +1146,12 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				mission_fence_point.lon = mission_item.lon;
 				mission_fence_point.alt = mission_item.altitude;
 				mission_fence_point.fence_action = static_cast<uint8_t>(mission_item.fence_action);
+
+				if (!Geofence::validateAction(mission_fence_point.fence_action)) {
+					PX4_ERR("Fence: unknown fence action");
+					check_failed = true;
+					update_geofence_count(0);
+				}
 
 				if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
 				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
