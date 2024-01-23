@@ -30,19 +30,19 @@ parameters:
           short: Manual speed scale
         type: float
         min: 0
-        max: 1.0
+        max: 1
         increment: 0.01
         decimal: 2
-        default: 1.0
+        default: 1
       RDD_ANG_SCALE:
         description:
           short: Manual angular velocity scale
         type: float
         min: 0
-        max: 1.0
+        max: 1
         increment: 0.01
         decimal: 2
-        default: 1.0
+        default: 1
       RDD_WHL_SPEED:
         description:
           short: Maximum wheel speed
@@ -61,7 +61,7 @@ parameters:
         max: 100
         increment: 0.01
         decimal: 2
-        default: 1.0
+        default: 1
       RDD_P_SPEED:
         description:
           short: Proportional gain for speed controller
@@ -70,7 +70,7 @@ parameters:
         max: 100
         increment: 0.01
         decimal: 2
-        default: 1.0
+        default: 1
       RDD_I_SPEED:
         description:
           short: Integral gain for ground speed controller
@@ -79,7 +79,7 @@ parameters:
         max: 100
         increment: 0.01
         decimal: 2
-        default: 0.0
+        default: 0
       RDD_P_ANG_VEL:
         description:
           short: Proportional gain for angular velocity controller
@@ -88,7 +88,7 @@ parameters:
         max: 100
         increment: 0.01
         decimal: 2
-        default: 1.0
+        default: 1
       RDD_I_ANG_VEL:
         description:
           short: Integral gain for angular velocity controller
@@ -97,7 +97,7 @@ parameters:
         max: 100
         increment: 0.01
         decimal: 2
-        default: 0.0
+        default: 0
       RDD_MAX_JERK:
         description:
           short: Maximum jerk
