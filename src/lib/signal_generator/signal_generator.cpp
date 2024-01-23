@@ -50,6 +50,6 @@ float SignalGenerator::generateChirpSignal(const float time)
 
 float SignalGenerator::generateSinusSignal(const float time)
 {
-	return _amplitude * sin(2.0f * (float)pi * _frequency * time + _phase);
+	return _amplitude * sinf(2.0f * (float)pi * _frequency * time + _phase);
 }
 
