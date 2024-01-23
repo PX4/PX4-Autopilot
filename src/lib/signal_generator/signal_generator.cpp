@@ -44,7 +44,7 @@ float SignalGenerator::generateChirpSignal(const float time)
 {
 	float frequency = _start_frequency + (_end_frequency - _start_frequency) * time / _duration;
 
-	return  sin(2.0f * (float)pi * frequency * time);
+	return  sinf(2.0f * (float)pi * frequency * time);
 }
 
 
