@@ -167,7 +167,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
 	allocator.allocate();
 
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	constexpr float MOTOR_COUNT{4.f};
+	constexpr int MOTOR_COUNT{4};
 	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT};
 
 	for (size_t i{0}; i < 4; ++i) {
