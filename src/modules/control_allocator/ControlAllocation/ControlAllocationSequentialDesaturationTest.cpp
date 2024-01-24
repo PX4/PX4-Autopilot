@@ -118,7 +118,7 @@ void setup_quad_allocator(ControlAllocationSequentialDesaturation &allocator)
 	);
 }
 
-static constexpr float EXPECT_NEAR_TOL{1e-4};
+static constexpr float EXPECT_NEAR_TOL{1e-4f};
 
 } // namespace
 
