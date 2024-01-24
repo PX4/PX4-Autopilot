@@ -826,7 +826,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.1f);
  * @group EKF2
  * @min 0.1
  * @max 10.0
- * @unit g
+ * @unit g0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_GRAV_NOISE, 1.0f);
