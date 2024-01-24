@@ -89,9 +89,6 @@ void Ekf::reset()
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
-	_prev_gyro_bias_var.zero();
-	_prev_accel_bias_var.zero();
-
 #if defined(CONFIG_EKF2_GNSS)
 	resetGpsDriftCheckFilters();
 	_gps_checks_passed = false;
@@ -312,8 +309,9 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
 
-	constrainStates();
-
+	// constrain states
+	_state.vel = matrix::constrain(_state.vel, -1000.f, 1000.f);
+	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
 	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
 	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate

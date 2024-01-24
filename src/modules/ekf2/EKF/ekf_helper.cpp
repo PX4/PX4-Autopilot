@@ -233,28 +233,6 @@ void Ekf::resetVerticalVelocityToZero()
 	resetVerticalVelocityTo(0.0f, 10.f);
 }
 
-void Ekf::constrainStates()
-{
-	_state.quat_nominal = matrix::constrain(_state.quat_nominal, -1.0f, 1.0f);
-	_state.vel = matrix::constrain(_state.vel, -1000.0f, 1000.0f);
-	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
-
-	const float gyro_bias_limit = getGyroBiasLimit();
-	_state.gyro_bias = matrix::constrain(_state.gyro_bias, -gyro_bias_limit, gyro_bias_limit);
-
-	const float accel_bias_limit = getAccelBiasLimit();
-	_state.accel_bias = matrix::constrain(_state.accel_bias, -accel_bias_limit, accel_bias_limit);
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	_state.mag_I = matrix::constrain(_state.mag_I, -1.0f, 1.0f);
-	_state.mag_B = matrix::constrain(_state.mag_B, -getMagBiasLimit(), getMagBiasLimit());
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_WIND)
-	_state.wind_vel = matrix::constrain(_state.wind_vel, -100.0f, 100.0f);
-#endif // CONFIG_EKF2_WIND
-}
-
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
 float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const
 {
@@ -548,9 +526,6 @@ void Ekf::resetGyroBiasCov()
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
 	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.switch_on_gyro_bias));
-
-	// Set previous frame values
-	_prev_gyro_bias_var = getStateVariance<State::gyro_bias>();
 }
 
 void Ekf::resetAccelBias()
@@ -566,9 +541,6 @@ void Ekf::resetAccelBiasCov()
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
 	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.switch_on_accel_bias));
-
-	// Set previous frame values
-	_prev_accel_bias_var = getStateVariance<State::accel_bias>();
 }
 
 // get EKF innovation consistency check status information comprising of:
@@ -755,23 +727,39 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 
 void Ekf::fuse(const VectorState &K, float innovation)
 {
+	// quat_nominal
 	Quatf delta_quat(matrix::AxisAnglef(K.slice<State::quat_nominal.dof, 1>(State::quat_nominal.idx, 0) * (-1.f * innovation)));
 	_state.quat_nominal *= delta_quat;
 	_state.quat_nominal.normalize();
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
-	_state.vel -= K.slice<State::vel.dof, 1>(State::vel.idx, 0) * innovation;
-	_state.pos -= K.slice<State::pos.dof, 1>(State::pos.idx, 0) * innovation;
-	_state.gyro_bias -= K.slice<State::gyro_bias.dof, 1>(State::gyro_bias.idx, 0) * innovation;
-	_state.accel_bias -= K.slice<State::accel_bias.dof, 1>(State::accel_bias.idx, 0) * innovation;
+	// vel
+	_state.vel = matrix::constrain(_state.vel - K.slice<State::vel.dof, 1>(State::vel.idx, 0) * innovation, -1.e3f, 1.e3f);
+
+	// pos
+	_state.pos = matrix::constrain(_state.pos - K.slice<State::pos.dof, 1>(State::pos.idx, 0) * innovation, -1.e6f, 1.e6f);
+
+	// gyro_bias
+	_state.gyro_bias = matrix::constrain(_state.gyro_bias - K.slice<State::gyro_bias.dof, 1>(State::gyro_bias.idx, 0) * innovation,
+					-getGyroBiasLimit(), getGyroBiasLimit());
+
+	// accel_bias
+	_state.accel_bias = matrix::constrain(_state.accel_bias - K.slice<State::accel_bias.dof, 1>(State::accel_bias.idx, 0) * innovation,
+					-getAccelBiasLimit(), getAccelBiasLimit());
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	_state.mag_I -= K.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) * innovation;
-	_state.mag_B -= K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation;
+	// mag_I, mag_B
+	if (_control_status.flags.mag) {
+		_state.mag_I = matrix::constrain(_state.mag_I - K.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) * innovation, -1.f, 1.f);
+		_state.mag_B = matrix::constrain(_state.mag_B - K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation, -getMagBiasLimit(), getMagBiasLimit());
+	}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-	_state.wind_vel -= K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation;
+	// wind_vel
+	if (_control_status.flags.wind) {
+		_state.wind_vel = matrix::constrain(_state.wind_vel - K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation, -1.e2f, 1.e2f);
+	}
 #endif // CONFIG_EKF2_WIND
 }
 
@@ -996,32 +984,13 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	const bool is_manoeuvre_level_high = (_ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim)
 					     || (_accel_magnitude_filt > _params.acc_bias_learn_acc_lim);
 
+
 	// gyro bias inhibit
 	const bool do_inhibit_all_gyro_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
 
 	for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
-		const unsigned stateIndex = State::gyro_bias.idx + index;
-
-		bool is_bias_observable = true;
-
-		// TODO: gyro bias conditions
-
-		const bool do_inhibit_axis = do_inhibit_all_gyro_axes || !is_bias_observable;
-
-		if (do_inhibit_axis) {
-			// store the bias state variances to be reinstated later
-			if (!_gyro_bias_inhibit[index]) {
-				_prev_gyro_bias_var(index) = P(stateIndex, stateIndex);
-				_gyro_bias_inhibit[index] = true;
-			}
-
-		} else {
-			if (_gyro_bias_inhibit[index]) {
-				// reinstate the bias state variances
-				P(stateIndex, stateIndex) = _prev_gyro_bias_var(index);
-				_gyro_bias_inhibit[index] = false;
-			}
-		}
+		bool is_bias_observable = true; // TODO: gyro bias conditions
+		_gyro_bias_inhibit[index] = do_inhibit_all_gyro_axes || !is_bias_observable;
 	}
 
 	// accel bias inhibit
@@ -1030,8 +999,6 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 					 || _fault_status.flags.bad_acc_vertical;
 
 	for (unsigned index = 0; index < State::accel_bias.dof; index++) {
-		const unsigned stateIndex = State::accel_bias.idx + index;
-
 		bool is_bias_observable = true;
 
 		if (_control_status.flags.vehicle_at_rest) {
@@ -1045,22 +1012,6 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
 		}
 
-		const bool do_inhibit_axis = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
-
-		if (do_inhibit_axis) {
-			// store the bias state variances to be reinstated later
-			if (!_accel_bias_inhibit[index]) {
-				_prev_accel_bias_var(index) = P(stateIndex, stateIndex);
-				_accel_bias_inhibit[index] = true;
-			}
-
-		} else {
-			if (_accel_bias_inhibit[index]) {
-				// reinstate the bias state variances
-				P(stateIndex, stateIndex) = _prev_accel_bias_var(index);
-				_accel_bias_inhibit[index] = false;
-			}
-		}
+		_accel_bias_inhibit[index] = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
 	}
-
 }
