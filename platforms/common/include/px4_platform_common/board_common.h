@@ -458,6 +458,15 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
  *   A board may define RC_SERIAL_SWAP_RXTX, so that RC_SERIAL_PORT is configured
  *   as UART with RX/TX swapped.
  *
+ *   It can optionaly define RC_SERIAL_SWAP_USING_SINGLEWIRE If the board is wired
+ *   with TX to the input (Swapped) and the SoC does not support U[S]ART level
+ *   HW swapping, then use onewire to do the swap if and only if:
+ *
+ *    RC_SERIAL_SWAP_USING_SINGLEWIRE   is defined
+ *    RC_SERIAL_SWAP_RXTX               is defined
+ *    TIOCSSWAP                         is defined and retuns !OK
+ *    TIOCSSINGLEWIRE                   is defined
+ *
  * Input Parameters:
  *   device: serial device, e.g. "/dev/ttyS0"
  *

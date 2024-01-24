@@ -250,6 +250,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_status_pub.advertise();
+
 #if defined(CONFIG_EKF2_GNSS)
 	_yaw_est_pub.advertise();
 #endif // CONFIG_EKF2_GNSS
@@ -312,6 +313,14 @@ bool EKF2::multi_init(int imu, int mag)
 
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
+
+	if (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GravityVector)) {
+		_estimator_aid_src_gravity_pub.advertise();
+	}
+
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 

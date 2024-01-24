@@ -255,7 +255,10 @@ public:
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
 	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
+	float getTiltVariance() const { return getStateVariance<State::quat_nominal>()(0) + getStateVariance<State::quat_nominal>()(1); };
+
 	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
+
 	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
@@ -724,7 +727,6 @@ private:
 	// variables used to inhibit accel bias learning
 	bool _accel_bias_inhibit[3] {};		///< true when the accel bias learning is being inhibited for the specified axis
 	bool _gyro_bias_inhibit[3] {};		///< true when the gyro bias learning is being inhibited for the specified axis
-	Vector3f _accel_vec_filt{};		///< acceleration vector after application of a low pass filter (m/sec**2)
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
 
