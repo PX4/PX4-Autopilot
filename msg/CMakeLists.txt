@@ -74,7 +74,6 @@ set(msg_files
 	DifferentialDriveSetpoint.msg
 	DifferentialPressure.msg
 	DistanceSensor.msg
-	Ekf2Timestamps.msg
 	EscReport.msg
 	EscStatus.msg
 	EstimatorAidSource1d.msg

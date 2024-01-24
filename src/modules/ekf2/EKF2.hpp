@@ -64,7 +64,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/estimator_bias.h>
 #include <uORB/topics/estimator_bias3d.h>
 #include <uORB/topics/estimator_event_flags.h>
@@ -127,7 +126,7 @@ class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	EKF2() = delete;
-	EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode);
+	EKF2(bool multi_mode, const px4::wq_config_t &config);
 	~EKF2() override;
 
 	/** @see ModuleBase */
@@ -196,16 +195,16 @@ private:
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateAirspeedSample();
 #endif // CONFIG_EKF2_AIRSPEED
 #if defined(CONFIG_EKF2_AUXVEL)
-	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateAuxVelSample();
 #endif // CONFIG_EKF2_AUXVEL
 #if defined(CONFIG_EKF2_BAROMETER)
-	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateBaroSample();
 #endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
+	bool UpdateExtVisionSample();
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_GNSS)
 	/*
@@ -216,20 +215,20 @@ private:
 	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
-	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateGpsSample();
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
+	bool UpdateFlowSample();
 	void PublishOpticalFlowVel(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateMagSample();
 #endif // CONFIG_EKF2_MAGNETOMETER
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateRangeSample();
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateSystemFlagsSample();
 
 	// Used to check, save and use learned accel/gyro/mag biases
 	struct InFlightCalibration {
@@ -265,7 +264,6 @@ private:
 
 	static constexpr float sq(float x) { return x * x; };
 
-	const bool _replay_mode{false};			///< true when we use replay data from a log
 	const bool _multi_mode;
 	int _instance{0};
 
@@ -434,7 +432,6 @@ private:
 	uint32_t _filter_warning_event_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
-	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMultiData<estimator_event_flags_s>  _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};

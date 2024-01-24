@@ -37,6 +37,12 @@ px4_add_romfs_files(
 	px4-rc.mavlink
 	px4-rc.params
 	px4-rc.simulator
-	rc.replay
+
+	rc.replay_ekf2
+	rc.replay_mc_hover_thrust_estimator
+	rc.replay_mixing
+	rc.replay_sensor_calibration
+	rc.replay_sensor_filtering
+
 	rcS
 )

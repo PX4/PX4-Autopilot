@@ -690,7 +690,8 @@ void Logger::run()
 	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
 	if (polling_topic_sub >= 0) {
-		_lockstep_component = px4_lockstep_register_component();
+		//_lockstep_component = px4_lockstep_register_component();
+		//PX4_ERR("Lockstep component: %i", _lockstep_component);
 	}
 
 	bool was_started = false;
@@ -899,7 +900,7 @@ void Logger::run()
 
 		// wait for next loop iteration...
 		if (polling_topic_sub >= 0) {
-			px4_lockstep_progress(_lockstep_component);
+			//px4_lockstep_progress(_lockstep_component);
 
 			px4_pollfd_struct_t fds[1];
 			fds[0].fd = polling_topic_sub;
@@ -928,7 +929,7 @@ void Logger::run()
 		}
 	}
 
-	px4_lockstep_unregister_component(_lockstep_component);
+	//px4_lockstep_unregister_component(_lockstep_component);
 
 	stop_log_file(LogType::Full);
 	stop_log_file(LogType::Mission);
@@ -1472,8 +1473,8 @@ void Logger::start_log_mavlink()
 	}
 
 	// mavlink log does not work in combination with lockstep, it leads to dead-locks
-	px4_lockstep_unregister_component(_lockstep_component);
-	_lockstep_component = -1;
+	//px4_lockstep_unregister_component(_lockstep_component);
+	//_lockstep_component = -1;
 
 	// initialize cpu load as early as possible to get more data
 	initialize_load_output(PrintLoadReason::Preflight);

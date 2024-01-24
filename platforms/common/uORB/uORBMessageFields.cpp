@@ -181,7 +181,7 @@ MessageFormatReader::State MessageFormatReader::readMore()
 	}
 
 	// Not expected to get here
-	PX4_ERR("logic error");
+	PX4_ERR("logic error (not expected to get here)");
 	_state = State::Failure;
 	return _state;
 }
@@ -237,7 +237,7 @@ int MessageFormatReader::expandMessageFormat(char *format, unsigned len, unsigne
 	}
 
 	if (format_idx + 1 != (int)len) {
-		PX4_ERR("logic error");
+		PX4_ERR("logic error (format_idx %d, len %d)", format_idx, len);
 		return -1;
 	}
 
