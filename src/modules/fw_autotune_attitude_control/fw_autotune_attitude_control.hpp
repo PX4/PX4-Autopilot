@@ -228,9 +228,9 @@ private:
 
 		(ParamFloat<px4::params::FW_AT_SYSID_FREQ>) _param_fw_sysid_freq,
 		(ParamFloat<px4::params::FW_AT_SYSIDPHASE>) _param_fw_sysid_phase,
-		(ParamFloat<px4::params::FW_AT_SYSIDSFREQ>) _param_fw_sysid_start_frequency,
-		(ParamFloat<px4::params::FW_AT_SYSIDEFREQ>) _param_fw_sysid_end_frequency,
-		(ParamFloat<px4::params::FW_AT_SYSID_DT>) _param_fw_sysid_duration,
+		(ParamFloat<px4::params::FW_AT_START_FREQ>) _param_fw_sysid_start_frequency,
+		(ParamFloat<px4::params::FW_AT_END_FREQ>) _param_fw_sysid_end_frequency,
+		(ParamFloat<px4::params::FW_AT_SYSID_TIME>) _param_fw_sysid_duration,
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
 
 
