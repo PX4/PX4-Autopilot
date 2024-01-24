@@ -255,7 +255,9 @@ public:
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
 	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
-	float getTiltVariance() const { return getStateVariance<State::quat_nominal>()(0) + getStateVariance<State::quat_nominal>()(1); };
+	matrix::Vector3f getRotVarNed() const;
+	float getYawVar() const;
+	float getTiltVariance() const;
 
 	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
 
@@ -409,8 +411,6 @@ public:
 
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) const;
-
-	float getYawVar() const;
 
 	HeightSensor getHeightSensorRef() const { return _height_sensor_ref; }
 
