@@ -44,8 +44,6 @@ float32 delta_heading			# Heading delta caused by latest heading reset [rad]
 uint8 heading_reset_counter		# Index of latest heading reset
 bool heading_good_for_control
 
-float32 tilt_var
-
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
 bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)
 bool z_global				# true if z has a valid global reference (ref_alt)
