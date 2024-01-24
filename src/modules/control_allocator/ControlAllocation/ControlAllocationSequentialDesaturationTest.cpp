@@ -129,7 +129,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledOnlyYaw)
 	ControlAllocationSequentialDesaturation allocator;
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
 	control_sp(ControlAllocation::ControlAxis::YAW) = 1.f;
 	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
