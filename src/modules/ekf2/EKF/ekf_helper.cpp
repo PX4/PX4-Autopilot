@@ -849,11 +849,21 @@ void Ekf::updateVerticalDeadReckoningStatus()
 	}
 }
 
+Vector3f Ekf::getRotVarNed() const
+{
+	const matrix::SquareMatrix3f rot_cov_body = getStateCovariance<State::quat_nominal>();
+	return matrix::SquareMatrix<float, State::quat_nominal.dof>(_R_to_earth * rot_cov_body * _R_to_earth.T()).diag();
+}
+
 float Ekf::getYawVar() const
 {
-	const matrix::SquareMatrix3f rot_cov = diag(getQuaternionVariance());
-	const auto rot_var_ned = matrix::SquareMatrix<float, State::quat_nominal.dof>(_R_to_earth * rot_cov * _R_to_earth.T()).diag();
-	return rot_var_ned(2);
+	return getRotVarNed()(2);
+}
+
+float Ekf::getTiltVariance() const
+{
+	const Vector3f rot_var_ned = getRotVarNed();
+	return rot_var_ned(0) + rot_var_ned(1);
 }
 
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -887,8 +897,7 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	const Quatf quat_before_reset = _state.quat_nominal;
 
 	// save a copy of covariance in NED frame to restore it after the quat reset
-	const matrix::SquareMatrix3f rot_cov = diag(getQuaternionVariance());
-	Vector3f rot_var_ned_before_reset = matrix::SquareMatrix3f(_R_to_earth * rot_cov * _R_to_earth.T()).diag();
+	Vector3f rot_var_ned_before_reset = getRotVarNed();
 
 	// update the yaw angle variance
 	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
