@@ -130,11 +130,11 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledOnlyYaw)
 	setup_quad_allocator(allocator);
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::YAW) = 1.f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = 0.f;
 	allocator.setControlSetpoint(control_sp);
 
 	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
@@ -155,11 +155,11 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
 	constexpr float THRUST_Z_TOTAL{-0.75f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
-	control_sp(ControlAllocation::ControlAxis::YAW) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::YAW) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
 	allocator.setControlSetpoint(control_sp);
 
@@ -170,12 +170,12 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustZ)
 	constexpr int MOTOR_COUNT{4};
 	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT};
 
-	for (size_t i{0}; i < 4; ++i) {
+	for (int i{0}; i < MOTOR_COUNT; ++i) {
 		EXPECT_NEAR(actuator_sp(i), THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 	}
 
-	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0, EXPECT_NEAR_TOL);
+	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
 	}
 }
 
@@ -190,11 +190,11 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
 	constexpr float THRUST_Z_TOTAL{-0.75f};
 	// This is low enough to not saturate the motors.
 	constexpr float YAW_CONTROL_SP{0.02f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
 	allocator.setControlSetpoint(control_sp);
 
@@ -207,20 +207,20 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndYaw)
 	constexpr float YAW_EFFECTIVENESS_FACTOR{5.f};
 	constexpr float YAW_DIFF_PER_MOTOR{YAW_CONTROL_SP * YAW_EFFECTIVENESS_FACTOR};
 	// At yaw condition, there will be 2 different actuator values.
-	constexpr float MOTOR_COUNT{4.f};
+	constexpr int MOTOR_COUNT{4};
 	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT + YAW_DIFF_PER_MOTOR};
 	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT - YAW_DIFF_PER_MOTOR};
 
-	for (size_t i{0}; i < 2; ++i) {
+	for (int i{0}; i < MOTOR_COUNT / 2; ++i) {
 		EXPECT_NEAR(actuator_sp(i), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 	}
 
-	for (size_t i{2}; i < 4; ++i) {
+	for (int i{MOTOR_COUNT / 2}; i < MOTOR_COUNT; ++i) {
 		EXPECT_NEAR(actuator_sp(i), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 	}
 
-	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0, EXPECT_NEAR_TOL);
+	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
 	}
 }
 
@@ -235,11 +235,11 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndSatura
 	constexpr float THRUST_Z_TOTAL{-0.75f};
 	// This is arbitrarily high to trigger strongest possible (saturated) yaw response.
 	constexpr float YAW_CONTROL_SP{0.25f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
 	allocator.setControlSetpoint(control_sp);
 
@@ -248,15 +248,15 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndSatura
 
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	// At max yaw, only 2 motors will carry all of the thrust.
-	constexpr float YAW_MOTORS{2.f};
+	constexpr int YAW_MOTORS{2};
 	constexpr float THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / YAW_MOTORS};
 
-	for (size_t i{0}; i < 2; ++i) {
+	for (int i{0}; i < YAW_MOTORS; ++i) {
 		EXPECT_NEAR(actuator_sp(i), THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 	}
 
-	for (size_t i{2}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0, EXPECT_NEAR_TOL);
+	for (int i{YAW_MOTORS}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
 	}
 }
 
@@ -271,11 +271,11 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
 	constexpr float THRUST_Z_TOTAL{-0.75f};
 	// This is low enough to not saturate the motors.
 	constexpr float PITCH_CONTROL_SP{0.1f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::YAW) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::YAW) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
 	allocator.setControlSetpoint(control_sp);
 
@@ -285,7 +285,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	// This value is based off of the effectiveness matrix. If the effectiveness matrix is changed,
 	// this will need to be changed.
-	constexpr float MOTOR_COUNT{4.f};
+	constexpr int MOTOR_COUNT{4};
 	constexpr float PITCH_DIFF_PER_MOTOR{PITCH_CONTROL_SP / MOTOR_COUNT};
 	// At control set point, there will be 2 different actuator values.
 	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT + PITCH_DIFF_PER_MOTOR};
@@ -295,8 +295,8 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustAndPitch)
 	EXPECT_NEAR(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 	EXPECT_NEAR(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 
-	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0, EXPECT_NEAR_TOL);
+	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
 	}
 }
 
@@ -309,15 +309,15 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
 	// Negative, because +z is "downward".
 	constexpr float DESIRED_THRUST_Z_PER_MOTOR{0.8f};
-	constexpr float MOTOR_COUNT{4.f};
+	constexpr int MOTOR_COUNT{4};
 	constexpr float THRUST_Z_TOTAL{-DESIRED_THRUST_Z_PER_MOTOR * MOTOR_COUNT};
 	// This is arbitrarily high to trigger strongest possible (saturated) yaw response.
 	constexpr float YAW_CONTROL_SP{1.f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = 0;
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::PITCH) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::YAW) = YAW_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
 	allocator.setControlSetpoint(control_sp);
 
@@ -337,8 +337,8 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	EXPECT_NEAR(actuator_sp(2), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 	EXPECT_NEAR(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 
-	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0, EXPECT_NEAR_TOL);
+	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
 	}
 }
 
@@ -353,11 +353,11 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	constexpr float THRUST_Z_TOTAL{-0.75f * 4.f};
 	// This is high enough to saturate the pitch control.
 	constexpr float PITCH_CONTROL_SP{2.f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0;
+	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::YAW) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0;
+	control_sp(ControlAllocation::ControlAxis::YAW) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.f;
+	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.f;
 	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
 	allocator.setControlSetpoint(control_sp);
 
@@ -365,13 +365,13 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	allocator.allocate();
 
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	constexpr float MOTOR_COUNT{4.f};
+	constexpr int MOTOR_COUNT{4};
 	// The maximum actuator value is
 	// 	THRUST_Z_TOTAL / MOTOR_COUNT + PITCH_CONTROL_SP / MOTOR_COUNT.
 	// The amount over 1 is the amount that each motor is reduced by.
 	// At control set point, there will be 2 different actuator values.
 	constexpr float OVERAGE_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT + PITCH_CONTROL_SP / MOTOR_COUNT - 1};
-	EXPECT_TRUE(OVERAGE_PER_MOTOR > 0);
+	EXPECT_TRUE(OVERAGE_PER_MOTOR > 0.f);
 	constexpr float HIGH_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT + PITCH_CONTROL_SP / MOTOR_COUNT - OVERAGE_PER_MOTOR};
 	constexpr float LOW_THRUST_Z_PER_MOTOR{-THRUST_Z_TOTAL / MOTOR_COUNT - PITCH_CONTROL_SP / MOTOR_COUNT - OVERAGE_PER_MOTOR};
 	EXPECT_NEAR(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
@@ -379,7 +379,7 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	EXPECT_NEAR(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 	EXPECT_NEAR(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
 
-	for (size_t i{4}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0, EXPECT_NEAR_TOL);
+	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
+		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);
 	}
 }
