@@ -61,8 +61,6 @@ bool McAutotuneAttitudeControl::init()
 		return false;
 	}
 
-	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
-
 	return true;
 }
 
@@ -91,9 +89,7 @@ void McAutotuneAttitudeControl::Run()
 		updateStateMachine(hrt_absolute_time());
 	}
 
-	// new control data needed every iteration
-	if (_state == state::idle
-	    || !_vehicle_torque_setpoint_sub.updated()) {
+	if (_state == state::idle) {
 		return;
 	}
 
@@ -113,17 +109,23 @@ void McAutotuneAttitudeControl::Run()
 		}
 	}
 
-	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_angular_velocity_s angular_velocity;
 
-	if (!_vehicle_torque_setpoint_sub.copy(&vehicle_torque_setpoint)
-	    || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
+	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
+		_angular_velocity(0) = angular_velocity.xyz[0];
+		_angular_velocity(1) = angular_velocity.xyz[1];
+		_angular_velocity(2) = angular_velocity.xyz[2];
+	}
+
+	vehicle_torque_setpoint_s torque_setpoint;
+
+	if (!_vehicle_torque_setpoint_sub.update(&torque_setpoint)) {
 		return;
 	}
 
 	perf_begin(_cycle_perf);
 
-	const hrt_abstime timestamp_sample = vehicle_torque_setpoint.timestamp;
+	const hrt_abstime timestamp_sample = torque_setpoint.timestamp;
 
 	// collect sample interval average for filters
 	if (_last_run > 0) {
@@ -143,16 +145,16 @@ void McAutotuneAttitudeControl::Run()
 
 	// Send data to the filters at maximum frequency
 	if (_state == state::roll) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[0],
-				      angular_velocity.xyz[0]);
+		_sys_id.updateFilters(torque_setpoint.xyz[0],
+				      _angular_velocity(0));
 
 	} else if (_state == state::pitch) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[1],
-				      angular_velocity.xyz[1]);
+		_sys_id.updateFilters(torque_setpoint.xyz[1],
+				      _angular_velocity(1));
 
 	} else if (_state == state::yaw) {
-		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[2],
-				      angular_velocity.xyz[2]);
+		_sys_id.updateFilters(torque_setpoint.xyz[2],
+				      _angular_velocity(2));
 	}
 
 	// Update the model at a lower frequency
@@ -167,17 +169,23 @@ void McAutotuneAttitudeControl::Run()
 		_model_update_counter = 0;
 	}
 
-	if (hrt_elapsed_time(&_last_publish) > _publishing_dt_hrt || _last_publish == 0) {
+	if (hrt_elapsed_time(&_last_publish) > (_publishing_dt_s * 1_s) || _last_publish == 0) {
 		const hrt_abstime now = hrt_absolute_time();
 		updateStateMachine(now);
 
-		Vector<float, 5> coeff = _sys_id.getCoefficients();
-		coeff(2) *= _input_scale;
-		coeff(3) *= _input_scale;
-		coeff(4) *= _input_scale;
+		Vector<float, SystemIdentification::_kParameters> coeff = _sys_id.getCoefficients();
 
-		const Vector3f num(coeff(2), coeff(3), coeff(4));
-		const Vector3f den(1.f, coeff(0), coeff(1));
+		Vector3f den(1.f, 0.f, 0.f);
+
+		for (int i = 0; i < SystemIdentification::_kPoles; i++) {
+			den(i + 1) = coeff(i);
+		}
+
+		Vector3f num;
+
+		for (int i = 0; i < SystemIdentification::_kZeros + 1; i++) {
+			num(i) = coeff(SystemIdentification::_kPoles + i);
+		}
 
 		const float model_dt = static_cast<float>(_model_update_scaler) * _filter_dt;
 
@@ -190,15 +198,20 @@ void McAutotuneAttitudeControl::Run()
 			_kid(2) = 0.f;
 		}
 
+		// Do not use derivative on the yaw axis as it often only amplifies noise
+		if ((_state == state::yaw) || (_state == state::yaw_pause)) {
+			_kid(2) = 0.f;
+		}
+
 		// To compute the attitude gain, use the following empirical rule:
 		// "An error of 60 degrees should produce the maximum control output"
 		// or K_att * K_rate * rad(60) = 1
 		_attitude_p = math::constrain(1.f / (math::radians(60.f) * _kid(0)), 2.f, 6.5f);
 
-		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
+		const Vector<float, SystemIdentification::_kParameters> &coeff_var = _sys_id.getVariances();
 
 		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
-					 ? getIdentificationSignal()
+					 ? getIdentificationSignal(now)
 					 : Vector3f();
 
 		autotune_attitude_control_status_s status{};
@@ -226,38 +239,33 @@ void McAutotuneAttitudeControl::Run()
 
 void McAutotuneAttitudeControl::checkFilters()
 {
-	if (_interval_count > 1000) {
-		// calculate sensor update rate
-		_sample_interval_avg = _interval_sum / _interval_count;
+	if (_interval_count < 1000) {
+		return;
+	}
 
-		// check if sample rate error is greater than 1%
-		bool reset_filters = false;
+	// calculate sensor update rate
+	const float sample_interval = _interval_sum / static_cast<float>(_interval_count);
 
-		if ((fabsf(_filter_dt - _sample_interval_avg) / _filter_dt) > 0.01f) {
-			reset_filters = true;
-		}
+	// check if sample rate error is greater than 1%
+	const bool reset_filters = (fabsf(_filter_dt - sample_interval) / _filter_dt) > 0.01f;
 
-		if (reset_filters || !_are_filters_initialized) {
-			_filter_dt = _sample_interval_avg;
+	if (reset_filters || !_are_filters_initialized) {
+		_filter_dt = sample_interval;
 
-			const float filter_rate_hz = 1.f / _filter_dt;
+		const float filter_rate_hz = 1.f / _filter_dt;
 
-			_sys_id.setLpfCutoffFrequency(filter_rate_hz, _param_imu_gyro_cutoff.get());
-			_sys_id.setHpfCutoffFrequency(filter_rate_hz, .5f);
+		_sys_id.setLpfCutoffFrequency(filter_rate_hz, 30.f);
+		_sys_id.setHpfCutoffFrequency(filter_rate_hz, .1f);
 
-			// Set the model sampling time depending on the gyro cutoff frequency
-			// as this is a good indicator of the maximum control loop bandwidth
-			float model_dt = math::constrain(math::max(1.f / (2.f * _param_imu_gyro_cutoff.get()), _filter_dt), _model_dt_min,
-							 _model_dt_max);
+		// Make sure the model dt is a integer multiple of the data update rate
+		float model_dt = 0.01f;
+		_model_update_scaler = math::max(int(model_dt / _filter_dt), 1);
+		model_dt = _model_update_scaler * _filter_dt;
 
-			_model_update_scaler = math::max(int(model_dt / _filter_dt), 1);
-			model_dt = _model_update_scaler * _filter_dt;
+		_sys_id.setForgettingFactor(60.f, model_dt);
+		_sys_id.setFitnessLpfTimeConstant(1.f, model_dt);
 
-			_sys_id.setForgettingFactor(60.f, model_dt);
-			_sys_id.setFitnessLpfTimeConstant(1.f, model_dt);
-
-			_are_filters_initialized = true;
-		}
+		_are_filters_initialized = true;
 
 		// reset sample interval accumulator
 		_last_run = 0;
@@ -266,8 +274,9 @@ void McAutotuneAttitudeControl::checkFilters()
 
 void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 {
-	// when identifying an axis, check if the estimate has converged
-	const float converged_thr = 50.f;
+	Vector<float, 5> state_init;
+	state_init(0) = -1.5f;
+	state_init(1) = 0.5f;
 
 	switch (_state) {
 	case state::idle:
@@ -288,21 +297,15 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if (_are_filters_initialized) {
 			_state = state::roll;
 			_state_start_time = now;
-			_sys_id.reset();
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-			_signal_sign = 1;
-			_input_scale = 1.f / (_param_mc_rollrate_p.get() * _param_mc_rollrate_k.get());
-			_signal_filter.reset(0.f);
+			_sys_id.reset(state_init, _kInitVar);
 			_gains_backup_available = false;
 		}
 
 		break;
 
 	case state::roll:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		if ((_sys_id.getVariances().max() < _kInitVar)
+		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(0);
 
 			// wait for the drone to stabilize
@@ -316,20 +319,14 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if ((now - _state_start_time) > 2_s) {
 			_state = state::pitch;
 			_state_start_time = now;
-			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_pitchrate_p.get() * _param_mc_pitchrate_k.get());
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
+			_sys_id.reset(state_init, _kInitVar);
 		}
 
 		break;
 
 	case state::pitch:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		if ((_sys_id.getVariances().max() < _kInitVar)
+		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(1);
 			_state = state::pitch_pause;
 			_state_start_time = now;
@@ -341,20 +338,14 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if ((now - _state_start_time) > 2_s) {
 			_state = state::yaw;
 			_state_start_time = now;
-			_sys_id.reset();
-			_input_scale = 1.f / (_param_mc_yawrate_p.get() * _param_mc_yawrate_k.get());
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
+			_sys_id.reset(state_init, _kInitVar);
 		}
 
 		break;
 
 	case state::yaw:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		if ((_sys_id.getVariances().max() < _kInitVar)
+		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(2);
 			_state = state::yaw_pause;
 			_state_start_time = now;
@@ -367,10 +358,6 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			_state = state::verification;
 			_state_start_time = now;
 			_sys_id.reset();
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			_steps_counter = 5;
-			_max_steps = 10;
 		}
 
 		break;
@@ -445,7 +432,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	if (_state != state::wait_for_disarm
 	    && _state != state::idle
-	    && (((now - _state_start_time) > 20_s)
+	    && (((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s + 2_s))
 		|| (fabsf(manual_control_setpoint.roll) > 0.05f)
 		|| (fabsf(manual_control_setpoint.pitch) > 0.05f))) {
 		_state = state::fail;
@@ -505,15 +492,6 @@ bool McAutotuneAttitudeControl::registerActuatorControlsCallback()
 	}
 
 	return true;
-}
-
-bool McAutotuneAttitudeControl::areAllSmallerThan(const Vector<float, 5> &vect, float threshold) const
-{
-	return (vect(0) < threshold)
-	       && (vect(1) < threshold)
-	       && (vect(2) < threshold)
-	       && (vect(3) < threshold)
-	       && (vect(4) < threshold);
 }
 
 void McAutotuneAttitudeControl::copyGains(int index)
@@ -585,27 +563,27 @@ void McAutotuneAttitudeControl::stopAutotune()
 	_vehicle_torque_setpoint_sub.unregisterCallback();
 }
 
-const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
+const Vector3f McAutotuneAttitudeControl::getIdentificationSignal(hrt_abstime now)
 {
-	if (_steps_counter > _max_steps) {
-		_signal_sign = (_signal_sign == 1) ? 0 : 1;
-		_steps_counter = 0;
+	const float t = static_cast<float>(now - _state_start_time) * 1e-6f;
 
-		if (_max_steps > 1) {
-			_max_steps--;
+	float signal;
 
-		} else {
-			_max_steps = 5;
-		}
+	if (_param_mc_at_sysid_type.get() == static_cast<int32_t>(SignalType::kLinearSineSweep)) {
+		const float f_max = (_state == state::yaw) ? _param_mc_at_sysid_fyaw.get() : _param_mc_at_sysid_f1.get();
+		signal = signal_generator::getLinearSineSweep(_param_mc_at_sysid_f0.get(), f_max,
+				_param_mc_at_sysid_time.get(), t);
+
+	} else if (_param_mc_at_sysid_type.get() == static_cast<int32_t>(SignalType::kLogSineSweep)) {
+		const float f_max = (_state == state::yaw) ? _param_mc_at_sysid_fyaw.get() : _param_mc_at_sysid_f1.get();
+		signal = signal_generator::getLogSineSweep(_param_mc_at_sysid_f0.get(), f_max,
+				_param_mc_at_sysid_time.get(), t);
+
+	} else {
+		signal = 0.f;
 	}
 
-	_steps_counter++;
-
-	const float step = float(_signal_sign) * _param_mc_at_sysid_amp.get();
-
-	Vector3f rate_sp{};
-
-	const float signal = step - _signal_filter.getState();
+	Vector3f rate_sp;
 
 	if (_state == state::roll) {
 		rate_sp(0) = signal;
@@ -620,8 +598,6 @@ const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
 		rate_sp(0) = signal;
 		rate_sp(1) = signal;
 	}
-
-	_signal_filter.update(step);
 
 	return rate_sp;
 }

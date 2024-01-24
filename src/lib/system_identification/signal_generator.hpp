@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,70 +32,44 @@
  ****************************************************************************/
 
 /**
- * @file system_identification.cpp
- *
- * @author Mathieu Bresciani <mathieu@auterion.com>
+ * @file signal_generator.hpp
  */
 
-#include "system_identification.hpp"
+#pragma once
 
-void SystemIdentification::reset(const matrix::Vector<float, _kParameters> &id_state_init, const float var_init)
+namespace signal_generator
 {
-	_rls.reset(id_state_init, var_init);
-	_u_lpf.reset(0.f);
-	_u_lpf.reset(0.f);
-	_u_hpf = 0.f;
-	_y_hpf = 0.f;
-	_u_prev = 0.f;
-	_y_prev = 0.f;
-	_fitness_lpf.reset(10.f);
-	_are_filters_initialized = false;
-}
 
-void SystemIdentification::update(float u, float y)
+float getLinearSineSweep(float f_start, float f_end, float duration, float t)
 {
-	updateFilters(u, y);
-	update();
-}
-
-void SystemIdentification::update()
-{
-	_rls.update(_u_hpf, _y_hpf);
-	updateFitness();
-}
-
-void SystemIdentification::updateFilters(float u, float y)
-{
-	if (!_are_filters_initialized) {
-		_u_lpf.reset(u);
-		_y_lpf.reset(y);
-		_u_hpf = 0.f;
-		_y_hpf = 0.f;
-		_u_prev = u;
-		_y_prev = y;
-		_are_filters_initialized = true;
-		return;
+	if (t > duration) {
+		return 0.f;
 	}
 
-	const float u_lpf = _u_lpf.apply(u);
-	const float y_lpf = _y_lpf.apply(y);
-	_u_hpf = u_lpf - _u_prev - (_gamma_hpf - 1.f) * _u_hpf;
-	_y_hpf = y_lpf - _y_prev - (_gamma_hpf - 1.f) * _y_hpf;
+	const float w_start = f_start * M_TWOPI_F;
+	const float w_end = f_end * M_TWOPI_F;
 
-	_u_prev = u_lpf;
-	_y_prev = y_lpf;
+	return sinf(w_start * t + 0.5f * (w_end - w_start) * t * t / duration);
 }
 
-void SystemIdentification::updateFitness()
+float getLogSineSweep(float f_start, float f_end, float duration, float t)
 {
-	const matrix::Vector<float, _kParameters> &diff = _rls.getDiffEstimate();
-	float sum = 0.f;
+	if (t > duration) {
+		return 0.f;
 
-	for (size_t i = 0; i < _kParameters; i++) {
-		sum += diff(i);
 	}
 
-	if (_dt > FLT_EPSILON) {
-		_fitness_lpf.update(sum / _dt);
+	float w_start = f_start * M_TWOPI_F;
+	float w_end = f_end * M_TWOPI_F;
+
+	if (f_start > f_end) {
+		// Handle high-to-low sweep correctly
+		w_start = f_end * M_TWOPI_F;
+		w_end = f_start * M_TWOPI_F;
+		t = duration - t;
 	}
+
+	return sinf(t * powf(10.f, log10f(w_start) + (log10f(w_end) - log10f(w_start)) * t / duration));
 }
+
+} /* namespace signal_generator */
