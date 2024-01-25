@@ -38,28 +38,56 @@
 #include <pthread.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
+#include <stdio.h>
 
 #ifdef BOARD_ENABLE_CONSOLE_BUFFER
-#ifndef BOARD_CONSOLE_BUFFER_SIZE
-# define BOARD_CONSOLE_BUFFER_SIZE (1024*4) // default buffer size
-#endif
 
-
-// TODO: User side implementation of px4_console_buffer
+static int console_fd = -1;
 
 int px4_console_buffer_init()
 {
-	return 0;
+	console_fd = open(CONSOLE_BUFFER_DEVICE, O_RDWR);
+
+	if (console_fd < 0) {
+		return ERROR;
+	}
+
+	return OK;
 }
 
 int px4_console_buffer_size()
 {
-	return 0;
+	int size;
+
+	if (ioctl(console_fd, FIONSPACE, &size) < 0) {
+		return 0;
+	}
+
+	return size;
 }
 
 int px4_console_buffer_read(char *buffer, int buffer_length, int *offset)
 {
-	return 0;
+	FILE *fp;
+	ssize_t nread;
+
+	/* Open a file stream to keep track of offset */
+	fp = fdopen(dup(console_fd), "r");
+
+	if (fp == NULL) {
+		return -1;
+	}
+
+	/* The driver does not utilize file position, we have to do it for it */
+	fseek(fp, *offset, SEEK_SET);
+	nread = read(console_fd, buffer, buffer_length);
+	*offset = fseek(fp, 0, SEEK_CUR);
+
+	/* Now we can close the file */
+	fclose(fp);
+
+	return (int)nread;
 }
 
 #endif /* BOARD_ENABLE_CONSOLE_BUFFER */

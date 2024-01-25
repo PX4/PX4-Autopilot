@@ -38,6 +38,7 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/console_buffer.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <px4_platform_common/spi.h>
 #include <px4_platform_common/log.h>
@@ -60,6 +61,8 @@ extern "C" void px4_userspace_init(void)
 #endif
 
 	px4_log_initialize();
+
+	px4_console_buffer_init();
 
 #if defined(CONFIG_SYSTEM_CDCACM) && defined(CONFIG_BUILD_PROTECTED)
 	cdcacm_init();
