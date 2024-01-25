@@ -36,9 +36,9 @@ permissions:
   packages: write
 
 env:
-  saluki_pi_fpga_version: "sha-4230961"
-  saluki_v2_fpga_version: "sha-4230961"
-  saluki_v3_fpga_version: "sha-4230961"
+  saluki_pi_fpga_version: "sha-b7e842d"
+  saluki_v2_fpga_version: "sha-b7e842d"
+  saluki_v3_fpga_version: "sha-b7e842d"
 
 jobs:
   fc_matrix:
