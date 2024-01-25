@@ -137,6 +137,7 @@ public:
 	bool getPredict() { return _param_gf_predict.get(); }
 
 	uint8_t legacyActionTranslator(uint8_t param_action);
+	uint8_t getDefaultAction() { return legacyActionTranslator(_param_gf_action.get()); }
 	bool isHomeRequired();
 
 	/**
