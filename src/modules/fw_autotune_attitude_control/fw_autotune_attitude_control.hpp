@@ -68,10 +68,10 @@
 using namespace time_literals;
 
 enum class SignalType : uint8_t {
-		kStep=0,
-		kLinearSineSweep ,
-		kLogSineSweep
-	};
+	kStep = 0,
+	kLinearSineSweep,
+	kLogSineSweep
+};
 
 
 // [s] minimum time step between auto tune updates
