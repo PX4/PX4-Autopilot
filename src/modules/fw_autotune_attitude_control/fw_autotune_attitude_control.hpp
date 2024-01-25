@@ -44,6 +44,7 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/pid_design/pid_design.hpp>
 #include <lib/system_identification/system_identification.hpp>
+#include <lib/system_identification/signal_generator.hpp>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -66,11 +67,13 @@
 
 using namespace time_literals;
 
-enum signal_types {
-	step = 0,
-	sinus,
-	chirp
-};
+enum class SignalType : uint8_t {
+		kStep=0,
+		kLinearSineSweep ,
+		kLogSineSweep
+	};
+
+
 // [s] minimum time step between auto tune updates
 static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
 
@@ -132,7 +135,6 @@ private:
 	uORB::PublicationData<autotune_attitude_control_status_s> _autotune_attitude_control_status_pub{ORB_ID(autotune_attitude_control_status)};
 
 	SystemIdentification _sys_id;
-	SignalGenerator      _signal_gen;
 
 	enum class state {
 		idle = autotune_attitude_control_status_s::STATE_IDLE,
@@ -226,10 +228,8 @@ private:
 		(ParamFloat<px4::params::FW_YR_FF>) _param_fw_yr_ff,
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
 
-		(ParamFloat<px4::params::FW_AT_SYSID_FREQ>) _param_fw_sysid_freq,
-		(ParamFloat<px4::params::FW_AT_SYSIDPHASE>) _param_fw_sysid_phase,
-		(ParamFloat<px4::params::FW_AT_START_FREQ>) _param_fw_sysid_start_frequency,
-		(ParamFloat<px4::params::FW_AT_END_FREQ>) _param_fw_sysid_end_frequency,
+		(ParamFloat<px4::params::FW_AT_SYSID_F0>) _param_fw_sysid_start_frequency,
+		(ParamFloat<px4::params::FW_AT_SYSID_F1>) _param_fw_sysid_end_frequency,
 		(ParamFloat<px4::params::FW_AT_SYSID_TIME>) _param_fw_sysid_duration,
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
 

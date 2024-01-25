@@ -620,19 +620,14 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 {
 
-	_signal_gen.setSignalAmpiltude(_param_fw_at_sysid_amp.get());
-	_signal_gen.setSignalFrequency(_param_fw_sysid_freq.get());
-	_signal_gen.setSignalPhase(_param_fw_sysid_phase.get());
-	_signal_gen.setSignalStartFrequency(_param_fw_sysid_start_frequency.get());
-	_signal_gen.setSignalEndFrequency(_param_fw_sysid_end_frequency.get());
-	_signal_gen.setSignalDuration(_param_fw_sysid_duration.get());
+
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain((now - last_time_signal_generator_called) * 1e-6f,
 					 MIN_AUTO_TIMESTEP, MAX_AUTO_TIMESTEP);
 	last_time_signal_generator_called = now;
 
 	switch (_param_fw_sysid_signal_type.get()) {
-	case signal_types::step: {
+	case  static_cast<int32_t>(SignalType::kStep): {
 			if (_steps_counter > _max_steps) {
 				_signal_sign = (_signal_sign == 1) ? 0 : 1;
 				_steps_counter = 0;
@@ -649,31 +644,22 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 		}
 		break;
 
-	case signal_types::sinus: {
-			if (_param_fw_sysid_duration.get() >= duration) {
-				duration = duration + dt;
-				signal = _signal_gen.generateSinusSignal(duration);
+	case static_cast<int32_t>(SignalType::kLinearSineSweep): {
 
-			} else {
-				duration = 0.0f;
-			}
+			signal = signal_generator::getLinearSineSweep(_param_fw_sysid_start_frequency.get(), _param_fw_sysid_end_frequency.get(),
+				_param_fw_sysid_duration.get(), dt);
 
 		}
 		break;
 
-	case signal_types::chirp: {
-			if (_param_fw_sysid_duration.get() >= duration) {
-				duration = duration + dt;
-				signal = _signal_gen.generateSinusSignal(duration);
-
-			} else {
-				duration = 0.0f;
-			}
-
+	case static_cast<int32_t>(SignalType::kLogSineSweep): {
+			signal = signal_generator::getLogSineSweep(_param_fw_sysid_start_frequency.get(), _param_fw_sysid_end_frequency.get(),
+				_param_fw_sysid_duration.get(), dt);
 		}
 		break;
 
 	default:
+		signal = 0.f;
 		break;
 	}
 
