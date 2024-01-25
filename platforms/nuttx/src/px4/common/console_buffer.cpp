@@ -206,13 +206,57 @@ ssize_t console_buffer_write(struct file *filep, const char *buffer, size_t len)
 	return len;
 }
 
+ssize_t console_buffer_read(struct file *filep, char *buffer, size_t buflen)
+{
+	return g_console_buffer.read(buffer, buflen, (int *)&filep->f_pos);
+}
+
+off_t console_buffer_seek(struct file *filep, off_t offset, int whence)
+{
+	switch (whence) {
+	case SEEK_SET:
+		filep->f_pos = offset;
+		break;
+
+	case SEEK_CUR:
+		filep->f_pos += offset;
+		break;
+
+	case SEEK_END:
+		filep->f_pos = (g_console_buffer.size() + offset) % BOARD_CONSOLE_BUFFER_SIZE;
+		break;
+
+	default:
+		return -1;
+	}
+
+	return filep->f_pos;
+}
+
+int console_buffer_ioctl(struct file *filep, int cmd, unsigned long arg)
+{
+	int ret = OK;
+
+	switch (cmd) {
+	case FIONSPACE:
+		*(int *)arg = g_console_buffer.size();
+		break;
+
+	default:
+		ret = -ENOTTY;
+		break;
+	}
+
+	return ret;
+}
+
 static const struct file_operations g_console_buffer_fops = {
 	NULL,         /* open */
 	NULL,         /* close */
-	NULL,         /* read */
+	console_buffer_read, /* read */
 	console_buffer_write, /* write */
-	NULL,         /* seek */
-	NULL          /* ioctl */
+	console_buffer_seek,  /* seek */
+	console_buffer_ioctl /* ioctl */
 #ifndef CONFIG_DISABLE_POLL
 	, NULL        /* poll */
 #endif
