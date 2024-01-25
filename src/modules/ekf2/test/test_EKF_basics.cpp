@@ -191,7 +191,7 @@ TEST_F(EkfBasicsTest, accelBiasEstimation)
 	_sensor_simulator.startGps();
 	_sensor_simulator.setImuBias(accel_bias_sim, Vector3f(0.0f, 0.0f, 0.0f));
 	_ekf->set_min_required_gps_health_time(1e6);
-	_sensor_simulator.runSeconds(30);
+	_sensor_simulator.runSeconds(60);
 
 	const Vector3f pos = _ekf->getPosition();
 	const Vector3f vel = _ekf->getVelocity();

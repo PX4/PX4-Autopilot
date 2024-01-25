@@ -255,7 +255,9 @@ public:
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
 	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
-	float getTiltVariance() const { return getStateVariance<State::quat_nominal>()(0) + getStateVariance<State::quat_nominal>()(1); };
+	matrix::Vector3f getRotVarNed() const;
+	float getYawVar() const;
+	float getTiltVariance() const;
 
 	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
 
@@ -343,14 +345,7 @@ public:
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
 
 	const Vector3f &getMagBias() const { return _state.mag_B; }
-	Vector3f getMagBiasVariance() const
-	{
-		if (_control_status.flags.mag) {
-			return getStateVariance<State::mag_B>();
-		}
-
-		return _saved_mag_bf_covmat.diag();
-	}
+	Vector3f getMagBiasVariance() const { return getStateVariance<State::mag_B>(); } // get the mag bias variance in Gauss
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -409,8 +404,6 @@ public:
 
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) const;
-
-	float getYawVar() const;
 
 	HeightSensor getHeightSensorRef() const { return _height_sensor_ref; }
 
@@ -496,7 +489,8 @@ public:
 			// apply the covariance corrections
 			P -= KHP;
 
-			fixCovarianceErrors(true);
+			constrainStateVariances();
+			forceCovarianceSymmetry();
 
 			// apply the state corrections
 			fuse(K, innovation);
@@ -522,6 +516,14 @@ private:
 	void updateDeadReckoningStatus();
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
+
+	static constexpr float kGyroBiasVarianceMin{1e-9f};
+	static constexpr float kAccelBiasVarianceMin{1e-9f};
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	static constexpr float kMagVarianceMin = 1e-6f;
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 
 	struct StateResetCounts {
 		uint8_t velNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
@@ -720,8 +722,6 @@ private:
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	uint64_t _time_last_mag_check_failing{0};
-	Matrix3f _saved_mag_ef_covmat{}; ///< NED magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
-	Matrix3f _saved_mag_bf_covmat{}; ///< magnetic field state covariance sub-matrix that has been saved for use at the next initialisation (Gauss**2)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	// variables used to inhibit accel bias learning
@@ -729,9 +729,6 @@ private:
 	bool _gyro_bias_inhibit[3] {};		///< true when the gyro bias learning is being inhibited for the specified axis
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
-
-	Vector3f _prev_gyro_bias_var{};         ///< saved gyro XYZ bias variances
-	Vector3f _prev_accel_bias_var{};        ///< saved accel XYZ bias variances
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -950,13 +947,12 @@ private:
 	bool checkAndFixCovarianceUpdate(const SquareMatrixState &KHP);
 
 	// limit the diagonal of the covariance matrix
-	// force symmetry when the argument is true
-	void fixCovarianceErrors(bool force_symmetry);
+	void constrainStateVariances();
+
+	void forceCovarianceSymmetry();
 
 	void constrainStateVar(const IdxDof &state, float min, float max);
-
-	// constrain the ekf states
-	void constrainStates();
+	void constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio = 1.e6f);
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
@@ -1061,10 +1057,6 @@ private:
 
 	void stopMagHdgFusion();
 	void stopMagFusion();
-
-	// load and save mag field state covariance data for re-use
-	void loadMagCovData();
-	void saveMagCovData();
 
 	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
 	// sensor measurement
