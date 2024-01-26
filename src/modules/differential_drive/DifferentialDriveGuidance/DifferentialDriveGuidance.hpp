@@ -125,7 +125,7 @@ private:
 	float _max_speed; ///< The maximum speed.
 	float _max_angular_velocity; ///< The maximum angular velocity.
 
-	matrix::Vector2d _next_waypoint; ///< The next waypoint.
+	matrix::Vector2d _current_waypoint; ///< The current waypoint.
 
 	VelocitySmoothing _forwards_velocity_smoothing; ///< The velocity smoothing for forward motion.
 	PositionSmoothing _position_smoothing; ///< The position smoothing.

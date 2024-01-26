@@ -72,14 +72,8 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	_forwards_velocity_smoothing.updateDurations(max_velocity);
 	_forwards_velocity_smoothing.updateTraj(dt);
 
-	if (_next_waypoint != next_waypoint) {
-		if (fabsf(heading_error) < 0.1f) {
-			_currentState = GuidanceState::DRIVING;
-
-		} else {
-			_currentState = GuidanceState::TURNING;
-		}
-
+	if (_current_waypoint != current_waypoint) {
+		_currentState = GuidanceState::TURNING;
 	}
 
 	// Make rover stop when it arrives at the last waypoint instead of loitering and driving around weirdly.
@@ -92,10 +86,15 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	switch (_currentState) {
 	case GuidanceState::TURNING:
 		desired_speed = 0.f;
+
+		if (fabsf(heading_error) < 0.05f) {
+			_currentState = GuidanceState::DRIVING;
+		}
+
 		break;
 
 	case GuidanceState::DRIVING:
-		desired_speed = math::interpolate<float>(abs(heading_error), 0.1f, 0.4f,
+		desired_speed = math::interpolate<float>(abs(heading_error), 0.1f, 0.8f,
 				_forwards_velocity_smoothing.getCurrentVelocity(), 0.0f);
 		break;
 
@@ -109,7 +108,8 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	}
 
 	// Compute the desired angular velocity relative to the heading error, to steer the vehicle towards the next waypoint.
-	float angular_velocity_pid = pid_calculate(&_heading_p_controller, heading_error, angular_velocity, 0, dt);
+	float angular_velocity_pid = pid_calculate(&_heading_p_controller, heading_error, angular_velocity, 0,
+				     dt) + heading_error;
 
 	differential_drive_setpoint_s output{};
 	output.speed = math::constrain(desired_speed, -_max_speed, _max_speed);
@@ -117,6 +117,8 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	output.closed_loop_speed_control = output.closed_loop_yaw_rate_control = true;
 	output.timestamp = hrt_absolute_time();
 	_differential_drive_setpoint_pub.publish(output);
+
+	_current_waypoint = current_waypoint;
 }
 
 void DifferentialDriveGuidance::updateParams()
