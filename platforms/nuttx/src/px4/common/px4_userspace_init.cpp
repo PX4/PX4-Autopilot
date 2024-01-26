@@ -41,6 +41,7 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <px4_platform_common/spi.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform/board_determine_hw_info.h>
 
 extern void cdcacm_init(void);
 
@@ -49,6 +50,8 @@ extern "C" void px4_userspace_init(void)
 	hrt_init();
 
 	px4_set_spi_buses_from_hw_version();
+
+	board_determine_hw_info();
 
 	// Do lazy init of wq:manager for kernel. This saves a considerable amount
 	// of scheduling time due to unnecessary threads.
