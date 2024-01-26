@@ -103,6 +103,7 @@ set(msg_files
 	GpsInjectData.msg
 	GimbalControls.msg
 	Gripper.msg
+	Guid.msg
 	HealthReport.msg
 	HeaterStatus.msg
 	HomePosition.msg
