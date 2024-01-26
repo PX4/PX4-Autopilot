@@ -224,7 +224,7 @@ public:
 		return node(node_handle)->_register_callback(callback_sub, poll_lock, last_update, interval_us, cb_handle);
 	}
 
-	static bool unregister_callback(orb_advert_t &node_handle, uorb_cb_handle_t &cb_handle)
+	static int unregister_callback(orb_advert_t &node_handle, uorb_cb_handle_t &cb_handle)
 	{
 		return node(node_handle)->_unregister_callback(cb_handle);
 	}
@@ -346,7 +346,7 @@ private:
 
 	bool _register_callback(SubscriptionCallback *callback_sub, int8_t poll_lock, hrt_abstime last_update,
 				uint32_t interval_us, uorb_cb_handle_t &cb_handle);
-	bool _unregister_callback(uorb_cb_handle_t &cb_handle);
+	int _unregister_callback(uorb_cb_handle_t &cb_handle);
 
 #ifdef CONFIG_BUILD_FLAT
 	char *_devname;
