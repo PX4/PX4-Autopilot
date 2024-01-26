@@ -138,3 +138,13 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.f);
+
+/**
+ * Acceleration to tilt coupling
+ *
+ * Set to decouple tilt from vertical acceleration.
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_ACC_DECOUPLE, 1);
