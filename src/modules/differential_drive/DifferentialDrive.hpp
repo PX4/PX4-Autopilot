@@ -82,6 +82,7 @@ private:
 
 	bool _manual_driving = false;
 	bool _mission_driving = false;
+	bool _acro_driving = false;
 	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
 
 	DifferentialDriveGuidance _differential_drive_guidance{this};
