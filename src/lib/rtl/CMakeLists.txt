@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,43 +31,4 @@
 #
 ############################################################################
 
-add_subdirectory(GeofenceBreachAvoidance)
-add_subdirectory(MissionFeasibility)
-
-set(NAVIGATOR_SOURCES
-	navigator_main.cpp
-	navigator_mode.cpp
-	mission_base.cpp
-	mission_block.cpp
-	mission.cpp
-	loiter.cpp
-	rtl.cpp
-	rtl_direct.cpp
-	rtl_direct_mission_land.cpp
-	rtl_mission_fast.cpp
-	rtl_mission_fast_reverse.cpp
-	takeoff.cpp
-	land.cpp
-	precland.cpp
-	mission_feasibility_checker.cpp
-	geofence.cpp)
-
-if(CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF)
-	set(NAVIGATOR_SOURCES
-		${NAVIGATOR_SOURCES}
-		vtol_takeoff.cpp)
-endif()
-
-px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	SRCS ${NAVIGATOR_SOURCES}
-	DEPENDS
-		dataman_client
-		geo
-		adsb
-		geofence_breach_avoidance
-		motion_planning
-		mission_feasibility_checker
-		rtl_time_estimator
-	)
+px4_add_library(rtl_time_estimator rtl_time_estimator.cpp)
