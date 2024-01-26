@@ -47,6 +47,8 @@
 #include <mpfs_dsn.h>
 
 #include <uORB/uORB.h>
+#include <uORB/topics/guid.h>
+#include <uORB/topics/hw_info.h>
 #include <uORB/topics/system_version.h>
 #include <uORB/topics/system_version_string.h>
 
@@ -72,6 +74,13 @@
 #define getreg8(a)                 (*(volatile uint8_t *)(a))
 #define getreg32(a)                (*(volatile uint32_t *)(a))
 #define putreg32(v,a)              (*(volatile uint32_t *)(a) = (v))
+
+#ifndef max
+#  define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+#  define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
 
 static unsigned hw_version = 0;
 static unsigned hw_revision = 0;
@@ -262,12 +271,17 @@ static uint64_t parse_tag_to_version(const char *ver_str)
  *   3) hw_info is populated
  *
  ************************************************************************************/
+
 int board_determine_hw_info(void)
 {
 	struct system_version_string_s ver_str;
 	struct system_version_s ver;
+	struct guid_s guid;
+	struct hw_info_s hwinfo;
 	orb_advert_t ver_str_pub = orb_advertise(ORB_ID(system_version_string), NULL);
 	orb_advert_t ver_pub = orb_advertise(ORB_ID(system_version), NULL);
+	orb_advert_t mfguid_pub = orb_advertise(ORB_ID(guid), NULL);
+	orb_advert_t hw_info_pub = orb_advertise(ORB_ID(hw_info), NULL);
 
 	uint32_t fpga_version = getreg32(FPGA_VER_REGISTER); // todo: replace eventually with device_boot_info
 
@@ -282,7 +296,15 @@ int board_determine_hw_info(void)
 	/* HW version */
 
 	snprintf(ver_str.hw_version, sizeof(ver_str.hw_version), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX, hw_version, hw_revision);
-	ver.hw_version = fpga_version;
+	ver.hw_version = hw_version;
+
+	/* HW revision */
+
+	ver.hw_revision = hw_revision;
+
+	/* SoC architecture ID */
+
+	ver.soc_arch_id = soc_arch_id;
 
 	/* PX4 version */
 
@@ -305,8 +327,17 @@ int board_determine_hw_info(void)
 		 HW_INFO_FPGA_PREFIX HW_INFO_FPGA_SUFFIX " (0x%x)", fpga_version_major, fpga_version_minor, getreg32(FPGA_VER_REGISTER));
 	ver.component_version1 = fpga_version;
 
+	/* Make local copies of guid and hwinfo */
+
+	memcpy(&guid, device_serial_number, min(sizeof(device_serial_number), sizeof(guid)));
+	memcpy(&hwinfo, hw_info, min(sizeof(hwinfo), sizeof(hw_info)));
+
+	/* Then publish the topics */
+
 	orb_publish(ORB_ID(system_version_string), &ver_str_pub, &ver_str);
 	orb_publish(ORB_ID(system_version), &ver_pub, &ver);
+	orb_publish(ORB_ID(guid), &mfguid_pub, &guid);
+	orb_publish(ORB_ID(hw_info), &hw_info_pub, &hwinfo);
 
 	return OK;
 }
