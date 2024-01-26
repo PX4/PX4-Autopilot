@@ -62,7 +62,6 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <lib/signal_generator/signal_generator.hpp>
 
 
 using namespace time_literals;
