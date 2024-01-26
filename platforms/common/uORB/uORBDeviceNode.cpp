@@ -917,15 +917,6 @@ uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t &cb_handle)
 		PX4_ERR("unregister fail\n");
 
 	} else {
-#ifndef CONFIG_BUILD_FLAT
-		EventWaitItem *item = callbacks.peek(cb_handle);
-
-		while (item->cb_triggered > 0) {
-			item->cb_triggered--;
-			Manager::lockThread(item->lock);
-		}
-
-#endif
 		callbacks.push_free(cb_handle);
 		cb_handle = UORB_INVALID_CB_HANDLE;
 	}
