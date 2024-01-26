@@ -84,6 +84,7 @@ void DifferentialDrive::Run()
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
 			_differential_drive_kinematics.setArmed(vehicle_control_mode.flag_armed);
 			_manual_driving = vehicle_control_mode.flag_control_manual_enabled;
+			_acro_driving = vehicle_control_mode.flag_control_rates_enabled;
 			_mission_driving = vehicle_control_mode.flag_control_auto_enabled;
 		}
 	}
@@ -98,6 +99,17 @@ void DifferentialDrive::Run()
 				differential_drive_setpoint_s setpoint{};
 				setpoint.speed = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
 				setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() * _max_angular_velocity;
+
+				// if acro mode, we activate the yaw rate control
+				if (_acro_driving) {
+					setpoint.closed_loop_speed_control = false;
+					setpoint.closed_loop_yaw_rate_control = true;
+
+				} else {
+					setpoint.closed_loop_speed_control = false;
+					setpoint.closed_loop_yaw_rate_control = false;
+				}
+
 				setpoint.timestamp = now;
 				_differential_drive_setpoint_pub.publish(setpoint);
 			}
