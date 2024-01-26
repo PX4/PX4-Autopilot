@@ -140,6 +140,8 @@ jobs:
 
   upload-px4fwupdater-uae:
     name: upload px4fwupdater to UAE docker registry
+    # temporarily disabled until we get new token from UAR
+    if: false
     runs-on: ubuntu-latest
     needs:
       - px4fwupdater
@@ -271,7 +273,8 @@ jobs:
 
   artifactory-uae:
     name: upload builds to UAE artifactory
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.jfrog-upload == true }}
+    # temporarily disabled until we get new token from UAR
+    if: false
     runs-on: ubuntu-latest
     needs:
       - px4fwupdater
