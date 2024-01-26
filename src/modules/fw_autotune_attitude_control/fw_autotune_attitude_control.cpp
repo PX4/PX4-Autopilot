@@ -623,9 +623,7 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 
 
 	const hrt_abstime now = hrt_absolute_time();
-	const float dt = math::constrain((now - last_time_signal_generator_called) * 1e-6f,
-					 MIN_AUTO_TIMESTEP, MAX_AUTO_TIMESTEP);
-	last_time_signal_generator_called = now;
+	const float t = static_cast<float>(now - _state_start_time) * 1e-6f;
 
 	switch (_param_fw_sysid_signal_type.get()) {
 	case  static_cast<int32_t>(SignalType::kStep): {
@@ -649,14 +647,14 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 
 			signal = signal_generator::getLinearSineSweep(_param_fw_sysid_start_frequency.get(),
 					_param_fw_sysid_end_frequency.get(),
-					_param_fw_sysid_duration.get(), dt);
+					_param_fw_sysid_duration.get(), t);
 
 		}
 		break;
 
 	case static_cast<int32_t>(SignalType::kLogSineSweep): {
 			signal = signal_generator::getLogSineSweep(_param_fw_sysid_start_frequency.get(), _param_fw_sysid_end_frequency.get(),
-					_param_fw_sysid_duration.get(), dt);
+					_param_fw_sysid_duration.get(), t);
 		}
 		break;
 

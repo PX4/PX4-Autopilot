@@ -195,8 +195,6 @@ private:
 
 	float signal{0.0f};
 
-	hrt_abstime last_time_signal_generator_called{0};
-
 	AlphaFilter<float> _signal_filter; ///< used to create a wash-out filter
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
