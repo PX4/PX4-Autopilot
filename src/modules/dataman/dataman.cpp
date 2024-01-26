@@ -445,9 +445,6 @@ static int  _ram_clear(dm_item_t item)
 		return -1;
 	}
 
-	int i;
-	int result = 0;
-
 	/* Get the offset of 1st item of this type */
 	int offset = calculate_offset(item, 0);
 
@@ -456,8 +453,10 @@ static int  _ram_clear(dm_item_t item)
 		return -1;
 	}
 
+	int result = 0;
+
 	/* Clear all items of this type */
-	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
+	for (int i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
 		uint8_t *buf = &dm_operations_data.ram.data[offset];
 
 		if (buf > dm_operations_data.ram.data_end) {
@@ -479,8 +478,6 @@ _file_clear(dm_item_t item)
 		return -1;
 	}
 
-	int i, result = 0;
-
 	/* Get the offset of 1st item of this type */
 	int offset = calculate_offset(item, 0);
 
@@ -489,8 +486,10 @@ _file_clear(dm_item_t item)
 		return -1;
 	}
 
+	int result = 0;
+
 	/* Clear all items of this type */
-	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
+	for (int i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
 		char buf[1];
 
 		if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
@@ -820,8 +819,6 @@ end:
 static int
 start()
 {
-	int task;
-
 	px4_sem_init(&g_init_sema, 1, 0);
 
 	/* g_init_sema use case is a signal */
@@ -829,9 +826,9 @@ start()
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
-				       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
-				       nullptr)) < 0) {
+	if (px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
+			       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
+			       nullptr) < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
 		return -1;
