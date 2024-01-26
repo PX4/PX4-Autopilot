@@ -68,6 +68,8 @@ int8_t uORB::Manager::per_process_lock = -1;
 pid_t uORB::Manager::per_process_cb_thread = -1;
 List<class uORB::SubscriptionCallback *> uORB::Manager::per_process_cb_list;
 px4_sem_t uORB::Manager::per_process_cb_list_mutex;
+
+static int callback_count = 1;
 #endif
 
 void uORB::Manager::cleanup()
@@ -500,22 +502,24 @@ uORB::Manager::launchCallbackThread()
 int
 uORB::Manager::callback_thread(int argc, char *argv[])
 {
-	int count = 1;
+	int tmp;
 
 	while (true) {
 		/* Sleep here waiting for callbacks, lock as many times as it has been unlocked */
-		lockThread(per_process_lock, count);
+
+		tmp = callback_count;
+		lockThread(per_process_lock, tmp);
 
 		lock_cb_list();
 
-		count = 0;
+		callback_count -= tmp;
 
 		for (auto sub : per_process_cb_list) {
 			/* Just in cast the callback thread has been starved,
 			 * run all the queued callbacks now
 			 */
 			while (sub->do_call()) {
-				count++;
+				callback_count++;
 			}
 		}
 
@@ -576,8 +580,19 @@ uORB::Manager::unregisterCallback(orb_advert_t &node_handle, SubscriptionCallbac
 	lock_cb_list();
 	per_process_cb_list.remove(callback_sub);
 	unlock_cb_list();
-#endif
+
+	// Unregister the callback from the device node and retrieve amount of unhandled callback triggers */
+
+	int queued = DeviceNode::unregister_callback(node_handle, cb_handle);
+
+	// Add the amount of unhandled callback triggers to the callback_count; they are now considered as handled
+
+	lock_cb_list();
+	callback_count += queued;
+	unlock_cb_list();
+#else
 	DeviceNode::unregister_callback(node_handle, cb_handle);
+#endif
 }
 
 void uORB::Manager::GlobalSemPool::init(void)
