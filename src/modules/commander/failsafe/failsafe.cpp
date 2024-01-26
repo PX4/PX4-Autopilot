@@ -472,8 +472,19 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
 
+	const bool rc_loss_ignored_external_mode =
+		(state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL2 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL3 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL4 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL5 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL6 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL7 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL8)
+		&& (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::ExternalMode);
+
 	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
-				     rc_loss_ignored_takeoff || ignore_any_link_loss_vtol_takeoff_fixedwing
+				     rc_loss_ignored_takeoff || rc_loss_ignored_external_mode || ignore_any_link_loss_vtol_takeoff_fixedwing
 				     || _manual_control_lost_at_arming;
 
 	if (_param_com_rc_in_mode.get() != int32_t(RcInMode::StickInputDisabled) && !rc_loss_ignored) {
