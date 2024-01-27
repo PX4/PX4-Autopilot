@@ -64,6 +64,13 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 			# "gz sim" from Garden on
 			gz_command="gz"
 			gz_sub_command="sim"
+
+			# Specify render engine if `GZ_SIM_RENDER_ENGINE` is set
+			# (for example, if you want to use Ogre 1.x instead of Ogre 2.x):
+			if [ -n "${PX4_GZ_SIM_RENDER_ENGINE}" ]; then
+				echo "INFO  [init] Setting Gazebo render engine to '${PX4_GZ_SIM_RENDER_ENGINE}'!"
+				gz_sub_command="${gz_sub_command} --render-engine ${PX4_GZ_SIM_RENDER_ENGINE}"
+			fi
 		else
 			echo "ERROR [init] Gazebo gz please install gz-garden"
 			exit 1
