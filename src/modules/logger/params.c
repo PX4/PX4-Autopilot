@@ -220,3 +220,16 @@ PARAM_DEFINE_INT32(SDLOG_KEY, 2);
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_EXCH_KEY, 1);
+
+/**
+ * Log specification of the WAYPOINT number reached
+ *
+ * Setting this flag to ENABLED allows the flight plan flight results to be
+ * viewed in the log message list.
+ *
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @boolean
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_REACHED_WP, 0);
