@@ -574,10 +574,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
-
-			// make previous setpoint invalid, such that there will be no prev-current line following
-			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
-			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 		}
 
 	} else if (needs_to_land) {
