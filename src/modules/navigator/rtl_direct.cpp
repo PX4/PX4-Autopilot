@@ -310,6 +310,7 @@ void RtlDirect::set_rtl_item()
 			dest.alt = loiter_altitude;
 
 			setMoveToPositionMissionItem(_mission_item, dest, rtl_heading_mode);
+			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
 			_rtl_state = RTLState::LAND;
 

@@ -101,6 +101,7 @@
 #ifdef CONFIG_FIGURE_OF_EIGHT
 #include "figure_eight/FigureEight.hpp"
 #include <uORB/topics/figure_eight_status.h>
+
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 using namespace launchdetection;
@@ -222,6 +223,8 @@ private:
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
 
+	Vector2f _lpos_where_backtrans_started;
+
 	bool _position_setpoint_previous_valid{false};
 	bool _position_setpoint_current_valid{false};
 	bool _position_setpoint_next_valid{false};
@@ -243,6 +246,7 @@ private:
 		FW_POSCTRL_MODE_AUTO_PATH,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
+		FW_POSCTRL_MODE_TRANSITON,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
 
@@ -540,7 +544,8 @@ private:
 	 * @param pos_sp_curr Current position setpoint
 	 * @return Adjusted position setpoint type
 	 */
-	uint8_t	handle_setpoint_type(const position_setpoint_s &pos_sp_curr);
+	uint8_t handle_setpoint_type(const position_setpoint_s &pos_sp_curr,
+				     const position_setpoint_s &pos_sp_next);
 
 	/* automatic control methods */
 
@@ -684,6 +689,18 @@ private:
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 */
 	void control_manual_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
+
+	/**
+	 * @brief Controls flying towards a transition waypoint and then transitioning to MC mode.
+	 *
+	 * @param control_interval Time since last position control call [s]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_prev previous position setpoint
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void control_backtransition(const float control_interval, const Vector2f &ground_speed,
+				    const position_setpoint_s &pos_sp_prev,
+				    const position_setpoint_s &pos_sp_curr);
 
 	float get_tecs_pitch();
 	float get_tecs_thrust();
