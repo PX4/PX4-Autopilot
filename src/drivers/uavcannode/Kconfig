@@ -37,6 +37,10 @@ if DRIVERS_UAVCANNODE
         bool "Include hygrometer measurement"
         default n
 
+    config UAVCANNODE_RCINPUT
+        bool "Include RC input"
+        default n
+
     config UAVCANNODE_LIGHTS_COMMAND
         bool "Include lights command"
         default n

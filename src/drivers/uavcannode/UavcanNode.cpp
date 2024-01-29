@@ -52,14 +52,18 @@
 #include "Publishers/FlowMeasurement.hpp"
 #endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT
 
-#if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
-#include "Publishers/HygrometerMeasurement.hpp"
-#endif // UAVCANNODE_HYGROMETER_MEASUREMENT
-
 #if defined(CONFIG_UAVCANNODE_GNSS_FIX)
 #include "Publishers/GnssFix2.hpp"
 #include "Publishers/GnssAuxiliary.hpp"
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
+
+#if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
+#include "Publishers/HygrometerMeasurement.hpp"
+#endif // UAVCANNODE_HYGROMETER_MEASUREMENT
+
+#if defined(CONFIG_UAVCANNODE_RCINPUT)
+#include "Publishers/RCInput.hpp"
+#endif // CONFIG_UAVCANNODE_RCINPUT
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
 #include "Publishers/MagneticFieldStrength2.hpp"
@@ -366,14 +370,18 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new FlowMeasurement(this, _node));
 #endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT
 
-#if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
-	_publisher_list.add(new HygrometerMeasurement(this, _node));
-#endif // UAVCANNODE_HYGROMETER_MEASUREMENT
-
 #if defined(CONFIG_UAVCANNODE_GNSS_FIX)
 	_publisher_list.add(new GnssFix2(this, _node));
 	_publisher_list.add(new GnssAuxiliary(this, _node));
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
+
+#if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
+	_publisher_list.add(new HygrometerMeasurement(this, _node));
+#endif // UAVCANNODE_HYGROMETER_MEASUREMENT
+
+#if defined(CONFIG_UAVCANNODE_RCINPUT)
+	_publisher_list.add(new RCInput(this, _node));
+#endif // CONFIG_UAVCANNODE_RCINPUT
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
 	_publisher_list.add(new MagneticFieldStrength2(this, _node));
