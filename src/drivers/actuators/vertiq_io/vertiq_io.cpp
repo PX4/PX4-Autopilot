@@ -8,16 +8,18 @@ char VertiqIo::_telemetry_device[] {};
 
 VertiqIo::VertiqIo() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_telem_manager(&_motor_interface),
-	_serial_interface(NUM_CLIENTS),
-	_broadcast_prop_motor_control(_kBroadcastID), //Initialize with a module ID of 63 for broadcasting
-	_arming_handler(_kBroadcastID)
+	_serial_interface(0),
+	_client_manager(&_serial_interface),
+	_telem_manager(_client_manager.GetMotorInterface())
 
 {
-	_client_array[0] = &_broadcast_prop_motor_control;
-	_client_array[1] = &_arming_handler;
 	//Make sure we get the correct initial values for our parameters
 	update_params();
+
+	_client_manager.Init((uint8_t)_param_vertiq_sys_ctrl_id.get());
+	_motor_interface_ptr = _client_manager.GetMotorInterface();
+
+	_serial_interface.SetNumberOfClients(_client_manager.GetNumberOfClients());
 }
 
 VertiqIo::~VertiqIo()
@@ -70,12 +72,12 @@ void VertiqIo::Run()
 	}
 
 	//Handle IQUART reception and transmission
-	handle_iquart();
+	_client_manager.HandleClientCommunication();
 
 	//If we're supposed to ask for telemetry from someone
 	if(_telem_bitmask){
 		//Grab the next ID, and if it's real get it ready to send out
-		uint16_t next_telem = _telem_manager.UpdateTelemetry();//update_telemetry();
+		uint16_t next_telem = _telem_manager.UpdateTelemetry();
 		if(next_telem != _impossible_module_id){
 			_telemetry_request_id = next_telem;
 		}
@@ -90,6 +92,56 @@ void VertiqIo::Run()
 
 	//stop our timer
 	perf_end(_loop_perf);
+}
+
+void VertiqIo::update_params()
+{
+	updateParams();
+}
+
+bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			     unsigned num_control_groups_updated)
+{
+	if(_mixing_output.armed().armed){
+
+		if(_param_vertiq_arm_behavior.get() == FORCE_ARMING && _send_forced_arm){
+			_client_manager.SendSetForceArm();
+			_send_forced_arm = false;
+		}
+
+		//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
+		//conversions
+		_motor_interface_ptr->BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _telemetry_request_id);
+
+		//We want to make sure that we send a valid telem request only once to ensure that we're not getting extraneous responses.
+		//So, here we'll set the telem request ID to something that no one will respond to. Another function will take charge of setting it to a
+		//proper value when necessary
+		_telemetry_request_id = _impossible_module_id;
+	}else{
+		//Put the modules into coast
+		switch(_param_vertiq_disarm_behavior.get()){
+			case TRIGGER_MOTOR_DISARM:
+				_client_manager.SendSetForceDisarm();
+			break;
+			case COAST_MOTOR:
+				_client_manager.SendSetCoast();
+			break;
+			case SEND_PREDEFINED_THROTTLE:
+				_client_manager.SendSetVelocitySetpoint(_param_vertiq_disarm_throttle.get());
+			break;
+			default:
+			break;
+		}
+
+		if(!_send_forced_arm){
+			_send_forced_arm = true;
+		}
+	}
+
+	//Publish our esc status to uORB
+	_esc_status_pub.publish(_telem_manager.GetEscStatus());
+
+	return true;
 }
 
 int VertiqIo::task_spawn(int argc, char *argv[])
@@ -157,68 +209,6 @@ int VertiqIo::custom_command(int argc, char *argv[])
 	}
 
 	return print_usage("unknown command");
-}
-
-void VertiqIo::handle_iquart()
-{
-	//Update our serial rx
-	_serial_interface.process_serial_rx(&_motor_interface, _client_array);
-
-	//Update our serial tx
-	_serial_interface.process_serial_tx();
-}
-
-void VertiqIo::update_params()
-{
-	updateParams();
-}
-
-bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-			     unsigned num_control_groups_updated)
-{
-	if(_mixing_output.armed().armed){
-
-		if(_param_vertiq_arm_behavior.get() == FORCE_ARMING && _send_forced_arm){
-			_arming_handler.motor_armed_.set(*_serial_interface.get_iquart_interface(), 1);
-			_send_forced_arm = false;
-		}
-
-		//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
-		//conversions
-		_motor_interface.BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use, _telemetry_request_id);
-
-		//We want to make sure that we send a valid telem request only once to ensure that we're not getting extraneous responses.
-		//So, here we'll set the telem request ID to something that no one will respond to. Another function will take charge of setting it to a
-		//proper value when necessary
-		_telemetry_request_id = _impossible_module_id;
-	}else{
-		//Put the modules into coast
-		switch(_param_vertiq_disarm_behavior.get()){
-			case TRIGGER_MOTOR_DISARM:
-				_arming_handler.motor_armed_.set(*_serial_interface.get_iquart_interface(), 0);
-			break;
-
-			case COAST_MOTOR:
-				_broadcast_prop_motor_control.ctrl_coast_.set(*_serial_interface.get_iquart_interface());
-			break;
-
-			case SEND_PREDEFINED_THROTTLE:
-				_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface.get_iquart_interface(), _param_vertiq_disarm_throttle.get());
-			break;
-
-			default:
-			break;
-		}
-
-		if(!_send_forced_arm){
-			_send_forced_arm = true;
-		}
-	}
-
-	//Publish our esc status to uORB
-	_esc_status_pub.publish(_telem_manager.GetEscStatus());
-
-	return true;
 }
 
 

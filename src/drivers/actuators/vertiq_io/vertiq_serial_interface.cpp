@@ -175,3 +175,7 @@ GenericInterface *VertiqSerialInterface::get_iquart_interface()
 {
 	return &_iquart_interface;
 }
+
+void VertiqSerialInterface::SetNumberOfClients(uint8_t number_of_clients){
+	_number_of_clients = number_of_clients;
+}

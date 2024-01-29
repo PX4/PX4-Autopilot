@@ -50,6 +50,8 @@ public:
 	*/
 	GenericInterface *get_iquart_interface();
 
+	void SetNumberOfClients(uint8_t number_of_clients);
+
 private:
 	uint8_t _number_of_clients;
 

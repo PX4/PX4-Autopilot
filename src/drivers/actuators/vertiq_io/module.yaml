@@ -85,4 +85,12 @@ parameters:
                 0: Use Motor Arm Behavior
                 1: Force Arming
             default: 0
-
+    - group: Vertiq System Control Client
+      definitions:
+        OBJECT_ID:
+            description:
+                short: The target module's Module ID
+                long: |
+                    Object ID words that mean things
+            type: int32
+            reboot_required: true

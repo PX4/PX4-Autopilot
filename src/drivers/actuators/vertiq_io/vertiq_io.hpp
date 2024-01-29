@@ -16,6 +16,7 @@
 #include <uORB/topics/actuator_test.h>
 
 #include "vertiq_telemetry_manager.hpp"
+#include "vertiq_client_manager.hpp"
 #include "vertiq_serial_interface.hpp"
 #include "ifci.hpp"
 
@@ -72,15 +73,6 @@ private:
 	*/
 	void update_params();
 
-	/**
-	* @brief Handle the IQUART interface. Make sure that we update TX and RX buffers
-	*/
-	void handle_iquart();
-
-	// void find_first_and_last_telemetry_positions();
-	// void update_telemetry();
-	// void find_next_motor_for_telemetry();
-
 	//Variables and functions necessary for properly configuring the serial interface
 	//Determines whether or not we should initialize or re-initialize the serial connection
 	static px4::atomic_bool _request_telemetry_init;
@@ -94,13 +86,16 @@ private:
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")};
 
-	VertiqTelemetryManager _telem_manager;
-
 	//We need a serial handler in order to talk over the serial port
 	VertiqSerialInterface _serial_interface;
 
-	//IQUART Client configuration
-	IFCI _motor_interface;
+	//We need someone who can manage our clients
+	VertiqClientManager _client_manager;
+
+	//We need a telemetry handler
+	VertiqTelemetryManager _telem_manager;
+
+	IFCI * _motor_interface_ptr;
 
 	//Store the number of control variables that we're using
 	uint8_t _cvs_in_use = 0;
@@ -116,21 +111,10 @@ private:
 
 	static const uint8_t _impossible_module_id = 255;
 
-	//The system time the last time that we got telemetry
-	hrt_abstime _time_of_last_telem_request = 0;
-
 	bool _send_forced_arm = true;
 
-	// //We want to publish our ESC Status to anyone who will listen
+	//We want to publish our ESC Status to anyone who will listen
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-	// esc_status_s		_esc_status;
-
-	//Vertiq client information
-	static const uint8_t _kBroadcastID = 63;
-	static const uint8_t NUM_CLIENTS = 2;
-	PropellerMotorControlClient _broadcast_prop_motor_control;
-	ArmingHandlerClient _arming_handler;
-	ClientAbstract * _client_array[NUM_CLIENTS];
 
 	//We need to bring in the parameters that we define in module.yaml in order to view them in the
 	//control station, as well as to use them in the firmware
@@ -142,6 +126,9 @@ private:
 	(ParamInt<px4::params::DISARM_THROTTLE>) _param_vertiq_disarm_throttle,
 	(ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior,
 	(ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
+	#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
+	,(ParamInt<px4::params::OBJECT_ID>) _param_vertiq_sys_ctrl_id
+	#endif
 	)
 };
 

@@ -3,3 +3,9 @@ menuconfig DRIVERS_ACTUATORS_VERTIQ_IO
 	default n
 	---help---
 		Enable support for vertiq_io
+
+if DRIVERS_ACTUATORS_VERTIQ_IO
+    config USE_SYSTEM_CONTROL_CLIENT
+        bool "Include the System Control Client"
+        default n
+endif
