@@ -689,7 +689,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 		const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
 		if (doing_backtransition) {
-			_control_mode_current = FW_POSCTRL_MODE_APPROACH_TRANSITON;
+			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
@@ -2525,7 +2525,7 @@ FixedwingPositionControl::Run()
 				break;
 			}
 
-		case FW_POSCTRL_MODE_APPROACH_TRANSITON: {
+		case FW_POSCTRL_MODE_TRANSITON: {
 				control_backtransition(control_interval, ground_speed, _pos_sp_triplet.previous,
 						       _pos_sp_triplet.current);
 				break;
