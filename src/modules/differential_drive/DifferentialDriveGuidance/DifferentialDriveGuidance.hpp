@@ -40,6 +40,7 @@
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <math.h>
+#include <chrono>
 // #include <matrix/matrix/Matrix.hpp>
 
 #include <lib/motion_planning/PositionSmoothing.hpp>
@@ -131,6 +132,10 @@ private:
 	PositionSmoothing _position_smoothing; ///< The position smoothing.
 
 	PID_t _heading_p_controller; ///< The PID controller for yaw rate.
+
+	bool _let_ekf_initialize{true};
+
+	hrt_abstime _start_time{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RDD_P_HEADING>) _param_rdd_p_gain_heading,
