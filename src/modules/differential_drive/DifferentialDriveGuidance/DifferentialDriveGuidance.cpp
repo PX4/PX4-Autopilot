@@ -36,6 +36,7 @@
 #include <mathlib/math/Limits.hpp>
 
 using namespace matrix;
+using namespace time_literals;
 
 DifferentialDriveGuidance::DifferentialDriveGuidance(ModuleParams *parent) : ModuleParams(parent)
 {
@@ -66,12 +67,6 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 				current_waypoint(1));
 	float heading_error = matrix::wrap_pi(desired_heading - yaw);
 
-	const float max_velocity = math::trajectory::computeMaxSpeedFromDistance(_param_rdd_max_jerk.get(),
-				   _param_rdd_max_accel.get(), distance_to_next_wp, 0.0f);
-
-	_forwards_velocity_smoothing.updateDurations(max_velocity);
-	_forwards_velocity_smoothing.updateTraj(dt);
-
 	if (_current_waypoint != current_waypoint) {
 		_currentState = GuidanceState::TURNING;
 	}
@@ -93,10 +88,15 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 
 		break;
 
-	case GuidanceState::DRIVING:
-		desired_speed = math::interpolate<float>(abs(heading_error), 0.1f, 0.8f,
-				_forwards_velocity_smoothing.getCurrentVelocity(), 0.0f);
-		break;
+	case GuidanceState::DRIVING: {
+			const float max_velocity = math::trajectory::computeMaxSpeedFromDistance(_param_rdd_max_jerk.get(),
+						   _param_rdd_max_accel.get(), distance_to_next_wp, 0.0f);
+			_forwards_velocity_smoothing.updateDurations(max_velocity);
+			_forwards_velocity_smoothing.updateTraj(dt);
+			desired_speed = math::interpolate<float>(abs(heading_error), 0.1f, 0.8f,
+					_forwards_velocity_smoothing.getCurrentVelocity(), 0.0f);
+			break;
+		}
 
 	case GuidanceState::GOAL_REACHED:
 		// temporary till I find a better way to stop the vehicle
@@ -116,6 +116,20 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	output.yaw_rate = math::constrain(angular_velocity_pid, -_max_angular_velocity, _max_angular_velocity);
 	output.closed_loop_speed_control = output.closed_loop_yaw_rate_control = true;
 	output.timestamp = hrt_absolute_time();
+
+	// Implement a 1-second initialization period for the EKF to prevent the rover from starting too quickly, which can disrupt calibration
+	if (_let_ekf_initialize && current_waypoint.norm() > DBL_EPSILON) {
+		_start_time = hrt_absolute_time();
+		_let_ekf_initialize = false;  // Set _let_ekf_initialize to false so this block only runs once
+	}
+
+	// Check if less than 1 second has passed since the start of the guidance controller
+	if ((hrt_absolute_time() - _start_time) < 1_s) {
+
+		output.speed = 0;
+		output.yaw_rate = 0;
+	}
+
 	_differential_drive_setpoint_pub.publish(output);
 
 	_current_waypoint = current_waypoint;
