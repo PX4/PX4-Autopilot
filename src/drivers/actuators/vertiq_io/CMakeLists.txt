@@ -101,6 +101,8 @@ px4_add_module(
 		vertiq_io.hpp
 		vertiq_serial_interface.cpp
 		vertiq_serial_interface.hpp
+		vertiq_telemetry_manager.cpp
+		vertiq_telemetry_manager.hpp
 		ifci_telemetry.h
 		ifci.hpp
 		ifci.cpp
