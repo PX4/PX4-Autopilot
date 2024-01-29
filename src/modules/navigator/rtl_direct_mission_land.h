@@ -43,6 +43,8 @@
 
 #include "rtl_base.h"
 
+#include <lib/rtl/rtl_time_estimator.h>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/rtl_time_estimate.h>
@@ -56,6 +58,7 @@ public:
 	~RtlDirectMissionLand() = default;
 
 	void on_activation() override;
+	void on_inactive() override;
 
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 
@@ -65,8 +68,12 @@ public:
 private:
 	bool setNextMissionItem() override;
 	void setActiveMissionItems() override;
+	void updateDatamanCache() override;
+	bool checkNeedsToClimb();
 
 	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
 	bool _enforce_rtl_alt{false};
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
+
+	RtlTimeEstimator _rtl_time_estimator;
 };
