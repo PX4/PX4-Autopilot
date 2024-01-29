@@ -106,7 +106,7 @@ void TemperatureCompensationModule::parameters_update()
 		sensor_mag_s report;
 
 		if (_mag_subs[uorb_index].copy(&report)) {
-			int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, uorb_index);
+			int temp = _temperature_compensation.set_sensor_id_mag(report.device_id, uorb_index);
 
 			if (temp < 0) {
 				PX4_INFO("No temperature calibration available for mag %" PRIu8 " (device id %" PRIu32 ")", uorb_index,
