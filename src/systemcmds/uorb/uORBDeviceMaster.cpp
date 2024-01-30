@@ -109,10 +109,34 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 	DIR *shm_dir = opendir(CONFIG_FS_SHMFS_VFS_PATH);
 	struct dirent *shm;
 	const char orb_name_prefix[] = "_orb_";
+	char orb_name[orb_maxpath];
 
 	while ((shm = readdir(shm_dir)) != nullptr) {
 
 		if (strncmp(orb_name_prefix, shm->d_name, sizeof(orb_name_prefix) - 1)) {
+			continue;
+		}
+
+		// check if already added
+		cur_node = *first_node;
+
+		while (cur_node) {
+			int instance = cur_node->node->get_instance();
+
+			if (uORB::Utils::node_mkpath(orb_name, cur_node->node->get_meta(), &instance)) {
+				PX4_ERR("Can't construct orb name?");
+				break;
+			}
+
+			if (!strcmp(orb_name, shm->d_name)) {
+				break;
+			}
+
+			cur_node = cur_node->next;
+		}
+
+		if (cur_node) {
+			// already added or there was an error
 			continue;
 		}
 
@@ -138,19 +162,6 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 		}
 
 		++num_topics;
-
-		//check if already added
-		cur_node = *first_node;
-
-		while (cur_node && cur_node->node != node) {
-			cur_node = cur_node->next;
-		}
-
-		if (cur_node) {
-			// currently nuttx creates a new mapping on every mmap. TODO: check linux
-			px4_munmap(node, sizeof(uORB::DeviceNode));
-			continue;
-		}
 
 		if (num_filters > 0 && topic_filter) {
 			bool matched = false;
