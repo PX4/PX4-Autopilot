@@ -136,7 +136,8 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 		}
 	}
 
-	while ((_current_num_msgs < _max_num_messages) && (_ulog_stream_sub.updated() || _ulog_stream_acked_sub.updated())) {
+	while ((_current_num_msgs < _max_num_messages) &&
+	       (_ulog_stream_sub.updated() || (check_for_updates && _ulog_stream_acked_sub.updated()))) {
 		if (_ulog_stream_sub.updated()) {
 			const unsigned last_generation = _ulog_stream_sub.get_last_generation();
 			_ulog_stream_sub.update();
