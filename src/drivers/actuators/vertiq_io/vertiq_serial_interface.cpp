@@ -117,7 +117,7 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	return 0;
 }
 
-int VertiqSerialInterface::process_serial_rx(IFCI * motor_interface, ClientAbstract *test[2])
+int VertiqSerialInterface::process_serial_rx(IFCI * motor_interface, ClientAbstract ** test)
 {
 	if (_uart_fd < 0) {
 		return -1;

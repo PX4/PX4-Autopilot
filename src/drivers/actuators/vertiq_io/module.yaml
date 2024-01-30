@@ -94,3 +94,22 @@ parameters:
                     Object ID words that mean things
             type: int32
             reboot_required: true
+        MODULE_ID:
+            description:
+                short: The module's Module ID
+                long: |
+                    Module ID words that mean things
+            type: int32
+            reboot_required: true
+        FIRMWARE_VERSION:
+            description:
+                short: The module's firmware version
+                long: |
+                    firmware version words that mean things
+            type: int32
+        HARDWARE_VERSION:
+            description:
+                short: The module's hardware version
+                long: |
+                    hardware version words that mean things
+            type: int32

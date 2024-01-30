@@ -14,7 +14,7 @@ VertiqIo::VertiqIo() :
 
 {
 	//Make sure we get the correct initial values for our parameters
-	update_params();
+	updateParams();
 
 	_client_manager.Init((uint8_t)_param_vertiq_sys_ctrl_id.get());
 	_motor_interface_ptr = _client_manager.GetMotorInterface();
@@ -69,6 +69,10 @@ void VertiqIo::Run()
 	if (_request_telemetry_init.load()) {
 		_serial_interface.init_serial(_telemetry_device, _param_vertiq_baud.get());
 		_request_telemetry_init.store(false);
+
+		#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
+		_client_manager.UpdateSystemControlEntries();
+		#endif
 	}
 
 	//Handle IQUART reception and transmission
@@ -83,8 +87,8 @@ void VertiqIo::Run()
 		}
 	}
 
-	//Get the most up to date version of our parameters
-	update_params();
+	//Get the most up to date version of our parameters/check if they've changed
+	parameters_update();
 
 	//Make sure we also update the mixing output to get the most up to date configuration
 	_mixing_output.update();
@@ -94,9 +98,23 @@ void VertiqIo::Run()
 	perf_end(_loop_perf);
 }
 
-void VertiqIo::update_params()
-{
-	updateParams();
+
+void VertiqIo::parameters_update(){
+	//If someone has changed (any parameter in our module!)
+	if (_parameter_update_sub.updated()) {
+
+		//Grab the changed parameter with copy (which lowers the "changed" flag)
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
+		_client_manager.UpdateSystemControlEntries();
+		#endif
+
+		// If any parameter updated, call updateParams() to check if
+		// this class attributes need updating (and do so).
+		updateParams();
+	}
 }
 
 bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,

@@ -68,11 +68,6 @@ private:
 	enum DISARM_BEHAVIORS {TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_THROTTLE};
 	enum ARM_BEHAVIORS {USE_MOTOR_ARMING, FORCE_ARMING};
 
-	/**
-	* @brief Grab the most recent version of our parameters from the higher level
-	*/
-	void update_params();
-
 	//Variables and functions necessary for properly configuring the serial interface
 	//Determines whether or not we should initialize or re-initialize the serial connection
 	static px4::atomic_bool _request_telemetry_init;
@@ -116,6 +111,16 @@ private:
 	//We want to publish our ESC Status to anyone who will listen
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
+	/**
+	 * Check for parameter changes and update them if needed.
+	 */
+	void parameters_update();
+
+	int i = 0;
+
+	// Subscriptions
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	//We need to bring in the parameters that we define in module.yaml in order to view them in the
 	//control station, as well as to use them in the firmware
 	DEFINE_PARAMETERS(
@@ -128,6 +133,9 @@ private:
 	(ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
 	#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
 	,(ParamInt<px4::params::OBJECT_ID>) _param_vertiq_sys_ctrl_id
+	,(ParamInt<px4::params::MODULE_ID>) _param_vertiq_module_id
+	,(ParamInt<px4::params::FIRMWARE_VERSION>) _param_vertiq_firmware_version
+	,(ParamInt<px4::params::HARDWARE_VERSION>) _param_vertiq_hardware_version
 	#endif
 	)
 };

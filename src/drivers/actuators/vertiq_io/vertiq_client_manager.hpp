@@ -6,6 +6,8 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
 
+#include <parameters/param.h>
+
 #include <px4_log.h>
 #include <px4_platform_common/module.h>
 
@@ -40,23 +42,35 @@ class VertiqClientManager{
 
 	uint8_t GetNumberOfClients();
 
+	#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
+	void UpdateSystemControlEntries();
+	void WaitForSystemControlResponses(hrt_abstime timeout = 100_ms);
+	#endif
+
 	private:
 	//We need a serial handler in order to talk over the serial port
 	VertiqSerialInterface * _serial_interface;
-
-	// #ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
-	// SystemControlClient * _system_control;
-	// #endif
 
 	//IQUART Client configuration
 	IFCI _motor_interface;
 
 	//Vertiq client information
+	//Some constants to help us out
 	static const uint8_t _kBroadcastID = 63;
-	static const uint8_t NUM_CLIENTS = 2;
+	static const uint8_t MINIMUM_NUM_CLIENTS = 2;
+	static const uint8_t MAXIMUM_NUM_CLIENTS = 15;
+
+	//Array information
+	ClientAbstract * _client_array[MAXIMUM_NUM_CLIENTS];
+	uint8_t _clients_in_use = MINIMUM_NUM_CLIENTS;
+
+	//Clients
 	PropellerMotorControlClient _broadcast_prop_motor_control;
-	ArmingHandlerClient _arming_handler;
-	ClientAbstract * _client_array[NUM_CLIENTS];
+	ArmingHandlerClient _broadcast_arming_handler;
+
+	#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
+	SystemControlClient * _system_control;
+	#endif
 };
 
 #endif

@@ -37,7 +37,7 @@ public:
 	/**
 	* @brief check to see if there is any data for us coming in over the serial port
 	*/
-	int process_serial_rx(IFCI * motor_interface, ClientAbstract *test[2]);
+	int process_serial_rx(IFCI * motor_interface, ClientAbstract ** test);
 
 	/**
 	* @brief check to see if there is any data that we need to transmit over serial
