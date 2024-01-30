@@ -84,8 +84,15 @@ void DifferentialDrive::Run()
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
 			_differential_drive_kinematics.setArmed(vehicle_control_mode.flag_armed);
 			_manual_driving = vehicle_control_mode.flag_control_manual_enabled;
-			_acro_driving = vehicle_control_mode.flag_control_rates_enabled;
 			_mission_driving = vehicle_control_mode.flag_control_auto_enabled;
+		}
+	}
+
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status{};
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
 		}
 	}
 
