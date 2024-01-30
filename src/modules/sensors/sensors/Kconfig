@@ -1,0 +1,43 @@
+menuconfig MODULES_SENSORS
+	bool "sensors"
+	default n
+	---help---
+		Enable support for sensors
+
+menuconfig USER_SENSORS
+	bool "sensors running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_SENSORS
+	---help---
+		Put sensors in userspace memory
+
+if MODULES_SENSORS
+    config SENSORS_VEHICLE_AIRSPEED
+        bool "Include vehicle airspeed"
+        default y
+
+    config SENSORS_VEHICLE_AIR_DATA
+        bool "Include vehicle air data"
+        default y
+
+    config SENSORS_VEHICLE_ANGULAR_VELOCITY
+        bool "Include vehicle angular velocity"
+        default y
+
+    config SENSORS_VEHICLE_ACCELERATION
+        bool "Include vehicle acceleration"
+        default y
+
+    config SENSORS_VEHICLE_GPS_POSITION
+        bool "Include vehicle gps position"
+        default y
+
+    config SENSORS_VEHICLE_MAGNETOMETER
+        bool "Include vehicle magnetometer"
+        default y
+
+    config SENSORS_VEHICLE_OPTICAL_FLOW
+        bool "Include vehicle optical flow"
+        default y
+
+endif #MODULES_SENSORS
