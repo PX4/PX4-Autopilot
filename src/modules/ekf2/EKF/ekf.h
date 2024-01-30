@@ -85,6 +85,8 @@ public:
 	// initialise variables to sane values (also interface class)
 	bool init(uint64_t timestamp) override;
 
+	void print_status();
+
 	// should be called every time new data is pushed into the filter
 	bool update();
 
@@ -253,7 +255,12 @@ public:
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
 	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
+	matrix::Vector3f getRotVarNed() const;
+	float getYawVar() const;
+	float getTiltVariance() const;
+
 	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
+
 	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
@@ -338,14 +345,7 @@ public:
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
 
 	const Vector3f &getMagBias() const { return _state.mag_B; }
-	Vector3f getMagBiasVariance() const
-	{
-		if (_control_status.flags.mag) {
-			return getStateVariance<State::mag_B>();
-		}
-
-		return _saved_mag_bf_covmat.diag();
-	}
+	Vector3f getMagBiasVariance() const { return getStateVariance<State::mag_B>(); } // get the mag bias variance in Gauss
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -405,8 +405,6 @@ public:
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) const;
 
-	float getYawVar() const;
-
 	HeightSensor getHeightSensorRef() const { return _height_sensor_ref; }
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -431,8 +429,7 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
-	bool collect_gps(const gpsMessage &gps) override;
+	void collect_gps(const gnssSample &gps);
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
@@ -492,7 +489,8 @@ public:
 			// apply the covariance corrections
 			P -= KHP;
 
-			fixCovarianceErrors(true);
+			constrainStateVariances();
+			forceCovarianceSymmetry();
 
 			// apply the state corrections
 			fuse(K, innovation);
@@ -500,6 +498,8 @@ public:
 
 		return is_healthy;
 	}
+
+	void resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
 
 	void updateParameters();
 
@@ -516,6 +516,14 @@ private:
 	void updateDeadReckoningStatus();
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
+
+	static constexpr float kGyroBiasVarianceMin{1e-9f};
+	static constexpr float kAccelBiasVarianceMin{1e-9f};
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	static constexpr float kMagVarianceMin = 1e-6f;
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 
 	struct StateResetCounts {
 		uint8_t velNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
@@ -636,7 +644,6 @@ private:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 
 	// variables used for the GPS quality checks
@@ -646,7 +653,6 @@ private:
 	float _gps_velD_diff_filt{0.0f};	///< GPS filtered Down velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
-	float _gps_error_norm{1.0f};		///< normalised gps error
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
 	bool _gps_checks_passed{false};		///> true when all active GPS checks have passed
 
@@ -716,19 +722,13 @@ private:
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	uint64_t _time_last_mag_check_failing{0};
-	Matrix3f _saved_mag_ef_covmat{}; ///< NED magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
-	Matrix3f _saved_mag_bf_covmat{}; ///< magnetic field state covariance sub-matrix that has been saved for use at the next initialisation (Gauss**2)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	// variables used to inhibit accel bias learning
 	bool _accel_bias_inhibit[3] {};		///< true when the accel bias learning is being inhibited for the specified axis
 	bool _gyro_bias_inhibit[3] {};		///< true when the gyro bias learning is being inhibited for the specified axis
-	Vector3f _accel_vec_filt{};		///< acceleration vector after application of a low pass filter (m/sec**2)
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
-
-	Vector3f _prev_gyro_bias_var{};         ///< saved gyro XYZ bias variances
-	Vector3f _prev_accel_bias_var{};        ///< saved accel XYZ bias variances
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -812,6 +812,7 @@ private:
 
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
 	void resetHorizontalPositionToLastKnown();
+	void resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy);
 
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
@@ -946,13 +947,12 @@ private:
 	bool checkAndFixCovarianceUpdate(const SquareMatrixState &KHP);
 
 	// limit the diagonal of the covariance matrix
-	// force symmetry when the argument is true
-	void fixCovarianceErrors(bool force_symmetry);
+	void constrainStateVariances();
+
+	void forceCovarianceSymmetry();
 
 	void constrainStateVar(const IdxDof &state, float min, float max);
-
-	// constrain the ekf states
-	void constrainStates();
+	void constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio = 1.e6f);
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
@@ -989,29 +989,38 @@ private:
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
 	void stopGpsFusion();
-
+	void updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
+	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
+	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
+	bool tryYawEmergencyReset();
+	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);
+	void resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src);
 	bool shouldResetGpsFusion() const;
 
-	// return true id the GPS quality is good enough to set an origin and start aiding
-	bool gps_is_good(const gpsMessage &gps);
+	/*
+	 * Return true if the GPS solution quality is adequate.
+	 * Checks are activated using the EKF2_GPS_CHECK bitmask parameter
+	 * Checks are adjusted using the EKF2_REQ_* parameters
+	*/
+	bool runGnssChecks(const gnssSample &gps);
 
-	void controlGnssHeightFusion(const gpsSample &gps_sample);
+	void controlGnssHeightFusion(const gnssSample &gps_sample);
 	void stopGpsHgtFusion();
 
 	void resetGpsDriftCheckFilters();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
+	void controlGpsYawFusion(const gnssSample &gps_sample);
 	void stopGpsYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw();
+	void fuseGpsYaw(float antenna_yaw_offset);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetYawToGps(const float gnss_yaw);
+	bool resetYawToGps(float gnss_yaw, float gnss_yaw_offset);
 
-	void updateGpsYaw(const gpsSample &gps_sample);
+	void updateGpsYaw(const gnssSample &gps_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
 
@@ -1048,10 +1057,6 @@ private:
 
 	void stopMagHdgFusion();
 	void stopMagFusion();
-
-	// load and save mag field state covariance data for re-use
-	void loadMagCovData();
-	void saveMagCovData();
 
 	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
 	// sensor measurement

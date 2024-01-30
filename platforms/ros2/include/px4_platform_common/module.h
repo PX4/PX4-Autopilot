@@ -75,7 +75,7 @@
  *      static int custom_command(int argc, char *argv[])
  *      {
  *              // support for custom commands
- *              // it none are supported, just do:
+ *              // if none are supported, just do:
  *              return print_usage("unrecognized command");
  *      }
  *

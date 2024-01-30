@@ -217,7 +217,7 @@ void Standard::update_transition_state()
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
 
-		} else if (_param_fw_arsp_mode.get() || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
+		} else if (!_param_fw_use_airspd.get() || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
 			mc_weight = 1.0f - _time_since_trans_start / getMinimumFrontTransitionTime();
 			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
 

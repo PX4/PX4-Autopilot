@@ -42,7 +42,36 @@
 
 bool param_modify_on_import(bson_node_t node)
 {
+	// 2023-12-06: translate and invert FW_ARSP_MODE-> FW_USE_AIRSPD
+	{
+		if (strcmp("FW_ARSP_MODE", node->name) == 0) {
+			if (node->i32 == 0) {
+				node->i32 = 1;
 
+			} else {
+				node->i32 = 0;
+			}
+
+			strcpy(node->name, "FW_USE_AIRSPD");
+			PX4_INFO("copying and inverting %s -> %s", "FW_ARSP_MODE", "FW_USE_AIRSPD");
+			return true;
+		}
+	}
+
+	// 2023-12-06: translate CBRK_AIRSPD_CHK-> SYS_HAS_NUM_ASPD
+	{
+		if (strcmp("CBRK_AIRSPD_CHK", node->name) == 0) {
+			if (node->i32 == 162128) {
+				node->i32 = 0;
+
+				strcpy(node->name, "SYS_HAS_NUM_ASPD");
+				PX4_INFO("copying %s -> %s", "CBRK_AIRSPD_CHK", "SYS_HAS_NUM_ASPD");
+
+			}
+
+			return true;
+		}
+	}
 
 	return false;
 }

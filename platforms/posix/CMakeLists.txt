@@ -189,6 +189,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_SOURCE_DIR}/Tools/simulation/gz/worlds
 		DESTINATION
 			${PROJECT_NAME}/Tools/simulation/gazebo-classic/sitl_gazebo-classic
+		OPTIONAL
 		)
 
 endif()

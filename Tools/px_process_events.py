@@ -55,6 +55,10 @@ def main():
                         metavar="PATH",
                         nargs='*',
                         help="one or more paths/files to source files to scan for events")
+    parser.add_argument("-b", "--base-path",
+                        default="",
+                        metavar="PATH",
+                        help="path prefix for everything passed with --src-path")
     parser.add_argument("-j", "--json",
                         nargs='?',
                         const="events.json",
@@ -84,7 +88,7 @@ def main():
     # canonicalize + remove duplicates
     src_paths = set()
     for path in args.src_path:
-        src_paths.add(os.path.realpath(path))
+        src_paths.add(os.path.realpath(os.path.join(args.base_path, path)))
 
     if not scanner.ScanDir(src_paths, parser):
         sys.exit(1)

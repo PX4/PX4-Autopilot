@@ -574,10 +574,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
-
-			// make previous setpoint invalid, such that there will be no prev-current line following
-			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
-			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 		}
 
 	} else if (needs_to_land) {
@@ -654,9 +650,6 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 		(fabs(p1->lon - p2->lon) < DBL_EPSILON) &&
 		(fabsf(p1->alt - p2->alt) < FLT_EPSILON) &&
 		((fabsf(p1->yaw - p2->yaw) < FLT_EPSILON) || (!PX4_ISFINITE(p1->yaw) && !PX4_ISFINITE(p2->yaw))) &&
-		(p1->yaw_valid == p2->yaw_valid) &&
-		(fabsf(p1->yawspeed - p2->yawspeed) < FLT_EPSILON) &&
-		(p1->yawspeed_valid == p2->yawspeed_valid) &&
 		(fabsf(p1->loiter_radius - p2->loiter_radius) < FLT_EPSILON) &&
 		(p1->loiter_direction_counter_clockwise == p2->loiter_direction_counter_clockwise) &&
 		(fabsf(p1->acceptance_radius - p2->acceptance_radius) < FLT_EPSILON) &&
@@ -773,13 +766,11 @@ MissionBase::heading_sp_update()
 
 			_mission_item.yaw = yaw;
 			pos_sp_triplet->current.yaw = _mission_item.yaw;
-			pos_sp_triplet->current.yaw_valid = true;
 
 		} else {
-			if (!pos_sp_triplet->current.yaw_valid) {
-				_mission_item.yaw = _navigator->get_local_position()->heading;
+			if (!PX4_ISFINITE(pos_sp_triplet->current.yaw)) {
+				_mission_item.yaw = NAN;
 				pos_sp_triplet->current.yaw = _mission_item.yaw;
-				pos_sp_triplet->current.yaw_valid = true;
 			}
 		}
 

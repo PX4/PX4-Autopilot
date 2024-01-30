@@ -34,6 +34,7 @@ if [[ $REINSTALL_FORMULAS == "--reinstall" ]]; then
 	brew tap PX4/px4
 	brew reinstall px4-dev
 	brew install ncurses
+	brew install python-tk
 else
 	if brew ls --versions px4-dev > /dev/null; then
 		echo "px4-dev already installed"
@@ -42,6 +43,7 @@ else
 		brew tap PX4/px4
 		brew install px4-dev
 		brew install ncurses
+		brew install python-tk
 	fi
 fi
 

@@ -10,9 +10,6 @@ set VEHICLE_TYPE rover
 # MAV_TYPE_GROUND_ROVER 10
 param set-default MAV_TYPE 10
 
-# Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
-param set-default CBRK_AIRSPD_CHK 162128
-
 param set-default MIS_TAKEOFF_ALT 0.01
 
 param set-default NAV_ACC_RAD 2

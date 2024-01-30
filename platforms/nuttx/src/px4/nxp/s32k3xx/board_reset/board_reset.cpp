@@ -39,6 +39,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/shutdown.h>
 #include <errno.h>
 #include <nuttx/board.h>
 #include <hardware/s32k3xx_mc_me.h>

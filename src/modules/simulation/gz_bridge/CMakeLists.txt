@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -64,6 +64,8 @@ if(gz-transport_FOUND)
 			GZMixingInterfaceESC.hpp
 			GZMixingInterfaceServo.cpp
 			GZMixingInterfaceServo.hpp
+			GZMixingInterfaceWheel.cpp
+			GZMixingInterfaceWheel.hpp
 		DEPENDS
 			mixer_module
 			px4_work_queue
@@ -72,14 +74,24 @@ if(gz-transport_FOUND)
 			module.yaml
 	)
 
-	file(GLOB gz_models
-		LIST_DIRECTORIES true
-		RELATIVE ${PX4_SOURCE_DIR}/Tools/simulation/gz/models
-		${PX4_SOURCE_DIR}/Tools/simulation/gz/models/*
+	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
+	include(ExternalProject)
+	ExternalProject_Add(gz
+		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz
+		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		BINARY_DIR ${PX4_BINARY_DIR}/build_gz
+		INSTALL_COMMAND ""
+		DEPENDS git_gz
+		USES_TERMINAL_CONFIGURE true
+		USES_TERMINAL_BUILD true
+		EXCLUDE_FROM_ALL true
+		BUILD_ALWAYS 1
 	)
 
-	file(GLOB gz_worlds
-		${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf
+	set(gz_worlds
+		default
+		windy
+		baylands
 	)
 
 	# find corresponding airframes
@@ -100,56 +112,20 @@ if(gz-transport_FOUND)
 		set(model_only)
 		string(REGEX REPLACE ".*_gz_" "" model_only ${gz_airframe})
 
-		if(EXISTS "${PX4_SOURCE_DIR}/Tools/simulation/gz/models/${model_only}")
-
-			if((EXISTS "${PX4_SOURCE_DIR}/Tools/simulation/gz/models/${model_only}/model.sdf"))
-				#message(STATUS "Ignition SDF file found for ${model_only}")
-			else()
-				message(WARNING "Ignition no SDF file found for ${model_only}")
-			endif()
-
-		else()
-			message(WARNING "model directory ${PX4_SOURCE_DIR}/Tools/simulation/gz/models/${model_only} not found")
-		endif()
-	endforeach()
-
-	foreach(model ${gz_models})
-
-		# match model to airframe
-		set(airframe_model_only)
-		set(airframe_sys_autostart)
-		set(gz_airframe_found)
-		foreach(gz_airframe IN LISTS gz_airframes)
-
-			string(REGEX REPLACE ".*_gz_" "" airframe_model_only ${gz_airframe})
-			string(REGEX REPLACE "_gz_.*" "" airframe_sys_autostart ${gz_airframe})
-
-			if(model STREQUAL ${airframe_model_only})
-				set(gz_airframe_found ${gz_airframe})
-				break()
-			endif()
-		endforeach()
-
-		if(gz_airframe_found)
-			#message(STATUS "gz model: ${model} (${airframe_model_only}), airframe: ${gz_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
-		else()
-			message(WARNING "gz missing model: ${model} (${airframe_model_only}), airframe: ${gz_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
-		endif()
-
 		foreach(world ${gz_worlds})
 
 			get_filename_component("world_name" ${world} NAME_WE)
 
 			if(world_name STREQUAL "default")
-				add_custom_target(gz_${model}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model} $<TARGET_FILE:px4>
+				add_custom_target(gz_${model_only}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
 					DEPENDS px4
 				)
 			else()
-				add_custom_target(gz_${model}_${world_name}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
+				add_custom_target(gz_${model_only}_${world_name}
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
 					DEPENDS px4
@@ -157,7 +133,6 @@ if(gz-transport_FOUND)
 			endif()
 		endforeach()
 	endforeach()
-
 	# PX4_GZ_MODELS, PX4_GZ_WORLDS, GZ_SIM_RESOURCE_PATH
 	configure_file(gz_env.sh.in ${PX4_BINARY_DIR}/rootfs/gz_env.sh)
 

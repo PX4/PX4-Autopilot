@@ -35,6 +35,7 @@
 
 #include "GZMixingInterfaceESC.hpp"
 #include "GZMixingInterfaceServo.hpp"
+#include "GZMixingInterfaceWheel.hpp"
 
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
@@ -56,6 +57,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/wheel_encoders.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
@@ -63,6 +65,7 @@
 
 #include <gz/msgs/imu.pb.h>
 #include <gz/msgs/fluid_pressure.pb.h>
+#include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
 
 using namespace time_literals;
@@ -129,6 +132,7 @@ private:
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
 	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
+	GZMixingInterfaceWheel _mixing_interface_wheel{_node, _node_mutex};
 
 	px4::atomic<uint64_t> _world_time_us{0};
 

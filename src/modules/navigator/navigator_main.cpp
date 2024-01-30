@@ -239,7 +239,8 @@ void Navigator::run()
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 
-		while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+		while (_wait_for_vehicle_status_timestamp == 0 && _vehicle_command_sub.updated()
+		       && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
 			vehicle_command_updates++;
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 
@@ -260,6 +261,9 @@ void Navigator::run()
 				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				// only update the reposition setpoint if armed, as it otherwise won't get executed until the vehicle switches to loiter,
 				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
+
+				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
 				vehicle_global_position_s position_setpoint{};
 
@@ -309,11 +313,9 @@ void Navigator::run()
 					// Go on and check which changes had been requested
 					if (PX4_ISFINITE(cmd.param4)) {
 						rep->current.yaw = cmd.param4;
-						rep->current.yaw_valid = true;
 
 					} else {
 						rep->current.yaw = NAN;
-						rep->current.yaw_valid = false;
 					}
 
 					if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
@@ -348,8 +350,7 @@ void Navigator::run()
 						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-							calculate_breaking_stop(rep->current.lat, rep->current.lon, rep->current.yaw);
-							rep->current.yaw_valid = true;
+							calculate_breaking_stop(rep->current.lat, rep->current.lon);
 
 						} else {
 							// For fixedwings we can use the current vehicle's position to define the loiter point
@@ -423,6 +424,9 @@ void Navigator::run()
 				position_setpoint.lon = get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
 
+				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
@@ -446,7 +450,6 @@ void Navigator::run()
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.yaw = NAN;
-					rep->current.yaw_valid = false;
 
 					// Position is not changing, thus we keep the setpoint
 					rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
@@ -458,8 +461,7 @@ void Navigator::run()
 					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-						calculate_breaking_stop(rep->current.lat, rep->current.lon, rep->current.yaw);
-						rep->current.yaw_valid = true;
+						calculate_breaking_stop(rep->current.lat, rep->current.lon);
 					}
 
 					if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
@@ -497,6 +499,9 @@ void Navigator::run()
 				position_setpoint.lat = PX4_ISFINITE(cmd.param5) ? cmd.param5 : get_global_position()->lat;
 				position_setpoint.lon = PX4_ISFINITE(cmd.param6) ? cmd.param6 : get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+
+				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -542,6 +547,9 @@ void Navigator::run()
 				position_setpoint.lat = PX4_ISFINITE(cmd.param5) ? cmd.param5 : get_global_position()->lat;
 				position_setpoint.lon = PX4_ISFINITE(cmd.param6) ? cmd.param6 : get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+
+				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
+				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
@@ -599,18 +607,17 @@ void Navigator::run()
 				rep->current.cruising_speed = -1.f; // reset to default
 
 				if (home_global_position_valid()) {
-					// Only set yaw if we know the true heading
-					// We assume that the heading is valid when the global position is valid because true heading
-					// is required to fuse NE (e.g.: GNSS) data. // TODO: we should be more explicit here
-					rep->current.yaw = cmd.param4;
 
 					rep->previous.valid = true;
 					rep->previous.timestamp = hrt_absolute_time();
 
 				} else {
-					rep->current.yaw = get_local_position()->heading;
 					rep->previous.valid = false;
 				}
+
+				// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
+				// The yaw setpoint generation is handled by FlightTaskAuto.
+				rep->current.yaw = NAN;
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 					rep->current.lat = cmd.param5;
@@ -875,6 +882,10 @@ void Navigator::run()
 
 		_navigation_mode = navigation_mode_new;
 
+		if (_wait_for_vehicle_status_timestamp != 0 && _vstatus.timestamp > _wait_for_vehicle_status_timestamp) {
+			_wait_for_vehicle_status_timestamp = 0;
+		}
+
 		/* iterate through navigation modes and set active/inactive for each */
 		for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
 			if (_navigation_mode_array[i]) {
@@ -1039,8 +1050,7 @@ void Navigator::geofence_breach_check()
 				}
 
 				rep->current.timestamp = hrt_absolute_time();
-				rep->current.yaw = get_local_position()->heading;
-				rep->current.yaw_valid = true;
+				rep->current.yaw = NAN;
 				rep->current.lat = loiter_latitude;
 				rep->current.lon = loiter_longitude;
 				rep->current.alt = loiter_altitude_amsl;
@@ -1157,13 +1167,13 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.timestamp = hrt_absolute_time();
 	sp.lat = static_cast<double>(NAN);
 	sp.lon = static_cast<double>(NAN);
+	sp.yaw = NAN;
 	sp.loiter_radius = get_loiter_radius();
 	sp.acceptance_radius = get_default_acceptance_radius();
 	sp.cruising_speed = get_cruising_speed();
 	sp.cruising_throttle = get_cruising_throttle();
 	sp.valid = false;
 	sp.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
-	sp.disable_weather_vane = false;
 	sp.loiter_direction_counter_clockwise = false;
 }
 
@@ -1193,7 +1203,7 @@ float Navigator::get_acceptance_radius()
 	return acceptance_radius;
 }
 
-float Navigator::get_yaw_acceptance(float mission_item_yaw)
+bool Navigator::get_yaw_to_be_accepted(float mission_item_yaw)
 {
 	float yaw = mission_item_yaw;
 
@@ -1205,7 +1215,7 @@ float Navigator::get_yaw_acceptance(float mission_item_yaw)
 		yaw = pos_ctrl_status.yaw_acceptance;
 	}
 
-	return yaw;
+	return PX4_ISFINITE(yaw);
 }
 
 void Navigator::load_fence_from_file(const char *filename)
@@ -1470,21 +1480,20 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	return true;
 }
 
-void Navigator::calculate_breaking_stop(double &lat, double &lon, float &yaw)
+void Navigator::calculate_breaking_stop(double &lat, double &lon)
 {
 	// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
-	float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
+	const float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
 
 	// predict braking distance
 
 	const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
 
-	float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
-					    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
+	const float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
+			_param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
 
 	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
 					   multirotor_braking_distance, &lat, &lon);
-	yaw = get_local_position()->heading;
 }
 
 void Navigator::mode_completed(uint8_t nav_state, uint8_t result)

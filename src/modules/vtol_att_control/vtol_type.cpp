@@ -208,7 +208,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-			&& !_param_fw_arsp_mode.get();
+			&& _param_fw_use_airspd.get();
 	const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
 	const bool openloop_trans_time_elapsed = _time_since_trans_start > getOpenLoopFrontTransitionTime();
 
@@ -286,13 +286,17 @@ bool VtolType::isUncommandedDescent()
 	    && (current_altitude < _tecs_status->altitude_reference)
 	    && hrt_elapsed_time(&_tecs_status->timestamp) < 1_s) {
 
+		if (!PX4_ISFINITE(_quadchute_ref_alt)) {
+			_quadchute_ref_alt = current_altitude;
+		}
+
 		_quadchute_ref_alt = math::min(math::max(_quadchute_ref_alt, current_altitude),
 					       _tecs_status->altitude_reference);
 
 		return (_quadchute_ref_alt - current_altitude) > _param_vt_qc_alt_loss.get();
 
 	} else {
-		_quadchute_ref_alt = -MAXFLOAT;
+		_quadchute_ref_alt = NAN;
 	}
 
 	return false;
@@ -318,6 +322,11 @@ void VtolType::handleEkfResets()
 	if (_local_pos->z_reset_counter != _altitude_reset_counter) {
 		_local_position_z_start_of_transition += _local_pos->delta_z;
 		_altitude_reset_counter = _local_pos->z_reset_counter;
+
+		if (PX4_ISFINITE(_quadchute_ref_alt)) {
+			_quadchute_ref_alt += _local_pos->delta_z;
+		}
+
 	}
 }
 
@@ -598,18 +607,19 @@ float VtolType::getOpenLoopFrontTransitionTime() const
 }
 float VtolType::getTransitionAirspeed() const
 {
-	return  math::max(_param_vt_arsp_trans.get(), getMinimumTransitionAirspeed());
-}
-float VtolType::getMinimumTransitionAirspeed() const
-{
+	// Since the stall airspeed increases with vehicle weight, we increase the transition airspeed
+	// by the same factor.
+
 	float weight_ratio = 1.0f;
 
 	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
-		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), kMinWeightRatio, kMaxWeightRatio);
+		weight_ratio = math::constrain(_param_weight_gross.get() /
+					       _param_weight_base.get(), kMinWeightRatio, kMaxWeightRatio);
 	}
 
-	return sqrtf(weight_ratio) * _param_airspeed_min.get();
+	return sqrtf(weight_ratio) * _param_vt_arsp_trans.get();
 }
+
 float VtolType::getBlendAirspeed() const
 {
 	return _param_vt_arsp_blend.get();

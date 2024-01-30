@@ -239,14 +239,13 @@ public:
 	void set_cruising_throttle(float throttle = NAN) { _mission_throttle = throttle; }
 
 	/**
-	 * Get the yaw acceptance given the current mission item
+	 * Get if the yaw acceptance is required at the current mission item
 	 *
 	 * @param mission_item_yaw the yaw to use in case the controller-derived radius is finite
 	 *
-	 * @return the yaw at which the next waypoint should be used or NaN if the yaw at a waypoint
-	 * should be ignored
+	 * @return true if the yaw acceptance is required, false if not required
 	 */
-	float get_yaw_acceptance(float mission_item_yaw);
+	bool get_yaw_to_be_accepted(float mission_item_yaw);
 
 	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
@@ -279,7 +278,7 @@ public:
 	void release_gimbal_control();
 	void set_gimbal_neutral();
 
-	void calculate_breaking_stop(double &lat, double &lon, float &yaw);
+	void calculate_breaking_stop(double &lat, double &lon);
 
 	void stop_capturing_images();
 	void disable_camera_trigger();
@@ -335,6 +334,8 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check = 0;
+
+	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
 
 	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
 	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */

@@ -1,4 +1,4 @@
-__max_num_config_instances: &max_num_config_instances 2
+__max_num_config_instances: &max_num_config_instances 3
 
 module_name: battery
 
@@ -21,7 +21,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [3.6, 3.6]
+            default: [3.6, 3.6, 3.6]
 
         BAT${i}_V_CHARGED:
             description:
@@ -37,7 +37,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [4.05, 4.05]
+            default: [4.05, 4.05, 4.05]
 
         BAT${i}_V_LOAD_DROP:
             description:
@@ -58,7 +58,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0.1, 0.1]
+            default: [0.1, 0.1, 0.1]
 
         BAT${i}_R_INTERNAL:
             description:
@@ -76,7 +76,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0.005, 0.005]
+            default: [0.005, 0.005, 0.005]
 
         BAT${i}_N_CELLS:
             description:
@@ -106,7 +106,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0, 0]
+            default: [0, 0, 0]
 
         BAT${i}_CAPACITY:
             description:
@@ -122,7 +122,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [-1.0, -1.0]
+            default: [-1.0, -1.0, -1.0]
 
         BAT${i}_SOURCE:
             description:
@@ -142,4 +142,4 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0, -1]
+            default: [0, -1, -1]

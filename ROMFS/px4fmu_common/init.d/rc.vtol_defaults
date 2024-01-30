@@ -21,7 +21,7 @@ param set-default MIS_YAW_TMT 10
 param set-default EKF2_ARSP_THR 10
 param set-default EKF2_FUSE_BETA 1
 
-param set-default HTE_VXY_THR 2.0
+param set-default HTE_VXY_THR 2
 
 param set-default MIS_TKO_LAND_REQ 2
 
@@ -41,5 +41,7 @@ param set-default MC_YAWRATE_MAX 120
 param set-default MPC_MAN_Y_MAX 90
 
 param set-default RTL_TYPE 1
+
+param set-default SYS_HAS_NUM_ASPD 1 # by default require an airspeed sensor
 
 param set-default WV_EN 1

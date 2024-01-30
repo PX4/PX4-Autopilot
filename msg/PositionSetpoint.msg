@@ -22,11 +22,7 @@ float32 vz			# local velocity setpoint in m/s in NED
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg
 float32 alt			# altitude AMSL, in m
-float32 yaw			# yaw (only for multirotors), in rad [-PI..PI), NaN = hold current yaw
-bool yaw_valid			# true if yaw setpoint valid
-
-float32 yawspeed		# yawspeed (only for multirotors, in rad/s)
-bool yawspeed_valid		# true if yawspeed setpoint valid
+float32 yaw			# yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task
 
 float32 loiter_radius		# loiter major axis radius in m
 float32 loiter_minor_radius	# loiter minor axis radius (used for non-circular loiter shapes) in m
@@ -39,5 +35,3 @@ float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoi
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
 bool gliding_enabled		# commands the vehicle to glide if the capability is available (fixed wing only)
 float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint), only has an effect for rover
-
-bool disable_weather_vane   # VTOL: disable (in auto mode) the weather vane feature that turns the nose into the wind
