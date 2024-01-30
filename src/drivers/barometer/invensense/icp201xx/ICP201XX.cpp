@@ -145,6 +145,7 @@ ICP201XX::RunImpl()
 				/* B2 version Asic is detected. Boot up sequence is not required for B2 Asic, so returning */
 				_state = STATE::CONFIG;
 				ScheduleDelayed(30_ms);
+				break;
 			}
 
 			/* Read boot up status and avoid re running boot up sequence if it is already done */
