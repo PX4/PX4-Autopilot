@@ -210,8 +210,9 @@ PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, 10.f);
  * @group Airspeed Validator
  * @min 1
  * @max 10
+ * @decimal 1
  */
-PARAM_DEFINE_INT32(ASPD_FS_T_STOP, 2);
+PARAM_DEFINE_FLOAT(ASPD_FS_T_STOP, 2.f);
 
 /**
  * Airspeed failsafe start delay
@@ -223,8 +224,9 @@ PARAM_DEFINE_INT32(ASPD_FS_T_STOP, 2);
  * @group Airspeed Validator
  * @min -1
  * @max 1000
+ * @decimal 1
  */
-PARAM_DEFINE_INT32(ASPD_FS_T_START, -1);
+PARAM_DEFINE_FLOAT(ASPD_FS_T_START, -1.f);
 
 /**
  * Horizontal wind uncertainty threshold for synthetic airspeed.
