@@ -34,6 +34,7 @@
 #include "DifferentialDriveControl.hpp"
 
 using namespace matrix;
+using namespace time_literals;
 
 DifferentialDriveControl::DifferentialDriveControl(ModuleParams *parent) : ModuleParams(parent)
 {
@@ -89,6 +90,16 @@ void DifferentialDriveControl::control(float dt)
 		}
 	}
 
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+
+			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_spooled_up = armed && hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
+		}
+	}
+
 	_differential_drive_setpoint_sub.update(&_differential_drive_setpoint);
 
 	// PID to reach setpoint using control_output
@@ -102,6 +113,12 @@ void DifferentialDriveControl::control(float dt)
 	if (_differential_drive_setpoint.closed_loop_yaw_rate_control) {
 		differential_drive_control_output.yaw_rate +=
 			pid_calculate(&_pid_angular_velocity, _differential_drive_setpoint.yaw_rate, _vehicle_body_yaw_rate, 0, dt);
+	}
+
+
+	if (!_spooled_up) {
+		differential_drive_control_output.speed = 0.0f;
+		differential_drive_control_output.yaw_rate = 0.0f;
 	}
 
 	differential_drive_control_output.timestamp = hrt_absolute_time();
