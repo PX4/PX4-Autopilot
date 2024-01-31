@@ -581,9 +581,7 @@ def compute_drag_x_innov_var_and_k(
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
     Hx = sf.V1(meas_pred[0]).jacobian(state)
     innov_var = (Hx * P * Hx.T + R)[0,0]
-    Ktotal = P * Hx.T / sf.Max(innov_var, epsilon)
-    K = VTangent()
-    K[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof] = Ktotal[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof]
+    K = P * Hx.T / sf.Max(innov_var, epsilon)
 
     return (innov_var, K)
 
@@ -601,9 +599,7 @@ def compute_drag_y_innov_var_and_k(
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
     Hy = sf.V1(meas_pred[1]).jacobian(state)
     innov_var = (Hy * P * Hy.T + R)[0,0]
-    Ktotal = P * Hy.T / sf.Max(innov_var, epsilon)
-    K = VTangent()
-    K[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof] = Ktotal[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof]
+    K = P * Hy.T / sf.Max(innov_var, epsilon)
 
     return (innov_var, K)
 
