@@ -131,10 +131,6 @@ private:
 
 	PID_t _heading_p_controller; ///< The PID controller for yaw rate.
 
-	bool _let_ekf_initialize{true};
-
-	hrt_abstime _start_time{0};
-
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RDD_P_HEADING>) _param_rdd_p_gain_heading,
 		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,

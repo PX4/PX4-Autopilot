@@ -36,7 +36,6 @@
 #include <mathlib/math/Limits.hpp>
 
 using namespace matrix;
-using namespace time_literals;
 
 DifferentialDriveGuidance::DifferentialDriveGuidance(ModuleParams *parent) : ModuleParams(parent)
 {
@@ -116,19 +115,6 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	output.yaw_rate = math::constrain(angular_velocity_pid, -_max_angular_velocity, _max_angular_velocity);
 	output.closed_loop_speed_control = output.closed_loop_yaw_rate_control = true;
 	output.timestamp = hrt_absolute_time();
-
-	// Implement a 1-second initialization period for the EKF to prevent the rover from starting too quickly, which can disrupt calibration
-	if (_let_ekf_initialize && current_waypoint.norm() > DBL_EPSILON) {
-		_start_time = hrt_absolute_time();
-		_let_ekf_initialize = false;  // Set _let_ekf_initialize to false so this block only runs once
-	}
-
-	// Check if less than 1 second has passed since the start of the guidance controller
-	if ((hrt_absolute_time() - _start_time) < 1_s) {
-
-		output.speed = 0;
-		output.yaw_rate = 0;
-	}
 
 	_differential_drive_setpoint_pub.publish(output);
 
