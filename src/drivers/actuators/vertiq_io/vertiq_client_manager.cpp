@@ -261,23 +261,25 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout){
 	hrt_abstime time_now = hrt_absolute_time();
 	hrt_abstime end_time = time_now + timeout;
 
-	uint32_t read_value = 0;
-	float float_value = 0;
+	uint32_t module_read_value = 0;
+	float module_float_value = 0;
+
+	int32_t px4_read_value = 0;
+	float px4_float_value = 0;
 
 	while(time_now < end_time){
 		if(_prop_input_parser_client->velocity_max_.IsFresh()){
-			float_value = _prop_input_parser_client->velocity_max_.get_reply();
+			module_float_value = _prop_input_parser_client->velocity_max_.get_reply();
 
 			if(_init_velocity_max){
 				PX4_INFO("Initialized MAX_VELOCITY");
-				param_set(param_find("MAX_VELOCITY"), &float_value);
+				param_set(param_find("MAX_VELOCITY"), &module_float_value);
 				_init_velocity_max = false;
 			}else{
-				float px4_velo_max;
-				param_get(param_find("MAX_VELOCITY"), &px4_velo_max);
+				param_get(param_find("MAX_VELOCITY"), &px4_float_value);
 
-				if(!FloatsAreClose(px4_velo_max, float_value)){
-					_prop_input_parser_client->velocity_max_.set(*_serial_interface->get_iquart_interface(), px4_velo_max);
+				if(!FloatsAreClose(px4_float_value, module_float_value)){
+					_prop_input_parser_client->velocity_max_.set(*_serial_interface->get_iquart_interface(), px4_float_value);
 					_prop_input_parser_client->velocity_max_.save(*_serial_interface->get_iquart_interface());
 					_serial_interface->process_serial_tx();
 					PX4_INFO("max velo changed");
@@ -286,29 +288,56 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout){
 		}
 
 		if(_prop_input_parser_client->volts_max_.IsFresh()){
-			float_value = _prop_input_parser_client->volts_max_.get_reply();
+			module_float_value = _prop_input_parser_client->volts_max_.get_reply();
 			if(_init_volts_max){
 				PX4_INFO("Initialized MAX_VOLTS");
-				param_set(param_find("MAX_VOLTS"), &float_value);
+				param_set(param_find("MAX_VOLTS"), &module_float_value);
 				_init_volts_max = false;
+			}else{
+				param_get(param_find("MAX_VOLTS"), &px4_float_value);
+
+				if(!FloatsAreClose(px4_float_value, module_float_value)){
+					_prop_input_parser_client->volts_max_.set(*_serial_interface->get_iquart_interface(), px4_float_value);
+					_prop_input_parser_client->volts_max_.save(*_serial_interface->get_iquart_interface());
+					_serial_interface->process_serial_tx();
+					PX4_INFO("max volts changed");
+				}
 			}
 		}
 
 		if(_prop_input_parser_client->mode_.IsFresh()){
-			read_value = _prop_input_parser_client->mode_.get_reply();
+			module_read_value = _prop_input_parser_client->mode_.get_reply();
 			if(_init_mode){
 				PX4_INFO("Initialized CONTROL_MODE");
-				param_set(param_find("CONTROL_MODE"), &read_value);
+				param_set(param_find("CONTROL_MODE"), &module_read_value);
 				_init_mode = false;
+			}else{
+				param_get(param_find("CONTROL_MODE"), &px4_read_value);
+
+				if((uint32_t)px4_read_value != module_read_value){
+					_prop_input_parser_client->mode_.set(*_serial_interface->get_iquart_interface(), (uint32_t)px4_read_value);
+					_prop_input_parser_client->mode_.save(*_serial_interface->get_iquart_interface());
+					_serial_interface->process_serial_tx();
+					PX4_INFO("control mode changed");
+				}
 			}
 		}
 
 		if(_ifci_client->throttle_cvi_.IsFresh()){
-			read_value = _ifci_client->throttle_cvi_.get_reply();
+			module_read_value = _ifci_client->throttle_cvi_.get_reply();
 			if(_init_throttle_cvi){
 				PX4_INFO("Initialized THROTTLE_CVI");
-				param_set(param_find("THROTTLE_CVI"), &read_value);
+				param_set(param_find("THROTTLE_CVI"), &module_read_value);
 				_init_throttle_cvi = false;
+			}else{
+				param_get(param_find("THROTTLE_CVI"), &px4_read_value);
+
+				if((uint32_t)px4_read_value != module_read_value){
+					_ifci_client->throttle_cvi_.set(*_serial_interface->get_iquart_interface(), (uint32_t)px4_read_value);
+					_ifci_client->throttle_cvi_.save(*_serial_interface->get_iquart_interface());
+					_serial_interface->process_serial_tx();
+					PX4_INFO("throttle cvi changed");
+				}
 			}
 		}
 
