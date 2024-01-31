@@ -70,12 +70,21 @@ else
 	fi
 fi
 
-if ver hwtypecmp V6X006
+# Keep nesting shallow
+if ver hwtypecmp V6X006 V6X008
 then
-	# Internal SPI bus ICM45686
-	icm45686 -s -R 10 start
-	iim42652 -s -R 6 start
-	adis16470 -s -R 0 start
+	if ver hwtypecmp V6X006
+	then
+		# Internal SPI bus ICM45686
+		icm45686 -s -R 10 start
+		iim42652 -s -R 6 start
+		adis16470 -s -R 0 start
+	else
+		# Internal SPI bus 3x ICM45686
+		icm45686 -b 3 -s -R 0 start
+		icm45686 -b 2 -s -R 0 start
+		icm45686 -b 1 -s -R 10 start
+	fi
 else
 	if ver hwtypecmp V6X004
 	then
@@ -142,7 +151,7 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 if param compare SENS_INT_BARO_EN 1
 then
-	if ver hwtypecmp V6X001 V6X006
+	if ver hwtypecmp V6X001 V6X006 V6X008
 	then
 		icp201xx -I -a 0x64 start
 	else
