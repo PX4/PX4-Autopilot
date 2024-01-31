@@ -215,7 +215,7 @@
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "V6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 6
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 7
 //                 Base/FMUM
 #define V6X_0     HW_FMUM_ID(0x0)   // FMUV6X, Auterion,HB  Sensor Set Rev 0
 #define V6X_1     HW_FMUM_ID(0x1)   // FMUV6X, CUAV Sensor Set Rev 1
