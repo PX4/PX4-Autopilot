@@ -8,4 +8,7 @@ if DRIVERS_ACTUATORS_VERTIQ_IO
     config USE_SYSTEM_CONTROL_CLIENT
         bool "Include the System Control Client"
         default n
+    config USE_IFCI_CONFIGURATION
+        bool "Include IFCI Configuration Parameters"
+        default n
 endif

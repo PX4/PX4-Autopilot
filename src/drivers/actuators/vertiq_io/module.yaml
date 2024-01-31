@@ -85,15 +85,6 @@ parameters:
                 0: Use Motor Arm Behavior
                 1: Force Arming
             default: 0
-    - group: Vertiq System Control Client
-      definitions:
-        OBJECT_ID:
-            description:
-                short: The target module's Module ID
-                long: |
-                    Object ID words that mean things
-            type: int32
-            reboot_required: true
         MODULE_ID:
             description:
                 short: The module's Module ID
@@ -101,15 +92,204 @@ parameters:
                     Module ID words that mean things
             type: int32
             reboot_required: true
-        FIRMWARE_VERSION:
+        # OBJECT_ID:
+        #     description:
+        #         short: The target module's Module ID
+        #         long: |
+        #             Object ID words that mean things
+        #     type: int32
+        #     reboot_required: true
+    - group: IFCI Configuration
+      definitions:
+        THROTTLE_CVI:
             description:
                 short: The module's firmware version
                 long: |
                     firmware version words that mean things
             type: int32
-        HARDWARE_VERSION:
+        CONTROL_MODE:
             description:
-                short: The module's hardware version
+                short: The module's firmware version
                 long: |
-                    hardware version words that mean things
-            type: int32
+                    firmware version words that mean things
+            type: enum
+            values:
+                0: PWM
+                1: Voltage
+                2: Velocity
+        MAX_VELOCITY:
+            description:
+                short: The module's firmware version
+                long: |
+                    firmware version words that mean things
+            type: float
+        MAX_VOLTS:
+            description:
+                short: The module's firmware version
+                long: |
+                    firmware version words that mean things
+            type: float
+        # X_CVI:
+        #     description:
+        #         short: The module's firmware version
+        #         long: |
+        #             firmware version words that mean things
+        #     type: int32
+        # Y_CVI:
+        #     description:
+        #         short: The module's firmware version
+        #         long: |
+        #             firmware version words that mean things
+        #     type: int32
+    # - group: Vertiq System Control Client
+    #   definitions:
+    #     DEVICE_ID:
+    #         description:
+    #             short: The module's Module ID
+    #             long: |
+    #                 Module ID words that mean things
+    #         type: int32
+    #     REV_ID:
+    #         description:
+    #             short: The module's firmware version
+    #             long: |
+    #                 firmware version words that mean things
+    #         type: int32
+    #     HARDWARE_VERSION:
+    #         description:
+    #             short: The module's hardware version
+    #             long: |
+    #                 hardware version words that mean things
+    #         type: int32
+    #     UID1:
+    #         description:
+    #             short: The module's Module ID
+    #             long: |
+    #                 Module ID words that mean things
+    #         type: int32
+    #     UID2:
+    #         description:
+    #             short: The module's firmware version
+    #             long: |
+    #                 firmware version words that mean things
+    #         type: int32
+    #     UID3:
+    #         description:
+    #             short: The module's hardware version
+    #             long: |
+    #                 hardware version words that mean things
+    #         type: int32
+    #     MEM_SIZE:
+    #         description:
+    #             short: The module's Module ID
+    #             long: |
+    #                 Module ID words that mean things
+    #         type: int32
+    #     BUILD_YEAR:
+    #         description:
+    #             short: The module's firmware version
+    #             long: |
+    #                 firmware version words that mean things
+    #         type: int32
+    #     BUILD_MONTH:
+    #         description:
+    #             short: The module's hardware version
+    #             long: |
+    #                 hardware version words that mean things
+    #         type: int32
+    #     BUILD_DAY:
+    #         description:
+    #             short: The module's Module ID
+    #             long: |
+    #                 Module ID words that mean things
+    #         type: int32
+    #     BUILD_HOUR:
+    #         description:
+    #             short: The module's firmware version
+    #             long: |
+    #                 firmware version words that mean things
+    #         type: int32
+    #     BUILD_MIN:
+    #         description:
+    #             short: The module's hardware version
+    #             long: |
+    #                 hardware version words that mean things
+    #         type: int32
+    #     BUILD_SEC:
+    #         description:
+    #             short: The module's Module ID
+    #             long: |
+    #                 Module ID words that mean things
+    #         type: int32
+    #     MODULE_ID:
+    #         description:
+    #             short: The module's firmware version
+    #             long: |
+    #                 firmware version words that mean things
+    #         type: int32
+    #     MODULE_TIME:
+    #         description:
+    #             short: The module's hardware version
+    #             long: |
+    #                 hardware version words that mean things
+    #         type: float
+    #     FIRMWARE_VERSION:
+    #         description:
+    #             short: The module's Module ID
+    #             long: |
+    #                 Module ID words that mean things
+    #         type: int32
+    #     HARDWARE_VERSION:
+    #         description:
+    #             short: The module's firmware version
+    #             long: |
+    #                 firmware version words that mean things
+    #         type: int32
+    #     ELEC_VERSION:
+    #         description:
+    #             short: The module's hardware version
+    #             long: |
+    #                 hardware version words that mean things
+    #         type: int32
+    #     FIRMWARE_VALID:
+    #         description:
+    #             short: The module's Module ID
+    #             long: |
+    #                 Module ID words that mean things
+    #         type: int32
+    #     APPS_PRESENT:
+    #         description:
+    #             short: The module's firmware version
+    #             long: |
+    #                 firmware version words that mean things
+    #         type: int32
+        # BOOT_VERSION:
+        #     description:
+        #         short: The module's hardware version
+        #         long: |
+        #             hardware version words that mean things
+        #     type: int32
+        # UPGRADE_VERSION:
+        #     description:
+        #         short: The module's Module ID
+        #         long: |
+        #             Module ID words that mean things
+        #     type: int32
+        # SYS_CLOCK:
+        #     description:
+        #         short: The module's firmware version
+        #         long: |
+        #             firmware version words that mean things
+        #     type: int32
+        # CTRL_FLAGS:
+        #     description:
+        #         short: The module's hardware version
+        #         long: |
+        #             hardware version words that mean things
+        #     type: int32
+        # PCB_VERSION:
+        #     description:
+        #         short: The module's Module ID
+        #         long: |
+        #             Module ID words that mean things
+        #     type: int32

@@ -16,7 +16,7 @@ VertiqIo::VertiqIo() :
 	//Make sure we get the correct initial values for our parameters
 	updateParams();
 
-	_client_manager.Init((uint8_t)_param_vertiq_sys_ctrl_id.get());
+	_client_manager.Init((uint8_t)_param_vertiq_module_id.get());
 	_motor_interface_ptr = _client_manager.GetMotorInterface();
 
 	_serial_interface.SetNumberOfClients(_client_manager.GetNumberOfClients());
@@ -69,10 +69,6 @@ void VertiqIo::Run()
 	if (_request_telemetry_init.load()) {
 		_serial_interface.init_serial(_telemetry_device, _param_vertiq_baud.get());
 		_request_telemetry_init.store(false);
-
-		#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
-		_client_manager.UpdateSystemControlEntries();
-		#endif
 	}
 
 	//Handle IQUART reception and transmission
@@ -108,7 +104,11 @@ void VertiqIo::parameters_update(){
 		_parameter_update_sub.copy(&param_update);
 
 		#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
-		_client_manager.UpdateSystemControlEntries();
+		_client_manager.GetAllSystemControlEntries();
+		#endif
+
+		#ifdef CONFIG_USE_IFCI_CONFIGURATION
+		_client_manager.UpdateIfciConfigParams();
 		#endif
 
 		// If any parameter updated, call updateParams() to check if

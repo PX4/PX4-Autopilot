@@ -130,13 +130,41 @@ private:
 	(ParamInt<px4::params::VERTIQ_TEL_MSK>) _param_vertiq_telemetry_mask,
 	(ParamInt<px4::params::DISARM_THROTTLE>) _param_vertiq_disarm_throttle,
 	(ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior,
-	(ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
-	#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
-	,(ParamInt<px4::params::OBJECT_ID>) _param_vertiq_sys_ctrl_id
-	,(ParamInt<px4::params::MODULE_ID>) _param_vertiq_module_id
-	,(ParamInt<px4::params::FIRMWARE_VERSION>) _param_vertiq_firmware_version
-	,(ParamInt<px4::params::HARDWARE_VERSION>) _param_vertiq_hardware_version
+	(ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior,
+	(ParamInt<px4::params::MODULE_ID>) _param_vertiq_module_id
+	#ifdef CONFIG_USE_IFCI_CONFIGURATION
+	,(ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi
+	,(ParamInt<px4::params::CONTROL_MODE>) _param_vertiq_control_mode
+	,(ParamFloat<px4::params::MAX_VELOCITY>) _param_vertiq_max_velo
+	,(ParamFloat<px4::params::MAX_VOLTS>) _param_vertiq_max_volts
 	#endif
+	// #ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
+	// ,(ParamInt<px4::params::OBJECT_ID>) _param_vertiq_sys_ctrl_id
+	// ,(ParamInt<px4::params::DEVICE_ID>) _param_vertiq_dev_id
+	// ,(ParamInt<px4::params::REV_ID>) _param_vertiq_rev_id
+	// ,(ParamInt<px4::params::UID1>) _param_vertiq_uid1
+	// ,(ParamInt<px4::params::UID2>) _param_vertiq_uid2
+	// ,(ParamInt<px4::params::UID3>) _param_vertiq_uid3
+	// ,(ParamInt<px4::params::MEM_SIZE>) _param_vertiq_mem_size
+	// ,(ParamInt<px4::params::BUILD_YEAR>) _param_vertiq_build_year
+	// ,(ParamInt<px4::params::BUILD_MONTH>) _param_vertiq_build_month
+	// ,(ParamInt<px4::params::BUILD_DAY>) _param_vertiq_build_day
+	// ,(ParamInt<px4::params::BUILD_HOUR>) _param_vertiq_build_hour
+	// ,(ParamInt<px4::params::BUILD_MIN>) _param_vertiq_build_min
+	// ,(ParamInt<px4::params::BUILD_SEC>) _param_vertiq_build_sec
+	// ,(ParamInt<px4::params::MODULE_ID>) _param_vertiq_module_id_module_id
+	// ,(ParamFloat<px4::params::MODULE_TIME>) _param_vertiq_module_time
+	// ,(ParamInt<px4::params::FIRMWARE_VERSION>) _param_vertiq_firmware_version
+	// ,(ParamInt<px4::params::HARDWARE_VERSION>) _param_vertiq_hardware_version
+	// ,(ParamInt<px4::params::ELEC_VERSION>) _param_vertiq_electronics_version
+	// ,(ParamInt<px4::params::FIRMWARE_VALID>) _param_vertiq_firmware_valid
+	// ,(ParamInt<px4::params::APPS_PRESENT>) _param_vertiq_apps_present
+	// ,(ParamInt<px4::params::BOOT_VERSION>) _param_vertiq_bootloader_version
+	// ,(ParamInt<px4::params::UPGRADE_VERSION>) _param_vertiq_upgrade_version
+	// ,(ParamInt<px4::params::SYS_CLOCK>) _param_vertiq_sys_clock
+	// ,(ParamInt<px4::params::CTRL_FLAGS>) _param_vertiq_ctrl_flags
+	// ,(ParamInt<px4::params::PCB_VERSION>) _param_vertiq_pcb_version
+	// #endif
 	)
 };
 
