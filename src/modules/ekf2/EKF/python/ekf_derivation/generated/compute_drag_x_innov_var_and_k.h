@@ -34,15 +34,15 @@ void ComputeDragXInnovVarAndK(const matrix::Matrix<Scalar, 24, 1>& state,
                               const Scalar cd, const Scalar cm, const Scalar R,
                               const Scalar epsilon, Scalar* const innov_var = nullptr,
                               matrix::Matrix<Scalar, 23, 1>* const K = nullptr) {
-  // Total ops: 348
+  // Total ops: 679
 
   // Input arrays
 
-  // Intermediate terms (77)
+  // Intermediate terms (83)
   const Scalar _tmp0 = 2 * state(0, 0);
   const Scalar _tmp1 = _tmp0 * state(3, 0);
-  const Scalar _tmp2 = 2 * state(2, 0);
-  const Scalar _tmp3 = _tmp2 * state(1, 0);
+  const Scalar _tmp2 = 2 * state(1, 0);
+  const Scalar _tmp3 = _tmp2 * state(2, 0);
   const Scalar _tmp4 = _tmp1 + _tmp3;
   const Scalar _tmp5 = _tmp4 * cm;
   const Scalar _tmp6 = std::pow(state(3, 0), Scalar(2));
@@ -52,16 +52,16 @@ void ComputeDragXInnovVarAndK(const matrix::Matrix<Scalar, 24, 1>& state,
   const Scalar _tmp10 = _tmp7 + _tmp9 + 1;
   const Scalar _tmp11 = -state(22, 0) + state(4, 0);
   const Scalar _tmp12 = -state(23, 0) + state(5, 0);
-  const Scalar _tmp13 = _tmp2 * state(0, 0);
+  const Scalar _tmp13 = _tmp0 * state(2, 0);
   const Scalar _tmp14 = -_tmp13;
-  const Scalar _tmp15 = 2 * state(1, 0) * state(3, 0);
+  const Scalar _tmp15 = _tmp2 * state(3, 0);
   const Scalar _tmp16 = _tmp14 + _tmp15;
   const Scalar _tmp17 = _tmp12 * _tmp4 + _tmp16 * state(6, 0);
   const Scalar _tmp18 = _tmp10 * _tmp11 + _tmp17;
   const Scalar _tmp19 = 2 * _tmp18;
   const Scalar _tmp20 = _tmp19 * _tmp4;
-  const Scalar _tmp21 = _tmp2 * state(3, 0);
-  const Scalar _tmp22 = _tmp0 * state(1, 0);
+  const Scalar _tmp21 = 2 * state(2, 0) * state(3, 0);
+  const Scalar _tmp22 = _tmp2 * state(0, 0);
   const Scalar _tmp23 = -_tmp22;
   const Scalar _tmp24 = _tmp21 + _tmp23;
   const Scalar _tmp25 = std::pow(state(1, 0), Scalar(2));
@@ -88,81 +88,148 @@ void ComputeDragXInnovVarAndK(const matrix::Matrix<Scalar, 24, 1>& state,
   const Scalar _tmp45 = _tmp4 * _tmp44;
   const Scalar _tmp46 = -_tmp43 * (_tmp20 + _tmp32 + _tmp40) - _tmp45 - _tmp5;
   const Scalar _tmp47 = -_tmp25;
-  const Scalar _tmp48 = _tmp47 + _tmp6;
+  const Scalar _tmp48 = _tmp47 + _tmp8;
   const Scalar _tmp49 = std::pow(state(0, 0), Scalar(2));
   const Scalar _tmp50 = -_tmp49;
-  const Scalar _tmp51 = _tmp50 + _tmp8;
+  const Scalar _tmp51 = _tmp50 + _tmp6;
   const Scalar _tmp52 = -_tmp3;
   const Scalar _tmp53 = -_tmp15;
   const Scalar _tmp54 = -_tmp6;
-  const Scalar _tmp55 = _tmp12 * (_tmp47 + _tmp49 + _tmp54 + _tmp8) + _tmp37;
-  const Scalar _tmp56 = -_tmp43 * (_tmp19 * _tmp55 + _tmp39 * (_tmp11 * (_tmp48 + _tmp51) +
+  const Scalar _tmp55 = _tmp49 + _tmp54;
+  const Scalar _tmp56 = _tmp12 * (_tmp48 + _tmp55) + _tmp37;
+  const Scalar _tmp57 = -_tmp43 * (_tmp19 * _tmp56 + _tmp39 * (_tmp11 * (_tmp48 + _tmp51) +
                                                                _tmp12 * (_tmp34 + _tmp52) +
                                                                state(6, 0) * (_tmp13 + _tmp53))) -
-                        _tmp44 * _tmp55 - _tmp55 * cm;
-  const Scalar _tmp57 = -_tmp43 * (-_tmp20 - _tmp32 - _tmp40) + _tmp45 + _tmp5;
-  const Scalar _tmp58 = _tmp10 * cm;
-  const Scalar _tmp59 = _tmp10 * _tmp19;
-  const Scalar _tmp60 = _tmp28 * _tmp31;
-  const Scalar _tmp61 = _tmp35 * _tmp39;
-  const Scalar _tmp62 = _tmp10 * _tmp44;
-  const Scalar _tmp63 = -_tmp43 * (-_tmp59 - _tmp60 - _tmp61) + _tmp58 + _tmp62;
-  const Scalar _tmp64 = -_tmp8;
-  const Scalar _tmp65 = -_tmp21;
-  const Scalar _tmp66 = _tmp49 + _tmp64;
-  const Scalar _tmp67 =
-      _tmp43 * (_tmp31 * (_tmp11 * (_tmp1 + _tmp52) + _tmp12 * (_tmp25 + _tmp50 + _tmp6 + _tmp64) +
-                          state(6, 0) * (_tmp23 + _tmp65)) +
-                _tmp39 * (_tmp29 + state(6, 0) * (_tmp48 + _tmp66)));
-  const Scalar _tmp68 = _tmp25 + _tmp54;
+                        _tmp44 * _tmp56 - _tmp56 * cm;
+  const Scalar _tmp58 = -_tmp43 * (-_tmp20 - _tmp32 - _tmp40) + _tmp45 + _tmp5;
+  const Scalar _tmp59 = P(4, 4) * _tmp46;
+  const Scalar _tmp60 = _tmp10 * cm;
+  const Scalar _tmp61 = _tmp10 * _tmp19;
+  const Scalar _tmp62 = _tmp28 * _tmp31;
+  const Scalar _tmp63 = _tmp35 * _tmp39;
+  const Scalar _tmp64 = _tmp10 * _tmp44;
+  const Scalar _tmp65 = -_tmp43 * (-_tmp61 - _tmp62 - _tmp63) + _tmp60 + _tmp64;
+  const Scalar _tmp66 = -_tmp8;
+  const Scalar _tmp67 = _tmp25 + _tmp66;
+  const Scalar _tmp68 = -_tmp21;
   const Scalar _tmp69 =
-      _tmp11 * (_tmp14 + _tmp53) + _tmp12 * (_tmp22 + _tmp65) + state(6, 0) * (_tmp51 + _tmp68);
-  const Scalar _tmp70 =
-      -_tmp43 * (_tmp19 * _tmp69 + _tmp31 * (_tmp11 * (_tmp66 + _tmp68) + _tmp17)) -
-      _tmp44 * _tmp69 - _tmp69 * cm;
-  const Scalar _tmp71 = -_tmp43 * (_tmp59 + _tmp60 + _tmp61) - _tmp58 - _tmp62;
-  const Scalar _tmp72 = -_tmp16 * _tmp44 - _tmp16 * cm -
+      _tmp43 * (_tmp31 * (_tmp11 * (_tmp1 + _tmp52) + _tmp12 * (_tmp51 + _tmp67) +
+                          state(6, 0) * (_tmp23 + _tmp68)) +
+                _tmp39 * (_tmp29 + state(6, 0) * (_tmp47 + _tmp49 + _tmp6 + _tmp66)));
+  const Scalar _tmp70 = _tmp11 * (_tmp14 + _tmp53) + _tmp12 * (_tmp22 + _tmp68) +
+                        state(6, 0) * (_tmp25 + _tmp50 + _tmp54 + _tmp8);
+  const Scalar _tmp71 =
+      -_tmp43 * (_tmp19 * _tmp70 + _tmp31 * (_tmp11 * (_tmp55 + _tmp67) + _tmp17)) -
+      _tmp44 * _tmp70 - _tmp70 * cm;
+  const Scalar _tmp72 = -_tmp43 * (_tmp61 + _tmp62 + _tmp63) - _tmp60 - _tmp64;
+  const Scalar _tmp73 = -_tmp16 * _tmp44 - _tmp16 * cm -
                         _tmp43 * (_tmp16 * _tmp19 + _tmp27 * _tmp31 + _tmp36 * _tmp39);
-  const Scalar _tmp73 = P(21, 21) * _tmp63;
-  const Scalar _tmp74 = P(22, 22) * _tmp57;
-  const Scalar _tmp75 =
+  const Scalar _tmp74 = -P(0, 0) * _tmp69;
+  const Scalar _tmp75 = P(21, 21) * _tmp65;
+  const Scalar _tmp76 = P(2, 2) * _tmp57;
+  const Scalar _tmp77 = P(1, 1) * _tmp71;
+  const Scalar _tmp78 = P(5, 5) * _tmp73;
+  const Scalar _tmp79 = P(3, 3) * _tmp72;
+  const Scalar _tmp80 = P(22, 22) * _tmp58;
+  const Scalar _tmp81 =
       R +
-      _tmp46 * (-P(0, 4) * _tmp67 + P(1, 4) * _tmp70 + P(2, 4) * _tmp56 + P(21, 4) * _tmp63 +
-                P(22, 4) * _tmp57 + P(3, 4) * _tmp71 + P(4, 4) * _tmp46 + P(5, 4) * _tmp72) +
-      _tmp56 * (-P(0, 2) * _tmp67 + P(1, 2) * _tmp70 + P(2, 2) * _tmp56 + P(21, 2) * _tmp63 +
-                P(22, 2) * _tmp57 + P(3, 2) * _tmp71 + P(4, 2) * _tmp46 + P(5, 2) * _tmp72) +
-      _tmp57 * (-P(0, 22) * _tmp67 + P(1, 22) * _tmp70 + P(2, 22) * _tmp56 + P(21, 22) * _tmp63 +
-                P(3, 22) * _tmp71 + P(4, 22) * _tmp46 + P(5, 22) * _tmp72 + _tmp74) +
-      _tmp63 * (-P(0, 21) * _tmp67 + P(1, 21) * _tmp70 + P(2, 21) * _tmp56 + P(22, 21) * _tmp57 +
-                P(3, 21) * _tmp71 + P(4, 21) * _tmp46 + P(5, 21) * _tmp72 + _tmp73) -
-      _tmp67 * (-P(0, 0) * _tmp67 + P(1, 0) * _tmp70 + P(2, 0) * _tmp56 + P(21, 0) * _tmp63 +
-                P(22, 0) * _tmp57 + P(3, 0) * _tmp71 + P(4, 0) * _tmp46 + P(5, 0) * _tmp72) +
-      _tmp70 * (-P(0, 1) * _tmp67 + P(1, 1) * _tmp70 + P(2, 1) * _tmp56 + P(21, 1) * _tmp63 +
-                P(22, 1) * _tmp57 + P(3, 1) * _tmp71 + P(4, 1) * _tmp46 + P(5, 1) * _tmp72) +
-      _tmp71 * (-P(0, 3) * _tmp67 + P(1, 3) * _tmp70 + P(2, 3) * _tmp56 + P(21, 3) * _tmp63 +
-                P(22, 3) * _tmp57 + P(3, 3) * _tmp71 + P(4, 3) * _tmp46 + P(5, 3) * _tmp72) +
-      _tmp72 * (-P(0, 5) * _tmp67 + P(1, 5) * _tmp70 + P(2, 5) * _tmp56 + P(21, 5) * _tmp63 +
-                P(22, 5) * _tmp57 + P(3, 5) * _tmp71 + P(4, 5) * _tmp46 + P(5, 5) * _tmp72);
-  const Scalar _tmp76 = Scalar(1.0) / (math::max<Scalar>(_tmp75, epsilon));
+      _tmp46 * (-P(0, 4) * _tmp69 + P(1, 4) * _tmp71 + P(2, 4) * _tmp57 + P(21, 4) * _tmp65 +
+                P(22, 4) * _tmp58 + P(3, 4) * _tmp72 + P(5, 4) * _tmp73 + _tmp59) +
+      _tmp57 * (-P(0, 2) * _tmp69 + P(1, 2) * _tmp71 + P(21, 2) * _tmp65 + P(22, 2) * _tmp58 +
+                P(3, 2) * _tmp72 + P(4, 2) * _tmp46 + P(5, 2) * _tmp73 + _tmp76) +
+      _tmp58 * (-P(0, 22) * _tmp69 + P(1, 22) * _tmp71 + P(2, 22) * _tmp57 + P(21, 22) * _tmp65 +
+                P(3, 22) * _tmp72 + P(4, 22) * _tmp46 + P(5, 22) * _tmp73 + _tmp80) +
+      _tmp65 * (-P(0, 21) * _tmp69 + P(1, 21) * _tmp71 + P(2, 21) * _tmp57 + P(22, 21) * _tmp58 +
+                P(3, 21) * _tmp72 + P(4, 21) * _tmp46 + P(5, 21) * _tmp73 + _tmp75) -
+      _tmp69 * (P(1, 0) * _tmp71 + P(2, 0) * _tmp57 + P(21, 0) * _tmp65 + P(22, 0) * _tmp58 +
+                P(3, 0) * _tmp72 + P(4, 0) * _tmp46 + P(5, 0) * _tmp73 + _tmp74) +
+      _tmp71 * (-P(0, 1) * _tmp69 + P(2, 1) * _tmp57 + P(21, 1) * _tmp65 + P(22, 1) * _tmp58 +
+                P(3, 1) * _tmp72 + P(4, 1) * _tmp46 + P(5, 1) * _tmp73 + _tmp77) +
+      _tmp72 * (-P(0, 3) * _tmp69 + P(1, 3) * _tmp71 + P(2, 3) * _tmp57 + P(21, 3) * _tmp65 +
+                P(22, 3) * _tmp58 + P(4, 3) * _tmp46 + P(5, 3) * _tmp73 + _tmp79) +
+      _tmp73 * (-P(0, 5) * _tmp69 + P(1, 5) * _tmp71 + P(2, 5) * _tmp57 + P(21, 5) * _tmp65 +
+                P(22, 5) * _tmp58 + P(3, 5) * _tmp72 + P(4, 5) * _tmp46 + _tmp78);
+  const Scalar _tmp82 = Scalar(1.0) / (math::max<Scalar>(_tmp81, epsilon));
 
   // Output terms (2)
   if (innov_var != nullptr) {
     Scalar& _innov_var = (*innov_var);
 
-    _innov_var = _tmp75;
+    _innov_var = _tmp81;
   }
 
   if (K != nullptr) {
     matrix::Matrix<Scalar, 23, 1>& _k = (*K);
 
-    _k.setZero();
-
+    _k(0, 0) =
+        _tmp82 * (P(0, 1) * _tmp71 + P(0, 2) * _tmp57 + P(0, 21) * _tmp65 + P(0, 22) * _tmp58 +
+                  P(0, 3) * _tmp72 + P(0, 4) * _tmp46 + P(0, 5) * _tmp73 + _tmp74);
+    _k(1, 0) =
+        _tmp82 * (-P(1, 0) * _tmp69 + P(1, 2) * _tmp57 + P(1, 21) * _tmp65 + P(1, 22) * _tmp58 +
+                  P(1, 3) * _tmp72 + P(1, 4) * _tmp46 + P(1, 5) * _tmp73 + _tmp77);
+    _k(2, 0) =
+        _tmp82 * (-P(2, 0) * _tmp69 + P(2, 1) * _tmp71 + P(2, 21) * _tmp65 + P(2, 22) * _tmp58 +
+                  P(2, 3) * _tmp72 + P(2, 4) * _tmp46 + P(2, 5) * _tmp73 + _tmp76);
+    _k(3, 0) =
+        _tmp82 * (-P(3, 0) * _tmp69 + P(3, 1) * _tmp71 + P(3, 2) * _tmp57 + P(3, 21) * _tmp65 +
+                  P(3, 22) * _tmp58 + P(3, 4) * _tmp46 + P(3, 5) * _tmp73 + _tmp79);
+    _k(4, 0) =
+        _tmp82 * (-P(4, 0) * _tmp69 + P(4, 1) * _tmp71 + P(4, 2) * _tmp57 + P(4, 21) * _tmp65 +
+                  P(4, 22) * _tmp58 + P(4, 3) * _tmp72 + P(4, 5) * _tmp73 + _tmp59);
+    _k(5, 0) =
+        _tmp82 * (-P(5, 0) * _tmp69 + P(5, 1) * _tmp71 + P(5, 2) * _tmp57 + P(5, 21) * _tmp65 +
+                  P(5, 22) * _tmp58 + P(5, 3) * _tmp72 + P(5, 4) * _tmp46 + _tmp78);
+    _k(6, 0) =
+        _tmp82 * (-P(6, 0) * _tmp69 + P(6, 1) * _tmp71 + P(6, 2) * _tmp57 + P(6, 21) * _tmp65 +
+                  P(6, 22) * _tmp58 + P(6, 3) * _tmp72 + P(6, 4) * _tmp46 + P(6, 5) * _tmp73);
+    _k(7, 0) =
+        _tmp82 * (-P(7, 0) * _tmp69 + P(7, 1) * _tmp71 + P(7, 2) * _tmp57 + P(7, 21) * _tmp65 +
+                  P(7, 22) * _tmp58 + P(7, 3) * _tmp72 + P(7, 4) * _tmp46 + P(7, 5) * _tmp73);
+    _k(8, 0) =
+        _tmp82 * (-P(8, 0) * _tmp69 + P(8, 1) * _tmp71 + P(8, 2) * _tmp57 + P(8, 21) * _tmp65 +
+                  P(8, 22) * _tmp58 + P(8, 3) * _tmp72 + P(8, 4) * _tmp46 + P(8, 5) * _tmp73);
+    _k(9, 0) =
+        _tmp82 * (-P(9, 0) * _tmp69 + P(9, 1) * _tmp71 + P(9, 2) * _tmp57 + P(9, 21) * _tmp65 +
+                  P(9, 22) * _tmp58 + P(9, 3) * _tmp72 + P(9, 4) * _tmp46 + P(9, 5) * _tmp73);
+    _k(10, 0) =
+        _tmp82 * (-P(10, 0) * _tmp69 + P(10, 1) * _tmp71 + P(10, 2) * _tmp57 + P(10, 21) * _tmp65 +
+                  P(10, 22) * _tmp58 + P(10, 3) * _tmp72 + P(10, 4) * _tmp46 + P(10, 5) * _tmp73);
+    _k(11, 0) =
+        _tmp82 * (-P(11, 0) * _tmp69 + P(11, 1) * _tmp71 + P(11, 2) * _tmp57 + P(11, 21) * _tmp65 +
+                  P(11, 22) * _tmp58 + P(11, 3) * _tmp72 + P(11, 4) * _tmp46 + P(11, 5) * _tmp73);
+    _k(12, 0) =
+        _tmp82 * (-P(12, 0) * _tmp69 + P(12, 1) * _tmp71 + P(12, 2) * _tmp57 + P(12, 21) * _tmp65 +
+                  P(12, 22) * _tmp58 + P(12, 3) * _tmp72 + P(12, 4) * _tmp46 + P(12, 5) * _tmp73);
+    _k(13, 0) =
+        _tmp82 * (-P(13, 0) * _tmp69 + P(13, 1) * _tmp71 + P(13, 2) * _tmp57 + P(13, 21) * _tmp65 +
+                  P(13, 22) * _tmp58 + P(13, 3) * _tmp72 + P(13, 4) * _tmp46 + P(13, 5) * _tmp73);
+    _k(14, 0) =
+        _tmp82 * (-P(14, 0) * _tmp69 + P(14, 1) * _tmp71 + P(14, 2) * _tmp57 + P(14, 21) * _tmp65 +
+                  P(14, 22) * _tmp58 + P(14, 3) * _tmp72 + P(14, 4) * _tmp46 + P(14, 5) * _tmp73);
+    _k(15, 0) =
+        _tmp82 * (-P(15, 0) * _tmp69 + P(15, 1) * _tmp71 + P(15, 2) * _tmp57 + P(15, 21) * _tmp65 +
+                  P(15, 22) * _tmp58 + P(15, 3) * _tmp72 + P(15, 4) * _tmp46 + P(15, 5) * _tmp73);
+    _k(16, 0) =
+        _tmp82 * (-P(16, 0) * _tmp69 + P(16, 1) * _tmp71 + P(16, 2) * _tmp57 + P(16, 21) * _tmp65 +
+                  P(16, 22) * _tmp58 + P(16, 3) * _tmp72 + P(16, 4) * _tmp46 + P(16, 5) * _tmp73);
+    _k(17, 0) =
+        _tmp82 * (-P(17, 0) * _tmp69 + P(17, 1) * _tmp71 + P(17, 2) * _tmp57 + P(17, 21) * _tmp65 +
+                  P(17, 22) * _tmp58 + P(17, 3) * _tmp72 + P(17, 4) * _tmp46 + P(17, 5) * _tmp73);
+    _k(18, 0) =
+        _tmp82 * (-P(18, 0) * _tmp69 + P(18, 1) * _tmp71 + P(18, 2) * _tmp57 + P(18, 21) * _tmp65 +
+                  P(18, 22) * _tmp58 + P(18, 3) * _tmp72 + P(18, 4) * _tmp46 + P(18, 5) * _tmp73);
+    _k(19, 0) =
+        _tmp82 * (-P(19, 0) * _tmp69 + P(19, 1) * _tmp71 + P(19, 2) * _tmp57 + P(19, 21) * _tmp65 +
+                  P(19, 22) * _tmp58 + P(19, 3) * _tmp72 + P(19, 4) * _tmp46 + P(19, 5) * _tmp73);
+    _k(20, 0) =
+        _tmp82 * (-P(20, 0) * _tmp69 + P(20, 1) * _tmp71 + P(20, 2) * _tmp57 + P(20, 21) * _tmp65 +
+                  P(20, 22) * _tmp58 + P(20, 3) * _tmp72 + P(20, 4) * _tmp46 + P(20, 5) * _tmp73);
     _k(21, 0) =
-        _tmp76 * (-P(21, 0) * _tmp67 + P(21, 1) * _tmp70 + P(21, 2) * _tmp56 + P(21, 22) * _tmp57 +
-                  P(21, 3) * _tmp71 + P(21, 4) * _tmp46 + P(21, 5) * _tmp72 + _tmp73);
+        _tmp82 * (-P(21, 0) * _tmp69 + P(21, 1) * _tmp71 + P(21, 2) * _tmp57 + P(21, 22) * _tmp58 +
+                  P(21, 3) * _tmp72 + P(21, 4) * _tmp46 + P(21, 5) * _tmp73 + _tmp75);
     _k(22, 0) =
-        _tmp76 * (-P(22, 0) * _tmp67 + P(22, 1) * _tmp70 + P(22, 2) * _tmp56 + P(22, 21) * _tmp63 +
-                  P(22, 3) * _tmp71 + P(22, 4) * _tmp46 + P(22, 5) * _tmp72 + _tmp74);
+        _tmp82 * (-P(22, 0) * _tmp69 + P(22, 1) * _tmp71 + P(22, 2) * _tmp57 + P(22, 21) * _tmp65 +
+                  P(22, 3) * _tmp72 + P(22, 4) * _tmp46 + P(22, 5) * _tmp73 + _tmp80);
   }
 }  // NOLINT(readability/fn_size)
 
