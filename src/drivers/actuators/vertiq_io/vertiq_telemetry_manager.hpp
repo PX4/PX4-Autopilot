@@ -21,14 +21,44 @@
 
 class VertiqTelemetryManager{
 	public:
+
+	/**
+	* @brief Construct a new VertiqTelemetryManager object with a pointer to an IFCI handler
+	* @param motor_interface A pointer to and IFCI interface
+	*/
 	VertiqTelemetryManager(IFCI * motor_interface);
 
+	/**
+	* @brief Initialize the telemetry manager with the bitmask set in the PX4 parameters
+	* @param telem_bitmask The bitmask set in the PX4 parameters as VERTIQ_TEL_MSK
+	*/
 	void Init(uint16_t telem_bitmask);
-	void StartPublishing(uORB::Publication<esc_status_s> * esc_status_pub);
-	void find_first_and_last_telemetry_positions();
-	uint16_t UpdateTelemetry();
-	uint16_t find_next_motor_for_telemetry();
 
+	/**
+	* @brief Start publishing the ESC statuses to the uORB esc_status topic
+	*/
+	void StartPublishing(uORB::Publication<esc_status_s> * esc_status_pub);
+
+	/**
+	* @brief Part of initialization. Find the first and last positions that indicate modules to grab telemetry from
+	*/
+	void FindFirstAndLastTelemetryPositions();
+
+	/**
+	* @brief Attempt to grab the telemetry response from the currently targeted module. Handles
+	* updating when to start requesting telemetry from the next module.
+	*/
+	uint16_t UpdateTelemetry();
+
+	/**
+	* @brief Determing the next module to request telemetry from
+	*/
+	uint16_t FindNextMotorForTelemetry();
+
+	/**
+	* @brief return access to our esc_status_s handler
+	* @return _esc_status: our instance of an esc_status_s
+	*/
 	esc_status_s GetEscStatus();
 
 	private:
@@ -36,7 +66,6 @@ class VertiqTelemetryManager{
 	IFCI * _motor_interface;
 
 	//We want to publish our ESC Status to anyone who will listen
-	// uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	esc_status_s		_esc_status;
 
 	static const uint8_t MAX_SUPPORTABLE_IFCI_CVS = 16;

@@ -16,7 +16,7 @@ VertiqIo::VertiqIo() :
 	//Make sure we get the correct initial values for our parameters
 	updateParams();
 
-	_client_manager.Init((uint8_t)_param_vertiq_module_id.get());
+	_client_manager.Init((uint8_t)_param_vertiq_target_module_id.get());
 	_motor_interface_ptr = _client_manager.GetMotorInterface();
 
 	_serial_interface.SetNumberOfClients(_client_manager.GetNumberOfClients());
@@ -98,22 +98,24 @@ void VertiqIo::Run()
 void VertiqIo::parameters_update(){
 	//If someone has changed (any parameter in our module!)
 	if (_parameter_update_sub.updated()) {
-
 		//Grab the changed parameter with copy (which lowers the "changed" flag)
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 
-		#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
-		_client_manager.GetAllSystemControlEntries();
-		#endif
-
-		#ifdef CONFIG_USE_IFCI_CONFIGURATION
-		_client_manager.UpdateIfciConfigParams();
-		#endif
-
 		// If any parameter updated, call updateParams() to check if
 		// this class attributes need updating (and do so).
 		updateParams();
+
+		#ifdef CONFIG_USE_IFCI_CONFIGURATION
+		//If you're set to re-read from the motor, mark all of the IFCI parameters for reinitialization, reset the trigger, and then update the IFCI params
+		if(_param_vertiq_trigger_read.get()){
+			_client_manager.MarkIfciConfigsForRefresh();
+			_param_vertiq_trigger_read.set(false);
+			_param_vertiq_trigger_read.commit_no_notification();
+		}
+
+		_client_manager.UpdateIfciConfigParams();
+		#endif //CONFIG_USE_IFCI_CONFIGURATION
 	}
 }
 

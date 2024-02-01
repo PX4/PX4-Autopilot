@@ -18,13 +18,8 @@
 #include "iq-module-communication-cpp/inc/brushless_drive_client.hpp"
 #include "iq-module-communication-cpp/inc/arming_handler_client.hpp"
 
-#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
-#include "iq-module-communication-cpp/inc/system_control_client.hpp"
-#endif
-
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 #include "iq-module-communication-cpp/inc/esc_propeller_input_parser_client.hpp"
-#include "iq-module-communication-cpp/inc/system_control_client.hpp"
 #include "iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp"
 #endif
 
@@ -37,6 +32,9 @@ class VertiqClientManager{
 	public:
 	VertiqClientManager(VertiqSerialInterface * serial_interface);
 
+	/**
+	* @brief Initialize all of our clients with the object ID given by the PX4 parameter TARGET_MODULE_ID
+	*/
 	void Init(uint8_t object_id);
 
 	/**
@@ -44,25 +42,82 @@ class VertiqClientManager{
 	*/
 	void HandleClientCommunication();
 
+	/**
+	* @brief Returns access to our IFCI interface
+	* @return A pointer to our IFCI interface _motor_interface
+	*/
 	IFCI * GetMotorInterface();
 
+	/**
+	* @brief Add a set to the output buffer that will force the connected motor to arm
+	*/
 	void SendSetForceArm();
+
+	/**
+	* @brief Add a set to the output buffer that will force the connected motor to disarm
+	*/
 	void SendSetForceDisarm();
+
+	/**
+	* @brief Add a set to the output buffer that will force the connected motor to coast
+	*/
 	void SendSetCoast();
+
+	/**
+	* @brief Add a set to the output buffer that will force the connected motor to spin at a given setpoint
+	* @param velocity_setpoint the raw 16-bit velocity command going to the motor
+	*/
 	void SendSetVelocitySetpoint(uint16_t velocity_setpoint);
 
+	/**
+	* @brief Returns the number of clients that we've initialized
+	* @return The value contained in _clients_in_use
+	*/
 	uint8_t GetNumberOfClients();
 
-	void SendSetAndSave(ClientEntryAbstract * entry, char descriptor, EntryData value);
-	void InitParameter(param_t parameter, bool * init_bool, char descriptor, EntryData value);
+	/**
+	* @brief Send the connected module both a set and a save for a given IQUART entry
+	* @param entry A pointer to the entry that you want to communicate with
+	* @param descriptor A character that determines what type of ClientEntryAbstract/data is in use. 'f' if it's a float, 'b' if it's a uint8_t
+	* @param value A pointer to a union that holds the value that we are setting in the conrrect format. Format is decoded by descriptor
+	*/
+	void SendSetAndSave(ClientEntryAbstract * entry, char descriptor, EntryData * value);
 
-	#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
-	void GetAllSystemControlEntries();
-	void WaitForSystemControlResponses(hrt_abstime timeout = 2_s);
-	#endif
+	/**
+	* @brief Initializes the PX4 parameter version of an IQUART Entry to have the same value as is stored on the module. After setting
+	*        this function lowers the flag indicating that we should initialize the value during updating
+	* @param parameter The PX4 parameter we're editing
+	* @param init_bool A pointer to the bool that we need to put down
+	* @param descriptor A character that determines what type of ClientEntryAbstract/data is in use. 'f' if it's a float, 'b' if it's a uint8_t
+	* @param value A pointer to a union that holds the value that we are setting in the conrrect format. Format is decoded by descriptor
+	*/
+	void InitParameter(param_t parameter, bool * init_bool, char descriptor, EntryData * value);
+
+	/**
+	* @brief Handles calling either InitParameter or SendSetAndSave depending on the state of the parameter init_bool
+	* @param parameter The PX4 parameter we're editing
+	* @param init_bool A pointer to the bool that we need to put down
+	* @param descriptor A character that determines what type of ClientEntryAbstract/data is in use. 'f' if it's a float, 'b' if it's a uint8_t
+	* @param value A pointer to a union that holds the value that we are setting in the conrrect format. Format is decoded by descriptor
+	* @param entry A pointer to the entry that you want to communicate with
+	*/
+	void UpdateParameter(param_t parameter, bool * init_bool, char descriptor, EntryData * value, ClientEntryAbstract * entry);
 
 	#ifdef CONFIG_USE_IFCI_CONFIGURATION
+	/**
+	* @brief Set all of the IFCI configuration init flags to true
+	*/
+	void MarkIfciConfigsForRefresh();
+
+	/**
+	* @brief Send a Get command to all of the parameters involved in IFCI configuration, and make sure the PX4 parameters and module values agree
+	*/
 	void UpdateIfciConfigParams();
+
+	/**
+	* @brief Until the timeout is reached, keep trying to update the PX4 parameters to match, as appropraite, the value on the module. This can
+	*	mean either setting the PX4 parameter to match the motor or vice versa
+	*/
 	void CoordinateIquartWithPx4Params(hrt_abstime timeout = 2_s);
 	#endif
 
@@ -73,12 +128,14 @@ class VertiqClientManager{
 	//IQUART Client configuration
 	IFCI _motor_interface;
 
-	bool _needs_iquart_init;
-	bool _init_velocity_max = true;
-	bool _init_volts_max = true;
-	bool _init_mode = true;
-	bool _init_throttle_cvi = true;
-	bool _init_motor_dir = true;
+	#ifdef CONFIG_USE_IFCI_CONFIGURATION
+		bool _init_velocity_max = true;
+		bool _init_volts_max = true;
+		bool _init_mode = true;
+		bool _init_throttle_cvi = true;
+		bool _init_motor_dir = true;
+		bool _init_fc_dir = true;
+	#endif
 
 	//Vertiq client information
 	//Some constants to help us out
@@ -94,15 +151,10 @@ class VertiqClientManager{
 	PropellerMotorControlClient _broadcast_prop_motor_control;
 	ArmingHandlerClient _broadcast_arming_handler;
 
-	#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
-	SystemControlClient * _system_control;
-	#endif
-
 	#ifdef CONFIG_USE_IFCI_CONFIGURATION
 	//Make all of the clients that we need to talk to the IFCI config params
 	IQUartFlightControllerInterfaceClient * _ifci_client;
 	EscPropellerInputParserClient * _prop_input_parser_client;
-	SystemControlClient * _system_control_client;
 	#endif
 
 	bool FloatsAreClose(float val1, float val2, float tolerance = 0.01);

@@ -19,13 +19,6 @@ actuator_output:
 parameters:
     - group: Vertiq IO
       definitions:
-        VERTIQ_ENABLE:
-            description:
-                short: Enable the IQUART driver
-                long: |
-                    Determine whether or not to enable the IQUART driver. If this value is greater than 0, the driver is enabled.
-            type: int32
-            default: 1
         VERTIQ_BAUD:
             description:
                 short: The IQUART driver's baud rate
@@ -85,33 +78,39 @@ parameters:
                 0: Use Motor Arm Behavior
                 1: Force Arming
             default: 0
-        MODULE_ID:
+        TARGET_MODULE_ID:
             description:
-                short: The module's Module ID
+                short: The Module ID of the module you would like to communicate with
                 long: |
-                    Module ID words that mean things
+                    This is the value used as Object ID to instantiate the Vertiq C++ API objects in the project.
+                    This value should be set to the Module ID of the module you would like to communicate with.
             type: int32
             reboot_required: true
-        # OBJECT_ID:
-        #     description:
-        #         short: The target module's Module ID
-        #         long: |
-        #             Object ID words that mean things
-        #     type: int32
-        #     reboot_required: true
-    - group: IFCI Configuration
-      definitions:
+        TRIGGER_READ:
+            description:
+                short: Trigger a reinitialization of the connected module's values into the PX4 parameters
+                long: |
+                    Setting this value to true will reinitialize PX4's IQUART connected parameters to the value stored on the currently targeted motor.
+                    This is especially useful if your flight controller powered on before your connected modules
+            type: boolean
         THROTTLE_CVI:
             description:
-                short: The module's firmware version
+                short: Module Param - The module's Throttle Control Value Index
                 long: |
-                    firmware version words that mean things
+                    This represents the Control Value Index where the targeted module will look for throttle commands
             type: int32
+            min: 0
+            max: 16
         CONTROL_MODE:
             description:
-                short: The module's firmware version
+                short: Module Param - The module's control mechanism, PWM, Voltage, or Velocity Commands
                 long: |
-                    firmware version words that mean things
+                    PWM Mode: Commands a fraction of battery voltage. This changes as the battery voltage changes.
+                    This is the least safe mode because the upper throttle limit is determined by the battery voltage.
+                    Voltage Mode: Commands a voltage. The motor will behave the same way throughout the life of a battery, assuming the commanded voltage is less than the battery voltage.
+                    You must set the MAX_VOLTS parameter. Velocity Mode: Closed-loop, commands a velocity. The controller will adjust
+                    the applied voltage so that the motor spins at the commanded velocity. This mode has faster reaction times. Only use this if you know the properties of your propeller.
+                    You must set the MAX_VELOCITY parameter.
             type: enum
             values:
                 0: PWM
@@ -119,24 +118,35 @@ parameters:
                 2: Velocity
         MAX_VELOCITY:
             description:
-                short: The module's firmware version
+                short: Module Param - The maximum internally commanded velocity when CONTROL_MODE is set to Velocity
                 long: |
-                    firmware version words that mean things
+                    Only relevant in Velocity Mode. This is the velocity the controller will command at full throttle.
             type: float
         MAX_VOLTS:
             description:
-                short: The module's firmware version
+                short: Module Param - The maximum internally commanded voltage when CONTROL_MODE is set to Voltage
                 long: |
-                    firmware version words that mean things
+                    Only relevant in Voltage Mode. This is the voltage the controller will command at full throttle.
             type: float
         VERTIQ_MOTOR_DIR:
             description:
-                short: The module's firmware version
+                short: Module Param - The direction that the module should spin
                 long: |
-                    firmware version words that mean things
+                    Set the targeted motor's spinning direction (clockwise vs. counter clockwise) and flight mode (2D non-reversible vs. 3D reversible)
             type: enum
             values:
+                0: Unconfigured
                 1: 3D Counter Clockwise
                 2: 3D Clockwise
                 3: 2D Counter Clockwise
                 4: 2D Clockwise
+        VERTIQ_FC_DIR:
+            description:
+                short: Module Param - Determine whether the flight controller is configured for 2D or 3D communication
+                long: |
+                    The FC and the ESC must agree upon the meaning of the signal coming out of the ESC. When FCs are in 3D mode
+                    they re-map negative signals. This parameter keeps the FC and ESC in agreement.
+            type: enum
+            values:
+                0: 2D
+                1: 3D
