@@ -147,7 +147,6 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_F0, 1.f);
  */
 PARAM_DEFINE_FLOAT(FW_AT_SYSID_F1, 20.f);
 
-
 /**
  * Maneuver time for each axis
  *
