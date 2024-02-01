@@ -663,7 +663,6 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 		break;
 	}
 
-
 	_steps_counter++;
 
 
