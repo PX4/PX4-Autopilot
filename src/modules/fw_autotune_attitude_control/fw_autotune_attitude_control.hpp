@@ -230,7 +230,6 @@ private:
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
 
 
-
 	)
 
 	static constexpr float _publishing_dt_s = 100e-3f;
