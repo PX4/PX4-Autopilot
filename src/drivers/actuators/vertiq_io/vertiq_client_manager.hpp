@@ -28,6 +28,10 @@
 #include "iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp"
 #endif
 
+union EntryData {
+	uint32_t uint_data;
+	float float_data;
+};
 
 class VertiqClientManager{
 	public:
@@ -48,6 +52,9 @@ class VertiqClientManager{
 	void SendSetVelocitySetpoint(uint16_t velocity_setpoint);
 
 	uint8_t GetNumberOfClients();
+
+	void SendSetAndSave(ClientEntryAbstract * entry, char descriptor, EntryData value);
+	void InitParameter(param_t parameter, bool * init_bool, char descriptor, EntryData value);
 
 	#ifdef CONFIG_USE_SYSTEM_CONTROL_CLIENT
 	void GetAllSystemControlEntries();
