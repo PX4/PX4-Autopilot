@@ -502,12 +502,11 @@ uORB::Manager::launchCallbackThread()
 int
 uORB::Manager::callback_thread(int argc, char *argv[])
 {
-	int tmp;
+	int tmp = 1;
 
 	while (true) {
 		/* Sleep here waiting for callbacks, lock as many times as it has been unlocked */
 
-		tmp = callback_count;
 		lockThread(per_process_lock, tmp);
 
 		lock_cb_list();
@@ -522,6 +521,8 @@ uORB::Manager::callback_thread(int argc, char *argv[])
 				callback_count++;
 			}
 		}
+
+		tmp = callback_count;
 
 		unlock_cb_list();
 	}
@@ -549,6 +550,14 @@ uORB::Manager::registerCallback(orb_advert_t &node_handle, SubscriptionCallback 
 	cb_lock = getCallbackLock();
 
 	if (cb_lock >= 0) {
+		// The callback needs to be first added to the cb_list, before registering to the publisher.
+		// Otherwise there is a race condition where the cb may be triggered withouth it being handled
+		// by the callback thread. If the callback thread is on higher priority than this registration
+		// function, it may spin endlessly blocking this
+
+		lock_cb_list();
+		per_process_cb_list.add(callback_sub);
+		unlock_cb_list();
 #endif
 		ret = uORB::DeviceNode::register_callback(node_handle, callback_sub, cb_lock, last_update,
 
@@ -556,9 +565,9 @@ uORB::Manager::registerCallback(orb_advert_t &node_handle, SubscriptionCallback 
 #ifndef CONFIG_BUILD_FLAT
 	}
 
-	if (ret) {
+	if (!ret) {
 		lock_cb_list();
-		per_process_cb_list.add(callback_sub);
+		per_process_cb_list.remove(callback_sub);
 		unlock_cb_list();
 	}
 
@@ -578,17 +587,21 @@ uORB::Manager::unregisterCallback(orb_advert_t &node_handle, SubscriptionCallbac
 
 #ifndef CONFIG_BUILD_FLAT
 	lock_cb_list();
+
+	// Unregister the callback from the device node and retrieve amount of unhandled callback triggers
+	// The unregister from the node needs to be done callback_thread locked; otherwise we don't know
+	// if there are unhandled triggers left or not (due to a race between the callback thread and
+	// this unregistration function).
+
+	// Unregister_callback returns the number of callbacks that has been triggered but not yet handled
+	// by the callback thread. This may happen if the publisher is on higher or equal priority than this
+
+	callback_count += DeviceNode::unregister_callback(node_handle, cb_handle);
+
+	// Remove the callback from the list
+
 	per_process_cb_list.remove(callback_sub);
-	unlock_cb_list();
 
-	// Unregister the callback from the device node and retrieve amount of unhandled callback triggers */
-
-	int queued = DeviceNode::unregister_callback(node_handle, cb_handle);
-
-	// Add the amount of unhandled callback triggers to the callback_count; they are now considered as handled
-
-	lock_cb_list();
-	callback_count += queued;
 	unlock_cb_list();
 #else
 	DeviceNode::unregister_callback(node_handle, cb_handle);
