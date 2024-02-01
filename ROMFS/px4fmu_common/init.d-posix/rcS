@@ -248,7 +248,12 @@ then
 fi
 
 load_mon start
-battery_simulator start
+
+if param compare SIM_BAT_ENABLE 1
+then
+	battery_simulator start
+fi
+
 tone_alarm start
 rc_update start
 manual_control start
