@@ -624,7 +624,7 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 
 	const hrt_abstime now = hrt_absolute_time();
 	const float t = static_cast<float>(now - _state_start_time) * 1e-6f;
-
+	float signal = 0.0f;
 	switch (_param_fw_sysid_signal_type.get()) {
 	case  static_cast<int32_t>(SignalType::kStep): {
 			if (_steps_counter > _max_steps) {

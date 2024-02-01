@@ -190,7 +190,7 @@ private:
 	float _filter_sample_rate{1.f};
 	bool _are_filters_initialized{false};
 
-	float signal{0.0f};
+	
 
 	AlphaFilter<float> _signal_filter; ///< used to create a wash-out filter
 
