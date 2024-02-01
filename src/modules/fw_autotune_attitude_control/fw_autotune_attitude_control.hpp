@@ -72,7 +72,6 @@ enum class SignalType : uint8_t {
 	kLogSineSweep
 };
 
-
 // [s] minimum time step between auto tune updates
 static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
 
