@@ -63,7 +63,6 @@
 #include <mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 
-
 using namespace time_literals;
 
 enum class SignalType : uint8_t {
