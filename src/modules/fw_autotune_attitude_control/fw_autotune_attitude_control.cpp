@@ -648,7 +648,6 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 			signal = signal_generator::getLinearSineSweep(_param_fw_sysid_start_frequency.get(),
 					_param_fw_sysid_end_frequency.get(),
 					_param_fw_sysid_duration.get(), t);
-
 		}
 		break;
 
