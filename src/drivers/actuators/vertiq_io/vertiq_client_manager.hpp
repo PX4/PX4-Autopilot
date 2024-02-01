@@ -71,6 +71,7 @@ class VertiqClientManager{
 	bool _init_volts_max = true;
 	bool _init_mode = true;
 	bool _init_throttle_cvi = true;
+	bool _init_motor_dir = true;
 
 	//Vertiq client information
 	//Some constants to help us out

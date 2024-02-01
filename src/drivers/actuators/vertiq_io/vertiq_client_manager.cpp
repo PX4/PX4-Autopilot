@@ -248,6 +248,7 @@ void VertiqClientManager::UpdateIfciConfigParams(){
 	_prop_input_parser_client->velocity_max_.get(*_serial_interface->get_iquart_interface());
 	_prop_input_parser_client->volts_max_.get(*_serial_interface->get_iquart_interface());
 	_prop_input_parser_client->mode_.get(*_serial_interface->get_iquart_interface());
+	_prop_input_parser_client->sign_.get(*_serial_interface->get_iquart_interface());
 	_ifci_client->throttle_cvi_.get(*_serial_interface->get_iquart_interface());
 
 	//Update our serial tx before we take in the RX
@@ -319,6 +320,24 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout){
 					_prop_input_parser_client->mode_.save(*_serial_interface->get_iquart_interface());
 					_serial_interface->process_serial_tx();
 					PX4_INFO("control mode changed");
+				}
+			}
+		}
+
+		if(_prop_input_parser_client->sign_.IsFresh()){
+			module_read_value = _prop_input_parser_client->sign_.get_reply();
+			if(_init_motor_dir){
+				PX4_INFO("Initialized VERTIQ_MOTOR_DIR");
+				param_set(param_find("VERTIQ_MOTOR_DIR"), &module_read_value);
+				_init_motor_dir = false;
+			}else{
+				param_get(param_find("VERTIQ_MOTOR_DIR"), &px4_read_value);
+
+				if((uint32_t)px4_read_value != module_read_value){
+					_prop_input_parser_client->sign_.set(*_serial_interface->get_iquart_interface(), (uint32_t)px4_read_value);
+					_prop_input_parser_client->sign_.save(*_serial_interface->get_iquart_interface());
+					_serial_interface->process_serial_tx();
+					PX4_INFO("motor dir changed");
 				}
 			}
 		}
