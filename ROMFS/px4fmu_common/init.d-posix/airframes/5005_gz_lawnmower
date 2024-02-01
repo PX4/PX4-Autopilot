@@ -1,0 +1,130 @@
+#!/bin/sh
+#
+# @name Gazebo lawnmower
+# @type Rover
+#
+
+export MYSCRIPTNAME="`pwd`/.../5005_gz_lawnmower"
+echo "----------------------------"
+echo "IP: starting " $MYSCRIPTNAME
+
+#. ${R}etc/init.d/rc.rover_defaults
+. ${R}etc/init.d/rc.rover_differential_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=lawnmower}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
+# We can drive in manual mode when GPS check fails:
+param set-default COM_ARM_WO_GPS 1
+
+# -------------------
+
+# Enable debug data logging:
+# Data logging to "SD card" (~/px4wrk/log):
+# "0" = armed to disarmed
+param set SDLOG_MODE 0
+# Bit 5 - Debug. 123 = 0b01111011  163 = 0b10100011
+param set SDLOG_PROFILE 32
+
+param set-default MIS_TAKEOFF_ALT 0.01
+#param set-default NAV_ACC_RAD 0.5
+param set NAV_ACC_RAD 0.3000
+param set-default NAV_LOITER_RAD 2
+
+# Simulated GPS works at fix level 3:
+param set GND_GPS_MINFIX 3
+param set GND_TRACING_LEV 4
+
+# Define airframe for startup scripts and Control Allocation (a.k.a. Mixers) behavior:
+param set CA_AIRFRAME 6
+
+# Set Differential Drive Kinematics Library parameters:
+param set RDD_WHEEL_BASE 0.9
+param set RDD_WHEEL_RADIUS 0.22
+param set RDD_WHL_SPEED 10.0	# Maximum wheel speed rad/s
+
+# Lawnmower parameters to scale Differential Drive Kinematics output:
+param set-default RDD_THRUST_SC 1.0
+param set-default RDD_TORQUE_SC 3.0
+
+# set SITL motors/servos output parameters:
+
+# "Motors" - motor channels 0 (Right) and 1 (Left) - via Wheels GZ bridge:
+param set-default SIM_GZ_WH_FUNC1 201 # right wheel
+#param set-default SIM_GZ_WH_MIN1 0
+#param set-default SIM_GZ_WH_MAX1 200
+#param set-default SIM_GZ_WH_DIS1 100
+#param set-default SIM_GZ_WH_FAIL1 100
+
+param set-default SIM_GZ_WH_FUNC2 202 # left wheel
+#param set-default SIM_GZ_WH_MIN2 0
+#param set-default SIM_GZ_WH_MAX2 200
+#param set-default SIM_GZ_WH_DIS2 100
+#param set-default SIM_GZ_WH_FAIL2 100
+
+#param set-default SIM_GZ_WH_REV 1 # reverse right wheel (no need here)
+
+# "Motors" - motor channels 0 (Right) and 1 (Left) - via Servo GZ bridge:
+#param set-default SIM_GZ_SV_FUNC1 201 # right wheel
+#param set-default SIM_GZ_SV_MIN1 0
+#param set-default SIM_GZ_SV_MAX1 5000
+#param set-default SIM_GZ_SV_DIS1 2500
+#param set-default SIM_GZ_SV_FAIL1 2500
+
+#param set-default SIM_GZ_SV_FUNC2 202 # left wheel
+#param set-default SIM_GZ_SV_MIN2 0
+#param set-default SIM_GZ_SV_MAX2 5000
+#param set-default SIM_GZ_SV_DIS2 2500
+#param set-default SIM_GZ_SV_FAIL2 2500
+
+# mark motors as bi-directional here for each channel (bitmask, usually 3):
+param set CA_R_REV 0
+param set SIM_GZ_SV_REV 0
+param set SIM_GZ_WH_REV 0
+param set SIM_GZ_EC_REV 0 # Same bitmask, "useful only for servos":
+
+# Cutter deck blades clutch, PCA9685 servo channel 3,  "RC FLAPS" (406) - leftmost switch, or "Servo 3" (203):
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_MIN3 0
+param set-default SIM_GZ_SV_MAX3 1000
+param set-default SIM_GZ_SV_DIS3 500
+param set-default SIM_GZ_SV_FAIL3 500
+
+# Gas engine throttle, PCA9685 servo channel 4, "RC AUX1" (407) - left knob, or "Servo 4" (204):
+#    - on minimum when disarmed or failed:
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_MIN4 0
+param set-default SIM_GZ_SV_MAX4 1000
+param set-default SIM_GZ_SV_DIS4 500
+param set-default SIM_GZ_SV_FAIL4 500
+
+# Controlling PCA9685 servos 5,6,7,8 directly via "Servo 5..8" setting, by publishing actuator_servos.control[]:
+
+# Strobes, PCA9685 servo channel 5, "Servo 5" (205) - flashing indicates Mission mode:
+#param set-default SIM_GZ_SV_FUNC5 205
+#param set-default SIM_GZ_SV_MIN5 1000
+#param set-default SIM_GZ_SV_MAX5 2000
+#param set-default SIM_GZ_SV_DIS5 1000
+#param set-default SIM_GZ_SV_FAIL5 1000
+
+# Horn, PCA9685 servo channel 6, "Servo 6" (206) - for alarms like GPS failure:
+#param set-default SIM_GZ_SV_FUNC6 206
+
+# Spare PCA9685 servo channel 7 on "RC AUX2" (408) - right knob, or "Servo 7" (207):
+#param set-default SIM_GZ_SV_FUNC7 207
+
+# Spare PCA9685 servo channel 8 - "Servo 8" (208):
+#param set-default SIM_GZ_SV_FUNC8 208
+
+
+#differential_drive_control stop
+rover_pos_control start
+
+echo "OK: finished " $MYSCRIPTNAME
+echo "----------------------------"
