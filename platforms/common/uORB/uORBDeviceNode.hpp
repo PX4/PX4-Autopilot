@@ -65,6 +65,7 @@ typedef void *uorb_cb_handle_t;
 #define UORB_INVALID_CB_HANDLE -1
 typedef int8_t uorb_cb_handle_t;
 #define uorb_cb_handle_valid(x) ((x) >= 0)
+#define CB_ALIVE_MAX_VALUE 50
 #endif
 
 #define CB_LIST_T struct EventWaitItem, uorb_cb_handle_t, MAX_EVENT_WAITERS
