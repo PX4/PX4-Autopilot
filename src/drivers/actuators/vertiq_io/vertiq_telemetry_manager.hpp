@@ -1,3 +1,35 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #ifndef VERTIQ_TELEMETRY_MANAGER_HPP
 #define VERTIQ_TELEMETRY_MANAGER_HPP
@@ -19,14 +51,15 @@
 
 #include "ifci.hpp"
 
-class VertiqTelemetryManager{
-	public:
+class VertiqTelemetryManager
+{
+public:
 
 	/**
 	* @brief Construct a new VertiqTelemetryManager object with a pointer to an IFCI handler
 	* @param motor_interface A pointer to and IFCI interface
 	*/
-	VertiqTelemetryManager(IFCI * motor_interface);
+	VertiqTelemetryManager(IFCI *motor_interface);
 
 	/**
 	* @brief Initialize the telemetry manager with the bitmask set in the PX4 parameters
@@ -37,7 +70,7 @@ class VertiqTelemetryManager{
 	/**
 	* @brief Start publishing the ESC statuses to the uORB esc_status topic
 	*/
-	void StartPublishing(uORB::Publication<esc_status_s> * esc_status_pub);
+	void StartPublishing(uORB::Publication<esc_status_s> *esc_status_pub);
 
 	/**
 	* @brief Part of initialization. Find the first and last positions that indicate modules to grab telemetry from
@@ -61,9 +94,9 @@ class VertiqTelemetryManager{
 	*/
 	esc_status_s GetEscStatus();
 
-	private:
+private:
 
-	IFCI * _motor_interface;
+	IFCI *_motor_interface;
 
 	//We want to publish our ESC Status to anyone who will listen
 	esc_status_s		_esc_status;
