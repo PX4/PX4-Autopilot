@@ -181,33 +181,31 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 			++_current_num_msgs;
 		}
 
-		if (_ulog_stream_acked_sub.updated()) {
+		if (check_for_updates && _ulog_stream_acked_sub.updated()) {
 			_ulog_stream_acked_sub.update();
 
-			if (check_for_updates) {
-				const ulog_stream_s &ulog_data = _ulog_stream_acked_sub.get();
+			const ulog_stream_s &ulog_data = _ulog_stream_acked_sub.get();
 
-				if (ulog_data.timestamp > 0) {
-					_sent_tries = 1;
-					_last_sent_time = hrt_absolute_time();
-					lock();
-					_wait_for_ack_sequence = ulog_data.msg_sequence;
-					_ack_received = false;
-					unlock();
+			if (ulog_data.timestamp > 0) {
+				_sent_tries = 1;
+				_last_sent_time = hrt_absolute_time();
+				lock();
+				_wait_for_ack_sequence = ulog_data.msg_sequence;
+				_ack_received = false;
+				unlock();
 
-					mavlink_logging_data_acked_t msg;
-					msg.sequence = ulog_data.msg_sequence;
-					msg.length = ulog_data.length;
-					msg.first_message_offset = ulog_data.first_message_offset;
-					msg.target_system = _target_system;
-					msg.target_component = _target_component;
-					memcpy(msg.data, ulog_data.data, sizeof(msg.data));
-					mavlink_msg_logging_data_acked_send_struct(channel, &msg);
+				mavlink_logging_data_acked_t msg;
+				msg.sequence = ulog_data.msg_sequence;
+				msg.length = ulog_data.length;
+				msg.first_message_offset = ulog_data.first_message_offset;
+				msg.target_system = _target_system;
+				msg.target_component = _target_component;
+				memcpy(msg.data, ulog_data.data, sizeof(msg.data));
+				mavlink_msg_logging_data_acked_send_struct(channel, &msg);
 
-				}
-
-				++_current_num_msgs;
 			}
+
+			++_current_num_msgs;
 		}
 	}
 
