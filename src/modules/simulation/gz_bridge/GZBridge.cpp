@@ -225,6 +225,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// Wind: /world/$WORLD/wind
+	std::string wind_topic = "/world/" + _world_name + "/wind";
+
+	if (!_node.Subscribe(wind_topic, &GZBridge::windCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", wind_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -415,6 +423,34 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 	sensor_baro.temperature = this->_temperature;
 	sensor_baro.timestamp = hrt_absolute_time();
 	_sensor_baro_pub.publish(sensor_baro);
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+void GZBridge::windCallback(const gz::msgs::Wind &wind)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	const uint64_t time_us = (wind.header().stamp().sec() * 1000000)
+				 + (wind.header().stamp().nsec() / 1000);
+
+	// publish
+	wind_s world_wind{};
+	world_wind.timestamp_sample = time_us;
+	world_wind.windspeed_north = wind.linear_velocity().x();
+	world_wind.windspeed_east = wind.linear_velocity().y();
+	world_wind.variance_north = NAN;
+	world_wind.variance_east = NAN;
+	world_wind.tas_innov = NAN;
+	world_wind.tas_innov_var = NAN;
+	world_wind.beta_innov = NAN;
+	world_wind.beta_innov_var = NAN;
+	world_wind.timestamp = hrt_absolute_time();
+	_wind_ground_truth_pub.publish(world_wind);
+
 
 	pthread_mutex_unlock(&_node_mutex);
 }

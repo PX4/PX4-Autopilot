@@ -58,6 +58,7 @@
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/wheel_encoders.h>
+#include <uORB/topics/wind.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
@@ -67,6 +68,7 @@
 #include <gz/msgs/fluid_pressure.pb.h>
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
+#include <gz/msgs/wind.pb.h>
 
 using namespace time_literals;
 
@@ -106,6 +108,7 @@ private:
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
+	void windCallback(const gz::msgs::Wind &wind);
 
 	/**
 	*
@@ -125,6 +128,7 @@ private:
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>   _lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::Publication<wind_s>   		      _wind_ground_truth_pub{ORB_ID(wind_groundtruth)};
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
 	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
