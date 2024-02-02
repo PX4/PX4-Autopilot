@@ -117,7 +117,7 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	return 0;
 }
 
-int VertiqSerialInterface::process_serial_rx(IFCI * motor_interface, ClientAbstract ** test)
+int VertiqSerialInterface::process_serial_rx(IFCI * motor_interface, ClientAbstract ** array_of_clients)
 {
 	if (_uart_fd < 0) {
 		return -1;
@@ -149,7 +149,7 @@ int VertiqSerialInterface::process_serial_rx(IFCI * motor_interface, ClientAbstr
 			motor_interface->ReadTelemetry(rx_buf_ptr, _bytes_available);
 
 			for (uint8_t i = 0; i < _number_of_clients; i++) {
-				test[i]->ReadMsg(rx_buf_ptr, _bytes_available);
+				array_of_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
 			}
 
 			_iquart_interface.DropPacket();
