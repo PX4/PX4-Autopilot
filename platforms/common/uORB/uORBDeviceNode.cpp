@@ -622,7 +622,7 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 #else
 
 			// Release poll waiters and callback threads
-			if (Manager::isThreadAlive(item->lock)) {
+			if (item->cb_triggered < CB_ALIVE_MAX_VALUE) {
 				__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
 				Manager::unlockThread(item->lock);
 

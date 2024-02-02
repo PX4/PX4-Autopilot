@@ -51,7 +51,6 @@
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
 #define NUM_GLOBAL_SEMS 40
-#define SUB_ALIVE_SEM_MAX_VALUE 100
 
 namespace uORB
 {
@@ -452,12 +451,6 @@ public:
 	static void freeThreadLock(int i) {_Instance->g_sem_pool.free(i);}
 
 	static int8_t getThreadLock() {return _Instance->g_sem_pool.reserve();}
-
-	static bool isThreadAlive(int idx)
-	{
-		int value = _Instance->g_sem_pool.value(idx);
-		return value <= SUB_ALIVE_SEM_MAX_VALUE;
-	}
 
 private: // class methods
 	inline static uORB::DeviceNode *node(orb_advert_t handle) {return static_cast<uORB::DeviceNode *>(handle.node);}
