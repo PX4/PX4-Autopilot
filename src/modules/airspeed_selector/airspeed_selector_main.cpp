@@ -57,6 +57,7 @@
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -112,6 +113,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
@@ -125,6 +127,7 @@ private:
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
 
 
+	tecs_status_s _tecs_status {};
 	estimator_status_s _estimator_status {};
 	vehicle_acceleration_s _accel {};
 	vehicle_air_data_s _vehicle_air_data {};
@@ -162,7 +165,8 @@ private:
 		CHECK_TYPE_ONLY_DATA_MISSING_BIT = (1 << 0),
 		CHECK_TYPE_DATA_STUCK_BIT = (1 << 1),
 		CHECK_TYPE_INNOVATION_BIT = (1 << 2),
-		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3)
+		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3),
+		CHECK_TYPE_FIRST_PRINCIPLE_BIT = (1 << 4)
 	};
 
 	DEFINE_PARAMETERS(
@@ -185,8 +189,14 @@ private:
 		(ParamFloat<px4::params::ASPD_FS_T_STOP>) _checks_fail_delay, /**< delay to declare airspeed invalid */
 		(ParamFloat<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
 
+		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas,
+		(ParamFloat<px4::params::ASPD_FP_T_WINDOW>) _aspd_fp_t_window,
+
+		// external parameters
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
-		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas
+		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
+		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
+		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max
 	)
 
 	void 		init(); 	/**< initialization of the airspeed validator instances */
@@ -355,6 +365,9 @@ AirspeedModule::Run()
 		input_data.accel_z = _accel.xyz[2];
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.mag_test_ratio = _estimator_status.mag_test_ratio;
+		input_data.tecs_timestamp = _tecs_status.timestamp;
+		input_data.fixed_wing_tecs_throttle = _tecs_status.throttle_sp;
+		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
 
 		// iterate through all airspeed sensors, poll new data from them and update their validators
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
@@ -476,6 +489,11 @@ void AirspeedModule::update_params()
 				CheckTypeBits::CHECK_TYPE_INNOVATION_BIT);
 		_airspeed_validator[i].set_enable_load_factor_check(_param_airspeed_checks_on.get() &
 				CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
+		_airspeed_validator[i].set_enable_first_principle_check(_param_airspeed_checks_on.get() &
+				CheckTypeBits::CHECK_TYPE_FIRST_PRINCIPLE_BIT);
+		_airspeed_validator[i].set_psp_off_param(math::radians(_param_fw_psp_off.get()));
+		_airspeed_validator[i].set_throttle_max_param(_param_fw_thr_max.get());
+		_airspeed_validator[i].set_fp_t_window(_aspd_fp_t_window.get());
 	}
 }
 
@@ -500,6 +518,8 @@ void AirspeedModule::poll_topics()
 	_vtol_vehicle_status_sub.update(&_vtol_vehicle_status);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_position_setpoint_sub.update(&_position_setpoint);
+
+	_tecs_status_sub.update(&_tecs_status);
 
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude;
@@ -660,6 +680,11 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated.true_airspeed_m_s = NAN;
 	airspeed_validated.airspeed_sensor_measurement_valid = false;
 	airspeed_validated.selected_airspeed_index = _valid_airspeed_index;
+
+	airspeed_validated.airspeed_derivative_filtered = _airspeed_validator[_valid_airspeed_index -
+					      1].get_airspeed_derivative();
+	airspeed_validated.throttle_filtered = _airspeed_validator[_valid_airspeed_index - 1].get_throttle_filtered();
+	airspeed_validated.pitch_filtered = _airspeed_validator[_valid_airspeed_index - 1].get_pitch_filtered();
 
 	switch (_valid_airspeed_index) {
 	case airspeed_index::DISABLED_INDEX:
