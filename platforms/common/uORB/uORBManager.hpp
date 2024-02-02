@@ -371,7 +371,15 @@ public:
 #ifndef CONFIG_BUILD_FLAT
 	static uint8_t getCallbackLock()
 	{
-		return per_process_lock >= 0 ? per_process_lock : launchCallbackThread();
+		int8_t ret = per_process_lock;
+
+		if (ret < 0) {
+			_Instance->lock();
+			ret = per_process_lock >= 0 ? per_process_lock : launchCallbackThread();
+			_Instance->unlock();
+		}
+
+		return ret;
 	}
 #endif
 
