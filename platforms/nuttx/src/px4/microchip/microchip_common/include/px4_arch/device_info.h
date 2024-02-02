@@ -53,7 +53,7 @@ typedef struct __attribute__((__packed__))
 
 	/* Device MAC addresses */
 
-	uint8_t mac[6][4];
+	uint8_t mac[4][6];
 
 	/* Bootloader version info */
 
