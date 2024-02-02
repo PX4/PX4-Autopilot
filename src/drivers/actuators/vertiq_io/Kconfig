@@ -8,4 +8,11 @@ if DRIVERS_ACTUATORS_VERTIQ_IO
     config USE_IFCI_CONFIGURATION
         bool "Include IFCI Configuration Parameters"
         default n
+
+	if USE_IFCI_CONFIGURATION
+    		config USE_PULSING_CONFIGURATION
+        	bool "Include Pulsing Module Configuration Parameters"
+        	default n
+	endif
+
 endif

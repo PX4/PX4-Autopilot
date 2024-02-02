@@ -138,7 +138,16 @@ private:
 	,(ParamFloat<px4::params::MAX_VOLTS>) _param_vertiq_max_volts
 	,(ParamInt<px4::params::VERTIQ_MOTOR_DIR>) _param_vertiq_motor_direction
 	,(ParamInt<px4::params::VERTIQ_FC_DIR>) _param_vertiq_fc_direction
-	#endif
+	#ifdef CONFIG_USE_PULSING_CONFIGURATION
+	,(ParamInt<px4::params::PULSE_VOLT_MODE>) _param_vertiq_pulse_volt_mode
+	,(ParamInt<px4::params::X_CVI>) _param_vertiq_pulse_x_cvi
+	,(ParamInt<px4::params::Y_CVI>) _param_vertiq_pulse_y_cvi
+	,(ParamFloat<px4::params::ZERO_ANGLE>) _param_vertiq_pulse_zero_angle
+	,(ParamFloat<px4::params::VELOCITY_CUTOFF>) _param_vertiq_pulse_velo_cutoff
+	,(ParamFloat<px4::params::TORQUE_OFF_ANGLE>) _param_vertiq_pulse_torque_offset_angle
+	,(ParamFloat<px4::params::PULSE_VOLT_LIM>) _param_vertiq_pulse_voltage_limit
+	#endif //CONFIG_USE_PULSING_CONFIGURATION
+	#endif //CONFIG_USE_IFCI_CONFIGURATION
 	)
 };
 

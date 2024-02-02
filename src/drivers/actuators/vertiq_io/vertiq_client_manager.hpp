@@ -21,7 +21,13 @@
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 #include "iq-module-communication-cpp/inc/esc_propeller_input_parser_client.hpp"
 #include "iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp"
-#endif
+
+#ifdef CONFIG_USE_PULSING_CONFIGURATION
+#include "iq-module-communication-cpp/inc/voltage_superposition_client.hpp"
+#include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
+#endif //CONFIG_USE_PULSING_CONFIGURATION
+
+#endif //CONFIG_USE_IFCI_CONFIGURATION
 
 union EntryData {
 	uint32_t uint_data;
@@ -135,6 +141,17 @@ class VertiqClientManager{
 		bool _init_throttle_cvi = true;
 		bool _init_motor_dir = true;
 		bool _init_fc_dir = true;
+
+		#ifdef CONFIG_USE_PULSING_CONFIGURATION
+			bool _init_pulse_volt_mode = true;
+			bool _init_pulse_x_cvi = true;
+			bool _init_pulse_y_cvi = true;
+			bool _init_pulse_zero_angle = true;
+			bool _init_pulse_velo_cutoff = true;
+			bool _init_pulse_torque_offset = true;
+			bool _init_pulse_volt_limit = true;
+		#endif //CONFIG_USE_PULSING_CONFIGURATION
+
 	#endif
 
 	//Vertiq client information
@@ -155,7 +172,13 @@ class VertiqClientManager{
 	//Make all of the clients that we need to talk to the IFCI config params
 	IQUartFlightControllerInterfaceClient * _ifci_client;
 	EscPropellerInputParserClient * _prop_input_parser_client;
-	#endif
+
+	#ifdef CONFIG_USE_PULSING_CONFIGURATION
+	VoltageSuperPositionClient * _voltage_superposition_client;
+	PulsingRectangularInputParserClient * _pulsing_rectangular_input_parser_client;
+	#endif //CONFIG_USE_PULSING_CONFIGURATION
+
+	#endif //CONFIG_USE_IFCI_CONFIGURATION
 
 	bool FloatsAreClose(float val1, float val2, float tolerance = 0.01);
 };

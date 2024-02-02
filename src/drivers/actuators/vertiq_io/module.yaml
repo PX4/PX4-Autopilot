@@ -150,3 +150,53 @@ parameters:
             values:
                 0: 2D
                 1: 3D
+        ZERO_ANGLE:
+            description:
+                short: Module Param - The encoder angle at which theta is zero.
+                long: |
+                    The encoder angle at which theta is zero. Adjust this number to change the location of 0 phase when pulsing.
+            type: float
+        VELOCITY_CUTOFF:
+            description:
+                short: Module Param - The minimum velocity required to allow pulsing.
+                long: |
+                    This is the velocity at which pulsing is allowed. Any velocity between VELOCITY_CUTOFF and -VELOCITY_CUTOFF will not pulse.
+            type: float
+        TORQUE_OFF_ANGLE:
+            description:
+                short: Module Param - This offsets where the pulse starts around the motor to allow for propeller mechanical properties.
+                long: |
+                    This offsets where the pulse starts around the motor to allow for propeller mechanical properties.
+            type: float
+        PULSE_VOLT_MODE:
+            description:
+                short: Module Param - 0 = Supply Voltage Mode, 1 = Voltage Limit Mode
+                long: |
+                    Supply Voltage Mode means that the maximum voltage applied to pulsing is the supplied voltage. Voltage Limit Mode
+                    indicates that PULSE_VOLT_LIM is the maximum allowed voltage to apply towards pulsing.
+            type: enum
+            values:
+                0: Supply Voltage Mode
+                1: Voltage Limit Mode
+        PULSE_VOLT_LIM:
+            description:
+                short: Module Param - This sets the max pulsing voltage limit when in Voltage Limit Mode.
+                long: |
+                    This sets the max pulsing voltage limit when in Voltage Limit Mode.
+            type: float
+        X_CVI:
+            description:
+                short: Module Param - The control value index value for the X rectangular coordinate.
+                long: |
+                    This represents the Control Value Index where the targeted module will look for the X rectangular coordinate.
+            type: int32
+            min: 0
+            max: 16
+        Y_CVI:
+            description:
+                short: Module Param - The control value index value for the Y rectangular coordinate.
+                long: |
+                    This represents the Control Value Index where the targeted module will look for the Y rectangular coordinate.
+            type: int32
+            min: 0
+            max: 16

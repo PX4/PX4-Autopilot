@@ -26,6 +26,18 @@ void VertiqClientManager::Init(uint8_t object_id){
 		_prop_input_parser_client = &prop_input_parser;
 		_client_array[_clients_in_use] = _prop_input_parser_client;
 		_clients_in_use++;
+
+		#ifdef CONFIG_USE_PULSING_CONFIGURATION
+			static VoltageSuperPositionClient voltage_superposition_client = VoltageSuperPositionClient(object_id);
+			_voltage_superposition_client = &voltage_superposition_client;
+			_client_array[_clients_in_use] = _voltage_superposition_client;
+			_clients_in_use++;
+
+			static PulsingRectangularInputParserClient pulsing_rectangular_input_parser_client = PulsingRectangularInputParserClient(object_id);
+			_pulsing_rectangular_input_parser_client = &pulsing_rectangular_input_parser_client;
+			_client_array[_clients_in_use] = _pulsing_rectangular_input_parser_client;
+			_clients_in_use++;
+		#endif //CONFIG_USE_PULSING_CONFIGURATION
 	#endif
 
 	//We're done with determining how many clients we have, let the serial interface know
@@ -162,13 +174,13 @@ void VertiqClientManager::UpdateParameter(param_t parameter, bool * init_bool, c
 				module_read_value = byte_entry->get_reply();
 				if(*init_bool){
 					value->uint_data = module_read_value;
-					InitParameter(parameter, init_bool, 'b', value);
+					InitParameter(parameter, init_bool, descriptor, value);
 				}else{
 					param_get(parameter, &px4_read_value);
 
 					if((uint32_t)px4_read_value != module_read_value){
 						value->uint_data = (uint32_t)px4_read_value;
-						SendSetAndSave(byte_entry, 'b', value);
+						SendSetAndSave(byte_entry, descriptor, value);
 					}
 				}
 			}
@@ -189,6 +201,16 @@ void VertiqClientManager::MarkIfciConfigsForRefresh(){
 	_init_throttle_cvi = true;
 	_init_motor_dir = true;
 	_init_fc_dir = true;
+
+	#ifdef CONFIG_USE_PULSING_CONFIGURATION
+	_init_pulse_volt_mode = true;
+	_init_pulse_x_cvi = true;
+	_init_pulse_y_cvi = true;
+	_init_pulse_zero_angle = true;
+	_init_pulse_velo_cutoff = true;
+	_init_pulse_torque_offset = true;
+	_init_pulse_volt_limit = true;
+	#endif
 }
 
 void VertiqClientManager::UpdateIfciConfigParams(){
@@ -201,6 +223,19 @@ void VertiqClientManager::UpdateIfciConfigParams(){
 
 	//Ensure that these get messages get out
 	_serial_interface->process_serial_tx();
+
+	#ifdef CONFIG_USE_PULSING_CONFIGURATION
+	_voltage_superposition_client->zero_angle_.get(*_serial_interface->get_iquart_interface());
+	_voltage_superposition_client->propeller_torque_offset_angle_.get(*_serial_interface->get_iquart_interface());
+	_voltage_superposition_client->velocity_cutoff_.get(*_serial_interface->get_iquart_interface());
+	_pulsing_rectangular_input_parser_client->pulsing_voltage_mode_.get(*_serial_interface->get_iquart_interface());
+	_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_.get(*_serial_interface->get_iquart_interface());
+	_ifci_client->x_cvi_.get(*_serial_interface->get_iquart_interface());
+	_ifci_client->y_cvi_.get(*_serial_interface->get_iquart_interface());
+
+	//Ensure that these get messages get out
+	_serial_interface->process_serial_tx();
+	#endif //CONFIG_USE_PULSING_CONFIGURATION
 
 	//Now go ahead and grab responses, and update everyone to be on the same page, but do it quickly.
 	CoordinateIquartWithPx4Params(100_ms);
@@ -221,6 +256,17 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout){
 		UpdateParameter(param_find("VERTIQ_MOTOR_DIR"), &_init_motor_dir, 'b',  &entry_values, &(_prop_input_parser_client->sign_));
 		UpdateParameter(param_find("VERTIQ_FC_DIR"), &_init_fc_dir, 'b',  &entry_values, &(_prop_input_parser_client->flip_negative_));
 		UpdateParameter(param_find("THROTTLE_CVI"), &_init_throttle_cvi, 'b',  &entry_values, &(_ifci_client->throttle_cvi_));
+
+
+		#ifdef CONFIG_USE_PULSING_CONFIGURATION
+		UpdateParameter(param_find("PULSE_VOLT_MODE"), &_init_pulse_volt_mode, 'b',  &entry_values, &(_pulsing_rectangular_input_parser_client->pulsing_voltage_mode_));
+		UpdateParameter(param_find("X_CVI"), &_init_pulse_x_cvi, 'b',  &entry_values, &(_ifci_client->x_cvi_));
+		UpdateParameter(param_find("Y_CVI"), &_init_pulse_y_cvi, 'b',  &entry_values, &(_ifci_client->y_cvi_));
+		UpdateParameter(param_find("ZERO_ANGLE"), &_init_pulse_zero_angle, 'f',  &entry_values, &(_voltage_superposition_client->zero_angle_));
+		UpdateParameter(param_find("VELOCITY_CUTOFF"), &_init_pulse_velo_cutoff, 'f', &entry_values, &(_voltage_superposition_client->velocity_cutoff_));
+		UpdateParameter(param_find("TORQUE_OFF_ANGLE"), &_init_pulse_torque_offset, 'f', &entry_values, &(_voltage_superposition_client->propeller_torque_offset_angle_));
+		UpdateParameter(param_find("PULSE_VOLT_LIM"), &_init_pulse_volt_limit, 'f', &entry_values, &(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
+		#endif //CONFIG_USE_PULSING_CONFIGURATION
 
 		//Update the time
 		time_now = hrt_absolute_time();
