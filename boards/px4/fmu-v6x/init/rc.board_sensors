@@ -76,9 +76,9 @@ then
 	if ver hwtypecmp V6X006
 	then
 		# Internal SPI bus ICM45686
-		icm45686 -s -R 10 start
-		iim42652 -s -R 6 start
 		adis16470 -s -R 0 start
+		iim42652 -s -R 6 start
+		icm45686 -s -R 10 start
 	else
 		# Internal SPI bus 3x ICM45686
 		icm45686 -b 3 -s -R 0 start
