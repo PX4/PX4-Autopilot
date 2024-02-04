@@ -297,6 +297,29 @@ else()
 
 endif()
 
+# create .hex if configured in NuttX
+if (CONFIG_INTELHEX_BINARY)
+
+	string(REPLACE ".elf" ".hex" hex_package ${PX4_BINARY_DIR}/${FW_NAME})
+
+	add_custom_command(
+		OUTPUT ${hex_package}
+		COMMAND
+			${CMAKE_OBJCOPY} -O ihex
+			${PX4_BINARY_DIR}/${PX4_CONFIG}.elf
+			${hex_package}
+		DEPENDS
+			${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+			airframes_xml
+			parameters_xml
+		COMMENT "Creating ${hex_package}"
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		)
+
+	add_custom_target(px4_hex ALL DEPENDS ${hex_package})
+
+endif()
+
 # create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
 
@@ -383,7 +406,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.g
 if(NOT NUTTX_DIR MATCHES "external")
 	if(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
 		set(DEBUG_DEVICE "MIMXRT1062XXX6A")
-		set(DEBUG_SVD_FILE "MIMXRT1052.svd")
+		set(DEBUG_SVD_FILE "MIMXRT1062.xml")
 	elseif(CONFIG_ARCH_CHIP_MIMXRT1176DVMAA)
 		set(DEBUG_DEVICE "MIMXRT1176DVMAA")
 		set(DEBUG_SVD_FILE "MIMXRT1176_cm7.xml")
