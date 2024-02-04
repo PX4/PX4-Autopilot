@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# NXP Tropic specific board sensors init
+#------------------------------------------------------------------------------
+#
+# UART mapping on NXP Tropic
+#
+# LPUART5 	/dev/ttyS0 	DEBUG
+# LPUART3 	/dev/ttyS2 	TELEM
+# LPUART2 	/dev/ttyS1 	GPS
+# LPUART4 	/dev/ttyS3 	AUX
+# LPUART8 	/dev/ttyS4 	RC
+#
+#------------------------------------------------------------------------------
+
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+fi
+
+# Internal SPI bus ICM42688p
+icm42688p -R 2 -b 3 -s start
+
+# Internal on IMU SPI BMI088
+bmi088 -A -R 2 -b 4 -s start
+bmi088 -G -R 2 -b 4 -s start
+
+# Internal magnetometer on I2c
+bmm150 -I -b 4 -R 6 -a 18 start
+
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start
+
+# Possible internal Baro
+
+# Disable startup of internal baros if param is set to false
+if param compare SENS_INT_BARO_EN 1
+then
+	dps310 -I -b 4 start
+fi
