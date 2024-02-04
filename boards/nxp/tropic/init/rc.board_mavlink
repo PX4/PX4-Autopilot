@@ -1,0 +1,4 @@
+#!/bin/sh
+#
+# NXP Tropic specific board MAVLink startup script.
+#------------------------------------------------------------------------------
