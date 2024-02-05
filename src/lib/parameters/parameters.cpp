@@ -1078,7 +1078,10 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 		return 0;
 	}
 
-	param_modify_on_import(node);
+	// if we do param_set() directly in the translation, set PARAM_SKIP_IMPORT as return value and return here
+	if (param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
+		return 1;
+	}
 
 	// Find the parameter this node represents.  If we don't know it, ignore the node.
 	param_t param = param_find_no_notification(node->name);
