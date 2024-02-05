@@ -200,17 +200,18 @@ struct mission_item_s {
 
 /**
  * dataman housekeeping information for a specific item.
- * Corresponds to the first dataman entry of DM_KEY_FENCE_POINTS and DM_KEY_SAFE_POINTS
+ * Corresponds to the dataman entry of DM_KEY_FENCE_POINTS_STATE and DM_KEY_SAFE_POINTS_STATE
  */
 struct mission_stats_entry_s {
 	uint32_t opaque_id;			/**< opaque identifier for current stored mission stats */
 	uint16_t num_items;			/**< total number of items stored (excluding this one) */
-	uint8_t padding[2];
+	uint8_t dataman_id;			/**< dm_item_t storage place*/
+	uint8_t padding[1];
 };
 
 /**
  * Geofence vertex point.
- * Corresponds to the DM_KEY_FENCE_POINTS dataman item
+ * Corresponds to the DM_KEY_FENCE_POINTS_0 dataman item
  */
 struct mission_fence_point_s {
 	double lat;

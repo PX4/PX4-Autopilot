@@ -175,7 +175,7 @@ TEST_F(EkfInitializationTest, initializeWithZeroTiltNotAtRest)
 	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.simulateOrientation(quat_sim);
 	//_sensor_simulator.runSeconds(_init_tilt_period);
-	_sensor_simulator.runSeconds(7);
+	_sensor_simulator.runSeconds(10);
 
 	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
 

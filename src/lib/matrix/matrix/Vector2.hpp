@@ -8,13 +8,10 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "Vector.hpp"
 
 namespace matrix
 {
-
-template <typename Type, size_t M>
-class Vector;
 
 template<typename Type>
 class Vector2 : public Vector<Type, 2>
@@ -43,15 +40,8 @@ public:
 		v(1) = y;
 	}
 
-	template<size_t P, size_t Q>
-	Vector2(const Slice<Type, 2, 1, P, Q> &slice_in) : Vector<Type, 2>(slice_in)
-	{
-	}
-
-	template<size_t P, size_t Q>
-	Vector2(const Slice<Type, 1, 2, P, Q> &slice_in) : Vector<Type, 2>(slice_in)
-	{
-	}
+	using base = Vector<Type, 2>;
+	using base::base;
 
 	explicit Vector2(const Vector3 &other)
 	{

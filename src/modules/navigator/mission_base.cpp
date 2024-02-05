@@ -96,7 +96,7 @@ MissionBase::updateDatamanCache()
 
 		for (int32_t index = start_index; index != end_index; index += math::signNoZero(_dataman_cache_size_signed)) {
 
-			_dataman_cache.load(static_cast<dm_item_t>(_mission.dataman_id), index);
+			_dataman_cache.load(static_cast<dm_item_t>(_mission.mission_dataman_id), index);
 		}
 
 		_load_mission_index = _mission.current_seq;
@@ -111,20 +111,22 @@ void MissionBase::updateMavlinkMission()
 		mission_s new_mission;
 		_mission_sub.update(&new_mission);
 
-		if (isMissionValid(new_mission)) {
-			/* Relevant mission items updated externally*/
-			if (checkMissionDataChanged(new_mission)) {
-				bool mission_items_changed = (new_mission.mission_id != _mission.mission_id);
+		const bool mission_items_changed = (new_mission.mission_id != _mission.mission_id);
+		const bool mission_data_changed = checkMissionDataChanged(new_mission);
 
-				if (new_mission.current_seq < 0) {
-					new_mission.current_seq = math::max(math::min(_mission.current_seq, static_cast<int32_t>(new_mission.count) - 1),
-									    INT32_C(0));
-				}
+		if (new_mission.current_seq < 0) {
+			new_mission.current_seq = math::max(math::min(_mission.current_seq, static_cast<int32_t>(new_mission.count) - 1),
+							    INT32_C(0));
+		}
 
-				_mission = new_mission;
+		_mission = new_mission;
 
-				onMissionUpdate(mission_items_changed);
-			}
+		_is_current_planned_mission_item_valid = isMissionValid(_mission);
+
+		/* Relevant mission items updated externally*/
+		if (mission_data_changed) {
+
+			onMissionUpdate(mission_items_changed);
 		}
 	}
 }
@@ -274,8 +276,8 @@ MissionBase::on_active()
 
 		if (num_found_items == 1U && !PX4_ISFINITE(_mission_item.yaw)) {
 			mission_item_s next_position_mission_item;
-			const dm_item_t dataman_id = static_cast<dm_item_t>(_mission.dataman_id);
-			bool success = _dataman_cache.loadWait(dataman_id, next_mission_item_index,
+			const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+			bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_item_index,
 							       reinterpret_cast<uint8_t *>(&next_position_mission_item), sizeof(next_position_mission_item), MAX_DATAMAN_LOAD_WAIT);
 
 			if (success) {
@@ -460,7 +462,7 @@ MissionBase::set_mission_items()
 
 void MissionBase::loadCurrentMissionItem()
 {
-	const dm_item_t dm_item = static_cast<dm_item_t>(_mission.dataman_id);
+	const dm_item_t dm_item = static_cast<dm_item_t>(_mission.mission_dataman_id);
 	bool success = _dataman_cache.loadWait(dm_item, _mission.current_seq, reinterpret_cast<uint8_t *>(&_mission_item),
 					       sizeof(mission_item_s), MAX_DATAMAN_LOAD_WAIT);
 
@@ -574,10 +576,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
-
-			// make previous setpoint invalid, such that there will be no prev-current line following
-			// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
-			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 		}
 
 	} else if (needs_to_land) {
@@ -833,7 +831,7 @@ MissionBase::do_abort_landing()
 
 	} else {
 		// move mission index back (landing approach point)
-		_is_current_planned_mission_item_valid = goToPreviousItem(false);
+		_is_current_planned_mission_item_valid = (goToPreviousItem(false) == PX4_OK);
 	}
 
 	// send reposition cmd to get out of mission
@@ -884,7 +882,8 @@ bool MissionBase::isMissionValid(mission_s &mission) const
 	bool ret_val{false};
 
 	if (((mission.current_seq < mission.count) || (mission.count == 0U && mission.current_seq <= 0)) &&
-	    (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) &&
+	    (mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0
+	     || mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) &&
 	    (mission.timestamp != 0u)) {
 		ret_val = true;
 
@@ -900,13 +899,13 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 		return PX4_ERROR;
 	}
 
-	const dm_item_t dataman_id = (dm_item_t)_mission.dataman_id;
+	const dm_item_t mission_dataman_id = (dm_item_t)_mission.mission_dataman_id;
 	int32_t new_mission_index{mission_index};
 	mission_item_s new_mission;
 
 	for (uint16_t jump_count = 0u; jump_count < MAX_JUMP_ITERATION; jump_count++) {
 		/* read mission item from datamanager */
-		bool success = _dataman_cache.loadWait(dataman_id, new_mission_index, reinterpret_cast<uint8_t *>(&new_mission),
+		bool success = _dataman_cache.loadWait(mission_dataman_id, new_mission_index, reinterpret_cast<uint8_t *>(&new_mission),
 						       sizeof(mission_item_s), MAX_DATAMAN_LOAD_WAIT);
 
 		if (!success) {
@@ -926,7 +925,7 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 			if ((new_mission.do_jump_current_count < new_mission.do_jump_repeat_count) && execute_jump) {
 				if (write_jumps) {
 					new_mission.do_jump_current_count++;
-					success = _dataman_cache.writeWait(dataman_id, new_mission_index, reinterpret_cast<uint8_t *>(&new_mission),
+					success = _dataman_cache.writeWait(mission_dataman_id, new_mission_index, reinterpret_cast<uint8_t *>(&new_mission),
 									   sizeof(struct mission_item_s));
 
 					if (!success) {
@@ -1099,12 +1098,12 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 {
 	int32_t min_dist_index(-1);
 	float min_dist(FLT_MAX), dist_xy(FLT_MAX), dist_z(FLT_MAX);
-	const dm_item_t dataman_id = static_cast<dm_item_t>(_mission.dataman_id);
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 
 	for (int32_t mission_item_index = 0; mission_item_index < _mission.count; mission_item_index++) {
 		mission_item_s mission;
 
-		bool success = _dataman_cache.loadWait(dataman_id, mission_item_index, reinterpret_cast<uint8_t *>(&mission),
+		bool success = _dataman_cache.loadWait(mission_dataman_id, mission_item_index, reinterpret_cast<uint8_t *>(&mission),
 						       sizeof(mission_item_s), MAX_DATAMAN_LOAD_WAIT);
 
 		if (!success) {
@@ -1155,8 +1154,9 @@ void MissionBase::resetMission()
 	new_mission.land_index = -1;
 	new_mission.count = 0u;
 	new_mission.mission_id = 0u;
-	new_mission.dataman_id = _mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-				 DM_KEY_WAYPOINTS_OFFBOARD_0;
+	new_mission.mission_dataman_id = _mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ?
+					 DM_KEY_WAYPOINTS_OFFBOARD_1 :
+					 DM_KEY_WAYPOINTS_OFFBOARD_0;
 
 	bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&new_mission),
 			sizeof(mission_s));
@@ -1172,12 +1172,12 @@ void MissionBase::resetMission()
 
 void MissionBase::resetMissionJumpCounter()
 {
-	const dm_item_t dataman_id = static_cast<dm_item_t>(_mission.dataman_id);
+	const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 
 	for (size_t mission_index = 0u; mission_index < _mission.count; mission_index++) {
 		mission_item_s mission_item;
 
-		bool success = _dataman_client.readSync(dataman_id, mission_index, reinterpret_cast<uint8_t *>(&mission_item),
+		bool success = _dataman_client.readSync(mission_dataman_id, mission_index, reinterpret_cast<uint8_t *>(&mission_item),
 							sizeof(mission_item_s), MAX_DATAMAN_LOAD_WAIT);
 
 		if (!success) {
@@ -1191,7 +1191,8 @@ void MissionBase::resetMissionJumpCounter()
 		if (mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
 			mission_item.do_jump_current_count = 0u;
 
-			bool write_success = _dataman_cache.writeWait(dataman_id, mission_index, reinterpret_cast<uint8_t *>(&mission_item),
+			bool write_success = _dataman_cache.writeWait(mission_dataman_id, mission_index,
+					     reinterpret_cast<uint8_t *>(&mission_item),
 					     sizeof(struct mission_item_s));
 
 			if (!write_success) {
@@ -1300,7 +1301,7 @@ void MissionBase::updateCachedItemsUpToIndex(const int end_index)
 {
 	for (int i = 0; i <= end_index; i++) {
 		mission_item_s mission_item;
-		const dm_item_t dm_current = (dm_item_t)_mission.dataman_id;
+		const dm_item_t dm_current = (dm_item_t)_mission.mission_dataman_id;
 		bool success = _dataman_client.readSync(dm_current, i, reinterpret_cast<uint8_t *>(&mission_item),
 							sizeof(mission_item), 500_ms);
 
@@ -1330,11 +1331,12 @@ void MissionBase::checkClimbRequired(int32_t mission_item_index)
 
 	if (num_found_items > 0U) {
 
-		const dm_item_t dataman_id = static_cast<dm_item_t>(_mission.dataman_id);
+		const dm_item_t mission_dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
 		mission_item_s mission;
 		_mission_init_climb_altitude_amsl = NAN; // default to NAN, overwrite below if applicable
 
-		const bool success = _dataman_cache.loadWait(dataman_id, next_mission_item_index, reinterpret_cast<uint8_t *>(&mission),
+		const bool success = _dataman_cache.loadWait(mission_dataman_id, next_mission_item_index,
+				     reinterpret_cast<uint8_t *>(&mission),
 				     sizeof(mission), MAX_DATAMAN_LOAD_WAIT);
 
 		const bool is_fw_and_takeoff = mission.nav_cmd == NAV_CMD_TAKEOFF
@@ -1357,7 +1359,7 @@ void MissionBase::checkClimbRequired(int32_t mission_item_index)
 bool MissionBase::checkMissionDataChanged(mission_s new_mission)
 {
 	/* count and land_index are the same if the mission_id did not change. We do not care about changes in geofence or rally counters.*/
-	return ((new_mission.dataman_id != _mission.dataman_id) ||
+	return ((new_mission.mission_dataman_id != _mission.mission_dataman_id) ||
 		(new_mission.mission_id != _mission.mission_id) ||
 		(new_mission.current_seq != _mission.current_seq));
 }

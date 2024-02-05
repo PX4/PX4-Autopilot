@@ -58,7 +58,6 @@ void FeasibilityChecker::reset()
 	_land_pattern_validity_failed = false;
 	_distance_first_waypoint_failed = false;
 	_distance_between_waypoints_failed = false;
-	_below_home_alt_failed = false;
 	_fixed_wing_land_approach_failed = false;
 	_takeoff_land_available_failed = false;
 
@@ -197,10 +196,6 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 
 	if (!_distance_first_waypoint_failed) {
 		_distance_first_waypoint_failed = !checkHorizontalDistanceToFirstWaypoint(mission_item);
-	}
-
-	if (!_below_home_alt_failed) {
-		_below_home_alt_failed = !checkIfBelowHomeAltitude(mission_item, current_index);
 	}
 
 	if (!_takeoff_failed) {
@@ -679,21 +674,6 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 	_last_cmd = mission_item.nav_cmd;
 
 	/* We ran through all waypoints and have not found any distances between waypoints that are too far. */
-	return true;
-}
-
-bool FeasibilityChecker::checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index)
-{
-	/* calculate the global waypoint altitude */
-	float wp_alt = (mission_item.altitude_is_relative) ? mission_item.altitude + _home_alt_msl : mission_item.altitude;
-
-	if (PX4_ISFINITE(_home_alt_msl) && _home_alt_msl > wp_alt && MissionBlock::item_contains_position(mission_item)) {
-
-		mavlink_log_critical(_mavlink_log_pub, "Warning: Waypoint %d below home\t", current_index + 1);
-		events::send<int16_t>(events::ID("navigator_mis_wp_below_home"), {events::Log::Warning, events::LogInternal::Info},
-				      "Waypoint {1} below home", current_index + 1);
-	}
-
 	return true;
 }
 
