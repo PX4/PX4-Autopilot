@@ -809,8 +809,8 @@ void FlightTaskAuto::_updateTrajConstraints()
 	if (_is_emergency_braking_active) {
 		// When initializing with large velocity, allow 1g of
 		// acceleration in 1s on all axes for fast braking
-		_position_smoothing.setMaxAcceleration({9.80665f, 9.80665f, 9.80665f});
-		_position_smoothing.setMaxJerk(9.80665f);
+		_position_smoothing.setMaxAcceleration({CONSTANTS_ONE_G, CONSTANTS_ONE_G, CONSTANTS_ONE_G});
+		_position_smoothing.setMaxJerk(CONSTANTS_ONE_G);
 
 		// If the current velocity is beyond the usual constraints, tell
 		// the controller to exceptionally increase its saturations to avoid
