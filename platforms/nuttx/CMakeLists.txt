@@ -121,6 +121,8 @@ else()
 	message(FATAL_ERROR "Cannot determine linker script for build type")
 endif()
 
+set (LDPATH ${NUTTX_CONFIG_DIR}/scripts/)
+
 list(APPEND nuttx_libs
 	nuttx_boards
 	nuttx_drivers
@@ -423,6 +425,7 @@ else() # CONFIG_BUILD_FLAT
 		-fno-rtti
 		${RISCV_RELAXATIONS}
 		-Wl,--script=${LDSCRIPT}
+		-L${LDPATH}
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--warn-common
 		-Wl,--gc-sections
