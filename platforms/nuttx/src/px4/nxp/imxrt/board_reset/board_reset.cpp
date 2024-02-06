@@ -67,11 +67,13 @@ int board_reset(int status)
 {
 	if (status == 1) {
 		board_reset_enter_bootloader();
+#if 0
 
 	} else if (status == REBOOT_TO_ISP) {
 		uint32_t arg = 0xeb100000;
 		ROM_API_Init();
 		ROM_RunBootloader(&arg);
+#endif
 	}
 
 #if defined(BOARD_HAS_ON_RESET)
