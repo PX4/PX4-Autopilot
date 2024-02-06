@@ -38,10 +38,9 @@ jobs:
           # run clone_public.sh if clone_public flag is provided
           ./clone_public.sh
           ./build.sh ../bin/ ${{ inputs.product }}
-          ls ../bin
       - name: Upload ${{ inputs.product }}
-        uses: actions/upload-artifact@v3.1.3
+        uses: actions/upload-artifact@v4
         with:
-          name: pixhawk
+          name: ${{ inputs.product }}
           path: bin/
           retention-days: 1
