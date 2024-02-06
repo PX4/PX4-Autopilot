@@ -37,6 +37,10 @@ if DRIVERS_UAVCANNODE
         bool "Include hygrometer measurement"
         default n
 
+    config UAVCANNODE_INDICATED_AIR_SPEED
+        bool "Include Indicated Airspeed"
+        default n
+
     config UAVCANNODE_LIGHTS_COMMAND
         bool "Include lights command"
         default n
