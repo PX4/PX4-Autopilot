@@ -301,6 +301,9 @@ MulticopterAttitudeControl::Run()
 
 			// Check for a heading reset
 			if (_quat_reset_counter != v_att.quat_reset_counter) {
+
+				const Quatf q_before = _attitude_control.attitude_setpoint_q();
+
 				const Quatf delta_q_reset(v_att.delta_q_reset);
 
 				// for stabilized attitude generation only extract the heading change from the delta quaternion
@@ -309,6 +312,16 @@ MulticopterAttitudeControl::Run()
 				if (v_att.timestamp > _last_attitude_setpoint) {
 					// adapt existing attitude setpoint unless it was generated after the current attitude estimate
 					_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
+
+					const Eulerf euler_before(q_before);
+					const Eulerf euler_delta(delta_q_reset);
+					const Eulerf euler_after(_attitude_control.attitude_setpoint_q());
+
+					PX4_INFO("q reset: [%.4f, %.4f, %.4f] -> [%.4f, %.4f, %.4f] (delta [%.4f, %.4f, %.4f])",
+						 (double)euler_before(0), (double)euler_before(1), (double)euler_before(2),
+						 (double)euler_after(0), (double)euler_after(1), (double)euler_after(2),
+						 (double)euler_delta(0), (double)euler_delta(1), (double)euler_delta(2)
+						);
 				}
 
 				_quat_reset_counter = v_att.quat_reset_counter;

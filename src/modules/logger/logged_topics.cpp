@@ -117,8 +117,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_angular_velocity", 20);
-	add_topic("vehicle_attitude", 50);
-	add_topic("vehicle_attitude_setpoint", 50);
+	add_topic("vehicle_attitude", 0);
+	add_topic("vehicle_attitude_setpoint", 0);
 	add_topic("vehicle_command");
 	add_topic("vehicle_command_ack");
 	add_topic("vehicle_constraints", 1000);
@@ -127,9 +127,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_gps_position", 100);
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
-	add_topic("vehicle_local_position_setpoint", 100);
+	add_topic("vehicle_local_position_setpoint", 0);
 	add_topic("vehicle_magnetometer", 200);
-	add_topic("vehicle_rates_setpoint", 20);
+	add_topic("vehicle_rates_setpoint", 0);
 	add_topic("vehicle_roi", 1000);
 	add_topic("vehicle_status");
 	add_optional_topic("vtol_vehicle_status", 200);

@@ -93,6 +93,8 @@ public:
 		_attitude_setpoint_q.normalize();
 	}
 
+	const auto &attitude_setpoint_q() const { return _attitude_setpoint_q; }
+
 	/**
 	 * Run one control loop cycle calculation
 	 * @param q estimation of the current vehicle attitude unit quaternion
