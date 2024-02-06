@@ -56,6 +56,8 @@
 #include "qc_esc_packet.h"
 #include "qc_esc_packet_types.h"
 
+#include <string>
+
 class VoxlEsc : public ModuleBase<VoxlEsc>, public OutputModuleInterface
 {
 public:
@@ -125,7 +127,7 @@ private:
 	static constexpr uint32_t VOXL_ESC_MODE_TURTLE_AUX1 = 1;
 	static constexpr uint32_t VOXL_ESC_MODE_TURTLE_AUX2 = 2;
 
-	static constexpr uint16_t VOXL_ESC_EXT_RPM = 39;
+	static constexpr uint16_t VOXL_ESC_EXT_RPM = 39;                // minimum firmware version for extended RPM command support
 	static constexpr uint16_t VOXL_ESC_RPM_MAX = INT16_MAX-1;		// 32K, Limit max standard range RPM to prevent overflow (rpm packet packing function accepts int32_t)
 	static constexpr uint16_t VOXL_ESC_RPM_MAX_EXT = UINT16_MAX-5;	// 65K, Limit max extended range RPM to prevent overflow (rpm packet packing function accepts int32_t)
 
@@ -203,12 +205,12 @@ private:
 
 	bool _extended_rpm{false};
 	bool _need_version_info{true};
-	QC_ESC_VERSION_INFO _version_info[4];
-	bool check_versions_updated();
+	QC_ESC_EXTENDED_VERSION_INFO _version_info[VOXL_ESC_OUTPUT_CHANNELS];
 
 	voxl_esc_params_t	_parameters;
 	int			update_params();
 	int			load_params(voxl_esc_params_t *params, ch_assign_t *map);
+	std::string board_id_to_name(int board_id);
 
 	bool			_turtle_mode_en{false};
 	int32_t			_rpm_turtle_min{0};
