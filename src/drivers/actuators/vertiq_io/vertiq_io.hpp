@@ -162,14 +162,15 @@ private:
 		(ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior,
 		(ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior,
 		(ParamInt<px4::params::TARGET_MODULE_ID>) _param_vertiq_target_module_id
-#ifdef CONFIG_USE_IFCI_CONFIGURATION
+#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
 		, (ParamBool<px4::params::TRIGGER_READ>) _param_vertiq_trigger_read
-		, (ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi
 		, (ParamInt<px4::params::CONTROL_MODE>) _param_vertiq_control_mode
 		, (ParamFloat<px4::params::MAX_VELOCITY>) _param_vertiq_max_velo
 		, (ParamFloat<px4::params::MAX_VOLTS>) _param_vertiq_max_volts
 		, (ParamInt<px4::params::VERTIQ_MOTOR_DIR>) _param_vertiq_motor_direction
 		, (ParamInt<px4::params::VERTIQ_FC_DIR>) _param_vertiq_fc_direction
+#ifdef CONFIG_USE_IFCI_CONFIGURATION
+		, (ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 		, (ParamInt<px4::params::PULSE_VOLT_MODE>) _param_vertiq_pulse_volt_mode
 		, (ParamInt<px4::params::X_CVI>) _param_vertiq_pulse_x_cvi
@@ -178,6 +179,7 @@ private:
 		, (ParamFloat<px4::params::VELOCITY_CUTOFF>) _param_vertiq_pulse_velo_cutoff
 		, (ParamFloat<px4::params::TORQUE_OFF_ANGLE>) _param_vertiq_pulse_torque_offset_angle
 		, (ParamFloat<px4::params::PULSE_VOLT_LIM>) _param_vertiq_pulse_voltage_limit
+#endif //CONFIG_USE_IQUART_MODULE_ENTRIES
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 #endif //CONFIG_USE_IFCI_CONFIGURATION
 	)

@@ -48,15 +48,16 @@ void VertiqClientManager::Init(uint8_t object_id)
 	//give us access to all of the motor parameters we'll need. The Vertiq C++ library does not have a way of dynamically
 	//changing a client's object ID, and we cannot instantiate the VertiqClientManager after the serial configuration is complete.
 	//Therefore, we must make these statically.
+#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
+	static EscPropellerInputParserClient prop_input_parser = EscPropellerInputParserClient(object_id);
+	_prop_input_parser_client = &prop_input_parser;
+	_client_array[_clients_in_use] = _prop_input_parser_client;
+	_clients_in_use++;
+
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	static IQUartFlightControllerInterfaceClient ifci = IQUartFlightControllerInterfaceClient(object_id);
 	_ifci_client = &ifci;
 	_client_array[_clients_in_use] = _ifci_client;
-	_clients_in_use++;
-
-	static EscPropellerInputParserClient prop_input_parser = EscPropellerInputParserClient(object_id);
-	_prop_input_parser_client = &prop_input_parser;
-	_client_array[_clients_in_use] = _prop_input_parser_client;
 	_clients_in_use++;
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
@@ -70,8 +71,9 @@ void VertiqClientManager::Init(uint8_t object_id)
 	_pulsing_rectangular_input_parser_client = &pulsing_rectangular_input_parser_client;
 	_client_array[_clients_in_use] = _pulsing_rectangular_input_parser_client;
 	_clients_in_use++;
+#endif //CONFIG_USE_IQUART_MODULE_ENTRIES
+#endif //CONFIG_USE_IFCI_CONFIGURATION
 #endif //CONFIG_USE_PULSING_CONFIGURATION
-#endif
 
 	//We're done with determining how many clients we have, let the serial interface know
 	_serial_interface->SetNumberOfClients(_clients_in_use);
@@ -246,16 +248,19 @@ void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, ch
 	}
 }
 
-#ifdef CONFIG_USE_IFCI_CONFIGURATION
+#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
 
 void VertiqClientManager::MarkIfciConfigsForRefresh()
 {
 	_init_velocity_max = true;
 	_init_volts_max = true;
 	_init_mode = true;
-	_init_throttle_cvi = true;
 	_init_motor_dir = true;
 	_init_fc_dir = true;
+
+#ifdef CONFIG_USE_IFCI_CONFIGURATION
+	_init_throttle_cvi = true;
+#endif
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 	_init_pulse_volt_mode = true;
@@ -275,7 +280,10 @@ void VertiqClientManager::UpdateIfciConfigParams()
 	_prop_input_parser_client->mode_.get(*_serial_interface->get_iquart_interface());
 	_prop_input_parser_client->sign_.get(*_serial_interface->get_iquart_interface());
 	_prop_input_parser_client->flip_negative_.get(*_serial_interface->get_iquart_interface());
+
+#ifdef CONFIG_USE_IFCI_CONFIGURATION
 	_ifci_client->throttle_cvi_.get(*_serial_interface->get_iquart_interface());
+#endif
 
 	//Ensure that these get messages get out
 	_serial_interface->process_serial_tx();
@@ -316,8 +324,10 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 				&(_prop_input_parser_client->sign_));
 		UpdateParameter(param_find("VERTIQ_FC_DIR"), &_init_fc_dir, 'b',  &entry_values,
 				&(_prop_input_parser_client->flip_negative_));
-		UpdateParameter(param_find("THROTTLE_CVI"), &_init_throttle_cvi, 'b',  &entry_values, &(_ifci_client->throttle_cvi_));
 
+#ifdef CONFIG_USE_IFCI_CONFIGURATION
+		UpdateParameter(param_find("THROTTLE_CVI"), &_init_throttle_cvi, 'b',  &entry_values, &(_ifci_client->throttle_cvi_));
+#endif
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 		UpdateParameter(param_find("PULSE_VOLT_MODE"), &_init_pulse_volt_mode, 'b',  &entry_values,
