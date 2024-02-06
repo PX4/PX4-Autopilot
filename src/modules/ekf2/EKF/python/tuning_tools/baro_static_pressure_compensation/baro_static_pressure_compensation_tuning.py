@@ -175,7 +175,7 @@ def run(logfile):
     res = optimize.minimize(J, x0, method='nelder-mead', options={'disp': True})
 
     # Convert results to parameters
-    g = 9.81
+    g = 9.80665
     pcoef_xn = res.x[0] * g
     pcoef_xp = res.x[1] * g
     pcoef_yn = res.x[2] * g
