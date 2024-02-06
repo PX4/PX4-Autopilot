@@ -1,0 +1,97 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file MecanumDriveControl.hpp
+ *
+ * Controller for heading rate and forward speed.
+ */
+
+#pragma once
+
+#include <lib/pid/pid.h>
+#include <matrix/matrix/math.hpp>
+#include <px4_platform_common/module_params.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/mecanum_drive_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
+
+class MecanumDriveControl : public ModuleParams
+{
+public:
+	MecanumDriveControl(ModuleParams *parent);
+	~MecanumDriveControl() = default;
+
+	void control(float dt);
+	float getVehicleBodyYawRate() const { return _vehicle_body_yaw_rate; }
+	float getVehicleYaw() const { return _vehicle_yaw; }
+
+protected:
+	void updateParams() override;
+
+private:
+	uORB::Subscription _mecanum_drive_setpoint_sub{ORB_ID(mecanum_drive_setpoint)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	uORB::Publication<mecanum_drive_setpoint_s> _mecanum_drive_control_output_pub{ORB_ID(mecanum_drive_control_output)};
+
+	mecanum_drive_setpoint_s _mecanum_drive_setpoint{};
+
+	matrix::Quatf _vehicle_attitude_quaternion{};
+	float _vehicle_yaw{0.f};
+
+	// States
+	float _vehicle_body_yaw_rate{0.f};
+	float _vehicle_forward_speed{0.f};
+
+	PID_t _pid_angular_velocity; ///< The PID controller for yaw rate.
+	PID_t _pid_speed; ///< The PID controller for velocity.
+
+	bool _spooled_up{false};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::RDD_P_SPEED>) _param_rdd_p_gain_speed,
+		(ParamFloat<px4::params::RDD_I_SPEED>) _param_rdd_i_gain_speed,
+		(ParamFloat<px4::params::RDD_P_ANG_VEL>) _param_rdd_p_gain_angular_velocity,
+		(ParamFloat<px4::params::RDD_I_ANG_VEL>) _param_rdd_i_gain_angular_velocity,
+
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
+	)
+};

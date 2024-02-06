@@ -1,0 +1,6 @@
+menuconfig MODULES_MECANUM_DRIVE
+	bool "mecanum_drive"
+	default n
+	depends on MODULES_CONTROL_ALLOCATOR
+	---help---
+		Enable support for control of mecanum drive rovers

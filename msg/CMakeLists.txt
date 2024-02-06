@@ -137,6 +137,7 @@ set(msg_files
 	ManualControlSwitches.msg
 	MavlinkLog.msg
 	MavlinkTunnel.msg
+	MecanumDriveSetpoint.msg
 	MessageFormatRequest.msg
 	MessageFormatResponse.msg
 	Mission.msg

@@ -50,6 +50,7 @@ class GZMixingInterfaceWheel : public OutputModuleInterface
 {
 public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
+	// static constexpr int MAX_ACTUATORS = 4;
 
 	GZMixingInterfaceWheel(gz::transport::Node &node, pthread_mutex_t &node_mutex) :
 		OutputModuleInterface(MODULE_NAME "-actuators-wheel", px4::wq_configurations::rate_ctrl),

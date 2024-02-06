@@ -437,12 +437,25 @@ bool MixingOutput::update()
 	bool all_disabled = true;
 	_reversible_mask = 0;
 
+	// printf("max num outputs: %d\n", _max_num_outputs);
+
 	for (int i = 0; i < _max_num_outputs; ++i) {
+
+		// printf(" _functions[i]: %p\n", (void *)_functions[i]);
+		// printf("_function_assignment: %d\n", (int)_function_assignment[i]);
+
 		if (_functions[i]) {
+
+			// printf("valid function\n");
+			// printf("armed or prearmed allowprearmcontrol %d\n", _functions[i]->allowPrearmControl());
+			// printf("prearmed %d\n", _armed.prearmed);
+			// printf("armed %d\n", _armed.armed);
+			// printf("nan\n");
 			all_disabled = false;
 
 			if (_armed.armed || (_armed.prearmed && _functions[i]->allowPrearmControl())) {
 				outputs[i] = _functions[i]->value(_function_assignment[i]);
+				printf("outputs[i]: %f\n", (double)outputs[i]);
 
 			} else {
 				outputs[i] = NAN;
@@ -470,6 +483,9 @@ void
 MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
 {
 	bool stop_motors = !_throttle_armed && !_actuator_test.inTestMode();
+
+	// printf("outputs from limitAndUpdateOutputs: %f, %f, %f, %f\n", (double)outputs[0], (double)outputs[1],
+	//        (double)outputs[2], (double)outputs[3]);
 
 	if (_armed.lockdown || _armed.manual_lockdown) {
 		// overwrite outputs in case of lockdown with disarmed values

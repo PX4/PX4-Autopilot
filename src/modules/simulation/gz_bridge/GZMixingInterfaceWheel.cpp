@@ -63,6 +63,8 @@ bool GZMixingInterfaceWheel::updateOutputs(bool stop_wheels, uint16_t outputs[MA
 {
 	unsigned active_output_count = 0;
 
+	// printf("num_outputs: %d\n", num_outputs);
+
 	for (unsigned i = 0; i < num_outputs; i++) {
 		if (_mixing_output.isFunctionSet(i)) {
 			active_output_count++;
@@ -72,6 +74,10 @@ bool GZMixingInterfaceWheel::updateOutputs(bool stop_wheels, uint16_t outputs[MA
 		}
 	}
 
+	// printf("active_output_count: %d\n", active_output_count);
+
+	// active_output_count = 4;
+
 	if (active_output_count > 0) {
 		gz::msgs::Actuators wheel_velocity_message;
 		wheel_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
@@ -79,9 +85,13 @@ bool GZMixingInterfaceWheel::updateOutputs(bool stop_wheels, uint16_t outputs[MA
 		for (unsigned i = 0; i < active_output_count; i++) {
 			// Offsetting the output allows for negative values despite unsigned integer to reverse the wheels
 			static constexpr float output_offset = 100.0f;
+			// printf("outputs[%d]: %d\n", i, outputs[i]);
 			float scaled_output = (float)outputs[i] - output_offset;
+			// printf("scaled_output: %f\n", (double)scaled_output);
 			wheel_velocity_message.set_velocity(i, scaled_output);
 		}
+
+		// printf("\n");
 
 
 		if (_actuators_pub.Valid()) {
