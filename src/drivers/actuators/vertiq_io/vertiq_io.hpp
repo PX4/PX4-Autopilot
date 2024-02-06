@@ -156,11 +156,6 @@ private:
 	//control station, as well as to use them in the firmware
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VERTIQ_BAUD>) _param_vertiq_baud,
-		(ParamInt<px4::params::VERTIQ_NUM_CVS>) _param_vertiq_number_of_cvs,
-		(ParamInt<px4::params::VERTIQ_TEL_MSK>) _param_vertiq_telemetry_mask,
-		(ParamInt<px4::params::DISARM_THROTTLE>) _param_vertiq_disarm_throttle,
-		(ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior,
-		(ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior,
 		(ParamInt<px4::params::TARGET_MODULE_ID>) _param_vertiq_target_module_id
 #ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
 		, (ParamBool<px4::params::TRIGGER_READ>) _param_vertiq_trigger_read
@@ -170,6 +165,11 @@ private:
 		, (ParamInt<px4::params::VERTIQ_MOTOR_DIR>) _param_vertiq_motor_direction
 		, (ParamInt<px4::params::VERTIQ_FC_DIR>) _param_vertiq_fc_direction
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
+		, (ParamInt<px4::params::VERTIQ_NUM_CVS>) _param_vertiq_number_of_cvs
+		, (ParamInt<px4::params::VERTIQ_TEL_MSK>) _param_vertiq_telemetry_mask
+		, (ParamInt<px4::params::DISARM_THROTTLE>) _param_vertiq_disarm_throttle
+		, (ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior
+		, (ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
 		, (ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 		, (ParamInt<px4::params::PULSE_VOLT_MODE>) _param_vertiq_pulse_volt_mode

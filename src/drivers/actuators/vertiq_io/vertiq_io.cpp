@@ -63,11 +63,13 @@ VertiqIo::~VertiqIo()
 //called by our task_spawn function
 bool VertiqIo::init()
 {
+#ifdef CONFIG_USE_IFCI_CONFIGURATION
 	//Grab the number of IFCI control values the user wants to use
 	_cvs_in_use = (uint8_t)_param_vertiq_number_of_cvs.get();
 
 	//Grab the bitmask that we're going to use to decide who we get telemetry from
 	_telem_bitmask = (uint16_t)_param_vertiq_telemetry_mask.get();
+#endif
 
 	//Initialize our telemetry handler
 	_telem_manager.Init(_telem_bitmask);
@@ -156,6 +158,8 @@ void VertiqIo::parameters_update()
 bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			     unsigned num_control_groups_updated)
 {
+#ifdef CONFIG_USE_IFCI_CONFIGURATION
+
 	if (_mixing_output.armed().armed) {
 
 		if (_param_vertiq_arm_behavior.get() == FORCE_ARMING && _send_forced_arm) {
@@ -199,7 +203,7 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 
 	//Publish our esc status to uORB
 	_esc_status_pub.publish(_telem_manager.GetEscStatus());
-
+#endif
 	return true;
 }
 
