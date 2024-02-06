@@ -30,6 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_library(board_bus_info
+	i2c.cpp
+	spi.cpp
+)
+add_dependencies(board_bus_info nuttx_context)
+
 if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	add_compile_definitions(BOOTLOADER)
 	add_library(drivers_board
@@ -63,12 +70,10 @@ else()
 		autoleds.c
 		automount.c
 		#can.c
-		i2c.cpp
 		init.c
 		led.c
 		mtd.cpp
 		sdhc.c
-		spi.cpp
 		timer_config.cpp
 		usb.c
 		imxrt_flexspi_fram.c
@@ -87,5 +92,6 @@ else()
 			nuttx_arch # sdio
 			nuttx_drivers # sdio
 			px4_layer
+			board_bus_info
 	)
 endif()
