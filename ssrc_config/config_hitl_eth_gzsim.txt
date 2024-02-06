@@ -1,0 +1,36 @@
+# Default parameter set for HITL with ethernet Gazebo Sim connection (partly derived from indoor flying parameters)
+# [ type: hitl_eth_gzsim ]
+
+#####################################
+# HITL configuration
+#
+
+# Set HITL related flag
+param set SYS_HITL 1
+param set SENS_EN_GPSSIM 1
+param set SENS_EN_BAROSIM 1
+param set SENS_EN_MAGSIM 1
+
+# Disable safety switch
+param set COM_PREARM_MODE 0
+param set CBRK_IO_SAFETY 22027
+
+# Disable RC loss failsafe check
+param set NAV_RCL_ACT 0
+
+# Disable RC input requirement
+param set COM_RC_IN_MODE 1
+
+# EKF2
+param set EKF2_MULTI_IMU 3
+
+# Sensor
+param set CAL_ACC0_ID  1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+param set CAL_GYRO0_ID 1310988 # 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+param set CAL_ACC1_ID  1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+param set CAL_GYRO1_ID 1310996 # 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+param set CAL_ACC2_ID  1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+param set CAL_GYRO2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+param set CAL_MAG1_ID 197388
+param set CAL_MAG1_PRIO 50
+
