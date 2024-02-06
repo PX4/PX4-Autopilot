@@ -36,7 +36,7 @@ find_package(gz-transport
 	#REQUIRED COMPONENTS core
 	NAMES
 		#ignition-transport11 # IGN (Fortress and earlier) no longer supported
-		gz-transport12
+		gz-transport13
 	#QUIET
 )
 
