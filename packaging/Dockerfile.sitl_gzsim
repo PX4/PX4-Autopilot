@@ -14,8 +14,8 @@ RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb
 # Install build dependencies
 RUN apt update
 RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y \
-	libgz-transport12 \
-	libgz-transport12-dev \
+	libgz-transport13 \
+	libgz-transport13-dev \
 	astyle \
 	build-essential \
 	cmake \
@@ -66,7 +66,7 @@ RUN curl http://packages.osrfoundation.org/gazebo.key | apt-key add -
 RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
 
 RUN apt update
-RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y libgz-transport12 dnsutils
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y libgz-transport13 dnsutils
 
 WORKDIR /px4_sitl
 
