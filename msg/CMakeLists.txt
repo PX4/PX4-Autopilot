@@ -142,6 +142,7 @@ set(msg_files
 	rtl_time_estimate.msg
 	safety.msg
 	satellite_info.msg
+	sees_manual_control_data.msg
 	sensor_accel.msg
 	sensor_accel_fifo.msg
 	sensor_baro.msg

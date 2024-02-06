@@ -39,6 +39,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/sees_manual_control_data.h>
 
 class MavlinkStreamSysStatus : public MavlinkStream
 {
@@ -64,12 +65,15 @@ private:
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _sees_manual_control_data_sub{ORB_ID(sees_manual_control_data)};
 
 	bool send() override
 	{
 		if (_status_sub.updated() || _cpuload_sub.updated() || _battery_status_subs.updated()) {
 			vehicle_status_s status{};
 			_status_sub.copy(&status);
+			sees_manual_control_data_s sees_manual_control_data{};
+			_sees_manual_control_data_sub.copy(&sees_manual_control_data);
 
 			cpuload_s cpuload{};
 			_cpuload_sub.copy(&cpuload);
@@ -137,10 +141,11 @@ private:
 
 			msg.errors_count1 =
 				status.rc_signal_lost;    // No manual_control_setpoint messages arriving ( can come from RC or MAV )
-			msg.errors_count2 = status.data_link_lost;    // No messages from GCS received
+			msg.errors_count2 =
+				sees_manual_control_data.valid_mavlink_setpoint_count;    // Number of Mavlink connections providing setpoints (implying joystick connected). Should be < 2.
 			msg.errors_count3 = rc_channels.signal_lost;           // No messages from RC Tx received
 			msg.errors_count4 =
-				manual_control_setpoint.data_source;       // Indicates wether the drone is controlled by RC (1) or Mavlink (2-7)
+				sees_manual_control_data.sees_desired_control_source;       // Desired type of manual control source, RC (1) or Mavlink (2)
 
 			mavlink_msg_sys_status_send_struct(_mavlink->get_channel(), &msg);
 			return true;

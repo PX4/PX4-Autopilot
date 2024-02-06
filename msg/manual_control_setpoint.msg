@@ -54,8 +54,5 @@ float32 aux6
 bool sticks_moving
 
 bool toggle_control_source		 # request to toggle between Mavlink and RC control source
-int8 SEES_SOURCE_NONE = 0
-int8 SEES_SOURCE_RC = 1
-int8 SEES_SOURCE_MAV = 2
 
 # TOPICS manual_control_setpoint manual_control_input

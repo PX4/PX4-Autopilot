@@ -88,6 +88,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("radio_status");
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("safety");
+	add_topic("sees_manual_control_data", 100);				// Sees.ai - Added topic for monitoring Manual Control Setpoint meta data
 	add_topic("sensor_combined");
 	add_optional_topic("sensor_correction");
 	add_optional_topic("sensor_gyro_fft", 50);

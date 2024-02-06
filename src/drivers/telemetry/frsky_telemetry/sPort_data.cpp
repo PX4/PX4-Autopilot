@@ -206,18 +206,19 @@ void sPort_send_CUR(int uart)
 
 	// If the input has been invalid for >0.5s, then set it to 0
 	if ((!control_source_valid) && (hrt_absolute_time() - control_source_timestamp > 500'000)) {
-		control_source = manual_control_setpoint_s::SEES_SOURCE_NONE; // This equates to 0
+		control_source = manual_control_setpoint_s::SOURCE_UNKNOWN; // This equates to 0
 	}
 
 	// If the input type is RC then set it to 1
+	// Note - *10 is required
 	else if (control_source == manual_control_setpoint_s::SOURCE_RC) {
-		control_source = 10 * manual_control_setpoint_s::SEES_SOURCE_RC; // This equates to 1
+		control_source = 10 * manual_control_setpoint_s::SOURCE_RC; // This equates to 1
 	}
 
 	// Else if the input type is Mavlink then set it to 2
 	else if (control_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0
 		 && control_source <= manual_control_setpoint_s::SOURCE_MAVLINK_5) {
-		control_source = 10 * manual_control_setpoint_s::SEES_SOURCE_MAV; // This equates to 2
+		control_source = 10 * manual_control_setpoint_s::SOURCE_MAVLINK_0; // This equates to 2
 	}
 
 	sPort_send_data(uart, SMARTPORT_ID_CURR, control_source);
@@ -425,18 +426,19 @@ void sPort_send_DIY_rcmav(int uart)
 
 	// If the input has been invalid for >0.5s, then set it to 0
 	if ((!control_source_valid) && (hrt_absolute_time() - control_source_timestamp > 500'000)) {
-		control_source = manual_control_setpoint_s::SEES_SOURCE_NONE; // This equates to 0
+		control_source =
+			manual_control_setpoint_s::SOURCE_UNKNOWN; // This equates to 0 and in this case indicates no valid setpoint.
 	}
 
 	// If the input type is RC then set it to 1
 	else if (control_source == manual_control_setpoint_s::SOURCE_RC) {
-		control_source = manual_control_setpoint_s::SEES_SOURCE_RC; // This equates to 1
+		control_source = manual_control_setpoint_s::SOURCE_RC; // This equates to 1
 	}
 
 	// Else if the input type is Mavlink then set it to 2
 	else if (control_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0
 		 && control_source <= manual_control_setpoint_s::SOURCE_MAVLINK_5) {
-		control_source = manual_control_setpoint_s::SEES_SOURCE_MAV; // This equates to 2
+		control_source = manual_control_setpoint_s::SOURCE_MAVLINK_0; // This equates to 2
 	}
 
 	sPort_send_data(uart, SMARTPORT_ID_RCMAV, control_source);
