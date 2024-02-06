@@ -445,7 +445,7 @@ static int ssarc_dump_poll(struct file *filep, struct pollfd *fds,
 		fds->revents |= (fds->events & (POLLIN | POLLOUT));
 
 		if (fds->revents != 0) {
-			nxsem_post(fds->sem);
+			nxsem_post(fds->arg);
 		}
 	}
 
