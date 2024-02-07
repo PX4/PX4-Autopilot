@@ -131,7 +131,7 @@ void VertiqIo::Run()
 
 void VertiqIo::parameters_update()
 {
-	//If someone has changed (any parameter in our module!)
+	//If someone has changed any parameter in our module. Checked at 1Hz
 	if (_parameter_update_sub.updated()) {
 		//Grab the changed parameter with copy (which lowers the "changed" flag)
 		parameter_update_s param_update;
@@ -141,8 +141,6 @@ void VertiqIo::parameters_update()
 		// this class attributes need updating (and do so).
 		updateParams();
 
-#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
-
 		//If you're set to re-read from the motor, mark all of the IFCI parameters for reinitialization, reset the trigger, and then update the IFCI params
 		if (_param_vertiq_trigger_read.get()) {
 			_client_manager.MarkIfciConfigsForRefresh();
@@ -151,7 +149,6 @@ void VertiqIo::parameters_update()
 		}
 
 		_client_manager.UpdateIfciConfigParams();
-#endif //CONFIG_USE_IQUART_MODULE_ENTRIES
 	}
 }
 

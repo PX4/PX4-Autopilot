@@ -48,7 +48,6 @@ void VertiqClientManager::Init(uint8_t object_id)
 	//give us access to all of the motor parameters we'll need. The Vertiq C++ library does not have a way of dynamically
 	//changing a client's object ID, and we cannot instantiate the VertiqClientManager after the serial configuration is complete.
 	//Therefore, we must make these statically.
-#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
 	static EscPropellerInputParserClient prop_input_parser = EscPropellerInputParserClient(object_id);
 	_prop_input_parser_client = &prop_input_parser;
 	_client_array[_clients_in_use] = _prop_input_parser_client;
@@ -59,6 +58,7 @@ void VertiqClientManager::Init(uint8_t object_id)
 	_ifci_client = &ifci;
 	_client_array[_clients_in_use] = _ifci_client;
 	_clients_in_use++;
+#endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 	static VoltageSuperPositionClient voltage_superposition_client = VoltageSuperPositionClient(object_id);
@@ -71,8 +71,6 @@ void VertiqClientManager::Init(uint8_t object_id)
 	_pulsing_rectangular_input_parser_client = &pulsing_rectangular_input_parser_client;
 	_client_array[_clients_in_use] = _pulsing_rectangular_input_parser_client;
 	_clients_in_use++;
-#endif //CONFIG_USE_IQUART_MODULE_ENTRIES
-#endif //CONFIG_USE_IFCI_CONFIGURATION
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
 	//We're done with determining how many clients we have, let the serial interface know
@@ -248,8 +246,6 @@ void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, ch
 	}
 }
 
-#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
-
 void VertiqClientManager::MarkIfciConfigsForRefresh()
 {
 	_init_velocity_max = true;
@@ -351,5 +347,3 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 		_serial_interface->process_serial_rx(&_motor_interface, _client_array);
 	}
 }
-
-#endif //CONFIG_USE_IFCI_CONFIGURATION

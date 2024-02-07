@@ -50,18 +50,16 @@
 #include "iq-module-communication-cpp/inc/brushless_drive_client.hpp"
 #include "iq-module-communication-cpp/inc/arming_handler_client.hpp"
 
-#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
 #include "iq-module-communication-cpp/inc/esc_propeller_input_parser_client.hpp"
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 #include "iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp"
+#endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 #include "iq-module-communication-cpp/inc/voltage_superposition_client.hpp"
 #include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
 #endif //CONFIG_USE_PULSING_CONFIGURATION
-#endif
-#endif //CONFIG_USE_IFCI_CONFIGURATION
 
 union EntryData {
 	uint32_t uint_data;
@@ -144,7 +142,6 @@ public:
 	*/
 	void UpdateParameter(param_t parameter, bool *init_bool, char descriptor, EntryData *value, ClientEntryAbstract *entry);
 
-#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
 	/**
 	* @brief Set all of the IFCI configuration init flags to true
 	*/
@@ -160,7 +157,6 @@ public:
 	*	mean either setting the PX4 parameter to match the motor or vice versa
 	*/
 	void CoordinateIquartWithPx4Params(hrt_abstime timeout = 2_s);
-#endif
 
 private:
 	//We need a serial handler in order to talk over the serial port
@@ -169,14 +165,16 @@ private:
 	//IQUART Client configuration
 	IFCI _motor_interface;
 
-#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
 	bool _init_velocity_max = true;
 	bool _init_volts_max = true;
 	bool _init_mode = true;
 	bool _init_motor_dir = true;
 	bool _init_fc_dir = true;
+
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	bool _init_throttle_cvi = true;
+#endif //CONFIG_USE_IFCI_CONFIGURATION
+
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 	bool _init_pulse_volt_mode = true;
 	bool _init_pulse_x_cvi = true;
@@ -185,8 +183,6 @@ private:
 	bool _init_pulse_velo_cutoff = true;
 	bool _init_pulse_torque_offset = true;
 	bool _init_pulse_volt_limit = true;
-#endif //CONFIG_USE_IQUART_MODULE_ENTRIES
-#endif //CONFIG_USE_IFCI_CONFIGURATION
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
 	//Vertiq client information
@@ -205,7 +201,6 @@ private:
 
 	bool FloatsAreClose(float val1, float val2, float tolerance = 0.01);
 
-#ifdef CONFIG_USE_IQUART_MODULE_ENTRIES
 	EscPropellerInputParserClient *_prop_input_parser_client;
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
@@ -216,7 +211,6 @@ private:
 	VoltageSuperPositionClient *_voltage_superposition_client;
 	PulsingRectangularInputParserClient *_pulsing_rectangular_input_parser_client;
 #endif //CONFIG_USE_PULSING_CONFIGURATION
-#endif
 #endif //CONFIG_USE_IFCI_CONFIGURATION
 
 };
