@@ -1,0 +1,11 @@
+#!/bin/sh
+echo "[AIRFRAME]---> Loading Astro Blue parameters"
+
+# Higher RC loss timeout to not trigger with Doodle Labs radio latency jitter
+param set-default COM_RC_LOSS_T 1
+
+# Turn off logging of position information
+param set-default SDLOG_NO_POS_DAT 1
+
+# Disable onboard mission storage
+param set-default SYS_DM_BACKEND 1

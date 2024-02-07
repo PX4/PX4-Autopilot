@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# @name Astro Blue F45 Motors
+#
+# @type Quadrotor x
+# @class Copter
+#
+
+echo "[AIRFRAME]-> Loading Astro Blue F45 Motors Airframe"
+
+. ${R}etc/init.d/rc.mc_defaults
+. ${R}etc/init.d/airframes/astro_base
+. ${R}etc/init.d/airframes/astro_blue

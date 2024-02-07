@@ -38,6 +38,16 @@ px4_add_romfs_files(
 	# 18001_TF-B1
 
 	# [22000, 22999] Reserve for custom models
+
+	# [1002000, 1002010] FREEFLY CUSTOM
+	1001166_astro_sih.hil
+	1002003_astro
+	1002004_astro_blue
+	1002013_astro_max
+	1002014_astro_max_blue
+	astro_base
+	astro_blue
+	astro_max
 )
 
 if(CONFIG_MODULES_SIMULATION_PWM_OUT_SIM)

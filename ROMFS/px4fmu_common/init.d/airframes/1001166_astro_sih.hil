@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# @name Astro SIH
+#
+# @type Simulation
+# @class Copter
+#
+
+. ${R}etc/init.d/airframes/1002003_astro
+
+# set SYS_HITL to 2 to start the SIH and avoid sensors startup
+param set-default SYS_HITL 2
+param set-default SIH_VEHICLE_TYPE 0
+
+# Location: Baylands
+param set-default SIH_LOC_LAT0 37.413534
+param set-default SIH_LOC_LON0 -121.996561
+param set-default SIH_LOC_H0 1.3000
+
+# Square quadrotor X PX4 numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
+param set-default CA_ROTOR3_KM -0.05
+
+# PWMSim enable motors
+param set-default HIL_ACT_FUNC1 101
+param set-default HIL_ACT_FUNC2 102
+param set-default HIL_ACT_FUNC3 103
+param set-default HIL_ACT_FUNC4 104
+
+# ff_esc disable motors
+param set-default FF_ESC_FUNC1 0
+param set-default FF_ESC_FUNC2 0
+param set-default FF_ESC_FUNC3 0
+param set-default FF_ESC_FUNC4 0
+
+param set-default PWM_MAIN_FUNC1 0
+param set-default PWM_MAIN_FUNC2 0
+param set-default PWM_MAIN_FUNC3 0
+param set-default PWM_MAIN_FUNC4 0
+
+# Enable forwarding on the companion MAVLink instance, what for?
+param set-default MAV_0_FORWARD 1
+
+# Disable ESC checks, the driver is not running in SIH
+param set-default COM_ARM_CHK_ESCS 0
+
+# Increase thresholds for required speed accuracy and mag strength checks. The
+# simulation drivers have higher hard-coded values.
+param set-default EKF2_REQ_SACC 0.5000
+param set-default EKF2_MAG_CHK_STR 0.2
+param set-default EKF2_MAG_CHK_INC 20
+param set-default SENS_BOARD_ROT 0
+
+# Reset Astro attitude gains
+param set-default MC_PITCH_P 6.5000
+param set-default MC_ROLL_P 6.5000

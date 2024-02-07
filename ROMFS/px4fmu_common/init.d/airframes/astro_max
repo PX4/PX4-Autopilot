@@ -1,0 +1,18 @@
+#!/bin/sh
+echo "[AIRFRAME]---> Loading Astro Max parameters"
+
+# Lower notch filter frequency because of bigger propellers
+param set-default IMU_GYRO_NF0_FRQ 34
+
+# Landing parameters
+param set-default LNDMC_ROT_MAX 45
+
+# Higher motor output range upper limit because of different ESC setup
+param set-default FF_ESC_MAX1 1625
+param set-default PWM_MAIN_MAX1 1625
+param set-default FF_ESC_MAX2 1625
+param set-default PWM_MAIN_MAX2 1625
+param set-default FF_ESC_MAX3 1625
+param set-default PWM_MAIN_MAX3 1625
+param set-default FF_ESC_MAX4 1625
+param set-default PWM_MAIN_MAX4 1625

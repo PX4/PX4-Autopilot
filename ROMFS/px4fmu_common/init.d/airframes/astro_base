@@ -1,0 +1,385 @@
+#!/bin/sh
+# Contains all parameters which are shared between all Astro airframes
+echo "[AIRFRAME]--> Loading Astro base parameters"
+
+set PARAM_DEFAULTS_VER 118
+
+# Failsafes
+param set-default COM_RC_LOSS_T 0.5
+param set-default NAV_RCL_ACT 2
+param set-default COM_DL_LOSS_T 30
+param set-default NAV_DLL_ACT 0
+param set-default COM_LOW_BAT_ACT 3
+
+# Commander
+param set-default COM_LKDOWN_TKO -1 # Disable failure detection during takeoff
+param set-default COM_RC_OVERRIDE 0 # Disable takeover in Position mode by stick movement
+param set-default COM_ARM_CHK_ESCS 1 # Require ESC telemtry
+param set-default COM_ARM_WO_GPS 1 # Allow arming without GPS
+param set-default COM_EXT_COMP_EN 1 # Enable Freefly specific ESC, Battery, ... update
+param set-default COM_POWER_COUNT 2 # Require two smarty battery reports
+param set-default COM_ARM_ODID 2 # Enforce open drone ID
+
+# Logger
+param set-default SDLOG_MODE 2 # Log from boot until shutdown
+param set-default SDLOG_PROFILE 3 # Replay logging
+param set-default SDLOG_DIRS_MAX 20 # Remove old logs from SD card
+
+# Wind estimate from drag
+param set-default EKF2_DRAG_CTRL 1
+param set-default EKF2_BCOEF_X 45
+param set-default EKF2_BCOEF_Y 45
+param set-default EKF2_PCOEF_XP -0.2
+param set-default EKF2_PCOEF_YP -0.2
+
+# Ground distance sensor
+param set-default SYS_HAS_NUM_DIST 1
+param set-default SENS_CM8JL65_CFG 202 # Lanbao distance sensor on GPS 2 /dev/ttyS7 port
+param set-default EKF2_RNG_POS_X -0.1
+param set-default EKF2_RNG_POS_Y 0
+param set-default EKF2_RNG_PITCH -0.218
+param set-default EKF2_MIN_RNG 0.20
+param set-default EKF2_RNG_QLTY_T 0.5
+param set-default EKF2_RNG_K_GATE 0.5 # to detect blockage
+param set-default EKF2_RNG_NOISE 0.01 # to detect blockage
+
+# GPS
+param set-default GPS_1_GNSS 29 # GPS, Galileo, GLONASS, BeiDou
+param set-default EKF2_GPS_POS_X 0.1
+param set-default EKF2_GPS_POS_Y 0
+param set-default EKF2_GPS_POS_Z -0.06
+param set-default EKF2_GPS_DELAY 160
+param set-default EKF2_GPS_V_NOISE 0.1
+param set-default EKF2_GPS_P_NOISE 0.2
+param set-default EKF2_GPS_CTRL 7 # GPS altitude fusion enabled
+param set-default EKF2_REQ_NSATS 10
+param set-default EKF2_REQ_PDOP 1.5
+param set-default EKF2_REQ_EPH 1
+param set-default EKF2_REQ_EPV 3
+param set-default EKF2_REQ_SACC 0.3
+param set-default GPS_DUMP_COMM 2 # Log RTCM output for PPK
+
+# Magnetometer
+param set-default CAL_MAG0_ID 0 # disable internal mag
+param set-default CAL_MAG1_ID 0
+param set-default CAL_MAG0_PRIO 0
+param set-default CAL_MAG1_PRIO 100
+param set CAL_MAG0_PRIO 0 # Force the internal mag priority to disabled. This is needed to ensure
+param set CAL_MAG1_PRIO 100 # correct values after a compass calibration starting from zero IDs
+
+param set-default CAL_MAG1_ROT 100
+param set-default CAL_MAG1_PITCH 90
+param set-default CAL_MAG1_YAW 45
+param set CAL_MAG1_ROT 100 # hardcode external mag rotation
+param set CAL_MAG1_PITCH 90
+param set CAL_MAG1_YAW 45
+param set-default MBE_ENABLE 0 # Disable magnetometer bias estimator
+param set-default EKF2_MAG_CHECK 7 # Full check of inclination and strength against world magnetic model
+param set-default EKF2_MAG_CHK_INC 8 # More strict inclination check
+param set-default EKF2_MAG_CHK_STR 0.075 # More strict stregnth check
+param set-default EKF2_MAG_TYPE 6 # Use mag type Init to keep user experience consistent from previous releases
+
+# Barometer
+param set-default EKF2_BARO_NOISE 6
+param set-default EKF2_GND_EFF_DZ 4
+param set-default EKF2_GND_MAX_HGT 0.5
+
+# RTL Parameters
+param set-default MPC_LAND_ALT1 12
+param set-default MPC_LAND_CRWL 0.3
+param set-default RTL_DESCEND_ALT 12
+param set-default RTL_MIN_DIST 20
+param set-default RTL_TIME_FACTOR 1.15
+param set-default RTL_TIME_MARGIN 130
+
+# Guidance
+param set-default MPC_XY_CRUISE 10
+param set-default NAV_ACC_RAD 10
+param set-default MPC_XY_TRAJ_P 0.3
+param set-default MPC_YAW_MODE 3 # Face along trajectory
+param set-default MPC_Z_V_AUTO_DN 2.5
+
+# Position Slow AUX channel mapping for Pilot Pro
+param set-default RC_MAP_AUX1 11 # Yaw rate, AUX1, Channel 11
+param set-default MC_SLOW_MAP_YAWR 1
+param set-default RC_MAP_AUX2 12 # Vertical velocity, AUX2, Channel 12
+param set-default MC_SLOW_MAP_VVEL 2
+param set-default RC_MAP_AUX3 13 # Horizontal velocity, AUX3, Channel 13
+param set-default MC_SLOW_MAP_HVEL 3
+
+# Position mode
+param set-default MPC_VEL_MANUAL 15
+param set-default MPC_MAN_Y_MAX 75
+param set-default MAN_DEADZONE 0.05 # smaller center deadzone
+param set-default MPC_ALT_MODE 0 # we don't want the terrain following mode as its vertical height capture doesn't allow "coasting"
+
+# Acceleration limits
+param set-default MPC_ACC_HOR 3
+param set-default MPC_ACC_HOR_MAX 3
+param set-default MPC_ACC_UP_MAX 2
+param set-default MPC_ACC_DOWN_MAX 1.5
+param set-default MPC_JERK_MAX 9
+
+# Velocity limits
+param set-default MPC_XY_VEL_MAX 15
+param set-default MPC_Z_VEL_MAX_UP 4
+param set-default MPC_Z_VEL_MAX_DN 3
+
+# Position control tuning
+param set-default MPC_TILTMAX_AIR 35
+
+param set-default MPC_XY_VEL_P_ACC 3.6
+param set-default MPC_XY_VEL_I_ACC 0.7
+param set-default MPC_XY_VEL_D_ACC 0
+
+param set-default MPC_Z_VEL_P_ACC 10
+param set-default MPC_Z_VEL_I_ACC 4
+
+param set-default MPC_XY_P 0.8
+
+# Throttle
+param set-default THR_MDL_FAC 0.74
+param set-default MPC_THR_HOVER 0.34
+param set-default MPC_THR_MIN 0.08
+param set-default MPC_THR_MAX 0.94
+param set-default COM_SPOOLUP_TIME 3 # Spoolup on takeoff
+
+# Manual/Stabilized, Altitude mode
+param set-default MPC_MAN_TILT_MAX 40 # Maximum manual tilt
+param set-default MC_MAN_TILT_TAU 0.05 # Stick filter
+
+# Attitude control tuning
+param set-default MC_ROLL_P 3.2
+param set-default MC_PITCH_P 3.2
+param set-default MC_YAW_P 2
+
+# Rate control tuning
+param set-default MC_ROLLRATE_P 0.32
+param set-default MC_ROLLRATE_I 0.2
+param set-default MC_ROLLRATE_D 0.004
+
+param set-default MC_PITCHRATE_P 0.32
+param set-default MC_PITCHRATE_I 0.2
+param set-default MC_PITCHRATE_D 0.004
+
+param set-default MC_YAWRATE_P 0.65
+param set-default MC_YAWRATE_I 0.25
+param set-default MC_YAWRATE_MAX 75
+param set-default MC_YR_INT_LIM 0.4
+
+# Motor output slew rate to avoid ESCs loosing sync with big command jumps
+param set-default CA_R0_SLEW 0.08
+param set-default CA_R1_SLEW 0.08
+param set-default CA_R2_SLEW 0.08
+param set-default CA_R3_SLEW 0.08
+
+param set-default IMU_GYRO_CUTOFF 30
+param set-default IMU_DGYRO_CUTOFF 20
+param set-default IMU_GYRO_NF0_FRQ 40
+param set-default IMU_GYRO_NF0_BW 10
+
+# IMU
+param set-default SENS_BOARD_ROT 6
+param set-default EKF2_IMU_POS_X 0.055
+param set-default EKF2_IMU_POS_Y 0.0325
+param set-default EKF2_GYR_B_NOISE 0.001
+param set-default EKF2_GBIAS_INIT 0.02 # To fix bias error with initially inaccurate attitude
+param set-default EKF2_ABIAS_INIT 0.05 # To fix bias error with initially inaccurate attitude
+
+param set-default CAL_ACC0_PRIO 100
+param set-default CAL_ACC1_PRIO 75
+param set-default CAL_ACC2_PRIO 50
+param set-default CAL_GYRO0_PRIO 100
+param set-default CAL_GYRO1_PRIO 75
+param set-default CAL_GYRO2_PRIO 50
+param set CAL_ACC0_PRIO 100 # hardcode sensor priorities
+param set CAL_ACC1_PRIO 75 # to handle when they get changed by calibration or reset
+param set CAL_ACC2_PRIO 50
+param set CAL_GYRO0_PRIO 100
+param set CAL_GYRO1_PRIO 75
+param set CAL_GYRO2_PRIO 50
+
+# Enable Tempcal explictly, will be stored in EEPROM
+param set-default TC_A_ENABLE 1
+param set-default TC_G_ENABLE 1
+param set-default TC_B_ENABLE 1
+
+# Herelink radio configuration
+param set-default RC_MAP_ROLL 1 # Roll, Channel 1
+param set-default RC_MAP_PITCH 2 # Pitch, Channel 2
+param set-default RC_MAP_YAW 4 # Yaw, Channel 4
+param set-default RC_MAP_THROTTLE 3 # Throttle, Channel 3
+
+# Herelink flight mode button assignment
+param set-default RC_MAP_FLTM_BTN 8672 # (Channel-Button) (6-A), (7-B), (8-C), (9-House), (14-Pilot Pro)
+param set-default COM_FLTMODE1 2 # Position, Channel 6, A
+param set-default COM_FLTMODE2 1 # Altitude, Channel 7, B
+param set-default COM_FLTMODE3 0 # Manual, Channel 8, C
+param set-default COM_FLTMODE4 5 # RTL, Channel 9, House
+param set-default COM_FLTMODE5 9 # Position Slow, Channel 14, Pilot Pro button
+param set-default COM_FLTMODE6 -1 # Unmapped
+
+# Radio channel calibration for Herelink
+param set-default RC_CHAN_CNT 10
+param set-default RC1_MAX 1927
+param set-default RC1_MIN 1102
+param set-default RC1_REV 1
+param set-default RC1_TRIM 1514
+param set-default RC2_MAX 1927
+param set-default RC2_MIN 1102
+param set-default RC2_REV -1
+param set-default RC2_TRIM 1514
+param set-default RC3_MAX 1927
+param set-default RC3_MIN 1102
+param set-default RC3_REV -1
+param set-default RC3_TRIM 1927
+param set-default RC4_MAX 1927
+param set-default RC4_MIN 1102
+param set-default RC4_REV 1
+param set-default RC4_TRIM 1514
+param set-default RC5_MAX 1923
+param set-default RC5_MIN 901
+param set-default RC5_REV 1
+param set-default RC5_TRIM 1412
+param set-default RC6_MAX 1998
+param set-default RC6_MIN 1100
+param set-default RC6_REV 1
+param set-default RC6_TRIM 1549
+param set-default RC7_MAX 1998
+param set-default RC7_MIN 1100
+param set-default RC7_REV 1
+param set-default RC7_TRIM 1549
+param set-default RC8_MAX 1998
+param set-default RC8_MIN 1100
+param set-default RC8_REV 1
+param set-default RC8_TRIM 1549
+param set-default RC9_MAX 1998
+param set-default RC9_MIN 1100
+param set-default RC9_REV 1
+param set-default RC9_TRIM 1549
+
+# MAVlink on TELEM1 to Herelink or Doddle Labs radio
+param set-default MAV_0_CONFIG 101
+param set-default SER_TEL1_BAUD 57600
+param set-default MAV_0_MODE 0
+param set-default MAV_0_RATE 4000
+param set-default MAV_0_FORWARD 0
+
+# MAVlink on TELEM2 to onboard computer
+param set-default MAV_1_FORWARD 1
+param set-default SER_TEL2_BAUD 3000000
+param set-default MAV_1_MODE 2
+param set-default MAV_1_RATE 100000
+param set-default MAV_S_FORWARD 1
+
+param set-default MAV_1_RADIO_CTL 0
+param set-default MAV_RADIO_TOUT 25
+
+# MAVlink on TELEM4 to gimbal + payload
+param set-default MAV_2_CONFIG 401
+param set-default SER_EXT2_BAUD 230400 # Custom baudrate detection in MAVLink module
+param set-default MAV_2_MODE 10
+param set-default MAV_2_FORWARD 1
+
+# Gimbal
+param set-default MNT_MODE_IN 4 # MAVlink gimbal protocol v2
+param set-default MNT_MODE_OUT 2 # MAVLink gimbal protocol v2
+
+# Camera Trigger
+param set-default TRIG_MODE 4
+param set-default TRIG_INTERFACE 3
+param set-default TRIG_MIN_INTERVA 1200
+
+# Camera Capture
+param set-default CAM_CAP_FBACK 1
+param set-default PWM_AUX_FUNC7 2032
+param set-default PPS_CAP_ENABLE 1
+param set-default PWM_AUX_FUNC9 2064
+
+# Battery
+param set-default BAT_LOW_THR 0.22
+param set-default BAT_CRIT_THR 0.17
+param set-default BAT_EMERGEN_THR 0.06
+param set-default COM_ARM_BAT_MIN 0.17 # Allow arming with low but not critical battery
+
+param set-default BAT1_N_CELLS 6
+param set-default BAT1_V_CHARGED 4.20
+param set-default BAT1_V_EMPTY 3.10
+param set-default BAT1_SOURCE 1
+param set-default BAT2_N_CELLS 6
+param set-default BAT2_V_CHARGED 4.20
+param set-default BAT2_V_EMPTY 3.10
+param set-default BAT2_SOURCE 1
+
+# LEDs
+param set-default SYS_RGB_MAXBRT 0.15 # Status on external magnetometer board
+param set-default BOOM_BRT 1 # Below motors
+param set-default BOOM1_COLOR 4
+param set-default BOOM2_COLOR 1
+param set-default BOOM3_COLOR 1
+param set-default BOOM4_COLOR 4
+
+# Square quadrotor X clockwise numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY 1
+param set-default CA_ROTOR1_KM -0.05
+param set-default CA_ROTOR2_PX -1
+param set-default CA_ROTOR2_PY -1
+param set-default CA_ROTOR2_KM 0.05
+param set-default CA_ROTOR3_PX 1
+param set-default CA_ROTOR3_PY -1
+param set-default CA_ROTOR3_KM -0.05
+
+# Parallel CAN/PWM ESC configuration
+param set-default PWM_MAIN_TIM0 400 # IO PWM 1,2
+param set-default PWM_MAIN_TIM1 400 # IO PWM 3,4
+
+param set-default FF_ESC_FUNC1 101
+param set-default PWM_MAIN_FUNC1 101
+param set-default FF_ESC_FUNC2 102
+param set-default PWM_MAIN_FUNC2 102
+param set-default FF_ESC_FUNC3 103
+param set-default PWM_MAIN_FUNC3 103
+param set-default FF_ESC_FUNC4 104
+param set-default PWM_MAIN_FUNC4 104
+
+param set-default FF_ESC_DIS1 900
+param set-default PWM_MAIN_DIS1 900
+param set-default FF_ESC_DIS2 900
+param set-default PWM_MAIN_DIS2 900
+param set-default FF_ESC_DIS3 900
+param set-default PWM_MAIN_DIS3 900
+param set-default FF_ESC_DIS4 900
+param set-default PWM_MAIN_DIS4 900
+
+param set-default FF_ESC_MIN1 1075
+param set-default PWM_MAIN_MIN1 1075
+param set-default FF_ESC_MIN2 1075
+param set-default PWM_MAIN_MIN2 1075
+param set-default FF_ESC_MIN3 1075
+param set-default PWM_MAIN_MIN3 1075
+param set-default FF_ESC_MIN4 1075
+param set-default PWM_MAIN_MIN4 1075
+
+param set-default FF_ESC_MAX1 1475
+param set-default PWM_MAIN_MAX1 1475
+param set-default FF_ESC_MAX2 1475
+param set-default PWM_MAIN_MAX2 1475
+param set-default FF_ESC_MAX3 1475
+param set-default PWM_MAIN_MAX3 1475
+param set-default FF_ESC_MAX4 1475
+param set-default PWM_MAIN_MAX4 1475
+
+param set-default PWM_AUX_DIS5 0 # Payload enable pin, pull low
+
+param set-default FD_ACT_EN 0 # Disable actuator failure detector
+
+param set-default RTL_RETURN_ALT 60
+
+param set-default MAV_PROTO_VER 2 # Always use MAVLink v2 protocol
+
+lifetime_health_monitor start
