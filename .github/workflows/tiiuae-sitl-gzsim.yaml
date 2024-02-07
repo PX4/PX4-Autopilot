@@ -23,6 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: px4-firmware
+          fetch-depth: 0
 
       - uses: docker/setup-buildx-action@v3
 
@@ -59,7 +60,7 @@ jobs:
       - name: Build tii-px4-sitl-gzsim image and push
         uses: docker/build-push-action@v5
         with:
-          context: ./px4-firmware/packaging
+          context: .
           file: ./px4-firmware/packaging/Dockerfile.sitl_gzsim
           pull: true
           push: true
