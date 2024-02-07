@@ -136,8 +136,8 @@ public:
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
 
-	uint8_t legacyActionTranslator(uint8_t param_action);
-	uint8_t getDefaultAction() { return legacyActionTranslator(_param_gf_action.get()); }
+	uint8_t parameterToMAVLinkActionTranslator(uint8_t param_action);
+	uint8_t getDefaultAction() { return parameterToMAVLinkActionTranslator(_param_gf_action.get()); }
 	bool isHomeRequired();
 
 	/**

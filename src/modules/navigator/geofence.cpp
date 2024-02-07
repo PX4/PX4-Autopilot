@@ -208,7 +208,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude, uint8_t *breach_
 	if (!isCloserThanMaxDistToHome(lat, lon, altitude) || !isBelowMaxAltitude(altitude)) {
 		inside_fence = false;
 		// Update action if more severe than existing
-		*breach_action = math::max(*breach_action, legacyActionTranslator(_param_gf_action.get()));
+		*breach_action = math::max(*breach_action, parameterToMAVLinkActionTranslator(_param_gf_action.get()));
 	}
 
 	return inside_fence;
@@ -361,7 +361,7 @@ bool Geofence::isInsideFence(double lat, double lon, float altitude, bool *later
 			uint8_t current_fence_action = geofence_result_s::GF_ACTION_NONE;
 
 			if (geofence_result_s::GF_ACTION_DEFAULT == _polygons[polygon_index].fence_action) {
-				current_fence_action = legacyActionTranslator(_param_gf_action.get());
+				current_fence_action = parameterToMAVLinkActionTranslator(_param_gf_action.get());
 
 			} else {
 				current_fence_action = _polygons[polygon_index].fence_action;
@@ -466,7 +466,7 @@ int Geofence::clearDm()
 	return PX4_OK;
 }
 
-uint8_t Geofence::legacyActionTranslator(uint8_t param_action)
+uint8_t Geofence::parameterToMAVLinkActionTranslator(uint8_t param_action)
 {
 	uint8_t actual_action = geofence_result_s::GF_ACTION_NONE;
 
@@ -508,7 +508,7 @@ bool Geofence::isHomeRequired()
 	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
 
 	bool has_default_rtl_actions = _has_default_action
-				       && legacyActionTranslator(_param_gf_action.get()) == geofence_result_s::GF_ACTION_RTL;
+				       && parameterToMAVLinkActionTranslator(_param_gf_action.get()) == geofence_result_s::GF_ACTION_RTL;
 
 	return max_horizontal_enabled || max_vertical_enabled || _has_rtl_action || has_default_rtl_actions;
 }
