@@ -210,8 +210,6 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	return false;
-
 	//2023-02-08: translate L1 parameters after removing l1 control
 	{
 		if (strcmp("RWTO_L1_PERIOD", node->name) == 0) {
@@ -232,4 +230,6 @@ bool param_modify_on_import(bson_node_t node)
 			return true;
 		}
 	}
+
+	return false;
 }
