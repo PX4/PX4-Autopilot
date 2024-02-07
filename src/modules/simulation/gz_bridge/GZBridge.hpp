@@ -140,7 +140,7 @@ private:
 	pthread_mutex_t _node_mutex;
 
 	MapProjection _pos_ref{};
-	double _alt_ref{};
+	double _alt_ref{}; // starting altitude reference
 
 	matrix::Vector3d _position_prev{};
 	matrix::Vector3d _velocity_prev{};
@@ -155,8 +155,4 @@ private:
 	float _temperature{288.15};  // 15 degrees
 
 	gz::transport::Node _node;
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_GZ_HOME_ALT>) _param_sim_home_alt
-	)
 };

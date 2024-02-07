@@ -40,10 +40,3 @@
  */
 PARAM_DEFINE_INT32(SIM_GZ_EN, 0);
 
-/**
- * simulator origin altitude
- *
- * @unit m
- * @group Simulator
- */
-PARAM_DEFINE_FLOAT(SIM_GZ_HOME_ALT, 488.0);
