@@ -69,6 +69,11 @@ union EntryData {
 class VertiqClientManager
 {
 public:
+
+	/**
+	* @brief Construct a new VertiqClientManager object
+	* @param serial_interface A pointer to a VertiqSerialInterface object
+	*/
 	VertiqClientManager(VertiqSerialInterface *serial_interface);
 
 	/**
@@ -143,14 +148,14 @@ public:
 	void UpdateParameter(param_t parameter, bool *init_bool, char descriptor, EntryData *value, ClientEntryAbstract *entry);
 
 	/**
-	* @brief Set all of the IFCI configuration init flags to true
+	* @brief Set all of the IQUART configuration init flags to true
 	*/
-	void MarkIfciConfigsForRefresh();
+	void MarkIquartConfigsForRefresh();
 
 	/**
-	* @brief Send a Get command to all of the parameters involved in IFCI configuration, and make sure the PX4 parameters and module values agree
+	* @brief Send a Get command to all of the parameters involved in IQUART configuration, and make sure the PX4 parameters and module values agree
 	*/
-	void UpdateIfciConfigParams();
+	void UpdateIquartConfigParams();
 
 	/**
 	* @brief Until the timeout is reached, keep trying to update the PX4 parameters to match, as appropraite, the value on the module. This can

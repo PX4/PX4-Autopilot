@@ -141,14 +141,14 @@ void VertiqIo::parameters_update()
 		// this class attributes need updating (and do so).
 		updateParams();
 
-		//If you're set to re-read from the motor, mark all of the IFCI parameters for reinitialization, reset the trigger, and then update the IFCI params
+		//If you're set to re-read from the motor, mark all of the IQUART parameters for reinitialization, reset the trigger, and then update the IFCI params
 		if (_param_vertiq_trigger_read.get()) {
-			_client_manager.MarkIfciConfigsForRefresh();
+			_client_manager.MarkIquartConfigsForRefresh();
 			_param_vertiq_trigger_read.set(false);
 			_param_vertiq_trigger_read.commit_no_notification();
 		}
 
-		_client_manager.UpdateIfciConfigParams();
+		_client_manager.UpdateIquartConfigParams();
 	}
 }
 

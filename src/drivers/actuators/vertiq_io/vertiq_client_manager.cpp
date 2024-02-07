@@ -44,7 +44,7 @@ VertiqClientManager::VertiqClientManager(VertiqSerialInterface *serial_interface
 
 void VertiqClientManager::Init(uint8_t object_id)
 {
-	//If we're using the IFCI configuration parameters, we need a way to talk to the motor. These clients
+	//If we're using the IQUART configuration parameters, we need a way to talk to the motor. These clients
 	//give us access to all of the motor parameters we'll need. The Vertiq C++ library does not have a way of dynamically
 	//changing a client's object ID, and we cannot instantiate the VertiqClientManager after the serial configuration is complete.
 	//Therefore, we must make these statically.
@@ -81,7 +81,7 @@ void VertiqClientManager::HandleClientCommunication()
 {
 	//Called periodically in the main loop to handle all communications not handled direclty by
 	//parameter setting
-	//Update our serial tx before we take in the RX
+	//Update our serial tx before we take in the rx
 	_serial_interface->process_serial_tx();
 
 	//Update our serial rx
@@ -246,7 +246,7 @@ void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, ch
 	}
 }
 
-void VertiqClientManager::MarkIfciConfigsForRefresh()
+void VertiqClientManager::MarkIquartConfigsForRefresh()
 {
 	_init_velocity_max = true;
 	_init_volts_max = true;
@@ -269,7 +269,7 @@ void VertiqClientManager::MarkIfciConfigsForRefresh()
 #endif
 }
 
-void VertiqClientManager::UpdateIfciConfigParams()
+void VertiqClientManager::UpdateIquartConfigParams()
 {
 	_prop_input_parser_client->velocity_max_.get(*_serial_interface->get_iquart_interface());
 	_prop_input_parser_client->volts_max_.get(*_serial_interface->get_iquart_interface());
