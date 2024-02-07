@@ -122,30 +122,30 @@ public:
 	/**
 	* @brief Send the connected module both a set and a save for a given IQUART entry
 	* @param entry A pointer to the entry that you want to communicate with
-	* @param descriptor A character that determines what type of ClientEntryAbstract/data is in use. 'f' if it's a float, 'b' if it's a uint8_t
-	* @param value A pointer to a union that holds the value that we are setting in the conrrect format. Format is decoded by descriptor
+	* @param value A pointer to a union that holds the value that we are setting in the conrrect format
 	*/
-	void SendSetAndSave(ClientEntryAbstract *entry, char descriptor, EntryData *value);
+	template <class module_data_type>
+	void SendSetAndSave(ClientEntry<module_data_type> *entry, module_data_type value);
 
 	/**
 	* @brief Initializes the PX4 parameter version of an IQUART Entry to have the same value as is stored on the module. After setting
 	*        this function lowers the flag indicating that we should initialize the value during updating
 	* @param parameter The PX4 parameter we're editing
 	* @param init_bool A pointer to the bool that we need to put down
-	* @param descriptor A character that determines what type of ClientEntryAbstract/data is in use. 'f' if it's a float, 'b' if it's a uint8_t
-	* @param value A pointer to a union that holds the value that we are setting in the conrrect format. Format is decoded by descriptor
+	* @param value A pointer to a union that holds the value that we are setting in the conrrect format
 	*/
-	void InitParameter(param_t parameter, bool *init_bool, char descriptor, EntryData *value);
+	template <class px4_data_type>
+	void InitParameter(param_t parameter, bool *init_bool, px4_data_type *value);
 
 	/**
 	* @brief Handles calling either InitParameter or SendSetAndSave depending on the state of the parameter init_bool
 	* @param parameter The PX4 parameter we're editing
 	* @param init_bool A pointer to the bool that we need to put down
-	* @param descriptor A character that determines what type of ClientEntryAbstract/data is in use. 'f' if it's a float, 'b' if it's a uint8_t
-	* @param value A pointer to a union that holds the value that we are setting in the conrrect format. Format is decoded by descriptor
+	* @param value A pointer to a union that holds the value that we are setting in the conrrect format
 	* @param entry A pointer to the entry that you want to communicate with
 	*/
-	void UpdateParameter(param_t parameter, bool *init_bool, char descriptor, EntryData *value, ClientEntryAbstract *entry);
+	template <class module_data_type, class px4_data_type>
+	void UpdateParameter(param_t parameter, bool *init_bool, EntryData *value, ClientEntry<module_data_type> *entry);
 
 	/**
 	* @brief Set all of the IQUART configuration init flags to true
@@ -203,8 +203,6 @@ private:
 	//Clients
 	PropellerMotorControlClient _broadcast_prop_motor_control;
 	ArmingHandlerClient _broadcast_arming_handler;
-
-	bool FloatsAreClose(float val1, float val2, float tolerance = 0.01);
 
 	EscPropellerInputParserClient *_prop_input_parser_client;
 

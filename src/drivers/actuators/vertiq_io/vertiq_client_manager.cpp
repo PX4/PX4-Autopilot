@@ -118,131 +118,57 @@ void VertiqClientManager::SendSetVelocitySetpoint(uint16_t velocity_setpoint)
 	_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface->get_iquart_interface(), velocity_setpoint);
 }
 
-void VertiqClientManager::InitParameter(param_t parameter, bool *init_bool, char descriptor, EntryData *value)
+template <class px4_data_type>
+void VertiqClientManager::InitParameter(param_t parameter, bool *init_bool, px4_data_type *value)
 {
-	//We've got a union, grab out the data from both parts of it. We'll grab the correct one later
-	float float_value = value->float_data;
-	uint32_t uint_value = value->uint_data;
-
-	//If we have a float we want to grab the float value, if we have a uint, grab that.
-	//In either case, put down the init flag of whoever called us
-	switch (descriptor) {
-	case 'f':
-		param_set(parameter, &(float_value));
-		*init_bool = false;
-		break;
-
-	case 'b':
-		param_set(parameter, &(uint_value));
-		*init_bool = false;
-		break;
-
-	default:
-		return; //Don't go any further
-		break;
-	}
+	param_set(parameter, value);
+	*init_bool = false;
 }
 
-void VertiqClientManager::SendSetAndSave(ClientEntryAbstract *entry, char descriptor, EntryData *value)
+template <class module_data_type>
+void VertiqClientManager::SendSetAndSave(ClientEntry<module_data_type> *entry, module_data_type value)
 {
-	//Depending on the type of client we actually have, we're going to have to cast entry differently. We
-	//let the descriptor tell us what to cast it to.
-
-	//Note that we have to use the brackets to make sure that the ClientEntry objects have a scope
-	switch (descriptor) {
-	case 'f': {
-			ClientEntry<float> *float_entry = (ClientEntry<float> *)(entry);
-			float_entry->set(*_serial_interface->get_iquart_interface(), value->float_data);
-			float_entry->save(*_serial_interface->get_iquart_interface());
-			break;
-		}
-
-	case 'b': {
-			ClientEntry<uint8_t> *byte_entry = (ClientEntry<uint8_t> *)(entry);
-			byte_entry->set(*_serial_interface->get_iquart_interface(), value->uint_data);
-			byte_entry->save(*_serial_interface->get_iquart_interface());
-			break;
-		}
-
-	default:
-		return; //Don't go any further
-		break;
-	}
-
-	//Make sure our message gets out
+	entry->set(*_serial_interface->get_iquart_interface(), value);
+	entry->save(*_serial_interface->get_iquart_interface());
 	_serial_interface->process_serial_tx();
 }
 
-bool VertiqClientManager::FloatsAreClose(float val1, float val2, float tolerance)
+template <class data_type>
+bool ValuesAreTheSame(data_type val1, data_type val2, data_type tolerance)
+{
+	return (val1 == val2);
+}
+
+template <>
+bool ValuesAreTheSame<float>(float val1, float val2, float tolerance)
 {
 	float diff = val1 - val2;
 	return (abs(diff) < tolerance);
 }
 
-void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, char descriptor, EntryData *value,
-		ClientEntryAbstract *entry)
+template <class module_data_type, class px4_data_type>
+void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, EntryData *value,
+		ClientEntry<module_data_type> *entry)
 {
-	//Note that we have to use the brackets to make sure that the ClientEntry objects have a scope
-	switch (descriptor) {
-	case 'f': {
-			//go ahead and make the vars we'll need and cast the entry
-			float module_float_value = 0;
-			float px4_float_value = 0;
-			ClientEntry<float> *float_entry = (ClientEntry<float> *)(entry);
+	module_data_type module_value = 0;
+	px4_data_type px4_value = 0;
 
-			//If we got an answer go grab it. Then, if we're initializing, give the value to PX4. Otherwise, someone just
-			//set a new value to the PX4 param, so send it over to the motor if it's actually different
-			if (float_entry->IsFresh()) {
-				module_float_value = float_entry->get_reply();
+	if (entry->IsFresh()) {
+		module_value = entry->get_reply();
 
-				if (*init_bool) {
-					value->float_data = module_float_value;
-					InitParameter(parameter, init_bool, descriptor, value);
+		//If we're initializing PX4 to the motor, set the PX4 value to the module value
+		//If we're setting a value through PX4, set the module value to the PX4 value
+		if (*init_bool) {
+			px4_value = (px4_data_type)module_value;
+			InitParameter(parameter, init_bool, &px4_value);
 
-				} else {
-					param_get(parameter, &px4_float_value);
+		} else {
+			param_get(parameter, &px4_value);
 
-					if (!FloatsAreClose(px4_float_value, module_float_value)) {
-						value->float_data = px4_float_value;
-						SendSetAndSave(float_entry, descriptor, value);
-					}
-				}
+			if (!ValuesAreTheSame<px4_data_type>(px4_value, (px4_data_type)module_value, (px4_data_type)(0.01))) {
+				SendSetAndSave<module_data_type>(entry, px4_value);
 			}
-
-			break;
 		}
-
-	case 'b': {
-			//go ahead and make the vars we'll need and cast the entry
-			uint32_t module_read_value = 0;
-			int32_t px4_read_value = 0;
-			ClientEntry<uint8_t> *byte_entry = (ClientEntry<uint8_t> *)(entry);
-
-			//If we got an answer go grab it. Then, if we're initializing, give the value to PX4. Otherwise, someone just
-			//set a new value to the PX4 param, so send it over to the motor if it's actually different
-			if (byte_entry->IsFresh()) {
-				module_read_value = byte_entry->get_reply();
-
-				if (*init_bool) {
-					value->uint_data = module_read_value;
-					InitParameter(parameter, init_bool, descriptor, value);
-
-				} else {
-					param_get(parameter, &px4_read_value);
-
-					if ((uint32_t)px4_read_value != module_read_value) {
-						value->uint_data = (uint32_t)px4_read_value;
-						SendSetAndSave(byte_entry, descriptor, value);
-					}
-				}
-			}
-
-			break;
-		}
-
-	default:
-		return; //Don't go any further
-		break;
 	}
 }
 
@@ -311,33 +237,35 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 
 	while (time_now < end_time) {
 		//Go ahead and update our IFCI params
-		UpdateParameter(param_find("MAX_VELOCITY"), &_init_velocity_max, 'f', &entry_values,
-				&(_prop_input_parser_client->velocity_max_));
-		UpdateParameter(param_find("MAX_VOLTS"), &_init_volts_max, 'f', &entry_values,
-				&(_prop_input_parser_client->volts_max_));
-		UpdateParameter(param_find("CONTROL_MODE"), &_init_mode, 'b',  &entry_values, &(_prop_input_parser_client->mode_));
-		UpdateParameter(param_find("VERTIQ_MOTOR_DIR"), &_init_motor_dir, 'b',  &entry_values,
-				&(_prop_input_parser_client->sign_));
-		UpdateParameter(param_find("VERTIQ_FC_DIR"), &_init_fc_dir, 'b',  &entry_values,
-				&(_prop_input_parser_client->flip_negative_));
+		UpdateParameter<float, float>(param_find("MAX_VELOCITY"), &_init_velocity_max, &entry_values,
+					      &(_prop_input_parser_client->velocity_max_));
+		UpdateParameter<float, float>(param_find("MAX_VOLTS"), &_init_volts_max, &entry_values,
+					      &(_prop_input_parser_client->volts_max_));
+		UpdateParameter<uint8_t, int32_t>(param_find("CONTROL_MODE"), &_init_mode, &entry_values,
+						  &(_prop_input_parser_client->mode_));
+		UpdateParameter<uint8_t, int32_t>(param_find("VERTIQ_MOTOR_DIR"), &_init_motor_dir, &entry_values,
+						  &(_prop_input_parser_client->sign_));
+		UpdateParameter<uint8_t, int32_t>(param_find("VERTIQ_FC_DIR"), &_init_fc_dir  & entry_values,
+						  &(_prop_input_parser_client->flip_negative_));
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
-		UpdateParameter(param_find("THROTTLE_CVI"), &_init_throttle_cvi, 'b',  &entry_values, &(_ifci_client->throttle_cvi_));
+		UpdateParameter<uint8_t, int32_t>(param_find("THROTTLE_CVI"), &_init_throttle_cvi, &entry_values,
+						  &(_ifci_client->throttle_cvi_));
 #endif
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
-		UpdateParameter(param_find("PULSE_VOLT_MODE"), &_init_pulse_volt_mode, 'b',  &entry_values,
-				&(_pulsing_rectangular_input_parser_client->pulsing_voltage_mode_));
-		UpdateParameter(param_find("X_CVI"), &_init_pulse_x_cvi, 'b',  &entry_values, &(_ifci_client->x_cvi_));
-		UpdateParameter(param_find("Y_CVI"), &_init_pulse_y_cvi, 'b',  &entry_values, &(_ifci_client->y_cvi_));
-		UpdateParameter(param_find("ZERO_ANGLE"), &_init_pulse_zero_angle, 'f',  &entry_values,
-				&(_voltage_superposition_client->zero_angle_));
-		UpdateParameter(param_find("VELOCITY_CUTOFF"), &_init_pulse_velo_cutoff, 'f', &entry_values,
-				&(_voltage_superposition_client->velocity_cutoff_));
-		UpdateParameter(param_find("TORQUE_OFF_ANGLE"), &_init_pulse_torque_offset, 'f', &entry_values,
-				&(_voltage_superposition_client->propeller_torque_offset_angle_));
-		UpdateParameter(param_find("PULSE_VOLT_LIM"), &_init_pulse_volt_limit, 'f', &entry_values,
-				&(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
+		UpdateParameter<uint8_t, int32_t>(param_find("PULSE_VOLT_MODE"), &_init_pulse_volt_mode, &entry_values,
+						  &(_pulsing_rectangular_input_parser_client->pulsing_voltage_mode_));
+		UpdateParameter<uint8_t, int32_t>(param_find("X_CVI"), &_init_pulse_x_cvi, &entry_values, &(_ifci_client->x_cvi_));
+		UpdateParameter<uint8_t, int32_t>(param_find("Y_CVI"), &_init_pulse_y_cvi, &entry_values, &(_ifci_client->y_cvi_));
+		UpdateParameter<float, float>(param_find("ZERO_ANGLE"), &_init_pulse_zero_angle, &entry_values,
+					      &(_voltage_superposition_client->zero_angle_));
+		UpdateParameter<float, float>(param_find("VELOCITY_CUTOFF"), &_init_pulse_velo_cutoff, &entry_values,
+					      &(_voltage_superposition_client->velocity_cutoff_));
+		UpdateParameter<float, float>(param_find("TORQUE_OFF_ANGLE"), &_init_pulse_torque_offset, &entry_values,
+					      &(_voltage_superposition_client->propeller_torque_offset_angle_));
+		UpdateParameter<float, float>(param_find("PULSE_VOLT_LIM"), &_init_pulse_volt_limit, &entry_values,
+					      &(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
 		//Update the time
