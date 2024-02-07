@@ -147,8 +147,7 @@ bool ValuesAreTheSame<float>(float val1, float val2, float tolerance)
 }
 
 template <class module_data_type, class px4_data_type>
-void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, EntryData *value,
-		ClientEntry<module_data_type> *entry)
+void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, ClientEntry<module_data_type> *entry)
 {
 	module_data_type module_value = 0;
 	px4_data_type px4_value = 0;
@@ -233,38 +232,36 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 	hrt_abstime time_now = hrt_absolute_time();
 	hrt_abstime end_time = time_now + timeout;
 
-	EntryData entry_values;
-
 	while (time_now < end_time) {
 		//Go ahead and update our IFCI params
-		UpdateParameter<float, float>(param_find("MAX_VELOCITY"), &_init_velocity_max, &entry_values,
+		UpdateParameter<float, float>(param_find("MAX_VELOCITY"), &_init_velocity_max,
 					      &(_prop_input_parser_client->velocity_max_));
-		UpdateParameter<float, float>(param_find("MAX_VOLTS"), &_init_volts_max, &entry_values,
+		UpdateParameter<float, float>(param_find("MAX_VOLTS"), &_init_volts_max,
 					      &(_prop_input_parser_client->volts_max_));
-		UpdateParameter<uint8_t, int32_t>(param_find("CONTROL_MODE"), &_init_mode, &entry_values,
+		UpdateParameter<uint8_t, int32_t>(param_find("CONTROL_MODE"), &_init_mode,
 						  &(_prop_input_parser_client->mode_));
-		UpdateParameter<uint8_t, int32_t>(param_find("VERTIQ_MOTOR_DIR"), &_init_motor_dir, &entry_values,
+		UpdateParameter<uint8_t, int32_t>(param_find("VERTIQ_MOTOR_DIR"), &_init_motor_dir,
 						  &(_prop_input_parser_client->sign_));
-		UpdateParameter<uint8_t, int32_t>(param_find("VERTIQ_FC_DIR"), &_init_fc_dir  & entry_values,
+		UpdateParameter<uint8_t, int32_t>(param_find("VERTIQ_FC_DIR"), &_init_fc_dir,
 						  &(_prop_input_parser_client->flip_negative_));
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
-		UpdateParameter<uint8_t, int32_t>(param_find("THROTTLE_CVI"), &_init_throttle_cvi, &entry_values,
+		UpdateParameter<uint8_t, int32_t>(param_find("THROTTLE_CVI"), &_init_throttle_cvi,
 						  &(_ifci_client->throttle_cvi_));
 #endif
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
-		UpdateParameter<uint8_t, int32_t>(param_find("PULSE_VOLT_MODE"), &_init_pulse_volt_mode, &entry_values,
+		UpdateParameter<uint8_t, int32_t>(param_find("PULSE_VOLT_MODE"), &_init_pulse_volt_mode,
 						  &(_pulsing_rectangular_input_parser_client->pulsing_voltage_mode_));
-		UpdateParameter<uint8_t, int32_t>(param_find("X_CVI"), &_init_pulse_x_cvi, &entry_values, &(_ifci_client->x_cvi_));
-		UpdateParameter<uint8_t, int32_t>(param_find("Y_CVI"), &_init_pulse_y_cvi, &entry_values, &(_ifci_client->y_cvi_));
-		UpdateParameter<float, float>(param_find("ZERO_ANGLE"), &_init_pulse_zero_angle, &entry_values,
+		UpdateParameter<uint8_t, int32_t>(param_find("X_CVI"), &_init_pulse_x_cvi, &(_ifci_client->x_cvi_));
+		UpdateParameter<uint8_t, int32_t>(param_find("Y_CVI"), &_init_pulse_y_cvi, &(_ifci_client->y_cvi_));
+		UpdateParameter<float, float>(param_find("ZERO_ANGLE"), &_init_pulse_zero_angle,
 					      &(_voltage_superposition_client->zero_angle_));
-		UpdateParameter<float, float>(param_find("VELOCITY_CUTOFF"), &_init_pulse_velo_cutoff, &entry_values,
+		UpdateParameter<float, float>(param_find("VELOCITY_CUTOFF"), &_init_pulse_velo_cutoff,
 					      &(_voltage_superposition_client->velocity_cutoff_));
-		UpdateParameter<float, float>(param_find("TORQUE_OFF_ANGLE"), &_init_pulse_torque_offset, &entry_values,
+		UpdateParameter<float, float>(param_find("TORQUE_OFF_ANGLE"), &_init_pulse_torque_offset,
 					      &(_voltage_superposition_client->propeller_torque_offset_angle_));
-		UpdateParameter<float, float>(param_find("PULSE_VOLT_LIM"), &_init_pulse_volt_limit, &entry_values,
+		UpdateParameter<float, float>(param_find("PULSE_VOLT_LIM"), &_init_pulse_volt_limit,
 					      &(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 

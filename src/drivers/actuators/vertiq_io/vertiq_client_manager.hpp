@@ -61,11 +61,6 @@
 #include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
-union EntryData {
-	uint32_t uint_data;
-	float float_data;
-};
-
 class VertiqClientManager
 {
 public:
@@ -145,7 +140,7 @@ public:
 	* @param entry A pointer to the entry that you want to communicate with
 	*/
 	template <class module_data_type, class px4_data_type>
-	void UpdateParameter(param_t parameter, bool *init_bool, EntryData *value, ClientEntry<module_data_type> *entry);
+	void UpdateParameter(param_t parameter, bool *init_bool, ClientEntry<module_data_type> *entry);
 
 	/**
 	* @brief Set all of the IQUART configuration init flags to true
