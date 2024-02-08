@@ -179,10 +179,31 @@ public:
 	*/
 	void CoordinateIquartWithPx4Params(hrt_abstime timeout = 2_s);
 
-private:
+	/**
+	* @brief Gives access to the object ID currently being used
+	* @return The value stored in _object_id_now
+	*/
+	uint8_t GetObjectIdNow();
 
+	/**
+	* @brief When the target module ID parameter changes, we need to delete and remake all of our clients in order to make sure that we're talking to the
+	*        correct motor.
+	* @param new_object_id The new target module ID that we should use to instantiate our new clients
+	*/
+	void UpdateClientsToNewObjId(uint8_t new_object_id);
+private:
+	/**
+	* @brief Initialize all of the Vertiq Clients that we want to use
+	* @param object_id The object ID with which to initialize our clients
+	*/
 	void InitVertiqClients(uint8_t object_id);
+
+	/**
+	* @brief Initialize all of the combo_entry structs
+	*/
 	void InitComboEntries();
+
+	uint8_t _object_id_now;
 
 	//We need a serial handler in order to talk over the serial port
 	VertiqSerialInterface *_serial_interface;

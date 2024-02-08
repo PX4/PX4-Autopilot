@@ -85,7 +85,6 @@ parameters:
                     This is the value used as Object ID to instantiate the Vertiq C++ API objects in the project.
                     This value should be set to the Module ID of the module you would like to communicate with.
             type: int32
-            reboot_required: true
         TRIGGER_READ:
             description:
                 short: Trigger a reinitialization of the connected module's values into the PX4 parameters

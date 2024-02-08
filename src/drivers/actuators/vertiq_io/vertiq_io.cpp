@@ -141,6 +141,15 @@ void VertiqIo::parameters_update()
 		// this class attributes need updating (and do so).
 		updateParams();
 
+		//If the target module ID changed, we need to update all of our parameters
+		if (_param_vertiq_target_module_id.get() != _client_manager.GetObjectIdNow()) {
+			_client_manager.UpdateClientsToNewObjId(_param_vertiq_target_module_id.get());
+
+			//Make sure we start a new read!
+			_param_vertiq_trigger_read.set(true);
+			_param_vertiq_trigger_read.commit_no_notification();
+		}
+
 		//If you're set to re-read from the motor, mark all of the IQUART parameters for reinitialization, reset the trigger, and then update the IFCI params
 		if (_param_vertiq_trigger_read.get()) {
 			_client_manager.MarkIquartConfigsForRefresh();

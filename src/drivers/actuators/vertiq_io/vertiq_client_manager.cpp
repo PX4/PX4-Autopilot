@@ -45,35 +45,28 @@ void VertiqClientManager::Init(uint8_t object_id)
 {
 	InitVertiqClients(object_id);
 	InitComboEntries();
+
+	_object_id_now = object_id;
 }
 
 void VertiqClientManager::InitVertiqClients(uint8_t object_id)
 {
-	//If we're using the IQUART configuration parameters, we need a way to talk to the motor. These clients
-	//give us access to all of the motor parameters we'll need. The Vertiq C++ library does not have a way of dynamically
-	//changing a client's object ID, and we cannot instantiate the VertiqClientManager after the serial configuration is complete.
-	//Therefore, we must make these statically.
-	static EscPropellerInputParserClient prop_input_parser = EscPropellerInputParserClient(object_id);
-	_prop_input_parser_client = &prop_input_parser;
+	_prop_input_parser_client = new EscPropellerInputParserClient(object_id);//&prop_input_parser;
 	_client_array[_clients_in_use] = _prop_input_parser_client;
 	_clients_in_use++;
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
-	static IQUartFlightControllerInterfaceClient ifci = IQUartFlightControllerInterfaceClient(object_id);
-	_ifci_client = &ifci;
+	_ifci_client = new IQUartFlightControllerInterfaceClient(object_id);
 	_client_array[_clients_in_use] = _ifci_client;
 	_clients_in_use++;
 #endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
-	static VoltageSuperPositionClient voltage_superposition_client = VoltageSuperPositionClient(object_id);
-	_voltage_superposition_client = &voltage_superposition_client;
+	_voltage_superposition_client = new VoltageSuperPositionClient(object_id);
 	_client_array[_clients_in_use] = _voltage_superposition_client;
 	_clients_in_use++;
 
-	static PulsingRectangularInputParserClient pulsing_rectangular_input_parser_client =
-		PulsingRectangularInputParserClient(object_id);
-	_pulsing_rectangular_input_parser_client = &pulsing_rectangular_input_parser_client;
+	_pulsing_rectangular_input_parser_client = new PulsingRectangularInputParserClient(object_id);
 	_client_array[_clients_in_use] = _pulsing_rectangular_input_parser_client;
 	_clients_in_use++;
 #endif //CONFIG_USE_PULSING_CONFIGURATION
@@ -106,6 +99,33 @@ void VertiqClientManager::InitComboEntries()
 	_pulse_volt_limit_entry.ConfigureStruct(param_find("PULSE_VOLT_LIM"),
 						&(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
 #endif //CONFIG_USE_PULSING_CONFIGURATION
+}
+
+uint8_t VertiqClientManager::GetObjectIdNow()
+{
+	return _object_id_now;
+}
+
+void VertiqClientManager::UpdateClientsToNewObjId(uint8_t new_object_id)
+{
+
+	_object_id_now = new_object_id;
+
+	delete _prop_input_parser_client;
+	_prop_input_parser_client = new EscPropellerInputParserClient(new_object_id);//&prop_input_parser;
+
+#ifdef CONFIG_USE_IFCI_CONFIGURATION
+	delete _ifci_client;
+	_ifci_client = new IQUartFlightControllerInterfaceClient(new_object_id);
+#endif
+
+#ifdef CONFIG_USE_PULSING_CONFIGURATION
+	delete _voltage_superposition_client;
+	_voltage_superposition_client = new VoltageSuperPositionClient(new_object_id);
+
+	delete _pulsing_rectangular_input_parser_client;
+	_pulsing_rectangular_input_parser_client = new PulsingRectangularInputParserClient(new_object_id);
+#endif
 }
 
 void VertiqClientManager::HandleClientCommunication()
