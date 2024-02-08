@@ -78,6 +78,11 @@ struct combo_entry {
 	{
 		_needs_init = true;
 	}
+
+	ClientEntry<module_data_type> *GetClientEntry()
+	{
+		return _entry;
+	}
 };
 
 class VertiqClientManager
@@ -152,21 +157,8 @@ public:
 	void InitParameter(param_t parameter, bool *init_bool, px4_data_type *value);
 
 	/**
-	* @brief Handles calling either InitParameter or SendSetAndSave depending on the state of the parameter init_bool
-	* @param parameter The PX4 parameter we're editing
-	* @param init_bool A pointer to the bool that we need to put down
-	* @param value A pointer to a union that holds the value that we are setting in the conrrect format
-	* @param entry A pointer to the entry that you want to communicate with
-	*/
-	template <class module_data_type, class px4_data_type>
-	void UpdateParameter(param_t parameter, bool *init_bool, ClientEntry<module_data_type> *entry);
-
-	/**
-	* @brief Handles calling either InitParameter or SendSetAndSave depending on the state of the parameter init_bool
-	* @param parameter The PX4 parameter we're editing
-	* @param init_bool A pointer to the bool that we need to put down
-	* @param value A pointer to a union that holds the value that we are setting in the conrrect format
-	* @param entry A pointer to the entry that you want to communicate with
+	* @brief Handles calling either InitParameter or SendSetAndSave depending on the state of the parameter combined_entry
+	* @param combined_entry A pointer to the combo_entry that we're updating
 	*/
 	template <class module_data_type, class px4_data_type>
 	void UpdateParameter(combo_entry<module_data_type, px4_data_type> *combined_entry);
@@ -194,31 +186,44 @@ private:
 	//IQUART Client configuration
 	IFCI _motor_interface;
 
+	//These exist whenever we're using IQUART
 	combo_entry<float, float> _velocity_max_entry;
 	combo_entry<float, float> _voltage_max_entry;
 	combo_entry<uint8_t, int32_t> _control_mode_entry;
 	combo_entry<uint8_t, int32_t> _motor_direction_entry;
 	combo_entry<uint8_t, int32_t> _fc_direction_entry;
 
-	static const uint8_t num_floats = 2;
-	static const uint8_t num_uints = 3;
-
-	combo_entry<float, float> *float_combo_entries[num_floats] = {&_velocity_max_entry, &_voltage_max_entry};
-	combo_entry<uint8_t, int32_t> *uint8_combo_entries[num_uints] = {&_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry};
-
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
-	bool _init_throttle_cvi = true;
+	combo_entry<uint8_t, int32_t> _throttle_cvi_entry;
 #endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
-	bool _init_pulse_volt_mode = true;
-	bool _init_pulse_x_cvi = true;
-	bool _init_pulse_y_cvi = true;
-	bool _init_pulse_zero_angle = true;
-	bool _init_pulse_velo_cutoff = true;
-	bool _init_pulse_torque_offset = true;
-	bool _init_pulse_volt_limit = true;
+	combo_entry<uint8_t, int32_t> _pulsing_voltage_mode_entry;
+	combo_entry<uint8_t, int32_t> _x_cvi_entry;
+	combo_entry<uint8_t, int32_t> _y_cvi_entry;
+	combo_entry<float, float> _pulse_zero_angle_entry;
+	combo_entry<float, float> _pulse_velo_cutoff_entry;
+	combo_entry<float, float> _pulse_torque_offset_entry;
+	combo_entry<float, float> _pulse_volt_limit_entry;
 #endif //CONFIG_USE_PULSING_CONFIGURATION
+
+//Decide who to put in our array of entries. Using Pulsing will have the most, then IFCI, then only base IQUART by default
+#ifdef CONFIG_USE_PULSING_CONFIGURATION
+	static const uint8_t num_floats = 6;
+	static const uint8_t num_uints = 7;
+	combo_entry<float, float> *float_combo_entries[num_floats] = {&_velocity_max_entry, &_voltage_max_entry, &_pulse_zero_angle_entry, &_pulse_velo_cutoff_entry, &_pulse_torque_offset_entry, &_pulse_volt_limit_entry};
+	combo_entry<uint8_t, int32_t> *uint8_combo_entries[num_uints] = {&_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry, &_throttle_cvi_entry, &_pulsing_voltage_mode_entry, &_x_cvi_entry, &_y_cvi_entry};
+#elif defined(CONFIG_USE_IFCI_CONFIGURATION)
+	static const uint8_t num_floats = 2;
+	static const uint8_t num_uints = 4;
+	combo_entry<float, float> *float_combo_entries[num_floats] = {&_velocity_max_entry, &_voltage_max_entry};
+	combo_entry<uint8_t, int32_t> *uint8_combo_entries[num_uints] = {&_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry, &_throttle_cvi_entry};
+#else
+	static const uint8_t num_floats = 2;
+	static const uint8_t num_uints = 3;
+	combo_entry<float, float> *float_combo_entries[num_floats] = {&_velocity_max_entry, &_voltage_max_entry};
+	combo_entry<uint8_t, int32_t> *uint8_combo_entries[num_uints] = {&_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry};
+#endif
 
 	//Vertiq client information
 	//Some constants to help us out
@@ -239,12 +244,12 @@ private:
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	//Make all of the clients that we need to talk to the IFCI config params
 	IQUartFlightControllerInterfaceClient *_ifci_client;
+#endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 	VoltageSuperPositionClient *_voltage_superposition_client;
 	PulsingRectangularInputParserClient *_pulsing_rectangular_input_parser_client;
 #endif //CONFIG_USE_PULSING_CONFIGURATION
-#endif //CONFIG_USE_IFCI_CONFIGURATION
 };
 
 #endif
