@@ -190,9 +190,11 @@ private:
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_PLD_MD>)        _param_rtl_pld_md,
 		(ParamFloat<px4::params::RTL_LOITER_RAD>)  _param_rtl_loiter_rad,
-		(ParamInt<px4::params::RTL_HDG_MD>)        _param_rtl_hdg_md,
 		(ParamFloat<px4::params::RTL_TIME_FACTOR>) _param_rtl_time_factor,
-		(ParamInt<px4::params::RTL_TIME_MARGIN>)   _param_rtl_time_margin
+		(ParamInt<px4::params::RTL_TIME_MARGIN>)   _param_rtl_time_margin,
+
+		// external params
+		(ParamBool<px4::params::WV_EN>) _param_wv_en
 	)
 
 	param_t		_param_mpc_z_v_auto_up{PARAM_INVALID};
