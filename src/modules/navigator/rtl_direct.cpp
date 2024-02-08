@@ -178,11 +178,7 @@ void RtlDirect::set_rtl_item()
 				       _global_pos_sub.get().lat, _global_pos_sub.get().lon);
 	const float loiter_altitude = math::min(_land_approach.height_m, _rtl_alt);
 
-	HeadingMode rtl_heading_mode = static_cast<HeadingMode>(_param_rtl_hdg_md.get());
-
-	if ((rtl_heading_mode == HeadingMode::NAVIGATION_HEADING) && (destination_dist < _param_rtl_min_dist.get())) {
-		rtl_heading_mode = HeadingMode::DESTINATION_HEADING;
-	}
+	const bool is_close_to_destination = destination_dist < _param_rtl_min_dist.get();
 
 	switch (_rtl_state) {
 	case RTLState::CLIMBING: {
@@ -191,8 +187,8 @@ void RtlDirect::set_rtl_item()
 				.lon = _global_pos_sub.get().lon,
 				.alt = _rtl_alt,
 			};
-
-			setLoiterToAltMissionItem(_mission_item, dest, _navigator->get_loiter_radius(), HeadingMode::CURRENT_HEADING);
+			const float heading_sp = _param_wv_en.get() ? NAN : _navigator->get_local_position()->heading;
+			setLoiterToAltMissionItem(_mission_item, dest, _navigator->get_loiter_radius(), heading_sp);
 
 			_rtl_state = RTLState::MOVE_TO_LOITER;
 			break;
@@ -209,10 +205,12 @@ void RtlDirect::set_rtl_item()
 			// For FW flight:set to LOITER_TIME (with 0s loiter time), such that the loiter (orbit) status
 			// can be displayed on groundstation and the WP is accepted once within loiter radius
 			if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				setLoiterHoldMissionItem(_mission_item, dest, 0.f, _land_approach.loiter_radius_m, rtl_heading_mode);
+				setLoiterHoldMissionItem(_mission_item, dest, 0.f, _land_approach.loiter_radius_m, NAN);
 
 			} else {
-				setMoveToPositionMissionItem(_mission_item, dest, rtl_heading_mode);
+				// already set final yaw if close to destination and WV is disabled
+				const float heading_sp = (is_close_to_destination && !_param_wv_en.get()) ? _destination.yaw : NAN;
+				setMoveToPositionMissionItem(_mission_item, dest, heading_sp);
 			}
 
 			_rtl_state = RTLState::LOITER_DOWN;
@@ -228,7 +226,9 @@ void RtlDirect::set_rtl_item()
 				.yaw = _destination.yaw,
 			};
 
-			setLoiterToAltMissionItem(_mission_item, dest, _land_approach.loiter_radius_m, rtl_heading_mode);
+			// set final yaw if WV is disabled
+			const float heading_sp = !_param_wv_en.get() ? _destination.yaw : NAN;
+			setLoiterToAltMissionItem(_mission_item, dest, _land_approach.loiter_radius_m, heading_sp);
 
 			pos_sp_triplet->next.valid = true;
 			pos_sp_triplet->next.lat = _destination.lat;
@@ -255,8 +255,10 @@ void RtlDirect::set_rtl_item()
 				.yaw = _destination.yaw,
 			};
 
+			// set final yaw if WV is disabled
+			const float heading_sp = !_param_wv_en.get() ? _destination.yaw : NAN;
 			setLoiterHoldMissionItem(_mission_item, dest, _param_rtl_land_delay.get(), _land_approach.loiter_radius_m,
-						 rtl_heading_mode);
+						 heading_sp);
 
 			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering\t");
@@ -279,7 +281,7 @@ void RtlDirect::set_rtl_item()
 			DestinationPosition dest{_destination};
 			dest.alt = loiter_altitude;
 
-			setMoveToPositionMissionItem(_mission_item, dest, rtl_heading_mode);
+			setMoveToPositionMissionItem(_mission_item, dest, NAN);
 
 			// Prepare for transition
 			_mission_item.vtol_back_transition = true;
@@ -309,7 +311,9 @@ void RtlDirect::set_rtl_item()
 			DestinationPosition dest{_destination};
 			dest.alt = loiter_altitude;
 
-			setMoveToPositionMissionItem(_mission_item, dest, rtl_heading_mode);
+			// set final yaw if WV is disabled
+			const float heading_sp = !_param_wv_en.get() ? _destination.yaw : NAN;
+			setMoveToPositionMissionItem(_mission_item, dest, heading_sp);
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
 			_rtl_state = RTLState::LAND;
@@ -319,7 +323,9 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::LAND: {
 
-			setLandMissionItem(_mission_item, _destination, rtl_heading_mode);
+			// set final yaw if WV is disabled
+			const float heading_sp = !_param_wv_en.get() ? _destination.yaw : NAN;
+			setLandMissionItem(_mission_item, _destination, heading_sp);
 
 			_mission_item.land_precision = _param_rtl_pld_md.get();
 
