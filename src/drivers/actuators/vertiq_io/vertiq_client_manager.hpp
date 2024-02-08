@@ -180,6 +180,10 @@ public:
 	void CoordinateIquartWithPx4Params(hrt_abstime timeout = 2_s);
 
 private:
+
+	void InitVertiqClients(uint8_t object_id);
+	void InitComboEntries();
+
 	//We need a serial handler in order to talk over the serial port
 	VertiqSerialInterface *_serial_interface;
 

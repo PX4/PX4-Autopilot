@@ -43,6 +43,12 @@ VertiqClientManager::VertiqClientManager(VertiqSerialInterface *serial_interface
 
 void VertiqClientManager::Init(uint8_t object_id)
 {
+	InitVertiqClients(object_id);
+	InitComboEntries();
+}
+
+void VertiqClientManager::InitVertiqClients(uint8_t object_id)
+{
 	//If we're using the IQUART configuration parameters, we need a way to talk to the motor. These clients
 	//give us access to all of the motor parameters we'll need. The Vertiq C++ library does not have a way of dynamically
 	//changing a client's object ID, and we cannot instantiate the VertiqClientManager after the serial configuration is complete.
@@ -74,7 +80,9 @@ void VertiqClientManager::Init(uint8_t object_id)
 
 	//We're done with determining how many clients we have, let the serial interface know
 	_serial_interface->SetNumberOfClients(_clients_in_use);
-
+}
+void VertiqClientManager::InitComboEntries()
+{
 	_velocity_max_entry.ConfigureStruct(param_find("MAX_VELOCITY"), &(_prop_input_parser_client->velocity_max_));
 	_voltage_max_entry.ConfigureStruct(param_find("MAX_VOLTS"), &(_prop_input_parser_client->volts_max_));
 	_control_mode_entry.ConfigureStruct(param_find("CONTROL_MODE"), &(_prop_input_parser_client->mode_));
@@ -83,7 +91,7 @@ void VertiqClientManager::Init(uint8_t object_id)
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	_throttle_cvi_entry.ConfigureStruct(param_find("THROTTLE_CVI"), &(_ifci_client->throttle_cvi_));
-#endif
+#endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 	_pulsing_voltage_mode_entry.ConfigureStruct(param_find("PULSE_VOLT_MODE"),
@@ -97,9 +105,7 @@ void VertiqClientManager::Init(uint8_t object_id)
 			&(_voltage_superposition_client->propeller_torque_offset_angle_));
 	_pulse_volt_limit_entry.ConfigureStruct(param_find("PULSE_VOLT_LIM"),
 						&(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
-#endif
-
-
+#endif //CONFIG_USE_PULSING_CONFIGURATION
 }
 
 void VertiqClientManager::HandleClientCommunication()
