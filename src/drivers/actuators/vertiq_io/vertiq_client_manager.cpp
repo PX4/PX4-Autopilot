@@ -36,7 +36,6 @@ VertiqClientManager::VertiqClientManager(VertiqSerialInterface *serial_interface
 	_serial_interface(serial_interface),
 	_broadcast_prop_motor_control(_kBroadcastID), //Initialize with a module ID of 63 for broadcasting
 	_broadcast_arming_handler(_kBroadcastID)
-
 {
 	_client_array[0] = &_broadcast_prop_motor_control;
 	_client_array[1] = &_broadcast_arming_handler;
@@ -75,6 +74,12 @@ void VertiqClientManager::Init(uint8_t object_id)
 
 	//We're done with determining how many clients we have, let the serial interface know
 	_serial_interface->SetNumberOfClients(_clients_in_use);
+
+	_velocity_max_entry.ConfigureStruct(param_find("MAX_VELOCITY"), &(_prop_input_parser_client->velocity_max_));
+	_voltage_max_entry.ConfigureStruct(param_find("MAX_VOLTS"), &(_prop_input_parser_client->volts_max_));
+	_control_mode_entry.ConfigureStruct(param_find("CONTROL_MODE"), &(_prop_input_parser_client->mode_));
+	_motor_direction_entry.ConfigureStruct(param_find("VERTIQ_MOTOR_DIR"), &(_prop_input_parser_client->sign_));
+	_fc_direction_entry.ConfigureStruct(param_find("VERTIQ_FC_DIR"), &(_prop_input_parser_client->flip_negative_));
 }
 
 void VertiqClientManager::HandleClientCommunication()
@@ -157,6 +162,8 @@ void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, Cl
 
 		//If we're initializing PX4 to the motor, set the PX4 value to the module value
 		//If we're setting a value through PX4, set the module value to the PX4 value
+		PX4_INFO("init bool value %d", *init_bool);
+
 		if (*init_bool) {
 			px4_value = (px4_data_type)module_value;
 			InitParameter(parameter, init_bool, &px4_value);
@@ -171,13 +178,41 @@ void VertiqClientManager::UpdateParameter(param_t parameter, bool *init_bool, Cl
 	}
 }
 
+template <class module_data_type, class px4_data_type>
+void VertiqClientManager::UpdateParameter(combo_entry<module_data_type, px4_data_type> *combined_entry)
+{
+	module_data_type module_value = 0;
+	px4_data_type px4_value = 0;
+
+	if (combined_entry->_entry->IsFresh()) {
+		module_value = combined_entry->_entry->get_reply();
+		PX4_INFO("needs init value %d", combined_entry->_needs_init);
+
+		if (combined_entry->_needs_init) {
+			// PX4_INFO("combo param needed init");
+			px4_value = (px4_data_type)module_value;
+			InitParameter(combined_entry->_param, &(combined_entry->_needs_init), &px4_value);
+
+		} else {
+			// PX4_INFO("combo param did not need init");
+			param_get(combined_entry->_param, &px4_value);
+
+			if (!ValuesAreTheSame<px4_data_type>(px4_value, (px4_data_type)module_value, (px4_data_type)(0.01))) {
+				SendSetAndSave<module_data_type>(combined_entry->_entry, px4_value);
+			}
+		}
+	}
+}
+
 void VertiqClientManager::MarkIquartConfigsForRefresh()
 {
-	_init_velocity_max = true;
-	_init_volts_max = true;
-	_init_mode = true;
-	_init_motor_dir = true;
-	_init_fc_dir = true;
+	for (uint8_t i = 0; i < num_floats; i++) {
+		float_combo_entries[i]->SetNeedsInit();
+	}
+
+	for (uint8_t i = 0; i < num_uints; i++) {
+		uint8_combo_entries[i]->SetNeedsInit();
+	}
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	_init_throttle_cvi = true;
@@ -234,16 +269,11 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 
 	while (time_now < end_time) {
 		//Go ahead and update our IFCI params
-		UpdateParameter<float, float>(param_find("MAX_VELOCITY"), &_init_velocity_max,
-					      &(_prop_input_parser_client->velocity_max_));
-		UpdateParameter<float, float>(param_find("MAX_VOLTS"), &_init_volts_max,
-					      &(_prop_input_parser_client->volts_max_));
-		UpdateParameter<uint8_t, int32_t>(param_find("CONTROL_MODE"), &_init_mode,
-						  &(_prop_input_parser_client->mode_));
-		UpdateParameter<uint8_t, int32_t>(param_find("VERTIQ_MOTOR_DIR"), &_init_motor_dir,
-						  &(_prop_input_parser_client->sign_));
-		UpdateParameter<uint8_t, int32_t>(param_find("VERTIQ_FC_DIR"), &_init_fc_dir,
-						  &(_prop_input_parser_client->flip_negative_));
+		UpdateParameter<float, float>(&_velocity_max_entry);
+		UpdateParameter<float, float>(&_voltage_max_entry);
+		UpdateParameter<uint8_t, int32_t>(&_control_mode_entry);
+		UpdateParameter<uint8_t, int32_t>(&_motor_direction_entry);
+		UpdateParameter<uint8_t, int32_t>(&_fc_direction_entry);
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 		UpdateParameter<uint8_t, int32_t>(param_find("THROTTLE_CVI"), &_init_throttle_cvi,

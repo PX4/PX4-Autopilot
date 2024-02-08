@@ -61,6 +61,25 @@
 #include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
+template <typename module_data_type, typename px4_data_type>
+struct combo_entry {
+	param_t _param;
+	ClientEntry<module_data_type> *_entry;
+	bool _needs_init;
+
+	void ConfigureStruct(param_t parameter, ClientEntry<module_data_type> *entry)
+	{
+		_param = parameter;
+		_entry = entry;
+		_needs_init = true;
+	}
+
+	void SetNeedsInit()
+	{
+		_needs_init = true;
+	}
+};
+
 class VertiqClientManager
 {
 public:
@@ -143,6 +162,16 @@ public:
 	void UpdateParameter(param_t parameter, bool *init_bool, ClientEntry<module_data_type> *entry);
 
 	/**
+	* @brief Handles calling either InitParameter or SendSetAndSave depending on the state of the parameter init_bool
+	* @param parameter The PX4 parameter we're editing
+	* @param init_bool A pointer to the bool that we need to put down
+	* @param value A pointer to a union that holds the value that we are setting in the conrrect format
+	* @param entry A pointer to the entry that you want to communicate with
+	*/
+	template <class module_data_type, class px4_data_type>
+	void UpdateParameter(combo_entry<module_data_type, px4_data_type> *combined_entry);
+
+	/**
 	* @brief Set all of the IQUART configuration init flags to true
 	*/
 	void MarkIquartConfigsForRefresh();
@@ -165,11 +194,17 @@ private:
 	//IQUART Client configuration
 	IFCI _motor_interface;
 
-	bool _init_velocity_max = true;
-	bool _init_volts_max = true;
-	bool _init_mode = true;
-	bool _init_motor_dir = true;
-	bool _init_fc_dir = true;
+	combo_entry<float, float> _velocity_max_entry;
+	combo_entry<float, float> _voltage_max_entry;
+	combo_entry<uint8_t, int32_t> _control_mode_entry;
+	combo_entry<uint8_t, int32_t> _motor_direction_entry;
+	combo_entry<uint8_t, int32_t> _fc_direction_entry;
+
+	static const uint8_t num_floats = 2;
+	static const uint8_t num_uints = 3;
+
+	combo_entry<float, float> *float_combo_entries[num_floats] = {&_velocity_max_entry, &_voltage_max_entry};
+	combo_entry<uint8_t, int32_t> *uint8_combo_entries[num_uints] = {&_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry};
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	bool _init_throttle_cvi = true;
@@ -210,7 +245,6 @@ private:
 	PulsingRectangularInputParserClient *_pulsing_rectangular_input_parser_client;
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 #endif //CONFIG_USE_IFCI_CONFIGURATION
-
 };
 
 #endif
