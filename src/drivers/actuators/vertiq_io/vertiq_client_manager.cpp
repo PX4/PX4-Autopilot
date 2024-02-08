@@ -169,86 +169,20 @@ void VertiqClientManager::SendSetVelocitySetpoint(uint16_t velocity_setpoint)
 	_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface->get_iquart_interface(), velocity_setpoint);
 }
 
-template <class px4_data_type>
-void VertiqClientManager::InitParameter(param_t parameter, bool *init_bool, px4_data_type *value)
-{
-	param_set(parameter, value);
-	*init_bool = false;
-}
-
-template <class module_data_type>
-void VertiqClientManager::SendSetAndSave(ClientEntry<module_data_type> *entry, module_data_type value)
-{
-	entry->set(*_serial_interface->get_iquart_interface(), value);
-	entry->save(*_serial_interface->get_iquart_interface());
-	_serial_interface->process_serial_tx();
-}
-
-template <class data_type>
-bool ValuesAreTheSame(data_type val1, data_type val2, data_type tolerance)
-{
-	return (val1 == val2);
-}
-
-template <>
-bool ValuesAreTheSame<float>(float val1, float val2, float tolerance)
-{
-	float diff = val1 - val2;
-	return (abs(diff) < tolerance);
-}
-
-template <class module_data_type, class px4_data_type>
-void VertiqClientManager::UpdateParameter(combo_entry<module_data_type, px4_data_type> *combined_entry)
-{
-	module_data_type module_value = 0;
-	px4_data_type px4_value = 0;
-
-	if (combined_entry->_entry->IsFresh()) {
-		module_value = combined_entry->_entry->get_reply();
-
-		if (combined_entry->_needs_init) {
-			// PX4_INFO("combo param needed init");
-			px4_value = (px4_data_type)module_value;
-			InitParameter(combined_entry->_param, &(combined_entry->_needs_init), &px4_value);
-
-		} else {
-			// PX4_INFO("combo param did not need init");
-			param_get(combined_entry->_param, &px4_value);
-
-			if (!ValuesAreTheSame<px4_data_type>(px4_value, (px4_data_type)module_value, (px4_data_type)(0.01))) {
-				SendSetAndSave<module_data_type>(combined_entry->_entry, px4_value);
-			}
-		}
-	}
-}
-
 void VertiqClientManager::MarkIquartConfigsForRefresh()
 {
-	for (uint8_t i = 0; i < num_floats; i++) {
-		float_combo_entries[i]->SetNeedsInit();
+	for (uint8_t i = 0; i < _num_entry_wrappers; i++) {
+		_entry_wrappers[i]->SetNeedsInit();
 	}
-
-	for (uint8_t i = 0; i < num_uints; i++) {
-		uint8_combo_entries[i]->SetNeedsInit();
-	}
-
 }
 
 void VertiqClientManager::UpdateIquartConfigParams()
 {
-	for (uint8_t i = 0; i < num_floats; i++) {
-		float_combo_entries[i]->GetClientEntry()->get(*_serial_interface->get_iquart_interface());
+	for (uint8_t i = 0; i < _num_entry_wrappers; i++) {
+		_entry_wrappers[i]->SendGet(_serial_interface);
+		//Ensure that these get messages get out
+		_serial_interface->process_serial_tx();
 	}
-
-	//Ensure that these get messages get out
-	_serial_interface->process_serial_tx();
-
-	for (uint8_t i = 0; i < num_uints; i++) {
-		uint8_combo_entries[i]->GetClientEntry()->get(*_serial_interface->get_iquart_interface());
-	}
-
-	//Ensure that these get messages get out
-	_serial_interface->process_serial_tx();
 
 	//Now go ahead and grab responses, and update everyone to be on the same page, but do it quickly.
 	CoordinateIquartWithPx4Params(100_ms);
@@ -261,12 +195,8 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 	hrt_abstime end_time = time_now + timeout;
 
 	while (time_now < end_time) {
-		for (uint8_t i = 0; i < num_floats; i++) {
-			UpdateParameter<float, float>(float_combo_entries[i]);
-		}
-
-		for (uint8_t i = 0; i < num_uints; i++) {
-			UpdateParameter<uint8_t, int32_t>(uint8_combo_entries[i]);
+		for (uint8_t i = 0; i < _num_entry_wrappers; i++) {
+			_entry_wrappers[i]->Update(_serial_interface);
 		}
 
 		//Update the time

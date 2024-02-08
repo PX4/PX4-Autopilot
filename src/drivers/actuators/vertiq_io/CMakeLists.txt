@@ -105,6 +105,7 @@ px4_add_module(
 		vertiq_telemetry_manager.hpp
 		vertiq_client_manager.cpp
 		vertiq_client_manager.hpp
+		entry_wrapper.hpp
 		ifci_telemetry.h
 		ifci.hpp
 		ifci.cpp
