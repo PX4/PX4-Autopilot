@@ -48,7 +48,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
-	add_topic("airspeed", 1000);
 	add_optional_topic("airspeed_validated", 200);
 	add_optional_topic("autotune_attitude_control_status", 100);
 	add_optional_topic("camera_capture");
@@ -139,6 +138,7 @@ void LoggedTopics::add_default_topics()
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
+	add_optional_topic_multi("airspeed", 1000, 3);
 	add_optional_topic_multi("airspeed_wind", 1000, 4);
 	add_optional_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
