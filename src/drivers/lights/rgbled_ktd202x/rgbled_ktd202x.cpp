@@ -84,7 +84,7 @@ using namespace time_literals;
 #define CMD_RAMP_TFALL          0x02        //256ms Fall
 #define CMD_CHANNEL_AON         0x01        //for each LED channel
 #define CMD_CHANNEL_AOFF        0x00        //for each LED channel
-#define CMD_CURRENT_OUT         0x01        //Specify maximum output current for each channel in unit of 0.125mA. 10mA nominal output current
+#define CMD_CURRENT_OUT         0x05        //Specify maximum output current for each channel in unit of 0.125mA. 10mA nominal output current
 
 
 class RGBLED_KTD202X: public device::I2C, public I2CSPIDriver<RGBLED_KTD202X>
@@ -347,7 +347,7 @@ RGBLED_KTD202X::RunImpl()
 			break;
 		}
 
-		_brightness = (float)led_control_data.leds[0].brightness / 255;
+		_brightness = (float)led_control_data.leds[0].brightness / 255.f;
 		send_led_rgb();
 	}
 
