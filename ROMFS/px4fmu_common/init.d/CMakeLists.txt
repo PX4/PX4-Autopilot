@@ -48,8 +48,8 @@ px4_add_romfs_files(
 	rc.mc_defaults
 	rcS
 	rc.sensors
-	rc.sr_apps
-	rc.sr_defaults
+	rc.sc_apps
+	rc.sc_defaults
 	rc.thermal_cal
 	rc.rover_apps
 	rc.rover_defaults
