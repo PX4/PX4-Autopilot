@@ -1,5 +1,0 @@
-menuconfig MODULES_SR_THRUSTER_CONTROLLER
-	bool "sr_thruster_controller"
-	default n
-	---help---
-		Enable support for sr_thruster_controller

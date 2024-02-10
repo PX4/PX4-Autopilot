@@ -19,7 +19,7 @@ control_allocator start
 #
 # Start Multicopter Rate Controller.
 #
-ss_rate_control start
+sc_rate_control start
 
 # Start Space Robot Thruster Controller
-sr_thruster_controller start
+sc_thruster_controller start
