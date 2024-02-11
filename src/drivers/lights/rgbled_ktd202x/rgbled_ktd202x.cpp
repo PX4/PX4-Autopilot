@@ -84,7 +84,7 @@ using namespace time_literals;
 #define CMD_RAMP_TFALL          0x02        //256ms Fall
 #define CMD_CHANNEL_AON         0x01        //for each LED channel
 #define CMD_CHANNEL_AOFF        0x00        //for each LED channel
-#define CMD_CURRENT_OUT         0x05        //Specify maximum output current for each channel in unit of 0.125mA. 10mA nominal output current
+#define CURRENT_OUT_LIMIT       0xFF        //Specify maximum output current for each channel in step of 0.125mA. 0xFF = 24mA max.
 
 
 class RGBLED_KTD202X: public device::I2C, public I2CSPIDriver<RGBLED_KTD202X>
@@ -110,7 +110,6 @@ private:
     int         w8_reg(uint8_t reg, uint8_t data);
     int         r8_reg(uint8_t reg, uint8_t* data);
     int         set_nominal_current_out(uint8_t r, uint8_t g, uint8_t b, uint8_t w);
-    //int         set_ramp_time(uint8_t trise, uint8_t tfall);
 
 	float			_brightness{1.0f};
 
@@ -118,8 +117,8 @@ private:
 	uint8_t			_g{0};
 	uint8_t			_b{0};
     uint8_t         _w{0};
-    //uint_t          _color{led_control_s::COLOR_OFF};
     
+    uint8_t         _out_cur_limit;
     bool            _use_white_channel{false};
 
 	LedController		_led_controller;
@@ -141,10 +140,12 @@ RGBLED_KTD202X::RGBLED_KTD202X(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config)
 {
-    _use_white_channel = (bool)config.custom2;
 
-	int ordering = config.custom1;
-	/*
+    _use_white_channel = (bool)config.custom2;
+    _out_cur_limit = *((uint8_t*)(config.custom_data));
+
+    int ordering = config.custom1;
+    /*
 	 * ordering is in RGB order
 	 *
 	 *    Hundreds is Red,
@@ -192,14 +193,59 @@ RGBLED_KTD202X::chip_reset()
     return w8_reg(CTRL_REG0_ADDR, CMD_CHIP_RESET);
 }
 
-/*
 int
-RGBLED_KTD202X::set_ramp_time(uint8_t trise, uint8_t tfall)
+RGBLED_KTD202X::probe()
 {
-    uint8_t reg_val = (tfall << 4) | trise;
-    return w8_reg(CTRL_REG5_ADDR, reg_val);
+	int ret = PX4_OK;
+    uint8_t addr_idx = 0;
+#ifdef CONFIG_I2C
+    uint8_t default_addr = get_device_address();
+#endif
+    bool no_more_alt_addr = false;
+    
+    //Scan through all alternative addresses;
+    do {
+        if (addr_idx >= sizeof(_alt_addrs)) {
+            no_more_alt_addr = true;
+        }
+
+        //Reset chip upon initialization; Note this cmd will never get ACK response;
+        chip_reset();
+        
+        //wait 200us before sending next cmd per datasheet required.
+        up_udelay(199);
+        
+        //set chip enable control mode;
+        ret = set_all_channel(CMD_CHANNEL_AOFF);
+        
+        if (ret != PX4_OK) {
+#ifdef CONFIG_I2C
+            PX4_DEBUG("no insetance at addr 0x%2x", get_device_address());
+            //try next alternative address;
+            for (; addr_idx < sizeof(_alt_addrs); addr_idx++) {
+                if (default_addr != _alt_addrs[addr_idx]) {
+                    PX4_DEBUG("try alt addr 0x%2x", _alt_addrs[addr_idx]);
+                    set_device_address(_alt_addrs[addr_idx]);
+                    addr_idx++;
+                    break;
+                }
+            }
+#endif
+        }
+        else {
+            //Device found. Set chip en mode to ALWAYS_ON;
+            send_chip_enable(CMD_ENCTL_AON);
+        }
+    } while ((ret != PX4_OK) && (!no_more_alt_addr));
+    
+    if (ret != PX4_OK) {
+        //probe failed;
+        PX4_DEBUG("ktd202x probe failed.");
+        return -1;
+    }
+    
+	return ret;
 }
-*/
 
 int
 RGBLED_KTD202X::set_nominal_current_out(uint8_t r, uint8_t g, uint8_t b, uint8_t w)
@@ -244,63 +290,6 @@ RGBLED_KTD202X::set_nominal_current_out(uint8_t r, uint8_t g, uint8_t b, uint8_t
     return ret;
 }
 
-int
-RGBLED_KTD202X::probe()
-{
-	int ret = PX4_OK;
-    uint8_t addr_idx = 0;
-#ifdef CONFIG_I2C
-    uint8_t default_addr = get_device_address();
-#endif
-    bool no_more_alt_addr = false;
-    
-    //Scan through all alternative addresses;
-    do {
-        if (addr_idx >= sizeof(_alt_addrs)) {
-            no_more_alt_addr = true;
-        }
-
-        //Reset chip upon initialization; Note this cmd will never get ACK response;
-        chip_reset();
-        
-        //wait 200us before sending next cmd per datasheet required.
-        up_udelay(199);
-        
-        //set chip enable control mode;
-        ret = set_all_channel(CMD_CHANNEL_AOFF);
-        
-        if (ret != PX4_OK) {
-#ifdef CONFIG_I2C
-            PX4_DEBUG("no insetance at addr 0x%2x", get_device_address());
-            //try next alternative address;
-            for (; addr_idx < sizeof(_alt_addrs); addr_idx++) {
-                if (default_addr != _alt_addrs[addr_idx]) {
-                    PX4_DEBUG("try alt addr 0x%2x", _alt_addrs[addr_idx]);
-                    set_device_address(_alt_addrs[addr_idx]);
-                    addr_idx++;
-                    break;
-                }
-            }
-#endif
-        }
-        else {
-            //LED found. Set chip en mode to ALWAYS_ON;
-            send_chip_enable(CMD_ENCTL_AON);
-        }
-    } while ((ret != PX4_OK) && (!no_more_alt_addr));
-    
-    if (ret != PX4_OK) {
-        //probe failed;
-        PX4_DEBUG("ktd202x probe failed.");
-        return -1;
-    }
-
-    //set pwm auto dimming duration;
-    //set_ramp_time(CMD_RAMP_TRISE, CMD_RAMP_TFALL);
-    
-	return ret;
-}
-
 void
 RGBLED_KTD202X::RunImpl()
 {
@@ -309,36 +298,36 @@ RGBLED_KTD202X::RunImpl()
 	if (_led_controller.update(led_control_data) == 1) {
 		switch (led_control_data.leds[0].color) {
 		case led_control_s::COLOR_RED:
-			_r = CMD_CURRENT_OUT; _g = 0; _b = 0;
+			_r = _out_cur_limit; _g = 0; _b = 0;
 			break;
 
 		case led_control_s::COLOR_GREEN:
-			_r = 0; _g = CMD_CURRENT_OUT; _b = 0;
+			_r = 0; _g = _out_cur_limit; _b = 0;
 			break;
 
 		case led_control_s::COLOR_BLUE:
-			_r = 0; _g = 0; _b = CMD_CURRENT_OUT;
+			_r = 0; _g = 0; _b = _out_cur_limit;
 			break;
 
 		case led_control_s::COLOR_AMBER: //make it the same as yellow
 		case led_control_s::COLOR_YELLOW:
-			_r = CMD_CURRENT_OUT; _g = CMD_CURRENT_OUT; _b = 0;
+			_r = _out_cur_limit; _g = _out_cur_limit; _b = 0;
 			break;
 
 		case led_control_s::COLOR_PURPLE:
-			_r = CMD_CURRENT_OUT; _g = 0; _b = CMD_CURRENT_OUT;
+			_r = _out_cur_limit; _g = 0; _b = _out_cur_limit;
 			break;
 
 		case led_control_s::COLOR_CYAN:
-			_r = 0; _g = CMD_CURRENT_OUT; _b = CMD_CURRENT_OUT;
+			_r = 0; _g = _out_cur_limit; _b = _out_cur_limit;
 			break;
 
 		case led_control_s::COLOR_WHITE:
             if (_use_white_channel) {
-                _r = 0; _g = 0; _b = 0; _w = CMD_CURRENT_OUT;
+                _r = 0; _g = 0; _b = 0; _w = _out_cur_limit;
             }
             else {
-                _r = CMD_CURRENT_OUT; _g = CMD_CURRENT_OUT; _b = CMD_CURRENT_OUT;
+                _r = _out_cur_limit; _g = _out_cur_limit; _b = _out_cur_limit;
             }
 			break;
 
@@ -459,7 +448,7 @@ RGBLED_KTD202X::set_all_channel(uint8_t channel_mode)
 int
 RGBLED_KTD202X::send_led_rgb()
 {
-	int ret = OK;
+	int ret = PX4_OK;
     uint8_t wb = 0;
         
     if (_use_white_channel) {
@@ -468,6 +457,7 @@ RGBLED_KTD202X::send_led_rgb()
     else {
         wb = 0;
     }
+    
     ret = set_nominal_current_out(static_cast<uint8_t>(_r * _brightness), static_cast<uint8_t>(_g * _brightness), static_cast<uint8_t>(_b * _brightness), wb);
     
 	return ret;
@@ -482,6 +472,7 @@ RGBLED_KTD202X::print_usage()
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(KTD2026EWE_ADDR);
     PRINT_MODULE_USAGE_PARAM_FLAG('w', "use white channel for ktd2027", true);
 	PRINT_MODULE_USAGE_PARAM_INT('o', 123, 123, 321, "RGB PWM Assignment", true);
+    PRINT_MODULE_USAGE_PARAM_INT('z', 255, 1, 255, "Specify the limit of output current in step of 0.125mA, valid between 1(0.25mA) and 255(24mA)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -490,23 +481,28 @@ extern "C" __EXPORT int rgbled_ktd202x_main(int argc, char *argv[])
 {
 	int ch;
 	using ThisDriver = RGBLED_KTD202X;
-    bool use_white_channel = false;
+    //limit of output current;
+    uint8_t cur_limit = CURRENT_OUT_LIMIT;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 1000000;    //1MHz
     cli.i2c_address = KTD2026EWE_ADDR;      //default addr
 	cli.custom1 = 123;
-	cli.custom2 = use_white_channel;
+	cli.custom2 = false;                    //NOT use white channel as default;
+    cli.custom_data = &cur_limit;
 
-	while ((ch = cli.getOpt(argc, argv, "w:o:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "w:o:z:")) != EOF) {
 		switch (ch) {
         case 'w':
-            use_white_channel = true;
-            cli.custom2 = use_white_channel;
+            cli.custom2 = true;             //use white channel if requested;
             break;
 
 		case 'o':
 			cli.custom1 = atoi(cli.optArg());
 			break;
+                
+        case 'z':
+            cur_limit = atoi(cli.optArg());
+            break;
 		}
 	}
 
