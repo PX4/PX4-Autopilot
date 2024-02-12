@@ -419,7 +419,7 @@ extern "C" __EXPORT int rover_interface_main(int argc, char *argv[])
 		param_get(param_find("GND_SPEED_MAX"), &vehicle_speed_max);
 
 		// Start
-		PX4_INFO("Start Rover Interface to rover type %d at CAN iface %s with bitrate %d bit/s",
+		PX4_INFO("Start Rover Interface to rover type %" PRId32 " at CAN iface %s with bitrate %" PRId32 " bit/s",
 			 rover_type, RoverInterface::CAN_IFACE, can_bitrate);
 		return RoverInterface::start(static_cast<uint8_t>(rover_type),
 					     can_bitrate,
