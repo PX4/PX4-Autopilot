@@ -852,6 +852,7 @@ status()
 	PX4_INFO("Writes   %u", g_func_counts[DM_WRITE]);
 	PX4_INFO("Reads    %u", g_func_counts[DM_READ]);
 	PX4_INFO("Clears   %u", g_func_counts[DM_CLEAR]);
+	PX4_INFO("WP max   %u", DM_KEY_WAYPOINTS_OFFBOARD_0_MAX);
 
 	perf_print_counter(_dm_read_perf);
 	perf_print_counter(_dm_write_perf);
