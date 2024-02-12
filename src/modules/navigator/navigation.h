@@ -230,15 +230,15 @@ struct mission_fence_point_s {
 };
 
 /**
- * @brief Return to launch position.
- * Defines the position and landing yaw for the return to launch destination.
+ * @brief Position and yaw setpoint struct.
+ * Used in RTL state machine.
  *
  */
-struct DestinationPosition {
-	double lat;	/**< latitude in WGS84 [rad].*/
-	double lon;	/**< longitude in WGS84 [rad].*/
-	float alt;	/**< altitude in MSL [m].*/
-	float yaw;	/**< final yaw when landed [rad].*/
+struct PositionYawSetpoint {
+	double lat;	/**< latitude setpoint in WGS84 [rad].*/
+	double lon;	/**< longitude setpoint in WGS84 [rad].*/
+	float alt;	/**< altitude setpoint in MSL [m].*/
+	float yaw;	/**< yaw setpoint [rad].*/
 };
 
 

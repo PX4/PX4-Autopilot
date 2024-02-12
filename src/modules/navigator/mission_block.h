@@ -205,14 +205,14 @@ protected:
 	 */
 	void set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode);
 
-	void setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_radius) const;
+	void setLoiterToAltMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp, float loiter_radius) const;
 
-	void setLoiterHoldMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_time,
+	void setLoiterHoldMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp, float loiter_time,
 				      float loiter_radius) const;
 
-	void setMoveToPositionMissionItem(mission_item_s &item, const DestinationPosition &dest) const;
+	void setMoveToPositionMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const;
 
-	void setLandMissionItem(mission_item_s &item, const DestinationPosition &dest) const;
+	void setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const;
 
 	void startPrecLand(uint16_t land_precision);
 

@@ -99,7 +99,7 @@ public:
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(DestinationPosition position, loiter_point_s loiter_pos);
+	void setRtlPosition(PositionYawSetpoint position, loiter_point_s loiter_pos);
 
 private:
 	/**
@@ -179,7 +179,7 @@ private:
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 
-	DestinationPosition _destination; ///< the RTL position to fly to
+	PositionYawSetpoint _destination; ///< the RTL position to fly to
 	loiter_point_s _land_approach;
 
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the home position
