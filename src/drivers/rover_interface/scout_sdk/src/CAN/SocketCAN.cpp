@@ -152,7 +152,7 @@ int SocketCAN::Init(const char *const can_iface_name, const uint32_t can_bitrate
 	ifr.ifr_ifru.ifru_can_data.data_samplep = 75;
 
 	if (ioctl(_fd, SIOCSCANBITRATE, &ifr) < 0) {
-		PX4_ERR("Setting CAN bitrate to %d bit/s failed", can_bitrate);
+		PX4_ERR("Setting CAN bitrate to %" PRIu32 " bit/s failed", can_bitrate);
 		return -1;
 	}
 
