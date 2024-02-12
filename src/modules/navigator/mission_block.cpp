@@ -928,16 +928,15 @@ MissionBlock::initialize()
 	_mission_item.origin = ORIGIN_ONBOARD;
 }
 
-void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_radius,
-		float heading_sp) const
+void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest,
+		float loiter_radius) const
 {
 	item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 	item.lat = dest.lat;
 	item.lon = dest.lon;
 	item.altitude = dest.alt;
 	item.altitude_is_relative = false;
-
-	item.yaw = heading_sp;
+	item.yaw = dest.yaw;
 
 	item.acceptance_radius = _navigator->get_acceptance_radius();
 	item.time_inside = 0.0f;
@@ -947,7 +946,7 @@ void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const Destina
 }
 
 void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_time,
-		float loiter_radius, float heading_sp) const
+		float loiter_radius) const
 {
 	const bool autocontinue = (loiter_time > -FLT_EPSILON);
 
@@ -972,8 +971,7 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Destinat
 	item.loiter_radius = loiter_radius;
 }
 
-void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const DestinationPosition &dest,
-		float heading_sp) const
+void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const DestinationPosition &dest) const
 {
 	item.nav_cmd = NAV_CMD_WAYPOINT;
 	item.lat = dest.lat;
@@ -986,17 +984,16 @@ void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const Dest
 	item.time_inside = 0.f;
 	item.origin = ORIGIN_ONBOARD;
 
-	item.yaw = heading_sp;
+	item.yaw = dest.yaw;
 }
 
-void MissionBlock::setLandMissionItem(mission_item_s &item, const DestinationPosition &dest,
-				      const float heading_sp) const
+void MissionBlock::setLandMissionItem(mission_item_s &item, const DestinationPosition &dest) const
 {
 	item.nav_cmd = NAV_CMD_LAND;
 	item.lat = dest.lat;
 	item.lon = dest.lon;
 	item.altitude = dest.alt;
-	item.yaw = heading_sp;
+	item.yaw = dest.yaw;
 	item.acceptance_radius = _navigator->get_acceptance_radius();
 	item.time_inside = 0.0f;
 	item.autocontinue = true;
