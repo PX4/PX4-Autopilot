@@ -208,7 +208,7 @@ void RtlDirect::set_rtl_item()
 				setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, 0.f, _land_approach.loiter_radius_m);
 
 			} else {
-				// already set final yaw if close to destination and WV is disabled
+				// already set final yaw if close to destination and weather vane is disabled
 				pos_yaw_sp.yaw = (is_close_to_destination && !_param_wv_en.get()) ? _destination.yaw : NAN;
 				setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			}
@@ -223,7 +223,7 @@ void RtlDirect::set_rtl_item()
 				.lat = _land_approach.lat,
 				.lon = _land_approach.lon,
 				.alt = loiter_altitude,
-				.yaw = !_param_wv_en.get() ? _destination.yaw : NAN, // set final yaw if WV is disabled
+				.yaw = !_param_wv_en.get() ? _destination.yaw : NAN, // set final yaw if weather vane is disabled
 			};
 
 			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _land_approach.loiter_radius_m);
@@ -250,10 +250,9 @@ void RtlDirect::set_rtl_item()
 				.lat = _land_approach.lat,
 				.lon = _land_approach.lon,
 				.alt = loiter_altitude,
-				.yaw = !_param_wv_en.get() ? _destination.yaw : NAN, // set final yaw if WV is disabled
+				.yaw = !_param_wv_en.get() ? _destination.yaw : NAN, // set final yaw if weather vane is disabled
 			};
 
-			// set final yaw if WV is disabled
 			setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, _param_rtl_land_delay.get(), _land_approach.loiter_radius_m);
 
 			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
@@ -307,7 +306,7 @@ void RtlDirect::set_rtl_item()
 	case RTLState::MOVE_TO_LAND_HOVER: {
 			PositionYawSetpoint pos_yaw_sp{_destination};
 			pos_yaw_sp.alt = loiter_altitude;
-			pos_yaw_sp.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if WV is disabled
+			pos_yaw_sp.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if weather vane is disabled
 
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
@@ -319,7 +318,7 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::LAND: {
 			PositionYawSetpoint pos_yaw_sp{_destination};
-			pos_yaw_sp.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if WV is disabled
+			pos_yaw_sp.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if weather vane is disabled
 			setLandMissionItem(_mission_item, pos_yaw_sp);
 
 			_mission_item.land_precision = _param_rtl_pld_md.get();
