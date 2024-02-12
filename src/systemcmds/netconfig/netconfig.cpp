@@ -50,7 +50,7 @@ __END_DECLS
 int netconfig_main(int argc, char *argv[])
 {
 	struct in_addr addr;
-	int mav_id;
+	int32_t mav_id;
 	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
 
 	param_get(param_find("MAV_SYS_ID"), &mav_id);
