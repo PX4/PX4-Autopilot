@@ -946,8 +946,7 @@ void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const Positio
 }
 
 void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp,
-		float loiter_time,
-		float loiter_radius) const
+		float loiter_time, float loiter_radius) const
 {
 	const bool autocontinue = (loiter_time > -FLT_EPSILON);
 
