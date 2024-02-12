@@ -1,11 +1,11 @@
 #!/bin/sh
-# Standard apps for a differential drive rover.
+# Standard apps for a mecanum drive rover.
 
 # Start the attitude and position estimator.
 ekf2 start &
 
-# Start rover differential drive controller.
-differential_drive start
+# Start rover mecanum drive controller.
+mecanum_drive start
 
 # Start Land Detector.
 land_detector start rover
