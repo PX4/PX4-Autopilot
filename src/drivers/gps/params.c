@@ -247,14 +247,16 @@ PARAM_DEFINE_INT32(GPS_2_PROTOCOL, 1);
  * 2 : Use Galileo
  * 3 : Use BeiDou
  * 4 : Use GLONASS
+ * 5 : Use NAVIC
  *
  * @min 0
- * @max 31
+ * @max 63
  * @bit 0 GPS (with QZSS)
  * @bit 1 SBAS
  * @bit 2 Galileo
  * @bit 3 BeiDou
  * @bit 4 GLONASS
+ * @bit 5 NAVIC
  *
  * @reboot_required true
  * @group GPS
@@ -277,14 +279,16 @@ PARAM_DEFINE_INT32(GPS_1_GNSS, 0);
  * 2 : Use Galileo
  * 3 : Use BeiDou
  * 4 : Use GLONASS
+ * 5 : Use NAVIC
  *
  * @min 0
- * @max 31
+ * @max 63
  * @bit 0 GPS (with QZSS)
  * @bit 1 SBAS
  * @bit 2 Galileo
  * @bit 3 BeiDou
  * @bit 4 GLONASS
+ * @bit 5 NAVIC
  *
  * @reboot_required true
  * @group GPS
