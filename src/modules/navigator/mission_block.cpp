@@ -928,15 +928,15 @@ MissionBlock::initialize()
 	_mission_item.origin = ORIGIN_ONBOARD;
 }
 
-void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest,
+void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp,
 		float loiter_radius) const
 {
 	item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
-	item.lat = dest.lat;
-	item.lon = dest.lon;
-	item.altitude = dest.alt;
+	item.lat = pos_yaw_sp.lat;
+	item.lon = pos_yaw_sp.lon;
+	item.altitude = pos_yaw_sp.alt;
 	item.altitude_is_relative = false;
-	item.yaw = dest.yaw;
+	item.yaw = pos_yaw_sp.yaw;
 
 	item.acceptance_radius = _navigator->get_acceptance_radius();
 	item.time_inside = 0.0f;
@@ -945,7 +945,8 @@ void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const Destina
 	item.loiter_radius = loiter_radius;
 }
 
-void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_time,
+void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp,
+		float loiter_time,
 		float loiter_radius) const
 {
 	const bool autocontinue = (loiter_time > -FLT_EPSILON);
@@ -957,9 +958,9 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Destinat
 		item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	}
 
-	item.lat = dest.lat;
-	item.lon = dest.lon;
-	item.altitude = dest.alt;
+	item.lat = pos_yaw_sp.lat;
+	item.lon = pos_yaw_sp.lon;
+	item.altitude = pos_yaw_sp.alt;
 	item.altitude_is_relative = false;
 
 	item.yaw = NAN;
@@ -971,12 +972,12 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Destinat
 	item.loiter_radius = loiter_radius;
 }
 
-void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const DestinationPosition &dest) const
+void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const
 {
 	item.nav_cmd = NAV_CMD_WAYPOINT;
-	item.lat = dest.lat;
-	item.lon = dest.lon;
-	item.altitude = dest.alt;
+	item.lat = pos_yaw_sp.lat;
+	item.lon = pos_yaw_sp.lon;
+	item.altitude = pos_yaw_sp.alt;
 	item.altitude_is_relative = false;
 
 	item.autocontinue = true;
@@ -984,16 +985,16 @@ void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const Dest
 	item.time_inside = 0.f;
 	item.origin = ORIGIN_ONBOARD;
 
-	item.yaw = dest.yaw;
+	item.yaw = pos_yaw_sp.yaw;
 }
 
-void MissionBlock::setLandMissionItem(mission_item_s &item, const DestinationPosition &dest) const
+void MissionBlock::setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const
 {
 	item.nav_cmd = NAV_CMD_LAND;
-	item.lat = dest.lat;
-	item.lon = dest.lon;
-	item.altitude = dest.alt;
-	item.yaw = dest.yaw;
+	item.lat = pos_yaw_sp.lat;
+	item.lon = pos_yaw_sp.lon;
+	item.altitude = pos_yaw_sp.alt;
+	item.yaw = pos_yaw_sp.yaw;
 	item.acceptance_radius = _navigator->get_acceptance_radius();
 	item.time_inside = 0.0f;
 	item.autocontinue = true;

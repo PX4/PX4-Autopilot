@@ -109,20 +109,20 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(DestinationType &destination_type, DestinationPosition &rtl_position, float &rtl_alt);
+	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, float &rtl_alt);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
-	void setLandPosAsDestination(DestinationPosition &rtl_position, mission_item_s &land_mission_item) const;
+	void setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const;
 
 	/**
 	 * @brief Set the safepoint as destination.
 	 *
 	 * @param mission_safe_point is the mission safe point/rally point to set as destination.
 	 */
-	void setSafepointAsDestination(DestinationPosition &rtl_position, const mission_item_s &mission_safe_point) const;
+	void setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const;
 
 	/**
 	 * @brief calculate return altitude from cone half angle
@@ -131,7 +131,7 @@ private:
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
-	float calculate_return_alt_from_cone_half_angle(const DestinationPosition &rtl_position,
+	float calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &rtl_position,
 			float cone_half_angle_deg) const;
 
 	/**
@@ -152,7 +152,7 @@ private:
 	 * @param[in] rtl_position landing position of the rtl
 	 *
 	 */
-	land_approaches_s readVtolLandApproaches(DestinationPosition rtl_position) const;
+	land_approaches_s readVtolLandApproaches(PositionYawSetpoint rtl_position) const;
 
 	/**
 	 * @brief Has VTOL land approach
@@ -162,7 +162,7 @@ private:
 	 * @return true if home land approaches are defined for home position
 	 * @return false otherwise
 	 */
-	bool hasVtolLandApproach(const DestinationPosition &rtl_position) const;
+	bool hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const;
 
 	/**
 	 * @brief Choose best landing approach

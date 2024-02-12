@@ -297,7 +297,7 @@ void RTL::setRtlTypeAndDestination()
 	if (_param_rtl_type.get() != 2) {
 		// check the closest allowed destination.
 		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
-		DestinationPosition rtl_position;
+		PositionYawSetpoint rtl_position;
 		float rtl_alt;
 		findRtlDestination(destination_type, rtl_position, rtl_alt);
 
@@ -333,7 +333,7 @@ void RTL::setRtlTypeAndDestination()
 	}
 }
 
-void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosition &rtl_position, float &rtl_alt)
+void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, float &rtl_alt)
 {
 	// set destination to home per default, then check if other valid landing spot is closer
 	rtl_position.alt = _home_pos_sub.get().alt;
@@ -413,7 +413,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 			if (mission_safe_point.nav_cmd == NAV_CMD_RALLY_POINT && dist_to_home > MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES) {
 				float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
 
-				DestinationPosition safepoint_position;
+				PositionYawSetpoint safepoint_position;
 				setSafepointAsDestination(safepoint_position, mission_safe_point);
 
 				if (((dist + MIN_DIST_THRESHOLD) < min_dist) && (!vtol_in_fw_mode || (_param_rtl_approach_force.get() == 0)
@@ -435,7 +435,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 	}
 }
 
-void RTL::setLandPosAsDestination(DestinationPosition &rtl_position, mission_item_s &land_mission_item) const
+void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const
 {
 	rtl_position.alt = land_mission_item.altitude_is_relative ?	land_mission_item.altitude +
 			   _home_pos_sub.get().alt : land_mission_item.altitude;
@@ -444,7 +444,7 @@ void RTL::setLandPosAsDestination(DestinationPosition &rtl_position, mission_ite
 	rtl_position.yaw = _home_pos_sub.get().yaw;
 }
 
-void RTL::setSafepointAsDestination(DestinationPosition &rtl_position,
+void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position,
 				    const mission_item_s &mission_safe_point) const
 {
 	// There is a safe point closer than home/mission landing
@@ -472,7 +472,7 @@ void RTL::setSafepointAsDestination(DestinationPosition &rtl_position,
 	}
 }
 
-float RTL::calculate_return_alt_from_cone_half_angle(const DestinationPosition &rtl_position,
+float RTL::calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &rtl_position,
 		float cone_half_angle_deg) const
 {
 	// horizontal distance to destination
@@ -576,7 +576,7 @@ bool RTL::hasMissionLandStart() const
 	return _mission_sub.get().land_start_index > 0;
 }
 
-bool RTL::hasVtolLandApproach(const DestinationPosition &rtl_position) const
+bool RTL::hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const
 {
 	return readVtolLandApproaches(rtl_position).isAnyApproachValid();
 }
@@ -611,7 +611,7 @@ loiter_point_s RTL::chooseBestLandingApproach(const land_approaches_s &vtol_land
 	}
 }
 
-land_approaches_s RTL::readVtolLandApproaches(DestinationPosition rtl_position) const
+land_approaches_s RTL::readVtolLandApproaches(PositionYawSetpoint rtl_position) const
 {
 
 	// go through all mission items in the rally point storage. If we find a mission item of type NAV_CMD_RALLY_POINT
