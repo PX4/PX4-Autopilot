@@ -3,24 +3,47 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-# Mavlink ethernet (CFG 1000)
-param set-default MAV_2_CONFIG 1000
-param set-default MAV_2_BROADCAST 1
-param set-default MAV_2_MODE 0
-param set-default MAV_2_RADIO_CTL 0
-param set-default MAV_2_RATE 100000
-param set-default MAV_2_REMOTE_PRT 14550
-param set-default MAV_2_UDP_PRT 14550
+if param greater UAVCAN_ENABLE 0
+then
+  # UAVCAN support max 3 CAN IFACEs
+  ifup can0
+  ifup can1
+  ifup can2
+  param set-default UAVCAN_NODE_ID 1
+  param set-default UAVCAN_SUB_GPS 0
+  param set-default UAVCAN_SUB_MAG 0
+  param set-default FD_ACT_MOT_C2T 0.0
+fi
+
+if param compare SYS_HITL 0
+then
+  if ! param compare UAVCAN_ENABLE 3
+  then
+    pwm_esc start
+  fi
+fi
+
+param set-default COM_PREARM_MODE 1
+param set-default CBRK_IO_SAFETY 0
+param set-default SYS_DM_BACKEND 1
+param set-default SENS_EXT_I2C_PRB 0
 
 param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 1
 
-safety_button start
+# enable Multi-EKF
+param set-default SENS_IMU_MODE 0
+param set-default EKF2_MULTI_IMU 3
 
-if param greater -s UAVCAN_ENABLE 0
-then
-	ifup can0
-	ifup can1
-	ifup can2
-fi
+# Set default logfile encryption key indecies
+param set-default SDLOG_EXCH_KEY 2
+param set-default SDLOG_KEY 3
+
+param set-default SYS_USE_IO 1
+
+# IMU heater settings
+param set-default SENS_TEMP_ID 2493210
+param set-default SENS_EN_THERMAL 1
+
+safety_button start

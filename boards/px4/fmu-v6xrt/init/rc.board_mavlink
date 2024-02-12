@@ -3,11 +3,19 @@
 # PX4 FMUv6X-RT specific board MAVLink startup script.
 #------------------------------------------------------------------------------
 
-# if skynode base board is detected start Mavlink on Telem2
-if ver hwbasecmp 009 010
-then
-	mavlink start -d /dev/ttyS5 -b 3000000 -r 290000 -m onboard_low_bandwidth -x -z
+set REMOTE_IPADDR "192.168.200.100"
 
-	# Ensure nothing else starts on TEL2 (ttyS5)
-	set PRT_TEL2_ 1
-fi
+# Start the IP link
+netconfig
+
+echo "Starting microdds_client connecting to ${REMOTE_IPADDR}"
+# Start uXRCE-DDS client on UDP here in case no rpnet
+uxrce_dds_client start -t udp -h ${REMOTE_IPADDR} -r 2019 -p 2020
+
+# Start MC flight control mavlink to ethernet interface
+mavlink start -c ${REMOTE_IPADDR} -u 14541 -o 14540 -r 1000000 -x
+
+# Start MC maintenance mavlink to ethernet interface
+mavlink start -c ${REMOTE_IPADDR} -u 14543 -o 14542 -r 2000000 -m magic -x
+
+unset REMOTE_IPADDR
