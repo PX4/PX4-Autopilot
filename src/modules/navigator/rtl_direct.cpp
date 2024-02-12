@@ -122,7 +122,7 @@ void RtlDirect::on_active()
 	}
 }
 
-void RtlDirect::setRtlPosition(DestinationPosition rtl_position, loiter_point_s loiter_pos)
+void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s loiter_pos)
 {
 	_home_pos_sub.update();
 
@@ -182,20 +182,20 @@ void RtlDirect::set_rtl_item()
 
 	switch (_rtl_state) {
 	case RTLState::CLIMBING: {
-			DestinationPosition dest {
+			PositionYawSetpoint pos_yaw_sp {
 				.lat = _global_pos_sub.get().lat,
 				.lon = _global_pos_sub.get().lon,
 				.alt = _rtl_alt,
 				.yaw = _param_wv_en.get() ? NAN : _navigator->get_local_position()->heading,
 			};
-			setLoiterToAltMissionItem(_mission_item, dest, _navigator->get_loiter_radius());
+			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _navigator->get_loiter_radius());
 
 			_rtl_state = RTLState::MOVE_TO_LOITER;
 			break;
 		}
 
 	case RTLState::MOVE_TO_LOITER: {
-			DestinationPosition dest {
+			PositionYawSetpoint pos_yaw_sp {
 				.lat = _land_approach.lat,
 				.lon = _land_approach.lon,
 				.alt = _rtl_alt,
@@ -204,13 +204,13 @@ void RtlDirect::set_rtl_item()
 			// For FW flight:set to LOITER_TIME (with 0s loiter time), such that the loiter (orbit) status
 			// can be displayed on groundstation and the WP is accepted once within loiter radius
 			if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				dest.yaw = NAN;
-				setLoiterHoldMissionItem(_mission_item, dest, 0.f, _land_approach.loiter_radius_m);
+				pos_yaw_sp.yaw = NAN;
+				setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, 0.f, _land_approach.loiter_radius_m);
 
 			} else {
 				// already set final yaw if close to destination and WV is disabled
-				dest.yaw = (is_close_to_destination && !_param_wv_en.get()) ? _destination.yaw : NAN;
-				setMoveToPositionMissionItem(_mission_item, dest);
+				pos_yaw_sp.yaw = (is_close_to_destination && !_param_wv_en.get()) ? _destination.yaw : NAN;
+				setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			}
 
 			_rtl_state = RTLState::LOITER_DOWN;
@@ -219,14 +219,14 @@ void RtlDirect::set_rtl_item()
 		}
 
 	case RTLState::LOITER_DOWN: {
-			DestinationPosition dest{
+			PositionYawSetpoint pos_yaw_sp{
 				.lat = _land_approach.lat,
 				.lon = _land_approach.lon,
 				.alt = loiter_altitude,
 				.yaw = !_param_wv_en.get() ? _destination.yaw : NAN, // set final yaw if WV is disabled
 			};
 
-			setLoiterToAltMissionItem(_mission_item, dest, _land_approach.loiter_radius_m);
+			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _land_approach.loiter_radius_m);
 
 			pos_sp_triplet->next.valid = true;
 			pos_sp_triplet->next.lat = _destination.lat;
@@ -246,7 +246,7 @@ void RtlDirect::set_rtl_item()
 		}
 
 	case RTLState::LOITER_HOLD: {
-			DestinationPosition dest {
+			PositionYawSetpoint pos_yaw_sp {
 				.lat = _land_approach.lat,
 				.lon = _land_approach.lon,
 				.alt = loiter_altitude,
@@ -254,7 +254,7 @@ void RtlDirect::set_rtl_item()
 			};
 
 			// set final yaw if WV is disabled
-			setLoiterHoldMissionItem(_mission_item, dest, _param_rtl_land_delay.get(), _land_approach.loiter_radius_m);
+			setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, _param_rtl_land_delay.get(), _land_approach.loiter_radius_m);
 
 			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering\t");
@@ -274,11 +274,11 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::MOVE_TO_LAND: {
 
-			DestinationPosition dest{_destination};
-			dest.alt = loiter_altitude;
-			dest.yaw = NAN;
+			PositionYawSetpoint pos_yaw_sp{_destination};
+			pos_yaw_sp.alt = loiter_altitude;
+			pos_yaw_sp.yaw = NAN;
 
-			setMoveToPositionMissionItem(_mission_item, dest);
+			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 
 			// Prepare for transition
 			_mission_item.vtol_back_transition = true;
@@ -305,11 +305,11 @@ void RtlDirect::set_rtl_item()
 		}
 
 	case RTLState::MOVE_TO_LAND_HOVER: {
-			DestinationPosition dest{_destination};
-			dest.alt = loiter_altitude;
-			dest.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if WV is disabled
+			PositionYawSetpoint pos_yaw_sp{_destination};
+			pos_yaw_sp.alt = loiter_altitude;
+			pos_yaw_sp.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if WV is disabled
 
-			setMoveToPositionMissionItem(_mission_item, dest);
+			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
 			_rtl_state = RTLState::LAND;
@@ -318,9 +318,9 @@ void RtlDirect::set_rtl_item()
 		}
 
 	case RTLState::LAND: {
-			DestinationPosition dest{_destination};
-			dest.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if WV is disabled
-			setLandMissionItem(_mission_item, dest);
+			PositionYawSetpoint pos_yaw_sp{_destination};
+			pos_yaw_sp.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if WV is disabled
+			setLandMissionItem(_mission_item, pos_yaw_sp);
 
 			_mission_item.land_precision = _param_rtl_pld_md.get();
 
