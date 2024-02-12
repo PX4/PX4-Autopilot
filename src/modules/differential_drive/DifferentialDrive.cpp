@@ -82,7 +82,6 @@ void DifferentialDrive::Run()
 		vehicle_control_mode_s vehicle_control_mode{};
 
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
-			_differential_drive_kinematics.setArmed(vehicle_control_mode.flag_armed);
 			_manual_driving = vehicle_control_mode.flag_control_manual_enabled;
 			_mission_driving = vehicle_control_mode.flag_control_auto_enabled;
 		}
@@ -92,6 +91,9 @@ void DifferentialDrive::Run()
 		vehicle_status_s vehicle_status{};
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			const bool spooled_up = armed && (hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s);
+			_differential_drive_kinematics.setArmed(spooled_up);
 			_acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
 		}
 	}
