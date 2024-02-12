@@ -48,7 +48,6 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
 
 class DifferentialDriveControl : public ModuleParams
 {
@@ -68,7 +67,6 @@ private:
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<differential_drive_setpoint_s> _differential_drive_control_output_pub{ORB_ID(differential_drive_control_output)};
 
@@ -84,14 +82,10 @@ private:
 	PID_t _pid_angular_velocity; ///< The PID controller for yaw rate.
 	PID_t _pid_speed; ///< The PID controller for velocity.
 
-	bool _spooled_up{false};
-
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RDD_P_SPEED>) _param_rdd_p_gain_speed,
 		(ParamFloat<px4::params::RDD_I_SPEED>) _param_rdd_i_gain_speed,
 		(ParamFloat<px4::params::RDD_P_ANG_VEL>) _param_rdd_p_gain_angular_velocity,
-		(ParamFloat<px4::params::RDD_I_ANG_VEL>) _param_rdd_i_gain_angular_velocity,
-
-		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
+		(ParamFloat<px4::params::RDD_I_ANG_VEL>) _param_rdd_i_gain_angular_velocity
 	)
 };

@@ -99,6 +99,7 @@ private:
 		(ParamFloat<px4::params::RDD_SPEED_SCALE>) _param_rdd_speed_scale,
 		(ParamFloat<px4::params::RDD_WHEEL_BASE>) _param_rdd_wheel_base,
 		(ParamFloat<px4::params::RDD_WHEEL_SPEED>) _param_rdd_wheel_speed,
-		(ParamFloat<px4::params::RDD_WHEEL_RADIUS>) _param_rdd_wheel_radius
+		(ParamFloat<px4::params::RDD_WHEEL_RADIUS>) _param_rdd_wheel_radius,
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
 	)
 };
