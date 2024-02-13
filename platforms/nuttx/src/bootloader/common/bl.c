@@ -293,17 +293,6 @@ buf_get(void)
 void
 jump_to_app()
 {
-	const uint32_t *app_base = (const uint32_t *)APP_LOAD_ADDRESS;
-	const uint32_t *vec_base = (const uint32_t *)app_base + APP_VECTOR_OFFSET;
-
-	/*
-	 * We refuse to program the first word of the app until the upload is marked
-	 * complete by the host.  So if it's not 0xffffffff, we should try booting it.
-	 */
-	if (app_base[APP_VECTOR_OFFSET_WORDS] == 0xffffffff) {
-		return;
-	}
-
 #ifdef BOOTLOADER_USE_TOC
 
 #ifdef BOOTLOADER_USE_SECURITY
@@ -314,8 +303,8 @@ jump_to_app()
 	uint8_t i = 0;
 
 	/* When secure btl is used, the address comes from the TOC */
-	app_base = (const uint32_t *)0;
-	vec_base = (const uint32_t *)0;
+	const uint32_t *app_base = (const uint32_t *)0;
+	const uint32_t *vec_base = (const uint32_t *)0;
 
 	/* TOC not found or empty, stay in btl */
 	if (!find_toc(&toc_entries, &len)) {
@@ -370,10 +359,13 @@ jump_to_app()
 
 	if (vec_base == 0) {
 		/* No separate vectors block, vectors come along with the app */
-		vec_base = app_base;
+		vec_base = app_base + APP_VECTOR_OFFSET_WORDS;
 	}
 
 #else
+
+	const uint32_t *app_base = (const uint32_t *)APP_LOAD_ADDRESS;
+	const uint32_t *vec_base = (const uint32_t *)app_base + APP_VECTOR_OFFSET_WORDS;
 
 	/* These checks are arm specific, and not needed when using TOC */
 
@@ -390,6 +382,14 @@ jump_to_app()
 	}
 
 #endif
+
+	/*
+	 * We refuse to program the first word of the app until the upload is marked
+	 * complete by the host.  So if it's not 0xffffffff, we should try booting it.
+	 */
+	if (app_base[APP_VECTOR_OFFSET_WORDS] == 0xffffffff) {
+		return;
+	}
 
 #ifdef BOOTLOADER_USE_SECURITY
 	crypto_deinit();
