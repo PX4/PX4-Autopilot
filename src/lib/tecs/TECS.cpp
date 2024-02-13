@@ -231,6 +231,8 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 
 	AltitudePitchControl control_setpoint;
 
+	control_setpoint.tas_setpoint = setpoint.tas_setpoint;
+
 	control_setpoint.tas_rate_setpoint = _calcAirspeedControlOutput(setpoint, input, param, flag);
 
 	control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
@@ -274,6 +276,7 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 
 	AltitudePitchControl control_setpoint;
 
+	control_setpoint.tas_setpoint = setpoint.tas_setpoint;
 	control_setpoint.tas_rate_setpoint = _calcAirspeedControlOutput(setpoint, input, param, flag);
 
 	if (PX4_ISFINITE(setpoint.altitude_rate_setpoint_direct)) {
@@ -350,7 +353,7 @@ TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const Alt
 	// Calculate specific energy rate demands in units of (m**2/sec**3)
 	specific_energy_rates.spe_rate.setpoint = control_setpoint.altitude_rate_setpoint *
 			CONSTANTS_ONE_G; // potential energy rate of change
-	specific_energy_rates.ske_rate.setpoint = input.tas *
+	specific_energy_rates.ske_rate.setpoint = control_setpoint.tas_setpoint *
 			control_setpoint.tas_rate_setpoint; // kinetic energy rate of change
 
 	// Calculate specific energy rates in units of (m**2/sec**3)
