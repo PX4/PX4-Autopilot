@@ -22,7 +22,7 @@ param set-default COM_ARM_WO_GPS 1
 # Set Differential Drive Kinematics Library parameters:
 param set RDD_WHEEL_BASE 0.9
 param set RDD_WHEEL_RADIUS 0.22
-param set RDD_WHL_SPEED 10.0	# Maximum wheel speed rad/s
+param set RDD_WHEEL_SPEED 10.0	# Maximum wheel speed rad/s, approx 8 km/h
 
 # Actuator mapping - set SITL motors/servos output parameters:
 
