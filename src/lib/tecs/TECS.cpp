@@ -402,10 +402,8 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 
 	}
 
-	// don't allow any weight to be larger than one, as it has the same effect as reducing the control
-	// loop time constant and therefore can lead to a destabilization of that control loop
-	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 1.f);
-	weight.ske_weighting = constrain(pitch_speed_weight, 0.f, 1.f);
+	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 2.f);
+	weight.ske_weighting = constrain(pitch_speed_weight, 0.f, 2.f);
 
 	return weight;
 }
