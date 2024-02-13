@@ -133,7 +133,6 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		_esc_status.timestamp = time_now;
 		_esc_status.counter++;
 
-		// PX4_INFO("Velo gotten from telemetry on module id %d %d", _current_telemetry_target_module_id, telem_response.speed);
 		got_reply = true;
 	}
 

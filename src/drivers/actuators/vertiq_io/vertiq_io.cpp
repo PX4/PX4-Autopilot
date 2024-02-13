@@ -81,8 +81,7 @@ bool VertiqIo::init()
 	return true;
 }
 
-//This is the same as a while(1) loop. Gets called at a set interval, or
-//is triggered by some uORB publication
+//This is the same as a while(1) loop
 void VertiqIo::Run()
 {
 	//Start the loop timer
@@ -97,8 +96,7 @@ void VertiqIo::Run()
 		return;
 	}
 
-	// telemetry device update request?
-	//This happens whenever the module is started
+	//Someone asked to change the telemetry port, or we booted up
 	if (_request_telemetry_init.load()) {
 		_serial_interface.init_serial(_telemetry_device, _param_vertiq_baud.get());
 		_request_telemetry_init.store(false);
@@ -196,8 +194,6 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 		//conversions
 		_motor_interface_ptr->BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use,
 				_telemetry_request_id);
-
-		_telemetry_request_id = _impossible_module_id;
 	}
 
 	else {
