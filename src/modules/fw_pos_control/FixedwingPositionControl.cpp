@@ -1388,7 +1388,7 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 				0.0f;
 	navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed, _wind_vel, curvature);
 
-	_att_sp.roll_body = _npfg.getRollSetpoint();
+	_att_sp.roll_body = getCorrectedNpfgRollSetpoint();
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
