@@ -105,6 +105,7 @@ private:
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
+	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 
 	/**
 	*
@@ -139,6 +140,7 @@ private:
 	pthread_mutex_t _node_mutex;
 
 	MapProjection _pos_ref{};
+	double _alt_ref{}; // starting altitude reference
 
 	matrix::Vector3d _position_prev{};
 	matrix::Vector3d _velocity_prev{};
@@ -153,10 +155,4 @@ private:
 	float _temperature{288.15};  // 15 degrees
 
 	gz::transport::Node _node;
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_GZ_HOME_LAT>) _param_sim_home_lat,
-		(ParamFloat<px4::params::SIM_GZ_HOME_LON>) _param_sim_home_lon,
-		(ParamFloat<px4::params::SIM_GZ_HOME_ALT>) _param_sim_home_alt
-	)
 };
