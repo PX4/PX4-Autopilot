@@ -592,7 +592,7 @@ arch_do_jump(const uint32_t *app_base)
 }
 
 int
-bootloader_main(void)
+CONFIG_INIT_ENTRYPOINT(int argc, char *argv[])
 {
 	bool try_boot = true;			/* try booting before we drop to the bootloader */
 	unsigned timeout = BOOTLOADER_DELAY;	/* if nonzero, drop out of the bootloader after this time */
