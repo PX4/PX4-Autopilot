@@ -320,9 +320,11 @@ float TECSControl::_calcAirspeedControlOutput(const Setpoint &setpoint, const In
 	// if airspeed measurement is not enabled then always set the rate setpoint to zero in order to avoid constant rate setpoints
 	if (flag.airspeed_enabled) {
 		// Calculate limits for the demanded rate of change of speed based on physical performance limits
-		// with a 50% margin to allow the total energy controller to correct for errors.
-		const float max_tas_rate_sp = 0.5f * limit.STE_rate_max / math::max(input.tas, FLT_EPSILON);
-		const float min_tas_rate_sp = 0.5f * limit.STE_rate_min / math::max(input.tas, FLT_EPSILON);
+		// with a 50% margin to allow the total energy controller to correct for errors. Increase it in case of fast descend
+		const float max_tas_rate_sp = (param.fast_descend * 0.5f + 0.5f) * limit.STE_rate_max / math::max(input.tas,
+					      FLT_EPSILON);
+		const float min_tas_rate_sp = (param.fast_descend * 0.5f + 0.5f) * limit.STE_rate_min / math::max(input.tas,
+					      FLT_EPSILON);
 		airspeed_rate_output = constrain((setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain, min_tas_rate_sp,
 						 max_tas_rate_sp);
 	}
