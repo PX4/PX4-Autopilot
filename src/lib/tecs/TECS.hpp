@@ -366,6 +366,7 @@ private:
 	struct AltitudePitchControl {
 		float altitude_rate_setpoint;	///< Controlled altitude rate setpoint [m/s].
 		float tas_rate_setpoint;	///< Controlled true airspeed rate setpoint [m/s²].
+		float tas_setpoint; 		///< Controller true airspeed setpoint [m/s]
 	};
 
 	/**
