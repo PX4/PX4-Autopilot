@@ -483,6 +483,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
+#ifdef CONFIG_IMXRT_FLEXSPI
+	imxrt_flexspi_fram_initialize();
+#endif
+
 #ifdef CONFIG_IMXRT_ENET
 	imxrt_netinitialize(0);
 #endif

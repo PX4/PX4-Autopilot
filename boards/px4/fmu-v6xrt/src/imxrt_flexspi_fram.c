@@ -661,6 +661,7 @@ int flexspi_attach(mtd_instance_s *instance)
 int imxrt_flexspi_fram_initialize(void)
 {
 	uint8_t vendor_id;
+	struct mtd_dev_s *mtd_dev = &g_flexspi_nor.mtd;
 	int ret = -ENODEV;
 
 	/* Configure multiplexed pins as connected on the board */
@@ -689,6 +690,34 @@ int imxrt_flexspi_fram_initialize(void)
 			ret = -EIO;
 		}
 	}
+
+	/* Register the MTD driver so that it can be accessed from the
+	* VFS.
+	*/
+
+	ret = register_mtddriver("/dev/fram", mtd_dev, 0755, NULL);
+
+	if (ret < 0) {
+		syslog(LOG_ERR, "ERROR: Failed to register MTD driver: %d\n",
+		       ret);
+	}
+
+	/* mtd_dev->ioctl(mtd_dev, MTDIOC_BULKERASE, 0); */
+
+#ifdef CONFIG_FS_LITTLEFS
+
+	/* Mount the LittleFS file system */
+
+	ret = nx_mount("/dev/fram", "/mnt/lfs", "littlefs", 0,
+		       "autoformat");
+
+	if (ret < 0) {
+		syslog(LOG_ERR,
+		       "ERROR: Failed to mount LittleFS at /mnt/lfs: %d\n",
+		       ret);
+	}
+
+#endif
 
 	return ret;
 }
