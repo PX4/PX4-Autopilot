@@ -108,7 +108,6 @@ uint8_t VertiqClientManager::GetObjectIdNow()
 
 void VertiqClientManager::UpdateClientsToNewObjId(uint8_t new_object_id)
 {
-
 	_object_id_now = new_object_id;
 
 	delete _prop_input_parser_client;

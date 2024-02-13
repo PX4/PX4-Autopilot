@@ -74,6 +74,7 @@ public:
 	void SendGet(VertiqSerialInterface *ser)
 	{
 		_entry->get(*ser->get_iquart_interface());
+		ser->process_serial_tx();
 	}
 
 	void SendSetAndSave(VertiqSerialInterface *ser, module_data_type value)
@@ -96,23 +97,26 @@ public:
 
 	void Update(VertiqSerialInterface *serial_interface)
 	{
+		//Make sure we have a way to store the data from PX4 and from the module
 		module_data_type module_value = 0;
 		px4_data_type px4_value = 0;
 
+		//If there's new data in the entry
 		if (_entry->IsFresh()) {
+			//Grab the data
 			module_value = _entry->get_reply();
 
+			//If we need to set the PX4 data to the module's value, otherwise set the module value
 			if (_needs_init) {
-				// PX4_INFO("combo param needed init");
 				px4_value = (px4_data_type)module_value;
 				param_set(_param, &px4_value);
 				_needs_init = false;
-				// InitParameter(_param, &(combined_entry->_needs_init), &px4_value);
 
 			} else {
-				// PX4_INFO("combo param did not need init");
+				//Grab the PX4 value
 				param_get(_param, &px4_value);
 
+				//If the value here is different from the module's value, set and save it
 				if (!ValuesAreTheSame(px4_value, (px4_data_type)module_value, (px4_data_type)(0.01))) {
 					SendSetAndSave(serial_interface, px4_value);
 				}

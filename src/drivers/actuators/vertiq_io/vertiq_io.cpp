@@ -124,6 +124,14 @@ void VertiqIo::Run()
 	_mixing_output.update();
 	_mixing_output.updateSubscriptions(true);
 
+	//Go ahead and check to see if our actuator test has gotten anything new
+	if (_actuator_test_sub.updated()) {
+		_actuator_test_sub.copy(&_actuator_test);
+
+		//Our test is active if anyone is giving us commands through the actuator test
+		_actuator_test_active = _actuator_test.action == actuator_test_s::ACTION_DO_CONTROL;
+	}
+
 	//stop our timer
 	perf_end(_loop_perf);
 }
@@ -183,7 +191,16 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 		//proper value when necessary
 		_telemetry_request_id = _impossible_module_id;
 
-	} else {
+	} else if (_actuator_test_active) {
+		//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
+		//conversions
+		_motor_interface_ptr->BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use,
+				_telemetry_request_id);
+
+		_telemetry_request_id = _impossible_module_id;
+	}
+
+	else {
 		//Put the modules into coast
 		switch (_param_vertiq_disarm_behavior.get()) {
 		case TRIGGER_MOTOR_DISARM:
@@ -205,6 +222,8 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 		if (!_send_forced_arm) {
 			_send_forced_arm = true;
 		}
+
+		_actuator_test_active = false;
 	}
 
 	//Publish our esc status to uORB
