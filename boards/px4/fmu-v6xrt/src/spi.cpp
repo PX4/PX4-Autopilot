@@ -41,6 +41,7 @@
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
 
+#ifdef CONFIG_SPI
 constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
 	initSPIFmumID(V6XRT_0, {
 		initSPIBus(SPI::Bus::LPSPI1, {
@@ -84,3 +85,4 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses_all_hw);
+#endif
