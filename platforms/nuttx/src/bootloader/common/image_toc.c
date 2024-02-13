@@ -41,6 +41,10 @@
 
 #include "bl.h"
 
+/* TOC doesn't exist if TOC_ADDRESS is not defined */
+
+#ifdef TOC_ADDRESS
+
 /* Helper macros to define flash start and end addresses, based on info from
  * hw_config.h
  */
@@ -119,3 +123,5 @@ bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
 	*len = 0;
 	return false;
 }
+
+#endif // ifdef TOC_ADDRESS
