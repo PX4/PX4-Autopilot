@@ -63,10 +63,16 @@ void Ekf::controlMagFusion()
 	}
 
 	// stop mag (require a reset before using again) if there was an external yaw reset (yaw estimator, GPS yaw, etc)
-	if (_mag_decl_cov_reset && (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat)) {
-		ECL_INFO("yaw reset, stopping mag fusion to force reinitialization");
-		stopMagFusion();
-		resetMagCov();
+	if (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat) {
+
+		if (_information_events.flags.yaw_aligned_to_imu_gps
+		    || _control_status.flags.gps_yaw
+		    || _control_status.flags.ev_yaw
+		   ) {
+			ECL_INFO("yaw reset, stopping mag fusion to force reinitialization");
+			stopMagFusion();
+			resetMagCov();
+		}
 	}
 
 	magSample mag_sample;
@@ -145,7 +151,8 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	const Vector3f mag_B_before_reset = _state.mag_B;
 
 	// reset covariances to default
-	resetMagCov();
+	const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
+	resetMagCov(R_MAG);
 
 	// if world magnetic model (inclination, declination, strength) available then use it to reset mag states
 	if (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps)) {
@@ -185,9 +192,6 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 			resetMagHeading(mag);
 		}
 
-		// earth field was reset to WMM, skip initial declination fusion
-		_mag_decl_cov_reset = true;
-
 	} else {
 		// mag_B: reset
 		_state.mag_B.zero();
@@ -199,6 +203,12 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 
 		// mag_I: use the last magnetometer measurements to reset the field states
 		_state.mag_I = _R_to_earth * mag;
+
+		// After any magnetic field covariance reset event the earth field state
+		// covariances need to be corrected to incorporate knowledge of the declination
+		// before fusing magnetometer data to prevent rapid rotation of the earth field
+		// states for the first few observations.
+		fuseDeclination(0.02f);
 	}
 
 	if (!mag_I_before_reset.longerThan(0.f)) {

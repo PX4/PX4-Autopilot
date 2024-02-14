@@ -707,7 +707,6 @@ private:
 	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
 	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
 	float _mag_heading_last_declination{}; ///< last magnetic field declination used for heading fusion (rad)
-	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	uint8_t _nb_mag_heading_reset_available{0};
 	uint8_t _nb_mag_3d_reset_available{0};
 	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
@@ -1104,7 +1103,7 @@ private:
 	void resetQuatCov(const Vector3f &euler_noise_ned);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	void resetMagCov();
+	void resetMagCov(float mag_noise = NAN);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)

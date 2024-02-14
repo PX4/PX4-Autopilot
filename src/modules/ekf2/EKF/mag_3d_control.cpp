@@ -98,25 +98,14 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 				aid_src.time_last_fuse = _time_delayed_us;
 
 			} else {
-				if (!_mag_decl_cov_reset) {
-					// After any magnetic field covariance reset event the earth field state
-					// covariances need to be corrected to incorporate knowledge of the declination
-					// before fusing magnetometer data to prevent rapid rotation of the earth field
-					// states for the first few observations.
-					fuseDeclination(0.02f);
-					_mag_decl_cov_reset = true;
-					fuseMag(mag_sample.mag, aid_src, false);
+				// The normal sequence is to fuse the magnetometer data first before fusing
+				// declination angle at a higher uncertainty to allow some learning of
+				// declination angle over time.
+				const bool update_all_states = _control_status.flags.mag_3D;
+				fuseMag(mag_sample.mag, aid_src, update_all_states);
 
-				} else {
-					// The normal sequence is to fuse the magnetometer data first before fusing
-					// declination angle at a higher uncertainty to allow some learning of
-					// declination angle over time.
-					const bool update_all_states = _control_status.flags.mag_3D;
-					fuseMag(mag_sample.mag, aid_src, update_all_states);
-
-					if (_control_status.flags.mag_dec) {
-						fuseDeclination(0.5f);
-					}
+				if (_control_status.flags.mag_dec) {
+					fuseDeclination(0.5f);
 				}
 			}
 
@@ -157,16 +146,18 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 	} else {
 		if (starting_conditions_passing) {
 
-			_control_status.flags.mag = true;
-
 			// activate fusion, reset mag states and initialize variance if first init or in flight reset
-			if (!_control_status.flags.yaw_align
-			    || wmm_updated
-			    || !_mag_decl_cov_reset
-			    || !_state.mag_I.longerThan(0.f)
-			    || (getStateVariance<State::mag_I>().min() < kMagVarianceMin)
-			    || (getStateVariance<State::mag_B>().min() < kMagVarianceMin)
-			   ) {
+			bool reset_mag_states = !_control_status.flags.yaw_align
+						|| wmm_updated
+						|| !_state.mag_I.longerThan(0.f)
+						|| (getStateVariance<State::mag_I>().min() < kMagVarianceMin)
+						|| (getStateVariance<State::mag_B>().min() < kMagVarianceMin);
+
+			if (!reset_mag_states && fuseMag(mag_sample.mag, aid_src, false)) {
+				ECL_INFO("starting %s fusion", AID_SRC_NAME);
+				_control_status.flags.mag = true;
+
+			} else {
 				ECL_INFO("starting %s fusion, resetting states", AID_SRC_NAME);
 
 				bool reset_heading = !_control_status.flags.yaw_align;
@@ -177,14 +168,13 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 					_control_status.flags.yaw_align = true;
 				}
 
-			} else {
-				ECL_INFO("starting %s fusion", AID_SRC_NAME);
-				fuseMag(mag_sample.mag, aid_src, false);
+				_control_status.flags.mag = true;
+				aid_src.time_last_fuse = _time_delayed_us;
 			}
 
-			aid_src.time_last_fuse = _time_delayed_us;
-
-			_nb_mag_3d_reset_available = 2;
+			if (_control_status.flags.mag) {
+				_nb_mag_3d_reset_available = 2;
+			}
 		}
 	}
 }

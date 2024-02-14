@@ -293,15 +293,18 @@ void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
 }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-void Ekf::resetMagCov()
+void Ekf::resetMagCov(float mag_noise)
 {
-	if (_mag_decl_cov_reset) {
+	if (PX4_ISFINITE(mag_noise) && (mag_noise > 0.f)) {
 		ECL_INFO("reset mag covariance");
-		_mag_decl_cov_reset = false;
-	}
+		P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, sq(mag_noise));
+		P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(mag_noise));
 
-	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, sq(_params.mag_noise));
-	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.mag_noise));
+	} else {
+		ECL_INFO("clearing mag covariance");
+		P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, 0.f);
+		P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, 0.f);
+	}
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
