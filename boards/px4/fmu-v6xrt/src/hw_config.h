@@ -62,7 +62,8 @@
 #define SERIAL1_DEV    0x04
 
 #define APP_LOAD_ADDRESS               0x30020000
-#define APP_VECTOR_OFFSET              0x2000
+#define APP_VECTOR_OFFSET              (0x2000 - 0x400)
+#define TOC_ADDRESS                    APP_LOAD_ADDRESS
 #define BOOTLOADER_DELAY               5000
 #define INTERFACE_USB                  1
 #define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
@@ -103,6 +104,9 @@
  *
 */
 
+#define BOOTLOADER_USE_TOC
+#define BOOTLOADER_USE_SECURITY
+#define BOOTLOADER_SIGNING_ALGORITHM CRYPTO_ED25519
 #if !defined(ARCH_SN_MAX_LENGTH)
 # define ARCH_SN_MAX_LENGTH 12
 #endif

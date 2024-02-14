@@ -53,22 +53,36 @@ ENTRY(__start)
 
 SECTIONS
 {
-    /* Image Vector Table and Boot Data for booting from external flash */
+    /* Provide dummy relocation symbols for the dummy ToC */
+    PROVIDE(_toc_start = 0);
+    PROVIDE(_toc_end = 0);
+    PROVIDE(_toc_signature = 0);
+    PROVIDE(_app_start = 0);
+    PROVIDE(_app_end = 0);
+    PROVIDE(_boot_signature = 0);
+
+    /* Make a hole for the ToC and signature */
+
+    .toc (NOLOAD) : {
+        *(.main_toc)
+        *(.main_toc_sig)
+        FILL(0xff)
+        . = 0x400 ;
+    } > flash
 
     .boot_hdr : ALIGN(4)
     {
         FILL(0xff)
-        . = 0x400 ;
         __boot_hdr_start__ = ABSOLUTE(.) ;
         KEEP(*(.boot_hdr.conf))
-        . = 0x1000 ;
+        . = 0x1000 - 0x400 ;
         KEEP(*(.boot_hdr.ivt))
-        . = 0x1020 ;
+        . = 0x1020 - 0x400 ;
         KEEP(*(.boot_hdr.boot_data))
-        . = 0x1030 ;
+        . = 0x1030 - 0x400 ;
         KEEP(*(.boot_hdr.dcd_data))
         __boot_hdr_end__ = ABSOLUTE(.) ;
-        . = 0x2000 ;
+        . = 0x2000 - 0x400 ;
     } >flash
 
     .vectors :
