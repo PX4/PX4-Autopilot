@@ -326,14 +326,6 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	const float alpha = 1.0f - imu_delayed.delta_vel_dt;
 	_accel_lpf_NE = _accel_lpf_NE * alpha + corrected_delta_vel_ef.xy();
 
-	// calculate a yaw change about the earth frame vertical
-	const float spin_del_ang_D = corrected_delta_ang.dot(Vector3f(_R_to_earth.row(2)));
-	_yaw_delta_ef += spin_del_ang_D;
-
-	// Calculate filtered yaw rate to be used by the magnetometer fusion type selection logic
-	// Note fixed coefficients are used to save operations. The exact time constant is not important.
-	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / imu_delayed.delta_ang_dt;
-
 	// Calculate low pass filtered height rate
 	float alpha_height_rate_lpf = 0.1f * imu_delayed.delta_vel_dt; // 10 seconds time constant
 	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
