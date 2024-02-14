@@ -364,7 +364,6 @@ struct parameters {
 	int32_t mag_declination_source{7};      ///< bitmask used to control the handling of declination data
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
-	float mag_yaw_rate_gate{0.20f};         ///< yaw rate threshold used by mode select logic (rad/sec)
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};

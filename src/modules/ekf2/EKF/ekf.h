@@ -576,8 +576,6 @@ private:
 
 	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 	float _height_rate_lpf{0.0f};
-	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
-	float _yaw_rate_lpf_ef{0.0f};		///< Filtered angular rate about earth frame D axis (rad/sec)
 
 	SquareMatrixState P{};	///< state covariance matrix
 
@@ -706,9 +704,7 @@ private:
 	float _mag_heading_pred_prev{};            ///< previous value of yaw state used by mag heading fusion (rad)
 
 	// used by magnetometer fusion mode selection
-	bool _mag_bias_observable{false};	///< true when there is enough rotation to make magnetometer bias errors observable
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
-	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
 	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
 	float _mag_heading_last_declination{}; ///< last magnetic field declination used for heading fusion (rad)
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
@@ -724,7 +720,6 @@ private:
 
 	// Variables used to control activation of post takeoff functionality
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
-	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	uint64_t _time_last_mag_check_failing{0};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -1048,7 +1043,6 @@ private:
 	bool haglYawResetReq();
 
 	void checkYawAngleObservability();
-	void checkMagBiasObservability();
 	void checkMagHeadingConsistency();
 
 	bool checkMagField(const Vector3f &mag);
