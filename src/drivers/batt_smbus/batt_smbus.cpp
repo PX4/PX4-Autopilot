@@ -392,6 +392,12 @@ int BATT_SMBUS::get_startup_info()
 	uint16_t state_of_health;
 	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, state_of_health);
 
+	/* ManufacturerAccess dummy command to init the ManufacturerBlockAccess routine
+	in the BQ40Zx0 and avoid timeout during LifetimeDataFlush.
+	test Sleep > 20 ms to give time to init the ManufacturerBlockAccess routine*/
+	ret |= _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, BATT_SMBUS_DEVICE_TYPE);
+	px4_usleep(30_ms);
+
 	if (!ret) {
 		_serial_number = serial_num;
 		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
