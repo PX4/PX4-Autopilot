@@ -8,6 +8,7 @@ usage() {
 	echo "   build-target : supported build targets:"
   echo "     px4fwupdater"
   echo "     pixhawk"
+  echo "     fmu-v6xrt"
   echo "     saluki-v1_default"
   echo "     saluki-v1_protected"
   echo "     saluki-v1_amp"
@@ -60,6 +61,12 @@ case $target in
   "pixhawk")
     $build_cmd_fw px4_fmu-v5x_ssrc
     cp ${script_dir}/build/px4_fmu-v5x_ssrc/px4_fmu-v5x_ssrc.px4 ${dest_dir}/px4_fmu-v5x_ssrc-${version}.px4
+    ;;
+  "fmu-v6xrt")
+    $build_cmd_fw px4_fmu-v6xrt_bootloader
+    $build_cmd_fw px4_fmu-v6xrt_ssrc
+    cp ${script_dir}/build/px4_fmu-v6xrt_bootloader/px4_fmu-v6xrt_bootloader.elf ${dest_dir}/px4_fmu-v6xrt_bootloader-${version}.elf
+    cp ${script_dir}/build/px4_fmu-v6xrt_ssrc/px4_fmu-v6xrt_ssrc.px4 ${dest_dir}/px4_fmu-v6xrt_ssrc-${version}.px4
     ;;
   "saluki-v1_default")
     $build_cmd_fw ssrc_saluki-v1_default
