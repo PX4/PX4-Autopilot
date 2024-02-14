@@ -208,7 +208,7 @@ void Navigator::run()
 
 			if (mission.safe_points_id != safe_points_id) {
 				safe_points_id = mission.safe_points_id;
-				_rtl.updateSafePoints();
+				_rtl.updateSafePoints(safe_points_id);
 			}
 		}
 
