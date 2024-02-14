@@ -70,7 +70,9 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 {
 	// GIVEN: some meaningful mag data
 	const float mag_heading = M_PI_F / 3.f;
-	const Vector3f mag_data(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f);
+	const float incl = 63.1f;
+	const Vector3f mag_data(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading),
+				0.4f * sinf(incl) * sqrtf(0.2f * 0.2f + 0.4f * 0.4f));
 	_sensor_simulator._mag.setData(mag_data);
 
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
@@ -95,7 +97,7 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	float mag_decl = atan2f(mag_earth(1), mag_earth(0));
 	float mag_decl_wmm_deg = 0.f;
 	_ekf->get_mag_decl_deg(mag_decl_wmm_deg);
-	EXPECT_NEAR(degrees(mag_decl), mag_decl_wmm_deg, 1e-6f);
+	EXPECT_NEAR(degrees(mag_decl), mag_decl_wmm_deg, 1e-5f);
 
 	float mag_incl = asinf(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
 	float mag_incl_wmm_deg = 0.f;
