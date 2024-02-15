@@ -49,7 +49,7 @@ public:
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	void getNormalizeAsPlanarMC(bool normalize[MAX_NUM_MATRICES]) const override
 	{
 		normalize[0] = true;
 	}

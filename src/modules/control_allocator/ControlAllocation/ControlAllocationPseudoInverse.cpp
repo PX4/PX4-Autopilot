@@ -73,7 +73,7 @@ void
 ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 {
 	// Same scale on roll and pitch
-	if (_normalize_rpy) {
+	if (_normalize_matrix_as_planar_mc) {
 
 		int num_non_zero_roll_torque = 0;
 		int num_non_zero_pitch_torque = 0;
