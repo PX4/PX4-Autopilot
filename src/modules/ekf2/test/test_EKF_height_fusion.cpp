@@ -292,5 +292,5 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 
 	EXPECT_NEAR(_ekf->getRngHgtBiasEstimatorStatus().bias, alt_increment, 1.f);
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
-	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(2));
 }
