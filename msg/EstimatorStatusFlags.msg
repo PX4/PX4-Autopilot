@@ -55,15 +55,9 @@ bool fs_bad_airspeed          #  5 - true if fusion of the airspeed has encounte
 bool fs_bad_sideslip          #  6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
 bool fs_bad_optflow_x         #  7 - true if fusion of the optical flow X axis has encountered a numerical error
 bool fs_bad_optflow_y         #  8 - true if fusion of the optical flow Y axis has encountered a numerical error
-bool fs_bad_vel_n             #  9 - true if fusion of the North velocity has encountered a numerical error
-bool fs_bad_vel_e             # 10 - true if fusion of the East velocity has encountered a numerical error
-bool fs_bad_vel_d             # 11 - true if fusion of the Down velocity has encountered a numerical error
-bool fs_bad_pos_n             # 12 - true if fusion of the North position has encountered a numerical error
-bool fs_bad_pos_e             # 13 - true if fusion of the East position has encountered a numerical error
-bool fs_bad_pos_d             # 14 - true if fusion of the Down position has encountered a numerical error
-bool fs_bad_acc_bias          # 15 - true if bad delta velocity bias estimates have been detected
-bool fs_bad_acc_vertical      # 16 - true if bad vertical accelerometer data has been detected
-bool fs_bad_acc_clipping      # 17 - true if delta velocity data contains clipping (asymmetric railing)
+bool fs_bad_acc_bias          #  9 - true if bad delta velocity bias estimates have been detected
+bool fs_bad_acc_vertical      # 10 - true if bad vertical accelerometer data has been detected
+bool fs_bad_acc_clipping      # 11 - true if delta velocity data contains clipping (asymmetric railing)
 
 
 # innovation test failures

@@ -136,11 +136,13 @@ void Ekf::fuseVelocity(estimator_aid_source2d_s &aid_src)
 {
 	if (!aid_src.innovation_rejected) {
 		// vx, vy
-		if (fuseVelPosHeight(aid_src.innovation[0], aid_src.innovation_variance[0], State::vel.idx)
-		    && fuseVelPosHeight(aid_src.innovation[1], aid_src.innovation_variance[1], State::vel.idx + 1)
+		if (fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], State::vel.idx)
+		    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], State::vel.idx + 1)
 		   ) {
 			aid_src.fused = true;
 			aid_src.time_last_fuse = _time_delayed_us;
+
+			_time_last_hor_vel_fuse = _time_delayed_us;
 
 		} else {
 			aid_src.fused = false;
@@ -152,12 +154,15 @@ void Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 {
 	if (!aid_src.innovation_rejected) {
 		// vx, vy, vz
-		if (fuseVelPosHeight(aid_src.innovation[0], aid_src.innovation_variance[0], State::vel.idx)
-		    && fuseVelPosHeight(aid_src.innovation[1], aid_src.innovation_variance[1], State::vel.idx + 1)
-		    && fuseVelPosHeight(aid_src.innovation[2], aid_src.innovation_variance[2], State::vel.idx + 2)
+		if (fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], State::vel.idx + 0)
+		    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], State::vel.idx + 1)
+		    && fuseDirectStateMeasurement(aid_src.innovation[2], aid_src.innovation_variance[2], State::vel.idx + 2)
 		   ) {
 			aid_src.fused = true;
 			aid_src.time_last_fuse = _time_delayed_us;
+
+			_time_last_hor_vel_fuse = _time_delayed_us;
+			_time_last_ver_vel_fuse = _time_delayed_us;
 
 		} else {
 			aid_src.fused = false;
@@ -169,11 +174,13 @@ void Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 {
 	// x & y
 	if (!aid_src.innovation_rejected) {
-		if (fuseVelPosHeight(aid_src.innovation[0], aid_src.innovation_variance[0], State::pos.idx)
-		    && fuseVelPosHeight(aid_src.innovation[1], aid_src.innovation_variance[1], State::pos.idx + 1)
+		if (fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], State::pos.idx)
+		    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], State::pos.idx + 1)
 		   ) {
 			aid_src.fused = true;
 			aid_src.time_last_fuse = _time_delayed_us;
+
+			_time_last_hor_pos_fuse = _time_delayed_us;
 
 		} else {
 			aid_src.fused = false;
@@ -185,119 +192,11 @@ void Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 {
 	// z
 	if (!aid_src.innovation_rejected) {
-		if (fuseVelPosHeight(aid_src.innovation, aid_src.innovation_variance, State::pos.idx + 2)) {
+		if (fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, State::pos.idx + 2)) {
 			aid_src.fused = true;
 			aid_src.time_last_fuse = _time_delayed_us;
-		}
-	}
-}
 
-// Helper function that fuses a single velocity or position measurement
-bool Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int state_index)
-{
-	VectorState Kfusion;  // Kalman gain vector for any single observation - sequential fusion is used.
-
-	// calculate kalman gain K = PHS, where S = 1/innovation variance
-	for (int row = 0; row < State::size; row++) {
-		Kfusion(row) = P(row, state_index) / innov_var;
-	}
-
-	clearInhibitedStateKalmanGains(Kfusion);
-
-	SquareMatrixState KHP;
-
-	for (unsigned row = 0; row < State::size; row++) {
-		for (unsigned column = 0; column < State::size; column++) {
-			KHP(row, column) = Kfusion(row) * P(state_index, column);
-		}
-	}
-
-	const bool healthy = checkAndFixCovarianceUpdate(KHP);
-
-	setVelPosStatus(state_index, healthy);
-
-	if (healthy) {
-		// apply the covariance corrections
-		P -= KHP;
-
-		constrainStateVariances();
-
-		// apply the state corrections
-		fuse(Kfusion, innov);
-
-		return true;
-	}
-
-	return false;
-}
-
-void Ekf::setVelPosStatus(const int state_index, const bool healthy)
-{
-	switch (state_index) {
-	case State::vel.idx:
-		if (healthy) {
-			_fault_status.flags.bad_vel_N = false;
-			_time_last_hor_vel_fuse = _time_delayed_us;
-
-		} else {
-			_fault_status.flags.bad_vel_N = true;
-		}
-
-		break;
-
-	case State::vel.idx + 1:
-		if (healthy) {
-			_fault_status.flags.bad_vel_E = false;
-			_time_last_hor_vel_fuse = _time_delayed_us;
-
-		} else {
-			_fault_status.flags.bad_vel_E = true;
-		}
-
-		break;
-
-	case State::vel.idx + 2:
-		if (healthy) {
-			_fault_status.flags.bad_vel_D = false;
-			_time_last_ver_vel_fuse = _time_delayed_us;
-
-		} else {
-			_fault_status.flags.bad_vel_D = true;
-		}
-
-		break;
-
-	case State::pos.idx:
-		if (healthy) {
-			_fault_status.flags.bad_pos_N = false;
-			_time_last_hor_pos_fuse = _time_delayed_us;
-
-		} else {
-			_fault_status.flags.bad_pos_N = true;
-		}
-
-		break;
-
-	case State::pos.idx + 1:
-		if (healthy) {
-			_fault_status.flags.bad_pos_E = false;
-			_time_last_hor_pos_fuse = _time_delayed_us;
-
-		} else {
-			_fault_status.flags.bad_pos_E = true;
-		}
-
-		break;
-
-	case State::pos.idx + 2:
-		if (healthy) {
-			_fault_status.flags.bad_pos_D = false;
 			_time_last_hgt_fuse = _time_delayed_us;
-
-		} else {
-			_fault_status.flags.bad_pos_D = true;
 		}
-
-		break;
 	}
 }
