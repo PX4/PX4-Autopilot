@@ -253,7 +253,7 @@ fi
 tone_alarm start
 rc_update start
 manual_control start
-sensors start
+#sensors start
 commander start
 
 if ! pwm_out_sim start -m sim

@@ -253,6 +253,15 @@ private:
 	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
 	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 
+
+	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Publication<vehicle_attitude_s>         _vehicle_attitude_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_global_position_s>  _vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_local_position_s>   _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<vehicle_odometry_s>         _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
+
+
+
 	//rpm
 	uORB::Publication<rpm_s>			_rpm_pub{ORB_ID(rpm)};
 
