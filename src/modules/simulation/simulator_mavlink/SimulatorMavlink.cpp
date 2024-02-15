@@ -531,6 +531,12 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 	mavlink_hil_state_quaternion_t hil_state;
 	mavlink_msg_hil_state_quaternion_decode(msg, &hil_state);
 
+	if ((hil_state.lat == 0) && (hil_state.lon == 0)) {
+		_time_us_prev = hil_state.time_usec;
+		return;
+	}
+
+	float dt_s = (hil_state.time_usec - _time_us_prev) * 1e-6f;
 
 	uint64_t timestamp_sample = hrt_absolute_time(); // TODO: HIL_STATE_QUATERNION.time_us
 
@@ -543,14 +549,14 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 	{
 		vehicle_angular_velocity_s angular_velocity{};
 		angular_velocity.timestamp_sample = timestamp_sample;
+
 		angular_velocity.xyz[0] = hil_state.rollspeed;
 		angular_velocity.xyz[1] = hil_state.pitchspeed;
 		angular_velocity.xyz[2] = hil_state.yawspeed;
 
-		// TODO: add derivative fields
-		// angular_velocity.xyz_derivative[0] = hil_state.rollspeed;
-		// angular_velocity.xyz_derivative[1] = hil_state.pitchspeed;
-		// angular_velocity.xyz_derivative[2] = hil_state.yawspeed;
+		angular_velocity.xyz_derivative[0] = (hil_state.rollspeed - _rollspeed_prev) / dt_s;
+		angular_velocity.xyz_derivative[1] = (hil_state.pitchspeed - _pitchspeed_prev) / dt_s;
+		angular_velocity.xyz_derivative[2] = (hil_state.yawspeed - _yawspeed_prev) / dt_s;
 
 		angular_velocity.timestamp = hrt_absolute_time();
 		_vehicle_angular_velocity_pub.publish(angular_velocity);
@@ -578,52 +584,56 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 		double lat = hil_state.lat * 1e-7; // degE7 -> deg
 		double lon = hil_state.lon * 1e-7; // degE7 -> deg
 
-		if (!_global_local_proj_ref.isInitialized()) {
+		if (!_global_local_proj_ref.isInitialized() && (hil_state.lon != 0)) {
 			_global_local_proj_ref.initReference(lat, lon);
 			_global_local_alt0 = hil_state.alt / 1000.f; // mm -> m
 		}
 
-		local_position.xy_valid = true;
-		local_position.z_valid = true;
-		local_position.v_xy_valid = true;
-		local_position.v_z_valid = true;
+		if (_global_local_proj_ref.isInitialized()) {
 
-		_global_local_proj_ref.project(lat, lon, local_position.x, local_position.y);
-		local_position.z = _global_local_alt0 - (hil_state.alt / 1000.f); // mm -> m
 
-		local_position.vx = hil_state.vx / 100.f; // cm/s -> m/s
-		local_position.vy = hil_state.vy / 100.f; // cm/s -> m/s
-		local_position.vz = hil_state.vz / 100.f; // cm/s -> m/s
-		local_position.z_deriv = local_position.vz;
+			local_position.xy_valid = true;
+			local_position.z_valid = true;
+			local_position.v_xy_valid = true;
+			local_position.v_z_valid = true;
 
-		local_position.ax = hil_state.xacc / 1000.f * CONSTANTS_ONE_G; // mG -> m/s/s
-		local_position.ay = hil_state.yacc / 1000.f * CONSTANTS_ONE_G; // mG -> m/s/s
-		local_position.az = hil_state.zacc / 1000.f * CONSTANTS_ONE_G; // mG -> m/s/s
+			_global_local_proj_ref.project(lat, lon, local_position.x, local_position.y);
+			local_position.z = _global_local_alt0 - (hil_state.alt / 1000.f); // mm -> m
 
-		local_position.heading = euler.psi();
-		local_position.unaided_heading = local_position.heading;
+			local_position.vx = hil_state.vx / 100.f; // cm/s -> m/s
+			local_position.vy = hil_state.vy / 100.f; // cm/s -> m/s
+			local_position.vz = hil_state.vz / 100.f; // cm/s -> m/s
+			local_position.z_deriv = local_position.vz;
 
-		local_position.xy_global = true;
-		local_position.z_global = true;
-		local_position.ref_timestamp = _global_local_proj_ref.getProjectionReferenceTimestamp();
-		local_position.ref_lat = _global_local_proj_ref.getProjectionReferenceLat();
-		local_position.ref_lon = _global_local_proj_ref.getProjectionReferenceLon();
-		local_position.ref_alt = _global_local_alt0;
+			local_position.ax = hil_state.xacc / 1000.f * CONSTANTS_ONE_G; // mG -> m/s/s
+			local_position.ay = hil_state.yacc / 1000.f * CONSTANTS_ONE_G; // mG -> m/s/s
+			local_position.az = hil_state.zacc / 1000.f * CONSTANTS_ONE_G; // mG -> m/s/s
 
-		local_position.dist_bottom = NAN;
+			local_position.heading = euler.psi();
+			local_position.unaided_heading = local_position.heading;
 
-		local_position.eph = 1.f;
-		local_position.epv = 2.f;
-		local_position.evh = 1.f;
-		local_position.evv = 1.f;
+			local_position.xy_global = true;
+			local_position.z_global = true;
+			local_position.ref_timestamp = _global_local_proj_ref.getProjectionReferenceTimestamp();
+			local_position.ref_lat = _global_local_proj_ref.getProjectionReferenceLat();
+			local_position.ref_lon = _global_local_proj_ref.getProjectionReferenceLon();
+			local_position.ref_alt = _global_local_alt0;
 
-		local_position.vxy_max = std::numeric_limits<float>::infinity();
-		local_position.vz_max = std::numeric_limits<float>::infinity();
-		local_position.hagl_min = std::numeric_limits<float>::infinity();
-		local_position.hagl_max = std::numeric_limits<float>::infinity();
+			local_position.dist_bottom = NAN;
 
-		local_position.timestamp = hrt_absolute_time();
-		_vehicle_local_position_pub.publish(local_position);
+			local_position.eph = 1.f;
+			local_position.epv = 2.f;
+			local_position.evh = 1.f;
+			local_position.evv = 1.f;
+
+			local_position.vxy_max = std::numeric_limits<float>::infinity();
+			local_position.vz_max = std::numeric_limits<float>::infinity();
+			local_position.hagl_min = std::numeric_limits<float>::infinity();
+			local_position.hagl_max = std::numeric_limits<float>::infinity();
+
+			local_position.timestamp = hrt_absolute_time();
+			_vehicle_local_position_pub.publish(local_position);
+		}
 	}
 
 
@@ -646,6 +656,11 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 		_vehicle_global_position_pub.publish(global_position);
 	}
 
+
+	_time_us_prev = hil_state.time_usec;
+	_rollspeed_prev = hil_state.rollspeed;
+	_pitchspeed_prev = hil_state.pitchspeed;
+	_yawspeed_prev = hil_state.yawspeed;
 
 #if 0
 

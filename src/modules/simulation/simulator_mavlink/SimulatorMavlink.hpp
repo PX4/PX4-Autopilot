@@ -260,6 +260,10 @@ private:
 	uORB::Publication<vehicle_local_position_s>   _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<vehicle_odometry_s>         _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
 
+	uint64_t _time_us_prev{0};
+	float _rollspeed_prev{0.f};
+	float _pitchspeed_prev{0.f};
+	float _yawspeed_prev{0.f};
 
 
 	//rpm
