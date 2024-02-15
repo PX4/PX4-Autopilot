@@ -477,7 +477,7 @@ public:
 
 		for (unsigned row = 0; row < State::size; row++) {
 			for (unsigned col = 0; col < State::size; col++) {
-				// Instad of literally computing KHP, use an equvalent
+				// Instead of literally computing KHP, use an equivalent
 				// equation involving less mathematical operations
 				KHP(row, col) = KS(row) * K(col);
 			}
