@@ -33,6 +33,25 @@
 
 #include "ekf.h"
 
+void Ekf::updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var,
+		const float innov_gate, estimator_aid_source2d_s &aid_src) const
+{
+	resetEstimatorAidStatus(aid_src);
+
+	for (int i = 0; i < 2; i++) {
+		aid_src.observation[i] = obs(i);
+		aid_src.innovation[i] = _state.pos(i) - aid_src.observation[i];
+
+		aid_src.observation_variance[i] = math::max(sq(0.01f), obs_var(i));
+		const int state_index = State::pos.idx + i;
+		aid_src.innovation_variance[i] = P(state_index, state_index) + aid_src.observation_variance[i];
+	}
+
+	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
+
+	aid_src.timestamp_sample = time_us;
+}
+
 void Ekf::updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const float obs, const float obs_var,
 		const float innov_gate, estimator_aid_source1d_s &aid_src) const
 {
@@ -57,52 +76,35 @@ void Ekf::updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const floa
 	aid_src.timestamp_sample = time_us;
 }
 
-void Ekf::updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var,
-		const float innov_gate, estimator_aid_source2d_s &aid_src) const
-{
-	resetEstimatorAidStatus(aid_src);
-
-	for (int i = 0; i < 2; i++) {
-		aid_src.observation[i] = obs(i);
-		aid_src.innovation[i] = _state.pos(i) - aid_src.observation[i];
-
-		aid_src.observation_variance[i] = math::max(sq(0.01f), obs_var(i));
-		const int state_index = State::pos.idx + i;
-		aid_src.innovation_variance[i] = P(state_index, state_index) + aid_src.observation_variance[i];
-	}
-
-	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
-
-	aid_src.timestamp_sample = time_us;
-}
-
 void Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 {
 	// x & y
-	if (!aid_src.innovation_rejected) {
-		if (fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], State::pos.idx)
-		    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], State::pos.idx + 1)
-		   ) {
-			aid_src.fused = true;
-			aid_src.time_last_fuse = _time_delayed_us;
+	if (!aid_src.innovation_rejected
+	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], State::pos.idx + 0)
+	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], State::pos.idx + 1)
+	   ) {
+		aid_src.fused = true;
+		aid_src.time_last_fuse = _time_delayed_us;
 
-			_time_last_hor_pos_fuse = _time_delayed_us;
+		_time_last_hor_pos_fuse = _time_delayed_us;
 
-		} else {
-			aid_src.fused = false;
-		}
+	} else {
+		aid_src.fused = false;
 	}
 }
 
 void Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 {
 	// z
-	if (!aid_src.innovation_rejected) {
-		if (fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, State::pos.idx + 2)) {
-			aid_src.fused = true;
-			aid_src.time_last_fuse = _time_delayed_us;
+	if (!aid_src.innovation_rejected
+	    && fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, State::pos.idx + 2)
+	   ) {
+		aid_src.fused = true;
+		aid_src.time_last_fuse = _time_delayed_us;
 
-			_time_last_hgt_fuse = _time_delayed_us;
-		}
+		_time_last_hgt_fuse = _time_delayed_us;
+
+	} else {
+		aid_src.fused = false;
 	}
 }
