@@ -241,7 +241,7 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData)
 	_sensor_simulator.runSeconds(5.f);
 
 	// AND WHEN: there is a pure yaw rotation
-	const Vector3f body_rate(0.f, 0.f, 3.14159f);
+	const Vector3f body_rate(0.f, 0.f, 2.9f);
 	const Vector3f flow_offset(0.15, -0.05f, 0.2f);
 	_ekf_wrapper.setFlowOffset(flow_offset);
 
@@ -278,7 +278,7 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData)
 	_sensor_simulator.runSeconds(5.f);
 
 	// AND WHEN: there is a pure yaw rotation
-	const Vector3f body_rate(0.f, 0.f, 3.14159f);
+	const Vector3f body_rate(0.f, 0.f, 2.9f);
 	const Vector3f flow_offset(-0.15, 0.05f, 0.2f);
 	_ekf_wrapper.setFlowOffset(flow_offset);
 
