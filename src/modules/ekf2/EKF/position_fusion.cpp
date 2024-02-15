@@ -108,3 +108,103 @@ void Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 		aid_src.fused = false;
 	}
 }
+
+void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var)
+{
+	const Vector2f delta_horz_pos{new_horz_pos - Vector2f{_state.pos}};
+	_state.pos.xy() = new_horz_pos;
+
+	if (PX4_ISFINITE(new_horz_pos_var(0))) {
+		P.uncorrelateCovarianceSetVariance<1>(State::pos.idx, math::max(sq(0.01f), new_horz_pos_var(0)));
+	}
+
+	if (PX4_ISFINITE(new_horz_pos_var(1))) {
+		P.uncorrelateCovarianceSetVariance<1>(State::pos.idx + 1, math::max(sq(0.01f), new_horz_pos_var(1)));
+	}
+
+	_output_predictor.resetHorizontalPositionTo(delta_horz_pos);
+
+	// record the state change
+	if (_state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE) {
+		_state_reset_status.posNE_change = delta_horz_pos;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.posNE_change += delta_horz_pos;
+	}
+
+	_state_reset_status.reset_count.posNE++;
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - _state_reset_status.posNE_change);
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+	//_gps_pos_b_est.setBias(_gps_pos_b_est.getBias() + _state_reset_status.posNE_change);
+
+	// Reset the timout timer
+	_time_last_hor_pos_fuse = _time_delayed_us;
+}
+
+void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_var)
+{
+	const float old_vert_pos = _state.pos(2);
+	_state.pos(2) = new_vert_pos;
+
+	if (PX4_ISFINITE(new_vert_pos_var)) {
+		// the state variance is the same as the observation
+		P.uncorrelateCovarianceSetVariance<1>(State::pos.idx + 2, math::max(sq(0.01f), new_vert_pos_var));
+	}
+
+	const float delta_z = new_vert_pos - old_vert_pos;
+
+	// apply the change in height / height rate to our newest height / height rate estimate
+	// which have already been taken out from the output buffer
+	_output_predictor.resetVerticalPositionTo(new_vert_pos, delta_z);
+
+	// record the state change
+	if (_state_reset_status.reset_count.posD == _state_reset_count_prev.posD) {
+		_state_reset_status.posD_change = delta_z;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.posD_change += delta_z;
+	}
+
+	_state_reset_status.reset_count.posD++;
+
+#if defined(CONFIG_EKF2_BAROMETER)
+	_baro_b_est.setBias(_baro_b_est.getBias() + delta_z);
+#endif // CONFIG_EKF2_BAROMETER
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - delta_z);
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+#if defined(CONFIG_EKF2_GNSS)
+	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
+#endif // CONFIG_EKF2_GNSS
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	terrainHandleVerticalPositionReset(delta_z);
+#endif
+
+	// Reset the timout timer
+	_time_last_hgt_fuse = _time_delayed_us;
+}
+
+void Ekf::resetHorizontalPositionToLastKnown()
+{
+	ECL_INFO("reset position to last known (%.3f, %.3f)", (double)_last_known_pos(0), (double)_last_known_pos(1));
+	_information_events.flags.reset_pos_to_last_known = true;
+
+	// Used when falling back to non-aiding mode of operation
+	resetHorizontalPositionTo(_last_known_pos.xy(), sq(_params.pos_noaid_noise));
+}
+
+void Ekf::resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy)
+{
+	ECL_INFO("reset position to external observation");
+	_information_events.flags.reset_pos_to_ext_obs = true;
+
+	resetHorizontalPositionTo(new_horiz_pos, sq(horiz_accuracy));
+}
