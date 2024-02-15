@@ -34,7 +34,8 @@
 #define IFCI_HPP
 
 #include "iq-module-communication-cpp/inc/client_communication.hpp"
-#include "ifci_telemetry.h"
+#include "iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp"
+// #include "ifci_telemetry.h"
 
 //This class handles all IFCI communication to and from a Vertiq module
 class IFCI

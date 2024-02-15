@@ -38,44 +38,6 @@ include_directories(
 
 #add all of our submodule sources
 set(SOURCES
-	iq-module-communication-cpp/inc/bipbuffer.h
-	iq-module-communication-cpp/inc/byte_queue.h
-	iq-module-communication-cpp/inc/communication_interface.h
-	iq-module-communication-cpp/inc/crc_helper.h
-	iq-module-communication-cpp/inc/packet_finder.h
-
-	iq-module-communication-cpp/inc/adc_interface_client.hpp
-	iq-module-communication-cpp/inc/anticogging_client.hpp
-	iq-module-communication-cpp/inc/anticogging_pro_client.hpp
-	iq-module-communication-cpp/inc/arming_handler_client.hpp
-	iq-module-communication-cpp/inc/brushless_drive_client.hpp
-	iq-module-communication-cpp/inc/buzzer_control_client.hpp
-	iq-module-communication-cpp/inc/client_communication.hpp
-	iq-module-communication-cpp/inc/coil_temperature_estimator_client.hpp
-	iq-module-communication-cpp/inc/esc_propeller_input_parser_client.hpp
-	iq-module-communication-cpp/inc/generic_interface.hpp
-	iq-module-communication-cpp/inc/gpio_controller_client.hpp
-	iq-module-communication-cpp/inc/hobby_input_client.hpp
-	iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp
-	iq-module-communication-cpp/inc/mag_alpha_client.hpp
-	iq-module-communication-cpp/inc/multi_turn_angle_control_client.hpp
-	iq-module-communication-cpp/inc/persistent_memory_client.hpp
-	iq-module-communication-cpp/inc/power_monitor_client.hpp
-	iq-module-communication-cpp/inc/power_safety_client.hpp
-	iq-module-communication-cpp/inc/propeller_motor_control_client.hpp
-	iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp
-	iq-module-communication-cpp/inc/pwm_interface_client.hpp
-	iq-module-communication-cpp/inc/serial_interface_client.hpp
-	iq-module-communication-cpp/inc/servo_input_parser_client.hpp
-	iq-module-communication-cpp/inc/step_direction_input_client.hpp
-	iq-module-communication-cpp/inc/stopping_handler_client.hpp
-	iq-module-communication-cpp/inc/stow_user_interface_client.hpp
-	iq-module-communication-cpp/inc/system_control_client.hpp
-	iq-module-communication-cpp/inc/temperature_estimator_client.hpp
-	iq-module-communication-cpp/inc/temperature_monitor_uc_client.hpp
-	iq-module-communication-cpp/inc/uavcan_node_client.hpp
-	iq-module-communication-cpp/inc/voltage_superposition_client.hpp
-
 	iq-module-communication-cpp/src/generic_interface.cpp
 	iq-module-communication-cpp/inc/client_communication.cpp
 	iq-module-communication-cpp/src/packet_finder.c
@@ -94,7 +56,6 @@ px4_add_module(
 	MODULE drivers__actuators__vertiq_io
 	MAIN vertiq_io
 	INCLUDES
-		iq-module-communication-cpp/inc
 	COMPILE_FLAGS
 	SRCS
 		vertiq_io.cpp
@@ -106,7 +67,6 @@ px4_add_module(
 		vertiq_client_manager.cpp
 		vertiq_client_manager.hpp
 		entry_wrapper.hpp
-		ifci_telemetry.h
 		ifci.hpp
 		ifci.cpp
 	DEPENDS
