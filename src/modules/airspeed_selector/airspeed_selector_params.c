@@ -97,7 +97,6 @@ PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 2);
  * @decimal 2
  * @reboot_required true
  * @group Airspeed Validator
- * @volatile
  */
 PARAM_DEFINE_FLOAT(ASPD_SCALE_1, 1.0f);
 
@@ -111,7 +110,6 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_1, 1.0f);
  * @decimal 2
  * @reboot_required true
  * @group Airspeed Validator
- * @volatile
  */
 PARAM_DEFINE_FLOAT(ASPD_SCALE_2, 1.0f);
 
@@ -125,7 +123,6 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_2, 1.0f);
  * @decimal 2
  * @reboot_required true
  * @group Airspeed Validator
- * @volatile
  */
 PARAM_DEFINE_FLOAT(ASPD_SCALE_3, 1.0f);
 
