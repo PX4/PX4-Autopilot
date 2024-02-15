@@ -1015,3 +1015,39 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 		_accel_bias_inhibit[index] = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
 	}
 }
+
+bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const int state_index)
+{
+	VectorState Kfusion;  // Kalman gain vector for any single observation - sequential fusion is used.
+
+	// calculate kalman gain K = PHS, where S = 1/innovation variance
+	for (int row = 0; row < State::size; row++) {
+		Kfusion(row) = P(row, state_index) / innov_var;
+	}
+
+	clearInhibitedStateKalmanGains(Kfusion);
+
+	SquareMatrixState KHP;
+
+	for (unsigned row = 0; row < State::size; row++) {
+		for (unsigned column = 0; column < State::size; column++) {
+			KHP(row, column) = Kfusion(row) * P(state_index, column);
+		}
+	}
+
+	const bool healthy = checkAndFixCovarianceUpdate(KHP);
+
+	if (healthy) {
+		// apply the covariance corrections
+		P -= KHP;
+
+		constrainStateVariances();
+
+		// apply the state corrections
+		fuse(Kfusion, innov);
+
+		return true;
+	}
+
+	return false;
+}
