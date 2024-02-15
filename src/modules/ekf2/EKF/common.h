@@ -509,15 +509,9 @@ union fault_status_u {
 		bool bad_sideslip      : 1; ///< 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
 		bool bad_optflow_X     : 1; ///< 7 - true if fusion of the optical flow X axis has encountered a numerical error
 		bool bad_optflow_Y     : 1; ///< 8 - true if fusion of the optical flow Y axis has encountered a numerical error
-		bool bad_vel_N         : 1; ///< 9 - true if fusion of the North velocity has encountered a numerical error
-		bool bad_vel_E         : 1; ///< 10 - true if fusion of the East velocity has encountered a numerical error
-		bool bad_vel_D         : 1; ///< 11 - true if fusion of the Down velocity has encountered a numerical error
-		bool bad_pos_N         : 1; ///< 12 - true if fusion of the North position has encountered a numerical error
-		bool bad_pos_E         : 1; ///< 13 - true if fusion of the East position has encountered a numerical error
-		bool bad_pos_D         : 1; ///< 14 - true if fusion of the Down position has encountered a numerical error
-		bool bad_acc_bias      : 1; ///< 15 - true if bad delta velocity bias estimates have been detected
-		bool bad_acc_vertical  : 1; ///< 16 - true if bad vertical accelerometer data has been detected
-		bool bad_acc_clipping  : 1; ///< 17 - true if delta velocity data contains clipping (asymmetric railing)
+		bool bad_acc_bias      : 1; ///< 9 - true if bad delta velocity bias estimates have been detected
+		bool bad_acc_vertical  : 1; ///< 10 - true if bad vertical accelerometer data has been detected
+		bool bad_acc_clipping  : 1; ///< 11 - true if delta velocity data contains clipping (asymmetric railing)
 	} flags;
 	uint32_t value;
 };
