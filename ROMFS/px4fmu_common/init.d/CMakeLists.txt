@@ -77,7 +77,7 @@ if(CONFIG_MODULES_ROVER_POS_CONTROL)
 	)
 endif()
 
-if(CONFIG_MODULES_DIFFERENTIAL_DRIVE_CONTROL)
+if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
 	px4_add_romfs_files(
 		rc.rover_differential_apps
 		rc.rover_differential_defaults
