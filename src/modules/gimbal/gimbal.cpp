@@ -211,7 +211,10 @@ static int gimbal_thread_main(int argc, char *argv[])
 			// Reset control as no one is active anymore, or yet.
 			thread_data.control_data.sysid_primary_control = 0;
 			thread_data.control_data.compid_primary_control = 0;
-			thread_data.control_data.device_compid = 0;
+			// If the output is set to AUX we still want the input to be able to control the gimbal
+			// via mavlink, so we set the device_compid to 1. This follows the mavlink spec which states
+			// that the gimbal_device_id should be between 1 and 6.
+			thread_data.control_data.device_compid = params.mnt_mode_out == 0 ? 1 : 0;
 		}
 
 		InputBase::UpdateResult update_result = InputBase::UpdateResult::NoUpdate;
