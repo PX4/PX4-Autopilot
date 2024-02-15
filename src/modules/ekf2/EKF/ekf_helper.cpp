@@ -171,10 +171,11 @@ bool Ekf::isHeightResetRequired() const
 	return (continuous_bad_accel_hgt || hgt_fusion_timeout);
 }
 
-void Ekf::resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy) {
-    _information_events.flags.reset_pos_to_ext_obs = true;
-    ECL_INFO("reset position to external observation");
-    resetHorizontalPositionTo(new_horiz_pos, sq(horiz_accuracy));
+void Ekf::resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy)
+{
+	_information_events.flags.reset_pos_to_ext_obs = true;
+	ECL_INFO("reset position to external observation");
+	resetHorizontalPositionTo(new_horiz_pos, sq(horiz_accuracy));
 }
 
 void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_var)
@@ -290,9 +291,9 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 {
 	// sanity check valid latitude/longitude and altitude anywhere between the Mariana Trench and edge of Space
 	if (PX4_ISFINITE(latitude) && (abs(latitude) <= 90)
-	&& PX4_ISFINITE(longitude) && (abs(longitude) <= 180)
-	&& PX4_ISFINITE(altitude) && (altitude > -12'000.f) && (altitude < 100'000.f)
-	) {
+	    && PX4_ISFINITE(longitude) && (abs(longitude) <= 180)
+	    && PX4_ISFINITE(altitude) && (altitude > -12'000.f) && (altitude < 100'000.f)
+	   ) {
 		bool current_pos_available = false;
 		double current_lat = static_cast<double>(NAN);
 		double current_lon = static_cast<double>(NAN);
@@ -303,7 +304,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 			current_pos_available = true;
 		}
 
-		const float gps_alt_ref_prev = getEkfGlobalOriginAltitude();
+		const float gps_alt_ref_prev = _gps_alt_ref;
 
 		// reinitialize map projection to latitude, longitude, altitude, and reset position
 		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
@@ -321,6 +322,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 			_wmm_gps_time_last_set = _time_delayed_us;
 		}
+
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 		_gpos_origin_eph = eph;
@@ -328,32 +330,35 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 		_NED_origin_initialised = true;
 
-		// minimum change in position or height that triggers a reset
-		static constexpr float MIN_RESET_DIST_M = 0.01f;
-
 		if (current_pos_available) {
-			// reset horizontal position
+			// reset horizontal position if we already have a global origin
 			Vector2f position = _pos_ref.project(current_lat, current_lon);
-
-			if (Vector2f(position - Vector2f(_state.pos)).longerThan(MIN_RESET_DIST_M)) {
-				resetHorizontalPositionTo(position);
-			}
+			resetHorizontalPositionTo(position);
 		}
 
-		// reset vertical position (if there's any change)
-		if (fabsf(altitude - gps_alt_ref_prev) > MIN_RESET_DIST_M) {
-			// determine current z
-			float current_alt = -_state.pos(2) + gps_alt_ref_prev;
+		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
+			// reset vertical position if we already had a GPS altitude reference
 
-#if defined(CONFIG_EKF2_GNSS)
-			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
-#endif // CONFIG_EKF2_GNSS
-			resetVerticalPositionTo(_gps_alt_ref - current_alt);
+			ECL_DEBUG("EKF global origin updated, GPS altitude ref %.1fm -> %.1fm", (double)gps_alt_ref_prev, (double)_gps_alt_ref);
 
+			if (_height_sensor_ref == HeightSensor::GNSS) {
+				// determine current z
+				float z_prev = _state.pos(2);
+				float current_alt = -z_prev + gps_alt_ref_prev;
+				resetVerticalPositionTo(_gps_alt_ref - current_alt);
+
+				ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev, (double)_state.pos(2));
+
+			} else {
 #if defined(CONFIG_EKF2_GNSS)
-			// preserve GPS height bias
-			_gps_hgt_b_est.setBias(gps_hgt_bias);
+				// adjust existing GPS height bias
+				const float gps_hgt_bias = _gps_hgt_b_est.getBias();
+				float delta_z = _gps_alt_ref - gps_alt_ref_prev;
+				_gps_hgt_b_est.setBias(gps_hgt_bias + delta_z);
+
+				ECL_DEBUG("EKF global origin updated, GPS height bias %.1fm -> %.1fm", (double)gps_hgt_bias, (double)_gps_hgt_b_est.getBias());
 #endif // CONFIG_EKF2_GNSS
+			}
 		}
 
 		return true;
