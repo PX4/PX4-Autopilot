@@ -44,7 +44,8 @@ list(APPEND EKF_SRCS
 	height_control.cpp
 	imu_down_sampler.cpp
 	output_predictor.cpp
-	vel_pos_fusion.cpp
+	velocity_fusion.cpp
+	position_fusion.cpp
 	yaw_fusion.cpp
 	zero_innovation_heading_update.cpp
 

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file vel_pos_fusion.cpp
+ * @file optflow_fusion.cpp
  * Function for fusing gps and baro measurements/
  * equations generated using EKF/python/ekf_derivation/main.py
  *
