@@ -107,6 +107,7 @@ using namespace time_literals;
 
 #define BATT_SMBUS_SECURITY_KEYS                        0x0035
 
+#define BATT_SMBUS_DEVICE_TYPE                          0x0001
 #define BATT_SMBUS_LIFETIME_FLUSH                       0x002E
 #define BATT_SMBUS_LIFETIME_BLOCK_ONE                   0x0060
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
