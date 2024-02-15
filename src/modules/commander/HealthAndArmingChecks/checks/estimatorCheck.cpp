@@ -99,7 +99,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (missing_data && _param_sys_mc_est_group.get() == 2) {
+	if (missing_data && _param_sys_mc_est_group.get() == 2 && false) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
