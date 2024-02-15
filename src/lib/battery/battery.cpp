@@ -239,10 +239,10 @@ float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const f
 void Battery::estimateStateOfCharge()
 {
 	// choose which quantity we're using for final reporting
-	if (_params.capacity > 0.f && _battery_initialized) {
+	if ((_params.capacity > 0.f) && _battery_initialized) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		// The lower the voltage the more adjust the estimate with it to avoid deep discharge
-		const float weight_v = 3e-4f * (1 - _state_of_charge_volt_based);
+		const float weight_v = 3e-2f * (1 - _state_of_charge_volt_based);
 		_state_of_charge = (1 - weight_v) * _state_of_charge + weight_v * _state_of_charge_volt_based;
 		// directly apply current capacity slope calculated using current
 		_state_of_charge -= _discharged_mah_loop / _params.capacity;
