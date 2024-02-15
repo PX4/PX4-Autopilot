@@ -611,6 +611,7 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 
 			local_position.heading = euler.psi();
 			local_position.unaided_heading = local_position.heading;
+			local_position.heading_good_for_control = true;
 
 			local_position.xy_global = true;
 			local_position.z_global = true;
