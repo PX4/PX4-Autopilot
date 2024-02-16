@@ -75,7 +75,10 @@ bool ZeroGyroUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 					K(row) = ekf.stateCovariance(row, state_index) / innov_var(i);
 				}
 
-				ekf.measurementUpdate(K, innov_var(i), innovation(i));
+				Ekf::VectorState H{};
+				H(State::gyro_bias.idx + i) = 1.f;
+
+				ekf.measurementUpdate(K, H, obs_var, innovation(i), innov_var(i));
 			}
 
 			// Reset the integrators

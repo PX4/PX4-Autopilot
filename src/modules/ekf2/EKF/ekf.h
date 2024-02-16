@@ -468,35 +468,39 @@ public:
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 #endif // CONFIG_EKF2_AUXVEL
 
-	bool measurementUpdate(VectorState &K, float innovation_variance, float innovation)
+	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
 	{
 		clearInhibitedStateKalmanGains(K);
 
-		const VectorState KS = K * innovation_variance;
-		SquareMatrixState KHP;
+		// Efficient implementation of the Joseph stabilized covariance update
+		// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
 
-		for (unsigned row = 0; row < State::size; row++) {
-			for (unsigned col = 0; col < State::size; col++) {
-				// Instead of literally computing KHP, use an equivalent
-				// equation involving less mathematical operations
-				KHP(row, col) = KS(row) * K(col);
+		// Step 1: conventional update
+		VectorState PH = P * H;
+
+		for (unsigned i = 0; i < State::size; i++) {
+			for (unsigned j = 0; j <= i; j++) {
+				P(i, j) = P(i, j) - K(i) * PH(j);
+				P(j, i) = P(i, j);
 			}
 		}
 
-		const bool is_healthy = checkAndFixCovarianceUpdate(KHP);
+		// Step 2: stabilized update
+		PH = P * H;
 
-		if (is_healthy) {
-			// apply the covariance corrections
-			P -= KHP;
-
-			constrainStateVariances();
-			forceCovarianceSymmetry();
-
-			// apply the state corrections
-			fuse(K, innovation);
+		for (unsigned i = 0; i < State::size; i++) {
+			for (unsigned j = 0; j <= i; j++) {
+				float s = .5f * (P(i, j) - PH(i) * K(j) + P(i, j) - PH(j) * K(i));
+				P(i, j) = s + K(i) * R * K(j);
+				P(j, i) = P(i, j);
+			}
 		}
 
-		return is_healthy;
+		constrainStateVariances();
+
+		// apply the state corrections
+		fuse(K, innovation);
+		return true;
 	}
 
 	void resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
@@ -942,14 +946,8 @@ private:
 #endif // CONFIG_EKF2_WIND
 	}
 
-	// if the covariance correction will result in a negative variance, then
-	// the covariance matrix is unhealthy and must be corrected
-	bool checkAndFixCovarianceUpdate(const SquareMatrixState &KHP);
-
 	// limit the diagonal of the covariance matrix
 	void constrainStateVariances();
-
-	void forceCovarianceSymmetry();
 
 	void constrainStateVar(const IdxDof &state, float min, float max);
 	void constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio = 1.e6f);
