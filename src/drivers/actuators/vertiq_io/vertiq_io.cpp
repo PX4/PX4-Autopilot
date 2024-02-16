@@ -68,7 +68,9 @@ bool VertiqIo::init()
 	_cvs_in_use = (uint8_t)_param_vertiq_number_of_cvs.get();
 
 	//Grab the bitmask that we're going to use to decide who we get telemetry from
-	_telem_bitmask = (uint16_t)_param_vertiq_telemetry_mask.get();
+	_telemetry_ids_1 = (uint32_t)_param_vertiq_telem_ids_1.get();
+	_telemetry_ids_2 = (uint32_t)_param_vertiq_telem_ids_2.get();
+	_telem_bitmask = ((uint64_t)(_telemetry_ids_2) << 32) | _telemetry_ids_1;
 #endif
 
 	//Initialize our telemetry handler

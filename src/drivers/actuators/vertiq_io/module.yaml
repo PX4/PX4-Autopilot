@@ -11,7 +11,7 @@ actuator_output:
       group_label: 'ESCs'
       channel_label: 'ESC'
       standard_params:
-        min: { min: 0, max: 65535, default: 1 }
+        min: { min: 0, max: 65535, default: 0 }
         max: { min: 0, max: 65535, default: 65535 }
         failsafe: { min: 0, max: 500 }
       num_channels: 16
@@ -36,17 +36,6 @@ parameters:
             default: 0
             min: 0
             max: 16
-            reboot_required: true
-        VERTIQ_TEL_MSK:
-            description:
-              short: Motor telemetry bitmask
-              long: |
-                  Determines which modules the flight controller will ask for telemetry. Each position in the bitmask represents a Module ID. For example, setting bit
-                  0 means that the flight controller will request telemetry from Modlue ID 0.
-            type: int32
-            default: 0
-            min: 0
-            max: 65535
             reboot_required: true
         DISARM_BEHAVE:
             description:
@@ -199,3 +188,84 @@ parameters:
             type: int32
             min: 0
             max: 16
+        TELEM_IDS_1:
+            description:
+                short: Module IDs [0, 31] that you would like to request telemetry from. Values [32, 62] can be accessed via TELEM_IDS_2
+                long: |
+                  The module IDs [0, 31] that should be asked for telemetry. The data received from these IDs will be published via the esc_status topic.
+            type: bitmask
+            bit:
+                0: Module ID 0
+                1: Module ID 1
+                2: Module ID 2
+                3: Module ID 3
+                4: Module ID 4
+                5: Module ID 5
+                6: Module ID 6
+                7: Module ID 7
+                8: Module ID 8
+                9: Module ID 9
+                10: Module ID 10
+                11: Module ID 11
+                12: Module ID 12
+                13: Module ID 13
+                14: Module ID 14
+                15: Module ID 15
+                16: Module ID 16
+                17: Module ID 17
+                18: Module ID 18
+                19: Module ID 19
+                20: Module ID 20
+                21: Module ID 21
+                22: Module ID 22
+                23: Module ID 23
+                24: Module ID 24
+                25: Module ID 25
+                26: Module ID 26
+                27: Module ID 27
+                28: Module ID 28
+                29: Module ID 29
+                30: Module ID 30
+                31: Module ID 31
+            default: 0
+            reboot_required: true
+        TELEM_IDS_2:
+            description:
+                short: Module IDs [32, 62] that you would like to request telemetry from.
+                long: |
+                  The module IDs [32, 62] that should be asked for telemetry. The data received from these IDs will be published via the esc_status topic.
+            type: bitmask
+            bit:
+                32: Module ID 32
+                33: Module ID 33
+                34: Module ID 34
+                35: Module ID 35
+                36: Module ID 36
+                37: Module ID 37
+                38: Module ID 38
+                39: Module ID 39
+                40: Module ID 40
+                41: Module ID 41
+                42: Module ID 42
+                43: Module ID 43
+                44: Module ID 44
+                45: Module ID 45
+                46: Module ID 46
+                47: Module ID 47
+                48: Module ID 48
+                49: Module ID 49
+                50: Module ID 50
+                51: Module ID 51
+                52: Module ID 52
+                53: Module ID 53
+                54: Module ID 54
+                55: Module ID 55
+                56: Module ID 56
+                57: Module ID 57
+                58: Module ID 58
+                59: Module ID 59
+                60: Module ID 60
+                61: Module ID 61
+                62: Module ID 62
+            default: 0
+            reboot_required: true

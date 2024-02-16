@@ -65,7 +65,7 @@ public:
 	* @brief Initialize the telemetry manager with the bitmask set in the PX4 parameters
 	* @param telem_bitmask The bitmask set in the PX4 parameters as VERTIQ_TEL_MSK
 	*/
-	void Init(uint16_t telem_bitmask);
+	void Init(uint64_t telem_bitmask);
 
 	/**
 	* @brief Start publishing the ESC statuses to the uORB esc_status topic
@@ -75,7 +75,7 @@ public:
 	/**
 	* @brief Part of initialization. Find the first and last positions that indicate modules to grab telemetry from
 	*/
-	void FindFirstAndLastTelemetryPositions();
+	void FindTelemetryModuleIds();
 
 	/**
 	* @brief Attempt to grab the telemetry response from the currently targeted module. Handles
@@ -101,28 +101,19 @@ private:
 	//We want to publish our ESC Status to anyone who will listen
 	esc_status_s		_esc_status;
 
-	static const uint8_t MAX_SUPPORTABLE_IFCI_CVS = 16;
+	//The max number of module IDs that we can support
+	static const uint8_t MAX_SUPPORTABLE_MODULE_IDS = 63; //[0, 62]
+
+	//The max number of esc status entries we can keep track of (per the esc_status_s type)
+	static const uint8_t MAX_ESC_STATUS_ENTRIES = 8;
+
+	//We need a way to store the module IDs that we're supposed to ask for telemetry from. We can have as many as 63.
+	uint8_t _module_ids_in_use[MAX_ESC_STATUS_ENTRIES];
+	uint8_t _number_of_module_ids_for_telem = 0;
+	uint8_t _current_module_id_target_index = 0;
 
 	//Store the telemetry bitmask for who we want to get telemetry from
-	uint16_t _telem_bitmask = 0;
-
-	//The number of modules that we're going to request telemetry from
-	uint8_t _number_of_modules_for_telem = 0;
-
-	//The bit position of the first module whose telemetry we should get
-	uint16_t _first_module_for_telem = 0;
-
-	//The bit position of the last module whose telemetry we should get
-	uint16_t _last_module_for_telem = 0;
-
-	//Current target for telemetry
-	uint16_t _current_telemetry_target_module_id = 0;
-
-	//This is the variable we're actually going to use in the brodcast packed control message
-	//We set and use it to _current_telemetry_target_module_id until we send the first
-	//broadcast message with this as the tail byte. after that first transmission, set it
-	//to an impossible module ID
-	uint16_t _telemetry_request_id = 0;
+	uint64_t _telem_bitmask = 0;
 
 	//The amount of time (in ms) that we'll wait for a telemetry response
 	static const hrt_abstime _telem_timeout = 50_ms;

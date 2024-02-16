@@ -129,7 +129,9 @@ private:
 	uint8_t _cvs_in_use = 0;
 
 	//Store the telemetry bitmask for who we want to get telemetry from
-	uint16_t _telem_bitmask = 0;
+	uint64_t _telem_bitmask = 0;
+	uint32_t _telemetry_ids_1 = 0;
+	uint32_t _telemetry_ids_2 = 0;
 
 	//This is the variable we're actually going to use in the brodcast packed control message
 	//We set and use it to _current_telemetry_target_module_id until we send the first
@@ -170,11 +172,12 @@ private:
 		(ParamInt<px4::params::VERTIQ_FC_DIR>) _param_vertiq_fc_direction
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 		, (ParamInt<px4::params::VERTIQ_NUM_CVS>) _param_vertiq_number_of_cvs
-		, (ParamInt<px4::params::VERTIQ_TEL_MSK>) _param_vertiq_telemetry_mask
 		, (ParamInt<px4::params::DISARM_THROTTLE>) _param_vertiq_disarm_throttle
 		, (ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior
 		, (ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
 		, (ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi
+		, (ParamInt<px4::params::TELEM_IDS_1>) _param_vertiq_telem_ids_1
+		, (ParamInt<px4::params::TELEM_IDS_2>) _param_vertiq_telem_ids_2
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 		, (ParamInt<px4::params::PULSE_VOLT_MODE>) _param_vertiq_pulse_volt_mode
 		, (ParamInt<px4::params::X_CVI>) _param_vertiq_pulse_x_cvi

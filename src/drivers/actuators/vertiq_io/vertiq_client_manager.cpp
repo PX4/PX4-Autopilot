@@ -51,7 +51,7 @@ void VertiqClientManager::Init(uint8_t object_id)
 
 void VertiqClientManager::InitVertiqClients(uint8_t object_id)
 {
-	_prop_input_parser_client = new EscPropellerInputParserClient(object_id);//&prop_input_parser;
+	_prop_input_parser_client = new EscPropellerInputParserClient(object_id);
 	_client_array[_clients_in_use] = _prop_input_parser_client;
 	_clients_in_use++;
 
@@ -111,7 +111,7 @@ void VertiqClientManager::UpdateClientsToNewObjId(uint8_t new_object_id)
 	_object_id_now = new_object_id;
 
 	delete _prop_input_parser_client;
-	_prop_input_parser_client = new EscPropellerInputParserClient(new_object_id);//&prop_input_parser;
+	_prop_input_parser_client = new EscPropellerInputParserClient(new_object_id);
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	delete _ifci_client;

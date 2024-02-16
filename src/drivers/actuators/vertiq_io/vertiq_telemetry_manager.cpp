@@ -37,39 +37,27 @@ VertiqTelemetryManager::VertiqTelemetryManager(IFCI *motor_interface) :
 	_motor_interface(motor_interface)
 {}
 
-void VertiqTelemetryManager::Init(uint16_t telem_bitmask)
+void VertiqTelemetryManager::Init(uint64_t telem_bitmask)
 {
 	//On init, make sure to set our bitmask, and then go ahead and find the front and back 1s
 	_telem_bitmask = telem_bitmask;
-	FindFirstAndLastTelemetryPositions();
+	FindTelemetryModuleIds();
 }
 
-void VertiqTelemetryManager::FindFirstAndLastTelemetryPositions()
+void VertiqTelemetryManager::FindTelemetryModuleIds()
 {
-	uint16_t shift_val = 0x0001;
-	bool found_first = false;
-
-	//Go through from 0 to the max number of CVs we can have, and determine the first and last place we have a 1
-	for (uint8_t i = 0; i < MAX_SUPPORTABLE_IFCI_CVS; i++) {
-		if (shift_val & _telem_bitmask) {
-
-			//We only want to set the lowest value once
-			if (!found_first) {
-				_first_module_for_telem = i;
-
-				//Also initialize the current target
-				_current_telemetry_target_module_id = _first_module_for_telem;
-				found_first = true;
-			}
-
-			//Keep updating the last module for every time we hit a 1
-			_last_module_for_telem = i;
-
-			//We found another module for telemetry
-			_number_of_modules_for_telem++;
+	uint64_t temp_bitmask = _telem_bitmask;
+	//We have a uint64 with bit positions representing module ids. If you see a 1, that's a module ID we need to get telemetry from
+	//Keep shifting values, and see who's a 1
+	for(uint8_t i = 0; i < MAX_SUPPORTABLE_MODULE_IDS; i++){
+		//We're only going to keep track of up to MAX_ESC_STATUS_ENTRIES
+		if(temp_bitmask & 0x0000000000000001 && (_number_of_module_ids_for_telem < MAX_ESC_STATUS_ENTRIES)){
+			//we found one, and have spcae for it. Put it in our array
+			_module_ids_in_use[_number_of_module_ids_for_telem] = i;
+			_number_of_module_ids_for_telem++;
 		}
 
-		shift_val = shift_val << 1;
+		temp_bitmask = temp_bitmask >> 1;
 	}
 }
 
@@ -78,10 +66,10 @@ void VertiqTelemetryManager::StartPublishing(uORB::Publication<esc_status_s> *es
 	//Initialize our ESC status publishing
 	_esc_status.timestamp          = hrt_absolute_time();
 	_esc_status.counter            = 0;
-	_esc_status.esc_count          = _number_of_modules_for_telem;
+	_esc_status.esc_count          = _number_of_module_ids_for_telem;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 
-	for (unsigned i = 0; i < _number_of_modules_for_telem; i++) {
+	for (unsigned i = 0; i < _number_of_module_ids_for_telem; i++) {
 		_esc_status.esc[i].timestamp       = 0;
 		_esc_status.esc[i].esc_address     = 0;
 		_esc_status.esc[i].esc_rpm         = 0;
@@ -115,19 +103,19 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		IFCITelemetryData telem_response = _motor_interface->telemetry_.get_reply();
 
 		// also update our internal report for logging
-		_esc_status.esc[_current_telemetry_target_module_id].esc_address  = _current_telemetry_target_module_id;
-		_esc_status.esc[_current_telemetry_target_module_id].timestamp    = time_now;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_rpm      = telem_response.speed;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_voltage  = telem_response.voltage * 0.01;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_current  = telem_response.current * 0.01;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_power    =
-			_esc_status.esc[_current_telemetry_target_module_id].esc_voltage *
-			_esc_status.esc[_current_telemetry_target_module_id].esc_current;
-		_esc_status.esc[_current_telemetry_target_module_id].esc_temperature = telem_response.mcu_temp *
+		_esc_status.esc[_current_module_id_target_index].esc_address  = _current_module_id_target_index;
+		_esc_status.esc[_current_module_id_target_index].timestamp    = time_now;
+		_esc_status.esc[_current_module_id_target_index].esc_rpm      = telem_response.speed;
+		_esc_status.esc[_current_module_id_target_index].esc_voltage  = telem_response.voltage * 0.01;
+		_esc_status.esc[_current_module_id_target_index].esc_current  = telem_response.current * 0.01;
+		_esc_status.esc[_current_module_id_target_index].esc_power    =
+			_esc_status.esc[_current_module_id_target_index].esc_voltage *
+			_esc_status.esc[_current_module_id_target_index].esc_current;
+		_esc_status.esc[_current_module_id_target_index].esc_temperature = telem_response.mcu_temp *
 				0.01; //"If you ask other escs for their temp, they're giving you the micro temp, so go with that"
-		_esc_status.esc[_current_telemetry_target_module_id].esc_state    = 0; //not implemented
-		_esc_status.esc[_current_telemetry_target_module_id].esc_cmdcount = 0; //not implemented
-		_esc_status.esc[_current_telemetry_target_module_id].failures     = 0; //not implemented
+		_esc_status.esc[_current_module_id_target_index].esc_state    = 0; //not implemented
+		_esc_status.esc[_current_module_id_target_index].esc_cmdcount = 0; //not implemented
+		_esc_status.esc[_current_module_id_target_index].failures     = 0; //not implemented
 
 		//Update the overall _esc_status timestamp and our counter
 		_esc_status.timestamp = time_now;
@@ -144,38 +132,22 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		return FindNextMotorForTelemetry();
 	}
 
+	//Still waiting for a response or a timeout
 	return _impossible_module_id;
 }
 
 uint16_t VertiqTelemetryManager::FindNextMotorForTelemetry()
 {
-	//If the current telemetry is the highest available, wrap around to the first one
-	//If we're below the max, find the next available.
-
-	//The bitmask shifted by the number of telemetry targets we've alredy hit
-	uint16_t next_telem_target_mask = _telem_bitmask >> (_current_telemetry_target_module_id + 1);
-
-	//The bit position of the next telemetry target
-	uint16_t next_telem_target_position = _current_telemetry_target_module_id  + 1;
-
-	//Keep trying to find the next value until you're out of bits. if you run out of bits, your next telem is the lowest value that we saved before
-	while (next_telem_target_mask > 0) {
-		if (next_telem_target_mask & 0x0001) {
-			_current_telemetry_target_module_id = next_telem_target_position;
-			_telemetry_request_id = _current_telemetry_target_module_id;
-			return _telemetry_request_id; //get out
-		}
-
-		//keep trying
-		next_telem_target_position++;
-		next_telem_target_mask = next_telem_target_mask >> 1;
+	//If our current index is the last module ID we've found, then go back to the beginning
+	//otherwise just increment
+	if(_current_module_id_target_index >= _number_of_module_ids_for_telem - 1){
+		_current_module_id_target_index = 0;
+	}else{
+		_current_module_id_target_index++;
 	}
 
-	//We didn't find anyone new. Go back to the start.
-	_current_telemetry_target_module_id = _first_module_for_telem;
-	_telemetry_request_id = _current_telemetry_target_module_id;
-
-	return _telemetry_request_id;
+	//Return the next target
+	return _module_ids_in_use[_current_module_id_target_index];
 }
 
 esc_status_s VertiqTelemetryManager::GetEscStatus()
