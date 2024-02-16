@@ -2440,7 +2440,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {
-			if (cmd_logging_stop_acknowledgement) {
+			if (cmd_logging_stop_acknowledgement && _mavlink_ulog->is_idle()) {
+				PX4_INFO("[mavlink_ulog] stop");
 				_mavlink_ulog->stop();
 				_mavlink_ulog = nullptr;
 

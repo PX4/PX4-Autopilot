@@ -101,6 +101,8 @@ public:
 	float current_data_rate() const { return _current_rate_factor; }
 	float maximum_data_rate() const { return _max_rate_factor; }
 
+	bool is_idle();
+
 private:
 
 	MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component);
@@ -141,6 +143,8 @@ private:
 	float _current_rate_factor; ///< currently used rate percentage
 	int _current_num_msgs = 0;  ///< number of messages sent within the current time interval
 	hrt_abstime _next_rate_check; ///< next timestamp at which to update the rate
+	uint32_t _num_cumulative_messages = 0;
+	uint32_t _prev_num_cumulative_messages = 0;
 
 	perf_counter_t _msg_missed_ulog_stream_perf{perf_alloc(PC_COUNT, MODULE_NAME": ulog_stream messages missed")};
 
