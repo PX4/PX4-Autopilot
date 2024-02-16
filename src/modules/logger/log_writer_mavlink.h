@@ -38,6 +38,7 @@
 #include <uORB/topics/ulog_stream.h>
 #include <uORB/topics/ulog_stream_ack.h>
 #include <containers/List.hpp>
+#include "messages.h"
 
 #ifdef LOGGER_PARALLEL_LOGGING
 static constexpr size_t LOGGER_ULOG_STREAM_DATA_LEN {249}; // Size of ulog_stream data buffer
@@ -54,6 +55,7 @@ class ReliableMsg : public ListNode<ReliableMsg *>
 {
 public:
 	uint16_t len;
+	ULogWriteType wrtype;
 	uint8_t data[LOGGER_ULOG_STREAM_DATA_LEN];
 };
 
@@ -87,11 +89,21 @@ public:
 	bool is_started() const { return _is_started; }
 
 	/** @see LogWriter::write_message() */
-	int write_message(void *ptr, size_t size, bool reliable = false);
+	int write_message(void *ptr, size_t size, ULogWriteType wrtype = ULogWriteType::BEST_EFFORT);
 #ifdef LOGGER_PARALLEL_LOGGING
-	int write_reliable_message(void *ptr, size_t size, bool wait = false);
+	void allow_delayed_sending()
+	{
+		PX4_INFO("allow_delayed_sending");
+		_delayed_sending_allowed = true;
+	}
+	void stop_log_req()
+	{
+		_stop_log_request = true;
+	}
+	int write_reliable_message(void *ptr, size_t size, ULogWriteType wrtype);
 	bool reliable_fifo_is_sending();
 	void wait_fifo_count(size_t count);
+	void wait_fifos_empty();
 #else
 	void set_need_reliable_transfer(bool need_reliable);
 #endif
@@ -107,14 +119,14 @@ private:
 	void mav_reliable_sender();
 
 	ReliableMsg *reliable_fifo_pop();
-	bool reliable_fifo_push(ReliableMsg *node);
+	bool reliable_fifo_push(ReliableMsg *node, bool delayed);
 	void reliable_fifo_set_sender_idle();
 
 	size_t reliable_fifo_count();
 #endif
 
 	/** publish message, wait for ack if needed & reset message */
-	int publish_message(bool reliable = false);
+	int publish_message(ULogWriteType wrtype = ULogWriteType::BEST_EFFORT);
 
 	ulog_stream_s _ulog_stream_data{};
 	uORB::Publication<ulog_stream_s> _ulog_stream_pub{ORB_ID(ulog_stream)};
@@ -125,7 +137,10 @@ private:
 	ulog_stream_s _ulog_stream_acked_data {};
 	uORB::Publication<ulog_stream_s> _ulog_stream_acked_pub{ORB_ID(ulog_stream_acked)};
 	ReliableFifo _fifo;
+	ReliableFifo _fifo_delayed;
+	bool _delayed_sending_allowed = false;
 	pthread_t _mav_reliable_sender_thread = 0;
+	bool _stop_log_request = false;
 #endif
 };
 

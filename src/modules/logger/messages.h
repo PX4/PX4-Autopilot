@@ -51,6 +51,11 @@ enum class ULogMessageType : uint8_t {
 	FLAG_BITS = 'B',
 };
 
+enum class ULogWriteType : uint8_t {
+	BEST_EFFORT = 0,
+	RELIABLE_START_STEPS = 1,
+	RELIABLE_TOPIC_DATA = 2,
+};
 
 /* declare message data structs with byte alignment (no padding) */
 #pragma pack(push, 1)

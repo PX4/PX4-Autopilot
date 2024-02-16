@@ -158,7 +158,7 @@ void LogWriter::thread_stop()
 	}
 }
 
-int LogWriter::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start, bool reliable, bool wait)
+int LogWriter::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start, ULogWriteType wrtype)
 {
 	int ret_file = 0, ret_mavlink = 0;
 
@@ -169,8 +169,8 @@ int LogWriter::write_message(LogType type, void *ptr, size_t size, uint64_t drop
 	if (_log_writer_mavlink_for_write && type == LogType::Full) {
 #ifdef LOGGER_PARALLEL_LOGGING
 
-		if (reliable) {
-			ret_mavlink = _log_writer_mavlink_for_write->write_reliable_message(ptr, size, wait);
+		if (wrtype != ULogWriteType::BEST_EFFORT) {
+			ret_mavlink = _log_writer_mavlink_for_write->write_reliable_message(ptr, size, wrtype);
 
 		} else
 #endif
