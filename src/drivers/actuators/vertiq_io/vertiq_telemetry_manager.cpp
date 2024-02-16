@@ -103,7 +103,7 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		IFCITelemetryData telem_response = _motor_interface->telemetry_.get_reply();
 
 		// also update our internal report for logging
-		_esc_status.esc[_current_module_id_target_index].esc_address  = _current_module_id_target_index;
+		_esc_status.esc[_current_module_id_target_index].esc_address  = _module_ids_in_use[_number_of_module_ids_for_telem];
 		_esc_status.esc[_current_module_id_target_index].timestamp    = time_now;
 		_esc_status.esc[_current_module_id_target_index].esc_rpm      = telem_response.speed;
 		_esc_status.esc[_current_module_id_target_index].esc_voltage  = telem_response.voltage * 0.01;
