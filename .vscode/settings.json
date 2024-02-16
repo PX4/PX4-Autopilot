@@ -128,5 +128,19 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
-        "ros.distro": "humble"
+        "ros.distro": "humble",
+        "python.autoComplete.extraPaths": [
+                "/home/dj/workspace/robot_ws/install/topic_service_action_rclpy_example/lib/python3.10/site-packages",
+                "/home/dj/workspace/robot_ws/install/my_first_ros_rclpy_pkg/lib/python3.10/site-packages",
+                "/home/dj/workspace/robot_ws/install/msg_srv_action_interface_example/local/lib/python3.10/dist-packages",
+                "/opt/ros/humble/lib/python3.10/site-packages",
+                "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ],
+        "python.analysis.extraPaths": [
+                "/home/dj/workspace/robot_ws/install/topic_service_action_rclpy_example/lib/python3.10/site-packages",
+                "/home/dj/workspace/robot_ws/install/my_first_ros_rclpy_pkg/lib/python3.10/site-packages",
+                "/home/dj/workspace/robot_ws/install/msg_srv_action_interface_example/local/lib/python3.10/dist-packages",
+                "/opt/ros/humble/lib/python3.10/site-packages",
+                "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ]
 }
