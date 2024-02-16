@@ -35,7 +35,6 @@
 #include <px4_platform_common/console_buffer.h>
 #include "logged_topics.h"
 #include "logger.h"
-#include "messages.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -1167,6 +1166,15 @@ bool Logger::start_stop_logging()
 		}
 	}
 
+#ifdef LOGGER_PARALLEL_LOGGING
+
+	if (_mavlink_log_stop_req && _mavlink_log_start_steps_sent) {
+		PX4_INFO("[start_stop_logging] All header data send, continue stopping..");
+		do_stop_log_mavlink();
+	}
+
+#endif
+
 	return false;
 }
 
@@ -1200,11 +1208,11 @@ void Logger::handle_vehicle_command_update()
 	}
 }
 
-bool Logger::write_message(LogType type, void *ptr, size_t size, bool reliable, bool wait)
+bool Logger::write_message(LogType type, void *ptr, size_t size, ULogWriteType wrtype)
 {
 	Statistics &stats = _statistics[(int)type];
 
-	if (_writer.write_message(type, ptr, size, stats.dropout_start, reliable, wait) != -1) {
+	if (_writer.write_message(type, ptr, size, stats.dropout_start, wrtype) != -1) {
 
 		if (stats.dropout_start) {
 			float dropout_duration = (float)(hrt_elapsed_time(&stats.dropout_start) / 1000) / 1.e3f;
@@ -1479,7 +1487,7 @@ void *Logger::mav_start_steps_helper(void *context)
 void Logger::mav_start_steps()
 {
 	/* This is running in separate thread to keep logging data while sending header&descriptions */
-	_thread_mav_start_sender_data.wait_for_ack = true;
+	_thread_mav_start_sender_data.write_type = ULogWriteType::RELIABLE_START_STEPS;
 	pthread_setspecific(pthread_data_key, (void *)&_thread_mav_start_sender_data);
 
 	PX4_INFO("Write static data - Begin");
@@ -1493,7 +1501,9 @@ void Logger::mav_start_steps()
 	write_events_file(LogType::Full);
 	write_excluded_optional_topics(LogType::Full);
 	write_all_add_logged_msg(LogType::Full);
+	_writer.allow_delayed_sending();
 	PX4_INFO("Write static data - End");
+	_mavlink_log_start_steps_sent = true;
 }
 #endif
 
@@ -1563,6 +1573,17 @@ void Logger::start_log_mavlink()
 
 void Logger::stop_log_mavlink()
 {
+#ifdef LOGGER_PARALLEL_LOGGING
+	PX4_INFO("Request to stop mavlink logging");
+	_mavlink_log_stop_req = true;
+	_writer.stop_log_mavlink_req();
+#else
+	do_stop_log_mavlink();
+#endif
+}
+
+void Logger::do_stop_log_mavlink()
+{
 	// don't write perf data since a client does not expect more data after a stop command
 	PX4_INFO("Stop mavlink log");
 
@@ -1580,6 +1601,10 @@ void Logger::stop_log_mavlink()
 	}
 
 	PX4_INFO("Mavlink logging stopped");
+#ifdef LOGGER_PARALLEL_LOGGING
+	_mavlink_log_stop_req = false;
+	_mavlink_log_start_steps_sent = false;
+#endif
 }
 
 struct perf_callback_data_t {
@@ -1782,7 +1807,7 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 
 #ifdef LOGGER_PARALLEL_LOGGING
 	thread_data_t *th_data = (thread_data_t *) pthread_getspecific(pthread_data_key);
-	write_message(type, &msg, msg_size, true, th_data->wait_for_ack);
+	write_message(type, &msg, msg_size, th_data->write_type);
 #else
 	write_message(type, &msg, msg_size);
 #endif
@@ -1935,7 +1960,7 @@ void Logger::write_add_logged_msg(LogType type, LoggerSubscription &subscription
 	_writer.set_need_reliable_transfer(true);
 #ifdef LOGGER_PARALLEL_LOGGING
 	thread_data_t *th_data = (thread_data_t *) pthread_getspecific(pthread_data_key);
-	write_message(type, &msg, msg_size, true, th_data->wait_for_ack);
+	write_message(type, &msg, msg_size, th_data->write_type);
 #else
 	write_message(type, &msg, msg_size);
 #endif
@@ -1963,7 +1988,7 @@ void Logger::write_info(LogType type, const char *name, const char *value)
 
 #ifdef LOGGER_PARALLEL_LOGGING
 		thread_data_t *th_data = (thread_data_t *) pthread_getspecific(pthread_data_key);
-		write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+		write_message(type, buffer, msg_size, th_data->write_type);
 #else
 		write_message(type, buffer, msg_size);
 #endif
@@ -1994,7 +2019,7 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 
 #ifdef LOGGER_PARALLEL_LOGGING
 		thread_data_t *th_data = (thread_data_t *) pthread_getspecific(pthread_data_key);
-		write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+		write_message(type, buffer, msg_size, th_data->write_type);
 #else
 		write_message(type, buffer, msg_size);
 #endif
@@ -2047,7 +2072,7 @@ void Logger::write_info_multiple(LogType type, const char *name, int fd)
 			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 #ifdef LOGGER_PARALLEL_LOGGING
-			write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+			write_message(type, buffer, msg_size, th_data->write_type);
 #else
 			write_message(type, buffer, msg_size);
 #endif
@@ -2095,7 +2120,7 @@ void Logger::write_info_template(LogType type, const char *name, T value, const 
 
 #ifdef LOGGER_PARALLEL_LOGGING
 	thread_data_t *th_data = (thread_data_t *) pthread_getspecific(pthread_data_key);
-	write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+	write_message(type, buffer, msg_size, th_data->write_type);
 #else
 	write_message(type, buffer, msg_size);
 #endif
@@ -2130,7 +2155,7 @@ void Logger::write_header(LogType type)
 
 #ifdef LOGGER_PARALLEL_LOGGING
 	thread_data_t *th_data = (thread_data_t *) pthread_getspecific(pthread_data_key);
-	write_message(type, &header, sizeof(header), true, th_data->wait_for_ack);
+	write_message(type, &header, sizeof(header), th_data->write_type);
 #else
 	write_message(type, &header, sizeof(header));
 #endif
@@ -2144,7 +2169,7 @@ void Logger::write_header(LogType type)
 	flag_bits.msg_type = static_cast<uint8_t>(ULogMessageType::FLAG_BITS);
 
 #ifdef LOGGER_PARALLEL_LOGGING
-	write_message(type, &flag_bits, sizeof(flag_bits), true, th_data->wait_for_ack);
+	write_message(type, &flag_bits, sizeof(flag_bits), th_data->write_type);
 #else
 	write_message(type, &flag_bits, sizeof(flag_bits));
 #endif
@@ -2310,7 +2335,7 @@ void Logger::write_parameter_defaults(LogType type)
 					memcpy(&buffer[msg_size - value_size], default_value, value_size);
 					msg.default_types = ulog_parameter_default_type_t::current_setup | ulog_parameter_default_type_t::system;
 #ifdef LOGGER_PARALLEL_LOGGING
-					write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+					write_message(type, buffer, msg_size, th_data->write_type);
 #else
 					write_message(type, buffer, msg_size);
 #endif
@@ -2321,7 +2346,7 @@ void Logger::write_parameter_defaults(LogType type)
 					memcpy(&buffer[msg_size - value_size], default_value, value_size);
 					msg.default_types = ulog_parameter_default_type_t::current_setup;
 #ifdef LOGGER_PARALLEL_LOGGING
-					write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+					write_message(type, buffer, msg_size, th_data->write_type);
 #else
 					write_message(type, buffer, msg_size);
 #endif
@@ -2331,7 +2356,7 @@ void Logger::write_parameter_defaults(LogType type)
 					memcpy(&buffer[msg_size - value_size], system_default_value, value_size);
 					msg.default_types = ulog_parameter_default_type_t::system;
 #ifdef LOGGER_PARALLEL_LOGGING
-					write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+					write_message(type, buffer, msg_size, th_data->write_type);
 #else
 					write_message(type, buffer, msg_size);
 #endif
@@ -2410,7 +2435,7 @@ void Logger::write_parameters(LogType type)
 			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 #ifdef LOGGER_PARALLEL_LOGGING
-			write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+			write_message(type, buffer, msg_size, th_data->write_type);
 #else
 			write_message(type, buffer, msg_size);
 #endif
@@ -2489,7 +2514,7 @@ void Logger::write_changed_parameters(LogType type)
 			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 #ifdef LOGGER_PARALLEL_LOGGING
-			write_message(type, buffer, msg_size, true, th_data->wait_for_ack);
+			write_message(type, buffer, msg_size, th_data->write_type);
 #else
 			write_message(type, buffer, msg_size);
 #endif

@@ -35,6 +35,7 @@
 
 #include "log_writer_file.h"
 #include "log_writer_mavlink.h"
+#include "messages.h"
 
 namespace px4
 {
@@ -74,10 +75,19 @@ public:
 	void stop_log_mavlink();
 
 #ifdef LOGGER_PARALLEL_LOGGING
+
+	void allow_delayed_sending()
+	{
+		if (_log_writer_mavlink) { _log_writer_mavlink->allow_delayed_sending(); }
+	}
+	void stop_log_mavlink_req()
+	{
+		if (_log_writer_mavlink) { _log_writer_mavlink->stop_log_req(); }
+	}
 	void wait_fifo_empty()
 	{
 		if (_log_writer_mavlink) {
-			_log_writer_mavlink->wait_fifo_count(0);
+			_log_writer_mavlink->wait_fifos_empty();
 
 			while (_log_writer_mavlink->reliable_fifo_is_sending()) {
 				usleep(10000);
@@ -103,8 +113,8 @@ public:
 	 *         -1 if not enough space in the buffer left (file backend), -2 mavlink backend failed
 	 *  add type -> pass through, but not to mavlink if mission log
 	 */
-	int write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start = 0, bool reliable = false,
-			  bool wait = false);
+	int write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start = 0,
+			  ULogWriteType wrtype = ULogWriteType::BEST_EFFORT);
 
 	/**
 	 * Select a backend, so that future calls to write_message() only write to the selected
