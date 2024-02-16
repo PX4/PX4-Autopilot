@@ -146,7 +146,7 @@ void Ekf::fuseOptFlow()
 
 		VectorState Kfusion = P * H / _aid_src_optical_flow.innovation_variance[index];
 
-		if (measurementUpdate(Kfusion, _aid_src_optical_flow.innovation_variance[index], _aid_src_optical_flow.innovation[index])) {
+		if (measurementUpdate(Kfusion, H, _aid_src_optical_flow.observation_variance[index], _aid_src_optical_flow.innovation[index])) {
 			fused[index] = true;
 		}
 	}

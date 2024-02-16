@@ -160,7 +160,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 			VectorState K = P * H / _aid_src_drag.innovation_variance[axis_index];
 
-			if (measurementUpdate(K, _aid_src_drag.innovation_variance[axis_index], _aid_src_drag.innovation[axis_index])) {
+			if (measurementUpdate(K, H, R_ACC, _aid_src_drag.innovation[axis_index])) {
 				fused[axis_index] = true;
 			}
 		}
