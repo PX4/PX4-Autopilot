@@ -208,7 +208,7 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
-	const bool is_fused = measurementUpdate(K, aid_src.innovation_variance, aid_src.innovation);
+	const bool is_fused = measurementUpdate(K, H, aid_src.observation_variance, aid_src.innovation);
 
 	aid_src.fused = is_fused;
 	_fault_status.flags.bad_airspeed = !is_fused;

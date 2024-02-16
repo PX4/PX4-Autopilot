@@ -222,14 +222,6 @@ void Ekf::constrainStateVariances()
 #endif // CONFIG_EKF2_WIND
 }
 
-void Ekf::forceCovarianceSymmetry()
-{
-	// DEBUG
-	// P.isBlockSymmetric(0, 1e-9f);
-
-	P.makeRowColSymmetric<State::size>(0);
-}
-
 void Ekf::constrainStateVar(const IdxDof &state, float min, float max)
 {
 	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
@@ -254,22 +246,6 @@ void Ekf::constrainStateVarLimitRatio(const IdxDof &state, float min, float max,
 	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
 		P(i, i) = math::constrain(P(i, i), limited_min, limited_max);
 	}
-}
-
-// if the covariance correction will result in a negative variance, then
-// the covariance matrix is unhealthy and must be corrected
-bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrixState &KHP)
-{
-	bool healthy = true;
-
-	for (int i = 0; i < State::size; i++) {
-		if (P(i, i) < KHP(i, i)) {
-			P.uncorrelateCovarianceSetVariance<1>(i, 0.f);
-			healthy = false;
-		}
-	}
-
-	return healthy;
 }
 
 void Ekf::resetQuatCov(const float yaw_noise)
