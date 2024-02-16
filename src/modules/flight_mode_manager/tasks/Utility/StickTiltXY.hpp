@@ -63,6 +63,9 @@ public:
 	matrix::Vector2f generateAccelerationSetpoints(matrix::Vector2f stick_xy, const float dt, const float yaw,
 			const float yaw_setpoint);
 private:
+	void updateParams() override;
+
+	float _maximum_acceleration{0.f};
 	AlphaFilter<matrix::Vector2f> _man_input_filter;
 
 	DEFINE_PARAMETERS(
