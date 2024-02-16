@@ -35,8 +35,8 @@
  * Maximal tilt angle in Stabilized or Altitude mode
  *
  * @unit deg
- * @min 0
- * @max 90
+ * @min 1
+ * @max 70
  * @decimal 0
  * @increment 1
  * @group Multicopter Position Control
