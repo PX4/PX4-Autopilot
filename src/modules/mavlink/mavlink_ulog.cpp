@@ -47,6 +47,7 @@ bool MavlinkULog::_init = false;
 MavlinkULog *MavlinkULog::_instance = nullptr;
 px4_sem_t MavlinkULog::_lock;
 
+#define MAVLINK_ULOG_ACK_RESEND_TIMEOUT_MUL 4
 
 MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component)
 	: _target_system(target_system), _target_component(target_component),
@@ -113,12 +114,14 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 
 		} else {
 
-			if (hrt_elapsed_time(&_last_sent_time) > ulog_stream_ack_s::ACK_TIMEOUT * 1000) {
-				if (++_sent_tries > ulog_stream_ack_s::ACK_MAX_TRIES) {
-					return -ETIMEDOUT;
+			if (hrt_elapsed_time(&_last_sent_time) > MAVLINK_ULOG_ACK_RESEND_TIMEOUT_MUL * ulog_stream_ack_s::ACK_TIMEOUT * 1000) {
+				if (++_sent_tries > (ulog_stream_ack_s::ACK_MAX_TRIES / MAVLINK_ULOG_ACK_RESEND_TIMEOUT_MUL - 1)) {
+					PX4_ERR("ULog stream Ack timeout");
+					_ack_received = true;
+					return 0;
 
 				} else {
-					PX4_DEBUG("re-sending ulog mavlink message (try=%i)", _sent_tries);
+					PX4_WARN("re-sending ulog mavlink message (try=%i)", _sent_tries);
 					_last_sent_time = hrt_absolute_time();
 
 					const ulog_stream_s &ulog_data = _ulog_stream_acked_sub.get();
@@ -150,6 +153,7 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 
 			if (ulog_data.timestamp > 0) {
 				if (ulog_data.flags & ulog_stream_s::FLAGS_NEED_ACK) {
+
 					_sent_tries = 1;
 					_last_sent_time = hrt_absolute_time();
 					lock();
@@ -209,6 +213,8 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 		}
 	}
 
+	_num_cumulative_messages += _current_num_msgs;
+
 	//need to update the rate?
 	hrt_abstime t = hrt_absolute_time();
 
@@ -261,6 +267,16 @@ MavlinkULog *MavlinkULog::try_start(int datarate, float max_rate_factor, uint8_t
 	}
 
 	return ret;
+}
+
+bool MavlinkULog::is_idle()
+{
+	if (_num_cumulative_messages == _prev_num_cumulative_messages) {
+		return true;
+	}
+
+	_prev_num_cumulative_messages = _num_cumulative_messages;
+	return false;
 }
 
 void MavlinkULog::stop()
