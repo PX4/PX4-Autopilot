@@ -92,7 +92,12 @@ public:
 	bool ValuesAreTheSame(float val1, float val2, float tolerance)
 	{
 		float diff = val1 - val2;
-		return (abs(diff) < tolerance);
+
+		if(diff < 0){
+			return -diff < tolerance;
+		}
+
+		return diff < tolerance;
 	}
 
 	void Update(VertiqSerialInterface *serial_interface)
@@ -117,7 +122,7 @@ public:
 				param_get(_param, &px4_value);
 
 				//If the value here is different from the module's value, set and save it
-				if (!ValuesAreTheSame(px4_value, (px4_data_type)module_value, (px4_data_type)(0.01))) {
+				if (!ValuesAreTheSame(px4_value, (px4_data_type)module_value, (px4_data_type)(0.001))) {
 					SendSetAndSave(serial_interface, px4_value);
 				}
 			}

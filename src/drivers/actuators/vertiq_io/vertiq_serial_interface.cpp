@@ -32,8 +32,9 @@
  ****************************************************************************/
 #include "vertiq_serial_interface.hpp"
 
-VertiqSerialInterface::VertiqSerialInterface(uint8_t num_clients) :
-	_number_of_clients(num_clients)
+VertiqSerialInterface::VertiqSerialInterface(uint8_t num_clients, uint8_t num_user_clients) :
+	_number_of_clients(num_clients),
+	_number_of_user_added_clients(num_user_clients)
 {}
 
 void VertiqSerialInterface::deinit_serial()
@@ -148,7 +149,7 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	return 0;
 }
 
-int VertiqSerialInterface::process_serial_rx(IFCI *motor_interface, ClientAbstract **array_of_clients)
+int VertiqSerialInterface::process_serial_rx(IFCI *motor_interface, ClientAbstract **array_of_clients, ClientAbstract **user_clients)
 {
 	if (_uart_fd < 0) {
 		return -1;
@@ -177,10 +178,16 @@ int VertiqSerialInterface::process_serial_rx(IFCI *motor_interface, ClientAbstra
 		//While we've got packets to look at, give the packet to each of the clients so that each
 		//can decide what to do with it
 		while (_iquart_interface.PeekPacket(&rx_buf_ptr, &_bytes_available) == 1) {
+
+			//Make sure everyone reads the message (IFCI, our clients, user added clients)
 			motor_interface->ReadTelemetry(rx_buf_ptr, _bytes_available);
 
 			for (uint8_t i = 0; i < _number_of_clients; i++) {
 				array_of_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
+			}
+
+			for (uint8_t i = 0; i < _number_of_user_added_clients; i++) {
+				user_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
 			}
 
 			_iquart_interface.DropPacket();
@@ -210,4 +217,9 @@ GenericInterface *VertiqSerialInterface::get_iquart_interface()
 void VertiqSerialInterface::SetNumberOfClients(uint8_t number_of_clients)
 {
 	_number_of_clients = number_of_clients;
+}
+
+void VertiqSerialInterface::SetNumberOfUserClients(uint8_t number_of_user_clients)
+{
+	_number_of_user_added_clients = number_of_user_clients;
 }

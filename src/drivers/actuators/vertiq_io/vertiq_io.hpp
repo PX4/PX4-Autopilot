@@ -178,6 +178,8 @@ private:
 		, (ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi
 		, (ParamInt<px4::params::TELEM_IDS_1>) _param_vertiq_telem_ids_1
 		, (ParamInt<px4::params::TELEM_IDS_2>) _param_vertiq_telem_ids_2
+#endif //CONFIG_USE_IFCI_CONFIGURATION
+
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 		, (ParamInt<px4::params::PULSE_VOLT_MODE>) _param_vertiq_pulse_volt_mode
 		, (ParamInt<px4::params::X_CVI>) _param_vertiq_pulse_x_cvi
@@ -187,7 +189,6 @@ private:
 		, (ParamFloat<px4::params::TORQUE_OFF_ANGLE>) _param_vertiq_pulse_torque_offset_angle
 		, (ParamFloat<px4::params::PULSE_VOLT_LIM>) _param_vertiq_pulse_voltage_limit
 #endif //CONFIG_USE_PULSING_CONFIGURATION
-#endif //CONFIG_USE_IFCI_CONFIGURATION
 	)
 };
 

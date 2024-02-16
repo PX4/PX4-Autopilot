@@ -135,7 +135,7 @@ void VertiqClientManager::HandleClientCommunication()
 	_serial_interface->process_serial_tx();
 
 	//Update our serial rx
-	_serial_interface->process_serial_rx(&_motor_interface, _client_array);
+	_serial_interface->process_serial_rx(&_motor_interface, _client_array, _user_added_clients);
 }
 
 IFCI *VertiqClientManager::GetMotorInterface()
@@ -146,6 +146,11 @@ IFCI *VertiqClientManager::GetMotorInterface()
 uint8_t VertiqClientManager::GetNumberOfClients()
 {
 	return _clients_in_use;
+}
+
+uint8_t VertiqClientManager::GetNumberOfUserClients()
+{
+	return _added_user_clients;
 }
 
 void VertiqClientManager::SendSetForceArm()
@@ -173,12 +178,22 @@ void VertiqClientManager::MarkIquartConfigsForRefresh()
 	for (uint8_t i = 0; i < _num_entry_wrappers; i++) {
 		_entry_wrappers[i]->SetNeedsInit();
 	}
+
+	for (uint8_t i = 0; i < _added_user_entries; i++) {
+		_user_entry_wrappers[i]->SetNeedsInit();
+	}
 }
 
 void VertiqClientManager::UpdateIquartConfigParams()
 {
 	for (uint8_t i = 0; i < _num_entry_wrappers; i++) {
 		_entry_wrappers[i]->SendGet(_serial_interface);
+		//Ensure that these get messages get out
+		_serial_interface->process_serial_tx();
+	}
+
+	for (uint8_t i = 0; i < _added_user_entries; i++) {
+		_user_entry_wrappers[i]->SendGet(_serial_interface);
 		//Ensure that these get messages get out
 		_serial_interface->process_serial_tx();
 	}
@@ -198,10 +213,25 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 			_entry_wrappers[i]->Update(_serial_interface);
 		}
 
+		for (uint8_t i = 0; i < _added_user_entries; i++) {
+			_user_entry_wrappers[i]->Update(_serial_interface);
+		}
+
 		//Update the time
 		time_now = hrt_absolute_time();
 
 		//Update our serial rx
-		_serial_interface->process_serial_rx(&_motor_interface, _client_array);
+		_serial_interface->process_serial_rx(&_motor_interface, _client_array, _user_added_clients);
+	}
+}
+
+void VertiqClientManager::AddNewClient(ClientAbstract * client){
+	if(_added_user_clients < MAX_USER_CLIENTS){
+		_user_added_clients[_added_user_clients] = client;
+		_added_user_clients++;
+
+		_serial_interface->SetNumberOfUserClients(_added_user_clients);
+	}else{
+		PX4_INFO("Could not add this client. Maximum number exceeded");
 	}
 }

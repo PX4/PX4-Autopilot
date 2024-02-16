@@ -96,9 +96,9 @@ parameters:
                     PWM Mode: Commands a fraction of battery voltage. This changes as the battery voltage changes.
                     This is the least safe mode because the upper throttle limit is determined by the battery voltage.
                     Voltage Mode: Commands a voltage. The motor will behave the same way throughout the life of a battery, assuming the commanded voltage is less than the battery voltage.
-                    You must set the MAX_VOLTS parameter. Velocity Mode: Closed-loop, commands a velocity. The controller will adjust
-                    the applied voltage so that the motor spins at the commanded velocity. This mode has faster reaction times. Only use this if you know the properties of your propeller.
-                    You must set the MAX_VELOCITY parameter.
+                    You must set the MAX_VOLTS parameter.
+                    Velocity Mode: Closed-loop, commands a velocity. The controller will adjust the applied voltage so that the motor spins at the commanded velocity.
+                    This mode has faster reaction times. Only use this if you know the properties of your propeller. You must set the MAX_VELOCITY parameter.
             type: enum
             values:
                 0: PWM

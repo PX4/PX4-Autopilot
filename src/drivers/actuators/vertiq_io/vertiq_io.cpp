@@ -39,7 +39,7 @@ char VertiqIo::_telemetry_device[] {};
 
 VertiqIo::VertiqIo() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_serial_interface(0),
+	_serial_interface(0, 0),
 	_client_manager(&_serial_interface),
 	_telem_manager(_client_manager.GetMotorInterface())
 

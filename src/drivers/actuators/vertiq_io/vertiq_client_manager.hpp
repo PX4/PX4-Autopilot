@@ -116,6 +116,12 @@ public:
 	uint8_t GetNumberOfClients();
 
 	/**
+	* @brief Returns the number of clients that the user has added
+	* @return The value contained in _added_user_clients
+	*/
+	uint8_t GetNumberOfUserClients();
+
+	/**
 	* @brief Set all of the IQUART configuration init flags to true
 	*/
 	void MarkIquartConfigsForRefresh();
@@ -143,6 +149,19 @@ public:
 	* @param new_object_id The new target module ID that we should use to instantiate our new clients
 	*/
 	void UpdateClientsToNewObjId(uint8_t new_object_id);
+
+	void AddNewClient(ClientAbstract * client);
+
+	template <typename iquart_data_type , typename px4_data_type>
+	void AddNewClientEntry(param_t px4_param, ClientEntryAbstract *entry){
+		if(_added_user_entries < MAX_USER_CLIENT_ENTRIES){
+			_user_entry_wrappers[_added_user_entries] = new EntryWrapper<iquart_data_type, px4_data_type>;
+			_user_entry_wrappers[_added_user_entries]->ConfigureStruct(px4_param, entry);
+			_added_user_entries++;
+		}else{
+			PX4_INFO("Could not add this entry. Maximum number exceeded");
+		}
+	}
 private:
 	/**
 	* @brief Initialize all of the Vertiq Clients that we want to use
@@ -191,7 +210,7 @@ private:
 	static const uint8_t _num_entry_wrappers = 6;
 	AbstractEntryWrapper *_entry_wrappers[_num_entry_wrappers] = {&_velocity_max_entry, &_voltage_max_entry, &_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry, &_throttle_cvi_entry};
 #else
-	static const uint8_t _num_entry_wrappersEntryWrapper = 5;
+	static const uint8_t _num_entry_wrappers = 5;
 	AbstractEntryWrapper *_entry_wrappers[_num_entry_wrappers] = {&_velocity_max_entry, &_voltage_max_entry, &_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry};
 #endif
 
@@ -208,8 +227,16 @@ private:
 	//Clients
 	PropellerMotorControlClient _broadcast_prop_motor_control;
 	ArmingHandlerClient _broadcast_arming_handler;
-
 	EscPropellerInputParserClient *_prop_input_parser_client;
+
+	//User Client and Client Entry Information
+	static const uint8_t MAX_USER_CLIENTS = 15;
+	ClientAbstract *_user_added_clients[MAX_USER_CLIENTS];
+	uint8_t _added_user_clients = 0;
+
+	static const uint8_t MAX_USER_CLIENT_ENTRIES = 30;
+	AbstractEntryWrapper *_user_entry_wrappers[MAX_USER_CLIENT_ENTRIES];
+	uint8_t _added_user_entries = 0;
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	//Make all of the clients that we need to talk to the IFCI config params

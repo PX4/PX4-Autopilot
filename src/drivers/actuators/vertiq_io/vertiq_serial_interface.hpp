@@ -47,7 +47,7 @@ class VertiqSerialInterface
 {
 public:
 
-	VertiqSerialInterface(uint8_t num_clients);
+	VertiqSerialInterface(uint8_t num_clients, uint8_t num_user_clients);
 
 	/**
 	* @brief Initialize our serial peripheral
@@ -69,7 +69,7 @@ public:
 	/**
 	* @brief check to see if there is any data for us coming in over the serial port
 	*/
-	int process_serial_rx(IFCI *motor_interface, ClientAbstract **array_of_clients);
+	int process_serial_rx(IFCI *motor_interface, ClientAbstract **array_of_clients, ClientAbstract **user_clients);
 
 	/**
 	* @brief check to see if there is any data that we need to transmit over serial
@@ -84,8 +84,11 @@ public:
 
 	void SetNumberOfClients(uint8_t number_of_clients);
 
+	void SetNumberOfUserClients(uint8_t number_of_user_clients);
+
 private:
 	uint8_t _number_of_clients;
+	uint8_t _number_of_user_added_clients;
 
 	GenericInterface _iquart_interface;
 
