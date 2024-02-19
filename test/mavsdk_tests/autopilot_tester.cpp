@@ -438,6 +438,9 @@ void AutopilotTester::fly_forward_in_posctl()
 	}
 
 	CHECK(_manual_control->start_position_control() == ManualControl::Result::Success);
+	store_home();
+	wait_until_ready();
+	arm();
 
 	// Climb up for 20 seconds
 	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
