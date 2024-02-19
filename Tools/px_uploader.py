@@ -195,6 +195,7 @@ class uploader(object):
     GET_CHIP        = b'\x2c'     # rev5+  , get chip version
     SET_BOOT_DELAY  = b'\x2d'     # rev5+  , set boot delay
     GET_CHIP_DES    = b'\x2e'     # rev5+  , get chip description in ASCII
+    CHIP_FULL_ERASE = b'\x40'     # full erase of flash, rev6+
     MAX_DES_LENGTH  = 20
 
     REBOOT          = b'\x30'
@@ -235,6 +236,7 @@ class uploader(object):
         self.baudrate_bootloader = baudrate_bootloader
         self.baudrate_flightstack = baudrate_flightstack
         self.baudrate_flightstack_idx = -1
+        self.force_erase = False
 
     def close(self):
         if self.port is not None:
@@ -423,8 +425,14 @@ class uploader(object):
     def __erase(self, label):
         print("Windowed mode: %s" % self.ackWindowedMode)
         print("\n", end='')
-        self.__send(uploader.CHIP_ERASE +
-                    uploader.EOC)
+
+        if self.force_erase:
+            print("Trying force erase of full chip...\n")
+            self.__send(uploader.CHIP_FULL_ERASE +
+                        uploader.EOC)
+        else:
+            self.__send(uploader.CHIP_ERASE +
+                        uploader.EOC)
 
         # erase is very slow, give it 30s
         deadline = _time() + 30.0
@@ -441,9 +449,14 @@ class uploader(object):
 
             if self.__trySync():
                 self.__drawProgressBar(label, 10.0, 10.0)
+                if self.force_erase:
+                    print("\nForce erase done.\n")
                 return
 
-        raise RuntimeError("timed out waiting for erase")
+        if self.force_erase:
+            raise RuntimeError("timed out waiting for erase, force erase is likely not supported by bootloader!")
+        else:
+            raise RuntimeError("timed out waiting for erase")
 
     # send a PROG_MULTI command to write a collection of bytes
     def __program_multi(self, data, windowMode):
@@ -582,7 +595,8 @@ class uploader(object):
         self.fw_maxsize = self.__getInfo(uploader.INFO_FLASH_SIZE)
 
     # upload the firmware
-    def upload(self, fw_list, force=False, boot_delay=None, boot_check=False):
+    def upload(self, fw_list, force=False, boot_delay=None, boot_check=False, force_erase=False):
+        self.force_erase = force_erase
         # select correct binary
         found_suitable_firmware = False
         for file in fw_list:
@@ -790,6 +804,7 @@ def main():
     parser.add_argument('--baud-bootloader', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200) when communicating with bootloader, only required for true serial ports.")
     parser.add_argument('--baud-flightstack', action="store", default="57600", help="Comma-separated list of baud rate of the serial port (default is 57600) when communicating with flight stack (Mavlink or NSH), only required for true serial ports.")
     parser.add_argument('--force', action='store_true', default=False, help='Override board type check, or silicon errata checks and continue loading')
+    parser.add_argument('--force-erase', action="store_true", help="Do not perform the blank check, always erase every sector of the application space")
     parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
     parser.add_argument('--use-protocol-splitter-format', action='store_true', help='use protocol splitter format for reboot')
     parser.add_argument('firmware', action="store", nargs='+', help="Firmware file(s)")
@@ -907,7 +922,7 @@ def main():
 
                 try:
                     # ok, we have a bootloader, try flashing it
-                    up.upload(args.firmware, force=args.force, boot_delay=args.boot_delay)
+                    up.upload(args.firmware, force=args.force, boot_delay=args.boot_delay, force_erase=args.force_erase)
 
                     # if we made this far without raising exceptions, the upload was successful
                     successful = True
