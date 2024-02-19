@@ -395,6 +395,24 @@ flash_func_sector_size(unsigned sector)
 	return 0;
 }
 
+/* imxRT uses Flash lib, not up_progmem so let's stub it here */
+up_progmem_ispageerased(unsigned sector)
+{
+	const uint32_t bytes_per_sector =  flash_func_sector_size(sector);
+	uint32_t *address = (uint32_t *)(IMXRT_FLEXSPI1_CIPHER_BASE + (sector * bytes_per_sector));
+	const uint32_t uint32_per_sector =  bytes_per_sector / sizeof(*address);
+
+	int blank = 0; /* Assume it is Bank */
+
+	for (uint32_t i = 0; i < uint32_per_sector; i++) {
+		if (address[i] != 0xffffffff) {
+			blank = -1;  /* It is not blank */
+			break;
+		}
+	}
+
+	return blank;
+}
 
 /*!
  * @name Configuration Option
@@ -407,31 +425,15 @@ flash_func_sector_size(unsigned sector)
  * */
 locate_code(".ramfunc")
 void
-flash_func_erase_sector(unsigned sector)
+flash_func_erase_sector(unsigned sector, bool force)
 {
-
 	if (sector > BOARD_FLASH_SECTORS || (int)sector < BOARD_FIRST_FLASH_SECTOR_TO_ERASE) {
 		return;
 	}
 
-	/* blank-check the sector */
-	const uint32_t bytes_per_sector =  flash_func_sector_size(sector);
-	uint32_t *address = (uint32_t *)(IMXRT_FLEXSPI1_CIPHER_BASE + (sector * bytes_per_sector));
-	const uint32_t uint32_per_sector =  bytes_per_sector / sizeof(*address);
-	bool blank = true;
+	if (force || flash_func_is_sector_blank(sector) != 0) {
+		struct flexspi_nor_config_s *pConfig = &g_bootConfig;
 
-	for (uint32_t i = 0; i < uint32_per_sector; i++) {
-		if (address[i] != 0xffffffff) {
-			blank = false;
-			break;
-		}
-	}
-
-
-	struct flexspi_nor_config_s *pConfig = &g_bootConfig;
-
-	/* erase the sector if it failed the blank check */
-	if (!blank) {
 		uintptr_t offset = ((uintptr_t) address) - IMXRT_FLEXSPI1_CIPHER_BASE;
 		irqstate_t flags;
 		flags = enter_critical_section();
@@ -439,8 +441,6 @@ flash_func_erase_sector(unsigned sector)
 		leave_critical_section(flags);
 		UNUSED(status);
 	}
-
-
 }
 
 void
