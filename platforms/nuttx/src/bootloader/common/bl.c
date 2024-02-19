@@ -114,6 +114,7 @@
 #define PROTO_RESERVED_0X37         0x37  // Reserved
 #define PROTO_RESERVED_0X38         0x38  // Reserved
 #define PROTO_RESERVED_0X39         0x39  // Reserved
+#define PROTO_CHIP_FULL_ERASE       0x40  // Full erase, without any flash wear optimization
 
 #define PROTO_PROG_MULTI_MAX        64  // maximum PROG_MULTI size
 #define PROTO_READ_MULTI_MAX        255 // size of the size field
@@ -649,6 +650,8 @@ bootloader(unsigned timeout)
 
 		led_on(LED_ACTIVITY);
 
+		bool full_erase = false;
+
 		// handle the command byte
 		switch (c) {
 
@@ -728,6 +731,10 @@ bootloader(unsigned timeout)
 		// success reply: INSYNC/OK
 		// erase failure: INSYNC/FAILURE
 		//
+		case PROTO_CHIP_FULL_ERASE:
+			full_erase = true;
+
+		// Fallthrough
 		case PROTO_CHIP_ERASE:
 
 			/* expect EOC */
@@ -755,17 +762,18 @@ bootloader(unsigned timeout)
 			arch_flash_unlock();
 
 			for (int i = 0; flash_func_sector_size(i) != 0; i++) {
-				flash_func_erase_sector(i);
+				flash_func_erase_sector(i, full_erase);
 			}
 
 			// disable the LED while verifying the erase
 			led_set(LED_OFF);
 
 			// verify the erase
-			for (address = 0; address < board_info.fw_size; address += 4)
+			for (address = 0; address < board_info.fw_size; address += 4) {
 				if (flash_func_read_word(address) != 0xffffffff) {
 					goto cmd_fail;
 				}
+			}
 
 			address = 0;
 			SET_BL_STATE(STATE_PROTO_CHIP_ERASE);
