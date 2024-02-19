@@ -325,17 +325,17 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	allocator.allocate();
 
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	// In the case of yaw saturation, thrust per motor will be reduced by the hard-coded
-	// magic-number yaw margin of 0.15f.
-	constexpr float YAW_MARGIN{0.15f}; // get this from a centralized source when available.
-	constexpr float YAW_DIFF_PER_MOTOR{1.0f + YAW_MARGIN - DESIRED_THRUST_Z_PER_MOTOR};
+	// In the case of yaw-only saturation, thrust per motor will be reduced by
+	// allocator.paramMcYawMargin().
+	const float yaw_margin{allocator.paramMcYawMargin()};
+	const float yaw_diff_per_motor{1.0f + yaw_margin - DESIRED_THRUST_Z_PER_MOTOR};
 	// At control set point, there will be 2 different actuator values.
-	constexpr float HIGH_THRUST_Z_PER_MOTOR{DESIRED_THRUST_Z_PER_MOTOR + YAW_DIFF_PER_MOTOR - YAW_MARGIN};
-	constexpr float LOW_THRUST_Z_PER_MOTOR{DESIRED_THRUST_Z_PER_MOTOR - YAW_DIFF_PER_MOTOR - YAW_MARGIN};
-	EXPECT_NEAR(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(1), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(2), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
+	const float high_thrust_z_per_motor{DESIRED_THRUST_Z_PER_MOTOR + yaw_diff_per_motor - allocator.paramMcYawMargin()};
+	const float low_thrust_z_per_motor{DESIRED_THRUST_Z_PER_MOTOR - yaw_diff_per_motor - allocator.paramMcYawMargin()};
+	EXPECT_NEAR(actuator_sp(0), high_thrust_z_per_motor, EXPECT_NEAR_TOL);
+	EXPECT_NEAR(actuator_sp(1), high_thrust_z_per_motor, EXPECT_NEAR_TOL);
+	EXPECT_NEAR(actuator_sp(2), low_thrust_z_per_motor, EXPECT_NEAR_TOL);
+	EXPECT_NEAR(actuator_sp(3), low_thrust_z_per_motor, EXPECT_NEAR_TOL);
 
 	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
 		EXPECT_NEAR(actuator_sp(i), 0.f, EXPECT_NEAR_TOL);

@@ -57,6 +57,8 @@ public:
 	void allocate() override;
 
 	void updateParameters() override;
+
+	float paramMcYawMargin() const { return _param_mc_yaw_margin.get(); }
 private:
 
 	/**
