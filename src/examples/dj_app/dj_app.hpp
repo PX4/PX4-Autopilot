@@ -2,6 +2,7 @@
 
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/module.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/log.h>
 #include <termios.h>
 #include <fcntl.h>
@@ -9,6 +10,8 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/wheel_encoders.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 class RS485 : public ModuleBase<RS485>, public OutputModuleInterface
 {
@@ -62,6 +65,7 @@ private:
 	uint32_t position_left = 0, position_right = 0;
 
 	uORB::PublicationData<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	Mode _motor_mode = Mode::None;
 
@@ -71,4 +75,7 @@ private:
 	void printRTUPacket(void);	// 현재 패킷에 저장된 데이터 출력(디버깅용)
 	ssize_t writeData();	// 데이터 쓰기
 	uint16_t readData();	// 데이터 읽기
+
+	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };

@@ -67,7 +67,20 @@ void RS485::Run()
 		return;
 	}
 
+	perf_begin(_cycle_perf);
+	perf_count(_interval_perf);
+
 	_mixing_output.update();
+
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s parameter_update;
+		_parameter_update_sub.copy(&parameter_update);
+		updateParams();
+	}
+
+	_mixing_output.updateSubscriptions(true);
+
+	perf_end(_cycle_perf);
 }
 
 ssize_t RS485::initializeRS485()

@@ -539,6 +539,7 @@ else
 		zenoh start
 	fi
 
+dj_app start
 #
 # End of autostart.
 #
