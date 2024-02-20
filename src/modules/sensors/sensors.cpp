@@ -60,7 +60,6 @@ Sensors::Sensors(bool hil_enabled) :
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 
-	InitializeVehicleDifferentialPressure();
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
@@ -69,7 +68,10 @@ Sensors::Sensors(bool hil_enabled) :
 	_parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	_parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
 
+	_number_of_differential_pressure_sensors = _param_sys_has_num_dprs.get();
+
 	for (int i = 0; i < _number_of_differential_pressure_sensors; i++) {
+		_airspeed_pubs[i].advertise();
 		_diff_pres_data[i].airspeed_validator.set_timeout(300000);
 		_diff_pres_data[i].airspeed_validator.set_equal_value_threshold(100);
 	}
@@ -443,22 +445,6 @@ void Sensors::InitializeVehicleAirData()
 	}
 }
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
-
-#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
-void Sensors::InitializeVehicleDifferentialPressure()
-{
-	// check for connected differential pressure sensors
-	for (int i = 0; i < _differential_pressure_subs.size(); i++) {
-		if (!_differential_pressure_subs[i].advertised()) {
-			break;
-		}
-
-		_airspeed_pubs[i].advertise();
-
-		_number_of_differential_pressure_sensors = i + 1;
-	}
-}
-#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 void Sensors::InitializeVehicleGPSPosition()

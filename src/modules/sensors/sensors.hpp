@@ -125,8 +125,6 @@ private:
 
 	void		InitializeVehicleAirData();
 
-	void		InitializeVehicleDifferentialPressure();
-
 	void		InitializeVehicleGPSPosition();
 
 	void		InitializeVehicleIMU();
@@ -265,6 +263,9 @@ private:
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+		(ParamInt<px4::params::SYS_HAS_NUM_DPRS>) _param_sys_has_num_dprs,
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
