@@ -47,33 +47,47 @@ void ZeroVelocityUpdate::reset()
 
 bool ZeroVelocityUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
+	bool fused = false;
+
 	// Fuse zero velocity at a limited rate (every 200 milliseconds)
 	const bool zero_velocity_update_data_ready = (_time_last_zero_velocity_fuse + 200'000 < imu_delayed.time_us);
 
 	if (zero_velocity_update_data_ready) {
 		const bool continuing_conditions_passing = ekf.control_status_flags().vehicle_at_rest
-				&& ekf.control_status_prev_flags().vehicle_at_rest
-				&& (!ekf.isVerticalVelocityAidingActive()
-				    || !ekf.control_status_flags().tilt_align); // otherwise the filter is "too rigid" to follow a position drift
+				&& ekf.control_status_prev_flags().vehicle_at_rest;
 
 		if (continuing_conditions_passing) {
-			Vector3f vel_obs{0.f, 0.f, 0.f};
-
 			// Set a low variance initially for faster leveling and higher
 			// later to let the states follow the measurements
 			const float obs_var = ekf.control_status_flags().tilt_align ? sq(0.2f) : sq(0.001f);
-			Vector3f innov_var = ekf.getVelocityVariance() + obs_var;
 
-			for (unsigned i = 0; i < 3; i++) {
-				const float innovation = ekf.state().vel(i) - vel_obs(i);
-				ekf.fuseVelPosHeight(innovation, innov_var(i), State::vel.idx + i);
+			// horizontal velocity, skip if GPS is active otherwise the filter is "too rigid" to follow a position drift
+			if (!ekf.control_status_flags().tilt_align || !ekf.control_status_flags().gps) {
+				Vector2f innov = ekf.state().vel.xy(); // observation is 0
+				Vector2f innov_var{ekf.getVelocityVariance()(0) + obs_var, ekf.getVelocityVariance()(1) + obs_var};
+
+				if (ekf.fuseVelPosHeight(innov(0), innov_var(0), State::vel.idx + 0)
+				    && ekf.fuseVelPosHeight(innov(1), innov_var(1), State::vel.idx + 1)
+				   ) {
+					fused = true;
+					_time_last_zero_velocity_fuse = imu_delayed.time_us;
+				}
 			}
 
-			_time_last_zero_velocity_fuse = imu_delayed.time_us;
+			// vertical velocity, skip if GPS height or baro height are active otherwise the filter is "too rigid" to follow a height drift
+			if (!ekf.control_status_flags().tilt_align
+			    || (!ekf.control_status_flags().gps_hgt && !ekf.control_status_flags().baro_hgt)
+			   ) {
+				float innov = ekf.state().vel(2); // observation is 0
+				float innov_var = ekf.getVelocityVariance()(2) + obs_var;
 
-			return true;
+				if (ekf.fuseVelPosHeight(innov, innov_var, State::vel.idx + 2)) {
+					fused = true;
+					_time_last_zero_velocity_fuse = imu_delayed.time_us;
+				}
+			}
 		}
 	}
 
-	return false;
+	return fused;
 }
