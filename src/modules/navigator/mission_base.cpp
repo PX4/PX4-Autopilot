@@ -89,10 +89,9 @@ MissionBase::updateDatamanCache()
 {
 	if ((_mission.count > 0) && (_mission.current_seq != _load_mission_index)) {
 
-		int32_t start_index = _mission.current_seq;
-		int32_t end_index = start_index + _dataman_cache_size_signed;
-
-		end_index = math::max(math::min(end_index, static_cast<int32_t>(_mission.count)), INT32_C(0));
+		const int32_t start_index = math::constrain(_mission.current_seq, INT32_C(0), int32_t(_mission.count) - 1);
+		const int32_t end_index = math::constrain(start_index + _dataman_cache_size_signed, INT32_C(0),
+					  int32_t(_mission.count) - 1);
 
 		for (int32_t index = start_index; index != end_index; index += math::signNoZero(_dataman_cache_size_signed)) {
 
@@ -115,8 +114,8 @@ void MissionBase::updateMavlinkMission()
 		const bool mission_data_changed = checkMissionDataChanged(new_mission);
 
 		if (new_mission.current_seq < 0) {
-			new_mission.current_seq = math::max(math::min(_mission.current_seq, static_cast<int32_t>(new_mission.count) - 1),
-							    INT32_C(0));
+			new_mission.current_seq = math::constrain(_mission.current_seq, INT32_C(0),
+						  static_cast<int32_t>(new_mission.count) - 1);
 		}
 
 		_mission = new_mission;
@@ -1147,22 +1146,20 @@ void MissionBase::resetMission()
 	}
 
 	/* Set a new mission*/
-	mission_s new_mission{_mission};
-	new_mission.timestamp = hrt_absolute_time();
-	new_mission.current_seq = 0;
-	new_mission.land_start_index = -1;
-	new_mission.land_index = -1;
-	new_mission.count = 0u;
-	new_mission.mission_id = 0u;
-	new_mission.mission_dataman_id = _mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ?
-					 DM_KEY_WAYPOINTS_OFFBOARD_1 :
-					 DM_KEY_WAYPOINTS_OFFBOARD_0;
+	_mission.timestamp = hrt_absolute_time();
+	_mission.current_seq = 0;
+	_mission.land_start_index = -1;
+	_mission.land_index = -1;
+	_mission.count = 0u;
+	_mission.mission_id = 0u;
+	_mission.mission_dataman_id = _mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ?
+				      DM_KEY_WAYPOINTS_OFFBOARD_1 :
+				      DM_KEY_WAYPOINTS_OFFBOARD_0;
 
-	bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&new_mission),
+	bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&_mission),
 			sizeof(mission_s));
 
 	if (success) {
-		_mission = new_mission;
 		_mission_pub.publish(_mission);
 
 	} else {
