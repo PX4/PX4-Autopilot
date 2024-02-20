@@ -48,6 +48,8 @@
 
 #include <board_config.h>
 
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+
 #include <inttypes.h>
 #include <stdbool.h>
 #include <syslog.h>
@@ -57,7 +59,6 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
 
 typedef struct {
 	hw_base_id_t             hw_base_id; /* The ID of the Base */
