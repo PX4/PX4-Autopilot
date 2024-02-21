@@ -225,13 +225,13 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		echo "Earlier versions will be removed"
 		# Add Gazebo binary repository
 		sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
-		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(UBUNTU_RELEASE) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
 		sudo apt-get update -y --quiet
 
 		# Install Gazebo
 		gazebo_packages="gz-garden"
 	else
-		sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+		sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable ${UBUNTU_RELEASE} main" > /etc/apt/sources.list.d/gazebo-stable.list'
 		wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 		# Update list, since new gazebo-stable.list has been added
 		sudo apt-get update -y --quiet
