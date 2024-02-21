@@ -989,10 +989,10 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 
 	gps.device_id = device_id.devid;
 
-	gps.lat = hil_gps.lat;
-	gps.lon = hil_gps.lon;
-	gps.alt = hil_gps.alt;
-	gps.alt_ellipsoid = hil_gps.alt;
+	gps.latitude_deg = hil_gps.lat;
+	gps.longitude_deg = hil_gps.lon;
+	gps.altitude_msl_m = hil_gps.alt;
+	gps.altitude_ellipsoid_m = hil_gps.alt;
 
 	gps.s_variance_m_s = 0.25f;
 	gps.c_variance_rad = 0.5f;
