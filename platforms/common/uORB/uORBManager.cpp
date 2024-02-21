@@ -588,6 +588,11 @@ uORB::Manager::unregisterCallback(orb_advert_t &node_handle, SubscriptionCallbac
 #ifndef CONFIG_BUILD_FLAT
 	lock_cb_list();
 
+	// Remove the callback from the list. This must be done before unregistering from the device node
+	// otherwise the callback thread might try to call an already unregistered cb
+
+	per_process_cb_list.remove(callback_sub);
+
 	// Unregister the callback from the device node and retrieve amount of unhandled callback triggers
 	// The unregister from the node needs to be done callback_thread locked; otherwise we don't know
 	// if there are unhandled triggers left or not (due to a race between the callback thread and
@@ -597,10 +602,6 @@ uORB::Manager::unregisterCallback(orb_advert_t &node_handle, SubscriptionCallbac
 	// by the callback thread. This may happen if the publisher is on higher or equal priority than this
 
 	callback_count += DeviceNode::unregister_callback(node_handle, cb_handle);
-
-	// Remove the callback from the list
-
-	per_process_cb_list.remove(callback_sub);
 
 	unlock_cb_list();
 #else
