@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 #include "vertiq_telemetry_manager.hpp"
 
 VertiqTelemetryManager::VertiqTelemetryManager(IFCI *motor_interface) :
+	_telem_state(UNPAUSED),
 	_motor_interface(motor_interface)
 {}
 
@@ -138,19 +139,37 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 
 uint16_t VertiqTelemetryManager::FindNextMotorForTelemetry()
 {
-	//If our current index is the last module ID we've found, then go back to the beginning
-	//otherwise just increment
-	if(_current_module_id_target_index >= _number_of_module_ids_for_telem - 1){
-		_current_module_id_target_index = 0;
-	}else{
-		_current_module_id_target_index++;
+	//If we're paused, we're just going to spit back an impossible module ID. Otherwise, go ahead and find the next target
+	if(_telem_state == UNPAUSED){
+
+		//If our current index is the last module ID we've found, then go back to the beginning
+		//otherwise just increment
+		if(_current_module_id_target_index >= _number_of_module_ids_for_telem - 1){
+			_current_module_id_target_index = 0;
+		}else{
+			_current_module_id_target_index++;
+		}
+
+		//Return the next target
+		return _module_ids_in_use[_current_module_id_target_index];
 	}
 
-	//Return the next target
-	return _module_ids_in_use[_current_module_id_target_index];
+	return _impossible_module_id;
 }
 
 esc_status_s VertiqTelemetryManager::GetEscStatus()
 {
 	return _esc_status;
+}
+
+void VertiqTelemetryManager::PauseTelemetry(){
+	_telem_state = PAUSED;
+}
+
+void VertiqTelemetryManager::UnpauseTelemetry(){
+	_telem_state = UNPAUSED;
+}
+
+vertiq_telemetry_pause_states VertiqTelemetryManager::GetTelemetryPauseState(){
+	return _telem_state;
 }

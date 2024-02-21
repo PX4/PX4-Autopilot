@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,12 +84,7 @@ public:
 		ser->process_serial_tx();
 	}
 
-	bool ValuesAreTheSame(int32_t val1, int32_t val2, int32_t tolerance)
-	{
-		return (val1 == val2);
-	}
-
-	bool ValuesAreTheSame(float val1, float val2, float tolerance)
+	bool ValuesAreTheSame(float val1, float val2, float tolerance = 0.001f)
 	{
 		float diff = val1 - val2;
 
@@ -122,7 +117,8 @@ public:
 				param_get(_param, &px4_value);
 
 				//If the value here is different from the module's value, set and save it
-				if (!ValuesAreTheSame(px4_value, (px4_data_type)module_value, (px4_data_type)(0.001))) {
+				//Treat everything as a float to avoid type issues in comparison
+				if (!ValuesAreTheSame((float)px4_value, (float)module_value)) {
 					SendSetAndSave(serial_interface, px4_value);
 				}
 			}

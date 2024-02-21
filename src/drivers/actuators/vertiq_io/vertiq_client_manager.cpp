@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,14 +37,14 @@ VertiqClientManager::VertiqClientManager(VertiqSerialInterface *serial_interface
 	_broadcast_prop_motor_control(_kBroadcastID), //Initialize with a module ID of 63 for broadcasting
 	_broadcast_arming_handler(_kBroadcastID)
 {
-	_client_array[0] = &_broadcast_prop_motor_control;
-	_client_array[1] = &_broadcast_arming_handler;
+	AddNewOperationalClient(&_broadcast_prop_motor_control);
+	AddNewOperationalClient(&_broadcast_arming_handler);
 }
 
 void VertiqClientManager::Init(uint8_t object_id)
 {
 	InitVertiqClients(object_id);
-	InitComboEntries();
+	InitEntryWrappers();
 
 	_object_id_now = object_id;
 }
@@ -52,29 +52,23 @@ void VertiqClientManager::Init(uint8_t object_id)
 void VertiqClientManager::InitVertiqClients(uint8_t object_id)
 {
 	_prop_input_parser_client = new EscPropellerInputParserClient(object_id);
-	_client_array[_clients_in_use] = _prop_input_parser_client;
-	_clients_in_use++;
+	AddNewConfigurationClient(_prop_input_parser_client);
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	_ifci_client = new IQUartFlightControllerInterfaceClient(object_id);
-	_client_array[_clients_in_use] = _ifci_client;
-	_clients_in_use++;
+	AddNewConfigurationClient(_ifci_client);
 #endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 	_voltage_superposition_client = new VoltageSuperPositionClient(object_id);
-	_client_array[_clients_in_use] = _voltage_superposition_client;
-	_clients_in_use++;
+	AddNewConfigurationClient(_voltage_superposition_client);
 
 	_pulsing_rectangular_input_parser_client = new PulsingRectangularInputParserClient(object_id);
-	_client_array[_clients_in_use] = _pulsing_rectangular_input_parser_client;
-	_clients_in_use++;
+	AddNewConfigurationClient(_pulsing_rectangular_input_parser_client);
 #endif //CONFIG_USE_PULSING_CONFIGURATION
-
-	//We're done with determining how many clients we have, let the serial interface know
-	_serial_interface->SetNumberOfClients(_clients_in_use);
 }
-void VertiqClientManager::InitComboEntries()
+
+void VertiqClientManager::InitEntryWrappers()
 {
 	_velocity_max_entry.ConfigureStruct(param_find("MAX_VELOCITY"), &(_prop_input_parser_client->velocity_max_));
 	_voltage_max_entry.ConfigureStruct(param_find("MAX_VOLTS"), &(_prop_input_parser_client->volts_max_));
@@ -135,22 +129,12 @@ void VertiqClientManager::HandleClientCommunication()
 	_serial_interface->process_serial_tx();
 
 	//Update our serial rx
-	_serial_interface->process_serial_rx(&_motor_interface, _client_array, _user_added_clients);
+	_serial_interface->process_serial_rx(&_motor_interface, _configuration_client_array, _operational_client_array);
 }
 
 IFCI *VertiqClientManager::GetMotorInterface()
 {
 	return &_motor_interface;
-}
-
-uint8_t VertiqClientManager::GetNumberOfClients()
-{
-	return _clients_in_use;
-}
-
-uint8_t VertiqClientManager::GetNumberOfUserClients()
-{
-	return _added_user_clients;
 }
 
 void VertiqClientManager::SendSetForceArm()
@@ -175,25 +159,15 @@ void VertiqClientManager::SendSetVelocitySetpoint(uint16_t velocity_setpoint)
 
 void VertiqClientManager::MarkIquartConfigsForRefresh()
 {
-	for (uint8_t i = 0; i < _num_entry_wrappers; i++) {
+	for (uint8_t i = 0; i < _added_entry_wrappers; i++) {
 		_entry_wrappers[i]->SetNeedsInit();
-	}
-
-	for (uint8_t i = 0; i < _added_user_entries; i++) {
-		_user_entry_wrappers[i]->SetNeedsInit();
 	}
 }
 
 void VertiqClientManager::UpdateIquartConfigParams()
 {
-	for (uint8_t i = 0; i < _num_entry_wrappers; i++) {
+	for (uint8_t i = 0; i < _added_entry_wrappers; i++) {
 		_entry_wrappers[i]->SendGet(_serial_interface);
-		//Ensure that these get messages get out
-		_serial_interface->process_serial_tx();
-	}
-
-	for (uint8_t i = 0; i < _added_user_entries; i++) {
-		_user_entry_wrappers[i]->SendGet(_serial_interface);
 		//Ensure that these get messages get out
 		_serial_interface->process_serial_tx();
 	}
@@ -209,29 +183,44 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 	hrt_abstime end_time = time_now + timeout;
 
 	while (time_now < end_time) {
-		for (uint8_t i = 0; i < _num_entry_wrappers; i++) {
+		for (uint8_t i = 0; i < _added_entry_wrappers; i++) {
 			_entry_wrappers[i]->Update(_serial_interface);
-		}
-
-		for (uint8_t i = 0; i < _added_user_entries; i++) {
-			_user_entry_wrappers[i]->Update(_serial_interface);
 		}
 
 		//Update the time
 		time_now = hrt_absolute_time();
 
 		//Update our serial rx
-		_serial_interface->process_serial_rx(&_motor_interface, _client_array, _user_added_clients);
+		_serial_interface->process_serial_rx(&_motor_interface, _configuration_client_array, _operational_client_array);
 	}
 }
 
-void VertiqClientManager::AddNewClient(ClientAbstract * client){
-	if(_added_user_clients < MAX_USER_CLIENTS){
-		_user_added_clients[_added_user_clients] = client;
-		_added_user_clients++;
+void VertiqClientManager::AddNewConfigurationClient(ClientAbstract * client){
+	if(_configuration_clients_in_use < MAXIMUM_CONFIGURATION_CLIENTS){
+		_configuration_client_array[_configuration_clients_in_use] = client;
+		_configuration_clients_in_use++;
 
-		_serial_interface->SetNumberOfUserClients(_added_user_clients);
+		_serial_interface->SetNumberOfConfigurationClients(_configuration_clients_in_use);
 	}else{
 		PX4_INFO("Could not add this client. Maximum number exceeded");
 	}
+}
+
+void VertiqClientManager::AddNewOperationalClient(ClientAbstract * client){
+	if(_operational_clients_in_use < MAXIMUM_OPERATIONAL_CLIENTS){
+		_operational_client_array[_operational_clients_in_use] = client;
+		_operational_clients_in_use++;
+
+		_serial_interface->SetNumberOfOperationalClients(_operational_clients_in_use);
+	}else{
+		PX4_INFO("Could not add this client. Maximum number exceeded");
+	}
+}
+
+uint8_t VertiqClientManager::GetNumberOfConfigurationClients(){
+	return _configuration_clients_in_use;
+}
+
+uint8_t VertiqClientManager::GetNumberOfOperationalClients(){
+	return _operational_clients_in_use;
 }

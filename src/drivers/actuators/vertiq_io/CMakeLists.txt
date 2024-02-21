@@ -52,6 +52,8 @@ if("${PX4_PLATFORM}" MATCHES "nuttx")
     target_compile_definitions(iq_communication PUBLIC __NUTTX__)
 endif()
 
+px4_add_git_submodule(TARGET git_iq-module-communication-cpp PATH "iq-module-communication-cpp")
+
 px4_add_module(
 	MODULE drivers__actuators__vertiq_io
 	MAIN vertiq_io

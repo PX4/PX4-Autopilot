@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,11 @@
 
 #include "ifci.hpp"
 
+enum vertiq_telemetry_pause_states {
+	PAUSED,
+	UNPAUSED
+};
+
 class VertiqTelemetryManager
 {
 public:
@@ -94,7 +99,13 @@ public:
 	*/
 	esc_status_s GetEscStatus();
 
+	void PauseTelemetry();
+	void UnpauseTelemetry();
+	vertiq_telemetry_pause_states GetTelemetryPauseState();
+
 private:
+
+	vertiq_telemetry_pause_states _telem_state;
 
 	IFCI *_motor_interface;
 

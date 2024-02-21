@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -172,8 +172,8 @@ private:
 		(ParamInt<px4::params::VERTIQ_FC_DIR>) _param_vertiq_fc_direction
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 		, (ParamInt<px4::params::VERTIQ_NUM_CVS>) _param_vertiq_number_of_cvs
-		, (ParamInt<px4::params::DISARM_THROTTLE>) _param_vertiq_disarm_throttle
-		, (ParamInt<px4::params::DISARM_BEHAVE>) _param_vertiq_disarm_behavior
+		, (ParamInt<px4::params::DISARM_VELO>) _param_vertiq_disarm_throttle
+		, (ParamInt<px4::params::DISARM_TRIGGER>) _param_vertiq_disarm_behavior
 		, (ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
 		, (ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi
 		, (ParamInt<px4::params::TELEM_IDS_1>) _param_vertiq_telem_ids_1

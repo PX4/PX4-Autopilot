@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,7 @@
  ****************************************************************************/
 #include "vertiq_serial_interface.hpp"
 
-VertiqSerialInterface::VertiqSerialInterface(uint8_t num_clients, uint8_t num_user_clients) :
-	_number_of_clients(num_clients),
-	_number_of_user_added_clients(num_user_clients)
+VertiqSerialInterface::VertiqSerialInterface()
 {}
 
 void VertiqSerialInterface::deinit_serial()
@@ -69,25 +67,45 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	int speed;
 
 	switch (baud) {
-	case 9600:   speed = B9600;   break;
+	case 9600:
+		speed = B9600;
+		break;
 
-	case 19200:  speed = B19200;  break;
+	case 19200:
+		speed = B19200;
+		break;
 
-	case 38400:  speed = B38400;  break;
+	case 38400:
+		speed = B38400;
+		break;
 
-	case 57600:  speed = B57600;  break;
+	case 57600:
+		speed = B57600;
+		break;
 
-	case 115200: speed = B115200; break;
+	case 115200:
+		speed = B115200;
+		break;
 
-	case 230400: speed = B230400; break;
+	case 230400:
+		speed = B230400;
+		break;
 
-	case 460800: speed = B460800; break;
+	case 460800:
+		speed = B460800;
+		break;
 
-	case 500000: speed = B500000; break;
+	case 500000:
+		speed = B500000;
+		break;
 
-	case 921600: speed = B921600; break;
+	case 921600:
+		speed = B921600;
+		break;
 
-	case 1000000: speed = B1000000; break;
+	case 1000000:
+		speed = B1000000;
+		break;
 
 	default:
 		return -EINVAL;
@@ -149,7 +167,8 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	return 0;
 }
 
-int VertiqSerialInterface::process_serial_rx(IFCI *motor_interface, ClientAbstract **array_of_clients, ClientAbstract **user_clients)
+int VertiqSerialInterface::process_serial_rx(IFCI *motor_interface, ClientAbstract **configuration_clients,
+		ClientAbstract **operational_clients)
 {
 	if (_uart_fd < 0) {
 		return -1;
@@ -182,12 +201,12 @@ int VertiqSerialInterface::process_serial_rx(IFCI *motor_interface, ClientAbstra
 			//Make sure everyone reads the message (IFCI, our clients, user added clients)
 			motor_interface->ReadTelemetry(rx_buf_ptr, _bytes_available);
 
-			for (uint8_t i = 0; i < _number_of_clients; i++) {
-				array_of_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
+			for (uint8_t i = 0; i < _number_of_configuration_clients; i++) {
+				configuration_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
 			}
 
-			for (uint8_t i = 0; i < _number_of_user_added_clients; i++) {
-				user_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
+			for (uint8_t i = 0; i < _number_of_operational_clients; i++) {
+				operational_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
 			}
 
 			_iquart_interface.DropPacket();
@@ -214,12 +233,12 @@ GenericInterface *VertiqSerialInterface::get_iquart_interface()
 	return &_iquart_interface;
 }
 
-void VertiqSerialInterface::SetNumberOfClients(uint8_t number_of_clients)
+void VertiqSerialInterface::SetNumberOfConfigurationClients(uint8_t number_of_clients)
 {
-	_number_of_clients = number_of_clients;
+	_number_of_configuration_clients = number_of_clients;
 }
 
-void VertiqSerialInterface::SetNumberOfUserClients(uint8_t number_of_user_clients)
+void VertiqSerialInterface::SetNumberOfOperationalClients(uint8_t number_of_clients)
 {
-	_number_of_user_added_clients = number_of_user_clients;
+	_number_of_operational_clients = number_of_clients;
 }

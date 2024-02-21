@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,7 +47,7 @@ class VertiqSerialInterface
 {
 public:
 
-	VertiqSerialInterface(uint8_t num_clients, uint8_t num_user_clients);
+	VertiqSerialInterface();
 
 	/**
 	* @brief Initialize our serial peripheral
@@ -69,7 +69,7 @@ public:
 	/**
 	* @brief check to see if there is any data for us coming in over the serial port
 	*/
-	int process_serial_rx(IFCI *motor_interface, ClientAbstract **array_of_clients, ClientAbstract **user_clients);
+	int process_serial_rx(IFCI *motor_interface, ClientAbstract **configuration_clients, ClientAbstract **operational_clients);
 
 	/**
 	* @brief check to see if there is any data that we need to transmit over serial
@@ -82,13 +82,13 @@ public:
 	*/
 	GenericInterface *get_iquart_interface();
 
-	void SetNumberOfClients(uint8_t number_of_clients);
+	void SetNumberOfConfigurationClients(uint8_t number_of_clients);
 
-	void SetNumberOfUserClients(uint8_t number_of_user_clients);
+	void SetNumberOfOperationalClients(uint8_t number_of_clients);
 
 private:
-	uint8_t _number_of_clients;
-	uint8_t _number_of_user_added_clients;
+	uint8_t _number_of_configuration_clients;
+	uint8_t _number_of_operational_clients;
 
 	GenericInterface _iquart_interface;
 

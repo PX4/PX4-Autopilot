@@ -37,26 +37,26 @@ parameters:
             min: 0
             max: 16
             reboot_required: true
-        DISARM_BEHAVE:
+        DISARM_TRIGGER:
             description:
-                short: The triggered behavior on PX4 disarm
+                short: The triggered behavior sent to the motors on PX4 disarm
                 long: |
                     The behavior triggered when the flight controller disarms. You have the option to trigger your motors' disarm behaviors, set all motors to coast,
                     or set a predefined throttle setpoint
             type: enum
             values:
-                0: Trigger Motor Disarm Behavior
+                0: Send Explicit Disarm
                 1: Coast Motors
-                2: Set Predefined Setpoint
+                2: Set Predefined Velocity Setpoint
             default: 0
-        DISARM_THROTTLE:
+        DISARM_VELO:
             description:
-                short: The throttle value sent to the motors when DISARM_BEHAVE is set to Set Predefined Setpoint
-                long: This is the throttle that will be sent to all motors when PX4 is disarmed and DISARM_BEHAVE is Set Predefined Setpoint
+                short: The velocity value sent to the motors when DISARM_TRIGGER is set to Set Predefined Setpoint
+                long: This is the velocity that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Setpoint
             type: int32
             default: 0
             min: 0
-            max: 65535
+            max: 100
         ARMING_BEHAVE:
             description:
                 short: The triggered behavior on PX4 arm
@@ -65,7 +65,7 @@ parameters:
             type: enum
             values:
                 0: Use Motor Arm Behavior
-                1: Force Arming
+                1: Send Explicit Arm Command
             default: 0
         TARGET_MODULE_ID:
             description:

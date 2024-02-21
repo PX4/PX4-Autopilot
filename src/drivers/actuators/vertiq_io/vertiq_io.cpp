@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@ char VertiqIo::_telemetry_device[] {};
 
 VertiqIo::VertiqIo() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_serial_interface(0, 0),
+	_serial_interface(),
 	_client_manager(&_serial_interface),
 	_telem_manager(_client_manager.GetMotorInterface())
 
@@ -49,8 +49,6 @@ VertiqIo::VertiqIo() :
 
 	_client_manager.Init((uint8_t)_param_vertiq_target_module_id.get());
 	_motor_interface_ptr = _client_manager.GetMotorInterface();
-
-	_serial_interface.SetNumberOfClients(_client_manager.GetNumberOfClients());
 }
 
 VertiqIo::~VertiqIo()
@@ -76,6 +74,8 @@ bool VertiqIo::init()
 	//Initialize our telemetry handler
 	_telem_manager.Init(_telem_bitmask);
 	_telem_manager.StartPublishing(&_esc_status_pub);
+
+	_telem_manager.PauseTelemetry();
 
 	//Make sure we get our thread into execution
 	ScheduleNow();

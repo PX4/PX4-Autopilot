@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -110,18 +110,6 @@ public:
 	void SendSetVelocitySetpoint(uint16_t velocity_setpoint);
 
 	/**
-	* @brief Returns the number of clients that we've initialized
-	* @return The value contained in _clients_in_use
-	*/
-	uint8_t GetNumberOfClients();
-
-	/**
-	* @brief Returns the number of clients that the user has added
-	* @return The value contained in _added_user_clients
-	*/
-	uint8_t GetNumberOfUserClients();
-
-	/**
 	* @brief Set all of the IQUART configuration init flags to true
 	*/
 	void MarkIquartConfigsForRefresh();
@@ -150,18 +138,25 @@ public:
 	*/
 	void UpdateClientsToNewObjId(uint8_t new_object_id);
 
-	void AddNewClient(ClientAbstract * client);
+	void AddNewConfigurationClient(ClientAbstract * client);
+
+	void AddNewOperationalClient(ClientAbstract * client);
+
+	uint8_t GetNumberOfConfigurationClients();
+
+	uint8_t GetNumberOfOperationalClients();
 
 	template <typename iquart_data_type , typename px4_data_type>
 	void AddNewClientEntry(param_t px4_param, ClientEntryAbstract *entry){
-		if(_added_user_entries < MAX_USER_CLIENT_ENTRIES){
-			_user_entry_wrappers[_added_user_entries] = new EntryWrapper<iquart_data_type, px4_data_type>;
-			_user_entry_wrappers[_added_user_entries]->ConfigureStruct(px4_param, entry);
-			_added_user_entries++;
+		if(_added_entry_wrappers < MAX_CLIENT_ENTRIES){
+			_entry_wrappers[_added_entry_wrappers] = new EntryWrapper<iquart_data_type, px4_data_type>;
+			_entry_wrappers[_added_entry_wrappers]->ConfigureStruct(px4_param, entry);
+			_added_entry_wrappers++;
 		}else{
 			PX4_INFO("Could not add this entry. Maximum number exceeded");
 		}
 	}
+
 private:
 	/**
 	* @brief Initialize all of the Vertiq Clients that we want to use
@@ -170,9 +165,9 @@ private:
 	void InitVertiqClients(uint8_t object_id);
 
 	/**
-	* @brief Initialize all of the combo_entry structs
+	* @brief Initialize all of the Entry Wrappers
 	*/
-	void InitComboEntries();
+	void InitEntryWrappers();
 
 	uint8_t _object_id_now;
 
@@ -203,40 +198,24 @@ private:
 	EntryWrapper<float, float> _pulse_volt_limit_entry;
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
-#ifdef CONFIG_USE_PULSING_CONFIGURATION
-	static const uint8_t _num_entry_wrappers = 13;
-	AbstractEntryWrapper *_entry_wrappers[_num_entry_wrappers] = {&_velocity_max_entry, &_voltage_max_entry, &_pulse_zero_angle_entry, &_pulse_velo_cutoff_entry, &_pulse_torque_offset_entry, &_pulse_volt_limit_entry, &_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry, &_throttle_cvi_entry, &_pulsing_voltage_mode_entry, &_x_cvi_entry, &_y_cvi_entry};
-#elif defined(CONFIG_USE_IFCI_CONFIGURATION)
-	static const uint8_t _num_entry_wrappers = 6;
-	AbstractEntryWrapper *_entry_wrappers[_num_entry_wrappers] = {&_velocity_max_entry, &_voltage_max_entry, &_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry, &_throttle_cvi_entry};
-#else
-	static const uint8_t _num_entry_wrappers = 5;
-	AbstractEntryWrapper *_entry_wrappers[_num_entry_wrappers] = {&_velocity_max_entry, &_voltage_max_entry, &_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry};
-#endif
-
-	//Vertiq client information
+////////////////////////////////////////////////////////////////////////
+//Vertiq client information
 	//Some constants to help us out
 	static const uint8_t _kBroadcastID = 63;
-	static const uint8_t MINIMUM_NUM_CLIENTS = 2;
-	static const uint8_t MAXIMUM_NUM_CLIENTS = 15;
+	static const uint8_t MAXIMUM_CONFIGURATION_CLIENTS = 20; //These are clients whose module ID will change when Target Module ID changes
+	static const uint8_t MAXIMUM_OPERATIONAL_CLIENTS = 20; //These are clients that are used for module control/telemetry. They have a static Module ID
 
-	//Array information
-	ClientAbstract *_client_array[MAXIMUM_NUM_CLIENTS];
-	uint8_t _clients_in_use = MINIMUM_NUM_CLIENTS;
+	//Client Arrays
+	ClientAbstract *_configuration_client_array[MAXIMUM_CONFIGURATION_CLIENTS];
+	uint8_t _configuration_clients_in_use = 0;
+
+	ClientAbstract *_operational_client_array[MAXIMUM_OPERATIONAL_CLIENTS];
+	uint8_t _operational_clients_in_use = 0;
 
 	//Clients
 	PropellerMotorControlClient _broadcast_prop_motor_control;
 	ArmingHandlerClient _broadcast_arming_handler;
 	EscPropellerInputParserClient *_prop_input_parser_client;
-
-	//User Client and Client Entry Information
-	static const uint8_t MAX_USER_CLIENTS = 15;
-	ClientAbstract *_user_added_clients[MAX_USER_CLIENTS];
-	uint8_t _added_user_clients = 0;
-
-	static const uint8_t MAX_USER_CLIENT_ENTRIES = 30;
-	AbstractEntryWrapper *_user_entry_wrappers[MAX_USER_CLIENT_ENTRIES];
-	uint8_t _added_user_entries = 0;
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	//Make all of the clients that we need to talk to the IFCI config params
@@ -247,6 +226,23 @@ private:
 	VoltageSuperPositionClient *_voltage_superposition_client;
 	PulsingRectangularInputParserClient *_pulsing_rectangular_input_parser_client;
 #endif //CONFIG_USE_PULSING_CONFIGURATION
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+//Vertiq Client Entry information
+	static const uint8_t MAX_CLIENT_ENTRIES = 40;
+
+#ifdef CONFIG_USE_PULSING_CONFIGURATION
+	uint8_t _added_entry_wrappers = 13;
+	AbstractEntryWrapper *_entry_wrappers[MAX_CLIENT_ENTRIES] = {&_velocity_max_entry, &_voltage_max_entry, &_pulse_zero_angle_entry, &_pulse_velo_cutoff_entry, &_pulse_torque_offset_entry, &_pulse_volt_limit_entry, &_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry, &_throttle_cvi_entry, &_pulsing_voltage_mode_entry, &_x_cvi_entry, &_y_cvi_entry};
+#elif defined(CONFIG_USE_IFCI_CONFIGURATION)
+	uint8_t _added_entry_wrappers = 6;
+	AbstractEntryWrapper *_entry_wrappers[MAX_CLIENT_ENTRIES] = {&_velocity_max_entry, &_voltage_max_entry, &_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry, &_throttle_cvi_entry};
+#else
+	uint8_t _added_entry_wrappers = 5;
+	AbstractEntryWrapper *_entry_wrappers[MAX_CLIENT_ENTRIES] = {&_velocity_max_entry, &_voltage_max_entry, &_control_mode_entry, &_motor_direction_entry, &_fc_direction_entry};
+#endif
+////////////////////////////////////////////////////////////////////////
 };
 
 #endif
