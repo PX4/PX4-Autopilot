@@ -3,24 +3,22 @@
 usage() {
   set +x
   echo ""
-	echo " usage: $0 <output-dir> <build-target>"
-	echo "   output-dir : directory for output artifacts"
-	echo "   build-target : supported build targets:"
+  echo " usage: $0 <output-dir> <build-target>"
+  echo "   output-dir : directory for output artifacts"
+  echo "   build-target : supported build targets:"
   echo "     px4fwupdater"
   echo "     pixhawk"
   echo "     fmu-v6xrt"
   echo "     saluki-v1_default"
-  echo "     saluki-v1_protected"
-  echo "     saluki-v1_amp"
   echo "     saluki-v2_default"
   echo "     saluki-v2_amp"
-  echo "     saluki-v2_protected"
-  echo "     saluki-v2_kernel"
+  echo "     saluki-v2_flat"
   echo "     saluki-pi_default"
   echo "     saluki-pi_amp"
-  echo "     saluki-pi_protected"
+  echo "     saluki-pi_flat"
   echo "     saluki-v3_default"
   echo "     saluki-v3_amp"
+  echo "     saluki-v3_flat"
   echo
   exit 1
 }
@@ -72,67 +70,68 @@ case $target in
     $build_cmd_fw ssrc_saluki-v1_default
     cp ${script_dir}/build/ssrc_saluki-v1_default/ssrc_saluki-v1_default.px4 ${dest_dir}/ssrc_saluki-v1_default-${version}.px4
     ;;
-  "saluki-v1_protected")
-    $build_cmd_fw ssrc_saluki-v1_protected
-    cp ${script_dir}/build/ssrc_saluki-v1_protected/ssrc_saluki-v1_protected.px4 ${dest_dir}/ssrc_saluki-v1_protected-${version}.px4
-    ;;
-  "saluki-v1_amp")
-    $build_cmd_fw ssrc_saluki-v1_amp
-    cp ${script_dir}/build/ssrc_saluki-v1_amp/ssrc_saluki-v1_amp.bin ${dest_dir}/ssrc_saluki-v1_amp-${version}.bin
-    ;;
   "saluki-v2_default")
     $build_cmd_fw ssrc_saluki-v2_default
     cp ${script_dir}/build/ssrc_saluki-v2_default/ssrc_saluki-v2_default.px4 ${dest_dir}/ssrc_saluki-v2_default-${version}.px4
-    ;;
-  "saluki-v2_protected")
-    $build_cmd_fw ssrc_saluki-v2_protected
-    cp ${script_dir}/build/ssrc_saluki-v2_protected/ssrc_saluki-v2_protected.px4 ${dest_dir}/ssrc_saluki-v2_protected-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-v2_default/ssrc_saluki-v2_default_kernel.elf ${dest_dir}/ssrc_saluki-v2_default_kernel-${version}.elf
     ;;
   "saluki-v2_amp")
     $build_cmd_fw ssrc_saluki-v2_amp
     cp ${script_dir}/build/ssrc_saluki-v2_amp/ssrc_saluki-v2_amp.bin ${dest_dir}/ssrc_saluki-v2_amp-${version}.bin
+    cp ${script_dir}/build/ssrc_saluki-v2_amp/ssrc_saluki-v2_amp_kernel.elf ${dest_dir}/ssrc_saluki-v2_amp_kernel-${version}.elf
     ;;
-  "saluki-v2_kernel")
-    $build_cmd_fw ssrc_saluki-v2_kernel
-    cp ${script_dir}/build/ssrc_saluki-v2_kernel/ssrc_saluki-v2_kernel.px4 ${dest_dir}/ssrc_saluki-v2_kernel-${version}.px4
-    cp ${script_dir}/build/ssrc_saluki-v2_kernel/ssrc_saluki-v2_kernel.bin ${dest_dir}/ssrc_saluki-v2_kernel-${version}.bin
-    cp ${script_dir}/build/ssrc_saluki-v2_kernel/ssrc_saluki-v2_kernel_kernel.elf ${dest_dir}/ssrc_saluki-v2_kernel-${version}.elf
+  "saluki-v2_flat")
+    $build_cmd_fw ssrc_saluki-v2_flat
+    cp ${script_dir}/build/ssrc_saluki-v2_flat/ssrc_saluki-v2_flat.px4 ${dest_dir}/ssrc_saluki-v2_flat-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-v2_flat/ssrc_saluki-v2_flat.elf ${dest_dir}/ssrc_saluki-v2_flat-${version}.elf
     ;;
   "saluki-v2_custom_keys")
     # on custom keys case we build _default target but SIGNING_ARGS env variable is set above in build_cmd_fw
     $build_cmd_fw ssrc_saluki-v2_default
     cp ${script_dir}/build/ssrc_saluki-v2_default/ssrc_saluki-v2_default.px4 ${dest_dir}/ssrc_saluki-v2_custom_keys-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-v2_default/ssrc_saluki-v2_default_kernel.elf ${dest_dir}/ssrc_saluki-v2_custom_keys_kernel-${version}.elf
     ;;
-
   "saluki-v3_default")
     $build_cmd_fw ssrc_saluki-v3_default
     cp ${script_dir}/build/ssrc_saluki-v3_default/ssrc_saluki-v3_default.px4 ${dest_dir}/ssrc_saluki-v3_default-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-v3_default/ssrc_saluki-v3_default_kernel.elf ${dest_dir}/ssrc_saluki-v3_default_kernel-${version}.elf
     ;;
   "saluki-v3_amp")
     $build_cmd_fw ssrc_saluki-v3_amp
-    cp ${script_dir}/build/ssrc_saluki-v3_amp/ssrc_saluki-v3_amp.bin ${dest_dir}/ssrc_saluki-v3_amp-${version}.bin
+    cp ${script_dir}/build/ssrc_saluki-v3_amp/ssrc_saluki-v3_amp.px4 ${dest_dir}/ssrc_saluki-v3_amp-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-v3_amp/ssrc_saluki-v3_amp_kernel.elf ${dest_dir}/ssrc_saluki-v3_amp_kernel-${version}.elf
+    ;;
+  "saluki-v3_flat")
+    $build_cmd_fw ssrc_saluki-v3_flat
+    cp ${script_dir}/build/ssrc_saluki-v3_flat/ssrc_saluki-v3_flat.px4 ${dest_dir}/ssrc_saluki-v3_flat-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-v3_flat/ssrc_saluki-v3_flat.elf ${dest_dir}/ssrc_saluki-v3_flat-${version}.elf
     ;;
   "saluki-v3_custom_keys")
     # on custom keys case we build _default target but SIGNING_ARGS env variable is set above in build_cmd_fw
     $build_cmd_fw ssrc_saluki-v3_default
     cp ${script_dir}/build/ssrc_saluki-v3_default/ssrc_saluki-v3_default.px4 ${dest_dir}/ssrc_saluki-v3_custom_keys-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-v3_default/ssrc_saluki-v3_default_kernel.elf ${dest_dir}/ssrc_saluki-v3_custom_keys_kernel-${version}.elf
     ;;
   "saluki-pi_default")
     $build_cmd_fw ssrc_saluki-pi_default
     cp ${script_dir}/build/ssrc_saluki-pi_default/ssrc_saluki-pi_default.px4 ${dest_dir}/ssrc_saluki-pi_default-${version}.px4
-    ;;
-  "saluki-pi_protected")
-    $build_cmd_fw ssrc_saluki-pi_protected
-    cp ${script_dir}/build/ssrc_saluki-pi_protected/ssrc_saluki-pi_protected.px4 ${dest_dir}/ssrc_saluki-pi_protected-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-pi_default/ssrc_saluki-pi_default_kernel.elf ${dest_dir}/ssrc_saluki-pi_default_kernel-${version}.elf
     ;;
   "saluki-pi_amp")
     $build_cmd_fw ssrc_saluki-pi_amp
-    cp ${script_dir}/build/ssrc_saluki-pi_amp/ssrc_saluki-pi_amp.bin ${dest_dir}/ssrc_saluki-pi_amp-${version}.bin
+    cp ${script_dir}/build/ssrc_saluki-pi_amp/ssrc_saluki-pi_amp.px4 ${dest_dir}/ssrc_saluki-pi_amp-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-pi_amp/ssrc_saluki-pi_amp_kernel.elf ${dest_dir}/ssrc_saluki-pi_amp_kernel-${version}.elf
+    ;;
+  "saluki-pi_flat")
+    $build_cmd_fw ssrc_saluki-pi_flat
+    cp ${script_dir}/build/ssrc_saluki-pi_flat/ssrc_saluki-pi_flat.px4 ${dest_dir}/ssrc_saluki-pi_flat-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-pi_flat/ssrc_saluki-pi_flat.elf ${dest_dir}/ssrc_saluki-pi_flat-${version}.elf
     ;;
   "saluki-pi_custom_keys")
     # on custom keys case we build _default target but SIGNING_ARGS env variable is set above in build_cmd_fw
     $build_cmd_fw ssrc_saluki-pi_default
     cp ${script_dir}/build/ssrc_saluki-pi_default/ssrc_saluki-pi_default.px4 ${dest_dir}/ssrc_saluki-pi_custom_keys-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-pi_default/ssrc_saluki-pi_default_kernel.elf ${dest_dir}/ssrc_saluki-pi_custom_keys_kernel-${version}.elf
     ;;
 
    *)
