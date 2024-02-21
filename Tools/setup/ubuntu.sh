@@ -2,7 +2,7 @@
 
 set -e
 
-## Bash script to setup PX4 development environment on Ubuntu LTS (22.04, 20.04, 18.04).
+## Bash script to setup PX4 development environment on Ubuntu LTS (jammy, focal, bionic).
 ## Can also be used in docker.
 ##
 ## Installs:
@@ -52,20 +52,20 @@ fi
 
 # check ubuntu version
 # otherwise warn and point to docker?
-UBUNTU_RELEASE="`lsb_release -rs`"
+UBUNTU_RELEASE="$(. /etc/os-release && echo $UBUNTU_CODENAME)"
 
-if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
-	echo "Ubuntu 14.04 is no longer supported"
+if [[ "${UBUNTU_RELEASE}" == "trusty" ]]; then
+	echo "Ubuntu trusty is no longer supported"
 	exit 1
-elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
-	echo "Ubuntu 16.04 is no longer supported"
+elif [[ "${UBUNTU_RELEASE}" == "xenial" ]]; then
+	echo "Ubuntu xenial is no longer supported"
 	exit 1
-elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-	echo "Ubuntu 18.04"
-elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
-	echo "Ubuntu 20.04"
-elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-	echo "Ubuntu 22.04"
+elif [[ "${UBUNTU_RELEASE}" == "bionic" ]]; then
+	echo "Ubuntu bionic"
+elif [[ "${UBUNTU_RELEASE}" == "focal" ]]; then
+	echo "Ubuntu focal"
+elif [[ "${UBUNTU_RELEASE}" == "jammy" ]]; then
+	echo "Ubuntu jammy"
 fi
 
 
@@ -146,7 +146,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		util-linux \
 		vim-common \
 		;
-	if [[ "${UBUNTU_RELEASE}" == "20.04" || "${UBUNTU_RELEASE}" == "22.04" ]]; then
+	if [[ "${UBUNTU_RELEASE}" == "focal" || "${UBUNTU_RELEASE}" == "jammy" ]]; then
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		kconfig-frontends \
 		;
@@ -199,11 +199,11 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		bc \
 		;
 
-	if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
+	if [[ "${UBUNTU_RELEASE}" == "bionic" ]]; then
 		java_version=11
-	elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+	elif [[ "${UBUNTU_RELEASE}" == "focal" ]]; then
 		java_version=13
-	elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
+	elif [[ "${UBUNTU_RELEASE}" == "jammy" ]]; then
 		java_version=11
 	else
 		java_version=14
@@ -220,7 +220,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-$java_version")
 
 	# Gazebo / Gazebo classic installation
-	if [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
+	if [[ "${UBUNTU_RELEASE}" == "jammy" ]]; then
 		echo "Gazebo (Garden) will be installed"
 		echo "Earlier versions will be removed"
 		# Add Gazebo binary repository
@@ -237,11 +237,11 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		sudo apt-get update -y --quiet
 
 		# Install Gazebo classic
-		if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
+		if [[ "${UBUNTU_RELEASE}" == "bionic" ]]; then
 			gazebo_classic_version=9
 			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
 		else
-			# default and Ubuntu 20.04
+			# default and Ubuntu focal
 			gazebo_classic_version=11
 			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
 		fi
