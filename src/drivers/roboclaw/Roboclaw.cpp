@@ -45,7 +45,7 @@
 #include <termios.h>
 
 Roboclaw::Roboclaw(const char *device_name, const char *bad_rate_parameter) :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
+	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::ttyS3)
 {
 	strncpy(_stored_device_name, device_name, sizeof(_stored_device_name) - 1);
 	_stored_device_name[sizeof(_stored_device_name) - 1] = '\0'; // Ensure null-termination
@@ -198,7 +198,7 @@ void Roboclaw::Run()
 	}
 
 	_actuator_armed_sub.update();
-	_mixing_output.updateSubscriptions(false);
+	_mixing_output.updateSubscriptions(true);
 
 	if (readEncoder() != OK) {
 		PX4_ERR("Error reading encoders");

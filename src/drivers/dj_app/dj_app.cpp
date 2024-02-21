@@ -1,5 +1,4 @@
 #include "dj_app.hpp"
-#include <stdio.h>
 
 RS485::RS485() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::ttyS3)
@@ -10,6 +9,8 @@ RS485::RS485() :
 RS485::~RS485()
 {
 	close(_rs485_fd);	// rs485 디스크립터를 닫는다.
+	perf_free(_cycle_perf);
+	perf_free(_interval_perf);
 	PX4_INFO("Instance has destructed...\n");
 }
 
@@ -54,7 +55,17 @@ int RS485::print_status()
 bool RS485::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	return 0;
+	if (stop_motors)
+	{
+		setMotorSpeed(0, 0);
+		setMotorSpeed(0, 1);
+	}
+	else
+	{
+		setMotorSpeed(outputs[0], 1);
+		setMotorSpeed(outputs[1], 0);
+	}
+	return true;
 }
 
 void RS485::Run()
@@ -70,6 +81,11 @@ void RS485::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
+	if (!_rs485_initialized) {
+		initializeRS485();
+		_rs485_initialized = true;
+	}
+
 	_mixing_output.update();
 
 	if (_parameter_update_sub.updated()) {
@@ -81,6 +97,10 @@ void RS485::Run()
 	_mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
+
+	// if (readEncoder() != OK) {
+	// 	PX4_ERR("Error reading encoders");
+	// }
 }
 
 ssize_t RS485::initializeRS485()
@@ -114,9 +134,9 @@ ssize_t RS485::initializeRS485()
 
 ssize_t RS485::setMotorSpeed(uint16_t rpm, bool side)
 {
-	if (_motor_mode != Mode::Velocity) setMotorMode(Mode::Velocity);
-	if (side == 0) setRTUPacket(0x06, 0x2088, (uint8_t*)&rpm, sizeof(rpm));
-	if (side == 1) setRTUPacket(0x06, 0x2089, (uint8_t*)&rpm, sizeof(rpm));
+	setMotorMode(Mode::Velocity);
+	if (side == 0) setRTUPacket(0x06, 0x2088, (uint8_t*)&rpm, sizeof(rpm)); // 왼쪽
+	if (side == 1) setRTUPacket(0x06, 0x2089, (uint8_t*)&rpm, sizeof(rpm)); // 오른쪽
 	calculateCRC((uint8_t*)&_rtu, sizeof(_rtu) - 2);
 	return writeData();
 }
@@ -155,12 +175,6 @@ ssize_t RS485::readEncoder()
 	wheel_encoders.wheel_angle[1] = position_left;
 	wheel_encoders.timestamp = hrt_absolute_time();
 	_wheel_encoders_pub.publish(wheel_encoders);
-
-	printf("speed_right : %.2x\n", speed_right);
-	printf("speed_left : %.2x\n", speed_left);
-	printf("position_right : %.4lx\n", position_right);
-	printf("position_left : %.4lx\n", position_left);
-
 
 	return OK;
 }
@@ -228,31 +242,5 @@ uint16_t RS485::readData()
 
 extern "C" __EXPORT int dj_app_main(int argc, char *argv[])
 {
-	// PX4_INFO("DJ has started!\n");
-
-	// int quit;
-	// RS485 rs485;
-	// rs485.initializeRS485();
-	// while(quit)
-	// {
-	// 	scanf("%d", &quit);
-	// 	if (quit == 1)
-	// 	{
-	// 		rs485.setMotorSpeed(100, 0);
-	// 		rs485.setMotorSpeed(100, 1);
-	// 	}
-	// 	else if (quit == 2)
-	// 	{
-	// 		rs485.setMotorSpeed(0, 0);
-	// 		rs485.setMotorSpeed(0, 1);
-	// 	}
-	// 	else if (quit == 3)
-	// 	{
-	// 		rs485.readEncoder();
-	// 	}
-
-	// }
-	// return OK;
-	printf("Hello");
 	return RS485::main(argc, argv);
 }

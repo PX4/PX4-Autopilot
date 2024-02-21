@@ -1,4 +1,4 @@
-menuconfig EXAMPLES_DJ_APP
+menuconfig DRIVERS_DJ_APP
 	bool "dj_app"
 	default n
 	---help---

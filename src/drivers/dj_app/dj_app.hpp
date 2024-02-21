@@ -43,7 +43,7 @@ public:
 	ssize_t readEncoder();
 
 private:
-	MixingOutput _mixing_output{"DJ_APP", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output{"DJ", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	typedef struct RTUPacket	// Modbus RTU 통신에서 주고받는 패킷을 구조체로 추상화
 	{
@@ -60,6 +60,7 @@ private:
 	const char* _port_name = "/dev/ttyS3";	// 디바이스 포트 이름(pixhawk UART 포트이름이 dev/ttyS3)
 	const int _baudrate = B115200;		// baudrate(모터드라이브의 default가 115200)
 	int _rs485_fd = 0;			// rs485 통신 디스크립터
+	bool _rs485_initialized = false;	// rs485 통신이 초기화되었는지를 저장하는 bool 변수
 
 	uint16_t speed_left = 0, speed_right = 0;
 	uint32_t position_left = 0, position_right = 0;
