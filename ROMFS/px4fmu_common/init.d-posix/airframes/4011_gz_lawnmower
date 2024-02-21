@@ -41,11 +41,10 @@ param set-default SIM_GZ_WH_FUNC2 102 # left wheel
 
 param set-default SIM_GZ_WH_REV 0 # no need to reverse any wheels
 
-// Note: The servo configurations ( SIM_GZ_SV_FUNC*) outlined below are intended for educational purposes in this simulation. 
-// They do not have physical effects in the simulated environment, except for actuating the joints. Their definitions are meant to demonstrate 
-// how actuators could be mapped and configured in a real-world application, providing a foundation for understanding and implementing actuator 
-// controls in practical scenarios.
-
+# Note: The servo configurations ( SIM_GZ_SV_FUNC*) outlined below are intended for educational purposes in this simulation. 
+# They do not have physical effects in the simulated environment, except for actuating the joints. Their definitions are meant to demonstrate 
+# how actuators could be mapped and configured in a real-world application, providing a foundation for understanding and implementing actuator 
+# controls in practical scenarios.
 
 # Cutter deck blades clutch, PCA9685 servo channel 3,  "RC FLAPS" (406) - leftmost switch, or "Servo 3" (203):
 param set-default SIM_GZ_SV_FUNC3 203
