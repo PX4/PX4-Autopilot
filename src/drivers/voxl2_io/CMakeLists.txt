@@ -45,6 +45,7 @@ px4_add_module(
 		voxl2_io.cpp
 		voxl2_io.hpp
 	DEPENDS
+		rc
 		px4_work_queue
 		mixer_module
 	MODULE_CONFIG
