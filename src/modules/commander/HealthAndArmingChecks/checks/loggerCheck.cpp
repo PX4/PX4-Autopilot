@@ -37,6 +37,8 @@ using namespace time_literals;
 
 void LoggerChecks::checkAndReport(const Context &context, Report &reporter)
 {
+#if defined(CONFIG_MODULES_LOGGER)
+
 	bool active = false;
 
 	if (_param_sdlog_mode.get() >= 0) {
@@ -55,4 +57,5 @@ void LoggerChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	reporter.setHealth(health_component_t::logging, active, false, false);
+#endif
 }
