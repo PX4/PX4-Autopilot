@@ -476,6 +476,9 @@ void AutopilotTester::fly_forward_in_altctl()
 	}
 
 	CHECK(_manual_control->start_altitude_control() == ManualControl::Result::Success);
+	store_home();
+	wait_until_ready();
+	arm();
 
 	// Climb up for 20 seconds
 	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
