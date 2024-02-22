@@ -1,0 +1,80 @@
+#!/bin/sh
+# @name Gazebo lawnmower
+# @type Rover
+# @class Rover
+
+. ${R}etc/init.d/rc.rover_differential_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=lawnmower}
+
+param set-default SIM_GZ_EN 1 # Gazebo bridge
+
+# Simulated sensors
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+# We can arm and drive in manual mode when it slides and GPS check fails:
+param set-default COM_ARM_WO_GPS 1
+
+# Set Differential Drive Kinematics Library parameters:
+param set RDD_WHEEL_BASE 0.9
+param set RDD_WHEEL_RADIUS 0.22
+param set RDD_WHEEL_SPEED 10.0	# Maximum wheel speed rad/s, approx 8 km/h
+
+# Actuator mapping - set SITL motors/servos output parameters:
+
+# "Motors" - motor channels 0 (Right) and 1 (Left) - via Wheels GZ bridge:
+param set-default SIM_GZ_WH_FUNC1 101 # right wheel
+#param set-default SIM_GZ_WH_MIN1 0
+#param set-default SIM_GZ_WH_MAX1 200
+#param set-default SIM_GZ_WH_DIS1 100
+#param set-default SIM_GZ_WH_FAIL1 100
+
+param set-default SIM_GZ_WH_FUNC2 102 # left wheel
+#param set-default SIM_GZ_WH_MIN2 0
+#param set-default SIM_GZ_WH_MAX2 200
+#aram set-default SIM_GZ_WH_DIS2 100
+#param set-default SIM_GZ_WH_FAIL2 100
+
+param set-default SIM_GZ_WH_REV 0 # no need to reverse any wheels
+
+# Note: The servo configurations ( SIM_GZ_SV_FUNC*) outlined below are intended for educational purposes in this simulation. 
+# They do not have physical effects in the simulated environment, except for actuating the joints. Their definitions are meant to demonstrate 
+# how actuators could be mapped and configured in a real-world application, providing a foundation for understanding and implementing actuator 
+# controls in practical scenarios.
+
+# Cutter deck blades clutch, PCA9685 servo channel 3,  "RC FLAPS" (406) - leftmost switch, or "Servo 3" (203):
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_MIN3 0
+param set-default SIM_GZ_SV_MAX3 1000
+param set-default SIM_GZ_SV_DIS3 500
+param set-default SIM_GZ_SV_FAIL3 500
+
+# Gas engine throttle, PCA9685 servo channel 4, "RC AUX1" (407) - left knob, or "Servo 4" (204):
+#    - on minimum when disarmed or failed:
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_MIN4 0
+param set-default SIM_GZ_SV_MAX4 1000
+param set-default SIM_GZ_SV_DIS4 500
+param set-default SIM_GZ_SV_FAIL4 500
+
+# Controlling PCA9685 servos 5,6,7,8 directly via "Servo 5..8" setting, by publishing actuator_servos.control[]:
+
+# Strobes, PCA9685 servo channel 5, "Servo 5" (205) - flashing indicates Mission mode:
+#param set-default SIM_GZ_SV_FUNC5 205
+#param set-default SIM_GZ_SV_MIN5 1000
+#param set-default SIM_GZ_SV_MAX5 2000
+#param set-default SIM_GZ_SV_DIS5 1000
+#param set-default SIM_GZ_SV_FAIL5 1000
+
+# Horn, PCA9685 servo channel 6, "Servo 6" (206) - for alarms like GPS failure:
+#param set-default SIM_GZ_SV_FUNC6 206
+
+# Spare PCA9685 servo channel 7 on "RC AUX2" (408) - right knob, or "Servo 7" (207):
+#param set-default SIM_GZ_SV_FUNC7 207
+
+# Spare PCA9685 servo channel 8 - "Servo 8" (208):
+#param set-default SIM_GZ_SV_FUNC8 208
