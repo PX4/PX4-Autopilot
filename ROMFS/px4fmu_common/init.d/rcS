@@ -36,6 +36,12 @@ set SDCARD_FORMAT no
 set STARTUP_TUNE 1
 set VEHICLE_TYPE none
 
+# Airframe parameter versioning
+# Value set to 1 by default but can optionally be overridden in the airframe configuration startup script.
+# Airframe maintainers can ensure a reset to the airframe defaults during an update by increasing by one.
+# e.g. add line "set PARAM_DEFAULTS_VER 2" in your airframe file to build the first update that enfoces a reset.
+set PARAM_DEFAULTS_VER 1
+
 #
 # Print full system version.
 #
@@ -182,13 +188,11 @@ else
 		netman update -i eth0
 	fi
 
-	#
-	# If the airframe has been previously reset SYS_AUTCONFIG will have been set to 1 and other params will be reset on the next boot.
-	#
+	# To trigger a parameter reset during boot SYS_AUTCONFIG was set to 1 before
 	if param greater SYS_AUTOCONFIG 0
 	then
-		# Reset params except Airframe, RC calibration, sensor calibration, flight modes, total flight time, and next flight UUID.
-		param reset_all SYS_AUTOSTART RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
+		# Reset parameters except airframe, parameter version, RC calibration, sensor calibration, flight modes, total flight time, flight UUID
+		param reset_all SYS_AUTOSTART SYS_PARAM_VER RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
 	fi
 
 	#
@@ -232,6 +236,17 @@ else
 		. ${R}$AUTOSTART_PATH
 	fi
 	unset AUTOSTART_PATH
+
+	# Check parameter version and reset upon airframe configuration version mismatch.
+	# Reboot required because "param reset_all" would reset all "param set" lines from airframe.
+	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
+	then
+		echo "Switched to different parameter version. Resetting parameters."
+		param set SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
+		param set SYS_AUTOCONFIG 1
+		param save
+		reboot
+	fi
 
 	#
 	# Start the tone_alarm driver.
@@ -598,6 +613,7 @@ unset LOGGER_ARGS
 unset LOGGER_BUF
 unset PARAM_FILE
 unset PARAM_BACKUP_FILE
+unset PARAM_DEFAULTS_VER
 unset RC_INPUT_ARGS
 unset SDCARD_AVAILABLE
 unset SDCARD_EXT_PATH

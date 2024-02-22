@@ -84,6 +84,19 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 PARAM_DEFINE_INT32(SYS_HITL, 0);
 
 /**
+ * Parameter version
+ *
+ * This is used internally only: an airframe configuration might set an expected
+ * parameter version value via PARAM_DEFAULTS_VER. This is checked on bootup
+ * against SYS_PARAM_VER, and if they do not match, parameters are reset and
+ * reloaded from the airframe configuration.
+ *
+ * @min 0
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_PARAM_VER, 1);
+
+/**
  * Enable auto start of rate gyro thermal calibration at the next power up.
  *
  * 0 : Set to 0 to do nothing
