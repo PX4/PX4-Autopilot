@@ -113,6 +113,9 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 
 		int time = 0;
 
+		// Make stdin non-blocking
+		fcntl(0, F_SETFL, O_NONBLOCK);
+
 		while (msgs_received < num_msgs) {
 
 			char c = 0;
