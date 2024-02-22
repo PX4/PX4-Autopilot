@@ -199,10 +199,11 @@ public:
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param interval The requested maximum update interval in microseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionPollable(const orb_metadata *meta, uint8_t instance = 0) :
-		SubscriptionInterval(meta, 0, instance)
+	SubscriptionPollable(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
+		SubscriptionInterval(meta, interval_us, instance)
 	{
 	}
 
