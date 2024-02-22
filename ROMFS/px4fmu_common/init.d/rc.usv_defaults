@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# UGV default parameters.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+set VEHICLE_TYPE usv
+
+# Surface vessel, boat, ship
+param set-default MAV_TYPE 11
+
+#
+# Default parameters for UGVs.
+#
+param set-default MIS_TAKEOFF_ALT 0.01
+
+param set-default NAV_ACC_RAD 2
+param set-default NAV_LOITER_RAD 2
+
+# Temporary.
+param set-default NAV_FW_ALT_RAD 1000
