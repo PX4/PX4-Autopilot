@@ -333,7 +333,7 @@ orb_sub_t uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
 // Should only be called from old interface
 orb_sub_t uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
 {
-	uORB::SubscriptionInterval *sub = new uORB::SubscriptionPollable(meta, instance);
+	uORB::SubscriptionInterval *sub = new uORB::SubscriptionPollable(meta, 0, instance);
 
 	if (sub && !sub->valid()) {
 		// subscribe and advertise the topic
