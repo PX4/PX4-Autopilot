@@ -75,8 +75,6 @@ bool VertiqIo::init()
 	_telem_manager.Init(_telem_bitmask);
 	_telem_manager.StartPublishing(&_esc_status_pub);
 
-	_telem_manager.PauseTelemetry();
-
 	//Make sure we get our thread into execution
 	ScheduleNow();
 
