@@ -52,10 +52,7 @@
 #include "iq-module-communication-cpp/inc/arming_handler_client.hpp"
 
 #include "iq-module-communication-cpp/inc/esc_propeller_input_parser_client.hpp"
-
-#ifdef CONFIG_USE_IFCI_CONFIGURATION
 #include "iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp"
-#endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 #include "iq-module-communication-cpp/inc/voltage_superposition_client.hpp"
