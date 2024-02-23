@@ -839,38 +839,44 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const int state_index)
+bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index)
 {
-	VectorState Kfusion;  // Kalman gain vector for any single observation - sequential fusion is used.
+	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 
 	// calculate kalman gain K = PHS, where S = 1/innovation variance
 	for (int row = 0; row < State::size; row++) {
-		Kfusion(row) = P(row, state_index) / innov_var;
+		K(row) = P(row, state_index) / innov_var;
 	}
 
-	clearInhibitedStateKalmanGains(Kfusion);
+	clearInhibitedStateKalmanGains(K);
 
-	SquareMatrixState KHP;
+	// Efficient implementation of the Joseph stabilized covariance update
+	// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
 
-	for (unsigned row = 0; row < State::size; row++) {
-		for (unsigned column = 0; column < State::size; column++) {
-			KHP(row, column) = Kfusion(row) * P(state_index, column);
+	// Step 1: conventional update
+	VectorState PH = P.row(state_index);
+
+	for (unsigned i = 0; i < State::size; i++) {
+		for (unsigned j = 0; j <= i; j++) {
+			P(i, j) = P(i, j) - K(i) * PH(j);
+			P(j, i) = P(i, j);
 		}
 	}
 
-	const bool healthy = checkAndFixCovarianceUpdate(KHP);
+	// Step 2: stabilized update
+	PH = P.row(state_index);
 
-	if (healthy) {
-		// apply the covariance corrections
-		P -= KHP;
-
-		constrainStateVariances();
-
-		// apply the state corrections
-		fuse(Kfusion, innov);
-
-		return true;
+	for (unsigned i = 0; i < State::size; i++) {
+		for (unsigned j = 0; j <= i; j++) {
+			float s = .5f * (P(i, j) - PH(i) * K(j) + P(i, j) - PH(j) * K(i));
+			P(i, j) = s + K(i) * R * K(j);
+			P(j, i) = P(i, j);
+		}
 	}
 
-	return false;
+	constrainStateVariances();
+
+	// apply the state corrections
+	fuse(K, innov);
+	return true;
 }
