@@ -385,6 +385,7 @@ private:
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
 	bool		_system_power_usb_connected{false};
+	bool		_forced_disarm_backup_kill{false};
 
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_vehicle_land_detected{};

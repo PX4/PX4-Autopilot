@@ -48,3 +48,5 @@ bool avoidance_system_valid                       # Status of the obstacle avoid
 
 bool parachute_system_present
 bool parachute_system_healthy
+
+bool forced_disarm_backup_kill			# set to true if BackupGCS has triggered Kill by Forced Disarm (QGC)
