@@ -50,7 +50,6 @@
 #include "vertiq_telemetry_manager.hpp"
 #include "vertiq_client_manager.hpp"
 #include "vertiq_serial_interface.hpp"
-#include "ifci.hpp"
 
 #include "iq-module-communication-cpp/inc/propeller_motor_control_client.hpp"
 #include "iq-module-communication-cpp/inc/brushless_drive_client.hpp"
@@ -94,6 +93,12 @@ public:
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
+	/**
+	* @brief Used to package and transmit controls via IQUART
+	* @param outputs The output throttles calculated by the mixer
+	*/
+	void OutputControls(uint16_t outputs[MAX_ACTUATORS]);
+
 private:
 	static const uint8_t MAX_SUPPORTABLE_IFCI_CVS = 16;
 
@@ -122,8 +127,12 @@ private:
 	//We need a telemetry handler
 	VertiqTelemetryManager _telem_manager;
 
-	//Pointer to the IFCI handler
-	IFCI *_motor_interface_ptr;
+	static const uint16_t MAX_IFCI_MESSAGE = 40; //Up to 16 2 byte commands, one telemetry byte, plus 7 IQUART added bytes
+
+	IQUartFlightControllerInterfaceClient _operational_ifci;
+	IFCIPackedMessage _transmission_message;
+	uint8_t _output_message[MAX_IFCI_MESSAGE];
+	uint8_t _output_len;
 
 	//Store the number of control variables that we're using
 	uint8_t _cvs_in_use = 0;
@@ -132,12 +141,6 @@ private:
 	uint64_t _telem_bitmask = 0;
 	uint32_t _telemetry_ids_1 = 0;
 	uint32_t _telemetry_ids_2 = 0;
-
-	//This is the variable we're actually going to use in the brodcast packed control message
-	//We set and use it to _current_telemetry_target_module_id until we send the first
-	//broadcast message with this as the tail byte. after that first transmission, set it
-	//to an impossible module ID
-	uint16_t _telemetry_request_id = 0;
 
 	static const uint8_t _impossible_module_id = 255;
 

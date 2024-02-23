@@ -49,7 +49,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_test.h>
 
-#include "ifci.hpp"
+#include "iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp"
 
 enum vertiq_telemetry_pause_states {
 	PAUSED,
@@ -64,13 +64,14 @@ public:
 	* @brief Construct a new VertiqTelemetryManager object with a pointer to an IFCI handler
 	* @param motor_interface A pointer to and IFCI interface
 	*/
-	VertiqTelemetryManager(IFCI *motor_interface);
+	VertiqTelemetryManager(IQUartFlightControllerInterfaceClient *motor_interface);
 
 	/**
 	* @brief Initialize the telemetry manager with the bitmask set in the PX4 parameters
 	* @param telem_bitmask The bitmask set in the PX4 parameters as VERTIQ_TEL_MSK
+	* @param telem_interface A pointer to the IFCI client we will use for telemetry
 	*/
-	void Init(uint64_t telem_bitmask);
+	void Init(uint64_t telem_bitmask, IQUartFlightControllerInterfaceClient *telem_interface);
 
 	/**
 	* @brief Start publishing the ESC statuses to the uORB esc_status topic
@@ -99,15 +100,30 @@ public:
 	*/
 	esc_status_s GetEscStatus();
 
+	/**
+	* @brief Stops the telemetry manager from calculating the next target for telemetry
+	*/
 	void PauseTelemetry();
+
+	/**
+	* @brief Resumes looking for the next telemetry target
+	*/
 	void UnpauseTelemetry();
+
+	/**
+	* @brief Returns the paused state of the telemetry manager
+	*/
 	vertiq_telemetry_pause_states GetTelemetryPauseState();
 
 private:
 
 	vertiq_telemetry_pause_states _telem_state;
 
-	IFCI *_motor_interface;
+	//Used for broadcasting our commands
+	IQUartFlightControllerInterfaceClient *_motor_interface;
+
+	//Used for reading responses from our telemetry targets
+	IQUartFlightControllerInterfaceClient *_telem_interface;
 
 	//We want to publish our ESC Status to anyone who will listen
 	esc_status_s		_esc_status;

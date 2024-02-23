@@ -69,8 +69,6 @@ px4_add_module(
 		vertiq_client_manager.cpp
 		vertiq_client_manager.hpp
 		entry_wrapper.hpp
-		ifci.hpp
-		ifci.cpp
 	DEPENDS
 		px4_work_queue
 		mixer_module

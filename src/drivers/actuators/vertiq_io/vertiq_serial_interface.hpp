@@ -41,7 +41,6 @@
 
 #include "iq-module-communication-cpp/inc/generic_interface.hpp"
 #include "iq-module-communication-cpp/inc/propeller_motor_control_client.hpp"
-#include "ifci.hpp"
 
 class VertiqSerialInterface
 {
@@ -69,7 +68,7 @@ public:
 	/**
 	* @brief check to see if there is any data for us coming in over the serial port
 	*/
-	int process_serial_rx(IFCI *motor_interface, ClientAbstract **configuration_clients, ClientAbstract **operational_clients);
+	int process_serial_rx(ClientAbstract **configuration_clients, ClientAbstract **operational_clients);
 
 	/**
 	* @brief check to see if there is any data that we need to transmit over serial
@@ -82,8 +81,16 @@ public:
 	*/
 	GenericInterface *get_iquart_interface();
 
+	/**
+	* @brief Sets the _number_of_configuration_clients parameter to number_of_clients
+	* @param number_of_clients the new number of configuration clients we have
+	*/
 	void SetNumberOfConfigurationClients(uint8_t number_of_clients);
 
+	/**
+	* @brief Sets the _number_of_operational_clients parameter to number_of_clients
+	* @param number_of_clients the new number of operational clients we have
+	*/
 	void SetNumberOfOperationalClients(uint8_t number_of_clients);
 
 private:

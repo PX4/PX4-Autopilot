@@ -41,14 +41,14 @@ VertiqIo::VertiqIo() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_serial_interface(),
 	_client_manager(&_serial_interface),
-	_telem_manager(_client_manager.GetMotorInterface())
-
+	_telem_manager(&_operational_ifci),
+	_operational_ifci(_kBroadcastID)
 {
 	//Make sure we get the correct initial values for our parameters
 	updateParams();
 
 	_client_manager.Init((uint8_t)_param_vertiq_target_module_id.get());
-	_motor_interface_ptr = _client_manager.GetMotorInterface();
+	_client_manager.AddNewOperationalClient(&_operational_ifci);
 }
 
 VertiqIo::~VertiqIo()
@@ -69,10 +69,12 @@ bool VertiqIo::init()
 	_telemetry_ids_1 = (uint32_t)_param_vertiq_telem_ids_1.get();
 	_telemetry_ids_2 = (uint32_t)_param_vertiq_telem_ids_2.get();
 	_telem_bitmask = ((uint64_t)(_telemetry_ids_2) << 32) | _telemetry_ids_1;
+
+	_transmission_message.num_cvs = _cvs_in_use;
 #endif
 
 	//Initialize our telemetry handler
-	_telem_manager.Init(_telem_bitmask);
+	_telem_manager.Init(_telem_bitmask, _client_manager.GetTelemIFCI());
 	_telem_manager.StartPublishing(&_esc_status_pub);
 
 	//Make sure we get our thread into execution
@@ -111,7 +113,7 @@ void VertiqIo::Run()
 		uint16_t next_telem = _telem_manager.UpdateTelemetry();
 
 		if (next_telem != _impossible_module_id) {
-			_telemetry_request_id = next_telem;
+			_transmission_message.telem_byte = next_telem;
 		}
 	}
 
@@ -167,6 +169,17 @@ void VertiqIo::parameters_update()
 	}
 }
 
+void VertiqIo::OutputControls(uint16_t outputs[MAX_ACTUATORS]){
+	//Put the mixer outputs into the output message
+	for(uint8_t i = 0; i < _transmission_message.num_cvs; i++){
+		_transmission_message.commands[i] = outputs[i];
+	}
+
+	_operational_ifci.PackageIfciCommandsForTransmission(&_transmission_message, _output_message, &_output_len);
+	_operational_ifci.packed_command_.set(*_serial_interface.get_iquart_interface(), _output_message, _output_len);
+	_serial_interface.process_serial_tx();
+}
+
 bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			     unsigned num_control_groups_updated)
 {
@@ -179,24 +192,16 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 			_send_forced_arm = false;
 		}
 
-		//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
-		//conversions
-		_motor_interface_ptr->BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use,
-				_telemetry_request_id);
+		OutputControls(outputs);
 
 		//We want to make sure that we send a valid telem request only once to ensure that we're not getting extraneous responses.
 		//So, here we'll set the telem request ID to something that no one will respond to. Another function will take charge of setting it to a
 		//proper value when necessary
-		_telemetry_request_id = _impossible_module_id;
+		_transmission_message.telem_byte = _impossible_module_id;
 
 	} else if (_actuator_test_active) {
-		//We already get a mixer value from [0, 65535]. We can send that right to the motor, and let the input parser handle
-		//conversions
-		_motor_interface_ptr->BroadcastPackedControlMessage(*_serial_interface.get_iquart_interface(), outputs, _cvs_in_use,
-				_telemetry_request_id);
-	}
-
-	else {
+		OutputControls(outputs);
+	} else {
 		//Put the modules into coast
 		switch (_param_vertiq_disarm_behavior.get()) {
 		case TRIGGER_MOTOR_DISARM:

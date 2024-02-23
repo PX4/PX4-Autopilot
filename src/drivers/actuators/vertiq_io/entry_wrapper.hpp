@@ -54,6 +54,12 @@ public:
 
 	EntryWrapper() {}
 
+	/**
+	* @brief Initializes our EntryWrapper with a PX4 parameter and a Vetiq entry
+	*
+	* @param parameter A parameter stored in PX4. This can be found with the param_find function
+	* @param entry A pointer to a Vertiq client entry
+	*/
 	void ConfigureStruct(param_t parameter, ClientEntryAbstract *entry)
 	{
 		_param = parameter;
@@ -61,22 +67,41 @@ public:
 		_needs_init = true;
 	}
 
+	/**
+	* @brief Sets our _needs_init flag high
+	*/
 	void SetNeedsInit()
 	{
 		_needs_init = true;
 	}
 
+	/**
+	* @brief Returns a pointer to our Vertiq entry
+	*
+	* @return _entry
+	*/
 	ClientEntryAbstract *GetClientEntry()
 	{
 		return _entry;
 	}
 
+	/**
+	* @brief Sends a get message to our Vertiq entry
+	*
+	* @param ser A pointer to our serial interface
+	*/
 	void SendGet(VertiqSerialInterface *ser)
 	{
 		_entry->get(*ser->get_iquart_interface());
 		ser->process_serial_tx();
 	}
 
+	/**
+	* @brief Sends both a set and save message to our Vertiq entry with a new value
+	*
+	* @param ser A pointer to our serial interface
+	* @param value The new value we are setting and saving on the connected motor
+	*/
 	void SendSetAndSave(VertiqSerialInterface *ser, module_data_type value)
 	{
 		_entry->set(*ser->get_iquart_interface(), value);
@@ -84,6 +109,15 @@ public:
 		ser->process_serial_tx();
 	}
 
+	/**
+	 * @brief Checks to see if two values are the same. We will treat all parameters as floats regardless of their given type
+	 *
+	 * @param val1 The first value to compare
+	 * @param val2 The second value to compare
+	 * @param tolerance A tolerance to use in order to tell if the values are the same
+	 * @return true If the values are the same
+	 * @return false If the values are different
+	 */
 	bool ValuesAreTheSame(float val1, float val2, float tolerance = 0.001f)
 	{
 		float diff = val1 - val2;
@@ -95,6 +129,12 @@ public:
 		return diff < tolerance;
 	}
 
+	/**
+	* @brief Updates the relationship between the Vertiq and PX4 parameters. First, check to see if the connected motor sent data for us to read. Then, depending on the _needs_init
+	* flag, we either set the gotten value into the PX4 parameter, or we set the new PX4 value to the motor.
+	*
+	* @param serial_interface A pointer to a serial interface used to send data
+	*/
 	void Update(VertiqSerialInterface *serial_interface)
 	{
 		//Make sure we have a way to store the data from PX4 and from the module

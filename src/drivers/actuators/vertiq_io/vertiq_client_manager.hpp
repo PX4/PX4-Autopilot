@@ -44,7 +44,6 @@
 #include <px4_platform_common/module.h>
 
 #include "vertiq_serial_interface.hpp"
-#include "ifci.hpp"
 
 #include "entry_wrapper.hpp"
 
@@ -63,11 +62,14 @@
 #include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
+static const uint8_t _kBroadcastID = 63;
+
 class VertiqClientManager
 {
 public:
 	/**
 	* @brief Construct a new VertiqClientManager object
+	*
 	* @param serial_interface A pointer to a VertiqSerialInterface object
 	*/
 	VertiqClientManager(VertiqSerialInterface *serial_interface);
@@ -81,12 +83,6 @@ public:
 	* @brief Handle the IQUART interface. Make sure that we update TX and RX buffers
 	*/
 	void HandleClientCommunication();
-
-	/**
-	* @brief Returns access to our IFCI interface
-	* @return A pointer to our IFCI interface _motor_interface
-	*/
-	IFCI *GetMotorInterface();
 
 	/**
 	* @brief Add a set to the output buffer that will force the connected motor to arm
@@ -105,6 +101,7 @@ public:
 
 	/**
 	* @brief Add a set to the output buffer that will force the connected motor to spin at a given setpoint
+	*
 	* @param velocity_setpoint the raw 16-bit velocity command going to the motor
 	*/
 	void SendSetVelocitySetpoint(uint16_t velocity_setpoint);
@@ -127,6 +124,7 @@ public:
 
 	/**
 	* @brief Gives access to the object ID currently being used
+	*
 	* @return The value stored in _object_id_now
 	*/
 	uint8_t GetObjectIdNow();
@@ -134,18 +132,52 @@ public:
 	/**
 	* @brief When the target module ID parameter changes, we need to delete and remake all of our clients in order to make sure that we're talking to the
 	*        correct motor.
+	*
 	* @param new_object_id The new target module ID that we should use to instantiate our new clients
 	*/
 	void UpdateClientsToNewObjId(uint8_t new_object_id);
 
+	/**
+	* @brief Adds a new client to our array of Configuration Clients. Configurations clients are those meant to interface a configurable module parameter
+	* with a PX4 parameter. These are clients whose module ID will change over time, and will be dynamically updated
+	*
+	* @param client a pointer to the new client
+	*/
 	void AddNewConfigurationClient(ClientAbstract * client);
 
+	/**
+	* @brief Adds a new client to our array of Operational Clients. Operational clients are those meant to hold an operational client such as those used
+	* for direct motor control. Operational clients should have a constant module ID, and should be made only once
+	*/
 	void AddNewOperationalClient(ClientAbstract * client);
 
+	/**
+	* @brief Returns the number of clients added to our Configuration Clients array
+	*
+	* @return The value _configuration_clients_in_use
+	*/
 	uint8_t GetNumberOfConfigurationClients();
 
+	/**
+	* @brief Returns the number of clients added to our Operational Clients array
+	*
+	* @return The value _operational_clients_in_use
+	*/
 	uint8_t GetNumberOfOperationalClients();
 
+	/**
+	* @brief Returns a pointer to our IFCI client used for telemetry
+	*
+	* @return The _telem_ifci pointer
+	*/
+	IQUartFlightControllerInterfaceClient *GetTelemIFCI();
+
+	/**
+	* @brief Creates and adds a new entry wrapper object to our array of entry wrappers
+	*
+	* @param px4_param A parameter stored in PX4. This can be found with the param_find function
+	* @param entry A pointer to a Vertiq client entry
+	*/
 	template <typename iquart_data_type , typename px4_data_type>
 	void AddNewClientEntry(param_t px4_param, ClientEntryAbstract *entry){
 		if(_added_entry_wrappers < MAX_CLIENT_ENTRIES){
@@ -160,6 +192,7 @@ public:
 private:
 	/**
 	* @brief Initialize all of the Vertiq Clients that we want to use
+	*
 	* @param object_id The object ID with which to initialize our clients
 	*/
 	void InitVertiqClients(uint8_t object_id);
@@ -173,9 +206,6 @@ private:
 
 	//We need a serial handler in order to talk over the serial port
 	VertiqSerialInterface *_serial_interface;
-
-	//IQUART Client configuration
-	IFCI _motor_interface;
 
 	//These exist whenever we're using IQUART
 	EntryWrapper<float, float> _velocity_max_entry;
@@ -201,7 +231,6 @@ private:
 ////////////////////////////////////////////////////////////////////////
 //Vertiq client information
 	//Some constants to help us out
-	static const uint8_t _kBroadcastID = 63;
 	static const uint8_t MAXIMUM_CONFIGURATION_CLIENTS = 20; //These are clients whose module ID will change when Target Module ID changes
 	static const uint8_t MAXIMUM_OPERATIONAL_CLIENTS = 20; //These are clients that are used for module control/telemetry. They have a static Module ID
 
@@ -215,6 +244,7 @@ private:
 	//Clients
 	PropellerMotorControlClient _broadcast_prop_motor_control;
 	ArmingHandlerClient _broadcast_arming_handler;
+	IQUartFlightControllerInterfaceClient *_telem_ifci;
 	EscPropellerInputParserClient *_prop_input_parser_client;
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION

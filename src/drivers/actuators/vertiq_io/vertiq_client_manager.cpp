@@ -51,6 +51,9 @@ void VertiqClientManager::Init(uint8_t object_id)
 
 void VertiqClientManager::InitVertiqClients(uint8_t object_id)
 {
+	_telem_ifci = new IQUartFlightControllerInterfaceClient(object_id);
+	AddNewConfigurationClient(_telem_ifci);
+
 	_prop_input_parser_client = new EscPropellerInputParserClient(object_id);
 	AddNewConfigurationClient(_prop_input_parser_client);
 
@@ -100,6 +103,11 @@ uint8_t VertiqClientManager::GetObjectIdNow()
 	return _object_id_now;
 }
 
+IQUartFlightControllerInterfaceClient *VertiqClientManager::GetTelemIFCI(){
+	return _telem_ifci;
+}
+
+
 void VertiqClientManager::UpdateClientsToNewObjId(uint8_t new_object_id)
 {
 	_object_id_now = new_object_id;
@@ -129,12 +137,7 @@ void VertiqClientManager::HandleClientCommunication()
 	_serial_interface->process_serial_tx();
 
 	//Update our serial rx
-	_serial_interface->process_serial_rx(&_motor_interface, _configuration_client_array, _operational_client_array);
-}
-
-IFCI *VertiqClientManager::GetMotorInterface()
-{
-	return &_motor_interface;
+	_serial_interface->process_serial_rx(_configuration_client_array, _operational_client_array);
 }
 
 void VertiqClientManager::SendSetForceArm()
@@ -191,7 +194,7 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 		time_now = hrt_absolute_time();
 
 		//Update our serial rx
-		_serial_interface->process_serial_rx(&_motor_interface, _configuration_client_array, _operational_client_array);
+		_serial_interface->process_serial_rx(_configuration_client_array, _operational_client_array);
 	}
 }
 
