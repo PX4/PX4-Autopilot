@@ -6,14 +6,26 @@
     <static>false</static>
     <link name="base_link">
       <inertial>
-        <mass>2.0</mass>
+        <mass>5.0</mass>
         <inertia>
-          <ixx>0.02166666666666667</ixx>
+          <ixx>0.197166667</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.197166667</iyy>
+          <iyz>0</iyz>
+          <izz>0.34225</izz>
+          <!--<ixx>3.20066667</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>3.20066667</iyy>
+          <iyz>0</iyz>
+          <izz>6.4</izz>-->
+          <!--<ixx>0.02166666666666667</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
           <iyy>0.02166666666666667</iyy>
           <iyz>0</iyz>
-          <izz>0.04000000000000001</izz>
+          <izz>0.04000000000000001</izz>-->
         </inertia>
       </inertial>
       <gravity>true</gravity>
@@ -139,11 +151,11 @@
         </material>
       </visual>
       <collision name="base_link_collision_0">
-        <pose>0 0 0.065 0 0 0</pose>
+        <pose>0 0 0.08 0 0 0</pose>
         <geometry>
           <cylinder>
             <radius>0.86</radius>
-            <length>0.62</length>
+            <length>0.61</length>
           </cylinder>
         </geometry>
         <surface>
@@ -175,14 +187,36 @@
         <update_rate>250</update_rate>
       </sensor>
     </link>
+    <link name="buoyant_0">
+    <gravity>true</gravity>
+      <self_collide>false</self_collide>
+      <velocity_decay/>
+      <pose>0 0.8 0 0 0 0</pose>
+      <inertial>
+          <mass>2.5</mass>
+          <inertia>
+            <ixx>0.0293177083</ixx>
+            <iyy>0.0293177083</iyy>
+            <izz>0.003125</izz>
+          </inertia>
+      </inertial>
+    </link>
+    <joint name="buoyant_0_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>buoyant_0</child>
+    </joint>
     <link name="rotor_0">
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
       <pose>0 0.8 0.3315 0 0 0</pose>
-      <inertial>
+        <inertial>
           <mass>0.016076923076923075</mass>
+          <!--<mass>2.5</mass>-->
           <inertia>
+            <!--<ixx>0.0293177083</ixx>
+            <iyy>0.0293177083</iyy>
+            <izz>0.003125</izz>-->
             <ixx>3.8464910483993325e-07</ixx>
             <iyy>2.6115851691700804e-05</iyy>
             <izz>2.649858234714004e-05</izz>
@@ -233,6 +267,24 @@
         </dynamics>
       </axis>
     </joint>
+    <link name="buoyant_1">
+    <gravity>true</gravity>
+      <self_collide>false</self_collide>
+      <velocity_decay/>
+      <pose>0.692 0.4 0 0 0 0</pose>
+      <inertial>
+          <mass>2.5</mass>
+          <inertia>
+            <ixx>0.0293177083</ixx>
+            <iyy>0.0293177083</iyy>
+            <izz>0.003125</izz>
+          </inertia>
+      </inertial>
+    </link>
+    <joint name="buoyant_1_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>buoyant_1</child>
+    </joint>
     <link name="rotor_1">
       <gravity>true</gravity>
       <self_collide>false</self_collide>
@@ -241,9 +293,9 @@
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
-            <ixx>3.8464910483993325e-07</ixx>
-            <iyy>2.6115851691700804e-05</iyy>
-            <izz>2.649858234714004e-05</izz>
+            <ixx>0.0293177083</ixx>
+            <iyy>0.0293177083</iyy>
+            <izz>0.003125</izz>
           </inertia>
         </inertial>
       <visual name="rotor_1_visual">
@@ -290,6 +342,24 @@
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
       </axis>
+    </joint>
+    <link name="buoyant_2">
+    <gravity>true</gravity>
+      <self_collide>false</self_collide>
+      <velocity_decay/>
+      <pose>0.692 -0.4 0 0 0 0</pose>
+      <inertial>
+          <mass>2.5</mass>
+          <inertia>
+            <ixx>0.0293177083</ixx>
+            <iyy>0.0293177083</iyy>
+            <izz>0.003125</izz>
+          </inertia>
+      </inertial>
+    </link>
+    <joint name="buoyant_2_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>buoyant_2</child>
     </joint>
     <link name="rotor_2">
       <gravity>true</gravity>
@@ -349,6 +419,24 @@
         </dynamics>
       </axis>
     </joint>
+    <link name="buoyant_3">
+    <gravity>true</gravity>
+      <self_collide>false</self_collide>
+      <velocity_decay/>
+      <pose>0 -0.8 0 0 0 0</pose>
+      <inertial>
+          <mass>2.5</mass>
+          <inertia>
+            <ixx>0.0293177083</ixx>
+            <iyy>0.0293177083</iyy>
+            <izz>0.003125</izz>
+          </inertia>
+      </inertial>
+    </link>
+    <joint name="buoyant_3_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>buoyant_3</child>
+    </joint>
     <link name="rotor_3">
       <gravity>true</gravity>
       <self_collide>false</self_collide>
@@ -407,6 +495,24 @@
         </dynamics>
       </axis>
     </joint>
+    <link name="buoyant_4">
+    <gravity>true</gravity>
+      <self_collide>false</self_collide>
+      <velocity_decay/>
+      <pose>-0.692 -0.4 0 0 0 0</pose>
+      <inertial>
+          <mass>2.5</mass>
+          <inertia>
+            <ixx>0.0293177083</ixx>
+            <iyy>0.0293177083</iyy>
+            <izz>0.003125</izz>
+          </inertia>
+      </inertial>
+    </link>
+    <joint name="buoyant_4_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>buoyant_4</child>
+    </joint>
     <link name="rotor_4">
       <gravity>true</gravity>
       <self_collide>false</self_collide>
@@ -464,6 +570,24 @@
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
       </axis>
+    </joint>
+    <link name="buoyant_5">
+    <gravity>true</gravity>
+      <self_collide>false</self_collide>
+      <velocity_decay/>
+      <pose>-0.692 0.4 0 0 0 0</pose>
+      <inertial>
+          <mass>2.5</mass>
+          <inertia>
+            <ixx>0.0293177083</ixx>
+            <iyy>0.0293177083</iyy>
+            <izz>0.003125</izz>
+          </inertia>
+      </inertial>
+    </link>
+    <joint name="buoyant_5_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>buoyant_5</child>
     </joint>
     <link name="rotor_5">
       <gravity>true</gravity>
@@ -529,7 +653,7 @@
       <turningDirection>cw</turningDirection>
       <timeConstantUp>0.0125</timeConstantUp>
       <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>1000.0</maxRotVelocity>
+      <maxRotVelocity>3500.0</maxRotVelocity>
       <motorConstant>8.54858e-06</motorConstant>
       <momentConstant>0.016</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
@@ -545,7 +669,7 @@
       <turningDirection>ccw</turningDirection>
       <timeConstantUp>0.0125</timeConstantUp>
       <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>1000.0</maxRotVelocity>
+      <maxRotVelocity>3500.0</maxRotVelocity>
       <motorConstant>8.54858e-06</motorConstant>
       <momentConstant>0.016</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
@@ -561,7 +685,7 @@
       <turningDirection>cw</turningDirection>
       <timeConstantUp>0.0125</timeConstantUp>
       <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>1000.0</maxRotVelocity>
+      <maxRotVelocity>3500.0</maxRotVelocity>
       <motorConstant>8.54858e-06</motorConstant>
       <momentConstant>0.016</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
@@ -577,7 +701,7 @@
       <turningDirection>ccw</turningDirection>
       <timeConstantUp>0.0125</timeConstantUp>
       <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>1000.0</maxRotVelocity>
+      <maxRotVelocity>3500.0</maxRotVelocity>
       <motorConstant>8.54858e-06</motorConstant>
       <momentConstant>0.016</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
@@ -593,11 +717,11 @@
       <turningDirection>cw</turningDirection>
       <timeConstantUp>0.0125</timeConstantUp>
       <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>1000.0</maxRotVelocity>
+      <maxRotVelocity>3500.0</maxRotVelocity>
       <motorConstant>8.54858e-06</motorConstant>
       <momentConstant>0.016</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
-      <motorNumber>3</motorNumber>
+      <motorNumber>4</motorNumber>
       <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
@@ -609,15 +733,220 @@
       <turningDirection>ccw</turningDirection>
       <timeConstantUp>0.0125</timeConstantUp>
       <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>1000.0</maxRotVelocity>
+      <maxRotVelocity>3500.0</maxRotVelocity>
       <motorConstant>8.54858e-06</motorConstant>
       <momentConstant>0.016</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
-      <motorNumber>3</motorNumber>
+      <motorNumber>5</motorNumber>
       <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
       <motorType>velocity</motorType>
+    </plugin>
+    <plugin filename="libSurfacePlace.so" name="vrx::SurfacePlace">
+      <link_name>base_link</link_name>
+      <hull_height>0.25</hull_height>
+      <hull_radius>0.37</hull_radius>
+      <fluid_level>0.0</fluid_level>
+      <fluid_density>997</fluid_density>
+      <points>
+        <point>0 0 0</point>
+        <point>0.12 0 0</point>
+        <point>0.24 0 0</point>
+        <point>-0.12 0 0</point>
+        <point>-0.24 0 0</point>
+        <point>0 0.12 0</point>
+        <point>0 0.24 0</point>
+        <point>0 -0.12 0</point>
+        <point>0 -0.24 0</point>
+        <point>0.12 0.12 0</point>
+        <point>0.24 0.24 0</point>
+        <point>-0.12 -0.12 0</point>
+        <point>-0.24 -0.24 0</point>
+        <point>0.12 -0.12 0</point>
+        <point>0.24 -0.24 0</point>
+        <point>-0.12 0.12 0</point>
+        <point>-0.24 0.24 0</point>
+      </points>
+      <wavefield>
+        <size>6000 6000</size>
+     		<cell_count>500 500</cell_count>
+        <topic>/vrx/wavefield/parameters</topic>
+        <!--<wave>
+       		<model>CWR</model>
+       		<period>8</period>
+       		<number>1</number>
+       		<scale>2</scale>
+       		<gain>6.0</gain>
+      		<direction>0.0</direction>
+       		<angle>0.4</angle>
+       		<tau>0.6</tau>
+       		<amplitude>3.0</amplitude>
+       		<steepness>0.5</steepness>
+     		</wave>-->
+      </wavefield>
+    </plugin>
+    <plugin filename="libSurfacePlace.so" name="vrx::SurfacePlace">
+      <link_name>base_link</link_name>
+      <hull_height>0.283</hull_height>
+      <hull_radius>0.05</hull_radius>
+      <fluid_level>0.0</fluid_level>
+      <fluid_density>997</fluid_density>
+      <points>
+        <point>0 0.8 0</point>
+      </points>
+      <wavefield>
+        <size>6000 6000</size>
+     		<cell_count>500 500</cell_count>
+        <topic>/vrx/wavefield/parameters</topic>
+        <!--<wave>
+       		<model>CWR</model>
+       		<period>8</period>
+       		<number>1</number>
+       		<scale>2</scale>
+       		<gain>6.0</gain>
+      		<direction>0.0</direction>
+       		<angle>0.4</angle>
+       		<tau>0.6</tau>
+       		<amplitude>3.0</amplitude>
+       		<steepness>0.5</steepness>
+     		</wave>-->
+      </wavefield>
+    </plugin>
+    <plugin filename="libSurfacePlace.so" name="vrx::SurfacePlace">
+      <link_name>base_link</link_name>
+      <hull_height>0.283</hull_height>
+      <hull_radius>0.05</hull_radius>
+      <fluid_level>0.0</fluid_level>
+      <fluid_density>997</fluid_density>
+      <points>
+        <point>0.692 0.4 0</point>
+      </points>
+      <wavefield>
+        <size>6000 6000</size>
+     		<cell_count>500 500</cell_count>
+        <topic>/vrx/wavefield/parameters</topic>
+        <!--<wave>
+       		<model>CWR</model>
+       		<period>8</period>
+       		<number>1</number>
+       		<scale>2</scale>
+       		<gain>6.0</gain>
+      		<direction>0.0</direction>
+       		<angle>0.4</angle>
+       		<tau>0.6</tau>
+       		<amplitude>3.0</amplitude>
+       		<steepness>0.5</steepness>
+     		</wave>-->
+      </wavefield>
+    </plugin>
+    <plugin filename="libSurfacePlace.so" name="vrx::SurfacePlace">
+      <link_name>base_link</link_name>
+      <hull_height>0.283</hull_height>
+      <hull_radius>0.05</hull_radius>
+      <fluid_level>0.0</fluid_level>
+      <fluid_density>997</fluid_density>
+      <points>
+        <point>0.692 -0.4 0</point>
+      </points>
+      <wavefield>
+        <size>6000 6000</size>
+     		<cell_count>500 500</cell_count>
+        <topic>/vrx/wavefield/parameters</topic>
+        <!--<wave>
+       		<model>CWR</model>
+       		<period>8</period>
+       		<number>1</number>
+       		<scale>2</scale>
+       		<gain>6.0</gain>
+      		<direction>0.0</direction>
+       		<angle>0.4</angle>
+       		<tau>0.6</tau>
+       		<amplitude>3.0</amplitude>
+       		<steepness>0.5</steepness>
+     		</wave>-->
+      </wavefield>
+    </plugin>
+    <plugin filename="libSurfacePlace.so" name="vrx::SurfacePlace">
+      <link_name>base_link</link_name>
+      <hull_height>0.283</hull_height>
+      <hull_radius>0.05</hull_radius>
+      <fluid_level>0.0</fluid_level>
+      <fluid_density>997</fluid_density>
+      <points>
+        <point>0 -0.8 0</point>
+      </points>
+      <wavefield>
+        <size>6000 6000</size>
+     		<cell_count>500 500</cell_count>
+        <topic>/vrx/wavefield/parameters</topic>
+        <!--<wave>
+       		<model>CWR</model>
+       		<period>8</period>
+       		<number>1</number>
+       		<scale>2</scale>
+       		<gain>6.0</gain>
+      		<direction>0.0</direction>
+       		<angle>0.4</angle>
+       		<tau>0.6</tau>
+       		<amplitude>3.0</amplitude>
+       		<steepness>0.5</steepness>
+     		</wave>-->
+      </wavefield>
+    </plugin>
+    <plugin filename="libSurfacePlace.so" name="vrx::SurfacePlace">
+      <link_name>base_link</link_name>
+      <hull_height>0.283</hull_height>
+      <hull_radius>0.05</hull_radius>
+      <fluid_level>0.0</fluid_level>
+      <fluid_density>997</fluid_density>
+      <points>
+        <point>-0.692 -0.4 0</point>
+      </points>
+      <wavefield>
+        <size>6000 6000</size>
+     		<cell_count>500 500</cell_count>
+        <topic>/vrx/wavefield/parameters</topic>
+        <!--<wave>
+       		<model>CWR</model>
+       		<period>8</period>
+       		<number>1</number>
+       		<scale>2</scale>
+       		<gain>6.0</gain>
+      		<direction>0.0</direction>
+       		<angle>0.4</angle>
+       		<tau>0.6</tau>
+       		<amplitude>3.0</amplitude>
+       		<steepness>0.5</steepness>
+     		</wave>-->
+      </wavefield>
+    </plugin>
+    <plugin filename="libSurfacePlace.so" name="vrx::SurfacePlace">
+      <link_name>base_link</link_name>
+      <hull_height>0.283</hull_height>
+      <hull_radius>0.05</hull_radius>
+      <fluid_level>0.0</fluid_level>
+      <fluid_density>997</fluid_density>
+      <points>
+        <point>-0.692 0.4 0</point>
+      </points>
+      <wavefield>
+        <size>6000 6000</size>
+     		<cell_count>500 500</cell_count>
+        <topic>/vrx/wavefield/parameters</topic>
+        <!--<wave>
+       		<model>CWR</model>
+       		<period>8</period>
+       		<number>1</number>
+       		<scale>2</scale>
+       		<gain>6.0</gain>
+      		<direction>0.0</direction>
+       		<angle>0.4</angle>
+       		<tau>0.6</tau>
+       		<amplitude>3.0</amplitude>
+       		<steepness>0.5</steepness>
+     		</wave>-->
+      </wavefield>
     </plugin>
   </model>
 </sdf>
