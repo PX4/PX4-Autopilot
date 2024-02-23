@@ -508,6 +508,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		}
 	}
 
+	// 음... 근데 Roboclaw.hpp에서는 오버라이드를 했으니 이거는 안쓰는건가??
 	/* now return the outputs to the driver */
 	if (_interface.updateOutputs(stop_motors, _current_output_value, _max_num_outputs, has_updates)) {
 		actuator_outputs_s actuator_outputs{};
