@@ -88,7 +88,7 @@ parameters:
                     This represents the Control Value Index where the targeted module will look for throttle commands
             type: int32
             min: 0
-            max: 16
+            max: 255
         CONTROL_MODE:
             description:
                 short: Module Param - The module's control mechanism, PWM, Voltage, or Velocity Commands
@@ -179,7 +179,7 @@ parameters:
                     This represents the Control Value Index where the targeted module will look for the X rectangular coordinate.
             type: int32
             min: 0
-            max: 16
+            max: 255
         Y_CVI:
             description:
                 short: Module Param - The control value index value for the Y rectangular coordinate.
@@ -187,7 +187,7 @@ parameters:
                     This represents the Control Value Index where the targeted module will look for the Y rectangular coordinate.
             type: int32
             min: 0
-            max: 16
+            max: 255
         TELEM_IDS_1:
             description:
                 short: Module IDs [0, 31] that you would like to request telemetry from. Values [32, 62] can be accessed via TELEM_IDS_2
