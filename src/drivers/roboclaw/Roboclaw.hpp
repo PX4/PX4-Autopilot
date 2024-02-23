@@ -84,7 +84,7 @@ public:
 	void Run() override;
 
 	/** @see OutputModuleInterface */
-	// cpp에 쓰일 핵심 함수 중 하나. setMotorSpeed에 명령 하달. 마찬가지로 오버라이드로 덮어씀
+	// cpp에 쓰일 핵심 함수 중 하나. setMotorSpeed()에 명령 하달. 마찬가지로 오버라이드로 덮어씀
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 	// 모터 속도 제어 함수
@@ -133,7 +133,7 @@ private:
 	void sendSigned16Bit(Command command, float data);
 	// 위 두 함수 모두 sendTransaction()로 전송
 
-	// sendTransaction이 위에 두 통신법에서 받아 writeCommandWithPayload()로 보냄. 에러 뜨면 readAcknowledgement()으로
+	// sendTransaction()이 위에 두 통신법에서 받아 writeCommandWithPayload()로 보냄. 달되면 readAcknowledgement()으로
 	int sendTransaction(Command cmd, uint8_t *write_buffer, size_t bytes_to_write);
 	int writeCommandWithPayload(Command cmd, uint8_t *wbuff, size_t bytes_to_write);
 	int readAcknowledgement();
