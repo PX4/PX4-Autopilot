@@ -258,7 +258,6 @@ void Roboclaw::setMotorSpeed(Motor motor, float value)
 
 	// send command
 	if (motor == Motor::Right) {
-		// output에서 받은 매개변수가 value로 들어오는데 이게 여기서 양수냐 음수냐로만 구별
 		if (value > 0) {
 			// 여기 Command 변수들은 hpp에서 enum함
 			command = Command::DriveForwardMotor1;// 0을 command에 저장
