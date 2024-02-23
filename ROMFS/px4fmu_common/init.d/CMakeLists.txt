@@ -34,28 +34,79 @@
 add_subdirectory(airframes)
 
 px4_add_romfs_files(
-	rc.airship_apps
-	rc.airship_defaults
+
 	rc.autostart_ext
-	rc.balloon_apps
-	rc.balloon_defaults
-	rc.boat_defaults
-	rc.fw_apps
-	rc.fw_defaults
-	rc.heli_defaults
-	rc.logging
-	rc.mc_apps
-	rc.mc_defaults
+
 	rcS
 	rc.sensors
-	rc.thermal_cal
-	rc.rover_apps
-	rc.rover_defaults
-	rc.rover_differential_apps
-	rc.rover_differential_defaults
-	rc.uuv_apps
-	rc.uuv_defaults
 	rc.vehicle_setup
-	rc.vtol_apps
-	rc.vtol_defaults
+
+	# TODO
+	rc.balloon_apps
+	rc.balloon_defaults
 )
+
+if(CONFIG_MODULES_AIRSHIP_ATT_CONTROL)
+	px4_add_romfs_files(
+		rc.airship_apps
+		rc.airship_defaults
+	)
+endif()
+
+if(CONFIG_MODULES_FW_RATE_CONTROL)
+	px4_add_romfs_files(
+		rc.fw_apps
+		rc.fw_defaults
+	)
+endif()
+
+if(CONFIG_MODULES_MC_RATE_CONTROL)
+	px4_add_romfs_files(
+		rc.heli_defaults
+		rc.mc_apps
+		rc.mc_defaults
+	)
+endif()
+
+if(CONFIG_MODULES_ROVER_POS_CONTROL)
+	px4_add_romfs_files(
+		rc.rover_apps
+		rc.rover_defaults
+
+		rc.boat_defaults # hack
+	)
+endif()
+
+if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
+	px4_add_romfs_files(
+		rc.rover_differential_apps
+		rc.rover_differential_defaults
+	)
+endif()
+
+if(CONFIG_MODULES_UUV_ATT_CONTROL)
+	px4_add_romfs_files(
+		rc.uuv_apps
+		rc.uuv_defaults
+	)
+endif()
+
+if(CONFIG_MODULES_VTOL_ATT_CONTROL)
+	px4_add_romfs_files(
+		rc.vtol_apps
+		rc.vtol_defaults
+	)
+endif()
+
+
+if(CONFIG_MODULES_LOGGER)
+	px4_add_romfs_files(
+		rc.logging
+	)
+endif()
+
+if(CONFIG_MODULES_TEMPERATURE_COMPENSATION)
+	px4_add_romfs_files(
+		rc.thermal_cal
+	)
+endif()
