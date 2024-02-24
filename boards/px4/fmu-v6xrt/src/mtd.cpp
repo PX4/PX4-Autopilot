@@ -50,25 +50,6 @@ static const px4_mft_device_t i2c6 = {             // 24LC64T on BASE  8K 32 X 2
 	.devid    =  PX4_MK_I2C_DEVID(6, 0x51)
 };
 
-
-static const px4_mtd_entry_t fmum_fram = {
-	.device = &qspi_flash,
-	.npart = 2,
-	.partd = {
-		{
-			.type = MTD_PARAMETERS,
-			.path = "/fs/mtd_params",
-			.nblocks = 32
-		},
-		{
-			.type = MTD_WAYPOINTS,
-			.path = "/fs/mtd_waypoints",
-			.nblocks = 32
-
-		}
-	},
-};
-
 static const px4_mtd_entry_t base_eeprom = {
 	.device = &i2c6,
 	.npart = 2,
@@ -112,7 +93,6 @@ static const px4_mtd_entry_t imu_eeprom = {
 static const px4_mtd_manifest_t board_mtd_config = {
 	.nconfigs   = 3,
 	.entries = {
-		&fmum_fram,
 		&base_eeprom,
 		&imu_eeprom
 	}
