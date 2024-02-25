@@ -11,6 +11,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 
 class RS485 : public ModuleBase<RS485>, public OutputModuleInterface
@@ -19,64 +20,70 @@ public:
 	RS485();
 	~RS485() override;
 
-	static int task_spawn(int argc, char *argv[]);
-	static int custom_command(int argc, char *argv[]);
-	static int print_usage(const char *reason = nullptr);
-	int print_status() override;
+	static int task_spawn(int argc, char *argv[]);	// 이 코드가 Work Queue에 올라갈 때 한 번 실행되는 함수
+	static int custom_command(int argc, char *argv[]);	// 코드 기능에 영향 x
+	static int print_usage(const char *reason = nullptr);	// 코드 기능에 영향 x
+	int print_status() override;				// 코드 기능에 영향 x
 
-	void Run() override;
+	void Run() override;	// 실질적으로 Work Queue에서 계속 돌아가는 함수
 
+	// 모터 출력을 업데이트하는 함수(Run 함수에서는 이 함수를 실행하지 않는데 어떻게 실행되는지 의문, 아마 밑의 _mixing_output을 업데이트할 때 실행되는 듯?)
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
-	enum class Mode : uint16_t
+	struct RTU	// Modbus RTU 통신에서 주고받는 패킷을 구조체로 추상화(일단은 단일 레지스터, 단일 데이터만 주고받을 수 있는 패킷)
 	{
-		None = 0,
-		RelativePosition = 1,
-		AbsolutePosition = 2,
-		Velocity = 3,
-		Torque = 4
-	};
-
-	ssize_t initializeRS485();	// RS485 통신 초기화
-	ssize_t setMotorSpeed(uint16_t rpm, bool side);	// rpm과 왼,오른쪽을 매개변수로 받아 모터 속도 설정
-	ssize_t readEncoder();
-
-private:
-	MixingOutput _mixing_output{"DJ", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
-
-	typedef struct RTUPacket	// Modbus RTU 통신에서 주고받는 패킷을 구조체로 추상화
-	{
-		const uint8_t _device_address = 0x01;
+		uint8_t _device_address;
 		uint8_t _function_code;
 		uint8_t _register_address_high;
 		uint8_t _register_address_low;
 		uint8_t _data[2];
 		uint8_t _crc_high;
 		uint8_t _crc_low;
-	}RTU;
-	RTU _rtu;
+	};
+	RTU _rtu_front{0x01};	// 앞바퀴 모터드라이버(로봇 진행방향 기준 왼쪽 모터드라이버)
+	RTU _rtu_back{0x02};	// 뒷바퀴 모터드라이버(로봇 진행방향 기준 오른쪽 모터드라이버)
+
+	enum class Mode : uint16_t	// 모터드라이버 모드 추상화(위치 모드는 사용 안해서 뺌)
+	{
+		None = 0,
+		Velocity = 3,
+		Torque = 4
+	};
+
+	Mode _motor_mode_front = Mode::None;	// 모터드라이버 모드 값 변수(앞바퀴 모터드라이버)
+	Mode _motor_mode_back = Mode::None;	// 모터드라이버 모드 값 변수(뒷바퀴 모터드라이버)
+
+	bool _motor_enabled_front = false;	// 모터드라이버 enabled 되었는지 저장하는 변수(앞바퀴 모터드라이버)
+	bool _motor_enabled_back = false;	// 모터드라이버 enabled 되었는지 저장하는 변수(뒷바퀴 모터드라이버)
+
+	void setMotorSpeed(RTU* rtu, uint16_t rpm, bool side);	// rpm과 Left, Right(모터드라이버 기준)를 매개변수로 받아 속도 설정
+	void readEncoder();		// 엔코더 읽기(미구현)
+	void setMotorMode(RTU* rtu, Mode mode);	// 모터드라이버 모드 설정
+	void setMotorEnabled(RTU *rtu);			// 모터드라이버 enable로 설정
+	void setDeviceAddress(RTU* rtu, uint16_t address);	// 모터드라이버 디바이스 주소 설정하는 함수(일반적으로는 안 씀)
+
+private:
+	// 아마 얘가 실질적으로 모터를 돌리는 인스턴스로 추측된다.
+	MixingOutput _mixing_output{"DJ", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	const char* _port_name = "/dev/ttyS3";	// 디바이스 포트 이름(pixhawk UART 포트이름이 dev/ttyS3)
 	const int _baudrate = B115200;		// baudrate(모터드라이브의 default가 115200)
 	int _rs485_fd = 0;			// rs485 통신 디스크립터
 	bool _rs485_initialized = false;	// rs485 통신이 초기화되었는지를 저장하는 bool 변수
 
-	uint16_t speed_left = 0, speed_right = 0;
-	uint32_t position_left = 0, position_right = 0;
-
+	// uORB 토픽 선언(일단 roboclaw에 있는 거 넣었는데 필수인지는 모르겠음. 추후 테스트 예정)
+	uORB::SubscriptionData<actuator_armed_s> _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::PublicationData<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	Mode _motor_mode = Mode::None;
+	ssize_t initializeRS485();	// RS485 통신 초기화
+	void setRTUPacket(RTU* rtu, uint8_t device_address, uint8_t function_code, uint16_t register_address, uint8_t* data, size_t data_length); // 원하는 값으로 패킷 설정
+	uint16_t calculateCRC(uint8_t *data, size_t data_length);	// CRC 계산
+	void writeData(RTU rtu);	// 데이터 쓰기
+	uint16_t readData(RTU rtu);	// 데이터 읽기(미구현)
 
-	ssize_t setMotorMode(Mode mode);	// 모터드라이버 모드 설정
-	uint16_t calculateCRC(const uint8_t *data, size_t data_length);	// CRC 계산
-	void setRTUPacket(uint8_t function_code, uint16_t register_address, uint8_t* data, size_t data_length);	// 원하는 값으로 패킷 설정
-	void printRTUPacket(void);	// 현재 패킷에 저장된 데이터 출력(디버깅용)
-	ssize_t writeData();	// 데이터 쓰기
-	uint16_t readData();	// 데이터 읽기
-
+	// 왜인지 모르겠는데 pwm_out에서 쓰길래 추가함(나중에 빼고 테스트해볼 예정)
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };

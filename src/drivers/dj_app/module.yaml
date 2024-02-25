@@ -10,10 +10,10 @@ actuator_output:
     - param_prefix: DJ
       channel_label: 'Channel'
       standard_params:
-        disarmed: { min: 128, max: 128, default: 128 }
-        min: { min: 1, max: 128, default: 1 }
-        max: { min: 128, max: 256, default: 256 }
-        failsafe: { min: 0, max: 257 }
+        disarmed: { min: 0, max: 0, default: 0 }
+        min: { min: 0, max: 0, default: 0 }
+        max: { min: 0, max: 256, default: 30 }
+        failsafe: { min: 257, max: 257 }
       num_channels: 2
 
 parameters:
