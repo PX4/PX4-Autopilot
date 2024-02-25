@@ -44,6 +44,7 @@
 #include "Roboclaw.hpp"
 #include <termios.h>
 
+// 생성자
 Roboclaw::Roboclaw(const char *device_name, const char *bad_rate_parameter) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::ttyS3)
 {
@@ -54,11 +55,13 @@ Roboclaw::Roboclaw(const char *device_name, const char *bad_rate_parameter) :
 	_stored_baud_rate_parameter[sizeof(_stored_baud_rate_parameter) - 1] = '\0'; // Ensure null-termination
 }
 
+// 파괴자, 뒤처리로 통신 닫음
 Roboclaw::~Roboclaw()
 {
 	close(_uart_fd);
 }
 
+// 드라이버와 통신 시작, 런 메인 루프에 있음
 int Roboclaw::initializeUART()
 {
 	// The Roboclaw has a serial communication timeout of 10ms
@@ -154,6 +157,7 @@ int Roboclaw::initializeUART()
 	}
 }
 
+// 명령 하달, 매개변수를 받아 setMotorSpeed()에 전달
 bool Roboclaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			     unsigned num_outputs, unsigned num_control_groups_updated)
 {
@@ -161,6 +165,7 @@ bool Roboclaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	float left_motor_output = ((float)outputs[1] - 128.0f) / 127.f;
 
 	if (stop_motors) {
+		// Right가 0, Left는 1
 		setMotorSpeed(Motor::Right, 0.f);
 		setMotorSpeed(Motor::Left, 0.f);
 
@@ -172,6 +177,7 @@ bool Roboclaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	return true;
 }
 
+// 메인 루프
 void Roboclaw::Run()
 {
 	if (should_exit()) {
@@ -188,7 +194,7 @@ void Roboclaw::Run()
 		_uart_initialized = true;
 	}
 
-	// check for parameter updates
+	// check for parameter updates, _parameter_update_sub은 구독된 토픽임
 	if (_parameter_update_sub.updated()) {
 		// Read from topic to clear updated flag
 		parameter_update_s parameter_update;
@@ -205,6 +211,7 @@ void Roboclaw::Run()
 	}
 }
 
+// 엔코더 값을 읽고 wheel_encoders로 퍼블리시, 런에 있음
 int Roboclaw::readEncoder()
 {
 	static constexpr int ENCODER_MESSAGE_SIZE = 10; // response size for ReadEncoderCounters
@@ -244,6 +251,7 @@ int Roboclaw::readEncoder()
 	return OK;
 }
 
+// 모터 전/후진 구동 명령
 void Roboclaw::setMotorSpeed(Motor motor, float value)
 {
 	Command command;
@@ -251,24 +259,26 @@ void Roboclaw::setMotorSpeed(Motor motor, float value)
 	// send command
 	if (motor == Motor::Right) {
 		if (value > 0) {
-			command = Command::DriveForwardMotor1;
+			// 여기 Command 변수들은 hpp에서 enum함
+			command = Command::DriveForwardMotor1;// 0을 command에 저장
 
 		} else {
-			command = Command::DriveBackwardsMotor1;
+			command = Command::DriveBackwardsMotor1; // 1
 		}
 
 	} else if (motor == Motor::Left) {
 		if (value > 0) {
-			command = Command::DriveForwardMotor2;
+			command = Command::DriveForwardMotor2; // 4
 
 		} else {
-			command = Command::DriveBackwardsMotor2;
+			command = Command::DriveBackwardsMotor2; // 5
 		}
 
 	} else {
 		return;
 	}
 
+	// command를 통신 함수에 보냄
 	sendUnsigned7Bit(command, value);
 }
 
@@ -290,20 +300,24 @@ void Roboclaw::setMotorDutyCycle(Motor motor, float value)
 	return sendSigned16Bit(command, value);
 }
 
+//
 void Roboclaw::resetEncoders()
 {
 	sendTransaction(Command::ResetEncoders, nullptr, 0);
 }
 
+// setMotorSpeed()으로 부터 데이터 변환
 void Roboclaw::sendUnsigned7Bit(Command command, float data)
 {
 	data = fabs(data);
 
+	// 데이터를 제한하는 안정장치
 	if (data >= 1.0f) {
 		data = 0.99f;
 	}
 
 	auto byte = (uint8_t)(data * INT8_MAX);
+	// 전송 함수로 전달
 	sendTransaction(command, &byte, 1);
 }
 
@@ -316,6 +330,7 @@ void Roboclaw::sendSigned16Bit(Command command, float data)
 	sendTransaction(command, (uint8_t *) &buff, 2);
 }
 
+// 전송 함수를 발동하는 함수, 안되면 에러뜨게 함
 int Roboclaw::sendTransaction(Command cmd, uint8_t *write_buffer, size_t bytes_to_write)
 {
 	if (writeCommandWithPayload(cmd, write_buffer, bytes_to_write) != OK) {
@@ -325,6 +340,7 @@ int Roboclaw::sendTransaction(Command cmd, uint8_t *write_buffer, size_t bytes_t
 	return readAcknowledgement();
 }
 
+// 최종적으로 드라이버에 데이터를 보내는 함수
 int Roboclaw::writeCommandWithPayload(Command command, uint8_t *wbuff, size_t bytes_to_write)
 {
 	size_t packet_size = 2 + bytes_to_write + 2;
@@ -376,15 +392,17 @@ int Roboclaw::readAcknowledgement()
 	return OK;
 }
 
+// readEncoder()에서 사용
 int Roboclaw::receiveTransaction(Command command, uint8_t *read_buffer, size_t bytes_to_read)
 {
+	// 통신확인
 	if (writeCommand(command) != OK) {
 		return ERROR;
 	}
-
+	// 수신
 	return readResponse(command, read_buffer, bytes_to_read);
 }
-
+//수신체크
 int Roboclaw::writeCommand(Command command)
 {
 	uint8_t buffer[2];
@@ -403,6 +421,7 @@ int Roboclaw::writeCommand(Command command)
 	return OK;
 }
 
+//수신함수
 int Roboclaw::readResponse(Command command, uint8_t *read_buffer, size_t bytes_to_read)
 {
 	size_t total_bytes_read = 0;
@@ -446,6 +465,7 @@ int Roboclaw::readResponse(Command command, uint8_t *read_buffer, size_t bytes_t
 	return total_bytes_read;
 }
 
+// 통신 데이터 신뢰성 보장을 위한 CRC 계산
 uint16_t Roboclaw::_calcCRC(const uint8_t *buffer, size_t bytes, uint16_t init)
 {
 	uint16_t crc = init;
