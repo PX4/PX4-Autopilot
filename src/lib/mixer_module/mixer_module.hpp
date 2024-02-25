@@ -76,7 +76,7 @@ public:
 		px4::ScheduledWorkItem(name, config),
 		ModuleParams(nullptr)
 	{}
-
+	// updateOurputs() 각 매개변수 설명:
 	/**
 	 * Callback to update the (physical) actuator outputs in the driver
 	 * @param stop_motors if true, all motors must be stopped (if false, individual motors

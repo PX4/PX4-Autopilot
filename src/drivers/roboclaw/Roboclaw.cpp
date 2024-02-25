@@ -203,6 +203,7 @@ void Roboclaw::Run()
 		updateParams();
 	}
 
+	// actuator_armed 구독 중, 이 update() 함수는 텔레메트리랑 GPS 코드에서 비롯 됨
 	_actuator_armed_sub.update();
 	_mixing_output.updateSubscriptions(true);
 
@@ -246,6 +247,7 @@ int Roboclaw::readEncoder()
 	wheel_encoders.wheel_angle[0] = static_cast<float>(position_right) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
 	wheel_encoders.wheel_angle[1] = static_cast<float>(position_left) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
 	wheel_encoders.timestamp = hrt_absolute_time();
+	// 여기서 wheel_encoders 토픽으로 퍼블리시가 되지만 쓰이는 곳은 가제보말고 따로 없다.
 	_wheel_encoders_pub.publish(wheel_encoders);
 
 	return OK;
