@@ -364,6 +364,13 @@ PX4IO::~PX4IO()
 bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
+	for (size_t i = 0; i < num_outputs; i++) {
+		if (!_mixing_output.isFunctionSet(i)) {
+			// do not run any signal on disabled channels
+			outputs[i] = 0;
+		}
+	}
+
 	if (!_test_fmu_fail) {
 		/* output to the servos */
 		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
