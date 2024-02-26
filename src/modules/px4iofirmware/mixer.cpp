@@ -180,15 +180,19 @@ mixer_tick()
 	 * Run the mixers.
 	 */
 	if (source == MIX_FAILSAFE) {
-		/* copy failsafe values to the servo outputs */
+		// Set failsafe value if the PWM output isn't disabled
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			r_page_servos[i] = r_page_servo_failsafe[i];
+			if (r_page_servos[i] != 0) {
+				r_page_servos[i] = r_page_servo_failsafe[i];
+			}
 		}
 
 	} else if (source == MIX_DISARMED) {
-		/* copy disarmed values to the servo outputs */
+		// Set disarmed value if the PWM output isn't disabled
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-			r_page_servos[i] = r_page_servo_disarmed[i];
+			if (r_page_servos[i] != 0) {
+				r_page_servos[i] = r_page_servo_disarmed[i];
+			}
 		}
 	}
 
