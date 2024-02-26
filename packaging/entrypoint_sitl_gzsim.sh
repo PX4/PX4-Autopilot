@@ -30,7 +30,7 @@ export PX4_GZ_MODEL_NAME=$DRONE_DEVICE_ID
 export PX4_GZ_WORLD=${PX4_GZ_WORLD:-default}
 export GZ_PARTITION=sim
 export GZ_RELAY=$(dig +short gazebo-server)
-export GZ_IP=$(hostname -i)
+export GZ_IP=${GZ_IP:-$(hostname -i)}
 
 source /opt/ros/humble/setup.sh
 
