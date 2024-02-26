@@ -71,8 +71,9 @@ parameters:
             description:
                 short: The Module ID of the module you would like to communicate with
                 long: |
-                    This is the value used as Object ID to instantiate the Vertiq C++ API objects in the project.
-                    This value should be set to the Module ID of the module you would like to communicate with.
+                    This is the value used as the target module ID of all configuration parameters (not operational parameters). The Vertiq module with the
+                    module ID matching this value will react to all get and set requests from PX4. Any Vertiq client made with dynamic object IDs should
+                    use this value to instantiate itself.
             type: int32
         TRIGGER_READ:
             description:

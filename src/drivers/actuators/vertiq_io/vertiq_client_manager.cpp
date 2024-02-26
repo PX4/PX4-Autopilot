@@ -43,13 +43,13 @@ VertiqClientManager::VertiqClientManager(VertiqSerialInterface *serial_interface
 
 void VertiqClientManager::Init(uint8_t object_id)
 {
-	InitVertiqClients(object_id);
+	InitConfigurationClients(object_id);
 	InitEntryWrappers();
 
 	_object_id_now = object_id;
 }
 
-void VertiqClientManager::InitVertiqClients(uint8_t object_id)
+void VertiqClientManager::InitConfigurationClients(uint8_t object_id)
 {
 	_telem_ifci = new IQUartFlightControllerInterfaceClient(object_id);
 	AddNewConfigurationClient(_telem_ifci);
@@ -131,7 +131,7 @@ void VertiqClientManager::UpdateClientsToNewObjId(uint8_t new_object_id)
 
 void VertiqClientManager::HandleClientCommunication()
 {
-	//Called periodically in the main loop to handle all communications not handled direclty by
+	//Called periodically in the main loop to handle all communications not handled directly by
 	//parameter setting
 	//Update our serial tx before we take in the rx
 	_serial_interface->process_serial_tx();
@@ -160,17 +160,17 @@ void VertiqClientManager::SendSetVelocitySetpoint(uint16_t velocity_setpoint)
 	_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface->get_iquart_interface(), velocity_setpoint);
 }
 
-void VertiqClientManager::MarkIquartConfigsForRefresh()
+void VertiqClientManager::MarkConfigurationEntriesForRefresh()
 {
-	for (uint8_t i = 0; i < _added_entry_wrappers; i++) {
-		_entry_wrappers[i]->SetNeedsInit();
+	for (uint8_t i = 0; i < _added_configuration_entry_wrappers; i++) {
+		_configuration_entry_wrappers[i]->SetNeedsInit();
 	}
 }
 
 void VertiqClientManager::UpdateIquartConfigParams()
 {
-	for (uint8_t i = 0; i < _added_entry_wrappers; i++) {
-		_entry_wrappers[i]->SendGet(_serial_interface);
+	for (uint8_t i = 0; i < _added_configuration_entry_wrappers; i++) {
+		_configuration_entry_wrappers[i]->SendGet(_serial_interface);
 		//Ensure that these get messages get out
 		_serial_interface->process_serial_tx();
 	}
@@ -186,8 +186,8 @@ void VertiqClientManager::CoordinateIquartWithPx4Params(hrt_abstime timeout)
 	hrt_abstime end_time = time_now + timeout;
 
 	while (time_now < end_time) {
-		for (uint8_t i = 0; i < _added_entry_wrappers; i++) {
-			_entry_wrappers[i]->Update(_serial_interface);
+		for (uint8_t i = 0; i < _added_configuration_entry_wrappers; i++) {
+			_configuration_entry_wrappers[i]->Update(_serial_interface);
 		}
 
 		//Update the time
