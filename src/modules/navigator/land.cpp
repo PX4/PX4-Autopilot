@@ -83,7 +83,7 @@ Land::on_active()
 
 		// create a virtual wp 1m in front of the vehicle to track during the backtransition
 		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-						   _navigator->get_position_setpoint_triplet()->current.yaw, 1.f,
+						   _navigator->get_local_position()->heading, 1.f,
 						   &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
 
 		_navigator->set_position_setpoint_triplet_updated();

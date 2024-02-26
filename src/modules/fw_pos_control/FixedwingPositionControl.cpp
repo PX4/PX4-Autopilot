@@ -510,17 +510,37 @@ float FixedwingPositionControl::getCorrectedNpfgRollSetpoint()
 {
 	// Scale the npfg output to zero if npfg is not certain for correct output
 	float new_roll_setpoint(_npfg.getRollSetpoint());
-	const float can_run_factor(_npfg.canRun(_local_pos, _wind_valid));
+	const float can_run_factor(constrain(_npfg.canRun(_local_pos, _wind_valid), 0.f, 1.f));
 
-	if ((1.f - can_run_factor) < FLT_EPSILON) {
+	// If the npfg was not running before, reset the user warning variables.
+	hrt_abstime now{hrt_absolute_time()};
+
+	if ((now - _time_since_last_npfg_call) > 2_s) {
 		_need_report_npfg_uncertain_condition = true;
+		_time_since_first_reduced_roll = 0U;
 	}
 
-	if (((1.f - can_run_factor) > FLT_EPSILON) && _need_report_npfg_uncertain_condition) {
-		_need_report_npfg_uncertain_condition = false;
-		events::send(events::ID("npfg_roll_command_uncertain"), events::Log::Warning,
-			     "Roll command reduced due to uncertain velocity/wind estimates!");
+	// Warn the user when the scale is less than 90% for at least 2 seconds.
+	if ((1.f - can_run_factor) < 0.1f) {
+		_need_report_npfg_uncertain_condition = true;
+		_time_since_first_reduced_roll = 0U;
+
+	} else if (_need_report_npfg_uncertain_condition) {
+		if (_time_since_first_reduced_roll == 0U) {
+			_time_since_first_reduced_roll = hrt_absolute_time();
+		}
+
+		if ((now - _time_since_first_reduced_roll) > 2_s) {
+			_need_report_npfg_uncertain_condition = false;
+			events::send(events::ID("npfg_roll_command_uncertain"), events::Log::Warning,
+				     "Roll command reduced due to uncertain velocity/wind estimates!");
+		}
+
+	} else {
+		// Nothing to do, already reported.
 	}
+
+	_time_since_last_npfg_call = now;
 
 	return can_run_factor * (new_roll_setpoint);
 }
@@ -686,8 +706,12 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
 		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
+		const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		if (doing_backtransition) {
+			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
+
+		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
 			if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
 				_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -708,22 +732,14 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			if (!_vehicle_status.in_transition_mode) {
-
-				// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
-				// Straight landings are currently only possible in Missions, and there the previous WP
-				// is valid, and circular ones are used outside of Missions, as the land mode sets prev_valid=false.
-				if (_position_setpoint_previous_valid) {
-					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
-
-				} else {
-					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
-				}
+			// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
+			// Straight landings are currently only possible in Missions, and there the previous WP
+			// is valid, and circular ones are used outside of Missions, as the land mode sets prev_valid=false.
+			if (_position_setpoint_previous_valid) {
+				_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
 
 			} else {
-				_control_mode_current = FW_POSCTRL_MODE_AUTO;
-				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
-				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+				_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
 			}
 
 		} else {
@@ -838,7 +854,7 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	position_setpoint_s current_sp = pos_sp_curr;
 	move_position_setpoint_for_vtol_transition(current_sp);
 
-	const uint8_t position_sp_type = handle_setpoint_type(current_sp);
+	const uint8_t position_sp_type = handle_setpoint_type(current_sp, pos_sp_next);
 
 	_position_sp_type = position_sp_type;
 
@@ -971,7 +987,8 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 }
 
 uint8_t
-FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp_curr)
+FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp_curr,
+		const position_setpoint_s &pos_sp_next)
 {
 	uint8_t position_sp_type = pos_sp_curr.type;
 
@@ -986,8 +1003,13 @@ FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp
 
 	const float acc_rad = _npfg.switchDistance(500.0f);
 
-	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION
-	    || pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+	const bool approaching_vtol_backtransition = _vehicle_status.is_vtol
+			&& pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION && _position_setpoint_current_valid
+			&& pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && _position_setpoint_next_valid;
+
+
+	// check if we should switch to loiter but only if we are not expecting a backtransition to happen
+	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION && !approaching_vtol_backtransition) {
 
 		float dist_xy = -1.f;
 		float dist_z = -1.f;
@@ -997,17 +1019,15 @@ FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp
 					   _current_latitude, _current_longitude, _current_altitude,
 					   &dist_xy, &dist_z);
 
-		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-			// Achieve position setpoint altitude via loiter when laterally close to WP.
-			// Detect if system has switchted into a Loiter before (check _position_sp_type), and in that
-			// case remove the dist_xy check (not switch out of Loiter until altitude is reached).
-			if ((!_vehicle_status.in_transition_mode) && (dist >= 0.f)
-			    && (dist_z > _param_nav_fw_alt_rad.get())
-			    && (dist_xy < acc_rad || _position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+		// Achieve position setpoint altitude via loiter when laterally close to WP.
+		// Detect if system has switchted into a Loiter before (check _position_sp_type), and in that
+		// case remove the dist_xy check (not switch out of Loiter until altitude is reached).
+		if ((!_vehicle_status.in_transition_mode) && (dist >= 0.f)
+		    && (dist_z > _param_nav_fw_alt_rad.get())
+		    && (dist_xy < acc_rad || _position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
-				// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
-				position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-			}
+			// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
+			position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		}
 	}
 
@@ -1368,7 +1388,7 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 				0.0f;
 	navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed, _wind_vel, curvature);
 
-	_att_sp.roll_body = _npfg.getRollSetpoint();
+	_att_sp.roll_body = getCorrectedNpfgRollSetpoint();
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
@@ -2178,6 +2198,53 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	_att_sp.pitch_body = get_tecs_pitch();
 }
 
+void FixedwingPositionControl::control_backtransition(const float control_interval, const Vector2f &ground_speed,
+		const position_setpoint_s &pos_sp_prev,
+		const position_setpoint_s &pos_sp_curr)
+{
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
+				_performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), ground_speed);
+
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
+
+
+	if (_position_setpoint_previous_valid) {
+		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
+		navigateLine(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+
+	} else {
+
+		// if we don't have a previous waypoint for line following, then create one using the current position at the
+		// start of the transition
+		if (!_lpos_where_backtrans_started.isAllFinite()) {
+			_lpos_where_backtrans_started = curr_pos_local;
+		}
+
+		navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+	}
+
+	_att_sp.roll_body = getCorrectedNpfgRollSetpoint();
+	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+
+	tecs_update_pitch_throttle(control_interval,
+				   pos_sp_curr.alt,
+				   target_airspeed,
+				   radians(_param_fw_p_lim_min.get()),
+				   radians(_param_fw_p_lim_max.get()),
+				   _param_fw_thr_min.get(),
+				   _param_fw_thr_max.get(),
+				   _param_sinkrate_target.get(),
+				   _param_climbrate_target.get());
+
+	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
+	_att_sp.pitch_body = get_tecs_pitch();
+}
 float
 FixedwingPositionControl::get_tecs_pitch()
 {
@@ -2381,7 +2448,11 @@ FixedwingPositionControl::Run()
 			}
 		}
 
-		_vehicle_status_sub.update(&_vehicle_status);
+		if (_vehicle_status_sub.update(&_vehicle_status)) {
+			if (!_vehicle_status.in_transition_mode) {
+				_lpos_where_backtrans_started = Vector2f(NAN, NAN);
+			}
+		}
 
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
@@ -2402,6 +2473,9 @@ FixedwingPositionControl::Run()
 		// by default no flaps/spoilers, is overwritten below in certain modes
 		_flaps_setpoint = 0.f;
 		_spoilers_setpoint = 0.f;
+
+		// reset flight phase estimate
+		_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
 
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw_wheel = false;
@@ -2474,7 +2548,13 @@ FixedwingPositionControl::Run()
 				break;
 			}
 
+		case FW_POSCTRL_MODE_TRANSITON: {
+				control_backtransition(control_interval, ground_speed, _pos_sp_triplet.previous,
+						       _pos_sp_triplet.current);
+				break;
+			}
 		}
+
 
 		if (_control_mode_current != FW_POSCTRL_MODE_OTHER) {
 
@@ -2511,6 +2591,10 @@ FixedwingPositionControl::Run()
 		} else {
 			_roll_slew_rate.setForcedValue(_roll);
 		}
+
+		// Publish estimate of level flight
+		_flight_phase_estimation_pub.get().timestamp = hrt_absolute_time();
+		_flight_phase_estimation_pub.update();
 
 		// if there's any change in landing gear setpoint publish it
 		if (_new_landing_gear_position != old_landing_gear_position
@@ -2615,6 +2699,28 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     hgt_rate_sp);
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated);
+
+	if (_tecs_is_running && !_vehicle_status.in_transition_mode
+	    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+		const TECS::DebugOutput &tecs_output{_tecs.getStatus()};
+
+		// Check level flight: the height rate setpoint is not set or set to 0 and we are close to the target altitude and target altitude is not moving
+		if ((fabsf(tecs_output.height_rate_reference) < MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) &&
+		    fabsf(_current_altitude - tecs_output.altitude_reference) < _param_nav_fw_alt_rad.get()) {
+			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_LEVEL;
+
+		} else if (((tecs_output.altitude_reference - _current_altitude) >= _param_nav_fw_alt_rad.get()) ||
+			   (tecs_output.height_rate_reference >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
+			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_CLIMB;
+
+		} else if (((_current_altitude - tecs_output.altitude_reference) >= _param_nav_fw_alt_rad.get()) ||
+			   (tecs_output.height_rate_reference <= -MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
+			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_DESCEND;
+
+		} else {
+			//We can't infer the flight phase , do nothing, estimation is reset at each step
+		}
+	}
 }
 
 float
@@ -3061,6 +3167,7 @@ float FixedwingPositionControl::getLoadFactor()
 	return load_factor_from_bank_angle;
 
 }
+
 
 extern "C" __EXPORT int fw_pos_control_main(int argc, char *argv[])
 {

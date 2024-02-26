@@ -99,7 +99,7 @@ public:
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(DestinationPosition position, loiter_point_s loiter_pos);
+	void setRtlPosition(PositionYawSetpoint position, loiter_point_s loiter_pos);
 
 private:
 	/**
@@ -179,7 +179,7 @@ private:
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 
-	DestinationPosition _destination; ///< the RTL position to fly to
+	PositionYawSetpoint _destination; ///< the RTL position to fly to
 	loiter_point_s _land_approach;
 
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the home position
@@ -190,9 +190,11 @@ private:
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_PLD_MD>)        _param_rtl_pld_md,
 		(ParamFloat<px4::params::RTL_LOITER_RAD>)  _param_rtl_loiter_rad,
-		(ParamInt<px4::params::RTL_HDG_MD>)        _param_rtl_hdg_md,
 		(ParamFloat<px4::params::RTL_TIME_FACTOR>) _param_rtl_time_factor,
-		(ParamInt<px4::params::RTL_TIME_MARGIN>)   _param_rtl_time_margin
+		(ParamInt<px4::params::RTL_TIME_MARGIN>)   _param_rtl_time_margin,
+
+		// external params
+		(ParamBool<px4::params::WV_EN>) _param_wv_en
 	)
 
 	param_t		_param_mpc_z_v_auto_up{PARAM_INVALID};

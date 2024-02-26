@@ -225,6 +225,10 @@ menu "Zenoh publishers/subscribers"
 		bool "figure_eight_status"
 		default n
 
+	config ZENOH_PUBSUB_FLIGHT_PHASE_ESTIMATION
+		bool "flight_phase_estimation"
+		default n
+
 	config ZENOH_PUBSUB_FOLLOW_TARGET
 		bool "follow_target"
 		default n
@@ -882,6 +886,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_FAILSAFE_FLAGS
 	select ZENOH_PUBSUB_FAILURE_DETECTOR_STATUS
 	select ZENOH_PUBSUB_FIGURE_EIGHT_STATUS
+	select ZENOH_PUBSUB_FLIGHT_PHASE_ESTIMATION
 	select ZENOH_PUBSUB_FOLLOW_TARGET
 	select ZENOH_PUBSUB_FOLLOW_TARGET_ESTIMATOR
 	select ZENOH_PUBSUB_FOLLOW_TARGET_STATUS

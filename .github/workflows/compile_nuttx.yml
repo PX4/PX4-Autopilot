@@ -25,6 +25,7 @@ jobs:
           ark_can-rtk-gps,
           ark_cannode,
           ark_fmu-v6x,
+          ark_septentrio-gps,
           atl_mantis-edu,
           av_x-v1,
           bitcraze_crazyflie,

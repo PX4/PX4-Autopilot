@@ -40,7 +40,7 @@
 #include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
 
-bool param_modify_on_import(bson_node_t node)
+param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 {
 	// 2023-12-06: translate and invert FW_ARSP_MODE-> FW_USE_AIRSPD
 	{
@@ -54,7 +54,7 @@ bool param_modify_on_import(bson_node_t node)
 
 			strcpy(node->name, "FW_USE_AIRSPD");
 			PX4_INFO("copying and inverting %s -> %s", "FW_ARSP_MODE", "FW_USE_AIRSPD");
-			return true;
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
@@ -69,9 +69,9 @@ bool param_modify_on_import(bson_node_t node)
 
 			}
 
-			return true;
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
-	return false;
+	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

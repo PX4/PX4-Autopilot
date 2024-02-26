@@ -5,7 +5,7 @@
 set HAVE_PM2 yes
 set HAVE_PM3 yes
 
-if ver hwtypecmp ARKV6X005000 ARKV6X005001 ARKV6X005002 ARKV6X005003 ARKV6X005004
+if mft query -q -k MFT -s MFT_PM2 -v 0
 then
 	set HAVE_PM2 no
 	set HAVE_PM3 no
@@ -66,7 +66,7 @@ then
 	fi
 fi
 
-if ver hwtypecmp ARKV6X000000 ARKV6X001000 ARKV6X002000 ARKV6X003000 ARKV6X004000 ARKV6X005000 ARKV6X006000 ARKV6X007000
+if ver hwtypecmp ARKV6X000
 then
 	# Internal SPI bus IIM42652 with SPIX measured frequency of 32.051kHz
 	iim42652 -R 3 -s -b 1 -C 32051 start
@@ -78,7 +78,7 @@ then
 	icm42688p -R 6 -s -b 3 -C 32051 start
 fi
 
-if ver hwtypecmp ARKV6X000001 ARKV6X001001 ARKV6X002001 ARKV6X003001 ARKV6X004001 ARKV6X005001 ARKV6X006001 ARKV6X007001
+if ver hwtypecmp ARKV6X001
 then
 	# Internal SPI bus IIM42653 with SPIX measured frequency of 32.051kHz
 	#iim42653 -R 3 -s -b 1 -C 32051 start

@@ -327,8 +327,8 @@ public:
 #endif
 	}
 
-	// fuse single velocity and position measurement
-	bool fuseVelPosHeight(const float innov, const float innov_var, const int state_index);
+	// fuse single direct state measurement (eg NED velocity, NED position, mag earth field, etc)
+	bool fuseDirectStateMeasurement(const float innov, const float innov_var, const int state_index);
 
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
@@ -477,7 +477,7 @@ public:
 
 		for (unsigned row = 0; row < State::size; row++) {
 			for (unsigned col = 0; col < State::size; col++) {
-				// Instad of literally computing KHP, use an equvalent
+				// Instead of literally computing KHP, use an equivalent
 				// equation involving less mathematical operations
 				KHP(row, col) = KS(row) * K(col);
 			}
@@ -828,7 +828,7 @@ private:
 	void updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const float obs, const float obs_var, const float innov_gate, estimator_aid_source1d_s &aid_src) const;
 
 	// 2d & 3d velocity aid source
-	void updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source2d_s &aid_src) const;
+	void updateHorizontalVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source2d_s &aid_src) const;
 	void updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &obs, const Vector3f &obs_var, const float innov_gate, estimator_aid_source3d_s &aid_src) const;
 
 	// horizontal and vertical position fusion
@@ -836,7 +836,7 @@ private:
 	void fuseVerticalPosition(estimator_aid_source1d_s &hgt_aid_src);
 
 	// 2d & 3d velocity fusion
-	void fuseVelocity(estimator_aid_source2d_s &vel_aid_src);
+	void fuseHorizontalVelocity(estimator_aid_source2d_s &vel_aid_src);
 	void fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
 
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -1136,8 +1136,6 @@ private:
 
 	void resetFakePosFusion();
 	void stopFakePosFusion();
-
-	void setVelPosStatus(const int state_index, const bool healthy);
 
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)

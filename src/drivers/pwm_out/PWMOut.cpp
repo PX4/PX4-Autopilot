@@ -229,7 +229,7 @@ void PWMOut::update_params()
 					if (output_function >= (int)OutputFunction::Servo1
 					    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
 						int32_t val = 1500;
-						PX4_INFO("Setting channel %i disarmed to %i", (int) val, i);
+						PX4_INFO("Setting channel %i disarmed to %i", i + 1, (int)val);
 						param_set(_mixing_output.disarmedParamHandle(i), &val);
 
 						// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
@@ -250,7 +250,7 @@ void PWMOut::update_params()
 
 								if (param_get(handle, &tim_config) == 0 && tim_config == 400) {
 									tim_config = 50;
-									PX4_INFO("setting timer %i to %i Hz", timer, (int) tim_config);
+									PX4_INFO("Setting timer %i to %i Hz", timer, (int)tim_config);
 									param_set(handle, &tim_config);
 								}
 							}
@@ -261,10 +261,10 @@ void PWMOut::update_params()
 					if (output_function >= (int)OutputFunction::Motor1
 					    && output_function <= (int)OutputFunction::MotorMax) { // Function got set to a motor
 						int32_t val = 1100;
-						PX4_INFO("Setting channel %i minimum to %i", (int) val, i);
+						PX4_INFO("Setting channel %i minimum to %i", i + 1, (int)val);
 						param_set(_mixing_output.minParamHandle(i), &val);
 						val = 1900;
-						PX4_INFO("Setting channel %i maximum to %i", (int) val, i);
+						PX4_INFO("Setting channel %i maximum to %i", i + 1, (int)val);
 						param_set(_mixing_output.maxParamHandle(i), &val);
 					}
 				}

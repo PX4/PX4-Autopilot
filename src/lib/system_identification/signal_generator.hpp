@@ -40,7 +40,7 @@
 namespace signal_generator
 {
 
-float getLinearSineSweep(float f_start, float f_end, float duration, float t)
+inline float getLinearSineSweep(float f_start, float f_end, float duration, float t)
 {
 	if (t > duration) {
 		return 0.f;
@@ -52,7 +52,7 @@ float getLinearSineSweep(float f_start, float f_end, float duration, float t)
 	return sinf(w_start * t + 0.5f * (w_end - w_start) * t * t / duration);
 }
 
-float getLogSineSweep(float f_start, float f_end, float duration, float t)
+inline float getLogSineSweep(float f_start, float f_end, float duration, float t)
 {
 	if (t > duration) {
 		return 0.f;

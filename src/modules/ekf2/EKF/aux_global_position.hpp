@@ -60,7 +60,11 @@ class Ekf;
 class AuxGlobalPosition : public ModuleParams
 {
 public:
-	AuxGlobalPosition() : ModuleParams(nullptr) {}
+	AuxGlobalPosition() : ModuleParams(nullptr)
+	{
+		_estimator_aid_src_aux_global_position_pub.advertise();
+	}
+
 	~AuxGlobalPosition() = default;
 
 	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
@@ -83,6 +87,7 @@ private:
 		float altitude_amsl{};
 		float eph{};
 		float epv{};
+		uint8_t lat_lon_reset_counter{};
 	};
 
 	RingBuffer<AuxGlobalPositionSample> _aux_global_position_buffer{20}; // TODO: size with _obs_buffer_length and actual publication rate
@@ -102,6 +107,11 @@ private:
 	State _state{State::stopped};
 
 #if defined(MODULE_NAME)
+	struct reset_counters_s {
+		uint8_t lat_lon{};
+	};
+	reset_counters_s _reset_counters{};
+
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_global_position_pub{ORB_ID(estimator_aid_src_aux_global_position)};
 	uORB::Subscription _aux_global_position_sub{ORB_ID(aux_global_position)};
 

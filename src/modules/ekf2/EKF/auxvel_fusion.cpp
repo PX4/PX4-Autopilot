@@ -42,10 +42,10 @@ void Ekf::controlAuxVelFusion()
 
 			resetEstimatorAidStatus(_aid_src_aux_vel);
 
-			updateVelocityAidSrcStatus(auxvel_sample_delayed.time_us, auxvel_sample_delayed.vel, auxvel_sample_delayed.velVar, fmaxf(_params.auxvel_gate, 1.f), _aid_src_aux_vel);
+			updateHorizontalVelocityAidSrcStatus(auxvel_sample_delayed.time_us, auxvel_sample_delayed.vel, auxvel_sample_delayed.velVar, fmaxf(_params.auxvel_gate, 1.f), _aid_src_aux_vel);
 
 			if (isHorizontalAidingActive()) {
-				fuseVelocity(_aid_src_aux_vel);
+				fuseHorizontalVelocity(_aid_src_aux_vel);
 			}
 		}
 	}

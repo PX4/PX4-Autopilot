@@ -36,6 +36,7 @@
 #include "../navigation.h"
 #include <mathlib/mathlib.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/rtl_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -97,6 +98,7 @@ private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _land_detector_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription _rtl_status_sub{ORB_ID(rtl_status)};
 
 	// parameters
 	float _param_fw_lnd_ang{0.f};
@@ -106,6 +108,7 @@ private:
 
 	bool _is_landed{false};
 	float _home_alt_msl{NAN};
+	bool _has_vtol_approach{false};
 	matrix::Vector2d _home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	matrix::Vector2d _current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	VehicleType _vehicle_type{VehicleType::RotaryWing};
@@ -247,4 +250,8 @@ private:
 	 * @return False if the check failed.
 	*/
 	void doMulticopterChecks(mission_item_s &mission_item, const int current_index);
+
+	// Helper functions
+
+	bool hasMissionBothOrNeitherTakeoffAndLanding();
 };

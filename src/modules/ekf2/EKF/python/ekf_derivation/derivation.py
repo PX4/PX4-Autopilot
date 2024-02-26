@@ -567,7 +567,7 @@ def predict_drag(
     return bluff_body_drag + momentum_drag
 
 
-def compute_drag_x_innov_var_and_k(
+def compute_drag_x_innov_var_and_h(
         state: VState,
         P: MTangent,
         rho: sf.Scalar,
@@ -581,13 +581,10 @@ def compute_drag_x_innov_var_and_k(
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
     Hx = sf.V1(meas_pred[0]).jacobian(state)
     innov_var = (Hx * P * Hx.T + R)[0,0]
-    Ktotal = P * Hx.T / sf.Max(innov_var, epsilon)
-    K = VTangent()
-    K[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof] = Ktotal[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof]
 
-    return (innov_var, K)
+    return (innov_var, Hx.T)
 
-def compute_drag_y_innov_var_and_k(
+def compute_drag_y_innov_var_and_h(
         state: VState,
         P: MTangent,
         rho: sf.Scalar,
@@ -601,11 +598,8 @@ def compute_drag_y_innov_var_and_k(
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
     Hy = sf.V1(meas_pred[1]).jacobian(state)
     innov_var = (Hy * P * Hy.T + R)[0,0]
-    Ktotal = P * Hy.T / sf.Max(innov_var, epsilon)
-    K = VTangent()
-    K[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof] = Ktotal[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof]
 
-    return (innov_var, K)
+    return (innov_var, Hy.T)
 
 def predict_gravity_direction(state: State):
     # get transform from earth to body frame
@@ -678,8 +672,8 @@ if not args.disable_mag:
 if not args.disable_wind:
     generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
     generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
-    generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var", "K"])
-    generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
+    generate_px4_function(compute_drag_x_innov_var_and_h, output_names=["innov_var", "Hx"])
+    generate_px4_function(compute_drag_y_innov_var_and_h, output_names=["innov_var", "Hy"])
     generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
     generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
     generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])

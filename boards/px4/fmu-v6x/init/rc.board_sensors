@@ -5,13 +5,14 @@
 set HAVE_PM2 yes
 set INA_CONFIGURED no
 
-if ver hwtypecmp V6X005000 V6X005001 V6X005003 V6X005004
+if mft query -q -k MFT -s MFT_PM2 -v 0
 then
 	set HAVE_PM2 no
 fi
 if param compare -s ADC_ADS1115_EN 1
 then
 	ads1115 start -X
+	board_adc start -n
 else
 	board_adc start
 fi
@@ -55,7 +56,7 @@ then
 fi
 
 #Start Auterion Power Module selector for Skynode boards
-if ver hwtypecmp V6X009010 V6X010010
+if ver hwbasecmp 009 010
 then
 	pm_selector_auterion start
 else
@@ -70,25 +71,34 @@ else
 	fi
 fi
 
-if ver hwtypecmp V6X000006 V6X004006 V6X005006
+# Keep nesting shallow
+if ver hwtypecmp V6X006 V6X008
 then
-	# Internal SPI bus ICM45686
-	icm45686 -s -R 10 start
-	iim42652 -s -R 6 start
-	adis16470 -s -R 0 start
+	if ver hwtypecmp V6X006
+	then
+		# Internal SPI bus ICM45686
+		adis16470 -s -R 0 start
+		iim42652 -s -R 6 start
+		icm45686 -s -R 10 start
+	else
+		# Internal SPI bus 3x ICM45686
+		icm45686 -b 3 -s -R 0 start
+		icm45686 -b 2 -s -R 0 start
+		icm45686 -b 1 -s -R 10 start
+	fi
 else
-	if ver hwtypecmp V6X000004 V6X001004 V6X004004 V6X005004
+	if ver hwtypecmp V6X004
 	then
 		# Internal SPI bus ICM20649
 		icm20649 -s -R 6 start
 	else
 		# Internal SPI BMI088
-		if ver hwtypecmp V6X009010 V6X010010
+		if ver hwbasecmp 009 010
 		then
 			bmi088 -A -R 6 -s start
 			bmi088 -G -R 6 -s start
 		else
-			if ver hwtypecmp V6X000010
+			if ver hwtypecmp V6X010
 			then
 				bmi088 -A -R 0 -s start
 				bmi088 -G -R 0 -s start
@@ -100,11 +110,11 @@ else
 	fi
 
 	# Internal SPI bus ICM42688p
-	if ver hwtypecmp V6X009010 V6X010010
+	if ver hwbasecmp 009 010
 	then
 		icm42688p -R 12 -s start
 	else
-		if ver hwtypecmp V6X000010
+		if ver hwtypecmp V6X010
 		then
 			icm42688p -R 14 -s start
 		else
@@ -112,12 +122,12 @@ else
 		fi
 	fi
 
-	if ver hwtypecmp V6X000003 V6X001003 V6X003003 V6X000004 V6X001004 V6X004003 V6X004004 V6X005003 V6X005004
+	if ver hwtypecmp V6X003 V6X004
 	then
 		# Internal SPI bus ICM-42670-P (hard-mounted)
 		icm42670p -R 10 -s start
 	else
-		if ver hwtypecmp V6X009010 V6X010010
+		if ver hwbasecmp 009 010
 		then
 			icm20602 -R 6 -s start
 		else
@@ -128,7 +138,7 @@ else
 fi
 
 # Internal magnetometer on I2c
-if ver hwtypecmp V6X002001
+if ver hwtypecmp V6X001
 then
 	rm3100 -I -b 4 start
 else
@@ -142,7 +152,7 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 if param compare SENS_INT_BARO_EN 1
 then
-	if ver hwtypecmp V6X002001 V6X000006 V6X004006 V6X005006
+	if ver hwtypecmp V6X001 V6X006 V6X008
 	then
 		icp201xx -I -a 0x64 start
 	else
@@ -151,7 +161,7 @@ then
 fi
 
 #external baro
-if ver hwtypecmp V6X002001
+if ver hwtypecmp V6X001
 then
 	icp201xx -X start
 else
