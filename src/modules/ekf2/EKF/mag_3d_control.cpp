@@ -51,7 +51,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 	bool continuing_conditions_passing = (_params.mag_fusion_type != MagFuseType::NONE)
 					     && _control_status.flags.tilt_align
 					     && (_control_status.flags.yaw_align || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
-					     && (wmm_updated || checkHaglYawResetReq() || isRecent(_time_last_mov_3d_mag_suitable, (uint64_t)3e6))
+					     && isRecent(_time_last_mov_3d_mag_suitable, (uint64_t)3e6)
 					     && mag_sample.mag.longerThan(0.f)
 					     && mag_sample.mag.isAllFinite();
 
@@ -162,6 +162,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 			// activate fusion, reset mag states and initialize variance if first init or in flight reset
 			if (!_control_status.flags.yaw_align
 			    || wmm_updated
+			    || checkHaglYawResetReq()
 			    || !_mag_decl_cov_reset
 			    || !_state.mag_I.longerThan(0.f)
 			    || (getStateVariance<State::mag_I>().min() < kMagVarianceMin)
