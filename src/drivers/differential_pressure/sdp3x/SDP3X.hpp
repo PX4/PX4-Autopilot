@@ -51,7 +51,7 @@
 #define I2C_ADDRESS_2_SDP3X 0x22
 #define I2C_ADDRESS_3_SDP3X 0x23
 
-static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400 kHz I2C serial interface
 
 #define SDP3X_SCALE_TEMPERATURE		200.0f
 #define SDP3X_RESET_ADDR		0x00

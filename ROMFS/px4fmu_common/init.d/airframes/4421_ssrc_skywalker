@@ -23,7 +23,6 @@ param set-default PWM_MAIN_FUNC2 202
 param set-default PWM_MAIN_FUNC4 101
 
 # Airspeed parameters
-ms4525do start -X -f 500
 param set-default SENS_EN_MS4525DO 1
 param set-default ASPD_DO_CHECKS 15
 param set-default FW_AIRSPD_MAX 25.0
