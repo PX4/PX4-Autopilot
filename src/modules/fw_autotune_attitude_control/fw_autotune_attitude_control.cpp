@@ -484,7 +484,8 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 	// In case of convergence timeout
 	// the identification sequence is aborted immediately
 	if (_state != state::wait_for_disarm && _state != state::idle && _state != state::fail && _state != state::complete) {
-		if (now - _state_start_time > 20_s || (_param_fw_at_man_aux.get() && !_aux_switch_en)
+		if (now - _state_start_time > 20_s
+		    || (_param_fw_at_man_aux.get() && !_aux_switch_en)
 		    || _start_flight_mode != _nav_state
 		   ) {
 			orb_advert_t mavlink_log_pub = nullptr;
@@ -645,14 +646,14 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 
 	case static_cast<int32_t>(SignalType::kLinearSineSweep): {
 
-			signal = signal_generator::getLinearSineSweep(_param_fw_sysid_start_frequency.get(),
-					_param_fw_sysid_end_frequency.get(),
+			signal = signal_generator::getLinearSineSweep(_param_fw_at_sysid_f0.get(),
+					_param_fw_at_sysid_f1.get(),
 					_param_fw_sysid_duration.get(), t);
 		}
 		break;
 
 	case static_cast<int32_t>(SignalType::kLogSineSweep): {
-			signal = signal_generator::getLogSineSweep(_param_fw_sysid_start_frequency.get(), _param_fw_sysid_end_frequency.get(),
+			signal = signal_generator::getLogSineSweep(_param_fw_at_sysid_f0.get(), _param_fw_at_sysid_f1.get(),
 					_param_fw_sysid_duration.get(), t);
 		}
 		break;
