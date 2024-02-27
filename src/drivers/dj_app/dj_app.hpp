@@ -55,6 +55,7 @@ public:
 	{
     		// Initial Setting //
     		/////////////////////
+			RS485_NODE_ID = 0x2001,
     		OPR_MODE = 0x200D,
     		CONTROL_REG = 0x200E,
     		L_RATED_CUR = 0x2033,
@@ -65,6 +66,7 @@ public:
 
     		// Contorl Parameters //
     		////////////////////////
+			SAVE_EEPROM = 0x2010,
     		MOTOR_MAX_RPM = 0x2008,
     		L_CMD_RPM = 0x2088,
     		R_CMD_RPM = 0x2089,
