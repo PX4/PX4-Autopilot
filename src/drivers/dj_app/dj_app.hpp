@@ -51,6 +51,45 @@ public:
 		Torque = 4
 	};
 
+	enum class RegisterAddr : uint16_t
+	{
+    		// Initial Setting //
+    		/////////////////////
+    		OPR_MODE = 0x200D,
+    		CONTROL_REG = 0x200E,
+    		L_RATED_CUR = 0x2033,
+    		L_MAX_CUR = 0x2034,
+    		R_RATED_CUR = 0x2063,
+    		R_MAX_CUR = 0x2064,
+    		/////////////////////
+
+    		// Contorl Parameters //
+    		////////////////////////
+    		MOTOR_MAX_RPM = 0x2008,
+    		L_CMD_RPM = 0x2088,
+    		R_CMD_RPM = 0x2089,
+    		L_CMD_TOQ = 0x2090,
+    		R_CMD_TOQ = 0x2091,
+    		////////////////////////
+
+    		// Read Only //
+    		///////////////
+    		DRIVER_VOL = 0x20A1,
+    		DRIVER_TEMP = 0x20B0,
+    		L_FB_RPM = 0x20AB,
+    		R_FB_RPM = 0x20AC,
+    		L_FB_TOQ = 0x20AD,
+    		R_FB_TOQ = 0x20AE
+    		///////////////
+	};
+
+	enum class CMD : uint16_t
+	{
+    		EMER_STOP = 0x0005,
+    		ALRM_CLR = 0x0006,
+    		ENABLE = 0x0008
+	};
+
 	Mode _motor_mode_front = Mode::None;	// 모터드라이버 모드 값 변수(앞바퀴 모터드라이버)
 	Mode _motor_mode_back = Mode::None;	// 모터드라이버 모드 값 변수(뒷바퀴 모터드라이버)
 
