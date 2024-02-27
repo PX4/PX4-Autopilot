@@ -361,7 +361,7 @@ void FixedwingAttitudeControl::Run()
 
 					/* add yaw rate setpoint from sticks in all attitude-controlled modes */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
-						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_fw_y_rmax.get()),
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_man_yr_max.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
