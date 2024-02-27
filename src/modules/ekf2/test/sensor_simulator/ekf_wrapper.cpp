@@ -100,6 +100,11 @@ bool EkfWrapper::isIntendingBetaFusion() const
 	return _ekf->control_status_flags().fuse_beta;
 }
 
+bool EkfWrapper::isIntendingAirspeedFusion() const
+{
+	return _ekf->control_status_flags().fuse_aspd;
+}
+
 void EkfWrapper::enableGpsFusion()
 {
 	_ekf_params->gnss_ctrl |= static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL);

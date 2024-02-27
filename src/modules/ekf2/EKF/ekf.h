@@ -788,6 +788,7 @@ private:
 
 	// Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
 	void resetWindUsingAirspeed(const airspeedSample &airspeed_sample);
+	void resetVelUsingAirspeed(const airspeedSample &airspeed_sample);
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)

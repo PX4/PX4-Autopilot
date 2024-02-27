@@ -73,6 +73,8 @@ public:
 	void disableBetaFusion();
 	bool isIntendingBetaFusion() const;
 
+	bool isIntendingAirspeedFusion() const;
+
 	void enableGpsFusion();
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
