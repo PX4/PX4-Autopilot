@@ -71,8 +71,8 @@ param set-default PWM_AUX_FUNC5 205
 param set-default PWM_AUX_FUNC6 105
 
 # Start airspeed sensor driver
-ms4525do start -X -f 500
-sdp3x start -X -f 500
+param set-default SENS_EN_MS4525DO 1
+param set-default SENS_EN_SDP3X 1
 
 # Airspeed parameters
 param set-default ASPD_DO_CHECKS 7

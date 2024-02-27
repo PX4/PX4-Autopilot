@@ -32,8 +32,10 @@ param set-default PWM_AUX_FUNC4 101
 param set-default PWM_MAIN_REV 2
 param set-default PWM_AUX_REV 2
 
+# Enable airspeed sensor
+param set-default SENS_EN_SDP3X 1
+
 # Airspeed parameters
-sdp3x start -X -f 400
 param set-default ASPD_DO_CHECKS 15
 param set-default FW_AIRSPD_MAX 22.0
 param set-default FW_AIRSPD_MIN 14.0
