@@ -64,7 +64,7 @@
 #include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
-enum DISARM_BEHAVIORS {TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_THROTTLE};
+enum DISARM_BEHAVIORS {USER_MIXER_VALUE, TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_THROTTLE};
 enum ARM_BEHAVIORS {USE_MOTOR_ARMING, FORCE_ARMING};
 
 class VertiqIo : public ModuleBase<VertiqIo>, public OutputModuleInterface
@@ -192,7 +192,7 @@ You can find the C++ representation in ./src/drivers/actuators/vertiq_io/iq-modu
 		(ParamInt<px4::params::VERTIQ_FC_DIR>) _param_vertiq_fc_direction
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 		, (ParamInt<px4::params::VERTIQ_NUM_CVS>) _param_vertiq_number_of_cvs
-		, (ParamInt<px4::params::DISARM_THROT>) _param_vertiq_disarm_throttle
+		, (ParamInt<px4::params::DISARM_VELO>) _param_vertiq_disarm_velocity
 		, (ParamInt<px4::params::DISARM_TRIGGER>) _param_vertiq_disarm_behavior
 		, (ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
 		, (ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi

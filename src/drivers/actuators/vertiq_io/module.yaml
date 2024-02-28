@@ -11,6 +11,7 @@ actuator_output:
       group_label: 'ESCs'
       channel_label: 'ESC'
       standard_params:
+        disarmed: { min: 0, max: 65535, default: 0 }
         min: { min: 0, max: 65535, default: 0 }
         max: { min: 0, max: 65535, default: 65535 }
         failsafe: { min: 0, max: 500 }
@@ -45,14 +46,15 @@ parameters:
                     or set a predefined throttle setpoint
             type: enum
             values:
-                0: Send Explicit Disarm
-                1: Coast Motors
-                2: Set Predefined Throttle Setpoint
+                0: Use Mixer Defined Value
+                1: Send Explicit Disarm
+                2: Coast Motors
+                3: Set Predefined Velocity Setpoint
             default: 0
-        DISARM_THROT:
+        DISARM_VELO:
             description:
-                short: The throttle value sent to the motors when DISARM_TRIGGER is set to Set Predefined Setpoint
-                long: This is the throttle that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Setpoint
+                short: The velocity value sent to the motors when DISARM_TRIGGER is set to Set Predefined Setpoint
+                long: This is the velocity that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Setpoint
             type: int32
             default: 0
             min: 0
