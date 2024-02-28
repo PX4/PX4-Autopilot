@@ -120,7 +120,7 @@ pipeline {
                      "px4_fmu-v6xrt_rover",
                      "px4_io-v2_default",
                      "raspberrypi_pico_default",
-                     "siyi_n7_default"
+                     "siyi_n7_default",
                      "sky-drones_smartap-airlink_default",
                      "spracing_h7extreme_default",
                      "thepeach_k1_default",

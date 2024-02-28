@@ -47,14 +47,8 @@ void Ekf::controlMagFusion()
 		_control_status.flags.mag_aligned_in_flight = false;
 	}
 
-	// check mag state observability
 	checkYawAngleObservability();
-	checkMagBiasObservability();
 	checkMagHeadingConsistency();
-
-	if (_mag_bias_observable || _yaw_angle_observable) {
-		_time_last_mov_3d_mag_suitable = _time_delayed_us;
-	}
 
 	if (_params.mag_fusion_type == MagFuseType::NONE) {
 		stopMagFusion();
@@ -243,24 +237,6 @@ void Ekf::checkYawAngleObservability()
 	} else {
 		_yaw_angle_observable = false;
 	}
-}
-
-void Ekf::checkMagBiasObservability()
-{
-	// check if there is enough yaw rotation to make the mag bias states observable
-	if (!_mag_bias_observable && (fabsf(_yaw_rate_lpf_ef) > _params.mag_yaw_rate_gate)) {
-		// initial yaw motion is detected
-		_mag_bias_observable = true;
-
-	} else if (_mag_bias_observable) {
-		// require sustained yaw motion of 50% the initial yaw rate threshold
-		const float yaw_dt = 1e-6f * (float)(_time_delayed_us - _time_yaw_started);
-		const float min_yaw_change_req =  0.5f * _params.mag_yaw_rate_gate * yaw_dt;
-		_mag_bias_observable = fabsf(_yaw_delta_ef) > min_yaw_change_req;
-	}
-
-	_yaw_delta_ef = 0.0f;
-	_time_yaw_started = _time_delayed_us;
 }
 
 void Ekf::checkMagHeadingConsistency()
