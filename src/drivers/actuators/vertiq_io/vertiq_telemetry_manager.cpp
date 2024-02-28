@@ -33,19 +33,20 @@
 
 #include "vertiq_telemetry_manager.hpp"
 
-VertiqTelemetryManager::VertiqTelemetryManager(IQUartFlightControllerInterfaceClient *motor_interface) :
-	_telem_state(UNPAUSED),
-	_motor_interface(motor_interface)
+VertiqTelemetryManager::VertiqTelemetryManager(VertiqClientManager * client_manager) :
+	_client_manager(client_manager),
+	_telem_state(UNPAUSED)
 {
 }
 
-void VertiqTelemetryManager::Init(uint64_t telem_bitmask, IQUartFlightControllerInterfaceClient *telem_interface)
+void VertiqTelemetryManager::Init(uint64_t telem_bitmask, uint8_t module_id)
 {
 	//On init, make sure to set our bitmask, and then go ahead and find the front and back 1s
 	_telem_bitmask = telem_bitmask;
 	FindTelemetryModuleIds();
 
-	_telem_interface = telem_interface;
+	_telem_interface = new IQUartFlightControllerInterfaceClient(module_id);
+	_client_manager->AddNewClient(_telem_interface);
 }
 
 void VertiqTelemetryManager::FindTelemetryModuleIds()
@@ -130,6 +131,11 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 
 	//If we got a new response or if we ran out of time to get a response from this motor move on
 	if (got_reply || timed_out) {
+		//We can only be fully paused once the last telemetry attempt is done
+		if(_telem_state == PAUSE_REQUESTED){
+			_telem_state = PAUSED;
+		}
+
 		_time_of_last_telem_request = hrt_absolute_time();
 
 		uint16_t next_telem = FindNextMotorForTelemetry();
@@ -152,7 +158,6 @@ uint16_t VertiqTelemetryManager::FindNextMotorForTelemetry()
 {
 	//If we're paused, we're just going to spit back an impossible module ID. Otherwise, go ahead and find the next target
 	if(_telem_state == UNPAUSED){
-
 		//If our current index is the last module ID we've found, then go back to the beginning
 		//otherwise just increment
 		if(_current_module_id_target_index >= _number_of_module_ids_for_telem - 1){
@@ -174,7 +179,7 @@ esc_status_s VertiqTelemetryManager::GetEscStatus()
 }
 
 void VertiqTelemetryManager::PauseTelemetry(){
-	_telem_state = PAUSED;
+	_telem_state = PAUSE_REQUESTED;
 }
 
 void VertiqTelemetryManager::UnpauseTelemetry(){

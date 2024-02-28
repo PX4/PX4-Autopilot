@@ -50,16 +50,27 @@
 #include "vertiq_telemetry_manager.hpp"
 #include "vertiq_client_manager.hpp"
 #include "vertiq_serial_interface.hpp"
+#include "vertiq_configuration_handler.hpp"
 
 #include "iq-module-communication-cpp/inc/propeller_motor_control_client.hpp"
 #include "iq-module-communication-cpp/inc/brushless_drive_client.hpp"
 #include "iq-module-communication-cpp/inc/arming_handler_client.hpp"
 
+#include "iq-module-communication-cpp/inc/esc_propeller_input_parser_client.hpp"
+#include "iq-module-communication-cpp/inc/iquart_flight_controller_interface_client.hpp"
+
+#ifdef CONFIG_USE_PULSING_CONFIGURATION
+#include "iq-module-communication-cpp/inc/voltage_superposition_client.hpp"
+#include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
+#endif //CONFIG_USE_PULSING_CONFIGURATION
+
+enum DISARM_BEHAVIORS {TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_THROTTLE};
+enum ARM_BEHAVIORS {USE_MOTOR_ARMING, FORCE_ARMING};
+
 class VertiqIo : public ModuleBase<VertiqIo>, public OutputModuleInterface
 {
 
 public:
-
 	/**
 	* @brief Create a new VertiqIo object
 	*/
@@ -100,60 +111,66 @@ public:
 	void OutputControls(uint16_t outputs[MAX_ACTUATORS]);
 
 private:
-	static const uint8_t MAX_SUPPORTABLE_IFCI_CVS = 16;
 
-	enum DISARM_BEHAVIORS {TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_THROTTLE};
-	enum ARM_BEHAVIORS {USE_MOTOR_ARMING, FORCE_ARMING};
+	/**
+	 * Check for parameter changes and update them if needed.
+	 */
+	void parameters_update();
 
-	//Variables and functions necessary for properly configuring the serial interface
-	//Determines whether or not we should initialize or re-initialize the serial connection
-	static px4::atomic_bool _request_telemetry_init;
-
-	MixingOutput _mixing_output{"VERTIQ_IO", MAX_SUPPORTABLE_IFCI_CVS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
-
-	//The name of the device we're connecting to. this will be something like /dev/ttyS3
-	static char _telemetry_device[20];
-
-	//Counters/timers to track our status
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")};
 
-	//We need a serial handler in order to talk over the serial port
-	VertiqSerialInterface _serial_interface;
+	static const uint8_t MAX_SUPPORTABLE_IFCI_CVS = 16;
 
-	//We need someone who can manage our clients
-	VertiqClientManager _client_manager;
+	static px4::atomic_bool _request_telemetry_init; //Determines whether or not we should initialize or re-initialize the serial connection
 
-	//We need a telemetry handler
-	VertiqTelemetryManager _telem_manager;
+	MixingOutput _mixing_output{"VERTIQ_IO", MAX_SUPPORTABLE_IFCI_CVS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
-	static const uint16_t MAX_IFCI_MESSAGE = 40; //Up to 16 2 byte commands, one telemetry byte, plus 7 IQUART added bytes
+	static char _telemetry_device[20]; //The name of the device we're connecting to. this will be something like /dev/ttyS3
 
+	VertiqSerialInterface _serial_interface; //We need a serial handler in order to talk over the serial port
+	VertiqClientManager _client_manager; //We need someone who can manage our clients
+	VertiqTelemetryManager _telem_manager; //We need a telemetry handler
+	VertiqConfigurationHandler _configuration_handler;
+
+////////////////////////////////////////////////////////////////////////
+//Vertiq client information
+
+/**
+In order to communicate with connected Vertiq modules with the most possible flexibility, we have introduced two types of Clients (see comment above about
+Vertiq clients and entries) to be used within PX4. We have designated "Operational Clients" as those whose object IDs (a.k.a target module IDs) are constant.
+For example, when sending IFCI commands, we are always transmitting them using the object ID 63 in order to broadcast to all connected Vertiq modules. There is no
+reason to change its object ID. In order to interact with specific client entries from specific modules, we have introduced "Configuration Clients." Configuration
+clients are those whose object IDs are not constant, and which are created and destroyed as the Target Module ID parameter is updated. An example of a configuration
+parameter is each module's Velocity Max entry. Since each module has its own version of a Velocity Max entry, designated by unique module IDs, we need a way to
+dynamically change the client's object ID to reach the correct module. Our "Configuration Clients" are used to meet this end.
+
+An example of a Vertiq client is documented here https://iqmotion.readthedocs.io/en/latest/modules/vertiq_2306_2200.html#propeller-motor-control. In this case,
+Propeller Motor Control is the client, and its entries are specified in the message table (https://iqmotion.readthedocs.io/en/latest/modules/vertiq_2306_2200.html#id6).
+You can find the C++ representation in ./src/drivers/actuators/vertiq_io/iq-module-communication-cpp/inc/propeller_motor_control_client.hpp
+*/
+
+	//Known Operational Clients can be created as concrete objects
+	PropellerMotorControlClient _broadcast_prop_motor_control;
+	ArmingHandlerClient _broadcast_arming_handler;
 	IQUartFlightControllerInterfaceClient _operational_ifci;
 	IFCIPackedMessage _transmission_message;
+	static const uint16_t MAX_IFCI_MESSAGE = 40; //Up to 16 2 byte commands, one telemetry byte, plus 7 IQUART added bytes
 	uint8_t _output_message[MAX_IFCI_MESSAGE];
 	uint8_t _output_len;
+////////////////////////////////////////////////////////////////////////
 
-	//Store the number of control variables that we're using
-	uint8_t _cvs_in_use = 0;
+	uint8_t _cvs_in_use = 0; //Store the number of control variables that we're using
 
 	//Store the telemetry bitmask for who we want to get telemetry from
 	uint64_t _telem_bitmask = 0;
 	uint32_t _telemetry_ids_1 = 0;
 	uint32_t _telemetry_ids_2 = 0;
 
-	static const uint8_t _impossible_module_id = 255;
-
 	bool _send_forced_arm = true;
 	bool _actuator_test_active = false;
 
-	//We want to publish our ESC Status to anyone who will listen
-	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-
-	/**
-	 * Check for parameter changes and update them if needed.
-	 */
-	void parameters_update();
+	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)}; //We want to publish our ESC Status to anyone who will listen
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -175,7 +192,7 @@ private:
 		(ParamInt<px4::params::VERTIQ_FC_DIR>) _param_vertiq_fc_direction
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 		, (ParamInt<px4::params::VERTIQ_NUM_CVS>) _param_vertiq_number_of_cvs
-		, (ParamInt<px4::params::DISARM_VELO>) _param_vertiq_disarm_throttle
+		, (ParamInt<px4::params::DISARM_THROT>) _param_vertiq_disarm_throttle
 		, (ParamInt<px4::params::DISARM_TRIGGER>) _param_vertiq_disarm_behavior
 		, (ParamInt<px4::params::ARMING_BEHAVE>) _param_vertiq_arm_behavior
 		, (ParamInt<px4::params::THROTTLE_CVI>) _param_vertiq_throttle_cvi

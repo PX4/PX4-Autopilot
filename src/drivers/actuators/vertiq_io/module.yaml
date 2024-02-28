@@ -47,16 +47,16 @@ parameters:
             values:
                 0: Send Explicit Disarm
                 1: Coast Motors
-                2: Set Predefined Velocity Setpoint
+                2: Set Predefined Throttle Setpoint
             default: 0
-        DISARM_VELO:
+        DISARM_THROT:
             description:
-                short: The velocity value sent to the motors when DISARM_TRIGGER is set to Set Predefined Setpoint
-                long: This is the velocity that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Setpoint
+                short: The throttle value sent to the motors when DISARM_TRIGGER is set to Set Predefined Setpoint
+                long: This is the throttle that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Setpoint
             type: int32
             default: 0
             min: 0
-            max: 100
+            max: 65535
         ARMING_BEHAVE:
             description:
                 short: The triggered behavior on PX4 arm

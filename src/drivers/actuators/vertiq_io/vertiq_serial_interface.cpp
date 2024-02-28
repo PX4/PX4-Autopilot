@@ -35,7 +35,7 @@
 VertiqSerialInterface::VertiqSerialInterface()
 {}
 
-void VertiqSerialInterface::deinit_serial()
+void VertiqSerialInterface::DeinitSerial()
 {
 	if (_uart_fd >= 0) {
 		close(_uart_fd);
@@ -43,10 +43,10 @@ void VertiqSerialInterface::deinit_serial()
 	}
 }
 
-int VertiqSerialInterface::init_serial(const char *uart_device, unsigned baud)
+int VertiqSerialInterface::InitSerial(const char *uart_device, unsigned baud)
 {
 	//Make sure we're starting clean
-	deinit_serial();
+	DeinitSerial();
 
 	//Open up the port with read/write permissions and O_NOCTTY which is, "/* Required by POSIX */"
 	_uart_fd = ::open(uart_device, O_RDWR | O_NOCTTY);
@@ -59,10 +59,10 @@ int VertiqSerialInterface::init_serial(const char *uart_device, unsigned baud)
 	PX4_INFO("Opened serial port successfully");
 
 	//Now that we've opened the port, fully configure it for baud/bit num
-	return configure_serial_peripheral(baud);
+	return ConfigureSerialPeripheral(baud);
 }
 
-int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
+int VertiqSerialInterface::ConfigureSerialPeripheral(unsigned baud)
 {
 	int speed;
 
@@ -167,9 +167,7 @@ int VertiqSerialInterface::configure_serial_peripheral(unsigned baud)
 	return 0;
 }
 
-int VertiqSerialInterface::process_serial_rx(ClientAbstract **configuration_clients,
-		ClientAbstract **operational_clients)
-{
+bool VertiqSerialInterface::CheckForRx(){
 	if (_uart_fd < 0) {
 		return -1;
 	}
@@ -183,59 +181,47 @@ int VertiqSerialInterface::process_serial_rx(ClientAbstract **configuration_clie
 		return -1;
 	}
 
+	return _bytes_available > 0;
+}
+
+uint8_t * VertiqSerialInterface::ReadAndSetRxBytes(){
+	//Read the bytes available for us
+	read(_uart_fd, _rx_buf, _bytes_available);
+
+	//Put the data into our IQUART handler
+	_iquart_interface.SetRxBytes(_rx_buf, _bytes_available);
+	return _rx_buf;
+}
+
+void VertiqSerialInterface::ProcessSerialRx(ClientAbstract **client_array, uint8_t number_of_clients)
+{
 	//We have bytes
-	if (_bytes_available > 0) {
-		//Read the bytes available for us
-		read(_uart_fd, _rx_buf, _bytes_available);
-
-		//Put the data into our IQUART handler
-		_iquart_interface.SetRxBytes(_rx_buf, _bytes_available);
-
-		//Pointer to our RX data
-		uint8_t *rx_buf_ptr = _rx_buf;
-
+	if (CheckForRx()) {
+		uint8_t *data_ptr = ReadAndSetRxBytes();
 		//While we've got packets to look at, give the packet to each of the clients so that each
 		//can decide what to do with it
-		while (_iquart_interface.PeekPacket(&rx_buf_ptr, &_bytes_available) == 1) {
+		while (_iquart_interface.PeekPacket(&data_ptr, &_bytes_available) == 1) {
 
-			for (uint8_t i = 0; i < _number_of_configuration_clients; i++) {
-				configuration_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
-			}
-
-			for (uint8_t i = 0; i < _number_of_operational_clients; i++) {
-				operational_clients[i]->ReadMsg(rx_buf_ptr, _bytes_available);
+			for (uint8_t i = 0; i < number_of_clients; i++) {
+				client_array[i]->ReadMsg(data_ptr, _bytes_available);
 			}
 
 			_iquart_interface.DropPacket();
 		}
 
 	}
-
-	return 1;
 }
 
-int VertiqSerialInterface::process_serial_tx()
+void VertiqSerialInterface::ProcessSerialTx()
 {
 	//while there's stuff to write, write it
 	//Clients are responsible for adding TX messages to the buffer through get/set/save commands
 	while (_iquart_interface.GetTxBytes(_tx_buf, _bytes_available)) {
 		write(_uart_fd, _tx_buf, _bytes_available);
 	}
-
-	return 1;
 }
 
-GenericInterface *VertiqSerialInterface::get_iquart_interface()
+GenericInterface *VertiqSerialInterface::GetIquartInterface()
 {
 	return &_iquart_interface;
-}
-
-void VertiqSerialInterface::SetNumberOfConfigurationClients(uint8_t number_of_clients)
-{
-	_number_of_configuration_clients = number_of_clients;
-}
-
-void VertiqSerialInterface::SetNumberOfOperationalClients(uint8_t number_of_clients)
-{
-	_number_of_operational_clients = number_of_clients;
 }

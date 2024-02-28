@@ -45,58 +45,65 @@
 class VertiqSerialInterface
 {
 public:
-
+	/**
+	 * @brief Construct a new Vertiq Serial Interface object
+	 *
+	 */
 	VertiqSerialInterface();
 
 	/**
 	* @brief Initialize our serial peripheral
 	*/
-	int init_serial(const char *uart_device, unsigned baud);
+	int InitSerial(const char *uart_device, unsigned baud);
 
 	/**
 	* Turn off and close the serial connection
 	*/
-	void deinit_serial();
+	void DeinitSerial();
 
 	/**
 	* set the Baudrate
 	* @param baud
 	* @return 0 on success, <0 on error
 	*/
-	int configure_serial_peripheral(unsigned baud);
+	int ConfigureSerialPeripheral(unsigned baud);
 
 	/**
-	* @brief check to see if there is any data for us coming in over the serial port
-	*/
-	int process_serial_rx(ClientAbstract **configuration_clients, ClientAbstract **operational_clients);
+	 * @brief Check to see if there are any valid IQUART packets for us to read
+	 *
+	 * @return true If there is a packet
+	 * @return false If there is not a packet
+	 */
+	bool CheckForRx();
+
+	/**
+	 * @brief Read a packet from our packet finder and return a pointer to the beginning of the data
+	 *
+	 * @return uint8_t* A pointer to the start of the packet
+	 */
+	uint8_t *ReadAndSetRxBytes();
+
+	/**
+	 * @brief Send the data we got to all of our clients in order to keep everyone up to date with responses
+	 *
+	 * @param client_array A pointer to our array of clients
+	 * @param number_of_clients The number of clients in the array
+	 * @return int
+	 */
+	void ProcessSerialRx(ClientAbstract **client_array, uint8_t number_of_clients);
 
 	/**
 	* @brief check to see if there is any data that we need to transmit over serial
 	*/
-	int process_serial_tx();
+	void ProcessSerialTx();
 
 	/**
 	* @brief give access to our iquart interface so that others can use it
 	* @return a pointer to our _iquart_itnerface object
 	*/
-	GenericInterface *get_iquart_interface();
-
-	/**
-	* @brief Sets the _number_of_configuration_clients parameter to number_of_clients
-	* @param number_of_clients the new number of configuration clients we have
-	*/
-	void SetNumberOfConfigurationClients(uint8_t number_of_clients);
-
-	/**
-	* @brief Sets the _number_of_operational_clients parameter to number_of_clients
-	* @param number_of_clients the new number of operational clients we have
-	*/
-	void SetNumberOfOperationalClients(uint8_t number_of_clients);
+	GenericInterface *GetIquartInterface();
 
 private:
-	uint8_t _number_of_configuration_clients;
-	uint8_t _number_of_operational_clients;
-
 	GenericInterface _iquart_interface;
 
 	uint8_t _bytes_available;

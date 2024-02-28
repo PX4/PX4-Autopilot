@@ -41,14 +41,21 @@ VertiqIo::VertiqIo() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_serial_interface(),
 	_client_manager(&_serial_interface),
-	_telem_manager(&_operational_ifci),
+	_telem_manager(&_client_manager),
+	_configuration_handler(&_serial_interface, &_client_manager),
+	_broadcast_prop_motor_control(_kBroadcastID),
+	_broadcast_arming_handler(_kBroadcastID),
 	_operational_ifci(_kBroadcastID)
 {
 	//Make sure we get the correct initial values for our parameters
 	updateParams();
 
-	_client_manager.Init((uint8_t)_param_vertiq_target_module_id.get());
-	_client_manager.AddNewOperationalClient(&_operational_ifci);
+	_configuration_handler.InitConfigurationClients((uint8_t)_param_vertiq_target_module_id.get());
+	_configuration_handler.InitClientEntryWrappers();
+
+	_client_manager.AddNewClient(&_operational_ifci);
+	_client_manager.AddNewClient(&_broadcast_arming_handler);
+	_client_manager.AddNewClient(&_broadcast_prop_motor_control);
 }
 
 VertiqIo::~VertiqIo()
@@ -74,7 +81,7 @@ bool VertiqIo::init()
 #endif
 
 	//Initialize our telemetry handler
-	_telem_manager.Init(_telem_bitmask, _client_manager.GetTelemIFCI());
+	_telem_manager.Init(_telem_bitmask, (uint8_t)_param_vertiq_target_module_id.get());
 	_telem_manager.StartPublishing(&_esc_status_pub);
 
 	//Make sure we get our thread into execution
@@ -100,14 +107,14 @@ void VertiqIo::Run()
 
 	//Someone asked to change the telemetry port, or we booted up
 	if (_request_telemetry_init.load()) {
-		_serial_interface.init_serial(_telemetry_device, _param_vertiq_baud.get());
+		_serial_interface.InitSerial(_telemetry_device, _param_vertiq_baud.get());
 		_request_telemetry_init.store(false);
 	}
 
 	//Handle IQUART reception and transmission
 	_client_manager.HandleClientCommunication();
 
-	//If we're supposed to ask for telemetry from someone
+	// If we're supposed to ask for telemetry from someone
 	if (_telem_bitmask) {
 		//Grab the next ID, and if it's real get it ready to send out
 		uint16_t next_telem = _telem_manager.UpdateTelemetry();
@@ -150,8 +157,8 @@ void VertiqIo::parameters_update()
 		updateParams();
 
 		//If the target module ID changed, we need to update all of our parameters
-		if (_param_vertiq_target_module_id.get() != _client_manager.GetObjectIdNow()) {
-			_client_manager.UpdateClientsToNewObjId(_param_vertiq_target_module_id.get());
+		if (_param_vertiq_target_module_id.get() != _configuration_handler.GetObjectIdNow()) {
+			_configuration_handler.UpdateClientsToNewObjId(_param_vertiq_target_module_id.get());
 
 			//Make sure we start a new read!
 			_param_vertiq_trigger_read.set(true);
@@ -160,12 +167,12 @@ void VertiqIo::parameters_update()
 
 		//If you're set to re-read from the motor, mark all of the IQUART parameters for reinitialization, reset the trigger, and then update the IFCI params
 		if (_param_vertiq_trigger_read.get()) {
-			_client_manager.MarkConfigurationEntriesForRefresh();
+			_configuration_handler.MarkConfigurationEntriesForRefresh();
 			_param_vertiq_trigger_read.set(false);
 			_param_vertiq_trigger_read.commit_no_notification();
 		}
 
-		_client_manager.UpdateIquartConfigParams();
+		_configuration_handler.UpdateIquartConfigParams();
 	}
 }
 
@@ -176,8 +183,8 @@ void VertiqIo::OutputControls(uint16_t outputs[MAX_ACTUATORS]){
 	}
 
 	_operational_ifci.PackageIfciCommandsForTransmission(&_transmission_message, _output_message, &_output_len);
-	_operational_ifci.packed_command_.set(*_serial_interface.get_iquart_interface(), _output_message, _output_len);
-	_serial_interface.process_serial_tx();
+	_operational_ifci.packed_command_.set(*_serial_interface.GetIquartInterface(), _output_message, _output_len);
+	_serial_interface.ProcessSerialTx();
 }
 
 bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
@@ -188,7 +195,7 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 	if (_mixing_output.armed().armed) {
 
 		if (_param_vertiq_arm_behavior.get() == FORCE_ARMING && _send_forced_arm) {
-			_client_manager.SendSetForceArm();
+			_broadcast_arming_handler.motor_armed_.set(*_serial_interface.GetIquartInterface(), 1);
 			_send_forced_arm = false;
 		}
 
@@ -205,15 +212,15 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 		//Put the modules into coast
 		switch (_param_vertiq_disarm_behavior.get()) {
 		case TRIGGER_MOTOR_DISARM:
-			_client_manager.SendSetForceDisarm();
+			_broadcast_arming_handler.motor_armed_.set(*_serial_interface.GetIquartInterface(), 0);
 			break;
 
 		case COAST_MOTOR:
-			_client_manager.SendSetCoast();
+			_broadcast_prop_motor_control.ctrl_coast_.set(*_serial_interface.GetIquartInterface());
 			break;
 
 		case SEND_PREDEFINED_THROTTLE:
-			_client_manager.SendSetVelocitySetpoint(_param_vertiq_disarm_throttle.get());
+			_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface.GetIquartInterface(), _param_vertiq_disarm_throttle.get());
 			break;
 
 		default:
