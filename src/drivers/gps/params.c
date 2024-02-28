@@ -290,3 +290,16 @@ PARAM_DEFINE_INT32(GPS_1_GNSS, 0);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_2_GNSS, 0);
+
+/**
+ * Enable automatic receiver configuration
+ *
+ * Enable automatic configuration of the GPS receivers.
+ *
+ * Currently this functionality is just implemented for Septentrio receivers.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_AUTO_CONFIG, 1);

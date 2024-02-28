@@ -828,6 +828,10 @@ GPS::run()
 		param_get(handle, &gnssSystemsParam);
 	}
 
+	int32_t configure_device = 0;
+	handle = param_find("GPS_AUTO_CONFIG");
+	param_get(handle, &configure_device);
+
 	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
@@ -936,6 +940,7 @@ GPS::run()
 		}
 
 		gpsConfig.interface_protocols = static_cast<GPSHelper::InterfaceProtocolsMask>(gps_ubx_cfg_intf);
+		gpsConfig.configure_device = configure_device;
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
 
