@@ -109,17 +109,17 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _queue_size Queue size for remote topics in communicator interface
  */
 #ifdef CONFIG_ORB_COMMUNICATOR
-#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields, _orb_id_enum, _queue_size)               \
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _message_hash, _orb_id_enum, _queue_size)               \
 	const struct orb_metadata __orb_##_name = {     \
 		#_name,                                 \
 		sizeof(_struct),                \
 		_size_no_padding,                       \
-		_fields,                                \
+		_message_hash,                          \
 		_orb_id_enum,                           \
 		_queue_size                             \
 	}; struct hack
 #else
-#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields, _orb_id_enum, _queue_size)               \
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _message_hash, _orb_id_enum, _queue_size)               \
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
 		sizeof(_struct),		\
