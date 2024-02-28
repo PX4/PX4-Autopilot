@@ -121,6 +121,7 @@ PARAM_DEFINE_INT32(FW_AT_AXES, 3);
  * @group Autotune
  */
 PARAM_DEFINE_INT32(FW_AT_MAN_AUX, 0);
+
 /**
  * Start frequency of the injected signal
  *
