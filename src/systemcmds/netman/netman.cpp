@@ -201,7 +201,7 @@ public:
 		struct ipv4cfg_s ipcfg;
 		int rv = ipcfg_read(netdev, (FAR struct ipcfg_s *) &ipcfg, AF_INET);
 
-		if (rv == -EINVAL ||
+		if (rv == -EINVAL || rv == -ENOENT ||
 		    (rv == OK  && (ipcfg.proto > IPv4PROTO_FALLBACK || ipcfg.ipaddr == 0xffffffff))) {
 			// Build a default
 			ipcfg.ipaddr  = HTONL(DEFAULT_IP);
