@@ -21,7 +21,7 @@
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=sese_omni_boat}
-PX4_GZ_WORLD=${PX4_GZ_WORLD:=lake}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=ocean}
 # GZ_SIM_RESOURCE_PATH=${GZ_SIM_RESOURCE_PATH:=/home/jakub/Sese/PX4-Autopilot/Tools/simulation/gz/models}
 
 
