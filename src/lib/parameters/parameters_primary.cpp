@@ -82,12 +82,14 @@ static int primary_sync_thread(int argc, char *argv[]) {
 	PX4_INFO("Starting parameter primary sync thread");
 
 	while (true) {
-		px4_poll(fds, 2, 1000);
+		px4_poll(fds, 2, 100000);
 
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_set_used_request), _set_used_req_fd, &_set_used_request);
 
-			// PX4_INFO("Got parameter_set_used_request for %s", param_name(_set_used_request.parameter_index));
+			if (debug) {
+				PX4_INFO("Got parameter_set_used_request for %s", param_name(_set_used_request.parameter_index));
+			}
 
 			// param_primary_counters.set_used_received++;
 
@@ -96,24 +98,21 @@ static int primary_sync_thread(int argc, char *argv[]) {
 		} else if (fds[1].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_primary_set_value_request), _set_value_req_fd, &_set_value_request);
 
-			PX4_ERR("Got parameter_primary_set_value_request for %s", param_name(_set_value_request.parameter_index));
+			if (debug) {
+				PX4_INFO("Got parameter_primary_set_value_request for %s", param_name(_set_value_request.parameter_index));
+			}
 
 			// param_primary_counters.set_value_received++;
 
 			param_t param = _set_value_request.parameter_index;
-			// param_value_u value;
-			// value.i = 0;
-			// value.f = 0.0f;
 
 			switch (param_type(param)) {
 			case PARAM_TYPE_INT32:
 				param_set_no_remote_update(param, (const void *) &_set_value_request.int_value, true);
-				// value.i = _set_value_request.int_value;
 				break;
 
 			case PARAM_TYPE_FLOAT:
 				param_set_no_remote_update(param, (const void *) &_set_value_request.float_value, true);
-				// value.f =_set_value_request.float_value;
 				break;
 
 			default:
@@ -131,8 +130,6 @@ static int primary_sync_thread(int argc, char *argv[]) {
 			} else {
 				orb_publish(ORB_ID(parameter_primary_set_value_response), _set_value_rsp_h, &_set_value_response);
 			}
-
-			// save_calibration_parameter_to_file(v_req.parameter_name, param_type(param), value);
 		}
 	}
 
@@ -157,24 +154,23 @@ void param_primary_set_value(param_t param, const void *val)
 	struct parameter_set_value_request_s req;
 	req.timestamp = hrt_absolute_time();
 	req.parameter_index = param;
-	// param_value_u value;
-	// value.i = 0;
-	// value.f = 0.0f;
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		req.int_value = *(int32_t *)val;
-		// value.i = req.int_value;
 
-		// PX4_INFO("*** Setting %s to %d ***", param_name(req.parameter_index), req.int_value);
+		if (debug) {
+			PX4_INFO("*** Setting %s to %d ***", param_name(req.parameter_index), req.int_value);
+		}
 
 		break;
 
 	case PARAM_TYPE_FLOAT:
 		req.float_value = *(float *)val;
-		// value.f = req.float_value;
 
-		// PX4_INFO("*** Setting %s to %f ***", param_name(req.parameter_index), (double) req.float_value);
+		if (debug) {
+			PX4_INFO("*** Setting %s to %f ***", param_name(req.parameter_index), (double) req.float_value);
+		}
 
 		break;
 
@@ -184,25 +180,27 @@ void param_primary_set_value(param_t param, const void *val)
 		break;
 	}
 
-	// if (! from_file) {
-	// 	save_calibration_parameter_to_file(req.parameter_name, param_type(param), value);
-	// }
-
 	if (param_set_rsp_fd == PX4_ERROR) {
-		// PX4_INFO("Subscribing to parameter_client_set_value_response");
+		if (debug) {
+			PX4_INFO("Subscribing to parameter_client_set_value_response");
+		}
 
 		param_set_rsp_fd = orb_subscribe(ORB_ID(parameter_remote_set_value_response));
 
 		if (param_set_rsp_fd == PX4_ERROR) {
 			PX4_ERR("Subscription to parameter_remote_set_value_response failed");
 
-		// } else {
-			// PX4_INFO("Subscription to parameter_client_set_value_response succeeded");
+		} else {
+			if (debug) {
+				PX4_INFO("Subscription to parameter_client_set_value_response succeeded");
+			}
 		}
 	}
 
 	if (send_request) {
-		if (debug) { PX4_INFO("Sending param set request to remote for %s", param_name(req.parameter_index)); }
+		if (debug) {
+			PX4_INFO("Sending param set request to remote for %s", param_name(req.parameter_index));
+		}
 
 		if (param_set_value_req_h == nullptr) {
 			param_set_value_req_h = orb_advertise(ORB_ID(parameter_remote_set_value_request), nullptr);
@@ -215,7 +213,9 @@ void param_primary_set_value(param_t param, const void *val)
 		// Wait for response
 		bool updated = false;
 
-		// PX4_INFO("Waiting for parameter_client_set_value_response for %s", param_name(req.parameter_index));
+		if (debug) {
+			PX4_INFO("Waiting for parameter_client_set_value_response for %s", param_name(req.parameter_index));
+		}
 
 		px4_usleep(TIMEOUT_WAIT);
 		int count = TIMEOUT_COUNT;
@@ -229,7 +229,9 @@ void param_primary_set_value(param_t param, const void *val)
 				orb_copy(ORB_ID(parameter_remote_set_value_response), param_set_rsp_fd, &rsp);
 
 				if ((rsp.request_timestamp == req.timestamp) && (rsp.parameter_index == req.parameter_index)) {
-					if (debug) { PX4_INFO("Got parameter_remote_set_value_response for %s", param_name(req.parameter_index)); }
+					if (debug) {
+						PX4_INFO("Got parameter_remote_set_value_response for %s", param_name(req.parameter_index));
+					}
 					return;
 				}
 
@@ -245,7 +247,9 @@ void param_primary_set_value(param_t param, const void *val)
 
 static void param_primary_reset_internal(param_t param, bool reset_all)
 {
-	if (debug) { PX4_INFO("Param reset at primary"); }
+	if (debug) {
+		PX4_INFO("Param reset at primary");
+	}
 
 	struct parameter_reset_request_s req;
 
@@ -256,7 +260,9 @@ static void param_primary_reset_internal(param_t param, bool reset_all)
 		req.parameter_index = param;
 	}
 
-	if (debug) { PX4_INFO("Sending param reset request to remote"); }
+	if (debug) {
+		PX4_INFO("Sending param reset request to remote");
+	}
 
 	if (param_reset_req_h == nullptr) {
 		param_reset_req_h = orb_advertise(ORB_ID(parameter_reset_request), &req);
