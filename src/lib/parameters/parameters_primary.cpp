@@ -54,6 +54,7 @@ static px4_task_t sync_thread_tid;
 static const char *sync_thread_name = "param_primary_sync";
 
 static orb_advert_t param_set_value_req_h = nullptr;
+static orb_advert_t param_reset_req_h     = nullptr;
 
 static int param_set_rsp_fd = PX4_ERROR;
 
@@ -88,7 +89,7 @@ static int primary_sync_thread(int argc, char *argv[]) {
 
 			// PX4_INFO("Got parameter_set_used_request for %s", param_name(_set_used_request.parameter_index));
 
-			// param_server_counters.set_used_received++;
+			// param_primary_counters.set_used_received++;
 
 			param_find(param_name(_set_used_request.parameter_index));
 
@@ -97,7 +98,7 @@ static int primary_sync_thread(int argc, char *argv[]) {
 
 			PX4_ERR("Got parameter_primary_set_value_request for %s", param_name(_set_value_request.parameter_index));
 
-			// param_server_counters.set_value_received++;
+			// param_primary_counters.set_value_received++;
 
 			param_t param = _set_value_request.parameter_index;
 			// param_value_u value;
@@ -209,7 +210,7 @@ void param_primary_set_value(param_t param, const void *val)
 
 		orb_publish(ORB_ID(parameter_remote_set_value_request), param_set_value_req_h, &req);
 
-		// param_server_counters.set_value_sent++;
+		// param_primary_counters.set_value_sent++;
 
 		// Wait for response
 		bool updated = false;
@@ -242,3 +243,36 @@ void param_primary_set_value(param_t param, const void *val)
 	}
 }
 
+static void param_primary_reset_internal(param_t param, bool reset_all)
+{
+	if (debug) { PX4_INFO("Param reset at primary"); }
+
+	struct parameter_reset_request_s req;
+
+	req.timestamp = hrt_absolute_time();
+	req.reset_all = reset_all;
+
+	if (reset_all == false) {
+		req.parameter_index = param;
+	}
+
+	if (debug) { PX4_INFO("Sending param reset request to remote"); }
+
+	if (param_reset_req_h == nullptr) {
+		param_reset_req_h = orb_advertise(ORB_ID(parameter_reset_request), &req);
+	} else {
+		orb_publish(ORB_ID(parameter_reset_request), param_reset_req_h, &req);
+	}
+
+	// param_primary_counters.reset_sent++;
+}
+
+void param_primary_reset(param_t param)
+{
+	param_primary_reset_internal(param, false);
+}
+
+void param_primary_reset_all()
+{
+	param_primary_reset_internal(0, true);
+}

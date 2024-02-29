@@ -593,6 +593,11 @@ int param_set_default_value(param_t param, const void *val)
 
 static int param_reset_internal(param_t param, bool notify = true, bool autosave = true)
 {
+	if ((remote_active) && (is_remote)) {
+		// Remote doesn't support reset
+		return false;
+	}
+
 	bool param_found = user_config.contains(param);
 
 	if (handle_in_range(param)) {
@@ -607,6 +612,10 @@ static int param_reset_internal(param_t param, bool notify = true, bool autosave
 		param_notify_changes();
 	}
 
+	if ((remote_active) && (is_primary)) {
+		param_primary_reset(param);
+	}
+
 	return param_found;
 }
 
@@ -616,12 +625,21 @@ int param_reset_no_notification(param_t param) { return param_reset_internal(par
 static void
 param_reset_all_internal(bool auto_save)
 {
+	if ((remote_active) && (is_remote)) {
+		// Remote doesn't support reset
+		return;
+	}
+
 	for (param_t param = 0; handle_in_range(param); param++) {
 		param_reset_internal(param, false, false);
 	}
 
 	if (auto_save) {
 		param_autosave();
+	}
+
+	if ((remote_active) && (is_primary)) {
+		param_primary_reset_all();
 	}
 
 	param_notify_changes();
