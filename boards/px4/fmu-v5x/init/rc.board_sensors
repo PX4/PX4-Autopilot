@@ -49,7 +49,7 @@ then
 	fi
 fi
 
-if ver hwbasecmp 008 009 00a 010
+if ver hwbasecmp 008 009 00a 010 011
 then
 	#SKYNODE base fmu board orientation
 
