@@ -47,6 +47,8 @@
 // Debug flag
 static bool debug = false;
 
+static struct param_primary_counters param_primary_counters;
+
 #define TIMEOUT_WAIT 1000
 #define TIMEOUT_COUNT 50
 
@@ -91,7 +93,7 @@ static int primary_sync_thread(int argc, char *argv[]) {
 				PX4_INFO("Got parameter_set_used_request for %s", param_name(_set_used_request.parameter_index));
 			}
 
-			// param_primary_counters.set_used_received++;
+			param_primary_counters.set_used_received++;
 
 			param_find(param_name(_set_used_request.parameter_index));
 
@@ -102,7 +104,7 @@ static int primary_sync_thread(int argc, char *argv[]) {
 				PX4_INFO("Got parameter_primary_set_value_request for %s", param_name(_set_value_request.parameter_index));
 			}
 
-			// param_primary_counters.set_value_received++;
+			param_primary_counters.set_value_request_received++;
 
 			param_t param = _set_value_request.parameter_index;
 
@@ -130,6 +132,8 @@ static int primary_sync_thread(int argc, char *argv[]) {
 			} else {
 				orb_publish(ORB_ID(parameter_primary_set_value_response), _set_value_rsp_h, &_set_value_response);
 			}
+
+			param_primary_counters.set_value_response_sent++;
 		}
 	}
 
@@ -208,7 +212,7 @@ void param_primary_set_value(param_t param, const void *val)
 
 		orb_publish(ORB_ID(parameter_remote_set_value_request), param_set_value_req_h, &req);
 
-		// param_primary_counters.set_value_sent++;
+		param_primary_counters.set_value_request_sent++;
 
 		// Wait for response
 		bool updated = false;
@@ -232,6 +236,7 @@ void param_primary_set_value(param_t param, const void *val)
 					if (debug) {
 						PX4_INFO("Got parameter_remote_set_value_response for %s", param_name(req.parameter_index));
 					}
+					param_primary_counters.set_value_response_received++;
 					return;
 				}
 
@@ -270,7 +275,7 @@ static void param_primary_reset_internal(param_t param, bool reset_all)
 		orb_publish(ORB_ID(parameter_reset_request), param_reset_req_h, &req);
 	}
 
-	// param_primary_counters.reset_sent++;
+	param_primary_counters.reset_sent++;
 }
 
 void param_primary_reset(param_t param)
@@ -281,4 +286,9 @@ void param_primary_reset(param_t param)
 void param_primary_reset_all()
 {
 	param_primary_reset_internal(0, true);
+}
+
+void param_primary_get_counters(struct param_primary_counters *cnt)
+{
+	*cnt = param_primary_counters;
 }

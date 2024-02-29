@@ -47,6 +47,8 @@
 // Debug flag
 static bool debug = false;
 
+static struct param_remote_counters param_remote_counters;
+
 #define TIMEOUT_WAIT 1000
 #define TIMEOUT_COUNT 50
 
@@ -92,7 +94,7 @@ static int remote_sync_thread(int argc, char *argv[]) {
 				PX4_INFO("Got parameter_reset_request for %s", param_name(_reset_request.parameter_index));
 			}
 
-			// param_server_counters.set_used_received++;
+			param_remote_counters.reset_received++;
 
 			if (_reset_request.reset_all) {
 				param_reset_all();
@@ -109,7 +111,7 @@ static int remote_sync_thread(int argc, char *argv[]) {
 				PX4_INFO("Got parameter_remote_set_value_request for %s", param_name(_set_value_request.parameter_index));
 			}
 
-			// param_server_counters.set_value_received++;
+			param_remote_counters.set_value_request_received++;
 
 			switch (param_type(_set_value_request.parameter_index)) {
 			case PARAM_TYPE_INT32:
@@ -135,7 +137,6 @@ static int remote_sync_thread(int argc, char *argv[]) {
 
 			if (_set_value_rsp_h == nullptr) {
 				_set_value_rsp_h = orb_advertise(ORB_ID(parameter_remote_set_value_response), &_set_value_response);
-
 			} else {
 				if (debug) {
 					PX4_INFO("Sending set value response for %s", param_name(_set_value_request.parameter_index));
@@ -143,6 +144,8 @@ static int remote_sync_thread(int argc, char *argv[]) {
 
 				orb_publish(ORB_ID(parameter_remote_set_value_response), _set_value_rsp_h, &_set_value_response);
 			}
+
+			param_remote_counters.set_value_response_sent++;
 		}
 	}
 
@@ -179,7 +182,7 @@ void param_remote_set_used(param_t param)
 		orb_publish(ORB_ID(parameter_set_used_request), parameter_set_used_h, &req);
 	}
 
-	// param_client_counters.set_used_sent++;
+	param_remote_counters.set_used_sent++;
 }
 
 void param_remote_set_value(param_t param, const void *val)
@@ -242,7 +245,7 @@ void param_remote_set_value(param_t param, const void *val)
 
 		orb_publish(ORB_ID(parameter_primary_set_value_request), param_set_value_req_h, &req);
 
-		// param_server_counters.set_value_sent++;
+		param_remote_counters.set_value_request_sent++;
 
 		// Wait for response
 		bool updated = false;
@@ -266,6 +269,7 @@ void param_remote_set_value(param_t param, const void *val)
 					if (debug) {
 						PX4_INFO("Got parameter_primary_set_value_response for %s", param_name(req.parameter_index));
 					}
+					param_remote_counters.set_value_response_received++;
 					return;
 				}
 
@@ -277,4 +281,9 @@ void param_remote_set_value(param_t param, const void *val)
 
 		PX4_ERR("Timeout waiting for parameter_primary_set_value_response for %s", param_name(req.parameter_index));
 	}
+}
+
+void param_remote_get_counters(struct param_remote_counters *cnt)
+{
+	*cnt = param_remote_counters;
 }
