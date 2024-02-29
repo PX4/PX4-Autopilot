@@ -116,6 +116,13 @@ static perf_counter_t param_set_perf;
 static pthread_mutex_t file_mutex  =
 	PTHREAD_MUTEX_INITIALIZER; ///< this protects against concurrent param saves (file or flash access).
 
+// Support for remote parameter node
+#include "parameters_primary.h"
+#include "parameters_remote.h"
+static bool remote_active = false;
+static bool is_remote = false;
+static bool is_primary = false;
+
 void
 param_init()
 {
@@ -128,29 +135,47 @@ param_init()
 	px4_register_boardct_ioctl(_PARAMIOCBASE, param_ioctl);
 #endif
 
-	autosave_instance = new ParamAutosave();
+#if defined(CONFIG_PARAM_PRIMARY)
+	remote_active = true;
+	is_primary = true;
+	param_primary_init();
+#endif
+
+#if defined(CONFIG_PARAM_REMOTE)
+	remote_active = true;
+	is_remote = true;
+	param_remote_init();
+#endif
+
+	if (!remote_active || !is_remote) {
+		autosave_instance = new ParamAutosave();
+	}
 }
 
 
 void
 param_notify_changes()
 {
-	parameter_update_s pup{};
-	pup.instance = param_instance++;
-	pup.get_count = perf_event_count(param_get_perf);
-	pup.set_count = perf_event_count(param_set_perf);
-	pup.find_count = perf_event_count(param_find_perf);
-	pup.export_count = perf_event_count(param_export_perf);
-	pup.active = params_active.count();
-	pup.changed = user_config.size();
-	pup.custom_default = runtime_defaults.size();
-	pup.timestamp = hrt_absolute_time();
+	// Don't send if this is a remote node. Only the primary
+	// sends out update notices
+	if (remote_active && is_primary) {
+		parameter_update_s pup{};
+		pup.instance = param_instance++;
+		pup.get_count = perf_event_count(param_get_perf);
+		pup.set_count = perf_event_count(param_set_perf);
+		pup.find_count = perf_event_count(param_find_perf);
+		pup.export_count = perf_event_count(param_export_perf);
+		pup.active = params_active.count();
+		pup.changed = user_config.size();
+		pup.custom_default = runtime_defaults.size();
+		pup.timestamp = hrt_absolute_time();
 
-	if (param_topic == nullptr) {
-		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
+		if (param_topic == nullptr) {
+			param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
 
-	} else {
-		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
+		} else {
+			orb_publish(ORB_ID(parameter_update), param_topic, &pup);
+		}
 	}
 }
 
@@ -372,7 +397,7 @@ param_control_autosave(bool enable)
 }
 
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool update_remote = true)
 {
 	if (!handle_in_range(param)) {
 		PX4_ERR("set invalid param %d", param);
@@ -421,6 +446,15 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		param_autosave();
 	}
 
+	// If this is the parameter server, make sure that the remote is updated
+	// if (param_changed && remote_update) { param_server_set(param, val, from_file); }
+	if ((remote_active) && (is_primary)) {
+		if (param_changed && update_remote) {
+			// param_primary_set(param, val, from_file);
+			param_primary_set(param, val);
+		}
+	}
+
 	perf_end(param_set_perf);
 
 	/*
@@ -454,6 +488,11 @@ int param_set(param_t param, const void *val)
 int param_set_no_notification(param_t param, const void *val)
 {
 	return param_set_internal(param, val, false, false);
+}
+
+int param_set_no_remote_update(param_t param, const void *val, bool notify)
+{
+	return param_set_internal(param, val, false, notify, false);
 }
 
 bool param_used(param_t param)
