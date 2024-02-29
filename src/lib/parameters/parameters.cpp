@@ -507,6 +507,9 @@ bool param_used(param_t param)
 void param_set_used(param_t param)
 {
 	if (handle_in_range(param)) {
+		if ((remote_active) && (is_remote) && (! param_used(param))) { 
+			param_remote_set_used(param);
+		}
 		params_active.set(param, true);
 	}
 }

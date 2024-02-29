@@ -44,6 +44,11 @@
 #include <uORB/topics/parameter_set_value_request.h>
 #include <uORB/topics/parameter_set_value_response.h>
 
+// Debug flag
+static bool debug = true;
+
+static orb_advert_t parameter_set_used_h  = nullptr;
+
 static px4_task_t sync_thread_tid;
 static const char *sync_thread_name = "param_remote_sync";
 
@@ -140,4 +145,24 @@ void param_remote_init() {
 					     remote_sync_thread,
 					     NULL);
 
+}
+
+void param_remote_set_used(param_t param)
+{
+	// Notify the parameter server that this parameter has been marked as used
+	if (debug) { PX4_INFO("Requesting server to mark %s as used", param_name(param)); }
+
+	struct parameter_set_used_request_s req;
+
+	req.timestamp = hrt_absolute_time();
+	req.parameter_index = param;
+
+	if (parameter_set_used_h == nullptr) {
+		parameter_set_used_h = orb_advertise(ORB_ID(parameter_set_used_request), &req);
+
+	} else {
+		orb_publish(ORB_ID(parameter_set_used_request), parameter_set_used_h, &req);
+	}
+
+	// param_client_counters.set_used_sent++;
 }

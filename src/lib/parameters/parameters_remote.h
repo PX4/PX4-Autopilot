@@ -37,4 +37,4 @@
 
 void param_remote_init();
 // void param_remote_set(param_t param, const void *val);
-
+void param_remote_set_used(param_t param);
