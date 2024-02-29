@@ -36,6 +36,6 @@
 #include "param.h"
 
 void param_primary_init();
-// void param_primary_set(param_t param, const void *val, bool from_file)
-void param_primary_set(param_t param, const void *val);
+// void param_primary_set_value(param_t param, const void *val, bool from_file)
+void param_primary_set_value(param_t param, const void *val);
 

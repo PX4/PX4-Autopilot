@@ -47,7 +47,13 @@
 // Debug flag
 static bool debug = true;
 
-static orb_advert_t parameter_set_used_h  = nullptr;
+#define TIMEOUT_WAIT 1000
+#define TIMEOUT_COUNT 50
+
+static orb_advert_t parameter_set_used_h = nullptr;
+static orb_advert_t param_set_value_req_h = nullptr;
+
+static int param_set_rsp_fd = PX4_ERROR;
 
 static px4_task_t sync_thread_tid;
 static const char *sync_thread_name = "param_remote_sync";
@@ -150,7 +156,7 @@ void param_remote_init() {
 void param_remote_set_used(param_t param)
 {
 	// Notify the parameter server that this parameter has been marked as used
-	if (debug) { PX4_INFO("Requesting server to mark %s as used", param_name(param)); }
+	// if (debug) { PX4_INFO("Requesting server to mark %s as used", param_name(param)); }
 
 	struct parameter_set_used_request_s req;
 
@@ -165,4 +171,87 @@ void param_remote_set_used(param_t param)
 	}
 
 	// param_client_counters.set_used_sent++;
+}
+
+void param_remote_set_value(param_t param, const void *val)
+{
+	bool send_request = true;
+	struct parameter_set_value_request_s req;
+	req.timestamp = hrt_absolute_time();
+	req.parameter_index = param;
+
+	switch (param_type(param)) {
+	case PARAM_TYPE_INT32:
+		req.int_value = *(int32_t *)val;
+
+		// PX4_INFO("*** Setting %s to %d ***", param_name(req.parameter_index), req.int_value);
+
+		break;
+
+	case PARAM_TYPE_FLOAT:
+		req.float_value = *(float *)val;
+
+		// PX4_INFO("*** Setting %s to %f ***", param_name(req.parameter_index), (double) req.float_value);
+
+		break;
+
+	default:
+		PX4_ERR("Parameter must be either int or float");
+		send_request = false;
+		break;
+	}
+
+	if (param_set_rsp_fd == PX4_ERROR) {
+		PX4_INFO("Subscribing to parameter_primary_set_value_response");
+
+		param_set_rsp_fd = orb_subscribe(ORB_ID(parameter_primary_set_value_response));
+
+		if (param_set_rsp_fd == PX4_ERROR) {
+			PX4_ERR("Subscription to parameter_primary_set_value_response failed");
+
+		} else {
+			PX4_INFO("Subscription to parameter_primary_set_value_response succeeded");
+		}
+	}
+
+	if (send_request) {
+		if (debug) { PX4_ERR("Sending param set value request to primary for %s", param_name(req.parameter_index)); }
+
+		if (param_set_value_req_h == nullptr) {
+			param_set_value_req_h = orb_advertise(ORB_ID(parameter_primary_set_value_request), nullptr);
+		}
+
+		orb_publish(ORB_ID(parameter_primary_set_value_request), param_set_value_req_h, &req);
+
+		// param_server_counters.set_value_sent++;
+
+		// Wait for response
+		bool updated = false;
+
+		// PX4_INFO("Waiting for parameter_client_set_value_response for %s", param_name(req.parameter_index));
+
+		px4_usleep(TIMEOUT_WAIT);
+		int count = TIMEOUT_COUNT;
+
+		while (--count) {
+			(void) orb_check(param_set_rsp_fd, &updated);
+
+			struct parameter_set_value_response_s rsp;
+			while (updated) {
+
+				orb_copy(ORB_ID(parameter_primary_set_value_response), param_set_rsp_fd, &rsp);
+
+				if ((rsp.request_timestamp == req.timestamp) && (rsp.parameter_index == req.parameter_index)) {
+					if (debug) { PX4_INFO("Got parameter_primary_set_value_response for %s", param_name(req.parameter_index)); }
+					return;
+				}
+
+				(void) orb_check(param_set_rsp_fd, &updated);
+			}
+
+			px4_usleep(TIMEOUT_WAIT);
+		}
+
+		PX4_ERR("Timeout waiting for parameter_primary_set_value_response for %s", param_name(req.parameter_index));
+	}
 }

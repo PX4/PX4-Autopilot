@@ -451,7 +451,14 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	if ((remote_active) && (is_primary)) {
 		if (param_changed && update_remote) {
 			// param_primary_set(param, val, from_file);
-			param_primary_set(param, val);
+			param_primary_set_value(param, val);
+		}
+	}
+
+	// If this is the parameter remote, make sure that the primary is updated
+	if ((remote_active) && (is_remote)) {
+		if (param_changed && update_remote) {
+			param_remote_set_value(param, val);
 		}
 	}
 

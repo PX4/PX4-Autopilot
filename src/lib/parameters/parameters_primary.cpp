@@ -86,7 +86,7 @@ static int primary_sync_thread(int argc, char *argv[]) {
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_set_used_request), _set_used_req_fd, &_set_used_request);
 
-			PX4_INFO("Got parameter_set_used_request for %s", param_name(_set_used_request.parameter_index));
+			// PX4_INFO("Got parameter_set_used_request for %s", param_name(_set_used_request.parameter_index));
 
 			// param_server_counters.set_used_received++;
 
@@ -95,7 +95,7 @@ static int primary_sync_thread(int argc, char *argv[]) {
 		} else if (fds[1].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_primary_set_value_request), _set_value_req_fd, &_set_value_request);
 
-			PX4_INFO("Got parameter_primary_set_value_request for %s", param_name(_set_value_request.parameter_index));
+			PX4_ERR("Got parameter_primary_set_value_request for %s", param_name(_set_value_request.parameter_index));
 
 			// param_server_counters.set_value_received++;
 
@@ -149,8 +149,8 @@ void param_primary_init() {
 
 }
 
-// void param_primary_set(param_t param, const void *val, bool from_file)
-void param_primary_set(param_t param, const void *val)
+// void param_primary_set_value(param_t param, const void *val, bool from_file)
+void param_primary_set_value(param_t param, const void *val)
 {
 	bool send_request = true;
 	struct parameter_set_value_request_s req;
