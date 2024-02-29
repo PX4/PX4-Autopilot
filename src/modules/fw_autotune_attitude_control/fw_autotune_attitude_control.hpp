@@ -223,7 +223,7 @@ private:
 
 		(ParamFloat<px4::params::FW_AT_SYSID_F0>) _param_fw_at_sysid_f0,
 		(ParamFloat<px4::params::FW_AT_SYSID_F1>) _param_fw_at_sysid_f1,
-		(ParamFloat<px4::params::FW_AT_SYSID_TIME>) _param_fw_sysid_duration,
+		(ParamFloat<px4::params::FW_AT_SYSID_TIME>) _param_fw_sysid_time,
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
 
 
