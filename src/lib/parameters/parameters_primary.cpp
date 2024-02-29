@@ -60,7 +60,8 @@ static orb_advert_t param_reset_req_h     = nullptr;
 
 static int param_set_rsp_fd = PX4_ERROR;
 
-static int primary_sync_thread(int argc, char *argv[]) {
+static int primary_sync_thread(int argc, char *argv[])
+{
 	// Need to wait until the uORB and muORB are ready
 	// Check for uORB initialization with get_instance
 	while (uORB::Manager::get_instance() == nullptr) { px4_usleep(100); }
@@ -84,63 +85,78 @@ static int primary_sync_thread(int argc, char *argv[]) {
 	PX4_INFO("Starting parameter primary sync thread");
 
 	while (true) {
-		px4_poll(fds, 2, 100000);
+		px4_poll(fds, 2, 1000);
 
 		if (fds[0].revents & POLLIN) {
-			orb_copy(ORB_ID(parameter_set_used_request), _set_used_req_fd, &_set_used_request);
+			bool updated = true;
 
-			if (debug) {
-				PX4_INFO("Got parameter_set_used_request for %s", param_name(_set_used_request.parameter_index));
+			while (updated) {
+				orb_copy(ORB_ID(parameter_set_used_request), _set_used_req_fd, &_set_used_request);
+
+				if (debug) {
+					PX4_INFO("Got parameter_set_used_request for %s", param_name(_set_used_request.parameter_index));
+				}
+
+				param_primary_counters.set_used_received++;
+
+				param_find(param_name(_set_used_request.parameter_index));
+
+				(void) orb_check(_set_used_req_fd, &updated);
 			}
 
-			param_primary_counters.set_used_received++;
+		}
 
-			param_find(param_name(_set_used_request.parameter_index));
+		if (fds[1].revents & POLLIN) {
+			bool updated = true;
 
-		} else if (fds[1].revents & POLLIN) {
-			orb_copy(ORB_ID(parameter_primary_set_value_request), _set_value_req_fd, &_set_value_request);
+			while (updated) {
+				orb_copy(ORB_ID(parameter_primary_set_value_request), _set_value_req_fd, &_set_value_request);
 
-			if (debug) {
-				PX4_INFO("Got parameter_primary_set_value_request for %s", param_name(_set_value_request.parameter_index));
+				if (debug) {
+					PX4_INFO("Got parameter_primary_set_value_request for %s", param_name(_set_value_request.parameter_index));
+				}
+
+				param_primary_counters.set_value_request_received++;
+
+				param_t param = _set_value_request.parameter_index;
+
+				switch (param_type(param)) {
+				case PARAM_TYPE_INT32:
+					param_set_no_remote_update(param, (const void *) &_set_value_request.int_value, true);
+					break;
+
+				case PARAM_TYPE_FLOAT:
+					param_set_no_remote_update(param, (const void *) &_set_value_request.float_value, true);
+					break;
+
+				default:
+					PX4_ERR("Parameter must be either int or float");
+					break;
+				}
+
+				_set_value_response.timestamp = hrt_absolute_time();
+				_set_value_response.request_timestamp = _set_value_request.timestamp;
+				_set_value_response.parameter_index = _set_value_request.parameter_index;
+
+				if (_set_value_rsp_h == nullptr) {
+					_set_value_rsp_h = orb_advertise(ORB_ID(parameter_primary_set_value_response), &_set_value_response);
+
+				} else {
+					orb_publish(ORB_ID(parameter_primary_set_value_response), _set_value_rsp_h, &_set_value_response);
+				}
+
+				param_primary_counters.set_value_response_sent++;
+
+				(void) orb_check(_set_value_req_fd, &updated);
 			}
-
-			param_primary_counters.set_value_request_received++;
-
-			param_t param = _set_value_request.parameter_index;
-
-			switch (param_type(param)) {
-			case PARAM_TYPE_INT32:
-				param_set_no_remote_update(param, (const void *) &_set_value_request.int_value, true);
-				break;
-
-			case PARAM_TYPE_FLOAT:
-				param_set_no_remote_update(param, (const void *) &_set_value_request.float_value, true);
-				break;
-
-			default:
-				PX4_ERR("Parameter must be either int or float");
-				break;
-			}
-
-			_set_value_response.timestamp = hrt_absolute_time();
-			_set_value_response.request_timestamp = _set_value_request.timestamp;
-			_set_value_response.parameter_index = _set_value_request.parameter_index;
-
-			if (_set_value_rsp_h == nullptr) {
-				_set_value_rsp_h = orb_advertise(ORB_ID(parameter_primary_set_value_response), &_set_value_response);
-
-			} else {
-				orb_publish(ORB_ID(parameter_primary_set_value_response), _set_value_rsp_h, &_set_value_response);
-			}
-
-			param_primary_counters.set_value_response_sent++;
 		}
 	}
 
-    return 0;
+	return 0;
 }
 
-void param_primary_init() {
+void param_primary_init()
+{
 
 	sync_thread_tid = px4_task_spawn_cmd(sync_thread_name,
 					     SCHED_DEFAULT,
@@ -228,6 +244,7 @@ void param_primary_set_value(param_t param, const void *val)
 			(void) orb_check(param_set_rsp_fd, &updated);
 
 			struct parameter_set_value_response_s rsp;
+
 			while (updated) {
 
 				orb_copy(ORB_ID(parameter_remote_set_value_response), param_set_rsp_fd, &rsp);
@@ -236,6 +253,7 @@ void param_primary_set_value(param_t param, const void *val)
 					if (debug) {
 						PX4_INFO("Got parameter_remote_set_value_response for %s", param_name(req.parameter_index));
 					}
+
 					param_primary_counters.set_value_response_received++;
 					return;
 				}
@@ -259,6 +277,7 @@ static void param_primary_reset_internal(param_t param, bool reset_all)
 	struct parameter_reset_request_s req;
 
 	req.timestamp = hrt_absolute_time();
+
 	req.reset_all = reset_all;
 
 	if (reset_all == false) {
@@ -271,6 +290,7 @@ static void param_primary_reset_internal(param_t param, bool reset_all)
 
 	if (param_reset_req_h == nullptr) {
 		param_reset_req_h = orb_advertise(ORB_ID(parameter_reset_request), &req);
+
 	} else {
 		orb_publish(ORB_ID(parameter_reset_request), param_reset_req_h, &req);
 	}

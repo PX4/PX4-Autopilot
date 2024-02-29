@@ -514,9 +514,10 @@ bool param_used(param_t param)
 void param_set_used(param_t param)
 {
 	if (handle_in_range(param)) {
-		if ((remote_active) && (is_remote) && (! param_used(param))) { 
+		if ((remote_active) && (is_remote) && (! param_used(param))) {
 			param_remote_set_used(param);
 		}
+
 		params_active.set(param, true);
 	}
 }
@@ -1353,22 +1354,22 @@ void param_print_status()
 			struct param_primary_counters counts;
 			param_primary_get_counters(&counts);
 			PX4_INFO("set value requests received: %u, set value responses sent: %u",
-					 counts.set_value_request_received, counts.set_value_response_sent);
+				 counts.set_value_request_received, counts.set_value_response_sent);
 			PX4_INFO("set value requests sent: %u, set value responses received: %u",
-					 counts.set_value_request_sent, counts.set_value_response_received);
+				 counts.set_value_request_sent, counts.set_value_response_received);
 			PX4_INFO("resets sent: %u, set used requests received: %u",
-					 counts.reset_sent, counts.set_used_received);
+				 counts.reset_sent, counts.set_used_received);
 		}
 
 		if (is_remote) {
 			struct param_remote_counters counts;
 			param_remote_get_counters(&counts);
 			PX4_INFO("set value requests received: %u, set value responses sent: %u",
-					 counts.set_value_request_received, counts.set_value_response_sent);
+				 counts.set_value_request_received, counts.set_value_response_sent);
 			PX4_INFO("set value requests sent: %u, set value responses received: %u",
-					 counts.set_value_request_sent, counts.set_value_response_received);
+				 counts.set_value_request_sent, counts.set_value_response_received);
 			PX4_INFO("resets received: %u, set used requests sent: %u",
-					 counts.reset_received, counts.set_used_sent);
+				 counts.reset_received, counts.set_used_sent);
 		}
 	}
 }

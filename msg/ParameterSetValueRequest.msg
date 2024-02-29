@@ -6,6 +6,6 @@ uint16 parameter_index
 int32 int_value             # Optional value for an integer parameter
 float32 float_value         # Optional value for a float parameter
 
-uint8 ORB_QUEUE_LENGTH = 4
+uint8 ORB_QUEUE_LENGTH = 32
 
 # TOPICS parameter_set_value_request parameter_remote_set_value_request parameter_primary_set_value_request

@@ -60,7 +60,8 @@ static int param_set_rsp_fd = PX4_ERROR;
 static px4_task_t sync_thread_tid;
 static const char *sync_thread_name = "param_remote_sync";
 
-static int remote_sync_thread(int argc, char *argv[]) {
+static int remote_sync_thread(int argc, char *argv[])
+{
 	// This thread gets started by the remote side during PX4 initialization.
 	// We cannot send out the subscribe request immediately because the other
 	// side will not be ready to receive it on the muorb yet and it will get dropped.
@@ -88,71 +89,86 @@ static int remote_sync_thread(int argc, char *argv[]) {
 		px4_poll(fds, 2, 1000);
 
 		if (fds[0].revents & POLLIN) {
-			orb_copy(ORB_ID(parameter_reset_request), _reset_req_fd, &_reset_request);
+			bool updated = true;
 
-			if (debug) {
-				PX4_INFO("Got parameter_reset_request for %s", param_name(_reset_request.parameter_index));
-			}
+			while (updated) {
+				orb_copy(ORB_ID(parameter_reset_request), _reset_req_fd, &_reset_request);
 
-			param_remote_counters.reset_received++;
-
-			if (_reset_request.reset_all) {
-				param_reset_all();
-
-			} else {
-				param_reset_no_notification(_reset_request.parameter_index);
-
-			}
-
-		} else if (fds[1].revents & POLLIN) {
-			orb_copy(ORB_ID(parameter_primary_set_value_request), _set_value_req_fd, &_set_value_request);
-
-			if (debug) {
-				PX4_INFO("Got parameter_remote_set_value_request for %s", param_name(_set_value_request.parameter_index));
-			}
-
-			param_remote_counters.set_value_request_received++;
-
-			switch (param_type(_set_value_request.parameter_index)) {
-			case PARAM_TYPE_INT32:
-				param_set_no_remote_update(_set_value_request.parameter_index,
-										   (const void *) &_set_value_request.int_value,
-										   false);
-				break;
-
-			case PARAM_TYPE_FLOAT:
-				param_set_no_remote_update(_set_value_request.parameter_index,
-										   (const void *) &_set_value_request.float_value,
-										   false);
-				break;
-
-			default:
-				PX4_ERR("Parameter must be either int or float");
-				break;
-			}
-
-			_set_value_response.timestamp = hrt_absolute_time();
-			_set_value_response.request_timestamp = _set_value_request.timestamp;
-			_set_value_response.parameter_index = _set_value_request.parameter_index;
-
-			if (_set_value_rsp_h == nullptr) {
-				_set_value_rsp_h = orb_advertise(ORB_ID(parameter_remote_set_value_response), &_set_value_response);
-			} else {
 				if (debug) {
-					PX4_INFO("Sending set value response for %s", param_name(_set_value_request.parameter_index));
+					PX4_INFO("Got parameter_reset_request for %s", param_name(_reset_request.parameter_index));
 				}
 
-				orb_publish(ORB_ID(parameter_remote_set_value_response), _set_value_rsp_h, &_set_value_response);
-			}
+				param_remote_counters.reset_received++;
 
-			param_remote_counters.set_value_response_sent++;
+				if (_reset_request.reset_all) {
+					param_reset_all();
+
+				} else {
+					param_reset_no_notification(_reset_request.parameter_index);
+
+				}
+
+				(void) orb_check(_reset_req_fd, &updated);
+			}
+		}
+
+		if (fds[1].revents & POLLIN) {
+			bool updated = true;
+
+			while (updated) {
+				orb_copy(ORB_ID(parameter_primary_set_value_request), _set_value_req_fd, &_set_value_request);
+
+				if (debug) {
+					PX4_INFO("Got parameter_remote_set_value_request for %s", param_name(_set_value_request.parameter_index));
+				}
+
+				param_remote_counters.set_value_request_received++;
+
+				switch (param_type(_set_value_request.parameter_index)) {
+				case PARAM_TYPE_INT32:
+					param_set_no_remote_update(_set_value_request.parameter_index,
+								   (const void *) &_set_value_request.int_value,
+								   false);
+					break;
+
+				case PARAM_TYPE_FLOAT:
+					param_set_no_remote_update(_set_value_request.parameter_index,
+								   (const void *) &_set_value_request.float_value,
+								   false);
+					break;
+
+				default:
+					PX4_ERR("Parameter must be either int or float");
+					break;
+				}
+
+				_set_value_response.timestamp = hrt_absolute_time();
+				_set_value_response.request_timestamp = _set_value_request.timestamp;
+				_set_value_response.parameter_index = _set_value_request.parameter_index;
+
+				if (_set_value_rsp_h == nullptr) {
+					_set_value_rsp_h = orb_advertise(ORB_ID(parameter_remote_set_value_response), &_set_value_response);
+
+				} else {
+					if (debug) {
+						PX4_INFO("Sending set value response for %s", param_name(_set_value_request.parameter_index));
+					}
+
+					orb_publish(ORB_ID(parameter_remote_set_value_response), _set_value_rsp_h, &_set_value_response);
+				}
+
+				param_remote_counters.set_value_response_sent++;
+
+				(void) orb_check(_set_value_req_fd, &updated);
+			}
 		}
 	}
 
-    return 0;
+	return 0;
 }
 
-void param_remote_init() {
+void param_remote_init()
+{
 
 	sync_thread_tid = px4_task_spawn_cmd(sync_thread_name,
 					     SCHED_DEFAULT,
@@ -173,6 +189,7 @@ void param_remote_set_used(param_t param)
 	struct parameter_set_used_request_s req;
 
 	req.timestamp = hrt_absolute_time();
+
 	req.parameter_index = param;
 
 	if (parameter_set_used_h == nullptr) {
@@ -261,6 +278,7 @@ void param_remote_set_value(param_t param, const void *val)
 			(void) orb_check(param_set_rsp_fd, &updated);
 
 			struct parameter_set_value_response_s rsp;
+
 			while (updated) {
 
 				orb_copy(ORB_ID(parameter_primary_set_value_response), param_set_rsp_fd, &rsp);
@@ -269,6 +287,7 @@ void param_remote_set_value(param_t param, const void *val)
 					if (debug) {
 						PX4_INFO("Got parameter_primary_set_value_response for %s", param_name(req.parameter_index));
 					}
+
 					param_remote_counters.set_value_response_received++;
 					return;
 				}

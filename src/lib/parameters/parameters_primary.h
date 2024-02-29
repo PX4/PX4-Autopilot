@@ -36,12 +36,12 @@
 #include "param.h"
 
 struct param_primary_counters {
-    uint32_t set_value_request_received;
-    uint32_t set_value_response_sent;
-    uint32_t reset_sent;
-    uint32_t set_value_request_sent;
-    uint32_t set_value_response_received;
-    uint32_t set_used_received;
+	uint32_t set_value_request_received;
+	uint32_t set_value_response_sent;
+	uint32_t reset_sent;
+	uint32_t set_value_request_sent;
+	uint32_t set_value_response_received;
+	uint32_t set_used_received;
 };
 
 void param_primary_init();
