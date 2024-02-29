@@ -648,13 +648,13 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 
 			signal = signal_generator::getLinearSineSweep(_param_fw_at_sysid_f0.get(),
 					_param_fw_at_sysid_f1.get(),
-					_param_fw_sysid_duration.get(), t);
+					_param_fw_sysid_time.get(), t);
 		}
 		break;
 
 	case static_cast<int32_t>(SignalType::kLogSineSweep): {
 			signal = signal_generator::getLogSineSweep(_param_fw_at_sysid_f0.get(), _param_fw_at_sysid_f1.get(),
-					_param_fw_sysid_duration.get(), t);
+					_param_fw_sysid_time.get(), t);
 		}
 		break;
 
