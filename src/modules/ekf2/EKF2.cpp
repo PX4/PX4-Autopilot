@@ -1658,7 +1658,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sa
 	_ekf.getPositionVariance().copyTo(odom.position_variance);
 
 	// orientation covariance
-	_ekf.getQuaternionVariance().copyTo(odom.orientation_variance);
+	_ekf.getRotVarBody().copyTo(odom.orientation_variance);
 
 	odom.reset_counter = _ekf.get_quat_reset_count()
 			     + _ekf.get_velNE_reset_count() + _ekf.get_velD_reset_count()
