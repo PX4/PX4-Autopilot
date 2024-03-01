@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 ECL Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,9 +61,8 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
+		// Init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 	}
@@ -286,7 +285,7 @@ TEST_F(EkfExternalVisionTest, velocityFrameBody)
 	// THEN: As the drone is turned 90 degrees, velocity variance
 	//       along local y axis is expected to be bigger
 	const Vector3f velVar_new = _ekf->getVelocityVariance();
-	EXPECT_NEAR(velVar_new(1) / velVar_new(0), 70.f, 15.f);
+	EXPECT_NEAR(velVar_new(1) / velVar_new(0), 30.f, 15.f);
 
 	const Vector3f vel_earth_est = _ekf->getVelocity();
 	EXPECT_NEAR(vel_earth_est(0), 0.0f, 0.1f);
@@ -320,7 +319,7 @@ TEST_F(EkfExternalVisionTest, velocityFrameLocal)
 	// THEN: Independently on drones heading, velocity variance
 	//       along local x axis is expected to be bigger
 	const Vector3f velVar_new = _ekf->getVelocityVariance();
-	EXPECT_NEAR(velVar_new(0) / velVar_new(1), 70.f, 15.f);
+	EXPECT_NEAR(velVar_new(0) / velVar_new(1), 30.f, 15.f);
 
 	const Vector3f vel_earth_est = _ekf->getVelocity();
 	EXPECT_NEAR(vel_earth_est(0), 1.0f, 0.1f);

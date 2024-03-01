@@ -7,7 +7,8 @@
 @# Start of Template
 @#
 @# Context:
-@#  - topics (List) list of all topic names
+@#  - msgs (List) list of all msg files
+@#  - all_topics (List) list of all topic names (sorted)
 @###############################################
 /****************************************************************************
  *
@@ -43,9 +44,7 @@
  ****************************************************************************/
 
 @{
-topics_count = len(topics)
-topic_names_all = list(set(topics)) # set() filters duplicates
-topic_names_all.sort()
+topics_count = len(all_topics)
 }@
 
 #pragma once
@@ -63,7 +62,7 @@ static constexpr size_t orb_topics_count() { return ORB_TOPICS_COUNT; }
 extern const struct orb_metadata *const *orb_get_topics() __EXPORT;
 
 enum class ORB_ID : orb_id_size_t {
-@[for idx, topic_name in enumerate(topic_names_all)]@
+@[for idx, topic_name in enumerate(all_topics)]@
 	@(topic_name) = @(idx),
 @[end for]
 	INVALID

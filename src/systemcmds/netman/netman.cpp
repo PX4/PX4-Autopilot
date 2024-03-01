@@ -53,8 +53,8 @@
 
 constexpr char DEFAULT_NETMAN_CONFIG[] = "/fs/microsd/net.cfg";
 #if defined(CONFIG_NETINIT_DHCPC)
-#  define DEFAULT_PROTO    IPv4PROTO_FALLBACK
-#  define DEFAULT_IP      0XC0A80003  // 192.168.0.3
+#  define DEFAULT_PROTO   IPv4PROTO_FALLBACK
+#  define DEFAULT_IP      CONFIG_NETMAN_FALLBACK_IPADDR
 #else
 #  define DEFAULT_PROTO   IPv4PROTO_STATIC
 #  define DEFAULT_IP      CONFIG_NETINIT_IPADDR
@@ -375,7 +375,7 @@ write_reboot:
 
 	sleep(1);
 
-	px4_reboot_request(false);
+	px4_reboot_request(REBOOT_REQUEST);
 
 	while (1) { px4_usleep(1); } // this command should not return on success
 

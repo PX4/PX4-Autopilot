@@ -117,8 +117,6 @@ private:
 	uint16_t _quality_sum{0};
 	uint8_t _accumulated_count{0};
 
-	hrt_abstime _last_publication_timestamp{0};
-
 	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
 	hrt_abstime _last_range_sensor_update{0};
 

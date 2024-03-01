@@ -124,6 +124,7 @@ RCInput::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 	const char *device_name = nullptr;
+	bool silent = false;
 #if defined(RC_SERIAL_PORT)
 	device_name = RC_SERIAL_PORT;
 #endif // RC_SERIAL_PORT
@@ -133,6 +134,7 @@ RCInput::task_spawn(int argc, char *argv[])
 	// if RC_SERIAL_PORT == PX4IO_SERIAL_DEVICE then don't use it by default if the px4io is running
 	if ((strcmp(RC_SERIAL_PORT, PX4IO_SERIAL_DEVICE) == 0) && (access("/dev/px4io", R_OK) == 0)) {
 		device_name = nullptr;
+		silent = true;
 	}
 
 #endif // RC_SERIAL_PORT && PX4IO_SERIAL_DEVICE
@@ -141,6 +143,7 @@ RCInput::task_spawn(int argc, char *argv[])
 		switch (ch) {
 		case 'd':
 			device_name = myoptarg;
+			silent = false;
 			break;
 
 		case '?':
@@ -171,6 +174,9 @@ RCInput::task_spawn(int argc, char *argv[])
 
 		instance->ScheduleOnInterval(_current_update_interval);
 
+		return PX4_OK;
+
+	} else if (silent) {
 		return PX4_OK;
 
 	} else {
@@ -294,6 +300,25 @@ void RCInput::rc_io_invert(bool invert)
 
 #endif // TIOCSINVERT
 	}
+}
+
+void  RCInput::swap_rx_tx()
+{
+#if defined(RC_SERIAL_SWAP_USING_SINGLEWIRE)
+	int rv = -ENOTTY;
+#  if defined(TIOCSSWAP)
+	rv = ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+#  endif // TIOCSSWAP
+#  ifdef TIOCSSINGLEWIRE
+
+	if (rv != OK) {
+		ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+	}
+
+#  else
+	UNUSED(rv);
+#  endif // TIOCSSINGLEWIRE
+#endif // RC_SERIAL_SWAP_USING_SINGLEWIRE
 }
 
 void RCInput::Run()
@@ -488,6 +513,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);
@@ -525,6 +551,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);
@@ -576,6 +603,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);
@@ -654,6 +682,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for CRSF
 				crsf_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);
@@ -702,6 +731,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for GHST
 				ghst_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);

@@ -236,11 +236,6 @@ private:
 	 */
 	void write_header(LogType type);
 
-	/// Array to store written formats for nested definitions (only)
-	using WrittenFormats = Array < const orb_metadata *, 20 >;
-
-	void write_format(LogType type, const orb_metadata &meta, WrittenFormats &written_formats, ulog_message_format_s &msg,
-			  int subscription_index, int level = 1);
 	void write_formats(LogType type);
 
 	/**

@@ -35,6 +35,7 @@
 
 #include "GZMixingInterfaceESC.hpp"
 #include "GZMixingInterfaceServo.hpp"
+#include "GZMixingInterfaceWheel.hpp"
 
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
@@ -56,6 +57,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/wheel_encoders.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
@@ -63,6 +65,7 @@
 
 #include <gz/msgs/imu.pb.h>
 #include <gz/msgs/fluid_pressure.pb.h>
+#include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
 
 using namespace time_literals;
@@ -102,6 +105,7 @@ private:
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
+	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 
 	/**
 	*
@@ -129,12 +133,14 @@ private:
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
 	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
+	GZMixingInterfaceWheel _mixing_interface_wheel{_node, _node_mutex};
 
 	px4::atomic<uint64_t> _world_time_us{0};
 
 	pthread_mutex_t _node_mutex;
 
 	MapProjection _pos_ref{};
+	double _alt_ref{}; // starting altitude reference
 
 	matrix::Vector3d _position_prev{};
 	matrix::Vector3d _velocity_prev{};
@@ -149,10 +155,4 @@ private:
 	float _temperature{288.15};  // 15 degrees
 
 	gz::transport::Node _node;
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_GZ_HOME_LAT>) _param_sim_home_lat,
-		(ParamFloat<px4::params::SIM_GZ_HOME_LON>) _param_sim_home_lon,
-		(ParamFloat<px4::params::SIM_GZ_HOME_ALT>) _param_sim_home_alt
-	)
 };

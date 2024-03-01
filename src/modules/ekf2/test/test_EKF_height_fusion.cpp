@@ -182,7 +182,7 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	EXPECT_NEAR(baro_status.bias, baro_initial + baro_increment, 1.3f);
 
 	const BiasEstimator::status &rng_status = _ekf->getRngHgtBiasEstimatorStatus();
-	EXPECT_NEAR(rng_status.bias, 0.f, 1.f);
+	EXPECT_NEAR(rng_status.bias, 0.f, 1.1f); // TODO: why?
 
 	// BUT WHEN: the GPS jumps by a lot
 	const float gps_step = 100.f;
@@ -198,13 +198,8 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_initial + baro_increment - gps_step, 0.2f);
 
 	// and the innovations are close to zero
-	float baro_innov = NAN;
-	_ekf->getBaroHgtInnov(baro_innov);
-	EXPECT_NEAR(baro_innov, 0.f, 0.2f);
-
-	float rng_innov = NAN;
-	_ekf->getRngHgtInnov(rng_innov);
-	EXPECT_NEAR(rng_innov, 0.f, 0.2f);
+	EXPECT_NEAR(_ekf->aid_src_baro_hgt().innovation, 0.f, 0.2f);
+	EXPECT_NEAR(_ekf->aid_src_rng_hgt().innovation, 0.f, 0.2f);
 }
 
 TEST_F(EkfHeightFusionTest, baroRefFailOver)

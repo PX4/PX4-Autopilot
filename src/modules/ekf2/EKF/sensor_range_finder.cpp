@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -114,6 +114,12 @@ inline bool SensorRangeFinder::isDataInRange() const
 
 void SensorRangeFinder::updateStuckCheck()
 {
+	if(!isStuckDetectorEnabled()){
+		// Stuck detector disabled
+		_is_stuck = false;
+		return;
+	}
+
 	// Check for "stuck" range finder measurements when range was not valid for certain period
 	// This handles a failure mode observed with some lidar sensors
 	if (((_sample.time_us - _time_last_valid_us) > (uint64_t)10e6)) {

@@ -166,6 +166,7 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.id = static_cast<uint8_t>(_index);
 	battery_status.warning = _warning;
 	battery_status.timestamp = hrt_absolute_time();
+	battery_status.faults = determineFaults();
 	return battery_status;
 }
 
@@ -205,6 +206,10 @@ void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
 
 float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a)
 {
+	if (_params.n_cells == 0) {
+		return -1.0f;
+	}
+
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _params.n_cells;
 
@@ -267,6 +272,19 @@ uint8_t Battery::determineWarning(float state_of_charge)
 	}
 }
 
+uint16_t Battery::determineFaults()
+{
+	uint16_t faults{0};
+
+	if ((_params.n_cells > 0)
+	    && (_voltage_v > (_params.n_cells * _params.v_charged * 1.05f))) {
+		// Reported as a "spike" since "over-voltage" does not exist in MAV_BATTERY_FAULT
+		faults |= (1 << battery_status_s::BATTERY_FAULT_SPIKES);
+	}
+
+	return faults;
+}
+
 void Battery::computeScale()
 {
 	const float voltage_range = (_params.v_charged - _params.v_empty);
@@ -293,16 +311,23 @@ float Battery::computeRemainingTime(float current_a)
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		}
 	}
+
+	_flight_phase_estimation_sub.update();
 
 	if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON) {
 		_current_average_filter_a.reset(_params.bat_avrg_current);
 	}
 
 	if (_armed && PX4_ISFINITE(current_a)) {
-		// only update with positive numbers
-		_current_average_filter_a.update(fmaxf(current_a, 0.f));
+		// For FW only update when we are in level flight
+		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
+					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
+			// only update with positive numbers
+			_current_average_filter_a.update(fmaxf(current_a, 0.f));
+		}
 	}
 
 	// Remaining time estimation only possible with capacity

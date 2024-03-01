@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include <px4_platform_common/defines.h>
+
 namespace matrix
 {
 
@@ -41,7 +43,7 @@ Floating wrap_floating(Floating x, Floating low, Floating high)
 	return x - range * num_wraps;
 }
 
-}  // namespace detail
+} // namespace detail
 
 /**
  * Wrap single precision floating point value to stay in range [low, high)

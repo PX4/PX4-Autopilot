@@ -47,6 +47,7 @@
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/shutdown.h>
 #include <lib/parameters/param.h>
+#include <uORB/uORBMessageFields.hpp>
 
 #include <cstring>
 #include <float.h>
@@ -65,6 +66,7 @@
 #include "ReplayEkf2.hpp"
 
 #define PARAMS_OVERRIDE_FILE PX4_ROOTFSDIR "/replay_params.txt"
+#define DYNAMIC_PARAMS_OVERRIDE_FILE PX4_ROOTFSDIR "/replay_params_dynamic.txt"
 
 using namespace std;
 using namespace time_literals;
@@ -125,6 +127,38 @@ Replay::setupReplayFile(const char *file_name)
 }
 
 void
+Replay::setParameter(const string &parameter_name, const double parameter_value)
+{
+	param_t handle = param_find(parameter_name.c_str());
+	param_type_t param_format = param_type(handle);
+
+	if (param_format == PARAM_TYPE_INT32) {
+		int32_t orig_value = 0;
+		param_get(handle, &orig_value);
+
+		int32_t value = (int32_t)parameter_value;
+
+		if (orig_value != value) {
+			PX4_WARN("Setting %s (INT32) %d -> %d", param_name(handle), orig_value, value);
+		}
+
+		param_set(handle, (const void *)&value);
+
+	} else if (param_format == PARAM_TYPE_FLOAT) {
+		float orig_value = 0;
+		param_get(handle, &orig_value);
+
+		float value = (float)parameter_value;
+
+		if (fabsf(orig_value - value) > FLT_EPSILON) {
+			PX4_WARN("Setting %s (FLOAT) %.3f -> %.3f", param_name(handle), (double)orig_value, (double)value);
+		}
+
+		param_set(handle, (const void *)&value);
+	}
+}
+
+void
 Replay::setUserParams(const char *filename)
 {
 	string line;
@@ -149,37 +183,57 @@ Replay::setUserParams(const char *filename)
 		mystrstream >> pname;
 		mystrstream >> value_string;
 
-		double param_value_double = stod(value_string);
-
-		param_t handle = param_find(pname.c_str());
-		param_type_t param_format = param_type(handle);
 		_overridden_params.insert(pname);
 
-		if (param_format == PARAM_TYPE_INT32) {
-			int32_t orig_value = 0;
-			param_get(handle, &orig_value);
+		double param_value_double = stod(value_string);
 
-			int32_t value = (int32_t)param_value_double;
-
-			if (orig_value != value) {
-				PX4_WARN("setting %s (INT32) %d -> %d", param_name(handle), orig_value, value);
-			}
-
-			param_set(handle, (const void *)&value);
-
-		} else if (param_format == PARAM_TYPE_FLOAT) {
-			float orig_value = 0;
-			param_get(handle, &orig_value);
-
-			float value = (float)param_value_double;
-
-			if (fabsf(orig_value - value) > FLT_EPSILON) {
-				PX4_WARN("setting %s (FLOAT) %.3f -> %.3f", param_name(handle), (double)orig_value, (double)value);
-			}
-
-			param_set(handle, (const void *)&value);
-		}
+		setParameter(pname, param_value_double);
 	}
+}
+
+void
+Replay::readDynamicParams(const char *filename)
+{
+	_dynamic_parameter_schedule.clear();
+
+	string line;
+	string param_name;
+	string value_string;
+	string time_string;
+	ifstream myfile(filename);
+
+	if (!myfile.is_open()) {
+		return;
+	}
+
+	PX4_INFO("Reading dynamic params from %s...", filename);
+
+	while (!myfile.eof()) {
+		getline(myfile, line);
+
+		if (line.empty() || line[0] == '#') {
+			continue;
+		}
+
+		istringstream mystrstream(line);
+		mystrstream >> param_name;
+		mystrstream >> value_string;
+		mystrstream >> time_string;
+
+		_dynamic_parameters.insert(param_name);
+
+		double param_value = stod(value_string);
+		uint64_t change_timestamp = (uint64_t)(stod(time_string) * 1e6);
+
+		// Construct and store parameter change event
+		ParameterChangeEvent change_event = {change_timestamp, param_name, param_value};
+		_dynamic_parameter_schedule.push_back(change_event);
+	}
+
+	// Sort by event time
+	sort(_dynamic_parameter_schedule.begin(), _dynamic_parameter_schedule.end());
+
+	_next_param_change = 0;
 }
 
 bool
@@ -338,33 +392,30 @@ Replay::readFormat(std::ifstream &file, uint16_t msg_size)
 }
 
 
-string Replay::parseOrbFields(const string &fields)
+string Replay::getOrbFields(const orb_metadata *meta)
 {
-	string ret{};
+	char format[3000];
+	char buffer[2048];
+	uORB::MessageFormatReader format_reader(buffer, sizeof(buffer));
 
-	// convert o_fields from "<chr> timestamp;<chr>[5] array;" to "uint64_t timestamp;int8_t[5] array;"
-	for (int format_idx = 0; format_idx < (int)fields.length();) {
-		const char *end_field = strchr(fields.c_str() + format_idx, ';');
-
-		if (!end_field) {
-			PX4_ERR("Format error in %s", fields.c_str());
-			return "";
-		}
-
-		const char *c_type = orb_get_c_type(fields[format_idx]);
-
-		if (c_type) {
-			string str_type = c_type;
-			ret += str_type;
-			++format_idx;
-		}
-
-		int len = end_field - (fields.c_str() + format_idx) + 1;
-		ret += fields.substr(format_idx, len);
-		format_idx += len;
+	if (!format_reader.readUntilFormat(meta->o_id)) {
+		PX4_ERR("failed to find format for topic %s", meta->o_name);
+		return "";
 	}
 
-	return ret;
+	int field_length = 0;
+	int format_length = 0;
+
+	while (format_reader.readNextField(field_length)) {
+		format_length += snprintf(format + format_length, sizeof(buffer) - format_length - 1, "%s;", buffer);
+	}
+
+	if (uORB::MessageFormatReader::expandMessageFormat(format, format_length, sizeof(format)) < 0) {
+		PX4_ERR("failed to expand message format for %s", meta->o_name);
+		return "";
+	}
+
+	return format;
 }
 
 bool
@@ -402,7 +453,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	// FIXME: this should check recursively, all used nested types
 	string file_format = _file_formats[topic_name];
 
-	const string orb_fields = parseOrbFields(orb_meta->o_fields);
+	const string orb_fields = getOrbFields(orb_meta);
 
 	if (file_format != orb_fields) {
 		// check if we have a compatibility conversion available
@@ -611,7 +662,8 @@ Replay::readAndApplyParameter(std::ifstream &file, uint16_t msg_size)
 	string type = key.substr(0, pos);
 	string param_name = key.substr(pos + 1);
 
-	if (_overridden_params.find(param_name) != _overridden_params.end()) {
+	if (_overridden_params.find(param_name) != _overridden_params.end() ||
+	    _dynamic_parameters.find(param_name) != _dynamic_parameters.end()) {
 		//this parameter is overridden, so don't apply it
 		return true;
 	}
@@ -826,6 +878,7 @@ Replay::readDefinitionsAndApplyParams(std::ifstream &file)
 	}
 
 	setUserParams(PARAMS_OVERRIDE_FILE);
+	readDynamicParams(DYNAMIC_PARAMS_OVERRIDE_FILE);
 	return true;
 }
 
@@ -896,7 +949,7 @@ Replay::run()
 
 		Subscription &sub = *_subscriptions[next_msg_id];
 
-		if (next_file_time == 0) {
+		if (next_file_time == 0 || next_file_time < _file_start_time) {
 			//someone didn't set the timestamp properly. Consider the message invalid
 			nextDataMessage(replay_file, sub, next_msg_id);
 			continue;
@@ -907,6 +960,17 @@ Replay::run()
 		streampos next_additional_message_pos = sub.next_read_pos;
 		readAndHandleAdditionalMessages(replay_file, next_additional_message_pos);
 		last_additional_message_pos = next_additional_message_pos;
+
+		// Perform scheduled parameter changes
+		while (_next_param_change < _dynamic_parameter_schedule.size() &&
+		       _dynamic_parameter_schedule[_next_param_change].timestamp <= next_file_time) {
+			const auto param_change = _dynamic_parameter_schedule[_next_param_change];
+			PX4_WARN("Performing param change scheduled for t=%.3lf at t=%.3lf.",
+				 (double)param_change.timestamp / 1.e6,
+				 (double)next_file_time / 1.e6);
+			setParameter(param_change.parameter_name, param_change.parameter_value);
+			_next_param_change++;
+		}
 
 		const uint64_t publish_timestamp = handleTopicDelay(next_file_time, timestamp_offset);
 

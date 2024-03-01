@@ -44,12 +44,26 @@
 #if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1
 void px4_set_spi_buses_from_hw_version()
 {
-#if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
-	int hw_version_revision = board_get_hw_version();
-#else
-	int hw_version_revision = HW_VER_REV(board_get_hw_version(), board_get_hw_revision());
-#endif
+#  if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+	int hw_fmun_id = GET_HW_FMUM_ID();
 
+	for (int i = 0; i < BOARD_NUM_SPI_CFG_HW_VERSIONS; ++i) {
+		if (!px4_spi_buses && px4_spi_buses_all_hw[i].board_hw_fmun_id == 0) {
+			px4_spi_buses = px4_spi_buses_all_hw[i].buses;
+		}
+
+		if (px4_spi_buses_all_hw[i].board_hw_fmun_id == hw_fmun_id) {
+			px4_spi_buses = px4_spi_buses_all_hw[i].buses;
+		}
+	}
+
+#  else
+
+#    if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+	int hw_version_revision = board_get_hw_version();
+#    else
+	int hw_version_revision = HW_VER_REV(board_get_hw_version(), board_get_hw_revision());
+#    endif
 
 	for (int i = 0; i < BOARD_NUM_SPI_CFG_HW_VERSIONS; ++i) {
 		if (!px4_spi_buses && px4_spi_buses_all_hw[i].board_hw_version_revision == 0) {
@@ -61,6 +75,8 @@ void px4_set_spi_buses_from_hw_version()
 		}
 	}
 
+#  endif
+
 	if (!px4_spi_buses) { // fallback
 		px4_spi_buses = px4_spi_buses_all_hw[0].buses;
 	}
@@ -71,7 +87,7 @@ const px4_spi_bus_t *px4_spi_buses{nullptr};
 
 int px4_find_spi_bus(uint32_t devid)
 {
-	for (int i = 0; (px4_spi_bus_t *) px4_spi_buses != nullptr && i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+	for (int i = 0; ((px4_spi_bus_t *) px4_spi_buses) != nullptr && i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
 		const px4_spi_bus_t &bus_data = px4_spi_buses[i];
 
 		if (bus_data.bus == -1) {

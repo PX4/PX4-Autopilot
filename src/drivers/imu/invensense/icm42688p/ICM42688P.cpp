@@ -126,8 +126,9 @@ int ICM42688P::probe()
 {
 	for (int i = 0; i < 3; i++) {
 		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
+		uint8_t expected_whoami = isICM686 ? WHOAMI686 : WHOAMI;
 
-		if (whoami == WHOAMI || (isICM686 && whoami == WHOAMI686)) {
+		if (whoami == expected_whoami) {
 			return PX4_OK;
 
 		} else {
@@ -356,7 +357,7 @@ void ICM42688P::ConfigureCLKIN()
 {
 	for (auto &r0 : _register_bank0_cfg) {
 		if (r0.reg == Register::BANK_0::INTF_CONFIG1) {
-			r0.set_bits = INTF_CONFIG1_BIT::RTC_MODE;
+			r0.set_bits = r0.set_bits | INTF_CONFIG1_BIT::RTC_MODE;
 		}
 	}
 

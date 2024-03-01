@@ -51,7 +51,7 @@ VtolTakeoff::VtolTakeoff(Navigator *navigator) :
 void
 VtolTakeoff::on_activation()
 {
-	if (_navigator->home_global_position_valid()) {
+	if (hrt_elapsed_time(&_navigator->get_global_position()->timestamp) < 1_s) {
 		set_takeoff_position();
 		_takeoff_state = vtol_takeoff_state::TAKEOFF_HOVER;
 		_navigator->reset_cruising_speed();
@@ -71,12 +71,10 @@ VtolTakeoff::on_active()
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-				_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_navigator->get_home_position()->lat,
-							    _navigator->get_home_position()->lon, _loiter_location(0), _loiter_location(1)));
+				_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat,
+							    _mission_item.lon, _loiter_location(0), _loiter_location(1)));
 				_mission_item.force_heading = true;
-				mission_apply_limitation(_mission_item);
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
-				pos_sp_triplet->current.disable_weather_vane = true;
 				pos_sp_triplet->current.cruising_speed = -1.f;
 				_navigator->set_position_setpoint_triplet_updated();
 
@@ -172,19 +170,17 @@ VtolTakeoff::set_takeoff_position()
 	// set current mission item to takeoff
 	set_takeoff_item(&_mission_item, _transition_alt_amsl);
 
-	_mission_item.lat = _navigator->get_home_position()->lat;
-	_mission_item.lon = _navigator->get_home_position()->lon;
+	_mission_item.lat = _navigator->get_global_position()->lat;
+	_mission_item.lon = _navigator->get_global_position()->lon;
 
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 
 	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
 	pos_sp_triplet->previous.valid = false;
-	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();

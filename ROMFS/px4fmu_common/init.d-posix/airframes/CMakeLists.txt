@@ -39,8 +39,10 @@ px4_add_romfs_files(
 	1012_gazebo-classic_iris_rplidar
 	1013_gazebo-classic_iris_vision
 	1013_gazebo-classic_iris_vision.post
-	1015_gazebo-classic_iris_obs_avoid
-	1015_gazebo-classic_iris_obs_avoid.post
+	1014_gazebo-classic_iris_obs_avoid
+	1014_gazebo-classic_iris_obs_avoid.post
+	1015_gazebo-classic_iris_depth_camera
+	1016_gazebo-classic_iris_downward_depth_camera
 	1017_gazebo-classic_iris_opt_flow_mockup
 	1019_gazebo-classic_iris_dual_gps
 	1021_gazebo-classic_uuv_hippocampus
@@ -77,6 +79,10 @@ px4_add_romfs_files(
 	4004_gz_standard_vtol
 	4005_gz_x500_vision
 	4006_gz_px4vision
+	4008_gz_advanced_plane
+	4009_gz_r1_rover
+	4010_gz_x500_mono_cam
+	4011_gz_lawnmower
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post

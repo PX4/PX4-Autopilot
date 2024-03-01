@@ -34,7 +34,7 @@
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
 //                                                              KiB BS    nB
-static const px4_mft_device_t spi2 = {             // FM25V01A on FMUM 16K
+static const px4_mft_device_t spi2 = {             // FM25V01A on FMUM native: 16K X 8, emulated as (512 Blocks of 32)
 	.bus_type = px4_mft_device_t::SPI,
 	.devid    = SPIDEV_FLASH(0)
 };
@@ -46,7 +46,7 @@ static const px4_mtd_entry_t fmum_fram = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 32
+			.nblocks = (16384 / (1 << CONFIG_RAMTRON_EMULATE_PAGE_SHIFT))
 		},
 	},
 };

@@ -66,7 +66,7 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 				// We reset the filter if we received 5 consecutive samples which violate our present estimate.
 				// This is most likely due to a time jump on the offboard system.
 				if (_high_deviation_count > MAX_CONSECUTIVE_HIGH_DEVIATION) {
-					PX4_ERR("Time jump detected. Resetting time synchroniser.");
+					PX4_WARN("time jump detected. Resetting time synchroniser.");
 					// Reset the filter
 					reset_filter();
 				}
@@ -103,12 +103,9 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 			// Increment counter if round trip time is too high for accurate timesync
 			_high_rtt_count++;
 
-			if (_high_rtt_count > MAX_CONSECUTIVE_HIGH_RTT) {
+			if (_high_rtt_count == MAX_CONSECUTIVE_HIGH_RTT) {
 				PX4_WARN("RTT too high for timesync: %llu ms", rtt_us / 1000ULL);
-				// Reset counter to rate-limit warnings
-				_high_rtt_count = 0;
 			}
-
 		}
 
 		// Publish status message

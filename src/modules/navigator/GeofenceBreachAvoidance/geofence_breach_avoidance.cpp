@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,7 +75,6 @@ void GeofenceBreachAvoidance::setHomePosition(double lat, double lon, float alt)
 {
 	_home_lat_lon(0) = lat;
 	_home_lat_lon(1) = lon;
-	_home_alt_amsl = alt;
 }
 
 matrix::Vector2<double> GeofenceBreachAvoidance::waypointFromBearingAndDistance(matrix::Vector2<double>
@@ -159,7 +158,7 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 		Vector2d test_point;
 
 		// binary search for the distance from the drone to the geofence in the given direction
-		while (abs(current_max - current_min) > 0.5f) {
+		while (fabsf(current_max - current_min) > 0.5f) {
 			test_point = waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, current_distance);
 
 			if (!geofence->isInsidePolygonOrCircle(test_point(0), test_point(1), _current_alt_amsl)) {

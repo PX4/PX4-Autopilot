@@ -266,7 +266,6 @@ px4fmu_firmware: \
 
 misc_qgc_extra_firmware: \
 	check_nxp_fmuk66-v3_default \
-	check_nxp_fmurt1062-v1_default \
 	check_mro_x21_default \
 	check_bitcraze_crazyflie_default \
 	check_bitcraze_crazyflie21_default \
@@ -484,7 +483,9 @@ validate_module_configs:
 	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f \
 	-not -path "$(SRC_DIR)/src/lib/mixer_module/*" \
 	-not -path "$(SRC_DIR)/src/modules/uxrce_dds_client/dds_topics.yaml" \
+	-not -path "$(SRC_DIR)/src/modules/zenoh/zenoh-pico/*" \
 	-not -path "$(SRC_DIR)/src/lib/events/libevents/*" \
+	-not -path "$(SRC_DIR)/src/lib/cdrstream/*" \
 	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" -print0 | \
 	xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
 

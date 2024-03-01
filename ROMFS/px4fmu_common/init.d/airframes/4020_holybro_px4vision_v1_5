@@ -45,12 +45,8 @@ param set-default MAV_1_MODE 9
 param set-default SER_TEL1_BAUD 921600
 
 # Vehicle attitude PID tuning
-param set-default MC_ACRO_EXPO 0
-param set-default MC_ACRO_EXPO_Y 0
 param set-default MC_ACRO_P_MAX 200
 param set-default MC_ACRO_R_MAX 200
-param set-default MC_ACRO_SUPEXPO 0
-param set-default MC_ACRO_SUPEXPOY 0
 param set-default MC_ACRO_Y_MAX 150
 param set-default MC_PITCHRATE_D 0.0015
 param set-default MC_ROLLRATE_D 0.0015
@@ -102,18 +98,17 @@ param set-default CBRK_IO_SAFETY 22027
 
 param set-default THR_MDL_FAC 0.3
 
+# Square quadrotor X PX4 numbering
 param set-default CA_ROTOR_COUNT 4
-param set-default CA_ROTOR0_PX 0.15
-param set-default CA_ROTOR0_PY 0.15
-param set-default CA_ROTOR0_KM 0.05
-param set-default CA_ROTOR1_PX -0.15
-param set-default CA_ROTOR1_PY -0.15
-param set-default CA_ROTOR1_KM 0.05
-param set-default CA_ROTOR2_PX 0.15
-param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
 param set-default CA_ROTOR2_KM -0.05
-param set-default CA_ROTOR3_PX -0.15
-param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
 param set-default CA_ROTOR3_KM -0.05
 
 # Outputs
@@ -121,4 +116,3 @@ param set-default PWM_AUX_FUNC1 101
 param set-default PWM_AUX_FUNC2 102
 param set-default PWM_AUX_FUNC3 103
 param set-default PWM_AUX_FUNC4 104
-

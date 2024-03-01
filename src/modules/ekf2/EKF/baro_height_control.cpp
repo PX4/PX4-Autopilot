@@ -51,7 +51,12 @@ void Ekf::controlBaroHeightFusion()
 
 	if (_baro_buffer && _baro_buffer->pop_first_older_than(_time_delayed_us, &baro_sample)) {
 
+#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 		const float measurement = compensateBaroForDynamicPressure(baro_sample.hgt);
+#else
+		const float measurement = baro_sample.hgt;
+#endif
+
 		const float measurement_var = sq(_params.baro_noise);
 
 		const float innov_gate = fmaxf(_params.baro_innov_gate, 1.f);
@@ -103,7 +108,7 @@ void Ekf::controlBaroHeightFusion()
 		if (measurement_valid) {
 			bias_est.setMaxStateNoise(sqrtf(measurement_var));
 			bias_est.setProcessNoiseSpectralDensity(_params.baro_bias_nsd);
-			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(9, 9));
+			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 		}
 
 		// determine if we should use height aiding
@@ -116,7 +121,6 @@ void Ekf::controlBaroHeightFusion()
 				&& isNewestSampleRecent(_time_last_baro_buffer_push, 2 * BARO_MAX_INTERVAL);
 
 		if (_control_status.flags.baro_hgt) {
-			aid_src.fusion_enabled = true;
 
 			if (continuing_conditions_passing) {
 
@@ -151,7 +155,7 @@ void Ekf::controlBaroHeightFusion()
 
 		} else {
 			if (starting_conditions_passing) {
-				if (_params.height_sensor_ref == HeightSensor::BARO) {
+				if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::BARO)) {
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::BARO;
 

@@ -6,9 +6,8 @@ uint8 GF_ACTION_RTL = 3                 # switch to AUTO|RTL
 uint8 GF_ACTION_TERMINATE = 4           # flight termination
 uint8 GF_ACTION_LAND = 5                # switch to AUTO|LAND
 
-uint8 geofence_violation_reason         # one of geofence_violation_reason_t::*
+bool geofence_max_dist_triggered	# true the check for max distance from Home is triggered
+bool geofence_max_alt_triggered		# true the check for max altitude above Home is triggered
+bool geofence_custom_fence_triggered	# true the check for custom inclusion/exclusion geofence(s) is triggered
 
-bool primary_geofence_breached          # true if the primary geofence is breached
-uint8 primary_geofence_action           # action to take when the primary geofence is breached
-
-bool home_required                      # true if the geofence requires a valid home position
+uint8 geofence_action           	# action to take when the geofence is breached

@@ -93,6 +93,14 @@ then
 		fi
 	fi
 
+	# Check for an update of the ext_autostart folder, and replace the old one with it
+	if [ -e /fs/microsd/ext_autostart_new ]
+	then
+		echo "Updating external autostart files"
+		rm -r $SDCARD_EXT_PATH
+		mv /fs/microsd/ext_autostart_new $SDCARD_EXT_PATH
+	fi
+
 	set PARAM_FILE /fs/microsd/params
 	set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
 fi
@@ -162,7 +170,7 @@ else
 		param select-backup $PARAM_BACKUP_FILE
 	fi
 
-	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X ARK_FMU_V6X
+	if mft query -q -k MFT -s MFT_ETHERNET -v 1
 	then
 		netman update -i eth0
 	fi
@@ -266,12 +274,9 @@ else
 		. $FCONFIG
 	fi
 
-	#
-	# Start IO for PWM output or RC input if enabled
-	#
-	if param compare -s SYS_USE_IO 1
+	if px4io supported
 	then
-		# Check if PX4IO present and update firmware if needed.
+	# Check if PX4IO present and update firmware if needed.
 		if [ -f $IOFW ]
 		then
 			if ! px4io checkcrc ${IOFW}
@@ -293,12 +298,12 @@ else
 					tune_control stop
 				fi
 			fi
-		fi
 
-		if ! px4io start
-		then
-			echo "PX4IO start failed"
-			set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+			if ! px4io start
+			then
+				echo "PX4IO start failed"
+				set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+			fi
 		fi
 	fi
 
@@ -528,6 +533,10 @@ else
 		then
 			cyphal start
 		fi
+	fi
+	if param greater -s ZENOH_ENABLE 0
+	then
+		zenoh start
 	fi
 
 #

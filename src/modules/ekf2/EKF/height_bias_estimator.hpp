@@ -35,14 +35,16 @@
  * @file height_bias_estimator.hpp
  */
 
-#pragma once
+#ifndef EKF_HEIGHT_BIAS_ESTIMATOR_HPP
+#define EKF_HEIGHT_BIAS_ESTIMATOR_HPP
 
 #include "bias_estimator.hpp"
+#include "common.h"
 
 class HeightBiasEstimator: public BiasEstimator
 {
 public:
-	HeightBiasEstimator(uint8_t sensor, const uint8_t &sensor_ref):
+	HeightBiasEstimator(HeightSensor sensor, const HeightSensor &sensor_ref):
 		BiasEstimator(0.f, 0.f),
 		_sensor(sensor),
 		_sensor_ref(sensor_ref)
@@ -67,8 +69,10 @@ public:
 	}
 
 private:
-	const uint8_t _sensor;
-	const uint8_t &_sensor_ref;
+	const HeightSensor _sensor;
+	const HeightSensor &_sensor_ref;
 
 	bool _is_sensor_fusion_active{false}; // TODO: replace by const ref and remove setter when migrating _control_status.flags from union to bool
 };
+
+#endif // !EKF_HEIGHT_BIAS_ESTIMATOR_HPP

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 ECL Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,10 +78,10 @@ public:
 
 	void quaternionVarianceBigEnoughAfterOrientationInitialization(float quat_variance_limit = 0.00001f)
 	{
-		const matrix::Vector4f quat_variance = _ekf_wrapper.getQuaternionVariance();
+		const matrix::Vector3f quat_variance = _ekf->getQuaternionVariance();
+		EXPECT_TRUE(quat_variance(0) > quat_variance_limit) << "quat_variance(3): " << quat_variance(0);
 		EXPECT_TRUE(quat_variance(1) > quat_variance_limit) << "quat_variance(1): " << quat_variance(1);
 		EXPECT_TRUE(quat_variance(2) > quat_variance_limit) << "quat_variance(2): " << quat_variance(2);
-		EXPECT_TRUE(quat_variance(3) > quat_variance_limit) << "quat_variance(3): " << quat_variance(3);
 	}
 
 	void yawVarianceBigEnoughAfterHeadingReset()
@@ -175,7 +175,7 @@ TEST_F(EkfInitializationTest, initializeWithZeroTiltNotAtRest)
 	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.simulateOrientation(quat_sim);
 	//_sensor_simulator.runSeconds(_init_tilt_period);
-	_sensor_simulator.runSeconds(7);
+	_sensor_simulator.runSeconds(10);
 
 	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
 
@@ -209,12 +209,12 @@ TEST_F(EkfInitializationTest, gyroBias)
 		if (fabsf(accel_bias(2)) > 0.3f) {
 
 			// Print state covariance and correlation matrices for debugging
-			const matrix::SquareMatrix<float, 24> P = _ekf->covariances();
+			const auto P = _ekf->covariances();
 
 			printf("State covariance:\n");
 
-			for (int i = 0; i <= 15; i++) {
-				for (int j = 0; j <= 15; j++) {
+			for (int i = 0; i <= State::size; i++) {
+				for (int j = 0; j <= State::size; j++) {
 					printf("%.3fe-9  ", ((double)P(i, j)) * 1e9);
 				}
 
@@ -224,10 +224,10 @@ TEST_F(EkfInitializationTest, gyroBias)
 			printf("State correlation:\n");
 			printf("\t0\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12\t13\t14\t15\n");
 
-			for (uint8_t i = 0; i <= 15; i++) {
+			for (uint8_t i = 0; i <= State::size; i++) {
 				printf("%d|  ", i);
 
-				for (uint8_t j = 0; j <= 15; j++) {
+				for (uint8_t j = 0; j <= State::size; j++) {
 					float corr = sqrtf(fabsf(P(i, i) * P(j, j)));
 
 					if (corr > 0.0f) {

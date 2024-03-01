@@ -58,9 +58,8 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
+		// Init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 	}
@@ -70,22 +69,25 @@ public:
 	{
 	}
 
-	void testBias(const Vector3f &bias, float duration, float tolerance);
+	void testBias(const Vector3f &bias, float duration, const Vector3f &tolerance);
 };
 
-void EkfGyroscopeTest::testBias(const Vector3f &bias, float duration, float tolerance)
+void EkfGyroscopeTest::testBias(const Vector3f &bias, float duration, const Vector3f &tolerance)
 {
 	_sensor_simulator._imu.setGyroData(bias);
 	_sensor_simulator.runSeconds(duration);
+	EXPECT_TRUE(_ekf->control_status_flags().vehicle_at_rest);
 
 	const Vector3f estimated_bias = _ekf->getGyroBias();
-	EXPECT_TRUE(matrix::isEqual(estimated_bias, bias,
-				    tolerance)) << estimated_bias - bias;
+
+	for (int i = 0; i < 3; i++) {
+		EXPECT_NEAR(estimated_bias(i), bias(i), tolerance(i)) << "index " << i;
+	}
 }
 
 TEST_F(EkfGyroscopeTest, biasEstimateZero)
 {
-	testBias(Vector3f(), 10, 0.f);
+	testBias(Vector3f(), 10, Vector3f());
 }
 
 TEST_F(EkfGyroscopeTest, biasEstimatePositive)
@@ -96,7 +98,8 @@ TEST_F(EkfGyroscopeTest, biasEstimatePositive)
 
 	for (int i = 0; i < 4; i ++) {
 		bias.setAll(biases[i]);
-		testBias(bias, 30, 0.0008f);
+		// The Z gyro bias takes more time to converge as the Z rotation variance is higher
+		testBias(bias, 30, Vector3f(0.0008f, 0.0008f, 0.004f));
 	}
 }
 
@@ -107,6 +110,6 @@ TEST_F(EkfGyroscopeTest, biasEstimateNegative)
 
 	for (int i = 0; i < 4; i ++) {
 		bias.setAll(biases[i]);
-		testBias(bias, 30, 0.0008f);
+		testBias(bias, 30, Vector3f(0.0008f, 0.0008f, 0.004f));
 	}
 }

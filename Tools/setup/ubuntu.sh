@@ -155,7 +155,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
-		sudo usermod -a -G dialout $USER
+		sudo usermod -aG dialout $USER
 	fi
 
 	# arm-none-eabi-gcc
@@ -165,7 +165,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	source $HOME/.profile # load changed path for the case the script is reran before relogin
 	if [ $(which arm-none-eabi-gcc) ]; then
 		GCC_VER_STR=$(arm-none-eabi-gcc --version)
-		GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
+		GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}" || true)
 	fi
 
 	if [[ "$GCC_FOUND_VER" == "1" ]]; then

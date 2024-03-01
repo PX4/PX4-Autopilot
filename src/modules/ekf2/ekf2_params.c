@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2016 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -62,7 +62,7 @@ PARAM_DEFINE_INT32(EKF2_PREDICT_US, 10000);
  * @bit 1 Accel Bias
  * @bit 2 Gravity vector fusion
  */
-PARAM_DEFINE_INT32(EKF2_IMU_CTRL, 3);
+PARAM_DEFINE_INT32(EKF2_IMU_CTRL, 7);
 
 /**
  * Magnetometer measurement delay relative to IMU measurements
@@ -342,10 +342,10 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
  * @unit m/s^2/sqrt(Hz)
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(EKF2_WIND_NSD, 1.0e-2f);
+PARAM_DEFINE_FLOAT(EKF2_WIND_NSD, 5.0e-2f);
 
 /**
- * Measurement noise for gps horizontal velocity.
+ * Measurement noise for GNSS velocity.
  *
  * @group EKF2
  * @min 0.01
@@ -356,7 +356,7 @@ PARAM_DEFINE_FLOAT(EKF2_WIND_NSD, 1.0e-2f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_V_NOISE, 0.3f);
 
 /**
- * Measurement noise for gps position.
+ * Measurement noise for GNSS position.
  *
  * @group EKF2
  * @min 0.01
@@ -568,7 +568,7 @@ PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 4.0f);
 PARAM_DEFINE_FLOAT(EKF2_GND_MAX_HGT, 0.5f);
 
 /**
- * Gate size for GPS horizontal position fusion
+ * Gate size for GNSS position fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
  *
@@ -580,7 +580,7 @@ PARAM_DEFINE_FLOAT(EKF2_GND_MAX_HGT, 0.5f);
 PARAM_DEFINE_FLOAT(EKF2_GPS_P_GATE, 5.0f);
 
 /**
- * Gate size for GPS velocity fusion
+ * Gate size for GNSS velocity fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
  *
@@ -601,37 +601,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
  * @unit SD
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
-
-/**
- * Will be removed after v1.14 release
- *
- * Set bits in the following positions to enable:
- * 0 : Deprecated, use EKF2_GPS_CTRL instead
- * 1 : Deprecated. use EKF2_OF_CTRL instead
- * 2 : Deprecated, use EKF2_IMU_CTRL instead
- * 3 : Deprecated, use EKF2_EV_CTRL instead
- * 4 : Deprecated, use EKF2_EV_CTRL instead
- * 5 : Deprecated. use EKF2_DRAG_CTRL instead
- * 6 : Deprecated, use EKF2_EV_CTRL instead
- * 7 : Deprecated, use EKF2_GPS_CTRL instead
- * 8 : Deprecated, use EKF2_EV_CTRL instead
- *
- * @group EKF2
- * @min 0
- * @max 511
- * @bit 0 unused
- * @bit 1 unused
- * @bit 2 unused
- * @bit 3 unused
- * @bit 4 unused
- * @bit 5 unused
- * @bit 6 unused
- * @bit 7 unused
- * @bit 8 unused
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(EKF2_AID_MASK, 0);
+PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 5.0f);
 
 /**
  * Determines the reference source of height data used by the EKF.
@@ -856,7 +826,7 @@ PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.1f);
  * @group EKF2
  * @min 0.1
  * @max 10.0
- * @unit m/s^2
+ * @unit g0
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_GRAV_NOISE, 1.0f);
@@ -1082,11 +1052,10 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 /**
 * Airspeed fusion threshold.
 *
-* A value of zero will deactivate airspeed fusion. Any other positive
-* value will determine the minimum airspeed which will still be fused. Set to about 90% of the vehicles stall speed.
-* Both airspeed fusion and sideslip fusion must be active for the EKF to continue navigating after loss of GPS.
-* Use EKF2_FUSE_BETA to activate sideslip fusion.
-* Note: side slip fusion is currently not supported for tailsitters.
+* Airspeed data is fused for wind estimation if above this threshold.
+* Set to 0 to disable airspeed fusion.
+* For reliable wind estimation both sideslip (see EKF2_FUSE_BETA) and airspeed fusion should be enabled.
+* Only applies to fixed-wing vehicles (or VTOLs in fixed-wing mode).
 *
 * @group EKF2
 * @min 0.0
@@ -1096,11 +1065,11 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
 
 /**
-* Boolean determining if synthetic sideslip measurements should fused.
+* Enable synthetic sideslip fusion.
 *
-* A value of 1 indicates that fusion is active
-* Both  sideslip fusion and airspeed fusion must be active for the EKF to continue navigating after loss of GPS.
-* Use EKF2_ARSP_THR to activate airspeed fusion.
+* For reliable wind estimation both sideslip and airspeed fusion (see EKF2_ARSP_THR) should be enabled.
+* Only applies to fixed-wing vehicles (or VTOLs in fixed-wing mode).
+* Note: side slip fusion is currently not supported for tailsitters.
 *
 * @group EKF2
 * @boolean
@@ -1414,7 +1383,7 @@ PARAM_DEFINE_FLOAT(EKF2_PCOEF_Z, 0.0f);
 /**
  * Accelerometer bias learning limit.
  *
- * The ekf delta velocity bias states will be limited to within a range equivalent to +- of this value.
+ * The ekf accel bias states will be limited to within a range equivalent to +- of this value.
  *
  * @group EKF2
  * @min 0.0
@@ -1427,8 +1396,8 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_LIM, 0.4f);
 /**
  * Maximum IMU accel magnitude that allows IMU bias learning.
  *
- * If the magnitude of the IMU accelerometer vector exceeds this value, the EKF delta velocity state estimation will be inhibited.
- * This reduces the adverse effect of high manoeuvre accelerations and IMU nonlinerity and scale factor errors on the delta velocity bias estimates.
+ * If the magnitude of the IMU accelerometer vector exceeds this value, the EKF accel bias state estimation will be inhibited.
+ * This reduces the adverse effect of high manoeuvre accelerations and IMU nonlinerity and scale factor errors on the accel bias estimates.
  *
  * @group EKF2
  * @min 20.0
@@ -1441,8 +1410,8 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_ACCLIM, 25.0f);
 /**
  * Maximum IMU gyro angular rate magnitude that allows IMU bias learning.
  *
- * If the magnitude of the IMU angular rate vector exceeds this value, the EKF delta velocity state estimation will be inhibited.
- * This reduces the adverse effect of rapid rotation rates and associated errors on the delta velocity bias estimates.
+ * If the magnitude of the IMU angular rate vector exceeds this value, the EKF accel bias state estimation will be inhibited.
+ * This reduces the adverse effect of rapid rotation rates and associated errors on the accel bias estimates.
  *
  * @group EKF2
  * @min 2.0
@@ -1453,7 +1422,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_ACCLIM, 25.0f);
 PARAM_DEFINE_FLOAT(EKF2_ABL_GYRLIM, 3.0f);
 
 /**
- * Time constant used by acceleration and angular rate magnitude checks used to inhibit delta velocity bias learning.
+ * Time constant used by acceleration and angular rate magnitude checks used to inhibit accel bias learning.
  *
  * The vector magnitude of angular rate and acceleration used to check if learning should be inhibited has a peak hold filter applied to it with an exponential decay.
  * This parameter controls the time constant of the decay.
@@ -1469,7 +1438,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_TAU, 0.5f);
 /**
  * Gyro bias learning limit.
  *
- * The ekf delta angle bias states will be limited to within a range equivalent to +- of this value.
+ * The ekf gyro bias states will be limited to within a range equivalent to +- of this value.
  *
  * @group EKF2
  * @min 0.0
@@ -1568,3 +1537,51 @@ PARAM_DEFINE_INT32(EKF2_SYNT_MAG_Z, 0);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GSF_TAS, 15.0f);
+
+/**
+ * Aux global position (AGP) sensor aiding
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Horizontal position fusion
+ * 1 : Vertical position fusion
+ *
+ * @group EKF2
+ * @min 0
+ * @max 3
+ * @bit 0 Horizontal position
+ * @bit 1 Vertical position
+ */
+PARAM_DEFINE_INT32(EKF2_AGP_CTRL, 1);
+
+/**
+ * Aux global position estimator delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @reboot_required true
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_AGP_DELAY, 0);
+
+/**
+ * Measurement noise for aux global position observations used to lower bound or replace the uncertainty included in the message
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_AGP_NOISE, 0.9f);
+
+/**
+ * Gate size for aux global position fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+*/
+PARAM_DEFINE_FLOAT(EKF2_AGP_GATE, 3.0f);

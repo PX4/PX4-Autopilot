@@ -48,7 +48,7 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 
 		bool offboard_available = (offboard_control_mode.position || offboard_control_mode.velocity
 					   || offboard_control_mode.acceleration || offboard_control_mode.attitude || offboard_control_mode.body_rate
-					   || offboard_control_mode.actuator) && data_is_recent;
+					   || offboard_control_mode.thrust_and_torque || offboard_control_mode.direct_actuator) && data_is_recent;
 
 		if (offboard_control_mode.position && reporter.failsafeFlags().local_position_invalid) {
 			offboard_available = false;

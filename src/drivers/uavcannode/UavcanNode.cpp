@@ -61,6 +61,10 @@
 #include "Publishers/GnssAuxiliary.hpp"
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
+#if defined(CONFIG_UAVCANNODE_INDICATED_AIR_SPEED)
+#include "Publishers/IndicatedAirspeed.hpp"
+#endif // CONFIG_UAVCANNODE_INDICATED_AIR_SPEED
+
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
 #include "Publishers/MagneticFieldStrength2.hpp"
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
@@ -158,6 +162,7 @@ UavcanNode::UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDr
 	_time_sync_slave(_node),
 	_fw_update_listner(_node),
 	_param_server(_node),
+	_dyn_node_id_client(_node),
 	_reset_timer(_node)
 {
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
@@ -168,6 +173,10 @@ UavcanNode::UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDr
 	if (res < 0) {
 		std::abort();
 	}
+
+	// Ensure this param is marked as used
+	int32_t bitrate_temp = 0;
+	(void)param_get(param_find("CANNODE_BITRATE"), &bitrate_temp);
 }
 
 UavcanNode::~UavcanNode()
@@ -450,7 +459,6 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_log_message_sub.registerCallback();
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
-
 	return 1;
 }
 
@@ -475,69 +483,82 @@ void UavcanNode::Run()
 
 	watchdog_pet();
 
-	if (!_initialized) {
+	switch (_init_state) {
 
+	case Booted: {
 
-		const int can_init_res = _can->init((uint32_t)_bitrate);
+			const int can_init_res = _can->init((uint32_t)_bitrate);
 
-		if (can_init_res < 0) {
-			PX4_ERR("CAN driver init failed %i", can_init_res);
-		}
-
-		int rv = _node.start();
-
-		if (rv < 0) {
-			PX4_ERR("Failed to start the node");
-		}
-
-		// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
-
-		if (_node.getNodeID() == 0) {
-
-			uavcan::DynamicNodeIDClient client(_node);
-
-			int client_start_res = client.start(_node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
-							    _node.getNodeID());
-
-			if (client_start_res < 0) {
-				PX4_ERR("Failed to start the dynamic node ID client");
+			if (can_init_res < 0) {
+				PX4_ERR("CAN driver init failed %i", can_init_res);
 			}
 
-			watchdog_pet(); // If allocation takes too long reboot
+			int rv = _node.start();
 
-			/*
-			 * Waiting for the client to obtain a node ID.
-			 * This may take a few seconds.
-			 */
+			if (rv < 0) {
+				PX4_ERR("Failed to start the node");
+			}
 
-			while (!client.isAllocationComplete()) {
-				const int res = _node.spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
+			// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
 
-				if (res < 0) {
-					PX4_ERR("Transient failure: %d", res);
+			if (_node.getNodeID() != 0) {
+				_init_state = Allocated;
+
+			} else {
+
+				_init_state = Allocation;
+
+				int client_start_res = _dyn_node_id_client.start(
+							       _node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
+							       _node.getNodeID());
+
+				if (client_start_res < 0) {
+					PX4_ERR("Failed to start the dynamic node ID client");
 				}
 			}
+		}
+		break;
 
-			_node.setNodeID(client.getAllocatedNodeID());
+	case  Allocation:
+
+		/*
+		 * Waiting for the client to obtain a node ID.
+		 * This may take a few seconds.
+		 */
+
+		if (_dyn_node_id_client.isAllocationComplete()) {
+			PX4_INFO("Got node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
+
+			_node.setNodeID(_dyn_node_id_client.getAllocatedNodeID());
+			_init_state = Allocated;
 		}
 
-		up_time = hrt_absolute_time();
-		get_node().setRestartRequestHandler(&restart_request_handler);
-		_param_server.start(&_param_manager);
+		break;
 
-		// Set up the time synchronization
-		const int slave_init_res = _time_sync_slave.start();
+	case  Allocated:
+		if (_node.getNodeID() != 0) {
 
-		if (slave_init_res < 0) {
-			PX4_ERR("Failed to start time_sync_slave");
-			_task_should_exit.store(true);
+			up_time = hrt_absolute_time();
+			get_node().setRestartRequestHandler(&restart_request_handler);
+			_param_server.start(&_param_manager);
+
+			// Set up the time synchronization
+			const int slave_init_res = _time_sync_slave.start();
+
+			if (slave_init_res < 0) {
+				PX4_ERR("Failed to start time_sync_slave");
+				_task_should_exit.store(true);
+			}
 		}
 
 		_node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
 
 		_node.setModeOperational();
 
-		_initialized = true;
+		_init_state = Done;
+
+	default:
+		break;
 	}
 
 	perf_begin(_cycle_perf);
@@ -636,6 +657,19 @@ void UavcanNode::PrintInfo()
 {
 	pthread_mutex_lock(&_node_mutex);
 
+	// Firmware version
+	printf("Hardware and software status:\n");
+	printf("\tNode ID: %d\n", int(_node.getNodeID().get()));
+	printf("\tHardware version: %d.%d\n",
+	       int(_node.getHardwareVersion().major),
+	       int(_node.getHardwareVersion().minor));
+	printf("\tSoftware version: %d.%d.%08x\n",
+	       int(_node.getSoftwareVersion().major),
+	       int(_node.getSoftwareVersion().minor),
+	       int(_node.getSoftwareVersion().vcs_commit));
+
+	printf("\n");
+
 	// Memory status
 	printf("Pool allocator status:\n");
 	printf("\tCapacity hard/soft: %u/%u blocks\n",
@@ -731,8 +765,15 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	int32_t node_id = 0;
 
 	// Did the bootloader auto baud and get a node ID Allocated
+	int valid = -1;
 	bootloader_app_shared_t shared;
-	int valid = bootloader_app_shared_read(&shared, BootLoader);
+
+	if (board_app_shared_read) {
+		valid = board_app_shared_read(&shared, BootLoader);
+
+	} else {
+		valid = bootloader_app_shared_read(&shared, BootLoader);
+	}
 
 	if (valid == 0) {
 
@@ -752,7 +793,6 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		} else
 #endif
 		{
-			(void)param_get(param_find("CANNODE_NODE_ID"), &node_id);
 			(void)param_get(param_find("CANNODE_BITRATE"), &bitrate);
 		}
 	}
@@ -761,7 +801,7 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 		board_booted_by_px4() &&
 #endif
-		(node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast())) {
+		(node_id < 0 || node_id > uavcan::NodeID::Max)) {
 		PX4_ERR("Invalid Node ID %" PRId32, node_id);
 		return 1;
 	}

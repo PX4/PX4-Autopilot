@@ -323,6 +323,48 @@ FailsafeBase::Action Failsafe::fromOffboardLossActParam(int param_value, uint8_t
 	return action;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
+{
+	ActionOptions options{};
+
+	switch (command_after_high_wind_failsafe(param_value)) {
+	case command_after_high_wind_failsafe::None:
+		options.action = Action::None;
+		break;
+
+	case command_after_high_wind_failsafe::Warning:
+		options.action = Action::Warn;
+		break;
+
+	case command_after_high_wind_failsafe::Hold_mode:
+		options.allow_user_takeover = UserTakeoverAllowed::AlwaysModeSwitchOnly; // ensure the user can escape again
+		options.action = Action::Hold;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case command_after_high_wind_failsafe::Return_mode:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case command_after_high_wind_failsafe::Terminate:
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
+		options.action = Action::Terminate;
+		options.clear_condition = ClearCondition::Never;
+		break;
+
+	case command_after_high_wind_failsafe::Land_mode:
+		options.action = Action::Land;
+		break;
+
+	default:
+		options.action = Action::Warn;
+		break;
+	}
+
+	return options;
+}
+
 void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 				 const failsafe_flags_s &status_flags)
 {
@@ -390,9 +432,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		}
 	}
 
-
 	CHECK_FAILSAFE(status_flags, wind_limit_exceeded,
-		       ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm).cannotBeDeferred());
+		       ActionOptions(fromHighWindLimitActParam(_param_com_wind_max_act.get()).cannotBeDeferred()));
 	CHECK_FAILSAFE(status_flags, flight_time_limit_exceeded, ActionOptions(Action::RTL).cannotBeDeferred());
 
 	// trigger RTL if low position accurancy is detected
@@ -401,11 +442,20 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, local_position_accuracy_low, ActionOptions(Action::RTL));
 	}
 
-	CHECK_FAILSAFE(status_flags, primary_geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
+	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 
 	// Battery
-	CHECK_FAILSAFE(status_flags, battery_low_remaining_time, ActionOptions(Action::RTL).causedBy(Cause::BatteryLow));
-	CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
+	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
+		       ActionOptions(Action::RTL).causedBy(Cause::BatteryLow).clearOn(ClearCondition::OnModeChangeOrDisarm));
+
+	if ((_armed_time != 0)
+	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
+	   ) {
+		CHECK_FAILSAFE(status_flags, battery_unhealthy, ActionOptions(Action::Disarm).cannotBeDeferred());
+
+	} else {
+		CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
+	}
 
 	switch (status_flags.battery_warning) {
 	case battery_status_s::BATTERY_WARNING_LOW:

@@ -10,3 +10,11 @@ menuconfig USER_FW_POS_CONTROL
 	depends on BOARD_PROTECTED && MODULES_FW_POS_CONTROL
 	---help---
 		Put fw_pos_control in userspace memory
+
+menuconfig FIGURE_OF_EIGHT
+	bool "fw_pos_control figure of eight loiter support"
+	default n
+	depends on MODULES_FW_POS_CONTROL
+	---help---
+		Enable support for the figure of eight loitering pattern in fixed wing.
+		NOTE: Enable Mavlink development support to get feedback message.

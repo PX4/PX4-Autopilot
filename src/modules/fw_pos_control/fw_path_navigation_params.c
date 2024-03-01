@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -177,19 +177,6 @@ PARAM_DEFINE_FLOAT(NPFG_SW_DST_MLT, 0.32f);
  */
 PARAM_DEFINE_FLOAT(NPFG_PERIOD_SF, 1.5f);
 
-/**
- * Trim throttle
- *
- * This is the throttle setting required to achieve FW_AIRSPD_TRIM during level flight.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_THR_TRIM, 0.6f);
 
 /**
  * Throttle max slew rate
@@ -249,9 +236,8 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
 /**
  * Throttle limit max
  *
- * This is the maximum throttle % that can be used by the controller.
- * For overpowered aircraft, this should be reduced to a value that
- * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
+ * Maximum throttle limit in altitude controlled modes.
+ * Should be set accordingly to achieve FW_T_CLMB_MAX.
  *
  * @unit norm
  * @min 0.0
@@ -265,11 +251,9 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
 /**
  * Throttle limit min
  *
- * This is the minimum throttle % that can be used by the controller.
- * For electric aircraft this will normally be set to zero, but can be set
- * to a small non-zero value if a folding prop is fitted to prevent the
- * prop from folding and unfolding repeatedly in-flight or to provide
- * some aerodynamic drag from a turning prop to improve the descent rate.
+ * Minimum throttle limit in altitude controlled modes.
+ * Usually set to 0 but can be increased to prevent the motor from stopping when
+ * descending, which can increase achievable descent rates.
  *
  * For aircraft with internal combustion engine this parameter should be set
  * for desired idle rpm.
@@ -382,10 +366,7 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 1);
  *
  * When disabled, the landing configuration (flaps, landing airspeed, etc.) is only activated
  * on the final approach to landing. When enabled, it is already activated when entering the
- * final loiter-down (loiter-to-alt) waypoint before the landing approach. This shifts the (often large)
- * altitude and airspeed errors caused by the configuration change away from the ground such that
- * these are not so critical. It also gives the controller enough time to adapt to the new
- * configuration such that the landing approach starts with a cleaner initial state.
+ * final loiter-down (loiter-to-alt) waypoint before the landing approach.
  *
  * @boolean
  *
@@ -448,50 +429,16 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD, -1.f);
  * @unit
  * @min 0.2
  * @max 1.0
+ * @decimal 1
  * @increment 0.1
  * @group FW Auto Landing
  */
 PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
-
-
 /*
  * TECS parameters
  *
  */
-
-/**
- * Maximum climb rate
- *
- * This is the maximum climb rate that the aircraft can achieve with
- * the throttle set to THR_MAX and the airspeed set to the
- * trim value. For electric aircraft make sure this number can be
- * achieved towards the end of flight when the battery voltage has reduced.
- *
- * @unit m/s
- * @min 1.0
- * @max 15.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
-
-/**
- * Minimum descent rate
- *
- * This is the sink rate of the aircraft with the throttle
- * set to THR_MIN and flown at the same airspeed as used
- * to measure FW_T_CLMB_MAX.
- *
- * @unit m/s
- * @min 1.0
- * @max 5.0
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
 
 /**
  * Maximum descent rate
@@ -518,38 +465,34 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MAX, 5.0f);
  * Increase to add damping to correct for oscillations in speed and height.
  *
  * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.1
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.01
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.1f);
+PARAM_DEFINE_FLOAT(FW_T_THR_DAMPING, 0.05f);
 
 /**
  * Integrator gain throttle
  *
- * This is the integrator gain on the throttle part of the control loop.
- * Increasing this gain increases the speed at which speed
- * and height offsets are trimmed out, but reduces damping and
- * increases overshoot. Set this value to zero to completely
- * disable all integrator action.
+ * Integrator gain on the throttle part of the control loop.
+ * Increase it to trim out speed and height offsets faster,
+ * with the downside of possible overshoots and oscillations.
  *
  * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.05
+ * @max 1.0
+ * @decimal 3
+ * @increment 0.005
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_I_GAIN_THR, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_THR_INTEG, 0.02f);
 
 /**
  * Integrator gain pitch
  *
- * This is the integrator gain on the pitch part of the control loop.
- * Increasing this gain increases the speed at which speed
- * and height offsets are trimmed out, but reduces damping and
- * increases overshoot. Set this value to zero to completely
- * disable all integrator action.
+ * Integrator gain on the pitch part of the control loop.
+ * Increase it to trim out speed and height offsets faster,
+ * with the downside of possible overshoots and oscillations.
  *
  * @min 0.0
  * @max 2.0
@@ -824,32 +767,6 @@ PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
  */
 PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);
 
-/**
- * Vehicle base weight.
- *
- * This is the weight of the vehicle at which it's performance limits were derived. A zero or negative value
- * disables trim throttle and minimum airspeed compensation based on weight.
- *
- * @unit kg
- * @decimal 1
- * @increment 0.5
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(WEIGHT_BASE, -1.0f);
-
-/**
- * Vehicle gross weight.
- *
- * This is the actual weight of the vehicle at any time. This value will differ from WEIGHT_BASE in case weight was added
- * or removed from the base weight. Examples are the addition of payloads or larger batteries. A zero or negative value
- * disables trim throttle and minimum airspeed compensation based on weight.
- *
- * @unit kg
- * @decimal 1
- * @increment 0.1
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);
 
 /**
  * The aircraft's wing span (length from tip to tip).
@@ -989,8 +906,6 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
  * system more robust against disturbances (turbulence) in high wind.
  * Only applies to AUTO flight mode.
  *
- * airspeed_min_adjusted = FW_AIRSPD_MIN + FW_WIND_ARSP_SC * wind.length()
- *
  * @min 0
  * @decimal 2
  * @increment 0.01
@@ -999,10 +914,9 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
 PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
 
 /**
- * FW Launch detection
+ * Fixed-wing launch detection
  *
  * Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
- * Only available for fixed-wing vehicles.
  * Not compatible with runway takeoff.
  *
  * @boolean
@@ -1063,33 +977,3 @@ PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
-
-/**
- * Throttle at min airspeed
- *
- * Required throttle for level flight at minimum airspeed FW_AIRSPD_MIN (sea level, standard atmosphere)
- *
- * Set to 0 to disable mapping of airspeed to trim throttle below FW_AIRSPD_TRIM.
- *
- * @min 0
- * @max 1
- * @decimal 2
- * @increment 0.01
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_THR_ASPD_MIN, 0.f);
-
-/**
- * Throttle at max airspeed
- *
- * Required throttle for level flight at maximum airspeed FW_AIRSPD_MAX (sea level, standard atmosphere)
- *
- * Set to 0 to disable mapping of airspeed to trim throttle.
- *
- * @min 0
- * @max 1
- * @decimal 2
- * @increment 0.01
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_THR_ASPD_MAX, 0.f);

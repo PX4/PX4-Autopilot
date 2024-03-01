@@ -12,10 +12,16 @@ param set-default MAV_2_RATE 100000
 param set-default MAV_2_REMOTE_PRT 14550
 param set-default MAV_2_UDP_PRT 14550
 
+# By disabling all 3 INA modules, we use the
+# i2c_launcher instead.
 param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0
-param set-default SENS_EN_INA226 1
+param set-default SENS_EN_INA226 0
 
-param set-default SYS_USE_IO 1
+if ver hwbasecmp 009 010
+then
+	# Skynode: use the "custom participant" config for uxrce_dds_client
+	param set-default UXRCE_DDS_PTCFG 2
+fi
 
 safety_button start

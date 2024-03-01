@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,24 +37,20 @@
 using namespace time_literals;
 
 AirspeedChecks::AirspeedChecks()
-	: _param_fw_arsp_mode_handle(param_find("FW_ARSP_MODE")), _param_fw_airspd_max_handle(param_find("FW_AIRSPD_MAX"))
+	: _param_fw_airspd_max_handle(param_find("FW_AIRSPD_MAX"))
 {
 }
 
 void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	if (circuit_breaker_enabled_by_val(_param_cbrk_airspd_chk.get(), CBRK_AIRSPD_CHK_KEY) ||
+	if (_param_sys_has_num_aspd.get() <= 0 ||
 	    (context.status().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !context.status().is_vtol)) {
 		return;
 	}
 
-	int32_t airspeed_mode = 0;
-	param_get(_param_fw_arsp_mode_handle, &airspeed_mode);
-	const bool optional = (airspeed_mode == 1);
-
 	airspeed_validated_s airspeed_validated;
 
-	if (_airspeed_validated_sub.copy(&airspeed_validated) && hrt_elapsed_time(&airspeed_validated.timestamp) < 1_s) {
+	if (_airspeed_validated_sub.copy(&airspeed_validated) && hrt_elapsed_time(&airspeed_validated.timestamp) < 2_s) {
 
 		reporter.setIsPresent(health_component_t::differential_pressure);
 
@@ -100,13 +96,13 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-	} else if (!optional) {
+	} else {
 
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
 		 * Most likely the airspeed selector module is not running.
-		 * This check can be configured via <param>CBRK_AIRSPD_CHK</param> parameter.
+		 * This check can be configured via <param>SYS_HAS_NUM_ASPD</param> parameter.
 		 * </profile>
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::differential_pressure,

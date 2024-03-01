@@ -1,0 +1,10 @@
+menuconfig SYSTEMCMDS_I2C_LAUNCHER
+	bool "i2c_launcher"
+	default n
+	---help---
+		Daemon that starts drivers based on found I2C devices.
+
+menuconfig USER_I2C_LAUNCHER
+	bool "i2c_launcher running as userspace module"
+	default n
+	depends on SYSTEMCMDS_I2C_LAUNCHER

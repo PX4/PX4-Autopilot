@@ -35,7 +35,7 @@
 
 #include "FunctionProviderBase.hpp"
 
-#include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/actuator_motors.h>
 
 /**
  * Functions: Motor1 ... MotorMax

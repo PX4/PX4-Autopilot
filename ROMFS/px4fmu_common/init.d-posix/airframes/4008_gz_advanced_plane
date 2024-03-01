@@ -1,0 +1,82 @@
+#!/bin/sh
+#
+# @name Advanced Plane SITL
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=advanced_plane}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+
+param set-default FW_LND_ANG 8
+param set-default NPFG_PERIOD 12
+
+param set-default FW_MAN_P_MAX 30
+param set-default FW_PR_P 0.9
+param set-default FW_PR_FF 0.5
+param set-default FW_PR_I 0.5
+
+param set-default FW_PSP_OFF 2
+param set-default FW_P_LIM_MAX 32
+param set-default FW_P_LIM_MIN -15
+
+param set-default FW_RR_FF 0.5
+param set-default FW_RR_P 0.3
+param set-default FW_RR_I 0.5
+
+param set-default FW_YR_FF 0.5
+param set-default FW_YR_P 0.6
+param set-default FW_YR_I 0.5
+
+param set-default FW_SPOILERS_LND 0.4
+
+param set-default FW_THR_MIN 0.05
+param set-default FW_THR_TRIM 0.25
+
+param set-default FW_T_CLMB_MAX 8
+param set-default FW_T_SINK_MAX 2.7
+param set-default FW_T_SINK_MIN 2.2
+
+param set-default FW_W_EN 1
+
+param set-default MIS_TAKEOFF_ALT 30
+
+param set-default NAV_ACC_RAD 15
+param set-default NAV_DLL_ACT 2
+
+param set-default RWTO_TKOFF 1
+
+param set-default CA_AIRFRAME 1
+
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.3
+
+param set-default CA_SV_CS_COUNT 6
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 1
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS3_TRQ_Y 1
+param set-default CA_SV_CS3_TYPE 4
+param set-default CA_SV_CS4_TYPE 9
+param set-default CA_SV_CS5_TYPE 10
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_MIN1 10
+param set-default SIM_GZ_EC_MAX1 1600
+
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_FUNC5 205
+param set-default SIM_GZ_SV_FUNC6 206

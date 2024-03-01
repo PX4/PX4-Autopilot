@@ -1,0 +1,31 @@
+#!/bin/sh
+# @name Aion Robotics R1 Rover
+# @type Rover
+# @class Rover
+
+. ${R}etc/init.d/rc.rover_differential_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=r1_rover}
+
+param set-default SIM_GZ_EN 1 # Gazebo bridge
+
+# Simulated sensors
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+
+# Actuator mapping
+param set-default SIM_GZ_WH_FUNC1 101 # right wheel
+param set-default SIM_GZ_WH_MIN1 0
+param set-default SIM_GZ_WH_MAX1 200
+param set-default SIM_GZ_WH_DIS1 100
+
+param set-default SIM_GZ_WH_FUNC2 102 # left wheel
+param set-default SIM_GZ_WH_MIN2 0
+param set-default SIM_GZ_WH_MAX2 200
+param set-default SIM_GZ_WH_DIS2 100
+
+param set-default SIM_GZ_WH_REV 1 # reverse right wheel

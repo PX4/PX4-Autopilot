@@ -79,8 +79,6 @@ private:
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();
 
-	float PressureToAltitude(float pressure_pa, float temperature = 15.f) const;
-
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	uORB::Publication<sensors_status_s> _sensors_status_baro_pub{ORB_ID(sensors_status_baro)};

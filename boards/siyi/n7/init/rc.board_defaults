@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+param set-default MAV_0_RATE 100000
+
+param set-default BAT1_V_DIV 18.1
+
+param set-default BAT1_A_PER_V 36.367515152
+
+# Enable IMU thermal control
+param set-default SENS_EN_THERMAL 1

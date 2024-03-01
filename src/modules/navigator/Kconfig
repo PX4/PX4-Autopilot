@@ -10,3 +10,12 @@ menuconfig USER_NAVIGATOR
 	depends on BOARD_PROTECTED && MODULES_NAVIGATOR
 	---help---
 		Put navigator in userspace memory
+
+menuconfig MODE_NAVIGATOR_VTOL_TAKEOFF
+	bool "Include VTOL takeoff mode support"
+	default n
+	depends on MODULES_NAVIGATOR
+	---help---
+		Add VTOL takeoff mode to enable support for MAV_CMD_NAV_VTOL_TAKEOFF.
+		The VTOL takes off in MC mode and transition to FW. The mode ends with
+		an infinite loiter

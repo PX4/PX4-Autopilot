@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 ## Bash script to setup PX4 development environment on Arch Linux.
-## Tested on Manjaro 20.2.1.
+## Tested on Arch 2023-03-01
 ##
 ## Installs:
 ## - Common dependencies and tools for nuttx, jMAVSim
@@ -50,6 +50,7 @@ sudo pacman -Sy --noconfirm --needed \
 	cmake \
 	cppcheck \
 	doxygen \
+	fuse2 \
 	gdb \
 	git \
 	gnutls \
@@ -66,7 +67,7 @@ sudo pacman -Sy --noconfirm --needed \
 
 # Python dependencies
 echo "Installing PX4 Python3 dependencies"
-pip install --user -r ${DIR}/requirements.txt
+pip install --break-system-packages -r ${DIR}/${REQUIREMENTS_FILE}
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -74,45 +75,17 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo "Installing NuttX dependencies"
 
 	sudo pacman -S --noconfirm --needed \
-		gperf \
-		vim \
+		arm-none-eabi-gcc \
+		arm-none-eabi-newlib \
 		;
 
 	if [ ! -z "$USER" ]; then
 		# add user to dialout group (serial port access)
-		sudo usermod -aG uucp $USER
+		sudo echo usermod -aG uucp $USER
 	fi
 
-	# remove modem manager (interferes with PX4 serial port usage)
-	sudo pacman -R modemmanager --noconfirm
-
-	# arm-none-eabi-gcc
-	NUTTX_GCC_VERSION="10-2020-q4-major"
-	NUTTX_GCC_VERSION_SHORT="10-2020q4"
-
-	source $HOME/.profile # load changed path for the case the script is reran before relogin
-	if [ $(which arm-none-eabi-gcc) ]; then
-		GCC_VER_STR=$(arm-none-eabi-gcc --version)
-		GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
-	fi
-
-	if [[ "$GCC_FOUND_VER" == "1" ]]; then
-		echo "arm-none-eabi-gcc-${NUTTX_GCC_VERSION} found, skipping installation"
-
-	else
-		echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-x86_64-linux.tar.bz2 && \
-			sudo tar -jxf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 -C /opt/;
-
-		# add arm-none-eabi-gcc to user's PATH
-		exportline="export PATH=/opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}/bin:\$PATH"
-
-		if grep -Fxq "$exportline" $HOME/.profile; then
-			echo "${NUTTX_GCC_VERSION} path already set.";
-		else
-			echo $exportline >> $HOME/.profile;
-		fi
-	fi
+	# don't run modem manager (interferes with PX4 serial port usage)
+	sudo systemctl disable --now ModemManager
 fi
 
 # Simulation tools
@@ -122,8 +95,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 
 	# java (jmavsim)
 	sudo pacman -S --noconfirm --needed \
-		ant \
-		jdk-openjdk \
+		ant
 		;
 
 	# Gazebo setup
@@ -161,5 +133,5 @@ fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
-	echo "Reboot or logout, login computer before attempting to build NuttX targets"
+	echo "Reboot or logout, login computer before attempting to flash NuttX targets"
 fi

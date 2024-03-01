@@ -68,7 +68,7 @@ def getAllData(logfile):
               getData(log, 'vehicle_attitude', 'q[3]')])
     t_q = ms2s(getData(log, 'vehicle_attitude', 'timestamp'))
 
-    gnss_h = getData(log, 'vehicle_gps_position', 'alt') * 1e-3
+    gnss_h = getData(log, 'vehicle_gps_position', 'altitude_msl_m')
     t_gnss = ms2s(getData(log, 'vehicle_gps_position', 'timestamp'))
 
     (t_aligned, v_body_aligned, baro_aligned, v_local_z_aligned, gnss_h_aligned, baro_bias_aligned) = alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_h, t_baro_bias, baro_bias)
@@ -175,7 +175,7 @@ def run(logfile):
     res = optimize.minimize(J, x0, method='nelder-mead', options={'disp': True})
 
     # Convert results to parameters
-    g = 9.81
+    g = 9.80665
     pcoef_xn = res.x[0] * g
     pcoef_xp = res.x[1] * g
     pcoef_yn = res.x[2] * g

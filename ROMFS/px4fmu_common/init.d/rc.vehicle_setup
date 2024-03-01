@@ -33,6 +33,15 @@ then
 fi
 
 #
+# Differential Rover setup.
+#
+if [ $VEHICLE_TYPE = rover_differential ]
+then
+	# Start differential drive rover apps.
+	. ${R}etc/init.d/rc.rover_differential_apps
+fi
+
+#
 # VTOL setup.
 #
 if [ $VEHICLE_TYPE = vtol ]

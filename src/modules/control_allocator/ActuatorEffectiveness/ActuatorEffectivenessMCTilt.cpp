@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,7 +55,7 @@ ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration
 	const bool rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	// Tilts
-	int first_tilt_idx = configuration.num_actuators_matrix[0];
+	_first_tilt_idx = configuration.num_actuators_matrix[0];
 	_tilts.updateTorqueSign(_mc_rotors.geometry());
 	const bool tilts_added_successfully = _tilts.addActuators(configuration);
 
@@ -69,7 +69,7 @@ ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration
 
 		if (delta_angle > FLT_EPSILON) {
 			float trim = -1.f - 2.f * _tilts.config(i).min_angle / delta_angle;
-			_tilt_offsets(first_tilt_idx + i) = trim;
+			_tilt_offsets(_first_tilt_idx + i) = trim;
 		}
 	}
 
@@ -82,4 +82,49 @@ void ActuatorEffectivenessMCTilt::updateSetpoint(const matrix::Vector<float, NUM
 {
 	actuator_sp += _tilt_offsets;
 	// TODO: dynamic matrix update
+
+	bool yaw_saturated_positive = true;
+	bool yaw_saturated_negative = true;
+
+	for (int i = 0; i < _tilts.count(); ++i) {
+
+		// custom yaw saturation logic: only declare yaw saturated if all tilts are at the negative or positive yawing limit
+		if (_tilts.getYawTorqueOfTilt(i) > FLT_EPSILON) {
+
+			if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
+				yaw_saturated_positive = false;
+			}
+
+			if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
+				yaw_saturated_negative = false;
+			}
+
+		} else if (_tilts.getYawTorqueOfTilt(i) < -FLT_EPSILON) {
+			if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
+				yaw_saturated_negative = false;
+			}
+
+			if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
+				yaw_saturated_positive = false;
+			}
+		}
+	}
+
+	_yaw_tilt_saturation_flags.tilt_yaw_neg = yaw_saturated_negative;
+	_yaw_tilt_saturation_flags.tilt_yaw_pos = yaw_saturated_positive;
+}
+
+void ActuatorEffectivenessMCTilt::getUnallocatedControl(int matrix_index, control_allocator_status_s &status)
+{
+	// Note: the values '-1', '1' and '0' are just to indicate a negative,
+	// positive or no saturation to the rate controller. The actual magnitude is not used.
+	if (_yaw_tilt_saturation_flags.tilt_yaw_pos) {
+		status.unallocated_torque[2] = 1.f;
+
+	} else if (_yaw_tilt_saturation_flags.tilt_yaw_neg) {
+		status.unallocated_torque[2] = -1.f;
+
+	} else {
+		status.unallocated_torque[2] = 0.f;
+	}
 }

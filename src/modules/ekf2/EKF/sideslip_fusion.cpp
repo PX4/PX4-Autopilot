@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -42,8 +42,8 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_sideslip_innov_and_innov_var.h"
-#include "python/ekf_derivation/generated/compute_sideslip_h_and_k.h"
+#include <ekf_derivation/generated/compute_sideslip_innov_and_innov_var.h>
+#include <ekf_derivation/generated/compute_sideslip_h_and_k.h>
 
 #include <mathlib/mathlib.h>
 
@@ -71,9 +71,7 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 				resetWindToZero();
 			}
 
-			if (Vector2f(Vector2f(_state.vel) - _state.wind_vel).longerThan(7.f)) {
-				fuseSideslip(_aid_src_sideslip);
-			}
+			fuseSideslip(_aid_src_sideslip);
 		}
 	}
 }
@@ -87,14 +85,12 @@ void Ekf::updateSideslip(estimator_aid_source1d_s &sideslip) const
 
 	float innov = 0.f;
 	float innov_var = 0.f;
-	sym::ComputeSideslipInnovAndInnovVar(getStateAtFusionHorizonAsVector(), P, R, FLT_EPSILON, &innov, &innov_var);
+	sym::ComputeSideslipInnovAndInnovVar(_state.vector(), P, R, FLT_EPSILON, &innov, &innov_var);
 
 	sideslip.observation = 0.f;
 	sideslip.observation_variance = R;
 	sideslip.innovation = innov;
 	sideslip.innovation_variance = innov_var;
-
-	sideslip.fusion_enabled = _control_status.flags.fuse_aspd;
 
 	sideslip.timestamp_sample = _time_delayed_us;
 
@@ -135,15 +131,15 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 
 	_fault_status.flags.bad_sideslip = false;
 
-	Vector24f H; // Observation jacobian
-	Vector24f K; // Kalman gain vector
+	VectorState H; // Observation jacobian
+	VectorState K; // Kalman gain vector
 
-	sym::ComputeSideslipHAndK(getStateAtFusionHorizonAsVector(), P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
+	sym::ComputeSideslipHAndK(_state.vector(), P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
 
 	if (update_wind_only) {
-		for (unsigned row = 0; row <= 21; row++) {
-			K(row) = 0.f;
-		}
+		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
+		K.setZero();
+		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
 	const bool is_fused = measurementUpdate(K, sideslip.innovation_variance, sideslip.innovation);

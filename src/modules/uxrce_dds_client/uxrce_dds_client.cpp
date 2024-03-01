@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,9 @@
 #include <px4_platform_common/posix.h>
 
 #include "uxrce_dds_client.h"
+
+// services
+#include "vehicle_command_srv.h"
 
 #include <uxr/client/client.h>
 #include <uxr/client/util/ping.h>
@@ -73,8 +76,6 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 		Timesync *timesync = static_cast<Timesync *>(args);
 		timesync->update(current_time / 1000, transmit_timestamp, originate_timestamp);
 
-		//fprintf(stderr, "time_offset: %ld, timesync: %ld, diff: %ld\n", session->time_offset/1000, timesync->offset(), session->time_offset/1000 + timesync->offset());
-
 		session->time_offset = -timesync->offset() * 1000; // us -> ns
 	}
 }
@@ -85,12 +86,31 @@ void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received
 	session->time_offset = 0;
 }
 
+
+void on_request(
+	uxrSession *session,
+	uxrObjectId object_id,
+	uint16_t request_id,
+	SampleIdentity *sample_id,
+	ucdrBuffer *ub,
+	uint16_t length,
+	void *args)
+{
+	(void) request_id;
+	(void) length;
+	(void) args;
+
+	const int64_t time_offset_us = session->time_offset / 1000; // ns -> us
+
+	UxrceddsClient *client = (UxrceddsClient *)args;
+
+	client->process_requests(object_id, sample_id, ub, time_offset_us);
+}
+
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
-			       const char *port, bool localhost_only, bool custom_participant, const char *client_namespace,
-			       bool synchronize_timestamps) :
+			       const char *port, const char *client_namespace) :
 	ModuleParams(nullptr),
-	_localhost_only(localhost_only), _custom_participant(custom_participant),
-	_client_namespace(client_namespace), _synchronize_timestamps(synchronize_timestamps)
+	_client_namespace(client_namespace)
 {
 	if (transport == Transport::Serial) {
 
@@ -102,7 +122,7 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 			if (fd < 0) {
 				PX4_ERR("open %s failed (%i)", device, errno);
 				// sleep before trying again
-				usleep(1'000'000);
+				px4_usleep(1_s);
 
 			} else {
 				break;
@@ -142,16 +162,22 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 			}
 		}
 
+
 #else
 		PX4_ERR("UDP not supported");
 #endif
 	}
+
+	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
+	_synchronize_timestamps = _param_uxrce_dds_synct.get() > 0;
 }
 
 UxrceddsClient::~UxrceddsClient()
 {
 	delete _subs;
 	delete _pubs;
+
+	delete_repliers();
 
 	if (_transport_serial) {
 		uxr_close_serial_transport(_transport_serial);
@@ -161,6 +187,100 @@ UxrceddsClient::~UxrceddsClient()
 	if (_transport_udp) {
 		uxr_close_udp_transport(_transport_udp);
 		delete _transport_udp;
+	}
+}
+
+static void fillMessageFormatResponse(const message_format_request_s &message_format_request,
+				      message_format_response_s &message_format_response)
+{
+	message_format_response.protocol_version = message_format_request_s::LATEST_PROTOCOL_VERSION;
+	message_format_response.success = false;
+
+	if (message_format_request.protocol_version == message_format_request_s::LATEST_PROTOCOL_VERSION) {
+		static_assert(sizeof(message_format_request.topic_name) == sizeof(message_format_response.topic_name), "size mismatch");
+		memcpy(message_format_response.topic_name, message_format_request.topic_name,
+		       sizeof(message_format_response.topic_name));
+
+		// Get the topic name by searching for the last '/'
+		int idx_last_slash = -1;
+		bool found_null = false;
+
+		for (int i = 0; i < (int)sizeof(message_format_request.topic_name); ++i) {
+			if (message_format_request.topic_name[i] == 0) {
+				found_null = true;
+				break;
+			}
+
+			if (message_format_request.topic_name[i] == '/') {
+				idx_last_slash = i;
+			}
+		}
+
+		if (found_null && idx_last_slash != -1) {
+			const char *topic_name = message_format_request.topic_name + idx_last_slash + 1;
+			// Find the format
+			const orb_metadata *const *topics = orb_get_topics();
+			const orb_metadata *topic_meta{nullptr};
+
+			for (size_t i = 0; i < orb_topics_count(); i++) {
+				if (strcmp(topic_name, topics[i]->o_name) == 0) {
+					topic_meta = topics[i];
+					break;
+				}
+			}
+
+			if (topic_meta) {
+				message_format_response.message_hash = topic_meta->message_hash;
+				// The topic type is already checked by DDS
+				message_format_response.success = true;
+			}
+		}
+	}
+
+	message_format_response.timestamp = hrt_absolute_time();
+}
+
+void UxrceddsClient::handleMessageFormatRequest()
+{
+	message_format_request_s message_format_request;
+
+	if (_message_format_request_sub.update(&message_format_request)) {
+		message_format_response_s message_format_response;
+		fillMessageFormatResponse(message_format_request, message_format_response);
+		_message_format_response_pub.publish(message_format_response);
+	}
+}
+
+void UxrceddsClient::syncSystemClock(uxrSession *session)
+{
+	struct timespec ts = {};
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
+
+	// UTC timestamps in microseconds
+	int64_t system_utc = int64_t(ts.tv_sec) * 1000000LL + int64_t(ts.tv_nsec / 1000L);
+	int64_t agent_utc = int64_t(hrt_absolute_time()) + (session->time_offset / 1000LL); // ns to us
+
+	uint64_t delta = abs(system_utc - agent_utc);
+
+	if (delta < 5_s) {
+		// Only set the time if it's more than 5 seconds off (matches Mavlink and GPS logic)
+		PX4_DEBUG("agents UTC time is %s by %-5" PRId64 "us, not setting clock", agent_utc > system_utc ? "ahead" : "behind",
+			  llabs(system_utc - agent_utc));
+		return;
+	}
+
+	ts.tv_sec = agent_utc / 1_s;
+	ts.tv_nsec = (agent_utc % 1_s) * 1000;
+
+	if (px4_clock_settime(CLOCK_REALTIME, &ts)) {
+		PX4_ERR("failed setting system clock");
+
+	} else {
+		char buf[40];
+		struct tm date_time;
+		localtime_r(&ts.tv_sec, &date_time);
+		strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &date_time);
+		PX4_INFO("successfully set system clock: %s", buf);
 	}
 }
 
@@ -193,7 +313,7 @@ void UxrceddsClient::run()
 
 		// Session
 		// The key identifier of the Client. All Clients connected to an Agent must have a different key.
-		const uint32_t key = (uint32_t)_param_xrce_key.get();
+		const uint32_t key = (uint32_t)_param_uxrce_key.get();
 
 		if (key == 0) {
 			PX4_ERR("session key must be different from zero");
@@ -225,68 +345,63 @@ void UxrceddsClient::run()
 		uxrStreamId reliable_in = uxr_create_input_reliable_stream(&session, input_reliable_stream_buffer,
 					  sizeof(input_reliable_stream_buffer),
 					  STREAM_HISTORY);
-		(void)reliable_in;
 
 		uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(&session);
-		(void)best_effort_in;
 
 		// Create entities
 		uxrObjectId participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
 
-		uint16_t domain_id = _param_xrce_dds_dom_id.get();
-
-		// const char *participant_name = "px4_micro_xrce_dds";
-		// uint16_t participant_req = uxr_buffer_create_participant_bin(&session, reliable_out, participant_id, domain_id,
-		// 			   participant_name, UXR_REPLACE);
-
-		char participant_xml[PARTICIPANT_XML_SIZE];
-		int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
-				   _localhost_only ?
-				   "<dds>"
-				   "<profiles>"
-				   "<transport_descriptors>"
-				   "<transport_descriptor>"
-				   "<transport_id>udp_localhost</transport_id>"
-				   "<type>UDPv4</type>"
-				   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
-				   "</transport_descriptor>"
-				   "</transport_descriptors>"
-				   "</profiles>"
-				   "<participant>"
-				   "<rtps>"
-				   :
-				   "<dds>"
-				   "<participant>"
-				   "<rtps>",
-				   _client_namespace != nullptr ?
-				   _client_namespace
-				   :
-				   "",
-				   _localhost_only ?
-				   "<useBuiltinTransports>false</useBuiltinTransports>"
-				   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
-				   "</rtps>"
-				   "</participant>"
-				   "</dds>"
-				   :
-				   "</rtps>"
-				   "</participant>"
-				   "</dds>"
-				  );
-
-		if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
-			PX4_ERR("create entities failed: namespace too long");
-			return;
-		}
-
+		uint16_t domain_id = _param_uxrce_dds_dom_id.get();
 
 		uint16_t participant_req{};
 
-		if (_custom_participant) {
+		if (_participant_config == ParticipantConfig::Custom) {
+			// Create participant by reference (XML not required)
 			participant_req = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id, domain_id,
 					  "px4_participant", UXR_REPLACE);
 
 		} else {
+			// Construct participant XML and create participant by XML
+			char participant_xml[PARTICIPANT_XML_SIZE];
+			int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
+					   (_participant_config == ParticipantConfig::LocalHostOnly) ?
+					   "<dds>"
+					   "<profiles>"
+					   "<transport_descriptors>"
+					   "<transport_descriptor>"
+					   "<transport_id>udp_localhost</transport_id>"
+					   "<type>UDPv4</type>"
+					   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
+					   "</transport_descriptor>"
+					   "</transport_descriptors>"
+					   "</profiles>"
+					   "<participant>"
+					   "<rtps>"
+					   :
+					   "<dds>"
+					   "<participant>"
+					   "<rtps>",
+					   _client_namespace != nullptr ?
+					   _client_namespace
+					   :
+					   "",
+					   (_participant_config == ParticipantConfig::LocalHostOnly) ?
+					   "<useBuiltinTransports>false</useBuiltinTransports>"
+					   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
+					   "</rtps>"
+					   "</participant>"
+					   "</dds>"
+					   :
+					   "</rtps>"
+					   "</participant>"
+					   "</dds>"
+					  );
+
+			if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
+				PX4_ERR("create entities failed: namespace too long");
+				return;
+			}
+
 			participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, domain_id,
 					  participant_xml, UXR_REPLACE);
 		}
@@ -303,6 +418,15 @@ void UxrceddsClient::run()
 			return;
 		}
 
+		// create VehicleCommand replier
+		if (num_of_repliers < MAX_NUM_REPLIERS) {
+			if (add_replier(new VehicleCommandSrv(&session, reliable_out, reliable_in, participant_id, _client_namespace,
+							      num_of_repliers))) {
+				PX4_ERR("replier init failed");
+				return;
+			}
+		}
+
 		_connected = true;
 
 		// Set time-callback.
@@ -313,19 +437,21 @@ void UxrceddsClient::run()
 			uxr_set_time_callback(&session, on_time_no_sync, nullptr);
 		}
 
-		// Synchronize with the Agent
-		bool synchronized = false;
+		uxr_set_request_callback(&session, on_request, this);
 
-		while (_synchronize_timestamps && !synchronized) {
-			synchronized = uxr_sync_session(&session, 1000);
-
-			if (synchronized) {
+		// Spin until sync with the Agent
+		while (_synchronize_timestamps) {
+			if (uxr_sync_session(&session, 1000) && _timesync.sync_converged()) {
 				PX4_INFO("synchronized with time offset %-5" PRId64 "us", session.time_offset / 1000);
-				//sleep(1);
 
-			} else {
-				usleep(10000);
+				if (_param_uxrce_dds_syncc.get() > 0) {
+					syncSystemClock(&session);
+				}
+
+				break;
 			}
+
+			px4_usleep(10_ms);
 		}
 
 		hrt_abstime last_sync_session = 0;
@@ -335,20 +461,61 @@ void UxrceddsClient::run()
 		bool had_ping_reply = false;
 		uint32_t last_num_payload_sent{};
 		uint32_t last_num_payload_received{};
+		int poll_error_counter = 0;
+
+		_subs->init();
 
 		while (!should_exit() && _connected) {
 
+			/* Wait for topic updates for max 1000 ms (1sec) */
+			int poll = px4_poll(&_subs->fds[0], (sizeof(_subs->fds) / sizeof(_subs->fds[0])), 1000);
+
+			/* Handle the poll results */
+			if (poll == 0) {
+				/* Timeout, no updates in selected uorbs */
+				continue;
+
+			} else if (poll < 0) {
+				/* Error */
+				if (poll_error_counter < 10 || poll_error_counter % 50 == 0) {
+					/* Prevent flooding */
+					PX4_ERR("ERROR while polling uorbs: %d", poll);
+				}
+
+				poll_error_counter++;
+				continue;
+			}
+
 			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
 
-			uxr_run_session_timeout(&session, 0);
+			// check if there are available replies
+			process_replies();
+
+			// Run the session until we receive no more data or up to a maximum number of iterations.
+			// The maximum observed number of iterations was 6 (SITL). If we were to run only once, data starts to get
+			// delayed, causing registered flight modes to time out.
+			for (int i = 0; i < 10; ++i) {
+				const uint32_t prev_num_payload_received = _pubs->num_payload_received;
+				uxr_run_session_timeout(&session, 0);
+
+				if (_pubs->num_payload_received == prev_num_payload_received) {
+					break;
+				}
+			}
 
 			// time sync session
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
-				if (uxr_sync_session(&session, 100)) {
+				if (uxr_sync_session(&session, 100) && _timesync.sync_converged()) {
 					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
+
+					if (_param_uxrce_dds_syncc.get() > 0) {
+						syncSystemClock(&session);
+					}
 				}
 			}
+
+			handleMessageFormatRequest();
 
 			// Check for a ping response
 			/* PONG_IN_SESSION_STATUS */
@@ -388,13 +555,15 @@ void UxrceddsClient::run()
 				_connected = false;
 			}
 
-			px4_usleep(1000);
 		}
+
+		delete_repliers();
 
 		uxr_delete_session_retries(&session, _connected ? 1 : 0);
 		_last_payload_tx_rate = 0;
 		_last_payload_tx_rate = 0;
 		_subs->reset();
+		_timesync.reset_filter();
 	}
 }
 
@@ -535,6 +704,46 @@ int UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	return 0;
 }
 
+bool UxrceddsClient::add_replier(SrvBase *replier)
+{
+	if (num_of_repliers < MAX_NUM_REPLIERS) {
+		repliers_[num_of_repliers] = replier;
+
+		num_of_repliers++;
+	}
+
+	return false;
+}
+
+void UxrceddsClient::process_requests(uxrObjectId object_id, SampleIdentity *sample_id, ucdrBuffer *ub,
+				      const int64_t time_offset_us)
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		if (object_id.id == repliers_[i]->replier_id_.id
+		    && object_id.type == repliers_[i]->replier_id_.type) {
+			repliers_[i]->process_request(ub, time_offset_us);
+			memcpy(&(repliers_[i]->sample_id_), sample_id, sizeof(repliers_[i]->sample_id_));
+			break;
+		}
+	}
+}
+
+void UxrceddsClient::process_replies()
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		repliers_[i]->process_reply();
+	}
+}
+
+void UxrceddsClient::delete_repliers()
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		delete (repliers_[i]);
+	}
+
+	num_of_repliers = 0;
+}
+
 int UxrceddsClient::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
@@ -563,21 +772,22 @@ int UxrceddsClient::print_status()
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
 	if (_transport_udp != nullptr) {
-		PX4_INFO("Using transport: udp");
-		PX4_INFO("Agent IP: %s", _agent_ip);
-		PX4_INFO("Agent port: %s", _port);
-
+		PX4_INFO("Using transport:     udp");
+		PX4_INFO("Agent IP:            %s", _agent_ip);
+		PX4_INFO("Agent port:          %s", _port);
+		PX4_INFO("Custom participant:  %s", _participant_config == ParticipantConfig::Custom ? "yes" : "no");
+		PX4_INFO("Localhost only:      %s", _participant_config == ParticipantConfig::LocalHostOnly ? "yes" : "no");
 	}
 
 #endif
 
 	if (_transport_serial != nullptr) {
-		PX4_INFO("Using transport: serial");
+		PX4_INFO("Using transport:     serial");
 	}
 
 	if (_connected) {
-		PX4_INFO("Payload tx: %i B/s", _last_payload_tx_rate);
-		PX4_INFO("Payload rx: %i B/s", _last_payload_rx_rate);
+		PX4_INFO("Payload tx:          %i B/s", _last_payload_tx_rate);
+		PX4_INFO("Payload rx:          %i B/s", _last_payload_rx_rate);
 	}
 
 	return 0;
@@ -601,12 +811,9 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 	const char *device = nullptr;
 	int baudrate = 921600;
 
-	bool localhost_only = false;
-	bool custom_participant = false;
-
 	const char *client_namespace = nullptr;//"px4";
 
-	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:lcn:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't':
 			if (!strcmp(myoptarg, "serial")) {
@@ -642,14 +849,6 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 
 		case 'p':
 			snprintf(port, PORT_MAX_LENGTH, "%s", myoptarg);
-			break;
-
-		case 'l':
-			localhost_only = true;
-			break;
-
-		case 'c':
-			custom_participant = true;
 			break;
 #endif // UXRCE_DDS_CLIENT_UDP
 
@@ -706,17 +905,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
-	// determines if timestamps should be synchronized
-	int32_t synchronize_timestamps = 0;
-	param_get(param_find("UXRCE_DDS_SYNCT"), &synchronize_timestamps);
-
-	if ((synchronize_timestamps != 1) && (synchronize_timestamps != 0)) {
-		PX4_ERR("UXRCE_DDS_SYNCT must be either 0 or 1");
-	}
-
-
-	return new UxrceddsClient(transport, device, baudrate, agent_ip, port, localhost_only, custom_participant,
-				  client_namespace, synchronize_timestamps);
+	return new UxrceddsClient(transport, device, baudrate, agent_ip, port, client_namespace);
 }
 
 int UxrceddsClient::print_usage(const char *reason)
@@ -742,8 +931,6 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('h', nullptr, "<IP>", "Agent IP. If not provided, defaults to UXRCE_DDS_AG_IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Restrict to localhost (use in combination with ROS_LOCALHOST_ONLY=1)", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Use custom participant config (profile_name=\"px4_participant\")", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

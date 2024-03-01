@@ -39,6 +39,7 @@
 #include <mavsdk/plugins/failure/failure.h>
 #include <mavsdk/plugins/info/info.h>
 #include <mavsdk/plugins/manual_control/manual_control.h>
+#include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
 #include <mavsdk/plugins/mission/mission.h>
 #include <mavsdk/plugins/mission_raw/mission_raw.h>
 #include <mavsdk/plugins/offboard/offboard.h>
@@ -48,6 +49,7 @@
 #include <atomic>
 #include <chrono>
 #include <ctime>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -108,6 +110,7 @@ public:
 	void set_rtl_altitude(const float altitude_m);
 	void set_height_source(HeightSource height_source);
 	void set_rc_loss_exception(RcLossException mask);
+	void set_param_vt_fwd_thrust_en(int value);
 	void arm();
 	void takeoff();
 	void land();
@@ -116,6 +119,7 @@ public:
 	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void wait_until_hovering(); // TODO: name suggests, that function waits for drone velocity to be zero and not just drone in the air
 	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout);
+	void wait_until_fixedwing(std::chrono::seconds timeout);
 	void wait_until_speed_lower_than(float speed, std::chrono::seconds timeout);
 	void prepare_square_mission(MissionOptions mission_options);
 	void prepare_straight_mission(MissionOptions mission_options);
@@ -138,9 +142,19 @@ public:
 	void request_ground_truth();
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.5f);
+	void check_tracks_mission_raw(float corridor_radius_m = 1.f, bool reverse = false);
+	void check_mission_land_within(float acceptance_radius_m);
 	void start_checking_altitude(const float max_deviation_m);
 	void stop_checking_altitude();
 	void check_current_altitude(float target_rel_altitude_m, float max_distance_m = 1.5f);
+	void execute_rtl_when_reaching_mission_sequence(int sequence_number);
+	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
+	void send_custom_mavlink_message(mavlink_message_t &message);
+	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
+
+	void enable_fixedwing_mectrics();
+	void check_airspeed_is_valid();
+	void check_airspeed_is_invalid();
 
 	// Blocking call to get the drone's current position in NED frame
 	std::array<float, 3> get_current_position_ned();
@@ -154,8 +168,12 @@ protected:
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
 	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
+	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
 	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
-	Telemetry::GroundTruth getHome()
+	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
+	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
+
+	const Telemetry::GroundTruth &getHome()
 	{
 		// Check if home was stored before it is accessed
 		CHECK(_home.absolute_altitude_m != NAN);
@@ -190,17 +208,16 @@ protected:
 	}
 
 private:
-	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
 	mavsdk::Mission::MissionItem create_mission_item(
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
 		const MissionOptions &mission_options,
 		const mavsdk::geometry::CoordinateTransformation &ct);
 
-	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
 	bool ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos, float min_distance_m);
 	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
-	void start_and_wait_for_first_mission_item();
+	void start_and_wait_for_mission_sequence(int sequence_number);
+	void start_and_wait_for_mission_sequence_raw(int sequence_number);
 	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
 	void wait_for_mission_finished(std::chrono::seconds timeout);
@@ -271,6 +288,7 @@ private:
 	std::unique_ptr<mavsdk::Failure> _failure{};
 	std::unique_ptr<mavsdk::Info> _info{};
 	std::unique_ptr<mavsdk::ManualControl> _manual_control{};
+	std::unique_ptr<MavlinkPassthrough> _mavlink_passthrough;
 	std::unique_ptr<mavsdk::Mission> _mission{};
 	std::unique_ptr<mavsdk::MissionRaw> _mission_raw{};
 	std::unique_ptr<mavsdk::Offboard> _offboard{};

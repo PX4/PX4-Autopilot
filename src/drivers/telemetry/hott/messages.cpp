@@ -249,7 +249,7 @@ build_gps_response(uint8_t *buffer, size_t *size)
 
 		if (lat < 0) {
 			msg.latitude_ns = 1;
-			lat = abs(lat);
+			lat = fabs(lat);
 		}
 
 		int deg;

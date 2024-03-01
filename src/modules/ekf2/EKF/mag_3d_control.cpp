@@ -63,6 +63,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 	_control_status.flags.mag_3D = (_params.mag_fusion_type == MagFuseType::AUTO)
 				       && _control_status.flags.mag
 				       && _control_status.flags.mag_aligned_in_flight
+				       && (_control_status.flags.mag_heading_consistent || !_control_status.flags.gps)
 				       && !_control_status.flags.mag_fault
 				       && isRecent(aid_src.time_last_fuse, 500'000)
 				       && getMagBiasVariance().longerThan(0.f) && !getMagBiasVariance().longerThan(sq(0.02f))
@@ -88,7 +89,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 	if (_control_status.flags.mag) {
 		aid_src.timestamp_sample = mag_sample.time_us;
-		aid_src.fusion_enabled = true;
 
 		if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
@@ -159,15 +159,13 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 			_control_status.flags.mag = true;
 
-			loadMagCovData();
-
 			// activate fusion, reset mag states and initialize variance if first init or in flight reset
 			if (!_control_status.flags.yaw_align
 			    || wmm_updated
 			    || !_mag_decl_cov_reset
 			    || !_state.mag_I.longerThan(0.f)
-			    || (P.slice<3, 3>(16, 16).diag().min() < sq(0.0001f)) // mag_I
-			    || (P.slice<3, 3>(19, 19).diag().min() < sq(0.0001f)) // mag_B
+			    || (getStateVariance<State::mag_I>().min() < kMagVarianceMin)
+			    || (getStateVariance<State::mag_B>().min() < kMagVarianceMin)
 			   ) {
 				ECL_INFO("starting %s fusion, resetting states", AID_SRC_NAME);
 
@@ -189,8 +187,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 			_nb_mag_3d_reset_available = 2;
 		}
 	}
-
-	aid_src.fusion_enabled = _control_status.flags.mag;
 }
 
 void Ekf::stopMagFusion()
@@ -211,8 +207,5 @@ void Ekf::stopMagFusion()
 		_fault_status.flags.bad_mag_z = false;
 
 		_fault_status.flags.bad_mag_decl = false;
-
-		saveMagCovData();
 	}
 }
-

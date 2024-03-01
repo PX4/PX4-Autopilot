@@ -245,8 +245,7 @@ void FlightTaskOrbit::_updateTrajectoryBoundaries()
 	// Update the constraints of the trajectories
 	_position_smoothing.setMaxAccelerationXY(_param_mpc_acc_hor.get()); // TODO : Should be computed using heading
 	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
-	float max_jerk = _param_mpc_jerk_auto.get();
-	_position_smoothing.setMaxJerk({max_jerk, max_jerk, max_jerk}); // TODO : Should be computed using heading
+	_position_smoothing.setMaxJerk(_param_mpc_jerk_auto.get()); // TODO : Should be computed using heading
 
 	if (_velocity_setpoint(2) < 0.f) { // up
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_up.get());

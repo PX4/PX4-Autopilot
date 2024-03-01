@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -204,30 +204,17 @@
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* HW Version and Revision drive signals Default to 1 to detect */
-#define BOARD_HAS_HW_VERSIONING
+#define BOARD_HAS_HW_SPLIT_VERSIONING
 
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PH4 */  GPIO_ADC3_INP15
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "ARKV6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0 and Rev 3,4 Sensor sets
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
 //                 Base/FMUM
-#define ARKV6X00   HW_VER_REV(0x0,0x0) // ARKV6X,                 Rev 0
-#define ARKV6X01   HW_VER_REV(0x0,0x1) // ARKV6X,     BMI388 I2C2 Rev 1
-#define ARKV6X03   HW_VER_REV(0x0,0x3) // ARKV6X,     Sensor Set  Rev 3
-#define ARKV6X04   HW_VER_REV(0x0,0x4) // ARKV6X,     Sensor Set  Rev 4
-#define ARKV6X10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
-#define ARKV6X13   HW_VER_REV(0x1,0x3) // NO PX4IO,   Sensor Set  Rev 3
-#define ARKV6X14   HW_VER_REV(0x1,0x4) // NO PX4IO,   Sensor Set  Rev 4
-//#define ARKV6X40   HW_VER_REV(0x4,0x0) // ARKV6X,                    HB CM4 base Rev 0 // never shipped
-//#define ARKV6X41   HW_VER_REV(0x4,0x1) // ARKV6X,     BMI388 I2C2    HB CM4 base Rev 1 // never shipped
-#define ARKV6X43   HW_VER_REV(0x4,0x3) // ARKV6X,     Sensor Set     HB CM4 base Rev 3
-#define ARKV6X44   HW_VER_REV(0x4,0x4) // ARKV6X,     Sensor Set     HB CM4 base Rev 4
-#define ARKV6X50   HW_VER_REV(0x5,0x0) // ARKV6X, ARKV6X Rev 0 with HB Mini Rev 5
-//#define ARKV6X51   HW_VER_REV(0x5,0x1) // ARKV6X,     BMI388 I2C2    HB Mini Rev 1 // never shipped
-#define ARKV6X53   HW_VER_REV(0x5,0x3) // ARKV6X,     Sensor Set     HB Mini Rev 3
-#define ARKV6X54   HW_VER_REV(0x5,0x4) // ARKV6X,     Sensor Set     HB Mini Rev 4
+#define ARKV6X_0   HW_FMUM_ID(0x0) // ARKV6X,     Sensor Set  Rev 0
+#define ARKV6X_1   HW_FMUM_ID(0x1) // ARKV6X,     Sensor Set  Rev 1
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
@@ -252,7 +239,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
-#define BOARD_PWM_FREQ	             1024000
 
 #define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
 #define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)

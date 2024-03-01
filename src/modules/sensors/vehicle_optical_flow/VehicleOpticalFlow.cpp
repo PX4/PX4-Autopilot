@@ -112,22 +112,34 @@ void VehicleOpticalFlow::Run()
 	if (_sensor_flow_sub.update(&sensor_optical_flow)) {
 
 		// clear data accumulation if there's a gap in data
-		if (((sensor_optical_flow.timestamp_sample - _flow_timestamp_sample_last)
-		     > sensor_optical_flow.integration_timespan_us * 1.5f)
-		    || (_accumulated_count > 0 && _quality_sum == 0)) {
+		const uint64_t integration_gap_threshold_us = sensor_optical_flow.integration_timespan_us * 2;
+
+		if ((sensor_optical_flow.timestamp_sample >= _flow_timestamp_sample_last + integration_gap_threshold_us)
+		    || (_accumulated_count > 0 && (sensor_optical_flow.quality > 0) && _quality_sum == 0)) {
+
 			ClearAccumulatedData();
 		}
 
 
-		const hrt_abstime timestamp_oldest = sensor_optical_flow.timestamp_sample - lroundf(
-				sensor_optical_flow.integration_timespan_us);
+		const hrt_abstime timestamp_oldest = sensor_optical_flow.timestamp_sample - sensor_optical_flow.integration_timespan_us;
 		const hrt_abstime timestamp_newest = sensor_optical_flow.timestamp;
 
 		// delta angle
 		//  - from sensor_optical_flow if available, otherwise use synchronized sensor_gyro if available
-		if (sensor_optical_flow.delta_angle_available && Vector3f(sensor_optical_flow.delta_angle).isAllFinite()) {
+		if (sensor_optical_flow.delta_angle_available && Vector2f(sensor_optical_flow.delta_angle).isAllFinite()) {
 			// passthrough integrated gyro if available
-			_delta_angle += _flow_rotation * Vector3f{sensor_optical_flow.delta_angle};
+			Vector3f delta_angle(sensor_optical_flow.delta_angle);
+
+			if (!PX4_ISFINITE(delta_angle(2))) {
+				// Some sensors only provide X and Y angular rates, rotate them but place back the NAN on the Z axis
+				delta_angle(2) = 0.f;
+				_delta_angle += _flow_rotation * delta_angle;
+				_delta_angle(2) = NAN;
+
+			} else {
+				_delta_angle += _flow_rotation * delta_angle;
+			}
+
 			_delta_angle_available = true;
 
 		} else {
@@ -203,12 +215,7 @@ void VehicleOpticalFlow::Run()
 			const float interval_us = 1e6f / _param_sens_flow_rate.get();
 
 			// don't allow publishing faster than SENS_FLOW_RATE
-			if (sensor_optical_flow.timestamp_sample < _last_publication_timestamp + interval_us) {
-				publish = false;
-			}
-
-			// integrate for full interval unless we haven't published recently
-			if ((hrt_elapsed_time(&_last_publication_timestamp) < 1_ms) && (_integration_timespan_us < interval_us)) {
+			if (_integration_timespan_us < interval_us) {
 				publish = false;
 			}
 		}
@@ -271,8 +278,6 @@ void VehicleOpticalFlow::Run()
 
 			vehicle_optical_flow.timestamp = hrt_absolute_time();
 			_vehicle_optical_flow_pub.publish(vehicle_optical_flow);
-			_last_publication_timestamp = vehicle_optical_flow.timestamp_sample;
-
 
 			// vehicle_optical_flow_vel if distance is available (for logging)
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
@@ -285,12 +290,12 @@ void VehicleOpticalFlow::Run()
 				// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
 				// is produced by a RH rotation of the image about the sensor axis.
 				const Vector2f flow_xy_rad{-vehicle_optical_flow.pixel_flow[0], -vehicle_optical_flow.pixel_flow[1]};
-				const Vector3f gyro_xyz{-vehicle_optical_flow.delta_angle[0], -vehicle_optical_flow.delta_angle[1], -vehicle_optical_flow.delta_angle[2]};
+				const Vector3f gyro_rate_integral{-vehicle_optical_flow.delta_angle[0], -vehicle_optical_flow.delta_angle[1], -vehicle_optical_flow.delta_angle[2]};
 
 				const float flow_dt = 1e-6f * vehicle_optical_flow.integration_timespan_us;
 
 				// compensate for body motion to give a LOS rate
-				const Vector2f flow_compensated_XY_rad = flow_xy_rad - gyro_xyz.xy();
+				const Vector2f flow_compensated_XY_rad = flow_xy_rad - gyro_rate_integral.xy();
 
 				Vector3f vel_optflow_body;
 				vel_optflow_body(0) = - range * flow_compensated_XY_rad(1) / flow_dt;
@@ -315,21 +320,18 @@ void VehicleOpticalFlow::Run()
 					flow_vel.vel_ne[1] = flow_vel_ne(1);
 				}
 
-				// flow_uncompensated_integral
-				flow_xy_rad.copyTo(flow_vel.flow_uncompensated_integral);
+				const Vector2f flow_rate(flow_xy_rad * (1.f / flow_dt));
+				flow_rate.copyTo(flow_vel.flow_rate_uncompensated);
 
-				// flow_compensated_integral
-				flow_compensated_XY_rad.copyTo(flow_vel.flow_compensated_integral);
+				const Vector2f flow_rate_compensated(flow_compensated_XY_rad * (1.f / flow_dt));
+				flow_rate_compensated.copyTo(flow_vel.flow_rate_compensated);
 
-				const Vector3f measured_body_rate(gyro_xyz * (1.f / flow_dt));
+				const Vector3f measured_body_rate(gyro_rate_integral * (1.f / flow_dt));
 
 				// gyro_rate
 				flow_vel.gyro_rate[0] = measured_body_rate(0);
 				flow_vel.gyro_rate[1] = measured_body_rate(1);
-
-				// gyro_rate_integral
-				flow_vel.gyro_rate_integral[0] = gyro_xyz(0);
-				flow_vel.gyro_rate_integral[1] = gyro_xyz(1);
+				flow_vel.gyro_rate[2] = measured_body_rate(2);
 
 				flow_vel.timestamp = hrt_absolute_time();
 

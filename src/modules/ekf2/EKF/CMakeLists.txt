@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2023 ECL Development Team. All rights reserved.
+#   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name ECL nor the names of its contributors may be
+# 3. Neither the name PX4 nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -33,39 +33,42 @@
 
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	baro_height_control.cpp
 	bias_estimator.cpp
 	control.cpp
 	covariance.cpp
 	ekf.cpp
 	ekf_helper.cpp
-	EKFGSF_yaw.cpp
 	estimator_interface.cpp
 	fake_height_control.cpp
 	fake_pos_control.cpp
-	gnss_height_control.cpp
-	gps_checks.cpp
-	gps_control.cpp
-	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
-	mag_3d_control.cpp
-	mag_control.cpp
-	mag_fusion.cpp
-	mag_heading_control.cpp
 	output_predictor.cpp
-	vel_pos_fusion.cpp
+	velocity_fusion.cpp
+	position_fusion.cpp
+	yaw_fusion.cpp
 	zero_innovation_heading_update.cpp
-	zero_gyro_update.cpp
-	zero_velocity_update.cpp
+
+	aid_sources/ZeroGyroUpdate.cpp
+	aid_sources/ZeroVelocityUpdate.cpp
 )
 
 if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS airspeed_fusion.cpp)
 endif()
 
+if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	list(APPEND EKF_SRCS aux_global_position.cpp)
+endif()
+
 if(CONFIG_EKF2_AUXVEL)
 	list(APPEND EKF_SRCS auxvel_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_BAROMETER)
+	list(APPEND EKF_SRCS
+		baro_height_control.cpp
+	)
 endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)
@@ -82,8 +85,30 @@ if(CONFIG_EKF2_EXTERNAL_VISION)
 	)
 endif()
 
+if(CONFIG_EKF2_GNSS)
+	list(APPEND EKF_SRCS
+		gnss_height_control.cpp
+		gps_checks.cpp
+		gps_control.cpp
+		EKFGSF_yaw.cpp
+	)
+endif()
+
 if(CONFIG_EKF2_GNSS_YAW)
 	list(APPEND EKF_SRCS gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_GRAVITY_FUSION)
+	list(APPEND EKF_SRCS gravity_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_MAGNETOMETER)
+	list(APPEND EKF_SRCS
+		mag_3d_control.cpp
+		mag_control.cpp
+		mag_fusion.cpp
+		mag_heading_control.cpp
+	)
 endif()
 
 if(CONFIG_EKF2_OPTICAL_FLOW)
@@ -98,7 +123,6 @@ if(CONFIG_EKF2_RANGE_FINDER)
 		range_finder_consistency_check.cpp
 		range_height_control.cpp
 		sensor_range_finder.cpp
-		terrain_estimator.cpp
 	)
 endif()
 
@@ -106,10 +130,15 @@ if(CONFIG_EKF2_SIDESLIP)
 	list(APPEND EKF_SRCS sideslip_fusion.cpp)
 endif()
 
+if(CONFIG_EKF2_TERRAIN)
+	list(APPEND EKF_SRCS terrain_estimator.cpp)
+endif()
+
 add_library(ecl_EKF
 	${EKF_SRCS}
 )
 
 add_dependencies(ecl_EKF prebuild_targets)
+target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PATH})
 target_link_libraries(ecl_EKF PRIVATE geo world_magnetic_model)
 target_compile_options(ecl_EKF PRIVATE -fno-associative-math)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -60,6 +60,7 @@ public:
 	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
 	bool isDataReady() const { return _is_sample_ready; }
 	bool isRegularlySendingData() const override { return _is_regularly_sending_data; }
+	bool isStuckDetectorEnabled() const { return _stuck_threshold > 0.f; }
 
 	void setSample(const rangeSample &sample)
 	{
@@ -131,7 +132,7 @@ private:
 	 * Stuck check
 	 */
 	bool _is_stuck{};
-	float _stuck_threshold{0.1f};	///< minimum variation in range finder reading required to declare a range finder 'unstuck' when readings recommence after being out of range (m)
+	float _stuck_threshold{0.1f};	///< minimum variation in range finder reading required to declare a range finder 'unstuck' when readings recommence after being out of range (m), set to zero to disable
 	float _stuck_min_val{};		///< minimum value for new rng measurement when being stuck
 	float _stuck_max_val{};		///< maximum value for new rng measurement when being stuck
 

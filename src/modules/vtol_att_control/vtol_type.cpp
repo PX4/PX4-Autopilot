@@ -45,11 +45,17 @@
 #include <float.h>
 #include <px4_platform_common/defines.h>
 #include <matrix/math.hpp>
+#include <lib/atmosphere/atmosphere.h>
 
 using namespace matrix;
 
 #define THROTTLE_BLENDING_DUR_S 1.0f
 
+// [.] minimum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
+static constexpr float kMinWeightRatio = 0.5f;
+
+// [.] maximum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
+static constexpr float kMaxWeightRatio = 2.0f;
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	ModuleParams(nullptr),
@@ -202,7 +208,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-			&& !_param_fw_arsp_mode.get();
+			&& _param_fw_use_airspd.get();
 	const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
 	const bool openloop_trans_time_elapsed = _time_since_trans_start > getOpenLoopFrontTransitionTime();
 
@@ -210,7 +216,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 
 	if (airspeed_triggers_transition) {
 		transition_to_fw = minimum_trans_time_elapsed
-				   && _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get();
+				   && _airspeed_validated->calibrated_airspeed_m_s >= getTransitionAirspeed();
 
 	} else {
 		transition_to_fw = openloop_trans_time_elapsed;
@@ -280,13 +286,17 @@ bool VtolType::isUncommandedDescent()
 	    && (current_altitude < _tecs_status->altitude_reference)
 	    && hrt_elapsed_time(&_tecs_status->timestamp) < 1_s) {
 
+		if (!PX4_ISFINITE(_quadchute_ref_alt)) {
+			_quadchute_ref_alt = current_altitude;
+		}
+
 		_quadchute_ref_alt = math::min(math::max(_quadchute_ref_alt, current_altitude),
 					       _tecs_status->altitude_reference);
 
 		return (_quadchute_ref_alt - current_altitude) > _param_vt_qc_alt_loss.get();
 
 	} else {
-		_quadchute_ref_alt = -MAXFLOAT;
+		_quadchute_ref_alt = NAN;
 	}
 
 	return false;
@@ -304,6 +314,20 @@ bool VtolType::isFrontTransitionAltitudeLoss()
 	}
 
 	return result;
+}
+
+void VtolType::handleEkfResets()
+{
+	// check if there is a reset in the z-direction, and if so, shift the transition start z as well
+	if (_local_pos->z_reset_counter != _altitude_reset_counter) {
+		_local_position_z_start_of_transition += _local_pos->delta_z;
+		_altitude_reset_counter = _local_pos->z_reset_counter;
+
+		if (PX4_ISFINITE(_quadchute_ref_alt)) {
+			_quadchute_ref_alt += _local_pos->delta_z;
+		}
+
+	}
 }
 
 bool VtolType::isPitchExceeded()
@@ -560,7 +584,7 @@ float VtolType::getFrontTransitionTimeFactor() const
 	const float rho = math::constrain(_attc->getAirDensity(), 0.7f, 1.5f);
 
 	if (PX4_ISFINITE(rho)) {
-		float rho0_over_rho = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / rho;
+		float rho0_over_rho = atmosphere::kAirDensitySeaLevelStandardAtmos / rho;
 		return sqrtf(rho0_over_rho) * rho0_over_rho;
 	}
 
@@ -580,4 +604,23 @@ float VtolType::getFrontTransitionTimeout() const
 float VtolType::getOpenLoopFrontTransitionTime() const
 {
 	return getFrontTransitionTimeFactor() * _param_vt_f_tr_ol_tm.get();
+}
+float VtolType::getTransitionAirspeed() const
+{
+	// Since the stall airspeed increases with vehicle weight, we increase the transition airspeed
+	// by the same factor.
+
+	float weight_ratio = 1.0f;
+
+	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
+		weight_ratio = math::constrain(_param_weight_gross.get() /
+					       _param_weight_base.get(), kMinWeightRatio, kMaxWeightRatio);
+	}
+
+	return sqrtf(weight_ratio) * _param_vt_arsp_trans.get();
+}
+
+float VtolType::getBlendAirspeed() const
+{
+	return _param_vt_arsp_blend.get();
 }

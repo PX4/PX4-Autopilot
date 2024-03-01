@@ -68,6 +68,7 @@ bool McAutotuneAttitudeControl::init()
 
 void McAutotuneAttitudeControl::reset()
 {
+	_param_mc_at_start.reset();
 }
 
 void McAutotuneAttitudeControl::Run()
@@ -236,7 +237,7 @@ void McAutotuneAttitudeControl::checkFilters()
 			reset_filters = true;
 		}
 
-		if (reset_filters && !_are_filters_initialized) {
+		if (reset_filters || !_are_filters_initialized) {
 			_filter_dt = _sample_interval_avg;
 
 			const float filter_rate_hz = 1.f / _filter_dt;

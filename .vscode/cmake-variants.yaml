@@ -71,6 +71,26 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v5x_default
+    px4_fmu-v6c_default:
+      short: px4_fmu-v6c
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6c_default
+    px4_fmu-v6c_bootloader:
+      short: px4_fmu-v6c_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6c_bootloader
+    px4_fmu-v6u_default:
+      short: px4_fmu-v6u
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6u_default
+    px4_fmu-v6u_bootloader:
+      short: px4_fmu-v6u_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6u_bootloader
     px4_fmu-v6x_default:
       short: px4_fmu-v6x
       buildType: MinSizeRel
@@ -81,6 +101,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v6x_bootloader
+    px4_fmu-v6xrt_default:
+      short: px4_fmu-v6xrt
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6xrt_default
+    px4_fmu-v6xrt_bootloader:
+      short: px4_fmu-v6xrt_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6xrt_bootloader
     airmind_mindpx-v2_default:
       short: airmind_mindpx-v2
       buildType: MinSizeRel
@@ -121,6 +151,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-rtk-gps_canbootloader
+    ark_septentrio_gps_default:
+      short: ark_septentrio_gps_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_septentrio_gps_default
+    ark_septentrio_gps_canbootloader:
+      short: ark_septentrio_gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_septentrio_gps_canbootloader
     ark_cannode_default:
       short: ark_cannode_default
       buildType: MinSizeRel
@@ -181,6 +221,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cubepilot_cubeorange_test
+    cubepilot_cubeorangeplus_test:
+      short: cubepilot_cubeorangeplus
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cubepilot_cubeorangeplus_test
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel

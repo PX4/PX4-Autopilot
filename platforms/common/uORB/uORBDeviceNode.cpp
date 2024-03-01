@@ -188,7 +188,10 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 			if (nullptr == _data) {
 				const size_t data_size = _meta->o_size * _queue_size;
 				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
-				memset(_data, 0, data_size);
+
+				if (_data) {
+					memset(_data, 0, data_size);
+				}
 			}
 
 			unlock();

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 ECL Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include "EKF/ekf.h"
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "test_helper/reset_logging_checker.h"
 
 class EkfTerrainTest : public ::testing::Test
 {
@@ -80,8 +81,7 @@ public:
 		_ekf->set_vehicle_at_rest(true);
 
 		_ekf_wrapper.enableGpsFusion();
-		_sensor_simulator.runSeconds(2); // Run to pass the GPS checks
-		_sensor_simulator.runSeconds(3.5); // And a bit more to start the GPS fusion TODO: this shouldn't be necessary
+		_sensor_simulator.runSeconds(1.5); // Run to pass the GPS checks
 		EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
 		const Vector3f simulated_velocity(0.5f, -1.0f, 0.f);
@@ -97,9 +97,9 @@ public:
 
 		// Configure optical flow simulator data
 		flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
-		flow_sample.flow_xy_rad =
-			Vector2f(simulated_velocity(1) * flow_sample.dt / flow_height,
-				 -simulated_velocity(0) * flow_sample.dt / flow_height);
+		flow_sample.flow_rate =
+			Vector2f(simulated_velocity(1) / flow_height,
+				 -simulated_velocity(0) / flow_height);
 		_sensor_simulator._flow.setData(flow_sample);
 		const float max_flow_rate = 5.f;
 		const float min_ground_distance = 0.f;
@@ -181,4 +181,31 @@ TEST_F(EkfTerrainTest, testRngForTerrainFusion)
 
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
 	EXPECT_NEAR(estimated_distance_to_ground, rng_height, 0.01f);
+}
+
+TEST_F(EkfTerrainTest, testHeightReset)
+{
+	// GIVEN: rng for terrain but not flow
+	_ekf_wrapper.disableTerrainFlowFusion();
+	_ekf_wrapper.enableTerrainRngFusion();
+
+	const float rng_height = 1.f;
+	const float flow_height = 1.f;
+	runFlowAndRngScenario(rng_height, flow_height);
+
+	const float estimated_distance_to_ground = _ekf->getTerrainVertPos() - _ekf->getPosition()(2);
+
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// WHEN: the baro height is suddenly changed to trigger a height reset
+	const float new_baro_height = _sensor_simulator._baro.getData() + 50.f;
+	_sensor_simulator._baro.setData(new_baro_height);
+	_sensor_simulator.stopGps(); // prevent from switching to GNSS height
+	_sensor_simulator.runSeconds(6);
+
+	// THEN: a height reset occured and the estimated distance to the ground remains constant
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_NEAR(estimated_distance_to_ground, _ekf->getTerrainVertPos() - _ekf->getPosition()(2), 1e-3f);
 }

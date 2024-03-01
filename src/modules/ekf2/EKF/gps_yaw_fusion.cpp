@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -41,12 +41,12 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h"
+#include <ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h>
 
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::updateGpsYaw(const gpsSample &gps_sample)
+void Ekf::updateGpsYaw(const gnssSample &gps_sample)
 {
 	if (PX4_ISFINITE(gps_sample.yaw)) {
 
@@ -56,24 +56,23 @@ void Ekf::updateGpsYaw(const gpsSample &gps_sample)
 		// initially populate for estimator_aid_src_gnss_yaw logging
 
 		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-		const float measured_hdg = wrap_pi(gps_sample.yaw + _gps_yaw_offset);
+		const float measured_hdg = wrap_pi(gps_sample.yaw + gps_sample.yaw_offset);
 
-		const float R_YAW = sq(fmaxf(gps_sample.yaw_acc, _params.gps_heading_noise));
+		const float yaw_acc = PX4_ISFINITE(gps_sample.yaw_acc) ? gps_sample.yaw_acc : 0.f;
+		const float R_YAW = sq(fmaxf(yaw_acc, _params.gps_heading_noise));
 
 		float heading_pred;
 		float heading_innov_var;
 
 		{
-		Vector24f H;
-		sym::ComputeGnssYawPredInnovVarAndH(getStateAtFusionHorizonAsVector(), P, _gps_yaw_offset, R_YAW, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
+		VectorState H;
+		sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, gps_sample.yaw_offset, R_YAW, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
 		}
 
 		gnss_yaw.observation = measured_hdg;
 		gnss_yaw.observation_variance = R_YAW;
 		gnss_yaw.innovation = wrap_pi(heading_pred - measured_hdg);
 		gnss_yaw.innovation_variance = heading_innov_var;
-
-		gnss_yaw.fusion_enabled = _control_status.flags.gps_yaw;
 
 		gnss_yaw.timestamp_sample = gps_sample.time_us;
 
@@ -82,7 +81,7 @@ void Ekf::updateGpsYaw(const gpsSample &gps_sample)
 	}
 }
 
-void Ekf::fuseGpsYaw()
+void Ekf::fuseGpsYaw(float antenna_yaw_offset)
 {
 	auto &gnss_yaw = _aid_src_gnss_yaw;
 
@@ -91,7 +90,11 @@ void Ekf::fuseGpsYaw()
 		return;
 	}
 
-	Vector24f H;
+	if (!PX4_ISFINITE(antenna_yaw_offset)) {
+		antenna_yaw_offset = 0.f;
+	}
+
+	VectorState H;
 
 	{
 	float heading_pred;
@@ -99,10 +102,8 @@ void Ekf::fuseGpsYaw()
 
 	// Note: we recompute innov and innov_var because it doesn't cost much more than just computing H
 	// making a separate function just for H uses more flash space without reducing CPU load significantly
-	sym::ComputeGnssYawPredInnovVarAndH(getStateAtFusionHorizonAsVector(), P, _gps_yaw_offset, gnss_yaw.observation_variance, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
+	sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, antenna_yaw_offset, gnss_yaw.observation_variance, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
 	}
-
-	const SparseVector24f<0,1,2,3> Hfusion(H);
 
 	// check if the innovation variance calculation is badly conditioned
 	if (gnss_yaw.innovation_variance < gnss_yaw.observation_variance) {
@@ -131,7 +132,7 @@ void Ekf::fuseGpsYaw()
 
 	// calculate the Kalman gains
 	// only calculate gains for states we are using
-	Vector24f Kfusion = P * Hfusion / gnss_yaw.innovation_variance;
+	VectorState Kfusion = P * H / gnss_yaw.innovation_variance;
 
 	const bool is_fused = measurementUpdate(Kfusion, gnss_yaw.innovation_variance, gnss_yaw.innovation);
 	_fault_status.flags.bad_hdg = !is_fused;
@@ -143,10 +144,10 @@ void Ekf::fuseGpsYaw()
 	}
 }
 
-bool Ekf::resetYawToGps(const float gnss_yaw)
+bool Ekf::resetYawToGps(const float gnss_yaw, const float gnss_yaw_offset)
 {
 	// define the predicted antenna array vector and rotate into earth frame
-	const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
+	const Vector3f ant_vec_bf = {cosf(gnss_yaw_offset), sinf(gnss_yaw_offset), 0.0f};
 	const Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
 
 	// check if antenna array vector is within 30 degrees of vertical and therefore unable to provide a reliable heading

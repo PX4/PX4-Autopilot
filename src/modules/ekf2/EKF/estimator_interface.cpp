@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -46,9 +46,15 @@
 
 EstimatorInterface::~EstimatorInterface()
 {
+#if defined(CONFIG_EKF2_GNSS)
 	delete _gps_buffer;
+#endif // CONFIG_EKF2_GNSS
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	delete _mag_buffer;
+#endif // CONFIG_EKF2_MAGNETOMETER
+#if defined(CONFIG_EKF2_BAROMETER)
 	delete _baro_buffer;
+#endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	delete _range_buffer;
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -102,6 +108,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 #endif // CONFIG_EKF2_DRAG_FUSION
 }
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 void EstimatorInterface::setMagData(const magSample &mag_sample)
 {
 	if (!_initialised) {
@@ -137,8 +144,10 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 		ECL_WARN("mag data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _mag_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_MAGNETOMETER
 
-void EstimatorInterface::setGpsData(const gpsMessage &gps)
+#if defined(CONFIG_EKF2_GNSS)
+void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 {
 	if (!_initialised) {
 		return;
@@ -146,7 +155,7 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 
 	// Allocate the required buffer size if not previously done
 	if (_gps_buffer == nullptr) {
-		_gps_buffer = new RingBuffer<gpsSample>(_obs_buffer_length);
+		_gps_buffer = new RingBuffer<gnssSample>(_obs_buffer_length);
 
 		if (_gps_buffer == nullptr || !_gps_buffer->valid()) {
 			delete _gps_buffer;
@@ -156,67 +165,32 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		}
 	}
 
-	const int64_t time_us = gps.time_usec
+	const int64_t time_us = gnss_sample.time_us
 				- static_cast<int64_t>(_params.gps_delay_ms * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	if (time_us >= static_cast<int64_t>(_gps_buffer->get_newest().time_us + _min_obs_interval_us)) {
 
-		if (!gps.vel_ned_valid || (gps.fix_type == 0)) {
-			return;
-		}
+		gnssSample gnss_sample_new(gnss_sample);
 
-		gpsSample gps_sample_new;
+		gnss_sample_new.time_us = time_us;
 
-		gps_sample_new.time_us = time_us;
-
-		gps_sample_new.vel = gps.vel_ned;
-
-		gps_sample_new.sacc = gps.sacc;
-		gps_sample_new.hacc = gps.eph;
-		gps_sample_new.vacc = gps.epv;
-
-		gps_sample_new.hgt = (float)gps.alt * 1e-3f;
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (PX4_ISFINITE(gps.yaw)) {
-			_time_last_gps_yaw_buffer_push = _time_latest_us;
-			gps_sample_new.yaw = gps.yaw;
-			gps_sample_new.yaw_acc = PX4_ISFINITE(gps.yaw_accuracy) ? gps.yaw_accuracy : 0.f;
-
-		} else {
-			gps_sample_new.yaw = NAN;
-			gps_sample_new.yaw_acc = 0.f;
-		}
-
-		if (PX4_ISFINITE(gps.yaw_offset)) {
-			_gps_yaw_offset = gps.yaw_offset;
-
-		} else {
-			_gps_yaw_offset = 0.0f;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-		// Only calculate the relative position if the WGS-84 location of the origin is set
-		if (collect_gps(gps)) {
-			gps_sample_new.pos = _pos_ref.project((gps.lat / 1.0e7), (gps.lon / 1.0e7));
-
-		} else {
-			gps_sample_new.pos(0) = 0.0f;
-			gps_sample_new.pos(1) = 0.0f;
-		}
-
-		_gps_buffer->push(gps_sample_new);
+		_gps_buffer->push(gnss_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+		if (PX4_ISFINITE(gnss_sample.yaw)) {
+			_time_last_gps_yaw_buffer_push = _time_latest_us;
+		}
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	} else {
 		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_GNSS
 
+#if defined(CONFIG_EKF2_BAROMETER)
 void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 {
 	if (!_initialised) {
@@ -252,6 +226,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 		ECL_WARN("baro data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _baro_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
@@ -494,6 +469,17 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 			}
 		}
 
+		// don't use any accel samples that are clipping
+		if (imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2]) {
+			// reset accumulators
+			_drag_sample_count = 0;
+			_drag_down_sampled.accelXY.zero();
+			_drag_down_sampled.time_us = 0;
+			_drag_sample_time_dt = 0.0f;
+
+			return;
+		}
+
 		_drag_sample_count++;
 		// note acceleration is accumulated as a delta velocity
 		_drag_down_sampled.accelXY(0) += imu.delta_vel(0);
@@ -540,10 +526,12 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	max_time_delay_ms = math::max(_params.auxvel_delay_ms, max_time_delay_ms);
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	// using baro
 	if (_params.baro_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.baro_delay_ms, max_time_delay_ms);
 	}
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	// using airspeed
@@ -552,21 +540,25 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	}
 #endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	// mag mode
 	if (_params.mag_fusion_type != MagFuseType::NONE) {
 		max_time_delay_ms = math::max(_params.mag_delay_ms, max_time_delay_ms);
 	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// using range finder
-	if ((_params.rng_ctrl != RngCtrl::DISABLED)) {
+	if ((_params.rng_ctrl != static_cast<int32_t>(RngCtrl::DISABLED))) {
 		max_time_delay_ms = math::max(_params.range_delay_ms, max_time_delay_ms);
 	}
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_GNSS)
 	if (_params.gnss_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.gps_delay_ms, max_time_delay_ms);
 	}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	if (_params.flow_ctrl > 0) {
@@ -627,6 +619,7 @@ int EstimatorInterface::getNumberOfActiveHorizontalAidingSources() const
 	       + int(_control_status.flags.opt_flow)
 	       + int(_control_status.flags.ev_pos)
 	       + int(_control_status.flags.ev_vel)
+	       + int(_control_status.flags.aux_gpos)
 	       // Combined airspeed and sideslip fusion allows sustained wind relative dead reckoning
 	       // and so is treated as a single aiding source.
 	       + int(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta);
@@ -682,57 +675,4 @@ void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
 	if (buffer_name) {
 		ECL_ERR("%s buffer allocation failed", buffer_name);
 	}
-}
-
-void EstimatorInterface::print_status()
-{
-	printf("EKF average dt: %.6f seconds\n", (double)_dt_ekf_avg);
-
-	printf("IMU buffer: %d (%d Bytes)\n", _imu_buffer.get_length(), _imu_buffer.get_total_size());
-
-	printf("minimum observation interval %d us\n", _min_obs_interval_us);
-
-	if (_gps_buffer) {
-		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_buffer->entries(), _gps_buffer->get_length(), _gps_buffer->get_total_size());
-	}
-
-	if (_mag_buffer) {
-		printf("mag buffer: %d/%d (%d Bytes)\n", _mag_buffer->entries(), _mag_buffer->get_length(), _mag_buffer->get_total_size());
-	}
-
-	if (_baro_buffer) {
-		printf("baro buffer: %d/%d (%d Bytes)\n", _baro_buffer->entries(), _baro_buffer->get_length(), _baro_buffer->get_total_size());
-	}
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	if (_range_buffer) {
-		printf("range buffer: %d/%d (%d Bytes)\n", _range_buffer->entries(), _range_buffer->get_length(), _range_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_AIRSPEED)
-	if (_airspeed_buffer) {
-		printf("airspeed buffer: %d/%d (%d Bytes)\n", _airspeed_buffer->entries(), _airspeed_buffer->get_length(), _airspeed_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_AIRSPEED
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	if (_flow_buffer) {
-		printf("flow buffer: %d/%d (%d Bytes)\n", _flow_buffer->entries(), _flow_buffer->get_length(), _flow_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	if (_ext_vision_buffer) {
-		printf("vision buffer: %d/%d (%d Bytes)\n", _ext_vision_buffer->entries(), _ext_vision_buffer->get_length(), _ext_vision_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-	if (_drag_buffer) {
-		printf("drag buffer: %d/%d (%d Bytes)\n", _drag_buffer->entries(), _drag_buffer->get_length(), _drag_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_DRAG_FUSION
-
-	_output_predictor.print_status();
 }

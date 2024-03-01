@@ -92,6 +92,15 @@ public:
 	static bool item_contains_gate(const mission_item_s &item);
 
 	/**
+	 * Get the absolute altitude for mission item
+	 *
+	 * @param mission_item	the mission item of interest
+	 * @param home_alt	the home altitude in [m AMSL].
+	 * @return Mission item altitude in [m AMSL]
+	 */
+	static float get_absolute_altitude_for_item(const  mission_item_s &mission_item, float home_alt);
+
+	/**
 	 * Check if the mission item contains a marker
 	 *
 	 * @return true if mission item is a marker
@@ -124,7 +133,28 @@ public:
 		_payload_deploy_timeout_s = timeout_s;
 	}
 
+	/**
+	 * Copies position from setpoint if valid, otherwise copies current position
+	 */
+	void copy_position_if_valid(struct mission_item_s *const mission_item,
+				    const struct position_setpoint_s *const setpoint) const;
+
+	/**
+	 * Create mission item to align towards next waypoint
+	 */
+	void set_align_mission_item(struct mission_item_s *const mission_item,
+				    const struct mission_item_s *const mission_item_next) const;
+
 protected:
+	/**
+	 * @brief heading mode for setting navigation items
+	 *
+	 */
+	enum class HeadingMode {
+		NAVIGATION_HEADING = 0,
+		DESTINATION_HEADING,
+		CURRENT_HEADING,
+	};
 	/**
 	 * Check if mission item has been reached (for Waypoint based mission items) or Completed (Action based mission items)
 	 *
@@ -175,10 +205,16 @@ protected:
 	 */
 	void set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode);
 
-	/**
-	 * General function used to adjust the mission item based on vehicle specific limitations
-	 */
-	void mission_apply_limitation(mission_item_s &item);
+	void setLoiterToAltMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp, float loiter_radius) const;
+
+	void setLoiterHoldMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp, float loiter_time,
+				      float loiter_radius) const;
+
+	void setMoveToPositionMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const;
+
+	void setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const;
+
+	void startPrecLand(uint16_t land_precision);
 
 	/**
 	 * @brief Issue a command for mission items with a nav_cmd that specifies an action

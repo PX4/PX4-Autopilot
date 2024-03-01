@@ -58,7 +58,6 @@ void FeasibilityChecker::reset()
 	_land_pattern_validity_failed = false;
 	_distance_first_waypoint_failed = false;
 	_distance_between_waypoints_failed = false;
-	_below_home_alt_failed = false;
 	_fixed_wing_land_approach_failed = false;
 	_takeoff_land_available_failed = false;
 
@@ -124,6 +123,12 @@ void FeasibilityChecker::updateData()
 		vehicle_global_position_s vehicle_global_position = {};
 		_vehicle_global_position_sub.copy(&vehicle_global_position);
 		_current_position_lat_lon = matrix::Vector2d(vehicle_global_position.lat, vehicle_global_position.lon);
+	}
+
+	if (_rtl_status_sub.updated()) {
+		rtl_status_s rtl_status = {};
+		_rtl_status_sub.copy(&rtl_status);
+		_has_vtol_approach = rtl_status.has_vtol_approach;
 	}
 
 	param_t handle = param_find("FW_LND_ANG");
@@ -197,10 +202,6 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 
 	if (!_distance_first_waypoint_failed) {
 		_distance_first_waypoint_failed = !checkHorizontalDistanceToFirstWaypoint(mission_item);
-	}
-
-	if (!_below_home_alt_failed) {
-		_below_home_alt_failed = !checkIfBelowHomeAltitude(mission_item, current_index);
 	}
 
 	if (!_takeoff_failed) {
@@ -582,17 +583,22 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 		break;
 
 	case 4:
-		result = _has_takeoff == _landing_valid;
+		result = hasMissionBothOrNeitherTakeoffAndLanding();
 
-		if (!result && (_has_takeoff)) {
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Landing item or remove Takeoff.\t");
-			events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: Add Landing item or remove Takeoff");
+		break;
 
-		} else if (!result && (_landing_valid)) {
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Takeoff item or remove Landing.\t");
-			events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: Add Takeoff item or remove Landing");
+	case 5:
+		if (!_is_landed && !_has_vtol_approach) {
+			result = _landing_valid;
+
+			if (!result) {
+				mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Landing waypoint/pattern required.");
+				events::send(events::ID("feasibility_mis_in_air_landing_req"), {events::Log::Error, events::LogInternal::Info},
+					     "Mission rejected: Landing waypoint/pattern required");
+			}
+
+		} else {
+			result = hasMissionBothOrNeitherTakeoffAndLanding();
 		}
 
 		break;
@@ -605,6 +611,23 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 	return result;
 }
 
+bool FeasibilityChecker::hasMissionBothOrNeitherTakeoffAndLanding()
+{
+	bool result{_has_takeoff == _landing_valid};
+
+	if (!result && (_has_takeoff)) {
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Landing item or remove Takeoff.\t");
+		events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Add Landing item or remove Takeoff");
+
+	} else if (!result && (_landing_valid)) {
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Takeoff item or remove Landing.\t");
+		events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Add Takeoff item or remove Landing");
+	}
+
+	return result;
+}
 
 bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
@@ -679,21 +702,6 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 	_last_cmd = mission_item.nav_cmd;
 
 	/* We ran through all waypoints and have not found any distances between waypoints that are too far. */
-	return true;
-}
-
-bool FeasibilityChecker::checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index)
-{
-	/* calculate the global waypoint altitude */
-	float wp_alt = (mission_item.altitude_is_relative) ? mission_item.altitude + _home_alt_msl : mission_item.altitude;
-
-	if (PX4_ISFINITE(_home_alt_msl) && _home_alt_msl > wp_alt && MissionBlock::item_contains_position(mission_item)) {
-
-		mavlink_log_critical(_mavlink_log_pub, "Warning: Waypoint %d below home\t", current_index + 1);
-		events::send<int16_t>(events::ID("navigator_mis_wp_below_home"), {events::Log::Warning, events::LogInternal::Info},
-				      "Waypoint {1} below home", current_index + 1);
-	}
-
 	return true;
 }
 

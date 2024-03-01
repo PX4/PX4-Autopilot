@@ -101,8 +101,8 @@ private:
 			msg.lon = global_pos.lon * 1e7;
 			msg.alt = global_pos.alt_ellipsoid * 1000.f;
 
-			msg.h_acc = global_pos.eph * 1000.f;
-			msg.v_acc = global_pos.epv * 1000.f;
+			msg.h_acc = math::min(global_pos.eph * 1000.0f, (float)UINT16_MAX);
+			msg.v_acc = math::min(global_pos.epv * 1000.0f, (float)UINT16_MAX);
 
 			msg.flags |= UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE;
 			msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;

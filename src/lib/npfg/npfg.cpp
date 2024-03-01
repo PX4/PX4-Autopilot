@@ -47,6 +47,32 @@
 using matrix::Vector2d;
 using matrix::Vector2f;
 
+float NPFG::canRun(const vehicle_local_position_s &local_pos, const bool is_wind_valid) const
+{
+	if (is_wind_valid) {
+		// If we have a valid wind estimate, npfg is able to handle all degenerated cases
+		return 1.f;
+	}
+
+	// NPFG can run without wind information as long as the system is not flying backwards and has a minimal ground speed
+	// Check the minimal ground speed. if it is greater than twice the standard deviation, we assume that we can infer a valid track angle
+	const Vector2f ground_vel(local_pos.vx, local_pos.vy);
+	const float ground_speed(ground_vel.norm());
+	const float low_ground_speed_factor(math::constrain((ground_speed - HORIZONTAL_EVH_FACTOR_COURSE_INVALID *
+					    local_pos.evh) / ((HORIZONTAL_EVH_FACTOR_COURSE_VALID - HORIZONTAL_EVH_FACTOR_COURSE_INVALID)*local_pos.evh),
+					    0.f, 1.f));
+
+	// Check that the angle between heading and track is not off too much. if it is greater than 90° we will be pushed back from the wind and the npfg will propably give a roll command in the wrong direction.
+	const Vector2f heading_vector(matrix::Dcm2f(local_pos.heading)*Vector2f({1.f, 0.f}));
+	const Vector2f ground_vel_norm(ground_vel.normalized());
+	const float flying_forward_factor(math::constrain((heading_vector.dot(ground_vel_norm) -
+					  COS_HEADING_TRACK_ANGLE_PUSHED_BACK) / ((COS_HEADING_TRACK_ANGLE_NOT_PUSHED_BACK -
+							  COS_HEADING_TRACK_ANGLE_PUSHED_BACK)),
+					  0.f, 1.f));
+
+	return flying_forward_factor * low_ground_speed_factor;
+}
+
 void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &ground_vel, const Vector2f &wind_vel,
 		       const Vector2f &unit_path_tangent,
 		       const Vector2f &position_on_path, const float path_curvature)
@@ -59,7 +85,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 	const float wind_speed = wind_vel.norm();
 
 	const Vector2f path_pos_to_vehicle{curr_pos_local - position_on_path};
-	const float signed_track_error = unit_path_tangent.cross(path_pos_to_vehicle);
+	signed_track_error_ = unit_path_tangent.cross(path_pos_to_vehicle);
 
 	// on-track wind triangle projections
 	const float wind_cross_upt = wind_vel.cross(unit_path_tangent);
@@ -68,7 +94,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 	// calculate the bearing feasibility on the track at the current closest point
 	feas_on_track_ = bearingFeasibility(wind_cross_upt, wind_dot_upt, airspeed, wind_speed);
 
-	const float track_error = fabsf(signed_track_error);
+	const float track_error = fabsf(signed_track_error_);
 
 	// update control parameters considering upper and lower stability bounds (if enabled)
 	// must be called before trackErrorBound() as it updates time_const_
@@ -86,7 +112,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 
 	track_proximity_ = trackProximity(look_ahead_ang);
 
-	bearing_vec_ = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error);
+	bearing_vec_ = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error_);
 
 	// wind triangle projections
 	const float wind_cross_bearing = wind_vel.cross(bearing_vec_);
@@ -112,7 +138,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 
 	// lateral acceleration needed to stay on curved track (assuming no heading error)
 	lateral_accel_ff_ = lateralAccelFF(unit_path_tangent, ground_vel, wind_dot_upt,
-					   wind_cross_upt, airspeed, wind_speed, signed_track_error, path_curvature);
+					   wind_cross_upt, airspeed, wind_speed, signed_track_error_, path_curvature);
 
 	// total lateral acceleration to drive aircaft towards track as well as account
 	// for path curvature. The full effect of the feed-forward acceleration is smoothly
@@ -475,11 +501,6 @@ void NPFG::updateRollSetpoint()
 {
 	float roll_new = atanf(lateral_accel_ * 1.0f / CONSTANTS_ONE_G);
 	roll_new = math::constrain(roll_new, -roll_lim_rad_, roll_lim_rad_);
-
-	if (dt_ > 0.0f && roll_slew_rate_ > 0.0f) {
-		// slew rate limiting active
-		roll_new = math::constrain(roll_new, roll_setpoint_ - roll_slew_rate_ * dt_, roll_setpoint_ + roll_slew_rate_ * dt_);
-	}
 
 	if (PX4_ISFINITE(roll_new)) {
 		roll_setpoint_ = roll_new;

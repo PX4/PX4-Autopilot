@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 ECL Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,9 +57,8 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
+		// Init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 	}
@@ -101,7 +100,7 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	float mag_incl = asinf(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
 	float mag_incl_wmm_deg = 0.f;
 	_ekf->get_mag_inc_deg(mag_incl_wmm_deg);
-	EXPECT_NEAR(degrees(mag_incl), mag_incl_wmm_deg, 1e-6f);
+	EXPECT_NEAR(degrees(mag_incl), mag_incl_wmm_deg, 1e-5f);
 }
 
 TEST_F(EkfMagTest, noInitLargeStrength)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -114,14 +114,22 @@ private:
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_publish{0};
+	hrt_abstime _last_motion{0};
+
+	int16_t _delta_x_raw_prev{0};
+	int16_t _delta_y_raw_prev{0};
+	uint32_t _shutter_prev{0};
+	uint8_t _quality_prev{0};
+	uint8_t _raw_data_sum_prev{0};
+
 	int _failure_count{0};
 	int _discard_reading{0};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
-	bool _data_ready_interrupt_enabled{false};
+	bool _motion_interrupt_enabled{false};
 
 	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_0 / 2};
-	static constexpr uint32_t kBackupScheduleIntervalUs{200_ms};
+	static constexpr uint32_t kBackupScheduleIntervalUs{SAMPLE_INTERVAL_MODE_2}; // longest expected interval
 
 	Mode _mode{Mode::LowLight};
 

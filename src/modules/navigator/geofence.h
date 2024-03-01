@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,6 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/vehicle_air_data.h>
 
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
 
@@ -65,12 +64,6 @@ public:
 	Geofence(const Geofence &) = delete;
 	Geofence &operator=(const Geofence &) = delete;
 	virtual ~Geofence();
-
-	/* Altitude mode, corresponding to the param GF_ALTMODE */
-	enum {
-		GF_ALT_MODE_WGS84 = 0,
-		GF_ALT_MODE_AMSL = 1
-	};
 
 	/* Source, corresponding to the param GF_SOURCE */
 	enum {
@@ -88,35 +81,32 @@ public:
 	 */
 	void updateFence();
 
-	/**
-	 * Return whether the system obeys the geofence.
-	 *
-	 * @return true: system is obeying fence, false: system is violating fence
-	 */
-	bool check(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position);
 
 	/**
-	 * Return whether a mission item obeys the geofence.
-	 *
-	 * @return true: system is obeying fence, false: system is violating fence
-	 */
-	bool check(const struct mission_item_s &mission_item);
-
-	/**
-	 * Check if a point passes the Geofence test.
+	 * Check if a 3D point passes the Geofence test.
+	 * Checks max distance, max altitude, inside polygon or circle.
 	 * In addition to checkPolygons(), this takes all additional parameters into account.
 	 *
 	 * @return false for a geofence violation
 	 */
-	bool checkAll(double lat, double lon, float altitude);
+	bool checkPointAgainstAllGeofences(double lat, double lon, float altitude);
 
+	/**
+	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
+	 *
+	 * @return true if the horizontal distance to Home is smaller than the maximum allowed distance
+	 */
 	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
 
+
+	/**
+	 * @brief check if the altitude above Home is greater than the maximum allowed altitude
+	 *
+	 * @return true if the altitude above Home is smaller than the maximum allowed altitude
+	 */
 	bool isBelowMaxAltitude(float altitude);
 
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
-
-	int clearDm();
 
 	bool valid();
 
@@ -147,7 +137,6 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
-	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
 
 	bool isHomeRequired();
@@ -185,9 +174,6 @@ private:
 	DatamanCache _dataman_cache{"geofence_dm_cache_miss", 4};
 	DatamanClient	&_dataman_client = _dataman_cache.client();
 
-	hrt_abstime _last_horizontal_range_warning{0};
-	hrt_abstime _last_vertical_range_warning{0};
-
 	float _altitude_min{0.0f};
 	float _altitude_max{0.0f};
 
@@ -195,10 +181,7 @@ private:
 
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
-	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
-
-	int _outside_counter{0};
-	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, polygon data was updated
+	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 
@@ -207,22 +190,6 @@ private:
 	 */
 	void _updateFence();
 
-	/**
-	 * Check if a point passes the Geofence test.
-	 * This takes all polygons and minimum & maximum altitude into account
-	 *
-	 * The check passes if: (inside(polygon_inclusion_1) || inside(polygon_inclusion_2) || ... ) &&
-	 *                       !inside(polygon_exclusion_1) && !inside(polygon_exclusion_2) && ...
-	 *                       && (altitude within [min, max])
-	 *                  or: no polygon configured
-	 * @return result of the check above (false for a geofence violation)
-	 */
-	bool checkPolygons(double lat, double lon, float altitude);
-
-
-
-	bool checkAll(const vehicle_global_position_s &global_position);
-	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
 
 	/**
 	 * Check if a single point is within a polygon
@@ -237,11 +204,28 @@ private:
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
+	/**
+	 * Check if a single point is within a polygon or circle
+	 * @return true if within polygon or circle
+	 */
+
+	bool checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
+	/**
+	 * Check polygon or circle geofence fullfills the requirements relative to Home.
+	 * @return true if checks pass
+	 */
+	bool checkHomeRequirementsForGeofence(const PolygonInfo &polygon);
+
+	/**
+	 * Check polygon or circle geofence fullfills the requirements relative to the current vehicle position.
+	 * @return true if checks pass
+	 */
+	bool checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon);
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
-		(ParamInt<px4::params::GF_ALTMODE>)        _param_gf_altmode,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
-		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
 		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict

@@ -4,6 +4,15 @@ menuconfig MODULES_EKF2
 	---help---
 		Enable support for ekf2
 
+menuconfig EKF2_VERBOSE_STATUS
+depends on MODULES_EKF2
+	bool "verbose status output"
+	default n
+	depends on !BOARD_CONSTRAINED_MEMORY
+	depends on !BOARD_CONSTRAINED_FLASH
+	---help---
+		ekf2 status verbose output.
+
 menuconfig EKF2_MULTI_INSTANCE
 depends on MODULES_EKF2
         bool "multi-EKF support"
@@ -18,8 +27,16 @@ depends on MODULES_EKF2
         bool "airspeed fusion support"
         default y
 	depends on EKF2_SIDESLIP
+	depends on EKF2_WIND
 	---help---
 		EKF2 airspeed fusion support.
+
+menuconfig EKF2_AUX_GLOBAL_POSITION
+depends on MODULES_EKF2
+	bool "aux global position fusion support"
+	default n
+	---help---
+		EKF2 auxiliary global position fusion support.
 
 menuconfig EKF2_AUXVEL
 depends on MODULES_EKF2
@@ -28,10 +45,19 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 auxiliary velocity fusion support.
 
+menuconfig EKF2_BAROMETER
+depends on MODULES_EKF2
+	bool "barometer support"
+	default y
+	---help---
+		EKF2 barometer support.
+
 menuconfig EKF2_BARO_COMPENSATION
 depends on MODULES_EKF2
         bool "barometer compensation support"
         default y
+	depends on EKF2_BAROMETER
+	depends on EKF2_WIND
 	---help---
 		EKF2 pressure compensation support.
 
@@ -39,6 +65,7 @@ menuconfig EKF2_DRAG_FUSION
 depends on MODULES_EKF2
         bool "drag fusion support"
         default y
+	depends on EKF2_WIND
 	---help---
 		EKF2 drag fusion support.
 
@@ -49,17 +76,40 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 external vision (EV) fusion support.
 
+menuconfig EKF2_GNSS
+depends on MODULES_EKF2
+	bool "GNSS fusion support"
+	default y
+	---help---
+		EKF2 GNSS fusion support.
+
 menuconfig EKF2_GNSS_YAW
 depends on MODULES_EKF2
         bool "GNSS yaw fusion support"
         default y
+	depends on EKF2_GNSS
 	---help---
 		EKF2 GNSS yaw fusion support.
+
+menuconfig EKF2_GRAVITY_FUSION
+depends on MODULES_EKF2
+	bool "gravity fusion support"
+	default y
+	---help---
+		EKF2 gravity fusion support.
+
+menuconfig EKF2_MAGNETOMETER
+depends on MODULES_EKF2
+	bool "magnetometer support"
+	default y
+	---help---
+		EKF2 magnetometer support.
 
 menuconfig EKF2_OPTICAL_FLOW
 depends on MODULES_EKF2
         bool "optical flow fusion support"
         default y
+	select EKF2_TERRAIN
 	depends on EKF2_RANGE_FINDER
 	---help---
 		EKF2 optical flow fusion support.
@@ -75,8 +125,24 @@ menuconfig EKF2_SIDESLIP
 depends on MODULES_EKF2
         bool "sideslip fusion support"
         default y
+	depends on EKF2_WIND
 	---help---
 		EKF2 sideslip fusion support.
+
+menuconfig EKF2_TERRAIN
+depends on MODULES_EKF2
+	bool "terrain estimator support"
+	default y
+	depends on EKF2_OPTICAL_FLOW || EKF2_RANGE_FINDER
+	---help---
+		EKF2 terrain estimator support.
+
+menuconfig EKF2_WIND
+depends on MODULES_EKF2
+	bool "wind estimation support"
+	default y
+	---help---
+		EKF2 wind estimation support.
 
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"

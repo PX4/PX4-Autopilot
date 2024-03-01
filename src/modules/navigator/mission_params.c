@@ -44,13 +44,13 @@
  */
 
 /**
- * Take-off altitude
+ * Default take-off altitude
  *
- * This is the minimum altitude the system will take off to.
+ * This is the relative altitude the system will take off to
+ * if not otherwise specified.
  *
  * @unit m
  * @min 0
- * @max 80
  * @decimal 1
  * @increment 0.5
  * @group Mission
@@ -68,6 +68,7 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
  * @value 2 Require a landing
  * @value 3 Require a takeoff and a landing
  * @value 4 Require both a takeoff and a landing, or neither
+ * @value 5 Same as previous, but require a landing if in air and no valid VTOL landing approach is present
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_TKO_LAND_REQ, 0);
