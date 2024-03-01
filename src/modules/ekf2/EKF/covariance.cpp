@@ -279,8 +279,7 @@ void Ekf::resetQuatCov(const float yaw_noise)
 
 void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
 {
-	matrix::SquareMatrix<float, State::quat_nominal.dof> q_cov_ned = diag(rot_var_ned);
-	resetStateCovariance<State::quat_nominal>(_R_to_earth.T() * q_cov_ned * _R_to_earth);
+	P.uncorrelateCovarianceSetVariance<State::quat_nominal.dof>(State::quat_nominal.idx, rot_var_ned);
 }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

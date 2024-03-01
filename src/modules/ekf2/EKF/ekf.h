@@ -254,7 +254,7 @@ public:
 	// get the diagonal elements of the covariance matrix
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
-	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
+	matrix::Vector3f getRotVarBody() const;
 	matrix::Vector3f getRotVarNed() const;
 	float getYawVar() const;
 	float getTiltVariance() const;
@@ -1109,7 +1109,7 @@ private:
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 	void resetQuatCov(const float yaw_noise = NAN);
-	void resetQuatCov(const Vector3f &euler_noise_ned);
+	void resetQuatCov(const Vector3f &rot_var_ned);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	void resetMagCov();
@@ -1123,9 +1123,6 @@ private:
 #endif // CONFIG_EKF2_WIND
 
 	void resetGyroBiasZCov();
-
-	// uncorrelate quaternion states from other states
-	void uncorrelateQuatFromOtherStates();
 
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
 	{
