@@ -447,10 +447,8 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 	// If this is the parameter server, make sure that the remote is updated
-	// if (param_changed && remote_update) { param_server_set(param, val, from_file); }
 	if ((remote_active) && (is_primary)) {
 		if (param_changed && update_remote) {
-			// param_primary_set(param, val, from_file);
 			param_primary_set_value(param, val);
 		}
 	}
