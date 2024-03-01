@@ -55,8 +55,9 @@ public:
 
 	bool isRunning() { return _isRunning; }
 	void setRunning(bool running) { 
-    if(running) _exitRequested = false;
-    _isRunning = running; }
+		if(running) _exitRequested = false;
+    		_isRunning = running; 
+	}
 
 protected:
 	bool _exitRequested;
