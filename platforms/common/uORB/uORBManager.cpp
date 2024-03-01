@@ -630,7 +630,6 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 
 			if (node) {
 				PX4_DEBUG("Marking DeviceNode(%s) as advertised in process_remote_topic", topic_name);
-				node->update_queue_size(topic_ptr->o_queue);
 				node->mark_as_advertised();
 				_remote_topics.insert(topic_name);
 				return 0;
