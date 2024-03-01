@@ -64,24 +64,23 @@ public:
 	void HandleClientCommunication();
 
 	/**
-	* @brief Adds a new client to our array of Operational Clients. Operational clients are those meant to hold an operational client such as those used
-	* for direct motor control. Operational clients should have a constant module ID, and should be made only once
+	* @brief Adds a new client to our array of Clients
 	*/
 	void AddNewClient(ClientAbstract * client);
 
 	/**
-	* @brief Returns the number of clients added to our Operational Clients array
+	* @brief Returns the number of clients added to our Clients array
 	*
 	* @return The value _clients_in_use
 	*/
-	uint8_t GetNumberOfOperationalClients();
+	uint8_t GetNumberOfClients();
 
 private:
 	//We need a serial handler in order to talk over the serial port
 	VertiqSerialInterface *_serial_interface;
 
 	//Some constants to help us out
-	static const uint8_t MAXIMUM_NUMBER_OF_CLIENTS = 20; //These are clients that are used for module control/telemetry. They have a static Module ID
+	static const uint8_t MAXIMUM_NUMBER_OF_CLIENTS = 35; //These are clients that are used for module control/telemetry. They have a static Module ID
 	ClientAbstract *_client_array[MAXIMUM_NUMBER_OF_CLIENTS];
 	uint8_t _clients_in_use = 0;
 };

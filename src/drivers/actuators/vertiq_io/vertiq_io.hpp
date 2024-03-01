@@ -97,7 +97,7 @@ public:
 
 	int print_status() override;
 
-	/** @see ModuleBase::run() */ //I do not think this actually comes from ModuleBase. it should come from scheduled work item
+	/** @see ModuleBase::run() */
 	void Run() override;
 
 	/** @see OutputModuleInterface */
@@ -137,20 +137,15 @@ private:
 //Vertiq client information
 
 /**
-In order to communicate with connected Vertiq modules with the most possible flexibility, we have introduced two types of Clients (see comment above about
-Vertiq clients and entries) to be used within PX4. We have designated "Operational Clients" as those whose object IDs (a.k.a target module IDs) are constant.
-For example, when sending IFCI commands, we are always transmitting them using the object ID 63 in order to broadcast to all connected Vertiq modules. There is no
-reason to change its object ID. In order to interact with specific client entries from specific modules, we have introduced "Configuration Clients." Configuration
-clients are those whose object IDs are not constant, and which are created and destroyed as the Target Module ID parameter is updated. An example of a configuration
-parameter is each module's Velocity Max entry. Since each module has its own version of a Velocity Max entry, designated by unique module IDs, we need a way to
-dynamically change the client's object ID to reach the correct module. Our "Configuration Clients" are used to meet this end.
+Vertiq clients are used to communicate with various parameters available on the module. Our C++ library provides
+simple objects used to interact with these clients.
 
 An example of a Vertiq client is documented here https://iqmotion.readthedocs.io/en/latest/modules/vertiq_2306_2200.html#propeller-motor-control. In this case,
 Propeller Motor Control is the client, and its entries are specified in the message table (https://iqmotion.readthedocs.io/en/latest/modules/vertiq_2306_2200.html#id6).
 You can find the C++ representation in ./src/drivers/actuators/vertiq_io/iq-module-communication-cpp/inc/propeller_motor_control_client.hpp
 */
 
-	//Known Operational Clients can be created as concrete objects
+	//Known Clients can be created as concrete objects
 	PropellerMotorControlClient _broadcast_prop_motor_control;
 	ArmingHandlerClient _broadcast_arming_handler;
 	IQUartFlightControllerInterfaceClient _operational_ifci;

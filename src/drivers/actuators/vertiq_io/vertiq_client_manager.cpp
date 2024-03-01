@@ -57,6 +57,6 @@ void VertiqClientManager::AddNewClient(ClientAbstract * client){
 	}
 }
 
-uint8_t VertiqClientManager::GetNumberOfOperationalClients(){
+uint8_t VertiqClientManager::GetNumberOfClients(){
 	return _clients_in_use;
 }

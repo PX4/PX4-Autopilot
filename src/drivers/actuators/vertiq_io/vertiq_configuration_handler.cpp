@@ -113,7 +113,7 @@ void VertiqConfigurationHandler::UpdateIquartConfigParams()
 	for (uint8_t i = 0; i < _added_configuration_entry_wrappers; i++) {
 		_configuration_entry_wrappers[i]->SendGet(_serial_interface);
 		//Ensure that these get messages get out
-		_serial_interface->ProcessSerialTx();
+		_client_manager->HandleClientCommunication();
 	}
 
 	//Now go ahead and grab responses, and update everyone to be on the same page, but do it quickly.

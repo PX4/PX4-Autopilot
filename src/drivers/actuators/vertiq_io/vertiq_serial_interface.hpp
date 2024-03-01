@@ -109,8 +109,8 @@ private:
 	uint8_t _bytes_available;
 
 	//Buffers for data to transmit or that we're receiving
-	uint8_t _rx_buf[128];
-	uint8_t _tx_buf[128];
+	uint8_t _rx_buf[256];
+	uint8_t _tx_buf[256];
 
 	//The port that we're using for communication
 	int _uart_fd{-1};

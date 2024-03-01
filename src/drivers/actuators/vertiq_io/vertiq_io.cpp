@@ -284,7 +284,7 @@ int VertiqIo::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_NAME("vertiq_io", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("telemetry", "Enable Telemetry on a UART");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("iquart_port", "Enable IQUART on a UART port.");
 	PRINT_MODULE_USAGE_ARG("<device>", "UART device", false);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -296,7 +296,7 @@ int VertiqIo::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
-	if (!strcmp(verb, "telemetry")) {
+	if (!strcmp(verb, "iquart_port")) {
 		if (argc > 1) {
 			// telemetry can be requested before the module is started
 			strncpy(_telemetry_device, argv[1], sizeof(_telemetry_device) - 1);
