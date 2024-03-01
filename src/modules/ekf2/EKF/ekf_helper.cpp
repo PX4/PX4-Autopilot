@@ -552,7 +552,7 @@ void Ekf::fuse(const VectorState &K, float innovation)
 {
 	// quat_nominal
 	Quatf delta_quat(matrix::AxisAnglef(K.slice<State::quat_nominal.dof, 1>(State::quat_nominal.idx, 0) * (-1.f * innovation)));
-	_state.quat_nominal *= delta_quat;
+	_state.quat_nominal = delta_quat * _state.quat_nominal;
 	_state.quat_nominal.normalize();
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
@@ -584,11 +584,6 @@ void Ekf::fuse(const VectorState &K, float innovation)
 		_state.wind_vel = matrix::constrain(_state.wind_vel - K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation, -1.e2f, 1.e2f);
 	}
 #endif // CONFIG_EKF2_WIND
-}
-
-void Ekf::uncorrelateQuatFromOtherStates()
-{
-	P.uncorrelateCovarianceBlock<State::quat_nominal.dof>(State::quat_nominal.idx);
 }
 
 void Ekf::updateDeadReckoningStatus()
@@ -660,10 +655,16 @@ void Ekf::updateVerticalDeadReckoningStatus()
 	}
 }
 
-Vector3f Ekf::getRotVarNed() const
+Vector3f Ekf::getRotVarBody() const
 {
 	const matrix::SquareMatrix3f rot_cov_body = getStateCovariance<State::quat_nominal>();
-	return matrix::SquareMatrix<float, State::quat_nominal.dof>(_R_to_earth * rot_cov_body * _R_to_earth.T()).diag();
+	return matrix::SquareMatrix3f(_R_to_earth.T() * rot_cov_body * _R_to_earth).diag();
+}
+
+Vector3f Ekf::getRotVarNed() const
+{
+	const matrix::SquareMatrix3f rot_cov_ned = getStateCovariance<State::quat_nominal>();
+	return rot_cov_ned.diag();
 }
 
 float Ekf::getYawVar() const
@@ -707,12 +708,9 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	const Quatf quat_before_reset = _state.quat_nominal;
 
-	// save a copy of covariance in NED frame to restore it after the quat reset
-	Vector3f rot_var_ned_before_reset = getRotVarNed();
-
 	// update the yaw angle variance
 	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
-		rot_var_ned_before_reset(2) = yaw_variance;
+		P.uncorrelateCovarianceSetVariance<1>(2, yaw_variance);
 	}
 
 	// update transformation matrix from body to world frame using the current estimate
@@ -725,10 +723,6 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 
 	// update quaternion states
 	_state.quat_nominal = quat_after_reset;
-	uncorrelateQuatFromOtherStates();
-
-	// restore covariance
-	resetQuatCov(rot_var_ned_before_reset);
 
 	// add the reset amount to the output observer buffered data
 	_output_predictor.resetQuaternion(q_error);
