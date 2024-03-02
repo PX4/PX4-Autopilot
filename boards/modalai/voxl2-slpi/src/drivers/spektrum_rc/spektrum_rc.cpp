@@ -93,8 +93,9 @@ void task_main(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = NULL;
 	bool verbose = false;
+	bool _check_protocol = true;
 
-	while ((ch = px4_getopt(argc, argv, "vd:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "svd:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
@@ -103,6 +104,11 @@ void task_main(int argc, char *argv[])
 		case 'v':
 			PX4_INFO("Spektrum RC: Enabling verbose mode");
 			verbose = true;
+			break;
+
+		case 's':
+			PX4_INFO("Spektrum RC: Disabling protocol byte check");
+			_check_protocol = false;
 			break;
 
 		default:
@@ -154,11 +160,15 @@ void task_main(int argc, char *argv[])
 		if (newbytes <= 0) {
 			if (print_msg) { PX4_INFO("Spektrum RC: Read no bytes from UART"); }
 
-		} else if (((newbytes != DSM_FRAME_SIZE) ||
-					((protocol_version != 0x02) && (protocol_version != 0x01))) &&
+		} else if ((newbytes != DSM_FRAME_SIZE) &&
 				   (! first_correct_frame_received)) {
-			PX4_ERR("Spektrum RC: Invalid DSM frame. %d bytes. Protocol byte 0x%.2x",
-				newbytes, rx_buf[1]);
+			PX4_ERR("Spektrum RC: Invalid DSM frame length. %d bytes", newbytes);
+
+		} else if ((_check_protocol) &&
+				   (protocol_version != 0x02) &&
+				   (protocol_version != 0x01) &&
+				   (! first_correct_frame_received)) {
+			PX4_ERR("Spektrum RC: Invalid DSM protocol byte 0x%.2x", rx_buf[1]);
 
 		} else {
 			if (print_msg) { PX4_INFO("Spektrum RC: Read %d bytes from UART", newbytes); }
@@ -195,23 +205,12 @@ void task_main(int argc, char *argv[])
 			}
 
 			if (print_msg) {
-				PX4_INFO("0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
-					 rx_buf[0],
-					 rx_buf[1],
-					 rx_buf[2],
-					 rx_buf[3],
-					 rx_buf[4],
-					 rx_buf[5],
-					 rx_buf[6],
-					 rx_buf[7],
-					 rx_buf[8],
-					 rx_buf[9],
-					 rx_buf[10],
-					 rx_buf[11],
-					 rx_buf[12],
-					 rx_buf[13],
-					 rx_buf[14],
-					 rx_buf[15]);
+				PX4_INFO("0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
+						 rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3],
+						 rx_buf[4], rx_buf[5], rx_buf[6], rx_buf[7]);
+				PX4_INFO("0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
+						 rx_buf[8], rx_buf[9], rx_buf[10], rx_buf[11],
+						 rx_buf[12], rx_buf[13], rx_buf[14], rx_buf[15]);
 			}
 		}
 
