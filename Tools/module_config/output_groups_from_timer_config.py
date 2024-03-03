@@ -34,24 +34,23 @@ def extract_timer(line):
     if search:
         return search.group(1), 'generic'
 
-    # nxp rt1062 format: initIOPWM(PWM::FlexPWM2),
-    search = re.search('PWM::Flex([0-9a-zA-Z_]+)[,\)]', line, re.IGNORECASE)
+    # NXP FlexPWM format format: initIOPWM(PWM::FlexPWM2),
+    search = re.search('PWM::Flex([0-9a-zA-Z_]+)..PWM::Submodule([0-9])[,\)]', line, re.IGNORECASE)
     if search:
-        return search.group(1), 'imxrt'
+        return (search.group(1) + '_' +  search.group(2)), 'imxrt'
 
     return None, 'unknown'
 
-def extract_timer_from_channel(line, num_channels_already_found):
+def extract_timer_from_channel(line, timer_names):
     # Try format: initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
     search = re.search('Timer::([0-9a-zA-Z_]+), ', line, re.IGNORECASE)
     if search:
         return search.group(1)
 
-    # nxp rt1062 format: initIOTimerChannel(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule0}, IOMUX::Pad::GPIO_B0_06),
-    search = re.search('PWM::(PWM[0-9]+)[_,\)]', line, re.IGNORECASE)
+    # NXP FlexPWM format: initIOTimerChannel(io_timers, {PWM::PWM2_PWM_A, PWM::Submodule0}, IOMUX::Pad::GPIO_B0_06),
+    search = re.search('PWM::(PWM[0-9]+).*PWM::Submodule([0-9])', line, re.IGNORECASE)
     if search:
-        # imxrt uses a 1:1 timer group to channel association
-        return str(num_channels_already_found)
+        return str(timer_names.index((search.group(1) + '_' +  search.group(2))))
 
     return None
 
@@ -69,6 +68,7 @@ def get_timer_groups(timer_config_file, verbose=False):
     open_idx, close_idx = find_matching_brackets(('{', '}'), timer_config, verbose)
     timers_str = timer_config[open_idx:close_idx]
     timers = []
+    timer_names = []
     for line in timers_str.splitlines():
         line = line.strip()
         if len(line) == 0 or line.startswith('//'):
@@ -77,14 +77,12 @@ def get_timer_groups(timer_config_file, verbose=False):
 
         if timer_type == 'imxrt':
             if verbose: print('imxrt timer found')
-            max_num_channels = 16 # Just add a fixed number of timers
-            timers = [str(i) for i in range(max_num_channels)]
-            dshot_support = {str(i): False for i in range(max_num_channels)}
+            timer_names.append(timer)
+            timers.append(str(len(timers)))
+            dshot_support = {str(i): False for i in range(16)}
             for i in range(8): # First 8 channels support dshot
                 dshot_support[str(i)] = True
-            break
-
-        if timer:
+        elif timer:
             if verbose: print('found timer def: {:}'.format(timer))
             dshot_support[timer] = 'DMA' in line
             timers.append(timer)
@@ -111,7 +109,7 @@ def get_timer_groups(timer_config_file, verbose=False):
             continue
 
         if verbose: print('--'+line+'--')
-        timer = extract_timer_from_channel(line, len(channel_timers))
+        timer = extract_timer_from_channel(line, timer_names)
 
         if timer:
             if verbose: print('Found timer: {:} in channel line {:}'.format(timer, line))
