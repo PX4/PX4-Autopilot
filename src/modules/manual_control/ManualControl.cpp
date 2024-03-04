@@ -346,24 +346,57 @@ void ManualControl::updateParams()
 	}
 }
 
+/**
+ * @brief Process stick arming/disarming and kill gestures
+ * @param input The manual control input
+ *
+ * @note This function is called from the main loop and should not block
+ * Dual stick: \ / arm    ( / \ not supported)
+ *             / \ disarm ( \ / not supported)
+ *
+ * 	         |  pitch |  roll  |   yaw  | throttle |
+ * mode1(Dual)   |  -1.0  |  -1.0  |   1.0  |   -1.0   | Arm:
+ * mode2(Dual)   |  -1.0  |  -1.0  |   1.0  |   -1.0   | Arm:
+ * mode1(Dual)   |  -1.0  |   1.0  |  -1.0  |   -1.0   | DisArm:
+ * mode2(Dual)   |  -1.0  |   1.0  |  -1.0  |   -1.0   | DisArm:
+ * mode1(Single) |   0.0  |   0.0  |   1.0  |   -1.0   | Arm:
+ * mode2(Single) |   0.0  |   0.0  |   1.0  |   -1.0   | Arm:
+ * mode1(Single) |   0.0  |   0.0  |  -1.0  |   -1.0   | DisArm:
+ * mode1(Single) |   0.0  |   0.0  |  -1.0  |   -1.0   | DisArm:
+ *
+ */
 void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 {
 	// Arm gesture
-	const bool right_stick_centered = (fabsf(input.pitch) < 0.1f) && (fabsf(input.roll) < 0.1f);
-	const bool left_stick_lower_right = (input.throttle < -0.8f) && (input.yaw > 0.9f);
+	const bool right_stick_centered = (fabsf(input.pitch) < 0.1f) && (fabsf(input.roll) < 0.1f);  // mode 2
+	const bool right_stick_lower_roll = (input.roll < -0.8f) && (input.pitch < -0.8f);  // mode 2
+	const bool left_stick_lower_right = (input.throttle < -0.8f) && (input.yaw > 0.9f);  // mode 2
 
 	const bool previous_stick_arm_hysteresis = _stick_arm_hysteresis.get_state();
-	_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_centered, input.timestamp);
+
+	if (gesture_type(_param_man_arm_gesture_type.get()) == gesture_type::dual) {
+		_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_lower_roll, input.timestamp);
+
+	} else {
+		_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_centered, input.timestamp);
+	}
 
 	if (_param_man_arm_gesture.get() && !previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 	}
 
 	// Disarm gesture
+	const bool right_stick_higher_roll = (input.roll > 0.9f) && (input.pitch < -0.8f);
 	const bool left_stick_lower_left = (input.throttle < -0.8f) && (input.yaw < -0.9f);
 
 	const bool previous_stick_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
-	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
+
+	if (gesture_type(_param_man_arm_gesture_type.get()) == gesture_type::dual) {
+		_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_higher_roll, input.timestamp);
+
+	} else {
+		_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
+	}
 
 	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_STICK_GESTURE);
