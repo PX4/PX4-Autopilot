@@ -120,7 +120,7 @@ execute_process(
 	)
 
 # git describe to X.Y.Z version
-string(REPLACE "." ";" VERSION_LIST v1.14.2)
+string(REPLACE "." ";" VERSION_LIST ${PX4_GIT_TAG})
 
 # major version
 list(GET VERSION_LIST 0 PX4_VERSION_MAJOR)
@@ -132,7 +132,7 @@ list(GET VERSION_LIST 2 PX4_VERSION_PATCH)
 string(REPLACE "-" ";" PX4_VERSION_PATCH ${PX4_VERSION_PATCH})
 list(GET PX4_VERSION_PATCH 0 PX4_VERSION_PATCH)
 
-message(STATUS "PX4 version: v1.14.2 (${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH})")
+message(STATUS "PX4 version: ${PX4_GIT_TAG} (${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH})")
 
 define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  BRIEF_DOCS "PX4 module libs"
