@@ -264,6 +264,7 @@ MissionBase::on_active()
 
 	updateMavlinkMission();
 	updateDatamanCache();
+	updateMissionAltAfterHomeChanged();
 
 	// check if heading alignment is necessary, and add it to the current mission item if necessary
 	if (_align_heading_necessary && is_mission_item_reached_or_completed()) {
@@ -1360,3 +1361,13 @@ bool MissionBase::checkMissionDataChanged(mission_s new_mission)
 		(new_mission.mission_id != _mission.mission_id) ||
 		(new_mission.current_seq != _mission.current_seq));
 }
+
+void MissionBase::updateMissionAltAfterHomeChanged()
+{
+	if (fabsf((_navigator->get_home_position()->alt)-last_home_alt) > _navigator->get_altitude_acceptance_radius()) {
+		_navigator->get_position_setpoint_triplet()->current.alt = get_absolute_altitude_for_item(_mission_item);
+		_navigator->set_position_setpoint_triplet_updated();
+		last_home_alt = _navigator->get_home_position()->alt;
+	}
+}
+

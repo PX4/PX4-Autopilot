@@ -444,6 +444,12 @@ private:
 	 */
 	bool checkMissionDataChanged(mission_s new_mission);
 
+	/**
+	 * @brief update current mission altitude after the home position has changed.
+	 */
+
+	void updateMissionAltAfterHomeChanged();
+
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
 
@@ -454,6 +460,8 @@ private:
 	mission_item_s _last_camera_mode_item {};
 	mission_item_s _last_camera_trigger_item {};
 	mission_item_s _last_speed_change_item {};
+
+	float last_home_alt=0;  /**< Variable to store the previous value for home change detection.*/
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
