@@ -35,6 +35,8 @@
 
 #include "uORB/uORBManager.hpp"
 
+#include <inttypes.h>
+
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
 
@@ -214,7 +216,7 @@ void param_remote_set_value(param_t param, const void *val)
 		req.int_value = *(int32_t *)val;
 
 		if (debug) {
-			PX4_INFO("*** Setting %s to %d ***", param_name(req.parameter_index), req.int_value);
+			PX4_INFO("*** Setting %s to %" PRIi32 " ***", param_name(req.parameter_index), req.int_value);
 		}
 
 		break;
