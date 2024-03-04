@@ -82,6 +82,17 @@ size_t keystore_get_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *
  */
 bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key, size_t key_size);
 
+/*
+ * Modify a key in keystore
+ * handle: a handle to an open keystore
+ * idx: key index in keystore
+ * key_buf: work buffer for the key
+ * key_buf_size: size of the provided work buffer
+ * cb: callback function to perform the modification of the key
+ * arg: pointer to callback custom argument
+ */
+bool keystore_modify_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key_buf, size_t key_buf_size,
+			 keystore_callback_t cb, void *arg);
 
 /*
  * Architecture specific PX4 Crypto API functions

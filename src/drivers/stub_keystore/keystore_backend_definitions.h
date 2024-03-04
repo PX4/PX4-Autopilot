@@ -33,6 +33,11 @@
 
 #pragma once
 
+#include <inttypes.h>
+
+/* callback function definition for modify key */
+typedef bool (*keystore_callback_t)(uint8_t idx, uint8_t *key, size_t key_size, void *arg);
+
 typedef struct {
 	int handle;
 } keystore_session_handle_t;
