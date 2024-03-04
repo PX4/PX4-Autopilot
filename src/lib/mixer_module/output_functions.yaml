@@ -60,3 +60,9 @@ functions:
         condition: "PPS_CAP_ENABLE==0"
         text: "PPS needs to be enabled via PPS_CAP_ENABLE parameter."
       exclude_from_actuator_testing: true
+    RPM_Input:
+      start: 2070
+      note:
+        condition: "RPM_CAP_ENABLE==0"
+        text: "RPM needs to be enabled via RPM_CAP_ENABLE parameter."
+      exclude_from_actuator_testing: true
