@@ -284,6 +284,7 @@ int board_determine_hw_info(void)
 	orb_advert_t hw_info_pub = orb_advertise(ORB_ID(hw_info), NULL);
 
 	uint32_t fpga_version = getreg32(FPGA_VER_REGISTER); // todo: replace eventually with device_boot_info
+	uint64_t timestamp = hrt_absolute_time();
 
 	memset(&ver_str, 0, sizeof(ver_str));
 	memset(&ver, 0, sizeof(ver));
@@ -329,10 +330,15 @@ int board_determine_hw_info(void)
 
 	/* Make local copies of guid and hwinfo */
 
-	memcpy(&guid, device_serial_number, min(sizeof(device_serial_number), sizeof(guid)));
-	memcpy(&hwinfo, hw_info, min(sizeof(hwinfo), sizeof(hw_info)));
+	memcpy(guid.mfguid, device_serial_number, min(sizeof(device_serial_number), sizeof(guid.mfguid)));
+	memcpy(hwinfo.hw_info, hw_info, min(sizeof(hwinfo.hw_info), sizeof(hw_info)));
 
 	/* Then publish the topics */
+
+	ver_str.timestamp = timestamp;
+	ver.timestamp = timestamp;
+	guid.timestamp = timestamp;
+	hwinfo.timestamp = timestamp;
 
 	orb_publish(ORB_ID(system_version_string), &ver_str_pub, &ver_str);
 	orb_publish(ORB_ID(system_version), &ver_pub, &ver);
