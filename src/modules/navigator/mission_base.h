@@ -461,7 +461,7 @@ private:
 	mission_item_s _last_camera_trigger_item {};
 	mission_item_s _last_speed_change_item {};
 
-	uint32_t home_update_counter=0; /**< Variable to store the previous value for home change detection.*/
+	uint32_t _home_update_counter=0; /**< Variable to store the previous value for home change detection.*/
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
