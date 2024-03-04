@@ -1367,7 +1367,7 @@ void MissionBase::updateMissionAltAfterHomeChanged()
 	if (_navigator->get_home_position()->update_count > _home_update_counter) {
 		_navigator->get_position_setpoint_triplet()->current.alt = get_absolute_altitude_for_item(_mission_item);
 		_navigator->set_position_setpoint_triplet_updated();
-		home_update_counter = _navigator->get_home_position()->update_count;
+		_home_update_counter = _navigator->get_home_position()->update_count;
 	}
 }
 
