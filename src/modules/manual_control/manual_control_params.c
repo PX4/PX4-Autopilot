@@ -58,3 +58,14 @@ PARAM_DEFINE_INT32(MAN_ARM_GESTURE, 1);
  * @max 15
  */
 PARAM_DEFINE_FLOAT(MAN_KILL_GEST_T, -1.f);
+
+/**
+ * Enable arm/disarm stick gesture DJI style
+ *
+ * Move the left stick to the lower right and the right stick to the lower left to arm.
+ * Move the left stick down to the left and the right stick down to the right to disarm.
+ *
+ * @boolean
+ * @group Manual Control
+ */
+PARAM_DEFINE_INT32(MAN_ARM_GES_DJI, 0);
