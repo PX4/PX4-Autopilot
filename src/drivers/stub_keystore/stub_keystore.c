@@ -86,3 +86,9 @@ bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *ke
 {
 	return false;
 }
+
+bool keystore_modify_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *key_buf, size_t key_buf_size,
+			 keystore_callback_t cb, void *arg)
+{
+	return false;
+}
