@@ -53,9 +53,7 @@ struct orb_metadata {
 	const uint16_t o_size_no_padding;   /**< object size w/o padding at the end (for logger) */
 	uint32_t message_hash;	/**< Hash over all fields for message compatibility checks */
 	orb_id_size_t  o_id;                /**< ORB_ID enum */
-#ifdef CONFIG_ORB_COMMUNICATOR
 	uint8_t o_queue;					/**< queue size */
-#endif
 
 };
 
@@ -106,9 +104,8 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _size_no_padding	Struct size w/o padding at the end
  * @param _message_hash	32 bit message hash over all fields
  * @param _orb_id_enum	ORB ID enum e.g.: ORB_ID::vehicle_status
- * @param _queue_size Queue size for remote topics in communicator interface
+ * @param _queue_size Queue size from topic definition
  */
-#ifdef CONFIG_ORB_COMMUNICATOR
 #define ORB_DEFINE(_name, _struct, _size_no_padding, _message_hash, _orb_id_enum, _queue_size)               \
 	const struct orb_metadata __orb_##_name = {     \
 		#_name,                                 \
@@ -118,16 +115,6 @@ typedef const struct orb_metadata *orb_id_t;
 		_orb_id_enum,                           \
 		_queue_size                             \
 	}; struct hack
-#else
-#define ORB_DEFINE(_name, _struct, _size_no_padding, _message_hash, _orb_id_enum, _queue_size)               \
-	const struct orb_metadata __orb_##_name = {	\
-		#_name,					\
-		sizeof(_struct),		\
-		_size_no_padding,			\
-		_message_hash,				\
-		_orb_id_enum				\
-	}; struct hack
-#endif
 
 __BEGIN_DECLS
 
