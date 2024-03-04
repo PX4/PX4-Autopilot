@@ -1364,10 +1364,10 @@ bool MissionBase::checkMissionDataChanged(mission_s new_mission)
 
 void MissionBase::updateMissionAltAfterHomeChanged()
 {
-	if (fabsf((_navigator->get_home_position()->alt)-last_home_alt) > _navigator->get_altitude_acceptance_radius()) {
+	if (_navigator->get_home_position()->update_count>home_update_counter) {
 		_navigator->get_position_setpoint_triplet()->current.alt = get_absolute_altitude_for_item(_mission_item);
 		_navigator->set_position_setpoint_triplet_updated();
-		last_home_alt = _navigator->get_home_position()->alt;
+		home_update_counter = _navigator->get_home_position()->update_count;
 	}
 }
 
