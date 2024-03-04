@@ -194,7 +194,12 @@ void VehicleIMU::Run()
 	// reset data gap monitor
 	_data_gap = false;
 
-	while (_sensor_gyro_sub.updated() || _sensor_accel_sub.updated()) {
+	int sensor_sub_updates = 0;
+
+	while ((_sensor_gyro_sub.updated() || _sensor_accel_sub.updated())
+	       && (sensor_sub_updates < math::max(sensor_accel_s::ORB_QUEUE_LENGTH, sensor_gyro_s::ORB_QUEUE_LENGTH))) {
+		sensor_sub_updates++;
+
 		bool updated = false;
 
 		bool consume_all_gyro = !_intervals_configured || _data_gap;
@@ -222,10 +227,15 @@ void VehicleIMU::Run()
 
 
 		// update accel until integrator ready and caught up to gyro
+		int sensor_accel_sub_updates = 0;
+
 		while (_sensor_accel_sub.updated()
+		       && (sensor_accel_sub_updates < sensor_accel_s::ORB_QUEUE_LENGTH)
 		       && (!_accel_integrator.integral_ready() || !_intervals_configured || _data_gap
 			   || (_accel_timestamp_sample_last < (_gyro_timestamp_sample_last - 0.5f * _accel_interval_us)))
 		      ) {
+
+			sensor_accel_sub_updates++;
 
 			if (UpdateAccel()) {
 				updated = true;
