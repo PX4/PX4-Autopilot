@@ -132,7 +132,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_flow.setData(_flow.dataAtRest());
 	_gps.setData(_gps.getDefaultGpsData());
 	_imu.setData(Vector3f{0.0f, 0.0f, -CONSTANTS_ONE_G}, Vector3f{0.0f, 0.0f, 0.0f});
-	_mag.setData(Vector3f{0.2f, 0.0f, 0.4f});
+	_mag.setData(Vector3f{0.218f, 0.f, 0.43f});
 	_rng.setData(0.2f, 100);
 	_vio.setData(_vio.dataAtRest());
 }
@@ -358,7 +358,7 @@ void SensorSimulator::setSensorDataFromTrajectory()
 
 	// Magnetometer
 	if (_mag.isRunning()) {
-		const Vector3f world_mag_field = Vector3f{0.2f, 0.0f, 0.4f};
+		const Vector3f world_mag_field = Vector3f{0.218f, 0.f, 0.43f};
 		const Vector3f mag_field_body = R_world_to_body * world_mag_field;
 		_mag.setData(mag_field_body);
 	}
@@ -419,7 +419,10 @@ void SensorSimulator::simulateOrientation(Quatf orientation)
 	_R_body_to_world = Dcmf(orientation);
 
 	const Vector3f world_sensed_gravity = {0.0f, 0.0f, -CONSTANTS_ONE_G};
-	const Vector3f world_mag_field = Vector3f{0.2f, 0.0f, 0.4f};
+
+	// The world mag field Y component is 0 as most unit tests assume no magnetic dectination
+	const Vector3f world_mag_field = Vector3f{0.218f, 0.f, 0.43f};
+
 	const Vector3f sensed_gravity_body = _R_body_to_world.transpose() * world_sensed_gravity;
 	const Vector3f body_mag_field = _R_body_to_world.transpose() * world_mag_field;
 

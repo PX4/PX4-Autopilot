@@ -113,7 +113,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
-	if (measurementUpdate(Kfusion, aid_src_status.innovation_variance, aid_src_status.innovation)) {
+	if (measurementUpdate(Kfusion, H_YAW, aid_src_status.observation_variance, aid_src_status.innovation)) {
 
 		_time_last_heading_fuse = _time_delayed_us;
 

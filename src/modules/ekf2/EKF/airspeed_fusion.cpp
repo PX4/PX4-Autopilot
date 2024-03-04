@@ -93,7 +93,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.arsp_thr;
 		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
 		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant
-		                                         && (is_airspeed_consistent || !_control_status.flags.wind); // if wind isn't already estimated, the states are reset when starting airspeed fusion
+		                                         && (is_airspeed_consistent || !_control_status.flags.wind || _control_status.flags.inertial_dead_reckoning);
 
 		if (_control_status.flags.fuse_aspd) {
 			if (continuing_conditions_passing) {
@@ -118,17 +118,16 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		} else if (starting_conditions_passing) {
 			ECL_INFO("starting airspeed fusion");
 
-			// If starting wind state estimation, reset the wind states and covariances before fusing any data
-			// Also catch the case where sideslip fusion enabled wind estimation recently and didn't converge yet.
-			const Vector2f wind_var_xy = getWindVelocityVariance();
+			if (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent) {
+				resetVelUsingAirspeed(airspeed_sample);
 
-			if (!_control_status.flags.wind || (wind_var_xy(0) + wind_var_xy(1) > sq(_params.initial_wind_uncertainty))) {
-				// activate the wind states
-				_control_status.flags.wind = true;
-				// reset the wind speed states and corresponding covariances
+			} else if (!_control_status.flags.wind || getWindVelocityVariance().longerThan(_params.initial_wind_uncertainty)) {
+				// If starting wind state estimation, reset the wind states and covariances before fusing any data
+				// Also catch the case where sideslip fusion enabled wind estimation recently and didn't converge yet.
 				resetWindUsingAirspeed(airspeed_sample);
 			}
 
+			_control_status.flags.wind = true;
 			_control_status.flags.fuse_aspd = true;
 		}
 
@@ -208,7 +207,7 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
-	const bool is_fused = measurementUpdate(K, aid_src.innovation_variance, aid_src.innovation);
+	const bool is_fused = measurementUpdate(K, H, aid_src.observation_variance, aid_src.innovation);
 
 	aid_src.fused = is_fused;
 	_fault_status.flags.bad_airspeed = !is_fused;
@@ -244,6 +243,21 @@ void Ekf::resetWindUsingAirspeed(const airspeedSample &airspeed_sample)
 	resetStateCovariance<State::wind_vel>(P_wind);
 
 	ECL_INFO("reset wind using airspeed to (%.3f, %.3f)", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
+
+	_aid_src_airspeed.time_last_fuse = _time_delayed_us;
+}
+
+void Ekf::resetVelUsingAirspeed(const airspeedSample &airspeed_sample)
+{
+	const float euler_yaw = getEulerYaw(_R_to_earth);
+
+	// Estimate velocity using zero sideslip assumption and airspeed measurement
+	Vector2f horizontal_velocity;
+	horizontal_velocity(0) = _state.wind_vel(0) + airspeed_sample.true_airspeed * cosf(euler_yaw);
+	horizontal_velocity(1) = _state.wind_vel(1) + airspeed_sample.true_airspeed * sinf(euler_yaw);
+
+	float vel_var = NAN; // Do not reset the velocity variance as wind variance estimate is most likely not correct
+	resetHorizontalVelocityTo(horizontal_velocity, vel_var);
 
 	_aid_src_airspeed.time_last_fuse = _time_delayed_us;
 }
