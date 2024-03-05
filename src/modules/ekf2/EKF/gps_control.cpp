@@ -47,7 +47,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 
 	if (!gyro_bias_inhibited()) {
-		_yawEstimator.setGyroBias(getGyroBias());
+		_yawEstimator.setGyroBias(getGyroBias(), _control_status.flags.vehicle_at_rest);
 	}
 
 	// run EKF-GSF yaw estimator once per imu_delayed update
