@@ -1007,7 +1007,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 		}
 
 		calibration_log_info(mavlink_log_pub, "Assuming vehicle is facing heading %.1f degrees",
-					 (double)math::degrees(heading_radians));
+				     (double)math::degrees(heading_radians));
 
 		matrix::Eulerf euler{matrix::Quatf{attitude.q}};
 		euler(2) = heading_radians;
