@@ -512,22 +512,23 @@ float FixedwingPositionControl::getCorrectedNpfgRollSetpoint()
 	float new_roll_setpoint(_npfg.getRollSetpoint());
 	const float can_run_factor(constrain(_npfg.canRun(_local_pos, _wind_valid), 0.f, 1.f));
 
-	// If the npfg was not running before, reset the user warning variables.
 	hrt_abstime now{hrt_absolute_time()};
 
+	// If the npfg was not running before, reset the user warning variables.
 	if ((now - _time_since_last_npfg_call) > 2_s) {
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
 	}
 
 	// Warn the user when the scale is less than 90% for at least 2 seconds.
-	if ((1.f - can_run_factor) < 0.1f) {
+	if (can_run_factor > 0.9f) {
+		// NPFG reports a good condition, reset the user warning variables.
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
 
 	} else if (_need_report_npfg_uncertain_condition) {
 		if (_time_since_first_reduced_roll == 0U) {
-			_time_since_first_reduced_roll = hrt_absolute_time();
+			_time_since_first_reduced_roll = now;
 		}
 
 		if ((now - _time_since_first_reduced_roll) > 2_s) {
