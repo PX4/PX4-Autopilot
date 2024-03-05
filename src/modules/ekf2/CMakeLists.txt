@@ -127,7 +127,8 @@ list(APPEND EKF_SRCS
 	EKF/height_control.cpp
 	EKF/imu_down_sampler.cpp
 	EKF/output_predictor.cpp
-	EKF/vel_pos_fusion.cpp
+	EKF/velocity_fusion.cpp
+	EKF/position_fusion.cpp
 	EKF/yaw_fusion.cpp
 	EKF/zero_innovation_heading_update.cpp
 

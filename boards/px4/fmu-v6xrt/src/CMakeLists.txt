@@ -66,7 +66,6 @@ else()
 		i2c.cpp
 		init.c
 		led.c
-		manifest.c
 		mtd.cpp
 		sdhc.c
 		spi.cpp

@@ -1610,6 +1610,11 @@ void Logger::print_load_callback(void *user)
 
 void Logger::initialize_load_output(PrintLoadReason reason)
 {
+	// If already in progress, don't try to start again
+	if (_next_load_print != 0) {
+		return;
+	}
+
 	init_print_load(&_load);
 
 	if (reason == PrintLoadReason::Watchdog) {

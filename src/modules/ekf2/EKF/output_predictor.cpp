@@ -41,16 +41,32 @@ using matrix::Vector3f;
 
 void OutputPredictor::print_status()
 {
-	printf("output predictor: IMU dt: %.4f, EKF dt: %.4f\n", (double)_dt_update_states_avg, (double)_dt_correct_states_avg);
+	printf("[output predictor] IMU dt: %.6f, EKF dt: %.6f\n",
+	       (double)_dt_update_states_avg, (double)_dt_correct_states_avg);
 
-	printf("output predictor: tracking error, angular: %.6f rad, velocity: %.3f m/s, position: %.3f m\n",
+	const matrix::Quatf q_att = _output_buffer.get_newest().quat_nominal;
+	const matrix::Eulerf euler = q_att;
+
+	printf("[output predictor] orientation: [%.4f, %.4f, %.4f, %.4f] (Euler [%.3f, %.3f, %.3f])\n",
+	       (double)q_att(0), (double)q_att(1), (double)q_att(2), (double)q_att(3),
+	       (double)euler.phi(), (double)euler.theta(), (double)euler.psi());
+
+	printf("[output predictor] velocity: [%.3f, %.3f, %.3f]\n",
+	       (double)_output_buffer.get_newest().vel(0), (double)_output_buffer.get_newest().vel(1),
+	       (double)_output_buffer.get_newest().vel(2));
+
+	printf("[output predictor] position: [%.3f, %.3f, %.3f]\n",
+	       (double)_output_buffer.get_newest().pos(0), (double)_output_buffer.get_newest().pos(1),
+	       (double)_output_buffer.get_newest().pos(2));
+
+	printf("[output predictor] tracking error, angular: %.6f rad, velocity: %.4f m/s, position: %.4f m\n",
 	       (double)_output_tracking_error(0), (double)_output_tracking_error(1), (double)_output_tracking_error(2));
 
-	printf("output buffer: %d/%d (%d Bytes)\n", _output_buffer.entries(), _output_buffer.get_length(),
-	       _output_buffer.get_total_size());
+	printf("[output predictor] output buffer: %d/%d (%d Bytes)\n",
+	       _output_buffer.entries(), _output_buffer.get_length(), _output_buffer.get_total_size());
 
-	printf("output vert buffer: %d/%d (%d Bytes)\n", _output_vert_buffer.entries(), _output_vert_buffer.get_length(),
-	       _output_vert_buffer.get_total_size());
+	printf("[output predictor] output vert buffer: %d/%d (%d Bytes)\n",
+	       _output_vert_buffer.entries(), _output_vert_buffer.get_length(), _output_vert_buffer.get_total_size());
 }
 
 void OutputPredictor::alignOutputFilter(const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state)

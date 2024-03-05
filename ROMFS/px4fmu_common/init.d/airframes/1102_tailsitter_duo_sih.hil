@@ -71,7 +71,7 @@ param set SIH_MASS 0.2
 param set SIH_IXX 0.00354
 param set SIH_IYY 0.000625
 param set SIH_IZZ 0.00300
-param set SIH_IXZ 0.0
+param set SIH_IXZ 0
 param set SIH_KDV 0.2
 param set SIH_L_ROLL 0.145
 

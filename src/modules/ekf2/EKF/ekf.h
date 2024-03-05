@@ -85,6 +85,8 @@ public:
 	// initialise variables to sane values (also interface class)
 	bool init(uint64_t timestamp) override;
 
+	void print_status();
+
 	// should be called every time new data is pushed into the filter
 	bool update();
 
@@ -253,7 +255,12 @@ public:
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
 	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
+	matrix::Vector3f getRotVarNed() const;
+	float getYawVar() const;
+	float getTiltVariance() const;
+
 	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
+
 	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
@@ -320,8 +327,8 @@ public:
 #endif
 	}
 
-	// fuse single velocity and position measurement
-	bool fuseVelPosHeight(const float innov, const float innov_var, const int state_index);
+	// fuse single direct state measurement (eg NED velocity, NED position, mag earth field, etc)
+	bool fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
 
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
@@ -338,14 +345,7 @@ public:
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
 
 	const Vector3f &getMagBias() const { return _state.mag_B; }
-	Vector3f getMagBiasVariance() const
-	{
-		if (_control_status.flags.mag) {
-			return getStateVariance<State::mag_B>();
-		}
-
-		return _saved_mag_bf_covmat.diag();
-	}
+	Vector3f getMagBiasVariance() const { return getStateVariance<State::mag_B>(); } // get the mag bias variance in Gauss
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -404,8 +404,6 @@ public:
 
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) const;
-
-	float getYawVar() const;
 
 	HeightSensor getHeightSensorRef() const { return _height_sensor_ref; }
 
@@ -470,35 +468,42 @@ public:
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 #endif // CONFIG_EKF2_AUXVEL
 
-	bool measurementUpdate(VectorState &K, float innovation_variance, float innovation)
+	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
 	{
 		clearInhibitedStateKalmanGains(K);
 
-		const VectorState KS = K * innovation_variance;
-		SquareMatrixState KHP;
+		// Efficient implementation of the Joseph stabilized covariance update
+		// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
 
-		for (unsigned row = 0; row < State::size; row++) {
-			for (unsigned col = 0; col < State::size; col++) {
-				// Instad of literally computing KHP, use an equvalent
-				// equation involving less mathematical operations
-				KHP(row, col) = KS(row) * K(col);
+		// Step 1: conventional update
+		VectorState PH = P * H;
+
+		for (unsigned i = 0; i < State::size; i++) {
+			for (unsigned j = 0; j <= i; j++) {
+				P(i, j) = P(i, j) - K(i) * PH(j);
+				P(j, i) = P(i, j);
 			}
 		}
 
-		const bool is_healthy = checkAndFixCovarianceUpdate(KHP);
+		// Step 2: stabilized update
+		PH = P * H;
 
-		if (is_healthy) {
-			// apply the covariance corrections
-			P -= KHP;
-
-			fixCovarianceErrors(true);
-
-			// apply the state corrections
-			fuse(K, innovation);
+		for (unsigned i = 0; i < State::size; i++) {
+			for (unsigned j = 0; j <= i; j++) {
+				float s = .5f * (P(i, j) - PH(i) * K(j) + P(i, j) - PH(j) * K(i));
+				P(i, j) = s + K(i) * R * K(j);
+				P(j, i) = P(i, j);
+			}
 		}
 
-		return is_healthy;
+		constrainStateVariances();
+
+		// apply the state corrections
+		fuse(K, innovation);
+		return true;
 	}
+
+	void resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
 
 	void updateParameters();
 
@@ -515,6 +520,14 @@ private:
 	void updateDeadReckoningStatus();
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
+
+	static constexpr float kGyroBiasVarianceMin{1e-9f};
+	static constexpr float kAccelBiasVarianceMin{1e-9f};
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	static constexpr float kMagVarianceMin = 1e-6f;
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 
 	struct StateResetCounts {
 		uint8_t velNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
@@ -563,8 +576,6 @@ private:
 
 	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 	float _height_rate_lpf{0.0f};
-	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
-	float _yaw_rate_lpf_ef{0.0f};		///< Filtered angular rate about earth frame D axis (rad/sec)
 
 	SquareMatrixState P{};	///< state covariance matrix
 
@@ -644,7 +655,6 @@ private:
 	float _gps_velD_diff_filt{0.0f};	///< GPS filtered Down velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
-	float _gps_error_norm{1.0f};		///< normalised gps error
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
 	bool _gps_checks_passed{false};		///> true when all active GPS checks have passed
 
@@ -694,9 +704,7 @@ private:
 	float _mag_heading_pred_prev{};            ///< previous value of yaw state used by mag heading fusion (rad)
 
 	// used by magnetometer fusion mode selection
-	bool _mag_bias_observable{false};	///< true when there is enough rotation to make magnetometer bias errors observable
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
-	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
 	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
 	float _mag_heading_last_declination{}; ///< last magnetic field declination used for heading fusion (rad)
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
@@ -712,21 +720,14 @@ private:
 
 	// Variables used to control activation of post takeoff functionality
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
-	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	uint64_t _time_last_mag_check_failing{0};
-	Matrix3f _saved_mag_ef_covmat{}; ///< NED magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
-	Matrix3f _saved_mag_bf_covmat{}; ///< magnetic field state covariance sub-matrix that has been saved for use at the next initialisation (Gauss**2)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	// variables used to inhibit accel bias learning
 	bool _accel_bias_inhibit[3] {};		///< true when the accel bias learning is being inhibited for the specified axis
 	bool _gyro_bias_inhibit[3] {};		///< true when the gyro bias learning is being inhibited for the specified axis
-	Vector3f _accel_vec_filt{};		///< acceleration vector after application of a low pass filter (m/sec**2)
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
-
-	Vector3f _prev_gyro_bias_var{};         ///< saved gyro XYZ bias variances
-	Vector3f _prev_accel_bias_var{};        ///< saved accel XYZ bias variances
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -782,6 +783,7 @@ private:
 
 	// Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
 	void resetWindUsingAirspeed(const airspeedSample &airspeed_sample);
+	void resetVelUsingAirspeed(const airspeedSample &airspeed_sample);
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
@@ -810,6 +812,7 @@ private:
 
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
 	void resetHorizontalPositionToLastKnown();
+	void resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy);
 
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
@@ -825,7 +828,7 @@ private:
 	void updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const float obs, const float obs_var, const float innov_gate, estimator_aid_source1d_s &aid_src) const;
 
 	// 2d & 3d velocity aid source
-	void updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source2d_s &aid_src) const;
+	void updateHorizontalVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source2d_s &aid_src) const;
 	void updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &obs, const Vector3f &obs_var, const float innov_gate, estimator_aid_source3d_s &aid_src) const;
 
 	// horizontal and vertical position fusion
@@ -833,7 +836,7 @@ private:
 	void fuseVerticalPosition(estimator_aid_source1d_s &hgt_aid_src);
 
 	// 2d & 3d velocity fusion
-	void fuseVelocity(estimator_aid_source2d_s &vel_aid_src);
+	void fuseHorizontalVelocity(estimator_aid_source2d_s &vel_aid_src);
 	void fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
 
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -939,18 +942,11 @@ private:
 #endif // CONFIG_EKF2_WIND
 	}
 
-	// if the covariance correction will result in a negative variance, then
-	// the covariance matrix is unhealthy and must be corrected
-	bool checkAndFixCovarianceUpdate(const SquareMatrixState &KHP);
-
 	// limit the diagonal of the covariance matrix
-	// force symmetry when the argument is true
-	void fixCovarianceErrors(bool force_symmetry);
+	void constrainStateVariances();
 
 	void constrainStateVar(const IdxDof &state, float min, float max);
-
-	// constrain the ekf states
-	void constrainStates();
+	void constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio = 1.e6f);
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
@@ -1047,7 +1043,6 @@ private:
 	bool haglYawResetReq();
 
 	void checkYawAngleObservability();
-	void checkMagBiasObservability();
 	void checkMagHeadingConsistency();
 
 	bool checkMagField(const Vector3f &mag);
@@ -1055,10 +1050,6 @@ private:
 
 	void stopMagHdgFusion();
 	void stopMagFusion();
-
-	// load and save mag field state covariance data for re-use
-	void loadMagCovData();
-	void saveMagCovData();
 
 	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
 	// sensor measurement
@@ -1138,8 +1129,6 @@ private:
 
 	void resetFakePosFusion();
 	void stopFakePosFusion();
-
-	void setVelPosStatus(const int state_index, const bool healthy);
 
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)

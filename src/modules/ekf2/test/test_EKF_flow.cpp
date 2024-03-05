@@ -241,7 +241,7 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData)
 	_sensor_simulator.runSeconds(5.f);
 
 	// AND WHEN: there is a pure yaw rotation
-	const Vector3f body_rate(0.f, 0.f, 3.14159f);
+	const Vector3f body_rate(0.f, 0.f, 2.9f);
 	const Vector3f flow_offset(0.15, -0.05f, 0.2f);
 	_ekf_wrapper.setFlowOffset(flow_offset);
 
@@ -278,6 +278,47 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData)
 	_sensor_simulator.runSeconds(5.f);
 
 	// AND WHEN: there is a pure yaw rotation
+	const Vector3f body_rate(0.f, 0.f, 2.9f);
+	const Vector3f flow_offset(-0.15, 0.05f, 0.2f);
+	_ekf_wrapper.setFlowOffset(flow_offset);
+
+	const Vector2f simulated_horz_velocity(body_rate % flow_offset);
+	flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
+	setFlowFromHorizontalVelocityAndDistance(flow_sample, simulated_horz_velocity, simulated_distance_to_ground);
+
+	// use flow sensor gyro data
+	// for clarification of the sign, see definition of flowSample
+	flow_sample.gyro_rate = -body_rate;
+
+	_sensor_simulator._flow.setData(flow_sample);
+	_sensor_simulator._imu.setGyroData(body_rate);
+	_sensor_simulator.runSeconds(10.f);
+
+	// THEN: the flow due to the yaw rotation and the offsets is canceled
+	// and the velocity estimate stays 0
+	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
+	EXPECT_NEAR(estimated_horz_velocity(0), 0.f, 0.01f)
+			<< "estimated vel = " << estimated_horz_velocity(0);
+	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.01f)
+			<< "estimated vel = " << estimated_horz_velocity(1);
+	_ekf->state().vector().print();
+	_ekf->covariances().print();
+}
+
+TEST_F(EkfFlowTest, yawMotionNoMagFusion)
+{
+	// WHEN: fusing range finder and optical flow data in air
+	const float simulated_distance_to_ground = 5.f;
+	startRangeFinderFusion(simulated_distance_to_ground);
+	startZeroFlowFusion();
+	_ekf_wrapper.setMagFuseTypeNone();
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+
+	_sensor_simulator.runSeconds(5.f);
+
+	// AND WHEN: there is a pure yaw rotation
 	const Vector3f body_rate(0.f, 0.f, 3.14159f);
 	const Vector3f flow_offset(-0.15, 0.05f, 0.2f);
 	_ekf_wrapper.setFlowOffset(flow_offset);
@@ -301,4 +342,6 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData)
 			<< "estimated vel = " << estimated_horz_velocity(0);
 	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.01f)
 			<< "estimated vel = " << estimated_horz_velocity(1);
+	_ekf->state().vector().print();
+	_ekf->covariances().print();
 }

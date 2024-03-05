@@ -65,6 +65,10 @@ menu "Zenoh publishers/subscribers"
 		bool "battery_status"
 		default n
 
+	config ZENOH_PUBSUB_BUFFER128
+		bool "buffer128"
+		default n
+
 	config ZENOH_PUBSUB_BUTTON_EVENT
 		bool "button_event"
 		default n
@@ -127,6 +131,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_DEBUG_VECT
 		bool "debug_vect"
+		default n
+
+	config ZENOH_PUBSUB_DIFFERENTIAL_DRIVE_SETPOINT
+		bool "differential_drive_setpoint"
 		default n
 
 	config ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
@@ -215,6 +223,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_FIGURE_EIGHT_STATUS
 		bool "figure_eight_status"
+		default n
+
+	config ZENOH_PUBSUB_FLIGHT_PHASE_ESTIMATION
+		bool "flight_phase_estimation"
 		default n
 
 	config ZENOH_PUBSUB_FOLLOW_TARGET
@@ -549,6 +561,10 @@ menu "Zenoh publishers/subscribers"
 		bool "sensor_accel_fifo"
 		default n
 
+	config ZENOH_PUBSUB_SENSOR_AIRFLOW
+		bool "sensor_airflow"
+		default n
+
 	config ZENOH_PUBSUB_SENSOR_BARO
 		bool "sensor_baro"
 		default n
@@ -789,6 +805,10 @@ menu "Zenoh publishers/subscribers"
 		bool "vehicle_trajectory_waypoint"
 		default n
 
+	config ZENOH_PUBSUB_VELOCITY_LIMITS
+		bool "velocity_limits"
+		default n
+
 	config ZENOH_PUBSUB_VTOL_VEHICLE_STATUS
 		bool "vtol_vehicle_status"
 		default n
@@ -826,6 +846,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_ARMING_CHECK_REQUEST
 	select ZENOH_PUBSUB_AUTOTUNE_ATTITUDE_CONTROL_STATUS
 	select ZENOH_PUBSUB_BATTERY_STATUS
+	select ZENOH_PUBSUB_BUFFER128
 	select ZENOH_PUBSUB_BUTTON_EVENT
 	select ZENOH_PUBSUB_CAMERA_CAPTURE
 	select ZENOH_PUBSUB_CAMERA_STATUS
@@ -842,6 +863,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_DEBUG_KEY_VALUE
 	select ZENOH_PUBSUB_DEBUG_VALUE
 	select ZENOH_PUBSUB_DEBUG_VECT
+	select ZENOH_PUBSUB_DIFFERENTIAL_DRIVE_SETPOINT
 	select ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
 	select ZENOH_PUBSUB_DISTANCE_SENSOR
 	select ZENOH_PUBSUB_EKF2_TIMESTAMPS
@@ -864,6 +886,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_FAILSAFE_FLAGS
 	select ZENOH_PUBSUB_FAILURE_DETECTOR_STATUS
 	select ZENOH_PUBSUB_FIGURE_EIGHT_STATUS
+	select ZENOH_PUBSUB_FLIGHT_PHASE_ESTIMATION
 	select ZENOH_PUBSUB_FOLLOW_TARGET
 	select ZENOH_PUBSUB_FOLLOW_TARGET_ESTIMATOR
 	select ZENOH_PUBSUB_FOLLOW_TARGET_STATUS
@@ -947,6 +970,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_SATELLITE_INFO
 	select ZENOH_PUBSUB_SENSOR_ACCEL
 	select ZENOH_PUBSUB_SENSOR_ACCEL_FIFO
+	select ZENOH_PUBSUB_SENSOR_AIRFLOW
 	select ZENOH_PUBSUB_SENSOR_BARO
 	select ZENOH_PUBSUB_SENSOR_COMBINED
 	select ZENOH_PUBSUB_SENSOR_CORRECTION
@@ -1007,6 +1031,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_VEHICLE_TORQUE_SETPOINT
 	select ZENOH_PUBSUB_VEHICLE_TRAJECTORY_BEZIER
 	select ZENOH_PUBSUB_VEHICLE_TRAJECTORY_WAYPOINT
+	select ZENOH_PUBSUB_VELOCITY_LIMITS
 	select ZENOH_PUBSUB_VTOL_VEHICLE_STATUS
 	select ZENOH_PUBSUB_WHEEL_ENCODERS
 	select ZENOH_PUBSUB_WIND

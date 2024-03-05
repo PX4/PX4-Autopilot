@@ -288,7 +288,7 @@
 
 /* HW Version and Revision drive signals Default to 1 to detect */
 
-#define BOARD_HAS_HW_VERSIONING
+#define BOARD_HAS_HW_SPLIT_VERSIONING
 
 #define HW_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_PULL_NONE | IOMUX_SLEW_FAST)
 
@@ -296,7 +296,10 @@
 #define GPIO_HW_REV_SENSE     /* GPIO_AD_22 GPIO9 Pin 21 */  ADC_GPIO(4, 21)
 #define GPIO_HW_VER_SENSE     /* GPIO_AD_23 GPIO9 Pin 22 */  ADC_GPIO(5, 22)
 #define HW_INFO_INIT_PREFIX   "V6XRT"
-#define V6XRT_00             HW_VER_REV(0x0,0x0) // First Release
+
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0 & 1
+#define V6XRT_0             HW_FMUM_ID(0x0)  // First Release
+#define V6XRT_1             HW_FMUM_ID(0x1)  // Next Release
 
 #define BOARD_I2C_LATEINIT 1 /* See Note about SE550 Eanable */
 
@@ -385,7 +388,7 @@
 
 #define GPIO_NFC_GPIO                  /* GPIO_EMC_B1_04 GPIO1_IO04 */ (GPIO_PORT1 | GPIO_PIN4  | GPIO_INPUT |  GENERAL_INPUT_IOMUX)
 
-#define GPIO_GPIO_EMC_B2_12           /* GPIO_EMC_B2_12 AKA PD15, PH11 */  (GPIO_PORT2 | GPIO_PIN22 | GPIO_INPUT | GENERAL_INPUT_IOMUX)
+#define GPIO_GPIO_EMC_B2_12           /* GPIO_EMC_B2_12 AKA PD15, PH11 */  (GPIO_PORT2 | GPIO_PIN22 | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | OUT_IOMUX)
 
 
 /* 10/100 Mbps Ethernet & Gigabit Ethernet */
@@ -448,8 +451,10 @@
 #define HRT_PPM_CHANNEL         /* GPIO_EMC_B1_09 GPIO_GPT5_CAPTURE1_1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* GPIO_EMC_B1_09 GPT1_CAPTURE2 */ (GPIO_GPT5_CAPTURE1_1 | GENERAL_INPUT_IOMUX)
 
-#define RC_SERIAL_PORT          "/dev/ttyS4"
-#define RC_SERIAL_SINGLEWIRE
+#define RC_SERIAL_PORT                  "/dev/ttyS4"
+#define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
+#define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
+#define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap
 
 /* FLEXSPI4 */
 
@@ -538,6 +543,8 @@
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
 /* This board provides the board_on_reset interface */
+
+#define BOARD_HAS_ISP_BOOTLOADER 1
 
 #define BOARD_HAS_ON_RESET 1
 

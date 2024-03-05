@@ -164,10 +164,6 @@ param set-default COM_RC_IN_MODE 1
 # Speedup SITL startup
 param set-default EKF2_REQ_GPS_H 0.5
 
-# Multi-EKF
-param set-default EKF2_MULTI_IMU 3
-param set-default SENS_IMU_MODE 0
-
 param set-default IMU_GYRO_FFT_EN 1
 param set-default MAV_PROTO_VER 2 # Ensures QGC does not drop the first few packets after a SITL restart due to MAVLINK 1 packets
 
@@ -248,7 +244,12 @@ then
 fi
 
 load_mon start
-battery_simulator start
+
+if param compare SIM_BAT_ENABLE 1
+then
+	battery_simulator start
+fi
+
 tone_alarm start
 rc_update start
 manual_control start

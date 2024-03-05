@@ -129,8 +129,12 @@ static unsigned g_func_counts[DM_NUMBER_OF_FUNCS];
 
 /* Table of the len of each item type including HDR size */
 static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
-	g_per_item_size[DM_KEY_SAFE_POINTS] + DM_SECTOR_HDR_SIZE,
-	g_per_item_size[DM_KEY_FENCE_POINTS] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_0] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_1] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_SAFE_POINTS_STATE] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_0] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_1] + DM_SECTOR_HDR_SIZE,
+	g_per_item_size[DM_KEY_FENCE_POINTS_STATE] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_0] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_1] + DM_SECTOR_HDR_SIZE,
 	g_per_item_size[DM_KEY_MISSION_STATE] + DM_SECTOR_HDR_SIZE,
@@ -445,9 +449,6 @@ static int  _ram_clear(dm_item_t item)
 		return -1;
 	}
 
-	int i;
-	int result = 0;
-
 	/* Get the offset of 1st item of this type */
 	int offset = calculate_offset(item, 0);
 
@@ -456,8 +457,10 @@ static int  _ram_clear(dm_item_t item)
 		return -1;
 	}
 
+	int result = 0;
+
 	/* Clear all items of this type */
-	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
+	for (int i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
 		uint8_t *buf = &dm_operations_data.ram.data[offset];
 
 		if (buf > dm_operations_data.ram.data_end) {
@@ -479,8 +482,6 @@ _file_clear(dm_item_t item)
 		return -1;
 	}
 
-	int i, result = 0;
-
 	/* Get the offset of 1st item of this type */
 	int offset = calculate_offset(item, 0);
 
@@ -489,8 +490,10 @@ _file_clear(dm_item_t item)
 		return -1;
 	}
 
+	int result = 0;
+
 	/* Clear all items of this type */
-	for (i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
+	for (int i = 0; (unsigned)i < g_per_item_max_index[item]; i++) {
 		char buf[1];
 
 		if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
@@ -565,13 +568,13 @@ _file_initialize(unsigned max_offset)
 			PX4_ERR("Failed writing compat: %d", ret);
 		}
 
-		for (uint32_t item = DM_KEY_SAFE_POINTS; item <= DM_KEY_MISSION_STATE; ++item) {
+		for (uint32_t item = DM_KEY_SAFE_POINTS_0; item <= DM_KEY_MISSION_STATE; ++item) {
 			g_dm_ops->clear((dm_item_t)item);
 		}
 
 		mission_s mission{};
 		mission.timestamp = hrt_absolute_time();
-		mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 		mission.count = 0;
 		mission.current_seq = 0;
 		mission.mission_id = 0u;
@@ -583,8 +586,8 @@ _file_initialize(unsigned max_offset)
 		stats.opaque_id = 0;
 
 		g_dm_ops->write(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s));
-		g_dm_ops->write(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
-		g_dm_ops->write(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+		g_dm_ops->write(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+		g_dm_ops->write(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
 	}
 
 	dm_operations_data.running = true;
@@ -820,8 +823,6 @@ end:
 static int
 start()
 {
-	int task;
-
 	px4_sem_init(&g_init_sema, 1, 0);
 
 	/* g_init_sema use case is a signal */
@@ -829,9 +830,9 @@ start()
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
-				       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
-				       nullptr)) < 0) {
+	if (px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
+			       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
+			       nullptr) < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
 		return -1;
@@ -879,10 +880,6 @@ Each type has a specific type and a fixed maximum amount of storage items, so th
 
 ### Implementation
 Reading and writing a single item is always atomic.
-
-**DM_KEY_FENCE_POINTS** and **DM_KEY_SAFE_POINTS** items: the first data element is a `mission_stats_entry_s` struct,
-which stores the number of items for these types. These items are always updated atomically in one transaction (from
-the mavlink mission manager).
 
 )DESCR_STR");
 

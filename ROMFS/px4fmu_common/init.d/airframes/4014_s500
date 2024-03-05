@@ -18,14 +18,15 @@ param set-default MC_PITCHRATE_P 0.18
 param set-default MC_ROLLRATE_I 0.15
 param set-default MC_PITCHRATE_I 0.15
 
+# Square quadrotor X PX4 numbering
 param set-default CA_ROTOR_COUNT 4
-param set-default CA_ROTOR0_PX 0.15
-param set-default CA_ROTOR0_PY 0.15
-param set-default CA_ROTOR1_PX -0.15
-param set-default CA_ROTOR1_PY -0.15
-param set-default CA_ROTOR2_PX 0.15
-param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR1_PX -1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR2_PX 1
+param set-default CA_ROTOR2_PY -1
 param set-default CA_ROTOR2_KM -0.05
-param set-default CA_ROTOR3_PX -0.15
-param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_PX -1
+param set-default CA_ROTOR3_PY 1
 param set-default CA_ROTOR3_KM -0.05

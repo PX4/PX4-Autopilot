@@ -269,6 +269,18 @@
 #  define HW_VER_REV(v,r)       ((uint32_t)((v) & 0xffff) << 16) | ((uint32_t)(r) & 0xffff)
 #endif
 
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+typedef uint16_t hw_fmun_id_t;
+typedef uint16_t hw_base_id_t;
+// Original Signals GPIO_HW_REV_SENSE/GPIO_HW_VER_REV_DRIVE is used to ID the FMUM
+// Original Signals GPIO_HW_VER_SENSE/GPIO_HW_VER_REV_DRIVE is used to ID the BASE
+#  define BOARD_HAS_VERSIONING 1
+#  define HW_FMUM_ID(rev)       ((hw_fmun_id_t)(rev) & 0xffff)
+#  define HW_BASE_ID(ver)       ((hw_base_id_t)(ver) & 0xffff)
+#  define GET_HW_FMUM_ID()      (HW_FMUM_ID(board_get_hw_revision()))
+#  define GET_HW_BASE_ID()      (HW_BASE_ID(board_get_hw_version()))
+#endif
+
 #define HW_INFO_REV_DIGITS    3
 #define HW_INFO_VER_DIGITS    3
 
@@ -457,6 +469,15 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
  * Description:
  *   A board may define RC_SERIAL_SWAP_RXTX, so that RC_SERIAL_PORT is configured
  *   as UART with RX/TX swapped.
+ *
+ *   It can optionaly define RC_SERIAL_SWAP_USING_SINGLEWIRE If the board is wired
+ *   with TX to the input (Swapped) and the SoC does not support U[S]ART level
+ *   HW swapping, then use onewire to do the swap if and only if:
+ *
+ *    RC_SERIAL_SWAP_USING_SINGLEWIRE   is defined
+ *    RC_SERIAL_SWAP_RXTX               is defined
+ *    TIOCSSWAP                         is defined and retuns !OK
+ *    TIOCSSINGLEWIRE                   is defined
  *
  * Input Parameters:
  *   device: serial device, e.g. "/dev/ttyS0"
@@ -659,20 +680,51 @@ bool board_booted_by_px4(void);
  ************************************************************************************/
 
 typedef enum {
-	PX4_MFT_PX4IO = 0,
-	PX4_MFT_USB   = 1,
-	PX4_MFT_CAN2  = 2,
-	PX4_MFT_CAN3  = 3,
+	PX4_MFT_PX4IO      = 0,
+	PX4_MFT_USB        = 1,
+	PX4_MFT_CAN2       = 2,
+	PX4_MFT_CAN3       = 3,
+	PX4_MFT_PM2        = 4,
+	PX4_MFT_ETHERNET   = 5,
+	PX4_MFT_T1_ETH     = 6,
+	PX4_MFT_T100_ETH   = 7,
+	PX4_MFT_T1000_ETH  = 8,
 } px4_hw_mft_item_id_t;
 
+typedef int (*system_query_func_t)(const char *sub,  const char *val, void *out);
+
+#define PX4_MFT_MFT_TYPES  { \
+		PX4_MFT_PX4IO,           \
+		PX4_MFT_USB,             \
+		PX4_MFT_CAN2,            \
+		PX4_MFT_CAN3,            \
+		PX4_MFT_PM2,             \
+		PX4_MFT_ETHERNET,        \
+		PX4_MFT_T1_ETH,          \
+		PX4_MFT_T100_ETH,        \
+		PX4_MFT_T1000_ETH }
+
+#define PX4_MFT_MFT_STR_TYPES  { \
+		"MFT_PX4IO",             \
+		"MFT_USB",               \
+		"MFT_CAN2",              \
+		"MFT_CAN3",              \
+		"MFT_PM2",               \
+		"MFT_ETHERNET",          \
+		"MFT_T1_ETH",            \
+		"MFT_T100_ETH",          \
+		"MFT_T1000_ETH",         \
+		"MFT_T1000_ETH"}
+
 typedef enum {
-	px4_hw_con_unknown  = 0,
-	px4_hw_con_onboard  = 1,
+	px4_hw_con_unknown   = 0,
+	px4_hw_con_onboard   = 1,
 	px4_hw_con_connector = 3,
 } px4_hw_connection_t;
 
 
 typedef struct {
+	unsigned int id:         16;  /* The id px4_hw_mft_item_id_t */
 	unsigned int present:    1;   /* 1 if this board have this item */
 	unsigned int mandatory:  1;   /* 1 if this item has to be present and working */
 	unsigned int connection: 2;   /* See px4_hw_connection_t */
@@ -684,7 +736,7 @@ typedef const px4_hw_mft_item_t  *px4_hw_mft_item;
 
 #if defined(BOARD_HAS_VERSIONING)
 __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
-
+__EXPORT int system_query_manifest(const char *sub,  const char *val, void *out);
 #  define PX4_MFT_HW_SUPPORTED(ID)           (board_query_manifest((ID))->present)
 #  define PX4_MFT_HW_REQUIRED(ID)            (board_query_manifest((ID))->mandatory)
 #  define PX4_MFT_HW_IS_ONBOARD(ID)          (board_query_manifest((ID))->connection == px4_hw_con_onboard)
@@ -755,6 +807,26 @@ inline uint16_t board_get_can_interfaces(void) { return 0x7; }
 __EXPORT const char *board_get_hw_type_name(void);
 #else
 #define board_get_hw_type_name() ""
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_base_type_name
+ *
+ * Description:
+ *   Optional returns a 0 terminated string defining the HW type.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   a 0 terminated string defining the HW type. This may be a 0 length string ""
+ *
+ ************************************************************************************/
+
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+__EXPORT const char *board_get_hw_base_type_name(void);
+#else
+#define board_get_hw_base_type_name() ""
 #endif
 
 /************************************************************************************

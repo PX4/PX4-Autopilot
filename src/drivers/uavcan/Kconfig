@@ -57,6 +57,10 @@ if DRIVERS_UAVCAN
         bool "Subscribe to GPS:                         uavcan::equipment::gnss::Auxiliary | uavcan::equipment::gnss::Fix | uavcan::equipment::gnss::Fix2"
         default y
 
+    config UAVCAN_SENSOR_GNSS_RELATIVE
+        bool "Subscribe to GPS Relative:                ardupilot::equipment::gnss::RelPosHeading"
+        default y
+
     config UAVCAN_SENSOR_HYGROMETER
         bool "Subscribe to Hygrometer:                  dronecan::sensors::hygrometer::Hygrometer"
         default y

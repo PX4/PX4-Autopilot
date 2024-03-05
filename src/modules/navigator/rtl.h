@@ -58,6 +58,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/rtl_status.h>
 #include <uORB/topics/rtl_time_estimate.h>
 
 class Navigator;
@@ -86,7 +87,7 @@ public:
 
 	void set_return_alt_min(bool min) { _enforce_rtl_alt = min; }
 
-	void updateSafePoints() { _initiate_safe_points_updated = true; }
+	void updateSafePoints(uint32_t new_safe_point_id) { _initiate_safe_points_updated = true; _safe_points_id = new_safe_point_id; }
 
 private:
 	enum class DestinationType {
@@ -109,20 +110,21 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(DestinationType &destination_type, DestinationPosition &rtl_position, float &rtl_alt);
+	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &rtl_position, float &rtl_alt,
+				uint8_t &safe_point_index);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
-	void setLandPosAsDestination(DestinationPosition &rtl_position, mission_item_s &land_mission_item) const;
+	void setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const;
 
 	/**
 	 * @brief Set the safepoint as destination.
 	 *
 	 * @param mission_safe_point is the mission safe point/rally point to set as destination.
 	 */
-	void setSafepointAsDestination(DestinationPosition &rtl_position, const mission_item_s &mission_safe_point) const;
+	void setSafepointAsDestination(PositionYawSetpoint &rtl_position, const mission_item_s &mission_safe_point) const;
 
 	/**
 	 * @brief calculate return altitude from cone half angle
@@ -131,7 +133,7 @@ private:
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
-	float calculate_return_alt_from_cone_half_angle(const DestinationPosition &rtl_position,
+	float calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &rtl_position,
 			float cone_half_angle_deg) const;
 
 	/**
@@ -152,7 +154,7 @@ private:
 	 * @param[in] rtl_position landing position of the rtl
 	 *
 	 */
-	land_approaches_s readVtolLandApproaches(DestinationPosition rtl_position) const;
+	land_approaches_s readVtolLandApproaches(PositionYawSetpoint rtl_position) const;
 
 	/**
 	 * @brief Has VTOL land approach
@@ -162,7 +164,7 @@ private:
 	 * @return true if home land approaches are defined for home position
 	 * @return false otherwise
 	 */
-	bool hasVtolLandApproach(const DestinationPosition &rtl_position) const;
+	bool hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const;
 
 	/**
 	 * @brief Choose best landing approach
@@ -188,6 +190,9 @@ private:
 
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
 
+	bool _home_has_land_approach;			///< Flag if the home position has a land approach defined
+	bool _one_rally_point_has_land_approach;	///< Flag if a rally point has a land approach defined
+
 	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
 	uint32_t _opaque_id{0}; ///< dataman safepoint id: if it does not match, safe points data was updated
@@ -197,6 +202,7 @@ private:
 	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
 	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
 	uint32_t _mission_id = 0u;
+	uint32_t _safe_points_id = 0u;
 
 	mission_stats_entry_s _stats;
 
@@ -222,4 +228,5 @@ private:
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
+	uORB::PublicationData<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
 };
