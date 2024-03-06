@@ -557,7 +557,8 @@ uORB::Manager::registerCallback(orb_advert_t &node_handle, SubscriptionCallback 
 
 		lock_cb_list();
 		per_process_cb_list.add(callback_sub);
-		unlock_cb_list();
+
+		// keep the cb list locked; this prevents the callback thread from trying to access the callback item before it is registered to the device node
 #endif
 		ret = uORB::DeviceNode::register_callback(node_handle, callback_sub, cb_lock, last_update,
 
@@ -566,11 +567,10 @@ uORB::Manager::registerCallback(orb_advert_t &node_handle, SubscriptionCallback 
 	}
 
 	if (!ret) {
-		lock_cb_list();
 		per_process_cb_list.remove(callback_sub);
-		unlock_cb_list();
 	}
 
+	unlock_cb_list();
 #endif
 
 	return ret;
