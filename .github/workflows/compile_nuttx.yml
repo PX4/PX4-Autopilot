@@ -19,6 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         config: [
+          3dr_ctrl-zero-h7-oem-revg,
           airmind_mindpx-v2,
           ark_can-flow,
           ark_can-gps,
