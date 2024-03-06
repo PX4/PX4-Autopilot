@@ -56,6 +56,7 @@
 #include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/time.h>
 #include <px4_platform_common/Serial.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
