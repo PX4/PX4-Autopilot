@@ -104,29 +104,25 @@ void MissionBase::updateMavlinkMission()
 
 		_mission = new_mission;
 
-		_is_current_planned_mission_item_valid = isMissionValid(_mission);
-
 		/* Relevant mission items updated externally*/
 		if (mission_data_changed) {
 
 			onMissionUpdate(mission_items_changed);
 		}
+
+		_is_current_planned_mission_item_valid = isMissionValid();
 	}
 }
 
 void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 {
-	_is_current_planned_mission_item_valid = _mission.count > 0;
-
 	if (has_mission_items_changed) {
 		_dataman_cache.invalidate();
 		_load_mission_index = -1;
 
-		check_mission_valid();
-
-		// only warn if the check failed on merit
-		if ((!_navigator->get_mission_result()->valid) && _mission.count > 0U) {
-			PX4_WARN("mission check failed");
+		if (_navigator->home_global_position_valid()) {
+			_initialized_mission_checked = true;
+			check_mission_valid();
 		}
 	}
 
@@ -159,8 +155,9 @@ MissionBase::on_inactive()
 
 	/* Need to check the initialized mission once, have to do it here, since we need to wait for the home position. */
 	if (_navigator->home_global_position_valid() && !_initialized_mission_checked) {
-		check_mission_valid();
 		_initialized_mission_checked = true;
+		check_mission_valid();
+		_is_current_planned_mission_item_valid = isMissionValid();
 	}
 
 	if (_vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
@@ -662,7 +659,7 @@ MissionBase::checkMissionRestart()
 	    && ((_mission.current_seq + 1) == _mission.count)) {
 		setMissionIndex(0);
 		_inactivation_index = -1; // reset
-		_is_current_planned_mission_item_valid = isMissionValid(_mission);
+		_is_current_planned_mission_item_valid = isMissionValid();
 		resetMissionJumpCounter();
 		_navigator->reset_cruising_speed();
 		_navigator->reset_vroi();
@@ -688,6 +685,12 @@ MissionBase::check_mission_valid()
 		_navigator->get_mission_result()->failure = false;
 
 		set_mission_result();
+
+		// only warn if the check failed on merit
+		if ((!_navigator->get_mission_result()->valid) && _mission.count > 0U) {
+			PX4_WARN("mission check failed");
+		}
+
 	}
 }
 
@@ -860,16 +863,16 @@ void MissionBase::publish_navigator_mission_item()
 	_navigator_mission_item_pub.publish(navigator_mission_item);
 }
 
-bool MissionBase::isMissionValid(mission_s &mission) const
+bool MissionBase::isMissionValid() const
 {
 	bool ret_val{false};
 
-	if (((mission.current_seq < mission.count) || (mission.count == 0U && mission.current_seq <= 0)) &&
-	    (mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0
-	     || mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) &&
-	    (mission.timestamp != 0u)) {
+	if (((_mission.current_seq < _mission.count) || (_mission.count == 0U && _mission.current_seq <= 0)) &&
+	    (_mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ||
+	     _mission.mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) &&
+	    (_mission.timestamp != 0u) &&
+	    (_navigator->get_mission_result()->valid)) {
 		ret_val = true;
-
 	}
 
 	return ret_val;
@@ -1125,7 +1128,7 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 void MissionBase::resetMission()
 {
 	/* we do not need to reset mission if is already.*/
-	if (_mission.count == 0u && isMissionValid(_mission)) {
+	if (_mission.count == 0u) {
 		return;
 	}
 
