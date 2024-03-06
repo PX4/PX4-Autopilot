@@ -102,6 +102,11 @@ void MissionBase::updateMavlinkMission()
 						  static_cast<int32_t>(new_mission.count) - 1);
 		}
 
+		if (new_mission.geofence_id != _mission.geofence_id) {
+			// New geofence data, need to check mission again.
+			_mission_checked = false;
+		}
+
 		_mission = new_mission;
 
 		/* Relevant mission items updated externally*/
