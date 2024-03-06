@@ -6,7 +6,7 @@
 # @class Plane
 #
 
-. /etc/init.d/rc.fw_defaults
+. ${R}etc/init.d/rc.fw_defaults
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
@@ -16,7 +16,7 @@ param set-default SIM_GZ_EN 1
 param set-default SIM_GZ_RUN_GZSIM 0
 
 param set-default SENS_EN_GPSSIM 1
-param set-default SENS_BAROSIM 0
+param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 
@@ -33,7 +33,7 @@ param set-default CA_SV_CS1_TRQ_R 0.5
 
 # GZ SIM
 param set-default SIM_GZ_EC_FUNC1 101
-param set-default SIM_GZ_EC_MIN1 0
+param set-default SIM_GZ_EC_MIN1 150
 param set-default SIM_GZ_EC_MAX1 1000
 
 param set-default SIM_GZ_SV_FUNC1 201
@@ -41,16 +41,19 @@ param set-default SIM_GZ_SV_FUNC2 202
 
 # Airspeed parameters
 param set-default ASPD_PRIMARY 1
-# param set-default FW_AIRSPD_MAX 22.0
-# param set-default FW_AIRSPD_MIN 14.0
-# param set-default FW_AIRSPD_STALL 12.0
-# param set-default FW_AIRSPD_TRIM 18.0
+param set-default FW_AIRSPD_MAX 22.0
+param set-default FW_AIRSPD_MIN 14.0
+param set-default FW_AIRSPD_STALL 12.0
+param set-default FW_AIRSPD_TRIM 18.0
 
 # Maximum landing slope angle in deg
 param set-default FW_LND_ANG 8
 
 # RC loss failsafe to HOLD mode
 param set-default COM_RC_IN_MODE 1
+
+# Maximum manual roll angle
+param set-default FW_MAN_R_MAX 60.0
 
 # Fixed wing control
 # Pitch rate
@@ -69,10 +72,10 @@ param set-default FW_RR_I 0.5
 param set-default FW_YR_FF 0.5
 param set-default FW_YR_P 0.6
 param set-default FW_YR_I 0.5
-# Throttle limit
-# param set-default FW_THR_MAX 0.6
-# param set-default FW_THR_MIN 0.05
-# param set-default FW_THR_TRIM 0.25
+#Throttle limit
+param set-default FW_THR_MAX 0.6
+param set-default FW_THR_MIN 0.05
+param set-default FW_THR_TRIM 0.25
 # Climb and sink rate
 param set-default FW_T_CLMB_MAX 8
 param set-default FW_T_SINK_MAX 2.7
@@ -82,14 +85,10 @@ param set-default FW_T_SINK_MIN 2.2
 param set-default NAV_ACC_RAD 15
 param set-default NAV_DLL_ACT 2
 
-# Misc
-param set-default MIS_TAKEOFF_ALT 30.0
-param set-default RTL_RETURN_ALT 30.0
-
-# Disable internal magnetometer
-param set CAL_MAG0_PRIO 0
-
-# Catapult launch with acc threshold trigger
+# Launch detection
 param set-default FW_LAUN_DETCN_ON 1
-param set-default FW_THR_IDLE 0.1 # needs to be running before throw as that's how gazebo detects arming
-param set-default FW_LAUN_AC_THLD 10
+
+# Misc
+param set-default RTL_RETURN_ALT 30.0
+param set-default RTL_DESCEND_ALT 30.0
+param set-default FW_LND_USETER 0

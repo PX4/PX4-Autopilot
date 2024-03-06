@@ -17,8 +17,8 @@ case $PX4_VEHICLE_TYPE in
     export PX4_GZ_MODEL=standard_vtol
     ;;
   fw)
-    export PX4_SYS_AUTOSTART=4003
-    export PX4_GZ_MODEL=rc_cessna
+    export PX4_SYS_AUTOSTART=4440
+    export PX4_GZ_MODEL=skywalker_x8
     ;;
   *)
     echo "ERROR: unknown vehicle type: $PX4_VEHICLE_TYPE"
