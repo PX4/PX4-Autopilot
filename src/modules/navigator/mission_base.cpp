@@ -52,36 +52,20 @@ MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed
 	_dataman_cache_size_signed(dataman_cache_size_signed)
 {
 	_dataman_cache.resize(abs(dataman_cache_size_signed));
-	_is_current_planned_mission_item_valid = (initMission() == PX4_OK);
 
-	updateDatamanCache();
+	// Reset _mission here, and listen on changes on the uorb topic instead of initialize from dataman.
+	_mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	_mission.fence_dataman_id = DM_KEY_FENCE_POINTS_0;
+	_mission.safepoint_dataman_id = DM_KEY_SAFE_POINTS_0;
+	_mission.count = 0;
+	_mission.current_seq = 0;
+	_mission.land_start_index = -1;
+	_mission.land_index = -1;
+	_mission.mission_id = 0;
+	_mission.geofence_id = 0;
+	_mission.safe_points_id = 0;
 
 	_mission_pub.advertise();
-}
-
-int MissionBase::initMission()
-{
-	mission_s mission;
-	int ret_val{PX4_ERROR};
-
-	bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission),
-						sizeof(mission_s));
-
-	if (success) {
-		if (isMissionValid(mission)) {
-			_mission = mission;
-			ret_val = PX4_OK;
-
-		} else {
-			resetMission();
-		}
-
-	} else {
-		PX4_ERR("Could not initialize Mission: Dataman read failed");
-		resetMission();
-	}
-
-	return ret_val;
 }
 
 void
