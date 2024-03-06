@@ -1369,8 +1369,9 @@ bool MissionBase::checkMissionDataChanged(mission_s new_mission)
 
 bool MissionBase::canRunMissionFeasibility()
 {
-	return _navigator->home_global_position_valid() &&
-	       (_geofence_status_sub.get().timestamp > 0) &&
+	return _navigator->home_global_position_valid() && // Need to have a home position checked
+	       _navigator->get_global_position()->timestamp > 0 && // Need to have a position, for first waypoint check
+	       (_geofence_status_sub.get().timestamp > 0) && // Geofence data must be loaded
 	       (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
 	       (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY);
 }
