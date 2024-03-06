@@ -207,13 +207,12 @@ protected:
 	int getNonJumpItem(int32_t &mission_index, mission_item_s &mission, bool execute_jump, bool write_jumps,
 			   bool mission_direction_backward = false);
 	/**
-	 * @brief Is Mission Parameters Valid
+	 * @brief Is Mission Valid
 	 *
-	 * @param mission Mission struct
-	 * @return true is mission parameters are valid
+	 * @return true is mission is valid
 	 * @return false otherwise
 	 */
-	bool isMissionValid(mission_s &mission) const;
+	bool isMissionValid() const;
 
 	/**
 	 * On mission update
