@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <dataman_client/DatamanClient.hpp>
+#include <uORB/topics/geofence_status.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/parameter_update.h>
@@ -308,7 +309,7 @@ protected:
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
-	bool _initialized_mission_checked{false};		/**< Flag indicating if the initialized mission has been checked by the mission validator*/
+	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
@@ -443,6 +444,8 @@ private:
 	 */
 	bool checkMissionDataChanged(mission_s new_mission);
 
+	bool canRunMissionFeasibility();
+
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
 
@@ -460,4 +463,5 @@ private:
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionData<geofence_status_s> _geofence_status_sub{ORB_ID(geofence_status)};
 };
