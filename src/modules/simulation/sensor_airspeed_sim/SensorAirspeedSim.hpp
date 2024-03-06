@@ -50,6 +50,7 @@
 using namespace time_literals;
 
 static constexpr float TEMPERATURE_MSL = 288.15; // temperature at MSL [K] (15 [C])
+static constexpr float TEMPERATURE_ZERO_C = 273.15; // temperature at zero degree Celcius [K] (0 [C])
 static constexpr float PRESSURE_MSL = 101325.0; // pressure at MSL [Pa]
 static constexpr float LAPSE_RATE = 0.0065; // reduction in temperature with altitude for troposphere [K/m]
 static constexpr float AIR_DENSITY_MSL = 1.225; // air density at MSL [kg/m^3]
