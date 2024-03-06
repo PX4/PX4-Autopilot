@@ -515,15 +515,14 @@ float FixedwingPositionControl::getCorrectedNpfgRollSetpoint()
 	hrt_abstime now{hrt_absolute_time()};
 
 	// Warn the user when the scale is less than 90% for at least 2 seconds (disable in transition)
-	const uint64_t warning_threshold = 2_s;
 
 	// If the npfg was not running before, reset the user warning variables.
-	if ((now - _time_since_last_npfg_call) > warning_threshold) {
+	if ((now - _time_since_last_npfg_call) > ROLL_WARNING_TIMEOUT) {
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
 	}
 
-	if (_vehicle_status.in_transition_mode || can_run_factor > 0.9f) {
+	if (_vehicle_status.in_transition_mode || can_run_factor > ROLL_WARNING_CAN_RUN_THRESHOLD) {
 		// NPFG reports a good condition or we are in transition, reset the user warning variables.
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
@@ -533,7 +532,7 @@ float FixedwingPositionControl::getCorrectedNpfgRollSetpoint()
 			_time_since_first_reduced_roll = now;
 		}
 
-		if ((now - _time_since_first_reduced_roll) > warning_threshold) {
+		if ((now - _time_since_first_reduced_roll) > ROLL_WARNING_TIMEOUT) {
 			_need_report_npfg_uncertain_condition = false;
 			events::send(events::ID("npfg_roll_command_uncertain"), events::Log::Warning,
 				     "Roll command reduced due to uncertain velocity/wind estimates!");
