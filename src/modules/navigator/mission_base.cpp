@@ -120,9 +120,12 @@ void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 		_dataman_cache.invalidate();
 		_load_mission_index = -1;
 
-		if (_navigator->home_global_position_valid()) {
-			_initialized_mission_checked = true;
+		if (canRunMissionFeasibility()) {
+			_mission_checked = true;
 			check_mission_valid();
+
+		} else {
+			_mission_checked = false;
 		}
 	}
 
@@ -148,14 +151,15 @@ MissionBase::on_inactive()
 	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 	_global_pos_sub.update();
+	_geofence_status_sub.update();
 
 	parameters_update();
 
 	updateMavlinkMission();
 
-	/* Need to check the initialized mission once, have to do it here, since we need to wait for the home position. */
-	if (_navigator->home_global_position_valid() && !_initialized_mission_checked) {
-		_initialized_mission_checked = true;
+	/* Check the mission */
+	if (!_mission_checked && canRunMissionFeasibility()) {
+		_mission_checked = true;
 		check_mission_valid();
 		_is_current_planned_mission_item_valid = isMissionValid();
 	}
@@ -240,11 +244,21 @@ MissionBase::on_active()
 	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 	_global_pos_sub.update();
+	_geofence_status_sub.update();
 
 	parameters_update();
 
 	updateMavlinkMission();
 	updateDatamanCache();
+
+	/* Check the mission */
+	if (!_mission_checked && canRunMissionFeasibility()) {
+		_mission_checked = true;
+		check_mission_valid();
+		_is_current_planned_mission_item_valid = isMissionValid();
+		update_mission();
+		set_mission_items();
+	}
 
 	// check if heading alignment is necessary, and add it to the current mission item if necessary
 	if (_align_heading_necessary && is_mission_item_reached_or_completed()) {
@@ -1346,4 +1360,12 @@ bool MissionBase::checkMissionDataChanged(mission_s new_mission)
 	return ((new_mission.mission_dataman_id != _mission.mission_dataman_id) ||
 		(new_mission.mission_id != _mission.mission_id) ||
 		(new_mission.current_seq != _mission.current_seq));
+}
+
+bool MissionBase::canRunMissionFeasibility()
+{
+	return _navigator->home_global_position_valid() &&
+	       (_geofence_status_sub.get().timestamp > 0) &&
+	       (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
+	       (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY);
 }
