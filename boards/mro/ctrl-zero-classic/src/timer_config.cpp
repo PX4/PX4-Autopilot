@@ -36,7 +36,7 @@
 /* Timer allocation
  *
  * TIM1_CH4	T FMU_CH1
- * TIM1_CH3	T FMU_CH2	
+ * TIM1_CH3	T FMU_CH2
  * TIM1_CH2	T FMU_CH3
  * TIM1_CH1	T FMU_CH4
  *
