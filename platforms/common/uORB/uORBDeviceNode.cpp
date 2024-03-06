@@ -576,9 +576,6 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	/* If data size has changed, re-map the data */
 	size_t data_size = _queue_size * o_size;
 
-	/* Remove single unresponsive entry at a time (if any) */
-	uorb_cb_handle_t remove_cb = UORB_INVALID_CB_HANDLE;
-
 	/* Perform an atomic copy. */
 	ATOMIC_ENTER;
 
@@ -626,8 +623,11 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 				__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
 				Manager::unlockThread(item->lock);
 
-			} else {
-				remove_cb = cb;
+			} else if (item->cb_triggered == CB_ALIVE_MAX_VALUE) {
+				// Callbacks are not being handled? Post once more and print an error
+				__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
+				Manager::unlockThread(item->lock);
+				PX4_ERR("CB triggered from %s is not being handled?\n", get_name());
 			}
 
 #endif
@@ -637,11 +637,6 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	}
 
 	ATOMIC_LEAVE;
-
-	if (callbacks.handle_valid(remove_cb)) {
-		PX4_ERR("Removing subscriber due to inactivity\n");
-		unregister_callback(handle, remove_cb);
-	}
 
 	return o_size;
 }
@@ -908,6 +903,9 @@ int
 uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t &cb_handle)
 {
 	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
+#ifndef CONFIG_BUILD_FLAT
+	EventWaitItem *item = callbacks.peek(cb_handle);
+#endif
 	int ret = 0;
 
 	ATOMIC_ENTER;
@@ -919,7 +917,6 @@ uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t &cb_handle)
 
 	} else {
 #ifndef CONFIG_BUILD_FLAT
-		EventWaitItem *item = callbacks.peek(cb_handle);
 		ret = item->cb_triggered;
 #endif
 		callbacks.push_free(cb_handle);
