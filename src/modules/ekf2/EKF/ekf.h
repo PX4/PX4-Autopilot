@@ -472,6 +472,17 @@ public:
 	{
 		clearInhibitedStateKalmanGains(K);
 
+#if false
+		// Matrix implementation of the Joseph stabilized covariance update
+		// This is extremely expensive to compute. Use for debugging purposes only.
+		auto A = matrix::eye<float, State::size>();
+		A -= K.multiplyByTranspose(H);
+		P = A * P;
+		P = P.multiplyByTranspose(A);
+
+		const VectorState KR = K * R;
+		P += KR.multiplyByTranspose(K);
+#else
 		// Efficient implementation of the Joseph stabilized covariance update
 		// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
 
@@ -479,9 +490,8 @@ public:
 		VectorState PH = P * H;
 
 		for (unsigned i = 0; i < State::size; i++) {
-			for (unsigned j = 0; j <= i; j++) {
-				P(i, j) = P(i, j) - K(i) * PH(j);
-				P(j, i) = P(i, j);
+			for (unsigned j = 0; j < State::size; j++) {
+				P(i, j) -= K(i) * PH(j); // P is now not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
 			}
 		}
 
@@ -490,11 +500,11 @@ public:
 
 		for (unsigned i = 0; i < State::size; i++) {
 			for (unsigned j = 0; j <= i; j++) {
-				float s = .5f * (P(i, j) - PH(i) * K(j) + P(i, j) - PH(j) * K(i));
-				P(i, j) = s + K(i) * R * K(j);
+				P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
 				P(j, i) = P(i, j);
 			}
 		}
+#endif
 
 		constrainStateVariances();
 
