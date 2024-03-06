@@ -2,7 +2,7 @@ argcomplete
 argparse>=1.2
 cerberus
 coverage
-empy>=3.3
+empy==3.3.4
 future
 jinja2>=2.8
 jsonschema
