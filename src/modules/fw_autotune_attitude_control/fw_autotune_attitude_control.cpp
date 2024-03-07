@@ -640,7 +640,7 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 				}
 			}
 
-			signal = float(_signal_sign) * _param_fw_at_sysid_amp.get();
+			signal = float(_signal_sign);
 		}
 		break;
 
@@ -665,7 +665,7 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 
 	_steps_counter++;
 
-
+	signal *= _param_fw_at_sysid_amp.get();
 	Vector3f rate_sp{};
 
 	float signal_scaled = 0.f;
