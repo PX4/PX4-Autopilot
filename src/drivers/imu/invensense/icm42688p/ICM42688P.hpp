@@ -88,7 +88,7 @@ private:
 		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
 	};
 	// ensure no struct padding
-	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
+	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)), "Invalid transfer buffer size");
 
 	struct register_bank0_config_t {
 		Register::BANK_0 reg;
