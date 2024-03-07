@@ -64,6 +64,8 @@ public:
 
 	ssize_t write(const void *buffer, size_t buffer_size);
 
+	void flush();
+
 	// If port is already open then the following configuration functions
 	// will reconfigure the port. If the port is not yet open then they will
 	// simply store the configuration in preparation for the port to be opened.
