@@ -319,6 +319,13 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 	return written;
 }
 
+void SerialImpl::flush()
+{
+	if (_open) {
+		tcflush(_serial_fd, TCIOFLUSH);
+	}
+}
+
 const char *SerialImpl::getPort() const
 {
 	return _port;

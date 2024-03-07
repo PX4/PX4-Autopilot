@@ -63,6 +63,8 @@ public:
 
 	ssize_t write(const void *buffer, size_t buffer_size);
 
+	void flush();
+
 	const char *getPort() const;
 	bool setPort(const char *port);
 

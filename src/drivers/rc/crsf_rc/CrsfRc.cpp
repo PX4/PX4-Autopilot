@@ -116,11 +116,13 @@ void CrsfRc::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
+
 		if (_uart) {
 			(void) _uart->close();
 			delete _uart;
 			_uart = nullptr;
 		}
+
 		exit_and_cleanup();
 		return;
 	}
@@ -152,26 +154,26 @@ void CrsfRc::Run()
 			return;
 		}
 
-// 			if (board_rc_swap_rxtx(_device)) {
-// #if defined(TIOCSSWAP)
-// 				ioctl(_rc_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-// #endif // TIOCSSWAP
-// 			}
-// 
-// 			if (board_rc_singlewire(_device)) {
-// 				_is_singlewire = true;
-// #if defined(TIOCSSINGLEWIRE)
-// 				ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
-// #endif // TIOCSSINGLEWIRE
-// 			}
-// 
-// 			PX4_INFO("Crsf serial opened sucessfully");
-// 
-// 			if (_is_singlewire) {
-// 				PX4_INFO("Crsf serial is single wire. Telemetry disabled");
-// 			}
-// 
-// 			tcflush(_rc_fd, TCIOFLUSH);
+		if (board_rc_swap_rxtx(_device)) {
+#if defined(TIOCSSWAP)
+			ioctl(_rc_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+#endif // TIOCSSWAP
+		}
+
+		if (board_rc_singlewire(_device)) {
+			_is_singlewire = true;
+#if defined(TIOCSSINGLEWIRE)
+			ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+#endif // TIOCSSINGLEWIRE
+		}
+
+		PX4_INFO("Crsf serial opened sucessfully");
+
+		if (_is_singlewire) {
+			PX4_INFO("Crsf serial is single wire. Telemetry disabled");
+		}
+
+		_uart->flush();
 
 		Crc8Init(0xd5);
 

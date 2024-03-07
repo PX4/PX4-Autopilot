@@ -251,6 +251,15 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 	return ret_write;
 }
 
+void SerialImpl::flush()
+{
+	if (_open) {
+		uint8_t buffer[4];
+		// A read clears out all current data
+		read(buffer, 4);
+	}
+}
+
 const char *SerialImpl::getPort() const
 {
 	return _port;
