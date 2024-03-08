@@ -115,12 +115,12 @@ int uorb_top(char **topic_filter, int num_filters)
 
 orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
 {
-	return uORB::Manager::get_instance()->orb_advertise(meta, data, meta->o_queue);
+	return uORB::Manager::get_instance()->orb_advertise(meta, data);
 }
 
 orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance)
 {
-	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, meta->o_queue);
+	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance);
 }
 
 int orb_unadvertise(orb_advert_t handle)
