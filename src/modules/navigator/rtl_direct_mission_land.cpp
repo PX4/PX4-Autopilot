@@ -308,8 +308,6 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							break;
 						}
 
-					case NAV_CMD_LAND: // Fallthrough
-					case NAV_CMD_VTOL_LAND: // Fallthrough
 					case NAV_CMD_LOITER_TO_ALT: {
 							// Go to point horizontally
 							matrix::Vector2f direction{};
@@ -323,6 +321,34 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 
 							// Add the vertical loiter
 							_rtl_time_estimator.addVertDistance(next_position_mission_item.altitude - altitude_at_calculation_point);
+
+							break;
+						}
+
+					case NAV_CMD_LAND: // Fallthrough
+					case NAV_CMD_VTOL_LAND: {
+
+							matrix::Vector2f direction{};
+							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
+										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+
+							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+
+							// For fixed wing, add diagonal line
+							if ((_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+							    && (!_vehicle_status_sub.get().is_vtol)) {
+
+
+								_rtl_time_estimator.addDistance(hor_dist, direction,
+												next_position_mission_item.altitude - altitude_at_calculation_point);
+
+							} else {
+								// For VTOL, Rotary, go there horizontally first, then land
+								_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
+
+								_rtl_time_estimator.addDescendMCLand(next_position_mission_item.altitude - altitude_at_calculation_point);
+							}
 
 							break;
 						}
