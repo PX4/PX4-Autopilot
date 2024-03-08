@@ -314,7 +314,7 @@ CameraTrigger::CameraTrigger() :
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
 	camera_trigger_s trigger{};
 
-	_trigger_pub = orb_advertise_queue(ORB_ID(camera_trigger), &trigger, camera_trigger_s::ORB_QUEUE_LENGTH);
+	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
 }
 
 CameraTrigger::~CameraTrigger()

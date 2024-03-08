@@ -151,7 +151,7 @@ private:
 
 	transponder_report_s tr{};
 
-	orb_advert_t fake_traffic_report_publisher = orb_advertise_queue(ORB_ID(transponder_report), &tr, (unsigned int)20);
+	orb_advert_t fake_traffic_report_publisher = orb_advertise(ORB_ID(transponder_report), &tr);
 
 	TRAFFIC_STATE _traffic_state_previous{TRAFFIC_STATE::NO_CONFLICT};
 

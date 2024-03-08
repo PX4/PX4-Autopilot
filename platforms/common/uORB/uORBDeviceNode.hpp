@@ -62,7 +62,7 @@ class UnitTest;
 class uORB::DeviceNode : public cdev::CDev, public IntrusiveSortedListNode<uORB::DeviceNode *>
 {
 public:
-	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path, uint8_t queue_size = 1);
+	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path);
 	virtual ~DeviceNode();
 
 	// no copy, assignment, move, move assignment
@@ -180,22 +180,13 @@ public:
 	void mark_as_advertised() { _advertised = true; }
 
 	/**
-	 * Try to change the size of the queue. This can only be done as long as nobody published yet.
-	 * This is the case, for example when orb_subscribe was called before an orb_advertise.
-	 * The queue size can only be increased.
-	 * @param queue_size new size of the queue
-	 * @return PX4_OK if queue size successfully set
-	 */
-	int update_queue_size(unsigned int queue_size);
-
-	/**
 	 * Print statistics
 	 * @param max_topic_length max topic name length for printing
 	 * @return true if printed something, false otherwise
 	 */
 	bool print_statistics(int max_topic_length);
 
-	uint8_t get_queue_size() const { return _queue_size; }
+	uint8_t get_queue_size() const { return _meta->o_queue; }
 
 	int8_t subscriber_count() const { return _subscriber_count; }
 
@@ -234,7 +225,7 @@ public:
 	bool copy(void *dst, unsigned &generation)
 	{
 		if ((dst != nullptr) && (_data != nullptr)) {
-			if (_queue_size == 1) {
+			if (_meta->o_queue == 1) {
 				ATOMIC_ENTER;
 				memcpy(dst, _data, _meta->o_size);
 				generation = _generation.load();
@@ -253,12 +244,12 @@ public:
 				}
 
 				// Compatible with normal and overflow conditions
-				if (!is_in_range(current_generation - _queue_size, generation, current_generation - 1)) {
+				if (!is_in_range(current_generation - _meta->o_queue, generation, current_generation - 1)) {
 					// Reader is too far behind: some messages are lost
-					generation = current_generation - _queue_size;
+					generation = current_generation - _meta->o_queue;
 				}
 
-				memcpy(dst, _data + (_meta->o_size * (generation % _queue_size)), _meta->o_size);
+				memcpy(dst, _data + (_meta->o_size * (generation % _meta->o_queue)), _meta->o_size);
 				ATOMIC_LEAVE;
 
 				++generation;
@@ -295,7 +286,7 @@ private:
 
 	const uint8_t _instance; /**< orb multi instance identifier */
 	bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
-	uint8_t _queue_size; /**< maximum number of elements in the queue */
+
 	int8_t _subscriber_count{0};
 
 
