@@ -127,6 +127,12 @@ private:
 	void set_rtl_item();
 
 	/**
+	 * @brief sanitize land_approach
+	 *
+	 */
+	loiter_point_s sanitizeLandApproach(loiter_point_s land_approach) const;
+
+	/**
 	 * Check for parameter changes and update them if needed.
 	 */
 	void parameters_update();
