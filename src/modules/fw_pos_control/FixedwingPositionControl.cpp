@@ -522,7 +522,7 @@ float FixedwingPositionControl::getCorrectedNpfgRollSetpoint()
 		_time_since_first_reduced_roll = 0U;
 	}
 
-	if (_vehicle_status.in_transition_mode || can_run_factor > ROLL_WARNING_CAN_RUN_THRESHOLD) {
+	if (_vehicle_status.in_transition_mode || can_run_factor > ROLL_WARNING_CAN_RUN_THRESHOLD || _landed) {
 		// NPFG reports a good condition or we are in transition, reset the user warning variables.
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
