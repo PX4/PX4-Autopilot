@@ -115,23 +115,12 @@ int uorb_top(char **topic_filter, int num_filters)
 
 orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
 {
-	return uORB::Manager::get_instance()->orb_advertise(meta, data, meta->o_queue);
-}
-
-orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const void *data, unsigned int queue_size)
-{
-	return uORB::Manager::get_instance()->orb_advertise(meta, data, queue_size);
+	return uORB::Manager::get_instance()->orb_advertise(meta, data);
 }
 
 orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance)
 {
-	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, meta->o_queue);
-}
-
-orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
-				       unsigned int queue_size)
-{
-	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance, queue_size);
+	return uORB::Manager::get_instance()->orb_advertise_multi(meta, data, instance);
 }
 
 int orb_unadvertise(orb_advert_t handle)
@@ -227,6 +216,14 @@ const char *orb_get_c_type(unsigned char short_type)
 	return nullptr;
 }
 
+uint8_t orb_get_queue_depth(const struct orb_metadata *meta)
+{
+	if (meta) {
+		return meta->o_queue;
+	}
+
+	return 0;
+}
 
 void orb_print_message_internal(const orb_metadata *meta, const void *data, bool print_topic_name)
 {
