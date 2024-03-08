@@ -265,7 +265,7 @@ void RtlDirect::set_rtl_item()
 			// location and land location after exiting the loiter circle
 			pos_sp_triplet->previous.lat = _land_approach.lat;
 			pos_sp_triplet->previous.lon = _land_approach.lon;
-			pos_sp_triplet->previous.alt = _mission_item.altitude;
+			pos_sp_triplet->previous.alt = get_absolute_altitude_for_item(_mission_item);
 			pos_sp_triplet->previous.valid = true;
 
 			_rtl_state = RTLState::TRANSITION_TO_MC;
