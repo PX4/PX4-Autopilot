@@ -710,11 +710,9 @@ private:
 	 *
 	 * @param control_interval Time since last position control call [s]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
 	void control_backtransition(const float control_interval, const Vector2f &ground_speed,
-				    const position_setpoint_s &pos_sp_prev,
 				    const position_setpoint_s &pos_sp_curr);
 
 	float get_tecs_pitch();

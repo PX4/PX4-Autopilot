@@ -65,6 +65,18 @@ public:
 		orb_publish(ORB_ID(home_position), home_pub, &home);
 	}
 
+	void publishInvalidHome()
+	{
+		home_position_s home = {};
+		home.alt = 0.f;
+		home.valid_alt = false;
+		home.lat = 0.;
+		home.lon = 0.;
+		home.valid_hpos = false;
+		orb_advert_t home_pub = orb_advertise(ORB_ID(home_position), &home);
+		orb_publish(ORB_ID(home_position), home_pub, &home);
+	}
+
 	void publishCurrentPosition(double lat, double lon)
 	{
 		vehicle_global_position_s gpos = {};
@@ -122,6 +134,7 @@ TEST_F(FeasibilityCheckerTest, mission_item_validity)
 	ASSERT_EQ(ret, false);
 
 	checker.reset();
+	checker.publishInvalidHome();
 	mission_item.nav_cmd = NAV_CMD_TAKEOFF;
 	mission_item.altitude_is_relative = true;
 	ret = checker.processNextItem(mission_item, 0, 5);
@@ -190,6 +203,7 @@ TEST_F(FeasibilityCheckerTest, check_below_home)
 
 	// this is done to invalidate the home position
 	checker.reset();
+	checker.publishInvalidHome();
 	checker.publishLanded(true);
 	checker.processNextItem(mission_item, 0, 1);
 

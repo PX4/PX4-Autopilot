@@ -2201,7 +2201,6 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 }
 
 void FixedwingPositionControl::control_backtransition(const float control_interval, const Vector2f &ground_speed,
-		const position_setpoint_s &pos_sp_prev,
 		const position_setpoint_s &pos_sp_curr)
 {
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
@@ -2213,21 +2212,13 @@ void FixedwingPositionControl::control_backtransition(const float control_interv
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
-
-	if (_position_setpoint_previous_valid) {
-		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
-		navigateLine(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
-
-	} else {
-
-		// if we don't have a previous waypoint for line following, then create one using the current position at the
-		// start of the transition
-		if (!_lpos_where_backtrans_started.isAllFinite()) {
-			_lpos_where_backtrans_started = curr_pos_local;
-		}
-
-		navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+	// Set the position where the backtransition started the first ime we pass through here.
+	// Will get reset if not in transition anymore.
+	if (!_lpos_where_backtrans_started.isAllFinite()) {
+		_lpos_where_backtrans_started = curr_pos_local;
 	}
+
+	navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 
 	_att_sp.roll_body = getCorrectedNpfgRollSetpoint();
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
@@ -2452,6 +2443,7 @@ FixedwingPositionControl::Run()
 
 		if (_vehicle_status_sub.update(&_vehicle_status)) {
 			if (!_vehicle_status.in_transition_mode) {
+				// reset position of backtransition start if not in transition
 				_lpos_where_backtrans_started = Vector2f(NAN, NAN);
 			}
 		}
@@ -2551,8 +2543,7 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_TRANSITON: {
-				control_backtransition(control_interval, ground_speed, _pos_sp_triplet.previous,
-						       _pos_sp_triplet.current);
+				control_backtransition(control_interval, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 		}
