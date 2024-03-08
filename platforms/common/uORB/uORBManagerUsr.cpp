@@ -89,8 +89,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 	return data.ret;
 }
 
-orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-		unsigned int queue_size)
+orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance)
 {
 	/* open the node as an advertiser */
 	int fd = node_open(meta, true, instance);
@@ -100,19 +99,10 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		return nullptr;
 	}
 
-	/* Set the queue size. This must be done before the first publication; thus it fails if
-	 * this is not the first advertiser.
-	 */
-	int result = px4_ioctl(fd, ORBIOCSETQUEUESIZE, (unsigned long)queue_size);
-
-	if (result < 0 && queue_size > 1) {
-		PX4_WARN("orb_advertise_multi: failed to set queue size");
-	}
-
 	/* get the advertiser handle and close the node */
 	orb_advert_t advertiser;
 
-	result = px4_ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
+	int result = px4_ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
 	px4_close(fd);
 
 	if (result == PX4_ERROR) {

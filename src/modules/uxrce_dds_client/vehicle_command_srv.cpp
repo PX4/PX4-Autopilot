@@ -39,8 +39,7 @@ VehicleCommandSrv::VehicleCommandSrv(uxrSession *session, uxrStreamId reliable_o
 				     uxrStreamId input_stream_id, uxrObjectId participant_id, const char *client_namespace, const uint8_t index) :
 	SrvBase(session, reliable_out_stream_id, input_stream_id, participant_id)
 {
-	uint16_t queue_depth = uORB::DefaultQueueSize<vehicle_command_s>::value *
-			       2; // use a bit larger queue size than internal
+	uint16_t queue_depth = orb_get_queue_size(ORB_ID(vehicle_command)) * 2; // use a bit larger queue size than internal
 	create_replier(input_stream_id, participant_id, index, client_namespace, "vehicle_command", "VehicleCommand",
 		       queue_depth);
 };
