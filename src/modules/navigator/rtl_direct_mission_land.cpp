@@ -320,7 +320,8 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
 
 							// Add the vertical loiter
-							_rtl_time_estimator.addVertDistance(next_position_mission_item.altitude - altitude_at_calculation_point);
+							_rtl_time_estimator.addVertDistance(get_absolute_altitude_for_item(next_position_mission_item) -
+											    altitude_at_calculation_point);
 
 							break;
 						}
@@ -341,13 +342,14 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 
 
 								_rtl_time_estimator.addDistance(hor_dist, direction,
-												next_position_mission_item.altitude - altitude_at_calculation_point);
+												get_absolute_altitude_for_item(next_position_mission_item) - altitude_at_calculation_point);
 
 							} else {
 								// For VTOL, Rotary, go there horizontally first, then land
 								_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
 
-								_rtl_time_estimator.addDescendMCLand(next_position_mission_item.altitude - altitude_at_calculation_point);
+								_rtl_time_estimator.addDescendMCLand(get_absolute_altitude_for_item(next_position_mission_item) -
+												     altitude_at_calculation_point);
 							}
 
 							break;
@@ -363,7 +365,7 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
 
 							_rtl_time_estimator.addDistance(hor_dist, direction,
-											next_position_mission_item.altitude - altitude_at_calculation_point);
+											get_absolute_altitude_for_item(next_position_mission_item) - altitude_at_calculation_point);
 							break;
 						}
 					}
@@ -371,7 +373,7 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 					start_item_index = next_mission_item_index + 1;
 					hor_position_at_calculation_point(0) = next_position_mission_item.lat;
 					hor_position_at_calculation_point(1) = next_position_mission_item.lon;
-					altitude_at_calculation_point = next_position_mission_item.altitude;
+					altitude_at_calculation_point = get_absolute_altitude_for_item(next_position_mission_item);
 
 
 				} else {
