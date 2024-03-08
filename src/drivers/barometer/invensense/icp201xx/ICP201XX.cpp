@@ -251,7 +251,7 @@ ICP201XX::RunImpl()
 	case STATE::CONFIG: {
 			if (configure()) {
 				_state = STATE::WAIT_READ;
-				ScheduleDelayed(30_ms);
+				ScheduleDelayed(50_ms);
 
 			} else {
 				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {

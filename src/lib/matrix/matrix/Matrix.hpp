@@ -162,6 +162,24 @@ public:
 		return res;
 	}
 
+	// Using this function reduces the number of temporary variables needed to compute A * B.T
+	template<size_t P>
+	Matrix<Type, M, M> multiplyByTranspose(const Matrix<Type, P, N> &other) const
+	{
+		Matrix<Type, M, P> res;
+		const Matrix<Type, M, N> &self = *this;
+
+		for (size_t i = 0; i < M; i++) {
+			for (size_t k = 0; k < P; k++) {
+				for (size_t j = 0; j < N; j++) {
+					res(i, k) += self(i, j) * other(k, j);
+				}
+			}
+		}
+
+		return res;
+	}
+
 	// Element-wise multiplication
 	Matrix<Type, M, N> emult(const Matrix<Type, M, N> &other) const
 	{
