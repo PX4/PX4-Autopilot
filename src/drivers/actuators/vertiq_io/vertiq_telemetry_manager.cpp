@@ -73,6 +73,8 @@ void VertiqTelemetryManager::StartPublishing(uORB::Publication<esc_status_s> *es
 	_esc_status.counter            = 0;
 	_esc_status.esc_count          = _number_of_module_ids_for_telem;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
+	_esc_status.esc_armed_flags = 0;
+	_esc_status.esc_online_flags = 0;
 
 	for (unsigned i = 0; i < _number_of_module_ids_for_telem; i++) {
 		_esc_status.esc[i].timestamp       = 0;
@@ -125,6 +127,9 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		//Update the overall _esc_status timestamp and our counter
 		_esc_status.timestamp = time_now;
 		_esc_status.counter++;
+
+		_esc_status.esc_armed_flags |= (0x01 << _current_module_id_target_index);
+		_esc_status.esc_online_flags |= (0x01 << _current_module_id_target_index);
 
 		got_reply = true;
 	}
