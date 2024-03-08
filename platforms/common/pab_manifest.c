@@ -294,12 +294,6 @@ static const px4_hw_mft_item_t base_configuration_9[] = {
 		.connection  = px4_hw_con_onboard,
 	},
 	{
-		.id          =  PX4_MFT_PM2,
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = px4_hw_con_onboard,
-	},
-	{
 		.id          = PX4_MFT_ETHERNET,
 		.present     = 1,
 		.mandatory   = 1,
@@ -316,6 +310,52 @@ static const px4_hw_mft_item_t base_configuration_9[] = {
 // BASE ID 10  Skynode QS no USB Alaised to ID 9
 // BASE ID 16  Auterion Skynode RC10, RC11, RC12, RC13 Alaised to ID 0
 
+// BASE ID 17  Auterion Skynode RC13 with many parts removed
+static const px4_hw_mft_item_t base_configuration_17[] = {
+	{
+		.id          = PX4_MFT_PX4IO,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		.id          = PX4_MFT_USB,
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.id          = PX4_MFT_CAN2,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		.id          = PX4_MFT_CAN3,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.id          = PX4_MFT_PM2,
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		.id          = PX4_MFT_ETHERNET,
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_connector,
+	},
+	{
+		.id          = PX4_MFT_T100_ETH,
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+};
+
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
@@ -329,6 +369,7 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{HW_BASE_ID(9),  base_configuration_9, arraySize(base_configuration_9)},  // Auterion Skynode ver 9
 	{HW_BASE_ID(10), base_configuration_9, arraySize(base_configuration_9)},  // Auterion Skynode ver 10
 	{HW_BASE_ID(16), base_configuration_0, arraySize(base_configuration_0)},  // Auterion Skynode ver 16
+	{HW_BASE_ID(17), base_configuration_17, arraySize(base_configuration_17)},  // Auterion Skynode ver 17
 };
 
 /************************************************************************************

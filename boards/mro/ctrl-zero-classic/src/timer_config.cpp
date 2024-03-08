@@ -33,6 +33,28 @@
 
 #include <px4_arch/io_timer_hw_description.h>
 
+/* Timer allocation
+ *
+ * TIM1_CH4	T FMU_CH1
+ * TIM1_CH3	T FMU_CH2
+ * TIM1_CH2	T FMU_CH3
+ * TIM1_CH1	T FMU_CH4
+ *
+ * TIM4_CH2	T FMU_CH5
+ * TIM4_CH3	T FMU_CH6
+ * TIM2_CH3	T FMU_CH7
+ * TIM2_CH1	T FMU_CH8
+ *
+ * TIM2_CH4	T FMU_CH9
+ * TIM15_CH1	T FMU_CH10
+ *
+ * TIM8_CH1	T FMU_CH11
+ *
+ * TIM4_CH4	T FMU_CH12
+ *
+ * TIM16_CH1	T BUZZER	- Driven by other driver
+ */
+
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 	initIOTimer(Timer::Timer1, DMA{DMA::Index1}),
 	initIOTimer(Timer::Timer4, DMA{DMA::Index1}),

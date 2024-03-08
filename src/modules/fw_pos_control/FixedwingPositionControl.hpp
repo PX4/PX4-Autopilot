@@ -169,6 +169,13 @@ static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 // [m/s] maximum reference altitude rate threshhold
 static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT = 0.1f;
 
+// [s] Timeout that has to pass in roll-constraining failsafe before warning is triggered
+static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
+
+// [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
+static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
+
+
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -703,11 +710,9 @@ private:
 	 *
 	 * @param control_interval Time since last position control call [s]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
 	void control_backtransition(const float control_interval, const Vector2f &ground_speed,
-				    const position_setpoint_s &pos_sp_prev,
 				    const position_setpoint_s &pos_sp_curr);
 
 	float get_tecs_pitch();
