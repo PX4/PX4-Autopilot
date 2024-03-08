@@ -105,8 +105,10 @@ static DynamicSparseLayer runtime_defaults{&firmware_defaults};
 DynamicSparseLayer user_config{&runtime_defaults};
 
 /** parameter update topic handle */
+#if not defined(CONFIG_PARAM_REMOTE)
 static orb_advert_t param_topic = nullptr;
 static unsigned int param_instance = 0;
+#endif
 
 static perf_counter_t param_export_perf;
 static perf_counter_t param_find_perf;
@@ -119,9 +121,6 @@ static pthread_mutex_t file_mutex  =
 // Support for remote parameter node
 #include "parameters_primary.h"
 #include "parameters_remote.h"
-static bool remote_active = false;
-static bool is_remote = false;
-static bool is_primary = false;
 
 void
 param_init()
@@ -136,47 +135,44 @@ param_init()
 #endif
 
 #if defined(CONFIG_PARAM_PRIMARY)
-	remote_active = true;
-	is_primary = true;
 	param_primary_init();
 #endif
 
 #if defined(CONFIG_PARAM_REMOTE)
-	remote_active = true;
-	is_remote = true;
 	param_remote_init();
 #endif
 
-	if (!remote_active || !is_remote) {
-		autosave_instance = new ParamAutosave();
-	}
+#if not defined(CONFIG_PARAM_REMOTE)
+	autosave_instance = new ParamAutosave();
+#endif
 }
 
 
 void
 param_notify_changes()
 {
-	// Don't send if this is a remote node. Only the primary
-	// sends out update notices
-	if (remote_active && is_primary) {
-		parameter_update_s pup{};
-		pup.instance = param_instance++;
-		pup.get_count = perf_event_count(param_get_perf);
-		pup.set_count = perf_event_count(param_set_perf);
-		pup.find_count = perf_event_count(param_find_perf);
-		pup.export_count = perf_event_count(param_export_perf);
-		pup.active = params_active.count();
-		pup.changed = user_config.size();
-		pup.custom_default = runtime_defaults.size();
-		pup.timestamp = hrt_absolute_time();
+// Don't send if this is a remote node. Only the primary
+// sends out update notices
+#if not defined(CONFIG_PARAM_REMOTE)
+	parameter_update_s pup {};
+	pup.instance = param_instance++;
+	pup.get_count = perf_event_count(param_get_perf);
+	pup.set_count = perf_event_count(param_set_perf);
+	pup.find_count = perf_event_count(param_find_perf);
+	pup.export_count = perf_event_count(param_export_perf);
+	pup.active = params_active.count();
+	pup.changed = user_config.size();
+	pup.custom_default = runtime_defaults.size();
+	pup.timestamp = hrt_absolute_time();
 
-		if (param_topic == nullptr) {
-			param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
+	if (param_topic == nullptr) {
+		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
 
-		} else {
-			orb_publish(ORB_ID(parameter_update), param_topic, &pup);
-		}
+	} else {
+		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
 	}
+
+#endif
 }
 
 static param_t param_find_internal(const char *name, bool notification)
@@ -600,10 +596,10 @@ int param_set_default_value(param_t param, const void *val)
 
 static int param_reset_internal(param_t param, bool notify = true, bool autosave = true)
 {
-	if ((remote_active) && (is_remote)) {
-		// Remote doesn't support reset
-		return false;
-	}
+#if defined(CONFIG_PARAM_REMOTE)
+	// Remote doesn't support reset
+	return false;
+#endif
 
 	bool param_found = user_config.contains(param);
 
@@ -632,10 +628,10 @@ int param_reset_no_notification(param_t param) { return param_reset_internal(par
 static void
 param_reset_all_internal(bool auto_save)
 {
-	if ((remote_active) && (is_remote)) {
-		// Remote doesn't support reset
-		return;
-	}
+#if defined(CONFIG_PARAM_REMOTE)
+	// Remote doesn't support reset
+	return;
+#endif
 
 	for (param_t param = 0; handle_in_range(param); param++) {
 		param_reset_internal(param, false, false);
