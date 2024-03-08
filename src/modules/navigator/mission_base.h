@@ -342,9 +342,10 @@ private:
 	void updateMavlinkMission();
 
 	/**
-	 * Check whether a mission is ready to go
+	 * @brief Check whether a mission is ready to go
+	 * @param[in] forced flag if the check has to be run irregardles of any updates.
 	 */
-	void check_mission_valid();
+	void check_mission_valid(bool forced = false);
 
 	/**
 	 * Reset mission

@@ -207,7 +207,7 @@ MissionBase::on_activation()
 	_mission_has_been_activated = true;
 	_system_disarmed_while_inactive = false;
 
-	check_mission_valid();
+	check_mission_valid(true);
 
 	update_mission();
 
@@ -687,11 +687,13 @@ MissionBase::checkMissionRestart()
 }
 
 void
-MissionBase::check_mission_valid()
+MissionBase::check_mission_valid(bool forced)
 {
-	if ((_navigator->get_mission_result()->mission_id != _mission.mission_id)
-	    || (_navigator->get_mission_result()->geofence_id != _mission.geofence_id)
-	    || (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
+	// Allow forcing it, since we currently not rechecking if parameters have changed.
+	if (forced ||
+	    (_navigator->get_mission_result()->mission_id != _mission.mission_id) ||
+	    (_navigator->get_mission_result()->geofence_id != _mission.geofence_id) ||
+	    (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
 
 		_navigator->get_mission_result()->mission_id = _mission.mission_id;
 		_navigator->get_mission_result()->geofence_id = _mission.geofence_id;
