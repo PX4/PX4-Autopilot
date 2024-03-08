@@ -202,10 +202,10 @@ void RTL::on_inactive()
 		break;
 	}
 
-	// Limit inactive calculation to 1Hz
+	// Limit inactive calculation to 0.5Hz
 	hrt_abstime now{hrt_absolute_time()};
 
-	if ((now - _destination_check_time) > 1_s) {
+	if ((now - _destination_check_time) > 2_s) {
 		_destination_check_time = now;
 		setRtlTypeAndDestination();
 
