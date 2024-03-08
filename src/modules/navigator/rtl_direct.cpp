@@ -121,7 +121,6 @@ void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s 
 
 	// Only allow to set a new approach if the mode is not activated yet.
 	if (!isActive()) {
-		_land_approach = loiter_pos;
 		_destination = rtl_position;
 		_force_heading = false;
 
@@ -139,24 +138,12 @@ void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s 
 			_destination.alt = _home_pos_sub.get().alt;
 		}
 
-		if (!PX4_ISFINITE(_land_approach.lat) || !PX4_ISFINITE(_land_approach.lon)) {
-			_land_approach.lat = _destination.lat;
-			_land_approach.lon = _destination.lon;
+		_land_approach = sanitizeLandApproach(loiter_pos);
 
-		} else {
-			const float dist_to_destination{get_distance_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon)};
+		const float dist_to_destination{get_distance_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon)};
 
-			if (dist_to_destination > _navigator->get_acceptance_radius()) {
-				_force_heading = true;
-			}
-		}
-
-		if (!PX4_ISFINITE(_land_approach.height_m)) {
-			_land_approach.height_m = _destination.alt + _param_rtl_descend_alt.get();
-		}
-
-		if (!PX4_ISFINITE(_land_approach.loiter_radius_m) || fabsf(_land_approach.loiter_radius_m) <= FLT_EPSILON) {
-			_land_approach.loiter_radius_m = _param_rtl_loiter_rad.get();
+		if (dist_to_destination > _navigator->get_acceptance_radius()) {
+			_force_heading = true;
 		}
 	}
 }
@@ -383,11 +370,13 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		start_state_for_estimate = getActivationLandState();
 	}
 
-	// Calculate RTL time estimate only when there is a valid home position
+	// Calculate RTL time estimate only when there is a valid destination
 	// TODO: Also check if vehicle position is valid
-	if (_navigator->home_global_position_valid()) {
+	if (PX4_ISFINITE(_destination.lat) && PX4_ISFINITE(_destination.lon) && PX4_ISFINITE(_destination.alt)) {
 
-		const float loiter_altitude = min(_land_approach.height_m, _rtl_alt);
+		loiter_point_s land_approach = sanitizeLandApproach(_land_approach);
+
+		const float loiter_altitude = min(land_approach.height_m, _rtl_alt);
 
 		// Sum up time estimate for various segments of the landing procedure
 		switch (start_state_for_estimate) {
@@ -401,10 +390,10 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		// FALLTHROUGH
 		case RTLState::MOVE_TO_LOITER: {
 				matrix::Vector2f direction{};
-				get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, _land_approach.lat,
-							    _land_approach.lon, &direction(0), &direction(1));
+				get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat,
+							    land_approach.lon, &direction(0), &direction(1));
 				_rtl_time_estimator.addDistance(get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-								_land_approach.lat, _land_approach.lon), direction, 0.f);
+								land_approach.lat, land_approach.lon), direction, 0.f);
 			}
 
 		// FALLTHROUGH
@@ -450,8 +439,8 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 				} else {
 					move_to_land_dist = get_distance_to_next_waypoint(
-								    _land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon);
-					get_vector_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon, &direction(0),
+								    land_approach.lat, land_approach.lon, _destination.lat, _destination.lon);
+					get_vector_to_next_waypoint(land_approach.lat, land_approach.lon, _destination.lat, _destination.lon, &direction(0),
 								    &direction(1));
 				}
 
@@ -499,4 +488,25 @@ void RtlDirect::parameters_update()
 		// this class attributes need updating (and do so).
 		updateParams();
 	}
+}
+
+loiter_point_s RtlDirect::sanitizeLandApproach(loiter_point_s land_approach) const
+{
+	loiter_point_s sanitized_land_approach{land_approach};
+
+	if (!PX4_ISFINITE(land_approach.lat) || !PX4_ISFINITE(land_approach.lon)) {
+		sanitized_land_approach.lat = _destination.lat;
+		sanitized_land_approach.lon = _destination.lon;
+
+	}
+
+	if (!PX4_ISFINITE(land_approach.height_m)) {
+		sanitized_land_approach.height_m = _destination.alt + _param_rtl_descend_alt.get();
+	}
+
+	if (!PX4_ISFINITE(land_approach.loiter_radius_m) || fabsf(land_approach.loiter_radius_m) <= FLT_EPSILON) {
+		sanitized_land_approach.loiter_radius_m = _param_rtl_loiter_rad.get();
+	}
+
+	return sanitized_land_approach;
 }
