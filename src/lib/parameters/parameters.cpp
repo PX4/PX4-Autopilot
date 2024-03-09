@@ -119,8 +119,12 @@ static pthread_mutex_t file_mutex  =
 	PTHREAD_MUTEX_INITIALIZER; ///< this protects against concurrent param saves (file or flash access).
 
 // Support for remote parameter node
-#include "parameters_primary.h"
-#include "parameters_remote.h"
+#if defined(CONFIG_PARAM_PRIMARY)
+# include "parameters_primary.h"
+#endif // CONFIG_PARAM_PRIMARY
+#if defined(CONFIG_PARAM_REMOTE)
+# include "parameters_remote.h"
+#endif // CONFIG_PARAM_REMOTE
 
 void
 param_init()
@@ -136,11 +140,11 @@ param_init()
 
 #if defined(CONFIG_PARAM_PRIMARY)
 	param_primary_init();
-#endif
+#endif // CONFIG_PARAM_PRIMARY
 
 #if defined(CONFIG_PARAM_REMOTE)
 	param_remote_init();
-#endif
+#endif // CONFIG_PARAM_REMOTE
 
 #if not defined(CONFIG_PARAM_REMOTE)
 	autosave_instance = new ParamAutosave();
@@ -514,7 +518,7 @@ void param_set_used(param_t param)
 	if (handle_in_range(param)) {
 #if defined(CONFIG_PARAM_REMOTE)
 
-		if (! param_used(param)) {
+		if (!param_used(param)) {
 			param_remote_set_used(param);
 		}
 
