@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #ifndef MODULE_NAME
 #define MODULE_NAME "log"
@@ -183,11 +184,11 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 		log_message_s log_message;
 
 		const uint8_t log_level_table[] = {
-			7, /* _PX4_LOG_LEVEL_DEBUG */
-			6, /* _PX4_LOG_LEVEL_INFO */
-			4, /* _PX4_LOG_LEVEL_WARN */
-			3, /* _PX4_LOG_LEVEL_ERROR */
-			0  /* _PX4_LOG_LEVEL_PANIC */
+			LOG_DEBUG,    /* _PX4_LOG_LEVEL_DEBUG */
+			LOG_INFO,     /* _PX4_LOG_LEVEL_INFO */
+			LOG_WARNING,  /* _PX4_LOG_LEVEL_WARN */
+			LOG_ERR,      /* _PX4_LOG_LEVEL_ERROR */
+			LOG_EMERG     /* _PX4_LOG_LEVEL_PANIC */
 		};
 		log_message.severity = log_level_table[level];
 
