@@ -24,7 +24,7 @@ PARAM_DEFINE_INT32(MC_AIRMODE, 0);
  *
  * @unit %
  * @min 0
- * @max 100
+ * @max 30
  * @increment 0.1
  * @group Mixer Output
  */
