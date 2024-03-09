@@ -50,6 +50,8 @@
 
 #include <drivers/drv_hrt.h>
 
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
 typedef struct sdb_config {
 	int num_runs; ///< number of runs
 	int run_duration; ///< duration of a single run [ms]
@@ -202,6 +204,7 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 	unsigned int total_blocks = 0;
 	cfg->total_blocks_written = 0;
 	unsigned int *blocknumber = (unsigned int *)(void *)&block[0];
+	unsigned int max_max_write_time = 0;
 
 	for (int run = 0; run < cfg->num_runs; ++run) {
 		hrt_abstime start = hrt_absolute_time();
@@ -245,10 +248,12 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 		total_elapsed += elapsed;
 		total_blocks += num_blocks;
+		max_max_write_time = MAX(max_max_write_time, max_write_time);
 	}
 
 	cfg->total_blocks_written = total_blocks;
 	PX4_INFO("  Avg   : %8.2lf KB/s", (double)block_size * total_blocks / total_elapsed / 1024.);
+	PX4_INFO("  Overall max write time: %i ms", max_max_write_time);
 }
 
 int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
