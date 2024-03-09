@@ -18,13 +18,14 @@
 PARAM_DEFINE_INT32(MC_AIRMODE, 0);
 
 /**
- * Multicopter yaw margin
+ * Multicopter yaw margin percentage.
  *
- * The maximum amount of collective thrust to sacrifice for yaw authority.
+ * The maximum percentage of collective thrust to sacrifice for yaw authority.
  *
- * @min 0.0
- * @max 1.0
- * @increment 0.01
+ * @unit %
+ * @min 0
+ * @max 100
+ * @increment 0.1
  * @group Mixer Output
  */
-PARAM_DEFINE_FLOAT(MC_YAW_MARGIN, 0.15f);
+PARAM_DEFINE_FLOAT(MC_YAW_MARGIN, 15.0f);
