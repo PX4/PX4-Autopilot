@@ -114,7 +114,7 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.div           = 1,
 			.mux           = ACMP_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
-		.flexio1_clk_root =
+		.flexio1_clk_root = /* 240 / 2 = 120Mhz */
 		{
 			.enable        = 1,
 			.div           = 2,
