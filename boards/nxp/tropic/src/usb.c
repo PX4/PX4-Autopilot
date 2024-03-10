@@ -71,6 +71,10 @@
 int imxrt_usb_initialize(void)
 {
 	imxrt_clockall_usboh3();
+
+	// We abuse VBUS2 to check if system power checks VBUS gets below 4.7V
+	putreg32(USB_ANALOG_USB_VBUS_DETECT_VBUSVALID_THRESH_4V7 | USB_ANALOG_USB_VBUS_DETECT_VBUSVALID_PWRUP_CMPS,
+	         IMXRT_USB_ANALOG_USB2_VBUS_DETECT);
 	return 0;
 }
 /************************************************************************************
