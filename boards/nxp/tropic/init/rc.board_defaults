@@ -19,7 +19,6 @@ param set-default SENS_EN_INA226 0
 param set-default BAT1_V_DIV 10.177939394
 param set-default BAT1_A_PER_V 15.391030303
 
-
 if [ -f "/fs/microsd/ipcfg-eth0" ]
 then
 else
