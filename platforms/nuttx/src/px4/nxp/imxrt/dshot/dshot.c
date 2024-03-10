@@ -53,6 +53,10 @@
 #define NIBBLES_SIZE 			4u
 #define DSHOT_NUMBER_OF_NIBBLES		3u
 
+#if defined(IOMUX_PULL_UP_47K)
+#define IOMUX_PULL_UP IOMUX_PULL_UP_47K
+#endif
+
 static const uint32_t gcr_decode[32] = {
 	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
 	0x0, 0x9, 0xA, 0xB, 0x0, 0xD, 0xE, 0xF,
@@ -195,7 +199,6 @@ static void flexio_dshot_output(uint32_t channel, uint32_t pin, uint32_t timcmp,
 
 static int flexio_irq_handler(int irq, void *context, void *arg)
 {
-
 	uint32_t flags = get_shifter_status_flags();
 	uint32_t channel;
 
@@ -236,7 +239,6 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 			} else if (dshot_inst[channel].bdshot && dshot_inst[channel].state == DSHOT_12BIT_TRANSFERRED) {
 				disable_shifter_status_interrupts(1 << channel);
 				dshot_inst[channel].state = BDSHOT_RECEIVE;
-				uint8_t timer = timer_io_channels[channel].timer_index;
 
 				/* Transmit done, disable timer and reconfigure to receive*/
 				flexio_putreg32(0x0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
@@ -252,7 +254,7 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 				flexio_putreg32(FLEXIO_SHIFTCTL_TIMSEL(channel) |
 						FLEXIO_SHIFTCTL_TIMPOL(FLEXIO_SHIFTER_TIMER_POLARITY_ON_POSITIVE) |
 						FLEXIO_SHIFTCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT_DISABLED) |
-						FLEXIO_SHIFTCTL_PINSEL(io_timers[timer].dshot.flexio_pin) |
+						FLEXIO_SHIFTCTL_PINSEL(timer_io_channels[channel].dshot.flexio_pin) |
 						FLEXIO_SHIFTCTL_PINPOL(FLEXIO_PIN_ACTIVE_LOW) |
 						FLEXIO_SHIFTCTL_SMOD(FLEXIO_SHIFTER_MODE_RECEIVE),
 						IMXRT_FLEXIO_SHIFTCTL0_OFFSET + channel * 0x4);
@@ -274,7 +276,7 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 				flexio_putreg32(bdshot_tcmp, IMXRT_FLEXIO_TIMCMP0_OFFSET + channel * 0x4);
 
 				/* Trigger on FXIO pin transition, Baud mode */
-				flexio_putreg32(FLEXIO_TIMCTL_TRGSEL(2 * io_timers[timer].dshot.flexio_pin) |
+				flexio_putreg32(FLEXIO_TIMCTL_TRGSEL(2 * timer_io_channels[channel].dshot.flexio_pin) |
 						FLEXIO_TIMCTL_TRGPOL(FLEXIO_TIMER_TRIGGER_POLARITY_ACTIVE_HIGH) |
 						FLEXIO_TIMCTL_TRGSRC(FLEXIO_TIMER_TRIGGER_SOURCE_INTERNAL) |
 						FLEXIO_TIMCTL_PINCFG(FLEXIO_PIN_CONFIG_OUTPUT_DISABLED) |
@@ -315,7 +317,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 			    FLEXIO_CTRL_FASTACC_MASK |
 			    FLEXIO_CTRL_FLEXEN_MASK),
 			   (FLEXIO_CTRL_DBGE(1) |
-			    FLEXIO_CTRL_FASTACC(0) |
+			    FLEXIO_CTRL_FASTACC(1) |
 			    FLEXIO_CTRL_FLEXEN(0)));
 
 	/* FlexIO IRQ handling */
@@ -326,17 +328,16 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 
 	for (unsigned channel = 0; (channel_mask != 0) && (channel < DSHOT_TIMERS); channel++) {
 		if (channel_mask & (1 << channel)) {
-			uint8_t timer = timer_io_channels[channel].timer_index;
 
-			if (io_timers[timer].dshot.pinmux == 0) { // board does not configure dshot on this pin
+			if (timer_io_channels[channel].dshot.pinmux == 0) { // board does not configure dshot on this pin
 				continue;
 			}
 
-			imxrt_config_gpio(io_timers[timer].dshot.pinmux | IOMUX_PULL_UP);
+			imxrt_config_gpio(timer_io_channels[channel].dshot.pinmux | IOMUX_PULL_UP);
 
 			dshot_inst[channel].bdshot = enable_bidirectional_dshot;
 
-			flexio_dshot_output(channel, io_timers[timer].dshot.flexio_pin, dshot_tcmp, dshot_inst[channel].bdshot);
+			flexio_dshot_output(channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp, dshot_inst[channel].bdshot);
 
 			dshot_inst[channel].init = true;
 
@@ -429,7 +430,7 @@ void up_dshot_trigger(void)
 	clear_timer_status_flags(0xFF);
 
 	for (uint8_t channel = 0; (channel < DSHOT_TIMERS); channel++) {
-		if ((bdshot_recv_mask & (1 << channel)) == 0) {
+		if (dshot_inst[channel].bdshot && (bdshot_recv_mask & (1 << channel)) == 0) {
 			dshot_inst[channel].no_response_cnt++;
 		}
 
@@ -439,9 +440,10 @@ void up_dshot_trigger(void)
 	}
 
 	// Calc data now since we're not event driven
-	up_bdshot_erpm();
-
-	bdshot_recv_mask = 0x0;
+	if(bdshot_recv_mask != 0x0) {
+		up_bdshot_erpm();
+		bdshot_recv_mask = 0x0;
+	}
 
 	clear_timer_status_flags(0xFF);
 	enable_shifter_status_interrupts(0xFF);
@@ -476,8 +478,6 @@ uint64_t dshot_expand_data(uint16_t packet)
 **/
 void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 {
-	uint8_t timer = timer_io_channels[channel].timer_index;
-
 	if (channel < DSHOT_TIMERS && dshot_inst[channel].init) {
 		uint16_t csum_data;
 		uint16_t packet = 0;
@@ -513,7 +513,7 @@ void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 			flexio_putreg32(0x0, IMXRT_FLEXIO_TIMCTL0_OFFSET + channel * 0x4);
 			disable_shifter_status_interrupts(1 << channel);
 
-			flexio_dshot_output(channel, io_timers[timer].dshot.flexio_pin, dshot_tcmp, dshot_inst[channel].bdshot);
+			flexio_dshot_output(channel, timer_io_channels[channel].dshot.flexio_pin, dshot_tcmp, dshot_inst[channel].bdshot);
 
 			clear_timer_status_flags(0xFF);
 		}
