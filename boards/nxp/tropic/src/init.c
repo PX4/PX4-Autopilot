@@ -76,6 +76,7 @@
 #include <hardware/imxrt_lpuart.h>
 #undef FLEXSPI_LUT_COUNT
 #include <hardware/imxrt_flexspi.h>
+#include <hardware/imxrt_ccm.h>
 
 #include <arch/board/board.h>
 
@@ -86,10 +87,6 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
-
-/****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
 
 /* Configuration ************************************************************/
 
@@ -318,6 +315,38 @@ int imxrt_phy_boardinitialize(int intf)
 	return OK;
 }
 
+void imxrt_flexio_clocking(void)
+{
+	uint32_t reg;
+
+	/* Init USB PLL3 PFD2 */
+
+	reg = getreg32(IMXRT_CCM_ANALOG_PFD_480);
+
+	while ((getreg32(IMXRT_CCM_ANALOG_PLL_USB1) &
+		CCM_ANALOG_PLL_USB1_LOCK) == 0) {
+	}
+
+	reg &= ~CCM_ANALOG_PFD_480_PFD2_FRAC_MASK;
+
+	/* Set PLL3 PFD2 to 480 * 18 / CONFIG_PLL3_PFD2_FRAC */
+
+	reg |= ((uint32_t)(CONFIG_PLL3_PFD2_FRAC) << CCM_ANALOG_PFD_480_PFD3_FRAC_SHIFT);
+
+	putreg32(reg, IMXRT_CCM_ANALOG_PFD_480);
+
+	reg = getreg32(IMXRT_CCM_CDCDR);
+	reg &= ~(CCM_CDCDR_FLEXIO1_CLK_SEL_MASK |
+		 CCM_CDCDR_FLEXIO1_CLK_PODF_MASK |
+		 CCM_CDCDR_FLEXIO1_CLK_PRED_MASK);
+	reg |= CCM_CDCDR_FLEXIO1_CLK_SEL(CONFIG_FLEXIO1_CLK);
+	reg |= CCM_CDCDR_FLEXIO1_CLK_PODF
+	       (CCM_PODF_FROM_DIVISOR(CONFIG_FLEXIO1_PODF_DIVIDER));
+	reg |= CCM_CDCDR_FLEXIO1_CLK_PRED
+	       (CCM_PRED_FROM_DIVISOR(CONFIG_FLEXIO1_PRED_DIVIDER));
+	putreg32(reg, IMXRT_CCM_CDCDR);
+}
+
 
 /****************************************************************************
  * Name: board_app_initialize
@@ -345,6 +374,7 @@ int imxrt_phy_boardinitialize(int intf)
  ****************************************************************************/
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	imxrt_flexio_clocking();
 
 	/* Power on Interfaces */
 

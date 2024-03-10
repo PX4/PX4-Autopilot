@@ -101,6 +101,7 @@
 *(.text.imxrt_dispatch)
 *(.text.arp_arpin)
 *(.text.ipv4_input)
+*(.text.flexio_irq_handler)
 
 
 *(.text.work_thread)
