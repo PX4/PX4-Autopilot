@@ -50,8 +50,10 @@
 #include "imxrt_gpio.h"
 #include "imxrt_iomuxc.h"
 #include "hardware/imxrt_pinmux.h"
+#include "hardware/imxrt_usb_analog.h"
 
 #include <arch/board/board.h>
+#include <arm_internal.h>
 
 /****************************************************************************************************
  * Definitions
@@ -132,7 +134,7 @@
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
-#define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
+//#define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* PWM
  */
@@ -185,6 +187,7 @@
 #define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
 #define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
 #define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap
+#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* Safety Switch is HW version dependent on having an PX4IO
  * So we init to a benign state with the _INIT definition
@@ -219,8 +222,20 @@
  * provides the true logic GPIO BOARD_ADC_xxxx macros.
  */
 
-//#define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
-//#define BOARD_ADC_USB_CONNECTED (board_read_VBUS_state() == 0)
+#define BOARD_NUMBER_BRICKS 1
+
+/* Use USB2 VBUS 4.7V comparator for valid check */
+static inline int board_read_usb2_vbus_state(void)
+{
+	return (getreg32(IMXRT_USB_ANALOG_USB2_VBUS_DETECT_STAT) & USB_ANALOG_USB_VBUS_DETECT_STAT_VBUS_VALID) ? 0 : 1;
+}
+
+#define BOARD_ADC_BRICK_VALID   (board_read_usb2_vbus_state() == 0)
+
+
+
+
+#define BOARD_ADC_USB_CONNECTED (board_read_VBUS_state() == 0)
 
 /* FMUv5 never powers odd the Servo rail */
 
