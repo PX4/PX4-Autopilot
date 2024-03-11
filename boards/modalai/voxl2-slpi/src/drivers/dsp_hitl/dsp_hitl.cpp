@@ -159,9 +159,10 @@ struct position_source_data_s {
 	uint32_t failure_duration;
 	uint64_t failure_duration_start;
 } position_source_data[(int) position_source::NUM_POSITION_SOURCES] = {
-					{"GPS", false, false, 0, 0},
-					{"VIO", false, false, 0, 0},
-					{"FLOW", false, false, 0, 0} };
+	{"GPS", false, false, 0, 0},
+	{"VIO", false, false, 0, 0},
+	{"FLOW", false, false, 0, 0}
+};
 
 uint64_t first_sensor_msg_timestamp = 0;
 uint64_t first_sensor_report_timestamp = 0;
@@ -212,39 +213,59 @@ handle_message_dsp(mavlink_message_t *msg)
 		hil_sensor_counter++;
 		handle_message_hil_sensor_dsp(msg);
 		break;
+
 	case MAVLINK_MSG_ID_HIL_GPS:
 		gps_received_counter++;
-		if (position_source_data[(int) position_source::GPS].send) handle_message_hil_gps_dsp(msg);
+
+		if (position_source_data[(int) position_source::GPS].send) { handle_message_hil_gps_dsp(msg); }
+
 		break;
+
 	case MAVLINK_MSG_ID_ODOMETRY:
 		odometry_received_counter++;
-		if (position_source_data[(int) position_source::VIO].send) handle_message_odometry_dsp(msg);
+
+		if (position_source_data[(int) position_source::VIO].send) { handle_message_odometry_dsp(msg); }
+
 		break;
+
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		heartbeat_received_counter++;
+
 		if (_debug) { PX4_INFO("Heartbeat msg received"); }
+
 		break;
+
 	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
 		flow_received_counter++;
-		if (position_source_data[(int) position_source::FLOW].send) handle_message_hil_optical_flow(msg);
+
+		if (position_source_data[(int) position_source::FLOW].send) { handle_message_hil_optical_flow(msg); }
+
 		break;
+
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
 		distance_received_counter++;
-		if (_send_distance) handle_message_distance_sensor(msg);
+
+		if (_send_distance) { handle_message_distance_sensor(msg); }
+
 		break;
+
 	default:
 		unknown_msg_received_counter++;
+
 		if (_debug) { PX4_INFO("Unknown msg ID: %d", msg->msgid); }
+
 		break;
 	}
 }
 
-void *send_actuator(void *) {
+void *send_actuator(void *)
+{
 	send_actuator_data();
 	return nullptr;
 }
 
-void send_actuator_data() {
+void send_actuator_data()
+{
 
 	int _actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs_sim), 0);
 	int _vehicle_control_mode_sub_ = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -292,7 +313,7 @@ void send_actuator_data() {
 				send_esc_status(hil_act_control);
 			}
 
-		} else if ( ! actuator_updated && first_sent && differential > 4000){
+		} else if (! actuator_updated && first_sent && differential > 4000) {
 			previous_timestamp = hrt_absolute_time();
 
 			newBufLen = mavlink_msg_to_send_buffer(newBuf, &message);
@@ -316,43 +337,52 @@ void task_main(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
+
 	while ((ch = px4_getopt(argc, argv, "odmghfp:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			_debug = true;
 			break;
+
 		case 'p':
 			port = myoptarg;
 			break;
+
 		case 'b':
 			baudrate = atoi(myoptarg);
 			break;
+
 		case 'm':
 			_send_mag = true;
 			break;
+
 		case 'g':
 			position_source_data[(int) position_source::GPS].send = true;
 			break;
+
 		case 'o':
 			position_source_data[(int) position_source::VIO].send = true;
 			break;
+
 		case 'h':
 			_send_distance = true;
 			break;
+
 		case 'f':
 			position_source_data[(int) position_source::FLOW].send = true;
 			break;
+
 		default:
 			break;
 		}
 	}
 
-	const char* charport = port.c_str();
+	const char *charport = port.c_str();
 	(void) openPort(charport, (speed_t) baudrate);
 
-	if ((_debug) && (isOpen())) PX4_INFO("DSP HITL serial port initialized. Baudrate: %d", baudrate);
+	if ((_debug) && (isOpen())) { PX4_INFO("DSP HITL serial port initialized. Baudrate: %d", baudrate); }
 
-	if ( ! isOpen()) {
+	if (! isOpen()) {
 		PX4_ERR("DSP HITL failed to open serial port");
 		return;
 	}
@@ -376,7 +406,7 @@ void task_main(int argc, char *argv[])
 
 	_is_running = true;
 
-	while (!_task_should_exit){
+	while (!_task_should_exit) {
 		uint8_t rx_buf[1024];
 
 		uint64_t timestamp = hrt_absolute_time();
@@ -384,9 +414,11 @@ void task_main(int argc, char *argv[])
 		// Send out sensor messages every 10ms
 		if (got_first_sensor_msg) {
 			uint64_t delta_time = timestamp - last_imu_update_timestamp;
+
 			if ((imu_counter) && (delta_time > 15000)) {
 				PX4_WARN("Sending updates at %llu, delta %llu", timestamp, delta_time);
 			}
+
 			uint64_t _px4_gyro_accel_timestamp = hrt_absolute_time();
 			_px4_gyro->update(_px4_gyro_accel_timestamp, x_gyro, y_gyro, z_gyro);
 			_px4_accel->update(_px4_gyro_accel_timestamp, x_accel, y_accel, z_accel);
@@ -396,17 +428,20 @@ void task_main(int argc, char *argv[])
 
 		// Check for incoming messages from the simulator
 		int readRetval = readResponse(&rx_buf[0], sizeof(rx_buf));
+
 		if (readRetval) {
 			//Take readRetval and convert it into mavlink msg
 			mavlink_message_t msg;
 			mavlink_status_t _status{};
-			for (int i = 0; i <= readRetval; i++){
-				if(mavlink_parse_char(MAVLINK_COMM_0, rx_buf[i], &msg, &_status)){
+
+			for (int i = 0; i <= readRetval; i++) {
+				if (mavlink_parse_char(MAVLINK_COMM_0, rx_buf[i], &msg, &_status)) {
 					//PX4_INFO("Value of msg id: %i", msg.msgid);
 					handle_message_dsp(&msg);
 				}
 			}
 		}
+
 		if ((timestamp - last_heartbeat_timestamp) > 1000000) {
 			mavlink_heartbeat_t hb = {};
 			mavlink_message_t hb_message = {};
@@ -424,7 +459,8 @@ void task_main(int argc, char *argv[])
 
 		bool vehicle_updated = false;
 		(void) orb_check(_vehicle_status_sub, &vehicle_updated);
-		if (vehicle_updated){
+
+		if (vehicle_updated) {
 			// PX4_INFO("Value of updated vehicle status: %d", vehicle_updated);
 			orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 		}
@@ -432,7 +468,7 @@ void task_main(int argc, char *argv[])
 		uint64_t elapsed_time = hrt_absolute_time() - timestamp;
 		// if (elapsed_time < 10000) usleep(10000 - elapsed_time);
 
-		if (elapsed_time < 5000) usleep(5000 - elapsed_time);
+		if (elapsed_time < 5000) { usleep(5000 - elapsed_time); }
 	}
 
 	_is_running = false;
@@ -447,6 +483,7 @@ void send_esc_status(mavlink_hil_actuator_controls_t hil_act_control)
 	const bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 	int max_esc_index = 0;
 	_battery_status_sub.update(&_battery_status);
+
 	for (int i = 0; i < max_esc_count; i++) {
 		if (_output_functions[i] != 0) {
 			max_esc_index = i;
@@ -475,7 +512,7 @@ handle_message_command_long_dsp(mavlink_message_t *msg)
 	mavlink_command_long_t cmd_mavlink;
 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-	if (_debug) PX4_INFO("Value of command_long.command: %d", cmd_mavlink.command);
+	if (_debug) { PX4_INFO("Value of command_long.command: %d", cmd_mavlink.command); }
 
 	mavlink_command_ack_t ack = {};
 	ack.result = MAV_RESULT_UNSUPPORTED;
@@ -488,7 +525,7 @@ handle_message_command_long_dsp(mavlink_message_t *msg)
 	acknewBufLen = mavlink_msg_to_send_buffer(acknewBuf, &ack_message);
 	int writeRetval = writeResponse(&acknewBuf, acknewBufLen);
 
-	if (_debug) PX4_INFO("Succesful write of ACK back over UART: %d at %llu", writeRetval, hrt_absolute_time());
+	if (_debug) { PX4_INFO("Succesful write of ACK back over UART: %d at %llu", writeRetval, hrt_absolute_time()); }
 }
 
 int	flow_debug_counter = 0;
@@ -499,10 +536,11 @@ handle_message_hil_optical_flow(mavlink_message_t *msg)
 	mavlink_hil_optical_flow_t flow;
 	mavlink_msg_hil_optical_flow_decode(msg, &flow);
 
-	if ((_debug) && ( ! (flow_debug_counter % 10))) {
+	if ((_debug) && (!(flow_debug_counter % 10))) {
 		PX4_INFO("optflow: time: %llu, quality %d", flow.time_usec, (int) flow.quality);
 		PX4_INFO("optflow: x: %.2f y: %.2f", (double) flow.integrated_x, (double) flow.integrated_y);
 	}
+
 	flow_debug_counter++;
 
 	device::Device::DeviceId device_id;
@@ -523,18 +561,22 @@ handle_message_hil_optical_flow(mavlink_message_t *msg)
 	sensor_optical_flow.quality = flow.quality;
 
 	int index = (int) position_source::FLOW;
+
 	if (position_source_data[index].fail) {
 		uint32_t duration = position_source_data[index].failure_duration;
 		hrt_abstime start = position_source_data[index].failure_duration_start;
+
 		if (duration) {
 			if (hrt_elapsed_time(&start) > (duration * 1000000)) {
 				PX4_INFO("Optical flow failure ending");
 				position_source_data[index].fail = false;
 				position_source_data[index].failure_duration = 0;
 				position_source_data[index].failure_duration_start = 0;
+
 			} else {
 				sensor_optical_flow.quality = 0;
 			}
+
 		} else {
 			sensor_optical_flow.quality = 0;
 		}
@@ -577,11 +619,12 @@ void handle_message_distance_sensor(mavlink_message_t *msg)
 	mavlink_distance_sensor_t dist_sensor;
 	mavlink_msg_distance_sensor_decode(msg, &dist_sensor);
 
-	if ((_debug) && ( ! (distance_debug_counter % 10))) {
+	if ((_debug) && (!(distance_debug_counter % 10))) {
 		PX4_INFO("distance: time: %u, quality: %u, height: %u",
-				 dist_sensor.time_boot_ms, dist_sensor.signal_quality,
-				 dist_sensor.current_distance);
+			 dist_sensor.time_boot_ms, dist_sensor.signal_quality,
+			 dist_sensor.current_distance);
 	}
+
 	distance_debug_counter++;
 
 	distance_sensor_s ds{};
@@ -807,18 +850,22 @@ handle_message_odometry_dsp(mavlink_message_t *msg)
 	odom.quality = odom_in.quality;
 
 	int index = (int) position_source::VIO;
+
 	if (position_source_data[index].fail) {
 		uint32_t duration = position_source_data[index].failure_duration;
 		hrt_abstime start = position_source_data[index].failure_duration_start;
+
 		if (duration) {
 			if (hrt_elapsed_time(&start) > (duration * 1000000)) {
 				PX4_INFO("VIO failure ending");
 				position_source_data[index].fail = false;
 				position_source_data[index].failure_duration = 0;
 				position_source_data[index].failure_duration_start = 0;
+
 			} else {
 				odom.quality = 0;
 			}
+
 		} else {
 			odom.quality = 0;
 		}
@@ -863,6 +910,7 @@ void actuator_controls_from_outputs_dsp(mavlink_hil_actuator_controls_t *msg)
 		for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
 			msg->controls[i] = _actuator_outputs.output[i];
 		}
+
 		//PX4_INFO("Value of actuator data: %f, %f, %f, %f", (double)msg->controls[0], (double)msg->controls[1], (double)msg->controls[2], (double)msg->controls[3]);
 	}
 
@@ -879,6 +927,7 @@ int openPort(const char *dev, speed_t speed)
 	}
 
 	_uart_fd = qurt_uart_open(dev, speed);
+
 	if (_debug) { PX4_INFO("qurt_uart_opened"); }
 
 	if (_uart_fd < 0) {
@@ -902,7 +951,8 @@ int readResponse(void *buf, size_t len)
 		PX4_ERR("invalid state for reading or buffer");
 		return -1;
 	}
-    return qurt_uart_read(_uart_fd, (char*) buf, len, ASYNC_UART_READ_WAIT_US);
+
+	return qurt_uart_read(_uart_fd, (char *) buf, len, ASYNC_UART_READ_WAIT_US);
 }
 
 int writeResponse(void *buf, size_t len)
@@ -912,7 +962,7 @@ int writeResponse(void *buf, size_t len)
 		return -1;
 	}
 
-    return qurt_uart_write(_uart_fd, (const char*) buf, len);
+	return qurt_uart_write(_uart_fd, (const char *) buf, len);
 }
 
 int start(int argc, char *argv[])
@@ -984,7 +1034,8 @@ void print_status()
 }
 
 void
-clear_status_counters() {
+clear_status_counters()
+{
 	heartbeat_received_counter = 0;
 	heartbeat_sent_counter = 0;
 	imu_counter = 0;
@@ -1032,6 +1083,7 @@ handle_message_hil_sensor_dsp(mavlink_message_t *msg)
 			if (PX4_ISFINITE(temperature)) {
 				_px4_gyro->set_temperature(temperature);
 			}
+
 			x_gyro = hil_sensor.xgyro;
 			y_gyro = hil_sensor.ygyro;
 			z_gyro = hil_sensor.zgyro;
@@ -1135,19 +1187,23 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 	gps.fix_type = hil_gps.fix_type;
 
 	int index = (int) position_source::GPS;
+
 	if (position_source_data[index].fail) {
 		uint32_t duration = position_source_data[index].failure_duration;
 		hrt_abstime start = position_source_data[index].failure_duration_start;
+
 		if (duration) {
 			if (hrt_elapsed_time(&start) > (duration * 1000000)) {
 				PX4_INFO("GPS failure ending");
 				position_source_data[index].fail = false;
 				position_source_data[index].failure_duration = 0;
 				position_source_data[index].failure_duration_start = 0;
+
 			} else {
 				gps.satellites_used = 1;
 				gps.fix_type = 0;
 			}
+
 		} else {
 			gps.satellites_used = 1;
 			gps.fix_type = 0;
@@ -1189,7 +1245,8 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 }
 
 int
-process_failure(dsp_hitl::position_source src, int duration) {
+process_failure(dsp_hitl::position_source src, int duration)
+{
 	if (src >= position_source::NUM_POSITION_SOURCES) {
 		return 1;
 	}
@@ -1202,18 +1259,22 @@ process_failure(dsp_hitl::position_source src, int duration) {
 			if (position_source_data[index].fail) {
 				PX4_INFO("Ending indefinite %s failure", position_source_data[index].label);
 				position_source_data[index].fail = false;
+
 			} else {
 				PX4_INFO("Starting indefinite %s failure", position_source_data[index].label);
 				position_source_data[index].fail = true;
 			}
+
 			position_source_data[index].failure_duration = 0;
 			position_source_data[index].failure_duration_start = 0;
+
 		} else {
 			PX4_INFO("%s failure for %d seconds", position_source_data[index].label, duration);
 			position_source_data[index].fail = true;
 			position_source_data[index].failure_duration = duration;
 			position_source_data[index].failure_duration_start = hrt_absolute_time();
 		}
+
 	} else {
 		PX4_ERR("%s not active, cannot create failure", position_source_data[index].label);
 		return 1;
@@ -1237,43 +1298,45 @@ int dsp_hitl_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		return dsp_hitl::start(argc - 1, argv + 1);
-	}
-	else if (!strcmp(verb, "stop")) {
+
+	} else if (!strcmp(verb, "stop")) {
 		return dsp_hitl::stop();
-	}
-	else if (!strcmp(verb, "status")) {
+
+	} else if (!strcmp(verb, "status")) {
 		dsp_hitl::print_status();
 		return 0;
-	}
-	else if (!strcmp(verb, "clear")) {
+
+	} else if (!strcmp(verb, "clear")) {
 		dsp_hitl::clear_status_counters();
 		return 0;
-	}
-	else if (!strcmp(verb, "failure")) {
+
+	} else if (!strcmp(verb, "failure")) {
 		if (argc != 4) {
 			dsp_hitl::usage();
 			return 1;
 		}
+
 		const char *source = argv[myoptind + 1];
 		int duration = atoi(argv[myoptind + 2]);
 
 		if (!strcmp(source, "gps")) {
 			return dsp_hitl::process_failure(dsp_hitl::position_source::GPS, duration);
-		}
-		else if (!strcmp(source, "vio")) {
+
+		} else if (!strcmp(source, "vio")) {
 			return dsp_hitl::process_failure(dsp_hitl::position_source::VIO, duration);
-		}
-		else if (!strcmp(source, "flow")) {
+
+		} else if (!strcmp(source, "flow")) {
 			return dsp_hitl::process_failure(dsp_hitl::position_source::FLOW, duration);
-		}
-		else {
+
+		} else {
 			PX4_ERR("Unknown failure source %s, duration %d", source, duration);
 			dsp_hitl::usage();
 			return 1;
 		}
+
 		return 0;
-	}
-	else {
+
+	} else {
 		dsp_hitl::usage();
 		return 1;
 	}
