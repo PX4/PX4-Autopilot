@@ -1034,7 +1034,7 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
 /**
  * Remaining flight time low failsafe
  *
- * Action the system takes when the remaining remaining flight time is below
+ * Action the system takes when the remaining flight time is below
  * the estimated time it takes to reach the RTL destination.
  *
  * @group Commander
