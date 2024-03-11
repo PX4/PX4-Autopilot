@@ -52,7 +52,7 @@ parameters:
         max: 100
         increment: 0.01
         decimal: 2
-        default: 0.3
+        default: 50.0
       RDD_P_HEADING:
         description:
           short: Proportional gain for heading controller
