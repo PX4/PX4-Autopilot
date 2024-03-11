@@ -630,7 +630,7 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 	// We didn't find a node so we need to create it via an advertisement
 	PX4_DEBUG("Advertising remote topic %s", topic_name);
 	_remote_topics.insert(topic_name);
-	orb_advertise(topic_ptr, nullptr, topic_ptr->o_queue);
+	orb_advertise(topic_ptr, nullptr);
 
 	return 0;
 }
