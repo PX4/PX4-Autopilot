@@ -383,7 +383,7 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 
 	case command_after_remaining_flight_time_low::Return_mode:
 		options.action = Action::RTL;
-		options.clear_condition = ClearCondition::OnDisarm; //otherwise clear when condition clears
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
 	default:

@@ -208,32 +208,37 @@ void RTL::on_inactive()
 	if ((now - _destination_check_time) > 2_s) {
 		_destination_check_time = now;
 		setRtlTypeAndDestination();
-
-		const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
-				&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
-
-		rtl_time_estimate_s estimated_time{};
-		estimated_time.valid = false;
-
-		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
-			switch (_rtl_type) {
-			case RtlType::RTL_DIRECT:
-				estimated_time = _rtl_direct.calc_rtl_time_estimate();
-				break;
-
-			case RtlType::RTL_DIRECT_MISSION_LAND:
-			case RtlType::RTL_MISSION_FAST:
-			case RtlType::RTL_MISSION_FAST_REVERSE:
-				estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
-				break;
-
-			default:
-				break;
-			}
-		}
-
-		_rtl_time_estimate_pub.publish(estimated_time);
+		publishRemainingTimeEstimate();
 	}
+
+}
+
+void RTL::publishRemainingTimeEstimate()
+{
+	const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
+			&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
+
+	rtl_time_estimate_s estimated_time{};
+	estimated_time.valid = false;
+
+	if (_navigator->home_global_position_valid() && global_position_recently_updated) {
+		switch (_rtl_type) {
+		case RtlType::RTL_DIRECT:
+			estimated_time = _rtl_direct.calc_rtl_time_estimate();
+			break;
+
+		case RtlType::RTL_DIRECT_MISSION_LAND:
+		case RtlType::RTL_MISSION_FAST:
+		case RtlType::RTL_MISSION_FAST_REVERSE:
+			estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	_rtl_time_estimate_pub.publish(estimated_time);
 }
 
 void RTL::on_activation()
@@ -286,6 +291,14 @@ void RTL::on_active()
 
 	default:
 		break;
+	}
+
+	// Keep publishing remaining time estimates every 2 seconds
+	hrt_abstime now{hrt_absolute_time()};
+
+	if ((now - _destination_check_time) > 2_s) {
+		_destination_check_time = now;
+		publishRemainingTimeEstimate();
 	}
 }
 
