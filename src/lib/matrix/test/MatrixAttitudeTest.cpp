@@ -502,9 +502,11 @@ TEST(MatrixAttitudeTest, Attitude)
 	Eulerf euler321{quat_test};
 
 	// 3-2-1 should fail
-	EXPECT_FLOAT_EQ(euler321(0), 0);
+	// test that floats are not equal
+	// exact result is undefined - can be 0 or pi
+	EXPECT_GT(fabsf(euler321(0) - euler_test(0)), 1e-5);
 	EXPECT_EQ(std::isnan(euler321(1)), 1);
-	EXPECT_FLOAT_EQ(euler321(2), 0);
+	EXPECT_GT(fabsf(euler321(2) - euler_test(2)), 1e-5);
 
 	// 3-1-2 should pass
 	EXPECT_FLOAT_EQ(euler312(0), euler_test(0));
