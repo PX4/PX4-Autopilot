@@ -604,7 +604,7 @@ void RTL::parameters_update()
 
 bool RTL::hasMissionLandStart() const
 {
-	return _mission_sub.get().land_start_index > 0;
+	return _mission_sub.get().land_start_index >= 0 && _mission_sub.get().land_index >= 0;
 }
 
 bool RTL::hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const
