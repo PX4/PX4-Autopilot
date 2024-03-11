@@ -512,25 +512,27 @@ float FixedwingPositionControl::getCorrectedNpfgRollSetpoint()
 	float new_roll_setpoint(_npfg.getRollSetpoint());
 	const float can_run_factor(constrain(_npfg.canRun(_local_pos, _wind_valid), 0.f, 1.f));
 
-	// If the npfg was not running before, reset the user warning variables.
 	hrt_abstime now{hrt_absolute_time()};
 
-	if ((now - _time_since_last_npfg_call) > 2_s) {
+	// Warn the user when the scale is less than 90% for at least 2 seconds (disable in transition)
+
+	// If the npfg was not running before, reset the user warning variables.
+	if ((now - _time_since_last_npfg_call) > ROLL_WARNING_TIMEOUT) {
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
 	}
 
-	// Warn the user when the scale is less than 90% for at least 2 seconds.
-	if ((1.f - can_run_factor) < 0.1f) {
+	if (_vehicle_status.in_transition_mode || can_run_factor > ROLL_WARNING_CAN_RUN_THRESHOLD || _landed) {
+		// NPFG reports a good condition or we are in transition, reset the user warning variables.
 		_need_report_npfg_uncertain_condition = true;
 		_time_since_first_reduced_roll = 0U;
 
 	} else if (_need_report_npfg_uncertain_condition) {
 		if (_time_since_first_reduced_roll == 0U) {
-			_time_since_first_reduced_roll = hrt_absolute_time();
+			_time_since_first_reduced_roll = now;
 		}
 
-		if ((now - _time_since_first_reduced_roll) > 2_s) {
+		if ((now - _time_since_first_reduced_roll) > ROLL_WARNING_TIMEOUT) {
 			_need_report_npfg_uncertain_condition = false;
 			events::send(events::ID("npfg_roll_command_uncertain"), events::Log::Warning,
 				     "Roll command reduced due to uncertain velocity/wind estimates!");
@@ -2199,7 +2201,6 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 }
 
 void FixedwingPositionControl::control_backtransition(const float control_interval, const Vector2f &ground_speed,
-		const position_setpoint_s &pos_sp_prev,
 		const position_setpoint_s &pos_sp_curr)
 {
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
@@ -2211,21 +2212,13 @@ void FixedwingPositionControl::control_backtransition(const float control_interv
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
-
-	if (_position_setpoint_previous_valid) {
-		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
-		navigateLine(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
-
-	} else {
-
-		// if we don't have a previous waypoint for line following, then create one using the current position at the
-		// start of the transition
-		if (!_lpos_where_backtrans_started.isAllFinite()) {
-			_lpos_where_backtrans_started = curr_pos_local;
-		}
-
-		navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+	// Set the position where the backtransition started the first ime we pass through here.
+	// Will get reset if not in transition anymore.
+	if (!_lpos_where_backtrans_started.isAllFinite()) {
+		_lpos_where_backtrans_started = curr_pos_local;
 	}
+
+	navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 
 	_att_sp.roll_body = getCorrectedNpfgRollSetpoint();
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
@@ -2450,6 +2443,7 @@ FixedwingPositionControl::Run()
 
 		if (_vehicle_status_sub.update(&_vehicle_status)) {
 			if (!_vehicle_status.in_transition_mode) {
+				// reset position of backtransition start if not in transition
 				_lpos_where_backtrans_started = Vector2f(NAN, NAN);
 			}
 		}
@@ -2549,8 +2543,7 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_TRANSITON: {
-				control_backtransition(control_interval, ground_speed, _pos_sp_triplet.previous,
-						       _pos_sp_triplet.current);
+				control_backtransition(control_interval, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 		}

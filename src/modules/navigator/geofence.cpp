@@ -81,6 +81,8 @@ Geofence::Geofence(Navigator *navigator) :
 	if (_navigator != nullptr) {
 		updateFence();
 	}
+
+	_geofence_status_pub.advertise();
 }
 
 Geofence::~Geofence()
@@ -101,6 +103,14 @@ void Geofence::run()
 		if (_initiate_fence_updated) {
 			_initiate_fence_updated = false;
 			_dataman_state	= DatamanState::Read;
+
+			geofence_status_s status;
+			status.timestamp = hrt_absolute_time();
+			status.geofence_id = _opaque_id;
+			status.status = geofence_status_s::GF_STATUS_LOADING;
+
+			_geofence_status_pub.publish(status);
+
 		}
 
 		break;
@@ -147,6 +157,14 @@ void Geofence::run()
 
 			} else {
 				_dataman_state = DatamanState::UpdateRequestWait;
+				_fence_updated = true;
+
+				geofence_status_s status;
+				status.timestamp = hrt_absolute_time();
+				status.geofence_id = _opaque_id;
+				status.status = geofence_status_s::GF_STATUS_READY;
+
+				_geofence_status_pub.publish(status);
 			}
 		}
 
@@ -160,6 +178,13 @@ void Geofence::run()
 			_dataman_state = DatamanState::UpdateRequestWait;
 			_updateFence();
 			_fence_updated = true;
+
+			geofence_status_s status;
+			status.timestamp = hrt_absolute_time();
+			status.geofence_id = _opaque_id;
+			status.status = geofence_status_s::GF_STATUS_READY;
+
+			_geofence_status_pub.publish(status);
 		}
 
 		break;

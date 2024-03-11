@@ -56,7 +56,7 @@ then
 fi
 
 #Start Auterion Power Module selector for Skynode boards
-if ver hwbasecmp 009 010
+if ver hwbasecmp 009 010 011
 then
 	pm_selector_auterion start
 else
@@ -93,7 +93,7 @@ else
 		icm20649 -s -R 6 start
 	else
 		# Internal SPI BMI088
-		if ver hwbasecmp 009 010
+		if ver hwbasecmp 009 010 011
 		then
 			bmi088 -A -R 6 -s start
 			bmi088 -G -R 6 -s start
@@ -110,7 +110,7 @@ else
 	fi
 
 	# Internal SPI bus ICM42688p
-	if ver hwbasecmp 009 010
+	if ver hwbasecmp 009 010 011
 	then
 		icm42688p -R 12 -s start
 	else
@@ -127,7 +127,7 @@ else
 		# Internal SPI bus ICM-42670-P (hard-mounted)
 		icm42670p -R 10 -s start
 	else
-		if ver hwbasecmp 009 010
+		if ver hwbasecmp 009 010 011
 		then
 			icm20602 -R 6 -s start
 		else

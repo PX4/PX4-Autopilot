@@ -163,9 +163,11 @@ void VehicleAirData::Run()
 		}
 
 		if (_advertised[uorb_index]) {
+			int sensor_sub_updates = 0;
 			sensor_baro_s report;
 
-			while (_sensor_sub[uorb_index].update(&report)) {
+			while ((sensor_sub_updates < sensor_baro_s::ORB_QUEUE_LENGTH) && _sensor_sub[uorb_index].update(&report)) {
+				sensor_sub_updates++;
 
 				if (_calibration[uorb_index].device_id() != report.device_id) {
 					_calibration[uorb_index].set_device_id(report.device_id);

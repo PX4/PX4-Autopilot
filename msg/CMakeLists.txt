@@ -99,6 +99,7 @@ set(msg_files
 	FollowTargetStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
+	GeofenceStatus.msg
 	GimbalControls.msg
 	GimbalDeviceAttitudeStatus.msg
 	GimbalDeviceInformation.msg

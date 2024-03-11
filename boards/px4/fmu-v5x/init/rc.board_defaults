@@ -16,7 +16,7 @@ param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 1
 
-if ver hwbasecmp 008 009 00a 010
+if ver hwbasecmp 008 009 00a 010 011
 then
 	# Skynode: use the "custom participant" config for uxrce_dds_client
 	param set-default UXRCE_DDS_PTCFG 2
