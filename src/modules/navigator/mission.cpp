@@ -86,6 +86,8 @@ Mission::on_activation()
 {
 	_need_mission_save = true;
 
+	check_mission_valid(true);
+
 	MissionBase::on_activation();
 }
 
