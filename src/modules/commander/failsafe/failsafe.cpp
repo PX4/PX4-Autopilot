@@ -369,7 +369,6 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 {
 	ActionOptions options{};
 
-	options.clear_condition = ClearCondition::OnDisarm;
 	options.allow_user_takeover = UserTakeoverAllowed::Always;
 	options.cause = Cause::RemainingFlightTimeLow;
 
@@ -384,6 +383,7 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 
 	case command_after_remaining_flight_time_low::Return_mode:
 		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnDisarm; //otherwise clear when condition clears
 		break;
 
 	default:
