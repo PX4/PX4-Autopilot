@@ -285,12 +285,16 @@ void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, f
 	rtl_time_estimate_s rtl_time_estimate;
 
 	// Compare estimate of RTL time to estimate of remaining flight time
+	// add hysterisis: if already in the condition, only get out of it if the remaining flight time is significantly higher again
+	const float hysteresis_factor = reporter.failsafeFlags().battery_low_remaining_time ? 1.1f : 1.0f;
+
 	reporter.failsafeFlags().battery_low_remaining_time = _rtl_time_estimate_sub.copy(&rtl_time_estimate)
-			&& (hrt_absolute_time() - rtl_time_estimate.timestamp) < 2_s
+			&& (hrt_absolute_time() - rtl_time_estimate.timestamp) < 3_s
 			&& rtl_time_estimate.valid
 			&& context.isArmed()
 			&& PX4_ISFINITE(worst_battery_time_s)
-			&& rtl_time_estimate.safe_time_estimate >= worst_battery_time_s;
+			&& rtl_time_estimate.safe_time_estimate * hysteresis_factor >= worst_battery_time_s;
+
 
 	if (reporter.failsafeFlags().battery_low_remaining_time) {
 		/* EVENT
