@@ -198,7 +198,7 @@ void Batmon::RunImpl()
 		new_report.cell_count = _cell_count;
 		new_report.state_of_health = _state_of_health;
 
-		// TODO: This critical setting should be set with BMS info or through a paramter
+		// TODO: This critical setting should be set with BMS info or through a parameter
 		// Setting a hard coded BATT_CELL_VOLTAGE_THRESHOLD_FAILED may not be appropriate
 		//if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
 		//	new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;

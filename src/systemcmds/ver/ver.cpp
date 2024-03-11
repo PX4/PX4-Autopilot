@@ -285,7 +285,7 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 			if (show_all || !strncmp(argv[1], px4_guid_str, sizeof(px4_guid_str))) {
 				char px4guid_fmt_buffer[PX4_GUID_FORMAT_SIZE];
 
-				board_get_px4_guid_formated(px4guid_fmt_buffer, sizeof(px4guid_fmt_buffer));
+				board_get_px4_guid_formatted(px4guid_fmt_buffer, sizeof(px4guid_fmt_buffer));
 				PX4_INFO_RAW("PX4GUID: %s\n", px4guid_fmt_buffer);
 				ret = 0;
 			}

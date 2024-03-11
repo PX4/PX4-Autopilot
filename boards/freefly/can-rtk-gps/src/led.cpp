@@ -53,7 +53,7 @@ __END_DECLS
 using namespace time_literals;
 #define MODULE_NAME "LED"
 
-#define ADDR                0x39  /**< I2C adress of NCP5623C */
+#define ADDR                0x39  /**< I2C address of NCP5623C */
 
 #define NCP5623_LED_CURRENT 0x20  /**< Current register */
 #define NCP5623_LED_PWM0    0x40  /**< pwm0 register */

@@ -6,9 +6,9 @@ uint64 	timestamp		# time since system start (microseconds)
 uint32 	sessionid		# UWB SessionID
 uint32 	time_offset		# Time between Ranging Rounds in ms
 uint32 	counter			# Number of Ranges since last Start of Ranging
-uint16 	mac			# MAC adress of Initiator (controller)
+uint16 	mac			# MAC address of Initiator (controller)
 
-uint16 	mac_dest		# MAC adress of Responder (Controlee)
+uint16 	mac_dest		# MAC address of Responder (Controlee)
 uint16 	status			# status feedback #
 uint8 	nlos			# None line of site condition y/n
 float32 distance		# distance in m to the UWB receiver

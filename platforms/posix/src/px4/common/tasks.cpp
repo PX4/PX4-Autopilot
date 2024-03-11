@@ -248,7 +248,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	if (rv != 0) {
 
 		if (rv == EPERM) {
-			//printf("WARNING: NOT RUNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
+			//printf("WARNING: NOT RUNNING AS ROOT, UNABLE TO RUN REALTIME THREADS\n");
 			rv = pthread_create(&taskmap[taskid].pid, nullptr, &entry_adapter, (void *) taskdata);
 
 			if (rv != 0) {

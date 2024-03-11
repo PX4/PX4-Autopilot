@@ -103,7 +103,7 @@ int board_power_off(int status)
 {
 	led_on(BOARD_LED_BLUE);
 
-	// disable the interrups
+	// disable the interrupts
 	px4_enter_critical_section();
 
 	stm32_configgpio(POWER_OFF_GPIO);

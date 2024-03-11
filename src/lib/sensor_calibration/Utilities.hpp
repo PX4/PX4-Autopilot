@@ -74,7 +74,7 @@ int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, 
 float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, uint8_t instance);
 
 /**
- * @brief Set a single calibration paramter.
+ * @brief Set a single calibration parameter.
  *
  * @param sensor_type Calibration parameter abbreviated sensor string ("ACC", "GYRO", "MAG")
  * @param cal_type Calibration parameter abbreviated type ("OFF", "SCALE", "ROT", "PRIO")

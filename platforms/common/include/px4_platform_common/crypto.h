@@ -114,7 +114,7 @@ public:
 	/*
 	 * Re-create or set nonce.
 	 *
-	 * A nonce or intialization vector value for the selected algortithm is
+	 * A nonce or initialization vector value for the selected algorithm is
 	 * automatically generated when the crypto session is opened. If needed, the
 	 * nonce can be set by this function.
 	 * If this is called with NULL pointer, a new nonce is automatically random
@@ -128,7 +128,7 @@ public:
 	 * Get current crypto session nonce
 	 *
 	 * This function returns the current nonce for the session
-	 * If the "nonce" is NULL, only nonse legth will be provided
+	 * If the "nonce" is NULL, only nonse length will be provided
 	 * nonce: pointer to the buffer where the nonce will be written
 	 * nonce_len: length of the current nonce vector for the session
 	 * returns true on success, false on failure

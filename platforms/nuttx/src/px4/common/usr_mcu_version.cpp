@@ -96,7 +96,7 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 	return PX4_GUID_BYTE_LENGTH;
 }
 
-int board_get_px4_guid_formated(char *format_buffer, int size)
+int board_get_px4_guid_formatted(char *format_buffer, int size)
 {
 	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);

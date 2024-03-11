@@ -68,7 +68,7 @@ int WQueueTest::main()
 	// Put work in the work queue
 	ScheduleNow();
 
-	// Wait for work to finsh
+	// Wait for work to finish
 	while (!appState.exitRequested()) {
 		px4_usleep(5000);
 	}

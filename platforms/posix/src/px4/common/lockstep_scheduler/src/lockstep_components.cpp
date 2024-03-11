@@ -107,7 +107,7 @@ void LockstepComponents::lockstep_progress(int component)
 
 	// proceed if this is the last component setting its bit
 	if ((prev_value | component) == _components_used_bitset) {
-		// Note: there's a minimal race condtion here during startup: if a thread is here, and another calls
+		// Note: there's a minimal race condition here during startup: if a thread is here, and another calls
 		// register_component and is fast enough it can land here as well, thus leading to 2 unlocks in a cycle.
 		// That is acceptable though.
 		_components_progress_bitset = 0;

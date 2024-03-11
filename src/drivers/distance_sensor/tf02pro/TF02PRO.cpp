@@ -175,7 +175,7 @@ void TF02PRO::RunImpl()
 	}
 
 	if (OK != measure()) {
-		PX4_DEBUG("measure error I2C adress");
+		PX4_DEBUG("measure error I2C address");
 	}
 
 	_collect_phase = true;

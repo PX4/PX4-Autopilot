@@ -311,7 +311,7 @@ int TAP_ESC_UPLOADER::log_versions()
 		return ret;
 	}
 
-	/* Get firmware versions of the remainig ESCs and compare with the first one
+	/* Get firmware versions of the remaining ESCs and compare with the first one
 	   Since the parameters can only store one version (not six), we need to make
 	   sure that all ESCs have matchin version numbers. If not, all version
 	   parameters will be set to zero. */

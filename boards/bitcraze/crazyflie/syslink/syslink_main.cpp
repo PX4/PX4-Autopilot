@@ -460,7 +460,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		led_off(LED_GREEN);
 	}
 
-	/* Alternate RX/TX LEDS when transfering */
+	/* Alternate RX/TX LEDS when transferring */
 	bool rx = t - _lastrxtime < 200000,
 	     tx = t - _lasttxtime < 200000;
 

@@ -255,7 +255,7 @@ void send_actuator_data()
 				uint16_t newBufLen = 0;
 				newBufLen = mavlink_msg_to_send_buffer(newBuf, &message);
 				int writeRetval = writeResponse(&newBuf, newBufLen);
-				PX4_DEBUG("Succesful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time());
+				PX4_DEBUG("Successful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time());
 				first_sent = true;
 				send_esc_telemetry_dsp(hil_act_control);
 			}
@@ -273,7 +273,7 @@ void send_actuator_data()
 			int writeRetval = writeResponse(&newBuf, newBufLen);
 			//PX4_INFO("Sending from NOT UPDTE AND TIMEOUT: %i", differential);
 
-			PX4_DEBUG("Succesful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time());
+			PX4_DEBUG("Successful write of actuator back to jMAVSim: %d at %llu", writeRetval, hrt_absolute_time());
 			send_esc_telemetry_dsp(hil_act_control);
 		}
 
@@ -470,7 +470,7 @@ handle_message_command_long_dsp(mavlink_message_t *msg)
 	uint16_t acknewBufLen = 0;
 	acknewBufLen = mavlink_msg_to_send_buffer(acknewBuf, &ack_message);
 	int writeRetval = writeResponse(&acknewBuf, acknewBufLen);
-	PX4_INFO("Succesful write of ACK back over UART: %d at %llu", writeRetval, hrt_absolute_time());
+	PX4_INFO("Successful write of ACK back over UART: %d at %llu", writeRetval, hrt_absolute_time());
 }
 
 void

@@ -44,10 +44,10 @@
  */
 
 /**
- * @brief Test `board_get_uuid32_formated` function for buffer overflows & correct formatting
+ * @brief Test `board_get_uuid32_formatted` function for buffer overflows & correct formatting
  *
  * This is a deprecated function that gets used on exceptional cases where "BOARD_OVERRIDE_UUID" is defined.
- * Which is the case in SITL target as well as few others. In that case, the generic function `board_get_px4_guid_formated`
+ * Which is the case in SITL target as well as few others. In that case, the generic function `board_get_px4_guid_formatted`
  * calls this function to fill out the buffer.
  *
  * It should write 16 bytes of UUID for SITL (PX4_CPU_UUID_BYTE_LENGTH depends on target!) in specified format, and if the
@@ -65,39 +65,39 @@ TEST(BoardIdentityTest, UUID32BufferOverflow)
 {
 	// Get groundtruth UUID value. Without separator, should require 33 bytes
 	char groundtruth_uuid_no_sep[50];
-	board_get_uuid32_formated(groundtruth_uuid_no_sep, sizeof(groundtruth_uuid_no_sep), "%02x", NULL); // No separator
+	board_get_uuid32_formatted(groundtruth_uuid_no_sep, sizeof(groundtruth_uuid_no_sep), "%02x", NULL); // No separator
 	EXPECT_EQ(32, strlen(groundtruth_uuid_no_sep));
 	// Get groundtruth UUID value. With separator, should be 36 bytes
 	char groundtruth_uuid_with_sep[50];
-	board_get_uuid32_formated(groundtruth_uuid_with_sep, sizeof(groundtruth_uuid_with_sep), "%02x", "-"); // With separator
+	board_get_uuid32_formatted(groundtruth_uuid_with_sep, sizeof(groundtruth_uuid_with_sep), "%02x", "-"); // With separator
 	EXPECT_EQ(35, strlen(groundtruth_uuid_with_sep));
 
 	// 12 bytes : Shouldn't be enough, but shouldn't also cause buffer overflow
 	// We check : 1. If the function causes buffer overflow | 2. If the buffer gets filled with correct data
 	// Note: Since for `char buf[N]`, the maimum string length is N-1, we give N-1 for `strncmp` function.
 	char buf_12[12];
-	board_get_uuid32_formated(buf_12, sizeof(buf_12), "%02x", NULL); // No separator
+	board_get_uuid32_formatted(buf_12, sizeof(buf_12), "%02x", NULL); // No separator
 	EXPECT_EQ(0, strncmp(groundtruth_uuid_no_sep, buf_12, sizeof(buf_12) - 1));
-	board_get_uuid32_formated(buf_12, sizeof(buf_12), "%02x", "-"); // With separator
+	board_get_uuid32_formatted(buf_12, sizeof(buf_12), "%02x", "-"); // With separator
 	EXPECT_EQ(0, strncmp(groundtruth_uuid_with_sep, buf_12, sizeof(buf_12) - 1));
 
 	// 33 bytes: Should be enough for UUID with no separator, but not enough for UUID with separator
 	char buf_33[33];
-	board_get_uuid32_formated(buf_33, sizeof(buf_33), "%02x", NULL); // No separator
+	board_get_uuid32_formatted(buf_33, sizeof(buf_33), "%02x", NULL); // No separator
 	EXPECT_EQ(0, strncmp(groundtruth_uuid_no_sep, buf_33, sizeof(buf_33) - 1));
-	board_get_uuid32_formated(buf_33, sizeof(buf_33), "%02x", "-"); // With separator
+	board_get_uuid32_formatted(buf_33, sizeof(buf_33), "%02x", "-"); // With separator
 	EXPECT_EQ(0, strncmp(groundtruth_uuid_with_sep, buf_33, sizeof(buf_33) - 1));
 
 	// 40 bytes: Should be enough for UUID for all cases
 	char buf_40[40];
-	board_get_uuid32_formated(buf_40, sizeof(buf_40), "%02x", NULL); // No separator
+	board_get_uuid32_formatted(buf_40, sizeof(buf_40), "%02x", NULL); // No separator
 	EXPECT_EQ(0, strncmp(groundtruth_uuid_no_sep, buf_40, sizeof(buf_40) - 1));
-	board_get_uuid32_formated(buf_40, sizeof(buf_40), "%02x", "-"); // With separator
+	board_get_uuid32_formatted(buf_40, sizeof(buf_40), "%02x", "-"); // With separator
 	EXPECT_EQ(0, strncmp(groundtruth_uuid_with_sep, buf_40, sizeof(buf_40) - 1));
 }
 
 /**
- * @brief Test `board_get_mfguid_formated` function for buffer overflows & correct formatting
+ * @brief Test `board_get_mfguid_formatted` function for buffer overflows & correct formatting
  *
  * The size that should be written is PX4_CPU_MFGUID_FORMAT_SIZE, which is usually 33 (like UUID)
  */
@@ -105,7 +105,7 @@ TEST(BoardIdentityTest, MFGUIDBufferOverflow)
 {
 	// Get groundtruth MFGUID value
 	char groundtruth_mfg_uid[50];
-	board_get_mfguid_formated(groundtruth_mfg_uid, sizeof(groundtruth_mfg_uid));
+	board_get_mfguid_formatted(groundtruth_mfg_uid, sizeof(groundtruth_mfg_uid));
 
 	// Expect buffer of size PX4_CPU_MFGUID_FORMAT_SIZE, which means string length will be -1 of that.
 	EXPECT_EQ(PX4_CPU_MFGUID_FORMAT_SIZE - 1, strlen(groundtruth_mfg_uid));
@@ -114,22 +114,22 @@ TEST(BoardIdentityTest, MFGUIDBufferOverflow)
 	// We check : 1. If the function causes buffer overflow | 2. If the buffer gets filled with correct data
 	// Note: Since for `char buf[N]`, the maimum string length is N-1, we give N-1 for `strncmp` function.
 	char buf_12[12];
-	board_get_mfguid_formated(buf_12, sizeof(buf_12));
+	board_get_mfguid_formatted(buf_12, sizeof(buf_12));
 	EXPECT_EQ(0, strncmp(groundtruth_mfg_uid, buf_12, sizeof(buf_12) - 1));
 
 	// 33 bytes: Should be just enough for MFGUID
 	char buf_33[33];
-	board_get_mfguid_formated(buf_33, sizeof(buf_33));
+	board_get_mfguid_formatted(buf_33, sizeof(buf_33));
 	EXPECT_EQ(0, strncmp(groundtruth_mfg_uid, buf_33, sizeof(buf_33) - 1));
 
 	// 40 bytes: Should be enough for MFGUID
 	char buf_40[40];
-	board_get_mfguid_formated(buf_40, sizeof(buf_40));
+	board_get_mfguid_formatted(buf_40, sizeof(buf_40));
 	EXPECT_EQ(0, strncmp(groundtruth_mfg_uid, buf_40, sizeof(buf_40) - 1));
 }
 
 /**
- * @brief Test `board_get_px4_guid_formated` function for buffer overflows & correct formatting
+ * @brief Test `board_get_px4_guid_formatted` function for buffer overflows & correct formatting
  *
  * The size that needs to be written is PX4_GUID_FORMAT_SIZE, which includes the NULL
  * termination character into account, which is usually 33.
@@ -138,7 +138,7 @@ TEST(BoardIdentityTest, PX4GUIDBufferOverflow)
 {
 	// Get groundtruth PX4 GUID value with enough buffer (minimum 32 + 1)
 	char groundtruth_px4_guid[50];
-	board_get_px4_guid_formated(groundtruth_px4_guid, sizeof(groundtruth_px4_guid));
+	board_get_px4_guid_formatted(groundtruth_px4_guid, sizeof(groundtruth_px4_guid));
 
 	// Expect buffer of size PX4_GUID_FORMAT_SIZE, which means string length will be -1 of that.
 	EXPECT_EQ(PX4_GUID_FORMAT_SIZE - 1, strlen(groundtruth_px4_guid));
@@ -147,16 +147,16 @@ TEST(BoardIdentityTest, PX4GUIDBufferOverflow)
 	// We check : 1. If the function causes buffer overflow | 2. If the buffer gets filled with correct data
 	// Note: Since for `char buf[N]`, the maimum string length is N-1, we give N-1 for `strncmp` function.
 	char buf_12[12];
-	board_get_px4_guid_formated(buf_12, sizeof(buf_12));
+	board_get_px4_guid_formatted(buf_12, sizeof(buf_12));
 	EXPECT_EQ(0, strncmp(groundtruth_px4_guid, buf_12, sizeof(buf_12) - 1));
 
 	// 33 bytes: Should be just enough for PX4 GUID
 	char buf_33[33];
-	board_get_px4_guid_formated(buf_33, sizeof(buf_33));
+	board_get_px4_guid_formatted(buf_33, sizeof(buf_33));
 	EXPECT_EQ(0, strncmp(groundtruth_px4_guid, buf_33, sizeof(buf_33) - 1));
 
 	// 40 bytes: Should be enough for PX4 GUID
 	char buf_40[40];
-	board_get_px4_guid_formated(buf_40, sizeof(buf_40));
+	board_get_px4_guid_formatted(buf_40, sizeof(buf_40));
 	EXPECT_EQ(0, strncmp(groundtruth_px4_guid, buf_40, sizeof(buf_40) - 1));
 }

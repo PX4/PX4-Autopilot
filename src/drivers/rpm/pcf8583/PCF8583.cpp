@@ -196,12 +196,12 @@ void PCF8583::RunImpl()
 
 	// Calculate RPM and accuracy estimation
 	float indicated_rpm = (((float)diffCount / _param_pcf8583_magnet.get()) / ((float)diffTime / 1000000.f)) * 60.f;
-	float estimated_accurancy = 1 / (float)_param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
+	float estimated_accuracy = 1 / (float)_param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
 
 	// publish data to uorb
 	rpm_s msg{};
 	msg.indicated_frequency_rpm = indicated_rpm;
-	msg.estimated_accurancy_rpm = estimated_accurancy;
+	msg.estimated_accuracy_rpm = estimated_accuracy;
 	msg.timestamp = hrt_absolute_time();
 	_rpm_pub.publish(msg);
 
