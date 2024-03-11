@@ -35,6 +35,8 @@ float32 aux4
 float32 aux5
 float32 aux6
 
+uint16 buttons # A bitfield corresponding to the joystick buttons' 0-15 current state, 1 for pressed, 0 for released. The lowest bit corresponds to button 1 of 16.
+
 bool sticks_moving
 
 # TOPICS manual_control_setpoint manual_control_input
