@@ -222,7 +222,7 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 			_broadcast_prop_motor_control.ctrl_coast_.set(*_serial_interface.GetIquartInterface());
 			break;
 
-		case SEND_PREDEFINED_THROTTLE:
+		case SEND_PREDEFINED_VELOCITY:
 			_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface.GetIquartInterface(), _param_vertiq_disarm_velocity.get());
 			break;
 

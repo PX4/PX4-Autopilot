@@ -53,12 +53,12 @@ parameters:
             default: 0
         DISARM_VELO:
             description:
-                short: The velocity value sent to the motors when DISARM_TRIGGER is set to Set Predefined Setpoint
-                long: This is the velocity that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Setpoint
+                short: The velocity value sent to the motors when DISARM_TRIGGER is set to Set Predefined Velocity Setpoint
+                long: This is the velocity that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Velocity Setpoint
             type: int32
             default: 0
             min: 0
-            max: 65535
+            max: 100
         ARMING_BEHAVE:
             description:
                 short: The triggered behavior on PX4 arm

@@ -64,7 +64,7 @@
 #include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
-enum DISARM_BEHAVIORS {USER_MIXER_VALUE, TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_THROTTLE};
+enum DISARM_BEHAVIORS {USER_MIXER_VALUE, TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_VELOCITY};
 enum ARM_BEHAVIORS {USE_MOTOR_ARMING, FORCE_ARMING};
 
 class VertiqIo : public ModuleBase<VertiqIo>, public OutputModuleInterface
