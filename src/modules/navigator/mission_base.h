@@ -216,6 +216,12 @@ protected:
 	bool isMissionValid() const;
 
 	/**
+	 * @brief Check whether a mission is ready to go
+	 * @param[in] forced flag if the check has to be run irregardles of any updates.
+	 */
+	void check_mission_valid(bool forced = false);
+
+	/**
 	 * On mission update
 	 * Change behaviour after external mission update.
 	 * @param[in] has_mission_items_changed flag if the mission items have been changed.
@@ -343,12 +349,6 @@ private:
 	 *
 	 */
 	void updateMavlinkMission();
-
-	/**
-	 * @brief Check whether a mission is ready to go
-	 * @param[in] forced flag if the check has to be run irregardles of any updates.
-	 */
-	void check_mission_valid(bool forced = false);
 
 	/**
 	 * Reset mission
