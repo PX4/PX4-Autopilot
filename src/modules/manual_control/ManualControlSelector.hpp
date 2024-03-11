@@ -40,6 +40,7 @@ class ManualControlSelector
 {
 public:
 	void setRcInMode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
+	void setRcInSourcePreferred(int32_t rc_in_source_preferred) { _rc_in_source_preferred = rc_in_source_preferred; }
 	void setTimeout(uint64_t timeout) { _timeout = timeout; }
 	void updateValidityOfChosenInput(uint64_t now);
 	void updateWithNewInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance);
@@ -52,6 +53,7 @@ private:
 	manual_control_setpoint_s _setpoint{};
 	uint64_t _timeout{0};
 	int32_t _rc_in_mode{0};
+	int32_t _rc_in_source_preferred{0};
 	int _instance{-1};
 	uint8_t _first_valid_source{manual_control_setpoint_s::SOURCE_UNKNOWN};
 };

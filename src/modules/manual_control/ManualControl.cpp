@@ -296,6 +296,7 @@ void ManualControl::updateParams()
 	_stick_kill_hysteresis.set_hysteresis_time_from(false, _param_man_kill_gest_t.get() * 1_s);
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
+	_selector.setRcInSourcePreferred(_param_com_rc_in_source.get());
 	_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
 
 	// MAN_ARM_GESTURE

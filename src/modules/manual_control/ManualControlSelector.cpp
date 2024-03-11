@@ -47,7 +47,7 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 	updateValidityOfChosenInput(now);
 
 	const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
-	const bool start_using_new_input = !_setpoint.valid;
+	const bool start_using_new_input = !_setpoint.valid | (input.data_source == _rc_in_source_preferred);
 
 	// Switch to new input if it's valid and we don't already have a valid one
 	if (isInputValid(input, now) && (update_existing_input || start_using_new_input)) {
