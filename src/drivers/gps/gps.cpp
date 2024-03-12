@@ -935,6 +935,14 @@ GPS::run()
 			param_get(handle, &gps_ubx_cfg_intf);
 		}
 
+		param_get(param_find("GPS_LOG_HZ"), &gpsConfig.logging_configuration.frequency);
+		int32_t logging_level;
+		param_get(param_find("GPS_LOG_LEVEL"), &logging_level);
+		gpsConfig.logging_configuration.level = static_cast<GPSHelper::LoggingLevel>(logging_level);
+		int32_t logging_overwrite = 0;
+		param_get(param_find("GPS_LOG_FORCE"), &logging_overwrite);
+		gpsConfig.logging_configuration.overwrite = logging_overwrite;
+
 		gpsConfig.interface_protocols = static_cast<GPSHelper::InterfaceProtocolsMask>(gps_ubx_cfg_intf);
 
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
