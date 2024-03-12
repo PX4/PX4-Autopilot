@@ -96,7 +96,7 @@ bool KF_orientation_moving::update()
 	return true;
 }
 
-void KF_orientation_moving::setH(const matrix::Vector<float, 2> &h_meas)
+void KF_orientation_moving::setH(const matrix::Vector<float, AugmentedState::COUNT> &h_meas)
 {
 	_meas_matrix_row_vect(State::yaw) = h_meas(AugmentedState::yaw);
 	_meas_matrix_row_vect(State::yaw_rate) = h_meas(AugmentedState::yaw_rate);
