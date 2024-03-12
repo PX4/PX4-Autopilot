@@ -297,7 +297,6 @@ PrecLand::run_state_horizontal_approach()
 
 	if (_param_pld_yaw_en.get() && _target_yaw_valid) {
 		pos_sp_triplet->current.yaw = _target_yaw;
-		pos_sp_triplet->current.yaw_valid = true;
 	}
 
 #endif
@@ -336,7 +335,6 @@ PrecLand::run_state_descend_above_target()
 
 	if (_param_pld_yaw_en.get() && _target_yaw_valid) {
 		pos_sp_triplet->current.yaw = _target_yaw;
-		pos_sp_triplet->current.yaw_valid = true;
 	}
 
 #endif
