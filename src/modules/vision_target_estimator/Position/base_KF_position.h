@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Base_KF_decoupled.h
+ * @file Base_KF_position.h
  * @brief Interface for decoupled target estimators
  * @author Jonas Perolini <jonspero@me.com>
  */
