@@ -70,8 +70,8 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
-#include "KF_xyzb_decoupled_static.h"
-#include "KF_xyzb_v_decoupled_moving.h"
+#include "KF_position_static.h"
+#include "KF_position_moving.h"
 
 using namespace time_literals;
 

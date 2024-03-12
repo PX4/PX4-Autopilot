@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file KF_xyzb_decoupled_static.cpp
+ * @file KF_position_static.cpp
  * @brief Filter to estimate the pose of static targets. State: [pos_rel, vel_rel, bias]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
-#include "KF_xyzb_decoupled_static.h"
+#include "KF_position_static.h"
 #include "python_derivation/generated/decoupled_static_xyzb/predictCov.h"
 #include "python_derivation/generated/decoupled_static_xyzb/computeInnovCov.h"
 
