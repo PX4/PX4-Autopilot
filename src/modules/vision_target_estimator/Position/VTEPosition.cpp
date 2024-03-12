@@ -805,93 +805,77 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 	perf_begin(_vte_update_perf);
 
 	estimator_aid_source3d_s target_innov;
-	Vector<bool, 3> meas_xyz_fused{};
-	bool all_directions_fused = false;
-	Vector<float, 5> meas_h_row;
+	bool all_directions_fused = true;
+	Vector<float, Base_KF_decoupled::AugmentedState::COUNT> meas_h_row;
 
 	// Compute the measurement's time delay (difference between state and measurement time on validity)
 	const float dt_sync_us = (_last_predict - target_pos_obs.timestamp);
+	target_innov.time_last_fuse = (int)(dt_sync_us / 1000); // For debug: log the time sync. TODO: remove
+	target_innov.timestamp_sample = target_pos_obs.timestamp;
+	target_innov.timestamp = hrt_absolute_time();
 
 	if (dt_sync_us > measurement_valid_TIMEOUT_US) {
 
-		PX4_INFO("Obs i = %d rejected because too old. Time sync: %.2f [ms] > timeout: %.2f [ms]",
-			 target_pos_obs.type,
-			 (double)(dt_sync_us / 1000), (double)(measurement_valid_TIMEOUT_US / 1000));
+		PX4_DEBUG("Obs i = %d too old. Time sync: %.2f [ms] > timeout: %.2f [ms]",
+			  target_pos_obs.type,
+			  (double)(dt_sync_us / 1000), (double)(measurement_valid_TIMEOUT_US / 1000));
 
-		// No measurement update, set to false
 		target_innov.fused = false;
-
-	} else {
-
-		// For debug: log the time sync
-		target_innov.time_last_fuse = (int)(dt_sync_us / 1000);
-
-		// Convert time sync to seconds
-		const float dt_sync_s = dt_sync_us / SEC2USEC;
-
-		// Fill the timestamp field of innovation
-		target_innov.timestamp_sample = target_pos_obs.timestamp;
-		target_innov.timestamp = hrt_absolute_time();
-
-		//If the measurement of this filter (x,y or z) has not been updated:
-		if (!target_pos_obs.updated_xyz(0) || !target_pos_obs.updated_xyz(1) || !target_pos_obs.updated_xyz(2)) {
-
-			// No measurement
-			PX4_DEBUG("Obs i = %d : at least one non-valid observation. x: %d, y: %d, z: %d", target_pos_obs.type,
-				  target_pos_obs.updated_xyz(0),
-				  target_pos_obs.updated_xyz(1), target_pos_obs.updated_xyz(2));
-
-			// Set innovations to zero
-			target_innov.fused = false;
-
-		} else {
-
-			// Loop over x,y,z directions.
-			for (int j = 0; j < 3; j++) {
-
-				//Get the corresponding row of the H matrix.
-				meas_h_row = target_pos_obs.meas_h_xyz.row(j);
-
-				// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
-				_target_estimator[j]->syncState(dt_sync_s, vehicle_acc_ned(j));
-				_target_estimator[j]->setH(meas_h_row);
-				// Compute innovations and fill thet target innovation message
-				target_innov.innovation_variance[j] = _target_estimator[j]->computeInnovCov(
-						target_pos_obs.meas_unc_xyz(j));
-				target_innov.innovation[j] = _target_estimator[j]->computeInnov(target_pos_obs.meas_xyz(j));
-				// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
-				_target_estimator[j]->setNISthreshold(_nis_threshold);
-				// Update step
-				meas_xyz_fused(j) = _target_estimator[j]->update();
-
-				target_innov.observation[j] = target_pos_obs.meas_xyz(j);
-				target_innov.observation_variance[j] = target_pos_obs.meas_unc_xyz(j);
-
-				// log test ratio defined as _innov / _innov_cov * _innov. If test_ratio > 3.84, no fusion
-				target_innov.test_ratio[j] = _target_estimator[j]->getTestRatio();
-			}
-		}
-
-		// If we have updated all three directions (x,y,z) for one relative position measurement, consider the state updated.
-		if (meas_xyz_fused(0) && meas_xyz_fused(1) && meas_xyz_fused(2)) {
-
-			all_directions_fused = true;
-
-		} else {
-			PX4_DEBUG("Obs i = %d : at least one direction not fused: . x: %d, y: %d, z: %d", target_pos_obs.type,
-				  meas_xyz_fused(0),
-				  meas_xyz_fused(1),
-				  meas_xyz_fused(2));
-		}
-
-		target_innov.fused = all_directions_fused;
-		target_innov.innovation_rejected = !all_directions_fused;
+		perf_end(_vte_update_perf);
+		publishInnov(target_innov, target_pos_obs.type);
+		return false;
 	}
 
+	const float dt_sync_s = dt_sync_us / SEC2USEC;
+
+	for (int j = 0; j < Direction::nb_directions; j++) {
+
+		if (!target_pos_obs.updated_xyz(j)) {
+			all_directions_fused = false;
+			PX4_DEBUG("Obs i = %d : non-valid obs in direction: %d", target_pos_obs.type, j);
+			continue;
+		}
+
+		//Get the corresponding row of the H matrix.
+		meas_h_row = target_pos_obs.meas_h_xyz.row(j);
+
+		// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
+		_target_estimator[j]->syncState(dt_sync_s, vehicle_acc_ned(j));
+
+		_target_estimator[j]->setH(meas_h_row);
+		target_innov.innovation_variance[j] = _target_estimator[j]->computeInnovCov(
+				target_pos_obs.meas_unc_xyz(j));
+		target_innov.innovation[j] = _target_estimator[j]->computeInnov(target_pos_obs.meas_xyz(j));
+
+		// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
+		_target_estimator[j]->setNISthreshold(_nis_threshold);
+
+		if (!_target_estimator[j]->update()) {
+			all_directions_fused = false;
+			PX4_DEBUG("Obs i = %d : not fused in direction: %d", target_pos_obs.type, j);
+		}
+
+		target_innov.observation[j] = target_pos_obs.meas_xyz(j);
+		target_innov.observation_variance[j] = target_pos_obs.meas_unc_xyz(j);
+
+		// log test ratio defined as _innov / _innov_cov * _innov. If test_ratio > 3.84, no fusion
+		target_innov.test_ratio[j] = _target_estimator[j]->getTestRatio();
+	}
+
+	target_innov.fused = all_directions_fused;
+	target_innov.innovation_rejected = !all_directions_fused;
+
 	perf_end(_vte_update_perf);
+	publishInnov(target_innov, target_pos_obs.type);
+
+	return all_directions_fused;
+}
+
+void VTEPosition::publishInnov(const estimator_aid_source3d_s &target_innov, const ObservationType type)
+{
 
 	// Publish innovations
-	switch (target_pos_obs.type) {
+	switch (type) {
 	case ObservationType::target_gps_pos:
 		_vte_aid_gps_pos_target_pub.publish(target_innov);
 		break;
@@ -912,8 +896,6 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 		_vte_aid_fiducial_marker_pub.publish(target_innov);
 		break;
 	}
-
-	return all_directions_fused;
 }
 
 void VTEPosition::publishTarget()
