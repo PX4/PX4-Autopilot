@@ -35,6 +35,7 @@
 
 #include <ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h>
 #include <ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h>
+#include <ekf_derivation/generated/compute_yaw_innov_var_and_h.h>
 
 #include <mathlib/mathlib.h>
 
@@ -42,7 +43,7 @@
 bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status)
 {
 	VectorState H_YAW;
-	computeYawInnovVarAndH(aid_src_status.observation_variance, aid_src_status.innovation_variance, H_YAW);
+	sym::ComputeYawInnovVarAndH(_state.vector(), P, aid_src_status.observation_variance, &aid_src_status.innovation_variance, &H_YAW);
 
 	return fuseYaw(aid_src_status, H_YAW);
 }
@@ -135,10 +136,5 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 
 void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const
 {
-	if (shouldUse321RotationSequence(_R_to_earth)) {
-		sym::ComputeYaw321InnovVarAndH(_state.vector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
-
-	} else {
-		sym::ComputeYaw312InnovVarAndH(_state.vector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
-	}
+	sym::ComputeYawInnovVarAndH(_state.vector(), P, variance, &innovation_variance, &H_YAW);
 }
