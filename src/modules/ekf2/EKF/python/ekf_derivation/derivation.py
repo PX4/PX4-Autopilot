@@ -390,6 +390,24 @@ def compute_mag_z_innov_var_and_h(
 
     return (innov_var, H.T)
 
+def compute_yaw_innov_var_and_h(
+        state: VState,
+        P: MTangent,
+        R: sf.Scalar
+) -> (sf.Scalar, VTangent):
+
+    state = vstate_to_state(state)
+    q = sf.Quaternion.from_storage(state["quat_nominal"].to_storage())
+    r = sf.Quaternion.symbolic('r')
+    delta_q = q * r.conj() # create a quaternion error of the measurement at the origin
+    delta_meas_pred = 2 * delta_q.z # Use small angle approximation to obtain a simpler jacobian
+
+    H = sf.V1(delta_meas_pred).jacobian(state)
+    H = H.subs({r.w: q.w, r.x: q.x, r.y: q.y, r.z: q.z}) # assume innovation is small
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
 def compute_yaw_321_innov_var_and_h(
         state: VState,
         P: MTangent,
@@ -678,6 +696,7 @@ if not args.disable_wind:
     generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
     generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])
 
+generate_px4_function(compute_yaw_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_321_innov_var_and_h, output_names=["innov_var", "H"])
