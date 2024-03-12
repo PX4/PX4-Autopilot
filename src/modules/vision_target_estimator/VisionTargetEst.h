@@ -134,11 +134,12 @@ private:
 
 	enum VisionTargetEstTask : uint16_t {
 		// Bit locations for VTE tasks
+		VTE_NO_TASK = 0,
 		VTE_FOR_PREC_LAND  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
 	};
 
-	int _vte_current_task{0};
-	int _vte_task_mask{0};
+	int _vte_current_task{VisionTargetEstTask::VTE_NO_TASK};
+	int _vte_task_mask{VisionTargetEstTask::VTE_NO_TASK};
 
 	bool _position_estimator_running{false};
 	bool _orientation_estimator_running{false};
@@ -175,6 +176,8 @@ private:
 
 	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset);
 	bool get_local_pose(localPose &local_pose);
+
+	bool has_elapsed(hrt_abstime &last_time, const hrt_abstime interval);
 
 	/* Down sample acceleration data */
 	matrix::Vector3f _vehicle_acc_ned_sum;
