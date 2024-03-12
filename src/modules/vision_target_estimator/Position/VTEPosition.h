@@ -223,6 +223,8 @@ private:
 
 	bool fuse_meas(const matrix::Vector3f &vehicle_acc_ned, const targetObsPos &target_pos_obs);
 	void publishTarget();
+	void publishInnov(const estimator_aid_source3d_s &target_innov, const ObservationType type);
+
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_pos_report)};
