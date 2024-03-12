@@ -45,6 +45,15 @@ public:
 	Base_KF_decoupled() = default;
 	virtual ~Base_KF_decoupled() = default;
 
+	enum AugmentedState {
+		pos_rel = 0,
+		vel_uav = 1,
+		bias = 2,
+		acc_target = 3,
+		vel_target = 4,
+		COUNT = 5,
+	};
+
 	//Prediction step:
 	virtual void predictState(float dt, float acc) = 0;
 	virtual void predictCov(float dt) = 0;
@@ -52,13 +61,13 @@ public:
 	// Backwards state prediciton
 	virtual void syncState(float dt, float acc) = 0;
 
-	virtual void setH(const matrix::Vector<float, 5> &h_meas) = 0;
+	virtual void setH(const matrix::Vector<float, AugmentedState::COUNT> &h_meas) = 0;
 
-	virtual void setState(const matrix::Vector<float, 5> &state) = 0;
-	virtual void setStateVar(const matrix::Vector<float, 5> &stateVar) = 0;
+	virtual void setState(const matrix::Vector<float, AugmentedState::COUNT> &augmented_state) = 0;
+	virtual void setStateVar(const matrix::Vector<float, AugmentedState::COUNT> &augmented_state_var) = 0;
 
-	virtual matrix::Vector<float, 5> getAugmentedState() = 0;
-	virtual matrix::Vector<float, 5> getAugmentedStateVar() = 0;
+	virtual matrix::Vector<float, AugmentedState::COUNT> getAugmentedState() = 0;
+	virtual matrix::Vector<float, AugmentedState::COUNT> getAugmentedStateVar() = 0;
 
 	virtual float computeInnovCov(float measUnc) = 0;
 	virtual float computeInnov(float meas) = 0;
@@ -73,20 +82,4 @@ public:
 	virtual void setInputAccVar(float var) = 0;
 	virtual void setTargetAccVar(float var) = 0;
 	virtual void setBiasVar(float var) = 0;
-
-	enum AugmentedState {
-		pos_rel = 0,
-		vel_uav = 1,
-		bias = 2,
-		acc_target = 3,
-		vel_target = 4,
-		nb_filter_state = 5,
-	};
-
-	enum Direction {
-		x = 0,
-		y = 1,
-		z = 2,
-		nb_directions = 3,
-	};
 };

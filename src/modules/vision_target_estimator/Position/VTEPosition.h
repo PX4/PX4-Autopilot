@@ -148,13 +148,11 @@ protected:
 
 private:
 
-	enum AugmentedState {
-		pos_rel = 0,
-		vel_uav = 1,
-		bias = 2,
-		acc_target = 3,
-		vel_target = 4,
-		nb_filter_state = 5,
+	enum Direction {
+		x = 0,
+		y = 1,
+		z = 2,
+		nb_directions = 3,
 	};
 
 	static inline bool _is_meas_valid(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_valid_TIMEOUT_US;};
@@ -183,30 +181,26 @@ private:
 		ObservationType type;
 		hrt_abstime timestamp;
 
-		matrix::Vector<bool, 3> updated_xyz; // Indicates if we have an observation in the x, y or z direction
+		matrix::Vector<bool, Direction::nb_directions>
+		updated_xyz; // Indicates if we have an observation in the x, y or z direction
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
-		matrix::Matrix<float, 3, 5>
+		matrix::Matrix<float, Direction::nb_directions, Base_KF_decoupled::AugmentedState::COUNT>
 		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the AugmentedState
 	};
 
-	enum Direction {
-		x = 0,
-		y = 1,
-		z = 2,
-		nb_directions = 3,
-	};
-
-	enum SensorFusionMask : uint16_t {
+	enum SensorFusionMask : uint8_t {
 		// Bit locations for fusion_mode
+		NO_SENSOR_FUSION    = 0,
 		USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
 		USE_GPS_REL_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data (and target GPS velocity data if the target is moving)
 		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
 		USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission position
 	};
 
-	enum ObservationValidMask : uint16_t {
+	enum ObservationValidMask : uint8_t {
 		// Bit locations for valid observations
+		NO_VALID_DATA 	     = 0,
 		FUSE_TARGET_GPS_POS  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
 		FUSE_GPS_REL_VEL     = (1 << 1),    ///< set to true if drone GPS velocity data (and target GPS velocity data if the target is moving)
 		FUSE_EXT_VIS_POS 	  = (1 << 2),    ///< set to true if target external vision-based relative position data is ready to be fused
@@ -215,7 +209,8 @@ private:
 	};
 
 	bool selectTargetEstimator();
-	bool initEstimator(const matrix::Matrix <float, 3, 5> &state_init);
+	bool initEstimator(const matrix::Matrix <float, Direction::nb_directions, Base_KF_decoupled::AugmentedState::COUNT>
+			   &state_init);
 	bool update_step(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc);
 

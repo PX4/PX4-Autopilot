@@ -57,7 +57,7 @@ void KF_xyzb_v_decoupled_moving::predictState(float dt, float acc_uav)
 
 void KF_xyzb_v_decoupled_moving::predictCov(float dt)
 {
-	matrix::Matrix<float, 5, 5> cov_updated;
+	matrix::Matrix<float, State::nb_states, State::nb_states> cov_updated;
 	sym::Predictcov(dt, _input_var, _bias_var, _acc_var, _state_covariance, &cov_updated);
 	_state_covariance = cov_updated;
 }
@@ -77,7 +77,7 @@ bool KF_xyzb_v_decoupled_moving::update()
 		return false;
 	}
 
-	const matrix::Matrix<float, 5, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
+	const matrix::Matrix<float, State::nb_states, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
 

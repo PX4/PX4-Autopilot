@@ -70,22 +70,21 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt, float acc) override;
 
-	void setH(const matrix::Vector<float, 5> &h_meas) override {_meas_matrix_row_vect = h_meas;}
+	void setH(const matrix::Vector<float, AugmentedState::COUNT> &h_meas) override {_meas_matrix_row_vect = h_meas;}
 
+	void setState(const matrix::Vector<float, AugmentedState::COUNT> &state) override {_state = state;}
 
-	void setState(const matrix::Vector<float, 5> &state) override {_state = state;}
-
-	void setStateVar(const matrix::Vector<float, 5> &var) override
+	void setStateVar(const matrix::Vector<float, AugmentedState::COUNT> &var) override
 	{
-		const matrix::SquareMatrix<float, 5> var_mat = diag(var);
+		const matrix::SquareMatrix<float, State::nb_states> var_mat = diag(var);
 		_state_covariance = var_mat;
 	};
 
-	matrix::Vector<float, 5> getAugmentedState() { return _state;}
+	matrix::Vector<float, AugmentedState::COUNT> getAugmentedState() { return _state;}
 
-	matrix::Vector<float, 5> getAugmentedStateVar()
+	matrix::Vector<float, AugmentedState::COUNT> getAugmentedStateVar()
 	{
-		const matrix::SquareMatrix<float, 5> var_mat = _state_covariance;
+		const matrix::SquareMatrix<float, AugmentedState::COUNT> var_mat = _state_covariance;
 		return var_mat.diag();
 	};
 
@@ -104,21 +103,23 @@ public:
 
 private:
 
+	// Nb states must be smaller or equal to AugmentedState::COUNT
 	enum State {
 		pos_rel = 0,
 		vel_uav = 1,
 		bias = 2,
 		acc_target = 3,
 		vel_target = 4,
+		nb_states = 5,
 	};
 
-	matrix::Vector<float, 5> _state;
+	matrix::Vector<float, State::nb_states> _state;
 
-	matrix::Vector<float, 5> _sync_state;
+	matrix::Vector<float, State::nb_states> _sync_state;
 
-	matrix::Vector<float, 5> _meas_matrix_row_vect;
+	matrix::Vector<float, State::nb_states> _meas_matrix_row_vect;
 
-	matrix::Matrix<float, 5, 5> _state_covariance;
+	matrix::Matrix<float, State::nb_states, State::nb_states> _state_covariance;
 
 	float _bias_var{0.f}; // target/UAV GPS bias variance
 

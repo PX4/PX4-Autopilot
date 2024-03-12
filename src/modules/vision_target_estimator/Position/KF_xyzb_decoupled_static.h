@@ -70,31 +70,31 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt, float acc) override;
 
-	void setH(const matrix::Vector<float, 5> &h_meas) override
+	void setH(const matrix::Vector<float, AugmentedState::COUNT> &h_meas) override
 	{
 		_meas_matrix_row_vect(State::pos_rel) = h_meas(AugmentedState::pos_rel);
 		_meas_matrix_row_vect(State::vel_rel) = -h_meas(AugmentedState::vel_uav);
 		_meas_matrix_row_vect(State::bias) = h_meas(AugmentedState::bias);
 	};
 
-	void setState(const matrix::Vector<float, 5> &state) override
+	void setState(const matrix::Vector<float, AugmentedState::COUNT> &augmented_state) override
 	{
-		_state(State::pos_rel) = state(AugmentedState::pos_rel);
-		_state(State::vel_rel) = -state(AugmentedState::vel_uav);
-		_state(State::bias) = state(AugmentedState::bias);
+		_state(State::pos_rel) = augmented_state(AugmentedState::pos_rel);
+		_state(State::vel_rel) = -augmented_state(AugmentedState::vel_uav);
+		_state(State::bias) = augmented_state(AugmentedState::bias);
 	};
 
-	void setStateVar(const matrix::Vector<float, 5> &var) override
+	void setStateVar(const matrix::Vector<float, AugmentedState::COUNT> &augmented_state_var) override
 	{
-		_state_covariance(State::pos_rel, State::pos_rel) = var(AugmentedState::pos_rel);
-		_state_covariance(State::vel_rel, State::vel_rel) = var(
+		_state_covariance(State::pos_rel, State::pos_rel) = augmented_state_var(AugmentedState::pos_rel);
+		_state_covariance(State::vel_rel, State::vel_rel) = augmented_state_var(
 					AugmentedState::vel_uav); // Variance of vel_uav is equivalent to the variance of vel_rel because Var(aX) = a^2 Var(X)
-		_state_covariance(State::bias, State::bias) = var(AugmentedState::bias);
+		_state_covariance(State::bias, State::bias) = augmented_state_var(AugmentedState::bias);
 	};
 
-	matrix::Vector<float, 5> getAugmentedState()
+	matrix::Vector<float, AugmentedState::COUNT> getAugmentedState()
 	{
-		matrix::Vector<float, 5> augmented_state;
+		matrix::Vector<float, AugmentedState::COUNT> augmented_state;
 		augmented_state(AugmentedState::pos_rel) = _state(State::pos_rel);
 		augmented_state(AugmentedState::vel_uav) = -_state(State::vel_rel);
 		augmented_state(AugmentedState::bias) = _state(State::bias);
@@ -102,9 +102,9 @@ public:
 		return augmented_state;
 	};
 
-	matrix::Vector<float, 5> getAugmentedStateVar()
+	matrix::Vector<float, AugmentedState::COUNT> getAugmentedStateVar()
 	{
-		matrix::Vector<float, 5> augmented_state_var;
+		matrix::Vector<float, AugmentedState::COUNT> augmented_state_var;
 		augmented_state_var(AugmentedState::pos_rel) = _state_covariance(State::pos_rel, State::pos_rel);
 		augmented_state_var(AugmentedState::vel_uav) = _state_covariance(State::vel_rel, State::vel_rel);
 		augmented_state_var(AugmentedState::bias) = _state_covariance(State::bias, State::bias);
@@ -128,19 +128,21 @@ public:
 
 private:
 
+	// Nb states must be smaller or equal to AugmentedState::COUNT
 	enum State {
 		pos_rel = 0,
 		vel_rel = 1,
 		bias = 2,
+		nb_states = 3
 	};
 
-	matrix::Vector<float, 3> _state;
+	matrix::Vector<float, State::nb_states> _state;
 
-	matrix::Vector<float, 3> _sync_state;
+	matrix::Vector<float, State::nb_states> _sync_state;
 
-	matrix::Vector<float, 3> _meas_matrix_row_vect;
+	matrix::Vector<float, State::nb_states> _meas_matrix_row_vect;
 
-	matrix::Matrix<float, 3, 3> _state_covariance;
+	matrix::Matrix<float, State::nb_states, State::nb_states> _state_covariance;
 
 	float _bias_var{0.f}; // target/UAV GPS bias variance
 
