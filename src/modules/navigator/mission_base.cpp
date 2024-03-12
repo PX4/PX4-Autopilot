@@ -1380,12 +1380,16 @@ bool MissionBase::canRunMissionFeasibility()
 void MissionBase::updateMissionAltAfterHomeChanged()
 {
 	if (_navigator->get_home_position()->update_count > _home_update_counter) {
-		float altitude_diff = _navigator->get_home_position()->alt - _last_home_alt;
-		_navigator->get_position_setpoint_triplet()->previous.alt = _navigator->get_position_setpoint_triplet()->previous.alt + altitude_diff;
+		float new_alt = get_absolute_altitude_for_item(_mission_item);
+		float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
+		if (_navigator->get_position_setpoint_triplet()->previous.valid && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
+		    _navigator->get_position_setpoint_triplet()->previous.alt = _navigator->get_position_setpoint_triplet()->previous.alt + altitude_diff;
+		    }
 		_navigator->get_position_setpoint_triplet()->current.alt = _navigator->get_position_setpoint_triplet()->current.alt + altitude_diff;
-		_navigator->get_position_setpoint_triplet()->next.alt = _navigator->get_position_setpoint_triplet()->next.alt + altitude_diff;
+		if (_navigator->get_position_setpoint_triplet()->next.valid && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->next.alt)) {
+		    _navigator->get_position_setpoint_triplet()->next.alt = _navigator->get_position_setpoint_triplet()->next.alt + altitude_diff;
+		    }
 		_navigator->set_position_setpoint_triplet_updated();
 		_home_update_counter = _navigator->get_home_position()->update_count;
 	}
-	_last_home_alt = _navigator->get_home_position()->alt;
 }
