@@ -199,7 +199,7 @@ bool VTEOrientation::processObsVisionOrientation(const fiducial_marker_yaw_repor
 		obs.updated_theta = true;
 		obs.meas_unc_theta = vision_r_theta_unc;
 		obs.meas_theta = vision_r_theta;
-		obs.meas_h_theta(AugmentedState::yaw) = 1;
+		obs.meas_h_theta(Base_KF_orientation::AugmentedState::yaw) = 1;
 
 		return true;
 	}
