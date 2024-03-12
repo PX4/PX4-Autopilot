@@ -45,6 +45,12 @@ public:
 	Base_KF_orientation() = default;
 	virtual ~Base_KF_orientation() = default;
 
+	enum AugmentedState {
+		yaw = 0,
+		yaw_rate = 1,
+		COUNT = 2
+	};
+
 	//Prediction step:
 	virtual void predictState(float dt) = 0;
 	virtual void predictCov(float dt) = 0;
@@ -52,7 +58,7 @@ public:
 	// Backwards state prediciton
 	virtual void syncState(float dt) = 0;
 
-	virtual void setH(const matrix::Vector<float, 2> &h_meas) = 0;
+	virtual void setH(const matrix::Vector<float, AugmentedState::COUNT> &h_meas) = 0;
 
 	virtual float computeInnovCov(float measUnc) = 0;
 	virtual float computeInnov(float meas) = 0;
@@ -78,10 +84,5 @@ public:
 	virtual float getVelVar() = 0;
 
 	virtual float getTestRatio() = 0;
-
-	enum AugmentedState {
-		yaw = 0,
-		yaw_rate = 1,
-	};
 
 };

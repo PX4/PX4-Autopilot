@@ -65,6 +65,7 @@
 #include <lib/geo/geo.h>
 #include "KF_orientation_moving.h"
 #include "KF_orientation_static.h"
+#include "base_KF_orientation.h"
 
 using namespace time_literals;
 
@@ -116,11 +117,6 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
-
-	enum AugmentedState {
-		yaw = 0,
-		yaw_rate = 1,
-	};
 
 	bool _has_timed_out{false};
 
