@@ -83,7 +83,7 @@ RtlDirectMissionLand::updateDatamanCache()
 
 void RtlDirectMissionLand::on_inactive()
 {
-	MissionBase::on_active();
+	MissionBase::on_inactive();
 
 	updateDatamanCache();
 }
