@@ -83,6 +83,7 @@ public:
 		BatteryLow,
 		BatteryCritical,
 		BatteryEmergency,
+		RemainingFlightTimeLow,
 
 		Count
 	};
