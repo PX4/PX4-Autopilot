@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file KF_xyzb_v_decoupled_moving.h
+ * @file KF_position_moving.h
  * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
  *
  * @author Jonas Perolini <jonspero@me.com>
@@ -44,7 +44,7 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
-#include "base_KF_decoupled.h"
+#include "base_KF_position.h"
 
 #pragma once
 

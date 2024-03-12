@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file KF_xyzb_decoupled_static.h
+ * @file KF_position_static.h
  * @brief Filter to estimate the pose of static targets. State: [r, r_dot, bias]
  *
  * @author Jonas Perolini <jonspero@me.com>
@@ -44,7 +44,7 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
-#include "base_KF_decoupled.h"
+#include "base_KF_position.h"
 
 #pragma once
 
