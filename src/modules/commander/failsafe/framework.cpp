@@ -250,6 +250,11 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 					events::send(events::ID("commander_failsafe_enter_crit_low_bat_warn"), {events::Log::Emergency, events::LogInternal::Info},
 						     "Emergency battery level, land immediately");
 
+				} else if (cause == Cause::RemainingFlightTimeLow) {
+					events::send(events::ID("commander_failsafe_enter_low_flight_time_warn"),
+					{events::Log::Warning, events::LogInternal::Info},
+					"Low remaining flight time, return advised");
+
 				} else {
 					/* EVENT
 					* @description No action is triggered.

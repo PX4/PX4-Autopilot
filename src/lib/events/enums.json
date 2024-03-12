@@ -381,6 +381,10 @@
                         "5": {
                             "name": "emergency_battery_level",
                             "description": "emergency battery level"
+                        },
+                        "6": {
+                            "name": "low_remaining_flight_time",
+                            "description": "low remaining flight time"
                         }
                     }
                 },
