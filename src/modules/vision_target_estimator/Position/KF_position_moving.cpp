@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file KF_xyzb_v_decoupled_moving.cpp
+ * @file KF_position_moving.cpp
  * @brief Filter to estimate the pose of moving targets. State: [pos_rel, vel_uav, bias, acc_target, vel_target]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
-#include "KF_xyzb_v_decoupled_moving.h"
+#include "KF_position_moving.h"
 #include "python_derivation/generated/decoupled_moving_xyzb_v/predictCov.h"
 #include "python_derivation/generated/decoupled_moving_xyzb_v/computeInnovCov.h"
 
