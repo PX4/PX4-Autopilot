@@ -319,7 +319,7 @@ void VisionTargetEst::Run()
 	}
 
 	// No task running, early return
-	if (_vte_current_task == 0) {
+	if (_vte_current_task == VisionTargetEstTask::VTE_NO_TASK) {
 		return;
 	}
 
@@ -339,7 +339,7 @@ void VisionTargetEst::Run()
 			|| !_position_estimator_running)) {
 
 		if (is_current_task_done()) {
-			_vte_current_task = 0;
+			_vte_current_task = VisionTargetEstTask::VTE_NO_TASK;
 		}
 
 		return;
@@ -356,7 +356,7 @@ void VisionTargetEst::Run()
 			stop_orientation_estimator();
 		}
 
-		_vte_current_task = 0;
+		_vte_current_task = VisionTargetEstTask::VTE_NO_TASK;
 
 		return;
 	}
@@ -412,7 +412,7 @@ void VisionTargetEst::Run()
 			_vehicle_acc_ned_sum += vehicle_acc_ned;
 			_loops_count ++;
 
-			if ((hrt_absolute_time() - _last_update_pos) > (1_s / vte_pos_UPDATE_RATE_HZ)) {
+			if (has_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
 
 				perf_begin(_cycle_perf_pos);
 
@@ -431,7 +431,6 @@ void VisionTargetEst::Run()
 				const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
 
 				_vte_position->update(vehicle_acc_ned_sampled);
-				_last_update_pos = hrt_absolute_time();
 
 				/* Publish downsampled acceleration*/
 				vehicle_acceleration_s vte_acc_input_report;
@@ -450,7 +449,7 @@ void VisionTargetEst::Run()
 	}
 
 	/* Update orientation filter at vte_yaw_UPDATE_RATE_HZ */
-	if (_vte_orientation_enabled && ((hrt_absolute_time() - _last_update_yaw) > (1_s / vte_yaw_UPDATE_RATE_HZ))) {
+	if (_vte_orientation_enabled && has_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
 		perf_begin(_cycle_perf_yaw);
 
 		if (local_pose_updated) {
@@ -458,7 +457,6 @@ void VisionTargetEst::Run()
 		}
 
 		_vte_orientation->update();
-		_last_update_yaw = hrt_absolute_time();
 		perf_end(_cycle_perf_yaw);
 	}
 
@@ -587,6 +585,16 @@ bool VisionTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vecto
 	return true;
 }
 
+bool VisionTargetEst::has_elapsed(hrt_abstime &last_time, const hrt_abstime interval)
+{
+
+	if (hrt_elapsed_time(&last_time) > interval) {
+		last_time = hrt_absolute_time();
+		return true;
+	}
+
+	return false;
+}
 
 int VisionTargetEst::print_status()
 {
