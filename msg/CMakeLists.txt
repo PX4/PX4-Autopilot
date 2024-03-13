@@ -180,6 +180,8 @@ set(msg_files
 	RegisterExtComponentRequest.msg
 	RoverAckermannGuidanceStatus.msg
 	RoverAckermannStatus.msg
+	RoverDifferentialGuidanceStatus.msg
+	RoverDifferentialStatus.msg
 	Rpm.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg

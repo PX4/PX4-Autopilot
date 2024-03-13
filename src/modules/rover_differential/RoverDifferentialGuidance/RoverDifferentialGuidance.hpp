@@ -33,37 +33,42 @@
 
 #pragma once
 
+// PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <lib/pure_pursuit/PurePursuit.hpp>
 
+// uORB includes
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/mission_result.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/rover_differential_guidance_status.h>
+
+// Standard libraries
+#include <lib/pid/pid.h>
 #include <matrix/matrix/math.hpp>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <math.h>
 
-#include <lib/motion_planning/PositionSmoothing.hpp>
-#include <lib/motion_planning/VelocitySmoothing.hpp>
-
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_differential_setpoint.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_global_position.h>
-
-#include <lib/pid/pid.h>
-
+using namespace matrix;
 
 /**
  * @brief Enum class for the different states of guidance.
  */
 enum class GuidanceState {
-	TURNING, ///< The vehicle is currently turning.
-	DRIVING, ///< The vehicle is currently driving straight.
-	GOAL_REACHED ///< The vehicle has reached its goal.
+	SPOT_TURNING, // The vehicle is currently turning on the spot.
+	DRIVING,      // The vehicle is currently driving.
+	STOPPED  // The vehicle is stopped.
 };
 
 /**
- * @brief Class for differential drive guidance.
+ * @brief Class for differential rover guidance.
  */
 class RoverDifferentialGuidance : public ModuleParams
 {
@@ -75,32 +80,26 @@ public:
 	RoverDifferentialGuidance(ModuleParams *parent);
 	~RoverDifferentialGuidance() = default;
 
+	struct differential_setpoint {
+		float throttle{0.f};
+		float yaw_rate{0.f};
+		bool closed_loop_yaw_rate{false};
+	};
+
 	/**
 	 * @brief Compute guidance for the vehicle.
-	 * @param global_pos The global position of the vehicle in degrees.
-	 * @param current_waypoint The current waypoint the vehicle is heading towards in degrees.
-	 * @param next_waypoint The next waypoint the vehicle will head towards after reaching the current waypoint in degrees.
-	 * @param vehicle_yaw The yaw orientation of the vehicle in radians.
-	 * @param body_velocity The velocity of the vehicle in m/s.
-	 * @param angular_velocity The angular velocity of the vehicle in rad/s.
+	 * @param yaw The yaw orientation of the vehicle in radians.
+	 * @param actual_speed The velocity of the vehicle in m/s.
 	 * @param dt The time step in seconds.
+	 * @param nav_state Navigation state of the rover.
 	 */
-	void computeGuidance(float yaw, float angular_velocity, float dt);
+	RoverDifferentialGuidance::differential_setpoint computeGuidance(float yaw, float actual_speed,
+			int nav_state);
 
 	/**
-	 * @brief Set the maximum speed for the vehicle.
-	 * @param max_speed The maximum speed in m/s.
-	 * @return The set maximum speed in m/s.
+	 * @brief Update global/ned waypoint coordinates
 	 */
-	float setMaxSpeed(float max_speed) { return _max_speed = max_speed; }
-
-
-	/**
-	 * @brief Set the maximum angular velocity for the vehicle.
-	 * @param max_angular_velocity The maximum angular velocity in rad/s.
-	 * @return The set maximum angular velocity in rad/s.
-	 */
-	float setMaxAngularVelocity(float max_angular_velocity) { return _max_angular_velocity = max_angular_velocity; }
+	void updateWaypoints();
 
 protected:
 	/**
@@ -109,32 +108,56 @@ protected:
 	void updateParams() override;
 
 private:
+	// uORB subscriptions
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
+	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 
-	uORB::Publication<rover_differential_setpoint_s> _rover_differential_setpoint_pub{ORB_ID(rover_differential_setpoint)};
+	// uORB publications
+	uORB::Publication<rover_differential_guidance_status_s> _rover_differential_guidance_status_pub{ORB_ID(rover_differential_guidance_status)};
+	rover_differential_guidance_status_s _rover_differential_guidance_status{};
 
-	position_setpoint_triplet_s _position_setpoint_triplet{};
-	vehicle_global_position_s _vehicle_global_position{};
+	// Variables
+	MapProjection _global_ned_proj_ref{}; // Transform global to ned coordinates.
+	GuidanceState _currentState{GuidanceState::DRIVING}; // The current state of guidance.
+	PurePursuit _pure_pursuit{this}; // Pure pursuit library
+	hrt_abstime _timestamp{0};
+	float _max_yaw_rate{0.f};
 
-	GuidanceState _currentState; ///< The current state of guidance.
 
-	float _desired_angular_velocity; ///< The desired angular velocity.
+	// Waypoints
+	Vector2d _curr_pos{};
+	Vector2f _curr_pos_ned{};
+	Vector2d _prev_wp{};
+	Vector2f _prev_wp_ned{};
+	Vector2d _curr_wp{};
+	Vector2f _curr_wp_ned{};
+	Vector2d _next_wp{};
+	Vector2d _home_position{};
 
-	float _max_speed; ///< The maximum speed.
-	float _max_angular_velocity; ///< The maximum angular velocity.
+	// Controllers
+	PID_t _pid_heading; // The PID controller for the heading
+	PID_t _pid_throttle; // The PID controller for velocity
 
-	matrix::Vector2d _current_waypoint; ///< The current waypoint.
+	// Constants
+	static constexpr float TURN_MAX_VELOCITY = 0.2f; // Velocity threshhold for starting the spot turn [m/s]
 
-	VelocitySmoothing _forwards_velocity_smoothing; ///< The velocity smoothing for forward motion.
-	PositionSmoothing _position_smoothing; ///< The position smoothing.
-
-	PID_t _heading_p_controller; ///< The PID controller for yaw rate.
-
+	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RDD_P_HEADING>) _param_rdd_p_gain_heading,
+		(ParamFloat<px4::params::RD_HEADING_P>) _param_rd_p_gain_heading,
+		(ParamFloat<px4::params::RD_HEADING_I>) _param_rd_i_gain_heading,
+		(ParamFloat<px4::params::RD_SPEED_P>) _param_rd_p_gain_speed,
+		(ParamFloat<px4::params::RD_SPEED_I>) _param_rd_i_gain_speed,
+		(ParamFloat<px4::params::RD_MAX_SPEED>) _param_rd_max_speed,
 		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,
-		(ParamFloat<px4::params::RDD_MAX_JERK>) _param_rdd_max_jerk,
-		(ParamFloat<px4::params::RDD_MAX_ACCEL>) _param_rdd_max_accel
+		(ParamFloat<px4::params::RD_MAX_JERK>) _param_rd_max_jerk,
+		(ParamFloat<px4::params::RD_MAX_ACCEL>) _param_rd_max_accel,
+		(ParamFloat<px4::params::RD_MISS_SPD_DEF>) _param_rd_miss_spd_def,
+		(ParamFloat<px4::params::RD_MAX_YAW_RATE>) _param_rd_max_yaw_rate,
+		(ParamFloat<px4::params::RD_TRANS_TRN_DRV>) _param_rd_trans_trn_drv,
+		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn
+
 	)
 };
