@@ -42,7 +42,7 @@
 #include <drivers/drv_orb_dev.h>
 #include <lib/drivers/device/Device.hpp>
 #include <uORB/uORB.h>
-#include <px4_platform_common/module_params.h>
+#include <parameters/param.h>
 /**
  * A sensor bridge class must implement this interface.
  */
