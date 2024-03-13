@@ -124,6 +124,8 @@ private:
 	float _max_speed; ///< The maximum speed.
 	float _max_angular_velocity; ///< The maximum angular velocity.
 
+	float _heading_error{0.0f};
+
 	matrix::Vector2d _current_waypoint; ///< The current waypoint.
 
 	VelocitySmoothing _forwards_velocity_smoothing; ///< The velocity smoothing for forward motion.
@@ -135,6 +137,7 @@ private:
 		(ParamFloat<px4::params::RDD_P_HEADING>) _param_rdd_p_gain_heading,
 		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,
 		(ParamFloat<px4::params::RDD_MAX_JERK>) _param_rdd_max_jerk,
-		(ParamFloat<px4::params::RDD_MAX_ACCEL>) _param_rdd_max_accel
+		(ParamFloat<px4::params::RDD_MAX_ACCEL>) _param_rdd_max_accel,
+		(ParamFloat<px4::params::RDD_MIN_TRN_VEL>) _param_rdd_min_turning_speed
 	)
 };
