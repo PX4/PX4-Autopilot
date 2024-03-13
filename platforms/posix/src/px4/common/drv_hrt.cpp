@@ -56,7 +56,7 @@
 #include <px4_platform_common/board_common.h>
 
 // Voxl2 board specific API definitions to get time offset
-#if PX4_SOC_ARCH_ID == PX4_SOC_ARCH_ID_VOXL2
+#if(PX4_SOC_ARCH_ID == PX4_SOC_ARCH_ID_VOXL2)
 #include "fc_sensor.h"
 #endif
 
@@ -459,7 +459,7 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 #endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
 	int rv = system_clock_gettime(clk_id, tp);
 
-#if PX4_SOC_ARCH_ID == PX4_SOC_ARCH_ID_VOXL2
+#if(PX4_SOC_ARCH_ID == PX4_SOC_ARCH_ID_VOXL2)
 	hrt_abstime temp_abstime = ts_to_abstime(tp);
 	int apps_time_offset = fc_sensor_get_time_offset();
 
