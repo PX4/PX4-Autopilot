@@ -35,67 +35,9 @@
 #include "EKF/ekf.h"
 #include "test_helper/comparison_helper.h"
 
-#include "../EKF/python/ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h"
-#include "../EKF/python/ekf_derivation/generated/compute_yaw_321_innov_var_and_h_alternate.h"
-#include "../EKF/python/ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h"
-#include "../EKF/python/ekf_derivation/generated/compute_yaw_312_innov_var_and_h_alternate.h"
 #include "../EKF/python/ekf_derivation/generated/compute_yaw_innov_var_and_h.h"
 
 using namespace matrix;
-
-TEST(YawFusionGenerated, yawSingularity)
-{
-	// GIVEN: an attitude that should give a singularity when transforming the
-	// rotation matrix to Euler yaw
-	StateSample state{};
-	state.quat_nominal = Eulerf(M_PI_F, 0.f, M_PI_F);
-
-	const float R = sq(radians(10.f));
-	SquareMatrixState P = createRandomCovarianceMatrix();
-
-	VectorState H_a;
-	VectorState H_b;
-	float innov_var_a;
-	float innov_var_b;
-
-	// WHEN: computing the innovation variance and H using two different methods
-	sym::ComputeYaw321InnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var_a, &H_a);
-	sym::ComputeYawInnovVarAndH(state.vector(), P, R, &innov_var_b, &H_b);
-
-	// THEN: Even at the singularity point, the result is still correct
-	EXPECT_TRUE(isEqual(H_a, H_b));
-
-	EXPECT_NEAR(innov_var_a, innov_var_b, 1e-5f);
-	EXPECT_TRUE(innov_var_a < 50.f && innov_var_a > R) << "innov_var = " << innov_var_a;
-}
-
-TEST(YawFusionGenerated, gimbalLock321vs312vsTangent)
-{
-	// GIVEN: an attitude at gimbal lock position
-	StateSample state{};
-	state.quat_nominal = Eulerf(0.f, -M_PI_F / 2.f, M_PI_F);
-
-	const float R = sq(radians(10.f));
-	SquareMatrixState P = createRandomCovarianceMatrix();
-
-	VectorState H_321;
-	VectorState H_312;
-	VectorState H_tangent;
-	float innov_var_321;
-	float innov_var_312;
-	float innov_var_tangent;
-	sym::ComputeYaw321InnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var_321, &H_321);
-
-	sym::ComputeYaw312InnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var_312, &H_312);
-	sym::ComputeYawInnovVarAndH(state.vector(), P, R, &innov_var_tangent, &H_tangent);
-
-	// THEN: both computation are not equivalent, 321 is undefined but 312 and "tangent" are valid
-	EXPECT_FALSE(isEqual(H_321, H_312));
-	EXPECT_TRUE(isEqual(H_312, H_tangent));
-	EXPECT_GT(fabsf(innov_var_321 - innov_var_312), 1e6f);
-	EXPECT_NEAR(innov_var_312, innov_var_tangent, 1e-6f);
-	EXPECT_TRUE(innov_var_312 < 50.f && innov_var_312 > R) << "innov_var = " << innov_var_312;
-}
 
 Vector3f getRotVarNed(const Quatf &q, const SquareMatrixState &P)
 {
@@ -138,6 +80,8 @@ TEST(YawFusionGenerated, positiveVarianceAllOrientations)
 						<< " roll = " << degrees(roll)
 						<< " innov_var = " << innov_var
 						<< " innov_var_true = " << innov_var_true;
+
+				EXPECT_TRUE(H.isAllFinite());
 			}
 		}
 	}
