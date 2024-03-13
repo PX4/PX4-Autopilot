@@ -37,6 +37,11 @@ add_subdirectory(lockstep_scheduler)
 
 set(EXTRA_DEPENDS)
 
+# Add in include path for fc sensor api header
+if("${PX4_BOARD}" MATCHES "voxl2")
+	include_directories(${PX4_BOARD_DIR}/libfc-sensor-api/inc)
+endif()
+
 add_library(px4_layer
 	px4_posix_impl.cpp
 	tasks.cpp
