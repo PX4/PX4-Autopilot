@@ -94,7 +94,7 @@ private:
 					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d", battery_status.serial_number);
 				}
 
-                // Not supported by PX4 (not in battery_status uorb topic)
+				// Not supported by PX4 (not in battery_status uorb topic)
 				/*
 				msg.name = 0; // char[50]
 				msg.weight = 0;
