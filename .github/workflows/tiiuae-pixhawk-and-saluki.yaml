@@ -36,9 +36,10 @@ permissions:
   packages: write
 
 env:
-  saluki_pi_fpga_version: "sha-b7e842d"
-  saluki_v2_fpga_version: "sha-b7e842d"
-  saluki_v3_fpga_version: "sha-b7e842d"
+  saluki_fpga_repo: "ghcr.io/tiiuae/saluki-fpga"
+  saluki_pi_fpga_version: "4.10.0"
+  saluki_v2_fpga_version: "4.10.0"
+  saluki_v3_fpga_version: "4.10.0"
 
 jobs:
   fc_matrix:
@@ -137,6 +138,8 @@ jobs:
   upload-px4fwupdater:
     name: upload px4fwupdater to docker registry
     runs-on: ubuntu-latest
+    env:
+      FPGA_DIR: fpga
     needs:
       - px4fwupdater
       - variables
@@ -149,8 +152,9 @@ jobs:
       - name: Download pixhawk artifacts
         uses: actions/download-artifact@v4
         with:
-          name: pixhawk
           path: bin
+          pattern: saluki-*
+          merge-multiple: true
       - name: Firmware flasher - Container metadata
         id: containermeta # referenced from later step
         uses: docker/metadata-action@v5
@@ -167,6 +171,24 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: fetch fpga files
+        run: |
+          echo "fetching fpga files from ${{ env.saluki_fpga_repo }}"
+          px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v2_fpga_version }} saluki_v2 ${{ env.FPGA_DIR }}/saluki-v2
+          px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_pi_fpga_version }} saluki_pi ${{ env.FPGA_DIR }}/saluki-pi
+
+          # combine fpga json files to one file
+          python px4-firmware/Tools/collect_json_files.py ${{ env.FPGA_DIR }} ${{ env.FPGA_DIR }}/fpga-file-info.json
+
+          # generate saluki file info json with project basic info
+          # fetched info from git so has to be ran inside the repo
+          pushd px4-firmware
+          Tools/generate_basic_build_info.sh ../build_basic_info.json
+          popd
+
+          # combine saluki file info json with fpga json and px4 json files to one file
+          python px4-firmware/Tools/compile_px4_build_info.py saluki_file_info.json bin ${{ env.FPGA_DIR }}/fpga-file-info.json build_basic_info.json
+
       - name: Firmware flasher - Build and push
         uses: docker/build-push-action@v5
         with:
@@ -176,9 +198,7 @@ jobs:
           tags: ${{ steps.containermeta.outputs.tags }}
           labels: ${{ steps.containermeta.outputs.labels }}
           build-args: |
-            "saluki_pi_fpga_version=${{ needs.variables.outputs.saluki_pi_fpga_version }}"
-            "saluki_v2_fpga_version=${{ needs.variables.outputs.saluki_v2_fpga_version }}"
-            "saluki_v3_fpga_version=${{ needs.variables.outputs.saluki_v3_fpga_version }}"
+            "saluki_fpga_directory=${{ env.FPGA_DIR }}"
       - name: Build overview
         run: |
           echo "### Build overview:" >> $GITHUB_STEP_SUMMARY

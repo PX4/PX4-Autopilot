@@ -1,13 +1,7 @@
-ARG saluki_pi_fpga_version
-ARG saluki_v2_fpga_version
-ARG saluki_v3_fpga_version
-
-FROM ghcr.io/tiiuae/saluki-pi-fpga:$saluki_pi_fpga_version AS SALUKI_PI
-FROM ghcr.io/tiiuae/saluki-pi-fpga:$saluki_v2_fpga_version AS SALUKI_V2
-FROM ghcr.io/tiiuae/saluki-pi-fpga:$saluki_v3_fpga_version AS SALUKI_V3
-FROM ghcr.io/tiiuae/saluki_bootloader_v2:master AS SALUKI_BOOTLOADER_v2
-
 FROM python:alpine3.14
+
+ARG saluki_fpga_directory
+ARG SALUKI_FILE_INFO_JSON=saluki_file_info.json
 
 # run this with something like:
 #
@@ -26,13 +20,9 @@ FROM python:alpine3.14
 # ("/" above is relative to GH action runner home dir)
 # (see .github/workflows/tiiuae-pixhawk.yaml)
 
-# copy fpga files from separate saluki containers
-COPY --from=SALUKI_PI /firmware/saluki_pi-fpga /firmware/fpga/saluki_pi
-COPY --from=SALUKI_V2 /firmware/saluki_v2-fpga /firmware/fpga/saluki_v2
-COPY --from=SALUKI_V3 /firmware/saluki_v3-fpga /firmware/fpga/saluki_v3
-# copy px_uploader.py from saluki_bootloader_v2 container
-COPY --from=SALUKI_BOOTLOADER_v2 /firmware/bootloader_v2/px_uploader.py /firmware/px_uploader.py
 
+COPY $saluki_fpga_directory /firmware/fpga
+COPY $SALUKI_FILE_INFO_JSON /$SALUKI_FILE_INFO_JSON
 WORKDIR /firmware
 
 ENTRYPOINT ["/entrypoint.sh"]
