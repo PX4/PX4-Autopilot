@@ -87,10 +87,11 @@ private:
 					//Formatted as 'ddmmyyyy' (maxed 9 chars)
 					snprintf(msg.manufacture_date, sizeof(msg.manufacture_date), "%d%d%d", day, month, year);
 					//Formatted as 'dd/mm/yy-123456' (maxed 15 + 1 chars)
-					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d/%d/%d-%d", day, month, year2dig, battery_status.serial_number);
+					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d/%d/%d-%d", day, month, year2dig,
+						 battery_status.serial_number);
 
 				} else {
-					
+
 					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d", battery_status.serial_number);
 				}
 
