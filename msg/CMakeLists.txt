@@ -289,6 +289,9 @@ foreach(msg_file ${msg_files})
 	list(APPEND uorb_json_files ${msg_source_out_path}/${msg}.json)
 endforeach()
 
+# set parent scope msg_files for ROS
+set(msg_files ${msg_files} PARENT_SCOPE)
+
 # Generate uORB headers
 add_custom_command(
 	OUTPUT
