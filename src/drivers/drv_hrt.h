@@ -132,6 +132,11 @@ typedef struct latency_boardctl {
 __EXPORT extern hrt_abstime hrt_absolute_time(void);
 
 /**
+ * Adjust the synchronized clock.
+ */
+__EXPORT extern void hrt_absolute_time_adjust(int64_t adjustment);
+
+/**
  * Convert a timespec to absolute time.
  */
 static inline hrt_abstime ts_to_abstime(const struct timespec *ts)
