@@ -33,8 +33,6 @@
 
 #include "ekf.h"
 
-#include <ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h>
-#include <ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h>
 #include <ekf_derivation/generated/compute_yaw_innov_var_and_h.h>
 
 #include <mathlib/mathlib.h>
