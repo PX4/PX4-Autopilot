@@ -402,19 +402,19 @@
                         },
                         "2": {
                             "name": "fallback_posctrl",
-                            "description": "fallback to position control"
+                            "description": "fallback to Position mode"
                         },
                         "3": {
                             "name": "fallback_altctrl",
-                            "description": "fallback to altitude control"
+                            "description": "fallback to Altitude mode"
                         },
                         "4": {
                             "name": "fallback_stabilized",
-                            "description": "fallback to stabilized"
+                            "description": "fallback to Stabilized mode"
                         },
                         "5": {
                             "name": "hold",
-                            "description": "hold"
+                            "description": "Hold"
                         },
                         "6": {
                             "name": "rtl",
@@ -422,11 +422,11 @@
                         },
                         "7": {
                             "name": "land",
-                            "description": "land"
+                            "description": "Land"
                         },
                         "8": {
                             "name": "descend",
-                            "description": "descend"
+                            "description": "Descend"
                         },
                         "9": {
                             "name": "disarm",
