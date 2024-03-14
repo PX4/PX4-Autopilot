@@ -293,7 +293,9 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 					mavlink_log_warning(reporter.mavlink_log_pub(), "GNSS data fusion stopped\t");
 				}
 
-				events::send(events::ID("check_estimator_gnss_fusion_stopped"), {events::Log::Error, events::LogInternal::Info},
+				// only report this failure as critical if not already in a local position invalid state
+				events::Log log_level = reporter.failsafeFlags().local_position_invalid ? events::Log::Info : events::Log::Error;
+				events::send(events::ID("check_estimator_gnss_fusion_stopped"), {log_level, events::LogInternal::Info},
 					     "GNSS data fusion stopped");
 
 			} else if (!_gps_was_fused && ekf_gps_fusion) {
