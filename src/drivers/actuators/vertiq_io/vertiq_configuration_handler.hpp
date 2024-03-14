@@ -116,13 +116,16 @@ public:
 	 * @brief Delete and recreate a client with a new object ID
 	 *
 	 * @tparam client_type The actual type of Client you want to delete and remake
-	 * @param client A pointer to the client being deleted
-	 * @param object_id The object we're making the new client with
+	 * @param client A pointer ref to the client being deleted
+	 * @param object_id The object id we're making the new client with
 	 */
 	template <typename client_type>
-	void DestroyAndRecreateClient(client_type * client, uint8_t object_id){
-		delete client;
-		client = new client_type(object_id);
+	void DestroyAndRecreateClient(client_type*& client, uint8_t object_id)
+	{
+		if (client) {
+			delete client;
+			client = new client_type(object_id);
+		}
 	}
 
 	/**
@@ -132,7 +135,8 @@ public:
 	* @param entry A pointer to a Vertiq client entry
 	*/
 	template <typename iquart_data_type , typename px4_data_type>
-	void AddNewClientEntry(param_t px4_param, ClientEntryAbstract *entry){
+	void AddNewClientEntry(param_t px4_param, ClientEntryAbstract *entry)
+	{
 		if(_added_configuration_entry_wrappers < MAX_CLIENT_ENTRIES){
 			_configuration_entry_wrappers[_added_configuration_entry_wrappers] = new EntryWrapper<iquart_data_type, px4_data_type>;
 			_configuration_entry_wrappers[_added_configuration_entry_wrappers]->ConfigureStruct(px4_param, entry);
