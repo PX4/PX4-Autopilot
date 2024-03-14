@@ -369,7 +369,7 @@ FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int par
 {
 	ActionOptions options{};
 
-	options.allow_user_takeover = UserTakeoverAllowed::Always;
+	options.allow_user_takeover = UserTakeoverAllowed::Auto;
 	options.cause = Cause::RemainingFlightTimeLow;
 
 	switch (command_after_remaining_flight_time_low(param_value)) {
