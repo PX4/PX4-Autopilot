@@ -207,7 +207,6 @@ qshell flight_mode_manager start
 # Start all of the processing modules on the applications processor
 dataman start
 navigator start
-load_mon start
 
 # This bridge allows raw data packets to be sent over UART to the ESC
 voxl2_io_bridge start
