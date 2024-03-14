@@ -195,7 +195,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			events::send<uint32_t, events::px4::enums::failsafe_action_t, uint16_t>(
 				events::ID("commander_failsafe_enter_generic_hold"),
 			{events::Log::Critical, events::LogInternal::Warning},
-			"Failsafe activated, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
+			"Failsafe, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
 			(uint16_t) delay_s);
 
 		} else {
@@ -204,7 +204,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			events::send<uint32_t, events::px4::enums::failsafe_action_t, uint16_t, events::px4::enums::failsafe_cause_t>(
 				events::ID("commander_failsafe_enter_hold"),
 			{events::Log::Critical, events::LogInternal::Warning},
-			"Failsafe activated due to {4}, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
+			"{4}, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
 			(uint16_t) delay_s, failsafe_cause);
 		}
 
@@ -231,7 +231,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
 					events::ID("commander_failsafe_enter_generic"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe activated, triggering {2}", mavlink_mode, failsafe_action);
+				"Failsafe, triggering {2}", mavlink_mode, failsafe_action);
 			}
 
 		} else {
@@ -272,7 +272,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t, events::px4::enums::failsafe_cause_t>(
 					events::ID("commander_failsafe_enter"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe activated due to {3}, triggering {2}", mavlink_mode, failsafe_action, failsafe_cause);
+				"{3}, triggering {2}", mavlink_mode, failsafe_action, failsafe_cause);
 			}
 		}
 

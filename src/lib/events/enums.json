@@ -364,7 +364,7 @@
                         },
                         "1": {
                             "name": "manual_control_loss",
-                            "description": "manual control loss"
+                            "description": "Manual control loss"
                         },
                         "2": {
                             "name": "gcs_connection_loss",
@@ -384,7 +384,7 @@
                         },
                         "6": {
                             "name": "low_remaining_flight_time",
-                            "description": "low remaining flight time"
+                            "description": "Remaining flight time low"
                         }
                     }
                 },
@@ -402,15 +402,15 @@
                         },
                         "2": {
                             "name": "fallback_posctrl",
-                            "description": "fallback to Position mode"
+                            "description": "Position mode"
                         },
                         "3": {
                             "name": "fallback_altctrl",
-                            "description": "fallback to Altitude mode"
+                            "description": "Altitude mode"
                         },
                         "4": {
                             "name": "fallback_stabilized",
-                            "description": "fallback to Stabilized mode"
+                            "description": "Stabilized mode"
                         },
                         "5": {
                             "name": "hold",
