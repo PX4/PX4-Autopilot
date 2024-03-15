@@ -31,9 +31,8 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <drivers/device/i2c.h>
 #include "mmc5983ma.h"
+#include <drivers/device/i2c.h>
 
 class MMC5983MA_I2C : public device::I2C
 {
