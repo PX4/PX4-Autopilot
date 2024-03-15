@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 
+#include <lib/rtl/rtl_time_estimator.h>
 #include "mission_block.h"
 #include "navigation.h"
 #include "safe_point_land.hpp"
@@ -120,52 +121,16 @@ private:
 
 private:
 	/**
-	 * @brief Get the horizontal wind velocity
-	 *
-	 * @return horizontal wind velocity.
-	 */
-	matrix::Vector2f get_wind();
-
-	/**
 	 * @brief Set the return to launch control setpoint.
 	 *
 	 */
 	void set_rtl_item();
 
 	/**
-	 * @brief Get the Cruise Ground Speed
+	 * @brief sanitize land_approach
 	 *
-	 * @return Ground speed in cruise mode [m/s].
 	 */
-	float getCruiseGroundSpeed();
-
-	/**
-	 * @brief Get the climb rate
-	 *
-	 * @return Climb rate [m/s]
-	 */
-	float getClimbRate();
-
-	/**
-	 * @brief Get the descend rate
-	 *
-	 * @return descend rate [m/s]
-	 */
-	float getDescendRate();
-
-	/**
-	 * @brief Get the cruise speed
-	 *
-	 * @return cruise speed [m/s]
-	 */
-	float getCruiseSpeed();
-
-	/**
-	 * @brief Get the Hover Land Speed
-	 *
-	 * @return Hover land speed [m/s]
-	 */
-	float getHoverLandSpeed();
+	loiter_point_s sanitizeLandApproach(loiter_point_s land_approach) const;
 
 	/**
 	 * Check for parameter changes and update them if needed.
@@ -178,6 +143,7 @@ private:
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
+	RtlTimeEstimator _rtl_time_estimator;
 
 	PositionYawSetpoint _destination; ///< the RTL position to fly to
 	loiter_point_s _land_approach;
@@ -190,22 +156,10 @@ private:
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_PLD_MD>)        _param_rtl_pld_md,
 		(ParamFloat<px4::params::RTL_LOITER_RAD>)  _param_rtl_loiter_rad,
-		(ParamFloat<px4::params::RTL_TIME_FACTOR>) _param_rtl_time_factor,
-		(ParamInt<px4::params::RTL_TIME_MARGIN>)   _param_rtl_time_margin,
 
 		// external params
 		(ParamBool<px4::params::WV_EN>) _param_wv_en
 	)
-
-	param_t		_param_mpc_z_v_auto_up{PARAM_INVALID};
-	param_t		_param_mpc_z_v_auto_dn{PARAM_INVALID};
-	param_t		_param_mpc_land_speed{PARAM_INVALID};
-	param_t		_param_fw_climb_rate{PARAM_INVALID};
-	param_t		_param_fw_sink_rate{PARAM_INVALID};
-
-	param_t 	_param_fw_airspeed_trim{PARAM_INVALID};
-	param_t 	_param_mpc_xy_cruise{PARAM_INVALID};
-	param_t 	_param_rover_cruise_speed{PARAM_INVALID};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */

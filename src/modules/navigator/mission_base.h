@@ -123,7 +123,7 @@ protected:
 	 * @return true If mission has a land start of land item and a land item
 	 * @return false otherwise
 	 */
-	bool hasMissionLandStart() const { return _mission.land_start_index > 0 && _mission.land_index > 0;};
+	bool hasMissionLandStart() const { return _mission.land_start_index >= 0 && _mission.land_index >= 0;};
 	/**
 	 * @brief Go to next Mission Item
 	 * Go to next non jump mission item
@@ -214,6 +214,12 @@ protected:
 	 * @return false otherwise
 	 */
 	bool isMissionValid() const;
+
+	/**
+	 * @brief Check whether a mission is ready to go
+	 * @param[in] forced flag if the check has to be run irregardles of any updates.
+	 */
+	void check_mission_valid(bool forced = false);
 
 	/**
 	 * On mission update
@@ -315,6 +321,9 @@ protected:
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
 
+	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
+	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
+
 	DatamanCache _dataman_cache{"mission_dm_cache_miss", 10}; /**< Dataman cache of mission items*/
 	DatamanClient	&_dataman_client = _dataman_cache.client(); /**< Dataman client*/
 
@@ -334,18 +343,12 @@ private:
 	 * @brief Update Dataman cache
 	 *
 	 */
-	void updateDatamanCache();
+	virtual void updateDatamanCache();
 	/**
 	 * @brief Update mission subscription
 	 *
 	 */
 	void updateMavlinkMission();
-
-	/**
-	 * @brief Check whether a mission is ready to go
-	 * @param[in] forced flag if the check has to be run irregardles of any updates.
-	 */
-	void check_mission_valid(bool forced = false);
 
 	/**
 	 * Reset mission
@@ -446,9 +449,6 @@ private:
 	bool checkMissionDataChanged(mission_s new_mission);
 
 	bool canRunMissionFeasibility();
-
-	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
-	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
 
 	bool _align_heading_necessary{false}; // if true, heading of vehicle needs to be aligned with heading of next waypoint. Used to create new mission items for heading alignment.
 

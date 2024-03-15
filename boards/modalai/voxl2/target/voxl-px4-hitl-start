@@ -76,12 +76,13 @@ qshell flight_mode_manager start
 # Start all of the processing modules on the applications processor
 dataman start
 navigator start
-load_mon start
 
 # Start microdds_client for ros2 offboard messages from agent over localhost
 microdds_client start -t udp -h 127.0.0.1 -p 8888
 
 qshell pwm_out_sim start -m hil
+# g = gps, m = mag, o = odometry (vio), h = distance sensor, f = optic flow
+# qshell dsp_hitl start -g -m -o -h -f
 qshell dsp_hitl start -g -m
 
 # start the onboard fast link to connect to voxl-mavlink-server

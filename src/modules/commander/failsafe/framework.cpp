@@ -195,7 +195,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			events::send<uint32_t, events::px4::enums::failsafe_action_t, uint16_t>(
 				events::ID("commander_failsafe_enter_generic_hold"),
 			{events::Log::Critical, events::LogInternal::Warning},
-			"Failsafe activated, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
+			"Failsafe, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
 			(uint16_t) delay_s);
 
 		} else {
@@ -204,7 +204,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			events::send<uint32_t, events::px4::enums::failsafe_action_t, uint16_t, events::px4::enums::failsafe_cause_t>(
 				events::ID("commander_failsafe_enter_hold"),
 			{events::Log::Critical, events::LogInternal::Warning},
-			"Failsafe activated due to {4}, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
+			"{4}, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
 			(uint16_t) delay_s, failsafe_cause);
 		}
 
@@ -231,7 +231,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
 					events::ID("commander_failsafe_enter_generic"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe activated, triggering {2}", mavlink_mode, failsafe_action);
+				"Failsafe, triggering {2}", mavlink_mode, failsafe_action);
 			}
 
 		} else {
@@ -250,6 +250,11 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 					events::send(events::ID("commander_failsafe_enter_crit_low_bat_warn"), {events::Log::Emergency, events::LogInternal::Info},
 						     "Emergency battery level, land immediately");
 
+				} else if (cause == Cause::RemainingFlightTimeLow) {
+					events::send(events::ID("commander_failsafe_enter_low_flight_time_warn"),
+					{events::Log::Warning, events::LogInternal::Info},
+					"Low remaining flight time, return advised");
+
 				} else {
 					/* EVENT
 					* @description No action is triggered.
@@ -267,7 +272,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t, events::px4::enums::failsafe_cause_t>(
 					events::ID("commander_failsafe_enter"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe activated due to {3}, triggering {2}", mavlink_mode, failsafe_action, failsafe_cause);
+				"{3}, triggering {2}", mavlink_mode, failsafe_action, failsafe_cause);
 			}
 		}
 
@@ -512,12 +517,16 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		}
 
+		returned_state.cause = Cause::Generic;
+
 	// fallthrough
 	case Action::FallbackAltCtrl:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_ALTCTL)) {
 			selected_action = Action::FallbackAltCtrl;
 			break;
 		}
+
+		returned_state.cause = Cause::Generic;
 
 	// fallthrough
 	case Action::FallbackStab:
@@ -526,12 +535,16 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		} // else: fall through here as well. If stabilized isn't available, we most certainly end up in Terminate
 
+		returned_state.cause = Cause::Generic;
+
 	// fallthrough
 	case Action::Hold:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
 			selected_action = Action::Hold;
 			break;
 		}
+
+		returned_state.cause = Cause::Generic;
 
 	// fallthrough
 	case Action::RTL:
@@ -540,6 +553,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		}
 
+		returned_state.cause = Cause::Generic;
+
 	// fallthrough
 	case Action::Land:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
@@ -547,12 +562,16 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		}
 
+		returned_state.cause = Cause::Generic;
+
 	// fallthrough
 	case Action::Descend:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_DESCEND)) {
 			selected_action = Action::Descend;
 			break;
 		}
+
+		returned_state.cause = Cause::Generic;
 
 	// fallthrough
 	case Action::Terminate:

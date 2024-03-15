@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,50 +30,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file rtl_direct_mission_land.h
- *
- * Helper class for RTL
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
 
 #pragma once
 
-#include "rtl_base.h"
+#include "param.h"
 
-#include <lib/rtl/rtl_time_estimator.h>
-
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/rtl_time_estimate.h>
-
-class Navigator;
-
-class RtlDirectMissionLand : public RtlBase
-{
-public:
-	RtlDirectMissionLand(Navigator *navigator);
-	~RtlDirectMissionLand() = default;
-
-	void on_activation() override;
-	void on_inactive() override;
-
-	rtl_time_estimate_s calc_rtl_time_estimate() override;
-
-	void setReturnAltMin(bool min) override { _enforce_rtl_alt = min; };
-	void setRtlAlt(float alt) override {_rtl_alt = alt;};
-
-private:
-	bool setNextMissionItem() override;
-	void setActiveMissionItems() override;
-	void updateDatamanCache() override;
-	bool checkNeedsToClimb();
-
-	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
-	bool _enforce_rtl_alt{false};
-	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
-
-	RtlTimeEstimator _rtl_time_estimator;
+struct param_remote_counters {
+	uint32_t set_value_request_received;
+	uint32_t set_value_response_sent;
+	uint32_t reset_received;
+	uint32_t set_value_request_sent;
+	uint32_t set_value_response_received;
+	uint32_t set_used_sent;
 };
+
+void param_remote_init();
+void param_remote_set_used(param_t param);
+void param_remote_set_value(param_t param, const void *val);
+void param_remote_get_counters(struct param_remote_counters *cnt);

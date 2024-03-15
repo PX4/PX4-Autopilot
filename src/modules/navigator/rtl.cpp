@@ -202,38 +202,43 @@ void RTL::on_inactive()
 		break;
 	}
 
-	// Limit inactive calculation to 1Hz
+	// Limit inactive calculation to 0.5Hz
 	hrt_abstime now{hrt_absolute_time()};
 
-	if ((now - _destination_check_time) > 1_s) {
+	if ((now - _destination_check_time) > 2_s) {
 		_destination_check_time = now;
 		setRtlTypeAndDestination();
-
-		const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
-				&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
-
-		rtl_time_estimate_s estimated_time{};
-		estimated_time.valid = false;
-
-		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
-			switch (_rtl_type) {
-			case RtlType::RTL_DIRECT:
-				estimated_time = _rtl_direct.calc_rtl_time_estimate();
-				break;
-
-			case RtlType::RTL_DIRECT_MISSION_LAND:
-			case RtlType::RTL_MISSION_FAST:
-			case RtlType::RTL_MISSION_FAST_REVERSE:
-				estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
-				break;
-
-			default:
-				break;
-			}
-		}
-
-		_rtl_time_estimate_pub.publish(estimated_time);
+		publishRemainingTimeEstimate();
 	}
+
+}
+
+void RTL::publishRemainingTimeEstimate()
+{
+	const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
+			&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
+
+	rtl_time_estimate_s estimated_time{};
+	estimated_time.valid = false;
+
+	if (_navigator->home_global_position_valid() && global_position_recently_updated) {
+		switch (_rtl_type) {
+		case RtlType::RTL_DIRECT:
+			estimated_time = _rtl_direct.calc_rtl_time_estimate();
+			break;
+
+		case RtlType::RTL_DIRECT_MISSION_LAND:
+		case RtlType::RTL_MISSION_FAST:
+		case RtlType::RTL_MISSION_FAST_REVERSE:
+			estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	_rtl_time_estimate_pub.publish(estimated_time);
 }
 
 void RTL::on_activation()
@@ -286,6 +291,14 @@ void RTL::on_active()
 
 	default:
 		break;
+	}
+
+	// Keep publishing remaining time estimates every 2 seconds
+	hrt_abstime now{hrt_absolute_time()};
+
+	if ((now - _destination_check_time) > 2_s) {
+		_destination_check_time = now;
+		publishRemainingTimeEstimate();
 	}
 }
 
@@ -604,7 +617,7 @@ void RTL::parameters_update()
 
 bool RTL::hasMissionLandStart() const
 {
-	return _mission_sub.get().land_start_index > 0;
+	return _mission_sub.get().land_start_index >= 0 && _mission_sub.get().land_index >= 0;
 }
 
 bool RTL::hasVtolLandApproach(const PositionYawSetpoint &rtl_position) const

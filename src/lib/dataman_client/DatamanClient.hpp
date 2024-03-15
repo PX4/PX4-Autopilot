@@ -62,7 +62,7 @@ public:
 	 *
 	 * @return true if data was read successfully within the timeout, false otherwise.
 	 */
-	bool readSync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 1000_ms);
+	bool readSync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 5000_ms);
 
 	/**
 	 * @brief Write data to the dataman synchronously.
@@ -75,7 +75,7 @@ public:
 	 *
 	 * @return True if the write operation succeeded, false otherwise.
 	 */
-	bool writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 1000_ms);
+	bool writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 5000_ms);
 
 	/**
 	 * @brief Clears the data in the specified dataman item.
@@ -85,7 +85,7 @@ public:
 	 *
 	 * @return True if the operation was successful, false otherwise.
 	 */
-	bool clearSync(dm_item_t item, hrt_abstime timeout = 1000_ms);
+	bool clearSync(dm_item_t item, hrt_abstime timeout = 5000_ms);
 
 	/**
 	 * @brief Initiates an asynchronous request to read the data from dataman for a specific item and index.
@@ -185,6 +185,8 @@ private:
 
 	uint8_t _client_id{0};
 
+	perf_counter_t _sync_perf{nullptr};
+
 	static constexpr uint8_t CLIENT_ID_NOT_SET{0};
 };
 
@@ -246,7 +248,7 @@ public:
 	 *
 	 * @return True if the write operation succeeded, false otherwise.
 	 */
-	bool writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 1000_ms);
+	bool writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 5000_ms);
 
 	/**
 	 * @brief Updates the dataman cache by checking for responses from the DatamanClient and processing them.

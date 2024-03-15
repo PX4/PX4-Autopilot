@@ -207,8 +207,6 @@ MissionBase::on_activation()
 	_mission_has_been_activated = true;
 	_system_disarmed_while_inactive = false;
 
-	check_mission_valid(true);
-
 	update_mission();
 
 	// reset the cache and fill it with the items up to the previous item. The cache contains

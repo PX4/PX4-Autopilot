@@ -49,10 +49,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
-# define UXRCE_DDS_CLIENT_UDP 1
-#endif
-
 #define STREAM_HISTORY  4
 #define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY) // MTU==512 by default
 
@@ -60,8 +56,8 @@
 
 using namespace time_literals;
 
-void on_time(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
-	     int64_t originate_timestamp, void *args)
+static void on_time(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
+		    int64_t originate_timestamp, void *args)
 {
 	// latest round trip time (RTT)
 	int64_t rtt = current_time - originate_timestamp;
@@ -80,21 +76,15 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 	}
 }
 
-void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
-		     int64_t originate_timestamp, void *args)
+static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received_timestamp,
+			    int64_t transmit_timestamp,
+			    int64_t originate_timestamp, void *args)
 {
 	session->time_offset = 0;
 }
 
-
-void on_request(
-	uxrSession *session,
-	uxrObjectId object_id,
-	uint16_t request_id,
-	SampleIdentity *sample_id,
-	ucdrBuffer *ub,
-	uint16_t length,
-	void *args)
+static void on_request(uxrSession *session, uxrObjectId object_id, uint16_t request_id, SampleIdentity *sample_id,
+		       ucdrBuffer *ub, uint16_t length, void *args)
 {
 	(void) request_id;
 	(void) length;
@@ -110,66 +100,115 @@ void on_request(
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
 			       const char *port, const char *client_namespace) :
 	ModuleParams(nullptr),
+	_transport(transport),
+	_baudrate(baudrate),
 	_client_namespace(client_namespace)
 {
-	if (transport == Transport::Serial) {
+	if (device) {
+		// store serial port name */
+		strncpy(_device, device, sizeof(_device) - 1);
+	}
 
-		int fd = -1;
+#if defined(UXRCE_DDS_CLIENT_UDP)
 
-		for (int attempt = 0; attempt < 3; attempt++) {
-			fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	if (agent_ip) {
+		strncpy(_agent_ip, agent_ip, sizeof(_agent_ip) - 1);
+	}
 
-			if (fd < 0) {
-				PX4_ERR("open %s failed (%i)", device, errno);
-				// sleep before trying again
-				px4_usleep(1_s);
+	if (port) {
+		strncpy(_port, port, sizeof(_port) - 1);
+	}
 
-			} else {
-				break;
-			}
+#endif // UXRCE_DDS_CLIENT_UDP
+}
+
+bool UxrceddsClient::init()
+{
+	deinit();
+
+	if (_transport == Transport::Serial) {
+		int fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+		if (fd < 0) {
+			PX4_ERR("open %s failed (%i)", _device, errno);
+			return false;
 		}
 
 		_transport_serial = new uxrSerialTransport();
 
-		if (fd >= 0 && setBaudrate(fd, baudrate) == 0 && _transport_serial) {
-			// TODO:
-			uint8_t remote_addr = 0; // Identifier of the Agent in the connection
-			uint8_t local_addr = 1; // Identifier of the Client in the serial connection
+		// TODO:
+		uint8_t remote_addr = 0; // Identifier of the Agent in the connection
+		uint8_t local_addr = 1; // Identifier of the Client in the serial connection
 
-			if (uxr_init_serial_transport(_transport_serial, fd, remote_addr, local_addr)) {
-				_comm = &_transport_serial->comm;
-				_fd = fd;
+		if (_transport_serial
+		    && setBaudrate(fd, _baudrate)
+		    && uxr_init_serial_transport(_transport_serial, fd, remote_addr, local_addr)
+		   ) {
+			PX4_INFO("init serial %s @ %d baud", _device, _baudrate);
 
-			} else {
-				PX4_ERR("uxr_init_serial_transport failed");
-			}
+			_comm = &_transport_serial->comm;
+			_fd = fd;
+
+			return true;
 		}
 
-	} else if (transport == Transport::Udp) {
+		PX4_ERR("init serial %s @ %d baud failed", _device, _baudrate);
+		close(fd);
 
-#if defined(UXRCE_DDS_CLIENT_UDP)
-		_transport_udp = new uxrUDPTransport();
-		strncpy(_port, port, PORT_MAX_LENGTH - 1);
-		strncpy(_agent_ip, agent_ip, AGENT_IP_MAX_LENGTH - 1);
+		delete _transport_serial;
+		_transport_serial = nullptr;
 
-		if (_transport_udp) {
-			if (uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
-				_comm = &_transport_udp->comm;
-				_fd = _transport_udp->platform.poll_fd.fd;
-
-			} else {
-				PX4_ERR("uxr_init_udp_transport failed");
-			}
-		}
-
-
-#else
-		PX4_ERR("UDP not supported");
-#endif
+		return false;
 	}
 
-	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
-	_synchronize_timestamps = _param_uxrce_dds_synct.get() > 0;
+#if defined(UXRCE_DDS_CLIENT_UDP)
+
+	if (_transport == Transport::Udp) {
+		_transport_udp = new uxrUDPTransport();
+
+		if (_transport_udp && uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
+
+			PX4_INFO("init UDP agent IP:%s, port:%s", _agent_ip, _port);
+
+			_comm = &_transport_udp->comm;
+			_fd = _transport_udp->platform.poll_fd.fd;
+
+			return true;
+
+		} else {
+			PX4_ERR("init UDP agent IP:%s, port:%s failed", _agent_ip, _port);
+		}
+	}
+
+#endif // UXRCE_DDS_CLIENT_UDP
+
+	return false;
+}
+
+void UxrceddsClient::deinit()
+{
+	if (_fd >= 0) {
+		close(_fd);
+		_fd = -1;
+	}
+
+	if (_transport_serial) {
+		uxr_close_serial_transport(_transport_serial);
+		delete _transport_serial;
+		_transport_serial = nullptr;
+	}
+
+#if defined(UXRCE_DDS_CLIENT_UDP)
+
+	if (_transport_udp) {
+		uxr_close_udp_transport(_transport_udp);
+		delete _transport_udp;
+		_transport_udp = nullptr;
+	}
+
+#endif // UXRCE_DDS_CLIENT_UDP
+
+	_comm = nullptr;
 }
 
 UxrceddsClient::~UxrceddsClient()
@@ -184,10 +223,17 @@ UxrceddsClient::~UxrceddsClient()
 		delete _transport_serial;
 	}
 
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
+
+#if defined(UXRCE_DDS_CLIENT_UDP)
+
 	if (_transport_udp) {
 		uxr_close_udp_transport(_transport_udp);
 		delete _transport_udp;
 	}
+
+#endif // UXRCE_DDS_CLIENT_UDP
 }
 
 static void fillMessageFormatResponse(const message_format_request_s &message_format_request,
@@ -286,11 +332,6 @@ void UxrceddsClient::syncSystemClock(uxrSession *session)
 
 void UxrceddsClient::run()
 {
-	if (!_comm) {
-		PX4_ERR("init failed");
-		return;
-	}
-
 	_subs = new SendTopicsSubs();
 	_pubs = new RcvTopicsPubs();
 
@@ -300,6 +341,17 @@ void UxrceddsClient::run()
 	}
 
 	while (!should_exit()) {
+
+		while (!should_exit() && !_comm) {
+			if (!init()) {
+				// sleep before trying again
+				px4_usleep(1'000'000);
+			}
+		}
+
+		_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
+		_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
+
 		bool got_response = false;
 
 		while (!should_exit() && !got_response) {
@@ -419,9 +471,9 @@ void UxrceddsClient::run()
 		}
 
 		// create VehicleCommand replier
-		if (num_of_repliers < MAX_NUM_REPLIERS) {
+		if (_num_of_repliers < MAX_NUM_REPLIERS) {
 			if (add_replier(new VehicleCommandSrv(&session, reliable_out, reliable_in, participant_id, _client_namespace,
-							      num_of_repliers))) {
+							      _num_of_repliers))) {
 				PX4_ERR("replier init failed");
 				return;
 			}
@@ -451,7 +503,7 @@ void UxrceddsClient::run()
 				break;
 			}
 
-			px4_usleep(10_ms);
+			px4_usleep(10'000);
 		}
 
 		hrt_abstime last_sync_session = 0;
@@ -467,45 +519,48 @@ void UxrceddsClient::run()
 
 		while (!should_exit() && _connected) {
 
-			/* Wait for topic updates for max 1000 ms (1sec) */
-			int poll = px4_poll(&_subs->fds[0], (sizeof(_subs->fds) / sizeof(_subs->fds[0])), 1000);
+			perf_begin(_loop_perf);
+			perf_count(_loop_interval_perf);
 
-			/* Handle the poll results */
-			if (poll == 0) {
-				/* Timeout, no updates in selected uorbs */
-				continue;
+			int orb_poll_timeout_ms = 10;
 
-			} else if (poll < 0) {
-				/* Error */
-				if (poll_error_counter < 10 || poll_error_counter % 50 == 0) {
-					/* Prevent flooding */
-					PX4_ERR("ERROR while polling uorbs: %d", poll);
+			int bytes_available = 0;
+
+			if (ioctl(_fd, FIONREAD, (unsigned long)&bytes_available) == OK) {
+				if (bytes_available > 10) {
+					orb_poll_timeout_ms = 0;
 				}
-
-				poll_error_counter++;
-				continue;
 			}
 
-			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
+			/* Wait for topic updates for max 10 ms */
+			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), orb_poll_timeout_ms);
+
+			/* Handle the poll results */
+			if (poll > 0) {
+				_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
+
+			} else {
+				if (poll < 0) {
+					// poll error
+					if (poll_error_counter < 10 || poll_error_counter % 50 == 0) {
+						// prevent flooding
+						PX4_ERR("ERROR while polling uorbs: %d", poll);
+					}
+
+					poll_error_counter++;
+				}
+			}
+
+			// run session with 0 timeout (non-blocking)
+			uxr_run_session_timeout(&session, 0);
 
 			// check if there are available replies
 			process_replies();
 
-			// Run the session until we receive no more data or up to a maximum number of iterations.
-			// The maximum observed number of iterations was 6 (SITL). If we were to run only once, data starts to get
-			// delayed, causing registered flight modes to time out.
-			for (int i = 0; i < 10; ++i) {
-				const uint32_t prev_num_payload_received = _pubs->num_payload_received;
-				uxr_run_session_timeout(&session, 0);
-
-				if (_pubs->num_payload_received == prev_num_payload_received) {
-					break;
-				}
-			}
-
 			// time sync session
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
-				if (uxr_sync_session(&session, 100) && _timesync.sync_converged()) {
+
+				if (uxr_sync_session(&session, 10) && _timesync.sync_converged()) {
 					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
 
@@ -513,6 +568,15 @@ void UxrceddsClient::run()
 						syncSystemClock(&session);
 					}
 				}
+
+				if (!_timesync_converged && _timesync.sync_converged()) {
+					PX4_INFO("time sync converged");
+
+				} else if (_timesync_converged && !_timesync.sync_converged()) {
+					PX4_WARN("time sync no longer converged");
+				}
+
+				_timesync_converged = _timesync.sync_converged();
 			}
 
 			handleMessageFormatRequest();
@@ -534,26 +598,37 @@ void UxrceddsClient::run()
 				last_status_update = now;
 			}
 
-			// Handle ping
-			if (now - last_ping > 500_ms) {
+			// Handle ping, unless we're actively sending & receiving payloads successfully
+			if ((_last_payload_tx_rate > 0) && (_last_payload_rx_rate > 0)) {
+				_connected = true;
+				num_pings_missed = 0;
 				last_ping = now;
 
-				if (had_ping_reply) {
-					num_pings_missed = 0;
+			} else {
+				if (hrt_elapsed_time(&last_ping) > 1_s) {
+					last_ping = now;
 
-				} else {
-					++num_pings_missed;
+					if (had_ping_reply) {
+						num_pings_missed = 0;
+
+					} else {
+						++num_pings_missed;
+					}
+
+					int timeout_ms = 1'000; // 1 second
+					uint8_t attempts = 1;
+					uxr_ping_agent_session(&session, timeout_ms, attempts);
+
+					had_ping_reply = false;
 				}
 
-				uxr_ping_agent_session(&session, 0, 1);
-
-				had_ping_reply = false;
+				if (num_pings_missed >= 3) {
+					PX4_INFO("No ping response, disconnecting");
+					_connected = false;
+				}
 			}
 
-			if (num_pings_missed > 2) {
-				PX4_INFO("No ping response, disconnecting");
-				_connected = false;
-			}
+			perf_end(_loop_perf);
 
 		}
 
@@ -567,7 +642,7 @@ void UxrceddsClient::run()
 	}
 }
 
-int UxrceddsClient::setBaudrate(int fd, unsigned baud)
+bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 {
 	int speed;
 
@@ -640,7 +715,7 @@ int UxrceddsClient::setBaudrate(int fd, unsigned baud)
 
 	default:
 		PX4_ERR("ERR: unknown baudrate: %d", baud);
-		return -EINVAL;
+		return false;
 	}
 
 	struct termios uart_config;
@@ -688,28 +763,28 @@ int UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
 		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
-		return -1;
+		return false;
 	}
 
 	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
 		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
-		return -1;
+		return false;
 	}
 
 	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
 		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
-		return -1;
+		return false;
 	}
 
-	return 0;
+	return true;
 }
 
 bool UxrceddsClient::add_replier(SrvBase *replier)
 {
-	if (num_of_repliers < MAX_NUM_REPLIERS) {
-		repliers_[num_of_repliers] = replier;
+	if (_num_of_repliers < MAX_NUM_REPLIERS) {
+		_repliers[_num_of_repliers] = replier;
 
-		num_of_repliers++;
+		_num_of_repliers++;
 	}
 
 	return false;
@@ -718,11 +793,12 @@ bool UxrceddsClient::add_replier(SrvBase *replier)
 void UxrceddsClient::process_requests(uxrObjectId object_id, SampleIdentity *sample_id, ucdrBuffer *ub,
 				      const int64_t time_offset_us)
 {
-	for (uint8_t i = 0; i < num_of_repliers; i++) {
-		if (object_id.id == repliers_[i]->replier_id_.id
-		    && object_id.type == repliers_[i]->replier_id_.type) {
-			repliers_[i]->process_request(ub, time_offset_us);
-			memcpy(&(repliers_[i]->sample_id_), sample_id, sizeof(repliers_[i]->sample_id_));
+	for (uint8_t i = 0; i < _num_of_repliers; i++) {
+		if (object_id.id == _repliers[i]->replier_id_.id
+		    && object_id.type == _repliers[i]->replier_id_.type) {
+
+			_repliers[i]->process_request(ub, time_offset_us);
+			memcpy(&(_repliers[i]->sample_id_), sample_id, sizeof(_repliers[i]->sample_id_));
 			break;
 		}
 	}
@@ -730,18 +806,19 @@ void UxrceddsClient::process_requests(uxrObjectId object_id, SampleIdentity *sam
 
 void UxrceddsClient::process_replies()
 {
-	for (uint8_t i = 0; i < num_of_repliers; i++) {
-		repliers_[i]->process_reply();
+	for (uint8_t i = 0; i < _num_of_repliers; i++) {
+		_repliers[i]->process_reply();
 	}
 }
 
 void UxrceddsClient::delete_repliers()
 {
-	for (uint8_t i = 0; i < num_of_repliers; i++) {
-		delete (repliers_[i]);
+	for (uint8_t i = 0; i < _num_of_repliers; i++) {
+		delete (_repliers[i]);
+		_repliers[i] = nullptr;
 	}
 
-	num_of_repliers = 0;
+	_num_of_repliers = 0;
 }
 
 int UxrceddsClient::custom_command(int argc, char *argv[])
@@ -789,6 +866,11 @@ int UxrceddsClient::print_status()
 		PX4_INFO("Payload tx:          %i B/s", _last_payload_tx_rate);
 		PX4_INFO("Payload rx:          %i B/s", _last_payload_rx_rate);
 	}
+
+	PX4_INFO("timesync converged: %s", _timesync.sync_converged() ? "true" : "false");
+
+	perf_print_counter(_loop_perf);
+	perf_print_counter(_loop_interval_perf);
 
 	return 0;
 }

@@ -1030,3 +1030,17 @@ PARAM_DEFINE_INT32(COM_THROW_EN, 0);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
+
+/**
+ * Remaining flight time low failsafe
+ *
+ * Action the system takes when the remaining flight time is below
+ * the estimated time it takes to reach the RTL destination.
+ *
+ * @group Commander
+ * @value 0 None
+ * @value 1 Warning
+ * @value 3 Return
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);

@@ -107,6 +107,12 @@ private:
 	void setRtlTypeAndDestination();
 
 	/**
+	 * @brief Publish the remaining time estimate to go to the RTL landing point.
+	 *
+	 */
+	void publishRemainingTimeEstimate();
+
+	/**
 	 * @brief Find RTL destination.
 	 *
 	 */
