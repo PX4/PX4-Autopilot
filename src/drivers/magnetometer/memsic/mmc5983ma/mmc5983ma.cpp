@@ -69,72 +69,75 @@ int MMC5983MA::init()
 void MMC5983MA::RunImpl()
 {
 	switch (_state) {
-	case State::Measure:
-	{
-		auto start_time = hrt_absolute_time();
+	case State::Measure: {
+			auto start_time = hrt_absolute_time();
 
-		write_register(MMC5983MA_ADDR_CTRL_REG0, MMC5983MA_CTRL_REG0_TM_M);
+			write_register(MMC5983MA_ADDR_CTRL_REG0, MMC5983MA_CTRL_REG0_TM_M);
 
-		_collect_retries = 0;
-		_state = State::Collect;
-
-		auto elapsed = hrt_elapsed_time(&start_time);
-		if (elapsed > 5_ms) {
-			ScheduleNow();
-		} else {
-			ScheduleDelayed(5_ms - elapsed);
-		}
-
-		return;
-	}
-	case State::Collect:
-	{
-		auto start_time = hrt_absolute_time();
-
-		uint8_t status = read_register(MMC5983MA_ADDR_STATUS_REG);
-
-		if (status & MMC5983MA_STATUS_REG_MEAS_M_DONE) {
-			SensorData data = {};
-
-			if (read_register_block(&data) != PX4_OK) {
-				PX4_DEBUG("read failed");
-				perf_count(_comms_errors);
-				_state = State::Measure;
-				_sample_index = 0;
-				ScheduleDelayed(100_ms);
-				return;
-			}
-
-			// Measurement available
-			_measurements[_sample_index] = data;
-			_sample_index++;
-
-			if (_sample_index > 1) {
-				publish_data();
-				_sample_index = 0;
-				perf_count(_sample_perf);
-			}
-
-			_state = State::Measure;
+			_collect_retries = 0;
+			_state = State::Collect;
 
 			auto elapsed = hrt_elapsed_time(&start_time);
+
 			if (elapsed > 5_ms) {
 				ScheduleNow();
+
 			} else {
 				ScheduleDelayed(5_ms - elapsed);
 			}
 
 			return;
-
-		} else {
-			PX4_DEBUG("not ready");
-			perf_count(_comms_errors);
-			_collect_retries++;
-			_state = _collect_retries > 3 ? State::Measure : State::Collect;
-			ScheduleDelayed(5_ms);
-			return;
 		}
-	}
+
+	case State::Collect: {
+			auto start_time = hrt_absolute_time();
+
+			uint8_t status = read_register(MMC5983MA_ADDR_STATUS_REG);
+
+			if (status & MMC5983MA_STATUS_REG_MEAS_M_DONE) {
+				SensorData data = {};
+
+				if (read_register_block(&data) != PX4_OK) {
+					PX4_DEBUG("read failed");
+					perf_count(_comms_errors);
+					_state = State::Measure;
+					_sample_index = 0;
+					ScheduleDelayed(100_ms);
+					return;
+				}
+
+				// Measurement available
+				_measurements[_sample_index] = data;
+				_sample_index++;
+
+				if (_sample_index > 1) {
+					publish_data();
+					_sample_index = 0;
+					perf_count(_sample_perf);
+				}
+
+				_state = State::Measure;
+
+				auto elapsed = hrt_elapsed_time(&start_time);
+
+				if (elapsed > 5_ms) {
+					ScheduleNow();
+
+				} else {
+					ScheduleDelayed(5_ms - elapsed);
+				}
+
+				return;
+
+			} else {
+				PX4_DEBUG("not ready");
+				perf_count(_comms_errors);
+				_collect_retries++;
+				_state = _collect_retries > 3 ? State::Measure : State::Collect;
+				ScheduleDelayed(5_ms);
+				return;
+			}
+		}
 	} // end switch/case
 }
 
