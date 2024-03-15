@@ -56,11 +56,6 @@ public:
 	SubscriptionBlocking(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
 		SubscriptionCallback(meta, interval_us, instance)
 	{
-//  PTHREAD_PRIO_NONE not available on cygwin
-//  It is on Qurt but it will fail to initialize the mutex with it for some reason.
-//  The mutex is created with defaults using PTHREAD_MUTEX_INITIALIZER. It only needs
-//  to be changed if PTHREAD_PRIO_NONE is defined
-#if defined(PTHREAD_PRIO_NONE) && not defined(__PX4_QURT)
 		// pthread_mutexattr_init
 		pthread_mutexattr_t attr;
 		int ret_attr_init = pthread_mutexattr_init(&attr);
@@ -69,12 +64,17 @@ public:
 			PX4_ERR("pthread_mutexattr_init failed, status=%d", ret_attr_init);
 		}
 
+#if defined(PTHREAD_PRIO_NONE) && not defined(__PX4_QURT)
 		// pthread_mutexattr_settype
+		//  PTHREAD_PRIO_NONE not available on cygwin
+		//  It is on Qurt but it will fail to initialize the mutex with it for some reason.
 		int ret_mutexattr_settype = pthread_mutexattr_settype(&attr, PTHREAD_PRIO_NONE);
 
 		if (ret_mutexattr_settype != 0) {
 			PX4_ERR("pthread_mutexattr_settype failed, status=%d", ret_mutexattr_settype);
 		}
+
+#endif // PTHREAD_PRIO_NONE && not __PX4_QURT
 
 		// pthread_mutex_init
 		int ret_mutex_init = pthread_mutex_init(&_mutex, &attr);
@@ -82,8 +82,6 @@ public:
 		if (ret_mutex_init != 0) {
 			PX4_ERR("pthread_mutex_init failed, status=%d", ret_mutex_init);
 		}
-
-#endif // PTHREAD_PRIO_NONE
 	}
 
 	virtual ~SubscriptionBlocking()
