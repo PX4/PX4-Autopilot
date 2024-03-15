@@ -56,10 +56,8 @@ int MMC5983MA::init()
 	write_register(MMC5983MA_ADDR_CTRL_REG2, MMC5983MA_CTRL_REG1_SW_RESET);
 	px4_usleep(20_ms);
 
-	// Triggered mode with degaussing (averaging two samples), 18-bit resolution, automatic set/reset
-	write_register(MMC5983MA_ADDR_CTRL_REG0, MMC5983MA_CTRL_REG0_AUTO_SR_EN);
+	// Set measurement BW to 200HZ
 	write_register(MMC5983MA_ADDR_CTRL_REG1, MMC5983MA_CTRL_REG1_BW_200HZ);
-	write_register(MMC5983MA_ADDR_CTRL_REG2, MMC5983MA_CTRL_REG2_EN_PRD_SET);
 
 	ScheduleNow();
 
@@ -68,11 +66,25 @@ int MMC5983MA::init()
 
 void MMC5983MA::RunImpl()
 {
+	// The measure/collect loop uses the set/reset functionality of the chip to eliminate temperature related bias
+	// by reversing the polarity of the sensing element and taking the difference of the two measurements to eliminate
+	// the offset and then dividing by 2 to arrive at the true value of the field measurement.
+	//
+	// The measurement will contain not only the sensors response to the external magnetic field, H, but also the Offset.
+	//
+	// Output1 = +H + Offset
+	// Output2 = -H + Offset
+	// Measurment = (Output1 - Output2) / 2
+	//
+	// Please refer to Page 18 of the datasheet
+	// https://www.memsic.com/Public/Uploads/uploadfile/files/20220119/MMC5983MADatasheetRevA.pdf
+
 	switch (_state) {
 	case State::Measure: {
 			auto start_time = hrt_absolute_time();
 
-			write_register(MMC5983MA_ADDR_CTRL_REG0, MMC5983MA_CTRL_REG0_TM_M);
+			uint8_t set_reset_flag = _sample_index == 0 ? MMC5983MA_CTRL_REG0_SET : MMC5983MA_CTRL_REG0_RESET;
+			write_register(MMC5983MA_ADDR_CTRL_REG0, MMC5983MA_CTRL_REG0_TM_M | set_reset_flag);
 
 			_collect_retries = 0;
 			_state = State::Collect;
@@ -90,6 +102,7 @@ void MMC5983MA::RunImpl()
 		}
 
 	case State::Collect: {
+
 			auto start_time = hrt_absolute_time();
 
 			uint8_t status = read_register(MMC5983MA_ADDR_STATUS_REG);
@@ -157,10 +170,6 @@ void MMC5983MA::publish_data()
 	uint32_t zraw_2 = (_measurements[1].zout0 << 10) | (_measurements[1].zout1 << 2) | ((
 				  _measurements[1].xyzout2 & 0b00001100) >> 2);
 
-	float xrawf = float(xraw_1 + xraw_2) / 2.f;
-	float yrawf = float(yraw_1 + yraw_2) / 2.f;
-	float zrawf = float(zraw_1 + zraw_2) / 2.f;
-
 	// NOTE: Temperature conversions did not work
 	// float trawf = float(_measurements[0].tout + _measurements[1].tout) / 2.f;
 	// float temp_c = trawf * 0.8f - 75.f;
@@ -168,9 +177,15 @@ void MMC5983MA::publish_data()
 
 	// +/- 8 Gauss full scale range
 	// 18-bit mode scaling factor: 0.0625 mG/LSB
-	float x = 8.f - (xrawf * 0.0625f) / 1e3f;
-	float y = 8.f - (yrawf * 0.0625f) / 1e3f;
-	float z = 8.f - (zrawf * 0.0625f) / 1e3f;
+	float x1 = 8.f - (float(xraw_1) * 0.0625f) / 1e3f;
+	float x2 = 8.f - (float(xraw_2) * 0.0625f) / 1e3f;
+	float y1 = 8.f - (float(yraw_1) * 0.0625f) / 1e3f;
+	float y2 = 8.f - (float(yraw_2) * 0.0625f) / 1e3f;
+	float z1 = 8.f - (float(zraw_1) * 0.0625f) / 1e3f;
+	float z2 = 8.f - (float(zraw_2) * 0.0625f) / 1e3f;
+	float x = (x1 - x2) / 2.f;
+	float y = (y1 - y2) / 2.f;
+	float z = (z1 - z2) / 2.f;
 
 	_px4_mag.update(hrt_absolute_time(), x, y, z);
 	_px4_mag.set_error_count(perf_event_count(_comms_errors));

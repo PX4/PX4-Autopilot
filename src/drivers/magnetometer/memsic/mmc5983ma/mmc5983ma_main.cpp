@@ -31,11 +31,8 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/getopt.h>
-
 #include "mmc5983ma.h"
+#include <px4_platform_common/module.h>
 
 I2CSPIDriverBase *MMC5983MA::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {

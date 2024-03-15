@@ -33,37 +33,24 @@
 
 #pragma once
 
-#include <drivers/device/i2c.h>
-#include <drivers/drv_hrt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <lib/perf/perf_counter.h>
-#include <px4_platform_common/defines.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
-/* MMC5983MA Registers */
+// MMC5983MA Registers
 #define MMC5983MA_ADDR_XOUT_0           0x00
-#define MMC5983MA_ADDR_XOUT_1           0x01
-#define MMC5983MA_ADDR_YOUT_0           0x02
-#define MMC5983MA_ADDR_YOUT_1           0x03
-#define MMC5983MA_ADDR_ZOUT_0           0x04
-#define MMC5983MA_ADDR_ZOUT_1           0x05
-#define MMC5983MA_ADDR_XYZOUT2          0x06
-#define MMC5983MA_ADDR_TEMPERATURE      0x07
 #define MMC5983MA_ADDR_STATUS_REG       0x08
 #define MMC5983MA_ADDR_CTRL_REG0        0x09
 #define MMC5983MA_ADDR_CTRL_REG1        0x0A
 #define MMC5983MA_ADDR_CTRL_REG2        0x0B
-#define MMC5983MA_ADDR_CTRL_REG3        0x0C
 #define MMC5983MA_ADDR_PRODUCT_ID       0x2F
-/* MMC5983MA Definitions */
-#define MMC5983MA_PRODUCT_ID            0x30
-/* MMC5983MA Bit Definitions */
+// MMC5983MA Definitions
+#define MMC5983MA_PRODUCT_ID            	0x30
 #define MMC5983MA_STATUS_REG_MEAS_M_DONE (1 << 0)
 #define MMC5983MA_CTRL_REG0_TM_M         (1 << 0)
-#define MMC5983MA_CTRL_REG0_TM_T         (1 << 1)
-#define MMC5983MA_CTRL_REG0_AUTO_SR_EN   (1 << 5)
+#define MMC5983MA_CTRL_REG0_SET          (1 << 3)
+#define MMC5983MA_CTRL_REG0_RESET        (1 << 4)
+
 #define MMC5983MA_CTRL_REG1_BW_200HZ     (0b00000001)
-#define MMC5983MA_CTRL_REG2_EN_PRD_SET   (1 << 7)
 #define MMC5983MA_CTRL_REG1_SW_RESET     (1 << 7)
 
 extern device::Device *MMC5983MA_I2C_interface(const I2CSPIDriverConfig &config);
