@@ -517,12 +517,16 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		}
 
+		returned_state.cause = Cause::Generic;
+
 	// fallthrough
 	case Action::FallbackAltCtrl:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_ALTCTL)) {
 			selected_action = Action::FallbackAltCtrl;
 			break;
 		}
+
+		returned_state.cause = Cause::Generic;
 
 	// fallthrough
 	case Action::FallbackStab:
@@ -531,12 +535,16 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		} // else: fall through here as well. If stabilized isn't available, we most certainly end up in Terminate
 
+		returned_state.cause = Cause::Generic;
+
 	// fallthrough
 	case Action::Hold:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
 			selected_action = Action::Hold;
 			break;
 		}
+
+		returned_state.cause = Cause::Generic;
 
 	// fallthrough
 	case Action::RTL:
@@ -545,6 +553,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		}
 
+		returned_state.cause = Cause::Generic;
+
 	// fallthrough
 	case Action::Land:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
@@ -552,12 +562,16 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			break;
 		}
 
+		returned_state.cause = Cause::Generic;
+
 	// fallthrough
 	case Action::Descend:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_DESCEND)) {
 			selected_action = Action::Descend;
 			break;
 		}
+
+		returned_state.cause = Cause::Generic;
 
 	// fallthrough
 	case Action::Terminate:
