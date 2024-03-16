@@ -63,9 +63,19 @@ void BoatPosControl::parameters_update()
 		// this class attributes need updating (and do so).
 		updateParams();
 	}
+	// init velocity controller
 	pid_init(&_velocity_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
 	pid_set_parameters(&_velocity_pid,
 			   _param_usv_speed_p.get(),  // Proportional gain
+			   0,  // Integral gain
+			   0,  // Derivative gain
+			   2,  // Integral limit
+			   200);  // Output limit
+
+	// init yaw rate controller
+	pid_init(&_yaw_rate_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
+	pid_set_parameters(&_yaw_rate_pid,
+			   _param_usv_yaw_rate_p.get(),  // Proportional gain
 			   0,  // Integral gain
 			   0,  // Derivative gain
 			   2,  // Integral limit
@@ -83,6 +93,12 @@ void BoatPosControl::Run()
 {
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
+	/* advertise debug value */
+	struct debug_key_value_s dbg;
+	strncpy(dbg.key, "yaw", sizeof(dbg.key));
+	dbg.value = 0.0f;
+	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
@@ -90,8 +106,6 @@ void BoatPosControl::Run()
 	}
 	parameters_update();
 	vehicle_attitude_poll();
-
-	vehicle_control_mode_s vehicle_control_mode;
 
 	vehicle_thrust_setpoint_s v_thrust_sp{};
 	v_thrust_sp.timestamp = hrt_absolute_time();
@@ -103,6 +117,12 @@ void BoatPosControl::Run()
 	v_torque_sp.timestamp = hrt_absolute_time();
 	v_torque_sp.xyz[0] = 0.f;
 	v_torque_sp.xyz[1] = 0.f;
+
+	const Quatf q{_vehicle_att.q};
+	const float yaw = Eulerf(q).psi();
+
+	dbg.value = yaw;
+	orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 
 	if (_vehicle_control_mode_sub.updated()) {
 
@@ -122,40 +142,38 @@ void BoatPosControl::Run()
 
 			// Speed control
 			float _thrust = pid_calculate(&_velocity_pid, _manual_control_setpoint.throttle*7.f, vel(0), 0, dt);
-
-			v_thrust_sp.xyz[0] = _thrust;
-			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
-
+			_thrust = _thrust + 0.f;
 
 			// yaw rate control
-			v_torque_sp.xyz[2] = 0.f;
+			yaw_setpoint += _manual_control_setpoint.roll*0.1f;
+
+			float _torque_sp = pid_calculate(&_yaw_rate_pid, yaw_setpoint, yaw, 0, dt);
+
+			v_thrust_sp.xyz[0] = 0;
+			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+
+			v_torque_sp.xyz[2] = -_torque_sp;
 			_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 		}
 	}
 	else if (_armed && vehicle_control_mode.flag_control_manual_enabled) {
-		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)){
+		_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
+		v_thrust_sp.xyz[0] = _manual_control_setpoint.throttle;
+		_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 
-			v_thrust_sp.xyz[0] = _manual_control_setpoint.throttle;
-			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+		v_torque_sp.xyz[2] = -_manual_control_setpoint.roll*0.1f;
+		_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 
-			v_torque_sp.xyz[2] = _manual_control_setpoint.roll;
-			_vehicle_torque_setpoint_pub.publish(v_torque_sp);
-		}
 
 	}
 	else {
-
-			v_thrust_sp.xyz[0] = 0.0f;
-			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
-
-
-
-			v_torque_sp.xyz[0] = 0.f;
-			v_torque_sp.xyz[1] = 0.f;
-			v_torque_sp.xyz[2] = 0.f;
-			_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+		v_thrust_sp.xyz[0] = 0.0f;
+		_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+		v_torque_sp.xyz[0] = 0.f;
+		v_torque_sp.xyz[1] = 0.f;
+		v_torque_sp.xyz[2] = 0.f;
+		_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 	}
-
 
 }
 

@@ -12,4 +12,13 @@ parameters:
         increment: 0.001
         decimal: 3
         default: 1
+      USV_YAW_RATE_P:
+        description:
+          short: Yaw rate proportional gain
+        type: float
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0.1
 
