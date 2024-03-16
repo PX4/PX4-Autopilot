@@ -5,7 +5,13 @@
 ekf2 start &
 
 # Start rover differential drive controller.
-differential_drive_control start
+#differential_drive_control start
+control_allocator start
+
+# We use rover start script to test the controller
+# Start boat position controller.
+boat_pos_control start
+
 
 # Start Land Detector.
 land_detector start rover

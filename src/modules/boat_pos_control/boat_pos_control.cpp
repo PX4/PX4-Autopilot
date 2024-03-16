@@ -145,11 +145,11 @@ void BoatPosControl::Run()
 			_thrust = _thrust + 0.f;
 
 			// yaw rate control
-			yaw_setpoint += _manual_control_setpoint.roll*0.1f;
+			//yaw_setpoint += _manual_control_setpoint.roll*0.1f;
 
-			float _torque_sp = pid_calculate(&_yaw_rate_pid, yaw_setpoint, yaw, 0, dt);
+			float _torque_sp = pid_calculate(&_yaw_rate_pid, 0.f, yaw, 0, dt);
 
-			v_thrust_sp.xyz[0] = 0;
+			v_thrust_sp.xyz[0] = _thrust;
 			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 
 			v_torque_sp.xyz[2] = -_torque_sp;

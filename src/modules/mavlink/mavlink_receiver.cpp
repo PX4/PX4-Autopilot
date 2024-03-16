@@ -2087,7 +2087,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual_control_setpoint.pitch = mavlink_manual_control.x / 1000.f;
 	manual_control_setpoint.roll = mavlink_manual_control.y / 1000.f;
 	// For backwards compatibility at the moment interpret throttle in range [0,1000]
-	manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f;
+	//manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f;
+	manual_control_setpoint.throttle = mavlink_manual_control.z / 1000.f;
 	manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f;
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
