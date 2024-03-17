@@ -51,7 +51,7 @@
 #include <lib/crc/crc.h>
 #include <lib/systemlib/px4_macros.h>
 
-#if defined(BOARD_HAS_HW_VERSIONING)
+#if defined(BOARD_HAS_HW_VERSIONING) || defined(BOARD_HAS_HW_SPLIT_VERSIONING)
 
 #  if defined(GPIO_HW_VER_REV_DRIVE)
 #    define GPIO_HW_REV_DRIVE GPIO_HW_VER_REV_DRIVE
@@ -67,7 +67,9 @@
 static int hw_version = 0;
 static int hw_revision = 0;
 static char hw_info[HW_INFO_SIZE] = {0};
-
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+static char hw_base_info[HW_INFO_SIZE] = {0};
+#endif
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
@@ -366,6 +368,27 @@ __EXPORT const char *board_get_hw_type_name()
 	return (const char *) hw_info;
 }
 
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+/************************************************************************************
+ * Name: board_get_hw_base_type_name
+ *
+ * Description:
+ *   Optional returns a 0 terminated string defining the base type.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   a 0 terminated string defining the HW type. This my be a 0 length string ""
+ *
+ ************************************************************************************/
+
+__EXPORT const char *board_get_hw_base_type_name()
+{
+	return (const char *) hw_base_info;
+}
+#endif
+
 /************************************************************************************
  * Name: board_get_hw_version
  *
@@ -467,7 +490,12 @@ int board_determine_hw_info()
 	}
 
 	if (rv == OK) {
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+		snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_FMUM_SUFFIX, GET_HW_FMUM_ID());
+		snprintf(hw_base_info, sizeof(hw_info), HW_INFO_BASE_SUFFIX, GET_HW_BASE_ID());
+#else
 		snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX, hw_version, hw_revision);
+#endif
 	}
 
 	return rv;

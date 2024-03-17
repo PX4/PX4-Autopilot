@@ -267,12 +267,42 @@
 
 // This is the ENET_1G interface.
 
+// Compile time selection
 #if defined(CONFIG_ETH0_PHY_TJA1103)
 #  define BOARD_PHY_ADDR (18)
 #endif
 #if defined(CONFIG_ETH0_PHY_LAN8742A)
 #  define BOARD_PHY_ADDR (0)
 #endif
+
+/* Run time selection see mii.h */
+
+#define BOARD_ETH0_PHY_LIST \
+	{                                   \
+		"LAN8742A",                      \
+		MII_PHYID1_LAN8742A,             \
+		MII_PHYID2_LAN8742A,             \
+		MII_LAN8740_SCSR,                \
+		0,                               \
+		0xffff,                          \
+		MII_LAN8720_SPSCR_10MBPS,        \
+		MII_LAN8720_SPSCR_100MBPS,       \
+		MII_LAN8720_SPSCR_DUPLEX,        \
+		22,                              \
+	},                                  \
+	{                                   \
+		"TJA1103",                       \
+		MII_PHYID1_TJA1103,              \
+		MII_PHYID2_TJA1103,              \
+		0xffff,                          \
+		18,                              \
+		0xffff,                          \
+		0,                               \
+		MII_LAN8720_SPSCR_100MBPS,       \
+		MII_LAN8720_SPSCR_DUPLEX,        \
+		45,                              \
+	},                                  \
+
 
 #define GPIO_ENET2_TX_DATA00  (GPIO_ENET_1G_TX_DATA0_1|IOMUX_ENET_DATA_DEFAULT)  /* GPIO_DISP_B1_09 */
 #define GPIO_ENET2_TX_DATA01  (GPIO_ENET_1G_TX_DATA1_1|IOMUX_ENET_DATA_DEFAULT)  /* GPIO_DISP_B1_08 */
@@ -292,16 +322,20 @@
 #include <imxrt_gpio.h>
 #include <imxrt_iomuxc.h>
 // add     -I<full path> build/px4_fmu-v6xrt_default/NuttX/nuttx/arch/arm/src/chip \ to NuttX Makedefs.in
-#define PROBE_IOMUX (IOMUX_SPEED_MAX | IOMUX_SLEW_FAST | IOMUX_DRIVE_33OHM  | IOMUX_CMOS_OUTPUT | IOMUX_PULL_NONE)
+#define PROBE_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_SLEW_FAST)
 # define PROBE_N(n) (1<<((n)-1))
-# define PROBE_1 /* GPIO_B0_06    */  (GPIO_PORT2 | GPIO_PIN6  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
-# define PROBE_2 /* GPIO_EMC_08   */  (GPIO_PORT4 | GPIO_PIN8  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
-# define PROBE_3 /* GPIO_EMC_10   */  (GPIO_PORT4 | GPIO_PIN10 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
-# define PROBE_4 /* GPIO_AD_B0_09 */  (GPIO_PORT1 | GPIO_PIN9  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
-# define PROBE_5 /* GPIO_EMC_33   */  (GPIO_PORT3 | GPIO_PIN19 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
-# define PROBE_6 /* GPIO_EMC_30   */  (GPIO_PORT4 | GPIO_PIN30 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
-# define PROBE_7 /* GPIO_EMC_04   */  (GPIO_PORT4 | GPIO_PIN4  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
-# define PROBE_8 /* GPIO_EMC_01   */  (GPIO_PORT4 | GPIO_PIN1  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_1  /* GPIO_EMC_B1_23 */  (GPIO_PORT1 | GPIO_PIN23 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_2  /* GPIO_EMC_B1_25 */  (GPIO_PORT1 | GPIO_PIN25 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_3  /* GPIO_EMC_B1_27 */  (GPIO_PORT1 | GPIO_PIN27 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_4  /* GPIO_EMC_B1_06 */  (GPIO_PORT1 | GPIO_PIN6  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_5  /* GPIO_EMC_B1_08 */  (GPIO_PORT1 | GPIO_PIN8  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_6  /* GPIO_EMC_B1_10 */  (GPIO_PORT1 | GPIO_PIN10 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_7  /* GPIO_EMC_B1_19 */  (GPIO_PORT1 | GPIO_PIN19 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_8  /* GPIO_EMC_B1_29 */  (GPIO_PORT1 | GPIO_PIN29 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_9  /* GPIO_EMC_B1_31 */  (GPIO_PORT1 | GPIO_PIN31 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_10 /* GPIO_EMC_B1_21 */  (GPIO_PORT1 | GPIO_PIN21 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_11 /* GPIO_EMC_B1_00 */  (GPIO_PORT1 | GPIO_PIN0  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
+# define PROBE_12 /* GPIO_EMC_B1_02 */  (GPIO_PORT1 | GPIO_PIN2  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
 
 # define PROBE_INIT(mask) \
 	do { \
@@ -313,6 +347,10 @@
 		if ((mask)& PROBE_N(6)) { imxrt_config_gpio(PROBE_6); } \
 		if ((mask)& PROBE_N(7)) { imxrt_config_gpio(PROBE_7); } \
 		if ((mask)& PROBE_N(8)) { imxrt_config_gpio(PROBE_8); } \
+		if ((mask)& PROBE_N(9)) { imxrt_config_gpio(PROBE_9); } \
+		if ((mask)& PROBE_N(10)) { imxrt_config_gpio(PROBE_10); } \
+		if ((mask)& PROBE_N(11)) { imxrt_config_gpio(PROBE_11); } \
+		if ((mask)& PROBE_N(12)) { imxrt_config_gpio(PROBE_12); } \
 	} while(0)
 
 # define PROBE(n,s)  do {imxrt_gpio_write(PROBE_##n,(s));}while(0)

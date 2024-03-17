@@ -364,7 +364,6 @@ struct parameters {
 	int32_t mag_declination_source{7};      ///< bitmask used to control the handling of declination data
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
-	float mag_yaw_rate_gate{0.20f};         ///< yaw rate threshold used by mode select logic (rad/sec)
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
@@ -509,15 +508,9 @@ union fault_status_u {
 		bool bad_sideslip      : 1; ///< 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
 		bool bad_optflow_X     : 1; ///< 7 - true if fusion of the optical flow X axis has encountered a numerical error
 		bool bad_optflow_Y     : 1; ///< 8 - true if fusion of the optical flow Y axis has encountered a numerical error
-		bool bad_vel_N         : 1; ///< 9 - true if fusion of the North velocity has encountered a numerical error
-		bool bad_vel_E         : 1; ///< 10 - true if fusion of the East velocity has encountered a numerical error
-		bool bad_vel_D         : 1; ///< 11 - true if fusion of the Down velocity has encountered a numerical error
-		bool bad_pos_N         : 1; ///< 12 - true if fusion of the North position has encountered a numerical error
-		bool bad_pos_E         : 1; ///< 13 - true if fusion of the East position has encountered a numerical error
-		bool bad_pos_D         : 1; ///< 14 - true if fusion of the Down position has encountered a numerical error
-		bool bad_acc_bias      : 1; ///< 15 - true if bad delta velocity bias estimates have been detected
-		bool bad_acc_vertical  : 1; ///< 16 - true if bad vertical accelerometer data has been detected
-		bool bad_acc_clipping  : 1; ///< 17 - true if delta velocity data contains clipping (asymmetric railing)
+		bool bad_acc_bias      : 1; ///< 9 - true if bad delta velocity bias estimates have been detected
+		bool bad_acc_vertical  : 1; ///< 10 - true if bad vertical accelerometer data has been detected
+		bool bad_acc_clipping  : 1; ///< 11 - true if delta velocity data contains clipping (asymmetric railing)
 	} flags;
 	uint32_t value;
 };

@@ -323,23 +323,28 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 		};
 
 		for (int i = 0; i < 3; ++i) {
+			switch (params[i]) {
 
-			if (params[i] == 0) {
+			case 0:
 				control_data.type_data.angle.frames[i] =
 					ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+				break;
 
-			} else if (params[i] == 1) {
+			case 1:
 				control_data.type_data.angle.frames[i] =
 					ControlData::TypeData::TypeAngle::Frame::AngularRate;
+				break;
 
-			} else if (params[i] == 2) {
+			case 2:
 				control_data.type_data.angle.frames[i] =
 					ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+				break;
 
-			} else {
+			default:
 				// Not supported, fallback to body angle.
 				control_data.type_data.angle.frames[i] =
 					ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+				break;
 			}
 		}
 
@@ -745,23 +750,28 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		};
 
 		for (int i = 0; i < 3; ++i) {
+			switch (params[i]) {
 
-			if (params[i] == 0) {
+			case 0:
 				control_data.type_data.angle.frames[i] =
 					ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+				break;
 
-			} else if (params[i] == 1) {
+			case 1:
 				control_data.type_data.angle.frames[i] =
 					ControlData::TypeData::TypeAngle::Frame::AngularRate;
+				break;
 
-			} else if (params[i] == 2) {
+			case 2:
 				control_data.type_data.angle.frames[i] =
 					ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+				break;
 
-			} else {
+			default:
 				// Not supported, fallback to body angle.
 				control_data.type_data.angle.frames[i] =
 					ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+				break;
 			}
 		}
 
@@ -775,19 +785,22 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		const int param_compid = roundf(vehicle_command.param2);
 
 		uint8_t new_sysid_primary_control = [&]() {
-			if (param_sysid >= 0 && param_sysid < 256) {
+			switch (param_sysid) {
+
+			case 0 ... 255:
 				// Valid new sysid.
 				return (uint8_t) param_sysid;
 
-			} else if (param_sysid == -1) {
+			case -1:
 				// leave unchanged
 				return control_data.sysid_primary_control;
 
-			} else if (param_sysid == -2) {
+			case -2:
 				// set itself
 				return (uint8_t) _parameters.mav_sysid;
 
-			} else if (param_sysid == -3) {
+			case -3:
+
 				// release control if in control
 				if (control_data.sysid_primary_control == vehicle_command.source_system) {
 					return (uint8_t) 0;
@@ -796,26 +809,28 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 					return control_data.sysid_primary_control;
 				}
 
-			} else {
+			default:
 				PX4_WARN("Unknown param1 value for DO_GIMBAL_MANAGER_CONFIGURE");
 				return control_data.sysid_primary_control;
 			}
 		}();
 
 		uint8_t new_compid_primary_control = [&]() {
-			if (param_compid >= 0 && param_compid < 256) {
+			switch (param_compid) {
+			case 0 ... 255:
 				// Valid new compid.
 				return (uint8_t) param_compid;
 
-			} else if (param_compid == -1) {
+			case -1:
 				// leave unchanged
 				return control_data.compid_primary_control;
 
-			} else if (param_compid == -2) {
+			case -2:
 				// set itself
 				return (uint8_t) _parameters.mav_compid;
 
-			} else if (param_compid == -3) {
+			case -3:
+
 				// release control if in control
 				if (control_data.compid_primary_control == vehicle_command.source_component) {
 					return (uint8_t) 0;
@@ -824,7 +839,7 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 					return control_data.compid_primary_control;
 				}
 
-			} else {
+			default:
 				PX4_WARN("Unknown param2 value for DO_GIMBAL_MANAGER_CONFIGURE");
 				return control_data.compid_primary_control;
 			}

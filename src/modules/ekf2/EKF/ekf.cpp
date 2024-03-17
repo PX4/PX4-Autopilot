@@ -89,9 +89,6 @@ void Ekf::reset()
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
-	_prev_gyro_bias_var.zero();
-	_prev_accel_bias_var.zero();
-
 #if defined(CONFIG_EKF2_GNSS)
 	resetGpsDriftCheckFilters();
 	_gps_checks_passed = false;
@@ -312,8 +309,9 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
 
-	constrainStates();
-
+	// constrain states
+	_state.vel = matrix::constrain(_state.vel, -1000.f, 1000.f);
+	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
 	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
 	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate
@@ -327,14 +325,6 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// this are used for manoeuvre detection elsewhere
 	const float alpha = 1.0f - imu_delayed.delta_vel_dt;
 	_accel_lpf_NE = _accel_lpf_NE * alpha + corrected_delta_vel_ef.xy();
-
-	// calculate a yaw change about the earth frame vertical
-	const float spin_del_ang_D = corrected_delta_ang.dot(Vector3f(_R_to_earth.row(2)));
-	_yaw_delta_ef += spin_del_ang_D;
-
-	// Calculate filtered yaw rate to be used by the magnetometer fusion type selection logic
-	// Note fixed coefficients are used to save operations. The exact time constant is not important.
-	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / imu_delayed.delta_ang_dt;
 
 	// Calculate low pass filtered height rate
 	float alpha_height_rate_lpf = 0.1f * imu_delayed.delta_vel_dt; // 10 seconds time constant

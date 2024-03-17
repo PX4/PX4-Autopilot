@@ -45,13 +45,12 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 	resetEstimatorAidStatus(aid_src);
 
-	const bool wmm_updated = (_wmm_gps_time_last_set > aid_src.time_last_fuse);
+	const bool wmm_updated = (_wmm_gps_time_last_set >= aid_src.time_last_fuse); // WMM update can occur on the last epoch, just after mag fusion
 
 	// determine if we should use mag fusion
 	bool continuing_conditions_passing = (_params.mag_fusion_type != MagFuseType::NONE)
 					     && _control_status.flags.tilt_align
 					     && (_control_status.flags.yaw_align || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
-					     && (wmm_updated || checkHaglYawResetReq() || isRecent(_time_last_mov_3d_mag_suitable, (uint64_t)3e6))
 					     && mag_sample.mag.longerThan(0.f)
 					     && mag_sample.mag.isAllFinite();
 
@@ -65,8 +64,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 				       && _control_status.flags.mag_aligned_in_flight
 				       && (_control_status.flags.mag_heading_consistent || !_control_status.flags.gps)
 				       && !_control_status.flags.mag_fault
-				       && isRecent(aid_src.time_last_fuse, 500'000)
-				       && getMagBiasVariance().longerThan(0.f) && !getMagBiasVariance().longerThan(sq(0.02f))
 				       && !_control_status.flags.ev_yaw
 				       && !_control_status.flags.gps_yaw;
 
@@ -92,7 +89,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 		if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-			if (mag_sample.reset || checkHaglYawResetReq()) {
+			if (mag_sample.reset || checkHaglYawResetReq() || wmm_updated) {
 				ECL_INFO("reset to %s", AID_SRC_NAME);
 				resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 				aid_src.time_last_fuse = _time_delayed_us;
@@ -159,15 +156,13 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 			_control_status.flags.mag = true;
 
-			loadMagCovData();
-
 			// activate fusion, reset mag states and initialize variance if first init or in flight reset
 			if (!_control_status.flags.yaw_align
 			    || wmm_updated
 			    || !_mag_decl_cov_reset
 			    || !_state.mag_I.longerThan(0.f)
-			    || (getStateVariance<State::mag_I>().min() < sq(0.0001f))
-			    || (getStateVariance<State::mag_B>().min() < sq(0.0001f))
+			    || (getStateVariance<State::mag_I>().min() < kMagVarianceMin)
+			    || (getStateVariance<State::mag_B>().min() < kMagVarianceMin)
 			   ) {
 				ECL_INFO("starting %s fusion, resetting states", AID_SRC_NAME);
 
@@ -209,25 +204,5 @@ void Ekf::stopMagFusion()
 		_fault_status.flags.bad_mag_z = false;
 
 		_fault_status.flags.bad_mag_decl = false;
-
-		saveMagCovData();
 	}
-}
-
-void Ekf::saveMagCovData()
-{
-	// save the NED axis covariance sub-matrix
-	_saved_mag_ef_covmat = getStateCovariance<State::mag_I>();
-
-	// save the XYZ body covariance sub-matrix
-	_saved_mag_bf_covmat = getStateCovariance<State::mag_B>();
-}
-
-void Ekf::loadMagCovData()
-{
-	// re-instate the NED axis covariance sub-matrix
-	resetStateCovariance<State::mag_I>(_saved_mag_ef_covmat);
-
-	// re-instate the XYZ body axis covariance sub-matrix
-	resetStateCovariance<State::mag_B>(_saved_mag_bf_covmat);
 }

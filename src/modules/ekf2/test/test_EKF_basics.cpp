@@ -107,7 +107,8 @@ TEST_F(EkfBasicsTest, initialControlMode)
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().opt_flow);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_hdg);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_3D);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_dec);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_dec);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().in_air);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().wind);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().baro_hgt);
@@ -161,7 +162,8 @@ TEST_F(EkfBasicsTest, gpsFusion)
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().opt_flow);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_hdg);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_3D);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_dec);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_dec);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().in_air);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().wind);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().baro_hgt);
@@ -191,7 +193,7 @@ TEST_F(EkfBasicsTest, accelBiasEstimation)
 	_sensor_simulator.startGps();
 	_sensor_simulator.setImuBias(accel_bias_sim, Vector3f(0.0f, 0.0f, 0.0f));
 	_ekf->set_min_required_gps_health_time(1e6);
-	_sensor_simulator.runSeconds(30);
+	_sensor_simulator.runSeconds(60);
 
 	const Vector3f pos = _ekf->getPosition();
 	const Vector3f vel = _ekf->getVelocity();

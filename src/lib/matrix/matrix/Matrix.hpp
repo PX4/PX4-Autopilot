@@ -12,19 +12,11 @@
 #include <cstdio>
 #include <cstring>
 
-#include "math.hpp"
+#include "helper_functions.hpp"
+#include "Slice.hpp"
 
 namespace matrix
 {
-
-template <typename Type, size_t M>
-class Vector;
-
-template<typename Type, size_t M, size_t N>
-class Matrix;
-
-template <typename Type, size_t P, size_t Q, size_t M, size_t N>
-class Slice;
 
 template<typename Type, size_t M, size_t N>
 class Matrix
@@ -65,6 +57,18 @@ public:
 
 	template<size_t P, size_t Q>
 	Matrix(const Slice<Type, M, N, P, Q> &in_slice)
+	{
+		Matrix<Type, M, N> &self = *this;
+
+		for (size_t i = 0; i < M; i++) {
+			for (size_t j = 0; j < N; j++) {
+				self(i, j) = in_slice(i, j);
+			}
+		}
+	}
+
+	template<size_t P, size_t Q>
+	Matrix(const ConstSlice<Type, M, N, P, Q> &in_slice)
 	{
 		Matrix<Type, M, N> &self = *this;
 
@@ -151,6 +155,24 @@ public:
 			for (size_t k = 0; k < P; k++) {
 				for (size_t j = 0; j < N; j++) {
 					res(i, k) += self(i, j) * other(j, k);
+				}
+			}
+		}
+
+		return res;
+	}
+
+	// Using this function reduces the number of temporary variables needed to compute A * B.T
+	template<size_t P>
+	Matrix<Type, M, M> multiplyByTranspose(const Matrix<Type, P, N> &other) const
+	{
+		Matrix<Type, M, P> res;
+		const Matrix<Type, M, N> &self = *this;
+
+		for (size_t i = 0; i < M; i++) {
+			for (size_t k = 0; k < P; k++) {
+				for (size_t j = 0; j < N; j++) {
+					res(i, k) += self(i, j) * other(k, j);
 				}
 			}
 		}
@@ -365,7 +387,7 @@ public:
 		}
 	}
 
-	void print(float eps = 0.00001f) const
+	void print(float eps = 1e-9) const
 	{
 		// print column numbering
 		if (N > 1) {
@@ -387,28 +409,25 @@ public:
 			for (unsigned j = 0; j < N; j++) {
 				double d = static_cast<double>(self(i, j));
 
-				// Matrix diagonal elements
-				if (N > 1 && M > 1 && i == j) {
-					// make diagonal elements bold (ANSI CSI n 1)
-					printf("\033[1m");
-				}
-
-				// avoid -0.0 for display
-				if (fabs(d - 0.0) < (double)eps) {
-					// print fixed width zero
-					printf(" 0       ");
-
-				} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
-					printf("% .1e ", d);
+				// if symmetric don't print upper triangular elements
+				if ((M == N) && (j > i) && (i < N) && (j < M)
+				    && (fabs(d - static_cast<double>(self(j, i))) < (double)eps)
+				   ) {
+					// print empty space
+					printf("         ");
 
 				} else {
-					printf("% 6.5f ", d);
-				}
+					// avoid -0.0 for display
+					if (fabs(d - 0.0) < (double)eps) {
+						// print fixed width zero
+						printf(" 0       ");
 
-				// Matrix diagonal elements
-				if (N > 1 && M > 1 && i == j) {
-					// reset any formatting (ANSI CSI n 0)
-					printf("\033[0m");
+					} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+						printf("% .1e ", d);
+
+					} else {
+						printf("% 6.5f ", d);
+					}
 				}
 			}
 
@@ -437,18 +456,18 @@ public:
 	}
 
 	template<size_t P, size_t Q>
-	const Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0) const
+	ConstSlice<Type, P, Q, M, N> slice(size_t x0, size_t y0) const
 	{
-		return Slice<Type, P, Q, M, N>(x0, y0, this);
+		return {x0, y0, this};
 	}
 
 	template<size_t P, size_t Q>
 	Slice<Type, P, Q, M, N> slice(size_t x0, size_t y0)
 	{
-		return Slice<Type, P, Q, M, N>(x0, y0, this);
+		return {x0, y0, this};
 	}
 
-	const Slice<Type, 1, N, M, N> row(size_t i) const
+	ConstSlice<Type, 1, N, M, N> row(size_t i) const
 	{
 		return slice<1, N>(i, 0);
 	}
@@ -458,7 +477,7 @@ public:
 		return slice<1, N>(i, 0);
 	}
 
-	const Slice<Type, M, 1, M, N> col(size_t j) const
+	ConstSlice<Type, M, 1, M, N> col(size_t j) const
 	{
 		return slice<M, 1>(0, j);
 	}

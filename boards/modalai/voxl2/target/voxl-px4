@@ -4,7 +4,9 @@ CONFIG_FILE="/etc/modalai/voxl-px4.conf"
 
 GPS=NONE
 RC=SPEKTRUM
-IMU_ROTATION=NONE
+ESC=VOXL_ESC
+POWER_MANAGER=VOXLPM
+DISTANCE_SENSOR=NONE
 OSD=DISABLE
 DAEMON_MODE=DISABLE
 SENSOR_CAL=ACTUAL
@@ -39,9 +41,8 @@ fi
 print_usage() {
     echo -e "\nUsage: voxl-px4 [-b (Specify Holybro GPS unit)]"
     echo "                [-c delete configuration file and exit]"
-    echo "                [-d start px4 in daemon mode]"
+    echo "                [-d start px4 without daemon mode]"
     echo "                [-f (Use fake rc input instead of from a real transmitter)]"
-    echo "                [-i (Set IMU_ROTATION to ROTATION_YAW_180)]"
     echo "                [-m (Specify Matek GPS unit)]"
     echo "                [-o (Start OSD module on the apps processor)]"
     echo "                [-r (Specify TBS Crossfire RC receiver, MAVLINK)]"
@@ -56,7 +57,9 @@ print_config_settings(){
     echo -e "\n*************************"
     echo "GPS=$GPS"
     echo "RC=$RC"
-    echo "IMU_ROTATION=$IMU_ROTATION"
+    echo "ESC=$ESC"
+    echo "POWER MANAGER=$POWER_MANAGER"
+    echo "DISTANCE SENSOR=$DISTANCE_SENSOR"
     echo "OSD=$OSD"
     echo "DAEMON_MODE=$DAEMON_MODE"
     echo "SENSOR_CAL=$SENSOR_CAL"
@@ -68,7 +71,7 @@ print_config_settings(){
     echo -e "*************************\n"
 }
 
-while getopts "bcdhifmorwz" flag
+while getopts "bcdhfmorwz" flag
 do
     case "${flag}" in
         b) 
@@ -83,15 +86,11 @@ do
             exit 0
             ;;
         d) 
-            echo "[INFO] Enabling daemon mode"
-            DAEMON_MODE=ENABLE
+            echo "[INFO] Disabling daemon mode"
+            DAEMON_MODE=DISABLE
             ;;
         h) 
             print_usage
-            ;;
-        i) 
-            echo "[INFO] Setting IMU_ROTATION to 4: ROTATION_YAW_180"
-            IMU_ROTATION=4
             ;;
         f) 
             echo "[INFO] Setting RC to FAKE_RC_INPUT"
@@ -144,4 +143,5 @@ fi
 
 print_config_settings
 
-GPS=$GPS RC=$RC OSD=$OSD IMU_ROTATION=$IMU_ROTATION EXTRA_STEPS=$EXTRA_STEPS px4 $DAEMON -s /usr/bin/voxl-px4-start
+GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
+OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS px4 $DAEMON -s /usr/bin/voxl-px4-start

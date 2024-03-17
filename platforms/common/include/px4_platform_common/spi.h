@@ -73,7 +73,11 @@ struct px4_spi_bus_t {
 
 struct px4_spi_bus_all_hw_t {
 	px4_spi_bus_t buses[SPI_BUS_MAX_BUS_ITEMS];
-	int board_hw_version_revision{-1}; ///< 0=default, >0 for a specific revision (see board_get_hw_version & board_get_hw_revision), -1=unused
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+	hw_fmun_id_t board_hw_fmun_id {USHRT_MAX};
+#else
+	int board_hw_version_revision {-1}; ///< 0=default, >0 for a specific revision (see board_get_hw_version & board_get_hw_revision), -1=unused
+#endif
 };
 
 #if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1

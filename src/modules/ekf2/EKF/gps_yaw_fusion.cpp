@@ -134,7 +134,7 @@ void Ekf::fuseGpsYaw(float antenna_yaw_offset)
 	// only calculate gains for states we are using
 	VectorState Kfusion = P * H / gnss_yaw.innovation_variance;
 
-	const bool is_fused = measurementUpdate(Kfusion, gnss_yaw.innovation_variance, gnss_yaw.innovation);
+	const bool is_fused = measurementUpdate(Kfusion, H, gnss_yaw.observation_variance, gnss_yaw.innovation);
 	_fault_status.flags.bad_hdg = !is_fused;
 	gnss_yaw.fused = is_fused;
 

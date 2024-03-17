@@ -438,15 +438,18 @@ void AutopilotTester::fly_forward_in_posctl()
 	}
 
 	CHECK(_manual_control->start_position_control() == ManualControl::Result::Success);
+	store_home();
+	wait_until_ready();
+	arm();
 
-	// Climb up for 20 seconds
-	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
+	// Climb up for 5 seconds
+	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
 		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
-	// Fly forward for 60 seconds
-	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
+	// Fly forward for 10 seconds
+	for (unsigned i = 0; i < 10 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
 		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
@@ -473,15 +476,18 @@ void AutopilotTester::fly_forward_in_altctl()
 	}
 
 	CHECK(_manual_control->start_altitude_control() == ManualControl::Result::Success);
+	store_home();
+	wait_until_ready();
+	arm();
 
-	// Climb up for 20 seconds
-	for (unsigned i = 0; i < 20 * manual_control_rate_hz; ++i) {
+	// Climb up for 5 seconds
+	for (unsigned i = 0; i < 5 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.f, 0.f, 1.f, 0.f) == ManualControl::Result::Success);
 		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}
 
-	// Fly forward for 60 seconds
-	for (unsigned i = 0; i < 60 * manual_control_rate_hz; ++i) {
+	// Fly forward for 10 seconds
+	for (unsigned i = 0; i < 10 * manual_control_rate_hz; ++i) {
 		CHECK(_manual_control->set_manual_control_input(0.5f, 0.f, 0.5f, 0.f) == ManualControl::Result::Success);
 		sleep_for(std::chrono::milliseconds(1000 / manual_control_rate_hz));
 	}

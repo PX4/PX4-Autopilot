@@ -1,6 +1,7 @@
 #pragma once
 
-#include "math.hpp"
+#include "Scalar.hpp"
+#include "SquareMatrix.hpp"
 
 namespace matrix
 {

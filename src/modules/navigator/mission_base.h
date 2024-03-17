@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <dataman_client/DatamanClient.hpp>
+#include <uORB/topics/geofence_status.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/parameter_update.h>
@@ -122,7 +123,7 @@ protected:
 	 * @return true If mission has a land start of land item and a land item
 	 * @return false otherwise
 	 */
-	bool hasMissionLandStart() const { return _mission.land_start_index > 0 && _mission.land_index > 0;};
+	bool hasMissionLandStart() const { return _mission.land_start_index >= 0 && _mission.land_index >= 0;};
 	/**
 	 * @brief Go to next Mission Item
 	 * Go to next non jump mission item
@@ -207,13 +208,18 @@ protected:
 	int getNonJumpItem(int32_t &mission_index, mission_item_s &mission, bool execute_jump, bool write_jumps,
 			   bool mission_direction_backward = false);
 	/**
-	 * @brief Is Mission Parameters Valid
+	 * @brief Is Mission Valid
 	 *
-	 * @param mission Mission struct
-	 * @return true is mission parameters are valid
+	 * @return true is mission is valid
 	 * @return false otherwise
 	 */
-	bool isMissionValid(mission_s &mission) const;
+	bool isMissionValid() const;
+
+	/**
+	 * @brief Check whether a mission is ready to go
+	 * @param[in] forced flag if the check has to be run irregardles of any updates.
+	 */
+	void check_mission_valid(bool forced = false);
 
 	/**
 	 * On mission update
@@ -309,11 +315,14 @@ protected:
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
-	bool _initialized_mission_checked{false};		/**< Flag indicating if the initialized mission has been checked by the mission validator*/
+	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
+
+	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
+	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
 
 	DatamanCache _dataman_cache{"mission_dm_cache_miss", 10}; /**< Dataman cache of mission items*/
 	DatamanClient	&_dataman_client = _dataman_cache.client(); /**< Dataman client*/
@@ -334,17 +343,12 @@ private:
 	 * @brief Update Dataman cache
 	 *
 	 */
-	void updateDatamanCache();
+	virtual void updateDatamanCache();
 	/**
 	 * @brief Update mission subscription
 	 *
 	 */
 	void updateMavlinkMission();
-
-	/**
-	 * Check whether a mission is ready to go
-	 */
-	void check_mission_valid();
 
 	/**
 	 * Reset mission
@@ -444,8 +448,7 @@ private:
 	 */
 	bool checkMissionDataChanged(mission_s new_mission);
 
-	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
-	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
+	bool canRunMissionFeasibility();
 
 	bool _align_heading_necessary{false}; // if true, heading of vehicle needs to be aligned with heading of next waypoint. Used to create new mission items for heading alignment.
 
@@ -461,4 +464,5 @@ private:
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionData<geofence_status_s> _geofence_status_sub{ORB_ID(geofence_status)};
 };

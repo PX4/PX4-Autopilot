@@ -281,6 +281,12 @@ void FlightTaskAuto::_prepareLandSetpoints()
 			sticks_xy.setZero();
 		}
 
+		// If ground distance estimate valid (distance sensor) during nudging then limit horizontal speed
+		if (PX4_ISFINITE(_dist_to_bottom)) {
+			// Below 50cm no horizontal speed, above allow per meter altitude 0.5m/s speed
+			max_speed = math::max(0.f, math::min(max_speed, (_dist_to_bottom - .5f) * .5f));
+		}
+
 		_stick_acceleration_xy.setVelocityConstraint(max_speed);
 		_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, _position,
 				_velocity_setpoint_feedback.xy(), _deltatime);
@@ -803,8 +809,8 @@ void FlightTaskAuto::_updateTrajConstraints()
 	if (_is_emergency_braking_active) {
 		// When initializing with large velocity, allow 1g of
 		// acceleration in 1s on all axes for fast braking
-		_position_smoothing.setMaxAcceleration({9.81f, 9.81f, 9.81f});
-		_position_smoothing.setMaxJerk(9.81f);
+		_position_smoothing.setMaxAcceleration({CONSTANTS_ONE_G, CONSTANTS_ONE_G, CONSTANTS_ONE_G});
+		_position_smoothing.setMaxJerk(CONSTANTS_ONE_G);
 
 		// If the current velocity is beyond the usual constraints, tell
 		// the controller to exceptionally increase its saturations to avoid

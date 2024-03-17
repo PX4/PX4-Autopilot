@@ -365,6 +365,36 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 	return options;
 }
 
+FailsafeBase::ActionOptions Failsafe::fromRemainingFlightTimeLowActParam(int param_value)
+{
+	ActionOptions options{};
+
+	options.allow_user_takeover = UserTakeoverAllowed::Auto;
+	options.cause = Cause::RemainingFlightTimeLow;
+
+	switch (command_after_remaining_flight_time_low(param_value)) {
+	case command_after_remaining_flight_time_low::None:
+		options.action = Action::None;
+		break;
+
+	case command_after_remaining_flight_time_low::Warning:
+		options.action = Action::Warn;
+		break;
+
+	case command_after_remaining_flight_time_low::Return_mode:
+		options.action = Action::RTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	default:
+		options.action = Action::None;
+		break;
+
+	}
+
+	return options;
+}
+
 void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 				 const failsafe_flags_s &status_flags)
 {
@@ -444,9 +474,10 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 
-	// Battery
+	// Battery flight time remaining failsafe
+
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
-		       ActionOptions(Action::RTL).causedBy(Cause::BatteryLow).clearOn(ClearCondition::OnModeChangeOrDisarm));
+		       ActionOptions(fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get())));
 
 	if ((_armed_time != 0)
 	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
@@ -457,6 +488,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
 	}
 
+	// Battery low failsafe
 	switch (status_flags.battery_warning) {
 	case battery_status_s::BATTERY_WARNING_LOW:
 		_last_state_battery_warning_low = checkFailsafe(_caller_id_battery_warning_low, _last_state_battery_warning_low,

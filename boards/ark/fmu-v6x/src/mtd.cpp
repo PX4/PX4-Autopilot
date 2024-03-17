@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,6 +30,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+#include <nuttx/config.h>
+#include <board_config.h>
 
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
@@ -86,10 +89,16 @@ static const px4_mft_entry_s mtd_mft = {
 	.pmft = (void *) &board_mtd_config,
 };
 
+static const px4_mft_entry_s mft_mft = {
+	.type = MFT,
+	.pmft = (void *) system_query_manifest,
+};
+
 static const px4_mft_s mft = {
-	.nmft = 1,
+	.nmft = 2,
 	.mfts = {
-		&mtd_mft
+		&mtd_mft,
+		&mft_mft,
 	}
 };
 

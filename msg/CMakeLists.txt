@@ -53,6 +53,7 @@ set(msg_files
 	ArmingCheckRequest.msg
 	AutotuneAttitudeControlStatus.msg
 	BatteryStatus.msg
+	Buffer128.msg
 	ButtonEvent.msg
 	CameraCapture.msg
 	CameraStatus.msg
@@ -92,11 +93,13 @@ set(msg_files
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
+	FlightPhaseEstimation.msg
 	FollowTarget.msg
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
+	GeofenceStatus.msg
 	GimbalControls.msg
 	GimbalDeviceAttitudeStatus.msg
 	GimbalDeviceInformation.msg
@@ -151,6 +154,10 @@ set(msg_files
 	OrbTest.msg
 	OrbTestLarge.msg
 	OrbTestMedium.msg
+	ParameterResetRequest.msg
+	ParameterSetUsedRequest.msg
+	ParameterSetValueRequest.msg
+	ParameterSetValueResponse.msg
 	ParameterUpdate.msg
 	Ping.msg
 	PositionControllerLandingStatus.msg
@@ -171,6 +178,7 @@ set(msg_files
 	RegisterExtComponentReply.msg
 	RegisterExtComponentRequest.msg
 	Rpm.msg
+	RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
 	SensorAccel.msg
@@ -191,6 +199,7 @@ set(msg_files
 	SensorsStatus.msg
 	SensorsStatusImu.msg
 	SensorUwb.msg
+	SensorAirflow.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
@@ -279,6 +288,9 @@ foreach(msg_file ${msg_files})
 	list(APPEND uorb_ucdr_headers ${ucdr_out_path}/${msg}.h)
 	list(APPEND uorb_json_files ${msg_source_out_path}/${msg}.json)
 endforeach()
+
+# set parent scope msg_files for ROS
+set(msg_files ${msg_files} PARENT_SCOPE)
 
 # Generate uORB headers
 add_custom_command(

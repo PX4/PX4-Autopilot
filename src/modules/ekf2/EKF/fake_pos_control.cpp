@@ -43,7 +43,7 @@ void Ekf::controlFakePosFusion()
 	auto &aid_src = _aid_src_fake_pos;
 
 	// If we aren't doing any aiding, fake position measurements at the last known position to constrain drift
-	// During intial tilt aligment, fake position is used to perform a "quasi-stationary" leveling of the EKF
+	// During initial tilt alignment, fake position is used to perform a "quasi-stationary" leveling of the EKF
 	const bool fake_pos_data_ready = !isHorizontalAidingActive()
 					 && isTimedOut(aid_src.time_last_fuse, (uint64_t)2e5); // Fuse fake position at a limited rate
 
@@ -68,7 +68,10 @@ void Ekf::controlFakePosFusion()
 		updateHorizontalPositionAidSrcStatus(_time_delayed_us, Vector2f(_last_known_pos), obs_var, innov_gate, aid_src);
 
 
-		const bool continuing_conditions_passing = !isHorizontalAidingActive();
+		const bool continuing_conditions_passing = !isHorizontalAidingActive()
+							   && ((getTiltVariance() > sq(math::radians(3.f))) || _control_status.flags.vehicle_at_rest)
+							   && (!(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector)) || _control_status.flags.vehicle_at_rest);
+
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _horizontal_deadreckon_time_exceeded;
 
@@ -77,8 +80,8 @@ void Ekf::controlFakePosFusion()
 
 				// always protect against extreme values that could result in a NaN
 				if ((aid_src.test_ratio[0] < sq(100.0f / innov_gate))
-				&& (aid_src.test_ratio[1] < sq(100.0f / innov_gate))
-				) {
+				    && (aid_src.test_ratio[1] < sq(100.0f / innov_gate))
+				   ) {
 					fuseHorizontalPosition(aid_src);
 				}
 

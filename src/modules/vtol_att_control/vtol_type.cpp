@@ -286,13 +286,17 @@ bool VtolType::isUncommandedDescent()
 	    && (current_altitude < _tecs_status->altitude_reference)
 	    && hrt_elapsed_time(&_tecs_status->timestamp) < 1_s) {
 
+		if (!PX4_ISFINITE(_quadchute_ref_alt)) {
+			_quadchute_ref_alt = current_altitude;
+		}
+
 		_quadchute_ref_alt = math::min(math::max(_quadchute_ref_alt, current_altitude),
 					       _tecs_status->altitude_reference);
 
 		return (_quadchute_ref_alt - current_altitude) > _param_vt_qc_alt_loss.get();
 
 	} else {
-		_quadchute_ref_alt = -MAXFLOAT;
+		_quadchute_ref_alt = NAN;
 	}
 
 	return false;
@@ -318,6 +322,11 @@ void VtolType::handleEkfResets()
 	if (_local_pos->z_reset_counter != _altitude_reset_counter) {
 		_local_position_z_start_of_transition += _local_pos->delta_z;
 		_altitude_reset_counter = _local_pos->z_reset_counter;
+
+		if (PX4_ISFINITE(_quadchute_ref_alt)) {
+			_quadchute_ref_alt += _local_pos->delta_z;
+		}
+
 	}
 }
 
@@ -435,16 +444,21 @@ float VtolType::pusher_assist()
 
 	}
 
+	// the vehicle is "landing" if it is in auto mode and the type is set to LAND, and
+	// "descending" if it is in auto and climb rate controlled but not altitude controlled
+	const bool vehicle_is_landing_or_descending = _v_control_mode->flag_control_auto_enabled
+			&& ((_attc->get_pos_sp_triplet()->current.valid
+			     && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) ||
+			    (_v_control_mode->flag_control_climb_rate_enabled && !_v_control_mode->flag_control_altitude_enabled));
+
 	// disable pusher assist depending on setting of forward_thrust_enable_mode:
 	switch (_param_vt_fwd_thrust_en.get()) {
 	case DISABLE: // disable in all modes
 		return 0.0f;
 		break;
 
-	case ENABLE_WITHOUT_LAND: // disable in land mode
-		if (_attc->get_pos_sp_triplet()->current.valid
-		    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
-		    && _v_control_mode->flag_control_auto_enabled) {
+	case ENABLE_WITHOUT_LAND: // disable in land/descend mode
+		if (vehicle_is_landing_or_descending) {
 			return 0.0f;
 		}
 
@@ -464,10 +478,8 @@ float VtolType::pusher_assist()
 
 		break;
 
-	case ENABLE_ABOVE_MPC_LAND_ALT1_WITHOUT_LAND: // disable if below MPC_LAND_ALT1 or in land mode
-		if ((_attc->get_pos_sp_triplet()->current.valid
-		     && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
-		     && _v_control_mode->flag_control_auto_enabled) ||
+	case ENABLE_ABOVE_MPC_LAND_ALT1_WITHOUT_LAND: // disable if below MPC_LAND_ALT1 or in land/descend mode
+		if (vehicle_is_landing_or_descending ||
 		    (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _param_mpc_land_alt1.get()))) {
 			return 0.0f;
 		}
@@ -475,9 +487,7 @@ float VtolType::pusher_assist()
 		break;
 
 	case ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND: // disable if below MPC_LAND_ALT2 or in land mode
-		if ((_attc->get_pos_sp_triplet()->current.valid
-		     && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
-		     && _v_control_mode->flag_control_auto_enabled) ||
+		if (vehicle_is_landing_or_descending ||
 		    (!PX4_ISFINITE(dist_to_ground) || (dist_to_ground < _param_mpc_land_alt2.get()))) {
 			return 0.0f;
 		}
@@ -485,10 +495,9 @@ float VtolType::pusher_assist()
 		break;
 	}
 
-	// if the thrust scale param is zero or the drone is not in some position or altitude control mode,
+	// if the thrust scale param is zero or the drone is not in a climb rate controlled mode,
 	// then the pusher-for-pitch strategy is disabled and we can return
-	if (_param_vt_fwd_thrust_sc.get() < FLT_EPSILON || !(_v_control_mode->flag_control_position_enabled
-			|| _v_control_mode->flag_control_altitude_enabled)) {
+	if (_param_vt_fwd_thrust_sc.get() < FLT_EPSILON || !(_v_control_mode->flag_control_climb_rate_enabled)) {
 		return 0.0f;
 	}
 

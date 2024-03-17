@@ -191,7 +191,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 			Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
 		}
 
-		if (measurementUpdate(Kfusion, aid_src_mag.innovation_variance[index], aid_src_mag.innovation[index])) {
+		if (measurementUpdate(Kfusion, H, aid_src_mag.observation_variance[index], aid_src_mag.innovation[index])) {
 			fused[index] = true;
 			limitDeclination();
 
@@ -227,35 +227,52 @@ bool Ekf::fuseDeclination(float decl_sigma)
 		return false;
 	}
 
-	// observation variance (rad**2)
-	const float R_DECL = sq(decl_sigma);
+	float decl_measurement = NAN;
 
-	VectorState H;
-	float decl_pred;
-	float innovation_variance;
+	if ((_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL)
+	    && PX4_ISFINITE(_mag_declination_gps)
+	   ) {
+		decl_measurement = _mag_declination_gps;
 
-	// TODO: review getMagDeclination() usage, use mag_I, _mag_declination_gps, or parameter?
-	sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON, &decl_pred, &innovation_variance, &H);
-
-	const float innovation = wrap_pi(decl_pred - getMagDeclination());
-
-	if (innovation_variance < R_DECL) {
-		// variance calculation is badly conditioned
-		return false;
+	} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
+		   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
+		  ) {
+		decl_measurement = math::radians(_params.mag_declination_deg);
 	}
 
-	// Calculate the Kalman gains
-	VectorState Kfusion = P * H / innovation_variance;
+	if (PX4_ISFINITE(decl_measurement)) {
 
-	const bool is_fused = measurementUpdate(Kfusion, innovation_variance, innovation);
+		// observation variance (rad**2)
+		const float R_DECL = sq(decl_sigma);
 
-	_fault_status.flags.bad_mag_decl = !is_fused;
+		VectorState H;
+		float decl_pred;
+		float innovation_variance;
 
-	if (is_fused) {
-		limitDeclination();
+		sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON, &decl_pred, &innovation_variance, &H);
+
+		const float innovation = wrap_pi(decl_pred - decl_measurement);
+
+		if (innovation_variance < R_DECL) {
+			// variance calculation is badly conditioned
+			return false;
+		}
+
+		// Calculate the Kalman gains
+		VectorState Kfusion = P * H / innovation_variance;
+
+		const bool is_fused = measurementUpdate(Kfusion, H, R_DECL, innovation);
+
+		_fault_status.flags.bad_mag_decl = !is_fused;
+
+		if (is_fused) {
+			limitDeclination();
+		}
+
+		return is_fused;
 	}
 
-	return is_fused;
+	return false;
 }
 
 void Ekf::limitDeclination()
@@ -274,7 +291,9 @@ void Ekf::limitDeclination()
 		// set to 50% of the horizontal strength from geo tables if location is known
 		h_field_min = fmaxf(h_field_min, 0.5f * _mag_strength_gps * cosf(_mag_inclination_gps));
 
-	} else if (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL) {
+	} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
+		   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
+		  ) {
 		// use parameter value if GPS isn't available
 		decl_reference = math::radians(_params.mag_declination_deg);
 	}

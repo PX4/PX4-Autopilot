@@ -135,7 +135,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_decl_type(_params->mag_declination_source),
 	_param_ekf2_mag_type(_params->mag_fusion_type),
 	_param_ekf2_mag_acclim(_params->mag_acc_gate),
-	_param_ekf2_mag_yawlim(_params->mag_yaw_rate_gate),
 	_param_ekf2_mag_check(_params->mag_check),
 	_param_ekf2_mag_chk_str(_params->mag_check_strength_tolerance_gs),
 	_param_ekf2_mag_chk_inc(_params->mag_check_inclination_tolerance_deg),
@@ -250,6 +249,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_status_pub.advertise();
+
 #if defined(CONFIG_EKF2_GNSS)
 	_yaw_est_pub.advertise();
 #endif // CONFIG_EKF2_GNSS
@@ -313,6 +313,14 @@ bool EKF2::multi_init(int imu, int mag)
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
+
+	if (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GravityVector)) {
+		_estimator_aid_src_gravity_pub.advertise();
+	}
+
+#endif // CONFIG_EKF2_GRAVITY_FUSION
+
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 	// RNG advertise
@@ -372,7 +380,7 @@ bool EKF2::multi_init(int imu, int mag)
 }
 #endif // CONFIG_EKF2_MULTI_INSTANCE
 
-int EKF2::print_status()
+int EKF2::print_status(bool verbose)
 {
 	PX4_INFO_RAW("ekf2:%d EKF dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
 		     _instance, (double)_ekf.get_dt_ekf_avg(), _ekf.attitude_valid(),
@@ -381,9 +389,11 @@ int EKF2::print_status()
 	perf_print_counter(_ekf_update_perf);
 	perf_print_counter(_msg_missed_imu_perf);
 
-#if defined(DEBUG_BUILD)
-	_ekf.print_status();
-#endif // DEBUG_BUILD
+	if (verbose) {
+#if defined(CONFIG_EKF2_VERBOSE_STATUS)
+		_ekf.print_status();
+#endif // CONFIG_EKF2_VERBOSE_STATUS
+	}
 
 	return 0;
 }
@@ -1570,8 +1580,10 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	lpos.heading = Eulerf(_ekf.getQuaternion()).psi();
 	lpos.unaided_heading = _ekf.getUnaidedYaw();
+	lpos.heading_var = _ekf.getYawVar();
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
+	lpos.tilt_var = _ekf.getTiltVariance();
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Distance to bottom surface (ground) in meters, must be positive
@@ -1883,12 +1895,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.fs_bad_sideslip          = _ekf.fault_status_flags().bad_sideslip;
 		status_flags.fs_bad_optflow_x         = _ekf.fault_status_flags().bad_optflow_X;
 		status_flags.fs_bad_optflow_y         = _ekf.fault_status_flags().bad_optflow_Y;
-		status_flags.fs_bad_vel_n             = _ekf.fault_status_flags().bad_vel_N;
-		status_flags.fs_bad_vel_e             = _ekf.fault_status_flags().bad_vel_E;
-		status_flags.fs_bad_vel_d             = _ekf.fault_status_flags().bad_vel_D;
-		status_flags.fs_bad_pos_n             = _ekf.fault_status_flags().bad_pos_N;
-		status_flags.fs_bad_pos_e             = _ekf.fault_status_flags().bad_pos_E;
-		status_flags.fs_bad_pos_d             = _ekf.fault_status_flags().bad_pos_D;
 		status_flags.fs_bad_acc_bias          = _ekf.fault_status_flags().bad_acc_bias;
 		status_flags.fs_bad_acc_vertical      = _ekf.fault_status_flags().bad_acc_vertical;
 		status_flags.fs_bad_acc_clipping      = _ekf.fault_status_flags().bad_acc_clipping;
@@ -2848,7 +2854,11 @@ timestamps from the sensor topics.
 	PRINT_MODULE_USAGE_NAME("ekf2", "estimator");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Enable replay mode", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "print status info");
+#if defined(CONFIG_EKF2_VERBOSE_STATUS)
+	PRINT_MODULE_USAGE_ARG("-v", "verbose (print all states and full covariance matrix)", true);
+#endif // CONFIG_EKF2_VERBOSE_STATUS
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("select_instance", "Request switch to new estimator instance");
 	PRINT_MODULE_USAGE_ARG("<instance>", "Specify desired estimator instance", false);
@@ -2908,10 +2918,18 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 			}
 #endif // CONFIG_EKF2_MULTI_INSTANCE
 
+			bool verbose_status = false;
+
+#if defined(CONFIG_EKF2_VERBOSE_STATUS)
+			if (argc > 2 && (strcmp(argv[2], "-v") == 0)) {
+				verbose_status = true;
+			}
+#endif // CONFIG_EKF2_VERBOSE_STATUS
+
 			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 				if (_objects[i].load()) {
 					PX4_INFO_RAW("\n");
-					_objects[i].load()->print_status();
+					_objects[i].load()->print_status(verbose_status);
 				}
 			}
 

@@ -46,13 +46,6 @@ FeasibilityChecker::FeasibilityChecker() :
 
 void FeasibilityChecker::reset()
 {
-
-	_is_landed = false;
-	_home_alt_msl = NAN;
-	_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	_current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	_vehicle_type = VehicleType::RotaryWing;
-
 	_mission_validity_failed = false;
 	_takeoff_failed = false;
 	_land_pattern_validity_failed = false;
@@ -86,10 +79,16 @@ void FeasibilityChecker::updateData()
 
 		if (home.valid_hpos) {
 			_home_lat_lon = matrix::Vector2d(home.lat, home.lon);
+
+		} else {
+			_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 		}
 
 		if (home.valid_alt) {
 			_home_alt_msl = home.alt;
+
+		} else {
+			_home_alt_msl = NAN;
 		}
 	}
 
@@ -123,6 +122,12 @@ void FeasibilityChecker::updateData()
 		vehicle_global_position_s vehicle_global_position = {};
 		_vehicle_global_position_sub.copy(&vehicle_global_position);
 		_current_position_lat_lon = matrix::Vector2d(vehicle_global_position.lat, vehicle_global_position.lon);
+	}
+
+	if (_rtl_status_sub.updated()) {
+		rtl_status_s rtl_status = {};
+		_rtl_status_sub.copy(&rtl_status);
+		_has_vtol_approach = rtl_status.has_vtol_approach;
 	}
 
 	param_t handle = param_find("FW_LND_ANG");
@@ -577,17 +582,22 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 		break;
 
 	case 4:
-		result = _has_takeoff == _landing_valid;
+		result = hasMissionBothOrNeitherTakeoffAndLanding();
 
-		if (!result && (_has_takeoff)) {
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Landing item or remove Takeoff.\t");
-			events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: Add Landing item or remove Takeoff");
+		break;
 
-		} else if (!result && (_landing_valid)) {
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Takeoff item or remove Landing.\t");
-			events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: Add Takeoff item or remove Landing");
+	case 5:
+		if (!_is_landed && !_has_vtol_approach) {
+			result = _landing_valid;
+
+			if (!result) {
+				mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Landing waypoint/pattern required.");
+				events::send(events::ID("feasibility_mis_in_air_landing_req"), {events::Log::Error, events::LogInternal::Info},
+					     "Mission rejected: Landing waypoint/pattern required");
+			}
+
+		} else {
+			result = hasMissionBothOrNeitherTakeoffAndLanding();
 		}
 
 		break;
@@ -600,6 +610,23 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 	return result;
 }
 
+bool FeasibilityChecker::hasMissionBothOrNeitherTakeoffAndLanding()
+{
+	bool result{_has_takeoff == _landing_valid};
+
+	if (!result && (_has_takeoff)) {
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Landing item or remove Takeoff.\t");
+		events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Add Landing item or remove Takeoff");
+
+	} else if (!result && (_landing_valid)) {
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Takeoff item or remove Landing.\t");
+		events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Add Takeoff item or remove Landing");
+	}
+
+	return result;
+}
 
 bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {

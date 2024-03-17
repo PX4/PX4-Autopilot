@@ -41,19 +41,6 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 
 	echo "INFO  [init] Gazebo simulator"
 
-	# set local coordinate frame reference
-	if [ -n "${PX4_HOME_LAT}" ]; then
-		param set SIM_GZ_HOME_LAT ${PX4_HOME_LAT}
-	fi
-
-	if [ -n "${PX4_HOME_LON}" ]; then
-		param set SIM_GZ_HOME_LON ${PX4_HOME_LON}
-	fi
-
-	if [ -n "${PX4_HOME_ALT}" ]; then
-		param set SIM_GZ_HOME_ALT ${PX4_HOME_ALT}
-	fi
-
 	# Only start up Gazebo if PX4_GZ_STANDALONE is not set.
 	if [ -z "${PX4_GZ_STANDALONE}" ]; then
 
@@ -64,6 +51,13 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 			# "gz sim" from Garden on
 			gz_command="gz"
 			gz_sub_command="sim"
+
+			# Specify render engine if `GZ_SIM_RENDER_ENGINE` is set
+			# (for example, if you want to use Ogre 1.x instead of Ogre 2.x):
+			if [ -n "${PX4_GZ_SIM_RENDER_ENGINE}" ]; then
+				echo "INFO  [init] Setting Gazebo render engine to '${PX4_GZ_SIM_RENDER_ENGINE}'!"
+				gz_sub_command="${gz_sub_command} --render-engine ${PX4_GZ_SIM_RENDER_ENGINE}"
+			fi
 		else
 			echo "ERROR [init] Gazebo gz please install gz-garden"
 			exit 1
@@ -173,6 +167,12 @@ elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)"
 
 else
 	# otherwise start simulator (mavlink) module
+
+	# EKF2 specifics
+	param set-default EKF2_GPS_DELAY 10
+	param set-default EKF2_MULTI_IMU 3
+	param set-default SENS_IMU_MODE 0
+
 	simulator_tcp_port=$((4560+px4_instance))
 
 	# Check if PX4_SIM_HOSTNAME environment variable is empty

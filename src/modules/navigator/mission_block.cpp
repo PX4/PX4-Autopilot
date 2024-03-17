@@ -110,7 +110,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 		if (int(_mission_item.params[0]) == 3) {
 			// transition to RW requested, only accept waypoint if vehicle state has changed accordingly
-			return _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+			return _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			       && !_navigator->get_vstatus()->in_transition_mode;
 
 		} else if (int(_mission_item.params[0]) == 4) {
 			// transition to FW requested, only accept waypoint if vehicle state has changed accordingly
@@ -927,16 +928,15 @@ MissionBlock::initialize()
 	_mission_item.origin = ORIGIN_ONBOARD;
 }
 
-void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_radius,
-		HeadingMode heading_mode) const
+void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp,
+		float loiter_radius) const
 {
 	item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
-	item.lat = dest.lat;
-	item.lon = dest.lon;
-	item.altitude = dest.alt;
+	item.lat = pos_yaw_sp.lat;
+	item.lon = pos_yaw_sp.lon;
+	item.altitude = pos_yaw_sp.alt;
 	item.altitude_is_relative = false;
-
-	item. yaw = setYawFromHeadingMode(dest, heading_mode);
+	item.yaw = pos_yaw_sp.yaw;
 
 	item.acceptance_radius = _navigator->get_acceptance_radius();
 	item.time_inside = 0.0f;
@@ -945,8 +945,8 @@ void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const Destina
 	item.loiter_radius = loiter_radius;
 }
 
-void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_time,
-		float loiter_radius, HeadingMode heading_mode) const
+void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp,
+		float loiter_time, float loiter_radius) const
 {
 	const bool autocontinue = (loiter_time > -FLT_EPSILON);
 
@@ -957,12 +957,12 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Destinat
 		item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	}
 
-	item.lat = dest.lat;
-	item.lon = dest.lon;
-	item.altitude = dest.alt;
+	item.lat = pos_yaw_sp.lat;
+	item.lon = pos_yaw_sp.lon;
+	item.altitude = pos_yaw_sp.alt;
 	item.altitude_is_relative = false;
 
-	item. yaw = setYawFromHeadingMode(dest, heading_mode);
+	item.yaw = NAN;
 
 	item.acceptance_radius = _navigator->get_acceptance_radius();
 	item.time_inside = math::max(loiter_time, 0.0f);
@@ -971,13 +971,12 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Destinat
 	item.loiter_radius = loiter_radius;
 }
 
-void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const DestinationPosition &dest,
-		HeadingMode heading_mode) const
+void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const
 {
 	item.nav_cmd = NAV_CMD_WAYPOINT;
-	item.lat = dest.lat;
-	item.lon = dest.lon;
-	item.altitude = dest.alt;
+	item.lat = pos_yaw_sp.lat;
+	item.lon = pos_yaw_sp.lon;
+	item.altitude = pos_yaw_sp.alt;
 	item.altitude_is_relative = false;
 
 	item.autocontinue = true;
@@ -985,44 +984,20 @@ void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const Dest
 	item.time_inside = 0.f;
 	item.origin = ORIGIN_ONBOARD;
 
-	item. yaw = setYawFromHeadingMode(dest, heading_mode);
+	item.yaw = pos_yaw_sp.yaw;
 }
 
-void MissionBlock::setLandMissionItem(mission_item_s &item, const DestinationPosition &dest,
-				      HeadingMode heading_mode) const
+void MissionBlock::setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const
 {
 	item.nav_cmd = NAV_CMD_LAND;
-	item.lat = dest.lat;
-	item.lon = dest.lon;
-	item.altitude = dest.alt;
-
-	if (heading_mode == HeadingMode::CURRENT_HEADING) {
-		item.yaw = _navigator->get_local_position()->heading;
-
-	} else {
-		item.yaw = dest.yaw;
-	}
-
+	item.lat = pos_yaw_sp.lat;
+	item.lon = pos_yaw_sp.lon;
+	item.altitude = pos_yaw_sp.alt;
+	item.yaw = pos_yaw_sp.yaw;
 	item.acceptance_radius = _navigator->get_acceptance_radius();
 	item.time_inside = 0.0f;
 	item.autocontinue = true;
 	item.origin = ORIGIN_ONBOARD;
-}
-
-float MissionBlock::setYawFromHeadingMode(const DestinationPosition &dest, HeadingMode heading_mode) const
-{
-	float desired_yaw(_navigator->get_local_position()->heading);
-
-	if (heading_mode == HeadingMode::NAVIGATION_HEADING) {
-		desired_yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-				_navigator->get_global_position()->lon, dest.lat, dest.lon);
-
-	} else if (heading_mode == HeadingMode::DESTINATION_HEADING) {
-		desired_yaw = dest.yaw;
-
-	}
-
-	return desired_yaw;
 }
 
 void MissionBlock::startPrecLand(uint16_t land_precision)

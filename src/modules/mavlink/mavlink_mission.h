@@ -106,8 +106,12 @@ private:
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
-	static dm_item_t		_dataman_id;				///< Global Dataman storage ID for active mission
-	dm_item_t			_my_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};			///< class Dataman storage ID
+	static dm_item_t	_mission_dataman_id;			///< Global Dataman storage ID for active mission
+	static dm_item_t 	_safepoint_dataman_id; 			///< Global dataman storage id for active safepoints
+	static dm_item_t 	_fence_dataman_id; 			///< Global dataman storage id for active geofence
+	dm_item_t		_my_mission_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};		///< class Dataman storage ID for mission
+	dm_item_t		_my_safepoint_dataman_id{DM_KEY_SAFE_POINTS_0};			///< class Dataman storage ID for safepoints
+	dm_item_t		_my_fence_dataman_id{DM_KEY_FENCE_POINTS_0};			///< class Dataman storage ID for geofence
 
 	static bool		_dataman_init;				///< Dataman initialized
 
@@ -117,7 +121,7 @@ private:
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
 
-	dm_item_t			_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};		///< Dataman storage ID for current transmission
+	dm_item_t		_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};	///< Dataman storage ID for current transmission
 
 	uint16_t		_transfer_count{0};			///< Items count in current transmission
 	uint32_t		_transfer_current_crc32{0};		///< Current CRC32 checksum of current transmission
@@ -148,8 +152,8 @@ private:
 		2;	///< Error count limit before stopping to report FS errors
 	static constexpr uint16_t	MAX_COUNT[] = {
 		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
-		DM_KEY_FENCE_POINTS_MAX - 1,
-		DM_KEY_SAFE_POINTS_MAX - 1
+		DM_KEY_FENCE_POINTS_MAX,
+		DM_KEY_SAFE_POINTS_MAX
 	};	/**< Maximum number of mission items for each type
 					(fence & safe points use the first item for the stats) */
 
@@ -168,14 +172,14 @@ private:
 
 	void init_offboard_mission(const mission_s &mission_state);
 
-	void update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
+	void update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
 				   bool write_to_dataman = true);
 
 	/** store the geofence count to dataman */
-	int update_geofence_count(unsigned count, uint32_t crc32);
+	int update_geofence_count(dm_item_t fence_dataman_id, unsigned count, uint32_t crc32);
 
 	/** store the safepoint count to dataman */
-	int update_safepoint_count(unsigned count, uint32_t crc32);
+	int update_safepoint_count(dm_item_t safepoint_dataman_id, unsigned count, uint32_t crc32);
 
 	/** load geofence stats from dataman */
 	bool load_geofence_stats();

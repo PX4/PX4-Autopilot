@@ -216,6 +216,15 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// GPS: /world/$WORLD/model/$MODEL/link/base_link/sensor/navsat_sensor/navsat
+	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name +
+				    "/link/base_link/sensor/navsat_sensor/navsat";
+
+	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -565,10 +574,6 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			vehicle_angular_velocity_groundtruth.timestamp = hrt_absolute_time();
 			_angular_velocity_ground_truth_pub.publish(vehicle_angular_velocity_groundtruth);
 
-			if (!_pos_ref.isInitialized()) {
-				_pos_ref.initReference((double)_param_sim_home_lat.get(), (double)_param_sim_home_lon.get(), hrt_absolute_time());
-			}
-
 			vehicle_local_position_s local_position_groundtruth{};
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 			local_position_groundtruth.timestamp_sample = time_us;
@@ -595,30 +600,26 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 
 			local_position_groundtruth.heading = euler.psi();
 
-			local_position_groundtruth.ref_lat = _pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
-			local_position_groundtruth.ref_lon = _pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
-			local_position_groundtruth.ref_alt = _param_sim_home_alt.get();
-			local_position_groundtruth.ref_timestamp = _pos_ref.getProjectionReferenceTimestamp();
+			if (_pos_ref.isInitialized()) {
+
+				local_position_groundtruth.ref_lat = _pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
+				local_position_groundtruth.ref_lon = _pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
+				local_position_groundtruth.ref_alt = _alt_ref;
+				local_position_groundtruth.ref_timestamp = _pos_ref.getProjectionReferenceTimestamp();
+				local_position_groundtruth.xy_global = true;
+				local_position_groundtruth.z_global = true;
+
+			} else {
+				local_position_groundtruth.ref_lat = static_cast<double>(NAN);
+				local_position_groundtruth.ref_lon = static_cast<double>(NAN);
+				local_position_groundtruth.ref_alt = NAN;
+				local_position_groundtruth.ref_timestamp = 0;
+				local_position_groundtruth.xy_global = false;
+				local_position_groundtruth.z_global = false;
+			}
 
 			local_position_groundtruth.timestamp = hrt_absolute_time();
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
-
-			if (_pos_ref.isInitialized()) {
-				// publish position groundtruth
-				vehicle_global_position_s global_position_groundtruth{};
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-				global_position_groundtruth.timestamp_sample = time_us;
-#else
-				global_position_groundtruth.timestamp_sample = hrt_absolute_time();
-#endif
-
-				_pos_ref.reproject(local_position_groundtruth.x, local_position_groundtruth.y,
-						   global_position_groundtruth.lat, global_position_groundtruth.lon);
-
-				global_position_groundtruth.alt = _param_sim_home_alt.get() - static_cast<float>(position(2));
-				global_position_groundtruth.timestamp = hrt_absolute_time();
-				_gpos_ground_truth_pub.publish(global_position_groundtruth);
-			}
 
 			pthread_mutex_unlock(&_node_mutex);
 			return;
@@ -700,6 +701,44 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry
 
 	// odom.reset_counter = vpe.reset_counter;
 	_visual_odometry_pub.publish(odom);
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	const uint64_t time_us = (nav_sat.header().stamp().sec() * 1000000) + (nav_sat.header().stamp().nsec() / 1000);
+
+	if (time_us > _world_time_us.load()) {
+		updateClock(nav_sat.header().stamp().sec(), nav_sat.header().stamp().nsec());
+	}
+
+	_timestamp_prev = time_us;
+
+	// initialize gps position
+	if (!_pos_ref.isInitialized()) {
+		_pos_ref.initReference(nav_sat.latitude_deg(), nav_sat.longitude_deg(), hrt_absolute_time());
+		_alt_ref = nav_sat.altitude();
+
+	} else {
+		// publish GPS groundtruth
+		vehicle_global_position_s global_position_groundtruth{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		global_position_groundtruth.timestamp_sample = time_us;
+#else
+		global_position_groundtruth.timestamp_sample = hrt_absolute_time();
+#endif
+		global_position_groundtruth.lat = nav_sat.latitude_deg();
+		global_position_groundtruth.lon = nav_sat.longitude_deg();
+		global_position_groundtruth.alt = nav_sat.altitude();
+		_gpos_ground_truth_pub.publish(global_position_groundtruth);
+	}
 
 	pthread_mutex_unlock(&_node_mutex);
 }

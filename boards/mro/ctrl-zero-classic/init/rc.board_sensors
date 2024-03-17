@@ -16,3 +16,5 @@ icm20948 -s -b 1 -R 8 -M start
 
 # Interal DPS310 (barometer)
 dps310 -s -b 2 start
+
+safety_button start

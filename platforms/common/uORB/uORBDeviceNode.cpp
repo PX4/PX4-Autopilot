@@ -48,37 +48,10 @@
 
 static uORB::SubscriptionInterval *filp_to_subscription(cdev::file_t *filp) { return static_cast<uORB::SubscriptionInterval *>(filp->f_priv); }
 
-// round up to nearest power of two
-// Such as 0 => 1, 1 => 1, 2 => 2 ,3 => 4, 10 => 16, 60 => 64, 65...255 => 128
-// Note: When the input value > 128, the output is always 128
-static inline uint8_t round_pow_of_two_8(uint8_t n)
-{
-	if (n == 0) {
-		return 1;
-	}
-
-	// Avoid is already a power of 2
-	uint8_t value = n - 1;
-
-	// Fill 1
-	value |= value >> 1U;
-	value |= value >> 2U;
-	value |= value >> 4U;
-
-	// Unable to round-up, take the value of round-down
-	if (value == UINT8_MAX) {
-		value >>= 1U;
-	}
-
-	return value + 1;
-}
-
-uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path,
-			     uint8_t queue_size) :
+uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path) :
 	CDev(strdup(path)), // success is checked in CDev::init
 	_meta(meta),
-	_instance(instance),
-	_queue_size(round_pow_of_two_8(queue_size))
+	_instance(instance)
 {
 }
 
@@ -186,7 +159,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 			/* re-check size */
 			if (nullptr == _data) {
-				const size_t data_size = _meta->o_size * _queue_size;
+				const size_t data_size = _meta->o_size * _meta->o_queue;
 				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
 
 				if (_data) {
@@ -217,7 +190,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(_data + (_meta->o_size * (generation % _queue_size)), buffer, _meta->o_size);
+	memcpy(_data + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
 
 	// callbacks
 	for (auto item : _callbacks) {
@@ -253,13 +226,6 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 	case ORBIOCGADVERTISER:
 		*(uintptr_t *)arg = (uintptr_t)this;
 		return PX4_OK;
-
-	case ORBIOCSETQUEUESIZE: {
-			lock();
-			int ret = update_queue_size(arg);
-			unlock();
-			return ret;
-		}
 
 	case ORBIOCGETINTERVAL:
 		*(unsigned *)arg = filp_to_subscription(filp)->get_interval_us();
@@ -389,12 +355,11 @@ uORB::DeviceNode::print_statistics(int max_topic_length)
 
 	const uint8_t instance = get_instance();
 	const int8_t sub_count = subscriber_count();
-	const uint8_t queue_size = get_queue_size();
 
 	unlock();
 
 	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %s\n", max_topic_length, get_meta()->o_name, (int)instance, (int)sub_count,
-		     queue_size, get_meta()->o_size, get_devname());
+		     get_meta()->o_queue, get_meta()->o_size, get_devname());
 
 	return true;
 }
@@ -482,21 +447,6 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 	return PX4_OK;
 }
 #endif /* CONFIG_ORB_COMMUNICATOR */
-
-int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
-{
-	if (_queue_size == queue_size) {
-		return PX4_OK;
-	}
-
-	//queue size is limited to 255 for the single reason that we use uint8 to store it
-	if (_data || _queue_size > queue_size || queue_size > 255) {
-		return PX4_ERROR;
-	}
-
-	_queue_size = round_pow_of_two_8(queue_size);
-	return PX4_OK;
-}
 
 unsigned uORB::DeviceNode::get_initial_generation()
 {

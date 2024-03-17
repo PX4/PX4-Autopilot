@@ -47,7 +47,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 
 	if (!gyro_bias_inhibited()) {
-		_yawEstimator.setGyroBias(getGyroBias());
+		_yawEstimator.setGyroBias(getGyroBias(), _control_status.flags.vehicle_at_rest);
 	}
 
 	// run EKF-GSF yaw estimator once per imu_delayed update
@@ -80,8 +80,11 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			}
 		}
 
+		if (_pos_ref.isInitialized()) {
+			updateGnssPos(gnss_sample, _aid_src_gnss_pos);
+		}
+
 		updateGnssVel(gnss_sample, _aid_src_gnss_vel);
-		updateGnssPos(gnss_sample, _aid_src_gnss_pos);
 
 	} else if (_control_status.flags.gps) {
 		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
