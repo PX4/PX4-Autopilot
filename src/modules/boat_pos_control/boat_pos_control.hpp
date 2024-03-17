@@ -59,6 +59,8 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 
 #include <uORB/uORB.h>
@@ -101,6 +103,8 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 
 
 
@@ -117,6 +121,8 @@ private:
 	PID_t _velocity_pid; ///< The PID controller for velocity.
 	PID_t _yaw_rate_pid; ///< The PID controller for yaw rate.
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
+	position_setpoint_triplet_s _position_setpoint_triplet{};
+	vehicle_global_position_s _vehicle_global_position{};
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	vehicle_attitude_s			_vehicle_att{};
 	float yaw_setpoint;

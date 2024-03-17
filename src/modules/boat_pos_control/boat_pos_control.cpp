@@ -121,8 +121,7 @@ void BoatPosControl::Run()
 	const Quatf q{_vehicle_att.q};
 	const float yaw = Eulerf(q).psi();
 
-	dbg.value = yaw;
-	orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+
 
 	if (_vehicle_control_mode_sub.updated()) {
 
@@ -132,6 +131,29 @@ void BoatPosControl::Run()
 			_position_ctrl_ena = vehicle_control_mode.flag_control_position_enabled; // change this when more modes are supported
 		}
 	}
+
+	if (_position_setpoint_triplet_sub.updated()) {
+		_position_setpoint_triplet_sub.copy(&_position_setpoint_triplet);
+	}
+
+	if (_vehicle_global_position_sub.updated()) {
+		_vehicle_global_position_sub.copy(&_vehicle_global_position);
+	}
+
+	matrix::Vector2d global_position(_vehicle_global_position.lat, _vehicle_global_position.lon);
+	matrix::Vector2d current_waypoint(_position_setpoint_triplet.current.lat, _position_setpoint_triplet.current.lon);
+	matrix::Vector2d next_waypoint(_position_setpoint_triplet.next.lat, _position_setpoint_triplet.next.lon);
+
+	const float distance_to_next_wp = get_distance_to_next_waypoint(global_position(0), global_position(1),
+					  current_waypoint(0),
+					  current_waypoint(1));
+
+	float desired_heading = get_bearing_to_next_waypoint(global_position(0), global_position(1), current_waypoint(0),
+				current_waypoint(1));
+
+	dbg.value = desired_heading;
+	orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+
 	if (_armed && _position_ctrl_ena){
 		if (_local_pos_sub.update(&_local_pos)) {
 			_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
@@ -141,13 +163,14 @@ void BoatPosControl::Run()
 			const Vector3f vel = R_to_body * Vector3f(_local_pos.vx, _local_pos.vy, _local_pos.vz);
 
 			// Speed control
-			float _thrust = pid_calculate(&_velocity_pid, _manual_control_setpoint.throttle*7.f, vel(0), 0, dt);
-			_thrust = _thrust + 0.f;
+			float _thrust = pid_calculate(&_velocity_pid, distance_to_next_wp, vel(0), 0, dt);
+			_thrust = math::constrain(_thrust, -1.0f, 1.0f);
+			//_thrust = _thrust + 0.f;
 
 			// yaw rate control
 			//yaw_setpoint += _manual_control_setpoint.roll*0.1f;
 
-			float _torque_sp = pid_calculate(&_yaw_rate_pid, 0.f, yaw, 0, dt);
+			float _torque_sp = pid_calculate(&_yaw_rate_pid, desired_heading, yaw, 0, dt);
 
 			v_thrust_sp.xyz[0] = _thrust;
 			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
