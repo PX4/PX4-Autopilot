@@ -325,7 +325,14 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const float heading_accuracy)
 {
 	sensor_gps_s report{};
-	report.device_id = get_device_id();
+
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = msg.getIfaceIndex();
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
+	device_id.devid_s.address =  msg.getSrcNodeID().get();
+
+	report.device_id = device_id.devid;
 
 	/*
 	 * FIXME HACK
