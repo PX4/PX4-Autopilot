@@ -176,7 +176,7 @@
 		GPIO_SPL_ADDR_SET, \
 		GPIO_PC0, \
 		GPIO_PC1, \
-}
+	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
