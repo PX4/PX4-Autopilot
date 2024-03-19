@@ -70,33 +70,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
-      - uses: jfrog/setup-jfrog-cli@v3
-        if: github.event_name == 'push'
-        env:
-          JF_ENV_1: ${{ secrets.ARTIFACTORY_CLOUD_TOKEN }}
-
-      - name: Upload to Artifactory (px4-sitl)
-        env:
-          ARTIFACTORY_GEN_REPO: ssrc-gen-private-local
-          BUILD_NAME: px4-sitl
-          CI: true
-        if: github.event_name == 'push'
-        run: |
-          set -exu
-          jfrog rt ping
-          pkg=$(find bin -name 'px4_sitl_build*.tar.gz')
-          pkg_name=$(basename $pkg)
-          jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
-                     --build-name "$BUILD_NAME" \
-                     --build-number "$GITHUB_SHA" \
-                     "$pkg" \
-                     "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name"
-          jfrog rt build-publish "$BUILD_NAME" "$GITHUB_SHA"
-          jfrog rt bpr "$BUILD_NAME" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
-                       --status dev \
-                       --comment "development build"
-          jfrog rt cp --flat \
-                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/$pkg_name" \
-                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/sitl/latest/px4_sitl_build.tar.gz"
-
