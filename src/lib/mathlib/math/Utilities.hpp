@@ -140,7 +140,7 @@ inline T getEuler312Yaw(const matrix::Quaternion<T> &q)
 {
 	// Values from yaw_input_312.c file produced by
 	// https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
-	const T a = 2. * (q(0) * q(3) - q(1) * q(2));
+	const T a = static_cast<T>(2.) * (q(0) * q(3) - q(1) * q(2));
 	const T b = sq(q(0)) - sq(q(1)) + sq(q(2)) - sq(q(3));
 	return atan2f(a, b);
 }
