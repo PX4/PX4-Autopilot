@@ -3,8 +3,12 @@
 
 # Start the attitude and position estimator.
 ekf2 start &
+#
+# Start Control Allocator
+#
+control_allocator start
 
-# Start rover differential drive controller.
+# Start boat position controller.
 boat_pos_control start
 
 # Start Land Detector.
