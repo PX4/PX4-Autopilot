@@ -244,6 +244,8 @@
 # error HRT_TIMER_CHANNEL must be a value between 1 and 4
 #endif
 
+static volatile hrt_abstime base_time;
+
 /*
  * Queue of callout entries.
  */
@@ -274,6 +276,112 @@ static void		hrt_call_internal(struct hrt_call *entry,
 static void		hrt_call_enter(struct hrt_call *entry);
 static void		hrt_call_reschedule(void);
 static void		hrt_call_invoke(void);
+
+
+#define HRT_TIME_SYNC
+
+#if defined(HRT_TIME_SYNC)
+
+#include <math.h>
+
+static bool sync_set = false;
+static bool sync_locked = false;
+static uint32_t sync_jump_cnt = 0;
+
+static float sync_prev_adj = 0;
+static float sync_rel_rate_ppm = 0;
+static float sync_rel_rate_error_integral = 0;
+static int32_t sync_accumulated_correction_nsec = 0;
+static int32_t sync_correction_nsec_per_overflow = 0;
+static hrt_abstime prev_sync_adj_at;
+
+static const float sync_offset_p = 0.01f;                 ///< PPM per one usec error
+static const float sync_rate_i = 0.02f;                   ///< PPM per one PPM error for second
+static const float sync_rate_error_corner_freq = 0.01f;
+static const float sync_max_rate_correction_ppm = 300.0f;
+static const float sync_lock_thres_rate_ppm = 2.f;
+static const hrt_abstime sync_lock_thres_offset = 4000;   ///< usec
+static const hrt_abstime sync_min_jump = 10000;           ///< Min error to jump rather than change rate
+
+static float lowpass(float xold, float xnew, float corner, float dt)
+{
+	const float tau = 1.F / corner;
+	return (dt * xnew + tau * xold) / (dt + tau);
+}
+
+static void updateRatePID(float adj_usec)
+{
+	const hrt_abstime ts = hrt_absolute_time();
+	const float dt = (ts - prev_sync_adj_at) / 1e6f;
+	prev_sync_adj_at = ts;
+
+	/*
+	 * Target relative rate in PPM
+	 * Positive to go faster
+	 */
+	const float target_rel_rate_ppm = adj_usec * sync_offset_p;
+
+	/*
+	 * Current relative rate in PPM
+	 * Positive if the local clock is faster
+	 */
+	const float new_rel_rate_ppm = (sync_prev_adj - adj_usec) / dt; // rate error in [usec/sec], which is PPM
+	sync_prev_adj = adj_usec;
+	sync_rel_rate_ppm = lowpass(sync_rel_rate_ppm, new_rel_rate_ppm, sync_rate_error_corner_freq, dt);
+
+	const float rel_rate_error = target_rel_rate_ppm - sync_rel_rate_ppm;
+
+	if (dt > 10) {
+		sync_rel_rate_error_integral = 0;
+
+	} else {
+		sync_rel_rate_error_integral += rel_rate_error * dt * sync_rate_i;
+		sync_rel_rate_error_integral = fmaxf(sync_rel_rate_error_integral, -sync_max_rate_correction_ppm);
+		sync_rel_rate_error_integral = fminf(sync_rel_rate_error_integral, sync_max_rate_correction_ppm);
+	}
+
+	/* Rate controller */
+	float total_rate_correction_ppm = rel_rate_error + sync_rel_rate_error_integral;
+	total_rate_correction_ppm = fmaxf(total_rate_correction_ppm, -sync_max_rate_correction_ppm);
+	total_rate_correction_ppm = fminf(total_rate_correction_ppm, sync_max_rate_correction_ppm);
+
+	sync_correction_nsec_per_overflow = (HRT_COUNTER_PERIOD * 1000) * (total_rate_correction_ppm / 1e6f);
+
+	// syslog(LOG_INFO, "$ adj=%f   rel_rate=%f   rel_rate_eint=%f   tgt_rel_rate=%f   ppm=%f\n",
+	//        (double)adj_usec, (double)sync_rel_rate_ppm, (double)sync_rel_rate_error_integral, (double)target_rel_rate_ppm,
+	//        (double)total_rate_correction_ppm);
+}
+
+void hrt_absolute_time_adjust(int64_t adjustment)
+{
+	irqstate_t flags = px4_enter_critical_section();
+
+	if (fabsf((float)adjustment) > (float)sync_min_jump || !sync_set) {
+
+		const hrt_abstime time_prev = base_time;
+		base_time += adjustment;
+		syslog(LOG_NOTICE, "HRT: resetting %llu -> %llu\n", time_prev, base_time);
+
+		sync_set = true;
+		sync_locked = false;
+		sync_jump_cnt++;
+		sync_prev_adj = 0;
+		sync_rel_rate_ppm = 0;
+
+	} else {
+		updateRatePID(adjustment);
+
+		if (!sync_locked) {
+			sync_locked =
+				(fabsf(sync_rel_rate_ppm) < sync_lock_thres_rate_ppm) &&
+				(fabsf(sync_prev_adj) < sync_lock_thres_offset);
+		}
+	}
+
+	px4_leave_critical_section(flags);
+}
+#endif // HRT_TIME_SYNC
+
 
 
 int hrt_ioctl(unsigned int cmd, unsigned long arg);
@@ -665,7 +773,6 @@ hrt_absolute_time(void)
 	 * pair.  Discourage the compiler from moving loads/stores
 	 * to these outside of the protected range.
 	 */
-	static volatile hrt_abstime base_time;
 	static volatile uint32_t last_count;
 
 	/* prevent re-entry */
@@ -683,12 +790,34 @@ hrt_absolute_time(void)
 	 */
 	if (count < last_count) {
 		base_time += HRT_COUNTER_PERIOD;
+
+#if defined(HRT_TIME_SYNC)
+
+		if (sync_set) {
+			sync_accumulated_correction_nsec += sync_correction_nsec_per_overflow;
+
+			if (abs(sync_accumulated_correction_nsec) >= 1000) {
+				base_time += sync_accumulated_correction_nsec / 1000;
+				sync_accumulated_correction_nsec %= 1000;
+			}
+
+			// Correction decay - 1 nsec per 65536 usec
+			if (sync_correction_nsec_per_overflow > 0) {
+				sync_correction_nsec_per_overflow--;
+
+			} else if (sync_correction_nsec_per_overflow < 0) {
+				sync_correction_nsec_per_overflow++;
+			}
+		}
+
+#endif /* HRT_TIME_SYNC */
 	}
 
 	/* save the count for next time */
 	last_count = count;
 
 	/* compute the current time */
+
 	abstime = HRT_COUNTER_SCALE(base_time + count);
 
 	px4_leave_critical_section(flags);
