@@ -78,22 +78,16 @@ int SCH16T::init()
 		return ret;
 	}
 
-	// TODO:
+	Reset();
 
-	// During the startup sequence, the sensor performs a series of internal tests that will set various error
-	// flags in the sensor status registers. To clear them it is necessary to read the status registers after the
-	// start-up sequence is complete. When reading the status registers, the user must consider that the state
-	// of status flags is not defined during LPM (Low Power Mode) and the 250 ms wait state after
-	// EN_SENSOR
-
-	return Reset() ? 0 : -1;
+	return PX4_OK;
 }
 
-bool SCH16T::Reset()
+void SCH16T::Reset()
 {
 	PX4_INFO("Reset()");
 
-	_state = STATE::RESET_STAGE1;
+	_state = STATE::RESET_INIT;
 
 	if (_drdy_gpio) {
 		DataReadyInterruptDisable();
@@ -101,7 +95,6 @@ bool SCH16T::Reset()
 
 	ScheduleClear();
 	ScheduleNow();
-	return true;
 }
 
 void SCH16T::exit_and_cleanup()
@@ -153,70 +146,101 @@ int SCH16T::probe()
 	return PX4_OK;
 }
 
+////////////////////////////////////
+// From the datasheet flowchart
+//
+// - set user controls
+// - enable sensor
+// - wait 250_ms
+// - read all status registers once
+// - set EOI
+// - wait 3_ms
+// - read all status registers twice
+// - validate user control registers
+// - validate status registers are OK
+////////////////////////////////////
 void SCH16T::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
 	switch (_state) {
-	case STATE::RESET_STAGE1:
-		perf_count(_reset_perf);
+	case STATE::RESET_INIT: {
+			perf_count(_reset_perf);
 
-		if (_hardware_reset_available) {
-			px4_arch_gpiowrite(_reset_pin, 0);
-			_state = STATE::RESET_STAGE2;
-			ScheduleDelayed(2_ms);
+			_reset_timestamp = now;
+			_failure_count = 0;
 
-		} else {
-			SoftwareReset();
+			if (_hardware_reset_available) {
+				px4_arch_gpiowrite(_reset_pin, 0);
+				_state = STATE::RESET_HARD;
+				ScheduleDelayed(2_ms);
+
+			} else {
+				SoftwareReset();
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(250_ms); // wait for power-on time
+			}
+
+			break;
+		}
+
+	case STATE::RESET_HARD: {
+			if (_hardware_reset_available) {
+				px4_arch_gpiowrite(_reset_pin, 1);
+			}
+
 			_state = STATE::CONFIGURE;
-			// wait 250_ms for POWER_ON
-			ScheduleDelayed(250_ms);
+			ScheduleDelayed(250_ms); // wait for power-on time
+			break;
 		}
 
-		_reset_timestamp = now;
-		_failure_count = 0;
-		break;
+	case STATE::CONFIGURE: {
+			// Sets up control registers
+			Configure();
 
-	case STATE::RESET_STAGE2:
-		if (_hardware_reset_available) {
-			px4_arch_gpiowrite(_reset_pin, 1);
+			_state = STATE::VALIDATE;
+			ScheduleDelayed(250_ms); // wait for power-on time
+			break;
 		}
 
-		_state = STATE::RESET_STAGE2;
-		ScheduleDelayed(250_ms);
-		break;
+	case STATE::VALIDATE: {
+			// Read all status registers once
+			ReadStatusRegisters();
 
-	case STATE::CONFIGURE:
-		if (Configure()) {
-			// if configure succeeded then start reading
-			_state = STATE::READ;
+			// Write EOI and EN_SENSOR
+			RegisterWrite(CTRL_MODE, 0b0011);
 
-			if (_drdy_gpio) {
-				DataReadyInterruptConfigure();
-				// backup schedule as a watchdog timeout
+			// Read all status registers twice
+			ReadStatusRegisters();
+			ReadStatusRegisters();
+
+			// Check that registers are configured properly and that the sensor status is OK
+			bool success = ValidateSensorStatus() && ValidateRegisterConfiguration();
+
+			if (success) {
+				_state = STATE::READ;
+
+				if (_drdy_gpio) {
+					DataReadyInterruptConfigure();
+					ScheduleDelayed(100_ms); // backup schedule as a watchdog timeout
+
+				} else {
+					ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
+				}
+
+			} else {
+				PX4_INFO("Configuration validation failed, resetting");
+				_state = STATE::RESET_INIT;
 				ScheduleDelayed(100_ms);
-
-			} else {
-				ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
 			}
 
-		} else {
-			// CONFIGURE not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 1_s) {
-				PX4_DEBUG("Configure failed, resetting");
-				_state = STATE::RESET_STAGE1;
-
-			} else {
-				PX4_DEBUG("Configure failed, retrying");
-			}
-
-			ScheduleDelayed(100_ms);
+			break;
 		}
-
-		break;
 
 	case STATE::READ: {
 			hrt_abstime timestamp_sample = now;
+
+			PX4_INFO("STATE::READ");
 
 			if (_drdy_gpio) {
 				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
@@ -235,94 +259,120 @@ void SCH16T::RunImpl()
 
 			// TODO: read data impl and handle failures
 			(void)timestamp_sample;
+
+			break;
 		}
 
+	default:
 		break;
-	}
+	} // end switch/case
 }
 
-bool SCH16T::Configure()
+void SCH16T::Configure()
 {
-	// Certain systems need to utilize every available sample and for example acquire samples from all axis at
-	// the same time instant. As the natural output data rate with nominal primary frequency is 11.8 kHz, this
-	// can create excessive load for the MCU. The purpose of decimation is to decrease the internal update
-	// rate to give the host system enough time to read every sample.
-	// During start-up, the user can select a suitable decimation from
+	// Filter settings
+	RegisterWrite(CTRL_FILT_RATE, 0x0000); 	// default 68Hz
+	RegisterWrite(CTRL_FILT_ACC12, 0x0000); // default 68Hz
+	RegisterWrite(CTRL_FILT_ACC3, 0x0000); 	// default 68Hz
 
-	// now check that all are configured
+	// Table 63 CTRL_RATE Register bit description
+	// +-------------+-------------------------------------+---------+-------------+
+	// | Bit Name    | Bit Description                     | Bits    | Reset Value |
+	// +-------------+-------------------------------------+---------+-------------+
+	// | DYN_RATE_XYZ1 | Dynamic Range for RATE_X1/Y1/Z1.  | [14:12] | 3b001       |
+	// | DYN_RATE_XYZ2 | Dynamic Range for RATE_X2/Y2/Z2.  | [11:9]  | 3b001       |
+	// | DEC_RATE_Z2   | Decimation ratio for RATE_Z2.     | [8:6]   | 3b000       |
+	// | DEC_RATE_Y2   | Decimation ratio for RATE_Y2.     | [5:3]   | 3b000       |
+	// | DEC_RATE_X2   | Decimation ratio for RATE_X2.     | [2:0]   | 3b000       |
+	// +-------------+-------------------------------------+---------+-------------+
+	uint16_t ctrl_rate = 0x00;
+	ctrl_rate |= uint16_t(0b001) << 9; 	// +/- 300 deg/s, 1600 LSB/(deg/s) -- default
+	ctrl_rate |= uint16_t(0b001) << 12; // +/- 300 deg/s, 1600 LSB/(deg/s) -- default
+	ctrl_rate |= uint16_t(0b011) << 0; 	// Decimation 8, 1475Hz
+	ctrl_rate |= uint16_t(0b011) << 3; 	// Decimation 8, 1475Hz
+	ctrl_rate |= uint16_t(0b011) << 6; 	// Decimation 8, 1475Hz
+	RegisterWrite(CTRL_RATE, ctrl_rate);
+
+	// Set gyro range and scale
+	_px4_gyro.set_range(math::radians(300.f));
+	_px4_gyro.set_scale(math::radians(1.f / 1600.f)); // scaling 1600 LSB/°/sec -> rad/s per LSB
+
+	// Table 64 ACC12_CTRL Register bit description
+	// +--------------+-----------------------------------------+---------+-------------+
+	// | Bit Name     | Bit Description                         | Bits    | Reset Value |
+	// +--------------+-----------------------------------------+---------+-------------+
+	// | DYN_ACC_XYZ1 | Dynamic Range for ACC_X1/Y1/Z1 outputs. | [14:12] | 3b001       |
+	// | DYN_ACC_XYZ2 | Dynamic Range for ACC_X2/Y2/Z2 outputs. | [11:9]  | 3b001       |
+	// | DEC_ACC_Z2   | Decimation ratio for ACC_Z2 output.     | [8:6]   | 3b000       |
+	// | DEC_ACC_Y2   | Decimation ratio for ACC_Y2 output.     | [5:3]   | 3b000       |
+	// | DEC_ACC_X2   | Decimation ratio for ACC_X2 output.     | [2:0]   | 3b000       |
+	// +--------------+-----------------------------------------+---------+-------------+
+	uint16_t ctrl_acc12 = 0x00;
+	ctrl_acc12 |= uint16_t(0b001) << 9; 	// +/- 80 m/s^2, 200 LSB/(m/s^2) -- default
+	ctrl_acc12 |= uint16_t(0b001) << 12; 	// +/- 80 m/s^2, 200 LSB/(m/s^2) -- default
+	ctrl_acc12 |= uint16_t(0b011) << 0; 	// Decimation 8, 1475Hz
+	ctrl_acc12 |= uint16_t(0b011) << 3; 	// Decimation 8, 1475Hz
+	ctrl_acc12 |= uint16_t(0b011) << 6; 	// Decimation 8, 1475Hz
+	RegisterWrite(CTRL_ACC12, ctrl_acc12);
+
+	// Set accel range and scale
+	_px4_accel.set_range(80.f);
+	_px4_accel.set_scale(1.f / 200.f);
+
+	// Table 65 ACC3_CTRL Register bit description
+	// +--------------+----------------------------------+--------+-------------+
+	// | Bit Name     | Bit Description                  | Bits   | Reset Value |
+	// +--------------+----------------------------------+--------+-------------+
+	// | DYN_ACC_XYZ3 | Dynamic Range for ACC_X3/Y3/Z3.  | [2:0]  | 3b000       |
+	// +--------------+----------------------------------+--------+-------------+
+	uint16_t ctrl_acc3 = 0x00;
+	ctrl_acc3 |= uint16_t(0b000) << 0; 	// +/- 80 m/s^2, 100 LSB/(m/s^2) -- default
+	RegisterWrite(CTRL_ACC3, ctrl_acc3);
+
+	// - Enable data ready
+	RegisterWrite(CTRL_USER_IF, uint16_t(1 << 5));
+
+	// - Enable the sensor
+	RegisterWrite(CTRL_MODE, 0b0001);
+}
+
+bool SCH16T::ValidateRegisterConfiguration()
+{
 	bool success = true;
 
-	// TODO: check that registers are configured properly
+	// TODO: check registers
+	PX4_INFO("TODO: validate user control registers");
 
-
-	// SCH1600 settings and initialization
-	//------------------------------------
-
-	// // SCH1600 filter settings
-	// Filter.Rate12 = FILTER_RATE;
-	// Filter.Acc12  = FILTER_ACC12;
-	// Filter.Acc3   = FILTER_ACC3;
-
-	// // SCH1600 sensitivity settings
-	// Sensitivity.Rate1 = SENSITIVITY_RATE1;
-	// Sensitivity.Rate2 = SENSITIVITY_RATE2;
-	// Sensitivity.Acc1  = SENSITIVITY_ACC1;
-	// Sensitivity.Acc2  = SENSITIVITY_ACC2;
-	// Sensitivity.Acc3  = SENSITIVITY_ACC3;
-
-	// // SCH1600 decimation settings (for Rate2 and Acc2 channels).
-	// Decimation.Rate2 = DECIMATION_RATE; // DEC4, F_PRIM/16
-	// Decimation.Acc2  = DECIMATION_ACC;
-
-
-	// TODO: set gyro range/scale
-	// TODO: set accel range/scale
-
+	if (!success) {
+		PX4_INFO("ValidateRegisterConfiguration(): FAIL");
+	}
 
 	return success;
 }
 
-int SCH16T::DataReadyInterruptCallback(int irq, void *context, void *arg)
+void SCH16T::ReadStatusRegisters()
 {
-	static_cast<SCH16T *>(arg)->DataReady();
-	return 0;
-}
-
-void SCH16T::DataReady()
-{
-	_drdy_timestamp_sample.store(hrt_absolute_time());
-	ScheduleNow();
-}
-
-bool SCH16T::DataReadyInterruptConfigure()
-{
-	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, false, &DataReadyInterruptCallback, this) == 0;
-}
-
-bool SCH16T::DataReadyInterruptDisable()
-{
-	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
+	RegisterRead(STAT_SUM);
+	_sensor_status.summary 		= RegisterRead(STAT_SUM_SAT);
+	_sensor_status.saturation 	= RegisterRead(STAT_COM);
+	_sensor_status.common 		= RegisterRead(STAT_RATE_COM);
+	_sensor_status.rate_common 	= RegisterRead(STAT_RATE_X);
+	_sensor_status.rate_x 		= RegisterRead(STAT_RATE_Y);
+	_sensor_status.rate_y 		= RegisterRead(STAT_RATE_Z);
+	_sensor_status.rate_z 		= RegisterRead(STAT_ACC_X);
+	_sensor_status.acc_x 		= RegisterRead(STAT_ACC_Y);
+	_sensor_status.acc_y 		= RegisterRead(STAT_ACC_Z);
+	_sensor_status.acc_z 		= RegisterRead(STAT_ACC_Z);
 }
 
 bool SCH16T::ValidateSensorStatus()
 {
-	RegisterRead(STAT_SUM);
-	uint16_t summary 		= RegisterRead(STAT_SUM_SAT);
-	uint16_t saturation 	= RegisterRead(STAT_COM);
-	uint16_t common 		= RegisterRead(STAT_RATE_COM);
-	uint16_t rate_common 	= RegisterRead(STAT_RATE_X);
-	uint16_t rate_x 		= RegisterRead(STAT_RATE_Y);
-	uint16_t rate_y 		= RegisterRead(STAT_RATE_Z);
-	uint16_t rate_z 		= RegisterRead(STAT_ACC_X);
-	uint16_t acc_x 			= RegisterRead(STAT_ACC_Y);
-	uint16_t acc_y 			= RegisterRead(STAT_ACC_Z);
-	uint16_t acc_z 			= RegisterRead(STAT_ACC_Z);
-
-	uint16_t values[] = { summary, saturation, common, rate_common, rate_x, rate_y, rate_z, acc_x, acc_y, acc_z };
+	auto &s = _sensor_status;
+	uint16_t values[] = { s.summary, s.saturation, s.common, s.rate_common, s.rate_x, s.rate_y, s.rate_z, s.acc_x, s.acc_y, s.acc_z };
 
 	for (auto v : values) {
 		if (v != 0xFFFF) {
+			PX4_INFO("ValidateSensorStatus(): FAIL");
 			return false;
 		}
 	}
@@ -391,4 +441,27 @@ uint64_t SCH16T::TransferSpiFrame(uint64_t data)
 			 (((uint64_t)rx[2]) & 0x000000000000ffff);
 
 	return value;
+}
+
+int SCH16T::DataReadyInterruptCallback(int irq, void *context, void *arg)
+{
+	static_cast<SCH16T *>(arg)->DataReady();
+	return 0;
+}
+
+void SCH16T::DataReady()
+{
+	_drdy_timestamp_sample.store(hrt_absolute_time());
+	ScheduleNow();
+}
+
+bool SCH16T::DataReadyInterruptConfigure()
+{
+	// Setup data ready on falling edge
+	return px4_arch_gpiosetevent(_drdy_gpio, true, false, false, &DataReadyInterruptCallback, this) == 0;
+}
+
+bool SCH16T::DataReadyInterruptDisable()
+{
+	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
 }

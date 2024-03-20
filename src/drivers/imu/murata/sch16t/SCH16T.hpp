@@ -76,15 +76,13 @@ private:
 	void exit_and_cleanup() override;
 
 	bool ValidateSensorStatus();
-	bool Reset();
-	bool Configure();
+	bool ValidateRegisterConfiguration();
+
+	void Reset();
+	void Configure();
 
 	void SoftwareReset();
-
-	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
-	void DataReady();
-	bool DataReadyInterruptConfigure();
-	bool DataReadyInterruptDisable();
+	void ReadStatusRegisters();
 
 	// Data registers are 20bit 2s complement
 	int32_t DataRegisterRead(uint8_t addr);
@@ -94,7 +92,25 @@ private:
 
 	uint64_t TransferSpiFrame(uint64_t data);
 
+	// Data Ready functions
+	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
+	void DataReady();
+	bool DataReadyInterruptConfigure();
+	bool DataReadyInterruptDisable();
 private:
+
+	struct SensorStatus {
+		uint16_t summary;
+		uint16_t saturation;
+		uint16_t common;
+		uint16_t rate_common;
+		uint16_t rate_x;
+		uint16_t rate_y;
+		uint16_t rate_z;
+		uint16_t acc_x;
+		uint16_t acc_y;
+		uint16_t acc_z;
+	} _sensor_status{};
 
 	const spi_drdy_gpio_t _drdy_gpio;
 	bool _hardware_reset_available{false};
@@ -116,9 +132,10 @@ private:
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 
 	enum class STATE : uint8_t {
-		RESET_STAGE1,
-		RESET_STAGE2,
+		RESET_INIT,
+		RESET_HARD,
 		CONFIGURE,
+		VALIDATE,
 		READ,
-	} _state{STATE::RESET_STAGE1};
+	} _state{STATE::RESET_INIT};
 };

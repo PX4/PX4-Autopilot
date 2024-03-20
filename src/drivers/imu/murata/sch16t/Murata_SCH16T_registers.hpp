@@ -48,7 +48,7 @@ static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;       // 2 MHz SPI serial
 static constexpr uint32_t SPI_SPEED_BURST = 1 * 1000 * 1000; // 1 MHz SPI serial interface for burst read
 static constexpr uint32_t SPI_STALL_PERIOD = 16; // 16 us Stall period between data
 
-static constexpr uint32_t SAMPLE_INTERVAL_US = 500; // 2000 Hz
+static constexpr uint32_t SAMPLE_INTERVAL_US = 678; // 1500 Hz -- decimation factor 8, F_PRIM/16, 1.475 kHz
 
 #define CTRL_RATE_ADDR 0x28
 
