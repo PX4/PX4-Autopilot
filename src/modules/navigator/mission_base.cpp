@@ -253,6 +253,7 @@ MissionBase::on_active()
 
 	updateMavlinkMission();
 	updateDatamanCache();
+	updateMissionAltAfterHomeChanged();
 
 	/* Check the mission */
 	if (!_mission_checked && canRunMissionFeasibility()) {
@@ -1374,4 +1375,30 @@ bool MissionBase::canRunMissionFeasibility()
 	       (_geofence_status_sub.get().timestamp > 0) && // Geofence data must be loaded
 	       (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
 	       (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY);
+}
+
+void MissionBase::updateMissionAltAfterHomeChanged()
+{
+	if (_navigator->get_home_position()->update_count > _home_update_counter) {
+		float new_alt = get_absolute_altitude_for_item(_mission_item);
+		float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
+
+		if (_navigator->get_position_setpoint_triplet()->previous.valid
+		    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
+			_navigator->get_position_setpoint_triplet()->previous.alt = _navigator->get_position_setpoint_triplet()->previous.alt +
+					altitude_diff;
+		}
+
+		_navigator->get_position_setpoint_triplet()->current.alt = _navigator->get_position_setpoint_triplet()->current.alt +
+				altitude_diff;
+
+		if (_navigator->get_position_setpoint_triplet()->next.valid
+		    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->next.alt)) {
+			_navigator->get_position_setpoint_triplet()->next.alt = _navigator->get_position_setpoint_triplet()->next.alt +
+					altitude_diff;
+		}
+
+		_navigator->set_position_setpoint_triplet_updated();
+		_home_update_counter = _navigator->get_home_position()->update_count;
+	}
 }
