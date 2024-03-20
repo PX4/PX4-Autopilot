@@ -865,18 +865,24 @@ bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 #else
 	// Efficient implementation of the Joseph stabilized covariance update
 	// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
+	// P = (I - K * H) * P * (I - K * H).T   + K * R * K.T
+	//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
+	//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
 
 	// Step 1: conventional update
+	// Compute P_temp and store it in P to avoid allocating more memory
+	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
 	VectorState PH = P.row(state_index);
 
 	for (unsigned i = 0; i < State::size; i++) {
 		for (unsigned j = 0; j < State::size; j++) {
-			P(i, j) -= K(i) * PH(j); // P is now not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
+			P(i, j) -= K(i) * PH(j); // P is now not symmetric if K is not optimal (e.g.: some gains have been zeroed)
 		}
 	}
 
 	// Step 2: stabilized update
-	PH = P.row(state_index);
+	// P (or "P_temp") is not symmetric so we must take the column
+	PH = P.col(state_index);
 
 	for (unsigned i = 0; i < State::size; i++) {
 		for (unsigned j = 0; j <= i; j++) {
