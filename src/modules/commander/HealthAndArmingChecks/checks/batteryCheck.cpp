@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "batteryCheck.hpp"
+#include <lib/circuit_breaker/circuit_breaker.h>
 
 #include <px4_platform_common/events.h>
 
@@ -89,6 +90,10 @@ static constexpr const char *battery_mode_str(battery_mode_t battery_mode)
 
 void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 {
+	if (circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
+		return;
+	}
+
 	int battery_required_count = 0;
 	bool battery_has_fault = false;
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
