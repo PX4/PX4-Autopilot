@@ -88,7 +88,7 @@ int SCH16T::probe()
 {
 	PX4_INFO("probe");
 
-	// Power-On Start-Up Time 310 ms
+	// Power-On Start-Up Time 250 ms
 	if (hrt_absolute_time() < 250_ms) {
 		PX4_WARN("required Power-On Start-Up Time 250 ms");
 	}
@@ -331,6 +331,7 @@ SCH16T::SensorData SCH16T::ReadData()
 		}
 	}
 
+	// Data registers are 20bit 2s complement
 	data.acc_x    = SPI48_DATA_INT32(acc_x);
 	data.acc_y    = SPI48_DATA_INT32(acc_y);
 	data.acc_z    = SPI48_DATA_INT32(acc_z);
@@ -481,6 +482,7 @@ void SCH16T::RegisterWrite(uint8_t addr, uint16_t value)
 	frame |= uint64_t(addr) << 38; // Target address offset
 	frame |= uint64_t(1) << 35; // FrameType: SPI48BF
 	frame |= uint64_t(value) << 8;
+	frame |= uint64_t(CalculateCRC8(frame));
 
 	// We don't care about the return frame on a write
 	(void)TransferSpiFrame(frame);
