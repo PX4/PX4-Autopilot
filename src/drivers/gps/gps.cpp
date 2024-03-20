@@ -1406,7 +1406,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 				   entry_point, (char *const *)argv);
 
 	if (task_id < 0) {
-		task_id = -1;
+		_task_id = -1;
 		return -errno;
 	}
 
