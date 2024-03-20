@@ -246,8 +246,6 @@ void SCH16T::RunImpl()
 	case STATE::READ: {
 			hrt_abstime timestamp_sample = now;
 
-			PX4_INFO("STATE::READ");
-
 			if (_drdy_gpio) {
 				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
 				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
@@ -280,8 +278,8 @@ void SCH16T::RunImpl()
 			} else {
 
 				// Publish data
-				_px4_accel.set_temperature(data.temp);
-				_px4_gyro.set_temperature(data.temp);
+				_px4_accel.set_temperature(float(data.temp) / 100.f); // Temperature signal sensitivity is 100 LSB/°C
+				_px4_gyro.set_temperature(float(data.temp) / 100.f);
 				_px4_accel.update(timestamp_sample, data.acc_x, data.acc_y, data.acc_z);
 				_px4_gyro.update(timestamp_sample, data.gyro_x, data.gyro_y, data.gyro_z);
 
@@ -362,11 +360,11 @@ void SCH16T::Configure()
 	// | DEC_RATE_X2   | Decimation ratio for RATE_X2.     | [2:0]   | 3b000       |
 	// +-------------+-------------------------------------+---------+-------------+
 	uint16_t ctrl_rate = 0x00;
-	ctrl_rate |= uint16_t(0b001) << 9; 	// +/- 300 deg/s, 1600 LSB/(deg/s) -- default
 	ctrl_rate |= uint16_t(0b001) << 12; // +/- 300 deg/s, 1600 LSB/(deg/s) -- default
-	ctrl_rate |= uint16_t(0b011) << 0; 	// Decimation 8, 1475Hz
-	ctrl_rate |= uint16_t(0b011) << 3; 	// Decimation 8, 1475Hz
+	ctrl_rate |= uint16_t(0b001) << 9; 	// +/- 300 deg/s, 1600 LSB/(deg/s) -- default
 	ctrl_rate |= uint16_t(0b011) << 6; 	// Decimation 8, 1475Hz
+	ctrl_rate |= uint16_t(0b011) << 3; 	// Decimation 8, 1475Hz
+	ctrl_rate |= uint16_t(0b011) << 0; 	// Decimation 8, 1475Hz
 	RegisterWrite(CTRL_RATE, ctrl_rate);
 
 	// Set gyro range and scale
@@ -384,16 +382,16 @@ void SCH16T::Configure()
 	// | DEC_ACC_X2   | Decimation ratio for ACC_X2 output.     | [2:0]   | 3b000       |
 	// +--------------+-----------------------------------------+---------+-------------+
 	uint16_t ctrl_acc12 = 0x00;
-	ctrl_acc12 |= uint16_t(0b001) << 9; 	// +/- 80 m/s^2, 200 LSB/(m/s^2) -- default
-	ctrl_acc12 |= uint16_t(0b001) << 12; 	// +/- 80 m/s^2, 200 LSB/(m/s^2) -- default
-	ctrl_acc12 |= uint16_t(0b011) << 0; 	// Decimation 8, 1475Hz
-	ctrl_acc12 |= uint16_t(0b011) << 3; 	// Decimation 8, 1475Hz
+	ctrl_acc12 |= uint16_t(0b001) << 12; 	// +/- 80 m/s^2, 3200 LSB/(m/s^2) -- default
+	ctrl_acc12 |= uint16_t(0b001) << 9; 	// +/- 80 m/s^2, 3200 LSB/(m/s^2) -- default
 	ctrl_acc12 |= uint16_t(0b011) << 6; 	// Decimation 8, 1475Hz
+	ctrl_acc12 |= uint16_t(0b011) << 3; 	// Decimation 8, 1475Hz
+	ctrl_acc12 |= uint16_t(0b011) << 0; 	// Decimation 8, 1475Hz
 	RegisterWrite(CTRL_ACC12, ctrl_acc12);
 
 	// Set accel range and scale
 	_px4_accel.set_range(80.f);
-	_px4_accel.set_scale(1.f / 200.f);
+	_px4_accel.set_scale(1.f / 3200.f);
 
 	// Table 65 ACC3_CTRL Register bit description
 	// +--------------+----------------------------------+--------+-------------+
@@ -469,8 +467,6 @@ uint64_t SCH16T::RegisterRead(uint8_t addr)
 	frame |= uint64_t(1) << 35; // FrameType: SPI48BF
 	frame |= uint64_t(CalculateCRC8(frame));
 
-	PX4_INFO("RegisterRead: 0x%llx", frame);
-
 	return TransferSpiFrame(frame);
 }
 
@@ -496,24 +492,28 @@ uint64_t SCH16T::TransferSpiFrame(uint64_t frame)
 	uint16_t tx[3];
 	uint16_t rx[3];
 
-	// Swap 16-bit word order of data to send. By default the SPI_Transfer() sends
-	// the lower 16 bit word first so the word order is swapped here to comply with
-	// MSB first requirement.
-	tx[0] = (frame >> 32) & 0xffffUL;
-	tx[1] = (frame >> 16) & 0xffffUL;
-	tx[2] = frame & 0xffffUL;
+	for (int index = 0; index < 3; index++) {
+		tx[3 - index - 1] = (frame >> (index << 4)) & 0xFFFF;
+	}
 
 	transferhword(tx, rx, 3);
-	px4_udelay(SPI_STALL_PERIOD);
+
+#if defined(DEBUG_BUILD)
+	PX4_INFO("TransferSpiFrame: 0x%llx", frame);
 
 	PX4_INFO("RECEIVED");
+
 	for (auto r : rx) {
 		PX4_INFO("%u", r);
 	}
 
-	uint64_t value = ((((uint64_t)rx[0]) << 32) & 0x0000ffff00000000) |
-			 ((((uint64_t)rx[1]) << 16) & 0x00000000ffff0000) |
-			 (((uint64_t)rx[2]) & 0x000000000000ffff);
+#endif
+
+	uint64_t value = {};
+
+	for (int index = 0; index < 3; index++) {
+		value |= (uint64_t)rx[index] << ((3 - index - 1) << 4);
+	}
 
 	return value;
 }
