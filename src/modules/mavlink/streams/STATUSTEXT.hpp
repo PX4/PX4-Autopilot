@@ -68,7 +68,7 @@ private:
 
 	bool send() override
 	{
-		if (_mavlink->is_gcs_connected()) {
+		if (_mavlink->is_gcs_connected() || _mavlink->is_onboard_controller_connected()) {
 			while (_mavlink_log_sub.updated() && (_mavlink->get_free_tx_buf() >= get_size())) {
 
 				const unsigned last_generation = _mavlink_log_sub.get_last_generation();

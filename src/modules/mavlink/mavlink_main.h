@@ -283,6 +283,8 @@ public:
 
 	bool			is_gcs_connected() { return _tstatus.heartbeat_type_gcs; }
 
+	bool                    is_onboard_controller_connected() { return _tstatus.heartbeat_type_onboard_controller; }
+
 #if defined(MAVLINK_UDP)
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
 
