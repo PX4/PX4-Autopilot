@@ -485,9 +485,14 @@ public:
 #else
 		// Efficient implementation of the Joseph stabilized covariance update
 		// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
+		// P = (I - K * H) * P * (I - K * H).T   + K * R * K.T
+		//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
+		//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
 
 		// Step 1: conventional update
-		VectorState PH = P * H;
+		// Compute P_temp and store it in P to avoid allocating more memory
+		// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
+		VectorState PH = P * H; // H is stored as a column vector. H is in fact H.T
 
 		for (unsigned i = 0; i < State::size; i++) {
 			for (unsigned j = 0; j < State::size; j++) {
@@ -496,7 +501,7 @@ public:
 		}
 
 		// Step 2: stabilized update
-		PH = P * H;
+		PH = P * H; // H is stored as a column vector. H is in fact H.T
 
 		for (unsigned i = 0; i < State::size; i++) {
 			for (unsigned j = 0; j <= i; j++) {
