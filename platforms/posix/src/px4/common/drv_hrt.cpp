@@ -51,10 +51,6 @@
 #include <errno.h>
 #include "hrt_work.h"
 
-// Get board configuration
-#include <board_config.h>
-#include <px4_platform_common/board_common.h>
-
 // Voxl2 board specific API definitions to get time offset
 #if defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
 #include "fc_sensor.h"
