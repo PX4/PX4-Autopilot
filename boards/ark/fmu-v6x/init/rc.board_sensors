@@ -99,8 +99,5 @@ bmm150 -I start
 # Internal Baro on I2C
 bmp388 -I start
 
-# pr-murata-sch16t
-# sch16t -S -m 0 start
-
 unset HAVE_PM2
 unset HAVE_PM3

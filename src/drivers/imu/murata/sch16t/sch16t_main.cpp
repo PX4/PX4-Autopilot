@@ -52,6 +52,7 @@ extern "C" int sch16t_main(int argc, char *argv[])
 	using ThisDriver = SCH16T;
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
+	cli.spi_mode = SPIDEV_MODE0;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
