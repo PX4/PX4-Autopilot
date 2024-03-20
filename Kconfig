@@ -40,13 +40,6 @@ menu "Toolchain"
         help
             forces nolockstep behaviour, despite REPLAY env variable
 
-    config BOARD_SYNC_TIMESTAMP
-        bool "Sync timestamp with external source"
-        depends on PLATFORM_POSIX
-        default n
-        help
-            causes HRT timestamp to use an externally calculated offset for synchronization
-
     config BOARD_LINUX_TARGET
         bool "Linux OS Target"
         depends on PLATFORM_POSIX
