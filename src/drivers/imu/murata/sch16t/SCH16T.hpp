@@ -90,6 +90,7 @@ private:
 	bool ValidateRegisterConfiguration();
 
 	void Reset();
+	void ResetSpi6(bool reset);
 	void Configure();
 	SensorData ReadData();
 	uint8_t CalculateCRC8(uint64_t frame);

@@ -48,7 +48,7 @@ SCH16T::SCH16T(const I2CSPIDriverConfig &config) :
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
-#ifdef SPI6_nRESET_EXTERNAL1
+#if defined(SPI6_nRESET_EXTERNAL1)
 	_hardware_reset_available = true;
 #endif
 }
@@ -123,6 +123,13 @@ void SCH16T::Reset()
 	ScheduleNow();
 }
 
+void SCH16T::ResetSpi6(bool reset)
+{
+#if defined(SPI6_RESET)
+	SPI6_RESET(reset);
+#endif
+}
+
 void SCH16T::exit_and_cleanup()
 {
 	if (_drdy_gpio) {
@@ -170,7 +177,7 @@ void SCH16T::RunImpl()
 
 			if (_hardware_reset_available) {
 				PX4_INFO("Resetting (hard)");
-				SPI6_RESET(true);
+				ResetSpi6(true);
 				_state = STATE::RESET_HARD;
 				ScheduleDelayed(2_ms);
 
@@ -186,7 +193,7 @@ void SCH16T::RunImpl()
 
 	case STATE::RESET_HARD: {
 			if (_hardware_reset_available) {
-				SPI6_RESET(false);
+				ResetSpi6(false);
 			}
 
 			_state = STATE::CONFIGURE;
