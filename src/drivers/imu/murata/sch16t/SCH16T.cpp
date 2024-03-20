@@ -64,6 +64,7 @@ SCH16T::~SCH16T()
 	perf_free(_bad_register_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_perf_crc_bad);
+	perf_free(_perf_frame_bad);
 	perf_free(_drdy_missed_perf);
 }
 
@@ -87,13 +88,13 @@ void SCH16T::Reset()
 {
 	PX4_INFO("Reset()");
 
-	_state = STATE::RESET_INIT;
-
 	if (_drdy_gpio) {
 		DataReadyInterruptDisable();
 	}
 
 	ScheduleClear();
+
+	_state = STATE::RESET_INIT;
 	ScheduleNow();
 }
 
@@ -114,6 +115,7 @@ void SCH16T::print_status()
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_perf_crc_bad);
+	perf_print_counter(_perf_frame_bad);
 	perf_print_counter(_drdy_missed_perf);
 }
 
@@ -127,13 +129,13 @@ int SCH16T::probe()
 	}
 
 	// SCH16 has COMP_ID-register that can be used to identify between versions and e.g. the measurement ranges.
-	uint16_t comp_id = RegisterRead(COMP_ID);
-	uint16_t asic_id = RegisterRead(ASIC_ID);
+	uint16_t comp_id = SPI48_DATA_UINT16(RegisterRead(COMP_ID));
+	uint16_t asic_id = SPI48_DATA_UINT16(RegisterRead(ASIC_ID));
 
 	RegisterRead(SN_ID1);
-	uint16_t sn_id1 = RegisterRead(SN_ID2);
-	uint16_t sn_id2 = RegisterRead(SN_ID3);
-	uint16_t sn_id3 = RegisterRead(SN_ID3);
+	uint16_t sn_id1 = SPI48_DATA_UINT16(RegisterRead(SN_ID2));
+	uint16_t sn_id2 = SPI48_DATA_UINT16(RegisterRead(SN_ID3));
+	uint16_t sn_id3 = SPI48_DATA_UINT16(RegisterRead(SN_ID3));
 
 	char serial_num[14];
 	snprintf(serial_num, 14, "%05d%01X%04X", sn_id2, sn_id1 & 0x000F, sn_id3);
@@ -257,8 +259,32 @@ void SCH16T::RunImpl()
 				ScheduleDelayed(SAMPLE_INTERVAL_US * 2);
 			}
 
-			// TODO: read data impl and handle failures
-			(void)timestamp_sample;
+			// Collect the data
+			auto data = ReadData();
+
+			if (data.frame_error) {
+				PX4_INFO("frame error");
+				perf_count(_bad_transfer_perf);
+				_failure_count++;
+
+				if (_failure_count > 10) {
+					PX4_INFO("Failure count high, resetting");
+					Reset();
+					return;
+				}
+
+			} else {
+
+				// Publish data
+				_px4_accel.set_temperature(data.temp);
+				_px4_gyro.set_temperature(data.temp);
+				_px4_accel.update(timestamp_sample, data.acc_x, data.acc_y, data.acc_z);
+				_px4_gyro.update(timestamp_sample, data.gyro_x, data.gyro_y, data.gyro_z);
+
+				if (_failure_count > 0) {
+					_failure_count--;
+				}
+			}
 
 			break;
 		}
@@ -266,6 +292,51 @@ void SCH16T::RunImpl()
 	default:
 		break;
 	} // end switch/case
+}
+
+SCH16T::SensorData SCH16T::ReadData()
+{
+	SensorData data = {};
+
+	// Data registers are 20bit 2s complement
+	RegisterRead(RATE_X2);
+	uint64_t gyro_x = RegisterRead(RATE_Y2);
+	uint64_t gyro_y = RegisterRead(RATE_Z2);
+	uint64_t gyro_z = RegisterRead(ACC_X2);
+	uint64_t acc_x  = RegisterRead(ACC_Y2);
+	uint64_t acc_y  = RegisterRead(ACC_Z2);
+	uint64_t acc_z  = RegisterRead(TEMP);
+	uint64_t temp   = RegisterRead(TEMP);
+
+	static constexpr uint64_t MASK48_ERROR = 0x001E00000000UL;
+	uint64_t values[] = { gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z, temp };
+
+	for (auto v : values) {
+		// Check for frame errors
+		if (v & MASK48_ERROR) {
+			PX4_INFO("Frame error");
+			data.frame_error = true;
+			perf_count(_perf_frame_bad);
+		}
+
+		// Validate the CRC
+		if (uint8_t(v & 0xff) != CalculateCRC8(v)) {
+			PX4_INFO("Invalid CRC");
+			data.frame_error = true;;
+			perf_count(_perf_crc_bad);
+		}
+	}
+
+	data.acc_x    = SPI48_DATA_INT32(acc_x);
+	data.acc_y    = SPI48_DATA_INT32(acc_y);
+	data.acc_z    = SPI48_DATA_INT32(acc_z);
+	data.gyro_x   = SPI48_DATA_INT32(gyro_x);
+	data.gyro_y   = SPI48_DATA_INT32(gyro_y);
+	data.gyro_z   = SPI48_DATA_INT32(gyro_z);
+	// Temperature data is always 16 bits wide. Drop 4 LSBs as they are not used.
+	data.temp 	  = SPI48_DATA_INT32(temp) >> 4;
+
+	return data;
 }
 
 void SCH16T::Configure()
@@ -353,16 +424,16 @@ bool SCH16T::ValidateRegisterConfiguration()
 void SCH16T::ReadStatusRegisters()
 {
 	RegisterRead(STAT_SUM);
-	_sensor_status.summary 		= RegisterRead(STAT_SUM_SAT);
-	_sensor_status.saturation 	= RegisterRead(STAT_COM);
-	_sensor_status.common 		= RegisterRead(STAT_RATE_COM);
-	_sensor_status.rate_common 	= RegisterRead(STAT_RATE_X);
-	_sensor_status.rate_x 		= RegisterRead(STAT_RATE_Y);
-	_sensor_status.rate_y 		= RegisterRead(STAT_RATE_Z);
-	_sensor_status.rate_z 		= RegisterRead(STAT_ACC_X);
-	_sensor_status.acc_x 		= RegisterRead(STAT_ACC_Y);
-	_sensor_status.acc_y 		= RegisterRead(STAT_ACC_Z);
-	_sensor_status.acc_z 		= RegisterRead(STAT_ACC_Z);
+	_sensor_status.summary 		= SPI48_DATA_UINT16(RegisterRead(STAT_SUM_SAT));
+	_sensor_status.saturation 	= SPI48_DATA_UINT16(RegisterRead(STAT_COM));
+	_sensor_status.common 		= SPI48_DATA_UINT16(RegisterRead(STAT_RATE_COM));
+	_sensor_status.rate_common 	= SPI48_DATA_UINT16(RegisterRead(STAT_RATE_X));
+	_sensor_status.rate_x 		= SPI48_DATA_UINT16(RegisterRead(STAT_RATE_Y));
+	_sensor_status.rate_y 		= SPI48_DATA_UINT16(RegisterRead(STAT_RATE_Z));
+	_sensor_status.rate_z 		= SPI48_DATA_UINT16(RegisterRead(STAT_ACC_X));
+	_sensor_status.acc_x 		= SPI48_DATA_UINT16(RegisterRead(STAT_ACC_Y));
+	_sensor_status.acc_y 		= SPI48_DATA_UINT16(RegisterRead(STAT_ACC_Z));
+	_sensor_status.acc_z 		= SPI48_DATA_UINT16(RegisterRead(STAT_ACC_Z));
 }
 
 bool SCH16T::ValidateSensorStatus()
@@ -386,40 +457,30 @@ void SCH16T::SoftwareReset()
 	RegisterWrite(CTRL_RESET, 0b1010);
 }
 
-int32_t SCH16T::DataRegisterRead(uint8_t addr)
+uint64_t SCH16T::RegisterRead(uint8_t addr)
 {
-	uint64_t data = {};
-	data |= uint64_t(addr) << 38; // Target address offset
-	data |= uint64_t(1) << 35; // FrameType: SPI48BF
+	uint64_t frame = {};
+	frame |= uint64_t(addr) << 38; // Target address offset
+	frame |= uint64_t(1) << 35; // FrameType: SPI48BF
 
-	// Data registers are 2s complement
-	return SPI48_DATA_INT32(TransferSpiFrame(data));
-}
-
-// The SPI protocol (SafeSPI) is 48bit out-of-frame. This means read return frames will be received on the next transfer.
-uint16_t SCH16T::RegisterRead(uint8_t addr)
-{
-	uint64_t data = {};
-	data |= uint64_t(addr) << 38; // Target address offset
-	data |= uint64_t(1) << 35; // FrameType: SPI48BF
-
-	return SPI48_DATA_UINT16(TransferSpiFrame(data));
+	return TransferSpiFrame(frame);
 }
 
 // Non-data registers are the only writable ones and are 16 bit or less
 void SCH16T::RegisterWrite(uint8_t addr, uint16_t value)
 {
-	uint64_t data = {};
-	data |= uint64_t(addr) << 38; // Target address offset
-	data |= uint64_t(1) << 37; // Write bit
-	data |= uint64_t(1) << 35; // FrameType: SPI48BF
-	data |= uint64_t(value) << 8;
+	uint64_t frame = {};
+	frame |= uint64_t(addr) << 38; // Target address offset
+	frame |= uint64_t(1) << 37; // Write bit
+	frame |= uint64_t(1) << 35; // FrameType: SPI48BF
+	frame |= uint64_t(value) << 8;
 
-	// We don't care about the return data on a write
-	(void)TransferSpiFrame(data);
+	// We don't care about the return frame on a write
+	(void)TransferSpiFrame(frame);
 }
 
-uint64_t SCH16T::TransferSpiFrame(uint64_t data)
+// The SPI protocol (SafeSPI) is 48bit out-of-frame. This means read return frames will be received on the next transfer.
+uint64_t SCH16T::TransferSpiFrame(uint64_t frame)
 {
 	set_frequency(SPI_SPEED);
 
@@ -429,9 +490,9 @@ uint64_t SCH16T::TransferSpiFrame(uint64_t data)
 	// Swap 16-bit word order of data to send. By default the SPI_Transfer() sends
 	// the lower 16 bit word first so the word order is swapped here to comply with
 	// MSB first requirement.
-	tx[0] = (data >> 32) & 0xffffUL;
-	tx[1] = (data >> 16) & 0xffffUL;
-	tx[2] = data & 0xffffUL;
+	tx[0] = (frame >> 32) & 0xffffUL;
+	tx[1] = (frame >> 16) & 0xffffUL;
+	tx[2] = frame & 0xffffUL;
 
 	transferhword(tx, rx, 3);
 	px4_udelay(SPI_STALL_PERIOD);
@@ -464,4 +525,17 @@ bool SCH16T::DataReadyInterruptConfigure()
 bool SCH16T::DataReadyInterruptDisable()
 {
 	return px4_arch_gpiosetevent(_drdy_gpio, false, false, false, nullptr, nullptr) == 0;
+}
+
+uint8_t SCH16T::CalculateCRC8(uint64_t frame)
+{
+	uint64_t data = frame & 0xFFFFFFFFFF00LL;
+	uint8_t crc = 0xFF;
+
+	for (int i = 47; i >= 0; i--) {
+		uint8_t data_bit = data >> i & 0x01;
+		crc = crc & 0x80 ? (uint8_t)((crc << 1) ^ 0x2F) ^ data_bit : (uint8_t)(crc << 1) | data_bit;
+	}
+
+	return crc;
 }

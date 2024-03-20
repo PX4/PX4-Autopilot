@@ -72,32 +72,16 @@ public:
 	void print_status() override;
 
 private:
-	int probe() override;
-	void exit_and_cleanup() override;
-
-	bool ValidateSensorStatus();
-	bool ValidateRegisterConfiguration();
-
-	void Reset();
-	void Configure();
-
-	void SoftwareReset();
-	void ReadStatusRegisters();
-
-	// Data registers are 20bit 2s complement
-	int32_t DataRegisterRead(uint8_t addr);
-	// Non-data registers are 16 bit or less
-	uint16_t RegisterRead(uint8_t addr);
-	void RegisterWrite(uint8_t addr, uint16_t value);
-
-	uint64_t TransferSpiFrame(uint64_t data);
-
-	// Data Ready functions
-	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
-	void DataReady();
-	bool DataReadyInterruptConfigure();
-	bool DataReadyInterruptDisable();
-private:
+	struct SensorData {
+		int32_t acc_x;
+		int32_t acc_y;
+		int32_t acc_z;
+		int32_t gyro_x;
+		int32_t gyro_y;
+		int32_t gyro_z;
+		int32_t temp;
+		bool frame_error;
+	};
 
 	struct SensorStatus {
 		uint16_t summary;
@@ -110,7 +94,36 @@ private:
 		uint16_t acc_x;
 		uint16_t acc_y;
 		uint16_t acc_z;
-	} _sensor_status{};
+	};
+
+	int probe() override;
+	void exit_and_cleanup() override;
+
+	bool ValidateSensorStatus();
+	bool ValidateRegisterConfiguration();
+
+	void Reset();
+	void Configure();
+	SensorData ReadData();
+	uint8_t CalculateCRC8(uint64_t frame);
+
+	void SoftwareReset();
+	void ReadStatusRegisters();
+
+	// Non-data registers are 16 bit or less
+	uint64_t RegisterRead(uint8_t addr);
+	void RegisterWrite(uint8_t addr, uint16_t value);
+
+	uint64_t TransferSpiFrame(uint64_t data);
+
+	// Data Ready functions
+	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
+	void DataReady();
+	bool DataReadyInterruptConfigure();
+	bool DataReadyInterruptDisable();
+private:
+
+	SensorStatus _sensor_status{};
 
 	const spi_drdy_gpio_t _drdy_gpio;
 	bool _hardware_reset_available{false};
@@ -118,12 +131,6 @@ private:
 
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
-
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC16 bad"))};
-	perf_counter_t _drdy_missed_perf{nullptr};
 
 	hrt_abstime _reset_timestamp{0};
 	hrt_abstime _last_config_check_timestamp{0};
@@ -138,4 +145,12 @@ private:
 		VALIDATE,
 		READ,
 	} _state{STATE::RESET_INIT};
+
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC8 bad"))};
+	perf_counter_t _perf_frame_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Frame bad"))};
+
+	perf_counter_t _drdy_missed_perf{nullptr};
 };
