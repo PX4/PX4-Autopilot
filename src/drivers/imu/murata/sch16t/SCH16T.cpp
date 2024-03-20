@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,10 +35,7 @@
 
 using namespace time_literals;
 
-static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
-{
-	return (msb << 8u) | lsb;
-}
+static constexpr uint32_t POWER_ON_TIME = 250_ms;
 
 SCH16T::SCH16T(const I2CSPIDriverConfig &config) :
 	SPI(config),
@@ -68,11 +65,9 @@ SCH16T::~SCH16T()
 
 int SCH16T::init()
 {
-	PX4_INFO("init");
+	px4_usleep(POWER_ON_TIME); // wait for power-on time
 
-	px4_usleep(250_ms); // wait for power-on time
-
-	int ret = SPI::init(); // this calls probe()
+	int ret = SPI::init();
 
 	if (ret != PX4_OK) {
 		DEVICE_DEBUG("SPI::init failed (%i)", ret);
@@ -89,7 +84,7 @@ int SCH16T::probe()
 	PX4_INFO("probe");
 
 	// Power-On Start-Up Time 250 ms
-	if (hrt_absolute_time() < 250_ms) {
+	if (hrt_absolute_time() < POWER_ON_TIME) {
 		PX4_WARN("required Power-On Start-Up Time 250 ms");
 	}
 
@@ -106,8 +101,9 @@ int SCH16T::probe()
 	char serial_num[14];
 	snprintf(serial_num, 14, "%05d%01X%04X", sn_id2, sn_id1 & 0x000F, sn_id3);
 
-	PX4_INFO("ASIC_ID: %u\tCOMP_ID: %u", asic_id, comp_id);
-	PX4_INFO("Serial number: %s", serial_num);
+	PX4_INFO("Serial:\t %s", serial_num);
+	PX4_INFO("COMP_ID:\t %u", comp_id);
+	PX4_INFO("ASIC_ID:\t %u", asic_id);
 
 	// TODO: check if asic/comp IDs match the expected version?
 	bool fail = asic_id == 0 || comp_id == 0;
@@ -117,8 +113,6 @@ int SCH16T::probe()
 
 void SCH16T::Reset()
 {
-	PX4_INFO("Reset()");
-
 	if (_drdy_gpio) {
 		DataReadyInterruptDisable();
 	}
@@ -175,15 +169,16 @@ void SCH16T::RunImpl()
 			_failure_count = 0;
 
 			if (_hardware_reset_available) {
-				PX4_INFO("SPI6_RESET true");
+				PX4_INFO("Resetting (hard)");
 				SPI6_RESET(true);
 				_state = STATE::RESET_HARD;
 				ScheduleDelayed(2_ms);
 
 			} else {
+				PX4_INFO("Resetting (soft)");
 				SoftwareReset();
 				_state = STATE::CONFIGURE;
-				ScheduleDelayed(250_ms); // wait for power-on time
+				ScheduleDelayed(POWER_ON_TIME); // wait for power-on time
 			}
 
 			break;
@@ -191,12 +186,11 @@ void SCH16T::RunImpl()
 
 	case STATE::RESET_HARD: {
 			if (_hardware_reset_available) {
-				PX4_INFO("SPI6_RESET false");
 				SPI6_RESET(false);
 			}
 
 			_state = STATE::CONFIGURE;
-			ScheduleDelayed(250_ms); // wait for power-on time
+			ScheduleDelayed(POWER_ON_TIME); // wait for power-on time
 			break;
 		}
 
@@ -205,7 +199,7 @@ void SCH16T::RunImpl()
 			Configure();
 
 			_state = STATE::VALIDATE;
-			ScheduleDelayed(250_ms); // wait for power-on time
+			ScheduleDelayed(POWER_ON_TIME); // wait for power-on time
 			break;
 		}
 
@@ -235,7 +229,6 @@ void SCH16T::RunImpl()
 				}
 
 			} else {
-				PX4_INFO("Configuration validation failed, resetting");
 				_state = STATE::RESET_INIT;
 				ScheduleDelayed(100_ms);
 			}
