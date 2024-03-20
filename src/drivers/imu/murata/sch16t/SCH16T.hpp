@@ -114,7 +114,7 @@ private:
 	uint64_t RegisterRead(uint8_t addr);
 	void RegisterWrite(uint8_t addr, uint16_t value);
 
-	uint64_t TransferSpiFrame(uint64_t data);
+	uint64_t TransferSpiFrame(uint64_t frame);
 
 	// Data Ready functions
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
@@ -127,7 +127,6 @@ private:
 
 	const spi_drdy_gpio_t _drdy_gpio;
 	bool _hardware_reset_available{false};
-	uint32_t _reset_pin{};
 
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;

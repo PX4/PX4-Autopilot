@@ -51,10 +51,8 @@ SCH16T::SCH16T(const I2CSPIDriverConfig &config) :
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
-#ifdef GPIO_SPI6_RESET_SCH16T
+#ifdef SPI6_nRESET_EXTERNAL1
 	_hardware_reset_available = true;
-	_reset_pin = GPIO_SPI6_RESET_SCH16T;
-	px4_arch_configgpio(_reset_pin);
 #endif
 }
 
@@ -72,7 +70,9 @@ int SCH16T::init()
 {
 	PX4_INFO("init");
 
-	int ret = SPI::init();
+	px4_usleep(250_ms); // wait for power-on time
+
+	int ret = SPI::init(); // this calls probe()
 
 	if (ret != PX4_OK) {
 		DEVICE_DEBUG("SPI::init failed (%i)", ret);
@@ -82,6 +82,37 @@ int SCH16T::init()
 	Reset();
 
 	return PX4_OK;
+}
+
+int SCH16T::probe()
+{
+	PX4_INFO("probe");
+
+	// Power-On Start-Up Time 310 ms
+	if (hrt_absolute_time() < 250_ms) {
+		PX4_WARN("required Power-On Start-Up Time 250 ms");
+	}
+
+	// SCH16 has COMP_ID-register that can be used to identify between versions and e.g. the measurement ranges.
+	RegisterRead(COMP_ID);
+	uint16_t comp_id = SPI48_DATA_UINT16(RegisterRead(ASIC_ID));
+	uint16_t asic_id = SPI48_DATA_UINT16(RegisterRead(ASIC_ID));
+
+	RegisterRead(SN_ID1);
+	uint16_t sn_id1 = SPI48_DATA_UINT16(RegisterRead(SN_ID2));
+	uint16_t sn_id2 = SPI48_DATA_UINT16(RegisterRead(SN_ID3));
+	uint16_t sn_id3 = SPI48_DATA_UINT16(RegisterRead(SN_ID3));
+
+	char serial_num[14];
+	snprintf(serial_num, 14, "%05d%01X%04X", sn_id2, sn_id1 & 0x000F, sn_id3);
+
+	PX4_INFO("ASIC_ID: %u\tCOMP_ID: %u", asic_id, comp_id);
+	PX4_INFO("Serial number: %s", serial_num);
+
+	// TODO: check if asic/comp IDs match the expected version?
+	bool fail = asic_id == 0 || comp_id == 0;
+
+	return fail ? PX4_ERROR : PX4_OK;
 }
 
 void SCH16T::Reset()
@@ -119,35 +150,6 @@ void SCH16T::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-int SCH16T::probe()
-{
-	PX4_INFO("probe");
-
-	// Power-On Start-Up Time 310 ms
-	if (hrt_absolute_time() < 250_ms) {
-		PX4_WARN("required Power-On Start-Up Time 250 ms");
-	}
-
-	// SCH16 has COMP_ID-register that can be used to identify between versions and e.g. the measurement ranges.
-	uint16_t comp_id = SPI48_DATA_UINT16(RegisterRead(COMP_ID));
-	uint16_t asic_id = SPI48_DATA_UINT16(RegisterRead(ASIC_ID));
-
-	RegisterRead(SN_ID1);
-	uint16_t sn_id1 = SPI48_DATA_UINT16(RegisterRead(SN_ID2));
-	uint16_t sn_id2 = SPI48_DATA_UINT16(RegisterRead(SN_ID3));
-	uint16_t sn_id3 = SPI48_DATA_UINT16(RegisterRead(SN_ID3));
-
-	char serial_num[14];
-	snprintf(serial_num, 14, "%05d%01X%04X", sn_id2, sn_id1 & 0x000F, sn_id3);
-
-	PX4_INFO("ASIC_ID: %u\tCOMP_ID: %u", asic_id, comp_id);
-	PX4_INFO("Serial number: %s\r\n\r\n", serial_num);
-
-	// TODO: check if asic/comp IDs match the expected version?
-
-	return PX4_OK;
-}
-
 ////////////////////////////////////
 // From the datasheet flowchart
 //
@@ -173,7 +175,8 @@ void SCH16T::RunImpl()
 			_failure_count = 0;
 
 			if (_hardware_reset_available) {
-				px4_arch_gpiowrite(_reset_pin, 0);
+				PX4_INFO("SPI6_RESET true");
+				SPI6_RESET(true);
 				_state = STATE::RESET_HARD;
 				ScheduleDelayed(2_ms);
 
@@ -188,7 +191,8 @@ void SCH16T::RunImpl()
 
 	case STATE::RESET_HARD: {
 			if (_hardware_reset_available) {
-				px4_arch_gpiowrite(_reset_pin, 1);
+				PX4_INFO("SPI6_RESET false");
+				SPI6_RESET(false);
 			}
 
 			_state = STATE::CONFIGURE;
@@ -462,6 +466,9 @@ uint64_t SCH16T::RegisterRead(uint8_t addr)
 	uint64_t frame = {};
 	frame |= uint64_t(addr) << 38; // Target address offset
 	frame |= uint64_t(1) << 35; // FrameType: SPI48BF
+	frame |= uint64_t(CalculateCRC8(frame));
+
+	PX4_INFO("RegisterRead: 0x%llx", frame);
 
 	return TransferSpiFrame(frame);
 }
@@ -470,8 +477,8 @@ uint64_t SCH16T::RegisterRead(uint8_t addr)
 void SCH16T::RegisterWrite(uint8_t addr, uint16_t value)
 {
 	uint64_t frame = {};
-	frame |= uint64_t(addr) << 38; // Target address offset
 	frame |= uint64_t(1) << 37; // Write bit
+	frame |= uint64_t(addr) << 38; // Target address offset
 	frame |= uint64_t(1) << 35; // FrameType: SPI48BF
 	frame |= uint64_t(value) << 8;
 
@@ -496,6 +503,11 @@ uint64_t SCH16T::TransferSpiFrame(uint64_t frame)
 
 	transferhword(tx, rx, 3);
 	px4_udelay(SPI_STALL_PERIOD);
+
+	PX4_INFO("RECEIVED");
+	for (auto r : rx) {
+		PX4_INFO("%u", r);
+	}
 
 	uint64_t value = ((((uint64_t)rx[0]) << 32) & 0x0000ffff00000000) |
 			 ((((uint64_t)rx[1]) << 16) & 0x00000000ffff0000) |

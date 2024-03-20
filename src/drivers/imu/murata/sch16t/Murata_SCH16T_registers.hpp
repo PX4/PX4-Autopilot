@@ -45,7 +45,6 @@
 namespace Murata_SCH16T
 {
 static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;       // 2 MHz SPI serial interface
-static constexpr uint32_t SPI_SPEED_BURST = 1 * 1000 * 1000; // 1 MHz SPI serial interface for burst read
 static constexpr uint32_t SPI_STALL_PERIOD = 16;             // 16 us Stall period between data
 static constexpr uint32_t SAMPLE_INTERVAL_US = 678;          // 1500 Hz -- decimation factor 8, F_PRIM/16, 1.475 kHz
 
@@ -94,23 +93,5 @@ static constexpr uint32_t SAMPLE_INTERVAL_US = 678;          // 1500 Hz -- decim
 #define SN_ID1          0x3D // 16 bit
 #define SN_ID2          0x3E // 16 bit
 #define SN_ID3          0x3F // 16 bit
-
-// Defines the Target Address in SCH16T.
-// TA[9:8] bits are used as Chip Select information, and thus they are not part of the effective address.
-// TA[7:0] are used as effective address within the chip.
-
-enum class Register : uint64_t {
-	REQ48_READ_SN_ID1 = 0x0F4800000065UL,
-	REQ48_READ_SN_ID2 = 0x0F8800000053UL,
-	REQ48_READ_SN_ID3 = 0x0FC8000000A4UL,
-
-	// Register operations
-	REQ48_WRITE_FILTER_13HZ_RATE   = 0x096800009205UL,  // Set 13 Hz filter for rate (LPF2)
-	REQ48_WRITE_FILTER_13HZ_ACC12  = 0x09A800009233UL,  // Set 13 Hz filter for acceleration (LPF2)
-	REQ48_WRITE_CTRL_RATE_DEC3     = 0x0A28002492B5UL,  // Set RATE range to 315 dps, decimation factor 4 (DYN2, DEC3)
-	REQ48_WRITE_CTRL_ACC12_DEC3    = 0x0A6800129205UL,  // Set ACC range to 80 m/s2, decimation factor 4 (DYN1, DEC3)
-	REQ48_WRITE_EN_SENSOR          = 0x0D68000001D3UL,  // Enable RATE and ACC measurement
-
-};
 
 } // namespace Analog_Devices_ADIS16507
