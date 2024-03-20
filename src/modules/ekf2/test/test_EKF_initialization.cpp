@@ -191,6 +191,32 @@ TEST_F(EkfInitializationTest, initializeWithZeroTiltNotAtRest)
 	learningCorrectAccelBias();
 }
 
+TEST_F(EkfInitializationTest, initializeWithTiltNoGyroBiasEstimate)
+{
+	const float pitch = math::radians(30.0f);
+	const float roll = math::radians(-20.0f);
+	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
+	const Quatf quat_sim(euler_angles_sim);
+
+	_ekf_wrapper.disableGyroBiasEstimation();
+	_sensor_simulator.simulateOrientation(quat_sim);
+
+	_sensor_simulator.runSeconds(_init_tilt_period);
+
+	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
+
+	initializedOrienationIsMatchingGroundTruth(quat_sim);
+	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+
+	velocityAndPositionCloseToZero();
+
+	positionVarianceBigEnoughAfterOrientationInitialization(0.00001f); // Fake position fusion obs var when at rest sq(0.5f)
+	velocityVarianceBigEnoughAfterOrientationInitialization(0.0001f);
+
+	_sensor_simulator.runSeconds(1.f);
+	learningCorrectAccelBias();
+}
+
 TEST_F(EkfInitializationTest, gyroBias)
 {
 	// GIVEN: a healthy filter

@@ -128,6 +128,9 @@ public:
 
 	float getMagHeadingNoise() const;
 
+	void enableGyroBiasEstimation();
+	void disableGyroBiasEstimation();
+
 private:
 	std::shared_ptr<Ekf> _ekf;
 
