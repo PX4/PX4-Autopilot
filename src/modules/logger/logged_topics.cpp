@@ -401,6 +401,8 @@ void LoggedTopics::add_system_identification_topics()
 	add_topic("sensor_combined");
 	add_topic("vehicle_angular_velocity");
 	add_topic("vehicle_torque_setpoint");
+	add_topic("vehicle_acceleration");
+	add_topic("actuator_motors");
 }
 
 void LoggedTopics::add_mavlink_tunnel()
