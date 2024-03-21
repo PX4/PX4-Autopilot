@@ -219,10 +219,9 @@ mixer_tick()
 		isr_debug(5, "> PWM disabled");
 	}
 
-	const bool armed_output = (should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE))
-				  && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN);
-	const bool disarmed_output = !armed_output
-				     && (should_always_enable_pwm || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN));
+	const bool armed_output = should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE);
+	const bool disarmed_output = (!armed_output && should_always_enable_pwm)
+				     || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN);
 
 	if (mixer_servos_armed && (armed_output || disarmed_output)) {
 		if (disarmed_output) {
