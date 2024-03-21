@@ -140,4 +140,5 @@ private:
 	// statistics
 	int _num_timeouts{0};
 	int _num_successful_responses{0};
+	int _num_checksum_errors{0};
 };
