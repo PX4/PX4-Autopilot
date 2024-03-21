@@ -160,6 +160,7 @@ void LoggedTopics::add_default_topics()
 #endif
 
 	// always add the first instance
+#if 0
 	add_topic_multi("estimator_baro_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_gnss_hgt_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_rng_hgt_bias", 0, MAX_ESTIMATOR_INSTANCES);
@@ -210,9 +211,8 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("estimator_aid_src_terrain_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_ev_yaw", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_wind", 0, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_air_flow_speed", 0, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_air_flow_direction", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_aux_global_position", 100, MAX_ESTIMATOR_INSTANCES);
+#endif
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 200, 2);
