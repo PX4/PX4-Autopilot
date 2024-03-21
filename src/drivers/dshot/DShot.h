@@ -133,6 +133,8 @@ private:
 
 	int handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data);
 
+	void publish_esc_status(void);
+
 	int handle_new_bdshot_erpm(void);
 
 	int request_esc_info();

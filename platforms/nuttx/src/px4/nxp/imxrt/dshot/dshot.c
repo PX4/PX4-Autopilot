@@ -440,7 +440,7 @@ void up_dshot_trigger(void)
 	}
 
 	// Calc data now since we're not event driven
-	if(bdshot_recv_mask != 0x0) {
+	if (bdshot_recv_mask != 0x0) {
 		up_bdshot_erpm();
 		bdshot_recv_mask = 0x0;
 	}
