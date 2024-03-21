@@ -176,6 +176,14 @@ mixer_tick()
 		atomic_modify_clear(&r_status_flags, (PX4IO_P_STATUS_FLAGS_FAILSAFE));
 	}
 
+	const bool armed_output = should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE);
+	const bool disarmed_output = (!armed_output && should_always_enable_pwm)
+				     || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN);
+
+	if (disarmed_output) {
+		source = MIX_DISARMED;
+	}
+
 	/*
 	 * Run the mixers.
 	 */
@@ -219,17 +227,7 @@ mixer_tick()
 		isr_debug(5, "> PWM disabled");
 	}
 
-	const bool armed_output = should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE);
-	const bool disarmed_output = (!armed_output && should_always_enable_pwm)
-				     || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN);
-
 	if (mixer_servos_armed && (armed_output || disarmed_output)) {
-		if (disarmed_output) {
-			for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
-				r_page_servos[i] = r_page_servo_disarmed[i];
-			}
-		}
-
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
