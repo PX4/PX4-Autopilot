@@ -253,15 +253,29 @@ int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelem
 		esc_status.esc_armed_flags = (1 << esc_status.esc_count) - 1;
 
 		ret = 1; // Indicate we wrapped, so we publish data
-
-		// reset esc data (in case a motor times out, so we won't send stale data)
-		memset(&esc_status.esc, 0, sizeof(_telemetry->esc_status_pub.get().esc));
-		esc_status.esc_online_flags = 0;
 	}
 
 	_telemetry->last_telemetry_index = telemetry_index;
 
 	return ret;
+}
+
+void DShot::publish_esc_status(void)
+{
+	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
+
+	// clear data of the esc that are offline
+	for (uint8_t channel = 0; (channel < _telemetry->last_telemetry_index); channel++) {
+		if ((esc_status.esc_online_flags & (1 << channel)) == 0) {
+			memset(&esc_status.esc[channel], 0, sizeof(struct esc_report_s));
+		}
+	}
+
+	// ESC telem wrap around or bdshot update
+	_telemetry->esc_status_pub.update();
+
+	// reset esc online flags
+	esc_status.esc_online_flags = 0;
 }
 
 int DShot::handle_new_bdshot_erpm(void)
@@ -279,9 +293,11 @@ int DShot::handle_new_bdshot_erpm(void)
 	for (channel = 0; channel < 8; channel++) {
 		if (up_bdshot_get_erpm(channel, &erpm) == 0) {
 			num_erpms++;
+			esc_status.esc_online_flags |= 1 << channel;
 			esc_status.esc[channel].timestamp = hrt_absolute_time();
 			esc_status.esc[channel].esc_rpm = (erpm * 100) /
 							  (_param_mot_pole_count.get() / 2);
+			esc_status.esc[channel].actuator_function = _telemetry->actuator_functions[channel];
 		}
 
 	}
@@ -521,7 +537,7 @@ void DShot::Run()
 
 		if (need_to_publish > 0) {
 			// ESC telem wrap around or bdshot update
-			_telemetry->esc_status_pub.update();
+			publish_esc_status();
 		}
 	}
 
