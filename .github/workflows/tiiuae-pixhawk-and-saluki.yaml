@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        product: [pixhawk, fmu-v6xrt, saluki-v2_default, saluki-v2_amp, saluki-v2_flat, saluki-pi_default, saluki-pi_amp, saluki-pi_flat, saluki-v3_default, saluki-v3_amp, saluki-v3_flat]
+        product: [pixhawk, fmu-v6xrt, saluki-v2_default, saluki-v2_amp, saluki-v2_flat, saluki-pi_default, saluki-pi_amp, saluki-pi_flat, saluki-v3_default, saluki-v3_amp, saluki-v3_flat, saluki-nxp93_flat]
         include:
           - product: saluki-v2_custom_keys
             keys: Tools/saluki-sec-scripts/custom_keys/saluki-v2/px4_bin_ed25519_private.pem
