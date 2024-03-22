@@ -214,22 +214,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	stm32_spiinitialize();
 
-#if defined(FLASH_BASED_PARAMS)
-	static sector_descriptor_t params_sector_map[] = {
-		{15, 128 * 1024, 0x081E0000},
-		{0, 0, 0},
-	};
-
-	/* Initialize the flashfs layer to use heap allocated memory */
-	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
-
-	if (result != OK) {
-		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-		led_on(LED_AMBER);
-	}
-
-#endif
-
 	/* Configure the HW based on the manifest */
 
 	px4_platform_configure();
@@ -288,6 +272,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Configure the SPIX_SYNC output */
 	spix_sync_servo_init(BOARD_SPIX_SYNC_FREQ);
 	spix_sync_servo_set(0, 150);
+
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t params_sector_map[] = {
+		{15, 128 * 1024, 0x081E0000},
+		{0, 0, 0},
+	};
+
+	/* Initialize the flashfs layer to use heap allocated memory */
+	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
+
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		led_on(LED_AMBER);
+	}
+
+#endif
 
 	return OK;
 }

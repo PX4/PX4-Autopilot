@@ -22,7 +22,7 @@ fi
 
 # Internal magnetometer on I2C
 # TODO: Write a driver for the MMC5983MA
-# mmc5983ma -I -b 4 start
+mmc5983ma -I -b 4 start
 
 # Internal Baro on I2C
 bmp388 -I -b 4 start

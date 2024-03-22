@@ -19,5 +19,5 @@ param set-default SENS_IMU_TEMP 10.0
 if ver hwtypecmp ARKPI6X000
 then
 	# TODO: Add the correct sensor ID
-	param set-default SENS_TEMP_ID 2818058
+	param set-default SENS_TEMP_ID 2490378
 fi

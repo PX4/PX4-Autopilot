@@ -51,7 +51,7 @@ AFBRS50 *g_dev{nullptr};
 
 AFBRS50::AFBRS50(uint8_t device_orientation):
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::afbr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_px4_rangefinder(0, device_orientation)
 {
 	device::Device::DeviceId device_id{};
