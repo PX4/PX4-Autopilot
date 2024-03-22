@@ -39,10 +39,6 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 
-#define SPI48_DATA_INT32(a)         (((int32_t)(((a) << 4)  & 0xfffff000UL)) >> 12)
-#define SPI48_DATA_UINT32(a)        ((uint32_t)(((a) >> 8)  & 0x000fffffUL))
-#define SPI48_DATA_UINT16(a)        ((uint16_t)(((a) >> 8)  & 0x0000ffffUL))
-
 using namespace Murata_SCH16T;
 
 class SCH16T : public device::SPI, public I2CSPIDriver<SCH16T>
@@ -67,7 +63,6 @@ private:
 		int32_t gyro_y;
 		int32_t gyro_z;
 		int32_t temp;
-		bool frame_error;
 	};
 
 	struct SensorStatus {
@@ -83,61 +78,73 @@ private:
 		uint16_t acc_z;
 	};
 
+	struct RegisterConfig {
+		RegisterConfig(uint16_t a, uint16_t v)
+			: addr(a)
+			, value(v)
+		{};
+		uint8_t addr;
+		uint16_t value;
+	};
+
 	int probe() override;
 	void exit_and_cleanup() override;
 
 	bool ValidateSensorStatus();
 	bool ValidateRegisterConfiguration();
-
 	void Reset();
 	void ResetSpi6(bool reset);
-	void Configure();
-	SensorData ReadData();
 	uint8_t CalculateCRC8(uint64_t frame);
 
-	void SoftwareReset();
+	bool ReadData(SensorData *data);
 	void ReadStatusRegisters();
 
-	// Non-data registers are 16 bit or less
-	uint64_t RegisterRead(uint8_t addr);
-	void RegisterWrite(uint8_t addr, uint16_t value);
+	void Configure();
+	void SoftwareReset();
 
+	void RegisterWrite(uint8_t addr, uint16_t value);
+	uint64_t RegisterRead(uint8_t addr);
 	uint64_t TransferSpiFrame(uint64_t frame);
 
-	// Data Ready functions
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
 	void DataReady();
 	bool DataReadyInterruptConfigure();
 	bool DataReadyInterruptDisable();
 private:
-
-	SensorStatus _sensor_status{};
-
-	const spi_drdy_gpio_t _drdy_gpio;
-	bool _hardware_reset_available{false};
-
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
 
-	hrt_abstime _reset_timestamp{0};
-	hrt_abstime _last_config_check_timestamp{0};
+	SensorStatus _sensor_status{};
+
 	int _failure_count{0};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	const spi_drdy_gpio_t _drdy_gpio;
+	bool _hardware_reset_available{false};
 
 	enum class STATE : uint8_t {
 		RESET_INIT,
 		RESET_HARD,
 		CONFIGURE,
+		LOCK_CONFIGURATION,
 		VALIDATE,
 		READ,
 	} _state{STATE::RESET_INIT};
+
+	RegisterConfig _registers[6] = {
+		RegisterConfig(CTRL_FILT_RATE,  FILTER_68HZ),           // 68Hz -- default
+		RegisterConfig(CTRL_FILT_ACC12, FILTER_68HZ),           // 68Hz -- default
+		RegisterConfig(CTRL_FILT_ACC3,  FILTER_68HZ),           // 68Hz -- default
+		RegisterConfig(CTRL_RATE,       RATE_300DPS_1475HZ),    // +/- 300 deg/s, 1600 LSB/(deg/s) -- default, Decimation 8, 1475Hz
+		RegisterConfig(CTRL_ACC12,      ACC12_8G_1475HZ),       // +/- 80 m/s^2, 3200 LSB/(m/s^2) -- default, Decimation 8, 1475Hz
+		RegisterConfig(CTRL_ACC3,       ACC3_26G)               // +/- 260 m/s^2, 1600 LSB/(m/s^2) -- default
+	};
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC8 bad"))};
 	perf_counter_t _perf_frame_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Frame bad"))};
-
 	perf_counter_t _drdy_missed_perf{nullptr};
+
 };

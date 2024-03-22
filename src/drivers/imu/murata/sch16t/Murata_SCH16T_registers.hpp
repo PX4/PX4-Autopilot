@@ -37,8 +37,16 @@
 
 namespace Murata_SCH16T
 {
-static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;       // 2 MHz SPI serial interface
-static constexpr uint32_t SAMPLE_INTERVAL_US = 678;          // 1500 Hz -- decimation factor 8, F_PRIM/16, 1.475 kHz
+static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;  // 2 MHz SPI serial interface
+static constexpr uint32_t SAMPLE_INTERVAL_US = 678;     // 1500 Hz -- decimation factor 8, F_PRIM/16, 1.475 kHz
+static constexpr uint16_t EOI = (1 << 1); 				// End of Initialization
+static constexpr uint16_t EN_SENSOR = (1 << 0); 		// Enable RATE and ACC measurement
+static constexpr uint16_t DRY_DRV_EN = (1 << 5); 		// Enables Data ready function
+static constexpr uint16_t FILTER_68HZ = (0x0000); 		// 68 Hz default filter
+static constexpr uint16_t RATE_300DPS_1475HZ = 0b0001'0010'1101'1011; // Gyro XYZ range 300 deg/s @ 1475Hz
+static constexpr uint16_t ACC12_8G_1475HZ = 0b0001'0010'1101'1011;  // Acc XYZ range 8 G and 1475 update rate
+static constexpr uint16_t ACC3_26G = (0b000 << 0);
+static constexpr uint16_t SPI_SOFT_RESET = (0b1010);
 
 // Data registers
 #define RATE_X1         0x01 // 20 bit
@@ -85,5 +93,4 @@ static constexpr uint32_t SAMPLE_INTERVAL_US = 678;          // 1500 Hz -- decim
 #define SN_ID1          0x3D // 16 bit
 #define SN_ID2          0x3E // 16 bit
 #define SN_ID3          0x3F // 16 bit
-
 } // namespace Murata_SCH16T

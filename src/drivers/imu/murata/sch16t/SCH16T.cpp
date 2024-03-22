@@ -35,14 +35,18 @@
 
 using namespace time_literals;
 
+#define SPI48_DATA_INT32(a)  	(((int32_t)(((a) << 4)  & 0xfffff000UL)) >> 12)
+#define SPI48_DATA_UINT32(a)	((uint32_t)(((a) >> 8)  & 0x000fffffUL))
+#define SPI48_DATA_UINT16(a) 	((uint16_t)(((a) >> 8)  & 0x0000ffffUL))
+
 static constexpr uint32_t POWER_ON_TIME = 250_ms;
 
 SCH16T::SCH16T(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio),
 	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_px4_gyro(get_device_id(), config.rotation),
+	_drdy_gpio(config.drdy_gpio)
 {
 	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
@@ -65,7 +69,7 @@ SCH16T::~SCH16T()
 
 int SCH16T::init()
 {
-	px4_usleep(POWER_ON_TIME); // wait for power-on time
+	px4_usleep(POWER_ON_TIME);
 
 	int ret = SPI::init();
 
@@ -81,14 +85,10 @@ int SCH16T::init()
 
 int SCH16T::probe()
 {
-	PX4_INFO("probe");
-
-	// Power-On Start-Up Time 250 ms
 	if (hrt_absolute_time() < POWER_ON_TIME) {
-		PX4_WARN("required Power-On Start-Up Time 250 ms");
+		PX4_WARN("Required Power-On Start-Up Time %lu ms", POWER_ON_TIME);
 	}
 
-	// SCH16 has COMP_ID-register that can be used to identify between versions and e.g. the measurement ranges.
 	RegisterRead(COMP_ID);
 	uint16_t comp_id = SPI48_DATA_UINT16(RegisterRead(ASIC_ID));
 	uint16_t asic_id = SPI48_DATA_UINT16(RegisterRead(ASIC_ID));
@@ -98,14 +98,15 @@ int SCH16T::probe()
 	uint16_t sn_id2 = SPI48_DATA_UINT16(RegisterRead(SN_ID3));
 	uint16_t sn_id3 = SPI48_DATA_UINT16(RegisterRead(SN_ID3));
 
-	char serial_num[14];
-	snprintf(serial_num, 14, "%05d%01X%04X", sn_id2, sn_id1 & 0x000F, sn_id3);
+	char serial_str[14];
+	snprintf(serial_str, 14, "%05d%01X%04X", sn_id2, sn_id1 & 0x000F, sn_id3);
 
-	PX4_INFO("Serial:\t %s", serial_num);
-	PX4_INFO("COMP_ID:\t %u", comp_id);
-	PX4_INFO("ASIC_ID:\t %u", asic_id);
+	PX4_INFO("Serial:\t %s", serial_str);
+	PX4_INFO("COMP_ID:\t 0x%0x", comp_id);
+	PX4_INFO("ASIC_ID:\t 0x%0x", asic_id);
 
-	// TODO: check if asic/comp IDs match the expected version?
+	// SCH16T-K01 	- 	ID hex = 0x0020
+	// SCH1633-B13 	- 	ID hex = 0x0017
 	bool fail = asic_id == 0 || comp_id == 0;
 
 	return fail ? PX4_ERROR : PX4_OK;
@@ -142,7 +143,6 @@ void SCH16T::exit_and_cleanup()
 void SCH16T::print_status()
 {
 	I2CSPIDriverBase::print_status();
-
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
@@ -151,19 +151,6 @@ void SCH16T::print_status()
 	perf_print_counter(_drdy_missed_perf);
 }
 
-////////////////////////////////////
-// From the datasheet flowchart
-//
-// - set user controls
-// - enable sensor
-// - wait 250_ms
-// - read all status registers once
-// - set EOI
-// - wait 3_ms
-// - read all status registers twice
-// - validate user control registers
-// - validate status registers are OK
-////////////////////////////////////
 void SCH16T::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
@@ -172,7 +159,6 @@ void SCH16T::RunImpl()
 	case STATE::RESET_INIT: {
 			perf_count(_reset_perf);
 
-			_reset_timestamp = now;
 			_failure_count = 0;
 
 			if (_hardware_reset_available) {
@@ -185,7 +171,7 @@ void SCH16T::RunImpl()
 				PX4_INFO("Resetting (soft)");
 				SoftwareReset();
 				_state = STATE::CONFIGURE;
-				ScheduleDelayed(POWER_ON_TIME); // wait for power-on time
+				ScheduleDelayed(POWER_ON_TIME);
 			}
 
 			break;
@@ -197,34 +183,33 @@ void SCH16T::RunImpl()
 			}
 
 			_state = STATE::CONFIGURE;
-			ScheduleDelayed(POWER_ON_TIME); // wait for power-on time
+			ScheduleDelayed(POWER_ON_TIME);
 			break;
 		}
 
 	case STATE::CONFIGURE: {
-			// Sets up control registers
 			Configure();
 
+			_state = STATE::LOCK_CONFIGURATION;
+			ScheduleDelayed(POWER_ON_TIME);
+			break;
+		}
+
+	case STATE::LOCK_CONFIGURATION: {
+			ReadStatusRegisters(); // Read all status registers once
+			RegisterWrite(CTRL_MODE, (EOI | EN_SENSOR)); // Write EOI and EN_SENSOR
+
 			_state = STATE::VALIDATE;
-			ScheduleDelayed(POWER_ON_TIME); // wait for power-on time
+			ScheduleDelayed(5_ms);
 			break;
 		}
 
 	case STATE::VALIDATE: {
-			// Read all status registers once
-			ReadStatusRegisters();
-
-			// Write EOI and EN_SENSOR
-			RegisterWrite(CTRL_MODE, 0b0011);
-
-			// Read all status registers twice
-			ReadStatusRegisters();
+			ReadStatusRegisters(); // Read all status registers twice
 			ReadStatusRegisters();
 
 			// Check that registers are configured properly and that the sensor status is OK
-			bool success = ValidateSensorStatus() && ValidateRegisterConfiguration();
-
-			if (success) {
+			if (ValidateSensorStatus() && ValidateRegisterConfiguration()) {
 				_state = STATE::READ;
 
 				if (_drdy_gpio) {
@@ -262,22 +247,9 @@ void SCH16T::RunImpl()
 			}
 
 			// Collect the data
-			auto data = ReadData();
+			SensorData data = {};
 
-			if (data.frame_error) {
-				PX4_INFO("frame error");
-				perf_count(_bad_transfer_perf);
-				_failure_count++;
-
-				if (_failure_count > 10) {
-					PX4_INFO("Failure count high, resetting");
-					Reset();
-					return;
-				}
-
-			} else {
-
-				// Publish data
+			if (ReadData(&data)) {
 				_px4_accel.set_temperature(float(data.temp) / 100.f); // Temperature signal sensitivity is 100 LSB/°C
 				_px4_gyro.set_temperature(float(data.temp) / 100.f);
 				_px4_accel.update(timestamp_sample, data.acc_x, data.acc_y, data.acc_z);
@@ -286,6 +258,17 @@ void SCH16T::RunImpl()
 				if (_failure_count > 0) {
 					_failure_count--;
 				}
+
+			} else {
+				perf_count(_bad_transfer_perf);
+				_failure_count++;
+			}
+
+			// Reset if successive failures
+			if (_failure_count > 10) {
+				PX4_INFO("Failure count high, resetting");
+				Reset();
+				return;
 			}
 
 			break;
@@ -296,17 +279,15 @@ void SCH16T::RunImpl()
 	} // end switch/case
 }
 
-SCH16T::SensorData SCH16T::ReadData()
+bool SCH16T::ReadData(SensorData *data)
 {
-	SensorData data = {};
-
 	// Data registers are 20bit 2s complement
 	RegisterRead(RATE_X2);
 	uint64_t gyro_x = RegisterRead(RATE_Y2);
 	uint64_t gyro_y = RegisterRead(RATE_Z2);
-	uint64_t gyro_z = RegisterRead(ACC_X2);
-	uint64_t acc_x  = RegisterRead(ACC_Y2);
-	uint64_t acc_y  = RegisterRead(ACC_Z2);
+	uint64_t gyro_z = RegisterRead(ACC_X3);
+	uint64_t acc_x  = RegisterRead(ACC_Y3);
+	uint64_t acc_y  = RegisterRead(ACC_Z3);
 	uint64_t acc_z  = RegisterRead(TEMP);
 	uint64_t temp   = RegisterRead(TEMP);
 
@@ -316,109 +297,59 @@ SCH16T::SensorData SCH16T::ReadData()
 	for (auto v : values) {
 		// Check for frame errors
 		if (v & MASK48_ERROR) {
-			PX4_INFO("Frame error");
-			data.frame_error = true;
 			perf_count(_perf_frame_bad);
+			return false;
 		}
 
 		// Validate the CRC
 		if (uint8_t(v & 0xff) != CalculateCRC8(v)) {
-			PX4_INFO("Invalid CRC");
-			data.frame_error = true;;
 			perf_count(_perf_crc_bad);
+			return false;
 		}
 	}
 
 	// Data registers are 20bit 2s complement
-	data.acc_x    = SPI48_DATA_INT32(acc_x);
-	data.acc_y    = SPI48_DATA_INT32(acc_y);
-	data.acc_z    = SPI48_DATA_INT32(acc_z);
-	data.gyro_x   = SPI48_DATA_INT32(gyro_x);
-	data.gyro_y   = SPI48_DATA_INT32(gyro_y);
-	data.gyro_z   = SPI48_DATA_INT32(gyro_z);
+	data->acc_x    = SPI48_DATA_INT32(acc_x);
+	data->acc_y    = SPI48_DATA_INT32(acc_y);
+	data->acc_z    = SPI48_DATA_INT32(acc_z);
+	data->gyro_x   = SPI48_DATA_INT32(gyro_x);
+	data->gyro_y   = SPI48_DATA_INT32(gyro_y);
+	data->gyro_z   = SPI48_DATA_INT32(gyro_z);
 	// Temperature data is always 16 bits wide. Drop 4 LSBs as they are not used.
-	data.temp 	  = SPI48_DATA_INT32(temp) >> 4;
+	data->temp 	  = SPI48_DATA_INT32(temp) >> 4;
 
-	return data;
+	return true;
 }
 
 void SCH16T::Configure()
 {
-	// Filter settings
-	RegisterWrite(CTRL_FILT_RATE, 0x0000); 	// default 68Hz
-	RegisterWrite(CTRL_FILT_ACC12, 0x0000); // default 68Hz
-	RegisterWrite(CTRL_FILT_ACC3, 0x0000); 	// default 68Hz
+	for (auto &r : _registers) {
+		RegisterWrite(r.addr, r.value);
+	}
 
-	// Table 63 CTRL_RATE Register bit description
-	// +-------------+-------------------------------------+---------+-------------+
-	// | Bit Name    | Bit Description                     | Bits    | Reset Value |
-	// +-------------+-------------------------------------+---------+-------------+
-	// | DYN_RATE_XYZ1 | Dynamic Range for RATE_X1/Y1/Z1.  | [14:12] | 3b001       |
-	// | DYN_RATE_XYZ2 | Dynamic Range for RATE_X2/Y2/Z2.  | [11:9]  | 3b001       |
-	// | DEC_RATE_Z2   | Decimation ratio for RATE_Z2.     | [8:6]   | 3b000       |
-	// | DEC_RATE_Y2   | Decimation ratio for RATE_Y2.     | [5:3]   | 3b000       |
-	// | DEC_RATE_X2   | Decimation ratio for RATE_X2.     | [2:0]   | 3b000       |
-	// +-------------+-------------------------------------+---------+-------------+
-	uint16_t ctrl_rate = 0x00;
-	ctrl_rate |= uint16_t(0b001) << 12; // +/- 300 deg/s, 1600 LSB/(deg/s) -- default
-	ctrl_rate |= uint16_t(0b001) << 9; 	// +/- 300 deg/s, 1600 LSB/(deg/s) -- default
-	ctrl_rate |= uint16_t(0b011) << 6; 	// Decimation 8, 1475Hz
-	ctrl_rate |= uint16_t(0b011) << 3; 	// Decimation 8, 1475Hz
-	ctrl_rate |= uint16_t(0b011) << 0; 	// Decimation 8, 1475Hz
-	RegisterWrite(CTRL_RATE, ctrl_rate);
+	RegisterWrite(CTRL_USER_IF, DRY_DRV_EN); // Enable data ready
+	RegisterWrite(CTRL_MODE, EN_SENSOR); // Enable the sensor
 
-	// Set gyro range and scale
+	// NOTE: we use ACC3 for the higher range. The DRDY frequency adjusts to whichever register bank is
+	// being sampled from (decimated vs interpolated outputs). RATE_XYZ2 is decimated and RATE_XYZ1 is interpolated.
 	_px4_gyro.set_range(math::radians(300.f));
 	_px4_gyro.set_scale(math::radians(1.f / 1600.f)); // scaling 1600 LSB/°/sec -> rad/s per LSB
-
-	// Table 64 ACC12_CTRL Register bit description
-	// +--------------+-----------------------------------------+---------+-------------+
-	// | Bit Name     | Bit Description                         | Bits    | Reset Value |
-	// +--------------+-----------------------------------------+---------+-------------+
-	// | DYN_ACC_XYZ1 | Dynamic Range for ACC_X1/Y1/Z1 outputs. | [14:12] | 3b001       |
-	// | DYN_ACC_XYZ2 | Dynamic Range for ACC_X2/Y2/Z2 outputs. | [11:9]  | 3b001       |
-	// | DEC_ACC_Z2   | Decimation ratio for ACC_Z2 output.     | [8:6]   | 3b000       |
-	// | DEC_ACC_Y2   | Decimation ratio for ACC_Y2 output.     | [5:3]   | 3b000       |
-	// | DEC_ACC_X2   | Decimation ratio for ACC_X2 output.     | [2:0]   | 3b000       |
-	// +--------------+-----------------------------------------+---------+-------------+
-	uint16_t ctrl_acc12 = 0x00;
-	ctrl_acc12 |= uint16_t(0b001) << 12; 	// +/- 80 m/s^2, 3200 LSB/(m/s^2) -- default
-	ctrl_acc12 |= uint16_t(0b001) << 9; 	// +/- 80 m/s^2, 3200 LSB/(m/s^2) -- default
-	ctrl_acc12 |= uint16_t(0b011) << 6; 	// Decimation 8, 1475Hz
-	ctrl_acc12 |= uint16_t(0b011) << 3; 	// Decimation 8, 1475Hz
-	ctrl_acc12 |= uint16_t(0b011) << 0; 	// Decimation 8, 1475Hz
-	RegisterWrite(CTRL_ACC12, ctrl_acc12);
-
-	// Set accel range and scale
-	_px4_accel.set_range(80.f);
-	_px4_accel.set_scale(1.f / 3200.f);
-
-	// Table 65 ACC3_CTRL Register bit description
-	// +--------------+----------------------------------+--------+-------------+
-	// | Bit Name     | Bit Description                  | Bits   | Reset Value |
-	// +--------------+----------------------------------+--------+-------------+
-	// | DYN_ACC_XYZ3 | Dynamic Range for ACC_X3/Y3/Z3.  | [2:0]  | 3b000       |
-	// +--------------+----------------------------------+--------+-------------+
-	uint16_t ctrl_acc3 = 0x00;
-	ctrl_acc3 |= uint16_t(0b000) << 0; 	// +/- 80 m/s^2, 100 LSB/(m/s^2) -- default
-	RegisterWrite(CTRL_ACC3, ctrl_acc3);
-
-	// - Enable data ready
-	RegisterWrite(CTRL_USER_IF, uint16_t(1 << 5));
-
-	// - Enable the sensor
-	RegisterWrite(CTRL_MODE, 0b0001);
+	_px4_accel.set_range(260.f);
+	_px4_accel.set_scale(1.f / 1600.f);
 }
 
 bool SCH16T::ValidateRegisterConfiguration()
 {
 	bool success = true;
 
-	// TODO: check registers
-	PX4_INFO("TODO: validate user control registers");
+	for (auto &r : _registers) {
+		RegisterRead(r.addr); // double read, wasteful but makes the code cleaner, not high rate so doesn't matter anyway
+		auto value = SPI48_DATA_UINT16(RegisterRead(r.addr));
 
-	if (!success) {
-		PX4_INFO("ValidateRegisterConfiguration(): FAIL");
+		if (value != r.value) {
+			PX4_INFO("Register 0x%0x misconfigured: 0x%0x", r.addr, value);
+			success = false;
+		}
 	}
 
 	return success;
@@ -446,7 +377,7 @@ bool SCH16T::ValidateSensorStatus()
 
 	for (auto v : values) {
 		if (v != 0xFFFF) {
-			PX4_INFO("ValidateSensorStatus(): FAIL");
+			PX4_INFO("Sensor status failed");
 			return false;
 		}
 	}
@@ -456,8 +387,7 @@ bool SCH16T::ValidateSensorStatus()
 
 void SCH16T::SoftwareReset()
 {
-	// Writing 4b1010 to this field generates a SPI soft reset. SPI Communication is not allowed during 2ms after SPI SOFTRESET.
-	RegisterWrite(CTRL_RESET, 0b1010);
+	RegisterWrite(CTRL_RESET, SPI_SOFT_RESET);
 }
 
 uint64_t SCH16T::RegisterRead(uint8_t addr)
