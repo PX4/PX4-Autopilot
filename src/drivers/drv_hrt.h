@@ -162,7 +162,16 @@ static inline void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
  */
 static inline hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
 {
-	return hrt_absolute_time() - *then;
+	hrt_abstime now = hrt_absolute_time();
+
+	// Cannot allow a negative elapsed time as this would appear
+	// to be a huge positive elapsed time when represented as an
+	// unsigned value!
+	if (*then > now) {
+		return 0;
+	}
+
+	return now - *then;
 }
 
 /**
