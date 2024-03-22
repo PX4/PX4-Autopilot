@@ -91,3 +91,6 @@
 [submodule "boards/ssrc/common"]
 	path = boards/ssrc/common
 	url = git@github.com:tiiuae/px4_boards_ssrc.git
+[submodule "boards/ssrc/saluki-nxp93"]
+	path = boards/ssrc/saluki-nxp93
+	url = git@github.com:tiiuae/saluki-nxp93.git
