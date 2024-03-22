@@ -66,7 +66,7 @@ public:
 	/**
 	* @brief Adds a new client to our array of Clients
 	*/
-	void AddNewClient(ClientAbstract * client);
+	void AddNewClient(ClientAbstract *client);
 
 	/**
 	* @brief Returns the number of clients added to our Clients array
@@ -80,7 +80,8 @@ private:
 	VertiqSerialInterface *_serial_interface;
 
 	//Some constants to help us out
-	static const uint8_t MAXIMUM_NUMBER_OF_CLIENTS = 35; //These are clients that are used for module control/telemetry. They have a static Module ID
+	static const uint8_t MAXIMUM_NUMBER_OF_CLIENTS =
+		35; //These are clients that are used for module control/telemetry. They have a static Module ID
 	ClientAbstract *_client_array[MAXIMUM_NUMBER_OF_CLIENTS];
 	uint8_t _clients_in_use = 0;
 };

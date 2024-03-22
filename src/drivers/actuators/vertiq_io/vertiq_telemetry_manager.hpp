@@ -70,7 +70,7 @@ public:
 	 *
 	 * @param client_manager A pointer to the client manager so that we can add clients to it
 	 */
-	VertiqTelemetryManager(VertiqClientManager * client_manager);
+	VertiqTelemetryManager(VertiqClientManager *client_manager);
 
 	/**
 	* @brief Initialize the telemetry manager with the bitmask set in the PX4 parameters
@@ -130,13 +130,14 @@ public:
 	vertiq_telemetry_pause_states GetTelemetryPauseState();
 
 private:
-	VertiqClientManager * _client_manager;
+	VertiqClientManager *_client_manager;
 
 	vertiq_telemetry_pause_states _telem_state; //Keep track of whether or not we've paused telemetry
 	IQUartFlightControllerInterfaceClient *_telem_interface; //Used for reading responses from our telemetry targets
 	esc_status_s _esc_status; //We want to publish our ESC Status to anyone who will listen
 	static const uint8_t MAX_SUPPORTABLE_MODULE_IDS = 63; //[0, 62] //The max number of module IDs that we can support
-	static const uint8_t MAX_ESC_STATUS_ENTRIES = 8; //The max number of esc status entries we can keep track of (per the esc_status_s type)
+	static const uint8_t MAX_ESC_STATUS_ENTRIES =
+		8; //The max number of esc status entries we can keep track of (per the esc_status_s type)
 
 	//We need a way to store the module IDs that we're supposed to ask for telemetry from. We can have as many as 63.
 	uint8_t _module_ids_in_use[MAX_ESC_STATUS_ENTRIES];

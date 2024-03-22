@@ -122,7 +122,8 @@ private:
 
 	static const uint8_t MAX_SUPPORTABLE_IFCI_CVS = 16;
 
-	static px4::atomic_bool _request_telemetry_init; //Determines whether or not we should initialize or re-initialize the serial connection
+	static px4::atomic_bool
+	_request_telemetry_init; //Determines whether or not we should initialize or re-initialize the serial connection
 
 	MixingOutput _mixing_output{"VERTIQ_IO", MAX_SUPPORTABLE_IFCI_CVS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
@@ -136,14 +137,14 @@ private:
 ////////////////////////////////////////////////////////////////////////
 //Vertiq client information
 
-/**
-Vertiq clients are used to communicate with various parameters available on the module. Our C++ library provides
-simple objects used to interact with these clients.
+	/**
+	Vertiq clients are used to communicate with various parameters available on the module. Our C++ library provides
+	simple objects used to interact with these clients.
 
-An example of a Vertiq client is documented here https://iqmotion.readthedocs.io/en/latest/modules/vertiq_2306_2200.html#propeller-motor-control. In this case,
-Propeller Motor Control is the client, and its entries are specified in the message table (https://iqmotion.readthedocs.io/en/latest/modules/vertiq_2306_2200.html#id6).
-You can find the C++ representation in ./src/drivers/actuators/vertiq_io/iq-module-communication-cpp/inc/propeller_motor_control_client.hpp
-*/
+	An example of a Vertiq client is documented here https://iqmotion.readthedocs.io/en/latest/modules/vertiq_2306_2200.html#propeller-motor-control. In this case,
+	Propeller Motor Control is the client, and its entries are specified in the message table (https://iqmotion.readthedocs.io/en/latest/modules/vertiq_2306_2200.html#id6).
+	You can find the C++ representation in ./src/drivers/actuators/vertiq_io/iq-module-communication-cpp/inc/propeller_motor_control_client.hpp
+	*/
 
 	//Known Clients can be created as concrete objects
 	PropellerMotorControlClient _broadcast_prop_motor_control;

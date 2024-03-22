@@ -48,15 +48,18 @@ void VertiqClientManager::HandleClientCommunication()
 	_serial_interface->ProcessSerialRx(_client_array, _clients_in_use);
 }
 
-void VertiqClientManager::AddNewClient(ClientAbstract * client){
-	if(_clients_in_use < MAXIMUM_NUMBER_OF_CLIENTS){
+void VertiqClientManager::AddNewClient(ClientAbstract *client)
+{
+	if (_clients_in_use < MAXIMUM_NUMBER_OF_CLIENTS) {
 		_client_array[_clients_in_use] = client;
 		_clients_in_use++;
-	}else{
+
+	} else {
 		PX4_INFO("Could not add this client. Maximum number exceeded");
 	}
 }
 
-uint8_t VertiqClientManager::GetNumberOfClients(){
+uint8_t VertiqClientManager::GetNumberOfClients()
+{
 	return _clients_in_use;
 }

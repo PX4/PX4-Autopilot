@@ -26,18 +26,18 @@ parameters:
                 long: |
                     The baud rate (in bits per second) used by the serial port connected with IQUART communication
             type: int32
-            default: 115200
             reboot_required: true
+            default: 115200
         VERTIQ_NUM_CVS:
             description:
               short: The number of Vertiq IFCI parameters to use
               long: |
                   The total number of IFCI control variables being used across all connected modules
             type: int32
-            default: 0
             min: 0
             max: 16
             reboot_required: true
+            default: 0
         DISARM_TRIGGER:
             description:
                 short: The triggered behavior sent to the motors on PX4 disarm
@@ -53,12 +53,12 @@ parameters:
             default: 0
         DISARM_VELO:
             description:
-                short: The velocity value sent to the motors when DISARM_TRIGGER is set to Set Predefined Velocity Setpoint
+                short: Velocity sent when DISARM_TRIGGER is Set Predefined Velocity Setpoint
                 long: This is the velocity that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Velocity Setpoint
             type: int32
-            default: 0
             min: 0
             max: 100
+            default: 0
         ARMING_BEHAVE:
             description:
                 short: The triggered behavior on PX4 arm
@@ -77,13 +77,15 @@ parameters:
                     module ID matching this value will react to all get and set requests from PX4. Any Vertiq client made with dynamic object IDs should
                     use this value to instantiate itself.
             type: int32
+            default: 0
         TRIGGER_READ:
             description:
-                short: Trigger a reinitialization of the connected module's values into the PX4 parameters
+                short: Reinitialize the target module's values into the PX4 parameters
                 long: |
                     Setting this value to true will reinitialize PX4's IQUART connected parameters to the value stored on the currently targeted motor.
                     This is especially useful if your flight controller powered on before your connected modules
             type: boolean
+            default: 0
         THROTTLE_CVI:
             description:
                 short: Module Param - The module's Throttle Control Value Index
@@ -92,9 +94,10 @@ parameters:
             type: int32
             min: 0
             max: 255
+            default: 0
         CONTROL_MODE:
             description:
-                short: Module Param - The module's control mechanism, PWM, Voltage, or Velocity Commands
+                short: Module Param - The module's control mechanism
                 long: |
                     PWM Mode: Commands a fraction of battery voltage. This changes as the battery voltage changes.
                     This is the least safe mode because the upper throttle limit is determined by the battery voltage.
@@ -107,18 +110,21 @@ parameters:
                 0: PWM
                 1: Voltage
                 2: Velocity
+            default: 0
         MAX_VELOCITY:
             description:
-                short: Module Param - The maximum internally commanded velocity when CONTROL_MODE is set to Velocity
+                short: Module Param - Maximum velocity when CONTROL_MODE is set to Velocity
                 long: |
                     Only relevant in Velocity Mode. This is the velocity the controller will command at full throttle.
             type: float
+            default: 0
         MAX_VOLTS:
             description:
-                short: Module Param - The maximum internally commanded voltage when CONTROL_MODE is set to Voltage
+                short: Module Param - Maximum voltage when CONTROL_MODE is set to Voltage
                 long: |
                     Only relevant in Voltage Mode. This is the voltage the controller will command at full throttle.
             type: float
+            default: 0
         VERTIQ_MOTOR_DIR:
             description:
                 short: Module Param - The direction that the module should spin
@@ -131,9 +137,10 @@ parameters:
                 2: 3D Clockwise
                 3: 2D Counter Clockwise
                 4: 2D Clockwise
+            default: 0
         VERTIQ_FC_DIR:
             description:
-                short: Module Param - Determine whether the flight controller is configured for 2D or 3D communication
+                short: Module Param - If the flight controller uses 2D or 3D communication
                 long: |
                     The FC and the ESC must agree upon the meaning of the signal coming out of the ESC. When FCs are in 3D mode
                     they re-map negative signals. This parameter keeps the FC and ESC in agreement.
@@ -141,24 +148,28 @@ parameters:
             values:
                 0: 2D
                 1: 3D
+            default: 0
         ZERO_ANGLE:
             description:
-                short: Module Param - The encoder angle at which theta is zero.
+                short: Module Param - The encoder angle at which theta is zero
                 long: |
                     The encoder angle at which theta is zero. Adjust this number to change the location of 0 phase when pulsing.
             type: float
+            default: 0
         VELOCITY_CUTOFF:
             description:
-                short: Module Param - The minimum velocity required to allow pulsing.
+                short: Module Param - The minimum velocity required to allow pulsing
                 long: |
                     This is the velocity at which pulsing is allowed. Any velocity between VELOCITY_CUTOFF and -VELOCITY_CUTOFF will not pulse.
             type: float
+            default: 0
         TORQUE_OFF_ANGLE:
             description:
-                short: Module Param - This offsets where the pulse starts around the motor to allow for propeller mechanical properties.
+                short: Module Param - Offsets pulse angle to allow for mechanical properties
                 long: |
                     This offsets where the pulse starts around the motor to allow for propeller mechanical properties.
             type: float
+            default: 0
         PULSE_VOLT_MODE:
             description:
                 short: Module Param - 0 = Supply Voltage Mode, 1 = Voltage Limit Mode
@@ -169,31 +180,35 @@ parameters:
             values:
                 0: Supply Voltage Mode
                 1: Voltage Limit Mode
+            default: 0
         PULSE_VOLT_LIM:
             description:
-                short: Module Param - This sets the max pulsing voltage limit when in Voltage Limit Mode.
+                short: Module Param - Max pulsing voltage limit when in Voltage Limit Mode
                 long: |
                     This sets the max pulsing voltage limit when in Voltage Limit Mode.
             type: float
+            default: 0
         X_CVI:
             description:
-                short: Module Param - The control value index value for the X rectangular coordinate.
+                short: Module Param - CVI for the X rectangular coordinate
                 long: |
                     This represents the Control Value Index where the targeted module will look for the X rectangular coordinate.
             type: int32
             min: 0
             max: 255
+            default: 0
         Y_CVI:
             description:
-                short: Module Param - The control value index value for the Y rectangular coordinate.
+                short: Module Param - CVI for the Y rectangular coordinate
                 long: |
                     This represents the Control Value Index where the targeted module will look for the Y rectangular coordinate.
             type: int32
             min: 0
             max: 255
+            default: 0
         TELEM_IDS_1:
             description:
-                short: Module IDs [0, 31] that you would like to request telemetry from. Values [32, 62] can be accessed via TELEM_IDS_2
+                short: Module IDs [0, 31] that you would like to request telemetry from
                 long: |
                   The module IDs [0, 31] that should be asked for telemetry. The data received from these IDs will be published via the esc_status topic.
             type: bitmask
@@ -230,11 +245,11 @@ parameters:
                 29: Module ID 29
                 30: Module ID 30
                 31: Module ID 31
-            default: 0
             reboot_required: true
+            default: 0
         TELEM_IDS_2:
             description:
-                short: Module IDs [32, 62] that you would like to request telemetry from.
+                short: Module IDs [32, 62] that you would like to request telemetry from
                 long: |
                   The module IDs [32, 62] that should be asked for telemetry. The data received from these IDs will be published via the esc_status topic.
             type: bitmask
@@ -270,5 +285,5 @@ parameters:
                 60: Module ID 60
                 61: Module ID 61
                 62: Module ID 62
-            default: 0
             reboot_required: true
+            default: 0

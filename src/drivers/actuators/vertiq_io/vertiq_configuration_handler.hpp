@@ -55,7 +55,8 @@
 #include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
-class VertiqConfigurationHandler{
+class VertiqConfigurationHandler
+{
 public:
 
 	/**
@@ -64,7 +65,7 @@ public:
 	* @param ser A pointer to our serial interface
 	* @param client_manager A pointer to our client manager
 	*/
-	VertiqConfigurationHandler(VertiqSerialInterface * ser, VertiqClientManager * client_manager);
+	VertiqConfigurationHandler(VertiqSerialInterface *ser, VertiqClientManager *client_manager);
 
 	/**
 	 * @brief Initialize all of our client entry wrappers
@@ -120,7 +121,7 @@ public:
 	 * @param object_id The object id we're making the new client with
 	 */
 	template <typename client_type>
-	void DestroyAndRecreateClient(client_type*& client, uint8_t object_id)
+	void DestroyAndRecreateClient(client_type *&client, uint8_t object_id)
 	{
 		if (client) {
 			delete client;
@@ -134,14 +135,15 @@ public:
 	* @param px4_param A parameter stored in PX4. This can be found with the param_find function
 	* @param entry A pointer to a Vertiq client entry
 	*/
-	template <typename iquart_data_type , typename px4_data_type>
+	template <typename iquart_data_type, typename px4_data_type>
 	void AddNewClientEntry(param_t px4_param, ClientEntryAbstract *entry)
 	{
-		if(_added_configuration_entry_wrappers < MAX_CLIENT_ENTRIES){
+		if (_added_configuration_entry_wrappers < MAX_CLIENT_ENTRIES) {
 			_configuration_entry_wrappers[_added_configuration_entry_wrappers] = new EntryWrapper<iquart_data_type, px4_data_type>;
 			_configuration_entry_wrappers[_added_configuration_entry_wrappers]->ConfigureStruct(px4_param, entry);
 			_added_configuration_entry_wrappers++;
-		}else{
+
+		} else {
 			PX4_INFO("Could not add this entry. Maximum number exceeded");
 		}
 	}
@@ -150,7 +152,7 @@ private:
 
 	uint8_t _object_id_now; //The object ID we're targeting right now
 	VertiqSerialInterface *_serial_interface; //We need a serial handler in order to talk over the serial port
-	VertiqClientManager * _client_manager;
+	VertiqClientManager *_client_manager;
 
 ////////////////////////////////////////////////////////////////////////
 //Vertiq Client information
@@ -177,4 +179,4 @@ private:
 
 };
 
- #endif //VERTIQ_CONFIGURATION_CLIENT_HANDLER_HPP
+#endif //VERTIQ_CONFIGURATION_CLIENT_HANDLER_HPP

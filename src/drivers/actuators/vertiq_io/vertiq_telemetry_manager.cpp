@@ -33,7 +33,7 @@
 
 #include "vertiq_telemetry_manager.hpp"
 
-VertiqTelemetryManager::VertiqTelemetryManager(VertiqClientManager * client_manager) :
+VertiqTelemetryManager::VertiqTelemetryManager(VertiqClientManager *client_manager) :
 	_client_manager(client_manager),
 	_telem_state(UNPAUSED)
 {
@@ -52,11 +52,12 @@ void VertiqTelemetryManager::Init(uint64_t telem_bitmask, uint8_t module_id)
 void VertiqTelemetryManager::FindTelemetryModuleIds()
 {
 	uint64_t temp_bitmask = _telem_bitmask;
+
 	//We have a uint64 with bit positions representing module ids. If you see a 1, that's a module ID we need to get telemetry from
 	//Keep shifting values, and see who's a 1
-	for(uint8_t i = 0; i < MAX_SUPPORTABLE_MODULE_IDS; i++){
+	for (uint8_t i = 0; i < MAX_SUPPORTABLE_MODULE_IDS; i++) {
 		//We're only going to keep track of up to MAX_ESC_STATUS_ENTRIES
-		if(temp_bitmask & 0x0000000000000001 && (_number_of_module_ids_for_telem < MAX_ESC_STATUS_ENTRIES)){
+		if (temp_bitmask & 0x0000000000000001 && (_number_of_module_ids_for_telem < MAX_ESC_STATUS_ENTRIES)) {
 			//we found one, and have spcae for it. Put it in our array
 			_module_ids_in_use[_number_of_module_ids_for_telem] = i;
 			_number_of_module_ids_for_telem++;
@@ -137,7 +138,7 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 	//If we got a new response or if we ran out of time to get a response from this motor move on
 	if (got_reply || timed_out) {
 		//We can only be fully paused once the last telemetry attempt is done
-		if(_telem_state == PAUSE_REQUESTED){
+		if (_telem_state == PAUSE_REQUESTED) {
 			_telem_state = PAUSED;
 		}
 
@@ -145,7 +146,7 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 
 		uint16_t next_telem = FindNextMotorForTelemetry();
 
-		if(next_telem != _impossible_module_id){
+		if (next_telem != _impossible_module_id) {
 			//We need to update the module ID we're going to listen to. So, kill the old one, and make it anew.
 			delete _telem_interface;
 			_telem_interface = new IQUartFlightControllerInterfaceClient(next_telem);
@@ -162,12 +163,13 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 uint16_t VertiqTelemetryManager::FindNextMotorForTelemetry()
 {
 	//If we're paused, we're just going to spit back an impossible module ID. Otherwise, go ahead and find the next target
-	if(_telem_state == UNPAUSED){
+	if (_telem_state == UNPAUSED) {
 		//If our current index is the last module ID we've found, then go back to the beginning
 		//otherwise just increment
-		if(_current_module_id_target_index >= _number_of_module_ids_for_telem - 1){
+		if (_current_module_id_target_index >= _number_of_module_ids_for_telem - 1) {
 			_current_module_id_target_index = 0;
-		}else{
+
+		} else {
 			_current_module_id_target_index++;
 		}
 
@@ -183,14 +185,17 @@ esc_status_s VertiqTelemetryManager::GetEscStatus()
 	return _esc_status;
 }
 
-void VertiqTelemetryManager::PauseTelemetry(){
+void VertiqTelemetryManager::PauseTelemetry()
+{
 	_telem_state = PAUSE_REQUESTED;
 }
 
-void VertiqTelemetryManager::UnpauseTelemetry(){
+void VertiqTelemetryManager::UnpauseTelemetry()
+{
 	_telem_state = UNPAUSED;
 }
 
-vertiq_telemetry_pause_states VertiqTelemetryManager::GetTelemetryPauseState(){
+vertiq_telemetry_pause_states VertiqTelemetryManager::GetTelemetryPauseState()
+{
 	return _telem_state;
 }

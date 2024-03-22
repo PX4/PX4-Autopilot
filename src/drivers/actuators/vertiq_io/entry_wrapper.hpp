@@ -134,7 +134,7 @@ public:
 	{
 		float diff = val1 - val2;
 
-		if(diff < 0){
+		if (diff < 0) {
 			return -diff < tolerance;
 		}
 

@@ -167,7 +167,8 @@ int VertiqSerialInterface::ConfigureSerialPeripheral(unsigned baud)
 	return 0;
 }
 
-bool VertiqSerialInterface::CheckForRx(){
+bool VertiqSerialInterface::CheckForRx()
+{
 	if (_uart_fd < 0) {
 		return -1;
 	}
@@ -184,7 +185,8 @@ bool VertiqSerialInterface::CheckForRx(){
 	return _bytes_available > 0;
 }
 
-uint8_t * VertiqSerialInterface::ReadAndSetRxBytes(){
+uint8_t *VertiqSerialInterface::ReadAndSetRxBytes()
+{
 	//Read the bytes available for us
 	read(_uart_fd, _rx_buf, _bytes_available);
 
@@ -198,6 +200,7 @@ void VertiqSerialInterface::ProcessSerialRx(ClientAbstract **client_array, uint8
 	//We have bytes
 	if (CheckForRx()) {
 		uint8_t *data_ptr = ReadAndSetRxBytes();
+
 		//While we've got packets to look at, give the packet to each of the clients so that each
 		//can decide what to do with it
 		while (_iquart_interface.PeekPacket(&data_ptr, &_bytes_available) == 1) {

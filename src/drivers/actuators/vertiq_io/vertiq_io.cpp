@@ -176,9 +176,10 @@ void VertiqIo::parameters_update()
 	}
 }
 
-void VertiqIo::OutputControls(uint16_t outputs[MAX_ACTUATORS]){
+void VertiqIo::OutputControls(uint16_t outputs[MAX_ACTUATORS])
+{
 	//Put the mixer outputs into the output message
-	for(uint8_t i = 0; i < _transmission_message.num_cvs; i++){
+	for (uint8_t i = 0; i < _transmission_message.num_cvs; i++) {
 		_transmission_message.commands[i] = outputs[i];
 	}
 
@@ -208,12 +209,14 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 
 	} else if (_actuator_test_active) {
 		OutputControls(outputs);
+
 	} else {
 		//Put the modules into coast
 		switch (_param_vertiq_disarm_behavior.get()) {
 		case USER_MIXER_VALUE:
 			OutputControls(outputs);
 			break;
+
 		case TRIGGER_MOTOR_DISARM:
 			_broadcast_arming_handler.motor_armed_.set(*_serial_interface.GetIquartInterface(), 0);
 			break;
@@ -223,7 +226,8 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 			break;
 
 		case SEND_PREDEFINED_VELOCITY:
-			_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface.GetIquartInterface(), _param_vertiq_disarm_velocity.get());
+			_broadcast_prop_motor_control.ctrl_velocity_.set(*_serial_interface.GetIquartInterface(),
+					_param_vertiq_disarm_velocity.get());
 			break;
 
 		default:

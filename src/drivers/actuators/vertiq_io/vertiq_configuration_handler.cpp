@@ -32,7 +32,8 @@
  ****************************************************************************/
 #include "vertiq_configuration_handler.hpp"
 
-VertiqConfigurationHandler::VertiqConfigurationHandler(VertiqSerialInterface * ser, VertiqClientManager * client_manager) :
+VertiqConfigurationHandler::VertiqConfigurationHandler(VertiqSerialInterface *ser,
+		VertiqClientManager *client_manager) :
 	_serial_interface(ser),
 	_client_manager(client_manager)
 {
@@ -59,7 +60,8 @@ void VertiqConfigurationHandler::InitConfigurationClients(uint8_t object_id)
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 }
 
-void VertiqConfigurationHandler::InitClientEntryWrappers(){
+void VertiqConfigurationHandler::InitClientEntryWrappers()
+{
 	AddNewClientEntry<float, float>(param_find("MAX_VELOCITY"), &(_prop_input_parser_client->velocity_max_));
 	AddNewClientEntry<float, float>(param_find("MAX_VOLTS"), &(_prop_input_parser_client->volts_max_));
 	AddNewClientEntry<uint8_t, int32_t>(param_find("CONTROL_MODE"), &(_prop_input_parser_client->mode_));
@@ -72,16 +74,16 @@ void VertiqConfigurationHandler::InitClientEntryWrappers(){
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
 	AddNewClientEntry<uint8_t, int32_t> (param_find("PULSE_VOLT_MODE"),
-			&(_pulsing_rectangular_input_parser_client->pulsing_voltage_mode_));
+					     &(_pulsing_rectangular_input_parser_client->pulsing_voltage_mode_));
 	AddNewClientEntry<uint8_t, int32_t>(param_find("X_CVI"), &(_ifci_client->x_cvi_));
 	AddNewClientEntry<uint8_t, int32_t>(param_find("Y_CVI"), &(_ifci_client->y_cvi_));
 	AddNewClientEntry<float, float>(param_find("ZERO_ANGLE"), &(_voltage_superposition_client->zero_angle_));
 	AddNewClientEntry<float, float>(param_find("VELOCITY_CUTOFF"),
-			&(_voltage_superposition_client->velocity_cutoff_));
+					&(_voltage_superposition_client->velocity_cutoff_));
 	AddNewClientEntry<float, float>(param_find("TORQUE_OFF_ANGLE"),
-			&(_voltage_superposition_client->propeller_torque_offset_angle_));
+					&(_voltage_superposition_client->propeller_torque_offset_angle_));
 	AddNewClientEntry<float, float>(param_find("PULSE_VOLT_LIM"),
-						&(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
+					&(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 }
 
@@ -139,6 +141,7 @@ void VertiqConfigurationHandler::CoordinateIquartWithPx4Params(hrt_abstime timeo
 	}
 }
 
-uint8_t VertiqConfigurationHandler::GetObjectIdNow(){
+uint8_t VertiqConfigurationHandler::GetObjectIdNow()
+{
 	return _object_id_now;
 }
