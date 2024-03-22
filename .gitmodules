@@ -81,5 +81,5 @@
 	url = https://github.com/PX4/PX4-gazebo-models.git
 	branch = main
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
-	path = src/modules/muorb/apps/libfc-sensor-api
+	path = boards/modalai/voxl2/libfc-sensor-api
 	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libfc-sensor-api.git

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2024 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,18 +31,4 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE modules__muorb__apps
-	MAIN muorb
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
-	INCLUDES
-		../test
-		../aggregator
-		${PX4_BOARD_DIR}/libfc-sensor-api/inc
-	SRCS
-		uORBAppsProtobufChannel.cpp
-		muorb_main.cpp
-		../test/MUORBTest.cpp
-		../aggregator/mUORBAggregator.cpp
-	)
+include_directories(${PX4_BOARD_DIR}/libfc-sensor-api/inc)
