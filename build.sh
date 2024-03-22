@@ -19,6 +19,7 @@ usage() {
   echo "     saluki-v3_default"
   echo "     saluki-v3_amp"
   echo "     saluki-v3_flat"
+  echo "     saluki-nxp93_flat"
   echo
   exit 1
 }
@@ -132,6 +133,11 @@ case $target in
     $build_cmd_fw ssrc_saluki-pi_default
     cp ${script_dir}/build/ssrc_saluki-pi_default/ssrc_saluki-pi_default.px4 ${dest_dir}/ssrc_saluki-pi_custom_keys-${version}.px4
     cp ${script_dir}/build/ssrc_saluki-pi_default/ssrc_saluki-pi_default_kernel.elf ${dest_dir}/ssrc_saluki-pi_custom_keys_kernel-${version}.elf
+    ;;
+  "saluki-nxp93_flat")
+    $build_cmd_fw ssrc_saluki-nxp93_flat
+    cp ${script_dir}/build/ssrc_saluki-nxp93_flat/ssrc_saluki-nxp93_flat.px4 ${dest_dir}/ssrc_saluki-nxp93_flat-${version}.px4
+    cp ${script_dir}/build/ssrc_saluki-nxp93_flat/ssrc_saluki-nxp93_flat.elf ${dest_dir}/ssrc_saluki-nxp93_flat-${version}.elf
     ;;
 
    *)

@@ -33,4 +33,8 @@ RUN curl -LOs https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/
     tar xvf gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -C /tools && \
     rm -f gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
 
-ENV PATH=/tools/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin:/tools/gcc-arm-none-eabi-9-2019-q4-major/bin/:$PATH
+RUN curl -LOs https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-elf.tar.xz && \
+    tar xvf arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-elf.tar.xz -C /tools && \
+    rm -f arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-elf.tar.xz
+
+ENV PATH=/tools/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-elf/bin:/tools/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin:/tools/gcc-arm-none-eabi-9-2019-q4-major/bin/:$PATH
