@@ -113,16 +113,19 @@ hrt_abstime hrt_absolute_time()
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 
-#if defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
+# if defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
 	hrt_abstime temp_abstime = ts_to_abstime(&ts);
 	int apps_time_offset = fc_sensor_get_time_offset();
 
 	if (apps_time_offset < 0) {
 		hrt_abstime temp_offset = -apps_time_offset;
 
-		if (temp_offset >= temp_abstime) { temp_abstime = 0; }
+		if (temp_offset >= temp_abstime) {
+			temp_abstime = 0;
 
-		else { temp_abstime -= temp_offset; }
+		} else {
+			temp_abstime -= temp_offset;
+		}
 
 	} else {
 		temp_abstime += (hrt_abstime) apps_time_offset;
@@ -130,7 +133,7 @@ hrt_abstime hrt_absolute_time()
 
 	ts.tv_sec = temp_abstime / 1000000;
 	ts.tv_nsec = (temp_abstime % 1000000) * 1000;
-#endif // defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
+# endif // defined(CONFIG_MUORB_APPS_SYNC_TIMESTAMP)
 
 	return ts_to_abstime(&ts);
 #endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
