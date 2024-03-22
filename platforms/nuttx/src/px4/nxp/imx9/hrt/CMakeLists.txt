@@ -34,3 +34,7 @@
 px4_add_library(arch_hrt
        hrt.c
 )
+
+# Need clock control module (CCM) from nuttx
+
+target_link_libraries(arch_hrt PRIVATE nuttx_arch)
