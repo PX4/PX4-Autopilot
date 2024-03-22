@@ -328,4 +328,26 @@ bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
 	return flowcontrol == FlowControl::Disabled;
 }
 
+bool SerialImpl::getSingleWireMode() const
+{
+	return false;
+}
+
+bool SerialImpl::setSingleWireMode()
+{
+	// Qurt platform does not support single wire mode
+	return false;
+}
+
+bool SerialImpl::getSwapRxTxMode() const
+{
+	return false;
+}
+
+bool SerialImpl::setSwapRxTxMode()
+{
+	// Qurt platform does not support swap rx tx mode
+	return false;
+}
+
 } // namespace device

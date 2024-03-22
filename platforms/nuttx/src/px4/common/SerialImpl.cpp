@@ -210,6 +210,14 @@ bool SerialImpl::open()
 
 	_open = true;
 
+	if (_single_wire_mode) {
+		setSingleWireMode();
+	}
+
+	if (_swap_rx_tx_mode) {
+		setSwapRxTxMode();
+	}
+
 	return _open;
 }
 
@@ -396,6 +404,46 @@ FlowControl SerialImpl::getFlowcontrol() const
 bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
 {
 	return flowcontrol == FlowControl::Disabled;
+}
+
+bool SerialImpl::getSingleWireMode() const
+{
+	return _single_wire_mode;
+}
+
+bool SerialImpl::setSingleWireMode()
+{
+#if defined(TIOCSSINGLEWIRE)
+
+	if (_open) {
+		ioctl(_serial_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+	}
+
+	_single_wire_mode = true;
+	return true;
+#else
+	return false;
+#endif // TIOCSSINGLEWIRE
+}
+
+bool SerialImpl::getSwapRxTxMode() const
+{
+	return _swap_rx_tx_mode;
+}
+
+bool SerialImpl::setSwapRxTxMode()
+{
+#if defined(TIOCSSWAP)
+
+	if (_open) {
+		ioctl(_serial_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+	}
+
+	_swap_rx_tx_mode = true;
+	return true;
+#else
+	return false;
+#endif // TIOCSSWAP
 }
 
 } // namespace device

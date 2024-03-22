@@ -83,6 +83,12 @@ public:
 	FlowControl getFlowcontrol() const;
 	bool setFlowcontrol(FlowControl flowcontrol);
 
+	bool getSingleWireMode() const;
+	bool setSingleWireMode();
+
+	bool getSwapRxTxMode() const;
+	bool setSwapRxTxMode();
+
 private:
 
 	int _serial_fd{-1};
@@ -101,6 +107,8 @@ private:
 	bool validateBaudrate(uint32_t baudrate);
 	bool configure();
 
+	bool _single_wire_mode{false};
+	bool _swap_rx_tx_mode{false};
 };
 
 } // namespace device

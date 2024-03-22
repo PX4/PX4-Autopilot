@@ -85,6 +85,12 @@ public:
 	FlowControl getFlowcontrol() const;
 	bool setFlowcontrol(FlowControl flowcontrol);
 
+	bool getSingleWireMode() const;
+	bool setSingleWireMode();
+
+	bool getSwapRxTxMode() const;
+	bool setSwapRxTxMode();
+
 	const char *getPort() const;
 
 private:

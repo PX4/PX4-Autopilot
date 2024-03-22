@@ -135,6 +135,24 @@ bool Serial::setFlowcontrol(FlowControl flowcontrol)
 	return _impl.setFlowcontrol(flowcontrol);
 }
 
+bool Serial::getSingleWireMode() const
+{
+	return _impl.getSingleWireMode();
+}
+bool Serial::setSingleWireMode()
+{
+	return _impl.setSingleWireMode();
+}
+
+bool Serial::getSwapRxTxMode() const
+{
+	return _impl.getSwapRxTxMode();
+}
+bool Serial::setSwapRxTxMode()
+{
+	return _impl.setSwapRxTxMode();
+}
+
 const char *Serial::getPort() const
 {
 	return _impl.getPort();

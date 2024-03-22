@@ -155,16 +155,12 @@ void CrsfRc::Run()
 		}
 
 		if (board_rc_swap_rxtx(_device)) {
-#if defined(TIOCSSWAP)
-			ioctl(_rc_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-#endif // TIOCSSWAP
+			_uart->setSwapRxTxMode();
 		}
 
 		if (board_rc_singlewire(_device)) {
 			_is_singlewire = true;
-#if defined(TIOCSSINGLEWIRE)
-			ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
-#endif // TIOCSSINGLEWIRE
+			_uart->setSingleWireMode();
 		}
 
 		PX4_INFO("Crsf serial opened sucessfully");
