@@ -867,9 +867,11 @@ def main():
                         # Windows, don't open POSIX ports
                         if "/" not in port:
                             up = uploader(port, args.baud_bootloader, baud_flightstack)
-                except Exception:
+                except Exception as e:
                     # open failed, rate-limit our attempts
                     time.sleep(0.05)
+                    #I'm not sure what exception you're expecting, but just catching all is a bad idea
+                    print(e)
 
                     # and loop to the next port
                     continue
@@ -887,7 +889,7 @@ def main():
                         print("Found board id: %s,%s bootloader version: %s on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
                         break
 
-                    except Exception:
+                    except Exception as e:
 
                         if not up.send_reboot(args.use_protocol_splitter_format):
                             break
@@ -900,6 +902,8 @@ def main():
 
                         # wait for the close, without we might run into Serial I/O Error 6
                         time.sleep(0.3)
+                        print(e)
+
 
                 if not found_bootloader:
                     # Go to the next port
