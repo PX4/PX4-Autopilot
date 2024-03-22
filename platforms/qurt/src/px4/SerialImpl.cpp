@@ -253,11 +253,7 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 
 void SerialImpl::flush()
 {
-	if (_open) {
-		uint8_t buffer[4];
-		// A read clears out all current data
-		read(buffer, 4);
-	}
+	// TODO: Flush not implemented yet on Qurt
 }
 
 const char *SerialImpl::getPort() const

@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <px4_log.h>
 #include "QueueBuffer.hpp"
 #include "CrsfParser.hpp"
 #include "Crc8.hpp"
