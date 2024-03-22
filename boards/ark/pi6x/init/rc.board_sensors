@@ -8,7 +8,7 @@ board_adc start
 if param compare SENS_EN_INA226 1
 then
 	# Start Digital power monitors
-	ina226 -X -b 3 -t 1 -k start
+	ina226 -I -b 3 -t 1 -k start
 fi
 
 if ver hwtypecmp ARKPI6X000
@@ -31,4 +31,4 @@ bmp388 -I -b 4 start
 paw3902 -s -b 3 start -Y 180
 
 # Internal distance sensor
-afbrs50 start
+#afbrs50 start
