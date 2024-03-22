@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE modules__local_position_estimator
 	MAIN local_position_estimator
 	COMPILE_FLAGS
+		-Wno-array-bounds # TODO: fix and enable
 	STACK_MAIN 5700
 	STACK_MAX 3700
 	SRCS
