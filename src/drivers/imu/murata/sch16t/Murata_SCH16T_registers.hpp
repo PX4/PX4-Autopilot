@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,13 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file Analog_Devices_ADIS16507_registers.hpp
- *
- * Analog Devices ADIS16507 registers.
- *
- */
-
 #pragma once
 
 #include <cstdint>
@@ -45,7 +38,6 @@
 namespace Murata_SCH16T
 {
 static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;       // 2 MHz SPI serial interface
-static constexpr uint32_t SPI_STALL_PERIOD = 16;             // 16 us Stall period between data
 static constexpr uint32_t SAMPLE_INTERVAL_US = 678;          // 1500 Hz -- decimation factor 8, F_PRIM/16, 1.475 kHz
 
 // Data registers
@@ -94,4 +86,4 @@ static constexpr uint32_t SAMPLE_INTERVAL_US = 678;          // 1500 Hz -- decim
 #define SN_ID2          0x3E // 16 bit
 #define SN_ID3          0x3F // 16 bit
 
-} // namespace Analog_Devices_ADIS16507
+} // namespace Murata_SCH16T
