@@ -95,7 +95,7 @@ void BoatPosControl::Run()
 
 	/* advertise debug value */
 	struct debug_key_value_s dbg;
-	strncpy(dbg.key, "yaw", sizeof(dbg.key));
+	strncpy(dbg.key, "debug_val", sizeof(dbg.key));
 	dbg.value = 0.0f;
 	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
 
@@ -119,7 +119,7 @@ void BoatPosControl::Run()
 	v_torque_sp.xyz[1] = 0.f;
 
 	const Quatf q{_vehicle_att.q};
-	const float yaw = Eulerf(q).psi();
+	float yaw = Eulerf(q).psi();
 
 
 
@@ -151,8 +151,7 @@ void BoatPosControl::Run()
 	float desired_heading = get_bearing_to_next_waypoint(global_position(0), global_position(1), current_waypoint(0),
 				current_waypoint(1));
 
-	dbg.value = desired_heading;
-	orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+
 
 	if (_armed && _position_ctrl_ena){
 		if (_local_pos_sub.update(&_local_pos)) {
@@ -169,6 +168,15 @@ void BoatPosControl::Run()
 
 			// yaw rate control
 			//yaw_setpoint += _manual_control_setpoint.roll*0.1f;
+
+			// Adjust the setpoint to take the shortest path
+			float heading_error = desired_heading - yaw;
+			if (abs(heading_error)>M_PI_F){
+				float new_heading_error = 2*M_PI_F-abs(heading_error);
+				desired_heading = -sign(heading_error)*new_heading_error+yaw;
+			}
+			dbg.value = desired_heading;
+			orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 
 			float _torque_sp = pid_calculate(&_yaw_rate_pid, desired_heading, yaw, 0, dt);
 
