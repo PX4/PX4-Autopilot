@@ -204,9 +204,6 @@
 #define BOARD_GET_EXTERNAL_LOCKOUT_STATE() px4_arch_gpioread(GPIO_nARMED)
 #endif
 
-/* No PX4IO processor present */
-#define PX4_MFT_HW_SUPPORTED_PX4_MFT_PX4IO 0
-
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
