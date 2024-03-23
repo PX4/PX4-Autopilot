@@ -86,7 +86,7 @@ int SCH16T::init()
 int SCH16T::probe()
 {
 	if (hrt_absolute_time() < POWER_ON_TIME) {
-		PX4_WARN("Required Power-On Start-Up Time %lu ms", POWER_ON_TIME);
+		PX4_WARN("Required Power-On Start-Up Time %" PRIu32 " ms", POWER_ON_TIME);
 	}
 
 	RegisterRead(COMP_ID);
