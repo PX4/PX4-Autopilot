@@ -97,12 +97,14 @@ CanardHandle::~CanardHandle()
 }
 
 
-bool CanardHandle::init()
+bool CanardHandle::init(const char *can_iface_name)
 {
 	if (_can_interface) {
-		if (_can_interface->init() == PX4_OK) {
+		if (_can_interface->init(can_iface_name) == PX4_OK) {
 			return true;
 		}
+
+		//}
 	}
 
 	return false;
