@@ -144,7 +144,7 @@ void BoatPosControl::Run()
 	matrix::Vector2d current_waypoint(_position_setpoint_triplet.current.lat, _position_setpoint_triplet.current.lon);
 	matrix::Vector2d next_waypoint(_position_setpoint_triplet.next.lat, _position_setpoint_triplet.next.lon);
 
-	const float distance_to_next_wp = get_distance_to_next_waypoint(global_position(0), global_position(1),
+	float distance_to_next_wp = get_distance_to_next_waypoint(global_position(0), global_position(1),
 					  current_waypoint(0),
 					  current_waypoint(1));
 
@@ -161,6 +161,13 @@ void BoatPosControl::Run()
 			const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
 			const Vector3f vel = R_to_body * Vector3f(_local_pos.vx, _local_pos.vy, _local_pos.vz);
 
+			//once position reached
+			if (distance_to_next_wp<_param_usv_dist_epsi.get()){
+				desired_heading = yaw; // keep the last direction
+				distance_to_next_wp = 0.0f;
+
+			}
+
 			// Speed control
 			float _thrust = pid_calculate(&_velocity_pid, distance_to_next_wp, vel(0), 0, dt);
 			_thrust = math::constrain(_thrust, -1.0f, 1.0f);
@@ -175,16 +182,20 @@ void BoatPosControl::Run()
 				float new_heading_error = 2*M_PI_F-abs(heading_error);
 				desired_heading = -sign(heading_error)*new_heading_error+yaw;
 			}
-			dbg.value = desired_heading;
+
+
+			dbg.value = distance_to_next_wp;
 			orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 
 			float _torque_sp = pid_calculate(&_yaw_rate_pid, desired_heading, yaw, 0, dt);
+			_torque_sp = math::constrain(_torque_sp, -1.0f, 1.0f);
 
 			v_thrust_sp.xyz[0] = _thrust;
-			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
-
 			v_torque_sp.xyz[2] = -_torque_sp;
+
+			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 			_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+
 		}
 	}
 	else if (_armed && vehicle_control_mode.flag_control_manual_enabled) {

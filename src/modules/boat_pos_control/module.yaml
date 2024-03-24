@@ -21,4 +21,13 @@ parameters:
         increment: 0.001
         decimal: 3
         default: 0.1
+      USV_DIST_EPSI:
+        description:
+          short: Accuracy of distance to target
+        type: float
+        min: 0.001
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.01
 

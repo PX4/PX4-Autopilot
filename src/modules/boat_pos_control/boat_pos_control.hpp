@@ -97,6 +97,7 @@ private:
 	void Run() override;
 	void parameters_update() ;
 	void vehicle_attitude_poll();
+
 	// Subscriptions
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -105,9 +106,6 @@ private:
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-
-
-
 
 	// Publications
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
@@ -132,7 +130,8 @@ private:
 	vehicle_control_mode_s vehicle_control_mode;
 
 	DEFINE_PARAMETERS((ParamFloat<px4::params::USV_SPEED_P>) _param_usv_speed_p,
-	(ParamFloat<px4::params::USV_YAW_RATE_P>) _param_usv_yaw_rate_p
+	(ParamFloat<px4::params::USV_YAW_RATE_P>) _param_usv_yaw_rate_p,
+	(ParamFloat<px4::params::USV_DIST_EPSI>) _param_usv_dist_epsi
 	)
 
 
