@@ -158,8 +158,8 @@ private:
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
-		PX4_STORAGEDIR "/log",
-		PX4_STORAGEDIR "/mission_log"
+		CONFIG_BOARD_LOG_DIR "/log",
+		CONFIG_BOARD_LOG_DIR "/mission_log"
 	};
 
 	struct LogFileName {
