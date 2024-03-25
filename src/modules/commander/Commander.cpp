@@ -2431,10 +2431,12 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 
 			overload = overload || (cpuload.ram_usage > 0.99f);
 
-			if (_overload_start == 0 && overload) {
-				_overload_start = time_now_us;
+			if (overload) {
+				if (_overload_start == 0) {
+					_overload_start = time_now_us;
+				}
 
-			} else if (!overload) {
+			} else {
 				_overload_start = 0;
 			}
 		}
