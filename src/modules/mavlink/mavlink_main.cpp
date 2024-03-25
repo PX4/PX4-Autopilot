@@ -3206,12 +3206,16 @@ Mavlink::set_boot_complete()
 #if defined(MAVLINK_UDP)
 	LockGuard lg {mavlink_module_mutex};
 
+	uint8_t index = 0;
+
 	for (Mavlink *inst : mavlink_module_instances) {
 		if (inst && (inst->get_mode() != MAVLINK_MODE_ONBOARD) &&
 		    !inst->broadcast_enabled() && inst->get_protocol() == Protocol::UDP) {
 
-			PX4_INFO("MAVLink only on localhost (set param MAV_{i}_BROADCAST = 1 to enable network)");
+			PX4_INFO("MAVLink only on localhost (set param MAV_%d_BROADCAST = 1 to enable network)", index);
 		}
+
+		++index;
 	}
 
 #endif // MAVLINK_UDP
