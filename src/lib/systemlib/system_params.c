@@ -84,6 +84,20 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 PARAM_DEFINE_INT32(SYS_HITL, 0);
 
 /**
+ * Enable board sensors on next boot
+ *
+ * While enabled the system will boot with enabled board sensors.
+ * When disabled the system will boot with disabled board sensors.
+ *
+ * @value 0 board sensors disabled
+ * @value 1 board sensors enabled
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_BOARD_SENS, 1);
+
+/**
  * Set multicopter estimator group
  *
  * Set the group of estimators used for multicopters and VTOLs
