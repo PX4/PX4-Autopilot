@@ -385,6 +385,8 @@ tests_coverage:
 	@mkdir -p coverage
 	@lcov --directory build/px4_sitl_test --base-directory build/px4_sitl_test --gcov-tool gcov --capture -o coverage/lcov.info
 
+test_unit:
+	@$(MAKE) tests TESTFILTER="unit\|functional"
 
 rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
