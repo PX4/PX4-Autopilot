@@ -85,9 +85,8 @@ static int 	do_save(const char *param_file_name);
 static int	do_save_default();
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name = nullptr);
-static int	do_show(const char *search_string, bool only_changed);
+static int	do_show(const char *search_string, bool only_changed, bool only_used);
 static int	do_show_for_airframe();
-static int	do_show_all();
 static int	do_show_quiet(const char *param_name);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
@@ -143,8 +142,8 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<file>", "File name", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
-	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Show all parameters (not just used)", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params (unused too)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Show all parameters (used & unused)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params (used & unused)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet mode, print only param value (name needs to be exact)", true);
 	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
 
@@ -263,29 +262,37 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "show")) {
 			if (argc >= 3) {
-				// optional argument -c to show only non-default params
+				// optional argument -c to show only non-default params (used & unused)
 				if (!strcmp(argv[2], "-c")) {
 					if (argc >= 4) {
-						return do_show(argv[3], true);
+						return do_show(argv[3], true, false);
 
 					} else {
-						return do_show(nullptr, true);
+						return do_show(nullptr, true, false);
 					}
 
+				// optional argument -a to show all params (used & unused)
 				} else if (!strcmp(argv[2], "-a")) {
-					return do_show_all();
+					if (argc >= 4) {
+						return do_show(argv[3], false, false);
+
+					} else {
+						return do_show(nullptr, false, false);
+					}
 
 				} else if (!strcmp(argv[2], "-q")) {
 					if (argc >= 4) {
 						return do_show_quiet(argv[3]);
 					}
 
+				// show params (only used) matching search pattern
 				} else {
-					return do_show(argv[2], false);
+					return do_show(argv[2], false, true);
 				}
 
+			// Default: show all params (only used)
 			} else {
-				return do_show(nullptr, false);
+				return do_show(nullptr, false, true);
 			}
 		}
 
@@ -513,11 +520,13 @@ do_save_default()
 }
 
 static int
-do_show(const char *search_string, bool only_changed)
+do_show(const char *search_string, bool only_changed, bool only_used)
 {
+	if (only_used) {
+		PARAM_PRINT("Warning! Only parameters used during runtime will be shown\n");
+	}
 	PARAM_PRINT("Symbols: x = used, + = saved, * = unsaved\n");
-	// also show unused params if we show non-default values only
-	param_foreach(do_show_print, (char *)search_string, only_changed, !only_changed);
+	param_foreach(do_show_print, (char *)search_string, only_changed, only_used);
 	PARAM_PRINT("\n %u/%u parameters used.\n", param_count_used(), param_count());
 
 	return 0;
@@ -532,16 +541,6 @@ do_show_for_airframe()
 	if (sys_autostart != 0) {
 		PARAM_PRINT("# Make sure to add all params from the current airframe (ID=%" PRId32 ") as well\n", sys_autostart);
 	}
-	return 0;
-}
-
-static int
-do_show_all()
-{
-	PARAM_PRINT("Symbols: x = used, + = saved, * = unsaved\n");
-	param_foreach(do_show_print, nullptr, false, false);
-	PARAM_PRINT("\n %u parameters total, %u used.\n", param_count(), param_count_used());
-
 	return 0;
 }
 
