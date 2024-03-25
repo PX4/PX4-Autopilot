@@ -335,7 +335,6 @@ bool EKF2::multi_init(int imu, int mag)
 
 	// mag advertise
 	if (_param_ekf2_mag_type.get() != MagFuseType::NONE) {
-		_estimator_aid_src_mag_heading_pub.advertise();
 		_estimator_aid_src_mag_pub.advertise();
 	}
 
@@ -874,9 +873,6 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	// mag heading
-	PublishAidSourceStatus(_ekf.aid_src_mag_heading(), _status_mag_heading_pub_last, _estimator_aid_src_mag_heading_pub);
-
 	// mag 3d
 	PublishAidSourceStatus(_ekf.aid_src_mag(), _status_mag_pub_last, _estimator_aid_src_mag_pub);
 #endif // CONFIG_EKF2_MAGNETOMETER

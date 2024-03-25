@@ -149,11 +149,7 @@ public:
 	float getHeadingInnov() const
 	{
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-		if (_control_status.flags.mag_hdg) {
-			return _aid_src_mag_heading.innovation;
-		}
-
-		if (_control_status.flags.mag_3D) {
+		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
 			return Vector3f(_aid_src_mag.innovation).max();
 		}
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -176,11 +172,7 @@ public:
 	float getHeadingInnovVar() const
 	{
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-		if (_control_status.flags.mag_hdg) {
-			return _aid_src_mag_heading.innovation_variance;
-		}
-
-		if (_control_status.flags.mag_3D) {
+		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
 			return Vector3f(_aid_src_mag.innovation_variance).max();
 		}
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -203,11 +195,7 @@ public:
 	float getHeadingInnovRatio() const
 	{
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-		if (_control_status.flags.mag_hdg) {
-			return _aid_src_mag_heading.test_ratio;
-		}
-
-		if (_control_status.flags.mag_3D) {
+		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
 			return Vector3f(_aid_src_mag.test_ratio).max();
 		}
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -460,7 +448,6 @@ public:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
 	const auto &aid_src_mag() const { return _aid_src_mag; }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -715,19 +702,13 @@ private:
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	float _mag_heading_prev{};                 ///< previous value of mag heading (rad)
-	float _mag_heading_pred_prev{};            ///< previous value of yaw state used by mag heading fusion (rad)
-
 	// used by magnetometer fusion mode selection
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
 	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
-	float _mag_heading_last_declination{}; ///< last magnetic field declination used for heading fusion (rad)
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
-	uint8_t _nb_mag_heading_reset_available{0};
 	uint8_t _nb_mag_3d_reset_available{0};
 	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
-	estimator_aid_source1d_s _aid_src_mag_heading{};
 	estimator_aid_source3d_s _aid_src_mag{};
 
 	AlphaFilter<Vector3f> _mag_lpf{0.1f};	///< filtered magnetometer measurement for instant reset (Gauss)
@@ -777,7 +758,7 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// ekf sequential fusion of magnetometer measurements
-	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
+	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true, bool update_tilt = true);
 
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
@@ -1048,7 +1029,6 @@ private:
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations
 	void controlMagFusion();
-	void controlMagHeadingFusion(const magSample &mag_sample, const bool common_starting_conditions_passing, estimator_aid_source1d_s &aid_src);
 	void controlMag3DFusion(const magSample &mag_sample, const bool common_starting_conditions_passing, estimator_aid_source3d_s &aid_src);
 
 	bool checkHaglYawResetReq() const;
@@ -1058,12 +1038,11 @@ private:
 	bool haglYawResetReq();
 
 	void checkYawAngleObservability();
-	void checkMagHeadingConsistency();
+	void checkMagHeadingConsistency(const magSample &mag_sample);
 
 	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
 
-	void stopMagHdgFusion();
 	void stopMagFusion();
 
 	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter

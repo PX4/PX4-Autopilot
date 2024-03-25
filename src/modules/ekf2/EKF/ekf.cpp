@@ -155,7 +155,6 @@ void Ekf::reset()
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	resetEstimatorAidStatus(_aid_src_mag_heading);
 	resetEstimatorAidStatus(_aid_src_mag);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
