@@ -670,13 +670,14 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 /**
  * RC loss exceptions
  *
- * Specify modes in which RC loss is ignored and the failsafe action not triggered.
+ * Specify modes in which the loss of non-essential stick input is ignored and no failsafe action is triggered.
  *
  * @min 0
  * @max 31
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
+ * @bit 3 External Mode
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);

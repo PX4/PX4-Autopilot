@@ -418,13 +418,24 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Mission);
 	const bool rc_loss_ignored_loiter = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
 					    && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
-	const bool rc_loss_ignored_offboard = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
-					      && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Offboard);
 	const bool rc_loss_ignored_takeoff = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
-	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
-				     rc_loss_ignored_takeoff || ignore_link_failsafe || _manual_control_lost_at_arming;
+	const bool rc_loss_ignored_offboard = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
+					      && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Offboard);
+	const bool rc_loss_ignored_external_mode =
+		(state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL2 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL3 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL4 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL5 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL6 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL7 ||
+		 state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_EXTERNAL8)
+		&& (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::ExternalMode);
+
+	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_takeoff
+				     || rc_loss_ignored_offboard || rc_loss_ignored_external_mode || ignore_link_failsafe || _manual_control_lost_at_arming;
 
 	if (_param_com_rc_in_mode.get() != int32_t(RcInMode::StickInputDisabled) && !rc_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
