@@ -62,8 +62,6 @@ param set-default CBRK_SUPPLY_CHK 894281
 # - without safety switch
 param set-default CBRK_IO_SAFETY 22027
 
-param set-default BAT_N_CELLS 3
-
 param set SIH_T_MAX 2.0
 param set SIH_Q_MAX 0.0165
 param set SIH_MASS 0.2
