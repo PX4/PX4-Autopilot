@@ -71,6 +71,9 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
+  - topic: /fmu/out/rc_channels
+    type: px4_msgs::msg::RcChannels
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -108,6 +111,9 @@ subscriptions:
 
   - topic: /fmu/in/sensor_optical_flow
     type: px4_msgs::msg::SensorOpticalFlow
+
+  - topic: /fmu/in/distance_sensor
+    type: px4_msgs::msg::DistanceSensor
 
   - topic: /fmu/in/goto_setpoint
     type: px4_msgs::msg::GotoSetpoint
