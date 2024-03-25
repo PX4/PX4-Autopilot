@@ -40,3 +40,38 @@
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_EN_TF02PRO, 0);
+
+/**
+ * TF02 Pro I2C address
+ *
+ * @reboot_required true
+ *
+ * @min 0
+ * @max 255
+ * @group Sensors
+*/
+PARAM_DEFINE_INT32(SENS_TF02PRO_ADD, 16);
+
+/**
+ * TF02 Pro Sensor Rotation
+ *
+ * This parameter defines the rotation of the TF02 Pro sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 25
+ * @group Sensors
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
+ * @value 24 ROTATION_DOWNWARD_FACING
+ * @value 25 ROTATION_UPWARD_FACING
+ *
+ */
+PARAM_DEFINE_INT32(SENS_TF02PRO_ROT, 25);
