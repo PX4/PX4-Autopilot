@@ -2267,7 +2267,9 @@ Mavlink::task_main(int argc, char *argv[])
 			mavlink_update_parameters();
 		}
 
-		configure_sik_radio();
+		if (_radio_status_available) {
+			configure_sik_radio();
+		}
 
 		if (_vehicle_status_sub.updated()) {
 			vehicle_status_s vehicle_status;
@@ -2683,53 +2685,54 @@ void Mavlink::publish_telemetry_status()
 void Mavlink::configure_sik_radio()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _param_sik_radio_id.get() != 0) {
-		/* request to configure radio and radio is present */
-		FILE *fs = fdopen(_uart_fd, "w");
-
-		if (fs) {
-			/* switch to AT command mode */
-			px4_usleep(1200000);
-			fprintf(fs, "+++");
-			fflush(fs);
-			px4_usleep(1200000);
-
-			if (_param_sik_radio_id.get() > 0) {
-				/* set channel */
-				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_sik_radio_id.get());
-				px4_usleep(200000);
-
-			} else {
-				/* reset to factory defaults */
-				fprintf(fs, "AT&F\r\n");
-				px4_usleep(200000);
-			}
-
-			/* write config */
-			fprintf(fs, "AT&W\r\n");
-			px4_usleep(200000);
-
-			/* reboot */
-			fprintf(fs, "ATZ\r\n");
-			px4_usleep(200000);
-
-			// XXX NuttX suffers from a bug where
-			// fclose() also closes the fd, not just
-			// the file stream. Since this is a one-time
-			// config thing, we leave the file struct
-			// allocated.
-#ifndef __PX4_NUTTX
-			fclose(fs);
-#endif
-
-		} else {
-			PX4_WARN("open fd %d failed", _uart_fd);
-		}
-
-		/* reset param and save */
-		_param_sik_radio_id.set(0);
-		_param_sik_radio_id.commit_no_notification();
+	if (_uart_fd < 0 || _param_sik_radio_id.get() == 0) {
+		return;
 	}
+
+	pthread_mutex_lock(&_send_mutex);
+
+	// it doesn't seem to switch without this wait
+	px4_usleep(1200000);
+	// switch to AT command mode
+	const char at_command_mode[] = "+++";
+	// we don't write the 0 termination, otherwise it doesn't seem to work.
+	write(_uart_fd, at_command_mode, 3);
+	fsync(_uart_fd);
+	px4_usleep(1200000);
+
+	if (_param_sik_radio_id.get() > 0) {
+		// set channel
+		char id_setting[20] {};
+		snprintf(id_setting, sizeof(id_setting), "ATS3=%" PRIi32 "\r\n", _param_sik_radio_id.get());
+		write(_uart_fd, id_setting, sizeof(id_setting));
+		fsync(_uart_fd);
+		px4_usleep(200000);
+
+	} else {
+		// reset to factory defaults
+		const char factory_defaults[] = "AT&F\r\n";
+		write(_uart_fd, factory_defaults, sizeof(factory_defaults));
+		fsync(_uart_fd);
+		px4_usleep(200000);
+	}
+
+	// write config
+	const char write_config[] = "AT&W\r\n";
+	write(_uart_fd, write_config, sizeof(write_config));
+	fsync(_uart_fd);
+	px4_usleep(200000);
+
+	// reboot
+	const char reboot[] = "ATZ\r\n";
+	write(_uart_fd, reboot, sizeof(reboot));
+	fsync(_uart_fd);
+	px4_usleep(200000);
+
+	pthread_mutex_unlock(&_send_mutex);
+
+	// reset param and save
+	_param_sik_radio_id.set(0);
+	_param_sik_radio_id.commit_no_notification();
 }
 
 int Mavlink::start_helper(int argc, char *argv[])
