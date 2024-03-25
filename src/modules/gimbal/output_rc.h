@@ -56,6 +56,8 @@ public:
 private:
 	void _stream_device_attitude_status();
 
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+
 	uORB::Publication <gimbal_controls_s>	_gimbal_controls_pub{ORB_ID(gimbal_controls)};
 	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
 };
