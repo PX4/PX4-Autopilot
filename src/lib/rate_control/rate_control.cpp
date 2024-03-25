@@ -74,8 +74,12 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 	// angular rates error
 	Vector3f rate_error = rate_sp - rate;
 
+	// assume the rotor angular momentum is aligned with the Z axis
+	const Vector3f gyroscopic_torque = rate.cross(Vector3f(0.f, 0.f, _rotor_angular_momentum));
+
 	// PID control with feed forward
-	const Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(angular_accel) + _gain_ff.emult(rate_sp);
+	const Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(angular_accel) + _gain_ff.emult(
+					rate_sp) - gyroscopic_torque;
 
 	// update integral only if we are not landed
 	if (!landed) {

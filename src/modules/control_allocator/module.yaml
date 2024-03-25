@@ -30,6 +30,7 @@ parameters:
                 10: Helicopter (tail ESC)
                 11: Helicopter (tail Servo)
                 12: Helicopter (Coaxial)
+                13: Thrust Vectoring
             default: 0
 
         CA_METHOD:

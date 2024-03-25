@@ -280,6 +280,22 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_K, 1.0f);
 
 /**
+ * Gyroscopic torque compensation gain
+ *
+ * Compensates for the gyroscopic torque generated
+ * by a difference in speed between the CW and CCW rotors.
+ *
+ * Assumes that all the rotors have the same inertia and
+ * their thrust is pointing upwards.
+ *
+ * @min -1.0
+ * @max  1.0
+ * @decimal 8
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_PRECESS_GAIN, 0.0f);
+
+/**
  * Battery power level scaler
  *
  * This compensates for voltage drop of the battery over time by attempting to

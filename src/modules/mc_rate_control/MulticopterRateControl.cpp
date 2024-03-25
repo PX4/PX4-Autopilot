@@ -183,6 +183,28 @@ MulticopterRateControl::Run()
 			}
 		}
 
+		if (_esc_status_sub.updated()) {
+			esc_status_s esc_status;
+
+			if (_esc_status_sub.copy(&esc_status) && (now < esc_status.timestamp + 1_s)) {
+				float rpm_sum = 0.f;
+
+				for (size_t esc = 0; esc < math::min(esc_status.esc_count, (uint8_t)MAX_NUM_ESCS); esc++) {
+					const esc_report_s &esc_report = esc_status.esc[esc];
+
+					const bool esc_connected = (esc_status.esc_online_flags & (1 << esc)) || (esc_report.esc_rpm != 0);
+
+					// assuming all the rotors are in the same plane, the gyroscopic torque is proportional to the
+					// difference between the CW and CCW rotation speed
+					if (esc_connected && (now < esc_report.timestamp + 1_s)) {
+						rpm_sum += esc_report.esc_rpm;
+					}
+				}
+
+				_rate_control.setRotorAngularMomentum(rpm_sum * _param_mc_precess_gain.get());
+			}
+		}
+
 		// run the rate controller
 		if (_vehicle_control_mode.flag_control_rates_enabled) {
 
