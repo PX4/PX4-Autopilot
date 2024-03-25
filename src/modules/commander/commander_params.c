@@ -510,6 +510,22 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
 PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
 
 /**
+ * Position control navigation loss last flight mode.
+ *
+ * Sets the last flight mode to be used when navigation accuracy is no longer sufficient for position control.
+ *
+ * If Manual is selected: assumes remote control will be used after fallback. If altitude estimation is not available, switches to MANUAL.
+ *
+ * If Descend is selected: Assumes remote control is not used after fallback. If altitude estimation is unavailable, switch to Descend.
+ *
+ * @value 0 Manual
+ * @value 1 Descend
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_TERM_MODE, 0);
+
+/**
  * Require arm authorization to arm
  *
  * By default off. The default allows to arm the vehicle without a arm authorization.

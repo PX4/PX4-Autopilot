@@ -180,6 +180,7 @@ private:
 					(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,
+					(ParamInt<px4::params::COM_TERM_MODE>) _param_com_term_mode,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
