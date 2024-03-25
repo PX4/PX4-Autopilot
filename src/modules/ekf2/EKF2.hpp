@@ -195,6 +195,32 @@ private:
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_WIND
 
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
+	/**
+	 * @brief Handles the spawning of multiple EKF2 instances based on the input number of sensors.
+	 * @param result true if it has managed to successfully start at least one instance. False if it hasn't.
+	 */
+	static bool MultiEKF2SpawnHandler(int32_t imu_instances, int32_t mag_instances);
+
+	/**
+	 * @brief Starts EKF2Selector if it's not already running.
+	 * @param result true if it is already started of it was able to start it. False otherwise.
+	 */
+	static bool StartEKF2Selector();
+
+	/**
+	 * @brief Starts an EKF2 instance in multi EKF mode and updates all the internal variables
+	 * @param result EKF2 instance number if could be started. PX4_ERROR otherwise.
+	 */
+	static int StartMultiModeEKF2Instance(const px4::wq_config_t wq, int imu, int mag, bool replay_mode);
+#endif // #if defined(CONFIG_EKF2_MULTI_INSTANCE)
+
+	/**
+	 * @brief Starts an EKF2 instance in single EKF mode and updates all the internal variables
+	 * @param result true if it could be started. False otherwise.
+	 */
+	static bool StartSingleEFK2Instance(const px4::wq_config_t wq, bool replay_mode);
+
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_AIRSPEED
