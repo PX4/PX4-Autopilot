@@ -216,23 +216,23 @@ define colorecho
 endef
 
 # Get a list of all config targets boards/*/*.px4board
-ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
+ALL_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
 # All targets.
-$(ALL_CONFIG_TARGETS):
+$(ALL_TARGETS):
 	@$(call cmake-build,$@$(BUILD_DIR_SUFFIX))
 
 # Filter for only default targets to allow omiting the "_default" postfix
-CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
-$(CONFIG_TARGETS_DEFAULT):
+TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_TARGETS)))
+$(TARGETS_DEFAULT):
 	@$(call cmake-build,$@_default$(BUILD_DIR_SUFFIX))
 
-all_config_targets: $(ALL_CONFIG_TARGETS)
-all_default_targets: $(CONFIG_TARGETS_DEFAULT)
+ALL_TARGETS: $(ALL_TARGETS)
+all_default_targets: $(TARGETS_DEFAULT)
 
 updateconfig:
 	@./Tools/kconfig/updateconfig.py
@@ -243,7 +243,7 @@ define deprecation_warning
 endef
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all px4_sitl_default all_config_targets all_default_targets
+.PHONY: all px4_sitl_default ALL_TARGETS all_default_targets
 
 # Other targets
 # --------------------------------------------------------------------
@@ -290,9 +290,9 @@ check_%:
 	@echo
 
 all_variants_%:
-	@echo 'Building all $(subst all_variants_,,$@) variants:'  $(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS))
+	@echo 'Building all $(subst all_variants_,,$@) variants:'  $(filter $(subst all_variants_,,$@)_%, $(ALL_TARGETS))
 	@echo
-	$(foreach a,$(filter $(subst all_variants_,,$@)_%, $(ALL_CONFIG_TARGETS)), $(call cmake-build,$(a)$(BUILD_DIR_SUFFIX)))
+	$(foreach a,$(filter $(subst all_variants_,,$@)_%, $(ALL_TARGETS)), $(call cmake-build,$(a)$(BUILD_DIR_SUFFIX)))
 
 uorb_graphs:
 	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --exclude-path src/lib/parameters --merge-depends --file Tools/uorb_graph/graph_full
@@ -516,11 +516,15 @@ distclean:
 
 # Help / Error / Misc
 # --------------------------------------------------------------------
+define NEWLINE
+
+
+endef
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
 %:
 	$(if $(filter $(FIRST_ARG),$@), \
-		$(error "Make target $@ not found. It either does not exist or $@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
+		$(error "Make target $@ not found!$(NEWLINE)It either does not exist or $@ cannot be the first argument.$(NEWLINE)* '$(MAKE) help' to get all the commands possible.$(NEWLINE)* '$(MAKE) list_targets' to get a list of all possible PX4 build targets.$(NEWLINE)* '$(MAKE) px4_sitl <simulator>_<model>_<world>' for specific SITL targets : Refer to 'platforms/posix/cmake/sitl_target.cmake' )",@#)
 
 # Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
 help:
@@ -528,14 +532,14 @@ help:
 	@echo "Where <target> is one of:"
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | \
 		awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
-		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(Makefile)'
+		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_TARGETS)))$$' -e '_default$$' -e '^(Makefile)'
 	@echo
 	@echo "Or, $(MAKE) <config_target> [<make_target(s)>]"
-	@echo "Use '$(MAKE) list_config_targets' for a list of configuration targets."
+	@echo "Use '$(MAKE) list_targets' for a list of targets."
 
 # Print a list of all config targets.
-list_config_targets:
-	@for targ in $(patsubst %_default,%[_default],$(ALL_CONFIG_TARGETS)); do echo $$targ; done
+list_targets:
+	@for targ in $(patsubst %_default,%[_default],$(ALL_TARGETS)); do echo $$targ; done
 
 check_nuttx : $(call make_list,nuttx) \
 	sizes
