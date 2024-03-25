@@ -3,16 +3,20 @@ uint64 timestamp_sample
 
 uint32 device_id          # unique device ID for the sensor that does not change between power cycles
 
-float32 x                 # angular velocity in the FRD board frame X-axis in rad/s
-float32 y                 # angular velocity in the FRD board frame Y-axis in rad/s
-float32 z                 # angular velocity in the FRD board frame Z-axis in rad/s
-
 float32 temperature       # temperature in degrees Celsius
+
+float32 scale             # sensor resolution scale (LSB/dps)
+
+float32 dynamic_range     # dynamic range of the gyro (degs/s)
 
 uint32 error_count
 
 uint8[3] clip_counter     # clip count per axis in the sample period
 
 uint8 samples             # number of raw samples that went into this message
+
+float32 x                 # angular velocity in the FRD board frame X-axis in rad/s
+float32 y                 # angular velocity in the FRD board frame Y-axis in rad/s
+float32 z                 # angular velocity in the FRD board frame Z-axis in rad/s
 
 uint8 ORB_QUEUE_LENGTH = 8

@@ -4,7 +4,10 @@ uint64 timestamp_sample
 uint32 device_id          # unique device ID for the sensor that does not change between power cycles
 
 float32 dt                # delta time between samples (microseconds)
-float32 scale
+
+float32 scale             # sensor resolution scale (LSB/g)
+
+float32 dynamic_range     # dynamic range of the sensor (m/s^2)
 
 uint8 samples             # number of valid samples
 
