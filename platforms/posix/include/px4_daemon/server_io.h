@@ -49,4 +49,11 @@ __BEGIN_DECLS
  */
 __EXPORT FILE *get_stdout(bool *isatty_);
 
+/**
+ * Get the stdin of the current thread.
+ *
+ * @return The FILE* which represents the standard input of the current thread.
+ */
+__EXPORT FILE *get_stdin();
+
 __END_DECLS

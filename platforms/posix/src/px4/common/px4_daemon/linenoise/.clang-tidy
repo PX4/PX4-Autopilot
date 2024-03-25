@@ -1,0 +1,14 @@
+---
+Checks:          '*,
+                  -hicpp-braces-around-statements,
+                  -readability-braces-around-statements,
+                  -android-cloexec-fopen,
+                  -google-readability-braces-around-statements,
+                  -hicpp-signed-bitwise,
+                  -readability-else-after-return,
+                  -cert-err34-c,
+                  -llvm-include-order,
+                  -readability-inconsistent-declaration-parameter-name,
+                 '
+WarningsAsErrors: '*'
+...

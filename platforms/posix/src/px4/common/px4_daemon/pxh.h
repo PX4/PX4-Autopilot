@@ -47,7 +47,7 @@
 #include <termios.h>
 
 #include <platforms/posix/apps.h>
-#include "history.h"
+#include "linenoise/linenoise.h"
 
 namespace px4_daemon
 {
@@ -82,19 +82,10 @@ public:
 	static void stop();
 
 private:
-	void _print_prompt();
-	void _move_cursor(int position);
-	void _clear_line();
-	void _tab_completion(std::string &prefix);
-	void _check_remote_uorb_command(std::string &line);
-
-	void _setup_term();
-	static void _restore_term();
-
 	bool _should_exit{false};
-	bool _local_terminal{false};
-	History _history;
-	struct termios _orig_term {};
+
+	static void completion(const char *buf, linenoiseCompletions lc);
+	static char *hints(const char *buf, int *color, int *bold);
 
 	static apps_map_type _apps;
 	static Pxh *_instance;

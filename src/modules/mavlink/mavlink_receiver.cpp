@@ -1799,7 +1799,22 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
 		if (serial_control_mavlink.count > 0) {
 			shell->setTargetID(msg->sysid, msg->compid);
-			shell->write(serial_control_mavlink.data, serial_control_mavlink.count);
+
+			// hacky patch:
+			// wait for https://github.com/mavlink/qgroundcontrol/commit/550b6c3cfaec2fc58419e079742cd0c64f2fe741
+			// to land
+			size_t real_count = serial_control_mavlink.count;
+
+			while (real_count > 0) {
+				if (serial_control_mavlink.data[real_count - 1] == '\0') {
+					--real_count;
+
+				} else {
+					break;
+				}
+			}
+
+			shell->write(serial_control_mavlink.data, real_count);
 		}
 
 		// if no response requested, assume the shell is no longer used
