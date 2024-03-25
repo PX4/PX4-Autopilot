@@ -33,37 +33,25 @@
 
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
-//                                                              KiB BS    nB
-static const px4_mft_device_t qspi_flash = {            // 8MB QSPI flash with NXFFS
-	.bus_type = px4_mft_device_t::ONCHIP,
-};
 
 static const px4_mft_device_t i2c0 = {             // 24LC64T on IMU   8K 32 X 256
 	.bus_type =  px4_mft_device_t::I2C,
 	.devid    =  PX4_MK_I2C_DEVID(1, 0x50)
 };
 
-
-static const px4_mtd_entry_t fmum_qspi_flash = {
-	.device = &qspi_flash,
-	.npart = 1,
-	.partd = {
-		{
-			.type = MTD_PARAMETERS,
-			.path = "/mnt/qspi/params",
-			.nblocks = 1
-		}
-	},
-};
-
 static const px4_mtd_entry_t imu_eeprom = {
 	.device = &i2c0,
-	.npart = 2,
+	.npart = 3,
 	.partd = {
 		{
 			.type = MTD_CALDATA,
 			.path = "/fs/mtd_caldata",
-			.nblocks = 248
+			.nblocks = 240
+		},
+		{
+			.type = MTD_MFT_REV,
+			.path = "/fs/mtd_mft_rev",
+			.nblocks = 8
 		},
 		{
 			.type = MTD_ID,
@@ -75,10 +63,9 @@ static const px4_mtd_entry_t imu_eeprom = {
 
 
 static const px4_mtd_manifest_t board_mtd_config = {
-	.nconfigs   = 2,
+	.nconfigs   = 1,
 	.entries = {
-		&imu_eeprom,
-		&fmum_qspi_flash
+		&imu_eeprom
 	}
 };
 
