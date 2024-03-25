@@ -1190,6 +1190,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_ODID_EMERGENCY: {
+		const int param1 = cmd.param1;
+		_vehicle_status.emergency_declared = (bool) param1;
+		cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+	}
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_TEST:
 		cmd_result = handleCommandActuatorTest(cmd);
 		break;
