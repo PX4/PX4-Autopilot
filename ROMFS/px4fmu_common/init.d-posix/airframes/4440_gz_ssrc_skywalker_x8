@@ -90,3 +90,4 @@ param set-default RTL_RETURN_ALT 30.0
 param set-default RTL_DESCEND_ALT 30.0
 param set-default FW_LND_USETER 0
 param set-default RWTO_TKOFF 1
+param set-default FD_ESCS_EN 0
