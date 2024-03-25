@@ -54,6 +54,8 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/wheel_encoders.h>
 
+// Roboclaw 클래스 생성, cpp파일에 쓰임
+// ModuleBase<Roboclaw>와 OutputModuleInterface 상속 받음. PX4 파일들과 연결되기 위해 필요함.
 class Roboclaw : public ModuleBase<Roboclaw>, public OutputModuleInterface
 {
 public:
@@ -61,31 +63,41 @@ public:
 	 * @param device_name Name of the serial port e.g. "/dev/ttyS2"
 	 * @param bad_rate_parameter Name of the parameter that holds the baud rate of this serial port
 	 */
+	// 생성자, 위에 지정한 포트 이름과 보드레이트를 받음
 	Roboclaw(const char *device_name, const char *bad_rate_parameter);
+	// 파괴자, 뒤처리
 	virtual ~Roboclaw();
 
+	// 모터 두개 정의, 우측이 0, 좌측이 1
 	enum class Motor {
 		Right = 0,
 		Left = 1
 	};
 
+	// 모듈 관련
 	static int task_spawn(int argc, char *argv[]); ///< @see ModuleBase
 	static int custom_command(int argc, char *argv[]); ///< @see ModuleBase
 	static int print_usage(const char *reason = nullptr); ///< @see ModuleBase
 	int print_status() override; ///< @see ModuleBase
 
+	// 메인 루프 함수 정의, 기존 모듈의 run을 덮어씀
 	void Run() override;
 
 	/** @see OutputModuleInterface */
+	// cpp에 쓰일 핵심 함수 중 하나. setMotorSpeed()에 명령 하달. 마찬가지로 오버라이드로 덮어씀
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
-
+	// 모터 속도 제어 함수
 	void setMotorSpeed(Motor motor, float value); ///< rev/sec
+	// 이걸로 제어는 안하는 듯
 	void setMotorDutyCycle(Motor motor, float value);
+	// 엔코더 값 읽기
 	int readEncoder();
+	// 엔코더 초기화
 	void resetEncoders();
 
 private:
+	// 모터 드라이버를 위한 각각의 명령어 정의
 	enum class Command : uint8_t {
 		ReadStatus = 90,
 
@@ -103,27 +115,35 @@ private:
 	};
 
 	static constexpr int MAX_ACTUATORS = 2;
+	// 믹서를 위한 인스턴스 '_mixing_output'. Run() 즉 메인 루프에서 쓰임
 	MixingOutput _mixing_output{"RBCLW", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
 
+	// actuator_armed, parameter_update 두 uORB 토픽 구독
 	uORB::SubscriptionData<actuator_armed_s> _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	// wheel_encoders_s 토픽 퍼블리시
 	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};
 
 	char _stored_device_name[256]; // Adjust size as necessary
 	char _stored_baud_rate_parameter[256]; // Adjust size as necessary
 
+	// setMotorSpeed()에서 사용하는 통신
 	void sendUnsigned7Bit(Command command, float data);
+	// setMotorDutyCycle()에서 사용하는 통신
 	void sendSigned16Bit(Command command, float data);
+	// 위 두 함수 모두 sendTransaction()로 전송
 
-	// Roboclaw protocol
+	// sendTransaction()이 위에 두 통신법에서 받아 writeCommandWithPayload()로 보냄. 달되면 readAcknowledgement()으로
 	int sendTransaction(Command cmd, uint8_t *write_buffer, size_t bytes_to_write);
 	int writeCommandWithPayload(Command cmd, uint8_t *wbuff, size_t bytes_to_write);
 	int readAcknowledgement();
 
+	// initializeUART(), readEncoder() 발동시 receiveTransaction 실행, writeCommand()로 통신 확인, 잘되면 readResponce() 실행
 	int receiveTransaction(Command cmd, uint8_t *read_buffer, size_t bytes_to_read);
 	int writeCommand(Command cmd);
 	int readResponse(Command command, uint8_t *read_buffer, size_t bytes_to_read);
 
+	// 통신 데이터 신뢰성 보장을 위한 CRC 계산
 	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
 	int32_t swapBytesInt32(uint8_t *buffer);
 
