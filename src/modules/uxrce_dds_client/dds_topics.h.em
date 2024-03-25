@@ -41,6 +41,7 @@ static_assert(sizeof(@(pub['simple_base_type'])_s) <= max_topic_size, "topic too
 
 struct SendSubscription {
 	const struct orb_metadata *orb_meta;
+	const int8_t instance;
 	uxrObjectId data_writer;
 	const char* dds_type_name;
 	uint32_t topic_size;
@@ -52,6 +53,7 @@ struct SendTopicsSubs {
 	SendSubscription send_subscriptions[@(len(publications))] = {
 @[    for pub in publications]@
 			{ ORB_ID(@(pub['topic_simple'])),
+			  @(pub['instance']),
 			  uxr_object_id(0, UXR_INVALID_ID),
 			  "@(pub['dds_type'])",
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
@@ -71,7 +73,12 @@ struct SendTopicsSubs {
 
 void SendTopicsSubs::init() {
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
-		fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
+		if (send_subscriptions[idx].instance == -1){
+			fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
+		}
+		else{
+			fds[idx].fd = orb_subscribe_multi(send_subscriptions[idx].orb_meta, send_subscriptions[idx].instance);
+		}
 		fds[idx].events = POLLIN;
 		orb_set_interval(fds[idx].fd, UXRCE_DEFAULT_POLL_RATE);
 	}
@@ -97,7 +104,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 			if (send_subscriptions[idx].data_writer.id == UXR_INVALID_ID) {
 				// data writer not created yet
 				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].orb_meta->o_name,
-								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
+								   send_subscriptions[idx].instance, send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
 			}
 
 			if (send_subscriptions[idx].data_writer.id != UXR_INVALID_ID) {
