@@ -91,7 +91,7 @@ px4_add_romfs_files(
 
 	# [12000, 12999] Octo Cox
 	12001_octo_cox
-
+	14002_bicopter
 	# [13000, 13999] VTOL
 	13000_generic_vtol_standard
 	13100_generic_vtol_tiltrotor

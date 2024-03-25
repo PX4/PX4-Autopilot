@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# @name Generic Bicopter
+#
+# @class Copter
+# @type Bicopter
+#
+# @output Motor1 motor 1
+# @output Motor2 motor 2
+# @output Servo1 yawandpitch servo 1
+# @output Servo2 yawandpitch servo 2
+#
+# @board bitcraze_crazyflie exclude
+# @board px4_fmu-v2 exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default MAV_TYPE 15
+
+param set-default CA_AIRFRAME 8
+# Bicopter
+# Motor 1 (rotor 0)
+param set-default CA_ROTOR0_PX 0.0000
+param set-default CA_ROTOR0_PY 0.1300
+param set-default CA_ROTOR0_PZ -0.0750
+param set-default CA_ROTOR0_KM 0.05
+# Motor 2 (rotor 1)
+param set-default CA_ROTOR1_PX 0.0000
+param set-default CA_ROTOR1_PY -0.1300
+param set-default CA_ROTOR1_PZ -0.0750
+param set-default CA_ROTOR1_KM -0.05
+# rotor 0 with tilt 1
+# Servo 1 (servo 0)
+param set-default CA_ROTOR0_TILT 1
+param set-default CA_SV_TL0_MAXA 5.0000
+param set-default CA_SV_TL0_MINA -5.0000
+param set-default CA_SV_TL0_TD 0
+param set-default CA_SV_TL0_CT 3
+# rotor 1 with tilt 2 (servo 1)
+# Servo 2 (servo 1)
+param set-default CA_ROTOR1_TILT 2
+param set-default CA_SV_TL1_MAXA 5.0000
+param set-default CA_SV_TL1_MINA -5.0000
+param set-default CA_SV_TL1_TD 0
+param set-default CA_SV_TL1_CT 3
+# amount of rotor and servo
+param set-default CA_ROTOR_COUNT 2
+param set-default CA_SV_TL_COUNT 2
+
+# By Sunlight 2024.01
