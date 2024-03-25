@@ -40,6 +40,35 @@ message(STATUS "ROMFS: ${romfs_path_relative}")
 set_property(GLOBAL PROPERTY PX4_ROMFS_FILES)
 set_property(GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
 
+
+if(CONFIG_VER_GIT_DIFF)
+	set(OPTIONAL_EXTRA_DIFF)
+	# Generate list of modified files
+	execute_process(COMMAND git status -uno --porcelain
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+			OUTPUT_FILE ${PX4_BINARY_DIR}/modified_files )
+	file (SIZE ${PX4_BINARY_DIR}/modified_files modified_files_size)
+	if(${modified_files_size} GREATER 0)
+		list(APPEND OPTIONAL_EXTRA_DIFF ${PX4_BINARY_DIR}/modified_files)
+	endif()
+	execute_process(COMMAND bash "-c" "git diff -U0 ${PX4_CONFIG_FILE} | grep ^[-+][^-+]"
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+			OUTPUT_FILE ${PX4_BINARY_DIR}/boardconfig_diff )
+	file (SIZE ${PX4_BINARY_DIR}/boardconfig_diff boardconfig_diff_size)
+	if(${boardconfig_diff_size} GREATER 0)
+		list(APPEND OPTIONAL_EXTRA_DIFF ${PX4_BINARY_DIR}/boardconfig_diff)
+	endif()
+	if(CONFIG_PLATFORM_NUTTX)
+		execute_process(COMMAND bash "-c" "git diff -U0 ${NUTTX_DEFCONFIG} | grep ^[-+][^-+]"
+				WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+				OUTPUT_FILE ${PX4_BINARY_DIR}/nuttx_diff )
+		file (SIZE ${PX4_BINARY_DIR}/nuttx_diff nuttx_diff_size)
+		if(${nuttx_diff_size} GREATER 0)
+			list(APPEND OPTIONAL_EXTRA_DIFF ${PX4_BINARY_DIR}/nuttx_diff)
+		endif()
+	endif()
+endif()
+
 #=============================================================================
 #
 #	px4_add_romfs_files
@@ -246,6 +275,33 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 	endif()
 
 endforeach()
+
+foreach(diff_extra_file ${OPTIONAL_EXTRA_DIFF})
+
+	if(EXISTS "${diff_extra_file}")
+		file(RELATIVE_PATH diff_extra_file_name ${PX4_BINARY_DIR} ${diff_extra_file})
+		file(RELATIVE_PATH diff_extra_file_relative_source ${PX4_SOURCE_DIR} ${diff_extra_file})
+		message(STATUS "ROMFS:  Adding ${diff_extra_file_relative_source} -> /etc/extras/${diff_extra_file_name}")
+
+		add_custom_command(
+			OUTPUT
+				${romfs_gen_root_dir}/extras/${diff_extra_file_name}
+				${diff_extra_file_name}.stamp
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${diff_extra_file} ${romfs_gen_root_dir}/extras/${diff_extra_file_name}
+			COMMAND ${CMAKE_COMMAND} -E touch ${diff_extra_file_name}.stamp
+			DEPENDS
+				${diff_extra_file}
+				romfs_copy.stamp
+			COMMENT "ROMFS: copying ${diff_extra_file}"
+		)
+
+		list(APPEND extras_dependencies
+			${diff_extra_file_name}.stamp
+		)
+	endif()
+
+endforeach()
+
 
 
 
