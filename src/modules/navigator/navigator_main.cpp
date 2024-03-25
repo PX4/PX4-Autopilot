@@ -69,35 +69,11 @@ Navigator *g_navigator;
 
 Navigator::Navigator() :
 	ModuleParams(nullptr),
-	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
-	_geofence(this),
-	_gf_breach_avoidance(this),
-	_mission(this),
-	_loiter(this),
-	_takeoff(this),
-#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-	_vtol_takeoff(this),
-#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-	_land(this),
-	_precland(this),
-	_rtl(this)
+	_loop_perf(perf_alloc(PC_ELAPSED, "navigator"))
 {
-	/* Create a list of our possible navigation types */
-	_navigation_mode_array[0] = &_mission;
-	_navigation_mode_array[1] = &_loiter;
-	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_takeoff;
-	_navigation_mode_array[4] = &_land;
-	_navigation_mode_array[5] = &_precland;
-#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-	_navigation_mode_array[6] = &_vtol_takeoff;
-#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-
 	/* iterate through navigation modes and initialize _mission_item for each */
-	for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
-		if (_navigation_mode_array[i]) {
-			_navigation_mode_array[i]->initialize();
-		}
+	for (auto &navigation_mode_array_item : _navigation_mode_array) {
+		navigation_mode_array_item->initialize();
 	}
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
@@ -877,10 +853,8 @@ void Navigator::run()
 		}
 
 		/* iterate through navigation modes and set active/inactive for each */
-		for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
-			if (_navigation_mode_array[i]) {
-				_navigation_mode_array[i]->run(_navigation_mode == _navigation_mode_array[i]);
-			}
+		for (auto &navigation_mode_array_item : _navigation_mode_array) {
+			navigation_mode_array_item->run(_navigation_mode == navigation_mode_array_item);
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid once */
