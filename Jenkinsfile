@@ -246,33 +246,6 @@ pipeline {
           }
         }
 
-        stage('S3') {
-          agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
-          }
-          steps {
-            sh('export')
-            unstash 'metadata_airframes'
-            unstash 'metadata_parameters'
-            sh('ls')
-            withAWS(credentials: 'px4_aws_s3_key', region: 'us-east-1') {
-              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'airframes.xml', path: 'Firmware/master/')
-              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.xml', path: 'Firmware/master/')
-              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.json.xz', path: 'Firmware/master/')
-            }
-          }
-          when {
-            anyOf {
-              branch 'main'
-              branch 'master' // should be removed, but in case there is something going on...
-              branch 'pr-jenkins' // for testing
-            }
-          }
-          options {
-            skipDefaultCheckout()
-          }
-        }
-
       } // parallel
     } // stage: Generate Metadata
 
