@@ -179,6 +179,7 @@ endif()
 
 include(px4_config)
 include(kconfig)
+include(gui)
 message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
