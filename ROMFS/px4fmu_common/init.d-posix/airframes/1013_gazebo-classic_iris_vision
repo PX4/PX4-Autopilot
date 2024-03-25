@@ -5,7 +5,7 @@
 # @type Quadrotor Wide
 #
 
-. ${R}etc/init.d-posix/airframes/10016_gazebo-classic_iris
+. ${R}etc/init.d-posix/airframes/10015_gazebo-classic_iris
 
 # EKF2: Vision position and heading, no GPS
 param set-default EKF2_EV_DELAY 5
