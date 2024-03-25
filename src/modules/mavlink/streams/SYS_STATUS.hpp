@@ -151,6 +151,7 @@ private:
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_GPS, health_component_t::gps, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_RC_RECEIVER, health_component_t::remote_control, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_AHRS, health_component_t::local_position_estimate, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_LOGGING, health_component_t::logging, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE, health_component_t::absolute_pressure, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE, health_component_t::differential_pressure,
 					 msg);
