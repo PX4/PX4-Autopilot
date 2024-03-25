@@ -67,6 +67,18 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 				       && !_control_status.flags.ev_yaw
 				       && !_control_status.flags.gps_yaw;
 
+	const bool mag_consistent_or_no_gnss = _control_status.flags.mag_heading_consistent || !_control_status.flags.gps;
+
+	_control_status.flags.mag_hdg = ((_params.mag_fusion_type == MagFuseType::HEADING)
+					      || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D))
+					     && _control_status.flags.tilt_align
+					     && ((_control_status.flags.yaw_align && mag_consistent_or_no_gnss)
+					         || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
+					     && !_control_status.flags.mag_fault
+					     && !_control_status.flags.mag_field_disturbed
+					     && !_control_status.flags.ev_yaw
+					     && !_control_status.flags.gps_yaw;
+
 	// TODO: allow clearing mag_fault if mag_3d is good?
 
 	if (_control_status.flags.mag_3D && !_control_status_prev.flags.mag_3D) {
@@ -108,8 +120,9 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 					// The normal sequence is to fuse the magnetometer data first before fusing
 					// declination angle at a higher uncertainty to allow some learning of
 					// declination angle over time.
-					const bool update_all_states = _control_status.flags.mag_3D;
-					fuseMag(mag_sample.mag, aid_src, update_all_states);
+					const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
+					const bool update_tilt = _control_status.flags.mag_3D;
+					fuseMag(mag_sample.mag, aid_src, update_all_states, update_tilt);
 
 					if (_control_status.flags.mag_dec) {
 						fuseDeclination(0.5f);
@@ -197,6 +210,12 @@ void Ekf::stopMagFusion()
 		if (_control_status.flags.mag_3D) {
 			ECL_INFO("stopping mag 3D fusion");
 			_control_status.flags.mag_3D = false;
+		}
+
+		if (_control_status.flags.mag_hdg) {
+			ECL_INFO("stopping mag heading fusion");
+			_control_status.flags.mag_hdg = false;
+			_fault_status.flags.bad_hdg = false;
 		}
 
 		_fault_status.flags.bad_mag_x = false;
