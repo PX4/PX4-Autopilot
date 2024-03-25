@@ -53,6 +53,7 @@ void Ekf::controlRangeHeightFusion()
 		_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
+		_range_sensor.setQualityMinimum(_params.range_valid_quality_min);
 
 		_range_sensor.runChecks(_time_delayed_us, _R_to_earth);
 
