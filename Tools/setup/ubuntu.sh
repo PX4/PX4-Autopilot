@@ -116,15 +116,27 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	echo
 	echo "Installing NuttX dependencies"
+	
+# architecture check to handle gcc multilib 
+	if [[ ${uname -m} == "aarch64" ]]; then
 
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+			g++-multilib-arm-linux-* \
+			gcc-multilib-arm-linux-* \
+			;
+	else 
+	
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+			g++-multilib \
+			gcc-multilib \
+			;	
+	fi
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		automake \
 		binutils-dev \
 		bison \
 		build-essential \
 		flex \
-		g++-multilib \
-		gcc-multilib \
 		gdb-multiarch \
 		genromfs \
 		gettext \
