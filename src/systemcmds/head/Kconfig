@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_HEAD
+	bool "head"
+	default n
+	---help---
+		Enable support for head
+
+menuconfig USER_HEAD
+	bool "head running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_HEAD
+	---help---
+		Put head in userspace memory
