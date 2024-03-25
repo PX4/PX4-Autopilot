@@ -37,12 +37,11 @@
  * Client-side implementation of UDRAL specification ESC service
  *
  * Publishes the following Cyphal messages:
- *   reg.drone.service.actuator.common.sp.Value8.0.1
- *   reg.drone.service.common.Readiness.0.1
+ *   reg.udral.service.actuator.common.sp.Value31.0.1
+ *   reg.udral.service.common.Readiness.0.1
  *
  * Subscribes to the following Cyphal messages:
- *   reg.drone.service.actuator.common.Feedback.0.1
- *   reg.drone.service.actuator.common.Status.0.1
+ *   zubax.telega.CompactFeedback.0.1
  *
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  * @author Jacob Crabill <jacob@flyvoly.com>
@@ -51,11 +50,13 @@
 #pragma once
 
 #include <lib/perf/perf_counter.h>
-#include <uORB/PublicationMulti.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_test.h>
 #include <uORB/topics/esc_status.h>
 #include <drivers/drv_hrt.h>
+#include "../Subscribers/DynamicPortSubscriber.hpp"
+#include "../Publishers/Publisher.hpp"
 #include <lib/mixer_module/mixer_module.hpp>
 
 // UDRAL Specification Messages
@@ -63,16 +64,15 @@ using std::isfinite;
 #include <reg/udral/service/actuator/common/sp/Vector31_0_1.h>
 #include <reg/udral/service/common/Readiness_0_1.h>
 
-/// TODO: Allow derived class of Subscription at same time, to handle ESC Feedback/Status
-class UavcanEscController : public UavcanPublisher
+
+class ReadinessPublisher : public UavcanPublisher
 {
 public:
-	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
-	UavcanEscController(CanardHandle &handle, UavcanParamManager &pmgr) :
-		UavcanPublisher(handle, pmgr, "udral.", "esc") { };
+	ReadinessPublisher(CanardHandle &handle, UavcanParamManager &pmgr) :
+		UavcanPublisher(handle, pmgr, "udral.", "readiness") { };
 
-	~UavcanEscController() {};
+	~ReadinessPublisher() {};
 
 	void update() override
 	{
@@ -95,58 +95,18 @@ public:
 		if (hrt_absolute_time() > _previous_pub_time + READINESS_PUBLISH_PERIOD) {
 			publish_readiness();
 		}
-	};
+	}
 
-	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
-	{
-		if (_port_id > 0) {
-			reg_udral_service_actuator_common_sp_Vector31_0_1 msg_sp {0};
-			size_t payload_size = reg_udral_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
+	static constexpr hrt_abstime READINESS_PUBLISH_PERIOD = 100000;
+	hrt_abstime _previous_pub_time = 0;
 
-			for (uint8_t i = 0; i < MAX_ACTUATORS; i++) {
-				if (i < num_outputs) {
-					msg_sp.value[i] = static_cast<float>(outputs[i]);
+	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+	actuator_armed_s _armed {};
 
-				} else {
-					// "unset" values published as NaN
-					msg_sp.value[i] = NAN;
-				}
-			}
+	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
+	uint64_t _actuator_test_timestamp{0};
 
-			uint8_t esc_sp_payload_buffer[reg_udral_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-			const CanardTransferMetadata transfer_metadata = {
-				.priority       = CanardPriorityNominal,
-				.transfer_kind  = CanardTransferKindMessage,
-				.port_id        = _port_id,                // This is the subject-ID.
-				.remote_node_id = CANARD_NODE_ID_UNSET,       // Messages cannot be unicast, so use UNSET.
-				.transfer_id    = _transfer_id,
-			};
-
-			int result = reg_udral_service_actuator_common_sp_Vector31_0_1_serialize_(&msg_sp, esc_sp_payload_buffer,
-					&payload_size);
-
-			if (result == 0) {
-				// set the data ready in the buffer and chop if needed
-				++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-				result = _canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-							       &transfer_metadata,
-							       payload_size,
-							       &esc_sp_payload_buffer);
-			}
-		}
-	};
-
-	/**
-	 * Sets the number of rotors
-	 */
-	void set_rotor_count(uint8_t count) { _rotor_count = count; }
-
-private:
-	/**
-	 * ESC status message reception will be reported via this callback.
-	 */
-	void esc_status_sub_cb(const CanardRxTransfer &msg);
+	CanardTransferID _arming_transfer_id;
 
 	void publish_readiness()
 	{
@@ -155,8 +115,7 @@ private:
 
 		size_t payload_size = reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
-		// Only publish if we have a valid publication ID set
-		if (_port_id == 0) {
+		if (_port_id == 0 || _port_id == CANARD_PORT_ID_UNSET) {
 			return;
 		}
 
@@ -174,12 +133,12 @@ private:
 
 		uint8_t arming_payload_buffer[reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
-		CanardPortID arming_pid = static_cast<CanardPortID>(static_cast<uint32_t>(_port_id) + 1);
+		CanardPortID arming_pid = static_cast<CanardPortID>(static_cast<uint32_t>(_port_id));
 		const CanardTransferMetadata transfer_metadata = {
 			.priority       = CanardPriorityNominal,
 			.transfer_kind  = CanardTransferKindMessage,
-			.port_id        = arming_pid,                // This is the subject-ID.
-			.remote_node_id = CANARD_NODE_ID_UNSET,      // Messages cannot be unicast, so use UNSET.
+			.port_id        = arming_pid,
+			.remote_node_id = CANARD_NODE_ID_UNSET,
 			.transfer_id    = _arming_transfer_id,
 		};
 
@@ -187,25 +146,143 @@ private:
 				&payload_size);
 
 		if (result == 0) {
-			// set the data ready in the buffer and chop if needed
-			++_arming_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+			++_arming_transfer_id;
 			result = _canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
 						       &transfer_metadata,
 						       payload_size,
 						       &arming_payload_buffer);
 		}
 	};
+};
 
-	uint8_t _rotor_count {0};
+class UavcanEscController : public UavcanPublisher
+{
+public:
+	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
-	static constexpr hrt_abstime READINESS_PUBLISH_PERIOD = 100000;
-	hrt_abstime _previous_pub_time = 0;
+	UavcanEscController(CanardHandle &handle, UavcanParamManager &pmgr) :
+		UavcanPublisher(handle, pmgr, "udral.", "esc") { }
 
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-	actuator_armed_s _armed {};
+	~UavcanEscController() {}
 
-	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
-	uint64_t _actuator_test_timestamp{0};
+	void update() override
+	{
+	}
 
-	CanardTransferID _arming_transfer_id;
+	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+	{
+		if (_port_id == 0 || _port_id == CANARD_PORT_ID_UNSET) {
+			return;
+		}
+
+		uint8_t max_num_outputs = MAX_ACTUATORS > num_outputs ? num_outputs : MAX_ACTUATORS;
+
+		for (int8_t i = max_num_outputs - 1; i >= _max_number_of_nonzero_outputs; i--) {
+			if (outputs[i] != 0) {
+				_max_number_of_nonzero_outputs = i + 1;
+				break;
+			}
+		}
+
+		uint16_t payload_buffer[reg_udral_service_actuator_common_sp_Vector31_0_1_value_ARRAY_CAPACITY_];
+
+		for (uint8_t i = 0; i < _max_number_of_nonzero_outputs; i++) {
+			payload_buffer[i] = nunavutFloat16Pack(outputs[i] / 8192.0);
+		}
+
+		const CanardTransferMetadata transfer_metadata = {
+			.priority       = CanardPriorityNominal,
+			.transfer_kind  = CanardTransferKindMessage,
+			.port_id        = _port_id,
+			.remote_node_id = CANARD_NODE_ID_UNSET,
+			.transfer_id    = _transfer_id,
+		};
+
+		++_transfer_id;
+		_canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
+				      &transfer_metadata,
+				      _max_number_of_nonzero_outputs * 2,
+				      &payload_buffer);
+	}
+
+private:
+	uint8_t _max_number_of_nonzero_outputs{1};
+};
+
+class UavcanEscFeedbackSubscriber : public UavcanDynamicPortSubscriber
+{
+public:
+	UavcanEscFeedbackSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanDynamicPortSubscriber(handle, pmgr, "zubax.", "feedback", instance) {}
+
+	void subscribe() override
+	{
+		_canard_handle.RxSubscribe(CanardTransferKindMessage,
+					   _subj_sub._canard_sub.port_id,
+					   zubax_telega_CompactFeedback_0_1_SERIALIZATION_BUFFER_SIZE_BYTES,
+					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					   &_subj_sub._canard_sub);
+		_esc_status.esc_armed_flags |= 1 << _instance;
+		_esc_status.esc_count++;
+	};
+
+	void unsubscribe() override
+	{
+		_canard_handle.RxUnsubscribe(CanardTransferKindMessage, _subj_sub._canard_sub.port_id);
+		_esc_status.esc_armed_flags &= ~(1 << _instance);
+		_esc_status.esc_count--;
+	};
+
+	void callback(const CanardRxTransfer &receive) override
+	{
+		if (_instance >= esc_status_s::CONNECTED_ESC_MAX) {
+			return;
+		}
+
+		auto &ref = _esc_status.esc[_instance];
+		const ZubaxCompactFeedback *feedback = ((const ZubaxCompactFeedback *)(receive.payload));
+
+		ref.timestamp       = hrt_absolute_time();
+		ref.esc_address     = receive.metadata.remote_node_id;
+		ref.esc_voltage     = 0.2 * feedback->dc_voltage;
+		ref.esc_current     = 0.2 * feedback->dc_current;
+		ref.esc_temperature = NAN;
+		ref.esc_rpm         = feedback->velocity * RAD_PER_SEC_TO_RPM;
+		ref.esc_errorcount  = 0;
+
+		_esc_status.counter++;
+		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+		_esc_status.esc_armed_flags = (1 << _esc_status.esc_count) - 1;
+		_esc_status.timestamp = hrt_absolute_time();
+		_esc_status_pub.publish(_esc_status);
+
+		_esc_status.esc_online_flags = 0;
+		const hrt_abstime now = hrt_absolute_time();
+
+		for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
+			if (_esc_status.esc[index].timestamp > 0 && now - _esc_status.esc[index].timestamp < 1200_ms) {
+				_esc_status.esc_online_flags |= (1 << index);
+			}
+		}
+	};
+
+private:
+	static constexpr float RAD_PER_SEC_TO_RPM = 9.5492968;
+	static constexpr size_t zubax_telega_CompactFeedback_0_1_SERIALIZATION_BUFFER_SIZE_BYTES = 7;
+
+	// https://telega.zubax.com/interfaces/cyphal.html#compact
+#pragma pack(push, 1)
+	struct ZubaxCompactFeedback {
+		uint32_t dc_voltage 		: 11;
+		int32_t dc_current 		: 12;
+		int32_t phase_current_amplitude	: 12;
+		int32_t velocity 		: 13;
+		int8_t demand_factor_pct 	: 8;
+	};
+#pragma pack(pop)
+	static_assert(sizeof(ZubaxCompactFeedback) == zubax_telega_CompactFeedback_0_1_SERIALIZATION_BUFFER_SIZE_BYTES);
+
+	static esc_status_s _esc_status;
+
+	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 };

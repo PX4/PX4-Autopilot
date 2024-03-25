@@ -163,6 +163,87 @@ PARAM_DEFINE_INT32(UCAN1_UORB_GPS_P, -1);
 PARAM_DEFINE_INT32(UCAN1_ESC_PUB, -1);
 
 /**
+ * Cyphal ESC readiness port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_READ_PUB, -1);
+
+/**
+ * Cyphal ESC 0 zubax feedback port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_FB0_SUB, -1);
+
+/**
+ * Cyphal ESC 1 zubax feedback port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_FB1_SUB, -1);
+
+/**
+ * Cyphal ESC 2 zubax feedback port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_FB2_SUB, -1);
+
+/**
+ * Cyphal ESC 3 zubax feedback port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_FB3_SUB, -1);
+
+/**
+ * Cyphal ESC 4 zubax feedback port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_FB4_SUB, -1);
+
+/**
+ * Cyphal ESC 5 zubax feedback port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_FB5_SUB, -1);
+
+/**
+ * Cyphal ESC 6 zubax feedback port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_FB6_SUB, -1);
+
+/**
+ * Cyphal ESC 7 zubax feedback port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_FB7_SUB, -1);
+
+/**
  * Cyphal GPS publication port ID.
  *
  * @min -1
