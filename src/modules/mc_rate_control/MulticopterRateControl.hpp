@@ -34,6 +34,8 @@
 #pragma once
 
 #include <lib/rate_control/rate_control.hpp>
+
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -59,6 +61,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+
 
 using namespace time_literals;
 
@@ -129,6 +132,10 @@ private:
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
 
+	AlphaFilter<float> _act_control_roll_filter;
+	AlphaFilter<float> _act_control_pitch_filter;
+	AlphaFilter<float> _act_control_yaw_filter;
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
 		(ParamFloat<px4::params::MC_ROLLRATE_I>) _param_mc_rollrate_i,
@@ -159,6 +166,10 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en
+		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
+
+		(ParamFloat<px4::params::MC_ROLL_CUTOFF>) _param_mc_roll_cutoff,
+		(ParamFloat<px4::params::MC_PITCH_CUTOFF>) _param_mc_pitch_cutoff,
+		(ParamFloat<px4::params::MC_YAW_CUTOFF>) _param_mc_yaw_cutoff
 	)
 };
