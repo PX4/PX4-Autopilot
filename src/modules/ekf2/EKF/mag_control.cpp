@@ -48,11 +48,9 @@ void Ekf::controlMagFusion()
 	}
 
 	checkYawAngleObservability();
-	checkMagHeadingConsistency();
 
 	if (_params.mag_fusion_type == MagFuseType::NONE) {
 		stopMagFusion();
-		stopMagHdgFusion();
 		return;
 	}
 
@@ -105,12 +103,11 @@ void Ekf::controlMagFusion()
 			_control_status.flags.synthetic_mag_z = false;
 		}
 
+		checkMagHeadingConsistency(mag_sample);
 		controlMag3DFusion(mag_sample, starting_conditions_passing, _aid_src_mag);
-		controlMagHeadingFusion(mag_sample, starting_conditions_passing, _aid_src_mag_heading);
 
 	} else if (!isNewestSampleRecent(_time_last_mag_buffer_push, 2 * MAG_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
-		stopMagHdgFusion();
 		stopMagFusion();
 	}
 }
@@ -239,8 +236,34 @@ void Ekf::checkYawAngleObservability()
 	}
 }
 
-void Ekf::checkMagHeadingConsistency()
+void Ekf::checkMagHeadingConsistency(const magSample &mag_sample)
 {
+	// use mag bias if variance good
+	Vector3f mag_bias{0.f, 0.f, 0.f};
+	const Vector3f mag_bias_var = getMagBiasVariance();
+
+	if ((mag_bias_var.min() > 0.f) && (mag_bias_var.max() <= sq(_params.mag_noise))) {
+		mag_bias = _state.mag_B;
+	}
+
+	// calculate mag heading
+	// Rotate the measurements into earth frame using the zero yaw angle
+	const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
+
+	// the angle of the projection onto the horizontal gives the yaw angle
+	// calculate the yaw innovation and wrap to the interval between +-pi
+	const Vector3f mag_earth_pred = R_to_earth * (mag_sample.mag - mag_bias);
+	const float declination = getMagDeclination();
+	const float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + declination;
+
+	if (_control_status.flags.yaw_align) {
+		const float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
+		_mag_heading_innov_lpf.update(innovation);
+
+	} else {
+		_mag_heading_innov_lpf.reset(0.f);
+	}
+
 	if (fabsf(_mag_heading_innov_lpf.getState()) < _params.mag_heading_noise) {
 		if (_yaw_angle_observable) {
 			// yaw angle must be observable to consider consistency
@@ -349,7 +372,6 @@ void Ekf::resetMagHeading(const Vector3f &mag)
 
 	// update quaternion states and corresponding covarainces
 	resetQuatStateYaw(yaw_new, yaw_new_variance);
-	_mag_heading_last_declination = declination;
 
 	_time_last_heading_fuse = _time_delayed_us;
 

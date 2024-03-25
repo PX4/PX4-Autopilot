@@ -381,11 +381,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	mag = 0.f;
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	if (_control_status.flags.mag_hdg) {
-		mag = math::max(mag, sqrtf(_aid_src_mag_heading.test_ratio));
-	}
-
-	if (_control_status.flags.mag_3D) {
+	if (_control_status.flags.mag_hdg ||_control_status.flags.mag_3D) {
 		mag = math::max(mag, sqrtf(Vector3f(_aid_src_mag.test_ratio).max()));
 	}
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -523,12 +519,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	bool mag_innov_good = true;
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	if (_control_status.flags.mag_hdg) {
-		if (_aid_src_mag_heading.test_ratio < 1.f) {
-			mag_innov_good = false;
-		}
-
-	} else if (_control_status.flags.mag_3D) {
+	if (_control_status.flags.mag_hdg ||_control_status.flags.mag_3D) {
 		if (Vector3f(_aid_src_mag.test_ratio).max() < 1.f) {
 			mag_innov_good = false;
 		}
