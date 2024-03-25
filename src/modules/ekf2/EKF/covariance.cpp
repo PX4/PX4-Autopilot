@@ -53,7 +53,7 @@ void Ekf::initialiseCovariance()
 {
 	P.zero();
 
-	resetQuatCov();
+	resetQuatCov(0.f); // Start with no initial uncertainty to improve fine leveling through zero vel/pos fusion
 
 	// velocity
 #if defined(CONFIG_EKF2_GNSS)
@@ -271,7 +271,7 @@ void Ekf::resetQuatCov(const float yaw_noise)
 	// update the yaw angle variance using the variance of the measurement
 	if (PX4_ISFINITE(yaw_noise)) {
 		// using magnetic heading tuning parameter
-		yaw_var = math::max(sq(yaw_noise), yaw_var);
+		yaw_var = sq(yaw_noise);
 	}
 
 	resetQuatCov(Vector3f(tilt_var, tilt_var, yaw_var));
