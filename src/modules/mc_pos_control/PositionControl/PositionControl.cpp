@@ -268,3 +268,10 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }
+
+void PositionControl::getVelocityControlStatus(velocity_ctrl_status_s &velocity_ctrl_status) const
+{
+	velocity_ctrl_status.vx_integ = _vel_int(0);
+	velocity_ctrl_status.vy_integ = _vel_int(1);
+	velocity_ctrl_status.vz_integ = _vel_int(2);
+}

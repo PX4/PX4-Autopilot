@@ -538,6 +538,11 @@ void MulticopterPositionControl::Run()
 			attitude_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
+			velocity_ctrl_status_s velocity_ctrl_status{};
+			_control.getVelocityControlStatus(velocity_ctrl_status);
+			velocity_ctrl_status.timestamp = hrt_absolute_time();
+			_velocity_controller_status_pub.publish(velocity_ctrl_status);
+
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,

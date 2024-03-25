@@ -44,6 +44,7 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/velocity_ctrl_status.h>
 
 struct PositionControlStates {
 	matrix::Vector3f position;
@@ -183,6 +184,12 @@ public:
 	 * @param attitude_setpoint reference to struct to fill up
 	 */
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
+
+	/**
+	 * Get status message of controller for logging/debugging
+	 * @param velocity_ctrl_status status message to fill with internal states
+	 */
+	void getVelocityControlStatus(velocity_ctrl_status_s &velocity_ctrl_status) const;
 
 	/**
 	 * All setpoints are set to NAN (uncontrolled). Timestampt zero.
