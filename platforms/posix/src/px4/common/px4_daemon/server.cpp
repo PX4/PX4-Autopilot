@@ -53,6 +53,7 @@
 #include <vector>
 
 #include <px4_platform_common/log.h>
+#include <bionic_pthread_cancel.h>
 
 #include "pxh.h"
 #include "server.h"
@@ -238,6 +239,10 @@ void
 {
 	FILE *out = (FILE *)arg;
 	int fd = fileno(out);
+
+#ifdef __ANDROID__
+	register_handler_pthread_cancel();
+#endif
 
 	// Read until the end of the incoming stream.
 	std::string cmd;

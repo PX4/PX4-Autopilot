@@ -81,7 +81,11 @@
 
 #define MODULE_NAME "px4"
 
+#ifdef __ANDROID__
+static const char *LOCK_FILE_PATH = "/data/local/tmp/px4_lock";
+#else
 static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
+#endif
 
 #ifndef PATH_MAX
 #define PATH_MAX 1024
