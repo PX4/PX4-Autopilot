@@ -68,10 +68,10 @@ private:
 			mavlink_manual_control_t msg{};
 
 			msg.target = mavlink_system.sysid;
-			msg.x = manual_control_setpoint.pitch * 1000;
-			msg.y = manual_control_setpoint.roll * 1000;
-			msg.z = manual_control_setpoint.throttle * 1000;
-			msg.r = manual_control_setpoint.yaw * 1000;
+			msg.x = manual_control_setpoint.pitch * 1000.f;
+			msg.y = manual_control_setpoint.roll * 1000.f;
+			msg.z = manual_control_setpoint.throttle * 1000.f;
+			msg.r = manual_control_setpoint.yaw * 1000.f;
 
 			manual_control_switches_s manual_control_switches{};
 
@@ -82,6 +82,36 @@ private:
 				msg.buttons |= (manual_control_switches.loiter_switch << (shift * 3));
 				msg.buttons |= (manual_control_switches.offboard_switch << (shift * 5));
 				msg.buttons |= (manual_control_switches.kill_switch << (shift * 6));
+			}
+
+			if (PX4_ISFINITE(manual_control_setpoint.aux1)) {
+				msg.enabled_extensions |= (1u << 2);
+				msg.aux1 = manual_control_setpoint.aux1 * 1000.f;
+			}
+
+			if (PX4_ISFINITE(manual_control_setpoint.aux2)) {
+				msg.enabled_extensions |= (1u << 3);
+				msg.aux2 = manual_control_setpoint.aux2 * 1000.f;
+			}
+
+			if (PX4_ISFINITE(manual_control_setpoint.aux3)) {
+				msg.enabled_extensions |= (1u << 4);
+				msg.aux3 = manual_control_setpoint.aux3 * 1000.f;
+			}
+
+			if (PX4_ISFINITE(manual_control_setpoint.aux4)) {
+				msg.enabled_extensions |= (1u << 5);
+				msg.aux4 = manual_control_setpoint.aux4 * 1000.f;
+			}
+
+			if (PX4_ISFINITE(manual_control_setpoint.aux5)) {
+				msg.enabled_extensions |= (1u << 6);
+				msg.aux5 = manual_control_setpoint.aux5 * 1000.f;
+			}
+
+			if (PX4_ISFINITE(manual_control_setpoint.aux6)) {
+				msg.enabled_extensions |= (1u << 7);
+				msg.aux6 = manual_control_setpoint.aux6 * 1000.f;
 			}
 
 			mavlink_msg_manual_control_send_struct(_mavlink->get_channel(), &msg);
