@@ -335,6 +335,12 @@ else
 		fi
 	fi
 
+	# PPS capture driver
+	if param greater -s INPUT_CAP_ENABLE 0
+	then
+		input_capture start
+	fi
+
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
 	# Commander needs to be this early for in-air-restarts.
