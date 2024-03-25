@@ -86,10 +86,11 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 			}
 
 			float minTurningSpeed = _param_rdd_min_turning_speed.get();
+			float headingPGain = _param_rdd_p_gain_heading.get();
 
 			// Make sure we do not get stuck while turning as the error gets too small
-			if (fabsf(_heading_error) < minTurningSpeed) {
-				_heading_error = (_heading_error > 0) ? minTurningSpeed : -minTurningSpeed;
+			if ((fabsf(_heading_error) < minTurningSpeed) && (headingPGain > 0.01f)) {
+				_heading_error = (_heading_error > 0) ? minTurningSpeed * 1 / headingPGain : -minTurningSpeed * 1 / headingPGain;
 			}
 
 			break;
