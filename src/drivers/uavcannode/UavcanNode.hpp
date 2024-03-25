@@ -51,6 +51,7 @@
 #include "UavcanNodeParamManager.hpp"
 
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
+#include <uavcan/protocol/global_time_sync_master.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
 #include <uavcan/node/timer.hpp>
@@ -161,6 +162,7 @@ private:
 	uavcan::Node<>		_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
 
+	uavcan::GlobalTimeSyncMaster _time_sync_master;
 	uavcan::GlobalTimeSyncSlave _time_sync_slave;
 
 	typedef uavcan::MethodBinder<UavcanNode *,
