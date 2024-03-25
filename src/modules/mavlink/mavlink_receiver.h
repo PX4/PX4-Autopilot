@@ -138,6 +138,10 @@ public:
 
 	void request_stop() { _should_exit.store(true); }
 
+	void wait_for_ok();
+	bool got_ok();
+	bool waiting_for_ok() const;
+
 private:
 	static void *start_trampoline(void *context);
 	void run();
@@ -245,6 +249,8 @@ private:
 	 * @brief Updates optical flow parameters.
 	 */
 	void updateParams() override;
+
+	void parse_for_ok(int nread, const char *buf);
 
 	Mavlink				*_mavlink;
 
@@ -398,6 +404,14 @@ private:
 	hrt_abstime _heartbeat_component_pairing_manager{0};
 	hrt_abstime _heartbeat_component_udp_bridge{0};
 	hrt_abstime _heartbeat_component_uart_bridge{0};
+
+	enum class OkParseState {
+		None,
+		Waiting,
+		GotO,
+		GotK,
+	} _parse_state = OkParseState::None;
+
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

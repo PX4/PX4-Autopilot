@@ -707,13 +707,8 @@ private:
 
 	void check_requested_subscriptions();
 
-	/**
-	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID
-	 *
-	 * This convenience function allows to re-configure a connected
-	 * SiK radio without removing it from the main system harness.
-	 */
-	void configure_sik_radio();
+	uint8_t configure_sik_radio(uint16_t netid);
+	bool wait_for_ok(unsigned timeout_us);
 
 	/**
 	 * Update rate mult so total bitrate will be equal to _datarate.

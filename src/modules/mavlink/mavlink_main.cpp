@@ -2267,7 +2267,14 @@ Mavlink::task_main(int argc, char *argv[])
 			mavlink_update_parameters();
 		}
 
-		configure_sik_radio();
+		if (_param_sik_radio_id.get() != 0) {
+			const uint8_t ret = configure_sik_radio((uint16_t)_param_sik_radio_id.get());
+
+			if (ret == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
+				_param_sik_radio_id.set(0);
+				_param_sik_radio_id.commit_no_notification();
+			}
+		}
 
 		if (_vehicle_status_sub.updated()) {
 			vehicle_status_s vehicle_status;
@@ -2297,53 +2304,87 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 
-		// MAVLINK_MODE_IRIDIUM: handle VEHICLE_CMD_CONTROL_HIGH_LATENCY
-		if (_mode == MAVLINK_MODE_IRIDIUM) {
-			int vehicle_command_updates = 0;
+		int vehicle_command_updates = 0;
 
-			while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
-				vehicle_command_updates++;
-				const unsigned last_generation = _vehicle_command_sub.get_last_generation();
-				vehicle_command_s vehicle_cmd;
+		while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+			vehicle_command_updates++;
+			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+			vehicle_command_s vehicle_cmd;
 
-				if (_vehicle_command_sub.update(&vehicle_cmd)) {
-					if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
-						PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _vehicle_command_sub.get_last_generation());
-					}
+			if (_vehicle_command_sub.update(&vehicle_cmd)) {
+				if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _vehicle_command_sub.get_last_generation());
+				}
 
-					if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
-					    _mode == MAVLINK_MODE_IRIDIUM) {
+				if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
+				    _mode == MAVLINK_MODE_IRIDIUM) {
 
-						if (vehicle_cmd.param1 > 0.5f) {
-							if (!_transmitting_enabled) {
-								mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command\t",
-										 _device_name);
-								events::send<int8_t>(events::ID("mavlink_iridium_enable_cmd"), events::Log::Info,
-										     "Enabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
-							}
-
-							_transmitting_enabled = true;
-							_transmitting_enabled_commanded = true;
-
-						} else {
-							if (_transmitting_enabled) {
-								mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command\t",
-										 _device_name);
-								events::send<int8_t>(events::ID("mavlink_iridium_disable_cmd"), events::Log::Info,
-										     "Disabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
-							}
-
-							_transmitting_enabled = false;
-							_transmitting_enabled_commanded = false;
+					if (vehicle_cmd.param1 > 0.5f) {
+						if (!_transmitting_enabled) {
+							mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command\t",
+									 _device_name);
+							events::send<int8_t>(events::ID("mavlink_iridium_enable_cmd"), events::Log::Info,
+									     "Enabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
 						}
 
-						// send positive command ack
+						_transmitting_enabled = true;
+						_transmitting_enabled_commanded = true;
+
+					} else {
+						if (_transmitting_enabled) {
+							mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command\t",
+									 _device_name);
+							events::send<int8_t>(events::ID("mavlink_iridium_disable_cmd"), events::Log::Info,
+									     "Disabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
+						}
+
+						_transmitting_enabled = false;
+						_transmitting_enabled_commanded = false;
+					}
+
+					// send positive command ack
+					vehicle_command_ack_s command_ack{};
+					command_ack.command = vehicle_cmd.command;
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					command_ack.from_external = !vehicle_cmd.from_external;
+					command_ack.target_system = vehicle_cmd.source_system;
+					command_ack.target_component = vehicle_cmd.source_component;
+					command_ack.timestamp = vehicle_cmd.timestamp;
+					_vehicle_command_ack_pub.publish(command_ack);
+
+				} else if (vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_SET_AT_PARAM) {
+
+
+					// We only support ATS3 to set NET_ID and setting it for all radios.
+					if ((int)(vehicle_cmd.param2 + 0.5f) != 3 && (int)(vehicle_cmd.param1 + 0.5f) == 0) {
+						vehicle_command_ack_s command_ack{};
+						command_ack.command = vehicle_cmd.command;
+						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+						command_ack.from_external = !vehicle_cmd.from_external;
+						command_ack.target_system = vehicle_cmd.source_system;
+						command_ack.target_component = vehicle_cmd.source_component;
+						command_ack.timestamp = vehicle_cmd.timestamp;
+						_vehicle_command_ack_pub.publish(command_ack);
+
+					} else if (!_radio_status_available) {
+						// Only respond if we have an SiK radio detected, otherwise just stay silent.
+						// If we nacked here with DENIED or UNSUPPORTED we would cause multiple
+						// acks/nacks to be sent back which would be confusing.
+
+					} else {
+						// Since this command might take several seconds, we need to send an
+						// IN_PROGRESS ack immediately, and the final result later.
+
 						vehicle_command_ack_s command_ack{};
 						command_ack.command = vehicle_cmd.command;
 						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 						command_ack.from_external = !vehicle_cmd.from_external;
 						command_ack.target_system = vehicle_cmd.source_system;
 						command_ack.target_component = vehicle_cmd.source_component;
+						command_ack.timestamp = vehicle_cmd.timestamp;
+						_vehicle_command_ack_pub.publish(command_ack);
+
+						command_ack.result = configure_sik_radio((uint16_t)(vehicle_cmd.param3 + 0.5f));
 						command_ack.timestamp = vehicle_cmd.timestamp;
 						_vehicle_command_ack_pub.publish(command_ack);
 					}
@@ -2680,56 +2721,56 @@ void Mavlink::publish_telemetry_status()
 	_tstatus_updated = false;
 }
 
-void Mavlink::configure_sik_radio()
+uint8_t Mavlink::configure_sik_radio(uint16_t netid)
 {
-	/* radio config check */
-	if (_uart_fd >= 0 && _param_sik_radio_id.get() != 0) {
-		/* request to configure radio and radio is present */
-		FILE *fs = fdopen(_uart_fd, "w");
-
-		if (fs) {
-			/* switch to AT command mode */
-			px4_usleep(1200000);
-			fprintf(fs, "+++");
-			fflush(fs);
-			px4_usleep(1200000);
-
-			if (_param_sik_radio_id.get() > 0) {
-				/* set channel */
-				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_sik_radio_id.get());
-				px4_usleep(200000);
-
-			} else {
-				/* reset to factory defaults */
-				fprintf(fs, "AT&F\r\n");
-				px4_usleep(200000);
-			}
-
-			/* write config */
-			fprintf(fs, "AT&W\r\n");
-			px4_usleep(200000);
-
-			/* reboot */
-			fprintf(fs, "ATZ\r\n");
-			px4_usleep(200000);
-
-			// XXX NuttX suffers from a bug where
-			// fclose() also closes the fd, not just
-			// the file stream. Since this is a one-time
-			// config thing, we leave the file struct
-			// allocated.
-#ifndef __PX4_NUTTX
-			fclose(fs);
-#endif
-
-		} else {
-			PX4_WARN("open fd %d failed", _uart_fd);
-		}
-
-		/* reset param and save */
-		_param_sik_radio_id.set(0);
-		_param_sik_radio_id.commit_no_notification();
+	if (_uart_fd < 0) {
+		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 	}
+
+	LockGuard lg{_send_mutex};
+
+	// it doesn't seem to switch without this wait
+	px4_usleep(1200000);
+	// switch to AT command mode
+	const char at_command_mode[] = "+++";
+	_receiver.wait_for_ok();
+	// we don't write the 0 termination, otherwise it doesn't seem to work.
+	write(_uart_fd, at_command_mode, 3);
+	fsync(_uart_fd);
+
+	if (!wait_for_ok(2000000)) {
+		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+	}
+
+	// set channel
+	char id_setting[20] {};
+	snprintf(id_setting, sizeof(id_setting), "ATS3=%" PRIu16 "\r\n", netid);
+	_receiver.wait_for_ok();
+	write(_uart_fd, id_setting, sizeof(id_setting));
+	fsync(_uart_fd);
+
+	if (!wait_for_ok(500000)) {
+		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+	}
+
+	// write config
+	const char write_config[] = "AT&W\r\n\0";
+	_receiver.wait_for_ok();
+	write(_uart_fd, write_config, sizeof(write_config));
+	fsync(_uart_fd);
+	px4_usleep(200000);
+
+	if (!wait_for_ok(200000)) {
+		return vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+	}
+
+	// reboot
+	const char reboot[] = "ATZ\r\n\0";
+	_receiver.wait_for_ok();
+	write(_uart_fd, reboot, sizeof(reboot));
+	fsync(_uart_fd);
+
+	return vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 }
 
 int Mavlink::start_helper(int argc, char *argv[])
@@ -3216,6 +3257,22 @@ Mavlink::set_boot_complete()
 
 #endif // MAVLINK_UDP
 
+}
+
+bool Mavlink::wait_for_ok(unsigned timeout_us)
+{
+	hrt_abstime now = hrt_absolute_time();
+
+	while (hrt_elapsed_time(&now) < timeout_us) {
+
+		if (_receiver.got_ok()) {
+			return true;
+		}
+
+		px4_usleep(10000);
+	}
+
+	return false;
 }
 
 static void usage()

@@ -62,12 +62,10 @@ PARAM_DEFINE_INT32(MAV_PROTO_VER, 0);
  * MAVLink SiK Radio ID
  *
  * When non-zero the MAVLink app will attempt to configure the
- * SiK radio to this ID and re-set the parameter to 0. If the value
- * is negative it will reset the complete radio config to
- * factory defaults. Only applies if this mavlink instance is going through a SiK radio
+ * SiK radio to this ID and re-set the parameter to 0. Only applies if this mavlink instance is going through a SiK radio
  *
  * @group MAVLink
- * @min -1
+ * @min 0
  * @max 240
  */
 PARAM_DEFINE_INT32(MAV_SIK_RADIO_ID, 0);

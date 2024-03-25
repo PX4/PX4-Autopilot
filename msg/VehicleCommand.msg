@@ -85,6 +85,7 @@ uint16 VEHICLE_CMD_REQUEST_MESSAGE = 512    		# Request to send a single instanc
 uint16 VEHICLE_CMD_SET_CAMERA_MODE = 530		# Set camera capture mode (photo, video, etc.)
 uint16 VEHICLE_CMD_SET_CAMERA_ZOOM = 531		# Set camera zoom
 uint16 VEHICLE_CMD_SET_CAMERA_FOCUS = 532
+uint16 VEHICLE_CMD_SET_AT_PARAM = 550			# Set AT command for SiK radio
 uint16 VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW = 1000 	# Setpoint to be sent to a gimbal manager to set a gimbal pitch and yaw
 uint16 VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE = 1001 	# Gimbal configuration to set which sysid/compid is in primary and secondary control
 uint16 VEHICLE_CMD_IMAGE_START_CAPTURE = 2000   	# Start image capture sequence.
