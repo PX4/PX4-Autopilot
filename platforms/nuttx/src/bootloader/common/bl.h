@@ -39,6 +39,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 /*****************************************************************************
  * Generic bootloader functions.
  */
@@ -105,7 +107,7 @@ extern void board_deinit(void);
 extern uint32_t board_get_devices(void);
 extern void clock_deinit(void);
 extern uint32_t flash_func_sector_size(unsigned sector);
-extern void flash_func_erase_sector(unsigned sector);
+extern void flash_func_erase_sector(unsigned sector, bool force);
 extern void flash_func_write_word(uintptr_t address, uint32_t word);
 extern uint32_t flash_func_read_word(uintptr_t address);
 extern uint32_t flash_func_read_otp(uintptr_t address);
