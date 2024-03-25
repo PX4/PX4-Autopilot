@@ -75,7 +75,7 @@ public:
 	bool Start();
 	void Stop();
 
-	void PrintStatus();
+	void PrintStatus(matrix::Vector3f accel);
 
 private:
 	void Run() override;
