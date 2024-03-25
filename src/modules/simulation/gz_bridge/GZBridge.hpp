@@ -67,6 +67,7 @@
 #include <gz/msgs/fluid_pressure.pb.h>
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
+#include <gz/msgs/stringmsg.pb.h>
 
 using namespace time_literals;
 
@@ -107,6 +108,34 @@ private:
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 
+	/**
+	 * @brief Call Entityfactory service
+	 *
+	 * @param req
+	 * @return true
+	 * @return false
+	 */
+	bool callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req);
+
+	/**
+	 * @brief Call String service
+	 *
+	 * @param service
+	 * @param req
+	 * @return true
+	 * @return false
+	 */
+	bool callStringMsgService(const std::string &service, const gz::msgs::StringMsg &req);
+
+	/**
+	 * @brief Call Vector3d Service
+	 *
+	 * @param service
+	 * @param req
+	 * @return true
+	 * @return false
+	 */
+	bool callVector3dService(const std::string &service, const gz::msgs::Vector3d &req);
 	/**
 	*
 	* Convert a quaterion from FLU_to_ENU frames (ROS convention)
