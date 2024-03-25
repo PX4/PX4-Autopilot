@@ -53,7 +53,12 @@
 #endif
 
 #include <drivers/drv_hrt.h>
+#if defined(__PX4_LINUX)
+#include <sys/ioctl.h>
+#include <asm-generic/termbits.h>
+#else
 #include <termios.h>
+#endif
 #include <string.h>
 #include <unistd.h>
 
@@ -92,15 +97,29 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 
 int ghst_config(int uart_fd)
 {
-	struct termios t;
 	int ret_val;
+#if defined(__PX4_LINUX)
+	struct termios2 t;
+	ioctl(uart_fd, TCGETS2, &t);
+	/* no parity, one stop bit */
+
+	t.c_cflag &= ~(CSTOPB | PARENB |CBAUD);
+    	t.c_cflag |= BOTHER | CREAD;
+	t.c_ispeed = GHST_BAUDRATE;
+	t.c_ospeed = GHST_BAUDRATE;
+
+	ret_val=ioctl(uart_fd, TCSETS2, &t);
+#else
+
+	struct termios t;
 
 	// no parity, one stop bit
 	tcgetattr(uart_fd, &t);
 	cfsetspeed(&t, GHST_BAUDRATE);
 	t.c_cflag &= ~(CSTOPB | PARENB);
-	memset(prev_rc_vals, static_cast<int>(UINT16_MAX), sizeof(uint16_t) * GHST_MAX_NUM_CHANNELS);
 	ret_val = tcsetattr(uart_fd, TCSANOW, &t);
+#endif
+	memset(prev_rc_vals, static_cast<int>(UINT16_MAX), sizeof(uint16_t) * GHST_MAX_NUM_CHANNELS);
 	return ret_val;
 }
 
