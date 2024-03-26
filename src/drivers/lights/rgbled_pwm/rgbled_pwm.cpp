@@ -95,7 +95,7 @@ RGBLED_PWM::~RGBLED_PWM()
 	int counter = 0;
 
 	while (_running && ++counter < 10) {
-		px4_usleep(100000);
+		px4_usleep(100_ms);
 	}
 }
 
