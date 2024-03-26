@@ -123,8 +123,8 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 				bool do_vel_pos_reset = shouldResetGpsFusion();
 
-				if (isYawFailure()
-				    && _control_status.flags.in_air
+				if (_control_status.flags.in_air
+				    && isYawFailure()
 				    && isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
 				    && (_time_last_hor_vel_fuse > _time_last_on_ground_us)) {
 					do_vel_pos_reset = tryYawEmergencyReset();
