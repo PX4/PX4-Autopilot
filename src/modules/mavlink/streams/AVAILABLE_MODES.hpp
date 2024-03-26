@@ -30,6 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 // NOTE: this message is in development.xml hence the need for this guard
 #ifdef MAVLINK_MSG_ID_AVAILABLE_MODES
 #ifndef AVAILABLE_MODES_HPP

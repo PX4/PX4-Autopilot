@@ -88,7 +88,7 @@ MavlinkReceiver::~MavlinkReceiver()
 	_sensor_baro_pub.unadvertise();
 	_sensor_gps_pub.unadvertise();
 	_sensor_optical_flow_pub.unadvertise();
-#endif
+#endif // CONFIG_MAVLINK_MINIMAL
 }
 
 static constexpr vehicle_odometry_s vehicle_odometry_empty {
@@ -118,7 +118,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mission_manager(parent),
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
-#endif
+#endif // CONFIG_MAVLINK_MINIMAL
 {
 }
 
@@ -3119,7 +3119,7 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
 }
-#endif
+#endif // CONFIG_MAVLINK_MINIMAL
 
 void
 MavlinkReceiver::run()
@@ -3239,6 +3239,7 @@ MavlinkReceiver::run()
 						/* handle generic messages and commands */
 #if !defined(CONFIG_MAVLINK_MINIMAL)
 						handle_message(&msg);
+
 						/* handle packet with mission manager */
 						_mission_manager.handle_message(&msg);
 
@@ -3269,7 +3270,7 @@ MavlinkReceiver::run()
 						_mavlink->handle_message(&msg);
 
 						update_rx_stats(msg);
-#endif
+#endif // CONFIG_MAVLINK_MINIMAL
 
 						if (_message_statistics_enabled) {
 							update_message_statistics(msg);
@@ -3312,6 +3313,7 @@ MavlinkReceiver::run()
 		}
 
 		const hrt_abstime t = hrt_absolute_time();
+
 #if !defined(CONFIG_MAVLINK_MINIMAL)
 		CheckHeartbeats(t);
 
@@ -3333,7 +3335,7 @@ MavlinkReceiver::run()
 
 #else
 		(void)last_send_update;
-#endif
+#endif // CONFIG_MAVLINK_MINIMAL
 
 		if (_tune_publisher != nullptr) {
 			_tune_publisher->publish_next_tune(t);
