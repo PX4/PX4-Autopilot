@@ -89,6 +89,9 @@ public:
 	bool getSwapRxTxMode() const;
 	bool setSwapRxTxMode();
 
+	bool getInvertedMode() const;
+	bool setInvertedMode(bool enable);
+
 private:
 
 	int _serial_fd{-1};
@@ -109,6 +112,7 @@ private:
 
 	bool _single_wire_mode{false};
 	bool _swap_rx_tx_mode{false};
+	bool _inverted_mode{false};
 };
 
 } // namespace device

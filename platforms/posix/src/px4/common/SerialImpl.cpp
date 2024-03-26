@@ -216,6 +216,8 @@ bool SerialImpl::open()
 		setSwapRxTxMode();
 	}
 
+	setInvertedMode(_inverted_mode);
+
 	return _open;
 }
 
@@ -437,6 +439,31 @@ bool SerialImpl::setSwapRxTxMode()
 #else
 	return false;
 #endif // TIOCSSWAP
+}
+
+bool SerialImpl::getInvertedMode() const
+{
+	return _inverted_mode;
+}
+
+bool SerialImpl::setInvertedMode(bool enable)
+{
+#if defined(TIOCSINVERT)
+
+	if (_open) {
+		if (enable) {
+			ioctl(_serial_fd, TIOCSINVERT, SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX);
+
+		} else {
+			ioctl(_serial_fd, TIOCSINVERT, 0);
+		}
+	}
+
+	_inverted_mode = enable;
+	return true;
+#else
+	return _inverted_mode == enable;
+#endif // TIOCSINVERT
 }
 
 } // namespace device

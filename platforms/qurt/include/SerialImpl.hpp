@@ -89,6 +89,9 @@ public:
 	bool getSwapRxTxMode() const;
 	bool setSwapRxTxMode();
 
+	bool getInvertedMode() const;
+	bool setInvertedMode(bool enable);
+
 private:
 
 	int _serial_fd{-1};

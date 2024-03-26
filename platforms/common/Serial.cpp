@@ -153,6 +153,16 @@ bool Serial::setSwapRxTxMode()
 	return _impl.setSwapRxTxMode();
 }
 
+bool Serial::getInvertedMode() const
+{
+	return _impl.getInvertedMode();
+}
+
+bool Serial::setInvertedMode(bool enable)
+{
+	return _impl.setInvertedMode(enable);
+}
+
 const char *Serial::getPort() const
 {
 	return _impl.getPort();

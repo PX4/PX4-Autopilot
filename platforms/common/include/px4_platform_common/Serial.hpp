@@ -91,6 +91,9 @@ public:
 	bool getSwapRxTxMode() const;
 	bool setSwapRxTxMode();
 
+	bool getInvertedMode() const;
+	bool setInvertedMode(bool enable);
+
 	const char *getPort() const;
 
 private:

@@ -350,4 +350,14 @@ bool SerialImpl::setSwapRxTxMode()
 	return false;
 }
 
+bool SerialImpl::setInvertedMode(bool enable)
+{
+	// Qurt platform does not support inverted mode
+	return false == enable;
+}
+bool SerialImpl::getInvertedMode() const
+{
+	return false;
+}
+
 } // namespace device
