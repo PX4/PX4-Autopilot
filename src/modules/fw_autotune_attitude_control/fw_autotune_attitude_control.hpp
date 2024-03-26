@@ -71,12 +71,6 @@ enum class SignalType : uint8_t {
 	kLogSineSweep
 };
 
-// [s] minimum time step between auto tune updates
-static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
-
-// [s] maximum time step between auto tune updates
-static constexpr float MAX_AUTO_TIMESTEP = 0.05f;
-
 class FwAutotuneAttitudeControl : public ModuleBase<FwAutotuneAttitudeControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -190,8 +184,6 @@ private:
 	float _filter_sample_rate{1.f};
 	bool _are_filters_initialized{false};
 
-
-
 	AlphaFilter<float> _signal_filter; ///< used to create a wash-out filter
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
@@ -225,8 +217,6 @@ private:
 		(ParamFloat<px4::params::FW_AT_SYSID_F1>) _param_fw_at_sysid_f1,
 		(ParamFloat<px4::params::FW_AT_SYSID_TIME>) _param_fw_sysid_time,
 		(ParamInt<px4::params::FW_AT_SYSID_TYPE>) _param_fw_sysid_signal_type
-
-
 	)
 
 	static constexpr float _publishing_dt_s = 100e-3f;
