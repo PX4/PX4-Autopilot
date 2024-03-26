@@ -4,6 +4,12 @@ menuconfig MODULES_MAVLINK
 	---help---
 		Enable support for mavlink
 
+menuconfig MAVLINK_MSG_SELECT
+	bool "select mavlink messages"
+	default n
+	---help---
+		Message selection must be configured in KConfig
+
 menuconfig MAVLINK_MINIMAL
 	bool "mavlink minimal"
 	default n
