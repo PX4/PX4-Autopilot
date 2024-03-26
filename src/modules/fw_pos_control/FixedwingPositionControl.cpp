@@ -438,6 +438,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
+	tecs_status.alpha = _aoa;
 
 	tecs_status.timestamp = hrt_absolute_time();
 
@@ -1057,6 +1058,14 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	// waypoint is a plain navigation waypoint
 	float position_sp_alt = pos_sp_curr.alt;
+
+	if (_airspeed_valid)
+	{
+		const Vector2f airspeed_2d{_airspeed_eas*cosf(_yaw), _airspeed_eas*sinf(_yaw)};
+
+		const float air_gnd_angle = acosf((airspeed_2d*ground_speed)/(airspeed_2d.length()*ground_speed.length()));
+	        _aoa = air_gnd_angle;
+	}
 
 	// Altitude first order hold (FOH)
 	if (_position_setpoint_previous_valid &&
