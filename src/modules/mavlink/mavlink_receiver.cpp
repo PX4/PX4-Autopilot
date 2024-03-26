@@ -3259,6 +3259,7 @@ MavlinkReceiver::run()
 
 						update_rx_stats(msg);
 #endif
+
 						if (_message_statistics_enabled) {
 							update_message_statistics(msg);
 						}
@@ -3318,9 +3319,11 @@ MavlinkReceiver::run()
 			_mavlink_log_handler.send();
 			last_send_update = t;
 		}
+
 #else
 		(void)last_send_update;
 #endif
+
 		if (_tune_publisher != nullptr) {
 			_tune_publisher->publish_next_tune(t);
 		}
