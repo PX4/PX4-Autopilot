@@ -23,4 +23,4 @@ fi
 
 afbrs50 start
 
-mavlink start -d /dev/ttyS0 -m config
+mavlink start -d /dev/ttyS0 -m extvisionmin -b 57600
