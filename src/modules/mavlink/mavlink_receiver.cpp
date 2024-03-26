@@ -3230,8 +3230,9 @@ MavlinkReceiver::run()
 						}
 
 						/* handle generic messages and commands */
+#if !defined(CONFIG_MAVLINK_MINIMAL)
 						handle_message(&msg);
-
+#endif
 						/* handle packet with mission manager */
 						_mission_manager.handle_message(&msg);
 
