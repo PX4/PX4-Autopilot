@@ -467,6 +467,6 @@ depends on MODULES_MAVLINK
 	default n
 
 menuconfig MAVLINK_UTM_GLOBAL_POSITION
-	bool "Enable stream"
 depends on MODULES_MAVLINK
+	bool "Enable stream"
 	default n
