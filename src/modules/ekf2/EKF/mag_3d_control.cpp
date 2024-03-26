@@ -120,7 +120,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 					// The normal sequence is to fuse the magnetometer data first before fusing
 					// declination angle at a higher uncertainty to allow some learning of
 					// declination angle over time.
-					const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
+					const bool update_all_states = _control_status.flags.mag_3D || (_control_status.flags.mag_hdg && (getYawVar() > sq(_params.mag_heading_noise / 2.f)));
 					const bool update_tilt = _control_status.flags.mag_3D;
 					fuseMag(mag_sample.mag, aid_src, update_all_states, update_tilt);
 
