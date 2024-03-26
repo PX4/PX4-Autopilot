@@ -50,6 +50,8 @@
 #include <uORB/topics/sensor_optical_flow.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
+using namespace time_literals;
+
 /* Configuration Constants */
 
 #define PMW3901_SPI_BUS_SPEED (2000000L) // 2MHz
