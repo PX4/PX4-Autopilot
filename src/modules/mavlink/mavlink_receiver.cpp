@@ -78,16 +78,6 @@ MavlinkReceiver::~MavlinkReceiver()
 #if !defined(CONSTRAINED_FLASH)
 	delete[] _received_msg_stats;
 #endif // !CONSTRAINED_FLASH
-
-	_distance_sensor_pub.unadvertise();
-	_gps_inject_data_pub.unadvertise();
-	_rc_pub.unadvertise();
-	_manual_control_input_pub.unadvertise();
-	_ping_pub.unadvertise();
-	_radio_status_pub.unadvertise();
-	_sensor_baro_pub.unadvertise();
-	_sensor_gps_pub.unadvertise();
-	_sensor_optical_flow_pub.unadvertise();
 }
 
 static constexpr vehicle_odometry_s vehicle_odometry_empty {
@@ -108,15 +98,20 @@ static constexpr vehicle_odometry_s vehicle_odometry_empty {
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	ModuleParams(nullptr),
+#if defined(CONFIG_MAVLINK_MINIMAL)
+	_mavlink(parent)
+#else
 	_mavlink(parent),
 	_mavlink_ftp(parent),
 	_mavlink_log_handler(parent),
 	_mission_manager(parent),
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
+#endif
 {
 }
 
+#if !defined(CONFIG_MAVLINK_MINIMAL)
 void
 MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress)
 {
@@ -3113,6 +3108,7 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
 }
+#endif
 
 void
 MavlinkReceiver::run()
@@ -3232,7 +3228,6 @@ MavlinkReceiver::run()
 						/* handle generic messages and commands */
 #if !defined(CONFIG_MAVLINK_MINIMAL)
 						handle_message(&msg);
-#endif
 						/* handle packet with mission manager */
 						_mission_manager.handle_message(&msg);
 
@@ -3263,7 +3258,7 @@ MavlinkReceiver::run()
 						_mavlink->handle_message(&msg);
 
 						update_rx_stats(msg);
-
+#endif
 						if (_message_statistics_enabled) {
 							update_message_statistics(msg);
 						}
@@ -3305,7 +3300,7 @@ MavlinkReceiver::run()
 		}
 
 		const hrt_abstime t = hrt_absolute_time();
-
+#if !defined(CONFIG_MAVLINK_MINIMAL)
 		CheckHeartbeats(t);
 
 		if (t - last_send_update > timeout * 1000) {
@@ -3323,7 +3318,9 @@ MavlinkReceiver::run()
 			_mavlink_log_handler.send();
 			last_send_update = t;
 		}
-
+#else
+		(void)last_send_update;
+#endif
 		if (_tune_publisher != nullptr) {
 			_tune_publisher->publish_next_tune(t);
 		}
