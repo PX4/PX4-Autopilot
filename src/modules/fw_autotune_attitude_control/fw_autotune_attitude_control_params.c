@@ -171,4 +171,4 @@ PARAM_DEFINE_FLOAT(FW_AT_SYSID_TIME, 10.f);
  * @value 2 Logarithmic sine sweep
  * @group Autotune
  */
-PARAM_DEFINE_INT32(FW_AT_SYSID_TYPE, 1);
+PARAM_DEFINE_INT32(FW_AT_SYSID_TYPE, 0);
