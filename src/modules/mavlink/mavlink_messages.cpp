@@ -252,13 +252,11 @@
 #include "streams/FIGURE_EIGHT_EXECUTION_STATUS.hpp"
 #endif
 
-#ifdef MAVLINK_MSG_ID_AVAILABLE_MODES // Only defined if development.xml is used
-#if defined(CONFIG_MAVLINK_AVAILABLE_MODES) || !defined(CONFIG_MAVLINK_MINIMAL)
+#if defined(CONFIG_MAVLINK_AVAILABLE_MODES)  || !defined(CONFIG_MAVLINK_MINIMAL) // Only defined if development.xml is used
 #include "streams/AVAILABLE_MODES.hpp"
 #endif
 #if defined(CONFIG_MAVLINK_CURRENT_MODE) || !defined(CONFIG_MAVLINK_MINIMAL)
 #include "streams/CURRENT_MODE.hpp"
-#endif
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
