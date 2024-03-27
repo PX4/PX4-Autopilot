@@ -1528,7 +1528,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 	GPS *gps = nullptr;
 	if (instance == Instance::Main) {
-		if (device_name && (access(device_name, R_OK|W_OK) == 0)) {
+		if (device_name && (px4_access(device_name, R_OK|W_OK) == 0)) {
 			gps = new GPS(device_name, mode, interface, instance, baudrate_main);
 
 		} else {
