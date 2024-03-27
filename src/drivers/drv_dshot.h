@@ -152,4 +152,13 @@ __EXPORT extern void up_bdshot_status(void);
 __EXPORT extern int up_bdshot_get_erpm(uint8_t channel, int *erpm);
 
 
+/**
+ * Get bidrectional dshot status for a channel
+ * @param channel	Dshot channel
+ * @param erpm		pointer to write the erpm value
+ * @return <0 on error / not supported, 0 on offline, 1 on online
+ */
+__EXPORT extern int up_bdshot_channel_status(uint8_t channel);
+
+
 __END_DECLS

@@ -159,6 +159,9 @@ void DShot::enable_dshot_outputs(const bool enabled)
 		for (unsigned i = 0; i < _num_outputs; ++i) {
 			if (((1 << i) & _output_mask) == 0) {
 				_mixing_output.disableFunction(i);
+
+			} else {
+				_dshot_esc_count++;
 			}
 		}
 
@@ -248,9 +251,6 @@ int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelem
 		esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 		esc_status.esc_count = _telemetry->handler.numMotors();
 		++esc_status.counter;
-		// FIXME: mark all ESC's as online, otherwise commander complains even for a single dropout
-		esc_status.esc_online_flags = (1 << esc_status.esc_count) - 1;
-		esc_status.esc_armed_flags = (1 << esc_status.esc_count) - 1;
 
 		ret = 1; // Indicate we wrapped, so we publish data
 	}
@@ -263,11 +263,28 @@ int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelem
 void DShot::publish_esc_status(void)
 {
 	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
+	uint8_t channel;
 
 	// clear data of the esc that are offline
-	for (uint8_t channel = 0; (channel < _telemetry->last_telemetry_index); channel++) {
+	for (channel = 0; (channel < _telemetry->last_telemetry_index); channel++) {
 		if ((esc_status.esc_online_flags & (1 << channel)) == 0) {
 			memset(&esc_status.esc[channel], 0, sizeof(struct esc_report_s));
+		}
+	}
+
+	// FIXME: mark all UART Telemetry ESC's as online, otherwise commander complains even for a single dropout
+	esc_status.esc_online_flags = (1 << esc_status.esc_count) - 1;
+	esc_status.esc_armed_flags = (1 << esc_status.esc_count) - 1;
+
+	if (_bdshot) {
+		esc_status.esc_online_flags |= _output_mask;
+		esc_status.esc_armed_flags |= _output_mask;
+		esc_status.esc_count = _dshot_esc_count;
+
+		for (channel = 0; (channel < 8); channel++) {
+			if (up_bdshot_channel_status(channel) == 0) {
+				esc_status.esc_online_flags &= ~(1 << channel);
+			}
 		}
 	}
 
@@ -301,8 +318,6 @@ int DShot::handle_new_bdshot_erpm(void)
 		}
 
 	}
-
-	esc_status.esc_count = num_erpms;
 
 	return num_erpms;
 }
@@ -780,7 +795,9 @@ int DShot::print_status()
 	}
 
 	/* Print dshot status */
-	up_bdshot_status();
+	if (_bdshot) {
+		up_bdshot_status();
+	}
 
 	return 0;
 }

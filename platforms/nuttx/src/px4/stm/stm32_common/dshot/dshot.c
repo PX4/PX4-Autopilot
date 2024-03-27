@@ -158,6 +158,12 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 	return -1;
 }
 
+int up_bdshot_channel_status(uint8_t channel)
+{
+	// Not implemented
+	return -1;
+}
+
 void up_bdshot_status(void)
 {
 }
