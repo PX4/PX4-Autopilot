@@ -88,6 +88,8 @@ static uint32_t rsa_sig[] = {
 	0x9303ebe0, 0x8414b231, 0xbeec5418, 0x088cc7bb, 0x5e345fe3, 0xb7c954a3, 0x54d08308, 0xcaae3c41,
 };
 
+static const uint8_t ed25519_test_key_index = 100;
+
 class CryptoTest : public UnitTest
 {
 public:
@@ -96,6 +98,8 @@ public:
 	bool test_aes();
 	bool test_chacha();
 	bool test_rsa_sign();
+	bool test_ed25519_key_gen();
+	bool test_ed25519_sign();
 
 private:
 	void color_output(void *buf, size_t sz);
@@ -335,11 +339,50 @@ bool CryptoTest::test_rsa_sign()
 	return ret;
 }
 
+bool CryptoTest::test_ed25519_key_gen()
+{
+	bool ret = true;
+
+	PX4Crypto crypto;
+
+	if (!crypto.open(CRYPTO_ED25519)) {
+		ERROUT("Crypto open failed");
+	}
+
+	ret = crypto.generate_keypair(32, ed25519_test_key_index, false);
+
+	crypto.close();
+
+	return ret;
+}
+
+bool CryptoTest::test_ed25519_sign()
+{
+	bool ret = true;
+	uint8_t signature[64] = {0xde, 0xad, 0xbe, 0xef};
+
+	PX4Crypto crypto;
+
+	if (!crypto.open(CRYPTO_ED25519)) {
+		ERROUT("Crypto open failed");
+	}
+
+	ret = crypto.sign(ed25519_test_key_index, signature, (const uint8_t *)test_input, sizeof(test_input));
+
+	if (!ret) {
+		return ret;
+	}
+
+	return crypto.signature_check(ed25519_test_key_index, signature, (const uint8_t *)test_input, sizeof(test_input));
+}
+
 bool CryptoTest::run_tests()
 {
 	ut_run_test(test_aes);
 	ut_run_test(test_chacha);
-	//	ut_run_test(test_rsa_sign);
+	ut_run_test(test_ed25519_key_gen);
+	ut_run_test(test_ed25519_sign);
+	ut_run_test(test_rsa_sign);
 
 	return (_tests_failed == 0);
 }
