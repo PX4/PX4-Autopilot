@@ -440,6 +440,8 @@ public:
 
 	static uint8_t orb_get_queue_size(const void *node_handle);
 
+	static int8_t orb_get_subscriber_count(const void *node_handle);
+
 	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated);
 
 	static bool register_callback(void *node_handle, SubscriptionCallback *callback_sub);
