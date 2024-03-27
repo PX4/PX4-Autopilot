@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+// NOTE: this message is in development.xml hence the need for this guard
+#ifdef MAVLINK_MSG_ID_CURRENT_MODE
 #ifndef CURRENT_MODE_HPP
 #define CURRENT_MODE_HPP
 
@@ -76,3 +78,4 @@ private:
 };
 
 #endif // CURRENT_MODE_HPP
+#endif // MAVLINK_MSG_ID_CURRENT_MODE

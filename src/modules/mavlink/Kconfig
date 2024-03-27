@@ -4,6 +4,18 @@ menuconfig MODULES_MAVLINK
 	---help---
 		Enable support for mavlink
 
+menuconfig MAVLINK_MSG_SELECT
+	bool "select mavlink messages"
+	default n
+	---help---
+		Message selection must be configured in KConfig
+
+menuconfig MAVLINK_MINIMAL
+	bool "mavlink minimal"
+	default n
+	---help---
+		Enable only a minimal subset of mavlink functionality
+
 menuconfig MAVLINK_DIALECT
 depends on MODULES_MAVLINK
         string "Mavlink dialect"
@@ -24,3 +36,443 @@ menuconfig USER_MAVLINK
 	depends on BOARD_PROTECTED && MODULES_MAVLINK
 	---help---
 		Put mavlink in userspace memory
+
+menuconfig MAVLINK_ACTUATOR_OUTPUT_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ALTITUDE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ATTITUDE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ATTITUDE_QUATERNION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ATTITUDE_TARGET
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_AUTOPILOT_VERSION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_BATTERY_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_CAMERA_IMAGE_CAPTURED
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_CAMERA_TRIGGER
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_COLLISION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_COMMAND_LONG
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_COMPONENT_INFORMATION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_COMPONENT_METADATA
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_DISTANCE_SENSOR
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_EFI_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ESC_INFO
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ESC_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ESTIMATOR_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_EXTENDED_SYS_STATE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_FLIGHT_INFORMATION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GLOBAL_POSITION_INT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GPS_GLOBAL_ORIGIN
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GPS_RAW_INT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GPS_RTCM_DATA
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GPS_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_HEARTBEAT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_HIGHRES_IMU
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_HIL_ACTUATOR_CONTROLS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_HIL_STATE_QUATERNION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_HOME_POSITION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_HYGROMETER_SENSOR
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_LANDING_TARGET
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_LOCAL_POSITION_NED
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_MAG_CAL_REPORT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_MANUAL_CONTROL
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_MOUNT_ORIENTATION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_NAV_CONTROLLER_OUTPUT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_OBSTACLE_DISTANCE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_OPEN_DRONE_ID_BASIC_ID
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_OPEN_DRONE_ID_LOCATION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_OPEN_DRONE_ID_SYSTEM
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_OPTICAL_FLOW_RAD
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ORBIT_EXECUTION_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_PING
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_POSITION_TARGET_GLOBAL_INT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_POSITION_TARGET_LOCAL_NED
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_PROTOCOL_VERSION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_RAW_RPM
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_RC_CHANNELS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SCALED_IMU
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SCALED_IMU2
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SCALED_IMU3
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SCALED_PRESSURE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SERVO_OUTPUT_RAW
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_STATUSTEXT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_STORAGE_INFORMATION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SYS_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SYSTEM_TIME
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_TIME_ESTIMATE_TO_TARGET
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_TIMESYNC
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_TRAJECTORY_REPRESENTATION_WAYPOINTS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_VFR_HUD
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_VIBRATION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_WIND_COV
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_FIGURE_EIGHT_EXECUTION_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_AVAILABLE_MODES
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_CURRENT_MODE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ADSB_VEHICLE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_AUTOPILOT_STATE_FOR_GIMBAL_DEVICE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_BATTERY_INFO
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_DEBUG
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_DEBUG_FLOAT_ARRAY
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_DEBUG_VECT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GIMBAL_DEVICE_ATTITUDE_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GIMBAL_DEVICE_SET_ATTITUDE
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GIMBAL_MANAGER_INFORMATION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GIMBAL_MANAGER_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GIMBAL_DEVICE_INFORMATION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_GPS2_RAW
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_HIGH_LATENCY2
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_LINK_NODE_STATUS
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_NAMED_VALUE_FLOAT
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_ODOMETRY
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SCALED_PRESSURE2
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_SCALED_PRESSURE3
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_UAVIONIX_ADSB_OUT_CFG
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_UAVIONIX_ADSB_OUT_DYNAMIC
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n
+
+menuconfig MAVLINK_UTM_GLOBAL_POSITION
+depends on MODULES_MAVLINK
+	bool "Enable stream"
+	default n

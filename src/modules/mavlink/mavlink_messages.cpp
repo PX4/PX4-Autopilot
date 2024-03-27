@@ -56,101 +56,273 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/vehicle_status.h>
 
+#if defined(CONFIG_MAVLINK_ACTUATOR_OUTPUT_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ACTUATOR_OUTPUT_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ALTITUDE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ALTITUDE.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ATTITUDE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ATTITUDE.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ATTITUDE_QUATERNION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ATTITUDE_QUATERNION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ATTITUDE_TARGET) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ATTITUDE_TARGET.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_AUTOPILOT_VERSION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/AUTOPILOT_VERSION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_BATTERY_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/BATTERY_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_CAMERA_IMAGE_CAPTURED) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/CAMERA_IMAGE_CAPTURED.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_CAMERA_TRIGGER) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/CAMERA_TRIGGER.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_COLLISION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/COLLISION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_COMMAND_LONG) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/COMMAND_LONG.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_COMPONENT_INFORMATION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/COMPONENT_INFORMATION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_COMPONENT_METADATA) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/COMPONENT_METADATA.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_DISTANCE_SENSOR) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/DISTANCE_SENSOR.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_EFI_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/EFI_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ESC_INFO) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ESC_INFO.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ESC_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ESC_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ESTIMATOR_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ESTIMATOR_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_EXTENDED_SYS_STATE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/EXTENDED_SYS_STATE.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_FLIGHT_INFORMATION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/FLIGHT_INFORMATION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GLOBAL_POSITION_INT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/GLOBAL_POSITION_INT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GPS_GLOBAL_ORIGIN) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GPS_RAW_INT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/GPS_RAW_INT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GPS_RTCM_DATA) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/GPS_RTCM_DATA.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GPS_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/GPS_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_HEARTBEAT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/HEARTBEAT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_HIGHRES_IMU) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/HIGHRES_IMU.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_HIL_ACTUATOR_CONTROLS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/HIL_ACTUATOR_CONTROLS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_HIL_STATE_QUATERNION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/HIL_STATE_QUATERNION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_HOME_POSITION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/HOME_POSITION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_HYGROMETER_SENSOR) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/HYGROMETER_SENSOR.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_LANDING_TARGET) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/LANDING_TARGET.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_LOCAL_POSITION_NED) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/LOCAL_POSITION_NED.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_MAG_CAL_REPORT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/MAG_CAL_REPORT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_MANUAL_CONTROL) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/MANUAL_CONTROL.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_MOUNT_ORIENTATION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/MOUNT_ORIENTATION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_NAV_CONTROLLER_OUTPUT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_OBSTACLE_DISTANCE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/OBSTACLE_DISTANCE.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_OPEN_DRONE_ID_BASIC_ID) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/OPEN_DRONE_ID_BASIC_ID.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_OPEN_DRONE_ID_LOCATION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/OPEN_DRONE_ID_LOCATION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_OPEN_DRONE_ID_SYSTEM) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/OPEN_DRONE_ID_SYSTEM.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_OPTICAL_FLOW_RAD) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/OPTICAL_FLOW_RAD.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ORBIT_EXECUTION_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/ORBIT_EXECUTION_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_PING) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/PING.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_POSITION_TARGET_GLOBAL_INT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/POSITION_TARGET_GLOBAL_INT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_POSITION_TARGET_LOCAL_NED) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/POSITION_TARGET_LOCAL_NED.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_PROTOCOL_VERSION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/PROTOCOL_VERSION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_RAW_RPM) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/RAW_RPM.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_RC_CHANNELS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/RC_CHANNELS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SCALED_IMU) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/SCALED_IMU.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SCALED_IMU2) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/SCALED_IMU2.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SCALED_IMU3) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/SCALED_IMU3.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SCALED_PRESSURE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/SCALED_PRESSURE.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SERVO_OUTPUT_RAW) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/SERVO_OUTPUT_RAW.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_STATUSTEXT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/STATUSTEXT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_STORAGE_INFORMATION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/STORAGE_INFORMATION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SYS_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/SYS_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SYSTEM_TIME) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/SYSTEM_TIME.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_TIME_ESTIMATE_TO_TARGET) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/TIME_ESTIMATE_TO_TARGET.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_TIMESYNC) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/TIMESYNC.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_TRAJECTORY_REPRESENTATION_WAYPOINTS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/TRAJECTORY_REPRESENTATION_WAYPOINTS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_VFR_HUD) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/VFR_HUD.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_VIBRATION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/VIBRATION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_WIND_COV) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/WIND_COV.hpp"
-#if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
+#endif
+#if defined(CONFIG_MAVLINK_FIGURE_EIGHT_EXECUTION_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/FIGURE_EIGHT_EXECUTION_STATUS.hpp"
-#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#endif
 
-#ifdef MAVLINK_MSG_ID_AVAILABLE_MODES // Only defined if development.xml is used
+#if defined(CONFIG_MAVLINK_AVAILABLE_MODES)  || !defined(CONFIG_MAVLINK_MSG_SELECT) // Only defined if development.xml is used
 #include "streams/AVAILABLE_MODES.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_CURRENT_MODE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 #include "streams/CURRENT_MODE.hpp"
 #endif
 
 #if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_MAVLINK_ADSB_VEHICLE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/ADSB_VEHICLE.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_AUTOPILOT_STATE_FOR_GIMBAL_DEVICE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/AUTOPILOT_STATE_FOR_GIMBAL_DEVICE.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_BATTERY_INFO) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/BATTERY_INFO.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_DEBUG) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/DEBUG.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_DEBUG_FLOAT_ARRAY) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_DEBUG_VECT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/DEBUG_VECT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GIMBAL_DEVICE_ATTITUDE_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/GIMBAL_DEVICE_ATTITUDE_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GIMBAL_DEVICE_SET_ATTITUDE) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GIMBAL_MANAGER_INFORMATION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/GIMBAL_MANAGER_INFORMATION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GIMBAL_MANAGER_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/GIMBAL_MANAGER_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GIMBAL_DEVICE_INFORMATION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/GIMBAL_DEVICE_INFORMATION.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_GPS2_RAW) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/GPS2_RAW.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_HIGH_LATENCY2) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/HIGH_LATENCY2.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_LINK_NODE_STATUS) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/LINK_NODE_STATUS.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_NAMED_VALUE_FLOAT) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/NAMED_VALUE_FLOAT.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_ODOMETRY) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/ODOMETRY.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SCALED_PRESSURE2) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/SCALED_PRESSURE2.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_SCALED_PRESSURE3) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/SCALED_PRESSURE3.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_UAVIONIX_ADSB_OUT_CFG) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/UAVIONIX_ADSB_OUT_CFG.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_UAVIONIX_ADSB_OUT_DYNAMIC) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/UAVIONIX_ADSB_OUT_DYNAMIC.hpp"
+#endif
+#if defined(CONFIG_MAVLINK_UTM_GLOBAL_POSITION) || !defined(CONFIG_MAVLINK_MSG_SELECT)
 # include "streams/UTM_GLOBAL_POSITION.hpp"
+#endif
 #endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
@@ -258,7 +430,9 @@ static const StreamListItem streams_list[] = {
 #if defined(SYS_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamSysStatus>(),
 #endif // SYS_STATUS_HPP
+#if defined(BATTERY_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamBatteryStatus>(),
+#endif // BATTERY_STATUS_HPP
 #if defined(BATTERY_INFO_HPP)
 	create_stream_list_item<MavlinkStreamBatteryInfo>(),
 #endif // BATTERY_INFO_HPP

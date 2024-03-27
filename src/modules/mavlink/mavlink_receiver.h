@@ -248,12 +248,14 @@ private:
 
 	Mavlink				*_mavlink;
 
+#if !defined(CONFIG_MAVLINK_MINIMAL)
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
 	MavlinkMissionManager		_mission_manager;
 	MavlinkParametersManager	_parameters_manager;
 	MavlinkTimesync			_mavlink_timesync;
 	MavlinkStatustextHandler	_mavlink_statustext_handler;
+#endif
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 
@@ -291,6 +293,7 @@ private:
 	uint8_t _mavlink_status_last_parse_error{0};
 	uint16_t _mavlink_status_last_packet_rx_drop_count{0};
 
+#if !defined(CONFIG_MAVLINK_MINIMAL)
 	// ORB publications
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
@@ -356,6 +359,7 @@ private:
 	uORB::Subscription	_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription	_autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
+#endif // CONFIG_MAVLINK_MINIMAL
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

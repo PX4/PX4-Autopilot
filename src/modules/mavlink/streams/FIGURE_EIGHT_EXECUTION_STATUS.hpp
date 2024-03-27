@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+// NOTE: this message is in development.xml hence the need for this guard
+#ifdef MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
 #ifndef FIGURE_EIGHT_EXECUTION_STATUS_HPP
 #define FIGURE_EIGHT_EXECUTION_STATUS_HPP
 
@@ -86,3 +88,4 @@ private:
 };
 
 #endif // FIGURE_EIGHT_EXECUTION_STATUS_HPP
+#endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS

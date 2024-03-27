@@ -22,3 +22,5 @@ then
 fi
 
 afbrs50 start
+
+mavlink start -d /dev/ttyS0 -m config -b 57600
