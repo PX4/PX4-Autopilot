@@ -93,6 +93,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config):
 	_param_ekf2_req_pdop(_params->req_pdop),
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
+	_param_ekf2_gps_kill_t(_params->gps_kill_t),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -261,6 +262,14 @@ bool EKF2::multi_init(int imu, int mag)
 	}
 
 #endif // CONFIG_EKF2_BAROMETER
+
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+
+	if (_param_ekf2_drag_ctrl.get()) {
+		_estimator_aid_src_drag_pub.advertise();
+	}
+
+#endif // CONFIG_EKF2_DRAG_FUSION
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 

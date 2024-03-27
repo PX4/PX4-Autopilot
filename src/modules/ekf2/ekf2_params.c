@@ -266,6 +266,17 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_HDRIFT, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.2f);
 
 /**
+ * GPS kill time (disabled if 0)
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 9999
+ * @decimal 1
+ * @unit s
+ */
+PARAM_DEFINE_FLOAT(EKF2_GPS_KILL_T, 0.0f);
+
+/**
  * Rate gyro noise for covariance prediction.
  *
  * @group EKF2

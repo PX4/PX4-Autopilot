@@ -85,6 +85,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		}
 
 		updateGnssVel(gnss_sample, _aid_src_gnss_vel);
+		controlGnssYawEstimator(_aid_src_gnss_vel);
 
 	} else if (_control_status.flags.gps) {
 		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
@@ -94,13 +95,32 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		}
 	}
 
+
+#if 1
+		// GPS HACK
+		if (_control_status.flags.in_air
+		&& _params.gps_kill_t > 0.f
+		&& _time_last_on_ground_us > 0
+		&& _time_delayed_us > _time_last_on_ground_us + (1'000'000 * _params.gps_kill_t)
+		//&& false
+		) {
+			_gps_data_ready = false;
+			// _control_status.flags.wind_dead_reckoning
+			_control_status.flags.gps = false;
+			return;
+		} else {
+			if (_time_last_on_ground_us > 0) {
+				//ECL_INFO("time: %llu, in_air:%d, gnd: %llu, ?:%d", _time_delayed_us, _control_status.flags.in_air, _time_last_on_ground_us, _time_delayed_us > _time_last_on_ground_us + (1'000'000 * 100));
+			}
+		}
+#endif
+
+
 	if (_gps_data_ready) {
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 		controlGpsYawFusion(gnss_sample);
 #endif // CONFIG_EKF2_GNSS_YAW
-
-		controlGnssYawEstimator(_aid_src_gnss_vel);
 
 		const bool gnss_vel_enabled = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VEL));
 		const bool gnss_pos_enabled = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::HPOS));

@@ -160,7 +160,7 @@ void LoggedTopics::add_default_topics()
 #endif
 
 	// always add the first instance
-#if 0
+#if 1
 	add_topic_multi("estimator_baro_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_gnss_hgt_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_rng_hgt_bias", 0, MAX_ESTIMATOR_INSTANCES);

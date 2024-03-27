@@ -334,6 +334,9 @@ struct parameters {
 	float req_hdrift{0.3f};                 ///< maximum acceptable horizontal drift speed (m/s)
 	float req_vdrift{0.5f};                 ///< maximum acceptable vertical drift speed (m/s)
 
+	float gps_kill_t{0};
+
+
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
 	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)

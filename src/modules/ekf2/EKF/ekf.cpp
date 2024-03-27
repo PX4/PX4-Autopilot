@@ -84,6 +84,9 @@ void Ekf::reset()
 	_control_status.flags.in_air = true;
 	_control_status_prev.flags.in_air = true;
 
+	_time_last_on_ground_us = _time_delayed_us;
+	_time_last_in_air = _time_delayed_us;
+
 	_ang_rate_delayed_raw.zero();
 
 	_fault_status.value = 0;
