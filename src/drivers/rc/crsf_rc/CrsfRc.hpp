@@ -40,6 +40,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/Serial.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
@@ -52,6 +53,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
+
+using namespace device;
 
 class CrsfRc : public ModuleBase<CrsfRc>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -87,7 +90,8 @@ private:
 
 	bool SendTelemetryFlightMode(const char *flight_mode);
 
-	int _rc_fd{-1};
+	Serial *_uart = nullptr; ///< UART interface to RC
+
 	char _device[20] {}; ///< device / serial port path
 	bool _is_singlewire{false};
 

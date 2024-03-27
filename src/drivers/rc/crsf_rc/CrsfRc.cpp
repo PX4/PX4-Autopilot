@@ -35,8 +35,6 @@
 #include "CrsfParser.hpp"
 #include "Crc8.hpp"
 
-#include <poll.h>
-#include <termios.h>
 #include <fcntl.h>
 
 #include <uORB/topics/battery_status.h>
@@ -118,76 +116,74 @@ void CrsfRc::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		::close(_rc_fd);
-		_rc_fd = -1;
+
+		if (_uart) {
+			(void) _uart->close();
+			delete _uart;
+			_uart = nullptr;
+		}
+
 		exit_and_cleanup();
 		return;
 	}
 
-	if (_rc_fd < 0) {
-		_rc_fd = ::open(_device, O_RDWR | O_NONBLOCK);
+	if (_uart == nullptr) {
+		// Create the UART port instance
+		_uart = new Serial(_device);
 
-		if (_rc_fd >= 0) {
-			struct termios t;
-
-			tcgetattr(_rc_fd, &t);
-			cfsetspeed(&t, CRSF_BAUDRATE);
-			t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
-			t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-			t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
-			t.c_oflag = 0;
-			tcsetattr(_rc_fd, TCSANOW, &t);
-
-			if (board_rc_swap_rxtx(_device)) {
-#if defined(TIOCSSWAP)
-				ioctl(_rc_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-#endif // TIOCSSWAP
-			}
-
-			if (board_rc_singlewire(_device)) {
-				_is_singlewire = true;
-#if defined(TIOCSSINGLEWIRE)
-				ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
-#endif // TIOCSSINGLEWIRE
-			}
-
-			PX4_INFO("Crsf serial opened sucessfully");
-
-			if (_is_singlewire) {
-				PX4_INFO("Crsf serial is single wire. Telemetry disabled");
-			}
-
-			tcflush(_rc_fd, TCIOFLUSH);
-
-			Crc8Init(0xd5);
+		if (_uart == nullptr) {
+			PX4_ERR("Error creating serial device %s", _device);
+			px4_sleep(1);
+			return;
 		}
+	}
+
+	if (! _uart->isOpen()) {
+		// Configure the desired baudrate if one was specified by the user.
+		// Otherwise the default baudrate will be used.
+		if (! _uart->setBaudrate(CRSF_BAUDRATE)) {
+			PX4_ERR("Error setting baudrate to %u on %s", CRSF_BAUDRATE, _device);
+			px4_sleep(1);
+			return;
+		}
+
+		// Open the UART. If this is successful then the UART is ready to use.
+		if (! _uart->open()) {
+			PX4_ERR("Error opening serial device  %s", _device);
+			px4_sleep(1);
+			return;
+		}
+
+		if (board_rc_swap_rxtx(_device)) {
+			_uart->setSwapRxTxMode();
+		}
+
+		if (board_rc_singlewire(_device)) {
+			_is_singlewire = true;
+			_uart->setSingleWireMode();
+		}
+
+		PX4_INFO("Crsf serial opened sucessfully");
+
+		if (_is_singlewire) {
+			PX4_INFO("Crsf serial is single wire. Telemetry disabled");
+		}
+
+		_uart->flush();
+
+		Crc8Init(0xd5);
 
 		_input_rc.rssi_dbm = NAN;
 		_input_rc.link_quality = -1;
 
 		CrsfParser_Init();
-
-
-	}
-
-	// poll with 100mS timeout
-	pollfd fds[1];
-	fds[0].fd = _rc_fd;
-	fds[0].events = POLLIN;
-	int ret = ::poll(fds, 1, 100);
-
-	if (ret < 0) {
-		PX4_ERR("poll error");
-		// try again with delay
-		ScheduleDelayed(100_ms);
-		return;
 	}
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	perf_count_interval(_cycle_interval_perf, time_now_us);
 
 	// Read all available data from the serial RC input UART
-	int new_bytes = ::read(_rc_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
+	int new_bytes = _uart->readAtLeast(&_rcs_buf[0], RC_MAX_BUFFER_SIZE, 1, 100);
 
 	if (new_bytes > 0) {
 		_bytes_rx += new_bytes;
@@ -433,7 +429,8 @@ bool CrsfRc::SendTelemetryBattery(const uint16_t voltage, const uint16_t current
 	write_uint24_t(buf, offset, fuel);
 	write_uint8_t(buf, offset, remaining);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return write(_rc_fd, buf, offset) == offset;
+	return _uart->write((void *) buf, (size_t) offset);
+
 }
 
 bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, const uint16_t groundspeed,
@@ -449,7 +446,7 @@ bool CrsfRc::SendTelemetryGps(const int32_t latitude, const int32_t longitude, c
 	write_uint16_t(buf, offset, altitude);
 	write_uint8_t(buf, offset, num_satellites);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return write(_rc_fd, buf, offset) == offset;
+	return _uart->write((void *) buf, (size_t) offset);
 }
 
 bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, const int16_t yaw)
@@ -461,7 +458,7 @@ bool CrsfRc::SendTelemetryAttitude(const int16_t pitch, const int16_t roll, cons
 	write_uint16_t(buf, offset, roll);
 	write_uint16_t(buf, offset, yaw);
 	WriteFrameCrc(buf, offset, sizeof(buf));
-	return write(_rc_fd, buf, offset) == offset;
+	return _uart->write((void *) buf, (size_t) offset);
 }
 
 bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
@@ -480,7 +477,7 @@ bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 	offset += length;
 	buf[offset - 1] = 0; // ensure null-terminated string
 	WriteFrameCrc(buf, offset, length + 4);
-	return write(_rc_fd, buf, offset) == offset;
+	return _uart->write((void *) buf, (size_t) offset);
 }
 
 int CrsfRc::print_status()

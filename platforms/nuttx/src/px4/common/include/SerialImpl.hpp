@@ -64,6 +64,8 @@ public:
 
 	ssize_t write(const void *buffer, size_t buffer_size);
 
+	void flush();
+
 	const char *getPort() const;
 
 	uint32_t getBaudrate() const;
@@ -80,6 +82,15 @@ public:
 
 	FlowControl getFlowcontrol() const;
 	bool setFlowcontrol(FlowControl flowcontrol);
+
+	bool getSingleWireMode() const;
+	bool setSingleWireMode();
+
+	bool getSwapRxTxMode() const;
+	bool setSwapRxTxMode();
+
+	bool getInvertedMode() const;
+	bool setInvertedMode(bool enable);
 
 private:
 
@@ -99,6 +110,9 @@ private:
 	bool validateBaudrate(uint32_t baudrate);
 	bool configure();
 
+	bool _single_wire_mode{false};
+	bool _swap_rx_tx_mode{false};
+	bool _inverted_mode{false};
 };
 
 } // namespace device
