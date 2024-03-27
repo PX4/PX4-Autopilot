@@ -595,49 +595,6 @@ void Logger::run()
 
 	uORB::Subscription parameter_update_sub(ORB_ID(parameter_update));
 
-	if (!initialize_topics()) {
-		return;
-	}
-
-	//all topics added. Get required message buffer size
-	int max_msg_size = 0;
-
-	for (int sub = 0; sub < _num_subscriptions; ++sub) {
-		//use o_size, because that's what orb_copy will use
-		if (_subscriptions[sub].get_topic()->o_size > max_msg_size) {
-			max_msg_size = _subscriptions[sub].get_topic()->o_size;
-		}
-	}
-
-	if (_event_subscription.get_topic()->o_size > max_msg_size) {
-		max_msg_size = _event_subscription.get_topic()->o_size;
-	}
-
-	max_msg_size += sizeof(ulog_message_data_s);
-
-	if (sizeof(ulog_message_logging_s) > (size_t)max_msg_size) {
-		max_msg_size = sizeof(ulog_message_logging_s);
-	}
-
-	if (_polling_topic_meta && _polling_topic_meta->o_size > max_msg_size) {
-		max_msg_size = _polling_topic_meta->o_size;
-	}
-
-	if (max_msg_size > _msg_buffer_len) {
-		if (_msg_buffer) {
-			delete[](_msg_buffer);
-		}
-
-		_msg_buffer_len = max_msg_size;
-		_msg_buffer = new uint8_t[_msg_buffer_len];
-
-		if (!_msg_buffer) {
-			PX4_ERR("failed to alloc message buffer");
-			return;
-		}
-	}
-
-
 	if (!_writer.init()) {
 		PX4_ERR("writer init failed");
 		return;
@@ -652,7 +609,7 @@ void Logger::run()
 	const bool disable_boot_logging = get_disable_boot_logging();
 
 	if ((_log_mode == LogMode::boot_until_disarm || _log_mode == LogMode::boot_until_shutdown) && !disable_boot_logging) {
-		start_log_file(LogType::Full);
+		_start_immediately = true;
 	}
 
 	/* init the update timer */
@@ -697,9 +654,56 @@ void Logger::run()
 
 	while (!should_exit()) {
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
-		const bool logging_started = start_stop_logging();
+		if (should_start_logging()) {
 
-		if (logging_started) {
+			if (!initialize_topics()) {
+				return;
+			}
+
+			//all topics added. Get required message buffer size
+			int max_msg_size = 0;
+
+			for (int sub = 0; sub < _num_subscriptions; ++sub) {
+				//use o_size, because that's what orb_copy will use
+				if (_subscriptions[sub].get_topic()->o_size > max_msg_size) {
+					max_msg_size = _subscriptions[sub].get_topic()->o_size;
+				}
+			}
+
+			if (_event_subscription.get_topic()->o_size > max_msg_size) {
+				max_msg_size = _event_subscription.get_topic()->o_size;
+			}
+
+			max_msg_size += sizeof(ulog_message_data_s);
+
+			if (sizeof(ulog_message_logging_s) > (size_t)max_msg_size) {
+				max_msg_size = sizeof(ulog_message_logging_s);
+			}
+
+			if (_polling_topic_meta && _polling_topic_meta->o_size > max_msg_size) {
+				max_msg_size = _polling_topic_meta->o_size;
+			}
+
+			if (max_msg_size > _msg_buffer_len) {
+				if (_msg_buffer) {
+					delete[](_msg_buffer);
+				}
+
+				_msg_buffer_len = max_msg_size;
+				_msg_buffer = new uint8_t[_msg_buffer_len];
+
+				if (!_msg_buffer) {
+					PX4_ERR("failed to alloc message buffer");
+					return;
+				}
+			}
+
+			start_log_file(LogType::Full);
+
+			if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
+				start_log_file(LogType::Mission);
+			}
+
 #ifdef DBGPRINT
 			timer_start = hrt_absolute_time();
 			total_bytes = 0;
@@ -717,7 +721,7 @@ void Logger::run()
 
 		const hrt_abstime loop_time = hrt_absolute_time();
 
-		if (_writer.is_started(LogType::Full)) { // mission log only runs when full log is also started
+		if (_msg_buffer && _writer.is_started(LogType::Full)) { // mission log only runs when full log is also started
 
 			if (!was_started) {
 				adjust_subscription_updates();
@@ -877,7 +881,7 @@ void Logger::run()
 			// - we avoid subscribing to many topics at once, when logging starts
 			// - we'll get the data immediately once we start logging (no need to wait for the next subscribe timeout)
 			if (next_subscribe_topic_index != -1) {
-				if (!_subscriptions[next_subscribe_topic_index].valid()) {
+				if (_subscriptions && !_subscriptions[next_subscribe_topic_index].valid()) {
 					_subscriptions[next_subscribe_topic_index].subscribe();
 				}
 
@@ -1104,12 +1108,18 @@ bool Logger::get_disable_boot_logging()
 	return false;
 }
 
-bool Logger::start_stop_logging()
+bool Logger::should_start_logging()
 {
 	bool updated = false;
 	bool desired_state = false;
 
-	if (_log_mode == LogMode::rc_aux1) {
+	if (_start_immediately) {
+		desired_state = true;
+		updated = true;
+
+		_start_immediately = false;
+
+	} else if (_log_mode == LogMode::rc_aux1) {
 		// aux1-based logging
 		manual_control_setpoint_s manual_control_setpoint;
 
@@ -1138,15 +1148,10 @@ bool Logger::start_stop_logging()
 		_prev_file_log_start_state = desired_state;
 
 		if (desired_state) {
+
 			if (_should_stop_file_log) { // happens on quick stop/start toggling
 				_should_stop_file_log = false;
 				stop_log_file(LogType::Full);
-			}
-
-			start_log_file(LogType::Full);
-
-			if ((MissionLogType)_param_sdlog_mission.get() != MissionLogType::Disabled) {
-				start_log_file(LogType::Mission);
 			}
 
 			return true;
