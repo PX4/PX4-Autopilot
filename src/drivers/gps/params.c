@@ -290,3 +290,44 @@ PARAM_DEFINE_INT32(GPS_1_GNSS, 0);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_2_GNSS, 0);
+
+/**
+ * Logging frequency for the receiver.
+ *
+ * Select the frequency at which the connected receiver should log data.
+ *
+ * @min 0
+ * @max 20
+ * @unit Hz
+ * @decimal 1
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_LOG_HZ, 1.f);
+
+/**
+ * Logging level for the receiver.
+ *
+ * Select the level of detail that needs to be logged by the receiver.
+ *
+ * @min 0
+ * @max 3
+ * @value 0 Lite
+ * @value 1 Basic
+ * @value 2 Default
+ * @value 3 Full
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_LOG_LEVEL, 2);
+
+/**
+ * Whether to overwrite or add to existing logging.
+ *
+ * When the receiver is already set up to log data, this decides whether extra logged data should be added or overwrite existing data.
+ *
+ * @boolean true
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_LOG_FORCE, 0);
