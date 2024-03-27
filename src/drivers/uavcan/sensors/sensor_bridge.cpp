@@ -239,7 +239,7 @@ UavcanSensorBridgeBase::~UavcanSensorBridgeBase()
 }
 
 void
-UavcanSensorBridgeBase::publish(const int node_id, const void *report)
+UavcanSensorBridgeBase::publish(uint8_t iface_idx, const int node_id, const void *report)
 {
 	assert(report != nullptr);
 
@@ -247,7 +247,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 
 	// Checking if such channel already exists
 	for (unsigned i = 0; i < _max_channels; i++) {
-		if (_channels[i].node_id == node_id) {
+		if (_channels[i].node_id == node_id && _channels[i].iface_idx == iface_idx) {
 			channel = _channels + i;
 			break;
 		}
@@ -259,7 +259,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 			return;  // Give up immediately - saves some CPU time
 		}
 
-		DEVICE_LOG("adding channel for topic %s node %d...", _orb_topic->o_name, node_id);
+		DEVICE_LOG("adding channel for topic %s interface %d node %d...", _orb_topic->o_name, iface_idx, node_id);
 
 		// Search for the first free channel
 		for (unsigned i = 0; i < _max_channels; i++) {
@@ -276,15 +276,13 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 			return;
 		}
 
-		// update device id as we now know our device node_id
-		_device_id.devid_s.address = static_cast<uint8_t>(node_id);
-		_device_id.devid_s.bus_type = DeviceBusType::DeviceBusType_UAVCAN;
 
 		// Publish to the appropriate topic, abort on failure
 		channel->orb_advert = orb_advertise_multi(_orb_topic, report, &channel->instance);
 
 		channel->node_id = node_id;
-		DEVICE_LOG("node %d instance %d ok", channel->node_id, channel->instance);
+		channel->iface_idx = iface_idx;
+		DEVICE_LOG("interface %d, node %d instance %d ok", channel->iface_idx, channel->node_id, channel->instance);
 
 		if (channel->orb_advert == nullptr) {
 			DEVICE_LOG("uORB advertise failed. Out of instances?");
@@ -301,13 +299,13 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
 }
 
-uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id)
+uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(uint8_t iface_idx, int node_id)
 {
 	uavcan_bridge::Channel *channel = nullptr;
 
 	// Checking if such channel already exists
 	for (unsigned i = 0; i < _max_channels; i++) {
-		if (_channels[i].node_id == node_id) {
+		if (_channels[i].node_id == node_id && _channels[i].iface_idx == iface_idx) {
 			channel = _channels + i;
 			break;
 		}
@@ -320,7 +318,7 @@ uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id
 			return channel;
 		}
 
-		DEVICE_LOG("adding channel for topic %s node %d...", _orb_topic->o_name, node_id);
+		DEVICE_LOG("adding channel for topic %s interface %d node %d...", _orb_topic->o_name, iface_idx, node_id);
 
 		// Search for the first free channel
 		for (unsigned i = 0; i < _max_channels; i++) {
@@ -339,6 +337,7 @@ uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id
 
 		// initialize the driver, which registers the class device name and uORB publisher
 		channel->node_id = node_id;
+		channel->iface_idx = iface_idx;
 		int ret = init_driver(channel);
 
 		if (ret != PX4_OK) {
@@ -370,12 +369,12 @@ unsigned UavcanSensorBridgeBase::get_num_redundant_channels() const
 	return out;
 }
 
-int8_t UavcanSensorBridgeBase::get_channel_index_for_node(int node_id)
+int8_t UavcanSensorBridgeBase::get_channel_index_for_node(uint8_t iface_idx, int node_id)
 {
 	int8_t ch = -1;
 
 	for (unsigned i = 0; i < _max_channels; i++) {
-		if (_channels[i].node_id == node_id) {
+		if (_channels[i].node_id == node_id && _channels[i].iface_idx == iface_idx) {
 			ch = i;
 			break;
 		}

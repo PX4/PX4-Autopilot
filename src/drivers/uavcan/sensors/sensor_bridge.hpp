@@ -87,6 +87,7 @@ namespace uavcan_bridge
 {
 struct Channel {
 	int node_id{-1};
+	uint8_t iface_idx{0};
 	orb_advert_t orb_advert{nullptr};
 	int instance{-1};
 	void *h_driver{nullptr};
@@ -97,7 +98,7 @@ struct Channel {
  * This is the base class for redundant sensors with an independent ORB topic per each redundancy channel.
  * For example, sensor_mag0, sensor_mag1, etc.
  */
-class UavcanSensorBridgeBase : public IUavcanSensorBridge, public device::Device
+class UavcanSensorBridgeBase : public IUavcanSensorBridge
 {
 	const orb_id_t _orb_topic;
 	uavcan_bridge::Channel *const _channels;
@@ -106,25 +107,24 @@ class UavcanSensorBridgeBase : public IUavcanSensorBridge, public device::Device
 protected:
 	static constexpr unsigned DEFAULT_MAX_CHANNELS = 4;
 	const unsigned _max_channels;
+	const char *_name;
 
 	UavcanSensorBridgeBase(const char *name, const orb_id_t orb_topic_sensor,
 			       const unsigned max_channels = DEFAULT_MAX_CHANNELS) :
-		Device(name),
 		_orb_topic(orb_topic_sensor),
 		_channels(new uavcan_bridge::Channel[max_channels]),
-		_max_channels(max_channels)
-	{
-		set_device_bus_type(DeviceBusType_UAVCAN);
-		set_device_bus(0);
-	}
+		_max_channels(max_channels),
+		_name(name)
+	{}
 
 	/**
 	 * Sends one measurement into appropriate ORB topic.
 	 * New redundancy channels will be registered automatically.
+	 * @param bus_id Sensor's CAN bus ID
 	 * @param node_id Sensor's Node ID
 	 * @param report  Pointer to ORB message object
 	 */
-	void publish(const int node_id, const void *report);
+	void publish(uint8_t iface_idx, const int node_id, const void *report);
 
 	/**
 	 * Init the sensor driver for this channel.
@@ -133,14 +133,14 @@ protected:
 	 */
 	virtual int init_driver(uavcan_bridge::Channel *channel) { return PX4_OK; };
 
-	uavcan_bridge::Channel *get_channel_for_node(int node_id);
+	uavcan_bridge::Channel *get_channel_for_node(uint8_t iface_idx, int node_id);
 
 public:
 	virtual ~UavcanSensorBridgeBase();
 
 	unsigned get_num_redundant_channels() const override;
 
-	int8_t get_channel_index_for_node(int node_id);
+	int8_t get_channel_index_for_node(uint8_t iface_idx, int node_id);
 
 	void print_status() const override;
 };

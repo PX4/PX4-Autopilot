@@ -88,7 +88,7 @@ void UavcanIceStatusBridge::ice_status_sub_cb(const
 		report.lambda_coefficient = msg.cylinder_status[0].lambda_coefficient;
 	}
 
-	publish(msg.getSrcNodeID().get(), &report);
+	publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &report);
 }
 
 int UavcanIceStatusBridge::init_driver(uavcan_bridge::Channel *channel)
