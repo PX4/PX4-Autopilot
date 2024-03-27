@@ -228,10 +228,10 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				/* EVENT
 				* @type append_health_and_arming_messages
 				*/
-				events::send<uint32_t>(
+				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
 					events::ID("commander_failsafe_enter_generic"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe activated: Autopilot disengaged", mavlink_mode);
+				"Failsafe activated: Autopilot disengaged, switching to {2}", mavlink_mode, failsafe_action);
 			}
 
 		} else {
