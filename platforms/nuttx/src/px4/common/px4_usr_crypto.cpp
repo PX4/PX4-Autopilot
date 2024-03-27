@@ -77,7 +77,7 @@ void PX4Crypto::close()
 	boardctl(CRYPTOIOCCLOSE, reinterpret_cast<unsigned long>(&_crypto_handle));
 }
 
-bool PX4Crypto::signature_check(uint8_t  key_index,
+bool PX4Crypto::signature_check(uint8_t key_index,
 				const uint8_t *signature,
 				const uint8_t *message,
 				size_t message_size)
@@ -87,7 +87,17 @@ bool PX4Crypto::signature_check(uint8_t  key_index,
 	return data.ret;
 }
 
-bool PX4Crypto::encrypt_data(uint8_t  key_index,
+bool PX4Crypto::sign(uint8_t key_index,
+		     uint8_t *signature,
+		     const uint8_t *message,
+		     size_t message_size)
+{
+	cryptoiocsign_t data = {&_crypto_handle, key_index, signature, message, message_size, false};
+	boardctl(CRYPTOIOCSIGN, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
+}
+
+bool PX4Crypto::encrypt_data(uint8_t key_index,
 			     const uint8_t *message,
 			     size_t message_size,
 			     uint8_t *cipher,
@@ -118,6 +128,15 @@ bool PX4Crypto::generate_key(uint8_t idx,
 {
 	cryptoiocgenkey_t data = {&_crypto_handle, idx, persistent, false};
 	boardctl(CRYPTOIOCGENKEY, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
+}
+
+bool PX4Crypto::generate_keypair(size_t key_size,
+				 uint8_t key_idx,
+				 bool persistent)
+{
+	cryptoiocgenkeypair_t data = {&_crypto_handle, key_size, key_idx, persistent, false};
+	boardctl(CRYPTOIOCGENKEYPAIR, reinterpret_cast<unsigned long>(&data));
 	return data.ret;
 }
 
