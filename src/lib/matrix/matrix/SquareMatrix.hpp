@@ -64,6 +64,20 @@ public:
 		return {x0, y0, this};
 	}
 
+
+
+	// operator SquareMatrix<double>() const
+	// {
+	// 	return SquareMatrix<double>((double)(*this)(0), (double)(*this)(1), (double)(*this)(2), (double)(*this)(3));
+	// }
+
+	// operator SquareMatrix<float>() const
+	// {
+	// 	return SquareMatrix<float>((float)(*this)(0), (float)(*this)(1), (float)(*this)(2), (float)(*this)(3));
+	// }
+
+
+
 	// inverse alias
 	inline SquareMatrix<Type, M> I() const
 	{

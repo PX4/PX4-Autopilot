@@ -118,8 +118,10 @@ void Ekf::controlMagHeadingFusion(const magSample &mag_sample, const bool common
 				aid_src.time_last_fuse = _time_delayed_us;
 
 			} else {
+				ekf_float_t innov_var;
 				VectorState H_YAW;
-				computeYawInnovVarAndH(aid_src.observation_variance, aid_src.innovation_variance, H_YAW);
+				computeYawInnovVarAndH(aid_src.observation_variance, innov_var, H_YAW);
+				aid_src.innovation_variance = innov_var;
 
 				if ((aid_src.innovation_variance - aid_src.observation_variance) > sq(_params.mag_heading_noise / 2.f)) {
 					// Only fuse mag to constrain the yaw variance to a safe value

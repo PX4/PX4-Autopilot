@@ -63,12 +63,12 @@ void Ekf::controlDragFusion(const imuSample &imu_delayed)
 
 void Ekf::fuseDrag(const dragSample &drag_sample)
 {
-	const float R_ACC = fmaxf(_params.drag_noise, 0.5f); // observation noise variance in specific force drag (m/sec**2)**2
-	const float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
+	const ekf_float_t R_ACC = math::max(_params.drag_noise, 0.5f); // observation noise variance in specific force drag (m/sec**2)**2
+	const ekf_float_t rho = math::max(_air_density, 0.1f); // air density (kg/m**3)
 
 	// correct rotor momentum drag for increase in required rotor mass flow with altitude
 	// obtained from momentum disc theory
-	const float mcoef_corrrected = fmaxf(_params.mcoef * sqrtf(rho / atmosphere::kAirDensitySeaLevelStandardAtmos), 0.f);
+	const ekf_float_t mcoef_corrrected = math::max(_params.mcoef * sqrtf(rho / atmosphere::kAirDensitySeaLevelStandardAtmos), 0.f);
 
 	// drag model parameters
 	const bool using_bcoef_x = _params.bcoef_x > 1.0f;
@@ -80,14 +80,14 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	}
 
 	// calculate relative wind velocity in earth frame and rotate into body frame
-	const Vector3f rel_wind_earth(_state.vel(0) - _state.wind_vel(0),
+	const Vector3<ekf_float_t> rel_wind_earth(_state.vel(0) - _state.wind_vel(0),
 				      _state.vel(1) - _state.wind_vel(1),
 				      _state.vel(2));
-	const Vector3f rel_wind_body = _state.quat_nominal.rotateVectorInverse(rel_wind_earth);
-	const float rel_wind_speed = rel_wind_body.norm();
+	const Vector3<ekf_float_t> rel_wind_body = _state.quat_nominal.rotateVectorInverse(rel_wind_earth);
+	const ekf_float_t rel_wind_speed = rel_wind_body.norm();
 	const auto state_vector_prev = _state.vector();
 
-	Vector2f bcoef_inv{0.f, 0.f};
+	Vector2<ekf_float_t> bcoef_inv{0.f, 0.f};
 
 	if (using_bcoef_x) {
 		bcoef_inv(0) = 1.f / _params.bcoef_x;
@@ -101,7 +101,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 		// Interpolate between the X and Y bluff body drag coefficients using current relative velocity
 		// This creates an elliptic drag distribution around the XY plane
-		bcoef_inv(0) = Vector2f(bcoef_inv.emult(rel_wind_body.xy()) / rel_wind_body.xy().norm()).norm();
+		bcoef_inv(0) = Vector2<ekf_float_t>(bcoef_inv.emult(rel_wind_body.xy()) / rel_wind_body.xy().norm()).norm();
 		bcoef_inv(1) = bcoef_inv(0);
 	}
 
@@ -115,12 +115,12 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
 		// measured drag acceleration corrected for sensor bias
-		const float mea_acc = drag_sample.accelXY(axis_index) - _state.accel_bias(axis_index);
+		const ekf_float_t mea_acc = drag_sample.accelXY(axis_index) - _state.accel_bias(axis_index);
 
 		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
 		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed
 		// parallel to the rotor disc and mass flow through the rotor disc.
-		const float pred_acc = -0.5f * bcoef_inv(axis_index) * rho * rel_wind_body(axis_index) * rel_wind_speed - rel_wind_body(axis_index) * mcoef_corrrected;
+		const ekf_float_t pred_acc = -0.5f * bcoef_inv(axis_index) * rho * rel_wind_body(axis_index) * rel_wind_speed - rel_wind_body(axis_index) * mcoef_corrrected;
 
 		_aid_src_drag.observation[axis_index] = mea_acc;
 		_aid_src_drag.observation_variance[axis_index] = R_ACC;
@@ -128,16 +128,22 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		_aid_src_drag.innovation_variance[axis_index] = NAN; // reset
 
 		if (axis_index == 0) {
-			sym::ComputeDragXInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
-						      &_aid_src_drag.innovation_variance[axis_index], &H);
+			ekf_float_t innovation_variance = 0;
+			sym::ComputeDragXInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, (ekf_float_t)FLT_EPSILON,
+						      &innovation_variance, &H);
+
+			_aid_src_drag.innovation_variance[axis_index] = innovation_variance;
 
 			if (!using_bcoef_x && !using_mcoef) {
 				continue;
 			}
 
 		} else if (axis_index == 1) {
-			sym::ComputeDragYInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
-						      &_aid_src_drag.innovation_variance[axis_index], &H);
+			ekf_float_t innovation_variance = 0;
+			sym::ComputeDragYInnovVarAndH(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, (ekf_float_t)FLT_EPSILON,
+						      &innovation_variance, &H);
+
+			_aid_src_drag.innovation_variance[axis_index] = innovation_variance;
 
 			if (!using_bcoef_y && !using_mcoef) {
 				continue;

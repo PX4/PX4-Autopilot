@@ -141,4 +141,4 @@ add_library(ecl_EKF
 add_dependencies(ecl_EKF prebuild_targets)
 target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PATH})
 target_link_libraries(ecl_EKF PRIVATE geo world_magnetic_model)
-target_compile_options(ecl_EKF PRIVATE -fno-associative-math)
+target_compile_options(ecl_EKF PRIVATE -fno-associative-math -Wno-double-promotion -Wno-error)

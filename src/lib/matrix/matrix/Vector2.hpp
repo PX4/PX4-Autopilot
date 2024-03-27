@@ -40,6 +40,14 @@ public:
 		v(1) = y;
 	}
 
+	template<typename S>
+	Vector2(const Vector<S, 2> &other)
+	{
+		Vector2 &v(*this);
+		v(0) = static_cast<Type>(other(0));
+		v(1) = static_cast<Type>(other(1));
+	}
+
 	using base = Vector<Type, 2>;
 	using base::base;
 
@@ -59,6 +67,17 @@ public:
 	Type operator%(const Matrix21 &b) const
 	{
 		return (*this).cross(b);
+	}
+
+
+	operator Vector2<double>() const
+	{
+		return Vector2<double>((double)(*this)(0), (double)(*this)(1));
+	}
+
+	operator Vector2<float>() const
+	{
+		return Vector2<float>((float)(*this)(0), (float)(*this)(1));
 	}
 
 };

@@ -557,31 +557,31 @@ void Ekf::fuse(const VectorState &K, float innovation)
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// vel
-	_state.vel = matrix::constrain(_state.vel - K.slice<State::vel.dof, 1>(State::vel.idx, 0) * innovation, -1.e3f, 1.e3f);
+	_state.vel = matrix::constrain(_state.vel - K.slice<State::vel.dof, 1>(State::vel.idx, 0) * innovation, (ekf_float_t)-1.e3, (ekf_float_t)1.e3);
 
 	// pos
-	_state.pos = matrix::constrain(_state.pos - K.slice<State::pos.dof, 1>(State::pos.idx, 0) * innovation, -1.e6f, 1.e6f);
+	_state.pos = matrix::constrain(_state.pos - K.slice<State::pos.dof, 1>(State::pos.idx, 0) * innovation, (ekf_float_t)-1.e6, (ekf_float_t)1.e6);
 
 	// gyro_bias
 	_state.gyro_bias = matrix::constrain(_state.gyro_bias - K.slice<State::gyro_bias.dof, 1>(State::gyro_bias.idx, 0) * innovation,
-					-getGyroBiasLimit(), getGyroBiasLimit());
+					 (ekf_float_t)-getGyroBiasLimit(),  (ekf_float_t)getGyroBiasLimit());
 
 	// accel_bias
 	_state.accel_bias = matrix::constrain(_state.accel_bias - K.slice<State::accel_bias.dof, 1>(State::accel_bias.idx, 0) * innovation,
-					-getAccelBiasLimit(), getAccelBiasLimit());
+					 (ekf_float_t)-getAccelBiasLimit(),  (ekf_float_t)getAccelBiasLimit());
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// mag_I, mag_B
 	if (_control_status.flags.mag) {
-		_state.mag_I = matrix::constrain(_state.mag_I - K.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) * innovation, -1.f, 1.f);
-		_state.mag_B = matrix::constrain(_state.mag_B - K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation, -getMagBiasLimit(), getMagBiasLimit());
+		_state.mag_I = matrix::constrain(_state.mag_I - K.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) * innovation, (ekf_float_t)-1.,  (ekf_float_t)1.);
+		_state.mag_B = matrix::constrain(_state.mag_B - K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation, (ekf_float_t)-getMagBiasLimit(), (ekf_float_t)getMagBiasLimit());
 	}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
 	// wind_vel
 	if (_control_status.flags.wind) {
-		_state.wind_vel = matrix::constrain(_state.wind_vel - K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation, -1.e2f, 1.e2f);
+		_state.wind_vel = matrix::constrain(_state.wind_vel - K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation, (ekf_float_t)-1.e2, (ekf_float_t)1.e2);
 	}
 #endif // CONFIG_EKF2_WIND
 }
@@ -660,20 +660,20 @@ void Ekf::updateVerticalDeadReckoningStatus()
 	}
 }
 
-Vector3f Ekf::getRotVarNed() const
+Vector3<ekf_float_t> Ekf::getRotVarNed() const
 {
 	const matrix::SquareMatrix3f rot_cov_body = getStateCovariance<State::quat_nominal>();
-	return matrix::SquareMatrix<float, State::quat_nominal.dof>(_R_to_earth * rot_cov_body * _R_to_earth.T()).diag();
+	return matrix::SquareMatrix<ekf_float_t, State::quat_nominal.dof>(_R_to_earth * rot_cov_body * _R_to_earth.T()).diag();
 }
 
-float Ekf::getYawVar() const
+ekf_float_t Ekf::getYawVar() const
 {
 	return getRotVarNed()(2);
 }
 
-float Ekf::getTiltVariance() const
+ekf_float_t Ekf::getTiltVariance() const
 {
-	const Vector3f rot_var_ned = getRotVarNed();
+	const Vector3<ekf_float_t> rot_var_ned = getRotVarNed();
 	return rot_var_ned(0) + rot_var_ned(1);
 }
 
@@ -708,7 +708,7 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	const Quatf quat_before_reset = _state.quat_nominal;
 
 	// save a copy of covariance in NED frame to restore it after the quat reset
-	Vector3f rot_var_ned_before_reset = getRotVarNed();
+	Vector3<ekf_float_t> rot_var_ned_before_reset = getRotVarNed();
 
 	// update the yaw angle variance
 	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {

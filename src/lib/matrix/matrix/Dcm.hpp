@@ -157,6 +157,19 @@ public:
 		dcm = Quaternion<Type>(aa);
 	}
 
+
+	template<typename S>
+	Dcm(const Dcm<S> &aa)
+	{
+		Dcm &dcm = *this;
+
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++) {
+				dcm(i, j) = static_cast<Type>(aa(i, j));
+			}
+		}
+	}
+
 	Vector3<Type> vee() const // inverse to Vector.hat() operation
 	{
 		const Dcm &A(*this);

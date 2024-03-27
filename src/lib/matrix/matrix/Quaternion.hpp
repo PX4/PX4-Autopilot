@@ -87,6 +87,16 @@ public:
 	{
 	}
 
+	template<typename S>
+	Quaternion(const Quaternion<S> &other)
+	{
+		Quaternion &v(*this);
+		v(0) = static_cast<Type>(other(0));
+		v(1) = static_cast<Type>(other(1));
+		v(2) = static_cast<Type>(other(2));
+		v(3) = static_cast<Type>(other(3));
+	}
+
 	/**
 	 * Constructor from dcm
 	 *
@@ -538,6 +548,20 @@ public:
 		R_z(2) = a * a - b * b - c * c + d * d;
 		return R_z;
 	}
+
+
+	operator Quaternion<double>() const
+	{
+		return Quaternion<double>((double)(*this)(0), (double)(*this)(1), (double)(*this)(2), (double)(*this)(3));
+	}
+
+	operator Quaternion<float>() const
+	{
+		return Quaternion<float>((float)(*this)(0), (float)(*this)(1), (float)(*this)(2), (float)(*this)(3));
+	}
+
+
+
 };
 
 using Quatf = Quaternion<float>;

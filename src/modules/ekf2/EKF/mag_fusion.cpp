@@ -54,16 +54,16 @@
 bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states)
 {
 	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
-	const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
+	const ekf_float_t R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
 
 	// calculate intermediate variables used for X axis innovation variance, observation Jacobians and Kalman gains
-	Vector3f mag_innov;
-	Vector3f innov_var;
+	Vector3<ekf_float_t> mag_innov;
+	Vector3<ekf_float_t> innov_var;
 
 	// Observation jacobian and Kalman gain vectors
 	VectorState H;
 	const auto state_vector = _state.vector();
-	sym::ComputeMagInnovInnovVarAndHx(state_vector, P, mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
+	sym::ComputeMagInnovInnovVarAndHx(state_vector, P, Vector3<ekf_float_t>(mag), R_MAG, (ekf_float_t)FLT_EPSILON, &mag_innov, &innov_var, &H);
 
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
@@ -127,7 +127,9 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
-			sym::ComputeMagYInnovVarAndH(state_vector, P, R_MAG, FLT_EPSILON, &aid_src_mag.innovation_variance[index], &H);
+			ekf_float_t innovation_variance;
+			sym::ComputeMagYInnovVarAndH(state_vector, P, (ekf_float_t)R_MAG, (ekf_float_t)FLT_EPSILON, &innovation_variance, &H);
+			aid_src_mag.innovation_variance[index] = innovation_variance;
 
 			// recalculate innovation using the updated state
 			aid_src_mag.innovation[index] = _state.quat_nominal.rotateVectorInverse(_state.mag_I)(index) + _state.mag_B(index) - mag(index);
@@ -155,7 +157,9 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 			}
 
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
-			sym::ComputeMagZInnovVarAndH(state_vector, P, R_MAG, FLT_EPSILON, &aid_src_mag.innovation_variance[index], &H);
+			ekf_float_t innovation_variance;
+			sym::ComputeMagZInnovVarAndH(state_vector, P, (ekf_float_t)R_MAG, (ekf_float_t)FLT_EPSILON, &innovation_variance, &H);
+			aid_src_mag.innovation_variance[index] = innovation_variance;
 
 			// recalculate innovation using the updated state
 			aid_src_mag.innovation[index] = _state.quat_nominal.rotateVectorInverse(_state.mag_I)(index) + _state.mag_B(index) - mag(index);
@@ -182,8 +186,8 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 			// zero non-mag Kalman gains if not updating all states
 
 			// copy mag_I and mag_B Kalman gains
-			const Vector3f K_mag_I = Kfusion.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0);
-			const Vector3f K_mag_B = Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0);
+			const Vector3<ekf_float_t> K_mag_I = Kfusion.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0);
+			const Vector3<ekf_float_t> K_mag_B = Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0);
 
 			// zero all Kalman gains, then restore mag
 			Kfusion.setZero();
@@ -246,10 +250,10 @@ bool Ekf::fuseDeclination(float decl_sigma)
 		const float R_DECL = sq(decl_sigma);
 
 		VectorState H;
-		float decl_pred;
-		float innovation_variance;
+		ekf_float_t decl_pred;
+		ekf_float_t innovation_variance;
 
-		sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON, &decl_pred, &innovation_variance, &H);
+		sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, (ekf_float_t)R_DECL, (ekf_float_t)FLT_EPSILON, &decl_pred, &innovation_variance, &H);
 
 		const float innovation = wrap_pi(decl_pred - decl_measurement);
 

@@ -71,9 +71,8 @@ enum class Likelihood { LOW, MEDIUM, HIGH };
 class Ekf final : public EstimatorInterface
 {
 public:
-	typedef matrix::Vector<float, State::size> VectorState;
-	typedef matrix::SquareMatrix<float, State::size> SquareMatrixState;
-	typedef matrix::SquareMatrix<float, 2> Matrix2f;
+	typedef matrix::Vector<ekf_float_t, State::size> VectorState;
+	typedef matrix::SquareMatrix<ekf_float_t, State::size> SquareMatrixState;
 
 	Ekf()
 	{
@@ -237,31 +236,31 @@ public:
 
 #if defined(CONFIG_EKF2_WIND)
 	// get the wind velocity in m/s
-	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
-	Vector2f getWindVelocityVariance() const { return getStateVariance<State::wind_vel>(); }
+	const auto &getWindVelocity() const { return _state.wind_vel; };
+	auto getWindVelocityVariance() const { return getStateVariance<State::wind_vel>(); }
 #endif // CONFIG_EKF2_WIND
 
 	template <const IdxDof &S>
-	matrix::Vector<float, S.dof>getStateVariance() const { return P.slice<S.dof, S.dof>(S.idx, S.idx).diag(); } // calling getStateCovariance().diag() uses more flash space
+	matrix::Vector<ekf_float_t, S.dof>getStateVariance() const { return P.slice<S.dof, S.dof>(S.idx, S.idx).diag(); } // calling getStateCovariance().diag() uses more flash space
 
 	template <const IdxDof &S>
-	matrix::SquareMatrix<float, S.dof>getStateCovariance() const { return P.slice<S.dof, S.dof>(S.idx, S.idx); }
+	matrix::SquareMatrix<ekf_float_t, S.dof>getStateCovariance() const { return P.slice<S.dof, S.dof>(S.idx, S.idx); }
 
 	// get the full covariance matrix
-	const matrix::SquareMatrix<float, State::size> &covariances() const { return P; }
-	float stateCovariance(unsigned r, unsigned c) const { return P(r, c); }
+	const matrix::SquareMatrix<ekf_float_t, State::size> &covariances() const { return P; }
+	const auto &stateCovariance(unsigned r, unsigned c) const { return P(r, c); }
 
 	// get the diagonal elements of the covariance matrix
-	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
+	matrix::Vector<ekf_float_t, State::size> covariances_diagonal() const { return P.diag(); }
 
-	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
-	matrix::Vector3f getRotVarNed() const;
-	float getYawVar() const;
-	float getTiltVariance() const;
+	matrix::Vector<ekf_float_t, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
+	matrix::Vector3<ekf_float_t> getRotVarNed() const;
+	ekf_float_t getYawVar() const;
+	ekf_float_t getTiltVariance() const;
 
-	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
+	auto getVelocityVariance() const { return getStateVariance<State::vel>(); };
 
-	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
+	auto getPositionVariance() const { return getStateVariance<State::pos>(); }
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
@@ -331,21 +330,21 @@ public:
 	bool fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
 
 	// gyro bias
-	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
-	Vector3f getGyroBiasVariance() const { return getStateVariance<State::gyro_bias>(); } // get the gyroscope bias variance in rad/s
+	const auto &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
+	auto getGyroBiasVariance() const { return getStateVariance<State::gyro_bias>(); } // get the gyroscope bias variance in rad/s
 	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
 	float getGyroNoise() const { return _params.gyro_noise; }
 
 	// accel bias
-	const Vector3f &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
-	Vector3f getAccelBiasVariance() const { return getStateVariance<State::accel_bias>(); } // get the accelerometer bias variance in m/s**2
+	const auto &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
+	auto getAccelBiasVariance() const { return getStateVariance<State::accel_bias>(); } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	const Vector3f &getMagEarthField() const { return _state.mag_I; }
+	const auto &getMagEarthField() const { return _state.mag_I; }
 
-	const Vector3f &getMagBias() const { return _state.mag_B; }
-	Vector3f getMagBiasVariance() const { return getStateVariance<State::mag_B>(); } // get the mag bias variance in Gauss
+	const auto &getMagBias() const { return _state.mag_B; }
+	auto getMagBiasVariance() const { return getStateVariance<State::mag_B>(); } // get the mag bias variance in Gauss
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -468,14 +467,14 @@ public:
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 #endif // CONFIG_EKF2_AUXVEL
 
-	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+	bool measurementUpdate(VectorState &K, const VectorState &H, const ekf_float_t R, const ekf_float_t innovation)
 	{
 		clearInhibitedStateKalmanGains(K);
 
 #if false
 		// Matrix implementation of the Joseph stabilized covariance update
 		// This is extremely expensive to compute. Use for debugging purposes only.
-		auto A = matrix::eye<float, State::size>();
+		auto A = matrix::eye<ekf_float_t, State::size>();
 		A -= K.multiplyByTranspose(H);
 		P = A * P;
 		P = P.multiplyByTranspose(A);
@@ -536,8 +535,8 @@ private:
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
 
-	static constexpr float kGyroBiasVarianceMin{1e-9f};
-	static constexpr float kAccelBiasVarianceMin{1e-9f};
+	static constexpr float kGyroBiasVarianceMin{1e-12f};
+	static constexpr float kAccelBiasVarianceMin{1e-12f};
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	static constexpr float kMagVarianceMin = 1e-6f;
@@ -581,7 +580,7 @@ private:
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
 
-	Vector3f _last_known_pos{};		///< last known local position vector (m)
+	Vector3<ekf_float_t> _last_known_pos{};		///< last known local position vector (m)
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
 
@@ -762,7 +761,7 @@ private:
 	void predictCovariance(const imuSample &imu_delayed);
 
 	template <const IdxDof &S>
-	void resetStateCovariance(const matrix::SquareMatrix<float, S.dof> &cov)
+	void resetStateCovariance(const matrix::SquareMatrix<ekf_float_t, S.dof> &cov)
 	{
 		P.uncorrelateCovarianceSetVariance<S.dof>(S.idx, 0.0f);
 		P.slice<S.dof, S.dof>(S.idx, S.idx) = cov;
@@ -771,7 +770,7 @@ private:
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
-	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
+	void computeYawInnovVarAndH(ekf_float_t variance, ekf_float_t &innovation_variance, VectorState &H_YAW) const;
 
 	void updateIMUBiasInhibit(const imuSample &imu_delayed);
 

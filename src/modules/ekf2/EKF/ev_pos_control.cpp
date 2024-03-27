@@ -147,7 +147,8 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 	if (!bias_fusion_was_active && _ev_pos_b_est.fusionActive()) {
 		if (quality_sufficient) {
 			// reset the bias estimator
-			_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
+			Vector2f pos_xy(-_state.pos(0), -_state.pos(1));
+			_ev_pos_b_est.setBias(-pos_xy + measurement);
 
 		} else if (isOtherSourceOfHorizontalAidingThan(_control_status.flags.ev_pos)) {
 			// otherwise stop EV position, when quality is good again it will restart with reset bias
@@ -166,7 +167,10 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 	if (measurement_valid && quality_sufficient) {
 		_ev_pos_b_est.setMaxStateNoise(Vector2f(sqrtf(measurement_var(0)), sqrtf(measurement_var(1))));
 		_ev_pos_b_est.setProcessNoiseSpectralDensity(_params.ev_hgt_bias_nsd); // TODO
-		_ev_pos_b_est.fuseBias(measurement - Vector2f(_state.pos.xy()), measurement_var + Vector2f(getStateVariance<State::pos>()));
+
+		Vector2f pos_xy(-_state.pos(0), -_state.pos(1));
+		Vector2f pos_var(getStateVariance<State::pos>()(0), getStateVariance<State::pos>()(1));
+		_ev_pos_b_est.fuseBias(measurement - pos_xy, measurement_var + pos_var);
 	}
 
 	if (!measurement_valid) {
@@ -203,7 +207,9 @@ void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurem
 	// TODO:  (_params.position_sensor_ref == PositionSensor::EV)
 	if (_control_status.flags.gps) {
 		ECL_INFO("starting %s fusion", EV_AID_SRC_NAME);
-		_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
+
+		Vector2f pos_xy(-_state.pos(0), -_state.pos(1));
+		_ev_pos_b_est.setBias(-pos_xy + measurement);
 		_ev_pos_b_est.setFusionActive();
 
 	} else {
@@ -234,7 +240,8 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 				_ev_pos_b_est.reset();
 
 			} else {
-				_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
+				Vector2f pos_xy(-_state.pos(0), -_state.pos(1));
+				_ev_pos_b_est.setBias(-pos_xy + measurement);
 			}
 
 			aid_src.time_last_fuse = _time_delayed_us;
@@ -264,14 +271,16 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 
 			if (_control_status.flags.gps && !pos_xy_fusion_failing) {
 				// reset EV position bias
-				_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
+				Vector2f pos_xy(-_state.pos(0), -_state.pos(1));
+				_ev_pos_b_est.setBias(-pos_xy + measurement);
 
 			} else {
 				_information_events.flags.reset_pos_to_vision = true;
 
 				if (_control_status.flags.gps) {
 					resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
-					_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
+					Vector2f pos_xy(-_state.pos(0), -_state.pos(1));
+					_ev_pos_b_est.setBias(-pos_xy + measurement);
 
 				} else {
 					resetHorizontalPositionTo(measurement, measurement_var);

@@ -55,6 +55,18 @@ public:
 		}
 	}
 
+	template<typename S>
+	Matrix(const Matrix<S, M, N> &aa)
+	{
+		Matrix &m = *this;
+
+		for (size_t i = 0; i < M; i++) {
+			for (size_t j = 0; j < N; j++) {
+				m(i, j) = static_cast<Type>(aa(i, j));
+			}
+		}
+	}
+
 	template<size_t P, size_t Q>
 	Matrix(const Slice<Type, M, N, P, Q> &in_slice)
 	{
@@ -115,7 +127,8 @@ public:
 		return (*this);
 	}
 
-	void copyTo(Type dst[M * N]) const
+	template<typename FloatType>
+	void copyTo(FloatType dst[M * N]) const
 	{
 		const Matrix<Type, M, N> &self = *this;
 
@@ -753,8 +766,8 @@ Type max(const Type x, const Type y)
 	return (x > y) ? x : y;
 }
 
-template<typename Type>
-Type constrain(const Type x, const Type lower_bound, const Type upper_bound)
+template<typename Type1, typename Type2>
+Type1 constrain(const Type1 x, const Type2 lower_bound, const Type2 upper_bound)
 {
 	if (lower_bound > upper_bound) {
 		return NAN;

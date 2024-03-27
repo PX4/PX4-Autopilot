@@ -224,6 +224,9 @@ px4_add_module(
 		-fno-associative-math
 		#-DDEBUG_BUILD
 		#-O0
+		-Wno-double-promotion
+		#-Wno-error
+		# single precision literal?
 	INCLUDES
 		EKF
 		EKF/aid_sources
