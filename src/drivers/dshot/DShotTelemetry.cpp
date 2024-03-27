@@ -183,6 +183,9 @@ bool DShotTelemetry::decodeByte(uint8_t byte, bool &successful_decoding)
 				  _latest_data.erpm);
 			++_num_successful_responses;
 			successful_decoding = true;
+
+		} else {
+			++_num_checksum_errors;
 		}
 
 		return true;
@@ -195,6 +198,7 @@ void DShotTelemetry::printStatus() const
 {
 	PX4_INFO("Number of successful ESC frames: %i", _num_successful_responses);
 	PX4_INFO("Number of timeouts: %i", _num_timeouts);
+	PX4_INFO("Number of CRC errors: %i", _num_checksum_errors);
 }
 
 uint8_t DShotTelemetry::updateCrc8(uint8_t crc, uint8_t crc_seed)

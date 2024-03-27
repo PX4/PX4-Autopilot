@@ -87,7 +87,6 @@ typedef struct io_timers_t {
 	uint32_t  clock_register;      /* SIM_SCGCn */
 	uint32_t  clock_bit;           /* SIM_SCGCn bit pos */
 	uint32_t  vectorno;            /* IRQ number */
-	dshot_conf_t	dshot;
 } io_timers_t;
 
 typedef struct io_timers_channel_mapping_element_t {
@@ -112,6 +111,7 @@ typedef struct timer_io_channels_t {
 	uint8_t   sub_module;          /* 0 based sub module offset */
 	uint8_t   sub_module_bits;     /* LDOK and CLDOK bits */
 	uint8_t   timer_channel;       /* Unused */
+	dshot_conf_t	dshot;
 } timer_io_channels_t;
 
 #define SM0           0

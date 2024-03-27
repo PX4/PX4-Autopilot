@@ -267,6 +267,10 @@
 
 // This is the ENET_1G interface.
 
+/* Dshot Disambiguation *******************************************************/
+
+#define IOMUX_DSHOT_DEFAULT             (IOMUX_DRIVE_HIGHSTRENGTH | IOMUX_SLEW_FAST)
+
 // Compile time selection
 #if defined(CONFIG_ETH0_PHY_TJA1103)
 #  define BOARD_PHY_ADDR (18)

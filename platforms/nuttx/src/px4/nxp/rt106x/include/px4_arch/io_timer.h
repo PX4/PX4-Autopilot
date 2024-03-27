@@ -41,6 +41,7 @@
 #include <nuttx/irq.h>
 
 #include <drivers/drv_hrt.h>
+#include "dshot.h"
 
 #pragma once
 __BEGIN_DECLS
@@ -110,6 +111,7 @@ typedef struct timer_io_channels_t {
 	uint8_t   sub_module;          /* 0 based sub module offset */
 	uint8_t   sub_module_bits;     /* LDOK and CLDOK bits */
 	uint8_t   timer_channel;       /* Unused */
+	dshot_conf_t dshot;
 } timer_io_channels_t;
 
 #define SM0           0

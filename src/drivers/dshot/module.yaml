@@ -33,6 +33,16 @@ parameters:
                     When mixer outputs 1000 or value inside DSHOT 3D deadband, DShot 0 is sent.
             type: boolean
             default: 0
+        DSHOT_BIDIR_EN:
+            description:
+                short: Enable bidirectional DShot
+                long: |
+                    This parameter enables bidirectional DShot which provides RPM feedback.
+                    Note that this requires ESCs that support bidirectional DSHot, e.g. BlHeli32.
+                    This is not the same as DShot telemetry which requires an additional serial connection.
+            type: boolean
+            default: 0
+            reboot_required: true
         DSHOT_3D_DEAD_H:
             description:
                 short: DSHOT 3D deadband high

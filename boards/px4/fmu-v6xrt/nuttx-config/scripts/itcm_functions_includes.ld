@@ -1,4 +1,5 @@
 /* Static */
+*(.text.flexio_irq_handler)
 *(.text.arm_ack_irq)
 *(.text.arm_doirq)
 *(.text.arm_svcall)
