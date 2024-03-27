@@ -442,17 +442,6 @@ extern "C" {
 		return (count) ? count : ret;
 	}
 
-	int px4_access(const char *pathname, int mode)
-	{
-		if (mode != F_OK) {
-			errno = EINVAL;
-			return -1;
-		}
-
-		cdev::CDev *dev = getDev(pathname);
-		return (dev != nullptr) ? 0 : -1;
-	}
-
 	void px4_show_files()
 	{
 		PX4_INFO("Files:");

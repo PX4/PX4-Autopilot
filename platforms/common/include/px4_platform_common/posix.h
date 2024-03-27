@@ -104,6 +104,12 @@ typedef struct {
 // Qurt has no fsync implementation so need to declare one here
 // and then define a fake one in the Qurt platform code.
 void fsync(int fd);
+
+// The access function on Qurt is defined but it crashes if you use it!
+// So, on Qurt, we will use px4_access instead of access and create a benign
+// implementation of it
+int px4_access(const char *pathname, int mode);
+
 // Qurt doesn't have a way to set the scheduler policy. It is always, essentially,
 // SCHED_FIFO. So have to add a fake function for the code that tries to set it.
 #include <pthread.h>
@@ -113,13 +119,17 @@ __EXPORT int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
 #define SIGCONT SIGALRM
 #endif
 
+// For non-Qurt Posix platforms just use the normal access
+#if ! defined(__PX4_QURT)
+#define px4_access access
+#endif
+
 __EXPORT int 		px4_open(const char *path, int flags, ...);
 __EXPORT int 		px4_close(int fd);
 __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
 __EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
 __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, unsigned int nfds, int timeout);
-__EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT px4_task_t	px4_getpid(void);
 
 __END_DECLS
