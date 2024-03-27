@@ -86,7 +86,10 @@ typedef struct dshot_handler_t {
 	uint32_t		crc_error_cnt;
 	uint32_t		frame_error_cnt;
 	uint32_t		no_response_cnt;
+	uint32_t		last_no_response_cnt;
 } dshot_handler_t;
+
+#define BDSHOT_OFFLINE_COUNT 400 // If there are no responses for 400 setpoints ESC is offline
 
 static dshot_handler_t dshot_inst[DSHOT_TIMERS] = {};
 
@@ -390,6 +393,7 @@ void up_bdshot_erpm(void)
 				} else {
 					dshot_inst[channel].erpm = ~(erpm >> 4) & 0xFFF;
 					bdshot_parsed_recv_mask |= (1 << channel);
+					dshot_inst[channel].last_no_response_cnt = dshot_inst[channel].no_response_cnt;
 				}
 
 			} else {
@@ -411,6 +415,14 @@ int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 	return -1;
 }
 
+int up_bdshot_channel_status(uint8_t channel)
+{
+	if (channel < DSHOT_TIMERS) {
+		return ((dshot_inst[channel].no_response_cnt - dshot_inst[channel].last_no_response_cnt) < BDSHOT_OFFLINE_COUNT);
+	}
+
+	return -1;
+}
 
 void up_bdshot_status(void)
 {
@@ -418,7 +430,8 @@ void up_bdshot_status(void)
 	for (uint8_t channel = 0; (channel < DSHOT_TIMERS); channel++) {
 
 		if (dshot_inst[channel].init) {
-			PX4_INFO("Channel %i Last erpm %i value", channel, dshot_inst[channel].erpm);
+			PX4_INFO("Channel %i %s Last erpm %i value", channel, up_bdshot_channel_status(channel) ? "online" : "offline",
+				 dshot_inst[channel].erpm);
 			PX4_INFO("CRC errors Frame error No response");
 			PX4_INFO("%10lu %11lu %11lu", dshot_inst[channel].crc_error_cnt, dshot_inst[channel].frame_error_cnt,
 				 dshot_inst[channel].no_response_cnt);
