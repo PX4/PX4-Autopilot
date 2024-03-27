@@ -138,6 +138,19 @@ bool crypto_generate_key(crypto_session_handle_t handle,
 			 bool persistent);
 
 /*
+ * Generate key pair
+ * handle: Open handle for the crypto session. The key will be generated for
+ *         the crypto algorithm used by this session
+ * key_size: size of the private key
+ * key_idx: The key index, by which the keys can be used
+ * persistent: if set to "true", the keys will be stored into the keystore
+ */
+bool crypto_generate_keypair(crypto_session_handle_t handle,
+			     size_t key_size,
+			     uint8_t key_idx,
+			     bool persistent);
+
+/*
  * Get a key from keystore, possibly encrypted
  *
  * handle: an open crypto context; the returned key will be encrypted
@@ -181,22 +194,39 @@ bool crypto_get_nonce(crypto_session_handle_t handle,
 		      uint8_t *nonce,
 		      size_t *nonce_len);
 
+
+/*
+ * Perform signing using an open session to crypto
+ * handle: session handle, returned by open
+ * key_index: index to the key used for signing
+ * signature: pointer to output signature data
+ * message: pointer to the data to be signed
+ * message_size: size of the data
+ */
+
+bool crypto_signature_gen(crypto_session_handle_t handle,
+			  uint8_t key_index,
+			  uint8_t *signature,
+			  const uint8_t *message,
+			  size_t message_size);
+
 /*
  * Perform signature check using an open session to crypto
  * handle: session handle, returned by open
  * key_index: index to the key used for signature check
+ * signature: pointer to the signature
  * message: pointer to the data to be checked
  * message_size: size of the data
  */
 
 bool crypto_signature_check(crypto_session_handle_t handle,
-			    uint8_t  key_index,
-			    const uint8_t  *signature,
+			    uint8_t key_index,
+			    const uint8_t *signature,
 			    const uint8_t *message,
 			    size_t message_size);
 
 bool crypto_encrypt_data(crypto_session_handle_t handle,
-			 uint8_t  key_index,
+			 uint8_t key_index,
 			 const uint8_t *message,
 			 size_t message_size,
 			 uint8_t *cipher,
@@ -253,7 +283,7 @@ typedef struct cryptoiocopen {
 #define CRYPTOIOCENCRYPT _CRYPTOIOC(3)
 typedef struct cryptoiocencrypt {
 	crypto_session_handle_t *handle;
-	uint8_t  key_index;
+	uint8_t key_index;
 	const uint8_t *message;
 	size_t message_size;
 	uint8_t *cipher;
@@ -304,17 +334,27 @@ typedef struct cryptoiocrenewnonce {
 	size_t ret;
 } cryptoiocrenewnonce_t;
 
-#define CRYPTOIOCSIGNATURECHECK _CRYPTOIOC(9)
+#define CRYPTOIOCSIGN _CRYPTOIOC(9)
+typedef struct cryptoiocsign {
+	crypto_session_handle_t *handle;
+	uint8_t key_index;
+	uint8_t *signature;
+	const uint8_t *message;
+	size_t message_size;
+	size_t ret;
+} cryptoiocsign_t;
+
+#define CRYPTOIOCSIGNATURECHECK _CRYPTOIOC(10)
 typedef struct cryptoiocsignaturecheck {
 	crypto_session_handle_t *handle;
-	uint8_t  key_index;
-	const uint8_t  *signature;
+	uint8_t key_index;
+	const uint8_t *signature;
 	const uint8_t *message;
 	size_t message_size;
 	size_t ret;
 } cryptoiocsignaturecheck_t;
 
-#define CRYPTOIOCDECRYPTDATA _CRYPTOIOC(10)
+#define CRYPTOIOCDECRYPTDATA _CRYPTOIOC(11)
 typedef struct cryptoiocdecryptdata {
 	crypto_session_handle_t *handle;
 	uint8_t key_index;
@@ -326,6 +366,15 @@ typedef struct cryptoiocdecryptdata {
 	size_t *message_size;
 	size_t ret;
 } cryptoiocdecryptdata_t;
+
+#define CRYPTOIOCGENKEYPAIR _CRYPTOIOC(12)
+typedef struct cryptoiocgenkeypair {
+	crypto_session_handle_t *handle;
+	size_t key_size;
+	uint8_t key_idx;
+	bool persistent;
+	bool ret;
+} cryptoiocgenkeypair_t;
 
 #if defined(__cplusplus)
 } // extern "C"

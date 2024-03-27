@@ -117,7 +117,15 @@ void PX4Crypto::close()
 	unlock();
 }
 
-bool PX4Crypto::signature_check(uint8_t  key_index,
+bool PX4Crypto::sign(uint8_t key_index,
+		     uint8_t *signature,
+		     const uint8_t *message,
+		     size_t message_size)
+{
+	return crypto_signature_gen(_crypto_handle, key_index, signature, message, message_size);
+}
+
+bool PX4Crypto::signature_check(uint8_t key_index,
 				const uint8_t *signature,
 				const uint8_t *message,
 				size_t message_size)
@@ -125,7 +133,7 @@ bool PX4Crypto::signature_check(uint8_t  key_index,
 	return crypto_signature_check(_crypto_handle, key_index, signature, message, message_size);
 }
 
-bool PX4Crypto::encrypt_data(uint8_t  key_index,
+bool PX4Crypto::encrypt_data(uint8_t key_index,
 			     const uint8_t *message,
 			     size_t message_size,
 			     uint8_t *cipher,
@@ -152,6 +160,13 @@ bool PX4Crypto::generate_key(uint8_t idx,
 			     bool persistent)
 {
 	return crypto_generate_key(_crypto_handle, idx, persistent);
+}
+
+bool PX4Crypto::generate_keypair(size_t key_size,
+				 uint8_t key_idx,
+				 bool persistent)
+{
+	return crypto_generate_keypair(_crypto_handle, key_size, key_idx, persistent);
 }
 
 bool PX4Crypto::renew_nonce(const uint8_t *nonce,
@@ -209,6 +224,13 @@ int PX4Crypto::crypto_ioctl(unsigned int cmd, unsigned long arg)
 		}
 		break;
 
+
+	case CRYPTOIOCGENKEYPAIR: {
+			cryptoiocgenkeypair_t *data = (cryptoiocgenkeypair_t *)arg;
+			data->ret = crypto_generate_keypair(*(data->handle), data->key_size, data->key_idx, data->persistent);
+		}
+		break;
+
 	case CRYPTOIOCRENEWNONCE: {
 			cryptoiocrenewnonce_t *data = (cryptoiocrenewnonce_t *)arg;
 			data->ret = crypto_renew_nonce(*(data->handle), data->nonce, data->nonce_size);
@@ -226,6 +248,13 @@ int PX4Crypto::crypto_ioctl(unsigned int cmd, unsigned long arg)
 			cryptoiocgetkey_t *data = (cryptoiocgetkey_t *)arg;
 			data->ret = crypto_get_encrypted_key(*(data->handle), data->key_idx, data->key, data->max_len,
 							     data->encryption_key_idx);
+		}
+		break;
+
+	case CRYPTOIOCSIGN: {
+			cryptoiocsign_t *data = (cryptoiocsign_t *)arg;
+			data->ret = crypto_signature_gen(*(data->handle), data->key_index, data->signature, data->message,
+							 data->message_size);
 		}
 		break;
 

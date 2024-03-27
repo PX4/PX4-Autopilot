@@ -97,17 +97,14 @@ public:
 	/*
 	 * Generate a key pair for asymmetric-key encryption
 	 *
-	 * algorithm: the key type
 	 * key_size: size of the key in bytes
-	 * private_idx: the private key will be stored in this index in the keystore
-	 * public_idx: the public key will be stored in this index in the keystore
+	 * key_idx: the keys will be stored in this index in the keystore
 	 * persistent: whether the keys need to be stored persistently
 	 * returns true on success, false on failure
 	*/
 
 	bool generate_keypair(size_t key_size,
-			      uint8_t private_idx,
-			      uint8_t public_idx,
+			      uint8_t key_idx,
 			      bool persistent);
 
 
@@ -174,6 +171,20 @@ public:
 	 */
 
 	/*
+	 * Message signing
+	 *
+	 * key_index: private key index in keystore
+	 * signature: pointer to the output signature
+	 * message: pointer to the data to be signed
+	 * message_size: size of the message in bytes
+	*/
+
+	bool sign(uint8_t key_index,
+		  uint8_t *signature,
+		  const uint8_t *message,
+		  size_t message_size);
+
+	/*
 	 * Verify signature
 	 *
 	 * key_index: public key index in keystore
@@ -182,7 +193,7 @@ public:
 	 * message_size: size of the message in bytes
 	*/
 
-	bool signature_check(uint8_t  key_index,
+	bool signature_check(uint8_t key_index,
 			     const uint8_t *signature,
 			     const uint8_t *message,
 			     size_t message_size);
@@ -203,7 +214,7 @@ public:
 	 * returns true on success, false on failure
 	 */
 
-	bool encrypt_data(uint8_t  key_index,
+	bool encrypt_data(uint8_t key_index,
 			  const uint8_t *message,
 			  size_t message_size,
 			  uint8_t *cipher,

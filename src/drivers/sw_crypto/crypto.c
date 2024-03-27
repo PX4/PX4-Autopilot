@@ -214,9 +214,47 @@ void crypto_close(crypto_session_handle_t *handle)
 	handle->context = NULL;
 }
 
+bool crypto_signature_gen(crypto_session_handle_t handle,
+			  uint8_t key_index,
+			  uint8_t *signature,
+			  const uint8_t *message,
+			  size_t message_size)
+{
+	bool ret = false;
+	size_t keylen = 0;
+	const uint8_t *private_key = NULL;
+
+	if (crypto_session_handle_valid(handle)) {
+		private_key = crypto_get_key_ptr(handle.keystore_handle, key_index, &keylen);
+	}
+
+	if (keylen == 0 || private_key == NULL) {
+		return false;
+	}
+
+	switch (handle.algorithm) {
+	case CRYPTO_ED25519:
+		if (keylen >= 32) {
+			/* In the DER format ed25519 key the raw private key part is always the last 32 bytes.
+			 * This simple "parsing" works for both "raw" key and DER format
+			 */
+			private_key += keylen - 32;
+			crypto_ed25519_sign(signature, private_key, 0, message, message_size);
+			ret = (signature != NULL);
+		}
+
+		break;
+
+	default:
+		ret = false;
+	}
+
+	return ret;
+}
+
 bool crypto_signature_check(crypto_session_handle_t handle,
-			    uint8_t  key_index,
-			    const uint8_t  *signature,
+			    uint8_t key_index,
+			    const uint8_t *signature,
 			    const uint8_t *message,
 			    size_t message_size)
 {
@@ -252,7 +290,7 @@ bool crypto_signature_check(crypto_session_handle_t handle,
 }
 
 bool crypto_encrypt_data(crypto_session_handle_t handle,
-			 uint8_t  key_idx,
+			 uint8_t key_idx,
 			 const uint8_t *message,
 			 size_t message_size,
 			 uint8_t *cipher,
@@ -328,6 +366,14 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
 	}
 
 	return ret;
+}
+
+bool crypto_generate_keypair(crypto_session_handle_t handle,
+			     size_t key_size, uint8_t key_idx,
+			     bool persistent)
+{
+	/* unimplemented */
+	return false;
 }
 
 bool crypto_generate_key(crypto_session_handle_t handle,
