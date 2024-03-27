@@ -68,6 +68,7 @@ uint32_t erpms[DSHOT_TIMERS];
 
 typedef enum {
 	DSHOT_START = 0,
+	DSHOT_12BIT_FIFO,
 	DSHOT_12BIT_TRANSFERRED,
 	DSHOT_TRANSMIT_COMPLETE,
 	BDSHOT_RECEIVE,
@@ -206,11 +207,11 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 		if (flags & (1 << channel)) {
 			disable_shifter_status_interrupts(1 << channel);
 
-			if (dshot_inst[channel].irq_data != 0) {
+			if (dshot_inst[channel].state == DSHOT_START) {
+				dshot_inst[channel].state = DSHOT_12BIT_FIFO;
 				flexio_putreg32(dshot_inst[channel].irq_data, IMXRT_FLEXIO_SHIFTBUF0_OFFSET + channel * 0x4);
-				dshot_inst[channel].irq_data = 0;
 
-			} else if (dshot_inst[channel].irq_data == 0 && dshot_inst[channel].state == BDSHOT_RECEIVE) {
+			} else if (dshot_inst[channel].state == BDSHOT_RECEIVE) {
 				dshot_inst[channel].state = BDSHOT_RECEIVE_COMPLETE;
 				dshot_inst[channel].raw_response = flexio_getreg32(IMXRT_FLEXIO_SHIFTBUFBIS0_OFFSET + channel * 0x4);
 
@@ -226,11 +227,13 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 
 	flags = get_timer_status_flags();
 
-	for (channel = 0; flags && channel < DSHOT_TIMERS; channel++) {
-		clear_timer_status_flags(1 << channel);
+	for (channel = 0; flags; (channel = (channel + 1) % DSHOT_TIMERS)) {
+		flags = get_timer_status_flags();
 
 		if (flags & (1 << channel)) {
-			if (dshot_inst[channel].state == DSHOT_START) {
+			clear_timer_status_flags(1 << channel);
+
+			if (dshot_inst[channel].state == DSHOT_12BIT_FIFO) {
 				dshot_inst[channel].state = DSHOT_12BIT_TRANSFERRED;
 
 			} else if (!dshot_inst[channel].bdshot && dshot_inst[channel].state == DSHOT_12BIT_TRANSFERRED) {
@@ -386,7 +389,7 @@ void up_bdshot_erpm(void)
 
 				} else {
 					dshot_inst[channel].erpm = ~(erpm >> 4) & 0xFFF;
-					//TODO store this or foward this
+					bdshot_parsed_recv_mask |= (1 << channel);
 				}
 
 			} else {
@@ -394,8 +397,6 @@ void up_bdshot_erpm(void)
 			}
 		}
 	}
-
-	bdshot_parsed_recv_mask = bdshot_recv_mask;
 }
 
 
@@ -427,6 +428,11 @@ void up_bdshot_status(void)
 
 void up_dshot_trigger(void)
 {
+	// Calc data now since we're not event driven
+	if (bdshot_recv_mask != 0x0) {
+		up_bdshot_erpm();
+	}
+
 	clear_timer_status_flags(0xFF);
 
 	for (uint8_t channel = 0; (channel < DSHOT_TIMERS); channel++) {
@@ -439,11 +445,7 @@ void up_dshot_trigger(void)
 		}
 	}
 
-	// Calc data now since we're not event driven
-	if (bdshot_recv_mask != 0x0) {
-		up_bdshot_erpm();
-		bdshot_recv_mask = 0x0;
-	}
+	bdshot_recv_mask = 0x0;
 
 	clear_timer_status_flags(0xFF);
 	enable_shifter_status_interrupts(0xFF);
@@ -504,6 +506,7 @@ void dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry)
 		packet |= (checksum & 0x0F);
 
 		uint64_t dshot_expanded = dshot_expand_data(packet);
+
 		dshot_inst[channel].data_seg1 = (uint32_t)(dshot_expanded & 0xFFFFFF);
 		dshot_inst[channel].irq_data = (uint32_t)(dshot_expanded >> 24);
 		dshot_inst[channel].state = DSHOT_START;
