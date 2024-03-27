@@ -260,12 +260,9 @@ void Ekf::checkVerticalAccelerationHealth(const imuSample &imu_delayed)
 
 	// declare a bad vertical acceleration measurement and make the declaration persist
 	// for a minimum of BADACC_PROBATION seconds
-	if (_fault_status.flags.bad_acc_vertical) {
-		_fault_status.flags.bad_acc_vertical = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
+	_fault_status.flags.bad_acc_vertical = _fault_status.flags.bad_acc_vertical ?
+					       isRecent(_time_bad_vert_accel, BADACC_PROBATION) : bad_vert_accel;
 
-	} else {
-		_fault_status.flags.bad_acc_vertical = bad_vert_accel;
-	}
 }
 
 Likelihood Ekf::estimateInertialNavFallingLikelihood() const
