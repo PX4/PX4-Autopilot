@@ -50,7 +50,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 {
 	// get raw accelerometer reading at delayed horizon and expected measurement noise (gaussian)
 	const Vector3f measurement = Vector3f(imu.delta_vel / imu.delta_vel_dt - _state.accel_bias).unit();
-	const float measurement_var = math::max(sq(_params.gravity_noise), sq(0.01f));
+	const ekf_float_t measurement_var = math::max(sq(_params.gravity_noise), sq(0.01f));
 
 	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
 	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
@@ -62,8 +62,8 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 					       && !isHorizontalAidingActive();
 
 	// calculate kalman gains and innovation variances
-	Vector3f innovation = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f)) - measurement;
-	Vector3f innovation_variance;
+	Vector3<ekf_float_t> innovation = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f)) - measurement;
+	Vector3<ekf_float_t> innovation_variance;
 	const auto state_vector = _state.vector();
 	VectorState H;
 	sym::ComputeGravityXyzInnovVarAndHx(state_vector, P, measurement_var, &innovation_variance, &H);
@@ -93,14 +93,18 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
-			sym::ComputeGravityYInnovVarAndH(state_vector, P, measurement_var, &_aid_src_gravity.innovation_variance[index], &H);
+			ekf_float_t innov_var;
+			sym::ComputeGravityYInnovVarAndH(state_vector, P, measurement_var, &innov_var, &H);
+			_aid_src_gravity.innovation_variance[index] = innov_var;
 
 			// recalculate innovation using the updated state
 			_aid_src_gravity.innovation[index] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f))(index) - measurement(index);
 
 		} else if (index == 2) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
-			sym::ComputeGravityZInnovVarAndH(state_vector, P, measurement_var, &_aid_src_gravity.innovation_variance[index], &H);
+			ekf_float_t innov_var;
+			sym::ComputeGravityZInnovVarAndH(state_vector, P, measurement_var, &innov_var, &H);
+			_aid_src_gravity.innovation_variance[index] = innov_var;
 
 			// recalculate innovation using the updated state
 			_aid_src_gravity.innovation[index] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f))(index) - measurement(index);

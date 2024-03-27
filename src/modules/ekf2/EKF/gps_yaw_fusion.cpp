@@ -56,17 +56,17 @@ void Ekf::updateGpsYaw(const gnssSample &gps_sample)
 		// initially populate for estimator_aid_src_gnss_yaw logging
 
 		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-		const float measured_hdg = wrap_pi(gps_sample.yaw + gps_sample.yaw_offset);
+		const ekf_float_t measured_hdg = wrap_pi(gps_sample.yaw + gps_sample.yaw_offset);
 
-		const float yaw_acc = PX4_ISFINITE(gps_sample.yaw_acc) ? gps_sample.yaw_acc : 0.f;
-		const float R_YAW = sq(fmaxf(yaw_acc, _params.gps_heading_noise));
+		const ekf_float_t yaw_acc = PX4_ISFINITE(gps_sample.yaw_acc) ? gps_sample.yaw_acc : 0.f;
+		const ekf_float_t R_YAW = sq(fmaxf(yaw_acc, _params.gps_heading_noise));
 
-		float heading_pred;
-		float heading_innov_var;
+		ekf_float_t heading_pred;
+		ekf_float_t heading_innov_var;
 
 		{
 		VectorState H;
-		sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, gps_sample.yaw_offset, R_YAW, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
+		sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, (ekf_float_t)gps_sample.yaw_offset, R_YAW, (ekf_float_t)FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
 		}
 
 		gnss_yaw.observation = measured_hdg;
@@ -97,12 +97,12 @@ void Ekf::fuseGpsYaw(float antenna_yaw_offset)
 	VectorState H;
 
 	{
-	float heading_pred;
-	float heading_innov_var;
+	ekf_float_t heading_pred;
+	ekf_float_t heading_innov_var;
 
 	// Note: we recompute innov and innov_var because it doesn't cost much more than just computing H
 	// making a separate function just for H uses more flash space without reducing CPU load significantly
-	sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, antenna_yaw_offset, gnss_yaw.observation_variance, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
+	sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, (ekf_float_t)antenna_yaw_offset, (ekf_float_t)gnss_yaw.observation_variance, (ekf_float_t)FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
 	}
 
 	// check if the innovation variance calculation is badly conditioned

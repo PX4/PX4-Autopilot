@@ -104,15 +104,15 @@ void Ekf::initialiseCovariance()
 void Ekf::predictCovariance(const imuSample &imu_delayed)
 {
 	// predict the covariance
-	const float dt = 0.5f * (imu_delayed.delta_vel_dt + imu_delayed.delta_ang_dt);
+	const ekf_float_t dt = 0.5f * (imu_delayed.delta_vel_dt + imu_delayed.delta_ang_dt);
 
 	// gyro noise variance
-	float gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
-	const float gyro_var = sq(gyro_noise);
+	ekf_float_t gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
+	const ekf_float_t gyro_var = sq(gyro_noise);
 
 	// accel noise variance
-	float accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
-	Vector3f accel_var;
+	ekf_float_t accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+	Vector3<ekf_float_t> accel_var;
 
 	for (unsigned i = 0; i < 3; i++) {
 		if (_fault_status.flags.bad_acc_vertical || imu_delayed.delta_vel_clipping[i]) {
@@ -125,9 +125,11 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	}
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
+	const Vector3<ekf_float_t> accel = imu_delayed.delta_vel / math::max(imu_delayed.delta_vel_dt, FLT_EPSILON);
+	const Vector3<ekf_float_t> gyro  = imu_delayed.delta_ang / math::max(imu_delayed.delta_ang_dt, FLT_EPSILON);
 	P = sym::PredictCovariance(_state.vector(), P,
-				   imu_delayed.delta_vel / math::max(imu_delayed.delta_vel_dt, FLT_EPSILON), accel_var,
-				   imu_delayed.delta_ang / math::max(imu_delayed.delta_ang_dt, FLT_EPSILON), gyro_var,
+				   accel, accel_var,
+				   gyro, gyro_var,
 				   dt);
 
 	// Construct the process noise variance diagonal for those states with a stationary process model

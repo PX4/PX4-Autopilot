@@ -71,6 +71,9 @@ T sq(T val)
 	return val * val;
 }
 
+// constexpr float sq(double val) { return static_cast<float>(val * val); }
+// constexpr double sq(float val) { return static_cast<double>(val * val); }
+
 /*
  * So called exponential curve function implementation.
  * It is essentially a linear combination between a linear and a cubic function.

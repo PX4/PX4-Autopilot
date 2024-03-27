@@ -143,12 +143,12 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 	resetEstimatorAidStatus(aid_src);
 
 	// Variance for true airspeed measurement - (m/sec)^2
-	const float R = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) *
+	const ekf_float_t R = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) *
 			   math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
 
-	float innov = 0.f;
-	float innov_var = 0.f;
-	sym::ComputeAirspeedInnovAndInnovVar(_state.vector(), P, airspeed_sample.true_airspeed, R, FLT_EPSILON, &innov, &innov_var);
+	ekf_float_t innov = 0.f;
+	ekf_float_t innov_var = 0.f;
+	sym::ComputeAirspeedInnovAndInnovVar(_state.vector(), P, (ekf_float_t)airspeed_sample.true_airspeed, R, (ekf_float_t)FLT_EPSILON, &innov, &innov_var);
 
 	aid_src.observation = airspeed_sample.true_airspeed;
 	aid_src.observation_variance = R;
@@ -199,10 +199,10 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 	VectorState H; // Observation jacobian
 	VectorState K; // Kalman gain vector
 
-	sym::ComputeAirspeedHAndK(_state.vector(), P, innov_var, FLT_EPSILON, &H, &K);
+	sym::ComputeAirspeedHAndK(_state.vector(), P, (ekf_float_t)innov_var, (ekf_float_t)FLT_EPSILON, &H, &K);
 
 	if (update_wind_only) {
-		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
+		const Vector2<ekf_float_t> K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
 		K.setZero();
 		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
@@ -232,13 +232,14 @@ void Ekf::stopAirspeedFusion()
 
 void Ekf::resetWindUsingAirspeed(const airspeedSample &airspeed_sample)
 {
-	constexpr float sideslip_var = sq(math::radians(15.0f));
+	ekf_float_t sideslip_var = sq(math::radians(15.0f));
 
-	const float euler_yaw = getEulerYaw(_R_to_earth);
-	const float airspeed_var = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
+	const ekf_float_t euler_yaw = getEulerYaw(_R_to_earth);
+	const ekf_float_t airspeed_var = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
 
-	matrix::SquareMatrix<float, State::wind_vel.dof> P_wind;
-	sym::ComputeWindInitAndCovFromAirspeed(_state.vel, euler_yaw, airspeed_sample.true_airspeed, getVelocityVariance(), getYawVar(), sideslip_var, airspeed_var, &_state.wind_vel, &P_wind);
+	matrix::SquareMatrix<ekf_float_t, State::wind_vel.dof> P_wind;
+
+	sym::ComputeWindInitAndCovFromAirspeed(_state.vel, euler_yaw, (ekf_float_t)airspeed_sample.true_airspeed, getVelocityVariance(), getYawVar(), sideslip_var, airspeed_var, &_state.wind_vel, &P_wind);
 
 	resetStateCovariance<State::wind_vel>(P_wind);
 

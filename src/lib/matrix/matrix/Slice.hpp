@@ -293,6 +293,18 @@ public:
 		return res;
 	}
 
+	// Vector < float, P < Q ? P : Q > diag() const
+	// {
+	// 	const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
+	// 	Vector < float, P < Q ? P : Q > res;
+
+	// 	for (size_t j = 0; j < (P < Q ? P : Q); j++) {
+	// 		res(j) = static_cast<float>(self(j, j));
+	// 	}
+
+	// 	return res;
+	// }
+
 	Type norm_squared() const
 	{
 		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
