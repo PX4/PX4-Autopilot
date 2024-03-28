@@ -484,7 +484,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
  * @bit 2 use declination as an observation
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
+PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 3);
 
 /**
  * Type of magnetometer fusion
