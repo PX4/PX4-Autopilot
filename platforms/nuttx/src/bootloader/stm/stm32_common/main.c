@@ -71,6 +71,14 @@ const mcu_rev_t silicon_revs[] = {
 	{MCU_REV_Z, 'Z'}, /* Revision Z */
 };
 
+/*
+ * If APP_RESERVATION_SIZE is greater than 0 and
+ * FLASH_BASED_PARAMS is defined, throw a compile error
+ */
+#if defined(FLASH_BASED_PARAMS) && (APP_RESERVATION_SIZE <= 0)
+# error "APP_RESERVATION_SIZE must be greater than 0 if FLASH_BASED_PARAMS is defined"
+#endif
+
 #define APP_SIZE_MAX			(BOARD_FLASH_SIZE - (BOOTLOADER_RESERVATION_SIZE + APP_RESERVATION_SIZE))
 
 

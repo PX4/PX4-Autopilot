@@ -362,9 +362,9 @@ status_t S2PI_TransferFrame(s2pi_slave_t spi_slave, uint8_t const *txData, uint8
 	}
 
 	/* Check the spi slave.*/
-	if (spi_slave != S2PI_S2) {
-		return ERROR_S2PI_INVALID_SLAVE;
-	}
+	// if (spi_slave != S2PI_S2) {
+	// 	return ERROR_S2PI_INVALID_SLAVE;
+	// }
 
 	/* Check the driver status, lock if idle. */
 	IRQ_LOCK();
