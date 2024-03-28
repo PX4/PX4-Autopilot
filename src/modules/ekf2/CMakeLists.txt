@@ -189,7 +189,6 @@ if(CONFIG_EKF2_MAGNETOMETER)
 		EKF/mag_3d_control.cpp
 		EKF/mag_control.cpp
 		EKF/mag_fusion.cpp
-		EKF/mag_heading_control.cpp
 	)
 endif()
 

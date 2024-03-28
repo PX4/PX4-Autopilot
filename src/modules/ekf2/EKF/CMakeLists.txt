@@ -107,7 +107,6 @@ if(CONFIG_EKF2_MAGNETOMETER)
 		mag_3d_control.cpp
 		mag_control.cpp
 		mag_fusion.cpp
-		mag_heading_control.cpp
 	)
 endif()
 

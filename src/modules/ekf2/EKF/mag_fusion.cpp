@@ -51,7 +51,7 @@
 
 #include <mathlib/mathlib.h>
 
-bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states)
+bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states, bool update_tilt)
 {
 	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
 	const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
@@ -189,6 +189,11 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 			Kfusion.setZero();
 			Kfusion.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) = K_mag_I;
 			Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
+		}
+
+		if (!update_tilt) {
+			Kfusion(State::quat_nominal.idx) = 0.f;
+			Kfusion(State::quat_nominal.idx + 1) = 0.f;
 		}
 
 		if (measurementUpdate(Kfusion, H, aid_src_mag.observation_variance[index], aid_src_mag.innovation[index])) {

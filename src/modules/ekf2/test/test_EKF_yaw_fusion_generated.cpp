@@ -42,9 +42,8 @@ using namespace matrix;
 Vector3f getRotVarNed(const Quatf &q, const SquareMatrixState &P)
 {
 	constexpr auto S = State::quat_nominal;
-	matrix::SquareMatrix3f rot_cov_body = P.slice<S.dof, S.dof>(S.idx, S.idx);
-	auto R_to_earth = Dcmf(q);
-	return matrix::SquareMatrix<float, State::quat_nominal.dof>(R_to_earth * rot_cov_body * R_to_earth.T()).diag();
+	matrix::SquareMatrix3f rot_cov_ned = P.slice<S.dof, S.dof>(S.idx, S.idx);
+	return rot_cov_ned.diag();
 }
 
 TEST(YawFusionGenerated, positiveVarianceAllOrientations)

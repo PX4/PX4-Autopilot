@@ -36,8 +36,8 @@ void ComputeGravityZInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
   // Intermediate terms (4)
   const Scalar _tmp0 = 2 * state(2, 0);
   const Scalar _tmp1 = 2 * state(1, 0);
-  const Scalar _tmp2 = _tmp0 * state(3, 0) + _tmp1 * state(0, 0);
-  const Scalar _tmp3 = _tmp0 * state(0, 0) - _tmp1 * state(3, 0);
+  const Scalar _tmp2 = -_tmp0 * state(3, 0) + _tmp1 * state(0, 0);
+  const Scalar _tmp3 = _tmp0 * state(0, 0) + _tmp1 * state(3, 0);
 
   // Output terms (2)
   if (innov_var != nullptr) {

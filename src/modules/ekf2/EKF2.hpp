@@ -307,11 +307,9 @@ private:
 	Vector3f _last_mag_bias_published{};
 
 	hrt_abstime _status_mag_pub_last{0};
-	hrt_abstime _status_mag_heading_pub_last{0};
 
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_mag_heading_pub{ORB_ID(estimator_aid_src_mag_heading)};
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_mag_pub{ORB_ID(estimator_aid_src_mag)};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
