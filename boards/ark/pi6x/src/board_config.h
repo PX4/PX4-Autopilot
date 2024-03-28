@@ -56,8 +56,6 @@
 
 #undef TRACE_PINS
 
-#define FLASH_BASED_PARAMS
-
 /* Configuration ************************************************************************************/
 
 #define BOARD_HAS_NBAT_V              1d // 2 Digital Voltage
@@ -265,6 +263,8 @@
  * PA9  OTG_FS_VBUS VBUS sensing
  */
 #define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
+
+#define FLASH_BASED_PARAMS
 
 /* High-resolution timer */
 #define HRT_TIMER               8  /* use timer8 for the HRT */

@@ -228,7 +228,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_AMBER);
 	}
 
-#endif
+#endif // FLASH_BASED_PARAMS
 
 	/* Configure the HW based on the manifest */
 
