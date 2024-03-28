@@ -333,12 +333,16 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 			mission_item.lon = mission_fence_point.lon;
 			mission_item.altitude = mission_fence_point.alt;
 
-			if (mission_fence_point.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
-			    mission_fence_point.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+			switch (mission_fence_point.nav_cmd) {
+			case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
+			case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
 				mission_item.vertex_count = mission_fence_point.vertex_count;
+				break;
 
-			} else {
+			default:
 				mission_item.circle_radius = mission_fence_point.circle_radius;
+				break;
+
 			}
 		}
 		break;
@@ -553,30 +557,38 @@ MavlinkMissionManager::send()
 	}
 
 	/* check for timed-out operations */
-	if (_state == MAVLINK_WPM_STATE_GETLIST && (_time_last_sent > 0)
-	    && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT) {
+	switch (_state) {
+	case MAVLINK_WPM_STATE_GETLIST:
+		if ((_time_last_sent > 0) && hrt_elapsed_time(&_time_last_sent) > MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT) {
 
-		// try to request item again after timeout
-		send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+			// try to request item again after timeout
+			send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
+		}
 
-	} else if (_state != MAVLINK_WPM_STATE_IDLE && (_time_last_recv > 0)
-		   && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
+		break;
 
-		_mavlink->send_statustext_critical("Operation timeout\t");
-		events::send(events::ID("mavlink_mission_op_timeout"), events::Log::Error,
-			     "Operation timeout, aborting transfer");
-
-		PX4_DEBUG("WPM: Last operation (state=%d) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
-
-		switch_to_idle_state();
-
-		// since we are giving up, reset this state also, so another request can be started.
-		_transfer_in_progress = false;
-
-	} else if (_state == MAVLINK_WPM_STATE_IDLE) {
+	case MAVLINK_WPM_STATE_IDLE:
 		// reset flags
 		_time_last_sent = 0;
 		_time_last_recv = 0;
+		break;
+
+	default:
+		if ((_time_last_recv > 0) && hrt_elapsed_time(&_time_last_recv) > MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT) {
+
+			_mavlink->send_statustext_critical("Operation timeout\t");
+			events::send(events::ID("mavlink_mission_op_timeout"), events::Log::Error,
+				     "Operation timeout, aborting transfer");
+
+			PX4_DEBUG("WPM: Last operation (state=%d) timed out, changing state to MAVLINK_WPM_STATE_IDLE", _state);
+
+			switch_to_idle_state();
+
+			// since we are giving up, reset this state also, so another request can be started.
+			_transfer_in_progress = false;
+		}
+
+		break;
 	}
 }
 
@@ -633,27 +645,37 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 
 	if (CHECK_SYSID_COMPID_MISSION(wpa)) {
 		if ((msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid)) {
-			if (_state == MAVLINK_WPM_STATE_SENDLIST && _mission_type == wpa.mission_type) {
+			switch (_state) {
+			case MAVLINK_WPM_STATE_SENDLIST:
+				if (_mission_type == wpa.mission_type) {
+					_time_last_recv = hrt_absolute_time();
 
-				_time_last_recv = hrt_absolute_time();
+					switch (wpa.type) {
+					case MAV_MISSION_ACCEPTED:
+						if (_transfer_seq == current_item_count()) {
+							PX4_DEBUG("WPM: MISSION_ACK OK all items sent, switch to state IDLE");
+						}
 
-				if (wpa.type == MAV_MISSION_ACCEPTED && _transfer_seq == current_item_count()) {
-					PX4_DEBUG("WPM: MISSION_ACK OK all items sent, switch to state IDLE");
+						break;
 
-				} else if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
-					PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
+					case MAV_MISSION_OPERATION_CANCELLED:
+						PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
+						break;
 
-				} else {
-					PX4_DEBUG("WPM: MISSION_ACK ERROR: not all items sent, switch to state IDLE anyway");
+					default:
+						PX4_DEBUG("WPM: MISSION_ACK ERROR: not all items sent, switch to state IDLE anyway");
+						break;
+					}
 				}
 
 				switch_to_idle_state();
+				break;
 
-			} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
+			case MAVLINK_WPM_STATE_GETLIST:
 
 				// INT or float mode is not supported
-				if (wpa.type == MAV_MISSION_UNSUPPORTED) {
-
+				switch (wpa.type) {
+				case MAV_MISSION_UNSUPPORTED:
 					if (_int_mode) {
 						_int_mode = false;
 						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
@@ -663,14 +685,26 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 					}
 
-				} else if (wpa.type == MAV_MISSION_OPERATION_CANCELLED) {
+					break;
+
+				case MAV_MISSION_OPERATION_CANCELLED:
 					PX4_DEBUG("WPM: MISSION_ACK CANCELLED, switch to state IDLE");
 					switch_to_idle_state();
 					_transfer_in_progress = false;
+					break;
 
-				} else if (wpa.type != MAV_MISSION_ACCEPTED) {
+				case MAV_MISSION_ACCEPTED:
+					break;
+
+				default:
 					PX4_WARN("Mission ack result was %d", wpa.type);
+					break;
 				}
+
+				break;
+
+			default:
+				break;
 			}
 
 		} else {
@@ -690,7 +724,8 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 	mavlink_msg_mission_set_current_decode(msg, &wpc);
 
 	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
-		if (_state == MAVLINK_WPM_STATE_IDLE) {
+		switch (_state) {
+		case MAVLINK_WPM_STATE_IDLE:
 			_time_last_recv = hrt_absolute_time();
 
 			if (wpc.seq < _count[MAV_MISSION_TYPE_MISSION]) {
@@ -704,12 +739,15 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 					     "New mission waypoint sequence out of bounds");
 			}
 
-		} else {
+			break;
+
+		default:
 			PX4_DEBUG("WPM: MISSION_SET_CURRENT ERROR: busy");
 
 			_mavlink->send_statustext_critical("WPM: IGN WP CURR CMD: Busy\t");
 			events::send(events::ID("mavlink_mission_state_busy"), events::Log::Error,
 				     "Mission manager currently busy, ignoring new waypoint index");
+			break;
 		}
 	}
 }
@@ -730,8 +768,13 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 			switch_to_idle_state();
 		}
 
-		if (_state == MAVLINK_WPM_STATE_IDLE || (_state == MAVLINK_WPM_STATE_SENDLIST
-				&& (uint8_t)_mission_type == wprl.mission_type)) {
+		switch (_state) {
+		case MAVLINK_WPM_STATE_IDLE:
+		case MAVLINK_WPM_STATE_SENDLIST:
+			if (_state == MAVLINK_WPM_STATE_SENDLIST && (uint8_t)_mission_type != wprl.mission_type) {
+				break;
+			}
+
 			_time_last_recv = hrt_absolute_time();
 
 			_state = MAVLINK_WPM_STATE_SENDLIST;
@@ -765,12 +808,15 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 
 			send_mission_count(msg->sysid, msg->compid, _transfer_count, _mission_type, get_current_mission_type_crc());
 
-		} else {
+			break;
+
+		default:
 			PX4_DEBUG("WPM: MISSION_REQUEST_LIST ERROR: busy");
 
 			_mavlink->send_statustext_info("Mission download request ignored, already active\t");
 			events::send(events::ID("mavlink_mission_req_ignored"), events::Log::Warning,
 				     "Mission download request ignored, already active");
+			break;
 		}
 	}
 }
@@ -808,7 +854,8 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 
 	if (CHECK_SYSID_COMPID_MISSION(wpr)) {
 		if (msg->sysid == _transfer_partner_sysid && msg->compid == _transfer_partner_compid) {
-			if (_state == MAVLINK_WPM_STATE_SENDLIST) {
+			switch (_state) {
+			case MAVLINK_WPM_STATE_SENDLIST:
 
 				if (_mission_type != wpr.mission_type) {
 					PX4_WARN("WPM: Unexpected mission type (%u %u)", wpr.mission_type, _mission_type);
@@ -865,18 +912,22 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 						     "Unexpected waypoint index, aborting mission transfer");
 				}
 
-			} else if (_state == MAVLINK_WPM_STATE_IDLE) {
+				break;
+
+			case MAVLINK_WPM_STATE_IDLE:
 				PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: no transfer");
 
 				// Silently ignore this as some OSDs have buggy mission protocol implementations
 				//_mavlink->send_statustext_critical("IGN MISSION_ITEM_REQUEST(_INT): No active transfer");
+				break;
 
-			} else {
+			default:
 				PX4_DEBUG("WPM: MISSION_ITEM_REQUEST(_INT) ERROR: busy (state %d).", _state);
 
 				_mavlink->send_statustext_critical("WPM: REJ. CMD: Busy\t");
 				events::send(events::ID("mavlink_mission_mis_req_ignored_busy"), events::Log::Error,
 					     "Ignoring mission request, currently busy");
+				break;
 			}
 
 		} else {
@@ -897,7 +948,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 	mavlink_msg_mission_count_decode(msg, &wpc);
 
 	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
-		if (_state == MAVLINK_WPM_STATE_IDLE) {
+		switch (_state) {
+		case MAVLINK_WPM_STATE_IDLE:
 			_time_last_recv = hrt_absolute_time();
 
 			if (_transfer_in_progress) {
@@ -990,7 +1042,9 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_transfer_land_start_marker = -1;
 			_transfer_land_marker = -1;
 
-		} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
+			break;
+
+		case MAVLINK_WPM_STATE_GETLIST:
 			_time_last_recv = hrt_absolute_time();
 
 			if (_transfer_seq == 0) {
@@ -1008,7 +1062,9 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 				return;
 			}
 
-		} else {
+			break;
+
+		default:
 			PX4_DEBUG("WPM: MISSION_COUNT ERROR: busy, state %i", _state);
 
 			_mavlink->send_statustext_critical("WPM: IGN MISSION_COUNT: Busy\t");
@@ -1069,7 +1125,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			return;
 		}
 
-		if (_state == MAVLINK_WPM_STATE_GETLIST) {
+		switch (_state) {
+		case MAVLINK_WPM_STATE_GETLIST:
 			_time_last_recv = hrt_absolute_time();
 
 			if (wp.seq != _transfer_seq) {
@@ -1079,7 +1136,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				return;
 			}
 
-		} else if (_state == MAVLINK_WPM_STATE_IDLE) {
+			break;
+
+		case MAVLINK_WPM_STATE_IDLE:
 			if (_transfer_seq == wp.seq + 1) {
 				// Assume this is a duplicate, where we already successfully got all mission items,
 				// but the GCS did not receive the last ack and sent the same item again
@@ -1096,7 +1155,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 			return;
 
-		} else {
+		default:
 			PX4_DEBUG("WPM: MISSION_ITEM ERROR: busy, state %i", _state);
 
 			_mavlink->send_statustext_critical("IGN MISSION_ITEM: Busy\t");
@@ -1133,32 +1192,45 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 		case MAV_MISSION_TYPE_MISSION: {
 				// check that we don't get a wrong item (hardening against wrong client implementations, the list here
 				// does not need to be complete)
-				if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
-				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION ||
-				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION ||
-				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION ||
-				    mission_item.nav_cmd == MAV_CMD_NAV_RALLY_POINT) {
+				switch (mission_item.nav_cmd) {
+				case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
+				case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
+				case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
+				case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
+				case MAV_CMD_NAV_RALLY_POINT:
 					check_failed = true;
+					break;
 
-				} else {
+				default:
 
 					write_failed = !_dataman_client.writeSync(_transfer_dataman_id, wp.seq,
 							reinterpret_cast<uint8_t *>(&mission_item),
 							sizeof(struct mission_item_s));
 
 					// Check for land start marker
-					if ((mission_item.nav_cmd == MAV_CMD_DO_LAND_START) && (_transfer_land_start_marker == -1)) {
-						_transfer_land_start_marker = wp.seq;
-					}
+					switch (mission_item.nav_cmd) {
+					case MAV_CMD_DO_LAND_START:
+						if (_transfer_land_start_marker == -1) {
+							_transfer_land_start_marker = wp.seq;
+						}
+
+						break;
 
 					// Check for land index
-					if (((mission_item.nav_cmd == MAV_CMD_NAV_VTOL_LAND) || (mission_item.nav_cmd == MAV_CMD_NAV_LAND))
-					    && (_transfer_land_marker == -1)) {
-						_transfer_land_marker = wp.seq;
+					case MAV_CMD_NAV_VTOL_LAND:
+					case MAV_CMD_NAV_LAND:
+						if (_transfer_land_marker == -1) {
+							_transfer_land_marker = wp.seq;
 
-						if (_transfer_land_start_marker == -1) {
-							_transfer_land_start_marker = _transfer_land_marker;
+							if (_transfer_land_start_marker == -1) {
+								_transfer_land_start_marker = _transfer_land_marker;
+							}
 						}
+
+						break;
+
+					default:
+						break;
 					}
 
 					if (!write_failed) {
@@ -1167,6 +1239,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 							_transfer_current_seq = wp.seq;
 						}
 					}
+
+					break;
 				}
 			}
 			break;
@@ -1178,8 +1252,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				mission_fence_point.lon = mission_item.lon;
 				mission_fence_point.alt = mission_item.altitude;
 
-				if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
-				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+				switch (mission_item.nav_cmd) {
+				case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
+				case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
 					mission_fence_point.vertex_count = mission_item.vertex_count;
 
 					if (mission_item.vertex_count < 3) { // feasibility check
@@ -1187,8 +1262,11 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 						check_failed = true;
 					}
 
-				} else {
+					break;
+
+				default:
 					mission_fence_point.circle_radius = mission_item.circle_radius;
+					break;
 				}
 
 				mission_fence_point.frame = mission_item.frame;
@@ -1310,62 +1388,68 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 	if (CHECK_SYSID_COMPID_MISSION(wpca)) {
 
-		if (_state == MAVLINK_WPM_STATE_IDLE) {
-			/* don't touch mission items storage itself, but only items count in mission state */
-			_time_last_recv = hrt_absolute_time();
+		switch (_state) {
+		case MAVLINK_WPM_STATE_IDLE: {
+				/* don't touch mission items storage itself, but only items count in mission state */
+				_time_last_recv = hrt_absolute_time();
 
-			_mission_type = (MAV_MISSION_TYPE)wpca.mission_type; // this is needed for the returned ack
-			int ret = 0;
+				_mission_type = (MAV_MISSION_TYPE)wpca.mission_type; // this is needed for the returned ack
+				int ret = 0;
 
-			switch (wpca.mission_type) {
-			case MAV_MISSION_TYPE_MISSION:
-				_land_start_marker = -1;
-				_land_marker = -1;
-				update_active_mission(_mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, 0);
-				break;
+				switch (wpca.mission_type) {
+				case MAV_MISSION_TYPE_MISSION:
+					_land_start_marker = -1;
+					_land_marker = -1;
+					update_active_mission(_mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+							      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, 0);
+					break;
 
-			case MAV_MISSION_TYPE_FENCE:
-				ret = update_geofence_count(_fence_dataman_id == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0,
-							    0, 0);
-				break;
+				case MAV_MISSION_TYPE_FENCE:
+					ret = update_geofence_count(_fence_dataman_id == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0,
+								    0, 0);
+					break;
 
-			case MAV_MISSION_TYPE_RALLY:
-				ret = update_safepoint_count(_safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ? DM_KEY_SAFE_POINTS_1 :
-							     DM_KEY_SAFE_POINTS_0, 0, 0);
-				break;
+				case MAV_MISSION_TYPE_RALLY:
+					ret = update_safepoint_count(_safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ? DM_KEY_SAFE_POINTS_1 :
+								     DM_KEY_SAFE_POINTS_0, 0, 0);
+					break;
 
-			case MAV_MISSION_TYPE_ALL:
-				_land_start_marker = -1;
-				_land_marker = -1;
-				update_active_mission(_mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, 0);
-				ret = update_geofence_count(_fence_dataman_id == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0,
-							    0, 0);
-				ret = update_safepoint_count(_safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ? DM_KEY_SAFE_POINTS_1 :
-							     DM_KEY_SAFE_POINTS_0, 0, 0) || ret;
-				break;
+				case MAV_MISSION_TYPE_ALL:
+					_land_start_marker = -1;
+					_land_marker = -1;
+					update_active_mission(_mission_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+							      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0, 0);
+					ret = update_geofence_count(_fence_dataman_id == DM_KEY_FENCE_POINTS_0 ? DM_KEY_FENCE_POINTS_1 : DM_KEY_FENCE_POINTS_0,
+								    0, 0);
+					ret = update_safepoint_count(_safepoint_dataman_id == DM_KEY_SAFE_POINTS_0 ? DM_KEY_SAFE_POINTS_1 :
+								     DM_KEY_SAFE_POINTS_0, 0, 0) || ret;
+					break;
 
-			default:
-				PX4_ERR("mission type %u not handled", _mission_type);
+				default:
+					PX4_ERR("mission type %u not handled", _mission_type);
+					break;
+				}
+
+				if (ret == PX4_OK) {
+					PX4_DEBUG("WPM: CLEAR_ALL OK (mission_type=%i)", _mission_type);
+
+					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
+
+				} else {
+					send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+				}
+
 				break;
 			}
 
-			if (ret == PX4_OK) {
-				PX4_DEBUG("WPM: CLEAR_ALL OK (mission_type=%i)", _mission_type);
-
-				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
-
-			} else {
-				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
-			}
-
-		} else {
+		default:
 			_mavlink->send_statustext_critical("WPM: IGN CLEAR CMD: Busy\t");
 			events::send(events::ID("mavlink_mission_ignore_clear"), events::Log::Error,
 				     "Ignoring mission clear command, busy");
 
 			PX4_DEBUG("WPM: CLEAR_ALL IGNORED: busy");
+
+			break;
 		}
 	}
 }
@@ -1374,16 +1458,27 @@ int
 MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item,
 		struct mission_item_s *mission_item)
 {
-	if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
-	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
-	    (_int_mode && (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
-			   mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT))) {
+	switch (mavlink_mission_item->frame) {
+	case MAV_FRAME_GLOBAL:
+	case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+	case MAV_FRAME_GLOBAL_INT:
+	case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		if ((mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
+		     mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) && _int_mode == false) {
+			break;
+		}
+
 		// This is a mission item with a global coordinate
 
 		// Switch to int mode if that is what we are receiving
-		if ((mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
-		     mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT)) {
+		switch (mavlink_mission_item->frame) {
+		case MAV_FRAME_GLOBAL_INT:
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
 			_int_mode = true;
+			break;
+
+		default:
+			break;
 		}
 
 		if (_int_mode) {
@@ -1402,13 +1497,19 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		mission_item->altitude = mavlink_mission_item->z;
 
-		if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
-		    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT) {
+		switch (mavlink_mission_item->frame) {
+		case MAV_FRAME_GLOBAL:
+		case MAV_FRAME_GLOBAL_INT:
 			mission_item->altitude_is_relative = false;
+			break;
 
-		} else if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
-			   mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT:
+		case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
 			mission_item->altitude_is_relative = true;
+			break;
+
+		default:
+			break;
 		}
 
 		// Depending on the received MAV_CMD_* (MAVLink Commands), assign the corresponding
@@ -1460,17 +1561,22 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_NAV_ROI:
 		case MAV_CMD_DO_SET_ROI:
-			if ((int)mavlink_mission_item->param1 == MAV_ROI_LOCATION) {
+			switch ((int)mavlink_mission_item->param1) {
+			case MAV_ROI_LOCATION:
 				mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
 				mission_item->params[0] = MAV_ROI_LOCATION;
 
 				mission_item->params[6] = mavlink_mission_item->z;
 
-			} else if ((int)mavlink_mission_item->param1 == MAV_ROI_NONE) {
+				break;
+
+			case MAV_ROI_NONE:
 				mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
 				mission_item->params[0] = MAV_ROI_NONE;
 
-			} else {
+				break;
+
+			default:
 				return MAV_MISSION_INVALID_PARAM1;
 			}
 
@@ -1520,7 +1626,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		mission_item->frame = mavlink_mission_item->frame;
 
-	} else if (mavlink_mission_item->frame == MAV_FRAME_MISSION) {
+		break;
+
+	case MAV_FRAME_MISSION:
 
 		// This is a mission item with no coordinates
 
@@ -1557,10 +1665,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_SET_ROI: {
 				const int roi_mode = mavlink_mission_item->param1;
 
-				if (roi_mode == MAV_ROI_NONE || roi_mode == MAV_ROI_WPNEXT || roi_mode == MAV_ROI_WPINDEX) {
+				switch (roi_mode) {
+				case MAV_ROI_NONE:
+				case MAV_ROI_WPNEXT:
+				case MAV_ROI_WPINDEX:
 					mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
+					break;
 
-				} else {
+				default:
 					return MAV_MISSION_INVALID_PARAM1;
 				}
 			}
@@ -1612,7 +1724,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		mission_item->frame = MAV_FRAME_MISSION;
 
-	} else {
+		break;
+
+	default:
 		PX4_DEBUG("Unsupported frame %d", mavlink_mission_item->frame);
 
 		return MAV_MISSION_UNSUPPORTED_FRAME;
@@ -1637,7 +1751,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 	mavlink_mission_item->mission_type = _mission_type;
 
 	/* default mappings for generic commands */
-	if (mission_item->frame == MAV_FRAME_MISSION) {
+	switch (mission_item->nav_cmd) {
+	case MAV_FRAME_MISSION:
 		mavlink_mission_item->param1 = mission_item->params[0];
 		mavlink_mission_item->param2 = mission_item->params[1];
 		mavlink_mission_item->param3 = mission_item->params[2];
@@ -1697,7 +1812,9 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			return PX4_ERROR;
 		}
 
-	} else {
+		break;
+
+	default:
 		mavlink_mission_item->param1 = 0.0f;
 		mavlink_mission_item->param2 = 0.0f;
 		mavlink_mission_item->param3 = 0.0f;
@@ -1797,6 +1914,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		default:
 			return PX4_ERROR;
 		}
+
+		break;
 	}
 
 	return PX4_OK;
