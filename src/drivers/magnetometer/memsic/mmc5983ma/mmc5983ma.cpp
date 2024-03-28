@@ -39,7 +39,7 @@ MMC5983MA::MMC5983MA(device::Device *interface, const I2CSPIDriverConfig &config
 	I2CSPIDriver(config),
 	_interface(interface),
 	_px4_mag(interface->get_device_id(), config.rotation),
-	_sample_perf(perf_alloc(PC_ELAPSED, "mmc5983ma_read")),
+	_sample_perf(perf_alloc(PC_COUNT, "mmc5983ma_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mmc5983ma_comms_errors"))
 {}
 
@@ -184,7 +184,7 @@ void MMC5983MA::publish_data()
 	float z1 = 8.f - (float(zraw_1) * 0.0625f) / 1e3f;
 	float z2 = 8.f - (float(zraw_2) * 0.0625f) / 1e3f;
 	float x = (x1 - x2) / 2.f;
-	float y = (y1 - y2) / 2.f;
+	float y = -1.f * (y1 - y2) / 2.f; // Y axis is inverted to convert from LH to RH
 	float z = (z1 - z2) / 2.f;
 
 	_px4_mag.update(hrt_absolute_time(), x, y, z);
