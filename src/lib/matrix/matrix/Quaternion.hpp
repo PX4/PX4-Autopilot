@@ -228,7 +228,7 @@ public:
 
 		} else {
 			// normal case, do half-way quaternion solution
-			q(0) = dt + std::sqrt(src.norm_squared() * dst.norm_squared());
+			q(0) = dt / std::sqrt(src.norm_squared() * dst.norm_squared());
 		}
 
 		q(1) = cr(0);
