@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* The ARKV6X uses an STM32H753II has 2048Kb of main FLASH memory.
+/* The ARKV6X uses an STM32H743II has 2048Kb of main FLASH memory.
  * The flash memory is partitioned into a User Flash memory and a System
  * Flash memory. Each of these memories has two banks:
  *
