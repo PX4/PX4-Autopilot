@@ -39,13 +39,13 @@ MMC5983MA::MMC5983MA(device::Device *interface, const I2CSPIDriverConfig &config
 	I2CSPIDriver(config),
 	_interface(interface),
 	_px4_mag(interface->get_device_id(), config.rotation),
-	_sample_perf(perf_alloc(PC_COUNT, "mmc5983ma_read")),
+	_sample_count(perf_alloc(PC_COUNT, "mmc5983ma_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "mmc5983ma_comms_errors"))
 {}
 
 MMC5983MA::~MMC5983MA()
 {
-	perf_free(_sample_perf);
+	perf_free(_sample_count);
 	perf_free(_comms_errors);
 	delete _interface;
 }
@@ -81,7 +81,6 @@ void MMC5983MA::RunImpl()
 
 	switch (_state) {
 	case State::Measure: {
-			auto start_time = hrt_absolute_time();
 
 			uint8_t set_reset_flag = _sample_index == 0 ? MMC5983MA_CTRL_REG0_SET : MMC5983MA_CTRL_REG0_RESET;
 			write_register(MMC5983MA_ADDR_CTRL_REG0, MMC5983MA_CTRL_REG0_TM_M | set_reset_flag);
@@ -89,21 +88,12 @@ void MMC5983MA::RunImpl()
 			_collect_retries = 0;
 			_state = State::Collect;
 
-			auto elapsed = hrt_elapsed_time(&start_time);
-
-			if (elapsed > 5_ms) {
-				ScheduleNow();
-
-			} else {
-				ScheduleDelayed(5_ms - elapsed);
-			}
-
+			// 200Hz BW is 4ms measurement time
+			ScheduleDelayed(5_ms);
 			return;
 		}
 
 	case State::Collect: {
-
-			auto start_time = hrt_absolute_time();
 
 			uint8_t status = read_register(MMC5983MA_ADDR_STATUS_REG);
 
@@ -126,20 +116,13 @@ void MMC5983MA::RunImpl()
 				if (_sample_index > 1) {
 					publish_data();
 					_sample_index = 0;
-					perf_count(_sample_perf);
+					perf_count(_sample_count);
 				}
 
 				_state = State::Measure;
 
-				auto elapsed = hrt_elapsed_time(&start_time);
-
-				if (elapsed > 5_ms) {
-					ScheduleNow();
-
-				} else {
-					ScheduleDelayed(5_ms - elapsed);
-				}
-
+				// Immediately schedule next measurement
+				ScheduleNow();
 				return;
 
 			} else {
@@ -225,6 +208,6 @@ void MMC5983MA::write_register(uint8_t reg, uint8_t value)
 void MMC5983MA::print_status()
 {
 	I2CSPIDriverBase::print_status();
-	perf_print_counter(_sample_perf);
+	perf_print_counter(_sample_count);
 	perf_print_counter(_comms_errors);
 }

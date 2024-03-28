@@ -99,6 +99,6 @@ private:
 	int _sample_index = 0;
 	int _collect_retries = 0;
 	SensorData _measurements[2];
-	perf_counter_t _sample_perf;
+	perf_counter_t _sample_count;
 	perf_counter_t _comms_errors;
 };
