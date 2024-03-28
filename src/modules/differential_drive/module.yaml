@@ -120,3 +120,14 @@ parameters:
         increment: 0.01
         decimal: 2
         default: 0.5
+      RDD_MIN_TRN_VEL:
+        description:
+          short: Minimun turning speed
+          long: Minimum turning speed required to ensure vehicle turns properly, preventing no-turn situations caused by minor heading errors or motor limitations at low speeds.
+        type: float
+        unit: rad/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.2
