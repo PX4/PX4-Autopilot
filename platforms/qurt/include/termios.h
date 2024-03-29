@@ -223,22 +223,21 @@ typedef unsigned char cc_t;      /* Used for terminal special characters */
 
 /* The termios structure */
 
-struct termios
-{
-  /* Exposed fields defined by POSIX */
+struct termios {
+	/* Exposed fields defined by POSIX */
 
-  tcflag_t  c_iflag;        /* Input modes */
-  tcflag_t  c_oflag;        /* Output modes */
-  tcflag_t  c_cflag;        /* Control modes */
-  tcflag_t  c_lflag;        /* Local modes */
-  cc_t      c_cc[NCCS];     /* Control chars */
+	tcflag_t  c_iflag;        /* Input modes */
+	tcflag_t  c_oflag;        /* Output modes */
+	tcflag_t  c_cflag;        /* Control modes */
+	tcflag_t  c_lflag;        /* Local modes */
+	cc_t      c_cc[NCCS];     /* Control chars */
 
-  /* Implementation specific fields.  For portability reasons, these fields
-   * should not be accessed directly, but rather through only through the
-   * cf[set|get][o|i]speed() POSIX interfaces.
-   */
+	/* Implementation specific fields.  For portability reasons, these fields
+	 * should not be accessed directly, but rather through only through the
+	 * cf[set|get][o|i]speed() POSIX interfaces.
+	 */
 
-  speed_t c_speed;          /* Input/output speed (non-POSIX) */
+	speed_t c_speed;          /* Input/output speed (non-POSIX) */
 };
 
 /****************************************************************************
