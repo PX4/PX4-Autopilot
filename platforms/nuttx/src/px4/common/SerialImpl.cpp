@@ -53,9 +53,8 @@ SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, P
 	_stopbits(stopbits),
 	_flowcontrol(flowcontrol)
 {
-	if (port) {
-		strncpy(_port, port, sizeof(_port) - 1);
-		_port[sizeof(_port) - 1] = '\0';
+	if (validatePort(port)) {
+		setPort(port);
 
 	} else {
 		_port[0] = 0;
@@ -190,6 +189,11 @@ bool SerialImpl::open()
 {
 	if (isOpen()) {
 		return true;
+	}
+
+	if (!validatePort(_port)) {
+		PX4_ERR("Invalid port %s", _port);
+		return false;
 	}
 
 	// Open the serial port
