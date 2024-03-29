@@ -258,11 +258,16 @@ const char *SerialImpl::getPort() const
 
 bool SerialImpl::validatePort(const char *port)
 {
-	return (port != nullptr);
+	return (qurt_uart_get_port(port) >= 0);
 }
 
 bool SerialImpl::setPort(const char *port)
 {
+	if (_open) {
+		PX4_ERR("Cannot set port after port has already been opened");
+		return false;
+	}
+
 	if (validatePort(port)) {
 		strncpy(_port, port, sizeof(_port) - 1);
 		_port[sizeof(_port) - 1] = '\0';

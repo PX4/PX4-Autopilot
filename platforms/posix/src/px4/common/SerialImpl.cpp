@@ -324,6 +324,11 @@ bool SerialImpl::validatePort(const char *port)
 
 bool SerialImpl::setPort(const char *port)
 {
+	if (_open) {
+		PX4_ERR("Cannot set port after port has already been opened");
+		return false;
+	}
+
 	if (validatePort(port)) {
 		strncpy(_port, port, sizeof(_port) - 1);
 		_port[sizeof(_port) - 1] = '\0';
