@@ -324,6 +324,22 @@ const char *SerialImpl::getPort() const
 	return _port;
 }
 
+bool SerialImpl::validatePort(const char *port)
+{
+	return (port && (access(port, R_OK | W_OK) == 0));
+}
+
+bool SerialImpl::setPort(const char *port)
+{
+	if (validatePort(port)) {
+		strncpy(_port, port, sizeof(_port) - 1);
+		_port[sizeof(_port) - 1] = '\0';
+		return true;
+	}
+
+	return false;
+}
+
 uint32_t SerialImpl::getBaudrate() const
 {
 	return _baudrate;
