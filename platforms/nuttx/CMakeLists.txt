@@ -266,7 +266,7 @@ else()
 		-fno-exceptions
 		-fno-rtti
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld
-		-L${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}
+		-L${NUTTX_CONFIG_DIR_CYG}/scripts
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--warn-common
 		-Wl,--gc-sections
