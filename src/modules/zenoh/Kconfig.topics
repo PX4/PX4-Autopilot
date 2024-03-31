@@ -85,6 +85,10 @@ menu "Zenoh publishers/subscribers"
 		bool "camera_trigger"
 		default n
 
+	config ZENOH_PUBSUB_CAN_INTERFACE_STATUS
+		bool "can_interface_status"
+		default n
+
 	config ZENOH_PUBSUB_CELLULAR_STATUS
 		bool "cellular_status"
 		default n
@@ -247,6 +251,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_GEOFENCE_RESULT
 		bool "geofence_result"
+		default n
+
+	config ZENOH_PUBSUB_GEOFENCE_STATUS
+		bool "geofence_status"
 		default n
 
 	config ZENOH_PUBSUB_GIMBAL_CONTROLS
@@ -465,6 +473,22 @@ menu "Zenoh publishers/subscribers"
 		bool "orbit_status"
 		default n
 
+	config ZENOH_PUBSUB_PARAMETER_RESET_REQUEST
+		bool "parameter_reset_request"
+		default n
+
+	config ZENOH_PUBSUB_PARAMETER_SET_USED_REQUEST
+		bool "parameter_set_used_request"
+		default n
+
+	config ZENOH_PUBSUB_PARAMETER_SET_VALUE_REQUEST
+		bool "parameter_set_value_request"
+		default n
+
+	config ZENOH_PUBSUB_PARAMETER_SET_VALUE_RESPONSE
+		bool "parameter_set_value_response"
+		default n
+
 	config ZENOH_PUBSUB_PARAMETER_UPDATE
 		bool "parameter_update"
 		default n
@@ -543,6 +567,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_RPM
 		bool "rpm"
+		default n
+
+	config ZENOH_PUBSUB_RTL_STATUS
+		bool "rtl_status"
 		default n
 
 	config ZENOH_PUBSUB_RTL_TIME_ESTIMATE
@@ -851,6 +879,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_CAMERA_CAPTURE
 	select ZENOH_PUBSUB_CAMERA_STATUS
 	select ZENOH_PUBSUB_CAMERA_TRIGGER
+	select ZENOH_PUBSUB_CAN_INTERFACE_STATUS
 	select ZENOH_PUBSUB_CELLULAR_STATUS
 	select ZENOH_PUBSUB_COLLISION_CONSTRAINTS
 	select ZENOH_PUBSUB_COLLISION_REPORT
@@ -892,6 +921,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_FOLLOW_TARGET_STATUS
 	select ZENOH_PUBSUB_GENERATOR_STATUS
 	select ZENOH_PUBSUB_GEOFENCE_RESULT
+	select ZENOH_PUBSUB_GEOFENCE_STATUS
 	select ZENOH_PUBSUB_GIMBAL_CONTROLS
 	select ZENOH_PUBSUB_GIMBAL_DEVICE_ATTITUDE_STATUS
 	select ZENOH_PUBSUB_GIMBAL_DEVICE_INFORMATION
@@ -946,6 +976,10 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_ORB_TEST_LARGE
 	select ZENOH_PUBSUB_ORB_TEST_MEDIUM
 	select ZENOH_PUBSUB_ORBIT_STATUS
+	select ZENOH_PUBSUB_PARAMETER_RESET_REQUEST
+	select ZENOH_PUBSUB_PARAMETER_SET_USED_REQUEST
+	select ZENOH_PUBSUB_PARAMETER_SET_VALUE_REQUEST
+	select ZENOH_PUBSUB_PARAMETER_SET_VALUE_RESPONSE
 	select ZENOH_PUBSUB_PARAMETER_UPDATE
 	select ZENOH_PUBSUB_PING
 	select ZENOH_PUBSUB_POSITION_CONTROLLER_LANDING_STATUS
@@ -966,6 +1000,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REPLY
 	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REQUEST
 	select ZENOH_PUBSUB_RPM
+	select ZENOH_PUBSUB_RTL_STATUS
 	select ZENOH_PUBSUB_RTL_TIME_ESTIMATE
 	select ZENOH_PUBSUB_SATELLITE_INFO
 	select ZENOH_PUBSUB_SENSOR_ACCEL
