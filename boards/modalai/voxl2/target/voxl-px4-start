@@ -236,11 +236,14 @@ mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
 
 mavlink boot_complete
 
-# Optional MSP OSD driver for DJI goggles
+# Optional MSP OSD driver for DJI or HDZero goggles 
 # This is only supported on M0054 (with M0125 accessory board)
-if [ "$OSD" == "ENABLE" ]; then
-    /bin/echo "Starting OSD driver"
+if [ "$OSD" == "ENABLE" ] || [ "$OSD" == "DJI" ]; then
+    /bin/echo "Starting DJI OSD driver"
     msp_osd start -d /dev/ttyHS1
+elif [ "$OSD" == "HDZERO" ]; then 
+    /bin/echo "Starting HDZero OSD driver"
+    msp_dp_osd start -d /dev/ttyHS1
 fi
 
 # Start optional EXTRA_STEPS

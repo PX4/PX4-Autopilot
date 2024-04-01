@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,18 +31,18 @@
 #
 ############################################################################
 
-# Need to make sure that the Linux processor on VOXL2
-# knows about all parameters since it is acting as the
-# parameter server for other processors that may define
-# parameters that it doesn't normally know about.
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
-
-add_library(drivers_board
-	board_config.h
-	init.c
-    )
-
-# Add custom drivers
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/modal_io_bridge)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/msp_dp_osd)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/apps_sbus)
+px4_add_module(
+	MODULE drivers__msp_dp_osd
+	MAIN msp_dp_osd
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/drivers/osd/msp_osd/MessageDisplay
+		${PX4_SOURCE_DIR}/src/drivers/osd/msp_osd/osd/msp_defines.h
+		${PX4_SOURCE_DIR}/src/drivers/osd/msp_osd/osd/uorb_to_msp.hpp
+	SRCS
+		msp_dp_osd.cpp
+		MspDPV1.cpp
+		uorb_to_msp_dp.cpp
+	DEPENDS
+		message_display
+		px4_work_queue
+	)
