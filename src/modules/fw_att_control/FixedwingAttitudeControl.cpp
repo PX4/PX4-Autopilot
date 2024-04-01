@@ -92,7 +92,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
-			if (!_vcontrol_mode.flag_control_climb_rate_enabled & _vcontrol_mode.flag_control_attitude_enabled) {
+			if (!_vcontrol_mode.flag_control_climb_rate_enabled && _vcontrol_mode.flag_control_attitude_enabled) {
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 

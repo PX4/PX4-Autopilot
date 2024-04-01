@@ -106,8 +106,10 @@ qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 
 # We do not change the value of SYS_AUTOCONFIG but if it does not
 # show up as used then it is not reported to QGC and we get a
-# missing parameter error.
+# missing parameter error. Also, we don't use SYS_AUTOSTART but QGC
+# complains about it as well.
 param touch SYS_AUTOCONFIG
+param touch SYS_AUTOSTART
 
 # ESC driver
 if [ "$ESC" == "VOXL_ESC" ]; then

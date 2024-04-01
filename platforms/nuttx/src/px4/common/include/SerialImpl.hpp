@@ -67,6 +67,8 @@ public:
 	void flush();
 
 	const char *getPort() const;
+	static bool validatePort(const char *port);
+	bool setPort(const char *port);
 
 	uint32_t getBaudrate() const;
 	bool setBaudrate(uint32_t baudrate);

@@ -36,6 +36,10 @@
 namespace device
 {
 
+Serial::Serial() :
+	_impl(nullptr, 57600, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled) {}
+
+
 Serial::Serial(const char *port, uint32_t baudrate, ByteSize bytesize, Parity parity, StopBits stopbits,
 	       FlowControl flowcontrol) :
 	_impl(port, baudrate, bytesize, parity, stopbits, flowcontrol)
@@ -166,6 +170,16 @@ bool Serial::setInvertedMode(bool enable)
 const char *Serial::getPort() const
 {
 	return _impl.getPort();
+}
+
+bool Serial::validatePort(const char *port)
+{
+	return SerialImpl::validatePort(port);
+}
+
+bool Serial::setPort(const char *port)
+{
+	return _impl.setPort(port);
 }
 
 } // namespace device

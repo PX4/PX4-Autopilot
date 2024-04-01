@@ -51,7 +51,7 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 
 		if (!reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
 
-			events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
+			events::send(events::ID("commander_rc_lost"), {events::Log::Info, events::LogInternal::Info},
 				     "Manual control lost");
 		}
 
