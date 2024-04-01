@@ -174,7 +174,7 @@ private:
 #ifdef __PX4_LINUX
 	int				_spi_fd {-1};					///< SPI interface to GPS
 #endif
-	Serial 			*_uart = nullptr;				///< UART interface to GPS
+	Serial 			_uart {};				///< UART interface to GPS
 	unsigned			_baudrate{0};					///< current baudrate
 	const unsigned			_configured_baudrate{0};			///< configured baudrate (0=auto-detect)
 	char				_port[20] {};					///< device / serial port path
@@ -416,8 +416,8 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 			int ret = 0;
 
-			if (gps->_uart) {
-				ret = gps->_uart->write((void *) data1, (size_t) data2);
+			if (gps->_interface == GPSHelper::Interface::UART) {
+				ret = gps->_uart.write((void *) data1, (size_t) data2);
 
 #ifdef __PX4_LINUX
 
@@ -477,8 +477,8 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 	handleInjectDataTopic();
 
-	if ((_interface == GPSHelper::Interface::UART) && (_uart)) {
-		ret = _uart->readAtLeast(buf, buf_length, character_count, timeout_adjusted);
+	if (_interface == GPSHelper::Interface::UART) {
+		ret = _uart.readAtLeast(buf, buf_length, character_count, timeout_adjusted);
 
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
@@ -598,8 +598,8 @@ bool GPS::injectData(uint8_t *data, size_t len)
 
 	size_t written = 0;
 
-	if ((_interface == GPSHelper::Interface::UART) && (_uart)) {
-		written = _uart->write((const void *) data, len);
+	if (_interface == GPSHelper::Interface::UART) {
+		written = _uart.write((const void *) data, len);
 
 #ifdef __PX4_LINUX
 
@@ -615,7 +615,7 @@ bool GPS::injectData(uint8_t *data, size_t len)
 int GPS::setBaudrate(unsigned baud)
 {
 	if (_interface == GPSHelper::Interface::UART) {
-		if ((_uart) && (_uart->setBaudrate(baud))) {
+		if (_uart.setBaudrate(baud)) {
 			return 0;
 		}
 
@@ -786,23 +786,19 @@ GPS::run()
 			_helper = nullptr;
 		}
 
-		if ((_interface == GPSHelper::Interface::UART) && (_uart == nullptr)) {
+		if ((_interface == GPSHelper::Interface::UART) && (! _uart.isOpen())) {
 
-			// Create the UART port instance
-			_uart = new Serial(_port);
-
-			if (_uart == nullptr) {
-				PX4_ERR("Error creating serial device %s", _port);
+			// Configure UART port
+			if (!_uart.setPort(_port)) {
+				PX4_ERR("Error configuring serial device on port %s", _port);
 				px4_sleep(1);
 				continue;
 			}
-		}
 
-		if ((_interface == GPSHelper::Interface::UART) && (! _uart->isOpen())) {
 			// Configure the desired baudrate if one was specified by the user.
 			// Otherwise the default baudrate will be used.
 			if (_configured_baudrate) {
-				if (! _uart->setBaudrate(_configured_baudrate)) {
+				if (! _uart.setBaudrate(_configured_baudrate)) {
 					PX4_ERR("Error setting baudrate to %u on %s", _configured_baudrate, _port);
 					px4_sleep(1);
 					continue;
@@ -810,7 +806,7 @@ GPS::run()
 			}
 
 			// Open the UART. If this is successful then the UART is ready to use.
-			if (! _uart->open()) {
+			if (! _uart.open()) {
 				PX4_ERR("Error opening serial device  %s", _port);
 				px4_sleep(1);
 				continue;
@@ -1029,10 +1025,8 @@ GPS::run()
 			}
 		}
 
-		if ((_interface == GPSHelper::Interface::UART) && (_uart)) {
-			(void) _uart->close();
-			delete _uart;
-			_uart = nullptr;
+		if (_interface == GPSHelper::Interface::UART) {
+			(void) _uart.close();
 
 #ifdef __PX4_LINUX
 
@@ -1528,7 +1522,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 	GPS *gps = nullptr;
 	if (instance == Instance::Main) {
-		if (device_name && (access(device_name, R_OK|W_OK) == 0)) {
+		if (Serial::validatePort(device_name)) {
 			gps = new GPS(device_name, mode, interface, instance, baudrate_main);
 
 		} else {
@@ -1551,7 +1545,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			}
 		}
 	} else { // secondary instance
-		if (device_name_secondary && (access(device_name_secondary, R_OK|W_OK) == 0)) {
+		if (Serial::validatePort(device_name_secondary)) {
 			gps = new GPS(device_name_secondary, mode, interface_secondary, instance, baudrate_secondary);
 
 		} else {
