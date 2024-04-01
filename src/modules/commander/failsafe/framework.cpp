@@ -195,7 +195,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			events::send<uint32_t, events::px4::enums::failsafe_action_t, uint16_t>(
 				events::ID("commander_failsafe_enter_generic_hold"),
 			{events::Log::Critical, events::LogInternal::Warning},
-			"Failsafe, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
+			"Failsafe activated: switching to {2} in {3} seconds", mavlink_mode, failsafe_action,
 			(uint16_t) delay_s);
 
 		} else {
@@ -204,11 +204,11 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			events::send<uint32_t, events::px4::enums::failsafe_action_t, uint16_t, events::px4::enums::failsafe_cause_t>(
 				events::ID("commander_failsafe_enter_hold"),
 			{events::Log::Critical, events::LogInternal::Warning},
-			"{4}, triggering {2} in {3} seconds", mavlink_mode, failsafe_action,
+			"{4}: switching to {2} in {3} seconds", mavlink_mode, failsafe_action,
 			(uint16_t) delay_s, failsafe_cause);
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated, entering Hold for %i seconds\t", delay_s);
+		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated: entering Hold for %i seconds\t", delay_s);
 
 	} else { // no delay
 		failsafe_action_t failsafe_action = (failsafe_action_t)action;
@@ -222,7 +222,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t>(
 					events::ID("commander_failsafe_enter_generic_warn"),
 				{events::Log::Warning, events::LogInternal::Warning},
-				"Failsafe warning triggered", mavlink_mode);
+				"Failsafe warning:", mavlink_mode);
 
 			} else {
 				/* EVENT
@@ -231,7 +231,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
 					events::ID("commander_failsafe_enter_generic"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe, triggering {2}", mavlink_mode, failsafe_action);
+				"Failsafe activated: Autopilot disengaged, switching to {2}", mavlink_mode, failsafe_action);
 			}
 
 		} else {
@@ -262,7 +262,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 					events::send<uint32_t, events::px4::enums::failsafe_cause_t>(
 						events::ID("commander_failsafe_enter_warn"),
 					{events::Log::Warning, events::LogInternal::Warning},
-					"Failsafe warning triggered due to {2}", mavlink_mode, failsafe_cause);
+					"Failsafe warning: {2}", mavlink_mode, failsafe_cause);
 
 				}
 
@@ -272,7 +272,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t, events::px4::enums::failsafe_cause_t>(
 					events::ID("commander_failsafe_enter"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"{3}, triggering {2}", mavlink_mode, failsafe_action, failsafe_cause);
+				"{3}: switching to {2}", mavlink_mode, failsafe_action, failsafe_cause);
 			}
 		}
 

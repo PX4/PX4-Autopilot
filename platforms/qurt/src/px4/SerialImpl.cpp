@@ -48,9 +48,8 @@ SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, P
 	_stopbits(stopbits),
 	_flowcontrol(flowcontrol)
 {
-	if (port) {
-		strncpy(_port, port, sizeof(_port) - 1);
-		_port[sizeof(_port) - 1] = '\0';
+	if (validatePort(port)) {
+		setPort(port);
 
 	} else {
 		_port[0] = 0;
@@ -114,6 +113,11 @@ bool SerialImpl::open()
 
 	if (_flowcontrol != FlowControl::Disabled) {
 		PX4_ERR("Qurt platform only supports FlowControl::Disabled");
+		return false;
+	}
+
+	if (!validatePort(_port)) {
+		PX4_ERR("Invalid port %s", _port);
 		return false;
 	}
 
@@ -254,6 +258,27 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 const char *SerialImpl::getPort() const
 {
 	return _port;
+}
+
+bool SerialImpl::validatePort(const char *port)
+{
+	return (qurt_uart_get_port(port) >= 0);
+}
+
+bool SerialImpl::setPort(const char *port)
+{
+	if (_open) {
+		PX4_ERR("Cannot set port after port has already been opened");
+		return false;
+	}
+
+	if (validatePort(port)) {
+		strncpy(_port, port, sizeof(_port) - 1);
+		_port[sizeof(_port) - 1] = '\0';
+		return true;
+	}
+
+	return false;
 }
 
 uint32_t SerialImpl::getBaudrate() const

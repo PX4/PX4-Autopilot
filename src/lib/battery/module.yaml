@@ -7,12 +7,12 @@ parameters:
       definitions:
         BAT${i}_V_EMPTY:
             description:
-                short: Empty cell voltage (5C load)
+                short: Empty cell voltage
                 long: |
-                    Defines the voltage where a single cell of battery 1 is considered empty.
-                    The voltage should be chosen before the steep dropoff to 2.8V. A typical
-                    lithium battery can only be discharged down to 10% before it drops off
-                    to a voltage level damaging the cells.
+                    Defines the voltage where a single cell of the battery is considered empty.
+                    The voltage should be chosen above the steep dropoff at 3.5V. A typical
+                    lithium battery can only be discharged under high load down to 10% before
+                    it drops off to a voltage level damaging the cells.
 
             type: float
             unit: V
@@ -25,10 +25,10 @@ parameters:
 
         BAT${i}_V_CHARGED:
             description:
-                short: Full cell voltage (5C load)
+                short: Full cell voltage
                 long: |
-                    Defines the voltage where a single cell of battery 1 is considered full
-                    under a mild load. This will never be the nominal voltage of 4.2V
+                    Defines the voltage where a single cell of the battery is considered full.
+                    For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
             type: float
             unit: V
@@ -44,7 +44,7 @@ parameters:
                 short: Voltage drop per cell on full throttle
                 long: |
                     This implicitly defines the internal resistance
-                    to maximum current ratio for battery 1 and assumes linearity.
+                    to maximum current ratio for the battery and assumes linearity.
                     A good value to use is the difference between the
                     5C and 20-25C load. Not used if BAT${i}_R_INTERNAL is
                     set.

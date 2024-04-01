@@ -48,6 +48,7 @@ namespace device __EXPORT
 class Serial
 {
 public:
+	Serial();
 	Serial(const char *port, uint32_t baudrate = 57600,
 	       ByteSize bytesize = ByteSize::EightBits, Parity parity = Parity::None,
 	       StopBits stopbits = StopBits::One, FlowControl flowcontrol = FlowControl::Disabled);
@@ -83,6 +84,8 @@ public:
 	FlowControl getFlowcontrol() const;
 	bool setFlowcontrol(FlowControl flowcontrol);
 
+	static bool validatePort(const char *port);
+	bool setPort(const char *port);
 	const char *getPort() const;
 
 private:
