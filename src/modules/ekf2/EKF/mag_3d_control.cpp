@@ -91,9 +91,8 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 	// if we are using 3-axis magnetometer fusion, but without external NE aiding,
 	// then the declination must be fused as an observation to prevent long term heading drift
 	// fusing declination when gps aiding is available is optional.
-	const bool mag_decl_user_selected = (_params.mag_declination_source & GeoDeclinationMask::FUSE_DECL);
 	const bool not_using_ne_aiding = !_control_status.flags.gps && !_control_status.flags.aux_gpos;
-	_control_status.flags.mag_dec = (_control_status.flags.mag && ((not_using_ne_aiding || !_control_status.flags.mag_aligned_in_flight) || mag_decl_user_selected));
+	_control_status.flags.mag_dec = (_control_status.flags.mag && (not_using_ne_aiding || !_control_status.flags.mag_aligned_in_flight));
 
 	if (_control_status.flags.mag) {
 		aid_src.timestamp_sample = mag_sample.time_us;
