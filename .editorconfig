@@ -1,0 +1,14 @@
+root = true
+
+[*]
+insert_final_newline = false
+
+[{*.{c,cpp,cc,h,hpp},CMakeLists.txt,Kconfig}]
+indent_style = tab
+tab_width = 8
+# Not in the official standard, but supported by many editors
+max_line_length = 120
+
+[*.yaml]
+indent_style = space
+indent_size = 2

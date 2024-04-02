@@ -204,13 +204,20 @@ void PositionControl::_velocityControl(const float dt)
 void PositionControl::_accelerationControl()
 {
 	// Assume standard acceleration due to gravity in vertical direction for attitude generation
-	Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), CONSTANTS_ONE_G).normalized();
+	float z_specific_force = -CONSTANTS_ONE_G;
+
+	if (!_decouple_horizontal_and_vertical_acceleration) {
+		// Include vertical acceleration setpoint for better horizontal acceleration tracking
+		z_specific_force += _acc_sp(2);
+	}
+
+	Vector3f body_z = Vector3f(-_acc_sp(0), -_acc_sp(1), -z_specific_force).normalized();
 	ControlMath::limitTilt(body_z, Vector3f(0, 0, 1), _lim_tilt);
-	// Scale thrust assuming hover thrust produces standard gravity
-	float collective_thrust = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
+	// Convert to thrust assuming hover thrust produces standard gravity
+	const float thrust_ned_z = _acc_sp(2) * (_hover_thrust / CONSTANTS_ONE_G) - _hover_thrust;
 	// Project thrust to planned body attitude
-	collective_thrust /= (Vector3f(0, 0, 1).dot(body_z));
-	collective_thrust = math::min(collective_thrust, -_lim_thr_min);
+	const float cos_ned_body = (Vector3f(0, 0, 1).dot(body_z));
+	const float collective_thrust = math::min(thrust_ned_z / cos_ned_body, -_lim_thr_min);
 	_thr_sp = body_z * collective_thrust;
 }
 

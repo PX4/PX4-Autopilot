@@ -448,7 +448,15 @@ private:
 	 */
 	bool checkMissionDataChanged(mission_s new_mission);
 
+	/**
+	 * @brief update current mission altitude after the home position has changed.
+	 */
+
+	void updateMissionAltAfterHomeChanged();
+
 	bool canRunMissionFeasibility();
+
+	uint32_t _home_update_counter = 0; /**< Variable to store the previous value for home change detection.*/
 
 	bool _align_heading_necessary{false}; // if true, heading of vehicle needs to be aligned with heading of next waypoint. Used to create new mission items for heading alignment.
 

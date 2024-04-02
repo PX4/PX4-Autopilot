@@ -314,3 +314,13 @@ float EkfWrapper::getMagHeadingNoise() const
 {
 	return _ekf_params->mag_heading_noise;
 }
+
+void EkfWrapper::enableGyroBiasEstimation()
+{
+	_ekf_params->imu_ctrl |= static_cast<int32_t>(ImuCtrl::GyroBias);
+}
+
+void EkfWrapper::disableGyroBiasEstimation()
+{
+	_ekf_params->imu_ctrl &= ~static_cast<int32_t>(ImuCtrl::GyroBias);
+}

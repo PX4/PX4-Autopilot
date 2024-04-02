@@ -81,9 +81,10 @@ public:
 void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float antenna_offset_rad)
 {
 	// GIVEN: an initial GPS yaw, not aligned with the current one
-	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + yaw_offset_rad);
+	// The yaw antenna offset has already been corrected in the driver
+	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle());
 
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps.setYaw(gps_heading); // used to remove the correction to fuse the real measurement
 	_sensor_simulator._gps.setYawOffset(antenna_offset_rad);
 
 	// WHEN: the GPS yaw fusion is activated
@@ -91,7 +92,7 @@ void EkfGpsHeadingTest::runConvergenceScenario(float yaw_offset_rad, float anten
 	_sensor_simulator.runSeconds(5);
 
 	// THEN: the estimate is reset and stays close to the measurement
-	checkConvergence(gps_heading, 0.05f);
+	checkConvergence(gps_heading, 0.01f);
 }
 
 void EkfGpsHeadingTest::checkConvergence(float truth, float tolerance_deg)

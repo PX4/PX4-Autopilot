@@ -132,6 +132,7 @@
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
 # include "streams/AUTOPILOT_STATE_FOR_GIMBAL_DEVICE.hpp"
+# include "streams/BATTERY_INFO.hpp"
 # include "streams/DEBUG.hpp"
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
@@ -147,7 +148,6 @@
 # include "streams/ODOMETRY.hpp"
 # include "streams/SCALED_PRESSURE2.hpp"
 # include "streams/SCALED_PRESSURE3.hpp"
-# include "streams/SMART_BATTERY_INFO.hpp"
 # include "streams/UAVIONIX_ADSB_OUT_CFG.hpp"
 # include "streams/UAVIONIX_ADSB_OUT_DYNAMIC.hpp"
 # include "streams/UTM_GLOBAL_POSITION.hpp"
@@ -259,9 +259,9 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamSysStatus>(),
 #endif // SYS_STATUS_HPP
 	create_stream_list_item<MavlinkStreamBatteryStatus>(),
-#if defined(SMART_BATTERY_INFO_HPP)
-	create_stream_list_item<MavlinkStreamSmartBatteryInfo>(),
-#endif // SMART_BATTERY_INFO_HPP
+#if defined(BATTERY_INFO_HPP)
+	create_stream_list_item<MavlinkStreamBatteryInfo>(),
+#endif // BATTERY_INFO_HPP
 #if defined(HIGHRES_IMU_HPP)
 	create_stream_list_item<MavlinkStreamHighresIMU>(),
 #endif // HIGHRES_IMU_HPP
