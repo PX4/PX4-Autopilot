@@ -474,14 +474,12 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_GATE, 3.0f);
  * Set bits in the following positions to enable functions.
  * 0 : Set to true to use the declination from the geo_lookup library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value.
  * 1 : Set to true to save the EKF2_MAG_DECL parameter to the value returned by the EKF when the vehicle disarms.
- * 2 : Set to true to always use the declination as an observation when 3-axis magnetometer fusion is being used.
  *
  * @group EKF2
  * @min 0
- * @max 7
+ * @max 3
  * @bit 0 use geo_lookup declination
  * @bit 1 save EKF2_MAG_DECL on disarm
- * @bit 2 use declination as an observation
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 3);
