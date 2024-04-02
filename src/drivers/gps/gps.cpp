@@ -471,14 +471,14 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 {
 	int ret = 0;
-	const unsigned character_count = 32; // minimum bytes that we want to read
+	const size_t character_count = 32; // minimum bytes that we want to read
 	const int max_timeout = 50;
 	int timeout_adjusted = math::min(max_timeout, timeout);
 
 	handleInjectDataTopic();
 
 	if (_interface == GPSHelper::Interface::UART) {
-		ret = _uart.readAtLeast(buf, buf_length, character_count, timeout_adjusted);
+		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
 
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
