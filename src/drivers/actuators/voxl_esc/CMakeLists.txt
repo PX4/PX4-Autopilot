@@ -37,7 +37,6 @@ px4_add_module(
 	SRCS
 		crc16.c
 		crc16.h
-
 		voxl_esc_serial.cpp
 		voxl_esc_serial.hpp
 		voxl_esc.cpp

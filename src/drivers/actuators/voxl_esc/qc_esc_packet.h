@@ -148,16 +148,15 @@ typedef struct {
 
 
 // Definition of the feedback response packet from ESC, which contains battery voltage and total current
-typedef struct
-{
-  	uint8_t  header;
-  	uint8_t  length;
-  	uint8_t  type;
-  	uint8_t  id;       //ESC Id (could be used as system ID elsewhere)
-  	uint16_t voltage;  //Input voltage (Millivolts)
-  	int16_t  current;  //Total Current (8mA resolution)
-  	uint16_t crc;
-}   __attribute__ ((__packed__)) QC_ESC_FB_POWER_STATUS;
+typedef struct {
+	uint8_t  header;
+	uint8_t  length;
+	uint8_t  type;
+	uint8_t  id;       //ESC Id (could be used as system ID elsewhere)
+	uint16_t voltage;  //Input voltage (Millivolts)
+	int16_t  current;  //Total Current (8mA resolution)
+	uint16_t crc;
+}   __attribute__((__packed__)) QC_ESC_FB_POWER_STATUS;
 
 
 //-------------------------------------------------------------------------
