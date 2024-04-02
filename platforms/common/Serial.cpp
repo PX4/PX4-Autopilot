@@ -84,6 +84,11 @@ ssize_t Serial::write(const void *buffer, size_t buffer_size)
 	return _impl.write(buffer, buffer_size);
 }
 
+void Serial::flush()
+{
+	return _impl.flush();
+}
+
 uint32_t Serial::getBaudrate() const
 {
 	return _impl.getBaudrate();
@@ -132,6 +137,34 @@ FlowControl Serial::getFlowcontrol() const
 bool Serial::setFlowcontrol(FlowControl flowcontrol)
 {
 	return _impl.setFlowcontrol(flowcontrol);
+}
+
+bool Serial::getSingleWireMode() const
+{
+	return _impl.getSingleWireMode();
+}
+bool Serial::setSingleWireMode()
+{
+	return _impl.setSingleWireMode();
+}
+
+bool Serial::getSwapRxTxMode() const
+{
+	return _impl.getSwapRxTxMode();
+}
+bool Serial::setSwapRxTxMode()
+{
+	return _impl.setSwapRxTxMode();
+}
+
+bool Serial::getInvertedMode() const
+{
+	return _impl.getInvertedMode();
+}
+
+bool Serial::setInvertedMode(bool enable)
+{
+	return _impl.setInvertedMode(enable);
 }
 
 const char *Serial::getPort() const

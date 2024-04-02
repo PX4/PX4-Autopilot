@@ -214,6 +214,17 @@ bool SerialImpl::open()
 
 	_open = true;
 
+	// Do pin operations after port has been opened
+	if (_single_wire_mode) {
+		setSingleWireMode();
+	}
+
+	if (_swap_rx_tx_mode) {
+		setSwapRxTxMode();
+	}
+
+	setInvertedMode(_inverted_mode);
+
 	return _open;
 }
 
@@ -323,6 +334,13 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 	return written;
 }
 
+void SerialImpl::flush()
+{
+	if (_open) {
+		tcflush(_serial_fd, TCIOFLUSH);
+	}
+}
+
 const char *SerialImpl::getPort() const
 {
 	return _port;
@@ -414,6 +432,71 @@ FlowControl SerialImpl::getFlowcontrol() const
 bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
 {
 	return flowcontrol == FlowControl::Disabled;
+}
+
+bool SerialImpl::getSingleWireMode() const
+{
+	return _single_wire_mode;
+}
+
+bool SerialImpl::setSingleWireMode()
+{
+#if defined(TIOCSSINGLEWIRE)
+
+	if (_open) {
+		ioctl(_serial_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+	}
+
+	_single_wire_mode = true;
+	return true;
+#else
+	return false;
+#endif // TIOCSSINGLEWIRE
+}
+
+bool SerialImpl::getSwapRxTxMode() const
+{
+	return _swap_rx_tx_mode;
+}
+
+bool SerialImpl::setSwapRxTxMode()
+{
+#if defined(TIOCSSWAP)
+
+	if (_open) {
+		ioctl(_serial_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+	}
+
+	_swap_rx_tx_mode = true;
+	return true;
+#else
+	return false;
+#endif // TIOCSSWAP
+}
+
+bool SerialImpl::getInvertedMode() const
+{
+	return _inverted_mode;
+}
+
+bool SerialImpl::setInvertedMode(bool enable)
+{
+#if defined(TIOCSINVERT)
+
+	if (_open) {
+		if (enable) {
+			ioctl(_serial_fd, TIOCSINVERT, SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX);
+
+		} else {
+			ioctl(_serial_fd, TIOCSINVERT, 0);
+		}
+	}
+
+	_inverted_mode = enable;
+	return true;
+#else
+	return _inverted_mode == enable;
+#endif // TIOCSINVERT
 }
 
 } // namespace device

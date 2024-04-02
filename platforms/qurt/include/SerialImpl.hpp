@@ -63,6 +63,8 @@ public:
 
 	ssize_t write(const void *buffer, size_t buffer_size);
 
+	void flush();
+
 	const char *getPort() const;
 	bool setPort(const char *port);
 	static bool validatePort(const char *port);
@@ -81,6 +83,15 @@ public:
 
 	FlowControl getFlowcontrol() const;
 	bool setFlowcontrol(FlowControl flowcontrol);
+
+	bool getSingleWireMode() const;
+	bool setSingleWireMode();
+
+	bool getSwapRxTxMode() const;
+	bool setSwapRxTxMode();
+
+	bool getInvertedMode() const;
+	bool setInvertedMode(bool enable);
 
 private:
 
