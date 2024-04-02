@@ -255,6 +255,11 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 	return ret_write;
 }
 
+void SerialImpl::flush()
+{
+	// TODO: Flush not implemented yet on Qurt
+}
+
 const char *SerialImpl::getPort() const
 {
 	return _port;
@@ -346,6 +351,38 @@ FlowControl SerialImpl::getFlowcontrol() const
 bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
 {
 	return flowcontrol == FlowControl::Disabled;
+}
+
+bool SerialImpl::getSingleWireMode() const
+{
+	return false;
+}
+
+bool SerialImpl::setSingleWireMode()
+{
+	// Qurt platform does not support single wire mode
+	return false;
+}
+
+bool SerialImpl::getSwapRxTxMode() const
+{
+	return false;
+}
+
+bool SerialImpl::setSwapRxTxMode()
+{
+	// Qurt platform does not support swap rx tx mode
+	return false;
+}
+
+bool SerialImpl::setInvertedMode(bool enable)
+{
+	// Qurt platform does not support inverted mode
+	return false == enable;
+}
+bool SerialImpl::getInvertedMode() const
+{
+	return false;
 }
 
 } // namespace device
