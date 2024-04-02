@@ -95,7 +95,7 @@ if [ "$GPS" != "NONE" ]; then
 	    gps start -d /dev/ttyHS2
 	# On M0054 and M0104 the GPS driver runs on SLPI DSP
 	else
-	    qshell gps start
+	    qshell gps start -d 6
 	fi
 fi
 
