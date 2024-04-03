@@ -45,6 +45,8 @@ IST8310::IST8310(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(get_device_id(), config.rotation)
 {
+	// Set the number of retransmissions
+	_retries = 3;
 }
 
 IST8310::~IST8310()
@@ -294,17 +296,11 @@ bool IST8310::RegisterCheck(const register_config_t &reg_cfg)
 int IST8310::RegisterRead(Register reg, uint8_t &buffer)
 {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
-	int ret = PX4_ERROR;
 
-	for (int i = 0; i < 10; ++i) {
-		ret = transfer(&cmd, 1, &buffer, 1);
+	int ret = transfer(&cmd, 1, &buffer, 1);
 
-		if (ret == PX4_OK) {
-			break;
-
-		} else {
-			perf_count(_bad_transfer_perf);
-		}
+	if (ret != PX4_OK) {
+		perf_count(_bad_transfer_perf);
 	}
 
 	return ret;
@@ -313,17 +309,11 @@ int IST8310::RegisterRead(Register reg, uint8_t &buffer)
 int IST8310::RegisterWrite(Register reg, uint8_t value)
 {
 	uint8_t buffer[2] { (uint8_t)reg, value };
-	int ret = PX4_ERROR;
 
-	for (int i = 0; i < 10; ++i) {  // try multiple times
-		ret = transfer(buffer, sizeof(buffer), nullptr, 0);
+	int ret = transfer(buffer, sizeof(buffer), nullptr, 0);
 
-		if (ret == PX4_OK) {
-			break;
-
-		} else {
-			perf_count(_bad_transfer_perf);
-		}
+	if (ret != PX4_OK) {
+		perf_count(_bad_transfer_perf);
 	}
 
 	return ret;
