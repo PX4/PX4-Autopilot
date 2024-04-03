@@ -283,9 +283,11 @@ void FixedwingRateControl::Run()
 			return;
 		}
 
+		const float airspeed = get_airspeed_and_update_scaling();
+		_trim.setAirspeed(airspeed);
+
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			const float airspeed = get_airspeed_and_update_scaling();
 
 			/* reset integrals where needed */
 			if (_rates_sp.reset_integral) {
@@ -334,9 +336,6 @@ void FixedwingRateControl::Run()
 					}
 				}
 			}
-
-			_trim.setAirspeed(airspeed);
-			_trim_slew.update(_trim.getTrim(), dt);
 
 			_rates_sp_sub.update(&_rates_sp);
 
@@ -397,7 +396,6 @@ void FixedwingRateControl::Run()
 		} else {
 			// full manual
 			_rate_control.resetIntegral();
-			_trim.reset();
 		}
 
 		// Add feed-forward from roll control output to yaw control output
@@ -427,6 +425,7 @@ void FixedwingRateControl::Run()
 			}
 
 			_trim.updateAutoTrim(Vector3f(_vehicle_torque_setpoint.xyz), dt);
+			_trim_slew.update(_trim.getTrim(), dt);
 		}
 
 		updateActuatorControlsStatus(dt);
