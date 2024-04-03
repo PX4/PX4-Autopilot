@@ -1284,8 +1284,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if ((int)(cmd.param4) == 2) {
 					/* RC trim calibration */
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_vehicle_status.calibration_enabled = true;
-					_worker_thread.startTask(WorkerThread::Request::RCTrimCalibration);
+					mavlink_log_critical(&_mavlink_log_pub, "RC trim calibration is deprecated\t");
+					events::send(events::ID("commander_rc_trim_cal_denied"), events::Log::Critical,
+						     "RC trim calibration is deprecated");
 
 				} else if ((int)(cmd.param5) == 1) {
 					/* accelerometer calibration */

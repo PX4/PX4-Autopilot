@@ -40,7 +40,6 @@
 #include "gyro_calibration.h"
 #include "level_calibration.h"
 #include "mag_calibration.h"
-#include "rc_calibration.h"
 
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
@@ -113,10 +112,6 @@ void WorkerThread::threadEntry()
 
 	case Request::MagCalibration:
 		_ret_value = do_mag_calibration(&_mavlink_log_pub);
-		break;
-
-	case Request::RCTrimCalibration:
-		_ret_value = do_trim_calibration(&_mavlink_log_pub);
 		break;
 
 	case Request::AccelCalibration:
