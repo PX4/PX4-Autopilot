@@ -1,13 +1,13 @@
 {
-    "board_id": 34,
+    "board_id": 89,
     "magic": "PX4FWv1",
-    "description": "Firmware for the ucans32k146 board",
+    "description": "Firmware for the mr-canhubk3 board",
     "image": "",
     "build_time": 0,
-    "summary": "UCANS32K146",
+    "summary": "MRCANHUBK3",
     "version": "0.1",
     "image_size": 0,
-    "image_maxsize": 0,
+    "image_maxsize": 4096000,
     "git_identity": "",
     "board_revision": 0
 }
