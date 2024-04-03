@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,6 +69,27 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 
 			}
 
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2024-04-03: translate TRIM_ROLL/PITCH/YAW-> FW_TRIM_ROLL/PITCH/YAW
+	{
+		if (strcmp("TRIM_ROLL", node->name) == 0) {
+			strcpy(node->name, "FW_TRIM_ROLL");
+			PX4_INFO("copying %s -> %s", "TRIM_ROLL", "FW_TRIM_ROLL");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("TRIM_PITCH", node->name) == 0) {
+			strcpy(node->name, "FW_TRIM_PITCH");
+			PX4_INFO("copying %s -> %s", "TRIM_PITCH", "FW_TRIM_PITCH");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		if (strcmp("TRIM_YAW", node->name) == 0) {
+			strcpy(node->name, "FW_TRIM_YAW");
+			PX4_INFO("copying %s -> %s", "TRIM_YAW", "FW_TRIM_YAW");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
