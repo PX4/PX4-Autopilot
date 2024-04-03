@@ -719,8 +719,6 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 		updateClock(nav_sat.header().stamp().sec(), nav_sat.header().stamp().nsec());
 	}
 
-	_timestamp_prev = time_us;
-
 	// initialize gps position
 	if (!_pos_ref.isInitialized()) {
 		_pos_ref.initReference(nav_sat.latitude_deg(), nav_sat.longitude_deg(), hrt_absolute_time());
