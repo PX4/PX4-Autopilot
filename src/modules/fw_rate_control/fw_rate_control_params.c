@@ -454,3 +454,45 @@ PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
  * @group FW Rate Control
  */
 PARAM_DEFINE_INT32(FW_ACRO_YAW_EN, 0);
+
+/**
+ * Roll trim
+ *
+ * The trim value is the actuator control value the system needs
+ * for straight and level flight.
+ *
+ * @group FW Rate Control
+ * @min -0.5
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
+
+/**
+ * Pitch trim
+ *
+ * The trim value is the actuator control value the system needs
+ * for straight and level flight.
+ *
+ * @group FW Rate Control
+ * @min -0.5
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
+
+/**
+ * Yaw trim
+ *
+ * The trim value is the actuator control value the system needs
+ * for straight and level flight.
+ *
+ * @group FW Rate Control
+ * @min -0.5
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);

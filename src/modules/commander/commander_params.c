@@ -42,48 +42,6 @@
  */
 
 /**
- * Roll trim
- *
- * The trim value is the actuator control value the system needs
- * for straight and level flight.
- *
- * @group Radio Calibration
- * @min -0.5
- * @max 0.5
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
-
-/**
- * Pitch trim
- *
- * The trim value is the actuator control value the system needs
- * for straight and level flight.
- *
- * @group Radio Calibration
- * @min -0.5
- * @max 0.5
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
-
-/**
- * Yaw trim
- *
- * The trim value is the actuator control value the system needs
- * for straight and level flight.
- *
- * @group Radio Calibration
- * @min -0.5
- * @max 0.5
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
-
-/**
  * GCS connection loss time threshold
  *
  * After this amount of seconds without datalink, the GCS connection lost mode triggers
