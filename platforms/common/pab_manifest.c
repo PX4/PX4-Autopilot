@@ -315,19 +315,19 @@ static const px4_hw_mft_item_t base_configuration_9[] = {
 // BASE ID 10  Skynode QS no USB Alaised to ID 9
 // BASE ID 16  Auterion Skynode RC10, RC11, RC12, RC13 Alaised to ID 0
 
-
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
-	{HW_BASE_ID(0),  base_configuration_0, arraySize(base_configuration_0)},  // std Base with PX4IO
-	{HW_BASE_ID(1),  base_configuration_1, arraySize(base_configuration_1)},  // std Base No PX4IO
-	{HW_BASE_ID(2),  base_configuration_0, arraySize(base_configuration_0)},  // CUAV Base
-	{HW_BASE_ID(3),  base_configuration_3, arraySize(base_configuration_3)},  // NXP T1 PHY
-	{HW_BASE_ID(4),  base_configuration_0, arraySize(base_configuration_0)},  // HB CM4 base
-	{HW_BASE_ID(5),  base_configuration_5, arraySize(base_configuration_5)},  // HB Mini
-	{HW_BASE_ID(8),  base_configuration_0, arraySize(base_configuration_0)},  // Auterion Skynode ver 8 Aliased to 0
-	{HW_BASE_ID(9),  base_configuration_9, arraySize(base_configuration_9)},  // Auterion Skynode ver 9
-	{HW_BASE_ID(10), base_configuration_9, arraySize(base_configuration_9)},  // Auterion Skynode ver 10
-	{HW_BASE_ID(16), base_configuration_0, arraySize(base_configuration_0)},  // Auterion Skynode ver 16
+	{HW_BASE_ID(0),      base_configuration_0, arraySize(base_configuration_0)},   // std Base with PX4IO
+	{HW_BASE_ID(1),      base_configuration_1, arraySize(base_configuration_1)},   // std Base No PX4IO
+	{HW_BASE_ID(2),      base_configuration_0, arraySize(base_configuration_0)},   // CUAV Base
+	{HW_BASE_ID(3),      base_configuration_3, arraySize(base_configuration_3)},   // NXP T1 PHY
+	{HW_BASE_ID(4),      base_configuration_0, arraySize(base_configuration_0)},   // HB CM4 base
+	{HW_BASE_ID(5),      base_configuration_5, arraySize(base_configuration_5)},   // HB Mini
+	{HW_BASE_ID(8),      base_configuration_0, arraySize(base_configuration_0)},   // Auterion Skynode ver 8 Aliased to 0
+	{HW_BASE_ID(9),      base_configuration_9, arraySize(base_configuration_9)},   // Auterion Skynode ver 9
+	{HW_BASE_ID(10),     base_configuration_9, arraySize(base_configuration_9)},   // Auterion Skynode ver 10
+	{HW_BASE_ID(16),     base_configuration_0, arraySize(base_configuration_0)},   // Auterion Skynode ver 16
+	{HW_BASE_ID(0x100),  base_configuration_0, arraySize(base_configuration_0)},   // Holybro Pixhawk Jetson Baseboard ver 0x100 Alaised to ID 0
 };
 
 /************************************************************************************
