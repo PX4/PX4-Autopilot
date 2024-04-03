@@ -160,12 +160,14 @@ void MMC5983MA::publish_data()
 
 	// +/- 8 Gauss full scale range
 	// 18-bit mode scaling factor: 0.0625 mG/LSB
-	float x1 = 8.f - (float(xraw_1) * 0.0625f) / 1e3f;
-	float x2 = 8.f - (float(xraw_2) * 0.0625f) / 1e3f;
-	float y1 = 8.f - (float(yraw_1) * 0.0625f) / 1e3f;
-	float y2 = 8.f - (float(yraw_2) * 0.0625f) / 1e3f;
-	float z1 = 8.f - (float(zraw_1) * 0.0625f) / 1e3f;
-	float z2 = 8.f - (float(zraw_2) * 0.0625f) / 1e3f;
+	float x1 = -8.f + (float(xraw_1) * 0.0625f) / 1e3f;
+	float x2 = -8.f + (float(xraw_2) * 0.0625f) / 1e3f;
+	float y1 = -8.f + (float(yraw_1) * 0.0625f) / 1e3f;
+	float y2 = -8.f + (float(yraw_2) * 0.0625f) / 1e3f;
+	float z1 = -8.f + (float(zraw_1) * 0.0625f) / 1e3f;
+	float z2 = -8.f + (float(zraw_2) * 0.0625f) / 1e3f;
+
+	// Remove the offset from the measurements (SET/RESET)
 	float x = (x1 - x2) / 2.f;
 	float y = -1.f * (y1 - y2) / 2.f; // Y axis is inverted to convert from LH to RH
 	float z = (z1 - z2) / 2.f;
