@@ -175,6 +175,7 @@ jobs:
         run: |
           echo "fetching fpga files from ${{ env.saluki_fpga_repo }}"
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v2_fpga_version }} saluki_v2 ${{ env.FPGA_DIR }}/saluki-v2
+          px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v3_fpga_version }} saluki_v3 ${{ env.FPGA_DIR }}/saluki-v3
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_pi_fpga_version }} saluki_pi ${{ env.FPGA_DIR }}/saluki-pi
 
           # combine fpga json files to one file
