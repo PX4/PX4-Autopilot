@@ -3,7 +3,7 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set VEHICLE_TYPE sr
+set VEHICLE_TYPE sc
 
 # MAV_TYPE_QUADROTOR 2
 #param set-default MAV_TYPE 12

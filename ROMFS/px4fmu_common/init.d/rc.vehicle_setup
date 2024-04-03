@@ -62,10 +62,10 @@ fi
 #
 # SR setup
 #
-if [ $VEHICLE_TYPE = sr ]
+if [ $VEHICLE_TYPE = sc ]
 then
 	# Start standard sr apps.
-	. ${R}etc/init.d/rc.sr_apps
+	. ${R}etc/init.d/rc.sc_apps
 fi
 
 #

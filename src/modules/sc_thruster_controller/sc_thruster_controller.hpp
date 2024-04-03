@@ -96,6 +96,11 @@ class ScThrusterController : public ModuleBase<ScThrusterController>, public Mod
                     (ParamInt<px4::params::SYS_AUTOCONFIG>)_param_sys_autoconfig /**< another parameter */
   )
 
+  // Flags
+  static bool _debug_thruster_print;
+
   // Subscriptions
   uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 };
+
+bool ScThrusterController::_debug_thruster_print = true;

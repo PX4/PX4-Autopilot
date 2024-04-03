@@ -76,41 +76,32 @@ int ScThrusterController::task_spawn(int argc, char* argv[]) {
 }
 
 ScThrusterController* ScThrusterController::instantiate(int argc, char* argv[]) {
-  /*
-int example_param = 0;
-  bool example_flag = false;
-  bool error_flag = false;
-
   int myoptind = 1;
   int ch;
+  bool error_flag = false;
   const char *myoptarg = nullptr;
 
-   // parse CLI arguments
-  while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
-          switch (ch) {
-          case 'p':
-                  example_param = (int)strtol(myoptarg, nullptr, 10);
-                  break;
-
-          case 'f':
-                  example_flag = true;
-                  break;
-
-          case '?':
-                  error_flag = true;
-                  break;
-
-          default:
-                  PX4_WARN("unrecognized flag");
-                  error_flag = true;
-                  break;
-          }
+  // parse CLI arguments
+  _debug_thruster_print = false;
+  while ((ch = px4_getopt(argc, argv, "d", &myoptind, &myoptarg)) != EOF) {
+    switch (ch) {
+    case 'd':
+            _debug_thruster_print = true;
+            PX4_INFO("Debugging enabled");
+            break;
+    case '?':
+            error_flag = true;
+            break;
+    default:
+            PX4_WARN("unrecognized flag");
+            error_flag = true;
+            break;
+    }
   }
 
   if (error_flag) {
           return nullptr;
   }
-*/
 
   ScThrusterController* instance = new ScThrusterController();
 
@@ -140,8 +131,13 @@ void ScThrusterController::run() {
   memset(&my_msg, 0, sizeof(my_msg));
   orb_advert_t _my_message_pub = orb_advertise(ORB_ID(my_message), &my_msg);
 
+  // Thruster command structure
+  struct thruster_command_s thruster_cmd;
+
   // initialize parameters
   parameters_update(true);
+  bool debugPrint = ScThrusterController::_debug_thruster_print;
+  PX4_INFO("Debugging enabled: %d", debugPrint);
 
   while (!should_exit()) {
     // wait for up to 1000ms for data
@@ -149,7 +145,7 @@ void ScThrusterController::run() {
 
     if (pret == 0) {
       // Timeout: let the loop run anyway, don't do `continue` here
-
+      if (debugPrint) PX4_WARN("Timeout...");
     } else if (pret < 0) {
       // this is undesirable but not much we can do
       PX4_ERR("poll error %d, %d", pret, errno);
@@ -157,11 +153,10 @@ void ScThrusterController::run() {
       continue;
 
     } else if (fds[0].revents & POLLIN) {
-      /* obtained data for the first file descriptor */
-      struct thruster_command_s thruster_cmd;
       /* copy sensors raw data into local buffer */
       orb_copy(ORB_ID(thruster_command), thrustercmd_sub, &thruster_cmd);
-      PX4_INFO("x1: %8.4f\t x2: %8.4f\t y1: %8.4f\t y2: %8.4f", (double)thruster_cmd.x1, (double)thruster_cmd.x2,
+      if (debugPrint)
+        PX4_INFO("x1: %8.4f\t x2: %8.4f\t y1: %8.4f\t y2: %8.4f", (double)thruster_cmd.x1, (double)thruster_cmd.x2,
                (double)thruster_cmd.y1, (double)thruster_cmd.y2);
 
       actuator_motors_msg.control[0] = thruster_cmd.x1 > 0 ? thruster_cmd.x1 : 0;
@@ -175,10 +170,11 @@ void ScThrusterController::run() {
 
       orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors_msg);
 
-      strcpy(my_msg.text, "Thruster command received!");
-      orb_publish(ORB_ID(my_message), _my_message_pub, &my_msg);
+      if (debugPrint) {
+        strcpy(my_msg.text, "Thruster command received!");
+        orb_publish(ORB_ID(my_message), _my_message_pub, &my_msg);
+      }
     }
-
     parameters_update();
   }
 
