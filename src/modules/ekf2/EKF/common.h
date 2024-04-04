@@ -70,7 +70,6 @@ static constexpr uint64_t BARO_MAX_INTERVAL     = 200e3;  ///< Maximum allowable
 static constexpr uint64_t EV_MAX_INTERVAL       = 200e3;  ///< Maximum allowable time interval between external vision system measurements (uSec)
 static constexpr uint64_t GNSS_MAX_INTERVAL     = 500e3;  ///< Maximum allowable time interval between GNSS measurements (uSec)
 static constexpr uint64_t GNSS_YAW_MAX_INTERVAL = 1500e3; ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
-static constexpr uint64_t RNG_MAX_INTERVAL      = 200e3;  ///< Maximum allowable time interval between range finder measurements (uSec)
 static constexpr uint64_t MAG_MAX_INTERVAL      = 500e3;  ///< Maximum allowable time interval between magnetic field measurements (uSec)
 
 // bad accelerometer detection and mitigation
@@ -195,12 +194,6 @@ struct baroSample {
 	uint64_t    time_us{};  ///< timestamp of the measurement (uSec)
 	float       hgt{};      ///< pressure altitude above sea level (m)
 	bool        reset{false};
-};
-
-struct rangeSample {
-	uint64_t    time_us{};  ///< timestamp of the measurement (uSec)
-	float       rng{};      ///< range (distance to ground) measurement (m)
-	int8_t      quality{};  ///< Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
 };
 
 struct airspeedSample {
