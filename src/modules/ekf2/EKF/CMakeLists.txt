@@ -55,7 +55,7 @@ list(APPEND EKF_SRCS
 )
 
 if(CONFIG_EKF2_AIRSPEED)
-	list(APPEND EKF_SRCS airspeed_fusion.cpp)
+	list(APPEND EKF_SRCS aid_sources/airspeed/airspeed_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
