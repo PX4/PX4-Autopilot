@@ -171,10 +171,8 @@ pipeline {
               sh('cp airframes.md PX4-user_guide/en/airframes/airframe_reference.md')
               sh('cp parameters.md PX4-user_guide/en/advanced_config/parameter_reference.md')
               sh('cp -R modules/*.md PX4-user_guide/en/modules/')
-              sh('cp -R graph_*.json PX4-user_guide/.vuepress/public/en/middleware/') // vuepress
               sh('cp -R graph_*.json PX4-user_guide/public/middleware/')  // vitepress
               sh('cp -R msg_docs/*.md PX4-user_guide/en/msg_docs/')
-              sh('cp -R failsafe_sim/* PX4-user_guide/.vuepress/public/en/config/failsafe') // vuepress
               sh('cp -R failsafe_sim/* PX4-user_guide/public/config/failsafe')  // vitepress
               sh('cd PX4-user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd PX4-user_guide; git push origin main || true')
