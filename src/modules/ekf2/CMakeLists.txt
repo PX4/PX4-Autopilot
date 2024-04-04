@@ -160,11 +160,11 @@ endif()
 
 if(CONFIG_EKF2_EXTERNAL_VISION)
 	list(APPEND EKF_SRCS
-		EKF/ev_control.cpp
-		EKF/ev_height_control.cpp
-		EKF/ev_pos_control.cpp
-		EKF/ev_vel_control.cpp
-		EKF/ev_yaw_control.cpp
+		EKF/aid_sources/external_vision/ev_control.cpp
+		EKF/aid_sources/external_vision/ev_height_control.cpp
+		EKF/aid_sources/external_vision/ev_pos_control.cpp
+		EKF/aid_sources/external_vision/ev_vel_control.cpp
+		EKF/aid_sources/external_vision/ev_yaw_control.cpp
 	)
 endif()
 
