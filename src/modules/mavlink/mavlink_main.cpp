@@ -2227,6 +2227,7 @@ Mavlink::task_main(int argc, char *argv[])
 			if (_uart_fd < 0 && attempts < max_attempts) {
 				PX4_ERR("could not open %s, retrying", _device_name);
 				px4_usleep(1_s);
+
 			} else if (_uart_fd < 0) {
 				PX4_ERR("failed to open %s after %d attempts, exiting!", _device_name, attempts);
 				return PX4_ERROR;
