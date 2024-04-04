@@ -210,7 +210,7 @@ if(CONFIG_EKF2_RANGE_FINDER)
 endif()
 
 if(CONFIG_EKF2_SIDESLIP)
-	list(APPEND EKF_SRCS EKF/sideslip_fusion.cpp)
+	list(APPEND EKF_SRCS EKF/aid_sources/sideslip/sideslip_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_TERRAIN)
