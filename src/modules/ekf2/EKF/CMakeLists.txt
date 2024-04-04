@@ -68,7 +68,7 @@ endif()
 
 if(CONFIG_EKF2_BAROMETER)
 	list(APPEND EKF_SRCS
-		baro_height_control.cpp
+		aid_sources/barometer/baro_height_control.cpp
 	)
 endif()
 
