@@ -38,20 +38,22 @@
  *
  */
 
-#include "sensor_range_finder.hpp"
+#include <aid_sources/range_finder/sensor_range_finder.hpp>
+
+#include <lib/matrix/matrix/math.hpp>
 
 namespace estimator
 {
 namespace sensor
 {
 
-void SensorRangeFinder::runChecks(const uint64_t current_time_us, const Dcmf &R_to_earth)
+void SensorRangeFinder::runChecks(const uint64_t current_time_us, const matrix::Dcmf &R_to_earth)
 {
 	updateSensorToEarthRotation(R_to_earth);
 	updateValidity(current_time_us);
 }
 
-void SensorRangeFinder::updateSensorToEarthRotation(const Dcmf &R_to_earth)
+void SensorRangeFinder::updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth)
 {
 	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
 	// this is required for use of range finder and flow data
@@ -114,7 +116,7 @@ inline bool SensorRangeFinder::isDataInRange() const
 
 void SensorRangeFinder::updateStuckCheck()
 {
-	if(!isStuckDetectorEnabled()){
+	if (!isStuckDetectorEnabled()) {
 		// Stuck detector disabled
 		_is_stuck = false;
 		return;

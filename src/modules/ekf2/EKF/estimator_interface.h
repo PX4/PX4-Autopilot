@@ -67,8 +67,8 @@
 #include "output_predictor.h"
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-# include "range_finder_consistency_check.hpp"
-# include "sensor_range_finder.hpp"
+# include "aid_sources/range_finder/range_finder_consistency_check.hpp"
+# include "aid_sources/range_finder/sensor_range_finder.hpp"
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #include <lib/atmosphere/atmosphere.h>
@@ -107,7 +107,7 @@ public:
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	void setRangeData(const rangeSample &range_sample);
+	void setRangeData(const estimator::sensor::rangeSample &range_sample);
 
 	// set sensor limitations reported by the rangefinder
 	void set_rangefinder_limits(float min_distance, float max_distance)
@@ -115,7 +115,7 @@ public:
 		_range_sensor.setLimits(min_distance, max_distance);
 	}
 
-	const rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
+	const estimator::sensor::rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -356,7 +356,7 @@ protected:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	RingBuffer<rangeSample> *_range_buffer{nullptr};
+	RingBuffer<sensor::rangeSample> *_range_buffer{nullptr};
 	uint64_t _time_last_range_buffer_push{0};
 
 	sensor::SensorRangeFinder _range_sensor{};

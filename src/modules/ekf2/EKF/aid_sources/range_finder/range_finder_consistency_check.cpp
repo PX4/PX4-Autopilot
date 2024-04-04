@@ -35,9 +35,10 @@
  * @file range_finder_consistency_check.cpp
  */
 
-#include "range_finder_consistency_check.hpp"
+#include <aid_sources/range_finder/range_finder_consistency_check.hpp>
 
-void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, bool horizontal_motion, uint64_t time_us)
+void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var,
+		bool horizontal_motion, uint64_t time_us)
 {
 	if (horizontal_motion) {
 		_time_last_horizontal_motion = time_us;
@@ -55,7 +56,8 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 	const float vel_bottom = (dist_bottom - _dist_bottom_prev) / dt;
 	_innov = -vel_bottom - vz; // vel_bottom is +up while vz is +down
 
-	const float var = 2.f * dist_bottom_var / (dt * dt); // Variance of the time derivative of a random variable: var(dz/dt) = 2*var(z) / dt^2
+	// Variance of the time derivative of a random variable: var(dz/dt) = 2*var(z) / dt^2
+	const float var = 2.f * dist_bottom_var / (dt * dt);
 	_innov_var = var + vz_var;
 
 	const float normalized_innov_sq = (_innov * _innov) / _innov_var;
@@ -84,8 +86,9 @@ void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
 		}
 
 	} else {
-		if (_test_ratio < 1.f
-		   && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)) {
+		if ((_test_ratio < 1.f)
+		    && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)
+		   ) {
 			_is_kinematically_consistent = true;
 		}
 	}

@@ -266,7 +266,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-void EstimatorInterface::setRangeData(const rangeSample &range_sample)
+void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 {
 	if (!_initialised) {
 		return;
@@ -274,7 +274,7 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 
 	// Allocate the required buffer size if not previously done
 	if (_range_buffer == nullptr) {
-		_range_buffer = new RingBuffer<rangeSample>(_obs_buffer_length);
+		_range_buffer = new RingBuffer<sensor::rangeSample>(_obs_buffer_length);
 
 		if (_range_buffer == nullptr || !_range_buffer->valid()) {
 			delete _range_buffer;
@@ -291,7 +291,7 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 	// limit data rate to prevent data being lost
 	if (time_us >= static_cast<int64_t>(_range_buffer->get_newest().time_us + _min_obs_interval_us)) {
 
-		rangeSample range_sample_new{range_sample};
+		sensor::rangeSample range_sample_new{range_sample};
 		range_sample_new.time_us = time_us;
 
 		_range_buffer->push(range_sample_new);

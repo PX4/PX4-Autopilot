@@ -203,9 +203,9 @@ endif()
 
 if(CONFIG_EKF2_RANGE_FINDER)
 	list(APPEND EKF_SRCS
-		EKF/range_finder_consistency_check.cpp
-		EKF/range_height_control.cpp
-		EKF/sensor_range_finder.cpp
+		EKF/aid_sources/range_finder/range_finder_consistency_check.cpp
+		EKF/aid_sources/range_finder/range_height_control.cpp
+		EKF/aid_sources/range_finder/sensor_range_finder.cpp
 	)
 endif()
 
