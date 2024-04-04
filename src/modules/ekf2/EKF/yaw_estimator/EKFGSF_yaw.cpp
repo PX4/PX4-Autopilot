@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,24 @@
  ****************************************************************************/
 
 #include "EKFGSF_yaw.h"
+
 #include <cstdlib>
 
-#include "python/ekf_derivation/generated/yaw_est_predict_covariance.h"
-#include "python/ekf_derivation/generated/yaw_est_compute_measurement_update.h"
+#include <lib/geo/geo.h> // CONSTANTS_ONE_G
+
+#include "derivation/generated/yaw_est_predict_covariance.h"
+#include "derivation/generated/yaw_est_compute_measurement_update.h"
+
+using matrix::AxisAnglef;
+using matrix::Dcmf;
+using matrix::Eulerf;
+using matrix::Matrix3f;
+using matrix::Quatf;
+using matrix::Vector2f;
+using matrix::Vector3f;
+using matrix::wrap_pi;
+using math::Utilities::getEulerYaw;
+using math::Utilities::updateYawInRotMat;
 
 EKFGSF_yaw::EKFGSF_yaw()
 {
@@ -49,13 +63,14 @@ void EKFGSF_yaw::reset()
 	_gsf_yaw_variance = INFINITY;
 }
 
-void EKFGSF_yaw::predict(const imuSample &imu_sample, bool in_air)
+void EKFGSF_yaw::predict(const matrix::Vector3f &delta_ang, const float delta_ang_dt, const matrix::Vector3f &delta_vel,
+			 const float delta_vel_dt, bool in_air)
 {
-	const Vector3f accel = imu_sample.delta_vel / imu_sample.delta_vel_dt;
+	const Vector3f accel = delta_vel / delta_vel_dt;
 
-	if (imu_sample.delta_vel_dt > 0.001f) {
+	if (delta_vel_dt > 0.001f) {
 		// to reduce effect of vibration, filter using an LPF whose time constant is 1/10 of the AHRS tilt correction time constant
-		const float filter_coef = fminf(10.f * imu_sample.delta_vel_dt * _tilt_gain, 1.f);
+		const float filter_coef = fminf(10.f * delta_vel_dt * _tilt_gain, 1.f);
 		_ahrs_accel = _ahrs_accel * (1.f - filter_coef) + accel * filter_coef;
 
 	} else {
@@ -76,7 +91,7 @@ void EKFGSF_yaw::predict(const imuSample &imu_sample, bool in_air)
 					 && (accel_lpf_norm_sq > sq(lower_accel_limit)) && (accel_lpf_norm_sq < sq(upper_accel_limit));
 
 		if (ok_to_align) {
-			ahrsAlignTilt(imu_sample.delta_vel);
+			ahrsAlignTilt(delta_vel);
 			_ahrs_ekf_gsf_tilt_aligned = true;
 
 		} else {
@@ -85,8 +100,7 @@ void EKFGSF_yaw::predict(const imuSample &imu_sample, bool in_air)
 	}
 
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-		predictEKF(model_index, imu_sample.delta_ang, imu_sample.delta_ang_dt,
-			   imu_sample.delta_vel, imu_sample.delta_vel_dt, in_air);
+		predictEKF(model_index, delta_ang, delta_ang_dt, delta_vel, delta_vel_dt, in_air);
 	}
 }
 

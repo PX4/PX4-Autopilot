@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-    Copyright (c) 2022-2023 PX4 Development Team
+    Copyright (c) 2022-2024 PX4 Development Team
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
     are met:
@@ -38,7 +38,12 @@ symforce.set_epsilon_to_symbol()
 
 import symforce.symbolic as sf
 from symforce.values import Values
-from derivation_utils import *
+
+# generate_px4_function from derivation_utils in EKF/ekf_derivation/utils
+import os, sys
+derivation_utils_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../python/ekf_derivation/utils"
+sys.path.append(derivation_utils_dir)
+import derivation_utils
 
 State = Values(
     vel = sf.V2(),
@@ -148,7 +153,7 @@ def yaw_est_compute_measurement_update(
 
     S = H * P * H.T + R
     S_det = S[0, 0] * S[1, 1] - S[1, 0] * S[0, 1]
-    S_det_inv = add_epsilon_sign(1 / S_det, S_det, epsilon)
+    S_det_inv = derivation_utils.add_epsilon_sign(1 / S_det, S_det, epsilon)
 
     # Compute inverse using simple formula for 2x2 matrix and using protected division
     S_inv = sf.M22([[S[1, 1], -S[0, 1]], [-S[1, 0], S[0, 0]]]) * S_det_inv
@@ -166,5 +171,5 @@ def yaw_est_compute_measurement_update(
     return (S_inv, S_det_inv, K, P_new)
 
 print("Derive yaw estimator equations...")
-generate_px4_function(yaw_est_predict_covariance, output_names=["P_new"])
-generate_px4_function(yaw_est_compute_measurement_update, output_names=["S_inv", "S_det_inv", "K", "P_new"])
+derivation_utils.generate_px4_function(yaw_est_predict_covariance, output_names=["P_new"])
+derivation_utils.generate_px4_function(yaw_est_compute_measurement_update, output_names=["S_inv", "S_det_inv", "K", "P_new"])
