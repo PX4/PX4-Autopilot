@@ -109,7 +109,6 @@ private:
 	StopBits _stopbits{StopBits::One};
 	FlowControl _flowcontrol{FlowControl::Disabled};
 
-	bool validateBaudrate(uint32_t baudrate);
 	bool configure();
 
 	bool _single_wire_mode{false};

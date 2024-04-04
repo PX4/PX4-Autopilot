@@ -66,27 +66,10 @@ SerialImpl::~SerialImpl()
 	}
 }
 
-bool SerialImpl::validateBaudrate(uint32_t baudrate)
-{
-	return ((baudrate == 9600) ||
-		(baudrate == 19200) ||
-		(baudrate == 38400) ||
-		(baudrate == 57600) ||
-		(baudrate == 115200) ||
-		(baudrate == 230400) ||
-		(baudrate == 460800) ||
-		(baudrate == 921600));
-}
-
 bool SerialImpl::configure()
 {
 	/* process baud rate */
 	int speed;
-
-	if (! validateBaudrate(_baudrate)) {
-		PX4_ERR("ERR: unknown baudrate: %u", _baudrate);
-		return false;
-	}
 
 	switch (_baudrate) {
 	case 9600:   speed = B9600;   break;
@@ -114,8 +97,9 @@ bool SerialImpl::configure()
 	case 921600: speed = B921600; break;
 
 	default:
-		PX4_ERR("ERR: unknown baudrate: %d", _baudrate);
-		return false;
+		speed = _baudrate;
+		PX4_WARN("Using non-standard baudrate: %u", _baudrate);
+		break;
 	}
 
 	struct termios uart_config;
@@ -366,11 +350,6 @@ uint32_t SerialImpl::getBaudrate() const
 
 bool SerialImpl::setBaudrate(uint32_t baudrate)
 {
-	if (! validateBaudrate(baudrate)) {
-		PX4_ERR("ERR: invalid baudrate: %u", baudrate);
-		return false;
-	}
-
 	// check if already configured
 	if ((baudrate == _baudrate) && _open) {
 		return true;
