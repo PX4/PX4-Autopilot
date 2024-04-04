@@ -170,16 +170,16 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
-		EKF/gnss_height_control.cpp
-		EKF/gps_checks.cpp
-		EKF/gps_control.cpp
+		EKF/aid_sources/gnss/gnss_height_control.cpp
+		EKF/aid_sources/gnss/gps_checks.cpp
+		EKF/aid_sources/gnss/gps_control.cpp
 	)
 
-	list(APPEND EKF_LIBS yaw_estimator)
-endif()
+	if(CONFIG_EKF2_GNSS_YAW)
+		list(APPEND EKF_SRCS EKF/aid_sources/gnss/gps_yaw_fusion.cpp)
+	endif()
 
-if(CONFIG_EKF2_GNSS_YAW)
-	list(APPEND EKF_SRCS EKF/gps_yaw_fusion.cpp)
+	list(APPEND EKF_LIBS yaw_estimator)
 endif()
 
 if(CONFIG_EKF2_GRAVITY_FUSION)
@@ -218,8 +218,6 @@ if(CONFIG_EKF2_TERRAIN)
 endif()
 
 add_subdirectory(EKF)
-
-
 
 px4_add_module(
 	MODULE modules__ekf2
