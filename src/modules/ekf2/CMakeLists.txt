@@ -155,7 +155,7 @@ if(CONFIG_EKF2_BAROMETER)
 endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)
-	list(APPEND EKF_SRCS EKF/drag_fusion.cpp)
+	list(APPEND EKF_SRCS EKF/aid_sources/drag/drag_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_EXTERNAL_VISION)
