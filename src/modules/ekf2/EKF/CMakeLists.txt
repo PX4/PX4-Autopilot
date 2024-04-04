@@ -63,7 +63,7 @@ if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 endif()
 
 if(CONFIG_EKF2_AUXVEL)
-	list(APPEND EKF_SRCS auxvel_fusion.cpp)
+	list(APPEND EKF_SRCS aid_sources/auxvel/auxvel_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_BAROMETER)
