@@ -42,12 +42,21 @@
 #define EKF_SENSOR_RANGE_FINDER_HPP
 
 #include "Sensor.hpp"
+
 #include <matrix/math.hpp>
 
 namespace estimator
 {
 namespace sensor
 {
+
+struct rangeSample {
+	uint64_t    time_us{};  ///< timestamp of the measurement (uSec)
+	float       rng{};      ///< range (distance to ground) measurement (m)
+	int8_t      quality{};  ///< Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
+};
+
+static constexpr uint64_t RNG_MAX_INTERVAL = 200e3;  ///< Maximum allowable time interval between range finder measurements (uSec)
 
 class SensorRangeFinder : public Sensor
 {
