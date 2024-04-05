@@ -219,6 +219,8 @@ public:
 	 */
 	bool copy(void *dst, orb_advert_t &handle, unsigned &generation);
 
+	void ack(unsigned &generation) { generation = _generation.load(); }
+
 	static bool register_callback(orb_advert_t &node_handle, SubscriptionCallback *callback_sub, int8_t poll_lock,
 				      hrt_abstime last_update, uint32_t interval_us, uorb_cb_handle_t &cb_handle)
 	{

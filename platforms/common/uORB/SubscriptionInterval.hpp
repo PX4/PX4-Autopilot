@@ -101,6 +101,17 @@ public:
 	}
 
 	/**
+	 * Acknowledge a new update.
+	 */
+	void ack()
+	{
+		_subscription.ack();
+		const hrt_abstime now = hrt_absolute_time();
+		// shift last update time forward, but don't let it get further behind than the interval
+		_last_update = math::constrain(_last_update + _interval_us, now - _interval_us, now);
+	}
+
+	/**
 	 * Copy the struct if updated.
 	 * @param dst The destination pointer where the struct will be copied.
 	 * @return true only if topic was updated and copied successfully.
