@@ -51,6 +51,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include "voted_sensors_update.h"
 #include "vehicle_imu/VehicleIMU.hpp"
+#include "failure_detector_HITL/failure_detector_HITL.hpp"
 
 #if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
 # include "vehicle_acceleration/VehicleAcceleration.hpp"
@@ -250,6 +251,9 @@ private:
 	VehicleOpticalFlow *_vehicle_optical_flow {nullptr};
 	uint8_t _n_optical_flow{0};
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
+
+	FailureDetectorHITL _failureDetector;
+	FakeSensors _fakeSensors;
 
 	DEFINE_PARAMETERS(
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
