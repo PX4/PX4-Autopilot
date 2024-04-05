@@ -587,7 +587,10 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 		break;
 
 	case 5:
-		if (!_is_landed && !_has_vtol_approach) {
+		if (_is_landed) {
+			result = hasMissionBothOrNeitherTakeoffAndLanding();
+
+		} else if (!_has_vtol_approach) {
 			result = _landing_valid;
 
 			if (!result) {
@@ -595,9 +598,6 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 				events::send(events::ID("feasibility_mis_in_air_landing_req"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: Landing waypoint/pattern required");
 			}
-
-		} else {
-			result = hasMissionBothOrNeitherTakeoffAndLanding();
 		}
 
 		break;
