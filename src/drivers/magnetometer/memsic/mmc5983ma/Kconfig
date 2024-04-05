@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_MEMSIC_MMC5983MA
+	bool "mmc5983ma"
+	default n
+	---help---
+		Enable support for mmc5983ma
