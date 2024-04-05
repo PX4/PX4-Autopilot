@@ -54,7 +54,20 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamMountOrientation(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamMountOrientation(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamMountOrientation()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[2] {
+		ORB_ID::mount_orientation,
+		ORB_ID::vehicle_local_position
+	};
 
 	uORB::Subscription _mount_orientation_sub{ORB_ID(mount_orientation)};
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};

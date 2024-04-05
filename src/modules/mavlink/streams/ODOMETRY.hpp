@@ -53,7 +53,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamOdometry()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::vehicle_odometry
+	};
 
 	uORB::Subscription _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
 

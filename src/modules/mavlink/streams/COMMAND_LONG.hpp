@@ -53,7 +53,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamCommandLong(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamCommandLong(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamCommandLong()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::vehicle_command
+	};
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 

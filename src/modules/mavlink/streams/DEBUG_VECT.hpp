@@ -53,7 +53,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamDebugVect(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamDebugVect(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamDebugVect()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::debug_vect
+	};
 
 	uORB::Subscription _debug_sub{ORB_ID(debug_vect)};
 

@@ -57,7 +57,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamGimbalManagerStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamGimbalManagerStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamGimbalManagerStatus()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::gimbal_manager_status
+	};
 
 	uORB::Subscription _gimbal_manager_status_sub{ORB_ID(gimbal_manager_status)};
 

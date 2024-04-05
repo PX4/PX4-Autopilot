@@ -53,7 +53,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamOpenDroneIdBasicId(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamOpenDroneIdBasicId(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamOpenDroneIdBasicId()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::vehicle_status
+	};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 

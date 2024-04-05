@@ -91,6 +91,12 @@ private:
 		_windspeed(SimpleAnalyzer::AVERAGE)
 	{
 		reset_last_sent();
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamHighLatency2()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
 	}
 
 	struct PerBatteryData {
@@ -620,6 +626,26 @@ private:
 		msg.windspeed = 0;
 		msg.wp_num = UINT16_MAX;
 	}
+
+	ORB_ID _orbs[17] {
+		ORB_ID::vehicle_thrust_setpoint,
+		ORB_ID::airspeed,
+		ORB_ID::vehicle_attitude_setpoint,
+		ORB_ID::estimator_selector_status,
+		ORB_ID::estimator_status,
+		ORB_ID::position_controller_status,
+		ORB_ID::geofence_result,
+		ORB_ID::vehicle_global_position,
+		ORB_ID::vehicle_local_position,
+		ORB_ID::vehicle_gps_position,
+		ORB_ID::mission_result,
+		ORB_ID::vehicle_status,
+		ORB_ID::failsafe_flags,
+		ORB_ID::tecs_status,
+		ORB_ID::wind,
+		ORB_ID::health_report,
+		ORB_ID::battery_status
+	};
 
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _vehicle_thrust_setpoint_1_sub{ORB_ID(vehicle_thrust_setpoint), 1};

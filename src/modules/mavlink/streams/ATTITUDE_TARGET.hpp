@@ -54,7 +54,21 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamAttitudeTarget(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamAttitudeTarget(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamAttitudeTarget()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+
+	ORB_ID _orbs[2] {
+		ORB_ID::vehicle_attitude_setpoint,
+		ORB_ID::vehicle_rates_setpoint
+	};
 
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _att_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};

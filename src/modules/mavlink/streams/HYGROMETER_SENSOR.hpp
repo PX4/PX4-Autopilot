@@ -55,7 +55,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamHygrometerSensor(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamHygrometerSensor(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamHygrometerSensor()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::sensor_hygrometer
+	};
 
 	uORB::SubscriptionMultiArray<sensor_hygrometer_s> _sensor_hygrometer_subs{ORB_ID::sensor_hygrometer};
 

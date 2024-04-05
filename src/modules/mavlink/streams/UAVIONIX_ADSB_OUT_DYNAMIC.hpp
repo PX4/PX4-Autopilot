@@ -58,8 +58,21 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamUavionixADSBOutDynamic(Mavlink *mavlink) : ModuleParams(nullptr), MavlinkStream(mavlink) {}
+	explicit MavlinkStreamUavionixADSBOutDynamic(Mavlink *mavlink) : ModuleParams(nullptr), MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
 
+	~MavlinkStreamUavionixADSBOutDynamic()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[3] {
+		ORB_ID::vehicle_gps_position,
+		ORB_ID::vehicle_air_data,
+		ORB_ID::vehicle_status
+	};
 
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};

@@ -58,7 +58,20 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamScaledPressure2(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamScaledPressure2(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamScaledPressure2()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[2] {
+		ORB_ID::differential_pressure,
+		ORB_ID::sensor_baro
+	};
 
 	uORB::Subscription _differential_pressure_sub{ORB_ID(differential_pressure), 1};
 	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro), 1};
