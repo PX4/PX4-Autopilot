@@ -326,7 +326,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	// we can simply resend the response.
 	// we only keep small responses to reduce RAM usage and avoid large memcpy's. The larger responses are all data
 	// retrievals without side-effects, meaning it's ok to reexecute them if a response gets lost
-	if (payload->size <= sizeof(uint32_t)) {
+	if (payload->size <= sizeof(uint32_t) && payload->data[0] != kErrNoSessionsAvailable) {
 		_last_reply_valid = true;
 		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
 	}
@@ -514,7 +514,7 @@ MavlinkFTP::ErrorCode
 MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 {
 	if (_session_info.fd >= 0) {
-		PX4_ERR("FTP: Open failed - out of sessions\n");
+		PX4_ERR("FTP: Open failed - out of sessions");
 		return kErrNoSessionsAvailable;
 	}
 
