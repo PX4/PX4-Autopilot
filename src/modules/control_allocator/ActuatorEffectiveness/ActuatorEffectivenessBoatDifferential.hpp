@@ -35,11 +35,11 @@
 
 #include "ActuatorEffectiveness.hpp"
 
-class ActuatorEffectivenessRoverDifferential: public ActuatorEffectiveness
+class ActuatorEffectivenessBoatDifferential: public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessRoverDifferential() = default;
-	virtual ~ActuatorEffectivenessRoverDifferential() = default;
+	ActuatorEffectivenessBoatDifferential() = default;
+	virtual ~ActuatorEffectivenessBoatDifferential() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
@@ -47,7 +47,7 @@ public:
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	const char *name() const override { return "Rover (Differential)"; }
+	const char *name() const override { return "Boat (Differential)"; }
 private:
 	uint32_t _motors_mask{};
 };

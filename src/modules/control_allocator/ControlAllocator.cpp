@@ -239,7 +239,6 @@ ControlAllocator::update_effectiveness_source()
 			break;
 
 		case EffectivenessSource::ROVER_DIFFERENTIAL:
-			tmp = new ActuatorEffectivenessRoverDifferential();
 			// differential_drive_control does allocation and publishes directly to actuator_motors topic
 			break;
 
@@ -269,6 +268,10 @@ ControlAllocator::update_effectiveness_source()
 
 		case EffectivenessSource::HELICOPTER_COAXIAL:
 			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
+			break;
+
+		case EffectivenessSource::BOAT_DIFFERENTIAL:
+			tmp = new ActuatorEffectivenessBoatDifferential();
 			break;
 
 		default:

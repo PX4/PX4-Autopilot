@@ -168,9 +168,7 @@ void BoatPosControl::Run()
 
 			}
 
-			// Speed control
-			float _thrust = pid_calculate(&_velocity_pid, distance_to_next_wp, vel(0), 0, dt);
-			_thrust = math::constrain(_thrust, -1.0f, 1.0f);
+
 			//_thrust = _thrust + 0.f;
 
 			// yaw rate control
@@ -186,6 +184,19 @@ void BoatPosControl::Run()
 
 			dbg.value = distance_to_next_wp;
 			orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+
+			// Set the thrust to 0 when the heading error is too high
+			/*if (fabsf(heading_error)>=0.5f){
+				distance_to_next_wp = 0;
+			}*/
+
+
+			// Speed control
+			float _thrust = pid_calculate(&_velocity_pid, distance_to_next_wp, vel(0), 0, dt);
+			_thrust = _thrust * (1-(heading_error/M_PI_F));
+			_thrust = math::constrain(_thrust, -1.0f, 0.9f);
+
+
 
 			float _torque_sp = pid_calculate(&_yaw_rate_pid, desired_heading, yaw, 0, dt);
 			_torque_sp = math::constrain(_torque_sp, -1.0f, 1.0f);

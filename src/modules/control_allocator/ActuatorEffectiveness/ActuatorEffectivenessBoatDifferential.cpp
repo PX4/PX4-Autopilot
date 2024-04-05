@@ -31,13 +31,13 @@
  *
  ****************************************************************************/
 
-#include "ActuatorEffectivenessRoverDifferential.hpp"
+#include "ActuatorEffectivenessBoatDifferential.hpp"
 #include <ControlAllocation/ControlAllocation.hpp>
 
 using namespace matrix;
 
 bool
-ActuatorEffectivenessRoverDifferential::getEffectivenessMatrix(Configuration &configuration,
+ActuatorEffectivenessBoatDifferential::getEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
 {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
@@ -50,7 +50,7 @@ ActuatorEffectivenessRoverDifferential::getEffectivenessMatrix(Configuration &co
 	return true;
 }
 
-void ActuatorEffectivenessRoverDifferential::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+void ActuatorEffectivenessBoatDifferential::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
 		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
