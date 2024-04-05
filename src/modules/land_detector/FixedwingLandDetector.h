@@ -42,7 +42,7 @@
 
 #pragma once
 
-#include <matrix/math.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/launch_detection_status.h>
 
@@ -60,21 +60,17 @@ public:
 	~FixedwingLandDetector() override = default;
 
 protected:
-
 	bool _get_landed_state() override;
 	void _set_hysteresis_factor(const int factor) override {};
 
 private:
-
-	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
-
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
-	float _airspeed_filtered{0.0f};
-	float _velocity_xy_filtered{0.0f};
-	float _velocity_z_filtered{0.0f};
-	float _xy_accel_filtered{0.0f};
+	AlphaFilter<float> _airspeed_filter{.05f};
+	AlphaFilter<float> _velocity_xy_filter{.03f};
+	AlphaFilter<float> _velocity_z_filter{.01f};
+	float _xy_accel_filtered{0.f};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,

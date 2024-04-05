@@ -41,18 +41,64 @@
 
 #include "FixedwingLandDetector.h"
 
+#include <matrix/math.hpp>
+
 namespace land_detector
 {
 
 FixedwingLandDetector::FixedwingLandDetector()
 {
-	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
+	// Use Trigger time when transitioning from in-air (false) to landed (true)
 	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndfw_trig_time.get() * 1_s);
-	_landed_hysteresis.set_hysteresis_time_from(true, FLYING_TRIGGER_TIME_US);
 }
 
 bool FixedwingLandDetector::_get_landed_state()
 {
+	// Filtering - Set filters to 0 which is below the threshold if data invalid
+
+	// Velocity
+	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
+		// Horizontal velocity complimentary filter
+		const matrix::Vector2f horizontal_velocity(_vehicle_local_position.vx, _vehicle_local_position.vy);
+
+		if (_vehicle_local_position.v_xy_valid && horizontal_velocity.isAllFinite()) {
+			_velocity_xy_filter.update(horizontal_velocity.length());
+		} else {
+			_velocity_xy_filter.reset(0.f);
+		}
+
+		// Vertical velocity complimentary filter
+		if (_vehicle_local_position.v_z_valid && PX4_ISFINITE(_vehicle_local_position.vz)) {
+			_velocity_z_filter.update(_vehicle_local_position.vz);
+		} else {
+			_velocity_z_filter.reset(0.f);
+		}
+	}
+
+	// Airspeed
+	airspeed_validated_s airspeed_validated{};
+	_airspeed_validated_sub.copy(&airspeed_validated);
+
+	// make groundspeed threshold tighter if airspeed is invalid
+	float vel_xy_max_threshold = 0.7f * _param_lndfw_vel_xy_max.get();
+
+	if (hrt_elapsed_time(&airspeed_validated.timestamp) < 1_s
+		&& airspeed_validated.airspeed_sensor_measurement_valid
+		&& PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
+
+		_airspeed_filter.update(airspeed_validated.true_airspeed_m_s);
+		vel_xy_max_threshold = _param_lndfw_vel_xy_max.get();
+	} else {
+		_airspeed_filter.reset(0.f);
+	}
+
+	// Acceleration
+	// A leaking lowpass prevents biases from building up, but
+	// gives a mostly correct response for short impulses.
+	const float acc_hor = matrix::Vector2f(_acceleration).norm();
+	_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
+
+
 	// Only trigger flight conditions if we are armed.
 	if (!_armed) {
 		return true;
@@ -70,50 +116,11 @@ bool FixedwingLandDetector::_get_landed_state()
 		landDetected = true;
 
 	} else if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s) {
-
-		// Horizontal velocity complimentary filter.
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
-				_vehicle_local_position.vy * _vehicle_local_position.vy);
-
-		if (PX4_ISFINITE(val)) {
-			_velocity_xy_filtered = val;
-		}
-
-		// Vertical velocity complimentary filter.
-		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_vehicle_local_position.vz);
-
-		if (PX4_ISFINITE(val)) {
-			_velocity_z_filtered = val;
-		}
-
-		airspeed_validated_s airspeed_validated{};
-		_airspeed_validated_sub.copy(&airspeed_validated);
-
-		bool airspeed_invalid = false;
-
-		// set _airspeed_filtered to 0 if airspeed data is invalid
-		if (!PX4_ISFINITE(airspeed_validated.true_airspeed_m_s) || hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
-			_airspeed_filtered = 0.0f;
-			airspeed_invalid = true;
-
-		} else {
-			_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * airspeed_validated.true_airspeed_m_s;
-		}
-
-		// A leaking lowpass prevents biases from building up, but
-		// gives a mostly correct response for short impulses.
-		const float acc_hor = matrix::Vector2f(_acceleration).norm();
-		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
-
-		// make groundspeed threshold tighter if airspeed is invalid
-		const float vel_xy_max_threshold = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
-						   _param_lndfw_vel_xy_max.get();
-
 		// Crude land detector for fixedwing.
-		landDetected = _airspeed_filtered       < _param_lndfw_airspd.get()
-			       && _velocity_xy_filtered < vel_xy_max_threshold
-			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get()
-			       && _xy_accel_filtered    < _param_lndfw_xyaccel_max.get();
+		landDetected = _airspeed_filter.getState() < _param_lndfw_airspd.get()
+			       && _velocity_xy_filter.getState() < vel_xy_max_threshold
+			       && _velocity_z_filter.getState()  < _param_lndfw_vel_z_max.get()
+			       && _xy_accel_filtered < _param_lndfw_xyaccel_max.get();
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.
