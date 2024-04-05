@@ -28,23 +28,8 @@ from typing import Any
 
 import yaml
 
-
 global default_var
 default_var = {}
-
-
-# define sorting order of the fields
-PRIORITIES = {
-    "board": 9,
-    "short_desc": 8,
-    "long_desc": 7,
-    "min": 5,
-    "max": 4,
-    "unit": 3,
-    "decimal": 2,
-    # all others == 0 (sorted alphabetically)
-}
-
 
 @dataclass
 class Parameter:
@@ -64,17 +49,6 @@ class Parameter:
 
     def __lt__(self, other):
         return self.name < other.name
-
-    @property
-    def field_keys(self) -> list[str]:
-        """
-        Return list of existing field codes in convenient order
-        """
-        keys = self.fields.keys()
-        keys = sorted(keys)
-        keys = sorted(keys, key=lambda x: PRIORITIES.get(x, 0), reverse=True)
-        return keys
-
 
 @dataclass
 class ParameterGroup:
@@ -266,21 +240,6 @@ class SourceParser:
         Validates the parameter meta data.
         """
         seenParamNames = []
-        #allowedUnits should match set defined in /Firmware/validation/module_schema.yaml
-        allowedUnits = set ([
-                                '%', 'Hz', '1/s', 'mAh',
-                                'rad', '%/rad', 'rad/s', 'rad/s^2', '%/rad/s', 'rad s^2/m', 'rad s/m',
-                                'bit/s', 'B/s',
-                                'deg', 'deg*1e7', 'deg/s',
-                                'celcius', 'gauss', 'gauss/s', 'gauss^2',
-                                'hPa', 'kg', 'kg/m^2', 'kg m^2',
-                                'mm', 'm', 'm/s', 'm^2', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', 'm/s/rad',
-                                'Ohm', 'V', 'A',
-                                'us', 'ms', 's',
-                                'S', 'A/%', '(m/s^2)^2', 'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',
-                                'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C', '1/s/sqrt(Hz)',
-                                'N/(m/s)', 'Nm/rad', 'Nm/(rad/s)', 'Nm', 'N',
-                                'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD','', 'RPM'])
 
         for group in self.parameter_groups:
             for param in sorted(group.parameters):
@@ -301,16 +260,9 @@ class SourceParser:
                 min = param.fields.get("min", "")
                 max = param.fields.get("max", "")
                 units = param.fields.get("unit", "")
-                if units not in allowedUnits:
-                    sys.stderr.write("Invalid unit in {0}: {1}\n".format(name, units))
-                    return False
-                #sys.stderr.write("{0} default:{1} min:{2} max:{3}\n".format(name, default, min, max))
                 if default != "" and not self.is_number(default):
                     sys.stderr.write("Default value not number: {0} {1}\n".format(name, default))
                     return False
-                # if default != "" and "." not in default:
-                #     sys.stderr.write("Default value does not contain dot (e.g. 10 needs to be written as 10.0): {0} {1}\n".format(name, default))
-                #     return False
                 if min != "":
                     if not self.is_number(default):
                         sys.stderr.write("Min value not number: {0} {1}\n".format(name, min))
@@ -408,10 +360,15 @@ def generate_yaml(filename: str, groups: list[ParameterGroup]) -> str:
         for parameter in group.parameters:
             p = dict()
 
-            p["default"] = cast(parameter.default)
+            p["description"] = dict()
+            p["description"]["short"] = parameter.fields["short_desc"]
+            del parameter.fields["short_desc"]
+            if "long_desc" in parameter.fields:
+                p["description"]["long"] = parameter.fields["long_desc"]
+                del parameter.fields["long_desc"]
+
             if parameter.category != "":
                 p["category"] = parameter.category.title()
-            p["volatile"] = bool(parameter.volatile)
             # the enum check has to happen first
             # since some parameters are both boolean and enum at the same time
             # (even with more than 0 and 1 as options for some reason) so let's assume
@@ -436,13 +393,10 @@ def generate_yaml(filename: str, groups: list[ParameterGroup]) -> str:
                 p["type"] = "float"
             else:
                 p["type"] = "int32"
+            p["default"] = cast(parameter.default)
 
-            p["description"] = dict()
-            p["description"]["short"] = parameter.fields["short_desc"]
-            del parameter.fields["short_desc"]
-            if "long_desc" in parameter.fields:
-                p["description"]["long"] = parameter.fields["long_desc"]
-                del parameter.fields["long_desc"]
+            if parameter.volatile:
+                p["volatile"] = bool(parameter.volatile)
 
             for key, val in parameter.fields.items():
                 try:
@@ -451,10 +405,9 @@ def generate_yaml(filename: str, groups: list[ParameterGroup]) -> str:
                     p[key] = val
 
             g["definitions"][parameter.name] = p
-
         data["parameters"].append(g)
 
-    return yaml.dump(data)
+    return yaml.dump(data, sort_keys=False)
 
 
 def main():
@@ -476,7 +429,7 @@ def main():
 
         dirname, fname = os.path.split(os.path.realpath(filename))
         fname = fname.split(".")[0]
-        with open(os.path.join(dirname, f"module.{fname}.yaml"), "w") as f:
+        with open(os.path.join(dirname, f"module_{fname}.yaml"), "w") as f:
             f.write(output)
         if update_cmake:
             with open(os.path.join(dirname, "CMakeLists.txt"), "r+") as f:
