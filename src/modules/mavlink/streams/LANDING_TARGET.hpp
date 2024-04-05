@@ -53,7 +53,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamLandingTarget(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamLandingTarget(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamLandingTarget()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::landing_target_pose
+	};
 
 	uORB::Subscription _landing_target_sub{ORB_ID(landing_target_pose)};
 

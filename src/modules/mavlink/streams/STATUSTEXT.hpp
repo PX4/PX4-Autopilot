@@ -55,12 +55,20 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamStatustext(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
 
 	~MavlinkStreamStatustext()
 	{
+		_mavlink->unregister_orb_poll(get_id_static());
 		perf_free(_missed_msg_count_perf);
 	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::mavlink_log
+	};
 
 	uORB::Subscription _mavlink_log_sub{ORB_ID(mavlink_log)};
 	perf_counter_t _missed_msg_count_perf{perf_alloc(PC_COUNT, MODULE_NAME": STATUSTEXT missed messages")};

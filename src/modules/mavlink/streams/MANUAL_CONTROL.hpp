@@ -55,7 +55,20 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamManualControl(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamManualControl(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamManualControl()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[2] {
+		ORB_ID::manual_control_setpoint,
+		ORB_ID::manual_control_switches
+	};
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};

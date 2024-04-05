@@ -56,7 +56,22 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamGlobalPositionInt(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamGlobalPositionInt(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamGlobalPositionInt()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[4] {
+		ORB_ID::vehicle_global_position,
+		ORB_ID::vehicle_local_position,
+		ORB_ID::home_position,
+		ORB_ID::vehicle_air_data
+	};
 
 	uORB::Subscription _gpos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};

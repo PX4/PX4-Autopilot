@@ -53,7 +53,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamRawRpm()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::rpm
+	};
 
 	uORB::SubscriptionMultiArray<rpm_s> _rpm_subs{ORB_ID::rpm};
 

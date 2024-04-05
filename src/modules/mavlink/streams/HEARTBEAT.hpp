@@ -57,7 +57,21 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamHeartbeat(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamHeartbeat()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[3] {
+		ORB_ID::actuator_armed,
+		ORB_ID::vehicle_control_mode,
+		ORB_ID::vehicle_status
+	};
 
 	uORB::Subscription _acturator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};

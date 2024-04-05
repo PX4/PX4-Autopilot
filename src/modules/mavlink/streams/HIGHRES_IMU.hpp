@@ -61,7 +61,25 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamHighresIMU(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamHighresIMU()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[7] {
+		ORB_ID::vehicle_imu,
+		ORB_ID::estimator_sensor_bias,
+		ORB_ID::estimator_selector_status,
+		ORB_ID::sensor_selection,
+		ORB_ID::differential_pressure,
+		ORB_ID::vehicle_magnetometer,
+		ORB_ID::vehicle_air_data
+	};
 
 	uORB::SubscriptionMultiArray<vehicle_imu_s, 3> _vehicle_imu_subs{ORB_ID::vehicle_imu};
 	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};

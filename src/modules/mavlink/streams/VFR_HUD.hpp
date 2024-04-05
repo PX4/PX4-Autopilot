@@ -61,7 +61,23 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamVFRHUD()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[5] {
+		ORB_ID::vehicle_local_position,
+		ORB_ID::actuator_armed,
+		ORB_ID::vehicle_thrust_setpoint,
+		ORB_ID::airspeed_validated,
+		ORB_ID::vehicle_air_data
+	};
 
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};

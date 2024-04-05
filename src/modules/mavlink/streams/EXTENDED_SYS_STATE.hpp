@@ -60,7 +60,20 @@ private:
 	{
 		_msg.vtol_state = MAV_VTOL_STATE_UNDEFINED;
 		_msg.landed_state = MAV_LANDED_STATE_ON_GROUND;
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
 	}
+
+	~MavlinkStreamExtendedSysState()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[4] {
+		ORB_ID::vehicle_status,
+		ORB_ID::vehicle_land_detected,
+		ORB_ID::position_setpoint_triplet,
+		ORB_ID::vehicle_control_mode
+	};
 
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _landed_sub{ORB_ID(vehicle_land_detected)};

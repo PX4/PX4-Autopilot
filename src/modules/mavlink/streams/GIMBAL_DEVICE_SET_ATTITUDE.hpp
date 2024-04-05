@@ -57,7 +57,19 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamGimbalDeviceSetAttitude(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamGimbalDeviceSetAttitude(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamGimbalDeviceSetAttitude()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] {
+		ORB_ID::gimbal_device_set_attitude
+	};
 
 	uORB::Subscription _gimbal_device_set_attitude_sub{ORB_ID(gimbal_device_set_attitude)};
 

@@ -56,7 +56,20 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamMagCalReport(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamMagCalReport(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamMagCalReport()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[2] {
+		ORB_ID::sensor_mag,
+		ORB_ID::parameter_update
+	};
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 

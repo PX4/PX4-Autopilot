@@ -55,7 +55,22 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamAttitudeQuaternion()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+
+	ORB_ID _orbs[3] {
+		ORB_ID::vehicle_attitude,
+		ORB_ID::vehicle_angular_velocity,
+		ORB_ID::vehicle_status
+	};
 
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};

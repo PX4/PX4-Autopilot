@@ -53,7 +53,17 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamActuatorOutputStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamActuatorOutputStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+	}
+
+	~MavlinkStreamActuatorOutputStatus()
+	{
+		_mavlink->unregister_orb_poll(get_id_static());
+	}
+
+	ORB_ID _orbs[1] { ORB_ID::actuator_outputs };
 
 	uORB::Subscription _act_output_sub{ORB_ID(actuator_outputs)};
 
