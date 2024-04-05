@@ -29,6 +29,18 @@ parameters:
       default: 7
       min: 0
       max: 7
+    EKF2_DELAY_MAX:
+      description:
+        short: Maximum delay of all the aiding sensors
+        long: Defines the delay between the current time and the delayed-time horizon.
+          This value should be at least as large as the largest EKF2_XXX_DELAY parameter.
+      type: float
+      default: 200
+      min: 0
+      max: 1000
+      unit: ms
+      reboot_required: true
+      decimal: 1
     EKF2_MAG_DELAY:
       description:
         short: Magnetometer measurement delay relative to IMU measurements
