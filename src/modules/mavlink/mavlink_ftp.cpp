@@ -838,7 +838,7 @@ MavlinkFTP::_workRename(PayloadHeader *payload)
 	char *ptr = _data_as_cstring(payload);
 	size_t oldpath_sz = strlen(ptr);
 
-	if (oldpath_sz == payload->size) {
+	if (oldpath_sz + 2 >= payload->size) {
 		// no newpath
 		errno = EINVAL;
 		return kErrFailErrno;
