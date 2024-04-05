@@ -241,6 +241,12 @@ px4_add_module(
 
 		${EKF_GENERATED_FILES}
 
+	MODULE_CONFIG
+		module.yaml
+		params_multi.yaml
+		params_volatile.yaml
+		params_selector.yaml
+
 	DEPENDS
 		geo
 		hysteresis
