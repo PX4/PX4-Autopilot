@@ -112,7 +112,7 @@ void SensorAirflowSim::Run()
 	/* we should check whether the wind_topic has been updated, but currently gz
 	 * does not publish the wind topics periodically. We need to publish to the wind topic
 	 * using the following command:
-	 * gz topic -t "/world/$model/wind/" -m gz.msgs.Wind  -p "linear_velocity: {x:0, y:5}, enable_wind: false"
+	 * gz topic -t "/world/$world/wind/" -m gz.msgs.Wind  -p "linear_velocity: {x:0, y:5}, enable_wind: false"
 	*/
 	if (_vehicle_local_position_sub.updated() && _vehicle_local_position_sub.updated()
 	    && _vehicle_attitude_sub.updated()) {
