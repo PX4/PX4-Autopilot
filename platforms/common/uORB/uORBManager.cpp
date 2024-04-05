@@ -365,6 +365,12 @@ int uORB::Manager::orb_check(orb_sub_t handle, bool *updated)
 	return PX4_OK;
 }
 
+int uORB::Manager::orb_ack(orb_sub_t handle)
+{
+	((uORB::SubscriptionInterval *)handle)->ack();
+	return PX4_OK;
+}
+
 int uORB::Manager::orb_set_interval(orb_sub_t handle, unsigned interval)
 {
 	((uORB::SubscriptionInterval *)handle)->set_interval_us(interval * 1000);

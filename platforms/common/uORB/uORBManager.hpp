@@ -291,6 +291,9 @@ public:
 	 */
 	static int  orb_check(orb_sub_t handle, bool *updated);
 
+
+	static int  orb_ack(orb_sub_t handle);
+
 	/**
 	 * Check if a topic has already been created and published (advertised)
 	 *
@@ -355,6 +358,11 @@ public:
 	}
 
 	static uint8_t orb_get_queue_size(const orb_advert_t &node_handle) {return node(node_handle)->get_queue_size();}
+
+	static void orb_data_ack(orb_advert_t &node_handle, unsigned &generation)
+	{
+		node(node_handle)->ack(generation);
+	}
 
 	static bool orb_data_copy(orb_advert_t &node_handle, void *dst, unsigned &generation,
 				  bool only_if_updated)

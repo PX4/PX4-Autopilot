@@ -130,6 +130,11 @@ int orb_check(orb_sub_t handle, bool *updated)
 	return uORB::Manager::get_instance()->orb_check(handle, updated);
 }
 
+int orb_ack(orb_sub_t handle)
+{
+	return uORB::Manager::get_instance()->orb_ack(handle);
+}
+
 int orb_exists(const struct orb_metadata *meta, int instance)
 {
 	return uORB::Manager::orb_exists(meta, instance);
