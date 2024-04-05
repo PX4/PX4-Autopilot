@@ -161,19 +161,18 @@ bool Sensors::init()
 
 int Sensors::parameters_update()
 {
-	if (_hil_enabled)
-	{
-		#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-			InitializeVehicleGPSPosition();
-		#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+	if (_hil_enabled) {
+#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+		InitializeVehicleGPSPosition();
+#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
-		#if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-			InitializeVehicleAirData();
-		#endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
+#if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
+		InitializeVehicleAirData();
+#endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
-		#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
-			InitializeVehicleMagnetometer();
-		#endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
+		InitializeVehicleMagnetometer();
+#endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
 		_fakeSensors.update(_failureDetector);
 	}
@@ -650,7 +649,7 @@ void Sensors::Run()
 		}
 	}
 
-	if(_hil_enabled && _failureDetector.update()) {
+	if (_hil_enabled && _failureDetector.update()) {
 		parameters_update();
 	}
 
