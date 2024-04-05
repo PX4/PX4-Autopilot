@@ -99,15 +99,15 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	FailureStatus _gps{FailureStatus::ok};
+	FailureStatus _gps {FailureStatus::ok};
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-	FailureStatus _baro{FailureStatus::ok};
+	FailureStatus _baro {FailureStatus::ok};
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
-	FailureStatus _mag{FailureStatus::ok};
+	FailureStatus _mag {FailureStatus::ok};
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 };
 
@@ -133,33 +133,39 @@ public:
 		ModuleParams(nullptr),
 		ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 		_sensor_pub(id),
-		_sensor_sub(id) {
+		_sensor_sub(id)
+	{
 		_sensor_pub.advertise();
 	}
 
-	~FakeStuckSensor() override {
+	~FakeStuckSensor() override
+	{
 		stop();
 		perf_free(_cycle_perf);
 	}
 
-	bool start() {
+	bool start()
+	{
 		ScheduleNow();
 		return true;
 	}
 
-	void stop() {
+	void stop()
+	{
 		Deinit();
 	}
 
-	void setEnabled(bool enable) {
+	void setEnabled(bool enable)
+	{
 		_enable = enable;
 	}
 private:
-	void Run() override {
+	void Run() override
+	{
 		perf_begin(_cycle_perf);
 
-		while (_sensor_sub.update(&_last_output)){
-			_first_init= true;
+		while (_sensor_sub.update(&_last_output)) {
+			_first_init = true;
 		}
 
 		if (_enable && _first_init) {
@@ -171,13 +177,13 @@ private:
 		perf_end(_cycle_perf);
 	}
 
-	uORB::Publication<sensorsData> _sensor_pub{};
-	uORB::Subscription _sensor_sub{};
+	uORB::Publication<sensorsData> _sensor_pub {};
+	uORB::Subscription _sensor_sub {};
 
-	bool _enable{};
-	bool _first_init{}; /**< Flag indicating whether the sensor has been initialized for the first time. */
-	sensorsData _last_output{};
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	bool _enable {};
+	bool _first_init {}; /**< Flag indicating whether the sensor has been initialized for the first time. */
+	sensorsData _last_output {};
+	perf_counter_t _cycle_perf {perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 };
 
 }
@@ -188,21 +194,22 @@ private:
  * This class represents a collection of fake sensors used for simulation purposes.
  * It is expected to work only in HITL mode.
  */
-class FakeSensors final {
+class FakeSensors final
+{
 public:
 	FakeSensors(bool hil_enabled);
 
 	/**
 	 * @brief Updates states of the fake sensors with data from the failure detector.
 	 */
-	void update(const FailureDetectorHITL& detector);
+	void update(const FailureDetectorHITL &detector);
 private:
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-	sensors::FakeStuckSensor<vehicle_air_data_s> _fake_baro_publisher{ORB_ID::vehicle_air_data};
+	sensors::FakeStuckSensor<vehicle_air_data_s> _fake_baro_publisher {ORB_ID::vehicle_air_data};
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	sensors::FakeStuckSensor<sensor_gps_s> _fake_gps_publisher{ORB_ID::vehicle_gps_position};
+	sensors::FakeStuckSensor<sensor_gps_s> _fake_gps_publisher {ORB_ID::vehicle_gps_position};
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 };
