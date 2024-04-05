@@ -344,15 +344,27 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 #endif
 
 }
+void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
+{
+	strncpy(dst, _root_dir, dst_len);
+	int root_dir_len = _root_dir_len;
+
+	// If neither the root ends nor the given path starts with a '/', add a separating '/' in between
+	if (dst[0] != '\0' && dst[strlen(dst) - 1] != '/' && path[0] != '/') {
+		strncat(dst, "/", dst_len);
+		++root_dir_len;
+	}
+
+	strncpy(dst + root_dir_len, path, dst_len - root_dir_len);
+	// Ensure termination
+	dst[dst_len - 1] = '\0';
+}
 
 /// @brief Responds to a List command
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workList(PayloadHeader *payload)
 {
-	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
-	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
-	// ensure termination
-	_work_buffer1[_work_buffer1_len - 1] = '\0';
+	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
 	ErrorCode errorCode = kErrNone;
 	unsigned offset = 0;
@@ -506,8 +518,7 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 		return kErrNoSessionsAvailable;
 	}
 
-	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
-	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
+	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
 	PX4_DEBUG("FTP: open '%s'", _work_buffer1);
 
@@ -649,10 +660,7 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workRemoveFile(PayloadHeader *payload)
 {
-	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
-	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
-	// ensure termination
-	_work_buffer1[_work_buffer1_len - 1] = '\0';
+	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
 	if (!_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
@@ -675,10 +683,7 @@ MavlinkFTP::_workRemoveFile(PayloadHeader *payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
 {
-	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
-	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
-	// ensure termination
-	_work_buffer1[_work_buffer1_len - 1] = '\0';
+	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 	payload->size = 0;
 
 	if (!_validatePathIsWritable(_work_buffer1)) {
@@ -839,13 +844,8 @@ MavlinkFTP::_workRename(PayloadHeader *payload)
 		return kErrFailErrno;
 	}
 
-	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
-	strncpy(_work_buffer1 + _root_dir_len, ptr, _work_buffer1_len - _root_dir_len);
-	_work_buffer1[_work_buffer1_len - 1] = '\0'; // ensure termination
-
-	strncpy(_work_buffer2, _root_dir, _work_buffer2_len);
-	strncpy(_work_buffer2 + _root_dir_len, ptr + oldpath_sz + 1, _work_buffer2_len - _root_dir_len);
-	_work_buffer2[_work_buffer2_len - 1] = '\0'; // ensure termination
+	_constructPath(_work_buffer1, _work_buffer1_len, ptr);
+	_constructPath(_work_buffer2, _work_buffer2_len, ptr + oldpath_sz + 1);
 
 	if (!_validatePathIsWritable(_work_buffer2)) {
 		return kErrFailFileProtected;
@@ -868,10 +868,7 @@ MavlinkFTP::_workRename(PayloadHeader *payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workRemoveDirectory(PayloadHeader *payload)
 {
-	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
-	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
-	// ensure termination
-	_work_buffer1[_work_buffer1_len - 1] = '\0';
+	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
 	if (!_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
@@ -894,10 +891,7 @@ MavlinkFTP::_workRemoveDirectory(PayloadHeader *payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workCreateDirectory(PayloadHeader *payload)
 {
-	strncpy(_work_buffer1, _root_dir, _work_buffer1_len);
-	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
-	// ensure termination
-	_work_buffer1[_work_buffer1_len - 1] = '\0';
+	_constructPath(_work_buffer1, _work_buffer1_len, _data_as_cstring(payload));
 
 	if (!_validatePathIsWritable(_work_buffer1)) {
 		return kErrFailFileProtected;
@@ -922,10 +916,7 @@ MavlinkFTP::_workCalcFileCRC32(PayloadHeader *payload)
 {
 	uint32_t checksum = 0;
 	ssize_t bytes_read;
-	strncpy(_work_buffer2, _root_dir, _work_buffer2_len);
-	strncpy(_work_buffer2 + _root_dir_len, _data_as_cstring(payload), _work_buffer2_len - _root_dir_len);
-	// ensure termination
-	_work_buffer2[_work_buffer2_len - 1] = '\0';
+	_constructPath(_work_buffer2, _work_buffer2_len, _data_as_cstring(payload));
 
 	int fd = ::open(_work_buffer2, O_RDONLY);
 
