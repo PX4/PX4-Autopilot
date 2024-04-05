@@ -155,6 +155,11 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
+	/**
+	 * Construct local path by appending `path` to `_root_dir` and storing the result in `dst`.
+	 */
+	void _constructPath(char *dst, int dst_len, const char *path) const;
+
 	bool _validatePathIsWritable(const char *path);
 
 	/**
