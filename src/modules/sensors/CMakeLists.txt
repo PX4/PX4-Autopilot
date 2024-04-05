@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(data_validator)
+add_subdirectory(failure_detector_HITL)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -79,6 +80,7 @@ px4_add_module(
 		mathlib
 		sensor_calibration
 		vehicle_imu
+		failure_detector_HITL
 	)
 
 if(CONFIG_SENSORS_VEHICLE_ACCELERATION)

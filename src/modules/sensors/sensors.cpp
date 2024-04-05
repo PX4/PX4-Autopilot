@@ -48,7 +48,9 @@ Sensors::Sensors(bool hil_enabled) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
-	_voted_sensors_update(hil_enabled, _vehicle_imu_sub)
+	_voted_sensors_update(hil_enabled, _vehicle_imu_sub),
+	_failureDetector(hil_enabled),
+	_fakeSensors(hil_enabled)
 {
 	_sensor_pub.advertise();
 
@@ -159,8 +161,12 @@ bool Sensors::init()
 
 int Sensors::parameters_update()
 {
-	if (_armed) {
+	if (_armed && !(_hil_enabled && _failure_detector_updated)) {
 		return 0;
+	}
+
+	if (_hil_enabled && _failure_detector_updated) {
+		_fakeSensors.update(_failureDetector);
 	}
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
@@ -427,6 +433,16 @@ void Sensors::InitializeVehicleAirData()
 			if (_vehicle_air_data) {
 				_vehicle_air_data->Start();
 			}
+
+		} else {
+			if (_hil_enabled) {
+				if (_failureDetector.isBaroOk()) {
+					_vehicle_air_data->Resume();
+
+				} else {
+					_vehicle_air_data->Pause();
+				}
+			}
 		}
 	}
 }
@@ -441,6 +457,16 @@ void Sensors::InitializeVehicleGPSPosition()
 
 			if (_vehicle_gps_position) {
 				_vehicle_gps_position->Start();
+			}
+
+		} else {
+			if (_hil_enabled) {
+				if (_failureDetector.isGpsOk()) {
+					_vehicle_gps_position->Resume();
+
+				} else {
+					_vehicle_gps_position->Pause();
+				}
 			}
 		}
 	}
@@ -492,7 +518,18 @@ void Sensors::InitializeVehicleMagnetometer()
 			if (_vehicle_magnetometer) {
 				_vehicle_magnetometer->Start();
 			}
+
+		} else {
+			if (_hil_enabled) {
+				if (_failureDetector.isMagOk()) {
+					_vehicle_magnetometer->Resume();
+
+				} else {
+					_vehicle_magnetometer->Pause();
+				}
+			}
 		}
+
 	}
 }
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
@@ -610,6 +647,15 @@ void Sensors::Run()
 			// update parameters from storage
 			parameters_update();
 			updateParams();
+		}
+	}
+
+	if (_hil_enabled) {
+		_failure_detector_updated = _failureDetector.update();
+
+		if (_failure_detector_updated) {
+			parameters_update();
+			_failure_detector_updated = false;
 		}
 	}
 
