@@ -347,16 +347,17 @@ void Ekf::fuseFlowForTerrain(estimator_aid_source2d_s &flow)
 {
 	flow.fused = true;
 
-	const float R_LOS = flow.observation_variance[0];
+	const ekf_float_t R_LOS = flow.observation_variance[0];
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
 	// a positive offset in earth frame leads to a smaller height above the ground.
 	float range = predictFlowRange();
 
-	const float state = _terrain_vpos; // linearize both axes using the same state value
-	Vector2f innov_var;
-	float H;
-	sym::TerrEstComputeFlowXyInnovVarAndHx(state, _terrain_var, _state.quat_nominal, _state.vel, _state.pos(2), R_LOS, FLT_EPSILON, &innov_var, &H);
+	const ekf_float_t state = _terrain_vpos; // linearize both axes using the same state value
+	Vector2<ekf_float_t> innov_var;
+	ekf_float_t H;
+	sym::TerrEstComputeFlowXyInnovVarAndHx(state, (ekf_float_t)_terrain_var, _state.quat_nominal, _state.vel, _state.pos(2), R_LOS, (ekf_float_t)FLT_EPSILON, &innov_var, &H);
+
 	innov_var.copyTo(flow.innovation_variance);
 
 	if ((flow.innovation_variance[0] < R_LOS)
@@ -385,7 +386,9 @@ void Ekf::fuseFlowForTerrain(estimator_aid_source2d_s &flow)
 
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
-			sym::TerrEstComputeFlowYInnovVarAndH(state, _terrain_var, _state.quat_nominal, _state.vel, _state.pos(2), R_LOS, FLT_EPSILON, &flow.innovation_variance[1], &H);
+			ekf_float_t innovation_variance;
+			sym::TerrEstComputeFlowYInnovVarAndH(state, (ekf_float_t)_terrain_var, _state.quat_nominal, _state.vel, _state.pos(2), R_LOS, (ekf_float_t)FLT_EPSILON, &innovation_variance, &H);
+			flow.innovation_variance[1] = innovation_variance;
 
 			// recalculate the innovation using the updated state
 			const Vector2f vel_body = predictFlowVelBody();

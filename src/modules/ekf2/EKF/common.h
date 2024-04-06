@@ -45,10 +45,17 @@
 #include <cstdint>
 
 #include <matrix/math.hpp>
+#include <mathlib/math/Functions.hpp>
 #include <mathlib/math/Utilities.hpp>
 
 namespace estimator
 {
+
+#if defined(CONFIG_EKF2_DOUBLE_PRECISION_FLOAT)
+using ekf_float_t = double;
+#else
+using ekf_float_t = float;
+#endif // CONFIG_EKF2_DOUBLE_PRECISION_FLOAT
 
 using matrix::AxisAnglef;
 using matrix::Dcmf;
@@ -57,12 +64,19 @@ using matrix::Matrix3f;
 using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
+
+using matrix::Dcm;
+using matrix::Vector2;
+using matrix::Vector3;
+using matrix::Quaternion;
+using matrix::AxisAngle;
+
 using matrix::wrap_pi;
 
 using math::Utilities::getEulerYaw;
 using math::Utilities::quatToInverseRotMat;
 using math::Utilities::shouldUse321RotationSequence;
-using math::Utilities::sq;
+using math::sq;
 using math::Utilities::updateYawInRotMat;
 
 // maximum sensor intervals in usec

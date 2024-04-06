@@ -91,7 +91,8 @@ void Ekf::controlExternalVisionFusion()
 
 void Ekf::updateEvAttitudeErrorFilter(extVisionSample &ev_sample, bool ev_reset)
 {
-	const Quatf q_error((_state.quat_nominal * ev_sample.quat.inversed()).normalized());
+	const Quatf q_nominal = _state.quat_nominal;
+	const Quatf q_error((q_nominal * ev_sample.quat.inversed()).normalized());
 
 	if (!q_error.isAllFinite()) {
 		return;

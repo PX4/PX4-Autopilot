@@ -88,7 +88,7 @@ def generate_python_function(function_name, output_names):
             output_dir="generated",
             skip_directory_nesting=True)
 
-def build_state_struct(state, T="float"):
+def build_state_struct(state, T="ekf_float_t"):
     out = "struct StateSample {\n"
 
     def TypeFromLength(len):
@@ -121,7 +121,7 @@ def build_state_struct(state, T="float"):
     first_field = next(iter(state))
 
     out += f"\n\tconst matrix::Vector<{T}, {state_size}>& vector() const {{\n" \
-        + f"\t\treturn *reinterpret_cast<matrix::Vector<{T}, {state_size}>*>(const_cast<float*>(reinterpret_cast<const {T}*>(&{first_field})));\n" \
+        + f"\t\treturn *reinterpret_cast<matrix::Vector<{T}, {state_size}>*>(const_cast<{T}*>(reinterpret_cast<const {T}*>(&{first_field})));\n" \
         + f"\t}};\n\n"
 
     out += "};\n" # StateSample

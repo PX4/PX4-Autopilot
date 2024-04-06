@@ -81,11 +81,11 @@ void Ekf::updateSideslip(estimator_aid_source1d_s &sideslip) const
 	// reset flags
 	resetEstimatorAidStatus(sideslip);
 
-	const float R = sq(_params.beta_noise); // observation noise variance
+	const ekf_float_t R = sq(_params.beta_noise); // observation noise variance
 
-	float innov = 0.f;
-	float innov_var = 0.f;
-	sym::ComputeSideslipInnovAndInnovVar(_state.vector(), P, R, FLT_EPSILON, &innov, &innov_var);
+	ekf_float_t innov = 0.f;
+	ekf_float_t innov_var = 0.f;
+	sym::ComputeSideslipInnovAndInnovVar(_state.vector(), P, R, (ekf_float_t)FLT_EPSILON, &innov, &innov_var);
 
 	sideslip.observation = 0.f;
 	sideslip.observation_variance = R;
@@ -134,10 +134,10 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 	VectorState H; // Observation jacobian
 	VectorState K; // Kalman gain vector
 
-	sym::ComputeSideslipHAndK(_state.vector(), P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
+	sym::ComputeSideslipHAndK(_state.vector(), P, (ekf_float_t)sideslip.innovation_variance, (ekf_float_t)FLT_EPSILON, &H, &K);
 
 	if (update_wind_only) {
-		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
+		const Vector2<ekf_float_t> K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
 		K.setZero();
 		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}

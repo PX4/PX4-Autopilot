@@ -31,6 +31,16 @@ public:
 	{
 	}
 
+	template<typename S>
+	Vector(const Vector<S, M> &other)
+	{
+		Vector &v(*this);
+
+		for (size_t i = 0; i < M; i++) {
+			v(i) = static_cast<Type>(other(i));
+		}
+	}
+
 	template<size_t P, size_t Q>
 	Vector(const Slice<Type, M, 1, P, Q> &slice_in) :
 		Matrix<Type, M, 1>(slice_in)
@@ -171,6 +181,7 @@ public:
 	{
 		return M;
 	}
+
 };
 
 template<typename OStream, typename Type, size_t M>

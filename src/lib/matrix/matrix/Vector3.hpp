@@ -43,6 +43,24 @@ public:
 		v(2) = z;
 	}
 
+	template<typename S>
+	Vector3(const Vector<S, 3> &other)
+	{
+		Vector3 &v(*this);
+		v(0) = static_cast<Type>(other(0));
+		v(1) = static_cast<Type>(other(1));
+		v(2) = static_cast<Type>(other(2));
+	}
+
+	template<typename S>
+	Vector3(const Matrix<S, 3, 1> &other)
+	{
+		Vector3 &v(*this);
+		v(0) = static_cast<Type>(other(0, 0));
+		v(1) = static_cast<Type>(other(1, 0));
+		v(2) = static_cast<Type>(other(2, 0));
+	}
+
 	using base = Vector<Type, 3>;
 	using base::base;
 
@@ -95,6 +113,21 @@ public:
 	{
 		return (*this).cross(b);
 	}
+
+
+
+	operator Vector3<double>() const
+	{
+		return Vector3<double>((double)(*this)(0), (double)(*this)(1), (double)(*this)(2));
+	}
+
+	operator Vector3<float>() const
+	{
+		return Vector3<float>((float)(*this)(0), (float)(*this)(1), (float)(*this)(2));
+	}
+
+
+
 
 	ConstSlice<Type, 2, 1, 3, 1> xy() const
 	{

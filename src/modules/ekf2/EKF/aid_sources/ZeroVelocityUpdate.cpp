@@ -61,7 +61,7 @@ bool ZeroVelocityUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delaye
 
 			// Set a low variance initially for faster leveling and higher
 			// later to let the states follow the measurements
-			const float obs_var = ekf.control_status_flags().tilt_align ? sq(0.2f) : sq(0.001f);
+			const ekf_float_t obs_var = ekf.control_status_flags().tilt_align ? sq(0.2f) : sq(0.001f);
 			Vector3f innov_var = ekf.getVelocityVariance() + obs_var;
 
 			for (unsigned i = 0; i < 3; i++) {

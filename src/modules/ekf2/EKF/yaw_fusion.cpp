@@ -40,8 +40,10 @@
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
 bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status)
 {
+	ekf_float_t innov_var;
 	VectorState H_YAW;
-	sym::ComputeYawInnovVarAndH(_state.vector(), P, aid_src_status.observation_variance, &aid_src_status.innovation_variance, &H_YAW);
+	sym::ComputeYawInnovVarAndH(_state.vector(), P, (ekf_float_t)aid_src_status.observation_variance, &innov_var, &H_YAW);
+	aid_src_status.innovation_variance = innov_var;
 
 	return fuseYaw(aid_src_status, H_YAW);
 }
@@ -132,7 +134,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 	return false;
 }
 
-void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const
+void Ekf::computeYawInnovVarAndH(ekf_float_t variance, ekf_float_t &innovation_variance, VectorState &H_YAW) const
 {
 	sym::ComputeYawInnovVarAndH(_state.vector(), P, variance, &innovation_variance, &H_YAW);
 }
