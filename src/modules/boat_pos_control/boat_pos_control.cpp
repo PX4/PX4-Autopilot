@@ -76,9 +76,9 @@ void BoatPosControl::parameters_update()
 	pid_init(&_yaw_rate_pid, PID_MODE_DERIVATIV_NONE, 0.001f);
 	pid_set_parameters(&_yaw_rate_pid,
 			   _param_usv_yaw_rate_p.get(),  // Proportional gain
-			   0,  // Integral gain
+			   _param_usv_yaw_i.get(),  // Integral gain
 			   0,  // Derivative gain
-			   2,  // Integral limit
+			   1,  // Integral limit
 			   200);  // Output limit
 }
 
@@ -160,53 +160,66 @@ void BoatPosControl::Run()
 			// Velocity in body frame
 			const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
 			const Vector3f vel = R_to_body * Vector3f(_local_pos.vx, _local_pos.vy, _local_pos.vz);
-
-			//once position reached
-			if (distance_to_next_wp<_param_usv_dist_epsi.get()){
-				desired_heading = yaw; // keep the last direction
-				distance_to_next_wp = 0.0f;
-
-			}
-
-
-			//_thrust = _thrust + 0.f;
-
-			// yaw rate control
-			//yaw_setpoint += _manual_control_setpoint.roll*0.1f;
+			float speed = vel(0);
+			float speed_sp = distance_to_next_wp*_param_usv_pos_p.get() ;
 
 			// Adjust the setpoint to take the shortest path
 			float heading_error = desired_heading - yaw;
 			if (abs(heading_error)>M_PI_F){
 				float new_heading_error = 2*M_PI_F-abs(heading_error);
 				desired_heading = -sign(heading_error)*new_heading_error+yaw;
+				heading_error = new_heading_error;
 			}
 
+			if (_current_waypoint != current_waypoint) {
+				_currentState = GuidanceState::TURNING;
+			}
 
-			dbg.value = distance_to_next_wp;
+			//once position reached
+			if (distance_to_next_wp<_param_usv_dist_epsi.get()) {
+				_currentState = GuidanceState::GOAL_REACHED;
+			}
+
+			// adjust setpoints according to the step ongoing
+			switch (_currentState) {
+			case GuidanceState::TURNING:
+				speed_sp = 0.0f;
+
+				if (fabsf(heading_error) < _param_usv_yaw_epsi.get()) {
+					_currentState = GuidanceState::DRIVING;
+				}
+				break;
+
+			case GuidanceState::DRIVING: {
+				break;
+			}
+
+			case GuidanceState::GOAL_REACHED:
+				desired_heading = yaw; // keep the last direction
+				speed_sp = 0.0f;
+				break;
+			}
+
+			dbg.value = heading_error;
 			orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 
-			// Set the thrust to 0 when the heading error is too high
-			/*if (fabsf(heading_error)>=0.5f){
-				distance_to_next_wp = 0;
-			}*/
-
-
 			// Speed control
-			float _thrust = pid_calculate(&_velocity_pid, distance_to_next_wp, vel(0), 0, dt);
-			_thrust = _thrust * (1-(heading_error/M_PI_F));
+			speed_sp = math::constrain(speed_sp, 0.0f, _param_usv_speed_max.get());
+			float _thrust = _param_usv_speed_ffg.get()*speed + pid_calculate(&_velocity_pid, speed_sp, speed, 0, dt);
 			_thrust = math::constrain(_thrust, -1.0f, 0.9f);
 
-
-
+			// direction control
 			float _torque_sp = pid_calculate(&_yaw_rate_pid, desired_heading, yaw, 0, dt);
 			_torque_sp = math::constrain(_torque_sp, -1.0f, 1.0f);
 
+			// publish torque and thurst commands
 			v_thrust_sp.xyz[0] = _thrust;
 			v_torque_sp.xyz[2] = -_torque_sp;
-
 			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 			_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 
+			//_differential_drive_guidance.computeGuidance(yaw,vel(0),dt);
+			_current_waypoint = current_waypoint;
 		}
 	}
 	else if (_armed && vehicle_control_mode.flag_control_manual_enabled) {

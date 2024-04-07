@@ -8,4 +8,6 @@ param set-default MAV_TYPE 11 # Surface vessel
 param set-default CA_AIRFRAME 13 # Boat (Differential)
 param set-default CA_R_REV 3 # Right and left motors reversible
 
+param set-default NAV_ACC_RAD 1.5 # mission acceptance radius
+
 param set-default EKF2_MAG_TYPE 1 # make sure magnetometer is fused even when not flying

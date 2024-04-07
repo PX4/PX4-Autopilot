@@ -3,6 +3,24 @@ module_name: Boat Position Control
 parameters:
   - group: Boat Position Control
     definitions:
+      USV_POS_P:
+        description:
+          short: Position proportional gain
+        type: float
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 1
+      USV_SPEED_MAX:
+        description:
+          short: Maximum linear speed
+        type: float
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 4
       USV_SPEED_P:
         description:
           short: Speed proportional gain
@@ -12,12 +30,39 @@ parameters:
         increment: 0.001
         decimal: 3
         default: 1
+      USV_SPEED_FFG:
+        description:
+          short: Speed controller feedforward gain
+        type: float
+        min: 0.001
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.14
       USV_YAW_RATE_P:
         description:
           short: Yaw rate proportional gain
         type: float
         min: 0.001
         max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0.1
+      USV_YAW_RATE_I:
+        description:
+          short: Yaw rate integral gain
+        type: float
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+      USV_YAW_EPSI:
+        description:
+          short: Heading accuracy
+        type: float
+        min: 0.001
+        max: 10
         increment: 0.001
         decimal: 3
         default: 0.1
@@ -29,5 +74,5 @@ parameters:
         max: 10
         increment: 0.001
         decimal: 3
-        default: 0.01
+        default: 1
 

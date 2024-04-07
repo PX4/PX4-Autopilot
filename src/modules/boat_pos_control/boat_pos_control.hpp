@@ -67,6 +67,8 @@
 #include <uORB/topics/debug_key_value.h>
 #include <string.h>
 
+#include "differential_drive/DifferentialDriveGuidance/DifferentialDriveGuidance.hpp"
+
 using matrix::Dcmf;
 
 using namespace matrix;
@@ -124,14 +126,24 @@ private:
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	vehicle_attitude_s			_vehicle_att{};
 	float yaw_setpoint;
+	GuidanceState _currentState; ///< The current state of guidance.
+	matrix::Vector2d _current_waypoint; ///< The current waypoint.
+
 
 	bool _armed = false;
 	bool _position_ctrl_ena = false;
 	vehicle_control_mode_s vehicle_control_mode;
+	DifferentialDriveGuidance _differential_drive_guidance{this};
 
 	DEFINE_PARAMETERS((ParamFloat<px4::params::USV_SPEED_P>) _param_usv_speed_p,
 	(ParamFloat<px4::params::USV_YAW_RATE_P>) _param_usv_yaw_rate_p,
-	(ParamFloat<px4::params::USV_DIST_EPSI>) _param_usv_dist_epsi
+	(ParamFloat<px4::params::USV_YAW_RATE_I>) _param_usv_yaw_i,
+	(ParamFloat<px4::params::USV_YAW_EPSI>) _param_usv_yaw_epsi,
+	(ParamFloat<px4::params::USV_DIST_EPSI>) _param_usv_dist_epsi,
+	(ParamFloat<px4::params::USV_POS_P>) _param_usv_pos_p,
+	(ParamFloat<px4::params::USV_SPEED_MAX>) _param_usv_speed_max,
+	(ParamFloat<px4::params::USV_SPEED_FFG>) _param_usv_speed_ffg
+
 	)
 
 
