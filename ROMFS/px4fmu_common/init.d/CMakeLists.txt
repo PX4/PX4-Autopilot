@@ -74,6 +74,9 @@ if(CONFIG_MODULES_ROVER_POS_CONTROL)
 		rc.rover_defaults
 
 		rc.boat_defaults # hack
+
+		rc.boat_differential_apps
+		rc.boat_differential_defaults
 	)
 endif()
 
