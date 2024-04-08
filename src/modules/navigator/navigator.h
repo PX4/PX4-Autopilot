@@ -443,8 +443,11 @@ private:
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)   _param_nav_mc_alt_rad,	/**< acceptance rad for multicopter alt */
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>)    _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
-		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
-		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Hor Distance Unmanned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Hor Distance Manned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_VERU>) _param_nav_traff_a_veru,	/**< avoidance Ver Distance Unmanned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_VERM>) _param_nav_traff_a_verm,	/**< avoidance Ver Distance Manned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_TIME>) _param_nav_traff_a_twarn,	/**< avoidance Time Warning Threshold*/
 
 		// non-navigator parameters
 		// Mission (MIS_*)

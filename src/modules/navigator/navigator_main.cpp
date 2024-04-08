@@ -1198,9 +1198,9 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 
 void Navigator::check_traffic()
 {
-	double lat = get_global_position()->lat;
-	double lon = get_global_position()->lon;
-	float alt = get_global_position()->alt;
+	double lat_uav = get_global_position()->lat;
+	double lon_uav = get_global_position()->lon;
+	float alt_uav = get_global_position()->alt;
 
 	// TODO for non-multirotors predicting the future
 	// position as accurately as possible will become relevant
@@ -1212,115 +1212,131 @@ void Navigator::check_traffic()
 
 	char uas_id[11]; //GUID of incoming UTM messages
 
-	float NAVTrafficAvoidUnmanned = _param_nav_traff_a_radu.get();
-	float NAVTrafficAvoidManned = _param_nav_traff_a_radm.get();
-	float horizontal_separation = NAVTrafficAvoidManned;
-	float vertical_separation = NAVTrafficAvoidManned;
+	float NAVTrafficAvoidUnmanned_H = _param_nav_traff_a_radu.get();  // Edu - These are horrible parameter names, can we change?
+	float NAVTrafficAvoidManned_H = _param_nav_traff_a_radm.get();
+	float NAVTrafficAvoidUnmanned_V = _param_nav_traff_a_veru.get();
+	float NAVTrafficAvoidManned_V = _param_nav_traff_a_verm.get();
+	float horizontal_separation = NAVTrafficAvoidManned_H;
+	float vertical_separation = NAVTrafficAvoidManned_V;
+	float NAVTrafficAvoidTimeToWarn = _param_nav_traff_a_twarn.get();
 
 	while (changed) {
-
 		//vehicle_status_s vs{};
-		transponder_report_s tr{};
-		_traffic_sub.copy(&tr);
+		transponder_report_s transponder{};
+		_traffic_sub.copy(&transponder);
 
 		uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY | transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
 
-		if ((tr.flags & required_flags) != required_flags) {
+		if ((transponder.flags & required_flags) != required_flags) {
 			changed = _traffic_sub.updated();
 			continue;
 		}
 
 		//convert UAS_id byte array to char array for User Warning
 		for (int i = 0; i < 5; i++) {
-			snprintf(&uas_id[i * 2], sizeof(uas_id) - i * 2, "%02x", tr.uas_id[PX4_GUID_BYTE_LENGTH - 5 + i]);
+			snprintf(&uas_id[i * 2], sizeof(uas_id) - i * 2, "%02x", transponder.uas_id[PX4_GUID_BYTE_LENGTH - 5 + i]);
 		}
 
 		uint64_t uas_id_int = 0;
 
 		for (int i = 0; i < 8; i++) {
-			uas_id_int |= (uint64_t)(tr.uas_id[PX4_GUID_BYTE_LENGTH - i - 1]) << (i * 8);
+			uas_id_int |= (uint64_t)(transponder.uas_id[PX4_GUID_BYTE_LENGTH - i - 1]) << (i * 8);
 		}
 
-		//Manned/Unmanned Vehicle Seperation Distance
-		if (tr.emitter_type == transponder_report_s::ADSB_EMITTER_TYPE_UAV) {
-			horizontal_separation = NAVTrafficAvoidUnmanned;
-			vertical_separation = NAVTrafficAvoidUnmanned;
+		//Manned/Unmanned Vehicle Separation Distance
+		if (transponder.emitter_type == transponder_report_s::ADSB_EMITTER_TYPE_UAV) {
+			horizontal_separation = NAVTrafficAvoidUnmanned_H;
+			vertical_separation = NAVTrafficAvoidUnmanned_V;
 		}
 
-		float d_hor, d_vert;
-		get_distance_to_point_global_wgs84(lat, lon, alt,
-						   tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
+		float d_hor, d_vert; // Distance from uav to incoming aircraft
+		get_distance_to_point_global_wgs84(lat_uav, lon_uav, alt_uav,
+						   transponder.lat, transponder.lon, transponder.altitude, &d_hor, &d_vert);
 
+		// predict final altitude of detected aircraft (positive is up) in the time it would take it to reach the UAV
+		// (Edu: Worst case I think, as heading is not taken into account)
+		float aircraft_end_alt = transponder.altitude + (d_hor / transponder.hor_velocity) * transponder.ver_velocity;
 
-		// predict final altitude (positive is up) in prediction time frame
-		float end_alt = tr.altitude + (d_vert / tr.hor_velocity) * tr.ver_velocity;
+		// Predict until the vehicle would have passed this PX4 system at its current speed
+		float prediction_distance = d_hor + 1000.0f;  // Edu: Assume 1000 is considered a good margin
 
-		// Predict until the vehicle would have passed this system at its current speed
-		float prediction_distance = d_hor + 1000.0f;
-
-		// If the altitude is not getting close to us, do not calculate
-		// the horizontal separation.
-		// Since commercial flights do most of the time keep flight levels
+		// If the altitude separation is over the threshold do not calculate the horizontal separation.
+		// Since commercial flights most of the time fly at a constant altitude
 		// check for the current and for the predicted flight level.
 		// we also make the implicit assumption that this system is on the lowest
-		// flight level close to ground in the
+		// flight level (Edu between current and predicted?) close to ground in the
 		// (end_alt - horizontal_separation < alt) condition. If this system should
 		// ever be used in normal airspace this implementation would anyway be
 		// inappropriate as it should be replaced with a TCAS compliant solution.
 
-		if ((fabsf(alt - tr.altitude) < vertical_separation) || ((end_alt - horizontal_separation) < alt)) {
+		// Edu: This system is moronic, regardless of far the aircraft is it will trigger an alarm if at some point in the future
+		// it goes closer than the set thresholds to the UAV. ie so if it's pointing in our direction it will trigger alarm regardless
+		// of the distance it's at.
 
-			double end_lat, end_lon;
-			waypoint_from_heading_and_distance(tr.lat, tr.lon, tr.heading, prediction_distance, &end_lat, &end_lon);
+		// Adding a check that the time for aircraft to fly past is less than a threshold before warning
+		float dist_uav_aircraft = get_distance_to_next_waypoint(lat_uav,lon_uav, transponder.lat,transponder.lon);
+		float time_to_flyby = dist_uav_aircraft/transponder.hor_velocity; // This is the worst case if aircraft suddenly changed direction towareds uav
+
+		if (((fabsf(alt_uav - transponder.altitude) < vertical_separation) || (fabsf(alt_uav - aircraft_end_alt) < vertical_separation))
+			&& (time_to_flyby < NAVTrafficAvoidTimeToWarn)) {
+			double aircraft_end_lat, aircraft_end_lon;
+			// Calculate where the aircraft is going to end if continuing flight for prediction distance
+			waypoint_from_heading_and_distance(transponder.lat, transponder.lon, transponder.heading, prediction_distance, \
+								&aircraft_end_lat, &aircraft_end_lon);
 
 			struct crosstrack_error_s cr;
 
-			if (!get_distance_to_line(&cr, lat, lon, tr.lat, tr.lon, end_lat, end_lon)) {
-
+			// get_distance_to_line returns 0 (False) when calculations are correct other codes if error
+			if (!get_distance_to_line(&cr, lat_uav, lon_uav, transponder.lat, transponder.lon, aircraft_end_lat, aircraft_end_lon)) {
+			// Edu. As aircraft_end is 1000m beyond current uav position I don't see how cr.past_end could ever be true.
 				if (!cr.past_end && (fabsf(cr.distance) < horizontal_separation)) {
-
-					bool action_needed = buffer_air_traffic(tr.icao_address);
+					bool action_needed = buffer_air_traffic(transponder.icao_address);  // This avoids sending message repeatedly (checks enouth time has passed since last)
 
 					if (action_needed) {
 						// direction of traffic in human-readable 0..360 degree in earth frame
-						int traffic_direction = math::degrees(tr.heading) + 180;
-						int traffic_seperation = (int)fabsf(cr.distance);
+						int traffic_direction = math::degrees(transponder.heading) + 180;
+						int traffic_separation = (int)fabsf(cr.distance);
+						mavlink_log_info(get_mavlink_log_pub(),"Warning close aircraft ID %s Distance to line %d, Distance to uav %d", \
+					 	transponder.callsign, traffic_separation, (int)dist_uav_aircraft);
 
 						switch (_param_nav_traff_avoid.get()) {
 
 						case 0: {
 								/* Ignore */
 								PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
-									 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									 traffic_seperation,
+									 transponder.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? transponder.callsign : uas_id,
+									 traffic_separation,
 									 traffic_direction);
 								break;
 							}
 
 						case 1: {
 								/* Warn only */
-								mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
+								// Edu: Not sure why this doesn't come through
+								mavlink_log_info(get_mavlink_log_pub(), "Warning TRAFFIC %s! dst %d, hdg %d\t",
+										     transponder.callsign,
+										     traffic_separation,
 										     traffic_direction);
+								// Edu ID is always zero. Ideally we would send the callsign, but events function
+								// does not allow, and haven't looked at modifying it.
 								/* EVENT
 								 * @description
 								 * - ID: {1}
 								 * - Distance: {2m}
 								 * - Direction: {3} degrees
 								 */
-								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Critical, "Traffic alert",
-										uas_id_int, traffic_seperation, traffic_direction);
+								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Warning, "Traffic alert",
+										uas_id_int, traffic_separation, traffic_direction);
 								break;
 							}
 
 						case 2: {
 								/* RTL Mode */
 								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
+										     transponder.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? transponder.callsign : uas_id,
+										     traffic_separation,
 										     traffic_direction);
 								/* EVENT
 								 * @description
@@ -1330,7 +1346,7 @@ void Navigator::check_traffic()
 								 */
 								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_rtl"), events::Log::Critical,
 										"Traffic alert, returning home",
-										uas_id_int, traffic_seperation, traffic_direction);
+										uas_id_int, traffic_separation, traffic_direction);
 
 								// set the return altitude to minimum
 								_rtl.set_return_alt_min(true);
@@ -1345,8 +1361,8 @@ void Navigator::check_traffic()
 						case 3: {
 								/* Land Mode */
 								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
+										     transponder.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? transponder.callsign : uas_id,
+										     traffic_separation,
 										     traffic_direction);
 								/* EVENT
 								 * @description
@@ -1356,7 +1372,7 @@ void Navigator::check_traffic()
 								 */
 								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_land"), events::Log::Critical,
 										"Traffic alert, landing",
-										uas_id_int, traffic_seperation, traffic_direction);
+										uas_id_int, traffic_separation, traffic_direction);
 
 								// ask the commander to land
 								vehicle_command_s vcmd = {};
@@ -1369,8 +1385,8 @@ void Navigator::check_traffic()
 						case 4: {
 								/* Position hold */
 								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
+										     transponder.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? transponder.callsign : uas_id,
+										     traffic_separation,
 										     traffic_direction);
 								/* EVENT
 								 * @description
@@ -1380,7 +1396,7 @@ void Navigator::check_traffic()
 								 */
 								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_hold"), events::Log::Critical,
 										"Traffic alert, holding position",
-										uas_id_int, traffic_seperation, traffic_direction);
+										uas_id_int, traffic_separation, traffic_direction);
 
 								// ask the commander to Loiter
 								vehicle_command_s vcmd = {};
@@ -1402,6 +1418,11 @@ void Navigator::check_traffic()
 bool Navigator::buffer_air_traffic(uint32_t icao_address)
 {
 	bool action_needed = true;
+
+	// Edu. Checks the timestamp of the last message stored in the buffer (it's a crap buffer, only has 1 entry!)
+	// It doens't work properly as if you have two aircraft close by you will get spammed continously as the icao_address
+	// in the buffer will be from previous aircraft so won't match and action_needed will stay true.
+	// Created a real buffer and sorted it out, but had to revert as PX4 doesn't have std::vector or std::list.
 
 	if (_traffic_buffer.icao_address == icao_address) {
 
