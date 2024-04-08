@@ -76,7 +76,7 @@ private:
 	void Run() override;
 
 	bool CalibrateAndPublish(const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity_uncalibrated,
-				 const matrix::Vector3f &angular_acceleration_uncalibrated);
+				 const matrix::Vector3f &angular_acceleration_uncalibrated, const uint16_t dynamic_range);
 
 	inline float FilterAngularVelocity(int axis, float data[], int N = 1);
 	inline float FilterAngularAcceleration(int axis, float inverse_dt_s, float data[], int N = 1);

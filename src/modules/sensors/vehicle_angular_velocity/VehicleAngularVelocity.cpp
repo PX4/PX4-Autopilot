@@ -855,7 +855,8 @@ void VehicleAngularVelocity::Run()
 				if (!_sensor_gyro_fifo_sub.updated()) {
 					if (CalibrateAndPublish(sensor_fifo_data.timestamp_sample,
 								angular_velocity_uncalibrated,
-								angular_acceleration_uncalibrated)) {
+								angular_acceleration_uncalibrated,
+								sensor_fifo_data.dynamic_range)) {
 
 						perf_end(_cycle_perf);
 						return;
@@ -900,7 +901,8 @@ void VehicleAngularVelocity::Run()
 				if (!_sensor_sub.updated()) {
 					if (CalibrateAndPublish(sensor_data.timestamp_sample,
 								angular_velocity_uncalibrated,
-								angular_acceleration_uncalibrated)) {
+								angular_acceleration_uncalibrated,
+								sensor_data.dynamic_range)) {
 
 						perf_end(_cycle_perf);
 						return;
@@ -920,7 +922,8 @@ void VehicleAngularVelocity::Run()
 
 bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sample,
 		const Vector3f &angular_velocity_uncalibrated,
-		const Vector3f &angular_acceleration_uncalibrated)
+		const Vector3f &angular_acceleration_uncalibrated,
+		const uint16_t dynamic_range)
 {
 	if (timestamp_sample >= _last_publish + _publish_interval_min_us) {
 
@@ -935,6 +938,8 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 		// Angular acceleration: rotate sensor frame to board, scale raw data to SI, apply any additional configured rotation
 		_angular_acceleration = _calibration.rotation() * angular_acceleration_uncalibrated;
 		_angular_acceleration.copyTo(angular_velocity.xyz_derivative);
+
+		angular_velocity.dynamic_range = dynamic_range;
 
 		angular_velocity.timestamp = hrt_absolute_time();
 		_vehicle_angular_velocity_pub.publish(angular_velocity);

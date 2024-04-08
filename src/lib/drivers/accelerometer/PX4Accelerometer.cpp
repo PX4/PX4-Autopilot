@@ -117,20 +117,23 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 	rotate_3f(_rotation, x, y, z);
 
 	// publish
-	sensor_accel_s report;
+	sensor_accel_s report{};
 
 	report.timestamp_sample = timestamp_sample;
-	report.device_id = _device_id;
-	report.temperature = _temperature;
-	report.error_count = _error_count;
-	report.x = x * _scale;
-	report.y = y * _scale;
-	report.z = z * _scale;
-	report.clip_counter[0] = (fabsf(x) >= _clip_limit);
-	report.clip_counter[1] = (fabsf(y) >= _clip_limit);
-	report.clip_counter[2] = (fabsf(z) >= _clip_limit);
-	report.samples = 1;
-	report.timestamp = hrt_absolute_time();
+	report.device_id        = _device_id;
+	report.temperature      = _temperature;
+	report.scale            = _scale;
+	report.dynamic_range    = _dynamic_range;
+	report.error_count      = _error_count;
+	report.clip_counter[0]  = (fabsf(x) >= _clip_limit);
+	report.clip_counter[1]  = (fabsf(y) >= _clip_limit);
+	report.clip_counter[2]  = (fabsf(z) >= _clip_limit);
+	report.samples          = 1;
+	report.x                = x * _scale;
+	report.y                = y * _scale;
+	report.z                = z * _scale;
+
+	report.timestamp        = hrt_absolute_time();
 
 	_sensor_pub.publish(report);
 }
@@ -145,17 +148,26 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	}
 
 	sample.device_id = _device_id;
-	sample.scale = _scale;
+	sample.scale     = _scale;
 	sample.timestamp = hrt_absolute_time();
+
 	_sensor_fifo_pub.publish(sample);
 
-
 	// publish
-	sensor_accel_s report;
+	sensor_accel_s report{};
+
 	report.timestamp_sample = sample.timestamp_sample;
-	report.device_id = _device_id;
-	report.temperature = _temperature;
-	report.error_count = _error_count;
+	report.device_id        = _device_id;
+	report.temperature      = _temperature;
+	report.scale            = _scale;
+	report.dynamic_range    = _dynamic_range;
+	report.error_count      = _error_count;
+
+	report.clip_counter[0] = clipping(sample.x, N);
+	report.clip_counter[1] = clipping(sample.y, N);
+	report.clip_counter[2] = clipping(sample.z, N);
+
+	report.samples         = N;
 
 	// trapezoidal integration (equally spaced)
 	const float scale = _scale / (float)N;
@@ -167,10 +179,6 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	_last_sample[1] = sample.y[N - 1];
 	_last_sample[2] = sample.z[N - 1];
 
-	report.clip_counter[0] = clipping(sample.x, N);
-	report.clip_counter[1] = clipping(sample.y, N);
-	report.clip_counter[2] = clipping(sample.z, N);
-	report.samples = N;
 	report.timestamp = hrt_absolute_time();
 
 	_sensor_pub.publish(report);
@@ -179,5 +187,5 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 void PX4Accelerometer::UpdateClipLimit()
 {
 	// 99.9% of potential max
-	_clip_limit = math::constrain((_range / _scale) * 0.999f, 0.f, (float)INT16_MAX);
+	_clip_limit = math::constrain((_dynamic_range / _scale) * 0.999f, 0.f, (float)INT16_MAX);
 }

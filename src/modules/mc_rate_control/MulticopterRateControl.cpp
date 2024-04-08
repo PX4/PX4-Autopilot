@@ -179,6 +179,14 @@ MulticopterRateControl::Run()
 				_rates_setpoint(0) = PX4_ISFINITE(vehicle_rates_setpoint.roll)  ? vehicle_rates_setpoint.roll  : rates(0);
 				_rates_setpoint(1) = PX4_ISFINITE(vehicle_rates_setpoint.pitch) ? vehicle_rates_setpoint.pitch : rates(1);
 				_rates_setpoint(2) = PX4_ISFINITE(vehicle_rates_setpoint.yaw)   ? vehicle_rates_setpoint.yaw   : rates(2);
+
+				// ensure the rate setpoint is constrained within the dynamic range of the sensor
+				const float dynamic_range{static_cast<float>(angular_velocity.dynamic_range)};
+
+				math::constrain(_rates_setpoint(0), -dynamic_range, dynamic_range);
+				math::constrain(_rates_setpoint(1), -dynamic_range, dynamic_range);
+				math::constrain(_rates_setpoint(2), -dynamic_range, dynamic_range);
+
 				_thrust_setpoint = Vector3f(vehicle_rates_setpoint.thrust_body);
 			}
 		}
