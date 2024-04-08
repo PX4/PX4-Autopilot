@@ -364,13 +364,16 @@ else
 		#
 		# board sensors: rc.sensors
 		#
-		set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
-		if [ -f $BOARD_RC_SENSORS ]
+		if param compare -s SYS_BOARD_SENS 1
 		then
-			echo "Board sensors: ${BOARD_RC_SENSORS}"
-			. $BOARD_RC_SENSORS
+			set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
+			if [ -f $BOARD_RC_SENSORS ]
+			then
+				echo "Board sensors: ${BOARD_RC_SENSORS}"
+				. $BOARD_RC_SENSORS
+			fi
+			unset BOARD_RC_SENSORS
 		fi
-		unset BOARD_RC_SENSORS
 
 		. ${R}etc/init.d/rc.sensors
 
