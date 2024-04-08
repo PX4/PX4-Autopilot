@@ -43,6 +43,7 @@ __BEGIN_DECLS
 #define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
 
 #include <chip.h>
+#include "imx9_gpio.h"
 
 /*
  */
@@ -73,10 +74,10 @@ __BEGIN_DECLS
 #define px4_i2cbus_initialize(bus_num_1based)   NULL //imx9_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 #define px4_i2cbus_uninitialize(pdev)           (-1)//imx9_i2cbus_uninitialize(pdev)
 
-#define px4_arch_configgpio(pinset)             //imx9_config_gpio(pinset)
+#define px4_arch_configgpio(pinset)             imx9_config_gpio(pinset)
 #define px4_arch_unconfiggpio(pinset)
-#define px4_arch_gpioread(pinset)               //imx9_gpio_read(pinset)
-#define px4_arch_gpiowrite(pinset, value)       //imx9_gpio_write(pinset, value)
+#define px4_arch_gpioread(pinset)               imx9_gpio_read(pinset)
+#define px4_arch_gpiowrite(pinset, value)       imx9_gpio_write(pinset, value)
 
 int imx9_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg);
 
