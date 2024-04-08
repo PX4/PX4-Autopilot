@@ -115,7 +115,6 @@ protected:
 	bool _checkTakeoff() override { return _want_takeoff; };
 
 	void _prepareLandSetpoints();
-	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
 	void updateParams() override; /**< See ModuleParam class */
 

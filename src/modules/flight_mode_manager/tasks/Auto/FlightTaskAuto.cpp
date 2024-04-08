@@ -117,7 +117,7 @@ bool FlightTaskAuto::update()
 
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
-	if (_highEnoughForLandingGear()) {
+	if (_dist_to_ground > 2.f) {
 		_gear.landing_gear = landing_gear_s::GEAR_UP;
 	}
 
@@ -848,12 +848,6 @@ void FlightTaskAuto::_updateTrajConstraints()
 	// correction required by the altitude/vertical position controller
 	_constraints.speed_down = math::max(_constraints.speed_down, 1.2f * _param_mpc_z_v_auto_dn.get());;
 	_constraints.speed_up = math::max(_constraints.speed_up, 1.2f * _param_mpc_z_v_auto_up.get());;
-}
-
-bool FlightTaskAuto::_highEnoughForLandingGear()
-{
-	// return true if altitude is above two meters
-	return _dist_to_ground > 2.0f;
 }
 
 void FlightTaskAuto::updateParams()
