@@ -78,7 +78,7 @@
 	branch = px4
 [submodule "Tools/simulation/gz"]
 	path = Tools/simulation/gz
-	url = https://github.com/PX4/PX4-gazebo-models.git
+	url = https://github.com/PyroX2/PX4-gazebo-models.git
 	branch = main
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
 	path = src/modules/muorb/apps/libfc-sensor-api
