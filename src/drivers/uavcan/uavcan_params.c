@@ -385,3 +385,15 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_LOG_LEVEL, 1);
+
+/**
+ * UAVCAN ID to use as GPS1
+ *
+ * If > 0, UAVCAN GNSS bridge will allocate this UAVCAN ID as the first GPS instance.
+ *
+ * @min 0
+ * @max 127
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_GPS1_ID, 0);

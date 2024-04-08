@@ -121,6 +121,16 @@ UavcanGnssBridge::init()
 		_moving_baseline_data_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: moving baseline data rtcm stream pub");
 	}
 
+	// If GPS1_ID is set, pre-allocate a channel by sending a blank report. This ensures that it becomes the first instance.
+	int32_t uavcan_gps1_id = 0;
+	param_get(param_find("UAVCAN_GPS1_ID"), &uavcan_gps1_id);
+
+	if (uavcan_gps1_id > 0) {
+		PX4_INFO("Allocating UAVCAN node %ld as GPS1 because of UAVCAN_GPS1_ID param", uavcan_gps1_id);
+		sensor_gps_s report{};
+		publish(uavcan_gps1_id, &report);
+	}
+
 	return res;
 }
 

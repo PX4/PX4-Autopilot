@@ -7,6 +7,8 @@ actuator_output:
       function: 'enable'
     - param: 'UAVCAN_BITRATE'
       label: 'Bitrate'
+    - param: 'UAVCAN_GPS1_ID'
+      label: 'GPS1 UAVCAN ID'
   output_groups:
     - param_prefix: UAVCAN_EC
       group_label: 'ESCs'
