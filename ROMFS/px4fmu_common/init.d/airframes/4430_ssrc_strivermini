@@ -72,10 +72,11 @@ param set-default PWM_AUX_FUNC6 105
 
 # Start airspeed sensor driver
 ms4525do start -X -f 500
+sdp3x start -X -f 500
 
 # Airspeed parameters
-param set-default ASPD_DO_CHECKS 15
-param set-default FW_AIRSPD_MAX 22.0
+param set-default ASPD_DO_CHECKS 7
+param set-default FW_AIRSPD_MAX 25.0
 param set-default FW_AIRSPD_MIN 15.0
 param set-default FW_AIRSPD_STALL 12.0
 param set-default FW_AIRSPD_TRIM 18.0
@@ -112,18 +113,31 @@ param set-default FW_MAN_R_MAX 60.0
 param set-default FW_RR_IMAX 0.4000
 param set-default FW_YR_IMAX 0.4000
 
+# Multicopter specific
+param set-default MC_PITCHRATE_D 0
+param set-default MC_PITCHRATE_MAX 120
+param set-default MC_PITCHRATE_P 0.140
+param set-default MC_PITCH_P 4
+param set-default MC_ROLLRATE_D 0
+param set-default MC_ROLLRATE_P 0.140
+param set-default MC_ROLL_P 3.50
+param set-default MPC_MAN_TILT_MAX 30.0
+param set-default MPC_MAN_Y_MAX 80.0
+param set-default MPC_Z_VEL_MAX_UP 2.0
+param set-default MPC_Z_V_AUTO_UP 2.0
+
 # VTOL specific
 # VTOL type
 param set-default VT_TYPE 2
 
 # Airspeed at which we can start blending both fw and mc controls.
-param set-default VT_ARSP_BLEND 10
+param set-default VT_ARSP_BLEND 8
 
 # Airspeed at which we can switch to fw mode
-param set-default VT_ARSP_TRANS 12
+param set-default VT_ARSP_TRANS 14
 
 # Back-transition duration
-param set-default VT_B_TRANS_DUR 4
+param set-default VT_B_TRANS_DUR 10
 param set-default VT_B_TRANS_RAMP 3
 
 # Transition duration
@@ -131,14 +145,17 @@ param set-default VT_F_TRANS_DUR 6
 param set-default VT_F_TRANS_THR 1
 
 # VTOL takeoff
-param set-default VTO_LOITER_ALT 20
+param set-default VTO_LOITER_ALT 40
 
 # QuadChute altitude (transition to quad mode as a failsafe)
-param set-default VT_FW_MIN_ALT 5
+param set-default VT_FW_MIN_ALT 10
 
 # QuadChute angle limits
-param set-default VT_FW_QC_P 35
-param set-default VT_FW_QC_R 60
+param set-default VT_FW_QC_P 25
+param set-default VT_FW_QC_R 45
+
+param set-default VT_TRANS_MIN_TM 5.00
+param set-default VT_FWD_THRUST_EN 3
 
 # Change current sense shunt resistor value
 param set-default INA226_SHUNT 0.0005
