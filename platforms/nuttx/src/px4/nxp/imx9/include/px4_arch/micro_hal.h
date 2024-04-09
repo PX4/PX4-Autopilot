@@ -44,6 +44,8 @@ __BEGIN_DECLS
 
 #include <chip.h>
 #include "imx9_gpio.h"
+#include "imx9_lpi2c.h"
+#include "imx9_lpspi.h"
 
 /*
  */
@@ -65,23 +67,25 @@ __BEGIN_DECLS
 #define PX4_CPU_UUID_WORD32_UNIQUE_H            0 /* Least significant digits change the most */
 #define PX4_CPU_UUID_WORD32_UNIQUE_M            1 /* Most significant digits change the least */
 
-#define PX4_BUS_OFFSET       1                  /* imx9 buses are 0 based so adjustment needed */
+#define PX4_BUS_OFFSET       0                  /* imx9 buses are 1 based so no adjustment needed */
 
 #define px4_savepanic(fileno, context, length)  imx9_dump_savepanic(fileno, context, length)
 
-#define px4_spibus_initialize(bus_num_1based)   NULL //imx9_lpspibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#define px4_spibus_initialize(bus_num_1based)   imx9_lpspibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
-#define px4_i2cbus_initialize(bus_num_1based)   NULL //imx9_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
-#define px4_i2cbus_uninitialize(pdev)           (-1)//imx9_i2cbus_uninitialize(pdev)
+#define px4_i2cbus_initialize(bus_num_1based)   imx9_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#define px4_i2cbus_uninitialize(pdev)           imx9_i2cbus_uninitialize(pdev)
 
 #define px4_arch_configgpio(pinset)             imx9_config_gpio(pinset)
 #define px4_arch_unconfiggpio(pinset)
 #define px4_arch_gpioread(pinset)               imx9_gpio_read(pinset)
 #define px4_arch_gpiowrite(pinset, value)       imx9_gpio_write(pinset, value)
 
-int imx9_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func, void *arg);
+// TODO: temporary hack, remove when implemented
+inline int imx9_gpio_setevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func,
+			      void *arg) {return 0;}
 
-#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imx9_gpiosetevent(pinset,r,f,e,fp,a)
+#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imx9_gpio_setevent(pinset,r,f,e,fp,a)
 
 /* Code to access HRT timer counter directly from uer space TODO */
 

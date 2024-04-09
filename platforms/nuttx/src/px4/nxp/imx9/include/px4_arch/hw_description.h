@@ -40,11 +40,8 @@
 
 #include <board_config.h>
 
-// TODO: fix this
-#ifdef CONFIG_SPI
+#include "imx9_gpio.h"
 
-namespace IOMUX
-{
 namespace GPIO
 {
 enum Port {
@@ -205,5 +202,3 @@ struct bus_device_external_cfg_t {
 };
 
 } // namespace SPI
-
-#endif
