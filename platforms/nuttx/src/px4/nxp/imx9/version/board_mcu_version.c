@@ -33,7 +33,7 @@
 
 /**
  * @file usr_mcu_version.c
- * Implementation of MPFS version API
+ * Implementation of i.MX9 version API
  */
 
 #include <px4_platform_common/log.h>
