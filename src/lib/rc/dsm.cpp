@@ -483,6 +483,14 @@ void dsm_proto_init()
 	}
 }
 
+void dsm_proto_init_and_reset()
+{
+	dsm_proto_init();
+
+	/* reset the format detector */
+	dsm_guess_format(true);
+}
+
 /**
  * Initialize the DSM receive functionality
  *
