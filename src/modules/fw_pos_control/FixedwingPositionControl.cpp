@@ -1609,7 +1609,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 
 			} else {
-				_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
+				_att_sp.thrust_body[0] = get_tecs_thrust();
 			}
 
 			_att_sp.pitch_body = get_tecs_pitch();
