@@ -2089,6 +2089,8 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	// For backwards compatibility at the moment interpret throttle in range [0,1000]
 	manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f;
 	manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f;
+	// Pass along the button states
+	manual_control_setpoint.buttons = mavlink_manual_control.buttons;
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
 	manual_control_setpoint.valid = true;
