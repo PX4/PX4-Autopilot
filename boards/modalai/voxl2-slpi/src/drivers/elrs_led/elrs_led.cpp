@@ -125,7 +125,7 @@ void elrs_led_task()
 
 			orb_copy(ORB_ID(manual_control_input), manual_control_input_fd, &setpoint_req);
 
-			_cmd = (ControllerInput)setpoint_req.aux1;
+			_cmd = (ControllerInput)setpoint_req.buttons;
 
 			// skip duplicate cmds
 			if (_cmd == _prev_cmd) {
