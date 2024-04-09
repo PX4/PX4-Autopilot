@@ -191,7 +191,7 @@ RCInput::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-void
+int32_t
 RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 		    uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 		    hrt_abstime now, bool frame_drop, bool failsafe,
@@ -262,6 +262,8 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 	_input_rc.rc_lost = (valid_chans == 0);
 	_input_rc.rc_lost_frame_count = frame_drops;
 	_input_rc.rc_total_frame_count = 0;
+
+	return valid_chans;
 }
 
 void RCInput::set_rc_scan_state(RC_SCAN newState)
@@ -494,9 +496,12 @@ void RCInput::Run()
 					if (rc_updated) {
 						// we have a new SBUS frame. Publish it.
 						_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-							   sbus_frame_drop, sbus_failsafe, frame_drops);
-						_rc_scan_locked = true;
+						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+										 sbus_frame_drop, sbus_failsafe, frame_drops);
+
+						if (valid_chans > 0) {
+							_rc_scan_locked = true;
+						}
 					}
 				}
 
@@ -533,9 +538,12 @@ void RCInput::Run()
 					if (rc_updated) {
 						// we have a new DSM frame. Publish it.
 						_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-							   false, false, frame_drops, dsm_rssi);
-						_rc_scan_locked = true;
+						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+										 false, false, frame_drops, dsm_rssi);
+
+						if (valid_chans > 0) {
+							_rc_scan_locked = true;
+						}
 					}
 				}
 
@@ -580,9 +588,12 @@ void RCInput::Run()
 						if (lost_count == 0) {
 							// we have a new ST24 frame. Publish it.
 							_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
-							fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-								   false, false, frame_drops, st24_rssi);
-							_rc_scan_locked = true;
+							int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+											 false, false, frame_drops, st24_rssi);
+
+							if (valid_chans > 0) {
+								_rc_scan_locked = true;
+							}
 
 						} else {
 							// if the lost count > 0 means that there is an RC loss
@@ -629,9 +640,12 @@ void RCInput::Run()
 					if (rc_updated) {
 						// we have a new SUMD frame. Publish it.
 						_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-							   false, sumd_failsafe, frame_drops, sumd_rssi);
-						_rc_scan_locked = true;
+						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+										 false, sumd_failsafe, frame_drops, sumd_rssi);
+
+						if (valid_chans > 0) {
+							_rc_scan_locked = true;
+						}
 					}
 				}
 
@@ -657,8 +671,12 @@ void RCInput::Run()
 					// we have a new PPM frame. Publish it.
 					rc_updated = true;
 					_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-					fill_rc_in(ppm_decoded_channels, ppm_buffer, cycle_timestamp, false, false, 0);
-					_rc_scan_locked = true;
+					int32_t valid_chans = fill_rc_in(ppm_decoded_channels, ppm_buffer, cycle_timestamp, false, false, 0);
+
+					if (valid_chans > 0) {
+						_rc_scan_locked = true;
+					}
+
 					_input_rc.rc_ppm_frame_length = ppm_frame_length;
 					_input_rc.timestamp_last_signal = ppm_last_valid_decode;
 				}
@@ -699,7 +717,7 @@ void RCInput::Run()
 					if (rc_updated) {
 						// we have a new CRSF frame. Publish it.
 						_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0);
+						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0);
 
 						// on Pixhawk (-related) boards we cannot write to the RC UART
 						// another option is to use a different UART port
@@ -711,7 +729,9 @@ void RCInput::Run()
 
 #endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
-						_rc_scan_locked = true;
+						if (valid_chans > 0) {
+							_rc_scan_locked = true;
+						}
 
 						if (_crsf_telemetry) {
 							_crsf_telemetry->update(cycle_timestamp);
@@ -749,7 +769,7 @@ void RCInput::Run()
 					if (rc_updated) {
 						// we have a new GHST frame. Publish it.
 						_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_GHST;
-						fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
+						int32_t valid_chans = fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0, ghst_rssi);
 
 						// ghst telemetry works on fmu-v5
 						// on other Pixhawk (-related) boards we cannot write to the RC UART
@@ -762,7 +782,9 @@ void RCInput::Run()
 
 #endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
-						_rc_scan_locked = true;
+						if (valid_chans > 0) {
+							_rc_scan_locked = true;
+						}
 
 						if (_ghst_telemetry) {
 							_ghst_telemetry->update(cycle_timestamp);
