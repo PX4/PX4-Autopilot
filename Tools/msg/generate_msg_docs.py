@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Write out the index.md file
     index_text="""# uORB Message Reference
 
-:::note
+::: info
 This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/msg/generate_msg_docs.py) from the source code.
 :::
 
