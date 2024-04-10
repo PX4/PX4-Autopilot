@@ -250,8 +250,9 @@ protected:
 	 * @brief Load current mission item
 	 *
 	 * Load current mission item from dataman cache.
+	 * @return true, if the mission item could be loaded, false otherwise
 	 */
-	void loadCurrentMissionItem();
+	bool loadCurrentMissionItem();
 
 	/**
 	 * Set the mission result
