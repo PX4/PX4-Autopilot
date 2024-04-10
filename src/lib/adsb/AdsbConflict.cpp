@@ -212,14 +212,6 @@ bool AdsbConflict::handle_traffic_conflict()
 			}
 
 			//disable conflict warnings when buffer is full
-
-			//stop buffering incoming conflicts but limit warnings rate
-			//if (hrt_elapsed_time(&_last_traffic_warning_time) > TRAFFIC_WARNING_TIMESTEP) {
-			//	take_action = send_traffic_warning((int)(math::degrees(_transponder_report.heading) + 180.f),
-			//					   (int)fabsf(_crosstrack_error.distance), _transponder_report.flags,
-			//					   _transponder_report.callsign,
-			//					   _transponder_report.icao_address);
-			//}
 		}
 		break;
 
