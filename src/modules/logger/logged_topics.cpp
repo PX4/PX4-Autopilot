@@ -123,6 +123,8 @@ void LoggedTopics::add_default_topics()
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
 	add_optional_topic_multi("airspeed_wind", 1000, 4);
+	// By making it non-optional, we don't need to start uavcan before the logger module
+	add_topic_multi("can_interface_status", 100, 2);
 	add_optional_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
 	add_optional_topic_multi("sensor_hygrometer", 500, 4);
