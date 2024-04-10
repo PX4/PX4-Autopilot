@@ -356,7 +356,7 @@ MissionBase::on_active()
 
 void MissionBase::update_mission()
 {
-	if (_mission.count == 0u || !_is_current_planned_mission_item_valid || !_navigator->get_mission_result()->valid) {
+	if (_mission.count == 0u || !_is_current_planned_mission_item_valid || !isMissionValid()) {
 		if (_land_detected_sub.get().landed) {
 			/* landed, refusing to take off without a mission */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff\t");
@@ -441,24 +441,33 @@ MissionBase::advance_mission()
 void
 MissionBase::set_mission_items()
 {
-	if (_is_current_planned_mission_item_valid) {
-		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
-		loadCurrentMissionItem();
+	bool set_end_of_mission{false};
 
-		/* force vtol land */
-		if (_navigator->force_vtol() && _mission_item.nav_cmd == NAV_CMD_LAND) {
-			_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
+	if (_is_current_planned_mission_item_valid && _mission_type == MissionType::MISSION_TYPE_MISSION && isMissionValid()) {
+		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
+		if (loadCurrentMissionItem()) {
+			/* force vtol land */
+			if (_navigator->force_vtol() && _mission_item.nav_cmd == NAV_CMD_LAND) {
+				_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
+			}
+
+			setActiveMissionItems();
+
+		} else {
+			set_end_of_mission = true;
 		}
 
-		setActiveMissionItems();
-
 	} else {
+		set_end_of_mission = true;
+	}
+
+	if (set_end_of_mission) {
 		setEndOfMissionItems();
 		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 	}
 }
 
-void MissionBase::loadCurrentMissionItem()
+bool MissionBase::loadCurrentMissionItem()
 {
 	const dm_item_t dm_item = static_cast<dm_item_t>(_mission.mission_dataman_id);
 	bool success = _dataman_cache.loadWait(dm_item, _mission.current_seq, reinterpret_cast<uint8_t *>(&_mission_item),
@@ -469,6 +478,8 @@ void MissionBase::loadCurrentMissionItem()
 		events::send(events::ID("mission_item_set_failed"), events::Log::Error,
 			     "Mission item could not be set");
 	}
+
+	return success;
 }
 
 void MissionBase::setEndOfMissionItems()
