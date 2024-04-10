@@ -48,6 +48,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/gps_inject_data.h>
+#include <parameters/param.h>
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/gnss/Auxiliary.hpp>
@@ -134,4 +135,7 @@ private:
 
 	perf_counter_t _rtcm_stream_pub_perf{nullptr};
 	perf_counter_t _moving_baseline_data_pub_perf{nullptr};
+
+	int32_t _gps_rover_can_id = 126;	// Initialised as 126 as the IDs are limited between 0-125
+	hrt_abstime _last_warn = 0;
 };
