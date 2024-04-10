@@ -1,0 +1,41 @@
+name: "CodeQL"
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [c-cpp]
+        product: [ssrc_saluki-v2_default, ssrc_saluki-nxp93_flat]
+
+    container:
+      image: ghcr.io/tiiuae/px4-firmware-builder-base:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_REPO_TOKEN }}
+          submodules: recursive
+          fetch-depth: 0
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - name: Build
+        run: |
+          git config --global --add safe.directory '*'
+          ./packaging/build_px4fw.sh ${{ matrix.product }}
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
