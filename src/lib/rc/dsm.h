@@ -68,7 +68,6 @@ typedef  struct dsm_decode_t {
 __EXPORT int	dsm_init(const char *device);
 __EXPORT void	dsm_deinit(void);
 __EXPORT void	dsm_proto_init(void);
-__EXPORT void	dsm_proto_init_and_reset(void);
 __EXPORT int	dsm_config(int dsm_fd);
 __EXPORT bool	dsm_input(int dsm_fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes,
 			  uint8_t **bytes, int8_t *rssi, unsigned *frame_drops, unsigned max_values);

@@ -120,7 +120,7 @@ void task_main(int argc, char *argv[])
 		PX4_INFO("Spektrum RC: uart open succeeded");
 	}
 
-	dsm_proto_init_and_reset();
+	dsm_proto_init();
 
 	orb_advert_t rc_pub = nullptr;
 
