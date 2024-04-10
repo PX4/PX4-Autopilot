@@ -121,6 +121,16 @@ UavcanGnssBridge::init()
 		_moving_baseline_data_pub_perf = perf_alloc(PC_INTERVAL, "uavcan: gnss: moving baseline data rtcm stream pub");
 	}
 
+	// If GPS1_ID is set, pre-allocate a channel by sending a blank report. This ensures that it becomes the first instance.
+	int32_t uavcan_gps1_id = 0;
+	param_get(param_find("UAVCAN_GPS1_ID"), &uavcan_gps1_id);
+
+	if (uavcan_gps1_id > 0) {
+		PX4_INFO("Allocating UAVCAN node %ld as GPS1 because of UAVCAN_GPS1_ID param", uavcan_gps1_id);
+		sensor_gps_s report{};
+		publish(uavcan_gps1_id, &report);
+	}
+
 	return res;
 }
 
@@ -325,7 +335,14 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const float heading_accuracy)
 {
 	sensor_gps_s report{};
-	report.device_id = get_device_id();
+
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = msg.getIfaceIndex();
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
+	device_id.devid_s.address =  msg.getSrcNodeID().get();
+
+	report.device_id = device_id.devid;
 
 	/*
 	 * FIXME HACK
