@@ -189,7 +189,6 @@ menu "File paths"
 
     config BOARD_ROOT_PATH
         string "PX4 Root file path"
-        depends on MODULES_LOGGER
         default "/fs/microsd"
 
     config BOARD_PARAM_FILE
