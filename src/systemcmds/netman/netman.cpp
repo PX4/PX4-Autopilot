@@ -51,7 +51,7 @@
 #include <arpa/inet.h>
 #include <px4_platform_common/shutdown.h>
 
-constexpr char DEFAULT_NETMAN_CONFIG[] = "/fs/microsd/net.cfg";
+constexpr char DEFAULT_NETMAN_CONFIG[] = CONFIG_BOARD_ROOT_PATH "/net.cfg";
 #if defined(CONFIG_NETINIT_DHCPC)
 #  define DEFAULT_PROTO   IPv4PROTO_FALLBACK
 #  define DEFAULT_IP      CONFIG_NETMAN_FALLBACK_IPADDR

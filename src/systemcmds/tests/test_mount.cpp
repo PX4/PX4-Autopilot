@@ -62,7 +62,7 @@ int test_mount(int argc, char *argv[])
 	const unsigned iterations = 2000;
 	const unsigned alignments = 10;
 
-	const char *cmd_filename = "/fs/microsd/mount_test_cmds.txt";
+	const char *cmd_filename = CONFIG_BOARD_ROOT_PATH "/mount_test_cmds.txt";
 
 
 	/* check if microSD card is mounted */
