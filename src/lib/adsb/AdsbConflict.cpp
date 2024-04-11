@@ -158,21 +158,13 @@ void AdsbConflict::get_traffic_state()
 
 void AdsbConflict::remove_expired_conflicts()
 {
-	px4::Array<uint8_t, NAVIGATOR_MAX_TRAFFIC> expired_conflicts {};
-
-	for (uint8_t i = 0; i < _traffic_buffer.timestamp.size(); i++) {
-		if (hrt_elapsed_time(&_traffic_buffer.timestamp[i]) > TRAFFIC_CONFLICT_LIFETIME) {
-			expired_conflicts.push_back(i);
+	for (uint8_t traffic_index = 0; traffic_index < _traffic_buffer.timestamp.size(); traffic_index++) {
+		if (hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]) > TRAFFIC_CONFLICT_LIFETIME) {
+			events::send<uint32_t>(events::ID("navigator_traffic_expired"), events::Log::Notice,
+					       "Traffic Conflict {1} Expired and removed from buffer",
+					       _traffic_buffer.icao_address[traffic_index]);
+			remove_icao_address_from_conflict_list(traffic_index);
 		}
-	}
-
-	for (uint8_t j = 0; j < expired_conflicts.size(); j++) {
-		remove_icao_address_from_conflict_list(expired_conflicts[j]);
-		events::send<uint32_t>(events::ID("navigator_traffic_expired"), events::Log::Notice,
-				       "Traffic Conflict {1} Expired and removed from buffer",
-				       _traffic_buffer.icao_address[expired_conflicts[j]]);
-		PX4_INFO("Traffic Conflict %d Expired and removed from buffer",
-			 (int)_traffic_buffer.icao_address[expired_conflicts[j]]); //TODO remove when events are fully logged
 	}
 }
 
@@ -206,8 +198,7 @@ bool AdsbConflict::handle_traffic_conflict()
 
 			if ((_traffic_state_previous != TRAFFIC_STATE::BUFFER_FULL)
 			    && (hrt_elapsed_time(&_last_buffer_full_warning_time) > TRAFFIC_WARNING_TIMESTEP)) {
-				events::send(events::ID("buffer_full"), events::Log::Notice, "Too much traffic! Showing all messages from now on ");
-				PX4_WARN("Too much traffic! Conflict buffer is full. "); //TODO remove when events are fully logged
+				events::send(events::ID("buffer_full"), events::Log::Notice, "Too much traffic! Showing all messages from now on");
 				_last_buffer_full_warning_time = hrt_absolute_time();
 			}
 
@@ -250,7 +241,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 
 			if (tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
 
-				PX4_WARN("TRAFFIC %s! dst %d, hdg %d, icao %d",
+				PX4_WARN("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
 					 tr_callsign,
 					 traffic_seperation,
 					 traffic_direction, (int)icao_address);
@@ -268,7 +259,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 
 			if (tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
 
-				PX4_WARN("TRAFFIC %s! dst %d, hdg %d, icao %d",
+				PX4_WARN("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
 					 tr_callsign,
 					 traffic_seperation,
 					 traffic_direction, (int)icao_address);
@@ -277,12 +268,12 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 
 			/* EVENT
 			 * @description
-			 * - ID: {1}
-			 * - Distance: {2m}
-			 * - Direction: {3} degrees
+			 * - ICAO Address: {1}
+			 * - Traffic Separation Distance: {2m}
+			 * - Heading: {3} degrees
 			 */
 			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Notice,
-					"Traffic alert {1}! dst {2}, hdg {3}",
+					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}",
 					icao_address, traffic_seperation, traffic_direction);
 
 			_last_traffic_warning_time = hrt_absolute_time();
@@ -293,12 +284,12 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 	case 2: {
 			/* EVENT
 			 * @description
-			 * - ID: {1}
-			 * - Distance: {2m}
-			 * - Direction: {3} degrees
+			 * - ICAO Address: {1}
+			 * - Traffic Separation Distance: {2m}
+			 * - Heading: {3} degrees
 			 */
 			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_rtl"), events::Log::Notice,
-					"Traffic alert {1}! dst {2}, hdg {3}, returning home",
+					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, returning home",
 					icao_address, traffic_seperation, traffic_direction);
 
 			_last_traffic_warning_time = hrt_absolute_time();
@@ -311,12 +302,12 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 	case 3: {
 			/* EVENT
 			 * @description
-			 * - ID: {1}
-			 * - Distance: {2m}
-			 * - Direction: {3} degrees
+			 * - ICAO Address: {1}
+			 * - Traffic Separation Distance: {2m}
+			 * - Heading: {3} degrees
 			 */
 			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_land"), events::Log::Notice,
-					"Traffic alert {1}! dst {2}, hdg {3}, landing",
+					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, landing",
 					icao_address, traffic_seperation, traffic_direction);
 
 			_last_traffic_warning_time = hrt_absolute_time();
@@ -330,12 +321,12 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 	case 4: {
 			/* EVENT
 			 * @description
-			 * - ID: {1}
-			 * - Distance: {2m}
-			 * - Direction: {3} degrees
+			 * - ICAO Address: {1}
+			 * - Traffic Separation Distance: {2m}
+			 * - Heading: {3} degrees
 			 */
 			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_hold"), events::Log::Notice,
-					"Traffic alert {1}! dst {2}, hdg {3}, holding position",
+					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, holding position",
 					icao_address, traffic_seperation, traffic_direction);
 
 			_last_traffic_warning_time = hrt_absolute_time();
