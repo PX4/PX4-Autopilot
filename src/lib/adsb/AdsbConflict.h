@@ -64,7 +64,6 @@ static constexpr float TRAFFIC_TO_UAV_DISTANCE_EXTENSION{1000.0f};
 
 static constexpr uint64_t TRAFFIC_WARNING_TIMESTEP{60_s}; //limits the max warning rate when traffic conflict buffer is full
 
-//TODO change back to 120_s
 static constexpr uint64_t TRAFFIC_CONFLICT_LIFETIME{120_s}; //limits the time a conflict can be in the buffer without being seen (as a conflict)
 
 struct traffic_data_s {
