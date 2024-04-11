@@ -386,8 +386,6 @@ void AdsbConflict::fake_traffic(const char *callsign, float distance, float dire
 		tr.uas_id[i] = 0xe0 + i; //simulate GUID
 	}
 
-	printf("\n");
-
 #endif /* BOARD_HAS_NO_UUID */
 
 	orb_publish(ORB_ID(transponder_report), fake_traffic_report_publisher, &tr);
