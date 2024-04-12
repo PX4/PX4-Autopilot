@@ -292,7 +292,7 @@ public:
 	virtual int init() = 0;
 
 	// read reg value
-	virtual uint8_t get_reg(uint8_t addr) = 0;
+	virtual int get_reg(uint8_t addr, uint8_t *value) = 0;
 
 	// bulk read reg value
 	virtual int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len) = 0;
