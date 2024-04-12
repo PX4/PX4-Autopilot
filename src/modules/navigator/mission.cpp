@@ -223,7 +223,7 @@ void Mission::setActiveMissionItems()
 		handleLanding(new_work_item_type, next_mission_items, num_found_items);
 
 		// TODO Precision land needs to be refactored: https://github.com/PX4/Firmware/issues/14320
-		if (new_work_item_type != WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND) {
+		if (new_work_item_type != WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND && new_work_item_type != WorkItemType::WORK_ITEM_TYPE_PRECISION_LOITER) {
 			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		}
 

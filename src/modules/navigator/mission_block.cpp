@@ -325,7 +325,14 @@ MissionBlock::is_mission_item_reached_or_completed()
 					_time_wp_reached = now;
 				}
 			}
-
+		:
+		} else if (_mission_item.nav_cmd == NAV_CMD_DO_PRECISION_HOLD) {
+			// Check if the precloiter item has finished
+			if (!_navigator->get_precloiter()->is_activated()) {
+				_waypoint_position_reached = true;
+				_waypoint_yaw_reached = true;
+				_time_wp_reached = now;
+			}
 		} else {
 
 			float acceptance_radius = _navigator->get_acceptance_radius();

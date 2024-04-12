@@ -187,6 +187,11 @@ MissionBase::on_inactivation()
 		_navigator->get_precland()->on_inactivation();
 	}
 
+	:
+	if (_navigator->get_precloiter()->is_activated()) {
+		_navigator->get_precloiter()->on_inactivation();
+	}
+
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 
@@ -351,6 +356,14 @@ MissionBase::on_active()
 
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+	}
+
+	:
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_PRECISION_LOITER) {
+		_navigator->get_precloiter()->on_active();
+
+	} else if (_navigator->get_precloiter()->is_activated()) {
+		_navigator->get_precloiter()->on_inactivation();
 	}
 }
 

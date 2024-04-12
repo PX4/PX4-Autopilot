@@ -117,6 +117,16 @@ void RtlMissionFast::setActiveMissionItems()
 		    _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
 			handleLanding(new_work_item_type, next_mission_items, num_found_items);
 
+		} else if (_mission_item.nav_cmd == NAV_CMD_DO_PRECISION_HOLD && :
+			_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT &&
+			new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+
+			PX4_INFO("Processing NAV_CMD_DO_PRECISION_HOLD");
+			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_PRECISION_LOITER;
+			_mission_item.autocontinue = true;
+			_navigator->get_precloiter()->set_height_above_target(_mission_item.params[0]); // Set the height above target
+			_navigator->get_precloiter()->on_activation();
+
 		} else {
 			// convert mission item to a simple waypoint, keep loiter to alt
 			if (_mission_item.nav_cmd != NAV_CMD_LOITER_TO_ALT) {
