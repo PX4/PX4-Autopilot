@@ -316,7 +316,9 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
 
+	add_topic("esc_status", 5);
 	add_topic("actuator_motors");
+	add_topic("actuator_outputs_debug");
 	add_topic("actuator_servos");
 	add_topic_multi("vehicle_thrust_setpoint", 0, 2);
 	add_topic_multi("vehicle_torque_setpoint", 0, 2);
