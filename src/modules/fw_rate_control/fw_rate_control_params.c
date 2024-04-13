@@ -298,7 +298,7 @@ PARAM_DEFINE_INT32(FW_ARSP_SCALE_EN, 1);
 /**
 * Roll trim increment at minimum airspeed
 *
-* This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MIN.
+* This increment is added to FW_TRIM_ROLL when airspeed is FW_AIRSPD_MIN.
  *
  * @group FW Rate Control
  * @min -0.5
@@ -311,7 +311,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_R_VMIN, 0.0f);
 /**
 * Pitch trim increment at minimum airspeed
 *
-* This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MIN.
+* This increment is added to FW_TRIM_PITCH when airspeed is FW_AIRSPD_MIN.
  *
  * @group FW Rate Control
  * @min -0.5
@@ -324,7 +324,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMIN, 0.0f);
 /**
 * Yaw trim increment at minimum airspeed
 *
-* This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MIN.
+* This increment is added to FW_TRIM_YAW when airspeed is FW_AIRSPD_MIN.
  *
  * @group FW Rate Control
  * @min -0.5
@@ -337,7 +337,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMIN, 0.0f);
 /**
 * Roll trim increment at maximum airspeed
 *
-* This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MAX.
+* This increment is added to FW_TRIM_ROLL when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Rate Control
  * @min -0.5
@@ -350,7 +350,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_R_VMAX, 0.0f);
 /**
 * Pitch trim increment at maximum airspeed
 *
-* This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MAX.
+* This increment is added to FW_TRIM_PITCH when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Rate Control
  * @min -0.5
@@ -363,7 +363,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMAX, 0.0f);
 /**
 * Yaw trim increment at maximum airspeed
 *
-* This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MAX.
+* This increment is added to FW_TRIM_YAW when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Rate Control
  * @min -0.5
@@ -454,3 +454,45 @@ PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
  * @group FW Rate Control
  */
 PARAM_DEFINE_INT32(FW_ACRO_YAW_EN, 0);
+
+/**
+ * Roll trim
+ *
+ * The trim value is the actuator control value the system needs
+ * for straight and level flight.
+ *
+ * @group FW Rate Control
+ * @min -0.5
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_TRIM_ROLL, 0.0f);
+
+/**
+ * Pitch trim
+ *
+ * The trim value is the actuator control value the system needs
+ * for straight and level flight.
+ *
+ * @group FW Rate Control
+ * @min -0.5
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_TRIM_PITCH, 0.0f);
+
+/**
+ * Yaw trim
+ *
+ * The trim value is the actuator control value the system needs
+ * for straight and level flight.
+ *
+ * @group FW Rate Control
+ * @min -0.5
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_TRIM_YAW, 0.0f);

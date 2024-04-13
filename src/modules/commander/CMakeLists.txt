@@ -57,7 +57,6 @@ px4_add_module(
 		level_calibration.cpp
 		lm_fit.cpp
 		mag_calibration.cpp
-		rc_calibration.cpp
 		Safety.cpp
 		UserModeIntention.cpp
 		worker_thread.cpp

@@ -51,7 +51,6 @@ public:
 	enum class Request {
 		GyroCalibration,
 		MagCalibration,
-		RCTrimCalibration,
 		AccelCalibration,
 		LevelCalibration,
 		AccelCalibrationQuick,

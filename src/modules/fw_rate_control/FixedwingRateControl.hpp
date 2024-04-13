@@ -200,9 +200,9 @@ private:
 		(ParamFloat<px4::params::FW_YR_P>) _param_fw_yr_p,
 		(ParamFloat<px4::params::FW_YR_D>) _param_fw_yr_d,
 
-		(ParamFloat<px4::params::TRIM_PITCH>) _param_trim_pitch,
-		(ParamFloat<px4::params::TRIM_ROLL>) _param_trim_roll,
-		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw,
+		(ParamFloat<px4::params::FW_TRIM_PITCH>) _param_trim_pitch,
+		(ParamFloat<px4::params::FW_TRIM_ROLL>) _param_trim_roll,
+		(ParamFloat<px4::params::FW_TRIM_YAW>) _param_trim_yaw,
 
 		(ParamInt<px4::params::FW_SPOILERS_MAN>) _param_fw_spoilers_man
 	)

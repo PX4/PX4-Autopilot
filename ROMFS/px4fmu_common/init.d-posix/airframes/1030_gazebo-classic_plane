@@ -12,7 +12,7 @@ param set-default NPFG_PERIOD 12
 param set-default FW_PR_P 0.9
 param set-default FW_PR_FF 0.5
 param set-default FW_PR_I 0.5
-param set-default TRIM_PITCH -0.15
+param set-default FW_TRIM_PITCH -0.15
 
 param set-default FW_PSP_OFF 2
 param set-default FW_P_LIM_MIN -15
