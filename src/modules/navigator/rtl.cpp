@@ -353,12 +353,18 @@ void RTL::setRtlTypeAndDestination()
 	_rtl_status_pub.get().is_evaluation_pending = _dataman_state != DatamanState::UpdateRequestWait;
 	_rtl_status_pub.get().has_vtol_approach = false;
 
-	if ((RtlType(_param_rtl_type.get()) == RtlType::NONE)
-	    || (RtlType(_param_rtl_type.get()) == RtlType::RTL_MISSION_FAST)) {
+	switch (RtlType(_param_rtl_type.get())) {
+	case RtlType::NONE:
+	case RtlType::RTL_MISSION_FAST:
 		_rtl_status_pub.get().has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
+		break;
 
-	} else if (RtlType(_param_rtl_type.get()) == RtlType::RTL_DIRECT) {
+	case RtlType::RTL_DIRECT:
 		_rtl_status_pub.get().has_vtol_approach = _one_rally_point_has_land_approach;
+		break;
+
+	default:
+		break;
 	}
 
 	_rtl_status_pub.get().rtl_type = static_cast<uint8_t>(_rtl_type);
