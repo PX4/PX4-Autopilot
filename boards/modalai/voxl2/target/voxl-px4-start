@@ -204,10 +204,12 @@ dataman start
 navigator start
 
 # This bridge allows raw data packets to be sent over UART to the ESC
-voxl2_io_bridge start
+# voxl2_io_bridge start
 
 # Start uxrce_dds_client for ros2 offboard messages from agent over localhost
 uxrce_dds_client start -t udp -h 127.0.0.1 -p 8888
+
+voxl_save_cal_params start
 
 # On M0052 there is only one IMU. So, PX4 needs to
 # publish IMU samples externally for VIO to use.
