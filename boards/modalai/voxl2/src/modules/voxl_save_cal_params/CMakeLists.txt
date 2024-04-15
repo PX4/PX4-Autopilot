@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2024 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,19 +31,13 @@
 #
 ############################################################################
 
-# Need to make sure that the Linux processor on VOXL2
-# knows about all parameters since it is acting as the
-# parameter server for other processors that may define
-# parameters that it doesn't normally know about.
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
-
-add_library(drivers_board
-	board_config.h
-	init.c
-    )
-
-# Add custom drivers
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/apps_sbus)
-
-# Add custom modules
-add_subdirectory(${PX4_BOARD_DIR}/src/modules/voxl_save_cal_params)
+px4_add_module(
+	MODULE modules__voxl_save_cal_params
+	MAIN voxl_save_cal_params
+	COMPILE_FLAGS
+	SRCS
+		VoxlSaveCalParams.cpp
+		VoxlSaveCalParams.hpp
+	DEPENDS
+		px4_work_queue
+	)
