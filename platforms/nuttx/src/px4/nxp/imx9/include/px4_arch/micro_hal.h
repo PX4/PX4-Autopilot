@@ -47,7 +47,7 @@ __BEGIN_DECLS
 
 /*
  */
-#define PX4_CPU_UUID_BYTE_LENGTH                8
+#define PX4_CPU_UUID_BYTE_LENGTH                16
 #define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
 
 /* The mfguid will be an array of bytes with

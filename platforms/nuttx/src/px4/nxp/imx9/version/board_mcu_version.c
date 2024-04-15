@@ -53,6 +53,10 @@
 
 #include <src/lib/version/build_git_version.h>
 
+#include <hardware/imx9_memorymap.h>
+
+#define getreg32(a)    (*(volatile uint32_t *)(a))
+
 #ifndef arraySize
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
 #endif
@@ -70,11 +74,21 @@ static unsigned hw_version = 0;
 static unsigned hw_revision = 0;
 static char hw_info[HW_INFO_SIZE] = {0};
 
-static mfguid_t device_serial_number = { 0 };
+/* Unique ID offset (undocumented, 128bits in bank 6) */
+
+#define IMX93_OCOTP_UID_OFFSET	0xc0
+
+#define CPU_UUID_BYTE_FORMAT_ORDER          {3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12}
+#define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
+
+/* A type suitable for holding the reordering array for the byte format of the UUID
+ */
+
+typedef const uint8_t uuid_uint8_reorder_t[PX4_CPU_UUID_BYTE_LENGTH];
 
 devinfo_t device_boot_info __attribute__((section(".deviceinfo")));
 
-static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID_MPFS;
+static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID;
 
 __EXPORT const char *board_get_hw_type_name(void)
 {
@@ -91,17 +105,105 @@ __EXPORT int board_get_hw_revision()
 	return  hw_revision;
 }
 
-__EXPORT void board_get_uuid32(uuid_uint32_t uuid_words)
+void board_get_uuid(uuid_byte_t uuid_bytes)
 {
-
 	/* DEPRECATED. Use board_get_px4_guid() */
 
-	uint32_t chip_uuid[PX4_CPU_UUID_WORD32_LENGTH];
-	memset((uint8_t *)chip_uuid, 0, PX4_CPU_UUID_WORD32_LENGTH * 4);
+	uuid_uint8_reorder_t reorder = CPU_UUID_BYTE_FORMAT_ORDER;
 
-	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
-		uuid_words[i] = chip_uuid[i];
+	union {
+		uuid_byte_t b;
+		uuid_uint32_t w;
+	} id;
+
+	/* Copy the serial from the OCOTP */
+
+	board_get_uuid32(id.w);
+
+	/* swap endianess */
+
+	for (int i = 0; i < PX4_CPU_UUID_BYTE_LENGTH; i++) {
+		uuid_bytes[i] = id.b[reorder[i]];
 	}
+}
+
+void board_get_uuid32(uuid_uint32_t uuid_words)
+{
+	uuid_words[0] = getreg32(IMX9_OCOTP_BASE + IMX93_OCOTP_UID_OFFSET);
+	uuid_words[1] = getreg32(IMX9_OCOTP_BASE + IMX93_OCOTP_UID_OFFSET + 0x4);
+	uuid_words[2] = getreg32(IMX9_OCOTP_BASE + IMX93_OCOTP_UID_OFFSET + 0x8);
+	uuid_words[3] = getreg32(IMX9_OCOTP_BASE + IMX93_OCOTP_UID_OFFSET + 0xc);
+}
+
+int board_get_uuid32_formated(char *format_buffer, int size,
+			      const char *format,
+			      const char *separator)
+{
+	uuid_uint32_t uuid;
+	board_get_uuid32(uuid);
+	int offset = 0;
+	int sep_size = separator ? strlen(separator) : 0;
+
+	for (unsigned i = 0; (offset < size - 1) && (i < PX4_CPU_UUID_WORD32_LENGTH); i++) {
+		offset += snprintf(&format_buffer[offset], size - offset, format, uuid[i]);
+
+		if (sep_size && (offset < size - sep_size - 1) && (i < PX4_CPU_UUID_WORD32_LENGTH - 1)) {
+			strncat(&format_buffer[offset], separator, size - offset);
+			offset += sep_size;
+		}
+	}
+
+	return 0;
+}
+
+int board_get_mfguid(mfguid_t mfgid)
+{
+	board_get_uuid(* (uuid_byte_t *) mfgid);
+	return PX4_CPU_MFGUID_BYTE_LENGTH;
+}
+
+int board_get_mfguid_formated(char *format_buffer, int size)
+{
+	mfguid_t mfguid;
+
+	board_get_mfguid(mfguid);
+	int offset  = 0;
+
+	for (unsigned int i = 0; i < PX4_CPU_MFGUID_BYTE_LENGTH; i++) {
+		offset += snprintf(&format_buffer[offset], size - offset, "%02x", mfguid[i]);
+	}
+
+	return offset;
+}
+
+int board_get_px4_guid(px4_guid_t px4_guid)
+{
+	uint8_t  *pb = (uint8_t *) &px4_guid[0];
+
+	*pb++ = (soc_arch_id >> 8) & 0xff;
+	*pb++ = (soc_arch_id & 0xff);
+
+	board_get_uuid(pb);
+	return PX4_GUID_BYTE_LENGTH;
+}
+
+int board_get_px4_guid_formated(char *format_buffer, int size)
+{
+	px4_guid_t px4_guid;
+	board_get_px4_guid(px4_guid);
+	int offset  = 0;
+
+	/* size should be 2 per byte + 1 for termination
+	 * So it needs to be odd
+	 */
+	size = size & 1 ? size : size - 1;
+
+	/* Discard from MSD */
+	for (unsigned i = PX4_GUID_BYTE_LENGTH - size / 2; offset < size && i < PX4_GUID_BYTE_LENGTH; i++) {
+		offset += snprintf(&format_buffer[offset], size - offset, "%02x", px4_guid[i]);
+	}
+
+	return offset;
 }
 
 int board_mcu_version(char *rev, const char **revstr, const char **errata)
@@ -126,41 +228,6 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 const char *board_bl_version_string(void)
 {
 	return device_boot_info.bl_version;
-}
-
-int board_get_px4_guid(px4_guid_t px4_guid)
-{
-	uint8_t *pb = (uint8_t *) &px4_guid[0];
-
-	memset(pb, 0, sizeof(px4_guid_t));
-
-	static_assert(sizeof(px4_guid_t) >= sizeof(device_serial_number) + 2);
-
-	*pb++ = (soc_arch_id >> 8) & 0xff;
-	*pb++ = (soc_arch_id & 0xff);
-
-	memcpy(pb, device_serial_number, sizeof(device_serial_number));
-
-	return PX4_GUID_BYTE_LENGTH;
-}
-
-int board_get_px4_guid_formated(char *format_buffer, int size)
-{
-	px4_guid_t px4_guid;
-	board_get_px4_guid(px4_guid);
-	int offset  = 0;
-
-	/* size should be 2 per byte + 1 for termination
-	 * So it needs to be odd
-	 */
-	size = size & 1 ? size : size - 1;
-
-	/* Discard from MSD */
-	for (unsigned i = PX4_GUID_BYTE_LENGTH - size / 2; offset < size && i < PX4_GUID_BYTE_LENGTH; i++) {
-		offset += snprintf(&format_buffer[offset], size - offset, "%02x", px4_guid[i]);
-	}
-
-	return offset;
 }
 
 /* Parse git tag string to a 64-bit hex as follows:
@@ -257,6 +324,7 @@ int board_determine_hw_info(void)
 	struct system_version_s ver;
 	struct guid_s guid;
 	struct hw_info_s hwinfo;
+	uuid_byte_t chip_uuid;
 	orb_advert_t ver_str_pub = orb_advertise(ORB_ID(system_version_string), NULL);
 	orb_advert_t ver_pub = orb_advertise(ORB_ID(system_version), NULL);
 	orb_advert_t mfguid_pub = orb_advertise(ORB_ID(guid), NULL);
@@ -302,9 +370,13 @@ int board_determine_hw_info(void)
 	strncpy(ver_str.component_version1, "0", 2);
 	ver.component_version1 = 0;
 
+	/* Unique ID */
+
+	board_get_uuid(chip_uuid);
+
 	/* Make local copies of guid and hwinfo */
 
-	memcpy(guid.mfguid, device_serial_number, min(sizeof(device_serial_number), sizeof(guid.mfguid)));
+	memcpy(guid.mfguid, chip_uuid, min(PX4_CPU_UUID_BYTE_LENGTH, sizeof(guid.mfguid)));
 	memcpy(hwinfo.hw_info, hw_info, min(sizeof(hwinfo.hw_info), sizeof(hw_info)));
 
 	/* Then publish the topics */
@@ -320,11 +392,4 @@ int board_determine_hw_info(void)
 	orb_publish(ORB_ID(hw_info), &hw_info_pub, &hwinfo);
 
 	return OK;
-}
-
-int board_get_mfguid(mfguid_t mfgid)
-{
-	/* TODO */
-	memset(mfgid, 0, sizeof(mfguid_t));
-	return 0;
 }
