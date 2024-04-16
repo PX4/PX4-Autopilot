@@ -180,7 +180,7 @@ int VoxlEscSerial::uart_read(FAR void *buf, size_t len)
 	}
 
 #ifdef __PX4_QURT
-#define ASYNC_UART_READ_WAIT_US 2000
+#define ASYNC_UART_READ_WAIT_US 100
 	// The UART read on SLPI is via an asynchronous service so specify a timeout
 	// for the return. The driver will poll periodically until the read comes in
 	// so this may block for a while. However, it will timeout if no read comes in.
