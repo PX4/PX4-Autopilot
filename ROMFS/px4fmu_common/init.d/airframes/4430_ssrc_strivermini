@@ -157,5 +157,9 @@ param set-default VT_FW_QC_R 45
 param set-default VT_TRANS_MIN_TM 5.00
 param set-default VT_FWD_THRUST_EN 3
 
+param set-default WV_YRATE_MAX 45.0
+
+param set-default NAV_RCL_ACT 2
+
 # Change current sense shunt resistor value
 param set-default INA226_SHUNT 0.0005
