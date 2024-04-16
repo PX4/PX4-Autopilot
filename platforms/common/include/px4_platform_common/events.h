@@ -45,7 +45,7 @@
 #endif
 
 #include <events/events_generated.h>
-#include <libevents_definitions.h>
+#include <uORB/topics/event.h>
 
 #include <stdint.h>
 
@@ -93,7 +93,7 @@ constexpr unsigned sizeofArguments(const T &t, const Args &... args)
 /**
  * publish/send an event
  */
-void send(EventType &event);
+void send(event_s &event);
 
 /**
  * Generate event ID from an event name
@@ -109,7 +109,7 @@ constexpr uint32_t ID(const char (&name)[N])
 template<typename... Args>
 inline void send(uint32_t id, const LogLevels &log_levels, const char *message, Args... args)
 {
-	EventType e{};
+	event_s e{};
 	e.log_levels = ((uint8_t)log_levels.internal << 4) | (uint8_t)log_levels.external;
 	e.id = id;
 	static_assert(util::sizeofArguments(args...) <= sizeof(e.arguments), "Too many arguments");
@@ -120,7 +120,7 @@ inline void send(uint32_t id, const LogLevels &log_levels, const char *message, 
 
 inline void send(uint32_t id, const LogLevels &log_levels, const char *message)
 {
-	EventType e{};
+	event_s e{};
 	e.log_levels = ((uint8_t)log_levels.internal << 4) | (uint8_t)log_levels.external;
 	e.id = id;
 	CONSOLE_PRINT_EVENT(e.log_level_external, e.id, message);

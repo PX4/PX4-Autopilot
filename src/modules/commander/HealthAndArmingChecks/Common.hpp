@@ -376,7 +376,7 @@ bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, co
 		      Args... args)
 {
 	constexpr unsigned args_size = events::util::sizeofArguments(modes, args...);
-	static_assert(args_size <= sizeof(events::EventType::arguments), "Too many arguments");
+	static_assert(args_size <= sizeof(event_s::arguments), "Too many arguments");
 	unsigned total_size = sizeof(EventBufferHeader) + args_size;
 
 	if (total_size > sizeof(_event_buffer) - _next_buffer_idx) {
