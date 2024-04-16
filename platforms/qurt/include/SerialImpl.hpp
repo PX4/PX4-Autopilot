@@ -93,6 +93,9 @@ public:
 	bool getInvertedMode() const;
 	bool setInvertedMode(bool enable);
 
+	bool getNonBlocking() const;
+	bool setNonBlocking();
+
 private:
 
 	int _serial_fd{-1};
@@ -107,6 +110,7 @@ private:
 	Parity _parity{Parity::None};
 	StopBits _stopbits{StopBits::One};
 	FlowControl _flowcontrol{FlowControl::Disabled};
+	bool _non_blocking_mode{false};
 
 	bool validateBaudrate(uint32_t baudrate);
 

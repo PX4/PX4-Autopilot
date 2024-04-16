@@ -99,6 +99,9 @@ public:
 	bool setPort(const char *port);
 	const char *getPort() const;
 
+	bool getNonBlocking() const;
+	bool setNonBlocking();
+
 private:
 	// Disable copy constructors
 	Serial(const Serial &);

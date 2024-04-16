@@ -94,6 +94,9 @@ public:
 	bool getInvertedMode() const;
 	bool setInvertedMode(bool enable);
 
+	bool getNonBlocking() const;
+	bool setNonBlocking();
+
 private:
 
 	int _serial_fd{-1};
@@ -114,6 +117,8 @@ private:
 	bool _single_wire_mode{false};
 	bool _swap_rx_tx_mode{false};
 	bool _inverted_mode{false};
+	bool _non_blocking_mode{false};
+
 };
 
 } // namespace device
