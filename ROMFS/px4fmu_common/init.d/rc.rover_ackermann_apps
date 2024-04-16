@@ -1,0 +1,11 @@
+#!/bin/sh
+# Standard apps for a ackermann drive rover.
+
+# Start the attitude and position estimator.
+ekf2 start &
+
+# Start rover ackermann drive controller.
+rover_ackermann start
+
+# Start Land Detector.
+land_detector start rover
