@@ -2398,6 +2398,8 @@ Mavlink::task_main(int argc, char *argv[])
 	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
 
 	_mavlink_start_time = hrt_absolute_time();
+	_last_baudrate_toggled = _mavlink_start_time;
+	_initial_baudrate = _baudrate;
 
 	_task_running.store(true);
 
@@ -2417,6 +2419,76 @@ Mavlink::task_main(int argc, char *argv[])
 		perf_begin(_loop_perf);
 
 		const hrt_abstime t = hrt_absolute_time();
+
+		// FREEFLY CUSTOM
+		// Freefly Astro: Toggle baudrate on gimbal port (EXT2=ttyS3) in case we have not received any message to support
+		// multiple gimbal firmwares.
+		if (t - _last_baudrate_toggled > 5_s && !get_has_received_messages() && strcmp(_device_name, "/dev/ttyS3") == 0) {
+			_last_baudrate_toggled = t;
+			int speed = B921600;
+
+			if (_baudrate == 921600) {
+				_baudrate = _initial_baudrate;
+
+				switch (_baudrate) {
+				case 19200:
+					speed = B19200;
+					break;
+
+				case 38400:
+					speed = B38400;
+					break;
+
+				case 57600:
+					speed = B57600;
+					break;
+
+				case 115200:
+					speed = B115200;
+					break;
+
+				case 230400:
+					speed = B230400;
+					break;
+
+				case 460800:
+					speed = B460800;
+					break;
+
+				case 500000:
+					speed = B500000;
+					break;
+
+				case 921600: speed = B921600; break;
+
+				default:
+					PX4_ERR("unsupported baudrate: %i", _baudrate);
+					break;
+				}
+
+			} else {
+				_baudrate = 921600;
+				speed = B921600;
+			}
+
+			PX4_DEBUG("Switching mavlink baudrate to %i", _baudrate);
+			termios uart_config;
+			int termios_state;
+
+			if ((termios_state = tcgetattr(_uart_fd, &uart_config)) < 0) {
+				PX4_ERR("ERR GET CONF %s: %d", _device_name, termios_state);
+
+			} else {
+				if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+					PX4_ERR("ERR SET BAUD %s", _device_name);
+
+				} else {
+					if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
+						PX4_ERR("ERR SET CONF %s %i", _device_name, termios_state);
+					}
+				}
+			}
+		}
 
 		update_rate_mult();
 

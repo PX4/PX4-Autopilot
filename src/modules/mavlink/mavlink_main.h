@@ -498,6 +498,9 @@ private:
 	int			_instance_id{-1};
 	int			_task_id{-1};
 
+	hrt_abstime _last_baudrate_toggled{};
+	int _initial_baudrate{};
+
 	px4::atomic_bool	_task_should_exit{false};
 	px4::atomic_bool	_task_running{false};
 
