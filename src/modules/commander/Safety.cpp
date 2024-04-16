@@ -76,3 +76,10 @@ void Safety::activateSafety()
 		_safety_off = false;
 	}
 }
+
+void Safety::deactivateSafety()
+{
+	if (!_safety_disabled) { // If Safety circuit breaker is disabled, safety can be turned off
+		_safety_off = true; // Safety off i.e. SAFETY_SWITCH_STATE_DANGEROUS
+	}
+}

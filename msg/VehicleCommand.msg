@@ -96,6 +96,7 @@ uint16 VEHICLE_CMD_LOGGING_STOP = 2511			# stop streaming ULog data
 uint16 VEHICLE_CMD_CONTROL_HIGH_LATENCY = 2600		# control starting/stopping transmitting data over the high latency link
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000    	# Command VTOL transition
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001	# Request arm authorization
+uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001	# Prepare a payload deployment in the flight plan
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002	# Control a pre-programmed payload deployment
 uint16 VEHICLE_CMD_FIXED_MAG_CAL_YAW = 42006            # Magnetometer calibration based on provided known yaw. This allows for fast calibration using WMM field tables in the vehicle, given only the known yaw of the vehicle. If Latitude and longitude are both zero then use the current vehicle location.
@@ -164,6 +165,10 @@ int8 ARMING_ACTION_ARM = 1
 # param2 in VEHICLE_CMD_DO_GRIPPER
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
+
+#used as param1 in SET_SAFETY_SWITCH command
+uint8 SAFETY_SWITCH_STATE_SAFE = 0
+uint8 SAFETY_SWITCH_STATE_DANGEROUS = 1
 
 uint8 ORB_QUEUE_LENGTH = 8
 
