@@ -34,14 +34,13 @@
 #pragma once
 
 #include <px4_log.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <termios.h>
+#include <px4_platform_common/Serial.hpp>
 
 #ifdef __PX4_QURT
-#include <drivers/device/qurt/uart.h>
 #define FAR
 #endif
+
+using namespace device;
 
 class VoxlEscSerial
 {
@@ -49,21 +48,14 @@ public:
 	VoxlEscSerial();
 	virtual ~VoxlEscSerial();
 
-	int		uart_open(const char *dev, speed_t speed);
-	int		uart_set_baud(speed_t speed);
-	int		uart_close();
-	int		uart_write(FAR void *buf, size_t len);
-	int		uart_read(FAR void *buf, size_t len);
-	bool		is_open() { return _uart_fd >= 0; };
-	int		uart_get_baud() {return _speed; }
+	int			uart_open(const char *dev, uint32_t speed);
+	int			uart_set_baud(uint32_t speed);
+	int			uart_close();
+	int			uart_write(FAR void *buf, size_t len);
+	int			uart_read(FAR void *buf, size_t len);
+	bool		is_open() { return _uart.isOpen(); };
+	uint32_t	uart_get_baud() { return _uart.getBaudrate(); }
 
 private:
-	int			_uart_fd = -1;
-
-#if ! defined(__PX4_QURT)
-	struct termios		_orig_cfg;
-	struct termios		_cfg;
-#endif
-
-	int   _speed = -1;
+	Serial	_uart {};
 };
