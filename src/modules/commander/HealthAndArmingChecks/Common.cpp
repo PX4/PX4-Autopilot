@@ -284,7 +284,7 @@ bool Report::report(bool is_armed, bool force)
 
 	// send all events
 	int offset = 0;
-	events::EventType event;
+	event_s event;
 
 	for (int i = 0; i < max_num_events && offset < _next_buffer_idx; ++i) {
 		EventBufferHeader *header = (EventBufferHeader *)(_event_buffer + offset);
