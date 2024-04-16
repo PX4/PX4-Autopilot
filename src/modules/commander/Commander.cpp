@@ -1450,7 +1450,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE: {
 
-			const uint8_t set_safety_switch_state = static_cast<uint8_t>(cmd.param1);
+			const uint8_t set_safety_switch_state = static_cast<uint8_t>(cmd.param1+0.5f);
 
 			if (set_safety_switch_state == vehicle_command_s::SAFETY_SWITCH_STATE_DANGEROUS) {
 
@@ -1483,7 +1483,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				}
 
 			} else {
-				_safety.activateSafety();
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
 				/* EVENT
 				 * @description Invalid safety switch param sent via mavlink command
