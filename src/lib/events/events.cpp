@@ -45,7 +45,7 @@ static uint16_t event_sequence{events::initial_event_sequence};
 namespace events
 {
 
-void send(EventType &event)
+void send(event_s &event)
 {
 	event.timestamp = hrt_absolute_time();
 
