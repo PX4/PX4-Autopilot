@@ -36,7 +36,6 @@
 #include <px4_platform_common/getopt.h>
 
 #include "voxl_esc.hpp"
-#include "voxl_esc_serial.hpp"
 
 // future use:
 #define MODALAI_PUBLISH_ESC_STATUS	0
@@ -83,10 +82,7 @@ VoxlEsc::~VoxlEsc()
 {
 	_outputs_on = false;
 
-	if (_uart_port) {
-		_uart_port->uart_close();
-		_uart_port = nullptr;
-	}
+	_uart_port.close();
 
 	perf_free(_cycle_perf);
 	perf_free(_output_update_perf);
@@ -105,13 +101,6 @@ int VoxlEsc::init()
 	}
 
 	print_params();
-
-	_uart_port = new VoxlEscSerial();
-
-	if (!_uart_port) {
-		PX4_ERR("VOXL_ESC: Failed allocating VoxlEscSerial");
-		return -1;
-	}
 
 	//WARING: uart port initialization and device detection does not happen here
 	//because init() is called from a different thread from Run(), so fd opened in init() cannot be used in Run()
@@ -134,7 +123,7 @@ int VoxlEsc::device_init()
 	}
 
 	// Open serial port
-	if (!_uart_port->is_open()) {
+	if (!_uart_port.isOpen()) {
 		PX4_INFO("VOXL_ESC: Opening UART ESC device %s, baud rate %" PRIi32, _device, _parameters.baud_rate);
 #ifndef __PX4_QURT
 
@@ -145,12 +134,25 @@ int VoxlEsc::device_init()
 		}
 
 #endif
+		// Configure UART port
+		if (! _uart_port.setPort(_device)) {
+			PX4_ERR("Error configuring serial device on port %s", _device);
+			return -1;
+		}
 
-		if (_uart_port->uart_open(_device, _parameters.baud_rate) == PX4_OK) {
-			PX4_INFO("VOXL_ESC: Successfully opened UART ESC device");
+		if (! _uart_port.setBaudrate(_parameters.baud_rate)) {
+			PX4_ERR("Error setting baudrate to %d on %s", (int) _parameters.baud_rate, _device);
+			return -1;
+		}
 
-		} else {
-			PX4_ERR("VOXL_ESC: Failed openening device");
+		if (! _uart_port.setNonBlocking()) {
+			PX4_ERR("Error setting non-blocking mode on %s", _device);
+			return -1;
+		}
+
+		// Open the UART. If this is successful then the UART is ready to use.
+		if (! _uart_port.open()) {
+			PX4_ERR("Error opening serial device  %s", _device);
 			return -1;
 		}
 	}
@@ -175,7 +177,7 @@ int VoxlEsc::device_init()
 		Command cmd;
 		cmd.len = qc_esc_create_extended_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 
-		if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+		if (_uart_port.write(cmd.buf, cmd.len) != cmd.len) {
 			PX4_ERR("VOXL_ESC: Could not write version request packet to UART port");
 			return -1;
 		}
@@ -187,7 +189,7 @@ int VoxlEsc::device_init()
 		while ((!got_response) && (hrt_elapsed_time(&t_request) < t_timeout)) {
 			px4_usleep(100); //sleep a bit while waiting for ESC to respond
 
-			int nread = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
+			int nread = _uart_port.read(_read_buf, sizeof(_read_buf));
 
 			for (int i = 0; i < nread; i++) {
 				int16_t parse_ret = qc_esc_packet_process_char(_read_buf[i], &_fb_packet);
@@ -420,18 +422,11 @@ int VoxlEsc::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int VoxlEsc::flush_uart_rx()
-{
-	while (_uart_port->uart_read(_read_buf, sizeof(_read_buf)) > 0) {}
-
-	return 0;
-}
-
 int VoxlEsc::read_response(Command *out_cmd)
 {
 	px4_usleep(_current_cmd.resp_delay_us);
 
-	int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
+	int res = _uart_port.read(_read_buf, sizeof(_read_buf));
 
 	if (res > 0) {
 		//PX4_INFO("read %i bytes",res);
@@ -1250,7 +1245,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 					       sizeof(cmd.buf),
 					       _extended_rpm);
 
-	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+	if (_uart_port.write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("VOXL_ESC: Failed to send packet");
 		return false;
 	}
@@ -1265,7 +1260,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	 * uart_read is non-blocking and we will just parse whatever bytes came in up until this point
 	 */
 
-	int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
+	int res = _uart_port.read(_read_buf, sizeof(_read_buf));
 
 	if (res > 0) {
 		parse_response(_read_buf, res, false);
@@ -1302,7 +1297,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		// PX4_INFO("   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
 		// 		 io_data.data[0], io_data.data[1], io_data.data[2], io_data.data[3],
 		// 		 io_data.data[4], io_data.data[5], io_data.data[6], io_data.data[7]);
-		if (_uart_port->uart_write(io_data.data, io_data.len) != io_data.len) {
+		if (_uart_port.write(io_data.data, io_data.len) != io_data.len) {
 			PX4_ERR("VOXL_ESC: Failed to send modal io data to esc");
 			return false;
 		}
@@ -1422,11 +1417,11 @@ void VoxlEsc::Run()
 	if (!_outputs_on) {
 		if (_current_cmd.valid()) {
 			//PX4_INFO("sending %d commands with delay %dus",_current_cmd.repeats,_current_cmd.repeat_delay_us);
-			flush_uart_rx();
+			_uart_port.flush();
 
 			do {
 				//PX4_INFO("CMDs left %d",_current_cmd.repeats);
-				if (_uart_port->uart_write(_current_cmd.buf, _current_cmd.len) == _current_cmd.len) {
+				if (_uart_port.write(_current_cmd.buf, _current_cmd.len) == _current_cmd.len) {
 					if (_current_cmd.repeats == 0) {
 						_current_cmd.clear();
 					}
@@ -1566,7 +1561,7 @@ int VoxlEsc::print_status()
 	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
 	PX4_INFO("UART port: %s", _device);
-	PX4_INFO("UART open: %s", _uart_port->is_open() ? "yes" : "no");
+	PX4_INFO("UART open: %s", _uart_port.isOpen() ? "yes" : "no");
 
 	PX4_INFO("");
 	print_params();

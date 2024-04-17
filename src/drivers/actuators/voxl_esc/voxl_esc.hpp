@@ -51,10 +51,12 @@
 #include <uORB/topics/actuator_test.h>
 #include <uORB/topics/buffer128.h>
 
-#include "voxl_esc_serial.hpp"
+#include <px4_platform_common/Serial.hpp>
 
 #include "qc_esc_packet.h"
 #include "qc_esc_packet_types.h"
+
+using namespace device;
 
 class VoxlEsc : public ModuleBase<VoxlEsc>, public OutputModuleInterface
 {
@@ -139,7 +141,7 @@ private:
 	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, VOXL_ESC_PWM_MAX); }
 	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, VOXL_ESC_RPM_MAX); }
 
-	VoxlEscSerial		*_uart_port;
+	Serial			_uart_port{};
 
 	typedef struct {
 		int32_t		config{VOXL_ESC_UART_CONFIG};
@@ -247,10 +249,9 @@ private:
 
 	void			update_leds(vehicle_control_mode_s mode, led_control_s control);
 
-	int			read_response(Command *out_cmd);
-	int			parse_response(uint8_t *buf, uint8_t len, bool print_feedback);
-	int			flush_uart_rx();
-	int			check_for_esc_timeout();
+	int				read_response(Command *out_cmd);
+	int				parse_response(uint8_t *buf, uint8_t len, bool print_feedback);
+	int				check_for_esc_timeout();
 	void			mix_turtle_mode(uint16_t outputs[]);
 	void			handle_actuator_test();
 };
