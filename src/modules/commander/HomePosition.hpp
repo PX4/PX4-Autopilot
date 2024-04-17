@@ -45,6 +45,8 @@ static constexpr int kHomePositionGPSRequiredFixType = 2;
 static constexpr float kHomePositionGPSRequiredEPH = 5.f;
 static constexpr float kHomePositionGPSRequiredEPV = 10.f;
 static constexpr float kHomePositionGPSRequiredEVH = 1.f;
+static constexpr float kMinHomePositionChangeEPH = 1.f;
+static constexpr float kMinHomePositionChangeEPV = 1.5f;
 
 class HomePosition
 {
