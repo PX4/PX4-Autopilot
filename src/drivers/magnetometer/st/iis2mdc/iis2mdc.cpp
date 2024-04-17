@@ -52,10 +52,12 @@ IIS2MDC::~IIS2MDC()
 
 int IIS2MDC::init()
 {
+	// NOTE: single measurement mode did not work, half of the measurements were garbage
+	write_register(IIS2MDC_ADDR_CFG_REG_A, MD_CONTINUOUS | ODR_100 | COMP_TEMP_EN);
 	write_register(IIS2MDC_ADDR_CFG_REG_B, OFF_CANC | OFF_CANC_ONE_SHOT);
 	write_register(IIS2MDC_ADDR_CFG_REG_C, BDU);
 
-	_px4_mag.set_scale(100.f / 65535.f); // +/- 50 Gauss, raw signed 16 bit
+	_px4_mag.set_scale(100.f / 65535.f); // +/- 50 Gauss, 16bit
 
 	ScheduleDelayed(20_ms);
 
@@ -64,54 +66,29 @@ int IIS2MDC::init()
 
 void IIS2MDC::RunImpl()
 {
-	switch (_state) {
-	case State::Measure: {
-			auto start_time = hrt_absolute_time();
+	uint8_t status = read_register(IIS2MDC_ADDR_STATUS_REG);
 
-			write_register(IIS2MDC_ADDR_CFG_REG_A, MD_SINGLE | ODR_100 | COMP_TEMP_EN);
+	if (status & IIS2MDC_STATUS_REG_READY) {
+		SensorData data = {};
 
-			_state = State::Collect;
-			_collect_retries = 0;
-
-			auto elapsed = hrt_elapsed_time(&start_time);
-			auto dt = elapsed > 10_ms ? 0 : 10_ms - elapsed;
-			ScheduleDelayed(dt);
+		if (read_register_block(&data) != PX4_OK) {
+			PX4_DEBUG("read failed");
+			perf_count(_comms_errors);
+			ScheduleDelayed(100_ms);
 			return;
 		}
 
-	case State::Collect: {
+		publish_data(&data);
+		perf_count(_sample_count);
+		ScheduleDelayed(10_ms);
+		return;
 
-			uint8_t status = read_register(IIS2MDC_ADDR_STATUS_REG);
-
-			if (status & IIS2MDC_STATUS_REG_READY) {
-				SensorData data = {};
-
-				if (read_register_block(&data) != PX4_OK) {
-					PX4_DEBUG("read failed");
-					perf_count(_comms_errors);
-					_state = State::Measure;
-					ScheduleDelayed(100_ms);
-					return;
-				}
-
-				publish_data(&data);
-				perf_count(_sample_count);
-				_state = State::Measure;
-
-				// Immediately schedule next measurement
-				ScheduleNow();
-				return;
-
-			} else {
-				PX4_DEBUG("not ready: %u", status);
-				perf_count(_comms_errors);
-				_collect_retries++;
-				_state = _collect_retries > 3 ? State::Measure : State::Collect;
-				ScheduleDelayed(5_ms);
-				return;
-			}
-		}
-	} // end switch/case
+	} else {
+		PX4_DEBUG("not ready: %u", status);
+		perf_count(_comms_errors);
+		ScheduleDelayed(10_ms);
+		return;
+	}
 }
 
 void IIS2MDC::publish_data(SensorData* data)
@@ -121,7 +98,8 @@ void IIS2MDC::publish_data(SensorData* data)
 	int16_t z = int16_t((data->zout1 << 8) | data->zout0);
 	int16_t t = int16_t((data->tout1 << 8) | data->tout0);
 
-	float temp = float(t) / 8.f;
+	// 16 bits twos complement with a sensitivity of 8 LSB/°C. Typically, the output zero level corresponds to 25 °C.
+	float temp = float(t) / 8.f + 25.f;
 	// float temp = float((0b0000'1111'1111'1111) & t) / 8.f;
 	_px4_mag.set_temperature(temp);
 	_px4_mag.update(hrt_absolute_time(), x, y, z);

@@ -80,10 +80,6 @@ public:
 		uint8_t tout1;
 	};
 
-	enum class State {
-		Collect,
-	};
-
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
@@ -100,11 +96,8 @@ private:
 	uint8_t read_register(uint8_t reg);
 	void write_register(uint8_t reg, uint8_t value);
 
-	uint8_t _collect_retries = 0;
-
 	device::Device *_interface;
 	PX4Magnetometer _px4_mag;
-	State _state = State::Collect;
 	perf_counter_t _sample_count;
 	perf_counter_t _comms_errors;
 };
