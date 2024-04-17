@@ -114,6 +114,7 @@ private:
 	bool _single_wire_mode{false};
 	bool _swap_rx_tx_mode{false};
 	bool _inverted_mode{false};
+
 };
 
 } // namespace device

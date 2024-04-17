@@ -55,6 +55,7 @@ public:
 	virtual ~Serial();
 
 	// Open sets up the port and gets it configured based on desired configuration
+	// The port is always opened in NON BLOCKING mode.
 	bool open();
 	bool isOpen() const;
 
