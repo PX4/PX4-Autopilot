@@ -55,6 +55,7 @@ public:
 	virtual ~Serial();
 
 	// Open sets up the port and gets it configured based on desired configuration
+	// The port is always opened in NON BLOCKING mode.
 	bool open();
 	bool isOpen() const;
 
@@ -98,9 +99,6 @@ public:
 	static bool validatePort(const char *port);
 	bool setPort(const char *port);
 	const char *getPort() const;
-
-	bool getNonBlocking() const;
-	bool setNonBlocking();
 
 private:
 	// Disable copy constructors

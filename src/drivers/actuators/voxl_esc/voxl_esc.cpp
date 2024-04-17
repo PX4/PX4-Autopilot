@@ -146,11 +146,6 @@ int VoxlEsc::device_init()
 			return -1;
 		}
 
-		if (! _uart_port.setNonBlocking()) {
-			PX4_ERR("Error setting non-blocking mode on %s", _device);
-			return -1;
-		}
-
 		// Open the UART. If this is successful then the UART is ready to use.
 		if (! _uart_port.open()) {
 			PX4_ERR("Error opening serial device  %s", _device);

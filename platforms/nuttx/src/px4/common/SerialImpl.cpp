@@ -181,13 +181,7 @@ bool SerialImpl::open()
 	}
 
 	// Open the serial port
-	int flags = O_RDWR | O_NOCTTY;
-
-	if (_non_blocking_mode) {
-		flags |= O_NONBLOCK;
-	}
-
-	int serial_fd = ::open(_port, flags);
+	int serial_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (serial_fd < 0) {
 		PX4_ERR("failed to open %s err: %d", _port, errno);
@@ -482,22 +476,6 @@ bool SerialImpl::setInvertedMode(bool enable)
 #else
 	return _inverted_mode == enable;
 #endif // TIOCSINVERT
-}
-
-bool SerialImpl::getNonBlocking() const
-{
-	return _non_blocking_mode;
-}
-
-bool SerialImpl::setNonBlocking()
-{
-	if (_open) {
-		// Cannot set non-blocking mode after port has been opened
-		return false;
-	}
-
-	_non_blocking_mode = true;
-	return true;
 }
 
 } // namespace device

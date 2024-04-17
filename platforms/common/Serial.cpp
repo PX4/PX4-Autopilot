@@ -182,14 +182,4 @@ bool Serial::setPort(const char *port)
 	return _impl.setPort(port);
 }
 
-bool Serial::getNonBlocking() const
-{
-	return _impl.getNonBlocking();
-}
-
-bool Serial::setNonBlocking()
-{
-	return _impl.setNonBlocking();
-}
-
 } // namespace device

@@ -163,13 +163,7 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 		return -1;
 	}
 
-	uint32_t timeout = 500;
-
-	if (_non_blocking_mode) {
-		timeout = 100;
-	}
-
-	int ret_read = qurt_uart_read(_serial_fd, (char *) buffer, buffer_size, timeout);
+	int ret_read = qurt_uart_read(_serial_fd, (char *) buffer, buffer_size, 100);
 
 	if (ret_read < 0) {
 		PX4_DEBUG("%s read error %d", _port, ret_read);
@@ -389,22 +383,6 @@ bool SerialImpl::setInvertedMode(bool enable)
 bool SerialImpl::getInvertedMode() const
 {
 	return false;
-}
-
-bool SerialImpl::getNonBlocking() const
-{
-	return _non_blocking_mode;
-}
-
-bool SerialImpl::setNonBlocking()
-{
-	if (_open) {
-		// Cannot set non-blocking mode after port has been opened
-		return false;
-	}
-
-	_non_blocking_mode = true;
-	return true;
 }
 
 } // namespace device
