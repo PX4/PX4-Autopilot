@@ -131,7 +131,7 @@ void AdsbConflict::get_traffic_state()
 
 	if (old_conflict && _conflict_detected) {
 		old_conflict_warning_expired = (hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]) > CONFLICT_WARNING_TIMEOUT);
-
+		PX4_INFO("Old conflict detected and warning expired");
 	}
 
 	if (new_traffic && _conflict_detected && !_traffic_buffer_full) {
