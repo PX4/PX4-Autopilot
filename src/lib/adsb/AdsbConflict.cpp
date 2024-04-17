@@ -158,12 +158,15 @@ void AdsbConflict::get_traffic_state()
 
 void AdsbConflict::remove_expired_conflicts()
 {
-	for (uint8_t traffic_index = 0; traffic_index < _traffic_buffer.timestamp.size(); traffic_index++) {
+	for (uint8_t traffic_index = 0; traffic_index < _traffic_buffer.timestamp.size();) {
 		if (hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]) > TRAFFIC_CONFLICT_LIFETIME) {
 			events::send<uint32_t>(events::ID("navigator_traffic_expired"), events::Log::Notice,
 					       "Traffic Conflict {1} Expired and removed from buffer",
 					       _traffic_buffer.icao_address[traffic_index]);
 			remove_icao_address_from_conflict_list(traffic_index);
+
+		} else {
+			traffic_index++;
 		}
 	}
 }
