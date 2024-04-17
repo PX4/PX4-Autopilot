@@ -7,11 +7,11 @@ class MarkdownTablesOutput():
         result = (
 """# Parameter Reference
 
-:::note
+::: info
 This documentation was auto-generated from the source code for this PX4 version (using `make parameters_metadata`).
 :::
 
-:::tip
+::: tip
 If a listed parameter is missing from the Firmware see: [Finding/Updating Parameters](../advanced_config/parameters.md#parameter-not-in-firmware).
 :::
 
