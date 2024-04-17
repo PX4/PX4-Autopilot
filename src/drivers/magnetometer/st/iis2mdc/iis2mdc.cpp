@@ -52,9 +52,12 @@ IIS2MDC::~IIS2MDC()
 
 int IIS2MDC::init()
 {
-	// NOTE: single measurement mode did not work, half of the measurements were garbage
+	if (hrt_absolute_time() < 20_ms) {
+		px4_usleep(20_ms); // ~10ms power-on time
+	}
+
 	write_register(IIS2MDC_ADDR_CFG_REG_A, MD_CONTINUOUS | ODR_100 | COMP_TEMP_EN);
-	write_register(IIS2MDC_ADDR_CFG_REG_B, OFF_CANC | OFF_CANC_ONE_SHOT);
+	write_register(IIS2MDC_ADDR_CFG_REG_B, OFF_CANC);
 	write_register(IIS2MDC_ADDR_CFG_REG_C, BDU);
 
 	_px4_mag.set_scale(100.f / 65535.f); // +/- 50 Gauss, 16bit
@@ -71,39 +74,28 @@ void IIS2MDC::RunImpl()
 	if (status & IIS2MDC_STATUS_REG_READY) {
 		SensorData data = {};
 
-		if (read_register_block(&data) != PX4_OK) {
+		if (read_register_block(&data) == PX4_OK) {
+			int16_t x = int16_t((data.xout1 << 8) | data.xout0);
+			int16_t y = int16_t((data.yout1 << 8) | data.yout0);
+			int16_t z = int16_t((data.zout1 << 8) | data.zout0);
+			int16_t t = int16_t((data.tout1 << 8) | data.tout0);
+			// 16 bits twos complement with a sensitivity of 8 LSB/°C. Typically, the output zero level corresponds to 25 °C.
+			_px4_mag.set_temperature(float(t) / 8.f + 25.f);
+			_px4_mag.update(hrt_absolute_time(), x, y, z);
+			_px4_mag.set_error_count(perf_event_count(_comms_errors));
+			perf_count(_sample_count);
+
+		} else {
 			PX4_DEBUG("read failed");
 			perf_count(_comms_errors);
-			ScheduleDelayed(100_ms);
-			return;
 		}
-
-		publish_data(&data);
-		perf_count(_sample_count);
-		ScheduleDelayed(10_ms);
-		return;
 
 	} else {
 		PX4_DEBUG("not ready: %u", status);
 		perf_count(_comms_errors);
-		ScheduleDelayed(10_ms);
-		return;
 	}
-}
 
-void IIS2MDC::publish_data(SensorData* data)
-{
-	int16_t x = int16_t((data->xout1 << 8) | data->xout0);
-	int16_t y = int16_t((data->yout1 << 8) | data->yout0);
-	int16_t z = int16_t((data->zout1 << 8) | data->zout0);
-	int16_t t = int16_t((data->tout1 << 8) | data->tout0);
-
-	// 16 bits twos complement with a sensitivity of 8 LSB/°C. Typically, the output zero level corresponds to 25 °C.
-	float temp = float(t) / 8.f + 25.f;
-	// float temp = float((0b0000'1111'1111'1111) & t) / 8.f;
-	_px4_mag.set_temperature(temp);
-	_px4_mag.update(hrt_absolute_time(), x, y, z);
-	_px4_mag.set_error_count(perf_event_count(_comms_errors));
+	ScheduleDelayed(10_ms);
 }
 
 uint8_t IIS2MDC::read_register_block(SensorData *data)

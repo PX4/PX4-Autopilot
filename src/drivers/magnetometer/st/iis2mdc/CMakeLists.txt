@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE drivers__magnetometer__st__iis2mdc
 	MAIN iis2mdc
 	COMPILE_FLAGS
-		-DDEBUG_BUILD
+		# -DDEBUG_BUILD
 	SRCS
 		iis2mdc_i2c.cpp
 		iis2mdc_main.cpp

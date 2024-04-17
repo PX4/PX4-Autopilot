@@ -37,29 +37,24 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
 // IIS2MDC Registers
-#define IIS2MDC_ADDR_CFG_REG_A 	0x60
-#define IIS2MDC_ADDR_CFG_REG_B 	0x61
-#define IIS2MDC_ADDR_CFG_REG_C 	0x62
+#define IIS2MDC_ADDR_CFG_REG_A  0x60
+#define IIS2MDC_ADDR_CFG_REG_B  0x61
+#define IIS2MDC_ADDR_CFG_REG_C  0x62
 #define IIS2MDC_ADDR_STATUS_REG 0x67
 #define IIS2MDC_ADDR_OUTX_L_REG 0x68
-#define IIS2MDC_ADDR_WHO_AM_I  	0x4F
+#define IIS2MDC_ADDR_WHO_AM_I   0x4F
 
 // IIS2MDC Definitions
-#define IIS2MDC_WHO_AM_I 0b01000000
+#define IIS2MDC_WHO_AM_I         0b01000000
 #define IIS2MDC_STATUS_REG_READY 0b00001111
 // CFG_REG_A
-#define COMP_TEMP_EN 	(1 << 7)
-#define REBOOT	 	 	(1 << 6)
-#define SOFT_RST 	 	(1 << 5)
-#define ODR_100 	 	((1 << 3) | (1 << 2))
-#define MD_SINGLE 	 	(1 << 0)
-#define MD_CONTINUOUS 	(0 << 0)
-
+#define COMP_TEMP_EN    (1 << 7)
+#define MD_CONTINUOUS   (0 << 0)
+#define ODR_100         ((1 << 3) | (1 << 2))
 // CFG_REG_B
-#define OFF_CANC_ONE_SHOT 	(1 << 4)
-#define OFF_CANC 		  	(1 << 1)
+#define OFF_CANC        (1 << 1)
 // CFG_REG_C
-#define BDU 		 (1 << 4)
+#define BDU             (1 << 4)
 
 extern device::Device *IIS2MDC_I2C_interface(const I2CSPIDriverConfig &config);
 
@@ -89,9 +84,6 @@ public:
 	void RunImpl();
 
 private:
-	void publish_data(SensorData* data);
-
-	// Read data
 	uint8_t read_register_block(SensorData *data);
 	uint8_t read_register(uint8_t reg);
 	void write_register(uint8_t reg, uint8_t value);
