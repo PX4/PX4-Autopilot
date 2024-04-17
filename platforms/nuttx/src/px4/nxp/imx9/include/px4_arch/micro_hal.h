@@ -81,9 +81,49 @@ __BEGIN_DECLS
 #define px4_arch_gpioread(pinset)               imx9_gpio_read(pinset)
 #define px4_arch_gpiowrite(pinset, value)       imx9_gpio_write(pinset, value)
 
-// TODO: temporary hack, remove when implemented
 inline int imx9_gpio_setevent(uint32_t pinset, bool risingedge, bool fallingedge, bool event, xcpt_t func,
-			      void *arg) {return 0;}
+			      void *arg)
+{
+	int ret;
+
+	if (func == NULL) {
+		/* Request to disable IRQ */
+
+		return imx9_gpioirq_disable(pinset);
+	}
+
+	/* Set the edge configuration per request */
+
+	pinset &= ~GPIO_INTCFG_MASK;
+
+	if (risingedge & fallingedge) {
+		pinset |= GPIO_INTBOTH_EDGES;
+
+	} else if (risingedge) {
+		pinset |= GPIO_INT_RISINGEDGE;
+
+	} else if (fallingedge) {
+		pinset |= GPIO_INT_FALLINGEDGE;
+	}
+
+	/* Configure the pin */
+
+	ret = imx9_config_gpio(pinset);
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	/* Configure the pin interrupt */
+
+	ret = imx9_gpioirq_attach(pinset, func, arg);
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	return imx9_gpioirq_enable(pinset);
+}
 
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imx9_gpio_setevent(pinset,r,f,e,fp,a)
 
