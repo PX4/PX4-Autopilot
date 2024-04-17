@@ -134,6 +134,7 @@ int VoxlEsc::device_init()
 		}
 
 #endif
+
 		// Configure UART port
 		if (! _uart_port.setPort(_device)) {
 			PX4_ERR("Error configuring serial device on port %s", _device);
