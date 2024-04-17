@@ -50,7 +50,7 @@ TEST_F(AdsbConflictTest, detectTrafficConflict)
 	for (uint32_t i = 0; i < traffic_dataset_size; i++) {
 
 
-		printf("---------------%d--------------\n", i);
+		//printf("---------------%d--------------\n", i);
 
 		struct traffic_data_s traffic = traffic_dataset[i];
 
@@ -64,10 +64,10 @@ TEST_F(AdsbConflictTest, detectTrafficConflict)
 
 		adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
 
-		printf("conflict_detected %d \n", adsb_conflict._conflict_detected);
+		//printf("conflict_detected %d \n", adsb_conflict._conflict_detected);
 
-		printf("------------------------------\n");
-		printf("------------------------------\n \n");
+		//printf("------------------------------\n");
+		//printf("------------------------------\n \n");
 
 		EXPECT_TRUE(adsb_conflict._conflict_detected == traffic.in_conflict);
 	}
