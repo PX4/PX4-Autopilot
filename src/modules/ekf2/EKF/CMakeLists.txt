@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+set(EKF_LIBS)
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
 	bias_estimator.cpp
@@ -93,6 +94,7 @@ if(CONFIG_EKF2_GNSS)
 	)
 
 	add_subdirectory(yaw_estimator)
+	list(APPEND EKF_LIBS yaw_estimator)
 endif()
 
 if(CONFIG_EKF2_GNSS_YAW)
@@ -146,7 +148,7 @@ target_link_libraries(ecl_EKF
 	PRIVATE
 		geo
 		world_magnetic_model
-		yaw_estimator
+		${EKF_LIBS}
 )
 
 target_compile_options(ecl_EKF PRIVATE -fno-associative-math)
