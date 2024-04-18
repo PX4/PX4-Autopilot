@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-    Copyright (c) 2023 PX4 Development Team
+    Copyright (c) 2023-2024 PX4 Development Team
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
     are met:
@@ -37,7 +37,7 @@ import symforce
 symforce.set_epsilon_to_symbol()
 
 import symforce.symbolic as sf
-from derivation_utils import *
+from utils.derivation_utils import *
 
 def predict_opt_flow(
         terrain_vpos: sf.Scalar,
