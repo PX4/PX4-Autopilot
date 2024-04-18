@@ -10,32 +10,74 @@
 
 . ${R}etc/init.d/rc.sc_defaults
 
-# param set-default CA_AIRFRAME 7
-# param set-default CA_ROTOR_COUNT 8
+param set-default CA_AIRFRAME 13
 
-# param set-default CA_ROTOR0_PX -0.12
-# param set-default CA_ROTOR0_PY -0.12
+param set-default CA_ROTOR_COUNT 8
+param set-default CA_R_REV 255
 
-# param set-default CA_ROTOR1_PX 0.12
-# param set-default CA_ROTOR1_PY -0.12
+# Auto to be provided by Custom Airframe
+param set-default CA_METHOD 0
 
-# param set-default CA_ROTOR2_PX -0.12
-# param set-default CA_ROTOR2_PY 0.12
+# disable attitude failure detection
+param set-default FD_FAIL_P 0
+param set-default FD_FAIL_R 0
 
-# param set-default CA_ROTOR3_PX 0.12
-# param set-default CA_ROTOR3_PY 0.12
+param set-default CA_ROTOR0_PX -0.12
+param set-default CA_ROTOR0_PY -0.12
+param set-default CA_ROTOR0_KM 0.1697
+param set-default CA_ROTOR0_AX 1.0
+param set-default CA_ROTOR0_AY 0.0
+param set-default CA_ROTOR0_AZ 0.0
 
-# param set-default CA_ROTOR4_PX -0.12
-# param set-default CA_ROTOR4_PY 0.12
+param set-default CA_ROTOR1_PX 0.12
+param set-default CA_ROTOR1_PY -0.12
+param set-default CA_ROTOR1_KM 0.1697
+param set-default CA_ROTOR1_AX -1.0
+param set-default CA_ROTOR1_AY 0.0
+param set-default CA_ROTOR1_AZ 0.0
 
-# param set-default CA_ROTOR5_PX -0.12
-# param set-default CA_ROTOR5_PY -0.12
+param set-default CA_ROTOR2_PX -0.12
+param set-default CA_ROTOR2_PY 0.12
+param set-default CA_ROTOR2_KM 0.1697
+param set-default CA_ROTOR2_AX 1.0
+param set-default CA_ROTOR2_AY 0.0
+param set-default CA_ROTOR2_AZ 0.0
 
-# param set-default CA_ROTOR6_PX 0.12
-# param set-default CA_ROTOR6_PY 0.12
+param set-default CA_ROTOR3_PX 0.12
+param set-default CA_ROTOR3_PY 0.12
+param set-default CA_ROTOR3_KM 0.1697
+param set-default CA_ROTOR3_AX -1.0
+param set-default CA_ROTOR3_AY 0.0
+param set-default CA_ROTOR3_AZ 0.0
 
-# param set-default CA_ROTOR7_PX 0.12
-# param set-default CA_ROTOR7_PY -0.12
+param set-default CA_ROTOR4_PX 0.12
+param set-default CA_ROTOR4_PY -0.12
+param set-default CA_ROTOR4_KM 0.1697
+param set-default CA_ROTOR4_AX 0.0
+param set-default CA_ROTOR4_AY 1.0
+param set-default CA_ROTOR4_AZ 0.0
+
+param set-default CA_ROTOR5_PX 0.12
+param set-default CA_ROTOR5_PY 0.12
+param set-default CA_ROTOR5_KM 0.1697
+param set-default CA_ROTOR5_AX 0.0
+param set-default CA_ROTOR5_AY -1.0
+param set-default CA_ROTOR5_AZ 0.0
+
+param set-default CA_ROTOR6_PX -0.12
+param set-default CA_ROTOR6_PY -0.12
+param set-default CA_ROTOR6_KM 0.1697
+param set-default CA_ROTOR6_AX 0.0
+param set-default CA_ROTOR6_AY 1.0
+param set-default CA_ROTOR6_AZ 0.0
+
+param set-default CA_ROTOR7_PX -0.12
+param set-default CA_ROTOR7_PY 0.12
+param set-default CA_ROTOR7_KM 0.1697
+param set-default CA_ROTOR7_AX 0.0
+param set-default CA_ROTOR7_AY -1.0
+param set-default CA_ROTOR7_AZ 0.0
+
 
 param set-default PWM_AUX_TIM0 10
 param set-default PWM_AUX_TIM1 10

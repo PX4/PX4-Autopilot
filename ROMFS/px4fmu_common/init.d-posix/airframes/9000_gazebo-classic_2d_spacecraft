@@ -7,7 +7,7 @@
 # @maintainer Pedro Roque <padr@kth.se>
 #
 
-. ${R}etc/init.d/rc.sc_apps
+. ${R}etc/init.d/rc.sc_defaults
 
 param set-default CA_AIRFRAME 13
 
