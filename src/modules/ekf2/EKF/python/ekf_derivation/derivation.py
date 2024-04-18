@@ -48,7 +48,7 @@ from symforce import ops
 from symforce.values import Values
 
 import sympy as sp
-from derivation_utils import *
+from utils.derivation_utils import *
 
 # Initialize parser
 parser = argparse.ArgumentParser()
