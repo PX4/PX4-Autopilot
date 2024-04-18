@@ -133,14 +133,6 @@ void AdsbConflict::get_traffic_state()
 		old_conflict_warning_expired = (hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]) > CONFLICT_WARNING_TIMEOUT);
 	}
 
-	PX4_DEBUG("Timestamp: %lu \n",
-		  _traffic_buffer.timestamp[traffic_index]);
-	PX4_DEBUG("Time now: %lu \n", hrt_absolute_time());
-	PX4_DEBUG("Time since timestamp: %lu \n",
-		  hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]));
-	PX4_DEBUG("Old Conflict warning expired: %d \n", old_conflict_warning_expired);
-	PX4_DEBUG("--------------------\n");
-
 	if (new_traffic && _conflict_detected && !_traffic_buffer_full) {
 		add_icao_address_from_conflict_list(_transponder_report.icao_address);
 		_traffic_state = TRAFFIC_STATE::ADD_CONFLICT;
