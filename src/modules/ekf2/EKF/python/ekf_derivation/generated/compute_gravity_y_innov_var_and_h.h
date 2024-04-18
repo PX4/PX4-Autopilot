@@ -34,16 +34,16 @@ void ComputeGravityYInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
   // Input arrays
 
   // Intermediate terms (2)
-  const Scalar _tmp0 = -std::pow(state(0, 0), Scalar(2)) + std::pow(state(1, 0), Scalar(2)) +
-                       std::pow(state(2, 0), Scalar(2)) - std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp1 = -2 * state(0, 0) * state(2, 0) + 2 * state(1, 0) * state(3, 0);
+  const Scalar _tmp0 = -2 * state(0, 0) * state(3, 0) + 2 * state(1, 0) * state(2, 0);
+  const Scalar _tmp1 = -std::pow(state(0, 0), Scalar(2)) + std::pow(state(1, 0), Scalar(2)) -
+                       std::pow(state(2, 0), Scalar(2)) + std::pow(state(3, 0), Scalar(2));
 
   // Output terms (2)
   if (innov_var != nullptr) {
     Scalar& _innov_var = (*innov_var);
 
-    _innov_var = R + _tmp0 * (P(0, 0) * _tmp0 + P(2, 0) * _tmp1) +
-                 _tmp1 * (P(0, 2) * _tmp0 + P(2, 2) * _tmp1);
+    _innov_var = R + _tmp0 * (P(0, 1) * _tmp1 + P(1, 1) * _tmp0) +
+                 _tmp1 * (P(0, 0) * _tmp1 + P(1, 0) * _tmp0);
   }
 
   if (Hy != nullptr) {
@@ -51,8 +51,8 @@ void ComputeGravityYInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
 
     _hy.setZero();
 
-    _hy(0, 0) = _tmp0;
-    _hy(2, 0) = _tmp1;
+    _hy(0, 0) = _tmp1;
+    _hy(1, 0) = _tmp0;
   }
 }  // NOLINT(readability/fn_size)
 

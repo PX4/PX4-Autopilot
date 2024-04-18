@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,13 +31,12 @@
  *
  ****************************************************************************/
 
-/**
- * Magnetic declination
- *
- * @group EKF2
- * @volatile
- * @category system
- * @unit deg
- * @decimal 1
- */
-PARAM_DEFINE_FLOAT(EKF2_MAG_DECL, 0);
+__BEGIN_DECLS
+void spix_sync_channel_init(unsigned channel);
+int spix_sync_servo_set(unsigned channel, uint8_t  value);
+unsigned spix_sync_servo_get(unsigned channel);
+int spix_sync_servo_init(unsigned rate);
+void spix_sync_servo_deinit(void);
+void spix_sync_servo_arm(bool armed);
+unsigned spix_sync_timer_get_period(unsigned timer);
+__END_DECLS

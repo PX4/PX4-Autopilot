@@ -78,7 +78,7 @@ public:
 
 	void quaternionVarianceBigEnoughAfterOrientationInitialization(float quat_variance_limit = 0.00001f)
 	{
-		const matrix::Vector3f quat_variance = _ekf->getQuaternionVariance();
+		const matrix::Vector3f quat_variance = _ekf->getRotVarBody();
 		EXPECT_TRUE(quat_variance(0) > quat_variance_limit) << "quat_variance(3): " << quat_variance(0);
 		EXPECT_TRUE(quat_variance(1) > quat_variance_limit) << "quat_variance(1): " << quat_variance(1);
 		EXPECT_TRUE(quat_variance(2) > quat_variance_limit) << "quat_variance(2): " << quat_variance(2);

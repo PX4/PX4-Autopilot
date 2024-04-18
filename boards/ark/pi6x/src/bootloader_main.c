@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,27 +32,54 @@
  ****************************************************************************/
 
 /**
- * Multi-EKF IMUs
+ * @file bootloader_main.c
  *
- * Maximum number of IMUs to use for Multi-EKF. Set 0 to disable.
- * Requires SENS_IMU_MODE 0.
- *
- * @group EKF2
- * @reboot_required true
- * @min 0
- * @max 4
- */
-PARAM_DEFINE_INT32(EKF2_MULTI_IMU, 0);
+ * FMU-specific early startup code for bootloader
+*/
 
-/**
- * Multi-EKF Magnetometers.
- *
- * Maximum number of magnetometers to use for Multi-EKF. Set 0 to disable.
- * Requires SENS_MAG_MODE 0.
- *
- * @group EKF2
- * @reboot_required true
- * @min 0
- * @max 4
- */
-PARAM_DEFINE_INT32(EKF2_MULTI_MAG, 0);
+#include "board_config.h"
+#include "bl.h"
+
+#include <nuttx/config.h>
+#include <nuttx/board.h>
+#include <chip.h>
+#include <stm32_uart.h>
+#include <arch/board/board.h>
+#include "arm_internal.h"
+#include <px4_platform/gpio.h>
+#include <px4_platform_common/init.h>
+
+extern int sercon_main(int c, char **argv);
+
+__EXPORT void board_on_reset(int status) {}
+
+__EXPORT void stm32_boardinitialize(void)
+{
+	/* configure pins */
+	const uint32_t list[] = PX4_GPIO_INIT_LIST;
+
+	for (size_t gpio = 0; gpio < arraySize(list); gpio++) {
+		if (list[gpio] != 0) {
+			px4_arch_configgpio(list[gpio]);
+		}
+	}
+
+	/* configure USB interfaces */
+	stm32_usbinitialize();
+}
+
+__EXPORT int board_app_initialize(uintptr_t arg)
+{
+	return 0;
+}
+
+void board_late_initialize(void)
+{
+	sercon_main(0, NULL);
+}
+
+extern void sys_tick_handler(void);
+void board_timerhook(void)
+{
+	sys_tick_handler();
+}

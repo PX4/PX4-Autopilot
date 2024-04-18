@@ -576,7 +576,7 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 
 			// Calculate a throttle demand from the integrated total energy rate error
 			// This will be added to the total throttle demand to compensate for steady state errors
-			_throttle_integ_state = _throttle_integ_state + throttle_integ_input;
+			_throttle_integ_state = PX4_ISFINITE(throttle_integ_input) ? _throttle_integ_state + throttle_integ_input : 0.f;
 
 		} else {
 			_throttle_integ_state = 0.0f;

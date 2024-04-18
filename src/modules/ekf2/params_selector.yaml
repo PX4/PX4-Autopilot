@@ -1,0 +1,47 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_SEL_ERR_RED:
+      description:
+        short: Selector error reduce threshold
+        long: EKF2 instances have to be better than the selected by at least this
+          amount before their relative score can be reduced.
+      type: float
+      default: 0.2
+    EKF2_SEL_IMU_RAT:
+      description:
+        short: Selector angular rate threshold
+        long: EKF2 selector angular rate error threshold for comparing gyros. Angular
+          rate vector differences larger than this will result in accumulated angular
+          error.
+      type: float
+      default: 7.0
+      unit: deg/s
+    EKF2_SEL_IMU_ANG:
+      description:
+        short: Selector angular threshold
+        long: EKF2 selector maximum accumulated angular error threshold for comparing
+          gyros. Accumulated angular error larger than this will result in the sensor
+          being declared faulty.
+      type: float
+      default: 15.0
+      unit: deg
+    EKF2_SEL_IMU_ACC:
+      description:
+        short: Selector acceleration threshold
+        long: EKF2 selector acceleration error threshold for comparing accelerometers.
+          Acceleration vector differences larger than this will result in accumulated
+          velocity error.
+      type: float
+      default: 1.0
+      unit: m/s^2
+    EKF2_SEL_IMU_VEL:
+      description:
+        short: Selector angular threshold
+        long: EKF2 selector maximum accumulated velocity threshold for comparing accelerometers.
+          Accumulated velocity error larger than this will result in the sensor being
+          declared faulty.
+      type: float
+      default: 2.0
+      unit: m/s

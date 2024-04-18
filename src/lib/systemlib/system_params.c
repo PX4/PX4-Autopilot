@@ -84,20 +84,6 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 PARAM_DEFINE_INT32(SYS_HITL, 0);
 
 /**
- * Set multicopter estimator group
- *
- * Set the group of estimators used for multicopters and VTOLs
- *
- * @value 1 local_position_estimator, attitude_estimator_q (unsupported)
- * @value 2 ekf2 (recommended)
- * @value 3 Q attitude estimator (no position)
- *
- * @reboot_required true
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
-
-/**
  * Enable auto start of rate gyro thermal calibration at the next power up.
  *
  * 0 : Set to 0 to do nothing

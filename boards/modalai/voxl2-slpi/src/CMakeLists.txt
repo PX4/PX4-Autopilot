@@ -46,8 +46,8 @@ add_library(drivers_board
 # Add custom drivers for SLPI
 add_subdirectory(${PX4_BOARD_DIR}/src/drivers/rc_controller)
 add_subdirectory(${PX4_BOARD_DIR}/src/drivers/mavlink_rc_in)
-# add_subdirectory(${PX4_BOARD_DIR}/src/drivers/spektrum_rc)
+add_subdirectory(${PX4_BOARD_DIR}/src/drivers/spektrum_rc)
 add_subdirectory(${PX4_BOARD_DIR}/src/drivers/ghst_rc)
 add_subdirectory(${PX4_BOARD_DIR}/src/drivers/dsp_hitl)
-# add_subdirectory(${PX4_BOARD_DIR}/src/drivers/dsp_sbus)
+add_subdirectory(${PX4_BOARD_DIR}/src/drivers/dsp_sbus)
 add_subdirectory(${PX4_BOARD_DIR}/src/drivers/elrs_led)

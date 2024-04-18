@@ -181,7 +181,7 @@ bool SerialImpl::open()
 	}
 
 	// Open the serial port
-	int serial_fd = ::open(_port, O_RDWR | O_NOCTTY);
+	int serial_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (serial_fd < 0) {
 		PX4_ERR("failed to open %s err: %d", _port, errno);

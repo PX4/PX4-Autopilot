@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,67 @@
  *
  ****************************************************************************/
 
-/**
- * Selector error reduce threshold
- *
- * EKF2 instances have to be better than the selected by at least this amount before their relative score can be reduced.
- *
- * @group EKF2
- */
-PARAM_DEFINE_FLOAT(EKF2_SEL_ERR_RED, 0.2f);
+#include "mmc5983ma.h"
+#include <drivers/device/i2c.h>
 
-/**
- * Selector angular rate threshold
- *
- * EKF2 selector angular rate error threshold for comparing gyros. Angular rate vector differences larger than this will result in accumulated angular error.
- *
- * @group EKF2
- * @unit deg/s
- */
-PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_RAT, 7.0f);
+class MMC5983MA_I2C : public device::I2C
+{
+public:
+	MMC5983MA_I2C(const I2CSPIDriverConfig &config);
+	virtual ~MMC5983MA_I2C() = default;
 
-/**
- * Selector angular threshold.
- *
- * EKF2 selector maximum accumulated angular error threshold for comparing gyros. Accumulated angular error larger than this will result in the sensor being declared faulty.
- *
- * @group EKF2
- * @unit deg
- */
-PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_ANG, 15.0f);
+	virtual int read(unsigned address, void *data, unsigned count) override;
+	virtual int write(unsigned address, void *data, unsigned count) override;
 
-/**
- * Selector acceleration threshold
- *
- * EKF2 selector acceleration error threshold for comparing accelerometers. Acceleration vector differences larger than this will result in accumulated velocity error.
- *
- * @group EKF2
- * @unit m/s^2
- */
-PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_ACC, 1.0f);
+protected:
+	virtual int probe();
+};
 
-/**
- * Selector angular threshold.
- *
- * EKF2 selector maximum accumulated velocity threshold for comparing accelerometers. Accumulated velocity error larger than this will result in the sensor being declared faulty.
- *
- * @group EKF2
- * @unit m/s
- */
-PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_VEL, 2.0f);
+MMC5983MA_I2C::MMC5983MA_I2C(const I2CSPIDriverConfig &config) :
+	I2C(config)
+{
+}
+
+int MMC5983MA_I2C::probe()
+{
+	uint8_t data = 0;
+
+	if (read(MMC5983MA_ADDR_PRODUCT_ID, &data, 1)) {
+		DEVICE_DEBUG("read_reg fail");
+		return -EIO;
+	}
+
+	if (data != MMC5983MA_PRODUCT_ID) {
+		DEVICE_DEBUG("MMC5983MA bad ID: %02x", data);
+		return -EIO;
+	}
+
+	_retries = 1;
+
+	return OK;
+}
+
+int MMC5983MA_I2C::read(unsigned address, void *data, unsigned count)
+{
+	uint8_t cmd = address;
+	return transfer(&cmd, 1, (uint8_t *)data, count);
+}
+
+int MMC5983MA_I2C::write(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
+	}
+
+	buf[0] = address;
+	memcpy(&buf[1], data, count);
+
+	return transfer(&buf[0], count + 1, nullptr, 0);
+}
+
+device::Device *MMC5983MA_I2C_interface(const I2CSPIDriverConfig &config)
+{
+	return new MMC5983MA_I2C(config);
+}

@@ -62,13 +62,6 @@ param select /data/px4/param/parameters
 # Load in all of the parameters that have been saved in the file
 param load
 
-# Start logging and use timestamps for log files when possible.
-# Add the "-e" option to start logging immediately. Default is
-# to log only when armed. Caution must be used with the "-e" option
-# because if power is removed without stopping the logger gracefully then
-# the log file may be corrupted.
-logger start -t
-
 # IMU (accelerometer / gyroscope)
 if [ "$PLATFORM" == "M0104" ]; then
     /bin/echo "Starting IMU driver with rotation 12"
@@ -211,10 +204,12 @@ dataman start
 navigator start
 
 # This bridge allows raw data packets to be sent over UART to the ESC
-voxl2_io_bridge start
+# voxl2_io_bridge start
 
-# Start microdds_client for ros2 offboard messages from agent over localhost
-microdds_client start -t udp -h 127.0.0.1 -p 8888
+# Start uxrce_dds_client for ros2 offboard messages from agent over localhost
+uxrce_dds_client start -t udp -h 127.0.0.1 -p 8888
+
+voxl_save_cal_params start
 
 # On M0052 there is only one IMU. So, PX4 needs to
 # publish IMU samples externally for VIO to use.
@@ -234,6 +229,14 @@ mavlink stream -u 14556 -s SCALED_PRESSURE -r 10
 
 # start the slow normal mode for voxl-mavlink-server to forward to GCS
 mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
+
+# Start logging and use timestamps for log files when possible.
+# Add the "-e" option to start logging immediately. Default is
+# to log only when armed. Caution must be used with the "-e" option
+# because if power is removed without stopping the logger gracefully then
+# the log file may be corrupted. Rather than using "-e" option it's better
+# to use the SDLOG_MODE to do that.
+logger start -t -b 256
 
 mavlink boot_complete
 

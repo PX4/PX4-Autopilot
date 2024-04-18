@@ -163,7 +163,7 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 		return -1;
 	}
 
-	int ret_read = qurt_uart_read(_serial_fd, (char *) buffer, buffer_size, 500);
+	int ret_read = qurt_uart_read(_serial_fd, (char *) buffer, buffer_size, 100);
 
 	if (ret_read < 0) {
 		PX4_DEBUG("%s read error %d", _port, ret_read);

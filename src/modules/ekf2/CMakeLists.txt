@@ -188,7 +188,6 @@ if(CONFIG_EKF2_MAGNETOMETER)
 		EKF/mag_3d_control.cpp
 		EKF/mag_control.cpp
 		EKF/mag_fusion.cpp
-		EKF/mag_heading_control.cpp
 	)
 endif()
 
@@ -242,6 +241,12 @@ px4_add_module(
 		EKF2Selector.hpp
 
 		${EKF_GENERATED_FILES}
+
+	MODULE_CONFIG
+		module.yaml
+		params_multi.yaml
+		params_volatile.yaml
+		params_selector.yaml
 
 	DEPENDS
 		geo

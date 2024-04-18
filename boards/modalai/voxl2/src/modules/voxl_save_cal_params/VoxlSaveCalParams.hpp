@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,37 +33,41 @@
 
 #pragma once
 
-#include <px4_log.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <termios.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/parameter_set_value_request.h>
 
-#ifdef __PX4_QURT
-#include <drivers/device/qurt/uart.h>
-#define FAR
-#endif
+using namespace time_literals;
 
-class VoxlEscSerial
+class VoxlSaveCalParams : public ModuleBase<VoxlSaveCalParams>, public ModuleParams,
+	public px4::WorkItem
 {
 public:
-	VoxlEscSerial();
-	virtual ~VoxlEscSerial();
+	VoxlSaveCalParams();
+	~VoxlSaveCalParams() = default;
 
-	int		uart_open(const char *dev, speed_t speed);
-	int		uart_set_baud(speed_t speed);
-	int		uart_close();
-	int		uart_write(FAR void *buf, size_t len);
-	int		uart_read(FAR void *buf, size_t len);
-	bool		is_open() { return _uart_fd >= 0; };
-	int		uart_get_baud() {return _speed; }
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	bool init();
 
 private:
-	int			_uart_fd = -1;
+	void Run() override;
 
-#if ! defined(__PX4_QURT)
-	struct termios		_orig_cfg;
-	struct termios		_cfg;
-#endif
+	void save_calibration_parameter_to_file(const char *name, param_type_t type, param_value_u value);
 
-	int   _speed = -1;
+	uORB::SubscriptionCallbackWorkItem _parameter_primary_set_value_request_sub{this, ORB_ID(parameter_primary_set_value_request)};
 };

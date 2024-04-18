@@ -1551,8 +1551,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_launchDetector.forceSetFlyState();
 		}
 
-		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH
-		    && _param_fw_laun_detcn_on.get()) {
+		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			_launch_detected = true;
 			_launch_global_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
@@ -1577,8 +1576,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		}
 
 		/* Set control values depending on the detection state */
-		if (_launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH
-		    && _param_fw_laun_detcn_on.get()) {
+		if (_launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
 			/* Launch has been detected, hence we have to control the plane. */
 
 			float target_airspeed = adapt_airspeed_setpoint(control_interval, takeoff_airspeed, adjusted_min_airspeed, ground_speed,
@@ -1609,7 +1607,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 
 			} else {
-				_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
+				_att_sp.thrust_body[0] = get_tecs_thrust();
 			}
 
 			_att_sp.pitch_body = get_tecs_pitch();

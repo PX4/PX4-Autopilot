@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# transision from params file to flash-based params (2022-08)
+if [ -f $PARAM_FILE ]
+then
+	param load $PARAM_FILE
+	param save
+	# create a backup
+	mv $PARAM_FILE ${PARAM_FILE}.bak
+	reboot
+fi
+
+param set-default SENS_EN_INA226 1
+
+# TODO: Set params to start UXRCE DDS on Telem2
+
+# TODO: Start Mavlink on USB by default
+
+# TODO: Tune the following parameters
+param set-default SENS_EN_THERMAL 1
+param set-default SENS_IMU_TEMP 10.0
+#param set-default SENS_IMU_TEMP_FF 0.0
+#param set-default SENS_IMU_TEMP_I 0.025
+#param set-default SENS_IMU_TEMP_P 1.0
+
+if ver hwtypecmp ARKPI6X000
+then
+	# TODO: Add the correct sensor ID
+	param set-default SENS_TEMP_ID 2490378
+fi
+
+param set-default EKF2_BARO_DELAY 13
+param set-default EKF2_BARO_NOISE 0.9
+param set-default EKF2_HGT_REF 2
+param set-default EKF2_MAG_DELAY 100
+param set-default EKF2_MAG_NOISE 0.06
+param set-default EKF2_MULTI_IMU 2
+param set-default EKF2_OF_CTRL 1
+param set-default EKF2_OF_DELAY 48
+param set-default EKF2_OF_N_MIN 0.05
+param set-default EKF2_RNG_A_HMAX 25
+param set-default EKF2_RNG_DELAY 48
+param set-default EKF2_RNG_NOISE 0.03
+param set-default EKF2_RNG_QLTY_T 0.1
+param set-default EKF2_RNG_SFE 0.03
+
+param set-default SENS_FLOW_RATE 150
