@@ -281,12 +281,6 @@ void Tailsitter::fill_actuator_outputs()
 
 		_thrust_setpoint_0->xyz[2] = -_vehicle_thrust_setpoint_virtual_fw->xyz[0];
 
-		// for the short period after switching to FW where there is no thrust published yet from the FW controller,
-		// keep publishing the last MC thrust to keep the motors running
-		if (hrt_elapsed_time(&_trans_finished_ts) < 50_ms) {
-			_thrust_setpoint_0->xyz[2] = _last_thr_in_mc;
-		}
-
 		/* allow differential thrust if enabled */
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
 			_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0] * _param_vt_fw_difthr_s_y.get();
@@ -298,6 +292,15 @@ void Tailsitter::fill_actuator_outputs()
 
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::ROLL_BIT)) {
 			_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * _param_vt_fw_difthr_s_r.get();
+		}
+
+		// for the short period after switching to FW where there is no thrust published yet from the FW controller,
+		// keep publishing the last MC thrust to keep the motors running
+		if (hrt_elapsed_time(&_trans_finished_ts) < 50_ms) {
+			_thrust_setpoint_0->xyz[2] = _last_thr_in_mc;
+			_torque_setpoint_0->xyz[0] = 0.f;
+			_torque_setpoint_0->xyz[1] = 0.f;
+			_torque_setpoint_0->xyz[2] = 0.f;
 		}
 
 	} else {
