@@ -301,11 +301,17 @@ void Tailsitter::fill_actuator_outputs()
 		}
 
 	} else {
+		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
+
+		// for the short period after starting the backtransition where there is no thrust published yet from the MC controller,
+		// keep publishing the last FW thrust to keep the motors running
+		if (_vtol_mode == vtol_mode::TRANSITION_BACK && _time_since_trans_start < 0.05f) {
+			_thrust_setpoint_0->xyz[2] = -_last_thr_in_fw_mode;
+		}
+
 		_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_mc->xyz[0];
 		_torque_setpoint_0->xyz[1] = _vehicle_torque_setpoint_virtual_mc->xyz[1];
 		_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_mc->xyz[2];
-
-		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 	}
 
 	// Control surfaces
