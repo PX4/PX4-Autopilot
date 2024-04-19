@@ -238,7 +238,7 @@ void Tailsitter::update_transition_state()
 void Tailsitter::waiting_on_tecs()
 {
 	// copy the last trust value from the front transition
-	_v_att_sp->thrust_body[0] = _thrust_transition;
+	_v_att_sp->thrust_body[0] = -_last_thr_in_mc;
 }
 
 void Tailsitter::update_fw_state()
@@ -335,4 +335,10 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 	}
 
 	return transition_to_fw;
+}
+
+void Tailsitter::blendThrottleAfterFrontTransition(float scale)
+{
+	// note: MC throttle is negative (as in negative z), while FW throttle is positive (positive x)
+	_v_att_sp->thrust_body[0] = scale * _v_att_sp->thrust_body[0] + (1.f - scale) * (-_last_thr_in_mc);
 }
