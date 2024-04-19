@@ -585,33 +585,36 @@ void Ekf::updateDeadReckoningStatus()
 
 void Ekf::updateHorizontalDeadReckoningstatus()
 {
-	const bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.aux_gpos)
-				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
-				      || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max));
+	// velocity or position aiding
+	const bool vel_pos_aiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.aux_gpos)
+				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max) || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max));
 
-	bool optFlowAiding = false;
+	// optical flow
+	bool opt_flow_aiding = false;
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	optFlowAiding = _control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max);
+	opt_flow_aiding = _control_status.flags.opt_flow
+			  && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	bool airDataAiding = false;
+	// air data
+	bool air_data_aiding = false;
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	airDataAiding = _control_status.flags.wind &&
-				   isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max) &&
-				   isRecent(_aid_src_sideslip.time_last_fuse, _params.no_aid_timeout_max);
-
-	_control_status.flags.wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
-#else
-	_control_status.flags.wind_dead_reckoning = false;
+	air_data_aiding = _control_status.flags.wind && _control_status.flags.in_air
+			  && _control_status.flags.fuse_aspd && isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max)
+			  && _control_status.flags.fuse_beta && isRecent(_aid_src_sideslip.time_last_fuse, _params.no_aid_timeout_max);
 #endif // CONFIG_EKF2_AIRSPEED
 
-	_control_status.flags.inertial_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	air_data_aiding |= _control_status.flags.wind && _control_status.flags.in_air
+			   && isRecent(_aid_src_drag.time_last_fuse, _params.no_aid_timeout_max);
+#endif // CONFIG_EKF2_DRAG_FUSION
+
+	_control_status.flags.inertial_dead_reckoning = !vel_pos_aiding && !opt_flow_aiding && !air_data_aiding;
+	_control_status.flags.wind_dead_reckoning     = !vel_pos_aiding && !opt_flow_aiding &&  air_data_aiding;
 
 	if (!_control_status.flags.inertial_dead_reckoning) {
-		if (_time_delayed_us > _params.no_aid_timeout_max) {
-			_time_last_horizontal_aiding = _time_delayed_us - _params.no_aid_timeout_max;
-		}
+		_time_last_horizontal_aiding = _time_delayed_us;
 	}
 
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
