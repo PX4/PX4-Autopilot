@@ -9,17 +9,18 @@
 ekf2 start &
 
 # Start MicroDDS Client
-uxrce_dds_client start -t udp -h 192.168.0.1 -n spacebot2
+# uxrce_dds_client start -t udp -h 192.168.0.1 -n spacebot2
+# uxrce_dds_client start -t udp -p 8888
 
 #
 # Start Control Allocator
 #
-# control_allocator start
+control_allocator start
 
 #
 # Start Multicopter Rate Controller.
 #
-# sc_rate_control start
+sc_rate_control start
 
 # Start Space Robot Thruster Controller
 sc_thruster_controller start

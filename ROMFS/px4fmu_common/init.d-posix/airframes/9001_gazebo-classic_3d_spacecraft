@@ -7,24 +7,29 @@
 # @maintainer Pedro Roque <padr@kth.se>
 #
 
-. ${R}etc/init.d/rc.sc_apps
+. ${R}etc/init.d/rc.sc_defaults
 
-param set-default CA_AIRFRAME 0
+param set-default CA_AIRFRAME 13
 
 param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 255
 
+# Auto to be provided by Custom Airframe
+param set-default CA_METHOD 0
+
+# disable attitude failure detection
+param set-default FD_FAIL_P 0
+param set-default FD_FAIL_R 0
+
 param set-default CA_ROTOR0_PX 0.14435
 param set-default CA_ROTOR0_PY -0.14435
-param set-default CA_ROTOR0_PZ -0.14435
-param set-default CA_ROTOR0_KM 0.05 # CCW
+param set-default CA_ROTOR0_KM 0.01697
 param set-default CA_ROTOR0_AX -0.788675
 param set-default CA_ROTOR0_AY -0.211325
 param set-default CA_ROTOR0_AZ -0.57735
 
 param set-default CA_ROTOR1_PX -0.14435
 param set-default CA_ROTOR1_PY -0.14435
-param set-default CA_ROTOR1_PZ -0.14435
 param set-default CA_ROTOR1_KM 0.05
 param set-default CA_ROTOR1_AX 0.211325
 param set-default CA_ROTOR1_AY -0.788675
@@ -32,7 +37,6 @@ param set-default CA_ROTOR1_AZ 0.57735
 
 param set-default CA_ROTOR2_PX 0.14435
 param set-default CA_ROTOR2_PY 0.14435
-param set-default CA_ROTOR2_PZ -0.14435
 param set-default CA_ROTOR2_KM 0.05
 param set-default CA_ROTOR2_AX -0.211325
 param set-default CA_ROTOR2_AY 0.788675
@@ -40,7 +44,6 @@ param set-default CA_ROTOR2_AZ 0.57735
 
 param set-default CA_ROTOR3_PX -0.14435
 param set-default CA_ROTOR3_PY 0.14435
-param set-default CA_ROTOR3_PZ -0.14435
 param set-default CA_ROTOR3_KM 0.05
 param set-default CA_ROTOR3_AX 0.788675
 param set-default CA_ROTOR3_AY 0.211325
@@ -48,7 +51,6 @@ param set-default CA_ROTOR3_AZ -0.57735
 
 param set-default CA_ROTOR4_PX 0.14435
 param set-default CA_ROTOR4_PY -0.14435
-param set-default CA_ROTOR4_PZ 0.14435
 param set-default CA_ROTOR4_KM 0.05
 param set-default CA_ROTOR4_AX 0.788675
 param set-default CA_ROTOR4_AY 0.211325
@@ -56,7 +58,6 @@ param set-default CA_ROTOR4_AZ -0.57735
 
 param set-default CA_ROTOR5_PX -0.14435
 param set-default CA_ROTOR5_PY -0.14435
-param set-default CA_ROTOR5_PZ 0.14435
 param set-default CA_ROTOR5_KM 0.05
 param set-default CA_ROTOR5_AX -0.211325
 param set-default CA_ROTOR5_AY 0.788675
@@ -64,7 +65,6 @@ param set-default CA_ROTOR5_AZ 0.57735
 
 param set-default CA_ROTOR6_PX 0.14435
 param set-default CA_ROTOR6_PY 0.14435
-param set-default CA_ROTOR6_PZ 0.14435
 param set-default CA_ROTOR6_KM 0.05
 param set-default CA_ROTOR6_AX 0.211325
 param set-default CA_ROTOR6_AY -0.788675
@@ -72,7 +72,6 @@ param set-default CA_ROTOR6_AZ 0.57735
 
 param set-default CA_ROTOR7_PX -0.14435
 param set-default CA_ROTOR7_PY 0.14435
-param set-default CA_ROTOR7_PZ 0.14435
 param set-default CA_ROTOR7_KM 0.05
 param set-default CA_ROTOR7_AX -0.788675
 param set-default CA_ROTOR7_AY -0.211325
@@ -87,10 +86,4 @@ param set-default PWM_MAIN_FUNC6 106
 param set-default PWM_MAIN_FUNC7 107
 param set-default PWM_MAIN_FUNC8 108
 
-# disable MC desaturation which improves attitude tracking
-param set-default CA_METHOD 0
-
-# disable attitude failure detection
-param set-default FD_FAIL_P 0
-param set-default FD_FAIL_R 0
 

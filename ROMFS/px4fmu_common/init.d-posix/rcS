@@ -224,6 +224,7 @@ done
 
 if [ -e "$autostart_file" ]
 then
+	echo "INFO  [init] using autostart file: $autostart_file"
 	. "$autostart_file"
 
 elif [ ! -e "$autostart_file" ] && [ "$SYS_AUTOSTART" -ne "0" ]
