@@ -225,6 +225,11 @@ void Tailsitter::update_transition_state()
 
 	_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
 
+	if (_vtol_mode == vtol_mode::TRANSITION_BACK) {
+		const float progress = math::constrain(_time_since_trans_start / B_TRANS_THRUST_BLENDING_DURATION, 0.f, 1.f);
+		blendThrottleBeginningBackTransition(progress);
+	}
+
 	_v_att_sp->timestamp = hrt_absolute_time();
 
 	const Eulerf euler_sp(_q_trans_sp);
@@ -350,4 +355,9 @@ void Tailsitter::blendThrottleAfterFrontTransition(float scale)
 {
 	// note: MC throttle is negative (as in negative z), while FW throttle is positive (positive x)
 	_v_att_sp->thrust_body[0] = scale * _v_att_sp->thrust_body[0] + (1.f - scale) * (-_last_thr_in_mc);
+}
+
+void Tailsitter::blendThrottleBeginningBackTransition(float scale)
+{
+	_v_att_sp->thrust_body[2] = scale * _v_att_sp->thrust_body[2] + (1.f - scale) * (-_last_thr_in_fw_mode);
 }
