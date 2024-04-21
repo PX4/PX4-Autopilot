@@ -67,6 +67,10 @@ void Tailsitter::update_vtol_state()
 
 	if (_vtol_vehicle_status->fixed_wing_system_failure) {
 		// Failsafe event, switch to MC mode immediately
+		if (_vtol_mode != vtol_mode::MC_MODE) {
+			_transition_start_timestamp = hrt_absolute_time();
+		}
+
 		_vtol_mode = vtol_mode::MC_MODE;
 
 	} else if (!_attc->is_fixed_wing_requested()) {
@@ -314,7 +318,7 @@ void Tailsitter::fill_actuator_outputs()
 
 		// for the short period after starting the backtransition where there is no thrust published yet from the MC controller,
 		// keep publishing the last FW thrust to keep the motors running
-		if (_vtol_mode == vtol_mode::TRANSITION_BACK && _time_since_trans_start < 0.05f) {
+		if (_vtol_mode != vtol_mode::TRANSITION_FRONT_P1 && hrt_elapsed_time(&_transition_start_timestamp) < 50_ms) {
 			_thrust_setpoint_0->xyz[2] = -_last_thr_in_fw_mode;
 		}
 
