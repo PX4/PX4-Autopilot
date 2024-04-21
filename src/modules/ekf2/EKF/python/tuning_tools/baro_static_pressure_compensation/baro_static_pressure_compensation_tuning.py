@@ -44,7 +44,7 @@ from pyulog.px4 import PX4ULog
 import numpy as np
 import quaternion
 from scipy import optimize
-from scipy.signal import detrend
+from scipy.signal import sosfilt, butter
 
 def getAllData(logfile):
     log = ULog(logfile)
@@ -59,9 +59,6 @@ def getAllData(logfile):
     baro = getData(log, 'vehicle_air_data', 'baro_alt_meter')
     t_baro = ms2s(getData(log, 'vehicle_air_data', 'timestamp'))
 
-    baro_bias = getData(log, 'estimator_baro_bias', 'bias')
-    t_baro_bias = ms2s(getData(log, 'estimator_baro_bias', 'timestamp'))
-
     q = np.matrix([getData(log, 'vehicle_attitude', 'q[0]'),
               getData(log, 'vehicle_attitude', 'q[1]'),
               getData(log, 'vehicle_attitude', 'q[2]'),
@@ -71,18 +68,17 @@ def getAllData(logfile):
     gnss_h = getData(log, 'vehicle_gps_position', 'altitude_msl_m')
     t_gnss = ms2s(getData(log, 'vehicle_gps_position', 'timestamp'))
 
-    (t_aligned, v_body_aligned, baro_aligned, v_local_z_aligned, gnss_h_aligned, baro_bias_aligned) = alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_h, t_baro_bias, baro_bias)
+    (t_aligned, v_body_aligned, baro_aligned, v_local_z_aligned, gnss_h_aligned) = alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_h)
 
     t_aligned -= t_aligned[0]
 
-    return (t_aligned, v_body_aligned, baro_aligned, v_local_z_aligned, gnss_h_aligned, baro_bias_aligned)
+    return (t_aligned, v_body_aligned, baro_aligned, v_local_z_aligned, gnss_h_aligned)
 
-def alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_h, t_baro_bias, baro_bias):
+def alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_h):
     #TODO: use resample?
     len_q = len(t_q)
     len_l = len(t_local)
     len_g = len(t_gnss)
-    len_bb = len(t_baro_bias)
     i_q = 0
     i_l = 0
     i_g = 0
@@ -91,7 +87,6 @@ def alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_
     baro_aligned = []
     gnss_h_aligned = []
     v_local_z_aligned = []
-    baro_bias_aligned = []
     t_aligned = []
 
     for i_b in range(len(t_baro)):
@@ -102,8 +97,6 @@ def alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_
             i_q += 1
         while t_gnss[i_g] < t and i_g < len_g-1:
             i_g += 1
-        while t_baro_bias[i_bb] < t and i_bb < len_bb-1:
-            i_bb += 1
 
         # Only use in air data
         if dist_bottom[i_l] < 1.0:
@@ -118,10 +111,9 @@ def alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_
         baro_aligned = np.append(baro_aligned, baro[i_b])
         v_local_z_aligned = np.append(v_local_z_aligned, v_local[2, i_l])
         gnss_h_aligned = np.append(gnss_h_aligned, gnss_h[i_g])
-        baro_bias_aligned = np.append(baro_bias_aligned, baro_bias[i_bb])
         t_aligned.append(t)
 
-    return (t_aligned, v_body_aligned, baro_aligned, v_local_z_aligned, gnss_h_aligned, baro_bias_aligned)
+    return (t_aligned, v_body_aligned, baro_aligned, v_local_z_aligned, gnss_h_aligned)
 
 def getData(log, topic_name, variable_name, instance=0):
     variable_data = np.array([])
@@ -159,15 +151,19 @@ def baroCorrection(x, v_body):
     return correction
 
 def run(logfile):
-    (t, v_body, baro, v_local_z, gnss_h, baro_bias) = getAllData(logfile)
+    (t, v_body, baro, v_local_z, gnss_h) = getAllData(logfile)
 
     # x[0]: pcoef_xn / g
     # x[1]: pcoef_xp / g
     # x[2]: pcoef_yn / g
     # x[3]: pcoef_yp / g
     # x[4]: pcoef_z / g
-    baro -= baro_bias
-    baro_error = detrend(gnss_h - baro)
+    baro_error = (gnss_h - baro)
+
+    # Remove low ferquency part of the signal as we're only interested in the short-term errors
+    baro_error -= baro_error[0]
+    sos = butter(4, 0.01, 'hp', fs=1/(t[1]-t[0]), output='sos')
+    baro_error = sosfilt(sos, baro_error)
 
     J = lambda x: np.sum(np.power(baro_error - baroCorrection(x, v_body), 2.0)) # cost function
 

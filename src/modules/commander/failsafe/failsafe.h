@@ -141,6 +141,12 @@ private:
 		Land_mode = 5
 	};
 
+	enum class command_after_remaining_flight_time_low : int32_t {
+		None = 0,
+		Warning = 1,
+		Return_mode = 3
+	};
+
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);
@@ -150,6 +156,7 @@ private:
 	static ActionOptions fromQuadchuteActParam(int param_value);
 	static Action fromOffboardLossActParam(int param_value, uint8_t &user_intended_mode);
 	static ActionOptions fromHighWindLimitActParam(int param_value);
+	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};
@@ -182,7 +189,8 @@ private:
 					(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
-					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act
+					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act,
+					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act
 				       );
 
 };

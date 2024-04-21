@@ -100,6 +100,11 @@ bool EkfWrapper::isIntendingBetaFusion() const
 	return _ekf->control_status_flags().fuse_beta;
 }
 
+bool EkfWrapper::isIntendingAirspeedFusion() const
+{
+	return _ekf->control_status_flags().fuse_aspd;
+}
+
 void EkfWrapper::enableGpsFusion()
 {
 	_ekf_params->gnss_ctrl |= static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL);
@@ -308,4 +313,14 @@ void EkfWrapper::setDragFusionParameters(const float &bcoef_x, const float &bcoe
 float EkfWrapper::getMagHeadingNoise() const
 {
 	return _ekf_params->mag_heading_noise;
+}
+
+void EkfWrapper::enableGyroBiasEstimation()
+{
+	_ekf_params->imu_ctrl |= static_cast<int32_t>(ImuCtrl::GyroBias);
+}
+
+void EkfWrapper::disableGyroBiasEstimation()
+{
+	_ekf_params->imu_ctrl &= ~static_cast<int32_t>(ImuCtrl::GyroBias);
 }

@@ -156,7 +156,23 @@ add_custom_target(parameters_header DEPENDS px4_parameters.hpp)
 
 set(SRCS)
 
-list(APPEND SRCS parameters.cpp atomic_transaction.cpp autosave.cpp)
+list(APPEND SRCS
+	parameters.cpp 
+	atomic_transaction.cpp
+	autosave.cpp
+)
+
+if(CONFIG_PARAM_PRIMARY)
+list(APPEND SRCS
+	parameters_primary.cpp
+)
+endif()
+
+if(CONFIG_PARAM_REMOTE)
+list(APPEND SRCS
+	parameters_remote.cpp
+)
+endif()
 
 if(BUILD_TESTING)
 	list(APPEND SRCS param_translation_unit_tests.cpp)

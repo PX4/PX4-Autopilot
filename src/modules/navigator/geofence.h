@@ -49,6 +49,7 @@
 #include <lib/geo/geo.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/geofence_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
@@ -171,7 +172,7 @@ private:
 	mission_stats_entry_s _stats;
 	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
-	DatamanCache _dataman_cache{"geofence_dm_cache_miss", 4};
+	DatamanCache _dataman_cache{"geofence_dm_cache_miss", 0};
 	DatamanClient	&_dataman_client = _dataman_cache.client();
 
 	float _altitude_min{0.0f};
@@ -184,6 +185,8 @@ private:
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
+
+	uORB::Publication<geofence_status_s> _geofence_status_pub{ORB_ID(geofence_status)};
 
 	/**
 	 * implementation of updateFence()

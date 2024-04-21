@@ -196,7 +196,7 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
 
-/* Define Battery 1 g Divider and A per V. */
+/* Define Battery Voltage Divider and A per V */
 #define BOARD_BATTERY_V_DIV         (13.653333333f)
 #define BOARD_BATTERY_A_PER_V       (36.367515152f)
 

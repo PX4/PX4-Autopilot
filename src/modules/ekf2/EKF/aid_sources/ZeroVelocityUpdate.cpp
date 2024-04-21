@@ -66,7 +66,7 @@ bool ZeroVelocityUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delaye
 
 			for (unsigned i = 0; i < 3; i++) {
 				const float innovation = ekf.state().vel(i) - vel_obs(i);
-				ekf.fuseVelPosHeight(innovation, innov_var(i), State::vel.idx + i);
+				ekf.fuseDirectStateMeasurement(innovation, innov_var(i), obs_var, State::vel.idx + i);
 			}
 
 			_time_last_zero_velocity_fuse = imu_delayed.time_us;

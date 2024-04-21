@@ -45,13 +45,12 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 	resetEstimatorAidStatus(aid_src);
 
-	const bool wmm_updated = (_wmm_gps_time_last_set > aid_src.time_last_fuse);
+	const bool wmm_updated = (_wmm_gps_time_last_set >= aid_src.time_last_fuse); // WMM update can occur on the last epoch, just after mag fusion
 
 	// determine if we should use mag fusion
 	bool continuing_conditions_passing = (_params.mag_fusion_type != MagFuseType::NONE)
 					     && _control_status.flags.tilt_align
 					     && (_control_status.flags.yaw_align || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
-					     && (wmm_updated || checkHaglYawResetReq() || isRecent(_time_last_mov_3d_mag_suitable, (uint64_t)3e6))
 					     && mag_sample.mag.longerThan(0.f)
 					     && mag_sample.mag.isAllFinite();
 
@@ -65,10 +64,20 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 				       && _control_status.flags.mag_aligned_in_flight
 				       && (_control_status.flags.mag_heading_consistent || !_control_status.flags.gps)
 				       && !_control_status.flags.mag_fault
-				       && isRecent(aid_src.time_last_fuse, 500'000)
-				       && getMagBiasVariance().longerThan(0.f) && !getMagBiasVariance().longerThan(sq(0.02f))
 				       && !_control_status.flags.ev_yaw
 				       && !_control_status.flags.gps_yaw;
+
+	const bool mag_consistent_or_no_gnss = _control_status.flags.mag_heading_consistent || !_control_status.flags.gps;
+
+	_control_status.flags.mag_hdg = ((_params.mag_fusion_type == MagFuseType::HEADING)
+					      || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D))
+					     && _control_status.flags.tilt_align
+					     && ((_control_status.flags.yaw_align && mag_consistent_or_no_gnss)
+					         || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
+					     && !_control_status.flags.mag_fault
+					     && !_control_status.flags.mag_field_disturbed
+					     && !_control_status.flags.ev_yaw
+					     && !_control_status.flags.gps_yaw;
 
 	// TODO: allow clearing mag_fault if mag_3d is good?
 
@@ -81,18 +90,16 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 	// if we are using 3-axis magnetometer fusion, but without external NE aiding,
 	// then the declination must be fused as an observation to prevent long term heading drift
-	// fusing declination when gps aiding is available is optional, but recommended to prevent
-	// problem if the vehicle is static for extended periods of time
-	const bool mag_decl_user_selected = (_params.mag_declination_source & GeoDeclinationMask::FUSE_DECL);
-	const bool not_using_ne_aiding = !_control_status.flags.gps;
-	_control_status.flags.mag_dec = (_control_status.flags.mag && (not_using_ne_aiding || mag_decl_user_selected));
+	// fusing declination when gps aiding is available is optional.
+	const bool not_using_ne_aiding = !_control_status.flags.gps && !_control_status.flags.aux_gpos;
+	_control_status.flags.mag_dec = (_control_status.flags.mag && (not_using_ne_aiding || !_control_status.flags.mag_aligned_in_flight));
 
 	if (_control_status.flags.mag) {
 		aid_src.timestamp_sample = mag_sample.time_us;
 
 		if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-			if (mag_sample.reset || checkHaglYawResetReq()) {
+			if (mag_sample.reset || checkHaglYawResetReq() || wmm_updated) {
 				ECL_INFO("reset to %s", AID_SRC_NAME);
 				resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 				aid_src.time_last_fuse = _time_delayed_us;
@@ -111,8 +118,9 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 					// The normal sequence is to fuse the magnetometer data first before fusing
 					// declination angle at a higher uncertainty to allow some learning of
 					// declination angle over time.
-					const bool update_all_states = _control_status.flags.mag_3D;
-					fuseMag(mag_sample.mag, aid_src, update_all_states);
+					const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
+					const bool update_tilt = _control_status.flags.mag_3D;
+					fuseMag(mag_sample.mag, aid_src, update_all_states, update_tilt);
 
 					if (_control_status.flags.mag_dec) {
 						fuseDeclination(0.5f);
@@ -200,6 +208,12 @@ void Ekf::stopMagFusion()
 		if (_control_status.flags.mag_3D) {
 			ECL_INFO("stopping mag 3D fusion");
 			_control_status.flags.mag_3D = false;
+		}
+
+		if (_control_status.flags.mag_hdg) {
+			ECL_INFO("stopping mag heading fusion");
+			_control_status.flags.mag_hdg = false;
+			_fault_status.flags.bad_hdg = false;
 		}
 
 		_fault_status.flags.bad_mag_x = false;

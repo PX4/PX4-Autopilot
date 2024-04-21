@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# @name Droneblocks DEXI 5
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Dennis Baldwin <db@droneblocks.io>
+# @maintainer Alex klimaj <alex@arkelectron.com>
+#
+# @board px4_fmu-v2 exclude
+# @board px4_fmu-v3 exclude
+# @board px4_fmu-v4 exclude
+# @board px4_fmu-v4pro exclude
+# @board px4_fmu-v5 exclude
+# @board px4_fmu-v5x exclude
+# @board px4_fmu-v6x exclude
+# @board bitcraze_crazyflie exclude
+# @board diatone_mamba-f405-mk2 exclude
+# @board ark_fmu-v6x exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default BAT1_CAPACITY 4000
+param set-default BAT1_N_CELLS 6
+param set-default BAT1_V_EMPTY 3.3
+param set-default BAT1_V_LOAD_DROP 0.5
+param set-default BAT_AVRG_CURRENT 13
+
+# Square quadrotor X PX4 numbering
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.0762
+param set-default CA_ROTOR0_PY 0.09525
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.0762
+param set-default CA_ROTOR1_PY -0.09525
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.0762
+param set-default CA_ROTOR2_PY -0.09525
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.0762
+param set-default CA_ROTOR3_PY 0.09525
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default EKF2_MIN_RNG 0.01
+param set-default EKF2_OF_POS_X 0.043
+param set-default EKF2_OF_POS_Y 0.011
+param set-default EKF2_OF_QMIN_GND 1
+param set-default EKF2_RNG_POS_X 0.043
+param set-default EKF2_RNG_POS_Y 0.0
+
+param set-default IMU_GYRO_DNF_EN 2
+
+param set-default MC_PITCHRATE_D 0.0013
+param set-default MC_PITCHRATE_I 0.185
+param set-default MC_PITCHRATE_P 0.105
+param set-default MC_PITCH_P 7.5
+param set-default MC_ROLLRATE_D 0.0010
+param set-default MC_ROLLRATE_I 0.165
+param set-default MC_ROLLRATE_P 0.095
+param set-default MC_ROLL_P 7.5
+param set-default MC_YAWRATE_I 0.35
+param set-default MC_YAWRATE_P 0.13
+
+param set-default MPC_THR_HOVER 0.22
+param set-default MPC_THR_MAX 0.5
+param set-default MPC_THR_MIN 0.025
+param set-default MPC_VEL_MANUAL 5.0
+param set-default MPC_XY_VEL_MAX 8.0
+
+param set-default RTL_RETURN_ALT 15
+
+param set-default SENS_FLOW_MINHGT 0.0
+
+param set-default SER_TEL2_BAUD 3000000
+
+param set-default UXRCE_DDS_CFG 102

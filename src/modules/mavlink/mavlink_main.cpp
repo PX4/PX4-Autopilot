@@ -124,13 +124,13 @@ Mavlink::Mavlink() :
 
 	// ensure topic exists, otherwise we might lose first queued commands
 	if (orb_exists(ORB_ID(vehicle_command), 0) == PX4_ERROR) {
-		orb_advertise_queue(ORB_ID(vehicle_command), nullptr, vehicle_command_s::ORB_QUEUE_LENGTH);
+		orb_advertise(ORB_ID(vehicle_command), nullptr);
 	}
 
 	_vehicle_command_sub.subscribe();
 
 	if (orb_exists(ORB_ID(event), 0) == PX4_ERROR) {
-		orb_advertise_queue(ORB_ID(event), nullptr, event_s::ORB_QUEUE_LENGTH);
+		orb_advertise(ORB_ID(event), nullptr);
 	}
 
 	_event_sub.subscribe();

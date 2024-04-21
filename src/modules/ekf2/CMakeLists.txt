@@ -63,7 +63,7 @@ if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 			${PYTHON_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py
 		DEPENDS
 			${EKF_DERIVATION_SRC_DIR}/derivation.py
-			${EKF_DERIVATION_SRC_DIR}/derivation_utils.py
+			${EKF_DERIVATION_SRC_DIR}/utils/derivation_utils.py
 
 		WORKING_DIRECTORY ${EKF_DERIVATION_SRC_DIR}
 		COMMENT "Symforce code generation (default)"
@@ -97,7 +97,7 @@ if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 			${PYTHON_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py ${SYMFORCE_ARGS}
 		DEPENDS
 			${EKF_DERIVATION_SRC_DIR}/derivation.py
-			${EKF_DERIVATION_SRC_DIR}/derivation_utils.py
+			${EKF_DERIVATION_SRC_DIR}/utils/derivation_utils.py
 
 		WORKING_DIRECTORY ${EKF_DERIVATION_DST_DIR}
 		COMMENT "Symforce code generation"
@@ -113,6 +113,7 @@ if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 	)
 endif()
 
+set(EKF_LIBS)
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
 	EKF/bias_estimator.cpp
@@ -120,14 +121,14 @@ list(APPEND EKF_SRCS
 	EKF/covariance.cpp
 	EKF/ekf.cpp
 	EKF/ekf_helper.cpp
-	EKF/EKFGSF_yaw.cpp
 	EKF/estimator_interface.cpp
 	EKF/fake_height_control.cpp
 	EKF/fake_pos_control.cpp
 	EKF/height_control.cpp
 	EKF/imu_down_sampler.cpp
 	EKF/output_predictor.cpp
-	EKF/vel_pos_fusion.cpp
+	EKF/velocity_fusion.cpp
+	EKF/position_fusion.cpp
 	EKF/yaw_fusion.cpp
 	EKF/zero_innovation_heading_update.cpp
 
@@ -173,6 +174,8 @@ if(CONFIG_EKF2_GNSS)
 		EKF/gps_checks.cpp
 		EKF/gps_control.cpp
 	)
+
+	list(APPEND EKF_LIBS yaw_estimator)
 endif()
 
 if(CONFIG_EKF2_GNSS_YAW)
@@ -188,7 +191,6 @@ if(CONFIG_EKF2_MAGNETOMETER)
 		EKF/mag_3d_control.cpp
 		EKF/mag_control.cpp
 		EKF/mag_fusion.cpp
-		EKF/mag_heading_control.cpp
 	)
 endif()
 
@@ -214,6 +216,10 @@ endif()
 if(CONFIG_EKF2_TERRAIN)
 	list(APPEND EKF_SRCS EKF/terrain_estimator.cpp)
 endif()
+
+add_subdirectory(EKF)
+
+
 
 px4_add_module(
 	MODULE modules__ekf2
@@ -241,6 +247,12 @@ px4_add_module(
 
 		${EKF_GENERATED_FILES}
 
+	MODULE_CONFIG
+		module.yaml
+		params_multi.yaml
+		params_volatile.yaml
+		params_selector.yaml
+
 	DEPENDS
 		geo
 		hysteresis
@@ -248,10 +260,10 @@ px4_add_module(
 		EKF2Utility
 		px4_work_queue
 		world_magnetic_model
+		${EKF_LIBS}
 	UNITY_BUILD
 	)
 
 if(BUILD_TESTING)
-	add_subdirectory(EKF)
 	add_subdirectory(test)
 endif()

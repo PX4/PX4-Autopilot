@@ -598,6 +598,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 		if (!_health_and_arming_checks.canArm(_vehicle_status.nav_state)) {
 			tune_negative(true);
+			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Resolve system health failures first\t");
+			events::send(events::ID("commander_arm_denied_resolve_failures"), {events::Log::Critical, events::LogInternal::Info},
+				     "Arming denied: Resolve system health failures first");
 			return TRANSITION_DENIED;
 		}
 	}
@@ -2419,7 +2422,14 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 		if (_cpuload_sub.copy(&cpuload)) {
 			const float cpuload_percent = cpuload.load * 100.f;
 
-			bool overload = (cpuload_percent > _param_com_cpu_max.get()) || (cpuload.ram_usage > 0.99f);
+			bool overload = false;
+
+			// Only check CPU load if it hasn't been disabled
+			if (!(_param_com_cpu_max.get() < FLT_EPSILON)) {
+				overload = (cpuload_percent > _param_com_cpu_max.get());
+			}
+
+			overload = overload || (cpuload.ram_usage > 0.99f);
 
 			if (_overload_start == 0 && overload) {
 				_overload_start = time_now_us;

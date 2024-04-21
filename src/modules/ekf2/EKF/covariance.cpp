@@ -53,7 +53,7 @@ void Ekf::initialiseCovariance()
 {
 	P.zero();
 
-	resetQuatCov();
+	resetQuatCov(0.f); // Start with no initial uncertainty to improve fine leveling through zero vel/pos fusion
 
 	// velocity
 #if defined(CONFIG_EKF2_GNSS)
@@ -166,11 +166,21 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	if (_control_status.flags.mag) {
 		// mag_I: add process noise
 		float mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.f, 1.f);
-		P.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) += sq(mag_I_sig);
+		float mag_I_process_noise = sq(mag_I_sig);
+
+		for (unsigned index = 0; index < State::mag_I.dof; index++) {
+			const unsigned i = State::mag_I.idx + index;
+			P(i, i) += mag_I_process_noise;
+		}
 
 		// mag_B: add process noise
 		float mag_B_sig = dt * math::constrain(_params.magb_p_noise, 0.f, 1.f);
-		P.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) += sq(mag_B_sig);
+		float mag_B_process_noise = sq(mag_B_sig);
+
+		for (unsigned index = 0; index < State::mag_B.dof; index++) {
+			const unsigned i = State::mag_B.idx + index;
+			P(i, i) += mag_B_process_noise;
+		}
 	}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -179,7 +189,12 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	if (_control_status.flags.wind) {
 		// wind vel: add process noise
 		float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f, 1.f) * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
-		P.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) += sq(wind_vel_nsd_scaled) * dt;
+		float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
+
+		for (unsigned index = 0; index < State::wind_vel.dof; index++) {
+			const unsigned i = State::wind_vel.idx + index;
+			P(i, i) += wind_vel_process_noise;
+		}
 	}
 #endif // CONFIG_EKF2_WIND
 
@@ -222,14 +237,6 @@ void Ekf::constrainStateVariances()
 #endif // CONFIG_EKF2_WIND
 }
 
-void Ekf::forceCovarianceSymmetry()
-{
-	// DEBUG
-	// P.isBlockSymmetric(0, 1e-9f);
-
-	P.makeRowColSymmetric<State::size>(0);
-}
-
 void Ekf::constrainStateVar(const IdxDof &state, float min, float max)
 {
 	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
@@ -256,22 +263,6 @@ void Ekf::constrainStateVarLimitRatio(const IdxDof &state, float min, float max,
 	}
 }
 
-// if the covariance correction will result in a negative variance, then
-// the covariance matrix is unhealthy and must be corrected
-bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrixState &KHP)
-{
-	bool healthy = true;
-
-	for (int i = 0; i < State::size; i++) {
-		if (P(i, i) < KHP(i, i)) {
-			P.uncorrelateCovarianceSetVariance<1>(i, 0.f);
-			healthy = false;
-		}
-	}
-
-	return healthy;
-}
-
 void Ekf::resetQuatCov(const float yaw_noise)
 {
 	const float tilt_var = sq(math::max(_params.initial_tilt_err, 0.01f));
@@ -280,7 +271,7 @@ void Ekf::resetQuatCov(const float yaw_noise)
 	// update the yaw angle variance using the variance of the measurement
 	if (PX4_ISFINITE(yaw_noise)) {
 		// using magnetic heading tuning parameter
-		yaw_var = math::max(sq(yaw_noise), yaw_var);
+		yaw_var = sq(yaw_noise);
 	}
 
 	resetQuatCov(Vector3f(tilt_var, tilt_var, yaw_var));
@@ -288,8 +279,7 @@ void Ekf::resetQuatCov(const float yaw_noise)
 
 void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
 {
-	matrix::SquareMatrix<float, State::quat_nominal.dof> q_cov_ned = diag(rot_var_ned);
-	resetStateCovariance<State::quat_nominal>(_R_to_earth.T() * q_cov_ned * _R_to_earth);
+	P.uncorrelateCovarianceSetVariance<State::quat_nominal.dof>(State::quat_nominal.idx, rot_var_ned);
 }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

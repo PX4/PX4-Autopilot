@@ -620,22 +620,52 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 
 const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 {
-	if (_steps_counter > _max_steps) {
-		_signal_sign = (_signal_sign == 1) ? 0 : 1;
-		_steps_counter = 0;
 
-		if (_max_steps > 1) {
-			_max_steps--;
 
-		} else {
-			_max_steps = 5;
+	const hrt_abstime now = hrt_absolute_time();
+	const float t = static_cast<float>(now - _state_start_time) * 1e-6f;
+	float signal = 0.0f;
+
+	switch (_param_fw_sysid_signal_type.get()) {
+	case  static_cast<int32_t>(SignalType::kStep): {
+			if (_steps_counter > _max_steps) {
+				_signal_sign = (_signal_sign == 1) ? 0 : 1;
+				_steps_counter = 0;
+
+				if (_max_steps > 1) {
+					_max_steps--;
+
+				} else {
+					_max_steps = 5;
+				}
+			}
+
+			_steps_counter++;
+			signal = float(_signal_sign);
 		}
+		break;
+
+	case static_cast<int32_t>(SignalType::kLinearSineSweep): {
+
+			signal = signal_generator::getLinearSineSweep(_param_fw_at_sysid_f0.get(),
+					_param_fw_at_sysid_f1.get(),
+					_param_fw_sysid_time.get(), t);
+		}
+		break;
+
+	case static_cast<int32_t>(SignalType::kLogSineSweep): {
+			signal = signal_generator::getLogSineSweep(_param_fw_at_sysid_f0.get(), _param_fw_at_sysid_f1.get(),
+					_param_fw_sysid_time.get(), t);
+		}
+		break;
+
+	default:
+		signal = 0.f;
+		break;
 	}
 
-	_steps_counter++;
 
-	const float signal = float(_signal_sign) * _param_fw_at_sysid_amp.get();
-
+	signal *= _param_fw_at_sysid_amp.get();
 	Vector3f rate_sp{};
 
 	float signal_scaled = 0.f;

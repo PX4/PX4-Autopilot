@@ -46,6 +46,8 @@ pipeline {
                      "ark_cannode_default",
                      "ark_fmu-v6x_bootloader",
                      "ark_fmu-v6x_default",
+                     "ark_pi6x_bootloader",
+                     "ark_pi6x_default"
                      "atl_mantis-edu_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie21_default",
@@ -120,7 +122,7 @@ pipeline {
                      "px4_fmu-v6xrt_rover",
                      "px4_io-v2_default",
                      "raspberrypi_pico_default",
-                     "siyi_n7_default"
+                     "siyi_n7_default",
                      "sky-drones_smartap-airlink_default",
                      "spracing_h7extreme_default",
                      "thepeach_k1_default",

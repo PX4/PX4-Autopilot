@@ -41,6 +41,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,7 +49,6 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <float.h>
-#include <nuttx/sched.h>
 #include <sys/prctl.h>
 #include <drivers/drv_hrt.h>
 #include <termios.h>
@@ -59,6 +59,9 @@
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <poll.h>
+
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 
 __EXPORT int matlab_csv_serial_main(int argc, char *argv[]);
 static bool thread_should_exit = false;		/**< Daemon exit flag */
@@ -221,9 +224,9 @@ int matlab_csv_serial_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(sensor_gyro), gyro1_sub, &gyro1);
 
 				// write out on accel 0, but collect for all other sensors as they have updates
-				dprintf(serial_fd, "%llu,%d,%d,%d,%d,%d,%d\n", accel0.timestamp, (int)accel0.x_raw, (int)accel0.y_raw,
-					(int)accel0.z_raw,
-					(int)accel1.x_raw, (int)accel1.y_raw, (int)accel1.z_raw);
+				dprintf(serial_fd, "%"PRId64",%d,%d,%d,%d,%d,%d\n", accel0.timestamp, (int)accel0.x, (int)accel0.y,
+					(int)accel0.z,
+					(int)accel1.x, (int)accel1.y, (int)accel1.z);
 			}
 
 		}

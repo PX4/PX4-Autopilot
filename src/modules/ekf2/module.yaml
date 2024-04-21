@@ -1,0 +1,1352 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_EN:
+      description:
+        short: EKF2 enable
+      type: boolean
+      default: 1
+    EKF2_PREDICT_US:
+      description:
+        short: EKF prediction period
+        long: EKF prediction period in microseconds. This should ideally be an integer
+          multiple of the IMU time delta. Actual filter update will be an integer
+          multiple of IMU update.
+      type: int32
+      default: 10000
+      min: 1000
+      max: 20000
+      unit: us
+    EKF2_IMU_CTRL:
+      description:
+        short: IMU control
+      type: bitmask
+      bit:
+        0: Gyro Bias
+        1: Accel Bias
+        2: Gravity vector fusion
+      default: 7
+      min: 0
+      max: 7
+    EKF2_DELAY_MAX:
+      description:
+        short: Maximum delay of all the aiding sensors
+        long: Defines the delay between the current time and the delayed-time horizon.
+          This value should be at least as large as the largest EKF2_XXX_DELAY parameter.
+      type: float
+      default: 200
+      min: 0
+      max: 1000
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_MAG_DELAY:
+      description:
+        short: Magnetometer measurement delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_BARO_DELAY:
+      description:
+        short: Barometer measurement delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_GPS_DELAY:
+      description:
+        short: GPS measurement delay relative to IMU measurements
+      type: float
+      default: 110
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_OF_DELAY:
+      description:
+        short: Optical flow measurement delay relative to IMU measurements
+        long: Assumes measurement is timestamped at trailing edge of integration period
+      type: float
+      default: 20
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_RNG_DELAY:
+      description:
+        short: Range finder measurement delay relative to IMU measurements
+      type: float
+      default: 5
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_ASP_DELAY:
+      description:
+        short: Airspeed measurement delay relative to IMU measurements
+      type: float
+      default: 100
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_EV_DELAY:
+      description:
+        short: Vision Position Estimator delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_AVEL_DELAY:
+      description:
+        short: Auxiliary Velocity Estimate (e.g from a landing target) delay relative
+          to IMU measurements
+      type: float
+      default: 5
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_GPS_CHECK:
+      description:
+        short: Integer bitmask controlling GPS checks
+        long: 'Set bits to 1 to enable checks. Checks enabled by the following bit
+          positions 0 : Minimum required sat count set by EKF2_REQ_NSATS 1 : Maximum
+          allowed PDOP set by EKF2_REQ_PDOP 2 : Maximum allowed horizontal position
+          error set by EKF2_REQ_EPH 3 : Maximum allowed vertical position error set
+          by EKF2_REQ_EPV 4 : Maximum allowed speed error set by EKF2_REQ_SACC 5 :
+          Maximum allowed horizontal position rate set by EKF2_REQ_HDRIFT. This check
+          will only run when the vehicle is on ground and stationary. 6 : Maximum
+          allowed vertical position rate set by EKF2_REQ_VDRIFT. This check will only
+          run when the vehicle is on ground and stationary. 7 : Maximum allowed horizontal
+          speed set by EKF2_REQ_HDRIFT. This check will only run when the vehicle
+          is on ground and stationary. 8 : Maximum allowed vertical velocity discrepancy
+          set by EKF2_REQ_VDRIFT'
+      type: bitmask
+      bit:
+        0: Min sat count (EKF2_REQ_NSATS)
+        1: Max PDOP (EKF2_REQ_PDOP)
+        2: Max horizontal position error (EKF2_REQ_EPH)
+        3: Max vertical position error (EKF2_REQ_EPV)
+        4: Max speed error (EKF2_REQ_SACC)
+        5: Max horizontal position rate (EKF2_REQ_HDRIFT)
+        6: Max vertical position rate (EKF2_REQ_VDRIFT)
+        7: Max horizontal speed (EKF2_REQ_HDRIFT)
+        8: Max vertical velocity discrepancy (EKF2_REQ_VDRIFT)
+      default: 245
+      min: 0
+      max: 511
+    EKF2_REQ_EPH:
+      description:
+        short: Required EPH to use GPS
+      type: float
+      default: 3.0
+      min: 2
+      max: 100
+      unit: m
+      decimal: 1
+    EKF2_REQ_EPV:
+      description:
+        short: Required EPV to use GPS
+      type: float
+      default: 5.0
+      min: 2
+      max: 100
+      unit: m
+      decimal: 1
+    EKF2_REQ_SACC:
+      description:
+        short: Required speed accuracy to use GPS
+      type: float
+      default: 0.5
+      min: 0.5
+      max: 5.0
+      unit: m/s
+      decimal: 2
+    EKF2_REQ_NSATS:
+      description:
+        short: Required satellite count to use GPS
+      type: int32
+      default: 6
+      min: 4
+      max: 12
+    EKF2_REQ_PDOP:
+      description:
+        short: Maximum PDOP to use GPS
+      type: float
+      default: 2.5
+      min: 1.5
+      max: 5.0
+      decimal: 1
+    EKF2_REQ_HDRIFT:
+      description:
+        short: Maximum horizontal drift speed to use GPS
+      type: float
+      default: 0.1
+      min: 0.1
+      max: 1.0
+      unit: m/s
+      decimal: 2
+    EKF2_REQ_VDRIFT:
+      description:
+        short: Maximum vertical drift speed to use GPS
+      type: float
+      default: 0.2
+      min: 0.1
+      max: 1.5
+      decimal: 2
+      unit: m/s
+    EKF2_GYR_NOISE:
+      description:
+        short: Rate gyro noise for covariance prediction
+      type: float
+      default: 0.015
+      min: 0.0001
+      max: 0.1
+      unit: rad/s
+      decimal: 4
+    EKF2_ACC_NOISE:
+      description:
+        short: Accelerometer noise for covariance prediction
+      type: float
+      default: 0.35
+      min: 0.01
+      max: 1.0
+      unit: m/s^2
+      decimal: 2
+    EKF2_GYR_B_NOISE:
+      description:
+        short: Process noise for IMU rate gyro bias prediction
+      type: float
+      default: 0.001
+      min: 0.0
+      max: 0.01
+      unit: rad/s^2
+      decimal: 6
+    EKF2_ACC_B_NOISE:
+      description:
+        short: Process noise for IMU accelerometer bias prediction
+      type: float
+      default: 0.003
+      min: 0.0
+      max: 0.01
+      unit: m/s^3
+      decimal: 6
+    EKF2_MAG_B_NOISE:
+      description:
+        short: Process noise for body magnetic field prediction
+      type: float
+      default: 0.0001
+      min: 0.0
+      max: 0.1
+      unit: gauss/s
+      decimal: 6
+    EKF2_MAG_E_NOISE:
+      description:
+        short: Process noise for earth magnetic field prediction
+      type: float
+      default: 0.001
+      min: 0.0
+      max: 0.1
+      unit: gauss/s
+      decimal: 6
+    EKF2_WIND_NSD:
+      description:
+        short: Process noise spectral density for wind velocity prediction
+        long: When unaided, the wind estimate uncertainty (1-sigma, in m/s) increases
+          by this amount every second.
+      type: float
+      default: 0.05
+      min: 0.0
+      max: 1.0
+      unit: m/s^2/sqrt(Hz)
+      decimal: 3
+    EKF2_GPS_V_NOISE:
+      description:
+        short: Measurement noise for GNSS velocity
+      type: float
+      default: 0.3
+      min: 0.01
+      max: 5.0
+      unit: m/s
+      decimal: 2
+    EKF2_GPS_P_NOISE:
+      description:
+        short: Measurement noise for GNSS position
+      type: float
+      default: 0.5
+      min: 0.01
+      max: 10.0
+      unit: m
+      decimal: 2
+    EKF2_NOAID_NOISE:
+      description:
+        short: Measurement noise for non-aiding position hold
+      type: float
+      default: 10.0
+      min: 0.5
+      max: 50.0
+      unit: m
+      decimal: 1
+    EKF2_BARO_NOISE:
+      description:
+        short: Measurement noise for barometric altitude
+      type: float
+      default: 3.5
+      min: 0.01
+      max: 15.0
+      unit: m
+      decimal: 2
+    EKF2_HEAD_NOISE:
+      description:
+        short: Measurement noise for magnetic heading fusion
+      type: float
+      default: 0.3
+      min: 0.01
+      max: 1.0
+      unit: rad
+      decimal: 2
+    EKF2_MAG_NOISE:
+      description:
+        short: Measurement noise for magnetometer 3-axis fusion
+      type: float
+      default: 0.05
+      min: 0.001
+      max: 1.0
+      unit: gauss
+      decimal: 3
+    EKF2_EAS_NOISE:
+      description:
+        short: Measurement noise for airspeed fusion
+      type: float
+      default: 1.4
+      min: 0.5
+      max: 5.0
+      unit: m/s
+      decimal: 1
+    EKF2_BETA_GATE:
+      description:
+        short: Gate size for synthetic sideslip fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_BETA_NOISE:
+      description:
+        short: Noise for synthetic sideslip fusion
+      type: float
+      default: 0.3
+      min: 0.1
+      max: 1.0
+      unit: m/s
+      decimal: 2
+    EKF2_HDG_GATE:
+      description:
+        short: Gate size for heading fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 2.6
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_MAG_GATE:
+      description:
+        short: Gate size for magnetometer XYZ component fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_DECL_TYPE:
+      description:
+        short: Integer bitmask controlling handling of magnetic declination
+        long: 'Set bits in the following positions to enable functions. 0 : Set to
+          true to use the declination from the geo_lookup library when the GPS position
+          becomes available, set to false to always use the EKF2_MAG_DECL value. 1
+          : Set to true to save the EKF2_MAG_DECL parameter to the value returned
+          by the EKF when the vehicle disarms.'
+      type: bitmask
+      bit:
+        0: use geo_lookup declination
+        1: save EKF2_MAG_DECL on disarm
+      default: 3
+      min: 0
+      max: 3
+      reboot_required: true
+    EKF2_MAG_TYPE:
+      description:
+        short: Type of magnetometer fusion
+        long: Integer controlling the type of magnetometer fusion used - magnetic
+          heading or 3-component vector. The fusion of magnetometer data as a three
+          component vector enables vehicle body fixed hard iron errors to be learned,
+          but requires a stable earth field. If set to 'Automatic' magnetic heading
+          fusion is used when on-ground and 3-axis magnetic field fusion in-flight
+          with fallback to magnetic heading fusion if there is insufficient motion
+          to make yaw or magnetic field states observable. If set to 'Magnetic heading'
+          magnetic heading fusion is used at all times. If set to 'None' the magnetometer
+          will not be used under any circumstance. If no external source of yaw is
+          available, it is possible to use post-takeoff horizontal movement combined
+          with GPS velocity measurements to align the yaw angle with the timer required
+          (depending on the amount of movement and GPS data quality).
+      type: enum
+      values:
+        0: Automatic
+        1: Magnetic heading
+        5: None
+      default: 0
+      reboot_required: true
+    EKF2_MAG_ACCLIM:
+      description:
+        short: Horizontal acceleration threshold used for heading observability check
+        long: The heading is assumed to be observable when the body acceleration is
+          greater than this parameter when a global position/velocity aiding source
+          is active.
+      type: float
+      default: 0.5
+      min: 0.0
+      max: 5.0
+      unit: m/s^2
+      decimal: 2
+    EKF2_BARO_GATE:
+      description:
+        short: Gate size for barometric and GPS height fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_GND_EFF_DZ:
+      description:
+        short: Baro deadzone range for height fusion
+        long: Sets the value of deadzone applied to negative baro innovations. Deadzone
+          is enabled when EKF2_GND_EFF_DZ > 0.
+      type: float
+      default: 4.0
+      min: 0.0
+      max: 10.0
+      unit: m
+      decimal: 1
+    EKF2_GND_MAX_HGT:
+      description:
+        short: Height above ground level for ground effect zone
+        long: Sets the maximum distance to the ground level where negative baro innovations
+          are expected.
+      type: float
+      default: 0.5
+      min: 0.0
+      max: 5.0
+      unit: m
+      decimal: 1
+    EKF2_GPS_P_GATE:
+      description:
+        short: Gate size for GNSS position fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_GPS_V_GATE:
+      description:
+        short: Gate size for GNSS velocity fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_TAS_GATE:
+      description:
+        short: Gate size for TAS fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_HGT_REF:
+      description:
+        short: Determines the reference source of height data used by the EKF
+        long: When multiple height sources are enabled at the same time, the height
+          estimate will always converge towards the reference height source selected
+          by this parameter. The range sensor and vision options should only be used
+          when for operation over a flat surface as the local NED origin will move
+          up and down with ground level.
+      type: enum
+      values:
+        0: Barometric pressure
+        1: GPS
+        2: Range sensor
+        3: Vision
+      default: 1
+      reboot_required: true
+    EKF2_BARO_CTRL:
+      description:
+        short: Barometric sensor height aiding
+        long: If this parameter is enabled then the estimator will make use of the
+          barometric height measurements to estimate its height in addition to other
+          height sources (if activated).
+      type: boolean
+      default: 1
+    EKF2_EV_CTRL:
+      description:
+        short: External vision (EV) sensor aiding
+        long: 'Set bits in the following positions to enable: 0 : Horizontal position
+          fusion 1 : Vertical position fusion 2 : 3D velocity fusion 3 : Yaw'
+      type: bitmask
+      bit:
+        0: Horizontal position
+        1: Vertical position
+        2: 3D velocity
+        3: Yaw
+      default: 15
+      min: 0
+      max: 15
+    EKF2_GPS_CTRL:
+      description:
+        short: GNSS sensor aiding
+        long: 'Set bits in the following positions to enable: 0 : Longitude and latitude
+          fusion 1 : Altitude fusion 2 : 3D velocity fusion 3 : Dual antenna heading
+          fusion'
+      type: bitmask
+      bit:
+        0: Lon/lat
+        1: Altitude
+        2: 3D velocity
+        3: Dual antenna heading
+      default: 7
+      min: 0
+      max: 15
+    EKF2_RNG_CTRL:
+      description:
+        short: Range sensor height aiding
+        long: 'WARNING: Range finder measurements are less reliable and can experience
+          unexpected errors. For these reasons, if accurate control of height relative
+          to ground is required, it is recommended to use the MPC_ALT_MODE parameter
+          instead, unless baro errors are severe enough to cause problems with landing
+          and takeoff. To en-/disable range finder for terrain height estimation,
+          use EKF2_TERR_MASK instead. If this parameter is enabled then the estimator
+          will make use of the range finder measurements to estimate its height in
+          addition to other height sources (if activated). Range sensor aiding can
+          be enabled (i.e.: always use) or set in "conditional" mode. Conditional
+          mode: This enables the range finder to be used during low speed (< EKF2_RNG_A_VMAX)
+          and low altitude (< EKF2_RNG_A_HMAX) operation, eg takeoff and landing,
+          where baro interference from rotor wash is excessive and can corrupt EKF
+          state estimates. It is intended to be used where a vertical takeoff and
+          landing is performed, and horizontal flight does not occur until above EKF2_RNG_A_HMAX.'
+      type: enum
+      values:
+        0: Disable range fusion
+        1: Enabled (conditional mode)
+        2: Enabled
+      default: 1
+    EKF2_TERR_MASK:
+      description:
+        short: Integer bitmask controlling fusion sources of the terrain estimator
+        long: 'Set bits in the following positions to enable: 0 : Set to true to use
+          range finder data if available 1 : Set to true to use optical flow data
+          if available'
+      type: bitmask
+      bit:
+        0: use range finder
+        1: use optical flow
+      default: 3
+      min: 0
+      max: 3
+    EKF2_NOAID_TOUT:
+      description:
+        short: Maximum lapsed time from last fusion of measurements that constrain
+          velocity drift before the EKF will report the horizontal nav solution as
+          invalid
+      type: int32
+      default: 5000000
+      min: 500000
+      max: 10000000
+      unit: us
+    EKF2_RNG_NOISE:
+      description:
+        short: Measurement noise for range finder fusion
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m
+      decimal: 2
+    EKF2_RNG_SFE:
+      description:
+        short: Range finder range dependent noise scaler
+        long: Specifies the increase in range finder noise with range.
+      type: float
+      default: 0.05
+      min: 0.0
+      max: 0.2
+      unit: m/m
+    EKF2_RNG_GATE:
+      description:
+        short: Gate size for range finder fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_MIN_RNG:
+      description:
+        short: Expected range finder reading when on ground
+        long: If the vehicle is on ground, is not moving as determined by the motion
+          test and the range finder is returning invalid or no data, then an assumed
+          range value of EKF2_MIN_RNG will be used by the terrain estimator so that
+          a terrain height estimate is available at the start of flight in situations
+          where the range finder may be inside its minimum measurements distance when
+          on ground.
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m
+      decimal: 2
+    EKF2_EV_NOISE_MD:
+      description:
+        short: External vision (EV) noise mode
+        long: If set to 0 (default) the measurement noise is taken from the vision
+          message and the EV noise parameters are used as a lower bound. If set to
+          1 the observation noise is set from the parameters directly,
+      type: enum
+      values:
+        0: EV reported variance (parameter lower bound)
+        1: EV noise parameters
+      default: 0
+    EKF2_EV_QMIN:
+      description:
+        short: External vision (EV) minimum quality (optional)
+        long: External vision will only be started and fused if the quality metric
+          is above this threshold. The quality metric is a completely optional field
+          provided by some VIO systems.
+      type: int32
+      default: 0
+      min: 0
+      max: 100
+      decimal: 1
+    EKF2_EVP_NOISE:
+      description:
+        short: Measurement noise for vision position observations used to lower bound
+          or replace the uncertainty included in the message
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m
+      decimal: 2
+    EKF2_EVV_NOISE:
+      description:
+        short: Measurement noise for vision velocity observations used to lower bound
+          or replace the uncertainty included in the message
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m/s
+      decimal: 2
+    EKF2_EVA_NOISE:
+      description:
+        short: Measurement noise for vision angle observations used to lower bound
+          or replace the uncertainty included in the message
+      type: float
+      default: 0.1
+      min: 0.05
+      unit: rad
+      decimal: 2
+    EKF2_GRAV_NOISE:
+      description:
+        short: Accelerometer measurement noise for gravity based observations
+      type: float
+      default: 1.0
+      min: 0.1
+      max: 10.0
+      unit: g0
+      decimal: 2
+    EKF2_OF_CTRL:
+      description:
+        short: Optical flow aiding
+        long: Enable optical flow fusion.
+      type: boolean
+      default: 0
+    EKF2_OF_N_MIN:
+      description:
+        short: Measurement noise for the optical flow sensor when it's reported quality
+          metric is at the maximum
+      type: float
+      default: 0.15
+      min: 0.05
+      unit: rad/s
+      decimal: 2
+    EKF2_OF_N_MAX:
+      description:
+        short: Measurement noise for the optical flow sensor
+        long: '(when it''s reported quality metric is at the minimum set by EKF2_OF_QMIN).
+          The following condition must be met: EKF2_OF_N_MAXN >= EKF2_OF_N_MIN'
+      type: float
+      default: 0.5
+      min: 0.05
+      unit: rad/s
+      decimal: 2
+    EKF2_OF_QMIN:
+      description:
+        short: Optical Flow data will only be used in air if the sensor reports a
+          quality metric >= EKF2_OF_QMIN
+      type: int32
+      default: 1
+      min: 0
+      max: 255
+    EKF2_OF_QMIN_GND:
+      description:
+        short: Optical Flow data will only be used on the ground if the sensor reports
+          a quality metric >= EKF2_OF_QMIN_GND
+      type: int32
+      default: 0
+      min: 0
+      max: 255
+    EKF2_OF_GATE:
+      description:
+        short: Gate size for optical flow fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_TERR_NOISE:
+      description:
+        short: Terrain altitude process noise - accounts for instability in vehicle
+          height estimate
+      type: float
+      default: 5.0
+      min: 0.5
+      unit: m/s
+      decimal: 1
+    EKF2_TERR_GRAD:
+      description:
+        short: Magnitude of terrain gradient
+      type: float
+      default: 0.5
+      min: 0.0
+      unit: m/m
+      decimal: 2
+    EKF2_IMU_POS_X:
+      description:
+        short: X position of IMU in body frame (forward axis with origin relative
+          to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_IMU_POS_Y:
+      description:
+        short: Y position of IMU in body frame (right axis with origin relative to
+          vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_IMU_POS_Z:
+      description:
+        short: Z position of IMU in body frame (down axis with origin relative to
+          vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_GPS_POS_X:
+      description:
+        short: X position of GPS antenna in body frame (forward axis with origin relative
+          to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_GPS_POS_Y:
+      description:
+        short: Y position of GPS antenna in body frame (right axis with origin relative
+          to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_GPS_POS_Z:
+      description:
+        short: Z position of GPS antenna in body frame (down axis with origin relative
+          to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_RNG_POS_X:
+      description:
+        short: X position of range finder origin in body frame (forward axis with
+          origin relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_RNG_POS_Y:
+      description:
+        short: Y position of range finder origin in body frame (right axis with origin
+          relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_RNG_POS_Z:
+      description:
+        short: Z position of range finder origin in body frame (down axis with origin
+          relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_OF_POS_X:
+      description:
+        short: X position of optical flow focal point in body frame (forward axis
+          with origin relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_OF_POS_Y:
+      description:
+        short: Y position of optical flow focal point in body frame (right axis with
+          origin relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_OF_POS_Z:
+      description:
+        short: Z position of optical flow focal point in body frame (down axis with
+          origin relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_EV_POS_X:
+      description:
+        short: X position of VI sensor focal point in body frame (forward axis with
+          origin relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_EV_POS_Y:
+      description:
+        short: Y position of VI sensor focal point in body frame (right axis with
+          origin relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_EV_POS_Z:
+      description:
+        short: Z position of VI sensor focal point in body frame (down axis with origin
+          relative to vehicle centre of gravity)
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_ARSP_THR:
+      description:
+        short: Airspeed fusion threshold
+        long: Airspeed data is fused for wind estimation if above this threshold.
+          Set to 0 to disable airspeed fusion. For reliable wind estimation both sideslip
+          (see EKF2_FUSE_BETA) and airspeed fusion should be enabled. Only applies
+          to fixed-wing vehicles (or VTOLs in fixed-wing mode).
+      type: float
+      default: 0.0
+      min: 0.0
+      unit: m/s
+      decimal: 1
+    EKF2_FUSE_BETA:
+      description:
+        short: Enable synthetic sideslip fusion
+        long: 'For reliable wind estimation both sideslip and airspeed fusion (see
+          EKF2_ARSP_THR) should be enabled. Only applies to fixed-wing vehicles (or
+          VTOLs in fixed-wing mode). Note: side slip fusion is currently not supported
+          for tailsitters.'
+      type: boolean
+      default: 0
+    EKF2_TAU_VEL:
+      description:
+        short: Time constant of the velocity output prediction and smoothing filter
+      type: float
+      default: 0.25
+      max: 1.0
+      unit: s
+      decimal: 2
+    EKF2_TAU_POS:
+      description:
+        short: Time constant of the position output prediction and smoothing filter.
+          Controls how tightly the output track the EKF states
+      type: float
+      default: 0.25
+      min: 0.1
+      max: 1.0
+      unit: s
+      decimal: 2
+    EKF2_GBIAS_INIT:
+      description:
+        short: 1-sigma IMU gyro switch-on bias
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 0.2
+      unit: rad/s
+      reboot_required: true
+      decimal: 2
+    EKF2_ABIAS_INIT:
+      description:
+        short: 1-sigma IMU accelerometer switch-on bias
+      type: float
+      default: 0.2
+      min: 0.0
+      max: 0.5
+      unit: m/s^2
+      reboot_required: true
+      decimal: 2
+    EKF2_ANGERR_INIT:
+      description:
+        short: 1-sigma tilt angle uncertainty after gravity vector alignment
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 0.5
+      unit: rad
+      reboot_required: true
+      decimal: 3
+    EKF2_RNG_PITCH:
+      description:
+        short: Range sensor pitch offset
+      type: float
+      default: 0.0
+      min: -0.75
+      max: 0.75
+      unit: rad
+      decimal: 3
+    EKF2_RNG_A_VMAX:
+      description:
+        short: Maximum horizontal velocity allowed for conditional range aid mode
+        long: If the vehicle horizontal speed exceeds this value then the estimator
+          will not fuse range measurements to estimate its height. This only applies
+          when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
+      type: float
+      default: 1.0
+      min: 0.1
+      max: 2
+      unit: m/s
+    EKF2_RNG_A_HMAX:
+      description:
+        short: Maximum absolute altitude (height above ground level) allowed for conditional
+          range aid mode
+        long: If the vehicle absolute altitude exceeds this value then the estimator
+          will not fuse range measurements to estimate its height. This only applies
+          when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
+      type: float
+      default: 5.0
+      min: 1.0
+      max: 10.0
+      unit: m
+    EKF2_RNG_A_IGATE:
+      description:
+        short: Gate size used for innovation consistency checks for range aid fusion
+        long: A lower value means HAGL needs to be more stable in order to use range
+          finder for height estimation in range aid mode
+      type: float
+      default: 1.0
+      unit: SD
+      min: 0.1
+      max: 5.0
+    EKF2_RNG_QLTY_T:
+      description:
+        short: Minimum duration during which the reported range finder signal quality
+          needs to be non-zero in order to be declared valid (s)
+      type: float
+      default: 1.0
+      unit: s
+      min: 0.1
+      max: 5
+    EKF2_RNG_K_GATE:
+      description:
+        short: Gate size used for range finder kinematic consistency check
+        long: 'To be used, the time derivative of the distance sensor measurements
+          projected on the vertical axis needs to be statistically consistent with
+          the estimated vertical velocity of the drone. Decrease this value to make
+          the filter more robust against range finder faulty data (stuck, reflections,
+          ...). Note: tune the range finder noise parameters (EKF2_RNG_NOISE and EKF2_RNG_SFE)
+          before tuning this gate.'
+      type: float
+      default: 1.0
+      unit: SD
+      min: 0.1
+      max: 5.0
+    EKF2_EVV_GATE:
+      description:
+        short: Gate size for vision velocity estimate fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_EVP_GATE:
+      description:
+        short: Gate size for vision position fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_DRAG_CTRL:
+      description:
+        short: Multirotor wind estimation selection
+        long: Activate wind speed estimation using specific-force measurements and
+          a drag model defined by EKF2_BCOEF_[XY] and EKF2_MCOEF. Only use on vehicles
+          that have their thrust aligned with the Z axis and no thrust in the XY plane.
+      type: boolean
+      default: 0
+    EKF2_DRAG_NOISE:
+      description:
+        short: Specific drag force observation noise variance used by the multi-rotor
+          specific drag force model
+        long: Increasing this makes the multi-rotor wind estimates adjust more slowly.
+      type: float
+      default: 2.5
+      min: 0.5
+      max: 10.0
+      unit: (m/s^2)^2
+      decimal: 2
+    EKF2_BCOEF_X:
+      description:
+        short: X-axis ballistic coefficient used for multi-rotor wind estimation
+        long: This parameter controls the prediction of drag produced by bluff body
+          drag along the forward/reverse axis when flying a multi-copter which enables
+          estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The
+          drag produced by this effect scales with speed squared. The predicted drag
+          from the rotors is specified separately by the EKF2_MCOEF parameter. Set
+          this parameter to zero to turn off the bluff body drag model for this axis.
+      type: float
+      default: 100.0
+      min: 0.0
+      max: 200.0
+      unit: kg/m^2
+      decimal: 1
+    EKF2_BCOEF_Y:
+      description:
+        short: Y-axis ballistic coefficient used for multi-rotor wind estimation
+        long: This parameter controls the prediction of drag produced by bluff body
+          drag along the right/left axis when flying a multi-copter, which enables
+          estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The
+          drag produced by this effect scales with speed squared. The predicted drag
+          from the rotors is specified separately by the EKF2_MCOEF parameter. Set
+          this parameter to zero to turn off the bluff body drag model for this axis.
+      type: float
+      default: 100.0
+      min: 0.0
+      max: 200.0
+      unit: kg/m^2
+      decimal: 1
+    EKF2_MCOEF:
+      description:
+        short: Propeller momentum drag coefficient used for multi-rotor wind estimation
+        long: This parameter controls the prediction of drag produced by the propellers
+          when flying a multi-copter, which enables estimation of wind drift when
+          enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect
+          scales with speed not speed squared and is produced because some of the
+          air velocity normal to the propeller axis of rotation is lost when passing
+          through the rotor disc. This  changes the momentum of the flow which creates
+          a drag reaction force. When comparing un-ducted propellers of the same diameter,
+          the effect is roughly proportional to the area of the propeller blades when
+          viewed side on and changes with propeller selection. Momentum drag is significantly
+          higher for ducted rotors. To account for the drag produced by the body which
+          scales with speed squared, see documentation for the EKF2_BCOEF_X and EKF2_BCOEF_Y
+          parameters. Set this parameter to zero to turn off the momentum drag model
+          for both axis.
+      type: float
+      default: 0.15
+      min: 0
+      max: 1.0
+      unit: 1/s
+      decimal: 2
+    EKF2_ASPD_MAX:
+      description:
+        short: Upper limit on airspeed along individual axes used to correct baro
+          for position error effects
+      type: float
+      default: 20.0
+      min: 5.0
+      max: 50.0
+      unit: m/s
+      decimal: 1
+    EKF2_PCOEF_XP:
+      description:
+        short: Static pressure position error coefficient for the positive X axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a positive wind relative velocity along the X body axis. If the baro
+          height estimate rises during forward flight, then this will be a negative
+          number.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_PCOEF_XN:
+      description:
+        short: Static pressure position error coefficient for the negative X axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a negative wind relative velocity along the X body axis. If the baro
+          height estimate rises during backwards flight, then this will be a negative
+          number.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_PCOEF_YP:
+      description:
+        short: Pressure position error coefficient for the positive Y axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a wind relative velocity along the positive Y (RH) body axis. If the
+          baro height estimate rises during sideways flight to the right, then this
+          will be a negative number.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_PCOEF_YN:
+      description:
+        short: Pressure position error coefficient for the negative Y axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a wind relative velocity along the negative Y (LH) body axis. If the
+          baro height estimate rises during sideways flight to the left, then this
+          will be a negative number.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_PCOEF_Z:
+      description:
+        short: Static pressure position error coefficient for the Z axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a wind relative velocity along the Z body axis.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_ABL_LIM:
+      description:
+        short: Accelerometer bias learning limit
+        long: The ekf accel bias states will be limited to within a range equivalent
+          to +- of this value.
+      type: float
+      default: 0.4
+      min: 0.0
+      max: 0.8
+      unit: m/s^2
+      decimal: 2
+    EKF2_ABL_ACCLIM:
+      description:
+        short: Maximum IMU accel magnitude that allows IMU bias learning
+        long: If the magnitude of the IMU accelerometer vector exceeds this value,
+          the EKF accel bias state estimation will be inhibited. This reduces the
+          adverse effect of high manoeuvre accelerations and IMU nonlinerity and scale
+          factor errors on the accel bias estimates.
+      type: float
+      default: 25.0
+      min: 20.0
+      max: 200.0
+      unit: m/s^2
+      decimal: 1
+    EKF2_ABL_GYRLIM:
+      description:
+        short: Maximum IMU gyro angular rate magnitude that allows IMU bias learning
+        long: If the magnitude of the IMU angular rate vector exceeds this value,
+          the EKF accel bias state estimation will be inhibited. This reduces the
+          adverse effect of rapid rotation rates and associated errors on the accel
+          bias estimates.
+      type: float
+      default: 3.0
+      min: 2.0
+      max: 20.0
+      unit: rad/s
+      decimal: 1
+    EKF2_ABL_TAU:
+      description:
+        short: Time constant used by acceleration and angular rate magnitude checks
+          used to inhibit accel bias learning
+        long: The vector magnitude of angular rate and acceleration used to check
+          if learning should be inhibited has a peak hold filter applied to it with
+          an exponential decay. This parameter controls the time constant of the decay.
+      type: float
+      default: 0.5
+      min: 0.1
+      max: 1.0
+      unit: s
+      decimal: 2
+    EKF2_GYR_B_LIM:
+      description:
+        short: Gyro bias learning limit
+        long: The ekf gyro bias states will be limited to within a range equivalent
+          to +- of this value.
+      type: float
+      default: 0.15
+      min: 0.0
+      max: 0.4
+      unit: rad/s
+      decimal: 3
+    EKF2_REQ_GPS_H:
+      description:
+        short: Required GPS health time on startup
+        long: Minimum continuous period without GPS failure required to mark a healthy
+          GPS status. It can be reduced to speed up initialization, but it's recommended
+          to keep this unchanged for a vehicle.
+      type: float
+      default: 10.0
+      min: 0.1
+      decimal: 1
+      unit: s
+      reboot_required: true
+    EKF2_MAG_CHECK:
+      description:
+        short: Magnetic field strength test selection
+        long: 'Bitmask to set which check is used to decide whether the magnetometer
+          data is valid. If GNSS data is received, the magnetic field is compared
+          to a World Magnetic Model (WMM), otherwise an average value is used. This
+          check is useful to reject occasional hard iron disturbance. Set bits to
+          1 to enable checks. Checks enabled by the following bit positions 0 : Magnetic
+          field strength. Set tolerance using EKF2_MAG_CHK_STR 1 : Magnetic field
+          inclination. Set tolerance using EKF2_MAG_CHK_INC 2 : Wait for GNSS to find
+          the theoretical strength and inclination using the WMM'
+      type: bitmask
+      bit:
+        0: Strength (EKF2_MAG_CHK_STR)
+        1: Inclination (EKF2_MAG_CHK_INC)
+        2: Wait for WMM
+      default: 1
+      min: 0
+      max: 7
+    EKF2_MAG_CHK_STR:
+      description:
+        short: Magnetic field strength check tolerance
+        long: Maximum allowed deviation from the expected magnetic field strength
+          to pass the check.
+      type: float
+      default: 0.2
+      min: 0.0
+      max: 1.0
+      unit: gauss
+      decimal: 2
+    EKF2_MAG_CHK_INC:
+      description:
+        short: Magnetic field inclination check tolerance
+        long: Maximum allowed deviation from the expected magnetic field inclination
+          to pass the check.
+      type: float
+      default: 20.0
+      min: 0.0
+      max: 90.0
+      unit: deg
+      decimal: 1
+    EKF2_SYNT_MAG_Z:
+      description:
+        short: Enable synthetic magnetometer Z component measurement
+        long: Use for vehicles where the measured body Z magnetic field is subject
+          to strong magnetic interference. For magnetic heading fusion the magnetometer
+          Z measurement will be replaced by a synthetic value calculated using the
+          knowledge of the 3D magnetic field vector at the location of the drone.
+          Therefore, this parameter will only have an effect if the global position
+          of the drone is known. For 3D mag fusion the magnetometer Z measurement
+          will simply be ignored instead of fusing the synthetic value.
+      type: boolean
+      default: 0
+    EKF2_GSF_TAS:
+      description:
+        short: Default value of true airspeed used in EKF-GSF AHRS calculation
+        long: If no airspeed measurements are available, the EKF-GSF AHRS calculation
+          will assume this value of true airspeed when compensating for centripetal
+          acceleration during turns. Set to zero to disable centripetal acceleration
+          compensation during fixed wing flight modes.
+      type: float
+      default: 15.0
+      min: 0.0
+      unit: m/s
+      max: 100.0
+      decimal: 1
+    EKF2_AGP_CTRL:
+      description:
+        short: Aux global position (AGP) sensor aiding
+        long: 'Set bits in the following positions to enable: 0 : Horizontal position
+          fusion 1 : Vertical position fusion'
+      type: bitmask
+      bit:
+        0: Horizontal position
+        1: Vertical position
+      default: 1
+      min: 0
+      max: 3
+    EKF2_AGP_DELAY:
+      description:
+        short: Aux global position estimator delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_AGP_NOISE:
+      description:
+        short: Measurement noise for aux global position observations used to lower
+          bound or replace the uncertainty included in the message
+      type: float
+      default: 0.9
+      min: 0.01
+      unit: m
+      decimal: 2
+    EKF2_AGP_GATE:
+      description:
+        short: Gate size for aux global position fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1

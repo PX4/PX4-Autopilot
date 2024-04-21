@@ -245,10 +245,8 @@ void Tiltrotor::update_transition_state()
 
 		if (_param_fw_use_airspd.get()  && PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
 		    _airspeed_validated->calibrated_airspeed_m_s >= getBlendAirspeed()) {
-			const float weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - getBlendAirspeed()) /
-					     (getTransitionAirspeed()  - getBlendAirspeed());
-			_mc_roll_weight = weight;
-			_mc_yaw_weight = weight;
+			_mc_roll_weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - getBlendAirspeed()) /
+					  (getTransitionAirspeed()  - getBlendAirspeed());
 		}
 
 		// without airspeed do timed weight changes
@@ -256,7 +254,6 @@ void Tiltrotor::update_transition_state()
 		    _time_since_trans_start > getMinimumFrontTransitionTime()) {
 			_mc_roll_weight = 1.0f - (_time_since_trans_start - getMinimumFrontTransitionTime()) /
 					  (getOpenLoopFrontTransitionTime() - getMinimumFrontTransitionTime());
-			_mc_yaw_weight = _mc_roll_weight;
 		}
 
 		// add minimum throttle for front transition

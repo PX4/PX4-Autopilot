@@ -92,7 +92,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
-			if (!_vcontrol_mode.flag_control_climb_rate_enabled & _vcontrol_mode.flag_control_attitude_enabled) {
+			if (!_vcontrol_mode.flag_control_climb_rate_enabled && _vcontrol_mode.flag_control_attitude_enabled) {
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 
@@ -361,7 +361,7 @@ void FixedwingAttitudeControl::Run()
 
 					/* add yaw rate setpoint from sticks in all attitude-controlled modes */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
-						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_fw_y_rmax.get()),
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_man_yr_max.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 

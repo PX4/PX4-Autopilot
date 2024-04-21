@@ -46,13 +46,6 @@ FeasibilityChecker::FeasibilityChecker() :
 
 void FeasibilityChecker::reset()
 {
-
-	_is_landed = false;
-	_home_alt_msl = NAN;
-	_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	_current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	_vehicle_type = VehicleType::RotaryWing;
-
 	_mission_validity_failed = false;
 	_takeoff_failed = false;
 	_land_pattern_validity_failed = false;
@@ -86,10 +79,16 @@ void FeasibilityChecker::updateData()
 
 		if (home.valid_hpos) {
 			_home_lat_lon = matrix::Vector2d(home.lat, home.lon);
+
+		} else {
+			_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 		}
 
 		if (home.valid_alt) {
 			_home_alt_msl = home.alt;
+
+		} else {
+			_home_alt_msl = NAN;
 		}
 	}
 
@@ -588,7 +587,10 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 		break;
 
 	case 5:
-		if (!_is_landed && !_has_vtol_approach) {
+		if (_is_landed) {
+			result = hasMissionBothOrNeitherTakeoffAndLanding();
+
+		} else if (!_has_vtol_approach) {
 			result = _landing_valid;
 
 			if (!result) {
@@ -596,9 +598,6 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 				events::send(events::ID("feasibility_mis_in_air_landing_req"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: Landing waypoint/pattern required");
 			}
-
-		} else {
-			result = hasMissionBothOrNeitherTakeoffAndLanding();
 		}
 
 		break;

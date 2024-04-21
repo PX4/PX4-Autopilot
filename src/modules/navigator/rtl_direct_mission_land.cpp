@@ -52,6 +52,42 @@ RtlDirectMissionLand::RtlDirectMissionLand(Navigator *navigator) :
 
 }
 
+void
+RtlDirectMissionLand::updateDatamanCache()
+{
+	int32_t start_index;
+
+	start_index = math::min(_mission.land_start_index, static_cast<int32_t>(_mission.count));
+
+	if ((start_index >= 0) && (_mission.count > 0) && hasMissionLandStart() && (start_index != _load_mission_index)) {
+
+		int32_t end_index = static_cast<int32_t>(_mission.count);
+
+		// Check that we load all data into the cache
+		if (end_index - start_index > _dataman_cache_size_signed) {
+			_dataman_cache.invalidate();
+			_dataman_cache_size_signed = end_index - start_index;
+			_dataman_cache.resize(_dataman_cache_size_signed);
+		}
+
+		for (int32_t index = start_index; index != end_index; index += math::signNoZero(_dataman_cache_size_signed)) {
+
+			_dataman_cache.load(static_cast<dm_item_t>(_mission.mission_dataman_id), index);
+		}
+
+		_load_mission_index = start_index;
+	}
+
+	_dataman_cache.update();
+}
+
+void RtlDirectMissionLand::on_inactive()
+{
+	MissionBase::on_inactive();
+
+	updateDatamanCache();
+}
+
 void RtlDirectMissionLand::on_activation()
 {
 	_land_detected_sub.update();
@@ -62,13 +98,7 @@ void RtlDirectMissionLand::on_activation()
 	if (hasMissionLandStart()) {
 		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, false) == PX4_OK);
 
-		if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
-
-			// If lower than return altitude, climb up first.
-			// If enforce_rtl_alt is true then forcing altitude change even if above.
-			_needs_climbing = true;
-
-		}
+		_needs_climbing = checkNeedsToClimb();
 
 	} else {
 		_is_current_planned_mission_item_valid = false;
@@ -202,9 +232,171 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 {
-	rtl_time_estimate_s time_estimate;
-	time_estimate.valid = false;
-	time_estimate.timestamp = hrt_absolute_time();
+	_rtl_time_estimator.update();
+	_rtl_time_estimator.reset();
 
-	return time_estimate;
+	if (_mission.count > 0 && hasMissionLandStart()) {
+		int32_t start_item_index{-1};
+		bool is_in_climbing_submode{false};
+
+		if (isActive()) {
+			start_item_index = math::max(_mission.current_seq, _mission.land_start_index);
+			is_in_climbing_submode = _needs_climbing;
+
+		} else {
+			start_item_index = _mission.land_start_index;
+			is_in_climbing_submode = checkNeedsToClimb();
+		}
+
+		if (start_item_index >= 0 && start_item_index < static_cast<int32_t>(_mission.count)) {
+			float altitude_at_calculation_point;
+			matrix::Vector2d hor_position_at_calculation_point{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
+
+			if (is_in_climbing_submode) {
+				if (_enforce_rtl_alt) {
+					_rtl_time_estimator.addVertDistance(_rtl_alt - _global_pos_sub.get().alt);
+					altitude_at_calculation_point = _rtl_alt;
+
+				} else {
+					if (_global_pos_sub.get().alt < _rtl_alt) {
+						_rtl_time_estimator.addVertDistance(_rtl_alt - _global_pos_sub.get().alt);
+					}
+
+					altitude_at_calculation_point = math::max(_rtl_alt, _global_pos_sub.get().alt);
+				}
+
+			} else {
+				altitude_at_calculation_point = _global_pos_sub.get().alt;
+			}
+
+			while (start_item_index < _mission.count && start_item_index >= 0) {
+				int32_t next_mission_item_index;
+				size_t num_found_items{0U};
+				getNextPositionItems(start_item_index, &next_mission_item_index, num_found_items, 1U);
+
+				if (num_found_items > 0U) {
+					mission_item_s next_position_mission_item;
+					const dm_item_t dataman_id = static_cast<dm_item_t>(_mission.mission_dataman_id);
+					bool success = _dataman_cache.loadWait(dataman_id, next_mission_item_index,
+									       reinterpret_cast<uint8_t *>(&next_position_mission_item), sizeof(next_position_mission_item), MAX_DATAMAN_LOAD_WAIT);
+
+					if (!success) {
+						// Could not load the mission item, mark time estimate as invalid.
+						_rtl_time_estimator.reset();
+						break;
+					}
+
+					switch (next_position_mission_item.nav_cmd) {
+					case NAV_CMD_LOITER_UNLIMITED: {
+							_rtl_time_estimator.reset();
+							break;
+						}
+
+					case NAV_CMD_LOITER_TIME_LIMIT: {
+							// Go to loiter
+							matrix::Vector2f direction{};
+							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
+										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+
+							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+
+							_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
+
+							// add time
+							_rtl_time_estimator.addWait(next_position_mission_item.time_inside);
+							break;
+						}
+
+					case NAV_CMD_LOITER_TO_ALT: {
+							// Go to point horizontally
+							matrix::Vector2f direction{};
+							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
+										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+
+							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+
+							_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
+
+							// Add the vertical loiter
+							_rtl_time_estimator.addVertDistance(get_absolute_altitude_for_item(next_position_mission_item) -
+											    altitude_at_calculation_point);
+
+							break;
+						}
+
+					case NAV_CMD_LAND: // Fallthrough
+					case NAV_CMD_VTOL_LAND: {
+
+							matrix::Vector2f direction{};
+							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
+										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+
+							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+
+							// For fixed wing, add diagonal line
+							if ((_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+							    && (!_vehicle_status_sub.get().is_vtol)) {
+
+
+								_rtl_time_estimator.addDistance(hor_dist, direction,
+												get_absolute_altitude_for_item(next_position_mission_item) - altitude_at_calculation_point);
+
+							} else {
+								// For VTOL, Rotary, go there horizontally first, then land
+								_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
+
+								_rtl_time_estimator.addDescendMCLand(get_absolute_altitude_for_item(next_position_mission_item) -
+												     altitude_at_calculation_point);
+							}
+
+							break;
+						}
+
+					default: {
+							// Default assume can go to the location directly
+							matrix::Vector2f direction{};
+							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
+										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
+
+							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+
+							_rtl_time_estimator.addDistance(hor_dist, direction,
+											get_absolute_altitude_for_item(next_position_mission_item) - altitude_at_calculation_point);
+							break;
+						}
+					}
+
+					start_item_index = next_mission_item_index + 1;
+					hor_position_at_calculation_point(0) = next_position_mission_item.lat;
+					hor_position_at_calculation_point(1) = next_position_mission_item.lon;
+					altitude_at_calculation_point = get_absolute_altitude_for_item(next_position_mission_item);
+
+
+				} else {
+					start_item_index = -1;
+				}
+			}
+		}
+	}
+
+	return _rtl_time_estimator.getEstimate();
+}
+
+bool RtlDirectMissionLand::checkNeedsToClimb()
+{
+	bool needs_climbing{false};
+
+	if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
+
+		// If lower than return altitude, climb up first.
+		// If enforce_rtl_alt is true then forcing altitude change even if above.
+		needs_climbing = true;
+
+	}
+
+	return needs_climbing;
 }

@@ -191,11 +191,15 @@ TEST_F(MixerModuleTest, basic)
 	mixing_output.setAllMaxValues(MAX_VALUE);
 	EXPECT_EQ(test_module.num_updates, 0);
 
-	// all functions disabled: not expected to get an update
+	// all functions disabled: expect to get one single update to process disabling the output signal
 	mixing_output.update();
 	mixing_output.updateSubscriptions(false);
 	mixing_output.update();
-	EXPECT_EQ(test_module.num_updates, 0);
+	EXPECT_EQ(test_module.num_updates, 1);
+	mixing_output.update();
+	mixing_output.updateSubscriptions(false);
+	mixing_output.update();
+	EXPECT_EQ(test_module.num_updates, 1);
 	test_module.reset();
 
 	// configure motor, ensure all still disarmed

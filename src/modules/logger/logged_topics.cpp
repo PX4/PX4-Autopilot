@@ -53,6 +53,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("autotune_attitude_control_status", 100);
 	add_optional_topic("camera_capture");
 	add_optional_topic("camera_trigger");
+	add_optional_topic("can_interface_status", 10);
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
 	add_topic("config_overrides");
@@ -102,7 +103,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_topic("rtl_time_estimate", 1000);
-	add_optional_topic("rtl_status", 5000);
+	add_topic("rtl_status", 2000);
 	add_optional_topic("sensor_airflow", 100);
 	add_topic("sensor_combined");
 	add_optional_topic("sensor_correction");
@@ -144,6 +145,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
 	add_optional_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("rpm", 200);
+	add_topic_multi("timesync_status", 1000, 3);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
 	// EKF multi topics (currently max 9 estimators)
@@ -203,7 +205,6 @@ void LoggedTopics::add_default_topics()
 	// add_optional_topic_multi("estimator_aid_src_gnss_yaw", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_gnss_vel", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_gnss_pos", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_mag_heading", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_mag", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_terrain_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
@@ -296,7 +297,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_aid_src_gnss_vel", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_gnss_yaw", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_gravity", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_mag_heading", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_mag", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_terrain_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
@@ -317,7 +317,9 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
 
+	add_topic("esc_status", 5);
 	add_topic("actuator_motors");
+	add_topic("actuator_outputs_debug");
 	add_topic("actuator_servos");
 	add_topic_multi("vehicle_thrust_setpoint", 0, 2);
 	add_topic_multi("vehicle_torque_setpoint", 0, 2);

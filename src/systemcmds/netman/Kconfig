@@ -1,6 +1,7 @@
 menuconfig SYSTEMCMDS_NETMAN
 	bool "netman"
 	default n
+	depends on PLATFORM_NUTTX
 	---help---
 		Enable support for netman
 

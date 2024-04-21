@@ -55,7 +55,7 @@ public:
 	void SetUp() override
 	{
 		// ensure topic exists, otherwise we might lose first queued events
-		orb_advertise_queue(ORB_ID(event), nullptr, event_s::ORB_QUEUE_LENGTH);
+		orb_advertise(ORB_ID(event), nullptr);
 	}
 
 };

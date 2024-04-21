@@ -55,7 +55,7 @@ public:
 		_cdr_ops(ops)
 	{
 		int instance = 0;
-		_uorb_pub_handle = orb_advertise_multi_queue(_uorb_meta, nullptr, &instance, 1); //FIXME template magic qsize
+		_uorb_pub_handle = orb_advertise_multi(_uorb_meta, nullptr, &instance);
 	};
 
 	~uORB_Zenoh_Subscriber() override = default;

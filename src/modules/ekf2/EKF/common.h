@@ -95,8 +95,7 @@ enum class VelocityFrame : uint8_t {
 enum GeoDeclinationMask : uint8_t {
 	// Bit locations for mag_declination_source
 	USE_GEO_DECL  = (1<<0), ///< set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
-	SAVE_GEO_DECL = (1<<1), ///< set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
-	FUSE_DECL     = (1<<2)  ///< set to true if the declination is always fused as an observation to constrain drift when 3-axis fusion is performed
+	SAVE_GEO_DECL = (1<<1)  ///< set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
 };
 
 enum MagFuseType : uint8_t {
@@ -266,7 +265,7 @@ struct parameters {
 	int32_t height_sensor_ref{static_cast<int32_t>(HeightSensor::BARO)};
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
 
-	int32_t sensor_interval_max_ms{10};     ///< maximum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
+	float delay_max_ms{110.f};              ///< maximum time delay of all the aiding sensors. Sets the size of the observation buffers. (mSec)
 
 	// input noise
 	float gyro_noise{1.5e-2f};              ///< IMU angular rate noise used for covariance prediction (rad/sec)
@@ -361,10 +360,9 @@ struct parameters {
 	float mag_noise{5.0e-2f};               ///< measurement noise used for 3-axis magnetometer fusion (Gauss)
 	float mag_declination_deg{0.0f};        ///< magnetic declination (degrees)
 	float mag_innov_gate{3.0f};             ///< magnetometer fusion innovation consistency gate size (STD)
-	int32_t mag_declination_source{7};      ///< bitmask used to control the handling of declination data
+	int32_t mag_declination_source{3};      ///< bitmask used to control the handling of declination data
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
-	float mag_yaw_rate_gate{0.20f};         ///< yaw rate threshold used by mode select logic (rad/sec)
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
@@ -509,15 +507,9 @@ union fault_status_u {
 		bool bad_sideslip      : 1; ///< 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
 		bool bad_optflow_X     : 1; ///< 7 - true if fusion of the optical flow X axis has encountered a numerical error
 		bool bad_optflow_Y     : 1; ///< 8 - true if fusion of the optical flow Y axis has encountered a numerical error
-		bool bad_vel_N         : 1; ///< 9 - true if fusion of the North velocity has encountered a numerical error
-		bool bad_vel_E         : 1; ///< 10 - true if fusion of the East velocity has encountered a numerical error
-		bool bad_vel_D         : 1; ///< 11 - true if fusion of the Down velocity has encountered a numerical error
-		bool bad_pos_N         : 1; ///< 12 - true if fusion of the North position has encountered a numerical error
-		bool bad_pos_E         : 1; ///< 13 - true if fusion of the East position has encountered a numerical error
-		bool bad_pos_D         : 1; ///< 14 - true if fusion of the Down position has encountered a numerical error
-		bool bad_acc_bias      : 1; ///< 15 - true if bad delta velocity bias estimates have been detected
-		bool bad_acc_vertical  : 1; ///< 16 - true if bad vertical accelerometer data has been detected
-		bool bad_acc_clipping  : 1; ///< 17 - true if delta velocity data contains clipping (asymmetric railing)
+		bool bad_acc_bias      : 1; ///< 9 - true if bad delta velocity bias estimates have been detected
+		bool bad_acc_vertical  : 1; ///< 10 - true if bad vertical accelerometer data has been detected
+		bool bad_acc_clipping  : 1; ///< 11 - true if delta velocity data contains clipping (asymmetric railing)
 	} flags;
 	uint32_t value;
 };

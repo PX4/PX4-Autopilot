@@ -3,7 +3,7 @@
 # board specific MAVLink startup script.
 #------------------------------------------------------------------------------
 
-if ver hwbasecmp 008 009 00a 010
+if ver hwbasecmp 008 009 00a 010 011
 then
 	# Start MAVLink on the UART connected to the mission computer
 	mavlink start -d /dev/ttyS4 -b 3000000 -r 290000 -m onboard_low_bandwidth -x -z

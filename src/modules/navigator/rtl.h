@@ -97,6 +97,11 @@ private:
 	};
 
 private:
+
+	/**
+	 * @brief Check mission landing validity
+	 * @return true if mission has a land start, a land and is valid
+	 */
 	bool hasMissionLandStart() const;
 
 	/**
@@ -105,6 +110,12 @@ private:
 	void updateDatamanCache();
 
 	void setRtlTypeAndDestination();
+
+	/**
+	 * @brief Publish the remaining time estimate to go to the RTL landing point.
+	 *
+	 */
+	void publishRemainingTimeEstimate();
 
 	/**
 	 * @brief Find RTL destination.
