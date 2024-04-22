@@ -34,9 +34,9 @@
 /**
  * @file ActuatorEffectivenessThrusters.hpp
  *
- * Actuator effectiveness computed from rotors position and orientation
+ * Actuator effectiveness computed from thrusters position and orientation
  *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ * @author Pedro Roque, <padr@kth.se>
  */
 
 #pragma once
@@ -60,23 +60,17 @@ public:
 		FixedUpwards, ///< axis is fixed, pointing upwards (negative Z)
 	};
 
-	static constexpr int NUM_ROTORS_MAX = 12;
+	static constexpr int NUM_THRUSTERS_MAX = 12;
 
-	struct RotorGeometry {
+	struct ThrusterGeometry {
 		matrix::Vector3f position;
 		matrix::Vector3f axis;
 		float thrust_coef;
-		float moment_ratio;
-		int tilt_index;
 	};
 
 	struct Geometry {
-		RotorGeometry rotors[NUM_ROTORS_MAX];
-		int num_rotors{0};
-		bool propeller_torque_disabled{false};
-		bool yaw_by_differential_thrust_disabled{false};
-		bool propeller_torque_disabled_non_upwards{false}; ///< keeps propeller torque enabled for upward facing motors
-		bool three_dimensional_thrust_disabled{false}; ///< for handling of tiltrotor VTOL, as they pass in 1D thrust and collective tilt
+		ThrusterGeometry thrusters[NUM_THRUSTERS_MAX];
+		int num_thrusters{0};
 	};
 
 	ActuatorEffectivenessThrusters(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
@@ -87,11 +81,12 @@ public:
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
-		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
-	}
+          allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;  // TODO(@Jaeyoung-Lim): needs to be updated based on metric mixer
+        }
 
 	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
 	{
+		// TODO(@Jaeyoung-Lim): needs to be updated based on metric mixer
 		normalize[0] = true;
 	}
 
@@ -100,35 +95,11 @@ public:
 
 	bool addActuators(Configuration &configuration);
 
-	const char *name() const override { return "Rotors"; }
-
-	/**
-	 * Sets the motor axis from tilt configurations and current tilt control.
-	 * @param tilts configured tilt servos
-	 * @param tilt_control current tilt control in [-1, 1] (can be NAN)
-	 * @return the motors as bitset which are not tiltable
-	 */
-	uint32_t updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control);
+	const char *name() const override { return "Thrusters"; }
 
 	const Geometry &geometry() const { return _geometry; }
 
-	/**
-	 * Get the tilted axis {0, 0, -1} rotated by -tilt_angle around y, then
-	 * rotated by tilt_direction around z.
-	 */
-	static matrix::Vector3f tiltedAxis(float tilt_angle, float tilt_direction);
-
-	void enablePropellerTorque(bool enable) { _geometry.propeller_torque_disabled = !enable; }
-
-	void enableYawByDifferentialThrust(bool enable) { _geometry.yaw_by_differential_thrust_disabled = !enable; }
-
-	void enablePropellerTorqueNonUpwards(bool enable) { _geometry.propeller_torque_disabled_non_upwards = !enable; }
-
-	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
-
-	uint32_t getMotors() const;
-	uint32_t getUpwardsMotors() const;
-	uint32_t getForwardsMotors() const;
+	uint32_t getThrusters() const;
 
 private:
 	void updateParams() override;
@@ -143,10 +114,8 @@ private:
 		param_t axis_y;
 		param_t axis_z;
 		param_t thrust_coef;
-		param_t moment_ratio;
-		param_t tilt_index;
 	};
-	ParamHandles _param_handles[NUM_ROTORS_MAX];
+	ParamHandles _param_handles[NUM_THRUSTERS_MAX];
 	param_t _count_handle;
 
 	Geometry _geometry{};
