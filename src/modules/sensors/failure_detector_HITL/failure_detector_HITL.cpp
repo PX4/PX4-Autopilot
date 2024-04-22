@@ -155,9 +155,14 @@ bool FailureDetectorHITL::update()
 	return update;
 }
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-bool FailureDetectorHITL::isGpsBlocked() const
+bool FailureDetectorHITL::isGpsOk() const
 {
-	return FailureStatus::ok != _gps;
+	return FailureStatus::ok == _gps;
+}
+
+bool FailureDetectorHITL::isGpsOff() const
+{
+	return FailureStatus::off == _gps;
 }
 
 bool FailureDetectorHITL::isGpsStuck() const
@@ -167,9 +172,14 @@ bool FailureDetectorHITL::isGpsStuck() const
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-bool FailureDetectorHITL::isBaroBlocked() const
+bool FailureDetectorHITL::isBaroOk() const
 {
-	return FailureStatus::ok != _baro;
+	return FailureStatus::ok == _baro;
+}
+
+bool FailureDetectorHITL::isBaroOff() const
+{
+	return FailureStatus::off == _baro;
 }
 
 bool FailureDetectorHITL::isBaroStuck() const
@@ -179,9 +189,14 @@ bool FailureDetectorHITL::isBaroStuck() const
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
-bool FailureDetectorHITL::isMagBlocked() const
+bool FailureDetectorHITL::isMagOk() const
 {
-	return FailureStatus::ok != _mag;
+	return FailureStatus::ok == _mag;
+}
+
+bool FailureDetectorHITL::isMagOff() const
+{
+	return FailureStatus::off == _mag;
 }
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
@@ -210,13 +225,3 @@ void FakeSensors::update(const FailureDetectorHITL &detector)
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 }
 
-void FakeSensors::turnOffAll()
-{
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	_fake_gps_publisher.setEnabled(false);
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
-
-#if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-	_fake_baro_publisher.setEnabled(false);
-#endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
-}

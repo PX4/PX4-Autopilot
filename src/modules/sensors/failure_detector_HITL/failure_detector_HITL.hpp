@@ -76,17 +76,20 @@ public:
 	bool update();
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	bool isGpsBlocked() const;
+	bool isGpsOk() const;
+	bool isGpsOff() const;
 	bool isGpsStuck() const;
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-	bool isBaroBlocked() const;
+	bool isBaroOk() const;
+	bool isBaroOff() const;
 	bool isBaroStuck() const;
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
-	bool isMagBlocked() const;
+	bool isMagOk() const;
+	bool isMagOff() const;
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
 private:
@@ -161,22 +164,19 @@ public:
 		Deinit();
 	}
 
-	void setEnabled(bool enable)
+	void setEnabled(bool enabled)
 	{
 		pthread_mutex_lock(&_mutex);
 
-		if (_enable && !enable) {
+		if (_enabled && !enabled) {
 			delete _sensor_pub;
 
-		} else if (!_enable && enable) {
+		} else if (!_enabled && enabled) {
 			_sensor_pub = new uORB::Publication<sensorsData>(meta_);
-			_sensor_pub->advertise();
 		}
 
-		if (_enable != enable) {
-			PX4_INFO("Fake stuck sensor %s was enabled with status %d ", meta_->o_name, enable);
-			_enable = enable;
-		}
+		PX4_INFO("Fake stuck sensor %s was %s", meta_->o_name, enabled ? "enabled" : "disabled");
+		_enabled = enabled;
 
 		pthread_mutex_unlock(&_mutex);
 	}
@@ -191,7 +191,8 @@ private:
 
 		pthread_mutex_lock(&_mutex);
 
-		if (_enable && _first_init) {
+		if (_enabled && _first_init) {
+			_last_output.timestamp = hrt_absolute_time();
 			_sensor_pub->publish(_last_output);
 		}
 
@@ -206,7 +207,7 @@ private:
 	uORB::Subscription _sensor_sub {};
 
 	const orb_metadata *meta_;
-	bool _enable{};
+	bool _enabled{};
 	bool _first_init{}; /**< Flag indicating whether the sensor has been initialized for the first time. */
 	sensorsData _last_output{};
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -230,12 +231,6 @@ public:
 	 * @brief Updates states of the fake sensors with data from the failure detector.
 	 */
 	void update(const FailureDetectorHITL &detector);
-
-	/**
-	 * @brief Turn off all sensors.
-	 * @note It is required doing befor run original sensors.
-	 */
-	void turnOffAll();
 private:
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
