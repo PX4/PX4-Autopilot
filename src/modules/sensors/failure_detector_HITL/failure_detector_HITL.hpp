@@ -129,17 +129,23 @@ template <typename sensorsData>
 class FakeStuckSensor final: public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	FakeStuckSensor(ORB_ID id):
+	/**
+	 * @brief Constructor for FakeStuckSensor class.
+	 * @param meta ORB object metadata for the sensor data topic.
+	 */
+	FakeStuckSensor(const orb_metadata *meta):
 		ModuleParams(nullptr),
 		ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-		_sensor_pub(id),
-		_sensor_sub(id)
+		_sensor_sub(meta),
+		meta_(meta)
 	{
-		_sensor_pub.advertise();
+		pthread_mutex_init(&_mutex, nullptr);
+		PX4_INFO("Fake stuck sensor %s:id(%d) was created with ", meta->o_name, meta->o_id);
 	}
 
 	~FakeStuckSensor() override
 	{
+		setEnabled(false);
 		stop();
 		perf_free(_cycle_perf);
 	}
@@ -157,7 +163,22 @@ public:
 
 	void setEnabled(bool enable)
 	{
-		_enable = enable;
+		pthread_mutex_lock(&_mutex);
+
+		if (_enable && !enable) {
+			delete _sensor_pub;
+
+		} else if (!_enable && enable) {
+			_sensor_pub = new uORB::Publication<sensorsData>(meta_);
+			_sensor_pub->advertise();
+		}
+
+		if (_enable != enable) {
+			PX4_INFO("Fake stuck sensor %s was enabled with status %d ", meta_->o_name, enable);
+			_enable = enable;
+		}
+
+		pthread_mutex_unlock(&_mutex);
 	}
 private:
 	void Run() override
@@ -168,22 +189,28 @@ private:
 			_first_init = true;
 		}
 
+		pthread_mutex_lock(&_mutex);
+
 		if (_enable && _first_init) {
-			_sensor_pub.publish(_last_output);
+			_sensor_pub->publish(_last_output);
 		}
+
+		pthread_mutex_unlock(&_mutex);
 
 		ScheduleDelayed(300_ms); // backup schedule
 
 		perf_end(_cycle_perf);
 	}
 
-	uORB::Publication<sensorsData> _sensor_pub {};
+	uORB::Publication<sensorsData> *_sensor_pub {};
 	uORB::Subscription _sensor_sub {};
 
-	bool _enable {};
-	bool _first_init {}; /**< Flag indicating whether the sensor has been initialized for the first time. */
-	sensorsData _last_output {};
-	perf_counter_t _cycle_perf {perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	const orb_metadata *meta_;
+	bool _enable{};
+	bool _first_init{}; /**< Flag indicating whether the sensor has been initialized for the first time. */
+	sensorsData _last_output{};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	pthread_mutex_t	_mutex {};
 };
 
 }
@@ -203,13 +230,19 @@ public:
 	 * @brief Updates states of the fake sensors with data from the failure detector.
 	 */
 	void update(const FailureDetectorHITL &detector);
+
+	/**
+	 * @brief Turn off all sensors.
+	 * @note It is required doing befor run original sensors.
+	 */
+	void turnOffAll();
 private:
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-	sensors::FakeStuckSensor<vehicle_air_data_s> _fake_baro_publisher {ORB_ID::vehicle_air_data};
+	sensors::FakeStuckSensor<vehicle_air_data_s> _fake_baro_publisher {ORB_ID(vehicle_air_data)};
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-	sensors::FakeStuckSensor<sensor_gps_s> _fake_gps_publisher {ORB_ID::vehicle_gps_position};
+	sensors::FakeStuckSensor<sensor_gps_s> _fake_gps_publisher {ORB_ID(vehicle_gps_position)};
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 };

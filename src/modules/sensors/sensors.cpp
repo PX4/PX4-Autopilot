@@ -162,6 +162,8 @@ bool Sensors::init()
 int Sensors::parameters_update()
 {
 	if (_hil_enabled) {
+		_fakeSensors.turnOffAll();
+
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 		InitializeVehicleGPSPosition();
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
