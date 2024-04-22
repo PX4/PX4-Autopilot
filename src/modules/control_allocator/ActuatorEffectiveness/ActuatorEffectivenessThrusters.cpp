@@ -68,7 +68,6 @@ ActuatorEffectivenessThrusters::ActuatorEffectivenessThrusters(ModuleParams *par
 
 		snprintf(buffer, sizeof(buffer), "CA_THRUSTER%u_CT", i);
 		_param_handles[i].thrust_coef = param_find(buffer);
-		PX4_INFO("Found param for thruster %u", i);
 
 		if (_tilt_support) {
 			PX4_ERR("Tilt support not implemented");
@@ -94,30 +93,22 @@ void ActuatorEffectivenessThrusters::updateParams()
 	_geometry.num_thrusters = math::min(NUM_THRUSTERS_MAX, (int)count);
 
 	for (int i = 0; i < _geometry.num_thrusters; ++i) {
-		PX4_INFO("Updating thruster %d", i);
 		Vector3f &position = _geometry.thrusters[i].position;
 		param_get(_param_handles[i].position_x, &position(0));
-		PX4_INFO("Position x");
 		param_get(_param_handles[i].position_y, &position(1));
-		PX4_INFO("Position y");
 		param_get(_param_handles[i].position_z, &position(2));
-		PX4_INFO("Position x");
 
 		Vector3f &axis = _geometry.thrusters[i].axis;
 
 		switch (_axis_config) {
 			case AxisConfiguration::Configurable:
 				param_get(_param_handles[i].axis_x, &axis(0));
-				PX4_INFO("Axis x");
 				param_get(_param_handles[i].axis_y, &axis(1));
-				PX4_INFO("Axis y");
 				param_get(_param_handles[i].axis_z, &axis(2));
-				PX4_INFO("Axis z");
 				break;
 			}
 
 		param_get(_param_handles[i].thrust_coef, &_geometry.thrusters[i].thrust_coef);
-		PX4_INFO("Thrust coef: ");
 	}
 }
 
@@ -128,7 +119,6 @@ ActuatorEffectivenessThrusters::addActuators(Configuration &configuration)
 		PX4_ERR("Wrong actuator ordering: servos need to be after motors");
 		return false;
 	}
-	PX4_INFO("Adding thrusters...");
 	int num_actuators = computeEffectivenessMatrix(_geometry,
 			    configuration.effectiveness_matrices[configuration.selected_matrix],
 			    configuration.num_actuators_matrix[configuration.selected_matrix]);

@@ -86,6 +86,7 @@ public:
 	static constexpr int NUM_AXES = ControlAllocation::NUM_AXES;
 
 	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
+	static constexpr int MAX_NUM_THRUSTERS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
