@@ -209,3 +209,14 @@ void FakeSensors::update(const FailureDetectorHITL &detector)
 	_fake_baro_publisher.setEnabled(detector.isBaroStuck());
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 }
+
+void FakeSensors::turnOffAll()
+{
+#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
+	_fake_gps_publisher.setEnabled(false);
+#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+
+#if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
+	_fake_baro_publisher.setEnabled(false);
+#endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
+}
