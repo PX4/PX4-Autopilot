@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ActuatorEffectivenessRotors.hpp
+ * @file ActuatorEffectivenessThrusters.hpp
  *
  * Actuator effectiveness computed from rotors position and orientation
  *
@@ -51,7 +51,7 @@ class ActuatorEffectivenessTilts;
 
 using namespace time_literals;
 
-class ActuatorEffectivenessRotors : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessThrusters : public ModuleParams, public ActuatorEffectiveness
 {
 public:
 	enum class AxisConfiguration {
@@ -79,9 +79,9 @@ public:
 		bool three_dimensional_thrust_disabled{false}; ///< for handling of tiltrotor VTOL, as they pass in 1D thrust and collective tilt
 	};
 
-	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
+	ActuatorEffectivenessThrusters(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
 				    bool tilt_support = false);
-	virtual ~ActuatorEffectivenessRotors() = default;
+	virtual ~ActuatorEffectivenessThrusters() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
