@@ -75,7 +75,7 @@ SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
 	// populate obstacle map members
 	_obstacle_map_msg.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
 	_obstacle_map_msg.increment = 5;
-	_obstacle_map_msg.angle_offset = -2.5;
+	_obstacle_map_msg.angle_offset = 2.5;
 	_obstacle_map_msg.min_distance = UINT16_MAX;
 	_obstacle_map_msg.max_distance = 5000;
 
@@ -663,12 +663,13 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 
 			}
 
-			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
-			
 			// The sensor is facing downward, so the sensor is flipped about it's x-axis -inverse of each yaw angle
 			if (_orient_cfg == 1) {
 				raw_yaw = raw_yaw * -1;
 			}
+
+			// SF45/B product guide {Data output bit: 8 Description: "Yaw angle [1/100 deg] size: int16}"
+			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
 
 			switch (_yaw_cfg) {
 			case 0:
