@@ -62,11 +62,11 @@
 
 using namespace time_literals;
 
-class SpacesystemsRateControl : public ModuleBase<SpacesystemsRateControl>, public ModuleParams, public px4::WorkItem
+class SpacecraftRateControl : public ModuleBase<SpacecraftRateControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-	SpacesystemsRateControl(bool vtol = false);
-	~SpacesystemsRateControl() override;
+	SpacecraftRateControl(bool vtol = false);
+	~SpacecraftRateControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -130,35 +130,35 @@ private:
 	float _control_energy[4] {};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
-		(ParamFloat<px4::params::MC_ROLLRATE_I>) _param_mc_rollrate_i,
-		(ParamFloat<px4::params::MC_RR_INT_LIM>) _param_mc_rr_int_lim,
-		(ParamFloat<px4::params::MC_ROLLRATE_D>) _param_mc_rollrate_d,
-		(ParamFloat<px4::params::MC_ROLLRATE_FF>) _param_mc_rollrate_ff,
-		(ParamFloat<px4::params::MC_ROLLRATE_K>) _param_mc_rollrate_k,
+		(ParamFloat<px4::params::SC_ROLLRATE_P>) _param_sc_rollrate_p,
+		(ParamFloat<px4::params::SC_ROLLRATE_I>) _param_sc_rollrate_i,
+		(ParamFloat<px4::params::SC_RR_INT_LIM>) _param_sc_rr_int_lim,
+		(ParamFloat<px4::params::SC_ROLLRATE_D>) _param_sc_rollrate_d,
+		(ParamFloat<px4::params::SC_ROLLRATE_FF>) _param_sc_rollrate_ff,
+		(ParamFloat<px4::params::SC_ROLLRATE_K>) _param_sc_rollrate_k,
 
-		(ParamFloat<px4::params::MC_PITCHRATE_P>) _param_mc_pitchrate_p,
-		(ParamFloat<px4::params::MC_PITCHRATE_I>) _param_mc_pitchrate_i,
-		(ParamFloat<px4::params::MC_PR_INT_LIM>) _param_mc_pr_int_lim,
-		(ParamFloat<px4::params::MC_PITCHRATE_D>) _param_mc_pitchrate_d,
-		(ParamFloat<px4::params::MC_PITCHRATE_FF>) _param_mc_pitchrate_ff,
-		(ParamFloat<px4::params::MC_PITCHRATE_K>) _param_mc_pitchrate_k,
+		(ParamFloat<px4::params::SC_PITCHRATE_P>) _param_sc_pitchrate_p,
+		(ParamFloat<px4::params::SC_PITCHRATE_I>) _param_sc_pitchrate_i,
+		(ParamFloat<px4::params::SC_PR_INT_LIM>) _param_sc_pr_int_lim,
+		(ParamFloat<px4::params::SC_PITCHRATE_D>) _param_sc_pitchrate_d,
+		(ParamFloat<px4::params::SC_PITCHRATE_FF>) _param_sc_pitchrate_ff,
+		(ParamFloat<px4::params::SC_PITCHRATE_K>) _param_sc_pitchrate_k,
 
-		(ParamFloat<px4::params::MC_YAWRATE_P>) _param_mc_yawrate_p,
-		(ParamFloat<px4::params::MC_YAWRATE_I>) _param_mc_yawrate_i,
-		(ParamFloat<px4::params::MC_YR_INT_LIM>) _param_mc_yr_int_lim,
-		(ParamFloat<px4::params::MC_YAWRATE_D>) _param_mc_yawrate_d,
-		(ParamFloat<px4::params::MC_YAWRATE_FF>) _param_mc_yawrate_ff,
-		(ParamFloat<px4::params::MC_YAWRATE_K>) _param_mc_yawrate_k,
+		(ParamFloat<px4::params::SC_YAWRATE_P>) _param_sc_yawrate_p,
+		(ParamFloat<px4::params::SC_YAWRATE_I>) _param_sc_yawrate_i,
+		(ParamFloat<px4::params::SC_YR_INT_LIM>) _param_sc_yr_int_lim,
+		(ParamFloat<px4::params::SC_YAWRATE_D>) _param_sc_yawrate_d,
+		(ParamFloat<px4::params::SC_YAWRATE_FF>) _param_sc_yawrate_ff,
+		(ParamFloat<px4::params::SC_YAWRATE_K>) _param_sc_yawrate_k,
 
-		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _param_mc_acro_r_max,
-		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _param_mc_acro_p_max,
-		(ParamFloat<px4::params::MC_ACRO_Y_MAX>) _param_mc_acro_y_max,
-		(ParamFloat<px4::params::MC_ACRO_EXPO>) _param_mc_acro_expo,			/**< expo stick curve shape (roll & pitch) */
-		(ParamFloat<px4::params::MC_ACRO_EXPO_Y>) _param_mc_acro_expo_y,				/**< expo stick curve shape (yaw) */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
+		(ParamFloat<px4::params::SC_ACRO_R_MAX>) _param_sc_acro_r_max,
+		(ParamFloat<px4::params::SC_ACRO_P_MAX>) _param_sc_acro_p_max,
+		(ParamFloat<px4::params::SC_ACRO_Y_MAX>) _param_sc_acro_y_max,
+		(ParamFloat<px4::params::SC_ACRO_EXPO>) _param_sc_acro_expo,			/**< expo stick curve shape (roll & pitch) */
+		(ParamFloat<px4::params::SC_ACRO_EXPO_Y>) _param_sc_acro_expo_y,				/**< expo stick curve shape (yaw) */
+		(ParamFloat<px4::params::SC_ACRO_SUPEXPO>) _param_sc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
+		(ParamFloat<px4::params::SC_ACRO_SUPEXPOY>) _param_sc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en
+		(ParamBool<px4::params::SC_BAT_SCALE_EN>) _param_sc_bat_scale_en
 	)
 };

@@ -43,7 +43,7 @@ using namespace matrix;
 using namespace time_literals;
 using math::radians;
 
-SpacesystemsRateControl::SpacesystemsRateControl(bool vtol)
+SpacecraftRateControl::SpacecraftRateControl(bool vtol)
     : ModuleParams(nullptr),
       WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
       _vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_mc) : ORB_ID(vehicle_torque_setpoint)),
@@ -55,9 +55,9 @@ SpacesystemsRateControl::SpacesystemsRateControl(bool vtol)
   _controller_status_pub.advertise();
 }
 
-SpacesystemsRateControl::~SpacesystemsRateControl() { perf_free(_loop_perf); }
+SpacecraftRateControl::~SpacecraftRateControl() { perf_free(_loop_perf); }
 
-bool SpacesystemsRateControl::init() {
+bool SpacecraftRateControl::init() {
   if (!_vehicle_angular_velocity_sub.registerCallback()) {
     PX4_ERR("callback registration failed");
     return false;
@@ -66,29 +66,29 @@ bool SpacesystemsRateControl::init() {
   return true;
 }
 
-void SpacesystemsRateControl::parameters_updated() {
+void SpacecraftRateControl::parameters_updated() {
   // rate control parameters
   // The controller gain K is used to convert the parallel (P + I/s + sD) form
   // to the ideal (K * [1 + 1/sTi + sTd]) form
-  const Vector3f rate_k = Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
+  const Vector3f rate_k = Vector3f(_param_sc_rollrate_k.get(), _param_sc_pitchrate_k.get(), _param_sc_yawrate_k.get());
 
   _rate_control.setPidGains(
-    rate_k.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get())),
-    rate_k.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get())),
-    rate_k.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get())));
+    rate_k.emult(Vector3f(_param_sc_rollrate_p.get(), _param_sc_pitchrate_p.get(), _param_sc_yawrate_p.get())),
+    rate_k.emult(Vector3f(_param_sc_rollrate_i.get(), _param_sc_pitchrate_i.get(), _param_sc_yawrate_i.get())),
+    rate_k.emult(Vector3f(_param_sc_rollrate_d.get(), _param_sc_pitchrate_d.get(), _param_sc_yawrate_d.get())));
 
   _rate_control.setIntegratorLimit(
-    Vector3f(_param_mc_rr_int_lim.get(), _param_mc_pr_int_lim.get(), _param_mc_yr_int_lim.get()));
+    Vector3f(_param_sc_rr_int_lim.get(), _param_sc_pr_int_lim.get(), _param_sc_yr_int_lim.get()));
 
   _rate_control.setFeedForwardGain(
-    Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
+    Vector3f(_param_sc_rollrate_ff.get(), _param_sc_pitchrate_ff.get(), _param_sc_yawrate_ff.get()));
 
   // manual rate control acro mode rate limits
-  _acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
-                            radians(_param_mc_acro_y_max.get()));
+  _acro_rate_max = Vector3f(radians(_param_sc_acro_r_max.get()), radians(_param_sc_acro_p_max.get()),
+                            radians(_param_sc_acro_y_max.get()));
 }
 
-void SpacesystemsRateControl::Run() {
+void SpacecraftRateControl::Run() {
   if (should_exit()) {
     _vehicle_angular_velocity_sub.unregisterCallback();
     exit_and_cleanup();
@@ -144,9 +144,9 @@ void SpacesystemsRateControl::Run() {
       if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
         // manual rates control - ACRO mode
         const Vector3f man_rate_sp{
-          math::superexpo(manual_control_setpoint.roll, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-          math::superexpo(-manual_control_setpoint.pitch, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-          math::superexpo(manual_control_setpoint.yaw, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
+          math::superexpo(manual_control_setpoint.roll, _param_sc_acro_expo.get(), _param_sc_acro_supexpo.get()),
+          math::superexpo(-manual_control_setpoint.pitch, _param_sc_acro_expo.get(), _param_sc_acro_supexpo.get()),
+          math::superexpo(manual_control_setpoint.yaw, _param_sc_acro_expo_y.get(), _param_sc_acro_supexpoy.get())};
 
         _rates_setpoint = man_rate_sp.emult(_acro_rate_max);
         _thrust_setpoint(2) = -manual_control_setpoint.throttle;
@@ -221,7 +221,7 @@ void SpacesystemsRateControl::Run() {
       vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.f;
 
       // scale setpoints by battery status if enabled
-      if (_param_mc_bat_scale_en.get()) {
+      if (_param_sc_bat_scale_en.get()) {
         if (_battery_status_sub.updated()) {
           battery_status_s battery_status;
 
@@ -255,7 +255,7 @@ void SpacesystemsRateControl::Run() {
   perf_end(_loop_perf);
 }
 
-void SpacesystemsRateControl::updateActuatorControlsStatus(const vehicle_torque_setpoint_s& vehicle_torque_setpoint,
+void SpacecraftRateControl::updateActuatorControlsStatus(const vehicle_torque_setpoint_s& vehicle_torque_setpoint,
                                                            float dt) {
   for (int i = 0; i < 3; i++) {
     _control_energy[i] += vehicle_torque_setpoint.xyz[i] * vehicle_torque_setpoint.xyz[i] * dt;
@@ -277,7 +277,7 @@ void SpacesystemsRateControl::updateActuatorControlsStatus(const vehicle_torque_
   }
 }
 
-int SpacesystemsRateControl::task_spawn(int argc, char* argv[]) {
+int SpacecraftRateControl::task_spawn(int argc, char* argv[]) {
   bool vtol = false;
 
   if (argc > 1) {
@@ -286,7 +286,7 @@ int SpacesystemsRateControl::task_spawn(int argc, char* argv[]) {
     }
   }
 
-  SpacesystemsRateControl* instance = new SpacesystemsRateControl(vtol);
+  SpacecraftRateControl* instance = new SpacecraftRateControl(vtol);
 
   if (instance) {
     _object.store(instance);
@@ -307,9 +307,9 @@ int SpacesystemsRateControl::task_spawn(int argc, char* argv[]) {
   return PX4_ERROR;
 }
 
-int SpacesystemsRateControl::custom_command(int argc, char* argv[]) { return print_usage("unknown command"); }
+int SpacecraftRateControl::custom_command(int argc, char* argv[]) { return print_usage("unknown command"); }
 
-int SpacesystemsRateControl::print_usage(const char* reason) {
+int SpacecraftRateControl::print_usage(const char* reason) {
   if (reason) {
     PX4_WARN("%s\n", reason);
   }
@@ -317,14 +317,14 @@ int SpacesystemsRateControl::print_usage(const char* reason) {
   PRINT_MODULE_DESCRIPTION(
     R"DESCR_STR(
 ### Description
-This implements the multicopter rate controller. It takes rate setpoints (in acro mode
-via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
+This implements the spacecraft rate controller. It takes rate setpoints (in acro mode
+via `manual_control_setpoint` topic) as inputs and outputs torque and thrust setpoints.
 
 The controller has a PID loop for angular rate error.
 
 )DESCR_STR");
 
-  PRINT_MODULE_USAGE_NAME("mc_rate_control", "controller");
+  PRINT_MODULE_USAGE_NAME("sc_rate_control", "controller");
   PRINT_MODULE_USAGE_COMMAND("start");
   PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
   PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -333,5 +333,5 @@ The controller has a PID loop for angular rate error.
 }
 
 extern "C" __EXPORT int sc_rate_control_main(int argc, char* argv[]) {
-  return SpacesystemsRateControl::main(argc, argv);
+  return SpacecraftRateControl::main(argc, argv);
 }

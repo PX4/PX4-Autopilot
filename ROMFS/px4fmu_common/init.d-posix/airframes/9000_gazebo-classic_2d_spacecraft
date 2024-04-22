@@ -93,3 +93,11 @@ param set-default PWM_MAIN_FUNC5 105
 param set-default PWM_MAIN_FUNC6 106
 param set-default PWM_MAIN_FUNC7 107
 param set-default PWM_MAIN_FUNC8 108
+
+# Controller Tunings
+param set-default SC_ROLLRATE_P 0.14
+param set-default SC_PITCHRATE_P 0.14
+param set-default SC_ROLLRATE_I 0.3
+param set-default SC_PITCHRATE_I 0.3
+param set-default SC_ROLLRATE_D 0.004
+param set-default SC_PITCHRATE_D 0.004
