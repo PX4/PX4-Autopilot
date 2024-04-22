@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/health_report.h>
@@ -130,6 +131,7 @@ private:
 			updated |= write_fw_ctrl_status_if_updated(&msg);
 			updated |= write_geofence_result_if_updated(&msg);
 			updated |= write_global_position_if_updated(&msg);
+			updated |= write_heading_if_updated(&msg);
 			updated |= write_mission_result_if_updated(&msg);
 			updated |= write_failsafe_flags(&msg);
 
@@ -373,7 +375,20 @@ private:
 
 			msg->altitude = altitude;
 
-			msg->heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(local_pos.heading)) * 0.5f);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool write_heading_if_updated(mavlink_high_latency2_t *msg)
+	{
+		vehicle_attitude_s attitude;
+
+		if (_attitude_sub.update(&attitude) && _attitude_sub.copy(&attitude)) {
+
+			const matrix::Eulerf euler = matrix::Quatf(attitude.q);
+			msg->heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(euler.psi())) * 0.5f);
 
 			return true;
 		}
@@ -628,6 +643,7 @@ private:
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _vehicle_thrust_setpoint_1_sub{ORB_ID(vehicle_thrust_setpoint), 1};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
