@@ -1404,6 +1404,9 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get());
+
+	_att_sp.thrust_body[0] = min(get_tecs_thrust(), tecs_fw_thr_max);
+	_att_sp.pitch_body = get_tecs_pitch();
 }
 
 void
