@@ -30,7 +30,7 @@ set LOGGER_BUF 8
 set PARAM_FILE ""
 set PARAM_BACKUP_FILE ""
 set RC_INPUT_ARGS ""
-set SDCARD_AVAILABLE no
+set STORAGE_AVAILABLE no
 set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_FORMAT no
 set STARTUP_TUNE 1
@@ -62,11 +62,11 @@ then
 			umount /fs/microsd
 
 		else
-			set SDCARD_AVAILABLE yes
+			set STORAGE_AVAILABLE yes
 		fi
 	fi
 
-	if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
+	if [ $STORAGE_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
 	then
 		echo "INFO [init] formatting /dev/mmcsd0"
 		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
@@ -77,7 +77,7 @@ then
 
 			if mount -t vfat /dev/mmcsd0 /fs/microsd
 			then
-				set SDCARD_AVAILABLE yes
+				set STORAGE_AVAILABLE yes
 				set STARTUP_TUNE 14 # tune 14 = SD_INIT
 			else
 				echo "ERROR [init] card mount failed"
@@ -86,16 +86,22 @@ then
 			echo "ERROR [init] format failed"
 		fi
 	fi
-
-	if [ $SDCARD_AVAILABLE = yes ]
+else
+	# Is there a device mounted for storage
+	if mft query -q -k MTD -s MTD_PARAMETERS -v /mnt/microsd
 	then
-		if hardfault_log check
+		set STORAGE_AVAILABLE yes
+	fi
+fi
+
+if [ $STORAGE_AVAILABLE = yes ]
+then
+	if hardfault_log check
+	then
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+		if hardfault_log commit
 		then
-			set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
-			if hardfault_log commit
-			then
-				hardfault_log reset
-			fi
+			hardfault_log reset
 		fi
 	fi
 
@@ -172,7 +178,7 @@ else
 		fi
 	fi
 
-	if [ $SDCARD_AVAILABLE = yes ]
+	if [ $STORAGE_AVAILABLE = yes ]
 	then
 		param select-backup $PARAM_BACKUP_FILE
 	fi
@@ -220,8 +226,8 @@ else
 
 		if [ ${VEHICLE_TYPE} == none ]
 		then
-			# Look for airframe on SD card
-			if [ $SDCARD_AVAILABLE = yes ]
+			# Use external startup file
+			if [ $STORAGE_AVAILABLE = yes ]
 			then
 				. ${R}etc/init.d/rc.autostart_ext
 			else
@@ -615,7 +621,7 @@ unset PARAM_FILE
 unset PARAM_BACKUP_FILE
 unset PARAM_DEFAULTS_VER
 unset RC_INPUT_ARGS
-unset SDCARD_AVAILABLE
+unset STORAGE_AVAILABLE
 unset SDCARD_EXT_PATH
 unset SDCARD_FORMAT
 unset STARTUP_TUNE
