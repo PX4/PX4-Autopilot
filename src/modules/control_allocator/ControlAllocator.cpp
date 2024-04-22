@@ -136,7 +136,6 @@ ControlAllocator::parameters_updated()
 	}
 
 	update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::CONFIGURATION_UPDATE);
-    PX4_INFO("Parameters updated!");
 }
 
 void
@@ -432,7 +431,6 @@ ControlAllocator::Run()
 
 			// Do allocation
 			_control_allocation[i]->allocate();
-			// print each actuator setpoint
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
