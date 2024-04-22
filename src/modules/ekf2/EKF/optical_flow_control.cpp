@@ -62,6 +62,15 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			calcOptFlowBodyRateComp(imu_delayed);
 			_flow_rate_compensated = _flow_sample_delayed.flow_rate - _flow_sample_delayed.gyro_rate.xy();
 
+			// Only compensate to a lower value, don't allow the rate to increase
+			if (abs(_flow_rate_compensated(0)) > abs(_flow_sample_delayed.flow_rate(0))) {
+				_flow_rate_compensated(0) = _flow_sample_delayed.flow_rate(0);
+			}
+
+			if (abs(_flow_rate_compensated(1)) > abs(_flow_sample_delayed.flow_rate(1))) {
+				_flow_rate_compensated(1) = _flow_sample_delayed.flow_rate(1);
+			}
+
 		} else {
 			// don't use this flow data and wait for the next data to arrive
 			_flow_data_ready = false;
