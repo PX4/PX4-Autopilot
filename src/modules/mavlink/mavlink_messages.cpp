@@ -150,7 +150,6 @@
 # include "streams/SCALED_PRESSURE3.hpp"
 # include "streams/UAVIONIX_ADSB_OUT_CFG.hpp"
 # include "streams/UAVIONIX_ADSB_OUT_DYNAMIC.hpp"
-# include "streams/UTM_GLOBAL_POSITION.hpp"
 #endif // !CONSTRAINED_FLASH
 
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
@@ -419,9 +418,6 @@ static const StreamListItem streams_list[] = {
 #if defined(ADSB_VEHICLE_HPP)
 	create_stream_list_item<MavlinkStreamADSBVehicle>(),
 #endif // ADSB_VEHICLE_HPP
-#if defined(UTM_GLOBAL_POSITION_HPP)
-	create_stream_list_item<MavlinkStreamUTMGlobalPosition>(),
-#endif // UTM_GLOBAL_POSITION_HPP
 #if defined(COLLISION_HPP)
 	create_stream_list_item<MavlinkStreamCollision>(),
 #endif // COLLISION_HPP

@@ -1273,6 +1273,9 @@ void Navigator::check_traffic()
 			}
 		}
 	}
+
+	_adsb_conflict.remove_expired_conflicts();
+
 }
 
 bool Navigator::abort_landing()
@@ -1544,7 +1547,7 @@ controller.
 	PRINT_MODULE_USAGE_NAME("navigator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 4 fake transponder_report_s uORB messages");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 24 fake transponder_report_s uORB messages");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
