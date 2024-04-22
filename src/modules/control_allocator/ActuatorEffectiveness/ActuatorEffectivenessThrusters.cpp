@@ -70,7 +70,7 @@ ActuatorEffectivenessThrusters::ActuatorEffectivenessThrusters(ModuleParams *par
 		}
 	}
 
-	_count_handle = param_find("CA_THRUSTER_COUNT");
+	_count_handle = param_find("CA_THRUSTER_CNT");
 
 	updateParams();
 }
@@ -97,14 +97,14 @@ void ActuatorEffectivenessThrusters::updateParams()
 		Vector3f &axis = _geometry.thrusters[i].axis;
 
 		switch (_axis_config) {
-		case AxisConfiguration::Configurable:
-			param_get(_param_handles[i].axis_x, &axis(0));
-			param_get(_param_handles[i].axis_y, &axis(1));
-			param_get(_param_handles[i].axis_z, &axis(2));
-			break;
+			case AxisConfiguration::Configurable:
+				param_get(_param_handles[i].axis_x, &axis(0));
+				param_get(_param_handles[i].axis_y, &axis(1));
+				param_get(_param_handles[i].axis_z, &axis(2));
+				break;
+			}
 
 		param_get(_param_handles[i].thrust_coef, &_geometry.thrusters[i].thrust_coef);
-		param_get(_param_handles[i].moment_ratio, &_geometry.thrusters[i].moment_ratio);
 	}
 }
 

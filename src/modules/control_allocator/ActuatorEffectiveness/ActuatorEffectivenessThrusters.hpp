@@ -56,8 +56,6 @@ class ActuatorEffectivenessThrusters : public ModuleParams, public ActuatorEffec
 public:
 	enum class AxisConfiguration {
 		Configurable, ///< axis can be configured
-		FixedForward, ///< axis is fixed, pointing forwards (positive X)
-		FixedUpwards, ///< axis is fixed, pointing upwards (negative Z)
 	};
 
 	static constexpr int NUM_THRUSTERS_MAX = 12;

@@ -239,7 +239,7 @@ parameters:
             default: 0
 
         # (SC) Thrusters
-        CA_THRUSTER_COUNT:
+        CA_THRUSTER_CNT:
             description:
                 short: Total number of thrusters
             type: enum
@@ -664,6 +664,12 @@ mixer:
                 label: 'Slew Rate'
                 index_offset: 0
                 advanced: true
+        thruster:
+            functions: 'Thruster'
+            actuator_testing_values:
+                min: 0
+                max: 1
+                default_is_nan: true
         servo:
             functions: 'Servo'
             actuator_testing_values:
@@ -1227,7 +1233,7 @@ mixer:
                 title: 'Spacecraft 2D'
                 actuators:
                   - actuator_type: 'thruster'
-                    count: 'CA_THRUSTER_COUNT'
+                    count: 'CA_THRUSTER_CNT'  # count would be too long for 16 max size
                     per_item_parameters:
                         standard:
                             position: [ 'CA_THRUSTER${i}_PX', 'CA_THRUSTER${i}_PY', 'CA_THRUSTER${i}_PZ' ]
@@ -1249,7 +1255,7 @@ mixer:
                 title: 'Spacecraft 3D'
                 actuators:
                   - actuator_type: 'thruster'
-                    count: 'CA_THRUSTER_COUNT'
+                    count: 'CA_THRUSTER_CNT'
                     per_item_parameters:
                         standard:
                             position: [ 'CA_THRUSTER${i}_PX', 'CA_THRUSTER${i}_PY', 'CA_THRUSTER${i}_PZ' ]
