@@ -157,7 +157,6 @@ int SF45LaserSerial::collect()
 	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 	int ret;
 	/* the buffer for read chars is buflen minus null termination */
-	param_get(param_find("SF45_CP_LIMIT"), &_collision_constraint);
 	uint8_t readbuf[SF45_MAX_PAYLOAD];
 
 	float distance_m = -1.0f;
@@ -664,6 +663,8 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 
 			}
 
+			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
+			
 			// The sensor is facing downward, so the sensor is flipped about it's x-axis -inverse of each yaw angle
 			if (_orient_cfg == 1) {
 				raw_yaw = raw_yaw * -1;
@@ -674,28 +675,26 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 				break;
 
 			case 1:
-				if (raw_yaw > 180) {
-					raw_yaw = raw_yaw - 180;
+				if (scaled_yaw > 180) {
+					scaled_yaw = scaled_yaw - 180;
 
 				} else {
-					raw_yaw = raw_yaw + 180; // rotation facing aft
+					scaled_yaw = scaled_yaw + 180; // rotation facing aft
 				}
 
 				break;
 
 			case 2:
-				raw_yaw = raw_yaw + 90; // rotation facing right
+				scaled_yaw = scaled_yaw + 90; // rotation facing right
 				break;
 
 			case 3:
-				raw_yaw = raw_yaw - 90; // rotation facing left
+				scaled_yaw = scaled_yaw - 90; // rotation facing left
 				break;
 
 			default:
 				break;
 			}
-
-			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
 
 			// Convert to meters for rangefinder update
 			*distance_m = raw_distance * SF45_SCALE_FACTOR;
