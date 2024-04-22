@@ -50,7 +50,7 @@ TEST_F(AdsbConflictTest, detectTrafficConflict)
 	for (uint32_t i = 0; i < traffic_dataset_size; i++) {
 
 
-		printf("---------------%d--------------\n", i);
+		//printf("---------------%d--------------\n", i);
 
 		struct traffic_data_s traffic = traffic_dataset[i];
 
@@ -64,10 +64,10 @@ TEST_F(AdsbConflictTest, detectTrafficConflict)
 
 		adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
 
-		printf("conflict_detected %d \n", adsb_conflict._conflict_detected);
+		//printf("conflict_detected %d \n", adsb_conflict._conflict_detected);
 
-		printf("------------------------------\n");
-		printf("------------------------------\n \n");
+		//printf("------------------------------\n");
+		//printf("------------------------------\n \n");
 
 		EXPECT_TRUE(adsb_conflict._conflict_detected == traffic.in_conflict);
 	}
@@ -191,7 +191,6 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 
 TEST_F(AdsbConflictTest, trafficReminder)
 {
-
 	struct	traffic_buffer_s used_buffer;
 	used_buffer.icao_address.push_back(2345);
 	used_buffer.icao_address.push_back(1234);
@@ -201,11 +200,11 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	used_buffer.icao_address.push_back(5000);
 
 	used_buffer.timestamp.push_back(3_s);
-	used_buffer.timestamp.push_back(800_s);
+	used_buffer.timestamp.push_back(80_s);
+	used_buffer.timestamp.push_back(10_s);
+	used_buffer.timestamp.push_back(1000_s);
 	used_buffer.timestamp.push_back(100_s);
-	used_buffer.timestamp.push_back(20000_s);
-	used_buffer.timestamp.push_back(6000_s);
-	used_buffer.timestamp.push_back(6587_s);
+	used_buffer.timestamp.push_back(187_s);
 
 	struct	traffic_buffer_s full_buffer;
 	full_buffer.icao_address.push_back(2345);
@@ -220,15 +219,15 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	full_buffer.icao_address.push_back(99999);
 
 	full_buffer.timestamp.push_back(1_s);
-	full_buffer.timestamp.push_back(800_s);
-	full_buffer.timestamp.push_back(100_s);
-	full_buffer.timestamp.push_back(20000_s);
-	full_buffer.timestamp.push_back(6000_s);
-	full_buffer.timestamp.push_back(19000_s);
-	full_buffer.timestamp.push_back(5000_s);
-	full_buffer.timestamp.push_back(2_s);
+	full_buffer.timestamp.push_back(80_s);
+	full_buffer.timestamp.push_back(10_s);
 	full_buffer.timestamp.push_back(1000_s);
-	full_buffer.timestamp.push_back(58943_s);
+	full_buffer.timestamp.push_back(100_s);
+	full_buffer.timestamp.push_back(900_s);
+	full_buffer.timestamp.push_back(500_s);
+	full_buffer.timestamp.push_back(2_s);
+	full_buffer.timestamp.push_back(100_s);
+	full_buffer.timestamp.push_back(5843_s);
 
 
 	TestAdsbConflict 	adsb_conflict;
