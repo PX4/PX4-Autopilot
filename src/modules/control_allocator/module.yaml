@@ -280,7 +280,7 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        CA_THRUSTER{i}_PZ:
+        CA_THRUSTER${i}_PZ:
             description:
                 short: Position of thruster ${i} along Z body axis
             type: float
@@ -291,7 +291,6 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-
         CA_THRUSTER${i}_AX:
             description:
                 short: Axis of thruster ${i} thrust vector, X body axis component

@@ -136,6 +136,7 @@ ControlAllocator::parameters_updated()
 	}
 
 	update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::CONFIGURATION_UPDATE);
+    PX4_INFO("Parameters updated!");
 }
 
 void
@@ -267,10 +268,12 @@ ControlAllocator::update_effectiveness_source()
 			break;
 
 		case EffectivenessSource::SPACECRAFT_2D:
+			PX4_INFO("ActuatorEffectivenessSpacecraft 2D");
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 			
 		case EffectivenessSource::SPACECRAFT_3D:
+			PX4_INFO("ActuatorEffectivenessSpacecraft 3D");
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 

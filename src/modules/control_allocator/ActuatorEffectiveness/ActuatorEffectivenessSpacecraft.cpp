@@ -49,8 +49,17 @@ ActuatorEffectivenessSpacecraft::getEffectivenessMatrix(Configuration &configura
 		return false;
 	}
 
-	// Motors
+	// Thrusters
 	const bool thrusters_added_successfully = _sc_thrusters.addActuators(configuration);
 
 	return thrusters_added_successfully;
+}
+
+void ActuatorEffectivenessSpacecraft::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+{
+	// TODO(@E-Krantz): Here is where we can add the nonlinearity of multiple thrusters open
+	//   and how to adjust thrust in that time
+    return;
 }
