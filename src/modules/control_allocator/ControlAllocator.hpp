@@ -156,6 +156,8 @@ private:
 		CUSTOM = 9,
 		HELICOPTER_TAIL_ESC = 10,
 		HELICOPTER_TAIL_SERVO = 11,
+		SPACECRAFT_2D = 12,
+		SPACECRAFT_3D = 13,
 	};
 
 	enum class FailureMode {
