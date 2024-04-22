@@ -161,26 +161,12 @@ bool Sensors::init()
 
 int Sensors::parameters_update()
 {
-	if (_hil_enabled) {
-		_fakeSensors.turnOffAll();
-
-#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
-		InitializeVehicleGPSPosition();
-#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
-
-#if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
-		InitializeVehicleAirData();
-#endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
-
-#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
-		InitializeVehicleMagnetometer();
-#endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
-
-		_fakeSensors.update(_failureDetector);
+	if (_armed && !_failure_detector_updated) {
+		return 0;
 	}
 
-	if (_armed) {
-		return 0;
+	if (_failure_detector_updated) {
+		_fakeSensors.update(_failureDetector);
 	}
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
@@ -441,19 +427,19 @@ void Sensors::adc_poll()
 void Sensors::InitializeVehicleAirData()
 {
 	if (_param_sys_has_baro.get()) {
-		if (_vehicle_air_data == nullptr && !_failureDetector.isBaroBlocked()) {
+		if (_vehicle_air_data == nullptr && _failureDetector.isBaroOk()) {
 			_vehicle_air_data = new VehicleAirData();
 
 			if (_vehicle_air_data) {
 				_vehicle_air_data->Start();
 			}
 		}
-	}
 
-	if (_vehicle_air_data && _failureDetector.isBaroBlocked()) {
-		_vehicle_air_data->Stop();
-		delete _vehicle_air_data;
-		_vehicle_air_data = nullptr;
+		if (_vehicle_air_data && !_failureDetector.isBaroOk()) {
+			_vehicle_air_data->Stop();
+			delete _vehicle_air_data;
+			_vehicle_air_data = nullptr;
+		}
 	}
 }
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
@@ -462,19 +448,19 @@ void Sensors::InitializeVehicleAirData()
 void Sensors::InitializeVehicleGPSPosition()
 {
 	if (_param_sys_has_gps.get()) {
-		if (_vehicle_gps_position == nullptr && !_failureDetector.isGpsBlocked()) {
+		if (_vehicle_gps_position == nullptr && _failureDetector.isGpsOk()) {
 			_vehicle_gps_position = new VehicleGPSPosition();
 
 			if (_vehicle_gps_position) {
 				_vehicle_gps_position->Start();
 			}
 		}
-	}
 
-	if (_vehicle_gps_position && _failureDetector.isGpsBlocked()) {
-		_vehicle_gps_position->Stop();
-		delete _vehicle_gps_position;
-		_vehicle_gps_position = nullptr;
+		if (_vehicle_gps_position && !_failureDetector.isGpsOk()) {
+			_vehicle_gps_position->Stop();
+			delete _vehicle_gps_position;
+			_vehicle_gps_position = nullptr;
+		}
 	}
 }
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
@@ -518,19 +504,19 @@ void Sensors::InitializeVehicleIMU()
 void Sensors::InitializeVehicleMagnetometer()
 {
 	if (_param_sys_has_mag.get()) {
-		if (_vehicle_magnetometer == nullptr && !_failureDetector.isMagBlocked()) {
+		if (_vehicle_magnetometer == nullptr && _failureDetector.isMagOk()) {
 			_vehicle_magnetometer = new VehicleMagnetometer();
 
 			if (_vehicle_magnetometer) {
 				_vehicle_magnetometer->Start();
 			}
 		}
-	}
 
-	if (_vehicle_magnetometer && _failureDetector.isMagBlocked()) {
-		_vehicle_magnetometer->Stop();
-		delete _vehicle_magnetometer;
-		_vehicle_magnetometer = nullptr;
+		if (_vehicle_magnetometer && !_failureDetector.isMagOk()) {
+			_vehicle_magnetometer->Stop();
+			delete _vehicle_magnetometer;
+			_vehicle_magnetometer = nullptr;
+		}
 	}
 }
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
@@ -651,8 +637,13 @@ void Sensors::Run()
 		}
 	}
 
-	if (_hil_enabled && _failureDetector.update()) {
-		parameters_update();
+	if (_hil_enabled) {
+		_failure_detector_updated = _failureDetector.update();
+
+		if (_failure_detector_updated) {
+			parameters_update();
+			_failure_detector_updated = false;
+		}
 	}
 
 	_voted_sensors_update.sensorsPoll(_sensor_combined);

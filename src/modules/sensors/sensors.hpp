@@ -135,6 +135,8 @@ private:
 
 	const bool _hil_enabled;	/**< if true, HIL is active */
 
+	bool _failure_detector_updated{};	/**< true if the failure detector has been updated */
+
 	perf_counter_t	_loop_perf;	/**< loop performance counter */
 
 	VehicleIMU *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
