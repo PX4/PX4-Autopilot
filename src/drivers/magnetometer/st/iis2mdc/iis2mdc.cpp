@@ -77,7 +77,7 @@ void IIS2MDC::RunImpl()
 		if (read_register_block(&data) == PX4_OK) {
 			int16_t x = int16_t((data.xout1 << 8) | data.xout0);
 			int16_t y = int16_t((data.yout1 << 8) | data.yout0);
-			int16_t z = int16_t((data.zout1 << 8) | data.zout0);
+			int16_t z = -int16_t((data.zout1 << 8) | data.zout0);
 			int16_t t = int16_t((data.tout1 << 8) | data.tout0);
 			// 16 bits twos complement with a sensitivity of 8 LSB/°C. Typically, the output zero level corresponds to 25 °C.
 			_px4_mag.set_temperature(float(t) / 8.f + 25.f);
