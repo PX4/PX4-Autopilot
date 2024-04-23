@@ -87,14 +87,6 @@ void PowerMonitorSelectorAuterion::Run()
 			int ret_val = ina226_probe(i);
 
 			if (ret_val == PX4_OK) {
-
-				float current_shunt_value = 0.0f;
-				param_get(param_find("INA226_SHUNT"), &current_shunt_value);
-
-				if (fabsf(current_shunt_value - _sensors[i].shunt_value) > FLT_EPSILON) {
-					param_set(param_find("INA226_SHUNT"), &(_sensors[i].shunt_value));
-				}
-
 				char bus_number[4] = {0};
 				itoa(_sensors[i].bus_number, bus_number, 10);
 				const char *start_argv[] {
