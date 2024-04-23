@@ -261,7 +261,7 @@ SpacecraftAttitudeControl::Run()
 				_man_roll_input_filter.reset(0.f);
 				_man_pitch_input_filter.reset(0.f);
 			}
-			PX4_INFO("Current state: %f %f %f %f", (double)q(0), (double)q(1), (double)q(2), (double)q(3));
+			// PX4_INFO("Current state: %f %f %f %f", (double)q(0), (double)q(1), (double)q(2), (double)q(3));
 			Vector3f rates_sp = _attitude_control.update(q);
 
 			const hrt_abstime now = hrt_absolute_time();
