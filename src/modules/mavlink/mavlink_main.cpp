@@ -2535,9 +2535,33 @@ void Mavlink::handleCommands()
 			}
 		}
 	}
+
+	// For legacy gimbals using the mavlink gimbal v1 protocol, we need to send out commands.
+	// We don't care about acks for these though.
+	if (_gimbal_v1_command_sub.updated()) {
+		vehicle_command_s cmd;
+		_gimbal_v1_command_sub.copy(&cmd);
+
+		// FIXME: filter for target system/component
+
+		mavlink_command_long_t msg{};
+		msg.param1 = cmd.param1;
+		msg.param2 = cmd.param2;
+		msg.param3 = cmd.param3;
+		msg.param4 = cmd.param4;
+		msg.param5 = cmd.param5;
+		msg.param6 = cmd.param6;
+		msg.param7 = cmd.param7;
+		msg.command = cmd.command;
+		msg.target_system = cmd.target_system;
+		msg.target_component = cmd.target_component;
+		msg.confirmation = 0;
+
+		mavlink_msg_command_long_send_struct(get_channel(), &msg);
+	}
 }
 
-void Mavlink::handleAndGetCurrentCommandAck(bool &start_ack, bool &stop_ack)
+void Mavlink::handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &logging_stop_ack)
 {
 	if (_vehicle_command_ack_sub.updated()) {
 		static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
