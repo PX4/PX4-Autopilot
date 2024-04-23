@@ -2039,15 +2039,17 @@ Mavlink::task_main(int argc, char *argv[])
 				if (px4_get_parameter_value(myoptarg, freq) != 0) {
 					PX4_ERR("iridium mode frequency parsing failed");
 					err_flag = true;
-				}
-				else {
-					if (freq >= 0) {
+
+				} else {
+					if (freq >= 0.f) {
 						_high_latency_freq = freq;
+
 					} else {
 						PX4_ERR("Invalid value for iridium mode frequency.");
 						err_flag = true;
 					}
 				}
+
 				break;
 			}
 
@@ -2932,9 +2934,11 @@ Mavlink::display_status()
 	       _ftp_on ? "YES" : "NO",
 	       _transmitting_enabled ? "YES" : "NO");
 	printf("\tmode: %s\n", mavlink_mode_str(_mode));
+
 	if (_mode == MAVLINK_MODE_IRIDIUM) {
 		printf("\t    iridium tx freq: %.3f\n", (double)(_high_latency_freq));
 	}
+
 	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
 	printf("\tMAVLink version: %" PRId32 "\n", _protocol_version);
 
