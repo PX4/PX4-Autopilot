@@ -385,7 +385,7 @@ private:
 	{
 		vehicle_attitude_s attitude;
 
-		if (_attitude_sub.update(&attitude) && _attitude_sub.copy(&attitude)) {
+		if (_attitude_sub.update(&attitude)) {
 
 			const matrix::Eulerf euler = matrix::Quatf(attitude.q);
 			msg->heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(euler.psi())) * 0.5f);
