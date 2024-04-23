@@ -1691,7 +1691,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
-		configure_stream_local("HIGH_LATENCY2", 0.015f);
+		configure_stream_local("HIGH_LATENCY2", _high_latency_freq);
 		break;
 
 	case MAVLINK_MODE_MINIMAL:
@@ -1845,7 +1845,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxzZp", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZp", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -2030,6 +2030,24 @@ Mavlink::task_main(int argc, char *argv[])
 					}
 				}
 
+				break;
+			}
+
+		case 'F': {
+				float freq;
+
+				if (px4_get_parameter_value(myoptarg, freq) != 0) {
+					PX4_ERR("iridium mode frequency parsing failed");
+					err_flag = true;
+				}
+				else {
+					if (freq >= 0) {
+						_high_latency_freq = freq;
+					} else {
+						PX4_ERR("Invalid value for iridium mode frequency.");
+						err_flag = true;
+					}
+				}
 				break;
 			}
 
@@ -2914,6 +2932,9 @@ Mavlink::display_status()
 	       _ftp_on ? "YES" : "NO",
 	       _transmitting_enabled ? "YES" : "NO");
 	printf("\tmode: %s\n", mavlink_mode_str(_mode));
+	if (_mode == MAVLINK_MODE_IRIDIUM) {
+		printf("\t    iridium tx freq: %.3f\n", (double)(_high_latency_freq));
+	}
 	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
 	printf("\tMAVLink version: %" PRId32 "\n", _protocol_version);
 
@@ -3294,6 +3315,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
 	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, "Multicast address in the range [239.0.0.0,239.255.255.255]", "Multicast address (multicasting can be enabled via MAV_{i}_BROADCAST param)", true);
 #endif
+	PRINT_MODULE_USAGE_PARAM_FLOAT('F', 0.015, 0.0, 50.0, "Sets the transmission frequency for iridium mode", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
