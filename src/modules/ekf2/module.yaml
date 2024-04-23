@@ -114,8 +114,7 @@ parameters:
       decimal: 1
     EKF2_AVEL_DELAY:
       description:
-        short: Auxiliary Velocity Estimate (e.g from a landing target) delay relative
-          to IMU measurements
+        short: Auxiliary Velocity Estimate delay relative to IMU measurements
       type: float
       default: 5
       min: 0
@@ -582,7 +581,8 @@ parameters:
       max: 3
     EKF2_NOAID_TOUT:
       description:
-        short: Maximum lapsed time from last fusion of measurements that constrain
+        short: Maximum inertial dead-reckoning time
+        long: Maximum lapsed time from last fusion of measurements that constrain
           velocity drift before the EKF will report the horizontal nav solution as
           invalid
       type: int32
@@ -655,8 +655,8 @@ parameters:
       decimal: 1
     EKF2_EVP_NOISE:
       description:
-        short: Measurement noise for vision position observations used to lower bound
-          or replace the uncertainty included in the message
+        short: Measurement noise for vision position measurements
+        long:  Used to lower bound or replace the uncertainty included in the message
       type: float
       default: 0.1
       min: 0.01
@@ -664,8 +664,8 @@ parameters:
       decimal: 2
     EKF2_EVV_NOISE:
       description:
-        short: Measurement noise for vision velocity observations used to lower bound
-          or replace the uncertainty included in the message
+        short: Measurement noise for vision velocity measurements
+        long:  Used to lower bound or replace the uncertainty included in the message
       type: float
       default: 0.1
       min: 0.01
@@ -673,8 +673,8 @@ parameters:
       decimal: 2
     EKF2_EVA_NOISE:
       description:
-        short: Measurement noise for vision angle observations used to lower bound
-          or replace the uncertainty included in the message
+        short: Measurement noise for vision angle measurements
+        long:  Used to lower bound or replace the uncertainty included in the message
       type: float
       default: 0.1
       min: 0.05
@@ -697,7 +697,8 @@ parameters:
       default: 0
     EKF2_OF_N_MIN:
       description:
-        short: Measurement noise for the optical flow sensor when it's reported quality
+        short: Optical flow minimum noise
+        long: Measurement noise for the optical flow sensor when it's reported quality
           metric is at the maximum
       type: float
       default: 0.15
@@ -706,9 +707,9 @@ parameters:
       decimal: 2
     EKF2_OF_N_MAX:
       description:
-        short: Measurement noise for the optical flow sensor
-        long: '(when it''s reported quality metric is at the minimum set by EKF2_OF_QMIN).
-          The following condition must be met: EKF2_OF_N_MAXN >= EKF2_OF_N_MIN'
+        short: Optical flow maximum noise
+        long: Measurement noise for the optical flow sensor when it's reported quality
+          metric is at the minimum
       type: float
       default: 0.5
       min: 0.05
@@ -716,7 +717,8 @@ parameters:
       decimal: 2
     EKF2_OF_QMIN:
       description:
-        short: Optical Flow data will only be used in air if the sensor reports a
+        short: In air optical flow minimum quality
+        long: Optical Flow data will only be used in air if the sensor reports a
           quality metric >= EKF2_OF_QMIN
       type: int32
       default: 1
@@ -724,7 +726,8 @@ parameters:
       max: 255
     EKF2_OF_QMIN_GND:
       description:
-        short: Optical Flow data will only be used on the ground if the sensor reports
+        short: On ground optical flow minimum quality
+        long: Optical Flow data will only be used on the ground if the sensor reports
           a quality metric >= EKF2_OF_QMIN_GND
       type: int32
       default: 0
@@ -742,8 +745,7 @@ parameters:
       decimal: 1
     EKF2_TERR_NOISE:
       description:
-        short: Terrain altitude process noise - accounts for instability in vehicle
-          height estimate
+        short: Terrain altitude process noise
       type: float
       default: 5.0
       min: 0.5
@@ -759,120 +761,120 @@ parameters:
       decimal: 2
     EKF2_IMU_POS_X:
       description:
-        short: X position of IMU in body frame (forward axis with origin relative
-          to vehicle centre of gravity)
+        short: X position of IMU in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_IMU_POS_Y:
       description:
-        short: Y position of IMU in body frame (right axis with origin relative to
-          vehicle centre of gravity)
+        short: Y position of IMU in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_IMU_POS_Z:
       description:
-        short: Z position of IMU in body frame (down axis with origin relative to
-          vehicle centre of gravity)
+        short: Z position of IMU in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_GPS_POS_X:
       description:
-        short: X position of GPS antenna in body frame (forward axis with origin relative
-          to vehicle centre of gravity)
+        short: X position of GPS antenna in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_GPS_POS_Y:
       description:
-        short: Y position of GPS antenna in body frame (right axis with origin relative
-          to vehicle centre of gravity)
+        short: Y position of GPS antenna in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_GPS_POS_Z:
       description:
-        short: Z position of GPS antenna in body frame (down axis with origin relative
-          to vehicle centre of gravity)
+        short: Z position of GPS antenna in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_RNG_POS_X:
       description:
-        short: X position of range finder origin in body frame (forward axis with
-          origin relative to vehicle centre of gravity)
+        short: X position of range finder origin in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_RNG_POS_Y:
       description:
-        short: Y position of range finder origin in body frame (right axis with origin
-          relative to vehicle centre of gravity)
+        short: Y position of range finder origin in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_RNG_POS_Z:
       description:
-        short: Z position of range finder origin in body frame (down axis with origin
-          relative to vehicle centre of gravity)
+        short: Z position of range finder origin in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_OF_POS_X:
       description:
-        short: X position of optical flow focal point in body frame (forward axis
-          with origin relative to vehicle centre of gravity)
+        short: X position of optical flow focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_OF_POS_Y:
       description:
-        short: Y position of optical flow focal point in body frame (right axis with
-          origin relative to vehicle centre of gravity)
+        short: Y position of optical flow focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_OF_POS_Z:
       description:
-        short: Z position of optical flow focal point in body frame (down axis with
-          origin relative to vehicle centre of gravity)
+        short: Z position of optical flow focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_EV_POS_X:
       description:
-        short: X position of VI sensor focal point in body frame (forward axis with
-          origin relative to vehicle centre of gravity)
+        short: X position of VI sensor focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_EV_POS_Y:
       description:
-        short: Y position of VI sensor focal point in body frame (right axis with
-          origin relative to vehicle centre of gravity)
+        short: Y position of VI sensor focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
       decimal: 3
     EKF2_EV_POS_Z:
       description:
-        short: Z position of VI sensor focal point in body frame (down axis with origin
-          relative to vehicle centre of gravity)
+        short: Z position of VI sensor focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
       type: float
       default: 0.0
       unit: m
@@ -908,8 +910,8 @@ parameters:
       decimal: 2
     EKF2_TAU_POS:
       description:
-        short: Time constant of the position output prediction and smoothing filter.
-          Controls how tightly the output track the EKF states
+        short: Output predictor position time constant
+        long: Controls how tightly the output track the EKF states
       type: float
       default: 0.25
       min: 0.1
@@ -968,8 +970,7 @@ parameters:
       unit: m/s
     EKF2_RNG_A_HMAX:
       description:
-        short: Maximum absolute altitude (height above ground level) allowed for conditional
-          range aid mode
+        short: Maximum height above ground allowed for conditional range aid mode
         long: If the vehicle absolute altitude exceeds this value then the estimator
           will not fuse range measurements to estimate its height. This only applies
           when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
@@ -990,7 +991,8 @@ parameters:
       max: 5.0
     EKF2_RNG_QLTY_T:
       description:
-        short: Minimum duration during which the reported range finder signal quality
+        short: Minumum range validity period
+        long: Minimum duration during which the reported range finder signal quality
           needs to be non-zero in order to be declared valid (s)
       type: float
       default: 1.0
@@ -1041,9 +1043,9 @@ parameters:
       default: 0
     EKF2_DRAG_NOISE:
       description:
-        short: Specific drag force observation noise variance used by the multi-rotor
-          specific drag force model
-        long: Increasing this makes the multi-rotor wind estimates adjust more slowly.
+        short: Specific drag force observation noise variance
+        long: Used by the multi-rotor specific drag force model.
+          Increasing this makes the multi-rotor wind estimates adjust more slowly.
       type: float
       default: 2.5
       min: 0.5
@@ -1082,7 +1084,7 @@ parameters:
       decimal: 1
     EKF2_MCOEF:
       description:
-        short: Propeller momentum drag coefficient used for multi-rotor wind estimation
+        short: Propeller momentum drag coefficient for multi-rotor wind estimation
         long: This parameter controls the prediction of drag produced by the propellers
           when flying a multi-copter, which enables estimation of wind drift when
           enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect
@@ -1104,8 +1106,7 @@ parameters:
       decimal: 2
     EKF2_ASPD_MAX:
       description:
-        short: Upper limit on airspeed along individual axes used to correct baro
-          for position error effects
+        short: Maximum airspeed used for baro static pressure compensation
       type: float
       default: 20.0
       min: 5.0
@@ -1209,8 +1210,7 @@ parameters:
       decimal: 1
     EKF2_ABL_TAU:
       description:
-        short: Time constant used by acceleration and angular rate magnitude checks
-          used to inhibit accel bias learning
+        short: Accel bias learning inhibit time constant
         long: The vector magnitude of angular rate and acceleration used to check
           if learning should be inhibited has a peak hold filter applied to it with
           an exponential decay. This parameter controls the time constant of the decay.
@@ -1333,8 +1333,8 @@ parameters:
       decimal: 1
     EKF2_AGP_NOISE:
       description:
-        short: Measurement noise for aux global position observations used to lower
-          bound or replace the uncertainty included in the message
+        short: Measurement noise for aux global position measurements
+        long:  Used to lower bound or replace the uncertainty included in the message
       type: float
       default: 0.9
       min: 0.01
