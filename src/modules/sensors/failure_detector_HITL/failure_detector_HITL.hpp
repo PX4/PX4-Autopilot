@@ -139,11 +139,10 @@ public:
 	FakeStuckSensor(const orb_metadata *meta):
 		ModuleParams(nullptr),
 		ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+		_sensor_pub(meta),
 		_sensor_sub(meta),
 		meta_(meta)
 	{
-		pthread_mutex_init(&_mutex, nullptr);
-		PX4_INFO("Fake stuck sensor %s:id(%d) was created with ", meta->o_name, meta->o_id);
 	}
 
 	~FakeStuckSensor() override
@@ -166,19 +165,7 @@ public:
 
 	void setEnabled(bool enabled)
 	{
-		pthread_mutex_lock(&_mutex);
-
-		if (_enabled && !enabled) {
-			delete _sensor_pub;
-
-		} else if (!_enabled && enabled) {
-			_sensor_pub = new uORB::Publication<sensorsData>(meta_);
-		}
-
-		PX4_INFO("Fake stuck sensor %s was %s", meta_->o_name, enabled ? "enabled" : "disabled");
 		_enabled = enabled;
-
-		pthread_mutex_unlock(&_mutex);
 	}
 private:
 	void Run() override
@@ -189,21 +176,17 @@ private:
 			_first_init = true;
 		}
 
-		pthread_mutex_lock(&_mutex);
-
 		if (_enabled && _first_init) {
 			_last_output.timestamp = hrt_absolute_time();
-			_sensor_pub->publish(_last_output);
+			_sensor_pub.publish(_last_output);
 		}
-
-		pthread_mutex_unlock(&_mutex);
 
 		ScheduleDelayed(300_ms); // backup schedule
 
 		perf_end(_cycle_perf);
 	}
 
-	uORB::Publication<sensorsData> *_sensor_pub {};
+	uORB::Publication<sensorsData> _sensor_pub {};
 	uORB::Subscription _sensor_sub {};
 
 	const orb_metadata *meta_;
@@ -211,7 +194,6 @@ private:
 	bool _first_init{}; /**< Flag indicating whether the sensor has been initialized for the first time. */
 	sensorsData _last_output{};
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	pthread_mutex_t	_mutex {};
 };
 
 }
