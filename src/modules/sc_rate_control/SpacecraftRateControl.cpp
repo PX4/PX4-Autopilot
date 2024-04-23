@@ -43,13 +43,13 @@ using namespace matrix;
 using namespace time_literals;
 using math::radians;
 
-SpacecraftRateControl::SpacecraftRateControl(bool vtol)
+SpacecraftRateControl::SpacecraftRateControl()
     : ModuleParams(nullptr),
       WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-      _vehicle_torque_setpoint_pub(vtol ? ORB_ID(vehicle_torque_setpoint_virtual_mc) : ORB_ID(vehicle_torque_setpoint)),
-      _vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_mc) : ORB_ID(vehicle_thrust_setpoint)),
+      _vehicle_torque_setpoint_pub(ORB_ID(vehicle_torque_setpoint)),
+      _vehicle_thrust_setpoint_pub(ORB_ID(vehicle_thrust_setpoint)),
       _loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")) {
-  _vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+  _vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_SPACECRAFT;
 
   parameters_updated();
   _controller_status_pub.advertise();
@@ -278,15 +278,8 @@ void SpacecraftRateControl::updateActuatorControlsStatus(const vehicle_torque_se
 }
 
 int SpacecraftRateControl::task_spawn(int argc, char* argv[]) {
-  bool vtol = false;
 
-  if (argc > 1) {
-    if (strcmp(argv[1], "vtol") == 0) {
-      vtol = true;
-    }
-  }
-
-  SpacecraftRateControl* instance = new SpacecraftRateControl(vtol);
+  SpacecraftRateControl* instance = new SpacecraftRateControl();
 
   if (instance) {
     _object.store(instance);
@@ -326,7 +319,6 @@ The controller has a PID loop for angular rate error.
 
   PRINT_MODULE_USAGE_NAME("sc_rate_control", "controller");
   PRINT_MODULE_USAGE_COMMAND("start");
-  PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
   PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
   return 0;

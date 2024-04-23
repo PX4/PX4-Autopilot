@@ -65,7 +65,7 @@ using namespace time_literals;
 class SpacecraftRateControl : public ModuleBase<SpacecraftRateControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-	SpacecraftRateControl(bool vtol = false);
+	SpacecraftRateControl();
 	~SpacecraftRateControl() override;
 
 	/** @see ModuleBase */

@@ -10,6 +10,7 @@
 . ${R}etc/init.d/rc.sc_defaults
 
 param set-default CA_AIRFRAME 13
+param set-default MAV_TYPE 25
 
 param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 255
@@ -86,4 +87,10 @@ param set-default PWM_MAIN_FUNC6 106
 param set-default PWM_MAIN_FUNC7 107
 param set-default PWM_MAIN_FUNC8 108
 
-
+# Controller Tunings
+param set-default SC_ROLLRATE_P 0.14
+param set-default SC_PITCHRATE_P 0.14
+param set-default SC_ROLLRATE_I 0.3
+param set-default SC_PITCHRATE_I 0.3
+param set-default SC_ROLLRATE_D 0.004
+param set-default SC_PITCHRATE_D 0.004
