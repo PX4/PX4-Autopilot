@@ -427,18 +427,20 @@ void Sensors::adc_poll()
 void Sensors::InitializeVehicleAirData()
 {
 	if (_param_sys_has_baro.get()) {
-		if (_vehicle_air_data == nullptr && _failureDetector.isBaroOk()) {
+		if (_vehicle_air_data == nullptr) {
 			_vehicle_air_data = new VehicleAirData();
 
 			if (_vehicle_air_data) {
 				_vehicle_air_data->Start();
 			}
-		}
 
-		if (_vehicle_air_data && !_failureDetector.isBaroOk()) {
-			_vehicle_air_data->Stop();
-			delete _vehicle_air_data;
-			_vehicle_air_data = nullptr;
+		} else {
+			if (_failureDetector.isBaroOk()) {
+				_vehicle_air_data->Resume();
+
+			} else {
+				_vehicle_air_data->Pause();
+			}
 		}
 	}
 }
@@ -448,18 +450,20 @@ void Sensors::InitializeVehicleAirData()
 void Sensors::InitializeVehicleGPSPosition()
 {
 	if (_param_sys_has_gps.get()) {
-		if (_vehicle_gps_position == nullptr && _failureDetector.isGpsOk()) {
+		if (_vehicle_gps_position == nullptr) {
 			_vehicle_gps_position = new VehicleGPSPosition();
 
 			if (_vehicle_gps_position) {
 				_vehicle_gps_position->Start();
 			}
-		}
 
-		if (_vehicle_gps_position && !_failureDetector.isGpsOk()) {
-			_vehicle_gps_position->Stop();
-			delete _vehicle_gps_position;
-			_vehicle_gps_position = nullptr;
+		} else {
+			if (_failureDetector.isGpsOk()) {
+				_vehicle_gps_position->Resume();
+
+			} else {
+				_vehicle_gps_position->Pause();
+			}
 		}
 	}
 }
@@ -504,18 +508,20 @@ void Sensors::InitializeVehicleIMU()
 void Sensors::InitializeVehicleMagnetometer()
 {
 	if (_param_sys_has_mag.get()) {
-		if (_vehicle_magnetometer == nullptr && _failureDetector.isMagOk()) {
+		if (_vehicle_magnetometer == nullptr) {
 			_vehicle_magnetometer = new VehicleMagnetometer();
 
 			if (_vehicle_magnetometer) {
 				_vehicle_magnetometer->Start();
 			}
-		}
 
-		if (_vehicle_magnetometer && !_failureDetector.isMagOk()) {
-			_vehicle_magnetometer->Stop();
-			delete _vehicle_magnetometer;
-			_vehicle_magnetometer = nullptr;
+		} else {
+			if (_failureDetector.isMagOk()) {
+				_vehicle_magnetometer->Resume();
+
+			} else {
+				_vehicle_magnetometer->Pause();
+			}
 		}
 	}
 }

@@ -68,6 +68,8 @@ public:
 
 	bool Start();
 	void Stop();
+	void Pause() { _paused = true; }
+	void Resume() { _paused = false; }
 
 	void PrintStatus();
 
@@ -124,6 +126,8 @@ private:
 	int8_t _selected_sensor_sub_index{-1};
 
 	float _air_temperature_celsius{20.f}; // initialize with typical 20degC ambient temperature
+
+	bool _paused{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,

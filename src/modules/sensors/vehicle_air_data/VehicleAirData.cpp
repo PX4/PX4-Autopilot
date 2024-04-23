@@ -131,6 +131,10 @@ bool VehicleAirData::ParametersUpdate(bool force)
 
 void VehicleAirData::Run()
 {
+	if (_paused) {
+		return;
+	}
+
 	perf_begin(_cycle_perf);
 
 	const hrt_abstime time_now_us = hrt_absolute_time();

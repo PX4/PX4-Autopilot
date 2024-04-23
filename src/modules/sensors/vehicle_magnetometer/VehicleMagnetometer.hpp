@@ -74,6 +74,8 @@ public:
 
 	bool Start();
 	void Stop();
+	void Pause() { _paused = true; }
+	void Resume() { _paused = false; }
 
 	void PrintStatus();
 
@@ -172,6 +174,8 @@ private:
 	int8_t _selected_sensor_sub_index{-1};
 
 	bool _armed{false};
+
+	bool _paused{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,

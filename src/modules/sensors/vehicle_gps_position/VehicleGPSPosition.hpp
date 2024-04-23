@@ -61,6 +61,8 @@ public:
 
 	bool Start();
 	void Stop();
+	void Pause() { _paused = true; }
+	void Resume() { _paused = false; }
 
 	void PrintStatus();
 
@@ -91,6 +93,8 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	GpsBlending _gps_blending;
+
+	bool _paused{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
