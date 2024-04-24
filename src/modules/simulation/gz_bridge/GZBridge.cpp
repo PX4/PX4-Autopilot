@@ -199,6 +199,15 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// GPS: /world/$WORLD/model/$MODEL/link/base_link/sensor/navsat_sensor/navsat
+	std::string nav_sat_topic = "/world/" + _world_name + "/model/" + _model_name +
+				    "/link/base_link/sensor/navsat_sensor/navsat";
+
+	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	// output (rover airframe type) eg /model/$MODEL_NAME/cmd_vel
 	if (_airframe == 6) {
 		std::string cmd_vel_topic = "/model/" + _model_name + "/cmd_vel";
@@ -545,7 +554,16 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			_angular_velocity_ground_truth_pub.publish(vehicle_angular_velocity_groundtruth);
 
 			if (!_pos_ref.isInitialized()) {
-				_pos_ref.initReference((double)_param_sim_home_lat.get(), (double)_param_sim_home_lon.get(), hrt_absolute_time());
+				if (!_param_use_sim_home.get() || _gz_sim_gps_time_usec) {
+					_pos_ref.initReference(_param_use_sim_home.get() ? _gz_home_lat : (double)_param_sim_home_lat.get(),
+							       _param_use_sim_home.get() ? _gz_home_lon : (double)_param_sim_home_lon.get(),
+							       hrt_absolute_time());
+
+				} else {
+					// no reference set yet
+					pthread_mutex_unlock(&_node_mutex);
+					return;
+				}
 			}
 
 			vehicle_local_position_s local_position_groundtruth{};
@@ -576,7 +594,8 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 
 			local_position_groundtruth.ref_lat = _pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
 			local_position_groundtruth.ref_lon = _pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
-			local_position_groundtruth.ref_alt = _param_sim_home_alt.get();
+			local_position_groundtruth.ref_alt = _param_use_sim_home.get() ? static_cast<float>(_gz_home_alt) :
+							     _param_sim_home_alt.get();
 			local_position_groundtruth.ref_timestamp = _pos_ref.getProjectionReferenceTimestamp();
 
 			local_position_groundtruth.timestamp = hrt_absolute_time();
@@ -594,7 +613,8 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 				_pos_ref.reproject(local_position_groundtruth.x, local_position_groundtruth.y,
 						   global_position_groundtruth.lat, global_position_groundtruth.lon);
 
-				global_position_groundtruth.alt = _param_sim_home_alt.get() - static_cast<float>(position(2));
+				global_position_groundtruth.alt = (_param_use_sim_home.get() ? static_cast<float>(_gz_home_alt) :
+								   _param_sim_home_alt.get()) - static_cast<float>(position(2));
 				global_position_groundtruth.timestamp = hrt_absolute_time();
 				_gpos_ground_truth_pub.publish(global_position_groundtruth);
 			}
@@ -603,6 +623,23 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			return;
 		}
 	}
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
+{
+	if (hrt_absolute_time() == 0 || _pos_ref.isInitialized()) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	// initialize gz gps position
+	_gz_sim_gps_time_usec = (nav_sat.header().stamp().sec() * 1000000) + (nav_sat.header().stamp().nsec() / 1000);
+	_gz_home_lat = nav_sat.latitude_deg();
+	_gz_home_lon = nav_sat.longitude_deg();
+	_gz_home_alt = nav_sat.altitude();
 
 	pthread_mutex_unlock(&_node_mutex);
 }
