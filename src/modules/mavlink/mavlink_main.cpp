@@ -2602,11 +2602,11 @@ void Mavlink::handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &loggi
 					}
 
 					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
-						start_ack = true;
+						logging_start_ack = true;
 
 					} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
 						   && command_ack.result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
-						stop_ack = true;
+						logging_stop_ack = true;
 					}
 				}
 			}
