@@ -44,6 +44,7 @@
 #include "functions/FunctionLandingGearWheel.hpp"
 #include "functions/FunctionManualRC.hpp"
 #include "functions/FunctionMotors.hpp"
+#include "functions/FunctionThrusters.hpp"
 #include "functions/FunctionParachute.hpp"
 #include "functions/FunctionServos.hpp"
 

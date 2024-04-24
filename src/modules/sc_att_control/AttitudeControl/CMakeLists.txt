@@ -31,38 +31,13 @@
 #
 ############################################################################
 
-set(functions_header ${CMAKE_CURRENT_BINARY_DIR}/output_functions.hpp)
-add_custom_command(OUTPUT ${functions_header}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_function_header.py
-		${CMAKE_CURRENT_SOURCE_DIR}/output_functions.yaml
-		${functions_header}
-	DEPENDS
-		output_functions.yaml
-		generate_function_header.py
-	COMMENT "Generating output_functions.hpp"
+px4_add_library(AttitudeControl
+	AttitudeControl.cpp
+	AttitudeControl.hpp
+	AttitudeControlMath.hpp
 )
-add_custom_target(output_functions_header DEPENDS ${functions_header})
+target_compile_options(AttitudeControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_include_directories(AttitudeControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-px4_add_library(mixer_module
-	functions/FunctionActuatorSet.hpp
-	functions/FunctionConstantMax.hpp
-	functions/FunctionConstantMin.hpp
-	functions/FunctionGimbal.hpp
-	functions/FunctionLandingGear.hpp
-	functions/FunctionManualRC.hpp
-	functions/FunctionMotors.hpp
-	functions/FunctionThrusters.hpp
-	functions/FunctionParachute.hpp
-	functions/FunctionServos.hpp
-
-	actuator_test.cpp
-	actuator_test.hpp
-	mixer_module.cpp
-	mixer_module.hpp
-	)
-
-add_dependencies(mixer_module output_functions_header)
-target_compile_options(mixer_module PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-target_include_directories(mixer_module PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-px4_add_functional_gtest(SRC mixer_module_tests.cpp LINKLIBS mixer_module)
+px4_add_unit_gtest(SRC AttitudeControlTest.cpp LINKLIBS AttitudeControl)
+px4_add_unit_gtest(SRC AttitudeControlMathTest.cpp LINKLIBS AttitudeControl)

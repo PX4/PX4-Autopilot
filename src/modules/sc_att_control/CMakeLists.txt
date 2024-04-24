@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,38 +31,18 @@
 #
 ############################################################################
 
-set(functions_header ${CMAKE_CURRENT_BINARY_DIR}/output_functions.hpp)
-add_custom_command(OUTPUT ${functions_header}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_function_header.py
-		${CMAKE_CURRENT_SOURCE_DIR}/output_functions.yaml
-		${functions_header}
+add_subdirectory(AttitudeControl)
+
+px4_add_module(
+	MODULE modules__sc_att_control
+	MAIN sc_att_control
+	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
+	SRCS
+		sc_att_control_main.cpp
+		sc_att_control.hpp
 	DEPENDS
-		output_functions.yaml
-		generate_function_header.py
-	COMMENT "Generating output_functions.hpp"
-)
-add_custom_target(output_functions_header DEPENDS ${functions_header})
-
-px4_add_library(mixer_module
-	functions/FunctionActuatorSet.hpp
-	functions/FunctionConstantMax.hpp
-	functions/FunctionConstantMin.hpp
-	functions/FunctionGimbal.hpp
-	functions/FunctionLandingGear.hpp
-	functions/FunctionManualRC.hpp
-	functions/FunctionMotors.hpp
-	functions/FunctionThrusters.hpp
-	functions/FunctionParachute.hpp
-	functions/FunctionServos.hpp
-
-	actuator_test.cpp
-	actuator_test.hpp
-	mixer_module.cpp
-	mixer_module.hpp
+		AttitudeControl
+		mathlib
+		px4_work_queue
 	)
-
-add_dependencies(mixer_module output_functions_header)
-target_compile_options(mixer_module PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-target_include_directories(mixer_module PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-px4_add_functional_gtest(SRC mixer_module_tests.cpp LINKLIBS mixer_module)
