@@ -35,8 +35,6 @@
 
 #include "FunctionProviderBase.hpp"
 
-#include <uORB/topics/actuator_servos.h>
-
 /**
  * Functions: Thruster1 ... ThrusterMax
  */
@@ -66,7 +64,7 @@ public:
 		}
 	}
 
-	float value(OutputFunction func) override { return _data.control[(int)func - (int)OutputFunction::Motor1]; }
+	float value(OutputFunction func) override { return _data.control[(int)func - (int)OutputFunction::Thruster1]; }
 
 	bool allowPrearmControl() const override { return false; }
 
@@ -76,7 +74,9 @@ public:
 
 	static inline void updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values)
 	{
-		if (thrust_factor > 0.f && thrust_factor <= 1.f) {
+		// TODO(@Pedro-Roque): for now bypass this
+		/*if (thrust_factor > 0.f && thrust_factor <= 1.f) {
+			
 			// thrust factor
 			//  rel_thrust = factor * x^2 + (1-factor) * x,
 			const float a = thrust_factor;
@@ -111,10 +111,10 @@ public:
 					values[i] = values[i] * 2.f - 1.f;
 				}
 			}
-		}
+		}*/
 	}
 
-	bool reversible(OutputFunction func) const override { return _data.reversible_flags & (1u << ((int)func - (int)OutputFunction::Motor1)); }
+	bool reversible(OutputFunction func) const override { return false; }
 
 private:
 	uORB::SubscriptionCallbackWorkItem _topic;
