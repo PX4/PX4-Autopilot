@@ -63,6 +63,7 @@ private:
 	{
 		_act_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+
 		for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; ++i) {
 			char param_name[17];
 			snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);

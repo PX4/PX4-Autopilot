@@ -377,6 +377,11 @@ private:
 	matrix::Vector3f _hil_euler_prev{};
 	MapProjection _hil_pos_ref{};
 
+	uint64_t _hitl_sim_gps_time_usec{0};
+	double _hitl_sim_home_lat{0.0};
+	double _hitl_sim_home_lon{0.0};
+	double _hitl_sim_home_alt{0.0};
+
 	// Allocated if needed.
 	TunePublisher *_tune_publisher{nullptr};
 
@@ -401,12 +406,13 @@ private:
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
-		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
-		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
-		(ParamFloat<px4::params::MAV_HITL_LAT>) _param_hil_home_lat,
-		(ParamFloat<px4::params::MAV_HITL_LON>) _param_hil_home_lon,
-		(ParamFloat<px4::params::MAV_HITL_ALT>) _param_hil_home_alt
+		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr,
+		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
+		(ParamBool<px4::params::MAV_HITL_SHOME>) _param_hitl_use_sim_home,
+		(ParamFloat<px4::params::MAV_HITL_LAT>) _param_hitl_home_lat,
+		(ParamFloat<px4::params::MAV_HITL_LON>) _param_hitl_home_lon,
+		(ParamFloat<px4::params::MAV_HITL_ALT>) _param_hitl_home_alt
 	);
 
 	// Disallow copy construction and move assignment.

@@ -157,6 +157,15 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
 PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
 
 /**
+ * mavlink receiver HITL use simulated origin (home) position
+ *
+ * @boolean
+ * @reboot_required true
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_HITL_SHOME, 1);
+
+/**
  * mavlink receiver HITL simulated origin latitude
  *
  * @unit deg

@@ -333,6 +333,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	 * MAVLINK_MSG_ID_HIL_STATE_QUATERNION contains vehicle pose info from gz sim
 	 * Following that, local, global, attitude and angle velocity ground truth
 	 * will be published. These are needed by PX4 simulated sensors (GPS, Mag, Baro)
+	 * If accep HIL GPS messages, these will be used to provide home position only
 	 */
 	if (_mavlink->get_hil_enabled()) {
 		switch (msg->msgid) {
@@ -2337,59 +2338,18 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 {
+	// Only use to set home position
+	if (_hil_pos_ref.isInitialized()) {
+		return;
+	}
+
 	mavlink_hil_gps_t hil_gps;
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
-	sensor_gps_s gps{};
-
-	device::Device::DeviceId device_id;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
-	device_id.devid_s.bus = _mavlink->get_instance_id();
-	device_id.devid_s.address = msg->sysid;
-	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
-
-	gps.device_id = device_id.devid;
-
-	gps.lat = hil_gps.lat;
-	gps.lon = hil_gps.lon;
-	gps.alt = hil_gps.alt;
-	gps.alt_ellipsoid = hil_gps.alt;
-
-	gps.s_variance_m_s = 0.25f;
-	gps.c_variance_rad = 0.5f;
-	gps.fix_type = hil_gps.fix_type;
-
-	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
-	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
-
-	gps.hdop = 0; // TODO
-	gps.vdop = 0; // TODO
-
-	gps.noise_per_ms = 0;
-	gps.automatic_gain_control = 0;
-	gps.jamming_indicator = 0;
-	gps.jamming_state = 0;
-	gps.spoofing_state = 0;
-
-	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
-	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
-	gps.vel_e_m_s = (float)(hil_gps.ve) / 100.0f; // cm/s -> m/s
-	gps.vel_d_m_s = (float)(hil_gps.vd) / 100.0f; // cm/s -> m/s
-	gps.cog_rad = ((hil_gps.cog == 65535) ? (float)NAN : matrix::wrap_2pi(math::radians(
-				hil_gps.cog * 1e-2f))); // cdeg -> rad
-	gps.vel_ned_valid = true;
-
-	gps.timestamp_time_relative = 0;
-	gps.time_utc_usec = hil_gps.time_usec;
-
-	gps.satellites_used = hil_gps.satellites_visible;
-
-	gps.heading = NAN;
-	gps.heading_offset = NAN;
-
-	gps.timestamp = hrt_absolute_time();
-
-	_sensor_gps_pub.publish(gps);
+	_hitl_sim_gps_time_usec = hil_gps.time_usec;
+	_hitl_sim_home_lat = hil_gps.lat;
+	_hitl_sim_home_lon = hil_gps.lon;
+	_hitl_sim_home_alt = hil_gps.alt;
 }
 
 void
@@ -2686,7 +2646,15 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	 */
 
 	if (!_hil_pos_ref.isInitialized()) {
-		_hil_pos_ref.initReference((double)_param_hil_home_lat.get(), (double)_param_hil_home_lon.get(), hrt_absolute_time());
+		if (!_param_hitl_use_sim_home.get() || _hitl_sim_gps_time_usec) {
+			_hil_pos_ref.initReference(_param_hitl_use_sim_home.get() ? _hitl_sim_home_lat : (double)_param_hitl_home_lat.get(),
+						   _param_hitl_use_sim_home.get() ? _hitl_sim_home_lon : (double)_param_hitl_home_lon.get(),
+						   hrt_absolute_time());
+
+		} else {
+			// no reference set yet
+			return;
+		}
 	}
 
 	vehicle_local_position_s hil_local_position_groundtruth{};
@@ -2719,7 +2687,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		_hil_pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
 	hil_local_position_groundtruth.ref_lon =
 		_hil_pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
-	hil_local_position_groundtruth.ref_alt = _param_hil_home_alt.get();
+	hil_local_position_groundtruth.ref_alt = _param_hitl_use_sim_home.get() ? static_cast<float>(_hitl_sim_home_alt) :
+			_param_hitl_home_alt.get();
 	hil_local_position_groundtruth.ref_timestamp = _hil_pos_ref.getProjectionReferenceTimestamp();
 
 	hil_local_position_groundtruth.timestamp = hrt_absolute_time();
@@ -2736,7 +2705,8 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 				       hil_global_position_groundtruth.lat,
 				       hil_global_position_groundtruth.lon);
 
-		hil_global_position_groundtruth.alt = _param_hil_home_alt.get() - static_cast<float>(position(2));
+		hil_global_position_groundtruth.alt = (_param_hitl_use_sim_home.get() ? static_cast<float>(_hitl_sim_home_alt) :
+						       _param_hitl_home_alt.get()) - static_cast<float>(position(2));
 		hil_global_position_groundtruth.timestamp = hrt_absolute_time();
 		_gpos_groundtruth_pub.publish(hil_global_position_groundtruth);
 	}
