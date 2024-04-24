@@ -34,11 +34,13 @@
 #ifndef HIL_ACTUATOR_CONTROLS_HPP
 #define HIL_ACTUATOR_CONTROLS_HPP
 
+#include <px4_platform_common/module_params.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/esc_status.h>
 
-class MavlinkStreamHILActuatorControls : public MavlinkStream
+class MavlinkStreamHILActuatorControls : public MavlinkStream, ModuleParams
 {
 public:
 	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamHILActuatorControls(mavlink); }
@@ -55,10 +57,17 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) : MavlinkStream(mavlink)
+	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) :
+		MavlinkStream(mavlink),
+		ModuleParams(nullptr)
 	{
 		_act_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
+		for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; ++i) {
+			char param_name[17];
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
+			param_get(param_find(param_name), &_output_functions[i]);
+		}
 	}
 
 	~MavlinkStreamHILActuatorControls()
@@ -75,6 +84,40 @@ private:
 	uORB::Subscription _act_sub{ORB_ID(actuator_outputs)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+
+	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
+
+	void send_esc_telemetry(mavlink_hil_actuator_controls_t &hil_act_control, vehicle_status_s &vehicle_status)
+	{
+		esc_status_s esc_status{};
+		esc_status.timestamp = hrt_absolute_time();
+		const int max_esc_count = math::min(actuator_outputs_s::NUM_ACTUATOR_OUTPUTS, esc_status_s::CONNECTED_ESC_MAX);
+
+		const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		int max_esc_index = 0;
+
+		for (int i = 0; i < max_esc_count; i++) {
+			if (_output_functions[i] != 0) {
+				max_esc_index = i;
+			}
+
+			esc_status.esc[i].actuator_function = _output_functions[i]; // TODO: this should be in pwm_sim...
+			esc_status.esc[i].timestamp = esc_status.timestamp;
+			esc_status.esc[i].esc_errorcount = 0; // TODO
+			esc_status.esc[i].esc_voltage = 11.1f + math::abs_t(hil_act_control.controls[i]) * 3.0f; // TODO: magic number
+			esc_status.esc[i].esc_current = armed ? 1.0f + math::abs_t(hil_act_control.controls[i]) * 15.0f :
+							0.0f; // TODO: magic number
+			esc_status.esc[i].esc_rpm = hil_act_control.controls[i] * 6000;  // TODO: magic number
+			esc_status.esc[i].esc_temperature = 20.0f + math::abs_t(hil_act_control.controls[i]) * 40.0f;
+		}
+
+		esc_status.esc_count = max_esc_index + 1;
+		esc_status.esc_armed_flags = (1u << esc_status.esc_count) - 1;
+		esc_status.esc_online_flags = (1u << esc_status.esc_count) - 1;
+
+		_esc_status_pub.publish(esc_status);
+	}
 
 	bool send() override
 	{
@@ -126,6 +169,8 @@ private:
 			msg.flags = 0;
 
 			mavlink_msg_hil_actuator_controls_send_struct(_mavlink->get_channel(), &msg);
+
+			send_esc_telemetry(msg, status);
 
 			return true;
 		}
