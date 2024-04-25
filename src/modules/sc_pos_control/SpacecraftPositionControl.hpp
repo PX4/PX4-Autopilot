@@ -55,13 +55,10 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
@@ -107,40 +104,23 @@ private:
 
 	DEFINE_PARAMETERS(
 		// Position Control
-		(ParamFloat<px4::params::MPC_XY_P>)         _param_mpc_xy_p,
-		(ParamFloat<px4::params::MPC_Z_P>)          _param_mpc_z_p,
-		(ParamFloat<px4::params::MPC_XY_VEL_P_ACC>) _param_mpc_xy_vel_p_acc,
-		(ParamFloat<px4::params::MPC_XY_VEL_I_ACC>) _param_mpc_xy_vel_i_acc,
-		(ParamFloat<px4::params::MPC_XY_VEL_D_ACC>) _param_mpc_xy_vel_d_acc,
-		(ParamFloat<px4::params::MPC_Z_VEL_P_ACC>)  _param_mpc_z_vel_p_acc,
-		(ParamFloat<px4::params::MPC_Z_VEL_I_ACC>)  _param_mpc_z_vel_i_acc,
-		(ParamFloat<px4::params::MPC_Z_VEL_D_ACC>)  _param_mpc_z_vel_d_acc,
-		(ParamFloat<px4::params::MPC_XY_VEL_MAX>)   _param_mpc_xy_vel_max,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>)  _param_mpc_z_v_auto_up,
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
-		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>)  _param_mpc_z_v_auto_dn,
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
-
-		// Takeoff / Land
-		(ParamFloat<px4::params::MPC_VEL_MANUAL>)   _param_mpc_vel_manual,
-		(ParamFloat<px4::params::MPC_VEL_MAN_BACK>) _param_mpc_vel_man_back,
-		(ParamFloat<px4::params::MPC_VEL_MAN_SIDE>) _param_mpc_vel_man_side,
-		(ParamFloat<px4::params::MPC_XY_CRUISE>)    _param_mpc_xy_cruise,
-		(ParamInt<px4::params::MPC_POS_MODE>)       _param_mpc_pos_mode,
-		(ParamFloat<px4::params::MPC_THR_MAX>)      _param_mpc_thr_max,
-
+		(ParamFloat<px4::params::SPC_POS_P>)         _param_mpc_xy_p,
+		(ParamFloat<px4::params::SPC_VEL_P>) _param_mpc_xy_vel_p_acc,
+		(ParamFloat<px4::params::SPC_VEL_I>) _param_mpc_xy_vel_p_acc,
+		(ParamFloat<px4::params::SPC_VEL_D>) _param_mpc_xy_vel_p_acc,
+		(ParamFloat<px4::params::SPC_VEL_MAX>)   _param_mpc_xy_vel_max,
+		(ParamFloat<px4::params::SPC_VEL_CRUISE>)    _param_mpc_xy_cruise,
 		(ParamFloat<px4::params::SYS_VEHICLE_RESP>) _param_sys_vehicle_resp,
-		(ParamFloat<px4::params::MPC_ACC_HOR>)      _param_mpc_acc_hor,
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>)   _param_mpc_acc_up_max,
-		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>)  _param_mpc_acc_hor_max,
-		(ParamFloat<px4::params::MPC_JERK_AUTO>)    _param_mpc_jerk_auto,
-		(ParamFloat<px4::params::MPC_JERK_MAX>)     _param_mpc_jerk_max,
-		(ParamFloat<px4::params::MPC_MAN_Y_MAX>)    _param_mpc_man_y_max,
-		(ParamFloat<px4::params::MPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
-
-		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
-		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
+		(ParamFloat<px4::params::SPC_VEL_MANUAL>)   _param_mpc_vel_manual,
+		(ParamFloat<px4::params::SPC_THR_MAX>)      _param_mpc_thr_max,		
+		(ParamFloat<px4::params::SPC_ACC>)      _param_mpc_acc_hor,
+		(ParamFloat<px4::params::SPC_ACC_MAX>)      _param_mpc_acc_hor,
+		(ParamFloat<px4::params::SPC_JERK_AUTO>)    _param_mpc_jerk_auto,
+		(ParamFloat<px4::params::SPC_JERK_MAX>)     _param_mpc_jerk_max,
+		(ParamFloat<px4::params::SPC_MAN_Y_MAX>)    _param_mpc_man_y_max,
+		(ParamFloat<px4::params::SPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
+		(ParamFloat<px4::params::SPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
+		(ParamFloat<px4::params::SPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -153,10 +133,6 @@ private:
 
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
-
-	static constexpr float MAX_SAFE_TILT_DEG = 89.f; // Numerical issues above this value due to tanf
-
-	SlewRate<float> _tilt_limit_slew_rate;
 
 	uint8_t _vxy_reset_counter{0};
 	uint8_t _vz_reset_counter{0};

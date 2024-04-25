@@ -358,7 +358,6 @@ void SpacecraftPositionControl::Run()
 		if (_vehicle_control_mode.flag_control_position_enabled
 		    && (_setpoint.timestamp >= _time_position_control_enabled)) {
 
-			// Allow ramping from zero thrust on takeoff
 			_control.setThrustLimits(0.0, _param_mpc_thr_max.get());
 
 			_control.setVelocityLimits(
