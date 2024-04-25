@@ -53,6 +53,12 @@ publications:
   - topic: /fmu/out/actuator_outputs
     type: px4_msgs::msg::ActuatorOutputs
 
+  - topic: /fmu/out/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleTorqueSetpoint
+
+  - topic: /fmu/out/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
+
   - topic: /fmu/out/log_message
     type: px4_msgs::msg::LogMessage
 
@@ -108,3 +114,9 @@ subscriptions:
 
   - topic: /fmu/in/thruster_command
     type: px4_msgs::msg::ThrusterCommand
+
+  - topic: /fmu/in/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleTorqueSetpoint
+
+  - topic: /fmu/in/vehicle_thrust_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
