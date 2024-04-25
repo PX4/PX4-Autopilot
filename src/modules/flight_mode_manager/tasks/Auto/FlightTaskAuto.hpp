@@ -81,6 +81,15 @@ enum class State {
 	none /**< Vehicle is in normal tracking mode from triplet previous to triplet target */
 };
 
+enum class yaw_mode : int32_t {
+	towards_waypoint = 0,
+	towards_home = 1,
+	away_from_home = 2,
+	along_trajectory = 3,
+	towards_waypoint_yaw_first = 4,
+	yaw_fixed = 5,
+};
+
 class FlightTaskAuto : public FlightTask
 {
 public:

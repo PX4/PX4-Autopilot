@@ -170,7 +170,8 @@ bool FlightTaskAuto::update()
 		waypoints[2] = _position_setpoint;
 	}
 
-	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned;
+	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
+					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
@@ -532,32 +533,37 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 	Vector2f v; // Vector that points towards desired location
 
-	switch (_param_mpc_yaw_mode.get()) {
+	switch (yaw_mode(_param_mpc_yaw_mode.get())) {
 
-	case 0: // Heading points towards the current waypoint.
-	case 4: // Same as 0 but yaw first and then go
+	case yaw_mode::towards_waypoint: // Heading points towards the current waypoint.
+	case yaw_mode::towards_waypoint_yaw_first: // Same as 0 but yaw first and then go
 		v = Vector2f(_target) - Vector2f(_position);
 		break;
 
-	case 1: // Heading points towards home.
+	case yaw_mode::towards_home: // Heading points towards home.
 		if (_sub_home_position.get().valid_lpos) {
 			v = Vector2f(&_sub_home_position.get().x) - Vector2f(_position);
 		}
 
 		break;
 
-	case 2: // Heading point away from home.
+	case yaw_mode::away_from_home: // Heading point away from home.
 		if (_sub_home_position.get().valid_lpos) {
 			v = Vector2f(_position) - Vector2f(&_sub_home_position.get().x);
 		}
 
 		break;
 
-	case 3: // Along trajectory.
+	case yaw_mode::along_trajectory: // Along trajectory.
 		// The heading depends on the kind of setpoint generation. This needs to be implemented
 		// in the subclasses where the velocity setpoints are generated.
 		v.setAll(NAN);
 		break;
+
+	case yaw_mode::yaw_fixed: // Yaw fixed.
+		// Yaw is operated via manual control or MAVLINK messages.
+		break;
+
 	}
 
 	if (v.isAllFinite()) {
