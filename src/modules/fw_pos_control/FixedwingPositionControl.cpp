@@ -2304,7 +2304,7 @@ FixedwingPositionControl::Run()
 			_reference_altitude = 0.f;
 		}
 
-		_current_altitude = -_local_pos.z + _local_pos.ref_alt; // Altitude AMSL in meters
+		_current_altitude = -_local_pos.z + _reference_altitude; // Altitude AMSL in meters
 
 		// handle estimator reset events. we only adjust setpoins for manual modes
 		if (_control_mode.flag_control_manual_enabled) {
