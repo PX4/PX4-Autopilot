@@ -358,7 +358,6 @@ void Ekf::controlGpsYawFusion(const gnssSample &gps_sample)
 				&& !_gps_intermittent;
 
 		if (_control_status.flags.gps_yaw) {
-
 			if (continuing_conditions_passing) {
 
 				fuseGpsYaw(gps_sample.yaw_offset);
@@ -366,27 +365,7 @@ void Ekf::controlGpsYawFusion(const gnssSample &gps_sample)
 				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
-					if (_nb_gps_yaw_reset_available > 0) {
-						// Data seems good, attempt a reset
-						resetYawToGps(gps_sample.yaw, gps_sample.yaw_offset);
-
-						if (_control_status.flags.in_air) {
-							_nb_gps_yaw_reset_available--;
-						}
-
-					} else if (starting_conditions_passing) {
-						// Data seems good, but previous reset did not fix the issue
-						// something else must be wrong, declare the sensor faulty and stop the fusion
-						_control_status.flags.gps_yaw_fault = true;
-						stopGpsYawFusion();
-
-					} else {
-						// A reset did not fix the issue but all the starting checks are not passing
-						// This could be a temporary issue, stop the fusion without declaring the sensor faulty
-						stopGpsYawFusion();
-					}
-
-					// TODO: should we give a new reset credit when the fusion does not fail for some time?
+					stopGpsYawFusion();
 				}
 
 			} else {
@@ -397,14 +376,27 @@ void Ekf::controlGpsYawFusion(const gnssSample &gps_sample)
 		} else {
 			if (starting_conditions_passing) {
 				// Try to activate GPS yaw fusion
-				if (resetYawToGps(gps_sample.yaw, gps_sample.yaw_offset)) {
-					ECL_INFO("starting GPS yaw fusion");
+				const bool not_using_ne_aiding = !_control_status.flags.gps && !_control_status.flags.aux_gpos;
 
-					_aid_src_gnss_yaw.time_last_fuse = _time_delayed_us;
+				if (!_control_status.flags.in_air
+				    || !_control_status.flags.yaw_align
+				    || not_using_ne_aiding) {
+
+					// Reset before starting the fusion
+					if (resetYawToGps(gps_sample.yaw, gps_sample.yaw_offset)) {
+						_aid_src_gnss_yaw.time_last_fuse = _time_delayed_us;
+						_control_status.flags.gps_yaw = true;
+						_control_status.flags.yaw_align = true;
+					}
+
+				} else if (!_aid_src_gnss_yaw.innovation_rejected) {
+					// Do not force a reset but wait for the consistency check to pass
 					_control_status.flags.gps_yaw = true;
-					_control_status.flags.yaw_align = true;
+					fuseGpsYaw(gps_sample.yaw_offset);
+				}
 
-					_nb_gps_yaw_reset_available = 1;
+				if (_control_status.flags.gps_yaw) {
+					ECL_INFO("starting GPS yaw fusion");
 				}
 			}
 		}

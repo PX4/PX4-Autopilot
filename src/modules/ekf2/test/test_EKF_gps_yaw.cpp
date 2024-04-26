@@ -275,9 +275,15 @@ TEST_F(EkfGpsHeadingTest, yawJmpOnGround)
 	_sensor_simulator._gps.setYaw(gps_heading);
 	_sensor_simulator.runSeconds(8);
 
-	// THEN: the fusion should reset
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	// THEN: the fusion should stop, reset to mag
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+
+	// AND THEN: restart GNSS yaw fusion
+	_sensor_simulator.runSeconds(5);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
 	EXPECT_LT(fabsf(matrix::wrap_pi(_ekf_wrapper.getYawAngle() - gps_heading)), math::radians(1.f));
 }
 
@@ -285,7 +291,7 @@ TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 {
 	// GIVEN: the GPS yaw fusion activated
 	float gps_heading = _ekf_wrapper.getYawAngle();
-	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps.setYaw(gps_heading + math::radians(90.f));
 	_sensor_simulator.runSeconds(5);
 	_ekf->set_in_air_status(true);
 
@@ -295,20 +301,14 @@ TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 	_sensor_simulator._gps.setYaw(gps_heading);
 	_sensor_simulator.runSeconds(7.5);
 
-	// THEN: the fusion should reset
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
-
-	// BUT WHEN: the measurement jumps a 2nd time
-	gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle() + math::radians(180.f));
-	_sensor_simulator._gps.setYaw(gps_heading);
-	_sensor_simulator.runSeconds(7.5);
+	// THEN: the fusion should not reset as heading is still observable through GNSS vel/pos fusion
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
 
 	// THEN: after a few seconds, the fusion should stop and
 	// the estimator doesn't fall back to mag fusion because it has
 	// been declared inconsistent with the filter states
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isMagHeadingConsistent());
-	//TODO: should we force a reset to mag if the GNSS yaw fusion was forced to stop?
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 }
 
