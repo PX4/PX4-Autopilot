@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       jfrog-upload:
-        description: 'upload to Artifactory'
+        description: 'upload to UAE Artifactory'
         required: false
         default: false
         type: boolean

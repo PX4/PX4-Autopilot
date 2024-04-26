@@ -2,30 +2,17 @@ FROM python:alpine3.14
 
 ARG saluki_fpga_directory
 ARG SALUKI_FILE_INFO_JSON=saluki_file_info.json
-
-# run this with something like:
-#
-#   $ docker run --rm -it --network=host --device=/dev/ttyS7:/dev/px4serial px4-fw-updater \
-#     --udp-addr=192.168.200.101 \
-#     --udp-port=14541 \
-#     --port=/dev/px4serial \
-#     --baud-bootloader=2000000 \
-#     px4_fmu-v5_ssrc.px4
-
-# This gets built in environment with somewhat unorthodox paths:
-# - The build context is at /
-# - The repository itself is mounted in /px4-firmware/
-# - Built firmware files are in /bin/
-#
-# ("/" above is relative to GH action runner home dir)
-# (see .github/workflows/tiiuae-pixhawk.yaml)
-
+ARG PX4_EXPORT_DIR
+ENV PX4_EXPORT_DIR=$PX4_EXPORT_DIR
 
 COPY $saluki_fpga_directory /firmware/fpga
 COPY $SALUKI_FILE_INFO_JSON /$SALUKI_FILE_INFO_JSON
 WORKDIR /firmware
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+# tools needed to extract binaries from px4 files
+RUN apk add pigz jq
 
 # dependency of px_uploader.py
 RUN pip3 install --user pyserial

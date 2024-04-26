@@ -1,13 +1,94 @@
 #!/bin/sh -e
 
-aframe=""
-if [ ! -z "$AIRFRAME" ]; then
-	aframe="--airframe ${AIRFRAME}"
-fi
+SALUKI_FILE_INFO_JSON="/saluki_file_info.json"
+TEMP_JSON=${SALUKI_FILE_INFO_JSON}.tmp
 
-mode=""
-if [ ! -z "$FLIGHT_MODE" ]; then
-	mode="--flightmode ${FLIGHT_MODE}"
-fi
 
-/bin/px_uploader.py --port=/dev/px4serial --udp-addr=192.168.200.101 --baud-flightstack=57600,115200,1000000,2000000 --baud-bootloader=2000000 px4_fmu-v5x_ssrc-*.px4 ssrc_saluki-v1_default-*.px4 ssrc_saluki-v2_default-*.px4
+extract_bin_from_px4() {
+    local px4_file=$1
+    local target_dir=$2
+    local target=${target_dir}/$(basename ${px4_file%.px4}).bin
+
+    # check file exists
+    if [ ! -f $px4_file ]; then
+        echo "File $px4_file does not exist"
+        exit 1
+    fi
+
+    echo "Extracting $target from $px4_file"
+    # binary is stored in the 'image' field of the json file
+    # as base64 encoded and gzipped
+    cat ${px4_file} | jq -r '.image' | base64 -d | pigz -d > $target
+
+    # px4 build timestamp is included in px4 file
+    build_timestamp=$(cat ${px4_file} | jq -r '.build_time')
+
+    validation_file=${target_dir}/$(basename ${px4_file%.px4})-validation.txt
+    generate_metadata ${px4_file} ${validation_file} ${build_timestamp}
+}
+
+# generate validation files for the extracted px4 files
+# also generate new json file with the extracted file info by original json file
+function generate_metadata() {
+    local px4_filename=${1}
+    local validation_file=${2}
+    local timestamp=${3}
+    echo "generating validation file for ${px4_filename} to ${validation_file}"
+
+    # get the file info from the SALUKI_FILE_INFO_JSON.json
+    # new filename to .bin without the path
+    px4_bin_filename=$(basename ${px4_filename%.px4}).bin
+
+    # update filename and file_type
+    saluki_file_info=$(cat ${SALUKI_FILE_INFO_JSON} |
+        jq -c '.files[] | select (.filename | contains("'${px4_filename}'")) |
+        .filename = "'${px4_bin_filename}'" |
+        .type = "px4-bin"')
+
+    # Add the build timestamp
+    saluki_file_info=$(echo ${saluki_file_info} |
+        jq -c 'select (.filename | contains("'${px4_bin_filename}'"))' |
+        jq '. += {"build_time":"'${timestamp}'"}')
+    echo ${saluki_file_info} > ${validation_file}
+
+    # append file info to temporary file
+    echo ${TEMP_JSON}
+
+    # if the temp json file does not exist, create it with the file info
+    if [ ! -f ${TEMP_JSON} ]; then
+        # print the object into "files" array
+        echo ${saluki_file_info} | jq -c '{files: [.] }' >${TEMP_JSON}
+    # if the temp json file exists, append the file info to it
+    else
+        # need to use temp file for this round as jq wont overwrite the input file
+        temp_round_file=${TEMP_JSON}.round
+
+        # Read the existing JSON
+        json_content=$(cat "${TEMP_JSON}")
+
+        # Add the new object to the "files" array using jq
+        updated_json=$(echo "$json_content" | jq --argjson obj "$saluki_file_info" '.files += [$obj]')
+
+        # put the output to temp_round_file and then move it to the final temp json file
+        echo ${updated_json} >${temp_round_file}
+        mv ${temp_round_file} ${TEMP_JSON}
+    fi
+}
+
+# export px4 files if the container is started with the PX4_EXPORT_DIR
+if [ -n "$PX4_EXPORT_DIR" ]; then
+    echo "Exporting PX4 files to $PX4_EXPORT_DIR"
+
+    # remove temp json file if it exists
+    if [ -f ${TEMP_JSON} ]; then
+        rm ${TEMP_JSON}
+    fi
+
+    # find all px4 files in the firmware directory
+    for px4_file in /firmware/*.px4; do
+        extract_bin_from_px4 $px4_file $PX4_EXPORT_DIR
+    done
+
+    # move temp json file to the final json file
+    mv ${TEMP_JSON} $PX4_EXPORT_DIR/${SALUKI_FILE_INFO_JSON}
+fi
