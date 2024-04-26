@@ -51,7 +51,6 @@ SpacecraftPositionControl::SpacecraftPositionControl() :
 	_vel_z_deriv(this, "VELD")
 {
 	parameters_update(true);
-	_tilt_limit_slew_rate.setSlewRate(.2f);
 }
 
 SpacecraftPositionControl::~SpacecraftPositionControl()
@@ -90,115 +89,57 @@ void SpacecraftPositionControl::parameters_update(bool force)
 			// make it less sensitive at the lower end
 			float responsiveness = _param_sys_vehicle_resp.get() * _param_sys_vehicle_resp.get();
 
-			num_changed += _param_mpc_acc_hor.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
-			num_changed += _param_mpc_acc_hor_max.commit_no_notification(math::lerp(2.f, 15.f, responsiveness));
+			num_changed += _param_mpc_acc.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
+			num_changed += _param_mpc_acc_max.commit_no_notification(math::lerp(2.f, 15.f, responsiveness));
 			num_changed += _param_mpc_man_y_max.commit_no_notification(math::lerp(80.f, 450.f, responsiveness));
 
 			if (responsiveness > 0.6f) {
 				num_changed += _param_mpc_man_y_tau.commit_no_notification(0.f);
-
 			} else {
 				num_changed += _param_mpc_man_y_tau.commit_no_notification(math::lerp(0.5f, 0.f, responsiveness / 0.6f));
 			}
-
-			num_changed += _param_mpc_acc_down_max.commit_no_notification(math::lerp(0.8f, 15.f, responsiveness));
-			num_changed += _param_mpc_acc_up_max.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
 			num_changed += _param_mpc_jerk_max.commit_no_notification(math::lerp(2.f, 50.f, responsiveness));
 			num_changed += _param_mpc_jerk_auto.commit_no_notification(math::lerp(1.f, 25.f, responsiveness));
 		}
 
-		if (_param_mpc_xy_vel_all.get() >= 0.f) {
-			float xy_vel = _param_mpc_xy_vel_all.get();
-			num_changed += _param_mpc_vel_manual.commit_no_notification(xy_vel);
-			num_changed += _param_mpc_vel_man_back.commit_no_notification(-1.f);
-			num_changed += _param_mpc_vel_man_side.commit_no_notification(-1.f);
-			num_changed += _param_mpc_xy_cruise.commit_no_notification(xy_vel);
-			num_changed += _param_mpc_xy_vel_max.commit_no_notification(xy_vel);
-		}
-
-		if (_param_mpc_z_vel_all.get() >= 0.f) {
-			float z_vel = _param_mpc_z_vel_all.get();
-			num_changed += _param_mpc_z_v_auto_up.commit_no_notification(z_vel);
-			num_changed += _param_mpc_z_vel_max_up.commit_no_notification(z_vel);
-			num_changed += _param_mpc_z_v_auto_dn.commit_no_notification(z_vel * 0.75f);
-			num_changed += _param_mpc_z_vel_max_dn.commit_no_notification(z_vel * 0.75f);
+		if (_param_mpc_vel_all.get() >= 0.f) {
+			float all_vel = _param_mpc_vel_all.get();
+			num_changed += _param_mpc_vel_manual.commit_no_notification(all_vel);
+			num_changed += _param_mpc_vel_cruise.commit_no_notification(all_vel);
+			num_changed += _param_mpc_vel_max.commit_no_notification(all_vel);
 		}
 
 		if (num_changed > 0) {
 			param_notify_changes();
 		}
 
-		_control.setPositionGains(Vector3f(_param_mpc_xy_p.get(), _param_mpc_xy_p.get(), _param_mpc_z_p.get()));
+		_control.setPositionGains(Vector3f(_param_mpc_pos_p.get(), _param_mpc_pos_p.get(), _param_mpc_pos_p.get()));
 		_control.setVelocityGains(
-			Vector3f(_param_mpc_xy_vel_p_acc.get(), _param_mpc_xy_vel_p_acc.get(), _param_mpc_z_vel_p_acc.get()),
-			Vector3f(_param_mpc_xy_vel_i_acc.get(), _param_mpc_xy_vel_i_acc.get(), _param_mpc_z_vel_i_acc.get()),
-			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
+			Vector3f(_param_mpc_vel_p_acc.get(), _param_mpc_vel_p_acc.get(), _param_mpc_vel_p_acc.get()),
+			Vector3f(_param_mpc_vel_i_acc.get(), _param_mpc_vel_i_acc.get(), _param_mpc_vel_i_acc.get()),
+			Vector3f(_param_mpc_vel_d_acc.get(), _param_mpc_vel_d_acc.get(), _param_mpc_vel_d_acc.get()));
 
 		// Check that the design parameters are inside the absolute maximum constraints
-		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
-			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
-			_param_mpc_xy_cruise.commit();
+		if (_param_mpc_vel_cruise.get() > _param_mpc_vel_max.get()) {
+			_param_mpc_vel_cruise.set(_param_mpc_vel_max.get());
+			_param_mpc_vel_cruise.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed\t");
 			/* EVENT
-			 * @description <param>MPC_XY_CRUISE</param> is set to {1:.0}.
+			 * @description <param>SPC_VEL_CRUISE</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_cruise_set"), events::Log::Warning,
-					    "Cruise speed has been constrained by maximum speed", _param_mpc_xy_vel_max.get());
+			events::send<float>(events::ID("sc_pos_ctrl_cruise_set"), events::Log::Warning,
+					    "Cruise speed has been constrained by maximum speed", _param_mpc_vel_max.get());
 		}
 
-		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
-			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
+		if (_param_mpc_vel_manual.get() > _param_mpc_vel_max.get()) {
+			_param_mpc_vel_manual.set(_param_mpc_vel_max.get());
 			_param_mpc_vel_manual.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed\t");
 			/* EVENT
-			 * @description <param>MPC_VEL_MANUAL</param> is set to {1:.0}.
+			 * @description <param>SPC_VEL_MANUAL</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_set"), events::Log::Warning,
-					    "Manual speed has been constrained by maximum speed", _param_mpc_xy_vel_max.get());
-		}
-
-		if (_param_mpc_vel_man_back.get() > _param_mpc_vel_manual.get()) {
-			_param_mpc_vel_man_back.set(_param_mpc_vel_manual.get());
-			_param_mpc_vel_man_back.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual backward speed has been constrained by forward speed\t");
-			/* EVENT
-			 * @description <param>MPC_VEL_MAN_BACK</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_back_set"), events::Log::Warning,
-					    "Manual backward speed has been constrained by forward speed", _param_mpc_vel_manual.get());
-		}
-
-		if (_param_mpc_vel_man_side.get() > _param_mpc_vel_manual.get()) {
-			_param_mpc_vel_man_side.set(_param_mpc_vel_manual.get());
-			_param_mpc_vel_man_side.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual sideways speed has been constrained by forward speed\t");
-			/* EVENT
-			 * @description <param>MPC_VEL_MAN_SIDE</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_side_set"), events::Log::Warning,
-					    "Manual sideways speed has been constrained by forward speed", _param_mpc_vel_manual.get());
-		}
-
-		if (_param_mpc_z_v_auto_up.get() > _param_mpc_z_vel_max_up.get()) {
-			_param_mpc_z_v_auto_up.set(_param_mpc_z_vel_max_up.get());
-			_param_mpc_z_v_auto_up.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Ascent speed has been constrained by max speed\t");
-			/* EVENT
-			 * @description <param>MPC_Z_V_AUTO_UP</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_up_vel_set"), events::Log::Warning,
-					    "Ascent speed has been constrained by max speed", _param_mpc_z_vel_max_up.get());
-		}
-
-		if (_param_mpc_z_v_auto_dn.get() > _param_mpc_z_vel_max_dn.get()) {
-			_param_mpc_z_v_auto_dn.set(_param_mpc_z_vel_max_dn.get());
-			_param_mpc_z_v_auto_dn.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Descent speed has been constrained by max speed\t");
-			/* EVENT
-			 * @description <param>MPC_Z_V_AUTO_DN</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_down_vel_set"), events::Log::Warning,
-					    "Descent speed has been constrained by max speed", _param_mpc_z_vel_max_dn.get());
+			events::send<float>(events::ID("sc_pos_ctrl_man_vel_set"), events::Log::Warning,
+					    "Manual speed has been constrained by maximum speed", _param_mpc_vel_max.get());
 		}
 	}
 }
@@ -360,10 +301,7 @@ void SpacecraftPositionControl::Run()
 
 			_control.setThrustLimits(0.0, _param_mpc_thr_max.get());
 
-			_control.setVelocityLimits(
-				max_speed_xy,
-				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::max(speed_down, 0.f));
+			_control.setVelocityLimits(_param_mpc_vel_max.get());
 
 			_control.setInputSetpoint(_setpoint);
 
@@ -371,11 +309,8 @@ void SpacecraftPositionControl::Run()
 
 			// Run position control
 			if (!_control.update(dt)) {
-				// Failsafe
-				_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
-
 				_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
-				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
+				_control.setVelocityLimits(_param_mpc_vel_max.get());
 				_control.update(dt);
 			}
 
@@ -460,8 +395,8 @@ int SpacecraftPositionControl::print_usage(const char *reason)
 		R"DESCR_STR(
 	### Description
 	The controller has two loops: a P loop for position error and a PID loop for velocity error.
-	Output of the velocity controller is thrust vector that is split to thrust direction
-	(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
+	Output of the velocity controller is thrust vector in the body frame, and the same target attitude
+	received on the trajectory setpoint as quaternion.
 
 	The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
 	logging.

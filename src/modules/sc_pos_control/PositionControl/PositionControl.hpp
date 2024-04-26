@@ -95,11 +95,9 @@ public:
 
 	/**
 	 * Set the maximum velocity to execute with feed forward and position control
-	 * @param vel_horizontal horizontal velocity limit
-	 * @param vel_up upwards velocity limit
-	 * @param vel_down downwards velocity limit
+	 * @param vel_limit velocity limit
 	 */
-	void setVelocityLimits(const float vel_horizontal, const float vel_up, float vel_down);
+	void setVelocityLimits(const float vel_limit);
 
 	/**
 	 * Set the minimum and maximum collective normalized thrust [0,1] that can be output by the controller
@@ -107,31 +105,6 @@ public:
 	 * @param max maximum thrust e.g. 0.9 or 1
 	 */
 	void setThrustLimits(const float min, const float max);
-
-	/**
-	 * Set margin that is kept for horizontal control when prioritizing vertical thrust
-	 * @param margin of normalized thrust that is kept for horizontal control e.g. 0.3
-	 */
-	void setHorizontalThrustMargin(const float margin);
-
-	/**
-	 * Set the maximum tilt angle in radians the output attitude is allowed to have
-	 * @param tilt angle in radians from level orientation
-	 */
-	void setTiltLimit(const float tilt) { _lim_tilt = tilt; }
-
-	/**
-	 * Set the normalized hover thrust
-	 * @param hover_thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
-	 */
-	void setHoverThrust(const float hover_thrust) { _hover_thrust = math::constrain(hover_thrust, HOVER_THRUST_MIN, HOVER_THRUST_MAX); }
-
-	/**
-	 * Update the hover thrust without immediately affecting the output
-	 * by adjusting the integrator. This prevents propagating the dynamics
-	 * of the hover thrust signal directly to the output of the controller.
-	 */
-	void updateHoverThrust(const float hover_thrust_new);
 
 	/**
 	 * Pass the current vehicle state to the controller
@@ -193,7 +166,6 @@ private:
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
-	void _accelerationControl(); ///< Acceleration setpoint processing
 
 	// Gains
 	matrix::Vector3f _gain_pos_p; ///< Position control proportional gain
@@ -202,15 +174,9 @@ private:
 	matrix::Vector3f _gain_vel_d; ///< Velocity control derivative gain
 
 	// Limits
-	float _lim_vel_horizontal{}; ///< Horizontal velocity limit with feed forward and position control
-	float _lim_vel_up{}; ///< Upwards velocity limit with feed forward and position control
-	float _lim_vel_down{}; ///< Downwards velocity limit with feed forward and position control
+	float _lim_vel{}; ///< Horizontal velocity limit with feed forward and position control
 	float _lim_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
 	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
-	float _lim_thr_xy_margin{}; ///< Margin to keep for horizontal control when saturating prioritized vertical thrust
-	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
-
-	float _hover_thrust{}; ///< Thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 
 	// States
 	matrix::Vector3f _pos; /**< current position */
@@ -224,6 +190,7 @@ private:
 	matrix::Vector3f _vel_sp; /**< desired velocity */
 	matrix::Vector3f _acc_sp; /**< desired acceleration */
 	matrix::Vector3f _thr_sp; /**< desired thrust */
+	matrix::Quatf _quat_sp;   /**< desired attitude */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
 };

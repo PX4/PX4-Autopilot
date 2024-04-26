@@ -112,17 +112,174 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAX, 12.f);
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_CRUISE, 5.f);
 
-/*
-    TODO:
-    	(ParamFloat<px4::params::SYS_VEHICLE_RESP>) _param_sys_vehicle_resp,
-		(ParamFloat<px4::params::SPC_VEL_MANUAL>)   _param_mpc_vel_manual,
-		(ParamFloat<px4::params::SPC_THR_MAX>)      _param_mpc_thr_max,		
-		(ParamFloat<px4::params::SPC_ACC>)      _param_mpc_acc_hor,
-		(ParamFloat<px4::params::SPC_ACC_MAX>)      _param_mpc_acc_hor,
-		(ParamFloat<px4::params::SPC_JERK_AUTO>)    _param_mpc_jerk_auto,
-		(ParamFloat<px4::params::SPC_JERK_MAX>)     _param_mpc_jerk_max,
-		(ParamFloat<px4::params::SPC_MAN_Y_MAX>)    _param_mpc_man_y_max,
-		(ParamFloat<px4::params::SPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
-		(ParamFloat<px4::params::SPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
-		(ParamFloat<px4::params::SPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
-*/
+/**
+ * Responsiveness
+ *
+ * Changes the overall responsiveness of the vehicle.
+ * The higher the value, the faster the vehicle will react.
+ *
+ * If set to a value greater than zero, other parameters are automatically set (such as
+ * the acceleration or jerk limits).
+ * If set to a negative value, the existing individual parameters are used.
+ *
+ * @min -1
+ * @max 1
+ * @decimal 2
+ * @increment 0.05
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SYS_VEHICLE_RESP, -0.4f);
+
+/**
+ * Overall Velocity Limit
+ *
+ * If set to a value greater than zero, other parameters are automatically set (such as
+ * MPC_VEL_MAX or MPC_VEL_MANUAL).
+ * If set to a negative value, the existing individual parameters are used.
+ *
+ * @min -20
+ * @max 20
+ * @decimal 1
+ * @increment 1
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_VEL_ALL, -10.f);
+
+/**
+ * Maximum velocity setpoint in autonomous modes
+ *
+ * @unit m/s
+ * @min 3
+ * @max 20
+ * @increment 1
+ * @decimal 1
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_VEL_MAX, 10.f);
+
+/**
+ * Cruising elocity setpoint in autonomous modes
+ *
+ * @unit m/s
+ * @min 3
+ * @max 20
+ * @increment 1
+ * @decimal 1
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_VEL_CRUISE, 10.f);
+
+/**
+ * Maximum velocity setpoint in Position mode
+ *
+ * @unit m/s
+ * @min 3
+ * @max 20
+ * @increment 1
+ * @decimal 1
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_VEL_MANUAL, 10.f);
+
+/**
+ * Maximum collective thrust
+ *
+ * Limit allowed thrust
+ *
+ * @unit norm
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @increment 0.05
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_THR_MAX, 1.f);
+
+/**
+ * Acceleration for autonomous and for manual modes
+ *
+ * When piloting manually, this parameter is only used in MPC_POS_MODE 4.
+ *
+ * @unit m/s^2
+ * @min 2
+ * @max 15
+ * @decimal 1
+ * @increment 1
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_ACC, 3.f);
+
+/**
+ * Maximum accelaration in autonomous modes
+ *
+ *
+ * @unit m/s^2
+ * @min 2
+ * @max 15
+ * @decimal 1
+ * @increment 1
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_ACC_MAX, 5.f);
+
+/**
+ * Jerk limit in autonomous modes
+ *
+ * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+ * A lower value leads to smoother vehicle motions but also limited agility.
+ *
+ * @unit m/s^3
+ * @min 1
+ * @max 80
+ * @decimal 1
+ * @increment 1
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_JERK_AUTO, 4.f);
+
+/**
+ * Maximum jerk in Position/Altitude mode
+ *
+ * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+ * A lower value leads to smoother motions but limits agility
+ * (how fast it can change directions or break).
+ *
+ * Setting this to the maximum value essentially disables the limit.
+ *
+ * Only used with smooth MPC_POS_MODE 3 and 4.
+ *
+ * @unit m/s^3
+ * @min 0.5
+ * @max 500
+ * @decimal 0
+ * @increment 1
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_JERK_MAX, 8.f);
+
+/**
+ * Max manual yaw rate for Stabilized, Altitude, Position mode
+ *
+ * @unit deg/s
+ * @min 0
+ * @max 400
+ * @decimal 0
+ * @increment 10
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_MAN_Y_MAX, 150.f);
+
+/**
+ * Manual yaw rate input filter time constant
+ *
+ * Not used in Stabilized mode
+ * Setting this parameter to 0 disables the filter
+ *
+ * @unit s
+ * @min 0
+ * @max 5
+ * @decimal 2
+ * @increment 0.01
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_MAN_Y_TAU, 0.08f);
