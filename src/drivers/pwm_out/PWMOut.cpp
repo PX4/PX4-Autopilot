@@ -41,13 +41,13 @@ PWMOut::PWMOut() :
 	_pwm_mask = ((1u << DIRECT_PWM_OUTPUT_CHANNELS) - 1);
 	_mixing_output.setMaxNumOutputs(DIRECT_PWM_OUTPUT_CHANNELS);
 
-	// Getting initial parameter values
+	// 获取初始参数值
 	update_params();
 }
 
 PWMOut::~PWMOut()
 {
-	/* make sure servos are off */
+	/* 确保舵机关闭 */
 	up_pwm_servo_deinit(_pwm_mask);
 
 	perf_free(_cycle_perf);
@@ -94,7 +94,7 @@ bool PWMOut::update_pwm_out_state(bool on)
 
 		_pwm_mask = ret;
 
-		// set the timer rates
+		// 设置定时器速率
 		for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
 			uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
 
@@ -113,7 +113,7 @@ bool PWMOut::update_pwm_out_state(bool on)
 
 		_pwm_initialized = true;
 
-		// disable unused functions
+		// 禁用未使用的功能
 		for (unsigned i = 0; i < _num_outputs; ++i) {
 			if (((1 << i) & _pwm_mask) == 0) {
 				_mixing_output.disableFunction(i);
@@ -128,11 +128,11 @@ bool PWMOut::update_pwm_out_state(bool on)
 bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	/* output to the servos */
+	/* 输出到舵机 */
 	if (_pwm_initialized) {
 		for (size_t i = 0; i < num_outputs; i++) {
 			if (!_mixing_output.isFunctionSet(i)) {
-				// do not run any signal on disabled channels
+				// 不要在禁用的频道上运行任何信号
 				outputs[i] = 0;
 			}
 
@@ -142,8 +142,8 @@ bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		}
 	}
 
-	/* Trigger all timer's channels in Oneshot mode to fire
-	 * the oneshots with updated values.
+	/* 在 Oneshot 模式下触发所有定时器的通道以触发
+	 * 具有更新值的 OneShots。
 	 */
 	if (num_control_groups_updated > 0) {
 		up_pwm_update(_pwm_mask);
