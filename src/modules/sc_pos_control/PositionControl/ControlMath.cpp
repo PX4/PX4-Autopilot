@@ -257,5 +257,4 @@ void setZeroIfNanVector3f(Vector3f &vector)
 	// Adding zero vector overwrites elements that are NaN with zero
 	addIfNotNanVector3f(vector, Vector3f());
 }
-
-} // ControlMath
+}

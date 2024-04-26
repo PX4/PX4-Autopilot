@@ -44,7 +44,7 @@
 
 using namespace matrix;
 
-const trajectory_setpoint_s PositionControl::empty_trajectory_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN};
+const trajectory_setpoint_s PositionControl::empty_trajectory_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN};
 
 void PositionControl::setVelocityGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
 {
@@ -183,8 +183,16 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 	attitude_setpoint.thrust_body[2] = _thr_sp(2);
 
 	// Bypass attitude control by giving same attitude setpoint to att control
-	attitude_setpoint.q_d[0] = _quat_sp(0);
-	attitude_setpoint.q_d[1] = _quat_sp(1);
-	attitude_setpoint.q_d[2] = _quat_sp(2);
-	attitude_setpoint.q_d[3] = _quat_sp(3);
+	if(PX4_ISFINITE(_quat_sp(0)) && PX4_ISFINITE(_quat_sp(1)) && PX4_ISFINITE(_quat_sp(2)) && PX4_ISFINITE(_quat_sp(3)) ) {
+		attitude_setpoint.q_d[0] = _quat_sp(0);
+		attitude_setpoint.q_d[1] = _quat_sp(1);
+		attitude_setpoint.q_d[2] = _quat_sp(2);
+		attitude_setpoint.q_d[3] = _quat_sp(3);
+	} else {
+		// We probably dont want this but will leave it for now
+		attitude_setpoint.q_d[0] = 0;
+		attitude_setpoint.q_d[1] = 0;
+		attitude_setpoint.q_d[2] = 0;
+		attitude_setpoint.q_d[3] = 1;
+	}
 }
