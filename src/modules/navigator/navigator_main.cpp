@@ -1212,7 +1212,8 @@ void Navigator::check_traffic()
 
 	char uas_id[11]; //GUID of incoming UTM messages
 
-	float NAVTrafficAvoidUnmanned_H = _param_nav_traff_a_radu.get();  // Edu - These are horrible parameter names, can we change?
+	float NAVTrafficAvoidUnmanned_H =
+		_param_nav_traff_a_radu.get();  // Edu - These are horrible parameter names, can we change?
 	float NAVTrafficAvoidManned_H = _param_nav_traff_a_radm.get();
 	float NAVTrafficAvoidUnmanned_V = _param_nav_traff_a_veru.get();
 	float NAVTrafficAvoidManned_V = _param_nav_traff_a_verm.get();
@@ -1276,30 +1277,34 @@ void Navigator::check_traffic()
 		// of the distance it's at.
 
 		// Adding a check that the time for aircraft to fly past is less than a threshold before warning
-		float dist_uav_aircraft = get_distance_to_next_waypoint(lat_uav,lon_uav, transponder.lat,transponder.lon);
-		float time_to_flyby = dist_uav_aircraft/transponder.hor_velocity; // This is the worst case if aircraft suddenly changed direction towareds uav
+		float dist_uav_aircraft = get_distance_to_next_waypoint(lat_uav, lon_uav, transponder.lat, transponder.lon);
+		float time_to_flyby = dist_uav_aircraft /
+				      transponder.hor_velocity; // This is the worst case if aircraft suddenly changed direction towareds uav
 
-		if (((fabsf(alt_uav - transponder.altitude) < vertical_separation) || (fabsf(alt_uav - aircraft_end_alt) < vertical_separation))
-			&& (time_to_flyby < NAVTrafficAvoidTimeToWarn)) {
+		if (((fabsf(alt_uav - transponder.altitude) < vertical_separation)
+		     || (fabsf(alt_uav - aircraft_end_alt) < vertical_separation))
+		    && (time_to_flyby < NAVTrafficAvoidTimeToWarn)) {
 			double aircraft_end_lat, aircraft_end_lon;
 			// Calculate where the aircraft is going to end if continuing flight for prediction distance
 			waypoint_from_heading_and_distance(transponder.lat, transponder.lon, transponder.heading, prediction_distance, \
-								&aircraft_end_lat, &aircraft_end_lon);
+							   &aircraft_end_lat, &aircraft_end_lon);
 
 			struct crosstrack_error_s cr;
 
 			// get_distance_to_line returns 0 (False) when calculations are correct other codes if error
-			if (!get_distance_to_line(&cr, lat_uav, lon_uav, transponder.lat, transponder.lon, aircraft_end_lat, aircraft_end_lon)) {
-			// Edu. As aircraft_end is 1000m beyond current uav position I don't see how cr.past_end could ever be true.
+			if (!get_distance_to_line(&cr, lat_uav, lon_uav, transponder.lat, transponder.lon, aircraft_end_lat,
+						  aircraft_end_lon)) {
+				// Edu. As aircraft_end is 1000m beyond current uav position I don't see how cr.past_end could ever be true.
 				if (!cr.past_end && (fabsf(cr.distance) < horizontal_separation)) {
-					bool action_needed = buffer_air_traffic(transponder.icao_address);  // This avoids sending message repeatedly (checks enouth time has passed since last)
+					bool action_needed = buffer_air_traffic(
+								     transponder.icao_address);  // This avoids sending message repeatedly (checks enouth time has passed since last)
 
 					if (action_needed) {
 						// direction of traffic in human-readable 0..360 degree in earth frame
 						int traffic_direction = math::degrees(transponder.heading) + 180;
 						int traffic_separation = (int)fabsf(cr.distance);
-						mavlink_log_info(get_mavlink_log_pub(),"Warning close aircraft ID %s Distance to line %d, Distance to uav %d", \
-					 	transponder.callsign, traffic_separation, (int)dist_uav_aircraft);
+						mavlink_log_info(get_mavlink_log_pub(), "Warning close aircraft ID %s Distance to line %d, Distance to uav %d", \
+								 transponder.callsign, traffic_separation, (int)dist_uav_aircraft);
 
 						switch (_param_nav_traff_avoid.get()) {
 
@@ -1316,9 +1321,9 @@ void Navigator::check_traffic()
 								/* Warn only */
 								// Edu: Not sure why this doesn't come through
 								mavlink_log_info(get_mavlink_log_pub(), "Warning TRAFFIC %s! dst %d, hdg %d\t",
-										     transponder.callsign,
-										     traffic_separation,
-										     traffic_direction);
+										 transponder.callsign,
+										 traffic_separation,
+										 traffic_direction);
 								// Edu ID is always zero. Ideally we would send the callsign, but events function
 								// does not allow, and haven't looked at modifying it.
 								/* EVENT

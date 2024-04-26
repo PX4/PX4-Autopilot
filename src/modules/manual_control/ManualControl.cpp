@@ -147,6 +147,17 @@ void ManualControl::Run()
 	if (control_source_toggled) {
 		int sees_desired_control = _selector.getSeesDesiredControl();
 
+		// If transitioning between RC and Mav, reassess all inputs to check for new valid input.
+		// This is to prevent publishing the old setpoint in its Invalid state (triggering Manual Control Lost prematurely)
+		// before the new one has been selected.
+		for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
+			manual_control_setpoint_s manual_control_input;
+
+			if (_manual_control_setpoint_subs[i].copy(&manual_control_input)) {
+				_selector.updateWithNewInputSample(now, manual_control_input, i);
+			}
+		}
+
 		if (sees_desired_control == manual_control_setpoint_s::SOURCE_RC) {
 			mavlink_log_info(&_mavlink_log_pub, "Switching to RC Control");
 
