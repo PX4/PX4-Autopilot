@@ -62,8 +62,10 @@ PARAM_DEFINE_FLOAT(MAN_KILL_GEST_T, -1.f);
 /**
  * Arm/disarm stick gesture type
  *
- * Move the left stick to the lower right and the right stick to the lower left to arm.
- * Move the left stick to the lower left and the right stick to the lower right to disarm.
+ * Single stick (left stick): lower right to arm, lower left to disarm
+ * Dual stick:
+ * Left stick to the lower right and right stick to the lower left to arm.
+ * Left stick to the lower left and right stick to the lower right to disarm.
  *
  * @value 0 Single stick
  * @value 1 Dual stick
