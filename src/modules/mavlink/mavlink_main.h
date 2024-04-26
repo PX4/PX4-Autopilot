@@ -707,12 +707,6 @@ private:
 
 	void check_requested_subscriptions();
 
-	void handleCommands();
-
-	void handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &logging_stop_ack);
-
-	void handleStatus();
-
 	/**
 	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID
 	 *

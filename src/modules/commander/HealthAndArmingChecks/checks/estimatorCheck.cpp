@@ -99,12 +99,8 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	param_t param_ekf2_en_handle = param_find_no_notification("EKF2_EN");
 	int32_t param_ekf2_en = 0;
-
-	if (param_ekf2_en_handle != PARAM_INVALID) {
-		param_get(param_ekf2_en_handle, &param_ekf2_en);
-	}
+	param_get(param_find_no_notification("EKF2_EN"), &param_ekf2_en);
 
 	if (missing_data && (param_ekf2_en == 1)) {
 		/* EVENT

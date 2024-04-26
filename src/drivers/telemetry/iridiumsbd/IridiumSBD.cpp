@@ -235,7 +235,7 @@ int IridiumSBD::print_status()
 	PX4_INFO("RX session pending:           %d", _rx_session_pending);
 	PX4_INFO("RX read pending:              %d", _rx_read_pending);
 	PX4_INFO("Time since last signal check: %" PRId64, hrt_absolute_time() - _last_signal_check);
-	PX4_INFO("Last heartbeat:               %" PRId64, _last_at_ok_timestamp);
+	PX4_INFO("Last heartbeat:               %" PRId64, _last_heartbeat);
 	return 0;
 }
 
@@ -331,11 +331,6 @@ void IridiumSBD::standby_loop(void)
 			start_test();
 			return;
 		}
-	}
-
-	if (!is_modem_responsive()) {
-		VERBOSE_INFO("MODEM IS NOT RENSPONSIVE");
-		return;
 	}
 
 	// check for incoming SBDRING, handled inside read_at_command()
@@ -482,6 +477,7 @@ void IridiumSBD::sbdsession_loop(void)
 		_ring_pending = false;
 		_tx_session_pending = false;
 		_last_read_time = hrt_absolute_time();
+		_last_heartbeat = _last_read_time;
 		++_successful_sbd_sessions;
 
 		if (mt_queued > 0) {
@@ -502,6 +498,8 @@ void IridiumSBD::sbdsession_loop(void)
 
 	case 1:
 		VERBOSE_INFO("SBD SESSION: MO SUCCESS, MT FAIL");
+		_last_heartbeat = hrt_absolute_time();
+
 		// after a successful session reset the tx buffer
 		_tx_buf_write_idx = 0;
 		++_successful_sbd_sessions;
@@ -554,6 +552,11 @@ void IridiumSBD::start_csq(void)
 
 	_last_signal_check = hrt_absolute_time();
 
+	if (!is_modem_ready()) {
+		VERBOSE_INFO("UPDATE SIGNAL QUALITY: MODEM NOT READY!");
+		return;
+	}
+
 	write_at("AT+CSQ");
 	_new_state = SATCOM_STATE_CSQ;
 }
@@ -566,6 +569,11 @@ void IridiumSBD::start_sbd_session(void)
 
 	} else {
 		VERBOSE_INFO("STARTING SBD SESSION");
+	}
+
+	if (!is_modem_ready()) {
+		VERBOSE_INFO("SBD SESSION: MODEM NOT READY!");
+		return;
 	}
 
 	if (_ring_pending) {
@@ -602,8 +610,8 @@ void IridiumSBD::start_test(void)
 		printf("\n");
 	}
 
-	if (!is_modem_responsive()) {
-		PX4_WARN("MODEM NOT RENSPONSIVE!");
+	if (!is_modem_ready()) {
+		PX4_WARN("MODEM NOT READY!");
 		return;
 	}
 
@@ -710,6 +718,11 @@ ssize_t IridiumSBD::read(struct file *filp, char *buffer, size_t buflen)
 
 void IridiumSBD::write_tx_buf()
 {
+	if (!is_modem_ready()) {
+		VERBOSE_INFO("WRITE SBD: MODEM NOT READY!");
+		return;
+	}
+
 	pthread_mutex_lock(&_tx_buf_mutex);
 
 	char command[13];
@@ -766,6 +779,11 @@ void IridiumSBD::write_tx_buf()
 
 void IridiumSBD::read_rx_buf(void)
 {
+	if (!is_modem_ready()) {
+		VERBOSE_INFO("READ SBD: MODEM NOT READY!");
+		return;
+	}
+
 	pthread_mutex_lock(&_rx_buf_mutex);
 
 
@@ -931,12 +949,11 @@ satcom_uart_status IridiumSBD::open_uart(char *uart_name)
 	return SATCOM_UART_OK;
 }
 
-bool IridiumSBD::is_modem_responsive(void)
+bool IridiumSBD::is_modem_ready(void)
 {
 	write_at("AT");
 
 	if (read_at_command() == SATCOM_RESULT_OK) {
-		_last_at_ok_timestamp = hrt_absolute_time();
 		return true;
 
 	} else {
@@ -963,9 +980,9 @@ void IridiumSBD::publish_iridium_status()
 {
 	bool need_to_publish = false;
 
-	if (_status.last_at_ok_timestamp != _last_at_ok_timestamp) {
+	if (_status.last_heartbeat != _last_heartbeat) {
 		need_to_publish = true;
-		_status.last_at_ok_timestamp = _last_at_ok_timestamp;
+		_status.last_heartbeat = _last_heartbeat;
 	}
 
 	if (_status.tx_buf_write_index != _tx_buf_write_idx) {

@@ -167,7 +167,7 @@ void PWMOut::Run()
 
 	_mixing_output.update();
 
-	/* update PWM status if armed or if disarmed PWM values are set */
+/* 如果设置了布防或撤防 PWM 值，则更新 PWM 状态*/
 	bool pwm_on = true;
 
 	if (_pwm_on != pwm_on) {
@@ -176,17 +176,17 @@ void PWMOut::Run()
 		}
 	}
 
-	// check for parameter updates
+	//检查参数更新
 	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		// update parameters from storage
+		// 从存储更新参数
 		update_params();
 	}
 
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
+	//在周期结束时检查（updateSubscriptions（） 可能会更改为不同的 WorkQueue 线程）
 	_mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
@@ -218,7 +218,7 @@ void PWMOut::update_params()
 
 	updateParams();
 
-	// Automatically set PWM configuration when a channel is first assigned
+	// 首次分配通道时自动设置PWM配置
 	if (!_first_update_cycle) {
 		for (size_t i = 0; i < _num_outputs; i++) {
 			if ((previously_set_functions & (1u << i)) == 0 && _mixing_output.functionParamHandle(i) != PARAM_INVALID) {

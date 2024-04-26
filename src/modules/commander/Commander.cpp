@@ -1109,7 +1109,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
 			// if no high latency telemetry exists send a failed acknowledge
-			if (_high_latency_datalink_timestamp < _boot_timestamp) {
+			if (_high_latency_datalink_heartbeat > _boot_timestamp) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 				mavlink_log_critical(&_mavlink_log_pub, "Control high latency failed! Telemetry unavailable\t");
 				events::send(events::ID("commander_ctrl_high_latency_failed"), {events::Log::Critical, events::LogInternal::Info},
@@ -2672,28 +2672,6 @@ void Commander::enable_hil()
 
 void Commander::dataLinkCheck()
 {
-	// high latency data link
-	iridiumsbd_status_s iridium_status;
-
-	if (_iridiumsbd_status_sub.update(&iridium_status)) {
-		_high_latency_datalink_timestamp = iridium_status.last_at_ok_timestamp;
-
-		if (_vehicle_status.high_latency_data_link_lost &&
-		    (_high_latency_datalink_timestamp > _high_latency_datalink_lost) &&
-		    (_high_latency_datalink_regained == 0)
-		   ) {
-			_high_latency_datalink_regained = _high_latency_datalink_timestamp;
-		}
-
-		if (_vehicle_status.high_latency_data_link_lost &&
-		    (_high_latency_datalink_regained != 0) &&
-		    (hrt_elapsed_time(&_high_latency_datalink_regained) > (_param_com_hldl_reg_t.get() * 1_s))
-		   ) {
-			_vehicle_status.high_latency_data_link_lost = false;
-			_status_changed = true;
-		}
-	}
-
 	for (auto &telemetry_status :  _telemetry_status_subs) {
 		telemetry_status_s telemetry;
 
@@ -2707,18 +2685,16 @@ void Commander::dataLinkCheck()
 				break;
 
 			case telemetry_status_s::LINK_TYPE_IRIDIUM: {
+					iridiumsbd_status_s iridium_status;
 
-					if ((_high_latency_datalink_timestamp > 0) &&
-					    (hrt_elapsed_time(&_high_latency_datalink_timestamp) > (_param_com_hldl_loss_t.get() * 1_s))) {
+					if (_iridiumsbd_status_sub.update(&iridium_status)) {
+						_high_latency_datalink_heartbeat = iridium_status.last_heartbeat;
 
-						_high_latency_datalink_lost = _high_latency_datalink_timestamp;
-						_high_latency_datalink_regained = 0;
-
-						if (!_vehicle_status.high_latency_data_link_lost) {
-							_vehicle_status.high_latency_data_link_lost = true;
-							mavlink_log_critical(&_mavlink_log_pub, "High latency data link lost\t");
-							events::send(events::ID("commander_high_latency_lost"), events::Log::Critical, "High latency data link lost");
-							_status_changed = true;
+						if (_vehicle_status.high_latency_data_link_lost) {
+							if (hrt_elapsed_time(&_high_latency_datalink_lost) > (_param_com_hldl_reg_t.get() * 1_s)) {
+								_vehicle_status.high_latency_data_link_lost = false;
+								_status_changed = true;
+							}
 						}
 					}
 
@@ -2858,6 +2834,19 @@ void Commander::dataLinkCheck()
 
 			_avoidance_system_lost = true;
 			_vehicle_status.avoidance_system_valid = false;
+		}
+	}
+
+	// high latency data link loss failsafe
+	if (_high_latency_datalink_heartbeat > 0
+	    && hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_param_com_hldl_loss_t.get() * 1_s)) {
+		_high_latency_datalink_lost = hrt_absolute_time();
+
+		if (!_vehicle_status.high_latency_data_link_lost) {
+			_vehicle_status.high_latency_data_link_lost = true;
+			mavlink_log_critical(&_mavlink_log_pub, "High latency data link lost\t");
+			events::send(events::ID("commander_high_latency_lost"), events::Log::Critical, "High latency data link lost");
+			_status_changed = true;
 		}
 	}
 }

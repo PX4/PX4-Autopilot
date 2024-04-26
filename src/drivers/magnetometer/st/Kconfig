@@ -1,3 +1,0 @@
-menu "ST"
-    rsource "*/Kconfig"
-endmenu
