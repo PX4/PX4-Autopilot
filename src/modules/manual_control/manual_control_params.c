@@ -60,7 +60,7 @@ PARAM_DEFINE_INT32(MAN_ARM_GESTURE, 1);
 PARAM_DEFINE_FLOAT(MAN_KILL_GEST_T, -1.f);
 
 /**
- * arm/disarm stick gesture type
+ * Arm/disarm stick gesture type
  *
  * Move the left stick to the lower right and the right stick to the lower left to arm.
  * Move the left stick to the lower left and the right stick to the lower right to disarm.
