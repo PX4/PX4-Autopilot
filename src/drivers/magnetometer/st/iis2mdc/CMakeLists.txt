@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(akm)
-add_subdirectory(bosch)
-add_subdirectory(hmc5883)
-add_subdirectory(qmc5883l)
-add_subdirectory(isentek)
-add_subdirectory(lis2mdl)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(memsic)
-add_subdirectory(rm3100)
-add_subdirectory(st)
-add_subdirectory(vtrantech)
+px4_add_module(
+	MODULE drivers__magnetometer__st__iis2mdc
+	MAIN iis2mdc
+	COMPILE_FLAGS
+		# -DDEBUG_BUILD
+	SRCS
+		iis2mdc_i2c.cpp
+		iis2mdc_main.cpp
+		iis2mdc.cpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)

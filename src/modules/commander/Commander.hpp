@@ -246,8 +246,9 @@ private:
 
 	hrt_abstime _last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
-	hrt_abstime _high_latency_datalink_heartbeat{0};
+	hrt_abstime _high_latency_datalink_timestamp{0};
 	hrt_abstime _high_latency_datalink_lost{0};
+	hrt_abstime _high_latency_datalink_regained{0};
 
 	hrt_abstime _boot_timestamp{0};
 	hrt_abstime _last_disarmed_timestamp{0};

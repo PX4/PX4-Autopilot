@@ -75,7 +75,7 @@ SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
 	// populate obstacle map members
 	_obstacle_map_msg.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
 	_obstacle_map_msg.increment = 5;
-	_obstacle_map_msg.angle_offset = -2.5;
+	_obstacle_map_msg.angle_offset = 2.5;
 	_obstacle_map_msg.min_distance = UINT16_MAX;
 	_obstacle_map_msg.max_distance = 5000;
 
@@ -157,7 +157,6 @@ int SF45LaserSerial::collect()
 	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 	int ret;
 	/* the buffer for read chars is buflen minus null termination */
-	param_get(param_find("SF45_CP_LIMIT"), &_collision_constraint);
 	uint8_t readbuf[SF45_MAX_PAYLOAD];
 
 	float distance_m = -1.0f;
@@ -669,33 +668,34 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 				raw_yaw = raw_yaw * -1;
 			}
 
+			// SF45/B product guide {Data output bit: 8 Description: "Yaw angle [1/100 deg] size: int16}"
+			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
+
 			switch (_yaw_cfg) {
 			case 0:
 				break;
 
 			case 1:
-				if (raw_yaw > 180) {
-					raw_yaw = raw_yaw - 180;
+				if (scaled_yaw > 180) {
+					scaled_yaw = scaled_yaw - 180;
 
 				} else {
-					raw_yaw = raw_yaw + 180; // rotation facing aft
+					scaled_yaw = scaled_yaw + 180; // rotation facing aft
 				}
 
 				break;
 
 			case 2:
-				raw_yaw = raw_yaw + 90; // rotation facing right
+				scaled_yaw = scaled_yaw + 90; // rotation facing right
 				break;
 
 			case 3:
-				raw_yaw = raw_yaw - 90; // rotation facing left
+				scaled_yaw = scaled_yaw - 90; // rotation facing left
 				break;
 
 			default:
 				break;
 			}
-
-			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
 
 			// Convert to meters for rangefinder update
 			*distance_m = raw_distance * SF45_SCALE_FACTOR;

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,34 +31,67 @@
  *
  ****************************************************************************/
 
-/**
- * @file cli.h
- * Helper methods for command-line parameters
- */
+#include "iis2mdc.h"
+#include <drivers/device/i2c.h>
 
-#pragma once
+class IIS2MDC_I2C : public device::I2C
+{
+public:
+	IIS2MDC_I2C(const I2CSPIDriverConfig &config);
+	virtual ~IIS2MDC_I2C() = default;
 
+	virtual int read(unsigned address, void *data, unsigned count) override;
+	virtual int write(unsigned address, void *data, unsigned count) override;
 
-/**
- * Parse a CLI argument to an integer. There are 2 valid formats:
- * - 'p:<param_name>'
- *   in this case the parameter is loaded from an integer parameter
- * - <int>
- *   an integer value, so just a string to integer conversion is done
- * @param option CLI argument
- * @param value returned value
- * @return 0 on success, -errno otherwise
- */
-int px4_get_parameter_value(const char *option, int &value);
+protected:
+	virtual int probe();
+};
 
-/**
- * Parse a CLI argument to a float. There are 2 valid formats:
- * - 'p:<param_name>'
- *   in this case the parameter is loaded from an integer parameter
- * - <float>
- *   a floating-point value, so just a string to float conversion is done
- * @param option CLI argument
- * @param value returned value
- * @return 0 on success, -errno otherwise
- */
-int px4_get_parameter_value(const char *option, float &value);
+IIS2MDC_I2C::IIS2MDC_I2C(const I2CSPIDriverConfig &config) :
+	I2C(config)
+{
+}
+
+int IIS2MDC_I2C::probe()
+{
+	uint8_t data = 0;
+
+	if (read(IIS2MDC_ADDR_WHO_AM_I, &data, 1)) {
+		DEVICE_DEBUG("read_reg fail");
+		return -EIO;
+	}
+
+	if (data != IIS2MDC_WHO_AM_I) {
+		DEVICE_DEBUG("IIS2MDC bad ID: %02x", data);
+		return -EIO;
+	}
+
+	_retries = 1;
+
+	return OK;
+}
+
+int IIS2MDC_I2C::read(unsigned address, void *data, unsigned count)
+{
+	uint8_t cmd = address;
+	return transfer(&cmd, 1, (uint8_t *)data, count);
+}
+
+int IIS2MDC_I2C::write(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
+	}
+
+	buf[0] = address;
+	memcpy(&buf[1], data, count);
+
+	return transfer(&buf[0], count + 1, nullptr, 0);
+}
+
+device::Device *IIS2MDC_I2C_interface(const I2CSPIDriverConfig &config)
+{
+	return new IIS2MDC_I2C(config);
+}

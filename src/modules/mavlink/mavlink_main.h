@@ -584,6 +584,7 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};
 	bool			_radio_status_critical{false};
@@ -706,6 +707,12 @@ private:
 	void publish_telemetry_status();
 
 	void check_requested_subscriptions();
+
+	void handleCommands();
+
+	void handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &logging_stop_ack);
+
+	void handleStatus();
 
 	/**
 	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID

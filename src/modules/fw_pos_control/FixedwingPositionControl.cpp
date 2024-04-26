@@ -1404,6 +1404,9 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get());
+
+	_att_sp.thrust_body[0] = min(get_tecs_thrust(), tecs_fw_thr_max);
+	_att_sp.pitch_body = get_tecs_pitch();
 }
 
 void
@@ -2301,7 +2304,7 @@ FixedwingPositionControl::Run()
 			_reference_altitude = 0.f;
 		}
 
-		_current_altitude = -_local_pos.z + _local_pos.ref_alt; // Altitude AMSL in meters
+		_current_altitude = -_local_pos.z + _reference_altitude; // Altitude AMSL in meters
 
 		// handle estimator reset events. we only adjust setpoins for manual modes
 		if (_control_mode.flag_control_manual_enabled) {
