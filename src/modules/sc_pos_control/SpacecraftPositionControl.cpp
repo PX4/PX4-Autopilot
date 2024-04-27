@@ -145,7 +145,7 @@ void SpacecraftPositionControl::parameters_update(bool force)
 }
 
 PositionControlStates SpacecraftPositionControl::set_vehicle_states(const vehicle_local_position_s
-		&vehicle_local_position)
+		&vehicle_local_position, const vehicle_attitude_s &vehicle_attitude)
 {
 	PositionControlStates states;
 
@@ -194,7 +194,11 @@ PositionControlStates SpacecraftPositionControl::set_vehicle_states(const vehicl
 		_vel_z_deriv.reset();
 	}
 
-	states.yaw = vehicle_local_position.heading;
+	if(PX4_ISFINITE(vehicle_attitude.q[0]) && PX4_ISFINITE(vehicle_attitude.q[1]) && PX4_ISFINITE(vehicle_attitude.q[2]) && PX4_ISFINITE(vehicle_attitude.q[3])) {
+		states.quaternion = Quatf(vehicle_attitude.q);
+	} else {
+		states.quaternion = Quatf();
+	}
 
 	return states;
 }
@@ -214,6 +218,7 @@ void SpacecraftPositionControl::Run()
 
 	perf_begin(_cycle_perf);
 	vehicle_local_position_s vehicle_local_position;
+	vehicle_attitude_s v_att;
 
 	if (_local_pos_sub.update(&vehicle_local_position)) {
 		const float dt =
@@ -240,6 +245,7 @@ void SpacecraftPositionControl::Run()
 		// TODO: check if setpoint is different than the previous one and reset integral then
 		// 		 _control.resetIntegral();
 		_trajectory_setpoint_sub.update(&_setpoint);
+		_vehicle_attitude_sub.update(&v_att);
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
 		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
@@ -283,7 +289,7 @@ void SpacecraftPositionControl::Run()
 		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
 
 
-		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
+		PositionControlStates states{set_vehicle_states(vehicle_local_position, v_att)};
 
 
 		if (_vehicle_control_mode.flag_control_position_enabled) {
@@ -299,7 +305,7 @@ void SpacecraftPositionControl::Run()
 		if (_vehicle_control_mode.flag_control_position_enabled
 		    && (_setpoint.timestamp >= _time_position_control_enabled)) {
 
-			_control.setThrustLimits(0.0, _param_mpc_thr_max.get());
+			_control.setThrustLimit(_param_mpc_thr_max.get());
 
 			_control.setVelocityLimits(_param_mpc_vel_max.get());
 
@@ -314,17 +320,9 @@ void SpacecraftPositionControl::Run()
 				_control.update(dt);
 			}
 
-			// Publish internal position control setpoints
-			// on top of the input/feed-forward setpoints these containt the PID corrections
-			// This message is used by other modules (such as Landdetector) to determine vehicle intention.
-			vehicle_local_position_setpoint_s local_pos_sp{};
-			_control.getLocalPositionSetpoint(local_pos_sp);
-			local_pos_sp.timestamp = hrt_absolute_time();
-			_local_pos_sp_pub.publish(local_pos_sp);
-
 			// Publish attitude setpoint output
 			vehicle_attitude_setpoint_s attitude_setpoint{};
-			_control.getAttitudeSetpoint(attitude_setpoint);
+			_control.getAttitudeSetpoint(attitude_setpoint, v_att);
 			attitude_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 

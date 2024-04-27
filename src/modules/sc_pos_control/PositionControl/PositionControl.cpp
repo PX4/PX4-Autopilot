@@ -58,10 +58,8 @@ void PositionControl::setVelocityLimits(const float vel_limit)
 	_lim_vel = vel_limit;
 }
 
-void PositionControl::setThrustLimits(const float min, const float max)
+void PositionControl::setThrustLimit(const float max)
 {
-	// make sure there's always enough thrust vector length to infer the attitude
-	_lim_thr_min = min;
 	_lim_thr_max = max;
 }
 
@@ -70,6 +68,7 @@ void PositionControl::setState(const PositionControlStates &states)
 	_pos = states.position;
 	_vel = states.velocity;
 	_vel_dot = states.acceleration;
+	_att_q = states.quaternion;
 }
 
 void PositionControl::setInputSetpoint(const trajectory_setpoint_s &setpoint)
@@ -161,21 +160,7 @@ bool PositionControl::_inputValid()
 	return valid;
 }
 
-void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
-{
-	local_position_setpoint.x = _pos_sp(0);
-	local_position_setpoint.y = _pos_sp(1);
-	local_position_setpoint.z = _pos_sp(2);
-	local_position_setpoint.yaw = _yaw_sp;
-	local_position_setpoint.yawspeed = _yawspeed_sp;
-	local_position_setpoint.vx = _vel_sp(0);
-	local_position_setpoint.vy = _vel_sp(1);
-	local_position_setpoint.vz = _vel_sp(2);
-	_acc_sp.copyTo(local_position_setpoint.acceleration);
-	_thr_sp.copyTo(local_position_setpoint.thrust);
-}
-
-void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
+void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint, vehicle_attitude_s &v_att) const
 {
 	// Set thrust setpoint
 	attitude_setpoint.thrust_body[0] = _thr_sp(0);
@@ -189,10 +174,9 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 		attitude_setpoint.q_d[2] = _quat_sp(2);
 		attitude_setpoint.q_d[3] = _quat_sp(3);
 	} else {
-		// We probably dont want this but will leave it for now
-		attitude_setpoint.q_d[0] = 0;
-		attitude_setpoint.q_d[1] = 0;
-		attitude_setpoint.q_d[2] = 0;
-		attitude_setpoint.q_d[3] = 1;
+		attitude_setpoint.q_d[0] = v_att.q[0];
+		attitude_setpoint.q_d[1] = v_att.q[1];
+		attitude_setpoint.q_d[2] = v_att.q[2];
+		attitude_setpoint.q_d[3] = v_att.q[3];
 	}
 }

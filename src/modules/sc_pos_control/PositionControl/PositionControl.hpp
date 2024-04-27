@@ -42,6 +42,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
@@ -49,24 +50,19 @@ struct PositionControlStates {
 	matrix::Vector3f position;
 	matrix::Vector3f velocity;
 	matrix::Vector3f acceleration;
-	float yaw;
+	matrix::Quatf quaternion;  // bypassed to attitude controller
 };
 
 /**
- * 	Core Position-Control for MC.
+ * 	Core Position-Control for spacecrafts.
  * 	This class contains P-controller for position and
  * 	PID-controller for velocity.
+ * 
  * 	Inputs:
- * 		vehicle position/velocity/yaw
- * 		desired set-point position/velocity/thrust/yaw/yaw-speed
- * 		constraints that are stricter than global limits
+ * 		vehicle position/velocity/attitude
+ * 		desired set-point position/velocity/thrust/attitude
  * 	Output
- * 		thrust vector and a yaw-setpoint
- *
- * 	If there is a position and a velocity set-point present, then
- * 	the velocity set-point is used as feed-forward. If feed-forward is
- * 	active, then the velocity component of the P-controller output has
- * 	priority over the feed-forward component.
+ * 		thrust vector and quaternion for attitude control
  *
  * 	A setpoint that is NAN is considered as not set.
  * 	If there is a position/velocity- and thrust-setpoint present, then
@@ -104,7 +100,7 @@ public:
 	 * @param min minimum thrust e.g. 0.1 or 0
 	 * @param max maximum thrust e.g. 0.9 or 1
 	 */
-	void setThrustLimits(const float min, const float max);
+	void setThrustLimit(const float max);
 
 	/**
 	 * Pass the current vehicle state to the controller
@@ -137,20 +133,12 @@ public:
 	void resetIntegral() { _vel_int.setZero(); }
 
 	/**
-	 * Get the controllers output local position setpoint
-	 * These setpoints are the ones which were executed on including PID output and feed-forward.
-	 * The acceleration or thrust setpoints can be used for attitude control.
-	 * @param local_position_setpoint reference to struct to fill up
-	 */
-	void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const;
-
-	/**
 	 * Get the controllers output attitude setpoint
 	 * This attitude setpoint was generated from the resulting acceleration setpoint after position and velocity control.
 	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
 	 * @param attitude_setpoint reference to struct to fill up
 	 */
-	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
+	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint, vehicle_attitude_s &v_att) const;
 
 	/**
 	 * All setpoints are set to NAN (uncontrolled). Timestampt zero.
@@ -183,6 +171,7 @@ private:
 	matrix::Vector3f _vel; /**< current velocity */
 	matrix::Vector3f _vel_dot; /**< velocity derivative (replacement for acceleration estimate) */
 	matrix::Vector3f _vel_int; /**< integral term of the velocity controller */
+	matrix::Quatf _att_q; /**< current attitude */
 	float _yaw{}; /**< current heading */
 
 	// Setpoints
@@ -191,6 +180,4 @@ private:
 	matrix::Vector3f _acc_sp; /**< desired acceleration */
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	matrix::Quatf _quat_sp;   /**< desired attitude */
-	float _yaw_sp{}; /**< desired heading */
-	float _yawspeed_sp{}; /** desired yaw-speed */
 };
