@@ -40,3 +40,14 @@
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_EN_PAW3902, 0);
+
+/**
+ * PAW3902 Optical Flow Resolution
+ *
+ * @reboot_required true
+ *
+ * @min 1
+ * @max 168
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_PAW3902_RES, 168);

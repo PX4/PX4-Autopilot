@@ -47,8 +47,11 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_optical_flow.h>
+#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 using namespace PixArt_PAW3902;
@@ -56,7 +59,7 @@ using namespace PixArt_PAW3902;
 #define DIR_WRITE(a) ((a) | Bit7)
 #define DIR_READ(a) ((a) & 0x7F)
 
-class PAW3902 : public device::SPI, public I2CSPIDriver<PAW3902>
+class PAW3902 : public ModuleParams, public device::SPI, public I2CSPIDriver<PAW3902>
 {
 public:
 	PAW3902(const I2CSPIDriverConfig &config);
@@ -138,6 +141,15 @@ private:
 	int _low_to_bright_counter{0};
 	int _superlow_to_low_counter{0};
 
+	int _current_resolution{0};
+
 	hrt_abstime _last_write_time{0};
 	hrt_abstime _last_read_time{0};
+
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SENS_EN_PAW3902>)   _p_sens_en_paw3902,
+		(ParamInt<px4::params::SENS_PAW3902_RES>)  _p_sens_paw3902_res
+	);
 };

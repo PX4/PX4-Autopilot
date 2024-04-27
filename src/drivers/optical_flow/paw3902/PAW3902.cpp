@@ -39,6 +39,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 }
 
 PAW3902::PAW3902(const I2CSPIDriverConfig &config) :
+	ModuleParams(nullptr),
 	SPI(config),
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio)
@@ -145,6 +146,15 @@ int PAW3902::probe()
 void PAW3902::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
+
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// update parameters from storage
+		ModuleParams::updateParams();
+	}
 
 	switch (_state) {
 	case STATE::RESET:
@@ -412,11 +422,17 @@ void PAW3902::RunImpl()
 						const matrix::Vector3f pixel_flow_rotated = _rotation * matrix::Vector3f{(float)delta_x_raw, (float)delta_y_raw, 0.f};
 
 						// datasheet provides 11.914 CPI (count per inch) scaling per meter of height
-						static constexpr float PIXART_RESOLUTION = 11.914f; // counts per inch (CPI) per meter (from surface)
+						// Approximate resolution = (Register Value + 1) * (50 / 8450)
+						// At the default resolution of 0x14, the resolution is 11.914 CPI
+						// ((20 + 1) * (50 / 8450)) * x = 11.914
+						// 0.124260355 * x = 11.914
+						// x = 11.914 / 0.124260355 = 95.87933333
+						static constexpr float PIXART_RESOLUTION_MAGIC_VAL = 11.914f / ((20.0f + 1.0f) * (50.0f / 8450.0f));
+						static float calculated_resolution = PIXART_RESOLUTION_MAGIC_VAL * ((_current_resolution + 1) * (50.f / 8450.f));
 						static constexpr float INCHES_PER_METER = 39.3701f;
 
 						// CPI/m -> radians
-						static constexpr float SCALE = 1.f / (PIXART_RESOLUTION * INCHES_PER_METER);
+						static float SCALE = 1.f / (calculated_resolution * INCHES_PER_METER);
 
 						sensor_optical_flow.pixel_flow[0] = pixel_flow_rotated(0) * SCALE;
 						sensor_optical_flow.pixel_flow[1] = pixel_flow_rotated(1) * SCALE;
@@ -525,6 +541,17 @@ bool PAW3902::Configure()
 	}
 
 	EnableLed();
+
+	_current_resolution = (uint32_t)_p_sens_paw3902_res.get();
+
+	if (_current_resolution < 1) {
+		_current_resolution = 1;
+
+	} else if (_current_resolution > 0xA8) {
+		_current_resolution = 0xA8;
+	}
+
+	RegisterWrite(Register::Resolution, _current_resolution);
 
 	return true;
 }
