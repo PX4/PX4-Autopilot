@@ -27,5 +27,10 @@ sc_rate_control start
 #
 sc_att_control start
 
+#
+# Start Spacecraft Position Controller.
+#
+sc_pos_control start
+
 # Start Space Robot Thruster Controller
 sc_thruster_controller start

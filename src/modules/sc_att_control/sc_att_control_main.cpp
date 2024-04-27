@@ -80,8 +80,7 @@ void
 SpacecraftAttitudeControl::parameters_updated()
 {
 	// Store some of the parameters in a more convenient way & precompute often-used values
-	_attitude_control.setProportionalGain(Vector3f(_param_sc_roll_p.get(), _param_sc_pitch_p.get(), _param_sc_yaw_p.get()),
-					      _param_sc_yaw_weight.get());
+	_attitude_control.setProportionalGain(Vector3f(_param_sc_roll_p.get(), _param_sc_pitch_p.get(), _param_sc_yaw_p.get()));
 
 	// angular rate limits
 	using math::radians;
@@ -155,7 +154,7 @@ SpacecraftAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt, 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
 	// update attitude controller setpoint immediately
-	_attitude_control.setAttitudeSetpoint(q_sp, attitude_setpoint.yaw_sp_move_rate);
+	_attitude_control.setAttitudeSetpoint(q_sp);
 	_thrust_setpoint_body = Vector3f(attitude_setpoint.thrust_body);
 	_last_attitude_setpoint = attitude_setpoint.timestamp;
 }
@@ -198,11 +197,12 @@ SpacecraftAttitudeControl::Run()
 
 			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
 			    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
+				/* Removing print
 				PX4_INFO("Current setpoint: %f %f %f %f", (double)vehicle_attitude_setpoint.q_d[0], 
 				(double)vehicle_attitude_setpoint.q_d[1], (double)vehicle_attitude_setpoint.q_d[2], 
-				(double)vehicle_attitude_setpoint.q_d[3]);
+				(double)vehicle_attitude_setpoint.q_d[3]);*/
 
-				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d));
 				_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
 				_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
 			}
@@ -260,25 +260,11 @@ SpacecraftAttitudeControl::Run()
 				_man_roll_input_filter.reset(0.f);
 				_man_pitch_input_filter.reset(0.f);
 			}
-			// PX4_INFO("Current state: %f %f %f %f", (double)q(0), (double)q(1), (double)q(2), (double)q(3));
 			Vector3f rates_sp = _attitude_control.update(q);
-
-			const hrt_abstime now = hrt_absolute_time();
-			autotune_attitude_control_status_s pid_autotune;
-
-			if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
-				if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
-				    && ((now - pid_autotune.timestamp) < 1_s)) {
-					rates_sp += Vector3f(pid_autotune.rate_sp);
-				}
-			}
-
+			
 			// publish rate setpoint
 			vehicle_rates_setpoint_s rates_setpoint{};
-			rates_setpoint.roll = rates_sp(0);
+			rates_setpoint.roll = rates_sp(0); 
 			rates_setpoint.pitch = rates_sp(1);
 			rates_setpoint.yaw = rates_sp(2);
 			_thrust_setpoint_body.copyTo(rates_setpoint.thrust_body);
@@ -352,7 +338,6 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
 
 	PRINT_MODULE_USAGE_NAME("sc_att_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
