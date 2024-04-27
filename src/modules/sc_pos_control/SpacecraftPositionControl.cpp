@@ -288,9 +288,7 @@ void SpacecraftPositionControl::Run()
 		_z_reset_counter = vehicle_local_position.z_reset_counter;
 		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
 
-
 		PositionControlStates states{set_vehicle_states(vehicle_local_position, v_att)};
-
 
 		if (_vehicle_control_mode.flag_control_position_enabled) {
 			// set failsafe setpoint if there hasn't been a new

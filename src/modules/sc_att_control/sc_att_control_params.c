@@ -32,11 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file mc_att_control_params.c
- * Parameters for multicopter attitude controller.
+ * @file sc_att_control_params.c
+ * Parameters for spacecraft attitude controller.
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton@px4.io>
+ * @author Pedro Roque, <padr@kth.se>
  */
 
 /**
@@ -48,7 +49,7 @@
  * @max 12
  * @decimal 2
  * @increment 0.1
- * @group Multicopter Attitude Control
+ * @group Spacecraft Attitude Control
  */
 PARAM_DEFINE_FLOAT(SC_ROLL_P, 6.5f);
 
@@ -61,7 +62,7 @@ PARAM_DEFINE_FLOAT(SC_ROLL_P, 6.5f);
  * @max 12
  * @decimal 2
  * @increment 0.1
- * @group Multicopter Attitude Control
+ * @group Spacecraft Attitude Control
  */
 PARAM_DEFINE_FLOAT(SC_PITCH_P, 6.5f);
 
@@ -74,7 +75,7 @@ PARAM_DEFINE_FLOAT(SC_PITCH_P, 6.5f);
  * @max 5
  * @decimal 2
  * @increment 0.1
- * @group Multicopter Attitude Control
+ * @group Spacecraft Attitude Control
  */
 PARAM_DEFINE_FLOAT(SC_YAW_P, 2.8f);
 
@@ -92,7 +93,7 @@ PARAM_DEFINE_FLOAT(SC_YAW_P, 2.8f);
  * @max 1.0
  * @decimal 2
  * @increment 0.1
- * @group Multicopter Attitude Control
+ * @group Spacecraft Attitude Control
  */
 PARAM_DEFINE_FLOAT(SC_YAW_WEIGHT, 0.4f);
 
@@ -111,7 +112,7 @@ PARAM_DEFINE_FLOAT(SC_YAW_WEIGHT, 0.4f);
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Attitude Control
+ * @group Spacecraft Attitude Control
  */
 PARAM_DEFINE_FLOAT(SC_ROLLRATE_MAX, 220.0f);
 
@@ -130,7 +131,7 @@ PARAM_DEFINE_FLOAT(SC_ROLLRATE_MAX, 220.0f);
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Attitude Control
+ * @group Spacecraft Attitude Control
  */
 PARAM_DEFINE_FLOAT(SC_PITCHRATE_MAX, 220.0f);
 
@@ -142,7 +143,7 @@ PARAM_DEFINE_FLOAT(SC_PITCHRATE_MAX, 220.0f);
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Attitude Control
+ * @group Spacecraft Attitude Control
  */
 PARAM_DEFINE_FLOAT(SC_YAWRATE_MAX, 200.0f);
 
@@ -155,7 +156,7 @@ PARAM_DEFINE_FLOAT(SC_YAWRATE_MAX, 200.0f);
  * @min 0.0
  * @max 2.0
  * @decimal 2
- * @group Multicopter Position Control
+ * @group Spacecraft Position Control
  */
 PARAM_DEFINE_FLOAT(SC_MAN_TILT_TAU, 0.0f);
 
@@ -167,6 +168,6 @@ PARAM_DEFINE_FLOAT(SC_MAN_TILT_TAU, 0.0f);
  * @max 400
  * @decimal 0
  * @increment 10
- * @group Multicopter Position Control
+ * @group Spacecraft Position Control
  */
 PARAM_DEFINE_FLOAT(SC_MAN_Y_SCALE, 150.f);
