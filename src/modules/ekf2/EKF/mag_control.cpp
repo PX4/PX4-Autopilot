@@ -224,12 +224,8 @@ void Ekf::checkYawAngleObservability()
 	if (_control_status.flags.gps) {
 		// Check if there has been enough change in horizontal velocity to make yaw observable
 		// Apply hysteresis to check to avoid rapid toggling
-		if (_yaw_angle_observable) {
-			_yaw_angle_observable = _accel_lpf_NE.norm() > _params.mag_acc_gate;
-
-		} else {
-			_yaw_angle_observable = _accel_lpf_NE.norm() > _params.mag_acc_gate * 2.f;
-		}
+		_yaw_angle_observable = _yaw_angle_observable ?
+					_accel_lpf_NE.norm() > _params.mag_acc_gate : _accel_lpf_NE.norm() > _params.mag_acc_gate * 2.f;
 
 	} else {
 		_yaw_angle_observable = false;
