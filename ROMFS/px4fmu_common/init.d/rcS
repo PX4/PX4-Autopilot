@@ -436,8 +436,16 @@ else
 	#
 	. ${R}etc/init.d/rc.serial
 
-	# Must be started after the serial config is read
-	rc_input start $RC_INPUT_ARGS
+	#
+	# Start the RC input handling
+	# Note: Must be started after the serial config is read
+	#
+	if param compare -s RC_CRSF_INPUT_EN 1
+	then
+		crsf_rc start $RC_INPUT_ARGS
+	else
+		rc_input start $RC_INPUT_ARGS
+	fi
 
 	#
 	# Play the startup tune (if not disabled or there is an error)
