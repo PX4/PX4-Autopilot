@@ -1,4 +1,4 @@
-# A logging message, output with PX4_{WARN,ERR,INFO}
+# A logging message, output with PX4_WARN, PX4_ERR, PX4_INFO
 
 uint64 timestamp		# time since system start (microseconds)
 
