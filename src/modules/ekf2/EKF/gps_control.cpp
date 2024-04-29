@@ -370,7 +370,7 @@ void Ekf::controlGpsYawFusion(const gnssSample &gps_sample)
 					// Before takeoff, we do not want to continue to rely on the current heading
 					// if we had to stop the fusion
 					if (!_control_status.flags.in_air) {
-						ECL_INFO("stopping GPS yaw fusion, clearing yaw alignment");
+						ECL_INFO("clearing yaw alignment");
 						_control_status.flags.yaw_align = false;
 					}
 				}
