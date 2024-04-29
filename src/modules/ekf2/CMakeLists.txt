@@ -187,7 +187,6 @@ endif()
 
 if(CONFIG_EKF2_MAGNETOMETER)
 	list(APPEND EKF_SRCS
-		EKF/aid_sources/magnetometer/mag_3d_control.cpp
 		EKF/aid_sources/magnetometer/mag_control.cpp
 		EKF/aid_sources/magnetometer/mag_fusion.cpp
 	)
