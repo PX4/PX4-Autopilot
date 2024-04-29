@@ -758,7 +758,7 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// ekf sequential fusion of magnetometer measurements
-	bool fuseMag(const Vector3f &mag, VectorState &H, estimator_aid_source3d_s &aid_src, bool update_all_states = true, bool update_tilt = true);
+	bool fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src, bool update_all_states = false, bool update_tilt = false);
 
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
