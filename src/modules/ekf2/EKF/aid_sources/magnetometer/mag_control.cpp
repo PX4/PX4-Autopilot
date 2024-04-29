@@ -39,6 +39,8 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
+#include <ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h>
+
 void Ekf::controlMagFusion()
 {
 	static constexpr const char *AID_SRC_NAME = "mag";
@@ -67,8 +69,6 @@ void Ekf::controlMagFusion()
 	magSample mag_sample;
 
 	if (_mag_buffer && _mag_buffer->pop_first_older_than(_time_delayed_us, &mag_sample)) {
-
-		resetEstimatorAidStatus(aid_src);
 
 		if (mag_sample.reset || (_mag_counter == 0)) {
 			// sensor or calibration has changed, reset low pass filter
@@ -100,6 +100,37 @@ void Ekf::controlMagFusion()
 		} else {
 			_control_status.flags.synthetic_mag_z = false;
 		}
+
+
+		resetEstimatorAidStatus(aid_src);
+		aid_src.timestamp_sample = mag_sample.time_us;
+
+		// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
+		const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
+
+		// calculate intermediate variables used for X axis innovation variance, observation Jacobians and Kalman gains
+		Vector3f mag_innov;
+		Vector3f innov_var;
+
+		// Observation jacobian and Kalman gain vectors
+		VectorState H;
+		sym::ComputeMagInnovInnovVarAndHx(_state.vector(), P, mag_sample.mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
+
+		// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
+		if (_control_status.flags.synthetic_mag_z) {
+			mag_innov(2) = 0.0f;
+		}
+
+		for (int i = 0; i < 3; i++) {
+			aid_src.observation[i] = mag_sample.mag(i);
+			aid_src.observation_variance[i] = R_MAG;
+			aid_src.innovation[i] = mag_innov(i);
+			aid_src.innovation_variance[i] = innov_var(i);
+		}
+
+		const float innov_gate = math::max(_params.mag_innov_gate, 1.f);
+		setEstimatorAidStatusTestRatio(aid_src, innov_gate);
+
 
 		// determine if we should use mag fusion
 		bool continuing_conditions_passing = (_params.mag_fusion_type != MagFuseType::NONE)
@@ -136,7 +167,7 @@ void Ekf::controlMagFusion()
 
 		_control_status.flags.mag_hdg = ((_params.mag_fusion_type == MagFuseType::HEADING)
 						 || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D))
-						&& _control_status.flags.tilt_align
+						&& _control_status.flags.mag
 						&& ((_control_status.flags.yaw_align && mag_consistent_or_no_gnss)
 						    || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
 						&& !_control_status.flags.mag_fault
@@ -161,7 +192,6 @@ void Ekf::controlMagFusion()
 						&& (not_using_ne_aiding || !_control_status.flags.mag_aligned_in_flight);
 
 		if (_control_status.flags.mag) {
-			aid_src.timestamp_sample = mag_sample.time_us;
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
@@ -178,7 +208,7 @@ void Ekf::controlMagFusion()
 						// states for the first few observations.
 						fuseDeclination(0.02f);
 						_mag_decl_cov_reset = true;
-						fuseMag(mag_sample.mag, aid_src, false);
+						fuseMag(mag_sample.mag, H, aid_src, false);
 
 					} else {
 						// The normal sequence is to fuse the magnetometer data first before fusing
@@ -186,7 +216,7 @@ void Ekf::controlMagFusion()
 						// declination angle over time.
 						const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
 						const bool update_tilt = _control_status.flags.mag_3D;
-						fuseMag(mag_sample.mag, aid_src, update_all_states, update_tilt);
+						fuseMag(mag_sample.mag, H, aid_src, update_all_states, update_tilt);
 
 						if (_control_status.flags.mag_dec) {
 							fuseDeclination(0.5f);
@@ -253,7 +283,7 @@ void Ekf::controlMagFusion()
 
 				} else {
 					ECL_INFO("starting %s fusion", AID_SRC_NAME);
-					fuseMag(mag_sample.mag, aid_src, false);
+					fuseMag(mag_sample.mag, H, aid_src, false);
 				}
 
 				aid_src.time_last_fuse = _time_delayed_us;
