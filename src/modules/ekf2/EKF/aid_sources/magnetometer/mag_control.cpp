@@ -101,6 +101,11 @@ void Ekf::controlMagFusion()
 			_control_status.flags.synthetic_mag_z = false;
 		}
 
+		// reset flags
+		_fault_status.flags.bad_mag_x = false;
+		_fault_status.flags.bad_mag_y = false;
+		_fault_status.flags.bad_mag_z = false;
+
 
 		resetEstimatorAidStatus(aid_src);
 		aid_src.timestamp_sample = mag_sample.time_us;
@@ -131,6 +136,10 @@ void Ekf::controlMagFusion()
 		const float innov_gate = math::max(_params.mag_innov_gate, 1.f);
 		setEstimatorAidStatusTestRatio(aid_src, innov_gate);
 
+		// Perform an innovation consistency check and report the result
+		_innov_check_fail_status.flags.reject_mag_x = (aid_src.test_ratio[0] > 1.f);
+		_innov_check_fail_status.flags.reject_mag_y = (aid_src.test_ratio[1] > 1.f);
+		_innov_check_fail_status.flags.reject_mag_z = (aid_src.test_ratio[2] > 1.f);
 
 		// determine if we should use mag fusion
 		bool continuing_conditions_passing = (_params.mag_fusion_type != MagFuseType::NONE)
@@ -208,7 +217,7 @@ void Ekf::controlMagFusion()
 						// states for the first few observations.
 						fuseDeclination(0.02f);
 						_mag_decl_cov_reset = true;
-						fuseMag(mag_sample.mag, H, aid_src, false);
+						fuseMag(mag_sample.mag, R_MAG, H, aid_src);
 
 					} else {
 						// The normal sequence is to fuse the magnetometer data first before fusing
@@ -216,7 +225,14 @@ void Ekf::controlMagFusion()
 						// declination angle over time.
 						const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
 						const bool update_tilt = _control_status.flags.mag_3D;
-						fuseMag(mag_sample.mag, H, aid_src, update_all_states, update_tilt);
+						fuseMag(mag_sample.mag, R_MAG, H, aid_src, update_all_states, update_tilt);
+
+						// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
+						if (update_all_states && update_tilt) {
+							_fault_status.flags.bad_mag_x = (aid_src.innovation_variance[0] < aid_src.observation_variance[0]);
+							_fault_status.flags.bad_mag_y = (aid_src.innovation_variance[1] < aid_src.observation_variance[1]);
+							_fault_status.flags.bad_mag_z = (aid_src.innovation_variance[2] < aid_src.observation_variance[2]);
+						}
 
 						if (_control_status.flags.mag_dec) {
 							fuseDeclination(0.5f);
@@ -276,19 +292,19 @@ void Ekf::controlMagFusion()
 					bool reset_heading = !_control_status.flags.yaw_align;
 
 					resetMagStates(_mag_lpf.getState(), reset_heading);
+					aid_src.time_last_fuse = _time_delayed_us;
+					_nb_mag_3d_reset_available = 2;
 
 					if (reset_heading) {
 						_control_status.flags.yaw_align = true;
 					}
 
 				} else {
-					ECL_INFO("starting %s fusion", AID_SRC_NAME);
-					fuseMag(mag_sample.mag, H, aid_src, false);
+					if (fuseMag(mag_sample.mag, R_MAG, H, aid_src)) {
+						ECL_INFO("starting %s fusion", AID_SRC_NAME);
+						_nb_mag_3d_reset_available = 2;
+					}
 				}
-
-				aid_src.time_last_fuse = _time_delayed_us;
-
-				_nb_mag_3d_reset_available = 2;
 			}
 		}
 

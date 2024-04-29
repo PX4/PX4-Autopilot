@@ -50,33 +50,14 @@
 
 #include <mathlib/mathlib.h>
 
-bool Ekf::fuseMag(const Vector3f &mag, VectorState &H, estimator_aid_source3d_s &aid_src, bool update_all_states, bool update_tilt)
+bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src, bool update_all_states, bool update_tilt)
 {
-	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
-	const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
-
-	const auto state_vector = _state.vector();
-
-	if (update_all_states) {
-		_fault_status.flags.bad_mag_x = (aid_src.innovation_variance[0] < aid_src.observation_variance[0]);
-		_fault_status.flags.bad_mag_y = (aid_src.innovation_variance[1] < aid_src.observation_variance[1]);
-		_fault_status.flags.bad_mag_z = (aid_src.innovation_variance[2] < aid_src.observation_variance[2]);
-
-	} else {
-		_fault_status.flags.bad_mag_x = false;
-		_fault_status.flags.bad_mag_y = false;
-		_fault_status.flags.bad_mag_z = false;
-	}
-
-	// Perform an innovation consistency check and report the result
-	_innov_check_fail_status.flags.reject_mag_x = (aid_src.test_ratio[0] > 1.f);
-	_innov_check_fail_status.flags.reject_mag_y = (aid_src.test_ratio[1] > 1.f);
-	_innov_check_fail_status.flags.reject_mag_z = (aid_src.test_ratio[2] > 1.f);
-
-	// if any axis fails, abort the mag fusion
+	// if any axis failed, abort the mag fusion
 	if (aid_src.innovation_rejected) {
 		return false;
 	}
+
+	const auto state_vector = _state.vector();
 
 	bool fused[3] {false, false, false};
 
@@ -84,7 +65,7 @@ bool Ekf::fuseMag(const Vector3f &mag, VectorState &H, estimator_aid_source3d_s 
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains and observation jacobians
 		if (index == 0) {
-			// everything was already computed above
+			// everything was already computed
 
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
@@ -108,13 +89,6 @@ bool Ekf::fuseMag(const Vector3f &mag, VectorState &H, estimator_aid_source3d_s 
 		}
 
 		if (aid_src.innovation_variance[index] < R_MAG) {
-			// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-			if (update_all_states) {
-				_fault_status.flags.bad_mag_x = (aid_src.innovation_variance[0] < aid_src.observation_variance[0]);
-				_fault_status.flags.bad_mag_y = (aid_src.innovation_variance[1] < aid_src.observation_variance[1]);
-				_fault_status.flags.bad_mag_z = (aid_src.innovation_variance[2] < aid_src.observation_variance[2]);
-			}
-
 			ECL_ERR("mag numerical error covariance reset");
 
 			// we need to re-initialise covariances and abort this fusion step
