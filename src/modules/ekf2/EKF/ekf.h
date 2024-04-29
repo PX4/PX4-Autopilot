@@ -1025,7 +1025,6 @@ private:
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations
 	void controlMagFusion();
-	void controlMag3DFusion(const magSample &mag_sample, const bool common_starting_conditions_passing, estimator_aid_source3d_s &aid_src);
 
 	bool checkHaglYawResetReq() const;
 
