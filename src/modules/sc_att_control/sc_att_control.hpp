@@ -147,6 +147,7 @@ private:
 		(ParamFloat<px4::params::SC_ROLLRATE_MAX>)  _param_sc_rollrate_max,
 		(ParamFloat<px4::params::SC_PITCHRATE_MAX>) _param_sc_pitchrate_max,
 		(ParamFloat<px4::params::SC_YAWRATE_MAX>)   _param_sc_yawrate_max,
+		(ParamFloat<px4::params::SC_MAN_TILT_MAX>)  _param_sc_man_tilt_max,
 
 		/* Stabilized mode params */
 		(ParamFloat<px4::params::SC_MAN_Y_SCALE>)    _param_sc_man_y_scale /**< scaling factor from stick to yaw rate */

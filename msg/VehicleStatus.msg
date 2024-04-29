@@ -82,7 +82,7 @@ uint8 VEHICLE_TYPE_ROTARY_WING = 1
 uint8 VEHICLE_TYPE_FIXED_WING = 2
 uint8 VEHICLE_TYPE_ROVER = 3
 uint8 VEHICLE_TYPE_AIRSHIP = 4
-uint8 VEHICLE_TYPE_SPACECRAFT = 4
+uint8 VEHICLE_TYPE_SPACECRAFT = 5
 
 bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
 bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control

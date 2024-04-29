@@ -86,6 +86,7 @@ SpacecraftAttitudeControl::parameters_updated()
 	using math::radians;
 	_attitude_control.setRateLimit(Vector3f(radians(_param_sc_rollrate_max.get()), radians(_param_sc_pitchrate_max.get()),
 						radians(_param_sc_yawrate_max.get())));
+	_man_tilt_max = math::radians(_param_sc_man_tilt_max.get());						
 }
 
 void
@@ -122,11 +123,9 @@ SpacecraftAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt, 
 	_man_roll_input_filter.setParameters(dt, _param_sc_man_tilt_tau.get());
 	_man_pitch_input_filter.setParameters(dt, _param_sc_man_tilt_tau.get());
 
-	// we want to fly towards the direction of (roll, pitch)
 	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),
 			      -_man_pitch_input_filter.update(_manual_control_setpoint.pitch * _man_tilt_max));
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
-
 	if (v_norm > _man_tilt_max) { // limit to the configured maximum tilt angle
 		v *= _man_tilt_max / v_norm;
 	}
