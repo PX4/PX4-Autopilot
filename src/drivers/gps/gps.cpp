@@ -728,7 +728,8 @@ GPS::run()
 		int32_t gps_ubx_mode = 0;
 		param_get(handle, &gps_ubx_mode);
 
-		if (gps_ubx_mode == 1) { // heading
+		switch (gps_ubx_mode) {
+		case 1:  // heading
 			if (_instance == Instance::Main) {
 				ubx_mode = GPSDriverUBX::UBXMode::RoverWithMovingBase;
 
@@ -736,10 +737,13 @@ GPS::run()
 				ubx_mode = GPSDriverUBX::UBXMode::MovingBase;
 			}
 
-		} else if (gps_ubx_mode == 2) {
-			ubx_mode = GPSDriverUBX::UBXMode::MovingBase;
+			break;
 
-		} else if (gps_ubx_mode == 3) {
+		case 2:
+			ubx_mode = GPSDriverUBX::UBXMode::MovingBase;
+			break;
+
+		case 3:
 			if (_instance == Instance::Main) {
 				ubx_mode = GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1;
 
@@ -747,11 +751,18 @@ GPS::run()
 				ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
 			}
 
-		} else if (gps_ubx_mode == 4) {
-			ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
+			break;
 
-		} else if (gps_ubx_mode == 5) { // rover with static base on Uart2
+		case 4:
+			ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
+			break;
+
+		case 5:  // rover with static base on Uart2
 			ubx_mode = GPSDriverUBX::UBXMode::RoverWithStaticBaseUart2;
+			break;
+
+		default:
+			break;
 
 		}
 	}
