@@ -2235,9 +2235,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_task_running.store(true);
 
-	bool cmd_logging_start_acknowledgement = false;
-	bool cmd_logging_stop_acknowledgement = false;
-
 	while (!should_exit()) {
 		/* main loop */
 		px4_usleep(_main_loop_delay);
@@ -2246,7 +2243,7 @@ Mavlink::task_main(int argc, char *argv[])
 			check_requested_subscriptions();
 			handleStatus();
 			handleCommands();
-			handleAndGetCurrentCommandAck(cmd_logging_start_acknowledgement, cmd_logging_stop_acknowledgement);
+			handleAndGetCurrentCommandAck();
 			continue;
 		}
 
@@ -2271,7 +2268,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		handleStatus();
 		handleCommands();
-		handleAndGetCurrentCommandAck(cmd_logging_start_acknowledgement, cmd_logging_stop_acknowledgement);
+		handleAndGetCurrentCommandAck();
 
 		/* check for shell output */
 		if (_mavlink_shell && _mavlink_shell->available() > 0) {
@@ -2310,25 +2307,15 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {
-			if (cmd_logging_stop_acknowledgement) {
+			const int ret = _mavlink_ulog->handle_update(get_channel());
+
+			if (ret < 0) { // abort the streaming on error
+				if (ret != -1) {
+					PX4_WARN("mavlink ulog stream update failed, stopping (%i)", ret);
+				}
+
 				_mavlink_ulog->stop();
 				_mavlink_ulog = nullptr;
-
-			} else {
-				if (cmd_logging_start_acknowledgement) {
-					_mavlink_ulog->start_ack_received();
-				}
-
-				int ret = _mavlink_ulog->handle_update(get_channel());
-
-				if (ret < 0) { //abort the streaming on error
-					if (ret != -1) {
-						PX4_WARN("mavlink ulog stream update failed, stopping (%i)", ret);
-					}
-
-					_mavlink_ulog->stop();
-					_mavlink_ulog = nullptr;
-				}
 			}
 		}
 
@@ -2551,7 +2538,7 @@ void Mavlink::handleCommands()
 	}
 }
 
-void Mavlink::handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &logging_stop_ack)
+void Mavlink::handleAndGetCurrentCommandAck()
 {
 	if (_vehicle_command_ack_sub.updated()) {
 		static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
@@ -2581,6 +2568,20 @@ void Mavlink::handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &loggi
 					msg.target_system = command_ack.target_system;
 					msg.target_component = command_ack.target_component;
 
+					// Handle logging acks before sending out the mavlink message to prevent a race condition
+					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+						if (_mavlink_ulog) {
+							_mavlink_ulog->start_ack_received();
+						}
+
+					} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
+						   && command_ack.result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
+						if (_mavlink_ulog) {
+							_mavlink_ulog->stop();
+							_mavlink_ulog = nullptr;
+						}
+					}
+
 					if (_mode == MAVLINK_MODE_IRIDIUM) {
 						if (command_ack.from_external) {
 							// for MAVLINK_MODE_IRIDIUM send only if external
@@ -2591,13 +2592,6 @@ void Mavlink::handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &loggi
 						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
 					}
 
-					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
-						logging_start_ack = true;
-
-					} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
-						   && command_ack.result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
-						logging_stop_ack = true;
-					}
 				}
 			}
 		}
