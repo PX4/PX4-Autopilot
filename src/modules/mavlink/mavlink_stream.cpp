@@ -145,6 +145,7 @@ MavlinkStreamPoll::MavlinkStreamPoll() :
 	_orbs = (MavStreamPollItem *)malloc(16 * sizeof(MavStreamPollItem));
 	_fds = (orb_poll_struct_t *)malloc(16 * sizeof(orb_poll_struct_t));
 	_reqs = (MavStreamOrbPollReq *)malloc(16 * sizeof(MavStreamOrbPollReq));
+	pthread_mutex_init(&_mtx, nullptr);
 }
 
 MavlinkStreamPoll::~MavlinkStreamPoll()
@@ -160,6 +161,8 @@ MavlinkStreamPoll::~MavlinkStreamPoll()
 	if (_reqs) {
 		free(_reqs);
 	}
+
+	pthread_mutex_destroy(&_mtx);
 }
 
 int
@@ -237,6 +240,8 @@ MavlinkStreamPoll::register_orbs(uint16_t stream_id, ORB_ID *orbs, int cnt)
 		return PX4_OK;
 	}
 
+	pthread_mutex_lock(&_mtx);
+
 	for (int i = 0; i < cnt; i++) {
 
 		// Increase reqs capacity if necessary
@@ -246,6 +251,7 @@ MavlinkStreamPoll::register_orbs(uint16_t stream_id, ORB_ID *orbs, int cnt)
 
 			if (!_reqs) {
 				PX4_ERR("failed to allocate memory for orb poll reqs");
+				pthread_mutex_unlock(&_mtx);
 				return PX4_ERROR;
 			}
 		}
@@ -267,6 +273,7 @@ MavlinkStreamPoll::register_orbs(uint16_t stream_id, ORB_ID *orbs, int cnt)
 		_fds[i].revents = 0;
 	}
 
+	pthread_mutex_unlock(&_mtx);
 	return PX4_OK;
 }
 
@@ -277,6 +284,8 @@ int
 MavlinkStreamPoll::unregister_orbs(uint16_t stream_id)
 {
 	int i = 0;
+
+	pthread_mutex_lock(&_mtx);
 
 	while (i < _reqs_count) {
 		if (_reqs[i].stream_id == stream_id) {
@@ -303,6 +312,7 @@ MavlinkStreamPoll::unregister_orbs(uint16_t stream_id)
 		_fds[j].revents = 0;
 	}
 
+	pthread_mutex_unlock(&_mtx);
 	return PX4_OK;
 }
 
@@ -312,6 +322,8 @@ MavlinkStreamPoll::unregister_orbs(uint16_t stream_id)
 int
 MavlinkStreamPoll::set_interval(uint16_t stream_id, int interval_ms)
 {
+	pthread_mutex_lock(&_mtx);
+
 	// Update interval for all orb subscriptions and find the maximum interval
 	for (int i = 0; i < _count; i++) {
 		if (_reqs[i].stream_id == stream_id) {
@@ -328,6 +340,7 @@ MavlinkStreamPoll::set_interval(uint16_t stream_id, int interval_ms)
 		}
 	}
 
+	pthread_mutex_unlock(&_mtx);
 	return PX4_OK;
 }
 
