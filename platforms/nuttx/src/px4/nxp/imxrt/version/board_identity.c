@@ -42,7 +42,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <arm_internal.h>
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+#include <hardware/rt117x/imxrt117x_ocotp.h>
+#else
 #include <hardware/imxrt_ocotp.h>
+#endif
 
 #define CPU_UUID_BYTE_FORMAT_ORDER          {3, 2, 1, 0, 7, 6, 5, 4}
 #define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
