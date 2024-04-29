@@ -710,7 +710,7 @@ private:
 
 	void handleCommands();
 
-	void handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &logging_stop_ack);
+	void handleAndGetCurrentCommandAck();
 
 	void handleStatus();
 
