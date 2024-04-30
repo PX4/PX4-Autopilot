@@ -366,6 +366,13 @@ void Ekf::controlGpsYawFusion(const gnssSample &gps_sample)
 
 				if (is_fusion_failing) {
 					stopGpsYawFusion();
+
+					// Before takeoff, we do not want to continue to rely on the current heading
+					// if we had to stop the fusion
+					if (!_control_status.flags.in_air) {
+						ECL_INFO("clearing yaw alignment");
+						_control_status.flags.yaw_align = false;
+					}
 				}
 
 			} else {
@@ -416,15 +423,7 @@ void Ekf::stopGpsYawFusion()
 		_control_status.flags.gps_yaw = false;
 		resetEstimatorAidStatus(_aid_src_gnss_yaw);
 
-		// Before takeoff, we do not want to continue to rely on the current heading
-		// if we had to stop the fusion
-		if (!_control_status.flags.in_air) {
-			ECL_INFO("stopping GPS yaw fusion, clearing yaw alignment");
-			_control_status.flags.yaw_align = false;
-
-		} else {
-			ECL_INFO("stopping GPS yaw fusion");
-		}
+		ECL_INFO("stopping GPS yaw fusion");
 	}
 }
 #endif // CONFIG_EKF2_GNSS_YAW
