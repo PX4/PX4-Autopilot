@@ -41,6 +41,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status_flags.h>
@@ -90,13 +91,12 @@ public:
 		bool esc_check = false;
 		bool global_position = false;
 		bool mission = false;
-		bool geofence = false;
 	};
 
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
 				const vehicle_control_mode_s &control_mode,
 				const safety_s &safety, const arm_requirements_t &arm_requirements, vehicle_status_s &status,
-				bool report_fail = true);
+				const geofence_result_s &geofence_result, bool report_fail = true);
 
 private:
 	static bool sensorAvailabilityCheck(const bool report_failure,

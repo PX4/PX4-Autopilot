@@ -51,28 +51,41 @@ public:
 
 	virtual ~FakeGeofence() {};
 
-	bool isInsidePolygonOrCircle(double lat, double lon, float altitude) override
+	bool isInsideFence(double lat, double lon, float altitude, bool *lateral_breach, bool *max_altitude_exceeded,
+			   uint8_t *breach_action) override
 	{
+		bool inside = false;
+
 		switch (_probe_function_behavior) {
 		case ProbeFunction::ALL_POINTS_OUTSIDE: {
-				return _allPointsOutside(lat, lon, altitude);
+				inside = _allPointsOutside(lat, lon, altitude);
+				break;
 			}
 
 		case ProbeFunction::LEFT_INSIDE_RIGHT_OUTSIDE: {
-				return _left_inside_right_outside(lat, lon, altitude);
+				inside =  _left_inside_right_outside(lat, lon, altitude);
+				break;
 			}
 
 		case ProbeFunction::RIGHT_INSIDE_LEFT_OUTSIDE: {
-				return _right_inside_left_outside(lat, lon, altitude);
+				inside =  _right_inside_left_outside(lat, lon, altitude);
+				break;
 			}
 
 		case ProbeFunction::GF_BOUNDARY_20M_AHEAD: {
-				return _gf_boundary_is_20m_north(lat, lon, altitude);
+				inside =  _gf_boundary_is_20m_north(lat, lon, altitude);
+				break;
 			}
 
 		default:
-			return _allPointsOutside(lat, lon, altitude);
+			inside = _allPointsOutside(lat, lon, altitude);
+			break;
 		}
+
+		*breach_action = inside ? geofence_result_s::GF_ACTION_NONE : _action_type;
+		*lateral_breach = !inside;
+		*max_altitude_exceeded = false;  // Currently no altitude breach simulated
+		return inside;
 	}
 
 	enum class ProbeFunction {
@@ -84,10 +97,13 @@ public:
 
 	void setProbeFunctionBehavior(ProbeFunction func) {_probe_function_behavior = func;}
 
+	void setActionType(uint8_t action_type) {_action_type = action_type; }
+
 
 private:
 
 	ProbeFunction _probe_function_behavior = ProbeFunction::ALL_POINTS_OUTSIDE;
+	uint8_t _action_type {geofence_result_s::GF_ACTION_NONE};
 
 	bool _flag_on_left = true;
 	bool _flag_on_right = false;

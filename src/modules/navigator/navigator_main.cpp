@@ -145,15 +145,6 @@ void Navigator::run()
 {
 	bool have_geofence_position_data = false;
 
-	/* Try to load the geofence:
-	 * if /fs/microsd/etc/geofence.txt load from this file */
-	struct stat buffer;
-
-	if (stat(GEOFENCE_FILENAME, &buffer) == 0) {
-		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
-		_geofence.loadFromFile(GEOFENCE_FILENAME);
-	}
-
 	params_update();
 
 	/* wakeup source(s) */
@@ -801,7 +792,6 @@ void Navigator::run()
 void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 {
 	if (have_geofence_position_data &&
-	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
@@ -854,84 +844,111 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Geofence exceeded");
 		}
 
-		gf_violation_type.flags.dist_to_home_exceeded = !_geofence.isCloserThanMaxDistToHome(fence_violation_test_point(0),
-				fence_violation_test_point(1),
-				_global_pos.alt);
+		uint8_t breach_action = geofence_result_s::GF_ACTION_NONE;
+		bool max_altitude_exceeded = false;
+		bool lateral_breach = false;
+		_geofence.isInsideFence(fence_violation_test_point(0), fence_violation_test_point(1),
+					_global_pos.alt + vertical_test_point_distance, &lateral_breach, &max_altitude_exceeded, &breach_action);
+		gf_violation_type.flags.fence_violation = lateral_breach;
+		gf_violation_type.flags.max_altitude_exceeded = max_altitude_exceeded;
+		gf_violation_type.flags.dist_to_home_exceeded = false;
 
-		gf_violation_type.flags.max_altitude_exceeded = !_geofence.isBelowMaxAltitude(_global_pos.alt +
-				vertical_test_point_distance);
+		const uint8_t default_action = _geofence.getDefaultAction();
 
-		gf_violation_type.flags.fence_violation = !_geofence.isInsidePolygonOrCircle(fence_violation_test_point(0),
-				fence_violation_test_point(1),
-				_global_pos.alt);
+		if (!_geofence.isCloserThanMaxDistToHome(fence_violation_test_point(0), fence_violation_test_point(1),
+				_global_pos.alt)) {
+			gf_violation_type.flags.dist_to_home_exceeded = true;
+
+			if (default_action > breach_action) {
+				breach_action = default_action;
+			}
+		}
+
+		if (!_geofence.isBelowMaxAltitude(_global_pos.alt + vertical_test_point_distance)) {
+			gf_violation_type.flags.max_altitude_exceeded = true;
+
+			if (default_action > breach_action) {
+				breach_action = default_action;
+			}
+		}
 
 		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;
 
 		_geofence_result.timestamp = hrt_absolute_time();
-		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.geofence_action = breach_action;
 		_geofence_result.home_required = _geofence.isHomeRequired();
+		_geofence_result.geofence_violated = (gf_violation_type.value != 0);
 
-		if (gf_violation_type.value) {
-			/* inform other apps via the mission result */
-			_geofence_result.geofence_violated = true;
-
-			/* Issue a warning about the geofence violation once and only if we are armed */
-			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		/* Send warning once if geofence breach with action > NONE, and armed */
+		if (_geofence_result.geofence_action > geofence_result_s::GF_ACTION_NONE
+		    && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			if (!_geofence_violation_warning_sent) {
 				mavlink_log_critical(&_mavlink_log_pub, "%s", geofence_violation_warning);
 				events::send(events::ID("navigator_geofence_violation"), {events::Log::Warning, events::LogInternal::Info},
 					     geofence_violation_warning);
-
-				// we have predicted a geofence violation and if the action is to loiter then
-				// demand a reposition to a location which is inside the geofence
-				if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
-					position_setpoint_triplet_s *rep = get_reposition_triplet();
-
-					matrix::Vector2<double> loiter_center_lat_lon;
-					matrix::Vector2<double> current_pos_lat_lon(_global_pos.lat, _global_pos.lon);
-					float loiter_altitude_amsl = _global_pos.alt;
-
-
-					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-						// the computation of the braking distance does not match the actual braking distance. Until we have a better model
-						// we set the loiter point to the current position, that will make sure that the vehicle will loiter inside the fence
-						loiter_center_lat_lon =  _gf_breach_avoidance.generateLoiterPointForMultirotor(gf_violation_type,
-									 &_geofence);
-
-						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForMulticopter(gf_violation_type);
-
-					} else {
-
-						loiter_center_lat_lon = _gf_breach_avoidance.generateLoiterPointForFixedWing(gf_violation_type, &_geofence);
-						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForFixedWing(gf_violation_type);
-					}
-
-					rep->current.timestamp = hrt_absolute_time();
-					rep->current.yaw = get_local_position()->heading;
-					rep->current.yaw_valid = true;
-					rep->current.lat = loiter_center_lat_lon(0);
-					rep->current.lon = loiter_center_lat_lon(1);
-					rep->current.alt = loiter_altitude_amsl;
-					rep->current.valid = true;
-					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.alt_valid = true;
-					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-					rep->current.loiter_direction = 1;
-					rep->current.cruising_throttle = get_cruising_throttle();
-					rep->current.acceptance_radius = get_acceptance_radius();
-					rep->current.cruising_speed = get_cruising_speed();
-
-				}
-
-				_geofence_violation_warning_sent = true;
 			}
 
-		} else {
-			/* inform other apps via the mission result */
-			_geofence_result.geofence_violated = false;
+			_geofence_violation_warning_sent = true;
 
-			/* Reset the _geofence_violation_warning_sent field */
+		} else {
 			_geofence_violation_warning_sent = false;
+		}
+
+		/* Reposition for loiter once if geofence breach with action == LOITER, and armed */
+		if (_geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER
+		    && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			if (!_geofence_violation_reposition_done) {
+				// We may in some cases calculate a new reposition that is not to be used,
+				// e.g. a geofence RTL is in action when crossing a loiter type geofence
+				// In this case, the commander is responisble for not entering loiter state,
+				// and the value given here will not be used.
+				position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+				matrix::Vector2<double> loiter_center_lat_lon;
+				matrix::Vector2<double> current_pos_lat_lon(_global_pos.lat, _global_pos.lon);
+				float loiter_altitude_amsl = _global_pos.alt;
+
+
+				if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+					// the computation of the braking distance does not match the actual braking distance. Until we have a better model
+					// we set the loiter point to the current position, that will make sure that the vehicle will loiter inside the fence
+					loiter_center_lat_lon =  _gf_breach_avoidance.generateLoiterPointForMultirotor(gf_violation_type,
+								 &_geofence);
+
+					loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForMulticopter(gf_violation_type);
+
+				} else {
+
+					loiter_center_lat_lon = _gf_breach_avoidance.generateLoiterPointForFixedWing(gf_violation_type, &_geofence);
+					loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForFixedWing(gf_violation_type);
+				}
+
+				rep->current.timestamp = hrt_absolute_time();
+				rep->current.yaw = get_local_position()->heading;
+				rep->current.yaw_valid = true;
+				rep->current.lat = loiter_center_lat_lon(0);
+				rep->current.lon = loiter_center_lat_lon(1);
+				rep->current.alt = loiter_altitude_amsl;
+				rep->current.valid = true;
+				rep->current.loiter_radius = get_loiter_radius();
+				rep->current.alt_valid = true;
+				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+				rep->current.loiter_direction = 1;
+				rep->current.cruising_throttle = get_cruising_throttle();
+				rep->current.acceptance_radius = get_acceptance_radius();
+				rep->current.cruising_speed = get_cruising_speed();
+			}
+
+			_geofence_violation_reposition_done = true;
+
+		} else if (_geofence_violation_reposition_done) {
+			// Invalidate repostition data when the geofence breach is no longer active.
+			// This is so that a reposition calculated while a RTL or Land geofence action is active
+			// is not stored and used later, e.g. for a manual transition to loiter.
+			get_reposition_triplet()->current.valid = false;
+
+			_geofence_violation_reposition_done = false;
 		}
 
 		_geofence_result_pub.publish(_geofence_result);
@@ -1122,11 +1139,6 @@ float Navigator::get_yaw_acceptance(float mission_item_yaw)
 	}
 
 	return yaw;
-}
-
-void Navigator::load_fence_from_file(const char *filename)
-{
-	_geofence.loadFromFile(filename);
 }
 
 void Navigator::fake_traffic(const char *callsign, float distance, float direction, float traffic_heading,
@@ -1455,11 +1467,7 @@ int Navigator::custom_command(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcmp(argv[0], "fencefile")) {
-		get_instance()->load_fence_from_file(GEOFENCE_FILENAME);
-		return 0;
-
-	} else if (!strcmp(argv[0], "fake_traffic")) {
+	if (!strcmp(argv[0], "fake_traffic")) {
 		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f,
 					     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT);
 		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f, transponder_report_s::ADSB_EMITTER_TYPE_SMALL);
@@ -1572,12 +1580,11 @@ void Navigator::release_gimbal_control()
 
 bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 {
-	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
-	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
-
-		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
-			return _geofence.check(pos, _gps_pos);
-		}
+	if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
+		uint8_t breach_action;
+		bool inside = _geofence.check(pos, _gps_pos, &breach_action);
+		// Allow reposition outside fence if type is NONE or WARNING
+		return inside || breach_action <= geofence_result_s::GF_ACTION_WARN;
 	}
 
 	return true;
@@ -1624,7 +1631,6 @@ controller.
 
 	PRINT_MODULE_USAGE_NAME("navigator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 4 fake transponder_report_s uORB messages");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

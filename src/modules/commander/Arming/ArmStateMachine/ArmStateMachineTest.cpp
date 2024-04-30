@@ -257,6 +257,7 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 
 	struct vehicle_status_s status {};
 	struct vehicle_status_flags_s status_flags {};
+	struct geofence_result_s geofence_result {};
 	struct safety_s safety {};
 	struct actuator_armed_s armed {};
 
@@ -291,6 +292,7 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 						     true /* enable pre-arm checks */,
 						     nullptr /* no mavlink_log_pub */,
 						     status_flags,
+						     geofence_result,
 						     arm_req,
 						     2e6, /* 2 seconds after boot, everything should be checked */
 						     arm_disarm_reason_t::unit_test);

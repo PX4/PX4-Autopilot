@@ -48,6 +48,7 @@
 #include <lib/geo/geo.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -77,6 +78,16 @@ public:
 		GF_SOURCE_GPS = 1
 	};
 
+	/* Legacy actions from parameters */
+	enum {
+		GF_PARAM_ACTION_NONE = 0,
+		GF_PARAM_ACTION_WARNING = 1,
+		GF_PARAM_ACTION_HOLD_MODE = 2,
+		GF_PARAM_ACTION_RETURN_MODE = 3,
+		GF_PARAM_ACTION_TERMINATE = 4,
+		GF_PARAM_ACTION_LAND_MODE = 5
+	};
+
 	/**
 	 * update the geofence from dataman.
 	 * It's generally not necessary to call this as it will automatically update when the data is changed.
@@ -88,14 +99,15 @@ public:
 	 *
 	 * @return true: system is obeying fence, false: system is violating fence
 	 */
-	bool check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position);
+	bool check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position,
+		   uint8_t *breach_action);
 
 	/**
 	 * Return whether a mission item obeys the geofence.
 	 *
 	 * @return true: system is obeying fence, false: system is violating fence
 	 */
-	bool check(const struct mission_item_s &mission_item);
+	bool check(const struct mission_item_s &mission_item, uint8_t *breach_action);
 
 	/**
 	 * Check if a point passes the Geofence test.
@@ -103,48 +115,29 @@ public:
 	 *
 	 * @return false for a geofence violation
 	 */
-	bool checkAll(double lat, double lon, float altitude);
+	bool checkAll(double lat, double lon, float altitude, uint8_t *breach_action);
 
 	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
 
 	bool isBelowMaxAltitude(float altitude);
 
-	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
+	virtual bool isInsideFence(double lat, double lon, float altitude, bool *lateral_breach, bool *max_altitude_exceeded,
+				   uint8_t *breach_action);
 
 	int clearDm();
 
 	bool valid();
 
-	/**
-	 * Load a single inclusion polygon, replacing any already existing polygons.
-	 * The file has one of the following formats:
-	 * - Decimal Degrees:
-	 * 0 900
-	 * 47.475273548913222 8.52672100067138672
-	 * 47.4608261578541359 8.53414535522460938
-	 * 47.4613484218861217 8.56444358825683594
-	 * 47.4830758091035534 8.53470325469970703
-	 *
-	 * - Degree-Minute-Second:
-	 * 0 900
-	 * DMS -26 -34 -10.4304 151 50 14.5428
-	 * DMS -26 -34 -11.8416 151 50 21.8580
-	 * DMS -26 -34 -36.5628 151 50 28.1112
-	 * DMS -26 -34 -37.1640 151 50 24.1620
-	 *
-	 * Where the first line is min, max altitude in meters AMSL.
-	 */
-	int loadFromFile(const char *filename);
-
 	bool isEmpty() { return _num_polygons == 0; }
 
 	int getSource() { return _param_gf_source.get(); }
-	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
 
+	uint8_t parameterToMAVLinkActionTranslator(uint8_t param_action);
+	uint8_t getDefaultAction() { return parameterToMAVLinkActionTranslator(_param_gf_action.get()); }
 	bool isHomeRequired();
 
 	/**
@@ -152,10 +145,19 @@ public:
 	 */
 	void printStatus();
 
+	/**
+	 * Checks if the given argument is a valid geofence action (one of GF_ACTION_*).
+	 *
+	 * @return true if action is valid
+	 */
+	static bool validateAction(uint8_t action);
+
 private:
 
 	struct PolygonInfo {
-		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
+		uint16_t fence_type;	///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
+		uint8_t fence_action;	///< fence action when this fence is breached
+		float max_alt;		///< Maximum altitude (AMSL) for polygon
 		uint16_t dataman_index;
 		union {
 			uint16_t vertex_count;
@@ -169,16 +171,14 @@ private:
 	hrt_abstime _last_horizontal_range_warning{0};
 	hrt_abstime _last_vertical_range_warning{0};
 
-	float _altitude_min{0.0f};
-	float _altitude_max{0.0f};
-
 	int _num_polygons{0};
+	bool _has_rtl_action{false}; ///< at least one of the fences has GF_ACTION_RTL
+	bool _has_default_action{false}; ///< at least one of the fences has GF_ACTION_DEFAULT
 
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
 	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
-	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
 
 	/**
@@ -200,8 +200,8 @@ private:
 
 
 
-	bool checkAll(const vehicle_global_position_s &global_position);
-	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
+	bool checkAll(const vehicle_global_position_s &global_position, uint8_t *breach_action);
+	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl, uint8_t *breach_action);
 
 	/**
 	 * Check if a single point is within a polygon
@@ -216,11 +216,12 @@ private:
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
+	static constexpr int32_t DISABLED_MAX_ALTITUDE_CHECK = 0;
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_ALTMODE>)        _param_gf_altmode,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
-		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
 		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict

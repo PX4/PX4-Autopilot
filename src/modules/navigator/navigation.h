@@ -169,7 +169,10 @@ struct mission_item_s {
 				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
 			};
 			float acceptance_radius;		/**< default radius in which the mission is accepted as reached in meters */
-			float loiter_radius;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+			union {
+				float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+				float fence_action;		/**< geofence action */
+			};
 			float yaw;				/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
 			float ___lat_float;			/**< padding */
 			float ___lon_float;			/**< padding */
@@ -228,8 +231,9 @@ struct mission_fence_point_s {
 
 	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
 	uint8_t frame;					/**< MAV_FRAME */
+	uint8_t fence_action;				/**< geofence action */
 
-	uint8_t _padding0[5];				/**< padding struct size to alignment boundary  */
+	uint8_t _padding0[4];				/**< padding struct size to alignment boundary  */
 };
 
 /**

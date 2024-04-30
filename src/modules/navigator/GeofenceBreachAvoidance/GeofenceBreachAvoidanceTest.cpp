@@ -85,6 +85,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	FakeGeofence geo;
+	geo.setActionType(geofence_result_s::GF_ACTION_LOITER);
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
 
@@ -132,6 +133,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	FakeGeofence geo;
+	geo.setActionType(geofence_result_s::GF_ACTION_LOITER);
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{42.1, 8.2};
 
@@ -240,6 +242,7 @@ TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationMulticopter)
 {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	FakeGeofence geo;
+	geo.setActionType(geofence_result_s::GF_ACTION_LOITER);
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
 	geofence_violation_type_u gf_violation;
@@ -272,6 +275,7 @@ TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationFixedWing)
 {
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	FakeGeofence geo;
+	geo.setActionType(geofence_result_s::GF_ACTION_LOITER);
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
 	geofence_violation_type_u gf_violation;

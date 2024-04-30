@@ -113,14 +113,25 @@ GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type
 		waypoint_from_heading_and_distance(_current_pos_lat_lon(0), _current_pos_lat_lon(1), bearing_90_left,
 						   _test_point_distance, &fence_violation_test_point_lat, &fence_violation_test_point_lon);
 
-		const bool left_side_is_inside_fence = geofence->isInsidePolygonOrCircle(fence_violation_test_point_lat,
-						       fence_violation_test_point_lon, _current_alt_amsl);
+		bool max_altitude_exceeded = false;  // Not used in this function
+		bool left_lateral_breach = false;
+		uint8_t left_breach_action = 0;
+		geofence->isInsideFence(fence_violation_test_point_lat, fence_violation_test_point_lon, _current_alt_amsl,
+					&left_lateral_breach, &max_altitude_exceeded, &left_breach_action);
+
 
 		waypoint_from_heading_and_distance(_current_pos_lat_lon(0), _current_pos_lat_lon(1), bearing_90_right,
 						   _test_point_distance, &fence_violation_test_point_lat, &fence_violation_test_point_lon);
 
-		const bool right_side_is_inside_fence = geofence->isInsidePolygonOrCircle(fence_violation_test_point_lat,
-							fence_violation_test_point_lon, _current_alt_amsl);
+		bool right_lateral_breach = false;
+		uint8_t right_breach_action = 0;
+		geofence->isInsideFence(fence_violation_test_point_lat, fence_violation_test_point_lon, _current_alt_amsl,
+					&right_lateral_breach, &max_altitude_exceeded, &right_breach_action);
+
+		// Ignore geofence breaches less severe than LOITER, since we might have breached types NONE/WARNING already,
+		// and we want to reposition on the edge of the current breach
+		bool left_side_is_inside_fence = !left_lateral_breach || (left_breach_action < geofence_result_s::GF_ACTION_LOITER);
+		bool right_side_is_inside_fence = !right_lateral_breach || (right_breach_action < geofence_result_s::GF_ACTION_LOITER);
 
 		float bearing_to_loiter_point;
 
@@ -162,7 +173,16 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 		while (abs(current_max - current_min) > 0.5f) {
 			test_point = waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, current_distance);
 
-			if (!geofence->isInsidePolygonOrCircle(test_point(0), test_point(1), _current_alt_amsl)) {
+			bool max_altitude_exceeded = false;  // Not used in this function
+			bool lateral_breach = false;
+			uint8_t breach_action = 0;
+			geofence->isInsideFence(test_point(0), test_point(1), _current_alt_amsl, &lateral_breach, &max_altitude_exceeded,
+						&breach_action);
+			// Ignore geofence breaches less severe than LOITER, since we might have breached types NONE/WARNING already,
+			// and we want to reposition on the edge of the current breach
+			bool is_inside = !lateral_breach || (breach_action < geofence_result_s::GF_ACTION_LOITER);
+
+			if (!is_inside) {
 				current_max = current_distance;
 
 			} else {

@@ -694,11 +694,51 @@ _file_clear(dm_item_t item)
 	return result;
 }
 
+static void
+_update_to_version_3()
+{
+	// initialize fence points count
+	mission_stats_entry_s stats;
+	int ret = g_dm_ops->read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	int num_fence_items = 0;
+
+	if (ret == sizeof(mission_stats_entry_s)) {
+		num_fence_items = stats.num_items;
+	}
+
+	// iterate over all polygons and set fence_action and alt values to 0
+	int current_seq = 1;
+
+	while (current_seq <= num_fence_items) {
+		mission_fence_point_s mission_fence_point;
+
+		if (g_dm_ops->read(DM_KEY_FENCE_POINTS, current_seq, &mission_fence_point, sizeof(mission_fence_point_s)) !=
+		    sizeof(mission_fence_point_s)) {
+			PX4_ERR("dm_read failed");
+			break;
+
+		} else {
+
+			mission_fence_point.fence_action = 0;
+			mission_fence_point.alt = 0;
+
+			if (g_dm_ops->write(DM_KEY_FENCE_POINTS, current_seq, &mission_fence_point,
+					    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
+				PX4_ERR("dm_write failed");
+				break;
+			}
+		}
+
+		++current_seq;
+	}
+}
+
 static int
 _file_initialize(unsigned max_offset)
 {
 	/* See if the data manage file exists and is a multiple of the sector size */
 	dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
+	bool update_to_version_3 = false;
 
 	if (dm_operations_data.file.fd >= 0) {
 		// Read the mission state and check the hash
@@ -710,7 +750,12 @@ _file_initialize(unsigned max_offset)
 		bool incompat = true;
 
 		if (ret == sizeof(compat_state)) {
-			if (compat_state.key == DM_COMPAT_KEY) {
+
+			if (compat_state.key == DM_COMPAT_KEY_2ULL) {
+				update_to_version_3 = true;
+				incompat = false;
+
+			} else if (compat_state.key == DM_COMPAT_KEY) {
 				incompat = false;
 			}
 		}
@@ -736,6 +781,10 @@ _file_initialize(unsigned max_offset)
 		PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
+	}
+
+	if (update_to_version_3) {
+		_update_to_version_3();
 	}
 
 	/* Write current compat info */

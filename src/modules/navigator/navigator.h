@@ -115,11 +115,6 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	/**
-	 * Load fence from file
-	 */
-	void load_fence_from_file(const char *filename);
-
 	void publish_vehicle_cmd(vehicle_command_s *vcmd);
 
 	/**
@@ -381,6 +376,7 @@ private:
 	hrt_abstime _last_geofence_check = 0;
 
 	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
+	bool		_geofence_violation_reposition_done{false};  /**< only reposition at the start of a loiter type geofence breach */
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
