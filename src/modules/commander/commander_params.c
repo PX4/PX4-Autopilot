@@ -677,6 +677,8 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * @bit 0 Mission
  * @bit 1 Hold
  * @bit 2 Offboard
+ * @bit 3 RTL
+ * @bit 4 Land
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
