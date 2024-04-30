@@ -54,15 +54,6 @@
 #include <px4_platform_common/sem.hpp>
 #include <drivers/drv_hrt.h>
 
-// This is a speed optimization for nuttx flat build
-#ifdef CONFIG_BUILD_FLAT
-#define ATOMIC_ENTER irqstate_t flags = px4_enter_critical_section()
-#define ATOMIC_LEAVE px4_leave_critical_section(flags)
-#else
-#define ATOMIC_ENTER lock()
-#define ATOMIC_LEAVE unlock()
-#endif
-
 // Every subscriber thread has it's own list of cached subscriptions
 uORB::DeviceNode::MappingCache::MappingCacheListItem *uORB::DeviceNode::MappingCache::g_cache =
 	nullptr;
@@ -411,6 +402,12 @@ uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char
 	_orb_id(id),
 	_instance(instance)
 {
+	int ret = px4_sem_init(&_lock, 1, 1);
+
+	if (ret != 0) {
+		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
+	}
+
 #if defined(CONFIG_BUILD_FLAT)
 	_devname = strdup(path);
 #else
@@ -420,13 +417,6 @@ uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char
 	}
 
 	strncpy(_devname, path, sizeof(_devname));
-
-	int ret = px4_sem_init(&_lock, 1, 1);
-
-	if (ret != 0) {
-		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
-	}
-
 #endif
 }
 
@@ -447,9 +437,8 @@ uORB::DeviceNode::~DeviceNode()
 	}
 
 	free(_devname);
-#else
-	px4_sem_destroy(&_lock);
 #endif
+	px4_sem_destroy(&_lock);
 }
 
 /* Map the node data to the memory space of publisher or subscriber */
@@ -526,13 +515,13 @@ bool uORB::DeviceNode::copy(void *dst, orb_advert_t &handle, unsigned &generatio
 	size_t o_size = get_meta()->o_size;
 	size_t data_size = _queue_size * o_size;
 
-	ATOMIC_ENTER;
+	lock();
 
 	if (data_size != handle.data_size) {
 		remap_data(handle, data_size, false);
 
 		if (node_data(handle) == nullptr) {
-			ATOMIC_LEAVE;
+			unlock();
 			return false;
 		}
 	}
@@ -562,7 +551,7 @@ bool uORB::DeviceNode::copy(void *dst, orb_advert_t &handle, unsigned &generatio
 		++generation;
 	}
 
-	ATOMIC_LEAVE;
+	unlock();
 
 	return true;
 
@@ -577,14 +566,14 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	size_t data_size = _queue_size * o_size;
 
 	/* Perform an atomic copy. */
-	ATOMIC_ENTER;
+	lock();
 
 	if (data_size != handle.data_size) {
 		remap_data(handle, data_size, true);
 	}
 
 	if (node_data(handle) == nullptr) {
-		ATOMIC_LEAVE;
+		unlock();
 		return -ENOMEM;
 	}
 
@@ -636,7 +625,7 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 		cb = callbacks.next(cb);
 	}
 
-	ATOMIC_LEAVE;
+	unlock();
 
 	return o_size;
 }
@@ -701,14 +690,13 @@ int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 bool
 uORB::DeviceNode::print_statistics(int max_topic_length)
 {
-
-	ATOMIC_ENTER;
+	lock();
 
 	const uint8_t instance = get_instance();
 	const int8_t sub_count = subscriber_count();
 	const uint8_t queue_size = get_queue_size();
 
-	ATOMIC_LEAVE;
+	unlock();
 
 	const orb_metadata *meta = get_meta();
 
@@ -863,17 +851,16 @@ uORB::DeviceNode::_register_callback(uORB::SubscriptionCallback *cb_sub,
 
 	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
 
-	ATOMIC_ENTER;
+	lock();
 
 	cb_handle = callbacks.pop_free();
 	EventWaitItem *item = callbacks.peek(cb_handle);
 
 #ifdef CONFIG_BUILD_FLAT
+	/* With flat mode it is OK to allocate more items for the list */
 
 	if (!item) {
-		px4_leave_critical_section(flags);
 		item = new EventWaitItem;
-		flags = px4_enter_critical_section();
 		cb_handle = item;
 	}
 
@@ -894,7 +881,7 @@ uORB::DeviceNode::_register_callback(uORB::SubscriptionCallback *cb_sub,
 		PX4_ERR("register fail\n");
 	}
 
-	ATOMIC_LEAVE;
+	unlock();
 
 	return uorb_cb_handle_valid(cb_handle);
 }
@@ -908,7 +895,7 @@ uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t &cb_handle)
 #endif
 	int ret = 0;
 
-	ATOMIC_ENTER;
+	lock();
 
 	bool ret_rm = callbacks.rm(cb_handle);
 
@@ -923,7 +910,7 @@ uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t &cb_handle)
 		cb_handle = UORB_INVALID_CB_HANDLE;
 	}
 
-	ATOMIC_LEAVE;
+	unlock();
 
 	return ret;
 }

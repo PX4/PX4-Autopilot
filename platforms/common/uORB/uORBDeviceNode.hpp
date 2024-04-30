@@ -351,11 +351,6 @@ private:
 				uint32_t interval_us, uorb_cb_handle_t &cb_handle);
 	int _unregister_callback(uorb_cb_handle_t &cb_handle);
 
-#ifdef CONFIG_BUILD_FLAT
-	char *_devname;
-	void *_data{nullptr};
-#else
-
 	/**
 	 * Mutex for protecting node's internal data
 	 */
@@ -364,6 +359,10 @@ private:
 	void		unlock() { px4_sem_post(&_lock); }
 	px4_sem_t	_lock; /**< lock to protect access to all class members */
 
+#ifdef CONFIG_BUILD_FLAT
+	char *_devname;
+	void *_data{nullptr};
+#else
 	char _devname[NAME_MAX + 1];
 #endif
 };
