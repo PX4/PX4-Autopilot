@@ -69,7 +69,7 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 {
 	distance_sensor_s &report = _distance_sensor_pub.get();
 
-	report.timestamp = timestamp_sample;
+	report.timestamp_sample = timestamp_sample;
 	report.current_distance = distance;
 	report.signal_quality = quality;
 
@@ -79,6 +79,8 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 			report.signal_quality = 0;
 		}
 	}
+
+	report.timestamp = hrt_absolute_time();
 
 	_distance_sensor_pub.update();
 }
