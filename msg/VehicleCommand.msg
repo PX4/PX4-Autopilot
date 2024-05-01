@@ -165,7 +165,10 @@ int8 ARMING_ACTION_ARM = 1
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
 
-uint8 ORB_QUEUE_LENGTH = 8
+uint8 frame                     # The coordinate system of the COMMAND.
+uint8 FRAME_UNKNOWN             = 0 # Not specified.
+uint8 FRAME_GLOBAL              = 1 # Global (WGS84) coordinate frame + MSL altitude.
+uint8 FRAME_GLOBAL_RELATIVE_ALT = 2 # Global (WGS84) coordinate frame + altitude relative to the home position.
 
 float32 param1			# Parameter 1, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param2			# Parameter 2, as defined by MAVLink uint16 VEHICLE_CMD enum.
@@ -183,5 +186,7 @@ uint8 confirmation		# 0: First transmission of this command. 1-255: Confirmation
 bool from_external
 
 uint16 COMPONENT_MODE_EXECUTOR_START = 1000
+
+uint8 ORB_QUEUE_LENGTH = 8
 
 # TOPICS vehicle_command gimbal_v1_command vehicle_command_mode_executor

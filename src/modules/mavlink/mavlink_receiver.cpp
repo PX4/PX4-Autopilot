@@ -469,6 +469,24 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.param3 = cmd_mavlink.param3;
 	vcmd.param4 = cmd_mavlink.param4;
 
+	switch (cmd_mavlink.frame) {
+	case MAV_FRAME_GLOBAL:
+
+	// FALLTHROUGH
+	case MAV_FRAME_GLOBAL_INT:
+		vcmd.frame = vehicle_command_s::FRAME_GLOBAL;
+		break;
+
+	case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		vcmd.frame = vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALT;
+		break;
+
+	default:
+		vcmd.frame = vehicle_command_s::FRAME_UNKNOWN;
+		PX4_WARN("invalid frame %" PRIu8 " for command %" PRIu16, cmd_mavlink.frame, cmd_mavlink.command);
+		break;
+	}
+
 	if (cmd_mavlink.x == INT32_MAX && cmd_mavlink.y == INT32_MAX) {
 		// INT32_MAX for x and y means to ignore it.
 		vcmd.param5 = (double)NAN;

@@ -267,6 +267,7 @@ void Navigator::run()
 
 				vehicle_global_position_s position_setpoint{};
 
+				// latitude/longitude
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
 					position_setpoint.lat = cmd.param5;
 					position_setpoint.lon = cmd.param6;
@@ -276,7 +277,24 @@ void Navigator::run()
 					position_setpoint.lon = get_global_position()->lon;
 				}
 
-				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+				// altitude
+				if (PX4_ISFINITE(cmd.param7)) {
+					switch (cmd.frame) {
+					default:
+
+					// FALLTHROUGH
+					case vehicle_command_s::FRAME_GLOBAL:
+						position_setpoint.alt = cmd.param7;
+						break;
+
+					case vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALT:
+						position_setpoint.alt = cmd.param7 + get_home_position()->alt;
+						break;
+					}
+
+				} else {
+					position_setpoint.alt = get_global_position()->alt;
+				}
 
 				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
