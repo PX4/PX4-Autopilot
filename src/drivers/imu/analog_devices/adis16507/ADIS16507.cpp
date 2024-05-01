@@ -172,7 +172,9 @@ void ADIS16507::RunImpl()
 			const uint16_t DIAG_STAT = RegisterRead(Register::DIAG_STAT);
 
 			if (DIAG_STAT != 0) {
-				PX4_ERR("DIAG_STAT: %#X", DIAG_STAT);
+				PX4_ERR("self test failed, resetting. DIAG_STAT: %#X", DIAG_STAT);
+				_state = STATE::RESET;
+				ScheduleDelayed(100_ms);
 
 			} else {
 				PX4_DEBUG("self test passed");
