@@ -467,7 +467,7 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
 
 	distance_sensor_s distance_sensor{};
-	//distance_sensor.timestamp_sample = time_now_us;
+	distance_sensor.timestamp_sample = time_now_us;
 	distance_sensor.device_id = device_id.devid;
 	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;

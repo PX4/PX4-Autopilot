@@ -358,7 +358,7 @@ void VehicleOpticalFlow::UpdateDistanceSensor()
 
 			if (_distance_sensor_subs[i].update(&distance_sensor)) {
 				// only use the first instace which has the correct orientation
-				if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
+				if ((hrt_elapsed_time(&distance_sensor.timestamp_sample) < 100_ms)
 				    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 
 					int ndist = orb_group_count(ORB_ID(distance_sensor));
@@ -368,7 +368,7 @@ void VehicleOpticalFlow::UpdateDistanceSensor()
 					}
 
 					_distance_sensor_selected = i;
-					_last_range_sensor_update = distance_sensor.timestamp;
+					_last_range_sensor_update = distance_sensor.timestamp_sample;
 					break;
 				}
 			}
@@ -383,12 +383,12 @@ void VehicleOpticalFlow::UpdateDistanceSensor()
 			    && (distance_sensor.current_distance <= distance_sensor.max_distance)) {
 
 				rangeSample sample;
-				sample.time_us = distance_sensor.timestamp;
+				sample.time_us = distance_sensor.timestamp_sample;
 				sample.data = distance_sensor.current_distance;
 
 				_range_buffer.push(sample);
 
-				_last_range_sensor_update = distance_sensor.timestamp;
+				_last_range_sensor_update = distance_sensor.timestamp_sample;
 
 				return;
 			}

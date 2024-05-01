@@ -213,7 +213,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 
 	// AND: an obstacle message
 	distance_sensor_s message;
-	message.timestamp = hrt_absolute_time();
+	message.timestamp_sample = hrt_absolute_time();
 	message.min_distance = 1.f;
 	message.max_distance = 100.f;
 	message.current_distance = 1.1f;
@@ -224,6 +224,8 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 	message.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
 	message.h_fov = math::radians(50.f);
 	message.v_fov = math::radians(30.f);
+
+	message.timestamp = hrt_absolute_time();
 
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &message);

@@ -1487,7 +1487,7 @@ void SimulatorMavlink::check_failure_injections()
 int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavlink)
 {
 	distance_sensor_s dist{};
-	dist.timestamp = hrt_absolute_time();
+	dist.timestamp_sample = hrt_absolute_time();
 	dist.min_distance = dist_mavlink->min_distance / 100.0f;
 	dist.max_distance = dist_mavlink->max_distance / 100.0f;
 	dist.current_distance = dist_mavlink->current_distance / 100.0f;
@@ -1541,6 +1541,8 @@ int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *di
 	dist.q[1] = dist_mavlink->quaternion[1];
 	dist.q[2] = dist_mavlink->quaternion[2];
 	dist.q[3] = dist_mavlink->quaternion[3];
+
+	dist.timestamp = hrt_absolute_time();
 
 	// New publishers will be created based on the sensor ID's being different or not
 	for (size_t i = 0; i < sizeof(_dist_sensor_ids) / sizeof(_dist_sensor_ids[0]); i++) {
