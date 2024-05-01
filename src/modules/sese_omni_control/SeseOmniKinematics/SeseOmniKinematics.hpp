@@ -46,11 +46,11 @@
  * This class provides functions to set the wheel base and radius, and to compute the inverse kinematics
  * given linear velocity and yaw rate.
  */
-class DifferentialDriveKinematics : public ModuleParams
+class SeseOmniKinematics : public ModuleParams
 {
 public:
-	DifferentialDriveKinematics(ModuleParams *parent);
-	~DifferentialDriveKinematics() = default;
+	SeseOmniKinematics(ModuleParams *parent);
+	~SeseOmniKinematics() = default;
 
 	/**
 	 * @brief Sets the wheel base of the robot.

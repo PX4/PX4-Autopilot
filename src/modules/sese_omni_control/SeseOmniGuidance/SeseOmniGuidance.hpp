@@ -65,15 +65,15 @@ enum class GuidanceState {
 /**
  * @brief Class for differential drive guidance.
  */
-class DifferentialDriveGuidance : public ModuleParams
+class SeseOmniGuidance : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for DifferentialDriveGuidance.
+	 * @brief Constructor for SeseOmniGuidance.
 	 * @param parent The parent ModuleParams object.
 	 */
-	DifferentialDriveGuidance(ModuleParams *parent);
-	~DifferentialDriveGuidance() = default;
+	SeseOmniGuidance(ModuleParams *parent);
+	~SeseOmniGuidance() = default;
 
 	/**
 	 * @brief Compute guidance for the vehicle.

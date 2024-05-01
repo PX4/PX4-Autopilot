@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file DifferentialDriveControl.hpp
+ * @file SeseOmniControl.hpp
  *
  * Controller for heading rate and forward speed.
  */
@@ -49,11 +49,11 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-class DifferentialDriveControl : public ModuleParams
+class SeseOmniControl : public ModuleParams
 {
 public:
-	DifferentialDriveControl(ModuleParams *parent);
-	~DifferentialDriveControl() = default;
+	SeseOmniControl(ModuleParams *parent);
+	~SeseOmniControl() = default;
 
 	void control(float dt);
 	float getVehicleBodyYawRate() const { return _vehicle_body_yaw_rate; }

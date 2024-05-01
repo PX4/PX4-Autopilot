@@ -37,13 +37,13 @@
 
 using namespace matrix;
 
-class DifferentialDriveKinematicsTest : public ::testing::Test
+class SeseOmniKinematicsTest : public ::testing::Test
 {
 public:
 	DifferentialDriveKinematics kinematics{nullptr};
 };
 
-TEST_F(DifferentialDriveKinematicsTest, AllZeroInputCase)
+TEST_F(SeseOmniKinematicsTest, AllZeroInputCase)
 {
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(10.f);
@@ -54,7 +54,7 @@ TEST_F(DifferentialDriveKinematicsTest, AllZeroInputCase)
 }
 
 
-TEST_F(DifferentialDriveKinematicsTest, InvalidParameterCase)
+TEST_F(SeseOmniKinematicsTest, InvalidParameterCase)
 {
 	kinematics.setWheelBase(0.f);
 	kinematics.setMaxSpeed(10.f);
@@ -65,7 +65,7 @@ TEST_F(DifferentialDriveKinematicsTest, InvalidParameterCase)
 }
 
 
-TEST_F(DifferentialDriveKinematicsTest, UnitCase)
+TEST_F(SeseOmniKinematicsTest, UnitCase)
 {
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(10.f);
@@ -76,7 +76,7 @@ TEST_F(DifferentialDriveKinematicsTest, UnitCase)
 }
 
 
-TEST_F(DifferentialDriveKinematicsTest, UnitSaturationCase)
+TEST_F(SeseOmniKinematicsTest, UnitSaturationCase)
 {
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
@@ -87,7 +87,7 @@ TEST_F(DifferentialDriveKinematicsTest, UnitSaturationCase)
 }
 
 
-TEST_F(DifferentialDriveKinematicsTest, OppositeUnitSaturationCase)
+TEST_F(SeseOmniKinematicsTest, OppositeUnitSaturationCase)
 {
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
@@ -97,7 +97,7 @@ TEST_F(DifferentialDriveKinematicsTest, OppositeUnitSaturationCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(-1.f, 1.f), Vector2f(-1, 0));
 }
 
-TEST_F(DifferentialDriveKinematicsTest, RandomCase)
+TEST_F(SeseOmniKinematicsTest, RandomCase)
 {
 	kinematics.setWheelBase(2.f);
 	kinematics.setMaxSpeed(1.f);
@@ -107,7 +107,7 @@ TEST_F(DifferentialDriveKinematicsTest, RandomCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(0.5f, 0.7f), Vector2f(-0.4f, 1.0f));
 }
 
-TEST_F(DifferentialDriveKinematicsTest, RotateInPlaceCase)
+TEST_F(SeseOmniKinematicsTest, RotateInPlaceCase)
 {
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
@@ -117,7 +117,7 @@ TEST_F(DifferentialDriveKinematicsTest, RotateInPlaceCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(0.f, 1.f), Vector2f(-0.5f, 0.5f));
 }
 
-TEST_F(DifferentialDriveKinematicsTest, StraightMovementCase)
+TEST_F(SeseOmniKinematicsTest, StraightMovementCase)
 {
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
@@ -127,7 +127,7 @@ TEST_F(DifferentialDriveKinematicsTest, StraightMovementCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(1.f, 0.f), Vector2f(1.f, 1.f));
 }
 
-TEST_F(DifferentialDriveKinematicsTest, MinInputValuesCase)
+TEST_F(SeseOmniKinematicsTest, MinInputValuesCase)
 {
 	kinematics.setWheelBase(FLT_MIN);
 	kinematics.setMaxSpeed(FLT_MIN);
@@ -137,7 +137,7 @@ TEST_F(DifferentialDriveKinematicsTest, MinInputValuesCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(FLT_MIN, FLT_MIN), Vector2f(0.f, 0.f));
 }
 
-TEST_F(DifferentialDriveKinematicsTest, MaxSpeedLimitCase)
+TEST_F(SeseOmniKinematicsTest, MaxSpeedLimitCase)
 {
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
@@ -147,7 +147,7 @@ TEST_F(DifferentialDriveKinematicsTest, MaxSpeedLimitCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(10.f, 10.f), Vector2f(0.f, 1.f));
 }
 
-TEST_F(DifferentialDriveKinematicsTest, MaxSpeedForwardsCase)
+TEST_F(SeseOmniKinematicsTest, MaxSpeedForwardsCase)
 {
 	kinematics.setWheelBase(1.f);
 	kinematics.setMaxSpeed(1.f);
@@ -157,7 +157,7 @@ TEST_F(DifferentialDriveKinematicsTest, MaxSpeedForwardsCase)
 	EXPECT_EQ(kinematics.computeInverseKinematics(10.f, 0.f), Vector2f(1.f, 1.f));
 }
 
-TEST_F(DifferentialDriveKinematicsTest, MaxAngularCase)
+TEST_F(SeseOmniKinematicsTest, MaxAngularCase)
 {
 	kinematics.setWheelBase(2.f);
 	kinematics.setMaxSpeed(1.f);

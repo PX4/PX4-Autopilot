@@ -31,17 +31,17 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDriveControl.hpp"
+#include "SeseOmniControl.hpp"
 
 using namespace matrix;
 
-DifferentialDriveControl::DifferentialDriveControl(ModuleParams *parent) : ModuleParams(parent)
+SeseOmniControl::SeseOmniControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	pid_init(&_pid_angular_velocity, PID_MODE_DERIVATIV_NONE, 0.001f);
 	pid_init(&_pid_speed, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
-void DifferentialDriveControl::updateParams()
+void SeseOmniControl::updateParams()
 {
 	ModuleParams::updateParams();
 
@@ -60,7 +60,7 @@ void DifferentialDriveControl::updateParams()
 			   200); // Output limit
 }
 
-void DifferentialDriveControl::control(float dt)
+void SeseOmniControl::control(float dt)
 {
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};

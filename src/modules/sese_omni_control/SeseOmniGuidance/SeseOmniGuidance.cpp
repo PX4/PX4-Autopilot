@@ -31,20 +31,20 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDriveGuidance.hpp"
+#include "SeseOmniGuidance.hpp"
 
 #include <mathlib/math/Limits.hpp>
 
 using namespace matrix;
 
-DifferentialDriveGuidance::DifferentialDriveGuidance(ModuleParams *parent) : ModuleParams(parent)
+SeseOmniGuidance::SeseOmniGuidance(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
 
 	pid_init(&_heading_p_controller, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
-void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocity, float dt)
+void SeseOmniGuidance::computeGuidance(float yaw, float angular_velocity, float dt)
 {
 	if (_position_setpoint_triplet_sub.updated()) {
 		_position_setpoint_triplet_sub.copy(&_position_setpoint_triplet);
@@ -121,7 +121,7 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	_current_waypoint = current_waypoint;
 }
 
-void DifferentialDriveGuidance::updateParams()
+void SeseOmniGuidance::updateParams()
 {
 	ModuleParams::updateParams();
 

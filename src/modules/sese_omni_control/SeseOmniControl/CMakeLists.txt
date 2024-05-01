@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(DifferentialDriveControl
-	DifferentialDriveControl.cpp
+px4_add_library(SeseOmniControl
+	SeseOmniControl.cpp
 )
 
-target_link_libraries(DifferentialDriveControl PUBLIC pid)
-target_include_directories(DifferentialDriveControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(SeseOmniControl PUBLIC pid)
+target_include_directories(SeseOmniControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

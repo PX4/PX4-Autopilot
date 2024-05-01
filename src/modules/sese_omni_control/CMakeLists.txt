@@ -31,22 +31,21 @@
 #
 ############################################################################
 
-add_subdirectory(DifferentialDriveControl)
-add_subdirectory(DifferentialDriveGuidance)
-add_subdirectory(DifferentialDriveKinematics)
+add_subdirectory(SeseOmniControl)
+add_subdirectory(SeseOmniGuidance)
+add_subdirectory(SeseOmniKinematics)
 
 px4_add_module(
-	MODULE modules__differential_drive
-	MAIN differential_drive
+	MODULE modules__sese_omni_control
+	MAIN sese_omni_control
+	STACK_MAIN 2000
 	SRCS
-		DifferentialDrive.cpp
-		DifferentialDrive.hpp
+		SeseOmni.cpp
+		SeseOmni.hpp
 	DEPENDS
-		DifferentialDriveControl
-		DifferentialDriveGuidance
-		DifferentialDriveKinematics
+		SeseOmniControl
+		SeseOmniGuidance
+		SeseOmniKinematics
 		px4_work_queue
-		modules__control_allocator # for parameter CA_R_REV
-	MODULE_CONFIG
-		module.yaml
-)
+		modules__control_allocator
+	)

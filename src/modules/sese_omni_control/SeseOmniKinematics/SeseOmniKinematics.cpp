@@ -31,17 +31,17 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDriveKinematics.hpp"
+#include "SeseOmniKinematics.hpp"
 
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
 using namespace time_literals;
 
-DifferentialDriveKinematics::DifferentialDriveKinematics(ModuleParams *parent) : ModuleParams(parent)
+SeseOmniKinematics::SeseOmniKinematics(ModuleParams *parent) : ModuleParams(parent)
 {}
 
-void DifferentialDriveKinematics::allocate()
+void SeseOmniKinematics::allocate()
 {
 	hrt_abstime now = hrt_absolute_time();
 
@@ -67,7 +67,7 @@ void DifferentialDriveKinematics::allocate()
 	_actuator_motors_pub.publish(actuator_motors);
 }
 
-matrix::Vector2f DifferentialDriveKinematics::computeInverseKinematics(float linear_velocity_x, float yaw_rate) const
+matrix::Vector2f SeseOmniKinematics::computeInverseKinematics(float linear_velocity_x, float yaw_rate) const
 {
 	if (_max_speed < FLT_EPSILON) {
 		return Vector2f();

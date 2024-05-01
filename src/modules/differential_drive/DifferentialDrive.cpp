@@ -106,8 +106,10 @@ void DifferentialDrive::Run()
 
 			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
 				differential_drive_setpoint_s setpoint{};
-				setpoint.speed = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
-				setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() * _max_angular_velocity;
+				// setpoint.speed = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
+				// setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() * _max_angular_velocity;
+				setpoint.speed = 1.0;
+				setpoint.yaw_rate = 0.0;
 
 				// if acro mode, we activate the yaw rate control
 				if (_acro_driving) {

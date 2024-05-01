@@ -31,8 +31,10 @@
 #
 ############################################################################
 
-px4_add_library(DifferentialDriveGuidance
-	DifferentialDriveGuidance.cpp
+px4_add_library(SeseOmniKinematics
+	SeseOmniKinematics.cpp
 )
 
-target_include_directories(DifferentialDriveGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(SeseOmniKinematics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+px4_add_functional_gtest(SRC SeseOmniKinematicsTest.cpp LINKLIBS SeseOmniKinematics)

@@ -31,22 +31,22 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDrive.hpp"
+#include "SeseOmni.hpp"
 
-DifferentialDrive::DifferentialDrive() :
+SeseOmni::SeseOmni() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	updateParams();
 }
 
-bool DifferentialDrive::init()
+bool SeseOmni::init()
 {
 	ScheduleOnInterval(10_ms); // 100 Hz
 	return true;
 }
 
-void DifferentialDrive::updateParams()
+void SeseOmni::updateParams()
 {
 	ModuleParams::updateParams();
 
@@ -61,7 +61,7 @@ void DifferentialDrive::updateParams()
 	_differential_drive_kinematics.setMaxAngularVelocity(_max_angular_velocity);
 }
 
-void DifferentialDrive::Run()
+void SeseOmni::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -140,9 +140,9 @@ void DifferentialDrive::Run()
 	_differential_drive_kinematics.allocate();
 }
 
-int DifferentialDrive::task_spawn(int argc, char *argv[])
+int SeseOmni::task_spawn(int argc, char *argv[])
 {
-	DifferentialDrive *instance = new DifferentialDrive();
+	SeseOmni *instance = new SeseOmni();
 
 	if (instance) {
 		_object.store(instance);
@@ -163,12 +163,12 @@ int DifferentialDrive::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int DifferentialDrive::custom_command(int argc, char *argv[])
+int SeseOmni::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int DifferentialDrive::print_usage(const char *reason)
+int SeseOmni::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_ERR("%s\n", reason);
@@ -180,13 +180,13 @@ int DifferentialDrive::print_usage(const char *reason)
 Rover Differential Drive controller.
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("differential_drive", "controller");
+	PRINT_MODULE_USAGE_NAME("sese_omni_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
 
-extern "C" __EXPORT int differential_drive_main(int argc, char *argv[])
+extern "C" __EXPORT int sese_omni_control_main(int argc, char *argv[])
 {
-	return DifferentialDrive::main(argc, argv);
+	return SeseOmni::main(argc, argv);
 }

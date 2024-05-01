@@ -5,7 +5,9 @@
 ekf2 start &
 
 # Start rover differential drive controller.
-differential_drive start
+# differential_drive start
+sese_omni_control start
+sese_simple_app start
 
 # Start Land Detector.
 land_detector start rover

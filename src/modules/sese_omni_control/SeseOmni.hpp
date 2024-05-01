@@ -46,18 +46,18 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 
-#include "DifferentialDriveControl/DifferentialDriveControl.hpp"
-#include "DifferentialDriveGuidance/DifferentialDriveGuidance.hpp"
-#include "DifferentialDriveKinematics/DifferentialDriveKinematics.hpp"
+#include "SeseOmniControl/SeseOmniControl.hpp"
+#include "SeseOmniGuidance/SeseOmniGuidance.hpp"
+#include "SeseOmniKinematics/SeseOmniKinematics.hpp"
 
 using namespace time_literals;
 
-class DifferentialDrive : public ModuleBase<DifferentialDrive>, public ModuleParams,
+class SeseOmni : public ModuleBase<SeseOmni>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
-	DifferentialDrive();
-	~DifferentialDrive() override = default;
+	SeseOmni();
+	~SeseOmni() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -87,9 +87,9 @@ private:
 	bool _acro_driving = false;
 	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
 
-	DifferentialDriveGuidance _differential_drive_guidance{this};
-	DifferentialDriveControl _differential_drive_control{this};
-	DifferentialDriveKinematics _differential_drive_kinematics{this};
+	SeseOmniGuidance _differential_drive_guidance{this};
+	SeseOmniControl _differential_drive_control{this};
+	SeseOmniKinematics _differential_drive_kinematics{this};
 
 	float _max_speed{0.f};
 	float _max_angular_velocity{0.f};
