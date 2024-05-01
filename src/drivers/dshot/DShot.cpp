@@ -312,8 +312,7 @@ int DShot::handle_new_bdshot_erpm(void)
 			num_erpms++;
 			esc_status.esc_online_flags |= 1 << channel;
 			esc_status.esc[channel].timestamp = hrt_absolute_time();
-			esc_status.esc[channel].esc_rpm = (erpm * 100) /
-							  (_param_mot_pole_count.get() / 2);
+			esc_status.esc[channel].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
 			esc_status.esc[channel].actuator_function = _telemetry->actuator_functions[channel];
 		}
 
