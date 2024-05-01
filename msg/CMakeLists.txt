@@ -151,8 +151,8 @@ set(msg_files
 	ObstacleDistance.msg
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
-  OpenDroneIdArmStatus.msg
-  OpenDroneIdBasicId.msg
+	OpenDroneIdArmStatus.msg
+	OpenDroneIdBasicId.msg
 	OpenDroneIdOperatorId.msg
 	OpenDroneIdSelfId.msg
 	OpenDroneIdSystem.msg

@@ -47,15 +47,15 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 
 	NavModes affected_modes{NavModes::None};
 
-		if (_param_com_arm_odid.get() == 2) {
-			// disallow arming without the Open Drone ID system
-			affected_modes = NavModes::All;
-		}
-	
-		if (_open_drone_id_arm_status_sub.copy(&odid_module_arm_status)) {
+	if (_param_com_arm_odid.get() == 2) {
+		// disallow arming without the Open Drone ID system
+		affected_modes = NavModes::All;
+	}
 
-			// Check ODID arm status
-			if (odid_module_arm_status.status == ODID_ARM_FAIL) {
+	if (_open_drone_id_arm_status_sub.copy(&odid_module_arm_status)) {
+
+		// Check ODID arm status
+		if (odid_module_arm_status.status == ODID_ARM_FAIL) {
 			/* EVENT
 			* @description
 			* Open Drone ID system reported being unhealthy.
@@ -75,22 +75,22 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 
 	} else if (!context.status().open_drone_id_system_present) {
-			/* EVENT
-			* @description
-			* Open Drone ID system failed to report. Make sure it is setup and installed properly.
-			*
-			* <profile name="dev">
-			* This check can be configured via <param>COM_ARM_ODID</param> parameter.
-			* </profile>
-			*/
-			reporter.armingCheckFailure(affected_modes, health_component_t::open_drone_id,
-						    events::ID("check_open_drone_id_missing"),
-						    events::Log::Error, "Open Drone ID system missing");
+		/* EVENT
+		* @description
+		* Open Drone ID system failed to report. Make sure it is setup and installed properly.
+		*
+		* <profile name="dev">
+		* This check can be configured via <param>COM_ARM_ODID</param> parameter.
+		* </profile>
+		*/
+		reporter.armingCheckFailure(affected_modes, health_component_t::open_drone_id,
+					    events::ID("check_open_drone_id_missing"),
+					    events::Log::Error, "Open Drone ID system missing");
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Open Drone ID system missing");
-			}
-
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Open Drone ID system missing");
 		}
+
+	}
 
 }
