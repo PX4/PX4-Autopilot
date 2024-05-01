@@ -63,6 +63,7 @@ param set-default MC_ROLL_P 7.5
 param set-default MC_YAWRATE_I 0.35
 param set-default MC_YAWRATE_P 0.13
 
+param set-default MPC_ALT_MODE 2
 param set-default MPC_THR_HOVER 0.22
 param set-default MPC_THR_MAX 0.5
 param set-default MPC_THR_MIN 0.025
