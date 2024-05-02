@@ -108,9 +108,9 @@ endif()
 
 if(CONFIG_EKF2_MAGNETOMETER)
 	list(APPEND EKF_SRCS
-		mag_3d_control.cpp
-		mag_control.cpp
-		mag_fusion.cpp
+		aid_sources/magnetometer/mag_3d_control.cpp
+		aid_sources/magnetometer/mag_control.cpp
+		aid_sources/magnetometer/mag_fusion.cpp
 	)
 endif()
 
