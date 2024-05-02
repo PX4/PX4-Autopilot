@@ -324,7 +324,7 @@ void VtolType::handleEkfResets()
 		_altitude_reset_counter = _local_pos->z_reset_counter;
 
 		if (PX4_ISFINITE(_quadchute_ref_alt)) {
-			_quadchute_ref_alt += _local_pos->delta_z;
+			_quadchute_ref_alt -= _local_pos->delta_z;
 		}
 
 	}
