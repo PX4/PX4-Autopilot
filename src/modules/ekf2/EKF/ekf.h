@@ -947,10 +947,6 @@ private:
 	// and a scalar innovation value
 	void fuse(const VectorState &K, float innovation);
 
-#if defined(CONFIG_EKF2_BARO_COMPENSATION)
-	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) const;
-#endif // CONFIG_EKF2_BARO_COMPENSATION
-
 	// calculate the earth rotation vector from a given latitude
 	Vector3f calcEarthRateNED(float lat_rad) const;
 
@@ -1079,6 +1075,11 @@ private:
 	void stopBaroHgtFusion();
 
 	void updateGroundEffect();
+
+# if defined(CONFIG_EKF2_BARO_COMPENSATION)
+	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) const;
+# endif // CONFIG_EKF2_BARO_COMPENSATION
+
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
