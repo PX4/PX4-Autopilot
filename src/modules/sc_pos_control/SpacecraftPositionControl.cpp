@@ -290,6 +290,8 @@ void SpacecraftPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position, v_att)};
 
+		poll_manual_setpoint();
+
 		if (_vehicle_control_mode.flag_control_position_enabled) {
 			// set failsafe setpoint if there hasn't been a new
 			// trajectory setpoint since position control started
@@ -328,6 +330,61 @@ void SpacecraftPositionControl::Run()
 	}
 
 	perf_end(_cycle_perf);
+}
+
+void SpacecraftPositionControl::poll_manual_setpoint()
+{	
+	_setpoint.timestamp = hrt_absolute_time();
+	if (_vehicle_control_mode.flag_control_manual_enabled) {
+		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
+			float dt = math::constrain(hrt_elapsed_time(&_manual_setpoint_last_called) * 1e-6f,  0.0002f, 0.04f);
+
+			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
+			    !_vehicle_control_mode.flag_control_offboard_enabled) {
+
+				if (_control_mode.flag_control_attitude_enabled) {
+					// STABILIZED mode generate the attitude setpoint from manual user inputs
+					_att_sp.roll_body = 0.0;
+					_att_sp.pitch_body = 0.0;
+
+					/* reset yaw setpoint to current position if needed */
+					if (_reset_yaw_sp) {
+						const float vehicle_yaw = Eulerf(Quatf(_vehicle_att.q)).psi();
+						_manual_yaw_sp = vehicle_yaw;
+						_reset_yaw_sp = false;
+
+					} else {
+						const float yaw_rate = math::radians(_param_gnd_man_y_max.get());
+						_att_sp.yaw_sp_move_rate = _manual_control_setpoint.roll * yaw_rate;
+						_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
+					}
+
+					_att_sp.yaw_body = _manual_yaw_sp;
+					_att_sp.thrust_body[0] = _manual_control_setpoint.throttle;
+
+					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+					q.copyTo(_att_sp.q_d);
+
+					_att_sp.timestamp = hrt_absolute_time();
+
+
+					_attitude_sp_pub.publish(_att_sp);
+
+				} else {
+					// Set heading from the manual roll input channel
+					_yaw_control = _manual_control_setpoint.roll; // Nominally yaw: _manual_control_setpoint.yaw;
+					// Set throttle from the manual throttle channel
+					_throttle_control = _manual_control_setpoint.throttle;
+					_reset_yaw_sp = true;
+				}
+
+			} else {
+				_reset_yaw_sp = true;
+			}
+
+			_manual_setpoint_last_called = hrt_absolute_time();
+		}
+	}
 }
 
 trajectory_setpoint_s SpacecraftPositionControl::generateFailsafeSetpoint(const hrt_abstime &now,
