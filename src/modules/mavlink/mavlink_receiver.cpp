@@ -471,17 +471,13 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 	switch (cmd_mavlink.frame) {
 	case MAV_FRAME_GLOBAL:
-
-	// FALLTHROUGH
 	case MAV_FRAME_GLOBAL_INT:
 		vcmd.frame = vehicle_command_s::FRAME_GLOBAL;
 		break;
 
 	case MAV_FRAME_GLOBAL_RELATIVE_ALT:
-
-	// FALLTHROUGH
 	case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
-		vcmd.frame = vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALT;
+		vcmd.frame = vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALTITUDE;
 		break;
 
 	default:

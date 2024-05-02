@@ -281,13 +281,11 @@ void Navigator::run()
 				if (PX4_ISFINITE(cmd.param7)) {
 					switch (cmd.frame) {
 					default:
-
-					// FALLTHROUGH
 					case vehicle_command_s::FRAME_GLOBAL:
 						position_setpoint.alt = cmd.param7;
 						break;
 
-					case vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALT:
+					case vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALTITUDE:
 						position_setpoint.alt = cmd.param7 + get_home_position()->alt;
 						break;
 					}
