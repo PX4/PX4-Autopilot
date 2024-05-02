@@ -294,12 +294,6 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 #endif // CONFIG_EKF2_RANGE_FINDER
 }
 
-void Ekf::resetImuBias()
-{
-	resetGyroBias();
-	resetAccelBias();
-}
-
 void Ekf::resetGyroBias()
 {
 	// Zero the gyro bias states
