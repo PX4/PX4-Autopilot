@@ -136,3 +136,50 @@ void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, Vec
 {
 	sym::ComputeYawInnovVarAndH(_state.vector(), P, variance, &innovation_variance, &H_YAW);
 }
+
+void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
+{
+	// save a copy of the quaternion state for later use in calculating the amount of reset change
+	const Quatf quat_before_reset = _state.quat_nominal;
+
+	// update the yaw angle variance
+	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
+		P.uncorrelateCovarianceSetVariance<1>(2, yaw_variance);
+	}
+
+	// update transformation matrix from body to world frame using the current estimate
+	// update the rotation matrix using the new yaw value
+	_R_to_earth = updateYawInRotMat(yaw, Dcmf(_state.quat_nominal));
+
+	// calculate the amount that the quaternion has changed by
+	const Quatf quat_after_reset(_R_to_earth);
+	const Quatf q_error((quat_after_reset * quat_before_reset.inversed()).normalized());
+
+	// update quaternion states
+	_state.quat_nominal = quat_after_reset;
+
+	// add the reset amount to the output observer buffered data
+	_output_predictor.resetQuaternion(q_error);
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	// update EV attitude error filter
+	if (_ev_q_error_initialized) {
+		const Quatf ev_q_error_updated = (q_error * _ev_q_error_filt.getState()).normalized();
+		_ev_q_error_filt.reset(ev_q_error_updated);
+	}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	// record the state change
+	if (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) {
+		_state_reset_status.quat_change = q_error;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.quat_change = q_error * _state_reset_status.quat_change;
+		_state_reset_status.quat_change.normalize();
+	}
+
+	_state_reset_status.reset_count.quat++;
+
+	_time_last_heading_fuse = _time_delayed_us;
+}
