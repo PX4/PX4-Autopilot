@@ -64,7 +64,7 @@
 #include "common.h"
 #include "RingBuffer.h"
 #include "imu_down_sampler.hpp"
-#include "output_predictor.h"
+#include "output_predictor/output_predictor.h"
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 # include "aid_sources/range_finder/range_finder_consistency_check.hpp"
