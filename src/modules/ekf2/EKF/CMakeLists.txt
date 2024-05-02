@@ -43,10 +43,11 @@ list(APPEND EKF_SRCS
 	ekf_helper.cpp
 	estimator_interface.cpp
 	height_control.cpp
-	imu_down_sampler.cpp
 	velocity_fusion.cpp
 	position_fusion.cpp
 	yaw_fusion.cpp
+
+	imu_down_sampler/imu_down_sampler.cpp
 
 	aid_sources/fake_height_control.cpp
 	aid_sources/fake_pos_control.cpp
