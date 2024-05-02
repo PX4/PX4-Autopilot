@@ -56,7 +56,6 @@ bool Ekf::isHeightResetRequired() const
 	return (continuous_bad_accel_hgt || hgt_fusion_timeout);
 }
 
-// calculate the earth rotation vector
 Vector3f Ekf::calcEarthRateNED(float lat_rad) const
 {
 	return Vector3f(CONSTANTS_EARTH_SPIN_RATE * cosf(lat_rad),
@@ -199,7 +198,6 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	*ekf_epv = sqrtf(P(State::pos.idx + 2, State::pos.idx + 2));
 }
 
-// get the 1-sigma horizontal and vertical velocity uncertainty
 void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 {
 	float hvel_err = sqrtf(P.trace<2>(State::vel.idx));
@@ -240,13 +238,6 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 	*ekf_evv = sqrtf(P(State::vel.idx + 2, State::vel.idx + 2));
 }
 
-/*
-Returns the following vehicle control limits required by the estimator to keep within sensor limitations.
-vxy_max : Maximum ground relative horizontal speed (meters/sec). NaN when limiting is not needed.
-vz_max : Maximum ground relative vertical speed (meters/sec). NaN when limiting is not needed.
-hagl_min : Minimum height above ground (meters). NaN when limiting is not needed.
-hagl_max : Maximum height above ground (meters). NaN when limiting is not needed.
-*/
 void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const
 {
 	// Do not require limiting by default
@@ -310,11 +301,6 @@ void Ekf::resetAccelBias()
 	resetAccelBiasCov();
 }
 
-// get EKF innovation consistency check status information comprising of:
-// status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
-// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
-// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
-// Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
 void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, float &pos, float &hgt, float &tas,
 				     float &hagl, float &beta) const
 {
@@ -442,7 +428,6 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 #endif // CONFIG_EKF2_SIDESLIP
 }
 
-// return a bitmask integer that describes which state estimates are valid
 void Ekf::get_ekf_soln_status(uint16_t *status) const
 {
 	ekf_solution_status_u soln_status{};
