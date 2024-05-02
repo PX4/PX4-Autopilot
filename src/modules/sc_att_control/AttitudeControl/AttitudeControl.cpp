@@ -41,15 +41,9 @@
 
 using namespace matrix;
 
-void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight)
+void AttitudeControl::setProportionalGain(const matrix::Vector3f &proportional_gain)
 {
 	_proportional_gain = proportional_gain;
-	_yaw_w = math::constrain(yaw_weight, 0.f, 1.f);
-
-	// compensate for the effect of the yaw weight rescaling the output
-	if (_yaw_w > 1e-4f) {
-		_proportional_gain(2) /= _yaw_w;
-	}
 }
 
 matrix::Vector3f AttitudeControl::update(const Quatf &q) const
@@ -75,10 +69,11 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	// mix full and reduced desired attitude
 	Quatf q_mix = qd_red.inversed() * qd;
 	q_mix.canonicalize();
+
 	// catch numerical problems with the domain of acosf and asinf
 	q_mix(0) = math::constrain(q_mix(0), -1.f, 1.f);
 	q_mix(3) = math::constrain(q_mix(3), -1.f, 1.f);
-	qd = qd_red * Quatf(cosf(_yaw_w * acosf(q_mix(0))), 0, 0, sinf(_yaw_w * asinf(q_mix(3))));
+	qd = qd_red * Quatf(q_mix(0), 0, 0, q_mix(3));
 
 	// quaternion attitude control law, qe is rotation from q to qd
 	const Quatf qe = q.inversed() * qd;
@@ -89,17 +84,6 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 
 	// calculate angular rates setpoint
 	Vector3f rate_setpoint = eq.emult(_proportional_gain);
-
-	// Feed forward the yaw setpoint rate.
-	// yawspeed_setpoint is the feed forward commanded rotation around the world z-axis,
-	// but we need to apply it in the body frame (because _rates_sp is expressed in the body frame).
-	// Therefore we infer the world z-axis (expressed in the body frame) by taking the last column of R.transposed (== q.inversed)
-	// and multiply it by the yaw setpoint rate (yawspeed_setpoint).
-	// This yields a vector representing the commanded rotatation around the world z-axis expressed in the body frame
-	// such that it can be added to the rates setpoint.
-	if (std::isfinite(_yawspeed_setpoint)) {
-		rate_setpoint += q.inversed().dcm_z() * _yawspeed_setpoint;
-	}
 
 	// limit rates
 	for (int i = 0; i < 3; i++) {

@@ -39,7 +39,7 @@ namespace mode_util
 
 static bool stabilization_required(uint8_t vehicle_type)
 {
-	return vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	return vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || vehicle_type == vehicle_status_s::VEHICLE_TYPE_SPACECRAFT;
 }
 
 void getVehicleControlMode(bool armed, uint8_t nav_state, uint8_t vehicle_type,

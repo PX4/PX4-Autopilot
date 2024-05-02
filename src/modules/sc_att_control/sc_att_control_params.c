@@ -171,3 +171,15 @@ PARAM_DEFINE_FLOAT(SC_MAN_TILT_TAU, 0.0f);
  * @group Spacecraft Position Control
  */
 PARAM_DEFINE_FLOAT(SC_MAN_Y_SCALE, 150.f);
+
+/**
+ * Maximal tilt angle in Stabilized or Manual mode
+ *
+ * @unit deg
+ * @min 0
+ * @max 90
+ * @decimal 0
+ * @increment 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(SC_MAN_TILT_MAX, 90.f);

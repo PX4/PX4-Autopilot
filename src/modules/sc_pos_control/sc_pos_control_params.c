@@ -283,3 +283,16 @@ PARAM_DEFINE_FLOAT(SPC_MAN_Y_MAX, 150.f);
  * @group Spacecraft Position Control
  */
 PARAM_DEFINE_FLOAT(SPC_MAN_Y_TAU, 0.08f);
+
+/**
+ * Numerical velocity derivative low pass cutoff frequency
+ *
+ * @unit Hz
+ * @min 0
+ * @max 10
+ * @decimal 1
+ * @increment 0.5
+ * @group Spacecraft Position Control
+ */
+PARAM_DEFINE_FLOAT(SPC_VELD_LP, 5.0f);
+

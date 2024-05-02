@@ -60,9 +60,8 @@ public:
 	/**
 	 * Set proportional attitude control gain
 	 * @param proportional_gain 3D vector containing gains for roll, pitch, yaw
-	 * @param yaw_weight A fraction [0,1] deprioritizing yaw compared to roll and pitch
 	 */
-	void setProportionalGain(const matrix::Vector3f &proportional_gain, const float yaw_weight);
+	void setProportionalGain(const matrix::Vector3f &proportional_gain);
 
 	/**
 	 * Set hard limit for output rate setpoints
@@ -73,13 +72,11 @@ public:
 	/**
 	 * Set a new attitude setpoint replacing the one tracked before
 	 * @param qd desired vehicle attitude setpoint
-	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
 	 */
-	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint)
+	void setAttitudeSetpoint(const matrix::Quatf &qd)
 	{
 		_attitude_setpoint_q = qd;
 		_attitude_setpoint_q.normalize();
-		_yawspeed_setpoint = yawspeed_setpoint;
 	}
 
 	/**
@@ -103,8 +100,6 @@ public:
 private:
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
-	float _yaw_w{0.f}; ///< yaw weight [0,1] to deprioritize caompared to roll and pitch
 
 	matrix::Quatf _attitude_setpoint_q; ///< latest known attitude setpoint e.g. from position control
-	float _yawspeed_setpoint{0.f}; ///< latest known yawspeed feed-forward setpoint
 };
