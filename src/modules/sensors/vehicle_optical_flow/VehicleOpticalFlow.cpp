@@ -358,7 +358,7 @@ void VehicleOpticalFlow::UpdateDistanceSensor()
 
 			if (_distance_sensor_subs[i].update(&distance_sensor)) {
 				// only use the first instace which has the correct orientation
-				if ((hrt_elapsed_time(&distance_sensor.timestamp_sample) < 100_ms)
+				if ((hrt_elapsed_time(&distance_sensor.timestamp) < 100_ms)
 				    && (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING)) {
 
 					int ndist = orb_group_count(ORB_ID(distance_sensor));
