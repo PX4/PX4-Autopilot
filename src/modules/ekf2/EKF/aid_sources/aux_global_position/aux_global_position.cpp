@@ -33,7 +33,7 @@
 
 #include "ekf.h"
 
-#include "aux_global_position.hpp"
+#include "aid_sources/aux_global_position/aux_global_position.hpp"
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 

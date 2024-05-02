@@ -42,8 +42,8 @@
 //  WelfordMean for init?
 //  WelfordMean for rate
 
-#include "common.h"
-#include "RingBuffer.h"
+#include "../../common.h"
+#include "../../RingBuffer.h"
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 

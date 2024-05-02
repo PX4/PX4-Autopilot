@@ -63,7 +63,7 @@
 #include "aid_sources/ZeroVelocityUpdate.hpp"
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-# include "aux_global_position.hpp"
+# include "aid_sources/aux_global_position/aux_global_position.hpp"
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
 enum class Likelihood { LOW, MEDIUM, HIGH };
