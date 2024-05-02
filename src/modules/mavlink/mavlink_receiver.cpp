@@ -483,7 +483,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	default:
 		vcmd.frame = vehicle_command_s::FRAME_UNKNOWN;
 		PX4_ERR("invalid frame %" PRIu8 " for command %" PRIu16, cmd_mavlink.frame, cmd_mavlink.command);
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+			    vehicle_command_ack_s::VEHICLE_CMD_RESULT_COMMAND_UNSUPPORTED_MAV_FRAME);
 		return;
 	}
 
