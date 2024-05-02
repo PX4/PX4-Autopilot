@@ -282,6 +282,25 @@ void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
 	P.uncorrelateCovarianceSetVariance<State::quat_nominal.dof>(State::quat_nominal.idx, rot_var_ned);
 }
 
+void Ekf::resetGyroBiasCov()
+{
+	// Zero the corresponding covariances and set
+	// variances to the values use for initial alignment
+	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.switch_on_gyro_bias));
+}
+
+void Ekf::resetGyroBiasZCov()
+{
+	P.uncorrelateCovarianceSetVariance<1>(State::gyro_bias.idx + 2, sq(_params.switch_on_gyro_bias));
+}
+
+void Ekf::resetAccelBiasCov()
+{
+	// Zero the corresponding covariances and set
+	// variances to the values use for initial alignment
+	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.switch_on_accel_bias));
+}
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 void Ekf::resetMagCov()
 {
@@ -295,7 +314,10 @@ void Ekf::resetMagCov()
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-void Ekf::resetGyroBiasZCov()
+#if defined(CONFIG_EKF2_WIND)
+void Ekf::resetWindCov()
 {
-	P.uncorrelateCovarianceSetVariance<1>(State::gyro_bias.idx + 2, sq(_params.switch_on_gyro_bias));
+	// start with a small initial uncertainty to improve the initial estimate
+	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
 }
+#endif // CONFIG_EKF2_WIND
