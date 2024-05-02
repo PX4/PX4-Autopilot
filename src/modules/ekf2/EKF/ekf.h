@@ -268,9 +268,6 @@ public:
 	// get the vehicle control limits required by the estimator to keep within sensor limitations
 	void get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const;
 
-	// Reset all IMU bias states and covariances to initial alignment values.
-	void resetImuBias();
-
 	void resetGyroBias();
 	void resetGyroBiasCov();
 
