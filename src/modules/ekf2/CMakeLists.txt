@@ -126,7 +126,6 @@ list(APPEND EKF_SRCS
 	EKF/fake_pos_control.cpp
 	EKF/height_control.cpp
 	EKF/imu_down_sampler.cpp
-	EKF/output_predictor.cpp
 	EKF/velocity_fusion.cpp
 	EKF/position_fusion.cpp
 	EKF/yaw_fusion.cpp
@@ -258,7 +257,9 @@ px4_add_module(
 		EKF2Utility
 		px4_work_queue
 		world_magnetic_model
+
 		${EKF_LIBS}
+		output_predictor
 	UNITY_BUILD
 	)
 

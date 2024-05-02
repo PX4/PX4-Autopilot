@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+add_subdirectory(output_predictor)
+
 set(EKF_LIBS)
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
@@ -44,7 +46,6 @@ list(APPEND EKF_SRCS
 	fake_pos_control.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
-	output_predictor.cpp
 	velocity_fusion.cpp
 	position_fusion.cpp
 	yaw_fusion.cpp
@@ -147,6 +148,7 @@ target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PAT
 target_link_libraries(ecl_EKF
 	PRIVATE
 		geo
+		output_predictor
 		world_magnetic_model
 		${EKF_LIBS}
 )
