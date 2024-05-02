@@ -290,14 +290,16 @@ void SpacecraftPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position, v_att)};
 
-		poll_manual_setpoint();
+		poll_manual_setpoint(dt, vehicle_local_position, v_att);
 
 		if (_vehicle_control_mode.flag_control_position_enabled) {
 			// set failsafe setpoint if there hasn't been a new
 			// trajectory setpoint since position control started
 			if ((_setpoint.timestamp < _time_position_control_enabled)
 			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
-
+				PX4_INFO("Setpoint time: %f, Vehicle local pos time: %f, Pos Control Enabled time: %f", 
+				(double)_setpoint.timestamp, (double)vehicle_local_position.timestamp_sample,
+				(double)_time_position_control_enabled);
 				_setpoint = generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, false);
 			}
 		}
@@ -332,20 +334,39 @@ void SpacecraftPositionControl::Run()
 	perf_end(_cycle_perf);
 }
 
-void SpacecraftPositionControl::poll_manual_setpoint()
+void SpacecraftPositionControl::poll_manual_setpoint(const float dt, 
+		const vehicle_local_position_s &vehicle_local_position, 
+		const vehicle_attitude_s &_vehicle_att)
 {	
-	_setpoint.timestamp = hrt_absolute_time();
 	if (_vehicle_control_mode.flag_control_manual_enabled) {
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
-			float dt = math::constrain(hrt_elapsed_time(&_manual_setpoint_last_called) * 1e-6f,  0.0002f, 0.04f);
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
 			    !_vehicle_control_mode.flag_control_offboard_enabled) {
 
-				if (_control_mode.flag_control_attitude_enabled) {
-					// STABILIZED mode generate the attitude setpoint from manual user inputs
-					_att_sp.roll_body = 0.0;
-					_att_sp.pitch_body = 0.0;
+				if (_vehicle_control_mode.flag_control_attitude_enabled) {
+					// We are in Stabilized mode
+					// Generate position setpoints
+					Vector3f target_pos_sp = Vector3f(vehicle_local_position.x, vehicle_local_position.y,
+										vehicle_local_position.z);
+					
+					// Update velocity setpoint
+					Vector3f target_vel_sp = Vector3f(_manual_control_setpoint.pitch, _manual_control_setpoint.roll, 0.0);
+					// TODO(@Pedro-Roque): probably need to move velocity to inertial frame
+					target_pos_sp = target_pos_sp + target_vel_sp * dt;
+
+					// Update _setpoint
+					_setpoint.position[0] = target_pos_sp(0);
+					_setpoint.position[1] = target_pos_sp(1);
+					_setpoint.position[2] = target_pos_sp(2);
+
+					_setpoint.velocity[0] = target_vel_sp(0);
+					_setpoint.velocity[1] = target_vel_sp(1);
+					_setpoint.velocity[2] = target_vel_sp(2);
+
+					// Generate attitude setpoints
+					const float roll_body = 0.0;
+					const float pitch_body = 0.0;
 
 					/* reset yaw setpoint to current position if needed */
 					if (_reset_yaw_sp) {
@@ -354,28 +375,20 @@ void SpacecraftPositionControl::poll_manual_setpoint()
 						_reset_yaw_sp = false;
 
 					} else {
-						const float yaw_rate = math::radians(_param_gnd_man_y_max.get());
-						_att_sp.yaw_sp_move_rate = _manual_control_setpoint.roll * yaw_rate;
-						_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
+						const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
+						const float yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
+						_manual_yaw_sp = wrap_pi(_manual_yaw_sp + yaw_sp_move_rate * dt);
 					}
 
-					_att_sp.yaw_body = _manual_yaw_sp;
-					_att_sp.thrust_body[0] = _manual_control_setpoint.throttle;
+					Quatf q_sp(Eulerf(roll_body, pitch_body, _manual_yaw_sp));
+					q_sp.copyTo(_setpoint.attitude);
 
-					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
-					q.copyTo(_att_sp.q_d);
-
-					_att_sp.timestamp = hrt_absolute_time();
-
-
-					_attitude_sp_pub.publish(_att_sp);
+					_setpoint.timestamp = hrt_absolute_time();
+					PX4_INFO("Setpoint created: %f, %f, %f", (double)_setpoint.position[0], (double)_setpoint.position[1], (double)_setpoint.position[2]);
 
 				} else {
-					// Set heading from the manual roll input channel
-					_yaw_control = _manual_control_setpoint.roll; // Nominally yaw: _manual_control_setpoint.yaw;
-					// Set throttle from the manual throttle channel
-					_throttle_control = _manual_control_setpoint.throttle;
-					_reset_yaw_sp = true;
+					// We are in Manual mode
+					PX4_WARN("Attitude ctl disabled - bypassing position control.");
 				}
 
 			} else {

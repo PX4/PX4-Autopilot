@@ -143,6 +143,12 @@ private:
 	uint8_t _xy_reset_counter{0};
 	uint8_t _z_reset_counter{0};
 	uint8_t _heading_reset_counter{0};
+	
+	// Manual setpoints on yaw and reset
+	bool _reset_yaw_sp{true};
+	float _manual_yaw_sp{0.f};
+	float _throttle_control{0.f};
+	float _yaw_control{0.f};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 
@@ -157,6 +163,12 @@ private:
 	 * Check for validity of positon/velocity states.
 	 */
 	PositionControlStates set_vehicle_states(const vehicle_local_position_s &local_pos, const vehicle_attitude_s &att);
+
+	/**
+	 * Check for manual setpoints.
+	 */
+	void poll_manual_setpoint(const float dt, const vehicle_local_position_s
+		&vehicle_local_position, const vehicle_attitude_s &_vehicle_att);
 
 	/**
 	 * Generate setpoint to bridge no executable setpoint being available.
