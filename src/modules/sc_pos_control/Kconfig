@@ -1,0 +1,12 @@
+menuconfig MODULES_SC_POS_CONTROL
+	bool "sc_pos_control"
+	default n
+	---help---
+		Enable support for sc_pos_control
+
+menuconfig USER_SC_POS_CONTROL
+	bool "sc_pos_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_SC_POS_CONTROL
+	---help---
+		Put sc_pos_control in userspace memory
