@@ -31,12 +31,12 @@
 #
 ############################################################################
 
+add_subdirectory(bias_estimator)
 add_subdirectory(output_predictor)
 
 set(EKF_LIBS)
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	bias_estimator.cpp
 	control.cpp
 	covariance.cpp
 	ekf.cpp
@@ -147,6 +147,7 @@ target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PAT
 
 target_link_libraries(ecl_EKF
 	PRIVATE
+		bias_estimator
 		geo
 		output_predictor
 		world_magnetic_model

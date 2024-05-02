@@ -49,9 +49,9 @@
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
-#include "bias_estimator.hpp"
-#include "height_bias_estimator.hpp"
-#include "position_bias_estimator.hpp"
+#include "bias_estimator/bias_estimator.hpp"
+#include "bias_estimator/height_bias_estimator.hpp"
+#include "bias_estimator/position_bias_estimator.hpp"
 
 #include <ekf_derivation/generated/state.h>
 

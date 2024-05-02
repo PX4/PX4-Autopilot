@@ -116,7 +116,6 @@ endif()
 set(EKF_LIBS)
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	EKF/bias_estimator.cpp
 	EKF/control.cpp
 	EKF/covariance.cpp
 	EKF/ekf.cpp
@@ -259,6 +258,7 @@ px4_add_module(
 		world_magnetic_model
 
 		${EKF_LIBS}
+		bias_estimator
 		output_predictor
 	UNITY_BUILD
 	)

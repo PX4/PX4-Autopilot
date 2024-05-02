@@ -39,7 +39,7 @@
 #define EKF_HEIGHT_BIAS_ESTIMATOR_HPP
 
 #include "bias_estimator.hpp"
-#include "common.h"
+#include "../common.h"
 
 class HeightBiasEstimator: public BiasEstimator
 {
