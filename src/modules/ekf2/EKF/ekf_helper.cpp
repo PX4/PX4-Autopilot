@@ -302,26 +302,12 @@ void Ekf::resetGyroBias()
 	resetGyroBiasCov();
 }
 
-void Ekf::resetGyroBiasCov()
-{
-	// Zero the corresponding covariances and set
-	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.switch_on_gyro_bias));
-}
-
 void Ekf::resetAccelBias()
 {
 	// Zero the accel bias states
 	_state.accel_bias.zero();
 
 	resetAccelBiasCov();
-}
-
-void Ekf::resetAccelBiasCov()
-{
-	// Zero the corresponding covariances and set
-	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.switch_on_accel_bias));
 }
 
 // get EKF innovation consistency check status information comprising of:
@@ -675,11 +661,6 @@ void Ekf::resetWindToZero()
 	resetWindCov();
 }
 
-void Ekf::resetWindCov()
-{
-	// start with a small initial uncertainty to improve the initial estimate
-	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
-}
 #endif // CONFIG_EKF2_WIND
 
 void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
