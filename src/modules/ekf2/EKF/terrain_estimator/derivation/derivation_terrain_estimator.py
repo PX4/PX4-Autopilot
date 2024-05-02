@@ -37,7 +37,12 @@ import symforce
 symforce.set_epsilon_to_symbol()
 
 import symforce.symbolic as sf
-from utils.derivation_utils import *
+
+# generate_px4_function from derivation_utils in EKF/ekf_derivation/utils
+import os, sys
+derivation_utils_dir = os.path.dirname(os.path.abspath(__file__)) + "/../../python/ekf_derivation/utils"
+sys.path.append(derivation_utils_dir)
+import derivation_utils
 
 def predict_opt_flow(
         terrain_vpos: sf.Scalar,
@@ -49,7 +54,7 @@ def predict_opt_flow(
     R_to_earth = sf.Rot3(sf.Quaternion(xyz=q_att[1:4], w=q_att[0])).to_rotation_matrix()
     flow_pred = sf.V2()
     dist = - (pos_z - terrain_vpos)
-    dist = add_epsilon_sign(dist, dist, epsilon)
+    dist = derivation_utils.add_epsilon_sign(dist, dist, epsilon)
     flow_pred[0] = -v[1] / dist * R_to_earth[2, 2]
     flow_pred[1] = v[0] / dist * R_to_earth[2, 2]
     return flow_pred
@@ -90,5 +95,5 @@ def terr_est_compute_flow_y_innov_var_and_h(
     return (innov_var, Hy[0, 0])
 
 print("Derive terrain estimator equations...")
-generate_px4_function(terr_est_compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
-generate_px4_function(terr_est_compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
+derivation_utils.generate_px4_function(terr_est_compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
+derivation_utils.generate_px4_function(terr_est_compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])

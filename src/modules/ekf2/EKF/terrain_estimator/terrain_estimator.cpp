@@ -38,8 +38,8 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/terr_est_compute_flow_xy_innov_var_and_hx.h"
-#include "python/ekf_derivation/generated/terr_est_compute_flow_y_innov_var_and_h.h"
+#include "terrain_estimator/derivation/generated/terr_est_compute_flow_xy_innov_var_and_hx.h"
+#include "terrain_estimator/derivation/generated/terr_est_compute_flow_y_innov_var_and_h.h"
 
 #include <mathlib/mathlib.h>
 
