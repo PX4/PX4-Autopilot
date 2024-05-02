@@ -42,17 +42,17 @@ list(APPEND EKF_SRCS
 	ekf.cpp
 	ekf_helper.cpp
 	estimator_interface.cpp
-	fake_height_control.cpp
-	fake_pos_control.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
 	velocity_fusion.cpp
 	position_fusion.cpp
 	yaw_fusion.cpp
-	zero_innovation_heading_update.cpp
 
+	aid_sources/fake_height_control.cpp
+	aid_sources/fake_pos_control.cpp
 	aid_sources/ZeroGyroUpdate.cpp
 	aid_sources/ZeroVelocityUpdate.cpp
+	aid_sources/zero_innovation_heading_update.cpp
 )
 
 if(CONFIG_EKF2_AIRSPEED)
