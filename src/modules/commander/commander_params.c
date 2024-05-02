@@ -484,6 +484,18 @@ PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 30.0f);
 
 /**
+ * RC stick override mode
+ *
+ * When an RC override occurs (see COM_RC_OVERRIDE), switch to the selected mode, if possible.
+ *
+ * @value 0 Position
+ * @value 1 Position Slow
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_RC_OV_MODE, 0);
+
+/**
  * Require valid mission to arm
  *
  * The default allows to arm the vehicle without a valid mission.

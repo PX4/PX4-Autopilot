@@ -2916,7 +2916,11 @@ void Commander::manualControlCheck()
 				if (override_enabled) {
 					// If no failsafe is active, directly change the mode, otherwise pass the request to the failsafe state machine
 					if (_failsafe.selectedAction() <= FailsafeBase::Action::Warn) {
-						if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_POSCTL, ModeChangeSource::User, true)) {
+						// TODO: determine the mode to use
+						const int32_t rc_override_mode = getRcOverrideMode();
+						PX4_INFO("RC override to mode %d", rc_override_mode);
+
+						if (_user_mode_intention.change(rc_override_mode, ModeChangeSource::User, true)) {
 							tune_positive(true);
 							mavlink_log_info(&_mavlink_log_pub, "Pilot took over using sticks\t");
 							events::send(events::ID("commander_rc_override"), events::Log::Info, "Pilot took over using sticks");
@@ -2965,6 +2969,24 @@ void Commander::send_parachute_command()
 	vcmd_pub.publish(vcmd);
 
 	set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
+}
+
+uint8_t Commander::getRcOverrideMode() const
+{
+	const int32_t rc_override_mode = _param_com_rc_ov_mode.get();
+
+	switch (rc_override_mode) {
+	case static_cast<int32_t>(RcOverrideModes::POSITION):
+		return vehicle_status_s::NAVIGATION_STATE_POSCTL;
+
+	case static_cast<int32_t>(RcOverrideModes::POSITION_SLOW):
+		return vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW;
+
+	default:
+		PX4_WARN("Unexpected value for COM_RC_OV_MODE: %d. Using Position mode.", rc_override_mode);
+	}
+
+	return vehicle_status_s::NAVIGATION_STATE_POSCTL;
 }
 
 int Commander::print_usage(const char *reason)

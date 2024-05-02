@@ -485,6 +485,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	if (actionAllowsUserTakeover(selected_action) && takeover_allowed) {
 		if (!_user_takeover_active && rc_sticks_takeover_request) {
 			// TODO: if the user intended mode is a stick-controlled mode, switch back to that instead
+			PX4_WARN("Setting POSCTL");
+			// TODO: get configured mode here
 			returned_state.updated_user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 		}
 
@@ -493,7 +495,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		returned_state.delayed_action = Action::None;
 
 		if (!_user_takeover_active) {
-			PX4_DEBUG("Activating user takeover");
+			PX4_WARN("Activating user takeover");
 #ifndef EMSCRIPTEN_BUILD
 			events::send(events::ID("failsafe_rc_override"), events::Log::Info, "Pilot took over using sticks");
 #endif // EMSCRIPTEN_BUILD
