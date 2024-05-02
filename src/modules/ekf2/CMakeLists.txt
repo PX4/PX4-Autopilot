@@ -122,10 +122,11 @@ list(APPEND EKF_SRCS
 	EKF/ekf_helper.cpp
 	EKF/estimator_interface.cpp
 	EKF/height_control.cpp
-	EKF/imu_down_sampler.cpp
 	EKF/velocity_fusion.cpp
 	EKF/position_fusion.cpp
 	EKF/yaw_fusion.cpp
+
+	EKF/imu_down_sampler/imu_down_sampler.cpp
 
 	EKF/aid_sources/fake_height_control.cpp
 	EKF/aid_sources/fake_pos_control.cpp
