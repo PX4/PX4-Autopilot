@@ -56,6 +56,34 @@ PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 4.f);
 PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.f);
 
 /**
+ * Maximum upwards velocity in Altitude/Position mode
+ *
+ * Should be less than MPC_Z_VEL_MAX_UP.
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 8
+ * @increment 0.1
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_V_MAN_UP, 3.f);
+
+/**
+ * Maximum downwards velocity in Altitude/Position mode
+ *
+ * Should be less than MPC_Z_VEL_MAX_DN.
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 4
+ * @increment 0.1
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_V_MAN_DN, 1.5f);
+
+/**
  * Manual yaw rate input filter time constant
  *
  * Not used in Stabilized mode

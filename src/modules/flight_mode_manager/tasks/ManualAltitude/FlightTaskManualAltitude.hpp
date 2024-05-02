@@ -59,6 +59,7 @@ protected:
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
 	bool _checkTakeoff() override;
+	void _setDefaultConstraints() override;
 	void _updateConstraintsFromEstimator();
 
 	/**
@@ -83,6 +84,8 @@ protected:
 					(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_mpc_hold_max_xy,
 					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p, /**< position controller altitude propotional gain */
+					(ParamFloat<px4::params::MPC_Z_V_MAN_UP>) _param_mpc_z_v_man_up, /**< maximum upwards velocity */
+					(ParamFloat<px4::params::MPC_Z_V_MAN_DN>) _param_mpc_z_v_man_dn, /**< maximum downwards velocity */
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1, /**< altitude at which to start downwards slowdown */
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< altitude below which to land with land speed */
 					(ParamFloat<px4::params::MPC_LAND_SPEED>)

@@ -81,8 +81,6 @@ private:
 					(ParamFloat<px4::params::MC_SLOW_DEF_VVEL>) _param_mc_slow_def_vvel,
 					(ParamFloat<px4::params::MC_SLOW_DEF_YAWR>) _param_mc_slow_def_yawr,
 					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
-					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max
 				       )
 };
