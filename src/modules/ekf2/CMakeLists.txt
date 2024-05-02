@@ -140,7 +140,7 @@ if(CONFIG_EKF2_AIRSPEED)
 endif()
 
 if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	list(APPEND EKF_SRCS EKF/aux_global_position.cpp)
+	list(APPEND EKF_SRCS EKF/aid_sources/aux_global_position/aux_global_position.cpp)
 endif()
 
 if(CONFIG_EKF2_AUXVEL)
