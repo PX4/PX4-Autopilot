@@ -56,7 +56,7 @@ publications:
   - topic: /fmu/out/vehicle_torque_setpoint
     type: px4_msgs::msg::VehicleTorqueSetpoint
 
-  - topic: /fmu/out/vehicle_torque_setpoint
+  - topic: /fmu/out/vehicle_thrust_setpoint
     type: px4_msgs::msg::VehicleThrustSetpoint
 
   - topic: /fmu/out/log_message
