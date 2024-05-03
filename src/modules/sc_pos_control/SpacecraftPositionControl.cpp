@@ -383,8 +383,6 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 					q_sp.copyTo(_setpoint.attitude);
 
 					_setpoint.timestamp = hrt_absolute_time();
-					PX4_INFO("Position Setpoint created: %f, %f, %f", (double)_setpoint.position[0], (double)_setpoint.position[1], (double)_setpoint.position[2]);
-					PX4_INFO("Attitude Setpoint created: %f, %f, %f, %f", (double)_setpoint.attitude[0], (double)_setpoint.attitude[1], (double)_setpoint.attitude[2], (double)_setpoint.attitude[3]);
 				} else {
 					// We are in Manual mode
 					PX4_WARN("Attitude ctl disabled - bypassing position control.");
