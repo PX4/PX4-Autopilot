@@ -147,6 +147,8 @@ px4_add_module(
 		arming_status.hpp
 		beep.cpp
 		beep.hpp
+		remoteid.cpp
+		remoteid.hpp
 		rgbled.cpp
 		rgbled.hpp
 		safety_state.cpp
