@@ -134,6 +134,7 @@ private:
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
 	matrix::Vector3f target_pos_sp;
+	float yaw_rate;
 	bool stabilized_pos_sp_initialized{false};
 
 	PositionControl _control;  /**< class for core PID position control */

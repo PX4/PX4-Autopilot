@@ -139,6 +139,8 @@ void SpacecraftPositionControl::parameters_update(bool force)
 			events::send<float>(events::ID("sc_pos_ctrl_man_vel_set"), events::Log::Warning,
 					    "Manual speed has been constrained by maximum speed", _param_mpc_vel_max.get());
 		}
+
+		yaw_rate = math::radians(_param_mpc_man_y_max.get());
 	}
 }
 
@@ -336,7 +338,7 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 		const vehicle_local_position_s &vehicle_local_position, 
 		const vehicle_attitude_s &_vehicle_att)
 {	
-	if (_vehicle_control_mode.flag_control_manual_enabled) {
+	if (_vehicle_control_mode.flag_control_manual_enabled && _vehicle_control_mode.flag_armed) {
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
@@ -349,18 +351,15 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 						// Initialize position setpoint
 						target_pos_sp = Vector3f(vehicle_local_position.x, vehicle_local_position.y,
 										vehicle_local_position.z);
+
+						const float vehicle_yaw = Eulerf(Quatf(_vehicle_att.q)).psi();
+						_manual_yaw_sp = vehicle_yaw;
 						stabilized_pos_sp_initialized = true;
-						//TODO: Same thing for attitude setpoint and understand why thrust is 0.0
 					}
-					PX4_INFO("Current position: %f, %f, %f", (double)vehicle_local_position.x, (double)vehicle_local_position.y, (double)vehicle_local_position.z);
-					
 					// Update velocity setpoint
 					Vector3f target_vel_sp = Vector3f(_manual_control_setpoint.pitch, _manual_control_setpoint.roll, 0.0);
 					// TODO(@Pedro-Roque): probably need to move velocity to inertial frame
 					target_pos_sp = target_pos_sp + target_vel_sp * dt;
-
-					PX4_INFO("Target velocity: %f, %f, %f", (double)target_vel_sp(0), (double)target_vel_sp(1), (double)target_vel_sp(2));
-					PX4_INFO("Target position: %f, %f, %f", (double)target_pos_sp(0), (double)target_pos_sp(1), (double)target_pos_sp(2));
 
 					// Update _setpoint
 					_setpoint.position[0] = target_pos_sp(0);
@@ -372,27 +371,20 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 					_setpoint.velocity[2] = target_vel_sp(2);
 
 					// Generate attitude setpoints
+					float yaw_sp_move_rate = 0.0;
+					if (_manual_control_setpoint.throttle > -0.9f){
+						yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
+					}
+					_manual_yaw_sp = wrap_pi(_manual_yaw_sp + yaw_sp_move_rate * dt);
 					const float roll_body = 0.0;
 					const float pitch_body = 0.0;
-
-					/* reset yaw setpoint to current position if needed */
-					if (_reset_yaw_sp) {
-						const float vehicle_yaw = Eulerf(Quatf(_vehicle_att.q)).psi();
-						_manual_yaw_sp = vehicle_yaw;
-						_reset_yaw_sp = false;
-
-					} else {
-						const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
-						const float yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
-						_manual_yaw_sp = wrap_pi(_manual_yaw_sp + yaw_sp_move_rate * dt);
-					}
 
 					Quatf q_sp(Eulerf(roll_body, pitch_body, _manual_yaw_sp));
 					q_sp.copyTo(_setpoint.attitude);
 
 					_setpoint.timestamp = hrt_absolute_time();
-					PX4_INFO("Setpoint created: %f, %f, %f", (double)_setpoint.position[0], (double)_setpoint.position[1], (double)_setpoint.position[2]);
-
+					PX4_INFO("Position Setpoint created: %f, %f, %f", (double)_setpoint.position[0], (double)_setpoint.position[1], (double)_setpoint.position[2]);
+					PX4_INFO("Attitude Setpoint created: %f, %f, %f, %f", (double)_setpoint.attitude[0], (double)_setpoint.attitude[1], (double)_setpoint.attitude[2], (double)_setpoint.attitude[3]);
 				} else {
 					// We are in Manual mode
 					PX4_WARN("Attitude ctl disabled - bypassing position control.");
@@ -400,7 +392,6 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 				}
 
 			} else {
-				_reset_yaw_sp = true;
 				stabilized_pos_sp_initialized = false;
 			}
 
