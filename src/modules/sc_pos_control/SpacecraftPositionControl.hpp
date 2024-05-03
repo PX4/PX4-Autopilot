@@ -44,6 +44,8 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -130,6 +132,9 @@ private:
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
+
+	matrix::Vector3f target_pos_sp;
+	bool stabilized_pos_sp_initialized{false};
 
 	PositionControl _control;  /**< class for core PID position control */
 

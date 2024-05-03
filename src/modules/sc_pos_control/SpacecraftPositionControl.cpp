@@ -34,8 +34,6 @@
 #include "SpacecraftPositionControl.hpp"
 
 #include <float.h>
-#include <lib/mathlib/mathlib.h>
-#include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/events.h>
 #include "PositionControl/ControlMath.hpp"
 
@@ -347,13 +345,22 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 				if (_vehicle_control_mode.flag_control_attitude_enabled) {
 					// We are in Stabilized mode
 					// Generate position setpoints
-					Vector3f target_pos_sp = Vector3f(vehicle_local_position.x, vehicle_local_position.y,
+					if(!stabilized_pos_sp_initialized) {
+						// Initialize position setpoint
+						target_pos_sp = Vector3f(vehicle_local_position.x, vehicle_local_position.y,
 										vehicle_local_position.z);
+						stabilized_pos_sp_initialized = true;
+						//TODO: Same thing for attitude setpoint and understand why thrust is 0.0
+					}
+					PX4_INFO("Current position: %f, %f, %f", (double)vehicle_local_position.x, (double)vehicle_local_position.y, (double)vehicle_local_position.z);
 					
 					// Update velocity setpoint
 					Vector3f target_vel_sp = Vector3f(_manual_control_setpoint.pitch, _manual_control_setpoint.roll, 0.0);
 					// TODO(@Pedro-Roque): probably need to move velocity to inertial frame
 					target_pos_sp = target_pos_sp + target_vel_sp * dt;
+
+					PX4_INFO("Target velocity: %f, %f, %f", (double)target_vel_sp(0), (double)target_vel_sp(1), (double)target_vel_sp(2));
+					PX4_INFO("Target position: %f, %f, %f", (double)target_pos_sp(0), (double)target_pos_sp(1), (double)target_pos_sp(2));
 
 					// Update _setpoint
 					_setpoint.position[0] = target_pos_sp(0);
@@ -389,10 +396,12 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 				} else {
 					// We are in Manual mode
 					PX4_WARN("Attitude ctl disabled - bypassing position control.");
+					stabilized_pos_sp_initialized = false;
 				}
 
 			} else {
 				_reset_yaw_sp = true;
+				stabilized_pos_sp_initialized = false;
 			}
 
 			_manual_setpoint_last_called = hrt_absolute_time();
