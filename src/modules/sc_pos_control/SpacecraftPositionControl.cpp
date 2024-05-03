@@ -385,7 +385,6 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 					_setpoint.timestamp = hrt_absolute_time();
 				} else {
 					// We are in Manual mode
-					PX4_WARN("Attitude ctl disabled - bypassing position control.");
 					stabilized_pos_sp_initialized = false;
 				}
 
