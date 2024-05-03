@@ -500,10 +500,13 @@ void register_sig_handler()
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
 }
 
+extern "C" bool muorb_kill_slpi(void);
+
 void sig_int_handler(int sig_num)
 {
+	muorb_kill_slpi();
 	fflush(stdout);
-	printf("\nPX4 Exiting...\n");
+	printf("\nPX4 Exiting in sig_int_handler\n");
 	fflush(stdout);
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;

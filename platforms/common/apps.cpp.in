@@ -11,6 +11,8 @@
 
 #include <cstdlib>
 
+#include <px4_platform_common/shutdown.h>
+
 #define MODULE_NAME "px4"
 
 extern "C" {
@@ -42,8 +44,9 @@ void list_builtins(apps_map_type &apps)
 
 int shutdown_main(int argc, char *argv[])
 {
-	printf("Exiting NOW.\n");
-	system_exit(0);
+	printf("Exiting in shutdown_main\n");
+	px4_shutdown_request(0);
+	return 0;
 }
 
 int list_tasks_main(int argc, char *argv[])

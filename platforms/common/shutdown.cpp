@@ -110,7 +110,7 @@ static uint16_t shutdown_counter = 0; ///< count how many times the shutdown wor
 #define SHUTDOWN_ARG_TO_BOOTLOADER (1<<2)
 static uint8_t shutdown_args = 0;
 
-static constexpr int max_shutdown_hooks = 1;
+static constexpr int max_shutdown_hooks = 2;
 static shutdown_hook_t shutdown_hooks[max_shutdown_hooks] = {};
 
 static hrt_abstime shutdown_time_us = 0;
@@ -130,6 +130,7 @@ int px4_register_shutdown_hook(shutdown_hook_t hook)
 	}
 
 	pthread_mutex_unlock(&shutdown_mutex);
+
 	return -ENOMEM;
 }
 
@@ -190,7 +191,7 @@ static void shutdown_worker(void *arg)
 #endif
 #elif defined(__PX4_POSIX)
 			// simply exit on posix if real shutdown (poweroff) not available
-			PX4_INFO_RAW("Exiting NOW.");
+			PX4_INFO_RAW("Exiting NOW in Posix shutdown_worker\n");
 			system_exit(0);
 #else
 			PX4_PANIC("board shutdown not available");
