@@ -233,6 +233,7 @@ public:
 
 		float load_factor_correction;				///< Gain from normal load factor increase to total energy rate demand [m²/s³].
 		float load_factor;					///< Additional normal load factor.
+		float load_factor_correction_pitch;			///< Gain from normal load factor increase to total balance energy rate demand [m²/s³].
 	};
 
 	/**
@@ -454,7 +455,7 @@ private:
 	 * @return specific energy balance rate values in [m²/s³].
 	 */
 	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-					       const SpecificEnergyRates &specific_energy_rate) const;
+					       const SpecificEnergyRates &specific_energy_rate, const Param &param) const;
 
 	/**
 	 * @brief Calculate the pitch control update function.
@@ -618,6 +619,7 @@ public:
 
 	void set_roll_throttle_compensation(float compensation) { _control_param.load_factor_correction = compensation; };
 	void set_load_factor(float load_factor) { _control_param.load_factor = load_factor; };
+	void set_roll_pitch_compensation(float compensation) { _control_param.load_factor_correction_pitch = compensation; };
 
 	void set_ste_rate_time_const(float time_const) { _control_param.ste_rate_time_const = time_const; };
 
@@ -716,6 +718,7 @@ private:
 		.throttle_slewrate = 0.0f,
 		.load_factor_correction = 0.0f,
 		.load_factor = 1.0f,
+		.load_factor_correction_pitch = 0.0f,
 	};
 
 	TECSControl::Flag _control_flag{

@@ -240,7 +240,7 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 	_detectUnderspeed(input, param, flag);
 
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rate)};
+	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rate, param)};
 
 	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, param, flag);
 
@@ -409,7 +409,7 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 				    const Flag &flag)
 {
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rates)};
+	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rates, param)};
 
 	_calcPitchControlUpdate(dt, input, seb_rate, param);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, param, flag)};
@@ -428,7 +428,7 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 }
 
 TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-		const SpecificEnergyRates &specific_energy_rates) const
+		const SpecificEnergyRates &specific_energy_rates,  const Param &param) const
 {
 	ControlValues seb_rate;
 	/*
@@ -444,6 +444,8 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 	seb_rate.setpoint = specific_energy_rates.spe_rate.setpoint * weight.spe_weighting -
 			    specific_energy_rates.ske_rate.setpoint *
 			    weight.ske_weighting;
+
+	seb_rate.setpoint += param.load_factor_correction_pitch * (param.load_factor - 1.f);
 
 	seb_rate.estimate = (specific_energy_rates.spe_rate.estimate * weight.spe_weighting) -
 			    (specific_energy_rates.ske_rate.estimate * weight.ske_weighting);

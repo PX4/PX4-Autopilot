@@ -135,6 +135,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_throttle_slewrate(_param_fw_thr_slew_max.get());
 	_tecs.set_vertical_accel_limit(_param_fw_t_vert_acc.get());
 	_tecs.set_roll_throttle_compensation(_param_fw_t_rll2thr.get());
+	_tecs.set_roll_pitch_compensation(_param_fw_t_rll2ptch.get());
 	_tecs.set_pitch_damping(_param_fw_t_ptch_damp.get());
 	_tecs.set_altitude_error_time_constant(_param_fw_t_h_error_tc.get());
 	_tecs.set_altitude_rate_ff(_param_fw_t_hrate_ff.get());
