@@ -424,7 +424,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
 	const bool rc_loss_ignored_rtl = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::RTL);
+					 && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::RTL);
 	const bool rc_loss_ignored_land = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
 					  && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Land);
 	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
