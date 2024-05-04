@@ -734,7 +734,15 @@ void RCInput::Run()
 						}
 
 						if (_crsf_telemetry) {
+#if defined(RC_SERIAL_SINGLEWIRE_MANUAL_DUPLEX)
+							ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED | SER_SINGLEWIRE_DIR_TX);
+#endif
 							_crsf_telemetry->update(cycle_timestamp);
+#if defined(RC_SERIAL_SINGLEWIRE_MANUAL_DUPLEX)
+							tcflush(_rcs_fd, TCIOFLUSH);
+							tcdrain(_rcs_fd); // Ensure TX FIFO is empty before swapping
+							ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED | SER_SINGLEWIRE_DIR_RX);
+#endif
 						}
 					}
 				}
@@ -787,7 +795,15 @@ void RCInput::Run()
 						}
 
 						if (_ghst_telemetry) {
+#if defined(RC_SERIAL_SINGLEWIRE_MANUAL_DUPLEX)
+							ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED | SER_SINGLEWIRE_DIR_TX);
+#endif
 							_ghst_telemetry->update(cycle_timestamp);
+#if defined(RC_SERIAL_SINGLEWIRE_MANUAL_DUPLEX)
+							tcflush(_rcs_fd, TCIOFLUSH);
+							tcdrain(_rcs_fd); // Ensure TX FIFO is empty before swapping
+							ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED | SER_SINGLEWIRE_DIR_RX);
+#endif
 						}
 					}
 				}
