@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# board specific extras init
+#------------------------------------------------------------------------------
+
+# enable onboard OSD chip
+atxxxx start -s
