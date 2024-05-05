@@ -34,8 +34,6 @@
 #include "SpacecraftPositionControl.hpp"
 
 #include <float.h>
-#include <lib/mathlib/mathlib.h>
-#include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/events.h>
 #include "PositionControl/ControlMath.hpp"
 
@@ -141,6 +139,8 @@ void SpacecraftPositionControl::parameters_update(bool force)
 			events::send<float>(events::ID("sc_pos_ctrl_man_vel_set"), events::Log::Warning,
 					    "Manual speed has been constrained by maximum speed", _param_mpc_vel_max.get());
 		}
+
+		yaw_rate = math::radians(_param_mpc_man_y_max.get());
 	}
 }
 
@@ -290,12 +290,16 @@ void SpacecraftPositionControl::Run()
 
 		PositionControlStates states{set_vehicle_states(vehicle_local_position, v_att)};
 
+		poll_manual_setpoint(dt, vehicle_local_position, v_att);
+
 		if (_vehicle_control_mode.flag_control_position_enabled) {
 			// set failsafe setpoint if there hasn't been a new
 			// trajectory setpoint since position control started
 			if ((_setpoint.timestamp < _time_position_control_enabled)
 			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
-
+				PX4_INFO("Setpoint time: %f, Vehicle local pos time: %f, Pos Control Enabled time: %f", 
+				(double)_setpoint.timestamp, (double)vehicle_local_position.timestamp_sample,
+				(double)_time_position_control_enabled);
 				_setpoint = generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, false);
 			}
 		}
@@ -328,6 +332,69 @@ void SpacecraftPositionControl::Run()
 	}
 
 	perf_end(_cycle_perf);
+}
+
+void SpacecraftPositionControl::poll_manual_setpoint(const float dt, 
+		const vehicle_local_position_s &vehicle_local_position, 
+		const vehicle_attitude_s &_vehicle_att)
+{	
+	if (_vehicle_control_mode.flag_control_manual_enabled && _vehicle_control_mode.flag_armed) {
+		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
+
+			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
+			    !_vehicle_control_mode.flag_control_offboard_enabled) {
+
+				if (_vehicle_control_mode.flag_control_attitude_enabled) {
+					// We are in Stabilized mode
+					// Generate position setpoints
+					if(!stabilized_pos_sp_initialized) {
+						// Initialize position setpoint
+						target_pos_sp = Vector3f(vehicle_local_position.x, vehicle_local_position.y,
+										vehicle_local_position.z);
+
+						const float vehicle_yaw = Eulerf(Quatf(_vehicle_att.q)).psi();
+						_manual_yaw_sp = vehicle_yaw;
+						stabilized_pos_sp_initialized = true;
+					}
+					// Update velocity setpoint
+					Vector3f target_vel_sp = Vector3f(_manual_control_setpoint.pitch, _manual_control_setpoint.roll, 0.0);
+					// TODO(@Pedro-Roque): probably need to move velocity to inertial frame
+					target_pos_sp = target_pos_sp + target_vel_sp * dt;
+
+					// Update _setpoint
+					_setpoint.position[0] = target_pos_sp(0);
+					_setpoint.position[1] = target_pos_sp(1);
+					_setpoint.position[2] = target_pos_sp(2);
+
+					_setpoint.velocity[0] = target_vel_sp(0);
+					_setpoint.velocity[1] = target_vel_sp(1);
+					_setpoint.velocity[2] = target_vel_sp(2);
+
+					// Generate attitude setpoints
+					float yaw_sp_move_rate = 0.0;
+					if (_manual_control_setpoint.throttle > -0.9f){
+						yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
+					}
+					_manual_yaw_sp = wrap_pi(_manual_yaw_sp + yaw_sp_move_rate * dt);
+					const float roll_body = 0.0;
+					const float pitch_body = 0.0;
+
+					Quatf q_sp(Eulerf(roll_body, pitch_body, _manual_yaw_sp));
+					q_sp.copyTo(_setpoint.attitude);
+
+					_setpoint.timestamp = hrt_absolute_time();
+				} else {
+					// We are in Manual mode
+					stabilized_pos_sp_initialized = false;
+				}
+
+			} else {
+				stabilized_pos_sp_initialized = false;
+			}
+
+			_manual_setpoint_last_called = hrt_absolute_time();
+		}
+	}
 }
 
 trajectory_setpoint_s SpacecraftPositionControl::generateFailsafeSetpoint(const hrt_abstime &now,

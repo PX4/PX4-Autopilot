@@ -40,6 +40,7 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 #include <geo/geo.h>
 
 using namespace matrix;
@@ -82,6 +83,7 @@ void PositionControl::setInputSetpoint(const trajectory_setpoint_s &setpoint)
 bool PositionControl::update(const float dt)
 {
 	bool valid = _inputValid();
+	PX4_INFO("valid: %d", valid);
 
 	if (valid) {
 		_positionControl();
@@ -118,7 +120,7 @@ void PositionControl::_velocityControl(const float dt)
 
 	// No control input from setpoints or corresponding states which are NAN
 	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
-
+	PX4_INFO("acc_sp: %f, %f, %f", (double)_acc_sp(0), (double)_acc_sp(1), (double)_acc_sp(2));
 	// Accelaration to Thrust
 	_thr_sp = _acc_sp;
 	_thr_sp(0) = math::constrain(_thr_sp(0), -_lim_thr_max, _lim_thr_max);

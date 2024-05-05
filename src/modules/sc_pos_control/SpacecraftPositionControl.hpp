@@ -44,6 +44,8 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -56,6 +58,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -92,6 +95,7 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)}; 	/**< notification of manual control updates */
 
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -99,9 +103,11 @@ private:
 
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
+	hrt_abstime _manual_setpoint_last_called{0};
 
 	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
 	vehicle_control_mode_s _vehicle_control_mode{};
+	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 
 	DEFINE_PARAMETERS(
 		// Position Control
@@ -127,6 +133,10 @@ private:
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
+	matrix::Vector3f target_pos_sp;
+	float yaw_rate;
+	bool stabilized_pos_sp_initialized{false};
+
 	PositionControl _control;  /**< class for core PID position control */
 
 	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
@@ -139,6 +149,12 @@ private:
 	uint8_t _xy_reset_counter{0};
 	uint8_t _z_reset_counter{0};
 	uint8_t _heading_reset_counter{0};
+	
+	// Manual setpoints on yaw and reset
+	bool _reset_yaw_sp{true};
+	float _manual_yaw_sp{0.f};
+	float _throttle_control{0.f};
+	float _yaw_control{0.f};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 
@@ -153,6 +169,12 @@ private:
 	 * Check for validity of positon/velocity states.
 	 */
 	PositionControlStates set_vehicle_states(const vehicle_local_position_s &local_pos, const vehicle_attitude_s &att);
+
+	/**
+	 * Check for manual setpoints.
+	 */
+	void poll_manual_setpoint(const float dt, const vehicle_local_position_s
+		&vehicle_local_position, const vehicle_attitude_s &_vehicle_att);
 
 	/**
 	 * Generate setpoint to bridge no executable setpoint being available.

@@ -58,6 +58,9 @@ publications:
 
   - topic: /fmu/out/vehicle_thrust_setpoint
     type: px4_msgs::msg::VehicleThrustSetpoint
+  
+  - topic: /fmu/out/vehicle_attitude_setpoint
+    type: px4_msgs::msg::VehicleAttitudeSetpoint
 
   - topic: /fmu/out/log_message
     type: px4_msgs::msg::LogMessage
