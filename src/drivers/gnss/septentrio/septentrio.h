@@ -81,6 +81,11 @@ enum class SeptentrioDumpCommMode : int32_t {
 	RTCM, ///< dump received RTCM from Main GPS
 };
 
+enum class SeptentrioInstance : uint8_t {
+	Main = 0,
+	Secondary,
+};
+
 enum class SeptentrioGPSResetType {
 	/**
 	 * There is no pending GPS reset.
@@ -122,7 +127,7 @@ enum class SeptentrioGPSOutputMode {
 class SeptentrioGPS : public ModuleBase<SeptentrioGPS>, public device::Device
 {
 public:
-	SeptentrioGPS(const char *device_path);
+	SeptentrioGPS(const char *device_path, SeptentrioInstance instance);
 	~SeptentrioGPS() override;
 
 	int print_status() override;
@@ -132,8 +137,17 @@ public:
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
+	static int task_spawn(int argc, char *argv[], SeptentrioInstance instance);
+
+	/**
+	 * @brief Secondary run trampoline to support two driver instances.
+	 */
+	static int run_trampoline_secondary(int argc, char *argv[]);
+
 	/** @see ModuleBase */
 	static SeptentrioGPS *instantiate(int argc, char *argv[]);
+
+	static SeptentrioGPS *instantiate(int argc, char *argv[], SeptentrioInstance instance);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -144,7 +158,7 @@ public:
 	/**
 	 * @brief Reset the connected GPS receiver.
 	 *
-	 * @return 0 on success, -1 on not implemented, >0 on error
+	 * @return `PX4_OK` on success, `PX4_ERROR` on otherwise
 	 */
 	int reset(SeptentrioGPSResetType type);
 
@@ -174,7 +188,7 @@ private:
 	 *
 	 * @return `PX4_OK` on success, `PX4_ERROR` on error
 	*/
-	int detect_serial_port(char* const port_name);
+	int detect_serial_port(char *const port_name);
 
 	/**
 	 * Configure the receiver.
@@ -362,12 +376,17 @@ private:
 	hrt_abstime                                    _last_rtcm_injection_time{0};                                                     ///< Time of last RTCM injection
 	uint8_t                                        _msg_status{0};
 	uint16_t                                       _rx_payload_index{0};                                                             ///< State for the message parser
-	sbf_buf_t                                      _buf;                                                                             ///< The complete received message
+	sbf_buf_t
+	_buf;                                                                             ///< The complete received message
 	RTCMParsing                                    *_rtcm_parsing{nullptr};                                                          ///< RTCM message parser
 	uint8_t                                        _selected_rtcm_instance{0};                                                       ///< uORB instance that is being used for RTCM corrections
 	bool                                           _healthy{false};                                                                  ///< Flag to signal if the GPS is OK
 	uint8_t                                        _spoofing_state{0};                                                               ///< Receiver spoofing state
 	uint8_t                                        _jamming_state{0};                                                                ///< Receiver jamming state
+	const SeptentrioInstance
+	_instance;                                                                        ///< The receiver that this instance of the driver controls
+	static px4::atomic<SeptentrioGPS *>
+	_secondary_instance;                                                              ///< Optional secondary instance of the driver
 
 	// uORB topics and subscriptions
 	gps_dump_s                                     *_dump_to_device{nullptr};                                                        ///< uORB GPS dump data (to the receiver)

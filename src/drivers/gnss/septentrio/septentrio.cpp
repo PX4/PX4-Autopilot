@@ -87,14 +87,11 @@ using namespace time_literals;
 // Commands
 #define SBF_FORCE_INPUT "SSSSSSSSSS\n"  /**< Force input on the connected port */
 
-#define SBF_CONFIG_RESET_HOT "" \
-	SBF_FORCE_INPUT"ExeResetReceiver, soft, none\n"
+#define SBF_CONFIG_RESET_HOT "ExeResetReceiver, soft, none\n"
 
-#define SBF_CONFIG_RESET_WARM "" \
-	SBF_FORCE_INPUT"ExeResetReceiver, soft, PVTData\n"
+#define SBF_CONFIG_RESET_WARM "ExeResetReceiver, soft, PVTData\n"
 
-#define SBF_CONFIG_RESET_COLD "" \
-	SBF_FORCE_INPUT"ExeResetReceiver, hard, SatData\n"
+#define SBF_CONFIG_RESET_COLD "ExeResetReceiver, hard, SatData\n"
 
 #define SBF_CONFIG "setSBFOutput, Stream1, %s, PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler, msec100\n" /**< Configure the correct blocks for GPS positioning and heading */
 
@@ -110,8 +107,11 @@ using namespace time_literals;
 
 static constexpr int SEP_SET_CLOCK_DRIFT_TIME_S{5}; ///< RTC drift time when time synchronization is needed (in seconds)
 
-SeptentrioGPS::SeptentrioGPS(const char *device_path) :
-	Device(MODULE_NAME)
+px4::atomic<SeptentrioGPS *> SeptentrioGPS::_secondary_instance{nullptr};
+
+SeptentrioGPS::SeptentrioGPS(const char *device_path, SeptentrioInstance instance) :
+	Device(MODULE_NAME),
+	_instance(instance)
 {
 	strncpy(_port, device_path, sizeof(_port) - 1);
 	// Enforce null termination.
@@ -133,6 +133,20 @@ SeptentrioGPS::SeptentrioGPS(const char *device_path) :
 
 SeptentrioGPS::~SeptentrioGPS()
 {
+	SeptentrioGPS *secondary_instance = _secondary_instance.load();
+
+	if (_instance == SeptentrioInstance::Main && secondary_instance) {
+		secondary_instance->request_stop();
+
+		// Wait for exit
+		uint32_t i = 0;
+
+		do {
+			px4_usleep(20000);
+			++i;
+		} while (_secondary_instance.load() && i < 100);
+	}
+
 	delete _dump_from_device;
 	delete _dump_to_device;
 	delete _rtcm_parsing;
@@ -141,6 +155,21 @@ SeptentrioGPS::~SeptentrioGPS()
 
 int SeptentrioGPS::print_status()
 {
+	SeptentrioGPS *secondary_instance = _secondary_instance.load();
+
+	switch (_instance) {
+	case SeptentrioInstance::Main:
+		PX4_INFO("Main GPS");
+		break;
+
+	case SeptentrioInstance::Secondary:
+		PX4_INFO("");
+		PX4_INFO("Secondary GPS");
+
+	default:
+		break;
+	}
+
 	PX4_INFO("status: %s, port: %s", _healthy ? "OK" : "NOT OK", _port);
 	PX4_INFO("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
 	PX4_INFO("rate reading: \t\t%6i B/s", _rate_reading);
@@ -153,6 +182,10 @@ int SeptentrioGPS::print_status()
 		PX4_INFO("rate RTCM injection:\t%6.2f Hz", (double)_rate_rtcm_injection);
 
 		print_message(ORB_ID(sensor_gps), _report_gps_pos);
+	}
+
+	if (_instance == SeptentrioInstance::Main && secondary_instance) {
+		secondary_instance->print_status();
 	}
 
 	return 0;
@@ -177,6 +210,7 @@ void SeptentrioGPS::run()
 	// Set up the communication, configure the receiver and start processing data until we have to exit.
 	while (!should_exit()) {
 		_uart.setPort(_port);
+
 		if (!_uart.open()) {
 			PX4_ERR("Error opening serial device %s", _port);
 			continue;
@@ -256,13 +290,26 @@ void SeptentrioGPS::run()
 
 int SeptentrioGPS::task_spawn(int argc, char *argv[])
 {
+	return task_spawn(argc, argv, SeptentrioInstance::Main);
+}
+
+int SeptentrioGPS::task_spawn(int argc, char *argv[], SeptentrioInstance instance)
+{
+	px4_main_t entry_point;
 	static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2040);
+
+	if (instance == SeptentrioInstance::Main) {
+		entry_point = (px4_main_t)&run_trampoline;
+
+	} else {
+		entry_point = (px4_main_t)&run_trampoline_secondary;
+	}
 
 	px4_task_t task_id = px4_task_spawn_cmd("septentrio",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_SLOW_DRIVER,
 						TASK_STACK_SIZE,
-						&run_trampoline,
+						entry_point,
 						(char *const *)argv);
 
 	if (task_id < 0) {
@@ -272,24 +319,54 @@ int SeptentrioGPS::task_spawn(int argc, char *argv[])
 		return -errno;
 	}
 
-	_task_id = task_id;
+	if (instance == SeptentrioInstance::Main) {
+		_task_id = task_id;
+	}
+
+	return 0;
+}
+
+int SeptentrioGPS::run_trampoline_secondary(int argc, char *argv[])
+{
+	// Get rid of the task name (first argument)
+	argc -= 1;
+	argv += 1;
+
+	SeptentrioGPS *gps = instantiate(argc, argv, SeptentrioInstance::Secondary);
+
+	if (gps) {
+		_secondary_instance.store(gps);
+		gps->run();
+		_secondary_instance.store(nullptr);
+		delete gps;
+	}
 
 	return 0;
 }
 
 SeptentrioGPS *SeptentrioGPS::instantiate(int argc, char *argv[])
 {
+	return instantiate(argc, argv, SeptentrioInstance::Main);
+}
+
+SeptentrioGPS *SeptentrioGPS::instantiate(int argc, char *argv[], SeptentrioInstance instance)
+{
 	const char *device_path = nullptr;
+	const char *device_path_secondary = nullptr;
 	SeptentrioGPS *gps = nullptr;
 	bool error_flag = false;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:e:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
+			break;
+
+		case 'e':
+			device_path_secondary = myoptarg;
 			break;
 
 		case '?':
@@ -307,11 +384,36 @@ SeptentrioGPS *SeptentrioGPS::instantiate(int argc, char *argv[])
 		return nullptr;
 	}
 
-	if (device::Serial::validatePort(device_path)) {
-		gps = new SeptentrioGPS(device_path);
+	if (instance == SeptentrioInstance::Main) {
+		if (device::Serial::validatePort(device_path)) {
+			gps = new SeptentrioGPS(device_path, instance);
+
+		} else {
+			PX4_ERR("invalid device (-d) %s", device_path ? device_path : "");
+		}
+
+		if (gps && device_path_secondary) {
+			task_spawn(argc, argv, SeptentrioInstance::Secondary);
+
+			// Wait until the secondary instance is running
+			uint32_t i = 0;
+
+			do {
+				px4_usleep(2500);
+			} while (!_secondary_instance.load() && ++i < 400);
+
+			if (i == 400) {
+				PX4_ERR("Timed out while waiting for second instance to start");
+			}
+		}
 
 	} else {
-		PX4_ERR("invalid device (-d) %s", device_path ? device_path : "");
+		if (device::Serial::validatePort(device_path_secondary)) {
+			gps = new SeptentrioGPS(device_path_secondary, instance);
+
+		} else {
+			PX4_ERR("Invalid secondary device (-e) %s", device_path_secondary ? device_path_secondary : "");
+		}
 	}
 
 	return gps;
@@ -366,11 +468,21 @@ int SeptentrioGPS::print_usage(const char *reason)
 ### Description
 GPS driver module that handles the communication with Septentrio devices and publishes the position via uORB.
 
-The module currently only supports a single GPS device.
+The module supports a secondary GPS device, specified via `-e` parameter. The position will be published on
+the second uORB topic instance. It can be used for logging and heading computation.
+
+### Examples
+
+Starting 2 GPS devices (main one on /dev/ttyS3, secondary on /dev/ttyS4)
+$ septentrio start -d /dev/ttyS3 -e /dev/ttyS4
+
+Initiate warm restart of GPS device
+$ gps reset warm
 )DESCR_STR");
 	PRINT_MODULE_USAGE_NAME("septentrio", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "GPS device", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "Primary Septentrio receiver", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('e', "/dev/ttyS4", "<file:dev>", "Secondary Septentrio receiver", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset connected receiver");
@@ -382,6 +494,11 @@ The module currently only supports a single GPS device.
 int SeptentrioGPS::reset(SeptentrioGPSResetType type)
 {
 	bool res = false;
+
+	send_message(SBF_FORCE_INPUT);
+
+	// The receiver can't receive commands right after forcing input.
+	px4_usleep(500000);
 
 	switch (type) {
 	case SeptentrioGPSResetType::Hot:
@@ -400,7 +517,11 @@ int SeptentrioGPS::reset(SeptentrioGPSResetType type)
 		break;
 	}
 
-	return !res;
+	if (res) {
+		return PX4_OK;
+	} else {
+		return PX4_ERROR;
+	}
 }
 
 float SeptentrioGPS::get_position_update_rate()
@@ -415,7 +536,13 @@ float SeptentrioGPS::get_velocity_update_rate()
 
 void SeptentrioGPS::schedule_reset(SeptentrioGPSResetType reset_type)
 {
+	SeptentrioGPS *secondary_instance = _secondary_instance.load();
+
 	_scheduled_reset.store((int)reset_type);
+
+	if (_instance == SeptentrioInstance::Main && secondary_instance) {
+		secondary_instance->schedule_reset(reset_type);
+	}
 }
 
 int SeptentrioGPS::detect_serial_port(char* const port_name) {
@@ -1058,12 +1185,10 @@ void SeptentrioGPS::reset_if_scheduled()
 		_scheduled_reset.store((int)SeptentrioGPSResetType::None);
 		int res = reset(reset_type);
 
-		if (res == -1) {
-			PX4_INFO("Reset is not supported on this device.");
-		} else if (res > 0) {
-			PX4_INFO("Reset failed.");
-		} else {
+		if (res == PX4_OK) {
 			PX4_INFO("Reset succeeded.");
+		} else {
+			PX4_INFO("Reset failed.");
 		}
 	}
 }
