@@ -60,7 +60,7 @@ then
 fi
 
 #
-# SR setup
+# Spacecraft setup
 #
 if [ $VEHICLE_TYPE = sc ]
 then
