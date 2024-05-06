@@ -37,6 +37,7 @@
 
 #include <lib/tinybson/tinybson.h>
 #include <sys/stat.h>
+#include <libgen.h>
 
 #include <fcntl.h>
 
@@ -215,6 +216,17 @@ extern "C" __EXPORT int bsondump_main(int argc, char *argv[])
 			// Modify the first 4 bytes with the correct decoded size
 			uint32_t corrected_size = decoder.total_decoded_size;
 			memcpy(buffer, &corrected_size, sizeof(corrected_size));
+
+			char *dir_path = strdup(temp_path);
+			char *dir = dirname(dir_path);
+
+			struct stat st2 = {0};
+
+			if (stat(dir, &st2) == -1) {
+				mkdir(dir, 0777);
+			}
+
+			free(dir_path);
 
 			int temp_fd = open(temp_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
