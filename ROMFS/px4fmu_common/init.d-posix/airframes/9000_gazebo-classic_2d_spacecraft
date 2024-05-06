@@ -97,6 +97,7 @@ param set-default PWM_MAIN_FUNC6 506
 param set-default PWM_MAIN_FUNC7 507
 param set-default PWM_MAIN_FUNC8 508
 
+# PWM Simulation
 param set PWM_SIM_PWM_MAX 10000
 param set PWM_SIM_PWM_MIN 0
 
