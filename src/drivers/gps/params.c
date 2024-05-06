@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -152,8 +152,9 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
  *
  * The offset angle increases clockwise.
  *
- * Set this to 90 if the rover (or Unicore primary) antenna is placed on the
- * right side of the vehicle and the moving base antenna is on the left side.
+ * Set this to 90 if the rover (or Unicore primary, or Septentrio Mosaic Aux)
+ * antenna is placed on the right side of the vehicle and the moving base
+ * antenna is on the left side.
  *
  * (Note: the Unicore primary antenna is the one connected on the right as seen
  *        from the top).
