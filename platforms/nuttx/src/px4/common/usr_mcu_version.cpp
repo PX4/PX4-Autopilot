@@ -190,7 +190,7 @@ int board_determine_hw_info(void)
 	orb_copy(ORB_ID(hw_info), hwinfo_sub, &hwinfo);
 	orb_unsubscribe(hwinfo_sub);
 
-	memcpy(hw_info, &hwinfo,  min(sizeof(hwinfo), sizeof(hw_info)));
+	memcpy(hw_info, hwinfo.hw_info,  min(sizeof(hwinfo.hw_info), sizeof(hw_info)));
 
 	/* Drone guid  */
 	guid_sub = orb_subscribe(ORB_ID(guid));
