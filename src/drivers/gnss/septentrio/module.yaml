@@ -1,9 +1,14 @@
 module_name: Septentrio
 
 serial_config:
-    - command: septentrio start -d ${SERIAL_DEV}
+    - command: set DUAL_GPS_ARGS "-e ${SERIAL_DEV}"
       port_config_param:
-        name: SEP_PORT_CONFIG
+        name: SEP_PORT2_CFG
+        group: Septentrio GNSS Receiver
+      label: Secondary GPS port
+    - command: septentrio start -d ${SERIAL_DEV} ${DUAL_GPS_ARGS}
+      port_config_param:
+        name: SEP_PORT1_CFG
         group: Septentrio GNSS Receiver
         default: GPS1
       label: GPS Port
