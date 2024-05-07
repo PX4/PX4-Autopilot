@@ -2080,16 +2080,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* USB has no baudrate, but use a magic number for 'fast' */
 		_baudrate = 2000000;
-
-		int mavlink_mode = _param_mav_usb_mode.get();
-
-		if (mavlink_mode >= MAVLINK_MODE_COUNT) {
-			_mode = MAVLINK_MODE_CONFIG;
-
-		} else {
-			_mode = static_cast<MAVLINK_MODE>(mavlink_mode);
-		}
-
 		_ftp_on = true;
 		_is_usb_uart = true;
 

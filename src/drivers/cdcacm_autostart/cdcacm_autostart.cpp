@@ -209,8 +209,7 @@ void CdcAcmAutostart::state_connecting()
 		goto fail;
 	}
 
-	// If MAV_USB_EN is true then only try to start mavlink
-	if (_mav_usb_enable.get()) {
+	if (_cdcacm_protocol.get() == 2) {
 		PX4_INFO("Starting mavlink on %s (MAV_USB_ENABLE=1)", USB_DEVICE_PATH);
 
 		if (start_mavlink()) {
@@ -224,6 +223,8 @@ void CdcAcmAutostart::state_connecting()
 
 		return;
 	}
+
+	// Otherwise autodetect
 
 	if ((px4_ioctl(_ttyacm_fd, FIONREAD, &bytes_available) != PX4_OK) ||
 	    (bytes_available < 3)) {
@@ -486,7 +487,7 @@ bool CdcAcmAutostart::start_mavlink()
 {
 	bool success = false;
 	char mavlink_mode_string[3];
-	snprintf(mavlink_mode_string, sizeof(mavlink_mode_string), "%ld", _mav_usb_mode.get());
+	snprintf(mavlink_mode_string, sizeof(mavlink_mode_string), "%ld", _cdcacm_mav_mode.get());
 	static const char *argv[] {"mavlink", "start", "-d", USB_DEVICE_PATH, "-m", mavlink_mode_string, nullptr};
 
 	if (execute_process((char **)argv) > 0) {
