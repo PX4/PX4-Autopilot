@@ -161,11 +161,11 @@ bool Sensors::init()
 
 int Sensors::parameters_update()
 {
-	if (_armed && !_failure_detector_updated) {
+	if (_armed && !(_hil_enabled && _failure_detector_updated)) {
 		return 0;
 	}
 
-	if (_failure_detector_updated) {
+	if (_hil_enabled && _failure_detector_updated) {
 		_fakeSensors.update(_failureDetector);
 	}
 
@@ -435,11 +435,13 @@ void Sensors::InitializeVehicleAirData()
 			}
 
 		} else {
-			if (_failureDetector.isBaroOk()) {
-				_vehicle_air_data->Resume();
+			if (_hil_enabled) {
+				if (_failureDetector.isBaroOk()) {
+					_vehicle_air_data->Resume();
 
-			} else {
-				_vehicle_air_data->Pause();
+				} else {
+					_vehicle_air_data->Pause();
+				}
 			}
 		}
 	}
@@ -458,11 +460,13 @@ void Sensors::InitializeVehicleGPSPosition()
 			}
 
 		} else {
-			if (_failureDetector.isGpsOk()) {
-				_vehicle_gps_position->Resume();
+			if (_hil_enabled) {
+				if (_failureDetector.isGpsOk()) {
+					_vehicle_gps_position->Resume();
 
-			} else {
-				_vehicle_gps_position->Pause();
+				} else {
+					_vehicle_gps_position->Pause();
+				}
 			}
 		}
 	}
@@ -516,13 +520,16 @@ void Sensors::InitializeVehicleMagnetometer()
 			}
 
 		} else {
-			if (_failureDetector.isMagOk()) {
-				_vehicle_magnetometer->Resume();
+			if (_hil_enabled) {
+				if (_failureDetector.isMagOk()) {
+					_vehicle_magnetometer->Resume();
 
-			} else {
-				_vehicle_magnetometer->Pause();
+				} else {
+					_vehicle_magnetometer->Pause();
+				}
 			}
 		}
+
 	}
 }
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
