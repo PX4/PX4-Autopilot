@@ -235,6 +235,8 @@
 #define DRV_INS_DEVTYPE_VN200 0xE2
 #define DRV_INS_DEVTYPE_VN300 0xE3
 
+#define DRV_MAG_DEVTYPE_BMM350		0xE4
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
