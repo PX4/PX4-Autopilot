@@ -118,7 +118,7 @@ private:
 	uint32_t _reschedule_time = 0;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CDCACM_PROTOCOL>) _cdcacm_protocol,
-		(ParamInt<px4::params::CDCACM_MAV_MODE>) _cdcacm_mav_mode
+		(ParamInt<px4::params::SYS_USB_AUTO>) _sys_usb_auto,
+		(ParamInt<px4::params::USB_MAV_MODE>) _usb_mav_mode
 	)
 };

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Communication protocol for USB port
+ * Enable USB autostart
  *
  * @value 0 Disabled
  * @value 1 Auto-detect
@@ -42,10 +42,10 @@
  *
  * @group CDCACM
  */
-PARAM_DEFINE_INT32(CDCACM_PROTOCOL, 2);
+PARAM_DEFINE_INT32(SYS_USB_AUTO, 2);
 
 /**
- * Specify MAVLink mode for CDCACM
+ * Specify USB MAVLink mode
  *
  * @value 0 normal
  * @value 1 custom
@@ -65,4 +65,4 @@ PARAM_DEFINE_INT32(CDCACM_PROTOCOL, 2);
  *
  * @group CDCACM
  */
-PARAM_DEFINE_INT32(CDCACM_MAV_MODE, 2);
+PARAM_DEFINE_INT32(USB_MAV_MODE, 2);
