@@ -587,6 +587,23 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_PRC_STD, 0.2f);
 PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
 
 /**
+ * Roll -> Pitch feedforward
+ *
+ * Increasing this gain turn increases the amount of pitch that will
+ * be used to compensate for the loss of lift created by turning.
+ * Increase this parameter only if needed. If the value is to high is
+ * more likely to reach the critical angle and stall. Stall angle reduces
+ * in bank tunrs with respect to straight flight.
+ *
+ * @min 0.0
+ * @max 20.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_RLL2PTCH, 15.0f);
+
+/**
  * Speed <--> Altitude priority
  *
  * This parameter adjusts the amount of weighting that the pitch control
