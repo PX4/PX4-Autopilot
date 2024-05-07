@@ -62,6 +62,22 @@
 # include <nuttx/irq.h>
 #endif // __PX4_NUTTX
 
+/* With RISC-V the compiler / __atomic_always_lock_free lies about the atomicy
+ * of subword size variables. It is unclear whether this is intentional, or a
+ * bug.
+ *
+ * We know for a fact that subword atomics exist, so overload the the GCC macro
+ * here.
+ *
+ * More on this subject can be found here:
+ * https://github.com/riscv-collab/riscv-gcc/issues/15
+ */
+
+#ifdef CONFIG_ARCH_RISCV
+#undef __atomic_always_lock_free
+#define __atomic_always_lock_free(size, ptr) ((size) <= sizeof(uintptr_t))
+#endif
+
 namespace px4
 {
 
@@ -289,17 +305,7 @@ private:
 
 using atomic_int = atomic<int>;
 using atomic_int32_t = atomic<int32_t>;
-
-/* On riscv64-unknown-elf atomic<bool> is  not quaranteed to be lock-free
- * It is unclear whether it is really required.
- * An optimal solution could be atomic_flag, but it doesn't seem to be available
- * Just use atomic ints for now, to be safe
-*/
-#if !defined(CONFIG_ARCH_RISCV)
 using atomic_bool = atomic<bool>;
-#else
-using atomic_bool = atomic<int>;
-#endif
 
 } /* namespace px4 */
 
