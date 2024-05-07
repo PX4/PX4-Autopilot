@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 Technology Innovation Institute. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,5 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(bmm150)
-add_subdirectory(bmm350)
+px4_add_module(
+	MODULE drivers__magnetometer__bosch__bmm350
+	MAIN bmm350
+	COMPILE_FLAGS
+	SRCS
+		BMM350.cpp
+		BMM350.hpp
+		bmm350_main.cpp
+		BMM350_registers.hpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	)
