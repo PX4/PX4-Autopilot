@@ -626,29 +626,26 @@ void uORB::Manager::GlobalSemPool::init(void)
 
 void uORB::Manager::GlobalSemPool::free(int8_t i)
 {
+	IndexedStackHandle<SEM_LIST_T> sems(_global_sems);
+
 	lock();
 
-	_global_sem[i].free();
-	_global_sem[i].in_use = false;
+	sems.push_free(i);
 
 	unlock();
 }
 
 int8_t uORB::Manager::GlobalSemPool::reserve()
 {
+	IndexedStackHandle<SEM_LIST_T> sems(_global_sems);
+
 	lock();
 
 	// Find the first free lock
-	int8_t i;
-
-	for (i = 0; i < NUM_GLOBAL_SEMS; i++) {
-		if (!_global_sem[i].in_use) {
-			break;
-		}
-	}
+	int8_t i = sems.pop_free();
 
 	// Check that we got one
-	if (i ==  NUM_GLOBAL_SEMS) {
+	if (!sems.handle_valid(i)) {
 		PX4_ERR("Out of global locks");
 		unlock();
 		return -1;
@@ -656,9 +653,6 @@ int8_t uORB::Manager::GlobalSemPool::reserve()
 
 	// Make sure the semaphore is initialized properly for the new user
 	_global_sem[i].init();
-
-	// Mark this one as in use
-	_global_sem[i].in_use = true;
 
 	unlock();
 

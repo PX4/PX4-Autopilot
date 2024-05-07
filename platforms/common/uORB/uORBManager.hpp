@@ -51,6 +51,7 @@
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
 #define NUM_GLOBAL_SEMS 40
+#define SEM_LIST_T GlobalLock, int8_t, NUM_GLOBAL_SEMS
 
 namespace uORB
 {
@@ -645,15 +646,14 @@ private: //class methods
 #if defined(__PX4_NUTTX)
 				sem_setprotocol(&_sem, SEM_PRIO_NONE);
 #endif
-				in_use = false;
 			}
 			void free() { px4_sem_destroy(&_sem); }
 			int take() { return px4_sem_wait(&_sem); }
 			int take_timedwait(struct timespec *abstime) { return px4_sem_timedwait(&_sem, abstime); }
 			void release() { px4_sem_post(&_sem); }
 			int value() { int value; px4_sem_getvalue(&_sem, &value); return value; }
-			bool in_use{false};
 
+			int8_t next; /* For linkage */
 		private:
 			px4_sem_t _sem; /* For signaling to the callback thread */
 		};
@@ -662,6 +662,7 @@ private: //class methods
 		void lock() { do {} while (px4_sem_wait(&_semLock) != 0); }
 		void unlock() { px4_sem_post(&_semLock); }
 
+		IndexedStack<SEM_LIST_T> _global_sems;
 		GlobalLock _global_sem[NUM_GLOBAL_SEMS];
 		px4_sem_t _semLock;
 	} g_sem_pool;
