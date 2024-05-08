@@ -37,3 +37,10 @@
  * @group Battery Calibration
  */
 PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
+
+/**
+ * This parameter is deprecated. Please use BAT1_V_OFFS_CURR
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);
