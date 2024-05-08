@@ -55,7 +55,7 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 	Battery::setPriority(priority);
 	char param_name[17];
 
-  snprintf(param_name, sizeof(param_name), "BAT%d_V_OFFS_CURR", index);
+	snprintf(param_name, sizeof(param_name), "BAT%d_V_OFFS_CURR", index);
 	_analog_param_handles.v_offs_cur = param_find(param_name);
 
 	snprintf(param_name, sizeof(param_name), "BAT%d_V_DIV", index);
