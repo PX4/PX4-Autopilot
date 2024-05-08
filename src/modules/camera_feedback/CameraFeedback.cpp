@@ -194,6 +194,19 @@ CameraFeedback::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 
+The camera_feedback module publishes `CameraCapture` UORB topics when the camera capture pin is triggered.
+
+The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates.
+`CameraCapture` topics are also logged and can be used for geotagging.
+
+### Implementation
+
+The `camera_capture` driver monitors for the camera capture pin to be triggered,
+and then publishes a `CameraTrigger` UORB topic with the `feedback` field set.
+The camera_feedback module (this module) subscribes to `CameraTrigger` topics.
+If the `feedback` field set `true` and camera capture is enabled it will create
+and publish a `CameraCapture` topic with the timestamp information from the
+`CameraTrigger` and position information from the vehicle.
 
 )DESCR_STR");
 
