@@ -38,7 +38,7 @@ parameters:
 
         BAT${i}_V_OFFS_CURR:
             description:
-                short: Battery ${i} offset in volt as seen by the ADC input of the current sensor.
+                short: Battery ${i} current measurement ADC offset in V.
                 long: |
                     This offset will be subtracted before calculating the battery
                     current based on the voltage.
