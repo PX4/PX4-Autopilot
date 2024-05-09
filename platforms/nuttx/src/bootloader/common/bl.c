@@ -80,7 +80,7 @@
 // RESET    finalise flash programming, reset chip and starts application
 //
 
-#define BL_PROTOCOL_VERSION         5   // The revision of the bootloader protocol
+#define BL_PROTOCOL_REVISION        5   // The revision of the bootloader protocol
 //* Next revision needs to update
 
 // protocol bytes
@@ -106,6 +106,7 @@
 #define PROTO_GET_CHIP              0x2c    // read chip version (MCU IDCODE)
 #define PROTO_SET_DELAY             0x2d    // set minimum boot delay
 #define PROTO_GET_CHIP_DES          0x2e    // read chip version In ASCII
+#define PROTO_GET_VERSION           0x2f    // read version
 #define PROTO_BOOT                  0x30    // boot the application
 #define PROTO_DEBUG                 0x31    // emit debug information - format not defined
 #define PROTO_SET_BAUD              0x33    // set baud rate on uart
@@ -143,7 +144,8 @@
 #define STATE_PROTO_GET_SN          0x40    // Have Seen read a word from UDID area ( Serial)  at the given address
 #define STATE_PROTO_GET_CHIP        0x80    // Have Seen read chip version (MCU IDCODE)
 #define STATE_PROTO_GET_CHIP_DES    0x100   // Have Seen read chip version In ASCII
-#define STATE_PROTO_BOOT            0x200   // Have Seen boot the application
+#define STATE_PROTO_GET_VERSION     0x200   // Have Seen get version
+#define STATE_PROTO_BOOT            0x400   // Have Seen boot the application
 
 #if defined(TARGET_HW_PX4_PIO_V1)
 #define STATE_ALLOWS_ERASE        (STATE_PROTO_GET_SYNC)
@@ -157,6 +159,18 @@
 
 static uint8_t bl_type;
 static uint8_t last_input;
+
+int get_version(int n, uint8_t *version_str)
+{
+	int len = strlen(BOOTLOADER_VERSION);
+
+	if (len > n) {
+		len = n;
+	}
+
+	strncpy((char *)version_str, BOOTLOADER_VERSION, n);
+	return len;
+}
 
 inline void cinit(void *config, uint8_t interface)
 {
@@ -258,7 +272,7 @@ inline void cout(uint8_t *buf, unsigned len)
 
 #endif
 
-static const uint32_t bl_proto_rev = BL_PROTOCOL_VERSION; // value returned by PROTO_DEVICE_BL_REV
+static const uint32_t bl_proto_rev = BL_PROTOCOL_REVISION; // value returned by PROTO_DEVICE_BL_REV
 
 static unsigned head, tail;
 static uint8_t rx_buf[256] USB_DATA_ALIGN;
@@ -973,7 +987,7 @@ bootloader(unsigned timeout)
 		// read the chip  description
 		//
 		// command:     GET_CHIP_DES/EOC
-		// reply:     <value:4>/INSYNC/OK
+		// reply:     <length:4><buffer...>/INSYNC/OK
 		case PROTO_GET_CHIP_DES: {
 				uint8_t buffer[MAX_DES_LENGTH];
 				unsigned len = MAX_DES_LENGTH;
@@ -987,6 +1001,25 @@ bootloader(unsigned timeout)
 				cout_word(len);
 				cout(buffer, len);
 				SET_BL_STATE(STATE_PROTO_GET_CHIP_DES);
+			}
+			break;
+
+		// read the bootloader version (not to be confused with protocol revision)
+		//
+		// command:     GET_VERSION/EOC
+		// reply:     <length:4><buffer...>/INSYNC/OK
+		case PROTO_GET_VERSION: {
+				uint8_t buffer[MAX_VERSION_LENGTH];
+
+				// expect EOC
+				if (!wait_for_eoc(2)) {
+					goto cmd_bad;
+				}
+
+				int len = get_version(sizeof(buffer), buffer);
+				cout_word(len);
+				cout(buffer, len);
+				SET_BL_STATE(STATE_PROTO_GET_VERSION);
 			}
 			break;
 
