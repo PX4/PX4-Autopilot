@@ -87,7 +87,7 @@ CameraFeedback::Run()
 			continue;
 		}
 
-		if ((_cam_cap_fback >= 1) && !trig.feedback) {
+		if ((_p_cam_cap_fback >= 1) && !trig.feedback) {
 			// Ignore triggers that are not feedback when camera capture feedback is enabled
 			continue;
 		}
