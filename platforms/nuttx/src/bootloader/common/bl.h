@@ -96,6 +96,7 @@ extern int buf_get(void);
 #endif
 
 #define MAX_DES_LENGTH 20
+#define MAX_VERSION_LENGTH 32
 
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
 extern void led_on(unsigned led);
@@ -122,6 +123,8 @@ void arch_systic_deinit(void);
 extern uint32_t get_mcu_id(void);
 int get_mcu_desc(int max, uint8_t *revstr);
 extern int check_silicon(void);
+
+int get_version(int max, uint8_t *version_str);
 
 /*****************************************************************************
  * Interface in/output.
