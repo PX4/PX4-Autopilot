@@ -135,6 +135,7 @@ px4_add_module(
 		sensor_calibration
 		geo
 		mavlink_c
+		open_drone_id
 		timesync
 		tunes
 		variable_length_ringbuffer
