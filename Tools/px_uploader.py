@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 ############################################################################
 #
-#   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -195,6 +195,7 @@ class uploader(object):
     GET_CHIP        = b'\x2c'     # rev5+  , get chip version
     SET_BOOT_DELAY  = b'\x2d'     # rev5+  , set boot delay
     GET_CHIP_DES    = b'\x2e'     # rev5+  , get chip description in ASCII
+    GET_VERSION     = b'\x2f'     # rev5+  , get chip description in ASCII
     CHIP_FULL_ERASE = b'\x40'     # full erase of flash, rev6+
     MAX_DES_LENGTH  = 20
 
@@ -206,6 +207,7 @@ class uploader(object):
     INFO_BOARD_ID   = b'\x02'        # board type
     INFO_BOARD_REV  = b'\x03'        # board revision
     INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
+    BL_VERSION      = b'\x07'        # get bootloader version, e.g. major.minor.patch.githash (up to 20 chars)
 
     PROG_MULTI_MAX  = 252            # protocol max is 255, must be multiple of 4
     READ_MULTI_MAX  = 252            # protocol max is 255
@@ -412,6 +414,18 @@ class uploader(object):
         pieces = value.split(b",")
         return pieces
 
+    def __getVersion(self):
+        self.__send(uploader.GET_VERSION + uploader.EOC)
+        try:
+            length = self.__recv_int()
+            value = self.__recv(length)
+            self.__getSync()
+        except RuntimeError:
+            # Bootloader doesn't support version call
+            return "unknown"
+        pieces = value.split(b".")
+        return pieces
+
     def __drawProgressBar(self, label, progress, maxVal):
         if maxVal < progress:
             progress = maxVal
@@ -594,6 +608,8 @@ class uploader(object):
         self.board_rev = self.__getInfo(uploader.INFO_BOARD_REV)
         self.fw_maxsize = self.__getInfo(uploader.INFO_FLASH_SIZE)
 
+        self.version = self.__getVersion()
+
     # upload the firmware
     def upload(self, fw_list, force=False, boot_delay=None, boot_check=False, force_erase=False):
         self.force_erase = force_erase
@@ -624,6 +640,8 @@ class uploader(object):
 
         print("Loaded firmware for board id: %s,%s size: %d bytes (%.2f%%) " % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size'), percent))
         print()
+
+        print(f"Bootloader version: {self.version}")
 
         # Make sure we are doing the right thing
         start = _time()
