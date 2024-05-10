@@ -50,7 +50,9 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+#include <px4_platform_common/cli.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <uORB/topics/gps_inject_data.h>
 
@@ -72,7 +74,6 @@ using namespace time_literals;
 #define MSG_SIZE                100     ///< Size of the message to be sent to the receiver
 #define TIMEOUT_5HZ             500     ///< Timeout time in mS, 1000 mS (1Hz) + 300 mS delta for error
 #define RATE_MEASUREMENT_PERIOD 5_s     ///< Rate at which bandwith measurements are taken
-#define RECEIVER_BAUD_RATE      115200  ///< The baudrate of the serial connection to the receiver
 // TODO: This number seems wrong. It's also not clear why an ULL is created and casted to UL (time_t).
 #define GPS_EPOCH_SECS ((time_t)1234567890ULL)
 
@@ -81,8 +82,9 @@ using namespace time_literals;
 #define SBF_TRACE_RXMSG(...)    {/*PX4_INFO(__VA_ARGS__);*/} ///< Rx msgs in payload_rx_done()
 
 // Warning macros (disable to save memory)
-#define SBF_WARN(...)           {PX4_WARN(__VA_ARGS__);}
-#define SBF_DEBUG(...)          {/*PX4_WARN(__VA_ARGS__);*/}
+#define SBF_WARN(...)           {PX4_WARN(__VA_ARGS__);} ///< Module debug warnings
+#define SBF_INFO(...)           {PX4_INFO(__VA_ARGS__);} ///< Module debug info
+#define SBF_DEBUG(...)          {/*PX4_INFO(__VA_ARGS__);*/} ///< Module debug tracing
 
 // Commands
 #define SBF_FORCE_INPUT "SSSSSSSSSS\n"  /**< Force input on the connected port */
@@ -95,7 +97,7 @@ using namespace time_literals;
 
 #define SBF_CONFIG "setSBFOutput, Stream1, %s, PVTGeodetic+VelCovGeodetic+DOP+AttEuler+AttCovEuler, msec100\n" /**< Configure the correct blocks for GPS positioning and heading */
 
-#define SBF_CONFIG_BAUDRATE "setCOMSettings, %s, baud%d\n"
+#define SBF_CONFIG_BAUDRATE "setCOMSettings, %s, baud%lu\n"
 
 #define SBF_CONFIG_RESET "setSBFOutput, Stream1, %s, none, off\n"
 
@@ -109,9 +111,10 @@ static constexpr int SEP_SET_CLOCK_DRIFT_TIME_S{5}; ///< RTC drift time when tim
 
 px4::atomic<SeptentrioGPS *> SeptentrioGPS::_secondary_instance{nullptr};
 
-SeptentrioGPS::SeptentrioGPS(const char *device_path, SeptentrioInstance instance) :
+SeptentrioGPS::SeptentrioGPS(const char *device_path, SeptentrioInstance instance, uint32_t baud_rate) :
 	Device(MODULE_NAME),
-	_instance(instance)
+	_instance(instance),
+	_baud_rate(baud_rate)
 {
 	strncpy(_port, device_path, sizeof(_port) - 1);
 	// Enforce null termination.
@@ -170,7 +173,7 @@ int SeptentrioGPS::print_status()
 		break;
 	}
 
-	PX4_INFO("status: %s, port: %s", _healthy ? "OK" : "NOT OK", _port);
+	PX4_INFO("status: %s, port: %s, baud rate: %lu", _healthy ? "OK" : "NOT OK", _port, _baud_rate);
 	PX4_INFO("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
 	PX4_INFO("rate reading: \t\t%6i B/s", _rate_reading);
 
@@ -352,15 +355,29 @@ SeptentrioGPS *SeptentrioGPS::instantiate(int argc, char *argv[])
 SeptentrioGPS *SeptentrioGPS::instantiate(int argc, char *argv[], SeptentrioInstance instance)
 {
 	const char *device_path = nullptr;
+	int baud_rate = 0;
 	const char *device_path_secondary = nullptr;
+	int baud_rate_secondary = 0;
 	SeptentrioGPS *gps = nullptr;
 	bool error_flag = false;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:e:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:e:b:g:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'b':
+			if (px4_get_parameter_value(myoptarg, baud_rate) != 0) {
+				PX4_ERR("baudrate parsing failed");
+				error_flag = true;
+			}
+			break;
+		case 'g':
+			if (px4_get_parameter_value(myoptarg, baud_rate_secondary) != 0) {
+				PX4_ERR("baudrate parsing failed");
+				error_flag = true;
+			}
+			break;
 		case 'd':
 			device_path = myoptarg;
 			break;
@@ -386,7 +403,7 @@ SeptentrioGPS *SeptentrioGPS::instantiate(int argc, char *argv[], SeptentrioInst
 
 	if (instance == SeptentrioInstance::Main) {
 		if (device::Serial::validatePort(device_path)) {
-			gps = new SeptentrioGPS(device_path, instance);
+			gps = new SeptentrioGPS(device_path, instance, baud_rate);
 
 		} else {
 			PX4_ERR("invalid device (-d) %s", device_path ? device_path : "");
@@ -409,7 +426,7 @@ SeptentrioGPS *SeptentrioGPS::instantiate(int argc, char *argv[], SeptentrioInst
 
 	} else {
 		if (device::Serial::validatePort(device_path_secondary)) {
-			gps = new SeptentrioGPS(device_path_secondary, instance);
+			gps = new SeptentrioGPS(device_path_secondary, instance, baud_rate_secondary);
 
 		} else {
 			PX4_ERR("Invalid secondary device (-e) %s", device_path_secondary ? device_path_secondary : "");
@@ -545,6 +562,38 @@ void SeptentrioGPS::schedule_reset(SeptentrioGPSResetType reset_type)
 	}
 }
 
+uint32_t SeptentrioGPS::detect_receiver_baud_rate(bool force_input) {
+	// Baud rates we expect the receiver to be running at.
+	const uint32_t expected_baud_rates[] = {115200, 230400, 57600, 460800, 500000, 576000, 1200, 2400, 4800, 9600, 19200, 38400, 921600, 1000000, 1500000};
+	// So we can restore the port to its original state.
+	const uint32_t original_baud_rate = _uart.getBaudrate();
+
+	for (uint i = 0; i < sizeof(expected_baud_rates)/sizeof(expected_baud_rates[0]); i++) {
+		if (set_baudrate(expected_baud_rates[i]) != PX4_OK)
+			return 0;
+
+		SBF_INFO("`_uart` now running at %lu", _uart.getBaudrate());
+
+		px4_usleep(20000);
+
+		if (force_input) {
+			send_message(SBF_FORCE_INPUT);
+			px4_usleep(20000);
+		}
+
+		if (send_message_and_wait_for_ack("getEchoMessage\n", SBF_CONFIG_TIMEOUT)) {
+			_uart.setBaudrate(original_baud_rate);
+			PX4_INFO("Detected baud rate: %lu", expected_baud_rates[i]);
+			return expected_baud_rates[i];
+		}
+
+		px4_usleep(20000);
+	}
+
+	_uart.setBaudrate(original_baud_rate);
+	return 0;
+}
+
 int SeptentrioGPS::detect_serial_port(char* const port_name) {
 	// Read buffer to get the COM port
 	char buf[GPS_READ_BUFFER_SIZE];
@@ -611,50 +660,81 @@ int SeptentrioGPS::detect_serial_port(char* const port_name) {
 
 int SeptentrioGPS::configure(float heading_offset)
 {
+	uint32_t detected_receiver_baud_rate = 0;
 	char com_port[5] {};
 	float pitch_offset = 0.f;
 	char msg[MSG_SIZE];
 
 	_configured = false;
 
-	param_t handle = param_find("SEP_PITCH_OFFS");
+	// Passively detect receiver baud rate.
+	detected_receiver_baud_rate = detect_receiver_baud_rate(true);
 
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &pitch_offset);
+	if (detected_receiver_baud_rate == 0) {
+		SBF_INFO("CONFIG: failed baud detection");
+		return PX4_ERROR;
 	}
 
-	set_baudrate(RECEIVER_BAUD_RATE);
-
-	send_message(SBF_FORCE_INPUT);
-
-	if (detect_serial_port(com_port) != PX4_OK)
+	// Set same baud rate on our end.
+	if (set_baudrate(detected_receiver_baud_rate) != PX4_OK) {
+		SBF_INFO("CONFIG: failed local baud rate setting");
 		return PX4_ERROR;
+	}
+
+	// Passively detect receiver port.
+	if (detect_serial_port(com_port) != PX4_OK) {
+		SBF_INFO("CONFIG: failed port detection");
+		return PX4_ERROR;
+	}
+
+	// If user requested specific baud rate, set it now. Otherwise keep detected baud rate.
+	if (strstr(com_port, "COM") != nullptr && _baud_rate != 0) {
+		snprintf(msg, sizeof(msg), SBF_CONFIG_BAUDRATE, com_port, _baud_rate);
+
+		if (!send_message(msg)) {
+			SBF_INFO("CONFIG: failed baud rate command write");
+			return PX4_ERROR;
+		}
+
+		px4_usleep(20000);
+
+		if (!send_message(msg)) {
+			SBF_INFO("CONFIG: failed baud rate command write");
+			return PX4_ERROR;
+		}
+
+		px4_usleep(20000);
+
+		if (set_baudrate(_baud_rate) != PX4_OK) {
+			SBF_INFO("CONFIG: failed local baud rate setting");
+			return PX4_ERROR;
+		}
+
+		if (!send_message_and_wait_for_ack("getEchoMessage\n", SBF_CONFIG_TIMEOUT)) {
+			SBF_INFO("CONFIG: failed baud rate setting");
+			return PX4_ERROR;
+		}
+	}
 
 	// Delete all sbf outputs on current COM port to remove clutter data
 	snprintf(msg, sizeof(msg), SBF_CONFIG_RESET, com_port);
 
 	if (!send_message_and_wait_for_ack(msg, SBF_CONFIG_TIMEOUT)) {
+		SBF_INFO("CONFIG: failed delete output");
 		return PX4_ERROR; // connection and/or baudrate detection failed
 	}
-
-	// Set baut rate
-	if (strstr(com_port, "COM") != nullptr) {
-		snprintf(msg, sizeof(msg), SBF_CONFIG_BAUDRATE, com_port, RECEIVER_BAUD_RATE);
-
-		if (!send_message_and_wait_for_ack(msg, SBF_CONFIG_TIMEOUT)) {
-			SBF_DEBUG("Connection and/or baudrate detection failed (SBF_CONFIG_BAUDRATE)");
-			return PX4_ERROR; // connection and/or baudrate detection failed
-		}
-	}
-
-	// At this point we have correct baudrate on both ends
-	SBF_DEBUG("Correct baud rate on both ends");
 
 	// Define/inquire the type of data that the receiver should accept/send on a given connection descriptor
 	snprintf(msg, sizeof(msg), SBF_DATA_IO, com_port);
 
 	if (!send_message_and_wait_for_ack(msg, SBF_CONFIG_TIMEOUT)) {
 		return PX4_ERROR;
+	}
+
+	param_t handle = param_find("SEP_PITCH_OFFS");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &pitch_offset);
 	}
 
 	// Specify the offsets that the receiver applies to the computed attitude angles.
