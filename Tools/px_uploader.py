@@ -50,9 +50,6 @@
 #       Currently only used for informational purposes.
 #
 
-# for python2.7 compatibility
-from __future__ import print_function
-
 import sys
 import argparse
 import binascii
@@ -70,34 +67,31 @@ from sys import platform as _platform
 try:
     import serial
 except ImportError as e:
-    print("Failed to import serial: " + str(e))
+    print(f"Failed to import serial: {e}")
     print("")
     print("You may need to install it using:")
-    print("    pip3 install --user pyserial")
+    print("    python -m pip install pyserial")
     print("")
     sys.exit(1)
 
 
-# Define time to use time.time() by default
-def _time():
-    return time.time()
-
 # Detect python version
 if sys.version_info[0] < 3:
-    runningPython3 = False
-else:
-    runningPython3 = True
-    if sys.version_info[1] >=3:
-        # redefine to use monotonic time when available
-        def _time():
-            try:
-                return time.monotonic()
-            except Exception:
-                return time.time()
+    raise RuntimeError("Python 2 is not supported. Please try again using Python 3.")
+    sys.exit(1)
+
+
+# Use monotonic time where available
+def _time():
+    try:
+        return time.monotonic()
+    except Exception:
+        return time.time()
 
 class FirmwareNotSuitableException(Exception):
     def __init__(self, message):
         super(FirmwareNotSuitableException, self).__init__(message)
+
 
 class firmware(object):
     '''Loads a firmware file'''
@@ -163,13 +157,13 @@ class firmware(object):
 
     def crc(self, padlen):
         state = self.__crc32(self.image, int(0))
-        for i in range(len(self.image), (padlen - 1), 4):
+        for _ in range(len(self.image), (padlen - 1), 4):
             state = self.__crc32(self.crcpad, state)
         return state
 
 
-class uploader(object):
-    '''Uploads a firmware file to the PX FMU bootloader'''
+class uploader:
+    '''Uploads a firmware file to the PX4 bootloader'''
 
     # protocol bytes
     INSYNC          = b'\x12'
@@ -361,19 +355,22 @@ class uploader(object):
             self.port.baudrate = self.baudrate_bootloader * 2.33
         except NotImplementedError as e:
             # This error can occur because pySerial on Windows does not support odd baudrates
-            print(str(e) + " -> could not check for FTDI device, assuming USB connection")
+            print(f"{e} -> could not check for FTDI device, assuming USB connection")
             return
 
         self.__send(uploader.GET_SYNC +
                     uploader.EOC)
         try:
             self.__getSync(False)
-        except:
+        except RuntimeError:
             # if it fails we are on a real serial port - only leave this enabled on Windows
             if sys.platform.startswith('win'):
                 self.ackWindowedMode = True
         finally:
-            self.port.baudrate = self.baudrate_bootloader
+            try:
+                self.port.baudrate = self.baudrate_bootloader
+            except Exception:
+                pass
 
     # send the GET_DEVICE command and wait for an info parameter
     def __getInfo(self, param):
@@ -423,8 +420,7 @@ class uploader(object):
         except RuntimeError:
             # Bootloader doesn't support version call
             return "unknown"
-        pieces = value.split(b".")
-        return pieces
+        return value.decode()
 
     def __drawProgressBar(self, label, progress, maxVal):
         if maxVal < progress:
@@ -437,7 +433,7 @@ class uploader(object):
 
     # send the CHIP_ERASE command and wait for the bootloader to become ready
     def __erase(self, label):
-        print("Windowed mode: %s" % self.ackWindowedMode)
+        print(f"Windowed mode: {self.ackWindowedMode}")
         print("\n", end='')
 
         if self.force_erase:
@@ -672,14 +668,14 @@ class uploader(object):
             self.otp_coa = self.otp[32:160]
             # show user:
             try:
-                print("sn: ", end='')
+                print("Sn: ", end='')
                 for byte in range(0, 12, 4):
                     x = self.__getSN(byte)
                     x = x[::-1]  # reverse the bytes
                     self.sn = self.sn + x
                     print(binascii.hexlify(x).decode('Latin-1'), end='')  # show user
                 print('')
-                print("chip: %08x" % self.__getCHIP())
+                print("Chip: %08x" % self.__getCHIP())
 
                 otp_id = self.otp_id.decode('Latin-1')
                 if ("PX4" in otp_id):
@@ -689,17 +685,19 @@ class uploader(object):
                     print("OTP pid: " + binascii.hexlify(self.otp_pid).decode('Latin-1'))
                     print("OTP coa: " + binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
 
-            except Exception:
+            except Exception as e:
                 # ignore bad character encodings
+                print(f"Exception ignored: {e}")
                 pass
 
         # Silicon errata check was added in v5
         if (self.bl_rev >= 5):
             des = self.__getCHIPDes()
             if (len(des) == 2):
-                print("family: %s" % des[0])
-                print("revision: %s" % des[1])
-                print("flash: %d bytes" % self.fw_maxsize)
+                family, revision = des
+                print(f"Family: {family.decode()}")
+                print(f"Revision: {revision.decode()}")
+                print(f"Flash: {self.fw_maxsize} bytes")
 
                 # Prevent uploads where the maximum image size of the board config is smaller than the flash
                 # of the board. This is a hint the user chose the wrong config and will lack features
@@ -710,8 +708,7 @@ class uploader(object):
                 # https://github.com/PX4/Firmware/blob/master/src/drivers/boards/common/stm32/board_mcu_version.c#L125-L144
 
                 if self.fw_maxsize > fw.property('image_maxsize') and not force:
-                    raise RuntimeError("Board can accept larger flash images (%u bytes) than board config (%u bytes). Please use the correct board configuration to avoid lacking critical functionality."
-                                       % (self.fw_maxsize, fw.property('image_maxsize')))
+                    raise RuntimeError(f"Board can accept larger flash images ({self.fw_maxsize} bytes) than board config ({fw.property('image_maxsize')} bytes). Please use the correct board configuration to avoid lacking critical functionality.")
         else:
             # If we're still on bootloader v4 on a Pixhawk, we don't know if we
             # have the silicon errata and therefore need to flash px4_fmu-v2
@@ -812,10 +809,6 @@ class uploader(object):
 
 
 def main():
-    # Python2 is EOL
-    if not runningPython3:
-        raise RuntimeError("Python 2 is not supported. Please try again using Python 3.")
-
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
     parser.add_argument('--port', action="store", required=True, help="Comma-separated list of serial port(s) to which the FMU may be attached")
@@ -900,9 +893,10 @@ def main():
                         # Windows, don't open POSIX ports
                         if "/" not in port:
                             up = uploader(port, args.baud_bootloader, baud_flightstack)
-                except Exception:
+                except Exception as e:
                     # open failed, rate-limit our attempts
                     time.sleep(0.05)
+                    print(f"Exception ignored: {e}")
 
                     # and loop to the next port
                     continue
@@ -917,10 +911,10 @@ def main():
                         up.identify()
                         found_bootloader = True
                         print()
-                        print("Found board id: %s,%s bootloader version: %s on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
+                        print(f"Found board id: {up.board_type},{up.board_rev} bootloader protocol revision {up.bl_rev} on {port}")
                         break
 
-                    except Exception:
+                    except RuntimeError or serial.SerialException:
 
                         if not up.send_reboot(args.use_protocol_splitter_format):
                             break
@@ -945,9 +939,9 @@ def main():
                     # if we made this far without raising exceptions, the upload was successful
                     successful = True
 
-                except RuntimeError as ex:
+                except RuntimeError as e:
                     # print the error
-                    print("\nERROR: %s" % ex.args)
+                    print(f"\n\nError: {e}")
 
                 except FirmwareNotSuitableException:
                     unsuitable_board = True
