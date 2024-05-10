@@ -94,3 +94,9 @@
 [submodule "Tools/simulation/gz/plugins/px4-gzsim-plugins"]
 	path = Tools/simulation/gz/plugins/px4-gzsim-plugins
 	url = https://github.com/tiiuae/px4-gzsim-plugins.git
+[submodule "src/modules/px4_fw_update_client"]
+	path = src/modules/px4_fw_update_client
+	url = git@github.com:tiiuae/px4-fw-update-client.git
+[submodule "src/lib/secure_udp"]
+	path = src/lib/secure_udp
+	url = git@github.com:tiiuae/px4-lib-secure-udp.git
