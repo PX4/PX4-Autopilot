@@ -455,6 +455,7 @@
 #define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
 #define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
 #define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap
+#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* FLEXSPI4 */
 
