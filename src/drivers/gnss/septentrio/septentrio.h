@@ -127,7 +127,7 @@ enum class SeptentrioGPSOutputMode {
 class SeptentrioGPS : public ModuleBase<SeptentrioGPS>, public device::Device
 {
 public:
-	SeptentrioGPS(const char *device_path, SeptentrioInstance instance);
+	SeptentrioGPS(const char *device_path, SeptentrioInstance instance, uint32_t baud_rate);
 	~SeptentrioGPS() override;
 
 	int print_status() override;
@@ -180,6 +180,15 @@ private:
 	 * @brief Schedule a reset of the connected receiver.
 	 */
 	void schedule_reset(SeptentrioGPSResetType type);
+
+	/**
+	 * @brief Detect the current baud rate used by the receiver on the connected port.
+	 *
+	 * @param force_input Choose whether the receiver forces input on the port
+	 *
+	 * @return The detected baud rate on success, or `0` on error
+	 */
+	uint32_t detect_receiver_baud_rate(bool force_input);
 
 	/**
 	 * @brief Try to detect the serial port used on the receiver side.
@@ -376,17 +385,15 @@ private:
 	hrt_abstime                                    _last_rtcm_injection_time{0};                                                     ///< Time of last RTCM injection
 	uint8_t                                        _msg_status{0};
 	uint16_t                                       _rx_payload_index{0};                                                             ///< State for the message parser
-	sbf_buf_t
-	_buf;                                                                             ///< The complete received message
+	sbf_buf_t                                      _buf;                                                                             ///< The complete received message
 	RTCMParsing                                    *_rtcm_parsing{nullptr};                                                          ///< RTCM message parser
 	uint8_t                                        _selected_rtcm_instance{0};                                                       ///< uORB instance that is being used for RTCM corrections
 	bool                                           _healthy{false};                                                                  ///< Flag to signal if the GPS is OK
 	uint8_t                                        _spoofing_state{0};                                                               ///< Receiver spoofing state
 	uint8_t                                        _jamming_state{0};                                                                ///< Receiver jamming state
-	const SeptentrioInstance
-	_instance;                                                                        ///< The receiver that this instance of the driver controls
-	static px4::atomic<SeptentrioGPS *>
-	_secondary_instance;                                                              ///< Optional secondary instance of the driver
+	const SeptentrioInstance                       _instance;                                                                        ///< The receiver that this instance of the driver controls
+	uint32_t                                       _baud_rate;                                                                       ///< Baud rate the driver uses with the receiver (0 means automatically detect)
+	static px4::atomic<SeptentrioGPS *>            _secondary_instance;                                                              ///< Optional secondary instance of the driver
 
 	// uORB topics and subscriptions
 	gps_dump_s                                     *_dump_to_device{nullptr};                                                        ///< uORB GPS dump data (to the receiver)
