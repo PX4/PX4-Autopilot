@@ -118,3 +118,12 @@
 [submodule "platforms/nuttx/src/px4/common/process"]
 	path = platforms/nuttx/src/px4/common/process
 	url = git@github.com:tiiuae/px4-kernel.git
+[submodule "Tools/saluki-sec-scripts"]
+	path = Tools/saluki-sec-scripts
+	url = git@github.com:tiiuae/saluki-sec-scripts.git
+[submodule "src/modules/px4_fw_update_client"]
+	path = src/modules/px4_fw_update_client
+	url = git@github.com:tiiuae/px4-fw-update-client.git
+[submodule "src/lib/secure_udp"]
+	path = src/lib/secure_udp
+	url = git@github.com:tiiuae/px4-lib-secure-udp.git
