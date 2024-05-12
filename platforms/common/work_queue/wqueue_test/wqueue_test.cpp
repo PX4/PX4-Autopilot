@@ -104,7 +104,7 @@ int WQueueTest::main()
 
 
 	// Wait for work to finsh
-	while (!appState.exitRequested() && !(_hpwork_done && _lpwork_done)) {
+	while (appState.isRunning() && !(_hpwork_done && _lpwork_done)) {
 		printf("  Sleeping for 2 sec...\n");
 		sleep(2);
 	}

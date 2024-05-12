@@ -75,7 +75,7 @@ int hrt_test_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		HRTTest::appState.requestExit();
+		HRTTest::appState.setRunning(false);
 		return 0;
 	}
 

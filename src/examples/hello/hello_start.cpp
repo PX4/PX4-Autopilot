@@ -78,7 +78,7 @@ int hello_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		HelloExample::appState.requestExit();
+		HelloExample::appState.setRunning(false);
 		return 0;
 	}
 

@@ -50,14 +50,10 @@ public:
 
 	AppState() :_isRunning(false) {}
 
-	bool exitRequested() { return (!_isRunning); }
-	void requestExit() { _isRunning = false; }
-
 	bool isRunning() { return _isRunning; }
 	void setRunning(bool running) { _isRunning = running; }
 
 protected:
-	// bool _exitRequested;
 	bool _isRunning;
 private:
 	AppState(const AppState &);
