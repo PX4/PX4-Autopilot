@@ -108,7 +108,7 @@ if [ -n "$VIRTUAL_ENV" ]; then
 	python -m pip install -r ${DIR}/requirements.txt
 else
 	# older versions of Ubuntu require --user option
-	python3 -m pip install --user -r ${DIR}/requirements.txt
+	python3 -m pip install --break-system-packages --user -r ${DIR}/requirements.txt
 fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
@@ -135,7 +135,6 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		libisl-dev \
 		libmpc-dev \
 		libmpfr-dev \
-		libncurses5 \
 		libncurses5-dev \
 		libncursesw5-dev \
 		libtool \
@@ -205,6 +204,8 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		java_version=13
 	elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
 		java_version=11
+	elif [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
+		java_version=11
 	else
 		java_version=14
 	fi
@@ -249,7 +250,6 @@ if [[ $INSTALL_SIM == "true" ]]; then
 
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		dmidecode \
-		$gazebo_packages \
 		gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-base \
 		gstreamer1.0-plugins-good \
