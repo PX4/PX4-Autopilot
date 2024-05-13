@@ -39,7 +39,12 @@ namespace mode_util
 
 static bool stabilization_required(uint8_t vehicle_type)
 {
-	return vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	return vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || vehicle_type == vehicle_status_s::VEHICLE_TYPE_SPACECRAFT;
+}
+
+static bool if_not_spacecraft(uint8_t vehicle_type)
+{
+	return vehicle_type != vehicle_status_s::VEHICLE_TYPE_SPACECRAFT;
 }
 
 void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
@@ -64,8 +69,8 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		vehicle_control_mode.flag_control_manual_enabled = true;
-		vehicle_control_mode.flag_control_altitude_enabled = true;
-		vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		vehicle_control_mode.flag_control_altitude_enabled = if_not_spacecraft(vehicle_type);
+		vehicle_control_mode.flag_control_climb_rate_enabled = if_not_spacecraft(vehicle_type);
 		vehicle_control_mode.flag_control_attitude_enabled = true;
 		vehicle_control_mode.flag_control_rates_enabled = true;
 		vehicle_control_mode.flag_control_allocation_enabled = true;
@@ -76,8 +81,8 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		vehicle_control_mode.flag_control_manual_enabled = true;
 		vehicle_control_mode.flag_control_position_enabled = true;
 		vehicle_control_mode.flag_control_velocity_enabled = true;
-		vehicle_control_mode.flag_control_altitude_enabled = true;
-		vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		vehicle_control_mode.flag_control_altitude_enabled = if_not_spacecraft(vehicle_type);
+		vehicle_control_mode.flag_control_climb_rate_enabled = if_not_spacecraft(vehicle_type);
 		vehicle_control_mode.flag_control_attitude_enabled = true;
 		vehicle_control_mode.flag_control_rates_enabled = true;
 		vehicle_control_mode.flag_control_allocation_enabled = true;
@@ -125,8 +130,8 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		if (offboard_control_mode.position) {
 			vehicle_control_mode.flag_control_position_enabled = true;
 			vehicle_control_mode.flag_control_velocity_enabled = true;
-			vehicle_control_mode.flag_control_altitude_enabled = true;
-			vehicle_control_mode.flag_control_climb_rate_enabled = true;
+			vehicle_control_mode.flag_control_altitude_enabled = if_not_spacecraft(vehicle_type);
+			vehicle_control_mode.flag_control_climb_rate_enabled = if_not_spacecraft(vehicle_type);
 			vehicle_control_mode.flag_control_acceleration_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
 			vehicle_control_mode.flag_control_rates_enabled = true;
@@ -134,8 +139,8 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 
 		} else if (offboard_control_mode.velocity) {
 			vehicle_control_mode.flag_control_velocity_enabled = true;
-			vehicle_control_mode.flag_control_altitude_enabled = true;
-			vehicle_control_mode.flag_control_climb_rate_enabled = true;
+			vehicle_control_mode.flag_control_altitude_enabled = if_not_spacecraft(vehicle_type);
+			vehicle_control_mode.flag_control_climb_rate_enabled = if_not_spacecraft(vehicle_type);
 			vehicle_control_mode.flag_control_acceleration_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
 			vehicle_control_mode.flag_control_rates_enabled = true;

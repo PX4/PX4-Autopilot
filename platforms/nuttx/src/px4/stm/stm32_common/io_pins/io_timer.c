@@ -87,7 +87,9 @@ static int io_timer_handler7(int irq, void *context, void *arg);
  * taken into account
  */
 #if !defined(BOARD_PWM_FREQ)
-#define BOARD_PWM_FREQ 1000000
+// #define BOARD_PWM_FREQ 1000000
+/* Downscaling by 10 */
+#define BOARD_PWM_FREQ 100000
 #endif
 
 #if !defined(BOARD_ONESHOT_FREQ)
@@ -663,7 +665,8 @@ int io_timer_init_timer(unsigned timer, io_timer_channel_mode_t mode)
 		 * default to updating at 50Hz
 		 */
 
-		timer_set_rate(timer, 50);
+		timer_set_rate(timer, 10);
+		// timer_set_rate(timer, 50);
 
 		/*
 		 * Note that the timer is left disabled with IRQ subs installed

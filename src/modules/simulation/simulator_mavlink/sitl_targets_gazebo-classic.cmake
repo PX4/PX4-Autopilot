@@ -88,6 +88,8 @@ if(gazebo_FOUND)
 		iris_rplidar
 		iris_vision
 		omnicopter
+		2d_spacecraft
+		3d_spacecraft
 		plane
 		plane_cam
 		plane_catapult
@@ -117,6 +119,7 @@ if(gazebo_FOUND)
 		warehouse
 		windy
 		yosemite
+		space
 	)
 
 	# find corresponding airframes

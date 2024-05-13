@@ -68,7 +68,14 @@ then
 	. ${R}etc/init.d/rc.uuv_apps
 fi
 
-
+#
+# Spacecraft setup
+#
+if [ $VEHICLE_TYPE = sc ]
+then
+	# Start standard sr apps.
+	. ${R}etc/init.d/rc.sc_apps
+fi
 
 #
 # Generic setup (autostart ID not found).

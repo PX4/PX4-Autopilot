@@ -1,0 +1,140 @@
+#!/bin/sh
+#
+# @name KTH Space Robot
+#
+# @type Space Robot
+# @class 2D Space Robot
+#
+# @maintainer DISCOWER
+#
+
+. ${R}etc/init.d/rc.sc_defaults
+
+param set-default CA_AIRFRAME 13
+param set-default MAV_TYPE 24
+
+param set-default CA_THRUSTER_CNT 8
+param set-default CA_R_REV 255
+
+# param set-default FW_ARSP_MODE 1
+
+# Auto to be provided by Custom Airframe
+# param set-default CA_METHOD 0
+
+# disable attitude failure detection
+param set-default FD_FAIL_P 0
+param set-default FD_FAIL_R 0
+
+param set-default CA_THRUSTER0_PX -0.12
+param set-default CA_THRUSTER0_PY -0.12
+param set-default CA_THRUSTER0_PZ 0.0
+param set-default CA_THRUSTER0_CT 1.75
+param set-default CA_THRUSTER0_AX 1.0
+param set-default CA_THRUSTER0_AY 0.0
+param set-default CA_THRUSTER0_AZ 0.0
+
+param set-default CA_THRUSTER1_PX 0.12
+param set-default CA_THRUSTER1_PY -0.12
+param set-default CA_THRUSTER1_PZ 0.0
+param set-default CA_THRUSTER1_CT 1.75
+param set-default CA_THRUSTER1_AX -1.0
+param set-default CA_THRUSTER1_AY 0.0
+param set-default CA_THRUSTER1_AZ 0.0
+
+param set-default CA_THRUSTER2_PX -0.12
+param set-default CA_THRUSTER2_PY 0.12
+param set-default CA_THRUSTER2_PZ 0.0
+param set-default CA_THRUSTER2_CT 1.75
+param set-default CA_THRUSTER2_AX 1.0
+param set-default CA_THRUSTER2_AY 0.0
+param set-default CA_THRUSTER2_AZ 0.0
+
+param set-default CA_THRUSTER3_PX 0.12
+param set-default CA_THRUSTER3_PY 0.12
+param set-default CA_THRUSTER3_PZ 0.0
+param set-default CA_THRUSTER3_CT 1.75
+param set-default CA_THRUSTER3_AX -1.0
+param set-default CA_THRUSTER3_AY 0.0
+param set-default CA_THRUSTER3_AZ 0.0
+
+param set-default CA_THRUSTER4_PX 0.12
+param set-default CA_THRUSTER4_PY -0.12
+param set-default CA_THRUSTER4_PZ 0.0
+param set-default CA_THRUSTER4_CT 1.75
+param set-default CA_THRUSTER4_AX 0.0
+param set-default CA_THRUSTER4_AY 1.0
+param set-default CA_THRUSTER4_AZ 0.0
+
+param set-default CA_THRUSTER5_PX 0.12
+param set-default CA_THRUSTER5_PY 0.12
+param set-default CA_THRUSTER5_PZ 0.0
+param set-default CA_THRUSTER5_CT 1.75
+param set-default CA_THRUSTER5_AX 0.0
+param set-default CA_THRUSTER5_AY -1.0
+param set-default CA_THRUSTER5_AZ 0.0
+
+param set-default CA_THRUSTER6_PX -0.12
+param set-default CA_THRUSTER6_PY -0.12
+param set-default CA_THRUSTER6_PZ 0.0
+param set-default CA_THRUSTER6_CT 1.75
+param set-default CA_THRUSTER6_AX 0.0
+param set-default CA_THRUSTER6_AY 1.0
+param set-default CA_THRUSTER6_AZ 0.0
+
+param set-default CA_THRUSTER7_PX -0.12
+param set-default CA_THRUSTER7_PY 0.12
+param set-default CA_THRUSTER7_PZ 0.0
+param set-default CA_THRUSTER7_CT 1.75
+param set-default CA_THRUSTER7_AX 0.0
+param set-default CA_THRUSTER7_AY -1.0
+param set-default CA_THRUSTER7_AZ 0.0
+
+
+param set-default PWM_AUX_TIM0 10
+param set-default PWM_AUX_TIM1 10
+param set-default PWM_AUX_TIM2 10
+
+param set-default PWM_AUX_FUNC1 101
+param set-default PWM_AUX_FUNC2 102
+param set-default PWM_AUX_FUNC3 103
+param set-default PWM_AUX_FUNC4 104
+param set-default PWM_AUX_FUNC5 105
+param set-default PWM_AUX_FUNC6 106
+param set-default PWM_AUX_FUNC7 107
+param set-default PWM_AUX_FUNC8 108
+
+param set-default PWM_AUX_DIS1 0
+param set-default PWM_AUX_DIS2 0
+param set-default PWM_AUX_DIS3 0
+param set-default PWM_AUX_DIS4 0
+param set-default PWM_AUX_DIS5 0
+param set-default PWM_AUX_DIS6 0
+param set-default PWM_AUX_DIS7 0
+param set-default PWM_AUX_DIS8 0
+
+param set-default PWM_AUX_MIN1 0
+param set-default PWM_AUX_MIN2 0
+param set-default PWM_AUX_MIN3 0
+param set-default PWM_AUX_MIN4 0
+param set-default PWM_AUX_MIN5 0
+param set-default PWM_AUX_MIN6 0
+param set-default PWM_AUX_MIN7 0
+param set-default PWM_AUX_MIN8 0
+
+# BOARD_PWM_FREQ is downscaled by 10, thus PWM value is given in 10s of usec
+param set-default PWM_AUX_MAX1 10000
+param set-default PWM_AUX_MAX2 10000
+param set-default PWM_AUX_MAX3 10000
+param set-default PWM_AUX_MAX4 10000
+param set-default PWM_AUX_MAX5 10000
+param set-default PWM_AUX_MAX6 10000
+param set-default PWM_AUX_MAX7 10000
+param set-default PWM_AUX_MAX8 10000
+
+# Controller Tunings
+param set-default SC_ROLLRATE_P 0.14
+param set-default SC_PITCHRATE_P 0.14
+param set-default SC_ROLLRATE_I 0.3
+param set-default SC_PITCHRATE_I 0.3
+param set-default SC_ROLLRATE_D 0.004
+param set-default SC_PITCHRATE_D 0.004

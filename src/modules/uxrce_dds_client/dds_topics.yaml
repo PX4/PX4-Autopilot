@@ -71,7 +71,30 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
-# Create uORB::Publication
+  - topic: /fmu/out/actuator_motors
+    type: px4_msgs::msg::ActuatorMotors
+
+  - topic: /fmu/out/actuator_outputs
+    type: px4_msgs::msg::ActuatorOutputs
+
+  - topic: /fmu/out/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleTorqueSetpoint
+
+  - topic: /fmu/out/vehicle_thrust_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
+
+  - topic: /fmu/out/vehicle_attitude_setpoint
+    type: px4_msgs::msg::VehicleAttitudeSetpoint
+
+  - topic: /fmu/out/log_message
+    type: px4_msgs::msg::LogMessage
+
+  - topic: /fmu/out/my_message
+    type: px4_msgs::msg::MyMessage
+
+  - topic: /fmu/out/rc_channels
+    type: px4_msgs::msg::RcChannels
+
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
     type: px4_msgs::msg::RegisterExtComponentRequest
@@ -121,8 +144,8 @@ subscriptions:
   - topic: /fmu/in/vehicle_attitude_setpoint
     type: px4_msgs::msg::VehicleAttitudeSetpoint
 
-  - topic: /fmu/in/vehicle_mocap_odometry
-    type: px4_msgs::msg::VehicleOdometry
+  # - topic: /fmu/in/vehicle_mocap_odometry
+  #   type: px4_msgs::msg::VehicleOdometry
 
   - topic: /fmu/in/vehicle_rates_setpoint
     type: px4_msgs::msg::VehicleRatesSetpoint

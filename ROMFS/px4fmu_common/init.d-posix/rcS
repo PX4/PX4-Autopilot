@@ -220,6 +220,7 @@ done
 
 if [ -e "$autostart_file" ]
 then
+	echo "INFO  [init] using autostart file: $autostart_file"
 	. "$autostart_file"
 
 elif [ ! -e "$autostart_file" ] && [ "$SYS_AUTOSTART" -ne "0" ]
@@ -307,6 +308,10 @@ then
 	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
 fi
 
+# Refresh uxrce_dds_client if already running
+uxrce_dds_client stop
+
+# Start it for SITL setup
 uxrce_dds_client start -t udp -h 127.0.0.1 -p $uxrce_dds_port $uxrce_dds_ns
 
 if param greater -s MNT_MODE_IN -1

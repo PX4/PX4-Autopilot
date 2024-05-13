@@ -38,6 +38,10 @@ px4_add_romfs_files(
 	18001_TF-B1
 
 	# [22000, 22999] Reserve for custom models
+
+	# [70000, 79999] Spacecraft-type platforms
+	70000_kth_space_robot
+
 )
 
 if(CONFIG_MODULES_SIMULATION_PWM_OUT_SIM)
