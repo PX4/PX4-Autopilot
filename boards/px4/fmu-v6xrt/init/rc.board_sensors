@@ -83,7 +83,6 @@ else
 		fi
 	fi
 fi
-fi
 
 # Internal SPI bus ICM42686p (hard-mounted)
 icm42688p -6 -R 12 -b 1 -s start
