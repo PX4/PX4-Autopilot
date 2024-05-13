@@ -73,6 +73,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/shutdown.h>
 
 #include "apps.h"
 #include "px4_daemon/client.h"
@@ -505,6 +506,8 @@ void sig_int_handler(int sig_num)
 	fflush(stdout);
 	printf("\nPX4 Exiting...\n");
 	fflush(stdout);
+	PX4_DEBUG("PX4 Exiting in sig_int_handler\n");
+	px4_shutdown_request(0);
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;
 }
