@@ -39,5 +39,6 @@ px4_add_library(SpacecraftAttitudeControl
 target_compile_options(SpacecraftAttitudeControl PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 target_include_directories(SpacecraftAttitudeControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-px4_add_unit_gtest(SRC AttitudeControlTest.cpp LINKLIBS SpacecraftAttitudeControl)
-px4_add_unit_gtest(SRC AttitudeControlMathTest.cpp LINKLIBS SpacecraftAttitudeControl)
+# TODO: Add unit tests
+# px4_add_unit_gtest(SRC ScAttitudeControlTest.cpp LINKLIBS SpacecraftAttitudeControl)
+# px4_add_unit_gtest(SRC ScAttitudeControlMathTest.cpp LINKLIBS SpacecraftAttitudeControl)

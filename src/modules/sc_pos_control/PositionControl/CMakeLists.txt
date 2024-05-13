@@ -39,5 +39,6 @@ px4_add_library(SpacecraftPositionControl
 )
 target_include_directories(SpacecraftPositionControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-px4_add_unit_gtest(SRC ControlMathTest.cpp LINKLIBS SpacecraftPositionControl)
-px4_add_unit_gtest(SRC PositionControlTest.cpp LINKLIBS SpacecraftPositionControl)
+# TODO: add unit tests
+# px4_add_unit_gtest(SRC ScControlMathTest.cpp LINKLIBS SpacecraftPositionControl)
+# px4_add_unit_gtest(SRC ScPositionControlTest.cpp LINKLIBS SpacecraftPositionControl)

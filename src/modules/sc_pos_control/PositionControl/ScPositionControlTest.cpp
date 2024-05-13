@@ -39,20 +39,7 @@ using namespace matrix;
 
 TEST(PositionControlTest, EmptySetpoint)
 {
-	PositionControl position_control;
-
-	vehicle_local_position_setpoint_s output_setpoint{};
-	position_control.getLocalPositionSetpoint(output_setpoint);
-	EXPECT_FLOAT_EQ(output_setpoint.x, 0.f);
-	EXPECT_FLOAT_EQ(output_setpoint.y, 0.f);
-	EXPECT_FLOAT_EQ(output_setpoint.z, 0.f);
-	EXPECT_FLOAT_EQ(output_setpoint.yaw, 0.f);
-	EXPECT_FLOAT_EQ(output_setpoint.yawspeed, 0.f);
-	EXPECT_FLOAT_EQ(output_setpoint.vx, 0.f);
-	EXPECT_FLOAT_EQ(output_setpoint.vy, 0.f);
-	EXPECT_FLOAT_EQ(output_setpoint.vz, 0.f);
-	EXPECT_EQ(Vector3f(output_setpoint.acceleration), Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(Vector3f(output_setpoint.thrust), Vector3f(0, 0, 0));
+	ScPositionControl position_control;
 
 	vehicle_attitude_setpoint_s attitude{};
 	position_control.getAttitudeSetpoint(attitude);
@@ -84,12 +71,11 @@ public:
 	{
 		_position_control.setInputSetpoint(_input_setpoint);
 		const bool ret = _position_control.update(.1f);
-		_position_control.getLocalPositionSetpoint(_output_setpoint);
 		_position_control.getAttitudeSetpoint(_attitude);
 		return ret;
 	}
 
-	PositionControl _position_control;
+	ScPositionControl _position_control;
 	trajectory_setpoint_s _input_setpoint{PositionControl::empty_trajectory_setpoint};
 	vehicle_local_position_setpoint_s _output_setpoint{};
 	vehicle_attitude_setpoint_s _attitude{};

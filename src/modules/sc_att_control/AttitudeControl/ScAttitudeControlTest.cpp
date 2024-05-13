@@ -37,19 +37,19 @@
 
 using namespace matrix;
 
-TEST(AttitudeControlTest, AllZeroCase)
+TEST(ScAttitudeControlTest, AllZeroCase)
 {
-	AttitudeControl attitude_control;
+	ScAttitudeControl attitude_control;
 	Vector3f rate_setpoint = attitude_control.update(Quatf());
 	EXPECT_EQ(rate_setpoint, Vector3f());
 }
 
-class AttitudeControlConvergenceTest : public ::testing::Test
+class ScAttitudeControlConvergenceTest : public ::testing::Test
 {
 public:
-	AttitudeControlConvergenceTest()
+	ScAttitudeControlConvergenceTest()
 	{
-		_attitude_control.setProportionalGain(Vector3f(.5f, .6f, .3f), .4f);
+		_attitude_control.setProportionalGain(Vector3f(.5f, .6f, .3f));
 		_attitude_control.setRateLimit(Vector3f(100.f, 100.f, 100.f));
 	}
 
@@ -58,7 +58,7 @@ public:
 		int i; // need function scope to check how many steps
 		Vector3f rate_setpoint(1000.f, 1000.f, 1000.f);
 
-		_attitude_control.setAttitudeSetpoint(_quat_goal, 0.f);
+		_attitude_control.setAttitudeSetpoint(_quat_goal);
 
 		for (i = 100; i > 0; i--) {
 			// run attitude control to get rate setpoints
@@ -80,12 +80,12 @@ public:
 		EXPECT_GT(i, 0);
 	}
 
-	AttitudeControl _attitude_control;
+	ScAttitudeControl _attitude_control;
 	Quatf _quat_state;
 	Quatf _quat_goal;
 };
 
-TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergence)
+TEST_F(ScAttitudeControlConvergenceTest, AttitudeControlConvergence)
 {
 	const int inputs = 8;
 
@@ -112,16 +112,16 @@ TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergence)
 	}
 }
 
-TEST(AttitudeControlTest, YawWeightScaling)
+TEST(ScAttitudeControlTest, YawWeightScaling)
 {
 	// GIVEN: default tuning and pure yaw turn command
-	AttitudeControl attitude_control;
+	ScAttitudeControl attitude_control;
 	const float yaw_gain = 2.8f;
 	const float yaw_sp = .1f;
 	Quatf pure_yaw_attitude(cosf(yaw_sp / 2.f), 0, 0, sinf(yaw_sp / 2.f));
-	attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, yaw_gain), .4f);
+	attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, yaw_gain));
 	attitude_control.setRateLimit(Vector3f(1000.f, 1000.f, 1000.f));
-	attitude_control.setAttitudeSetpoint(pure_yaw_attitude, 0.f);
+	attitude_control.setAttitudeSetpoint(pure_yaw_attitude);
 
 	// WHEN: we run one iteration of the controller
 	Vector3f rate_setpoint = attitude_control.update(Quatf());
@@ -132,7 +132,7 @@ TEST(AttitudeControlTest, YawWeightScaling)
 	EXPECT_NEAR(rate_setpoint(2), yaw_sp * yaw_gain, 1e-4f);
 
 	// GIVEN: additional corner case of zero yaw weight
-	attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, yaw_gain), 0.f);
+	attitude_control.setProportionalGain(Vector3f(6.5f, 6.5f, yaw_gain));
 	// WHEN: we run one iteration of the controller
 	rate_setpoint = attitude_control.update(Quatf());
 	// THEN: no actuation (also no NAN)
