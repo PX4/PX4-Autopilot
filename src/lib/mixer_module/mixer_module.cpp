@@ -239,7 +239,7 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 
 			if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &function) == 0) {
 				if ((function >= (int32_t)OutputFunction::Motor1 && function <= (int32_t)OutputFunction::MotorMax) ||
-					(function >= (int32_t)OutputFunction::Thruster1 && function <= (int32_t)OutputFunction::ThrusterMax)) {
+				    (function >= (int32_t)OutputFunction::Thruster1 && function <= (int32_t)OutputFunction::ThrusterMax)) {
 					switch_requested = true;
 				}
 			}

@@ -93,9 +93,11 @@ void SpacecraftPositionControl::parameters_update(bool force)
 
 			if (responsiveness > 0.6f) {
 				num_changed += _param_mpc_man_y_tau.commit_no_notification(0.f);
+
 			} else {
 				num_changed += _param_mpc_man_y_tau.commit_no_notification(math::lerp(0.5f, 0.f, responsiveness / 0.6f));
 			}
+
 			num_changed += _param_mpc_jerk_max.commit_no_notification(math::lerp(2.f, 50.f, responsiveness));
 			num_changed += _param_mpc_jerk_auto.commit_no_notification(math::lerp(1.f, 25.f, responsiveness));
 		}
@@ -194,8 +196,10 @@ PositionControlStates SpacecraftPositionControl::set_vehicle_states(const vehicl
 		_vel_z_deriv.reset();
 	}
 
-	if(PX4_ISFINITE(vehicle_attitude.q[0]) && PX4_ISFINITE(vehicle_attitude.q[1]) && PX4_ISFINITE(vehicle_attitude.q[2]) && PX4_ISFINITE(vehicle_attitude.q[3])) {
+	if (PX4_ISFINITE(vehicle_attitude.q[0]) && PX4_ISFINITE(vehicle_attitude.q[1]) && PX4_ISFINITE(vehicle_attitude.q[2])
+	    && PX4_ISFINITE(vehicle_attitude.q[3])) {
 		states.quaternion = Quatf(vehicle_attitude.q);
+
 	} else {
 		states.quaternion = Quatf();
 	}
@@ -298,8 +302,8 @@ void SpacecraftPositionControl::Run()
 			if ((_setpoint.timestamp < _time_position_control_enabled)
 			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
 				PX4_INFO("Setpoint time: %f, Vehicle local pos time: %f, Pos Control Enabled time: %f",
-				(double)_setpoint.timestamp, (double)vehicle_local_position.timestamp_sample,
-				(double)_time_position_control_enabled);
+					 (double)_setpoint.timestamp, (double)vehicle_local_position.timestamp_sample,
+					 (double)_time_position_control_enabled);
 				_setpoint = generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, false);
 			}
 		}
@@ -347,15 +351,16 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 				if (_vehicle_control_mode.flag_control_attitude_enabled) {
 					// We are in Stabilized mode
 					// Generate position setpoints
-					if(!stabilized_pos_sp_initialized) {
+					if (!stabilized_pos_sp_initialized) {
 						// Initialize position setpoint
 						target_pos_sp = Vector3f(vehicle_local_position.x, vehicle_local_position.y,
-										vehicle_local_position.z);
+									 vehicle_local_position.z);
 
 						const float vehicle_yaw = Eulerf(Quatf(_vehicle_att.q)).psi();
 						_manual_yaw_sp = vehicle_yaw;
 						stabilized_pos_sp_initialized = true;
 					}
+
 					// Update velocity setpoint
 					Vector3f target_vel_sp = Vector3f(_manual_control_setpoint.pitch, _manual_control_setpoint.roll, 0.0);
 					// TODO(@Pedro-Roque): probably need to move velocity to inertial frame
@@ -372,9 +377,11 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 
 					// Generate attitude setpoints
 					float yaw_sp_move_rate = 0.0;
-					if (_manual_control_setpoint.throttle > -0.9f){
+
+					if (_manual_control_setpoint.throttle > -0.9f) {
 						yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
 					}
+
 					_manual_yaw_sp = wrap_pi(_manual_yaw_sp + yaw_sp_move_rate * dt);
 					const float roll_body = 0.0;
 					const float pitch_body = 0.0;
@@ -383,6 +390,7 @@ void SpacecraftPositionControl::poll_manual_setpoint(const float dt,
 					q_sp.copyTo(_setpoint.attitude);
 
 					_setpoint.timestamp = hrt_absolute_time();
+
 				} else {
 					// We are in Manual mode
 					stabilized_pos_sp_initialized = false;

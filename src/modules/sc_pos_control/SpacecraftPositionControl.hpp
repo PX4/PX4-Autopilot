@@ -174,7 +174,7 @@ private:
 	 * Check for manual setpoints.
 	 */
 	void poll_manual_setpoint(const float dt, const vehicle_local_position_s
-		&vehicle_local_position, const vehicle_attitude_s &_vehicle_att);
+				  &vehicle_local_position, const vehicle_attitude_s &_vehicle_att);
 
 	/**
 	 * Generate setpoint to bridge no executable setpoint being available.

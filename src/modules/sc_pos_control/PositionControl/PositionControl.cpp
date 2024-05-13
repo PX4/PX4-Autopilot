@@ -161,7 +161,8 @@ bool ScPositionControl::_inputValid()
 	return valid;
 }
 
-void ScPositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint, vehicle_attitude_s &v_att) const
+void ScPositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint,
+		vehicle_attitude_s &v_att) const
 {
 	// Set thrust setpoint
 	attitude_setpoint.thrust_body[0] = _thr_sp(0);
@@ -169,11 +170,12 @@ void ScPositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitud
 	attitude_setpoint.thrust_body[2] = _thr_sp(2);
 
 	// Bypass attitude control by giving same attitude setpoint to att control
-	if(PX4_ISFINITE(_quat_sp(0)) && PX4_ISFINITE(_quat_sp(1)) && PX4_ISFINITE(_quat_sp(2)) && PX4_ISFINITE(_quat_sp(3)) ) {
+	if (PX4_ISFINITE(_quat_sp(0)) && PX4_ISFINITE(_quat_sp(1)) && PX4_ISFINITE(_quat_sp(2)) && PX4_ISFINITE(_quat_sp(3))) {
 		attitude_setpoint.q_d[0] = _quat_sp(0);
 		attitude_setpoint.q_d[1] = _quat_sp(1);
 		attitude_setpoint.q_d[2] = _quat_sp(2);
 		attitude_setpoint.q_d[3] = _quat_sp(3);
+
 	} else {
 		attitude_setpoint.q_d[0] = v_att.q[0];
 		attitude_setpoint.q_d[1] = v_att.q[1];

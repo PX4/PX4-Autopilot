@@ -93,6 +93,7 @@ void ActuatorTest::update(int num_outputs, float thrust_curve)
 							value += trim.trim[idx];
 						}
 					}
+
 					_current_outputs[i] = value;
 
 				} else {

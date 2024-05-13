@@ -446,9 +446,11 @@ ControlAllocator::Run()
 			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
+
 			if (_has_slew_rate) {
 				_control_allocation[i]->applySlewRateLimit(dt);
 			}
+
 			_control_allocation[i]->clipActuatorSetpoint();
 		}
 	}
@@ -690,15 +692,20 @@ ControlAllocator::publish_actuator_controls()
 
 	// Actuator setpoints are shared between Motors or Thrusters. For now, we assume we have only either of them
 	int actuator_type = 0;
+
 	if (_num_actuators[(int)ActuatorType::THRUSTERS] > 0) {
 		actuator_type = (int)ActuatorType::THRUSTERS;
 	}
+
 	// motors
 	int motors_idx;
-	for (motors_idx = 0; motors_idx < _num_actuators[actuator_type] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
+
+	for (motors_idx = 0; motors_idx < _num_actuators[actuator_type]
+	     && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
 		int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
 		float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
 		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
+
 		if (stopped_motors & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
 		}
@@ -717,7 +724,8 @@ ControlAllocator::publish_actuator_controls()
 	if (_num_actuators[(int)ActuatorType::SERVOS] > 0) {
 		int servos_idx;
 
-		for (servos_idx = 0; servos_idx < _num_actuators[(int)ActuatorType::SERVOS] && servos_idx < actuator_servos_s::NUM_CONTROLS; servos_idx++) {
+		for (servos_idx = 0; servos_idx < _num_actuators[(int)ActuatorType::SERVOS]
+		     && servos_idx < actuator_servos_s::NUM_CONTROLS; servos_idx++) {
 			int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
 			float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
 			actuator_servos.control[servos_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;

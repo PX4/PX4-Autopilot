@@ -61,5 +61,5 @@ void ActuatorEffectivenessSpacecraft::updateSetpoint(const matrix::Vector<float,
 {
 	// TODO(@E-Krantz): Here is where we can add the nonlinearity of multiple thrusters open
 	//   and how to adjust thrust in that time
-    return;
+	return;
 }

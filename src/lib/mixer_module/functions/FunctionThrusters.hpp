@@ -44,7 +44,8 @@ public:
 	static_assert(actuator_motors_s::NUM_CONTROLS == (int)OutputFunction::ThrusterMax - (int)OutputFunction::Thruster1 + 1,
 		      "Unexpected num thrusters");
 
-	static_assert(actuator_motors_s::ACTUATOR_FUNCTION_THRUSTER1 == (int)OutputFunction::Thruster1, "Unexpected thruster idx");
+	static_assert(actuator_motors_s::ACTUATOR_FUNCTION_THRUSTER1 == (int)OutputFunction::Thruster1,
+		      "Unexpected thruster idx");
 
 	FunctionThrusters(const Context &context) :
 		_topic(&context.work_item, ORB_ID(actuator_motors)),
@@ -76,7 +77,7 @@ public:
 	{
 		// TODO(@Pedro-Roque): for now bypass this
 		/*if (thrust_factor > 0.f && thrust_factor <= 1.f) {
-			
+
 			// thrust factor
 			//  rel_thrust = factor * x^2 + (1-factor) * x,
 			const float a = thrust_factor;

@@ -72,15 +72,16 @@ public:
 	};
 
 	ActuatorEffectivenessThrusters(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
-				    bool tilt_support = false);
+				       bool tilt_support = false);
 	virtual ~ActuatorEffectivenessThrusters() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
-          allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;  // TODO(@Jaeyoung-Lim): needs to be updated based on metric mixer
-        }
+		allocation_method_out[0] =
+			AllocationMethod::SEQUENTIAL_DESATURATION;  // TODO(@Jaeyoung-Lim): needs to be updated based on metric mixer
+	}
 
 	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
 	{

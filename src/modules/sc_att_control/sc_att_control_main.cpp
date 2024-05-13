@@ -35,7 +35,7 @@
  * @file sc_att_control_main.cpp
  * Spacecraft attitude controller.
  * Based off the multicopter attitude controller module.
- * 
+ *
  * @author Pedro Roque, <padr@kth.se>
  *
  */
@@ -86,7 +86,7 @@ SpacecraftAttitudeControl::parameters_updated()
 	using math::radians;
 	_attitude_control.setRateLimit(Vector3f(radians(_param_sc_rollrate_max.get()), radians(_param_sc_pitchrate_max.get()),
 						radians(_param_sc_yawrate_max.get())));
-	_man_tilt_max = math::radians(_param_sc_man_tilt_max.get());						
+	_man_tilt_max = math::radians(_param_sc_man_tilt_max.get());
 }
 
 void
@@ -126,6 +126,7 @@ SpacecraftAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt, 
 	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),
 			      -_man_pitch_input_filter.update(_manual_control_setpoint.pitch * _man_tilt_max));
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
+
 	if (v_norm > _man_tilt_max) { // limit to the configured maximum tilt angle
 		v *= _man_tilt_max / v_norm;
 	}
@@ -197,8 +198,8 @@ SpacecraftAttitudeControl::Run()
 			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
 			    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
 				/* Removing print
-				PX4_INFO("Current setpoint: %f %f %f %f", (double)vehicle_attitude_setpoint.q_d[0], 
-				(double)vehicle_attitude_setpoint.q_d[1], (double)vehicle_attitude_setpoint.q_d[2], 
+				PX4_INFO("Current setpoint: %f %f %f %f", (double)vehicle_attitude_setpoint.q_d[0],
+				(double)vehicle_attitude_setpoint.q_d[1], (double)vehicle_attitude_setpoint.q_d[2],
 				(double)vehicle_attitude_setpoint.q_d[3]);*/
 
 				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d));
@@ -244,6 +245,7 @@ SpacecraftAttitudeControl::Run()
 		}
 
 		bool attitude_setpoint_generated = false;
+
 		if (_vehicle_control_mode.flag_control_attitude_enabled) {
 
 			// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
@@ -259,11 +261,12 @@ SpacecraftAttitudeControl::Run()
 				_man_roll_input_filter.reset(0.f);
 				_man_pitch_input_filter.reset(0.f);
 			}
+
 			Vector3f rates_sp = _attitude_control.update(q);
-			
+
 			// publish rate setpoint
 			vehicle_rates_setpoint_s rates_setpoint{};
-			rates_setpoint.roll = rates_sp(0); 
+			rates_setpoint.roll = rates_sp(0);
 			rates_setpoint.pitch = rates_sp(1);
 			rates_setpoint.yaw = rates_sp(2);
 			_thrust_setpoint_body.copyTo(rates_setpoint.thrust_body);

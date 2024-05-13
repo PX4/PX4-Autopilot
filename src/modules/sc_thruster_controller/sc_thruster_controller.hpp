@@ -58,49 +58,50 @@
 
 using namespace time_literals;
 
-extern "C" __EXPORT int sc_thruster_controller_main(int argc, char* argv[]);
+extern "C" __EXPORT int sc_thruster_controller_main(int argc, char *argv[]);
 
-class ScThrusterController : public ModuleBase<ScThrusterController>, public ModuleParams {
- public:
-  ScThrusterController();
+class ScThrusterController : public ModuleBase<ScThrusterController>, public ModuleParams
+{
+public:
+	ScThrusterController();
 
-  virtual ~ScThrusterController() = default;
+	virtual ~ScThrusterController() = default;
 
-  /** @see ModuleBase */
-  static int task_spawn(int argc, char* argv[]);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-  /** @see ModuleBase */
-  static ScThrusterController* instantiate(int argc, char* argv[]);
+	/** @see ModuleBase */
+	static ScThrusterController *instantiate(int argc, char *argv[]);
 
-  /** @see ModuleBase */
-  static int custom_command(int argc, char* argv[]);
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-  /** @see ModuleBase */
-  static int print_usage(const char* reason = nullptr);
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-  /** @see ModuleBase::run() */
-  void run() override;
+	/** @see ModuleBase::run() */
+	void run() override;
 
-  /** @see ModuleBase::print_status() */
-  int print_status() override;
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
- private:
-  /**
-   * Check for parameter changes and update them if needed.
-   * @param parameter_update_sub uorb subscription to parameter_update
-   * @param force for a parameter update
-   */
-  void parameters_update(bool force = false);
+private:
+	/**
+	 * Check for parameter changes and update them if needed.
+	 * @param parameter_update_sub uorb subscription to parameter_update
+	 * @param force for a parameter update
+	 */
+	void parameters_update(bool force = false);
 
-  DEFINE_PARAMETERS((ParamInt<px4::params::SYS_AUTOSTART>)_param_sys_autostart,  /**< example parameter */
-                    (ParamInt<px4::params::SYS_AUTOCONFIG>)_param_sys_autoconfig /**< another parameter */
-  )
+	DEFINE_PARAMETERS((ParamInt<px4::params::SYS_AUTOSTART>)_param_sys_autostart,  /**< example parameter */
+			  (ParamInt<px4::params::SYS_AUTOCONFIG>)_param_sys_autoconfig /**< another parameter */
+			 )
 
-  // Flags
-  static bool _debug_thruster_print;
+	// Flags
+	static bool _debug_thruster_print;
 
-  // Subscriptions
-  uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	// Subscriptions
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 };
 
 bool ScThrusterController::_debug_thruster_print = true;

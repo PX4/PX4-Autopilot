@@ -39,7 +39,8 @@ namespace mode_util
 
 static bool stabilization_required(uint8_t vehicle_type)
 {
-	return vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || vehicle_type == vehicle_status_s::VEHICLE_TYPE_SPACECRAFT;
+	return vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	       || vehicle_type == vehicle_status_s::VEHICLE_TYPE_SPACECRAFT;
 }
 
 static bool if_not_spacecraft(uint8_t vehicle_type)
