@@ -124,6 +124,14 @@ enum class SeptentrioGPSOutputMode {
 	GPSAndRTCM, ///< GPS and RTCM output
 };
 
+/**
+ * The operating mode of the receivers attached to the autopilot.
+ */
+enum class SeptentrioMode : uint8_t {
+	Default,             ///< Setups without heading
+	RoverWithMovingBase, ///< Dual-receiver setup with one rover and one moving base
+};
+
 class SeptentrioGPS : public ModuleBase<SeptentrioGPS>, public device::Device
 {
 public:
@@ -315,16 +323,6 @@ private:
 	void handle_inject_data_topic();
 
 	/**
-	 * @brief Send data to the receiver, such as RTCM injections.
-	 *
-	 * @param data The raw data to send to the device
-	 * @param len The size of `data`
-	 *
-	 * @return `true` if all the data was written correctly, `false` otherwise
-	 */
-	inline bool inject_data(uint8_t *data, size_t len);
-
-	/**
 	 * Publish the gps struct.
 	 */
 	void publish();
@@ -394,6 +392,7 @@ private:
 	const SeptentrioInstance                       _instance;                                                                        ///< The receiver that this instance of the driver controls
 	uint32_t                                       _baud_rate;                                                                       ///< Baud rate the driver uses with the receiver (0 means automatically detect)
 	static px4::atomic<SeptentrioGPS *>            _secondary_instance;                                                              ///< Optional secondary instance of the driver
+	SeptentrioMode                                 _mode;                                                                            ///< Operating mode of the attached receivers
 
 	// uORB topics and subscriptions
 	gps_dump_s                                     *_dump_to_device{nullptr};                                                        ///< uORB GPS dump data (to the receiver)

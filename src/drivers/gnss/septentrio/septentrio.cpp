@@ -105,7 +105,10 @@ using namespace time_literals;
 
 #define SBF_CONFIG_ATTITUDE_OFFSET "setAttitudeOffset, %.3f, %.3f\n"
 
-#define SBF_DATA_IO "setDataInOut, %s, Auto, SBF\n"
+#define SBF_DATA_IO "setDataInOut, %s, Auto, %s\n"
+
+#define SBF_ATTITUDE_SOURCE "setGNSSAttitude, %s\n"
+#define SBF_ATTITUDE_SOURCE_MOVING_BASE "MovingBase"
 
 static constexpr int SEP_SET_CLOCK_DRIFT_TIME_S{5}; ///< RTC drift time when time synchronization is needed (in seconds)
 
@@ -116,6 +119,8 @@ SeptentrioGPS::SeptentrioGPS(const char *device_path, SeptentrioInstance instanc
 	_instance(instance),
 	_baud_rate(baud_rate)
 {
+	int32_t mode = 0;
+
 	strncpy(_port, device_path, sizeof(_port) - 1);
 	// Enforce null termination.
 	_port[sizeof(_port) - 1] = '\0';
@@ -131,6 +136,18 @@ SeptentrioGPS::SeptentrioGPS(const char *device_path, SeptentrioInstance instanc
 		_sat_info = new GPSSatelliteInfo();
 		_p_report_sat_info = &_sat_info->_data;
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
+	}
+
+	param_get(param_find("SEP_MODE"), &mode);
+
+	switch (mode) {
+	case 0:
+	default:
+		_mode = SeptentrioMode::Default;
+		break;
+	case 1:
+		_mode = SeptentrioMode::RoverWithMovingBase;
+		break;
 	}
 }
 
@@ -725,7 +742,7 @@ int SeptentrioGPS::configure(float heading_offset)
 	}
 
 	// Define/inquire the type of data that the receiver should accept/send on a given connection descriptor
-	snprintf(msg, sizeof(msg), SBF_DATA_IO, com_port);
+	snprintf(msg, sizeof(msg), SBF_DATA_IO, com_port, "SBF");
 
 	if (!send_message_and_wait_for_ack(msg, SBF_CONFIG_TIMEOUT)) {
 		return PX4_ERROR;
@@ -754,6 +771,22 @@ int SeptentrioGPS::configure(float heading_offset)
 	if (!send_message_and_wait_for_ack(msg, SBF_CONFIG_TIMEOUT)) {
 		PX4_ERR("Failed to configure SBF");
 		return PX4_ERROR;
+	}
+
+	if (_mode == SeptentrioMode::RoverWithMovingBase) {
+		if (_instance == SeptentrioInstance::Main) {
+			snprintf(msg, sizeof(msg), SBF_ATTITUDE_SOURCE, SBF_ATTITUDE_SOURCE_MOVING_BASE);
+			if (!send_message_and_wait_for_ack(msg, SBF_CONFIG_TIMEOUT)) {
+				SBF_INFO("CONFIG: failed to set moving base");
+				return PX4_ERROR;
+			}
+		} else {
+			snprintf(msg, sizeof(msg), SBF_DATA_IO, com_port, "+RTCMv3");
+			if (!send_message_and_wait_for_ack(msg, SBF_CONFIG_TIMEOUT)) {
+				SBF_INFO("CONFIG: failed to set data io");
+				return PX4_ERROR;
+			}
+		}
 	}
 
 	_configured = true;
@@ -1078,7 +1111,7 @@ void SeptentrioGPS::decode_init()
 	_decode_state = SBF_DECODE_SYNC1;
 	_rx_payload_index = 0;
 
-	if (_output_mode == SeptentrioGPSOutputMode::GPSAndRTCM) {
+	if (_output_mode == SeptentrioGPSOutputMode::GPSAndRTCM || _mode != SeptentrioMode::Default) {
 		if (!_rtcm_parsing) {
 			_rtcm_parsing = new RTCMParsing();
 		}
@@ -1284,8 +1317,7 @@ int SeptentrioGPS::set_baudrate(uint32_t baud)
 
 void SeptentrioGPS::handle_inject_data_topic()
 {
-	// We don't want to call copy again further down if we have already done a copy in the selection process.
-	bool already_copied = false;
+	bool received_new_data = false;
 	gps_inject_data_s msg;
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
@@ -1297,8 +1329,8 @@ void SeptentrioGPS::handle_inject_data_topic()
 			if (exists) {
 				if (_orb_inject_data_sub[instance].copy(&msg)) {
 					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
-						// Remember that we already did a copy on this instance.
-						already_copied = true;
+						// Remember that we already copied a message from this instance
+						received_new_data = true;
 						_selected_rtcm_instance = instance;
 						break;
 					}
@@ -1306,8 +1338,6 @@ void SeptentrioGPS::handle_inject_data_topic()
 			}
 		}
 	}
-
-	bool updated = already_copied;
 
 	// Limit maximum number of GPS injections to 8 since usually
 	// GPS injections should consist of 1-4 packets (GPS, Glonass, BeiDou, Galileo).
@@ -1318,33 +1348,25 @@ void SeptentrioGPS::handle_inject_data_topic()
 	size_t num_injections = 0;
 
 	do {
-		if (updated) {
+		if (received_new_data) {
 			num_injections++;
 
-			// Prevent injection of data from self
-			if (msg.device_id != get_device_id()) {
-				/* Write the message to the gps device. Note that the message could be fragmented.
-				* But as we don't write anywhere else to the device during operation, we don't
-				* need to assemble the message first.
-				*/
-				inject_data(msg.data, msg.len);
+			// Prevent injection of RTCM data from self
+			// The driver only supports using the secondary receiver as moving base, so this check is enough
+			if (_mode != SeptentrioMode::Default && _instance == SeptentrioInstance::Main) {
+				// Write the message to the gps device. Note that the message could be fragmented.
+				// But as we don't write anywhere else to the device during operation, we don't
+				// need to assemble the message first.
+				write(msg.data, msg.len);
 
 				++_last_rate_rtcm_injection_count;
 				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
 
-		updated = _orb_inject_data_sub[_selected_rtcm_instance].update(&msg);
+		received_new_data = _orb_inject_data_sub[_selected_rtcm_instance].update(&msg);
 
-	} while (updated && num_injections < max_num_injections);
-}
-
-bool SeptentrioGPS::inject_data(uint8_t *data, size_t len)
-{
-	dump_gps_data(data, len, SeptentrioDumpCommMode::Full, true);
-
-	size_t written = _uart.write(data, len);
-	return written == len;
+	} while (received_new_data && num_injections < max_num_injections);
 }
 
 void SeptentrioGPS::publish()
@@ -1428,7 +1450,7 @@ void SeptentrioGPS::dump_gps_data(const uint8_t *data, size_t len, SeptentrioDum
 		return;
 	}
 
-	dump_data->instance = 0;
+	dump_data->instance = (uint8_t)_instance;
 
 	while (len > 0) {
 		size_t write_len = len;

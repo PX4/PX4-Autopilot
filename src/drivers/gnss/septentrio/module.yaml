@@ -78,3 +78,16 @@ parameters:
           0: Disable
           1: Full communication
           2: RTCM output (PPK)
+      SEP_MODE:
+        description:
+          short: Operating mode of attached receivers.
+          long: |
+            This describes how the receiver setup on the autopilot should behave. The default is to support two receivers with one for redundancy.
+            Option 1 allows the use of two receivers where one acts as a moving base and sends corrections to the autopilot that it in turn forwards to the rover receiver.
+        type: enum
+        default: 0
+        min: 0
+        max: 1
+        values:
+          0: Default
+          1: Dual-receiver moving base for heading
