@@ -1,7 +1,7 @@
 root = true
 
 [*]
-insert_final_newline = false
+insert_final_newline = true
 
 [{*.{c,cpp,cc,h,hpp},CMakeLists.txt,Kconfig}]
 indent_style = tab
