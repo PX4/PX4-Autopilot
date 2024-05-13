@@ -196,6 +196,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// Laser Scan
+	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
+
+	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", laser_scan_topic.c_str());
+		return PX4_ERROR;
+	}
+
 #if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
 	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
@@ -739,6 +747,87 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	}
 
 	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
+{
+	static constexpr int SECTOR_SIZE_DEG = 10; // PX4 Collision Prevention only has 36 sectors of 10 degrees each
+
+	double angle_min_deg = scan.angle_min() * 180 / M_PI;
+	double angle_step_deg = scan.angle_step() * 180 / M_PI;
+
+	int samples_per_sector = std::round(SECTOR_SIZE_DEG / angle_step_deg);
+	int number_of_sectors = scan.ranges_size() / samples_per_sector;
+
+	std::vector<double> ds_array(number_of_sectors, UINT16_MAX);
+
+	// Downsample -- take average of samples per sector
+	for (int i = 0; i < number_of_sectors; i++) {
+
+		double sum = 0;
+
+		int samples_used_in_sector = 0;
+
+		for (int j = 0; j < samples_per_sector; j++) {
+
+			double distance = scan.ranges()[i * samples_per_sector + j];
+
+			// inf values mean no object
+			if (isinf(distance)) {
+				continue;
+			}
+
+			sum += distance;
+			samples_used_in_sector++;
+		}
+
+		// If all samples in a sector are inf then it means the sector is clear
+		if (samples_used_in_sector == 0) {
+			ds_array[i] = scan.range_max();
+
+		} else {
+			ds_array[i] = sum / samples_used_in_sector;
+		}
+	}
+
+	// Publish to uORB
+	obstacle_distance_s obs {};
+
+	// Initialize unknown
+	for (auto &i : obs.distances) {
+		i = UINT16_MAX;
+	}
+
+	obs.timestamp = hrt_absolute_time();
+	obs.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
+	obs.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
+	obs.min_distance = static_cast<uint16_t>(scan.range_min() * 100.);
+	obs.max_distance = static_cast<uint16_t>(scan.range_max() * 100.);
+	obs.angle_offset = static_cast<float>(angle_min_deg);
+	obs.increment = static_cast<float>(SECTOR_SIZE_DEG);
+
+	// Map samples in FOV into sectors in ObstacleDistance
+	int index = 0;
+
+	// Iterate in reverse because array is FLU and we need FRD
+	for (std::vector<double>::reverse_iterator i = ds_array.rbegin(); i != ds_array.rend(); ++i) {
+
+		uint16_t distance_cm = (*i) * 100.;
+
+		if (distance_cm >= obs.max_distance) {
+			obs.distances[index] = obs.max_distance + 1;
+
+		} else if (distance_cm < obs.min_distance) {
+			obs.distances[index] = 0;
+
+		} else {
+			obs.distances[index] = distance_cm;
+		}
+
+		index++;
+	}
+
+	_obstacle_distance_pub.publish(obs);
 }
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
