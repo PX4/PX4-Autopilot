@@ -68,6 +68,14 @@ if(CONFIG_MODULES_MC_RATE_CONTROL)
 	)
 endif()
 
+if(CONFIG_MODULES_SC_RATE_CONTROL)
+	px4_add_romfs_files(
+		rc.heli_defaults
+		rc.sc_apps
+		rc.sc_defaults
+	)
+endif()
+
 if(CONFIG_MODULES_ROVER_POS_CONTROL)
 	px4_add_romfs_files(
 		rc.rover_apps
