@@ -35,13 +35,19 @@
 
 using namespace time_literals;
 
+LoggerChecks::LoggerChecks()
+	: _param_sdlog_mode_handle(param_find("SDLOG_MODE"))
+{
+}
+
 void LoggerChecks::checkAndReport(const Context &context, Report &reporter)
 {
-#if defined(CONFIG_MODULES_LOGGER)
+	int32_t sdlog_mode = -1;
+	param_get(_param_sdlog_mode_handle, &sdlog_mode);
 
 	bool active = false;
 
-	if (_param_sdlog_mode.get() >= 0) {
+	if (sdlog_mode >= 0) {
 		for (int instance = 0; instance < _logger_status_sub.size(); instance++) {
 			const bool exists = _logger_status_sub[instance].advertised();
 
@@ -57,5 +63,4 @@ void LoggerChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	reporter.setHealth(health_component_t::logging, active, false, false);
-#endif
 }

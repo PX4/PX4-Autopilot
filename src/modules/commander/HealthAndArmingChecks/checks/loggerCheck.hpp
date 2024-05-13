@@ -42,7 +42,7 @@
 class LoggerChecks : public HealthAndArmingCheckBase
 {
 public:
-	LoggerChecks() = default;
+	LoggerChecks();
 	~LoggerChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
@@ -50,9 +50,5 @@ public:
 private:
 	uORB::SubscriptionMultiArray<logger_status_s> _logger_status_sub{ORB_ID::logger_status};
 
-#if defined(CONFIG_MODULES_LOGGER)
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::SDLOG_MODE>) _param_sdlog_mode
-				       )
-#endif
+	const param_t _param_sdlog_mode_handle;
 };
