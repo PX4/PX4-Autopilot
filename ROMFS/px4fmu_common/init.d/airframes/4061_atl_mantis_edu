@@ -123,6 +123,7 @@ param set-default MPC_TILTMAX_AIR 30
 param set-default MPC_XY_P 1
 param set-default MPC_Z_P 2
 param set-default MPC_Z_VEL_MAX_DN 2
+param set-default MPC_Z_VEL_MAN_DN 2
 
 # gimbal configuration
 param set-default MNT_MODE_IN 0

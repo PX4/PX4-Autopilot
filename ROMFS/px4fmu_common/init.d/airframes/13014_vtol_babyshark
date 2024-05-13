@@ -60,6 +60,7 @@ param set-default MPC_THR_HOVER 0.45
 param set-default MPC_TILTMAX_AIR 25
 param set-default MPC_YAWRAUTO_MAX 40
 param set-default MPC_Z_VEL_MAX_UP 2
+param set-default MPC_Z_VEL_MAN_UP 2
 
 param set-default NAV_ACC_RAD 3
 
