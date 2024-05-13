@@ -1,0 +1,6 @@
+menuconfig MODULES_BOAT
+	bool "boat"
+	default n
+	depends on MODULES_CONTROL_ALLOCATOR
+	---help---
+		Enable support for control of boats

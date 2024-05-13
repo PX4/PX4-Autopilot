@@ -5,7 +5,7 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set VEHICLE_TYPE rover
+set VEHICLE_TYPE boat
 
 # MAV_TYPE_SURFACE_BOAT 11
 param set-default MAV_TYPE 11

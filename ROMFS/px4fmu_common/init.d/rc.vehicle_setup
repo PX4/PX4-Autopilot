@@ -33,6 +33,15 @@ then
 fi
 
 #
+# Boat setup.
+#
+if [ $VEHICLE_TYPE = boat ]
+then
+	# Start standard Boat apps.
+	. ${R}etc/init.d/rc.boat_apps
+fi
+
+#
 # Differential Rover setup.
 #
 if [ $VEHICLE_TYPE = rover_differential ]

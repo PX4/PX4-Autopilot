@@ -1,0 +1,201 @@
+module_name: Boat Drive
+
+parameters:
+  - group: Boat Drive
+    definitions:
+      BT_SPD_SCALE:
+        description:
+          short: Manual speed scale
+        type: float
+        min: 0
+        max: 1
+        increment: 0.01
+        decimal: 2
+        default: 1
+      BT_ANG_VEL_SCALE:
+        description:
+          short: Manual angular velocity scale
+        type: float
+        min: 0
+        max: 1
+        increment: 0.01
+        decimal: 2
+        default: 1
+      BT_LACC_LIM:
+        description:
+          short: Lateral acceleration limit
+        type: float
+        unit: m/s^2
+        min: 0.0
+        max: 6.0
+        decimal: 1
+        default: 2.0
+      BT_L1_PERIOD:
+        description:
+          short: L1 period
+        type: float
+        unit: s
+        min: 0.5
+        max: 50.0
+        decimal: 1
+        default: 25.0
+      BT_L1_DAMPING:
+        description:
+          short: L1 damping
+        type: float
+        min: 0.6
+        max: 0.9
+        decimal: 2
+        default: 0.9
+      BT_SPD_CRUISE:
+        description:
+          short: Default cruise speed
+        type: float
+        unit: m/s
+        min: 0.0
+        max: 50.0
+        decimal: 1
+        default: 7.0
+      BT_SPD_MAX:
+        description:
+          short: Maximum speed
+        type: float
+        unit: m/s
+        min: 1.0
+        max: 50.0
+        decimal: 1
+        default: 17.0
+      BT_SPD_MIN:
+        description:
+          short: Minimum speed
+        type: float
+        unit: m/s
+        min: 0.0
+        max: 50.0
+        decimal: 1
+        default: 2.0
+      BT_SPD_P:
+        description:
+          short: Speed controller proportional gain
+        type: float
+        min: 0.0
+        max: 2.0
+        decimal: 2
+        default: 2.0
+      BT_SPD_I:
+        description:
+          short: Speed controller integral gain
+        type: float
+        min: 0.0
+        max: 20.0
+        decimal: 2
+        default: 1.0
+      BT_SPD_IMAX:
+        description:
+          short: Speed integral maximum value
+        type: float
+        unit: m/s
+        min: 0.0
+        max: 20.0
+        decimal: 1
+        default: 20.0
+      BT_SPD_OUTLIM:
+        description:
+          short: Speed PI controller output limit
+        type: float
+        unit: m/s
+        min: 0.0
+        max: 200.0
+        decimal: 1
+        default: 50.0
+      BT_ANG_MAX:
+        description:
+          short: Maximum angular velocity
+        type: float
+        unit: rad/s
+        min: 0.0
+        max: 20.0
+        decimal: 1
+        default: 1.0
+      BT_ANG_P:
+        description:
+          short: Angular velocity controller proportional gain
+        type: float
+        min: 0.0
+        max: 2.0
+        decimal: 2
+        default: 0.2
+      BT_ANG_I:
+        description:
+          short: Angular velocity controller integral gain
+        type: float
+        min: 0.0
+        max: 20.0
+        decimal: 2
+        default: 0.0
+      BT_ANG_IMAX:
+        description:
+          short: Angular velocity controller integral maximum value
+        type: float
+        unit: m/s
+        min: 0.0
+        max: 20.0
+        decimal: 1
+        default: 20.0
+      BT_ANG_OUTLIM:
+        description:
+          short: Angular velocity controller PI controller output limit
+        type: float
+        unit: m/s
+        min: 0.0
+        max: 200.0
+        decimal: 1
+        default: 50.0
+      BT_MAX_HERR:
+        description:
+          short: Max heading error for slowdown
+        type: float
+        min: 0.0
+        decimal: 2
+        default: 90.0
+      BT_MIN_HERR:
+        description:
+          short: Min heading error for full speed
+        type: float
+        min: 0.0
+        decimal: 2
+        default: 30.0
+      BT_MISSION_THR:
+        description:
+          short: Mission throttle setpoint
+        type: float
+        min: -1.0
+        decimal: 2
+        default: 0.8
+      BT_MIN_THR:
+        description:
+          short: Mission minimum slowdown parameter
+        type: float
+        min: 0.0
+        decimal: 2
+        default: 0.5
+      BT_MAX_JERK:
+        description:
+          short: Maximum jerk
+        type: float
+        unit: m/s^3
+        min: 0.0
+        max: 10.0
+        decimal: 1
+        default: 5.0
+      BT_MAX_ACCEL:
+        description:
+          short: Maximum acceleration
+          long: Maximum acceleration is used to limit the acceleration of the rover
+        type: float
+        unit: m/s^2
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.5

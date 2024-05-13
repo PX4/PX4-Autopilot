@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# @name RC Boat
+#
+# @type Boat
+# @class Boat
+#
+# @output Servo1 Steering
+# @output Motor1 Throttle
+
+. ${R}etc/init.d/rc.boat_defaults
+
+# Failsafe
+param set-default NAV_RCL_ACT 6 # Disarm on stick input loss
+param set-default NAV_DLL_ACT 6 # Disarm on ground station loss
+param set-default COM_DL_LOSS_T 5 # timeout for ground station connection
+param set-default COM_RC_LOSS_T 10 # timeout for stick input
+param set-default COM_RCL_EXCEPT 1 # Continue mission without stick input
+
+param set-default COM_ARM_WO_GPS 1 # Disable GPS prearm check
+param set-default COM_DISARM_LAND -1 # Don't disarm automatically
+param set-default COM_DISARM_PRFLT -1
+
+# Battery setup
+# param set-default BAT1_N_CELLS 1
+# param set-default BAT1_V_EMPTY 10
+# param set-default BAT1_V_CHARGED 18
+
+# Estimation
+param set-default EKF2_MULTI_IMU 0 # Disable multi-IMU
+param set-default SENS_IMU_MODE 1
+param set-default CAL_MAG0_PRIO 0 # Disable internal Magnetometer
+param set-default MBE_ENABLE 0 # Disable online mag calibration when disarmed
+param set-default EKF2_GPS_CTRL 15 # Enable GPS heading fusion
+param set-default SENS_GPS_MASK 0 # Disable multi-GPS blending
+
+# Estimation workarounds, should be double-checked if necessary
+param set-default EKF2_GBIAS_INIT 0.01
+param set-default EKF2_SYNT_MAG_Z 1 # Why? Who said magnetometer Z is not usable?
+
+param set-default EKF2_GPS_V_NOISE 0.751 # Lower certainty for GPS
+param set-default EKF2_GPS_POS_X 2.5 # GPS position, accurate?
+param set-default EKF2_REQ_EPV 10 # Accept GPS easier
+param set-default EKF2_REQ_HDRIFT 1
+param set-default EKF2_REQ_SACC 2
+param set-default EKF2_REQ_VDRIFT 20
+
+param set-default EKF2_MAG_CHK_STR 0.5 # Accept mag easier
+param set-default COM_ARM_MAG_STR 0 # Disable magnetic field strength prearm check
+param set-default COM_ARM_MAG_ANG 360 # Disable internal/external magnetometer consistency check
+param set-default EKF2_ABL_LIM 1 # Higher accelerometer bias limit, was sometimes above the threshold, GPS reporting 0 altitude issue?
