@@ -34,3 +34,4 @@ sc_pos_control start
 
 # Start Space Robot Thruster Controller
 sc_thruster_controller start
+
