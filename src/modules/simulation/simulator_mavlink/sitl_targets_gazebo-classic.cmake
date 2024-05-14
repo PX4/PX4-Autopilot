@@ -120,6 +120,7 @@ if(gazebo_FOUND)
 		windy
 		yosemite
 		space
+		zero_g
 	)
 
 	# find corresponding airframes
