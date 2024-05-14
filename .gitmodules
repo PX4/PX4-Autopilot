@@ -29,9 +29,6 @@
 [submodule "Tools/flightgear_bridge"]
 	path = Tools/simulation/flightgear/flightgear_bridge
 	url = https://github.com/PX4/PX4-FlightGear-Bridge.git
-[submodule "Tools/simulation/jsbsim/jsbsim_bridge"]
-	path = Tools/simulation/jsbsim/jsbsim_bridge
-	url = https://github.com/PX4/px4-jsbsim-bridge.git
 [submodule "src/drivers/cyphal/libcanard"]
 	path = src/drivers/cyphal/libcanard
 	url = https://github.com/opencyphal/libcanard.git
