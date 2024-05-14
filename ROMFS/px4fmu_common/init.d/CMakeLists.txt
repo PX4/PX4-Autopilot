@@ -70,7 +70,6 @@ endif()
 
 if(CONFIG_MODULES_SC_RATE_CONTROL)
 	px4_add_romfs_files(
-		rc.heli_defaults
 		rc.sc_apps
 		rc.sc_defaults
 	)
