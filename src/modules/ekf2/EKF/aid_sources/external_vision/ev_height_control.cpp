@@ -59,10 +59,12 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 	// rotate EV to the EKF reference frame unless we're operating entirely in vision frame
 	if (!(_control_status.flags.ev_yaw && _control_status.flags.ev_pos)) {
 
-		const Quatf q_error(_ev_q_error_filt.getState());
+		const bool ev_q_available = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::YAW))
+					    && ev_sample.quat.isAllFinite();
 
-		if (q_error.isAllFinite()) {
-			const Dcmf R_ev_to_ekf(q_error);
+		if (ev_q_available && _ev_q_error_filt.getState().isAllFinite()) {
+			// rotate EV to the EKF reference frame
+			const Dcmf R_ev_to_ekf(_ev_q_error_filt.getState());
 
 			pos = R_ev_to_ekf * ev_sample.pos;
 			pos_cov = R_ev_to_ekf * matrix::diag(ev_sample.position_var) * R_ev_to_ekf.transpose();

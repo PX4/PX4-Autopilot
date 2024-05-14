@@ -89,6 +89,7 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_FALSE(_ekf->global_position_is_valid());
 
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_sensor_simulator._vio.setVelocityFrameToLocalNED();
 	_sensor_simulator.runSeconds(2);
 
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
@@ -119,6 +120,7 @@ TEST_F(EkfExternalVisionTest, visionVelocityReset)
 
 	_sensor_simulator._vio.setVelocity(simulated_velocity);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_sensor_simulator._vio.setVelocityFrameToLocalNED();
 	_sensor_simulator.startExternalVision();
 	// Note: test duration needs to allow time for tilt alignment to complete
 	_ekf->set_vehicle_at_rest(false);
@@ -152,6 +154,7 @@ TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 	const Vector3f simulated_velocity_in_ekf_frame =
 		Dcmf(vision_to_ekf) * simulated_velocity_in_vision_frame;
 	_sensor_simulator._vio.setVelocity(simulated_velocity_in_vision_frame);
+	_sensor_simulator._vio.setVelocityFrameToLocalFRD();
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
 	_ekf->set_vehicle_at_rest(false);
