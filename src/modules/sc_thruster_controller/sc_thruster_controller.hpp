@@ -54,7 +54,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/thruster_command.h>
 #include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/my_message.h>
+#include <uORB/topics/mavlink_log.h>
 
 using namespace time_literals;
 

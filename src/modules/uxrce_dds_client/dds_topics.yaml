@@ -90,7 +90,7 @@ publications:
     type: px4_msgs::msg::LogMessage
 
   - topic: /fmu/out/my_message
-    type: px4_msgs::msg::MyMessage
+    type: px4_msgs::msg::MavlinkLog
 
   - topic: /fmu/out/rc_channels
     type: px4_msgs::msg::RcChannels

@@ -136,9 +136,9 @@ void ScThrusterController::run()
 	orb_advert_t _actuator_motors_pub = orb_advertise(ORB_ID(actuator_motors), &actuator_motors_msg);
 
 	// For publishing debug messages
-	struct my_message_s my_msg;
+	struct mavlink_log_s my_msg;
 	memset(&my_msg, 0, sizeof(my_msg));
-	orb_advert_t _my_message_pub = orb_advertise(ORB_ID(my_message), &my_msg);
+	orb_advert_t _my_message_pub = orb_advertise(ORB_ID(mavlink_log), &my_msg);
 
 	// Thruster command structure
 	struct thruster_command_s thruster_cmd;
@@ -183,7 +183,7 @@ void ScThrusterController::run()
 
 			if (debugPrint) {
 				strcpy(my_msg.text, "Thruster command received!");
-				orb_publish(ORB_ID(my_message), _my_message_pub, &my_msg);
+				orb_publish(ORB_ID(mavlink_log), _my_message_pub, &my_msg);
 			}
 		}
 
