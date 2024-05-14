@@ -324,7 +324,7 @@ MavlinkStreamPoll::set_interval(uint16_t stream_id, int interval_ms)
 {
 	pthread_mutex_lock(&_mtx);
 
-	// Update interval for all orb subscriptions and find the maximum interval
+	// Renew all uorb subscriptions of given stream with new interval value
 	for (int i = 0; i < _count; i++) {
 		if (_reqs[i].stream_id == stream_id) {
 
