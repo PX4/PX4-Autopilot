@@ -168,8 +168,8 @@ else
 endif
 
 # Pick up specific Python path if set
-ifdef PYTHON_EXECUTABLE
-	override CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+ifdef Python3_EXECUTABLE
+	override CMAKE_ARGS += -DPython3_EXECUTABLE=${Python3_EXECUTABLE}
 endif
 
 # Functions

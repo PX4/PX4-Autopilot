@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 # We want to test the lockstep schedule even if it is not used otherwise.
 px4_add_library(lockstep_scheduler

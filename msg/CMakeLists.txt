@@ -298,7 +298,7 @@ add_custom_command(
 	OUTPUT
 		${uorb_headers}
 		${msg_out_path}/uORBTopics.hpp
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+	COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--headers
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR}
@@ -319,7 +319,7 @@ add_custom_target(uorb_headers DEPENDS ${uorb_headers})
 add_custom_command(
 	OUTPUT
 		${uorb_json_files}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+	COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--json
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR}
@@ -342,7 +342,7 @@ add_custom_command(
 	OUTPUT
 		${uorb_message_fields_cpp_file}
 		${uorb_message_fields_header_file}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_compressed_fields.py
+	COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_compressed_fields.py
 		-f ${uorb_json_files}
 		--source-output-file ${uorb_message_fields_cpp_file}
 		--header-output-file ${uorb_message_fields_header_file}
@@ -357,7 +357,7 @@ add_custom_command(
 # Generate microcdr headers
 add_custom_command(
 	OUTPUT ${uorb_ucdr_headers}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+	COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--headers
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR}
@@ -379,7 +379,7 @@ add_custom_command(
 	OUTPUT
 		${uorb_sources}
 		${msg_source_out_path}/uORBTopics.cpp
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+	COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 		--sources
 		-f ${msg_files}
 		-i ${CMAKE_CURRENT_SOURCE_DIR}
@@ -445,7 +445,7 @@ if(CONFIG_LIB_CDRSTREAM)
 		OUTPUT ${uorb_cdr_idl}
 		COMMAND ${CMAKE_COMMAND}
 		        -E env "PYTHONPATH=${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_adapter:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_cli"
-			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/cdrstream/msg2idl.py
+			${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/cdrstream/msg2idl.py
 			${uorb_cdr_msg}
 		DEPENDS
 			${uorb_cdr_msg}
@@ -475,7 +475,7 @@ if(CONFIG_LIB_CDRSTREAM)
 
 	add_custom_target(
 		uorb_idl_header
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
 			--uorb-idl-header
 			-f ${msg_files}
 			-i ${CMAKE_CURRENT_SOURCE_DIR}
@@ -499,7 +499,7 @@ endif()
 
 if(CONFIG_MODULES_ZENOH)
 	# Update kconfig file for topics
-	execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
+	execute_process(COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
 			--zenoh-config
 			-f ${msg_files}
 			-o ${PX4_SOURCE_DIR}/src/modules/zenoh/
@@ -508,7 +508,7 @@ if(CONFIG_MODULES_ZENOH)
 	add_custom_command(
 		OUTPUT
 			${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
+		COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
 			--zenoh-pub-sub
 			-f ${msg_files}
 			-o ${PX4_BINARY_DIR}/src/modules/zenoh/

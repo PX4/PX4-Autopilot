@@ -99,7 +99,12 @@
 #
 #=============================================================================
 
+#=============================================================================
+# project definition
+#
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+project(px4 CXX C ASM)
+
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
@@ -164,19 +169,20 @@ include(px4_add_module)
 set(config_module_list)
 set(config_kernel_list)
 
-# Find Python
-find_package(PythonInterp 3)
+# Find Python3
+set (Python3_FIND_VIRTUALENV "ONLY")
+find_package(Python3 COMPONENTS Interpreter Development)
 # We have a custom error message to tell users how to install python3.
-if(NOT PYTHONINTERP_FOUND)
-	message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-		"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
-		"    macOS: brew install python")
+if(NOT Python3_FOUND)
+    message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
+        "    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
+        "    macOS: brew install python")
 endif()
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
-	message(STATUS "python coverage enabled")
-	set(PYTHON_EXECUTABLE coverage run -p)
+    message(STATUS "python coverage enabled")
+    set(Python3_EXECUTABLE coverage run -p)
 endif()
 
 include(px4_config)
@@ -216,10 +222,6 @@ if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
 	include(init)
 endif()
 
-#=============================================================================
-# project definition
-#
-project(px4 CXX C ASM)
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if(NOT CMAKE_BUILD_TYPE)
@@ -466,7 +468,7 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_custom_command(OUTPUT ${uorb_graph_config}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
+	COMMAND ${Python3_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
 		${graph_module_list} --src-path src/lib
 		--merge-depends
 		--exclude-path src/examples
@@ -487,7 +489,7 @@ include(package)
 
 # install python requirements using configured python
 add_custom_target(install_python_requirements
-	COMMAND ${PYTHON_EXECUTABLE} -m pip install --break-system-packages --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
+	COMMAND ${Python3_EXECUTABLE} -m pip install --break-system-packages --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	DEPENDS ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	USES_TERMINAL
 )
