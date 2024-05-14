@@ -53,6 +53,8 @@ px4_add_romfs_files(
 	rc.rover_defaults
 	rc.rover_differential_apps
 	rc.rover_differential_defaults
+	rc.sese_defaults
+	rc.sese_apps
 	rc.usv_apps
 	rc.usv_defaults
 	rc.uuv_apps
