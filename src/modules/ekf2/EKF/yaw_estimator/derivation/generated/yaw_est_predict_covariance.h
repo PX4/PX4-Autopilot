@@ -51,12 +51,11 @@ void YawEstPredictCovariance(const matrix::Matrix<Scalar, 3, 1>& state,
   if (P_new != nullptr) {
     matrix::Matrix<Scalar, 3, 3>& _p_new = (*P_new);
 
+    _p_new.setZero();
+
     _p_new(0, 0) = P(0, 0) + P(2, 0) * _tmp2 + _tmp2 * _tmp3 + _tmp4;
-    _p_new(1, 0) = 0;
-    _p_new(2, 0) = 0;
     _p_new(0, 1) = P(0, 1) + P(2, 1) * _tmp2 + _tmp3 * _tmp5;
     _p_new(1, 1) = P(1, 1) + P(2, 1) * _tmp5 + _tmp4 + _tmp5 * _tmp6;
-    _p_new(2, 1) = 0;
     _p_new(0, 2) = _tmp3 * _tmp7;
     _p_new(1, 2) = _tmp6 * _tmp7;
     _p_new(2, 2) = P(2, 2) * std::pow(_tmp7, Scalar(2)) + d_ang_var;
