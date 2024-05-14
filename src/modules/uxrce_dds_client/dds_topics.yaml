@@ -5,6 +5,9 @@
 #####
 publications:
 
+  - topic: /fmu/out/actuator_motors
+    type: px4_msgs::msg::ActuatorMotors
+
   - topic: /fmu/out/register_ext_component_reply
     type: px4_msgs::msg::RegisterExtComponentReply
 
@@ -67,6 +70,9 @@ publications:
 
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus
+
+  - topic: /fmu/out/vehicle_thrust_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
 
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
