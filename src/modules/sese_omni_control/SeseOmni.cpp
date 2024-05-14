@@ -33,9 +33,8 @@
 
 #include "SeseOmni.hpp"
 
-SeseOmni::SeseOmni() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+SeseOmni::SeseOmni() : ModuleParams(nullptr),
+					   ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	updateParams();
 }
@@ -50,109 +49,116 @@ void SeseOmni::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_differential_drive_kinematics.setWheelBase(_param_rdd_wheel_base.get());
-
 	_max_speed = _param_rdd_wheel_speed.get() * _param_rdd_wheel_radius.get();
-	_differential_drive_guidance.setMaxSpeed(_max_speed);
-	_differential_drive_kinematics.setMaxSpeed(_max_speed);
 
 	_max_angular_velocity = _max_speed / (_param_rdd_wheel_base.get() / 2.f);
-	_differential_drive_guidance.setMaxAngularVelocity(_max_angular_velocity);
-	_differential_drive_kinematics.setMaxAngularVelocity(_max_angular_velocity);
 }
 
 void SeseOmni::Run()
 {
-	if (should_exit()) {
+	if (should_exit())
+	{
 		ScheduleClear();
 		exit_and_cleanup();
 	}
 
 	hrt_abstime now = hrt_absolute_time();
-	const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e6f;
+	// const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e6f;
 	_time_stamp_last = now;
 
-	if (_parameter_update_sub.updated()) {
+	if (_parameter_update_sub.updated())
+	{
 		parameter_update_s parameter_update;
 		_parameter_update_sub.copy(&parameter_update);
 		updateParams();
 	}
 
-	if (_vehicle_control_mode_sub.updated()) {
+	if (_vehicle_control_mode_sub.updated())
+	{
 		vehicle_control_mode_s vehicle_control_mode{};
 
-		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
+		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode))
+		{
 			_manual_driving = vehicle_control_mode.flag_control_manual_enabled;
 			_mission_driving = vehicle_control_mode.flag_control_auto_enabled;
 		}
 	}
 
-	if (_vehicle_status_sub.updated()) {
+	if (_vehicle_status_sub.updated())
+	{
 		vehicle_status_s vehicle_status{};
 
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			const bool spooled_up = armed && (hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s);
-			_differential_drive_kinematics.setArmed(spooled_up);
-			_acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
+		if (_vehicle_status_sub.copy(&vehicle_status))
+		{
+			// const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+			// _acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
 		}
 	}
 
-	if (_manual_driving) {
+	if (_manual_driving)
+	{
 		// Manual mode
 		// directly produce setpoints from the manual control setpoint (joystick)
-		if (_manual_control_setpoint_sub.updated()) {
+		if (_manual_control_setpoint_sub.updated())
+		{
 			manual_control_setpoint_s manual_control_setpoint{};
 
-			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
-				differential_drive_setpoint_s setpoint{};
+			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint))
+			{
+				// Create msgs
+				// differential_drive_setpoint_s setpoint{};
+				vehicle_torque_setpoint_s torque_setpoint{};
+				vehicle_thrust_setpoint_s thrust_setpoint{};
+				actuator_controls_status_s status;
+
 				// setpoint.speed = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
 				// setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() * _max_angular_velocity;
-				setpoint.speed = 1.0;
-				setpoint.yaw_rate = 0.0;
+				thrust_setpoint.timestamp = now;
+				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
+				// thrust_setpoint.xyz[1] = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
+				// thrust_setpoint.xyz[2] = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
+				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
+				thrust_setpoint.xyz[2] = 0.0f;
+				// PX4_INFO("Thrust setpoint sent");
 
-				// if acro mode, we activate the yaw rate control
-				if (_acro_driving) {
-					setpoint.closed_loop_speed_control = false;
-					setpoint.closed_loop_yaw_rate_control = true;
+				torque_setpoint.timestamp = now;
+				// torque_setpoint.xyz[0] = manual_control_setpoint.roll * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
+				torque_setpoint.xyz[0] = 0.0f;
+				torque_setpoint.xyz[1] = 0.0f;
+				torque_setpoint.xyz[2] = manual_control_setpoint.roll * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
 
-				} else {
-					setpoint.closed_loop_speed_control = false;
-					setpoint.closed_loop_yaw_rate_control = false;
+				status.timestamp = torque_setpoint.timestamp;
+
+				for (int i = 0; i < 3; i++)
+				{
+					status.control_power[i] = 100.0f;
 				}
 
-				setpoint.timestamp = now;
-				_differential_drive_setpoint_pub.publish(setpoint);
+				_vehicle_torque_setpoint_pub.publish(torque_setpoint);
+				_vehicle_thrust_setpoint_pub.publish(thrust_setpoint);
+				_actuator_controls_status_pub.publish(status);
 			}
 		}
-
-	} else if (_mission_driving) {
-		// Mission mode
-		// directly receive setpoints from the guidance library
-		_differential_drive_guidance.computeGuidance(
-			_differential_drive_control.getVehicleYaw(),
-			_differential_drive_control.getVehicleBodyYawRate(),
-			dt
-		);
 	}
-
-	_differential_drive_control.control(dt);
-	_differential_drive_kinematics.allocate();
 }
 
 int SeseOmni::task_spawn(int argc, char *argv[])
 {
 	SeseOmni *instance = new SeseOmni();
 
-	if (instance) {
+	if (instance)
+	{
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
 
-		if (instance->init()) {
+		if (instance->init())
+		{
 			return PX4_OK;
 		}
-
-	} else {
+	}
+	else
+	{
 		PX4_ERR("alloc failed");
 	}
 
@@ -170,7 +176,8 @@ int SeseOmni::custom_command(int argc, char *argv[])
 
 int SeseOmni::print_usage(const char *reason)
 {
-	if (reason) {
+	if (reason)
+	{
 		PX4_ERR("%s\n", reason);
 	}
 

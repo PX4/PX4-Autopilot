@@ -45,15 +45,14 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
-
-#include "SeseOmniControl/SeseOmniControl.hpp"
-#include "SeseOmniGuidance/SeseOmniGuidance.hpp"
-#include "SeseOmniKinematics/SeseOmniKinematics.hpp"
+#include <uORB/topics/actuator_controls_status.h>
+// Include headers for torque and thrust setpoints
+#include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 
 using namespace time_literals;
 
-class SeseOmni : public ModuleBase<SeseOmni>, public ModuleParams,
-	public px4::ScheduledWorkItem
+class SeseOmni : public ModuleBase<SeseOmni>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	SeseOmni();
@@ -82,24 +81,24 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
 
+	// Add Publications for control allocator
+	uORB::Publication<actuator_controls_status_s> _actuator_controls_status_pub{ORB_ID(actuator_controls_status_0)};
+	uORB::Publication<vehicle_torque_setpoint_s> _vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)}; /**< vehicle torque setpoint publication */
+	uORB::Publication<vehicle_thrust_setpoint_s> _vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)}; /**< vehicle thrust setpoint publication */
+
 	bool _manual_driving = false;
 	bool _mission_driving = false;
 	bool _acro_driving = false;
 	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
 
-	SeseOmniGuidance _differential_drive_guidance{this};
-	SeseOmniControl _differential_drive_control{this};
-	SeseOmniKinematics _differential_drive_kinematics{this};
-
 	float _max_speed{0.f};
 	float _max_angular_velocity{0.f};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RDD_ANG_SCALE>) _param_rdd_ang_velocity_scale,
-		(ParamFloat<px4::params::RDD_SPEED_SCALE>) _param_rdd_speed_scale,
-		(ParamFloat<px4::params::RDD_WHEEL_BASE>) _param_rdd_wheel_base,
-		(ParamFloat<px4::params::RDD_WHEEL_SPEED>) _param_rdd_wheel_speed,
-		(ParamFloat<px4::params::RDD_WHEEL_RADIUS>) _param_rdd_wheel_radius,
-		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
-	)
+		(ParamFloat<px4::params::RDD_ANG_SCALE>)_param_rdd_ang_velocity_scale,
+		(ParamFloat<px4::params::RDD_SPEED_SCALE>)_param_rdd_speed_scale,
+		(ParamFloat<px4::params::RDD_WHEEL_BASE>)_param_rdd_wheel_base,
+		(ParamFloat<px4::params::RDD_WHEEL_SPEED>)_param_rdd_wheel_speed,
+		(ParamFloat<px4::params::RDD_WHEEL_RADIUS>)_param_rdd_wheel_radius,
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>)_param_com_spoolup_time)
 };
