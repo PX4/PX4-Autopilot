@@ -31,10 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(SeseOmniControl)
-add_subdirectory(SeseOmniGuidance)
-add_subdirectory(SeseOmniKinematics)
-
 px4_add_module(
 	MODULE modules__sese_omni_control
 	MAIN sese_omni_control
@@ -43,9 +39,6 @@ px4_add_module(
 		SeseOmni.cpp
 		SeseOmni.hpp
 	DEPENDS
-		SeseOmniControl
-		SeseOmniGuidance
-		SeseOmniKinematics
 		px4_work_queue
 		modules__control_allocator
 	)
