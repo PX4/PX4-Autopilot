@@ -66,7 +66,7 @@ void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample 
 	}
 
 	// determine if we should use EV yaw aiding
-	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::YAW))
+	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::ORIENTATION))
 					     && _control_status.flags.tilt_align
 					     && !_control_status.flags.ev_yaw_fault
 					     && PX4_ISFINITE(aid_src.observation)
