@@ -23,25 +23,29 @@ uxrObjectId topic_id_from_orb(ORB_ID orb_id, uint8_t instance = 0)
 	return uxrObjectId{};
 }
 
-static bool generate_topic_name(char *topic, const char *client_namespace, const char *direction, const char *name)
+static bool generate_topic_name(char *topic_name, const char *client_namespace, const char *topic)
 {
+	if (topic[0] == '/') {
+		topic++;
+	}
+
 	if (client_namespace != nullptr) {
-		int ret = snprintf(topic, TOPIC_NAME_SIZE, "rt/%s/fmu/%s/%s", client_namespace, direction, name);
+		int ret = snprintf(topic_name, TOPIC_NAME_SIZE, "rt/%s/%s", client_namespace, topic);
 		return (ret > 0 && ret < TOPIC_NAME_SIZE);
 	}
 
-	int ret = snprintf(topic, TOPIC_NAME_SIZE, "rt/fmu/%s/%s", direction, name);
+	int ret = snprintf(topic_name, TOPIC_NAME_SIZE, "rt/%s", topic);
 	return (ret > 0 && ret < TOPIC_NAME_SIZE);
 }
 
 static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrObjectId participant_id,
-			       ORB_ID orb_id, const char *client_namespace, const char *topic_name_simple, const char *type_name,
+			       ORB_ID orb_id, const char *client_namespace, const char *topic, const char *type_name,
 			       uxrObjectId &datawriter_id)
 {
 	// topic
 	char topic_name[TOPIC_NAME_SIZE];
 
-	if (!generate_topic_name(topic_name, client_namespace, "out", topic_name_simple)) {
+	if (!generate_topic_name(topic_name, client_namespace, topic)) {
 		PX4_ERR("topic path too long");
 		return false;
 	}
@@ -87,13 +91,13 @@ static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_str
 }
 
 static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId input_stream_id,
-			       uxrObjectId participant_id, uint16_t index, const char *client_namespace, const char *topic_name_simple,
+			       uxrObjectId participant_id, uint16_t index, const char *client_namespace, const char *topic,
 			       const char *type_name, uint16_t queue_depth)
 {
 	// topic
 	char topic_name[TOPIC_NAME_SIZE];
 
-	if (!generate_topic_name(topic_name, client_namespace, "in", topic_name_simple)) {
+	if (!generate_topic_name(topic_name, client_namespace, topic)) {
 		PX4_ERR("topic path too long");
 		return false;
 	}
