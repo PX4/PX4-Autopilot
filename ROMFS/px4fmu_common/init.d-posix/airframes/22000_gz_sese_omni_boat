@@ -17,66 +17,63 @@
 # @board bitcraze_crazyflie exclude
 #
 
-. ${R}etc/init.d/rc.usv_defaults
+. ${R}etc/init.d/rc.sese_defaults
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
-PX4_SIM_MODEL=${PX4_SIM_MODEL:=sese_omni_boat}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=ocean}
-# GZ_SIM_RESOURCE_PATH=${GZ_SIM_RESOURCE_PATH:=/home/jakub/Sese/PX4-Autopilot/Tools/simulation/gz/models}
+# PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500}
 
+param set-default SIM_GZ_EN 1
 
-# disable circuit breaker for airspeed sensor
-# param set-default CBRK_AIRSPD_CHK 162128
-# companion computer is connected via USB permanently
-param set-default CBRK_USB_CHK 197848
-param set-default CBRK_IO_SAFETY 22027
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
 
-param set-default COM_PREARM_MODE 0
-
-# param set-default MAV_1_CONFIG 102
-
-# param set-default BAT1_A_PER_V 37.8798
-param set-default BAT1_CAPACITY 18000
-# param set-default BAT1_V_DIV 11.0
-param set-default BAT1_N_CELLS 4
-# param set-default BAT_V_OFFS_CURR 0.33
-
-param set-default CA_AIRFRAME 7
-
+param set-default CA_AIRFRAME 0
 param set-default CA_ROTOR_COUNT 4
+
 param set-default CA_R_REV 255
-param set-default CA_ROTOR0_AX 1.0000
-param set-default CA_ROTOR0_AY -1.0000
-param set-default CA_ROTOR0_AZ 0.0000
-param set-default CA_ROTOR0_KM 0.0000
-param set-default CA_ROTOR0_PX 0.5000
-param set-default CA_ROTOR0_PY 0.3000
-param set-default CA_ROTOR0_PZ 0.2000
-param set-default CA_ROTOR1_AX 1.0000
-param set-default CA_ROTOR1_AY 1.0000
-param set-default CA_ROTOR1_AZ 0.0000
-param set-default CA_ROTOR1_KM 0.0000
-param set-default CA_ROTOR1_PX 0.5000
-param set-default CA_ROTOR1_PY -0.3000
-param set-default CA_ROTOR1_PZ 0.2000
+
+param set-default CA_ROTOR0_PX 0.13
+param set-default CA_ROTOR0_PY 0.22
+param set-default CA_ROTOR0_KM  0.05
+param set-default CA_ROTOR0_AX -1.0000
+param set-default CA_ROTOR0_AY 1.0000
+
+param set-default CA_ROTOR1_PX 0.13
+param set-default CA_ROTOR1_PY -0.20
+param set-default CA_ROTOR1_KM  -0.05
+param set-default CA_ROTOR1_AX -1.0000
+param set-default CA_ROTOR1_AY -1.0000
+
+param set-default CA_ROTOR2_PX -0.13
+param set-default CA_ROTOR2_PY 0.22
+param set-default CA_ROTOR2_KM -0.05
 param set-default CA_ROTOR2_AX 1.0000
 param set-default CA_ROTOR2_AY 1.0000
-param set-default CA_ROTOR2_AZ 0.0000
-param set-default CA_ROTOR2_KM 0.0000
-param set-default CA_ROTOR2_PX -0.5000
-param set-default CA_ROTOR2_PY 0.3000
-param set-default CA_ROTOR2_PZ 0.2000
+
+param set-default CA_ROTOR3_PX -0.13
+param set-default CA_ROTOR3_PY -0.20
+param set-default CA_ROTOR3_KM 0.05
 param set-default CA_ROTOR3_AX 1.0000
 param set-default CA_ROTOR3_AY -1.0000
-param set-default CA_ROTOR3_AZ 0.0000
-param set-default CA_ROTOR3_KM 0.0000
-param set-default CA_ROTOR3_PX -0.5000
-param set-default CA_ROTOR3_PY -0.3000
-param set-default CA_ROTOR3_PZ 0.2000
-param set-default CA_ROTOR4_AZ -1.0000
-param set-default CA_ROTOR4_KM 0.0000
-param set-default CA_ROTOR4_PX 0.5000
-param set-default CA_ROTOR4_PY 0.5000
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_FUNC4 104
+
+param set-default SIM_GZ_EC_MIN1 150
+param set-default SIM_GZ_EC_MIN2 150
+param set-default SIM_GZ_EC_MIN3 150
+param set-default SIM_GZ_EC_MIN4 150
+
+param set-default SIM_GZ_EC_MAX1 1000
+param set-default SIM_GZ_EC_MAX2 1000
+param set-default SIM_GZ_EC_MAX3 1000
+param set-default SIM_GZ_EC_MAX4 1000
+
+param set-default MPC_THR_HOVER 0.60
 
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
