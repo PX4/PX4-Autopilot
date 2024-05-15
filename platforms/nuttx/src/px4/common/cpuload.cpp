@@ -51,6 +51,102 @@ __BEGIN_DECLS
 
 __EXPORT struct system_load_s system_load;
 
+/* Simple hashing via PID; shamelessly ripped from NuttX scheduler. All rights
+ * and credit belong to whomever authored this logic.
+ */
+
+#define HASH(i) ((i) & (hashtab_size - 1))
+
+struct system_load_taskinfo_s **hashtab;
+volatile int hashtab_size;
+
+void init_task_hash(void)
+{
+	hashtab_size = 4;
+	hashtab = (struct system_load_taskinfo_s **)kmm_zalloc(sizeof(*hashtab) * hashtab_size);
+}
+
+static struct system_load_taskinfo_s *get_task_info(pid_t pid)
+{
+	struct system_load_taskinfo_s *ret = NULL;
+	irqstate_t flags = enter_critical_section();
+
+	if (hashtab) {
+		ret = hashtab[HASH(pid)];
+	}
+
+	leave_critical_section(flags);
+	return ret;
+}
+
+static void drop_task_info(pid_t pid)
+{
+	irqstate_t flags = enter_critical_section();
+	hashtab[HASH(pid)] = NULL;
+	leave_critical_section(flags);
+}
+
+static int hash_task_info(struct system_load_taskinfo_s *task_info, pid_t pid)
+{
+	struct system_load_taskinfo_s **newtab;
+	void *temp;
+	int hash;
+	int i;
+
+	/* Use critical section to protect the hash table */
+
+	irqstate_t flags = enter_critical_section();
+
+	/* Keep trying until we get it or run out of memory */
+
+retry:
+
+	/* Calculate hash */
+
+	hash = HASH(pid);
+
+	/* Check if the entry is available */
+
+	if (hashtab[hash] == NULL) {
+		hashtab[hash] = task_info;
+		leave_critical_section(flags);
+		return OK;
+	}
+
+	/* No can do, double the size of the hash table */
+
+	newtab = (struct system_load_taskinfo_s **)kmm_zalloc(hashtab_size * 2 * sizeof(*newtab));
+
+	if (newtab == NULL) {
+		leave_critical_section(flags);
+		return -ENOMEM;
+	}
+
+	hashtab_size *= 2;
+
+	/* Start using the new hash table */
+
+	for (i = 0; i < hashtab_size / 2; i++) {
+		struct system_load_taskinfo_s *info = hashtab[i];
+
+		if (info && info->tcb) {
+			hash = HASH(info->tcb->pid);
+			newtab[hash] = hashtab[i];
+
+		} else {
+			newtab[i] = NULL;
+		}
+	}
+
+	temp = hashtab;
+	hashtab = newtab;
+	kmm_free(temp);
+
+	/* Try again */
+
+	goto retry;
+}
+
 #if defined(CONFIG_SEGGER_SYSVIEW)
 #  include <nuttx/note/note_sysview.h>
 #  ifndef CONFIG_SEGGER_SYSVIEW_PREFIX
@@ -87,6 +183,10 @@ void cpuload_monitor_stop()
 
 void cpuload_initialize_once()
 {
+	/* Initialize hashing */
+
+	init_task_hash();
+
 	for (auto &task : system_load.tasks) {
 		task.valid = false;
 	}
@@ -127,6 +227,8 @@ void sched_note_start(FAR struct tcb_s *tcb)
 				task.tcb = tcb;
 				task.valid = true;
 				system_load.total_count++;
+				// add to the hashlist
+				hash_task_info(&task, tcb->pid);
 				break;
 			}
 		}
@@ -148,6 +250,8 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 				task.curr_start_time = 0;
 				task.tcb = nullptr;
 				system_load.total_count--;
+				// drop from the tasklist
+				drop_task_info(tcb->pid);
 				break;
 			}
 		}
@@ -171,13 +275,13 @@ void sched_note_suspend(FAR struct tcb_s *tcb)
 			}
 		}
 
-		for (auto &task : system_load.tasks) {
-			// Task ending its current scheduling run
-			if (task.valid && (task.curr_start_time > 0)
-			    && task.tcb && task.tcb->pid == tcb->pid) {
+		struct system_load_taskinfo_s *task = get_task_info(tcb->pid);
 
-				task.total_runtime += hrt_elapsed_time(&task.curr_start_time);
-				break;
+		if (task) {
+			// Task ending its current scheduling run
+			if (task->valid && (task->curr_start_time > 0)
+			    && task->tcb && task->tcb->pid == tcb->pid) {
+				task->total_runtime += hrt_elapsed_time(&task->curr_start_time);
 			}
 		}
 	}
@@ -200,12 +304,13 @@ void sched_note_resume(FAR struct tcb_s *tcb)
 			}
 		}
 
-		for (auto &task : system_load.tasks) {
-			if (task.valid && task.tcb && task.tcb->pid == tcb->pid) {
+		struct system_load_taskinfo_s *task = get_task_info(tcb->pid);
+
+		if (task) {
+			if (task->valid && task->tcb && task->tcb->pid == tcb->pid) {
 				// curr_start_time is accessed from an IRQ handler (in logger), so we need
 				// to make the update atomic
-				hrt_store_absolute_time(&task.curr_start_time);
-				break;
+				hrt_store_absolute_time(&task->curr_start_time);
 			}
 		}
 	}
