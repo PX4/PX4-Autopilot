@@ -75,7 +75,6 @@
 #include "streams/ESC_STATUS.hpp"
 #include "streams/ESTIMATOR_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
-#include "streams/FUEL_STATUS.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
 #include "streams/GLOBAL_POSITION_INT.hpp"
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
@@ -124,6 +123,9 @@
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 #include "streams/FIGURE_EIGHT_EXECUTION_STATUS.hpp"
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+#include "streams/FUEL_STATUS.hpp"
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
 
 #ifdef MAVLINK_MSG_ID_AVAILABLE_MODES // Only defined if development.xml is used
 #include "streams/AVAILABLE_MODES.hpp"
