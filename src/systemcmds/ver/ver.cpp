@@ -50,6 +50,9 @@
 #ifndef PX4_BL_VERSION
 #define PX4_BL_VERSION NULL
 #endif
+#ifndef PX4_ACCEL_VERSION
+#define PX4_ACCEL_VERSION NULL
+#endif
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
@@ -234,6 +237,11 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 						printf("Bootloader version: %s\n", bl_version);
 					}
 
+					const char *accel_version = PX4_ACCEL_VERSION;
+
+					if (accel_version) {
+						printf("Accelerator version: %s\n", accel_version);
+					}
 				}
 
 				fwver = px4_firmware_vendor_version();
