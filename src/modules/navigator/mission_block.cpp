@@ -91,6 +91,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_OBLIQUE_SURVEY:
 	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case NAV_CMD_SET_CAMERA_MODE:
+	case NAV_CMD_SET_CAMERA_SOURCE:
 	case NAV_CMD_SET_CAMERA_ZOOM:
 	case NAV_CMD_SET_CAMERA_FOCUS:
 	case NAV_CMD_DO_CHANGE_SPEED:

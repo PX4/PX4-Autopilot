@@ -1414,6 +1414,18 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 
 		break;
 
+	case NAV_CMD_SET_CAMERA_SOURCE:
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
+		break;
+
 	case NAV_CMD_VIDEO_START_CAPTURE:
 	case NAV_CMD_VIDEO_STOP_CAPTURE:
 		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
