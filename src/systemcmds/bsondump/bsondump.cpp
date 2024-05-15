@@ -148,7 +148,7 @@ extern "C" __EXPORT int bsondump_main(int argc, char *argv[])
 		return -1;
 	}
 
-	char *command = argv[1];
+	const char *command = argv[1];
 	char *file_name = argv[3];
 
 	if (strcmp(command, "docsize") == 0) {
