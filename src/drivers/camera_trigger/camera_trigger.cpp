@@ -53,6 +53,7 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/module.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 
