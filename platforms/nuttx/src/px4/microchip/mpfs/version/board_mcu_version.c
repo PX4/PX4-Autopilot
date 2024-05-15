@@ -60,10 +60,7 @@
 
 #define HW_INFO_FPGA_PREFIX          "FPGA: "
 #define HW_INFO_FPGA_SUFFIX          "%u.%u"
-#define HW_INFO_FPGA_VER_DIGITS      3
-#define HW_INFO_FPGA_REV_DIGITS      5
 
-#define HW_INFO_SIZE (int) arraySize(HW_INFO_INIT_PREFIX) + HW_INFO_VER_DIGITS + HW_INFO_REV_DIGITS + sizeof(HW_INFO_FPGA_PREFIX) + HW_INFO_FPGA_VER_DIGITS + HW_INFO_FPGA_REV_DIGITS + 1
 #define FPGA_VER_REGISTER          0x42000000
 #define MPFS_SYS_SERVICE_CR        0x37020050
 #define MPFS_SYS_SERVICE_SR        0x37020054
@@ -86,7 +83,8 @@ static unsigned hw_version = 0;
 static unsigned hw_revision = 0;
 static unsigned fpga_version_major;
 static unsigned fpga_version_minor;
-static char hw_info[HW_INFO_SIZE] = {0};
+static char hw_info[64] = {0};
+static char fpga_info[64] = {0};
 
 static mfguid_t device_serial_number = { 0 };
 
@@ -146,6 +144,11 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 const char *board_bl_version_string(void)
 {
 	return device_boot_info.bl_version;
+}
+
+const char *board_fpga_version_string(void)
+{
+	return fpga_info;
 }
 
 int board_get_px4_guid(px4_guid_t px4_guid)
@@ -291,8 +294,7 @@ int board_determine_hw_info(void)
 
 	determine_hw(fpga_version);
 
-	snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX " " HW_INFO_FPGA_PREFIX HW_INFO_FPGA_SUFFIX,
-		 hw_version, hw_revision, fpga_version_major, fpga_version_minor);
+	snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX, hw_version, hw_revision);
 
 	/* HW version */
 
@@ -324,8 +326,10 @@ int board_determine_hw_info(void)
 
 	/* FPGA version */
 
-	snprintf(ver_str.component_version1, sizeof(ver_str.component_version1),
-		 HW_INFO_FPGA_PREFIX HW_INFO_FPGA_SUFFIX " (0x%x)", fpga_version_major, fpga_version_minor, getreg32(FPGA_VER_REGISTER));
+	snprintf(fpga_info, sizeof(fpga_info),
+		 HW_INFO_FPGA_PREFIX HW_INFO_FPGA_SUFFIX " (0x%04x)", fpga_version_major, fpga_version_minor,
+		 getreg32(FPGA_VER_REGISTER));
+	strncpy(ver_str.component_version1, fpga_info, min(sizeof(ver_str.component_version1), sizeof(fpga_info)));
 	ver.component_version1 = fpga_version;
 
 	/* Make local copies of guid and hwinfo */
