@@ -169,9 +169,12 @@ include(px4_add_module)
 set(config_module_list)
 set(config_kernel_list)
 
+## update the environment with VIRTUAL_ENV variable (mimic the activate script)
+set (ENV{VIRTUAL_ENV} venv)
+## change the context of the search
+set (Python3_FIND_VIRTUALENV ONLY)
 # Find Python3
-set (Python3_FIND_VIRTUALENV "ONLY")
-find_package(Python3 COMPONENTS Interpreter Development)
+find_package(Python3 COMPONENTS Interpreter)
 # We have a custom error message to tell users how to install python3.
 if(NOT Python3_FOUND)
     message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
@@ -179,6 +182,7 @@ if(NOT Python3_FOUND)
         "    macOS: brew install python")
 endif()
 
+## Launch a new search
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
     message(STATUS "python coverage enabled")
