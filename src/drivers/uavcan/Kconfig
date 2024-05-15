@@ -54,6 +54,10 @@ if DRIVERS_UAVCAN
         bool "Subscribe to Flow:                        com::hex::equipment::flow::Measurement"
         default y
 
+    config UAVCAN_SENSOR_FUEL_TANK_STATUS
+        bool "Subscribe to Fuel Tank Status:            uavcan::equipment::ice::FuelTankStatus"
+        default y
+
     config UAVCAN_SENSOR_GNSS
         bool "Subscribe to GPS:                         uavcan::equipment::gnss::Auxiliary | uavcan::equipment::gnss::Fix | uavcan::equipment::gnss::Fix2"
         default y
