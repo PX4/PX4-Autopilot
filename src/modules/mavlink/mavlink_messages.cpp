@@ -75,6 +75,7 @@
 #include "streams/ESC_STATUS.hpp"
 #include "streams/ESTIMATOR_STATUS.hpp"
 #include "streams/EXTENDED_SYS_STATE.hpp"
+#include "streams/FUEL_STATUS.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
 #include "streams/GLOBAL_POSITION_INT.hpp"
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
@@ -469,6 +470,9 @@ static const StreamListItem streams_list[] = {
 #if defined(FLIGHT_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamFlightInformation>(),
 #endif // FLIGHT_INFORMATION_HPP
+#if defined(FUEL_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamFuelStatus>(),
+#endif // FUEL_STATUS_HPP
 #if defined(GPS_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamGPSStatus>(),
 #endif // GPS_STATUS_HPP

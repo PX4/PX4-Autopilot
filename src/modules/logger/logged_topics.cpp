@@ -71,6 +71,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target_status", 400);
 	add_optional_topic("flaps_setpoint", 1000);
 	add_optional_topic("flight_phase_estimation", 1000);
+	add_optional_topic("fuel_tank_status", 10);
 	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
