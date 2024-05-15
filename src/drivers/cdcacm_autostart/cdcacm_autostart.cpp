@@ -210,7 +210,7 @@ void CdcAcmAutostart::state_connecting()
 	}
 
 	if (_sys_usb_auto.get() == 2) {
-		PX4_INFO("Starting mavlink on %s (MAV_USB_ENABLE=1)", USB_DEVICE_PATH);
+		PX4_INFO("Starting mavlink on %s (SYS_USB_AUTO=2)", USB_DEVICE_PATH);
 
 		if (start_mavlink()) {
 			_state = UsbAutoStartState::connected;
@@ -222,6 +222,7 @@ void CdcAcmAutostart::state_connecting()
 		}
 
 		return;
+
 	} else if (_sys_usb_auto.get() == 0) {
 		// Do nothing
 		_state = UsbAutoStartState::connected;
@@ -639,8 +640,8 @@ int CdcAcmAutostart::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 This module listens on USB and auto-configures the protocol depending on the bytes received.
-The supported protocols are: MAVLink, nsh, and ublox serial passthrough. If the parameter MAV_USB_ENABLE in
-set the module will only try to start mavlink as long as the USB VBUS is detected. Otherwise it will spin
+The supported protocols are: MAVLink, nsh, and ublox serial passthrough. If the parameter SYS_USB_AUTO=2
+the module will only try to start mavlink as long as the USB VBUS is detected. Otherwise it will spin
 and continue to check for VBUS and start mavlink once it is detected.
 )DESCR_STR");
 
