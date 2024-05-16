@@ -150,34 +150,29 @@ void Ekf::controlMagFusion()
 				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) // don't allow starting on same frame as yaw reset
 				&& isNewestSampleRecent(_time_last_mag_buffer_push, MAG_MAX_INTERVAL);
 
-
 		checkMagHeadingConsistency(mag_sample);
 
 		// WMM update can occur on the last epoch, just after mag fusion
 		const bool wmm_updated = (_wmm_gps_time_last_set >= aid_src.time_last_fuse);
 
-
-		// For the first few seconds after in-flight alignment we allow the magnetic field state estimates to stabilise
-		// before they are used to constrain heading drift
-		_control_status.flags.mag_3D = (_params.mag_fusion_type == MagFuseType::AUTO)
-					       && _control_status.flags.mag
-					       && _control_status.flags.mag_aligned_in_flight
-					       && (_control_status.flags.mag_heading_consistent || !_control_status.flags.gps)
-					       && !_control_status.flags.mag_fault
-					       && !_control_status.flags.ev_yaw
-					       && !_control_status.flags.gps_yaw;
-
+		{
 		const bool mag_consistent_or_no_gnss = _control_status.flags.mag_heading_consistent || !_control_status.flags.gps;
+		const bool common_conditions_passing = _control_status.flags.mag
+						       && ((_control_status.flags.yaw_align && mag_consistent_or_no_gnss)
+						           || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
+						       && !_control_status.flags.mag_fault
+						       && !_control_status.flags.mag_field_disturbed
+						       && !_control_status.flags.ev_yaw
+						       && !_control_status.flags.gps_yaw;
 
-		_control_status.flags.mag_hdg = ((_params.mag_fusion_type == MagFuseType::HEADING)
-						 || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D))
-						&& _control_status.flags.mag
-						&& ((_control_status.flags.yaw_align && mag_consistent_or_no_gnss)
-						    || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
-						&& !_control_status.flags.mag_fault
-						&& !_control_status.flags.mag_field_disturbed
-						&& !_control_status.flags.ev_yaw
-						&& !_control_status.flags.gps_yaw;
+		_control_status.flags.mag_3D = common_conditions_passing
+					       && (_params.mag_fusion_type == MagFuseType::AUTO)
+					       && _control_status.flags.mag_aligned_in_flight;
+
+		_control_status.flags.mag_hdg = common_conditions_passing
+						&& ((_params.mag_fusion_type == MagFuseType::HEADING)
+						    || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
+		}
 
 		// TODO: allow clearing mag_fault if mag_3d is good?
 
