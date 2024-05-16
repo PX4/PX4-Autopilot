@@ -27,6 +27,8 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: check environment
       run: |

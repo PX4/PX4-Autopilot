@@ -28,7 +28,7 @@ jobs:
       with:
         token: ${{secrets.ACCESS_TOKEN}}
     - name: ownership workaround
-      run: git config --system --add safe.directory '*'
+      run: git config --global --add safe.directory '*'
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
       shell: cmake -P {0}
