@@ -70,13 +70,11 @@ void UavcanFuelTankStatusBridge::fuel_tank_status_sub_cb(const
 	// Fetching maximum fuel capacity (in liters) from a parameter
 	param_get(param_find("UAVCAN_ECU_MAXF"), &_max_fuel_capacity);
 
-	_max_fuel_capacity *= 1000.0f;
+	_max_fuel_capacity *= 1000.0f; // convert to ml
 	report.maximum_fuel_capacity = _max_fuel_capacity;
 	report.fuel_type = fuel_tank_status_s::MAV_FUEL_TYPE_LIQUID;
 
-	// Calculating consumed fuel based on available fuel
-	report.consumed_fuel = (_max_fuel_capacity > msg.available_fuel_volume_cm3) ? _max_fuel_capacity -
-			       msg.available_fuel_volume_cm3 : NAN;
+	report.consumed_fuel = NAN; // only the remaining fuel is measured
 	report.fuel_consumption_rate = msg.fuel_consumption_rate_cm3pm / 60.0f; // convert to ml/s
 	report.percent_remaining = msg.available_fuel_volume_percent;
 	report.remaining_fuel = msg.available_fuel_volume_cm3;
