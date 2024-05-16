@@ -142,6 +142,36 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 							     power_module_count, _param_com_power_count.get());
 				}
 			}
+
+			// Overcurrent detection
+			if (system_power.hipower_5v_oc) {
+				/* EVENT
+				 * @description
+				 * Check the power supply
+				 */
+				reporter.healthFailure(NavModes::All, health_component_t::system,
+						       events::ID("check_power_oc_hipower"),
+						       events::Log::Error, "Overcurrent detected for the hipower 5V supply");
+			}
+
+			if (system_power.periph_5v_oc) {
+				/* EVENT
+				 * @description
+				 * Check the power supply
+				 */
+				reporter.healthFailure(NavModes::All, health_component_t::system,
+						       events::ID("check_power_oc_periph"),
+						       events::Log::Error, "Overcurrent detected for the peripheral 5V supply");
+			}
+
+			if (system_power.hipower_5v_oc || system_power.periph_5v_oc) {
+				if (context.isArmed() && !_overcurrent_warning_sent) {
+					_overcurrent_warning_sent = true;
+					events::send(events::ID("check_power_oc_report"),
+						     events::Log::Error,
+						     "5V overcurrent detected, landing advised");
+				}
+			}
 		}
 
 	} else {
