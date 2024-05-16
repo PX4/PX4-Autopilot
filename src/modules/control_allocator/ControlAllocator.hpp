@@ -44,6 +44,7 @@
 #include <ActuatorEffectiveness.hpp>
 #include <ActuatorEffectivenessMultirotor.hpp>
 #include <ActuatorEffectivenessStandardVTOL.hpp>
+#include <ActuatorEffectivenessSpacecraft.hpp>
 #include <ActuatorEffectivenessTiltrotorVTOL.hpp>
 #include <ActuatorEffectivenessTailsitterVTOL.hpp>
 #include <ActuatorEffectivenessRoverAckermann.hpp>
@@ -86,6 +87,7 @@ public:
 	static constexpr int NUM_AXES = ControlAllocation::NUM_AXES;
 
 	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
+	static constexpr int MAX_NUM_THRUSTERS = actuator_motors_s::NUM_CONTROLS;
 	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
@@ -158,6 +160,8 @@ private:
 		HELICOPTER_TAIL_ESC = 10,
 		HELICOPTER_TAIL_SERVO = 11,
 		HELICOPTER_COAXIAL = 12,
+		SPACECRAFT_2D = 13,
+		SPACECRAFT_3D = 14,
 	};
 
 	enum class FailureMode {
