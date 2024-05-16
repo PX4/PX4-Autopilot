@@ -31,8 +31,7 @@ parameters:
                 10: Helicopter (tail ESC)
                 11: Helicopter (tail Servo)
                 12: Helicopter (Coaxial)
-                13: Spacecraft 2D
-                14: Spacecraft 3D
+                13: Spacecraft
             default: 0
 
         CA_METHOD:
@@ -1252,9 +1251,9 @@ mixer:
                       - label: 'Throttle spoolup time'
                         name: COM_SPOOLUP_TIME
 
-            13: # Spacecraft 2D
-                type: 'spacecraft_2d'
-                title: 'Spacecraft 2D'
+            13: # Spacecraft
+                type: 'spacecraft'
+                title: 'Spacecraft'
                 actuators:
                   - actuator_type: 'thruster'
                     count: 'CA_THRUSTER_CNT'  # count would be too long for 16 max size
@@ -1275,24 +1274,3 @@ mixer:
                             function: 'axisz'
                             advanced: true
 
-            14: # Sapcecraft 3D
-                title: 'Spacecraft 3D'
-                actuators:
-                  - actuator_type: 'thruster'
-                    count: 'CA_THRUSTER_CNT'
-                    per_item_parameters:
-                        standard:
-                            position: [ 'CA_THRUSTER${i}_PX', 'CA_THRUSTER${i}_PY', 'CA_THRUSTER${i}_PZ' ]
-                        extra:
-                          - name: 'CA_THRUSTER${i}_AX'
-                            label: 'Axis X'
-                            function: 'axisx'
-                            advanced: true
-                          - name: 'CA_THRUSTER${i}_AY'
-                            label: 'Axis Y'
-                            function: 'axisy'
-                            advanced: true
-                          - name: 'CA_THRUSTER${i}_AZ'
-                            label: 'Axis Z'
-                            function: 'axisz'
-                            advanced: true

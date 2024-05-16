@@ -270,11 +270,7 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
 			break;
 
-		case EffectivenessSource::SPACECRAFT_2D:
-			tmp = new ActuatorEffectivenessSpacecraft(this);
-			break;
-
-		case EffectivenessSource::SPACECRAFT_3D:
+		case EffectivenessSource::SPACECRAFT:
 			tmp = new ActuatorEffectivenessSpacecraft(this);
 			break;
 
