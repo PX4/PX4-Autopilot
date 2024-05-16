@@ -103,30 +103,34 @@ static constexpr float get_table_data(float lat, float lon, const int16_t table[
 
 float get_mag_declination_radians(float lat, float lon)
 {
-	return get_table_data(lat, lon, declination_table) * 1e-4f; // declination table stored as 10^-4 radians
+	return math::radians(get_mag_declination_degrees(lat, lon));
 }
 
 float get_mag_declination_degrees(float lat, float lon)
 {
-	return math::degrees(get_mag_declination_radians(lat, lon));
+	// table stored as scaled degrees
+	return get_table_data(lat, lon, declination_table) * WMM_DECLINATION_SCALE_TO_DEGREES;
 }
 
 float get_mag_inclination_radians(float lat, float lon)
 {
-	return get_table_data(lat, lon, inclination_table) * 1e-4f; // inclination table stored as 10^-4 radians
+	return math::radians(get_mag_inclination_degrees(lat, lon));
 }
 
 float get_mag_inclination_degrees(float lat, float lon)
 {
-	return math::degrees(get_mag_inclination_radians(lat, lon));
+	// table stored as scaled degrees
+	return get_table_data(lat, lon, inclination_table) * WMM_INCLINATION_SCALE_TO_DEGREES;
 }
 
 float get_mag_strength_gauss(float lat, float lon)
 {
-	return get_table_data(lat, lon, strength_table) * 1e-4f; // strength table table stored as milli-Gauss * 10
+	// 1 Gauss = 1e4 Tesla
+	return get_mag_strength_tesla(lat, lon) * 1e4f;
 }
 
 float get_mag_strength_tesla(float lat, float lon)
 {
-	return get_mag_strength_gauss(lat, lon) * 1e-4f; // 1 Gauss == 0.0001 Tesla
+	// table stored as scaled nanotesla
+	return get_table_data(lat, lon, totalintensity_table) * WMM_TOTALINTENSITY_SCALE_TO_NANOTESLA * 1e-9f;
 }
