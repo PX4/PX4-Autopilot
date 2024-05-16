@@ -519,19 +519,19 @@ bool BMI088_Accelerometer::SimpleFIFORead(const hrt_abstime &timestamp_sample)
 					int16_t(uint16_t(d[4] | (d[5] << 8)))
 				};
 
-				if(xyz[0] == INT16_MIN) {
+				if (xyz[0] == INT16_MIN) {
 					PX4_WARN("accel.x == INT16_MIN");
 				}
 
-				if(xyz[1] == INT16_MIN) {
+				if (xyz[1] == INT16_MIN) {
 					PX4_WARN("accel.y == INT16_MIN");
 				}
 
-				if(xyz[2] == INT16_MIN) {
+				if (xyz[2] == INT16_MIN) {
 					PX4_WARN("accel.z == INT16_MIN");
 				}
 
-				if(xyz[0] == INT16_MIN || xyz[1] == INT16_MIN || xyz[2] == INT16_MIN) {
+				if (xyz[0] == INT16_MIN || xyz[1] == INT16_MIN || xyz[2] == INT16_MIN) {
 					PX4_WARN("Accel: INT16_MIN frame rejected");
 					perf_count(_bad_transfer_perf);
 					continue;
@@ -913,19 +913,19 @@ bool BMI088_Accelerometer::NormalRead(const hrt_abstime &timestamp_sample)
 	const int16_t accel_y = combine(RATE_Y_MSB, RATE_Y_LSB);
 	const int16_t accel_z = combine(RATE_Z_MSB, RATE_Z_LSB);
 
-	if(accel_x == INT16_MIN) {
+	if (accel_x == INT16_MIN) {
 		PX4_WARN("accel_x == INT16_MIN");
 	}
 
-	if(accel_y == INT16_MIN) {
+	if (accel_y == INT16_MIN) {
 		PX4_WARN("accel_y == INT16_MIN");
 	}
 
-	if(accel_z == INT16_MIN) {
+	if (accel_z == INT16_MIN) {
 		PX4_WARN("accel_z == INT16_MIN");
 	}
 
-	if(accel_x == INT16_MIN || accel_y == INT16_MIN || accel_z == INT16_MIN) {
+	if (accel_x == INT16_MIN || accel_y == INT16_MIN || accel_z == INT16_MIN) {
 		PX4_WARN("Accel: INT16_MIN frame rejected");
 		perf_count(_bad_transfer_perf);
 		return false;

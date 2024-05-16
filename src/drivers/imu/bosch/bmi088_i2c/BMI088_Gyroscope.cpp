@@ -433,7 +433,7 @@ bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample)
 	uint8_t buffer[6] = {0};
 	uint8_t cmd[1] = {static_cast<uint8_t>(Register::READ_GYRO)};
 
-	if(transfer(&cmd[0], 1, &buffer[0], 6) != PX4_OK) {
+	if (transfer(&cmd[0], 1, &buffer[0], 6) != PX4_OK) {
 		PX4_WARN("transfer(&data[0], 1, &data[0], n_frames) != PX4_OK");
 		perf_count(_bad_transfer_perf);
 		return false;
@@ -450,19 +450,19 @@ bool BMI088_Gyroscope::NormalRead(const hrt_abstime &timestamp_sample)
 	const int16_t gyro_y = combine(RATE_Y_MSB, RATE_Y_LSB);
 	const int16_t gyro_z = combine(RATE_Z_MSB, RATE_Z_LSB);
 
-	if(gyro_x == INT16_MIN) {
+	if (gyro_x == INT16_MIN) {
 		PX4_WARN("gyro_x == INT16_MIN");
 	}
 
-	if(gyro_y == INT16_MIN) {
+	if (gyro_y == INT16_MIN) {
 		PX4_WARN("gyro_y == INT16_MIN");
 	}
 
-	if(gyro_z == INT16_MIN) {
+	if (gyro_z == INT16_MIN) {
 		PX4_WARN("gyro_z == INT16_MIN");
 	}
 
-	if(gyro_x == INT16_MIN || gyro_y == INT16_MIN || gyro_z == INT16_MIN) {
+	if (gyro_x == INT16_MIN || gyro_y == INT16_MIN || gyro_z == INT16_MIN) {
 		PX4_WARN("Gyro:NormalRead(): INT16_MIN frame rejected");
 		perf_count(_bad_transfer_perf);
 		return false;
