@@ -103,12 +103,12 @@ def run(logfile, use_gnss):
 
             P += Q * dt
 
-            if t_true_airspeed[i_airspeed] < t_now:
+            if i_airspeed < len(t_true_airspeed) and t_true_airspeed[i_airspeed] < t_now:
                 while i_airspeed < len(t_true_airspeed) and t_true_airspeed[i_airspeed] < t_now:
                     i_airspeed += 1
                 i_airspeed -= 1
 
-                (H, K, innov_var, innov) = fuse_airspeed(np.asarray(v_local[:,i]), state, P.flatten(), true_airspeed[i_airspeed], R, epsilon)
+                (H, K, innov_var, innov) = fuse_airspeed(np.asarray(v_local[:,i]), state, P, true_airspeed[i_airspeed], R, epsilon)
                 state += np.array(K) * innov
                 P -= K * H * P
                 i_airspeed += 1
