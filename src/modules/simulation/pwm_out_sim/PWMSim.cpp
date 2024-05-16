@@ -73,7 +73,8 @@ bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], un
 				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax)
 				    && !is_reversible) {
 					// Scale non-reversible motors to [0, 1]
-					actuator_outputs.output[i] = (output - _mixing_output.minValue(i)) / (_mixing_output.maxValue(i) - _mixing_output.minValue(i) );
+					actuator_outputs.output[i] = (output - _mixing_output.minValue(i)) / (_mixing_output.maxValue(
+									     i) - _mixing_output.minValue(i));
 
 				} else {
 					// Scale everything else to [-1, 1]
