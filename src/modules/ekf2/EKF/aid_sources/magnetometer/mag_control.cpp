@@ -121,11 +121,6 @@ void Ekf::controlMagFusion()
 		VectorState H;
 		sym::ComputeMagInnovInnovVarAndHx(_state.vector(), P, mag_sample.mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
 
-		// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
-		if (_control_status.flags.synthetic_mag_z) {
-			mag_innov(2) = 0.0f;
-		}
-
 		for (int i = 0; i < 3; i++) {
 			aid_src.observation[i] = mag_sample.mag(i);
 			aid_src.observation_variance[i] = R_MAG;
