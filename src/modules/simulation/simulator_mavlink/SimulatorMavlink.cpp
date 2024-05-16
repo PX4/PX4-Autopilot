@@ -95,14 +95,6 @@ SimulatorMavlink::SimulatorMavlink() :
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
 		param_get(param_find(param_name), &_output_functions[i]);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "DIS", i + 1);
-		param_get(param_find(param_name), &_output_pwm_disabled[i]);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "MIN", i + 1);
-		param_get(param_find(param_name), &_output_pwm_min[i]);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "MAX", i + 1);
-		param_get(param_find(param_name), &_output_pwm_max[i]);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FAIL", i + 1);
-		param_get(param_find(param_name), &_output_pwm_failsafe[i]);
 	}
 
 	_esc_status_pub.advertise();
