@@ -54,7 +54,7 @@ def getData(log, topic_name, variable_name, instance=0):
 def us2s(time_ms):
     return time_ms * 1e-6
 
-def run(logfile, use_gnss):
+def run(logfile, use_gnss, scale_init):
     log = ULog(logfile)
 
     if use_gnss:
@@ -75,7 +75,10 @@ def run(logfile, use_gnss):
     dist_bottom = getData(log, 'vehicle_local_position', 'dist_bottom')
     t_dist_bottom = us2s(getData(log, 'vehicle_local_position', 'timestamp'))
 
-    state = np.array([0.0, 0.0, 1.0])
+    if scale_init is None:
+        scale_init = 1.0
+
+    state = np.array([0.0, 0.0, scale_init])
     P = np.diag([1.0, 1.0, 1e-4])
     wind_nsd = 1e-2
     scale_nsd = 1e-4
@@ -145,8 +148,9 @@ if __name__ == '__main__':
     parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
     parser.add_argument('--gnss', help='Use GNSS velocity instead of local velocity estimate',
                         action='store_true')
+    parser.add_argument('--scale_init', help='Initial airsped scale factor (1.0 if not specified)', type=float)
     args = parser.parse_args()
 
     logfile = os.path.abspath(args.logfile) # Convert to absolute path
 
-    run(logfile, args.gnss)
+    run(logfile, args.gnss, args.scale_init)
