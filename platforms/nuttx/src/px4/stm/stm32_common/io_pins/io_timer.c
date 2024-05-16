@@ -194,36 +194,73 @@ static int io_timer_handler(uint16_t timer_index)
 
 	/* Iterate over the timer_io_channels table */
 
-	uint32_t first_channel_index = io_timers_channel_mapping.element[timer_index].first_channel_index;
-	uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer_index].channel_count;
+	if (!io_timers_channel_mapping.channel_non_continuous_flg) {
 
-	for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
+		uint32_t first_channel_index = io_timers_channel_mapping.element[timer_index].first_channel_index;
+		uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer_index].channel_count;
 
-		uint16_t masks = timer_io_channels[chan_index].masks;
+		for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
 
-		/* Do we have an enabled channel */
+			uint16_t masks = timer_io_channels[chan_index].masks;
 
-		if (enabled & masks) {
+			/* Do we have an enabled channel */
+
+			if (enabled & masks) {
 
 
-			if (statusr & masks & GTIM_SR_CCIF) {
+				if (statusr & masks & GTIM_SR_CCIF) {
 
-				io_timer_channel_stats[chan_index].isr_cout++;
+					io_timer_channel_stats[chan_index].isr_cout++;
 
-				/* Call the client to read the CCxR etc and clear the CCxIF */
+					/* Call the client to read the CCxR etc and clear the CCxIF */
 
-				if (channel_handlers[chan_index].callback) {
-					channel_handlers[chan_index].callback(channel_handlers[chan_index].context, tmr,
-									      chan_index, &timer_io_channels[chan_index],
-									      now, count);
+					if (channel_handlers[chan_index].callback) {
+						channel_handlers[chan_index].callback(channel_handlers[chan_index].context, tmr,
+										      chan_index, &timer_io_channels[chan_index],
+										      now, count);
+					}
+				}
+
+				if (statusr & masks & GTIM_SR_CCOF) {
+
+					/* Error we has a second edge before we cleared CCxR */
+
+					io_timer_channel_stats[chan_index].overflows++;
 				}
 			}
+		}
 
-			if (statusr & masks & GTIM_SR_CCOF) {
+	} else {
 
-				/* Error we has a second edge before we cleared CCxR */
+		for (unsigned i = 0; i < io_timers_channel_mapping.element[timer_index].channel_count; i++) {
 
-				io_timer_channel_stats[chan_index].overflows++;
+			unsigned chan_index = io_timers_channel_mapping.element[timer_index].channel_index[i];
+			uint16_t masks = timer_io_channels[chan_index].masks;
+
+			/* Do we have an enabled channel */
+
+			if (enabled & masks) {
+
+
+				if (statusr & masks & GTIM_SR_CCIF) {
+
+					io_timer_channel_stats[chan_index].isr_cout++;
+
+					/* Call the client to read the CCxR etc and clear the CCxIF */
+
+					if (channel_handlers[chan_index].callback) {
+						channel_handlers[chan_index].callback(channel_handlers[chan_index].context, tmr,
+										      chan_index, &timer_io_channels[chan_index],
+										      now, count);
+					}
+				}
+
+				if (statusr & masks & GTIM_SR_CCOF) {
+
+					/* Error we has a second edge before we cleared CCxR */
+
+					io_timer_channel_stats[chan_index].overflows++;
+				}
 			}
 		}
 	}
@@ -327,11 +364,20 @@ static uint32_t get_timer_channels(unsigned timer)
 		if (channels_cache[timer] == 0) {
 			/* Gather the channel bits that belong to the timer */
 
-			uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
-			uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
+			if (!io_timers_channel_mapping.channel_non_continuous_flg) {
+				uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
+				uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
 
-			for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
-				channels |= 1 << chan_index;
+				for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
+					channels |= 1 << chan_index;
+				}
+
+			} else {
+				for (unsigned i = 0; i < io_timers_channel_mapping.element[timer].channel_count; i++) {
+
+					unsigned chan_index = io_timers_channel_mapping.element[timer].channel_index[i];
+					channels |= 1 << chan_index;
+				}
 			}
 
 			/* cache them */
@@ -547,12 +593,26 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 
 		// find the lowest channel index for the timer (they are not necesarily in ascending order)
 		unsigned lowest_timer_channel = 4;
-		uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
-		uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
 
-		for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
-			if (timer_io_channels[chan_index].timer_channel < lowest_timer_channel) {
-				lowest_timer_channel = timer_io_channels[chan_index].timer_channel;
+		if (!io_timers_channel_mapping.channel_non_continuous_flg) {
+			uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
+			uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
+
+			for (unsigned chan_index = first_channel_index; chan_index < last_channel_index; chan_index++) {
+				if (timer_io_channels[chan_index].timer_channel < lowest_timer_channel) {
+					lowest_timer_channel = timer_io_channels[chan_index].timer_channel;
+				}
+			}
+
+		} else {
+			for (unsigned i = 0; i < io_timers_channel_mapping.element[timer].channel_count; i++) {
+
+				unsigned chan_index = io_timers_channel_mapping.element[timer].channel_index[i];
+				unsigned channel = timer_io_channels[chan_index].timer_channel;
+
+				if (channel < lowest_timer_channel) {
+					lowest_timer_channel = channel;
+				}
 			}
 		}
 

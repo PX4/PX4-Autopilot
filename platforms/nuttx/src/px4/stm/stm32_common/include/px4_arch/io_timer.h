@@ -107,11 +107,13 @@ typedef struct io_timers_channel_mapping_element_t {
 	uint32_t channel_count;
 	uint32_t lowest_timer_channel;
 	uint32_t channel_count_including_gaps;
+	uint8_t  channel_index[4];	// Index of channels per timer
 } io_timers_channel_mapping_element_t;
 
 /* mapping for each io_timers to timer_io_channels */
 typedef struct io_timers_channel_mapping_t {
 	io_timers_channel_mapping_element_t element[MAX_IO_TIMERS];
+	uint8_t  channel_non_continuous_flg;    // channel number non-continuous flag
 } io_timers_channel_mapping_t;
 
 /* array of channels in logical order */

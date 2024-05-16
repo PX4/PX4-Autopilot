@@ -49,6 +49,7 @@ static inline constexpr io_timers_channel_mapping_t initIOTimerChannelMapping(co
 		const timer_io_channels_t timer_io_channels_conf[MAX_TIMER_IO_CHANNELS])
 {
 	io_timers_channel_mapping_t ret{};
+	ret.channel_non_continuous_flg = 0;
 
 	// requirement: channels of the same timer must be grouped together, but the ordering does not matter
 
@@ -95,6 +96,66 @@ static inline constexpr io_timers_channel_mapping_t initIOTimerChannelMapping(co
 			ret.element[i].channel_count_including_gaps = max_timer_channel - min_timer_channel + 1;
 		}
 
+		ret.element[i].first_channel_index = first_channel;
+		ret.element[i].channel_count = channel_count;
+	}
+
+	// validate that the number of configured channels matches DIRECT_PWM_OUTPUT_CHANNELS
+	uint32_t num_channels = 0;
+
+	while (num_channels < MAX_TIMER_IO_CHANNELS &&
+	       (timer_io_channels_conf[num_channels].gpio_in != 0 || timer_io_channels_conf[num_channels].gpio_out != 0)) {
+		++num_channels;
+	}
+
+	constexpr_assert(DIRECT_PWM_OUTPUT_CHANNELS == num_channels, "DIRECT_PWM_OUTPUT_CHANNELS misconfigured");
+	constexpr_assert(DIRECT_PWM_OUTPUT_CHANNELS <= MAX_TIMER_IO_CHANNELS,
+			 "DIRECT_PWM_OUTPUT_CHANNELS > MAX_TIMER_IO_CHANNELS");
+
+	return ret;
+}
+
+static inline constexpr io_timers_channel_mapping_t initIOTimerChannelMappingNonContinuous(const io_timers_t
+		io_timers_conf[MAX_IO_TIMERS],
+		const timer_io_channels_t timer_io_channels_conf[MAX_TIMER_IO_CHANNELS])
+{
+	io_timers_channel_mapping_t ret{};
+	ret.channel_non_continuous_flg = 1;
+
+	// requirement: channels of the same timer must be grouped together, but the ordering does not matter
+
+	for (unsigned i = 0; i < MAX_IO_TIMERS; ++i) {
+		if (io_timers_conf[i].base == 0) {
+			break;
+		}
+
+		uint32_t first_channel = 0;
+		uint32_t min_timer_channel = UINT32_MAX;
+		uint32_t max_timer_channel = 0;
+		uint32_t channel_count = 0;
+
+		for (uint32_t channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
+			if (timer_io_channels_conf[channel].gpio_in == 0 && timer_io_channels_conf[channel].gpio_out == 0) {
+				break;
+			}
+
+			if (timer_io_channels_conf[channel].timer_index == i) {
+				ret.element[i].channel_index[channel_count] = channel;
+
+				++channel_count;
+
+				if (timer_io_channels_conf[channel].timer_channel < min_timer_channel) {
+					min_timer_channel = timer_io_channels_conf[channel].timer_channel;
+				}
+
+				if (timer_io_channels_conf[channel].timer_channel > max_timer_channel) {
+					max_timer_channel = timer_io_channels_conf[channel].timer_channel;
+				}
+			}
+		}
+
+		ret.element[i].lowest_timer_channel = min_timer_channel;
+		ret.element[i].channel_count_including_gaps = max_timer_channel - min_timer_channel + 1;
 		ret.element[i].first_channel_index = first_channel;
 		ret.element[i].channel_count = channel_count;
 	}
