@@ -44,10 +44,10 @@
 PWMSim::PWMSim(bool hil_mode_enabled) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	_mixing_output.setAllDisarmedValues(PWM_SIM_DISARMED_MAGIC);
-	_mixing_output.setAllFailsafeValues(PWM_SIM_FAILSAFE_MAGIC);
-	_mixing_output.setAllMinValues(PWM_SIM_PWM_MIN_MAGIC);
-	_mixing_output.setAllMaxValues(PWM_SIM_PWM_MAX_MAGIC);
+	// _mixing_output.setAllDisarmedValues(PWM_SIM_DISARMED_MAGIC);
+	// _mixing_output.setAllFailsafeValues(PWM_SIM_FAILSAFE_MAGIC);
+	// _mixing_output.setAllMinValues(PWM_SIM_PWM_MIN_MAGIC);
+	// _mixing_output.setAllMaxValues(PWM_SIM_PWM_MAX_MAGIC);
 
 	_mixing_output.setIgnoreLockdown(hil_mode_enabled);
 }

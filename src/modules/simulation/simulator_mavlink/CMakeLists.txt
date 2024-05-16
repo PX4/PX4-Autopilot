@@ -53,6 +53,7 @@ px4_add_module(
 		drivers_accelerometer
 		drivers_gyroscope
 		drivers_magnetometer
+		mixer_module
 	)
 
 include(sitl_targets_flightgear.cmake)

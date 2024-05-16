@@ -306,6 +306,10 @@ private:
 	float _last_baro_temperature{0.0f};
 
 	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
+	int32_t _output_pwm_disabled[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
+	int32_t _output_pwm_failsafe[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
+	int32_t _output_pwm_min[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
+	int32_t _output_pwm_max[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
