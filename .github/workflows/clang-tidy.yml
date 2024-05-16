@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-clang:2021-09-08
+    container: px4io/px4-dev-clang:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:

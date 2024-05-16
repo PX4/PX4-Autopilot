@@ -11,7 +11,7 @@ jobs:
 
   airframe:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-focal:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
@@ -37,7 +37,7 @@ jobs:
 
   module:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
@@ -52,7 +52,7 @@ jobs:
 
   parameter:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
@@ -76,7 +76,7 @@ jobs:
 
   events:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
@@ -103,7 +103,7 @@ jobs:
 
   uorb_graph:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2022-08-12
+    container: px4io/px4-dev-nuttx-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
@@ -118,7 +118,7 @@ jobs:
 
   ROS2_msgs:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:

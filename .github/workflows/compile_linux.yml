@@ -14,7 +14,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-armhf:2023-06-26
+    container: px4io/px4-dev-armhf:2024-05-18
     strategy:
       matrix:
         config: [

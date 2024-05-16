@@ -10,7 +10,7 @@ on:
 jobs:
   enumerate_targets:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
