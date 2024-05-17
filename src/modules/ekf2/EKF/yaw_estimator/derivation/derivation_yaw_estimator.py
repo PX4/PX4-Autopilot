@@ -171,5 +171,5 @@ def yaw_est_compute_measurement_update(
     return (S_inv, S_det_inv, K, P_new)
 
 print("Derive yaw estimator equations...")
-derivation_utils.generate_px4_function(yaw_est_predict_covariance, output_names=["P_new"])
+derivation_utils.generate_px4_function(yaw_est_predict_covariance, output_names=None)
 derivation_utils.generate_px4_function(yaw_est_compute_measurement_update, output_names=["S_inv", "S_det_inv", "K", "P_new"])
