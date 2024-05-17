@@ -236,57 +236,16 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   // Output terms (1)
   matrix::Matrix<Scalar, 23, 23> _res;
 
+  _res.setZero();
+
   _res(0, 0) = std::pow(_tmp15, Scalar(2)) * gyro_var + _tmp15 * _tmp27 + _tmp18 * _tmp26 +
                std::pow(_tmp23, Scalar(2)) * gyro_var + _tmp23 * _tmp25 + _tmp24 * _tmp6 +
                std::pow(_tmp6, Scalar(2)) * gyro_var;
-  _res(1, 0) = 0;
-  _res(2, 0) = 0;
-  _res(3, 0) = 0;
-  _res(4, 0) = 0;
-  _res(5, 0) = 0;
-  _res(6, 0) = 0;
-  _res(7, 0) = 0;
-  _res(8, 0) = 0;
-  _res(9, 0) = 0;
-  _res(10, 0) = 0;
-  _res(11, 0) = 0;
-  _res(12, 0) = 0;
-  _res(13, 0) = 0;
-  _res(14, 0) = 0;
-  _res(15, 0) = 0;
-  _res(16, 0) = 0;
-  _res(17, 0) = 0;
-  _res(18, 0) = 0;
-  _res(19, 0) = 0;
-  _res(20, 0) = 0;
-  _res(21, 0) = 0;
-  _res(22, 0) = 0;
   _res(0, 1) = _tmp15 * _tmp38 + _tmp18 * _tmp35 + _tmp24 * _tmp34 + _tmp25 * _tmp29 +
                _tmp27 * _tmp36 + _tmp29 * _tmp37 + _tmp34 * _tmp39;
   _res(1, 1) = _tmp18 * _tmp43 + std::pow(_tmp29, Scalar(2)) * gyro_var + _tmp29 * _tmp40 +
                std::pow(_tmp34, Scalar(2)) * gyro_var + _tmp34 * _tmp41 +
                std::pow(_tmp36, Scalar(2)) * gyro_var + _tmp36 * _tmp42;
-  _res(2, 1) = 0;
-  _res(3, 1) = 0;
-  _res(4, 1) = 0;
-  _res(5, 1) = 0;
-  _res(6, 1) = 0;
-  _res(7, 1) = 0;
-  _res(8, 1) = 0;
-  _res(9, 1) = 0;
-  _res(10, 1) = 0;
-  _res(11, 1) = 0;
-  _res(12, 1) = 0;
-  _res(13, 1) = 0;
-  _res(14, 1) = 0;
-  _res(15, 1) = 0;
-  _res(16, 1) = 0;
-  _res(17, 1) = 0;
-  _res(18, 1) = 0;
-  _res(19, 1) = 0;
-  _res(20, 1) = 0;
-  _res(21, 1) = 0;
-  _res(22, 1) = 0;
   _res(0, 2) = _tmp15 * _tmp47 * gyro_var + _tmp18 * _tmp46 + _tmp24 * _tmp44 + _tmp25 * _tmp45 +
                _tmp27 * _tmp47 + _tmp37 * _tmp45 + _tmp39 * _tmp44;
   _res(1, 2) = _tmp18 * _tmp48 + _tmp29 * _tmp45 * gyro_var + _tmp34 * _tmp44 * gyro_var +
@@ -294,26 +253,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(2, 2) = _tmp18 * _tmp51 + std::pow(_tmp44, Scalar(2)) * gyro_var + _tmp44 * _tmp50 +
                std::pow(_tmp45, Scalar(2)) * gyro_var + _tmp45 * _tmp49 +
                std::pow(_tmp47, Scalar(2)) * gyro_var + _tmp47 * _tmp52;
-  _res(3, 2) = 0;
-  _res(4, 2) = 0;
-  _res(5, 2) = 0;
-  _res(6, 2) = 0;
-  _res(7, 2) = 0;
-  _res(8, 2) = 0;
-  _res(9, 2) = 0;
-  _res(10, 2) = 0;
-  _res(11, 2) = 0;
-  _res(12, 2) = 0;
-  _res(13, 2) = 0;
-  _res(14, 2) = 0;
-  _res(15, 2) = 0;
-  _res(16, 2) = 0;
-  _res(17, 2) = 0;
-  _res(18, 2) = 0;
-  _res(19, 2) = 0;
-  _res(20, 2) = 0;
-  _res(21, 2) = 0;
-  _res(22, 2) = 0;
   _res(0, 3) = _tmp35 * _tmp75 + _tmp46 * _tmp79 - _tmp53 * _tmp57 - _tmp58 * _tmp61 -
                _tmp62 * _tmp64 + _tmp80;
   _res(1, 3) = _tmp43 * _tmp75 + _tmp48 * _tmp79 - _tmp57 * _tmp81 - _tmp61 * _tmp82 -
@@ -324,25 +263,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
                std::pow(_tmp60, Scalar(2)) * _tmp97 - _tmp61 * _tmp93 +
                std::pow(_tmp63, Scalar(2)) * _tmp98 - _tmp64 * _tmp94 + _tmp75 * _tmp91 +
                _tmp79 * _tmp92 + _tmp99;
-  _res(4, 3) = 0;
-  _res(5, 3) = 0;
-  _res(6, 3) = 0;
-  _res(7, 3) = 0;
-  _res(8, 3) = 0;
-  _res(9, 3) = 0;
-  _res(10, 3) = 0;
-  _res(11, 3) = 0;
-  _res(12, 3) = 0;
-  _res(13, 3) = 0;
-  _res(14, 3) = 0;
-  _res(15, 3) = 0;
-  _res(16, 3) = 0;
-  _res(17, 3) = 0;
-  _res(18, 3) = 0;
-  _res(19, 3) = 0;
-  _res(20, 3) = 0;
-  _res(21, 3) = 0;
-  _res(22, 3) = 0;
   _res(0, 4) = -_tmp102 * _tmp58 + _tmp105 * _tmp46 - _tmp108 * _tmp62 - _tmp110 * _tmp53 +
                _tmp113 * _tmp114 + _tmp115;
   _res(1, 4) = -_tmp102 * _tmp82 + _tmp105 * _tmp48 - _tmp108 * _tmp83 - _tmp110 * _tmp81 +
@@ -358,24 +278,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
                std::pow(_tmp107, Scalar(2)) * _tmp98 - _tmp108 * _tmp128 +
                std::pow(_tmp109, Scalar(2)) * _tmp96 - _tmp110 * _tmp129 + _tmp117 * _tmp126 +
                _tmp130;
-  _res(5, 4) = 0;
-  _res(6, 4) = 0;
-  _res(7, 4) = 0;
-  _res(8, 4) = 0;
-  _res(9, 4) = 0;
-  _res(10, 4) = 0;
-  _res(11, 4) = 0;
-  _res(12, 4) = 0;
-  _res(13, 4) = 0;
-  _res(14, 4) = 0;
-  _res(15, 4) = 0;
-  _res(16, 4) = 0;
-  _res(17, 4) = 0;
-  _res(18, 4) = 0;
-  _res(19, 4) = 0;
-  _res(20, 4) = 0;
-  _res(21, 4) = 0;
-  _res(22, 4) = 0;
   _res(0, 5) = _tmp114 * _tmp136 - _tmp132 * _tmp62 + _tmp133 * _tmp35 - _tmp134 * _tmp58 -
                _tmp135 * _tmp53 + _tmp137;
   _res(1, 5) = _tmp116 * _tmp138 - _tmp132 * _tmp83 + _tmp133 * _tmp43 - _tmp134 * _tmp82 -
@@ -397,23 +299,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
                           P(13, 0) * _tmp134 - P(14, 0) * _tmp132 + P(5, 0)) +
                _tmp146 + std::pow(_tmp66, Scalar(2)) * _tmp96 +
                std::pow(_tmp73, Scalar(2)) * _tmp97;
-  _res(6, 5) = 0;
-  _res(7, 5) = 0;
-  _res(8, 5) = 0;
-  _res(9, 5) = 0;
-  _res(10, 5) = 0;
-  _res(11, 5) = 0;
-  _res(12, 5) = 0;
-  _res(13, 5) = 0;
-  _res(14, 5) = 0;
-  _res(15, 5) = 0;
-  _res(16, 5) = 0;
-  _res(17, 5) = 0;
-  _res(18, 5) = 0;
-  _res(19, 5) = 0;
-  _res(20, 5) = 0;
-  _res(21, 5) = 0;
-  _res(22, 5) = 0;
   _res(0, 6) =
       P(0, 6) * _tmp18 + P(10, 6) * _tmp23 + P(11, 6) * _tmp6 + P(9, 6) * _tmp15 + _tmp80 * dt;
   _res(1, 6) =
@@ -431,22 +316,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
                dt * (P(0, 3) * _tmp138 + P(1, 3) * _tmp133 - P(12, 3) * _tmp135 -
                      P(13, 3) * _tmp134 - P(14, 3) * _tmp132 + P(5, 3));
   _res(6, 6) = P(3, 6) * dt + P(6, 6) + dt * (P(3, 3) * dt + P(6, 3));
-  _res(7, 6) = 0;
-  _res(8, 6) = 0;
-  _res(9, 6) = 0;
-  _res(10, 6) = 0;
-  _res(11, 6) = 0;
-  _res(12, 6) = 0;
-  _res(13, 6) = 0;
-  _res(14, 6) = 0;
-  _res(15, 6) = 0;
-  _res(16, 6) = 0;
-  _res(17, 6) = 0;
-  _res(18, 6) = 0;
-  _res(19, 6) = 0;
-  _res(20, 6) = 0;
-  _res(21, 6) = 0;
-  _res(22, 6) = 0;
   _res(0, 7) =
       P(0, 7) * _tmp18 + P(10, 7) * _tmp23 + P(11, 7) * _tmp6 + P(9, 7) * _tmp15 + _tmp115 * dt;
   _res(1, 7) =
@@ -463,21 +332,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
                      P(13, 4) * _tmp134 - P(14, 4) * _tmp132 + P(5, 4));
   _res(6, 7) = P(3, 7) * dt + P(6, 7) + dt * (P(3, 4) * dt + P(6, 4));
   _res(7, 7) = P(4, 7) * dt + P(7, 7) + dt * (P(4, 4) * dt + P(7, 4));
-  _res(8, 7) = 0;
-  _res(9, 7) = 0;
-  _res(10, 7) = 0;
-  _res(11, 7) = 0;
-  _res(12, 7) = 0;
-  _res(13, 7) = 0;
-  _res(14, 7) = 0;
-  _res(15, 7) = 0;
-  _res(16, 7) = 0;
-  _res(17, 7) = 0;
-  _res(18, 7) = 0;
-  _res(19, 7) = 0;
-  _res(20, 7) = 0;
-  _res(21, 7) = 0;
-  _res(22, 7) = 0;
   _res(0, 8) =
       P(0, 8) * _tmp18 + P(10, 8) * _tmp23 + P(11, 8) * _tmp6 + P(9, 8) * _tmp15 + _tmp137 * dt;
   _res(1, 8) =
@@ -493,20 +347,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(6, 8) = P(3, 8) * dt + P(6, 8) + dt * (P(3, 5) * dt + P(6, 5));
   _res(7, 8) = P(4, 8) * dt + P(7, 8) + dt * (P(4, 5) * dt + P(7, 5));
   _res(8, 8) = P(5, 8) * dt + P(8, 8) + dt * (P(5, 5) * dt + P(8, 5));
-  _res(9, 8) = 0;
-  _res(10, 8) = 0;
-  _res(11, 8) = 0;
-  _res(12, 8) = 0;
-  _res(13, 8) = 0;
-  _res(14, 8) = 0;
-  _res(15, 8) = 0;
-  _res(16, 8) = 0;
-  _res(17, 8) = 0;
-  _res(18, 8) = 0;
-  _res(19, 8) = 0;
-  _res(20, 8) = 0;
-  _res(21, 8) = 0;
-  _res(22, 8) = 0;
   _res(0, 9) = _tmp27;
   _res(1, 9) = _tmp42;
   _res(2, 9) = _tmp52;
@@ -520,19 +360,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(7, 9) = P(4, 9) * dt + P(7, 9);
   _res(8, 9) = P(5, 9) * dt + P(8, 9);
   _res(9, 9) = P(9, 9);
-  _res(10, 9) = 0;
-  _res(11, 9) = 0;
-  _res(12, 9) = 0;
-  _res(13, 9) = 0;
-  _res(14, 9) = 0;
-  _res(15, 9) = 0;
-  _res(16, 9) = 0;
-  _res(17, 9) = 0;
-  _res(18, 9) = 0;
-  _res(19, 9) = 0;
-  _res(20, 9) = 0;
-  _res(21, 9) = 0;
-  _res(22, 9) = 0;
   _res(0, 10) = _tmp25;
   _res(1, 10) = _tmp40;
   _res(2, 10) = _tmp49;
@@ -547,18 +374,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(8, 10) = P(5, 10) * dt + P(8, 10);
   _res(9, 10) = P(9, 10);
   _res(10, 10) = P(10, 10);
-  _res(11, 10) = 0;
-  _res(12, 10) = 0;
-  _res(13, 10) = 0;
-  _res(14, 10) = 0;
-  _res(15, 10) = 0;
-  _res(16, 10) = 0;
-  _res(17, 10) = 0;
-  _res(18, 10) = 0;
-  _res(19, 10) = 0;
-  _res(20, 10) = 0;
-  _res(21, 10) = 0;
-  _res(22, 10) = 0;
   _res(0, 11) = _tmp24;
   _res(1, 11) = _tmp41;
   _res(2, 11) = _tmp50;
@@ -574,17 +389,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(9, 11) = P(9, 11);
   _res(10, 11) = P(10, 11);
   _res(11, 11) = P(11, 11);
-  _res(12, 11) = 0;
-  _res(13, 11) = 0;
-  _res(14, 11) = 0;
-  _res(15, 11) = 0;
-  _res(16, 11) = 0;
-  _res(17, 11) = 0;
-  _res(18, 11) = 0;
-  _res(19, 11) = 0;
-  _res(20, 11) = 0;
-  _res(21, 11) = 0;
-  _res(22, 11) = 0;
   _res(0, 12) = _tmp53;
   _res(1, 12) = _tmp81;
   _res(2, 12) = _tmp85;
@@ -598,16 +402,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(10, 12) = P(10, 12);
   _res(11, 12) = P(11, 12);
   _res(12, 12) = P(12, 12);
-  _res(13, 12) = 0;
-  _res(14, 12) = 0;
-  _res(15, 12) = 0;
-  _res(16, 12) = 0;
-  _res(17, 12) = 0;
-  _res(18, 12) = 0;
-  _res(19, 12) = 0;
-  _res(20, 12) = 0;
-  _res(21, 12) = 0;
-  _res(22, 12) = 0;
   _res(0, 13) = _tmp58;
   _res(1, 13) = _tmp82;
   _res(2, 13) = _tmp87;
@@ -622,15 +416,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(11, 13) = P(11, 13);
   _res(12, 13) = P(12, 13);
   _res(13, 13) = P(13, 13);
-  _res(14, 13) = 0;
-  _res(15, 13) = 0;
-  _res(16, 13) = 0;
-  _res(17, 13) = 0;
-  _res(18, 13) = 0;
-  _res(19, 13) = 0;
-  _res(20, 13) = 0;
-  _res(21, 13) = 0;
-  _res(22, 13) = 0;
   _res(0, 14) = _tmp62;
   _res(1, 14) = _tmp83;
   _res(2, 14) = _tmp88;
@@ -646,14 +431,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(12, 14) = P(12, 14);
   _res(13, 14) = P(13, 14);
   _res(14, 14) = P(14, 14);
-  _res(15, 14) = 0;
-  _res(16, 14) = 0;
-  _res(17, 14) = 0;
-  _res(18, 14) = 0;
-  _res(19, 14) = 0;
-  _res(20, 14) = 0;
-  _res(21, 14) = 0;
-  _res(22, 14) = 0;
   _res(0, 15) = P(0, 15) * _tmp18 + P(10, 15) * _tmp23 + P(11, 15) * _tmp6 + P(9, 15) * _tmp15;
   _res(1, 15) = P(1, 15) * _tmp18 + P(10, 15) * _tmp29 + P(11, 15) * _tmp34 + P(9, 15) * _tmp36;
   _res(2, 15) = P(10, 15) * _tmp45 + P(11, 15) * _tmp44 + P(2, 15) * _tmp18 + P(9, 15) * _tmp47;
@@ -673,13 +450,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(13, 15) = P(13, 15);
   _res(14, 15) = P(14, 15);
   _res(15, 15) = P(15, 15);
-  _res(16, 15) = 0;
-  _res(17, 15) = 0;
-  _res(18, 15) = 0;
-  _res(19, 15) = 0;
-  _res(20, 15) = 0;
-  _res(21, 15) = 0;
-  _res(22, 15) = 0;
   _res(0, 16) = P(0, 16) * _tmp18 + P(10, 16) * _tmp23 + P(11, 16) * _tmp6 + P(9, 16) * _tmp15;
   _res(1, 16) = P(1, 16) * _tmp18 + P(10, 16) * _tmp29 + P(11, 16) * _tmp34 + P(9, 16) * _tmp36;
   _res(2, 16) = P(10, 16) * _tmp45 + P(11, 16) * _tmp44 + P(2, 16) * _tmp18 + P(9, 16) * _tmp47;
@@ -700,12 +470,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(14, 16) = P(14, 16);
   _res(15, 16) = P(15, 16);
   _res(16, 16) = P(16, 16);
-  _res(17, 16) = 0;
-  _res(18, 16) = 0;
-  _res(19, 16) = 0;
-  _res(20, 16) = 0;
-  _res(21, 16) = 0;
-  _res(22, 16) = 0;
   _res(0, 17) = P(0, 17) * _tmp18 + P(10, 17) * _tmp23 + P(11, 17) * _tmp6 + P(9, 17) * _tmp15;
   _res(1, 17) = P(1, 17) * _tmp18 + P(10, 17) * _tmp29 + P(11, 17) * _tmp34 + P(9, 17) * _tmp36;
   _res(2, 17) = P(10, 17) * _tmp45 + P(11, 17) * _tmp44 + P(2, 17) * _tmp18 + P(9, 17) * _tmp47;
@@ -727,11 +491,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(15, 17) = P(15, 17);
   _res(16, 17) = P(16, 17);
   _res(17, 17) = P(17, 17);
-  _res(18, 17) = 0;
-  _res(19, 17) = 0;
-  _res(20, 17) = 0;
-  _res(21, 17) = 0;
-  _res(22, 17) = 0;
   _res(0, 18) = P(0, 18) * _tmp18 + P(10, 18) * _tmp23 + P(11, 18) * _tmp6 + P(9, 18) * _tmp15;
   _res(1, 18) = P(1, 18) * _tmp18 + P(10, 18) * _tmp29 + P(11, 18) * _tmp34 + P(9, 18) * _tmp36;
   _res(2, 18) = P(10, 18) * _tmp45 + P(11, 18) * _tmp44 + P(2, 18) * _tmp18 + P(9, 18) * _tmp47;
@@ -754,10 +513,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(16, 18) = P(16, 18);
   _res(17, 18) = P(17, 18);
   _res(18, 18) = P(18, 18);
-  _res(19, 18) = 0;
-  _res(20, 18) = 0;
-  _res(21, 18) = 0;
-  _res(22, 18) = 0;
   _res(0, 19) = P(0, 19) * _tmp18 + P(10, 19) * _tmp23 + P(11, 19) * _tmp6 + P(9, 19) * _tmp15;
   _res(1, 19) = P(1, 19) * _tmp18 + P(10, 19) * _tmp29 + P(11, 19) * _tmp34 + P(9, 19) * _tmp36;
   _res(2, 19) = P(10, 19) * _tmp45 + P(11, 19) * _tmp44 + P(2, 19) * _tmp18 + P(9, 19) * _tmp47;
@@ -781,9 +536,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(17, 19) = P(17, 19);
   _res(18, 19) = P(18, 19);
   _res(19, 19) = P(19, 19);
-  _res(20, 19) = 0;
-  _res(21, 19) = 0;
-  _res(22, 19) = 0;
   _res(0, 20) = P(0, 20) * _tmp18 + P(10, 20) * _tmp23 + P(11, 20) * _tmp6 + P(9, 20) * _tmp15;
   _res(1, 20) = P(1, 20) * _tmp18 + P(10, 20) * _tmp29 + P(11, 20) * _tmp34 + P(9, 20) * _tmp36;
   _res(2, 20) = P(10, 20) * _tmp45 + P(11, 20) * _tmp44 + P(2, 20) * _tmp18 + P(9, 20) * _tmp47;
@@ -808,8 +560,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(18, 20) = P(18, 20);
   _res(19, 20) = P(19, 20);
   _res(20, 20) = P(20, 20);
-  _res(21, 20) = 0;
-  _res(22, 20) = 0;
   _res(0, 21) = P(0, 21) * _tmp18 + P(10, 21) * _tmp23 + P(11, 21) * _tmp6 + P(9, 21) * _tmp15;
   _res(1, 21) = P(1, 21) * _tmp18 + P(10, 21) * _tmp29 + P(11, 21) * _tmp34 + P(9, 21) * _tmp36;
   _res(2, 21) = P(10, 21) * _tmp45 + P(11, 21) * _tmp44 + P(2, 21) * _tmp18 + P(9, 21) * _tmp47;
@@ -835,7 +585,6 @@ matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(19, 21) = P(19, 21);
   _res(20, 21) = P(20, 21);
   _res(21, 21) = P(21, 21);
-  _res(22, 21) = 0;
   _res(0, 22) = P(0, 22) * _tmp18 + P(10, 22) * _tmp23 + P(11, 22) * _tmp6 + P(9, 22) * _tmp15;
   _res(1, 22) = P(1, 22) * _tmp18 + P(10, 22) * _tmp29 + P(11, 22) * _tmp34 + P(9, 22) * _tmp36;
   _res(2, 22) = P(10, 22) * _tmp45 + P(11, 22) * _tmp44 + P(2, 22) * _tmp18 + P(9, 22) * _tmp47;
