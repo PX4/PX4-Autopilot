@@ -111,8 +111,12 @@
 #define PROTO_DEBUG                 0x31    // emit debug information - format not defined
 #define PROTO_SET_BAUD              0x33    // set baud rate on uart
 
-#define PROTO_RESERVED_0X36         0x36  // Reserved
-#define PROTO_RESERVED_0X37         0x37  // Reserved
+// Reserved for external flash programming
+// #define PROTO_EXTF_ERASE         0x34  // Erase sectors from external flash
+// #define PROTO_EXTF_PROG_MULTI    0x35  // write bytes at external flash program address and increment
+// #define PROTO_EXTF_READ_MULTI    0x36  // read bytes at address and increment
+// #define PROTO_EXTF_GET_CRC       0x37  // compute & return a CRC of data in external flash
+
 #define PROTO_RESERVED_0X38         0x38  // Reserved
 #define PROTO_RESERVED_0X39         0x39  // Reserved
 #define PROTO_CHIP_FULL_ERASE       0x40  // Full erase, without any flash wear optimization
