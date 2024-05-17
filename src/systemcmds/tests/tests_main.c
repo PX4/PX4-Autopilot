@@ -81,7 +81,9 @@ const struct {
 	{"atomic_bitset",	test_atomic_bitset,	0},
 	{"bezier",		test_bezierQuad,	0},
 	{"bitset",		test_bitset,		0},
+#ifdef CONFIG_BUILD_FLAT
 	{"bson",		test_bson,		0},
+#endif
 	{"dataman",		test_dataman,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"file2",		test_file2,		OPT_NOJIGTEST},
 	{"float",		test_float,		0},
