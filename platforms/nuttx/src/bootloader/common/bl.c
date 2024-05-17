@@ -131,13 +131,6 @@
 #define PROTO_DEVICE_FW_SIZE        4 // size of flashable area
 #define PROTO_DEVICE_VEC_AREA       5 // contents of reserved vectors 7-10
 
-#define STATE_PROTO_OK              0x10    // INSYNC/OK      - 'ok' response
-#define STATE_PROTO_FAILED          0x11    // INSYNC/FAILED  - 'fail' response
-#define STATE_PROTO_INVALID         0x13  // INSYNC/INVALID - 'invalid' response for bad commands
-#define STATE_PROTO_BAD_SILICON_REV 0x14  // On the F4 series there is an issue with < Rev 3 silicon
-#define STATE_PROTO_RESERVED_0X15   0x15  // Reserved
-
-
 // State
 #define STATE_PROTO_GET_SYNC        0x1     // Have Seen NOP for re-establishing sync
 #define STATE_PROTO_GET_DEVICE      0x2     // Have Seen get device ID bytes
