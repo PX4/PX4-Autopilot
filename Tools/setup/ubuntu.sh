@@ -53,21 +53,13 @@ fi
 # check ubuntu version
 # otherwise warn and point to docker?
 UBUNTU_RELEASE="`lsb_release -rs`"
-
-if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
-	echo "Ubuntu 14.04 is no longer supported"
-	exit 1
-elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
-	echo "Ubuntu 16.04 is no longer supported"
-	exit 1
-elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-	echo "Ubuntu 18.04"
-elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
-	echo "Ubuntu 20.04"
-elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-	echo "Ubuntu 22.04"
+SUPPORTED_UBUNTU_VERSIONS=("18.04" "20.04" "22.04" "24.04")
+if [[ ! " ${SUPPORTED_UBUNTU_VERSIONS[*]} " =~ ${UBUNTU_RELEASE} ]]; then
+  echo "Unsupported Ubuntu version: ${UBUNTU_RELEASE}"
+  exit 1
+else
+  echo "Ubuntu ${UBUNTU_RELEASE}"
 fi
-
 
 echo
 echo "Installing PX4 general dependencies"
@@ -98,7 +90,14 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	shellcheck \
 	unzip \
 	zip \
+	python3-venv \
 	;
+
+if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
+	echo "Create python venv within PX4-Autopilot named .venv"
+	python3 -m venv .venv
+	source .venv/bin/activate
+fi
 
 # Python3 dependencies
 echo
@@ -108,7 +107,7 @@ if [ -n "$VIRTUAL_ENV" ]; then
 	python -m pip install -r ${DIR}/requirements.txt
 else
 	# older versions of Ubuntu require --user option
-	python3 -m pip install --break-system-packages --user -r ${DIR}/requirements.txt
+	python3 -m pip install --user -r ${DIR}/requirements.txt
 fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
@@ -135,8 +134,6 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		libisl-dev \
 		libmpc-dev \
 		libmpfr-dev \
-		libncurses5-dev \
-		libncursesw5-dev \
 		libtool \
 		pkg-config \
 		screen \
@@ -145,12 +142,26 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		util-linux \
 		vim-common \
 		;
+	# custom requirements for different Ubuntu versions
 	if [[ "${UBUNTU_RELEASE}" == "20.04" || "${UBUNTU_RELEASE}" == "22.04" ]]; then
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		kconfig-frontends \
 		;
 	fi
-
+	if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		kconfig-frontends \
+		libncurses6 \
+		libncurses-dev \
+		libncursesw6 \
+		;
+	else
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		libncurses5 \
+		libncurses5-dev \
+		libncursesw5-dev \
+		;
+	fi
 
 	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
@@ -200,12 +211,16 @@ if [[ $INSTALL_SIM == "true" ]]; then
 
 	if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 		java_version=11
+		gazebo_packages="gazebo9 libgazebo9-dev"
 	elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
 		java_version=13
+		gazebo_packages="gazebo11 libgazebo11-dev"
 	elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
 		java_version=11
+		gazebo_packages="gz-garden"
 	elif [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
 		java_version=11
+		gazebo_packages="gz-harmonic"
 	else
 		java_version=14
 	fi
@@ -221,35 +236,20 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-$java_version")
 
 	# Gazebo / Gazebo classic installation
-	if [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
+	if [[ "${UBUNTU_RELEASE}" == "22.04" || "${UBUNTU_RELEASE}" == "24.04" ]]; then
 		echo "Gazebo (Garden) will be installed"
 		echo "Earlier versions will be removed"
 		# Add Gazebo binary repository
 		sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
 		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-		sudo apt-get update -y --quiet
-
-		# Install Gazebo
-		gazebo_packages="gz-garden"
 	else
 		sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
 		wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-		# Update list, since new gazebo-stable.list has been added
-		sudo apt-get update -y --quiet
-
-		# Install Gazebo classic
-		if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-			gazebo_classic_version=9
-			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
-		else
-			# default and Ubuntu 20.04
-			gazebo_classic_version=11
-			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
-		fi
 	fi
-
+	sudo apt-get update -y --quiet
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		dmidecode \
+		$gazebo_packages \
 		gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-base \
 		gstreamer1.0-plugins-good \

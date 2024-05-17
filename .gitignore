@@ -46,6 +46,7 @@ GTAGS
 *.creator.user
 *.files
 *.includes
+.venv
 
 # CLion ignores
 .idea
