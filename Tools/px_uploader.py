@@ -914,7 +914,7 @@ def main():
                         print(f"Found board id: {up.board_type},{up.board_rev} bootloader protocol revision {up.bl_rev} on {port}")
                         break
 
-                    except RuntimeError or serial.SerialException:
+                    except (RuntimeError, serial.SerialException):
 
                         if not up.send_reboot(args.use_protocol_splitter_format):
                             break
