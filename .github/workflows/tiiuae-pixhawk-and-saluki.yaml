@@ -30,16 +30,21 @@ on:
         required: false
         default: ''
         type: string
-
+      saluki-fmu2-manual-fpga-version:
+        description: 'saluki-fmu2 optional fpga version (e.g. sha-cd7bb6b)'
+        required: false
+        default: ''
+        type: string
 permissions:
   contents: read
   packages: write
 
 env:
   saluki_fpga_repo: "ghcr.io/tiiuae/saluki-fpga"
-  saluki_pi_fpga_version: "4.10.0"
-  saluki_v2_fpga_version: "4.10.0"
-  saluki_v3_fpga_version: "4.10.0"
+  saluki_pi_fpga_version: "4.12.0"
+  saluki_v2_fpga_version: "4.12.0"
+  saluki_v3_fpga_version: "4.12.0"
+  saluki_fmu2_fpga_version: "4.12.0"
 
 jobs:
   fc_matrix:
@@ -70,6 +75,7 @@ jobs:
       saluki_v2_fpga_version: ${{ steps.variables.outputs.saluki_v2_fpga_version }}
       saluki_v3_fpga_version: ${{ steps.variables.outputs.saluki_v3_fpga_version }}
       saluki_pi_fpga_version: ${{ steps.variables.outputs.saluki_pi_fpga_version }}
+      saluki_fmu2_fpga_version: ${{ steps.variables.outputs.saluki_fmu2_fpga_version }}
     steps:
       - name: Print input variables
         id: variables
@@ -92,14 +98,22 @@ jobs:
             saluki_pi_fpga_version=${{ github.event.inputs.saluki-pi-manual-fpga-version }}
           fi
 
+          # use saluki-fmu2-fpga default version if custom is not provided
+          saluki_fmu2_fpga_version=${{ env.saluki_fmu2_fpga_version }}
+          if [ -n "${{ github.event.inputs.saluki-fmu2-manual-fpga-version }}" ]; then
+            saluki_fmu2_fpga_version=${{ github.event.inputs.saluki-fmu2-manual-fpga-version }}
+          fi
+
           echo "saluki_v2_fpga_version=${saluki_v2_fpga_version}" >> $GITHUB_OUTPUT
           echo "saluki_v3_fpga_version=${saluki_v3_fpga_version}" >> $GITHUB_OUTPUT
           echo "saluki_pi_fpga_version=${saluki_pi_fpga_version}" >> $GITHUB_OUTPUT
+          echo "saluki_fmu2_fpga_version=${saluki_fmu2_fpga_version}" >> $GITHUB_OUTPUT
           echo "jfrog_upload=${{ github.event.inputs.jfrog-upload }}" >> $GITHUB_OUTPUT
 
           echo "saluki_v2_fpga_version: ${saluki_v2_fpga_version}"
           echo "saluki_v3_fpga_version: ${saluki_v3_fpga_version}"
           echo "saluki_pi_fpga_version: ${saluki_pi_fpga_version}"
+          echo "saluki_fmu2_fpga_version: ${saluki_fmu2_fpga_version}"
           echo "jfrog_upload: ${{ github.event.inputs.jfrog-upload }}"
 
   px4fwupdater:
@@ -177,6 +191,7 @@ jobs:
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v2_fpga_version }} saluki_v2 ${{ env.FPGA_DIR }}/saluki-v2
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v3_fpga_version }} saluki_v3 ${{ env.FPGA_DIR }}/saluki-v3
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_pi_fpga_version }} saluki_pi ${{ env.FPGA_DIR }}/saluki-pi
+          px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_fmu2_fpga_version }} saluki_fmu2 ${{ env.FPGA_DIR }}/saluki-fmu2
 
           # combine fpga json files to one file
           python px4-firmware/Tools/collect_json_files.py ${{ env.FPGA_DIR }} ${{ env.FPGA_DIR }}/fpga-file-info.json
@@ -209,6 +224,7 @@ jobs:
           echo "  saluki_pi_fpga_version: ${{ needs.variables.outputs.saluki_pi_fpga_version }}"
           echo "  saluki_v2_fpga_version: ${{ needs.variables.outputs.saluki_v2_fpga_version }}"
           echo "  saluki_v3_fpga_version: ${{ needs.variables.outputs.saluki_v3_fpga_version }}"
+          echo "  saluki_fmu2_fpga_version: ${{ needs.variables.outputs.saluki_fmu2_fpga_version }}"
 
           # in case more than one tag is generated, use the one which mentions commit sha
           if (( $(echo "${{ steps.containermeta.outputs.tags }}" | wc -l) > 1 )); then
@@ -226,6 +242,7 @@ jobs:
           echo "FPGA-V2[(Saluki-v2 FPGA\n${{ needs.variables.outputs.saluki_v2_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
           echo "FPGA-V3[(Saluki-v3 FPGA\n${{ needs.variables.outputs.saluki_v3_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
           echo "FPGA-PI[(Saluki-pi FPGA\n${{ needs.variables.outputs.saluki_pi_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-PI[(Saluki-fmu2 FPGA\n${{ needs.variables.outputs.saluki_fmu2_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
           echo "PX4-SHA[${{ github.repository }}\n$GITHUB_REF]" >> $GITHUB_STEP_SUMMARY
 
           # build
@@ -239,6 +256,7 @@ jobs:
           echo "FPGA-V2 --> BUILD"                 >> $GITHUB_STEP_SUMMARY
           echo "FPGA-V3 --> BUILD"                 >> $GITHUB_STEP_SUMMARY
           echo "FPGA-PI --> BUILD"                 >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-FMU2 --> BUILD"               >> $GITHUB_STEP_SUMMARY
           echo "BUILD --> OUTPUT"                  >> $GITHUB_STEP_SUMMARY
           # end mermaid flowchart
           echo '```'                               >> $GITHUB_STEP_SUMMARY
@@ -304,7 +322,6 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo 'For more info please see: https://github.com/tiiuae/fpga-flashing/#usage' >> $GITHUB_STEP_SUMMARY
 
-
   upload-px4fwupdater-uae:
     name: upload px4fwupdater to UAE docker registry
     # temporarily disabled until we get new token from UAR
@@ -359,6 +376,7 @@ jobs:
             "saluki_pi_fpga_version=${{ needs.variables.outputs.saluki_pi_fpga_version }}"
             "saluki_v2_fpga_version=${{ needs.variables.outputs.saluki_v2_fpga_version }}"
             "saluki_v3_fpga_version=${{ needs.variables.outputs.saluki_v3_fpga_version }}"
+            "saluki_fmu2_fpga_version=${{ needs.variables.outputs.saluki_fmu2_fpga_version }}"
 
   artifactory-uae:
     name: upload builds to UAE artifactory
