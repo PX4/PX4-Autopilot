@@ -132,9 +132,9 @@ private:
 	} _state{STATE::RESET_INIT};
 
 	RegisterConfig _registers[6] = {
-		RegisterConfig(CTRL_FILT_RATE,  FILTER_68HZ),           // 68Hz -- default
-		RegisterConfig(CTRL_FILT_ACC12, FILTER_68HZ),           // 68Hz -- default
-		RegisterConfig(CTRL_FILT_ACC3,  FILTER_68HZ),           // 68Hz -- default
+		RegisterConfig(CTRL_FILT_RATE,  FILTER_BYPASS),         // Bypass filter
+		RegisterConfig(CTRL_FILT_ACC12, FILTER_BYPASS),         // Bypass filter
+		RegisterConfig(CTRL_FILT_ACC3,  FILTER_BYPASS),         // Bypass filter
 		RegisterConfig(CTRL_RATE,       RATE_300DPS_1475HZ),    // +/- 300 deg/s, 1600 LSB/(deg/s) -- default, Decimation 8, 1475Hz
 		RegisterConfig(CTRL_ACC12,      ACC12_8G_1475HZ),       // +/- 80 m/s^2, 3200 LSB/(m/s^2) -- default, Decimation 8, 1475Hz
 		RegisterConfig(CTRL_ACC3,       ACC3_26G)               // +/- 260 m/s^2, 1600 LSB/(m/s^2) -- default

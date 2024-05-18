@@ -279,15 +279,39 @@ void SCH16T::RunImpl()
 
 bool SCH16T::ReadData(SensorData *data)
 {
+	uint64_t temp = 0;
+	uint64_t gyro_x = 0;
+	uint64_t gyro_y = 0;
+	uint64_t gyro_z = 0;
+	uint64_t acc_x = 0;
+	uint64_t acc_y = 0;
+	uint64_t acc_z = 0;
+
 	// Data registers are 20bit 2s complement
-	RegisterRead(RATE_X2);
-	uint64_t gyro_x = RegisterRead(RATE_Y2);
-	uint64_t gyro_y = RegisterRead(RATE_Z2);
-	uint64_t gyro_z = RegisterRead(ACC_X3);
-	uint64_t acc_x  = RegisterRead(ACC_Y3);
-	uint64_t acc_y  = RegisterRead(ACC_Z3);
-	uint64_t acc_z  = RegisterRead(TEMP);
-	uint64_t temp   = RegisterRead(TEMP);
+	RegisterRead(TEMP);
+	temp   = RegisterRead(STAT_SUM_SAT);
+	_sensor_status.saturation = SPI48_DATA_UINT16(RegisterRead(RATE_X2));
+	gyro_x = RegisterRead(RATE_Y2);
+	gyro_y = RegisterRead(RATE_Z2);
+
+	// Check if ACC2 is saturated, if so, use ACC3
+	if ((_sensor_status.saturation & STAT_SUM_SAT_ACC_X2) || (_sensor_status.saturation & STAT_SUM_SAT_ACC_Y2)
+	    || (_sensor_status.saturation & STAT_SUM_SAT_ACC_Z2)) {
+		gyro_z = RegisterRead(ACC_X3);
+		acc_x  = RegisterRead(ACC_Y3);
+		acc_y  = RegisterRead(ACC_Z3);
+		acc_z  = RegisterRead(TEMP);
+		_px4_accel.set_scale(1.f / 1600.f);
+		_px4_accel.set_range(260.f);
+
+	} else {
+		gyro_z = RegisterRead(ACC_X2);
+		acc_x  = RegisterRead(ACC_Y2);
+		acc_y  = RegisterRead(ACC_Z2);
+		acc_z  = RegisterRead(TEMP);
+		_px4_accel.set_scale(1.f / 3200.f);
+		_px4_accel.set_range(163.4f);
+	}
 
 	static constexpr uint64_t MASK48_ERROR = 0x001E00000000UL;
 	uint64_t values[] = { gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z, temp };
@@ -340,8 +364,10 @@ void SCH16T::Configure()
 	// being sampled from (decimated vs interpolated outputs). RATE_XYZ2 is decimated and RATE_XYZ1 is interpolated.
 	_px4_gyro.set_range(math::radians(327.68f)); // +-/ 300°/sec calibrated range, 327.68°/sec electrical headroom (20bit)
 	_px4_gyro.set_scale(math::radians(1.f / 1600.f)); // scaling 1600 LSB/°/sec -> rad/s per LSB
-	_px4_accel.set_range(260.f);
-	_px4_accel.set_scale(1.f / 1600.f);
+
+	// ACC12 range is 163.4 m/s^2, 3200 LSB/(m/s^2), ACC3 range is 260 m/s^2, 1600 LSB/(m/s^2)
+	_px4_accel.set_range(163.4f);
+	_px4_accel.set_scale(1.f / 3200.f);
 }
 
 bool SCH16T::ValidateRegisterConfiguration()
