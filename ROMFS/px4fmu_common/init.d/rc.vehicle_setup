@@ -68,6 +68,12 @@ then
 	. ${R}etc/init.d/rc.uuv_apps
 fi
 
+if [ $VEHICLE_TYPE = sese ]
+then
+
+	. ${R}etc/init.d/rc.sese_apps
+fi
+
 
 
 #
