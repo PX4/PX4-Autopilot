@@ -28,5 +28,7 @@ sese_omni_control start
 #
 # Start UUV Land Detector.
 #
-land_detector start rover
+# land_detector start rover
+
+echo "SESE STARTED"
 
