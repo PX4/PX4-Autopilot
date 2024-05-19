@@ -56,8 +56,7 @@ control_allocator start
 #
 # Start Multicopter Rate Controller.
 #
-# mc_rate_control start
-sese_omni_control start
+mc_rate_control start
 
 #
 # Start Multicopter Attitude Controller.
