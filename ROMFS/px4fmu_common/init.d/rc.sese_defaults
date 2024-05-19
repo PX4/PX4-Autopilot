@@ -11,7 +11,7 @@
 # param set-default MAV_TYPE 11
 
 # =====================================================
-set VEHICLE_TYPE mc
+set VEHICLE_TYPE sese
 
 # MAV_TYPE_QUADROTOR 2
 param set-default MAV_TYPE 2
