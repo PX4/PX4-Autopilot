@@ -193,6 +193,7 @@ PARAM_DEFINE_FLOAT(SPC_ACC_MAX, 5.f);
  */
 PARAM_DEFINE_FLOAT(SPC_JERK_AUTO, 4.f);
 
+PARAM_DEFINE_FLOAT(SPC_VEHICLE_RESP, 0.5f);
 /**
  * Maximum jerk in Position/Altitude mode
  *

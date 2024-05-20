@@ -119,7 +119,7 @@ private:
 		(ParamFloat<px4::params::SPC_VEL_MAX>)   	_param_mpc_vel_max,
 		(ParamFloat<px4::params::SPC_VEL_CRUISE>)   _param_mpc_vel_cruise,
 		(ParamFloat<px4::params::SPC_VEL_MANUAL>)   _param_mpc_vel_manual,
-		(ParamFloat<px4::params::SYS_VEHICLE_RESP>) _param_sys_vehicle_resp,
+		(ParamFloat<px4::params::SPC_VEHICLE_RESP>) _param_sys_vehicle_resp,
 		(ParamFloat<px4::params::SPC_ACC>)      	_param_mpc_acc,
 		(ParamFloat<px4::params::SPC_ACC_MAX>)      _param_mpc_acc_max,
 		(ParamFloat<px4::params::SPC_MAN_Y_MAX>)    _param_mpc_man_y_max,
