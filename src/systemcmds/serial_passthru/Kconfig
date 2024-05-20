@@ -11,7 +11,7 @@ config SERIAL_PASSTHRU_UBLOX
 	bool "Detect and Auto Connect on U-Center messages"
 	default n
 	---help---
-		This option will enable the cdc_acm_check to launch
+		This option will enable the cdcacm_autostart to launch
 		The passthru driver.
 
 #

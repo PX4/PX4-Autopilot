@@ -439,6 +439,14 @@ else
 	# Must be started after the serial config is read
 	rc_input start $RC_INPUT_ARGS
 
+	# Manages USB interface
+	if ! cdcacm_autostart start
+	then
+		sercon
+		echo "Starting MAVLink on /dev/ttyACM0"
+		mavlink start -d /dev/ttyACM0
+	fi
+
 	#
 	# Play the startup tune (if not disabled or there is an error)
 	#
