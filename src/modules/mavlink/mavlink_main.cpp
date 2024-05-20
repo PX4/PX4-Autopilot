@@ -2094,11 +2094,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* USB has no baudrate, but use a magic number for 'fast' */
 		_baudrate = 2000000;
-
-		if (_mode == MAVLINK_MODE_COUNT) {
-			_mode = MAVLINK_MODE_CONFIG;
-		}
-
 		_ftp_on = true;
 		_is_usb_uart = true;
 
@@ -2223,11 +2218,24 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* open the UART device after setting the instance, as it might block */
 	if (get_protocol() == Protocol::SERIAL) {
-		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
 
-		if (_uart_fd < 0) {
-			PX4_ERR("could not open %s", _device_name);
-			return PX4_ERROR;
+		// NOTE: we attempt to open the port multiple times due to sercon returning before
+		// the port is ready to be opened. This avoids needing to sleep() after sercon_main.
+		int attempts = 0;
+		static const int max_attempts = 3;
+
+		while (_uart_fd < 0) {
+			_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
+			attempts++;
+
+			if (_uart_fd < 0 && attempts < max_attempts) {
+				PX4_ERR("could not open %s, retrying", _device_name);
+				px4_usleep(1_s);
+
+			} else if (_uart_fd < 0) {
+				PX4_ERR("failed to open %s after %d attempts, exiting!", _device_name, attempts);
+				return PX4_ERROR;
+			}
 		}
 	}
 

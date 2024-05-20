@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2022 Technology Innovation Institute. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,25 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file px4_userspace_init.cpp
+ * Enable USB autostart
  *
- * Initialize px4 userspace in NuttX protected build
+ * @value 0 Disabled
+ * @value 1 Auto-detect
+ * @value 2 MAVLink
+ *
+ * @reboot_required true
+ *
+ * @group CDCACM
  */
+PARAM_DEFINE_INT32(SYS_USB_AUTO, 2);
 
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-#include <px4_platform_common/spi.h>
-#include <uORB/uORB.h>
-#include <sys/boardctl.h>
-
-extern "C" void px4_userspace_init(void)
-{
-	hrt_init();
-
-	px4_set_spi_buses_from_hw_version();
-
-	px4::WorkQueueManagerStart();
-
-	uorb_start();
-}
+/**
+ * Specify USB MAVLink mode
+ *
+ * @value 0 normal
+ * @value 1 custom
+ * @value 2 onboard
+ * @value 3 osd
+ * @value 4 magic
+ * @value 5 config
+ * @value 6 iridium
+ * @value 7 minimal
+ * @value 8 extvision
+ * @value 9 extvisionmin
+ * @value 10 gimbal
+ * @value 11 onboard_low_bandwidth
+ * @value 12 uavionix
+ *
+ * @reboot_required true
+ *
+ * @group CDCACM
+ */
+PARAM_DEFINE_INT32(USB_MAV_MODE, 2);
