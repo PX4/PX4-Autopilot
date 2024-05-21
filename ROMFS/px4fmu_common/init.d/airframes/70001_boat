@@ -34,6 +34,19 @@ param set-default PWM_AUX_MAX2 2000 # Maximum trhottle at which it's not so easy
 
 param set-default CA_AIRFRAME 5
 
+# Steering PWM output
+param set-default PWM_AUX_FUNC1 201
+param set-default PWM_AUX_DIS1 1500
+param set-default PWM_AUX_MIN1 1000
+param set-default PWM_AUX_MAX1 2000
+# Engine throttle PWM output
+param set-default PWM_AUX_FUNC2 101
+param set-default PWM_AUX_DIS2 900
+param set-default PWM_AUX_MIN2 940 # Engine doesn't rev below that
+param set-default PWM_AUX_MAX2 2000 # Maximum trhottle at which it's not so easy to flip the boat
+
+param set-default CA_AIRFRAME 5
+
 # Estimation
 param set-default EKF2_MULTI_IMU 0 # Disable multi-IMU
 param set-default SENS_IMU_MODE 1
