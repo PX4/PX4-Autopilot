@@ -21,10 +21,18 @@ param set-default COM_ARM_WO_GPS 1 # Disable GPS prearm check
 param set-default COM_DISARM_LAND -1 # Don't disarm automatically
 param set-default COM_DISARM_PRFLT -1
 
-# Battery setup
-# param set-default BAT1_N_CELLS 1
-# param set-default BAT1_V_EMPTY 10
-# param set-default BAT1_V_CHARGED 18
+# Steering PWM output
+param set-default PWM_AUX_FUNC1 201
+param set-default PWM_AUX_DIS1 1500
+param set-default PWM_AUX_MIN1 1000
+param set-default PWM_AUX_MAX1 2000
+# Engine throttle PWM output
+param set-default PWM_AUX_FUNC2 101
+param set-default PWM_AUX_DIS2 900
+param set-default PWM_AUX_MIN2 940 # Engine doesn't rev below that
+param set-default PWM_AUX_MAX2 2000 # Maximum trhottle at which it's not so easy to flip the boat
+
+param set-default CA_AIRFRAME 5
 
 # Estimation
 param set-default EKF2_MULTI_IMU 0 # Disable multi-IMU

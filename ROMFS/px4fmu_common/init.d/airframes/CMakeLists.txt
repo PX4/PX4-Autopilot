@@ -157,3 +157,9 @@ if(CONFIG_MODULES_UUV_ATT_CONTROL)
 		60002_uuv_bluerov2_heavy
 	)
 endif()
+
+if(CONFIG_MODULES_BOAT)
+	px4_add_romfs_files(
+		70001_boat
+	)
+endif()
