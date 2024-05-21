@@ -1350,3 +1350,13 @@ parameters:
       min: 1.0
       unit: SD
       decimal: 1
+    EKF2_GRAVITY:
+      description:
+        short: Gravity constant
+        long: Sets the gravity acceleration to be used in the EKF modules.
+      type: float
+      default: 9.80665
+      min: 0.0
+      max: 20.0
+      unit: m/s^2
+      decimal: 5

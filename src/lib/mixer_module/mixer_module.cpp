@@ -533,10 +533,16 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	const float output = math::interpolate(value, -1.f, 1.f,
+	// Thruster is a non-revertible output, so we need to map the value to the correct range
+	if(_function_assignment[i] >= OutputFunction::Thruster1 && _function_assignment[i] <= OutputFunction::ThrusterMax) {
+		const float output = math::interpolate(value, 0.f, 1.f,
 					       static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
-
-	return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
+		return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
+	} else {
+		const float output = math::interpolate(value, -1.f, 1.f,
+					       static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
+		return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
+	}
 }
 
 void

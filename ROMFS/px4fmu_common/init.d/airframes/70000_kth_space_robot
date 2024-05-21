@@ -19,7 +19,7 @@ param set-default CA_R_REV 255
 # param set-default FW_ARSP_MODE 1
 
 # Auto to be provided by Custom Airframe
-# param set-default CA_METHOD 0
+param set-default CA_METHOD 0
 
 # disable attitude failure detection
 param set-default FD_FAIL_P 0
