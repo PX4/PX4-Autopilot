@@ -123,4 +123,3 @@ private:
 	// (ParamBool<px4::params::RC_GHST_TEL_EN>) _param_rc_ghst_tel_en
 	// )
 };
-

@@ -879,4 +879,3 @@ bool EstimatorChecks::checkPosVelValidity(const hrt_abstime &now, const bool dat
 
 	return valid;
 }
-

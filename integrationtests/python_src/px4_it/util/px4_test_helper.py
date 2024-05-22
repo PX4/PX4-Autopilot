@@ -108,4 +108,3 @@ class PX4TestHelper(object):
                 rospy.logwarn("Trying to write to bag but it's already closed")
         finally:
             self.condition.release()
-

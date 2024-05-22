@@ -559,4 +559,3 @@ float Ekf::getMagDeclination()
 	// otherwise use the parameter value
 	return math::radians(_params.mag_declination_deg);
 }
-

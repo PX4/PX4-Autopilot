@@ -224,4 +224,3 @@ int test_file2(int argc, char *argv[])
 
 	return test_corruption(filename, write_chunk, write_size, flags);
 }
-

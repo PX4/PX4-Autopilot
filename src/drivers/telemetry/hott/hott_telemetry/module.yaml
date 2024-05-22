@@ -4,4 +4,3 @@ serial_config:
       port_config_param:
         name: TEL_HOTT_CONFIG
         group: Telemetry
-
