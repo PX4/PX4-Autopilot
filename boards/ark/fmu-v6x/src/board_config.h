@@ -73,10 +73,10 @@
 
 /* Configuration ************************************************************************************/
 
-#define BOARD_HAS_LTC44XX_VALIDS      2 //  N Bricks
+#define BOARD_HAS_LTC44XX_VALIDS      1 //  N Bricks
 #define BOARD_HAS_USB_VALID           1 // LTC Has USB valid
-#define BOARD_HAS_NBAT_V              2d // 2 Digital Voltage
-#define BOARD_HAS_NBAT_I              2d // 2 Digital Current
+#define BOARD_HAS_NBAT_V              1d // 2 Digital Voltage
+#define BOARD_HAS_NBAT_I              1d // 2 Digital Current
 
 /* PX4FMU GPIOs ***********************************************************************************/
 
@@ -260,8 +260,11 @@
 
 #define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
 #define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_B /* Brick 2 Is Chosen  */
-#define BOARD_NUMBER_BRICKS             2
-#define BOARD_NUMBER_DIGITAL_BRICKS     2
+#define BOARD_NUMBER_BRICKS             1
+//#define BOARD_NUMBER_DIGITAL_BRICKS     2
+#define ADC_BATTERY_VOLTAGE_CHANNEL	ADC_ADC3_3V3_CHANNEL
+#define ADC_BATTERY_CURRENT_CHANNEL	ADC_ADC3_6V6_CHANNEL
+#define BOARD_ADC_BRICK_VALID	        BOARD_ADC_BRICK1_VALID
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
 #define GPIO_VDD_5V_PERIPH_nEN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
