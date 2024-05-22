@@ -379,9 +379,9 @@ doxygen:
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/doxygen
 	@touch "$(SRC_DIR)"/build/doxygen/Documentation/.nojekyll
 
-# Astyle
+# Style
 # --------------------------------------------------------------------
-.PHONY: check_format format
+.PHONY: check_format format check_newlines
 
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
@@ -391,6 +391,10 @@ check_format:
 format:
 	$(call colorecho,'Formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
+
+check_newlines:
+	$(call colorecho,'Checking for missing or duplicate newlines at the end of files')
+	@"$(SRC_DIR)"/Tools/astyle/check_newlines.sh
 
 # Testing
 # --------------------------------------------------------------------
