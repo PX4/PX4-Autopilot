@@ -705,7 +705,6 @@ private:
 	// used by magnetometer fusion mode selection
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
 	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
-	uint8_t _nb_mag_3d_reset_available{0};
 	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
 	estimator_aid_source3d_s _aid_src_mag{};
