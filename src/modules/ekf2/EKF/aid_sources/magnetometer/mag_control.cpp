@@ -180,7 +180,7 @@ void Ekf::controlMagFusion()
 
 		// if we are using 3-axis magnetometer fusion, but without external NE aiding,
 		// then the declination must be fused as an observation to prevent long term heading drift
-		const bool no_ne_aiding_or_pre_takeoff = !using_ne_aiding || !_control_status.flags.mag_aligned_in_flight;
+		const bool no_ne_aiding_or_pre_takeoff = !using_ne_aiding || !_control_status.flags.in_air;
 		_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_pre_takeoff;
 
 		if (_control_status.flags.mag) {
