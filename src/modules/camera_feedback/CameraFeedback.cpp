@@ -205,11 +205,13 @@ The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) followin
 
 ### Implementation
 
-`CameraTrigger` topics are published by the `camera_trigger` module (`feedback` field set `false`) when image capture is triggered, and may also be published by the  `camera_capture` driver (with `feedback` field set `true`) if the camera capture pin is activated.
+`CameraTrigger` topics are published by the `camera_trigger` module (`feedback` field set `false`) when image capture is triggered,
+and may also be published by the  `camera_capture` driver (with `feedback` field set `true`) if the camera capture pin is activated.
 
 The `camera_feedback` module subscribes to `CameraTrigger`.
 It discards topics from the `camera_trigger` module if camera capture is enabled.
-For the topics that are not discarded it creates a `CameraCapture` topic with the timestamp information from the `CameraTrigger` and position information from the vehicle.
+For the topics that are not discarded it creates a `CameraCapture` topic with the timestamp information
+from the `CameraTrigger` and position information from the vehicle.
 
 )DESCR_STR");
 
