@@ -1,4 +1,4 @@
-venv/
+.venv/
 *.dSYM
 *.o
 *.gch

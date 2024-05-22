@@ -170,7 +170,7 @@ set(config_module_list)
 set(config_kernel_list)
 
 ## update the environment with VIRTUAL_ENV variable (mimic the activate script)
-set (ENV{VIRTUAL_ENV} venv)
+set (ENV{VIRTUAL_ENV} .venv)
 ## change the context of the search
 set (Python3_FIND_VIRTUALENV ONLY)
 # Find Python3

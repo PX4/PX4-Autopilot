@@ -53,9 +53,9 @@ fi
 # Python dependencies
 echo "Installing PX4 Python3 dependencies"
 # initialize venv and install dependencies
-python3 -m venv ${PX4_DIR}/venv
+python3 -m venv ${PX4_DIR}/.venv
 #activate venv
-source ${PX4_DIR}/venv/bin/activate
+source ${PX4_DIR}/.venv/bin/activate
 python3 -m pip install -r ${DIR}/requirements.txt
 
 # Optional, but recommended additional simulation tools:
