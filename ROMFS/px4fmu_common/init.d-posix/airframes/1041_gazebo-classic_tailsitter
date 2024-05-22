@@ -75,4 +75,3 @@ param set-default VT_F_TRANS_DUR 1.5
 param set-default VT_TYPE 0
 
 param set-default WV_EN 0
-

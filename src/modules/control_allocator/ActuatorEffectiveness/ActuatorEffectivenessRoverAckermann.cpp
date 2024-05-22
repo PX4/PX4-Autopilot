@@ -56,4 +56,3 @@ void ActuatorEffectivenessRoverAckermann::updateSetpoint(const matrix::Vector<fl
 {
 	stopMaskedMotorsWithZeroThrust(_motors_mask, actuator_sp);
 }
-

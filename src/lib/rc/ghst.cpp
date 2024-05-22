@@ -428,4 +428,3 @@ bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_
 
 	return write(uart_fd, buf, offset) == offset;
 }
-

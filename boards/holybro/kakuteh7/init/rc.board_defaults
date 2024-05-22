@@ -31,4 +31,3 @@ param set-default EKF2_IMU_CTRL 7
 param set-default CBRK_BUZZER 782090
 
 param set-default IMU_GYRO_RATEMAX 2000
-

@@ -12,4 +12,3 @@ uint8 RESULT_FAILURE_OTHER = 100 # Mode failed (generic error)
 uint8 result                     # One of RESULT_*
 
 uint8 nav_state                  # Source mode (values in VehicleStatus)
-

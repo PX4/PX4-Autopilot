@@ -34,4 +34,3 @@
 #pragma once
 
 extern "C" float px4muorb_get_cpu_load(void);
-

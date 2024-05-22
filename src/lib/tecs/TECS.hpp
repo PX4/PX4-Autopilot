@@ -742,4 +742,3 @@ private:
 	 */
 	void _setFastDescend(float alt_setpoint, float alt);
 };
-
