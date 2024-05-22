@@ -251,12 +251,6 @@ public:
 
 	virtual void parameters_update() = 0;
 
-	/**
-	 * @brief Set current time delta
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void setDt(float dt) {_dt = dt; }
 
 	/**
 	 * @brief Resets the transition timer states.
@@ -325,8 +319,6 @@ protected:
 	float update_and_get_backtransition_pitch_sp();
 	bool isFrontTransitionCompleted();
 	virtual bool isFrontTransitionCompletedBase();
-
-	float _dt{0.0025f}; // time step [s]
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
 
