@@ -763,8 +763,6 @@ private:
 	// argument passed in is the declination uncertainty in radians
 	bool fuseDeclination(float decl_sigma);
 
-	// apply sensible limits to the declination and length of the NE mag field states estimates
-	void limitDeclination();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
