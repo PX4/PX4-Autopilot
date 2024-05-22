@@ -103,7 +103,13 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 
 		VectorState Kfusion = P * H / aid_src.innovation_variance[index];
 
-		if (!update_all_states) {
+		if (update_all_states) {
+			if (!update_tilt) {
+				Kfusion(State::quat_nominal.idx + 0) = 0.f;
+				Kfusion(State::quat_nominal.idx + 1) = 0.f;
+			}
+
+		} else {
 			// zero non-mag Kalman gains if not updating all states
 
 			// copy mag_I and mag_B Kalman gains
@@ -114,11 +120,6 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			Kfusion.setZero();
 			Kfusion.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) = K_mag_I;
 			Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
-		}
-
-		if (!update_tilt) {
-			Kfusion(State::quat_nominal.idx + 0) = 0.f;
-			Kfusion(State::quat_nominal.idx + 1) = 0.f;
 		}
 
 		if (measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index])) {
