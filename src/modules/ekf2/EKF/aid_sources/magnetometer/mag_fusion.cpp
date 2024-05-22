@@ -124,7 +124,6 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 
 		if (measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index])) {
 			fused[index] = true;
-			limitDeclination();
 		}
 	}
 
@@ -192,85 +191,10 @@ bool Ekf::fuseDeclination(float decl_sigma)
 
 		_fault_status.flags.bad_mag_decl = !is_fused;
 
-		if (is_fused) {
-			limitDeclination();
-		}
-
 		return is_fused;
 	}
 
 	return false;
-}
-
-void Ekf::limitDeclination()
-{
-	const Vector3f mag_I_before = _state.mag_I;
-
-	// get a reference value for the earth field declinaton and minimum plausible horizontal field strength
-	float decl_reference = NAN;
-	float h_field_min = 0.001f;
-
-	if (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL
-	    && (PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps) && PX4_ISFINITE(_mag_inclination_gps))
-	   ) {
-		decl_reference = _mag_declination_gps;
-
-		// set to 50% of the horizontal strength from geo tables if location is known
-		h_field_min = fmaxf(h_field_min, 0.5f * _mag_strength_gps * cosf(_mag_inclination_gps));
-
-	} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
-		   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
-		  ) {
-		// use parameter value if GPS isn't available
-		decl_reference = math::radians(_params.mag_declination_deg);
-	}
-
-	if (!PX4_ISFINITE(decl_reference)) {
-		return;
-	}
-
-	// do not allow the horizontal field length to collapse - this will make the declination fusion badly conditioned
-	// and can result in a reversal of the NE field states which the filter cannot recover from
-	// apply a circular limit
-	float h_field = sqrtf(_state.mag_I(0) * _state.mag_I(0) + _state.mag_I(1) * _state.mag_I(1));
-
-	if (h_field < h_field_min) {
-		if (h_field > 0.001f * h_field_min) {
-			const float h_scaler = h_field_min / h_field;
-			_state.mag_I(0) *= h_scaler;
-			_state.mag_I(1) *= h_scaler;
-
-		} else {
-			// too small to scale radially so set to expected value
-			_state.mag_I(0) = 2.0f * h_field_min * cosf(decl_reference);
-			_state.mag_I(1) = 2.0f * h_field_min * sinf(decl_reference);
-		}
-
-		h_field = h_field_min;
-	}
-
-	// do not allow the declination estimate to vary too much relative to the reference value
-	constexpr float decl_tolerance = 0.5f;
-	const float decl_max = decl_reference + decl_tolerance;
-	const float decl_min = decl_reference - decl_tolerance;
-	const float decl_estimate = atan2f(_state.mag_I(1), _state.mag_I(0));
-
-	if (decl_estimate > decl_max)  {
-		_state.mag_I(0) = h_field * cosf(decl_max);
-		_state.mag_I(1) = h_field * sinf(decl_max);
-
-	} else if (decl_estimate < decl_min)  {
-		_state.mag_I(0) = h_field * cosf(decl_min);
-		_state.mag_I(1) = h_field * sinf(decl_min);
-	}
-
-	if ((mag_I_before - _state.mag_I).longerThan(0.01f)) {
-		ECL_DEBUG("declination limited mag I [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f] (decl: %.3f)",
-			  (double)mag_I_before(0), (double)mag_I_before(1), (double)mag_I_before(2),
-			  (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
-			  (double)decl_reference
-			 );
-	}
 }
 
 float Ekf::calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const Vector3f &mag_earth_predicted)
