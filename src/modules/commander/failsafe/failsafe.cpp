@@ -610,6 +610,17 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		}
 
 		break;
+	
+	case position_control_navigation_loss_response::Manual: // Land/Terminate
+
+		// PosCtrl -> Stabilized
+		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL
+		    && !modeCanRun(status_flags, user_intended_mode)) {
+			action = Action::FallbackStab;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+		}
+
+		break;
 	}
 
 

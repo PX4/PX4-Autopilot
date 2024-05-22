@@ -16,10 +16,16 @@ param set-default MAV_TYPE 24
 param set-default CA_THRUSTER_CNT 8
 param set-default CA_R_REV 255
 
-# param set-default FW_ARSP_MODE 1
-
 # Auto to be provided by Custom Airframe
 param set-default CA_METHOD 0
+
+# Set proper failsafes
+param set-default COM_ACT_FAIL_ACT 0
+param set-default COM_LOW_BAT_ACT 0
+param set-default NAV_DLL_ACT 0
+param set-default GF_ACTION 1
+param set-default NAV_RCL_ACT 1
+param set-default COM_POSCTL_NAVL 2
 
 # disable attitude failure detection
 param set-default FD_FAIL_P 0

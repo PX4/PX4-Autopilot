@@ -81,6 +81,7 @@ private:
 	enum class position_control_navigation_loss_response : int32_t {
 		Altitude_Manual = 0,
 		Land_Descend = 1,
+		Manual = 2,
 	};
 
 	enum class actuator_failure_failsafe_mode : int32_t {

@@ -504,7 +504,8 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  *
  * @value 0 Altitude/Manual
  * @value 1 Land/Descend
- *
+ * @value 2 Manual
+ * 
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
