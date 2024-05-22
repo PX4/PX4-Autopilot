@@ -92,8 +92,6 @@ using namespace time_literals;
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
-static constexpr float kMaxVTOLAttitudeControlTimeStep = 0.1f; // max time step [s]
-
 class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public ModuleParams, public px4::WorkItem
 {
 public:
@@ -211,7 +209,9 @@ private:
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};	// [kg/m^3]
 
-	hrt_abstime _last_run_timestamp{0};
+#if !defined(ENABLE_LOCKSTEP_SCHEDULER)
+	hrt_abstime _last_run_timestamp {0};
+#endif // !ENABLE_LOCKSTEP_SCHEDULER
 
 	/* For multicopters it is usual to have a non-zero idle speed of the engines
 	 * for fixed wings we want to have an idle speed of zero since we do not want
