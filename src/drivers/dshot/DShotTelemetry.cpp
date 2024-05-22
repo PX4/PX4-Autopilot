@@ -476,4 +476,3 @@ int DShotTelemetry::setBaudrate(unsigned baud)
 
 	return 0;
 }
-

@@ -92,4 +92,3 @@ int BMP581_I2C::set_reg(uint8_t value, uint8_t addr)
 	uint8_t cmd[2] = { (uint8_t)(addr), value};
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
-

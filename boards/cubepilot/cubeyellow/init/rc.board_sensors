@@ -12,4 +12,3 @@ icm20948 -s -b 4 -R 10 -M start
 # SPI1
 ms5611 -s -b 1 start
 icm20649 -s -b 1 start
-
