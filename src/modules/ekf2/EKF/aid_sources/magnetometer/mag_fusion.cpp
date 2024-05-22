@@ -149,10 +149,6 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 
 bool Ekf::fuseDeclination(float decl_sigma)
 {
-	if (!_control_status.flags.mag) {
-		return false;
-	}
-
 	float decl_measurement = NAN;
 
 	if ((_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL)
