@@ -59,13 +59,6 @@ void Ekf::controlMagFusion()
 		return;
 	}
 
-	// stop mag (require a reset before using again) if there was an external yaw reset (yaw estimator, GPS yaw, etc)
-	if (_mag_decl_cov_reset && (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat)) {
-		ECL_INFO("yaw reset, stopping mag fusion to force reinitialization");
-		stopMagFusion();
-		resetMagCov();
-	}
-
 	magSample mag_sample;
 
 	if (_mag_buffer && _mag_buffer->pop_first_older_than(_time_delayed_us, &mag_sample)) {
@@ -154,11 +147,13 @@ void Ekf::controlMagFusion()
 
 		// WMM update can occur on the last epoch, just after mag fusion
 		const bool wmm_updated = (_wmm_gps_time_last_set >= aid_src.time_last_fuse);
+		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
+
 
 		{
-		const bool mag_consistent_or_no_gnss = _control_status.flags.mag_heading_consistent || !_control_status.flags.gps;
+		const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
 		const bool common_conditions_passing = _control_status.flags.mag
-						       && ((_control_status.flags.yaw_align && mag_consistent_or_no_gnss)
+						       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
 						           || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
 						       && !_control_status.flags.mag_fault
 						       && !_control_status.flags.mag_field_disturbed
@@ -186,9 +181,8 @@ void Ekf::controlMagFusion()
 		// if we are using 3-axis magnetometer fusion, but without external NE aiding,
 		// then the declination must be fused as an observation to prevent long term heading drift
 		// fusing declination when gps aiding is available is optional.
-		const bool not_using_ne_aiding = !_control_status.flags.gps && !_control_status.flags.aux_gpos;
 		_control_status.flags.mag_dec = _control_status.flags.mag
-						&& (not_using_ne_aiding || !_control_status.flags.mag_aligned_in_flight);
+						&& (!using_ne_aiding || !_control_status.flags.mag_aligned_in_flight);
 
 		if (_control_status.flags.mag) {
 
@@ -200,33 +194,22 @@ void Ekf::controlMagFusion()
 					aid_src.time_last_fuse = _time_delayed_us;
 
 				} else {
-					if (!_mag_decl_cov_reset) {
-						// After any magnetic field covariance reset event the earth field state
-						// covariances need to be corrected to incorporate knowledge of the declination
-						// before fusing magnetometer data to prevent rapid rotation of the earth field
-						// states for the first few observations.
-						fuseDeclination(0.02f);
-						_mag_decl_cov_reset = true;
-						fuseMag(mag_sample.mag, R_MAG, H, aid_src);
+					// The normal sequence is to fuse the magnetometer data first before fusing
+					// declination angle at a higher uncertainty to allow some learning of
+					// declination angle over time.
+					const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
+					const bool update_tilt = _control_status.flags.mag_3D;
+					fuseMag(mag_sample.mag, R_MAG, H, aid_src, update_all_states, update_tilt);
 
-					} else {
-						// The normal sequence is to fuse the magnetometer data first before fusing
-						// declination angle at a higher uncertainty to allow some learning of
-						// declination angle over time.
-						const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
-						const bool update_tilt = _control_status.flags.mag_3D;
-						fuseMag(mag_sample.mag, R_MAG, H, aid_src, update_all_states, update_tilt);
+					// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
+					if (update_all_states && update_tilt) {
+						_fault_status.flags.bad_mag_x = (aid_src.innovation_variance[0] < aid_src.observation_variance[0]);
+						_fault_status.flags.bad_mag_y = (aid_src.innovation_variance[1] < aid_src.observation_variance[1]);
+						_fault_status.flags.bad_mag_z = (aid_src.innovation_variance[2] < aid_src.observation_variance[2]);
+					}
 
-						// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-						if (update_all_states && update_tilt) {
-							_fault_status.flags.bad_mag_x = (aid_src.innovation_variance[0] < aid_src.observation_variance[0]);
-							_fault_status.flags.bad_mag_y = (aid_src.innovation_variance[1] < aid_src.observation_variance[1]);
-							_fault_status.flags.bad_mag_z = (aid_src.innovation_variance[2] < aid_src.observation_variance[2]);
-						}
-
-						if (_control_status.flags.mag_dec) {
-							fuseDeclination(0.5f);
-						}
+					if (_control_status.flags.mag_dec) {
+						fuseDeclination(0.5f);
 					}
 				}
 
@@ -272,7 +255,6 @@ void Ekf::controlMagFusion()
 				// activate fusion, reset mag states and initialize variance if first init or in flight reset
 				if (!_control_status.flags.yaw_align
 				    || wmm_updated
-				    || !_mag_decl_cov_reset
 				    || !_state.mag_I.longerThan(0.f)
 				    || (getStateVariance<State::mag_I>().min() < kMagVarianceMin)
 				    || (getStateVariance<State::mag_B>().min() < kMagVarianceMin)
@@ -398,9 +380,6 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 		if (reset_heading) {
 			resetMagHeading(mag);
 		}
-
-		// earth field was reset to WMM, skip initial declination fusion
-		_mag_decl_cov_reset = true;
 
 	} else {
 		// mag_B: reset
