@@ -308,10 +308,7 @@ void Ekf::resetAccelBiasCov()
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 void Ekf::resetMagCov()
 {
-	if (_mag_decl_cov_reset) {
-		ECL_INFO("reset mag covariance");
-		_mag_decl_cov_reset = false;
-	}
+	ECL_INFO("reset mag covariance");
 
 	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, sq(_params.mag_noise));
 	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.mag_noise));
