@@ -216,26 +216,12 @@ void Ekf::controlMagFusion()
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
-					if (_nb_mag_3d_reset_available > 0) {
-						// Data seems good, attempt a reset (mag states only unless mag_3D currently active)
+					if (!using_ne_aiding || !_control_status.flags.mag_aligned_in_flight) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 						resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 						aid_src.time_last_fuse = _time_delayed_us;
 
-						if (_control_status.flags.in_air) {
-							_nb_mag_3d_reset_available--;
-						}
-
-					} else if (starting_conditions_passing) {
-						// Data seems good, but previous reset did not fix the issue
-						// something else must be wrong, declare the sensor faulty and stop the fusion
-						//_control_status.flags.mag_fault = true;
-						ECL_WARN("stopping %s fusion, starting conditions failing", AID_SRC_NAME);
-						stopMagFusion();
-
 					} else {
-						// A reset did not fix the issue but all the starting checks are not passing
-						// This could be a temporary issue, stop the fusion without declaring the sensor faulty
 						ECL_WARN("stopping %s, fusion failing", AID_SRC_NAME);
 						stopMagFusion();
 					}
@@ -250,8 +236,6 @@ void Ekf::controlMagFusion()
 		} else {
 			if (starting_conditions_passing) {
 
-				_control_status.flags.mag = true;
-
 				// activate fusion, reset mag states and initialize variance if first init or in flight reset
 				if (!_control_status.flags.yaw_align
 				    || wmm_updated
@@ -265,16 +249,17 @@ void Ekf::controlMagFusion()
 
 					resetMagStates(_mag_lpf.getState(), reset_heading);
 					aid_src.time_last_fuse = _time_delayed_us;
-					_nb_mag_3d_reset_available = 2;
 
 					if (reset_heading) {
 						_control_status.flags.yaw_align = true;
 					}
 
+					_control_status.flags.mag = true;
+
 				} else {
 					if (fuseMag(mag_sample.mag, R_MAG, H, aid_src)) {
 						ECL_INFO("starting %s fusion", AID_SRC_NAME);
-						_nb_mag_3d_reset_available = 2;
+						_control_status.flags.mag = true;
 					}
 				}
 			}
