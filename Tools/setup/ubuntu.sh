@@ -103,12 +103,15 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-if [ -n "$VIRTUAL_ENV" ]; then
-	# virtual environments don't allow --user option
+if [ ! -d ".venv" ]; then
+	echo "Python venv not found. Creating a new virtual vnvironment at .venv"
+	python3 -m venv .venv
+fi
+if [ -z "$VIRTUAL_ENV" ]; then
+	echo "Activating Python virtual environment"
+	source .venv/bin/activate
 	python -m pip install -r ${DIR}/requirements.txt
-else
-	# older versions of Ubuntu require --user option
-	python3 -m pip install --user -r ${DIR}/requirements.txt
+	deactivate
 fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
