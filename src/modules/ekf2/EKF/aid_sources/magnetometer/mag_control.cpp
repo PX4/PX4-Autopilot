@@ -180,15 +180,14 @@ void Ekf::controlMagFusion()
 
 		// if we are using 3-axis magnetometer fusion, but without external NE aiding,
 		// then the declination must be fused as an observation to prevent long term heading drift
-		// fusing declination when gps aiding is available is optional.
-		_control_status.flags.mag_dec = _control_status.flags.mag
-						&& (!using_ne_aiding || !_control_status.flags.mag_aligned_in_flight);
+		const bool no_ne_aiding_or_pre_takeoff = !using_ne_aiding || !_control_status.flags.mag_aligned_in_flight;
+		_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_pre_takeoff;
 
 		if (_control_status.flags.mag) {
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if (mag_sample.reset || checkHaglYawResetReq() || wmm_updated) {
+				if (mag_sample.reset || checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_pre_takeoff)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 					aid_src.time_last_fuse = _time_delayed_us;
@@ -216,7 +215,7 @@ void Ekf::controlMagFusion()
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
-					if (!using_ne_aiding || !_control_status.flags.mag_aligned_in_flight) {
+					if (no_ne_aiding_or_pre_takeoff) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 						resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 						aid_src.time_last_fuse = _time_delayed_us;
