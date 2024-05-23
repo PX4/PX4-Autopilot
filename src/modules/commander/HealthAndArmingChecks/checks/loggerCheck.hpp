@@ -48,7 +48,7 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	uORB::SubscriptionMultiArray<logger_status_s> _logger_status_sub{ORB_ID::logger_status};
-
+	uORB::Subscription _logger_status_sub{ORB_ID::logger_status};
 	const param_t _param_sdlog_mode_handle;
+	int32_t _sdlog_mode = -1;
 };

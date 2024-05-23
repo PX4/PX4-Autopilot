@@ -38,26 +38,20 @@ using namespace time_literals;
 LoggerChecks::LoggerChecks()
 	: _param_sdlog_mode_handle(param_find("SDLOG_MODE"))
 {
+	param_get(_param_sdlog_mode_handle, &_sdlog_mode);
 }
 
 void LoggerChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	int32_t sdlog_mode = -1;
-	param_get(_param_sdlog_mode_handle, &sdlog_mode);
-
 	bool active = false;
 
-	if (sdlog_mode >= 0) {
-		for (int instance = 0; instance < _logger_status_sub.size(); instance++) {
-			const bool exists = _logger_status_sub[instance].advertised();
+	if (_sdlog_mode >= 0) {
+		if (_logger_status_sub.advertised()) {
+			logger_status_s status;
+			_logger_status_sub.copy(&status);
 
-			if (exists) {
-				logger_status_s status;
-				_logger_status_sub[instance].copy(&status);
-
-				if (hrt_elapsed_time(&status.timestamp) < 3_s && status.is_logging) {
-					active = true;
-				}
+			if (hrt_elapsed_time(&status.timestamp) < 3_s && status.is_logging) {
+				active = true;
 			}
 		}
 	}
