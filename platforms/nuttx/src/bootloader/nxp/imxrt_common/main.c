@@ -397,7 +397,7 @@ flash_func_sector_size(unsigned sector)
 }
 
 /* imxRT uses Flash lib, not up_progmem so let's stub it here */
-up_progmem_ispageerased(unsigned sector)
+ssize_t up_progmem_ispageerased(unsigned sector)
 {
 	const uint32_t bytes_per_sector =  flash_func_sector_size(sector);
 	uint32_t *address = (uint32_t *)(IMXRT_FLEXSPI1_CIPHER_BASE + (sector * bytes_per_sector));
@@ -432,8 +432,12 @@ flash_func_erase_sector(unsigned sector, bool force)
 		return;
 	}
 
-	if (force || flash_func_is_sector_blank(sector) != 0) {
+	if (force || up_progmem_ispageerased(sector) != 0) {
+
 		struct flexspi_nor_config_s *pConfig = &g_bootConfig;
+
+		const uint32_t bytes_per_sector =  flash_func_sector_size(sector);
+		uint32_t *address = (uint32_t *)(IMXRT_FLEXSPI1_CIPHER_BASE + (sector * bytes_per_sector));
 
 		uintptr_t offset = ((uintptr_t) address) - IMXRT_FLEXSPI1_CIPHER_BASE;
 		irqstate_t flags;
