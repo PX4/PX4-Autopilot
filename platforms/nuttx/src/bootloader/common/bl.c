@@ -306,7 +306,7 @@ void
 jump_to_app()
 {
 	const uint32_t *app_base = (const uint32_t *)APP_LOAD_ADDRESS;
-	const uint32_t *vec_base = (const uint32_t *)app_base + APP_VECTOR_OFFSET;
+	const uint32_t *vec_base = (const uint32_t *)((const uint32_t)app_base + APP_VECTOR_OFFSET);
 
 	/*
 	 * We refuse to program the first word of the app until the upload is marked
