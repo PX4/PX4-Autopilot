@@ -10,6 +10,7 @@ DISTANCE_SENSOR=NONE
 OSD=DISABLE
 DAEMON_MODE=DISABLE
 SENSOR_CAL=ACTUAL
+ARTIFACT_MODE=DISABLE
 EXTRA_STEPS=()
 
 # Try to source configuration variables from a file.
@@ -63,6 +64,7 @@ print_config_settings(){
     echo "OSD=$OSD"
     echo "DAEMON_MODE=$DAEMON_MODE"
     echo "SENSOR_CAL=$SENSOR_CAL"
+    echo "ARTIFACT_MODE=$ARTIFACT_MODE"
     echo "EXTRA STEPS:"
     for i in "${EXTRA_STEPS[@]}"
     do
@@ -138,4 +140,5 @@ fi
 print_config_settings
 
 GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
-OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS px4 $DAEMON -s /usr/bin/voxl-px4-start
+OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS ARTIFACT_MODE=$ARTIFACT_MODE \
+px4 $DAEMON -s /usr/bin/voxl-px4-start
