@@ -48,10 +48,6 @@ bool SeseOmni::init()
 void SeseOmni::updateParams()
 {
 	ModuleParams::updateParams();
-
-	_max_speed = _param_rdd_wheel_speed.get() * _param_rdd_wheel_radius.get();
-
-	_max_angular_velocity = _max_speed / (_param_rdd_wheel_base.get() / 2.f);
 }
 
 void SeseOmni::Run()
@@ -114,14 +110,14 @@ void SeseOmni::Run()
 
 				thrust_setpoint.timestamp = now;
 				// thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
-				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * math::max(-1.f, 0.1f) * _max_speed;
-				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * math::max(-1.f, 0.1f) * _max_speed;
+				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * _max_speed;
+				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * _max_speed;
 				thrust_setpoint.xyz[2] = 0.0f;
 
 				torque_setpoint.timestamp = now;
 				torque_setpoint.xyz[0] = 0.0f;
 				torque_setpoint.xyz[1] = 0.0f;
-				torque_setpoint.xyz[2] = manual_control_setpoint.roll * math::max(-1.f, 0.1f) * _max_speed;
+				torque_setpoint.xyz[2] = manual_control_setpoint.roll * _max_speed;
 
 				status.timestamp = torque_setpoint.timestamp;
 

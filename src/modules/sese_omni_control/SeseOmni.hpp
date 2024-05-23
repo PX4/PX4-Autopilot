@@ -91,6 +91,6 @@ private:
 	bool _acro_driving = false;
 	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
 
-	float _max_speed{0.f};
-	float _max_angular_velocity{0.f};
+	float _max_speed{0.1f};
+	float _max_angular_velocity{0.1f};
 };
