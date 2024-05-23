@@ -112,21 +112,16 @@ void SeseOmni::Run()
 				vehicle_thrust_setpoint_s thrust_setpoint{};
 				actuator_controls_status_s status;
 
-				// setpoint.speed = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
-				// setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() * _max_angular_velocity;
 				thrust_setpoint.timestamp = now;
-				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
-				// thrust_setpoint.xyz[1] = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
-				// thrust_setpoint.xyz[2] = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
-				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
+				// thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
+				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * math::max(-1.f, 0.1f) * _max_speed;
+				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * math::max(-1.f, 0.1f) * _max_speed;
 				thrust_setpoint.xyz[2] = 0.0f;
-				// PX4_INFO("Thrust setpoint sent");
 
 				torque_setpoint.timestamp = now;
-				// torque_setpoint.xyz[0] = manual_control_setpoint.roll * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
 				torque_setpoint.xyz[0] = 0.0f;
 				torque_setpoint.xyz[1] = 0.0f;
-				torque_setpoint.xyz[2] = manual_control_setpoint.roll * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
+				torque_setpoint.xyz[2] = manual_control_setpoint.roll * math::max(-1.f, 0.1f) * _max_speed;
 
 				status.timestamp = torque_setpoint.timestamp;
 

@@ -93,12 +93,4 @@ private:
 
 	float _max_speed{0.f};
 	float _max_angular_velocity{0.f};
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RDD_ANG_SCALE>)_param_rdd_ang_velocity_scale,
-		(ParamFloat<px4::params::RDD_SPEED_SCALE>)_param_rdd_speed_scale,
-		(ParamFloat<px4::params::RDD_WHEEL_BASE>)_param_rdd_wheel_base,
-		(ParamFloat<px4::params::RDD_WHEEL_SPEED>)_param_rdd_wheel_speed,
-		(ParamFloat<px4::params::RDD_WHEEL_RADIUS>)_param_rdd_wheel_radius,
-		(ParamFloat<px4::params::COM_SPOOLUP_TIME>)_param_com_spoolup_time)
 };
