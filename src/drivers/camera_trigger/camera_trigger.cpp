@@ -964,7 +964,6 @@ In particular:
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Print driver status information");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Trigger one image (not logged or forwarded to GCS)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_power","Toggle power");
-	PX4_INFO("usage: camera_trigger {start|stop|status|test|test_power}\n");
 	return 1;
 }
 
