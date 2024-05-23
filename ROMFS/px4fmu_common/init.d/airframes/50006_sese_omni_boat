@@ -22,6 +22,14 @@
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=ocean}
 
+# disable circuit breaker for airspeed sensor
+param set-default CBRK_AIRSPD_CHK 162128
+# companion computer is connected via USB permanently
+param set-default CBRK_USB_CHK 197848
+param set-default CBRK_IO_SAFETY 22027
+
+param set-default MAV_1_CONFIG 102
+
 param set-default SIM_GZ_EN 1
 
 param set-default SENS_EN_GPSSIM 1

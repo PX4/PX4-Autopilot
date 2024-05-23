@@ -119,7 +119,7 @@ px4_add_romfs_files(
 	50003_aion_robotics_r1_rover
 
 	# Omnidirectional boat
-	50006_usv_sese_omni_boat
+	50006_sese_omni_boat
 
 	# [60000, 61000] (Unmanned) Underwater Robots
 	60000_uuv_generic
