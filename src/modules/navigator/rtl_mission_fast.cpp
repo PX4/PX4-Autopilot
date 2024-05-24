@@ -52,12 +52,27 @@ RtlMissionFast::RtlMissionFast(Navigator *navigator) :
 
 }
 
+void RtlMissionFast::on_inactive()
+{
+	MissionBase::on_inactive();
+	_vehicle_status_sub.update();
+	_mission_index_prior_rtl = _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ?
+				   _mission.current_seq : -1;
+}
+
 void RtlMissionFast::on_activation()
 {
 	_home_pos_sub.update();
 
-	_is_current_planned_mission_item_valid = setMissionToClosestItem(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-			_global_pos_sub.get().alt, _home_pos_sub.get().alt, _vehicle_status_sub.get()) == PX4_OK;
+	// set mission item to closest item if not already in mission
+	if (_mission_index_prior_rtl < 0) {
+		_is_current_planned_mission_item_valid = setMissionToClosestItem(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+				_global_pos_sub.get().alt, _home_pos_sub.get().alt, _vehicle_status_sub.get()) == PX4_OK;
+
+	} else {
+		setMissionIndex(_mission_index_prior_rtl);
+		_is_current_planned_mission_item_valid = isMissionValid();
+	}
 
 	if (_land_detected_sub.get().landed) {
 		// already landed, no need to do anything, invalidad the position mission item.
