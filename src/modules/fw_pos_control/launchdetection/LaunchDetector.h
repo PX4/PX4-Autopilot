@@ -43,6 +43,7 @@
 
 #include <px4_platform_common/module_params.h>
 #include <uORB/topics/launch_detection_status.h>
+#include <stdint.h>
 
 namespace launchdetection
 {
@@ -77,7 +78,7 @@ public:
 	 *
 	 * @return uint (aligned with launch_detection_status_s::launch_detection_state)
 	 */
-	uint getLaunchDetected() const;
+	uint32_t getLaunchDetected() const;
 
 	/**
 	 * @brief Forces state of launch detection state machine to STATE_FLYING.
@@ -103,7 +104,7 @@ private:
 	/**
 	 * Current state of the launch detection state machine [launch_detection_status_s::launch_detection_state]
 	 */
-	uint state_{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
+	uint32_t state_{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_LAUN_AC_THLD>) param_fw_laun_ac_thld_,

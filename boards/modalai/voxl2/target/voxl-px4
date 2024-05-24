@@ -2,10 +2,12 @@
 
 CONFIG_FILE="/etc/modalai/voxl-px4.conf"
 
+AIRFRAME=MULTICOPTER
 GPS=NONE
 RC=SPEKTRUM
 ESC=VOXL_ESC
 POWER_MANAGER=VOXLPM
+AIRSPEED_SENSOR=NONE
 DISTANCE_SENSOR=NONE
 OSD=DISABLE
 DAEMON_MODE=DISABLE
@@ -40,12 +42,14 @@ else
 fi
 
 print_usage() {
-    echo -e "\nUsage: voxl-px4 [-b (Specify Holybro GPS unit)]"
+    echo -e "\nUsage: voxl-px4 [-a (Specify Airspeed Sensor)]"
+    echo "                [-b (Specify Holybro GPS unit)]"
     echo "                [-c delete configuration file and exit]"
     echo "                [-d start px4 without daemon mode]"
     echo "                [-f (Use fake rc input instead of from a real transmitter)]"
     echo "                [-m (Specify Matek GPS unit)]"
     echo "                [-o (Start OSD module on the apps processor)]"
+    echo "                [-p (Specify Fixed Wing airframe selected)]"
     echo "                [-r (Specify TBS Crossfire RC receiver, MAVLINK)]"
     echo "                [-w (Specify TBS Crossfire RC receiver, raw)]"
     echo "                [-z (Use fake sensor calibration values)]"
@@ -56,10 +60,12 @@ print_usage() {
 
 print_config_settings(){
     echo -e "\n*************************"
+    echo "AIRFRAME=$AIRFRAME"
     echo "GPS=$GPS"
     echo "RC=$RC"
     echo "ESC=$ESC"
     echo "POWER MANAGER=$POWER_MANAGER"
+    echo "AIRSPEED SENSOR=$AIRSPEED_SENSOR"
     echo "DISTANCE SENSOR=$DISTANCE_SENSOR"
     echo "OSD=$OSD"
     echo "DAEMON_MODE=$DAEMON_MODE"
@@ -73,52 +79,60 @@ print_config_settings(){
     echo -e "*************************\n"
 }
 
-while getopts "bcdhfmorwz" flag
+while getopts "abcdhfmoprwz" flag
 do
     case "${flag}" in
-        b) 
+        a)
+            echo "[INFO] MRO AIRSPEED Sensor selected"
+            AIRSPEED_SENSOR=MS4525DO
+            ;;
+        b)
             echo "[INFO] Holybro GPS selected"
             GPS=HOLYBRO
             ;;
-        c) 
+        c)
             echo "[INFO] Wiping old config file"
             if [ -f "$CONFIG_FILE" ]; then
                 rm -rf ${CONFIG_FILE}
             fi
             exit 0
             ;;
-        d) 
+        d)
             echo "[INFO] Disabling daemon mode"
             DAEMON_MODE=DISABLE
             ;;
-        h) 
+        h)
             print_usage
             ;;
-        f) 
+        f)
             echo "[INFO] Setting RC to FAKE_RC_INPUT"
             RC=FAKE_RC_INPUT
             ;;
-        m) 
+        m)
             echo "[INFO] Matek GPS selected"
             GPS=MATEK
             ;;
-        o) 
+        o)
             echo "[INFO] OSD module selected"
             OSD=ENABLE
             ;;
-        r) 
+        p)
+            echo "[INFO] Airframe Selected as Fixed Wing"
+            AIRFRAME=FIXED_WING
+            ;;
+        r)
             echo "[INFO] TBS Crossfire RC receiver, MAVLINK selected"
             RC=CRSF_MAV
             ;;
-        w) 
+        w)
             echo "[INFO] TBS Crossfire RC receiver, raw selected"
             RC=CRSF_RAW
             ;;
-        z) 
+        z)
             echo "[INFO] Fake sensor calibration values selected"
             SENSOR_CAL=FAKE
             ;;
-        *) 
+        *)
             print_usage
             ;;
     esac
@@ -139,6 +153,6 @@ fi
 
 print_config_settings
 
-GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
-OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS ARTIFACT_MODE=$ARTIFACT_MODE \
+AIRFRAME=$AIRFRAME GPS=$GPS RC=$RC ESC=$ESC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
+AIRSPEED_SENSOR=$AIRSPEED_SENSOR OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS ARTIFACT_MODE=$ARTIFACT_MODE \
 px4 $DAEMON -s /usr/bin/voxl-px4-start

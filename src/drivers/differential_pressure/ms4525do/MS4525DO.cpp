@@ -69,7 +69,7 @@ int MS4525DO::probe()
 
 			if ((status_1 == (uint8_t)STATUS::Normal_Operation)
 			    && (status_2 == (uint8_t)STATUS::Stale_Data)
-			    && (data_1[2] == data_1[2])) {
+			    && (data_1[2] == data_2[2])) {
 
 				_retries = 1; // enable retries during operation
 				return PX4_OK;

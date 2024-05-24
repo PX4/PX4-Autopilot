@@ -4,10 +4,12 @@
 . px4-alias.sh
 
 echo -e "\n*************************"
+echo "AIRFRAME: $AIRFRAME"
 echo "GPS: $GPS"
 echo "RC: $RC"
 echo "ESC: $ESC"
 echo "POWER MANAGER: $POWER_MANAGER"
+echo "AIRSPEED SENSOR: $AIRSPEED_SENSOR"
 echo "DISTANCE SENSOR: $DISTANCE_SENSOR"
 echo "OSD: $OSD"
 echo "ARTIFACT_MODE: $ARTIFACT_MODE"
@@ -116,7 +118,7 @@ if [ "$GPS" != "NONE" ]; then
 fi
 
 # Auto detect an ncp5623c i2c RGB LED. If one isn't connected this will
-# fail but not cause any harm. 
+# fail but not cause any harm.
 /bin/echo "Looking for ncp5623c RGB LED"
 qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 
@@ -191,6 +193,10 @@ if [ "$POWER_MANAGER" == "VOXLPM" ]; then
 	qshell voxlpm start -X -b 2
 fi
 
+if [ "$AIRSPEED_SENSOR" == "MS4525DO" ]; then
+	qshell ms4525do start -X -b 4
+fi
+
 # Optional distance sensor on spare i2c
 # qshell vl53l0x start -X -b 4
 # qshell vl53l1x start -X -b 4
@@ -198,12 +204,23 @@ fi
 # Start all of the processing modules on DSP
 qshell sensors start
 qshell ekf2 start
-qshell mc_pos_control start
-qshell mc_att_control start
-qshell mc_rate_control start
-qshell mc_hover_thrust_estimator start
-qshell mc_autotune_attitude_control start
-qshell land_detector start multicopter
+
+if [ "$AIRFRAME" == "FIXED_WING" ]; then
+	qshell fw_pos_control start
+	qshell fw_att_control start
+	qshell fw_rate_control start
+	qshell airspeed_selector start
+	qshell fw_autotune_attitude_control start
+	qshell land_detector start fixedwing
+elif [ $AIRFRAME = "MULTICOPTER" ]; then
+	qshell mc_pos_control start
+	qshell mc_att_control start
+	qshell mc_rate_control start
+	qshell mc_hover_thrust_estimator start
+	qshell mc_autotune_attitude_control start
+	qshell land_detector start multicopter
+fi
+
 qshell manual_control start
 qshell control_allocator start
 qshell load_mon start
@@ -252,7 +269,7 @@ mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
 
 mavlink boot_complete
 
-# Optional MSP OSD driver for DJI or HDZero goggles 
+# Optional MSP OSD driver for DJI or HDZero goggles
 # This is only supported on M0054 (with M0125 accessory board)
 if [ "$OSD" == "ENABLE" ] || [ "$OSD" == "DJI" ]; then
     /bin/echo "Starting DJI OSD driver"

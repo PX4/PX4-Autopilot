@@ -104,7 +104,7 @@ void LaunchDetector::update(const float dt, const float accel_x)
 	}
 }
 
-uint LaunchDetector::getLaunchDetected() const
+uint32_t LaunchDetector::getLaunchDetected() const
 {
 	return state_;
 }
