@@ -35,6 +35,7 @@
  * Path navigation roll slew rate limit.
  *
  * The maximum change in roll angle setpoint per second.
+ * This limit is applied in all Auto modes, plus manual Position and Altitude modes.
  *
  * @unit deg/s
  * @min 0
