@@ -206,7 +206,8 @@ void CdcAcmAutostart::state_connecting()
 
 	if (_ttyacm_fd < 0) {
 		PX4_DEBUG("can't open port");
-		goto fail;
+		// fail silently and keep trying to open the port
+		return;
 	}
 
 	if (_sys_usb_auto.get() == 2) {
