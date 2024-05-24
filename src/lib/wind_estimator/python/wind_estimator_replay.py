@@ -78,7 +78,9 @@ def run(logfile, use_gnss, scale_init):
     if scale_init is None:
         scale_init = 1.0
 
-    state = np.array([0.0, 0.0, scale_init])
+    # The estimator estimates the inverse scale factor to have a simpler measurement jacobian
+    inverse_scale_init = 1 / scale_init
+    state = np.array([0.0, 0.0, inverse_scale_init])
     P = np.diag([1.0, 1.0, 1e-4])
     wind_nsd = 1e-2
     scale_nsd = 1e-4
@@ -118,7 +120,7 @@ def run(logfile, use_gnss, scale_init):
 
         wind_est_n[i] = state[0]
         wind_est_e[i] = state[1]
-        scale_est[i] = state[2]
+        scale_est[i] = 1 / state[2]
 
     plt.figure(1)
     ax1 = plt.subplot(2, 1, 1)
