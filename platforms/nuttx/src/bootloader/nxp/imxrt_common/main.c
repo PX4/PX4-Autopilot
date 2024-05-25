@@ -16,6 +16,7 @@
 #include "imxrt_clockconfig.h"
 
 #include <nvic.h>
+#include <mpu.h>
 #include <lib/systick.h>
 #include <lib/flash_cache.h>
 
@@ -577,6 +578,21 @@ led_toggle(unsigned led)
 void
 arch_do_jump(const uint32_t *app_base)
 {
+	/* The MPU configuration after booting has ITCM set to MPU_RASR_AP_RORO
+	 * We add this overlaping region to allow the Application to copy code into
+	 * the ITCM when it is booted. With CONFIG_ARM_MPU_RESET defined. The mpu
+	 * init will clear any added regions (after the copy)
+	 */
+
+	mpu_configure_region(IMXRT_ITCM_BASE, 256 * 1024,
+			     /* Instruction access Enabled */
+			     MPU_RASR_AP_RWRW  | /* P:RW   U:RW                */
+			     MPU_RASR_TEX_NOR    /* Normal                     */
+			     /* Not Cacheable              */
+			     /* Not Bufferable             */
+			     /* Not Shareable              */
+			     /* No Subregion disable       */
+			    );
 
 	/* extract the stack and entrypoint from the app vector table and go */
 	uint32_t stacktop = app_base[APP_VECTOR_OFFSET_WORDS];
