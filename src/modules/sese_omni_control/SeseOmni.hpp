@@ -91,7 +91,6 @@ private:
 	bool _manual_driving = false;
 	bool _mission_driving = false;
 	bool _acro_driving = false;
-	// vehicle_attitude_setpoint_s _att_sp{}; /**< attitude setpoint > */
 	vehicle_local_position_s _local_pos{};
 	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
 
@@ -105,9 +104,5 @@ private:
 		(ParamFloat<px4::params::ATT_P_GAIN>) att_p_gain,
 		(ParamFloat<px4::params::ATT_I_GAIN>) att_i_gain,
 		(ParamFloat<px4::params::ATT_D_GAIN>) att_d_gain
-		// (ParamFloat<px4::params::MC_YAWRATE_I>) _param_att_i,
-		// (ParamFloat<px4::params::MC_YAWRATE_D>) _param_att_d,
-		// (ParamFloat<px4::params::MC_YAWRATE_D>) _param_att_imax,
-
 	);
 };

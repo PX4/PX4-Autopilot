@@ -49,12 +49,6 @@ void SeseOmni::updateParams()
 {
 	ModuleParams::updateParams();
 	pid_init(&_att_pid, PID_MODE_DERIVATIV_CALC, 0.01f);
-	// pid_set_parameters(&_att_pid,
-	// 				   _param_att_p.get(),
-	// 				   _param_att_i.get(),
-	// 				   _param_att_d.get(),
-	// 				   10.0f, // Integral limit
-	// 				   1.0f); // Output limit
 	pid_set_parameters(&_att_pid,
 					   att_p_gain.get(), // P
 					   att_i_gain.get(), // I
@@ -87,9 +81,7 @@ void SeseOmni::Run()
 
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode))
 		{
-			// _manual_driving = vehicle_control_mode.flag_control_manual_enabled;
 			_mission_driving = vehicle_control_mode.flag_control_auto_enabled;
-			// _velocity_control = vehicle_control_mode.flag_control_velocity_enabled;
 		}
 	}
 
@@ -99,7 +91,6 @@ void SeseOmni::Run()
 
 		if (_vehicle_status_sub.copy(&vehicle_status))
 		{
-			// const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			_manual_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL);
 			_acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
 		}
@@ -116,13 +107,11 @@ void SeseOmni::Run()
 			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint))
 			{
 				// Create msgs
-				// differential_drive_setpoint_s setpoint{};
 				vehicle_torque_setpoint_s torque_setpoint{};
 				vehicle_thrust_setpoint_s thrust_setpoint{};
 				actuator_controls_status_s status;
 
 				thrust_setpoint.timestamp = now;
-				// thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * math::max(-1.f, _param_rdd_speed_scale.get()) * _max_speed;
 				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * _max_speed;
 				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * _max_speed;
 				thrust_setpoint.xyz[2] = 0.0f;
