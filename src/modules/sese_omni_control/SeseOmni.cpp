@@ -48,6 +48,19 @@ bool SeseOmni::init()
 void SeseOmni::updateParams()
 {
 	ModuleParams::updateParams();
+	pid_init(&_att_pid, PID_MODE_DERIVATIV_CALC, 0.01f);
+	// pid_set_parameters(&_att_pid,
+	// 				   _param_att_p.get(),
+	// 				   _param_att_i.get(),
+	// 				   _param_att_d.get(),
+	// 				   10.0f, // Integral limit
+	// 				   1.0f); // Output limit
+	pid_set_parameters(&_att_pid,
+					   1.0f, // P
+					   0.1f, // I
+					   0.0f, // D
+					   10.0f, // Integral limit
+					   1.0f); // Output limit
 }
 
 void SeseOmni::Run()
@@ -59,8 +72,7 @@ void SeseOmni::Run()
 	}
 
 	hrt_abstime now = hrt_absolute_time();
-	// const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e6f;
-	_time_stamp_last = now;
+
 
 	if (_parameter_update_sub.updated())
 	{
@@ -75,8 +87,9 @@ void SeseOmni::Run()
 
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode))
 		{
-			_manual_driving = vehicle_control_mode.flag_control_manual_enabled;
+			// _manual_driving = vehicle_control_mode.flag_control_manual_enabled;
 			_mission_driving = vehicle_control_mode.flag_control_auto_enabled;
+			// _velocity_control = vehicle_control_mode.flag_control_velocity_enabled;
 		}
 	}
 
@@ -87,8 +100,8 @@ void SeseOmni::Run()
 		if (_vehicle_status_sub.copy(&vehicle_status))
 		{
 			// const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-
-			// _acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
+			_manual_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL);
+			_acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
 		}
 	}
 
@@ -130,6 +143,53 @@ void SeseOmni::Run()
 				_vehicle_thrust_setpoint_pub.publish(thrust_setpoint);
 				_actuator_controls_status_pub.publish(status);
 			}
+		}
+	}
+
+	else if (_acro_driving)
+	{
+		PX4_INFO_RAW("ACRO RUNNING");
+		if (_manual_control_setpoint_sub.updated())
+		{
+			manual_control_setpoint_s manual_control_setpoint{};
+
+			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint))
+			{
+				vehicle_thrust_setpoint_s thrust_setpoint{};
+
+				thrust_setpoint.timestamp = now;
+				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * _max_speed;
+				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * _max_speed;
+				thrust_setpoint.xyz[2] = 0.0f;
+
+				_vehicle_thrust_setpoint_pub.publish(thrust_setpoint);
+			}
+		}
+		if (_local_pos_sub.update(&_local_pos)) {
+			const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e3f;
+			_time_stamp_last = now;
+
+			float desired_heading = 1.0f;
+
+			float current_heading = _local_pos.heading;
+
+			vehicle_torque_setpoint_s torque_setpoint{};
+			actuator_controls_status_s status;
+
+			torque_setpoint.timestamp = now;
+			torque_setpoint.xyz[0] = 0.0f;
+			torque_setpoint.xyz[1] = 0.0f;
+			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, desired_heading, current_heading, 0.0f, dt);
+
+			status.timestamp = torque_setpoint.timestamp;
+
+			for (int i = 0; i < 3; i++)
+			{
+				status.control_power[i] = 100.0f;
+			}
+
+			_vehicle_torque_setpoint_pub.publish(torque_setpoint);
+			_actuator_controls_status_pub.publish(status);
 		}
 	}
 }
