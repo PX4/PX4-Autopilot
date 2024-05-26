@@ -2508,7 +2508,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 		// EKF range sample
 		if (distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 			estimator::sensor::rangeSample range_sample {
-				.time_us = distance_sensor.timestamp,
+				.time_us = distance_sensor.timestamp_sample,
 				.rng = distance_sensor.current_distance,
 				.quality = distance_sensor.signal_quality,
 			};
@@ -2520,7 +2520,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 			_last_range_sensor_update = ekf2_timestamps.timestamp;
 		}
 
-		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
+		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp_sample / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
 	}
 
