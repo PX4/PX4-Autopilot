@@ -37,12 +37,12 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/parameter_update.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/differential_drive_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls_status.h>
@@ -101,11 +101,13 @@ private:
 	float _max_speed{0.1f};
 	float _max_angular_velocity{0.1f};
 
-	// DEFINE_PARAMETERS(
-	// 	(ParamFloat<px4::params::MC_YAWRATE_P>) _param_att_p,
-	// 	(ParamFloat<px4::params::MC_YAWRATE_I>) _param_att_i,
-	// 	(ParamFloat<px4::params::MC_YAWRATE_D>) _param_att_d,
-	// 	(ParamFloat<px4::params::MC_YAWRATE_D>) _param_att_imax,
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::ATT_P_GAIN>) att_p_gain,
+		(ParamFloat<px4::params::ATT_I_GAIN>) att_i_gain,
+		(ParamFloat<px4::params::ATT_D_GAIN>) att_d_gain
+		// (ParamFloat<px4::params::MC_YAWRATE_I>) _param_att_i,
+		// (ParamFloat<px4::params::MC_YAWRATE_D>) _param_att_d,
+		// (ParamFloat<px4::params::MC_YAWRATE_D>) _param_att_imax,
 
-	// );
+	);
 };

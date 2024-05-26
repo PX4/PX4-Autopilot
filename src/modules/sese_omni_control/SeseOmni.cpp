@@ -56,9 +56,9 @@ void SeseOmni::updateParams()
 	// 				   10.0f, // Integral limit
 	// 				   1.0f); // Output limit
 	pid_set_parameters(&_att_pid,
-					   1.0f, // P
-					   0.1f, // I
-					   0.0f, // D
+					   att_p_gain.get(), // P
+					   att_i_gain.get(), // I
+					   att_d_gain.get(), // D
 					   10.0f, // Integral limit
 					   1.0f); // Output limit
 }

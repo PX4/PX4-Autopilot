@@ -42,4 +42,6 @@ px4_add_module(
 		px4_work_queue
 		modules__control_allocator
 		pid
-	)
+	MODULE_CONFIG
+		module.yaml
+)

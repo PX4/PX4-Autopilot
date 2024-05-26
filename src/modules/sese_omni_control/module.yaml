@@ -1,0 +1,38 @@
+module_name: Sese Omni Boat
+
+parameters:
+  - group: Sese Omni Boat
+    definitions:
+      ATT_P_GAIN:
+        description:
+          short: P Gain
+          long: P Gain for the attitude PIDncontroller
+        type: float
+        unit: m
+        min: 0.001
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+      ATT_I_GAIN:
+        description:
+          short: I Gain
+          long: I Gain for the attitude PIDncontroller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      ATT_D_GAIN:
+        description:
+          short: D Gain
+          long: D Gain for the attitude PIDncontroller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
