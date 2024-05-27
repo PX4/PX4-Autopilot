@@ -320,7 +320,8 @@ bool Ekf::shouldResetGpsFusion() const
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	const bool is_reset_required = has_horizontal_aiding_timed_out
-				       || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);
+				       || (isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max)
+					   && (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::HPOS)));
 
 	const bool is_inflight_nav_failure = _control_status.flags.in_air
 					     && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
