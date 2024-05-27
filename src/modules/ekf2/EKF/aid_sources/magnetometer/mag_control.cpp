@@ -130,7 +130,9 @@ void Ekf::controlMagFusion()
 		_innov_check_fail_status.flags.reject_mag_z = (aid_src.test_ratio[2] > 1.f);
 
 		// determine if we should use mag fusion
-		bool continuing_conditions_passing = (_params.mag_fusion_type != MagFuseType::NONE)
+		bool continuing_conditions_passing = ((_params.mag_fusion_type == MagFuseType::INIT)
+						      || (_params.mag_fusion_type == MagFuseType::AUTO)
+						      || (_params.mag_fusion_type == MagFuseType::HEADING))
 						     && _control_status.flags.tilt_align
 						     && (_control_status.flags.yaw_align || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
 						     && mag_sample.mag.longerThan(0.f)
