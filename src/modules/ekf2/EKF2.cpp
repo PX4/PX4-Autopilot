@@ -769,6 +769,7 @@ void EKF2::VerifyParams()
 	if ((_param_ekf2_mag_type.get() != MagFuseType::AUTO)
 	    && (_param_ekf2_mag_type.get() != MagFuseType::HEADING)
 	    && (_param_ekf2_mag_type.get() != MagFuseType::NONE)
+	    && (_param_ekf2_mag_type.get() != MagFuseType::INIT)
 	   ) {
 
 		mavlink_log_critical(&_mavlink_log_pub, "EKF2_MAG_TYPE invalid, resetting to default");
