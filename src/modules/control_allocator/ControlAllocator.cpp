@@ -400,9 +400,13 @@ ControlAllocator::Run()
 	if (do_update) {
 		_last_run = now;
 
-		check_for_motor_failures();
+		// update matrix if there was an actuator activation change (due to detected failure or actuator activation due to VTOL mode change)
+		if (check_for_actuator_activation_update()) {
+			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::ACTUATOR_ACTIVATION_UPDATE);
 
-		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+		} else {
+			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
+		}
 
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
@@ -539,15 +543,17 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			}
 		}
 
-		// Handle failed actuators
-		if (_handled_motor_failure_bitmask) {
+		const int16_t motor_failed_disabled_bitmask = _handled_motor_failure_bitmask | _handled_motor_disabled_bitmask;
+
+		// Handle failed/disabled motors
+		if (motor_failed_disabled_bitmask) {
 			actuator_idx = 0;
 			memset(&actuator_idx_matrix, 0, sizeof(actuator_idx_matrix));
 
 			for (int motors_idx = 0; motors_idx < _num_actuators[0] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
 				int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
 
-				if (_handled_motor_failure_bitmask & (1 << motors_idx)) {
+				if (motor_failed_disabled_bitmask & (1 << motors_idx)) {
 					ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[selected_matrix];
 
 					for (int i = 0; i < NUM_AXES; i++) {
@@ -668,7 +674,9 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors() | _handled_motor_failure_bitmask;
+	// set output to NAN of motors that are stopped or disabled
+	const uint32_t stopped_or_disabled_motors = _actuator_effectiveness->getStoppedMotors() |
+			_actuator_effectiveness->getDisabledMotors();
 
 	// motors
 	int motors_idx;
@@ -678,7 +686,7 @@ ControlAllocator::publish_actuator_controls()
 		float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
 		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
 
-		if (stopped_motors & (1u << motors_idx)) {
+		if (stopped_or_disabled_motors & (1u << motors_idx)) {
 			actuator_motors.control[motors_idx] = NAN;
 		}
 
@@ -712,9 +720,11 @@ ControlAllocator::publish_actuator_controls()
 	}
 }
 
-void
-ControlAllocator::check_for_motor_failures()
+bool
+ControlAllocator::check_for_actuator_activation_update()
 {
+	bool activation_updated = false;
+
 	failure_detector_status_s failure_detector_status;
 
 	if ((FailureMode)_param_ca_failure_mode.get() > FailureMode::IGNORE
@@ -732,12 +742,11 @@ ControlAllocator::check_for_motor_failures()
 						if (_handled_motor_failure_bitmask == 0 && num_motors_failed == 1) {
 							_handled_motor_failure_bitmask = failure_detector_status.motor_failure_mask;
 							PX4_WARN("Removing motor from allocation (0x%x)", _handled_motor_failure_bitmask);
+							activation_updated = true;
 
 							for (int i = 0; i < _num_control_allocation; ++i) {
 								_control_allocation[i]->setHadActuatorFailure(true);
 							}
-
-							update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
 						}
 					}
 					break;
@@ -757,9 +766,17 @@ ControlAllocator::check_for_motor_failures()
 				_control_allocation[i]->setHadActuatorFailure(false);
 			}
 
-			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+			activation_updated = true;
 		}
 	}
+
+	// handle disabled actuators (currently only VTOL motors)
+	if (_actuator_effectiveness->getDisabledMotors() != _handled_motor_disabled_bitmask) {
+		_handled_motor_disabled_bitmask = _actuator_effectiveness->getDisabledMotors();
+		activation_updated = true;
+	}
+
+	return activation_updated;
 }
 
 int ControlAllocator::task_spawn(int argc, char *argv[])

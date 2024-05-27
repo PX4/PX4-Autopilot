@@ -132,7 +132,7 @@ private:
 
 	void update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason);
 
-	void check_for_motor_failures();
+	bool check_for_actuator_activation_update();
 
 	void publish_control_allocator_status(int matrix_index);
 
@@ -198,6 +198,8 @@ private:
 	// Reflects motor failures that are currently handled, not motor failures that are reported.
 	// For example, the system might report two motor failures, but only the first one is handled by CA
 	uint16_t _handled_motor_failure_bitmask{0};
+
+	uint16_t _handled_motor_disabled_bitmask{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 

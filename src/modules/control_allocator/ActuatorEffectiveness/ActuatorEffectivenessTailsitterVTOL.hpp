@@ -78,6 +78,7 @@ public:
 
 
 	void setFlightPhase(const FlightPhase &flight_phase) override;
+	void setEnableAuxiliaryMotors(bool enable) override;
 
 	const char *name() const override { return "VTOL Tailsitter"; }
 

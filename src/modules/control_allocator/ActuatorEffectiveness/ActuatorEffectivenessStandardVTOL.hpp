@@ -80,6 +80,7 @@ public:
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
 	void setFlightPhase(const FlightPhase &flight_phase) override;
+	void setEnableAuxiliaryMotors(bool enable) override;
 
 private:
 	ActuatorEffectivenessRotors _rotors;

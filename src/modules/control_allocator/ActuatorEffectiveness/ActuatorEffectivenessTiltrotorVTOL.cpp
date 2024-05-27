@@ -201,14 +201,20 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 
 			// in FW directly use throttle sp
 			if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
-				for (int i = 0; i < _first_tilt_idx; ++i) {
-					actuator_sp(i) = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
+				for (int motors_idx = 0; motors_idx < _first_tilt_idx; ++motors_idx) {
+					if (!(_disabled_motors_mask & (1 << motors_idx))) {
+						actuator_sp(motors_idx) = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
+					}
 				}
 			}
 		}
 
 		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
 			stopMaskedMotorsWithZeroThrust(_motors & ~_untiltable_motors, actuator_sp);
+
+		} else {
+			// make sure all motors are un-stopped when out of forward flight
+			stopMaskedMotorsWithZeroThrust(0, actuator_sp);
 		}
 	}
 }
@@ -221,18 +227,23 @@ void ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &fligh
 
 	ActuatorEffectiveness::setFlightPhase(flight_phase);
 
-	// update stopped motors
+	// update disabled motors
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors_mask |= _untiltable_motors;
+		_disabled_motors_mask |= _untiltable_motors;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors_mask = 0;
+		_disabled_motors_mask = 0;
 		break;
 	}
+}
+
+void ActuatorEffectivenessTiltrotorVTOL::setEnableAuxiliaryMotors(bool enable)
+{
+	// keep auxiliary motors disabled for now
 }
 
 void ActuatorEffectivenessTiltrotorVTOL::getUnallocatedControl(int matrix_index, control_allocator_status_s &status)

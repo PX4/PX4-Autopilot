@@ -77,6 +77,7 @@ public:
 	}
 
 	void setFlightPhase(const FlightPhase &flight_phase) override;
+	void setEnableAuxiliaryMotors(bool enable) override;
 
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
