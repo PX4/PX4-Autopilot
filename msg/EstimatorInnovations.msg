@@ -22,7 +22,6 @@ float32[2] aux_hvel	# horizontal auxiliary velocity innovation from landing targ
 
 # Optical flow
 float32[2] flow		# flow innvoation (rad/sec) and innovation variance ((rad/sec)**2)
-float32[2] terr_flow	# flow innvoation (rad/sec) and innovation variance computed by the terrain estimator ((rad/sec)**2)
 
 # Various
 float32 heading		# heading innovation (rad) and innovation variance (rad**2)

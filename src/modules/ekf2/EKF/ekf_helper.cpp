@@ -211,7 +211,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
-			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
+			vel_err_conservative = math::max(getHagl(), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
 		}
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
@@ -271,7 +271,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		const float flow_hagl_min = fmaxf(rangefinder_hagl_min, _flow_min_distance);
 		const float flow_hagl_max = fminf(rangefinder_hagl_max, _flow_max_distance);
 
-		const float flow_constrained_height = math::constrain(_terrain_vpos - _state.pos(2), flow_hagl_min, flow_hagl_max);
+		const float flow_constrained_height = math::constrain(getHagl(), flow_hagl_min, flow_hagl_max);
 
 		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
 		const float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
@@ -472,18 +472,9 @@ float Ekf::getHeightAboveGroundInnovationTestRatio() const
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_hagl_sensor_status.flags.range_finder) {
 		// return the terrain height innovation test ratio
-		test_ratio = math::max(test_ratio, fabsf(_aid_src_terrain_range_finder.test_ratio_filtered));
+		test_ratio = math::max(test_ratio, fabsf(_aid_src_rng_hgt.test_ratio_filtered));
 	}
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	if (_hagl_sensor_status.flags.flow) {
-		// return the terrain height innovation test ratio
-		for (auto &test_ratio_filtered : _aid_src_terrain_optical_flow.test_ratio_filtered) {
-			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
-		}
-	}
-# endif // CONFIG_EKF2_OPTICAL_FLOW
+# endif // CONFIG_EKF2_RANGE_FINDER
 #endif // CONFIG_EKF2_TERRAIN
 
 	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
@@ -569,6 +560,10 @@ void Ekf::fuse(const VectorState &K, float innovation)
 		_state.wind_vel = matrix::constrain(_state.wind_vel - K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation, -1.e2f, 1.e2f);
 	}
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	_state.terrain = math::constrain(_state.terrain - K(State::terrain.idx) * innovation, -1e4f, 1e4f);
+#endif // CONFIG_EKF2_TERRAIN
 }
 
 void Ekf::updateDeadReckoningStatus()
@@ -670,7 +665,7 @@ void Ekf::updateGroundEffect()
 #if defined(CONFIG_EKF2_TERRAIN)
 		if (isTerrainEstimateValid()) {
 			// automatically set ground effect if terrain is valid
-			float height = _terrain_vpos - _state.pos(2);
+			float height = getHagl();
 			_control_status.flags.gnd_effect = (height < _params.gnd_effect_max_hgt);
 
 		} else

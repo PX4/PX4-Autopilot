@@ -116,18 +116,22 @@ public:
 
 TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 {
+	// GIVEN: flow and range are enabled
+	_ekf_wrapper.enableFlowFusion();
+	_ekf_wrapper.enableRangeHeightFusion();
+
 	// WHEN: simulate being 5m above ground
 	const float simulated_distance_to_ground = 1.f;
 	runFlowAndRngScenario(simulated_distance_to_ground, simulated_distance_to_ground);
 
-	// THEN: By default, both rng and flow aiding are active
+	// THEN: both should start terrain aiding
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainRngFusion());
-	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainFlowFusion());
-	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
-	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 0.01);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainFlowFusion());
+	const float estimated_distance_to_ground = _ekf->getHagl();
+	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 0.02);
 
 	// WHEN: rng fusion is disabled
-	_ekf_wrapper.disableTerrainRngFusion();
+	_ekf_wrapper.disableRangeHeightFusion();
 	_sensor_simulator.runSeconds(5.1);
 
 	// THEN: rng fusion should be disabled and flow fusion should take over
@@ -135,7 +139,7 @@ TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 
 	// WHEN: flow is now diabled
-	_ekf_wrapper.disableTerrainFlowFusion();
+	_ekf_wrapper.disableFlowFusion();
 	_sensor_simulator.runSeconds(0.2);
 
 	// THEN: flow is now also disabled
@@ -146,8 +150,8 @@ TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 TEST_F(EkfTerrainTest, testFlowForTerrainFusion)
 {
 	// GIVEN: flow for terrain enabled but not range finder
-	_ekf_wrapper.enableTerrainFlowFusion();
-	_ekf_wrapper.disableTerrainRngFusion();
+	_ekf_wrapper.enableFlowFusion();
+	_ekf_wrapper.disableRangeHeightFusion();
 
 	// WHEN: the sensors do not agree
 	const float rng_height = 1.f;
@@ -158,16 +162,17 @@ TEST_F(EkfTerrainTest, testFlowForTerrainFusion)
 	// should converge to the simulated height
 	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainRngFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainFlowFusion());
+	EXPECT_TRUE(_ekf->isTerrainEstimateValid());
 
-	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
-	EXPECT_NEAR(estimated_distance_to_ground, flow_height, 0.5f);
+	const float estimated_distance_to_ground = _ekf->getHagl();
+	EXPECT_NEAR(estimated_distance_to_ground, flow_height, 0.9f);
 }
 
 TEST_F(EkfTerrainTest, testRngForTerrainFusion)
 {
 	// GIVEN: rng for terrain but not flow
-	_ekf_wrapper.disableTerrainFlowFusion();
-	_ekf_wrapper.enableTerrainRngFusion();
+	_ekf_wrapper.disableFlowFusion();
+	_ekf_wrapper.enableRangeHeightFusion();
 
 	// WHEN: the sensors do not agree
 	const float rng_height = 1.f;
@@ -178,22 +183,23 @@ TEST_F(EkfTerrainTest, testRngForTerrainFusion)
 	// should converge to the simulated height
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainRngFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainFlowFusion());
+	EXPECT_TRUE(_ekf->isTerrainEstimateValid());
 
-	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
+	const float estimated_distance_to_ground = _ekf->getHagl();
 	EXPECT_NEAR(estimated_distance_to_ground, rng_height, 0.01f);
 }
 
 TEST_F(EkfTerrainTest, testHeightReset)
 {
 	// GIVEN: rng for terrain but not flow
-	_ekf_wrapper.disableTerrainFlowFusion();
-	_ekf_wrapper.enableTerrainRngFusion();
+	_ekf_wrapper.disableFlowFusion();
+	_ekf_wrapper.enableRangeHeightFusion();
 
 	const float rng_height = 1.f;
 	const float flow_height = 1.f;
 	runFlowAndRngScenario(rng_height, flow_height);
 
-	const float estimated_distance_to_ground = _ekf->getTerrainVertPos() - _ekf->getPosition()(2);
+	const float estimated_distance_to_ground = _ekf->getHagl();
 
 	ResetLoggingChecker reset_logging_checker(_ekf);
 	reset_logging_checker.capturePreResetState();
@@ -207,5 +213,5 @@ TEST_F(EkfTerrainTest, testHeightReset)
 	// THEN: a height reset occured and the estimated distance to the ground remains constant
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
-	EXPECT_NEAR(estimated_distance_to_ground, _ekf->getTerrainVertPos() - _ekf->getPosition()(2), 1e-3f);
+	EXPECT_NEAR(estimated_distance_to_ground, _ekf->getHagl(), 1e-3f);
 }

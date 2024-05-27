@@ -110,12 +110,8 @@ public:
 
 	bool isWindVelocityEstimated() const;
 
-	void enableTerrainRngFusion();
-	void disableTerrainRngFusion();
 	bool isIntendingTerrainRngFusion() const;
 
-	void enableTerrainFlowFusion();
-	void disableTerrainFlowFusion();
 	bool isIntendingTerrainFlowFusion() const;
 
 	Eulerf getEulerAngles() const;
