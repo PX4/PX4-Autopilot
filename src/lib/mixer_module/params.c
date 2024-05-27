@@ -16,3 +16,23 @@
  * @group Mixer Output
  */
 PARAM_DEFINE_INT32(MC_AIRMODE, 0);
+
+/**
+ * Manual control source to inject servo failure
+ *
+ * @group Mixer Output
+ * @value 0 Disabled
+ * @value 1 yaw stick
+ * @value 2 aux1
+ */
+PARAM_DEFINE_INT32(OUT_SRV_FAIL_IPT, 0);
+
+/**
+ * Index of the servos to fail
+ *
+ * @group Mixer Output
+ * @value 0 Lock servo 1
+ * @value 1 Lock servo 2
+ * @value 2 Lock servo 1 and 2
+ */
+PARAM_DEFINE_INT32(OUT_SRV_FAIL_NR, 0);

@@ -59,6 +59,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 using namespace time_literals;
 
@@ -258,6 +259,9 @@ private:
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 
+	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};
+	bool _servo_locking_injection_active{false};
+
 	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
 
 	actuator_armed_s _armed{};
@@ -296,6 +300,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
-		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac ///< thrust to motor control signal modelling factor
+		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
+		(ParamInt<px4::params::OUT_SRV_FAIL_IPT>) _param_out_srv_fail_ipt,
+		(ParamInt<px4::params::OUT_SRV_FAIL_NR>) _param_out_srv_fail_nr
 	)
 };

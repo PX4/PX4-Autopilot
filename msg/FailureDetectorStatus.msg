@@ -14,3 +14,5 @@ bool fd_servo
 float32 imbalanced_prop_metric      # Metric of the imbalanced propeller check (low-passed)
 uint16 motor_failure_mask           # Bit-mask with motor indices, indicating critical motor failures
 uint16 servo_failure_mask           # Bit-mask with servo indices, indicating critical servo failures
+
+uint16 servo_to_center_mask	    # HACK to test allocation without some servos

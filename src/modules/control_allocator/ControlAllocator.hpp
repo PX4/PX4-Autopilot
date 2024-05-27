@@ -201,6 +201,7 @@ private:
 	uint16_t _handled_servo_failure_bitmask{0};
 
 	uint16_t _handled_motor_disabled_bitmask{0};
+	uint16_t _handled_servo_center_mask{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 

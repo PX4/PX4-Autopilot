@@ -69,6 +69,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/failure_detector_ext_servo.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mission_result.h>
@@ -280,6 +281,10 @@ private:
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 
+	hrt_abstime _time_failure_injected{0};
+	hrt_abstime _time_last_ext_fail_topic{0U};
+	uint16_t _reported_servo_fail{UINT16_C(0)};
+
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
 	// commander publications
@@ -308,6 +313,7 @@ private:
 
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	uORB::SubscriptionData<failure_detector_ext_servo_s> 	_failure_detector_ext_servo{ORB_ID(failure_detector_ext_servo)};
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};
@@ -349,6 +355,9 @@ private:
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_takeoff_finished_action,
-		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
+		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
+		(ParamInt<px4::params::COM_SRV_FAIL_IPT>)   _param_com_srv_fail_ipt,
+		(ParamInt<px4::params::COM_SRV_FAIL_NR>)    _param_com_srv_fail_nr,
+		(ParamBool<px4::params::COM_SRV_FAIL_CL>)   _param_com_srv_fail_cl
 	)
 };

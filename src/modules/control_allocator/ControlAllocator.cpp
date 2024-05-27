@@ -644,6 +644,22 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			}
 		}
 
+		// handle servo failure injection
+		if (_handled_servo_center_mask) {
+
+			if (_handled_servo_center_mask & 1) {
+				// set the first servo to 0 by setting the min/max to 0 (center)
+				minimum[1](0) = 0.f;
+				maximum[1](0) = 0.f;
+			}
+
+			if (_handled_servo_center_mask & 2) {
+				// set the second servo to 0 by setting the min/max to 0 (center)
+				minimum[1](1) = 0.f;
+				maximum[1](1) = 0.f;
+			}
+		}
+
 		for (int i = 0; i < _num_control_allocation; ++i) {
 			_control_allocation[i]->setActuatorMin(minimum[i]);
 			_control_allocation[i]->setActuatorMax(maximum[i]);
@@ -817,6 +833,25 @@ ControlAllocator::check_for_actuator_activation_update()
 	failure_detector_status_s failure_detector_status;
 
 	const bool status_updated = _failure_detector_status_sub.update(&failure_detector_status);
+
+	// hack: set the servos in the failed bitmask to 0
+	if (status_updated) {
+		if (failure_detector_status.servo_to_center_mask) {
+			if (!_handled_servo_center_mask) {
+				PX4_WARN("Servo(s) to center failure injected");
+				_handled_servo_center_mask = failure_detector_status.servo_to_center_mask;
+				activation_updated = true;
+
+			}
+
+		} else {
+			if (_handled_servo_center_mask) {
+				PX4_INFO("Restoring servo(s)");
+				_handled_servo_center_mask = 0;
+				activation_updated = true;
+			}
+		}
+	}
 
 	if ((FailureMode)_param_ca_failure_mode.get() > FailureMode::IGNORE
 	    && status_updated) {

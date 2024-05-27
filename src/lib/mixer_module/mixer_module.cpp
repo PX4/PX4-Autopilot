@@ -417,6 +417,28 @@ bool MixingOutput::update()
 		_throttle_armed = (_armed.armed && !_armed.lockdown) || _armed.in_esc_calibration_mode;
 	}
 
+	manual_control_setpoint_s manual_control_setpoint;
+
+	if (_manual_control_sp_sub.update(&manual_control_setpoint)) {
+
+		switch (_param_out_srv_fail_ipt.get()) {
+		case 0:
+			// disable
+			_servo_locking_injection_active = false;
+			break;
+
+		case 1:
+			// yaw stick above 60% to enable
+			_servo_locking_injection_active = manual_control_setpoint.yaw > 0.6f;
+			break;
+
+		case 2:
+			// aux1 above 60% to enable
+			_servo_locking_injection_active = manual_control_setpoint.aux1 > 0.6f;
+			break;
+		}
+	}
+
 	// only used for sitl with lockstep
 	bool has_updates = _subscription_callback && _subscription_callback->updated();
 
@@ -442,7 +464,21 @@ bool MixingOutput::update()
 			all_disabled = false;
 
 			if (_armed.armed || (_armed.prearmed && _functions[i]->allowPrearmControl())) {
-				outputs[i] = _functions[i]->value(_function_assignment[i]);
+
+				float factor = 1.f;
+
+				if (_servo_locking_injection_active) {
+					if (_function_assignment[i] == OutputFunction::Servo1 && (_param_out_srv_fail_nr.get() == 0
+							|| _param_out_srv_fail_nr.get() == 2)) {
+						factor = 0.f;
+
+					} else if (_function_assignment[i] == OutputFunction::Servo2 && (_param_out_srv_fail_nr.get() == 1
+							|| _param_out_srv_fail_nr.get() == 2)) {
+						factor = 0.f;
+					}
+				}
+
+				outputs[i] = _functions[i]->value(_function_assignment[i]) * factor;
 
 			} else {
 				outputs[i] = NAN;

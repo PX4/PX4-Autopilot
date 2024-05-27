@@ -74,6 +74,8 @@
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/tune_control.h>
 
+using namespace time_literals;
+
 typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED  = 1,   /* 0b00000001 Reserved for future use. | */
 	VEHICLE_MODE_FLAG_TEST_ENABLED         = 2,   /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
@@ -1907,6 +1909,77 @@ void Commander::run()
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);
 
+			// HACK: inject aileron failure (stuck to center) through here. Assume servo 0 is an aileron.
+			manual_control_setpoint_s manual_control_setpoint;
+			_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+
+			bool aileron_failure_injected = false;
+			bool servo_failure_detected = false;
+			int failed_servo_bitmask = 0;
+
+			if (!_param_com_srv_fail_cl.get()) {
+
+				if (_param_com_srv_fail_ipt.get() == 1) {
+
+					aileron_failure_injected =  manual_control_setpoint.yaw > 0.6f;
+
+				} else if (_param_com_srv_fail_ipt.get() == 2) {
+					aileron_failure_injected =  manual_control_setpoint.aux1 > 0.6f;
+				}
+
+				if (aileron_failure_injected) {
+					if (_time_failure_injected == 0) {
+						_time_failure_injected = hrt_absolute_time();
+					}
+
+					servo_failure_detected = hrt_elapsed_time(&_time_failure_injected) > 1_s; // trigger detection 2s after injection
+
+				} else {
+					_time_failure_injected = 0;
+					servo_failure_detected = false;
+				}
+
+				if (_param_com_srv_fail_nr.get() == 0) {
+					failed_servo_bitmask = 1 << 0;
+
+				} else if (_param_com_srv_fail_nr.get() == 1) {
+					failed_servo_bitmask = 1 << 1;
+
+				} else if (_param_com_srv_fail_nr.get() == 2) {
+					failed_servo_bitmask = (1 << 0) + (1 << 1);
+				}
+
+			} else {
+				_time_failure_injected = 0; // reset open loop variable
+				aileron_failure_injected = false;
+
+				if (_failure_detector_ext_servo.updated()) {
+					_failure_detector_ext_servo.update();
+					_time_last_ext_fail_topic = now;
+
+				}
+
+				if ((_time_last_ext_fail_topic > 0UL) && ((now - _time_last_ext_fail_topic) < 500_ms)) {
+					// aileron_failure_injected = _failure_detector_ext_servo.get().fd_servo;
+					servo_failure_detected = _failure_detector_ext_servo.get().fd_servo;
+					failed_servo_bitmask = _failure_detector_ext_servo.get().servo_failure_mask;
+				}
+			}
+
+			// Inform operator about detected servo failures
+			if (servo_failure_detected && failed_servo_bitmask > _reported_servo_fail) {
+				_reported_servo_fail = failed_servo_bitmask;
+
+				if ((_reported_servo_fail == (1 << 0)) || (_reported_servo_fail == (1 << 1))) {
+					events::send(events::ID("single_aileron_failure"), events::Log::Critical,
+						     "Actuator failure detected: single aileron fault");
+
+				} else if (_reported_servo_fail == ((1 << 1) + (1 << 0))) {
+					events::send(events::ID("double_aileron_failure"), events::Log::Critical,
+						     "Actuator failure detected: double aileron fault");
+				}
+			}
+
 			// failure_detector_status publish
 			failure_detector_status_s fd_status{};
 			fd_status.fd_roll = _failure_detector.getStatusFlags().roll;
@@ -1917,8 +1990,11 @@ void Commander::run()
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
+			fd_status.fd_servo = servo_failure_detected;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
+			fd_status.servo_failure_mask = servo_failure_detected ? failed_servo_bitmask : 0;
+			fd_status.servo_to_center_mask = aileron_failure_injected ? failed_servo_bitmask : 0;
 			fd_status.timestamp = hrt_absolute_time();
 			_failure_detector_status_pub.publish(fd_status);
 		}

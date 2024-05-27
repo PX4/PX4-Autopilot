@@ -52,6 +52,10 @@ void RateControl::setSaturationStatus(const Vector3<bool> &saturation_positive,
 {
 	_control_allocator_saturation_positive = saturation_positive;
 	_control_allocator_saturation_negative = saturation_negative;
+
+	const Vector3<bool> saturation_disabled(false, false, false);
+	_control_allocator_saturation_positive = saturation_disabled;
+	_control_allocator_saturation_negative = saturation_disabled;
 }
 
 void RateControl::setPositiveSaturationFlag(size_t axis, bool is_saturated)
