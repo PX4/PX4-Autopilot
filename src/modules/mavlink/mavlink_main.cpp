@@ -1963,10 +1963,6 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 #endif
 
-//		case 'e':
-//			_mavlink_link_termination_allowed = true;
-//			break;
-
 		case 'm': {
 
 				int mode;

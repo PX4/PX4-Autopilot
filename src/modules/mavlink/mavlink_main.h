@@ -597,8 +597,6 @@ private:
 	 */
 	unsigned int		_mavlink_param_queue_index{0};
 
-	bool			_mavlink_link_termination_allowed{false};
-
 	char			*_subscribe_to_stream{nullptr};
 	float			_subscribe_to_stream_rate{0.0f};  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
 	bool			_udp_initialised{false};
