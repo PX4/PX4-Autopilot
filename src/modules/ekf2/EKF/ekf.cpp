@@ -161,7 +161,6 @@ bool Ekf::update()
 		controlFusionModes(imu_sample_delayed);
 
 #if defined(CONFIG_EKF2_TERRAIN)
-		// run a separate filter for terrain estimation
 		runTerrainEstimator(imu_sample_delayed);
 #endif // CONFIG_EKF2_TERRAIN
 
@@ -201,7 +200,7 @@ bool Ekf::initialiseFilter()
 	initialiseCovariance();
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	// Initialise the terrain estimator
+	// Initialise the terrain state
 	initHagl();
 #endif // CONFIG_EKF2_TERRAIN
 
@@ -376,6 +375,14 @@ void Ekf::print_status()
 	       (double)getStateVariance<State::wind_vel>()(0), (double)getStateVariance<State::wind_vel>()(1)
 	      );
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	printf("Terrain position (%d): %.3f var: %.1e\n",
+	       State::terrain.idx,
+	       (double)_state.terrain,
+	       (double)getStateVariance<State::terrain>()(0)
+	      );
+#endif // CONFIG_EKF2_TERRAIN
 
 	printf("\nP:\n");
 	P.print();

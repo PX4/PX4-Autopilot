@@ -16,8 +16,8 @@ namespace sym {
  * Symbolic function: compute_airspeed_innov_and_innov_var
  *
  * Args:
- *     state: Matrix24_1
- *     P: Matrix23_23
+ *     state: Matrix25_1
+ *     P: Matrix24_24
  *     airspeed: Scalar
  *     R: Scalar
  *     epsilon: Scalar
@@ -27,8 +27,8 @@ namespace sym {
  *     innov_var: Scalar
  */
 template <typename Scalar>
-void ComputeAirspeedInnovAndInnovVar(const matrix::Matrix<Scalar, 24, 1>& state,
-                                     const matrix::Matrix<Scalar, 23, 23>& P, const Scalar airspeed,
+void ComputeAirspeedInnovAndInnovVar(const matrix::Matrix<Scalar, 25, 1>& state,
+                                     const matrix::Matrix<Scalar, 24, 24>& P, const Scalar airspeed,
                                      const Scalar R, const Scalar epsilon,
                                      Scalar* const innov = nullptr,
                                      Scalar* const innov_var = nullptr) {

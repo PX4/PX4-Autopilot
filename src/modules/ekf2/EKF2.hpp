@@ -337,19 +337,6 @@ private:
 	hrt_abstime _status_aux_vel_pub_last{0};
 #endif // CONFIG_EKF2_AUXVEL
 
-#if defined(CONFIG_EKF2_TERRAIN)
-
-# if defined(CONFIG_EKF2_RANGE_FINDER)
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_terrain_range_finder_pub {ORB_ID(estimator_aid_src_terrain_range_finder)};
-	hrt_abstime _status_terrain_range_finder_pub_last{0};
-# endif // CONFIG_EKF2_RANGE_FINDER
-
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_terrain_optical_flow_pub {ORB_ID(estimator_aid_src_terrain_optical_flow)};
-	hrt_abstime _status_terrain_optical_flow_pub_last{0};
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-#endif // CONFIG_EKF2_TERRAIN
-
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	uORB::Subscription _vehicle_optical_flow_sub {ORB_ID(vehicle_optical_flow)};
 	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
@@ -407,9 +394,7 @@ private:
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	hrt_abstime _status_rng_hgt_pub_last {0};
-	float _last_rng_hgt_bias_published{};
 
-	uORB::PublicationMulti<estimator_bias_s> _estimator_rng_hgt_bias_pub {ORB_ID(estimator_rng_hgt_bias)};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_rng_hgt_pub{ORB_ID(estimator_aid_src_rng_hgt)};
 
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
