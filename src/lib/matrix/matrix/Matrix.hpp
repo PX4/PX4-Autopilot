@@ -387,7 +387,7 @@ public:
 		}
 	}
 
-	void print(float eps = 1e-9) const
+	void print_symmetric(float eps = 1e-9) const
 	{
 		// print column numbering
 		if (N > 1) {
@@ -428,6 +428,45 @@ public:
 					} else {
 						printf("% 6.5f ", d);
 					}
+				}
+			}
+
+			printf("\n");
+		}
+	}
+
+	void print(float eps = 1e-9) const
+	{
+		// print column numbering
+		if (N > 1) {
+			printf("  ");
+
+			for (unsigned i = 0; i < N; i++) {
+				printf("|%2u      ", i);
+
+			}
+
+			printf("\n");
+		}
+
+		const Matrix<Type, M, N> &self = *this;
+
+		for (unsigned i = 0; i < M; i++) {
+			printf("%2u|", i); // print row numbering
+
+			for (unsigned j = 0; j < N; j++) {
+				double d = static_cast<double>(self(i, j));
+
+				// avoid -0.0 for display
+				if (fabs(d - 0.0) < (double)eps) {
+					// print fixed width zero
+					printf(" 0       ");
+
+				} else if ((fabs(d) < 1e-4) || (fabs(d) >= 10.0)) {
+					printf("% .1e ", d);
+
+				} else {
+					printf("% 6.5f ", d);
 				}
 			}
 
