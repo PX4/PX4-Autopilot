@@ -50,17 +50,13 @@ void Boat::updateParams()
 {
 	ModuleParams::updateParams();
 
-	// _boat_kinematics.setWheelBase(_param_rdd_wheel_base.get());
-
 	_max_speed = _param_bt_spd_max.get();
 	_boat_guidance.setMaxSpeed(_max_speed);
 	_boat_kinematics.setMaxSpeed(_max_speed);
-	printf("max speed: %f\n", (double)_max_speed);
 
 	_max_angular_velocity = _param_bt_ang_max.get();
 	_boat_guidance.setMaxAngularVelocity(_max_angular_velocity);
 	_boat_kinematics.setMaxAngularVelocity(_max_angular_velocity);
-	printf("max angular velocity: %f\n", (double)_max_angular_velocity);
 }
 
 void Boat::Run()
@@ -102,7 +98,7 @@ void Boat::Run()
 
 	if (_manual_driving) {
 		// Manual mode
-		// directly produce setpoints from the manual control setpoint (joystick)
+		// Directly produce setpoints from the manual control setpoint (joystick)
 		if (_manual_control_setpoint_sub.updated()) {
 			manual_control_setpoint_s manual_control_setpoint{};
 
@@ -129,13 +125,13 @@ void Boat::Run()
 
 	} else if (_mission_driving) {
 		// Mission mode
-		// directly receive setpoints from the guidance library
-		printf("I'm in mission mode\n");
+		// Directly receive setpoints from the guidance library
 		_boat_guidance.computeGuidance(
 			_boat_control.getVehicleYaw(),
 			_boat_control.getLocalPosition(),
 			dt
 		);
+		// _boat_guidance_pp.purePursuit();
 	}
 
 	_boat_control.control(dt);

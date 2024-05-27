@@ -104,6 +104,12 @@ public:
 	 */
 	float setMaxAngularVelocity(float max_angular_velocity) { return _max_angular_velocity = max_angular_velocity; }
 
+	float calcDesiredHeading(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local, const Vector2f &curr_pos_local,
+				 const float &lookahead_distance);
+
+	float getLookAheadDistance(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
+				      const Vector2f &curr_pos_local);
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -115,41 +121,32 @@ private:
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 
 	uORB::Publication<boat_setpoint_s> _boat_setpoint_pub{ORB_ID(boat_setpoint)};
-
 	position_setpoint_triplet_s _position_setpoint_triplet{};
 	vehicle_global_position_s _vehicle_global_position{};
 
 	GuidanceState _currentState;
 
-	float _desired_angular_velocity;
+	float _desired_angular_velocity{};
+	float _max_angular_velocity{};
+	float _look_ahead_distance{};
+	float _max_speed{};
 
-	float _max_speed;
-	float _max_angular_velocity;
-
-	matrix::Vector2d _current_waypoint;
-
-	VelocitySmoothing _forwards_velocity_smoothing;
-	PositionSmoothing _position_smoothing;
-
-	ECL_L1_Pos_Controller _l1_guidance;
-
-	Vector2f _previous_local_position{};
-
+	VelocitySmoothing _forwards_velocity_smoothing{};
+	PositionSmoothing _position_smoothing{};
 	MapProjection _global_local_proj_ref{};
+	matrix::Vector2d _current_waypoint{};
+	ECL_L1_Pos_Controller _l1_guidance{};
+	Vector2f _previous_local_position{};
+	Vector2d _previous_position{};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,
-
-		(ParamFloat<px4::params::BT_L1_PERIOD>) _param_bt_l1_period,
-		(ParamFloat<px4::params::BT_L1_DAMPING>) _param_bt_l1_damping,
-
 		(ParamFloat<px4::params::BT_MAX_HERR>) _param_bt_max_heading_error,
 		(ParamFloat<px4::params::BT_MIN_HERR>) _param_bt_min_heading_error,
-
-		(ParamFloat<px4::params::BT_SPD_MAX>) _param_bt_spd_max,
-		(ParamFloat<px4::params::BT_SPD_MIN>) _param_bt_spd_min,
-
+		(ParamFloat<px4::params::BT_LOOKAHEAD>) _param_look_ahead_distance,
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
 		(ParamFloat<px4::params::BT_SPD_CRUISE>) _param_bt_spd_cruise,
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,
+		(ParamFloat<px4::params::BT_SPD_MAX>) _param_bt_spd_max,
+		(ParamFloat<px4::params::BT_SPD_MIN>) _param_bt_spd_min
 	)
 };

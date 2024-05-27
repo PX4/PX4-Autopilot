@@ -33,6 +33,7 @@
 
 px4_add_library(BoatGuidance
 	BoatGuidance.cpp
+	BoatGuidance.hpp
 )
 
 target_include_directories(BoatGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

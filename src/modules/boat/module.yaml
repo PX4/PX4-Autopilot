@@ -21,32 +21,6 @@ parameters:
         increment: 0.01
         decimal: 2
         default: 1
-      BT_LACC_LIM:
-        description:
-          short: Lateral acceleration limit
-        type: float
-        unit: m/s^2
-        min: 0.0
-        max: 6.0
-        decimal: 1
-        default: 2.0
-      BT_L1_PERIOD:
-        description:
-          short: L1 period
-        type: float
-        unit: s
-        min: 0.5
-        max: 50.0
-        decimal: 1
-        default: 25.0
-      BT_L1_DAMPING:
-        description:
-          short: L1 damping
-        type: float
-        min: 0.6
-        max: 0.9
-        decimal: 2
-        default: 0.9
       BT_SPD_CRUISE:
         description:
           short: Default cruise speed
@@ -165,37 +139,11 @@ parameters:
         min: 0.0
         decimal: 2
         default: 30.0
-      BT_MISSION_THR:
+      BT_LOOKAHEAD:
         description:
-          short: Mission throttle setpoint
+          short: Lookahead distance for heading error
         type: float
-        min: -1.0
-        decimal: 2
-        default: 0.8
-      BT_MIN_THR:
-        description:
-          short: Mission minimum slowdown parameter
-        type: float
+        unit: m
         min: 0.0
         decimal: 2
-        default: 0.5
-      BT_MAX_JERK:
-        description:
-          short: Maximum jerk
-        type: float
-        unit: m/s^3
-        min: 0.0
-        max: 10.0
-        decimal: 1
-        default: 5.0
-      BT_MAX_ACCEL:
-        description:
-          short: Maximum acceleration
-          long: Maximum acceleration is used to limit the acceleration of the rover
-        type: float
-        unit: m/s^2
-        min: 0
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 0.5
+        default: 10.0
