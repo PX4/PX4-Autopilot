@@ -107,7 +107,7 @@ enum MagFuseType : uint8_t {
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_TERRAIN)
-enum TerrainFusionMask : uint8_t {
+enum class TerrainFusionMask : uint8_t {
 	TerrainFuseRangeFinder = (1 << 0),
 	TerrainFuseOpticalFlow = (1 << 1)
 };
@@ -382,8 +382,8 @@ struct parameters {
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
-				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
+	int32_t terrain_fusion_mode{static_cast<int32_t>(TerrainFusionMask::TerrainFuseRangeFinder)
+				    | static_cast<int32_t>(TerrainFusionMask::TerrainFuseOpticalFlow)}; ///< aiding source(s) selection bitmask for the terrain estimation
 
 	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
 	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
@@ -401,10 +401,8 @@ struct parameters {
 	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)
 	float range_innov_gate{5.0f};           ///< range finder fusion innovation consistency gate size (STD)
-	float rng_hgt_bias_nsd{0.13f};          ///< process noise for range height bias estimation (m/s/sqrt(Hz))
 	float rng_sens_pitch{0.0f};             ///< Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
 	float range_noise_scaler{0.0f};         ///< scaling from range measurement to noise (m/m)
-	const float vehicle_variance_scaler{0.0f};      ///< gain applied to vehicle height variance used in calculation of height above ground observation variance
 	float max_hagl_for_range_aid{5.0f};     ///< maximum height above ground for which we allow to use the range finder as height source (if rng_control == 1)
 	float max_vel_for_range_aid{1.0f};      ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float range_aid_innov_gate{1.0f};       ///< gate size used for innovation consistency checks for range aid fusion
@@ -521,7 +519,7 @@ union innovation_fault_status_u {
 		bool reject_yaw       : 1; ///< 7 - true if the yaw observation has been rejected
 		bool reject_airspeed  : 1; ///< 8 - true if the airspeed observation has been rejected
 		bool reject_sideslip  : 1; ///< 9 - true if the synthetic sideslip observation has been rejected
-		bool reject_hagl      : 1; ///< 10 - true if the height above ground observation has been rejected
+		bool reject_hagl      : 1; ///< 10 - unused
 		bool reject_optflow_X : 1; ///< 11 - true if the X optical flow observation has been rejected
 		bool reject_optflow_Y : 1; ///< 12 - true if the Y optical flow observation has been rejected
 	} flags;

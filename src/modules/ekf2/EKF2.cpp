@@ -326,7 +326,6 @@ bool EKF2::multi_init(int imu, int mag)
 	// RNG advertise
 	if (_param_ekf2_rng_ctrl.get()) {
 		_estimator_aid_src_rng_hgt_pub.advertise();
-		_estimator_rng_hgt_bias_pub.advertise();
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -728,10 +727,6 @@ void EKF2::Run()
 			PublishBaroBias(now);
 #endif // CONFIG_EKF2_BAROMETER
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-			PublishRngHgtBias(now);
-#endif // CONFIG_EKF2_RANGE_FINDER
-
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 			PublishEvPosBias(now);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -928,21 +923,6 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	// optical flow
 	PublishAidSourceStatus(_ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_TERRAIN)
-# if defined(CONFIG_EKF2_RANGE_FINDER)
-	// range finder
-	PublishAidSourceStatus(_ekf.aid_src_terrain_range_finder(), _status_terrain_range_finder_pub_last,
-			       _estimator_aid_src_terrain_range_finder_pub);
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// optical flow
-	PublishAidSourceStatus(_ekf.aid_src_terrain_optical_flow(), _status_terrain_optical_flow_pub_last,
-			       _estimator_aid_src_terrain_optical_flow_pub);
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#endif // CONFIG_EKF2_TERRAIN
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -995,21 +975,6 @@ void EKF2::PublishGnssHgtBias(const hrt_abstime &timestamp)
 	}
 }
 #endif // CONFIG_EKF2_GNSS
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-void EKF2::PublishRngHgtBias(const hrt_abstime &timestamp)
-{
-	if (_ekf.get_rng_sample_delayed().time_us != 0) {
-		const BiasEstimator::status &status = _ekf.getRngHgtBiasEstimatorStatus();
-
-		if (fabsf(status.bias - _last_rng_hgt_bias_published) > 0.001f) {
-			_estimator_rng_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_rng_sample_delayed().time_us, timestamp));
-
-			_last_rng_hgt_bias_published = status.bias;
-		}
-	}
-}
-#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 void EKF2::PublishEvPosBias(const hrt_abstime &timestamp)
@@ -1272,10 +1237,6 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	// Optical flow
 	innovations.flow[0] = _ekf.aid_src_optical_flow().innovation[0];
 	innovations.flow[1] = _ekf.aid_src_optical_flow().innovation[1];
-# if defined(CONFIG_EKF2_TERRAIN)
-	innovations.terr_flow[0] = _ekf.aid_src_terrain_optical_flow().innovation[0];
-	innovations.terr_flow[1] = _ekf.aid_src_terrain_optical_flow().innovation[1];
-# endif // CONFIG_EKF2_TERRAIN
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -1313,7 +1274,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
 	// hagl
-	innovations.hagl = _ekf.aid_src_terrain_range_finder().innovation;
+	innovations.hagl = _ekf.aid_src_rng_hgt().innovation;
 #endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -1339,7 +1300,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_OPTICAL_FLOW)
 		// set dist bottom to scale flow innovation
-		const float dist_bottom = _ekf.getTerrainVertPos() - _ekf.getPosition()(2);
+		const float dist_bottom = _ekf.getHagl();
 		_preflt_checker.setDistBottom(dist_bottom);
 #endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_OPTICAL_FLOW
 
@@ -1406,10 +1367,6 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	// Optical flow
 	test_ratios.flow[0] = _ekf.aid_src_optical_flow().test_ratio[0];
 	test_ratios.flow[1] = _ekf.aid_src_optical_flow().test_ratio[1];
-# if defined(CONFIG_EKF2_TERRAIN)
-	test_ratios.terr_flow[0] = _ekf.aid_src_terrain_optical_flow().test_ratio[0];
-	test_ratios.terr_flow[1] = _ekf.aid_src_terrain_optical_flow().test_ratio[1];
-# endif // CONFIG_EKF2_TERRAIN
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -1447,7 +1404,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
 	// hagl
-	test_ratios.hagl = _ekf.aid_src_terrain_range_finder().test_ratio;
+	test_ratios.hagl = _ekf.aid_src_rng_hgt().test_ratio;
 #endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -1503,10 +1460,6 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	// Optical flow
 	variances.flow[0] = _ekf.aid_src_optical_flow().innovation_variance[0];
 	variances.flow[1] = _ekf.aid_src_optical_flow().innovation_variance[1];
-# if defined(CONFIG_EKF2_TERRAIN)
-	variances.terr_flow[0] = _ekf.aid_src_terrain_optical_flow().innovation_variance[0];
-	variances.terr_flow[1] = _ekf.aid_src_terrain_optical_flow().innovation_variance[1];
-# endif // CONFIG_EKF2_TERRAIN
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// heading
@@ -1544,7 +1497,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
 	// hagl
-	variances.hagl = _ekf.aid_src_terrain_range_finder().innovation_variance;
+	variances.hagl = _ekf.aid_src_rng_hgt().innovation_variance;
 #endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -1620,7 +1573,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Distance to bottom surface (ground) in meters, must be positive
-	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, 0.f);
+	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
 #endif // CONFIG_EKF2_TERRAIN

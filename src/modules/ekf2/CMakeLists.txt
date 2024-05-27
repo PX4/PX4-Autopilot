@@ -203,6 +203,7 @@ if(CONFIG_EKF2_RANGE_FINDER)
 	list(APPEND EKF_SRCS
 		EKF/aid_sources/range_finder/range_finder_consistency_check.cpp
 		EKF/aid_sources/range_finder/range_height_control.cpp
+		EKF/aid_sources/range_finder/range_height_fusion.cpp
 		EKF/aid_sources/range_finder/sensor_range_finder.cpp
 	)
 endif()

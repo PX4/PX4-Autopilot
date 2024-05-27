@@ -55,13 +55,9 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					       && !_flow_sample_delayed.flow_rate.longerThan(_flow_max_rate);
 		const bool is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
 
-		// don't enforce this condition if terrain estimate is not valid as we have logic below to coast through bad range finder data
-		const bool is_within_max_sensor_dist = isTerrainEstimateValid() ? (_terrain_vpos - _state.pos(2) <= _flow_max_distance) : true;
-
 		if (is_quality_good
 		    && is_magnitude_good
-		    && is_tilt_good
-		    && is_within_max_sensor_dist) {
+		    && is_tilt_good) {
 			// compensate for body motion to give a LOS rate
 			calcOptFlowBodyRateComp(imu_delayed);
 			_flow_rate_compensated = _flow_sample_delayed.flow_rate - _flow_sample_delayed.gyro_rate.xy();
@@ -81,20 +77,21 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					&& (_control_status.flags.inertial_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
 					|| isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow));
 
-		// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
-		// use a relaxed time criteria to enable it to coast through bad range finder data
-		const bool terrain_available = isTerrainEstimateValid() || isRecent(_aid_src_terrain_range_finder.time_last_fuse, (uint64_t)10e6);
+		const bool is_within_max_sensor_dist = getHagl() <= _flow_max_distance;
 
 		const bool continuing_conditions_passing = (_params.flow_ctrl == 1)
 							   && _control_status.flags.tilt_align
-							   && (terrain_available || is_flow_required);
+							   && is_within_max_sensor_dist;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 							 && isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
+		// If the height is relative to the ground, terrain height cannot be observed.
+		_hagl_sensor_status.flags.flow = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
+
 		if (_control_status.flags.opt_flow) {
 			if (continuing_conditions_passing) {
-				fuseOptFlow();
+				fuseOptFlow(_hagl_sensor_status.flags.flow);
 
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
@@ -125,19 +122,35 @@ void Ekf::startFlowFusion()
 {
 	ECL_INFO("starting optical flow fusion");
 
-	if (!_aid_src_optical_flow.innovation_rejected && isHorizontalAidingActive()) {
-		// Consistent with the current velocity state, simply fuse the data without reset
-		fuseOptFlow();
-		_control_status.flags.opt_flow = true;
+	if (_height_sensor_ref != HeightSensor::RANGE) {
+		// If the height is relative to the ground, terrain height cannot be observed.
+		_hagl_sensor_status.flags.flow = true;
+	}
 
-	} else if (!isHorizontalAidingActive()) {
-		resetFlowFusion();
-		_control_status.flags.opt_flow = true;
+	if (isHorizontalAidingActive()) {
+		if (!_aid_src_optical_flow.innovation_rejected) {
+			ECL_INFO("starting optical flow no reset");
+			fuseOptFlow(_hagl_sensor_status.flags.flow);
+
+		} else if (_hagl_sensor_status.flags.flow && !_hagl_sensor_status.flags.range_finder) {
+			resetHaglFlow();
+
+		} else {
+			ECL_INFO("optical flow fusion failed to start");
+			_control_status.flags.opt_flow = false;
+			_hagl_sensor_status.flags.flow = false;
+		}
 
 	} else {
-		ECL_INFO("optical flow fusion failed to start");
-		_control_status.flags.opt_flow = false;
+		if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
+			resetFlowFusion();
+
+		} else if (_hagl_sensor_status.flags.flow) {
+			resetHaglFlow();
+		}
 	}
+
+	_control_status.flags.opt_flow = true; // needs to be here because of isHorizontalAidingActive
 }
 
 void Ekf::resetFlowFusion()
@@ -159,11 +172,26 @@ void Ekf::resetFlowFusion()
 	_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 }
 
+void Ekf::resetHaglFlow()
+{
+	ECL_INFO("reset hagl to flow");
+	// TODO: use the flow data
+	_state.terrain = fmaxf(0.0f, _state.pos(2));
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 100.f);
+	_terrain_vpos_reset_counter++;
+
+	_innov_check_fail_status.flags.reject_optflow_X = false;
+	_innov_check_fail_status.flags.reject_optflow_Y = false;
+
+	_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
+}
+
 void Ekf::stopFlowFusion()
 {
 	if (_control_status.flags.opt_flow) {
 		ECL_INFO("stopping optical flow fusion");
 		_control_status.flags.opt_flow = false;
+		_hagl_sensor_status.flags.flow = false;
 	}
 }
 
