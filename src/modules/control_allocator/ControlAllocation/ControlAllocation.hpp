@@ -150,7 +150,7 @@ public:
 	 *
 	 * @return Effectiveness matrix
 	 */
-	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrix() const { return _effectiveness; }
+	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &getEffectivenessMatrixAllocation() const { return _effectiveness; }
 
 	/**
 	 * Set the minimum actuator values

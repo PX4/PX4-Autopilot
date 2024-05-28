@@ -815,7 +815,8 @@ int ControlAllocator::print_status()
 
 	// Print current effectiveness matrix
 	for (int i = 0; i < _num_control_allocation; ++i) {
-		const ActuatorEffectiveness::EffectivenessMatrix &effectiveness = _control_allocation[i]->getEffectivenessMatrix();
+		const ActuatorEffectiveness::EffectivenessMatrix &effectiveness =
+			_control_allocation[i]->getEffectivenessMatrixAllocation();
 
 		if (_num_control_allocation > 1) {
 			PX4_INFO("Instance: %i", i);
