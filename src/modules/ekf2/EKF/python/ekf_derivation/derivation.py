@@ -360,47 +360,59 @@ def compute_sideslip_h_and_k(
 
     return (H.T, K)
 
-def predict_body_vel(state, omega) -> sf.V3:
-    R_to_body = state["quat_nominal"].inverse()
-    vel = state["vel"]
-    gyro_bias = state["gyro_bias"] # or delta_a_b
-
-    # todo: omega, R_IMU_to_body
-    R_IMU_to_body = sf.I33() # todo
-    t_body_to_IMU = sf.V3(0.01,0.02,0.03) # todo
-
-    omega_corrected = omega - gyro_bias
-    vel_body = R_to_body * vel + (R_IMU_to_body * omega_corrected).cross(t_body_to_IMU)
-
-    return vel_body
-
-def compute_body_vel_innov_innov_var_and_h(
+def compute_ev_body_vel_var_and_hx(
         state: VState,
         P: MTangent,
-        meas: sf.V3,
-        omega: sf.V3,
-        R: sf.V3,
-) -> (sf.V3, sf.V3, VTangent):
+) -> (VTangent):
 
     state = vstate_to_state(state)
-    meas_pred = predict_body_vel(state, omega)
-    innov = meas_pred - meas
+
+    vel = state["vel"]
+    R_to_body = state["quat_nominal"].inverse()
+    meas_pred = R_to_body * vel
 
     Hx = jacobian_chain_rule(meas_pred[0], state)
     Hy = jacobian_chain_rule(meas_pred[1], state)
     Hz = jacobian_chain_rule(meas_pred[2], state)
-    H = sf.Matrix(3, State.tangent_dim())
-    H[0, :] = Hx
-    H[1, :] = Hy
-    H[2, :] = Hz
+    Hx[:3] = [0,0,0]
+    Hy[:3] = [0,0,0]
+    Hz[:3] = [0,0,0]
+    incomp_innov_var = sf.V3()
+    # attention: +R needs to be added to the variance in the calling function
+    incomp_innov_var[0] = (Hx * P * Hx.T)[0,0]
+    incomp_innov_var[1] = (Hy * P * Hy.T)[0,0]
+    incomp_innov_var[2] = (Hz * P * Hz.T)[0,0]
+    return (incomp_innov_var, Hx)
 
-    innov_var = sf.V3()
-    # assumption that vx, vy, vz are uncorrelated
-    # innov_var = H * P * H.T + R # if correleated
-    innov_var[0] = (Hx * P * Hx.T + R[0])[0,0]
-    innov_var[1] = (Hy * P * Hy.T + R[1])[0,0]
-    innov_var[2] = (Hz * P * Hz.T + R[2])[0,0]
-    return (innov, innov_var, H)
+def compute_ev_body_vel_var_and_hy(
+        state: VState,
+        P: MTangent,
+) -> (VTangent):
+
+    state = vstate_to_state(state)
+    vel = state["vel"]
+    R_to_body = state["quat_nominal"].inverse()
+    meas_pred = (R_to_body * vel)[1]
+    Hy = jacobian_chain_rule(meas_pred, state)
+    Hy[:3] = [0,0,0]
+    # attention: +R needs to be added to the variance in the calling function
+    incomp_innov_var = (Hy * P * Hy.T)[0,0]
+    return (incomp_innov_var, Hy)
+
+def compute_ev_body_vel_var_and_hz(
+        state: VState,
+        P: MTangent,
+) -> (VTangent):
+
+    state = vstate_to_state(state)
+    vel = state["vel"]
+    R_to_body = state["quat_nominal"].inverse()
+    meas_pred = (R_to_body * vel)[2]
+    Hz = jacobian_chain_rule(meas_pred, state)
+    Hz[:3] = [0,0,0]
+    # attention: +R needs to be added to the variance in the calling function
+    incomp_innov_var = (Hz * P * Hz.T)[0,0]
+    return (incomp_innov_var, Hz)
 
 def predict_mag_body(state) -> sf.V3:
     mag_field_earth = state["mag_I"]
@@ -710,6 +722,14 @@ generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas
 generate_px4_function(compute_gravity_xyz_innov_var_and_hx, output_names=["innov_var", "Hx"])
 generate_px4_function(compute_gravity_y_innov_var_and_h, output_names=["innov_var", "Hy"])
 generate_px4_function(compute_gravity_z_innov_var_and_h, output_names=["innov_var", "Hz"])
-generate_px4_function(compute_body_vel_innov_innov_var_and_h, output_names=["innov", "innov_var", "H"])
+# generate_px4_function(compute_body_vel_innov_innov_var_and_h, output_names=["innov", "H"])
+
+# generate_px4_function(compute_body_vel_innov_innov_var_and_hx, output_names=["innov", "innov_var", "H"])
+# generate_px4_function(compute_body_vel_innov_innov_var_and_hy, output_names=["innov", "innov_var", "H"])
+# generate_px4_function(compute_body_vel_innov_innov_var_and_hz, output_names=["innov", "innov_var", "H"])
+
+generate_px4_function(compute_ev_body_vel_var_and_hx, output_names=["incomp_innov_var", "H"])
+generate_px4_function(compute_ev_body_vel_var_and_hy, output_names=["incomp_innov_var", "H"])
+generate_px4_function(compute_ev_body_vel_var_and_hz, output_names=["incomp_innov_var", "H"])
 
 generate_px4_state(State, tangent_idx)
