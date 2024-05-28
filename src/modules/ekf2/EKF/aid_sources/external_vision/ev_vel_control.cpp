@@ -94,11 +94,9 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 
 	case VelocityFrame::BODY_FRAME_FRD: {
 
-			const Dcmf R_ev_to_body = Dcmf(); // TODO
-			measurement = R_ev_to_body * ev_sample.vel - vel_offset_body;
-			measurement_var = matrix::SquareMatrix3f(R_ev_to_body * matrix::diag(ev_sample.velocity_var) *
-					  R_ev_to_body.transpose()).diag();
-
+			// currently it is assumed that the orientation of the EV frame and the body frame are the same
+			measurement = ev_sample.vel - vel_offset_body;
+			measurement_var = ev_sample.velocity_var;
 			break;
 		}
 
