@@ -36,7 +36,6 @@
 #include <px4_platform_common/module.h>
 
 #include <lib/tinybson/tinybson.h>
-#include <sys/stat.h>
 #include <libgen.h>
 
 #include <fcntl.h>
@@ -143,21 +142,22 @@ int copy_file(const char *src_path, const char *dst_path)
 
 extern "C" __EXPORT int bsondump_main(int argc, char *argv[])
 {
+
 	if (argc < 2) {
 		print_usage("Invalid number of arguments.");
 		return -1;
 	}
 
 	const char *command = argv[1];
-	char *file_name = argv[3];
 
 	if (strcmp(command, "docsize") == 0) {
+
 		if (argc != 3) {
 			print_usage("Usage: bsondump docsize <file>", "docsize");
 			return -1;
 		}
 
-		file_name = argv[2];
+		const char *file_name = argv[2];
 		int source_fd = open(file_name, O_RDONLY);
 
 		if (source_fd < 0) {
@@ -181,81 +181,33 @@ extern "C" __EXPORT int bsondump_main(int argc, char *argv[])
 
 		close(source_fd);
 
-		if (decoder.total_decoded_size != decoder.total_document_size && decoder.total_document_size == 0
-		    && strstr(file_name, "mtd_caldata") != NULL) {
+		if (decoder.total_decoded_size != decoder.total_document_size && decoder.total_document_size == 0) {
 
 			PX4_WARN("Mismatch in BSON sizes and saved size is zero. Setting document size to decoded size.");
 
-			const char *source_path = "/fs/mtd_caldata";
-			const char *temp_path = "/fs/microsd/tmp/mtd_caldata";
-
-			source_fd = open(source_path, O_RDONLY);
+			source_fd = open(file_name, O_RDWR);
 
 			if (source_fd == -1) {
-				perror("Failed to re-open source file for reading");
-				return -1;
-			}
-
-			struct stat st;
-
-			if (fstat(source_fd, &st) != 0) {
-				perror("Failed to stat source file");
-				close(source_fd);
-				return -1;
-			}
-
-			char *buffer = new char[st.st_size];
-
-			if (read(source_fd, buffer, st.st_size) != st.st_size) {
-				perror("Failed to read source file");
-				delete[] buffer;
-				close(source_fd);
+				perror("Failed to re-open source file for reading and writing");
 				return -1;
 			}
 
 			// Modify the first 4 bytes with the correct decoded size
 			uint32_t corrected_size = decoder.total_decoded_size;
-			memcpy(buffer, &corrected_size, sizeof(corrected_size));
 
-			char *dir_path = strdup(temp_path);
-			char *dir = dirname(dir_path);
-
-			struct stat st2 = {0};
-
-			if (stat(dir, &st2) == -1) {
-				mkdir(dir, 0777);
-			}
-
-			free(dir_path);
-
-			int temp_fd = open(temp_path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
-
-			if (temp_fd == -1) {
-				perror("Failed to open temp file");
-				delete[] buffer;
+			if (lseek(source_fd, 0, SEEK_SET) == (off_t) -1) {
+				perror("Failed to seek to the beginning of the file");
+				close(source_fd);
 				return -1;
 			}
 
-			if (write(temp_fd, buffer, st.st_size) != st.st_size) {
-				perror("Failed to write to temp file");
-				delete[] buffer;
-				close(temp_fd);
+			if (write(source_fd, &corrected_size, sizeof(corrected_size)) != sizeof(corrected_size)) {
+				perror("Failed to write the corrected size to the file");
+				close(source_fd);
 				return -1;
 			}
 
 			close(source_fd);
-			close(temp_fd);
-			delete[] buffer;
-
-			if (copy_file(temp_path, source_path) != 0) {
-				perror("Failed to copy temp file to source file");
-				return -1;
-			}
-
-			if (remove(temp_path) != 0) {
-				perror("Failed to remove temp file");
-				return -1;
-			}
 
 			return 1;
 		}
@@ -265,7 +217,8 @@ extern "C" __EXPORT int bsondump_main(int argc, char *argv[])
 
 	} else {
 
-		file_name = argv[1];
+		const char *file_name = argv[1];
+
 		int fd = open(file_name, O_RDONLY);
 
 		if (fd < 0) {
