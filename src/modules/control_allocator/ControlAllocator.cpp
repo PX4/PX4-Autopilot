@@ -408,6 +408,17 @@ ControlAllocator::Run()
 			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
 		}
 
+		float fw_dthr_weight[3] = {_param_ca_fw_dthr_wgt_r.get(), _param_ca_fw_dthr_wgt_p.get(), _param_ca_fw_dthr_wgt_y.get()};
+		float fw_dthr_scale[3] = {_param_ca_fw_dthr_sc_r.get(), _param_ca_fw_dthr_sc_p.get(), _param_ca_fw_dthr_sc_y.get()};
+
+		// VTOL Tailsitters have roll/yaw axis swaped in fixed-wing mode
+		if (_effectiveness_source_id == EffectivenessSource::TAILSITTER_VTOL) {
+			fw_dthr_weight[2] = fw_dthr_weight[0];
+			fw_dthr_weight[0] = fw_dthr_weight[2];
+			fw_dthr_scale[2] = fw_dthr_scale[0];
+			fw_dthr_scale[0] = fw_dthr_scale[2];
+		}
+
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
 		c[0](0) = _torque_sp(0);
@@ -418,16 +429,47 @@ ControlAllocator::Run()
 		c[0](5) = _thrust_sp(2);
 
 		if (_num_control_allocation > 1) {
+			matrix::Vector<float, NUM_AXES> vehicle_torque_setpoint_matrix_1;
+
 			if (_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint)) {
-				c[1](0) = vehicle_torque_setpoint.xyz[0];
-				c[1](1) = vehicle_torque_setpoint.xyz[1];
-				c[1](2) = vehicle_torque_setpoint.xyz[2];
+				vehicle_torque_setpoint_matrix_1(0) = vehicle_torque_setpoint.xyz[0];
+				vehicle_torque_setpoint_matrix_1(1) = vehicle_torque_setpoint.xyz[1];
+				vehicle_torque_setpoint_matrix_1(2) = vehicle_torque_setpoint.xyz[2];
+
+				// reduce outputs on servos (matrix 1) if differential thrust with motors (matrix 0) is enabled
+				c[1](0) = vehicle_torque_setpoint_matrix_1(0) * (1.f - fw_dthr_weight[0]);
+				c[1](1) = vehicle_torque_setpoint_matrix_1(1) * (1.f - fw_dthr_weight[1]);
+				c[1](2) = vehicle_torque_setpoint_matrix_1(2) * (1.f - fw_dthr_weight[2]);
 			}
 
 			if (_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint)) {
 				c[1](3) = vehicle_thrust_setpoint.xyz[0];
 				c[1](4) = vehicle_thrust_setpoint.xyz[1];
 				c[1](5) = vehicle_thrust_setpoint.xyz[2];
+			}
+
+			const bool has_non_zero_dthr_weight = fw_dthr_weight[0] > FLT_EPSILON || fw_dthr_weight[1] > FLT_EPSILON
+							      || fw_dthr_weight[2] > FLT_EPSILON;
+
+			// VTOL differential thrust in FW
+			if (_flight_phase == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT && has_non_zero_dthr_weight) {
+				/* CA_FW_DTHR_SC_R etc are scales to tune response of differential thrust around each axis.
+				The scaling factor is applied to the (normalized) torque setpoint from the rate controller going
+				to the motors for rate control in fixed-wing flight using differential thrust instead of
+				aerodynamic control surfaces.
+				Set this parameter such that when the control surfaces are disabled,
+				the systems rate tracking is maintained as best as possible through
+				differential thrust.
+				*/
+
+				c[0](0) = vehicle_torque_setpoint_matrix_1(0) * fw_dthr_scale[0] * fw_dthr_weight[0];
+				c[0](1) = vehicle_torque_setpoint_matrix_1(1) * fw_dthr_scale[1] * fw_dthr_weight[1];
+				c[0](2) = vehicle_torque_setpoint_matrix_1(2) * fw_dthr_scale[2] * fw_dthr_weight[2];
+
+				_actuator_effectiveness->setEnableAuxiliaryMotors(true);
+
+			} else if (_flight_phase == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT && !has_non_zero_dthr_weight) {
+				_actuator_effectiveness->setEnableAuxiliaryMotors(false);
 			}
 		}
 

@@ -217,7 +217,13 @@ private:
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::CA_FW_DTHR_SC_R>) _param_ca_fw_dthr_sc_r,
+		(ParamFloat<px4::params::CA_FW_DTHR_SC_P>) _param_ca_fw_dthr_sc_p,
+		(ParamFloat<px4::params::CA_FW_DTHR_SC_Y>) _param_ca_fw_dthr_sc_y,
+		(ParamFloat<px4::params::CA_FW_DTHR_WGT_R>) _param_ca_fw_dthr_wgt_r,
+		(ParamFloat<px4::params::CA_FW_DTHR_WGT_P>) _param_ca_fw_dthr_wgt_p,
+		(ParamFloat<px4::params::CA_FW_DTHR_WGT_Y>) _param_ca_fw_dthr_wgt_y
 	)
 
 };
