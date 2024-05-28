@@ -247,6 +247,11 @@ const char *px4_firmware_git_branch(void)
 	return PX4_GIT_BRANCH_NAME;
 }
 
+time_t px4_build_timestamp(void)
+{
+	return PX4_BUILD_TIME;
+}
+
 uint32_t px4_board_version(void)
 {
 #if defined(__PX4_NUTTX)

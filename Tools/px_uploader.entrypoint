@@ -20,11 +20,8 @@ extract_bin_from_px4() {
     # as base64 encoded and gzipped
     cat ${px4_file} | jq -r '.image' | base64 -d | pigz -d > $target
 
-    # px4 build timestamp is included in px4 file
-    build_timestamp=$(cat ${px4_file} | jq -r '.build_time')
-
     validation_file=${target_dir}/$(basename ${px4_file%.px4}).val
-    generate_metadata ${px4_file} ${validation_file} ${build_timestamp}
+    generate_metadata ${px4_file} ${validation_file}
 }
 
 # generate validation files for the extracted px4 files
@@ -32,7 +29,6 @@ extract_bin_from_px4() {
 function generate_metadata() {
     local px4_filename=${1}
     local validation_file=${2}
-    local timestamp=${3}
     echo "generating validation file for ${px4_filename} to ${validation_file}"
 
     # get the file info from the SALUKI_FILE_INFO_JSON.json
@@ -44,11 +40,6 @@ function generate_metadata() {
         jq -c '.files[] | select (.filename | contains("'${px4_filename}'")) |
         .filename = "'${px4_bin_filename}'" |
         .type = "px4-bin"')
-
-    # Add the build timestamp
-    saluki_file_info=$(echo ${saluki_file_info} |
-        jq -c 'select (.filename | contains("'${px4_bin_filename}'"))' |
-        jq '. += {"build_time":"'${timestamp}'"}')
     echo ${saluki_file_info} > ${validation_file}
 
     # append file info to temporary file
