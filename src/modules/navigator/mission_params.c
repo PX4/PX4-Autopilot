@@ -87,7 +87,7 @@ PARAM_DEFINE_INT32(MIS_TKO_LAND_REQ, 0);
  * @increment 100
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
+PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 10000);
 
 /**
 * Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
