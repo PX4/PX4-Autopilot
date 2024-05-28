@@ -185,6 +185,11 @@ __EXPORT const char *px4_firmware_version_string(void);
 __EXPORT const char *px4_firmware_git_branch(void);
 
 /**
+ * get the epoch timestamp when the build was compiled
+ */
+__EXPORT time_t px4_build_timestamp(void);
+
+/**
  * Firmware version in binary form (first part of the git tag)
  */
 __EXPORT uint64_t px4_firmware_version_binary(void);
