@@ -829,6 +829,7 @@ private:
 	// 2d & 3d velocity fusion
 	void fuseHorizontalVelocity(estimator_aid_source2d_s &vel_aid_src);
 	void fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
+	void fuseBodyVelocity(estimator_aid_source3d_s &aid_src);
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// terrain vertical position estimator
@@ -957,6 +958,7 @@ private:
 	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src);
 	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
 	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
+	void resetVelocityToEV(Vector3f &measurement, Vector3f &measurement_var, const VelocityFrame &vel_frame);
 
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src);

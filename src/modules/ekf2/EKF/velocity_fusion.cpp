@@ -32,6 +32,9 @@
  ****************************************************************************/
 
 #include "ekf.h"
+#include <ekf_derivation/generated/compute_ev_body_vel_var_and_hx.h>
+#include <ekf_derivation/generated/compute_ev_body_vel_var_and_hy.h>
+#include <ekf_derivation/generated/compute_ev_body_vel_var_and_hz.h>
 
 void Ekf::updateHorizontalVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var,
 		const float innov_gate, estimator_aid_source2d_s &aid_src) const
@@ -57,13 +60,12 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &ob
 {
 	resetEstimatorAidStatus(aid_src);
 
+	const int state_index = State::vel.idx;
 	for (int i = 0; i < 3; i++) {
 		aid_src.observation[i] = obs(i);
+		aid_src.observation_variance[i] = obs_var(i);
 		aid_src.innovation[i] = _state.vel(i) - aid_src.observation[i];
-
-		aid_src.observation_variance[i] = math::max(sq(0.01f), obs_var(i));
-		const int state_index = State::vel.idx + i;
-		aid_src.innovation_variance[i] = P(state_index, state_index) + aid_src.observation_variance[i];
+		aid_src.innovation_variance[i] = P(state_index + i, state_index + i) + aid_src.observation_variance[i];
 	}
 
 	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
@@ -79,12 +81,59 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &ob
 	aid_src.timestamp_sample = time_us;
 }
 
+void Ekf::fuseBodyVelocity(estimator_aid_source3d_s &aid_src)
+{
+	Vector3f innov;
+	Vector3f innov_var;
+	matrix::Matrix<float, 1, 23UL> H;
+	bool fused[3] = {false, false, false};
+	const auto state_vector = _state.vector();
+	Vector3f R(aid_src.observation_variance);
+
+	sym::ComputeEvBodyVelVarAndHx(state_vector, P, &innov_var, &H);
+	innov = _R_to_earth.transpose() * _state.vel - Vector3f(aid_src.observation);
+	innov.copyTo(aid_src.innovation);
+	(innov_var + R).copyTo(aid_src.innovation_variance);
+	const float innov_gate = math::max(_params.ev_vel_innov_gate, 1.f);
+	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
+
+	if (aid_src.innovation_rejected) {
+		return;
+	}
+
+	for (uint8_t index = 0; index <= 2; index++) {
+		if (index == 1) {
+			sym::ComputeEvBodyVelVarAndHy(state_vector, P, &(innov_var(index)), &H);
+
+		} else if (index == 2) {
+			sym::ComputeEvBodyVelVarAndHz(state_vector, P, &(innov_var(index)), &H);
+		}
+
+		Vector3f meas_pred = _R_to_earth.transpose() * _state.vel;
+		innov_var(index) += aid_src.observation_variance[index];
+		aid_src.innovation[index] = meas_pred(index) - aid_src.observation[index];
+
+		VectorState Kfusion = P * H.transpose() / innov_var(index);
+
+		if (measurementUpdate(Kfusion, H.transpose(), aid_src.observation_variance[index], aid_src.innovation[index])) {
+			fused[index] = true;
+		}
+	}
+
+	if (fused[0] && fused[1] && fused[2]) {
+		aid_src.time_last_fuse = _time_delayed_us;
+		aid_src.fused = true;
+	}
+}
+
 void Ekf::fuseHorizontalVelocity(estimator_aid_source2d_s &aid_src)
 {
 	// vx, vy
 	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0], State::vel.idx + 0)
-	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1], State::vel.idx + 1)
+	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
+					  State::vel.idx + 0)
+	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
+					  State::vel.idx + 1)
 	   ) {
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
@@ -100,9 +149,12 @@ void Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 {
 	// vx, vy, vz
 	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0], State::vel.idx + 0)
-	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1], State::vel.idx + 1)
-	    && fuseDirectStateMeasurement(aid_src.innovation[2], aid_src.innovation_variance[2], aid_src.observation_variance[2], State::vel.idx + 2)
+	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
+					  State::vel.idx + 0)
+	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
+					  State::vel.idx + 1)
+	    && fuseDirectStateMeasurement(aid_src.innovation[2], aid_src.innovation_variance[2], aid_src.observation_variance[2],
+					  State::vel.idx + 2)
 	   ) {
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
