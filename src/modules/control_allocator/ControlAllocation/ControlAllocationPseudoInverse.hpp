@@ -60,6 +60,7 @@ public:
 
 protected:
 	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _normalized_mix;
 
 	bool _mix_update_needed{false};
 
