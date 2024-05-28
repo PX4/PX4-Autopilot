@@ -61,6 +61,7 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &ob
 	resetEstimatorAidStatus(aid_src);
 
 	const int state_index = State::vel.idx;
+
 	for (int i = 0; i < 3; i++) {
 		aid_src.observation[i] = obs(i);
 		aid_src.observation_variance[i] = obs_var(i);
@@ -119,6 +120,8 @@ void Ekf::fuseBodyVelocity(estimator_aid_source3d_s &aid_src)
 			fused[index] = true;
 		}
 	}
+
+	innov.copyTo(aid_src.innovation);
 
 	if (fused[0] && fused[1] && fused[2]) {
 		aid_src.time_last_fuse = _time_delayed_us;
