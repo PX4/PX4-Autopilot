@@ -75,7 +75,7 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 			float avionics_power_rail_voltage = system_power.voltage5v_v;
 
 			const float low_error_threshold = 4.5f;
-			const float low_warning_threshold = 4.8f;
+			const float low_warning_threshold = 4.6f;
 			const float high_warning_threshold = 5.4f;
 
 			if (avionics_power_rail_voltage < low_warning_threshold) {
