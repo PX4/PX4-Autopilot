@@ -261,6 +261,7 @@ int DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelem
 void DShot::publish_esc_status(void)
 {
 	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
+	int telemetry_index = 0;
 
 	// clear data of the esc that are offline
 	for (int index = 0; (index < _telemetry->last_telemetry_index); index++) {
@@ -270,17 +271,21 @@ void DShot::publish_esc_status(void)
 	}
 
 	// FIXME: mark all UART Telemetry ESC's as online, otherwise commander complains even for a single dropout
+	esc_status.esc_count = _telemetry->handler.numMotors();
 	esc_status.esc_online_flags = (1 << esc_status.esc_count) - 1;
 	esc_status.esc_armed_flags = (1 << esc_status.esc_count) - 1;
 
 	if (_bidirectional_dshot_enabled) {
-		esc_status.esc_online_flags |= _output_mask;
-		esc_status.esc_armed_flags |= _output_mask;
-		esc_status.esc_count = _telemetry->handler.numMotors();
+		for (unsigned i = 0; i < _num_outputs; i++) {
+			if (_mixing_output.isFunctionSet(i)) {
+				if (up_bdshot_channel_status(i)) {
+					esc_status.esc_online_flags |= 1 << i;
 
-		for (int index = 0; (index < esc_status.esc_count); index++) {
-			if (up_bdshot_channel_status(index) == 0) {
-				esc_status.esc_online_flags &= ~(1 << index);
+				} else {
+					esc_status.esc_online_flags &= ~(1 << i);
+				}
+
+				++telemetry_index;
 			}
 		}
 	}
@@ -295,8 +300,8 @@ void DShot::publish_esc_status(void)
 int DShot::handle_new_bdshot_erpm(void)
 {
 	int num_erpms = 0;
+	int telemetry_index = 0;
 	int erpm;
-	uint8_t channel;
 	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
 
 	esc_status.timestamp = hrt_absolute_time();
@@ -304,14 +309,19 @@ int DShot::handle_new_bdshot_erpm(void)
 	esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 	esc_status.esc_armed_flags = _outputs_on;
 
-	for (channel = 0; channel < 8; channel++) {
-		if (up_bdshot_get_erpm(channel, &erpm) == 0) {
-			num_erpms++;
-			esc_status.esc_online_flags |= 1 << channel;
-			esc_status.esc[channel].timestamp = hrt_absolute_time();
-			esc_status.esc[channel].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
-			esc_status.esc[channel].actuator_function = _telemetry->actuator_functions[channel];
+	for (unsigned i = 0; i < _num_outputs; i++) {
+		if (_mixing_output.isFunctionSet(i)) {
+			if (up_bdshot_get_erpm(i, &erpm) == 0) {
+				num_erpms++;
+				esc_status.esc_online_flags |= 1 << telemetry_index;
+				esc_status.esc[telemetry_index].timestamp = hrt_absolute_time();
+				esc_status.esc[telemetry_index].esc_rpm = (erpm * 100) / (_param_mot_pole_count.get() / 2);
+				esc_status.esc[telemetry_index].actuator_function = _telemetry->actuator_functions[telemetry_index];
+			}
+
+			++telemetry_index;
 		}
+
 
 	}
 
