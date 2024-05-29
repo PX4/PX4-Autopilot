@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <new>
-#include <px4_log.h>
 
 /*
   These are the heap access function exported by the SLPI DSP image.
