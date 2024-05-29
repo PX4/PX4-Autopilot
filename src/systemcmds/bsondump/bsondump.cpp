@@ -102,44 +102,6 @@ bson_docsize_callback(bson_decoder_t decoder, bson_node_t node)
 	return 1;
 }
 
-int copy_file(const char *src_path, const char *dst_path)
-{
-	int src_fd = open(src_path, O_RDONLY);
-	int dst_fd = open(dst_path, O_WRONLY | O_TRUNC);
-
-	if (src_fd == -1 || dst_fd == -1) {
-		perror("Failed to open files for copying");
-
-		if (src_fd != -1) { close(src_fd); }
-
-		if (dst_fd != -1) { close(dst_fd); }
-
-		return -1;
-	}
-
-	char buffer[1024];
-	ssize_t bytes_read;
-
-	while ((bytes_read = read(src_fd, buffer, sizeof(buffer))) > 0) {
-		if (write(dst_fd, buffer, bytes_read) != bytes_read) {
-			perror("Failed to copy file");
-			close(src_fd);
-			close(dst_fd);
-			return -1;
-		}
-	}
-
-	close(src_fd);
-	close(dst_fd);
-
-	if (bytes_read == -1) {
-		perror("Error reading from source file");
-		return -1;
-	}
-
-	return 0;
-}
-
 extern "C" __EXPORT int bsondump_main(int argc, char *argv[])
 {
 
