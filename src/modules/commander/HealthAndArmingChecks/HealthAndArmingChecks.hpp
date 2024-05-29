@@ -51,6 +51,7 @@
 #include "checks/failureDetectorCheck.hpp"
 #include "checks/gyroCheck.hpp"
 #include "checks/imuConsistencyCheck.hpp"
+#include "checks/loggerCheck.hpp"
 #include "checks/magnetometerCheck.hpp"
 #include "checks/manualControlCheck.hpp"
 #include "checks/homePositionCheck.hpp"
@@ -130,6 +131,7 @@ private:
 	FailureDetectorChecks _failure_detector_checks;
 	GyroChecks _gyro_checks;
 	ImuConsistencyChecks _imu_consistency_checks;
+	LoggerChecks _logger_checks;
 	MagnetometerChecks _magnetometer_checks;
 	ManualControlChecks _manual_control_checks;
 	HomePositionChecks _home_position_checks;
@@ -167,6 +169,7 @@ private:
 		&_failure_detector_checks,
 		&_gyro_checks,
 		&_imu_consistency_checks,
+		&_logger_checks,
 		&_magnetometer_checks,
 		&_manual_control_checks,
 		&_home_position_checks,
