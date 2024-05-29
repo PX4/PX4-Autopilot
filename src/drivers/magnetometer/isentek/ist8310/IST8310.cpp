@@ -87,7 +87,7 @@ int IST8310::probe()
 {
 	// Apparently, the IST8310's WHOAMI register is writeable. Presumably,
 	// this can get corrupted by bus noise. It is only reset if powered off
-	// for 30s.
+	// for 30s or by a reset.
 	//
 	// Therefore, we do a reset before doing the WHOAMI.
 	RegisterWrite(Register::CNTL2, CNTL2_BIT::SRST);
