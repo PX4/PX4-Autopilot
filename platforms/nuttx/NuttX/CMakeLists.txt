@@ -175,6 +175,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra target)
 	file(GLOB_RECURSE nuttx_lib_files LIST_DIRECTORIES false
 		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*.c
 		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*.S
 	)
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
