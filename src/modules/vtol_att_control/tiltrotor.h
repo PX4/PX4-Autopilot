@@ -89,8 +89,7 @@ private:
 	float moveLinear(float start, float stop, float progress);
 
 	void blendThrottleDuringBacktransition(const float scale, const float target_throttle);
-	bool isFrontTransitionCompletedBase() override;
-
+	bool isFrontTransitionCompleted();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::VT_TILT_MC>) _param_vt_tilt_mc,

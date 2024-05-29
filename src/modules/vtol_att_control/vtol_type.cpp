@@ -197,13 +197,6 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 	return math::constrain(pitch_sp_new, 0.f, pitch_lim);
 }
 
-bool VtolType::isFrontTransitionCompleted()
-{
-	bool ret = isFrontTransitionCompletedBase();
-
-	return ret || can_transition_on_ground();
-}
-
 bool VtolType::isFrontTransitionCompletedBase()
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
@@ -222,8 +215,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 		transition_to_fw = openloop_trans_time_elapsed;
 	}
 
-	return transition_to_fw;
-
+	return (transition_to_fw || can_transition_on_ground());
 }
 
 bool VtolType::can_transition_on_ground()

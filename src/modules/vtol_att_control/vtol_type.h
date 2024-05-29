@@ -317,8 +317,8 @@ protected:
 	bool _quadchute_command_treated{false};
 
 	float update_and_get_backtransition_pitch_sp();
-	bool isFrontTransitionCompleted();
-	virtual bool isFrontTransitionCompletedBase();
+	bool isFrontTransitionCompletedBase();
+	virtual bool isFrontTransitionCompleted() = 0;
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
 

@@ -310,23 +310,10 @@ void Tailsitter::fill_actuator_outputs()
 	}
 }
 
-
-bool Tailsitter::isFrontTransitionCompletedBase()
+bool Tailsitter::isFrontTransitionCompleted()
 {
-	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-			&& _param_fw_use_airspd.get();
-
-	bool transition_to_fw = false;
+	// tailsitter only: add check pitch angle
 	const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	if (pitch <= PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW) {
-		if (airspeed_triggers_transition) {
-			transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
-
-		} else {
-			transition_to_fw = true;
-		}
-	}
-
-	return transition_to_fw;
+	return VtolType::isFrontTransitionCompletedBase() && pitch <= PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW;
 }

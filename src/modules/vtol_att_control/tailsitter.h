@@ -85,7 +85,7 @@ private:
 
 	void parameters_update() override;
 
-	bool isFrontTransitionCompletedBase() override;
+	bool isFrontTransitionCompleted();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off

@@ -426,7 +426,8 @@ float Tiltrotor::moveLinear(float start, float stop, float progress)
 	return start + progress * (stop - start);
 }
 
-bool Tiltrotor::isFrontTransitionCompletedBase()
+bool Tiltrotor::isFrontTransitionCompleted()
 {
-	return VtolType::isFrontTransitionCompletedBase() && _tilt_control >= _param_vt_tilt_trans.get();
+	// tiltrotor only: add check on tilt control
+	return (VtolType::isFrontTransitionCompletedBase() && _tilt_control >= _param_vt_tilt_trans.get());
 }

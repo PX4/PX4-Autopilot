@@ -361,3 +361,9 @@ void Standard::blendThrottleAfterFrontTransition(float scale)
 	const float tecs_throttle = _v_att_sp->thrust_body[0];
 	_v_att_sp->thrust_body[0] = scale * tecs_throttle + (1.0f - scale) * _pusher_throttle;
 }
+
+bool Standard::isFrontTransitionCompleted()
+{
+	// no customization required, just use base from vtol_type
+	return VtolType::isFrontTransitionCompletedBase();
+}
