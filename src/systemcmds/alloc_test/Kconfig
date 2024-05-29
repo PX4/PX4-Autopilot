@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_ALLOC_TEST
+	bool "heap_allocation_test"
+	default n
+	---help---
+		Enable support for heap allocation test
