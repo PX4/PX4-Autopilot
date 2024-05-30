@@ -376,9 +376,34 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	}
 
-	/* If we've received a valid message, mark the flag indicating so.
-	   This is used in the '-w' command-line flag. */
-	_mavlink->set_has_received_messages(true);
+	/* handle packet with mission manager */
+	_mission_manager.handle_message(msg);
+
+	/* handle packet with parameter component */
+	if (_mavlink->boot_complete()) {
+		// make sure mavlink app has booted before we start processing parameter sync
+		_parameters_manager.handle_message(msg);
+
+	} else {
+		if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
+			PX4_ERR("system boot did not complete in 20 seconds");
+			_mavlink->set_boot_complete();
+		}
+	}
+
+	if (_mavlink->ftp_enabled()) {
+		/* handle packet with ftp component */
+		_mavlink_ftp.handle_message(msg);
+	}
+
+	/* handle packet with log component */
+	_mavlink_log_handler.handle_message(msg);
+
+	/* handle packet with timesync component */
+	_mavlink_timesync.handle_message(msg);
+
+	/* handle packet with parent object */
+	_mavlink->handle_message(msg);
 }
 
 bool
@@ -3142,38 +3167,8 @@ MavlinkReceiver::run()
 							_mavlink->set_proto_version(2);
 						}
 
-						/* handle generic messages and commands */
 						handle_message(&msg);
-
-						/* handle packet with mission manager */
-						_mission_manager.handle_message(&msg);
-
-						/* handle packet with parameter component */
-						if (_mavlink->boot_complete()) {
-							// make sure mavlink app has booted before we start processing parameter sync
-							_parameters_manager.handle_message(&msg);
-
-						} else {
-							if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
-								PX4_ERR("system boot did not complete in 20 seconds");
-								_mavlink->set_boot_complete();
-							}
-						}
-
-						if (_mavlink->ftp_enabled()) {
-							/* handle packet with ftp component */
-							_mavlink_ftp.handle_message(&msg);
-						}
-
-						/* handle packet with log component */
-						_mavlink_log_handler.handle_message(&msg);
-
-						/* handle packet with timesync component */
-						_mavlink_timesync.handle_message(&msg);
-
-						/* handle packet with parent object */
-						_mavlink->handle_message(&msg);
-
+						_mavlink->set_has_received_messages(true); // Received first message, unlock wait to transmit '-w' command-line flag
 						update_rx_stats(msg);
 
 						if (_message_statistics_enabled) {
