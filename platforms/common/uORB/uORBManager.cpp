@@ -621,7 +621,11 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 			if (node) {
 				PX4_DEBUG("Marking DeviceNode(%s) as advertised in process_remote_topic", topic_name);
 				node->mark_as_advertised();
-				_remote_topics.insert(topic_name);
+
+				if (_remote_topics.find(topic_name) == false) {
+					_remote_topics.insert(topic_name);
+				}
+
 				return 0;
 			}
 		}
