@@ -144,6 +144,12 @@ private:
 	// airspeed scale validity check
 	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
 
+	static constexpr float kHighThrottleDelta =
+		0.05f; ///<  throttle delta above trim throttle required to consider throttle high
+	static constexpr float kIASDerivateThreshold =
+		0.1f; ///< threshold for IAS derivative to detect airspeed failure. Failure is
+	// detected if in a high throttle and low pitch situation and the filtered IAS derivative is below this threshold
+
 	// general states
 	bool _in_fixed_wing_flight{false}; ///< variable to bypass innovation and load factor checks
 	float _IAS{0.0f}; ///< indicated airsped in m/s

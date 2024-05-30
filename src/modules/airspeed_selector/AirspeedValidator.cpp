@@ -320,13 +320,13 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 		_pitch_filtered.update(pitch);
 	}
 
-	// declare high throttle if more than 10% above trim
-	const float high_throttle_threshold = math::min(throttle_trim + 0.05f, _param_throttle_max);
+	// declare high throttle if more than 5% above trim
+	const float high_throttle_threshold = math::min(throttle_trim + kHighThrottleDelta, _param_throttle_max);
 	const bool high_throttle = _throttle_filtered.getState() > high_throttle_threshold;
 	const bool pitching_down = _pitch_filtered.getState() < _param_psp_off;
 
 	// check if the airspeed derivative is too low given the throttle and pitch
-	const bool check_failing = _IAS_derivative.getState() < 0.1f && high_throttle && pitching_down;
+	const bool check_failing = _IAS_derivative.getState() < kIASDerivateThreshold && high_throttle && pitching_down;
 
 	if (!check_failing) {
 		_time_last_first_principle_check_passing = timestamp;
