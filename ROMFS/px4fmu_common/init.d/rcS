@@ -123,6 +123,13 @@ else
 		set PARAM_FILE /fs/mtd_params
 	fi
 
+	# Check if /fs/mtd_params is a valid BSON file
+	if ! bsondump docsize /fs/mtd_caldata
+	then
+		echo "New /fs/mtd_caldata size is:"
+		bsondump docsize /fs/mtd_caldata
+	fi
+
 	#
 	# Load parameters.
 	#
