@@ -86,7 +86,9 @@ void Ekf::controlRangeHeightFusion()
 			}
 		}
 
-		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
+		if (_range_sensor.isDataReady()) {
+			_control_status.flags.rng_kin_valid = _rng_consistency_check.isKinematicallyConsistent() && _range_sensor.isHealthy();
+		}
 
 	} else {
 		return;

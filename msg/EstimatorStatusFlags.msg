@@ -35,7 +35,7 @@ bool cs_gps_yaw_fault         # 27 - true when the GNSS heading has been declare
 bool cs_rng_fault             # 28 - true when the range finder has been declared faulty and is no longer being used
 bool cs_inertial_dead_reckoning # 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 bool cs_wind_dead_reckoning     # 30 - true if we are navigationg reliant on wind relative measurements
-bool cs_rng_kin_consistent      # 31 - true when the range finder kinematic consistency check is passing
+bool cs_rng_kin_valid           # 31 - true when the range finder data is healthy and the kinematic consistency check is passing
 bool cs_fake_pos                # 32 - true when fake position measurements are being fused
 bool cs_fake_hgt                # 33 - true when fake height measurements are being fused
 bool cs_gravity_vector          # 34 - true when gravity vector measurements are being fused
