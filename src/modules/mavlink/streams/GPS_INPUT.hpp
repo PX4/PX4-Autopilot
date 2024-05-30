@@ -81,8 +81,6 @@ private:
 				msg.vd = gps.vel_d_m_s;
 				msg.horiz_accuracy = gps.eph;
 				msg.vert_accuracy = gps.epv;
-				msg.speed_accuracy = gps.s_variance_m_s;
-				msg.course_accuracy = gps.c_variance_rad;
 
 				if (PX4_ISFINITE(gps.heading)) {
 					if (fabsf(gps.heading) < FLT_EPSILON) {
@@ -90,10 +88,6 @@ private:
 
 					} else {
 						msg.yaw = math::degrees(matrix::wrap_2pi(gps.heading)) * 100.0f; // centidegrees
-					}
-
-					if (PX4_ISFINITE(gps.heading_accuracy)) {
-						msg.heading_accuracy = gps.heading_accuracy; // Heading / track uncertainty in radians
 					}
 				}
 
