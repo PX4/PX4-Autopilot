@@ -153,9 +153,8 @@ Server::_server_main()
 			// Reboot command causes System Interrupt to stop poll(). This is not an error
 			if (errno != EINTR) {
 				PX4_ERR("poll() failed: %s", strerror(errno));
+				break;
 			}
-
-			break;
 		}
 
 		_lock();
