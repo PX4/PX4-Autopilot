@@ -360,29 +360,32 @@ def compute_sideslip_h_and_k(
 
     return (H.T, K)
 
+def predict_vel_body(
+        state: VState
+) -> (sf.V3):
+    vel = state["vel"]
+    R_to_body = state["quat_nominal"].inverse()
+    return R_to_body * vel
+
 def compute_ev_body_vel_var_and_hx(
         state: VState,
         P: MTangent,
 ) -> (VTangent):
 
     state = vstate_to_state(state)
-
-    vel = state["vel"]
-    R_to_body = state["quat_nominal"].inverse()
-    meas_pred = R_to_body * vel
-
+    meas_pred = predict_vel_body(state)
     Hx = jacobian_chain_rule(meas_pred[0], state)
     Hy = jacobian_chain_rule(meas_pred[1], state)
     Hz = jacobian_chain_rule(meas_pred[2], state)
     Hx[:3] = [0,0,0]
     Hy[:3] = [0,0,0]
     Hz[:3] = [0,0,0]
-    incomp_innov_var = sf.V3()
+    body_vel_var = sf.V3()
     # attention: +R needs to be added to the variance in the calling function
-    incomp_innov_var[0] = (Hx * P * Hx.T)[0,0]
-    incomp_innov_var[1] = (Hy * P * Hy.T)[0,0]
-    incomp_innov_var[2] = (Hz * P * Hz.T)[0,0]
-    return (incomp_innov_var, Hx)
+    body_vel_var[0] = (Hx * P * Hx.T)[0,0]
+    body_vel_var[1] = (Hy * P * Hy.T)[0,0]
+    body_vel_var[2] = (Hz * P * Hz.T)[0,0]
+    return (body_vel_var, Hx.T)
 
 def compute_ev_body_vel_var_and_hy(
         state: VState,
@@ -390,14 +393,12 @@ def compute_ev_body_vel_var_and_hy(
 ) -> (VTangent):
 
     state = vstate_to_state(state)
-    vel = state["vel"]
-    R_to_body = state["quat_nominal"].inverse()
-    meas_pred = (R_to_body * vel)[1]
+    meas_pred = predict_vel_body(state)[1]
     Hy = jacobian_chain_rule(meas_pred, state)
     Hy[:3] = [0,0,0]
     # attention: +R needs to be added to the variance in the calling function
-    incomp_innov_var = (Hy * P * Hy.T)[0,0]
-    return (incomp_innov_var, Hy)
+    body_vel_var = (Hy * P * Hy.T)[0,0]
+    return (body_vel_var, Hy.T)
 
 def compute_ev_body_vel_var_and_hz(
         state: VState,
@@ -405,14 +406,12 @@ def compute_ev_body_vel_var_and_hz(
 ) -> (VTangent):
 
     state = vstate_to_state(state)
-    vel = state["vel"]
-    R_to_body = state["quat_nominal"].inverse()
-    meas_pred = (R_to_body * vel)[2]
+    meas_pred = predict_vel_body(state)[2]
     Hz = jacobian_chain_rule(meas_pred, state)
     Hz[:3] = [0,0,0]
     # attention: +R needs to be added to the variance in the calling function
-    incomp_innov_var = (Hz * P * Hz.T)[0,0]
-    return (incomp_innov_var, Hz)
+    body_vel_var = (Hz * P * Hz.T)[0,0]
+    return (body_vel_var, Hz.T)
 
 def predict_mag_body(state) -> sf.V3:
     mag_field_earth = state["mag_I"]
@@ -722,12 +721,6 @@ generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas
 generate_px4_function(compute_gravity_xyz_innov_var_and_hx, output_names=["innov_var", "Hx"])
 generate_px4_function(compute_gravity_y_innov_var_and_h, output_names=["innov_var", "Hy"])
 generate_px4_function(compute_gravity_z_innov_var_and_h, output_names=["innov_var", "Hz"])
-# generate_px4_function(compute_body_vel_innov_innov_var_and_h, output_names=["innov", "H"])
-
-# generate_px4_function(compute_body_vel_innov_innov_var_and_hx, output_names=["innov", "innov_var", "H"])
-# generate_px4_function(compute_body_vel_innov_innov_var_and_hy, output_names=["innov", "innov_var", "H"])
-# generate_px4_function(compute_body_vel_innov_innov_var_and_hz, output_names=["innov", "innov_var", "H"])
-
 generate_px4_function(compute_ev_body_vel_var_and_hx, output_names=["incomp_innov_var", "H"])
 generate_px4_function(compute_ev_body_vel_var_and_hy, output_names=["incomp_innov_var", "H"])
 generate_px4_function(compute_ev_body_vel_var_and_hz, output_names=["incomp_innov_var", "H"])

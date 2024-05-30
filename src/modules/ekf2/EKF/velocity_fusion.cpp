@@ -84,17 +84,16 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &ob
 
 void Ekf::fuseBodyVelocity(estimator_aid_source3d_s &aid_src)
 {
-	Vector3f innov;
-	Vector3f innov_var;
-	matrix::Matrix<float, 1, 23UL> H;
+	Vector3f body_vel_var;
+	VectorState H;
 	bool fused[3] = {false, false, false};
 	const auto state_vector = _state.vector();
 	Vector3f R(aid_src.observation_variance);
 
-	sym::ComputeEvBodyVelVarAndHx(state_vector, P, &innov_var, &H);
-	innov = _R_to_earth.transpose() * _state.vel - Vector3f(aid_src.observation);
+	sym::ComputeEvBodyVelVarAndHx(state_vector, P, &body_vel_var, &H);
+	const Vector3f innov = _R_to_earth.transpose() * _state.vel - Vector3f(aid_src.observation);
 	innov.copyTo(aid_src.innovation);
-	(innov_var + R).copyTo(aid_src.innovation_variance);
+	(body_vel_var + R).copyTo(aid_src.innovation_variance);
 	const float innov_gate = math::max(_params.ev_vel_innov_gate, 1.f);
 	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
 
@@ -104,19 +103,19 @@ void Ekf::fuseBodyVelocity(estimator_aid_source3d_s &aid_src)
 
 	for (uint8_t index = 0; index <= 2; index++) {
 		if (index == 1) {
-			sym::ComputeEvBodyVelVarAndHy(state_vector, P, &(innov_var(index)), &H);
+			sym::ComputeEvBodyVelVarAndHy(state_vector, P, &body_vel_var(index), &H);
 
 		} else if (index == 2) {
-			sym::ComputeEvBodyVelVarAndHz(state_vector, P, &(innov_var(index)), &H);
+			sym::ComputeEvBodyVelVarAndHz(state_vector, P, &body_vel_var(index), &H);
 		}
 
 		Vector3f meas_pred = _R_to_earth.transpose() * _state.vel;
-		innov_var(index) += aid_src.observation_variance[index];
+		const float innov_var = body_vel_var(index) + aid_src.observation_variance[index];
 		aid_src.innovation[index] = meas_pred(index) - aid_src.observation[index];
 
-		VectorState Kfusion = P * H.transpose() / innov_var(index);
+		VectorState Kfusion = P * H / innov_var;
 
-		if (measurementUpdate(Kfusion, H.transpose(), aid_src.observation_variance[index], aid_src.innovation[index])) {
+		if (measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index])) {
 			fused[index] = true;
 		}
 	}

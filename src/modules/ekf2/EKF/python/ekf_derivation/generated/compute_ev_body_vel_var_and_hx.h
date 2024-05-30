@@ -21,13 +21,13 @@ namespace sym {
  *
  * Outputs:
  *     incomp_innov_var: Matrix31
- *     H: Matrix1_23
+ *     H: Matrix23_1
  */
 template <typename Scalar>
 void ComputeEvBodyVelVarAndHx(const matrix::Matrix<Scalar, 24, 1>& state,
                               const matrix::Matrix<Scalar, 23, 23>& P,
                               matrix::Matrix<Scalar, 3, 1>* const incomp_innov_var = nullptr,
-                              matrix::Matrix<Scalar, 1, 23>* const H = nullptr) {
+                              matrix::Matrix<Scalar, 23, 1>* const H = nullptr) {
   // Total ops: 88
 
   // Input arrays
@@ -70,13 +70,13 @@ void ComputeEvBodyVelVarAndHx(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 1, 23>& _h = (*H);
+    matrix::Matrix<Scalar, 23, 1>& _h = (*H);
 
     _h.setZero();
 
-    _h(0, 3) = _tmp2;
-    _h(0, 4) = _tmp10;
-    _h(0, 5) = _tmp6;
+    _h(3, 0) = _tmp2;
+    _h(4, 0) = _tmp10;
+    _h(5, 0) = _tmp6;
   }
 }  // NOLINT(readability/fn_size)
 
