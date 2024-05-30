@@ -35,11 +35,16 @@ px4_add_module(
 	MODULE driver__septentrio
 	MAIN septentrio
 	COMPILE_FLAGS
-		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
+		# -DDEBUG_BUILD           # Enable during development of the module
+		-DSEP_LOG_ERROR         # Enable module-level error logs
+		# -DSEP_LOG_WARN          # Enable module-level warning logs
+		# -DSEP_LOG_INFO          # Enable module-level info logs
+		# -DSEP_LOG_TRACE_PARSING # Tracing of parsing steps
 	SRCS
 		septentrio.cpp
 		util.cpp
 		rtcm.cpp
+		sbf/decoder.cpp
 	MODULE_CONFIG
 		module.yaml
 	)

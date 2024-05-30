@@ -31,9 +31,20 @@
  *
  ****************************************************************************/
 
+/**
+ * @file util.h
+ *
+ * @author Thomas Frans
+ */
+
 #pragma once
+
+namespace septentrio
+{
 
 /**
  * @brief Calculate buffer CRC16
  */
-uint16_t sep_crc16(const uint8_t *data_p, uint32_t length);
+uint16_t buffer_crc16(const uint8_t *data_p, uint32_t length);
+
+} // namespace septentrio

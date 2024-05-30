@@ -32,28 +32,49 @@
  ****************************************************************************/
 
 /**
- * @file util.cpp
+ * @file module.h
+ *
+ * Module functionality for the Septentrio GNSS driver.
  *
  * @author Thomas Frans
 */
 
-#include "util.h"
+#pragma once
 
-namespace septentrio
-{
+#include <px4_platform_common/log.h>
 
-uint16_t buffer_crc16(const uint8_t *data_p, uint32_t length)
-{
-	uint8_t x;
-	uint16_t crc = 0;
+#ifdef DEBUG_BUILD
+#ifndef SEP_LOG_ERROR
+#define SEP_LOG_ERROR
+#endif
+#ifndef SEP_LOG_WARN
+#define SEP_LOG_WARN
+#endif
+#ifndef SEP_LOG_INFO
+#define SEP_LOG_INFO
+#endif
+#endif
 
-	while (length--) {
-		x = crc >> 8 ^ *data_p++;
-		x ^= x >> 4;
-		crc = static_cast<uint16_t>((crc << 8) ^ (x << 12) ^ (x << 5) ^ x);
-	}
+#ifdef SEP_LOG_ERROR
+#define SEP_ERR(...)            {PX4_WARN(__VA_ARGS__);}
+#else
+#define SEP_ERR(...)            {}
+#endif
 
-	return crc;
-}
+#ifdef SEP_LOG_WARN
+#define SEP_WARN(...)           {PX4_WARN(__VA_ARGS__);}
+#else
+#define SEP_WARN(...)           {}
+#endif
 
-} // namespace septentrio
+#ifdef SEP_LOG_INFO
+#define SEP_INFO(...)           {PX4_INFO(__VA_ARGS__);}
+#else
+#define SEP_INFO(...)           {}
+#endif
+
+#ifdef SEP_LOG_TRACE_PARSING
+#define SEP_TRACE_PARSING(...)  {PX4_DEBUG(__VA_ARGS__);}
+#else
+#define SEP_TRACE_PARSING(...)  {}
+#endif
