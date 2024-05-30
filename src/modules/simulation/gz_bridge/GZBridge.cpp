@@ -196,12 +196,11 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// Laser Scan
+	// Laser Scan: optional
 	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
 
 	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", laser_scan_topic.c_str());
-		return PX4_ERROR;
+		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
 	}
 
 #if 0
