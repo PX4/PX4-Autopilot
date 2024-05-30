@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,57 +31,132 @@
  *
  ****************************************************************************/
 
-#include "rtcm.h"
-#include <cstring>
+/**
+ * @file rtcm.cpp
+ *
+ * @author Thomas Frans
+*/
 
-RTCMParsing::RTCMParsing()
+#include "rtcm.h"
+
+#include <cstring>
+#include <px4_platform_common/log.h>
+
+#include "module.h"
+
+namespace septentrio
+{
+
+namespace rtcm
+{
+
+Decoder::Decoder()
 {
 	reset();
 }
 
-RTCMParsing::~RTCMParsing()
+Decoder::~Decoder()
 {
-	delete[] _buffer;
+	delete[] _message;
 }
 
-void RTCMParsing::reset()
+Decoder::State Decoder::add_byte(uint8_t byte)
 {
-	if (!_buffer) {
-		_buffer = new uint8_t[RTCM_INITIAL_BUFFER_LENGTH];
-		_buffer_len = RTCM_INITIAL_BUFFER_LENGTH;
-	}
+	switch (_state) {
+	case State::SearchingPreamble:
+		if (byte == PREAMBLE) {
+			_message[_current_index] = byte;
+			_current_index++;
+			_state = State::GettingHeader;
+		}
 
-	_pos = 0;
-	_message_length = _buffer_len;
-}
+		break;
 
-bool RTCMParsing::addByte(uint8_t b)
-{
-	if (!_buffer) {
-		return false;
-	}
+	case State::GettingHeader:
+		_message[_current_index] = byte;
+		_current_index++;
 
-	_buffer[_pos++] = b;
+		if (header_received()) {
+			_message_length = parse_message_length();
 
-	if (_pos == 3) {
-		_message_length = (((uint16_t)_buffer[1] & 3) << 8) | (_buffer[2]);
+			if (_message_length > MAX_BODY_SIZE) {
+				reset();
+				return _state;
 
-		if (_message_length + 6 > _buffer_len) {
-			uint16_t new_buffer_len = _message_length + 6;
-			uint8_t *new_buffer = new uint8_t[new_buffer_len];
+			} else if (_message_length + HEADER_SIZE + CRC_SIZE > INITIAL_BUFFER_LENGTH) {
+				uint16_t new_buffer_size = _message_length + HEADER_SIZE + CRC_SIZE;
+				uint8_t *new_buffer = new uint8_t[new_buffer_size];
 
-			if (!new_buffer) {
-				delete[](_buffer);
-				_buffer = nullptr;
-				return false;
+				if (!new_buffer) {
+					reset();
+					return _state;
+				}
+
+				memcpy(new_buffer, _message, HEADER_SIZE);
+				delete[](_message);
+
+				_message = new_buffer;
 			}
 
-			memcpy(new_buffer, _buffer, 3);
-			delete[](_buffer);
-			_buffer = new_buffer;
-			_buffer_len = new_buffer_len;
+			_state = State::Busy;
 		}
+
+		break;
+
+	case State::Busy:
+		_message[_current_index] = byte;
+		_current_index++;
+
+		if (_message_length + HEADER_SIZE + CRC_SIZE == _current_index) {
+			_state = State::Done;
+		}
+
+		break;
+
+	case State::Done:
+		SEP_WARN("RTCM: Discarding excess byte");
+		break;
 	}
 
-	return _message_length + 6 == _pos;
+	return _state;
 }
+
+void Decoder::reset()
+{
+	if (_message) {
+		delete[] _message;
+	}
+
+	_message = new uint8_t[INITIAL_BUFFER_LENGTH];
+	_current_index = 0;
+	_message_length = 0;
+	_state = State::SearchingPreamble;
+}
+
+uint16_t Decoder::parse_message_length() const
+{
+	if (!header_received()) {
+		return PX4_ERROR;
+	}
+
+	return ((static_cast<uint16_t>(_message[1]) & 3) << 8) | _message[2];
+}
+
+bool Decoder::header_received() const
+{
+	return _current_index >= HEADER_SIZE;
+}
+
+uint16_t Decoder::received_bytes() const
+{
+	return _current_index;
+}
+
+uint16_t Decoder::message_id() const
+{
+	return (_message[3] << 4) | (_message[4] >> 4);
+}
+
+} // namespace rtcm
+
+} // namespace septentrio
