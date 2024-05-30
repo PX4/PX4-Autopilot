@@ -44,6 +44,7 @@ include_directories(
 
 add_library(px4 SHARED
 	${PX4_SOURCE_DIR}/platforms/qurt/unresolved_symbols.c
+	${PX4_SOURCE_DIR}/platforms/qurt/new_delete.cpp
 	${PX4_BINARY_DIR}/apps.cpp
 	)
 
