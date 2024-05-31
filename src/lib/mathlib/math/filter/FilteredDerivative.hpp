@@ -89,6 +89,9 @@ public:
 		if (_initialized) {
 			if (_sample_interval > FLT_EPSILON) {
 				_alpha_filter.update((sample - _previous_sample) / _sample_interval);
+
+			} else {
+				_initialized = false;
 			}
 
 		} else {
