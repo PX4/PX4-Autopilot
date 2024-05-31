@@ -23,7 +23,7 @@ extract_bin_from_px4() {
     # px4 build timestamp is included in px4 file
     build_timestamp=$(cat ${px4_file} | jq -r '.build_time')
 
-    validation_file=${target_dir}/$(basename ${px4_file%.px4})-validation.txt
+    validation_file=${target_dir}/$(basename ${px4_file%.px4}).val
     generate_metadata ${px4_file} ${validation_file} ${build_timestamp}
 }
 
