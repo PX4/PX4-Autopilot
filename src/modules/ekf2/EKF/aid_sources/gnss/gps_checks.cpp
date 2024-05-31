@@ -41,10 +41,6 @@
 
 #include "ekf.h"
 
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-# include <lib/world_magnetic_model/geo_mag_declination.h>
-#endif // CONFIG_EKF2_MAGNETOMETER
-
 #include <mathlib/mathlib.h>
 
 // GPS pre-flight check bit locations
@@ -89,20 +85,20 @@ void Ekf::collect_gps(const gnssSample &gps)
 		_gpos_origin_eph = gps.hacc;
 		_gpos_origin_epv = gps.vacc;
 
-		_information_events.flags.gps_checks_passed = true;
-		ECL_INFO("GPS checks passed");
-	}
+		_earth_rate_NED = calcEarthRateNED(math::radians(static_cast<float>(gps.lat)));
 
-	if ((isTimedOut(_wmm_gps_time_last_checked, 1e6)) || (_wmm_gps_time_last_set == 0)) {
-		// a rough 2D fix is sufficient to lookup declination
+		_information_events.flags.gps_checks_passed = true;
+
+		ECL_INFO("GPS origin set to lat=%.6f, lon=%.6f",
+			 _pos_ref.getProjectionReferenceLat(), _pos_ref.getProjectionReferenceLon());
+
+	} else {
+		// a rough 2D fix is sufficient to lookup earth spin rate
 		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.hacc < 1000);
 
 		if (gps_rough_2d_fix && (_gps_checks_passed || !_NED_origin_initialised)) {
-			updateWmm(gps.lat, gps.lon);
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(gps.lat));
 		}
-
-		_wmm_gps_time_last_checked = _time_delayed_us;
 	}
 }
 

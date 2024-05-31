@@ -96,12 +96,12 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
 		_gps_alt_ref = altitude;
 
-		updateWmm(current_lat, current_lon);
-
 		_gpos_origin_eph = eph;
 		_gpos_origin_epv = epv;
 
 		_NED_origin_initialised = true;
+
+		_earth_rate_NED = calcEarthRateNED(math::radians(static_cast<float>(latitude)));
 
 		if (current_pos_available) {
 			// reset horizontal position if we already have a global origin
@@ -130,39 +130,6 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 	return false;
 }
-
-void Ekf::updateWmm(const double lat, const double lon)
-{
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-	// set the magnetic field data returned by the geo library using the current GPS position
-	const float mag_declination_gps = math::radians(get_mag_declination_degrees(lat, lon));
-	const float mag_inclination_gps = math::radians(get_mag_inclination_degrees(lat, lon));
-	const float mag_strength_gps = get_mag_strength_gauss(lat, lon);
-
-	if (PX4_ISFINITE(mag_declination_gps) && PX4_ISFINITE(mag_inclination_gps) && PX4_ISFINITE(mag_strength_gps)) {
-
-		const bool mag_declination_changed = (fabsf(mag_declination_gps - _mag_declination_gps) > math::radians(1.f));
-		const bool mag_inclination_changed = (fabsf(mag_inclination_gps - _mag_inclination_gps) > math::radians(1.f));
-
-		if ((_wmm_gps_time_last_set == 0)
-		    || !PX4_ISFINITE(_mag_declination_gps)
-		    || !PX4_ISFINITE(_mag_inclination_gps)
-		    || !PX4_ISFINITE(_mag_strength_gps)
-		    || mag_declination_changed
-		    || mag_inclination_changed
-		   ) {
-			_mag_declination_gps = mag_declination_gps;
-			_mag_inclination_gps = mag_inclination_gps;
-			_mag_strength_gps = mag_strength_gps;
-
-			_wmm_gps_time_last_set = _time_delayed_us;
-		}
-	}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-}
-
 
 void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 {
