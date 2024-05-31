@@ -99,15 +99,12 @@ void Ekf::collect_gps(const gnssSample &gps)
 		if (gps_rough_2d_fix && (_gps_checks_passed || !_NED_origin_initialised)) {
 
 			// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-			const double lat = gps.lat;
-
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-			const double lon = gps.lon;
 
 			// set the magnetic field data returned by the geo library using the current GPS position
-			const float mag_declination_gps = get_mag_declination_radians(lat, lon);
-			const float mag_inclination_gps = get_mag_inclination_radians(lat, lon);
-			const float mag_strength_gps = get_mag_strength_gauss(lat, lon);
+			const float mag_declination_gps = math::radians(get_mag_declination_degrees(gps.lat, gps.lon));
+			const float mag_inclination_gps = math::radians(get_mag_inclination_degrees(gps.lat, gps.lon));
+			const float mag_strength_gps = get_mag_strength_gauss(gps.lat, gps.lon);
 
 			if (PX4_ISFINITE(mag_declination_gps) && PX4_ISFINITE(mag_inclination_gps) && PX4_ISFINITE(mag_strength_gps)) {
 
@@ -130,7 +127,7 @@ void Ekf::collect_gps(const gnssSample &gps)
 			}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-			_earth_rate_NED = calcEarthRateNED((float)math::radians(lat));
+			_earth_rate_NED = calcEarthRateNED((float)math::radians(gps.lat));
 		}
 
 		_wmm_gps_time_last_checked = _time_delayed_us;
