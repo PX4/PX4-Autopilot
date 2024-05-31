@@ -96,8 +96,8 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		_gps_alt_ref = altitude;
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-		const float mag_declination_gps = get_mag_declination_radians(latitude, longitude);
-		const float mag_inclination_gps = get_mag_inclination_radians(latitude, longitude);
+		const float mag_declination_gps = math::radians(get_mag_declination_degrees(latitude, longitude));
+		const float mag_inclination_gps = math::radians(get_mag_inclination_degrees(latitude, longitude));
 		const float mag_strength_gps = get_mag_strength_gauss(latitude, longitude);
 
 		if (PX4_ISFINITE(mag_declination_gps) && PX4_ISFINITE(mag_inclination_gps) && PX4_ISFINITE(mag_strength_gps)) {
