@@ -150,51 +150,34 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 	return false;
 }
 
-bool Ekf::fuseDeclination(float decl_sigma)
+bool Ekf::fuseDeclination(float decl_measurement_rad, float decl_sigma)
 {
-	float decl_measurement = NAN;
+	// observation variance (rad**2)
+	const float R_DECL = sq(decl_sigma);
 
-	if ((_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL)
-	    && PX4_ISFINITE(_mag_declination_gps)
-	   ) {
-		decl_measurement = _mag_declination_gps;
+	VectorState H;
+	float decl_pred;
+	float innovation_variance;
 
-	} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
-		   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
-		  ) {
-		decl_measurement = math::radians(_params.mag_declination_deg);
+	sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON,
+			&decl_pred, &innovation_variance, &H);
+
+	const float innovation = wrap_pi(decl_pred - decl_measurement_rad);
+
+	if (innovation_variance < R_DECL) {
+		// variance calculation is badly conditioned
+		_fault_status.flags.bad_mag_decl = true;
+		return false;
 	}
 
-	if (PX4_ISFINITE(decl_measurement)) {
+	// Calculate the Kalman gains
+	VectorState Kfusion = P * H / innovation_variance;
 
-		// observation variance (rad**2)
-		const float R_DECL = sq(decl_sigma);
+	const bool is_fused = measurementUpdate(Kfusion, H, R_DECL, innovation);
 
-		VectorState H;
-		float decl_pred;
-		float innovation_variance;
+	_fault_status.flags.bad_mag_decl = !is_fused;
 
-		sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON, &decl_pred, &innovation_variance,
-				&H);
-
-		const float innovation = wrap_pi(decl_pred - decl_measurement);
-
-		if (innovation_variance < R_DECL) {
-			// variance calculation is badly conditioned
-			return false;
-		}
-
-		// Calculate the Kalman gains
-		VectorState Kfusion = P * H / innovation_variance;
-
-		const bool is_fused = measurementUpdate(Kfusion, H, R_DECL, innovation);
-
-		_fault_status.flags.bad_mag_decl = !is_fused;
-
-		return is_fused;
-	}
-
-	return false;
+	return is_fused;
 }
 
 float Ekf::calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const Vector3f &mag_earth_predicted)

@@ -250,7 +250,7 @@ public:
 	bool get_mag_decl_deg(float &val) const
 	{
 		if (_NED_origin_initialised && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
-			val = math::degrees(_mag_declination_gps);
+			val = math::degrees(_wmm_declination_rad);
 			return true;
 
 		} else {
@@ -261,7 +261,7 @@ public:
 	bool get_mag_inc_deg(float &val) const
 	{
 		if (_NED_origin_initialised) {
-			val = math::degrees(_mag_inclination_gps);
+			val = math::degrees(_wmm_inclination_rad);
 			return true;
 
 		} else {
@@ -272,9 +272,9 @@ public:
 	void get_mag_checks(float &inc_deg, float &inc_ref_deg, float &strength_gs, float &strength_ref_gs) const
 	{
 		inc_deg = math::degrees(_mag_inclination);
-		inc_ref_deg = math::degrees(_mag_inclination_gps);
+		inc_ref_deg = math::degrees(_wmm_inclination_rad);
 		strength_gs = _mag_strength;
-		strength_ref_gs = _mag_strength_gps;
+		strength_ref_gs = _wmm_field_strength_gauss;
 	}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -451,13 +451,14 @@ protected:
 	// allocate data buffers and initialize interface variables
 	bool initialise_interface(uint64_t timestamp);
 
-	uint64_t _wmm_gps_time_last_checked{0};  // time WMM last checked
-	uint64_t _wmm_gps_time_last_set{0};      // time WMM last set
-
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	float _mag_declination_gps {NAN};        // magnetic declination returned by the geo library using the last valid GPS position (rad)
-	float _mag_inclination_gps{NAN};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
-	float _mag_strength_gps{NAN};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
+	uint64_t _wmm_mag_time_last_checked {0}; // time WMM update last checked by mag control
+
+	float _wmm_declination_rad{NAN};        // magnetic declination returned by the geo library using the last valid GPS position (rad)
+	float _wmm_inclination_rad{NAN};        // magnetic inclination returned by the geo library using the last valid GPS position (rad)
+	float _wmm_field_strength_gauss{NAN};   // magnetic strength returned by the geo library using the last valid GPS position (Gauss)
+
+	Vector3f _wmm_earth_field_gauss{};      // expected magnetic field vector from the last valid GPS position (Gauss)
 
 	float _mag_inclination{NAN};
 	float _mag_strength{NAN};
