@@ -91,11 +91,14 @@ private:
 	bool _manual_driving = false;
 	bool _mission_driving = false;
 	bool _acro_driving = false;
+	bool _position_control = false;
 	vehicle_local_position_s _local_pos{};
 	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
 
 	// PID attitude controller
 	PID_t _att_pid{};
+	PID_t _x_pos_pid{};
+	PID_t _y_pos_pid{};
 
 	float _max_speed{0.1f};
 	float _max_angular_velocity{0.1f};
@@ -103,6 +106,15 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ATT_P_GAIN>) att_p_gain,
 		(ParamFloat<px4::params::ATT_I_GAIN>) att_i_gain,
-		(ParamFloat<px4::params::ATT_D_GAIN>) att_d_gain
+		(ParamFloat<px4::params::ATT_D_GAIN>) att_d_gain,
+		(ParamFloat<px4::params::X_POS_P_GAIN>) x_pos_p_gain,
+		(ParamFloat<px4::params::X_POS_I_GAIN>) x_pos_i_gain,
+		(ParamFloat<px4::params::X_POS_D_GAIN>) x_pos_d_gain,
+		(ParamFloat<px4::params::Y_POS_P_GAIN>) y_pos_p_gain,
+		(ParamFloat<px4::params::Y_POS_I_GAIN>) y_pos_i_gain,
+		(ParamFloat<px4::params::Y_POS_D_GAIN>) y_pos_d_gain,
+		(ParamFloat<px4::params::HEADING_SP>) heading_sp,
+		(ParamFloat<px4::params::X_POS_SP>) x_pos_sp,
+		(ParamFloat<px4::params::Y_POS_SP>) y_pos_sp
 	);
 };

@@ -49,10 +49,24 @@ void SeseOmni::updateParams()
 {
 	ModuleParams::updateParams();
 	pid_init(&_att_pid, PID_MODE_DERIVATIV_CALC, 0.01f);
+	pid_init(&_x_pos_pid, PID_MODE_DERIVATIV_CALC, 0.01f);
+	pid_init(&_y_pos_pid, PID_MODE_DERIVATIV_CALC, 0.01f);
 	pid_set_parameters(&_att_pid,
 					   att_p_gain.get(), // P
 					   att_i_gain.get(), // I
 					   att_d_gain.get(), // D
+					   10.0f, // Integral limit
+					   1.0f); // Output limit
+	pid_set_parameters(&_x_pos_pid,
+					   x_pos_p_gain.get(), // P
+					   x_pos_i_gain.get(), // I
+					   x_pos_d_gain.get(), // D
+					   10.0f, // Integral limit
+					   1.0f); // Output limit
+	pid_set_parameters(&_y_pos_pid,
+					   y_pos_p_gain.get(), // P
+					   y_pos_i_gain.get(), // I
+					   y_pos_d_gain.get(), // D
 					   10.0f, // Integral limit
 					   1.0f); // Output limit
 }
@@ -93,6 +107,8 @@ void SeseOmni::Run()
 		{
 			_manual_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL);
 			_acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
+			_position_control = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL);
+
 		}
 	}
 
@@ -137,7 +153,6 @@ void SeseOmni::Run()
 
 	else if (_acro_driving)
 	{
-		PX4_INFO_RAW("ACRO RUNNING");
 		if (_manual_control_setpoint_sub.updated())
 		{
 			manual_control_setpoint_s manual_control_setpoint{};
@@ -149,7 +164,7 @@ void SeseOmni::Run()
 				thrust_setpoint.timestamp = now;
 				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * _max_speed;
 				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * _max_speed;
-				thrust_setpoint.xyz[2] = 0.0f;
+				thrust_setpoint.xyz[2] = heading_sp.get();
 
 				_vehicle_thrust_setpoint_pub.publish(thrust_setpoint);
 			}
@@ -158,7 +173,7 @@ void SeseOmni::Run()
 			const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e3f;
 			_time_stamp_last = now;
 
-			float desired_heading = 1.0f;
+			float desired_heading = heading_sp.get();
 
 			float current_heading = _local_pos.heading;
 
@@ -178,6 +193,45 @@ void SeseOmni::Run()
 			}
 
 			_vehicle_torque_setpoint_pub.publish(torque_setpoint);
+			_actuator_controls_status_pub.publish(status);
+		}
+	}
+	else if(_position_control){
+		if (_local_pos_sub.update(&_local_pos)) {
+			const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e3f;
+			_time_stamp_last = now;
+
+			float desired_heading = heading_sp.get();
+			float current_heading = _local_pos.heading;
+
+			float desired_x_pos = x_pos_sp.get();
+			float desired_y_pos = y_pos_sp.get();
+			float current_x_pos = _local_pos.x;
+			float current_y_pos = _local_pos.y;
+
+			vehicle_torque_setpoint_s torque_setpoint{};
+			vehicle_thrust_setpoint_s thrust_setpoint{};
+			actuator_controls_status_s status;
+
+			torque_setpoint.timestamp = now;
+			torque_setpoint.xyz[0] = 0.0f;
+			torque_setpoint.xyz[1] = 0.0f;
+			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, desired_heading, current_heading, 0.0f, dt);
+
+			thrust_setpoint.timestamp = now;
+			thrust_setpoint.xyz[0] = pid_calculate(&_x_pos_pid, desired_x_pos, current_x_pos, 0.0f, dt);
+			thrust_setpoint.xyz[1] = pid_calculate(&_y_pos_pid, desired_y_pos, current_y_pos, 0.0f, dt);
+			thrust_setpoint.xyz[2] = 0.0f;
+
+			status.timestamp = torque_setpoint.timestamp;
+
+			for (int i = 0; i < 3; i++)
+			{
+				status.control_power[i] = 100.0f;
+			}
+
+			_vehicle_torque_setpoint_pub.publish(torque_setpoint);
+			_vehicle_thrust_setpoint_pub.publish(thrust_setpoint);
 			_actuator_controls_status_pub.publish(status);
 		}
 	}
