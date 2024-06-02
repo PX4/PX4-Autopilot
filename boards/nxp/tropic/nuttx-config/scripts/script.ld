@@ -67,6 +67,7 @@ SECTIONS
         _sitcmfuncs = ABSOLUTE(.);
         FILL(0xFF)
         . = 0x40 ;
+        INCLUDE "itcm_static_functions.ld"
         INCLUDE "itcm_functions_includes.ld"
         . = ALIGN(8);
         _eitcmfuncs = ABSOLUTE(.);
