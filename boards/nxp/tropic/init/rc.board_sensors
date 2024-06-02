@@ -1,17 +1,19 @@
 #!/bin/sh
 #
-# NXP Tropic specific board sensors init
+# PX4 board sensors init
 #------------------------------------------------------------------------------
 #
-# UART mapping on NXP Tropic
+# UART mapping on Tropic:
 #
-# LPUART5 	/dev/ttyS0 	DEBUG
-# LPUART3 	/dev/ttyS2 	TELEM
-# LPUART2 	/dev/ttyS1 	GPS
-# LPUART4 	/dev/ttyS3 	AUX
-# LPUART8 	/dev/ttyS4 	RC
+# LPUART5       /dev/ttyS0      CONSOLE
+# LPUART3       /dev/ttyS1      GPS
+# LPUART2       /dev/ttyS2      TELEM1
+# LPUART4       /dev/ttyS3      TELEM2
+# LPUART8       /dev/ttyS4      RC
 #
 #------------------------------------------------------------------------------
+
+set INA_CONFIGURED no
 
 if param compare -s ADC_ADS1115_EN 1
 then
@@ -25,18 +27,27 @@ if param compare SENS_EN_INA226 1
 then
 	# Start Digital power monitors
 	ina226 -X -b 1 -t 1 -k start
+	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA228 1
 then
 	# Start Digital power monitors
 	ina228 -X -b 1 -t 1 -k start
+	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA238 1
 then
 	# Start Digital power monitors
 	ina238 -X -b 1 -t 1 -k start
+	set INA_CONFIGURED yes
+fi
+
+if [ $INA_CONFIGURED = no ]
+then
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
 fi
 
 # Internal SPI bus ICM42688p
@@ -57,5 +68,7 @@ ist8310 -X -b 1 -R 10 start
 # Disable startup of internal baros if param is set to false
 if param compare SENS_INT_BARO_EN 1
 then
-	dps310 -I -b 4 start
+	bmp388 -I -b 4 start
 fi
+
+unset INA_CONFIGURED

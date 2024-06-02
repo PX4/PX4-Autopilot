@@ -32,16 +32,17 @@
 ############################################################################
 
 px4_add_library(drivers_board
-	autoleds.c
 	i2c.cpp
 	init.c
 	sdhc.c
 	spi.cpp
 	timer_config.cpp
+	tropic_led_pwm.cpp
 	usb.c
 	imxrt_flexspi_nor_boot.c
 	imxrt_flexspi_nor_flash.c
 )
+
 
 target_link_libraries(drivers_board
 	PRIVATE

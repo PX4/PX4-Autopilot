@@ -35,84 +35,48 @@ const struct flexspi_nor_config_s g_flash_config = {
 		.tag = FLEXSPI_CFG_BLK_TAG,
 		.version = FLEXSPI_CFG_BLK_VERSION,
 		.read_sample_clksrc =  FLASH_READ_SAMPLE_CLK_LOOPBACK_FROM_SCKPAD,
-		.cs_hold_time = 3u,
-		.cs_setup_time = 3u,
+		.cs_hold_time = 1u,
+		.cs_setup_time = 1u,
 		.column_address_width = 0u,
 		.device_type = FLEXSPI_DEVICE_TYPE_SERIAL_NOR,
 		.sflash_pad_type = SERIAL_FLASH_4PADS,
 		.serial_clk_freq = FLEXSPI_SERIAL_CLKFREQ_133MHz,
-		.sflash_a1size = 2u * 1024u * 1024u,
+		.sflash_a1size = 8u * 1024u * 1024u,
 		.data_valid_time =
 		{
 			0u, 0u
 		},
 		.lookup_table =
 		{
-			/* LUTs */
+			/* Fast Read Quad I/O */
+			[0 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0xeb,
+						  RADDR_SDR, FLEXSPI_4PAD, 0x18),
+			[0 + 1] = FLEXSPI_LUT_SEQ(DUMMY_SDR, FLEXSPI_4PAD, 0x06,
+						  READ_SDR, FLEXSPI_4PAD, 0x04),
 
-			FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0xeb,
-					RADDR_SDR, FLEXSPI_4PAD, 0x18),
-			FLEXSPI_LUT_SEQ(DUMMY_SDR, FLEXSPI_4PAD, 0x06,
-					READ_SDR, FLEXSPI_4PAD, 0x04),
-			0x00000000,
-			0x00000000,
+			/* Read Status Register-1 */
+			[4 * 1 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x05,
+						      READ_SDR, FLEXSPI_1PAD, 0x04),
 
-			FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x05,
-					READ_SDR, FLEXSPI_1PAD, 0x04),
-			0x00000000,
-			0x00000000,
-			0x00000000,
+			/* Write Status Register-1 */
+			[4 * 3 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x01, STOP, FLEXSPI_1PAD, 0x0),
 
-			0x00000000,
-			0x00000000,
-			0x00000000,
-			0x00000000,
+			/* Sector Erase (4KB) */
+			[4 * 5 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x20,
+						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
 
-			FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x01, STOP, FLEXSPI_1PAD, 0x0),
-			0x00000000,
-			0x00000000,
-			0x00000000,
+			/* Block Erase (64KB) */
+			[4 * 8 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0xd8,
+						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
 
-			0x00000000,
-			0x00000000,
-			0x00000000,
-			0x00000000,
+			/* Page Program */
+			[4 * 9 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x02,
+						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
+			[4 * 9 + 1] = FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_1PAD, 0x04,
+						      STOP, FLEXSPI_1PAD, 0x0),
 
-			FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x20,
-					RADDR_SDR, FLEXSPI_1PAD, 0x18),
-			0x00000000,
-			0x00000000,
-			0x00000000,
-
-			0x00000000,
-			0x00000000,
-			0x00000000,
-			0x00000000,
-
-			0x00000000,
-			0x00000000,
-			0x00000000,
-			0x00000000,
-
-			FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0xd8,
-					RADDR_SDR, FLEXSPI_1PAD, 0x18),
-			0x00000000,
-			0x00000000,
-			0x00000000,
-
-			FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x02,
-					RADDR_SDR, FLEXSPI_1PAD, 0x18),
-			FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_1PAD, 0x04,
-					STOP, FLEXSPI_1PAD, 0x0),
-			0x00000000,
-			0x00000000,
-
-			0x00000000,
-			0x00000000,
-			0x00000000,
-			0x00000000,
-
-			FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x60, STOP, FLEXSPI_1PAD, 0x0),
+			/* Chip Erase */
+			[4 * 11 + 0] =  FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x60, STOP, FLEXSPI_1PAD, 0x0),
 		},
 	},
 
