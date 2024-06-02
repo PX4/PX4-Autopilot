@@ -5,8 +5,8 @@ parameters:
     definitions:
       ATT_P_GAIN:
         description:
-          short: P Gain
-          long: P Gain for the attitude PIDncontroller
+          short: Kp Gain for the attitude controller
+          long: Kp Gain for the attitude controller
         type: float
         unit: m
         min: 0.001
@@ -16,8 +16,8 @@ parameters:
         default: 0.5
       ATT_I_GAIN:
         description:
-          short: I Gain
-          long: I Gain for the attitude PIDncontroller
+          short: Ki Gain for the attitude controller
+          long: Ki Gain for the attitude controller
         type: float
         unit: m
         min: 0.0
@@ -27,8 +27,107 @@ parameters:
         default: 0.0
       ATT_D_GAIN:
         description:
-          short: D Gain
-          long: D Gain for the attitude PIDncontroller
+          short: Kd Gain for the attitude controller
+          long: Kd Gain for the attitude controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      X_POS_P_GAIN:
+        description:
+          short: X axis Kp Gain for position controller
+          long: X axis Kp Gain for position controller
+        type: float
+        unit: m
+        min: 0.001
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+      X_POS_I_GAIN:
+        description:
+          short: X axis Ki Gain for position controller
+          long: X axis Ki Gain for position controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      X_POS_D_GAIN:
+        description:
+          short: X axis Kd Gain for position controller
+          long: X axis Kd Gain for position controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      Y_POS_P_GAIN:
+        description:
+          short: Y axis Kp Gain for position controller
+          long: Y axis Kp Gain for position controller
+        type: float
+        unit: m
+        min: 0.001
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+      Y_POS_I_GAIN:
+        description:
+          short: Y axis Ki Gain for position controller
+          long: Y axis Ki Gain for position controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      Y_POS_D_GAIN:
+        description:
+          short: Y axis Kd Gain for position controller
+          long: Y axis Kd Gain for position controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      HEADING_SP:
+        description:
+          short: SetPoint for heading (0 is North)
+          long: SetPoint for heading (0 is North)
+        type: float
+        unit: rad
+        min: -3.14
+        max: 3.14
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      X_POS_SP:
+        description:
+          short: SetPoint for X axis position (in NED)
+          long: SetPoint for X axis position (in NED)
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      Y_POS_SP:
+        description:
+          short: SetPoint for Y axis position (in NED)
+          long: SetPoint for Y axis position (in NED)
         type: float
         unit: m
         min: 0.0
