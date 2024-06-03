@@ -37,12 +37,9 @@
 #pragma once
 
 #include <unit_test.h>
-#ifndef MAVLINK_FTP_UNIT_TEST
 #include "../mavlink_bridge_header.h"
-#else
-#include <mavlink.h>
-#endif
 #include "../mavlink_ftp.h"
+#include "../mavlink_main.h"
 
 class MavlinkFtpTest : public UnitTest
 {
@@ -130,6 +127,7 @@ private:
 	bool _receive_message_handler_burst(const mavlink_file_transfer_protocol_t *ftp_req, BurstInfo *burst_info);
 
 	MavlinkFTP	*_ftp_server;
+	Mavlink _mavlink;
 	uint16_t	_expected_seq_number;
 
 	mavlink_file_transfer_protocol_t _reply_msg;

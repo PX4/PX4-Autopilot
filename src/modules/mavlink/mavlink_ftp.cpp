@@ -45,17 +45,13 @@
 #include "mavlink_ftp.h"
 #include "mavlink_tests/mavlink_ftp_test.h"
 
-#ifndef MAVLINK_FTP_UNIT_TEST
 #include "mavlink_main.h"
-#else
-#include <mavlink.h>
-#endif
 
 using namespace time_literals;
 
 constexpr const char MavlinkFTP::_root_dir[];
 
-MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
+MavlinkFTP::MavlinkFTP(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
 	// initialize session
@@ -96,7 +92,7 @@ MavlinkFTP::_getServerSystemId()
 	return MavlinkFtpTest::serverSystemId;
 #else
 	// Not unit testing, use the real thing
-	return _mavlink->get_system_id();
+	return _mavlink.get_system_id();
 #endif
 }
 
@@ -108,7 +104,7 @@ MavlinkFTP::_getServerComponentId()
 	return MavlinkFtpTest::serverComponentId;
 #else
 	// Not unit testing, use the real thing
-	return _mavlink->get_component_id();
+	return _mavlink.get_component_id();
 #endif
 }
 
@@ -120,7 +116,7 @@ MavlinkFTP::_getServerChannel()
 	return MavlinkFtpTest::serverChannel;
 #else
 	// Not unit testing, use the real thing
-	return _mavlink->get_channel();
+	return _mavlink.get_channel();
 #endif
 }
 
@@ -180,7 +176,7 @@ MavlinkFTP::_process_request(
 #ifdef MAVLINK_FTP_UNIT_TEST
 			_utRcvMsgFunc(last_reply, _worker_data);
 #else
-			mavlink_msg_file_transfer_protocol_send_struct(_mavlink->get_channel(), last_reply);
+			mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), last_reply);
 #endif
 			return;
 		}
@@ -340,7 +336,7 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req)
 	// Unit test hook is set, call that instead
 	_utRcvMsgFunc(ftp_req, _worker_data);
 #else
-	mavlink_msg_file_transfer_protocol_send_struct(_mavlink->get_channel(), ftp_req);
+	mavlink_msg_file_transfer_protocol_send_struct(_mavlink.get_channel(), ftp_req);
 #endif
 
 }
@@ -1055,8 +1051,8 @@ void MavlinkFTP::send()
 
 #ifndef MAVLINK_FTP_UNIT_TEST
 	// Skip send if not enough room
-	unsigned max_bytes_to_send = _mavlink->get_free_tx_buf();
-	PX4_DEBUG("MavlinkFTP::send max_bytes_to_send(%u) get_free_tx_buf(%u)", max_bytes_to_send, _mavlink->get_free_tx_buf());
+	unsigned max_bytes_to_send = _mavlink.get_free_tx_buf();
+	PX4_DEBUG("MavlinkFTP::send max_bytes_to_send(%u) get_free_tx_buf(%u)", max_bytes_to_send, _mavlink.get_free_tx_buf());
 
 	if (max_bytes_to_send < get_size()) {
 		return;
