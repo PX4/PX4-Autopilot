@@ -52,8 +52,6 @@ void Ekf::controlMagFusion()
 		_control_status.flags.mag_aligned_in_flight = false;
 	}
 
-	checkYawAngleObservability();
-
 	if (_params.mag_fusion_type == MagFuseType::NONE) {
 		stopMagFusion();
 		return;
@@ -391,23 +389,6 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	}
 }
 
-void Ekf::checkYawAngleObservability()
-{
-	if (_control_status.flags.gps) {
-		// Check if there has been enough change in horizontal velocity to make yaw observable
-		// Apply hysteresis to check to avoid rapid toggling
-		if (_yaw_angle_observable) {
-			_yaw_angle_observable = _accel_lpf_NE.norm() > _params.mag_acc_gate;
-
-		} else {
-			_yaw_angle_observable = _accel_lpf_NE.norm() > _params.mag_acc_gate * 2.f;
-		}
-
-	} else {
-		_yaw_angle_observable = false;
-	}
-}
-
 void Ekf::checkMagHeadingConsistency(const magSample &mag_sample)
 {
 	// use mag bias if variance good
@@ -437,7 +418,10 @@ void Ekf::checkMagHeadingConsistency(const magSample &mag_sample)
 	}
 
 	if (fabsf(_mag_heading_innov_lpf.getState()) < _params.mag_heading_noise) {
-		if (_yaw_angle_observable) {
+		// Check if there has been enough change in horizontal velocity to make yaw observable
+		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
+
+		if (using_ne_aiding && (_accel_lpf_NE.norm() > _params.mag_acc_gate)) {
 			// yaw angle must be observable to consider consistency
 			_control_status.flags.mag_heading_consistent = true;
 		}
