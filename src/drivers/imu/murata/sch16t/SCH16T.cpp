@@ -300,6 +300,7 @@ bool SCH16T::ReadData(SensorData *data)
 	static constexpr uint64_t STATUS_DOING_INIT = 0b11;
 
 	uint64_t values[] = { gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z, temp };
+
 	for (auto v : values) {
 		// [1b ][1b][ 2b ]
 		// [IDS][CE][S1:0]
@@ -316,12 +317,15 @@ bool SCH16T::ReadData(SensorData *data)
 		if (v & MASK48_GENERAL_ERROR) {
 			perf_count(_perf_general_error);
 			return false;
+
 		} else if (v & MASK48_COMMAND_ERROR) {
 			perf_count(_perf_command_error);
 			return false;
+
 		} else if ((v & MASK48_DOING_INIT) == STATUS_DOING_INIT) {
 			perf_count(_perf_doing_initialization);
 			return false;
+
 		} else if (v & MASK48_SATURATION_ERROR) {
 			perf_count(_perf_saturation_error);
 			// Don't consider saturation an error
@@ -333,6 +337,7 @@ bool SCH16T::ReadData(SensorData *data)
 			return false;
 		}
 	}
+
 	// Data registers are 20bit 2s complement
 	data->acc_x    = SPI48_DATA_INT32(acc_x);
 	data->acc_y    = SPI48_DATA_INT32(acc_y);
