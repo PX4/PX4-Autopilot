@@ -100,6 +100,10 @@ private:
 	PID_t _x_pos_pid{};
 	PID_t _y_pos_pid{};
 
+	// PIDs for velocity controller
+	PID_t _x_velocity_pid{};
+	PID_t _y_velocity_pid{};
+
 	float _max_speed{0.1f};
 	float _max_angular_velocity{0.1f};
 
