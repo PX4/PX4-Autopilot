@@ -419,6 +419,14 @@ ControlAllocator::Run()
 			fw_dthr_scale[0] = fw_dthr_scale[2];
 		}
 
+		for (int i = 0; i < 3; i++) {
+			if (_handled_servo_failure_bitmask && _param_ca_fw_dthr_fb_en.get() && !_has_control_authority[1][i]) {
+				// If fallback is enabled and it is discovered that an axis doesn't have any
+				// control authority, then the differential thrust weight for that axis is set to 1.
+				fw_dthr_weight[i] = 1.f;
+			}
+		}
+
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
 		c[0](0) = _torque_sp(0);
@@ -451,11 +459,8 @@ ControlAllocator::Run()
 				c[1](5) = vehicle_thrust_setpoint.xyz[2];
 			}
 
-			const bool has_non_zero_dthr_weight = fw_dthr_weight[0] > FLT_EPSILON || fw_dthr_weight[1] > FLT_EPSILON
-							      || fw_dthr_weight[2] > FLT_EPSILON;
-
 			// VTOL differential thrust in FW
-			if (_flight_phase == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT && has_non_zero_dthr_weight) {
+			if (_flight_phase == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT) {
 				/* CA_FW_DTHR_SC_R etc are scales to tune response of differential thrust around each axis.
 				The scaling factor is applied to the (normalized) torque setpoint from the rate controller going
 				to the motors for rate control in fixed-wing flight using differential thrust instead of
@@ -469,10 +474,16 @@ ControlAllocator::Run()
 				c[0](1) = vehicle_torque_setpoint_matrix_1(1) * fw_dthr_scale[1] * fw_dthr_weight[1];
 				c[0](2) = vehicle_torque_setpoint_matrix_1(2) * fw_dthr_scale[2] * fw_dthr_weight[2];
 
-				_actuator_effectiveness->setEnableAuxiliaryMotors(true);
+				const bool has_non_zero_dthr_weight = fw_dthr_weight[0] > FLT_EPSILON || fw_dthr_weight[1] > FLT_EPSILON
+								      || fw_dthr_weight[2] > FLT_EPSILON;
 
-			} else if (_flight_phase == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT && !has_non_zero_dthr_weight) {
-				_actuator_effectiveness->setEnableAuxiliaryMotors(false);
+				if (has_non_zero_dthr_weight) {
+					_actuator_effectiveness->setEnableAuxiliaryMotors(true); // Currently only does something for Standard VTOL
+
+				} else {
+
+					_actuator_effectiveness->setEnableAuxiliaryMotors(false);
+				}
 			}
 		}
 
@@ -612,6 +623,27 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			}
 		}
 
+		// Handle failed servos
+		if (_handled_servo_failure_bitmask) {
+			actuator_idx = 0;
+			memset(&actuator_idx_matrix, 0, sizeof(actuator_idx_matrix));
+
+			for (int servos_idx = 0; servos_idx < _num_actuators[0] && servos_idx < actuator_servos_s::NUM_CONTROLS; servos_idx++) {
+				const int selected_matrix = 1; // matrix 1 (only works for VTOL atm)
+
+				if (_handled_servo_failure_bitmask & (1 << servos_idx)) {
+					ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[selected_matrix];
+
+					for (int i = 0; i < NUM_AXES; i++) {
+						matrix(i, actuator_idx_matrix[selected_matrix]) = 0.f;
+					}
+				}
+
+				++actuator_idx_matrix[selected_matrix];
+				++actuator_idx;
+			}
+		}
+
 		for (int i = 0; i < _num_control_allocation; ++i) {
 			_control_allocation[i]->setActuatorMin(minimum[i]);
 			_control_allocation[i]->setActuatorMax(maximum[i]);
@@ -634,6 +666,10 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 
 				if (all_entries_small) {
 					matrix.row(n) = 0.f;
+					_has_control_authority[i][n] = false;
+
+				} else {
+					_has_control_authority[i][n] = true;
 				}
 			}
 
@@ -773,8 +809,10 @@ ControlAllocator::check_for_actuator_activation_update()
 
 	failure_detector_status_s failure_detector_status;
 
+	const bool status_updated = _failure_detector_status_sub.update(&failure_detector_status);
+
 	if ((FailureMode)_param_ca_failure_mode.get() > FailureMode::IGNORE
-	    && _failure_detector_status_sub.update(&failure_detector_status)) {
+	    && status_updated) {
 		if (failure_detector_status.fd_motor) {
 
 			if (_handled_motor_failure_bitmask != failure_detector_status.motor_failure_mask) {
@@ -789,10 +827,6 @@ ControlAllocator::check_for_actuator_activation_update()
 							_handled_motor_failure_bitmask = failure_detector_status.motor_failure_mask;
 							PX4_WARN("Removing motor from allocation (0x%x)", _handled_motor_failure_bitmask);
 							activation_updated = true;
-
-							for (int i = 0; i < _num_control_allocation; ++i) {
-								_control_allocation[i]->setHadActuatorFailure(true);
-							}
 						}
 					}
 					break;
@@ -808,9 +842,21 @@ ControlAllocator::check_for_actuator_activation_update()
 			PX4_INFO("Restoring all motors");
 			_handled_motor_failure_bitmask = 0;
 
-			for (int i = 0; i < _num_control_allocation; ++i) {
-				_control_allocation[i]->setHadActuatorFailure(false);
+			activation_updated = true;
+		}
+
+		if (failure_detector_status.fd_servo) {
+			if (_handled_servo_failure_bitmask != failure_detector_status.servo_failure_mask) {
+				// servo failure bitmask changed
+				_handled_servo_failure_bitmask = failure_detector_status.servo_failure_mask;
+				PX4_WARN("Removing servo nr. %d from allocation", _handled_servo_failure_bitmask);
+				activation_updated = true;
 			}
+
+		} else if (_handled_servo_failure_bitmask != 0) {
+			// Clear bitmask completely
+			PX4_INFO("Restoring all servos");
+			_handled_servo_failure_bitmask = 0;
 
 			activation_updated = true;
 		}

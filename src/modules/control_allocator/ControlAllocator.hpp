@@ -198,6 +198,7 @@ private:
 	// Reflects motor failures that are currently handled, not motor failures that are reported.
 	// For example, the system might report two motor failures, but only the first one is handled by CA
 	uint16_t _handled_motor_failure_bitmask{0};
+	uint16_t _handled_servo_failure_bitmask{0};
 
 	uint16_t _handled_motor_disabled_bitmask{0};
 
@@ -213,6 +214,8 @@ private:
 	bool _has_slew_rate{false};
 	ActuatorEffectiveness::FlightPhase _flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
+	bool _has_control_authority[2][6] = {false};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
 		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
@@ -225,7 +228,8 @@ private:
 		(ParamFloat<px4::params::CA_FW_DTHR_WGT_P>) _param_ca_fw_dthr_wgt_p,
 		(ParamFloat<px4::params::CA_FW_DTHR_WGT_Y>) _param_ca_fw_dthr_wgt_y,
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
-		(ParamInt<px4::params::CA_FW_DTHR_AIRMD>) _param_ca_fw_dthr_airmd
+		(ParamInt<px4::params::CA_FW_DTHR_AIRMD>) _param_ca_fw_dthr_airmd,
+		(ParamBool<px4::params::CA_FW_DTHR_FB_EN>) _param_ca_fw_dthr_fb_en
 	)
 
 };

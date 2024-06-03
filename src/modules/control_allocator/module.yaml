@@ -619,6 +619,20 @@ parameters:
                 1: Roll/Pitch
                 2: Roll/Pitch/Yaw
             default: 0
+
+        CA_FW_DTHR_FB_EN:
+            description:
+                short: Enable fallback to differential thrust for control in fixed-wing
+                long: |
+                    Enable fallback to differential thrust for rate control around axes that have
+                    0 effectiveness in the servo matrix after the detected servo failure.
+            type: boolean
+            values:
+                0: Disabled
+                1: Enabled
+            default: 1
+
+
 # Mixer
 mixer:
     actuator_types:

@@ -99,15 +99,6 @@ public:
 	virtual void allocate() = 0;
 
 	/**
-	 * Set actuator failure flag
-	 * This prevents a change of the scaling in the matrix normalization step
-	 * in case of a motor failure.
-	 *
-	 * @param failure  Motor failure flag
-	 */
-	void setHadActuatorFailure(bool failure) { _had_actuator_failure = failure; }
-
-	/**
 	 * Set the control effectiveness matrix
 	 *
 	 * @param B Effectiveness matrix
@@ -244,6 +235,5 @@ protected:
 	matrix::Vector<float, NUM_AXES> _control_trim; 		///< Control at trim actuator values
 	int _num_actuators{0};
 	bool _normalize_matrix_as_planar_mc{false};		///< if true, normalize roll, pitch and yaw columns optimized for planar MC
-	bool _had_actuator_failure{false};
 	int _airmode{0};					///< 0: disabled, 1: RP airmode, 2: RPY airmode
 };
