@@ -377,9 +377,6 @@ def compute_ev_body_vel_var_and_hx(
     Hx = jacobian_chain_rule(meas_pred[0], state)
     Hy = jacobian_chain_rule(meas_pred[1], state)
     Hz = jacobian_chain_rule(meas_pred[2], state)
-    Hx[:3] = [0,0,0]
-    Hy[:3] = [0,0,0]
-    Hz[:3] = [0,0,0]
     body_vel_var = sf.V3()
     # attention: +R needs to be added to the variance in the calling function
     body_vel_var[0] = (Hx * P * Hx.T)[0,0]
@@ -395,7 +392,6 @@ def compute_ev_body_vel_var_and_hy(
     state = vstate_to_state(state)
     meas_pred = predict_vel_body(state)[1]
     Hy = jacobian_chain_rule(meas_pred, state)
-    Hy[:3] = [0,0,0]
     # attention: +R needs to be added to the variance in the calling function
     body_vel_var = (Hy * P * Hy.T)[0,0]
     return (body_vel_var, Hy.T)
@@ -408,7 +404,6 @@ def compute_ev_body_vel_var_and_hz(
     state = vstate_to_state(state)
     meas_pred = predict_vel_body(state)[2]
     Hz = jacobian_chain_rule(meas_pred, state)
-    Hz[:3] = [0,0,0]
     # attention: +R needs to be added to the variance in the calling function
     body_vel_var = (Hz * P * Hz.T)[0,0]
     return (body_vel_var, Hz.T)

@@ -85,7 +85,8 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 			const Dcmf R_ev_to_ekf = Dcmf(_ev_q_error_filt.getState());
 
 			measurement = R_ev_to_ekf * ev_sample.vel - vel_offset_earth;
-			measurement_var = rotateVarianceToEkf(ev_sample.velocity_var);
+			measurement_var = matrix::SquareMatrix3f(R_ev_to_ekf * matrix::diag(ev_sample.velocity_var) *
+					  R_ev_to_ekf.transpose()).diag();
 			minimum_variance = math::max(minimum_variance, ev_sample.orientation_var.max());
 		}
 
@@ -241,7 +242,8 @@ void Ekf::stopEvVelFusion()
 	}
 }
 
-void Ekf::resetVelocityToEV(const Vector3f &measurement, const Vector3f &measurement_var, const VelocityFrame &vel_frame)
+void Ekf::resetVelocityToEV(const Vector3f &measurement, const Vector3f &measurement_var,
+			    const VelocityFrame &vel_frame)
 {
 	if (vel_frame == VelocityFrame::BODY_FRAME_FRD) {
 		const Vector3f measurement_var_ekf_frame = rotateVarianceToEkf(measurement_var);
