@@ -43,7 +43,7 @@
 
 #include <stdlib.h>
 
-MavlinkTimesync::MavlinkTimesync(Mavlink *mavlink) :
+MavlinkTimesync::MavlinkTimesync(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
 }
@@ -66,7 +66,7 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				rsync.tc1 = now * 1000ULL;
 				rsync.ts1 = tsync.ts1;
 
-				mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &rsync);
+				mavlink_msg_timesync_send_struct(_mavlink.get_channel(), &rsync);
 
 				return;
 

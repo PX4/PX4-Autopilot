@@ -51,7 +51,7 @@ class Mavlink;
 class MavlinkLogHandler
 {
 public:
-	MavlinkLogHandler(Mavlink *mavlink);
+	MavlinkLogHandler(Mavlink &mavlink);
 	~MavlinkLogHandler();
 
 	// Handle possible LOG message
@@ -93,7 +93,7 @@ private:
 	size_t _log_send_data();
 
 	LogHandlerState _current_status{LogHandlerState::Inactive};
-	Mavlink *_mavlink;
+	Mavlink &_mavlink;
 
 	int         _next_entry{0};
 	int         _last_entry{0};

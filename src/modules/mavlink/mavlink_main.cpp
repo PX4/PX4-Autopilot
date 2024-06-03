@@ -100,7 +100,7 @@ bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
 	ModuleParams(nullptr),
-	_receiver(this)
+	_receiver(*this)
 {
 	// initialise parameter cache
 	mavlink_update_parameters();
@@ -438,12 +438,12 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 }
 
 bool
-Mavlink::component_was_seen(int system_id, int component_id, Mavlink *self)
+Mavlink::component_was_seen(int system_id, int component_id, Mavlink &self)
 {
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
-		if (inst && (inst != self) && (inst->_receiver.component_was_seen(system_id, component_id))) {
+		if (inst && (inst != &self) && (inst->_receiver.component_was_seen(system_id, component_id))) {
 			return true;
 		}
 	}
