@@ -126,7 +126,7 @@ class Mavlink;
 class MavlinkReceiver : public ModuleParams
 {
 public:
-	MavlinkReceiver(Mavlink *parent);
+	MavlinkReceiver(Mavlink &parent);
 	~MavlinkReceiver() override;
 
 	void start();
@@ -246,7 +246,7 @@ private:
 	 */
 	void updateParams() override;
 
-	Mavlink				*_mavlink;
+	Mavlink &_mavlink;
 
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
