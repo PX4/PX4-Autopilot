@@ -703,7 +703,6 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// used by magnetometer fusion mode selection
-	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
 	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
 	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
@@ -1028,7 +1027,6 @@ private:
 	void resetMagStates(const Vector3f &mag, bool reset_heading = true);
 	bool haglYawResetReq();
 
-	void checkYawAngleObservability();
 	void checkMagHeadingConsistency(const magSample &mag_sample);
 
 	bool checkMagField(const Vector3f &mag);

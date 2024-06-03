@@ -683,7 +683,6 @@
 *(.text._ZN18MavlinkStreamDebug8get_sizeEv)
 *(.text._ZN12GPSDriverUBX7receiveEj)
 *(.text._ZN13BatteryStatus21parameter_update_pollEb)
-*(.text._ZN3Ekf26checkYawAngleObservabilityEv)
 *(.text._ZN3RTL18updateDatamanCacheEv)
 *(.text.__ieee754_sqrtf)
 *(.text._ZThn24_N18mag_bias_estimator16MagBiasEstimator3RunEv)
