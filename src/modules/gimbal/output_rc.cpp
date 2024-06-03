@@ -59,26 +59,47 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 	hrt_abstime t = hrt_absolute_time();
 	_calculate_angle_output(t);
 
-	_stream_device_attitude_status();
-
 	// If the output is RC, then it means we are also the gimbal device. gimbal_device_id = (uint8_t)_parameters.mnt_mav_compid_v1;
 
 	// _angle_outputs are in radians, gimbal_controls are in [-1, 1]
 	gimbal_controls_s gimbal_controls{};
-	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(
-				(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) *
-				(1.0f / (math::radians(_parameters.mnt_range_roll / 2.0f))),
-				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(
-				(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) *
-				(1.0f / (math::radians(_parameters.mnt_range_pitch / 2.0f))),
-				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(
-				(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) *
-				(1.0f / (math::radians(_parameters.mnt_range_yaw / 2.0f))),
-				-1.f, 1.f);
+	auto roll_limit = math::radians(_parameters.mnt_range_roll / 2.0f);
+	auto roll = (_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) * (1.0f / roll_limit);
+
+	if (roll < -1.0f) {
+		_angle_outputs[0] = -roll_limit;
+
+	} else if (roll > 1.0f) {
+		_angle_outputs[0] = roll_limit;
+	}
+
+	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(roll, -1.f, 1.f);
+	auto pitch_limit = math::radians(_parameters.mnt_range_pitch / 2.0f);
+	auto pitch = (_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) * (1.0f / pitch_limit);
+
+	if (pitch < -1.0f) {
+		_angle_outputs[1] = -pitch_limit;
+
+	} else if (pitch > 1.0f) {
+		_angle_outputs[1] = pitch_limit;
+	}
+
+	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(pitch, -1.f, 1.f);
+	auto yaw_limit = math::radians(_parameters.mnt_range_yaw / 2.0f);
+	auto yaw = (_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) * (1.0f / yaw_limit);
+
+	if (yaw < -1.0f) {
+		_angle_outputs[2] = -yaw_limit;
+
+	} else if (yaw > 1.0f) {
+		_angle_outputs[2] = yaw_limit;
+	}
+
+	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(yaw, -1.f, 1.f);
 	gimbal_controls.timestamp = hrt_absolute_time();
 	_gimbal_controls_pub.publish(gimbal_controls);
+
+	_stream_device_attitude_status();
 
 	_last_update = t;
 }
@@ -101,6 +122,22 @@ void OutputRC::_stream_device_attitude_status()
 
 	matrix::Eulerf euler(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]);
 	matrix::Quatf q(euler);
+
+	// Adjust the angles if stabilization is being applied to represent the gimbal attitude in earth frame
+	// to comply with Mavlink 2 GIMBAL_DEVICE_ATTITUDE_STATUS definition
+	vehicle_attitude_s vehicle_attitude;
+	matrix::Eulerf euler_vehicle{};
+
+	if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+		euler_vehicle = matrix::Quatf(vehicle_attitude.q);
+	}
+
+	const matrix::Quatf q_vehicle(matrix::Eulerf(
+					      (_stabilize[0]) ? euler_vehicle(0) : 0.0f,
+					      (_stabilize[1]) ? euler_vehicle(1) : 0.0f,
+					      (_stabilize[2]) ? euler_vehicle(2) : 0.0f));
+	q = q_vehicle * q;
+
 	q.copyTo(attitude_status.q);
 
 	attitude_status.failure_flags = 0;
