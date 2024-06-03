@@ -319,12 +319,12 @@ bool SCH16T::ReadData(SensorData *data)
 		} else if (v & MASK48_COMMAND_ERROR) {
 			perf_count(_perf_command_error);
 			return false;
-		} else if (v & MASK48_SATURATION_ERROR) {
-			perf_count(_perf_saturation_error);
-			return false;
 		} else if ((v & MASK48_DOING_INIT) == STATUS_DOING_INIT) {
 			perf_count(_perf_doing_initialization);
 			return false;
+		} else if (v & MASK48_SATURATION_ERROR) {
+			perf_count(_perf_saturation_error);
+			// Don't consider saturation an error
 		}
 
 		// Validate the CRC
