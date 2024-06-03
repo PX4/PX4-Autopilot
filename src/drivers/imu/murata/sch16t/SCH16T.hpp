@@ -143,7 +143,10 @@ private:
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC8 bad"))};
-	perf_counter_t _perf_frame_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Frame bad"))};
 	perf_counter_t _drdy_missed_perf{nullptr};
 
+	perf_counter_t _perf_general_error{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": General error"))};
+	perf_counter_t _perf_command_error{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Command error"))};
+	perf_counter_t _perf_saturation_error{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Saturation error"))};
+	perf_counter_t _perf_doing_initialization{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Doing initialization"))};
 };

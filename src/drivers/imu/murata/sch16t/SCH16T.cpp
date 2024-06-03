@@ -62,8 +62,11 @@ SCH16T::~SCH16T()
 	perf_free(_reset_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_perf_crc_bad);
-	perf_free(_perf_frame_bad);
 	perf_free(_drdy_missed_perf);
+	perf_free(_perf_general_error);
+	perf_free(_perf_command_error);
+	perf_free(_perf_saturation_error);
+	perf_free(_perf_doing_initialization);
 }
 
 int SCH16T::init()
@@ -143,8 +146,11 @@ void SCH16T::print_status()
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_perf_crc_bad);
-	perf_print_counter(_perf_frame_bad);
 	perf_print_counter(_drdy_missed_perf);
+	perf_print_counter(_perf_general_error);
+	perf_print_counter(_perf_command_error);
+	perf_print_counter(_perf_saturation_error);
+	perf_print_counter(_perf_doing_initialization);
 }
 
 void SCH16T::RunImpl()
@@ -277,6 +283,7 @@ void SCH16T::RunImpl()
 
 bool SCH16T::ReadData(SensorData *data)
 {
+	// Register reads return 48bits. See SafeSpi 48bit out-of-frame protocol.
 	RegisterRead(RATE_X2);
 	uint64_t gyro_x = RegisterRead(RATE_Y2);
 	uint64_t gyro_y = RegisterRead(RATE_Z2);
@@ -286,14 +293,40 @@ bool SCH16T::ReadData(SensorData *data)
 	uint64_t acc_z  = RegisterRead(TEMP);
 	uint64_t temp   = RegisterRead(TEMP);
 
-	static constexpr uint64_t MASK48_ERROR = 0x001E00000000UL;
+	static constexpr uint64_t MASK48_GENERAL_ERROR = 	0b00000000'00010000'00000000'00000000'00000000'00000000;
+	static constexpr uint64_t MASK48_COMMAND_ERROR = 	0b00000000'00001000'00000000'00000000'00000000'00000000;
+	static constexpr uint64_t MASK48_SATURATION_ERROR = 0b00000000'00000100'00000000'00000000'00000000'00000000;
+	static constexpr uint64_t MASK48_DOING_INIT = 		0b00000000'00000110'00000000'00000000'00000000'00000000;
+	static constexpr uint64_t STATUS_DOING_INIT = 0b11;
+
 	uint64_t values[] = { gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z, temp };
 	for (auto v : values) {
-		// Check for frame errors
-		if (v & MASK48_ERROR) {
-			perf_count(_perf_frame_bad);
+		// [1b ][1b][ 2b ]
+		// [IDS][CE][S1:0]
+		// IDS: Internal Data Status indication. SCH16T uses this field to indicate common cause error. This is redundant, more accurate info
+		// 		is seen from sensor status (S1:S0).
+		// CE: Command Error indication. SCH16T reports only semantically invalid frame content using this field. SPI protocol
+		// 		level errors are indicated with High-Z on MISO pin.
+		// S1,0: Sensor status indication.
+		// 		00: Normal operation
+		// 		01: Error status
+		// 		10: Saturation error
+		// 		11: Initialization running
+
+		if (v & MASK48_GENERAL_ERROR) {
+			perf_count(_perf_general_error);
+			return false;
+		} else if (v & MASK48_COMMAND_ERROR) {
+			perf_count(_perf_command_error);
+			return false;
+		} else if (v & MASK48_SATURATION_ERROR) {
+			perf_count(_perf_saturation_error);
+			return false;
+		} else if ((v & MASK48_DOING_INIT) == STATUS_DOING_INIT) {
+			perf_count(_perf_doing_initialization);
 			return false;
 		}
+
 		// Validate the CRC
 		if (uint8_t(v & 0xff) != CalculateCRC8(v)) {
 			perf_count(_perf_crc_bad);
