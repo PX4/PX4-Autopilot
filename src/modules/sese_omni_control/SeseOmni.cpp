@@ -218,10 +218,31 @@ void SeseOmni::Run()
 			torque_setpoint.xyz[1] = 0.0f;
 			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, desired_heading, current_heading, 0.0f, dt);
 
-			thrust_setpoint.timestamp = now;
-			thrust_setpoint.xyz[0] = pid_calculate(&_x_pos_pid, desired_x_pos, current_x_pos, 0.0f, dt);
-			thrust_setpoint.xyz[1] = pid_calculate(&_y_pos_pid, desired_y_pos, current_y_pos, 0.0f, dt);
+
+			thrust_setpoint.timestamp = _time_stamp_last;
+			// Pobranie predkosci, przyspieszenia i obrotu
+			float velocity_north = _local_pos.vx;
+			float velocity_east = _local_pos.vy;
+			float acceleration_north = _local_pos.ax;
+			float acceleration_east = _local_pos.ay;
+
+			// transformacja strzalek z NED -> "nasze"
+			float sin_heading = sin(current_heading);
+			float cos_heading = cos(current_heading);
+			float rotated_velocity_north = cos_heading * velocity_north - sin_heading * velocity_east;
+			float rotated_velocity_east = sin_heading * velocity_north + cos_heading * velocity_east;
+
+			float v_x_zadane = 1.0f, v_y_zadane = 1.0f;
+												// Odpowiedni PID     zadane v         obecne v	          przyspieszenie
+			thrust_setpoint.xyz[0] = pid_calculate(&_x_velocity_pid, v_x_zadane, rotated_velocity_north, acceleration_north, dt);
+			thrust_setpoint.xyz[1] = pid_calculate(&_y_velocity_pid, v_y_zadane, rotated_velocity_east, acceleration_east, dt);
 			thrust_setpoint.xyz[2] = 0.0f;
+
+			// HUH?
+			// thrust_setpoint.timestamp = now;
+			// thrust_setpoint.xyz[0] = pid_calculate(&_x_pos_pid, desired_x_pos, current_x_pos, 0.0f, dt);
+			// thrust_setpoint.xyz[1] = pid_calculate(&_y_pos_pid, desired_y_pos, current_y_pos, 0.0f, dt);
+			// thrust_setpoint.xyz[2] = 0.0f;
 
 			status.timestamp = torque_setpoint.timestamp;
 
