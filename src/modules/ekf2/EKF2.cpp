@@ -1808,6 +1808,8 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 					status.hgt_test_ratio, status.tas_test_ratio,
 					status.hagl_test_ratio, status.beta_test_ratio);
 
+	status.mag_test_ratio = _hdg_test_ratio_lpf.update(math::min(status.mag_test_ratio, 1.0f));
+
 	// Bit mismatch between ecl and Firmware, combine the 2 first bits to preserve msg definition
 	// TODO: legacy use only, those flags are also in estimator_status_flags
 	status.innovation_check_flags = (innov_check_flags_temp >> 1) | (innov_check_flags_temp & 0x1);
