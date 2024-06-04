@@ -42,3 +42,49 @@
  * @value 1 Enabled
   */
 PARAM_DEFINE_INT32(SENS_EN_SCH16T, 0);
+
+/**
+ * Gyro filter settings
+ *
+ * @value 0 13 Hz
+ * @value 1 30 Hz
+ * @value 2 68 Hz
+ * @value 3 235 Hz
+ * @value 4 280 Hz
+ * @value 5 370 Hz
+ * @value 6 No filter
+ *
+ * @reboot_required true
+ *
+ */
+PARAM_DEFINE_INT32(SCH16T_GYRO_FILT, 2);
+
+/**
+ * Accel filter settings
+ *
+ * @value 0 13 Hz
+ * @value 1 30 Hz
+ * @value 2 68 Hz
+ * @value 3 235 Hz
+ * @value 4 280 Hz
+ * @value 5 370 Hz
+ * @value 6 No filter
+ *
+ * @reboot_required true
+ *
+ */
+PARAM_DEFINE_INT32(SCH16T_ACC_FILT, 6);
+
+/**
+ * Gyro and Accel decimation settings
+ *
+ * @value 0 None
+ * @value 1 5900 Hz
+ * @value 2 2950 Hz
+ * @value 3 1475 Hz
+ * @value 4 738 Hz
+ *
+ * @reboot_required true
+ *
+ */
+PARAM_DEFINE_INT32(SCH16T_DECIM, 4);
