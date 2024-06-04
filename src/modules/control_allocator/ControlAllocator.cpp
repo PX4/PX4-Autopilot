@@ -705,6 +705,13 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	control_allocator_status.unallocated_thrust[1] = unallocated_control(4);
 	control_allocator_status.unallocated_thrust[2] = unallocated_control(5);
 
+	control_allocator_status.torque_setpoint[0] = _control_allocation[matrix_index]->getControlSetpoint()(0);
+	control_allocator_status.torque_setpoint[1] = _control_allocation[matrix_index]->getControlSetpoint()(1);
+	control_allocator_status.torque_setpoint[2] = _control_allocation[matrix_index]->getControlSetpoint()(2);
+	control_allocator_status.thrust_setpoint[0] = _control_allocation[matrix_index]->getControlSetpoint()(3);
+	control_allocator_status.thrust_setpoint[1] = _control_allocation[matrix_index]->getControlSetpoint()(4);
+	control_allocator_status.thrust_setpoint[2] = _control_allocation[matrix_index]->getControlSetpoint()(5);
+
 	// override control_allocator_status in customized saturation logic for certain effectiveness types
 	_actuator_effectiveness->getUnallocatedControl(matrix_index, control_allocator_status);
 
