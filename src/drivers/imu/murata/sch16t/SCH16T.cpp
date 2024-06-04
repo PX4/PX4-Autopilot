@@ -44,6 +44,7 @@ static constexpr uint32_t POWER_ON_TIME = 250_ms;
 SCH16T::SCH16T(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
+	ModuleParams(nullptr),
 	_px4_accel(get_device_id(), config.rotation),
 	_px4_gyro(get_device_id(), config.rotation),
 	_drdy_gpio(config.drdy_gpio)
@@ -62,8 +63,11 @@ SCH16T::~SCH16T()
 	perf_free(_reset_perf);
 	perf_free(_bad_transfer_perf);
 	perf_free(_perf_crc_bad);
-	perf_free(_perf_frame_bad);
 	perf_free(_drdy_missed_perf);
+	perf_free(_perf_general_error);
+	perf_free(_perf_command_error);
+	perf_free(_perf_saturation_error);
+	perf_free(_perf_doing_initialization);
 }
 
 int SCH16T::init()
@@ -104,9 +108,7 @@ int SCH16T::probe()
 	PX4_INFO("COMP_ID:\t 0x%0x", comp_id);
 	PX4_INFO("ASIC_ID:\t 0x%0x", asic_id);
 
-	// SCH16T-K01 	- 	ID hex = 0x0020
-	// SCH1633-B13 	- 	ID hex = 0x0017
-	bool success = asic_id == 0x20 && comp_id == 0x17;
+	bool success = asic_id == 0x21 && comp_id == 0x23;
 
 	return success ? PX4_OK : PX4_ERROR;
 }
@@ -145,8 +147,11 @@ void SCH16T::print_status()
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_perf_crc_bad);
-	perf_print_counter(_perf_frame_bad);
 	perf_print_counter(_drdy_missed_perf);
+	perf_print_counter(_perf_general_error);
+	perf_print_counter(_perf_command_error);
+	perf_print_counter(_perf_saturation_error);
+	perf_print_counter(_perf_doing_initialization);
 }
 
 void SCH16T::RunImpl()
@@ -186,6 +191,7 @@ void SCH16T::RunImpl()
 		}
 
 	case STATE::CONFIGURE: {
+			ConfigurationFromParameters();
 			Configure();
 
 			_state = STATE::LOCK_CONFIGURATION;
@@ -215,7 +221,7 @@ void SCH16T::RunImpl()
 					ScheduleDelayed(100_ms); // backup schedule as a watchdog timeout
 
 				} else {
-					ScheduleOnInterval(SAMPLE_INTERVAL_US, SAMPLE_INTERVAL_US);
+					ScheduleOnInterval(_sample_interval_us, _sample_interval_us);
 				}
 
 			} else {
@@ -233,7 +239,7 @@ void SCH16T::RunImpl()
 				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
 				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
 
-				if ((now - drdy_timestamp_sample) < SAMPLE_INTERVAL_US) {
+				if ((now - drdy_timestamp_sample) < _sample_interval_us) {
 					timestamp_sample = drdy_timestamp_sample;
 
 				} else {
@@ -241,7 +247,7 @@ void SCH16T::RunImpl()
 				}
 
 				// push backup schedule back
-				ScheduleDelayed(SAMPLE_INTERVAL_US * 2);
+				ScheduleDelayed(_sample_interval_us * 2);
 			}
 
 			// Collect the data
@@ -279,48 +285,51 @@ void SCH16T::RunImpl()
 
 bool SCH16T::ReadData(SensorData *data)
 {
-	uint64_t temp = 0;
-	uint64_t gyro_x = 0;
-	uint64_t gyro_y = 0;
-	uint64_t gyro_z = 0;
-	uint64_t acc_x = 0;
-	uint64_t acc_y = 0;
-	uint64_t acc_z = 0;
+	// Register reads return 48bits. See SafeSpi 48bit out-of-frame protocol.
+	RegisterRead(RATE_X2);
+	uint64_t gyro_x = RegisterRead(RATE_Y2);
+	uint64_t gyro_y = RegisterRead(RATE_Z2);
+	uint64_t gyro_z = RegisterRead(ACC_X2);
+	uint64_t acc_x  = RegisterRead(ACC_Y2);
+	uint64_t acc_y  = RegisterRead(ACC_Z2);
+	uint64_t acc_z  = RegisterRead(TEMP);
+	uint64_t temp   = RegisterRead(TEMP);
 
-	// Data registers are 20bit 2s complement
-	RegisterRead(TEMP);
-	temp   = RegisterRead(STAT_SUM_SAT);
-	_sensor_status.saturation = SPI48_DATA_UINT16(RegisterRead(RATE_X2));
-	gyro_x = RegisterRead(RATE_Y2);
-	gyro_y = RegisterRead(RATE_Z2);
+	static constexpr uint64_t MASK48_GENERAL_ERROR = 	0b00000000'00010000'00000000'00000000'00000000'00000000;
+	static constexpr uint64_t MASK48_COMMAND_ERROR = 	0b00000000'00001000'00000000'00000000'00000000'00000000;
+	static constexpr uint64_t MASK48_SATURATION_ERROR = 0b00000000'00000100'00000000'00000000'00000000'00000000;
+	static constexpr uint64_t MASK48_DOING_INIT = 		0b00000000'00000110'00000000'00000000'00000000'00000000;
 
-	// Check if ACC2 is saturated, if so, use ACC3
-	if ((_sensor_status.saturation & STAT_SUM_SAT_ACC_X2) || (_sensor_status.saturation & STAT_SUM_SAT_ACC_Y2)
-	    || (_sensor_status.saturation & STAT_SUM_SAT_ACC_Z2)) {
-		gyro_z = RegisterRead(ACC_X3);
-		acc_x  = RegisterRead(ACC_Y3);
-		acc_y  = RegisterRead(ACC_Z3);
-		acc_z  = RegisterRead(TEMP);
-		_px4_accel.set_scale(1.f / 1600.f);
-		_px4_accel.set_range(260.f);
-
-	} else {
-		gyro_z = RegisterRead(ACC_X2);
-		acc_x  = RegisterRead(ACC_Y2);
-		acc_y  = RegisterRead(ACC_Z2);
-		acc_z  = RegisterRead(TEMP);
-		_px4_accel.set_scale(1.f / 3200.f);
-		_px4_accel.set_range(163.4f);
-	}
-
-	static constexpr uint64_t MASK48_ERROR = 0x001E00000000UL;
 	uint64_t values[] = { gyro_x, gyro_y, gyro_z, acc_x, acc_y, acc_z, temp };
 
 	for (auto v : values) {
-		// Check for frame errors
-		if (v & MASK48_ERROR) {
-			perf_count(_perf_frame_bad);
+		// [1b ][1b][ 2b ]
+		// [IDS][CE][S1:0]
+		// IDS: Internal Data Status indication. SCH16T uses this field to indicate common cause error. This is redundant, more accurate info
+		// 		is seen from sensor status (S1:S0).
+		// CE: Command Error indication. SCH16T reports only semantically invalid frame content using this field. SPI protocol
+		// 		level errors are indicated with High-Z on MISO pin.
+		// S1,0: Sensor status indication.
+		// 		00: Normal operation
+		// 		01: Error status
+		// 		10: Saturation error
+		// 		11: Initialization running
+
+		if (v & MASK48_GENERAL_ERROR) {
+			perf_count(_perf_general_error);
 			return false;
+
+		} else if (v & MASK48_COMMAND_ERROR) {
+			perf_count(_perf_command_error);
+			return false;
+
+		} else if ((v & MASK48_DOING_INIT) == MASK48_DOING_INIT) {
+			perf_count(_perf_doing_initialization);
+			return false;
+
+		} else if (v & MASK48_SATURATION_ERROR) {
+			perf_count(_perf_saturation_error);
+			// Don't consider saturation an error
 		}
 
 		// Validate the CRC
@@ -339,7 +348,6 @@ bool SCH16T::ReadData(SensorData *data)
 	data->gyro_z   = SPI48_DATA_INT32(gyro_z);
 	// Temperature data is always 16 bits wide. Drop 4 LSBs as they are not used.
 	data->temp 	  = SPI48_DATA_INT32(temp) >> 4;
-
 	// Conver to PX4 coordinate system (FLU to FRD)
 	data->acc_x = data->acc_x;
 	data->acc_y = -data->acc_y;
@@ -347,8 +355,208 @@ bool SCH16T::ReadData(SensorData *data)
 	data->gyro_x = data->gyro_x;
 	data->gyro_y = -data->gyro_y;
 	data->gyro_z = -data->gyro_z;
-
 	return true;
+}
+
+void SCH16T::ConfigurationFromParameters()
+{
+	// NOTE: We use ACC2 and RATE2 which are both decimated without interpolation
+	CTRL_FILT_RATE_Register		filt_rate;
+	CTRL_FILT_ACC12_Register	filt_acc12;
+	CTRL_FILT_ACC3_Register 	filt_acc3;
+	RATE_CTRL_Register			rate_ctrl;
+	ACC12_CTRL_Register 		acc12_ctrl;
+	ACC3_CTRL_Register 			acc3_ctrl;
+
+	// We always use the maximum dynamic range for gyro and accel
+	rate_ctrl.bits.DYN_RATE_XYZ1 = 	RATE_RANGE_300;
+	rate_ctrl.bits.DYN_RATE_XYZ2 = 	RATE_RANGE_300;
+	acc12_ctrl.bits.DYN_ACC_XYZ1 = 	ACC12_RANGE_80;
+	acc12_ctrl.bits.DYN_ACC_XYZ2 = 	ACC12_RANGE_80;
+	acc3_ctrl.bits.DYN_ACC_XYZ3 = 	ACC3_RANGE_260;
+
+	_px4_gyro.set_range(math::radians(327.5f)); 		// 327.5 °/sec
+	_px4_gyro.set_scale(math::radians(1.f / 1600.f)); 	// 1600 LSB/(°/sec)
+	_px4_accel.set_range(163.4f); 		// 163.4 m/s2
+	_px4_accel.set_scale(1.f / 3200.f); // 3200 LSB/(m/s2)
+
+	// Gyro filter
+	switch (_sch16t_gyro_filt.get()) {
+	case 0:
+		filt_rate.bits.FILT_SEL_RATE_X = FILTER_13_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Y = FILTER_13_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Z = FILTER_13_HZ;
+		break;
+
+	case 1:
+		filt_rate.bits.FILT_SEL_RATE_X = FILTER_30_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Y = FILTER_30_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Z = FILTER_30_HZ;
+		break;
+
+	case 2:
+		filt_rate.bits.FILT_SEL_RATE_X = FILTER_68_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Y = FILTER_68_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Z = FILTER_68_HZ;
+		break;
+
+	case 3:
+		filt_rate.bits.FILT_SEL_RATE_X = FILTER_235_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Y = FILTER_235_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Z = FILTER_235_HZ;
+		break;
+
+	case 4:
+		filt_rate.bits.FILT_SEL_RATE_X = FILTER_280_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Y = FILTER_280_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Z = FILTER_280_HZ;
+		break;
+
+	case 5:
+		filt_rate.bits.FILT_SEL_RATE_X = FILTER_370_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Y = FILTER_370_HZ;
+		filt_rate.bits.FILT_SEL_RATE_Z = FILTER_370_HZ;
+		break;
+
+	case 6:
+		filt_rate.bits.FILT_SEL_RATE_X = FILTER_BYPASS;
+		filt_rate.bits.FILT_SEL_RATE_Y = FILTER_BYPASS;
+		filt_rate.bits.FILT_SEL_RATE_Z = FILTER_BYPASS;
+		break;
+	}
+
+	// ACC12 / ACC3 filter
+	switch (_sch16t_acc_filt.get()) {
+	case 0:
+		filt_acc12.bits.FILT_SEL_ACC_X12 = FILTER_13_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Y12 = FILTER_13_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Z12 = FILTER_13_HZ;
+
+		filt_acc3.bits.FILT_SEL_ACC_X3 = FILTER_13_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Y3 = FILTER_13_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Z3 = FILTER_13_HZ;
+		break;
+
+	case 1:
+		filt_acc12.bits.FILT_SEL_ACC_X12 = FILTER_30_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Y12 = FILTER_30_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Z12 = FILTER_30_HZ;
+
+		filt_acc3.bits.FILT_SEL_ACC_X3 = FILTER_30_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Y3 = FILTER_30_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Z3 = FILTER_30_HZ;
+		break;
+
+	case 2:
+		filt_acc12.bits.FILT_SEL_ACC_X12 = FILTER_68_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Y12 = FILTER_68_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Z12 = FILTER_68_HZ;
+
+		filt_acc3.bits.FILT_SEL_ACC_X3 = FILTER_68_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Y3 = FILTER_68_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Z3 = FILTER_68_HZ;
+		break;
+
+	case 3:
+		filt_acc12.bits.FILT_SEL_ACC_X12 = FILTER_235_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Y12 = FILTER_235_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Z12 = FILTER_235_HZ;
+
+		filt_acc3.bits.FILT_SEL_ACC_X3 = FILTER_235_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Y3 = FILTER_235_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Z3 = FILTER_235_HZ;
+		break;
+
+	case 4:
+		filt_acc12.bits.FILT_SEL_ACC_X12 = FILTER_280_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Y12 = FILTER_280_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Z12 = FILTER_280_HZ;
+
+		filt_acc3.bits.FILT_SEL_ACC_X3 = FILTER_280_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Y3 = FILTER_280_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Z3 = FILTER_280_HZ;
+		break;
+
+	case 5:
+		filt_acc12.bits.FILT_SEL_ACC_X12 = FILTER_370_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Y12 = FILTER_370_HZ;
+		filt_acc12.bits.FILT_SEL_ACC_Z12 = FILTER_370_HZ;
+
+		filt_acc3.bits.FILT_SEL_ACC_X3 = FILTER_370_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Y3 = FILTER_370_HZ;
+		filt_acc3.bits.FILT_SEL_ACC_Z3 = FILTER_370_HZ;
+		break;
+
+	case 6:
+		filt_acc12.bits.FILT_SEL_ACC_X12 = FILTER_BYPASS;
+		filt_acc12.bits.FILT_SEL_ACC_Y12 = FILTER_BYPASS;
+		filt_acc12.bits.FILT_SEL_ACC_Z12 = FILTER_BYPASS;
+
+		filt_acc3.bits.FILT_SEL_ACC_X3 = FILTER_BYPASS;
+		filt_acc3.bits.FILT_SEL_ACC_Y3 = FILTER_BYPASS;
+		filt_acc3.bits.FILT_SEL_ACC_Z3 = FILTER_BYPASS;
+		break;
+	}
+
+	// Gyro decimation (only affects channel 2, ie RATE2)
+	switch (_sch16t_decim.get()) {
+	case 0:
+		_sample_interval_us = 85;
+		rate_ctrl.bits.DEC_RATE_X2 = DECIMATION_NONE;
+		rate_ctrl.bits.DEC_RATE_Y2 = DECIMATION_NONE;
+		rate_ctrl.bits.DEC_RATE_Z2 = DECIMATION_NONE;
+		acc12_ctrl.bits.DEC_ACC_X2 = DECIMATION_NONE;
+		acc12_ctrl.bits.DEC_ACC_Y2 = DECIMATION_NONE;
+		acc12_ctrl.bits.DEC_ACC_Z2 = DECIMATION_NONE;
+		break;
+
+	case 1:
+		_sample_interval_us = 169;
+		rate_ctrl.bits.DEC_RATE_X2 = DECIMATION_5900_HZ;
+		rate_ctrl.bits.DEC_RATE_Y2 = DECIMATION_5900_HZ;
+		rate_ctrl.bits.DEC_RATE_Z2 = DECIMATION_5900_HZ;
+		acc12_ctrl.bits.DEC_ACC_X2 = DECIMATION_5900_HZ;
+		acc12_ctrl.bits.DEC_ACC_Y2 = DECIMATION_5900_HZ;
+		acc12_ctrl.bits.DEC_ACC_Z2 = DECIMATION_5900_HZ;
+		break;
+
+	case 2:
+		_sample_interval_us = 338;
+		rate_ctrl.bits.DEC_RATE_X2 = DECIMATION_2950_HZ;
+		rate_ctrl.bits.DEC_RATE_Y2 = DECIMATION_2950_HZ;
+		rate_ctrl.bits.DEC_RATE_Z2 = DECIMATION_2950_HZ;
+		acc12_ctrl.bits.DEC_ACC_X2 = DECIMATION_2950_HZ;
+		acc12_ctrl.bits.DEC_ACC_Y2 = DECIMATION_2950_HZ;
+		acc12_ctrl.bits.DEC_ACC_Z2 = DECIMATION_2950_HZ;
+		break;
+
+	case 3:
+		_sample_interval_us = 678;
+		rate_ctrl.bits.DEC_RATE_X2 = DECIMATION_1475_HZ;
+		rate_ctrl.bits.DEC_RATE_Y2 = DECIMATION_1475_HZ;
+		rate_ctrl.bits.DEC_RATE_Z2 = DECIMATION_1475_HZ;
+		acc12_ctrl.bits.DEC_ACC_X2 = DECIMATION_1475_HZ;
+		acc12_ctrl.bits.DEC_ACC_Y2 = DECIMATION_1475_HZ;
+		acc12_ctrl.bits.DEC_ACC_Z2 = DECIMATION_1475_HZ;
+		break;
+
+	case 4:
+		_sample_interval_us = 1355;
+		rate_ctrl.bits.DEC_RATE_X2 = DECIMATION_738_HZ;
+		rate_ctrl.bits.DEC_RATE_Y2 = DECIMATION_738_HZ;
+		rate_ctrl.bits.DEC_RATE_Z2 = DECIMATION_738_HZ;
+		acc12_ctrl.bits.DEC_ACC_X2 = DECIMATION_738_HZ;
+		acc12_ctrl.bits.DEC_ACC_Y2 = DECIMATION_738_HZ;
+		acc12_ctrl.bits.DEC_ACC_Z2 = DECIMATION_738_HZ;
+		break;
+	}
+
+	_registers[0] = RegisterConfig(CTRL_FILT_RATE,  filt_rate.value);
+	_registers[1] = RegisterConfig(CTRL_FILT_ACC12, filt_acc12.value);
+	_registers[2] = RegisterConfig(CTRL_FILT_ACC3,  filt_acc3.value);
+	_registers[3] = RegisterConfig(CTRL_RATE,       rate_ctrl.value);
+	_registers[4] = RegisterConfig(CTRL_ACC12,      acc12_ctrl.value);
+	_registers[5] = RegisterConfig(CTRL_ACC3,       acc3_ctrl.value);
 }
 
 void SCH16T::Configure()
@@ -359,15 +567,6 @@ void SCH16T::Configure()
 
 	RegisterWrite(CTRL_USER_IF, DRY_DRV_EN); // Enable data ready
 	RegisterWrite(CTRL_MODE, EN_SENSOR); // Enable the sensor
-
-	// NOTE: we use ACC3 for the higher range. The DRDY frequency adjusts to whichever register bank is
-	// being sampled from (decimated vs interpolated outputs). RATE_XYZ2 is decimated and RATE_XYZ1 is interpolated.
-	_px4_gyro.set_range(math::radians(327.68f)); // +-/ 300°/sec calibrated range, 327.68°/sec electrical headroom (20bit)
-	_px4_gyro.set_scale(math::radians(1.f / 1600.f)); // scaling 1600 LSB/°/sec -> rad/s per LSB
-
-	// ACC12 range is 163.4 m/s^2, 3200 LSB/(m/s^2), ACC3 range is 260 m/s^2, 1600 LSB/(m/s^2)
-	_px4_accel.set_range(163.4f);
-	_px4_accel.set_scale(1.f / 3200.f);
 }
 
 bool SCH16T::ValidateRegisterConfiguration()
@@ -449,8 +648,6 @@ void SCH16T::RegisterWrite(uint8_t addr, uint16_t value)
 // The SPI protocol (SafeSPI) is 48bit out-of-frame. This means read return frames will be received on the next transfer.
 uint64_t SCH16T::TransferSpiFrame(uint64_t frame)
 {
-	set_frequency(SPI_SPEED);
-
 	uint16_t buf[3];
 
 	for (int index = 0; index < 3; index++) {
