@@ -41,6 +41,8 @@ fi
 
 # script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+# store the project root directory path in a variable
+PX4_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../" && pwd )
 
 # check requirements.txt exists (script not run in source tree)
 REQUIREMENTS_FILE="requirements.txt"
@@ -107,13 +109,15 @@ echo
 echo "Installing PX4 Python3 dependencies"
 if [ ! -d ".venv" ]; then
 	echo "Python venv not found. Creating a new virtual vnvironment at .venv"
-	python3 -m venv .venv
+	python3 -m venv ${PX4_DIR}/.venv
 fi
+activate () {
+  . $PX4_DIR/.venv/bin/activate
+}
 if [ -z "$VIRTUAL_ENV" ]; then
 	echo "Activating Python virtual environment"
-	source .venv/bin/activate
+	activate
 	python -m pip install -r ${DIR}/requirements.txt
-	deactivate
 fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
