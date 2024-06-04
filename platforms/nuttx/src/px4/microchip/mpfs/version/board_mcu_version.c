@@ -58,10 +58,11 @@
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
 #endif
 
-#define HW_INFO_FPGA_PREFIX          "FPGA: "
 #define HW_INFO_FPGA_SUFFIX          "%u.%u"
 
 #define FPGA_VER_REGISTER          0x42000000
+#define FPGA_DIE_TYPE_REGISTER     0x42000004
+#define FPGA_SPEED_GRADE_REGISTER  0x42000008
 #define MPFS_SYS_SERVICE_CR        0x37020050
 #define MPFS_SYS_SERVICE_SR        0x37020054
 #define MPFS_SYS_SERVICE_MAILBOX   0x37020800
@@ -281,12 +282,15 @@ int board_determine_hw_info(void)
 	struct system_version_s ver;
 	struct guid_s guid;
 	struct hw_info_s hwinfo;
+	char die_type_str[16];
 	orb_advert_t ver_str_pub = orb_advertise(ORB_ID(system_version_string), NULL);
 	orb_advert_t ver_pub = orb_advertise(ORB_ID(system_version), NULL);
 	orb_advert_t mfguid_pub = orb_advertise(ORB_ID(guid), NULL);
 	orb_advert_t hw_info_pub = orb_advertise(ORB_ID(hw_info), NULL);
 
 	uint32_t fpga_version = getreg32(FPGA_VER_REGISTER); // todo: replace eventually with device_boot_info
+	uint32_t fpga_die_type = getreg32(FPGA_DIE_TYPE_REGISTER);
+	uint32_t fpga_speed_grade = getreg32(FPGA_SPEED_GRADE_REGISTER);
 	uint64_t timestamp = hrt_absolute_time();
 
 	memset(&ver_str, 0, sizeof(ver_str));
@@ -324,11 +328,20 @@ int board_determine_hw_info(void)
 	strncpy(ver_str.bl_version, device_boot_info.bl_version, sizeof(ver_str.bl_version));
 	ver.bl_version = parse_tag_to_version(device_boot_info.bl_version);
 
+	/* FPGA DIE type/size (e.g. 95/160/250) */
+	if (fpga_die_type == 0) {
+		snprintf(die_type_str, sizeof(die_type_str), "Unknown DIE");
+
+	} else {
+		snprintf(die_type_str, sizeof(die_type_str), "MPFS%03d (SG %d)",
+			 fpga_die_type, fpga_speed_grade);
+	}
+
 	/* FPGA version */
 
 	snprintf(fpga_info, sizeof(fpga_info),
-		 HW_INFO_FPGA_PREFIX HW_INFO_FPGA_SUFFIX " (0x%04x)", fpga_version_major, fpga_version_minor,
-		 getreg32(FPGA_VER_REGISTER));
+		 HW_INFO_FPGA_SUFFIX " (0x%04x), %s", fpga_version_major, fpga_version_minor,
+		 fpga_version, die_type_str);
 	strncpy(ver_str.component_version1, fpga_info, min(sizeof(ver_str.component_version1), sizeof(fpga_info)));
 	ver.component_version1 = fpga_version;
 
