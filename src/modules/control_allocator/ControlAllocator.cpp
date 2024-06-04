@@ -393,7 +393,7 @@ ControlAllocator::Run()
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
 		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
 
-		if (dt > 5_ms) {
+		if (dt > 0.005f) {
 			do_update = true;
 			_timestamp_sample = vehicle_thrust_setpoint.timestamp_sample;
 		}
