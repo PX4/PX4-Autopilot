@@ -34,14 +34,14 @@
 #pragma once
 
 #include "Murata_SCH16T_registers.hpp"
-
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 
 using namespace Murata_SCH16T;
 
-class SCH16T : public device::SPI, public I2CSPIDriver<SCH16T>
+class SCH16T : public device::SPI, public I2CSPIDriver<SCH16T>, public ModuleParams
 {
 public:
 	SCH16T(const I2CSPIDriverConfig &config);
@@ -79,7 +79,7 @@ private:
 	};
 
 	struct RegisterConfig {
-		RegisterConfig(uint16_t a, uint16_t v)
+		RegisterConfig(uint16_t a = 0, uint16_t v = 0)
 			: addr(a)
 			, value(v)
 		{};
@@ -100,6 +100,8 @@ private:
 	void ReadStatusRegisters();
 
 	void Configure();
+	void ConfigurationFromParameters();
+
 	void SoftwareReset();
 
 	void RegisterWrite(uint8_t addr, uint16_t value);
@@ -131,19 +133,22 @@ private:
 		READ,
 	} _state{STATE::RESET_INIT};
 
-	RegisterConfig _registers[6] = {
-		RegisterConfig(CTRL_FILT_RATE,  FILTER_BYPASS),         // Bypass filter
-		RegisterConfig(CTRL_FILT_ACC12, FILTER_BYPASS),         // Bypass filter
-		RegisterConfig(CTRL_FILT_ACC3,  FILTER_BYPASS),         // Bypass filter
-		RegisterConfig(CTRL_RATE,       RATE_300DPS_1475HZ),    // +/- 300 deg/s, 1600 LSB/(deg/s) -- default, Decimation 8, 1475Hz
-		RegisterConfig(CTRL_ACC12,      ACC12_8G_1475HZ),       // +/- 80 m/s^2, 3200 LSB/(m/s^2) -- default, Decimation 8, 1475Hz
-		RegisterConfig(CTRL_ACC3,       ACC3_26G)               // +/- 260 m/s^2, 1600 LSB/(m/s^2) -- default
-	};
+	RegisterConfig _registers[6];
+
+	uint32_t _sample_interval_us = 678;
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 	perf_counter_t _perf_crc_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": CRC8 bad"))};
-	perf_counter_t _perf_frame_bad{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": Frame bad"))};
 	perf_counter_t _drdy_missed_perf{nullptr};
+	perf_counter_t _perf_general_error{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": general error"))};
+	perf_counter_t _perf_command_error{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": command error"))};
+	perf_counter_t _perf_saturation_error{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": saturation error"))};
+	perf_counter_t _perf_doing_initialization{perf_counter_t(perf_alloc(PC_COUNT, MODULE_NAME": re-initializing"))};
 
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SCH16T_GYRO_FILT>) _sch16t_gyro_filt,
+		(ParamInt<px4::params::SCH16T_ACC_FILT>) _sch16t_acc_filt,
+		(ParamInt<px4::params::SCH16T_DECIM>) _sch16t_decim
+	)
 };
