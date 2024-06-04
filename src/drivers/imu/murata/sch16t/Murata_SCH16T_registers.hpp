@@ -64,12 +64,6 @@ static constexpr uint8_t DECIMATION_2950_HZ =	(0b010);
 static constexpr uint8_t DECIMATION_1475_HZ =	(0b011);
 static constexpr uint8_t DECIMATION_738_HZ =	(0b100);
 
-// TODO: remove the below
-// Range and decimation settings
-// static constexpr uint16_t RATE_300DPS_1475HZ = 0b0'001'001'011'011'011; // Gyro XYZ range 300 deg/s @ 1475Hz
-// static constexpr uint16_t ACC12_8G_1475HZ = 0b0'001'001'011'011'011;  // Acc XYZ range 8 G and 1475 update rate
-// static constexpr uint16_t ACC3_26G = (0b000 << 0);
-
 union CTRL_FILT_RATE_Register {
 	struct {
 		uint16_t FILT_SEL_RATE_X  : 3;
@@ -113,7 +107,6 @@ union RATE_CTRL_Register {
 		uint16_t reserved     : 1;
 	} bits;
 
-	// Allow direct access as a uint16_t
 	uint16_t value;
 };
 
@@ -127,7 +120,6 @@ union ACC12_CTRL_Register {
 		uint16_t reserved     : 1;
 	} bits;
 
-	// Allow direct access as a uint16_t
 	uint16_t value;
 };
 
@@ -137,7 +129,6 @@ union ACC3_CTRL_Register {
 		uint16_t reserved     : 13;
 	} bits;
 
-	// Allow direct access as a uint16_t
 	uint16_t value;
 };
 
