@@ -9,6 +9,11 @@ param set-default CANNODE_SUB_RTCM 1
 param set-default MBE_ENABLE 1
 param set-default SENS_IMU_CLPNOTI 0
 
+param set-default SEP_AUTO_CONFIG 0
+param set-default SEP_CONST_USAGE 63
+param set-default SEP_SAT_INFO 1
+param set-default SEP_OUTP_HZ 3
+
 safety_button start
 tone_alarm start
 

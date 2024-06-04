@@ -151,11 +151,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-rtk-gps_canbootloader
-    ark_septentrio_gps_default:
-      short: ark_septentrio_gps_default
+    ark_septentrio-gps_default:
+      short: ark_septentrio-gps_default
       buildType: MinSizeRel
       settings:
-        CONFIG: ark_septentrio_gps_default
+        CONFIG: ark_septentrio-gps_default
     ark_septentrio_gps_canbootloader:
       short: ark_septentrio_gps_canbootloader
       buildType: MinSizeRel

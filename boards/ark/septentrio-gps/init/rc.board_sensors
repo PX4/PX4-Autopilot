@@ -2,7 +2,7 @@
 #
 # board sensors init
 #------------------------------------------------------------------------------
-gps start -d /dev/ttyS0 -p sbf
+septentrio start -d /dev/ttyS0 -b 921600
 
 icm42688p -R 0 -s start
 
