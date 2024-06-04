@@ -188,6 +188,7 @@ define cmake-build
 	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ] || [ $(CMAKE_CACHE_CHECK) ]; then \
 		mkdir -p $(BUILD_DIR) \
 		&& cd $(BUILD_DIR) \
+		&& . ${SRC_DIR}/.venv/bin/activate \
 		&& cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) \
 		|| (rm -rf $(BUILD_DIR)); \
 	fi
