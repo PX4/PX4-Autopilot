@@ -60,11 +60,9 @@ fi
 activate () {
   . $PX4_DIR/.venv/bin/activate
 }
-if [ -z "$VIRTUAL_ENV" ]; then
-	echo "Activating Python virtual environment"
-	activate
-	python -m pip install -r ${DIR}/requirements.txt
-fi
+echo "Activating Python virtual environment"
+activate
+python -m pip install -r ${DIR}/requirements.txt
 
 
 # Optional, but recommended additional simulation tools:
