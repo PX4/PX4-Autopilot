@@ -166,4 +166,3 @@ class ManualInput(object):
             self.pub_mcsp.publish(pos)
             rate.sleep()
             count = count + 1
-

@@ -38,4 +38,3 @@ param set-default CA_SV_CS_COUNT 1
 param set-default CA_SV_CS0_TRQ_P 1
 
 param set-default CA_R_REV 7
-

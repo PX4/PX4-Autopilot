@@ -134,5 +134,3 @@ static constexpr float WMM_STRENGTH_MIN_GS = 22.2; // latitude: -30, longitude: 
 static constexpr float WMM_STRENGTH_MAX_GS = 66.9; // latitude: -60, longitude: 140
 static constexpr float WMM_STRENGTH_MEAN_GS = 46.4;
 static constexpr float WMM_STRENGTH_MEDIAN_GS = 48.8;
-
-

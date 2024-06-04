@@ -376,6 +376,3 @@
 
 #define GPIO_I2C4_SCL GPIO_I2C4_SCL_2       /* PF14 */
 #define GPIO_I2C4_SDA GPIO_I2C4_SDA_2       /* PF15 */
-
-
-

@@ -146,4 +146,3 @@ class JsonOutput():
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:
             f.write(self.output)
-

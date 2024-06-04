@@ -78,4 +78,3 @@ param set-default VT_FWD_THRUST_EN 4
 param set-default VT_FWD_THRUST_SC 1
 param set-default VT_F_TRANS_THR 0.75
 param set-default VT_TYPE 2
-

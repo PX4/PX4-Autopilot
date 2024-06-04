@@ -520,7 +520,4 @@ bool RCTest::sumdTest()
 	return true;
 }
 
-
-
 ut_declare_test_c(rc_tests_main, RCTest)
-

@@ -49,4 +49,3 @@ void param_primary_set_value(param_t param, const void *val);
 void param_primary_reset(param_t param);
 void param_primary_reset_all();
 void param_primary_get_counters(struct param_primary_counters *cnt);
-

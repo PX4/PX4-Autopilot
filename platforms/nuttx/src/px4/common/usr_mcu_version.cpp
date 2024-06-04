@@ -114,4 +114,3 @@ int board_get_px4_guid_formated(char *format_buffer, int size)
 
 	return offset;
 }
-

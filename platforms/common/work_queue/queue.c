@@ -91,5 +91,3 @@ void sq_addfirst(sq_entry_t *node, sq_queue_t *queue)
 
 	queue->head = node;
 }
-
-

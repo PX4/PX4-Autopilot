@@ -54,4 +54,3 @@ jobs:
         AWS_REGION: 'us-west-1'
         SOURCE_DIR: 'build/${{ matrix.target }}/_metadata/'
         DEST_DIR: 'Firmware/${{ env.version }}/${{ matrix.target }}/'
-

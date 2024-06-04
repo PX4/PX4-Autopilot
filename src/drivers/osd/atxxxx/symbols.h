@@ -116,4 +116,3 @@
 #define OSD_SYMBOL_ON_M                    0x9B
 #define OSD_SYMBOL_FLY_M                   0x9C
 #define OSD_SYMBOL_FLIGHT_TIME             0x70
-

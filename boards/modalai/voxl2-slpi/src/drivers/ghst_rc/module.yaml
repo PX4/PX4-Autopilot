@@ -8,4 +8,3 @@ serial_config:
         #depends_on_port: RC
         description_extended: |
             Ghost RC (GHST) driver.
-

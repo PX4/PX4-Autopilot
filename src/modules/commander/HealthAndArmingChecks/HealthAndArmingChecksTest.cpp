@@ -285,4 +285,3 @@ TEST_F(ReporterTest, reporting_multiple)
 		}
 	}
 }
-

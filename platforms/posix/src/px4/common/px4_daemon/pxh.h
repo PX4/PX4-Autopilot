@@ -103,4 +103,3 @@ private:
 
 
 } // namespace px4_daemon
-

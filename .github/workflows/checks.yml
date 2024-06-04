@@ -16,6 +16,7 @@ jobs:
       matrix:
         check: [
           "check_format",
+          "check_newlines",
           "tests",
           "tests_coverage",
           "px4_fmu-v2_default stack_check",

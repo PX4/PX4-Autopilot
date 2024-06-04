@@ -37,4 +37,3 @@ else
 fi
 
 ms5611 -s -b 1 start
-

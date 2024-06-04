@@ -51,4 +51,3 @@ TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopte
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
-

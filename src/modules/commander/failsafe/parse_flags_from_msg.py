@@ -137,4 +137,3 @@ if __name__ == "__main__":
     html_template_content = html_template_content.replace(html_tag, html_conditions)
     with open(html_output_file, 'w') as file:
         file.write(html_template_content)
-

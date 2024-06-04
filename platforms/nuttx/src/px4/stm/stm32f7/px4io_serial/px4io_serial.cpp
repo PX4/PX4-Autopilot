@@ -506,4 +506,3 @@ ArchPX4IOSerial::_abort_dma()
 
 	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
 }
-

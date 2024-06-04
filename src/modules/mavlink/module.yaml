@@ -200,4 +200,3 @@ parameters:
             num_instances: *max_num_config_instances
             default: [0.015, 0.015, 0.015]
             reboot_required: true
-

@@ -183,4 +183,3 @@ void EscChecks::checkEscStatus(const Context &context, Report &reporter, const e
 		}
 	}
 }
-

@@ -170,4 +170,3 @@ if(__name__ == "__main__"):
                 fs.write(f.read())
     except:
         pass
-

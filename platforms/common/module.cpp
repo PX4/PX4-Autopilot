@@ -238,4 +238,3 @@ void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is
 
 #endif
 }
-

@@ -375,4 +375,3 @@ OStream &operator<<(OStream &os, const matrix::Dual<Type, N> &dual)
 }
 
 }
-

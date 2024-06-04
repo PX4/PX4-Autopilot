@@ -41,4 +41,3 @@ px4_add_module(
 	DEPENDS
 		world_magnetic_model
 	)
-

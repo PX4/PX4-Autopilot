@@ -33,4 +33,3 @@
 #pragma once
 
 #include <px4_platform/micro_hal.h>
-

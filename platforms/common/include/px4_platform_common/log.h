@@ -446,4 +446,3 @@ __END_DECLS
 #define PX4_ANSI_COLOR_CYAN    "\x1b[36m"
 #define PX4_ANSI_COLOR_GRAY    "\x1B[37m"
 #define PX4_ANSI_COLOR_RESET   "\x1b[0m"
-

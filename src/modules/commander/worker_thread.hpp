@@ -100,4 +100,3 @@ private:
 	float _longitude;
 
 };
-

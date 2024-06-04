@@ -53,6 +53,3 @@ enum class LockoutComponent : uint8_t {
  * @param enabled true if compoment is in critical state
  */
 void px4_indicate_external_reset_lockout(LockoutComponent component, bool enabled);
-
-
-

@@ -232,4 +232,3 @@ static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 }
 
 #endif /* DEFINE_GET_PX4_CUSTOM_MODE */
-

@@ -31,5 +31,3 @@ param set-default CA_ROTOR4_PY 0.25
 param set-default CA_ROTOR5_PX -0.43
 param set-default CA_ROTOR5_PY -0.25
 param set-default CA_ROTOR5_KM -0.05
-
-
