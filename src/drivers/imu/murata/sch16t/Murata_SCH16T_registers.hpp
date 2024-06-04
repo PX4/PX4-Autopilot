@@ -37,16 +37,100 @@
 
 namespace Murata_SCH16T
 {
-static constexpr uint32_t SPI_SPEED = 5 * 1000 * 1000;  	// 5 MHz SPI serial interface
-static constexpr uint32_t SAMPLE_INTERVAL_US = 678;     	// 1500 Hz -- decimation factor 8, F_PRIM/16, 1.475 kHz
-static constexpr uint16_t EOI = (1 << 1); 			// End of Initialization
-static constexpr uint16_t EN_SENSOR = (1 << 0); 		// Enable RATE and ACC measurement
-static constexpr uint16_t DRY_DRV_EN = (1 << 5); 		// Enables Data ready function
-static constexpr uint16_t FILTER_BYPASS = (0b111); 		// Bypass filter
-static constexpr uint16_t RATE_300DPS_1475HZ = 0b0'001'001'011'011'011; // Gyro XYZ range 300 deg/s @ 1475Hz
-static constexpr uint16_t ACC12_8G_1475HZ = 0b0'001'001'011'011'011;  // Acc XYZ range 8 G and 1475 update rate
-static constexpr uint16_t ACC3_26G = (0b000 << 0);
+// General definitions
+static constexpr uint16_t EOI = (1 << 1);               // End of Initialization
+static constexpr uint16_t EN_SENSOR = (1 << 0);         // Enable RATE and ACC measurement
+static constexpr uint16_t DRY_DRV_EN = (1 << 5);        // Enables Data ready function
 static constexpr uint16_t SPI_SOFT_RESET = (0b1010);
+
+// Filter settings
+static constexpr uint8_t FILTER_13_HZ = (0b010);
+static constexpr uint8_t FILTER_30_HZ = (0b001);
+static constexpr uint8_t FILTER_68_HZ = (0b000);
+static constexpr uint8_t FILTER_280_HZ = (0b011);
+static constexpr uint8_t FILTER_370_HZ = (0b100);
+static constexpr uint8_t FILTER_235_HZ = (0b101);
+static constexpr uint8_t FILTER_BYPASS = (0b111);
+
+// Dynamic range settings
+static constexpr uint8_t RATE_RANGE_300 = (0b001);
+static constexpr uint8_t ACC12_RANGE_80 = (0b001);
+static constexpr uint8_t ACC3_RANGE_260 = (0b000);
+
+// Decimation ratio settings
+static constexpr uint8_t DECIMATION_NONE =	(0b000);
+static constexpr uint8_t DECIMATION_5900_HZ =	(0b001);
+static constexpr uint8_t DECIMATION_2950_HZ =	(0b010);
+static constexpr uint8_t DECIMATION_1475_HZ =	(0b011);
+static constexpr uint8_t DECIMATION_738_HZ =	(0b100);
+
+union CTRL_FILT_RATE_Register {
+	struct {
+		uint16_t FILT_SEL_RATE_X  : 3;
+		uint16_t FILT_SEL_RATE_Y  : 3;
+		uint16_t FILT_SEL_RATE_Z  : 3;
+		uint16_t reserved         : 7;
+	} bits;
+
+	uint16_t value;
+};
+
+union CTRL_FILT_ACC12_Register {
+	struct {
+		uint16_t FILT_SEL_ACC_X12  : 3;
+		uint16_t FILT_SEL_ACC_Y12  : 3;
+		uint16_t FILT_SEL_ACC_Z12  : 3;
+		uint16_t reserved         : 7;
+	} bits;
+
+	uint16_t value;
+};
+
+union CTRL_FILT_ACC3_Register {
+	struct {
+		uint16_t FILT_SEL_ACC_X3  : 3;
+		uint16_t FILT_SEL_ACC_Y3  : 3;
+		uint16_t FILT_SEL_ACC_Z3  : 3;
+		uint16_t reserved         : 7;
+	} bits;
+
+	uint16_t value;
+};
+
+union RATE_CTRL_Register {
+	struct {
+		uint16_t DEC_RATE_X2  : 3;
+		uint16_t DEC_RATE_Y2  : 3;
+		uint16_t DEC_RATE_Z2  : 3;
+		uint16_t DYN_RATE_XYZ2: 3;
+		uint16_t DYN_RATE_XYZ1: 3;
+		uint16_t reserved     : 1;
+	} bits;
+
+	uint16_t value;
+};
+
+union ACC12_CTRL_Register {
+	struct {
+		uint16_t DEC_ACC_X2  : 3;
+		uint16_t DEC_ACC_Y2  : 3;
+		uint16_t DEC_ACC_Z2  : 3;
+		uint16_t DYN_ACC_XYZ2: 3;
+		uint16_t DYN_ACC_XYZ1: 3;
+		uint16_t reserved     : 1;
+	} bits;
+
+	uint16_t value;
+};
+
+union ACC3_CTRL_Register {
+	struct {
+		uint16_t DYN_ACC_XYZ3  : 3;
+		uint16_t reserved     : 13;
+	} bits;
+
+	uint16_t value;
+};
 
 // Data registers
 #define RATE_X1         0x01 // 20 bit
