@@ -163,7 +163,7 @@ PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
  * @reboot_required true
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_HITL_SHOME, 1);
+PARAM_DEFINE_INT32(MAV_HITL_SHOME, 0);
 
 /**
  * mavlink receiver HITL simulated origin latitude
