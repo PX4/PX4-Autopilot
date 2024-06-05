@@ -15,14 +15,25 @@ struct VectorThrustMix {
 //define columns of mixing matrix here
 //      { SCALE X,  SCALE Y}
 constexpr VectorThrustMix multirotor_vt_config[] = {   //add a line for each motor indicating scaling for each direction
-	{ -0.49636,  0.50000},	//Motor 1
-	{ -0.49636, -0.50000},	//Motor 2
-	{  0.49636, -0.50000},	//Motor 3
-	{  0.49636,  0.50000},	//Motor 4
-	{  0.50000,  0.49636},	//Motor 5
-	{  0.50000, -0.49636},	//Motor 6
-	{ -0.50000, -0.49636},	//Motor 7
-	{ -0.50000,  0.49636},	//Motor 8
+//	{ -0.49636,  0.50000},	//Motor 1
+//	{ -0.49636, -0.50000},	//Motor 2
+//	{  0.49636, -0.50000},	//Motor 3
+//	{  0.49636,  0.50000},	//Motor 4
+//	{  0.50000,  0.49636},	//Motor 5
+//	{  0.50000, -0.49636},	//Motor 6
+//	{ -0.50000, -0.49636},	//Motor 7
+//	{ -0.50000,  0.49636},	//Motor 8
+
+
+	{ +1.378734f,  -3.328559f},	//Motor 1
+	{ -1.378734f, +3.328559f},	//Motor 2
+	{  -3.328559f, +1.378734f},	//Motor 3
+	{  -1.378734f,  -3.328559f},	//Motor 4
+	{ +1.378734f,  +3.328559f},	//Motor 5
+	{  +3.328559f, -1.378734f},	//Motor 6
+	{ -3.328559f, -1.378734f},	//Motor 7
+	{ +3.328559f,  +1.378734f},	//Motor 8
+	// modified by skaz344
 }; //See Airframes Reference for motor numbering -> Octorotor Coaxial
 
 // EXAMPLE FOR COAXIAL OCTO WITH TILTED PROPELLERS
