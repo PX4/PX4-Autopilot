@@ -183,5 +183,4 @@ private:
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};
 	hrt_abstime _last_unconnected_timestamp{0};
-	bool _vtol_was_in_mc_mode{false};
 };

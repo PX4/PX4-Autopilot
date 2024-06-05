@@ -312,15 +312,12 @@ float Battery::computeRemainingTime(float current_a)
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
-			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && _vtol_was_in_mc_mode) {
+			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !_vehicle_status_is_fw) {
 				reset_current_avg_filter = true;
-				_vtol_was_in_mc_mode = false;
-
-			} else if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				_vtol_was_in_mc_mode = true;
 			}
+
+			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		}
 	}
 
