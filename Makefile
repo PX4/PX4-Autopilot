@@ -236,7 +236,7 @@ $(ALL_CONFIG_TARGETS): .venv
 
 # Filter for only default targets to allow omiting the "_default" postfix
 CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
-$(CONFIG_TARGETS_DEFAULT):
+$(CONFIG_TARGETS_DEFAULT): .venv
 	@$(call cmake-build,$@_default$(BUILD_DIR_SUFFIX))
 
 all_config_targets: $(ALL_CONFIG_TARGETS)
