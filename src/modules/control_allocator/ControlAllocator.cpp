@@ -931,8 +931,28 @@ int ControlAllocator::print_status()
 			PX4_INFO("Instance: %i", i);
 		}
 
-		PX4_INFO("  Effectiveness.T =");
-		effectiveness.T().print();
+		// const size_t num_actuators = _control_allocation[i]->numConfiguredActuators();
+		const size_t num_actuators = 6;
+
+		matrix::Matrix<float, num_actuators, NUM_AXES> effectiveness_sliced_transposed(
+			effectiveness.T().slice<num_actuators, NUM_AXES>(0, 0));
+
+		const matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> mix_raw = _control_allocation[i]->getMixMatrix();
+		const matrix::Matrix<float, num_actuators, NUM_AXES> mix_raw_sliced(mix_raw.slice<num_actuators, NUM_AXES>(0, 0));
+
+		const matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> mix_normalized = _control_allocation[i]->getNormalizedMixMatrix();
+		const matrix::Matrix<float, num_actuators, NUM_AXES> mix_normalized_sliced(
+			mix_normalized.slice<num_actuators, NUM_AXES>(0, 0));
+
+		PX4_INFO("  Effectiveness.T (sliced) =");
+		effectiveness_sliced_transposed.print();
+
+		PX4_INFO(" Mixer matrix raw (sliced) =");
+		mix_raw_sliced.print();
+
+		PX4_INFO(" Mixer matrix normalized (sliced) =");
+		mix_normalized_sliced.print();
+
 		PX4_INFO("  minimum =");
 		_control_allocation[i]->getActuatorMin().T().print();
 		PX4_INFO("  maximum =");

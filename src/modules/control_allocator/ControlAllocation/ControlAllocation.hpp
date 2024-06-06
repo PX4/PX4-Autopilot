@@ -220,6 +220,9 @@ public:
 	void setNormalizeAsPlanarMC(bool normalize_as_mc) { _normalize_matrix_as_planar_mc = normalize_as_mc; }
 	void setAirmode(const int airmode) {_airmode = airmode; }
 
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> getMixMatrix() {return _mix; }
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> getNormalizedMixMatrix() {return _normalized_mix; }
+
 protected:
 	friend class ControlAllocator; // for _actuator_sp
 
@@ -236,4 +239,6 @@ protected:
 	int _num_actuators{0};
 	bool _normalize_matrix_as_planar_mc{false};		///< if true, normalize roll, pitch and yaw columns optimized for planar MC
 	int _airmode{0};					///< 0: disabled, 1: RP airmode, 2: RPY airmode
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _normalized_mix;
 };
