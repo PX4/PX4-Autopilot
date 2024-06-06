@@ -35,3 +35,4 @@ float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoi
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
 bool gliding_enabled		# commands the vehicle to glide if the capability is available (fixed wing only)
 float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint), only has an effect for rover
+bool ignore_alt_acceptance  # can be set to avoid lateral guidance to loiter at waypoint in order to achieve altitude acceptance

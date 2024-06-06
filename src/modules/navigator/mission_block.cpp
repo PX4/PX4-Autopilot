@@ -359,6 +359,12 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			}
 
+			// prevent lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
+			// is not achieved.
+			if (_mission_item.nav_cmd == NAV_CMD_WAYPOINT && _navigator->on_mission_landing()) {
+				alt_acc_rad_m = INFINITY;
+			}
+
 			bool passed_curr_wp = false;
 
 			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
