@@ -43,6 +43,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/sem.h>
 #include <containers/List.hpp>
 
 class Mavlink;
@@ -141,5 +142,71 @@ private:
 	bool _first_message_sent{false};
 };
 
+/**
+ * Class to manage polling of stream intervals
+ */
+
+class MavlinkStreamPoll
+{
+public:
+	MavlinkStreamPoll();
+	~MavlinkStreamPoll();
+
+	/**
+	 * Add a stream to the poll list
+	 */
+	int register_poll(uint16_t stream_id, uint32_t interval_us);
+
+	/**
+	 * Remove a stream from the poll list
+	 */
+	int unregister_poll(uint16_t stream_id);
+
+	/**
+	 * Re-set interval
+	 */
+	int set_interval(uint16_t stream_id, int interval_us);
+
+	/**
+	 * Poll all streams for updates
+	 */
+	int poll(const hrt_abstime timeout_us);
+
+private:
+
+	class MavStreamPollReq :  public ListNode<MavStreamPollReq *>
+	{
+	public:
+		MavStreamPollReq(uint16_t stream_id) : _stream_id(stream_id) {}
+		~MavStreamPollReq()
+		{
+			hrt_cancel(&_hrt_req);
+		}
+
+		uint16_t    _stream_id;
+		struct hrt_call _hrt_req;
+	};
+
+
+	/**
+	 * HRT interrupt callback posting the semaphore
+	 */
+	static void hrt_callback(void *arg);
+
+	/**
+	 * Requests from stream objects
+	 */
+	List<class MavStreamPollReq *> _reqs;
+
+	/**
+	 * Signalling semaphore to release the poll
+	 */
+	px4_sem_t _poll_sem;
+
+	/**
+	 * Mutex to protect the list of poll request (hrt) items
+	 */
+	pthread_mutex_t		_mtx {};
+};
 
 #endif /* MAVLINK_STREAM_H_ */
