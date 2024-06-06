@@ -223,7 +223,9 @@ private:
 		(ParamFloat<px4::params::CA_FW_DTHR_SC_Y>) _param_ca_fw_dthr_sc_y,
 		(ParamFloat<px4::params::CA_FW_DTHR_WGT_R>) _param_ca_fw_dthr_wgt_r,
 		(ParamFloat<px4::params::CA_FW_DTHR_WGT_P>) _param_ca_fw_dthr_wgt_p,
-		(ParamFloat<px4::params::CA_FW_DTHR_WGT_Y>) _param_ca_fw_dthr_wgt_y
+		(ParamFloat<px4::params::CA_FW_DTHR_WGT_Y>) _param_ca_fw_dthr_wgt_y,
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
+		(ParamInt<px4::params::CA_FW_DTHR_AIRMD>) _param_ca_fw_dthr_airmd
 	)
 
 };

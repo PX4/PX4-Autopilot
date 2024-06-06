@@ -606,6 +606,19 @@ parameters:
             min: 0
             max: 1
             default: 0
+
+        CA_FW_DTHR_AIRMD:
+            description:
+                short: Enable airmode for fixed-wing differential thrust
+                long: |
+                    If enabeld it allows the allocator to increase collective thrust to achieve
+                    thorque setpoints.
+            type: enum
+            values:
+                0: Disabled
+                1: Roll/Pitch
+                2: Roll/Pitch/Yaw
+            default: 0
 # Mixer
 mixer:
     actuator_types:

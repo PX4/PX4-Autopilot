@@ -227,6 +227,7 @@ public:
 	int numConfiguredActuators() const { return _num_actuators; }
 
 	void setNormalizeAsPlanarMC(bool normalize_as_mc) { _normalize_matrix_as_planar_mc = normalize_as_mc; }
+	void setAirmode(const int airmode) {_airmode = airmode; }
 
 protected:
 	friend class ControlAllocator; // for _actuator_sp
@@ -244,4 +245,5 @@ protected:
 	int _num_actuators{0};
 	bool _normalize_matrix_as_planar_mc{false};		///< if true, normalize roll, pitch and yaw columns optimized for planar MC
 	bool _had_actuator_failure{false};
+	int _airmode{0};					///< 0: disabled, 1: RP airmode, 2: RPY airmode
 };

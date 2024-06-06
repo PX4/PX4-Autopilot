@@ -49,7 +49,7 @@ ControlAllocationSequentialDesaturation::allocate()
 
 	_prev_actuator_sp = _actuator_sp;
 
-	switch (_param_mc_airmode.get()) {
+	switch (_airmode) {
 	case 1:
 		mixAirmodeRP();
 		break;

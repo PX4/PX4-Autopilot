@@ -428,6 +428,9 @@ ControlAllocator::Run()
 		c[0](4) = _thrust_sp(1);
 		c[0](5) = _thrust_sp(2);
 
+		const int airmode = _flight_phase != ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT ? _param_mc_airmode.get() :
+				    _param_ca_fw_dthr_airmd.get();
+
 		if (_num_control_allocation > 1) {
 			matrix::Vector<float, NUM_AXES> vehicle_torque_setpoint_matrix_1;
 
@@ -475,6 +478,7 @@ ControlAllocator::Run()
 
 		for (int i = 0; i < _num_control_allocation; ++i) {
 
+			_control_allocation[i]->setAirmode(airmode);
 			_control_allocation[i]->setControlSetpoint(c[i]);
 
 			// Do allocation
