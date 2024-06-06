@@ -74,6 +74,11 @@ bool SerialImpl::configure()
 	int speed;
 
 	switch (_baudrate) {
+	case 0:
+		// special case, if baudrate is 0 it hangs entire system
+		PX4_ERR("baudrate not specified");
+		return false;
+
 	case 9600:   speed = B9600;   break;
 
 	case 19200:  speed = B19200;  break;
