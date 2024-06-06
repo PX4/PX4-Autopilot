@@ -143,17 +143,6 @@ public:
 		return valid() ? Manager::orb_data_copy(_node, dst, _last_generation, true) : false;
 	}
 
-	void ack()
-	{
-		if (!valid()) {
-			subscribe();
-		}
-
-		if (valid()) {
-			Manager::orb_data_ack(_node, _last_generation);
-		}
-	}
-
 	/**
 	 * Copy the struct
 	 * @param dst The uORB message struct we are updating.

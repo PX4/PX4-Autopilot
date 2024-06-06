@@ -246,8 +246,6 @@ extern int	orb_copy(const struct orb_metadata *meta, orb_sub_t handle, void *buf
  */
 extern int	orb_check(orb_sub_t handle, bool *updated) __EXPORT;
 
-extern int	orb_ack(orb_sub_t handle) __EXPORT;
-
 /**
  * @see uORB::Manager::orb_exists()
  */
