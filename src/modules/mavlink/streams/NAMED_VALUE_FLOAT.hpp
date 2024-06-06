@@ -53,19 +53,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamNamedValueFloat()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::debug_key_value
-	};
+	explicit MavlinkStreamNamedValueFloat(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _debug_key_value_sub{ORB_ID(debug_key_value)};
 

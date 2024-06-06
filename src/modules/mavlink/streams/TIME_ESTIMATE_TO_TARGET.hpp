@@ -53,19 +53,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamTimeEstimateToTarget(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamTimeEstimateToTarget()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::rtl_time_estimate
-	};
+	explicit MavlinkStreamTimeEstimateToTarget(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _rtl_estimate_sub{ORB_ID(rtl_time_estimate)};
 

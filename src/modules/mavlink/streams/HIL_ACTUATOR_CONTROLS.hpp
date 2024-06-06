@@ -62,7 +62,6 @@ private:
 		ModuleParams(nullptr)
 	{
 		_act_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
 
 		for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; ++i) {
 			char param_name[17];
@@ -70,17 +69,6 @@ private:
 			param_get(param_find(param_name), &_output_functions[i]);
 		}
 	}
-
-	~MavlinkStreamHILActuatorControls()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[3] {
-		ORB_ID::actuator_outputs,
-		ORB_ID::vehicle_status,
-		ORB_ID::vehicle_control_mode
-	};
 
 	uORB::Subscription _act_sub{ORB_ID(actuator_outputs)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};

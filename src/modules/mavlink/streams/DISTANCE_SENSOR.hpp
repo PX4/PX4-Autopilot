@@ -54,19 +54,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamDistanceSensor(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamDistanceSensor()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::distance_sensor
-	};
+	explicit MavlinkStreamDistanceSensor(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 

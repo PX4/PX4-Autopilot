@@ -56,21 +56,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamPositionTargetGlobalInt(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamPositionTargetGlobalInt()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[3] {
-		ORB_ID::vehicle_control_mode,
-		ORB_ID::vehicle_local_position_setpoint,
-		ORB_ID::position_setpoint_triplet
-	};
+	explicit MavlinkStreamPositionTargetGlobalInt(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _lpos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};

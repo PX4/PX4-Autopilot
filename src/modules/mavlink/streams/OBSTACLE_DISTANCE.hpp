@@ -54,19 +54,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamObstacleDistance(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamObstacleDistance()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::obstacle_distance_fused
-	};
+	explicit MavlinkStreamObstacleDistance(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _obstacle_distance_fused_sub{ORB_ID(obstacle_distance_fused)};
 

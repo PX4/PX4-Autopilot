@@ -53,19 +53,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamGPSStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamGPSStatus()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::satellite_info
-	};
+	explicit MavlinkStreamGPSStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _satellite_info_sub{ORB_ID(satellite_info)};
 

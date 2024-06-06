@@ -53,19 +53,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamPositionTargetLocalNed(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamPositionTargetLocalNed()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::vehicle_local_position_setpoint
-	};
+	explicit MavlinkStreamPositionTargetLocalNed(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};
 

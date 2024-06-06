@@ -57,22 +57,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamSysStatus()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[4] {
-		ORB_ID::vehicle_status,
-		ORB_ID::cpuload,
-		ORB_ID::health_report,
-		ORB_ID::battery_status
-	};
+	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};

@@ -53,19 +53,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamCollision(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamCollision()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::collision_report
-	};
+	explicit MavlinkStreamCollision(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _collision_sub{ORB_ID(collision_report)};
 

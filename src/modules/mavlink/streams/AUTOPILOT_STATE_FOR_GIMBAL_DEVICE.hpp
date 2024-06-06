@@ -62,25 +62,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamAutopilotStateForGimbalDevice(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamAutopilotStateForGimbalDevice()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[6] {
-		ORB_ID::estimator_selector_status,
-		ORB_ID::estimator_status,
-		ORB_ID::vehicle_attitude,
-		ORB_ID::vehicle_local_position,
-		ORB_ID::vehicle_attitude_setpoint,
-		ORB_ID::vehicle_land_detected
-	};
-
+	explicit MavlinkStreamAutopilotStateForGimbalDevice(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};

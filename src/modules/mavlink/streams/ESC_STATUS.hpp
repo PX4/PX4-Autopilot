@@ -54,19 +54,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamESCStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamESCStatus()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::esc_status
-	};
+	explicit MavlinkStreamESCStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uint8_t _number_of_batches{0};

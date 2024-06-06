@@ -58,24 +58,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamOpenDroneIdLocation(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamOpenDroneIdLocation()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[6] {
-		ORB_ID::home_position,
-		ORB_ID::vehicle_air_data,
-		ORB_ID::vehicle_gps_position,
-		ORB_ID::vehicle_land_detected,
-		ORB_ID::vehicle_local_position,
-		ORB_ID::vehicle_status
-	};
+	explicit MavlinkStreamOpenDroneIdLocation(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};

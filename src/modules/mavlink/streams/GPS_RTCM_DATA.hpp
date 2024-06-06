@@ -53,19 +53,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamGPSRTCMData(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamGPSRTCMData()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::gps_inject_data
-	};
+	explicit MavlinkStreamGPSRTCMData(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _gps_inject_data_sub{ORB_ID(gps_inject_data), 0};
 

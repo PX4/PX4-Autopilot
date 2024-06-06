@@ -56,17 +56,7 @@ private:
 	explicit MavlinkStreamFlightInformation(Mavlink *mavlink) : MavlinkStream(mavlink)
 	{
 		_param_com_flight_uuid = param_find("COM_FLIGHT_UUID");
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
 	}
-
-	~MavlinkStreamFlightInformation()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::vehicle_status
-	};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	param_t _param_com_flight_uuid{PARAM_INVALID};

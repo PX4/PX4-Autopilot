@@ -54,19 +54,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamEfiStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamEfiStatus()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::internal_combustion_engine_status
-	};
+	explicit MavlinkStreamEfiStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _internal_combustion_engine_status_sub{ORB_ID(internal_combustion_engine_status)};
 
