@@ -520,7 +520,11 @@ public:
 
 	bool radio_status_critical() const { return _radio_status_critical; }
 
+	int set_stream_interval(MavlinkStream *stream, int interval);
+
 private:
+	MavlinkStreamPoll	*_stream_poller {nullptr};
+
 	MavlinkReceiver 	_receiver;
 
 	int			_instance_id{-1};
