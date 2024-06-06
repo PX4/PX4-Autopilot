@@ -55,17 +55,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamADSBVehicle(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamADSBVehicle()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] { ORB_ID::transponder_report };
+	explicit MavlinkStreamADSBVehicle(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _transponder_report_sub{ORB_ID(transponder_report)};
 

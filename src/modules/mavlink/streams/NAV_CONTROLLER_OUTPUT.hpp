@@ -56,21 +56,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamNavControllerOutput(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamNavControllerOutput()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[3] {
-		ORB_ID::position_controller_status,
-		ORB_ID::tecs_status,
-		ORB_ID::vehicle_global_position
-	};
+	explicit MavlinkStreamNavControllerOutput(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};

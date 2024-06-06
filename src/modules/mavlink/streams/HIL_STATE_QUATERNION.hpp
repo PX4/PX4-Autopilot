@@ -55,22 +55,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamHILStateQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamHILStateQuaternion()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[4] {
-		ORB_ID::vehicle_angular_velocity_groundtruth,
-		ORB_ID::vehicle_attitude_groundtruth,
-		ORB_ID::vehicle_global_position_groundtruth,
-		ORB_ID::vehicle_local_position_groundtruth
-	};
+	explicit MavlinkStreamHILStateQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude_groundtruth)};

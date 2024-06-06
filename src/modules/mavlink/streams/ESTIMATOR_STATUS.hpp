@@ -54,20 +54,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamEstimatorStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamEstimatorStatus()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[2] {
-		ORB_ID::estimator_selector_status,
-		ORB_ID::estimator_status
-	};
+	explicit MavlinkStreamEstimatorStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};

@@ -62,21 +62,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamScaledIMU()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[3] {
-		ORB_ID::vehicle_imu,
-		ORB_ID::vehicle_imu_status,
-		ORB_ID::sensor_mag
-	};
+	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _vehicle_imu_sub{ORB_ID(vehicle_imu), 0};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status), 0};

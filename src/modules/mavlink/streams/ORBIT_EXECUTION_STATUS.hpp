@@ -53,19 +53,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamOrbitStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamOrbitStatus()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[1] {
-		ORB_ID::orbit_status
-	};
+	explicit MavlinkStreamOrbitStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::SubscriptionMultiArray<orbit_status_s, 2> _orbit_status_subs{ORB_ID::orbit_status};
 

@@ -56,21 +56,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamAltitude(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamAltitude()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[3] {
-		ORB_ID::vehicle_air_data,
-		ORB_ID::home_position,
-		ORB_ID::vehicle_local_position
-	};
+	explicit MavlinkStreamAltitude(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _home_sub{ORB_ID(home_position)};

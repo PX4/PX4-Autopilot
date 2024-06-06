@@ -58,20 +58,7 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamVibration(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{
-		mavlink->register_orb_poll(get_id_static(), _orbs, arraySize(_orbs));
-	}
-
-	~MavlinkStreamVibration()
-	{
-		_mavlink->unregister_orb_poll(get_id_static());
-	}
-
-	ORB_ID _orbs[2] {
-		ORB_ID::sensor_selection,
-		ORB_ID::vehicle_imu_status
-	};
+	explicit MavlinkStreamVibration(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::SubscriptionMultiArray<vehicle_imu_status_s, 3> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
