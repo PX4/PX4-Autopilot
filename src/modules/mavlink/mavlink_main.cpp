@@ -134,6 +134,7 @@ Mavlink::Mavlink() :
 
 	_event_sub.subscribe();
 	_telemetry_status_pub.advertise();
+	_stream_poller = new MavlinkStreamPoll();
 }
 
 Mavlink::~Mavlink()
@@ -174,6 +175,8 @@ Mavlink::~Mavlink()
 			}
 		}
 	}
+
+	delete _stream_poller;
 
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
@@ -1157,7 +1160,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 		if (strcmp(stream_name, stream->get_name()) == 0) {
 			if (interval != 0) {
 				/* set new interval */
-				stream->set_interval(interval);
+				set_stream_interval(stream, interval);
 
 			} else {
 				/* delete stream */
@@ -1174,7 +1177,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	MavlinkStream *stream = create_mavlink_stream(stream_name, this);
 
 	if (stream != nullptr) {
-		stream->set_interval(interval);
+		set_stream_interval(stream, interval);
 		_streams.add(stream);
 
 		return OK;
@@ -2224,9 +2227,22 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_task_running.store(true);
 
+	int mavlink_poll_error_counter = 0;
+
 	while (!should_exit()) {
 		/* main loop */
-		px4_usleep(_main_loop_delay);
+
+		int mavlink_poll_ret = _stream_poller->poll(MAIN_LOOP_DELAY);
+
+		if (mavlink_poll_ret < 0 && mavlink_poll_ret != -ETIMEDOUT) {
+			/* this is seriously bad - should be an emergency */
+			if (mavlink_poll_error_counter < 10 || mavlink_poll_error_counter % 50 == 0) {
+				/* use a counter to prevent flooding (and slowing us down) */
+				PX4_ERR("ERROR while polling streams: %d", mavlink_poll_ret);
+			}
+
+			mavlink_poll_error_counter++;
+		}
 
 		if (!should_transmit()) {
 			check_requested_subscriptions();
@@ -2713,6 +2729,13 @@ void Mavlink::configure_sik_radio()
 		_param_sik_radio_id.set(0);
 		_param_sik_radio_id.commit_no_notification();
 	}
+}
+
+int
+Mavlink::set_stream_interval(MavlinkStream *stream, int interval)
+{
+	stream->set_interval(interval);
+	return _stream_poller->set_interval(stream->get_id(), interval);
 }
 
 int Mavlink::start_helper(int argc, char *argv[])
