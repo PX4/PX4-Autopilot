@@ -348,7 +348,7 @@ int BMP581::set_power_mode(uint8_t power_mode)
 		if(rslt != PX4_OK) {
 			return PX4_ERROR;
 		}
-		usleep(BMP5_DELAY_US_STANDBY);
+		ScheduleDelayed(BMP5_DELAY_US_STANDBY);
 	}
 
 	switch (power_mode) {
