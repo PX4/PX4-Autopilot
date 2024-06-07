@@ -234,7 +234,6 @@ private:
 	int			_capacity;
 	int			_count;
 
-	pthread_mutex_t		_mtx {};
 };
 
 #endif /* CONFIG_MAVLINK_UORB_POLL */
