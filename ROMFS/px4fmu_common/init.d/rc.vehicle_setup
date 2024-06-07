@@ -42,6 +42,15 @@ then
 fi
 
 #
+# Ackermann Rover setup.
+#
+if [ $VEHICLE_TYPE = rover_ackermann ]
+then
+	# Start ackermann drive rover apps.
+	. ${R}etc/init.d/rc.rover_ackermann_apps
+fi
+
+#
 # VTOL setup.
 #
 if [ $VEHICLE_TYPE = vtol ]
