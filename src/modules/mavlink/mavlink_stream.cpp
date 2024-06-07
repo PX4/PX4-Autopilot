@@ -351,19 +351,12 @@ int
 MavlinkStreamPoll::poll(const hrt_abstime timeout)
 {
 	int timeout_ms = timeout / 1000;
-	int ret;
 
 	if (timeout_ms <= 0) {
 		timeout_ms = 1;
 	}
 
-	pthread_mutex_lock(&_mtx);
-
-	ret = px4_poll(_fds, _count, timeout_ms);
-
-	pthread_mutex_unlock(&_mtx);
-
-	return ret;
+	return px4_poll(_fds, _count, timeout_ms);
 }
 
 /**
@@ -372,12 +365,8 @@ MavlinkStreamPoll::poll(const hrt_abstime timeout)
 void
 MavlinkStreamPoll::ack_all()
 {
-	pthread_mutex_lock(&_mtx);
-
 	for (int i = 0; i < _count; i++) {
 		orb_ack(_orbs[i].fd);
 	}
-
-	pthread_mutex_unlock(&_mtx);
 }
 #endif /* CONFIG_MAVLINK_UORB_POLL */
