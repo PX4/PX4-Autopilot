@@ -177,16 +177,73 @@ private:
 	class MavStreamPollReq :  public ListNode<MavStreamPollReq *>
 	{
 	public:
-		MavStreamPollReq(uint16_t stream_id) : _stream_id(stream_id) {}
+		MavStreamPollReq(uint16_t stream_id, uint32_t interval_us) : _stream_id(stream_id), _interval_us(interval_us),
+			_is_root(false) {}
 		~MavStreamPollReq()
 		{
-			hrt_cancel(&_hrt_req);
+			if (_is_root) {
+				hrt_cancel(&_hrt_req);
+			}
 		}
 
-		uint16_t    _stream_id;
+		void start_interval(hrt_callout cb, px4_sem_t *sem)
+		{
+			_is_root = true;
+			hrt_call_every(&_hrt_req, _interval_us,
+				       _interval_us, cb, sem);
+		}
+
+		void stop_interval() { _is_root = false; hrt_cancel(&_hrt_req); }
+
+		uint32_t interval_us() { return _interval_us; }
+		uint16_t stream_id() { return _stream_id; }
+		bool is_root() { return _is_root; }
+	private:
+		uint16_t        _stream_id;
+		uint32_t        _interval_us;
+		bool            _is_root;
 		struct hrt_call _hrt_req;
 	};
 
+	class MavlinkStreamPollReqList : public List<MavStreamPollReq *>
+	{
+	public:
+		void add_sorted(MavStreamPollReq *req)
+		{
+			if (_head == nullptr || _head->interval_us() > req->interval_us()) {
+				// add as head
+				req->setSibling(_head);
+				_head = req;
+				return;
+
+			} else {
+				// find the correct place in the list, sorted by the interval
+				MavStreamPollReq *node = _head;
+
+				while (node != nullptr) {
+					if (node->getSibling() == nullptr || node->getSibling()->interval_us() > req->interval_us()) {
+						// found the end or the correct place
+						req->setSibling(node->getSibling());
+						node->setSibling(req);
+						return;
+					}
+
+					node = node->getSibling();
+				}
+			}
+		}
+	};
+
+	/**
+	 * Check if some stream already runs hrt at an interval, by which
+	 * this request is evenly divisible with. This means that there is
+	 * no need to start another periodic timer, i.e. the interval is
+	 * not root.
+	 *
+	 * If the stream is root, start the timer for it and stop all the
+	 * other timers which are evenly divisible with this one.
+	 */
+	void recalculate_roots_and_start(MavStreamPollReq *req);
 
 	/**
 	 * HRT interrupt callback posting the semaphore
@@ -196,7 +253,7 @@ private:
 	/**
 	 * Requests from stream objects
 	 */
-	List<class MavStreamPollReq *> _reqs;
+	MavlinkStreamPollReqList _reqs;
 
 	/**
 	 * Signalling semaphore to release the poll

@@ -155,6 +155,34 @@ MavlinkStreamPoll::~MavlinkStreamPoll()
 	pthread_mutex_destroy(&_mtx);
 }
 
+void MavlinkStreamPoll::recalculate_roots_and_start(MavStreamPollReq *req)
+{
+	// Now go through the ordered _reqs list, to see if this timer needs to
+	// be started, and if some others can be stopped
+
+	bool is_root = true;
+	uint32_t interval_us = req->interval_us();
+
+	for (auto r : _reqs) {
+		if (r->interval_us() <= interval_us) {
+			if (r->is_root() && interval_us % r->interval_us() == 0) {
+				is_root = false;
+			}
+
+		} else {
+			if (is_root && r->is_root() && r->interval_us() % interval_us == 0) {
+				r->stop_interval();
+			}
+		}
+	}
+
+	// If this was a new root interval, start the hrt
+
+	if (is_root) {
+		req->start_interval(hrt_callback, &_poll_sem);
+	}
+}
+
 int
 MavlinkStreamPoll::register_poll(uint16_t stream_id, uint32_t interval_us)
 {
@@ -164,31 +192,42 @@ MavlinkStreamPoll::register_poll(uint16_t stream_id, uint32_t interval_us)
 		return OK;
 	}
 
-	MavStreamPollReq *req = new MavStreamPollReq(stream_id);
+	MavStreamPollReq *req = new MavStreamPollReq(stream_id, interval_us);
 
 	if (req == nullptr) {
 		return -ENOMEM;
 	}
 
 	pthread_mutex_lock(&_mtx);
-	_reqs.add(req);
-	hrt_call_every(&req->_hrt_req, (hrt_abstime)interval_us,
-		       (hrt_abstime)interval_us, hrt_callback, &_poll_sem);
-	pthread_mutex_unlock(&_mtx);
 
+	recalculate_roots_and_start(req);
+	_reqs.add_sorted(req);
+
+
+	pthread_mutex_unlock(&_mtx);
 	return OK;
 }
 
 int
 MavlinkStreamPoll::unregister_poll(uint16_t stream_id)
 {
-
 	pthread_mutex_lock(&_mtx);
 
 	for (auto req : _reqs) {
-		if (req->_stream_id == stream_id) {
+		if (req->stream_id() == stream_id) {
 			_reqs.remove(req);
-			hrt_cancel(&req->_hrt_req);
+
+			if (req->is_root()) {
+				// This interval may be driving other streams. Re-calculate root clocks for all the
+				// remaining requests
+
+				for (auto r : _reqs) {
+					recalculate_roots_and_start(r);
+				}
+
+				req->stop_interval();
+			}
+
 			delete (req);
 			break;
 		}
