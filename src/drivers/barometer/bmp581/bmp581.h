@@ -323,19 +323,19 @@ private:
 
 	uint32_t		get_measurement_time();
 
-	bool			soft_reset();
-	bool			set_config();
-	bool			get_interrupt_status(uint8_t *int_status);
-	bool			configure_interrupt();
-	bool			int_source_select();
-	bool 			get_power_mode(uint8_t *power_mode);
-	bool			set_power_mode(uint8_t power_mode);
-	bool			check_deepstandby_mode(uint8_t *powermode);
-	bool			set_standby_mode();
-	bool			set_deep_standby_mode();
-	bool			set_osr_odr_press_config();
-	bool			set_iir_config();
-	bool			get_sensor_data(bmp5_sensor_data *sensor_data);
+	int			soft_reset();
+	int			set_config();
+	uint8_t			get_interrupt_status();
+	int			configure_interrupt();
+	int			int_source_select();
+	uint8_t 		get_power_mode();
+	int			set_power_mode(uint8_t power_mode);
+	uint8_t			check_deepstandby_mode();
+	int			set_standby_mode();
+	int			set_deep_standby_mode();
+	int			set_osr_odr_press_config();
+	int			set_iir_config();
+	int			get_sensor_data(bmp5_sensor_data *sensor_data);
 };
 
 

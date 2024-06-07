@@ -55,7 +55,11 @@ BMP581::~BMP581()
 
 int BMP581::init()
 {
-	if(!soft_reset()) {
+	int ret;
+
+	ret = soft_reset();
+
+	if(ret != PX4_OK) {
 		PX4_DEBUG("failed to reset baro during init");
 		return -EIO;
 	}
@@ -69,14 +73,16 @@ int BMP581::init()
 
 	_chip_rev_id = _interface->get_reg(BMP5_REG_REV_ID_ADDR);
 
-	if(!set_config()) {
+	ret = set_config();
+
+	if(ret != PX4_OK) {
 		PX4_WARN("failed to set_config");
 		return -EIO;
 	}
 
 	start();
 
-	return OK;
+	return PX4_OK;
 }
 
 void BMP581::print_status()
@@ -108,12 +114,15 @@ void BMP581::RunImpl()
 
 int BMP581::measure()
 {
+	int ret;
+
 	_collect_phase = true;
 
 	perf_begin(_measure_perf);
 
 	/* start measurement */
-	if(!set_power_mode(BMP5_POWERMODE_FORCED)) {
+	ret = set_power_mode(BMP5_POWERMODE_FORCED);
+	if(ret != PX4_OK) {
 		PX4_DEBUG("failed to set power mode");
 		perf_count(_comms_errors);
 		perf_cancel(_measure_perf);
@@ -122,7 +131,7 @@ int BMP581::measure()
 
 	perf_end(_measure_perf);
 
-	return OK;
+	return PX4_OK;
 }
 
 int BMP581::collect()
@@ -139,15 +148,14 @@ int BMP581::collect()
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	ret = get_interrupt_status(&int_status);
+	int_status = get_interrupt_status();
 
-	if(ret) {
-		if(int_status & BMP5_INT_ASSERTED_DRDY) {
-			if(!get_sensor_data(&data)) {
-				perf_count(_comms_errors);
-				perf_cancel(_sample_perf);
-				return -EIO;
-			}
+	if(int_status & BMP5_INT_ASSERTED_DRDY) {
+		ret = get_sensor_data(&data);
+		if(ret != PX4_OK) {
+			perf_count(_comms_errors);
+			perf_cancel(_sample_perf);
+			return -EIO;
 		}
 	}
 
@@ -163,7 +171,7 @@ int BMP581::collect()
 
 	perf_end(_sample_perf);
 
-	return OK;
+	return PX4_OK;
 }
 
 /*!
@@ -171,10 +179,9 @@ int BMP581::collect()
  *
  * https://github.com/boschsensortec/BMP5-Sensor-API/blob/master/bmp5.c
  */
-bool BMP581::soft_reset()
+int BMP581::soft_reset()
 {
-	bool result = false;
-	 uint8_t status;
+	uint8_t status;
 	int ret;
 
 	if(intf == BMP5_SPI_INTF) {
@@ -187,208 +194,193 @@ bool BMP581::soft_reset()
 
 	ret = _interface->set_reg(BMP5_SOFT_RESET_CMD, BMP5_REG_CMD_ADDR);
 
-	if(ret == OK) {
-		usleep(BMP5_DELAY_US_SOFT_RESET);
-
-		if(intf == BMP5_SPI_INTF) {
-			/* Performing a single read via SPI of registers,
-            		* e.g. registers CHIP_ID, before the actual
-            		* SPI communication with the device.
-            		*/
-			status = _interface->get_reg(BMP5_REG_CHIP_ID_ADDR);
-		}
-
-		status = _interface->get_reg(BMP5_REG_STATUS_ADDR);
-		/* Check if nvm_rdy status = 1 and nvm_err status = 0 to proceed */
-		if ((status & BMP5_INT_NVM_RDY) && (!(status & BMP5_INT_NVM_ERR))) {
-			status = _interface->get_reg(BMP5_REG_INT_STATUS_ADDR);
-
-			if(status & BMP5_INT_ASSERTED_POR_SOFTRESET_COMPLETE) {
-				result = true;
-			}
-		}
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return result;
+	usleep(BMP5_DELAY_US_SOFT_RESET);
+
+	if(intf == BMP5_SPI_INTF) {
+		/* Performing a single read via SPI of registers,
+		* e.g. registers CHIP_ID, before the actual
+		* SPI communication with the device.
+		*/
+		status = _interface->get_reg(BMP5_REG_CHIP_ID_ADDR);
+	}
+
+	status = _interface->get_reg(BMP5_REG_STATUS_ADDR);
+	/* Check if nvm_rdy status = 1 and nvm_err status = 0 to proceed */
+	if (!((status & BMP5_INT_NVM_RDY) && (!(status & BMP5_INT_NVM_ERR)))) {
+		return PX4_ERROR;
+	}
+
+	status = _interface->get_reg(BMP5_REG_INT_STATUS_ADDR);
+
+	if (status & BMP5_INT_ASSERTED_POR_SOFTRESET_COMPLETE) {
+		return PX4_OK;
+	} else {
+		return PX4_ERROR;
+	}
 }
 
-bool BMP581::set_config()
+int BMP581::set_config()
 {
-	bool result = false;
-	uint8_t rslt;
-	if(set_power_mode(BMP5_POWERMODE_STANDBY)) {
+	int ret;
 
-		rslt = set_osr_odr_press_config();
-
-		if(rslt) {
-			rslt = set_iir_config();
-		}
-
-		if(rslt) {
-			rslt = configure_interrupt();
-		}
-
-		if(rslt) {
-			rslt = int_source_select();
-		}
-
-		if(rslt) {
-			result = true;
-		}
+	ret = set_power_mode(BMP5_POWERMODE_STANDBY);
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return result;
+	ret = set_osr_odr_press_config();
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	ret = set_iir_config();
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	ret = configure_interrupt();
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	ret = int_source_select();
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 /*!
  *  @brief This API is used to get interrupt status.
  */
-bool BMP581::get_interrupt_status(uint8_t *int_status)
+uint8_t BMP581::get_interrupt_status()
 {
-	bool result = false;
 	uint8_t status = 0xFF;
 
 	status = _interface->get_reg(BMP5_REG_INT_STATUS_ADDR);
 
-	result = true;
-	*int_status = status;
-
-	return result;
+	return status;
 }
 
-bool BMP581::check_deepstandby_mode(uint8_t *powermode)
+uint8_t BMP581::check_deepstandby_mode()
 {
-	bool result = false;
 	int rslt;
 	uint8_t fifo_frame_sel;
 	uint8_t reg_data[2];
+	uint8_t powermode = 0xFF;
 
 	fifo_frame_sel = _interface->get_reg(BMP5_REG_FIFO_SEL_ADDR);
 	fifo_frame_sel = BMP5_GET_BITS_POS_0(fifo_frame_sel, BMP5_FIFO_FRAME_SEL);
 
 	rslt = _interface->get_reg_buf(BMP5_REG_OSR_CONFIG_ADDR, reg_data, 2);
-	uint8_t odr_reg = 0xFF;
-	if(rslt == OK) {
-		odr_reg = BMP5_GET_BITSLICE(reg_data[1], BMP5_ODR);
+	if (rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
+	uint8_t odr_reg = 0xFF;
+	odr_reg = BMP5_GET_BITSLICE(reg_data[1], BMP5_ODR);
+
 	rslt = _interface->get_reg_buf(BMP5_REG_DSP_CONFIG_ADDR, reg_data, 2);
+	if (rslt != PX4_OK) {
+		return PX4_ERROR;
+	}
+
 	uint8_t set_iir_t_reg = 0xFF;
 	uint8_t set_iir_p_reg = 0xFF;
-	if(rslt == OK) {
-		set_iir_t_reg = BMP5_GET_BITS_POS_0(reg_data[1], BMP5_SET_IIR_TEMP);
-		set_iir_p_reg = BMP5_GET_BITSLICE(reg_data[1], BMP5_SET_IIR_PRESS);
-		result = true;
-	}
+
+	set_iir_t_reg = BMP5_GET_BITS_POS_0(reg_data[1], BMP5_SET_IIR_TEMP);
+	set_iir_p_reg = BMP5_GET_BITSLICE(reg_data[1], BMP5_SET_IIR_PRESS);
 
    	/* As per datasheet odr should be less than 5Hz. But register value for 5Hz is less than 4Hz and so,
      	* thus in this below condition odr is checked whether greater than 5Hz macro.
      	*/
 	if((odr_reg > BMP5_ODR_05_HZ) && (fifo_frame_sel == BMP5_DISABLE) &&
 	   (set_iir_t_reg == BMP5_IIR_FILTER_BYPASS) && (set_iir_p_reg == BMP5_IIR_FILTER_BYPASS)) {
-		*powermode = BMP5_POWERMODE_DEEP_STANDBY;
+		powermode = BMP5_POWERMODE_DEEP_STANDBY;
 	}
 
-	return result;
+	return powermode;
 }
 
 /*!
  *  @brief This API is used to get powermode of the sensor.
  */
-bool BMP581::get_power_mode(uint8_t *power_mode)
+uint8_t BMP581::get_power_mode()
 {
-	bool result = false;
 	uint8_t deep_dis;
 	uint8_t reg_data;
 	uint8_t powermode;
 
-	if(power_mode != NULL) {
-		reg_data = _interface->get_reg(BMP5_REG_ODR_CONFIG_ADDR);
-		powermode = BMP5_GET_BITS_POS_0(reg_data, BMP5_POWERMODE);
-		switch(powermode) {
-			case BMP5_POWERMODE_STANDBY:
-				deep_dis = BMP5_GET_BITSLICE(reg_data, BMP5_DEEP_DISABLE);
+	reg_data = _interface->get_reg(BMP5_REG_ODR_CONFIG_ADDR);
+	powermode = BMP5_GET_BITS_POS_0(reg_data, BMP5_POWERMODE);
 
-				if(deep_dis == BMP5_DEEP_ENABLED) {
-					if(check_deepstandby_mode(power_mode)) {
-						result = true;
-					}
-				}
-				else {
-					*power_mode = BMP5_POWERMODE_STANDBY;
-					result = true;
-				}
-				break;
-                	case BMP5_POWERMODE_NORMAL:
-                    		*power_mode = BMP5_POWERMODE_NORMAL;
-				result = true;
-                    		break;
-               		 case BMP5_POWERMODE_FORCED:
-                    		*power_mode = BMP5_POWERMODE_FORCED;
-				result = true;
-                    		break;
-                	case BMP5_POWERMODE_CONTINOUS:
-                   		*power_mode = BMP5_POWERMODE_CONTINOUS;
-				result = true;
-                    		break;
+	if (powermode == BMP5_POWERMODE_STANDBY) {
+		deep_dis = BMP5_GET_BITSLICE(reg_data, BMP5_DEEP_DISABLE);
+		if(deep_dis == BMP5_DEEP_ENABLED) {
+			powermode = check_deepstandby_mode();
 		}
 	}
 
-	return result;
+	return powermode;
 }
+
 /*!
  *  @brief This API is used to set powermode of the sensor.
  */
-bool BMP581::set_power_mode(uint8_t power_mode)
+int BMP581::set_power_mode(uint8_t power_mode)
 {
-	bool result = false;
 	uint8_t lst_pwrmode;
 	uint8_t reg_data;
 	int rslt;
 
-	if(get_power_mode(&lst_pwrmode)) {
-		if(lst_pwrmode != BMP5_POWERMODE_STANDBY) {
-			reg_data = _interface->get_reg(BMP5_REG_ODR_CONFIG_ADDR);
-			reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_DEEP_DISABLE, BMP5_DEEP_DISABLED);
-			reg_data = BMP5_SET_BITS_POS_0(reg_data, BMP5_POWERMODE, BMP5_POWERMODE_STANDBY);
-			rslt = _interface->set_reg(reg_data, BMP5_REG_ODR_CONFIG_ADDR);
-			if(rslt == OK) {
-				usleep(BMP5_DELAY_US_STANDBY);
-			}
-		}
+	lst_pwrmode = get_power_mode();
 
-		switch (power_mode) {
-			case BMP5_POWERMODE_DEEP_STANDBY:
-				if(set_deep_standby_mode()) {
-					result = true;
-				}
-				break;
-			case BMP5_POWERMODE_STANDBY:
-				result = true;
-				break;
-			case BMP5_POWERMODE_NORMAL:
-			case BMP5_POWERMODE_FORCED:
-			case BMP5_POWERMODE_CONTINOUS:
-				reg_data = _interface->get_reg(BMP5_REG_ODR_CONFIG_ADDR);
-				reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_DEEP_DISABLE, BMP5_DEEP_DISABLED);
-				reg_data = BMP5_SET_BITS_POS_0(reg_data, BMP5_POWERMODE, power_mode);
-				rslt = _interface->set_reg(reg_data, BMP5_REG_ODR_CONFIG_ADDR);
-				if(rslt == OK) {
-					result = true;
-				}
-				break;
+	if(lst_pwrmode != BMP5_POWERMODE_STANDBY) {
+		reg_data = _interface->get_reg(BMP5_REG_ODR_CONFIG_ADDR);
+		reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_DEEP_DISABLE, BMP5_DEEP_DISABLED);
+		reg_data = BMP5_SET_BITS_POS_0(reg_data, BMP5_POWERMODE, BMP5_POWERMODE_STANDBY);
+		rslt = _interface->set_reg(reg_data, BMP5_REG_ODR_CONFIG_ADDR);
+		if(rslt != PX4_OK) {
+			return PX4_ERROR;
 		}
+		usleep(BMP5_DELAY_US_STANDBY);
 	}
 
-	return result;
+	switch (power_mode) {
+		case BMP5_POWERMODE_DEEP_STANDBY:
+			rslt = set_deep_standby_mode();
+			if(rslt != PX4_OK) {
+				return PX4_ERROR;
+			}
+			break;
+		case BMP5_POWERMODE_STANDBY:
+			break;
+		case BMP5_POWERMODE_NORMAL:
+		case BMP5_POWERMODE_FORCED:
+		case BMP5_POWERMODE_CONTINOUS:
+			reg_data = _interface->get_reg(BMP5_REG_ODR_CONFIG_ADDR);
+			reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_DEEP_DISABLE, BMP5_DEEP_DISABLED);
+			reg_data = BMP5_SET_BITS_POS_0(reg_data, BMP5_POWERMODE, power_mode);
+			rslt = _interface->set_reg(reg_data, BMP5_REG_ODR_CONFIG_ADDR);
+			if(rslt != PX4_OK) {
+				return PX4_ERROR;
+			}
+			break;
+	}
+
+	return PX4_OK;
 }
 
 /*!
  * @brief This internal API is used to set sensor in deep standby mode.
  */
-bool BMP581::set_deep_standby_mode()
+int BMP581::set_deep_standby_mode()
 {
-	bool resul = false;
 	uint8_t reg_data;
 	int rslt;
 
@@ -397,42 +389,47 @@ bool BMP581::set_deep_standby_mode()
 	reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_ODR, BMP5_ODR_01_HZ);
 	rslt = _interface->set_reg(reg_data, BMP5_REG_ODR_CONFIG_ADDR);
 
-	if(rslt == OK) {
-		reg_data = _interface->get_reg(BMP5_REG_DSP_IIR_ADDR);
-		reg_data = reg_data & BMP5_IIR_BYPASS;
-		rslt = _interface->set_reg(reg_data, BMP5_REG_DSP_IIR_ADDR);
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	if(rslt == OK) {
-		reg_data = _interface->get_reg(BMP5_REG_FIFO_SEL_ADDR);
-		reg_data = BMP5_SET_BIT_VAL_0(reg_data, BMP5_FIFO_FRAME_SEL);
-		rslt = _interface->set_reg(reg_data, BMP5_REG_FIFO_SEL_ADDR);
+	reg_data = _interface->get_reg(BMP5_REG_DSP_IIR_ADDR);
+	reg_data = reg_data & BMP5_IIR_BYPASS;
+	rslt = _interface->set_reg(reg_data, BMP5_REG_DSP_IIR_ADDR);
+
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	if(rslt == OK) {
-		resul = true;
+	reg_data = _interface->get_reg(BMP5_REG_FIFO_SEL_ADDR);
+	reg_data = BMP5_SET_BIT_VAL_0(reg_data, BMP5_FIFO_FRAME_SEL);
+	rslt = _interface->set_reg(reg_data, BMP5_REG_FIFO_SEL_ADDR);
+
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return resul;
+	return PX4_OK;
 }
 
 /*!
  * @brief This internal API is used to set sensor in standby powermode when powermode is deepstandby mode.
  */
-bool BMP581::set_standby_mode()
+int BMP581::set_standby_mode()
 {
-	bool result = false;
 	uint8_t powermode;
+	int ret;
 
-	if(get_power_mode(&powermode)) {
-		if(powermode == BMP5_POWERMODE_DEEP_STANDBY) {
-			if(set_power_mode(BMP5_POWERMODE_STANDBY)) {
-			}
+	powermode = get_power_mode();
+
+	if(powermode == BMP5_POWERMODE_DEEP_STANDBY) {
+		ret = set_power_mode(BMP5_POWERMODE_STANDBY);
+		if(ret != PX4_OK) {
+			return PX4_ERROR;
 		}
-		result = true;
 	}
 
-	return result;
+	return PX4_OK;
 }
 
 uint32_t BMP581::get_measurement_time()
@@ -512,11 +509,10 @@ uint32_t BMP581::get_measurement_time()
  *  @note If ODR is set to a value higher than 5Hz then powermode is set as standby mode, as ODR value greater than 5HZ
  *  without disabling deep-standby mode makes powermode invalid.
  */
-bool BMP581::set_osr_odr_press_config()
+int BMP581::set_osr_odr_press_config()
 {
-	bool result = false;
 	uint8_t reg_data[2] = {0};
-	int rslt = 1;
+	int rslt;
 
 	 _measure_interval = get_measurement_time();
 	if (_measure_interval == 0) {
@@ -526,26 +522,30 @@ bool BMP581::set_osr_odr_press_config()
 
 	if(odr < BMP5_ODR_05_HZ) {
 		rslt = set_standby_mode();
+		if (rslt != PX4_OK) {
+			return PX4_ERROR;
+		}
 	}
 
-	if(rslt) {
-		rslt = _interface->get_reg_buf(BMP5_REG_OSR_CONFIG_ADDR, reg_data, 2);
+	rslt = _interface->get_reg_buf(BMP5_REG_OSR_CONFIG_ADDR, reg_data, 2);
 
-		if(rslt == OK) {
-			reg_data[0] = BMP5_SET_BITS_POS_0(reg_data[0], BMP5_TEMP_OS, osr_t);
-			reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_PRESS_OS, osr_p);
-			reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_PRESS_EN, press_en);
-			reg_data[1] = BMP5_SET_BITSLICE(reg_data[1], BMP5_ODR, odr);
-
-			rslt = _interface->set_reg(reg_data[0], BMP5_REG_OSR_CONFIG_ADDR);
-			rslt = _interface->set_reg(reg_data[1], BMP5_REG_ODR_CONFIG_ADDR);
-			if(rslt == OK) {
-				result = true;
-			}
- 		}
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return result;
+	reg_data[0] = BMP5_SET_BITS_POS_0(reg_data[0], BMP5_TEMP_OS, osr_t);
+	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_PRESS_OS, osr_p);
+	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_PRESS_EN, press_en);
+	reg_data[1] = BMP5_SET_BITSLICE(reg_data[1], BMP5_ODR, odr);
+
+	rslt = _interface->set_reg(reg_data[0], BMP5_REG_OSR_CONFIG_ADDR);
+	rslt = _interface->set_reg(reg_data[1], BMP5_REG_ODR_CONFIG_ADDR);
+
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 /*!
@@ -554,68 +554,67 @@ bool BMP581::set_osr_odr_press_config()
  *  @note If IIR value for both temperature and pressure is set a value other than bypass then powermode is set
  *  as standby mode, as IIR with value other than bypass without disabling deep-standby mode makes powermode invalid.
  */
-bool BMP581::set_iir_config()
+int BMP581::set_iir_config()
 {
-	bool result = false;
 	uint8_t curr_powermdoe;
 	uint8_t reg_data[2];
-	int rslt = 1;
+	int rslt;
 
 	if((iir_t != BMP5_IIR_FILTER_BYPASS) || (iir_p != BMP5_IIR_FILTER_BYPASS)) {
 		rslt = set_standby_mode();
-	}
-
-	if(rslt) {
-		rslt = get_power_mode(&curr_powermdoe);
-
-		if(rslt) {
-			if(curr_powermdoe != BMP5_POWERMODE_STANDBY) {
-				rslt = set_power_mode(BMP5_POWERMODE_STANDBY);
-			}
-
-			if(rslt) {
-				rslt = _interface->get_reg_buf(BMP5_REG_DSP_CONFIG_ADDR, reg_data, 2);
-				if(rslt == OK) {
-					reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_SHDW_SET_IIR_TEMP, BMP5_ENABLE);
-					reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_SHDW_SET_IIR_PRESS, BMP5_ENABLE);
-					reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_IIR_FLUSH_FORCED_EN, BMP5_ENABLE);
-
-					reg_data[1] = iir_t;
-					reg_data[1] = BMP5_SET_BITSLICE(reg_data[1], BMP5_SET_IIR_PRESS, iir_p);
-
-					rslt = _interface->set_reg(reg_data[0], BMP5_REG_DSP_CONFIG_ADDR);
-					rslt = _interface->set_reg(reg_data[1], BMP5_REG_DSP_IIR_ADDR);
-				}
-			}
-
-			if(rslt == OK) {
-                    		/* Since IIR works only in standby mode we are not re-writing to deepstandby mode
-                    		* as deep standby mode resets the IIR settings to default
-                    		*/
-                    		if ((curr_powermdoe != BMP5_POWERMODE_STANDBY) && (curr_powermdoe != BMP5_POWERMODE_DEEP_STANDBY))
-                    		{
-                        		if(set_power_mode(curr_powermdoe)) {
-						result = true;
-					}
-
-                    		}
-			}
-
-			if(rslt == OK) {
-				result = true;
-			}
+		if (rslt != PX4_OK) {
+			return PX4_ERROR;
 		}
 	}
 
-	return result;
+	curr_powermdoe = get_power_mode();
+
+	if(curr_powermdoe != BMP5_POWERMODE_STANDBY) {
+		rslt = set_power_mode(BMP5_POWERMODE_STANDBY);
+		if (rslt != PX4_OK) {
+			return PX4_ERROR;
+		}
+	}
+
+	rslt = _interface->get_reg_buf(BMP5_REG_DSP_CONFIG_ADDR, reg_data, 2);
+
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_SHDW_SET_IIR_TEMP, BMP5_ENABLE);
+	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_SHDW_SET_IIR_PRESS, BMP5_ENABLE);
+	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_IIR_FLUSH_FORCED_EN, BMP5_ENABLE);
+
+	reg_data[1] = iir_t;
+	reg_data[1] = BMP5_SET_BITSLICE(reg_data[1], BMP5_SET_IIR_PRESS, iir_p);
+
+	rslt = _interface->set_reg(reg_data[0], BMP5_REG_DSP_CONFIG_ADDR);
+	rslt = _interface->set_reg(reg_data[1], BMP5_REG_DSP_IIR_ADDR);
+
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
+	}
+
+	/* Since IIR works only in standby mode we are not re-writing to deepstandby mode
+	* as deep standby mode resets the IIR settings to default
+	*/
+	if ((curr_powermdoe != BMP5_POWERMODE_STANDBY) && (curr_powermdoe != BMP5_POWERMODE_DEEP_STANDBY))
+	{
+		if(!set_power_mode(curr_powermdoe)) {
+			return PX4_ERROR;
+		}
+
+	}
+
+	return PX4_OK;
 }
 
 /*!
 * @brief This API is used to configure the interrupt settings.
 */
-bool BMP581::configure_interrupt()
+int BMP581::configure_interrupt()
 {
-	bool result = false;
 	uint8_t reg_data = 0;
 	uint8_t int_source = 0;
 	int rslt;
@@ -626,30 +625,30 @@ bool BMP581::configure_interrupt()
         /* Step 1 : Turn off all INT sources (INT_SOURCE -> 0x00) */
 	rslt = _interface->set_reg(int_source, BMP5_REG_INT_SOURCE_ADDR);
 
-	if(rslt == OK) {
-		/* Step 2 : Read the INT_STATUS register to clear the status */
-		_interface->get_reg(BMP5_REG_INT_STATUS_ADDR);
-
-		/* Step 3 : Set the desired mode in INT_CONFIG.int_mode */
-		reg_data = BMP5_SET_BITS_POS_0(reg_data, BMP5_INT_MODE, intr_mode);
-		reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_INT_POL, intr_polarity);
-		reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_INT_OD, intr_drive);
-		reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_INT_EN, BMP5_ENABLE);
-
-		rslt = _interface->set_reg(reg_data, BMP5_REG_INT_CONFIG_ADDR);
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
+	/* Step 2 : Read the INT_STATUS register to clear the status */
+	_interface->get_reg(BMP5_REG_INT_STATUS_ADDR);
 
-	if(rslt == OK) {
-		result = true;
+	/* Step 3 : Set the desired mode in INT_CONFIG.int_mode */
+	reg_data = BMP5_SET_BITS_POS_0(reg_data, BMP5_INT_MODE, INTERRUPT_MODE);
+	reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_INT_POL, INTERRUPT_POLARITY);
+	reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_INT_OD, INTERRUPT_DRIVE);
+	reg_data = BMP5_SET_BITSLICE(reg_data, BMP5_INT_EN, BMP5_ENABLE);
+
+	rslt = _interface->set_reg(reg_data, BMP5_REG_INT_CONFIG_ADDR);
+
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return result;
+	return PX4_OK;
 }
 
-bool BMP581::int_source_select()
+int BMP581::int_source_select()
 {
-	bool result = false;
 	uint8_t reg_data;
 	int rslt;
 
@@ -662,18 +661,18 @@ bool BMP581::int_source_select()
 
 	rslt = _interface->set_reg(reg_data, BMP5_REG_INT_SOURCE_ADDR);
 
-	if(rslt == OK) {
-		result = true;
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return result;
+	return PX4_OK;
 }
 
 /*!
  *  @brief This API reads the temperature(deg C) or both pressure(Pa) and temperature(deg C) data from the
  * sensor and store it in the bmp5_sensor_data structure instance passed by the user.
  */
-bool BMP581::get_sensor_data(bmp5_sensor_data *sensor_data)
+int BMP581::get_sensor_data(bmp5_sensor_data *sensor_data)
 {
 	uint8_t reg_data[6] ={0};
 	int32_t raw_data_t;
@@ -682,22 +681,22 @@ bool BMP581::get_sensor_data(bmp5_sensor_data *sensor_data)
 
 	rslt = _interface->get_reg_buf(BMP5_REG_TEMP_DATA_XLSB_ADDR, reg_data, 6);
 
-	if(rslt == OK) {
-		raw_data_t = (int32_t) ((int32_t) ((uint32_t)(((uint32_t)reg_data[2] << 16) | ((uint16_t)reg_data[1] << 8) | reg_data[0]) << 8) >> 8);
-		/* Division by 2^16(whose equivalent value is 65536) is performed to get temperature data in deg C */
-		sensor_data->temperature = (float)(raw_data_t / 65536.0);
-
-		if(press_en == BMP5_ENABLE) {
-            		raw_data_p = (uint32_t)((uint32_t)(reg_data[5] << 16) | (uint16_t)(reg_data[4] << 8) | reg_data[3]);
-			/* Division by 2^6(whose equivalent value is 64) is performed to get pressure data in Pa */
-			sensor_data->pressure = (float)(raw_data_p / 64.0);
-		}
-		else {
-			sensor_data->pressure = 0.0;
-		}
-
-		rslt = true;
+	if(rslt != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	return rslt;
+	raw_data_t = (int32_t) ((int32_t) ((uint32_t)(((uint32_t)reg_data[2] << 16) | ((uint16_t)reg_data[1] << 8) | reg_data[0]) << 8) >> 8);
+	/* Division by 2^16(whose equivalent value is 65536) is performed to get temperature data in deg C */
+	sensor_data->temperature = (float)(raw_data_t / 65536.0);
+
+	if(press_en == BMP5_ENABLE) {
+		raw_data_p = (uint32_t)((uint32_t)(reg_data[5] << 16) | (uint16_t)(reg_data[4] << 8) | reg_data[3]);
+		/* Division by 2^6(whose equivalent value is 64) is performed to get pressure data in Pa */
+		sensor_data->pressure = (float)(raw_data_p / 64.0);
+	}
+	else {
+		sensor_data->pressure = 0.0;
+	}
+
+	return PX4_OK;
 }
