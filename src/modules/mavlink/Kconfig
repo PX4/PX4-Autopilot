@@ -24,11 +24,3 @@ menuconfig USER_MAVLINK
 	depends on BOARD_PROTECTED && MODULES_MAVLINK
 	---help---
 		Put mavlink in userspace memory
-
-menuconfig MAVLINK_UORB_POLL
-	bool "mavlink uorb poll in main loop"
-	default n
-	depends on MODULES_MAVLINK
-	---help---
-		Use uorb topic polling in mavlink main loop instead of
-		using px4_usleep for stream rate handling.
