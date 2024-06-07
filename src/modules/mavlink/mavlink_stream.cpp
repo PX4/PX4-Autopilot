@@ -340,13 +340,6 @@ MavlinkStreamPoll::set_interval(uint16_t stream_id, int interval_ms)
 		}
 	}
 
-	// Update fds
-	for (int j = 0; j < _count; j++) {
-		_fds[j].fd = _orbs[j].fd;
-		_fds[j].events = POLLIN;
-		_fds[j].revents = 0;
-	}
-
 	pthread_mutex_unlock(&_mtx);
 	return PX4_OK;
 }
