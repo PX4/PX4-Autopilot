@@ -520,19 +520,7 @@ public:
 
 	bool radio_status_critical() const { return _radio_status_critical; }
 
-	/**
-	 * Register/Unregister a stream orbs for polling
-	 */
-	int register_orb_poll(uint16_t stream_id, ORB_ID *orbs, int count);
-	int unregister_orb_poll(uint16_t stream_id);
-
-	int set_stream_interval(MavlinkStream *stream, int interval);
-
 private:
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-	MavlinkStreamPoll	*_stream_poller {nullptr};
-#endif
-
 	MavlinkReceiver 	_receiver;
 
 	int			_instance_id{-1};

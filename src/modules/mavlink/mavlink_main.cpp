@@ -134,10 +134,6 @@ Mavlink::Mavlink() :
 
 	_event_sub.subscribe();
 	_telemetry_status_pub.advertise();
-
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-	_stream_poller = new MavlinkStreamPoll();
-#endif
 }
 
 Mavlink::~Mavlink()
@@ -178,14 +174,6 @@ Mavlink::~Mavlink()
 			}
 		}
 	}
-
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-
-	if (_stream_poller) {
-		delete _stream_poller;
-	}
-
-#endif
 
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
@@ -1169,7 +1157,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 		if (strcmp(stream_name, stream->get_name()) == 0) {
 			if (interval != 0) {
 				/* set new interval */
-				set_stream_interval(stream, interval);
+				stream->set_interval(interval);
 
 			} else {
 				/* delete stream */
@@ -1186,7 +1174,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	MavlinkStream *stream = create_mavlink_stream(stream_name, this);
 
 	if (stream != nullptr) {
-		set_stream_interval(stream, interval);
+		stream->set_interval(interval);
 		_streams.add(stream);
 
 		return OK;
@@ -2236,29 +2224,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_task_running.store(true);
 
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-	int uorb_poll_error_counter = 0;
-#endif
-
 	while (!should_exit()) {
 		/* main loop */
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-		int uorb_poll_ret = _stream_poller->poll(MAIN_LOOP_DELAY);
-
-		if (uorb_poll_ret < 0) {
-			/* this is seriously bad - should be an emergency */
-			if (uorb_poll_error_counter < 10 || uorb_poll_error_counter % 50 == 0) {
-				/* use a counter to prevent flooding (and slowing us down) */
-				PX4_ERR("ERROR while polling uorbs: %d", uorb_poll_ret);
-			}
-
-			uorb_poll_error_counter++;
-		}
-
-		_stream_poller->ack_all();
-#else
 		px4_usleep(_main_loop_delay);
-#endif
 
 		if (!should_transmit()) {
 			check_requested_subscriptions();
@@ -2746,43 +2714,6 @@ void Mavlink::configure_sik_radio()
 		_param_sik_radio_id.commit_no_notification();
 	}
 }
-
-
-int
-Mavlink::register_orb_poll(uint16_t stream_id, ORB_ID *orbs, int count)
-{
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-	return _stream_poller->register_orbs(stream_id, orbs, count);
-#else
-	(void)stream_id;
-	(void)orbs;
-	(void)count;
-	return PX4_OK;
-#endif
-}
-
-int
-Mavlink::unregister_orb_poll(uint16_t stream_id)
-{
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-	return _stream_poller->unregister_orbs(stream_id);
-#else
-	(void)stream_id;
-	return PX4_OK;
-#endif
-}
-
-int
-Mavlink::set_stream_interval(MavlinkStream *stream, int interval)
-{
-	stream->set_interval(interval);
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-	return _stream_poller->set_interval(stream->get_id(), interval / 1000);
-#else
-	return PX4_OK;
-#endif
-}
-
 
 int Mavlink::start_helper(int argc, char *argv[])
 {

@@ -44,7 +44,6 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <containers/List.hpp>
-#include <uORB/topics/uORBTopics.hpp>
 
 class Mavlink;
 
@@ -67,10 +66,7 @@ public:
 	 *
 	 * @param interval the interval in microseconds (us) between messages
 	 */
-	void set_interval(const int interval)
-	{
-		_interval = interval;
-	}
+	void set_interval(const int interval) { _interval = interval; }
 
 	/**
 	 * Get the interval
@@ -145,96 +141,5 @@ private:
 	bool _first_message_sent{false};
 };
 
-#if defined(CONFIG_MAVLINK_UORB_POLL)
-
-/**
- * Structure of objects in _reqs list
- */
-struct MavStreamOrbPollReq {
-	uint16_t    stream_id;
-	ORB_ID      orb_id;
-	int         interval;
-};
-
-/**
- * Structure of objects in _orbs list
- */
-struct MavStreamPollItem {
-	ORB_ID orb_id;
-	int interval;
-	int usage_count;
-	orb_sub_t fd;
-};
-
-class MavlinkStreamPoll
-{
-public:
-	MavlinkStreamPoll();
-	~MavlinkStreamPoll();
-
-	/**
-	 * Add a stream to the poll list
-	 */
-	int register_orbs(uint16_t stream_id, ORB_ID *orbs, int cnt);
-
-	/**
-	 * Remove a stream from the poll list
-	 */
-	int unregister_orbs(uint16_t stream_id);
-
-	/**
-	 * Set stream update interval
-	 */
-	int set_interval(uint16_t stream_id, int interval_ms);
-
-	/**
-	 * Poll all streams for updates
-	 */
-	int poll(const hrt_abstime timeout);
-
-	/**
-	 * Acknowledge all orb data for next poll
-	 */
-	void ack_all();
-
-private:
-
-	/**
-	 * Add a orb_id/interval pair to the orbs list
-	 */
-	int _add_orb(ORB_ID orb_id, int interval_ms);
-
-	/**
-	 * Remove a orb_id/interval pair from the orbs list
-	 */
-	int _remove_orb(ORB_ID orb_id, int interval_ms);
-
-	/**
-	 * Poll file descriptors for updates
-	 */
-	orb_poll_struct_t	*_fds;
-
-	/**
-	 * List of different orbs to poll
-	 */
-	MavStreamPollItem	*_orbs;
-
-	/**
-	 * Requests from stream objects, contains orb poll requests
-	 * count and capacity of the requests list
-	 */
-	MavStreamOrbPollReq	*_reqs;
-	int			_reqs_capacity;
-	int			_reqs_count;
-
-	/**
-	 * Count and capacity of the orbs/fds lists
-	 */
-	int			_capacity;
-	int			_count;
-
-};
-
-#endif /* CONFIG_MAVLINK_UORB_POLL */
 
 #endif /* MAVLINK_STREAM_H_ */
