@@ -149,6 +149,12 @@ if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
 	)
 endif()
 
+if(CONFIG_MODULES_ROVER_ACKERMANN)
+	px4_add_romfs_files(
+		50010_ackermann_rover_generic
+	)
+endif()
+
 if(CONFIG_MODULES_UUV_ATT_CONTROL)
 	px4_add_romfs_files(
 		# [60000, 61000] (Unmanned) Underwater Robots
