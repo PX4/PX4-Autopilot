@@ -1,0 +1,177 @@
+module_name: Rover Ackermann
+
+parameters:
+  - group: Rover Ackermann
+    definitions:
+      RA_WHEEL_BASE:
+        description:
+          short: Wheel base
+          long: Distance from the front to the rear axle
+        type: float
+        unit: m
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+
+      RA_MAX_STR_ANG:
+        description:
+          short: Maximum steering angle
+          long: The maximum angle that the rover can steer
+        type: float
+        unit: rad
+        min: 0.1
+        max: 1.5708
+        increment: 0.01
+        decimal: 2
+        default: 0.5236
+
+      RA_LOOKAHD_GAIN:
+        description:
+          short: Tuning parameter for the pure pursuit controller
+          long: Lower value -> More aggressive controller (beware overshoot/oscillations)
+        type: float
+        min: 0.1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RA_LOOKAHD_MAX:
+        description:
+          short: Maximum lookahead distance for the pure pursuit controller
+          long: |
+            This is the maximum crosstrack error before the controller starts
+            targeting the current waypoint rather then the path between the previous
+            and next waypoint.
+        type: float
+        unit: m
+        min: 0.1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 10
+
+      RA_LOOKAHD_MIN:
+        description:
+          short: Minimum lookahead distance for the pure pursuit controller
+        type: float
+        unit: m
+        min: 0.1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RA_ACC_RAD_MAX:
+        description:
+          short: Maximum acceptance radius
+          long: |
+            The controller scales the acceptance radius based on the angle between
+            the previous, current and next waypoint. Used as tuning parameter.
+            Higher value -> smoother trajectory at the cost of how close the rover gets
+            to the waypoint (Set equal to RA_ACC_RAD_DEF to disable corner cutting).
+        type: float
+        unit: m
+        min: 0.1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 3
+
+      RA_ACC_RAD_DEF:
+        description:
+          short: Default acceptance radius
+        type: float
+        unit: m
+        min: 0.1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.5
+
+      RA_ACC_RAD_GAIN:
+        description:
+          short: Tuning parameter for corner cutting
+          long: |
+            The geometric ideal acceptance radius is multiplied by this factor
+            to account for kinematic and dynamic effects.
+            Higher value -> The rover starts to cut the corner earlier.
+        type: float
+        min: 1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 2
+
+      RA_MISS_VEL_DEF:
+        description:
+          short: Default rover velocity during a mission
+        type: float
+        unit: m/s
+        min: 0.1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 3
+
+      RA_MISS_VEL_MIN:
+        description:
+          short: Minimum rover velocity during a mission
+          long: |
+            The velocity off the rover is reduced based on the corner it has to take
+            to smooth the trajectory (To disable this feature set it equal to RA_MISSION_VEL_DEF)
+        type: float
+        unit: m/s
+        min: 0.1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RA_MISS_VEL_GAIN:
+        description:
+          short: Tuning parameter for the velocity reduction during cornering
+          long: Lower value -> More velocity reduction during cornering
+        type: float
+        min: 0.1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 5
+
+      RA_SPEED_P:
+        description:
+          short: Proportional gain for ground speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RA_SPEED_I:
+        description:
+          short: Integral gain for ground speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RA_MAX_SPEED:
+        description:
+          short: Speed the rover drives at maximum throttle
+          long: |
+            This is used for the feed-forward term of the speed controller.
+            A value of -1 disables the feed-forward term in which case the
+            Integrator (RA_SPEED_I) becomes necessary to track speed setpoints.
+        type: float
+        unit: m/s
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
