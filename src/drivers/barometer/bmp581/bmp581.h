@@ -120,31 +120,19 @@
 /* IIR filter for temperature and pressure */
 #define BMP5_IIR_FILTER_BYPASS		(0x00)
 #define BMP5_IIR_FILTER_COEFF_1		(0x01)
-#define BMP5_IIR_FILTER_COEFF_3		(0x02)
-#define BMP5_IIR_FILTER_COEFF_7		(0x03)
-#define BMP5_IIR_FILTER_COEFF_15	(0x04)
-#define BMP5_IIR_FILTER_COEFF_31	(0x05)
-#define BMP5_IIR_FILTER_COEFF_63	(0x06)
-#define BMP5_IIR_FILTER_COEFF_127	(0x07)
 
 /* Macro is used to bypass both iir_t and iir_p together */
 #define BMP5_IIR_BYPASS                 (0xC0)
 
 /* Interrupt configurations */
 #define BMP5_INT_MODE_PULSED            (0)
-#define BMP5_INT_MODE_LATCHED           (1)
-
-#define BMP5_INT_POL_ACTIVE_LOW         (0)
 #define BMP5_INT_POL_ACTIVE_HIGH        (1)
-
 #define BMP5_INT_OD_PUSHPULL            (0)
-#define BMP5_INT_OD_OPENDRAIN           (1)
 
 /* NVM and Interrupt status asserted macros */
 #define BMP5_INT_ASSERTED_POR_SOFTRESET_COMPLETE  (0x10)
 #define BMP5_INT_NVM_RDY                          (0x02)
 #define BMP5_INT_NVM_ERR                          (0x04)
-#define BMP5_INT_NVM_CMD_ERR                      (0x08)
 
 /* Interrupt configurations */
 #define BMP5_INT_MODE_MSK               (0x01)
@@ -234,8 +222,6 @@ enum bmp5_intf {
     BMP5_SPI_INTF,
     /*! I2C interface */
     BMP5_I2C_INTF,
-    /*! I3C interface */
-    BMP5_I3C_INTF
 };
 
 /*!
