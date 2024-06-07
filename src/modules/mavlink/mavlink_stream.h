@@ -42,7 +42,6 @@
 #define MAVLINK_STREAM_H_
 
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/defines.h>
 #include <px4_platform_common/module_params.h>
 #include <containers/List.hpp>
 #include <uORB/topics/uORBTopics.hpp>
