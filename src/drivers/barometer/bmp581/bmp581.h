@@ -268,16 +268,16 @@ public:
 
 
 private:
-	static constexpr uint8_t	osr_t{BMP5_OVERSAMPLING_2X};
-	static constexpr uint8_t	osr_p{BMP5_OVERSAMPLING_32X};
-	static constexpr uint8_t	odr{BMP5_ODR_50_HZ};
-	static constexpr uint8_t	press_en{BMP5_ENABLE};
-	static constexpr uint8_t 	iir_t{BMP5_IIR_FILTER_COEFF_1};
-	static constexpr uint8_t 	iir_p{BMP5_IIR_FILTER_COEFF_1};
+	static constexpr uint8_t	OVERSAMPLING_TEMPERATURE{BMP5_OVERSAMPLING_2X};
+	static constexpr uint8_t	OVERSAMPLING_PRESSURE{BMP5_OVERSAMPLING_32X};
+	static constexpr uint8_t	OUTPUT_DATA_RATE{BMP5_ODR_50_HZ};
+	static constexpr uint8_t	PRESSURE_ENABLE{BMP5_ENABLE};
+	static constexpr uint8_t 	IIR_FILTER_COEFF_TEMPERATURE{BMP5_IIR_FILTER_COEFF_1};
+	static constexpr uint8_t 	IIR_FILTER_COEFF_PRESSURE{BMP5_IIR_FILTER_COEFF_1};
 
-	static constexpr uint8_t 	intr_mode{BMP5_INT_MODE_PULSED};
-	static constexpr uint8_t	intr_polarity{BMP5_INT_POL_ACTIVE_HIGH};
-	static constexpr uint8_t 	intr_drive{BMP5_INT_OD_PUSHPULL};
+	static constexpr uint8_t 	INTERRUPT_MODE{BMP5_INT_MODE_PULSED};
+	static constexpr uint8_t	INTERRUPT_POLARITY{BMP5_INT_POL_ACTIVE_HIGH};
+	static constexpr uint8_t 	INTERRUPT_DRIVE{BMP5_INT_OD_PUSHPULL};
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 	IBMP581 		*_interface{nullptr};

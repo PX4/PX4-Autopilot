@@ -451,8 +451,8 @@ uint32_t BMP581::get_measurement_time()
 
 	uint32_t meas_time_us = 0; // unsupported value by default
 
-	if (osr_t == BMP5_OVERSAMPLING_1X) {
-		switch (osr_p) {
+	if (OVERSAMPLING_TEMPERATURE == BMP5_OVERSAMPLING_1X) {
+		switch (OVERSAMPLING_PRESSURE) {
 		case BMP5_OVERSAMPLING_1X:
 			meas_time_us = 2700;
 			break;
@@ -474,24 +474,24 @@ uint32_t BMP581::get_measurement_time()
 			break;
 		}
 
-	} else if (osr_t == BMP5_OVERSAMPLING_2X) {
-		switch (osr_p) {
+	} else if (OVERSAMPLING_TEMPERATURE == BMP5_OVERSAMPLING_2X) {
+		switch (OVERSAMPLING_PRESSURE) {
 		case BMP5_OVERSAMPLING_32X:
 			meas_time_us = 23300;
 			break;
 
 		}
 
-	} else if(osr_t == BMP5_OVERSAMPLING_4X) {
-		switch (osr_p) {
+	} else if(OVERSAMPLING_TEMPERATURE == BMP5_OVERSAMPLING_4X) {
+		switch (OVERSAMPLING_PRESSURE) {
 		case BMP5_OVERSAMPLING_64X:
 			meas_time_us = 44200;
 			break;
 
 		}
 
-	} else if(osr_t == BMP5_OVERSAMPLING_8X) {
-		switch (osr_p) {
+	} else if(OVERSAMPLING_TEMPERATURE == BMP5_OVERSAMPLING_8X) {
+		switch (OVERSAMPLING_PRESSURE) {
 		case BMP5_OVERSAMPLING_128X:
 			meas_time_us = 88000;
 			break;
@@ -520,7 +520,7 @@ int BMP581::set_osr_odr_press_config()
 		return false;
 	}
 
-	if(odr < BMP5_ODR_05_HZ) {
+	if(OUTPUT_DATA_RATE < BMP5_ODR_05_HZ) {
 		rslt = set_standby_mode();
 		if (rslt != PX4_OK) {
 			return PX4_ERROR;
@@ -533,10 +533,10 @@ int BMP581::set_osr_odr_press_config()
 		return PX4_ERROR;
 	}
 
-	reg_data[0] = BMP5_SET_BITS_POS_0(reg_data[0], BMP5_TEMP_OS, osr_t);
-	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_PRESS_OS, osr_p);
-	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_PRESS_EN, press_en);
-	reg_data[1] = BMP5_SET_BITSLICE(reg_data[1], BMP5_ODR, odr);
+	reg_data[0] = BMP5_SET_BITS_POS_0(reg_data[0], BMP5_TEMP_OS, OVERSAMPLING_TEMPERATURE);
+	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_PRESS_OS, OVERSAMPLING_PRESSURE);
+	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_PRESS_EN, PRESSURE_ENABLE);
+	reg_data[1] = BMP5_SET_BITSLICE(reg_data[1], BMP5_ODR, OUTPUT_DATA_RATE);
 
 	rslt = _interface->set_reg(reg_data[0], BMP5_REG_OSR_CONFIG_ADDR);
 	rslt = _interface->set_reg(reg_data[1], BMP5_REG_ODR_CONFIG_ADDR);
@@ -560,7 +560,7 @@ int BMP581::set_iir_config()
 	uint8_t reg_data[2];
 	int rslt;
 
-	if((iir_t != BMP5_IIR_FILTER_BYPASS) || (iir_p != BMP5_IIR_FILTER_BYPASS)) {
+	if((IIR_FILTER_COEFF_TEMPERATURE != BMP5_IIR_FILTER_BYPASS) || (IIR_FILTER_COEFF_PRESSURE != BMP5_IIR_FILTER_BYPASS)) {
 		rslt = set_standby_mode();
 		if (rslt != PX4_OK) {
 			return PX4_ERROR;
@@ -586,8 +586,8 @@ int BMP581::set_iir_config()
 	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_SHDW_SET_IIR_PRESS, BMP5_ENABLE);
 	reg_data[0] = BMP5_SET_BITSLICE(reg_data[0], BMP5_IIR_FLUSH_FORCED_EN, BMP5_ENABLE);
 
-	reg_data[1] = iir_t;
-	reg_data[1] = BMP5_SET_BITSLICE(reg_data[1], BMP5_SET_IIR_PRESS, iir_p);
+	reg_data[1] = IIR_FILTER_COEFF_TEMPERATURE;
+	reg_data[1] = BMP5_SET_BITSLICE(reg_data[1], BMP5_SET_IIR_PRESS, IIR_FILTER_COEFF_PRESSURE);
 
 	rslt = _interface->set_reg(reg_data[0], BMP5_REG_DSP_CONFIG_ADDR);
 	rslt = _interface->set_reg(reg_data[1], BMP5_REG_DSP_IIR_ADDR);
@@ -689,7 +689,7 @@ int BMP581::get_sensor_data(bmp5_sensor_data *sensor_data)
 	/* Division by 2^16(whose equivalent value is 65536) is performed to get temperature data in deg C */
 	sensor_data->temperature = (float)(raw_data_t / 65536.0);
 
-	if(press_en == BMP5_ENABLE) {
+	if(PRESSURE_ENABLE == BMP5_ENABLE) {
 		raw_data_p = (uint32_t)((uint32_t)(reg_data[5] << 16) | (uint16_t)(reg_data[4] << 8) | reg_data[3]);
 		/* Division by 2^6(whose equivalent value is 64) is performed to get pressure data in Pa */
 		sensor_data->pressure = (float)(raw_data_p / 64.0);
