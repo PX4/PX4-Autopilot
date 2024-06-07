@@ -202,15 +202,10 @@
  * @brief Enumerator for powermode selection
  */
 enum bmp5_powermode {
-    /*! Standby powermode */
     BMP5_POWERMODE_STANDBY,
-    /*! Normal powermode */
     BMP5_POWERMODE_NORMAL,
-    /*! Forced powermode */
     BMP5_POWERMODE_FORCED,
-    /*! Continous powermode */
     BMP5_POWERMODE_CONTINOUS,
-    /*! Deep standby powermode */
     BMP5_POWERMODE_DEEP_STANDBY
 };
 
@@ -218,9 +213,7 @@ enum bmp5_powermode {
  * @brief Enumerator for interface selection
  */
 enum bmp5_intf {
-    /*! SPI interface */
     BMP5_SPI_INTF,
-    /*! I2C interface */
     BMP5_I2C_INTF,
 };
 
@@ -230,10 +223,7 @@ enum bmp5_intf {
  */
 struct bmp5_sensor_data
 {
-    /*! Pressure data */
     float pressure;
-
-    /*! Temperature data */
     float temperature;
 };
 
