@@ -69,6 +69,19 @@ void SeseOmni::updateParams()
 					   y_pos_d_gain.get(), // D
 					   10.0f, // Integral limit
 					   1.0f); // Output limit
+
+	pid_set_parameters(&_x_velocity_pid,
+					   x_velocity_p_gain.get(), // P
+					   x_velocity_i_gain.get(), // I
+					   x_velocity_d_gain.get(), // D
+					   10.0f, // Integral limit
+					   1.0f); // Output limit)
+	pid_set_parameters(&_y_velocity_pid,
+					   y_velocity_p_gain.get(), // P
+					   y_velocity_i_gain.get(), // I
+					   y_velocity_d_gain.get(), // D
+					   10.0f, // Integral limit
+					   1.0f); // Output limit)
 }
 
 void SeseOmni::Run()
@@ -201,13 +214,17 @@ void SeseOmni::Run()
 			const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e3f;
 			_time_stamp_last = now;
 
-			float desired_heading = heading_sp.get();
-			float current_heading = _local_pos.heading;
+			float heading_setpoint = heading_sp.get();
+			float x_pos_setpoint = x_pos_sp.get();
+			float y_pos_setpoint = y_pos_sp.get();
 
-			float desired_x_pos = x_pos_sp.get();
-			float desired_y_pos = y_pos_sp.get();
-			float current_x_pos = _local_pos.x;
-			float current_y_pos = _local_pos.y;
+			float heading = _local_pos.heading;
+			float x_pos_ned = _local_pos.x;
+			float y_pos_ned = _local_pos.y;
+			float velocity_x_ned = _local_pos.vx;
+			float velocity_y_ned = _local_pos.vy;
+			float acceleration_x_ned = _local_pos.ax;
+			float acceleration_y_ned = _local_pos.ay;
 
 			vehicle_torque_setpoint_s torque_setpoint{};
 			vehicle_thrust_setpoint_s thrust_setpoint{};
@@ -216,36 +233,27 @@ void SeseOmni::Run()
 			torque_setpoint.timestamp = now;
 			torque_setpoint.xyz[0] = 0.0f;
 			torque_setpoint.xyz[1] = 0.0f;
-			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, desired_heading, current_heading, 0.0f, dt);
+			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, heading_setpoint, heading, 0.0f, dt);
 
 
-			thrust_setpoint.timestamp = _time_stamp_last;
-			// Pobranie predkosci, przyspieszenia i obrotu
-			float velocity_north = _local_pos.vx;
-			float velocity_east = _local_pos.vy;
-			float acceleration_north = _local_pos.ax;
-			float acceleration_east = _local_pos.ay;
+			float velocity_x_setpoint = pid_calculate(&_x_pos_pid, x_pos_setpoint, x_pos_ned, velocity_x_ned, dt);
+			float velocity_y_setpoint = pid_calculate(&_y_pos_pid, y_pos_setpoint, y_pos_ned, velocity_y_ned, dt);
 
-			// transformacja strzalek z NED -> "nasze"
-			float sin_heading = sin(current_heading);
-			float cos_heading = cos(current_heading);
-			float rotated_velocity_north = cos_heading * velocity_north - sin_heading * velocity_east;
-			float rotated_velocity_east = sin_heading * velocity_north + cos_heading * velocity_east;
+			// Transformation from NED to body frame
+			float sin_heading = sin(heading);
+			float cos_heading = cos(heading);
+			float velocity_x_body_frame = cos_heading * velocity_x_ned - sin_heading * velocity_y_ned;
+			float velocity_y_body_frame = sin_heading * velocity_x_ned + cos_heading * velocity_y_ned;
+			float acceleration_x_body_frame = cos_heading * acceleration_x_ned - sin_heading * acceleration_y_ned;
+			float acceleration_y_body_frame = sin_heading * acceleration_x_ned + cos_heading * acceleration_y_ned;
 
-			float v_x_zadane = 1.0f, v_y_zadane = 1.0f;
-												// Odpowiedni PID     zadane v         obecne v	          przyspieszenie
-			thrust_setpoint.xyz[0] = pid_calculate(&_x_velocity_pid, v_x_zadane, rotated_velocity_north, acceleration_north, dt);
-			thrust_setpoint.xyz[1] = pid_calculate(&_y_velocity_pid, v_y_zadane, rotated_velocity_east, acceleration_east, dt);
+			thrust_setpoint.timestamp = now;
+			thrust_setpoint.xyz[0] = pid_calculate(&_x_velocity_pid, velocity_x_setpoint, velocity_x_body_frame, acceleration_x_body_frame, dt);
+			thrust_setpoint.xyz[1] = pid_calculate(&_y_velocity_pid, velocity_y_setpoint, velocity_y_body_frame, acceleration_y_body_frame, dt);
 			thrust_setpoint.xyz[2] = 0.0f;
 
-			// HUH?
-			// thrust_setpoint.timestamp = now;
-			// thrust_setpoint.xyz[0] = pid_calculate(&_x_pos_pid, desired_x_pos, current_x_pos, 0.0f, dt);
-			// thrust_setpoint.xyz[1] = pid_calculate(&_y_pos_pid, desired_y_pos, current_y_pos, 0.0f, dt);
-			// thrust_setpoint.xyz[2] = 0.0f;
 
-			status.timestamp = torque_setpoint.timestamp;
-
+			status.timestamp = now;
 			for (int i = 0; i < 3; i++)
 			{
 				status.control_power[i] = 100.0f;

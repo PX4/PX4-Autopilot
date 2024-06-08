@@ -102,6 +102,72 @@ parameters:
         increment: 0.001
         decimal: 3
         default: 0.0
+      X_VEL_P_GAIN:
+        description:
+          short: X axis Kp Gain for velocity controller
+          long: X axis Kp Gain for velocity controller
+        type: float
+        unit: m
+        min: 0.001
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+      X_VEL_I_GAIN:
+        description:
+          short: X axis Ki Gain for velocity controller
+          long: X axis Ki Gain for velocity controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      X_VEL_D_GAIN:
+        description:
+          short: X axis Kd Gain for velocity controller
+          long: X axis Kd Gain for velocity controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      Y_VEL_P_GAIN:
+        description:
+          short: Y axis Kp Gain for velocity controller
+          long: Y axis Kp Gain for velocity controller
+        type: float
+        unit: m
+        min: 0.001
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+      Y_VEL_I_GAIN:
+        description:
+          short: Y axis Ki Gain for velocity controller
+          long: Y axis Ki Gain for velocity controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      Y_VEL_D_GAIN:
+        description:
+          short: Y axis Kd Gain for velocity controller
+          long: Y axis Kd Gain for velocity controller
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
       HEADING_SP:
         description:
           short: SetPoint for heading (0 is North)

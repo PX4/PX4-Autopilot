@@ -97,10 +97,11 @@ private:
 
 	// PID attitude controller
 	PID_t _att_pid{};
+	// PIDs position controller
 	PID_t _x_pos_pid{};
 	PID_t _y_pos_pid{};
 
-	// PIDs for velocity controller
+	// PIDs velocity controller
 	PID_t _x_velocity_pid{};
 	PID_t _y_velocity_pid{};
 
@@ -117,6 +118,12 @@ private:
 		(ParamFloat<px4::params::Y_POS_P_GAIN>) y_pos_p_gain,
 		(ParamFloat<px4::params::Y_POS_I_GAIN>) y_pos_i_gain,
 		(ParamFloat<px4::params::Y_POS_D_GAIN>) y_pos_d_gain,
+		(ParamFloat<px4::params::X_VEL_P_GAIN>) x_velocity_p_gain,
+		(ParamFloat<px4::params::X_VEL_I_GAIN>) x_velocity_i_gain,
+		(ParamFloat<px4::params::X_VEL_D_GAIN>) x_velocity_d_gain,
+		(ParamFloat<px4::params::Y_VEL_P_GAIN>) y_velocity_p_gain,
+		(ParamFloat<px4::params::Y_VEL_I_GAIN>) y_velocity_i_gain,
+		(ParamFloat<px4::params::Y_VEL_D_GAIN>) y_velocity_d_gain,
 		(ParamFloat<px4::params::HEADING_SP>) heading_sp,
 		(ParamFloat<px4::params::X_POS_SP>) x_pos_sp,
 		(ParamFloat<px4::params::Y_POS_SP>) y_pos_sp
