@@ -311,7 +311,7 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 
 	} else {
 		// update filters, with different time constant
-		_IAS_derivative.setParameters(dt, 4.f);
+		_IAS_derivative.setParameters(dt, 5.f);
 		_throttle_filtered.setParameters(dt, 0.5f);
 		_pitch_filtered.setParameters(dt, 1.5f);
 
