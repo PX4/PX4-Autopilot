@@ -42,6 +42,8 @@
 #include "sensor_bridge.hpp"
 #include <uavcan/equipment/ice/FuelTankStatus.hpp>
 
+#include <uORB/topics/fuel_tank_status.h>
+
 class UavcanFuelTankStatusBridge : public UavcanSensorBridgeBase
 {
 public:
@@ -67,4 +69,5 @@ private:
 	uavcan::Subscriber<uavcan::equipment::ice::FuelTankStatus, FuelTankStatusCbBinder> _sub_fuel_tank_status_data;
 
 	float _max_fuel_capacity{0.0f};
+	int32_t _fuel_type{fuel_tank_status_s::MAV_FUEL_TYPE_UNKNOWN};
 };
