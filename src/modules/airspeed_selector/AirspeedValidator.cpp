@@ -247,7 +247,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 			_aspd_innov_integ_state = 0.f;
 		}
 
-		_innovations_check_failed = _tas_innov_integ_threshold > 0.0f && _aspd_innov_integ_state > _tas_innov_integ_threshold;
+		_innovations_check_failed = _aspd_innov_integ_state > _tas_innov_integ_threshold;
 	}
 
 	_time_last_aspd_innov_check = time_now;
