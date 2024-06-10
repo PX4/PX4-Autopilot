@@ -244,10 +244,11 @@ PARAM_DEFINE_FLOAT(ASPD_WERR_THR, 0.55f);
 /**
  * First principle airspeed check time window
  *
- * Time window for comparing airspeed change to throttle and pitch change.
- * If the airspeed change within this window is negative while throttle increases
- * and the vehicle pitches down, the check will trigger.
- * This check is meant to catch degrading airspeed blockages as can happen when flying through icing conditions.
+ * Window for comparing airspeed change to throttle and pitch change.
+ * Triggers when the airspeed change within this window is negative while throttle increases
+ * and the vehicle pitches down.
+ * Is meant to catch degrading airspeed blockages as can happen when flying through icing conditions.
+ * Relies on  FW_THR_TRIM being set accurately.
  *
  * @unit s
  * @min 0
