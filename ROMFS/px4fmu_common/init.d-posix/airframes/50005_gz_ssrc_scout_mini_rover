@@ -16,6 +16,7 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=scout_mini}
 
 param set-default SIM_GZ_EN 1
 param set-default SIM_GZ_RUN_GZSIM 0
+param set-default SIM_GZ_SHOME 1
 
 param set-default CA_AIRFRAME 6
 

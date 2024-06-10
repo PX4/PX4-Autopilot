@@ -56,7 +56,7 @@ PARAM_DEFINE_INT32(SIM_GZ_RUN_GZSIM, 1);
  * @reboot_required true
  * @group Simulator
  */
-PARAM_DEFINE_INT32(SIM_GZ_SHOME, 1);
+PARAM_DEFINE_INT32(SIM_GZ_SHOME, 0);
 
 /**
  * simulator origin latitude
