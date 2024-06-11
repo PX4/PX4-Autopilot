@@ -39,6 +39,8 @@
 
 DatamanClient::DatamanClient()
 {
+	_sync_perf = perf_alloc(PC_ELAPSED, "DatamanClient: sync");
+
 	_dataman_request_pub.advertise();
 	_dataman_response_sub = orb_subscribe(ORB_ID(dataman_response));
 
@@ -74,6 +76,8 @@ DatamanClient::DatamanClient()
 
 DatamanClient::~DatamanClient()
 {
+	perf_free(_sync_perf);
+
 	if (_dataman_response_sub >= 0) {
 		orb_unsubscribe(_dataman_response_sub);
 	}
@@ -85,6 +89,7 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 	bool response_received = false;
 	int32_t ret = 0;
 	hrt_abstime time_elapsed = hrt_elapsed_time(&start_time);
+	perf_begin(_sync_perf);
 	_dataman_request_pub.publish(request);
 
 	while (!response_received && (time_elapsed < timeout)) {
@@ -131,6 +136,8 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 
 		time_elapsed = hrt_elapsed_time(&start_time);
 	}
+
+	perf_end(_sync_perf);
 
 	if (!response_received && ret >= 0) {
 		PX4_ERR("timeout after %" PRIu32 " ms!", static_cast<uint32_t>(timeout / 1000));

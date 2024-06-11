@@ -41,3 +41,20 @@
  * @group Manual Control
  */
 PARAM_DEFINE_INT32(MAN_ARM_GESTURE, 1);
+
+/**
+ * Trigger time for kill stick gesture
+ *
+ * The timeout for holding the left stick to the lower left
+ * and the right stick to the lower right at the same time until the gesture
+ * kills the actuators one-way.
+ *
+ * A negative value disables the feature.
+ *
+ * @group Manual Control
+ * @unit s
+ * @decimal 2
+ * @min -1
+ * @max 15
+ */
+PARAM_DEFINE_FLOAT(MAN_KILL_GEST_T, -1.f);

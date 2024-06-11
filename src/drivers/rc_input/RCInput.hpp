@@ -118,14 +118,15 @@ private:
 	bool bind_spektrum(int arg = DSMX8_BIND_PULSES) const;
 #endif // SPEKTRUM_POWER
 
-	void fill_rc_in(uint16_t raw_rc_count_local,
-			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
-			hrt_abstime now, bool frame_drop, bool failsafe,
-			unsigned frame_drops, int rssi);
+	int32_t fill_rc_in(uint16_t raw_rc_count_local,
+			   uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
+			   hrt_abstime now, bool frame_drop, bool failsafe,
+			   unsigned frame_drops, int rssi);
 
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 
 	void rc_io_invert(bool invert);
+	void swap_rx_tx(void);
 
 	input_rc_s _input_rc{};
 	hrt_abstime _rc_scan_begin{0};

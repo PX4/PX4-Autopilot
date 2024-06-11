@@ -83,6 +83,7 @@ public:
 		BatteryLow,
 		BatteryCritical,
 		BatteryEmergency,
+		RemainingFlightTimeLow,
 
 		Count
 	};
@@ -146,7 +147,7 @@ public:
 		       bool rc_sticks_takeover_request,
 		       const failsafe_flags_s &status_flags);
 
-	bool inFailsafe() const { return _selected_action != Action::None; }
+	bool inFailsafe() const { return (_selected_action != Action::None && _selected_action != Action::Warn); }
 
 	Action selectedAction() const { return _selected_action; }
 

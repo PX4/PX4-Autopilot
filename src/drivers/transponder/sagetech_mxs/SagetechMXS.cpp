@@ -52,8 +52,6 @@ SagetechMXS::SagetechMXS(const char *port) :
 
 SagetechMXS::~SagetechMXS()
 {
-	free((char *)_port);
-
 	if (!(_fd < 0)) {
 		close(_fd);
 	}

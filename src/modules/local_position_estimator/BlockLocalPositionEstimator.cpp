@@ -137,6 +137,14 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 bool
 BlockLocalPositionEstimator::init()
 {
+	uORB::SubscriptionData<vehicle_local_position_s> vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	vehicle_local_position_sub.update();
+
+	if (vehicle_local_position_sub.advertised() && (hrt_elapsed_time(&vehicle_local_position_sub.get().timestamp) < 1_s)) {
+		PX4_ERR("init failed, vehicle_local_position already advertised");
+		return false;
+	}
+
 	if (!_sensors_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;

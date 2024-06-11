@@ -37,22 +37,37 @@ uint8 NAVIGATION_STATE_POSCTL = 2               # Position control mode
 uint8 NAVIGATION_STATE_AUTO_MISSION = 3         # Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
 uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
-uint8 NAVIGATION_STATE_UNUSED3 = 8              # Free slot
-uint8 NAVIGATION_STATE_UNUSED = 9               # Free slot
+uint8 NAVIGATION_STATE_POSITION_SLOW = 6
+uint8 NAVIGATION_STATE_FREE5 = 7
+uint8 NAVIGATION_STATE_FREE4 = 8
+uint8 NAVIGATION_STATE_FREE3 = 9
 uint8 NAVIGATION_STATE_ACRO = 10                # Acro mode
-uint8 NAVIGATION_STATE_UNUSED1 = 11             # Free slot
+uint8 NAVIGATION_STATE_FREE2 = 11
 uint8 NAVIGATION_STATE_DESCEND = 12             # Descend mode (no position control)
 uint8 NAVIGATION_STATE_TERMINATION = 13         # Termination mode
 uint8 NAVIGATION_STATE_OFFBOARD = 14
 uint8 NAVIGATION_STATE_STAB = 15                # Stabilized mode
-uint8 NAVIGATION_STATE_UNUSED2 = 16             # Free slot
+uint8 NAVIGATION_STATE_FREE1 = 16
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17        # Takeoff
 uint8 NAVIGATION_STATE_AUTO_LAND = 18           # Land
 uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19  # Auto Follow
 uint8 NAVIGATION_STATE_AUTO_PRECLAND = 20       # Precision land with landing target
 uint8 NAVIGATION_STATE_ORBIT = 21               # Orbit in a circle
 uint8 NAVIGATION_STATE_AUTO_VTOL_TAKEOFF = 22   # Takeoff, transition, establish loiter
-uint8 NAVIGATION_STATE_MAX = 23
+uint8 NAVIGATION_STATE_EXTERNAL1 = 23
+uint8 NAVIGATION_STATE_EXTERNAL2 = 24
+uint8 NAVIGATION_STATE_EXTERNAL3 = 25
+uint8 NAVIGATION_STATE_EXTERNAL4 = 26
+uint8 NAVIGATION_STATE_EXTERNAL5 = 27
+uint8 NAVIGATION_STATE_EXTERNAL6 = 28
+uint8 NAVIGATION_STATE_EXTERNAL7 = 29
+uint8 NAVIGATION_STATE_EXTERNAL8 = 30
+uint8 NAVIGATION_STATE_MAX = 31
+
+uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
+
+uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
+uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
 
 # Bitmask of detected failures
 uint16 failure_detector_status
@@ -78,8 +93,13 @@ uint8 VEHICLE_TYPE_FIXED_WING = 2
 uint8 VEHICLE_TYPE_ROVER = 3
 uint8 VEHICLE_TYPE_AIRSHIP = 4
 
+uint8 FAILSAFE_DEFER_STATE_DISABLED = 0
+uint8 FAILSAFE_DEFER_STATE_ENABLED = 1
+uint8 FAILSAFE_DEFER_STATE_WOULD_FAILSAFE = 2 # Failsafes deferred, but would trigger a failsafe
+
 bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
 bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control
+uint8 failsafe_defer_state # one of FAILSAFE_DEFER_STATE_*
 
 # Link loss
 bool gcs_connection_lost              # datalink to GCS lost

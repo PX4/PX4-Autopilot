@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE modules__logger
 	MAIN logger
 	PRIORITY "SCHED_PRIORITY_MAX-30"
+	STACK_MAIN 2500
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 		-Wno-cast-align # TODO: fix and enable

@@ -84,20 +84,6 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 PARAM_DEFINE_INT32(SYS_HITL, 0);
 
 /**
- * Set multicopter estimator group
- *
- * Set the group of estimators used for multicopters and VTOLs
- *
- * @value 1 local_position_estimator, attitude_estimator_q (unsupported)
- * @value 2 ekf2 (recommended)
- * @value 3 Q attitude estimator (no position)
- *
- * @reboot_required true
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
-
-/**
  * Enable auto start of rate gyro thermal calibration at the next power up.
  *
  * 0 : Set to 0 to do nothing
@@ -215,6 +201,19 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
+
+/**
+ * Control if the vehicle has an airspeed sensor
+ *
+ * Set this to 0 if the board has no airspeed sensor.
+ * If set to 0, the preflight checks will not check for the presence of an
+ * airspeed sensor.
+ *
+ * @group System
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(SYS_HAS_NUM_ASPD, 0);
 
 /**
  * Number of distance sensors to check being available

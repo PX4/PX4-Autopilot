@@ -34,6 +34,8 @@
 
 #include "HomePosition.hpp"
 
+#include <math.h>
+
 #include <lib/geo/geo.h>
 #include "commander_helper.h"
 
@@ -83,7 +85,8 @@ bool HomePosition::hasMovedFromCurrentHomeLocation()
 		}
 	}
 
-	return (home_dist_xy > eph * 2.f) || (home_dist_z > epv * 2.f);
+	return (home_dist_xy > fmaxf(eph * 2.f, kMinHomePositionChangeEPH))
+	       || (home_dist_z > fmaxf(epv * 2.f, kMinHomePositionChangeEPV));
 }
 
 bool HomePosition::setHomePosition(bool force)
@@ -129,6 +132,7 @@ bool HomePosition::setHomePosition(bool force)
 	if (updated) {
 		home.timestamp = hrt_absolute_time();
 		home.manual_home = false;
+		home.update_count = _home_position_pub.get().update_count + 1U;
 		updated = _home_position_pub.update(home);
 	}
 
@@ -193,6 +197,7 @@ void HomePosition::setInAirHomePosition()
 
 			setHomePosValid();
 			home.timestamp = hrt_absolute_time();
+			home.update_count++;
 			_home_position_pub.update();
 
 		} else if (!_failsafe_flags.local_position_invalid && _gps_position_for_home_valid) {
@@ -211,6 +216,7 @@ void HomePosition::setInAirHomePosition()
 
 			setHomePosValid();
 			home.timestamp = hrt_absolute_time();
+			home.update_count++;
 			_home_position_pub.update();
 		}
 
@@ -230,6 +236,7 @@ void HomePosition::setInAirHomePosition()
 			fillLocalHomePos(home, home_x, home_y, home_z, NAN);
 
 			home.timestamp = hrt_absolute_time();
+			home.update_count++;
 			_home_position_pub.update();
 		}
 
@@ -268,6 +275,7 @@ bool HomePosition::setManually(double lat, double lon, float alt, float yaw)
 	home.yaw = yaw;
 
 	home.timestamp = hrt_absolute_time();
+	home.update_count++;
 	_home_position_pub.update();
 	setHomePosValid();
 	return true;

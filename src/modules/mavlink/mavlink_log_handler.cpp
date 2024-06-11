@@ -80,7 +80,7 @@ stat_file(const char *file, time_t *date = nullptr, uint32_t *size = nullptr)
 }
 
 //-------------------------------------------------------------------
-MavlinkLogHandler::MavlinkLogHandler(Mavlink *mavlink)
+MavlinkLogHandler::MavlinkLogHandler(Mavlink &mavlink)
 	: _mavlink(mavlink)
 {
 
@@ -123,14 +123,14 @@ MavlinkLogHandler::send()
 
 	//-- Log Entries
 	while (_current_status == LogHandlerState::Listing
-	       && _mavlink->get_free_tx_buf() > MAVLINK_MSG_ID_LOG_ENTRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+	       && _mavlink.get_free_tx_buf() > MAVLINK_MSG_ID_LOG_ENTRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
 	       && count < MAX_BYTES_SEND) {
 		count += _log_send_listing();
 	}
 
 	//-- Log Data
 	while (_current_status == LogHandlerState::SendingData
-	       && _mavlink->get_free_tx_buf() > MAVLINK_MSG_ID_LOG_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
+	       && _mavlink.get_free_tx_buf() > MAVLINK_MSG_ID_LOG_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES
 	       && count < MAX_BYTES_SEND) {
 		count += _log_send_data();
 	}
@@ -272,7 +272,7 @@ MavlinkLogHandler::_log_send_listing()
 	response.id           = _next_entry;
 	response.num_logs     = _log_count;
 	response.last_log_num = _last_entry;
-	mavlink_msg_log_entry_send_struct(_mavlink->get_channel(), &response);
+	mavlink_msg_log_entry_send_struct(_mavlink.get_channel(), &response);
 
 	//-- If we're done listing, flag it.
 	if (_next_entry >= _last_entry) {
@@ -309,7 +309,7 @@ MavlinkLogHandler::_log_send_data()
 	response.ofs     = _current_log_data_offset;
 	response.id      = _current_log_index;
 	response.count   = read_size;
-	mavlink_msg_log_data_send_struct(_mavlink->get_channel(), &response);
+	mavlink_msg_log_data_send_struct(_mavlink.get_channel(), &response);
 	_current_log_data_offset    += read_size;
 	_current_log_data_remaining -= read_size;
 

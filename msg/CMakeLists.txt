@@ -49,15 +49,20 @@ set(msg_files
 	Airspeed.msg
 	AirspeedValidated.msg
 	AirspeedWind.msg
+	ArmingCheckReply.msg
+	ArmingCheckRequest.msg
 	AutotuneAttitudeControlStatus.msg
 	BatteryStatus.msg
+	Buffer128.msg
 	ButtonEvent.msg
 	CameraCapture.msg
 	CameraStatus.msg
 	CameraTrigger.msg
+	CanInterfaceStatus.msg
 	CellularStatus.msg
 	CollisionConstraints.msg
 	CollisionReport.msg
+	ConfigOverrides.msg
 	ControlAllocatorStatus.msg
 	Cpuload.msg
 	DatamanRequest.msg
@@ -66,6 +71,7 @@ set(msg_files
 	DebugKeyValue.msg
 	DebugValue.msg
 	DebugVect.msg
+	DifferentialDriveSetpoint.msg
 	DifferentialPressure.msg
 	DistanceSensor.msg
 	Ekf2Timestamps.msg
@@ -88,11 +94,13 @@ set(msg_files
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
+	FlightPhaseEstimation.msg
 	FollowTarget.msg
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
+	GeofenceStatus.msg
 	GimbalControls.msg
 	GimbalDeviceAttitudeStatus.msg
 	GimbalDeviceInformation.msg
@@ -101,6 +109,7 @@ set(msg_files
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
 	GimbalManagerStatus.msg
+	GotoSetpoint.msg
 	GpioConfig.msg
 	GpioIn.msg
 	GpioOut.msg
@@ -130,6 +139,8 @@ set(msg_files
 	ManualControlSwitches.msg
 	MavlinkLog.msg
 	MavlinkTunnel.msg
+	MessageFormatRequest.msg
+	MessageFormatResponse.msg
 	Mission.msg
 	MissionResult.msg
 	MountOrientation.msg
@@ -144,6 +155,10 @@ set(msg_files
 	OrbTest.msg
 	OrbTestLarge.msg
 	OrbTestMedium.msg
+	ParameterResetRequest.msg
+	ParameterSetUsedRequest.msg
+	ParameterSetValueRequest.msg
+	ParameterSetValueResponse.msg
 	ParameterUpdate.msg
 	Ping.msg
 	PositionControllerLandingStatus.msg
@@ -161,7 +176,11 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
+	RegisterExtComponentReply.msg
+	RegisterExtComponentRequest.msg
+	RoverAckermannGuidanceStatus.msg
 	Rpm.msg
+	RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
 	SensorAccel.msg
@@ -182,6 +201,7 @@ set(msg_files
 	SensorsStatus.msg
 	SensorsStatusImu.msg
 	SensorUwb.msg
+	SensorAirflow.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
@@ -198,6 +218,7 @@ set(msg_files
 	UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
+	UnregisterExtComponent.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
 	VehicleAngularAccelerationSetpoint.msg
@@ -225,7 +246,9 @@ set(msg_files
 	VehicleTorqueSetpoint.msg
 	VehicleTrajectoryBezier.msg
 	VehicleTrajectoryWaypoint.msg
+	VelocityLimits.msg
 	VtolVehicleStatus.msg
+	WheelEncoders.msg
 	Wind.msg
 	YawEstimatorStatus.msg
 )
@@ -253,6 +276,7 @@ set(msg_source_out_path ${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
 set(uorb_headers)
 set(uorb_sources)
 set(uorb_ucdr_headers)
+set(uorb_json_files)
 foreach(msg_file ${msg_files})
 	get_filename_component(msg ${msg_file} NAME_WE)
 
@@ -264,9 +288,10 @@ foreach(msg_file ${msg_files})
 	list(APPEND uorb_headers ${msg_out_path}/${msg}.h)
 	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
 	list(APPEND uorb_ucdr_headers ${ucdr_out_path}/${msg}.h)
+	list(APPEND uorb_json_files ${msg_source_out_path}/${msg}.json)
 endforeach()
 
-# set parent scope msg_files for other modules to consume (eg topic_listener)
+# set parent scope msg_files for ROS
 set(msg_files ${msg_files} PARENT_SCOPE)
 
 # Generate uORB headers
@@ -291,6 +316,44 @@ add_custom_command(
 	VERBATIM
 	)
 add_custom_target(uorb_headers DEPENDS ${uorb_headers})
+
+add_custom_command(
+	OUTPUT
+		${uorb_json_files}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		--json
+		-f ${msg_files}
+		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-o ${msg_source_out_path}
+		-e ${PX4_SOURCE_DIR}/Tools/msg/templates/uorb
+	DEPENDS
+		${msg_files}
+		${PX4_SOURCE_DIR}/Tools/msg/templates/uorb/msg.json.em
+		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_files.py
+		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_topic_helper.py
+	COMMENT "Generating uORB json files"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+)
+add_custom_target(uorb_json_files DEPENDS ${uorb_json_files})
+
+set(uorb_message_fields_cpp_file ${msg_source_out_path}/uORBMessageFieldsGenerated.cpp)
+set(uorb_message_fields_header_file ${msg_out_path}/uORBMessageFieldsGenerated.hpp)
+add_custom_command(
+	OUTPUT
+		${uorb_message_fields_cpp_file}
+		${uorb_message_fields_header_file}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_compressed_fields.py
+		-f ${uorb_json_files}
+		--source-output-file ${uorb_message_fields_cpp_file}
+		--header-output-file ${uorb_message_fields_header_file}
+	DEPENDS
+		${uorb_json_files}
+		${PX4_SOURCE_DIR}/Tools/msg/px_generate_uorb_compressed_fields.py
+	COMMENT "Generating uORB compressed fields"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+)
 
 # Generate microcdr headers
 add_custom_command(
@@ -334,7 +397,7 @@ add_custom_command(
 	VERBATIM
 	)
 
-add_library(uorb_msgs ${uorb_headers} ${msg_out_path}/uORBTopics.hpp ${uorb_sources} ${msg_source_out_path}/uORBTopics.cpp)
+add_library(uorb_msgs ${uorb_headers} ${msg_out_path}/uORBTopics.hpp ${uorb_sources} ${msg_source_out_path}/uORBTopics.cpp ${uorb_message_fields_cpp_file})
 target_link_libraries(uorb_msgs PRIVATE m)
 add_dependencies(uorb_msgs prebuild_targets uorb_headers)
 

@@ -522,7 +522,7 @@ void ICM45686::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 			accel.dt = (float)timestamp_fifo * ((1.f / _input_clock_freq) * 1e6f);
 
 		} else {
-			accel.dt = FIFO_TIMESTAMP_SCALING;
+			accel.dt = FIFO_SAMPLE_DT;
 		}
 
 		// 20 bit hires mode
@@ -634,7 +634,7 @@ void ICM45686::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 			gyro.dt = (float)timestamp_fifo * ((1.f / _input_clock_freq) * 1e6f);
 
 		} else {
-			gyro.dt = FIFO_TIMESTAMP_SCALING;
+			gyro.dt = FIFO_SAMPLE_DT;
 		}
 
 		// 20 bit hires mode

@@ -85,7 +85,7 @@ private:
 	static status_t measurement_ready_callback(status_t status, argus_hnd_t *hnd);
 
 	void get_info();
-	status_t set_rate(uint32_t rate_hz);
+	status_t set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode);
 
 	argus_hnd_t *_hnd{nullptr};
 

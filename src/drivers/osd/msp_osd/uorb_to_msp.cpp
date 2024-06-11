@@ -40,6 +40,7 @@
 #include <math.h>
 #include <matrix/math.hpp>
 #include <lib/geo/geo.h>
+#include <lib/modes/ui.hpp>
 
 // clock access
 #include <px4_platform_common/defines.h>
@@ -77,94 +78,7 @@ msp_name_t construct_display_message(const vehicle_status_s &vehicle_status,
 		}
 
 		// display flight mode
-		switch (vehicle_status.nav_state) {
-		case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-			display.set(MessageDisplayType::FLIGHT_MODE, "MANUAL");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-			display.set(MessageDisplayType::FLIGHT_MODE, "ALTCTL");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-			display.set(MessageDisplayType::FLIGHT_MODE, "POSCTL");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_MISSION");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_LOITER");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_RTL");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_UNUSED:
-			display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_ACRO:
-			display.set(MessageDisplayType::FLIGHT_MODE, "ACRO");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_UNUSED1:
-			display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED1");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-			display.set(MessageDisplayType::FLIGHT_MODE, "DESCEND");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-			display.set(MessageDisplayType::FLIGHT_MODE, "TERMINATION");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-			display.set(MessageDisplayType::FLIGHT_MODE, "OFFBOARD");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_STAB:
-			display.set(MessageDisplayType::FLIGHT_MODE, "STAB");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_UNUSED2:
-			display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED2");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_TAKEOFF");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_LAND");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_FOLLOW_TARGET");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_PRECLAND");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_ORBIT:
-			display.set(MessageDisplayType::FLIGHT_MODE, "ORBIT");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
-			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_VTOL_TAKEOFF");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_MAX:
-			display.set(MessageDisplayType::FLIGHT_MODE, "MAX");
-			break;
-
-		default:
-			display.set(MessageDisplayType::FLIGHT_MODE, "???");
-		}
+		display.set(MessageDisplayType::FLIGHT_MODE, mode_util::nav_state_names[vehicle_status.nav_state]);
 	}
 
 	// display, if updated

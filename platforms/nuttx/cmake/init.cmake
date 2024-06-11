@@ -77,6 +77,10 @@ execute_process(
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.log
 	RESULT_VARIABLE ret
 )
+execute_process(
+	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/defconfig_inflate_stamp
+	WORKING_DIRECTORY ${NUTTX_DIR}
+)
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/.config ${PX4_BINARY_DIR}/NuttX/nuttx/.config)
 
 ###############################################################################

@@ -113,7 +113,7 @@ CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	_px4_rangefinder.set_max_distance(7.9f);	// Datasheet: 8.0m
 	_px4_rangefinder.set_fov(0.0488692f);
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_CM8JL65);
-	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED);
 }
 
 CM8JL65::~CM8JL65()

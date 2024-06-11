@@ -60,22 +60,13 @@ bool ZeroGyroUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 		if (zero_gyro_update_data_ready) {
 
 			Vector3f gyro_bias = _zgup_delta_ang / _zgup_delta_ang_dt;
-			Vector3f innovation = ekf.state().gyro_bias - gyro_bias;
 
 			const float obs_var = sq(math::constrain(ekf.getGyroNoise(), 0.f, 1.f));
 
-			const Vector3f innov_var = ekf.getGyroBiasVariance() + obs_var;
-
-			for (int i = 0; i < 3; i++) {
-				Ekf::VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
-				const unsigned state_index = State::gyro_bias.idx + i;
-
-				// calculate kalman gain K = PHS, where S = 1/innovation variance
-				for (int row = 0; row < State::size; row++) {
-					K(row) = ekf.stateCovariance(row, state_index) / innov_var(i);
-				}
-
-				ekf.measurementUpdate(K, innov_var(i), innovation(i));
+			for (unsigned i = 0; i < 3; i++) {
+				const float innovation = ekf.state().gyro_bias(i) - gyro_bias(i);
+				const float innov_var = ekf.getGyroBiasVariance()(i) + obs_var;
+				ekf.fuseDirectStateMeasurement(innovation, innov_var, obs_var, State::gyro_bias.idx + i);
 			}
 
 			// Reset the integrators

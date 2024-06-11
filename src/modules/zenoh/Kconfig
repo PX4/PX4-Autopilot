@@ -12,12 +12,6 @@ if MODULES_ZENOH
         help
             Path to store network, publishers and subscribers configuration
 
-    config ZENOH_SERIAL
-        bool "Zenoh serial transport"
-        default n
-        help
-            Enables transport over serial (Not yet supported on NuttX/Linux)
-
     config ZENOH_DEBUG
         int "Zenoh debug level"
         default 0

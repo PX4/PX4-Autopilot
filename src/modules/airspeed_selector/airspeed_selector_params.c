@@ -11,7 +11,7 @@
  * @decimal 2
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 1.e-2f);
+PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 1.e-1f);
 
 /**
  * Wind estimator true airspeed scale process noise spectral density
@@ -51,7 +51,7 @@ PARAM_DEFINE_FLOAT(ASPD_TAS_NOISE, 1.4f);
  * @decimal 3
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3f);
+PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.15f);
 
 /**
  * Gate size for true airspeed fusion
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3f);
  * @unit SD
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_TAS_GATE, 3);
+PARAM_DEFINE_INT32(ASPD_TAS_GATE, 4);
 
 /**
  * Gate size for sideslip angle fusion
@@ -132,7 +132,6 @@ PARAM_DEFINE_FLOAT(ASPD_SCALE_3, 1.0f);
 /**
  * Index or primary airspeed measurement source
  *
- * @value -1 Disabled
  * @value 0 Groundspeed minus windspeed
  * @value 1 First airspeed sensor
  * @value 2 Second airspeed sensor
@@ -209,10 +208,10 @@ PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, 10.f);
  *
  * @unit s
  * @group Airspeed Validator
- * @min 1
- * @max 10
+ * @min 0.0
+ * @decimal 1
  */
-PARAM_DEFINE_INT32(ASPD_FS_T_STOP, 2);
+PARAM_DEFINE_FLOAT(ASPD_FS_T_STOP, 1.f);
 
 /**
  * Airspeed failsafe start delay
@@ -222,10 +221,10 @@ PARAM_DEFINE_INT32(ASPD_FS_T_STOP, 2);
  *
  * @unit s
  * @group Airspeed Validator
- * @min -1
- * @max 1000
+ * @min -1.0
+ * @decimal 1
  */
-PARAM_DEFINE_INT32(ASPD_FS_T_START, -1);
+PARAM_DEFINE_FLOAT(ASPD_FS_T_START, -1.f);
 
 /**
  * Horizontal wind uncertainty threshold for synthetic airspeed.

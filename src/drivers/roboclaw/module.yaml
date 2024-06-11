@@ -1,0 +1,45 @@
+module_name: Roboclaw Driver
+serial_config:
+  - command: roboclaw start ${SERIAL_DEV} ${BAUD_PARAM}
+    port_config_param:
+      name: RBCLW_SER_CFG
+      group: Roboclaw
+
+actuator_output:
+  output_groups:
+    - param_prefix: RBCLW
+      channel_label: 'Channel'
+      standard_params:
+        disarmed: { min: 128, max: 128, default: 128 }
+        min: { min: 1, max: 128, default: 1 }
+        max: { min: 128, max: 256, default: 256 }
+        failsafe: { min: 0, max: 257 }
+      num_channels: 2
+
+parameters:
+  - group: Roboclaw Driver
+    definitions:
+      RBCLW_COUNTS_REV:
+        description:
+          short: Number of encoder counts for one wheel revolution
+          long: The default value of 1200 corresponds to the default configuration of the Aion R1 rover.
+        type: int32
+        default: 1200
+        min: 1
+      RBCLW_ADDRESS:
+        description:
+          short: Address of the ESC on the bus
+          long: The ESC has to be configured to have an address from 0x80 to 0x87. This parameter needs to match the configured value.
+        type: enum
+        default: 128
+        min: 128
+        max: 135
+        values:
+          128: '0x80'
+          129: '0x81'
+          130: '0x82'
+          131: '0x83'
+          132: '0x84'
+          133: '0x85'
+          134: '0x86'
+          135: '0x87'

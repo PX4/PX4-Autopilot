@@ -81,15 +81,15 @@ if __name__ == "__main__":
         with open(output_file, 'w') as content_file:
             content_file.write(markdown_output)
 
-        readme_markdown_file_link='- [%s](%s.md)' % (msg_name,msg_name)
+        index_markdown_file_link='- [%s](%s.md)' % (msg_name,msg_name)
         if summary_description:
-            readme_markdown_file_link+=" — %s" % summary_description
-        filelist_in_markdown+=readme_markdown_file_link+"\n"
+            index_markdown_file_link+=" — %s" % summary_description
+        filelist_in_markdown+=index_markdown_file_link+"\n"
 
-    # Write out the README.md file
-    readme_text="""# uORB Message Reference
+    # Write out the index.md file
+    index_text="""# uORB Message Reference
 
-:::note
+::: info
 This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/msg/generate_msg_docs.py) from the source code.
 :::
 
@@ -98,6 +98,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 %s
     """ % (filelist_in_markdown)
-    readme_file = os.path.join(output_dir, 'README.md')
-    with open(readme_file, 'w') as content_file:
-            content_file.write(readme_text)
+    index_file = os.path.join(output_dir, 'index.md')
+    with open(index_file, 'w') as content_file:
+            content_file.write(index_text)

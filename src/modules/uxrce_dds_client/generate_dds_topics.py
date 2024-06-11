@@ -2,7 +2,7 @@
 ################################################################################
 #
 # Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
-# Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+# Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -99,16 +99,26 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+pubs_not_empty = msg_map['publications'] is not None
+if pubs_not_empty:
+    for p in msg_map['publications']:
+        process_message_type(p)
 
-for p in msg_map['publications']:
-    process_message_type(p)
+merged_em_globals['publications'] = msg_map['publications'] if pubs_not_empty else []
 
-merged_em_globals['publications'] = msg_map['publications']
+subs_not_empty = msg_map['subscriptions'] is not None
+if subs_not_empty:
+    for s in msg_map['subscriptions']:
+        process_message_type(s)
 
-for s in msg_map['subscriptions']:
-    process_message_type(s)
+merged_em_globals['subscriptions'] = msg_map['subscriptions'] if subs_not_empty else []
 
-merged_em_globals['subscriptions'] = msg_map['subscriptions']
+subs_multi_not_empty = msg_map['subscriptions_multi'] is not None
+if subs_multi_not_empty:
+    for sm in msg_map['subscriptions_multi']:
+        process_message_type(sm)
+
+merged_em_globals['subscriptions_multi'] = msg_map['subscriptions_multi'] if subs_multi_not_empty else []
 
 merged_em_globals['type_includes'] = sorted(set(all_type_includes))
 

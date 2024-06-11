@@ -1,9 +1,8 @@
-uint64 timestamp				# time since system start (microseconds)
-uint8 MISSION_EXECUTION_MODE_NORMAL = 0	# Execute the mission according to the planned items
-uint8 MISSION_EXECUTION_MODE_REVERSE = 1	# Execute the mission in reverse order, ignoring commands and converting all waypoints to normal ones
-uint8 MISSION_EXECUTION_MODE_FAST_FORWARD = 2	# Execute the mission as fast as possible, for example converting loiter waypoints to normal ones
+uint64 timestamp		# time since system start (microseconds)
 
-uint32 instance_count		# Instance count of this mission. Increments monotonically whenever the mission is modified
+uint32 mission_id   		# Id for the mission for which the result was generated
+uint32 geofence_id  		# Id for the corresponding geofence for which the result was generated (used for mission feasibility)
+uint32 home_position_counter  	# Counter of the home position for which the result was generated (used for mission feasibility)
 
 int32 seq_reached		# Sequence of the mission item which has been reached, default -1
 uint16 seq_current		# Sequence of the current mission item

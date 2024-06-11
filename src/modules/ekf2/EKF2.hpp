@@ -139,7 +139,7 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	int print_status();
+	int print_status(bool verbose = false);
 
 	bool should_exit() const { return _task_should_exit.load(); }
 
@@ -156,19 +156,6 @@ public:
 	int instance() const { return _instance; }
 
 private:
-	//TODO: remove after 1.14 release
-	enum SensorFusionMask : uint16_t {
-		// Bit locations for fusion_mode
-		DEPRECATED_USE_GPS = (1 << 0),  ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
-		DEPRECATED_USE_OPT_FLOW     = (1 << 1), ///< set to true to use optical flow data
-		DEPRECATED_INHIBIT_ACC_BIAS = (1 << 2), ///< set to true to inhibit estimation of accelerometer delta velocity bias
-		DEPRECATED_USE_EXT_VIS_POS = (1 << 3), ///< set to true to use external vision position data
-		DEPRECATED_USE_EXT_VIS_YAW = (1 << 4), ///< set to true to use external vision quaternion data for yaw
-		DEPRECATED_USE_DRAG         = (1 << 5), ///< set to true to use the multi-rotor drag model to estimate wind
-		DEPRECATED_ROTATE_EXT_VIS  = (1 << 6), ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
-		DEPRECATED_USE_GPS_YAW     = (1 << 7), ///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
-		DEPRECATED_USE_EXT_VIS_VEL = (1 << 8), ///< set to true to use external vision velocity data
-	};
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
@@ -289,10 +276,8 @@ private:
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
-	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
-	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
+	perf_counter_t _ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": EKF update")};
 	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
-	perf_counter_t _msg_missed_odometry_perf{nullptr};
 
 	InFlightCalibration _accel_cal{};
 	InFlightCalibration _gyro_cal{};
@@ -314,8 +299,6 @@ private:
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	uint32_t _device_id_mag {0};
 
-	perf_counter_t _msg_missed_magnetometer_perf {nullptr};
-
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
@@ -324,11 +307,9 @@ private:
 	Vector3f _last_mag_bias_published{};
 
 	hrt_abstime _status_mag_pub_last{0};
-	hrt_abstime _status_mag_heading_pub_last{0};
 
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_mag_heading_pub{ORB_ID(estimator_aid_src_mag_heading)};
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_mag_pub{ORB_ID(estimator_aid_src_mag)};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -354,8 +335,6 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
 	hrt_abstime _status_aux_vel_pub_last{0};
-
-	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -378,13 +357,9 @@ private:
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
 	hrt_abstime _status_optical_flow_pub_last{0};
 	hrt_abstime _optical_flow_vel_pub_last{0};
-
-	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	perf_counter_t _msg_missed_air_data_perf {nullptr};
-
 	uint8_t _baro_calibration_count {0};
 	uint32_t _device_id_baro{0};
 	hrt_abstime _status_baro_hgt_pub_last{0};
@@ -411,9 +386,6 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_airspeed_pub {ORB_ID(estimator_aid_src_airspeed)};
 	hrt_abstime _status_airspeed_pub_last{0};
-
-	perf_counter_t _msg_missed_airspeed_perf{nullptr};
-	perf_counter_t _msg_missed_airspeed_validated_perf{nullptr};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
@@ -443,8 +415,6 @@ private:
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
 	hrt_abstime _last_range_sensor_update{0};
 	int _distance_sensor_selected{-1}; // because we can have several distance sensor instances with different orientations
-	unsigned _distance_sensor_last_generation{0};
-	perf_counter_t _msg_missed_distance_sensor_perf{nullptr};
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	bool _callback_registered{false};
@@ -486,9 +456,7 @@ private:
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_GNSS)
-	perf_counter_t _msg_missed_gps_perf {nullptr};
-
-	uint64_t _gps_time_usec{0};
+	uint64_t _gps_time_usec {0};
 	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
@@ -530,6 +498,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
+		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 
 #if defined(CONFIG_EKF2_AUXVEL)
@@ -635,16 +604,12 @@ private:
 		(ParamExtInt<px4::params::EKF2_DECL_TYPE>) _param_ekf2_decl_type,
 		(ParamExtInt<px4::params::EKF2_MAG_TYPE>) _param_ekf2_mag_type,
 		(ParamExtFloat<px4::params::EKF2_MAG_ACCLIM>) _param_ekf2_mag_acclim,
-		(ParamExtFloat<px4::params::EKF2_MAG_YAWLIM>) _param_ekf2_mag_yawlim,
 		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_STR>) _param_ekf2_mag_chk_str,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_INC>) _param_ekf2_mag_chk_inc,
 		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>) _param_ekf2_synthetic_mag_z,
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-		// measurement source control
-		(ParamInt<px4::params::EKF2_AID_MASK>)
-		_param_ekf2_aid_mask,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
 		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
 
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)

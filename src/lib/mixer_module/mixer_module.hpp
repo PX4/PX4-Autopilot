@@ -206,6 +206,7 @@ public:
 
 protected:
 	void updateParams() override;
+	uint16_t output_limit_calc_single(int i, float value) const;
 
 private:
 
@@ -223,8 +224,6 @@ private:
 	void initParamHandles();
 
 	void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
-
-	uint16_t output_limit_calc_single(int i, float value) const;
 
 	void output_limit_calc(const bool armed, const int num_channels, const float outputs[MAX_ACTUATORS]);
 
@@ -289,6 +288,7 @@ private:
 	hrt_abstime _lowrate_schedule_interval{300_ms};
 	ActuatorTest _actuator_test{_function_assignment};
 	uint32_t _reversible_mask{0}; ///< per-output bits. If set, the output is configured to be reversible (motors only)
+	bool _was_all_disabled{false};
 
 	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr}; ///< current scheduling callback
 

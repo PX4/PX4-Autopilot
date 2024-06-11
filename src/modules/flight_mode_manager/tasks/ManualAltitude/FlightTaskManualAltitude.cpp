@@ -92,8 +92,9 @@ void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	// Use sticks input with deadzone and exponential curve for vertical velocity
-	const float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? _param_mpc_z_vel_max_dn.get() :
-				_param_mpc_z_vel_max_up.get();
+	const float vel_max_up = fminf(_param_mpc_z_vel_max_up.get(), _velocity_constraint_up);
+	const float vel_max_down = fminf(_param_mpc_z_vel_max_dn.get(), _velocity_constraint_down);
+	const float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? vel_max_down : vel_max_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks.getPositionExpo()(2);
 }
 
@@ -124,7 +125,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			if (stick_input || too_fast || !PX4_ISFINITE(_dist_to_bottom)) {
 				// Stop using distance to ground
 				_terrain_hold = false;
-				_terrain_follow = false;
 
 				// Adjust the setpoint to maintain the same height error to reduce control transients
 				if (PX4_ISFINITE(_dist_to_ground_lock) && PX4_ISFINITE(_dist_to_bottom)) {
@@ -141,7 +141,6 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			if (!stick_input && not_moving && PX4_ISFINITE(_dist_to_bottom)) {
 				// Start using distance to ground
 				_terrain_hold = true;
-				_terrain_follow = true;
 
 				// Adjust the setpoint to maintain the same height error to reduce control transients
 				if (PX4_ISFINITE(_position_setpoint(2))) {
@@ -152,7 +151,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	}
 
-	if ((_param_mpc_alt_mode.get() == 1 || _terrain_follow) && PX4_ISFINITE(_dist_to_bottom)) {
+	if ((_param_mpc_alt_mode.get() == 1 || _terrain_hold) && PX4_ISFINITE(_dist_to_bottom)) {
 		// terrain following
 		_terrainFollowing(apply_brake, stopped);
 		// respect maximum altitude

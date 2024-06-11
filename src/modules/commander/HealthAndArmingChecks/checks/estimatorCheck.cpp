@@ -99,7 +99,14 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (missing_data && _param_sys_mc_est_group.get() == 2) {
+	param_t param_ekf2_en_handle = param_find_no_notification("EKF2_EN");
+	int32_t param_ekf2_en = 0;
+
+	if (param_ekf2_en_handle != PARAM_INVALID) {
+		param_get(param_ekf2_en_handle, &param_ekf2_en);
+	}
+
+	if (missing_data && (param_ekf2_en == 1)) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -293,7 +300,9 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 					mavlink_log_warning(reporter.mavlink_log_pub(), "GNSS data fusion stopped\t");
 				}
 
-				events::send(events::ID("check_estimator_gnss_fusion_stopped"), {events::Log::Error, events::LogInternal::Info},
+				// only report this failure as critical if not already in a local position invalid state
+				events::Log log_level = reporter.failsafeFlags().local_position_invalid ? events::Log::Info : events::Log::Error;
+				events::send(events::ID("check_estimator_gnss_fusion_stopped"), {log_level, events::LogInternal::Info},
 					     "GNSS data fusion stopped");
 
 			} else if (!_gps_was_fused && ekf_gps_fusion) {

@@ -182,8 +182,8 @@ private:
 
 		(ParamFloat<px4::params::ASPD_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
 		(ParamFloat<px4::params::ASPD_FS_INTEG>) _tas_innov_integ_threshold, /**< innovation check integrator threshold */
-		(ParamInt<px4::params::ASPD_FS_T_STOP>) _checks_fail_delay, /**< delay to declare airspeed invalid */
-		(ParamInt<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
+		(ParamFloat<px4::params::ASPD_FS_T_STOP>) _checks_fail_delay, /**< delay to declare airspeed invalid */
+		(ParamFloat<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
 
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
 		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas
@@ -600,9 +600,8 @@ void AirspeedModule::select_airspeed_and_publish()
 	}
 
 	// check if airspeed based on ground-wind speed is valid and can be published
-	if (_param_airspeed_primary_index.get() > airspeed_index::DISABLED_INDEX &&
-	    (_valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX
-	     || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
+	if (_valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX
+	    || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX) {
 
 		// _vehicle_local_position_valid determines if ground-wind estimate is valid
 		if (_vehicle_local_position_valid &&

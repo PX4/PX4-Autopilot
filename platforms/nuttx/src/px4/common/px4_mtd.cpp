@@ -351,6 +351,11 @@ memoryout:
 
 		} else if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::SPI) {
 			rv = ramtron_attach(*instances[i]);
+#if defined(HAS_FLEXSPI)
+
+		} else if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::FLEXSPI) {
+			rv = flexspi_attach(instances[i]);
+#endif
 
 		} else if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::ONCHIP) {
 			instances[i]->n_partitions_current++;

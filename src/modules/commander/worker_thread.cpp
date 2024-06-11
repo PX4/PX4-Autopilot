@@ -177,7 +177,7 @@ void WorkerThread::threadEntry()
 			param_reset_specific(reset_cal, sizeof(reset_cal) / sizeof(reset_cal[0]));
 			_ret_value = param_save_default(true);
 #if defined(CONFIG_BOARDCTL_RESET)
-			px4_reboot_request(false, 400_ms);
+			px4_reboot_request(REBOOT_REQUEST, 400_ms);
 #endif // CONFIG_BOARDCTL_RESET
 			break;
 		}

@@ -63,6 +63,8 @@
 #include <matrix/math.hpp>
 #include <lib/mathlib/mathlib.h>
 
+#include <uORB/topics/vehicle_local_position.h>
+
 /*
  * NPFG
  * Lateral-directional nonlinear path following guidance logic with excess wind handling
@@ -71,8 +73,19 @@ class NPFG
 {
 
 public:
+	/**
+	 * @brief Can run
+	 *
+	 * Evaluation if all the necessary information are available such that npfg can produce meaningful results.
+	 *
+	 * @param[in] local_pos is the current vehicle local position uorb message
+	 * @param[in] is_wind_valid flag if the wind estimation is valid
+	 * @return estimate of certainty of the correct functionality of the npfg roll setpoint in [0, 1]. Can be used to define proper mitigation actions.
+	 */
+
+	float canRun(const vehicle_local_position_s &local_pos, bool is_wind_valid) const;
 	/*
-	 * Computes the lateral acceleration and airspeed references necessary to track
+	 * Computes the lateral acceleration and true airspeed references necessary to track
 	 * a path in wind (including excess wind conditions).
 	 *
 	 * @param[in] curr_pos_local Current horizontal vehicle position in local coordinates [m]
@@ -137,12 +150,12 @@ public:
 	void setMaxTrackKeepingMinGroundSpeed(float min_gsp) { min_gsp_track_keeping_max_ = math::max(min_gsp, 0.0f); }
 
 	/*
-	 * Set the nominal airspeed reference [m/s].
+	 * Set the nominal airspeed reference (true airspeed) [m/s].
 	 */
 	void setAirspeedNom(float airsp) { airspeed_nom_ = math::max(airsp, 0.1f); }
 
 	/*
-	 * Set the maximum airspeed reference [m/s].
+	 * Set the maximum airspeed reference (true airspeed) [m/s].
 	 */
 	void setAirspeedMax(float airsp) { airspeed_max_ = math::max(airsp, 0.1f); }
 
@@ -237,20 +250,6 @@ public:
 	/*
 	 * [Copied directly from ECL_L1_Pos_Controller]
 	 *
-	 * Set roll angle slew rate. Set to zero to deactivate.
-	 */
-	void setRollSlewRate(float roll_slew_rate) { roll_slew_rate_ = roll_slew_rate; }
-
-	/*
-	 * [Copied directly from ECL_L1_Pos_Controller]
-	 *
-	 * Set control loop dt. The value will be used to apply roll angle setpoint slew rate limiting.
-	 */
-	void setDt(const float dt) { dt_ = dt; }
-
-	/*
-	 * [Copied directly from ECL_L1_Pos_Controller]
-	 *
 	 * Get the switch distance
 	 *
 	 * This is the distance at which the system will switch to the next waypoint.
@@ -270,6 +269,10 @@ public:
 	float getRollSetpoint() { return roll_setpoint_; }
 
 private:
+	static constexpr float HORIZONTAL_EVH_FACTOR_COURSE_VALID{3.f}; ///< Factor of velocity standard deviation above which course calculation is considered good enough
+	static constexpr float HORIZONTAL_EVH_FACTOR_COURSE_INVALID{2.f}; ///< Factor of velocity standard deviation below which course calculation is considered unsafe
+	static constexpr float COS_HEADING_TRACK_ANGLE_NOT_PUSHED_BACK{0.09f}; ///< Cos of Heading to track angle below which it is assumed that the vehicle is not pushed back by the wind ~cos(85°)
+	static constexpr float COS_HEADING_TRACK_ANGLE_PUSHED_BACK{0.f}; ///< Cos of Heading to track angle above which it is assumed that the vehicle is pushed back by the wind
 
 	static constexpr float NPFG_EPSILON = 1.0e-6; // small number *bigger than machine epsilon
 	static constexpr float MIN_RADIUS = 0.5f; // minimum effective radius (avoid singularities) [m]
@@ -303,8 +306,8 @@ private:
 	// ^disabling this parameter disables all other excess wind handling options, using only the nominal airspeed for reference
 
 	// guidance settings
-	float airspeed_nom_{15.0f}; // nominal (desired) airspeed reference (generally equivalent to cruise optimized airspeed) [m/s]
-	float airspeed_max_{20.0f}; // maximum airspeed reference - the maximum achievable/allowed airspeed reference [m/s]
+	float airspeed_nom_{15.0f}; // nominal (desired) true airspeed reference (generally equivalent to cruise optimized airspeed) [m/s]
+	float airspeed_max_{20.0f}; // maximum true airspeed reference - the maximum achievable/allowed airspeed reference [m/s]
 	float roll_time_const_{0.0f}; // autopilot roll response time constant [s]
 	float min_gsp_desired_{0.0f}; // user defined miminum desired forward ground speed [m/s]
 	float min_gsp_track_keeping_max_{5.0f}; // maximum, minimum forward ground speed demand from track keeping logic [m/s]
@@ -338,8 +341,8 @@ private:
 	 * guidance outputs
 	 */
 
-	float airspeed_ref_{15.0f}; // airspeed reference [m/s]
-	matrix::Vector2f air_vel_ref_{matrix::Vector2f{15.0f, 0.0f}}; // air velocity reference vector [m/s]
+	float airspeed_ref_{15.0f}; // true airspeed reference [m/s]
+	matrix::Vector2f air_vel_ref_{matrix::Vector2f{15.0f, 0.0f}}; // true air velocity reference vector [m/s]
 	float lateral_accel_{0.0f}; // lateral acceleration reference [m/s^2]
 	float lateral_accel_ff_{0.0f}; // lateral acceleration demand to maintain path curvature [m/s^2]
 
@@ -347,17 +350,15 @@ private:
 	 * ECL_L1_Pos_Controller functionality
 	 */
 
-	float dt_{0}; // control loop time [s]
 	float roll_lim_rad_{math::radians(30.0f)}; // maximum roll angle [rad]
 	float roll_setpoint_{0.0f}; // current roll angle setpoint [rad]
-	float roll_slew_rate_{0.0f}; // roll angle setpoint slew rate limit [rad/s]
 
 	/*
 	 * Adapts the controller period considering user defined inputs, current flight
 	 * condition, path properties, and stability bounds.
 	 *
 	 * @param[in] ground_speed Vehicle ground speed [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @param[in] track_error Track error (magnitude) [m]
 	 * @param[in] path_curvature Path curvature at closest point on track [m^-1]
@@ -383,7 +384,7 @@ private:
 	/*
 	 * Cacluates an approximation of the wind factor (see [TODO: include citation]).
 	 *
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @return Non-dimensional wind factor approximation
 	 */
@@ -394,7 +395,7 @@ private:
 	 * track keeping stability.
 	 *
 	 * @param[in] air_turn_rate The turn rate required to track the current path
-	 *            curvature at the current airspeed, in a no-wind condition [rad/s]
+	 *            curvature at the current true airspeed, in a no-wind condition [rad/s]
 	 * @param[in] wind_factor Non-dimensional wind factor (see [TODO: include citation])
 	 * @return Period upper bound [s]
 	 */
@@ -407,7 +408,7 @@ private:
 	 * and a safety factor should be applied in addition to the returned value.
 	 *
 	 * @param[in] air_turn_rate The turn rate required to track the current path
-	 *            curvature at the current airspeed, in a no-wind condition [rad/s]
+	 *            curvature at the current true airspeed, in a no-wind condition [rad/s]
 	 * @param[in] wind_factor Non-dimensional wind factor (see [TODO: include citation])
 	 * @return Period lower bound [s]
 	 */
@@ -492,8 +493,8 @@ private:
 
 	/*
 	 * Determines a reference air velocity *without curvature compensation, but
-	 * including "optimal" airspeed reference compensation in excess wind conditions.
-	 * Nominal and maximum airspeed member variables must be set before using this method.
+	 * including "optimal" true airspeed reference compensation in excess wind conditions.
+	 * Nominal and maximum true airspeed member variables must be set before using this method.
 	 *
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 * @param[in] bearing_vec Bearing vector
@@ -511,7 +512,7 @@ private:
 	 * Projection of the air velocity vector onto the bearing line considering
 	 * a connected wind triangle.
 	 *
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @return Projection of air velocity vector on bearing vector [m/s]
 	 */
@@ -522,7 +523,7 @@ private:
 	 *
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @param[in] wind_dot_bearing 2D dot product of wind velocity and bearing vector [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @return Binary bearing feasibility: 1 if feasible, 0 if infeasible
 	 */
@@ -548,7 +549,7 @@ private:
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 * @param[in] bearing_vec Bearing vector
 	 * @param[in] wind_speed Wind speed [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @return Air velocity vector [m/s]
 	 */
 	matrix::Vector2f infeasibleAirVelRef(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,
@@ -561,7 +562,7 @@ private:
 	 *
 	 * @param[in] wind_cross_bearing 2D cross product of wind velocity and bearing vector [m/s]
 	 * @param[in] wind_dot_bearing 2D dot product of wind velocity and bearing vector [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @return bearing feasibility
 	 */
@@ -576,7 +577,7 @@ private:
 	 *            in direction of path
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @param[in] wind_speed Wind speed [m/s]
 	 * @param[in] signed_track_error Signed error to track at closest point (sign
 	 *             determined by path normal direction) [m]
@@ -593,7 +594,7 @@ private:
 	 *
 	 * @param[in] air_vel Vechile air velocity vector [m/s]
 	 * @param[in] air_vel_ref Reference air velocity vector [m/s]
-	 * @param[in] airspeed Vehicle airspeed [m/s]
+	 * @param[in] airspeed Vehicle true airspeed [m/s]
 	 * @return Lateral acceleration demand [m/s^2]
 	 */
 	float lateralAccel(const matrix::Vector2f &air_vel, const matrix::Vector2f &air_vel_ref,

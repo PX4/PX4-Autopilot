@@ -180,6 +180,14 @@ AttitudeEstimatorQ::AttitudeEstimatorQ() :
 
 bool AttitudeEstimatorQ::init()
 {
+	uORB::SubscriptionData<vehicle_attitude_s> vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	vehicle_attitude_sub.update();
+
+	if (vehicle_attitude_sub.advertised() && (hrt_elapsed_time(&vehicle_attitude_sub.get().timestamp) < 1_s)) {
+		PX4_ERR("init failed, vehicle_attitude already advertised");
+		return false;
+	}
+
 	if (!_sensors_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
@@ -219,8 +227,8 @@ void AttitudeEstimatorQ::update_gps_position()
 		if (_vehicle_gps_position_sub.update(&gps)) {
 			if (_param_att_mag_decl_a.get() && (gps.eph < 20.0f)) {
 				// set magnetic declination automatically
-				update_mag_declination(get_mag_declination_radians((float)gps.latitude_deg,
-						       (float)gps.longitude_deg));
+				float mag_decl_deg = get_mag_declination_degrees(gps.latitude_deg, gps.longitude_deg);
+				update_mag_declination(math::radians(mag_decl_deg));
 			}
 		}
 	}

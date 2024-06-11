@@ -20,16 +20,16 @@ param set-default MAV_TYPE 15
 
 param set-default CA_AIRFRAME 8
 # Tricopter
-param set-default CA_ROTOR0_PX 0.2500
-param set-default CA_ROTOR0_PY 0.4330
-param set-default CA_ROTOR1_PX 0.2500
-param set-default CA_ROTOR1_PY -0.4300
-param set-default CA_ROTOR2_PX -0.5000
-param set-default CA_ROTOR2_PY 0.0000
+param set-default CA_ROTOR0_PX 0.25
+param set-default CA_ROTOR0_PY 0.433
+param set-default CA_ROTOR1_PX 0.25
+param set-default CA_ROTOR1_PY -0.43
+param set-default CA_ROTOR2_PX -0.5
+param set-default CA_ROTOR2_PY 0
 param set-default CA_ROTOR2_TILT 1
 param set-default CA_ROTOR_COUNT 3
-param set-default CA_SV_TL0_MAXA 45.0000
-param set-default CA_SV_TL0_MINA -45.0000
+param set-default CA_SV_TL0_MAXA 45
+param set-default CA_SV_TL0_MINA -45
 param set-default CA_SV_TL0_TD 90
 param set-default CA_SV_TL_COUNT 1
 

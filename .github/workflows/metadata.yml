@@ -128,4 +128,6 @@ jobs:
       run: |
         git clone https://github.com/PX4/px4_msgs.git
         rm px4_msgs/msg/*.msg
+        rm px4_msgs/srv/*.srv
         cp msg/*.msg px4_msgs/msg/
+        cp srv/*.srv px4_msgs/srv/

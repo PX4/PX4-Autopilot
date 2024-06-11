@@ -48,6 +48,7 @@ public:
 
 private:
 	uORB::Subscription _system_power_sub{ORB_ID(system_power)};
+	bool _overcurrent_warning_sent{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,

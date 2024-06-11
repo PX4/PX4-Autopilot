@@ -172,7 +172,7 @@ public:
 
 	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
 
-	static bool		component_was_seen(int system_id, int component_id, Mavlink *self = nullptr);
+	static bool		component_was_seen(int system_id, int component_id, Mavlink &self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
@@ -584,6 +584,7 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};
 	bool			_radio_status_critical{false};
@@ -595,8 +596,6 @@ private:
 	 * to len - 1, the end of the param list.
 	 */
 	unsigned int		_mavlink_param_queue_index{0};
-
-	bool			_mavlink_link_termination_allowed{false};
 
 	char			*_subscribe_to_stream{nullptr};
 	float			_subscribe_to_stream_rate{0.0f};  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
@@ -706,6 +705,12 @@ private:
 	void publish_telemetry_status();
 
 	void check_requested_subscriptions();
+
+	void handleCommands();
+
+	void handleAndGetCurrentCommandAck();
+
+	void handleStatus();
 
 	/**
 	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID

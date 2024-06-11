@@ -25,3 +25,12 @@ actuator_output:
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
       num_channels: 8
+    - param_prefix: SIM_GZ_WH
+      group_label: 'Wheels'
+      channel_label: 'Wheels'
+      standard_params:
+        disarmed: { min: 0, max: 200, default: 100 }
+        min: { min: 0, max: 200, default: 0 }
+        max: { min: 0, max: 200, default: 200 }
+        failsafe: { min: 0, max: 200 }
+      num_channels: 2

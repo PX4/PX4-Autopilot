@@ -50,6 +50,7 @@ px4_add_library(health_and_arming_checks
 	checks/gyroCheck.cpp
 	checks/homePositionCheck.cpp
 	checks/imuConsistencyCheck.cpp
+	checks/loggerCheck.cpp
 	checks/magnetometerCheck.cpp
 	checks/manualControlCheck.cpp
 	checks/missionCheck.cpp
@@ -65,6 +66,7 @@ px4_add_library(health_and_arming_checks
 	checks/vtolCheck.cpp
 	checks/windCheck.cpp
 
+	checks/externalChecks.cpp
 )
 add_dependencies(health_and_arming_checks mode_util)
 

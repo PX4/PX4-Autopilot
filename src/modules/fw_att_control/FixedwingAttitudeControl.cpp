@@ -92,7 +92,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
-			if (!_vcontrol_mode.flag_control_climb_rate_enabled & _vcontrol_mode.flag_control_attitude_enabled) {
+			if (!_vcontrol_mode.flag_control_climb_rate_enabled && _vcontrol_mode.flag_control_attitude_enabled) {
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 
@@ -150,7 +150,7 @@ float FixedwingAttitudeControl::get_airspeed_constrained()
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
 	float airspeed = _param_fw_airspd_trim.get();
 
-	if ((_param_fw_arsp_mode.get() == 0) && airspeed_valid) {
+	if (_param_fw_use_airspd.get() && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_validated_sub.get().calibrated_airspeed_m_s);
 
@@ -322,31 +322,19 @@ void FixedwingAttitudeControl::Run()
 				}
 			}
 
-			/* Prepare data for attitude controllers */
-			ECL_ControlData control_input{};
-			control_input.roll = euler_angles.phi();
-			control_input.pitch = euler_angles.theta();
-			control_input.yaw = euler_angles.psi();
-			control_input.body_z_rate = angular_velocity.xyz[2];
-			control_input.roll_setpoint = _att_sp.roll_body;
-			control_input.pitch_setpoint = _att_sp.pitch_body;
-			control_input.yaw_setpoint = _att_sp.yaw_body;
-			control_input.euler_pitch_rate_setpoint = _pitch_ctrl.get_euler_rate_setpoint();
-			control_input.euler_yaw_rate_setpoint = _yaw_ctrl.get_euler_rate_setpoint();
-			control_input.airspeed_constrained = get_airspeed_constrained();
-			control_input.groundspeed = _groundspeed;
-			control_input.groundspeed_scaler = groundspeed_scale;
-
 			/* Run attitude controllers */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
 				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
-					_roll_ctrl.control_attitude(dt, control_input);
-					_pitch_ctrl.control_attitude(dt, control_input);
-					_yaw_ctrl.control_attitude(dt, control_input);
+					_roll_ctrl.control_roll(_att_sp.roll_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+								euler_angles.theta());
+					_pitch_ctrl.control_pitch(_att_sp.pitch_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+								  euler_angles.theta());
+					_yaw_ctrl.control_yaw(_att_sp.roll_body, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+							      euler_angles.theta(), get_airspeed_constrained());
 
 					if (wheel_control) {
-						_wheel_ctrl.control_attitude(dt, control_input);
+						_wheel_ctrl.control_attitude(_att_sp.yaw_body, euler_angles.psi());
 
 					} else {
 						_wheel_ctrl.reset_integrator();
@@ -373,7 +361,7 @@ void FixedwingAttitudeControl::Run()
 
 					/* add yaw rate setpoint from sticks in all attitude-controlled modes */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
-						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_fw_y_rmax.get()),
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_man_yr_max.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
@@ -404,8 +392,9 @@ void FixedwingAttitudeControl::Run()
 				// XXX: yaw_sp_move_rate here is an abuse -- used to ferry manual yaw inputs from
 				// position controller during auto modes _manual_control_setpoint.r gets passed
 				// whenever nudging is enabled, otherwise zero
-				wheel_u = wheel_control ? _wheel_ctrl.control_bodyrate(dt, control_input)
-					  + _att_sp.yaw_sp_move_rate : 0.f;
+				const float wheel_controller_output = _wheel_ctrl.control_bodyrate(dt, euler_angles.psi(), _groundspeed,
+								      groundspeed_scale);
+				wheel_u = wheel_control ? wheel_controller_output +  _att_sp.yaw_sp_move_rate : 0.f;
 			}
 
 			_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(wheel_u) ? wheel_u : 0.f;

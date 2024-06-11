@@ -41,76 +41,18 @@
  */
 
 /**
- * Minimum Airspeed (CAS)
+ * Use airspeed for control
  *
- * The minimal airspeed (calibrated airspeed) the user is able to command.
- * Further, if the airspeed falls below this value, the TECS controller will try to
- * increase airspeed more aggressively.
- * Should be set (with some margin) above the vehicle stall speed.
- * This value corresponds to the desired minimum speed with the default load factor (level flight, default weight),
- * and is automatically adapated to the current load factor (calculated from roll setpoint and WEIGHT_GROSS/WEIGHT_BASE).
+ * If set to 1, the airspeed measurement data, if valid, is used in the following controllers:
+ * - Rate controller: output scaling
+ * - Attitude controller: coordinated turn controller
+ * - Position controller: airspeed setpoint tracking, takeoff logic
+ * - VTOL: transition logic
  *
- * @unit m/s
- * @min 0.5
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
-
-/**
- * Maximum Airspeed (CAS)
- *
- * The maximal airspeed (calibrated airspeed) the user is able to command.
- *
- * @unit m/s
- * @min 0.5
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
-
-/**
- * Airspeed mode
- *
- * On vehicles without airspeed sensor this parameter can be used to
- * enable flying without an airspeed reading
- *
- * @value 0 Use airspeed in controller
- * @value 1 Do not use airspeed in controller
+ * @boolean
  * @group FW Rate Control
  */
-PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
-
-/**
- * Trim (Cruise) Airspeed
- *
- * The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active,
- * this is the default airspeed setpoint that the controller will try to achieve.
- *
- * @unit m/s
- * @min 0.5
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
-
-/**
- * Stall Airspeed (CAS)
- *
- * The stall airspeed (calibrated airspeed) of the vehicle.
- * It is used for airspeed sensor failure detection and for the control
- * surface scaling airspeed limits.
- *
- * @unit m/s
- * @min 0.5
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_STALL, 7.0f);
+PARAM_DEFINE_INT32(FW_USE_AIRSPD, 1);
 
 /**
  * Pitch rate proportional gain.

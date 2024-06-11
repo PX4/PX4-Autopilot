@@ -4,7 +4,7 @@
     "description": "Firmware for the ARK flow board",
     "image": "",
     "build_time": 0,
-    "summary": "ARFFLOW",
+    "summary": "ARKFLOW",
     "version": "0.1",
     "image_size": 0,
     "image_maxsize": 2080768,

@@ -205,23 +205,14 @@ protected:
 	 */
 	void set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode);
 
-	/**
-	 * General function used to adjust the mission item based on vehicle specific limitations
-	 */
-	void mission_apply_limitation(mission_item_s &item);
+	void setLoiterToAltMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp, float loiter_radius) const;
 
-	void setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_radius,
-				       HeadingMode heading_mode) const;
+	void setLoiterHoldMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp, float loiter_time,
+				      float loiter_radius) const;
 
-	void setLoiterHoldMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_time,
-				      float loiter_radius, HeadingMode heading_mode) const;
+	void setMoveToPositionMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const;
 
-	void setMoveToPositionMissionItem(mission_item_s &item, const DestinationPosition &dest,
-					  HeadingMode heading_mode) const;
-
-	void setLandMissionItem(mission_item_s &item, const DestinationPosition &dest, HeadingMode heading_mode) const;
-
-	float setYawFromHeadingMode(const DestinationPosition &dest, HeadingMode heading_mode) const;
+	void setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const;
 
 	void startPrecLand(uint16_t land_precision);
 

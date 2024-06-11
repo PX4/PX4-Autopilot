@@ -39,6 +39,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 /*****************************************************************************
  * Generic bootloader functions.
  */
@@ -94,6 +96,7 @@ extern int buf_get(void);
 #endif
 
 #define MAX_DES_LENGTH 20
+#define MAX_VERSION_LENGTH 32
 
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
 extern void led_on(unsigned led);
@@ -105,7 +108,7 @@ extern void board_deinit(void);
 extern uint32_t board_get_devices(void);
 extern void clock_deinit(void);
 extern uint32_t flash_func_sector_size(unsigned sector);
-extern void flash_func_erase_sector(unsigned sector);
+extern void flash_func_erase_sector(unsigned sector, bool force);
 extern void flash_func_write_word(uintptr_t address, uint32_t word);
 extern uint32_t flash_func_read_word(uintptr_t address);
 extern uint32_t flash_func_read_otp(uintptr_t address);
@@ -121,6 +124,8 @@ extern uint32_t get_mcu_id(void);
 int get_mcu_desc(int max, uint8_t *revstr);
 extern int check_silicon(void);
 
+int get_version(int max, uint8_t *version_str);
+
 /*****************************************************************************
  * Interface in/output.
  */
@@ -129,3 +134,8 @@ extern void cinit(void *config, uint8_t interface);
 extern void cfini(void);
 extern int cin(uint32_t devices);
 extern void cout(uint8_t *buf, unsigned len);
+
+#if !defined(APP_VECTOR_OFFSET)
+#  define APP_VECTOR_OFFSET 0
+#endif
+#define APP_VECTOR_OFFSET_WORDS (APP_VECTOR_OFFSET/sizeof(uint32_t))

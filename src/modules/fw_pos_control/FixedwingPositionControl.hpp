@@ -49,11 +49,13 @@
 
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
+#include <lib/fw_performance_model/PerformanceModel.hpp>
 
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 #include <lib/npfg/npfg.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/mathlib/mathlib.h>
@@ -70,6 +72,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -99,6 +102,7 @@
 #ifdef CONFIG_FIGURE_OF_EIGHT
 #include "figure_eight/FigureEight.hpp"
 #include <uORB/topics/figure_eight_status.h>
+
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 using namespace launchdetection;
@@ -146,15 +150,6 @@ static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
 // [s] maximum time step between auto control updates
 static constexpr float MAX_AUTO_TIMESTEP = 0.05f;
 
-// [.] minimum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
-static constexpr float MIN_WEIGHT_RATIO = 0.5f;
-
-// [.] maximum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
-static constexpr float MAX_WEIGHT_RATIO = 2.0f;
-
-// air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
-static constexpr float AIR_DENSITY_STANDARD_ATMOS_5000_AMSL = 0.7363f;
-
 // [rad] minimum pitch while airspeed has not yet reached a controllable value in manual position controlled takeoff modes
 static constexpr float MIN_PITCH_DURING_MANUAL_TAKEOFF = 0.0f;
 
@@ -170,6 +165,16 @@ static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
 
 // [s] time interval after touchdown for ramping in runway clamping constraints (touchdown is assumed at FW_LND_TD_TIME after start of flare)
 static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
+
+// [m/s] maximum reference altitude rate threshhold
+static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT = 0.1f;
+
+// [s] Timeout that has to pass in roll-constraining failsafe before warning is triggered
+static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
+
+// [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
+static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
+
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -221,6 +226,7 @@ private:
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
+	uORB::PublicationData<flight_phase_estimation_s> _flight_phase_estimation_pub{ORB_ID(flight_phase_estimation)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
@@ -228,6 +234,8 @@ private:
 	vehicle_control_mode_s _control_mode{};
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
+
+	Vector2f _lpos_where_backtrans_started;
 
 	bool _position_setpoint_previous_valid{false};
 	bool _position_setpoint_current_valid{false};
@@ -247,8 +255,10 @@ private:
 		FW_POSCTRL_MODE_AUTO_TAKEOFF,
 		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
 		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
+		FW_POSCTRL_MODE_AUTO_PATH,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
+		FW_POSCTRL_MODE_TRANSITON,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
 
@@ -263,6 +273,7 @@ private:
 	double _current_longitude{0};
 	float _current_altitude{0.f};
 
+	float _roll{0.f};
 	float _pitch{0.0f};
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
@@ -275,12 +286,6 @@ private:
 	float _reference_altitude{NAN}; // [m AMSL] altitude of the local projection reference point
 
 	bool _landed{true};
-
-	// indicates whether the plane was in the air in the previous interation
-	bool _was_in_air{false};
-
-	// [us] time at which the plane went in the air
-	hrt_abstime _time_went_in_air{0};
 
 	// MANUAL MODES
 
@@ -372,10 +377,10 @@ private:
 
 	// AIRSPEED
 
-	float _airspeed{0.0f};
-	float _eas2tas{1.0f};
+	float _airspeed_eas{0.f};
+	float _eas2tas{1.f};
 	bool _airspeed_valid{false};
-	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};
+	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
 
 	// [us] last time airspeed was received. used to detect timeouts.
 	hrt_abstime _time_airspeed_last_valid{0};
@@ -394,18 +399,11 @@ private:
 	// total energy control system - airspeed / altitude control
 	TECS _tecs;
 
-	bool _reinitialize_tecs{true};
 	bool _tecs_is_running{false};
-	hrt_abstime _time_last_tecs_update{0}; // [us]
 
 	// VTOL / TRANSITION
-
-	float _airspeed_after_transition{0.0f};
-	bool _was_in_transition{false};
 	bool _is_vtol_tailsitter{false};
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
-	param_t _param_handle_airspeed_trans{PARAM_INVALID};
-	float _param_airspeed_trans{NAN}; // [m/s]
 
 	// ESTIMATOR RESET COUNTERS
 
@@ -422,6 +420,11 @@ private:
 
 	// nonlinear path following guidance - lateral-directional position control
 	NPFG _npfg;
+	bool _need_report_npfg_uncertain_condition{false}; ///< boolean if reporting of uncertain npfg output condition is needed
+	hrt_abstime _time_since_first_reduced_roll{0U}; ///< absolute time since start when entering reduced roll angle for the first time
+	hrt_abstime _time_since_last_npfg_call{0U}; 	///< absolute time since start when the npfg reduced roll angle calculations was last performed
+
+	PerformanceModel _performance_model;
 
 	// LANDING GEAR
 	int8_t _new_landing_gear_position{landing_gear_s::GEAR_KEEP};
@@ -454,7 +457,7 @@ private:
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 	// Update our local parameter cache.
-	int parameters_update();
+	void parameters_update();
 
 	// Update subscriptions
 	void airspeed_poll();
@@ -471,6 +474,14 @@ private:
 	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float true_airspeed_derivative_raw,
 				 float throttle_trim);
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
+	float getLoadFactor();
+
+	/**
+	 * @brief Get the NPFG roll setpoint with mitigation strategy if npfg is not certain about its output
+	 *
+	 * @return roll setpoint
+	 */
+	float getCorrectedNpfgRollSetpoint();
 
 	/**
 	 * @brief Sets the landing abort status and publishes landing status.
@@ -548,7 +559,8 @@ private:
 	 * @param pos_sp_curr Current position setpoint
 	 * @return Adjusted position setpoint type
 	 */
-	uint8_t	handle_setpoint_type(const position_setpoint_s &pos_sp_curr);
+	uint8_t handle_setpoint_type(const position_setpoint_s &pos_sp_curr,
+				     const position_setpoint_s &pos_sp_next);
 
 	/* automatic control methods */
 
@@ -608,6 +620,18 @@ private:
 	void control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
+
+	/**
+	 * @brief Vehicle control for following a path.
+	 *
+	 * @param control_interval Time since last position control call [s]
+	 * @param curr_pos Current 2D local position vector of vehicle [m]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_prev previous position setpoint
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void control_auto_path(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
+			       const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * @brief Controls a desired airspeed, bearing, and height rate.
@@ -681,6 +705,16 @@ private:
 	 */
 	void control_manual_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
 
+	/**
+	 * @brief Controls flying towards a transition waypoint and then transitioning to MC mode.
+	 *
+	 * @param control_interval Time since last position control call [s]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void control_backtransition(const float control_interval, const Vector2f &ground_speed,
+				    const position_setpoint_s &pos_sp_curr);
+
 	float get_tecs_pitch();
 	float get_tecs_thrust();
 
@@ -713,20 +747,10 @@ private:
 	 */
 	void set_control_mode_current(const hrt_abstime &now);
 
-	/**
-	 * @brief Estimate trim throttle for air density, vehicle weight and current airspeed
-	 *
-	 * @param throttle_min Minimum allowed trim throttle.
-	 * @param throttle_max Maximum allowed trim throttle.
-	 * @param airspeed_sp Current airspeed setpoint (CAS) [m/s]
-	 * @return Estimated trim throttle
-	 */
-	float calculateTrimThrottle(float throttle_min, float throttle_max,
-				    float airspeed_sp);
-
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
 
 	SlewRate<float> _airspeed_slew_rate_controller;
+	SlewRate<float> _roll_slew_rate;
 
 	/**
 	 * @brief A wrapper function to call the TECS implementation
@@ -909,12 +933,6 @@ private:
 			     const matrix::Vector2f &wind_vel);
 
 	DEFINE_PARAMETERS(
-
-		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
-		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
-		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
-
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
 
 		(ParamFloat<px4::params::FW_PN_R_SLEW_MAX>) _param_fw_pn_r_slew_max,
@@ -944,18 +962,17 @@ private:
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
 
-		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max,
 		(ParamFloat<px4::params::FW_T_HRATE_FF>) _param_fw_t_hrate_ff,
 		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_h_error_tc,
-		(ParamFloat<px4::params::FW_T_I_GAIN_THR>) _param_fw_t_I_gain_thr,
+		(ParamFloat<px4::params::FW_T_F_ALT_ERR>) _param_fw_t_fast_alt_err,
+		(ParamFloat<px4::params::FW_T_THR_INTEG>) _param_fw_t_thr_integ,
 		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>) _param_fw_t_I_gain_pit,
 		(ParamFloat<px4::params::FW_T_PTCH_DAMP>) _param_fw_t_ptch_damp,
 		(ParamFloat<px4::params::FW_T_RLL2THR>) _param_fw_t_rll2thr,
 		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
-		(ParamFloat<px4::params::FW_T_SINK_MIN>) _param_fw_t_sink_min,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
 		(ParamFloat<px4::params::FW_T_TAS_TC>) _param_fw_t_tas_error_tc,
-		(ParamFloat<px4::params::FW_T_THR_DAMP>) _param_fw_t_thr_damp,
+		(ParamFloat<px4::params::FW_T_THR_DAMPING>) _param_fw_t_thr_damping,
 		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
 		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
 		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,
@@ -965,10 +982,6 @@ private:
 		(ParamFloat<px4::params::FW_T_SPD_DEV_STD>) _param_speed_rate_standard_dev,
 		(ParamFloat<px4::params::FW_T_SPD_PRC_STD>) _param_process_noise_standard_dev,
 
-		(ParamFloat<px4::params::FW_THR_ASPD_MIN>) _param_fw_thr_aspd_min,
-		(ParamFloat<px4::params::FW_THR_ASPD_MAX>) _param_fw_thr_aspd_max,
-
-		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
@@ -985,7 +998,7 @@ private:
 		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
 
 		// external parameters
-		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
+		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 
 		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 
@@ -994,9 +1007,6 @@ private:
 		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
 
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad,
-
-		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
-		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
 
 		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
 		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,

@@ -307,6 +307,18 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
 PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 1);
 
 /**
+ * subscription GPS Relative
+ *
+ * Enable UAVCAN GPS Relative subscription.
+ * ardupilot::gnss::RelPosHeading
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_GPS_R, 1);
+
+/**
  * subscription hygrometer
  *
  * Enable UAVCAN hygrometer subscriptions.

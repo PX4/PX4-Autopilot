@@ -28,9 +28,8 @@ void Flow::setData(const flowSample &flow)
 flowSample Flow::dataAtRest()
 {
 	flowSample flow_at_rest;
-	flow_at_rest.dt = static_cast<float>(_update_period) * 1e-6f;
-	flow_at_rest.flow_xy_rad = Vector2f{0.0f, 0.0f};
-	flow_at_rest.gyro_xyz = Vector3f{0.0f, 0.0f, 0.0f};
+	flow_at_rest.flow_rate = Vector2f{0.0f, 0.0f};
+	flow_at_rest.gyro_rate = Vector3f{0.0f, 0.0f, 0.0f};
 	flow_at_rest.quality = 255;
 	return flow_at_rest;
 }

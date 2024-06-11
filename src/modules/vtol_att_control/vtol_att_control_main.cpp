@@ -206,45 +206,41 @@ void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
 	if (!_vtol_vehicle_status.fixed_wing_system_failure) {
+		// only publish generic warning through mavlink to safe flash
+		mavlink_log_critical(&_mavlink_log_pub, "Quad-chute triggered\t");
+
 		switch (reason) {
 		case QuadchuteReason::TransitionTimeout:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: transition timeout\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,
 				     "Quad-chute triggered due to transition timeout");
 			break;
 
 		case QuadchuteReason::ExternalCommand:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: external command\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_ext_cmd"), events::Log::Critical,
 				     "Quad-chute triggered due to external command");
 			break;
 
 		case QuadchuteReason::MinimumAltBreached:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: minimum altitude breached\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_min_alt"), events::Log::Critical,
 				     "Quad-chute triggered due to minimum altitude breach");
 			break;
 
 		case QuadchuteReason::UncommandedDescent:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: Uncommanded descent detected\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_alt_loss"), events::Log::Critical,
 				     "Quad-chute triggered due to uncommanded descent detection");
 			break;
 
 		case QuadchuteReason::TransitionAltitudeLoss:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude during transition\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_trans_alt_err"), events::Log::Critical,
 				     "Quad-chute triggered due to loss of altitude during transition");
 			break;
 
 		case QuadchuteReason::MaximumPitchExceeded:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum pitch exceeded\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch"), events::Log::Critical,
 				     "Quad-chute triggered due to maximum pitch angle exceeded");
 			break;
 
 		case QuadchuteReason::MaximumRollExceeded:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum roll exceeded\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
 				     "Quad-chute triggered due to maximum roll angle exceeded");
 			break;
@@ -288,9 +284,9 @@ VtolAttitudeControl::Run()
 		return;
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
-
 #if !defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+	const hrt_abstime now = hrt_absolute_time();
 
 	// prevent excessive scheduling (> 500 Hz)
 	if (now - _last_run_timestamp < 2_ms) {
@@ -298,9 +294,6 @@ VtolAttitudeControl::Run()
 	}
 
 #endif // !ENABLE_LOCKSTEP_SCHEDULER
-
-	const float dt = math::min((now - _last_run_timestamp) / 1e6f, kMaxVTOLAttitudeControlTimeStep);
-	_last_run_timestamp = now;
 
 	if (!_initialized) {
 
@@ -312,8 +305,6 @@ VtolAttitudeControl::Run()
 			return;
 		}
 	}
-
-	_vtol_type->setDt(dt);
 
 	perf_begin(_loop_perf);
 
@@ -372,6 +363,8 @@ VtolAttitudeControl::Run()
 		if (_vehicle_air_data_sub.update(&air_data)) {
 			_air_density = air_data.rho;
 		}
+
+		_vtol_type->handleEkfResets();
 
 		// check if mc and fw sp were updated
 		const bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);

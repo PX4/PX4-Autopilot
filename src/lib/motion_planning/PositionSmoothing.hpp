@@ -262,11 +262,11 @@ public:
 	/**
 	 * @param jerk maximum jerk for generated trajectory
 	 */
-	inline void setMaxJerk(const Vector3f &jerk)
+	inline void setMaxJerk(const float jerk)
 	{
-		_trajectory[0].setMaxJerk(jerk(0));
-		_trajectory[1].setMaxJerk(jerk(1));
-		_trajectory[2].setMaxJerk(jerk(2));
+		_trajectory[0].setMaxJerk(jerk);
+		_trajectory[1].setMaxJerk(jerk);
+		_trajectory[2].setMaxJerk(jerk);
 	}
 
 	/**
@@ -438,7 +438,7 @@ private:
 	const Vector3f _generateVelocitySetpoint(const Vector3f &position, const Vector3f(&waypoints)[3],
 			bool is_single_waypoint,
 			const Vector3f &feedforward_velocity_setpoint);
-	const Vector2f _getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const;
+	const Vector3f _getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const;
 	const Vector3f _getCrossingPoint(const Vector3f &position, const Vector3f(&waypoints)[3]) const;
 	float _getMaxXYSpeed(const Vector3f(&waypoints)[3]) const;
 	float _getMaxZSpeed(const Vector3f(&waypoints)[3]) const;

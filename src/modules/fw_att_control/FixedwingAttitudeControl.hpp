@@ -34,10 +34,10 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include "ecl_pitch_controller.h"
-#include "ecl_roll_controller.h"
-#include "ecl_wheel_controller.h"
-#include "ecl_yaw_controller.h"
+#include "fw_pitch_controller.h"
+#include "fw_roll_controller.h"
+#include "fw_wheel_controller.h"
+#include "fw_yaw_controller.h"
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -135,7 +135,7 @@ private:
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
-		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
+		(ParamBool<px4::params::FW_USE_AIRSPD>) _param_fw_use_airspd,
 
 		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
@@ -155,14 +155,15 @@ private:
 		(ParamFloat<px4::params::FW_WR_IMAX>) _param_fw_wr_imax,
 		(ParamFloat<px4::params::FW_WR_P>) _param_fw_wr_p,
 
-		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax
+		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
+		(ParamFloat<px4::params::FW_MAN_YR_MAX>) _param_man_yr_max
 
 	)
 
-	ECL_RollController _roll_ctrl;
-	ECL_PitchController _pitch_ctrl;
-	ECL_YawController _yaw_ctrl;
-	ECL_WheelController _wheel_ctrl;
+	RollController _roll_ctrl;
+	PitchController _pitch_ctrl;
+	YawController _yaw_ctrl;
+	WheelController _wheel_ctrl;
 
 	void parameters_update();
 	void vehicle_manual_poll(const float yaw_body);

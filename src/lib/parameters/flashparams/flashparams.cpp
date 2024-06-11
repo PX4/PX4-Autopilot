@@ -189,7 +189,9 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 		return 0;
 	}
 
-	param_modify_on_import(node);
+	if (param_modify_on_import(node) == param_modify_on_import_ret::PARAM_SKIP_IMPORT) {
+		return 1;
+	}
 
 	/*
 	 * Find the parameter this node represents.  If we don't know it,

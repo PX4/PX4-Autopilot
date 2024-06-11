@@ -80,7 +80,7 @@
 // RESET    finalise flash programming, reset chip and starts application
 //
 
-#define BL_PROTOCOL_VERSION         5   // The revision of the bootloader protocol
+#define BL_PROTOCOL_REVISION        5   // The revision of the bootloader protocol
 //* Next revision needs to update
 
 // protocol bytes
@@ -106,14 +106,20 @@
 #define PROTO_GET_CHIP              0x2c    // read chip version (MCU IDCODE)
 #define PROTO_SET_DELAY             0x2d    // set minimum boot delay
 #define PROTO_GET_CHIP_DES          0x2e    // read chip version In ASCII
+#define PROTO_GET_VERSION           0x2f    // read version
 #define PROTO_BOOT                  0x30    // boot the application
 #define PROTO_DEBUG                 0x31    // emit debug information - format not defined
 #define PROTO_SET_BAUD              0x33    // set baud rate on uart
 
-#define PROTO_RESERVED_0X36         0x36  // Reserved
-#define PROTO_RESERVED_0X37         0x37  // Reserved
+// Reserved for external flash programming
+// #define PROTO_EXTF_ERASE         0x34  // Erase sectors from external flash
+// #define PROTO_EXTF_PROG_MULTI    0x35  // write bytes at external flash program address and increment
+// #define PROTO_EXTF_READ_MULTI    0x36  // read bytes at address and increment
+// #define PROTO_EXTF_GET_CRC       0x37  // compute & return a CRC of data in external flash
+
 #define PROTO_RESERVED_0X38         0x38  // Reserved
 #define PROTO_RESERVED_0X39         0x39  // Reserved
+#define PROTO_CHIP_FULL_ERASE       0x40  // Full erase, without any flash wear optimization
 
 #define PROTO_PROG_MULTI_MAX        64  // maximum PROG_MULTI size
 #define PROTO_READ_MULTI_MAX        255 // size of the size field
@@ -125,13 +131,6 @@
 #define PROTO_DEVICE_FW_SIZE        4 // size of flashable area
 #define PROTO_DEVICE_VEC_AREA       5 // contents of reserved vectors 7-10
 
-#define STATE_PROTO_OK              0x10    // INSYNC/OK      - 'ok' response
-#define STATE_PROTO_FAILED          0x11    // INSYNC/FAILED  - 'fail' response
-#define STATE_PROTO_INVALID         0x13  // INSYNC/INVALID - 'invalid' response for bad commands
-#define STATE_PROTO_BAD_SILICON_REV 0x14  // On the F4 series there is an issue with < Rev 3 silicon
-#define STATE_PROTO_RESERVED_0X15   0x15  // Reserved
-
-
 // State
 #define STATE_PROTO_GET_SYNC        0x1     // Have Seen NOP for re-establishing sync
 #define STATE_PROTO_GET_DEVICE      0x2     // Have Seen get device ID bytes
@@ -142,7 +141,8 @@
 #define STATE_PROTO_GET_SN          0x40    // Have Seen read a word from UDID area ( Serial)  at the given address
 #define STATE_PROTO_GET_CHIP        0x80    // Have Seen read chip version (MCU IDCODE)
 #define STATE_PROTO_GET_CHIP_DES    0x100   // Have Seen read chip version In ASCII
-#define STATE_PROTO_BOOT            0x200   // Have Seen boot the application
+#define STATE_PROTO_GET_VERSION     0x200   // Have Seen get version
+#define STATE_PROTO_BOOT            0x400   // Have Seen boot the application
 
 #if defined(TARGET_HW_PX4_PIO_V1)
 #define STATE_ALLOWS_ERASE        (STATE_PROTO_GET_SYNC)
@@ -156,6 +156,18 @@
 
 static uint8_t bl_type;
 static uint8_t last_input;
+
+int get_version(int n, uint8_t *version_str)
+{
+	int len = strlen(BOOTLOADER_VERSION);
+
+	if (len > n) {
+		len = n;
+	}
+
+	strncpy((char *)version_str, BOOTLOADER_VERSION, n);
+	return len;
+}
 
 inline void cinit(void *config, uint8_t interface)
 {
@@ -257,7 +269,7 @@ inline void cout(uint8_t *buf, unsigned len)
 
 #endif
 
-static const uint32_t bl_proto_rev = BL_PROTOCOL_VERSION; // value returned by PROTO_DEVICE_BL_REV
+static const uint32_t bl_proto_rev = BL_PROTOCOL_REVISION; // value returned by PROTO_DEVICE_BL_REV
 
 static unsigned head, tail;
 static uint8_t rx_buf[256] USB_DATA_ALIGN;
@@ -294,13 +306,13 @@ void
 jump_to_app()
 {
 	const uint32_t *app_base = (const uint32_t *)APP_LOAD_ADDRESS;
-	const uint32_t *vec_base = (const uint32_t *)app_base;
+	const uint32_t *vec_base = (const uint32_t *)((const uint32_t)app_base + APP_VECTOR_OFFSET);
 
 	/*
 	 * We refuse to program the first word of the app until the upload is marked
 	 * complete by the host.  So if it's not 0xffffffff, we should try booting it.
 	 */
-	if (app_base[0] == 0xffffffff) {
+	if (app_base[APP_VECTOR_OFFSET_WORDS] == 0xffffffff) {
 		return;
 	}
 
@@ -382,11 +394,11 @@ jump_to_app()
 	 * The second word of the app is the entrypoint; it must point within the
 	 * flash area (or we have a bad flash).
 	 */
-	if (app_base[1] < APP_LOAD_ADDRESS) {
+	if (app_base[APP_VECTOR_OFFSET_WORDS + 1] < APP_LOAD_ADDRESS) {
 		return;
 	}
 
-	if (app_base[1] >= (APP_LOAD_ADDRESS + board_info.fw_size)) {
+	if (app_base[APP_VECTOR_OFFSET_WORDS + 1] >= (APP_LOAD_ADDRESS + board_info.fw_size)) {
 		return;
 	}
 
@@ -649,6 +661,8 @@ bootloader(unsigned timeout)
 
 		led_on(LED_ACTIVITY);
 
+		bool full_erase = false;
+
 		// handle the command byte
 		switch (c) {
 
@@ -728,6 +742,10 @@ bootloader(unsigned timeout)
 		// success reply: INSYNC/OK
 		// erase failure: INSYNC/FAILURE
 		//
+		case PROTO_CHIP_FULL_ERASE:
+			full_erase = true;
+
+		// Fallthrough
 		case PROTO_CHIP_ERASE:
 
 			/* expect EOC */
@@ -755,17 +773,18 @@ bootloader(unsigned timeout)
 			arch_flash_unlock();
 
 			for (int i = 0; flash_func_sector_size(i) != 0; i++) {
-				flash_func_erase_sector(i);
+				flash_func_erase_sector(i, full_erase);
 			}
 
 			// disable the LED while verifying the erase
 			led_set(LED_OFF);
 
 			// verify the erase
-			for (address = 0; address < board_info.fw_size; address += 4)
+			for (address = 0; address < board_info.fw_size; address += 4) {
 				if (flash_func_read_word(address) != 0xffffffff) {
 					goto cmd_fail;
 				}
+			}
 
 			address = 0;
 			SET_BL_STATE(STATE_PROTO_CHIP_ERASE);
@@ -816,15 +835,17 @@ bootloader(unsigned timeout)
 				goto cmd_bad;
 			}
 
-			if (address == 0) {
+#if APP_VECTOR_OFFSET == 0
 
-#if defined(TARGET_HW_PX4_FMU_V4)
+			if (address == APP_VECTOR_OFFSET) {
+
+#  if defined(TARGET_HW_PX4_FMU_V4)
 
 				if (check_silicon()) {
 					goto bad_silicon;
 				}
 
-#endif
+# endif
 
 				// save the first word and don't program it until everything else is done
 				first_word = flash_buffer.w[0];
@@ -832,10 +853,20 @@ bootloader(unsigned timeout)
 				flash_buffer.w[0] = 0xffffffff;
 			}
 
+#endif
 			arg /= 4;
 
 			for (int i = 0; i < arg; i++) {
+#if APP_VECTOR_OFFSET != 0
 
+				if (address == APP_VECTOR_OFFSET) {
+					// save the first word from vector table and don't program it until everything else is done
+					first_word = flash_buffer.w[i];
+					// replace first word with bits we can overwrite later
+					flash_buffer.w[i] = 0xffffffff;
+				}
+
+#endif
 				// program the word
 				flash_func_write_word(address, flash_buffer.w[i]);
 
@@ -869,7 +900,7 @@ bootloader(unsigned timeout)
 			for (unsigned p = 0; p < board_info.fw_size; p += 4) {
 				uint32_t bytes;
 
-				if ((p == 0) && (first_word != 0xffffffff)) {
+				if ((p == APP_VECTOR_OFFSET) && (first_word != 0xffffffff)) {
 					bytes = first_word;
 
 				} else {
@@ -953,7 +984,7 @@ bootloader(unsigned timeout)
 		// read the chip  description
 		//
 		// command:     GET_CHIP_DES/EOC
-		// reply:     <value:4>/INSYNC/OK
+		// reply:     <length:4><buffer...>/INSYNC/OK
 		case PROTO_GET_CHIP_DES: {
 				uint8_t buffer[MAX_DES_LENGTH];
 				unsigned len = MAX_DES_LENGTH;
@@ -967,6 +998,25 @@ bootloader(unsigned timeout)
 				cout_word(len);
 				cout(buffer, len);
 				SET_BL_STATE(STATE_PROTO_GET_CHIP_DES);
+			}
+			break;
+
+		// read the bootloader version (not to be confused with protocol revision)
+		//
+		// command:     GET_VERSION/EOC
+		// reply:     <length:4><buffer...>/INSYNC/OK
+		case PROTO_GET_VERSION: {
+				uint8_t buffer[MAX_VERSION_LENGTH];
+
+				// expect EOC
+				if (!wait_for_eoc(2)) {
+					goto cmd_bad;
+				}
+
+				int len = get_version(sizeof(buffer), buffer);
+				cout_word(len);
+				cout(buffer, len);
+				SET_BL_STATE(STATE_PROTO_GET_VERSION);
 			}
 			break;
 
@@ -1032,9 +1082,9 @@ bootloader(unsigned timeout)
 
 			// program the deferred first word
 			if (first_word != 0xffffffff) {
-				flash_func_write_word(0, first_word);
+				flash_func_write_word(APP_VECTOR_OFFSET, first_word);
 
-				if (flash_func_read_word(0) != first_word) {
+				if (flash_func_read_word(APP_VECTOR_OFFSET) != first_word) {
 					goto cmd_fail;
 				}
 

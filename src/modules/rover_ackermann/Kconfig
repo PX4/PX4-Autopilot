@@ -1,0 +1,6 @@
+menuconfig MODULES_ROVER_ACKERMANN
+	bool "rover_ackermann"
+	default n
+	depends on MODULES_CONTROL_ALLOCATOR
+	---help---
+		Enable support for control of ackermann drive rovers

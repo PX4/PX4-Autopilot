@@ -70,7 +70,18 @@ public:
 		float loiter_minor_radius;
 		float loiter_orientation;
 		bool loiter_direction_counter_clockwise;
+
+		bool operator!=(const FigureEightPatternParameters &other) const
+		{
+			return ((fabsf(center_pos_local(0) - other.center_pos_local(0)) > FLT_EPSILON) ||
+				(fabsf(center_pos_local(1) - other.center_pos_local(1)) > FLT_EPSILON) ||
+				(fabsf(loiter_radius - other.loiter_radius) > FLT_EPSILON) ||
+				(fabsf(loiter_minor_radius - other.loiter_minor_radius) > FLT_EPSILON) ||
+				(fabsf(loiter_orientation - other.loiter_orientation) > FLT_EPSILON) ||
+				(loiter_direction_counter_clockwise != other.loiter_direction_counter_clockwise));
+		};
 	};
+
 	/**
 	 * @brief Construct a new Figure Eight object
 	 *
@@ -79,17 +90,7 @@ public:
 	 * @param[in] eas2tas is the reference to the parent indicated airspeed to true airspeed conversion.
 	 */
 	FigureEight(NPFG &npfg, matrix::Vector2f &wind_vel, float &eas2tas);
-	/**
-	 * @brief Initialize the figure eight pattern.
-	 *
-	 * Initialize the figure eight pattern by determining the current active segment.
-	 *
-	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
-	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
-	 * @param[in] parameters is the parameter set defining the figure eight shape.
-	 */
-	void initializePattern(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			       const FigureEightPatternParameters &parameters);
+
 	/**
 	 * @brief reset the figure eight pattern.
 	 *
@@ -97,6 +98,7 @@ public:
 	 *
 	 */
 	void resetPattern();
+
 	/**
 	 * @brief Update roll and airspeed setpoint.
 	 *
@@ -135,6 +137,27 @@ public:
 
 private:
 	/**
+	 * @brief
+	 *
+	 * @param[in] parameters are gotten the figure of eight parameters
+	 * @return are the sanitized figure of eight parameters
+	 */
+	FigureEightPatternParameters sanitizeParameters(const FigureEightPatternParameters &parameters);
+
+	/**
+	 * @brief Initialize the figure eight pattern.
+	 *
+	 * Initialize the figure eight pattern by determining the current active segment.
+	 *
+	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
+	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
+	 * @param[in] parameters is the parameter set defining the figure eight shape.
+	 * @param[in] pattern_points are the figure of eight pattern points.
+	 */
+	void initializePattern(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+			       const FigureEightPatternParameters &parameters, FigureEightPatternPoints pattern_points);
+
+	/**
 	 * @brief Calculate figure eight pattern points
 	 *
 	 * @param[out] 	pattern_points is the output with the calculated points for the figure eight.
@@ -167,11 +190,11 @@ private:
 	/**
 	 * @brief calculate normalized and rotated relative vehicle position to pattern center.
 	 *
-	 * @param[out] pos_to_center_normalized_rotated is the calculated normalized and rotated relative vehicle position to pattern center.
+	 * @param[out] center_to_pos_local_normalized_rotated is the calculated normalized and rotated relative vehicle position with respect to the pattern center.
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
 	 */
-	void calculatePositionToCenterNormalizedRotated(matrix::Vector2f &pos_to_center_normalized_rotated,
+	void calculatePositionToCenterNormalizedRotated(matrix::Vector2f &center_to_pos_local_normalized_rotated,
 			const matrix::Vector2f &curr_pos_local, const FigureEightPatternParameters &parameters) const;
 	/**
 	 * @brief Calculate rotation angle.
@@ -258,7 +281,9 @@ private:
 		SEGMENT_CIRCLE_NORTH,
 		SEGMENT_NORTHEAST_SOUTHWEST,
 		SEGMENT_CIRCLE_SOUTH,
-		SEGMENT_SOUTHEAST_NORTHWEST
+		SEGMENT_SOUTHEAST_NORTHWEST,
+		SEGMENT_POINT_SOUTHWEST,
+		SEGMENT_POINT_NORTHWEST
 	};
 
 	/**

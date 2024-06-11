@@ -42,6 +42,7 @@ TEST_CASE("RTL direct Home", "[vtol]")
 	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_with_land_start.plan");
 	// fly directly to home position
 	tester.set_rtl_type(0);
+	tester.set_rtl_appr_force(0);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
 	tester.wait_until_disarmed(std::chrono::seconds(120));

@@ -31,6 +31,10 @@
 
 File: derivation.py
 Description:
+    Derivation of an error-state EKF based on
+    Sola, Joan. "Quaternion kinematics for the error-state Kalman filter." arXiv preprint arXiv:1711.02508 (2017).
+    The derivation is directly done in discrete-time as this allows us to define the desired type of discretization
+    for each element while defining the equations (easier than a continuous-time derivation followed by a block-wise discretization).
 """
 
 import argparse
@@ -42,7 +46,9 @@ import symforce.symbolic as sf
 from symforce import typing as T
 from symforce import ops
 from symforce.values import Values
-from derivation_utils import *
+
+import sympy as sp
+from utils.derivation_utils import *
 
 # Initialize parser
 parser = argparse.ArgumentParser()
@@ -108,12 +114,11 @@ def vstate_to_state(v: VState):
 def predict_covariance(
     state: VState,
     P: MTangent,
-    d_vel: sf.V3,
-    d_vel_dt: sf.Scalar,
-    d_vel_var: sf.V3,
-    d_ang: sf.V3,
-    d_ang_dt: sf.Scalar,
-    d_ang_var: sf.Scalar
+    accel: sf.V3,
+    accel_var: sf.V3,
+    gyro: sf.V3,
+    gyro_var: sf.Scalar,
+    dt: sf.Scalar
 ) -> MTangent:
 
     state = vstate_to_state(state)
@@ -143,46 +148,52 @@ def predict_covariance(
     for key in state.keys():
         if key == "quat_nominal":
             # Create true quaternion using small angle approximation of the error rotation
-            state_t["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * state_error["theta"]), w=1))
+            state_t["quat_nominal"] = sf.Rot3(sf.Quaternion(xyz=(state_error["theta"] / 2), w=1)) * state["quat_nominal"]
         else:
             state_t[key] = state[key] + state_error[key]
 
     noise = Values(
-        d_vel = sf.V3.symbolic("a_n"),
-        d_ang = sf.V3.symbolic("w_n"),
+        accel = sf.V3.symbolic("a_n"),
+        gyro = sf.V3.symbolic("w_n"),
     )
 
     input_t = Values(
-        d_vel =  d_vel - state_t["accel_bias"] * d_vel_dt - noise["d_vel"],
-        d_ang = d_ang - state_t["gyro_bias"] * d_ang_dt - noise["d_ang"]
+        accel = accel - state_t["accel_bias"] - noise["accel"],
+        gyro = gyro - state_t["gyro_bias"] - noise["gyro"]
     )
 
     R_t = state_t["quat_nominal"]
     state_t_pred = state_t.copy()
-    state_t_pred["quat_nominal"] = state_t["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * input_t["d_ang"]), w=1))
-    state_t_pred["vel"] = state_t["vel"] + R_t * input_t["d_vel"] + sf.V3(0, 0, g) * d_vel_dt
-    state_t_pred["pos"] = state_t["pos"] + state_t["vel"] * d_vel_dt
+    state_t_pred["quat_nominal"] = state_t["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(input_t["gyro"] * dt / 2), w=1))
+    state_t_pred["vel"] = state_t["vel"] + (R_t * input_t["accel"] + sf.V3(0, 0, g)) * dt
+    state_t_pred["pos"] = state_t["pos"] + state_t["vel"] * dt
 
     # Nominal state kinematics
     input = Values(
-        d_vel =  d_vel - state["accel_bias"] * d_vel_dt,
-        d_ang = d_ang - state["gyro_bias"] * d_ang_dt
+        accel = accel - state["accel_bias"],
+        gyro = gyro - state["gyro_bias"]
     )
 
     R = state["quat_nominal"]
     state_pred = state.copy()
-    state_pred["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * input["d_ang"]), w=1))
-    state_pred["vel"] = state["vel"] + R * input["d_vel"] + sf.V3(0, 0, g) * d_vel_dt
-    state_pred["pos"] = state["pos"] + state["vel"] * d_vel_dt
+    state_pred["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(input["gyro"] * dt / 2), w=1))
+    state_pred["vel"] = state["vel"] + (R * input["accel"] + sf.V3(0, 0, g)) * dt
+    state_pred["pos"] = state["pos"] + state["vel"] * dt
 
     # Error state kinematics
     state_error_pred = Values()
     for key in state_error.keys():
         if key == "theta":
-            delta_q = sf.Quaternion.from_storage(state_pred["quat_nominal"].to_storage()).conj() * sf.Quaternion.from_storage(state_t_pred["quat_nominal"].to_storage())
+            delta_q = sf.Quaternion.from_storage(state_t_pred["quat_nominal"].to_storage()) * sf.Quaternion.from_storage(state_pred["quat_nominal"].to_storage()).conj()
             state_error_pred["theta"] = 2 * sf.V3(delta_q.x, delta_q.y, delta_q.z) # Use small angle approximation to obtain a simpler jacobian
         else:
             state_error_pred[key] = state_t_pred[key] - state_pred[key]
+
+    # Simplify angular error state prediction
+    for i in range(state_error_pred["theta"].storage_dim()):
+        state_error_pred["theta"][i] = sp.expand(state_error_pred["theta"][i]).subs(dt**2, 0) # do not consider dt**2 effects in the derivation
+        q_est = sf.Quaternion.from_storage(state["quat_nominal"].to_storage())
+        state_error_pred["theta"][i] = sp.factor(state_error_pred["theta"][i]).subs(q_est.w**2 + q_est.x**2 + q_est.y**2 + q_est.z**2, 1) # unit norm quaternion
 
     zero_state_error = {state_error[key]: state_error[key].zero() for key in state_error.keys()}
     zero_noise = {noise[key]: noise[key].zero() for key in noise.keys()}
@@ -192,7 +203,7 @@ def predict_covariance(
     G = VTangent(state_error_pred.to_storage()).jacobian(noise).subs(zero_state_error).subs(zero_noise)
 
     # Covariance propagation
-    var_u = sf.Matrix.diag([d_vel_var[0], d_vel_var[1], d_vel_var[2], d_ang_var, d_ang_var, d_ang_var])
+    var_u = sf.Matrix.diag([accel_var[0], accel_var[1], accel_var[2], gyro_var, gyro_var, gyro_var])
     P_new = A * P * A.T + G * var_u * G.T
 
     # Generate the equations for the upper triangular matrix and the diagonal only
@@ -204,6 +215,36 @@ def predict_covariance(
                 P_new[index,j] = 0
 
     return P_new
+
+def jacobian_chain_rule(expr: sf.Scalar , state: State):
+    # First compute the jacobian in the parameter space
+    dh_dx = sf.V1(expr).jacobian(state, tangent_space=False)
+
+    class MStorageTangent(sf.Matrix):
+        SHAPE = (State.storage_dim(), State.tangent_dim())
+
+    # Then compute the jarobian mapping infinitesimal elements of the parameter space to the error state
+    # Note that this jacobian only depends on the structure of the EKF
+    dx_derror = MStorageTangent()
+    q = sf.Quaternion.from_storage(state["quat_nominal"].to_storage())
+    p = sf.Quaternion.symbolic('p')
+
+    pq = p * q
+    qR = sf.M41(pq.to_storage()).jacobian(sf.M41(p.to_storage())) # Right quaternion product matrix
+    dx_derror[0:4, 0:3] = qR / 2 * sf.M43([[1, 0, 0],
+                                           [0, 1, 0],
+                                           [0, 0, 1],
+                                           [0, 0, 0]])
+
+    # The rest of the matrix is trivial
+    for i in range(4, State.storage_dim()):
+        for j in range(3, State.tangent_dim()):
+            if (i == j+1):
+                dx_derror[i, j] = 1
+
+    # Finally use the chain rule: dh/derror = dh/dx * dx/derror
+    H = dh_dx * dx_derror
+    return H
 
 def compute_airspeed_innov_and_innov_var(
         state: VState,
@@ -220,7 +261,7 @@ def compute_airspeed_innov_and_innov_var(
 
     innov = airspeed_pred - airspeed
 
-    H = sf.V1(airspeed_pred).jacobian(state)
+    H = jacobian_chain_rule(airspeed_pred, state)
     innov_var = (H * P * H.T + R)[0,0]
 
     return (innov, innov_var)
@@ -236,7 +277,7 @@ def compute_airspeed_h_and_k(
     wind = sf.V3(state["wind_vel"][0], state["wind_vel"][1], 0.0)
     vel_rel = state["vel"] - wind
     airspeed_pred = vel_rel.norm(epsilon=epsilon)
-    H = sf.V1(airspeed_pred).jacobian(state)
+    H = jacobian_chain_rule(airspeed_pred, state)
 
     K = P * H.T / sf.Max(innov_var, epsilon)
 
@@ -298,7 +339,7 @@ def compute_sideslip_innov_and_innov_var(
 
     innov = sideslip_pred - 0.0
 
-    H = sf.V1(sideslip_pred).jacobian(state)
+    H = jacobian_chain_rule(sideslip_pred, state)
     innov_var = (H * P * H.T + R)[0,0]
 
     return (innov, innov_var)
@@ -313,7 +354,7 @@ def compute_sideslip_h_and_k(
     state = vstate_to_state(state)
     sideslip_pred = predict_sideslip(state, epsilon);
 
-    H = sf.V1(sideslip_pred).jacobian(state)
+    H = jacobian_chain_rule(sideslip_pred, state)
 
     K = P * H.T / sf.Max(innov_var, epsilon)
 
@@ -340,11 +381,11 @@ def compute_mag_innov_innov_var_and_hx(
     innov = meas_pred - meas
 
     innov_var = sf.V3()
-    Hx = sf.V1(meas_pred[0]).jacobian(state)
+    Hx = jacobian_chain_rule(meas_pred[0], state)
     innov_var[0] = (Hx * P * Hx.T + R)[0,0]
-    Hy = sf.V1(meas_pred[1]).jacobian(state)
+    Hy = jacobian_chain_rule(meas_pred[1], state)
     innov_var[1] = (Hy * P * Hy.T + R)[0,0]
-    Hz = sf.V1(meas_pred[2]).jacobian(state)
+    Hz = jacobian_chain_rule(meas_pred[2], state)
     innov_var[2] = (Hz * P * Hz.T + R)[0,0]
 
     return (innov, innov_var, Hx.T)
@@ -359,7 +400,7 @@ def compute_mag_y_innov_var_and_h(
     state = vstate_to_state(state)
     meas_pred = predict_mag_body(state);
 
-    H = sf.V1(meas_pred[1]).jacobian(state)
+    H = jacobian_chain_rule(meas_pred[1], state)
     innov_var = (H * P * H.T + R)[0,0]
 
     return (innov_var, H.T)
@@ -374,75 +415,28 @@ def compute_mag_z_innov_var_and_h(
     state = vstate_to_state(state)
     meas_pred = predict_mag_body(state);
 
-    H = sf.V1(meas_pred[2]).jacobian(state)
+    H = jacobian_chain_rule(meas_pred[2], state)
     innov_var = (H * P * H.T + R)[0,0]
 
     return (innov_var, H.T)
 
-def compute_yaw_321_innov_var_and_h(
+def compute_yaw_innov_var_and_h(
         state: VState,
         P: MTangent,
-        R: sf.Scalar,
-        epsilon: sf.Scalar
+        R: sf.Scalar
 ) -> (sf.Scalar, VTangent):
 
     state = vstate_to_state(state)
-    R_to_earth = state["quat_nominal"].to_rotation_matrix()
-    # Fix the singularity at pi/2 by inserting epsilon
-    meas_pred = sf.atan2(R_to_earth[1,0], R_to_earth[0,0], epsilon=epsilon)
+    q = sf.Quaternion.from_storage(state["quat_nominal"].to_storage())
+    r = sf.Quaternion.symbolic('r')
+    delta_q = q * r.conj() # create a quaternion error of the measurement at the origin
+    delta_meas_pred = 2 * delta_q.z # Use small angle approximation to obtain a simpler jacobian
 
-    H = sf.V1(meas_pred).jacobian(state)
-    innov_var = (H * P * H.T + R)[0,0]
+    H = jacobian_chain_rule(delta_meas_pred, state)
+    H = H.subs({r.w: q.w, r.x: q.x, r.y: q.y, r.z: q.z}) # assume innovation is small
 
-    return (innov_var, H.T)
-
-def compute_yaw_321_innov_var_and_h_alternate(
-        state: VState,
-        P: MTangent,
-        R: sf.Scalar,
-        epsilon: sf.Scalar
-) -> (sf.Scalar, VTangent):
-
-    state = vstate_to_state(state)
-    R_to_earth = state["quat_nominal"].to_rotation_matrix()
-    # Alternate form that has a singularity at yaw 0 instead of pi/2
-    meas_pred = sf.pi/2 - sf.atan2(R_to_earth[0,0], R_to_earth[1,0], epsilon=epsilon)
-
-    H = sf.V1(meas_pred).jacobian(state)
-    innov_var = (H * P * H.T + R)[0,0]
-
-    return (innov_var, H.T)
-
-def compute_yaw_312_innov_var_and_h(
-        state: VState,
-        P: MTangent,
-        R: sf.Scalar,
-        epsilon: sf.Scalar
-) -> (sf.Scalar, VTangent):
-
-    state = vstate_to_state(state)
-    R_to_earth = state["quat_nominal"].to_rotation_matrix()
-    # Alternate form to be used when close to pitch +-pi/2
-    meas_pred = sf.atan2(-R_to_earth[0,1], R_to_earth[1,1], epsilon=epsilon)
-
-    H = sf.V1(meas_pred).jacobian(state)
-    innov_var = (H * P * H.T + R)[0,0]
-
-    return (innov_var, H.T)
-
-def compute_yaw_312_innov_var_and_h_alternate(
-        state: VState,
-        P: MTangent,
-        R: sf.Scalar,
-        epsilon: sf.Scalar
-) -> (sf.Scalar, VTangent):
-
-    state = vstate_to_state(state)
-    R_to_earth = state["quat_nominal"].to_rotation_matrix()
-    # Alternate form to be used when close to pitch +-pi/2
-    meas_pred = sf.pi/2 - sf.atan2(-R_to_earth[1,1], R_to_earth[0,1], epsilon=epsilon)
-
-    H = sf.V1(meas_pred).jacobian(state)
+    for i in range(State.tangent_dim()):
+        H[i] = sp.factor(H[i]).subs(q.w**2 + q.x**2 + q.y**2 + q.z**2, 1) # unit norm quaternion
     innov_var = (H * P * H.T + R)[0,0]
 
     return (innov_var, H.T)
@@ -457,7 +451,7 @@ def compute_mag_declination_pred_innov_var_and_h(
     state = vstate_to_state(state)
     meas_pred = sf.atan2(state["mag_I"][1], state["mag_I"][0], epsilon=epsilon)
 
-    H = sf.V1(meas_pred).jacobian(state)
+    H = jacobian_chain_rule(meas_pred, state)
     innov_var = (H * P * H.T + R)[0,0]
 
     return (meas_pred, innov_var, H.T)
@@ -489,9 +483,9 @@ def compute_flow_xy_innov_var_and_hx(
     meas_pred = predict_opt_flow(state, distance, epsilon);
 
     innov_var = sf.V2()
-    Hx = sf.V1(meas_pred[0]).jacobian(state)
+    Hx = jacobian_chain_rule(meas_pred[0], state)
     innov_var[0] = (Hx * P * Hx.T + R)[0,0]
-    Hy = sf.V1(meas_pred[1]).jacobian(state)
+    Hy = jacobian_chain_rule(meas_pred[1], state)
     innov_var[1] = (Hy * P * Hy.T + R)[0,0]
 
     return (innov_var, Hx.T)
@@ -506,7 +500,7 @@ def compute_flow_y_innov_var_and_h(
     state = vstate_to_state(state)
     meas_pred = predict_opt_flow(state, distance, epsilon);
 
-    Hy = sf.V1(meas_pred[1]).jacobian(state)
+    Hy = jacobian_chain_rule(meas_pred[1], state)
     innov_var = (Hy * P * Hy.T + R)[0,0]
 
     return (innov_var, Hy.T)
@@ -531,7 +525,7 @@ def compute_gnss_yaw_pred_innov_var_and_h(
     # Calculate the yaw angle from the projection
     meas_pred = sf.atan2(ant_vec_ef[1], ant_vec_ef[0], epsilon=epsilon)
 
-    H = sf.V1(meas_pred).jacobian(state)
+    H = jacobian_chain_rule(meas_pred, state)
     innov_var = (H * P * H.T + R)[0,0]
 
     return (meas_pred, innov_var, H.T)
@@ -556,7 +550,7 @@ def predict_drag(
     return bluff_body_drag + momentum_drag
 
 
-def compute_drag_x_innov_var_and_k(
+def compute_drag_x_innov_var_and_h(
         state: VState,
         P: MTangent,
         rho: sf.Scalar,
@@ -568,15 +562,12 @@ def compute_drag_x_innov_var_and_k(
 
     state = vstate_to_state(state)
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
-    Hx = sf.V1(meas_pred[0]).jacobian(state)
+    Hx = jacobian_chain_rule(meas_pred[0], state)
     innov_var = (Hx * P * Hx.T + R)[0,0]
-    Ktotal = P * Hx.T / sf.Max(innov_var, epsilon)
-    K = VTangent()
-    K[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof] = Ktotal[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof]
 
-    return (innov_var, K)
+    return (innov_var, Hx.T)
 
-def compute_drag_y_innov_var_and_k(
+def compute_drag_y_innov_var_and_h(
         state: VState,
         P: MTangent,
         rho: sf.Scalar,
@@ -588,43 +579,69 @@ def compute_drag_y_innov_var_and_k(
 
     state = vstate_to_state(state)
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
-    Hy = sf.V1(meas_pred[1]).jacobian(state)
+    Hy = jacobian_chain_rule(meas_pred[1], state)
     innov_var = (Hy * P * Hy.T + R)[0,0]
-    Ktotal = P * Hy.T / sf.Max(innov_var, epsilon)
-    K = VTangent()
-    K[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof] = Ktotal[tangent_idx["wind_vel"].idx: tangent_idx["wind_vel"].idx + tangent_idx["wind_vel"].dof]
 
-    return (innov_var, K)
+    return (innov_var, Hy.T)
 
-def compute_gravity_innov_var_and_k_and_h(
-        state: VState,
-        P: MTangent,
-        meas: sf.V3,
-        R: sf.Scalar,
-        epsilon: sf.Scalar
-) -> (sf.V3, sf.V3, VTangent, VTangent, VTangent):
-
-    state = vstate_to_state(state)
+def predict_gravity_direction(state: State):
     # get transform from earth to body frame
     R_to_body = state["quat_nominal"].inverse()
 
     # the innovation is the error between measured acceleration
     #  and predicted (body frame), assuming no body acceleration
-    meas_pred = R_to_body * sf.Matrix([0,0,-9.80665])
-    innov = meas_pred - 9.80665 * meas.normalized(epsilon=epsilon)
+    return R_to_body * sf.Matrix([0,0,-1])
+
+def compute_gravity_xyz_innov_var_and_hx(
+        state: VState,
+        P: MTangent,
+        R: sf.Scalar
+) -> (sf.V3, VTangent):
+
+    state = vstate_to_state(state)
+    meas_pred = predict_gravity_direction(state)
 
     # initialize outputs
     innov_var = sf.V3()
-    K = [None] * 3
+    H = [None] * 3
 
     # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
     #  for each axis
     for i in range(3):
-        H = sf.V1(meas_pred[i]).jacobian(state)
-        innov_var[i] = (H * P * H.T + R)[0,0]
-        K[i] = P * H.T / innov_var[i]
+        H[i] = jacobian_chain_rule(meas_pred[i], state)
+        innov_var[i] = (H[i] * P * H[i].T + R)[0,0]
 
-    return (innov, innov_var, K[0], K[1], K[2])
+    return (innov_var, H[0].T)
+
+def compute_gravity_y_innov_var_and_h(
+        state: VState,
+        P: MTangent,
+        R: sf.Scalar
+) -> (sf.V3, VTangent, VTangent, VTangent):
+
+    state = vstate_to_state(state)
+    meas_pred = predict_gravity_direction(state)
+
+    # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
+    H = jacobian_chain_rule(meas_pred[1], state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
+
+def compute_gravity_z_innov_var_and_h(
+        state: VState,
+        P: MTangent,
+        R: sf.Scalar
+) -> (sf.V3, VTangent, VTangent, VTangent):
+
+    state = vstate_to_state(state)
+    meas_pred = predict_gravity_direction(state)
+
+    # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
+    H = jacobian_chain_rule(meas_pred[2], state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov_var, H.T)
 
 print("Derive EKF2 equations...")
 generate_px4_function(predict_covariance, output_names=None)
@@ -638,19 +655,18 @@ if not args.disable_mag:
 if not args.disable_wind:
     generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
     generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
-    generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var", "K"])
-    generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
+    generate_px4_function(compute_drag_x_innov_var_and_h, output_names=["innov_var", "Hx"])
+    generate_px4_function(compute_drag_y_innov_var_and_h, output_names=["innov_var", "Hy"])
     generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
     generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
     generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])
 
-generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
-generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])
-generate_px4_function(compute_yaw_321_innov_var_and_h, output_names=["innov_var", "H"])
-generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas_pred", "innov_var", "H"])
-generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])
+generate_px4_function(compute_gravity_xyz_innov_var_and_hx, output_names=["innov_var", "Hx"])
+generate_px4_function(compute_gravity_y_innov_var_and_h, output_names=["innov_var", "Hy"])
+generate_px4_function(compute_gravity_z_innov_var_and_h, output_names=["innov_var", "Hz"])
 
 generate_px4_state(State, tangent_idx)

@@ -58,7 +58,6 @@ Land::on_activation()
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->previous.valid = false;
-	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
@@ -66,6 +65,12 @@ Land::on_activation()
 
 	// reset cruising speed to default
 	_navigator->reset_cruising_speed();
+
+	// set gimbal to neutral position (level with horizon) to reduce change of damage on landing
+	_navigator->acquire_gimbal_control();
+	_navigator->set_gimbal_neutral();
+	_navigator->release_gimbal_control();
+
 }
 
 void
@@ -78,7 +83,7 @@ Land::on_active()
 
 		// create a virtual wp 1m in front of the vehicle to track during the backtransition
 		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-						   _navigator->get_position_setpoint_triplet()->current.yaw, 1.f,
+						   _navigator->get_local_position()->heading, 1.f,
 						   &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
 
 		_navigator->set_position_setpoint_triplet_updated();

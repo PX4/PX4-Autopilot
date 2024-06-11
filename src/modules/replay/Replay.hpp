@@ -297,7 +297,7 @@ private:
 	void setUserParams(const char *filename);
 	void readDynamicParams(const char *filename);
 
-	std::string parseOrbFields(const std::string &fields);
+	std::string getOrbFields(const orb_metadata *meta);
 
 	static char *_replay_file;
 };

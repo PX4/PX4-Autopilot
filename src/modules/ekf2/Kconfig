@@ -4,6 +4,15 @@ menuconfig MODULES_EKF2
 	---help---
 		Enable support for ekf2
 
+menuconfig EKF2_VERBOSE_STATUS
+depends on MODULES_EKF2
+	bool "verbose status output"
+	default n
+	depends on !BOARD_CONSTRAINED_MEMORY
+	depends on !BOARD_CONSTRAINED_FLASH
+	---help---
+		ekf2 status verbose output.
+
 menuconfig EKF2_MULTI_INSTANCE
 depends on MODULES_EKF2
         bool "multi-EKF support"
@@ -21,6 +30,13 @@ depends on MODULES_EKF2
 	depends on EKF2_WIND
 	---help---
 		EKF2 airspeed fusion support.
+
+menuconfig EKF2_AUX_GLOBAL_POSITION
+depends on MODULES_EKF2
+	bool "aux global position fusion support"
+	default n
+	---help---
+		EKF2 auxiliary global position fusion support.
 
 menuconfig EKF2_AUXVEL
 depends on MODULES_EKF2

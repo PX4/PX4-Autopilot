@@ -1,0 +1,51 @@
+module_name: Commander
+parameters:
+    - group: Commander
+      definitions:
+        COM_MODE${i}_HASH:
+            description:
+                short: External mode identifier ${i}
+                long: |
+                    This parameter is automatically set to identify external modes. It ensures that modes
+                    get assigned to the same index independent from their startup order,
+                    which is required when mapping an external mode to an RC switch.
+            type: int32
+            num_instances: 8 # Max 8 modes (NAVIGATION_STATE_EXTERNAL8)
+            default: 0
+            volatile: true
+            category: System
+
+        COM_FLTMODE${i}:
+            description:
+                short: Mode slot ${i}
+                long: |
+                    If the main switch channel is in this range the
+                    selected flight mode will be applied.
+            type: enum
+            values:
+                -1: Unassigned
+                0: Manual
+                1: Altitude
+                2: Position
+                9: Position Slow
+                3: Mission
+                4: Hold
+                10: Takeoff
+                11: Land
+                5: Return
+                6: Acro
+                7: Offboard
+                8: Stabilized
+                12: Follow Me
+                13: Precision Land
+                100: External Mode 1
+                101: External Mode 2
+                102: External Mode 3
+                103: External Mode 4
+                104: External Mode 5
+                105: External Mode 6
+                106: External Mode 7
+                107: External Mode 8
+            instance_start: 1
+            num_instances: 6
+            default: -1

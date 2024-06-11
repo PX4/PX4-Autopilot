@@ -276,8 +276,9 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
 			uint8_t *key = (uint8_t *)crypto_get_key_ptr(handle.keystore_handle, key_idx, &key_sz);
 			chacha20_context_t *context = handle.context;
 
-			if (key_sz == 32) {
-				context->ctr = crypto_xchacha20_ctr(cipher, message, *cipher_size, key, context->nonce, context->ctr);
+			if (key_sz == 32 && *cipher_size >= message_size) {
+				context->ctr = crypto_xchacha20_ctr(cipher, message, message_size, key, context->nonce, context->ctr);
+				*cipher_size = message_size;
 				ret = true;
 			}
 		}

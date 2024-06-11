@@ -33,7 +33,7 @@
 
 #include "battery.hpp"
 
-#include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 #include <px4_defines.h>
 #include <px4_platform_common/log.h>
 
@@ -116,7 +116,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	_battery_status[instance].remaining = msg.state_of_charge_pct / 100.0f; // between 0 and 1
 	// _battery_status[instance].scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
-	_battery_status[instance].temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // Kelvin to Celsius
+	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 	// _battery_status[instance].cell_count = msg.;
 	_battery_status[instance].connected = true;
 	_battery_status[instance].source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
@@ -239,7 +239,7 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 
 	/* Override data that is expected to arrive from UAVCAN msg*/
 	_battery_status[instance] = _battery[instance]->getBatteryStatus();
-	_battery_status[instance].temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // Kelvin to Celsius
+	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 	_battery_status[instance].serial_number = msg.model_instance_id;
 	_battery_status[instance].id = msg.getSrcNodeID().get(); // overwrite zeroed index from _battery
 

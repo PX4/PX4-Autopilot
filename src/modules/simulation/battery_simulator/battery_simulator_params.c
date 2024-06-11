@@ -32,6 +32,18 @@
  ****************************************************************************/
 
 /**
+ * Simulator Battery enabled
+ *
+ * Enable or disable the internal battery simulation. This is useful
+ * when the battery is simulated externally and interfaced with PX4
+ * through MAVLink for example.
+ *
+ * @boolean
+ * @group SITL
+ */
+PARAM_DEFINE_INT32(SIM_BAT_ENABLE, 1);
+
+/**
  * Simulator Battery drain interval
  *
  * @min 1

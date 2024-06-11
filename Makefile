@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2015 - 2020 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 - 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -266,7 +266,6 @@ px4fmu_firmware: \
 
 misc_qgc_extra_firmware: \
 	check_nxp_fmuk66-v3_default \
-	check_nxp_fmurt1062-v1_default \
 	check_mro_x21_default \
 	check_bitcraze_crazyflie_default \
 	check_bitcraze_crazyflie21_default \
@@ -324,7 +323,32 @@ px4io_update:
 	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
 	git status
 
-bootloaders_update: ark_fmu-v6x_bootloader cuav_nora_bootloader cuav_x7pro_bootloader cubepilot_cubeorange_bootloader holybro_durandal-v1_bootloader holybro_kakuteh7_bootloader matek_h743_bootloader matek_h743-mini_bootloader matek_h743-slim_bootloader modalai_fc-v2_bootloader mro_ctrl-zero-classic_bootloader mro_ctrl-zero-h7_bootloader mro_ctrl-zero-h7-oem_bootloader mro_pixracerpro_bootloader px4_fmu-v6c_bootloader px4_fmu-v6u_bootloader px4_fmu-v6x_bootloader
+bootloaders_update: \
+	ark_fmu-v6x_bootloader \
+	ark_pi6x_bootloader \
+	cuav_nora_bootloader \
+	cuav_x7pro_bootloader \
+	cubepilot_cubeorange_bootloader \
+	cubepilot_cubeorangeplus_bootloader \
+	hkust_nxt-dual_bootloader \
+	hkust_nxt-v1_bootloader \
+	holybro_durandal-v1_bootloader \
+	holybro_kakuteh7_bootloader \
+	holybro_kakuteh7mini_bootloader \
+	holybro_kakuteh7v2_bootloader \
+	matek_h743_bootloader \
+	matek_h743-mini_bootloader \
+	matek_h743-slim_bootloader \
+	modalai_fc-v2_bootloader \
+	mro_ctrl-zero-classic_bootloader \
+	mro_ctrl-zero-h7_bootloader \
+	mro_ctrl-zero-h7-oem_bootloader \
+	mro_pixracerpro_bootloader \
+	px4_fmu-v6c_bootloader \
+	px4_fmu-v6u_bootloader \
+	px4_fmu-v6x_bootloader \
+	px4_fmu-v6xrt_bootloader \
+	siyi_n7_bootloader
 	git status
 
 .PHONY: coverity_scan
@@ -484,7 +508,9 @@ validate_module_configs:
 	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f \
 	-not -path "$(SRC_DIR)/src/lib/mixer_module/*" \
 	-not -path "$(SRC_DIR)/src/modules/uxrce_dds_client/dds_topics.yaml" \
+	-not -path "$(SRC_DIR)/src/modules/zenoh/zenoh-pico/*" \
 	-not -path "$(SRC_DIR)/src/lib/events/libevents/*" \
+	-not -path "$(SRC_DIR)/src/lib/cdrstream/*" \
 	-not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" -print0 | \
 	xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
 

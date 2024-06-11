@@ -33,7 +33,7 @@
 
 set(SRCS)
 
-if(NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
+if(NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_PLATFORM}" MATCHES "ros2" AND NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
 	list(APPEND SRCS
 		px4_log.cpp
 		px4_log_history.cpp
@@ -51,6 +51,8 @@ add_library(px4_platform STATIC
 	px4_cli.cpp
 	shutdown.cpp
 	spi.cpp
+	pab_manifest.c
+	Serial.cpp
 	${SRCS}
 )
 target_link_libraries(px4_platform prebuild_targets px4_work_queue)

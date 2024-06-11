@@ -23,6 +23,7 @@ import os
 
 #include <mathlib/mathlib.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/uORB.h>
 @[for include in type_includes]@
 #include <uORB/ucdr/@(include).h>
@@ -42,6 +43,7 @@ struct SendSubscription {
 	const struct orb_metadata *orb_meta;
 	uxrObjectId data_writer;
 	const char* dds_type_name;
+	const char* topic;
 	uint32_t topic_size;
 	UcdrSerializeMethod ucdr_serialize_method;
 };
@@ -53,6 +55,7 @@ struct SendTopicsSubs {
 			{ ORB_ID(@(pub['topic_simple'])),
 			  uxr_object_id(0, UXR_INVALID_ID),
 			  "@(pub['dds_type'])",
+			  "@(pub['topic'])",
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
 			  &ucdr_serialize_@(pub['simple_base_type']),
 			},
@@ -95,7 +98,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 			orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
 			if (send_subscriptions[idx].data_writer.id == UXR_INVALID_ID) {
 				// data writer not created yet
-				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].orb_meta->o_name,
+				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
 								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
 			}
 
@@ -127,6 +130,10 @@ struct RcvTopicsPubs {
 	uORB::Publication<@(sub['simple_base_type'])_s> @(sub['topic_simple'])_pub{ORB_ID(@(sub['topic_simple']))};
 @[    end for]@
 
+@[    for sub in subscriptions_multi]@
+	uORB::PublicationMulti<@(sub['simple_base_type'])_s> @(sub['topic_simple'])_pub{ORB_ID(@(sub['topic_simple']))};
+@[    end for]@
+
 	uint32_t num_payload_received{};
 
 	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
@@ -140,7 +147,7 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 	pubs->num_payload_received += length;
 
 	switch (object_id.id) {
-@[    for idx, sub in enumerate(subscriptions)]@
+@[    for idx, sub in enumerate(subscriptions + subscriptions_multi)]@
 	case @(idx)+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
@@ -161,10 +168,10 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 
 bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace)
 {
-@[    for idx, sub in enumerate(subscriptions)]@
+@[    for idx, sub in enumerate(subscriptions + subscriptions_multi)]@
 	{
-			uint16_t queue_depth = uORB::DefaultQueueSize<@(sub['simple_base_type'])_s>::value * 2; // use a bit larger queue size than internal
-			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic_simple'])", "@(sub['dds_type'])", queue_depth);
+			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['simple_base_type']))) * 2; // use a bit larger queue size than internal
+			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic'])", "@(sub['dds_type'])", queue_depth);
 	}
 @[    end for]@
 

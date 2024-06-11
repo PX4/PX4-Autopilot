@@ -207,13 +207,6 @@ static int gimbal_thread_main(int argc, char *argv[])
 			update_params(param_handles, params);
 		}
 
-		if (thread_data.last_input_active == -1) {
-			// Reset control as no one is active anymore, or yet.
-			thread_data.control_data.sysid_primary_control = 0;
-			thread_data.control_data.compid_primary_control = 0;
-			thread_data.control_data.device_compid = 0;
-		}
-
 		InputBase::UpdateResult update_result = InputBase::UpdateResult::NoUpdate;
 
 		if (thread_data.input_objs_len > 0) {

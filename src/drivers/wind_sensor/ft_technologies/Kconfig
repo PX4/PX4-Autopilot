@@ -1,0 +1,5 @@
+menuconfig DRIVERS_WIND_SENSOR_FT_TECHNOLOGIES
+	bool "ft7_technologies"
+	default n
+	---help---
+		Enable support for ft7_technologies

@@ -51,8 +51,10 @@ struct orb_metadata {
 	const char    *o_name;              /**< unique object name */
 	const uint16_t o_size;              /**< object size */
 	const uint16_t o_size_no_padding;   /**< object size w/o padding at the end (for logger) */
-	const char    *o_fields;            /**< semicolon separated list of fields (with type) */
+	uint32_t message_hash;	/**< Hash over all fields for message compatibility checks */
 	orb_id_size_t  o_id;                /**< ORB_ID enum */
+	uint8_t o_queue;					/**< queue size */
+
 };
 
 typedef const struct orb_metadata *orb_id_t;
@@ -100,16 +102,18 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
  * @param _size_no_padding	Struct size w/o padding at the end
- * @param _fields	All fields in a semicolon separated list e.g: "float[3] position;bool armed"
+ * @param _message_hash	32 bit message hash over all fields
  * @param _orb_id_enum	ORB ID enum e.g.: ORB_ID::vehicle_status
+ * @param _queue_size Queue size from topic definition
  */
-#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields, _orb_id_enum)		\
-	const struct orb_metadata __orb_##_name = {	\
-		#_name,					\
-		sizeof(_struct),		\
-		_size_no_padding,			\
-		_fields,				\
-		_orb_id_enum				\
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _message_hash, _orb_id_enum, _queue_size)               \
+	const struct orb_metadata __orb_##_name = {     \
+		#_name,                                 \
+		sizeof(_struct),                \
+		_size_no_padding,                       \
+		_message_hash,                          \
+		_orb_id_enum,                           \
+		_queue_size                             \
 	}; struct hack
 
 __BEGIN_DECLS
@@ -136,21 +140,9 @@ typedef void 	*orb_advert_t;
 extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
 
 /**
- * @see uORB::Manager::orb_advertise()
- */
-extern orb_advert_t orb_advertise_queue(const struct orb_metadata *meta, const void *data,
-					unsigned int queue_size) __EXPORT;
-
-/**
  * @see uORB::Manager::orb_advertise_multi()
  */
 extern orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance) __EXPORT;
-
-/**
- * @see uORB::Manager::orb_advertise_multi()
- */
-extern orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const void *data, int *instance,
-		unsigned int queue_size) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_unadvertise()
@@ -160,7 +152,7 @@ extern int orb_unadvertise(orb_advert_t handle) __EXPORT;
 /**
  * @see uORB::Manager::orb_publish()
  */
-extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
+extern int orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
 
 /**
  * Advertise as the publisher of a topic.
@@ -236,10 +228,16 @@ extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 extern int	orb_get_interval(int handle, unsigned *interval) __EXPORT;
 
 /**
- * Returns the C type string from a short type in o_fields metadata, or nullptr
+ * Returns the C type string from a short type in message fields metadata, or nullptr
  * if not a short type
  */
 const char *orb_get_c_type(unsigned char short_type);
+
+/**
+ * Returns the queue size of a topic
+ * @param meta orb topic metadata
+ */
+extern uint8_t orb_get_queue_size(const struct orb_metadata *meta);
 
 /**
  * Print a topic to console. Do not call this directly, use print_message() instead.
@@ -247,7 +245,6 @@ const char *orb_get_c_type(unsigned char short_type);
  * @param data expected to be aligned to the largest member
  */
 void orb_print_message_internal(const struct orb_metadata *meta, const void *data, bool print_topic_name);
-
 
 __END_DECLS
 

@@ -28,20 +28,19 @@
 
 #pragma once
 
-#include "math.hpp"
+#include <float.h> // FLT_EPSILON
+
+#include "Vector3.hpp"
+#include "Vector4.hpp"
 
 namespace matrix
 {
-
-template <typename Type>
-class Dcm;
 
 template <typename Type>
 class Euler;
 
 template <typename Type>
 class AxisAngle;
-
 
 /**
  * Quaternion class
@@ -458,7 +457,7 @@ public:
 
 		for (size_t i = 0; i < 4; i++) {
 			if (std::fabs(q(i)) > FLT_EPSILON) {
-				return q * Type(matrix::sign(q(i)));
+				return q * Type(sign(q(i)));
 			}
 		}
 

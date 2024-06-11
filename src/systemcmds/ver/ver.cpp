@@ -51,6 +51,9 @@
 static const char sz_ver_hw_str[] 	= "hw";
 static const char sz_ver_hwcmp_str[]    = "hwcmp";
 static const char sz_ver_hwtypecmp_str[]    = "hwtypecmp";
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+static const char sz_ver_hwbasecmp_str[]    = "hwbasecmp";
+#endif
 static const char sz_ver_git_str[] 	= "git";
 static const char sz_ver_bdate_str[]    = "bdate";
 static const char sz_ver_buri_str[]     = "uri";
@@ -84,6 +87,11 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwtypecmp", "Compare hardware type (returns 0 on match)");
 	PRINT_MODULE_USAGE_ARG("<hwtype> [<hwtype2>]",
 			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hwbasecmp", "Compare hardware base (returns 0 on match)");
+	PRINT_MODULE_USAGE_ARG("<hwbase> [<hwbase2>]",
+			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
+#endif
 }
 
 extern "C" __EXPORT int ver_main(int argc, char *argv[])
@@ -129,12 +137,50 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				return 1;
 			}
 
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+
+			if (!strncmp(argv[1], sz_ver_hwbasecmp_str, sizeof(sz_ver_hwbasecmp_str))) {
+				if (argc >= 3 && argv[2] != nullptr) {
+					const char *board_type = px4_board_base_type();
+
+					for (int i = 2; i < argc; ++i) {
+						if (strcmp(board_type, argv[i]) == 0) {
+							return 0; // if one of the arguments match, return success
+						}
+					}
+
+				} else {
+					PX4_ERR("Not enough arguments, try 'ver hwbasecmp {000...999}[1:*]'");
+				}
+
+				return 1;
+			}
+
+#endif
 			/* check if we want to show all */
 			bool show_all = !strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str));
 
 			if (show_all || !strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
 				PX4_INFO_RAW("HW arch: %s\n", px4_board_name());
-#if defined(BOARD_HAS_VERSIONING)
+
+#if defined(BOARD_HAS_HW_SPLIT_VERSIONING)
+				char sbase[14] = "NA";
+				char sfmum[14] = "NA";
+				int  base =  GET_HW_BASE_ID();
+				int  fmu  =  GET_HW_FMUM_ID();
+
+				if (base >= 0) {
+					snprintf(sbase, sizeof(sbase), "0x%0" STRINGIFY(HW_INFO_VER_DIGITS) "X", base);
+				}
+
+				if (fmu >= 0) {
+					snprintf(sfmum, sizeof(sfmum), "0x%0" STRINGIFY(HW_INFO_REV_DIGITS) "X", fmu);
+				}
+
+				PX4_INFO_RAW("HW type: %s\n", strlen(HW_INFO_INIT_PREFIX) ? HW_INFO_INIT_PREFIX : "NA");
+				PX4_INFO_RAW("HW FMUM ID: %s\n", sfmum);
+				PX4_INFO_RAW("HW BASE ID: %s\n", sbase);
+#elif defined(BOARD_HAS_VERSIONING)
 				char vb[14] = "NA";
 				char rb[14] = "NA";
 				int  v = px4_board_hw_version();

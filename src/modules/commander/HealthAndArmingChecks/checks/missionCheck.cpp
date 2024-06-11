@@ -56,6 +56,6 @@ void MissionChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 
 		// This is a mode requirement, no need to report
-		reporter.failsafeFlags().auto_mission_missing = mission_result.instance_count <= 0;
+		reporter.failsafeFlags().auto_mission_missing = mission_result.mission_id <= 0;
 	}
 }

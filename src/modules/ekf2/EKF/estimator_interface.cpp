@@ -147,7 +147,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-void EstimatorInterface::setGpsData(const gpsMessage &gps)
+void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 {
 	if (!_initialised) {
 		return;
@@ -155,7 +155,7 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 
 	// Allocate the required buffer size if not previously done
 	if (_gps_buffer == nullptr) {
-		_gps_buffer = new RingBuffer<gpsSample>(_obs_buffer_length);
+		_gps_buffer = new RingBuffer<gnssSample>(_obs_buffer_length);
 
 		if (_gps_buffer == nullptr || !_gps_buffer->valid()) {
 			delete _gps_buffer;
@@ -165,61 +165,24 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		}
 	}
 
-	const int64_t time_us = gps.time_usec
+	const int64_t time_us = gnss_sample.time_us
 				- static_cast<int64_t>(_params.gps_delay_ms * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	if (time_us >= static_cast<int64_t>(_gps_buffer->get_newest().time_us + _min_obs_interval_us)) {
 
-		if (!gps.vel_ned_valid || (gps.fix_type == 0)) {
-			return;
-		}
+		gnssSample gnss_sample_new(gnss_sample);
 
-		gpsSample gps_sample_new;
+		gnss_sample_new.time_us = time_us;
 
-		gps_sample_new.time_us = time_us;
-
-		gps_sample_new.vel = gps.vel_ned;
-
-		gps_sample_new.sacc = gps.sacc;
-		gps_sample_new.hacc = gps.eph;
-		gps_sample_new.vacc = gps.epv;
-
-		gps_sample_new.hgt = (float)gps.alt * 1e-3f;
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (PX4_ISFINITE(gps.yaw)) {
-			_time_last_gps_yaw_buffer_push = _time_latest_us;
-			gps_sample_new.yaw = gps.yaw;
-			gps_sample_new.yaw_acc = PX4_ISFINITE(gps.yaw_accuracy) ? gps.yaw_accuracy : 0.f;
-
-		} else {
-			gps_sample_new.yaw = NAN;
-			gps_sample_new.yaw_acc = 0.f;
-		}
-
-		if (PX4_ISFINITE(gps.yaw_offset)) {
-			_gps_yaw_offset = gps.yaw_offset;
-
-		} else {
-			_gps_yaw_offset = 0.0f;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-		// Only calculate the relative position if the WGS-84 location of the origin is set
-		if (collect_gps(gps)) {
-			gps_sample_new.pos = _pos_ref.project((gps.lat / 1.0e7), (gps.lon / 1.0e7));
-
-		} else {
-			gps_sample_new.pos(0) = 0.0f;
-			gps_sample_new.pos(1) = 0.0f;
-		}
-
-		_gps_buffer->push(gps_sample_new);
+		_gps_buffer->push(gnss_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+		if (PX4_ISFINITE(gnss_sample.yaw)) {
+			_time_last_gps_yaw_buffer_push = _time_latest_us;
+		}
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	} else {
 		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
@@ -303,7 +266,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-void EstimatorInterface::setRangeData(const rangeSample &range_sample)
+void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 {
 	if (!_initialised) {
 		return;
@@ -311,7 +274,7 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 
 	// Allocate the required buffer size if not previously done
 	if (_range_buffer == nullptr) {
-		_range_buffer = new RingBuffer<rangeSample>(_obs_buffer_length);
+		_range_buffer = new RingBuffer<sensor::rangeSample>(_obs_buffer_length);
 
 		if (_range_buffer == nullptr || !_range_buffer->valid()) {
 			delete _range_buffer;
@@ -328,7 +291,7 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 	// limit data rate to prevent data being lost
 	if (time_us >= static_cast<int64_t>(_range_buffer->get_newest().time_us + _min_obs_interval_us)) {
 
-		rangeSample range_sample_new{range_sample};
+		sensor::rangeSample range_sample_new{range_sample};
 		range_sample_new.time_us = time_us;
 
 		_range_buffer->push(range_sample_new);
@@ -553,71 +516,15 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
-	// find the maximum time delay the buffers are required to handle
-
-	// it's reasonable to assume that aux velocity device has low delay. TODO: check the delay only if the aux device is used
-	float max_time_delay_ms = _params.sensor_interval_max_ms;
-
-	// aux vel
-#if defined(CONFIG_EKF2_AUXVEL)
-	max_time_delay_ms = math::max(_params.auxvel_delay_ms, max_time_delay_ms);
-#endif // CONFIG_EKF2_AUXVEL
-
-#if defined(CONFIG_EKF2_BAROMETER)
-	// using baro
-	if (_params.baro_ctrl > 0) {
-		max_time_delay_ms = math::max(_params.baro_delay_ms, max_time_delay_ms);
-	}
-#endif // CONFIG_EKF2_BAROMETER
-
-#if defined(CONFIG_EKF2_AIRSPEED)
-	// using airspeed
-	if (_params.arsp_thr > FLT_EPSILON) {
-		max_time_delay_ms = math::max(_params.airspeed_delay_ms, max_time_delay_ms);
-	}
-#endif // CONFIG_EKF2_AIRSPEED
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	// mag mode
-	if (_params.mag_fusion_type != MagFuseType::NONE) {
-		max_time_delay_ms = math::max(_params.mag_delay_ms, max_time_delay_ms);
-	}
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	// using range finder
-	if ((_params.rng_ctrl != RngCtrl::DISABLED)) {
-		max_time_delay_ms = math::max(_params.range_delay_ms, max_time_delay_ms);
-	}
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_GNSS)
-	if (_params.gnss_ctrl > 0) {
-		max_time_delay_ms = math::max(_params.gps_delay_ms, max_time_delay_ms);
-	}
-#endif // CONFIG_EKF2_GNSS
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	if (_params.flow_ctrl > 0) {
-		max_time_delay_ms = math::max(_params.flow_delay_ms, max_time_delay_ms);
-	}
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	if (_params.ev_ctrl > 0) {
-		max_time_delay_ms = math::max(_params.ev_delay_ms, max_time_delay_ms);
-	}
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
 	const float filter_update_period_ms = _params.filter_update_interval_us / 1000.f;
 
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
-	_imu_buffer_length = math::max(2, (int)ceilf(max_time_delay_ms / filter_update_period_ms));
+	_imu_buffer_length = math::max(2, (int)ceilf(_params.delay_max_ms / filter_update_period_ms));
 
 	// set the observation buffer length to handle the minimum time of arrival between observations in combination
 	// with the worst case delay from current time to ekf fusion time
 	// allow for worst case 50% extension of the ekf fusion time horizon delay due to timing jitter
-	const float ekf_delay_ms = max_time_delay_ms * 1.5f;
+	const float ekf_delay_ms = _params.delay_max_ms * 1.5f;
 	_obs_buffer_length = roundf(ekf_delay_ms / filter_update_period_ms);
 
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)
@@ -656,6 +563,7 @@ int EstimatorInterface::getNumberOfActiveHorizontalAidingSources() const
 	       + int(_control_status.flags.opt_flow)
 	       + int(_control_status.flags.ev_pos)
 	       + int(_control_status.flags.ev_vel)
+	       + int(_control_status.flags.aux_gpos)
 	       // Combined airspeed and sideslip fusion allows sustained wind relative dead reckoning
 	       // and so is treated as a single aiding source.
 	       + int(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta);
@@ -711,63 +619,4 @@ void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
 	if (buffer_name) {
 		ECL_ERR("%s buffer allocation failed", buffer_name);
 	}
-}
-
-void EstimatorInterface::print_status()
-{
-	printf("EKF average dt: %.6f seconds\n", (double)_dt_ekf_avg);
-
-	printf("IMU buffer: %d (%d Bytes)\n", _imu_buffer.get_length(), _imu_buffer.get_total_size());
-
-	printf("minimum observation interval %d us\n", _min_obs_interval_us);
-
-#if defined(CONFIG_EKF2_GNSS)
-	if (_gps_buffer) {
-		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_buffer->entries(), _gps_buffer->get_length(), _gps_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_GNSS
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	if (_mag_buffer) {
-		printf("mag buffer: %d/%d (%d Bytes)\n", _mag_buffer->entries(), _mag_buffer->get_length(), _mag_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_BAROMETER)
-	if (_baro_buffer) {
-		printf("baro buffer: %d/%d (%d Bytes)\n", _baro_buffer->entries(), _baro_buffer->get_length(), _baro_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_BAROMETER
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	if (_range_buffer) {
-		printf("range buffer: %d/%d (%d Bytes)\n", _range_buffer->entries(), _range_buffer->get_length(), _range_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_AIRSPEED)
-	if (_airspeed_buffer) {
-		printf("airspeed buffer: %d/%d (%d Bytes)\n", _airspeed_buffer->entries(), _airspeed_buffer->get_length(), _airspeed_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_AIRSPEED
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	if (_flow_buffer) {
-		printf("flow buffer: %d/%d (%d Bytes)\n", _flow_buffer->entries(), _flow_buffer->get_length(), _flow_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	if (_ext_vision_buffer) {
-		printf("vision buffer: %d/%d (%d Bytes)\n", _ext_vision_buffer->entries(), _ext_vision_buffer->get_length(), _ext_vision_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-	if (_drag_buffer) {
-		printf("drag buffer: %d/%d (%d Bytes)\n", _drag_buffer->entries(), _drag_buffer->get_length(), _drag_buffer->get_total_size());
-	}
-#endif // CONFIG_EKF2_DRAG_FUSION
-
-	_output_predictor.print_status();
 }

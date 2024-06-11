@@ -14,7 +14,7 @@
 
 param set-default FW_AIRSPD_STALL 5
 
-param set-default FW_P_RMAX_NEG 20.0
+param set-default FW_P_RMAX_NEG 20
 param set-default FW_W_RMAX 10
 param set-default FW_W_EN 1
 
@@ -29,9 +29,9 @@ param set-default NAV_LOITER_RAD 50
 # Parameters related to autogyro takeoff PR
 #param set-default AG_TKOFF 1
 #param set-default AG_PROT_TYPE 1
-#param set-default AG_PROT_MIN_RPM 50.0
-#param set-default AG_PROT_TRG_RPM 900.0
-#param set-defoult AG_ROTOR_RPM 900.0
+#param set-default AG_PROT_MIN_RPM 50
+#param set-default AG_PROT_TRG_RPM 900
+#param set-defoult AG_ROTOR_RPM 900
 
 param set-default FW_ARSP_SCALE_EN 0
 
@@ -42,7 +42,7 @@ param set-default FW_P_LIM_MAX 25
 param set-default FW_P_LIM_MIN -5
 param set-default FW_R_LIM 30
 
-param set-default FW_MAN_R_MAX 30.0
+param set-default FW_MAN_R_MAX 30
 
 param set-default FW_THR_CRUISE 0.8
 param set-default FW_THR_IDLE 0

@@ -58,6 +58,8 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: return navigation_mode_t::auto_rtl;
 
+	case vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW: return navigation_mode_t::position_slow;
+
 	case vehicle_status_s::NAVIGATION_STATE_ACRO: return navigation_mode_t::acro;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: return navigation_mode_t::offboard;
@@ -75,36 +77,27 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT: return navigation_mode_t::orbit;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF: return navigation_mode_t::auto_vtol_takeoff;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL1: return navigation_mode_t::external1;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL2: return navigation_mode_t::external2;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL3: return navigation_mode_t::external3;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL4: return navigation_mode_t::external4;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL5: return navigation_mode_t::external5;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL6: return navigation_mode_t::external6;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL7: return navigation_mode_t::external7;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8: return navigation_mode_t::external8;
 	}
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 23, "code requires update");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 31, "update navigation mode map");
 
 	return navigation_mode_t::unknown;
 }
-
-const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
-	"MANUAL",
-	"ALTCTL",
-	"POSCTL",
-	"AUTO_MISSION",
-	"AUTO_LOITER",
-	"AUTO_RTL",
-	"6: unallocated",
-	"7: unallocated",
-	"AUTO_LANDENGFAIL",
-	"9: unallocated",
-	"ACRO",
-	"11: UNUSED",
-	"DESCEND",
-	"TERMINATION",
-	"OFFBOARD",
-	"STAB",
-	"16: UNUSED2",
-	"AUTO_TAKEOFF",
-	"AUTO_LAND",
-	"AUTO_FOLLOW_TARGET",
-	"AUTO_PRECLAND",
-	"ORBIT"
-};
 
 } // namespace mode_util

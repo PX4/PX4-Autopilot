@@ -103,7 +103,6 @@ void FlightModeManager::Run()
 		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) / 1e6f), 0.0002f, 0.1f);
 		_time_stamp_last_loop = time_stamp_now;
 
-		_home_position_sub.update();
 		_vehicle_control_mode_sub.update();
 		_vehicle_land_detected_sub.update();
 		_vehicle_status_sub.update();
@@ -137,7 +136,9 @@ void FlightModeManager::updateParams()
 void FlightModeManager::start_flight_task()
 {
 	// Do not run any flight task for VTOLs in fixed-wing mode
-	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+	    || ((_vehicle_status_sub.get().nav_state >= vehicle_status_s::NAVIGATION_STATE_EXTERNAL1)
+		&& (_vehicle_status_sub.get().nav_state <= vehicle_status_s::NAVIGATION_STATE_EXTERNAL8))) {
 		switchTask(FlightTaskIndex::None);
 		return;
 	}
@@ -193,6 +194,13 @@ void FlightModeManager::start_flight_task()
 			matching_task_running = false;
 			task_failure = true;
 		}
+	}
+
+	// position slow mode
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW) {
+		found_some_task = true;
+		FlightTaskError error = switchTask(FlightTaskIndex::ManualAccelerationSlow);
+		task_failure = error != FlightTaskError::NoError;
 	}
 
 	// Manual position control
@@ -328,9 +336,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		constraints = _current_task.task->getConstraints();
 	}
 
-	// limit altitude according to land detector
-	limitAltitude(setpoint, vehicle_local_position);
-
 	if (_takeoff_status_sub.updated()) {
 		takeoff_status_s takeoff_status;
 
@@ -362,25 +367,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	}
 
 	_old_landing_gear_position = landing_gear.landing_gear;
-}
-
-void FlightModeManager::limitAltitude(trajectory_setpoint_s &setpoint,
-				      const vehicle_local_position_s &vehicle_local_position)
-{
-	if (_param_lndmc_alt_max.get() < 0.0f || !_home_position_sub.get().valid_alt
-	    || !vehicle_local_position.z_valid || !vehicle_local_position.v_z_valid) {
-		// there is no altitude limitation present or the required information not available
-		return;
-	}
-
-	// maximum altitude == minimal z-value (NED)
-	const float min_z = _home_position_sub.get().z + (-_param_lndmc_alt_max.get());
-
-	if (vehicle_local_position.z < min_z) {
-		// above maximum altitude, only allow downwards flight == positive vz-setpoints (NED)
-		setpoint.position[2] = min_z;
-		setpoint.velocity[2] = math::max(setpoint.velocity[2], 0.f);
-	}
 }
 
 FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)

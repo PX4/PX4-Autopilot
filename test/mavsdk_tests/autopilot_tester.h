@@ -110,6 +110,7 @@ public:
 	void set_rtl_altitude(const float altitude_m);
 	void set_height_source(HeightSource height_source);
 	void set_rc_loss_exception(RcLossException mask);
+	void set_param_vt_fwd_thrust_en(int value);
 	void arm();
 	void takeoff();
 	void land();
@@ -150,6 +151,10 @@ public:
 	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
 	void send_custom_mavlink_message(mavlink_message_t &message);
 	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
+
+	void enable_fixedwing_mectrics();
+	void check_airspeed_is_valid();
+	void check_airspeed_is_invalid();
 
 	// Blocking call to get the drone's current position in NED frame
 	std::array<float, 3> get_current_position_ned();
