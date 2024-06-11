@@ -223,7 +223,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 
 	// reset states if check is disabled, we are not flying or wind estimator was just initialized/reset
 	if (!_innovation_check_enabled || !_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 5_s
-	    || _tas_innov_integ_threshold <= 0.f) {
+	    || _tas_innov_integ_threshold < -FLT_EPSILON) {
 		_innovations_check_failed = false;
 		_aspd_innov_integ_state = 0.f;
 
