@@ -222,16 +222,13 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 	}
 
 	// reset states if check is disabled, we are not flying or wind estimator was just initialized/reset
-	if (!_innovation_check_enabled || !_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 5_s
-	    || _tas_innov_integ_threshold <= 0.f) {
+	if (!_innovation_check_enabled || !_in_fixed_wing_flight || (time_now - _time_wind_estimator_initialized) < 5_s) {
 		_innovations_check_failed = false;
-		_time_last_tas_pass = time_now;
 		_aspd_innov_integ_state = 0.f;
 
 	} else if (!lpos_valid || estimator_status_vel_test_ratio > 1.f || estimator_status_mag_test_ratio > 1.f) {
 		//nav velocity data is likely not good
 		//don't run the test but don't reset the check if it had previously failed when nav velocity data was still likely good
-		_time_last_tas_pass = time_now;
 		_aspd_innov_integ_state = 0.f;
 
 	} else {
@@ -249,11 +246,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 			_aspd_innov_integ_state = 0.f;
 		}
 
-		if (_tas_innov_integ_threshold > 0.f && _aspd_innov_integ_state < _tas_innov_integ_threshold) {
-			_time_last_tas_pass = time_now;
-		}
-
-		_innovations_check_failed = (time_now - _time_last_tas_pass) > TAS_INNOV_FAIL_DELAY;
+		_innovations_check_failed = _aspd_innov_integ_state > _tas_innov_integ_threshold;
 	}
 
 	_time_last_aspd_innov_check = time_now;
