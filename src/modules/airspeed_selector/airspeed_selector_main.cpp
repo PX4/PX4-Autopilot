@@ -169,6 +169,10 @@ private:
 		CHECK_TYPE_FIRST_PRINCIPLE_BIT = (1 << 4)
 	};
 
+
+	param_t _param_handle_pitch_sp_offset{PARAM_INVALID};
+	float _param_pitch_sp_offset{0.0f};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ASPD_WIND_NSD>) _param_aspd_wind_nsd,
 		(ParamFloat<px4::params::ASPD_SCALE_NSD>) _param_aspd_scale_nsd,
@@ -195,7 +199,6 @@ private:
 		// external parameters
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
-		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max
 	)
 
@@ -213,6 +216,7 @@ AirspeedModule::AirspeedModule():
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_param_handle_pitch_sp_offset = param_find("FW_PSP_OFF");
 	// initialise parameters
 	update_params();
 
@@ -455,6 +459,10 @@ void AirspeedModule::update_params()
 {
 	updateParams();
 
+	if (_param_handle_pitch_sp_offset != PARAM_INVALID) {
+		param_get(_param_handle_pitch_sp_offset, &_param_pitch_sp_offset);
+	}
+
 	_param_airspeed_scale[0] = _param_airspeed_scale_1.get();
 	_param_airspeed_scale[1] = _param_airspeed_scale_2.get();
 	_param_airspeed_scale[2] = _param_airspeed_scale_3.get();
@@ -491,7 +499,7 @@ void AirspeedModule::update_params()
 				CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
 		_airspeed_validator[i].set_enable_first_principle_check(_param_airspeed_checks_on.get() &
 				CheckTypeBits::CHECK_TYPE_FIRST_PRINCIPLE_BIT);
-		_airspeed_validator[i].set_psp_off_param(math::radians(_param_fw_psp_off.get()));
+		_airspeed_validator[i].set_psp_off_param(math::radians(_param_pitch_sp_offset));
 		_airspeed_validator[i].set_throttle_max_param(_param_fw_thr_max.get());
 		_airspeed_validator[i].set_fp_t_window(_aspd_fp_t_window.get());
 	}
