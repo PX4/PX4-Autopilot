@@ -1925,23 +1925,6 @@ PARAM_DEFINE_FLOAT(RC_RETURN_TH_MIN, 0.75f);
 */
 PARAM_DEFINE_FLOAT(RC_RETURN_TH_MAX, 1.0f);
 
-
-/**
- * Threshold for selecting return to launch mode
- *
- * 0-1 indicate where in the full channel range the threshold sits
- * 		0 : min
- * 		1 : max
- * sign indicates polarity of comparison
- * 		positive : true when channel>th
- * 		negative : true when channel<th
- *
- * @min -1
- * @max 1
- * @group Radio Switches
- */
-PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.75f);
-
 /**
  * Threshold for selecting loiter mode
  *

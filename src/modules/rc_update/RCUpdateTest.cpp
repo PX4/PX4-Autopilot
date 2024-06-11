@@ -111,13 +111,44 @@ public:
 		// GIVEN: First channel is configured as return switch
 		_param_rc_map_return_sw.set(1);
 		_param_rc_map_return_sw.commit();
-		_param_rc_return_th.set(threshold);
-		_param_rc_return_th.commit();
+		_param_rc_return_th_min.set(threshold);
+		_param_rc_return_th_min.commit();
+		_param_rc_return_th_max.set(threshold >= 0.f ? std::numeric_limits<float>::max() : -std::numeric_limits<float>::max());
+		_param_rc_return_th_max.commit();
 		_rc_update.updateParams();
 		EXPECT_EQ(_param_rc_map_return_sw.get(), 1);
-		EXPECT_FLOAT_EQ(_param_rc_return_th.get(), threshold);
+		EXPECT_FLOAT_EQ(_param_rc_return_th_min.get(), threshold);
 		// GIVEN: First channel has some value
 		_rc_update.setChannel(0, channel_value);
+
+		// WHEN: we update the switches two times to pass the simple outlier protection
+		_rc_update.UpdateManualSwitches(0);
+		_rc_update.UpdateManualSwitches(0);
+
+		// THEN: we receive the expected mode slot
+		uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
+		EXPECT_EQ(manual_control_switches_sub.get().return_switch, expected_position);
+	}
+
+	void checkRangeBasedReturnSwitch(float channel_value, float threshold_min, float threshold_max,
+					 uint8_t expected_position)
+	{
+		// GIVEN: First channel is configured as return switch
+		_param_rc_map_return_sw.set(1);
+		_param_rc_map_return_sw.commit();
+		_param_rc_return_th_min.set(threshold_min);
+		_param_rc_return_th_min.commit();
+		_param_rc_return_th_max.set(threshold_max);
+		_param_rc_return_th_max.commit();
+		_rc_update.updateParams();
+		EXPECT_EQ(_param_rc_map_return_sw.get(), 1);
+		EXPECT_FLOAT_EQ(_param_rc_return_th_min.get(), threshold_min);
+		EXPECT_FLOAT_EQ(_param_rc_return_th_max.get(), threshold_max);
+
+		// GIVEN: First channel has some value
+		// _rc.channels contains values is in the range [-1, 1] -> Remap it to [0, 1]
+		float mapped_channel_value = 2.0f * (channel_value - 0.5f);
+		_rc_update.setChannel(0, mapped_channel_value);
 
 		// WHEN: we update the switches two times to pass the simple outlier protection
 		_rc_update.UpdateManualSwitches(0);
@@ -134,7 +165,8 @@ public:
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
 		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_fltm_btn,
 		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
-		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th
+		(ParamFloat<px4::params::RC_RETURN_TH_MIN>) _param_rc_return_th_min,
+		(ParamFloat<px4::params::RC_RETURN_TH_MAX>) _param_rc_return_th_max
 	)
 };
 
@@ -196,8 +228,8 @@ TEST_F(RCUpdateTest, ReturnSwitchUnassigned)
 TEST_F(RCUpdateTest, ReturnSwitchPositiveThresholds)
 {
 	checkReturnSwitch(-1.f, 0.5f, 3); // Below threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(-.001f, 0.5f, 3); // Slightly below threshold -> SWITCH_POS_OFF
 	checkReturnSwitch(0.f, 0.5f, 3); // On threshold -> SWITCH_POS_OFF
-	checkReturnSwitch(.001f, 0.5f, 1); // Slightly above threshold -> SWITCH_POS_ON
 	checkReturnSwitch(1.f, 0.5f, 1); // Above threshold -> SWITCH_POS_ON
 
 	checkReturnSwitch(-1.f, 0.75f, 3); // Below threshold -> SWITCH_POS_OFF
@@ -217,19 +249,82 @@ TEST_F(RCUpdateTest, ReturnSwitchPositiveThresholds)
 TEST_F(RCUpdateTest, ReturnSwitchNegativeThresholds)
 {
 	checkReturnSwitch(1.f, -0.5f, 3); // Above threshold -> SWITCH_POS_OFF
-	checkReturnSwitch(0.f, -0.5f, 3); // On threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(0.f, -0.5f, 1); // On threshold -> SWITCH_POS_ON
 	checkReturnSwitch(-.001f, -0.5f, 1); // Slightly below threshold -> SWITCH_POS_ON
 	checkReturnSwitch(-1.f, -0.5f, 1); // Below threshold -> SWITCH_POS_ON
 
 	checkReturnSwitch(1.f, -0.75f, 3); // Above threshold -> SWITCH_POS_OFF
-	checkReturnSwitch(.5f, -0.75f, 3); // On threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(.5f, -0.75f, 1); // On threshold -> SWITCH_POS_ON
 	checkReturnSwitch(.499f, -0.75f, 1); // Slightly below threshold -> SWITCH_POS_ON
 	checkReturnSwitch(-1.f, -0.75f, 1); // Below threshold -> SWITCH_POS_ON
 
-	checkReturnSwitch(1.f, -1.f, 3); // On maximum threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(1.f, -1.f, 1); // On maximum threshold -> SWITCH_POS_ON
 	checkReturnSwitch(.999f, -1.f, 1); // Slighly below maximum threshold -> SWITCH_POS_ON
 	checkReturnSwitch(-1.f, -1.f, 1); // Below minimum threshold -> SWITCH_POS_ON
 
 	checkReturnSwitch(1.f, -.001f, 3); // Above minimum threshold -> SWITCH_POS_OFF
 	checkReturnSwitch(-1.f, -.001f, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
+}
+
+TEST_F(RCUpdateTest, RangeBasedReturnSwitchPositiveThresholds)
+{
+	// Channel values mapped to [0, 1]
+
+	// Nominal range use case
+	checkRangeBasedReturnSwitch(0.f, 0.4f, 0.6f, 3); // Below threshold_min -> SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(0.4f, 0.4f, 0.6f, 3); // On threshold_min -> SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(.401f, 0.4f, 0.6f, 1); // Slightly above threshold_min -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(0.6f, 0.4f, 0.6f, 3); // On threshold_max -> SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(.601f, 0.4f, 0.6f, 3); // Above threshold_max -> SWITCH_POS_OFF
+
+	// Full positive range allowed
+	checkRangeBasedReturnSwitch(0.f, 0.f, 1.0f, 3); // On threshold_min -> SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(.001f, 0.f, 1.0f, 1); // Slightly above threshold_min -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(0.999f, 0.f, 1.0f, 1); // Slightly below threshold_max -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(1.f, 0.f, 1.0f, 3); // On threshold_max -> SWITCH_POS_OFF
+
+	// threshold_min > threshold_max => always SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(0.f, .7f, .3f, 3);
+	checkRangeBasedReturnSwitch(.3f, .7f, .3f, 3);
+	checkRangeBasedReturnSwitch(.5f, .7f, .3f, 3);
+	checkRangeBasedReturnSwitch(.7f, .7f, .3f, 3);
+	checkRangeBasedReturnSwitch(1.f, .7f, .3f, 3);
+
+	// threshold_max < 0 => always SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(0.f, .7f, -.3f, 3);
+	checkRangeBasedReturnSwitch(.5f, .7f, -.3f, 3);
+	checkRangeBasedReturnSwitch(.7f, .7f, -.3f, 3);
+	checkRangeBasedReturnSwitch(1.f, .7f, -.3f, 3);
+
+	// threshold_min < 0
+	checkRangeBasedReturnSwitch(0.f, -.7f, .7f, 1); // On zero -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(.5f, -.7f, .7f, 1); // Below threshold_max -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(.7f, -.7f, .7f, 3); // On threshold_max -> SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(1.f, -.7f, .7f, 3); // Above threshold_max -> SWITCH_POS_OFF
+}
+
+TEST_F(RCUpdateTest, RangeBasedReturnSwitchNegativeThresholds)
+{
+	// Channel values mapped to [0, 1]
+
+	// Nominal range use case
+	checkRangeBasedReturnSwitch(0.f, -0.4f, -0.6f, 1); // Below threshold_min -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(0.4f, -0.4f, -0.6f, 1); // On threshold_min -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(.401f, -0.4f, -0.6f, 3); // Slightly above threshold_min -> SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(0.6f, -0.4f, -0.6f, 1); // On threshold_max -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(.601f, -0.4f, -0.6f, 1); // Above threshold_max -> SWITCH_POS_ON
+
+	// Full positive range allowed
+	checkRangeBasedReturnSwitch(0.f, -0.f, -1.0f, 1); // On threshold_min -> SWITCH_POS_OFF
+	checkRangeBasedReturnSwitch(.001f, -0.f, -1.0f, 3); // Slightly above threshold_min -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(0.999f, -0.f, -1.0f, 3); // Slightly below threshold_max -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(1.f, -0.f, -1.0f, 1); // On threshold_max -> SWITCH_POS_OFF
+
+	// threshold_max == threshold_min
+	checkRangeBasedReturnSwitch(0.f, -.2f, -.2f, 1); // Below threshold -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(.199f, -.2f, -.2f, 1); // Slightly below thresholds -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(.2f, -.2f, -.2f, 1); // On threshold -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(0.999f, -.2f, -.2f, 1); // Slightly above threshold -> SWITCH_POS_ON
+	checkRangeBasedReturnSwitch(1.f, -.2f, -.2f, 1); // On threshold_max -> SWITCH_POS_ON
+
 }

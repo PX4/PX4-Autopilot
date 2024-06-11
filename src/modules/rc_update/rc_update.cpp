@@ -585,24 +585,18 @@ switch_pos_t RCUpdate::getRCSwitchOnOffPositionFromRange(uint8_t function, float
 		const float value = 0.5f * _rc.channels[_rc.function[function]] + 0.5f;
 
 		// On negative thresholds -> enable inverted mode
-		const bool on_inv = threshold_min < 0.0f && threshold_max < 0.0f;
+		const bool on_inv = threshold_min <= 0.0f && threshold_max <= 0.0f;
 
 		// Flip threshold sign in inverted mode
-		const bool within_range = on_inv ?
-					  (value > -threshold_min && value < -threshold_max) :
-					  (value > threshold_min && value < threshold_max);
+		const bool is_on = on_inv ?
+				   (value <= -threshold_min || value >= -threshold_max) :
+				   (value > threshold_min && value < threshold_max);
 
-		if (on_inv) {
-			// ON and OFF are flipped, i.e. ON when NOT in range, OFF otherwise
-			return !within_range ?
-			       manual_control_switches_s::SWITCH_POS_ON :
-			       manual_control_switches_s::SWITCH_POS_OFF;
 
-		} else {
-			return within_range ?
-			       manual_control_switches_s::SWITCH_POS_ON :
-			       manual_control_switches_s::SWITCH_POS_OFF;
-		}
+		return is_on ?
+		       manual_control_switches_s::SWITCH_POS_ON :
+		       manual_control_switches_s::SWITCH_POS_OFF;
+
 	}
 
 	return manual_control_switches_s::SWITCH_POS_NONE;
