@@ -2348,9 +2348,9 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	if (_mavlink->get_hil_enabled()) {
 		_hitl_sim_gps_time_usec = hil_gps.time_usec;
-		_hitl_sim_home_lat = hil_gps.lat;
-		_hitl_sim_home_lon = hil_gps.lon;
-		_hitl_sim_home_alt = hil_gps.alt;
+		_hitl_sim_home_lat = hil_gps.lat / 1e7;
+		_hitl_sim_home_lon = hil_gps.lon / 1e7;
+		_hitl_sim_home_alt = hil_gps.alt / 1e3f;
 
 	} else {
 		sensor_gps_s gps{};
