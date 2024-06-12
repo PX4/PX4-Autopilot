@@ -55,9 +55,13 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					       && !_flow_sample_delayed.flow_rate.longerThan(_flow_max_rate);
 		const bool is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
 
+		// don't enforce this condition if terrain estimate is not valid as we have logic below to coast through bad range finder data
+		const bool is_within_max_sensor_dist = isTerrainEstimateValid() ? (_terrain_vpos - _state.pos(2) <= _flow_max_distance) : true;
+
 		if (is_quality_good
 		    && is_magnitude_good
-		    && is_tilt_good) {
+		    && is_tilt_good
+		    && is_within_max_sensor_dist) {
 			// compensate for body motion to give a LOS rate
 			calcOptFlowBodyRateComp(imu_delayed);
 			_flow_rate_compensated = _flow_sample_delayed.flow_rate - _flow_sample_delayed.gyro_rate.xy();
