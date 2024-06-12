@@ -306,6 +306,9 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_T_WARN"), &params->esc_warn_temp_threshold);
 	param_get(param_find("VOXL_ESC_T_OVER"), &params->esc_over_temp_threshold);
 
+	param_get(param_find("GPIO_CTL_CH"), &params->gpio_ctl_channel);
+	param_get(param_find("CPIO_CTL_CFG"), &params->gpio_ctl_config);
+
 	if (params->rpm_min >= params->rpm_max) {
 		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
 		params->rpm_min = 0;
@@ -339,6 +342,12 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	if (params->turtle_cosphi < 0.0f || params->turtle_cosphi > 100.0f) {
 		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_T_COSP.  Please verify parameters.");
 		params->turtle_cosphi = 0.0f;
+		ret = PX4_ERROR;
+	}
+
+	if (params->gpio_ctl_channel < 0 || params->gpio_ctl_channel > 16) {
+		PX4_ERR("VOXL_ESC: Invalid parameter GPIO_CTL_CH.  Please verify parameters.");
+		params->gpio_ctl_channel = 0;
 		ret = PX4_ERROR;
 	}
 
@@ -1547,6 +1556,9 @@ void VoxlEsc::print_params()
 	
 	PX4_INFO("Params: VOXL_ESC_T_WARN: %" PRId32, _parameters.esc_warn_temp_threshold);
 	PX4_INFO("Params: VOXL_ESC_T_OVER: %" PRId32, _parameters.esc_over_temp_threshold);
+
+	PX4_INFO("Params: GPIO_CTL_CH: %" PRId32, _parameters.gpio_ctl_channel);
+	PX4_INFO("Params: GPIO_CTL_CFG: %" PRId32, _parameters.gpio_ctl_config);
 }
 
 int VoxlEsc::print_status()

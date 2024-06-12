@@ -156,6 +156,8 @@ private:
 		int32_t		publish_battery_status{0};
 		int32_t		esc_warn_temp_threshold{0};
 		int32_t		esc_over_temp_threshold{0};
+		int32_t		gpio_ctl_channel{0};
+		int32_t		gpio_ctl_config{0};
 	} voxl_esc_params_t;
 
 	struct EscChan {
