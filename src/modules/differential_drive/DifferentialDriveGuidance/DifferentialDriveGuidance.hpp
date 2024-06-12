@@ -58,8 +58,8 @@
  */
 enum class GuidanceState {
 	TURNING, ///< The vehicle is currently turning.
-	DRIVING, ///< The vehicle is currently driving straight.
-	GOAL_REACHED ///< The vehicle has reached its goal.
+	kDriving, ///< The vehicle is currently driving straight.
+	kGoalReached ///< The vehicle has reached its goal.
 };
 
 /**

@@ -79,16 +79,16 @@ protected:
 private:
 	void Run() override;
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
 	uORB::Publication<boat_setpoint_s> _boat_setpoint_pub{ORB_ID(boat_setpoint)};
 
 	bool _manual_driving = false;
 	bool _mission_driving = false;
 	bool _acro_driving = false;
-	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
+
 
 	BoatGuidance _boat_guidance{this};
 	BoatControl _boat_control{this};
@@ -97,11 +97,13 @@ private:
 	float _max_speed{0.f};
 	float _max_angular_velocity{0.f};
 
+	hrt_abstime _time_stamp_last{0};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
-		(ParamFloat<px4::params::BT_ANG_MAX>) _param_bt_ang_max,
-		(ParamFloat<px4::params::BT_SPD_MAX>) _param_bt_spd_max,
 		(ParamFloat<px4::params::BT_ANG_VEL_SCALE>) _param_bt_ang_vel_scale,
-		(ParamFloat<px4::params::BT_SPD_SCALE>) _param_bt_spd_scale
+		(ParamFloat<px4::params::BT_SPD_SCALE>) _param_bt_spd_scale,
+		(ParamFloat<px4::params::BT_ANG_MAX>) _param_bt_ang_max,
+		(ParamFloat<px4::params::BT_SPD_MAX>) _param_bt_spd_max
 	)
 };

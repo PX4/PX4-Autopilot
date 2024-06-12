@@ -79,6 +79,8 @@ matrix::Vector2f BoatKinematics::computeInverseKinematics(float linear_velocity_
 		return Vector2f();
 	}
 
+	// Room for more advanced dynamics, if required
+
 	linear_velocity_x = math::constrain(linear_velocity_x, -_max_speed, _max_speed);
 	yaw_rate = math::constrain(yaw_rate, -_max_angular_velocity, _max_angular_velocity);
 

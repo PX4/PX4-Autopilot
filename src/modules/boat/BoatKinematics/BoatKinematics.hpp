@@ -94,6 +94,7 @@ private:
 	uORB::PublicationMulti<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
 
 	boat_setpoint_s _boat_control_output{};
+
 	bool _armed = false;
 
 	float _wheel_base{0.f};

@@ -131,7 +131,6 @@ void Boat::Run()
 			_boat_control.getLocalPosition(),
 			dt
 		);
-		// _boat_guidance_pp.purePursuit();
 	}
 
 	_boat_control.control(dt);

@@ -59,9 +59,9 @@ using namespace matrix;
  * @brief Enum class for the different states of guidance.
  */
 enum class GuidanceState {
-	DRIVING, ///< The vehicle is currently driving straight.
-	DRIVING_TO_POINT, ///< The vehicle is currently driving to the next waypoint.
-	GOAL_REACHED ///< The vehicle has reached its goal.
+	kDriving, ///< The vehicle is currently driving straight.
+	kDrivingToAPoint, ///< The vehicle is currently driving to the next waypoint.
+	kGoalReached ///< The vehicle has reached its goal.
 };
 
 /**
@@ -90,6 +90,27 @@ public:
 	void computeGuidance(float yaw, vehicle_local_position_s vehicle_local_position, float dt);
 
 	/**
+	 * @brief Calculate the lookahead distance based on the current and previous waypoints and the current position.
+	 * @param curr_wp_local The current waypoint in local coordinates.
+	 * @param prev_wp_local The previous waypoint in local coordinates.
+	 * @param curr_pos_local The current position in local coordinates.
+	 * @return The calculated lookahead distance.
+	 */
+	float getLookAheadDistance(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
+				   const Vector2f &curr_pos_local);
+
+	/**
+	 * @brief Calculate the desired heading based on the current and previous waypoints, current position, and lookahead distance.
+	 * @param curr_wp_local The current waypoint in local coordinates.
+	 * @param prev_wp_local The previous waypoint in local coordinates.
+	 * @param curr_pos_local The current position in local coordinates.
+	 * @param lookahead_distance The lookahead distance.
+	 * @return The calculated desired heading.
+	 */
+	float calcDesiredHeading(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local, const Vector2f &curr_pos_local,
+				 const float &lookahead_distance);
+
+	/**
 	 * @brief Set the maximum speed for the vehicle.
 	 * @param max_speed The maximum speed in m/s.
 	 * @return The set maximum speed in m/s.
@@ -98,17 +119,13 @@ public:
 
 
 	/**
-	 * @brief Set the maximum angular velocity for the vehicle.
+	 * @brief Set the maximum angular velocity for the boat.
 	 * @param max_angular_velocity The maximum angular velocity in rad/s.
 	 * @return The set maximum angular velocity in rad/s.
 	 */
 	float setMaxAngularVelocity(float max_angular_velocity) { return _max_angular_velocity = max_angular_velocity; }
 
-	float calcDesiredHeading(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local, const Vector2f &curr_pos_local,
-				 const float &lookahead_distance);
 
-	float getLookAheadDistance(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
-				      const Vector2f &curr_pos_local);
 
 protected:
 	/**
@@ -121,6 +138,7 @@ private:
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 
 	uORB::Publication<boat_setpoint_s> _boat_setpoint_pub{ORB_ID(boat_setpoint)};
+
 	position_setpoint_triplet_s _position_setpoint_triplet{};
 	vehicle_global_position_s _vehicle_global_position{};
 

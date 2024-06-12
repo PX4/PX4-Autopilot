@@ -72,7 +72,7 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 
 	// Make rover stop when it arrives at the last waypoint instead of loitering and driving around weirdly.
 	if ((current_waypoint == next_waypoint) && distance_to_next_wp <= _param_nav_acc_rad.get()) {
-		_currentState = GuidanceState::GOAL_REACHED;
+		_currentState = GuidanceState::kGoalReached;
 	}
 
 	float desired_speed = 0.f;
@@ -82,12 +82,12 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 		desired_speed = 0.f;
 
 		if (fabsf(heading_error) < 0.05f) {
-			_currentState = GuidanceState::DRIVING;
+			_currentState = GuidanceState::kDriving;
 		}
 
 		break;
 
-	case GuidanceState::DRIVING: {
+	case GuidanceState::kDriving: {
 			const float max_velocity = math::trajectory::computeMaxSpeedFromDistance(_param_rdd_max_jerk.get(),
 						   _param_rdd_max_accel.get(), distance_to_next_wp, 0.0f);
 			_forwards_velocity_smoothing.updateDurations(max_velocity);
@@ -97,7 +97,7 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 			break;
 		}
 
-	case GuidanceState::GOAL_REACHED:
+	case GuidanceState::kGoalReached:
 		// temporary till I find a better way to stop the vehicle
 		desired_speed = 0.f;
 		heading_error = 0.f;
