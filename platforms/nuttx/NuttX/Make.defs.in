@@ -84,6 +84,10 @@ NM = ${CMAKE_NM}
 OBJCOPY = ${CMAKE_OBJCOPY}
 OBJDUMP = ${CMAKE_OBJDUMP}
 
+# Rust compiler
+RUSTC = ${CMAKE_RUST_COMPILER}
+RUSTFLAGS += ${CMAKE_RUST_COMPILER_FLAGS}
+
 ARCHCCVERSION = $(shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q')
 ARCHCCMAJOR = $(shell echo $(ARCHCCVERSION) | cut -d'.' -f1)
 
