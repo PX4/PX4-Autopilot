@@ -99,8 +99,6 @@ private:
 	float _reverse_output{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
 
-	hrt_abstime _timestamp_transition_speed_detected{0};
-
 	void parameters_update() override;
 };
 #endif

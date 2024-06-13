@@ -58,6 +58,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle"))
 {
+	_airspeed_filtered.reset(0.f);
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
@@ -104,6 +105,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
 
 	_params_handles.vt_forward_thrust_enable_mode = param_find("VT_FWD_THRUST_EN");
+	_params_handles.vt_arsp_tau = param_find("VT_ARSP_TAU");
 	_params_handles.mpc_land_alt1 = param_find("MPC_LAND_ALT1");
 	_params_handles.mpc_land_alt2 = param_find("MPC_LAND_ALT2");
 
@@ -323,6 +325,8 @@ VtolAttitudeControl::parameters_update()
 
 	param_get(_params_handles.front_trans_time_min, &_params.front_trans_time_min);
 
+	param_get(_params_handles.vt_arsp_tau, &_params.vt_arsp_tau);
+
 	/*
 	 * Open loop transition time needs to be larger than minimum transition time,
 	 * anything else makes no sense and can potentially lead to numerical problems.
@@ -407,7 +411,6 @@ VtolAttitudeControl::Run()
 	}
 
 #endif // !ENABLE_LOCKSTEP_SCHEDULER
-
 	_last_run_timestamp = now;
 
 	if (!_initialized) {
@@ -461,7 +464,11 @@ VtolAttitudeControl::Run()
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
 		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
-		_airspeed_validated_sub.update(&_airspeed_validated);
+
+		if (_airspeed_validated_sub.update(&_airspeed_validated)) {
+			update_filtered_airspeed(_airspeed_validated);
+		}
+
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
 		action_request_poll();
@@ -542,10 +549,52 @@ VtolAttitudeControl::Run()
 
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
+		_vtol_vehicle_status.airspeed_filtered = get_filtered_airspeed();
+		_vtol_vehicle_status.mc_weights[0] = _vtol_type->_mc_roll_weight;
+		_vtol_vehicle_status.mc_weights[1] = _vtol_type->_mc_pitch_weight;
+		_vtol_vehicle_status.mc_weights[2] = _vtol_type->_mc_yaw_weight;
+		_vtol_vehicle_status.mc_weights[3] = _vtol_type->_mc_throttle_weight;
 		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 	}
 
 	perf_end(_loop_perf);
+}
+
+void VtolAttitudeControl::update_filtered_airspeed(const struct airspeed_validated_s &sample)
+{
+	if (!sample.airspeed_sensor_measurement_valid || !PX4_ISFINITE(sample.calibrated_airspeed_m_s)) {
+		if (_airspeed_filtered_valid) {
+			PX4_WARN("Received invalid calibrated airspeed");
+		}
+
+		_airspeed_filtered_valid = false;
+		return;
+	}
+
+	if (sample.timestamp <= _airspeed_filtered_last_timestamp) {
+		if (_airspeed_filtered_valid) {
+			PX4_WARN("Airspeed timestamp not monotonic");
+		}
+
+		_airspeed_filtered_valid = false;
+		return;
+	}
+
+	// We must update the filter parameters, since we don't know the sensor sample rate
+	float dt_s = static_cast<float>(sample.timestamp - _airspeed_filtered_last_timestamp) / 1e6f;
+	_airspeed_filtered.setParameters(dt_s, _params.vt_arsp_tau);
+	_airspeed_filtered.update(sample.calibrated_airspeed_m_s);
+	_airspeed_filtered_last_timestamp = sample.timestamp;
+	_airspeed_filtered_valid = true;
+}
+
+float VtolAttitudeControl::get_filtered_airspeed()
+{
+	if (!_airspeed_filtered_valid) {
+		return NAN;
+	}
+
+	return _airspeed_filtered.getState();
 }
 
 int
