@@ -107,6 +107,7 @@ PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 200.0f);
  * @unit liters
  * @decimal 1
  * @increment 0.1
+ * @reboot_required true
  * @group UAVCAN
  */
 PARAM_DEFINE_FLOAT(UAVCAN_ECU_MAXF, 15.0f);
@@ -125,6 +126,7 @@ PARAM_DEFINE_FLOAT(UAVCAN_ECU_MAXF, 15.0f);
  * @value 0 Unknown
  * @value 1 Liquid
  * @value 2 Gas
+ * @reboot_required true
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ECU_FUELT, 1);
