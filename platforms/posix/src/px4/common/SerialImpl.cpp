@@ -265,11 +265,11 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 		fds[0].fd = _serial_fd;
 		fds[0].events = POLLIN;
 
-		hrt_abstime remaining_time = timeout_us - hrt_elapsed_time(&start_time_us);
+		hrt_abstime elapsed_time_us = hrt_elapsed_time(&start_time_us);
 
-		if (remaining_time <= 0) { break; }
+		if (elapsed_time_us > timeout_us) { break; }
 
-		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), remaining_time);
+		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), (timeout_us - elapsed_time_us) / 1000);
 
 		if (ret > 0) {
 			if (fds[0].revents & POLLIN) {
