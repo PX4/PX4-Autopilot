@@ -118,7 +118,7 @@ int VoxlEsc::init()
 	//https://cwiki.apache.org/confluence/display/NUTTX/Detaching+File+Descriptors
 	//detaching file descriptors is not implemented in the current version of nuttx that px4 uses
 	//
-	//There is no problem when running on VOXL2, but in order to have the same logical flow on both systems, 
+	//There is no problem when running on VOXL2, but in order to have the same logical flow on both systems,
 	//we will initialize uart and query the device in Run()
 
 	ScheduleNow();
@@ -199,7 +199,7 @@ int VoxlEsc::device_init()
 					if (packet_type == ESC_PACKET_TYPE_VERSION_EXT_RESPONSE && packet_size == sizeof(QC_ESC_EXTENDED_VERSION_INFO)) {
 						QC_ESC_EXTENDED_VERSION_INFO ver;
 						memcpy(&ver, _fb_packet.buffer, packet_size);
-						
+
 						PX4_INFO("VOXL_ESC: \tESC ID     : %i", ver.id);
 						PX4_INFO("VOXL_ESC: \tBoard Type : %i: %s", ver.hw_version, board_id_to_name(ver.hw_version));
 
@@ -238,7 +238,7 @@ int VoxlEsc::device_init()
 	//check the firmware hashes to make sure they are the same. Firmware hash has 8 chars plus optional "*"
 	for (int esc_id=1; esc_id < VOXL_ESC_OUTPUT_CHANNELS; esc_id++){
 		if (strncmp(_version_info[0].firmware_git_version,_version_info[esc_id].firmware_git_version, 9) != 0) {
-			PX4_ERR("VOXL_ESC: ESC %d Firmware hash does not match ESC 0 firmware hash:  (%.12s) != (%.12s)", 
+			PX4_ERR("VOXL_ESC: ESC %d Firmware hash does not match ESC 0 firmware hash:  (%.12s) != (%.12s)",
 				esc_id, _version_info[esc_id].firmware_git_version, _version_info[0].firmware_git_version);
 			esc_detection_fault = true;
 		}
@@ -302,7 +302,7 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 
 	param_get(param_find("VOXL_ESC_VLOG"),    &params->verbose_logging);
 	param_get(param_find("VOXL_ESC_PUB_BST"), &params->publish_battery_status);
-	
+
 	param_get(param_find("VOXL_ESC_T_WARN"), &params->esc_warn_temp_threshold);
 	param_get(param_find("VOXL_ESC_T_OVER"), &params->esc_over_temp_threshold);
 
@@ -348,6 +348,12 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	if (params->gpio_ctl_channel < 0 || params->gpio_ctl_channel > 16) {
 		PX4_ERR("VOXL_ESC: Invalid parameter GPIO_CTL_CH.  Please verify parameters.");
 		params->gpio_ctl_channel = 0;
+		ret = PX4_ERROR;
+	}
+
+	if (params->gpio_ctl_config < 0 || params->gpio_ctl_config > INT32_MAX) {
+		PX4_ERR("VOXL_ESC: Invalid parameter GPIO_CTL_CFG.  Please verify parameters.");
+		params->gpio_ctl_config = 0;
 		ret = PX4_ERROR;
 	}
 
@@ -524,19 +530,19 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 					_esc_status.timestamp = _esc_status.esc[id].timestamp;
 					_esc_status.counter++;
-					
-					
+
+
 					if ((_parameters.esc_over_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_over_temp_threshold))
 					{
 					  _esc_status.esc[id].failures |= 1<<(esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
 					}
-					
+
 					//TODO: do we also issue a warning if over-temperature threshold is exceeded?
 					if ((_parameters.esc_warn_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_warn_temp_threshold))
 					{
 					  _esc_status.esc[id].failures |= 1<<(esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
 					}
-					
+
 
 					//print ESC status just for debugging
 					/*
@@ -552,7 +558,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 			else if (packet_type == ESC_PACKET_TYPE_VERSION_RESPONSE && packet_size == sizeof(QC_ESC_VERSION_INFO)) {
 				QC_ESC_VERSION_INFO ver;
 				memcpy(&ver, _fb_packet.buffer, packet_size);
-				
+
 				PX4_INFO("VOXL_ESC: ESC ID: %i", ver.id);
 				PX4_INFO("VOXL_ESC: HW Version: %i", ver.hw_version);
 				PX4_INFO("VOXL_ESC: SW Version: %i", ver.sw_version);
@@ -574,7 +580,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 			} else if (packet_type == ESC_PACKET_TYPE_FB_POWER_STATUS && packet_size == sizeof(QC_ESC_FB_POWER_STATUS)) {
 				QC_ESC_FB_POWER_STATUS packet;
 				memcpy(&packet,_fb_packet.buffer, packet_size);
-				
+
 				float voltage = packet.voltage * 0.001f; // Voltage is reported at 1 mV resolution
 				float current = packet.current * 0.008f; // Total current is reported at 8mA resolution
 
@@ -590,7 +596,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 						_battery.updateAndPublishBatteryStatus(current_time);
 					}
 				}
-				
+
 			}
 
 		} else { //parser error
@@ -1233,7 +1239,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			}
 		}
 	}
-	
+
 
 	Command cmd;
 	cmd.len = qc_esc_create_rpm_packet4_fb(_esc_chans[0].rate_req,
@@ -1553,7 +1559,7 @@ void VoxlEsc::print_params()
 
 	PX4_INFO("Params: VOXL_ESC_VLOG: %" PRId32,    _parameters.verbose_logging);
 	PX4_INFO("Params: VOXL_ESC_PUB_BST: %" PRId32, _parameters.publish_battery_status);
-	
+
 	PX4_INFO("Params: VOXL_ESC_T_WARN: %" PRId32, _parameters.esc_warn_temp_threshold);
 	PX4_INFO("Params: VOXL_ESC_T_OVER: %" PRId32, _parameters.esc_over_temp_threshold);
 
