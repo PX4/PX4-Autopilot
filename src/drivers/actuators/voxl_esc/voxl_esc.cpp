@@ -307,7 +307,7 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_T_OVER"), &params->esc_over_temp_threshold);
 
 	param_get(param_find("GPIO_CTL_CH"), &params->gpio_ctl_channel);
-	param_get(param_find("CPIO_CTL_CFG"), &params->gpio_ctl_config);
+	param_get(param_find("GPIO_CTL_CFG"), &params->gpio_ctl_config);
 
 	if (params->rpm_min >= params->rpm_max) {
 		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
@@ -1412,6 +1412,12 @@ void VoxlEsc::Run()
 			}
 		}
 
+	}
+
+	// check if gpio control is enabled
+	if (_parameters.gpio_ctl_channel > -1 && _parameters.gpio_ctl_config > 0) {
+		// TODO: remove, don't want to keep this as to not spam
+		PX4_INFO("VOXL_ESC: GPIO control enabled");
 	}
 
 	if (!_outputs_on) {
