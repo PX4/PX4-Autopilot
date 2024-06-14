@@ -220,7 +220,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_VLOG, 0);
 
 /**
  * UART ESC Enable publishing of battery status
- * 
+ *
  * Only applicable to ESCs that report total battery voltage and current
  *
  * @reboot_required true
@@ -236,7 +236,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_PUB_BST, 1);
 
 /**
  * UART ESC Temperature Warning Threshold (Degrees C)
- * 
+ *
  * Only applicable to ESCs that report temperature
  *
  * @reboot_required true
@@ -251,7 +251,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_WARN, 0);
 
 /**
  * UART ESC Over-Temperature Threshold (Degrees C)
- * 
+ *
  * Only applicable to ESCs that report temperature
  *
  * @reboot_required true
@@ -266,12 +266,12 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_OVER, 0);
 
 /**
  * GPIO Control Channel
- * 
+ *
  *
  * @reboot_required true
  *
  * @group VOXL ESC
- * @value 0 - Disabled
+ * @value 0 - Default
  * @min 0
  * @max 16
  */
@@ -280,13 +280,13 @@ PARAM_DEFINE_INT32(GPIO_CTL_CH, 0);
 
 /**
  * GPIO Control Config
- * 
+ *
  *
  * @reboot_required true
  *
  * @group VOXL ESC
- * @value 0 - Disabled
+ * @value 0 - Default
  * @min 0
- * @max 4096
+ * @max 2147483647
  */
 PARAM_DEFINE_INT32(GPIO_CTL_CFG, 0);
