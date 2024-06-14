@@ -79,8 +79,8 @@ private:
 
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
-	uint8_t RegisterRead(Register reg);
-	void RegisterWrite(Register reg, uint8_t value);
+	int RegisterRead(Register reg, uint8_t &buffer);
+	int RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
 	PX4Magnetometer _px4_mag;
