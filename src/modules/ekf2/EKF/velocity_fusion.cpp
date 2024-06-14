@@ -32,9 +32,6 @@
  ****************************************************************************/
 
 #include "ekf.h"
-#include <ekf_derivation/generated/compute_ev_body_vel_var_and_hx.h>
-#include <ekf_derivation/generated/compute_ev_body_vel_var_and_hy.h>
-#include <ekf_derivation/generated/compute_ev_body_vel_var_and_hz.h>
 
 void Ekf::updateHorizontalVelocityAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var,
 		const float innov_gate, estimator_aid_source2d_s &aid_src) const
@@ -82,48 +79,11 @@ void Ekf::updateVelocityAidSrcStatus(const uint64_t &time_us, const Vector3f &ob
 	aid_src.timestamp_sample = time_us;
 }
 
-void Ekf::fuseBodyVelocity(estimator_aid_source3d_s &aid_src)
+void Ekf::fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
 {
-	Vector3f body_vel_var;
-	VectorState H;
-	bool fused[3] = {false, false, false};
-	const auto state_vector = _state.vector();
-	Vector3f R(aid_src.observation_variance);
+	VectorState Kfusion = P * H / innov_var;
 
-	sym::ComputeEvBodyVelVarAndHx(state_vector, P, &body_vel_var, &H);
-	const Vector3f innov = _R_to_earth.transpose() * _state.vel - Vector3f(aid_src.observation);
-	innov.copyTo(aid_src.innovation);
-	(body_vel_var + R).copyTo(aid_src.innovation_variance);
-	const float innov_gate = math::max(_params.ev_vel_innov_gate, 1.f);
-	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
-
-	if (aid_src.innovation_rejected) {
-		return;
-	}
-
-	for (uint8_t index = 0; index <= 2; index++) {
-		if (index == 1) {
-			sym::ComputeEvBodyVelVarAndHy(state_vector, P, &body_vel_var(index), &H);
-
-		} else if (index == 2) {
-			sym::ComputeEvBodyVelVarAndHz(state_vector, P, &body_vel_var(index), &H);
-		}
-
-		Vector3f meas_pred = _R_to_earth.transpose() * _state.vel;
-		const float innov_var = body_vel_var(index) + aid_src.observation_variance[index];
-		aid_src.innovation[index] = meas_pred(index) - aid_src.observation[index];
-
-		VectorState Kfusion = P * H / innov_var;
-
-		if (measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index])) {
-			fused[index] = true;
-		}
-	}
-
-	innov.copyTo(aid_src.innovation);
-
-	if (fused[0] && fused[1] && fused[2]) {
-		aid_src.time_last_fuse = _time_delayed_us;
+	if (measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation)) {
 		aid_src.fused = true;
 	}
 }

@@ -37,6 +37,9 @@
  */
 
 #include "ekf.h"
+#include <ekf_derivation/generated/compute_ev_body_vel_hx.h>
+#include <ekf_derivation/generated/compute_ev_body_vel_hy.h>
+#include <ekf_derivation/generated/compute_ev_body_vel_hz.h>
 
 void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
 			     const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src)
@@ -163,7 +166,42 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 
 			} else if (quality_sufficient) {
 				if (ev_sample.vel_frame == VelocityFrame::BODY_FRAME_FRD) {
-					fuseBodyVelocity(aid_src);
+
+					VectorState H;
+					const float innov_gate = math::max(_params.ev_vel_innov_gate, 1.f);
+
+					estimator_aid_source1d_s current_aid_src;
+
+					for (uint8_t index = 0; index <= 2; index++) {
+						if (index == 0) {
+							sym::ComputeEvBodyVelHx(_state.vector(), &H);
+
+						} else if (index == 1) {
+							sym::ComputeEvBodyVelHy(_state.vector(), &H);
+
+						} else {
+							sym::ComputeEvBodyVelHz(_state.vector(), &H);
+						}
+
+						current_aid_src.innovation_variance = (H.T() * P * H)(0, 0) + aid_src.observation_variance[index];
+						current_aid_src.innovation = (_R_to_earth.transpose() * _state.vel - Vector3f(aid_src.observation))(index, 0);
+
+						setEstimatorAidStatusTestRatio(current_aid_src, innov_gate);
+
+						if (!current_aid_src.innovation_rejected) {
+							fuseBodyVelocity(current_aid_src, current_aid_src.innovation_variance, H);
+						}
+
+						aid_src.innovation[index] = current_aid_src.innovation;
+						aid_src.innovation_variance[index] = current_aid_src.innovation_variance;
+						aid_src.test_ratio[index] = current_aid_src.test_ratio;
+						aid_src.fused = current_aid_src.fused;
+						aid_src.innovation_rejected |= current_aid_src.innovation_rejected;
+
+						if (aid_src.fused) {
+							aid_src.time_last_fuse = _time_delayed_us;
+						}
+					}
 
 				} else {
 					fuseVelocity(aid_src);

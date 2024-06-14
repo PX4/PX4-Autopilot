@@ -829,7 +829,7 @@ private:
 	// 2d & 3d velocity fusion
 	void fuseHorizontalVelocity(estimator_aid_source2d_s &vel_aid_src);
 	void fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
-	void fuseBodyVelocity(estimator_aid_source3d_s &aid_src);
+	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H);
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// terrain vertical position estimator
