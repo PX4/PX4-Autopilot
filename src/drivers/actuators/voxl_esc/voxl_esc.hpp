@@ -221,6 +221,8 @@ private:
 	int32_t			_rpm_fullscale{0};
 	manual_control_setpoint_s _manual_control_setpoint{};
 
+	bool			_gpio_ctl_en{false};
+
 	uint16_t		_cmd_id{0};
 	Command			_current_cmd;
 	px4::atomic<Command *>	_pending_cmd{nullptr};

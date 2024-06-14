@@ -1418,6 +1418,11 @@ void VoxlEsc::Run()
 	if (_parameters.gpio_ctl_channel > -1 && _parameters.gpio_ctl_config > 0) {
 		// TODO: remove, don't want to keep this as to not spam
 		PX4_INFO("VOXL_ESC: GPIO control enabled");
+		_gpio_ctl_en = true;
+	} else {
+		// TODO: remove, don't want to keep this as to not spam
+		PX4_INFO("VOXL_ESC: GPIO control disabled");
+		_gpio_ctl_en = false;
 	}
 
 	if (!_outputs_on) {
