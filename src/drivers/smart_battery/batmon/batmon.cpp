@@ -240,7 +240,7 @@ int Batmon::get_batmon_startup_info()
 	_cell_count = math::min((uint8_t)num_cells, (uint8_t)MAX_CELL_COUNT);
 
 	int32_t _num_cells = num_cells;
-	param_set(param_find("BAT_N_CELLS"), &_num_cells);
+	param_set(param_find("BAT1_N_CELLS"), &_num_cells);
 
 	return ret;
 }
