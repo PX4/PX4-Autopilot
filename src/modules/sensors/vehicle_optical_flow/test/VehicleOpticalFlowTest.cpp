@@ -89,7 +89,8 @@ public:
 };
 
 
-TEST_F(VehicleOpticalFlowTest, whenCameraDownFacing_ThenSensorSelected){
+TEST_F(VehicleOpticalFlowTest, whenCameraDownFacing_ThenSensorSelected)
+{
 	distance_sensor_s message = createDistanceSensorMessage(distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	orb_advertise(ORB_ID(distance_sensor), &message);
 
@@ -99,7 +100,8 @@ TEST_F(VehicleOpticalFlowTest, whenCameraDownFacing_ThenSensorSelected){
 	EXPECT_TRUE(testable.isDistanceSensorSelected());
 }
 
-TEST_F(VehicleOpticalFlowTest, whenCameraIsNotDown_ThenNoSensor){
+TEST_F(VehicleOpticalFlowTest, whenCameraIsNotDown_ThenNoSensor)
+{
 	distance_sensor_s message = createDistanceSensorMessage(distance_sensor_s::ROTATION_FORWARD_FACING);
 	orb_advertise(ORB_ID(distance_sensor), &message);
 
