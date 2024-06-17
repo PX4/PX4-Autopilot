@@ -1264,7 +1264,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	if ( _gpio_ctl_en ) {
 		PX4_INFO("VOXL_ESC: Writing GPIO CTL packet");
 		/*
-		populate cmd here
+		populate cmd here, maybe use qc_esc_create_packet()??
 		if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 			PX4_ERR("VOXL_ESC: Failed to send packet");
 		return false;
