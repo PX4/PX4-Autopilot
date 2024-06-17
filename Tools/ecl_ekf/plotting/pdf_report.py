@@ -223,7 +223,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         data_plot.save()
         data_plot.close()
 
-        # plot innovation_check_flags summary
+        # plot innovation flags summary
         data_plot = CheckFlagsPlot(
             status_flags_time, estimator_status_flags, [['reject_hor_vel', 'reject_hor_pos'], ['reject_ver_vel', 'reject_ver_pos',
                                                                                'reject_hagl'],
