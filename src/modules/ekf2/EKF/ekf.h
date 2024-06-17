@@ -396,7 +396,8 @@ public:
 
 	float getHeadingInnovationTestRatio() const;
 
-	float getVelocityInnovationTestRatio() const;
+	float getHorizontalVelocityInnovationTestRatio() const;
+	float getVerticalVelocityInnovationTestRatio() const;
 
 	float getHorizontalPositionInnovationTestRatio() const;
 	float getVerticalPositionInnovationTestRatio() const;

@@ -319,7 +319,7 @@ void Ekf::resetAccelBias()
 float Ekf::getHeadingInnovationTestRatio() const
 {
 	// return the largest heading innovation test ratio
-	float test_ratio = 0.f;
+	float test_ratio = -1.f;
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 
@@ -347,10 +347,14 @@ float Ekf::getHeadingInnovationTestRatio() const
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-	return sqrtf(test_ratio);
+	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
+		return sqrtf(test_ratio);
+	}
+
+	return NAN;
 }
 
-float Ekf::getVelocityInnovationTestRatio() const
+float Ekf::getHorizontalVelocityInnovationTestRatio() const
 {
 	// return the largest velocity innovation test ratio
 	float test_ratio = -1.f;
@@ -358,7 +362,7 @@ float Ekf::getVelocityInnovationTestRatio() const
 #if defined(CONFIG_EKF2_GNSS)
 
 	if (_control_status.flags.gps) {
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 2; i++) { // only xy
 			test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[i]));
 		}
 	}
@@ -368,7 +372,7 @@ float Ekf::getVelocityInnovationTestRatio() const
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 
 	if (_control_status.flags.ev_vel) {
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 2; i++) { // only xy
 			test_ratio = math::max(test_ratio, fabsf(_aid_src_ev_vel.test_ratio_filtered[i]));
 		}
 	}
@@ -384,6 +388,34 @@ float Ekf::getVelocityInnovationTestRatio() const
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
+
+	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
+		return sqrtf(test_ratio);
+	}
+
+	return NAN;
+}
+
+float Ekf::getVerticalVelocityInnovationTestRatio() const
+{
+	// return the largest velocity innovation test ratio
+	float test_ratio = -1.f;
+
+#if defined(CONFIG_EKF2_GNSS)
+
+	if (_control_status.flags.gps) {
+		test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[2]));
+	}
+
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	if (_control_status.flags.ev_vel) {
+		test_ratio = math::max(test_ratio, fabsf(_aid_src_ev_vel.test_ratio_filtered[2]));
+	}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
 		return sqrtf(test_ratio);
@@ -511,21 +543,35 @@ float Ekf::getSyntheticSideslipInnovationTestRatio() const
 
 float Ekf::getHeightAboveGroundInnovationTestRatio() const
 {
-	float test_ratio = -1.f;
+	// return the combined HAGL innovation test ratio
+	float hagl_sum = 0.f;
+	int n_hagl_sources = 0;
 
 #if defined(CONFIG_EKF2_TERRAIN)
+
+# if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+	if (_control_status.flags.opt_flow_terrain) {
+		hagl_sum += sqrtf(math::max(fabsf(_aid_src_optical_flow.test_ratio_filtered[0]),
+					    _aid_src_optical_flow.test_ratio_filtered[1]));
+		n_hagl_sources++;
+	}
+
+# endif // CONFIG_EKF2_OPTICAL_FLOW
+
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 
 	if (_control_status.flags.rng_terrain) {
-		// return the terrain height innovation test ratio
-		test_ratio = math::max(test_ratio, fabsf(_aid_src_rng_hgt.test_ratio_filtered));
+		hagl_sum += sqrtf(fabsf(_aid_src_rng_hgt.test_ratio_filtered));
+		n_hagl_sources++;
 	}
 
 # endif // CONFIG_EKF2_RANGE_FINDER
+
 #endif // CONFIG_EKF2_TERRAIN
 
-	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
-		return sqrtf(test_ratio);
+	if (n_hagl_sources > 0) {
+		return math::max(hagl_sum / static_cast<float>(n_hagl_sources), FLT_MIN);
 	}
 
 	return NAN;

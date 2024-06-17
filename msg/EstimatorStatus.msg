@@ -102,9 +102,10 @@ uint8 reset_count_quat   # number of quaternion reset events (allow to wrap if c
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
 
 bool pre_flt_fail_innov_heading
+bool pre_flt_fail_innov_height
+bool pre_flt_fail_innov_pos_horiz
 bool pre_flt_fail_innov_vel_horiz
 bool pre_flt_fail_innov_vel_vert
-bool pre_flt_fail_innov_height
 bool pre_flt_fail_mag_field_disturbed
 
 uint32 accel_device_id
