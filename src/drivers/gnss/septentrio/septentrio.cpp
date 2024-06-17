@@ -432,7 +432,7 @@ SeptentrioDriver *SeptentrioDriver::instantiate(int argc, char *argv[], Instance
 	}
 
 	if (arguments.device_path_main && arguments.device_path_secondary
-	    && arguments.device_path_main == arguments.device_path_secondary) {
+	    && strcmp(arguments.device_path_main, arguments.device_path_secondary) == 0) {
 		mavlink_log_critical(&k_mavlink_log_pub, "Septentrio: Device paths must be different");
 		return nullptr;
 	}
