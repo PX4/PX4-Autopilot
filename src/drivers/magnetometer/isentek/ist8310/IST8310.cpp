@@ -98,7 +98,7 @@ int IST8310::probe()
 		auto start_time = hrt_absolute_time();
 
 		while (hrt_elapsed_time(&start_time) < 50_ms) {
-			px4_usleep(10_ms);
+			px4_usleep(10'000);
 			id = RegisterRead(Register::WAI);
 
 			if (id == Device_ID) {
