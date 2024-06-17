@@ -42,7 +42,6 @@
 #define EKF2_HPP
 
 #include "EKF/ekf.h"
-#include "Utility/PreFlightChecker.hpp"
 
 #include "EKF2Selector.hpp"
 
@@ -477,8 +476,6 @@ private:
 	hrt_abstime _status_gravity_pub_last {0};
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
 #endif // CONFIG_EKF2_GRAVITY_FUSION
-
-	PreFlightChecker _preflt_checker;
 
 	Ekf _ekf;
 

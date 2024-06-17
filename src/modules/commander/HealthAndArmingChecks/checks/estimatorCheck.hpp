@@ -66,7 +66,9 @@ private:
 				       const vehicle_local_position_s &lpos);
 	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const;
 	void lowPositionAccuracy(const Context &context, Report &reporter, const vehicle_local_position_s &lpos) const;
-	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading, bool pre_flt_fail_innov_vel_horiz,
+
+	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
+				     bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
 				     const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position,
 				     failsafe_flags_s &failsafe_flags, Report &reporter);
 
@@ -108,10 +110,6 @@ private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode,
 					(ParamInt<px4::params::COM_ARM_MAG_STR>) _param_com_arm_mag_str,
-					(ParamFloat<px4::params::COM_ARM_EKF_HGT>) _param_com_arm_ekf_hgt,
-					(ParamFloat<px4::params::COM_ARM_EKF_VEL>) _param_com_arm_ekf_vel,
-					(ParamFloat<px4::params::COM_ARM_EKF_POS>) _param_com_arm_ekf_pos,
-					(ParamFloat<px4::params::COM_ARM_EKF_YAW>) _param_com_arm_ekf_yaw,
 					(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_com_arm_wo_gps,
 					(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 					(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,

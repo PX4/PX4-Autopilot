@@ -63,6 +63,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 
 	bool pre_flt_fail_innov_heading = false;
 	bool pre_flt_fail_innov_vel_horiz = false;
+	bool pre_flt_fail_innov_pos_horiz = false;
 	bool missing_data = false;
 	const NavModes required_groups = (NavModes)reporter.failsafeFlags().mode_req_attitude;
 
@@ -90,6 +91,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		if (_estimator_status_sub.copy(&estimator_status)) {
 			pre_flt_fail_innov_heading = estimator_status.pre_flt_fail_innov_heading;
 			pre_flt_fail_innov_vel_horiz = estimator_status.pre_flt_fail_innov_vel_horiz;
+			pre_flt_fail_innov_pos_horiz = estimator_status.pre_flt_fail_innov_pos_horiz;
 
 			checkEstimatorStatus(context, reporter, estimator_status, required_groups);
 			checkEstimatorStatusFlags(context, reporter, estimator_status, lpos);
@@ -123,7 +125,8 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// set mode requirements
-	setModeRequirementFlags(context, pre_flt_fail_innov_heading, pre_flt_fail_innov_vel_horiz, lpos, vehicle_gps_position,
+	setModeRequirementFlags(context, pre_flt_fail_innov_heading, pre_flt_fail_innov_vel_horiz, pre_flt_fail_innov_pos_horiz,
+				lpos, vehicle_gps_position,
 				reporter.failsafeFlags(), reporter);
 
 
@@ -166,6 +169,17 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity unstable");
 		}
 
+	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_pos_horiz) {
+		/* EVENT
+		 */
+		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
+					    events::ID("check_estimator_hor_pos_not_stable"),
+					    events::Log::Error, "Horizontal position unstable");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal position unstable");
+		}
+
 	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_height) {
 		/* EVENT
 		 */
@@ -205,82 +219,6 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference");
-		}
-	}
-
-	// check vertical position innovation test ratio
-	if (!context.isArmed() && (estimator_status.hgt_test_ratio > _param_com_arm_ekf_hgt.get())) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * Test ratio: {1:.3}, limit: {2:.3}.
-		 *
-		 * This check can be configured via <param>COM_ARM_EKF_HGT</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
-				events::ID("check_estimator_hgt_est_err"),
-				events::Log::Error, "Height estimate error", estimator_status.hgt_test_ratio, _param_com_arm_ekf_hgt.get());
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: height estimate error");
-		}
-	}
-
-	// check velocity innovation test ratio
-	if (!context.isArmed() && (estimator_status.vel_test_ratio > _param_com_arm_ekf_vel.get())) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * Test ratio: {1:.3}, limit: {2:.3}.
-		 *
-		 * This check can be configured via <param>COM_ARM_EKF_VEL</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
-				events::ID("check_estimator_vel_est_err"),
-				events::Log::Error, "Velocity estimate error", estimator_status.vel_test_ratio, _param_com_arm_ekf_vel.get());
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: velocity estimate error");
-		}
-	}
-
-	// check horizontal position innovation test ratio
-	if (!context.isArmed() && (estimator_status.pos_test_ratio > _param_com_arm_ekf_pos.get())) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * Test ratio: {1:.3}, limit: {2:.3}.
-		 *
-		 * This check can be configured via <param>COM_ARM_EKF_POS</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
-				events::ID("check_estimator_pos_est_err"),
-				events::Log::Error, "Position estimate error", estimator_status.pos_test_ratio, _param_com_arm_ekf_pos.get());
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: position estimate error");
-		}
-	}
-
-	// check magnetometer innovation test ratio
-	if (!context.isArmed() && (estimator_status.mag_test_ratio > _param_com_arm_ekf_yaw.get())) {
-		/* EVENT
-		 * @description
-		 * <profile name="dev">
-		 * Test ratio: {1:.3}, limit: {2:.3}.
-		 *
-		 * This check can be configured via <param>COM_ARM_EKF_YAW</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure<float, float>(required_groups, health_component_t::local_position_estimate,
-				events::ID("check_estimator_yaw_est_err"),
-				events::Log::Error, "Yaw estimate error", estimator_status.mag_test_ratio, _param_com_arm_ekf_yaw.get());
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Yaw estimate error");
 		}
 	}
 
@@ -767,7 +705,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 }
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
-		bool pre_flt_fail_innov_vel_horiz,
+		bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
 		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, failsafe_flags_s &failsafe_flags,
 		Report &reporter)
 {
@@ -797,7 +735,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	bool v_xy_valid = lpos.v_xy_valid && !_nav_test_failed;
 
 	if (!context.isArmed()) {
-		if (pre_flt_fail_innov_heading || pre_flt_fail_innov_vel_horiz) {
+		if (pre_flt_fail_innov_heading || pre_flt_fail_innov_pos_horiz) {
 			xy_valid = false;
 		}
 
