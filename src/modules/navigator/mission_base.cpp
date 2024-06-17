@@ -855,6 +855,7 @@ MissionBase::do_abort_landing()
 	vehicle_command_s vcmd = {};
 
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+	vcmd.frame = vehicle_command_s::FRAME_GLOBAL;
 	vcmd.param1 = -1;
 	vcmd.param2 = 1;
 	vcmd.param5 = _mission_item.lat;
