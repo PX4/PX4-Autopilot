@@ -383,13 +383,17 @@ public:
 		*counter = _state_reset_status.reset_count.quat;
 	}
 
-	// get EKF innovation consistency check status information comprising of:
-	// status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
-	// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
-	// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
-	// Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
-	void get_innovation_test_status(uint16_t &status, float &mag, float &vel, float &pos, float &hgt, float &tas,
-					float &hagl, float &beta) const;
+	float getHeadingInnovationTestRatio() const;
+
+	float getVelocityInnovationTestRatio() const;
+
+	float getHorizontalPositionInnovationTestRatio() const;
+	float getVerticalPositionInnovationTestRatio() const;
+
+	float getAirspeedInnovationTestRatio() const;
+	float getSyntheticSideslipInnovationTestRatio() const;
+
+	float getHeightAboveGroundInnovationTestRatio() const;
 
 	// return a bitmask integer that describes which state estimates are valid
 	void get_ekf_soln_status(uint16_t *status) const;

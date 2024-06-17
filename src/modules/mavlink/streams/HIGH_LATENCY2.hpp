@@ -309,8 +309,7 @@ private:
 
 		if (_estimator_status_sub.update(&estimator_status)) {
 			if (estimator_status.gps_check_fail_flags > 0 ||
-			    estimator_status.filter_fault_flags > 0 ||
-			    estimator_status.innovation_check_flags > 0) {
+			    estimator_status.filter_fault_flags > 0) {
 
 				msg->failure_flags |= HL_FAILURE_FLAG_ESTIMATOR;
 			}
