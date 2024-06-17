@@ -359,50 +359,6 @@ PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 PARAM_DEFINE_FLOAT(COM_OBC_LOSS_T, 5.0f);
 
 /**
- * Maximum EKF position innovation test ratio that will allow arming
- *
- * @group Commander
- * @min 0.1
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_POS, 0.5f);
-
-/**
- * Maximum EKF velocity innovation test ratio that will allow arming
- *
- * @group Commander
- * @min 0.1
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_VEL, 0.5f);
-
-/**
- * Maximum EKF height innovation test ratio that will allow arming
- *
- * @group Commander
- * @min 0.1
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_HGT, 1.0f);
-
-/**
- * Maximum EKF yaw innovation test ratio that will allow arming
- *
- * @group Commander
- * @min 0.1
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
-
-/**
  * Maximum accelerometer inconsistency between IMU units that will allow arming
  *
  * @group Commander
