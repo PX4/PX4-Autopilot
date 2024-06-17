@@ -151,6 +151,8 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 #if defined(MODULE_NAME)
 		aid_src.timestamp = hrt_absolute_time();
 		_estimator_aid_src_aux_global_position_pub.publish(aid_src);
+
+		_test_ratio_filtered = math::max(fabsf(aid_src.test_ratio_filtered[0]), fabsf(aid_src.test_ratio_filtered[1]));
 #endif // MODULE_NAME
 
 	} else if ((_state != State::stopped) && isTimedOut(_time_last_buffer_push, imu_delayed.time_us, (uint64_t)5e6)) {
