@@ -637,6 +637,7 @@ union information_event_status_u {
 		bool reset_hgt_to_rng           : 1; ///< 15 - true when the vertical position state is reset to the rng measurement
 		bool reset_hgt_to_ev            : 1; ///< 16 - true when the vertical position state is reset to the ev measurement
 		bool reset_pos_to_ext_obs       : 1; ///< 17 - true when horizontal position was reset to an external observation while deadreckoning
+		bool reset_wind_to_ext_obs 	: 1; ///< 18 - true when wind states were reset to an external observation
 	} flags;
 	uint32_t value;
 };

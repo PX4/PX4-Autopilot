@@ -313,6 +313,23 @@ def compute_wind_init_and_cov_from_airspeed(
     P = P.subs({sideslip: 0.0})
     wind = wind.subs({sideslip: 0.0})
     return (wind, P)
+def compute_wind_init_and_cov_from_wind_speed_and_direction(
+        wind_speed: sf.Scalar,
+        wind_direction: sf.Scalar,
+        wind_speed_var: sf.Scalar,
+        wind_direction_var: sf.Scalar
+)-> (sf.V2, sf.M22):
+    wind = sf.V2(wind_speed * sf.cos(wind_direction), wind_speed * sf.sin(wind_direction))
+    J = wind.jacobian([wind_speed, wind_direction])
+
+    R = sf.M22()
+    R[0,0] = wind_speed_var
+    R[1,1] = wind_direction_var
+
+    P = J * R * J.T
+
+    return (wind, P)
+
 
 def predict_sideslip(
         state: State,
@@ -687,6 +704,7 @@ if not args.disable_wind:
     generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
     generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
     generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])
+    generate_px4_function(compute_wind_init_and_cov_from_wind_speed_and_direction, output_names=["wind", "P_wind"])
 
 generate_px4_function(compute_yaw_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
