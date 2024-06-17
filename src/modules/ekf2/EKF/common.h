@@ -638,8 +638,27 @@ bool yaw_aligned_to_imu_gps     :
 		bool reset_hgt_to_gps           : 1; ///< 14 - true when the vertical position state is reset to the gps measurement
 		bool reset_hgt_to_rng           : 1; ///< 15 - true when the vertical position state is reset to the rng measurement
 		bool reset_hgt_to_ev            : 1; ///< 16 - true when the vertical position state is reset to the ev measurement
-bool reset_pos_to_ext_obs       :
-		1; ///< 17 - true when horizontal position was reset to an external observation while deadreckoning
+		bool reset_pos_to_ext_obs       : 1; ///< 17 - true when horizontal position was reset to an external observation while deadreckoning
+		bool reset_wind_to_ext_obs 	: 1; ///< 18 - true when wind states were reset to an external observation
+	} flags;
+	uint32_t value;
+};
+
+// define structure used to communicate information events
+union warning_event_status_u {
+	struct {
+		bool gps_quality_poor                   : 1; ///< 0 - true when the gps is failing quality checks
+		bool gps_fusion_timout                  : 1; ///< 1 - true when the gps data has not been used to correct the state estimates for a significant time period
+		bool gps_data_stopped                   : 1; ///< 2 - true when the gps data has stopped for a significant time period
+		bool gps_data_stopped_using_alternate   : 1; ///< 3 - true when the gps data has stopped for a significant time period but the filter is able to use other sources of data to maintain navigation
+		bool height_sensor_timeout              : 1; ///< 4 - true when the height sensor has not been used to correct the state estimates for a significant time period
+		bool stopping_navigation                : 1; ///< 5 - true when the filter has insufficient data to estimate velocity and position and is falling back to an attitude, height and height rate mode of operation
+		bool invalid_accel_bias_cov_reset       : 1; ///< 6 - true when the filter has detected bad acceerometer bias state estimates and has reset the corresponding covariance matrix elements
+		bool bad_yaw_using_gps_course           : 1; ///< 7 - true when the filter has detected an invalid yaw estimate and has reset the yaw angle to the GPS ground course
+		bool stopping_mag_use                   : 1; ///< 8 - true when the filter has detected bad magnetometer data and is stopping further use of the magnetometer data
+		bool vision_data_stopped                : 1; ///< 9 - true when the vision system data has stopped for a significant time period
+		bool emergency_yaw_reset_mag_stopped    : 1; ///< 10 - true when the filter has detected bad magnetometer data, has reset the yaw to anothter source of data and has stopped further use of the magnetometer data
+		bool emergency_yaw_reset_gps_yaw_stopped: 1; ///< 11 - true when the filter has detected bad GNSS yaw data, has reset the yaw to anothter source of data and has stopped further use of the GNSS yaw data
 	} flags;
 	uint32_t value;
 };

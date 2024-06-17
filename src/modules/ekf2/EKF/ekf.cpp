@@ -40,6 +40,7 @@
  */
 
 #include "ekf.h"
+#include <ekf_derivation/generated/compute_wind_init_and_cov_from_wind_speed_and_direction.h>
 
 #include <mathlib/mathlib.h>
 
@@ -334,6 +335,38 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 	}
 
 	return false;
+}
+void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy, float wind_direction_accuracy)
+{
+	const float wind_speed_constrained = math::max(wind_speed, 0.0f);
+
+	// wind direction is given as azimuth where wind blows FROM, we need direction where wind blows TO
+	const float wind_direction_rad = wrap_pi(math::radians(wind_direction) + M_PI_F);
+
+	matrix::SquareMatrix<float, 2> P_wind;
+	Vector2f wind;
+
+	sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_accuracy, wind_direction_accuracy, &wind, &P_wind);
+
+	const Vector2f wind_var = P_wind.diag();
+
+	ECL_INFO("reset wind states to external observation");
+	_information_events.flags.reset_wind_to_ext_obs = true;
+
+	resetWindTo(wind, wind_var);
+}
+
+void Ekf::resetWindTo(const Vector2f &wind, const Vector2f &wind_var)
+{
+	_state.wind_vel = wind;
+
+	if (PX4_ISFINITE(wind_var(0))) {
+		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx, math::max(sq(_params.initial_wind_uncertainty), wind_var(0)));
+	}
+
+	if (PX4_ISFINITE(wind_var(1))) {
+		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx + 1, math::max(sq(_params.initial_wind_uncertainty), wind_var(1)));
+	}
 }
 
 void Ekf::updateParameters()
