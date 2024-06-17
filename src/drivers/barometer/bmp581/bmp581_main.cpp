@@ -53,20 +53,21 @@ I2CSPIDriverBase *BMP581::instantiate(const I2CSPIDriverConfig &config, int runt
 {
 	IBMP581 *interface = nullptr;
 
-	if(config.bus_type == BOARD_I2C_BUS) {
+	if (config.bus_type == BOARD_I2C_BUS) {
 		interface = bmp581_i2c_interface(config.bus, config.i2c_address, config.bus_frequency);
 		intf = BMP5_I2C_INTF;
-	} else if(config.bus_type == BOARD_SPI_BUS) {
+
+	} else if (config.bus_type == BOARD_SPI_BUS) {
 		interface = bmp581_spi_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 		intf = BMP5_SPI_INTF;
 	}
 
-	if(interface == nullptr) {
+	if (interface == nullptr) {
 		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
-	if(interface->init() != OK) {
+	if (interface->init() != OK) {
 		delete interface;
 		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
@@ -74,12 +75,12 @@ I2CSPIDriverBase *BMP581::instantiate(const I2CSPIDriverConfig &config, int runt
 
 	BMP581 *dev = new BMP581(config, interface);
 
-	if(dev == nullptr) {
+	if (dev == nullptr) {
 		delete interface;
 		return nullptr;
 	}
 
-	if(dev->init() != OK) {
+	if (dev->init() != OK) {
 		delete dev;
 		return nullptr;
 	}
@@ -98,22 +99,22 @@ extern "C" int bmp581_main(int argc, char *argv[])
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
-	if(!verb) {
+	if (!verb) {
 		ThisDriver::print_usage();
 		return -1;
 	}
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_BARO_DEVTYPE_BMP581);
 
-	if(!strcmp(verb, "start")) {
+	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
 	}
 
-	if(!strcmp(verb, "stop")) {
+	if (!strcmp(verb, "stop")) {
 		return ThisDriver::module_stop(iterator);
 	}
 
-	if(!strcmp(verb, "status")) {
+	if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
 	}
 

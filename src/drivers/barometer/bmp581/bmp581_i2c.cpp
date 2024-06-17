@@ -60,7 +60,7 @@ public:
 
 IBMP581 *bmp581_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency)
 {
-	return new BMP581_I2C (busnum, device, bus_frequency);
+	return new BMP581_I2C(busnum, device, bus_frequency);
 }
 
 BMP581_I2C::BMP581_I2C(uint8_t bus, uint32_t device, int bus_frequency) :

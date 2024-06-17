@@ -56,14 +56,14 @@
 	((regvar & bitname##_MSK) >> bitname##_POS)
 
 #define BMP5_SET_BITSLICE(regvar, bitname, val) \
-    	((regvar & ~bitname##_MSK) | \
-     	 ((val << bitname##_POS) & bitname##_MSK))
+	((regvar & ~bitname##_MSK) | \
+	 ((val << bitname##_POS) & bitname##_MSK))
 
 #define BMP5_SET_BIT_VAL_0(reg_data, bitname)	(reg_data & ~(bitname##_MSK))
 
 #define BMP5_SET_BITS_POS_0(reg_data, bitname, data) \
-   	((reg_data & ~(bitname##_MSK)) | \
-     	 (data & bitname##_MSK))
+	((reg_data & ~(bitname##_MSK)) | \
+	 (data & bitname##_MSK))
 
 #define BMP5_GET_BITS_POS_0(reg_data, bitname)	(reg_data & (bitname##_MSK))
 
@@ -202,29 +202,28 @@
  * @brief Enumerator for powermode selection
  */
 enum bmp5_powermode {
-    BMP5_POWERMODE_STANDBY,
-    BMP5_POWERMODE_NORMAL,
-    BMP5_POWERMODE_FORCED,
-    BMP5_POWERMODE_CONTINOUS,
-    BMP5_POWERMODE_DEEP_STANDBY
+	BMP5_POWERMODE_STANDBY,
+	BMP5_POWERMODE_NORMAL,
+	BMP5_POWERMODE_FORCED,
+	BMP5_POWERMODE_CONTINOUS,
+	BMP5_POWERMODE_DEEP_STANDBY
 };
 
 /*!
  * @brief Enumerator for interface selection
  */
 enum bmp5_intf {
-    BMP5_SPI_INTF,
-    BMP5_I2C_INTF,
+	BMP5_SPI_INTF,
+	BMP5_I2C_INTF,
 };
 
 /*!
  * @brief BMP5 sensor data structure which comprises of temperature and pressure in floating point with data type as
  *  float for pressure and temperature.
  */
-struct bmp5_sensor_data
-{
-    float pressure;
-    float temperature;
+struct bmp5_sensor_data {
+	float pressure;
+	float temperature;
 };
 
 /*
