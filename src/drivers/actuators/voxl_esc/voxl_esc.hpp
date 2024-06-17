@@ -133,6 +133,13 @@ private:
 
 	static constexpr uint16_t VOXL_ESC_NUM_INIT_RETRIES = 3;
 
+	static constexpr float    VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT = -0.1f;
+	static constexpr float    VOXL_ESC_GPIO_CTL_THRESHOLD = 0.0f;
+
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL = 0;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX1 = 1;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX2 = 2;
+
 	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, VOXL_ESC_PWM_MAX); }
 	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, VOXL_ESC_RPM_MAX); }
 

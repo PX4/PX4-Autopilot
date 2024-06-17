@@ -1260,6 +1260,18 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		return false;
 	}
 
+	// try uart_write() here w/ gpio control packet
+	if ( _gpio_ctl_en ) {
+		PX4_INFO("VOXL_ESC: Writing GPIO CTL packet");
+		/*
+		populate cmd here
+		if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+			PX4_ERR("VOXL_ESC: Failed to send packet");
+		return false;
+		}
+		*/
+	}
+
 	// increment ESC id from which to request feedback in round robin order
 	_fb_idx = (_fb_idx + 1) % VOXL_ESC_OUTPUT_CHANNELS;
 
@@ -1296,6 +1308,12 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	}
 
 	_esc_status_pub.publish(_esc_status);
+
+	if (_gpio_ctl_en) {
+		// pull gpio high, build packet with _parameters.gpio_ctl_channel and _parameters.gpio_ctl_config
+	} else {
+		//
+	}
 
 	// If any extra external modal io data has been received then
 	// send it over as well
@@ -1415,14 +1433,27 @@ void VoxlEsc::Run()
 	}
 
 	// check if gpio control is enabled
-	if (_parameters.gpio_ctl_channel > -1 && _parameters.gpio_ctl_config > 0) {
-		// TODO: remove, don't want to keep this as to not spam
-		PX4_INFO("VOXL_ESC: GPIO control enabled");
-		_gpio_ctl_en = true;
-	} else {
-		// TODO: remove, don't want to keep this as to not spam
-		PX4_INFO("VOXL_ESC: GPIO control disabled");
-		_gpio_ctl_en = false;
+	if (_parameters.gpio_ctl_channel > 0 && _parameters.gpio_ctl_config > 0) {
+
+		float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
+
+		if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX1) {
+			gpio_setpoint = _manual_control_setpoint.aux1;
+
+		} else if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX2) {
+			gpio_setpoint = _manual_control_setpoint.aux2;
+		}
+
+		if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
+			// TODO: remove, don't want to keep this as to not spam
+			PX4_INFO("VOXL_ESC: GPIO control enabled");
+			_gpio_ctl_en = true;
+
+		} else {
+			// TODO: remove, don't want to keep this as to not spam
+			PX4_INFO("VOXL_ESC: GPIO control disabled");
+			_gpio_ctl_en = false;
+		}
 	}
 
 	if (!_outputs_on) {
