@@ -312,6 +312,64 @@ def compute_wind_init_and_cov_from_airspeed(
     wind = wind.subs({sideslip: 0.0})
     return (wind, P)
 
+def predict_body_airspeed(state: State) -> (sf.V2):
+
+    wind = sf.V3(state["wind_vel"][0], state["wind_vel"][1], 0.0)
+    vel_rel = state["vel"] - wind
+
+    relative_wind_body = state["quat_nominal"].inverse() * vel_rel
+
+    return relative_wind_body
+
+def compute_airspeed_2d_innov_innov_var_and_hx(
+        state: VState,
+        P: MTangent,
+        airspeed_2d: sf.V2,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.V2, sf.V2, VTangent):
+
+    state = vstate_to_state(state)
+    relative_wind_body = predict_body_airspeed(state)
+
+    meas_pred = sf.V2()
+    meas_pred[0] = relative_wind_body[0]
+    meas_pred[1] = relative_wind_body[1]
+
+    innov = meas_pred - airspeed_2d
+
+    # initialize outputs
+    innov_var = sf.V2()
+    H = [None] * 2
+
+    # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
+    #  for each axis
+    for i in range(2):
+        H[i] = sf.V1(meas_pred[i]).jacobian(state)
+        innov_var[i] = (H[i] * P * H[i].T + R)[0,0]
+
+    return (innov, innov_var, H[0].T)
+
+def compute_airspeed_2d_y_innov_innov_var_and_hy(
+        state: VState,
+        P: MTangent,
+        airspeed_2d: sf.V2,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, sf.Scalar, VTangent):
+
+    state = vstate_to_state(state)
+    meas_pred = predict_body_airspeed(state)
+
+    innov = meas_pred[1] - airspeed_2d[1]
+
+    # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
+    #  for each axis
+    H = sf.V1(meas_pred[1]).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    return (innov, innov_var, H.T)
+
 def predict_sideslip(
         state: State,
         epsilon: sf.Scalar
@@ -660,6 +718,8 @@ if not args.disable_wind:
     generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
     generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
     generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])
+    generate_px4_function(compute_airspeed_2d_innov_innov_var_and_hx, output_names=["innov", "innov_var", "Hx"])
+    generate_px4_function(compute_airspeed_2d_y_innov_innov_var_and_hy, output_names=["innov", "innov_var", "Hy"])
 
 generate_px4_function(compute_yaw_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])

@@ -59,6 +59,10 @@
 #include <uORB/topics/estimator_aid_source2d.h>
 #include <uORB/topics/estimator_aid_source3d.h>
 
+#if defined(CONFIG_EKF2_AIRSPEED2D)
+# include "aid_sources/Airspeed2D.hpp"
+#endif // CONFIG_EKF2_AIRSPEED2D
+
 #include "aid_sources/ZeroGyroUpdate.hpp"
 #include "aid_sources/ZeroVelocityUpdate.hpp"
 
@@ -511,6 +515,99 @@ public:
 	void updateParameters();
 
 	friend class AuxGlobalPosition;
+
+
+#if defined(CONFIG_EKF2_WIND)
+	// perform a reset of the wind states and related covariances
+	void resetWind();
+	void resetWind(const Vector2f& wind_vel, float wind_vel_var = NAN);
+	void resetWindCov();
+	void resetWindToZero();
+#endif // CONFIG_EKF2_WIND
+
+	void resetEstimatorAidStatus(estimator_aid_source1d_s &status) const
+	{
+		// only bother resetting if timestamp_sample is set
+		if (status.timestamp_sample != 0) {
+			status.timestamp_sample = 0;
+
+			// preserve status.time_last_fuse
+
+			status.observation = 0;
+			status.observation_variance = 0;
+
+			status.innovation = 0;
+			status.innovation_variance = 0;
+			status.test_ratio = INFINITY;
+
+			status.innovation_rejected = true;
+			status.fused = false;
+		}
+	}
+
+	template <typename T>
+	void resetEstimatorAidStatus(T &status) const
+	{
+		// only bother resetting if timestamp_sample is set
+		if (status.timestamp_sample != 0) {
+			status.timestamp_sample = 0;
+
+			// preserve status.time_last_fuse
+
+			for (size_t i = 0; i < (sizeof(status.observation) / sizeof(status.observation[0])); i++) {
+				status.observation[i] = 0;
+				status.observation_variance[i] = 0;
+
+				status.innovation[i] = 0;
+				status.innovation_variance[i] = 0;
+				status.test_ratio[i] = INFINITY;
+			}
+
+			status.innovation_rejected = true;
+			status.fused = false;
+		}
+	}
+
+	void setEstimatorAidStatusTestRatio(estimator_aid_source1d_s &status, float innovation_gate) const
+	{
+		if (PX4_ISFINITE(status.innovation)
+		    && PX4_ISFINITE(status.innovation_variance)
+		    && (status.innovation_variance > 0.f)
+		   ) {
+			status.test_ratio = sq(status.innovation) / (sq(innovation_gate) * status.innovation_variance);
+			status.innovation_rejected = (status.test_ratio > 1.f);
+
+		} else {
+			status.test_ratio = INFINITY;
+			status.innovation_rejected = true;
+		}
+	}
+
+	template <typename T>
+	void setEstimatorAidStatusTestRatio(T &status, float innovation_gate) const
+	{
+		bool innovation_rejected = false;
+
+		for (size_t i = 0; i < (sizeof(status.test_ratio) / sizeof(status.test_ratio[0])); i++) {
+			if (PX4_ISFINITE(status.innovation[i])
+			    && PX4_ISFINITE(status.innovation_variance[i])
+			    && (status.innovation_variance[i] > 0.f)
+			   ) {
+				status.test_ratio[i] = sq(status.innovation[i]) / (sq(innovation_gate) * status.innovation_variance[i]);
+
+				if (status.test_ratio[i] > 1.f) {
+					innovation_rejected = true;
+				}
+
+			} else {
+				status.test_ratio[i] = INFINITY;
+				innovation_rejected = true;
+			}
+		}
+
+		// if any of the innovations are rejected, then the overall innovation is rejected
+		status.innovation_rejected = innovation_rejected;
+	}
 
 private:
 
@@ -1088,13 +1185,6 @@ private:
 	void resetMagCov();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-#if defined(CONFIG_EKF2_WIND)
-	// perform a reset of the wind states and related covariances
-	void resetWind();
-	void resetWindCov();
-	void resetWindToZero();
-#endif // CONFIG_EKF2_WIND
-
 	void resetGyroBiasZCov();
 
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
@@ -1130,96 +1220,21 @@ private:
 	bool _ev_q_error_initialized{false};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-	void resetEstimatorAidStatus(estimator_aid_source1d_s &status) const
-	{
-		// only bother resetting if timestamp_sample is set
-		if (status.timestamp_sample != 0) {
-			status.timestamp_sample = 0;
-
-			// preserve status.time_last_fuse
-
-			status.observation = 0;
-			status.observation_variance = 0;
-
-			status.innovation = 0;
-			status.innovation_variance = 0;
-			status.test_ratio = INFINITY;
-
-			status.innovation_rejected = true;
-			status.fused = false;
-		}
-	}
-
-	template <typename T>
-	void resetEstimatorAidStatus(T &status) const
-	{
-		// only bother resetting if timestamp_sample is set
-		if (status.timestamp_sample != 0) {
-			status.timestamp_sample = 0;
-
-			// preserve status.time_last_fuse
-
-			for (size_t i = 0; i < (sizeof(status.observation) / sizeof(status.observation[0])); i++) {
-				status.observation[i] = 0;
-				status.observation_variance[i] = 0;
-
-				status.innovation[i] = 0;
-				status.innovation_variance[i] = 0;
-				status.test_ratio[i] = INFINITY;
-			}
-
-			status.innovation_rejected = true;
-			status.fused = false;
-		}
-	}
-
-	void setEstimatorAidStatusTestRatio(estimator_aid_source1d_s &status, float innovation_gate) const
-	{
-		if (PX4_ISFINITE(status.innovation)
-		    && PX4_ISFINITE(status.innovation_variance)
-		    && (status.innovation_variance > 0.f)
-		   ) {
-			status.test_ratio = sq(status.innovation) / (sq(innovation_gate) * status.innovation_variance);
-			status.innovation_rejected = (status.test_ratio > 1.f);
-
-		} else {
-			status.test_ratio = INFINITY;
-			status.innovation_rejected = true;
-		}
-	}
-
-	template <typename T>
-	void setEstimatorAidStatusTestRatio(T &status, float innovation_gate) const
-	{
-		bool innovation_rejected = false;
-
-		for (size_t i = 0; i < (sizeof(status.test_ratio) / sizeof(status.test_ratio[0])); i++) {
-			if (PX4_ISFINITE(status.innovation[i])
-			    && PX4_ISFINITE(status.innovation_variance[i])
-			    && (status.innovation_variance[i] > 0.f)
-			   ) {
-				status.test_ratio[i] = sq(status.innovation[i]) / (sq(innovation_gate) * status.innovation_variance[i]);
-
-				if (status.test_ratio[i] > 1.f) {
-					innovation_rejected = true;
-				}
-
-			} else {
-				status.test_ratio[i] = INFINITY;
-				innovation_rejected = true;
-			}
-		}
-
-		// if any of the innovations are rejected, then the overall innovation is rejected
-		status.innovation_rejected = innovation_rejected;
-	}
-
 	ZeroGyroUpdate _zero_gyro_update{};
 	ZeroVelocityUpdate _zero_velocity_update{};
 
-#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+#if defined(MODULE_NAME)
+
+# if defined(CONFIG_EKF2_AIRSPEED2D)
+	Airspeed2D _airspeed2d{};
+# endif // CONFIG_EKF2_AIRSPEED2D
+
+# if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	AuxGlobalPosition _aux_global_position{};
-#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+# endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
+#endif // MODULE_NAME
+
 };
 
 #endif // !EKF_EKF_H

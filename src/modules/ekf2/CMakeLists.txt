@@ -139,6 +139,10 @@ if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS EKF/aid_sources/airspeed/airspeed_fusion.cpp)
 endif()
 
+if(CONFIG_EKF2_AIRSPEED2D)
+	list(APPEND EKF_SRCS EKF/aid_sources/Airspeed2D.cpp)
+endif()
+
 if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	list(APPEND EKF_SRCS EKF/aid_sources/aux_global_position/aux_global_position.cpp)
 endif()

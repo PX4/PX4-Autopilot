@@ -636,6 +636,23 @@ void Ekf::resetWind()
 	resetWindToZero();
 }
 
+void Ekf::resetWind(const Vector2f& wind_vel, const float wind_vel_var)
+{
+	_control_status.flags.wind = true;
+
+	ECL_INFO("reset wind velocity to (%.1f, %.1f) m/s", double(wind_vel(0)), double(wind_vel(1)));
+
+	_state.wind_vel = wind_vel;
+
+	float obs_var = sq(_params.initial_wind_uncertainty);
+
+	if (PX4_ISFINITE(wind_vel_var)) {
+		obs_var = math::max(obs_var, wind_vel_var);
+	}
+
+	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, obs_var);
+}
+
 void Ekf::resetWindToZero()
 {
 	ECL_INFO("reset wind to zero");
