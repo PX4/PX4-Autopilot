@@ -364,7 +364,7 @@ __ramfunc__ void stm32_board_clockconfig(void)
 		 */
 
 		regval = getreg32(STM32_PWR_CR3);
-		regval |= STM32_PWR_CR3_LDOEN | STM32_PWR_CR3_LDOESCUEN;
+		regval |= STM32_PWR_CR3_LDOEN | STM32_PWR_CR3_SCUEN;
 		putreg32(regval, STM32_PWR_CR3);
 
 		/* Set the voltage output scale */
