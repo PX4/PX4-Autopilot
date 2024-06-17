@@ -272,7 +272,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_OVER, 0);
  *
  * @group VOXL ESC
  * @value 0 - Default
- * @min 0
+ * @min 0 - Disabled
  * @max 16
  */
 PARAM_DEFINE_INT32(GPIO_CTL_CH, 0);
