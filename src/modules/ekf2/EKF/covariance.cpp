@@ -334,11 +334,3 @@ void Ekf::resetMagCov()
 	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.mag_noise));
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_WIND)
-void Ekf::resetWindCov()
-{
-	// start with a small initial uncertainty to improve the initial estimate
-	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
-}
-#endif // CONFIG_EKF2_WIND
