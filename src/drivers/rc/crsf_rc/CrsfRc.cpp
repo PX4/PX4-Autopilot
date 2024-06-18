@@ -37,11 +37,6 @@
 
 #include <fcntl.h>
 
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/vehicle_status.h>
-
 using namespace time_literals;
 
 #define CRSF_BAUDRATE 420000
@@ -181,6 +176,40 @@ void CrsfRc::Run()
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	perf_count_interval(_cycle_interval_perf, time_now_us);
+
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		}
+	}
+
+	/* vehicle command */
+	vehicle_command_s vcmd;
+
+	if (_vehicle_cmd_sub.update(&vcmd)) {
+		// Check for a pairing command
+		if (vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
+
+			uint8_t cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+			if (!_armed) {
+				BindCRSF();
+				cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			}
+
+			// publish acknowledgement
+			vehicle_command_ack_s command_ack{};
+			command_ack.command = vcmd.command;
+			command_ack.result = cmd_ret;
+			command_ack.target_system = vcmd.source_system;
+			command_ack.target_component = vcmd.source_component;
+			command_ack.timestamp = hrt_absolute_time();
+			uORB::Publication<vehicle_command_ack_s> vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+			vehicle_command_ack_pub.publish(command_ack);
+		}
+	}
 
 	// Read all available data from the serial RC input UART
 	int new_bytes = _uart->readAtLeast(&_rcs_buf[0], RC_MAX_BUFFER_SIZE, 1, 100);
@@ -480,6 +509,23 @@ bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 	return _uart->write((void *) buf, (size_t) offset);
 }
 
+bool CrsfRc::BindCRSF()
+{
+	 uint8_t bindFrame[] = {
+            (uint8_t)crsf_sync_t::sync,
+            0x07,  // frame length
+            (uint8_t)crsf_frame_type_t::command,
+            (uint8_t)crsf_address_t::crsf_receiver,
+            (uint8_t)crsf_address_t::flight_controller,
+            (uint8_t)crsf_sub_command_t::subcmd_rx,
+            (uint8_t)crsf_sub_command_t::subcmd_rx_bind,
+            0x9E,  // Command CRC8
+            0xE8,  // Packet CRC8
+        };
+
+	return _uart->write((void *) bindFrame, 9);
+}
+
 int CrsfRc::print_status()
 {
 	if (_device[0] != '\0') {
@@ -509,6 +555,17 @@ int CrsfRc::print_status()
 
 int CrsfRc::custom_command(int argc, char *argv[])
 {
+	const char *verb = argv[0];
+
+	if (!strcmp(verb, "bind")) {
+		uORB::Publication<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
+		vehicle_command_s vcmd{};
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
+		vcmd.timestamp = hrt_absolute_time();
+		vehicle_command_pub.publish(vcmd);
+		return 0;
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -528,6 +585,7 @@ This module parses the CRSF RC uplink protocol and generates CRSF downlink telem
 	PRINT_MODULE_USAGE_NAME("crsf_rc", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "Send a bind command (not available on singlewire)");
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
