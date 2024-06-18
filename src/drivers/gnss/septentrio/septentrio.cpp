@@ -153,8 +153,6 @@ SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, u
 	// Enforce null termination.
 	_port[sizeof(_port) - 1] = '\0';
 
-	reset_gps_state_message();
-
 	int32_t enable_sat_info {0};
 	get_parameter("SEP_SAT_INFO", &enable_sat_info);
 
@@ -211,6 +209,8 @@ SeptentrioDriver::SeptentrioDriver(const char *device_path, Instance instance, u
 	}
 
 	set_device_type(DRV_GPS_DEVTYPE_SBF);
+
+	reset_gps_state_message();
 }
 
 SeptentrioDriver::~SeptentrioDriver()
@@ -948,7 +948,7 @@ SeptentrioDriver::ConfigureResult SeptentrioDriver::configure()
 	}
 
 	// Specify the offsets that the receiver applies to the computed attitude angles.
-	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, (double)(_heading_offset * 180 / M_PI_F), (double)_pitch_offset);
+	snprintf(msg, sizeof(msg), k_command_set_attitude_offset, static_cast<double>(_heading_offset), static_cast<double>(_pitch_offset));
 
 	if (!send_message_and_wait_for_ack(msg, k_receiver_ack_timeout_fast)) {
 		return ConfigureResult::FailedCompletely;
