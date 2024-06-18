@@ -71,7 +71,7 @@ parameters:
         type: float
         decimal: 3
         default: 0
-        min: 0
+        min: -360
         max: 360
         unit: deg
         reboot_required: true
