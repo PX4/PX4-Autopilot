@@ -102,16 +102,14 @@ void Ekf::controlRangeHeightFusion()
 		const float measurement = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
 		const float measurement_var = sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
 
-		const float innov_gate = math::max(_params.range_innov_gate, 1.f);
-
 		const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
 
 		// vertical position innovation - baro measurement has opposite sign to earth z axis
-		updateVerticalPositionAidSrcStatus(_range_sensor.getSampleAddress()->time_us,
-						   -(measurement - bias_est.getBias()),
-						   measurement_var + bias_est.getBiasVar(),
-						   innov_gate,
-						   aid_src);
+		updateVerticalPositionAidStatus(aid_src,
+						_range_sensor.getSampleAddress()->time_us, // sample timestamp
+						-(measurement - bias_est.getBias()),       // observation
+						measurement_var + bias_est.getBiasVar(),   // observation variance
+						math::max(_params.range_innov_gate, 1.f)); // innovation gate
 
 		// update the bias estimator before updating the main filter but after
 		// using its current state to compute the vertical position innovation
@@ -170,7 +168,7 @@ void Ekf::controlRangeHeightFusion()
 			if (starting_conditions_passing) {
 				if ((_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE))
 				    && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
-				   ) {
+				) {
 					// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
 					ECL_INFO("starting conditional %s height fusion", HGT_SRC_NAME);
 					_height_sensor_ref = HeightSensor::RANGE;
@@ -178,7 +176,7 @@ void Ekf::controlRangeHeightFusion()
 
 				} else if ((_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE))
 					   && (_params.rng_ctrl != static_cast<int32_t>(RngCtrl::CONDITIONAL))
-					  ) {
+				) {
 					// Range finder is the primary height source, the ground is now the datum used
 					// to compute the local vertical position
 					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
@@ -259,7 +257,6 @@ void Ekf::stopRngHgtFusion()
 		}
 
 		_rng_hgt_b_est.setFusionInactive();
-		resetEstimatorAidStatus(_aid_src_rng_hgt);
 
 		_control_status.flags.rng_hgt = false;
 	}

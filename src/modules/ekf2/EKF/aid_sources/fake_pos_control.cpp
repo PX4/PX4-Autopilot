@@ -63,14 +63,21 @@ void Ekf::controlFakePosFusion()
 			obs_var(0) = obs_var(1) = sq(0.5f);
 		}
 
+		const Vector2f position(_last_known_pos);
+
 		const float innov_gate = 3.f;
 
-		updateHorizontalPositionAidSrcStatus(_time_delayed_us, Vector2f(_last_known_pos), obs_var, innov_gate, aid_src);
-
+		updateAidSourceStatus(aid_src,
+					 _time_delayed_us,
+					 position,                                           // observation
+					 obs_var,                                            // observation variance
+					 Vector2f(_state.pos) - position,                    // innovation
+					 Vector2f(getStateVariance<State::pos>()) + obs_var, // innovation variance
+					 innov_gate);                                        // innovation gate
 
 		const bool continuing_conditions_passing = !isHorizontalAidingActive()
-							   && ((getTiltVariance() > sq(math::radians(3.f))) || _control_status.flags.vehicle_at_rest)
-							   && (!(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector)) || _control_status.flags.vehicle_at_rest);
+				&& ((getTiltVariance() > sq(math::radians(3.f))) || _control_status.flags.vehicle_at_rest)
+				&& (!(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector)) || _control_status.flags.vehicle_at_rest);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _horizontal_deadreckon_time_exceeded;
@@ -131,7 +138,5 @@ void Ekf::stopFakePosFusion()
 	if (_control_status.flags.fake_pos) {
 		ECL_INFO("stop fake position fusion");
 		_control_status.flags.fake_pos = false;
-
-		resetEstimatorAidStatus(_aid_src_fake_pos);
 	}
 }

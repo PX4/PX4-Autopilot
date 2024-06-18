@@ -71,6 +71,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target_status", 400);
 	add_optional_topic("flaps_setpoint", 1000);
 	add_optional_topic("flight_phase_estimation", 1000);
+	add_optional_topic("fuel_tank_status", 10);
 	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
@@ -400,6 +401,8 @@ void LoggedTopics::add_system_identification_topics()
 	add_topic("sensor_combined");
 	add_topic("vehicle_angular_velocity");
 	add_topic("vehicle_torque_setpoint");
+	add_topic("vehicle_acceleration");
+	add_topic("actuator_motors");
 }
 
 void LoggedTopics::add_mavlink_tunnel()
