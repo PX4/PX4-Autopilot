@@ -195,8 +195,7 @@ void CrsfRc::Run()
 			uint8_t cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
 			if (!_is_singlewire && !_armed) {
-				if(BindCRSF())
-				{
+				if (BindCRSF()) {
 					cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 				}
 			}
@@ -513,17 +512,17 @@ bool CrsfRc::SendTelemetryFlightMode(const char *flight_mode)
 
 bool CrsfRc::BindCRSF()
 {
-	 uint8_t bindFrame[] = {
-            (uint8_t)crsf_sync_t::sync,
-            0x07,  // frame length
-            (uint8_t)crsf_frame_type_t::command,
-            (uint8_t)crsf_address_t::crsf_receiver,
-            (uint8_t)crsf_address_t::flight_controller,
-            (uint8_t)crsf_sub_command_t::subcmd_rx,
-            (uint8_t)crsf_sub_command_t::subcmd_rx_bind,
-            0x9E,  // Command CRC8
-            0xE8,  // Packet CRC8
-        };
+	uint8_t bindFrame[] = {
+		(uint8_t)crsf_sync_t::sync,
+		0x07,  // frame length
+		(uint8_t)crsf_frame_type_t::command,
+		(uint8_t)crsf_address_t::crsf_receiver,
+		(uint8_t)crsf_address_t::flight_controller,
+		(uint8_t)crsf_sub_command_t::subcmd_rx,
+		(uint8_t)crsf_sub_command_t::subcmd_rx_bind,
+		0x9E,  // Command CRC8
+		0xE8,  // Packet CRC8
+	};
 
 	return _uart->write((void *) bindFrame, 9);
 }
