@@ -229,6 +229,7 @@ private:
 	manual_control_setpoint_s _manual_control_setpoint{};
 
 	bool			_gpio_ctl_en{false};
+	bool			_gpio_ctl_high{true};
 
 	uint16_t		_cmd_id{0};
 	Command			_current_cmd;

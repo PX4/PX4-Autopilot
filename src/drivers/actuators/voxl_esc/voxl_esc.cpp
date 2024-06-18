@@ -1255,21 +1255,41 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			sizeof(cmd.buf),
 			_extended_rpm);
 
+
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("VOXL_ESC: Failed to send packet");
 		return false;
 	}
 
-	// try uart_write() here w/ gpio control packet
 	if ( _gpio_ctl_en ) {
-		PX4_INFO("VOXL_ESC: Writing GPIO CTL packet");
-		/*
-		populate cmd here, maybe use qc_esc_create_packet()??
-		if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
-			PX4_ERR("VOXL_ESC: Failed to send packet");
-		return false;
+
+		Command gpio_cmd;
+		int ESC_PACKET_TYPE_GPIO_CMD = 15;
+		uint8_t data[5];
+
+		int esc_id = 0; // TODO define this, this should come from gpio_ctl_config?
+		int val = 0;
+
+		if ( _gpio_ctl_high ) {
+			PX4_INFO("VOXL_ESC: Setting GPIO val high");
+			val = 1;
+		} else {
+			PX4_INFO("VOXL_ESC: Setting GPIO val low");
 		}
-		*/
+
+		data[0] = esc_id; // esc id
+		data[1] = 80; // 01010000 : pin F0
+		data[2] = 0; // 0: output, 1: input
+		data[3] = val; //cmd LSB
+		data[4] = 0; // cmd MSB
+
+		// type, data, size
+		gpio_cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_GPIO_CMD, (uint8_t *) & (data[0]), 5, gpio_cmd.buf, sizeof(gpio_cmd.buf));
+
+		if (_uart_port->uart_write(gpio_cmd.buf, gpio_cmd.len) != gpio_cmd.len) {
+			PX4_ERR("VOXL_ESC: Failed to send gpio packet");
+			return false;
+		}
 	}
 
 	// increment ESC id from which to request feedback in round robin order
@@ -1434,7 +1454,7 @@ void VoxlEsc::Run()
 
 	// check if gpio control is enabled
 	if (_parameters.gpio_ctl_channel > 0 && _parameters.gpio_ctl_config > 0) {
-
+		_gpio_ctl_en = true;
 		float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
 
 		if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX1) {
@@ -1446,13 +1466,14 @@ void VoxlEsc::Run()
 
 		if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
 			// TODO: remove, don't want to keep this as to not spam
-			PX4_INFO("VOXL_ESC: GPIO control enabled");
-			_gpio_ctl_en = true;
+			PX4_INFO("VOXL_ESC: GPIO control set low");
+			_gpio_ctl_high = false;
 
 		} else {
 			// TODO: remove, don't want to keep this as to not spam
-			PX4_INFO("VOXL_ESC: GPIO control disabled");
-			_gpio_ctl_en = false;
+			PX4_INFO("VOXL_ESC: GPIO control set high");
+			//_gpio_ctl_en = false;
+			_gpio_ctl_high = true;
 		}
 	}
 
