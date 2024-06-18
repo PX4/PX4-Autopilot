@@ -1454,26 +1454,34 @@ void VoxlEsc::Run()
 
 	// check if gpio control is enabled
 	if (_parameters.gpio_ctl_channel > 0 && _parameters.gpio_ctl_config > 0) {
-		_gpio_ctl_en = true;
-		float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
 
-		if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX1) {
-			gpio_setpoint = _manual_control_setpoint.aux1;
+		if (_manual_control_setpoint_sub.updated()) {
 
-		} else if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX2) {
-			gpio_setpoint = _manual_control_setpoint.aux2;
-		}
+			_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
 
-		if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
-			// TODO: remove, don't want to keep this as to not spam
-			PX4_INFO("VOXL_ESC: GPIO control set low");
-			_gpio_ctl_high = false;
+			_gpio_ctl_en = true;
+			float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
 
-		} else {
-			// TODO: remove, don't want to keep this as to not spam
-			PX4_INFO("VOXL_ESC: GPIO control set high");
-			//_gpio_ctl_en = false;
-			_gpio_ctl_high = true;
+			if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX1) {
+				gpio_setpoint = _manual_control_setpoint.aux1;
+				PX4_INFO("VOXL_ESC: gpio_setpoint (aux1) -> %f", static_cast<double>(gpio_setpoint));
+
+			} else if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX2) {
+				gpio_setpoint = _manual_control_setpoint.aux2;
+				PX4_INFO("VOXL_ESC: gpio_setpoint (aux2) -> %f", static_cast<double>(gpio_setpoint));
+			}
+
+			if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
+				// TODO: remove, don't want to keep this as to not spam
+				PX4_INFO("VOXL_ESC: GPIO control set low");
+				_gpio_ctl_high = false;
+
+			} else {
+				// TODO: remove, don't want to keep this as to not spam
+				PX4_INFO("VOXL_ESC: GPIO control set high");
+				//_gpio_ctl_en = false;
+				_gpio_ctl_high = true;
+			}
 		}
 	}
 
