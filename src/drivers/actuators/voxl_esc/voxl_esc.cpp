@@ -1264,10 +1264,10 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	if ( _gpio_ctl_en ) {
 
 		Command gpio_cmd;
-		int ESC_PACKET_TYPE_GPIO_CMD = 15;
+		const int ESC_PACKET_TYPE_GPIO_CMD = 15;
 		uint8_t data[5];
 
-		int esc_id = 0; // TODO define this, this should come from gpio_ctl_config?
+		int esc_id = 0; // TODO un-hardcode this, this should come from gpio_ctl_config?
 		int val = 0;
 
 		if ( _gpio_ctl_high ) {
