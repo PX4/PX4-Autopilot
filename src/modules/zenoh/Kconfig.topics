@@ -245,6 +245,10 @@ menu "Zenoh publishers/subscribers"
 		bool "follow_target_status"
 		default n
 
+	config ZENOH_PUBSUB_FUEL_TANK_STATUS
+		bool "fuel_tank_status"
+		default n
+
 	config ZENOH_PUBSUB_GENERATOR_STATUS
 		bool "generator_status"
 		default n
@@ -563,6 +567,10 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REQUEST
 		bool "register_ext_component_request"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_ACKERMANN_GUIDANCE_STATUS
+		bool "rover_ackermann_guidance_status"
 		default n
 
 	config ZENOH_PUBSUB_RPM
@@ -919,6 +927,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_FOLLOW_TARGET
 	select ZENOH_PUBSUB_FOLLOW_TARGET_ESTIMATOR
 	select ZENOH_PUBSUB_FOLLOW_TARGET_STATUS
+	select ZENOH_PUBSUB_FUEL_TANK_STATUS
 	select ZENOH_PUBSUB_GENERATOR_STATUS
 	select ZENOH_PUBSUB_GEOFENCE_RESULT
 	select ZENOH_PUBSUB_GEOFENCE_STATUS
@@ -999,6 +1008,7 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_RC_PARAMETER_MAP
 	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REPLY
 	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REQUEST
+	select ZENOH_PUBSUB_ROVER_ACKERMANN_GUIDANCE_STATUS
 	select ZENOH_PUBSUB_RPM
 	select ZENOH_PUBSUB_RTL_STATUS
 	select ZENOH_PUBSUB_RTL_TIME_ESTIMATE
