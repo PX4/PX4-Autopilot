@@ -518,7 +518,7 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 	// We can't return early instead because we need to copy all topics that triggered poll.
 
 	bool exit_loop = false;
-	UpdateResult update_result = already_active ? UpdateResult::UpdatedActive : UpdateResult::NoUpdate;
+	UpdateResult update_result = UpdateResult::NoUpdate;
 
 	while (!exit_loop && poll_timeout >= 0) {
 
