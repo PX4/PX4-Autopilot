@@ -1271,10 +1271,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		int val = 0;
 
 		if ( _gpio_ctl_high ) {
-			PX4_INFO("VOXL_ESC: Setting GPIO val high");
 			val = 1;
-		} else {
-			PX4_INFO("VOXL_ESC: Setting GPIO val low");
 		}
 
 		data[0] = esc_id; // esc id
@@ -1328,12 +1325,6 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	}
 
 	_esc_status_pub.publish(_esc_status);
-
-	if (_gpio_ctl_en) {
-		// pull gpio high, build packet with _parameters.gpio_ctl_channel and _parameters.gpio_ctl_config
-	} else {
-		//
-	}
 
 	// If any extra external modal io data has been received then
 	// send it over as well
@@ -1464,22 +1455,17 @@ void VoxlEsc::Run()
 
 			if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX1) {
 				gpio_setpoint = _manual_control_setpoint.aux1;
-				PX4_INFO("VOXL_ESC: gpio_setpoint (aux1) -> %f", static_cast<double>(gpio_setpoint));
+				//PX4_INFO("VOXL_ESC: gpio_setpoint (aux1) -> %f", static_cast<double>(gpio_setpoint));
 
 			} else if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX2) {
 				gpio_setpoint = _manual_control_setpoint.aux2;
-				PX4_INFO("VOXL_ESC: gpio_setpoint (aux2) -> %f", static_cast<double>(gpio_setpoint));
+				//PX4_INFO("VOXL_ESC: gpio_setpoint (aux2) -> %f", static_cast<double>(gpio_setpoint));
 			}
 
 			if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
-				// TODO: remove, don't want to keep this as to not spam
-				PX4_INFO("VOXL_ESC: GPIO control set low");
 				_gpio_ctl_high = false;
 
 			} else {
-				// TODO: remove, don't want to keep this as to not spam
-				PX4_INFO("VOXL_ESC: GPIO control set high");
-				//_gpio_ctl_en = false;
 				_gpio_ctl_high = true;
 			}
 		}
