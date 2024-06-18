@@ -25,7 +25,7 @@ uint8 ORB_QUEUE_LENGTH = 4
 
 uint32 command						# Command that is being acknowledged
 uint8 result						# Command result
-uint8 result_param1					# Also used as progress[%], it can be set with the reason why the command was denied, or the progress percentage when result is MAV_RESULT_IN_PROGRESS
+uint8 progress					# Also used as progress[%], it can be set with the reason why the command was denied, or the progress percentage when result is MAV_RESULT_IN_PROGRESS
 int32 result_param2					# Additional parameter of the result, example: which parameter of MAV_CMD_NAV_WAYPOINT caused it to be denied.
 uint8 target_system
 uint16 target_component 				# Target component / mode executor
