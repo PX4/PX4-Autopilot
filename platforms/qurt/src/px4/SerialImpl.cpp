@@ -173,7 +173,7 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 	return ret_read;
 }
 
-ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count, uint32_t timeout_us)
+ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count, uint32_t timeout_ms)
 {
 	if (!_open) {
 		PX4_ERR("Cannot readAtLeast from serial device until it has been opened");
@@ -186,6 +186,7 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 	}
 
 	const hrt_abstime start_time_us = hrt_absolute_time();
+	hrt_abstime timeout_us = timeout_ms * 1000;
 	int total_bytes_read = 0;
 
 	while (total_bytes_read < (int) character_count) {
