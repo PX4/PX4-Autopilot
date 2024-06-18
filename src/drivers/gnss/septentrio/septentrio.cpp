@@ -1246,7 +1246,7 @@ int SeptentrioDriver::process_message()
 
 			AttEuler att_euler;
 
-			if (_sbf_decoder.parse(&att_euler) &&
+			if (_sbf_decoder.parse(&att_euler) == PX4_OK &&
 			    !att_euler.error_not_requested &&
 			    att_euler.error_aux1 == Error::None &&
 			    att_euler.error_aux2 == Error::None &&
@@ -1539,10 +1539,6 @@ void SeptentrioDriver::publish()
 	_message_gps_state.rtcm_injection_rate = rtcm_injection_frequency();
 
 	_sensor_gps_pub.publish(_message_gps_state);
-
-	// Heading/yaw data can be updated at a lower rate than the other navigation data.
-	// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
-	_message_gps_state.heading = NAN;
 
 	if (_message_gps_state.spoofing_state != _spoofing_state) {
 
