@@ -164,8 +164,6 @@ void Ekf::stopFlowFusion()
 	if (_control_status.flags.opt_flow) {
 		ECL_INFO("stopping optical flow fusion");
 		_control_status.flags.opt_flow = false;
-
-		resetEstimatorAidStatus(_aid_src_optical_flow);
 	}
 }
 

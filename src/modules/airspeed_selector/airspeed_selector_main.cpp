@@ -146,7 +146,7 @@ private:
 	int _valid_airspeed_index{-2}; /**< index of currently chosen (valid) airspeed sensor */
 	int _prev_airspeed_index{-2}; /**< previously chosen airspeed sensor index */
 	bool _initialized{false}; /**< module initialized*/
-	bool _vehicle_local_position_valid{false}; /**< local position (from GPS) valid */
+	bool _gnss_lpos_valid{false}; /**< local position (from GNSS) valid */
 	bool _in_takeoff_situation{true}; /**< in takeoff situation (defined as not yet stall speed reached) */
 	float _ground_minus_wind_TAS{NAN}; /**< true airspeed from groundspeed minus windspeed */
 	float _ground_minus_wind_CAS{NAN}; /**< calibrated airspeed from groundspeed minus windspeed */
@@ -347,7 +347,7 @@ AirspeedModule::Run()
 		struct airspeed_validator_update_data input_data = {};
 		input_data.timestamp = _time_now_usec;
 		input_data.ground_velocity = vI;
-		input_data.lpos_valid = _vehicle_local_position_valid;
+		input_data.gnss_valid = _gnss_lpos_valid;
 		input_data.lpos_evh = _vehicle_local_position.evh;
 		input_data.lpos_evv = _vehicle_local_position.evv;
 		input_data.q_att = _q_att;
@@ -515,10 +515,10 @@ void AirspeedModule::poll_topics()
 		}
 	}
 
-	_vehicle_local_position_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)
-					&& (_vehicle_local_position.timestamp > 0)
-					&& _vehicle_local_position.v_xy_valid
-					&& !_vehicle_local_position.dead_reckoning;
+	_gnss_lpos_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)
+			   && (_vehicle_local_position.timestamp > 0)
+			   && _vehicle_local_position.v_xy_valid
+			   && _estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
 }
 
 void AirspeedModule::update_wind_estimator_sideslip()
@@ -526,7 +526,7 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	// update wind and airspeed estimator
 	_wind_estimator_sideslip.update(_time_now_usec);
 
-	if (_vehicle_local_position_valid
+	if (_gnss_lpos_valid
 	    && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
 	    && !_vehicle_land_detected.landed) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
@@ -603,8 +603,8 @@ void AirspeedModule::select_airspeed_and_publish()
 	if (_valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX
 	    || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX) {
 
-		// _vehicle_local_position_valid determines if ground-wind estimate is valid
-		if (_vehicle_local_position_valid &&
+		// _gnss_lpos_valid determines if ground-wind estimate is valid
+		if (_gnss_lpos_valid &&
 		    (_param_airspeed_fallback_gw.get() || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
 			_valid_airspeed_index = airspeed_index::GROUND_MINUS_WIND_INDEX;
 

@@ -128,21 +128,29 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 
 	if (ev_sample.vel_frame == VelocityFrame::BODY_FRAME_FRD) {
 		const Vector3f measurement_var_ekf_frame = rotateVarianceToEkf(measurement_var);
-		updateVelocityAidSrcStatus(ev_sample.time_us,
-					   _R_to_earth * measurement,
-					   measurement_var_ekf_frame,
-					   math::max(_params.ev_vel_innov_gate, 1.f),
-					   aid_src);
+		const Vector3f measurement_ekf_frame = _R_to_earth * measurement;
+		const uint64_t t = aid_src.timestamp_sample;
+		updateAidSourceStatus(aid_src,
+				      ev_sample.time_us,                          		// sample timestamp
+				      measurement_ekf_frame,					// observation
+				      measurement_var_ekf_frame,                         	// observation variance
+				      _state.vel - measurement_ekf_frame,                   	// innovation
+				      getVelocityVariance() + measurement_var_ekf_frame,    	// innovation variance
+				      math::max(_params.ev_vel_innov_gate, 1.f));		// innovation gate
+		aid_src.timestamp_sample = t;
 		measurement.copyTo(aid_src.observation);
 		measurement_var.copyTo(aid_src.observation_variance);
 
 	} else {
-		updateVelocityAidSrcStatus(ev_sample.time_us,
-					   measurement,                               // observation
-					   measurement_var,                           // observation variance
-					   math::max(_params.ev_vel_innov_gate, 1.f), // innovation gate
-					   aid_src);
+		updateAidSourceStatus(aid_src,
+				      ev_sample.time_us,                          // sample timestamp
+				      measurement,                                // observation
+				      measurement_var,                            // observation variance
+				      _state.vel - measurement,                   // innovation
+				      getVelocityVariance() + measurement_var,    // innovation variance
+				      math::max(_params.ev_vel_innov_gate, 1.f)); // innovation gate
 	}
+
 
 	const bool starting_conditions_passing = common_starting_conditions_passing
 			&& continuing_conditions_passing
@@ -155,7 +163,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					_information_events.flags.reset_vel_to_vision = true;
 					resetVelocityToEV(measurement, measurement_var, ev_sample.vel_frame);
-					aid_src.time_last_fuse = _time_delayed_us;
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 				} else {
 					// EV has reset, but quality isn't sufficient
@@ -165,47 +173,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 				}
 
 			} else if (quality_sufficient) {
-				if (ev_sample.vel_frame == VelocityFrame::BODY_FRAME_FRD) {
-
-					VectorState H;
-					const float innov_gate = math::max(_params.ev_vel_innov_gate, 1.f);
-
-					estimator_aid_source1d_s current_aid_src;
-
-					for (uint8_t index = 0; index <= 2; index++) {
-						if (index == 0) {
-							sym::ComputeEvBodyVelHx(_state.vector(), &H);
-
-						} else if (index == 1) {
-							sym::ComputeEvBodyVelHy(_state.vector(), &H);
-
-						} else {
-							sym::ComputeEvBodyVelHz(_state.vector(), &H);
-						}
-
-						current_aid_src.innovation_variance = (H.T() * P * H)(0, 0) + aid_src.observation_variance[index];
-						current_aid_src.innovation = (_R_to_earth.transpose() * _state.vel - Vector3f(aid_src.observation))(index, 0);
-
-						setEstimatorAidStatusTestRatio(current_aid_src, innov_gate);
-
-						if (!current_aid_src.innovation_rejected) {
-							fuseBodyVelocity(current_aid_src, current_aid_src.innovation_variance, H);
-						}
-
-						aid_src.innovation[index] = current_aid_src.innovation;
-						aid_src.innovation_variance[index] = current_aid_src.innovation_variance;
-						aid_src.test_ratio[index] = current_aid_src.test_ratio;
-						aid_src.fused = current_aid_src.fused;
-						aid_src.innovation_rejected |= current_aid_src.innovation_rejected;
-
-						if (aid_src.fused) {
-							aid_src.time_last_fuse = _time_delayed_us;
-						}
-					}
-
-				} else {
-					fuseVelocity(aid_src);
-				}
+				fuseEvVelocity(aid_src, ev_sample);
 
 			} else {
 				aid_src.innovation_rejected = true;
@@ -220,7 +188,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 					_information_events.flags.reset_vel_to_vision = true;
 					ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 					resetVelocityToEV(measurement, measurement_var, ev_sample.vel_frame);
-					aid_src.time_last_fuse = _time_delayed_us;
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 					if (_control_status.flags.in_air) {
 						_nb_ev_vel_reset_available--;
@@ -258,23 +226,82 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 					 (double)measurement(0), (double)measurement(1), (double)measurement(2));
 				_information_events.flags.reset_vel_to_vision = true;
 				resetVelocityToEV(measurement, measurement_var, ev_sample.vel_frame);
+				resetAidSourceStatusZeroInnovation(aid_src);
 
-			} else {
+				_control_status.flags.ev_vel = true;
+
+			} else if (fuseEvVelocity(aid_src, ev_sample)) {
 				ECL_INFO("starting %s fusion", AID_SRC_NAME);
+				_control_status.flags.ev_vel = true;
 			}
 
-			aid_src.time_last_fuse = _time_delayed_us;
-			_nb_ev_vel_reset_available = 5;
-			_information_events.flags.starting_vision_vel_fusion = true;
-			_control_status.flags.ev_vel = true;
+			if (_control_status.flags.ev_vel) {
+				_nb_ev_vel_reset_available = 5;
+				_information_events.flags.starting_vision_vel_fusion = true;
+			}
 		}
+	}
+}
+
+bool Ekf::fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSample &ev_sample)
+{
+	if (ev_sample.vel_frame == VelocityFrame::BODY_FRAME_FRD) {
+
+		VectorState H;
+		estimator_aid_source1d_s current_aid_src;
+
+		for (uint8_t index = 0; index <= 2; index++) {
+			current_aid_src.timestamp_sample = aid_src.timestamp_sample;
+
+			if (index == 0) {
+				sym::ComputeEvBodyVelHx(_state.vector(), &H);
+
+			} else if (index == 1) {
+				sym::ComputeEvBodyVelHy(_state.vector(), &H);
+
+			} else {
+				sym::ComputeEvBodyVelHz(_state.vector(), &H);
+			}
+
+			const float innov_var = (H.T() * P * H)(0, 0) + aid_src.observation_variance[index];
+			const float innov = (_R_to_earth.transpose() * _state.vel - Vector3f(aid_src.observation))(index, 0);
+
+			updateAidSourceStatus(current_aid_src,
+					      ev_sample.time_us,			// sample timestamp
+					      aid_src.observation[index],			// observation
+					      aid_src.observation_variance[index],		// observation variance
+					      innov,                   			// innovation
+					      innov_var,    					// innovation variance
+					      math::max(_params.ev_vel_innov_gate, 1.f));	// innovation gate
+
+			if (!current_aid_src.innovation_rejected) {
+				fuseBodyVelocity(current_aid_src, current_aid_src.innovation_variance, H);
+
+			}
+
+			aid_src.innovation[index] = current_aid_src.innovation;
+			aid_src.innovation_variance[index] = current_aid_src.innovation_variance;
+			aid_src.test_ratio[index] = current_aid_src.test_ratio;
+			aid_src.fused = current_aid_src.fused;
+			aid_src.innovation_rejected |= current_aid_src.innovation_rejected;
+
+			if (aid_src.fused) {
+				aid_src.time_last_fuse = _time_delayed_us;
+			}
+
+		}
+
+		aid_src.timestamp_sample = current_aid_src.timestamp_sample;
+		return !aid_src.innovation_rejected;
+
+	} else {
+		return fuseVelocity(aid_src);
 	}
 }
 
 void Ekf::stopEvVelFusion()
 {
 	if (_control_status.flags.ev_vel) {
-		resetEstimatorAidStatus(_aid_src_ev_vel);
 
 		_control_status.flags.ev_vel = false;
 	}
