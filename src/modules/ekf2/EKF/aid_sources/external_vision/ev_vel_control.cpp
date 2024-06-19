@@ -131,11 +131,11 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 		const Vector3f measurement_ekf_frame = _R_to_earth * measurement;
 		const uint64_t t = aid_src.timestamp_sample;
 		updateAidSourceStatus(aid_src,
-				      ev_sample.time_us,                          		// sample timestamp
+				      ev_sample.time_us,					// sample timestamp
 				      measurement_ekf_frame,					// observation
-				      measurement_var_ekf_frame,                         	// observation variance
-				      _state.vel - measurement_ekf_frame,                   	// innovation
-				      getVelocityVariance() + measurement_var_ekf_frame,    	// innovation variance
+				      measurement_var_ekf_frame,				// observation variance
+				      _state.vel - measurement_ekf_frame,			// innovation
+				      getVelocityVariance() + measurement_var_ekf_frame,	// innovation variance
 				      math::max(_params.ev_vel_innov_gate, 1.f));		// innovation gate
 		aid_src.timestamp_sample = t;
 		measurement.copyTo(aid_src.observation);
@@ -143,12 +143,12 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 
 	} else {
 		updateAidSourceStatus(aid_src,
-				      ev_sample.time_us,                          // sample timestamp
-				      measurement,                                // observation
-				      measurement_var,                            // observation variance
-				      _state.vel - measurement,                   // innovation
-				      getVelocityVariance() + measurement_var,    // innovation variance
-				      math::max(_params.ev_vel_innov_gate, 1.f)); // innovation gate
+				      ev_sample.time_us,				// sample timestamp
+				      measurement,					// observation
+				      measurement_var,					// observation variance
+				      _state.vel - measurement,				// innovation
+				      getVelocityVariance() + measurement_var,		// innovation variance
+				      math::max(_params.ev_vel_innov_gate, 1.f));	// innovation gate
 	}
 
 
@@ -267,10 +267,10 @@ bool Ekf::fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSampl
 			const float innov = (_R_to_earth.transpose() * _state.vel - Vector3f(aid_src.observation))(index, 0);
 
 			updateAidSourceStatus(current_aid_src,
-					      ev_sample.time_us,			// sample timestamp
+					      ev_sample.time_us,				// sample timestamp
 					      aid_src.observation[index],			// observation
 					      aid_src.observation_variance[index],		// observation variance
-					      innov,                   			// innovation
+					      innov,						// innovation
 					      innov_var,    					// innovation variance
 					      math::max(_params.ev_vel_innov_gate, 1.f));	// innovation gate
 

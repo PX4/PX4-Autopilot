@@ -960,7 +960,11 @@ private:
 	void stopEvVelFusion();
 	void stopEvYawFusion();
 	bool fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSample &ev_sample);
-	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H);
+	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
+	{
+		VectorState Kfusion = P * H / innov_var;
+		aid_src.fused = measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)

@@ -33,15 +33,6 @@
 
 #include "ekf.h"
 
-void Ekf::fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
-{
-	VectorState Kfusion = P * H / innov_var;
-
-	if (measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation)) {
-		aid_src.fused = true;
-	}
-}
-
 bool Ekf::fuseHorizontalVelocity(estimator_aid_source2d_s &aid_src)
 {
 	// vx, vy
