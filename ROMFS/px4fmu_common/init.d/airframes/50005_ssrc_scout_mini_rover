@@ -106,5 +106,5 @@ param set-default SDLOG_KEY 3
 param set-default RC_MAP_FLTMODE 5
 param set-default COM_FLTMODE4 2
 param set-default COM_FLTMODE6 0
-param set-default RC_MAP_ARM_SW	8
+param set-default RC_MAP_ARM_SW 8
 param set-default RC_MAP_KILL_SW 7
