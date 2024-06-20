@@ -382,9 +382,6 @@ struct parameters {
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	int32_t terrain_fusion_mode{static_cast<int32_t>(TerrainFusionMask::TerrainFuseRangeFinder)
-				    | static_cast<int32_t>(TerrainFusionMask::TerrainFuseOpticalFlow)}; ///< aiding source(s) selection bitmask for the terrain estimation
-
 	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
 	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
 	const float terrain_timeout{10.f};      ///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
