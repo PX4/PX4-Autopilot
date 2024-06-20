@@ -133,7 +133,7 @@ void Ekf::startFlowFusion()
 			fuseOptFlow(_hagl_sensor_status.flags.flow);
 
 		} else if (_hagl_sensor_status.flags.flow && !_hagl_sensor_status.flags.range_finder) {
-			resetHaglFlow();
+			resetTerrainToFlow();
 
 		} else {
 			ECL_INFO("optical flow fusion failed to start");
@@ -146,7 +146,7 @@ void Ekf::startFlowFusion()
 			resetFlowFusion();
 
 		} else if (_hagl_sensor_status.flags.flow) {
-			resetHaglFlow();
+			resetTerrainToFlow();
 		}
 	}
 
@@ -172,7 +172,7 @@ void Ekf::resetFlowFusion()
 	_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 }
 
-void Ekf::resetHaglFlow()
+void Ekf::resetTerrainToFlow()
 {
 	ECL_INFO("reset hagl to flow");
 	// TODO: use the flow data
