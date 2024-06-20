@@ -147,7 +147,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_min_rng(_params->rng_gnd_clearance),
 #endif // CONFIG_EKF2_TERRAIN || CONFIG_EKF2_OPTICAL_FLOW || CONFIG_EKF2_RANGE_FINDER
 #if defined(CONFIG_EKF2_TERRAIN)
-	_param_ekf2_terr_mask(_params->terrain_fusion_mode),
 	_param_ekf2_terr_noise(_params->terrain_p_noise),
 	_param_ekf2_terr_grad(_params->terrain_gradient),
 #endif // CONFIG_EKF2_TERRAIN
