@@ -1349,3 +1349,8 @@ parameters:
       min: 1.0
       unit: SD
       decimal: 1
+    EKF2_LOG_VERBOSE:
+      description:
+        short: Verbose logging
+      type: boolean
+      default: 1

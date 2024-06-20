@@ -162,6 +162,7 @@ private:
 
 	void Run() override;
 
+	void AdvertiseTopics();
 	void VerifyParams();
 
 	void PublishAidSourceStatus(const hrt_abstime &timestamp);
@@ -338,7 +339,6 @@ private:
 #endif // CONFIG_EKF2_AUXVEL
 
 #if defined(CONFIG_EKF2_TERRAIN)
-
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_terrain_range_finder_pub {ORB_ID(estimator_aid_src_terrain_range_finder)};
 	hrt_abstime _status_terrain_range_finder_pub_last{0};
@@ -497,6 +497,7 @@ private:
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
 
 	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::EKF2_LOG_VERBOSE>) _param_ekf2_log_verbose,
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
