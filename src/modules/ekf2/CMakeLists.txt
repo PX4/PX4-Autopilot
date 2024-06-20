@@ -213,7 +213,7 @@ if(CONFIG_EKF2_SIDESLIP)
 endif()
 
 if(CONFIG_EKF2_TERRAIN)
-	list(APPEND EKF_SRCS EKF/terrain_estimator/terrain_estimator.cpp)
+	list(APPEND EKF_SRCS EKF/terrain_control.cpp)
 endif()
 
 add_subdirectory(EKF)

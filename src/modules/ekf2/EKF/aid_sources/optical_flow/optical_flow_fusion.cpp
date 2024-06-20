@@ -33,12 +33,6 @@
 
 /**
  * @file optflow_fusion.cpp
- * Function for fusing gps and baro measurements/
- * equations generated using EKF/python/ekf_derivation/main.py
- *
- * @author Paul Riseborough <p_riseborough@live.com.au>
- * @author Siddharth Bharat Purohit <siddharthbharatpurohit@gmail.com>
- *
  */
 
 #include "ekf.h"
