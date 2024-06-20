@@ -807,32 +807,27 @@ private:
 	bool fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	// terrain vertical position estimator
-	void initHagl();
-	void runTerrainEstimator(const imuSample &imu_delayed);
-
+	void initTerrain();
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _state.terrain : _last_on_ground_posD; }
-
-	void controlHaglFakeFusion();
+	void controlTerrainFakeFusion();
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	bool fuseHaglRng(estimator_aid_source1d_s &aid_src, bool update_height, bool update_terrain);
-	void updateRangeHeight(estimator_aid_source1d_s &aid_src);
-	void resetHaglRng(estimator_aid_source1d_s &aid_src);
+	void updateRangeHagl(estimator_aid_source1d_s &aid_src);
+	void resetTerrainToRng(estimator_aid_source1d_s &aid_src);
 	float getRngVar() const;
 # endif // CONFIG_EKF2_RANGE_FINDER
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// update the terrain vertical position estimate using an optical flow measurement
-	void resetHaglFlow();
+	void resetTerrainToFlow();
 # endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range height
-	void controlRangeHeightFusion();
+	void controlRangeHaglFusion();
 	bool isConditionalRangeAidSuitable();
 	void stopRngHgtFusion();
 	void stopRngTerrFusion();

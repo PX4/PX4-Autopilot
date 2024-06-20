@@ -71,6 +71,11 @@ void Ekf::reset()
 #if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel.setZero();
 #endif // CONFIG_EKF2_WIND
+	//
+#if defined(CONFIG_EKF2_TERRAIN)
+	// assume a ground clearance
+	_state.terrain = _state.pos(2) + _params.rng_gnd_clearance;
+#endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
@@ -160,10 +165,6 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes(imu_sample_delayed);
 
-#if defined(CONFIG_EKF2_TERRAIN)
-		runTerrainEstimator(imu_sample_delayed);
-#endif // CONFIG_EKF2_TERRAIN
-
 		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos, _state.gyro_bias, _state.accel_bias);
 
 		return true;
@@ -198,11 +199,6 @@ bool Ekf::initialiseFilter()
 
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();
-
-#if defined(CONFIG_EKF2_TERRAIN)
-	// Initialise the terrain state
-	initHagl();
-#endif // CONFIG_EKF2_TERRAIN
 
 	// reset the output predictor state history to match the EKF initial values
 	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);

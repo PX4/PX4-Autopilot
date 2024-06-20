@@ -99,6 +99,11 @@ void Ekf::initialiseCovariance()
 #if defined(CONFIG_EKF2_WIND)
 	resetWindCov();
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	// use the ground clearance value as our uncertainty
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
+#endif // CONFIG_EKF2_TERRAIN
 }
 
 void Ekf::predictCovariance(const imuSample &imu_delayed)
