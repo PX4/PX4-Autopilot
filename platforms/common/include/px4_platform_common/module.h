@@ -239,21 +239,9 @@ public:
 					unlock_module();
 					px4_usleep(10000); // 10 ms
 					lock_module();
-
-					if (++i > 500 && _task_id != -1) { // wait at most 5 sec
-						PX4_ERR("timeout, forcing stop");
-
-						if (_task_id != task_id_is_work_queue) {
-							px4_task_delete(_task_id);
-						}
-
-						_task_id = -1;
-
-						delete _object.load();
-						_object.store(nullptr);
-
-						ret = -1;
-						break;
+					i++;
+					if (i % 500 == 0) {
+						PX4_INFO("Waiting for task to stop...");
 					}
 				} while (_task_id != -1);
 
