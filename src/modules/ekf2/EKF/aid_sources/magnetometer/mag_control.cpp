@@ -245,6 +245,7 @@ void Ekf::controlMagFusion()
 
 					if (reset_heading) {
 						_control_status.flags.yaw_align = true;
+						resetAidSourceStatusZeroInnovation(aid_src);
 					}
 
 					_control_status.flags.mag = true;
