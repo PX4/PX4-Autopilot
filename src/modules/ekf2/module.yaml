@@ -549,8 +549,7 @@ parameters:
           unexpected errors. For these reasons, if accurate control of height relative
           to ground is required, it is recommended to use the MPC_ALT_MODE parameter
           instead, unless baro errors are severe enough to cause problems with landing
-          and takeoff. To en-/disable range finder for terrain height estimation,
-          use EKF2_TERR_MASK instead. If this parameter is enabled then the estimator
+          and takeoff. If this parameter is enabled then the estimator
           will make use of the range finder measurements to estimate its height in
           addition to other height sources (if activated). Range sensor aiding can
           be enabled (i.e.: always use) or set in "conditional" mode. Conditional
@@ -565,19 +564,6 @@ parameters:
         1: Enabled (conditional mode)
         2: Enabled
       default: 1
-    EKF2_TERR_MASK:
-      description:
-        short: Integer bitmask controlling fusion sources of the terrain estimator
-        long: 'Set bits in the following positions to enable: 0 : Set to true to use
-          range finder data if available 1 : Set to true to use optical flow data
-          if available'
-      type: bitmask
-      bit:
-        0: use range finder
-        1: use optical flow
-      default: 3
-      min: 0
-      max: 3
     EKF2_NOAID_TOUT:
       description:
         short: Maximum inertial dead-reckoning time
