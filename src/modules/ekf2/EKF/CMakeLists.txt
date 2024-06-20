@@ -135,7 +135,7 @@ if(CONFIG_EKF2_SIDESLIP)
 endif()
 
 if(CONFIG_EKF2_TERRAIN)
-	list(APPEND EKF_SRCS terrain_estimator/terrain_estimator.cpp)
+	list(APPEND EKF_SRCS terrain_control.cpp)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

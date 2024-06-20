@@ -32,8 +32,7 @@
  ****************************************************************************/
 
 /**
- * Test the terrain estimator
- * @author Mathieu Bresciani <brescianimathieu@gmail.com>
+ * Test the terrain estimate
  */
 
 #include <gtest/gtest.h>
