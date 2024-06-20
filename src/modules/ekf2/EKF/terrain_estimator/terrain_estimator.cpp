@@ -42,7 +42,7 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::initHagl()
+void Ekf::initTerrain()
 {
 	// assume a ground clearance
 	_state.terrain = _state.pos(2) + _params.rng_gnd_clearance;
@@ -51,7 +51,7 @@ void Ekf::initHagl()
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
 }
 
-void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
+void Ekf::controlTerrainFakeFusion()
 {
 	// If we are on ground, store the local position and time to use as a reference
 	if (!_control_status.flags.in_air) {
@@ -62,14 +62,9 @@ void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
 		// Let the estimator run freely before arming for bench testing purposes, but reset on takeoff
 		// because when using optical flow measurements, it is safer to start with a small distance to ground
 		// as an overestimated distance leads to an overestimated velocity, causing a dangerous behavior.
-		initHagl();
+		initTerrain();
 	}
 
-	controlHaglFakeFusion();
-}
-
-void Ekf::controlHaglFakeFusion()
-{
 	if (!_control_status.flags.in_air
 	    && !_hagl_sensor_status.flags.range_finder
 	    && !_hagl_sensor_status.flags.flow) {
@@ -85,7 +80,7 @@ void Ekf::controlHaglFakeFusion()
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 		if (_control_status.flags.vehicle_at_rest || !recent_terrain_aiding) {
-			initHagl();
+			initTerrain();
 		}
 	}
 }

@@ -39,7 +39,7 @@
 #include "ekf.h"
 #include "ekf_derivation/generated/compute_hagl_innov_var.h"
 
-void Ekf::controlRangeHeightFusion()
+void Ekf::controlRangeHaglFusion()
 {
 	static constexpr const char *HGT_SRC_NAME = "RNG";
 
@@ -97,7 +97,7 @@ void Ekf::controlRangeHeightFusion()
 
 	if (rng_data_ready && _range_sensor.getSampleAddress()) {
 
-		updateRangeHeight(aid_src);
+		updateRangeHagl(aid_src);
 		const bool measurement_valid = PX4_ISFINITE(aid_src.observation) && PX4_ISFINITE(aid_src.observation_variance);
 
 		const bool continuing_conditions_passing = ((_params.rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED))
@@ -136,7 +136,7 @@ void Ekf::controlRangeHeightFusion()
 					stopRngTerrFusion();
 
 					if (!_hagl_sensor_status.flags.flow && aid_src.innovation_rejected) {
-						resetHaglRng(aid_src);
+						resetTerrainToRng(aid_src);
 					}
 
 				} else if (do_range_aid) {
@@ -160,7 +160,7 @@ void Ekf::controlRangeHeightFusion()
 					_control_status.flags.rng_hgt = true;
 
 					if (!_hagl_sensor_status.flags.flow && aid_src.innovation_rejected) {
-						resetHaglRng(aid_src);
+						resetTerrainToRng(aid_src);
 					}
 				}
 			}
@@ -193,7 +193,7 @@ void Ekf::controlRangeHeightFusion()
 						stopRngTerrFusion();
 
 					} else {
-						resetHaglRng(aid_src);
+						resetTerrainToRng(aid_src);
 					}
 				}
 
@@ -213,7 +213,7 @@ void Ekf::controlRangeHeightFusion()
 
 				} else {
 					if (aid_src.innovation_rejected) {
-						resetHaglRng(aid_src);
+						resetTerrainToRng(aid_src);
 					}
 
 					_hagl_sensor_status.flags.range_finder = true;
@@ -230,7 +230,7 @@ void Ekf::controlRangeHeightFusion()
 	}
 }
 
-void Ekf::updateRangeHeight(estimator_aid_source1d_s &aid_src)
+void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 {
 	aid_src.observation = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
 	aid_src.innovation = getHagl() - aid_src.observation;
@@ -266,7 +266,7 @@ float Ekf::getRngVar() const
 	       0.f);
 }
 
-void Ekf::resetHaglRng(estimator_aid_source1d_s &aid_src)
+void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
 {
 	_state.terrain = _state.pos(2) + aid_src.observation;
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, aid_src.observation_variance);
@@ -277,8 +277,6 @@ void Ekf::resetHaglRng(estimator_aid_source1d_s &aid_src)
 
 bool Ekf::isConditionalRangeAidSuitable()
 {
-#if defined(CONFIG_EKF2_TERRAIN)
-
 	// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 	// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
 	float range_hagl_max = _params.max_hagl_for_range_aid;
@@ -303,10 +301,6 @@ bool Ekf::isConditionalRangeAidSuitable()
 	}
 
 	return is_in_range && is_hagl_stable && is_below_max_speed;
-
-#endif // CONFIG_EKF2_TERRAIN
-
-	return false;
 }
 
 void Ekf::stopRngHgtFusion()
