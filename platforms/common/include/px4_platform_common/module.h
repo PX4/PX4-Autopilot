@@ -240,6 +240,7 @@ public:
 					px4_usleep(10000); // 10 ms
 					lock_module();
 					i++;
+
 					if (i % 500 == 0) {
 						PX4_INFO("Waiting for task to stop...");
 					}
