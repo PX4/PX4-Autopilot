@@ -345,7 +345,7 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 		ret = PX4_ERROR;
 	}
 
-	if (params->gpio_ctl_channel < 0 || params->gpio_ctl_channel > 16) {
+	if (params->gpio_ctl_channel < 0 || params->gpio_ctl_channel > 6) {
 		PX4_ERR("VOXL_ESC: Invalid parameter GPIO_CTL_CH.  Please verify parameters.");
 		params->gpio_ctl_channel = 0;
 		ret = PX4_ERROR;
@@ -1453,13 +1453,25 @@ void VoxlEsc::Run()
 			_gpio_ctl_en = true;
 			float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
 
-			if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX1) {
-				gpio_setpoint = _manual_control_setpoint.aux1;
-				//PX4_INFO("VOXL_ESC: gpio_setpoint (aux1) -> %f", static_cast<double>(gpio_setpoint));
-
-			} else if (_parameters.gpio_ctl_channel == VOXL_ESC_GPIO_CTL_AUX2) {
-				gpio_setpoint = _manual_control_setpoint.aux2;
-				//PX4_INFO("VOXL_ESC: gpio_setpoint (aux2) -> %f", static_cast<double>(gpio_setpoint));
+			switch (_parameters.gpio_ctl_channel) {
+				case VOXL_ESC_GPIO_CTL_AUX1:
+					gpio_setpoint = _manual_control_setpoint.aux1;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX2:
+					gpio_setpoint = _manual_control_setpoint.aux2;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX3:
+					gpio_setpoint = _manual_control_setpoint.aux3;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX4:
+					gpio_setpoint = _manual_control_setpoint.aux4;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX5:
+					gpio_setpoint = _manual_control_setpoint.aux5;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX6:
+					gpio_setpoint = _manual_control_setpoint.aux6;
+					break;
 			}
 
 			if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {

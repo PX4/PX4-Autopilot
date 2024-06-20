@@ -139,6 +139,10 @@ private:
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL = 0;
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX1 = 1;
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX2 = 2;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX3 = 3;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX4 = 4;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX5 = 5;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX6 = 6;
 
 	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, VOXL_ESC_PWM_MAX); }
 	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, VOXL_ESC_RPM_MAX); }
