@@ -524,7 +524,7 @@ parameters:
         1: Vertical position
         2: 3D velocity
         3: Yaw
-      default: 15
+      default: 0
       min: 0
       max: 15
     EKF2_GPS_CTRL:
@@ -1317,7 +1317,7 @@ parameters:
       bit:
         0: Horizontal position
         1: Vertical position
-      default: 1
+      default: 0
       min: 0
       max: 3
     EKF2_AGP_DELAY:
