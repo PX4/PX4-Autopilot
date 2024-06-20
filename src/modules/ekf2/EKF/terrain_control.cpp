@@ -32,9 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file terrain_estimator.cpp
- * Function for fusing rangefinder and optical flow measurements
- * to estimate terrain vertical position
+ * @file terrain_control.cpp
  */
 
 #include "ekf.h"
