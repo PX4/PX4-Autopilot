@@ -77,6 +77,7 @@
 #include "streams/EXTENDED_SYS_STATE.hpp"
 #include "streams/FLIGHT_INFORMATION.hpp"
 #include "streams/GLOBAL_POSITION_INT.hpp"
+#include "streams/GNSS_INTEGRITY.hpp"
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_RAW_INT.hpp"
 #include "streams/GPS_RTCM_DATA.hpp"
@@ -505,6 +506,9 @@ static const StreamListItem streams_list[] = {
 #if defined(UAVIONIX_ADSB_OUT_DYNAMIC_HPP)
 	create_stream_list_item<MavlinkStreamUavionixADSBOutDynamic>(),
 #endif // UAVIONIX_ADSB_OUT_DYNAMIC_HPP
+#if defined(GNSS_INTEGRITY_HPP)
+	create_stream_list_item<MavlinkStreamGNSSIntegrity>(),
+#endif // GNSS_INTEGRITY_HPP
 #if defined(AVAILABLE_MODES_HPP)
 	create_stream_list_item<MavlinkStreamAvailableModes>(),
 #endif // AVAILABLE_MODES_HPP

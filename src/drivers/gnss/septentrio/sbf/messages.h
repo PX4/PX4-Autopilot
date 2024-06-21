@@ -243,9 +243,14 @@ struct QualityInd {
 };
 
 struct RFBand {
+	enum class InfoMode : uint8_t {
+		Suppressed   = 1,
+		Mitigated    = 2,
+		Interference = 8
+	};
 	uint32_t frequency;
 	uint16_t bandwidth;
-	uint8_t  info_mode: 4;
+	InfoMode info_mode: 4;
 	uint8_t  info_reserved: 2;
 	uint8_t  info_antenna_id: 2;
 };
@@ -261,7 +266,16 @@ struct RFStatus {
 };
 
 struct GALAuthStatus {
-	uint16_t osnma_status_status: 3;
+	enum class OSNMAStatus : uint16_t {
+		Disabled                   = 0,
+		Initializing               = 1,
+		AwaitingTrustedTimeInfo    = 2,
+		InitFailedInconsistentTime = 3,
+		InitFailedKROOTInvalid     = 4,
+		InitFailedInvalidParam     = 5,
+		Authenticating             = 6,
+	};
+	OSNMAStatus osnma_status_status: 3;
 	uint16_t osnma_status_initialization_progress: 8;
 	uint16_t osnma_status_trusted_time_source: 3;
 	uint16_t osnma_status_merkle_tree_busy: 1;
