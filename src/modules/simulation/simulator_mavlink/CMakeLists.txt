@@ -31,23 +31,20 @@
 #
 ############################################################################
 
+# Make GENERATED property from mavlink_c available
+cmake_policy(SET CMP0118 NEW)
+
 px4_add_module(
 	MODULE modules__simulation__simulator_mavlink
 	MAIN simulator_mavlink
 	COMPILE_FLAGS
 		-Wno-double-promotion
 		-Wno-cast-align
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
-	INCLUDES
-		${CMAKE_BINARY_DIR}/mavlink
-		${CMAKE_BINARY_DIR}/mavlink/development
-		${CMAKE_BINARY_DIR}/mavlink/common
-		${CMAKE_BINARY_DIR}/mavlink/standard
 	SRCS
 		SimulatorMavlink.cpp
 		SimulatorMavlink.hpp
 	DEPENDS
-		mavlink_c_generate
+		mavlink_c
 		conversion
 		geo
 		drivers_accelerometer
