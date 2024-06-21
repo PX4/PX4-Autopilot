@@ -158,7 +158,6 @@ void LoggedTopics::add_default_topics()
 
 		for (size_t i = 0; i < orb_topics_count(); i++) {
 			if (strncmp(topic_list[i]->o_name, "estimator", 9) == 0) {
-				PX4_INFO("logging %s", topic_list[i]->o_name);
 				add_optional_topic_multi(topic_list[i]->o_name, kEKFVerboseIntervalMilliseconds);
 			}
 		}
@@ -168,7 +167,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("estimator_selector_status", 10);
 	add_optional_topic_multi("estimator_event_flags", 10);
 	add_optional_topic_multi("estimator_optical_flow_vel", 200);
-	add_optional_topic_multi("estimator_sensor_bias", 100);
+	add_optional_topic_multi("estimator_sensor_bias", 1000);
 	add_optional_topic_multi("estimator_status", 200);
 	add_optional_topic_multi("estimator_status_flags", 10);
 	add_optional_topic_multi("yaw_estimator_status", 1000);
