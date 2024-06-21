@@ -169,6 +169,10 @@ void SensorGpsSim::Run()
 		sensor_gps.heading = NAN;
 		sensor_gps.heading_offset = NAN;
 		sensor_gps.heading_accuracy = 0;
+		sensor_gps.quality_corrections = UINT8_MAX;
+		sensor_gps.quality_receiver = UINT8_MAX;
+		sensor_gps.quality_gnss_signals = UINT8_MAX;
+		sensor_gps.quality_post_processing = UINT8_MAX;
 		sensor_gps.automatic_gain_control = 0;
 		sensor_gps.jamming_state = 0;
 		sensor_gps.spoofing_state = 0;
