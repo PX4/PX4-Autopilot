@@ -546,9 +546,11 @@ int SeptentrioDriver::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Driver for Septentrio GNSS receivers. It can automatically configure them and make their output available for the rest of the system.
+Driver for Septentrio GNSS receivers.
+It can automatically configure them and make their output available for the rest of the system.
 A secondary receiver is supported for redundancy, logging and dual-receiver heading.
-Septentrio receiver baud rates from 57600 to 1500000 are supported. If others are used, the driver will use 230400 and give a warning.
+Septentrio receiver baud rates from 57600 to 1500000 are supported.
+If others are used, the driver will use 230400 and give a warning.
 
 ### Examples
 
