@@ -761,6 +761,7 @@ void EKF2::Run()
 				PublishInnovationTestRatios(now);
 				PublishInnovationVariances(now);
 				PublishStates(now);
+
 #if defined(CONFIG_EKF2_BAROMETER)
 				PublishBaroBias(now);
 #endif // CONFIG_EKF2_BAROMETER
@@ -799,7 +800,7 @@ void EKF2::Run()
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
 	}
 
-// re-schedule as backup timeout
+	// re-schedule as backup timeout
 	ScheduleDelayed(100_ms);
 }
 
