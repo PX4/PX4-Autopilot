@@ -184,15 +184,15 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 		// Apply a low pass filter
 		_gps_pos_deriv_filt = pos_derived * filter_coef + _gps_pos_deriv_filt * (1.0f - filter_coef);
 
-		// Calculate the horizontal drift speed and fail if too high
+		// hdrift: calculate the horizontal drift speed and fail if too high
 		_gps_horizontal_position_drift_rate_m_s = Vector2f(_gps_pos_deriv_filt.xy()).norm();
 		_gps_check_fail_status.flags.hdrift = (_gps_horizontal_position_drift_rate_m_s > _params.req_hdrift);
 
-		// Fail if the vertical drift speed is too high
+		// vdrift: fail if the vertical drift speed is too high
 		_gps_vertical_position_drift_rate_m_s = fabsf(_gps_pos_deriv_filt(2));
 		_gps_check_fail_status.flags.vdrift = (_gps_vertical_position_drift_rate_m_s > _params.req_vdrift);
 
-		// Check the magnitude of the filtered horizontal GPS velocity
+		// hspeed: check the magnitude of the filtered horizontal GPS velocity
 		const Vector2f gps_velNE = matrix::constrain(Vector2f(gps.vel.xy()),
 					   -10.0f * _params.req_hdrift,
 					   10.0f * _params.req_hdrift);
@@ -200,12 +200,26 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 		_gps_filtered_horizontal_velocity_m_s = _gps_velNE_filt.norm();
 		_gps_check_fail_status.flags.hspeed = (_gps_filtered_horizontal_velocity_m_s > _params.req_hdrift);
 
+		// vspeed: check the filtered difference between GPS and EKF vertical velocity
+		if (isVerticalVelocityAidingActive() || isVerticalPositionAidingActive()) {
+			const float vz_diff_limit = 10.f * _params.req_vdrift;
+			const float vz_diff = math::constrain(gps.vel(2) - _state.vel(2), -vz_diff_limit, vz_diff_limit);
+			_gps_velD_diff_filt = vz_diff * filter_coef + _gps_velD_diff_filt * (1.f - filter_coef);
+
+		} else {
+			// reset
+			_gps_velD_diff_filt = 0.f;
+		}
+
+		_gps_check_fail_status.flags.vspeed = (fabsf(_gps_velD_diff_filt) > _params.req_vdrift);
+
 	} else if (_control_status.flags.in_air) {
 		// These checks are always declared as passed when flying
 		// If on ground and moving, the last result before movement commenced is kept
 		_gps_check_fail_status.flags.hdrift = false;
 		_gps_check_fail_status.flags.vdrift = false;
 		_gps_check_fail_status.flags.hspeed = false;
+		_gps_check_fail_status.flags.vspeed = false;
 
 		resetGpsDriftCheckFilters();
 
@@ -217,12 +231,6 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 	// save GPS fix for next time
 	_gps_pos_prev.initReference(lat, lon, gps.time_us);
 	_gps_alt_prev = gps.alt;
-
-	// Check  the filtered difference between GPS and EKF vertical velocity
-	const float vz_diff_limit = 10.0f * _params.req_vdrift;
-	const float vertVel = math::constrain(gps.vel(2) - _state.vel(2), -vz_diff_limit, vz_diff_limit);
-	_gps_velD_diff_filt = vertVel * filter_coef + _gps_velD_diff_filt * (1.0f - filter_coef);
-	_gps_check_fail_status.flags.vspeed = (fabsf(_gps_velD_diff_filt) > _params.req_vdrift);
 
 	// assume failed first time through
 	if (_last_gps_fail_us == 0) {
@@ -254,6 +262,8 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 void Ekf::resetGpsDriftCheckFilters()
 {
 	_gps_velNE_filt.setZero();
+	_gps_velD_diff_filt = 0.f;
+
 	_gps_pos_deriv_filt.setZero();
 
 	_gps_horizontal_position_drift_rate_m_s = NAN;
