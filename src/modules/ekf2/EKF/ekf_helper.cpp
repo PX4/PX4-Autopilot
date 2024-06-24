@@ -122,28 +122,19 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		}
 
 		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
-			// reset vertical position if we already had a GPS altitude reference
+			// determine current z
+			float z_prev = _state.pos(2);
+			float current_alt = -z_prev + gps_alt_ref_prev;
+			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
+			resetVerticalPositionTo(_gps_alt_ref - current_alt);
+			ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev,
+				  (double)_state.pos(2));
 
-			ECL_DEBUG("EKF global origin updated, GPS altitude ref %.1fm -> %.1fm", (double)gps_alt_ref_prev, (double)_gps_alt_ref);
-
-			if (_height_sensor_ref == HeightSensor::GNSS) {
-				// determine current z
-				float z_prev = _state.pos(2);
-				float current_alt = -z_prev + gps_alt_ref_prev;
-				resetVerticalPositionTo(_gps_alt_ref - current_alt);
-
-				ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev, (double)_state.pos(2));
-
-			} else {
 #if defined(CONFIG_EKF2_GNSS)
-				// adjust existing GPS height bias
-				const float gps_hgt_bias = _gps_hgt_b_est.getBias();
-				float delta_z = _gps_alt_ref - gps_alt_ref_prev;
-				_gps_hgt_b_est.setBias(gps_hgt_bias + delta_z);
+			// adjust existing GPS height bias
+			_gps_hgt_b_est.setBias(gps_hgt_bias);
 
-				ECL_DEBUG("EKF global origin updated, GPS height bias %.1fm -> %.1fm", (double)gps_hgt_bias, (double)_gps_hgt_b_est.getBias());
 #endif // CONFIG_EKF2_GNSS
-			}
 		}
 
 		return true;
