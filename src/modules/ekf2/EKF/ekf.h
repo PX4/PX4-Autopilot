@@ -289,7 +289,7 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid() const
 	{
-		return (!_horizontal_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
+		return !_horizontal_deadreckon_time_exceeded && (!_control_status.flags.fake_pos || !_params.gnss_ctrl);
 	}
 
 	bool isLocalVerticalPositionValid() const
@@ -810,6 +810,12 @@ private:
 	bool isHeightResetRequired() const;
 
 	void resetVerticalPositionTo(float new_vert_pos, float new_vert_pos_var = NAN);
+	template<typename T>
+	void recordResetStateChange(T &status_pos_change, const T &pos_diff, uint8_t &reset_count, uint8_t &reset_count_prev)
+	{
+		status_pos_change = reset_count == reset_count_prev ? pos_diff : status_pos_change + pos_diff;
+		reset_count++;
+	}
 
 	void resetVerticalVelocityToZero();
 

@@ -105,16 +105,8 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f
 
 	_output_predictor.resetHorizontalPositionTo(delta_horz_pos);
 
-	// record the state change
-	if (_state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE) {
-		_state_reset_status.posNE_change = delta_horz_pos;
-
-	} else {
-		// there's already a reset this update, accumulate total delta
-		_state_reset_status.posNE_change += delta_horz_pos;
-	}
-
-	_state_reset_status.reset_count.posNE++;
+	recordResetStateChange(_state_reset_status.posNE_change, delta_horz_pos, _state_reset_status.reset_count.posNE,
+			       _state_reset_count_prev.posNE);
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - _state_reset_status.posNE_change);
@@ -140,17 +132,8 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 	// apply the change in height / height rate to our newest height / height rate estimate
 	// which have already been taken out from the output buffer
 	_output_predictor.resetVerticalPositionTo(new_vert_pos, delta_z);
-
-	// record the state change
-	if (_state_reset_status.reset_count.posD == _state_reset_count_prev.posD) {
-		_state_reset_status.posD_change = delta_z;
-
-	} else {
-		// there's already a reset this update, accumulate total delta
-		_state_reset_status.posD_change += delta_z;
-	}
-
-	_state_reset_status.reset_count.posD++;
+	recordResetStateChange(_state_reset_status.posD_change, delta_z, _state_reset_status.reset_count.posD,
+			       _state_reset_count_prev.posD);
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	_baro_b_est.setBias(_baro_b_est.getBias() + delta_z);

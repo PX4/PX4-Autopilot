@@ -543,6 +543,10 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		}
 	}
 
+	if (!_control_status.flags.in_air && !_params.gnss_ctrl && _control_status.flags.fixed_wing) {
+		_time_last_horizontal_aiding = _time_delayed_us;
+	}
+
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
 	bool deadreckon_time_exceeded = isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);
 

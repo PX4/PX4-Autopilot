@@ -40,7 +40,7 @@ using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector3f;
 
-static constexpr float kDefaultExternalPosAccuracy = 10.0f; // [m]
+static constexpr float kDefaultExternalPosAccuracy = 50.0f; // [m]
 static constexpr float kMaxDelaySecondsExternalPosMeasurement = 15.0f; // [s]
 
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;

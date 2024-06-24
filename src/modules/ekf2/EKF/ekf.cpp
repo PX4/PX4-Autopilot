@@ -287,7 +287,9 @@ void Ekf::predictState(const imuSample &imu_delayed)
 void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
 		uint64_t timestamp_observation)
 {
+
 	if (!_pos_ref.isInitialized()) {
+		ECL_INFO("Global position reference not initialized, set home position first");
 		return;
 	}
 
@@ -295,47 +297,48 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 	timestamp_observation = math::min(_time_latest_us, timestamp_observation);
 	const float dt = _time_delayed_us > timestamp_observation ? static_cast<float>(_time_delayed_us - timestamp_observation)
 			 * 1e-6f : -static_cast<float>(timestamp_observation - _time_delayed_us) * 1e-6f;
-
 	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
-	float innov_dist = (pos_corrected - Vector2f{_state.pos}).norm();
 
-	if (!_control_status.flags.in_air || accuracy < 1.f || innov_dist > 200.f) {
-		resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
-	}
-
-	estimator_aid_source2d_s aid_src{};
-	pos_corrected.copyTo(aid_src.observation);
-	float obs_var = math::max(accuracy, FLT_EPSILON);
-
-	aid_src.observation_variance[0] = obs_var;
-	aid_src.observation_variance[1] = obs_var;
-	aid_src.innovation[0] = _state.pos(0) - aid_src.observation[0];
-	aid_src.innovation[1] = _state.pos(1) - aid_src.observation[1];
-
-	aid_src.innovation_variance[0] = P(State::pos.idx, State::pos.idx) + P(State::vel.idx,
-					 State::vel.idx) + aid_src.observation_variance[0];
-	aid_src.innovation_variance[1] = P(State::pos.idx + 1, State::pos.idx + 1) + P(State::vel.idx + 1,
-					 State::vel.idx + 1) + aid_src.observation_variance[1];
-
-	fuseHorizontalPosition(aid_src);
-
-	if (aid_src.fused) {
+	if (!_control_status.flags.in_air || accuracy < 1.f) {
 		ECL_INFO("reset position to external observation");
-		_information_events.flags.reset_pos_to_ext_obs = true;
-	}
-
-	const Vector2f delta_horz_pos{pos_corrected - Vector2f{_state.pos}};
-
-	if (_state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE) {
-		_state_reset_status.posNE_change = delta_horz_pos;
+		resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
 
 	} else {
-		// there's already a reset this update, accumulate total delta
-		_state_reset_status.posNE_change += delta_horz_pos;
+		estimator_aid_source2d_s aid_src{};
+		pos_corrected.copyTo(aid_src.observation);
+		const float obs_var = math::max(sq(accuracy), FLT_EPSILON);
+
+		aid_src.observation_variance[0] = obs_var;
+		aid_src.observation_variance[1] = obs_var;
+		aid_src.innovation[0] = _state.pos(0) - pos_corrected(0);
+		aid_src.innovation[1] = _state.pos(1) - pos_corrected(1);
+
+		aid_src.innovation_variance[0] = P(State::pos.idx, State::pos.idx) + aid_src.observation_variance[0];
+		aid_src.innovation_variance[1] = P(State::pos.idx + 1, State::pos.idx + 1) + aid_src.observation_variance[1];
+
+		Vector2f test_ratio{sq(aid_src.innovation[0]) / (sq(5.f) * aid_src.innovation_variance[0]),
+				    sq(aid_src.innovation[1]) / (sq(5.f) * aid_src.innovation_variance[1])};
+
+		if (test_ratio(0) > 1.f || test_ratio(1) > 1.f) {
+			ECL_INFO("reset position to external observation");
+			resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
+
+		} else {
+			fuseHorizontalPosition(aid_src);
+
+			if (aid_src.fused) {
+				ECL_INFO("fused external observation as position measurement");
+				_information_events.flags.reset_pos_to_ext_obs = true;
+			}
+
+			const Vector2f delta_horz_pos{pos_corrected - Vector2f{_state.pos}};
+			recordResetStateChange(_state_reset_status.posNE_change, delta_horz_pos, _state_reset_status.reset_count.posNE,
+					       _state_reset_count_prev.posNE);
+			_time_last_hor_pos_fuse = _time_delayed_us;
+		}
 	}
 
-	_state_reset_status.reset_count.posNE++;
-	_time_last_hor_pos_fuse = _time_delayed_us;
+	_last_known_pos = _state.pos;
 }
 
 void Ekf::updateParameters()
