@@ -451,8 +451,8 @@ MissionBase::set_mission_items()
 				_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
 			}
 
-			/* Skip VTOL takeoff item if in air and already in fixed wing and didn't started with VTOL takeoff already*/
-			if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) &&
+			/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
+			if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&
 			    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) &&
 			    (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
 			    !_land_detected_sub.get().landed) {
