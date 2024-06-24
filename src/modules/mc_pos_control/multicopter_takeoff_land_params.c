@@ -101,6 +101,20 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.f);
 PARAM_DEFINE_FLOAT(MPC_LAND_ALT3, 1.f);
 
 /**
+ * DQ Custom: Level attitude altitude
+ *
+ * Below this altitude, level attitude is enforced to
+ * guarantee a levelled landing
+ *
+ * @min 0.0
+ * @max 1.2
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_LVL_ALT, 0.f);
+
+/**
  * Landing descend rate
  *
  * @unit m/s

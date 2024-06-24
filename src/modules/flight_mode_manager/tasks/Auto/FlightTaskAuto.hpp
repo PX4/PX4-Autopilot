@@ -143,6 +143,8 @@ protected:
 	bool _is_emergency_braking_active{false};
 	bool _want_takeoff{false};
 
+	hrt_abstime _time_started_level_attitude_land{0};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
@@ -168,7 +170,8 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
-					(ParamFloat<px4::params::MPC_MAX_HOVER_T>) _param_mpc_max_hover_t // DQ Cutom
+					(ParamFloat<px4::params::MPC_MAX_HOVER_T>) _param_mpc_max_hover_t, // DQ Custom
+					(ParamFloat<px4::params::MPC_LAND_LVL_ALT>) _param_mpc_land_lvl_alt // DQ Cutom
 				       );
 
 private:

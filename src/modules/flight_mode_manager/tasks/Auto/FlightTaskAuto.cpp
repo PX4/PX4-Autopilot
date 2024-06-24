@@ -77,6 +77,7 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
+	_time_started_level_attitude_land = 0;
 
 	return ret;
 }
@@ -177,6 +178,7 @@ bool FlightTaskAuto::update()
 		waypoints[2] = _position_setpoint;
 	}
 
+	const float vertical_vel_sp = _velocity_setpoint(2);
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
@@ -195,6 +197,33 @@ bool FlightTaskAuto::update()
 	_acceleration_setpoint = smoothed_setpoints.acceleration;
 	_velocity_setpoint = smoothed_setpoints.velocity;
 	_position_setpoint = smoothed_setpoints.position;
+
+	/// DQ_CUSTOM_START
+	// Level out attitude just before touching down in order to avoid landing gear collapse
+	const bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
+
+	if (_type != WaypointType::land) {
+		_time_started_level_attitude_land = 0;
+
+	} else if (_type == WaypointType::land && range_dist_available && _dist_to_bottom <= _param_mpc_land_lvl_alt.get()) {
+
+		// init the timer for max leveling out attitude
+		_time_started_level_attitude_land = _time_started_level_attitude_land == 0 ? hrt_absolute_time() :
+						    _time_started_level_attitude_land;
+
+		if (hrt_elapsed_time(&_time_started_level_attitude_land) < 1_s * 3) {
+			_acceleration_setpoint(0) = 0.0f;
+			_acceleration_setpoint(1) = 0.0f;
+			_position_setpoint.setNaN();
+			_velocity_setpoint(0) = NAN;
+			_velocity_setpoint(1) = NAN;
+
+			// this somehow gets overriden in the smoothing, need to set again
+			_velocity_setpoint(2) = vertical_vel_sp;
+		}
+	}
+
+	// DQ_CUSTOM_END
 
 	_unsmoothed_velocity_setpoint = smoothed_setpoints.unsmoothed_velocity;
 	_want_takeoff = smoothed_setpoints.unsmoothed_velocity(2) < -0.3f;
