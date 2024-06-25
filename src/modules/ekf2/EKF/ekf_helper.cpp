@@ -125,15 +125,15 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 			// determine current z
 			float z_prev = _state.pos(2);
 			float current_alt = -z_prev + gps_alt_ref_prev;
+#if defined(CONFIG_EKF2_GNSS)
 			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
+#endif // CONFIG_EKF2_GNSS
 			resetVerticalPositionTo(_gps_alt_ref - current_alt);
 			ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev,
 				  (double)_state.pos(2));
-
 #if defined(CONFIG_EKF2_GNSS)
 			// adjust existing GPS height bias
 			_gps_hgt_b_est.setBias(gps_hgt_bias);
-
 #endif // CONFIG_EKF2_GNSS
 		}
 
@@ -538,10 +538,11 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		}
 	}
 
+#if defined(CONFIG_EKF2_GNSS)
 	if (!_control_status.flags.in_air && !_params.gnss_ctrl && _control_status.flags.fixed_wing) {
 		_time_last_horizontal_aiding = _time_delayed_us;
 	}
-
+#endif
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
 	bool deadreckon_time_exceeded = isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);
 
