@@ -456,7 +456,7 @@ MissionBase::set_mission_items()
 			    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) &&
 			    (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
 			    !_land_detected_sub.get().landed) {
-				if (goToNextItem(false) == PX4_OK) {
+				if (setNextMissionItem()) {
 					if (!loadCurrentMissionItem()) {
 						set_end_of_mission = true;
 					}
