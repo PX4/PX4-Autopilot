@@ -154,7 +154,7 @@ TEST_F(EkfTerrainTest, testFlowForTerrainFusion)
 
 	// WHEN: the sensors do not agree
 	const float rng_height = 1.f;
-	const float flow_height = 5.f;
+	const float flow_height = 8.f;
 	runFlowAndRngScenario(rng_height, flow_height);
 
 	// THEN: the estimator should use flow for terrain and the estimated terrain height
@@ -175,7 +175,7 @@ TEST_F(EkfTerrainTest, testRngForTerrainFusion)
 
 	// WHEN: the sensors do not agree
 	const float rng_height = 1.f;
-	const float flow_height = 5.f;
+	const float flow_height = 8.f;
 	runFlowAndRngScenario(rng_height, flow_height);
 
 	// THEN: the estimator should use rng for terrain and the estimated terrain height
