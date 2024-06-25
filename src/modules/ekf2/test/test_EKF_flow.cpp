@@ -178,9 +178,9 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 	EXPECT_TRUE(isEqual(estimated_horz_velocity, Vector2f(0.f, 0.f)))
 			<< estimated_horz_velocity(0) << ", " << estimated_horz_velocity(1);
 
-	// AND: the velocity isn't reset as it is already correct
+	// AND: the horizontal velocity is reset to the flow value
 	reset_logging_checker.capturePostResetState();
-	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
 }
 
