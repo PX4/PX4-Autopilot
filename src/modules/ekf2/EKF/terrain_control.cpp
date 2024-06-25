@@ -36,7 +36,7 @@
  */
 
 #include "ekf.h"
-#include "ekf_derivation/generated/state.h"
+#include "ekf_derivation/generated/compute_hagl_innov_var.h"
 
 #include <mathlib/mathlib.h>
 
@@ -86,23 +86,18 @@ void Ekf::controlTerrainFakeFusion()
 bool Ekf::isTerrainEstimateValid() const
 {
 	// Assume being valid when the uncertainty is small compared to the height above ground
-	bool valid = getTerrainVariance() < sq(0.1f * getHagl());
+	float hagl_var = INFINITY;
+	sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
+	bool valid = hagl_var < fmaxf(sq(0.1f * getHagl()), 0.2f);
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
+	// Assume that the terrain estimate is always valid when direct observations are fused
 	if (_hagl_sensor_status.flags.range_finder && isRecent(_aid_src_rng_hgt.time_last_fuse, (uint64_t)5e6)) {
 		valid = true;
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-	if (_hagl_sensor_status.flags.flow && isRecent(_aid_src_optical_flow.time_last_fuse, (uint64_t)5e6)) {
-		valid = true;
-	}
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	return valid;
 }
