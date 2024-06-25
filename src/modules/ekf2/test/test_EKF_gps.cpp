@@ -136,7 +136,7 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
-	_sensor_simulator.runSeconds(5.2); // required to pass the checks
+	_sensor_simulator.runSeconds(1.2); // required to pass the checks
 	_sensor_simulator.runMicroseconds(dt_us);
 
 	// THEN: a reset to GPS velocity should be done
