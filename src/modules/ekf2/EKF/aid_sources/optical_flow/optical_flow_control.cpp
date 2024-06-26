@@ -126,8 +126,6 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 void Ekf::startFlowFusion()
 {
-	ECL_INFO("starting optical flow fusion");
-
 	if (_height_sensor_ref != HeightSensor::RANGE) {
 		// If the height is relative to the ground, terrain height cannot be observed.
 		_hagl_sensor_status.flags.flow = true;
@@ -135,27 +133,29 @@ void Ekf::startFlowFusion()
 
 	if (isHorizontalAidingActive()) {
 		if (fuseOptFlow(_hagl_sensor_status.flags.flow)) {
-			ECL_INFO("starting optical flow no reset");
+			ECL_INFO("starting optical flow");
+			_control_status.flags.opt_flow = true;
 
 		} else if (_hagl_sensor_status.flags.flow && !_hagl_sensor_status.flags.range_finder) {
+			ECL_INFO("starting optical flow, resetting terrain");
 			resetTerrainToFlow();
-
-		} else {
-			ECL_INFO("optical flow fusion failed to start");
-			_control_status.flags.opt_flow = false;
-			_hagl_sensor_status.flags.flow = false;
+			_control_status.flags.opt_flow = true;
 		}
 
 	} else {
 		if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
+			ECL_INFO("starting optical flow, resetting");
 			resetFlowFusion();
+			_control_status.flags.opt_flow = true;
 
 		} else if (_hagl_sensor_status.flags.flow) {
+			ECL_INFO("starting optical flow, resetting terrain");
 			resetTerrainToFlow();
+			_control_status.flags.opt_flow = true;
 		}
 	}
 
-	_control_status.flags.opt_flow = true; // needs to be here because of isHorizontalAidingActive
+	_hagl_sensor_status.flags.flow = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
 }
 
 void Ekf::resetFlowFusion()
