@@ -53,7 +53,13 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		const bool is_quality_good = (_flow_sample_delayed.quality >= min_quality);
 		const bool is_magnitude_good = _flow_sample_delayed.flow_rate.isAllFinite()
 					       && !_flow_sample_delayed.flow_rate.longerThan(_flow_max_rate);
-		const bool is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
+
+		bool is_tilt_good = true;
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+		is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
+
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 		if (is_quality_good
 		    && is_magnitude_good
@@ -75,16 +81,16 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		// Check if we are in-air and require optical flow to control position drift
 		bool is_flow_required = _control_status.flags.in_air
 					&& (_control_status.flags.inertial_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
-					|| isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow));
+					    || isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow));
 
 		const bool is_within_max_sensor_dist = getHagl() <= _flow_max_distance;
 
 		const bool continuing_conditions_passing = (_params.flow_ctrl == 1)
-							   && _control_status.flags.tilt_align
-							   && is_within_max_sensor_dist;
+				&& _control_status.flags.tilt_align
+				&& is_within_max_sensor_dist;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
-							 && isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
+				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
 		// If the height is relative to the ground, terrain height cannot be observed.
 		_hagl_sensor_status.flags.flow = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
@@ -198,7 +204,8 @@ void Ekf::stopFlowFusion()
 void Ekf::calcOptFlowBodyRateComp(const imuSample &imu_delayed)
 {
 	if (imu_delayed.delta_ang_dt > FLT_EPSILON) {
-		_ref_body_rate = -imu_delayed.delta_ang / imu_delayed.delta_ang_dt - getGyroBias(); // flow gyro has opposite sign convention
+		_ref_body_rate = -imu_delayed.delta_ang / imu_delayed.delta_ang_dt -
+				 getGyroBias(); // flow gyro has opposite sign convention
 
 	} else {
 		_ref_body_rate.zero();
@@ -213,5 +220,6 @@ void Ekf::calcOptFlowBodyRateComp(const imuSample &imu_delayed)
 	}
 
 	// calculate the bias estimate using  a combined LPF and spike filter
-	_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(_flow_sample_delayed.gyro_rate - _ref_body_rate, -0.1f, 0.1f) * 0.01f;
+	_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(_flow_sample_delayed.gyro_rate - _ref_body_rate, -0.1f,
+			  0.1f) * 0.01f;
 }
