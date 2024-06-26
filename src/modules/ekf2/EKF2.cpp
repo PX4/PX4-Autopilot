@@ -2314,6 +2314,8 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			new_optical_flow = true;
 		}
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+
 		// use optical_flow distance as range sample if distance_sensor unavailable
 		if (PX4_ISFINITE(optical_flow.distance_m) && (ekf2_timestamps.timestamp > _last_range_sensor_update + 1_s)) {
 
@@ -2329,6 +2331,8 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			// set sensor limits
 			_ekf.set_rangefinder_limits(optical_flow.min_ground_distance, optical_flow.max_ground_distance);
 		}
+
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 		ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
