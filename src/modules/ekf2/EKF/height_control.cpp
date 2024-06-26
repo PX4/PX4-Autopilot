@@ -53,7 +53,7 @@ void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	controlRangeHeightFusion();
+	controlRangeHaglFusion();
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	checkHeightSensorRefFallback();
@@ -301,7 +301,8 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
-		checks[3] = {ReferenceType::GROUND, _aid_src_rng_hgt.innovation, _aid_src_rng_hgt.innovation_variance};
+		// Range is a distance to ground measurement, not a direct height observation and has an opposite sign
+		checks[3] = {ReferenceType::GROUND, -_aid_src_rng_hgt.innovation, _aid_src_rng_hgt.innovation_variance};
 	}
 #endif // CONFIG_EKF2_RANGE_FINDER
 

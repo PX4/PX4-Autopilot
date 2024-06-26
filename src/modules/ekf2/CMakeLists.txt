@@ -203,6 +203,7 @@ if(CONFIG_EKF2_RANGE_FINDER)
 	list(APPEND EKF_SRCS
 		EKF/aid_sources/range_finder/range_finder_consistency_check.cpp
 		EKF/aid_sources/range_finder/range_height_control.cpp
+		EKF/aid_sources/range_finder/range_height_fusion.cpp
 		EKF/aid_sources/range_finder/sensor_range_finder.cpp
 	)
 endif()
@@ -212,7 +213,7 @@ if(CONFIG_EKF2_SIDESLIP)
 endif()
 
 if(CONFIG_EKF2_TERRAIN)
-	list(APPEND EKF_SRCS EKF/terrain_estimator/terrain_estimator.cpp)
+	list(APPEND EKF_SRCS EKF/terrain_control.cpp)
 endif()
 
 add_subdirectory(EKF)
