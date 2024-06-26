@@ -42,57 +42,9 @@
 #include <ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h>
 #include <ekf_derivation/generated/compute_flow_y_innov_var_and_h.h>
 
-void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src, const flowSample &flow_sample)
-{
-	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
-	// correct for gyro bias errors in the data used to do the motion compensation
-	// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
-	const Vector3f flow_gyro_corrected = flow_sample.gyro_rate - _flow_gyro_bias;
-	const Vector2f flow_compensated = flow_sample.flow_rate - flow_gyro_corrected.xy();
-
-	const Vector2f innovation = predictFlow(flow_gyro_corrected) - flow_compensated;
-
-	// calculate the optical flow observation variance
-	const float R_LOS = calcOptFlowMeasVar(flow_sample);
-
-	Vector2f innov_var;
-	VectorState H;
-	sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, FLT_EPSILON, &innov_var, &H);
-
-	// run the innovation consistency check and record result
-	updateAidSourceStatus(aid_src,
-			      flow_sample.time_us,                      // sample timestamp
-			      flow_compensated,                         // observation
-			      Vector2f{R_LOS, R_LOS},                   // observation variance
-			      innovation,                               // innovation
-			      innov_var,                                // innovation variance
-			      math::max(_params.flow_innov_gate, 1.f)); // innovation gate
-
-
-	// compute the velocities in body and local frames from corrected optical flow measurement for logging only
-	const float range = predictFlowRange();
-	_flow_vel_body(0) = -flow_compensated(1) * range;
-	_flow_vel_body(1) =  flow_compensated(0) * range;
-	_flow_vel_ne = Vector2f(_R_to_earth * Vector3f(_flow_vel_body(0), _flow_vel_body(1), 0.f));
-
-}
-
-bool Ekf::fuseOptFlow(const bool update_terrain)
+bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 {
 	const auto state_vector = _state.vector();
-	const float R_LOS = _aid_src_optical_flow.observation_variance[0];
-
-	Vector2f innov_var;
-	VectorState H;
-	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, R_LOS, FLT_EPSILON, &innov_var, &H);
-	innov_var.copyTo(_aid_src_optical_flow.innovation_variance);
-
-	if ((innov_var(0) < R_LOS) || (innov_var(1) < R_LOS)) {
-		// we need to reinitialise the covariance matrix and abort this fusion step
-		ECL_ERR("Opt flow error - covariance reset");
-		initialiseCovariance();
-		return false;
-	}
 
 	_innov_check_fail_status.flags.reject_optflow_X = (_aid_src_optical_flow.test_ratio[0] > 1.f);
 	_innov_check_fail_status.flags.reject_optflow_Y = (_aid_src_optical_flow.test_ratio[1] > 1.f);
@@ -107,7 +59,7 @@ bool Ekf::fuseOptFlow(const bool update_terrain)
 	// fuse observation axes sequentially
 	for (uint8_t index = 0; index <= 1; index++) {
 
-		if (_aid_src_optical_flow.innovation_variance[index] < R_LOS) {
+		if (_aid_src_optical_flow.innovation_variance[index] < _aid_src_optical_flow.observation_variance[index]) {
 			// we need to reinitialise the covariance matrix and abort this fusion step
 			ECL_ERR("Opt flow error - covariance reset");
 			initialiseCovariance();
@@ -119,6 +71,7 @@ bool Ekf::fuseOptFlow(const bool update_terrain)
 
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
+			const float R_LOS = _aid_src_optical_flow.observation_variance[1];
 			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, FLT_EPSILON, &_aid_src_optical_flow.innovation_variance[1], &H);
 
 			// recalculate the innovation using the updated state
