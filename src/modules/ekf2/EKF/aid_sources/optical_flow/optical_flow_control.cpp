@@ -134,9 +134,8 @@ void Ekf::startFlowFusion()
 	}
 
 	if (isHorizontalAidingActive()) {
-		if (!_aid_src_optical_flow.innovation_rejected) {
+		if (fuseOptFlow(_hagl_sensor_status.flags.flow)) {
 			ECL_INFO("starting optical flow no reset");
-			fuseOptFlow(_hagl_sensor_status.flags.flow);
 
 		} else if (_hagl_sensor_status.flags.flow && !_hagl_sensor_status.flags.range_finder) {
 			resetTerrainToFlow();
