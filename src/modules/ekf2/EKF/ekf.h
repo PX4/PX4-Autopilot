@@ -850,7 +850,7 @@ private:
 
 	// fuse optical flow line of sight rate measurements
 	void updateOptFlow(estimator_aid_source2d_s &aid_src);
-	void fuseOptFlow(bool update_terrain);
+	bool fuseOptFlow(bool update_terrain);
 	float predictFlowRange();
 	Vector2f predictFlowVelBody();
 #endif // CONFIG_EKF2_OPTICAL_FLOW
