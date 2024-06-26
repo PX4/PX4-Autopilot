@@ -842,17 +842,19 @@ private:
 	void updateOnGroundMotionForOpticalFlowChecks();
 	void resetOnGroundMotionForOpticalFlowChecks();
 
-	// calculate the measurement variance for the optical flow sensor
-	float calcOptFlowMeasVar(const flowSample &flow_sample);
+	// calculate the measurement variance for the optical flow sensor (rad/sec)^2
+	float calcOptFlowMeasVar(const flowSample &flow_sample) const;
 
 	// calculate optical flow body angular rate compensation
 	void calcOptFlowBodyRateComp(const imuSample &imu_delayed);
 
+	float predictFlowRange() const;
+	Vector2f predictFlow(const Vector3f &flow_gyro) const;
+
 	// fuse optical flow line of sight rate measurements
-	void updateOptFlow(estimator_aid_source2d_s &aid_src);
+	void updateOptFlow(estimator_aid_source2d_s &aid_src, const flowSample &flow_sample);
 	bool fuseOptFlow(bool update_terrain);
-	float predictFlowRange();
-	Vector2f predictFlowVelBody();
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
