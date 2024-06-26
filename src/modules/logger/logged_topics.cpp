@@ -154,7 +154,7 @@ void LoggedTopics::add_default_topics()
 #if CONSTRAINED_MEMORY
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 1;
 #else
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificially limited until PlotJuggler fixed
+	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 4; // artificially limited to keep total topics below 255
 	add_optional_topic("estimator_selector_status");
 	add_optional_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
