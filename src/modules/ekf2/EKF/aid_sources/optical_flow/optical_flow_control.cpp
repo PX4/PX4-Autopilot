@@ -64,19 +64,22 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		if (is_quality_good
 		    && is_magnitude_good
 		    && is_tilt_good) {
-			// compensate for body motion to give a LOS rate
+
 			calcOptFlowBodyRateComp(imu_delayed);
-			_flow_rate_compensated = _flow_sample_delayed.flow_rate - _flow_sample_delayed.gyro_rate.xy();
 
 		} else {
 			// don't use this flow data and wait for the next data to arrive
 			_flow_data_ready = false;
-			_flow_rate_compensated.setZero();
 		}
+
+		updateOptFlow(_aid_src_optical_flow, _flow_sample_delayed);
+
+		// logging
+		const Vector3f flow_gyro_corrected = _flow_sample_delayed.gyro_rate - _flow_gyro_bias;
+		_flow_rate_compensated = _flow_sample_delayed.flow_rate - flow_gyro_corrected.xy();
 	}
 
 	if (_flow_data_ready) {
-		updateOptFlow(_aid_src_optical_flow);
 
 		// Check if we are in-air and require optical flow to control position drift
 		bool is_flow_required = _control_status.flags.in_air
