@@ -38,6 +38,8 @@
 
 #include "ekf.h"
 
+#include <ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h>
+
 void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 {
 	if (!_flow_buffer || (_params.flow_ctrl != 1)) {
@@ -46,6 +48,8 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 	}
 
 	bool flow_data_ready = false;
+
+	VectorState H;
 
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
 	if (_flow_buffer->pop_first_older_than(imu_delayed.time_us, &_flow_sample_delayed)) {
@@ -88,11 +92,35 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			flow_data_ready = true;
 		}
 
-		updateOptFlow(_aid_src_optical_flow, flow_sample);
+		// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
+		// correct for gyro bias errors in the data used to do the motion compensation
+		// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
+		const Vector3f flow_gyro_corrected = flow_sample.gyro_rate - _flow_gyro_bias;
+		const Vector2f flow_compensated = flow_sample.flow_rate - flow_gyro_corrected.xy();
+
+		// calculate the optical flow observation variance
+		const float R_LOS = calcOptFlowMeasVar(flow_sample);
+
+		Vector2f innov_var;
+		sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, FLT_EPSILON, &innov_var, &H);
+
+		// run the innovation consistency check and record result
+		updateAidSourceStatus(_aid_src_optical_flow,
+				      flow_sample.time_us,                                 // sample timestamp
+				      flow_compensated,                                    // observation
+				      Vector2f{R_LOS, R_LOS},                              // observation variance
+				      predictFlow(flow_gyro_corrected) - flow_compensated, // innovation
+				      innov_var,                                           // innovation variance
+				      math::max(_params.flow_innov_gate, 1.f));            // innovation gate
 
 		// logging
-		const Vector3f flow_gyro_corrected = flow_sample.gyro_rate - _flow_gyro_bias;
-		_flow_rate_compensated = flow_sample.flow_rate - flow_gyro_corrected.xy();
+		_flow_rate_compensated = flow_compensated;
+
+		// compute the velocities in body and local frames from corrected optical flow measurement for logging only
+		const float range = predictFlowRange();
+		_flow_vel_body(0) = -flow_compensated(1) * range;
+		_flow_vel_body(1) =  flow_compensated(0) * range;
+		_flow_vel_ne = Vector2f(_R_to_earth * Vector3f(_flow_vel_body(0), _flow_vel_body(1), 0.f));
 	}
 
 	if (flow_data_ready) {
@@ -116,7 +144,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		if (_control_status.flags.opt_flow) {
 			if (continuing_conditions_passing) {
-				fuseOptFlow(_hagl_sensor_status.flags.flow);
+				fuseOptFlow(H, _hagl_sensor_status.flags.flow);
 
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
@@ -134,47 +162,40 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		} else {
 			if (starting_conditions_passing) {
-				startFlowFusion();
+				// If the height is relative to the ground, terrain height cannot be observed.
+				_hagl_sensor_status.flags.flow = (_height_sensor_ref != HeightSensor::RANGE);
+
+				if (isHorizontalAidingActive()) {
+					if (fuseOptFlow(H, _hagl_sensor_status.flags.flow)) {
+						ECL_INFO("starting optical flow");
+						_control_status.flags.opt_flow = true;
+
+					} else if (_hagl_sensor_status.flags.flow && !_hagl_sensor_status.flags.range_finder) {
+						ECL_INFO("starting optical flow, resetting terrain");
+						resetTerrainToFlow();
+						_control_status.flags.opt_flow = true;
+					}
+
+				} else {
+					if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
+						ECL_INFO("starting optical flow, resetting");
+						resetFlowFusion();
+						_control_status.flags.opt_flow = true;
+
+					} else if (_hagl_sensor_status.flags.flow) {
+						ECL_INFO("starting optical flow, resetting terrain");
+						resetTerrainToFlow();
+						_control_status.flags.opt_flow = true;
+					}
+				}
+
+				_hagl_sensor_status.flags.flow = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
 			}
 		}
 
 	} else if (_control_status.flags.opt_flow && isTimedOut(_flow_sample_delayed.time_us, _params.reset_timeout_max)) {
 		stopFlowFusion();
 	}
-}
-
-void Ekf::startFlowFusion()
-{
-	if (_height_sensor_ref != HeightSensor::RANGE) {
-		// If the height is relative to the ground, terrain height cannot be observed.
-		_hagl_sensor_status.flags.flow = true;
-	}
-
-	if (isHorizontalAidingActive()) {
-		if (fuseOptFlow(_hagl_sensor_status.flags.flow)) {
-			ECL_INFO("starting optical flow");
-			_control_status.flags.opt_flow = true;
-
-		} else if (_hagl_sensor_status.flags.flow && !_hagl_sensor_status.flags.range_finder) {
-			ECL_INFO("starting optical flow, resetting terrain");
-			resetTerrainToFlow();
-			_control_status.flags.opt_flow = true;
-		}
-
-	} else {
-		if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
-			ECL_INFO("starting optical flow, resetting");
-			resetFlowFusion();
-			_control_status.flags.opt_flow = true;
-
-		} else if (_hagl_sensor_status.flags.flow) {
-			ECL_INFO("starting optical flow, resetting terrain");
-			resetTerrainToFlow();
-			_control_status.flags.opt_flow = true;
-		}
-	}
-
-	_hagl_sensor_status.flags.flow = _control_status.flags.opt_flow && !(_height_sensor_ref == HeightSensor::RANGE);
 }
 
 void Ekf::resetFlowFusion()
