@@ -46,13 +46,28 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
 	if (_flow_data_ready) {
+
+		// flow gyro has opposite sign convention
+		_ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - getGyroBias());
+
+		// ensure valid flow sample gyro rate before proceeding
+		if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_rate(1))) {
+			_flow_sample_delayed.gyro_rate = _ref_body_rate;
+
+		} else if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(2))) {
+			// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
+			_flow_sample_delayed.gyro_rate(2) = _ref_body_rate(2);
+		}
+
+		const flowSample &flow_sample = _flow_sample_delayed;
+
 		const int32_t min_quality = _control_status.flags.in_air
 					    ? _params.flow_qual_min
 					    : _params.flow_qual_min_gnd;
 
-		const bool is_quality_good = (_flow_sample_delayed.quality >= min_quality);
-		const bool is_magnitude_good = _flow_sample_delayed.flow_rate.isAllFinite()
-					       && !_flow_sample_delayed.flow_rate.longerThan(_flow_max_rate);
+		const bool is_quality_good = (flow_sample.quality >= min_quality);
+		const bool is_magnitude_good = flow_sample.flow_rate.isAllFinite()
+					       && !flow_sample.flow_rate.longerThan(_flow_max_rate);
 
 		bool is_tilt_good = true;
 
@@ -61,22 +76,23 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+		calcOptFlowBodyRateComp(flow_sample);
+
 		if (is_quality_good
 		    && is_magnitude_good
 		    && is_tilt_good) {
 
-			calcOptFlowBodyRateComp(imu_delayed);
 
 		} else {
 			// don't use this flow data and wait for the next data to arrive
 			_flow_data_ready = false;
 		}
 
-		updateOptFlow(_aid_src_optical_flow, _flow_sample_delayed);
+		updateOptFlow(_aid_src_optical_flow, flow_sample);
 
 		// logging
-		const Vector3f flow_gyro_corrected = _flow_sample_delayed.gyro_rate - _flow_gyro_bias;
-		_flow_rate_compensated = _flow_sample_delayed.flow_rate - flow_gyro_corrected.xy();
+		const Vector3f flow_gyro_corrected = flow_sample.gyro_rate - _flow_gyro_bias;
+		_flow_rate_compensated = flow_sample.flow_rate - flow_gyro_corrected.xy();
 	}
 
 	if (_flow_data_ready) {
@@ -202,25 +218,9 @@ void Ekf::stopFlowFusion()
 	}
 }
 
-void Ekf::calcOptFlowBodyRateComp(const imuSample &imu_delayed)
+void Ekf::calcOptFlowBodyRateComp(const flowSample &flow_sample)
 {
-	if (imu_delayed.delta_ang_dt > FLT_EPSILON) {
-		_ref_body_rate = -imu_delayed.delta_ang / imu_delayed.delta_ang_dt -
-				 getGyroBias(); // flow gyro has opposite sign convention
-
-	} else {
-		_ref_body_rate.zero();
-	}
-
-	if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_rate(1))) {
-		_flow_sample_delayed.gyro_rate = _ref_body_rate;
-
-	} else if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(2))) {
-		// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
-		_flow_sample_delayed.gyro_rate(2) = _ref_body_rate(2);
-	}
-
-	// calculate the bias estimate using  a combined LPF and spike filter
-	_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(_flow_sample_delayed.gyro_rate - _ref_body_rate, -0.1f,
-			  0.1f) * 0.01f;
+	// calculate the bias estimate using a combined LPF and spike filter
+	_flow_gyro_bias = 0.99f * _flow_gyro_bias
+			  + 0.01f * matrix::constrain(flow_sample.gyro_rate - _ref_body_rate, -0.1f, 0.1f);
 }
