@@ -134,7 +134,7 @@ public:
 
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_rate; }
 	const Vector3f &getFlowGyroBias() const { return _flow_gyro_bias; }
-	const Vector3f &getRefBodyRate() const { return _ref_body_rate; }
+	const Vector3f &getFlowRefBodyRate() const { return _ref_body_rate; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	float getHeadingInnov() const
@@ -846,7 +846,7 @@ private:
 	float calcOptFlowMeasVar(const flowSample &flow_sample) const;
 
 	// calculate optical flow body angular rate compensation
-	void calcOptFlowBodyRateComp(const imuSample &imu_delayed);
+	void calcOptFlowBodyRateComp(const flowSample &flow_sample);
 
 	float predictFlowRange() const;
 	Vector2f predictFlow(const Vector3f &flow_gyro) const;
