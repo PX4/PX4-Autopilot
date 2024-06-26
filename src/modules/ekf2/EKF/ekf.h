@@ -833,7 +833,6 @@ private:
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion(const imuSample &imu_delayed);
-	void startFlowFusion();
 	void resetFlowFusion();
 	void stopFlowFusion();
 
@@ -850,8 +849,7 @@ private:
 	Vector2f predictFlow(const Vector3f &flow_gyro) const;
 
 	// fuse optical flow line of sight rate measurements
-	void updateOptFlow(estimator_aid_source2d_s &aid_src, const flowSample &flow_sample);
-	bool fuseOptFlow(bool update_terrain);
+	bool fuseOptFlow(VectorState &H, bool update_terrain);
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
