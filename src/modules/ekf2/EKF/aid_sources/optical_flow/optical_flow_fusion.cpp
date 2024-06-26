@@ -79,7 +79,7 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 		math::max(_params.flow_innov_gate, 1.f));      // innovation gate
 }
 
-void Ekf::fuseOptFlow(const bool update_terrain)
+bool Ekf::fuseOptFlow(const bool update_terrain)
 {
 	const float R_LOS = _aid_src_optical_flow.observation_variance[0];
 
@@ -98,7 +98,7 @@ void Ekf::fuseOptFlow(const bool update_terrain)
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		ECL_ERR("Opt flow error - covariance reset");
 		initialiseCovariance();
-		return;
+		return false;
 	}
 
 	_innov_check_fail_status.flags.reject_optflow_X = (_aid_src_optical_flow.test_ratio[0] > 1.f);
@@ -106,7 +106,7 @@ void Ekf::fuseOptFlow(const bool update_terrain)
 
 	// if either axis fails we abort the fusion
 	if (_aid_src_optical_flow.innovation_rejected) {
-		return;
+		return false;
 	}
 
 	bool fused[2] {false, false};
@@ -129,7 +129,7 @@ void Ekf::fuseOptFlow(const bool update_terrain)
 				// we need to reinitialise the covariance matrix and abort this fusion step
 				ECL_ERR("Opt flow error - covariance reset");
 				initialiseCovariance();
-				return;
+				return false;
 			}
 		}
 
@@ -150,7 +150,11 @@ void Ekf::fuseOptFlow(const bool update_terrain)
 	if (fused[0] && fused[1]) {
 		_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 		_aid_src_optical_flow.fused = true;
+
+		return true;
 	}
+
+	return false;
 }
 
 float Ekf::predictFlowRange()
