@@ -215,6 +215,12 @@ void Ekf::stopFlowFusion()
 		ECL_INFO("stopping optical flow fusion");
 		_control_status.flags.opt_flow = false;
 		_hagl_sensor_status.flags.flow = false;
+
+		_fault_status.flags.bad_optflow_X = false;
+		_fault_status.flags.bad_optflow_Y = false;
+
+		_innov_check_fail_status.flags.reject_optflow_X = false;
+		_innov_check_fail_status.flags.reject_optflow_Y = false;
 	}
 }
 
