@@ -184,10 +184,10 @@ void Ekf::resetTerrainToFlow()
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 100.f);
 	_terrain_vpos_reset_counter++;
 
+	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
+
 	_innov_check_fail_status.flags.reject_optflow_X = false;
 	_innov_check_fail_status.flags.reject_optflow_Y = false;
-
-	_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 }
 
 void Ekf::stopFlowFusion()
