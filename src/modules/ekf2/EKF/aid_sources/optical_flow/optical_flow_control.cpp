@@ -40,12 +40,15 @@
 
 void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 {
-	if (_flow_buffer) {
-		_flow_data_ready = _flow_buffer->pop_first_older_than(imu_delayed.time_us, &_flow_sample_delayed);
+	if (!_flow_buffer || (_params.flow_ctrl != 1)) {
+		stopFlowFusion();
+		return;
 	}
 
+	bool flow_data_ready = false;
+
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
-	if (_flow_data_ready) {
+	if (_flow_buffer->pop_first_older_than(imu_delayed.time_us, &_flow_sample_delayed)) {
 
 		// flow gyro has opposite sign convention
 		_ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - getGyroBias());
@@ -82,10 +85,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		    && is_magnitude_good
 		    && is_tilt_good) {
 
-
-		} else {
-			// don't use this flow data and wait for the next data to arrive
-			_flow_data_ready = false;
+			flow_data_ready = true;
 		}
 
 		updateOptFlow(_aid_src_optical_flow, flow_sample);
@@ -95,7 +95,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		_flow_rate_compensated = flow_sample.flow_rate - flow_gyro_corrected.xy();
 	}
 
-	if (_flow_data_ready) {
+	if (flow_data_ready) {
 
 		// Check if we are in-air and require optical flow to control position drift
 		bool is_flow_required = _control_status.flags.in_air
