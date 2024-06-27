@@ -187,7 +187,7 @@ void Ekf::controlRangeHaglFusion()
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
-					if (_hagl_sensor_status.flags.flow) {
+					if (_hagl_sensor_status.flags.flow && isTerrainEstimateValid()) {
 						ECL_WARN("stopping %s fusion, fusion failing", HGT_SRC_NAME);
 						stopRngHgtFusion();
 						stopRngTerrFusion();
