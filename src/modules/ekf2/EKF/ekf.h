@@ -841,7 +841,7 @@ private:
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range height
-	void controlRangeHaglFusion();
+	void controlRangeHaglFusion(const imuSample &imu_delayed);
 	bool isConditionalRangeAidSuitable();
 	void stopRngHgtFusion();
 	void stopRngTerrFusion();
@@ -1019,7 +1019,7 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations
-	void controlMagFusion();
+	void controlMagFusion(const imuSample &imu_sample);
 
 	bool checkHaglYawResetReq() const;
 
@@ -1052,7 +1052,7 @@ private:
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// control fusion of auxiliary velocity observations
-	void controlAuxVelFusion();
+	void controlAuxVelFusion(const imuSample &imu_sample);
 	void stopAuxVelFusion();
 #endif // CONFIG_EKF2_AUXVEL
 
