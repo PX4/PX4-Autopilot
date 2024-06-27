@@ -49,7 +49,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 
 	baroSample baro_sample;
 
-	if (_baro_buffer && _baro_buffer->pop_first_older_than(_time_delayed_us, &baro_sample)) {
+	if (_baro_buffer && _baro_buffer->pop_first_older_than(imu_sample.time_us, &baro_sample)) {
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
 		const float measurement = compensateBaroForDynamicPressure(imu_sample, baro_sample.hgt);
@@ -137,7 +137,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					// reset vertical velocity
 					resetVerticalVelocityToZero();
 
-					aid_src.time_last_fuse = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
@@ -166,7 +166,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
 				}
 
-				aid_src.time_last_fuse = _time_delayed_us;
+				aid_src.time_last_fuse = imu_sample.time_us;
 				bias_est.setFusionActive();
 				_control_status.flags.baro_hgt = true;
 			}

@@ -102,7 +102,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control use of observations for aiding
-	controlMagFusion();
+	controlMagFusion(imu_delayed);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -142,7 +142,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// Additional horizontal velocity data from an auxiliary sensor can be fused
-	controlAuxVelFusion();
+	controlAuxVelFusion(imu_delayed);
 #endif // CONFIG_EKF2_AUXVEL
 	//
 #if defined(CONFIG_EKF2_TERRAIN)
