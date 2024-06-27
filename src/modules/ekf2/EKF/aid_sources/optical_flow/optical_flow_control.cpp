@@ -145,6 +145,10 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					if (is_flow_required) {
 						resetFlowFusion();
 
+						if (_hagl_sensor_status.flags.flow && !isTerrainEstimateValid()) {
+							resetTerrainToFlow();
+						}
+
 					} else {
 						stopFlowFusion();
 					}
