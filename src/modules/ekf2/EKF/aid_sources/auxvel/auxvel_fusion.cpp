@@ -33,12 +33,12 @@
 
 #include "ekf.h"
 
-void Ekf::controlAuxVelFusion()
+void Ekf::controlAuxVelFusion(const imuSample &imu_sample)
 {
 	if (_auxvel_buffer) {
 		auxVelSample sample;
 
-		if (_auxvel_buffer->pop_first_older_than(_time_delayed_us, &sample)) {
+		if (_auxvel_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
 
 			updateAidSourceStatus(_aid_src_aux_vel,
 					      sample.time_us,                                           // sample timestamp

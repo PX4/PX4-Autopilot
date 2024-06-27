@@ -41,7 +41,7 @@
 
 #include <ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h>
 
-void Ekf::controlMagFusion()
+void Ekf::controlMagFusion(const imuSample &imu_sample)
 {
 	static constexpr const char *AID_SRC_NAME = "mag";
 	estimator_aid_source3d_s &aid_src = _aid_src_mag;
@@ -59,7 +59,7 @@ void Ekf::controlMagFusion()
 
 	magSample mag_sample;
 
-	if (_mag_buffer && _mag_buffer->pop_first_older_than(_time_delayed_us, &mag_sample)) {
+	if (_mag_buffer && _mag_buffer->pop_first_older_than(imu_sample.time_us, &mag_sample)) {
 
 		if (mag_sample.reset || (_mag_counter == 0)) {
 			// sensor or calibration has changed, reset low pass filter
@@ -185,7 +185,7 @@ void Ekf::controlMagFusion()
 				if (mag_sample.reset || checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_pre_takeoff)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
-					aid_src.time_last_fuse = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else {
 					// The normal sequence is to fuse the magnetometer data first before fusing
@@ -213,7 +213,7 @@ void Ekf::controlMagFusion()
 					if (no_ne_aiding_or_pre_takeoff) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 						resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
-						aid_src.time_last_fuse = _time_delayed_us;
+						aid_src.time_last_fuse = imu_sample.time_us;
 
 					} else {
 						ECL_WARN("stopping %s, fusion failing", AID_SRC_NAME);
@@ -242,7 +242,7 @@ void Ekf::controlMagFusion()
 					bool reset_heading = !_control_status.flags.yaw_align;
 
 					resetMagStates(_mag_lpf.getState(), reset_heading);
-					aid_src.time_last_fuse = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
 
 					if (reset_heading) {
 						_control_status.flags.yaw_align = true;
