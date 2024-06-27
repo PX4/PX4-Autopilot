@@ -86,7 +86,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			updateGnssPos(gnss_sample, _aid_src_gnss_pos);
 		}
 
-		updateGnssVel(gnss_sample, _aid_src_gnss_vel);
+		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);
 
 	} else if (_control_status.flags.gps) {
 		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
@@ -173,12 +173,13 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src)
+void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src)
 {
 	// correct velocity for offset relative to IMU
 	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
 
-	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+	const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - _state.gyro_bias;
+	const Vector3f vel_offset_body = angular_velocity % pos_offset_body;
 	const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 	const Vector3f velocity = gnss_sample.vel - vel_offset_earth;
 
