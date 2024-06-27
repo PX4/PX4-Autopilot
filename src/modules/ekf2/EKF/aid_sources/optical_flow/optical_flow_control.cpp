@@ -142,7 +142,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
-					if (is_flow_required) {
+					if (is_flow_required && is_quality_good) {
 						resetFlowFusion();
 
 						if (_hagl_sensor_status.flags.flow && !isTerrainEstimateValid()) {
