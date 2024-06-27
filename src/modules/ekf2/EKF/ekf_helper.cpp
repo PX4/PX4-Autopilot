@@ -123,7 +123,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
 			// determine current z
-			float z_prev = _state.pos(2);
+			const float z_prev = _state.pos(2);
 			float current_alt = -z_prev + gps_alt_ref_prev;
 #if defined(CONFIG_EKF2_GNSS)
 			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
@@ -539,6 +539,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	}
 
 #if defined(CONFIG_EKF2_GNSS)
+	// for fixed wing, deadreckon time starts after takeoff. Gives enough time for wind deadreckon to be activated
 	if (!_control_status.flags.in_air && !_params.gnss_ctrl && _control_status.flags.fixed_wing) {
 		_time_last_horizontal_aiding = _time_delayed_us;
 	}

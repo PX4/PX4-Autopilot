@@ -290,6 +290,7 @@ public:
 	bool local_position_is_valid() const
 	{
 #if defined(CONFIG_EKF2_GNSS)
+		// if there's GPS module but disabled, we want to slack the fake pos check
 		return !_horizontal_deadreckon_time_exceeded && (!_control_status.flags.fake_pos || !_params.gnss_ctrl);
 #else
 		return !_horizontal_deadreckon_time_exceeded && !_control_status.flags.fake_pos;

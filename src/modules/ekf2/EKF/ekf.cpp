@@ -300,6 +300,8 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
 
 	if (!_control_status.flags.in_air || accuracy < 1.f) {
+		// when on ground or accuracy chosen to be very low, we hard reset position
+		// this allows the user to still send hard resets at any time
 		ECL_INFO("reset position to external observation");
 		resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
 
@@ -316,8 +318,9 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 		aid_src.innovation_variance[0] = P(State::pos.idx, State::pos.idx) + aid_src.observation_variance[0];
 		aid_src.innovation_variance[1] = P(State::pos.idx + 1, State::pos.idx + 1) + aid_src.observation_variance[1];
 
-		Vector2f test_ratio{sq(aid_src.innovation[0]) / (sq(5.f) * aid_src.innovation_variance[0]),
-				    sq(aid_src.innovation[1]) / (sq(5.f) * aid_src.innovation_variance[1])};
+		const float sq_gate = sq(5.f); // magic hardcoded gate
+		const Vector2f test_ratio{sq(aid_src.innovation[0]) / (sq_gate * aid_src.innovation_variance[0]),
+				    sq(aid_src.innovation[1]) / (sq_gate * aid_src.innovation_variance[1])};
 
 		if (test_ratio(0) > 1.f || test_ratio(1) > 1.f) {
 			ECL_INFO("reset position to external observation");
