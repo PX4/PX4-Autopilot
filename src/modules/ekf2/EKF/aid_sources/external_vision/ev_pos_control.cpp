@@ -41,8 +41,9 @@
 static constexpr const char *EV_AID_SRC_NAME = "EV position";
 
 
-void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-			     const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src)
+void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+			     const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+			     estimator_aid_source2d_s &aid_src)
 {
 	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
 					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);

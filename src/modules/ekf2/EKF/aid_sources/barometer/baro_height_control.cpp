@@ -38,7 +38,7 @@
 
 #include "ekf.h"
 
-void Ekf::controlBaroHeightFusion()
+void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 {
 	static constexpr const char *HGT_SRC_NAME = "baro";
 
@@ -52,7 +52,7 @@ void Ekf::controlBaroHeightFusion()
 	if (_baro_buffer && _baro_buffer->pop_first_older_than(_time_delayed_us, &baro_sample)) {
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
-		const float measurement = compensateBaroForDynamicPressure(baro_sample.hgt);
+		const float measurement = compensateBaroForDynamicPressure(imu_sample, baro_sample.hgt);
 #else
 		const float measurement = baro_sample.hgt;
 #endif
@@ -195,7 +195,7 @@ void Ekf::stopBaroHgtFusion()
 }
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
-float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const
+float Ekf::compensateBaroForDynamicPressure(const imuSample &imu_sample, const float baro_alt_uncompensated) const
 {
 	if (_control_status.flags.wind && local_position_is_valid()) {
 		// calculate static pressure error = Pmeas - Ptruth
@@ -203,7 +203,8 @@ float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) 
 		// negative X and Y directions. Used to correct baro data for positional errors
 
 		// Calculate airspeed in body frame
-		const Vector3f vel_imu_rel_body_ned = _R_to_earth * (_ang_rate_delayed_raw % _params.imu_pos_body);
+		const Vector3f angular_velocity = (imu_sample.delta_ang / imu_sample.delta_ang_dt) - _state.gyro_bias;
+		const Vector3f vel_imu_rel_body_ned = _R_to_earth * (angular_velocity % _params.imu_pos_body);
 		const Vector3f velocity_earth = _state.vel - vel_imu_rel_body_ned;
 
 		const Vector3f wind_velocity_earth(_state.wind_vel(0), _state.wind_vel(1), 0.0f);
