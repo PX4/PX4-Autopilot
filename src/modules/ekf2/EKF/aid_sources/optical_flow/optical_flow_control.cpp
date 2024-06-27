@@ -47,8 +47,6 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		return;
 	}
 
-	bool flow_data_ready = false;
-
 	VectorState H;
 
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
@@ -80,17 +78,9 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 		is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
-
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 		calcOptFlowBodyRateComp(flow_sample);
-
-		if (is_quality_good
-		    && is_magnitude_good
-		    && is_tilt_good) {
-
-			flow_data_ready = true;
-		}
 
 		// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 		// correct for gyro bias errors in the data used to do the motion compensation
@@ -121,9 +111,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		_flow_vel_body(0) = -flow_compensated(1) * range;
 		_flow_vel_body(1) =  flow_compensated(0) * range;
 		_flow_vel_ne = Vector2f(_R_to_earth * Vector3f(_flow_vel_body(0), _flow_vel_body(1), 0.f));
-	}
 
-	if (flow_data_ready) {
 
 		// Check if we are in-air and require optical flow to control position drift
 		bool is_flow_required = _control_status.flags.in_air
@@ -137,6 +125,9 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				&& is_within_max_sensor_dist;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
+				&& is_quality_good
+				&& is_magnitude_good
+				&& is_tilt_good
 				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
 		// If the height is relative to the ground, terrain height cannot be observed.
@@ -144,7 +135,10 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		if (_control_status.flags.opt_flow) {
 			if (continuing_conditions_passing) {
-				fuseOptFlow(H, _hagl_sensor_status.flags.flow);
+
+				if (is_quality_good && is_magnitude_good && is_tilt_good) {
+					fuseOptFlow(H, _hagl_sensor_status.flags.flow);
+				}
 
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
