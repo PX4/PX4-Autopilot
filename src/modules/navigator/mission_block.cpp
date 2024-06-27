@@ -359,6 +359,12 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			}
 
+			// prevent lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
+			// is not achieved.
+			if (_mission_item.nav_cmd == NAV_CMD_WAYPOINT && _navigator->on_mission_landing()) {
+				alt_acc_rad_m = FLT_MAX;
+			}
+
 			bool passed_curr_wp = false;
 
 			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
@@ -672,6 +678,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	} else {
 		sp->acceptance_radius = _navigator->get_default_acceptance_radius();
 	}
+
+	// by default, FW guidance logic will take alt acceptance from NAV_FW_ALT_RAD, in some special cases
+	// we override it after this
+	sp->alt_acceptance_radius = NAN;
 
 	sp->cruising_speed = _navigator->get_cruising_speed();
 	sp->cruising_throttle = _navigator->get_cruising_throttle();
