@@ -213,18 +213,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
 	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim)
 {
-	// advertise expected minimal topic set immediately to ensure logging
-	_attitude_pub.advertise();
-	_local_position_pub.advertise();
-
-	_estimator_event_flags_pub.advertise();
-	_estimator_innovation_test_ratios_pub.advertise();
-	_estimator_innovation_variances_pub.advertise();
-	_estimator_innovations_pub.advertise();
-	_estimator_sensor_bias_pub.advertise();
-	_estimator_states_pub.advertise();
-	_estimator_status_flags_pub.advertise();
-	_estimator_status_pub.advertise();
+	AdvertiseTopics();
 }
 
 EKF2::~EKF2()
@@ -233,120 +222,164 @@ EKF2::~EKF2()
 	perf_free(_msg_missed_imu_perf);
 }
 
-#if defined(CONFIG_EKF2_MULTI_INSTANCE)
-bool EKF2::multi_init(int imu, int mag)
+void EKF2::AdvertiseTopics()
 {
-	// advertise all topics to ensure consistent uORB instance numbering
+	// advertise expected minimal topic set immediately for logging
+	_attitude_pub.advertise();
+	_local_position_pub.advertise();
 	_estimator_event_flags_pub.advertise();
-	_estimator_innovation_test_ratios_pub.advertise();
-	_estimator_innovation_variances_pub.advertise();
-	_estimator_innovations_pub.advertise();
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_estimator_optical_flow_vel_pub.advertise();
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 	_estimator_sensor_bias_pub.advertise();
-	_estimator_states_pub.advertise();
-	_estimator_status_flags_pub.advertise();
 	_estimator_status_pub.advertise();
+	_estimator_status_flags_pub.advertise();
+
+	if (_multi_mode) {
+		// only force advertise these in multi mode to ensure consistent uORB instance numbering
+		_global_position_pub.advertise();
+		_odometry_pub.advertise();
+
+#if defined(CONFIG_EKF2_WIND)
+		_wind_pub.advertise();
+#endif // CONFIG_EKF2_WIND
+	}
 
 #if defined(CONFIG_EKF2_GNSS)
-	_yaw_est_pub.advertise();
+
+	if (_param_ekf2_gps_ctrl.get()) {
+		_estimator_gps_status_pub.advertise();
+		_yaw_est_pub.advertise();
+	}
+
 #endif // CONFIG_EKF2_GNSS
+
+	// verbose logging
+	if (_param_ekf2_log_verbose.get()) {
+		_estimator_innovation_test_ratios_pub.advertise();
+		_estimator_innovation_variances_pub.advertise();
+		_estimator_innovations_pub.advertise();
+		_estimator_states_pub.advertise();
+
+#if defined(CONFIG_EKF2_AIRSPEED)
+
+		if (_param_ekf2_arsp_thr.get() > 0.f) {
+			_estimator_aid_src_airspeed_pub.advertise();
+		}
+
+#endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_BAROMETER)
 
-	// baro advertise
-	if (_param_ekf2_baro_ctrl.get()) {
-		_estimator_aid_src_baro_hgt_pub.advertise();
-		_estimator_baro_bias_pub.advertise();
-	}
+		if (_param_ekf2_baro_ctrl.get()) {
+			_estimator_aid_src_baro_hgt_pub.advertise();
+			_estimator_baro_bias_pub.advertise();
+		}
 
 #endif // CONFIG_EKF2_BAROMETER
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+
+		if (_param_ekf2_drag_ctrl.get()) {
+			_estimator_aid_src_drag_pub.advertise();
+		}
+
+#endif // CONFIG_EKF2_DRAG_FUSION
+
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 
-	// EV advertise
-	if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::VPOS)) {
-		_estimator_aid_src_ev_hgt_pub.advertise();
-		_estimator_ev_pos_bias_pub.advertise();
-	}
+		if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::VPOS)) {
+			_estimator_aid_src_ev_hgt_pub.advertise();
+			_estimator_ev_pos_bias_pub.advertise();
+		}
 
-	if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::HPOS)) {
-		_estimator_aid_src_ev_pos_pub.advertise();
-		_estimator_ev_pos_bias_pub.advertise();
-	}
+		if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::HPOS)) {
+			_estimator_aid_src_ev_pos_pub.advertise();
+			_estimator_ev_pos_bias_pub.advertise();
+		}
 
-	if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::VEL)) {
-		_estimator_aid_src_ev_vel_pub.advertise();
-	}
+		if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::VEL)) {
+			_estimator_aid_src_ev_vel_pub.advertise();
+		}
 
-	if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::YAW)) {
-		_estimator_aid_src_ev_yaw_pub.advertise();
-	}
+		if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::YAW)) {
+			_estimator_aid_src_ev_yaw_pub.advertise();
+		}
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	// GNSS advertise
-	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VPOS)) {
-		_estimator_aid_src_gnss_hgt_pub.advertise();
-		_estimator_gnss_hgt_bias_pub.advertise();
-	}
+		if (_param_ekf2_gps_ctrl.get()) {
+			if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VPOS)) {
+				_estimator_aid_src_gnss_hgt_pub.advertise();
+				_estimator_gnss_hgt_bias_pub.advertise();
+			}
 
-	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::HPOS)) {
-		_estimator_aid_src_gnss_pos_pub.advertise();
-		_estimator_gps_status_pub.advertise();
-	}
+			if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::HPOS)) {
+				_estimator_aid_src_gnss_pos_pub.advertise();
+			}
 
-	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VEL)) {
-		_estimator_aid_src_gnss_vel_pub.advertise();
-	}
+			if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VEL)) {
+				_estimator_aid_src_gnss_vel_pub.advertise();
+			}
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 
-	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::YAW)) {
-		_estimator_aid_src_gnss_yaw_pub.advertise();
-	}
+			if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::YAW)) {
+				_estimator_aid_src_gnss_yaw_pub.advertise();
+			}
 
 # endif // CONFIG_EKF2_GNSS_YAW
+		}
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 
-	if (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GravityVector)) {
-		_estimator_aid_src_gravity_pub.advertise();
-	}
+		if (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GravityVector)) {
+			_estimator_aid_src_gravity_pub.advertise();
+		}
 
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-
-	// RNG advertise
-	if (_param_ekf2_rng_ctrl.get()) {
-		_estimator_aid_src_rng_hgt_pub.advertise();
-	}
-
-#endif // CONFIG_EKF2_RANGE_FINDER
-
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 
-	// mag advertise
-	if (_param_ekf2_mag_type.get() != MagFuseType::NONE) {
-		_estimator_aid_src_mag_pub.advertise();
-	}
+		if (_param_ekf2_mag_type.get() != MagFuseType::NONE) {
+			_estimator_aid_src_mag_pub.advertise();
+		}
 
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	_attitude_pub.advertise();
-	_local_position_pub.advertise();
-	_global_position_pub.advertise();
-	_odometry_pub.advertise();
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
-#if defined(CONFIG_EKF2_WIND)
-	_wind_pub.advertise();
-#endif // CONFIG_EKF2_WIND
+		if (_param_ekf2_of_ctrl.get()) {
+			_estimator_optical_flow_vel_pub.advertise();
+			_estimator_aid_src_optical_flow_pub.advertise();
+		}
 
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+
+		// RNG advertise
+		if (_param_ekf2_rng_ctrl.get()) {
+			_estimator_aid_src_rng_hgt_pub.advertise();
+		}
+
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_SIDESLIP)
+
+		if (_param_ekf2_fuse_beta.get()) {
+			_estimator_aid_src_sideslip_pub.advertise();
+		}
+
+#endif // CONFIG_EKF2_SIDESLIP
+
+	} // end verbose logging
+}
+
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
+bool EKF2::multi_init(int imu, int mag)
+{
 	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -414,6 +447,9 @@ void EKF2::Run()
 		updateParams();
 
 		VerifyParams();
+
+		// force advertise topics immediately for logging (EKF2_LOG_VERBOSE, per aid source control)
+		AdvertiseTopics();
 
 #if defined(CONFIG_EKF2_GNSS)
 		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
@@ -714,24 +750,31 @@ void EKF2::Run()
 
 			// publish status/logging messages
 			PublishEventFlags(now);
-			PublishInnovations(now);
-			PublishInnovationTestRatios(now);
-			PublishInnovationVariances(now);
-			PublishStates(now);
 			PublishStatus(now);
 			PublishStatusFlags(now);
-			PublishAidSourceStatus(now);
+
+			if (_param_ekf2_log_verbose.get()) {
+				PublishAidSourceStatus(now);
+				PublishInnovations(now);
+				PublishInnovationTestRatios(now);
+				PublishInnovationVariances(now);
+				PublishStates(now);
 
 #if defined(CONFIG_EKF2_BAROMETER)
-			PublishBaroBias(now);
+				PublishBaroBias(now);
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-			PublishEvPosBias(now);
+				PublishEvPosBias(now);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-			PublishGnssHgtBias(now);
+				PublishGnssHgtBias(now);
+#endif // CONFIG_EKF2_GNSS
+
+			}
+
+#if defined(CONFIG_EKF2_GNSS)
 			PublishGpsStatus(now);
 			PublishYawEstimatorStatus(now);
 #endif // CONFIG_EKF2_GNSS
