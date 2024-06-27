@@ -590,66 +590,6 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 			}
 		}
 	}
-
-	const hrt_abstime now = hrt_absolute_time();
-
-	/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
-	* for a short time interval after takeoff.
-	* Most of the time, the drone can recover from a bad initial yaw using GPS-inertial
-	* heading estimation (yaw emergency estimator) or GPS heading (fixed wings only), but
-	* if this does not fix the issue we need to stop using a position controlled
-	* mode to prevent flyaway crashes.
-	*/
-
-	if (context.status().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-
-		if (!context.isArmed()) {
-			_nav_test_failed = false;
-			_nav_test_passed = false;
-
-		} else {
-			if (!_nav_test_passed) {
-				// Both test ratios need to pass/fail together to change the nav test status
-				const bool innovation_pass = (estimator_status.vel_test_ratio < 1.f) && (estimator_status.pos_test_ratio < 1.f)
-							     && (estimator_status.vel_test_ratio > FLT_EPSILON) && (estimator_status.pos_test_ratio > FLT_EPSILON);
-
-				const bool innovation_fail = (estimator_status.vel_test_ratio >= 1.f) && (estimator_status.pos_test_ratio >= 1.f);
-
-				if (innovation_pass) {
-					_time_last_innov_pass = now;
-
-					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
-					const bool sufficient_time = (context.status().takeoff_time != 0) && (now > context.status().takeoff_time + 30_s);
-					const bool sufficient_speed = matrix::Vector2f(lpos.vx, lpos.vy).longerThan(5.f);
-
-					// Even if the test already failed, allow it to pass if it did not fail during the last 10 seconds
-					if ((now > _time_last_innov_fail + 10_s) && (sufficient_time || sufficient_speed)) {
-						_nav_test_passed = true;
-						_nav_test_failed = false;
-					}
-
-				} else if (innovation_fail) {
-					_time_last_innov_fail = now;
-
-					if (now > _time_last_innov_pass + 2_s) {
-						// if the innovation test has failed continuously, declare the nav as failed
-						_nav_test_failed = true;
-						/* EVENT
-						 * @description
-						 * Land and recalibrate the sensors.
-						 */
-						reporter.healthFailure(NavModes::All, health_component_t::local_position_estimate,
-								       events::ID("check_estimator_nav_failure"),
-								       events::Log::Emergency, "Navigation failure");
-
-						if (reporter.mavlink_log_pub()) {
-							mavlink_log_critical(reporter.mavlink_log_pub(), "Navigation failure! Land and recalibrate sensors\t");
-						}
-					}
-				}
-			}
-		}
-	}
 }
 
 void EstimatorChecks::checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const
@@ -739,8 +679,8 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	// Check if quality checking of position accuracy and consistency is to be performed
 	const float lpos_eph_threshold = (_param_com_pos_fs_eph.get() < 0) ? INFINITY : _param_com_pos_fs_eph.get();
 
-	bool xy_valid = lpos.xy_valid && !_nav_test_failed;
-	bool v_xy_valid = lpos.v_xy_valid && !_nav_test_failed;
+	bool xy_valid = lpos.xy_valid;
+	bool v_xy_valid = lpos.v_xy_valid;
 
 	if (!context.isArmed()) {
 		if (pre_flt_fail_innov_heading || pre_flt_fail_innov_pos_horiz) {
