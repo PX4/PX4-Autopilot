@@ -307,7 +307,6 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("VOXL_ESC_T_OVER"), &params->esc_over_temp_threshold);
 
 	param_get(param_find("GPIO_CTL_CH"), &params->gpio_ctl_channel);
-	param_get(param_find("GPIO_CTL_CFG"), &params->gpio_ctl_config);
 
 	if (params->rpm_min >= params->rpm_max) {
 		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
@@ -348,12 +347,6 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	if (params->gpio_ctl_channel < 0 || params->gpio_ctl_channel > 6) {
 		PX4_ERR("VOXL_ESC: Invalid parameter GPIO_CTL_CH.  Please verify parameters.");
 		params->gpio_ctl_channel = 0;
-		ret = PX4_ERROR;
-	}
-
-	if (params->gpio_ctl_config < 0 || params->gpio_ctl_config > INT32_MAX) {
-		PX4_ERR("VOXL_ESC: Invalid parameter GPIO_CTL_CFG.  Please verify parameters.");
-		params->gpio_ctl_config = 0;
 		ret = PX4_ERROR;
 	}
 
@@ -1267,7 +1260,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		const int ESC_PACKET_TYPE_GPIO_CMD = 15;
 		uint8_t data[5];
 
-		int esc_id = 0; // TODO un-hardcode this, this should come from gpio_ctl_config?
+		int esc_id = 0; // In future un-hardcode
 		int val = 0;
 
 		if ( _gpio_ctl_high ) {
@@ -1444,7 +1437,7 @@ void VoxlEsc::Run()
 	}
 
 	// check if gpio control is enabled
-	if (_parameters.gpio_ctl_channel > 0 && _parameters.gpio_ctl_config > 0) {
+	if (_parameters.gpio_ctl_channel > 0) {
 
 		if (_manual_control_setpoint_sub.updated()) {
 
@@ -1633,7 +1626,6 @@ void VoxlEsc::print_params()
 	PX4_INFO("Params: VOXL_ESC_T_OVER: %" PRId32, _parameters.esc_over_temp_threshold);
 
 	PX4_INFO("Params: GPIO_CTL_CH: %" PRId32, _parameters.gpio_ctl_channel);
-	PX4_INFO("Params: GPIO_CTL_CFG: %" PRId32, _parameters.gpio_ctl_config);
 }
 
 int VoxlEsc::print_status()

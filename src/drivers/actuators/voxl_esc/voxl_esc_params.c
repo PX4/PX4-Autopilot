@@ -276,17 +276,3 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_OVER, 0);
  * @max 6
  */
 PARAM_DEFINE_INT32(GPIO_CTL_CH, 0);
-
-
-/**
- * GPIO Control Config
- *
- *
- * @reboot_required true
- *
- * @group VOXL ESC
- * @value 0 - Disabled
- * @min 0
- * @max 2147483647
- */
-PARAM_DEFINE_INT32(GPIO_CTL_CFG, 0);
