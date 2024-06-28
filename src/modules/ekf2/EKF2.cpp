@@ -1643,6 +1643,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Distance to bottom surface (ground) in meters, must be positive
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
+	lpos.dist_bottom_var = _ekf.getTerrainVariance();
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 
 	lpos.dist_bottom_sensor_bitfield = vehicle_local_position_s::DIST_BOTTOM_SENSOR_NONE;
