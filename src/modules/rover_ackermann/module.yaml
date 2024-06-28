@@ -66,30 +66,19 @@ parameters:
 
       RA_ACC_RAD_MAX:
         description:
-          short: Maximum acceptance radius
+          short: Maximum acceptance radius for the waypoints
           long: |
             The controller scales the acceptance radius based on the angle between
-            the previous, current and next waypoint. Used as tuning parameter.
+            the previous, current and next waypoint.
             Higher value -> smoother trajectory at the cost of how close the rover gets
-            to the waypoint (Set equal to RA_ACC_RAD_DEF to disable corner cutting).
+            to the waypoint (Set to -1 to disable corner cutting).
         type: float
         unit: m
-        min: 0.1
+        min: -1
         max: 100
         increment: 0.01
         decimal: 2
         default: 3
-
-      RA_ACC_RAD_DEF:
-        description:
-          short: Default acceptance radius
-        type: float
-        unit: m
-        min: 0.1
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 0.5
 
       RA_ACC_RAD_GAIN:
         description:
@@ -110,21 +99,21 @@ parameters:
           short: Default rover velocity during a mission
         type: float
         unit: m/s
-        min: 0.1
+        min: 0
         max: 100
         increment: 0.01
         decimal: 2
-        default: 3
+        default: 2
 
       RA_MISS_VEL_MIN:
         description:
           short: Minimum rover velocity during a mission
           long: |
             The velocity off the rover is reduced based on the corner it has to take
-            to smooth the trajectory (To disable this feature set it equal to RA_MISSION_VEL_DEF)
+            to smooth the trajectory (Set to -1 to disable)
         type: float
         unit: m/s
-        min: 0.1
+        min: -1
         max: 100
         increment: 0.01
         decimal: 2
@@ -133,9 +122,12 @@ parameters:
       RA_MISS_VEL_GAIN:
         description:
           short: Tuning parameter for the velocity reduction during cornering
-          long: Lower value -> More velocity reduction during cornering
+          long: |
+            The cornering speed is equal to the inverse of the acceptance radius
+            of the WP multiplied with this factor.
+            Lower value -> More velocity reduction during cornering.
         type: float
-        min: 0.1
+        min: 0.05
         max: 100
         increment: 0.01
         decimal: 2
@@ -172,6 +164,49 @@ parameters:
         unit: m/s
         min: -1
         max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_ACCEL:
+        description:
+          short: Maximum acceleration for the rover
+          long: |
+            This is used for the acceleration slew rate, the feed-forward term
+            for the speed controller during missions and the corner slow down effect.
+            Note: For the corner slow down effect RA_MAX_JERK, RA_MISS_VEL_GAIN and
+            RA_MISS_VEL_MIN also have to be set.
+        type: float
+        unit: m/s^2
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_JERK:
+        description:
+          short: Maximum jerk
+          long: |
+            Limit for forwards acc/deceleration change.
+            This is used for the corner slow down effect.
+            Note: RA_MAX_ACCEL, RA_MISS_VEL_GAIN and RA_MISS_VEL_MIN also have to be set
+            for this to be enabled.
+        type: float
+        unit: m/s^3
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_STR_RATE:
+        description:
+          short: Maximum steering rate for the rover
+        type: float
+        unit: deg/s
+        min: -1
+        max: 1000
         increment: 0.01
         decimal: 2
         default: -1
