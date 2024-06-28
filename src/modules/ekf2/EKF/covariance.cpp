@@ -138,7 +138,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
 
-	// gyro bias: add process noise unless state is inhibited
+	// gyro bias: add process noise
 	{
 		const float gyro_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
 		const float gyro_bias_process_noise = sq(gyro_bias_sig);
@@ -146,13 +146,13 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
 			const unsigned i = State::gyro_bias.idx + index;
 
-			if (!_gyro_bias_inhibit[index]) {
+			if (P(i, i) < gyro_var) {
 				P(i, i) += gyro_bias_process_noise;
 			}
 		}
 	}
 
-	// accel bias: add process noise unless state is inhibited
+	// accel bias: add process noise
 	{
 		const float accel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
 		const float accel_bias_process_noise = sq(accel_bias_sig);
@@ -160,7 +160,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		for (unsigned index = 0; index < State::accel_bias.dof; index++) {
 			const unsigned i = State::accel_bias.idx + index;
 
-			if (!_accel_bias_inhibit[index]) {
+			if (P(i, i) < accel_var(index)) {
 				P(i, i) += accel_bias_process_noise;
 			}
 		}
