@@ -1644,7 +1644,17 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	// Distance to bottom surface (ground) in meters, must be positive
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
-	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
+
+	lpos.dist_bottom_sensor_bitfield = vehicle_local_position_s::DIST_BOTTOM_SENSOR_NONE;
+
+	if (_ekf.control_status_flags().rng_terrain) {
+		lpos.dist_bottom_sensor_bitfield |= vehicle_local_position_s::DIST_BOTTOM_SENSOR_RANGE;
+	}
+
+	if (_ekf.control_status_flags().opt_flow_terrain) {
+		lpos.dist_bottom_sensor_bitfield |= vehicle_local_position_s::DIST_BOTTOM_SENSOR_FLOW;
+	}
+
 #endif // CONFIG_EKF2_TERRAIN
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
@@ -1937,6 +1947,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_ev_yaw_fault            = _ekf.control_status_flags().ev_yaw_fault;
 		status_flags.cs_mag_heading_consistent  = _ekf.control_status_flags().mag_heading_consistent;
 		status_flags.cs_aux_gpos                = _ekf.control_status_flags().aux_gpos;
+		status_flags.cs_rng_terrain    = _ekf.control_status_flags().rng_terrain;
+		status_flags.cs_opt_flow_terrain    = _ekf.control_status_flags().opt_flow_terrain;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;

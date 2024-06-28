@@ -43,6 +43,8 @@ bool cs_mag                     # 35 - true if 3-axis magnetometer measurement f
 bool cs_ev_yaw_fault            # 36 - true when the EV heading has been declared faulty and is no longer being used
 bool cs_mag_heading_consistent  # 37 - true when the heading obtained from mag data is declared consistent with the filter
 bool cs_aux_gpos                # 38 - true if auxiliary global position measurement fusion is intended
+bool cs_rng_terrain             # 39 - true if we are fusing range finder data for terrain
+bool cs_opt_flow_terrain        # 40 - true if we are fusing flow data for terrain
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes
