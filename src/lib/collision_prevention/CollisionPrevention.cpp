@@ -208,7 +208,7 @@ CollisionPrevention::_updateObstacleMap()
 
 		if (dist_sens_sub.update(&distance_sensor)) {
 			// consider only instances with valid data and orientations useful for collision prevention
-			if ((getElapsedTime(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
+			if ((getElapsedTime(&distance_sensor.timestamp_sample) < RANGE_STREAM_TIMEOUT_US) &&
 			    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
 			    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 

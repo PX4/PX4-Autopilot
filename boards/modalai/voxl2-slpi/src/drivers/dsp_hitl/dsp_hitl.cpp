@@ -629,13 +629,14 @@ void handle_message_distance_sensor(mavlink_message_t *msg)
 
 	distance_sensor_s ds{};
 
+	ds.timestamp_sample = hrt_absolute_time();
+
 	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
 	device_id.devid_s.bus = 1;
 	device_id.devid_s.address = msg->sysid;
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
 
-	ds.timestamp        = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
 	ds.min_distance     = static_cast<float>(dist_sensor.min_distance) * 1e-2f;     /* cm to m */
 	ds.max_distance     = static_cast<float>(dist_sensor.max_distance) * 1e-2f;     /* cm to m */
 	ds.current_distance = static_cast<float>(dist_sensor.current_distance) * 1e-2f; /* cm to m */
@@ -654,6 +655,8 @@ void handle_message_distance_sensor(mavlink_message_t *msg)
 	// quality value. Also it comes normalised between 1 and 100 while the uORB
 	// signal quality is normalised between 0 and 100.
 	ds.signal_quality = dist_sensor.signal_quality == 0 ? -1 : 100 * (dist_sensor.signal_quality - 1) / 99;
+
+	ds.timestamp      = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
 
 	_distance_sensor_pub.publish(ds);
 
