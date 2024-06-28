@@ -10,13 +10,15 @@ on:
 jobs:
   enumerate_targets:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{secrets.ACCESS_TOKEN}}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py)"
   build:
@@ -29,9 +31,11 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{secrets.ACCESS_TOKEN}}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: ownership workaround
-      run: git config --system --add safe.directory '*'
+      run: git config --global --add safe.directory '*'
 
     - name: make ${{matrix.target}}
       run: make ${{matrix.target}}

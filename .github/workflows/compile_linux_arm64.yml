@@ -14,7 +14,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-aarch64:2022-08-12
+    container: px4io/px4-dev-aarch64:2024-05-18
     strategy:
       matrix:
         config: [
@@ -24,6 +24,8 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{secrets.ACCESS_TOKEN}}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp

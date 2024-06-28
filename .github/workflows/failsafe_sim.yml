@@ -21,12 +21,14 @@ jobs:
           "failsafe_web",
         ]
     container:
-      image: px4io/px4-dev-nuttx-focal:2022-08-12
+      image: px4io/px4-dev-nuttx-jammy:2024-05-18
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: check environment
       run: |
