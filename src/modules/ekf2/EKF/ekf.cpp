@@ -113,8 +113,6 @@ void Ekf::reset()
 
 	_last_known_pos.setZero();
 
-	_time_acc_bias_check = 0;
-
 #if defined(CONFIG_EKF2_BAROMETER)
 	_baro_counter = 0;
 #endif // CONFIG_EKF2_BAROMETER

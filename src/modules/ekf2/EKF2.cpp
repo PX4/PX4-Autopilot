@@ -1942,7 +1942,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.fs_bad_sideslip          = _ekf.fault_status_flags().bad_sideslip;
 		status_flags.fs_bad_optflow_x         = _ekf.fault_status_flags().bad_optflow_X;
 		status_flags.fs_bad_optflow_y         = _ekf.fault_status_flags().bad_optflow_Y;
-		status_flags.fs_bad_acc_bias          = _ekf.fault_status_flags().bad_acc_bias;
 		status_flags.fs_bad_acc_vertical      = _ekf.fault_status_flags().bad_acc_vertical;
 		status_flags.fs_bad_acc_clipping      = _ekf.fault_status_flags().bad_acc_clipping;
 
@@ -2654,7 +2653,6 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 	const bool bias_valid = (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::AccelBias))
 				&& _ekf.control_status_flags().tilt_align
 				&& (_ekf.fault_status().value == 0)
-				&& !_ekf.fault_status_flags().bad_acc_bias
 				&& !_ekf.fault_status_flags().bad_acc_clipping
 				&& !_ekf.fault_status_flags().bad_acc_vertical;
 
