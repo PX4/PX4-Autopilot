@@ -706,7 +706,7 @@ private:
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
 	uint64_t _time_good_vert_accel{0};	///< last time a good vertical accel was detected (uSec)
-	uint16_t _clip_counter{0};		///< counter that increments when clipping ad decrements when not
+	uint16_t _clip_counter[3];		///< counter per axis that increments when clipping ad decrements when not
 
 	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);
