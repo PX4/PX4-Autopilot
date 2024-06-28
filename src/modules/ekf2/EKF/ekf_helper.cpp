@@ -266,7 +266,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		float flow_hagl_max = _flow_max_distance;
 
 		// only limit optical flow height is dependent on range finder or terrain estimate invalid (precaution)
-		if ((!_hagl_sensor_status.flags.flow && _hagl_sensor_status.flags.range_finder)
+		if ((!_control_status.flags.opt_flow_terrain && _control_status.flags.rng_terrain)
 		    || !isTerrainEstimateValid()
 		   ) {
 			flow_hagl_min = math::max(flow_hagl_min, rangefinder_hagl_min);
@@ -472,7 +472,7 @@ float Ekf::getHeightAboveGroundInnovationTestRatio() const
 
 #if defined(CONFIG_EKF2_TERRAIN)
 # if defined(CONFIG_EKF2_RANGE_FINDER)
-	if (_hagl_sensor_status.flags.range_finder) {
+	if (_control_status.flags.rng_terrain) {
 		// return the terrain height innovation test ratio
 		test_ratio = math::max(test_ratio, fabsf(_aid_src_rng_hgt.test_ratio_filtered));
 	}

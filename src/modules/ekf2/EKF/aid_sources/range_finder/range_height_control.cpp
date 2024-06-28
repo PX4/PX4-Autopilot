@@ -112,11 +112,11 @@ void Ekf::controlRangeHaglFusion()
 				&& _range_sensor.isRegularlySendingData();
 
 
-		const bool do_conditional_range_aid = (_hagl_sensor_status.flags.range_finder || _control_status.flags.rng_hgt)
+		const bool do_conditional_range_aid = (_control_status.flags.rng_terrain || _control_status.flags.rng_hgt)
 						      && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
 						      && isConditionalRangeAidSuitable();
 
-		const bool do_range_aid = (_hagl_sensor_status.flags.range_finder || _control_status.flags.rng_hgt)
+		const bool do_range_aid = (_control_status.flags.rng_terrain || _control_status.flags.rng_hgt)
 					  && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED));
 
 		if (_control_status.flags.rng_hgt) {
@@ -135,7 +135,7 @@ void Ekf::controlRangeHaglFusion()
 					_control_status.flags.rng_hgt = true;
 					stopRngTerrFusion();
 
-					if (!_hagl_sensor_status.flags.flow && aid_src.innovation_rejected) {
+					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected) {
 						resetTerrainToRng(aid_src);
 					}
 
@@ -159,17 +159,17 @@ void Ekf::controlRangeHaglFusion()
 					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
 					_control_status.flags.rng_hgt = true;
 
-					if (!_hagl_sensor_status.flags.flow && aid_src.innovation_rejected) {
+					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected) {
 						resetTerrainToRng(aid_src);
 					}
 				}
 			}
 		}
 
-		if (_control_status.flags.rng_hgt || _hagl_sensor_status.flags.range_finder) {
+		if (_control_status.flags.rng_hgt || _control_status.flags.rng_terrain) {
 			if (continuing_conditions_passing) {
 
-				fuseHaglRng(aid_src, _control_status.flags.rng_hgt, _hagl_sensor_status.flags.range_finder);
+				fuseHaglRng(aid_src, _control_status.flags.rng_hgt, _control_status.flags.rng_terrain);
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
@@ -187,7 +187,7 @@ void Ekf::controlRangeHaglFusion()
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
-					if (_hagl_sensor_status.flags.flow && isTerrainEstimateValid()) {
+					if (_control_status.flags.opt_flow_terrain && isTerrainEstimateValid()) {
 						ECL_WARN("stopping %s fusion, fusion failing", HGT_SRC_NAME);
 						stopRngHgtFusion();
 						stopRngTerrFusion();
@@ -205,10 +205,10 @@ void Ekf::controlRangeHaglFusion()
 
 		} else {
 			if (starting_conditions_passing) {
-				if (_hagl_sensor_status.flags.flow) {
+				if (_control_status.flags.opt_flow_terrain) {
 					if (!aid_src.innovation_rejected) {
-						_hagl_sensor_status.flags.range_finder = true;
-						fuseHaglRng(aid_src, _control_status.flags.rng_hgt, _hagl_sensor_status.flags.range_finder);
+						_control_status.flags.rng_terrain = true;
+						fuseHaglRng(aid_src, _control_status.flags.rng_hgt, _control_status.flags.rng_terrain);
 					}
 
 				} else {
@@ -216,12 +216,12 @@ void Ekf::controlRangeHaglFusion()
 						resetTerrainToRng(aid_src);
 					}
 
-					_hagl_sensor_status.flags.range_finder = true;
+					_control_status.flags.rng_terrain = true;
 				}
 			}
 		}
 
-	} else if ((_control_status.flags.rng_hgt || _hagl_sensor_status.flags.range_finder)
+	} else if ((_control_status.flags.rng_hgt || _control_status.flags.rng_terrain)
 		   && !isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
 		ECL_WARN("stopping %s fusion, no data", HGT_SRC_NAME);
@@ -317,5 +317,5 @@ void Ekf::stopRngHgtFusion()
 
 void Ekf::stopRngTerrFusion()
 {
-	_hagl_sensor_status.flags.range_finder = false;
+	_control_status.flags.rng_terrain = false;
 }
