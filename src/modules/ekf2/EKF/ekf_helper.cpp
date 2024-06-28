@@ -244,8 +244,8 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	// Calculate range finder limits
 	const float rangefinder_hagl_min = _range_sensor.getValidMinVal();
 
-	// Allow use of 75% of rangefinder maximum range to allow for angular motion
-	const float rangefinder_hagl_max = 0.75f * _range_sensor.getValidMaxVal();
+	// Allow use of 90% of rangefinder maximum range to allow for angular motion
+	const float rangefinder_hagl_max = 0.9f * _range_sensor.getValidMaxVal();
 
 	// TODO : calculate visual odometry limits
 	const bool relying_on_rangefinder = isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.rng_hgt);
@@ -262,8 +262,16 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 
 	if (relying_on_optical_flow) {
 		// Calculate optical flow limits
-		const float flow_hagl_min = fmaxf(rangefinder_hagl_min, _flow_min_distance);
-		const float flow_hagl_max = fminf(rangefinder_hagl_max, _flow_max_distance);
+		float flow_hagl_min = _flow_min_distance;
+		float flow_hagl_max = _flow_max_distance;
+
+		// only limit optical flow height is dependent on range finder or terrain estimate invalid (precaution)
+		if ((!_hagl_sensor_status.flags.flow && _hagl_sensor_status.flags.range_finder)
+		    || !isTerrainEstimateValid()
+		   ) {
+			flow_hagl_min = math::max(flow_hagl_min, rangefinder_hagl_min);
+			flow_hagl_max = math::min(flow_hagl_max, rangefinder_hagl_max);
+		}
 
 		const float flow_constrained_height = math::constrain(getHagl(), flow_hagl_min, flow_hagl_max);
 
