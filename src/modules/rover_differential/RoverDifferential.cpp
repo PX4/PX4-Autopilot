@@ -31,37 +31,37 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDrive.hpp"
+#include "RoverDifferential.hpp"
 
-DifferentialDrive::DifferentialDrive() :
+RoverDifferential::RoverDifferential() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 	updateParams();
 }
 
-bool DifferentialDrive::init()
+bool RoverDifferential::init()
 {
 	ScheduleOnInterval(10_ms); // 100 Hz
 	return true;
 }
 
-void DifferentialDrive::updateParams()
+void RoverDifferential::updateParams()
 {
 	ModuleParams::updateParams();
 
-	_differential_drive_kinematics.setWheelBase(_param_rdd_wheel_base.get());
+	_rover_differential_kinematics.setWheelBase(_param_rdd_wheel_base.get());
 
 	_max_speed = _param_rdd_wheel_speed.get() * _param_rdd_wheel_radius.get();
-	_differential_drive_guidance.setMaxSpeed(_max_speed);
-	_differential_drive_kinematics.setMaxSpeed(_max_speed);
+	_rover_differential_guidance.setMaxSpeed(_max_speed);
+	_rover_differential_kinematics.setMaxSpeed(_max_speed);
 
 	_max_angular_velocity = _max_speed / (_param_rdd_wheel_base.get() / 2.f);
-	_differential_drive_guidance.setMaxAngularVelocity(_max_angular_velocity);
-	_differential_drive_kinematics.setMaxAngularVelocity(_max_angular_velocity);
+	_rover_differential_guidance.setMaxAngularVelocity(_max_angular_velocity);
+	_rover_differential_kinematics.setMaxAngularVelocity(_max_angular_velocity);
 }
 
-void DifferentialDrive::Run()
+void RoverDifferential::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -94,7 +94,7 @@ void DifferentialDrive::Run()
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			const bool spooled_up = armed && (hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s);
-			_differential_drive_kinematics.setArmed(spooled_up);
+			_rover_differential_kinematics.setArmed(spooled_up);
 			_acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
 		}
 	}
@@ -106,7 +106,7 @@ void DifferentialDrive::Run()
 			manual_control_setpoint_s manual_control_setpoint{};
 
 			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
-				differential_drive_setpoint_s setpoint{};
+				rover_differential_setpoint_s setpoint{};
 				setpoint.speed = manual_control_setpoint.throttle * math::max(0.f, _param_rdd_speed_scale.get()) * _max_speed;
 				setpoint.yaw_rate = manual_control_setpoint.roll * _param_rdd_ang_velocity_scale.get() * _max_angular_velocity;
 
@@ -121,27 +121,27 @@ void DifferentialDrive::Run()
 				}
 
 				setpoint.timestamp = now;
-				_differential_drive_setpoint_pub.publish(setpoint);
+				_rover_differential_setpoint_pub.publish(setpoint);
 			}
 		}
 
 	} else if (_mission_driving) {
 		// Mission mode
 		// directly receive setpoints from the guidance library
-		_differential_drive_guidance.computeGuidance(
-			_differential_drive_control.getVehicleYaw(),
-			_differential_drive_control.getVehicleBodyYawRate(),
+		_rover_differential_guidance.computeGuidance(
+			_rover_differential_control.getVehicleYaw(),
+			_rover_differential_control.getVehicleBodyYawRate(),
 			dt
 		);
 	}
 
-	_differential_drive_control.control(dt);
-	_differential_drive_kinematics.allocate();
+	_rover_differential_control.control(dt);
+	_rover_differential_kinematics.allocate();
 }
 
-int DifferentialDrive::task_spawn(int argc, char *argv[])
+int RoverDifferential::task_spawn(int argc, char *argv[])
 {
-	DifferentialDrive *instance = new DifferentialDrive();
+	RoverDifferential *instance = new RoverDifferential();
 
 	if (instance) {
 		_object.store(instance);
@@ -162,12 +162,12 @@ int DifferentialDrive::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int DifferentialDrive::custom_command(int argc, char *argv[])
+int RoverDifferential::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int DifferentialDrive::print_usage(const char *reason)
+int RoverDifferential::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_ERR("%s\n", reason);
@@ -176,16 +176,16 @@ int DifferentialDrive::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Rover Differential Drive controller.
+Rover Differential controller.
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("differential_drive", "controller");
+	PRINT_MODULE_USAGE_NAME("rover_differential", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
 
-extern "C" __EXPORT int differential_drive_main(int argc, char *argv[])
+extern "C" __EXPORT int rover_differential_main(int argc, char *argv[])
 {
-	return DifferentialDrive::main(argc, argv);
+	return RoverDifferential::main(argc, argv);
 }

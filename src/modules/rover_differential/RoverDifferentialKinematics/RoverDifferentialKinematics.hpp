@@ -38,7 +38,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/differential_drive_setpoint.h>
+#include <uORB/topics/rover_differential_setpoint.h>
 
 /**
  * @brief Differential Drive Kinematics class for computing the kinematics of a differential drive robot.
@@ -46,11 +46,11 @@
  * This class provides functions to set the wheel base and radius, and to compute the inverse kinematics
  * given linear velocity and yaw rate.
  */
-class DifferentialDriveKinematics : public ModuleParams
+class RoverDifferentialKinematics : public ModuleParams
 {
 public:
-	DifferentialDriveKinematics(ModuleParams *parent);
-	~DifferentialDriveKinematics() = default;
+	RoverDifferentialKinematics(ModuleParams *parent);
+	~RoverDifferentialKinematics() = default;
 
 	/**
 	 * @brief Sets the wheel base of the robot.
@@ -87,10 +87,10 @@ public:
 	matrix::Vector2f computeInverseKinematics(float linear_velocity_x, float yaw_rate) const;
 
 private:
-	uORB::Subscription _differential_drive_control_output_sub{ORB_ID(differential_drive_control_output)};
+	uORB::Subscription _rover_differential_control_output_sub{ORB_ID(rover_differential_control_output)};
 	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
 
-	differential_drive_setpoint_s _differential_drive_control_output{};
+	rover_differential_setpoint_s _rover_differential_control_output{};
 	bool _armed = false;
 
 	float _wheel_base{0.f};

@@ -31,17 +31,17 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDriveControl.hpp"
+#include "RoverDifferentialControl.hpp"
 
 using namespace matrix;
 
-DifferentialDriveControl::DifferentialDriveControl(ModuleParams *parent) : ModuleParams(parent)
+RoverDifferentialControl::RoverDifferentialControl(ModuleParams *parent) : ModuleParams(parent)
 {
 	pid_init(&_pid_angular_velocity, PID_MODE_DERIVATIV_NONE, 0.001f);
 	pid_init(&_pid_speed, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
-void DifferentialDriveControl::updateParams()
+void RoverDifferentialControl::updateParams()
 {
 	ModuleParams::updateParams();
 
@@ -60,7 +60,7 @@ void DifferentialDriveControl::updateParams()
 			   200); // Output limit
 }
 
-void DifferentialDriveControl::control(float dt)
+void RoverDifferentialControl::control(float dt)
 {
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};
@@ -89,21 +89,21 @@ void DifferentialDriveControl::control(float dt)
 		}
 	}
 
-	_differential_drive_setpoint_sub.update(&_differential_drive_setpoint);
+	_rover_differential_setpoint_sub.update(&_rover_differential_setpoint);
 
 	// PID to reach setpoint using control_output
-	differential_drive_setpoint_s differential_drive_control_output = _differential_drive_setpoint;
+	rover_differential_setpoint_s rover_differential_control_output = _rover_differential_setpoint;
 
-	if (_differential_drive_setpoint.closed_loop_speed_control) {
-		differential_drive_control_output.speed +=
-			pid_calculate(&_pid_speed, _differential_drive_setpoint.speed, _vehicle_forward_speed, 0, dt);
+	if (_rover_differential_setpoint.closed_loop_speed_control) {
+		rover_differential_control_output.speed +=
+			pid_calculate(&_pid_speed, _rover_differential_setpoint.speed, _vehicle_forward_speed, 0, dt);
 	}
 
-	if (_differential_drive_setpoint.closed_loop_yaw_rate_control) {
-		differential_drive_control_output.yaw_rate +=
-			pid_calculate(&_pid_angular_velocity, _differential_drive_setpoint.yaw_rate, _vehicle_body_yaw_rate, 0, dt);
+	if (_rover_differential_setpoint.closed_loop_yaw_rate_control) {
+		rover_differential_control_output.yaw_rate +=
+			pid_calculate(&_pid_angular_velocity, _rover_differential_setpoint.yaw_rate, _vehicle_body_yaw_rate, 0, dt);
 	}
 
-	differential_drive_control_output.timestamp = hrt_absolute_time();
-	_differential_drive_control_output_pub.publish(differential_drive_control_output);
+	rover_differential_control_output.timestamp = hrt_absolute_time();
+	_rover_differential_control_output_pub.publish(rover_differential_control_output);
 }

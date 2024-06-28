@@ -40,24 +40,24 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/differential_drive_setpoint.h>
+#include <uORB/topics/rover_differential_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 
-#include "DifferentialDriveControl/DifferentialDriveControl.hpp"
-#include "DifferentialDriveGuidance/DifferentialDriveGuidance.hpp"
-#include "DifferentialDriveKinematics/DifferentialDriveKinematics.hpp"
+#include "RoverDifferentialControl/RoverDifferentialControl.hpp"
+#include "RoverDifferentialGuidance/RoverDifferentialGuidance.hpp"
+#include "RoverDifferentialKinematics/RoverDifferentialKinematics.hpp"
 
 using namespace time_literals;
 
-class DifferentialDrive : public ModuleBase<DifferentialDrive>, public ModuleParams,
+class RoverDifferential : public ModuleBase<RoverDifferential>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
-	DifferentialDrive();
-	~DifferentialDrive() override = default;
+	RoverDifferential();
+	~RoverDifferential() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -80,16 +80,16 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
+	uORB::Publication<rover_differential_setpoint_s> _rover_differential_setpoint_pub{ORB_ID(rover_differential_setpoint)};
 
 	bool _manual_driving = false;
 	bool _mission_driving = false;
 	bool _acro_driving = false;
 	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
 
-	DifferentialDriveGuidance _differential_drive_guidance{this};
-	DifferentialDriveControl _differential_drive_control{this};
-	DifferentialDriveKinematics _differential_drive_kinematics{this};
+	RoverDifferentialGuidance _rover_differential_guidance{this};
+	RoverDifferentialControl _rover_differential_control{this};
+	RoverDifferentialKinematics _rover_differential_kinematics{this};
 
 	float _max_speed{0.f};
 	float _max_angular_velocity{0.f};

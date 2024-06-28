@@ -46,7 +46,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/differential_drive_setpoint.h>
+#include <uORB/topics/rover_differential_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 
@@ -65,15 +65,15 @@ enum class GuidanceState {
 /**
  * @brief Class for differential drive guidance.
  */
-class DifferentialDriveGuidance : public ModuleParams
+class RoverDifferentialGuidance : public ModuleParams
 {
 public:
 	/**
-	 * @brief Constructor for DifferentialDriveGuidance.
+	 * @brief Constructor for RoverDifferentialGuidance.
 	 * @param parent The parent ModuleParams object.
 	 */
-	DifferentialDriveGuidance(ModuleParams *parent);
-	~DifferentialDriveGuidance() = default;
+	RoverDifferentialGuidance(ModuleParams *parent);
+	~RoverDifferentialGuidance() = default;
 
 	/**
 	 * @brief Compute guidance for the vehicle.
@@ -112,7 +112,7 @@ private:
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 
-	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
+	uORB::Publication<rover_differential_setpoint_s> _rover_differential_setpoint_pub{ORB_ID(rover_differential_setpoint)};
 
 	position_setpoint_triplet_s _position_setpoint_triplet{};
 	vehicle_global_position_s _vehicle_global_position{};

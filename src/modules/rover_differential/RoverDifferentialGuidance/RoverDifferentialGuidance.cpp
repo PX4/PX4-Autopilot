@@ -31,20 +31,20 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDriveGuidance.hpp"
+#include "RoverDifferentialGuidance.hpp"
 
 #include <mathlib/math/Limits.hpp>
 
 using namespace matrix;
 
-DifferentialDriveGuidance::DifferentialDriveGuidance(ModuleParams *parent) : ModuleParams(parent)
+RoverDifferentialGuidance::RoverDifferentialGuidance(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
 
 	pid_init(&_heading_p_controller, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
-void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocity, float dt)
+void RoverDifferentialGuidance::computeGuidance(float yaw, float angular_velocity, float dt)
 {
 	if (_position_setpoint_triplet_sub.updated()) {
 		_position_setpoint_triplet_sub.copy(&_position_setpoint_triplet);
@@ -110,18 +110,18 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	float angular_velocity_pid = pid_calculate(&_heading_p_controller, heading_error, angular_velocity, 0,
 				     dt) + heading_error;
 
-	differential_drive_setpoint_s output{};
+	rover_differential_setpoint_s output{};
 	output.speed = math::constrain(desired_speed, -_max_speed, _max_speed);
 	output.yaw_rate = math::constrain(angular_velocity_pid, -_max_angular_velocity, _max_angular_velocity);
 	output.closed_loop_speed_control = output.closed_loop_yaw_rate_control = true;
 	output.timestamp = hrt_absolute_time();
 
-	_differential_drive_setpoint_pub.publish(output);
+	_rover_differential_setpoint_pub.publish(output);
 
 	_current_waypoint = current_waypoint;
 }
 
-void DifferentialDriveGuidance::updateParams()
+void RoverDifferentialGuidance::updateParams()
 {
 	ModuleParams::updateParams();
 

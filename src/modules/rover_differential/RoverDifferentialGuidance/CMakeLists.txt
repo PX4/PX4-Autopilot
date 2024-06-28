@@ -31,8 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(DifferentialDriveGuidance
-	DifferentialDriveGuidance.cpp
+px4_add_library(RoverDifferentialGuidance
+	RoverDifferentialGuidance.cpp
 )
 
-target_include_directories(DifferentialDriveGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(RoverDifferentialGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

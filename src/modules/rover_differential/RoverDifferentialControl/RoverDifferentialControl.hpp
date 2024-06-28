@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file DifferentialDriveControl.hpp
+ * @file RoverDifferentialControl.hpp
  *
  * Controller for heading rate and forward speed.
  */
@@ -44,16 +44,16 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/differential_drive_setpoint.h>
+#include <uORB/topics/rover_differential_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-class DifferentialDriveControl : public ModuleParams
+class RoverDifferentialControl : public ModuleParams
 {
 public:
-	DifferentialDriveControl(ModuleParams *parent);
-	~DifferentialDriveControl() = default;
+	RoverDifferentialControl(ModuleParams *parent);
+	~RoverDifferentialControl() = default;
 
 	void control(float dt);
 	float getVehicleBodyYawRate() const { return _vehicle_body_yaw_rate; }
@@ -63,14 +63,14 @@ protected:
 	void updateParams() override;
 
 private:
-	uORB::Subscription _differential_drive_setpoint_sub{ORB_ID(differential_drive_setpoint)};
+	uORB::Subscription _rover_differential_setpoint_sub{ORB_ID(rover_differential_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
-	uORB::Publication<differential_drive_setpoint_s> _differential_drive_control_output_pub{ORB_ID(differential_drive_control_output)};
+	uORB::Publication<rover_differential_setpoint_s> _rover_differential_control_output_pub{ORB_ID(rover_differential_control_output)};
 
-	differential_drive_setpoint_s _differential_drive_setpoint{};
+	rover_differential_setpoint_s _rover_differential_setpoint{};
 
 	matrix::Quatf _vehicle_attitude_quaternion{};
 	float _vehicle_yaw{0.f};

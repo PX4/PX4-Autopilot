@@ -1,7 +1,7 @@
-module_name: Differential Drive
+module_name: Rover Differential
 
 parameters:
-  - group: Rover Differential Drive
+  - group: Rover Differential
     definitions:
       RDD_WHEEL_BASE:
         description:

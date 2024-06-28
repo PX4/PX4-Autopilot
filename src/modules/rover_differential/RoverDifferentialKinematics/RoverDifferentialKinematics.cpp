@@ -31,28 +31,28 @@
  *
  ****************************************************************************/
 
-#include "DifferentialDriveKinematics.hpp"
+#include "RoverDifferentialKinematics.hpp"
 
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
 using namespace time_literals;
 
-DifferentialDriveKinematics::DifferentialDriveKinematics(ModuleParams *parent) : ModuleParams(parent)
+RoverDifferentialKinematics::RoverDifferentialKinematics(ModuleParams *parent) : ModuleParams(parent)
 {}
 
-void DifferentialDriveKinematics::allocate()
+void RoverDifferentialKinematics::allocate()
 {
 	hrt_abstime now = hrt_absolute_time();
 
-	if (_differential_drive_control_output_sub.updated()) {
-		_differential_drive_control_output_sub.copy(&_differential_drive_control_output);
+	if (_rover_differential_control_output_sub.updated()) {
+		_rover_differential_control_output_sub.copy(&_rover_differential_control_output);
 	}
 
-	const bool setpoint_timeout = (_differential_drive_control_output.timestamp + 100_ms) < now;
+	const bool setpoint_timeout = (_rover_differential_control_output.timestamp + 100_ms) < now;
 
 	Vector2f wheel_speeds =
-		computeInverseKinematics(_differential_drive_control_output.speed, _differential_drive_control_output.yaw_rate);
+		computeInverseKinematics(_rover_differential_control_output.speed, _rover_differential_control_output.yaw_rate);
 
 	if (!_armed || setpoint_timeout) {
 		wheel_speeds = {}; // stop
@@ -67,7 +67,7 @@ void DifferentialDriveKinematics::allocate()
 	_actuator_motors_pub.publish(actuator_motors);
 }
 
-matrix::Vector2f DifferentialDriveKinematics::computeInverseKinematics(float linear_velocity_x, float yaw_rate) const
+matrix::Vector2f RoverDifferentialKinematics::computeInverseKinematics(float linear_velocity_x, float yaw_rate) const
 {
 	if (_max_speed < FLT_EPSILON) {
 		return Vector2f();
