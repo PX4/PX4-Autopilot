@@ -100,8 +100,6 @@ public:
 	// terrain estimate
 	bool isTerrainEstimateValid() const;
 
-	uint8_t getTerrainEstimateSensorBitfield() const { return _hagl_sensor_status.value; }
-
 	// get the estimated terrain vertical position relative to the NED origin
 	float getTerrainVertPos() const { return _state.terrain; };
 	float getHagl() const { return _state.terrain - _state.pos(2); }
@@ -585,7 +583,6 @@ private:
 	// Terrain height state estimation
 	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
 
-	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
 #endif // CONFIG_EKF2_TERRAIN
 
