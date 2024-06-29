@@ -30,6 +30,7 @@ parameters:
                 10: Helicopter (tail ESC)
                 11: Helicopter (tail Servo)
                 12: Helicopter (Coaxial)
+                13: Boat (Differential)
             default: 0
 
         CA_METHOD:
@@ -1140,3 +1141,12 @@ mixer:
                     parameters:
                       - label: 'Throttle spoolup time'
                         name: COM_SPOOLUP_TIME
+            13: # Boat (Differential)
+                            title: 'Boat (Differential)'
+                            actuators:
+                              - actuator_type: 'motor'
+                                instances:
+                                  - name: 'Right Motor'
+                                    position: [ 0, 1., 0 ]
+                                  - name: 'Left Motor'
+                                    position: [ 0, -1., 0 ]
