@@ -1418,7 +1418,7 @@ void Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_
 	command_ack.from_external = false;
 
 	command_ack.result = result;
-	command_ack.result_param1 = 0;
+	command_ack.progress = 0;
 	command_ack.result_param2 = 0;
 
 	_vehicle_cmd_ack_pub.publish(command_ack);

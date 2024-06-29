@@ -251,7 +251,7 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 
 		case vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED:
 		default:
-			switch (command_ack.result_param1) {
+			switch (command_ack.progress) { // It's not used as progress but as protocol parameter for arm authorization
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_NONE:
 				/* Authorizer will send reason to ground station */
 				break;

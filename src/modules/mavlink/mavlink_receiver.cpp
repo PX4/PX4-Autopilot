@@ -127,7 +127,7 @@ MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, ui
 	command_ack.result = result;
 	command_ack.target_system = sysid;
 	command_ack.target_component = compid;
-	command_ack.result_param1 = progress;
+	command_ack.progress = progress;
 
 	_cmd_ack_pub.publish(command_ack);
 }
@@ -771,7 +771,7 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 	command_ack.command = ack.command;
 	command_ack.result = ack.result;
 	command_ack.from_external = true;
-	command_ack.result_param1 = ack.progress;
+	command_ack.progress = ack.progress;
 	command_ack.target_system = ack.target_system;
 	command_ack.target_component = ack.target_component;
 
