@@ -765,13 +765,14 @@ void Mavlink::send_finish()
 	int ret = -1;
 
 	// send message to UART
-	if (get_protocol() == Protocol::SERIAL) {
+	switch (get_protocol()) {
+	case Protocol::SERIAL:
 		ret = ::write(_uart_fd, _buf, _buf_fill);
-	}
+		break;
 
 #if defined(MAVLINK_UDP)
 
-	else if (get_protocol() == Protocol::UDP) {
+	case Protocol::UDP:
 
 # if defined(CONFIG_NET)
 
@@ -805,9 +806,14 @@ void Mavlink::send_finish()
 				}
 			}
 		}
-	}
+
+		break;
 
 #endif // MAVLINK_UDP
+
+	default:
+		break;
+	}
 
 	if (ret == (int)_buf_fill) {
 		_tstatus.tx_message_count++;
