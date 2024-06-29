@@ -118,13 +118,13 @@ int GZBridge::init()
 		}
 
 		//world/$WORLD/create service.
-		gz::msgs::Boolean rep;
-		bool result;
 		std::string create_service = "/world/" + _world_name + "/create";
 
-		bool gz_called = false;
 		// Check if PX4_GZ_STANDALONE has been set.
 		char *standalone_val = std::getenv("PX4_GZ_STANDALONE");
+		bool gz_called = false;
+		gz::msgs::Boolean rep;
+		bool result;
 
 		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "1") == 0)) {
 			// Check if Gazebo has been called and if not attempt to reconnect.
@@ -150,16 +150,20 @@ int GZBridge::init()
 
 		// If PX4_GZ_STANDALONE has been set, you can try to connect but GZ_SIM_RESOURCE_PATH needs to be set correctly to work.
 		else {
-			if (_node.Request(create_service, req, 1000, rep, result)) {
-				if (!rep.data() || !result) {
-					PX4_ERR("EntityFactory service call failed.");
-					return PX4_ERROR;
-				}
-
-			} else {
-				PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+			if (!callEntityFactoryService(create_service, req)) {
 				return PX4_ERROR;
 			}
+
+			system_usleep(2000000);
+
+			gz::msgs::StringMsg follow_msg{};
+			follow_msg.set_data(_model_name);
+			callStringMsgService("/gui/follow", follow_msg);
+			gz::msgs::Vector3d follow_offset_msg{};
+			follow_offset_msg.set_x(-6.0);
+			follow_offset_msg.set_y(0.0);
+			follow_offset_msg.set_z(6.0);
+			callVector3dService("/gui/follow/offset", follow_offset_msg);
 		}
 	}
 
@@ -740,6 +744,70 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 
 	pthread_mutex_unlock(&_node_mutex);
 }
+
+bool GZBridge::callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req)
+{
+	bool result;
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("EntityFactory service call failed.");
+			return PX4_ERROR;
+		}
+
+	} else {
+		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		return PX4_ERROR;
+	}
+
+	return true;
+}
+
+bool GZBridge::callStringMsgService(const std::string &service, const gz::msgs::StringMsg &req)
+{
+	bool result;
+
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("String service call failed");
+			return false;
+
+		}
+	}
+
+	else {
+		PX4_ERR("Service call timed out: %s", service.c_str());
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callVector3dService(const std::string &service, const gz::msgs::Vector3d &req)
+{
+	bool result;
+
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("String service call failed");
+			return false;
+
+		}
+	}
+
+	else {
+		PX4_ERR("Service call timed out: %s", service.c_str());
+		return false;
+	}
+
+	return true;
+}
+
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
 {
