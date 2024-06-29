@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,7 +56,7 @@ public:
 	{
 		manual_control_setpoint_s manual_control_setpoint;
 
-		if (_topic.update(&manual_control_setpoint)) {
+		if (_topic.update(&manual_control_setpoint) && manual_control_setpoint.valid) {
 			_data[0] = manual_control_setpoint.roll;
 			_data[1] = manual_control_setpoint.pitch;
 			_data[2] = manual_control_setpoint.throttle;
