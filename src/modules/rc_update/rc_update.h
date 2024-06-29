@@ -118,12 +118,23 @@ protected:
 	float		get_rc_value(uint8_t func, float min_value, float max_value) const;
 
 	/**
-	 * Get on/off switch position from the RC channel of the specified function
+	 * Get on/off switch position from the RC channel of the specified function, based on a single threshold.
 	 *
 	 * @param function according to rc_channels_s::FUNCTION_XXX
 	 * @param threshold according to RC_XXX_TH parameters, negative means on and off are flipped
 	 */
 	switch_pos_t getRCSwitchOnOffPosition(uint8_t function, float threshold) const;
+
+	/**
+	 * Get on/off switch position from the RC channel of the specified function, based on a range.
+	 *
+	 * If BOTH thresholds are negative, on and off are flipped.
+	 *
+	 * @param function according to rc_channels_s::FUNCTION_XXX
+	 * @param threshold_min according to RC_XXX_TH_MIN parameters
+	 * @param threshold_max according to RC_XXX_TH_MAX parameters
+	 */
+	switch_pos_t getRCSwitchOnOffPositionFromRange(uint8_t function, float threshold_min, float threshold_max) const;
 
 	/**
 	 * Update parameters from RC channels if the functionality is activated and the
@@ -236,7 +247,8 @@ protected:
 		(ParamFloat<px4::params::RC_ARMSWITCH_TH>) _param_rc_armswitch_th,
 		(ParamFloat<px4::params::RC_TRANS_TH>) _param_rc_trans_th,
 		(ParamFloat<px4::params::RC_GEAR_TH>) _param_rc_gear_th,
-		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
+		(ParamFloat<px4::params::RC_RETURN_TH_MIN>) _param_rc_return_th_min,
+		(ParamFloat<px4::params::RC_RETURN_TH_MAX>) _param_rc_return_th_max,
 		(ParamFloat<px4::params::RC_ENG_MOT_TH>) _param_rc_eng_mot_th,
 
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt

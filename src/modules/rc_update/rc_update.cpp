@@ -541,6 +541,32 @@ switch_pos_t RCUpdate::getRCSwitchOnOffPosition(uint8_t function, float threshol
 	return manual_control_switches_s::SWITCH_POS_NONE;
 }
 
+switch_pos_t RCUpdate::getRCSwitchOnOffPositionFromRange(uint8_t function, float threshold_min,
+		float threshold_max) const
+{
+	if (_rc.function[function] >= 0) {
+
+		// _rc.channels contains values is in the range [-1, 1] -> Remap it to [0, 1]
+		const float value = 0.5f * _rc.channels[_rc.function[function]] + 0.5f;
+
+		// On negative thresholds -> enable inverted mode
+		const bool on_inv = threshold_min <= 0.0f && threshold_max <= 0.0f;
+
+		// Flip threshold sign in inverted mode
+		const bool is_on = on_inv ?
+				   (value <= -threshold_min || value >= -threshold_max) :
+				   (value > threshold_min && value < threshold_max);
+
+
+		return is_on ?
+		       manual_control_switches_s::SWITCH_POS_ON :
+		       manual_control_switches_s::SWITCH_POS_OFF;
+
+	}
+
+	return manual_control_switches_s::SWITCH_POS_NONE;
+}
+
 void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 {
 	manual_control_switches_s switches{};
@@ -602,7 +628,8 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		}
 	}
 
-	switches.return_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_RETURN, _param_rc_return_th.get());
+	switches.return_switch = getRCSwitchOnOffPositionFromRange(rc_channels_s::FUNCTION_RETURN,
+				 _param_rc_return_th_min.get(), _param_rc_return_th_max.get());
 	switches.loiter_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_LOITER, _param_rc_loiter_th.get());
 	switches.offboard_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_OFFBOARD, _param_rc_offb_th.get());
 	switches.kill_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_KILLSWITCH, _param_rc_killswitch_th.get());
