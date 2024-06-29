@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,6 +80,8 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_LED     = 7,
 	IOTimerChanMode_PPS     = 8,
 	IOTimerChanMode_Other   = 9,
+	IOTimerChanMode_DshotInverted = 10,
+	IOTimerChanMode_CaptureDMA = 11,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
@@ -159,6 +161,9 @@ __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
 __EXPORT extern void io_timer_trigger(unsigned channels_mask);
 __EXPORT void io_timer_update_dma_req(uint8_t timer, bool enable);
+__EXPORT void io_timer_capture_update_dma_req(uint8_t timer, bool enable);
+__EXPORT int io_timer_set_enable_capture_dma(bool state, io_timer_channel_allocation_t masks);
+__EXPORT int io_timer_set_capture_mode(uint8_t timer, unsigned dshot_pwm_rate, unsigned channel);
 
 /**
  * Reserve a timer
