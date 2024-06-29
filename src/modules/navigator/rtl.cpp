@@ -309,7 +309,7 @@ void RTL::setRtlTypeAndDestination()
 
 	uint8_t safe_point_index{0U};
 
-	if (_param_rtl_type.get() != 2) {
+	if (RtlType(_param_rtl_type.get()) != RtlType::RTL_DIRECT_MISSION_LAND) {
 		// check the closest allowed destination.
 		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
 		PositionYawSetpoint rtl_position;
@@ -353,11 +353,18 @@ void RTL::setRtlTypeAndDestination()
 	_rtl_status_pub.get().is_evaluation_pending = _dataman_state != DatamanState::UpdateRequestWait;
 	_rtl_status_pub.get().has_vtol_approach = false;
 
-	if ((_param_rtl_type.get() == 0) || (_param_rtl_type.get() == 3)) {
+	switch (RtlType(_param_rtl_type.get())) {
+	case RtlType::NONE:
+	case RtlType::RTL_MISSION_FAST:
 		_rtl_status_pub.get().has_vtol_approach = _home_has_land_approach || _one_rally_point_has_land_approach;
+		break;
 
-	} else if (_param_rtl_type.get() == 1) {
+	case RtlType::RTL_DIRECT:
 		_rtl_status_pub.get().has_vtol_approach = _one_rally_point_has_land_approach;
+		break;
+
+	default:
+		break;
 	}
 
 	_rtl_status_pub.get().rtl_type = static_cast<uint8_t>(_rtl_type);
@@ -389,8 +396,8 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 
 	_home_has_land_approach = hasVtolLandApproach(rtl_position);
 
-	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_approach_force.get() == 1)
-			&& !_home_has_land_approach)) {
+	if (((RtlType(_param_rtl_type.get()) == RtlType::RTL_DIRECT) && !vtol_in_rw_mode)
+	    || (vtol_in_fw_mode && (_param_rtl_approach_force.get() == 1) && !_home_has_land_approach)) {
 		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we forces approach landing for vtol in fw and it is not defined for home.
 		min_dist = FLT_MAX;
 
@@ -399,8 +406,9 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 	}
 
 	// consider the mission landing if available and allowed
-	if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == 3) || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON))
-	    && hasMissionLandStart()) {
+	if (((RtlType(_param_rtl_type.get()) == RtlType::RTL_DIRECT)
+	     || (RtlType(_param_rtl_type.get()) == RtlType::RTL_MISSION_FAST)
+	     || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON)) && hasMissionLandStart()) {
 		mission_item_s land_mission_item;
 		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().mission_dataman_id);
 		bool success = _dataman_cache_landItem.loadWait(dm_item, _mission_sub.get().land_index,
@@ -416,7 +424,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
 
 		if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
-			if (_param_rtl_type.get() != 0) {
+			if (RtlType(_param_rtl_type.get()) != RtlType::NONE) {
 				min_dist = dist;
 
 			} else {
@@ -556,7 +564,7 @@ void RTL::init_rtl_mission_type()
 {
 	RtlType new_rtl_mission_type{RtlType::RTL_DIRECT_MISSION_LAND};
 
-	if (_param_rtl_type.get() == 2) {
+	if (RtlType(_param_rtl_type.get()) == RtlType::RTL_DIRECT_MISSION_LAND) {
 		if (hasMissionLandStart()) {
 			new_rtl_mission_type = RtlType::RTL_MISSION_FAST;
 
