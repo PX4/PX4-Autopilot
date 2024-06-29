@@ -93,7 +93,13 @@ void ActuatorEffectivenessTailsitterVTOL::updateSetpoint(const matrix::Vector<fl
 		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
 	if (matrix_index == 0) {
-		stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
+		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
+			stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
+
+		} else {
+			// make sure all motors are un-stopped when out of forward flight
+			stopMaskedMotorsWithZeroThrust(0, actuator_sp);
+		}
 	}
 }
 
@@ -115,7 +121,12 @@ void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flig
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
 		_forwards_motors_mask = 0;
-		_stopped_motors_mask = 0;
+		_disabled_motors_mask = 0;
 		break;
 	}
+}
+
+void ActuatorEffectivenessTailsitterVTOL::setEnableAuxiliaryMotors(bool enable)
+{
+	// keep auxiliary motors disabled for now
 }

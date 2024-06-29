@@ -64,7 +64,7 @@ public:
 		allocation_method_out[1] = AllocationMethod::PSEUDO_INVERSE;
 	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	void getNormalizeAsPlanarMC(bool normalize[MAX_NUM_MATRICES]) const override
 	{
 		normalize[0] = true;
 		normalize[1] = false;
@@ -78,6 +78,7 @@ public:
 
 
 	void setFlightPhase(const FlightPhase &flight_phase) override;
+	void setEnableAuxiliaryMotors(bool enable) override;
 
 	const char *name() const override { return "VTOL Tailsitter"; }
 
