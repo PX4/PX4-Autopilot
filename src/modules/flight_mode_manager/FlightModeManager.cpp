@@ -117,6 +117,12 @@ void FlightModeManager::Run()
 
 		if (isAnyTaskActive()) {
 			generateTrajectorySetpoint(dt, vehicle_local_position);
+
+		} else {
+			// Publish empty constraints (constraints from previous flight tasks must be overridden)
+			vehicle_constraints_s vehicle_constraints = FlightTask::empty_constraints;
+			vehicle_constraints.timestamp = time_stamp_now;
+			_vehicle_constraints_pub.publish(vehicle_constraints);
 		}
 
 	}

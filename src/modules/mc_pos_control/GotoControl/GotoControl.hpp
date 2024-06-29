@@ -51,7 +51,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/goto_setpoint.h>
 #include <uORB/topics/trajectory_setpoint.h>
-#include <uORB/topics/vehicle_constraints.h>
 
 class GotoControl
 {
@@ -117,7 +116,6 @@ private:
 
 	uORB::SubscriptionData<goto_setpoint_s> _goto_setpoint_sub{ORB_ID(goto_setpoint)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
-	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 
 	PositionSmoothing _position_smoothing;
 	HeadingSmoothing _heading_smoothing;

@@ -50,8 +50,8 @@ bool FlightTaskManualAccelerationSlow::update()
 	// Limits which can only slow down from the nominal configuration we initialize with here
 	// This is ensured by the executing classes
 	float velocity_horizontal = _param_mpc_vel_manual.get();
-	float velocity_up = _param_mpc_z_vel_max_up.get();
-	float velocity_down = _param_mpc_z_vel_max_dn.get();
+	float velocity_up = _param_mpc_z_v_man_up.get();
+	float velocity_down = _param_mpc_z_v_man_dn.get();
 	float yaw_rate = math::radians(_param_mpc_man_y_max.get());
 
 	// MAVLink commanded limits
