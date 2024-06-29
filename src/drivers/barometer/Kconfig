@@ -4,6 +4,7 @@ menu "barometer"
         default n
         select DRIVERS_BAROMETER_BMP280
         select DRIVERS_BAROMETER_BMP388
+        select DRIVERS_BAROMETER_BMP581
         select DRIVERS_BAROMETER_DPS310
         select DRIVERS_BAROMETER_LPS22HB
         select DRIVERS_BAROMETER_LPS33HW
