@@ -78,6 +78,7 @@
 #define VEHICLE_TYPE_VTOL_TILTROTOR 21
 #define VEHICLE_TYPE_VTOL_FIXEDROTOR 22 // VTOL standard
 #define VEHICLE_TYPE_VTOL_TAILSITTER 23
+#define VEHICLE_TYPE_SPACECRAFT 24
 
 #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
 
@@ -120,6 +121,11 @@ bool is_fixed_wing(const vehicle_status_s &current_status)
 bool is_ground_vehicle(const vehicle_status_s &current_status)
 {
 	return (current_status.system_type == VEHICLE_TYPE_BOAT || current_status.system_type == VEHICLE_TYPE_GROUND_ROVER);
+}
+
+bool is_spacecraft(const vehicle_status_s &current_status)
+{
+	return (current_status.system_type == VEHICLE_TYPE_SPACECRAFT);
 }
 
 // End time for currently blinking LED message, 0 if no blink message

@@ -5,6 +5,7 @@ uint64 timestamp_sample	    # the timestamp the data this control response is ba
 uint16 reversible_flags     # bitset which motors are configured to be reversible
 
 uint8 ACTUATOR_FUNCTION_MOTOR1 = 101
+uint16 ACTUATOR_FUNCTION_THRUSTER1 = 501
 
 uint8 NUM_CONTROLS = 12
 float32[12] control # range: [-1, 1], where 1 means maximum positive thrust,

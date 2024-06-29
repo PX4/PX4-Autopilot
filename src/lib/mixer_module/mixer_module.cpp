@@ -56,6 +56,7 @@ static const FunctionProvider all_function_providers[] = {
 	{OutputFunction::Constant_Min, &FunctionConstantMin::allocate},
 	{OutputFunction::Constant_Max, &FunctionConstantMax::allocate},
 	{OutputFunction::Motor1, OutputFunction::MotorMax, &FunctionMotors::allocate},
+	{OutputFunction::Thruster1, OutputFunction::ThrusterMax, &FunctionThrusters::allocate},
 	{OutputFunction::Servo1, OutputFunction::ServoMax, &FunctionServos::allocate},
 	{OutputFunction::Peripheral_via_Actuator_Set1, OutputFunction::Peripheral_via_Actuator_Set6, &FunctionActuatorSet::allocate},
 	{OutputFunction::Landing_Gear, &FunctionLandingGear::allocate},
@@ -237,7 +238,8 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 			int32_t function;
 
 			if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &function) == 0) {
-				if (function >= (int32_t)OutputFunction::Motor1 && function <= (int32_t)OutputFunction::MotorMax) {
+				if ((function >= (int32_t)OutputFunction::Motor1 && function <= (int32_t)OutputFunction::MotorMax) ||
+				    (function >= (int32_t)OutputFunction::Thruster1 && function <= (int32_t)OutputFunction::ThrusterMax)) {
 					switch_requested = true;
 				}
 			}

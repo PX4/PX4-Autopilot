@@ -364,6 +364,8 @@ def get_mixers(yaml_config, output_functions, verbose):
                     actuator['group-label'] = 'Motors'
                 elif actuator_conf['actuator_type'] == 'servo':
                     actuator['group-label'] = 'Servos'
+                elif actuator_conf['actuator_type'] == 'thruster':
+                    actuator['group-label'] = 'Thrusters'
                 else:
                     raise Exception('Missing group label for actuator type "{}"'.format(actuator_conf['actuator_type']))
 

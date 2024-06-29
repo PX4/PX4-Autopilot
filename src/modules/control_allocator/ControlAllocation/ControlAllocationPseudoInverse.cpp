@@ -40,6 +40,7 @@
  */
 
 #include "ControlAllocationPseudoInverse.hpp"
+#include <px4_platform_common/log.h>
 
 void
 ControlAllocationPseudoInverse::setEffectivenessMatrix(
