@@ -396,8 +396,9 @@ bool VehicleIMU::UpdateAccel()
 					 * @description Land now, and check the vehicle setup.
 					 * Clipping can lead to fly-aways.
 					 */
-					events::send<uint8_t>(events::ID("vehicle_imu_accel_clipping"), events::Log::Critical,
-							      "Accel {1} clipping, not safe to fly!", _instance);
+					events::send<uint8_t, uint64_t, uint64_t>(events::ID("vehicle_imu_accel_clipping"), events::Log::Critical,
+							"Accel {1} clipping, not safe to fly! now {2} and before {3}", _instance, clipping_total,
+							_last_accel_clipping_notify_total_count);
 					_last_accel_clipping_notify_time = accel.timestamp_sample;
 					_last_accel_clipping_notify_total_count = clipping_total;
 				}
