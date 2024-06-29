@@ -47,6 +47,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/Serial.hpp>
+#include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -271,9 +272,20 @@ public:
 	 * @return `PX4_OK` on success, `PX4_ERROR` otherwise
 	 */
 	int force_input();
+
+	/**
+	 * Standard baud rates the driver can be started with. `0` means the driver matches baud rates but does not change them.
+	 */
+	static uint32_t k_supported_baud_rates[];
+
+	/**
+	 * Default baud rate, used when the user requested an invalid baud rate.
+	 */
+	static uint32_t k_default_baud_rate;
 private:
 	enum class State {
 		OpeningSerialPort,
+		DetectingBaudRate,
 		ConfiguringDevice,
 		ReceivingData,
 	};
@@ -295,9 +307,24 @@ private:
 	};
 
 	/**
-	 * Maximum timeout to wait for command acknowledgement by the receiver.
+	 * The result of trying to configure the receiver.
+	 */
+	enum class ConfigureResult : int32_t {
+		OK               = 0,
+		FailedCompletely = 1 << 0,
+		NoLogging        = 1 << 1,
+	};
+
+	/**
+	 * Maximum timeout to wait for fast command acknowledgement by the receiver.
 	*/
-	static constexpr uint16_t k_receiver_ack_timeout = 200;
+	static constexpr uint16_t k_receiver_ack_timeout_fast = 200;
+
+	/**
+	 * Maximum timeout to wait for slow command acknowledgement by the receiver.
+	 * Might be the case for commands that send more output back as reply.
+	 */
+	static constexpr uint16_t k_receiver_ack_timeout_slow = 400;
 
 	/**
 	 * Duration of one update monitoring interval in us.
@@ -305,6 +332,11 @@ private:
 	 * Otherwise the driver will assume the receiver configuration isn't healthy because it doesn't see all blocks in time.
 	*/
 	static constexpr hrt_abstime k_update_monitoring_interval_duration = 5_s;
+
+	/**
+	 * uORB type to send messages to ground control stations.
+	 */
+	static orb_advert_t k_mavlink_log_pub;
 
 	/**
 	 * The default stream for output of PVT data.
@@ -347,13 +379,15 @@ private:
 	void schedule_reset(ReceiverResetType type);
 
 	/**
-	 * @brief Detect the current baud rate used by the receiver on the connected port.
+	 * @brief Detect whether the receiver is running at the given baud rate.
+	 * Does not preserve local baud rate!
 	 *
-	 * @param force_input Choose whether the receiver forces input on the port
+	 * @param baud_rate The baud rate to check.
+	 * @param force_input Choose whether the receiver forces input on the port.
 	 *
-	 * @return The detected baud rate on success, or `0` on error
+	 * @return `true` if running at the baud rate, or `false` on error.
 	 */
-	uint32_t detect_receiver_baud_rate(bool forced_input);
+	bool detect_receiver_baud_rate(const uint32_t &baud_rate, bool forced_input);
 
 	/**
 	 * @brief Try to detect the serial port used on the receiver side.
@@ -369,9 +403,9 @@ private:
 	 *
 	 * If the user has disabled automatic configuration, only execute the steps that do not touch the receiver (e.g., baud rate detection, port detection...).
 	 *
-	 * @return `PX4_OK` on success, `PX4_ERROR` otherwise.
+	 * @return `ConfigureResult::OK` if configured, or error.
 	 */
-	int configure();
+	ConfigureResult configure();
 
 	/**
 	 * @brief Parse the next byte of a received message from the receiver.
@@ -506,6 +540,13 @@ private:
 	void publish_satellite_info();
 
 	/**
+	 * @brief Check whether the driver has created its first complete `SensorGPS` uORB message.
+	 *
+	 * @return `true` if the driver has created its first complete `SensorGPS` uORB message, `false` if still waiting.
+	 */
+	bool first_gps_uorb_message_created() const;
+
+	/**
 	 * @brief Publish RTCM corrections.
 	 *
 	 * @param data: The raw data to publish
@@ -579,6 +620,9 @@ private:
 	/**
 	 * @brief Check whether the current receiver configuration is likely healthy.
 	 *
+	 * This is checked by passively monitoring output from the receiver and validating whether it is what is
+	 * expected.
+	 *
 	 * @return `true` if the receiver is operating correctly, `false` if it needs to be reconfigured.
 	*/
 	bool receiver_configuration_healthy() const;
@@ -610,6 +654,9 @@ private:
 
 	/**
 	 * @brief Check whether the driver is operating correctly.
+	 *
+	 * The driver is operating correctly when it has fully configured the receiver and is actively receiving all the
+	 * expected data.
 	 *
 	 * @return `true` if the driver is working as expected, `false` otherwise.
 	*/
@@ -666,7 +713,7 @@ private:
 	uint8_t                                _spoofing_state {0};                                          ///< Receiver spoofing state
 	uint8_t                                _jamming_state {0};                                           ///< Receiver jamming state
 	const Instance                         _instance {Instance::Main};                                   ///< The receiver that this instance of the driver controls
-	uint32_t                               _baud_rate {0};
+	uint32_t                               _chosen_baud_rate {0};                                        ///< The baud rate requested by the user
 	static px4::atomic<SeptentrioDriver *> _secondary_instance;
 	hrt_abstime                            _sleep_end {0};                                               ///< End time for sleeping
 	State                                  _resume_state {State::OpeningSerialPort};                     ///< Resume state after sleep
@@ -683,6 +730,7 @@ private:
 	bool                                   _automatic_configuration {true};                              ///< Automatic configuration of the receiver given by the `SEP_AUTO_CONFIG` parameter
 	ReceiverSetup                          _receiver_setup {ReceiverSetup::Default};                     ///< Purpose of the receivers, given by the `SEP_HARDW_SETUP` parameter
 	int32_t                                _receiver_constellation_usage {0};                            ///< Constellation usage in PVT computation given by the `SEP_CONST_USAGE` parameter
+	uint8_t                                _current_baud_rate_index {0};                                 ///< Index of the current baud rate to check
 
 	// Decoding and parsing
 	DecodingStatus                                 _active_decoder {DecodingStatus::Searching}; ///< Currently active decoder that new data has to be fed into

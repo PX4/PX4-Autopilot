@@ -56,7 +56,7 @@
 #endif
 
 #ifdef SEP_LOG_ERROR
-#define SEP_ERR(...)            {PX4_WARN(__VA_ARGS__);}
+#define SEP_ERR(...)            {PX4_ERR(__VA_ARGS__);}
 #else
 #define SEP_ERR(...)            {}
 #endif
