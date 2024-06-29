@@ -38,6 +38,9 @@
 #include <termios.h>
 #include <string.h>
 
+using namespace matrix;
+
+
 Ft7Technologies::Ft7Technologies(const char *port) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
@@ -170,7 +173,7 @@ int Ft7Technologies::collect()
 			sensor_airflow_s sensor_airflow{};
 			sensor_airflow.timestamp  = hrt_absolute_time();
 			sensor_airflow.speed  = (float)atoi((char *)_raw_speed) / 10.0f;
-			sensor_airflow.direction = ((float)atoi((char *)_raw_angle) - 180.0f) * M_PI_F / 180.0f;
+			sensor_airflow.direction = wrap_pi(((float)atoi((char *)_raw_angle) - 180.0f) * M_PI_F / 180.0f);
 			sensor_airflow.status = (uint8_t)atoi((char *)_raw_status);
 
 			if (_checksum_counter == 2) {

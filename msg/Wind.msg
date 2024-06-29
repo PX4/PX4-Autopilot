@@ -13,4 +13,4 @@ float32 tas_innov_var 		# True airspeed innovation variance
 float32 beta_innov 		# Sideslip measurement innovation
 float32 beta_innov_var 		# Sideslip measurement innovation variance
 
-# TOPICS wind estimator_wind
+# TOPICS wind estimator_wind wind_groundtruth

@@ -150,6 +150,10 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 	then
 		sensor_airspeed_sim start
 	fi
+	if param compare -s SENS_EN_ARFLWSIM 1
+	then
+		sensor_airflow_sim start
+	fi
 
 elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "10017" ]; then
 
