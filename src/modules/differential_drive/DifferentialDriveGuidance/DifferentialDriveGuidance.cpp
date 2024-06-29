@@ -64,7 +64,7 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 
 	float desired_heading = get_bearing_to_next_waypoint(global_position(0), global_position(1), current_waypoint(0),
 				current_waypoint(1));
-	float heading_error = matrix::wrap_pi(desired_heading - yaw);
+	_heading_error = matrix::wrap_pi(desired_heading - yaw);
 
 	if (_current_waypoint != current_waypoint) {
 		_currentState = GuidanceState::TURNING;
@@ -78,21 +78,30 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	float desired_speed = 0.f;
 
 	switch (_currentState) {
-	case GuidanceState::TURNING:
-		desired_speed = 0.f;
+	case GuidanceState::TURNING: {
+			desired_speed = 0.f;
 
-		if (fabsf(heading_error) < 0.05f) {
-			_currentState = GuidanceState::DRIVING;
+			if (fabsf(_heading_error) < 0.05f) {
+				_currentState = GuidanceState::DRIVING;
+			}
+
+			float minTurningSpeed = _param_rdd_min_turning_speed.get();
+			float headingPGain = _param_rdd_p_gain_heading.get();
+
+			// Make sure we do not get stuck while turning as the error gets too small
+			if ((fabsf(_heading_error) < minTurningSpeed) && (headingPGain > 0.01f)) {
+				_heading_error = (_heading_error > 0) ? minTurningSpeed * 1 / headingPGain : -minTurningSpeed * 1 / headingPGain;
+			}
+
+			break;
 		}
-
-		break;
 
 	case GuidanceState::DRIVING: {
 			const float max_velocity = math::trajectory::computeMaxSpeedFromDistance(_param_rdd_max_jerk.get(),
 						   _param_rdd_max_accel.get(), distance_to_next_wp, 0.0f);
 			_forwards_velocity_smoothing.updateDurations(max_velocity);
 			_forwards_velocity_smoothing.updateTraj(dt);
-			desired_speed = math::interpolate<float>(abs(heading_error), 0.1f, 0.8f,
+			desired_speed = math::interpolate<float>(abs(_heading_error), 0.1f, 0.8f,
 					_forwards_velocity_smoothing.getCurrentVelocity(), 0.0f);
 			break;
 		}
@@ -100,15 +109,15 @@ void DifferentialDriveGuidance::computeGuidance(float yaw, float angular_velocit
 	case GuidanceState::GOAL_REACHED:
 		// temporary till I find a better way to stop the vehicle
 		desired_speed = 0.f;
-		heading_error = 0.f;
+		_heading_error = 0.f;
 		angular_velocity = 0.f;
 		_desired_angular_velocity = 0.f;
 		break;
 	}
 
 	// Compute the desired angular velocity relative to the heading error, to steer the vehicle towards the next waypoint.
-	float angular_velocity_pid = pid_calculate(&_heading_p_controller, heading_error, angular_velocity, 0,
-				     dt) + heading_error;
+	float angular_velocity_pid = pid_calculate(&_heading_p_controller, _heading_error, angular_velocity, 0,
+				     dt) + _heading_error;
 
 	differential_drive_setpoint_s output{};
 	output.speed = math::constrain(desired_speed, -_max_speed, _max_speed);
