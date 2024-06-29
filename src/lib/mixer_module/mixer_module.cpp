@@ -111,6 +111,7 @@ MixingOutput::~MixingOutput()
 void MixingOutput::initParamHandles()
 {
 	char param_name[17];
+	PX4_INFO("param_prefix: %s", _param_prefix);
 
 	for (unsigned i = 0; i < _max_num_outputs; ++i) {
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FUNC", i + 1);
