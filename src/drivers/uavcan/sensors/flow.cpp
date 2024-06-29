@@ -62,11 +62,10 @@ void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex:
 	flow.timestamp_sample = hrt_absolute_time(); // TODO
 
 	device::Device::DeviceId device_id;
-	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_UAVCAN;
-	device_id.devid_s.bus = 0;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = msg.getIfaceIndex();
 	device_id.devid_s.devtype = DRV_FLOW_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = msg.getSrcNodeID().get() & 0xFF;
-
+	device_id.devid_s.address = msg.getSrcNodeID().get();
 	flow.device_id = device_id.devid;
 
 	flow.pixel_flow[0] = msg.flow_integral[0];
@@ -94,5 +93,5 @@ void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex:
 
 	flow.timestamp = hrt_absolute_time();
 
-	publish(msg.getSrcNodeID().get(), &flow);
+	publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &flow);
 }

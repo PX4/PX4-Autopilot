@@ -146,7 +146,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	_battery_status[instance].warning = _warning;
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
-		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+		publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &_battery_status[instance]);
 	}
 }
 
@@ -188,7 +188,7 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 		_battery_status[instance].voltage_cell_v[i] = msg.voltage_cell[i];
 	}
 
-	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+	publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &_battery_status[instance]);
 }
 
 void
@@ -243,5 +243,5 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery_status[instance].serial_number = msg.model_instance_id;
 	_battery_status[instance].id = msg.getSrcNodeID().get(); // overwrite zeroed index from _battery
 
-	publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
+	publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &_battery_status[instance]);
 }

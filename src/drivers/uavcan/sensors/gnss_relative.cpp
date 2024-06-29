@@ -70,9 +70,15 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 	sensor_gnss_relative.position_length = msg.relative_distance_m;
 	sensor_gnss_relative.position[2] = msg.relative_down_pos_m;
 
-	sensor_gnss_relative.device_id = get_device_id();
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = msg.getIfaceIndex();
+	//device_id.devid_s.devtype = ??
+	device_id.devid_s.address = msg.getSrcNodeID().get();
+
+	sensor_gnss_relative.device_id = device_id.devid;
 
 	sensor_gnss_relative.timestamp = hrt_absolute_time();
 
-	publish(msg.getSrcNodeID().get(), &sensor_gnss_relative);
+	publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &sensor_gnss_relative);
 }
