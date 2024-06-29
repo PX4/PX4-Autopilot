@@ -43,7 +43,7 @@
 #include "../mavlink_ftp.h"
 
 #ifdef __PX4_NUTTX
-#define PX4_MAVLINK_TEST_DATA_DIR "/fs/microsd/ftp_unit_test_data"
+#define PX4_MAVLINK_TEST_DATA_DIR CONFIG_BOARD_ROOT_PATH "/ftp_unit_test_data"
 #else
 #define PX4_MAVLINK_TEST_DATA_DIR "ftp_unit_test_data"
 #endif

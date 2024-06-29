@@ -19,7 +19,7 @@
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define TEST_DATA_PATH "./test_data/"
 #else
-#define TEST_DATA_PATH "/fs/microsd"
+#define TEST_DATA_PATH CONFIG_BOARD_ROOT_PATH
 #endif
 
 extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);

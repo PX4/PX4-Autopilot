@@ -28,6 +28,12 @@ then
 	safety_button start
 fi
 
+if [ -f "/mnt/qspi/mtd_net" ]
+then
+else
+	netman update -i eth0
+fi
+
 if param greater -s UAVCAN_ENABLE 0
 then
 	ifup can0
