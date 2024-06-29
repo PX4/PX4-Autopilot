@@ -314,7 +314,7 @@ void  RCInput::swap_rx_tx()
 #  ifdef TIOCSSINGLEWIRE
 
 	if (rv != OK) {
-		ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+		ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED | SER_SINGLEWIRE_PUSHPULL);
 	}
 
 #  else
