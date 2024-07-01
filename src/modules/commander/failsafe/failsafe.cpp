@@ -588,8 +588,14 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		// AltCtrl -> Stabilized
 		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_ALTCTL
 		    && !modeCanRun(status_flags, user_intended_mode)) {
-			action = Action::FallbackStab;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+			if (_param_com_term_mode.get() == 0) {
+				action = Action::FallbackStab;
+				user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+
+			} else {
+				action = Action::Descend;
+				user_intended_mode = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			}
 		}
 
 		break;
