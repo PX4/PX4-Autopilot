@@ -934,6 +934,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if (arming_action == vehicle_command_s::ARMING_ACTION_DISARM) {
 					arming_res = disarm(arm_disarm_reason, forced);
 
+					if (arming_res == TRANSITION_CHANGED && !_vehicle_land_detected.landed) {
+						send_parachute_command();
+					}
+
 				}
 
 				if (arming_res == TRANSITION_DENIED) {
