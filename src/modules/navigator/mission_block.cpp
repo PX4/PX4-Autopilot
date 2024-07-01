@@ -567,8 +567,8 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 	} else {
 
-		// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
-		if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
+		// This is to support legacy DO_MOUNT_CONTROL and mavlink gimbal protocol v2 DO_GIMBAL_MANAGER_PITCHYAW as part of a mission.
+		if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL || item.nav_cmd == NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW) {
 			_navigator->acquire_gimbal_control();
 		}
 
