@@ -536,7 +536,8 @@ void EKF2::Run()
 			}
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE) {
-				_ekf.resetWindToExternalObservation(vehicle_command.param1, vehicle_command.param3, vehicle_command.param2, vehicle_command.param4);
+				_ekf.resetWindToExternalObservation(vehicle_command.param1, vehicle_command.param3, vehicle_command.param2,
+								    vehicle_command.param4);
 			}
 		}
 	}
