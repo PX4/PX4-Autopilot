@@ -34,9 +34,9 @@ void init_app_map(apps_map_type &apps)
 
 void list_builtins(apps_map_type &apps)
 {
-	printf("Builtin Commands:\n");
+	PX4_INFO_RAW("Builtin Commands:\n");
 	for (apps_map_type::iterator it = apps.begin(); it != apps.end(); ++it) {
-		printf("  %s\n", it->first.c_str());
+        PX4_INFO_RAW("  %s\n", it->first.c_str());
 	}
 }
 
@@ -66,7 +66,7 @@ int sleep_main(int argc, char *argv[])
         }
 
         unsigned long usecs = 1000000UL * atol(argv[1]);
-        printf("Sleeping for %s s; (%lu us).\n", argv[1], usecs);
+        PX4_INFO_RAW("Sleeping for %s s; (%lu us).\n", argv[1], usecs);
         px4_usleep(usecs);
         return 0;
 }

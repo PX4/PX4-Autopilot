@@ -9,6 +9,7 @@ fi
 
 exec find boards msg src platforms test \
     -path platforms/nuttx/NuttX -prune -o \
+    -path platforms/posix/src/px4/common/px4_daemon/linenoise -prune -o \
     -path platforms/qurt/dspal -prune -o \
     -path src/drivers/ins/vectornav/libvnc -prune -o \
     -path src/drivers/uavcan/libuavcan -prune -o \

@@ -83,3 +83,26 @@ FILE *get_stdout(bool *isatty_)
 
 	return thread_data_ptr->thread_stdout;
 }
+
+
+FILE *get_stdin()
+{
+	Server::CmdThreadSpecificData *thread_data_ptr;
+
+	// If we are not in a thread that has been started by a client, we don't
+	// have any thread specific data set and we won't have a pipe to write
+	// stdout to.
+	if (!Server::is_running() ||
+	    (thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
+				       Server::get_pthread_key())) == nullptr) {
+
+		return stdin;
+	}
+
+	if (thread_data_ptr->thread_stdout == nullptr) {
+
+		return stdin;
+	}
+
+	return thread_data_ptr->thread_stdin;
+}

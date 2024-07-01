@@ -41,7 +41,9 @@
  */
 
 #include <cstdint>
-#include <string>
+#include <string.h>
+#include <strings.h>
+#include <errno.h>
 #include <sstream>
 #include <vector>
 #include <algorithm>
@@ -49,8 +51,11 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
 
+#include <px4_log.h>
 #include "pxh.h"
+#include "server.h"
 
 namespace px4_daemon
 {
@@ -60,16 +65,10 @@ Pxh *Pxh::_instance = nullptr;
 
 Pxh::Pxh()
 {
-	_history.try_to_add("commander takeoff"); // for convenience
-	_history.reset_to_end();
 }
 
 Pxh::~Pxh()
 {
-	if (_local_terminal) {
-		tcsetattr(0, TCSANOW, &_orig_term);
-		_instance = nullptr;
-	}
 }
 
 int Pxh::process_line(const std::string &line, bool silently_fail)
@@ -112,12 +111,6 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 		int retval = _apps[command](words.size(), (char **)arg);
 
-		if (retval) {
-			if (!silently_fail) {
-				printf("Command '%s' failed, returned %d.\n", command.c_str(), retval);
-			}
-		}
-
 		return retval;
 
 	} else if (command == "help") {
@@ -130,7 +123,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 	} else if (!silently_fail) {
 		//std::cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
-		printf("Invalid command: %s\ntype 'help' for a list of commands\n", command.c_str());
+		PX4_INFO_RAW("Invalid command: %s\ntype 'help' for a list of commands\n", command.c_str());
 		return -1;
 
 	} else {
@@ -138,416 +131,310 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 	}
 }
 
-void Pxh::_check_remote_uorb_command(std::string &line)
-{
-
-	if (line.empty()) {
-		return;
-	}
-
-	std::stringstream line_stream(line);
-	std::string word;
-
-	line_stream >> word;
-
-	if (word == "uorb") {
-		line += " -1";  // Run uorb command only once
-	}
-}
-
 void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 {
-	std::string mystr;
-	int p1[2], pipe_stdout;
-	int p2[2], pipe_stderr;
-	int backup_stdout_fd = dup(STDOUT_FILENO);
-	int backup_stderr_fd = dup(STDERR_FILENO);
+	Server::CmdThreadSpecificData *thread_data_ptr;
 
-	if (pipe(p1) != 0) {
-		perror("Remote shell pipe creation failed");
-		return;
+	pthread_key_t _key = Server::get_pthread_key();
+
+	if ((thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(_key)) == nullptr) {
+		thread_data_ptr = new Server::CmdThreadSpecificData;
+		thread_data_ptr->thread_stdout = fdopen(remote_out_fd, "w");
+		thread_data_ptr->thread_stdin = fdopen(remote_in_fd, "r");
+		thread_data_ptr->is_atty = 0;
+
+		(void)pthread_setspecific(_key, (void *)thread_data_ptr);
+
+	} else {
+		thread_data_ptr->thread_stdout = fdopen(remote_out_fd, "w");
+		thread_data_ptr->thread_stdin = fdopen(remote_in_fd, "r");
+		thread_data_ptr->is_atty = 0;
 	}
 
-	if (pipe(p2) != 0) {
-		perror("Remote shell pipe 2 creation failed");
-		close(p1[0]);
-		close(p1[1]);
-		return;
-	}
+	setvbuf(thread_data_ptr->thread_stdout, nullptr, _IOLBF, 4096);
+	fflush(thread_data_ptr->thread_stdout);
 
-	// Create pipe to receive stdout and stderr
-	dup2(p1[1], STDOUT_FILENO);
-	close(p1[1]);
+	linenoiseState linenoise_state = nullptr;
+	char buf[1024];
+	linenoiseConfig cfg = {
+		.fd_in = remote_in_fd,
+		.fd_out = remote_out_fd,
+		.fd_tty = -1,
+		.buf = buf,
+		.buf_len = sizeof(buf),
+	};
+	linenoiseCreateState(&linenoise_state, &cfg);
+	linenoiseSetCompletionCallback(linenoise_state, completion);
+	linenoiseSetHintsCallback(linenoise_state, hints);
+	linenoiseHistorySetMaxLen(linenoise_state, 128);
 
-	dup2(p2[1], STDERR_FILENO);
-	close(p2[1]);
+	int cmd_retcode = 0;
 
-	pipe_stdout = p1[0];
-	pipe_stderr = p2[0];
-
-	// Set fds for non-blocking operation
-	fcntl(pipe_stdout, F_SETFL, fcntl(pipe_stdout, F_GETFL) | O_NONBLOCK);
-	fcntl(pipe_stderr, F_SETFL, fcntl(pipe_stderr, F_GETFL) | O_NONBLOCK);
-	fcntl(remote_in_fd, F_SETFL, fcntl(remote_in_fd, F_GETFL) | O_NONBLOCK);
-
-	// Check for input on any pipe (i.e. stdout, stderr, or remote_in_fd
-	// stdout and stderr will be sent to the local terminal and a copy of the data
-	// will be sent over to the mavlink shell through the remote_out_fd.
-	//
-	// Any data from remote_in_fd will be process as shell commands when an '\n' is received
 	while (!_should_exit) {
+		char *line = nullptr;
 
-		struct pollfd fds[3] { {pipe_stderr, POLLIN}, {pipe_stdout, POLLIN}, {remote_in_fd, POLLIN}};
+		char prompt[32];
 
-		if (poll(fds, 3, -1) == -1) {
-			perror("Mavlink Shell Poll Error");
+		if (cmd_retcode == 0) {
+			snprintf(prompt, sizeof(prompt), "pxh> ");
+
+		} else {
+			snprintf(prompt, sizeof(prompt), "(%d) pxh> ", cmd_retcode);
+		}
+
+		linenoiseEditStart(linenoise_state, prompt);
+
+		for (;;) {
+			struct pollfd fds[] = {
+				{
+					.fd = remote_in_fd,
+					.events = POLLIN,
+				}
+			};
+			int retval = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
+
+			if (retval == -1) {
+				if (errno == EINTR && _should_exit) {
+					break;
+				}
+
+				perror("poll()");
+				exit(1);
+
+			} else if (retval == 0) {
+				// Timeout occurred
+				linenoiseHide(linenoise_state);
+				printf("poll timeout\n");
+				linenoiseShow(linenoise_state);
+
+			} else {
+				if (fds[0].revents & POLLIN) {
+					line = linenoiseEditFeed(linenoise_state);
+
+					if (line != linenoiseEditMore) {
+						break;
+					}
+				}
+			}
+		}
+
+		linenoiseEditStop(linenoise_state);
+		dprintf(remote_out_fd, "%s\n", line);
+
+		if (_should_exit && line == nullptr) {
+			// case when px4 is terminated by signals sent by other process/kernel
 			break;
 		}
 
-		if (fds[0].revents & POLLIN) {
-
-			uint8_t buffer[512];
-			size_t len;
-
-			if ((len = read(pipe_stderr, buffer, sizeof(buffer))) <= 0) {
-				break; //EOF or ERROR
-			}
-
-			// Send all the stderr data to the local terminal as well as the remote shell
-			if (write(backup_stderr_fd, buffer, len) <= 0) {
-				perror("Remote shell write stdout");
-				break;
-			}
-
-			if (write(remote_out_fd, buffer, len) <= 0) {
-				perror("Remote shell write");
-				break;
-			}
-
-			// Process all the stderr data first
-			continue;
+		if (line == nullptr) {
+			// case when ctrl-c is captured by console (which is not propagated as signal)
+			break;
 		}
 
-		if (fds[1].revents & POLLIN) {
-
-			uint8_t buffer[512];
-			size_t len;
-
-			if ((len = read(pipe_stdout, buffer, sizeof(buffer))) <= 0) {
-				break; //EOF or ERROR
-			}
-
-			// Send all the stdout data to the local terminal as well as the remote shell
-			if (write(backup_stdout_fd, buffer, len) <= 0) {
-				perror("Remote shell write stdout");
-				break;
-			}
-
-			if (write(remote_out_fd, buffer, len) <= 0) {
-				perror("Remote shell write");
-				break;
-			}
+		if (line[0] != '\0') {
+			linenoiseHistoryAdd(linenoise_state, line);
 		}
 
-		if (fds[2].revents & POLLIN) {
+		cmd_retcode = process_line(std::string(line), false);
 
-			char c;
-
-			if (read(remote_in_fd, &c, 1) <= 0) {
-				break; // EOF or ERROR
-			}
-
-			switch (c) {
-
-			case '\n':	// user hit enter
-				printf("\n");
-				_check_remote_uorb_command(mystr);
-				process_line(mystr, false);
-				// reset string
-				mystr = "";
-
-				_print_prompt();
-
-				break;
-
-			default:	// any other input
-				if (c > 3) {
-					fprintf(stdout, "%c", c);
-					fflush(stdout);
-					mystr += (char)c;
-				}
-
-				break;
-			}
-		}
+		free(line);
 	}
 
-	// Restore stdout and stderr
-	dup2(backup_stdout_fd, STDOUT_FILENO);
-	dup2(backup_stderr_fd, STDERR_FILENO);
-	close(backup_stdout_fd);
-	close(backup_stderr_fd);
-
-	close(pipe_stdout);
-	close(pipe_stderr);
-	close(remote_in_fd);
-	close(remote_out_fd);
+	linenoiseDeleteState(linenoise_state);
 }
 
 void Pxh::run_pxh()
 {
 	// Only the local_terminal needed for static calls
 	_instance = this;
-	_local_terminal = true;
-	_setup_term();
 
-	std::string mystr;
-	int cursor_position = 0; // position of the cursor from right to left
-	// (0: all the way to the right, mystr.length: all the way to the left)
+	// populate app list ahead, to build TAB completion
+	if (_apps.empty()) {
+		init_app_map(_apps);
+	}
 
-	_print_prompt();
+	// backup and replace original stdout to avoid output collision
+	int orig_stdout = dup(STDOUT_FILENO);
+	// create new pipe and let it be the new stdout, only for background outputs from other threads,
+	// which requires special async output logic
+	int piped_stdout[2];
+	int ret = pipe(piped_stdout);
 
-	while (!_should_exit) {
+	if (ret == 0) {}
 
-		int c = getchar();
-		std::string add_string; // string to add at current cursor position
-		bool update_prompt = true;
+	dup2(piped_stdout[1], STDOUT_FILENO);
+	fcntl(piped_stdout[0], F_SETFL, fcntl(piped_stdout[0], F_GETFL) | O_NONBLOCK);
 
-		switch (c) {
-		case EOF:
-			break;
+	setvbuf(stdout, nullptr, _IOLBF, 4096);
+	fflush(stdout);
 
-		case '\t':
-			_tab_completion(mystr);
-			break;
+	linenoiseState linenoise_state = nullptr;
+	char buf[1024];
+	linenoiseConfig cfg = {
+		.fd_in = 0,
+		.fd_out = orig_stdout,
+		.fd_tty = -1,
+		.buf = buf,
+		.buf_len = sizeof(buf),
+	};
+	linenoiseCreateState(&linenoise_state, &cfg);
+	linenoiseSetCompletionCallback(linenoise_state, completion);
+	linenoiseSetHintsCallback(linenoise_state, hints);
+	// TODO: enable history loading, once there is proper way to configure file location
+	//linenoiseHistoryLoad(linenoise_state, "history.txt");
+	linenoiseHistorySetMaxLen(linenoise_state, 128);
 
-		case 127:	// backslash
-			if ((int)mystr.length() - cursor_position > 0) {
-				mystr.erase(mystr.length() - cursor_position - 1, 1);
-			}
+	int cmd_retcode = 0;
 
-			break;
+	for (;;) {
+		char *line = nullptr;
 
-		case '\n':	// user hit enter
-			_history.try_to_add(mystr);
-			_history.reset_to_end();
+		char prompt[32];
 
-			printf("\n");
-			process_line(mystr, false);
-			// reset string and cursor position
-			mystr = "";
-			cursor_position = 0;
+		if (cmd_retcode == 0) {
+			snprintf(prompt, sizeof(prompt), "pxh> ");
 
-			update_prompt = false;
-			_print_prompt();
-			break;
+		} else {
+			snprintf(prompt, sizeof(prompt), "(%d) pxh> ", cmd_retcode);
+		}
 
-		case '\033': {	// arrow keys
-				c = getchar();	// skip first one, does not have the info
-				c = getchar();
+		// change to fake stdout right before raw mode is deployed onto real stdout
+		fsync(STDOUT_FILENO);
+		dup2(piped_stdout[1], STDOUT_FILENO);
+		linenoiseEditStart(linenoise_state, prompt);
 
-				if (c == 'A') { // arrow up
-					_history.try_to_save_current_line(mystr);
-					_history.get_previous(mystr);
-					cursor_position = 0; // move cursor to end of line
+		for (;;) {
+			struct pollfd fds[] = {
+				{
+					.fd = 0,
+					.events = POLLIN,
+				},
+				{
+					.fd = piped_stdout[0],
+					.events = POLLIN,
+				}
+			};
+			int retval = poll(fds, sizeof(fds) / sizeof(fds[0]), -1);
 
-				} else if (c == 'B') { // arrow down
-					_history.get_next(mystr);
-					cursor_position = 0; // move cursor to end of line
-
-				} else if (c == 'C') { // arrow right
-					if (cursor_position > 0) {
-						cursor_position--;
-					}
-
-				} else if (c == 'D') { // arrow left
-					if (cursor_position < (int)mystr.length()) {
-						cursor_position++;
-					}
-
-				} else if (c == 'H') { // Home (go to the beginning of the command)
-					cursor_position = mystr.length();
-
-				} else if (c == '1') { // Home (go to the beginning of the command, Editing key)
-					(void)getchar(); // swallow '~'
-					cursor_position = mystr.length();
-
-				} else if (c == 'F') { // End (go to the end of the command)
-					cursor_position = 0;
-
-				} else if (c == '4') { // End (go to the end of the command, Editing key)
-					(void)getchar(); // swallow '~'
-					cursor_position = 0;
+			if (retval == -1) {
+				if (errno == EINTR && _should_exit) {
+					break;
 				}
 
-				break;
-			}
+				perror("poll()");
+				exit(1);
 
-		default:	// any other input
-			if (c > 3) {
-				add_string += (char)c;
+			} else if (retval == 0) {
+				// Timeout occurred
+				linenoiseHide(linenoise_state);
+				printf("poll timeout\n");
+				linenoiseShow(linenoise_state);
 
 			} else {
-				update_prompt = false;
-			}
+				if (fds[1].revents & POLLIN) {
+					linenoiseHide(linenoise_state);
 
+					// always copy amount of bytes blindly
+					for (;;) {
+						char tmpbuf[256];
+						ssize_t readlen = read(piped_stdout[0], tmpbuf, sizeof(tmpbuf));
+
+						if (readlen == 0 || (readlen == -1 && errno == EAGAIN)) {
+							break;
+
+						} else if (readlen == -1) {
+							dprintf(2, "ERROR: read() failed: %s\n", strerror(errno));
+						}
+
+						ssize_t writelen = write(orig_stdout, tmpbuf, readlen);
+
+						if (readlen != writelen) {
+							dprintf(2, "ERROR: write() returned %zd, errno: %s\n", writelen, strerror(errno));
+						}
+
+						fsync(orig_stdout);
+					}
+
+					linenoiseShow(linenoise_state);
+					continue;
+				}
+
+				if (fds[0].revents & POLLIN) {
+					line = linenoiseEditFeed(linenoise_state);
+
+					if (line != linenoiseEditMore) {
+						break;
+					}
+				}
+			}
+		}
+
+		// restore original stdout, with raw mode disabled
+		fsync(STDOUT_FILENO);
+		linenoiseEditStop(linenoise_state);
+		dup2(orig_stdout, STDOUT_FILENO);
+
+		if (_should_exit && line == nullptr) {
+			// case when px4 is terminated by signals sent by other process/kernel
 			break;
 		}
 
-		if (update_prompt) {
-			// reprint prompt with mystr
-			mystr.insert(mystr.length() - cursor_position, add_string);
-			_clear_line();
-			_print_prompt();
-			printf("%s", mystr.c_str());
+		if (line == nullptr) {
+			// case when ctrl-c is captured by console (which is not propagated as signal)
+			kill(0, SIGINT);    // TODO: this should avoid. sitl requires this one to kill gazebo
+			break;
+		}
 
-			// Move the cursor to its position
-			if (cursor_position > 0) {
-				_move_cursor(cursor_position);
+		if (line[0] != '\0') {
+			linenoiseHistoryAdd(linenoise_state, line);
+			// TODO: save history file
+			//linenoiseHistorySave("history.txt");
+		}
+
+		cmd_retcode = process_line(std::string(line), false);
+
+		free(line);
+	}
+
+	linenoiseDeleteState(linenoise_state);
+	dup2(orig_stdout, STDOUT_FILENO);
+	close(piped_stdout[1]); // [0] is closed by dup2()
+	close(orig_stdout);
+}
+
+void Pxh::completion(const char *buf, linenoiseCompletions lc)
+{
+	// pick the first word
+	std::stringstream line(buf);
+	std::string cmd;
+	line >> cmd;
+
+	if (cmd.empty()) {
+		for (auto it = _apps.begin(); it != _apps.end();  ++it) {
+			linenoiseAddCompletion(lc, it->first.c_str());
+		}
+
+	} else {
+		for (auto it = _apps.begin(); it != _apps.end();  ++it) {
+			if (it->first.compare(0, cmd.length(), cmd) == 0) {
+				linenoiseAddCompletion(lc, it->first.c_str());
 			}
 		}
 	}
+
+	// TODO: support sub-command completion (start/stop/etc. from ModuleBase)
+}
+
+char *Pxh::hints(const char *buf, int *color, int *bold)
+{
+	// TODO: see if any hint applies
+	return nullptr;
 }
 
 void Pxh::stop()
 {
 	if (_instance) {
 		_instance->_should_exit = true;
-	}
-}
-
-void Pxh::_setup_term()
-{
-	// Make sure we restore terminal at exit.
-	tcgetattr(0, &_orig_term);
-	atexit(Pxh::_restore_term);
-
-	// change input mode so that we can manage shell
-	struct termios term;
-	tcgetattr(0, &term);
-	term.c_lflag &= ~ICANON;
-	term.c_lflag &= ~ECHO;
-	tcsetattr(0, TCSANOW, &term);
-	setbuf(stdin, nullptr);
-}
-
-void Pxh::_restore_term()
-{
-	if (_instance) {
-		tcsetattr(0, TCSANOW, &_instance->_orig_term);
-	}
-}
-
-void Pxh::_print_prompt()
-{
-	fflush(stdout);
-	printf("pxh> ");
-	fflush(stdout);
-}
-
-void Pxh::_clear_line()
-{
-	printf("%c[2K%c", (char)27, (char)13);
-}
-void Pxh::_move_cursor(int position)
-{
-	printf("\033[%dD", position);
-}
-
-void Pxh::_tab_completion(std::string &mystr)
-{
-	// parse line and get command
-	std::stringstream line(mystr);
-	std::string cmd;
-	line >> cmd;
-
-	// cmd is empty or white space send a list of available commands
-	if (cmd.size() == 0) {
-
-		printf("\n");
-
-		for (auto it = _apps.begin(); it != _apps.end();  ++it) {
-			printf("%s ", it->first.c_str());
-		}
-
-		printf("\n");
-		mystr = "";
-
-	} else {
-
-		// find tab completion matches
-		std::vector<std::string> matches;
-
-		for (auto it = _apps.begin(); it != _apps.end();  ++it) {
-			if (it->first.compare(0, cmd.size(), cmd) == 0) {
-				matches.push_back(it->first);
-			}
-		}
-
-		if (matches.size() >= 1) {
-			// if more than one match print all matches
-			if (matches.size() != 1) {
-				printf("\n");
-
-				for (const auto &item : matches) {
-					printf("%s    ", item.c_str());
-				}
-
-				printf("\n");
-			}
-
-			// find minimum size match
-			size_t min_size = 0;
-
-			for (const auto &item : matches) {
-				if (min_size == 0) {
-					min_size = item.size();
-
-				} else if (item.size() < min_size) {
-					min_size = item.size();
-				}
-			}
-
-			// parse through elements to find longest match
-			std::string longest_match;
-			bool done = false;
-
-			for (int i = 0; i < (int)min_size ; ++i) {
-				bool first_time = true;
-
-				for (const auto &item : matches) {
-					if (first_time) {
-						longest_match += item[i];
-						first_time = false;
-
-					} else if (longest_match[i] != item[i]) {
-						done = true;
-						longest_match.pop_back();
-						break;
-					}
-				}
-
-				if (done) { break; }
-
-				mystr = longest_match;
-			}
-		}
-
-		std::string flags;
-
-		while (line >> cmd) {
-			flags += " " + cmd;
-		}
-
-		// add flags back in when there is a command match
-		if (matches.size() == 1) {
-			if (flags.empty()) {
-				mystr += " ";
-
-			} else {
-				mystr += flags;
-			}
-		}
 	}
 }
 

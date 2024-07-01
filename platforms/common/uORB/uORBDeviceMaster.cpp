@@ -45,6 +45,10 @@
 #include <poll.h>
 #endif // PX4_QURT
 
+#ifdef __PX4_LINUX // query stdin from thread data
+#include <px4_daemon/server_io.h>
+#endif // PX4_LINUX
+
 uORB::DeviceMaster::DeviceMaster()
 {
 	px4_sem_init(&_lock, 0, 1);
@@ -315,7 +319,11 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 #ifdef __PX4_QURT // QuRT has no poll()
 	only_once = true;
 #else
+#ifdef __PX4_LINUX
+	int stdin_fileno = fileno(get_stdin());
+#else
 	const int stdin_fileno = 0;
+#endif
 
 	struct pollfd fds;
 	fds.fd = stdin_fileno;
