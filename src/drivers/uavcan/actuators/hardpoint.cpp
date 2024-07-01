@@ -38,14 +38,13 @@
  */
 
 #include "hardpoint.hpp"
-#include <systemlib/err.h>
 
 UavcanHardpointController::UavcanHardpointController(uavcan::INode &node) :
 	_node(node),
-	_uavcan_pub_raw_cmd(node),
+	_uavcan_pub_hardpoint(node),
 	_timer(node)
 {
-	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::MiddleLower);
+	_uavcan_pub_hardpoint.setPriority(uavcan::TransferPriority::MiddleLower);
 }
 
 UavcanHardpointController::~UavcanHardpointController()
@@ -59,33 +58,38 @@ UavcanHardpointController::init()
 	/*
 	 * Setup timer and call back function for periodic updates
 	 */
-	_timer.setCallback(TimerCbBinder(this, &UavcanHardpointController::periodic_update));
-	return 0;
-}
-
-void
-UavcanHardpointController::set_command(uint8_t hardpoint_id, uint16_t command)
-{
-	_cmd.command = command;
-	_cmd.hardpoint_id = hardpoint_id;
-
-	/*
-	 * Publish the command message to the bus
-	 */
-	_uavcan_pub_raw_cmd.broadcast(_cmd);
-
-	/*
-	 * Start the periodic update timer after a command is set
-	 */
 	if (!_timer.isRunning()) {
-		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
+		_timer.setCallback(TimerCbBinder(this, &UavcanHardpointController::periodic_update));
+		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_UPDATE_RATE_HZ));
 	}
 
+	return 0;
 }
 
 void
 UavcanHardpointController::periodic_update(const uavcan::TimerEvent &)
 {
-	// Broadcast command at MAX_RATE_HZ
-	_uavcan_pub_raw_cmd.broadcast(_cmd);
+	if (_vehicle_command_sub.updated()) {
+		vehicle_command_s vehicle_command;
+
+		if (_vehicle_command_sub.copy(&vehicle_command)) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GRIPPER) {
+				_cmd.hardpoint_id = vehicle_command.param1;
+				_cmd.command = vehicle_command.param2;
+				_next_publish_time = 0;
+			}
+		}
+	}
+
+	/*
+	 * According to the MAV_CMD_DO_GRIPPER cmd, Instance (hardpoint_id) should be at least 1
+	 */
+	if (_cmd.hardpoint_id >= 1) {
+		const hrt_abstime timestamp_now = hrt_absolute_time();
+
+		if (timestamp_now > _next_publish_time) {
+			_next_publish_time = timestamp_now + 1000000 / PUBLISH_RATE_HZ;
+			_uavcan_pub_hardpoint.broadcast(_cmd);
+		}
+	}
 }
