@@ -49,7 +49,7 @@ public:
 	CanardInterface() = default;
 	virtual ~CanardInterface() = default;
 
-	virtual int init() { return 0; };
+	virtual int init(const char *can_iface_name) { return 0; };
 
 	virtual int close() { return 0; };
 

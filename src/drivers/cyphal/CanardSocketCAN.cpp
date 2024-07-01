@@ -48,9 +48,9 @@ uint64_t getMonotonicTimestampUSec(void)
 	return ts.tv_sec * 1000000ULL + ts.tv_nsec / 1000ULL;
 }
 
-int CanardSocketCAN::init()
+int CanardSocketCAN::init(const char *can_iface_name)
 {
-	const char *const can_iface_name = "can0";
+	// const char *const can_iface_name = "can0";
 
 	struct sockaddr_can addr;
 	struct ifreq ifr;
@@ -66,6 +66,7 @@ int CanardSocketCAN::init()
 		return -1;
 	}
 
+	PX4_INFO("Iface chosen: %s", can_iface_name);
 	strncpy(ifr.ifr_name, can_iface_name, IFNAMSIZ - 1);
 	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
 	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);

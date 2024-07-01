@@ -51,7 +51,7 @@ public:
 	CanardHandle(uint32_t node_id, const size_t capacity, const size_t mtu_bytes);
 	~CanardHandle();
 
-	bool init();
+	bool init(const char *can_iface_name);
 
 	void receive();
 	void transmit();

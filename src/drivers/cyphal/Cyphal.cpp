@@ -62,7 +62,7 @@ using namespace time_literals;
 
 CyphalNode *CyphalNode::_instance;
 
-CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes) :
+CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes, const char *can_iface) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	_canard_handle(node_id, capacity, mtu_bytes)
@@ -85,6 +85,8 @@ CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes) :
 	_sub_manager.subscribe();
 
 	_mixing_output.mixingOutput().setMaxTopicUpdateRate(1000000 / 200);
+
+	_can_iface_name = can_iface;
 }
 
 CyphalNode::~CyphalNode()
@@ -112,7 +114,7 @@ CyphalNode::~CyphalNode()
 	perf_free(_interval_perf);
 }
 
-int CyphalNode::start(uint32_t node_id, uint32_t bitrate)
+int CyphalNode::start(uint32_t node_id, uint32_t bitrate, const char *can_iface)
 {
 	if (_instance != nullptr) {
 		PX4_WARN("Already started");
@@ -121,11 +123,14 @@ int CyphalNode::start(uint32_t node_id, uint32_t bitrate)
 
 	bool can_fd = false;
 
+
+
 	if (can_fd) {
-		_instance = new CyphalNode(node_id, 8, CANARD_MTU_CAN_FD);
+
+		_instance = new CyphalNode(node_id, 8, CANARD_MTU_CAN_FD, can_iface);
 
 	} else {
-		_instance = new CyphalNode(node_id, 64, CANARD_MTU_CAN_CLASSIC);
+		_instance = new CyphalNode(node_id, 64, CANARD_MTU_CAN_CLASSIC, can_iface);
 	}
 
 	if (_instance == nullptr) {
@@ -145,7 +150,10 @@ int CyphalNode::start(uint32_t node_id, uint32_t bitrate)
 void CyphalNode::init()
 {
 	// interface init
-	if (_canard_handle.init()) {
+
+	PX4_INFO("Cyphal node init interface: %s", _can_iface_name);
+
+	if (_canard_handle.init(_can_iface_name)) {
 		_initialized = true;
 	}
 
@@ -299,11 +307,14 @@ void CyphalNode::print_info()
 static void print_usage()
 {
 	PX4_INFO("usage: \n"
-		 "\tuavcannode {start|status|stop}");
+		 "\tcyphal {start|status|stop}\n cyphal start -d can{x}");
 }
 
 extern "C" __EXPORT int cyphal_main(int argc, char *argv[])
 {
+
+	const char *can_if;
+
 	if (argc < 2) {
 		print_usage();
 		return 1;
@@ -327,9 +338,20 @@ extern "C" __EXPORT int cyphal_main(int argc, char *argv[])
 			node_id = CANARD_NODE_ID_UNSET;
 		}
 
+		if (!strcmp(argv[2], "-i")) {
+			if (argv[3]) {
+				can_if = argv[3];
+				PX4_INFO("CAN interface: %s", can_if);
+
+			} else {
+				print_usage();
+				return 1;
+			}
+		}
+
 		// Start
 		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
-		return CyphalNode::start(node_id, bitrate);
+		return CyphalNode::start(node_id, bitrate, can_if);
 	}
 
 	/* commands below require the app to be started */

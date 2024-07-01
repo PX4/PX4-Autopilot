@@ -117,10 +117,10 @@ class CyphalNode : public ModuleParams, public px4::ScheduledWorkItem
 
 public:
 
-	CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes);
+	CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes, const char *can_iface);
 	~CyphalNode() override;
 
-	static int start(uint32_t node_id, uint32_t bitrate);
+	static int start(uint32_t node_id, uint32_t bitrate, const char *can_iface);
 
 	void print_info();
 
@@ -146,6 +146,9 @@ private:
 	CanardHandle _canard_handle;
 
 	pthread_mutex_t _node_mutex;
+
+	// CAN interface to start Cyphal on
+	const char *_can_iface_name;
 
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
