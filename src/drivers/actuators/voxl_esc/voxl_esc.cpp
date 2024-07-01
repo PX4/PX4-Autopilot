@@ -1204,6 +1204,12 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
 
+	// counter to track how many times uart_write has been called with gpio data
+	static int gpio_write_counter = 0;
+
+	// store the previous state of _gpio_ctl_high
+	static bool prev_gpio_ctl_high = _gpio_ctl_high;
+
 	if (num_outputs != VOXL_ESC_OUTPUT_CHANNELS) {
 		return false;
 	}
@@ -1254,32 +1260,48 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		return false;
 	}
 
-	if ( _gpio_ctl_en ) {
+	// Track and manage gpio command writes
+    	bool write_gpio_command = false;
 
-		Command gpio_cmd;
-		const int ESC_PACKET_TYPE_GPIO_CMD = 15;
-		uint8_t data[5];
-
-		int esc_id = 0; // In future un-hardcode
-		int val = 0;
-
-		if ( _gpio_ctl_high ) {
-			val = 1;
+	if (_gpio_ctl_en) {
+		if (_gpio_ctl_high != prev_gpio_ctl_high) {
+			gpio_write_counter = 0;
 		}
 
-		data[0] = esc_id; // esc id
-		data[1] = 80; // 01010000 : pin F0
-		data[2] = 0; // 0: output, 1: input
-		data[3] = val; //cmd LSB
-		data[4] = 0; // cmd MSB
-
-		// type, data, size
-		gpio_cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_GPIO_CMD, (uint8_t *) & (data[0]), 5, gpio_cmd.buf, sizeof(gpio_cmd.buf));
-
-		if (_uart_port->uart_write(gpio_cmd.buf, gpio_cmd.len) != gpio_cmd.len) {
-			PX4_ERR("VOXL_ESC: Failed to send gpio packet");
-			return false;
+		if (gpio_write_counter < 10) {
+			write_gpio_command = true;
+			gpio_write_counter++;
 		}
+
+		prev_gpio_ctl_high = _gpio_ctl_high;
+
+		if (write_gpio_command) {
+			Command gpio_cmd;
+			const int ESC_PACKET_TYPE_GPIO_CMD = 15;
+			uint8_t data[5];
+
+			int esc_id = 0; // In future un-hardcode
+			int val = 0;
+
+			if ( _gpio_ctl_high ) {
+				val = 1;
+			}
+
+			data[0] = esc_id; // esc id
+			data[1] = 80; // 01010000 : pin F0
+			data[2] = 0; // 0: output, 1: input
+			data[3] = val; //cmd LSB
+			data[4] = 0; // cmd MSB
+
+			// type, data, size
+			gpio_cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_GPIO_CMD, (uint8_t *) & (data[0]), 5, gpio_cmd.buf, sizeof(gpio_cmd.buf));
+
+			if (_uart_port->uart_write(gpio_cmd.buf, gpio_cmd.len) != gpio_cmd.len) {
+				PX4_ERR("VOXL_ESC: Failed to send gpio packet");
+				return false;
+			}
+		}
+
 	}
 
 	// increment ESC id from which to request feedback in round robin order
