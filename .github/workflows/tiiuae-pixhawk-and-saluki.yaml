@@ -41,10 +41,10 @@ permissions:
 
 env:
   saluki_fpga_repo: "ghcr.io/tiiuae/saluki-fpga"
-  saluki_pi_fpga_version: "4.13.0"
-  saluki_v2_fpga_version: "4.13.0"
-  saluki_v3_fpga_version: "4.13.0"
-  saluki_fmu2_fpga_version: "4.13.0"
+  saluki_pi_fpga_version: "4.14.0"
+  saluki_v2_fpga_version: "4.14.0"
+  saluki_v3_fpga_version: "4.14.0"
+  saluki_fmu2_fpga_version: "4.14.0"
 
 jobs:
   fc_matrix:
