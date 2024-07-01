@@ -52,6 +52,8 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
+	_attitude_ref_sp_pub(vtol ? ORB_ID(fw_virtual_vehicle_attitude_reference_setpoint) : ORB_ID(
+				     vehicle_attitude_reference_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_launchDetector(this),
 	_runway_takeoff(this)
@@ -2574,7 +2576,14 @@ FixedwingPositionControl::Run()
 				q.copyTo(_att_sp.q_d);
 
 				_att_sp.timestamp = hrt_absolute_time();
-				_attitude_sp_pub.publish(_att_sp);
+
+				// Enable reference model use for auto modes except when transitioning.
+				if (_control_mode_current == FW_POSCTRL_MODE_AUTO && !_vehicle_status.in_transition_mode) {
+					_attitude_ref_sp_pub.publish(_att_sp);
+
+				} else {
+					_attitude_sp_pub.publish(_att_sp);
+				}
 
 				// only publish status in full FW mode
 				if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING

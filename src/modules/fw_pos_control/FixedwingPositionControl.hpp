@@ -216,6 +216,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<vehicle_attitude_setpoint_s> _attitude_sp_pub;
+	uORB::Publication<vehicle_attitude_setpoint_s> _attitude_ref_sp_pub;
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Publication<npfg_status_s> _npfg_status_pub{ORB_ID(npfg_status)};
 	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};

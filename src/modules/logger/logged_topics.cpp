@@ -124,6 +124,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_angular_velocity", 20);
 	add_topic("vehicle_attitude", 50);
 	add_topic("vehicle_attitude_setpoint", 50);
+	add_topic("vehicle_attitude_reference_setpoint", 50);
 	add_topic("vehicle_command");
 	add_topic("vehicle_command_ack");
 	add_topic("vehicle_constraints", 1000);
