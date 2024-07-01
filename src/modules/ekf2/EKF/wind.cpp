@@ -46,10 +46,13 @@ void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction,
 	// wind direction is given as azimuth where wind blows FROM, we need direction where wind blows TO
 	const float wind_direction_rad = wrap_pi(math::radians(wind_direction) + M_PI_F);
 
+	const float wind_direction_var = sq(math::radians(wind_direction_accuracy));
+	const float wind_speed_var = sq(wind_speed_accuracy);
+
 	matrix::SquareMatrix<float, 2> P_wind;
 	Vector2f wind;
 
-	sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_accuracy, wind_direction_accuracy, &wind, &P_wind);
+	sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_var, wind_direction_var, &wind, &P_wind);
 
 	const Vector2f wind_var = P_wind.diag();
 
