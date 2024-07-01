@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,17 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-add_subdirectory(fw_trim)
+px4_add_library(FwTrim
+	FwTrim.cpp
+	FwAutoTrim.cpp
+)
 
-px4_add_module(
-	MODULE modules__fw_rate_control
-	MAIN fw_rate_control
-	SRCS
-		FixedwingRateControl.cpp
-		FixedwingRateControl.hpp
-	DEPENDS
-		FwTrim
-		px4_work_queue
-		RateControl
-		SlewRate
-	)
+# target_link_libraries(FwTrim)
+target_include_directories(FwTrim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
