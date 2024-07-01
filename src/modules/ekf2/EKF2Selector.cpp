@@ -67,46 +67,6 @@ void EKF2Selector::Stop()
 	ScheduleClear();
 }
 
-void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance)
-{
-	const char *old_reason = nullptr;
-
-	if (_instance[old_instance].filter_fault) {
-		old_reason = " (filter fault)";
-
-	} else if (_instance[old_instance].timeout) {
-		old_reason = " (timeout)";
-
-	} else if (_gyro_fault_detected) {
-		old_reason = " (gyro fault)";
-
-	} else if (_accel_fault_detected) {
-		old_reason = " (accel fault)";
-
-	} else if (!_instance[_selected_instance].healthy.get_state() && (_instance[_selected_instance].healthy_count > 0)) {
-		// skipped if previous instance was never healthy in the first place (eg initialization)
-		old_reason = " (unhealthy)";
-	}
-
-	const char *new_reason = nullptr;
-
-	if (_request_instance.load() == new_instance) {
-		new_reason = " (user selected)";
-	}
-
-	if (old_reason || new_reason) {
-		if (old_reason == nullptr) {
-			old_reason = "";
-		}
-
-		if (new_reason == nullptr) {
-			new_reason = "";
-		}
-
-		PX4_WARN("primary EKF changed %" PRIu8 "%s -> %" PRIu8 "%s", old_instance, old_reason, new_instance, new_reason);
-	}
-}
-
 bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 {
 	if ((ekf_instance != _selected_instance) && (ekf_instance < _available_instances)) {
@@ -692,6 +652,7 @@ void EKF2Selector::Run()
 		for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
 			if ((_instance[i].accel_device_id != 0)
 			    && (_instance[i].gyro_device_id != 0)) {
+				_ekf_last_change_reason = EKFChangeReason::INIT;
 
 				if (SelectInstance(i)) {
 					break;
@@ -755,6 +716,8 @@ void EKF2Selector::Run()
 		}
 
 		if (!_instance[_selected_instance].healthy.get_state()) {
+			_ekf_last_change_reason = CalculateHealthChangeReason();
+
 			// prefer the best healthy instance using a different IMU
 			if (!SelectInstance(best_ekf_different_imu)) {
 				// otherwise switch to the healthy instance with best overall test ratio
@@ -768,11 +731,14 @@ void EKF2Selector::Run()
 
 			// if this instance has a significantly lower relative error to the active primary, we consider it as a
 			// better instance and would like to switch to it even if the current primary is healthy
+			_ekf_last_change_reason = EKFChangeReason::LOWER_ERROR_AVAILABLE;
 			SelectInstance(best_ekf_alternate);
 
 		} else if (_request_instance.load() != INVALID_INSTANCE) {
 
 			const uint8_t new_instance = _request_instance.load();
+
+			_ekf_last_change_reason = EKFChangeReason::USER_SELECTED;
 
 			// attempt to switch to user manually selected instance
 			if (!SelectInstance(new_instance)) {
@@ -837,6 +803,38 @@ void EKF2Selector::PublishEstimatorSelectorStatus()
 	_last_status_publish = selector_status.timestamp;
 }
 
+EKF2Selector::EKFChangeReason EKF2Selector::CalculateHealthChangeReason()
+{
+	/*
+	Multiple problems can be active at the same time. This function keeps the previously implemented
+	priority order
+	*/
+
+	if (_selected_instance == INVALID_INSTANCE) {return EKFChangeReason::NONE;}
+
+	EKFChangeReason reason = EKFChangeReason::UNKNOWN;
+
+	if (_instance[_selected_instance].filter_fault) {
+		reason = EKFChangeReason::FILTER_FAULT;
+
+	} else if (_instance[_selected_instance].timeout) {
+		reason = EKFChangeReason::TIMEOUT;
+
+	} else if (_gyro_fault_detected) {
+		reason = EKFChangeReason::GYRO_FAULT;
+
+	} else if (_accel_fault_detected) {
+		reason = EKFChangeReason::ACCEL_FAULT;
+
+	} else if (!_instance[_selected_instance].healthy.get_state() && (_instance[_selected_instance].healthy_count > 0)) {
+		// TODO. Not sure if this && is correct
+		// skipped if previous instance was never healthy in the first place (eg initialization)
+		reason = EKFChangeReason::UNHEALTHY;
+	}
+
+	return reason;
+}
+
 void EKF2Selector::PrintStatus()
 {
 	PX4_INFO("available instances: %" PRIu8, _available_instances);
@@ -854,4 +852,47 @@ void EKF2Selector::PrintStatus()
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
 			 (_selected_instance == i) ? "*" : "");
 	}
+}
+
+void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance)
+{
+	const char *reason = nullptr;
+
+	if (_ekf_last_change_reason == EKFChangeReason::NONE || _ekf_last_change_reason == EKFChangeReason::INIT) {return;}
+
+	switch (_ekf_last_change_reason) {
+	case FILTER_FAULT:
+		reason = "(filter fault)";
+		break;
+
+	case TIMEOUT:
+		reason = "(timeout)";
+		break;
+
+	case GYRO_FAULT:
+		reason = "(gyro fault)";
+		break;
+
+	case ACCEL_FAULT:
+		reason = "(accel fault)";
+		break;
+
+	case UNHEALTHY:
+		reason = "(unhealthy)";
+		break;
+
+	case LOWER_ERROR_AVAILABLE:
+		reason = "(lower error available)";
+		break;
+
+	case USER_SELECTED:
+		reason = "(user selected)";
+		break;
+
+	case UNKNOWN:
+	default:
+		reason = "(unknown)";
+	}
+
+	PX4_WARN("primary EKF changed %" PRIu8 " %s -> %" PRIu8, old_instance, reason, new_instance);
 }
