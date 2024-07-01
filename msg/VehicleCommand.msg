@@ -102,6 +102,7 @@ uint16 VEHICLE_CMD_FIXED_MAG_CAL_YAW = 42006            # Magnetometer calibrati
 uint16 VEHICLE_CMD_DO_WINCH = 42600			# Command to operate winch.
 
 uint16 VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE = 43003 # external reset of estimator global position when deadreckoning
+uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
 
 # PX4 vehicle commands (beyond 16 bit mavlink commands)
 uint32 VEHICLE_CMD_PX4_INTERNAL_START    = 65537        # start of PX4 internal only vehicle commands (> UINT16_MAX)
