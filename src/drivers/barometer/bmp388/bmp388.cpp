@@ -390,7 +390,7 @@ BMP388::set_sensor_settings()
 	ret = _interface->set_reg(odr_ctl_reg, BMP3_ODR_ADDR);
 
 	if (ret != OK) {
-		PX4_WARN("failed to set output data rate register");
+		PX4_WARN("failed to set settings BMP3_ODR_ADDR");
 		return false;
 	}
 
@@ -399,7 +399,7 @@ BMP388::set_sensor_settings()
 	ret = _interface->set_reg(iir_ctl_reg, BMP3_IIR_ADDR);
 
 	if (ret != OK) {
-		PX4_WARN("failed to set IIR settings");
+		PX4_WARN("failed to set settings BMP3_IIR_ADDR");
 		return false;
 	}
 
