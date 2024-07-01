@@ -33,6 +33,7 @@
 
 px4_add_library(EKF2Utility
 	PreFlightChecker.cpp
+	Sorting.hpp
 )
 
 target_include_directories(EKF2Utility
