@@ -1261,7 +1261,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	}
 
 	// Track and manage gpio command writes
-    	bool write_gpio_command = false;
+	bool write_gpio_command = false;
 
 	if (_gpio_ctl_en) {
 		if (_gpio_ctl_high != prev_gpio_ctl_high) {

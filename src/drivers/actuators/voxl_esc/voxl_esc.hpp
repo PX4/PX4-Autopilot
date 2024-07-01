@@ -136,7 +136,6 @@ private:
 	static constexpr float    VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT = -0.1f;
 	static constexpr float    VOXL_ESC_GPIO_CTL_THRESHOLD = 0.0f;
 
-	static constexpr uint32_t VOXL_ESC_GPIO_CTL = 0;
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX1 = 1;
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX2 = 2;
 	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX3 = 3;
