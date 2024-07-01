@@ -713,7 +713,6 @@ void RCInput::Run()
 				if (newBytes > 0) {
 					rc_updated = crsf_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
 								input_rc_s::RC_INPUT_MAX_CHANNELS);
-
 					if (rc_updated) {
 						// we have a new CRSF frame. Publish it.
 						_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
