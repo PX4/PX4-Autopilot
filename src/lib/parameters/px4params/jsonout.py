@@ -67,6 +67,7 @@ class JsonOutput():
                 if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
                     curr_param=dict()
                     curr_param['name'] = param.GetName()
+                    curr_param['file'] = param.GetSourceFile()
                     type_name = param.GetType().capitalize()
                     curr_param['type'] = type_name
                     if not type_name in allowed_types:

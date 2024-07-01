@@ -61,6 +61,7 @@ class Parameter(object):
         self.category = ""
         self.volatile = False
         self.boolean = False
+        self.file = ""
 
     def GetName(self):
         return self.name
@@ -116,6 +117,12 @@ class Parameter(object):
         """
         self.category = category
 
+    def SetSourceFile(self, file):
+        """
+        Set file path of parameter definition (relative to repo root).
+        """
+        self.file = file
+
     def GetFieldCodes(self):
         """
         Return list of existing field codes in convenient order
@@ -168,6 +175,12 @@ class Parameter(object):
                 return ""
         return fv.strip()
 
+    def GetSourceFile(self):
+        """
+        Return value of source file for parameter definition (relative to repo root).
+        """
+        return self.file
+
 class SourceParser(object):
     """
     Parses provided data and stores all found parameters internally.
@@ -197,7 +210,7 @@ class SourceParser(object):
     def __init__(self):
         self.param_groups = {}
 
-    def Parse(self, contents):
+    def Parse(self, contents, file):
         """
         Incrementally parse program contents and append all found parameters
         to the list.
@@ -331,6 +344,16 @@ class SourceParser(object):
                             param.SetEnumValue(def_value, def_values[def_value])
                         for def_bit in def_bitmask:
                             param.SetBitmaskBit(def_bit, def_bitmask[def_bit])
+
+                    # Add source file of parameter
+                    try:
+                        #Only works for non-yaml sources
+                        filefromRoot = file.split('/src/')[1]
+                        filefromRoot = f'src/{filefromRoot}'
+                        param.SetSourceFile(filefromRoot)
+                    except:
+                        pass
+
                     # Store the parameter
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
