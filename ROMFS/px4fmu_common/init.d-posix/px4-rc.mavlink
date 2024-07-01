@@ -32,7 +32,7 @@ mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $ud
 mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -m gimbal -o $udp_onboard_gimbal_port_remote
 
 # To display for SIH sitl
-if [ "$PX4_SIMULATOR" = "sihsim" ]; then
+if [ "$PX4_SIMULATOR" == "sihsim" ]; then
 	udp_sihsim_port_local=$((19450+px4_instance))
 	udp_sihsim_port_remote=$((19410+px4_instance))
 	mavlink start -x -u $udp_sihsim_port_local -r 400000 -m custom -o $udp_sihsim_port_remote
