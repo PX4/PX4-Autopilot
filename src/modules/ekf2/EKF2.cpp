@@ -561,6 +561,10 @@ void EKF2::Run()
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
+
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE) {
+				_ekf.resetWindToExternalObservation(vehicle_command.param1, vehicle_command.param3, vehicle_command.param2, vehicle_command.param4);
+			}
 		}
 	}
 
