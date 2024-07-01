@@ -298,7 +298,7 @@ AirspeedModule::Run()
 
 	// do not run the airspeed selector until 2s after system boot,
 	// as data from airspeed sensor	and estimator may not be valid yet
-	if (_time_now_usec < 2_s) {
+	if (_time_now_usec < 3_s) {
 		return;
 	}
 
