@@ -50,6 +50,8 @@ px4_add_library(ActuatorEffectiveness
 	ActuatorEffectivenessMCTilt.hpp
 	ActuatorEffectivenessMultirotor.cpp
 	ActuatorEffectivenessMultirotor.hpp
+	ActuatorEffectivenessThrustVectoring.cpp
+	ActuatorEffectivenessThrustVectoring.hpp
 	ActuatorEffectivenessTilts.cpp
 	ActuatorEffectivenessTilts.hpp
 	ActuatorEffectivenessRotors.cpp
