@@ -124,7 +124,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
 			// determine current z
 			const float z_prev = _state.pos(2);
-			float current_alt = -z_prev + gps_alt_ref_prev;
+			const float current_alt = -z_prev + gps_alt_ref_prev;
 #if defined(CONFIG_EKF2_GNSS)
 			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
 #endif // CONFIG_EKF2_GNSS

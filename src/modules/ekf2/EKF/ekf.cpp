@@ -316,11 +316,11 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 		aid_src.innovation_variance[1] = P(State::pos.idx + 1, State::pos.idx + 1) + aid_src.observation_variance[1];
 
 		const float sq_gate = sq(5.f); // magic hardcoded gate
-		const Vector2f test_ratio{sq(aid_src.innovation[0]) / (sq_gate * aid_src.innovation_variance[0]),
-				    sq(aid_src.innovation[1]) / (sq_gate * aid_src.innovation_variance[1])};
+		const Vector2f test_ratio{sq(aid_src.innovation[0]) / (sq_gate *aid_src.innovation_variance[0]),
+					  sq(aid_src.innovation[1]) / (sq_gate *aid_src.innovation_variance[1])};
 
 		if (test_ratio(0) > 1.f || test_ratio(1) > 1.f) {
-			ECL_INFO("reset position to external observation");
+			ECL_INFO("external position correction rejected, resetting");
 			resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
 
 		} else {
@@ -332,8 +332,9 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 			}
 
 			const Vector2f delta_horz_pos{pos_corrected - Vector2f{_state.pos}};
-			recordResetStateChange(_state_reset_status.posNE_change, delta_horz_pos, _state_reset_status.reset_count.posNE,
-					       _state_reset_count_prev.posNE);
+			_state_reset_status.posNE_change = _state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE ?
+							  delta_horz_pos : _state_reset_status.posNE_change + delta_horz_pos;
+			_state_reset_status.reset_count.posNE++;
 			_time_last_hor_pos_fuse = _time_delayed_us;
 		}
 	}
