@@ -59,6 +59,7 @@ include(sitl_targets_flightgear.cmake)
 include(sitl_targets_gazebo-classic.cmake)
 include(sitl_targets_jmavsim.cmake)
 include(sitl_targets_jsbsim.cmake)
+include(sitl_targets_xplane.cmake)
 
 
 # none_iris (legacy compatibility launch helper)
@@ -71,3 +72,4 @@ add_custom_target(none_iris
 		${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/10016_none_iris
 	COMMENT "launching px4 none_iris (SYS_AUTOSTART=10016)"
 )
+
