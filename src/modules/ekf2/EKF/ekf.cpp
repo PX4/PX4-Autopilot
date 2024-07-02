@@ -281,12 +281,11 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
 }
 
-void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation)
+bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation)
 {
-
 	if (!_pos_ref.isInitialized()) {
-		ECL_INFO("Global position reference not initialized, set home position first");
-		return;
+		ECL_WARN("unable to reset global position, position reference not initialized");
+		return false;
 	}
 
 	// apply a first order correction using velocity at the delated time horizon and the delta time
@@ -342,6 +341,8 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 	}
 
 	_last_known_pos = _state.pos;
+
+	return true;
 }
 
 void Ekf::updateParameters()
