@@ -162,11 +162,3 @@ void Ekf::resetHorizontalPositionToLastKnown()
 	// Used when falling back to non-aiding mode of operation
 	resetHorizontalPositionTo(_last_known_pos.xy(), sq(_params.pos_noaid_noise));
 }
-
-void Ekf::resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy)
-{
-	ECL_INFO("reset position to external observation");
-	_information_events.flags.reset_pos_to_ext_obs = true;
-
-	resetHorizontalPositionTo(new_horiz_pos, sq(horiz_accuracy));
-}

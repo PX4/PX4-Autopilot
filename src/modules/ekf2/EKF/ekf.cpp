@@ -300,7 +300,9 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 		// when on ground or accuracy chosen to be very low, we hard reset position
 		// this allows the user to still send hard resets at any time
 		ECL_INFO("reset position to external observation");
-		resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
+		_information_events.flags.reset_pos_to_ext_obs = true;
+
+		resetHorizontalPositionTo(pos_corrected, sq(math::max(accuracy, FLT_EPSILON)));
 
 	} else {
 		estimator_aid_source2d_s aid_src{};
@@ -321,7 +323,8 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 
 		if (test_ratio(0) > 1.f || test_ratio(1) > 1.f) {
 			ECL_INFO("external position correction rejected, resetting");
-			resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
+			_information_events.flags.reset_pos_to_ext_obs = true;
+			resetHorizontalPositionTo(pos_corrected, sq(math::max(accuracy, FLT_EPSILON)));
 
 		} else {
 			fuseHorizontalPosition(aid_src);
