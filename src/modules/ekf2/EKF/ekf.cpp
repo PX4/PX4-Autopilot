@@ -288,61 +288,59 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 		return false;
 	}
 
-	// apply a first order correction using velocity at the delated time horizon and the delta time
-	timestamp_observation = math::min(_time_latest_us, timestamp_observation);
-	const float dt = _time_delayed_us > timestamp_observation ? static_cast<float>(_time_delayed_us - timestamp_observation)
-			 * 1e-6f : -static_cast<float>(timestamp_observation - _time_delayed_us) * 1e-6f;
-	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
+	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg);
 
-	if (!_control_status.flags.in_air || accuracy < 1.f) {
+	// apply a first order correction using velocity at the delayed time horizon and the delta time
+	if ((timestamp_observation > 0) && (isHorizontalAidingActive() || !_horizontal_deadreckon_time_exceeded)) {
+
+		timestamp_observation = math::min(_time_latest_us, timestamp_observation);
+
+		float diff_us = 0.f;
+
+		if (_time_delayed_us >= timestamp_observation) {
+			diff_us = static_cast<float>(_time_delayed_us - timestamp_observation);
+
+		} else {
+			diff_us = -static_cast<float>(timestamp_observation - _time_delayed_us);
+		}
+
+		const float dt_s = diff_us * 1e-6f;
+		pos_corrected += _state.vel.xy() * dt_s;
+	}
+
+	const float obs_var = math::max(accuracy, sq(0.01f));
+
+	const Vector2f innov = Vector2f(_state.pos.xy()) - pos_corrected;
+	const Vector2f innov_var = Vector2f(getStateVariance<State::vel>()) + obs_var;
+
+	const float sq_gate = sq(5.f); // magic hardcoded gate
+	const Vector2f test_ratio{sq(innov(0)) / (sq_gate * innov_var(0)),
+					sq(innov(1)) / (sq_gate * innov_var(1))};
+
+	const bool innov_rejected = (test_ratio.max() > 1.f);
+
+	if (!_control_status.flags.in_air || accuracy < 1.f || innov_rejected) {
 		// when on ground or accuracy chosen to be very low, we hard reset position
 		// this allows the user to still send hard resets at any time
 		ECL_INFO("reset position to external observation");
 		_information_events.flags.reset_pos_to_ext_obs = true;
 
-		resetHorizontalPositionTo(pos_corrected, sq(math::max(accuracy, FLT_EPSILON)));
+		resetHorizontalPositionTo(pos_corrected, obs_var);
+		_last_known_pos.xy() = _state.pos.xy();
+		return true;
 
 	} else {
-		estimator_aid_source2d_s aid_src{};
-		pos_corrected.copyTo(aid_src.observation);
-		const float obs_var = math::max(sq(accuracy), FLT_EPSILON);
-
-		aid_src.observation_variance[0] = obs_var;
-		aid_src.observation_variance[1] = obs_var;
-		aid_src.innovation[0] = _state.pos(0) - pos_corrected(0);
-		aid_src.innovation[1] = _state.pos(1) - pos_corrected(1);
-
-		aid_src.innovation_variance[0] = P(State::pos.idx, State::pos.idx) + aid_src.observation_variance[0];
-		aid_src.innovation_variance[1] = P(State::pos.idx + 1, State::pos.idx + 1) + aid_src.observation_variance[1];
-
-		const float sq_gate = sq(5.f); // magic hardcoded gate
-		const Vector2f test_ratio{sq(aid_src.innovation[0]) / (sq_gate *aid_src.innovation_variance[0]),
-					  sq(aid_src.innovation[1]) / (sq_gate *aid_src.innovation_variance[1])};
-
-		if (test_ratio(0) > 1.f || test_ratio(1) > 1.f) {
-			ECL_INFO("external position correction rejected, resetting");
-			_information_events.flags.reset_pos_to_ext_obs = true;
-			resetHorizontalPositionTo(pos_corrected, sq(math::max(accuracy, FLT_EPSILON)));
-
-		} else {
-			fuseHorizontalPosition(aid_src);
-
-			if (aid_src.fused) {
-				ECL_INFO("fused external observation as position measurement");
-				_information_events.flags.reset_pos_to_ext_obs = true;
-			}
-
-			const Vector2f delta_horz_pos{pos_corrected - Vector2f{_state.pos}};
-			_state_reset_status.posNE_change = _state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE ?
-							  delta_horz_pos : _state_reset_status.posNE_change + delta_horz_pos;
-			_state_reset_status.reset_count.posNE++;
+		if (fuseDirectStateMeasurement(innov(0), innov_var(0), obs_var, State::pos.idx + 0)
+		 && fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1)
+		) {
+			ECL_INFO("fused external observation as position measurement");
 			_time_last_hor_pos_fuse = _time_delayed_us;
+			_last_known_pos.xy() = _state.pos.xy();
+			return true;
 		}
 	}
 
-	_last_known_pos = _state.pos;
-
-	return true;
+	return false;
 }
 
 void Ekf::updateParameters()
