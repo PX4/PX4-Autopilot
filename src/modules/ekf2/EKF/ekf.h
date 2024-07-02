@@ -549,8 +549,6 @@ private:
 	StateResets _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
 	StateResetCounts _state_reset_count_prev{};
 
-	Vector3f _ang_rate_delayed_raw{};	///< uncorrected angular rate vector at fusion time horizon (rad/sec)
-
 	StateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
@@ -827,7 +825,7 @@ private:
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range height
-	void controlRangeHaglFusion();
+	void controlRangeHaglFusion(const imuSample &imu_delayed);
 	bool isConditionalRangeAidSuitable();
 	void stopRngHgtFusion();
 	void stopRngTerrFusion();
@@ -916,12 +914,12 @@ private:
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// control fusion of external vision observations
-	void controlExternalVisionFusion();
+	void controlExternalVisionFusion(const imuSample &imu_sample);
 	void updateEvAttitudeErrorFilter(extVisionSample &ev_sample, bool ev_reset);
-	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
-	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src);
-	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
-	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
+	void controlEvHeightFusion(const imuSample &imu_sample, const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
+	void controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src);
+	void controlEvVelFusion(const imuSample &imu_sample, const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
+	void controlEvYawFusion(const imuSample &imu_sample, const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
 
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src);
@@ -935,7 +933,7 @@ private:
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
 	void stopGpsFusion();
-	void updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
+	void updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
 	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
 	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
 	bool tryYawEmergencyReset();
@@ -984,7 +982,7 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations
-	void controlMagFusion();
+	void controlMagFusion(const imuSample &imu_sample);
 
 	bool checkHaglYawResetReq() const;
 
@@ -1017,7 +1015,7 @@ private:
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// control fusion of auxiliary velocity observations
-	void controlAuxVelFusion();
+	void controlAuxVelFusion(const imuSample &imu_sample);
 	void stopAuxVelFusion();
 #endif // CONFIG_EKF2_AUXVEL
 
@@ -1030,13 +1028,13 @@ private:
 	void checkHeightSensorRefFallback();
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	void controlBaroHeightFusion();
+	void controlBaroHeightFusion(const imuSample &imu_sample);
 	void stopBaroHgtFusion();
 
 	void updateGroundEffect();
 
 # if defined(CONFIG_EKF2_BARO_COMPENSATION)
-	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) const;
+	float compensateBaroForDynamicPressure(const imuSample &imu_sample, float baro_alt_uncompensated) const;
 # endif // CONFIG_EKF2_BARO_COMPENSATION
 
 #endif // CONFIG_EKF2_BAROMETER

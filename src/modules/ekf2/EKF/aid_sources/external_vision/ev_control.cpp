@@ -38,7 +38,7 @@
 
 #include "ekf.h"
 
-void Ekf::controlExternalVisionFusion()
+void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 {
 	_ev_pos_b_est.predict(_dt_ekf_avg);
 	_ev_hgt_b_est.predict(_dt_ekf_avg);
@@ -46,7 +46,7 @@ void Ekf::controlExternalVisionFusion()
 	// Check for new external vision data
 	extVisionSample ev_sample;
 
-	if (_ext_vision_buffer && _ext_vision_buffer->pop_first_older_than(_time_delayed_us, &ev_sample)) {
+	if (_ext_vision_buffer && _ext_vision_buffer->pop_first_older_than(imu_sample.time_us, &ev_sample)) {
 
 		bool ev_reset = (ev_sample.reset_counter != _ev_sample_prev.reset_counter);
 
@@ -60,10 +60,10 @@ void Ekf::controlExternalVisionFusion()
 				&& isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
 
 		updateEvAttitudeErrorFilter(ev_sample, ev_reset);
-		controlEvYawFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
-		controlEvVelFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
-		controlEvPosFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_pos);
-		controlEvHeightFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_hgt);
+		controlEvYawFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
+		controlEvVelFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+		controlEvPosFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_pos);
+		controlEvHeightFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_hgt);
 
 		if (quality_sufficient) {
 			_ev_sample_prev = ev_sample;
