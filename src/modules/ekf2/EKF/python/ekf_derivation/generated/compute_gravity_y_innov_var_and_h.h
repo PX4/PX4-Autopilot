@@ -16,19 +16,19 @@ namespace sym {
  * Symbolic function: compute_gravity_y_innov_var_and_h
  *
  * Args:
- *     state: Matrix24_1
- *     P: Matrix23_23
+ *     state: Matrix25_1
+ *     P: Matrix24_24
  *     R: Scalar
  *
  * Outputs:
  *     innov_var: Scalar
- *     Hy: Matrix23_1
+ *     Hy: Matrix24_1
  */
 template <typename Scalar>
-void ComputeGravityYInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
-                                 const matrix::Matrix<Scalar, 23, 23>& P, const Scalar R,
+void ComputeGravityYInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
+                                 const matrix::Matrix<Scalar, 24, 24>& P, const Scalar R,
                                  Scalar* const innov_var = nullptr,
-                                 matrix::Matrix<Scalar, 23, 1>* const Hy = nullptr) {
+                                 matrix::Matrix<Scalar, 24, 1>* const Hy = nullptr) {
   // Total ops: 22
 
   // Input arrays
@@ -47,7 +47,7 @@ void ComputeGravityYInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (Hy != nullptr) {
-    matrix::Matrix<Scalar, 23, 1>& _hy = (*Hy);
+    matrix::Matrix<Scalar, 24, 1>& _hy = (*Hy);
 
     _hy.setZero();
 

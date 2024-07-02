@@ -99,6 +99,11 @@ void Ekf::initialiseCovariance()
 #if defined(CONFIG_EKF2_WIND)
 	resetWindCov();
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	// use the ground clearance value as our uncertainty
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
+#endif // CONFIG_EKF2_TERRAIN
 }
 
 void Ekf::predictCovariance(const imuSample &imu_delayed)
@@ -202,6 +207,17 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	}
 #endif // CONFIG_EKF2_WIND
 
+#if defined(CONFIG_EKF2_TERRAIN)
+	if (_height_sensor_ref != HeightSensor::RANGE) {
+		// predict the state variance growth where the state is the vertical position of the terrain underneath the vehicle
+		// process noise due to errors in vehicle height estimate
+		float terrain_process_noise = sq(imu_delayed.delta_vel_dt * _params.terrain_p_noise);
+
+		// process noise due to terrain gradient
+		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(1)));
+		P(State::terrain.idx, State::terrain.idx) += terrain_process_noise;
+	}
+#endif // CONFIG_EKF2_TERRAIN
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	for (unsigned row = 0; row < State::size; row++) {
@@ -239,6 +255,10 @@ void Ekf::constrainStateVariances()
 		constrainStateVarLimitRatio(State::wind_vel, 1e-6f, 1e6f);
 	}
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	constrainStateVarLimitRatio(State::terrain, 0.f, 1e4f);
+#endif // CONFIG_EKF2_TERRAIN
 }
 
 void Ekf::constrainStateVar(const IdxDof &state, float min, float max)

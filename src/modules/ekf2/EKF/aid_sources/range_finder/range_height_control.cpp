@@ -37,8 +37,9 @@
  */
 
 #include "ekf.h"
+#include "ekf_derivation/generated/compute_hagl_innov_var.h"
 
-void Ekf::controlRangeHeightFusion()
+void Ekf::controlRangeHaglFusion()
 {
 	static constexpr const char *HGT_SRC_NAME = "RNG";
 
@@ -93,58 +94,91 @@ void Ekf::controlRangeHeightFusion()
 	}
 
 	auto &aid_src = _aid_src_rng_hgt;
-	HeightBiasEstimator &bias_est = _rng_hgt_b_est;
-
-	bias_est.predict(_dt_ekf_avg);
 
 	if (rng_data_ready && _range_sensor.getSampleAddress()) {
 
-		const float measurement = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
-		const float measurement_var = sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
+		updateRangeHagl(aid_src);
+		const bool measurement_valid = PX4_ISFINITE(aid_src.observation) && PX4_ISFINITE(aid_src.observation_variance);
 
-		const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
-
-		// vertical position innovation - baro measurement has opposite sign to earth z axis
-		updateVerticalPositionAidStatus(aid_src,
-						_range_sensor.getSampleAddress()->time_us, // sample timestamp
-						-(measurement - bias_est.getBias()),       // observation
-						measurement_var + bias_est.getBiasVar(),   // observation variance
-						math::max(_params.range_innov_gate, 1.f)); // innovation gate
-
-		// update the bias estimator before updating the main filter but after
-		// using its current state to compute the vertical position innovation
-		if (measurement_valid && _range_sensor.isDataHealthy()) {
-			bias_est.setMaxStateNoise(sqrtf(measurement_var));
-			bias_est.setProcessNoiseSpectralDensity(_params.rng_hgt_bias_nsd);
-			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
-		}
-
-		// determine if we should use height aiding
-		const bool do_conditional_range_aid = (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
-						      && isConditionalRangeAidSuitable();
-
-		const bool continuing_conditions_passing = ((_params.rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED)) || do_conditional_range_aid)
-				&& measurement_valid
-				&& _range_sensor.isDataHealthy();
+		const bool continuing_conditions_passing = ((_params.rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED))
+							    || (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL)))
+							   && _control_status.flags.tilt_align
+							   && measurement_valid
+							   && _range_sensor.isDataHealthy()
+						           && _rng_consistency_check.isKinematicallyConsistent();
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)
 				&& _range_sensor.isRegularlySendingData();
 
+
+		const bool do_conditional_range_aid = (_hagl_sensor_status.flags.range_finder || _control_status.flags.rng_hgt)
+						      && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
+						      && isConditionalRangeAidSuitable();
+
+		const bool do_range_aid = (_hagl_sensor_status.flags.range_finder || _control_status.flags.rng_hgt)
+					  && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED));
+
 		if (_control_status.flags.rng_hgt) {
+			if (!(do_conditional_range_aid || do_range_aid)) {
+				ECL_INFO("stopping %s fusion", HGT_SRC_NAME);
+				stopRngHgtFusion();
+			}
+
+		} else {
+			if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE)) {
+				if (do_conditional_range_aid) {
+					// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
+					ECL_INFO("starting conditional %s height fusion", HGT_SRC_NAME);
+					_height_sensor_ref = HeightSensor::RANGE;
+
+					_control_status.flags.rng_hgt = true;
+					stopRngTerrFusion();
+
+					if (!_hagl_sensor_status.flags.flow && aid_src.innovation_rejected) {
+						resetTerrainToRng(aid_src);
+					}
+
+				} else if (do_range_aid) {
+					// Range finder is the primary height source, the ground is now the datum used
+					// to compute the local vertical position
+					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
+					_height_sensor_ref = HeightSensor::RANGE;
+
+					_information_events.flags.reset_hgt_to_rng = true;
+					resetVerticalPositionTo(-aid_src.observation, aid_src.observation_variance);
+					_state.terrain = 0.f;
+					_control_status.flags.rng_hgt = true;
+					stopRngTerrFusion();
+
+					aid_src.time_last_fuse = _time_delayed_us;
+				}
+
+			} else {
+				if (do_conditional_range_aid || do_range_aid) {
+					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
+					_control_status.flags.rng_hgt = true;
+
+					if (!_hagl_sensor_status.flags.flow && aid_src.innovation_rejected) {
+						resetTerrainToRng(aid_src);
+					}
+				}
+			}
+		}
+
+		if (_control_status.flags.rng_hgt || _hagl_sensor_status.flags.range_finder) {
 			if (continuing_conditions_passing) {
 
-				fuseVerticalPosition(aid_src);
+				fuseHaglRng(aid_src, _control_status.flags.rng_hgt, _hagl_sensor_status.flags.range_finder);
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
-				if (isHeightResetRequired()) {
+				if (isHeightResetRequired() && _control_status.flags.rng_hgt) {
 					// All height sources are failing
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_rng = true;
-					resetVerticalPositionTo(-(measurement - bias_est.getBias()));
-					bias_est.setBias(_state.pos(2) + measurement);
+					resetVerticalPositionTo(-(aid_src.observation - _state.terrain));
 
 					// reset vertical velocity
 					resetVerticalVelocityToZero();
@@ -153,99 +187,120 @@ void Ekf::controlRangeHeightFusion()
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
-					ECL_WARN("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
-					stopRngHgtFusion();
-					_control_status.flags.rng_fault = true;
-					_range_sensor.setFaulty();
+					if (_hagl_sensor_status.flags.flow) {
+						ECL_WARN("stopping %s fusion, fusion failing", HGT_SRC_NAME);
+						stopRngHgtFusion();
+						stopRngTerrFusion();
+
+					} else {
+						resetTerrainToRng(aid_src);
+					}
 				}
 
 			} else {
-				ECL_WARN("stopping %s height fusion, continuing conditions failing", HGT_SRC_NAME);
+				ECL_WARN("stopping %s fusion, continuing conditions failing", HGT_SRC_NAME);
 				stopRngHgtFusion();
+				stopRngTerrFusion();
 			}
 
 		} else {
 			if (starting_conditions_passing) {
-				if ((_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE))
-				    && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
-				) {
-					// Range finder is used while hovering to stabilize the height estimate. Don't reset but use it as height reference.
-					ECL_INFO("starting conditional %s height fusion", HGT_SRC_NAME);
-					_height_sensor_ref = HeightSensor::RANGE;
-					bias_est.setBias(_state.pos(2) + measurement);
-
-				} else if ((_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::RANGE))
-					   && (_params.rng_ctrl != static_cast<int32_t>(RngCtrl::CONDITIONAL))
-				) {
-					// Range finder is the primary height source, the ground is now the datum used
-					// to compute the local vertical position
-					ECL_INFO("starting %s height fusion, resetting height", HGT_SRC_NAME);
-					_height_sensor_ref = HeightSensor::RANGE;
-
-					_information_events.flags.reset_hgt_to_rng = true;
-					resetVerticalPositionTo(-measurement, measurement_var);
-					bias_est.reset();
+				if (_hagl_sensor_status.flags.flow) {
+					if (!aid_src.innovation_rejected) {
+						_hagl_sensor_status.flags.range_finder = true;
+						fuseHaglRng(aid_src, _control_status.flags.rng_hgt, _hagl_sensor_status.flags.range_finder);
+					}
 
 				} else {
-					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
-					bias_est.setBias(_state.pos(2) + measurement);
-				}
+					if (aid_src.innovation_rejected) {
+						resetTerrainToRng(aid_src);
+					}
 
-				aid_src.time_last_fuse = _time_delayed_us;
-				bias_est.setFusionActive();
-				_control_status.flags.rng_hgt = true;
+					_hagl_sensor_status.flags.range_finder = true;
+				}
 			}
 		}
 
-	} else if (_control_status.flags.rng_hgt
+	} else if ((_control_status.flags.rng_hgt || _hagl_sensor_status.flags.range_finder)
 		   && !isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
-		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
+		ECL_WARN("stopping %s fusion, no data", HGT_SRC_NAME);
 		stopRngHgtFusion();
+		stopRngTerrFusion();
 	}
+}
+
+void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
+{
+	aid_src.observation = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
+	aid_src.innovation = getHagl() - aid_src.observation;
+
+	const float observation_variance = getRngVar();
+	float innovation_variance;
+	sym::ComputeHaglInnovVar(P, observation_variance, &innovation_variance);
+
+	const float innov_gate = math::max(_params.range_innov_gate, 1.f);
+	updateAidSourceStatus(aid_src,
+			      _range_sensor.getSampleAddress()->time_us,                           // sample timestamp
+			      math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance), // observation
+			      observation_variance,                                                // observation variance
+			      getHagl() - aid_src.observation,                                     // innovation
+			      innovation_variance,                                                 // innovation variance
+			      math::max(_params.range_innov_gate, 1.f));                            // innovation gate
+
+	// z special case if there is bad vertical acceleration data, then don't reject measurement,
+	// but limit innovation to prevent spikes that could destabilise the filter
+	if (_fault_status.flags.bad_acc_vertical && aid_src.innovation_rejected) {
+		const float innov_limit = innov_gate * sqrtf(aid_src.innovation_variance);
+		aid_src.innovation = math::constrain(aid_src.innovation, -innov_limit, innov_limit);
+		aid_src.innovation_rejected = false;
+	}
+}
+
+float Ekf::getRngVar() const
+{
+	return fmaxf(
+		     P(State::pos.idx + 2, State::pos.idx + 2)
+		     + sq(_params.range_noise)
+		     + sq(_params.range_noise_scaler * _range_sensor.getRange()),
+	       0.f);
+}
+
+void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
+{
+	_state.terrain = _state.pos(2) + aid_src.observation;
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, aid_src.observation_variance);
+	_terrain_vpos_reset_counter++;
+
+	aid_src.time_last_fuse = _time_delayed_us;
 }
 
 bool Ekf::isConditionalRangeAidSuitable()
 {
-#if defined(CONFIG_EKF2_TERRAIN)
+	// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
+	// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
+	float range_hagl_max = _params.max_hagl_for_range_aid;
+	float max_vel_xy = _params.max_vel_for_range_aid;
 
-	if (_control_status.flags.in_air
-	    && _range_sensor.isHealthy()
-	    && isTerrainEstimateValid()) {
-		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
-		// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
-		float range_hagl_max = _params.max_hagl_for_range_aid;
-		float max_vel_xy = _params.max_vel_for_range_aid;
+	const float hagl_test_ratio = _aid_src_rng_hgt.test_ratio;
 
-		const float hagl_innov = _aid_src_terrain_range_finder.innovation;
-		const float hagl_innov_var = _aid_src_terrain_range_finder.innovation_variance;
+	bool is_hagl_stable = (hagl_test_ratio < 1.f);
 
-		const float hagl_test_ratio = (hagl_innov * hagl_innov / (sq(_params.range_aid_innov_gate) * hagl_innov_var));
-
-		bool is_hagl_stable = (hagl_test_ratio < 1.f);
-
-		if (!_control_status.flags.rng_hgt) {
-			range_hagl_max = 0.7f * _params.max_hagl_for_range_aid;
-			max_vel_xy = 0.7f * _params.max_vel_for_range_aid;
-			is_hagl_stable = (hagl_test_ratio < 0.01f);
-		}
-
-		const float range_hagl = _terrain_vpos - _state.pos(2);
-
-		const bool is_in_range = (range_hagl < range_hagl_max);
-
-		bool is_below_max_speed = true;
-
-		if (isHorizontalAidingActive()) {
-			is_below_max_speed = !_state.vel.xy().longerThan(max_vel_xy);
-		}
-
-		return is_in_range && is_hagl_stable && is_below_max_speed;
+	if (!_control_status.flags.rng_hgt) {
+		range_hagl_max = 0.7f * _params.max_hagl_for_range_aid;
+		max_vel_xy = 0.7f * _params.max_vel_for_range_aid;
+		is_hagl_stable = (hagl_test_ratio < 0.01f);
 	}
 
-#endif // CONFIG_EKF2_TERRAIN
+	const bool is_in_range = (getHagl() < range_hagl_max);
 
-	return false;
+	bool is_below_max_speed = true;
+
+	if (isHorizontalAidingActive()) {
+		is_below_max_speed = !_state.vel.xy().longerThan(max_vel_xy);
+	}
+
+	return is_in_range && is_hagl_stable && is_below_max_speed;
 }
 
 void Ekf::stopRngHgtFusion()
@@ -256,8 +311,11 @@ void Ekf::stopRngHgtFusion()
 			_height_sensor_ref = HeightSensor::UNKNOWN;
 		}
 
-		_rng_hgt_b_est.setFusionInactive();
-
 		_control_status.flags.rng_hgt = false;
 	}
+}
+
+void Ekf::stopRngTerrFusion()
+{
+	_hagl_sensor_status.flags.range_finder = false;
 }

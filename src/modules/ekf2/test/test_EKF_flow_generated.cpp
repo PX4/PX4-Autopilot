@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,43 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <cfloat>
+#include <gtest/gtest.h>
+#include "EKF/ekf.h"
+#include "test_helper/comparison_helper.h"
 
-#include "../Common.hpp"
+#include "../EKF/python/ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h"
+#include "../EKF/python/ekf_derivation/generated/compute_flow_y_innov_var_and_h.h"
 
-#include <lib/hysteresis/hysteresis.h>
+using namespace matrix;
 
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/cpuload.h>
-
-class CpuResourceChecks : public HealthAndArmingCheckBase
+TEST(FlowGenerated, distBottom0xy)
 {
-public:
-	CpuResourceChecks();
-	~CpuResourceChecks() = default;
+	// GIVEN: 0 distance to the ground (singularity)
+	StateSample state{};
+	state.quat_nominal = Quatf();
 
-	void checkAndReport(const Context &context, Report &reporter) override;
+	const float R = sq(radians(sq(0.5f)));
+	SquareMatrixState P = createRandomCovarianceMatrix();
 
-private:
-	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
+	VectorState H;
+	Vector2f innov_var;
+	sym::ComputeFlowXyInnovVarAndHx(state.vector(), P, R, FLT_EPSILON, &innov_var, &H);
+	EXPECT_GT(innov_var(0), 1e12);
+	EXPECT_GT(innov_var(1), 1e12);
+}
 
-	systemlib::Hysteresis _high_cpu_load_hysteresis{false};
+TEST(FlowGenerated, distBottom0y)
+{
+	// GIVEN: 0 distance to the ground (singularity)
+	StateSample state{};
+	state.quat_nominal = Quatf();
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max,
-					(ParamFloat<px4::params::COM_RAM_MAX>) _param_com_ram_max
-				       )
-};
+	const float R = sq(radians(sq(0.5f)));
+	SquareMatrixState P = createRandomCovarianceMatrix();
+
+	VectorState H;
+	float innov_var;
+	sym::ComputeFlowYInnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var, &H);
+	EXPECT_GT(innov_var, 1e12);
+}

@@ -74,6 +74,8 @@ public:
 		updateParams();
 	}
 
+	float test_ratio_filtered() const { return _test_ratio_filtered; }
+
 private:
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t time_delayed_us, uint64_t timeout_period) const
 	{
@@ -105,6 +107,8 @@ private:
 	};
 
 	State _state{State::stopped};
+
+	float _test_ratio_filtered{INFINITY};
 
 #if defined(MODULE_NAME)
 	struct reset_counters_s {

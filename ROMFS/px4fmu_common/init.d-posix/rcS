@@ -157,6 +157,7 @@ param set-default CBRK_SUPPLY_CHK 894281
 
 # disable check, no CPU load reported on posix yet
 param set-default COM_CPU_MAX -1
+param set-default COM_RAM_MAX -1
 
 # Don't require RC calibration and configuration
 param set-default COM_RC_IN_MODE 1
