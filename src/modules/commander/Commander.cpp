@@ -1448,6 +1448,53 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE: {
+
+			const uint8_t set_safety_switch_state = static_cast<uint8_t>(cmd.param1 + 0.5f);
+
+			if (set_safety_switch_state == vehicle_command_s::SAFETY_SWITCH_STATE_DANGEROUS) {
+
+				_safety.deactivateSafety();
+
+				if (_safety.isSafetyOff()) {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					/* EVENT
+					 * @description Safety switch off via mavlink command
+					 */
+					events::send(events::ID("commander_safety_off"), events::Log::Info, "Safety switch off");
+
+				} else {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
+				}
+
+			} else if (set_safety_switch_state == vehicle_command_s::SAFETY_SWITCH_STATE_SAFE) {
+
+				_safety.activateSafety();
+
+				if (!_safety.isSafetyOff()) {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					/* EVENT
+					 * @description Safety switch on via mavlink command
+					 */
+					events::send(events::ID("commander_safety_on"), events::Log::Info, "Safety switch on");
+
+				} else {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
+				}
+
+			} else {
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
+				/* EVENT
+				 * @description Invalid safety switch param sent via mavlink command
+				 */
+				events::send(events::ID("commander_safety_cmd_fail"), events::Log::Notice,
+					     "Invalid safety switch param sent. Safety switch on");
+			}
+
+		}
+
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_START_RX_PAIR:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
