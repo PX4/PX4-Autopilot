@@ -63,7 +63,8 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 		const gnssSample &gnss_sample = _gps_sample_delayed;
 
-		if (runGnssChecks(gnss_sample) && isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us / 2)) {
+		if (runGnssChecks(gnss_sample)
+		    && isTimedOut(_last_gps_fail_us, max((uint64_t)1e6, (uint64_t)_min_gps_health_time_us / 10))) {
 			if (isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us)) {
 				// First time checks are passing, latching.
 				_gps_checks_passed = true;
