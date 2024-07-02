@@ -43,13 +43,17 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 {
 	static constexpr const char *AID_SRC_NAME = "EV velocity";
 
-	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
-					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
-
 	// determine if we should use EV velocity aiding
 	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))
 					     && _control_status.flags.tilt_align
 					     && ev_sample.vel.isAllFinite();
+
+	const bool ev_yaw_available = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::YAW))
+				      && ev_sample.quat.isAllFinite();
+
+	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
+					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
+
 
 	// correct velocity for offset relative to IMU
 	const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
@@ -73,12 +77,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 		break;
 
 	case VelocityFrame::LOCAL_FRAME_FRD:
-		if (_control_status.flags.ev_yaw) {
-			// using EV frame
-			vel = ev_sample.vel - vel_offset_earth;
-			vel_cov = matrix::diag(ev_sample.velocity_var);
-
-		} else {
+		if (ev_yaw_available && !_control_status.flags.ev_yaw) {
 			// rotate EV to the EKF reference frame
 			const Dcmf R_ev_to_ekf = Dcmf(_ev_q_error_filt.getState());
 
@@ -92,6 +91,14 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 			for (int i = 0; i < 2; i++) {
 				vel_cov(i, i) = math::max(vel_cov(i, i), orientation_var_max);
 			}
+
+		} else if (!_control_status.flags.yaw_align) {
+			// using EV frame
+			vel = ev_sample.vel - vel_offset_earth;
+			vel_cov = matrix::diag(ev_sample.velocity_var);
+
+		} else {
+			continuing_conditions_passing = false;
 		}
 
 		break;
