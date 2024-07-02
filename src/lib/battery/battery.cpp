@@ -153,7 +153,9 @@ battery_status_s Battery::getBatteryStatus()
 {
 	battery_status_s battery_status{};
 	battery_status.voltage_v = _voltage_v;
+	battery_status.voltage_filtered_v = _ocv_filter_v.getState();
 	battery_status.current_a = _current_a;
+	battery_status.current_filtered_a = _current_average_filter_a.getState();
 	battery_status.current_average_a = _current_average_filter_a.getState();
 	battery_status.discharged_mah = _discharged_mah;
 	battery_status.remaining = _state_of_charge;
