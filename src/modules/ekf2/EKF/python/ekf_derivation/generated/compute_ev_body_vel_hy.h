@@ -16,14 +16,14 @@ namespace sym {
  * Symbolic function: compute_ev_body_vel_hy
  *
  * Args:
- *     state: Matrix24_1
+ *     state: Matrix25_1
  *
  * Outputs:
- *     H: Matrix23_1
+ *     H: Matrix24_1
  */
 template <typename Scalar>
-void ComputeEvBodyVelHy(const matrix::Matrix<Scalar, 24, 1>& state,
-                        matrix::Matrix<Scalar, 23, 1>* const H = nullptr) {
+void ComputeEvBodyVelHy(const matrix::Matrix<Scalar, 25, 1>& state,
+                        matrix::Matrix<Scalar, 24, 1>* const H = nullptr) {
   // Total ops: 64
 
   // Input arrays
@@ -47,7 +47,7 @@ void ComputeEvBodyVelHy(const matrix::Matrix<Scalar, 24, 1>& state,
 
   // Output terms (1)
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 23, 1>& _h = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
     _h.setZero();
 
