@@ -71,6 +71,11 @@ void Ekf::reset()
 #if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel.setZero();
 #endif // CONFIG_EKF2_WIND
+	//
+#if defined(CONFIG_EKF2_TERRAIN)
+	// assume a ground clearance
+	_state.terrain = _state.pos(2) + _params.rng_gnd_clearance;
+#endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);
@@ -122,7 +127,10 @@ void Ekf::reset()
 
 	_time_bad_vert_accel = 0;
 	_time_good_vert_accel = 0;
-	_clip_counter = 0;
+
+	for (auto &clip_count : _clip_counter) {
+		clip_count = 0;
+	}
 
 	_zero_velocity_update.reset();
 }
@@ -160,13 +168,7 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes(imu_sample_delayed);
 
-#if defined(CONFIG_EKF2_TERRAIN)
-		// run a separate filter for terrain estimation
-		runTerrainEstimator(imu_sample_delayed);
-#endif // CONFIG_EKF2_TERRAIN
-
-		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos,
-						      _state.gyro_bias, _state.accel_bias);
+		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos, _state.gyro_bias, _state.accel_bias);
 
 		return true;
 	}
@@ -200,11 +202,6 @@ bool Ekf::initialiseFilter()
 
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();
-
-#if defined(CONFIG_EKF2_TERRAIN)
-	// Initialise the terrain estimator
-	initHagl();
-#endif // CONFIG_EKF2_TERRAIN
 
 	// reset the output predictor state history to match the EKF initial values
 	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);
@@ -427,6 +424,14 @@ void Ekf::print_status()
 	       (double)getStateVariance<State::wind_vel>()(0), (double)getStateVariance<State::wind_vel>()(1)
 	      );
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	printf("Terrain position (%d): %.3f var: %.1e\n",
+	       State::terrain.idx,
+	       (double)_state.terrain,
+	       (double)getStateVariance<State::terrain>()(0)
+	      );
+#endif // CONFIG_EKF2_TERRAIN
 
 	printf("\nP:\n");
 	P.print();

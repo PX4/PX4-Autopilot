@@ -104,27 +104,19 @@ public:
 	uint8_t getTerrainEstimateSensorBitfield() const { return _hagl_sensor_status.value; }
 
 	// get the estimated terrain vertical position relative to the NED origin
-	float getTerrainVertPos() const { return _terrain_vpos; };
+	float getTerrainVertPos() const { return _state.terrain; };
+	float getHagl() const { return _state.terrain - _state.pos(2); }
 
 	// get the number of times the vertical terrain position has been reset
 	uint8_t getTerrainVertPosResetCounter() const { return _terrain_vpos_reset_counter; };
 
 	// get the terrain variance
-	float get_terrain_var() const { return _terrain_var; }
-
-# if defined(CONFIG_EKF2_RANGE_FINDER)
-	const auto &aid_src_terrain_range_finder() const { return _aid_src_terrain_range_finder; }
-# endif // CONFIG_EKF2_RANGE_FINDER
-
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	const auto &aid_src_terrain_optical_flow() const { return _aid_src_terrain_optical_flow; }
-# endif // CONFIG_EKF2_OPTICAL_FLOW
+	float getTerrainVariance() const { return P(State::terrain.idx, State::terrain.idx); }
 
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range height
-	const BiasEstimator::status &getRngHgtBiasEstimatorStatus() const { return _rng_hgt_b_est.getStatus(); }
 	const auto &aid_src_rng_hgt() const { return _aid_src_rng_hgt; }
 
 	float getHaglRateInnov() const { return _rng_consistency_check.getInnov(); }
@@ -388,13 +380,17 @@ public:
 		*counter = _state_reset_status.reset_count.quat;
 	}
 
-	// get EKF innovation consistency check status information comprising of:
-	// status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
-	// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
-	// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
-	// Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
-	void get_innovation_test_status(uint16_t &status, float &mag, float &vel, float &pos, float &hgt, float &tas,
-					float &hagl, float &beta) const;
+	float getHeadingInnovationTestRatio() const;
+
+	float getVelocityInnovationTestRatio() const;
+
+	float getHorizontalPositionInnovationTestRatio() const;
+	float getVerticalPositionInnovationTestRatio() const;
+
+	float getAirspeedInnovationTestRatio() const;
+	float getSyntheticSideslipInnovationTestRatio() const;
+
+	float getHeightAboveGroundInnovationTestRatio() const;
 
 	// return a bitmask integer that describes which state estimates are valid
 	void get_ekf_soln_status(uint16_t *status) const;
@@ -593,27 +589,14 @@ private:
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Terrain height state estimation
-	float _terrain_vpos{0.0f};		///< estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
-	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
 	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
 
 	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
-
-# if defined(CONFIG_EKF2_RANGE_FINDER)
-	estimator_aid_source1d_s _aid_src_terrain_range_finder{};
-	uint64_t _time_last_healthy_rng_data{0};
-# endif // CONFIG_EKF2_RANGE_FINDER
-
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	estimator_aid_source2d_s _aid_src_terrain_optical_flow{};
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	estimator_aid_source1d_s _aid_src_rng_hgt{};
-	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -728,7 +711,7 @@ private:
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
 	uint64_t _time_good_vert_accel{0};	///< last time a good vertical accel was detected (uSec)
-	uint16_t _clip_counter{0};		///< counter that increments when clipping ad decrements when not
+	uint16_t _clip_counter[3];		///< counter per axis that increments when clipping ad decrements when not
 
 	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);
@@ -836,41 +819,30 @@ private:
 	bool fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	// terrain vertical position estimator
-	void initHagl();
-	void runTerrainEstimator(const imuSample &imu_delayed);
-	void predictHagl(const imuSample &imu_delayed);
-
-	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
-
-	void controlHaglFakeFusion();
-	void terrainHandleVerticalPositionReset(float delta_z);
+	void initTerrain();
+	float getTerrainVPos() const { return isTerrainEstimateValid() ? _state.terrain : _last_on_ground_posD; }
+	void controlTerrainFakeFusion();
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
-	void controlHaglRngFusion();
-	void updateHaglRng(estimator_aid_source1d_s &aid_src) const;
-	void fuseHaglRng(estimator_aid_source1d_s &aid_src);
-	void resetHaglRng();
-	void stopHaglRngFusion();
+	bool fuseHaglRng(estimator_aid_source1d_s &aid_src, bool update_height, bool update_terrain);
+	void updateRangeHagl(estimator_aid_source1d_s &aid_src);
+	void resetTerrainToRng(estimator_aid_source1d_s &aid_src);
 	float getRngVar() const;
 # endif // CONFIG_EKF2_RANGE_FINDER
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// update the terrain vertical position estimate using an optical flow measurement
-	void controlHaglFlowFusion();
-	void resetHaglFlow();
-	void stopHaglFlowFusion();
-	void fuseFlowForTerrain(estimator_aid_source2d_s &flow);
+	void resetTerrainToFlow();
 # endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range height
-	void controlRangeHeightFusion();
+	void controlRangeHaglFusion();
 	bool isConditionalRangeAidSuitable();
 	void stopRngHgtFusion();
+	void stopRngTerrFusion();
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -891,7 +863,7 @@ private:
 
 	// fuse optical flow line of sight rate measurements
 	void updateOptFlow(estimator_aid_source2d_s &aid_src);
-	void fuseOptFlow();
+	void fuseOptFlow(bool update_terrain);
 	float predictFlowRange();
 	Vector2f predictFlowVelBody();
 #endif // CONFIG_EKF2_OPTICAL_FLOW

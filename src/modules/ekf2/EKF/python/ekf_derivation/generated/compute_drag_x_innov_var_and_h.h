@@ -16,8 +16,8 @@ namespace sym {
  * Symbolic function: compute_drag_x_innov_var_and_h
  *
  * Args:
- *     state: Matrix24_1
- *     P: Matrix23_23
+ *     state: Matrix25_1
+ *     P: Matrix24_24
  *     rho: Scalar
  *     cd: Scalar
  *     cm: Scalar
@@ -26,14 +26,14 @@ namespace sym {
  *
  * Outputs:
  *     innov_var: Scalar
- *     Hx: Matrix23_1
+ *     Hx: Matrix24_1
  */
 template <typename Scalar>
-void ComputeDragXInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
-                              const matrix::Matrix<Scalar, 23, 23>& P, const Scalar rho,
+void ComputeDragXInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
+                              const matrix::Matrix<Scalar, 24, 24>& P, const Scalar rho,
                               const Scalar cd, const Scalar cm, const Scalar R,
                               const Scalar epsilon, Scalar* const innov_var = nullptr,
-                              matrix::Matrix<Scalar, 23, 1>* const Hx = nullptr) {
+                              matrix::Matrix<Scalar, 24, 1>* const Hx = nullptr) {
   // Total ops: 357
 
   // Input arrays
@@ -162,7 +162,7 @@ void ComputeDragXInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (Hx != nullptr) {
-    matrix::Matrix<Scalar, 23, 1>& _hx = (*Hx);
+    matrix::Matrix<Scalar, 24, 1>& _hx = (*Hx);
 
     _hx.setZero();
 

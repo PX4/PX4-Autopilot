@@ -154,7 +154,6 @@
 *(.text._ZN3Ekf20updateIMUBiasInhibitERKN9estimator9imuSampleE)
 *(.text._ZN9Commander13dataLinkCheckEv)
 *(.text._ZN17FlightModeManager10switchTaskE15FlightTaskIndex)
-*(.text._ZNK3Ekf26get_innovation_test_statusERtRfS1_S1_S1_S1_S1_S1_)
 *(.text._ZN12PX4Gyroscope9set_scaleEf)
 *(.text._ZN12FailsafeBase6updateERKyRKNS_5StateEbbRK16failsafe_flags_s)
 *(.text._ZN18MavlinkStreamDebug4sendEv)

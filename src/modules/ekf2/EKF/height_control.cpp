@@ -53,7 +53,7 @@ void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	controlRangeHeightFusion();
+	controlRangeHaglFusion();
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	checkHeightSensorRefFallback();
@@ -230,22 +230,32 @@ void Ekf::checkVerticalAccelerationHealth(const imuSample &imu_delayed)
 
 	Likelihood inertial_nav_falling_likelihood = estimateInertialNavFallingLikelihood();
 
-	// Check for more than 50% clipping affected IMU samples within the past 1 second
-	const uint16_t clip_count_limit = 1.f / _dt_ekf_avg;
-	const bool is_clipping = imu_delayed.delta_vel_clipping[0] ||
-				 imu_delayed.delta_vel_clipping[1] ||
-				 imu_delayed.delta_vel_clipping[2];
+	const uint16_t kClipCountLimit = 1.f / _dt_ekf_avg;
 
-	if (is_clipping && _clip_counter < clip_count_limit) {
-		_clip_counter++;
+	bool acc_clip_warning[3] {};
+	bool acc_clip_critical[3] {};
 
-	} else if (_clip_counter > 0) {
-		_clip_counter--;
+	for (int axis = 0; axis < 3; axis++) {
+		if (imu_delayed.delta_vel_clipping[axis] && (_clip_counter[axis] < kClipCountLimit)) {
+			_clip_counter[axis]++;
+
+		} else if (_clip_counter[axis] > 0) {
+			_clip_counter[axis]--;
+		}
+
+		// warning if more than 50% clipping affected IMU samples within the past 1 second
+		acc_clip_warning[axis] = _clip_counter[axis] >= kClipCountLimit / 2;
+		acc_clip_critical[axis] = _clip_counter[axis] >= kClipCountLimit;
 	}
 
-	_fault_status.flags.bad_acc_clipping = _clip_counter > clip_count_limit / 2;
+	// bad_acc_clipping if ALL axes are reporting warning or if ANY axis is critical
+	const bool all_axis_warning = (acc_clip_warning[0] && acc_clip_warning[1] && acc_clip_warning[2]);
+	const bool any_axis_critical = (acc_clip_critical[0] || acc_clip_critical[1] || acc_clip_critical[2]);
 
-	const bool is_clipping_frequently = _clip_counter > 0;
+	_fault_status.flags.bad_acc_clipping = all_axis_warning || any_axis_critical;
+
+	// if Z axis is warning or any other axis critical
+	const bool is_clipping_frequently = acc_clip_warning[2] || _fault_status.flags.bad_acc_clipping;
 
 	// Do not require evidence of clipping if the likelihood of having the INS falling is high
 	const bool bad_vert_accel = (is_clipping_frequently && (inertial_nav_falling_likelihood == Likelihood::MEDIUM))
@@ -301,7 +311,8 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
-		checks[3] = {ReferenceType::GROUND, _aid_src_rng_hgt.innovation, _aid_src_rng_hgt.innovation_variance};
+		// Range is a distance to ground measurement, not a direct height observation and has an opposite sign
+		checks[3] = {ReferenceType::GROUND, -_aid_src_rng_hgt.innovation, _aid_src_rng_hgt.innovation_variance};
 	}
 #endif // CONFIG_EKF2_RANGE_FINDER
 

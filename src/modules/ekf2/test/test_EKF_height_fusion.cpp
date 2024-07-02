@@ -60,6 +60,7 @@ public:
 	{
 		_ekf->init(0);
 		_ekf_wrapper.disableBaroHeightFusion();
+		_ekf_wrapper.disableRangeHeightFusion();
 		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
@@ -111,7 +112,7 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 
 	// AND WHEN: the baro data increases
-	const float baro_increment = 5.f;
+	const float baro_increment = 4.f;
 	_sensor_simulator._baro.setData(_sensor_simulator._baro.getData() + baro_increment);
 	_sensor_simulator.runSeconds(60);
 
@@ -124,8 +125,8 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	const BiasEstimator::status &gps_status = _ekf->getGpsHgtBiasEstimatorStatus();
 	EXPECT_NEAR(gps_status.bias, -baro_increment, 0.2f);
 
-	const BiasEstimator::status &rng_status = _ekf->getRngHgtBiasEstimatorStatus();
-	EXPECT_NEAR(rng_status.bias, -baro_increment, 1.2f);
+	const float terrain = _ekf->getTerrainVertPos();
+	EXPECT_NEAR(terrain, -baro_increment, 1.2f);
 
 	const BiasEstimator::status &ev_status = _ekf->getEvHgtBiasEstimatorStatus();
 	EXPECT_EQ(ev_status.bias, 0.f);
@@ -150,8 +151,8 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	// the estimated height follows the GPS height
 	EXPECT_NEAR(_ekf->getPosition()(2), -(baro_increment + gps_increment), 0.3f);
 	// and the range finder bias is adjusted to follow the new reference
-	const BiasEstimator::status &rng_status_2 = _ekf->getRngHgtBiasEstimatorStatus();
-	EXPECT_NEAR(rng_status_2.bias, -(baro_increment + gps_increment), 1.3f);
+	const float terrain2 = _ekf->getTerrainVertPos();
+	EXPECT_NEAR(terrain2, -(baro_increment + gps_increment), 1.3f);
 }
 
 TEST_F(EkfHeightFusionTest, gpsRef)
@@ -181,8 +182,8 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	const BiasEstimator::status &baro_status = _ekf->getBaroBiasEstimatorStatus();
 	EXPECT_NEAR(baro_status.bias, baro_initial + baro_increment, 1.3f);
 
-	const BiasEstimator::status &rng_status = _ekf->getRngHgtBiasEstimatorStatus();
-	EXPECT_NEAR(rng_status.bias, 0.f, 1.1f); // TODO: why?
+	const float terrain = _ekf->getTerrainVertPos();
+	EXPECT_NEAR(terrain, 0.f, 1.1f); // TODO: why?
 
 	// BUT WHEN: the GPS jumps by a lot
 	const float gps_step = 100.f;
@@ -290,7 +291,7 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 	reset_logging_checker.capturePostResetState();
 	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, _sensor_simulator._baro.getData() + alt_increment, 0.2f);
 
-	EXPECT_NEAR(_ekf->getRngHgtBiasEstimatorStatus().bias, alt_increment, 1.f);
+	EXPECT_NEAR(_ekf->getTerrainVertPos(), alt_increment, 1.f);
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 }

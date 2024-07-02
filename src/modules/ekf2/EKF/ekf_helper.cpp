@@ -206,7 +206,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
-			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
+			vel_err_conservative = math::max(getHagl(), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
 		}
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
@@ -266,7 +266,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		const float flow_hagl_min = fmaxf(rangefinder_hagl_min, _flow_min_distance);
 		const float flow_hagl_max = fminf(rangefinder_hagl_max, _flow_max_distance);
 
-		const float flow_constrained_height = math::constrain(_terrain_vpos - _state.pos(2), flow_hagl_min, flow_hagl_max);
+		const float flow_constrained_height = math::constrain(getHagl(), flow_hagl_min, flow_hagl_max);
 
 		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
 		const float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
@@ -296,131 +296,187 @@ void Ekf::resetAccelBias()
 	resetAccelBiasCov();
 }
 
-void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, float &pos, float &hgt, float &tas,
-				     float &hagl, float &beta) const
+float Ekf::getHeadingInnovationTestRatio() const
 {
-	// return the integer bitmask containing the consistency check pass/fail status
-	status = _innov_check_fail_status.value;
-
-	// return the largest magnetometer innovation test ratio
-	mag = 0.f;
+	// return the largest heading innovation test ratio
+	float test_ratio = 0.f;
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	if (_control_status.flags.mag_hdg ||_control_status.flags.mag_3D) {
-		mag = math::max(mag, sqrtf(Vector3f(_aid_src_mag.test_ratio).max()));
+		for (auto &test_ratio_filtered : _aid_src_mag.test_ratio_filtered) {
+			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+		}
 	}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 	if (_control_status.flags.gps_yaw) {
-		mag = math::max(mag, sqrtf(_aid_src_gnss_yaw.test_ratio));
+		test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_yaw.test_ratio_filtered));
 	}
 #endif // CONFIG_EKF2_GNSS_YAW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_control_status.flags.ev_yaw) {
-		mag = math::max(mag, sqrtf(_aid_src_ev_yaw.test_ratio));
+		test_ratio = math::max(test_ratio, fabsf(_aid_src_ev_yaw.test_ratio_filtered));
 	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-	// return the largest velocity and position innovation test ratio
-	vel = NAN;
-	pos = NAN;
+	return sqrtf(test_ratio);
+}
+
+float Ekf::getVelocityInnovationTestRatio() const
+{
+	// return the largest velocity innovation test ratio
+	float test_ratio = -1.f;
 
 #if defined(CONFIG_EKF2_GNSS)
 	if (_control_status.flags.gps) {
-		float gps_vel = sqrtf(Vector3f(_aid_src_gnss_vel.test_ratio).max());
-		vel = math::max(gps_vel, FLT_MIN);
-
-		float gps_pos = sqrtf(Vector2f(_aid_src_gnss_pos.test_ratio).max());
-		pos = math::max(gps_pos, FLT_MIN);
+		for (int i = 0; i < 3; i++) {
+			test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_vel.test_ratio_filtered[i]));
+		}
 	}
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_control_status.flags.ev_vel) {
-		float ev_vel = sqrtf(Vector3f(_aid_src_ev_vel.test_ratio).max());
-		vel = math::max(vel, ev_vel, FLT_MIN);
-	}
-
-	if (_control_status.flags.ev_pos) {
-		float ev_pos = sqrtf(Vector2f(_aid_src_ev_pos.test_ratio).max());
-		pos = math::max(pos, ev_pos, FLT_MIN);
+		for (int i = 0; i < 3; i++) {
+			test_ratio = math::max(test_ratio, fabsf(_aid_src_ev_vel.test_ratio_filtered[i]));
+		}
 	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
-		float of_vel = sqrtf(Vector2f(_aid_src_optical_flow.test_ratio).max());
-		vel = math::max(of_vel, FLT_MIN);
+		for (auto &test_ratio_filtered : _aid_src_optical_flow.test_ratio_filtered) {
+			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+		}
 	}
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
+		return sqrtf(test_ratio);
+	}
+
+	return NAN;
+}
+
+float Ekf::getHorizontalPositionInnovationTestRatio() const
+{
+	// return the largest position innovation test ratio
+	float test_ratio = -1.f;
+
+#if defined(CONFIG_EKF2_GNSS)
+	if (_control_status.flags.gps) {
+		for (auto &test_ratio_filtered : _aid_src_gnss_pos.test_ratio_filtered) {
+			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+		}
+	}
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	if (_control_status.flags.ev_pos) {
+		for (auto &test_ratio_filtered : _aid_src_ev_pos.test_ratio_filtered) {
+			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
+		}
+	}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+	if (_control_status.flags.aux_gpos) {
+		test_ratio = math::max(test_ratio, fabsf(_aux_global_position.test_ratio_filtered()));
+	}
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
+	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
+		return sqrtf(test_ratio);
+	}
+
+	return NAN;
+}
+
+float Ekf::getVerticalPositionInnovationTestRatio() const
+{
 	// return the combined vertical position innovation test ratio
 	float hgt_sum = 0.f;
 	int n_hgt_sources = 0;
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	if (_control_status.flags.baro_hgt) {
-		hgt_sum += sqrtf(_aid_src_baro_hgt.test_ratio);
+		hgt_sum += sqrtf(fabsf(_aid_src_baro_hgt.test_ratio_filtered));
 		n_hgt_sources++;
 	}
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
 	if (_control_status.flags.gps_hgt) {
-		hgt_sum += sqrtf(_aid_src_gnss_hgt.test_ratio);
+		hgt_sum += sqrtf(fabsf(_aid_src_gnss_hgt.test_ratio_filtered));
 		n_hgt_sources++;
 	}
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
-		hgt_sum += sqrtf(_aid_src_rng_hgt.test_ratio);
+		hgt_sum += sqrtf(fabsf(_aid_src_rng_hgt.test_ratio_filtered));
 		n_hgt_sources++;
 	}
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_control_status.flags.ev_hgt) {
-		hgt_sum += sqrtf(_aid_src_ev_hgt.test_ratio);
+		hgt_sum += sqrtf(fabsf(_aid_src_ev_hgt.test_ratio_filtered));
 		n_hgt_sources++;
 	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	if (n_hgt_sources > 0) {
-		hgt = math::max(hgt_sum / static_cast<float>(n_hgt_sources), FLT_MIN);
-
-	} else {
-		hgt = NAN;
+		return math::max(hgt_sum / static_cast<float>(n_hgt_sources), FLT_MIN);
 	}
 
+	return NAN;
+}
+
+float Ekf::getAirspeedInnovationTestRatio() const
+{
 #if defined(CONFIG_EKF2_AIRSPEED)
-	// return the airspeed fusion innovation test ratio
-	tas = sqrtf(_aid_src_airspeed.test_ratio);
+	if (_control_status.flags.fuse_aspd) {
+		// return the airspeed fusion innovation test ratio
+		return sqrtf(fabsf(_aid_src_airspeed.test_ratio_filtered));
+	}
 #endif // CONFIG_EKF2_AIRSPEED
 
-	hagl = NAN;
+	return NAN;
+}
+
+float Ekf::getSyntheticSideslipInnovationTestRatio() const
+{
+#if defined(CONFIG_EKF2_SIDESLIP)
+	if (_control_status.flags.fuse_beta) {
+		// return the synthetic sideslip innovation test ratio
+		return sqrtf(fabsf(_aid_src_sideslip.test_ratio_filtered));
+	}
+#endif // CONFIG_EKF2_SIDESLIP
+
+	return NAN;
+}
+
+float Ekf::getHeightAboveGroundInnovationTestRatio() const
+{
+	float test_ratio = -1.f;
+
 #if defined(CONFIG_EKF2_TERRAIN)
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_hagl_sensor_status.flags.range_finder) {
 		// return the terrain height innovation test ratio
-		hagl = sqrtf(_aid_src_terrain_range_finder.test_ratio);
+		test_ratio = math::max(test_ratio, fabsf(_aid_src_rng_hgt.test_ratio_filtered));
 	}
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	if (_hagl_sensor_status.flags.flow) {
-		// return the terrain height innovation test ratio
-		hagl = sqrtf(math::max(_aid_src_terrain_optical_flow.test_ratio[0], _aid_src_terrain_optical_flow.test_ratio[1]));
-	}
-# endif // CONFIG_EKF2_OPTICAL_FLOW
+# endif // CONFIG_EKF2_RANGE_FINDER
 #endif // CONFIG_EKF2_TERRAIN
 
-#if defined(CONFIG_EKF2_SIDESLIP)
-	// return the synthetic sideslip innovation test ratio
-	beta = sqrtf(_aid_src_sideslip.test_ratio);
-#endif // CONFIG_EKF2_SIDESLIP
+	if (PX4_ISFINITE(test_ratio) && (test_ratio >= 0.f)) {
+		return sqrtf(test_ratio);
+	}
+
+	return NAN;
 }
 
 void Ekf::get_ekf_soln_status(uint16_t *status) const
@@ -499,6 +555,10 @@ void Ekf::fuse(const VectorState &K, float innovation)
 		_state.wind_vel = matrix::constrain(_state.wind_vel - K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation, -1.e2f, 1.e2f);
 	}
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	_state.terrain = math::constrain(_state.terrain - K(State::terrain.idx) * innovation, -1e4f, 1e4f);
+#endif // CONFIG_EKF2_TERRAIN
 }
 
 void Ekf::updateDeadReckoningStatus()
@@ -606,7 +666,7 @@ void Ekf::updateGroundEffect()
 #if defined(CONFIG_EKF2_TERRAIN)
 		if (isTerrainEstimateValid()) {
 			// automatically set ground effect if terrain is valid
-			float height = _terrain_vpos - _state.pos(2);
+			float height = getHagl();
 			_control_status.flags.gnd_effect = (height < _params.gnd_effect_max_hgt);
 
 		} else

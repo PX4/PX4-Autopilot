@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,40 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "ekf.h"
+#include "ekf_derivation/generated/compute_hagl_h.h"
 
-#include "../Common.hpp"
-
-#include <lib/hysteresis/hysteresis.h>
-
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/cpuload.h>
-
-class CpuResourceChecks : public HealthAndArmingCheckBase
+bool Ekf::fuseHaglRng(estimator_aid_source1d_s &aid_src, bool update_height, bool update_terrain)
 {
-public:
-	CpuResourceChecks();
-	~CpuResourceChecks() = default;
+	if (aid_src.innovation_rejected) {
+		_innov_check_fail_status.flags.reject_hagl = true;
+		return false;
+	}
 
-	void checkAndReport(const Context &context, Report &reporter) override;
+	VectorState H;
 
-private:
-	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
+	sym::ComputeHaglH(&H);
 
-	systemlib::Hysteresis _high_cpu_load_hysteresis{false};
+	// calculate the Kalman gain
+	VectorState K = P * H / aid_src.innovation_variance;
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max,
-					(ParamFloat<px4::params::COM_RAM_MAX>) _param_com_ram_max
-				       )
-};
+	if (!update_terrain) {
+		K(State::terrain.idx) = 0.f;
+	}
+
+	if (!update_height) {
+		const float k_terrain = K(State::terrain.idx);
+		K.zero();
+		K(State::terrain.idx) = k_terrain;
+	}
+
+	measurementUpdate(K, H, aid_src.observation_variance, aid_src.innovation);
+
+	// record last successful fusion event
+	_innov_check_fail_status.flags.reject_hagl = false;
+
+	aid_src.time_last_fuse = _time_delayed_us;
+	aid_src.fused = true;
+
+	return true;
+}

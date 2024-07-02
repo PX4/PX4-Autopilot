@@ -150,68 +150,27 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("timesync_status", 1000, 3);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
-	// EKF multi topics (currently max 9 estimators)
-#if CONSTRAINED_MEMORY
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 1;
-#else
-	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificially limited until PlotJuggler fixed
-	add_optional_topic("estimator_selector_status");
-	add_optional_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_wind", 1000, MAX_ESTIMATOR_INSTANCES);
-#endif
+	// EKF multi topics
+	{
+		// optionally log all estimator* topics at minimal rate
+		const uint16_t kEKFVerboseIntervalMilliseconds = 500; // 2 Hz
+		const struct orb_metadata *const *topic_list = orb_get_topics();
 
-	// always add the first instance
-	add_topic("estimator_baro_bias", 500);
-	add_topic("estimator_gnss_hgt_bias", 500);
-	add_topic("estimator_rng_hgt_bias", 500);
-	add_topic("estimator_ev_pos_bias", 500);
-	add_topic("estimator_event_flags", 0);
-	add_topic("estimator_gps_status", 1000);
-	add_topic("estimator_innovation_test_ratios", 500);
-	add_topic("estimator_innovation_variances", 500);
-	add_topic("estimator_innovations", 500);
-	add_topic("estimator_optical_flow_vel", 200);
-	add_topic("estimator_sensor_bias", 0);
-	add_topic("estimator_states", 1000);
-	add_topic("estimator_status", 200);
-	add_topic("estimator_status_flags", 0);
-	add_topic("yaw_estimator_status", 1000);
+		for (size_t i = 0; i < orb_topics_count(); i++) {
+			if (strncmp(topic_list[i]->o_name, "estimator", 9) == 0) {
+				add_optional_topic_multi(topic_list[i]->o_name, kEKFVerboseIntervalMilliseconds);
+			}
+		}
+	}
 
-	add_optional_topic_multi("estimator_baro_bias", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_gnss_hgt_bias", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_rng_hgt_bias", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_ev_pos_bias", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_event_flags", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_gps_status", 1000, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovation_test_ratios", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovation_variances", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovations", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_optical_flow_vel", 200, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_sensor_bias", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_status", 200, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_status_flags", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("yaw_estimator_status", 1000, MAX_ESTIMATOR_INSTANCES);
-
-	// add_optional_topic_multi("estimator_aid_src_airspeed", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_baro_hgt", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_ev_pos", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_ev_vel", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_ev_yaw", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_gravity", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_rng_hgt", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_fake_hgt", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_fake_pos", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_gnss_yaw", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_gnss_vel", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_gnss_pos", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_mag", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_terrain_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
-	// add_optional_topic_multi("estimator_aid_src_ev_yaw", 100, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_aux_global_position", 100, MAX_ESTIMATOR_INSTANCES);
+	// important EKF topics (higher rate)
+	add_optional_topic("estimator_selector_status", 10);
+	add_optional_topic_multi("estimator_event_flags", 10);
+	add_optional_topic_multi("estimator_optical_flow_vel", 200);
+	add_optional_topic_multi("estimator_sensor_bias", 1000);
+	add_optional_topic_multi("estimator_status", 200);
+	add_optional_topic_multi("estimator_status_flags", 10);
+	add_optional_topic_multi("yaw_estimator_status", 1000);
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 200, 2);
@@ -265,45 +224,23 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_local_position_groundtruth", 20);
 
 	// EKF replay
-	add_topic("estimator_baro_bias");
-	add_topic("estimator_gnss_hgt_bias");
-	add_topic("estimator_rng_hgt_bias");
-	add_topic("estimator_ev_pos_bias");
-	add_topic("estimator_event_flags");
-	add_topic("estimator_gps_status");
-	add_topic("estimator_innovation_test_ratios");
-	add_topic("estimator_innovation_variances");
-	add_topic("estimator_innovations");
-	add_topic("estimator_optical_flow_vel");
-	add_topic("estimator_sensor_bias");
-	add_topic("estimator_states");
-	add_topic("estimator_status");
-	add_topic("estimator_status_flags");
+	{
+		// optionally log all estimator* topics at minimal rate
+		const uint16_t kEKFVerboseIntervalMilliseconds = 10; // 100 Hz
+		const struct orb_metadata *const *topic_list = orb_get_topics();
+
+		for (size_t i = 0; i < orb_topics_count(); i++) {
+			if (strncmp(topic_list[i]->o_name, "estimator", 9) == 0) {
+				add_optional_topic_multi(topic_list[i]->o_name, kEKFVerboseIntervalMilliseconds);
+			}
+		}
+	}
+
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_global_position");
 	add_topic("vehicle_local_position");
 	add_topic("wind");
-	add_topic("yaw_estimator_status");
-
-	add_optional_topic_multi("estimator_aid_src_airspeed", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_baro_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_rng_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_fake_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_fake_pos", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_ev_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_ev_pos", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_ev_vel", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_ev_yaw", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gnss_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gnss_pos", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gnss_vel", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gnss_yaw", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gravity", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_mag", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_terrain_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_terrain_range_finder", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_sideslip", 0, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("yaw_estimator_status");
 
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
