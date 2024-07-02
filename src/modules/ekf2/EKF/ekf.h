@@ -73,7 +73,6 @@ class Ekf final : public EstimatorInterface
 public:
 	typedef matrix::Vector<float, State::size> VectorState;
 	typedef matrix::SquareMatrix<float, State::size> SquareMatrixState;
-	typedef matrix::SquareMatrix<float, 2> Matrix2f;
 
 	Ekf()
 	{

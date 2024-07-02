@@ -76,3 +76,11 @@ float32 design_capacity             # The design capacity of the battery
 uint16 average_time_to_full         # The predicted remaining time until the battery reaches full charge, in minutes
 uint16 over_discharge_count         # Number of battery overdischarge
 float32 nominal_voltage             # Nominal voltage of the battery pack
+
+float32 internal_resistance_estimate            # [Ohm] Internal resistance per cell estimate
+float32 ocv_estimate                            # [V] Open circuit voltage estimate
+float32 ocv_estimate_filtered			# [V] Filtered open circuit voltage estimate
+float32 volt_based_soc_estimate			# [0, 1] Normalized volt based state of charge estimate
+float32 voltage_prediction			# [V] Predicted voltage
+float32 prediction_error                        # [V] Prediction error
+float32 estimation_covariance_norm		# Norm of the covariance matrix
