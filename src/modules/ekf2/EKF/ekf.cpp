@@ -281,8 +281,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
 }
 
-void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
-		uint64_t timestamp_observation)
+void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation)
 {
 
 	if (!_pos_ref.isInitialized()) {
@@ -368,49 +367,40 @@ void Ekf::print_status()
 	printf("\nStates: (%.4f seconds ago)\n", (_time_latest_us - _time_delayed_us) * 1e-6);
 	printf("Orientation (%d-%d): [%.3f, %.3f, %.3f, %.3f] (Euler [%.1f, %.1f, %.1f] deg) var: [%.1e, %.1e, %.1e]\n",
 	       State::quat_nominal.idx, State::quat_nominal.idx + State::quat_nominal.dof - 1,
-	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2),
-	       (double)_state.quat_nominal(3),
-	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).phi()),
-	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).theta()),
-	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).psi()),
-	       (double)getStateVariance<State::quat_nominal>()(0), (double)getStateVariance<State::quat_nominal>()(1),
-	       (double)getStateVariance<State::quat_nominal>()(2)
+	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2), (double)_state.quat_nominal(3),
+	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).phi()), (double)math::degrees(matrix::Eulerf(_state.quat_nominal).theta()), (double)math::degrees(matrix::Eulerf(_state.quat_nominal).psi()),
+	       (double)getStateVariance<State::quat_nominal>()(0), (double)getStateVariance<State::quat_nominal>()(1), (double)getStateVariance<State::quat_nominal>()(2)
 	      );
 
 	printf("Velocity (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::vel.idx, State::vel.idx + State::vel.dof - 1,
 	       (double)_state.vel(0), (double)_state.vel(1), (double)_state.vel(2),
-	       (double)getStateVariance<State::vel>()(0), (double)getStateVariance<State::vel>()(1),
-	       (double)getStateVariance<State::vel>()(2)
+	       (double)getStateVariance<State::vel>()(0), (double)getStateVariance<State::vel>()(1), (double)getStateVariance<State::vel>()(2)
 	      );
 
 	printf("Position (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::pos.idx, State::pos.idx + State::pos.dof - 1,
 	       (double)_state.pos(0), (double)_state.pos(1), (double)_state.pos(2),
-	       (double)getStateVariance<State::pos>()(0), (double)getStateVariance<State::pos>()(1),
-	       (double)getStateVariance<State::pos>()(2)
+	       (double)getStateVariance<State::pos>()(0), (double)getStateVariance<State::pos>()(1), (double)getStateVariance<State::pos>()(2)
 	      );
 
 	printf("Gyro Bias (%d-%d): [%.6f, %.6f, %.6f] var: [%.1e, %.1e, %.1e]\n",
 	       State::gyro_bias.idx, State::gyro_bias.idx + State::gyro_bias.dof - 1,
 	       (double)_state.gyro_bias(0), (double)_state.gyro_bias(1), (double)_state.gyro_bias(2),
-	       (double)getStateVariance<State::gyro_bias>()(0), (double)getStateVariance<State::gyro_bias>()(1),
-	       (double)getStateVariance<State::gyro_bias>()(2)
+	       (double)getStateVariance<State::gyro_bias>()(0), (double)getStateVariance<State::gyro_bias>()(1), (double)getStateVariance<State::gyro_bias>()(2)
 	      );
 
 	printf("Accel Bias (%d-%d): [%.6f, %.6f, %.6f] var: [%.1e, %.1e, %.1e]\n",
 	       State::accel_bias.idx, State::accel_bias.idx + State::accel_bias.dof - 1,
 	       (double)_state.accel_bias(0), (double)_state.accel_bias(1), (double)_state.accel_bias(2),
-	       (double)getStateVariance<State::accel_bias>()(0), (double)getStateVariance<State::accel_bias>()(1),
-	       (double)getStateVariance<State::accel_bias>()(2)
+	       (double)getStateVariance<State::accel_bias>()(0), (double)getStateVariance<State::accel_bias>()(1), (double)getStateVariance<State::accel_bias>()(2)
 	      );
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	printf("Magnetic Field (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::mag_I.idx, State::mag_I.idx + State::mag_I.dof - 1,
 	       (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
-	       (double)getStateVariance<State::mag_I>()(0), (double)getStateVariance<State::mag_I>()(1),
-	       (double)getStateVariance<State::mag_I>()(2)
+	       (double)getStateVariance<State::mag_I>()(0), (double)getStateVariance<State::mag_I>()(1), (double)getStateVariance<State::mag_I>()(2)
 	      );
 
 	printf("Magnetic Bias (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",

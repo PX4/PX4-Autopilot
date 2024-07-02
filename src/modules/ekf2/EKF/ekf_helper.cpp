@@ -76,9 +76,9 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 {
 	// sanity check valid latitude/longitude and altitude anywhere between the Mariana Trench and edge of Space
 	if (PX4_ISFINITE(latitude) && (abs(latitude) <= 90)
-	    && PX4_ISFINITE(longitude) && (abs(longitude) <= 180)
-	    && PX4_ISFINITE(altitude) && (altitude > -12'000.f) && (altitude < 100'000.f)
-	   ) {
+	&& PX4_ISFINITE(longitude) && (abs(longitude) <= 180)
+	&& PX4_ISFINITE(altitude) && (altitude > -12'000.f) && (altitude < 100'000.f)
+	) {
 		bool current_pos_available = false;
 		double current_lat = static_cast<double>(NAN);
 		double current_lon = static_cast<double>(NAN);
@@ -107,7 +107,6 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 			_wmm_gps_time_last_set = _time_delayed_us;
 		}
-
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 		_gpos_origin_eph = eph;
@@ -603,7 +602,8 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	if (!_control_status.flags.in_air && !_params.gnss_ctrl && _control_status.flags.fixed_wing) {
 		_time_last_horizontal_aiding = _time_delayed_us;
 	}
-#endif
+#endif // CONFIG_EKF2_GNSS
+
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
 	bool deadreckon_time_exceeded = isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);
 

@@ -797,6 +797,7 @@ private:
 	bool isHeightResetRequired() const;
 
 	void resetVerticalPositionTo(float new_vert_pos, float new_vert_pos_var = NAN);
+
 	void resetVerticalVelocityToZero();
 
 	// horizontal and vertical position aid source
