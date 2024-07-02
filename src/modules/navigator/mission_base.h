@@ -89,7 +89,8 @@ protected:
 		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
-		WORK_ITEM_TYPE_PRECISION_LAND
+		WORK_ITEM_TYPE_PRECISION_LAND,
+		WORK_ITEM_TYPE_PRECISION_LOITER
 	} _work_item_type{WorkItemType::WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
 
 	enum class MissionType {

@@ -80,6 +80,7 @@ Navigator::Navigator() :
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_land(this),
 	_precland(this),
+	_precloiter(this),
 	_rtl(this)
 {
 	/* Create a list of our possible navigation types */
@@ -92,6 +93,7 @@ Navigator::Navigator() :
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_navigation_mode_array[6] = &_vtol_takeoff;
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+	_navigation_mode_array[7] = &_precloiter;
 
 	/* iterate through navigation modes and initialize _mission_item for each */
 	for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
