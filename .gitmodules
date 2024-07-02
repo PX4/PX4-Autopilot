@@ -83,3 +83,6 @@
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
 	path = boards/modalai/voxl2/libfc-sensor-api
 	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libfc-sensor-api.git
+[submodule "src/drivers/actuators/vertiq_io/iq-module-communication-cpp"]
+	path = src/drivers/actuators/vertiq_io/iq-module-communication-cpp
+	url = git@github.com:iq-motion-control/iq-module-communication-cpp.git
