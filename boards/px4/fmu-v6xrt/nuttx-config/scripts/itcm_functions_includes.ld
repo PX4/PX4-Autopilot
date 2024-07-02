@@ -379,7 +379,6 @@
 *(.text._ZN19StickAccelerationXYC1EP12ModuleParams)
 *(.text.imxrt_epsubmit)
 *(.text._ZN15PositionControl6updateEf)
-*(.text._ZN3Ekf29checkVerticalAccelerationBiasERKN9estimator9imuSampleE)
 *(.text._ZN23MavlinkStreamScaledIMU24sendEv)
 *(.text._ZN5PX4IO10io_reg_getEhhPtj)
 *(.text.imxrt_dma_send)

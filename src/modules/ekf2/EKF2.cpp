@@ -1119,7 +1119,6 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 		event_flags.gps_data_stopped_using_alternate    = _ekf.warning_event_flags().gps_data_stopped_using_alternate;
 		event_flags.height_sensor_timeout               = _ekf.warning_event_flags().height_sensor_timeout;
 		event_flags.stopping_navigation                 = _ekf.warning_event_flags().stopping_mag_use;
-		event_flags.invalid_accel_bias_cov_reset        = _ekf.warning_event_flags().invalid_accel_bias_cov_reset;
 		event_flags.bad_yaw_using_gps_course            = _ekf.warning_event_flags().bad_yaw_using_gps_course;
 		event_flags.stopping_mag_use                    = _ekf.warning_event_flags().stopping_mag_use;
 		event_flags.vision_data_stopped                 = _ekf.warning_event_flags().vision_data_stopped;
@@ -1921,7 +1920,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.fs_bad_sideslip          = _ekf.fault_status_flags().bad_sideslip;
 		status_flags.fs_bad_optflow_x         = _ekf.fault_status_flags().bad_optflow_X;
 		status_flags.fs_bad_optflow_y         = _ekf.fault_status_flags().bad_optflow_Y;
-		status_flags.fs_bad_acc_bias          = _ekf.fault_status_flags().bad_acc_bias;
 		status_flags.fs_bad_acc_vertical      = _ekf.fault_status_flags().bad_acc_vertical;
 		status_flags.fs_bad_acc_clipping      = _ekf.fault_status_flags().bad_acc_clipping;
 
@@ -2632,10 +2630,8 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 	const bool bias_valid = (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::AccelBias))
 				&& _ekf.control_status_flags().tilt_align
 				&& (_ekf.fault_status().value == 0)
-				&& !_ekf.fault_status_flags().bad_acc_bias
 				&& !_ekf.fault_status_flags().bad_acc_clipping
-				&& !_ekf.fault_status_flags().bad_acc_vertical
-				&& !_ekf.warning_event_flags().invalid_accel_bias_cov_reset;
+				&& !_ekf.fault_status_flags().bad_acc_vertical;
 
 	const bool learning_valid = bias_valid && !_ekf.accel_bias_inhibited();
 
