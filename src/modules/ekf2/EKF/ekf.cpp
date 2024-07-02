@@ -89,8 +89,6 @@ void Ekf::reset()
 	_control_status.flags.in_air = true;
 	_control_status_prev.flags.in_air = true;
 
-	_ang_rate_delayed_raw.zero();
-
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
@@ -230,7 +228,7 @@ bool Ekf::initialiseTilt()
 void Ekf::predictState(const imuSample &imu_delayed)
 {
 	// apply imu bias corrections
-	const Vector3f delta_ang_bias_scaled = getGyroBias() * imu_delayed.delta_ang_dt;
+	const Vector3f delta_ang_bias_scaled = _state.gyro_bias * imu_delayed.delta_ang_dt;
 	Vector3f corrected_delta_ang = imu_delayed.delta_ang - delta_ang_bias_scaled;
 
 	// subtract component of angular rate due to earth rotation
@@ -243,7 +241,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity
-	const Vector3f delta_vel_bias_scaled = getAccelBias() * imu_delayed.delta_vel_dt;
+	const Vector3f delta_vel_bias_scaled = _state.accel_bias * imu_delayed.delta_vel_dt;
 	const Vector3f corrected_delta_vel = imu_delayed.delta_vel - delta_vel_bias_scaled;
 	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
 
@@ -266,8 +264,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
 	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate
 	// due to insufficient averaging
-	if (imu_delayed.delta_ang_dt > 0.25f * _dt_ekf_avg) {
-		_ang_rate_delayed_raw = imu_delayed.delta_ang / imu_delayed.delta_ang_dt;
+	if (imu_delayed.delta_ang_dt > FLT_EPSILON) {
+		_angular_velocity_delayed = corrected_delta_ang / imu_delayed.delta_ang_dt;
 	}
 
 

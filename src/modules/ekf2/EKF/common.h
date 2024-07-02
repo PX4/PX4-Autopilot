@@ -581,7 +581,9 @@ union filter_control_status_u {
 		uint64_t mag                     : 1; ///< 35 - true if 3-axis magnetometer measurement fusion (mag states only) is intended
 		uint64_t ev_yaw_fault            : 1; ///< 36 - true when the EV heading has been declared faulty and is no longer being used
 		uint64_t mag_heading_consistent  : 1; ///< 37 - true when the heading obtained from mag data is declared consistent with the filter
-		uint64_t aux_gpos                : 1;
+		uint64_t aux_gpos                : 1; ///< 38 - true if auxiliary global position measurement fusion is intended
+		uint64_t rng_terrain             : 1; ///< 39 - true if we are fusing range finder data for terrain
+		uint64_t opt_flow_terrain        : 1; ///< 40 - true if we are fusing flow data for terrain
 
 	} flags;
 	uint64_t value;
@@ -605,16 +607,6 @@ union ekf_solution_status_u {
 	} flags;
 	uint16_t value;
 };
-
-#if defined(CONFIG_EKF2_TERRAIN)
-union terrain_fusion_status_u {
-	struct {
-		bool range_finder : 1;  ///< 0 - true if we are fusing range finder data
-		bool flow         : 1;  ///< 1 - true if we are fusing flow data
-	} flags;
-	uint8_t value;
-};
-#endif // CONFIG_EKF2_TERRAIN
 
 // define structure used to communicate information events
 union information_event_status_u {

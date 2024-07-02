@@ -53,7 +53,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 
 	// correct velocity for offset relative to IMU
 	const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
-	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+	const Vector3f vel_offset_body = _angular_velocity_delayed % pos_offset_body;
 	const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 
 	// rotate measurement into correct earth frame if required

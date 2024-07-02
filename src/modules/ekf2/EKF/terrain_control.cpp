@@ -64,8 +64,8 @@ void Ekf::controlTerrainFakeFusion()
 	}
 
 	if (!_control_status.flags.in_air
-	    && !_hagl_sensor_status.flags.range_finder
-	    && !_hagl_sensor_status.flags.flow) {
+	    && !_control_status.flags.rng_terrain
+	    && !_control_status.flags.opt_flow_terrain) {
 
 		bool recent_terrain_aiding = false;
 
@@ -93,7 +93,7 @@ bool Ekf::isTerrainEstimateValid() const
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 	// Assume that the terrain estimate is always valid when direct observations are fused
-	if (_hagl_sensor_status.flags.range_finder && isRecent(_aid_src_rng_hgt.time_last_fuse, (uint64_t)5e6)) {
+	if (_control_status.flags.rng_terrain && isRecent(_aid_src_rng_hgt.time_last_fuse, (uint64_t)5e6)) {
 		valid = true;
 	}
 

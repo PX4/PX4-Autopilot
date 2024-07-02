@@ -180,7 +180,7 @@ void Ekf::updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s 
 	// correct velocity for offset relative to IMU
 	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
 
-	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+	const Vector3f vel_offset_body = _angular_velocity_delayed % pos_offset_body;
 	const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 	const Vector3f velocity = gnss_sample.vel - vel_offset_earth;
 

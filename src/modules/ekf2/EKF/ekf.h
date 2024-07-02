@@ -101,8 +101,6 @@ public:
 	// terrain estimate
 	bool isTerrainEstimateValid() const;
 
-	uint8_t getTerrainEstimateSensorBitfield() const { return _hagl_sensor_status.value; }
-
 	// get the estimated terrain vertical position relative to the NED origin
 	float getTerrainVertPos() const { return _state.terrain; };
 	float getHagl() const { return _state.terrain - _state.pos(2); }
@@ -135,7 +133,9 @@ public:
 
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_rate; }
 	const Vector3f &getFlowGyroBias() const { return _flow_gyro_bias; }
-	const Vector3f &getRefBodyRate() const { return _ref_body_rate; }
+
+	// Optical flow reference body rate, flow gyro has opposite sign convention
+	Vector3f getFlowRefBodyRate() const { return -_angular_velocity_delayed; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	float getHeadingInnov() const
@@ -549,7 +549,7 @@ private:
 	StateResets _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
 	StateResetCounts _state_reset_count_prev{};
 
-	Vector3f _ang_rate_delayed_raw{};	///< uncorrected angular rate vector at fusion time horizon (rad/sec)
+	Vector3f _angular_velocity_delayed{};	///< corrected angular velocity vector at fusion time horizon (rad/sec)
 
 	StateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
@@ -586,7 +586,6 @@ private:
 	// Terrain height state estimation
 	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
 
-	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
 #endif // CONFIG_EKF2_TERRAIN
 
@@ -601,11 +600,8 @@ private:
 	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector2f _flow_vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
 	Vector2f _flow_vel_ne{};		///< velocity from corrected flow measurement (local frame) (m/s)
-	Vector3f _ref_body_rate{};
 
 	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
-
-	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -836,24 +832,24 @@ private:
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion(const imuSample &imu_delayed);
-	void startFlowFusion();
 	void resetFlowFusion();
 	void stopFlowFusion();
 
 	void updateOnGroundMotionForOpticalFlowChecks();
 	void resetOnGroundMotionForOpticalFlowChecks();
 
-	// calculate the measurement variance for the optical flow sensor
-	float calcOptFlowMeasVar(const flowSample &flow_sample);
+	// calculate the measurement variance for the optical flow sensor (rad/sec)^2
+	float calcOptFlowMeasVar(const flowSample &flow_sample) const;
 
 	// calculate optical flow body angular rate compensation
-	void calcOptFlowBodyRateComp(const imuSample &imu_delayed);
+	void calcOptFlowBodyRateComp(const imuSample &imu, flowSample &flow_sample);
+
+	float predictFlowRange() const;
+	Vector2f predictFlow(const Vector3f &flow_gyro) const;
 
 	// fuse optical flow line of sight rate measurements
-	void updateOptFlow(estimator_aid_source2d_s &aid_src);
-	void fuseOptFlow(bool update_terrain);
-	float predictFlowRange();
-	Vector2f predictFlowVelBody();
+	bool fuseOptFlow(VectorState &H, bool update_terrain);
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

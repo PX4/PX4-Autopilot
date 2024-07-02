@@ -203,7 +203,7 @@ float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) 
 		// negative X and Y directions. Used to correct baro data for positional errors
 
 		// Calculate airspeed in body frame
-		const Vector3f vel_imu_rel_body_ned = _R_to_earth * (_ang_rate_delayed_raw % _params.imu_pos_body);
+		const Vector3f vel_imu_rel_body_ned = _R_to_earth * (_angular_velocity_delayed % _params.imu_pos_body);
 		const Vector3f velocity_earth = _state.vel - vel_imu_rel_body_ned;
 
 		const Vector3f wind_velocity_earth(_state.wind_vel(0), _state.wind_vel(1), 0.0f);

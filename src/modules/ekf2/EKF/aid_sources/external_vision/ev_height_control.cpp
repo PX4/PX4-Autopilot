@@ -150,7 +150,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 				if (ev_sample.vel.isAllFinite() && (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))) {
 
 					// correct velocity for offset relative to IMU
-					const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+					const Vector3f vel_offset_body = _angular_velocity_delayed % pos_offset_body;
 					const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 
 					switch (ev_sample.vel_frame) {
