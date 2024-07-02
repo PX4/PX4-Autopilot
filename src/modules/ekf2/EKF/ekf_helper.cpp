@@ -89,7 +89,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 			current_pos_available = true;
 		}
 
-		const float gps_alt_ref_prev = getEkfGlobalOriginAltitude();
+		const float gps_alt_ref_prev = _gps_alt_ref;
 
 		// reinitialize map projection to latitude, longitude, altitude, and reset position
 		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
@@ -114,30 +114,24 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 		_NED_origin_initialised = true;
 
-		// minimum change in position or height that triggers a reset
-		static constexpr float MIN_RESET_DIST_M = 0.01f;
-
 		if (current_pos_available) {
-			// reset horizontal position
+			// reset horizontal position if we already have a global origin
 			Vector2f position = _pos_ref.project(current_lat, current_lon);
-
-			if (Vector2f(position - Vector2f(_state.pos)).longerThan(MIN_RESET_DIST_M)) {
-				resetHorizontalPositionTo(position);
-			}
+			resetHorizontalPositionTo(position);
 		}
 
-		// reset vertical position (if there's any change)
-		if (fabsf(altitude - gps_alt_ref_prev) > MIN_RESET_DIST_M) {
+		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
 			// determine current z
-			float current_alt = -_state.pos(2) + gps_alt_ref_prev;
-
+			const float z_prev = _state.pos(2);
+			const float current_alt = -z_prev + gps_alt_ref_prev;
 #if defined(CONFIG_EKF2_GNSS)
 			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
 #endif // CONFIG_EKF2_GNSS
 			resetVerticalPositionTo(_gps_alt_ref - current_alt);
-
+			ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev,
+				  (double)_state.pos(2));
 #if defined(CONFIG_EKF2_GNSS)
-			// preserve GPS height bias
+			// adjust existing GPS height bias
 			_gps_hgt_b_est.setBias(gps_hgt_bias);
 #endif // CONFIG_EKF2_GNSS
 		}
@@ -602,6 +596,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 			_time_last_horizontal_aiding = _time_delayed_us - _params.no_aid_timeout_max;
 		}
 	}
+
+#if defined(CONFIG_EKF2_GNSS)
+	// for fixed wing, deadreckon time starts after takeoff. Gives enough time for wind deadreckon to be activated
+	if (!_control_status.flags.in_air && !_params.gnss_ctrl && _control_status.flags.fixed_wing) {
+		_time_last_horizontal_aiding = _time_delayed_us;
+	}
+#endif // CONFIG_EKF2_GNSS
 
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
 	bool deadreckon_time_exceeded = isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);

@@ -281,7 +281,12 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid() const
 	{
-		return (!_horizontal_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
+#if defined(CONFIG_EKF2_GNSS)
+		// if there's GPS module but disabled, we want to slack the fake pos check
+		return !_horizontal_deadreckon_time_exceeded && (!_control_status.flags.fake_pos || !_params.gnss_ctrl);
+#else
+		return !_horizontal_deadreckon_time_exceeded && !_control_status.flags.fake_pos;
+#endif // CONFIG_EKF2_GNSS
 	}
 
 	bool isLocalVerticalPositionValid() const
@@ -502,7 +507,7 @@ public:
 		return true;
 	}
 
-	void resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
+	bool resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
 
 	void updateParameters();
 
