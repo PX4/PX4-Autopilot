@@ -235,10 +235,13 @@ for tag, device in board_ports:
         raise Exception("Unknown serial port {:}. "
             "You might have to add it to serial_ports in\n {:}".format(tag,
                 os.path.realpath(__file__)))
+    # Helper label to indicate which device is connected to which port (e.g. TELEM1 = /dev/ttyS1)
+    label_append = (" (" + device + ")") if device != "" else ""
+
     serial_devices.append({
         'tag': tag,
         'device': device,
-        'label': serial_ports[tag]["label"],
+        'label': serial_ports[tag]["label"] + label_append,
         'index': serial_ports[tag]["index"],
         'default_baudrate': serial_ports[tag]["default_baudrate"]
         })
