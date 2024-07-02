@@ -133,13 +133,30 @@ parameters:
       RA_MISS_VEL_GAIN:
         description:
           short: Tuning parameter for the velocity reduction during cornering
-          long: Lower value -> More velocity reduction during cornering
+          long: |
+            The cornering speed is equal to the inverse of the acceptance radius of the WP multiplied with this factor.
+            Lower value -> More velocity reduction during cornering.
         type: float
         min: 0.1
         max: 100
         increment: 0.01
         decimal: 2
         default: 5
+
+      RA_MISS_VEL_RED:
+        description:
+          short: Tuning for the start of the velocity reduction during cornering
+          long: |
+            The rover will start slowing down at a distance of acceptance_radius * RA_MISS_VEL_RED
+            to the WP s.t. it could reach the reduced velocity before it enters the corner.
+            This can help to reduce the risk of the rover rolling over during corners.
+            Higher value -> Rover starts the velocity reduction further from the waypoint.
+        type: float
+        min: 1.0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1.3
 
       RA_SPEED_P:
         description:
@@ -172,6 +189,28 @@ parameters:
         unit: m/s
         min: -1
         max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_ACCEL:
+        description:
+          short: Maximum acceleration for the rover
+        type: float
+        unit: m/s^2
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_STR_RATE:
+        description:
+          short: Maximum steering rate for the rover
+        type: float
+        unit: deg/s
+        min: -1
+        max: 1000
         increment: 0.01
         decimal: 2
         default: -1

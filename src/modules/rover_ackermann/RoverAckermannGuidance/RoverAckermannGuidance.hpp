@@ -43,7 +43,6 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/mission_result.h>
@@ -57,6 +56,7 @@
 #include <lib/pid/pid.h>
 
 using namespace matrix;
+static constexpr uint8_t NAVIGATION_STATE_AUTO_RTL = 5;
 
 /**
  * @brief Class for ackermann drive guidance.
@@ -78,8 +78,9 @@ public:
 
 	/**
 	 * @brief Compute guidance for ackermann rover and return motor_setpoint for throttle and steering.
+	 * @param nav_state Vehicle navigation state
 	 */
-	motor_setpoint purePursuit();
+	motor_setpoint purePursuit(const int nav_state);
 
 	/**
 	 * @brief Update global/local waypoint coordinates and acceptance radius
@@ -166,8 +167,7 @@ private:
 	Vector2f _prev_wp_local{};
 	Vector2f _next_wp_local{};
 	float _acceptance_radius{0.5f};
-	float _prev_acc_rad{0.f};
-	bool _mission_finished{false};
+	float _prev_acceptance_radius{0.5f};
 
 	// Parameters
 	DEFINE_PARAMETERS(
@@ -182,6 +182,7 @@ private:
 		(ParamFloat<px4::params::RA_MISS_VEL_DEF>) _param_ra_miss_vel_def,
 		(ParamFloat<px4::params::RA_MISS_VEL_MIN>) _param_ra_miss_vel_min,
 		(ParamFloat<px4::params::RA_MISS_VEL_GAIN>) _param_ra_miss_vel_gain,
+		(ParamFloat<px4::params::RA_MISS_VEL_RED>) _param_ra_miss_vel_red,
 		(ParamFloat<px4::params::RA_SPEED_P>) _param_ra_p_speed,
 		(ParamFloat<px4::params::RA_SPEED_I>) _param_ra_i_speed,
 		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,

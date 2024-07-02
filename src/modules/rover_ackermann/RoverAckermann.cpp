@@ -40,6 +40,7 @@ RoverAckermann::RoverAckermann() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
+	_rover_ackermann_status_pub.advertise();
 	updateParams();
 }
 
@@ -52,6 +53,15 @@ bool RoverAckermann::init()
 void RoverAckermann::updateParams()
 {
 	ModuleParams::updateParams();
+
+	if (_param_ra_max_accel.get() > FLT_EPSILON && _param_ra_max_speed.get() > FLT_EPSILON) {
+		_throttle_with_accel_limit.setSlewRate(_param_ra_max_accel.get() / _param_ra_max_speed.get());
+	}
+
+	if (_param_ra_max_steering_rate.get() > FLT_EPSILON && _param_ra_max_steer_angle.get() > FLT_EPSILON) {
+		_steering_with_rate_limit.setSlewRate((M_DEG_TO_RAD_F * _param_ra_max_steering_rate.get()) /
+						      _param_ra_max_steer_angle.get());
+	}
 }
 
 void RoverAckermann::Run()
@@ -72,9 +82,17 @@ void RoverAckermann::Run()
 		_nav_state = vehicle_status.nav_state;
 	}
 
+	if (_local_position_sub.updated()) {
+		vehicle_local_position_s local_position{};
+		_local_position_sub.copy(&local_position);
+		const Vector3f rover_velocity = {local_position.vx, local_position.vy, local_position.vz};
+		_actual_speed = rover_velocity.norm();
+	}
+
 	// Navigation modes
 	switch (_nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL: {
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+	case vehicle_status_s::NAVIGATION_STATE_ACRO: {
 			manual_control_setpoint_s manual_control_setpoint{};
 
 			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
@@ -85,7 +103,8 @@ void RoverAckermann::Run()
 		} break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-		_motor_setpoint = _ackermann_guidance.purePursuit();
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+		_motor_setpoint = _ackermann_guidance.purePursuit(_nav_state);
 		break;
 
 	default: // Unimplemented nav states will stop the rover
@@ -94,19 +113,49 @@ void RoverAckermann::Run()
 		break;
 	}
 
-	hrt_abstime now = hrt_absolute_time();
+	// Timestamps
+	hrt_abstime timestamp_prev = _timestamp;
+	_timestamp = hrt_absolute_time();
+	const float dt = (_timestamp - timestamp_prev) * 1e-6f;
 
-	// Publish to wheel motors
+	// Acceleration slew rate
+	if (_param_ra_max_accel.get() > FLT_EPSILON && _param_ra_max_speed.get() > FLT_EPSILON
+	    && _nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO
+	    && fabsf(_motor_setpoint.throttle) > fabsf(_throttle_with_accel_limit.getState())) {
+		_throttle_with_accel_limit.update(_motor_setpoint.throttle, dt);
+
+	} else {
+		_throttle_with_accel_limit.setForcedValue(_motor_setpoint.throttle);
+	}
+
+	// Steering slew rate
+	if (_param_ra_max_steering_rate.get() > FLT_EPSILON && _param_ra_max_steer_angle.get() > FLT_EPSILON
+	    && _nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO) {
+		_steering_with_rate_limit.update(_motor_setpoint.steering, dt);
+
+	} else {
+		_steering_with_rate_limit.setForcedValue(_motor_setpoint.steering);
+	}
+
+	// Publish rover ackermann status (logging)
+	rover_ackermann_status_s rover_ackermann_status{};
+	rover_ackermann_status.timestamp = _timestamp;
+	rover_ackermann_status.throttle_setpoint = _motor_setpoint.throttle;
+	rover_ackermann_status.steering_setpoint = _motor_setpoint.steering;
+	rover_ackermann_status.actual_speed = _actual_speed;
+	_rover_ackermann_status_pub.publish(rover_ackermann_status);
+
+	// Publish to motor
 	actuator_motors_s actuator_motors{};
 	actuator_motors.reversible_flags = _param_r_rev.get();
-	actuator_motors.control[0] = _motor_setpoint.throttle;
-	actuator_motors.timestamp = now;
+	actuator_motors.control[0] = _throttle_with_accel_limit.getState();
+	actuator_motors.timestamp = _timestamp;
 	_actuator_motors_pub.publish(actuator_motors);
 
 	// Publish to servo
 	actuator_servos_s actuator_servos{};
-	actuator_servos.control[0] = _motor_setpoint.steering;
-	actuator_servos.timestamp = now;
+	actuator_servos.control[0] = _steering_with_rate_limit.getState();
+	actuator_servos.timestamp = _timestamp;
 	_actuator_servos_pub.publish(actuator_servos);
 }
 
