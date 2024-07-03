@@ -249,18 +249,19 @@ bool Ekf::fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSampl
 
 		VectorState H;
 		estimator_aid_source1d_s current_aid_src;
+		const auto state_vector = _state.vector();
 
 		for (uint8_t index = 0; index <= 2; index++) {
 			current_aid_src.timestamp_sample = aid_src.timestamp_sample;
 
 			if (index == 0) {
-				sym::ComputeEvBodyVelHx(_state.vector(), &H);
+				sym::ComputeEvBodyVelHx(state_vector, &H);
 
 			} else if (index == 1) {
-				sym::ComputeEvBodyVelHy(_state.vector(), &H);
+				sym::ComputeEvBodyVelHy(state_vector, &H);
 
 			} else {
-				sym::ComputeEvBodyVelHz(_state.vector(), &H);
+				sym::ComputeEvBodyVelHz(state_vector, &H);
 			}
 
 			const float innov_var = (H.T() * P * H)(0, 0) + aid_src.observation_variance[index];
