@@ -1818,7 +1818,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 
 	if (shell) {
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
-		if (serial_control_mavlink.count > 0) {
+		if (serial_control_mavlink.count > 0 && serial_control_mavlink.count <= sizeof(serial_control_mavlink.data)) {
 			shell->setTargetID(msg->sysid, msg->compid);
 			shell->write(serial_control_mavlink.data, serial_control_mavlink.count);
 		}
