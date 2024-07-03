@@ -161,10 +161,10 @@ private:
 						// If it doesn't fit, we have to split it into UINT16-1 chunks and the remaining
 						// voltage for the subsequent field.
 						// This won't work for voltages of more than 655 volts.
-						const int num_fields_required = static_cast<int>(battery_status.voltage_filtered_v * 1000.f) / (UINT16_MAX - 1) + 1;
+						const int num_fields_required = static_cast<int>(battery_status.voltage_v * 1000.f) / (UINT16_MAX - 1) + 1;
 
 						if (num_fields_required <= mavlink_cell_slots) {
-							float remaining_voltage = battery_status.voltage_filtered_v * 1000.f;
+							float remaining_voltage = battery_status.voltage_v * 1000.f;
 
 							for (int i = 0; i < num_fields_required - 1; ++i) {
 								bat_msg.voltages[i] = UINT16_MAX - 1;

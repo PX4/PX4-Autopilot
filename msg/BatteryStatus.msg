@@ -1,7 +1,6 @@
 uint64 timestamp			# time since system start (microseconds)
 bool connected				# Whether or not a battery is connected, based on a voltage threshold
 float32 voltage_v			# Battery voltage in volts, 0 if unknown
-float32 voltage_filtered_v	# Battery voltage in volts, filtered, 0 if unknown
 float32 current_a			# Battery current in amperes, -1 if unknown
 float32 current_average_a	# Battery current average in amperes (for FW average in level flight), -1 if unknown
 float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
