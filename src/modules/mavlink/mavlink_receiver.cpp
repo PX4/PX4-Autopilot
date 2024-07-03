@@ -1770,7 +1770,6 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	}
 
 	battery_status.voltage_v = voltage_sum;
-	battery_status.voltage_filtered_v  = voltage_sum;
 	battery_status.current_a = (float)(battery_mavlink.current_battery) / 100.0f;
 	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
 	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
@@ -2372,7 +2371,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 		hil_battery_status.timestamp = timestamp;
 		hil_battery_status.voltage_v = 16.0f;
-		hil_battery_status.voltage_filtered_v = 16.0f;
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 		hil_battery_status.connected = true;
@@ -2726,7 +2724,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	{
 		battery_status_s hil_battery_status{};
 		hil_battery_status.voltage_v = 11.1f;
-		hil_battery_status.voltage_filtered_v = 11.1f;
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 		hil_battery_status.timestamp = hrt_absolute_time();
