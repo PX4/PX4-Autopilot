@@ -319,7 +319,7 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 
 	const bool innov_rejected = (test_ratio.max() > 1.f);
 
-	if (!_control_status.flags.in_air || accuracy < 1.f || innov_rejected) {
+	if (!_control_status.flags.in_air || (accuracy > 0.f && accuracy < 1.f) || innov_rejected) {
 		// when on ground or accuracy chosen to be very low, we hard reset position
 		// this allows the user to still send hard resets at any time
 		ECL_INFO("reset position to external observation");
