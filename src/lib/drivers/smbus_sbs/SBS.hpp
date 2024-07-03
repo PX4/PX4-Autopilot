@@ -267,7 +267,6 @@ int SMBUS_SBS_BaseClass<T>::populate_smbus_data(battery_status_s &data)
 	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
 	data.current_a = (-1.0f * ((float)(*(int16_t *)&result)) * 0.001f);
-	data.current_filtered_a = data.current_a;
 
 	// Read remaining capacity.
 	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);

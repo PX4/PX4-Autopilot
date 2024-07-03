@@ -117,7 +117,6 @@ void TattuCan::Run()
 		battery_status.voltage_v = static_cast<float>(tattu_message.voltage) / 1000.0f;
 		battery_status.voltage_filtered_v = static_cast<float>(tattu_message.voltage) / 1000.0f;
 		battery_status.current_a = static_cast<float>(tattu_message.current) / 1000.0f;
-		battery_status.current_filtered_a = static_cast<float>(tattu_message.current) / 1000.0f;
 		battery_status.remaining = static_cast<float>(tattu_message.remaining_percent) / 100.0f;
 		battery_status.temperature = static_cast<float>(tattu_message.temperature);
 		battery_status.capacity = tattu_message.standard_capacity;
