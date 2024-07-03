@@ -167,7 +167,7 @@ private:
 
 			if (lowest_battery.connected) {
 				msg.voltage_battery = lowest_battery.voltage_filtered_v * 1000.0f;
-				msg.current_battery = lowest_battery.current_filtered_a * 100.0f;
+				msg.current_battery = lowest_battery.current_a * 100.0f;
 				msg.battery_remaining = ceilf(lowest_battery.remaining * 100.0f);
 
 			} else {
