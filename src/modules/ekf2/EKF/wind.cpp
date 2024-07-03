@@ -60,6 +60,11 @@ void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction,
 	_information_events.flags.reset_wind_to_ext_obs = true;
 
 	resetWindTo(wind, wind_var);
+
+	// reset the horizontal velocity variances to allow the velocity states to be pulled towards
+	// a solution that is aligned with the newly set wind estimates
+	static constexpr float hor_vel_var = 25.0f;
+	P.uncorrelateCovarianceSetVariance<2>(State::vel.idx, hor_vel_var);
 }
 
 void Ekf::resetWindTo(const Vector2f &wind, const Vector2f &wind_var)
