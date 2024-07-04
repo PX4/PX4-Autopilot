@@ -599,7 +599,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 #if defined(CONFIG_EKF2_GNSS)
 	// for fixed wing, deadreckon time starts after takeoff. Gives enough time for wind deadreckon to be activated
-	if (!_control_status.flags.in_air && !_params.gnss_ctrl && _control_status.flags.fixed_wing) {
+	if (!_control_status.flags.in_air && !_control_status.flags.gps && _control_status.flags.fixed_wing) {
 		_time_last_horizontal_aiding = _time_delayed_us;
 	}
 #endif // CONFIG_EKF2_GNSS
