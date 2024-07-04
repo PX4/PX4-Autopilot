@@ -100,7 +100,7 @@ void BMM350::UpdateMagParams()
 	_mag_odr_mode = odr;
 	_mag_avg_mode = avg;
 	_mag_pad_drive = static_cast<uint8_t>(_param_bmm350_drive.get());
-	PX4_INFO("Set params odr = %d, avg = %d, drive = %d", _mag_odr_mode, _mag_avg_mode, _mag_pad_drive);
+	PX4_DEBUG("Set params odr = %d, avg = %d, drive = %d", _mag_odr_mode, _mag_avg_mode, _mag_pad_drive);
 }
 
 uint8_t BMM350::GetODR(int value)
@@ -150,14 +150,14 @@ int BMM350::probe()
 		const uint8_t CMD = RegisterRead(Register::CMD);
 		const uint8_t CHIP_ID = RegisterRead(Register::CHIP_ID);
 
-		PX4_INFO("CMD: 0x%02hhX, CHIP_ID: 0x%02hhX", CMD, CHIP_ID);
+		PX4_DEBUG("CMD: 0x%02hhX, CHIP_ID: 0x%02hhX", CMD, CHIP_ID);
 
 		if (CHIP_ID == chip_identification_number) {
-			PX4_INFO("Found chip");
+			PX4_DEBUG("Found chip");
 			return PX4_OK;
 
 		} else if (CHIP_ID == 0 && CMD == 0) {
-			PX4_INFO("Suspended, but found");
+			PX4_DEBUG("Suspended, but found");
 			return PX4_OK;
 		}
 	}
@@ -186,7 +186,7 @@ void BMM350::RunImpl()
 			if ((chipId = RegisterRead(Register::CHIP_ID)) == chip_identification_number) {
 				UpdateMagOffsets();
 				RegisterWrite(Register::OTP_CMD, PWR_OFF_OTP);
-				PX4_INFO("After reset chip id = %i", chipId);
+				PX4_DEBUG("After reset chip id = %i", chipId);
 				_state = STATE::AFTER_RESET;
 				ScheduleDelayed(10_ms);
 
@@ -215,7 +215,7 @@ void BMM350::RunImpl()
 			px4_usleep(4000);
 			RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
 
-			PX4_INFO("Chip id found going to self test id= %i", chipId);
+			PX4_DEBUG("Chip id found going to self test id= %i", chipId);
 			_state = STATE::SELF_TEST_CHECK;
 			ScheduleDelayed(10_ms);
 
@@ -270,18 +270,18 @@ void BMM350::RunImpl()
 			out_ust_x = out_ustxh - out_ustxl;
 			out_ust_y = out_ustyh - out_ustyl;
 
-			PX4_INFO("outustxh = %.5f, outustxl = %.5f", static_cast<double>(out_ustxh), static_cast<double>(out_ustxl));
-			PX4_INFO("outustyh = %.5f, outustyl = %.5f", static_cast<double>(out_ustyh), static_cast<double>(out_ustyl));
-			PX4_INFO("out_ust_x = %.5f, out_ust_y = %.5f", static_cast<double>(out_ust_x), static_cast<double>(out_ust_y));
+			PX4_DEBUG("outustxh = %.5f, outustxl = %.5f", static_cast<double>(out_ustxh), static_cast<double>(out_ustxl));
+			PX4_DEBUG("outustyh = %.5f, outustyl = %.5f", static_cast<double>(out_ustyh), static_cast<double>(out_ustyl));
+			PX4_DEBUG("out_ust_x = %.5f, out_ust_y = %.5f", static_cast<double>(out_ust_x), static_cast<double>(out_ust_y));
 
 			// Datasheet 5.1.6
 			if (out_ust_x >= 130 && out_ust_y >= 130) {
-				PX4_INFO("Running to configure");
+				PX4_DEBUG("Running to configure");
 				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
 
 			} else if (perf_event_count(_self_test_failed_perf) >= 5) {
-				PX4_INFO("Failed after 5 attempts, procceed still");
+				PX4_DEBUG("Failed after 5 attempts, procceed still");
 				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
 
@@ -299,17 +299,17 @@ void BMM350::RunImpl()
 		if (Configure()) {
 			// if configure succeeded then start reading every 50 ms (20 Hz)
 			_state = STATE::READ;
-			PX4_INFO("Configure went fine");
+			PX4_DEBUG("Configure went fine");
 			ScheduleOnInterval(50_ms, 50_ms);
 
 		} else {
 			// CONFIGURE not complete
 			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_INFO("Configure failed, resetting");
+				PX4_DEBUG("Configure failed, resetting");
 				_state = STATE::RESET;
 
 			} else {
-				PX4_INFO("Configure failed, retrying");
+				PX4_DEBUG("Configure failed, retrying");
 			}
 
 			ScheduleDelayed(100_ms);
@@ -387,7 +387,7 @@ void BMM350::RunImpl()
 
 bool BMM350::Configure()
 {
-	PX4_INFO("Configuring");
+	PX4_DEBUG("Configuring");
 	bool success = true;
 	uint8_t readData = 0;
 
@@ -413,7 +413,7 @@ bool BMM350::Configure()
 	RegisterWrite(Register::PMU_CMD_AGGR_SET, odr_reg_data);
 
 	if ((readData = RegisterRead(Register::PMU_CMD_AGGR_SET)) != odr_reg_data) {
-		PX4_INFO("Couldn't set PMU AGGR REG");
+		PX4_DEBUG("Couldn't set PMU AGGR REG");
 		success = false;
 	}
 
@@ -421,7 +421,7 @@ bool BMM350::Configure()
 	RegisterWrite(Register::PMU_CMD, odr_reg_data);
 
 	if ((readData = RegisterRead(Register::PMU_CMD)) != odr_reg_data) {
-		PX4_INFO("Couldn't set PMU CMD REG");
+		PX4_DEBUG("Couldn't set PMU CMD REG");
 		success = false;
 	}
 
@@ -434,7 +434,7 @@ bool BMM350::Configure()
 	RegisterWrite(Register::PMU_CMD_AXIS_EN, axis_data);
 
 	if ((readData = RegisterRead(Register::PMU_CMD_AXIS_EN)) != axis_data) {
-		PX4_INFO("Couldnt set AXIS");
+		PX4_DEBUG("Couldnt set AXIS");
 		success = false;
 	}
 
@@ -563,7 +563,7 @@ int8_t BMM350::ReadOTPWord(uint8_t addr, uint16_t *lsb_msb)
 
 void BMM350::UpdateMagOffsets()
 {
-	PX4_INFO("DUMPING OTP");
+	PX4_DEBUG("DUMPING OTP");
 	uint16_t otp_word = 0;
 	uint16_t otp_data[32] = {0};
 
@@ -573,9 +573,9 @@ void BMM350::UpdateMagOffsets()
 		PX4_DEBUG("i: %i, val = %i", idx, otp_data[idx]);
 	}
 
-	PX4_INFO("var_id: %i", (otp_data[30] & 0x7f00) >> 9);
+	PX4_DEBUG("var_id: %i", (otp_data[30] & 0x7f00) >> 9);
 
-	PX4_INFO("UPDATING OFFSETS");
+	PX4_DEBUG("UPDATING OFFSETS");
 	uint16_t off_x_lsb_msb, off_y_lsb_msb, off_z_lsb_msb, t_off;
 	uint8_t sens_x, sens_y, sens_z, t_sens;
 	uint8_t tco_x, tco_y, tco_z;
@@ -640,7 +640,7 @@ uint8_t BMM350::RegisterRead(Register reg)
 	int ret = transfer(&cmd, 1, buffer, 3);
 
 	if (ret != PX4_OK) {
-		PX4_INFO("register read 0x%02hhX failed, ret = %d", cmd, ret);
+		PX4_DEBUG("register read 0x%02hhX failed, ret = %d", cmd, ret);
 		return -1;
 	}
 
@@ -653,6 +653,6 @@ void BMM350::RegisterWrite(Register reg, uint8_t value)
 	int ret = transfer(buffer, sizeof(buffer), nullptr, 0);
 
 	if (ret != PX4_OK) {
-		PX4_INFO("register write 0x%02hhX failed, ret = %d", (uint8_t)reg, ret);
+		PX4_DEBUG("register write 0x%02hhX failed, ret = %d", (uint8_t)reg, ret);
 	}
 }
