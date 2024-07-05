@@ -1226,6 +1226,7 @@ void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
 	estimator_gps_status.check_fail_max_vert_drift   = _ekf.gps_check_fail_status_flags().vdrift;
 	estimator_gps_status.check_fail_max_horz_spd_err = _ekf.gps_check_fail_status_flags().hspeed;
 	estimator_gps_status.check_fail_max_vert_spd_err = _ekf.gps_check_fail_status_flags().vspeed;
+	estimator_gps_status.check_fail_spoofed_gps      = _ekf.gps_check_fail_status_flags().spoofed;
 
 	estimator_gps_status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_gps_status_pub.publish(estimator_gps_status);
@@ -2420,6 +2421,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.yaw = vehicle_gps_position.heading, //TODO: move to different message
 			.yaw_acc = vehicle_gps_position.heading_accuracy,
 			.yaw_offset = vehicle_gps_position.heading_offset,
+			.spoofed = vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_MULTIPLE,
 		};
 
 		_ekf.setGpsData(gnss_sample);

@@ -183,6 +183,7 @@ struct gnssSample {
 	float       yaw{};        ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
 	float       yaw_acc{};    ///< 1-std yaw error (rad)
 	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
+	bool        spoofed{};    ///< true if GNSS data is spoofed
 };
 
 struct magSample {
@@ -536,6 +537,7 @@ union gps_check_fail_status_u {
 		uint16_t vdrift : 1; ///< 7 - true if vertical drift is excessive (can only be used when stationary on ground)
 		uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
 		uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
+		uint16_t spoofed: 1; ///< 10 - true if the GPS data is spoofed
 	} flags;
 	uint16_t value;
 };

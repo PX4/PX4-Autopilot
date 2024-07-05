@@ -450,6 +450,22 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 							    events::ID("check_estimator_gps_vert_speed_drift_too_high"),
 							    log_level, "GPS Vertical Speed Drift too high");
 
+			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED)) {
+				message = "Preflight%s: GPS signal spoofed";
+				/* EVENT
+				 * @description
+				 * <profile name="dev">
+				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+				 * </profile>
+				 */
+				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+							    events::ID("check_estimator_gps_spoofed"),
+							    log_level, "GPS signal spoofed");
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "GPS signal spoofed, disabled GPS fusion\t");
+				}
+
 			} else {
 				if (!ekf_gps_fusion) {
 					// Likely cause unknown
@@ -671,7 +687,7 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 	}
 }
 
-void EstimatorChecks::checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const
+void EstimatorChecks::checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position)
 {
 	if (vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_CRITICAL) {
 		/* EVENT
@@ -702,6 +718,12 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_multiple_spoofing_indicated"),
 					    events::Log::Critical, "GPS reports multiple spoofing indicated");
+
+		if (!_gps_spoofed) {
+			events::send(events::ID("check_estimator_gps_warning_spoofing"), {events::Log::Alert, events::LogInternal::Info},
+				     "GPS signal spoofed");
+			_gps_spoofed = true;
+		}
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports multiple spoofing indicated\t");

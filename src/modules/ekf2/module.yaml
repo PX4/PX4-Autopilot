@@ -136,7 +136,7 @@ parameters:
           run when the vehicle is on ground and stationary. 7 : Maximum allowed horizontal
           speed set by EKF2_REQ_HDRIFT. This check will only run when the vehicle
           is on ground and stationary. 8 : Maximum allowed vertical velocity discrepancy
-          set by EKF2_REQ_VDRIFT'
+          set by EKF2_REQ_VDRIFT. 9: Fails if GPS driver detects consistent spoofing'
       type: bitmask
       bit:
         0: Min sat count (EKF2_REQ_NSATS)
@@ -148,9 +148,10 @@ parameters:
         6: Max vertical position rate (EKF2_REQ_VDRIFT)
         7: Max horizontal speed (EKF2_REQ_HDRIFT)
         8: Max vertical velocity discrepancy (EKF2_REQ_VDRIFT)
+        9: Spoofing check
       default: 245
       min: 0
-      max: 511
+      max: 1023
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS
