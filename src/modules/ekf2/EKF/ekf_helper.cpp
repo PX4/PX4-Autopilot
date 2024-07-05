@@ -568,44 +568,89 @@ void Ekf::updateDeadReckoningStatus()
 
 void Ekf::updateHorizontalDeadReckoningstatus()
 {
-	const bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.aux_gpos)
-				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
-				      || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max));
+	bool inertial_dead_reckoning = true;
+	bool aiding_expected_in_air = false;
 
-	bool optFlowAiding = false;
+	// velocity aiding active
+	if ((_control_status.flags.gps || _control_status.flags.ev_vel)
+	&& isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max)
+	) {
+		inertial_dead_reckoning = false;
+	}
+
+	// position aiding active
+	if ((_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.aux_gpos)
+	&& isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
+	) {
+		inertial_dead_reckoning = false;
+	}
+
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	optFlowAiding = _control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max);
+	// optical flow active
+	if (_control_status.flags.opt_flow
+	&& isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)
+	) {
+		inertial_dead_reckoning = false;
+
+	} else {
+		if (!_control_status.flags.in_air && (_params.flow_ctrl == 1)
+		&& isRecent(_aid_src_optical_flow.timestamp_sample, _params.no_aid_timeout_max)
+		) {
+			// currently landed, but optical flow aiding should be possible once in air
+			aiding_expected_in_air = true;
+		}
+	}
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	bool airDataAiding = false;
-
 #if defined(CONFIG_EKF2_AIRSPEED)
-	airDataAiding = _control_status.flags.wind &&
-				   isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max) &&
-				   isRecent(_aid_src_sideslip.time_last_fuse, _params.no_aid_timeout_max);
+	// air data aiding active
+	if ((_control_status.flags.fuse_aspd && isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max))
+	&& (_control_status.flags.fuse_beta && isRecent(_aid_src_sideslip.time_last_fuse, _params.no_aid_timeout_max))
+	) {
+		// wind_dead_reckoning: no other aiding but air data
+		_control_status.flags.wind_dead_reckoning = inertial_dead_reckoning;
 
-	_control_status.flags.wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
-#else
-	_control_status.flags.wind_dead_reckoning = false;
+		// air data aiding is active, we're not inertial dead reckoning
+		inertial_dead_reckoning = false;
+
+	} else {
+		_control_status.flags.wind_dead_reckoning = false;
+
+		if (!_control_status.flags.in_air && _control_status.flags.fixed_wing
+		&& (_params.beta_fusion_enabled == 1)
+		&& (_params.arsp_thr > 0.f) && isRecent(_aid_src_airspeed.timestamp_sample, _params.no_aid_timeout_max)
+		) {
+			// currently landed, but air data aiding should be possible once in air
+			aiding_expected_in_air = true;
+		}
+	}
 #endif // CONFIG_EKF2_AIRSPEED
 
-	_control_status.flags.inertial_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
-
-	if (!_control_status.flags.inertial_dead_reckoning) {
-		if (_time_delayed_us > _params.no_aid_timeout_max) {
-			_time_last_horizontal_aiding = _time_delayed_us - _params.no_aid_timeout_max;
+	// zero velocity update
+	if (isRecent(_zero_velocity_update.time_last_fuse(), _params.no_aid_timeout_max)) {
+		// only respect as a valid aiding source now if we expect to have another valid source once in air
+		if (aiding_expected_in_air) {
+			inertial_dead_reckoning = false;
 		}
 	}
 
-	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
-	bool deadreckon_time_exceeded = isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);
+	if (inertial_dead_reckoning) {
+		if (isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max)) {
+			// deadreckon time exceeded
+			if (!_horizontal_deadreckon_time_exceeded) {
+				ECL_WARN("horizontal dead reckon time exceeded");
+				_horizontal_deadreckon_time_exceeded = true;
+			}
+		}
 
-	if (!_horizontal_deadreckon_time_exceeded && deadreckon_time_exceeded) {
-		// deadreckon time now exceeded
-		ECL_WARN("dead reckon time exceeded");
+		_control_status.flags.inertial_dead_reckoning = true;
+
+	} else {
+		_time_last_horizontal_aiding = _time_delayed_us;
+		_horizontal_deadreckon_time_exceeded = false;
+
+		_control_status.flags.inertial_dead_reckoning = false;
 	}
-
-	_horizontal_deadreckon_time_exceeded = deadreckon_time_exceeded;
 }
 
 void Ekf::updateVerticalDeadReckoningStatus()
