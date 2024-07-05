@@ -224,8 +224,8 @@ void CrsfRc::Run()
 				battery_status_s battery_status;
 
 				if (_battery_status_sub.update(&battery_status)) {
-					uint16_t voltage = battery_status.voltage_filtered_v * 10;
-					uint16_t current = battery_status.current_filtered_a * 10;
+					uint16_t voltage = battery_status.voltage_v * 10;
+					uint16_t current = battery_status.current_a * 10;
 					int fuel = battery_status.discharged_mah;
 					uint8_t remaining = battery_status.remaining * 100;
 					this->SendTelemetryBattery(voltage, current, fuel, remaining);

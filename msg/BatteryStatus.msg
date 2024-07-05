@@ -1,9 +1,7 @@
 uint64 timestamp			# time since system start (microseconds)
 bool connected				# Whether or not a battery is connected, based on a voltage threshold
 float32 voltage_v			# Battery voltage in volts, 0 if unknown
-float32 voltage_filtered_v	# Battery voltage in volts, filtered, 0 if unknown
 float32 current_a			# Battery current in amperes, -1 if unknown
-float32 current_filtered_a	# Battery current in amperes, filtered, 0 if unknown
 float32 current_average_a	# Battery current average in amperes (for FW average in level flight), -1 if unknown
 float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
 float32 remaining			# From 1 to 0, -1 if unknown
@@ -68,12 +66,8 @@ uint8 BATTERY_MODE_COUNT = 3 # Counter - keep it as last element (once we're ful
 
 uint8 MAX_INSTANCES = 4
 
-float32 average_power               # The average power of the current discharge
-float32 available_energy            # The predicted charge or energy remaining in the battery
 float32 full_charge_capacity_wh     # The compensated battery capacity
 float32 remaining_capacity_wh       # The compensated battery capacity remaining
-float32 design_capacity             # The design capacity of the battery
-uint16 average_time_to_full         # The predicted remaining time until the battery reaches full charge, in minutes
 uint16 over_discharge_count         # Number of battery overdischarge
 float32 nominal_voltage             # Nominal voltage of the battery pack
 

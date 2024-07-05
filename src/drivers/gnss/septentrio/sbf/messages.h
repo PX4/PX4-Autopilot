@@ -60,8 +60,8 @@ constexpr uint32_t k_dnu_u4_value {4294967295};
 constexpr uint32_t k_dnu_u4_bitfield {0};
 constexpr uint16_t k_dnu_u2_value {65535};
 constexpr uint16_t k_dnu_u2_bitfield {0};
-constexpr float k_dnu_f4_value {-2 * 10000000000};
-constexpr double k_dnu_f8_value {-2 * 10000000000};
+constexpr float k_dnu_f4_value {-2.0f * 10000000000.0f};
+constexpr double k_dnu_f8_value {-2.0 * 10000000000.0};
 
 /// Maximum size of all expected messages.
 /// This needs to be bigger than the maximum size of all declared SBF blocks so that `memcpy()` can safely copy from the decoding buffer using this value into messages.

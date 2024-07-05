@@ -38,8 +38,7 @@ def rls_update(theta, P, x, V, I, lam):
         return theta_corr, P_corr, error, data_cov, 0, 0
     return theta_temp, P_temp, error, data_cov, gamma[0], gamma[1]
 
-
-def main(log_name, n_cells, full_cell, empty_cell, lam, filtered):
+def main(log_name, n_cells, full_cell, empty_cell, lam):
     log = ULog(log_name)
 
     log_n_cells = getParam(log, 'BAT1_N_CELLS')
@@ -67,12 +66,8 @@ def main(log_name, n_cells, full_cell, empty_cell, lam, filtered):
     print(f"Using parameters - n_cells: {n_cells}, full_cell: {full_cell}, empty_cell: {empty_cell}")
 
     timestamps = us2s(getData(log, 'battery_status', 'timestamp'))
-    if (filtered):
-        I = getData(log, 'battery_status', 'current_filtered_a')
-        V = getData(log, 'battery_status', 'voltage_filtered_v')
-    else:
-        I = getData(log, 'battery_status', 'current_a')
-        V = getData(log, 'battery_status', 'voltage_v')
+    I = getData(log, 'battery_status', 'current_a')
+    V = getData(log, 'battery_status', 'voltage_v')
     remaining = getData(log, 'battery_status', 'remaining')
 
     if not timestamps.size or not I.size or not V.size or not remaining.size:
@@ -209,6 +204,5 @@ if __name__ == "__main__":
     parser.add_argument('-u', type = float, required = False, default = None, help = 'Full cell voltage')
     parser.add_argument('-e', type = float, required = False, default = None,  help = 'Empty cell voltage')
     parser.add_argument('-l', type = float, required = False, default = 0.99, help = 'Forgetting factor')
-    parser.add_argument('-d', type = bool,  required = False, default = False, help = 'Filter measurements')
     args = parser.parse_args()
-    main(args.f, args.c, args.u, args.e, args.l, args.d)
+    main(args.f, args.c, args.u, args.e, args.l)

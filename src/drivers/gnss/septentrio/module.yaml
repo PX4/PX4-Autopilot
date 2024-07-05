@@ -71,7 +71,7 @@ parameters:
         type: float
         decimal: 3
         default: 0
-        min: 0
+        min: -360
         max: 360
         unit: deg
         reboot_required: true
@@ -104,7 +104,8 @@ parameters:
         description:
           short: Log GPS communication data
           long: |
-            Dump raw communication data from and to the connected receiver to the log file.
+            Log raw communication between the driver and connected receivers.
+            For example, "To receiver" will log all commands and corrections sent by the driver to the receiver.
         type: enum
         default: 0
         min: 0
