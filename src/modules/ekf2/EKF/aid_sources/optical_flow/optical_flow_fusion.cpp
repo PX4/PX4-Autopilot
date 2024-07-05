@@ -99,6 +99,8 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 		_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 		_aid_src_optical_flow.fused = true;
 
+		_time_last_hor_vel_fuse = _time_delayed_us;
+
 		if (update_terrain) {
 			_time_last_terrain_fuse = _time_delayed_us;
 		}
