@@ -216,7 +216,6 @@ void Ekf::checkVerticalAccelerationBias(const imuSample &imu_delayed)
 		_time_acc_bias_check = imu_delayed.time_us;
 
 		_fault_status.flags.bad_acc_bias = false;
-		_warning_events.flags.invalid_accel_bias_cov_reset = true;
 		ECL_WARN("invalid accel bias - covariance reset");
 	}
 }

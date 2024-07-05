@@ -83,7 +83,6 @@ void Ekf::controlExternalVisionFusion()
 
 		_ev_q_error_initialized = false;
 
-		_warning_events.flags.vision_data_stopped = true;
 		ECL_WARN("vision data stopped");
 	}
 }
