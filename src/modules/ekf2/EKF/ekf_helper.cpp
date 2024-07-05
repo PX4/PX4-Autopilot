@@ -643,14 +643,16 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 			}
 		}
 
-		_control_status.flags.inertial_dead_reckoning = true;
-
 	} else {
-		_time_last_horizontal_aiding = _time_delayed_us;
+		if (_time_delayed_us > _params.no_aid_timeout_max) {
+			_time_last_horizontal_aiding = _time_delayed_us - _params.no_aid_timeout_max;
+		}
+
 		_horizontal_deadreckon_time_exceeded = false;
 
-		_control_status.flags.inertial_dead_reckoning = false;
 	}
+
+	_control_status.flags.inertial_dead_reckoning = inertial_dead_reckoning;
 }
 
 void Ekf::updateVerticalDeadReckoningStatus()
