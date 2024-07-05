@@ -145,6 +145,7 @@ private:
 	void ParametersUpdate(bool force = false);
 	void UpdateMagParams();
 	uint8_t GetODR(int value);
+	hrt_abstime OdrToUs(uint8_t value);
 	uint8_t GetAVG(int value);
 
 	PX4Magnetometer _px4_mag;

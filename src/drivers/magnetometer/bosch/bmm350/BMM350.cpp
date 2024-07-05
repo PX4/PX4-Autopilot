@@ -128,6 +128,31 @@ uint8_t BMM350::GetODR(int value)
 	}
 }
 
+hrt_abstime BMM350::OdrToUs(uint8_t odr) {
+ switch (odr) {
+        case ODR_400HZ:
+            return 2500_us;
+        case ODR_200HZ:
+            return 5000_us;
+        case ODR_100HZ:
+            return 10000_us;
+        case ODR_50HZ:
+            return 20000_us;
+        case ODR_25HZ:
+            return 40000_us;
+        case ODR_12_5HZ:
+            return 80000_us;
+        case ODR_6_25HZ:
+            return 160000_us;
+        case ODR_3_125HZ:
+            return 320000_us;
+        case ODR_1_5625HZ:
+            return 640000_us;
+        default:
+            return 5000_us;
+    }
+}
+
 uint8_t BMM350::GetAVG(int value)
 {
 	switch (value) {
@@ -208,7 +233,7 @@ void BMM350::RunImpl()
 			uint8_t odr_reg_data = (ODR_100HZ & 0xf);
 			odr_reg_data = ((odr_reg_data & ~(0x30)) | ((AVG_2 << 0x4) & 0x30));
 			RegisterWrite(Register::PMU_CMD_AGGR_SET, odr_reg_data);
-			RegisterWrite(Register::PMU_CMD_AXIS_EN, 0x07);
+			RegisterWrite(Register::PMU_CMD_AXIS_EN, EN_XYZ);
 			RegisterWrite(Register::PMU_CMD, PMU_CMD_FGR);
 			px4_usleep(30000);
 			RegisterWrite(Register::PMU_CMD, PMU_CMD_BR_FAST);
@@ -297,10 +322,9 @@ void BMM350::RunImpl()
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
-			// if configure succeeded then start reading every 50 ms (20 Hz)
 			_state = STATE::READ;
 			PX4_DEBUG("Configure went fine");
-			ScheduleOnInterval(50_ms, 50_ms);
+			ScheduleOnInterval(OdrToUs(_mag_odr_mode), 50_ms);
 
 		} else {
 			// CONFIGURE not complete
@@ -374,6 +398,7 @@ void BMM350::RunImpl()
 				out_data[1] = cr_ax_comp_y;
 				out_data[2] = cr_ax_comp_z;
 				_px4_mag.set_error_count(perf_event_count(_bad_read_perf) + perf_event_count(_self_test_failed_perf));
+				_px4_mag.set_temperature(out_data[3]);
 				_px4_mag.update(now, cr_ax_comp_x, cr_ax_comp_y, cr_ax_comp_z);
 
 			} else {

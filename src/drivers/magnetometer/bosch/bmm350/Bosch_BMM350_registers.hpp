@@ -55,6 +55,8 @@ enum class Register : uint8_t {
 	PMU_CMD_AGGR_SET = 0x04,
 	PMU_CMD_AXIS_EN = 0x05,
 	PMU_CMD = 0x06,
+	PMU_STATUS_0 = 0x07,
+	PMU_STATUS_1 = 0x08,
 
 	I2C_WDT_SET = 0x0a,
 
@@ -85,6 +87,18 @@ enum PMU_CONTROL_CMD : uint8_t {
 	PMU_CMD_BR = 0x07,
 	PMU_CMD_BR_FAST = 0x08,
 	PMU_CMD_NM_TC = 0x09
+};
+
+static inline uint8_t PMU_CMD_STATUS_0_RES(uint8_t val){
+	return (val >> 5) & 0x7;
+};
+
+enum PMU_STATUS_0_BIT : uint8_t {
+	PMU_BUSY = (1 << 0),
+	ODR_OVWR = (1 << 1),
+	AVG_OVWR = (1 << 2),
+	PWR_NORMAL = (1 << 3),
+	ILLEGAL_CMD = (1 << 4)
 };
 
 enum ODR_CONTROL_CMD : uint8_t {
