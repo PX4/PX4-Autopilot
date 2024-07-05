@@ -217,6 +217,10 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 
 	if (is_fused) {
 		aid_src.time_last_fuse = _time_delayed_us;
+
+		if (!update_wind_only) {
+			_time_last_hor_vel_fuse = _time_delayed_us;
+		}
 	}
 }
 
