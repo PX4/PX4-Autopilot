@@ -109,7 +109,6 @@ void Ekf::controlFakePosFusion()
 
 				if (_control_status.flags.tilt_align) {
 					// The fake position fusion is not started for initial alignement
-					_warning_events.flags.stopping_navigation = true;
 					ECL_WARN("stopping navigation");
 				}
 			}
