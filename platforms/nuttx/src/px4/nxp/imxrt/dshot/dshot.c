@@ -81,24 +81,8 @@ static int flexio_irq_handler(int irq, void *context, void *arg)
 
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
-	uint32_t timer_compare;
+	uint32_t timer_compare = 0x2F00 | (((BOARD_FLEXIO_PREQ / (dshot_pwm_freq * 3) / 2) - 1) & 0xFF);
 
-	if (dshot_pwm_freq == 150000) {
-		timer_compare = 0x2F8A;
-
-	} else if (dshot_pwm_freq == 300000) {
-		timer_compare = 0x2F45;
-
-	} else if (dshot_pwm_freq == 600000) {
-		timer_compare = 0x2F22;
-
-	} else if (dshot_pwm_freq == 1200000) {
-		timer_compare = 0x2F11;
-
-	} else {
-		// Not supported Dshot frequency
-		return 0;
-	}
 
 	/* Init FlexIO peripheral */
 
