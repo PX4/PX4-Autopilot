@@ -87,7 +87,15 @@ void Ekf::controlFakePosFusion()
 				if ((aid_src.test_ratio[0] < sq(100.0f / innov_gate))
 				    && (aid_src.test_ratio[1] < sq(100.0f / innov_gate))
 				   ) {
-					fuseHorizontalPosition(aid_src);
+					if (!aid_src.innovation_rejected
+					    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
+									  State::pos.idx + 0)
+					    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
+									  State::pos.idx + 1)
+					   ) {
+						aid_src.fused = true;
+						aid_src.time_last_fuse = _time_delayed_us;
+					}
 				}
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
