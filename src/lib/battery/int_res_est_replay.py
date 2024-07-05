@@ -19,6 +19,13 @@ def getData(log, topic_name, variable_name, instance=0):
 def us2s(time_us):
     return time_us * 1e-6
 
+def getParam(log, param_name):
+    if param_name in log.initial_parameters:
+        return log.initial_parameters[param_name]
+    else:
+        print(f"Parameter {param_name} not found in log.")
+    return None
+
 def rls_update(theta, P, x, V, I, lam):
     gamma = P @ x / (lam + x.T @ P @ x)
     error = V - x.T @ theta
@@ -33,6 +40,31 @@ def rls_update(theta, P, x, V, I, lam):
 
 def main(log_name, n_cells, full_cell, empty_cell, lam):
     log = ULog(log_name)
+
+    log_n_cells = getParam(log, 'BAT1_N_CELLS')
+    log_full_cell = getParam(log, 'BAT1_V_CHARGED')
+    log_empty_cell = getParam(log, 'BAT1_V_EMPTY')
+
+    # Debug information
+    print(f"Extracted from log - BAT1_N_CELLS: {log_n_cells}, BAT1_V_CHARGED: {log_full_cell}, BAT1_V_EMPTY: {log_empty_cell}")
+
+    # Use log parameters unless overridden
+    if n_cells is None:
+        n_cells = log_n_cells
+    else:
+        print(f"Using override for n_cells: {n_cells}")
+    if full_cell is None:
+        full_cell = log_full_cell
+    else:
+        print(f"Using override for full_cell: {full_cell}")
+    if empty_cell is None:
+        empty_cell = log_empty_cell
+    else:
+        print(f"Using override for empty_cell: {empty_cell}")
+
+    # Debug information for final parameter values
+    print(f"Using parameters - n_cells: {n_cells}, full_cell: {full_cell}, empty_cell: {empty_cell}")
+
     timestamps = us2s(getData(log, 'battery_status', 'timestamp'))
     I = getData(log, 'battery_status', 'current_a')
     V = getData(log, 'battery_status', 'voltage_v')
@@ -79,7 +111,7 @@ def main(log_name, n_cells, full_cell, empty_cell, lam):
         data_cov_hist[index] = data_cov
         internal_resistance_stable[index] = max(R_est[index]/n_cells, 0.001)
 
-    ## Plot data
+    # Plot data
     print("Internal Resistance mean (per cell): ", np.mean(R_est) / n_cells)
 
     # Summary plot
@@ -168,9 +200,9 @@ def main(log_name, n_cells, full_cell, empty_cell, lam):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Estimate battery parameters from ulog file.')
     parser.add_argument('-f', type = str,   required = True,  help = 'Full path to ulog file')
-    parser.add_argument('-c', type = float, required = True,  help = 'Number of cells in battery')
-    parser.add_argument('-u', type = float, required = False, default = 4.05, help = 'Full cell voltage')
-    parser.add_argument('-e', type = float, required = False, default = 3.6,  help = 'Empty cell voltage')
+    parser.add_argument('-c', type = float, required = False, help = 'Number of cells in battery')
+    parser.add_argument('-u', type = float, required = False, default = None, help = 'Full cell voltage')
+    parser.add_argument('-e', type = float, required = False, default = None,  help = 'Empty cell voltage')
     parser.add_argument('-l', type = float, required = False, default = 0.99, help = 'Forgetting factor')
     args = parser.parse_args()
     main(args.f, args.c, args.u, args.e, args.l)
