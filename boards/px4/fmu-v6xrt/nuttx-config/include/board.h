@@ -52,6 +52,7 @@
 #define IMXRT_IPG_PODF_DIVIDER 5
 #define BOARD_GPT_FREQUENCY  24000000
 #define BOARD_XTAL_FREQUENCY 24000000
+#define BOARD_FLEXIO_PREQ    108000000
 
 /* SDIO *********************************************************************/
 
