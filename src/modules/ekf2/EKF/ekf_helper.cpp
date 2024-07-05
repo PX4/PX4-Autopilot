@@ -597,13 +597,6 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		}
 	}
 
-#if defined(CONFIG_EKF2_GNSS)
-	// for fixed wing, deadreckon time starts after takeoff. Gives enough time for wind deadreckon to be activated
-	if (!_control_status.flags.in_air && !_control_status.flags.gps && _control_status.flags.fixed_wing) {
-		_time_last_horizontal_aiding = _time_delayed_us;
-	}
-#endif // CONFIG_EKF2_GNSS
-
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
 	bool deadreckon_time_exceeded = isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);
 
