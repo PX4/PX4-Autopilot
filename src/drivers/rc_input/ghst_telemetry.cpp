@@ -90,8 +90,8 @@ bool GHSTTelemetry::send_battery_status()
 	battery_status_s battery_status;
 
 	if (_battery_status_sub.update(&battery_status)) {
-		voltage_in_10mV = battery_status.voltage_filtered_v * FACTOR_VOLTS_TO_10MV;
-		current_in_10mA = battery_status.current_filtered_a * FACTOR_AMPS_TO_10MA;
+		voltage_in_10mV = battery_status.voltage_v * FACTOR_VOLTS_TO_10MV;
+		current_in_10mA = battery_status.current_a * FACTOR_AMPS_TO_10MA;
 		fuel_in_10mAh = battery_status.discharged_mah * FACTOR_MAH_TO_10MAH;
 		success = ghst_send_telemetry_battery_status(_uart_fd,
 				static_cast<uint16_t>(voltage_in_10mV),

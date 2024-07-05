@@ -73,7 +73,6 @@ class Ekf final : public EstimatorInterface
 public:
 	typedef matrix::Vector<float, State::size> VectorState;
 	typedef matrix::SquareMatrix<float, State::size> SquareMatrixState;
-	typedef matrix::SquareMatrix<float, 2> Matrix2f;
 
 	Ekf()
 	{
@@ -922,6 +921,8 @@ private:
 	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src);
 	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
 	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
+	void resetVelocityToEV(const Vector3f &measurement, const Vector3f &measurement_var, const VelocityFrame &vel_frame);
+	Vector3f rotateVarianceToEkf(const Vector3f &measurement_var);
 
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src);
@@ -929,6 +930,12 @@ private:
 	void stopEvHgtFusion();
 	void stopEvVelFusion();
 	void stopEvYawFusion();
+	bool fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSample &ev_sample);
+	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
+	{
+		VectorState Kfusion = P * H / innov_var;
+		aid_src.fused = measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)

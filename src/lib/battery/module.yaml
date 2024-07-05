@@ -39,33 +39,11 @@ parameters:
             instance_start: 1
             default: [4.05, 4.05, 4.05]
 
-        BAT${i}_V_LOAD_DROP:
-            description:
-                short: Voltage drop per cell on full throttle
-                long: |
-                    This implicitly defines the internal resistance
-                    to maximum current ratio for the battery and assumes linearity.
-                    A good value to use is the difference between the
-                    5C and 20-25C load. Not used if BAT${i}_R_INTERNAL is
-                    set.
-
-            type: float
-            unit: V
-            min: 0.07
-            max: 0.5
-            decimal: 2
-            increment: 0.01
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: [0.1, 0.1, 0.1]
-
         BAT${i}_R_INTERNAL:
             description:
                 short: Explicitly defines the per cell internal resistance for battery ${i}
                 long: |
-                    If non-negative, then this will be used in place of
-                    BAT${i}_V_LOAD_DROP for all calculations.
+                    If non-negative, then this will be used instead of the online estimated internal resistance.
 
             type: float
             unit: Ohm
@@ -76,7 +54,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0.005, 0.005, 0.005]
+            default: [-1.0, -1.0, -1.0]
 
         BAT${i}_N_CELLS:
             description:
