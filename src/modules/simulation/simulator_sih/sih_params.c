@@ -239,7 +239,7 @@ PARAM_DEFINE_FLOAT(SIH_KDW, 0.025f);
  * LAT0, LON0, H0, MU_X, MU_Y, and MU_Z should ideally be consistent among each others
  * to represent a physical ground location on Earth.
  *
- * @unit deg*1e7
+ * @unit deg
  * @min -90
  * @max  90
  * @group Simulation In Hardware
@@ -280,7 +280,7 @@ PARAM_DEFINE_FLOAT(SIH_LOC_LON0, 8.545594f);
  * @increment 0.01
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_LOC_H0, 32.34f);
+PARAM_DEFINE_FLOAT(SIH_LOC_H0, 489.4f);
 
 /**
  * distance sensor minimum range
