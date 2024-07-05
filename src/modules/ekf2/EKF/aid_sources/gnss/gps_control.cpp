@@ -78,7 +78,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 			if (_control_status.flags.gps && isTimedOut(_last_gps_pass_us, _params.reset_timeout_max)) {
 				stopGpsFusion();
-				_warning_events.flags.gps_quality_poor = true;
 				ECL_WARN("GPS quality poor - stopping use");
 			}
 		}
@@ -92,7 +91,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	} else if (_control_status.flags.gps) {
 		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
 			stopGpsFusion();
-			_warning_events.flags.gps_data_stopped = true;
 			ECL_WARN("GPS data stopped");
 		}
 	}
@@ -276,14 +274,12 @@ bool Ekf::tryYawEmergencyReset()
 			// stop using the magnetometer in the main EKF otherwise its fusion could drag the yaw around
 			// and cause another navigation failure
 			_control_status.flags.mag_fault = true;
-			_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
 		}
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
 		if (_control_status.flags.gps_yaw) {
 			_control_status.flags.gps_yaw_fault = true;
-			_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
 		}
 
 #endif // CONFIG_EKF2_GNSS_YAW

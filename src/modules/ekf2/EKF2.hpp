@@ -418,7 +418,6 @@ private:
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};
 	uint32_t _innov_check_fail_status_changes{0};
-	uint32_t _filter_warning_event_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
