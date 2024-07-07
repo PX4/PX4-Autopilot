@@ -501,7 +501,7 @@ public:
 		return true;
 	}
 
-	void resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
+	bool resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation);
 
 	void updateParameters();
 
