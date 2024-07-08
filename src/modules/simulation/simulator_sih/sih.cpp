@@ -243,8 +243,8 @@ void Sih::parameters_updated()
 	_KDW = _sih_kdw.get();
 	_H0 = _sih_h0.get();
 
-	_LAT0 = (double)_sih_lat0.get() * 1.0e-7;
-	_LON0 = (double)_sih_lon0.get() * 1.0e-7;
+	_LAT0 = (double)_sih_lat0.get();
+	_LON0 = (double)_sih_lon0.get();
 	_COS_LAT0 = cosl((long double)radians(_LAT0));
 
 	_MASS = _sih_mass.get();

@@ -15,6 +15,9 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 	if [ -n "${PX4_HOME_LON}" ]; then
 		param set SIH_LOC_LON0 ${PX4_HOME_LON}
 	fi
+	if [ -n "${PX4_HOME_ALT}" ]; then
+		param set SIH_LOC_H0 ${PX4_HOME_ALT}
+	fi
 
 	if simulator_sih start; then
 
