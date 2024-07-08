@@ -54,7 +54,7 @@ public:
 	virtual void print_status() const;
 
 private:
-	void _stream_device_attitude_status();
+	void _stream_device_attitude_status(const ControlData &control_data);
 
 	uORB::Publication <gimbal_controls_s>	_gimbal_controls_pub{ORB_ID(gimbal_controls)};
 	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};

@@ -262,6 +262,11 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	if (!_gimbal.init(_world_name, _model_name)) {
+		PX4_ERR("failed to init gimbal");
+		return PX4_ERROR;
+	}
+
 	ScheduleNow();
 	return OK;
 }
@@ -957,6 +962,7 @@ void GZBridge::Run()
 		_mixing_interface_esc.stop();
 		_mixing_interface_servo.stop();
 		_mixing_interface_wheel.stop();
+		_gimbal.stop();
 
 		exit_and_cleanup();
 		return;
@@ -973,6 +979,7 @@ void GZBridge::Run()
 		_mixing_interface_esc.updateParams();
 		_mixing_interface_servo.updateParams();
 		_mixing_interface_wheel.updateParams();
+		_gimbal.updateParams();
 	}
 
 	ScheduleDelayed(10_ms);

@@ -60,7 +60,7 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 
 	_calculate_angle_output(now);
 
-	_stream_device_attitude_status();
+	_stream_device_attitude_status(control_data);
 
 	// If the output is RC, then we signal this by referring to compid 1.
 	gimbal_device_id = 1;
@@ -90,7 +90,7 @@ void OutputRC::print_status() const
 	PX4_INFO("Output: AUX");
 }
 
-void OutputRC::_stream_device_attitude_status()
+void OutputRC::_stream_device_attitude_status(const ControlData &control_data)
 {
 	gimbal_device_attitude_status_s attitude_status{};
 	attitude_status.timestamp = hrt_absolute_time();
@@ -115,6 +115,7 @@ void OutputRC::_stream_device_attitude_status()
 	q.copyTo(attitude_status.q);
 
 	attitude_status.failure_flags = 0;
+	attitude_status.gimbal_device_id = control_data.device_compid;
 	_attitude_status_pub.publish(attitude_status);
 }
 
