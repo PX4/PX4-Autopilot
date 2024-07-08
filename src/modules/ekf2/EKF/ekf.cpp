@@ -308,10 +308,10 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 		pos_corrected += _state.vel.xy() * dt_s;
 	}
 
-	const float obs_var = math::max(accuracy, sq(0.01f));
+	const float obs_var = math::max(sq(accuracy), sq(0.01f));
 
 	const Vector2f innov = Vector2f(_state.pos.xy()) - pos_corrected;
-	const Vector2f innov_var = Vector2f(getStateVariance<State::vel>()) + obs_var;
+	const Vector2f innov_var = Vector2f(getStateVariance<State::pos>()) + obs_var;
 
 	const float sq_gate = sq(5.f); // magic hardcoded gate
 	const Vector2f test_ratio{sq(innov(0)) / (sq_gate * innov_var(0)),
