@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - 'main'
+    - '*'
   pull_request:
     branches:
     - '*'
@@ -25,7 +26,7 @@ jobs:
           #- {vehicle: "tiltrotor",     mission: "VTOL_mission_1",  build_type: "RelWithDebInfo"}
 
     container:
-      image: px4io/px4-dev-ros-melodic:2021-09-08
+      image: px4io/px4-dev-ros-melodic:2024-05-18
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
@@ -39,7 +40,7 @@ jobs:
         string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
         message("::set-output name=timestamp::${current_date}")
     - name: ccache cache files
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: ~/.ccache
         key: sitl_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
