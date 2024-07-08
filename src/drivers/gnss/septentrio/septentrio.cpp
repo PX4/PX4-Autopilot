@@ -140,7 +140,7 @@ constexpr const char *k_frequency_25_0hz = "msec40";
 constexpr const char *k_frequency_50_0hz = "msec20";
 
 px4::atomic<SeptentrioDriver *> SeptentrioDriver::_secondary_instance {nullptr};
-uint32_t SeptentrioDriver::k_supported_baud_rates[] {0, 38400, 57600, 115200, 230400, 460800, 500000, 576000, 921600, 1000000, 1500000};
+uint32_t SeptentrioDriver::k_supported_baud_rates[] {0, 38400, 57600, 115200, 230400, 460800, 921600};
 uint32_t SeptentrioDriver::k_default_baud_rate {230400};
 orb_advert_t SeptentrioDriver::k_mavlink_log_pub {nullptr};
 
@@ -289,7 +289,7 @@ void SeptentrioDriver::run()
 			}
 
 		case State::DetectingBaudRate: {
-				static uint32_t expected_baud_rates[] = {k_septentrio_receiver_default_baud_rate, 115200, 230400, 57600, 460800, 500000, 576000, 38400, 921600, 1000000, 1500000};
+				static uint32_t expected_baud_rates[] = {k_septentrio_receiver_default_baud_rate, 115200, 230400, 57600, 460800, 38400, 921600};
 				expected_baud_rates[0] = _chosen_baud_rate != 0 ? _chosen_baud_rate : k_septentrio_receiver_default_baud_rate;
 
 				if (detect_receiver_baud_rate(expected_baud_rates[_current_baud_rate_index], true)) {
@@ -549,7 +549,7 @@ int SeptentrioDriver::print_usage(const char *reason)
 Driver for Septentrio GNSS receivers.
 It can automatically configure them and make their output available for the rest of the system.
 A secondary receiver is supported for redundancy, logging and dual-receiver heading.
-Septentrio receiver baud rates from 57600 to 1500000 are supported.
+Septentrio receiver baud rates from 57600 to 921600 are supported.
 If others are used, the driver will use 230400 and give a warning.
 
 ### Examples
@@ -567,9 +567,9 @@ $ gps reset warm
 	PRINT_MODULE_USAGE_NAME("septentrio", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Primary receiver port", false);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 57600, 1500000, "Primary receiver baud rate", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 57600, 921600, "Primary receiver baud rate", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('e', nullptr, "<file:dev>", "Secondary receiver port", true);
-	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 57600, 1500000, "Secondary receiver baud rate", true);
+	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 57600, 921600, "Secondary receiver baud rate", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset connected receiver");
