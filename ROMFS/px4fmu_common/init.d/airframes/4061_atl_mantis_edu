@@ -8,6 +8,8 @@
 # @maintainer
 # @board px4_fmu-v2 exclude
 # @board cuav_x7pro exclude
+# @board px4_fmu-v4pro exclude
+# @board px4_fmu-v5x exclude
 # @board px4_fmu-v6x exclude
 #
 

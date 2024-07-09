@@ -32,21 +32,83 @@
  ****************************************************************************/
 
 /**
- * @file util.h
+ * @file FilteredDerivative.hpp
  *
- * @author Thomas Frans
+ * @brief Derivative function passed through a first order "alpha" IIR digital filter
+ *
+ * @author Silvan Fuhrer <silvan@auterion.com>
  */
 
 #pragma once
 
-#include <stdint.h>
+// #include <float.h>
+// #include <mathlib/math/Functions.hpp>
+#include <mathlib/math/filter/AlphaFilter.hpp>
 
-namespace septentrio
+using namespace math;
+
+template <typename T>
+class FilteredDerivative
 {
+public:
+	FilteredDerivative() = default;
+	~FilteredDerivative() = default;
 
-/**
- * @brief Calculate buffer CRC16
- */
-uint16_t buffer_crc16(const uint8_t *data_p, uint32_t length);
+	/**
+	 * Set filter parameters for time abstraction
+	 *
+	 * Both parameters have to be provided in the same units.
+	 *
+	 * @param sample_interval interval between two samples
+	 * @param time_constant filter time constant determining convergence
+	 */
+	void setParameters(float sample_interval, float time_constant)
+	{
+		_alpha_filter.setParameters(sample_interval, time_constant);
+		_sample_interval = sample_interval;
+	}
 
-} // namespace septentrio
+	/**
+	 * Set filter state to an initial value
+	 *
+	 * @param sample new initial value
+	 */
+	void reset(const T &sample)
+	{
+		_alpha_filter.reset(sample);
+		_initialized = false;
+	}
+
+	/**
+	 * Add a new raw value to the filter
+	 *
+	 * @return retrieve the filtered result
+	 */
+	const T &update(const T &sample)
+	{
+		if (_initialized) {
+			if (_sample_interval > FLT_EPSILON) {
+				_alpha_filter.update((sample - _previous_sample) / _sample_interval);
+
+			} else {
+				_initialized = false;
+			}
+
+		} else {
+			// don't update in the first iteration
+			_initialized = true;
+		}
+
+		_previous_sample = sample;
+		return _alpha_filter.getState();
+	}
+
+	const T &getState() const { return _alpha_filter.getState(); }
+
+
+private:
+	AlphaFilter<T> _alpha_filter;
+	float _sample_interval{0.f};
+	T _previous_sample{0.f};
+	bool _initialized{false};
+};

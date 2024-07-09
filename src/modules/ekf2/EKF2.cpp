@@ -497,6 +497,12 @@ void EKF2::Run()
 		vehicle_command_s vehicle_command;
 
 		if (_vehicle_command_sub.update(&vehicle_command)) {
+
+			vehicle_command_ack_s command_ack{};
+			command_ack.command = vehicle_command.command;
+			command_ack.target_system = vehicle_command.source_system;
+			command_ack.target_component = vehicle_command.source_component;
+
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
 				double latitude = vehicle_command.param5;
 				double longitude = vehicle_command.param6;
@@ -509,15 +515,24 @@ void EKF2::Run()
 					PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
 						 _instance, latitude, longitude, static_cast<double>(altitude));
 
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
 				} else {
 					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
 						_instance, latitude, longitude, static_cast<double>(altitude));
-				}
-			}
 
-			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
-				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning) &&
-				    PX4_ISFINITE(vehicle_command.param2) && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)) {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+				}
+
+				command_ack.timestamp = hrt_absolute_time();
+				_vehicle_command_ack_pub.publish(command_ack);
+
+			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
+
+				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning
+				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gps)) && PX4_ISFINITE(vehicle_command.param2)
+				    && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)
+				   ) {
 
 					const float measurement_delay_seconds = math::constrain(vehicle_command.param2, 0.0f,
 										kMaxDelaySecondsExternalPosMeasurement);
@@ -530,9 +545,21 @@ void EKF2::Run()
 					}
 
 					// TODO add check for lat and long validity
-					_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
-							accuracy, timestamp_observation);
+					if (_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
+							accuracy, timestamp_observation)
+					   ) {
+						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+					}
+
+				} else {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED; // TODO: expand
 				}
+
+				command_ack.timestamp = hrt_absolute_time();
+				_vehicle_command_ack_pub.publish(command_ack);
 			}
 		}
 	}
