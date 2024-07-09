@@ -292,6 +292,11 @@ bool Ekf::fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSampl
 
 		}
 
+		if (aid_src.fused) {
+			_time_last_hor_vel_fuse = _time_delayed_us;
+			_time_last_ver_vel_fuse = _time_delayed_us;
+		}
+
 		aid_src.timestamp_sample = current_aid_src.timestamp_sample;
 		return !aid_src.innovation_rejected;
 
