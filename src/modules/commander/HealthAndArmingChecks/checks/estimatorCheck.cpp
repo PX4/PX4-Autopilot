@@ -318,6 +318,22 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 		_gps_was_fused = ekf_gps_fusion;
 
+		if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED)) {
+			if (!_gps_spoofed) {
+				_gps_spoofed = true;
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "GPS signal spoofed\t");
+				}
+
+				events::send(events::ID("check_estimator_gps_warning_spoofing"), {events::Log::Alert, events::LogInternal::Info},
+					     "GPS signal spoofed");
+			}
+
+		} else {
+			_gps_spoofed = false;
+		}
+
 		if (!context.isArmed() && ekf_gps_check_fail) {
 			NavModes required_groups_gps = required_groups;
 			events::Log log_level = events::Log::Error;
@@ -461,10 +477,6 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
 							    events::ID("check_estimator_gps_spoofed"),
 							    log_level, "GPS signal spoofed");
-
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "GPS signal spoofed, disabled GPS fusion\t");
-				}
 
 			} else {
 				if (!ekf_gps_fusion) {
@@ -718,12 +730,6 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
 					    events::ID("check_estimator_gps_multiple_spoofing_indicated"),
 					    events::Log::Critical, "GPS reports multiple spoofing indicated");
-
-		if (!_gps_spoofed) {
-			events::send(events::ID("check_estimator_gps_warning_spoofing"), {events::Log::Alert, events::LogInternal::Info},
-				     "GPS signal spoofed");
-			_gps_spoofed = true;
-		}
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports multiple spoofing indicated\t");

@@ -138,27 +138,7 @@ void Ekf::collect_gps(const gnssSample &gps)
 bool Ekf::runGnssChecks(const gnssSample &gps)
 {
 	// Check GPS spoofing
-	// hysterisis: spoofing needs to be consistent for 1 second before it is declared
-	constexpr uint64_t hysteresis_gps_spoofing_us = 1e6; // 1 second, hardcoded
-
-	if (gps.spoofed) {
-		if (_time_last_non_spoofed_gps == 0) {
-			_time_last_non_spoofed_gps = gps.time_us;
-		}
-
-		if (gps.time_us - _time_last_non_spoofed_gps > hysteresis_gps_spoofing_us) {
-			_gps_check_fail_status.flags.spoofed = true;
-		}
-
-		_time_last_spoofed_gps = gps.time_us;
-
-	} else {
-		_time_last_non_spoofed_gps = gps.time_us;
-	}
-
-	if (gps.time_us - _time_last_spoofed_gps > hysteresis_gps_spoofing_us) {
-		_gps_check_fail_status.flags.spoofed = false;
-	}
+	_gps_check_fail_status.flags.spoofed = gps.spoofed;
 
 	// Check the fix type
 	_gps_check_fail_status.flags.fix = (gps.fix_type < 3);
