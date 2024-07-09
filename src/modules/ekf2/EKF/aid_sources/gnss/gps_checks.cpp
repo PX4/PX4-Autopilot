@@ -48,15 +48,16 @@
 #include <mathlib/mathlib.h>
 
 // GPS pre-flight check bit locations
-#define MASK_GPS_NSATS  (1<<0)
-#define MASK_GPS_PDOP   (1<<1)
-#define MASK_GPS_HACC   (1<<2)
-#define MASK_GPS_VACC   (1<<3)
-#define MASK_GPS_SACC   (1<<4)
-#define MASK_GPS_HDRIFT (1<<5)
-#define MASK_GPS_VDRIFT (1<<6)
-#define MASK_GPS_HSPD   (1<<7)
-#define MASK_GPS_VSPD   (1<<8)
+#define MASK_GPS_NSATS   (1<<0)
+#define MASK_GPS_PDOP    (1<<1)
+#define MASK_GPS_HACC    (1<<2)
+#define MASK_GPS_VACC    (1<<3)
+#define MASK_GPS_SACC    (1<<4)
+#define MASK_GPS_HDRIFT  (1<<5)
+#define MASK_GPS_VDRIFT  (1<<6)
+#define MASK_GPS_HSPD    (1<<7)
+#define MASK_GPS_VSPD    (1<<8)
+#define MASK_GPS_SPOOFED (1<<9)
 
 void Ekf::collect_gps(const gnssSample &gps)
 {
@@ -136,6 +137,8 @@ void Ekf::collect_gps(const gnssSample &gps)
 
 bool Ekf::runGnssChecks(const gnssSample &gps)
 {
+	_gps_check_fail_status.flags.spoofed = gps.spoofed;
+
 	// Check the fix type
 	_gps_check_fail_status.flags.fix = (gps.fix_type < 3);
 
@@ -240,7 +243,8 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 		(_gps_check_fail_status.flags.hdrift  && (_params.gps_check_mask & MASK_GPS_HDRIFT)) ||
 		(_gps_check_fail_status.flags.vdrift  && (_params.gps_check_mask & MASK_GPS_VDRIFT)) ||
 		(_gps_check_fail_status.flags.hspeed  && (_params.gps_check_mask & MASK_GPS_HSPD)) ||
-		(_gps_check_fail_status.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD))
+		(_gps_check_fail_status.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD)) ||
+		(_gps_check_fail_status.flags.spoofed && (_params.gps_check_mask & MASK_GPS_SPOOFED))
 	) {
 		_last_gps_fail_us = _time_delayed_us;
 		return false;
