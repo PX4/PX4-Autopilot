@@ -146,6 +146,7 @@ endif()
 if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
 	px4_add_romfs_files(
 		50003_aion_robotics_r1_rover
+		70001_boat_mot_catamaran
 	)
 endif()
 
