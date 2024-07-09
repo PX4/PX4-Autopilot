@@ -64,7 +64,7 @@ private:
 	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);
 	void checkEstimatorStatusFlags(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
 				       const vehicle_local_position_s &lpos);
-	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position);
+	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const;
 	void lowPositionAccuracy(const Context &context, Report &reporter, const vehicle_local_position_s &lpos) const;
 	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading, bool pre_flt_fail_innov_vel_horiz,
 				     const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position,
@@ -101,7 +101,7 @@ private:
 	bool _position_reliant_on_optical_flow{false};
 
 	bool _gps_was_fused{false};
-	bool _gps_spoofed{false};
+	bool _gnss_spoofed{false};
 
 	bool _nav_failure_imminent_warned{false};
 

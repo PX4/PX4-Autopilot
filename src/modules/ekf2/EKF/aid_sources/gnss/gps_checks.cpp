@@ -137,7 +137,6 @@ void Ekf::collect_gps(const gnssSample &gps)
 
 bool Ekf::runGnssChecks(const gnssSample &gps)
 {
-	// Check GPS spoofing
 	_gps_check_fail_status.flags.spoofed = gps.spoofed;
 
 	// Check the fix type

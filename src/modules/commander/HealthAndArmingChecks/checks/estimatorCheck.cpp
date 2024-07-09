@@ -319,19 +319,19 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		_gps_was_fused = ekf_gps_fusion;
 
 		if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED)) {
-			if (!_gps_spoofed) {
-				_gps_spoofed = true;
+			if (!_gnss_spoofed) {
+				_gnss_spoofed = true;
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "GPS signal spoofed\t");
+					mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS signal spoofed\t");
 				}
 
-				events::send(events::ID("check_estimator_gps_warning_spoofing"), {events::Log::Alert, events::LogInternal::Info},
-					     "GPS signal spoofed");
+				events::send(events::ID("check_estimator_gnss_warning_spoofing"), {events::Log::Alert, events::LogInternal::Info},
+					     "GNSS signal spoofed");
 			}
 
 		} else {
-			_gps_spoofed = false;
+			_gnss_spoofed = false;
 		}
 
 		if (!context.isArmed() && ekf_gps_check_fail) {
@@ -699,7 +699,7 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 	}
 }
 
-void EstimatorChecks::checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position)
+void EstimatorChecks::checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const
 {
 	if (vehicle_gps_position.jamming_state == sensor_gps_s::JAMMING_STATE_CRITICAL) {
 		/* EVENT

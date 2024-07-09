@@ -537,7 +537,7 @@ union gps_check_fail_status_u {
 		uint16_t vdrift : 1; ///< 7 - true if vertical drift is excessive (can only be used when stationary on ground)
 		uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
 		uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
-		uint16_t spoofed: 1; ///< 10 - true if the GPS data is spoofed
+		uint16_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
 	} flags;
 	uint16_t value;
 };
