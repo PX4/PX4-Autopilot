@@ -60,6 +60,8 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	check_load_factor(input_data.accel_z);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio,
 				  input_data.ground_velocity, input_data.gnss_valid);
+	check_first_principle(input_data.timestamp, input_data.fixed_wing_tecs_throttle,
+			      input_data.fixed_wing_tecs_throttle_trim, input_data.tecs_timestamp, input_data.q_att);
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
@@ -277,16 +279,76 @@ AirspeedValidator::check_load_factor(float accel_z)
 	}
 }
 
+void
+AirspeedValidator::check_first_principle(const uint64_t timestamp, const float throttle_fw, const float throttle_trim,
+		const uint64_t tecs_timestamp, const Quatf &att_q)
+{
+	if (! _first_principle_check_enabled) {
+		_first_principle_check_failed = false;
+		_time_last_first_principle_check_passing = timestamp;
+		return;
+	}
+
+	const float pitch = matrix::Eulerf(att_q).theta();
+	const hrt_abstime tecs_dt = timestamp - tecs_timestamp; // return if TECS data is old (TECS not running)
+
+	if (!_in_fixed_wing_flight || tecs_dt > 500_ms || !PX4_ISFINITE(_IAS) || !PX4_ISFINITE(throttle_fw)
+	    || !PX4_ISFINITE(throttle_trim) || !PX4_ISFINITE(pitch)) {
+		// do not do anything in that case
+		return;
+	}
+
+	const float dt = static_cast<float>(timestamp - _time_last_first_principle_check) / 1_s;
+	_time_last_first_principle_check = timestamp;
+
+	// update filters
+	if (dt < FLT_EPSILON || dt > 1.f) {
+		// reset if dt is too large
+		_IAS_derivative.reset(0.f);
+		_throttle_filtered.reset(throttle_fw);
+		_pitch_filtered.reset(pitch);
+		_time_last_first_principle_check_passing = timestamp;
+
+	} else {
+		// update filters, with different time constant
+		_IAS_derivative.setParameters(dt, 5.f);
+		_throttle_filtered.setParameters(dt, 0.5f);
+		_pitch_filtered.setParameters(dt, 1.5f);
+
+		_IAS_derivative.update(_IAS);
+		_throttle_filtered.update(throttle_fw);
+		_pitch_filtered.update(pitch);
+	}
+
+	// declare high throttle if more than 5% above trim
+	const float high_throttle_threshold = math::min(throttle_trim + kHighThrottleDelta, _param_throttle_max);
+	const bool high_throttle = _throttle_filtered.getState() > high_throttle_threshold;
+	const bool pitching_down = _pitch_filtered.getState() < _param_psp_off;
+
+	// check if the airspeed derivative is too low given the throttle and pitch
+	const bool check_failing = _IAS_derivative.getState() < kIASDerivateThreshold && high_throttle && pitching_down;
+
+	if (!check_failing) {
+		_time_last_first_principle_check_passing = timestamp;
+		_first_principle_check_failed = false;
+	}
+
+	if (timestamp - _time_last_first_principle_check_passing > _aspd_fp_t_window * 1_s) {
+		// only update the test_failed flag once the timeout since first principle check failing is over
+		_first_principle_check_failed = check_failing;
+	}
+}
 
 void
 AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 {
-	if (_data_stuck_test_failed || _innovations_check_failed || _load_factor_check_failed) {
+	if (_data_stuck_test_failed || _innovations_check_failed || _load_factor_check_failed
+	    || _first_principle_check_failed) {
 		// at least one check (data stuck, innovation or load factor) failed, so record timestamp
 		_time_checks_failed = timestamp;
 
 	} else if (! _data_stuck_test_failed && !_innovations_check_failed
-		   && !_load_factor_check_failed) {
+		   && !_load_factor_check_failed && !_first_principle_check_failed) {
 		// all checks(data stuck, innovation and load factor) must pass to declare airspeed good
 		_time_checks_passed = timestamp;
 	}
