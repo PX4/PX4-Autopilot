@@ -164,10 +164,11 @@ static inline hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
 {
 	hrt_abstime now = hrt_absolute_time();
 
-	// Cannot allow a negative elapsed time as this would appear
-	// to be a huge positive elapsed time when represented as an
-	// unsigned value!
-	if (*then > now) {
+
+	// Zero out time differences bigger than half the timestamp range (~292k years)
+	// because this is indicating an unwanted wrap of the unsigned timestamp
+	// and hence a negative time difference (*then lies in the future).
+	if ((now - *then) > ((uint64_t)(-1) >> 1)) {
 		return 0;
 	}
 
