@@ -62,12 +62,12 @@ void Ekf::updateGpsYaw(const gnssSample &gps_sample)
 					    &heading_pred, &heading_innov_var, &H);
 
 	updateAidSourceStatus(_aid_src_gnss_yaw,
-				 gps_sample.time_us,                          // sample timestamp
-				 measured_hdg,                                // observation
-				 R_YAW,                                       // observation variance
-				 wrap_pi(heading_pred - measured_hdg),        // innovation
-				 heading_innov_var,                           // innovation variance
-				 math::max(_params.heading_innov_gate, 1.f)); // innovation gate
+			      gps_sample.time_us,                          // sample timestamp
+			      measured_hdg,                                // observation
+			      R_YAW,                                       // observation variance
+			      wrap_pi(heading_pred - measured_hdg),        // innovation
+			      heading_innov_var,                           // innovation variance
+			      math::max(_params.heading_innov_gate, 1.f)); // innovation gate
 }
 
 void Ekf::fuseGpsYaw(float antenna_yaw_offset)

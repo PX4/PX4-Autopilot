@@ -55,8 +55,10 @@ void Ekf::controlExternalVisionFusion()
 
 		const bool starting_conditions_passing = quality_sufficient
 				&& ((ev_sample.time_us - _ev_sample_prev.time_us) < EV_MAX_INTERVAL)
-				&& ((_params.ev_quality_minimum <= 0) || (_ev_sample_prev.quality >= _params.ev_quality_minimum)) // previous quality sufficient
-				&& ((_params.ev_quality_minimum <= 0) || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
+				&& ((_params.ev_quality_minimum <= 0)
+				    || (_ev_sample_prev.quality >= _params.ev_quality_minimum)) // previous quality sufficient
+				&& ((_params.ev_quality_minimum <= 0)
+				    || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
 				&& isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
 
 		updateEvAttitudeErrorFilter(ev_sample, ev_reset);

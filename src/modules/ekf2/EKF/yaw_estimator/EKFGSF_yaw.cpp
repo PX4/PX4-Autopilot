@@ -301,7 +301,8 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 	// Use fixed values for delta angle process noise variances
 	const float d_ang_var = sq(_gyro_noise * delta_ang_dt);
 
-	_ekf_gsf[model_index].P = sym::YawEstPredictCovariance(_ekf_gsf[model_index].X, _ekf_gsf[model_index].P, Vector2f(dvx, dvy), d_vel_var, daz, d_ang_var);
+	_ekf_gsf[model_index].P = sym::YawEstPredictCovariance(_ekf_gsf[model_index].X, _ekf_gsf[model_index].P, Vector2f(dvx,
+				  dvy), d_vel_var, daz, d_ang_var);
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	_ekf_gsf[model_index].P(1, 0) = _ekf_gsf[model_index].P(0, 1);

@@ -89,7 +89,8 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 
 		updateAirspeed(airspeed_sample, _aid_src_airspeed);
 
-		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
+		_innov_check_fail_status.flags.reject_airspeed =
+			_aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
 
 		const bool continuing_conditions_passing = _control_status.flags.in_air
 				&& _control_status.flags.fixed_wing
@@ -155,12 +156,12 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 					     &innov, &innov_var);
 
 	updateAidSourceStatus(aid_src,
-				 airspeed_sample.time_us,                 // sample timestamp
-				 airspeed_sample.true_airspeed,           // observation
-				 R,                                       // observation variance
-				 innov,                                   // innovation
-				 innov_var,                               // innovation variance
-				 math::max(_params.tas_innov_gate, 1.f)); // innovation gate
+			      airspeed_sample.time_us,                 // sample timestamp
+			      airspeed_sample.true_airspeed,           // observation
+			      R,                                       // observation variance
+			      innov,                                   // innovation
+			      innov_var,                               // innovation variance
+			      math::max(_params.tas_innov_gate, 1.f)); // innovation gate
 }
 
 void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src)

@@ -40,9 +40,9 @@ void Ekf::updateVerticalPositionAidStatus(estimator_aid_source1d_s &aid_src, con
 	float innovation_variance = getStateVariance<State::pos>()(2) + observation_variance;
 
 	updateAidSourceStatus(aid_src, time_us,
-				 observation, observation_variance,
-				 innovation, innovation_variance,
-				 innovation_gate);
+			      observation, observation_variance,
+			      innovation, innovation_variance,
+			      innovation_gate);
 
 	// z special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
@@ -57,8 +57,10 @@ bool Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 {
 	// x & y
 	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0], State::pos.idx + 0)
-	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1], State::pos.idx + 1)
+	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
+					  State::pos.idx + 0)
+	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
+					  State::pos.idx + 1)
 	   ) {
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
@@ -76,7 +78,8 @@ bool Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 {
 	// z
 	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, aid_src.observation_variance, State::pos.idx + 2)
+	    && fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, aid_src.observation_variance,
+					  State::pos.idx + 2)
 	   ) {
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;

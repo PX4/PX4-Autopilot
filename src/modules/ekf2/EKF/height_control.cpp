@@ -294,12 +294,15 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	} checks[6] {};
 
 #if defined(CONFIG_EKF2_BAROMETER)
+
 	if (_control_status.flags.baro_hgt) {
 		checks[0] = {ReferenceType::PRESSURE, _aid_src_baro_hgt.innovation, _aid_src_baro_hgt.innovation_variance};
 	}
+
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
+
 	if (_control_status.flags.gps_hgt) {
 		checks[1] = {ReferenceType::GNSS, _aid_src_gnss_hgt.innovation, _aid_src_gnss_hgt.innovation_variance};
 	}
@@ -307,16 +310,20 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	if (_control_status.flags.gps) {
 		checks[2] = {ReferenceType::GNSS, _aid_src_gnss_vel.innovation[2], _aid_src_gnss_vel.innovation_variance[2]};
 	}
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
+
 	if (_control_status.flags.rng_hgt) {
 		// Range is a distance to ground measurement, not a direct height observation and has an opposite sign
 		checks[3] = {ReferenceType::GROUND, -_aid_src_rng_hgt.innovation, _aid_src_rng_hgt.innovation_variance};
 	}
+
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
 	if (_control_status.flags.ev_hgt) {
 		checks[4] = {ReferenceType::GROUND, _aid_src_ev_hgt.innovation, _aid_src_ev_hgt.innovation_variance};
 	}
@@ -324,6 +331,7 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	if (_control_status.flags.ev_vel) {
 		checks[5] = {ReferenceType::GROUND, _aid_src_ev_vel.innovation[2], _aid_src_ev_vel.innovation_variance[2]};
 	}
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	// Compute the check based on innovation ratio for all the sources

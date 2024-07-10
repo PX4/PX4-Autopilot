@@ -169,12 +169,12 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	}
 
 	updateAidSourceStatus(_aid_src_drag,
-				 drag_sample.time_us,  // sample timestamp
-				 observation,          // observation
-				 observation_variance, // observation variance
-				 innovation,           // innovation
-				 innovation_variance,  // innovation variance
-				 innov_gate);          // innovation gate
+			      drag_sample.time_us,  // sample timestamp
+			      observation,          // observation
+			      observation_variance, // observation variance
+			      innovation,           // innovation
+			      innovation_variance,  // innovation variance
+			      innov_gate);          // innovation gate
 
 	if (fused[0] && fused[1]) {
 		_aid_src_drag.fused = true;

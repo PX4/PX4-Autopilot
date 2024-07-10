@@ -126,6 +126,7 @@ void Ekf::collect_gps(const gnssSample &gps)
 					_wmm_gps_time_last_set = _time_delayed_us;
 				}
 			}
+
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(gps.lat));
@@ -157,7 +158,8 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	constexpr float filt_time_const = 10.0f;
-	const float dt = math::constrain(float(int64_t(gps.time_us) - int64_t(_gps_pos_prev.getProjectionReferenceTimestamp())) * 1e-6f, 0.001f, filt_time_const);
+	const float dt = math::constrain(float(int64_t(gps.time_us) - int64_t(_gps_pos_prev.getProjectionReferenceTimestamp()))
+					 * 1e-6f, 0.001f, filt_time_const);
 	const float filter_coef = dt / filt_time_const;
 
 	// The following checks are only valid when the vehicle is at rest
