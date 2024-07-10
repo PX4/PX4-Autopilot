@@ -640,11 +640,11 @@ State FlightTaskAuto::_getCurrentState()
 
 	State return_state = State::none;
 
-	if (u_prev_to_target.length() < FLT_EPSILON) {
+	if (!u_prev_to_target.longerThan(FLT_EPSILON)) {
 		// Previous and target are the same point, so we better don't try to do any special line following
 		return_state = State::none;
 
-	} else if (pos_to_target * pos_to_target < 0.0f) {
+	} else if (u_prev_to_target * pos_to_target < 0.0f) {
 		// Target is behind
 		return_state = State::target_behind;
 
@@ -652,7 +652,7 @@ State FlightTaskAuto::_getCurrentState()
 		// Previous is in front
 		return_state = State::previous_infront;
 
-	} else if (Vector3f(_position - _closest_pt).longerThan(_target_acceptance_radius)) {
+	} else if ((_position - _closest_pt).longerThan(_target_acceptance_radius)) {
 		// Vehicle too far from the track
 		return_state = State::offtrack;
 
