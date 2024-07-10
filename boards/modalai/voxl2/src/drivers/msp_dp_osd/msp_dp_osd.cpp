@@ -536,6 +536,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 	int ch;
 	int row{0};
 	int col{0};
+	size_t msg_len{0};
 	char cmd_band[1]{'R'};	// Default to Raceband
 	uint8_t cmd_channel{0};	// Channel 1 (R1)
 	uint8_t cmd_power{1};	// Default 25mW
@@ -587,11 +588,13 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 			break;
 
 		case 's':
-			if (strlen(myoptarg) > MSP_OSD_MAX_STRING_LENGTH){
-				PX4_WARN("String length too long, max string length: %i. Message may be truncated.", MSP_OSD_MAX_STRING_LENGTH);
+			msg_len = strlen(myoptarg);
+			if (msg_len > MSP_OSD_MAX_STRING_LENGTH){
+				PX4_WARN("String length (%lu) too long, max string length: %i. Message may be truncated.", msg_len, MSP_OSD_MAX_STRING_LENGTH);
+				msg_len = MSP_OSD_MAX_STRING_LENGTH;
 			}
-			PX4_INFO("Got string: %s, Length: %lu", myoptarg, strlen(myoptarg));
-			strncpy(cmd_string, myoptarg, strlen(myoptarg) + 1);
+			PX4_INFO("Got string: %s, Length: %lu", myoptarg, msg_len);
+			strncpy(cmd_string, myoptarg, msg_len + 1);
 			break;
 
 		case 'b':
