@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 #include "MspDPV1.hpp"
 #include <drivers/osd/msp_osd/MessageDisplay/MessageDisplay.hpp>
@@ -127,6 +128,7 @@ private:
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_visual_odometry_sub{ORB_ID(vehicle_visual_odometry)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -158,6 +160,8 @@ private:
 		int32_t		crosshair_row;
 		int32_t		heading_col;
 		int32_t		heading_row;
+		int32_t		vio_col;
+		int32_t		vio_row;
 	} msp_dp_osd_params_t;
 
 	// parameters

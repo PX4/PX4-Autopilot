@@ -47,7 +47,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <termios.h>
-#include <string.h>
+#include <string>
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -199,6 +199,40 @@ void MspDPOsd::Run()
 			uint8_t flight_mode_output[sizeof(msp_dp_cmd_t) + sizeof(flight_mode)+1]{0};	
 			msp_dp_osd::construct_OSD_write(_parameters.flight_mode_col, _parameters.flight_mode_row, false, flight_mode, flight_mode_output, sizeof(flight_mode_output));	
 			this->Send(MSP_CMD_DISPLAYPORT, &flight_mode_output, MSP_DIRECTION_REPLY);
+		}
+	}
+
+	// VIO quality
+	{
+		if(_parameters.vio_col != -1 && _parameters.vio_row != -1){
+			// "VIO" header
+			vehicle_odometry_s vio{}; 
+			_vehicle_visual_odometry_sub.copy(&vio);
+			uint8_t vio_header_output[sizeof(msp_dp_cmd_t) + sizeof("VIO")]{0};	
+			msp_dp_osd::construct_OSD_write(_parameters.vio_col, _parameters.vio_row, false, "VIO", vio_header_output, sizeof("VIO"));
+			this->Send(MSP_CMD_DISPLAYPORT, &vio_header_output, MSP_DIRECTION_REPLY);
+
+			// Place integer value indicating quality value below "VIO"
+			std::string vio_quality = vio.quality < 0 ? std::to_string(-1) : std::to_string(vio.quality/10);
+			uint8_t vio_quality_output[sizeof(msp_dp_cmd_t) + vio_quality.size() + 1]{0};	
+			msp_dp_osd::construct_OSD_write(_parameters.vio_col+1, _parameters.vio_row+1, false, vio_quality.c_str(), vio_quality_output, vio_quality.size());
+			this->Send(MSP_CMD_DISPLAYPORT, &vio_quality_output, MSP_DIRECTION_REPLY);
+
+			// VIO Quality bar
+			std::string vio_quality_bar;
+			if (vio.quality/10 < 1){
+				vio_quality_bar = {SYM_PB_START, SYM_PB_EMPTY, SYM_PB_EMPTY, SYM_PB_EMPTY, SYM_PB_CLOSE};	
+			} else if (vio.quality/10 < 4){
+				vio_quality_bar = {SYM_PB_START, SYM_PB_FULL, SYM_PB_EMPTY, SYM_PB_EMPTY, SYM_PB_CLOSE};	
+			} else if (vio.quality/10 < 7){
+				vio_quality_bar = {SYM_PB_START, SYM_PB_FULL, SYM_PB_FULL, SYM_PB_EMPTY, SYM_PB_CLOSE};	
+			} else {
+				vio_quality_bar = {SYM_PB_START, SYM_PB_FULL, SYM_PB_FULL, SYM_PB_FULL, SYM_PB_CLOSE};	
+			}
+			
+			uint8_t vio_quality_bar_output[sizeof(msp_dp_cmd_t) + vio_quality_bar.size() + 1]{0};	
+			msp_dp_osd::construct_OSD_write(_parameters.vio_col-1, _parameters.vio_row+2, false, vio_quality_bar.c_str(), vio_quality_bar_output, vio_quality_bar.size());
+			this->Send(MSP_CMD_DISPLAYPORT, &vio_quality_bar_output, MSP_DIRECTION_REPLY);
 		}
 	}
 
@@ -394,6 +428,9 @@ void MspDPOsd::parameters_update()
 	param_get(param_find("OSD_HDG_COL"), 	&_parameters.heading_col);
 	param_get(param_find("OSD_HDG_ROW"), 	&_parameters.heading_row);
 
+	param_get(param_find("OSD_VIO_COL"), 	&_parameters.vio_col);
+	param_get(param_find("OSD_VIO_ROW"), 	&_parameters.vio_row);
+
 	param_get(param_find("OSD_CHANNEL"), 	&channel_t);
 	param_get(param_find("OSD_BAND"),    	&band_t);
 
@@ -491,7 +528,8 @@ int MspDPOsd::print_status()
 	return 0;
 }
 
-// Ex: msp_dp_osd -h 5 -v 5 -s TEST write_string -> Write "TEST" at row 5/column 5 
+// Ex: "msp_dp_osd -s TEST -h 5 -v 5 write_string" -> Write "TEST" at row 5/column 5
+// NOTE: To disable screen clearing, use "msp_dp_osd toggle_clear" command 
 int MspDPOsd::custom_command(int argc, char *argv[])
 {	
 	int myoptind = 0;
@@ -516,14 +554,14 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 
 	while ((ch = px4_getopt(argc, argv, "v:h:f:r:s:b:c:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'v':	// row == vertical
+		case 'v':	// row 
 			row = atoi(myoptarg); // 0 min, 17 max, HD_5018 TRUNCATES MSG
 			if (row < 0) row = 0;
 			if (row > get_instance()->row_max[get_instance()->resolution]) row = 17;
 			PX4_INFO("Got Row: %i", row);
 			break;
 
-		case 'h':	// column == horizontal
+		case 'h':	// column
 			col = atoi(myoptarg);	// 0 min, 49 max, HD_5018 TRUNCATES MSG
 			if (col < 0) col = 0;
 			if (col > get_instance()->column_max[get_instance()->resolution]) col = 49;

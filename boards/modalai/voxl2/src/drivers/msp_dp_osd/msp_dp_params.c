@@ -296,6 +296,29 @@ PARAM_DEFINE_INT32(OSD_HDG_COL, -1);
 PARAM_DEFINE_INT32(OSD_HDG_ROW, -1);
 
 /**
+ * OSD VIO quality row 
+ *
+ * Selects which row to place VIO quality element in.
+ *
+ * @group OSD
+ * @min -1
+ * @max 17
+ */
+PARAM_DEFINE_INT32(OSD_VIO_COL, -1);
+
+/**
+ *OSD VIO quality column 
+ *
+ * Selects which column to place VIO quality element in.
+ *
+ * @group OSD
+ * @min -1
+ * @max 49
+ */
+PARAM_DEFINE_INT32(OSD_VIO_ROW, -1);
+
+
+/**
  * VTX channel
  *
  * Selects which VTX channel to broadcast on.
