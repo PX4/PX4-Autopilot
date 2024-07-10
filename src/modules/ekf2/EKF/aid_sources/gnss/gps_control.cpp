@@ -132,15 +132,21 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				}
 
 				if (do_vel_pos_reset) {
-					ECL_WARN("GPS fusion timeout, resetting velocity / position");
+					ECL_WARN("GPS fusion timeout, resetting");
+				}
 
-					if (gnss_vel_enabled) {
+				if (gnss_vel_enabled) {
+					if (do_vel_pos_reset) {
 						resetVelocityToGnss(_aid_src_gnss_vel);
-					}
 
-					if (gnss_pos_enabled) {
-						resetHorizontalPositionToGnss(_aid_src_gnss_pos);
+					} else if (isHeightResetRequired()) {
+						// reset vertical velocity if height is failing
+						resetVerticalVelocityTo(_aid_src_gnss_vel.observation[2], _aid_src_gnss_vel.observation_variance[2]);
 					}
+				}
+
+				if (gnss_pos_enabled && do_vel_pos_reset) {
+					resetHorizontalPositionToGnss(_aid_src_gnss_pos);
 				}
 
 			} else {
