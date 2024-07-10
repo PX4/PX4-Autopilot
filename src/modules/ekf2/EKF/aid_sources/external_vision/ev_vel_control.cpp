@@ -212,6 +212,17 @@ void Ekf::controlEvVelFusion(const imuSample &imu_sample, const extVisionSample 
 
 					stopEvVelFusion();
 				}
+
+			} else if (isHeightResetRequired()) {
+				// reset vertical velocity if height is failing
+				if (ev_sample.vel_frame == VelocityFrame::BODY_FRAME_FRD) {
+					const Vector3f measurement_ekf_frame = _R_to_earth * measurement;
+					const Vector3f measurement_var_ekf_frame = rotateVarianceToEkf(measurement_var);
+					resetVerticalVelocityTo(measurement_ekf_frame(2), measurement_var_ekf_frame(2));
+
+				} else {
+					resetVerticalVelocityTo(measurement(2), measurement_var(2));
+				}
 			}
 
 		} else {
