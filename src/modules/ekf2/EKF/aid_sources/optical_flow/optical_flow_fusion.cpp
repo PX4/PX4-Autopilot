@@ -85,7 +85,8 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			Kfusion(State::terrain.idx) = 0.f;
 		}
 
-		if (measurementUpdate(Kfusion, H, _aid_src_optical_flow.observation_variance[index], _aid_src_optical_flow.innovation[index])) {
+		if (measurementUpdate(Kfusion, H, _aid_src_optical_flow.observation_variance[index],
+				      _aid_src_optical_flow.innovation[index])) {
 			fused[index] = true;
 		}
 	}

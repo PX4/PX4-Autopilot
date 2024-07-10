@@ -190,12 +190,12 @@ void Ekf::updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s 
 	const float innovation_gate = math::max(_params.gps_vel_innov_gate, 1.f);
 
 	updateAidSourceStatus(aid_src,
-				 gnss_sample.time_us,                  // sample timestamp
-				 velocity,                             // observation
-				 vel_obs_var,                          // observation variance
-				 _state.vel - velocity,                // innovation
-				 getVelocityVariance() + vel_obs_var,  // innovation variance
-				 innovation_gate);                     // innovation gate
+			      gnss_sample.time_us,                  // sample timestamp
+			      velocity,                             // observation
+			      vel_obs_var,                          // observation variance
+			      _state.vel - velocity,                // innovation
+			      getVelocityVariance() + vel_obs_var,  // innovation variance
+			      innovation_gate);                     // innovation gate
 
 	// vz special case if there is bad vertical acceleration data, then don't reject measurement if GNSS reports velocity accuracy is acceptable,
 	// but limit innovation to prevent spikes that could destabilise the filter
@@ -228,12 +228,12 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 	const Vector2f pos_obs_var(pos_var, pos_var);
 
 	updateAidSourceStatus(aid_src,
-				 gnss_sample.time_us,                                    // sample timestamp
-				 position,                                               // observation
-				 pos_obs_var,                                            // observation variance
-				 Vector2f(_state.pos) - position,                        // innovation
-				 Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
-				 math::max(_params.gps_pos_innov_gate, 1.f));            // innovation gate
+			      gnss_sample.time_us,                                    // sample timestamp
+			      position,                                               // observation
+			      pos_obs_var,                                            // observation variance
+			      Vector2f(_state.pos) - position,                        // innovation
+			      Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
+			      math::max(_params.gps_pos_innov_gate, 1.f));            // innovation gate
 }
 
 void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)

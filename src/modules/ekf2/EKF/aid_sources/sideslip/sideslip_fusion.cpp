@@ -88,12 +88,12 @@ void Ekf::updateSideslip(estimator_aid_source1d_s &aid_src) const
 	sym::ComputeSideslipInnovAndInnovVar(_state.vector(), P, R, FLT_EPSILON, &innov, &innov_var);
 
 	updateAidSourceStatus(aid_src,
-				 _time_delayed_us,                         // sample timestamp
-				 observation,                              // observation
-				 R,                                        // observation variance
-				 innov,                                    // innovation
-				 innov_var,                                // innovation variance
-				 math::max(_params.beta_innov_gate, 1.f)); // innovation gate
+			      _time_delayed_us,                         // sample timestamp
+			      observation,                              // observation
+			      R,                                        // observation variance
+			      innov,                                    // innovation
+			      innov_var,                                // innovation variance
+			      math::max(_params.beta_innov_gate, 1.f)); // innovation gate
 }
 
 void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)

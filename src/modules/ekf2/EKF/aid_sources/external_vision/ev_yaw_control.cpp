@@ -53,12 +53,12 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 	computeYawInnovVarAndH(obs_var, innov_var, H_YAW);
 
 	updateAidSourceStatus(aid_src,
-		ev_sample.time_us,                           // sample timestamp
-		obs,                                         // observation
-		obs_var,                                     // observation variance
-		innov,                                       // innovation
-		innov_var,                                   // innovation variance
-		math::max(_params.heading_innov_gate, 1.f)); // innovation gate
+			      ev_sample.time_us,                           // sample timestamp
+			      obs,                                         // observation
+			      obs_var,                                     // observation variance
+			      innov,                                       // innovation
+			      innov_var,                                   // innovation variance
+			      math::max(_params.heading_innov_gate, 1.f)); // innovation gate
 
 	if (ev_reset) {
 		_control_status.flags.ev_yaw_fault = false;
@@ -191,9 +191,11 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 void Ekf::stopEvYawFusion()
 {
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
 	if (_control_status.flags.ev_yaw) {
 
 		_control_status.flags.ev_yaw = false;
 	}
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 }

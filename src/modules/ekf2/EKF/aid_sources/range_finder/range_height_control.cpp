@@ -101,11 +101,11 @@ void Ekf::controlRangeHaglFusion()
 		const bool measurement_valid = PX4_ISFINITE(aid_src.observation) && PX4_ISFINITE(aid_src.observation_variance);
 
 		const bool continuing_conditions_passing = ((_params.rng_ctrl == static_cast<int32_t>(RngCtrl::ENABLED))
-							    || (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL)))
-							   && _control_status.flags.tilt_align
-							   && measurement_valid
-							   && _range_sensor.isDataHealthy()
-						           && _rng_consistency_check.isKinematicallyConsistent();
+				|| (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL)))
+				&& _control_status.flags.tilt_align
+				&& measurement_valid
+				&& _range_sensor.isDataHealthy()
+				&& _rng_consistency_check.isKinematicallyConsistent();
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)
@@ -260,10 +260,10 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 float Ekf::getRngVar() const
 {
 	return fmaxf(
-		     P(State::pos.idx + 2, State::pos.idx + 2)
-		     + sq(_params.range_noise)
-		     + sq(_params.range_noise_scaler * _range_sensor.getRange()),
-	       0.f);
+		       P(State::pos.idx + 2, State::pos.idx + 2)
+		       + sq(_params.range_noise)
+		       + sq(_params.range_noise_scaler * _range_sensor.getRange()),
+		       0.f);
 }
 
 void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)

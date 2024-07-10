@@ -18,7 +18,8 @@ exec find boards msg src platforms test \
     -path src/lib/events/libevents -prune -o \
     -path src/lib/parameters/uthash -prune -o \
     -path src/lib/wind_estimator/python/generated -prune -o \
-    -path src/modules/ekf2/EKF -prune -o \
+    -path src/modules/ekf2/EKF/python/ekf_derivation/generated -prune -o \
+    -path src/modules/ekf2/EKF/yaw_estimator/derivation/generated -prune -o \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \
     -path src/modules/mavlink/mavlink -prune -o \
     -path test/mavsdk_tests/catch2 -prune -o \
