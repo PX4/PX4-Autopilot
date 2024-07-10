@@ -134,8 +134,10 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					resetVerticalPositionTo(-(_baro_lpf.getState() - bias_est.getBias()), measurement_var);
 					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
 
-					// reset vertical velocity
-					resetVerticalVelocityToZero();
+					// reset vertical velocity if no valid sources available
+					if (!isVerticalVelocityAidingActive()) {
+						resetVerticalVelocityToZero();
+					}
 
 					aid_src.time_last_fuse = imu_sample.time_us;
 
