@@ -33,11 +33,17 @@
 
 #pragma once
 
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/Subscription.hpp>
 
 #include <uavcan/uavcan.hpp>
 #include <dronecan/remoteid/BasicID.hpp>
+#include <dronecan/remoteid/Location.hpp>
 
 #include <px4_platform_common/module_params.h>
 
@@ -58,16 +64,18 @@ private:
 
 	void periodic_update(const uavcan::TimerEvent &);
 
+	void send_basic_id();
+	void send_location();
+
 	uavcan::INode &_node;
 
-	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionData<vehicle_status_s> _vehicle_status{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 
 	uavcan::Publisher<dronecan::remoteid::BasicID> _uavcan_pub_remoteid_basicid;
-
-	//DEFINE_PARAMETERS(
-	//	(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col,
-	//	(ParamInt<px4::params::UAVCAN_LGT_STROB>) _param_mode_strobe,
-	//	(ParamInt<px4::params::UAVCAN_LGT_NAV>) _param_mode_nav,
-	//	(ParamInt<px4::params::UAVCAN_LGT_LAND>) _param_mode_land
-	//)
+	uavcan::Publisher<dronecan::remoteid::Location> _uavcan_pub_remoteid_location;
 };
