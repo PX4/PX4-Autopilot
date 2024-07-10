@@ -55,8 +55,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			      imu_delayed.delta_vel, imu_delayed.delta_vel_dt,
 			      (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest));
 
-	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
-
 	// check for arrival of new sensor data at the fusion time horizon
 	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
 
@@ -365,13 +363,13 @@ void Ekf::controlGpsYawFusion(const gnssSample &gps_sample)
 
 		const bool continuing_conditions_passing = _control_status.flags.tilt_align;
 
-		const bool is_gps_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push,
-				2 * GNSS_YAW_MAX_INTERVAL);
+		// Maximum allowable time interval between GNSS yaw measurements (uSec)
+		static constexpr uint64_t GNSS_YAW_MAX_INTERVAL{1'500'000};
+		const bool data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, 2 * GNSS_YAW_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _gps_checks_passed
-				&& !is_gps_yaw_data_intermittent
-				&& !_gps_intermittent;
+				&& !data_intermittent;
 
 		if (_control_status.flags.gps_yaw) {
 			if (continuing_conditions_passing) {

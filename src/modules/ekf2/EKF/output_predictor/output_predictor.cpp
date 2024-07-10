@@ -261,8 +261,8 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 }
 
 void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
-		const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state, const matrix::Vector3f &gyro_bias,
-		const matrix::Vector3f &accel_bias)
+		const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state,
+		const matrix::Vector3f &gyro_bias, const matrix::Vector3f &accel_bias)
 {
 	// calculate an average filter update time
 	if (_time_last_correct_states_us != 0) {

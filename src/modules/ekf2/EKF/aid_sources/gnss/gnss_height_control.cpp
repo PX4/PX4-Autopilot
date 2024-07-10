@@ -38,6 +38,9 @@
 
 #include "ekf.h"
 
+// Maximum allowable time interval between GNSS measurements (uSec)
+static constexpr uint64_t GNSS_MAX_INTERVAL{500'000};
+
 void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 {
 	static constexpr const char *HGT_SRC_NAME = "GNSS";

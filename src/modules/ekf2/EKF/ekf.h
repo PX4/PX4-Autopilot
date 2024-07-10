@@ -657,8 +657,6 @@ private:
 	bool _gps_checks_passed{false};		///> true when all active GPS checks have passed
 
 	gps_check_fail_status_u _gps_check_fail_status{};
-	// height sensor status
-	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 

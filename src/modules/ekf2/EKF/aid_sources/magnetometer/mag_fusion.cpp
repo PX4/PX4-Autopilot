@@ -65,6 +65,8 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains and observation jacobians
+		const Vector3f mag_predicted = _state.quat_nominal.rotateVectorInverse(_state.mag_I) + _state.mag_B;
+
 		if (index == 0) {
 			// everything was already computed
 
@@ -73,8 +75,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			sym::ComputeMagYInnovVarAndH(state_vector, P, R_MAG, FLT_EPSILON, &aid_src.innovation_variance[index], &H);
 
 			// recalculate innovation using the updated state
-			aid_src.innovation[index] = _state.quat_nominal.rotateVectorInverse(_state.mag_I)(index) + _state.mag_B(index) - mag(
-							    index);
+			aid_src.innovation[index] = mag_predicted(index) - mag(index);
 
 		} else if (index == 2) {
 			// we do not fuse synthesized magnetomter measurements when doing 3D fusion
@@ -87,8 +88,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			sym::ComputeMagZInnovVarAndH(state_vector, P, R_MAG, FLT_EPSILON, &aid_src.innovation_variance[index], &H);
 
 			// recalculate innovation using the updated state
-			aid_src.innovation[index] = _state.quat_nominal.rotateVectorInverse(_state.mag_I)(index) + _state.mag_B(index) - mag(
-							    index);
+			aid_src.innovation[index] = mag_predicted(index) - mag(index);
 		}
 
 		if (aid_src.innovation_variance[index] < R_MAG) {
@@ -174,8 +174,8 @@ bool Ekf::fuseDeclination(float decl_sigma)
 		float decl_pred;
 		float innovation_variance;
 
-		sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON, &decl_pred, &innovation_variance,
-				&H);
+		sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON,
+				&decl_pred, &innovation_variance, &H);
 
 		const float innovation = wrap_pi(decl_pred - decl_measurement);
 

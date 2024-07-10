@@ -142,8 +142,8 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 		_time_last_mag_buffer_push = _time_latest_us;
 
 	} else {
-		ECL_WARN("mag data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _mag_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("mag data too fast %" PRIi64 " < %" PRIu64 " + %d",
+			 time_us, _mag_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -189,8 +189,8 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 #endif // CONFIG_EKF2_GNSS_YAW
 
 	} else {
-		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d",
+			 time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_GNSS
@@ -228,8 +228,8 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 		_time_last_baro_buffer_push = _time_latest_us;
 
 	} else {
-		ECL_WARN("baro data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _baro_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("baro data too fast %" PRIi64 " < %" PRIu64 " + %d",
+			 time_us, _baro_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_BAROMETER
@@ -266,8 +266,8 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 		_airspeed_buffer->push(airspeed_sample_new);
 
 	} else {
-		ECL_WARN("airspeed data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _airspeed_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("airspeed data too fast %" PRIi64 " < %" PRIu64 " + %d",
+			 time_us, _airspeed_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_AIRSPEED
@@ -305,8 +305,8 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 		_time_last_range_buffer_push = _time_latest_us;
 
 	} else {
-		ECL_WARN("range data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _range_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("range data too fast %" PRIi64 " < %" PRIu64 " + %d",
+			 time_us, _range_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -343,8 +343,8 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 		_flow_buffer->push(optflow_sample_new);
 
 	} else {
-		ECL_WARN("optical flow data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _flow_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("optical flow data too fast %" PRIi64 " < %" PRIu64 " + %d",
+			 time_us, _flow_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -383,8 +383,8 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 		_time_last_ext_vision_buffer_push = _time_latest_us;
 
 	} else {
-		ECL_WARN("EV data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _ext_vision_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("EV data too fast %" PRIi64 " < %" PRIu64 " + %d",
+			 time_us, _ext_vision_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -421,8 +421,8 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 		_auxvel_buffer->push(auxvel_sample_new);
 
 	} else {
-		ECL_WARN("aux velocity data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _auxvel_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
+		ECL_WARN("aux velocity data too fast %" PRIi64 " < %" PRIu64 " + %d",
+			 time_us, _auxvel_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_AUXVEL
@@ -457,8 +457,8 @@ void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 		_system_flag_buffer->push(system_flags_new);
 
 	} else {
-		ECL_DEBUG("system flag update too fast %" PRIi64 " < %" PRIu64 " + %d", time_us,
-			  _system_flag_buffer->get_newest().time_us, _min_obs_interval_us);
+		ECL_DEBUG("system flag update too fast %" PRIi64 " < %" PRIu64 " + %d",
+			  time_us, _system_flag_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 

@@ -125,6 +125,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	for (unsigned i = 0; i < 3; i++) {
 		if (_fault_status.flags.bad_acc_vertical || imu_delayed.delta_vel_clipping[i]) {
 			// Increase accelerometer process noise if bad accel data is detected
+			static constexpr float BADACC_BIAS_PNOISE{4.9f}; ///< IMU acceleration noise when accel data is declared bad (m/sec**2)
 			accel_var(i) = sq(BADACC_BIAS_PNOISE);
 
 		} else {
@@ -202,8 +203,8 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	if (_control_status.flags.wind) {
 		// wind vel: add process noise
-		float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f,
-					    1.f) * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
+		float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f, 1.f)
+					    * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
 		float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
 
 		for (unsigned index = 0; index < State::wind_vel.dof; index++) {
@@ -222,8 +223,8 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		float terrain_process_noise = sq(imu_delayed.delta_vel_dt * _params.terrain_p_noise);
 
 		// process noise due to terrain gradient
-		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(
-						 1)));
+		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient)
+					 * (sq(_state.vel(0)) + sq(_state.vel(1)));
 		P(State::terrain.idx, State::terrain.idx) += terrain_process_noise;
 	}
 

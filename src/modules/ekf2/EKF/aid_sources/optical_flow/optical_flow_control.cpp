@@ -47,8 +47,6 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		return;
 	}
 
-	VectorState H;
-
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
 	if (_flow_buffer->pop_first_older_than(imu_delayed.time_us, &_flow_sample_delayed)) {
 
@@ -92,6 +90,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		const float R_LOS = calcOptFlowMeasVar(flow_sample);
 
 		Vector2f innov_var;
+		VectorState H;
 		sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, FLT_EPSILON, &innov_var, &H);
 
 		// run the innovation consistency check and record result

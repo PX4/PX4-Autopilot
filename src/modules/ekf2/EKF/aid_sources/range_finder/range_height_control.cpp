@@ -246,7 +246,7 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 			      observation_variance,                                                // observation variance
 			      getHagl() - aid_src.observation,                                     // innovation
 			      innovation_variance,                                                 // innovation variance
-			      math::max(_params.range_innov_gate, 1.f));                            // innovation gate
+			      math::max(_params.range_innov_gate, 1.f));                           // innovation gate
 
 	// z special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
@@ -259,11 +259,11 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 
 float Ekf::getRngVar() const
 {
-	return fmaxf(
-		       P(State::pos.idx + 2, State::pos.idx + 2)
-		       + sq(_params.range_noise)
-		       + sq(_params.range_noise_scaler * _range_sensor.getRange()),
-		       0.f);
+	float rng_var = P(State::pos.idx + 2, State::pos.idx + 2)
+			+ sq(_params.range_noise)
+			+ sq(_params.range_noise_scaler * _range_sensor.getRange());
+
+	return math::max(rng_var, 0.f);
 }
 
 void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
