@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,39 +32,19 @@
  ****************************************************************************/
 
 /**
- * @file battery_params_deprecated.c
+ * @file util.h
  *
- * Defines the deprcated single battery configuration which are temporarily kept for backwards compatibility with QGC.
+ * @author Thomas Frans
  */
 
-/**
- * This parameter is deprecated. Please use BAT1_V_EMPTY instead.
- *
- * @group Battery Calibration
- * @category system
- */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.6f);
+#pragma once
+
+namespace septentrio
+{
 
 /**
- * This parameter is deprecated. Please use BAT1_V_CHARGED instead.
- *
- * @group Battery Calibration
- * @category system
+ * @brief Calculate buffer CRC16
  */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
+uint16_t buffer_crc16(const uint8_t *data_p, uint32_t length);
 
-/**
- * This parameter is deprecated. Please use BAT1_V_LOAD_DROP instead.
- *
- * @group Battery Calibration
- * @category system
- */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
-
-/**
- * This parameter is deprecated. Please use BAT1_N_CELLS instead.
- *
- * @group Battery Calibration
- * @category system
- */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 3);
+} // namespace septentrio

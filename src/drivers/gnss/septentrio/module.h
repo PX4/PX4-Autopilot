@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,18 +31,50 @@
  *
  ****************************************************************************/
 
-/*
- * This header defines the events::EventType type.
- */
+/**
+ * @file module.h
+ *
+ * Module functionality for the Septentrio GNSS driver.
+ *
+ * @author Thomas Frans
+*/
 
 #pragma once
 
-#include <uORB/topics/event.h>
+#include <px4_platform_common/log.h>
 
-namespace events
-{
-using EventType = event_s;
-} // namespace events
+#ifdef DEBUG_BUILD
+#ifndef SEP_LOG_ERROR
+#define SEP_LOG_ERROR
+#endif
+#ifndef SEP_LOG_WARN
+#define SEP_LOG_WARN
+#endif
+#ifndef SEP_LOG_INFO
+#define SEP_LOG_INFO
+#endif
+#endif
 
+#ifdef SEP_LOG_ERROR
+#define SEP_ERR(...)            {PX4_ERR(__VA_ARGS__);}
+#else
+#define SEP_ERR(...)            {}
+#endif
 
+#ifdef SEP_LOG_WARN
+#define SEP_WARN(...)           {PX4_WARN(__VA_ARGS__);}
+#else
+#define SEP_WARN(...)           {}
+#endif
 
+#ifdef SEP_LOG_INFO
+#define SEP_INFO(...)           {PX4_INFO(__VA_ARGS__);}
+#else
+#define SEP_INFO(...)           {}
+#endif
+
+#ifdef SEP_LOG_TRACE_PARSING
+#define SEP_TRACE_PARSING(...)  {PX4_DEBUG(__VA_ARGS__);}
+#else
+#define SEP_TRACE_PARSING(...)  {}
+#endif
