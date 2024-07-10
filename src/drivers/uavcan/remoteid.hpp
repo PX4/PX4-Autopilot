@@ -44,6 +44,7 @@
 #include <uavcan/uavcan.hpp>
 #include <dronecan/remoteid/BasicID.hpp>
 #include <dronecan/remoteid/Location.hpp>
+#include <dronecan/remoteid/System.hpp>
 
 #include <px4_platform_common/module_params.h>
 
@@ -66,6 +67,7 @@ private:
 
 	void send_basic_id();
 	void send_location();
+	void send_system();
 
 	uavcan::INode &_node;
 
@@ -78,4 +80,5 @@ private:
 
 	uavcan::Publisher<dronecan::remoteid::BasicID> _uavcan_pub_remoteid_basicid;
 	uavcan::Publisher<dronecan::remoteid::Location> _uavcan_pub_remoteid_location;
+	uavcan::Publisher<dronecan::remoteid::System> _uavcan_pub_remoteid_system;
 };
