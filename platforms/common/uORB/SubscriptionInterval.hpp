@@ -130,11 +130,10 @@ public:
 			if (now > _interval_us) {
 				// shift last update time forward, but don't let it get further behind than the interval
 				_last_update = math::constrain(_last_update + _interval_us, now - _interval_us, now);
+
 			} else {
 				_last_update = now;
 			}
-			
-			
 
 			return true;
 		}
