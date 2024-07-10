@@ -41,12 +41,12 @@ void Ekf::controlAuxVelFusion()
 		if (_auxvel_buffer->pop_first_older_than(_time_delayed_us, &sample)) {
 
 			updateAidSourceStatus(_aid_src_aux_vel,
-						 sample.time_us,                                           // sample timestamp
-						 sample.vel,                                               // observation
-						 sample.velVar,                                            // observation variance
-						 Vector2f(_state.vel.xy()) - sample.vel,                   // innovation
-						 Vector2f(getStateVariance<State::vel>()) + sample.velVar, // innovation variance
-						 math::max(_params.auxvel_gate, 1.f));                     // innovation gate
+					      sample.time_us,                                           // sample timestamp
+					      sample.vel,                                               // observation
+					      sample.velVar,                                            // observation variance
+					      Vector2f(_state.vel.xy()) - sample.vel,                   // innovation
+					      Vector2f(getStateVariance<State::vel>()) + sample.velVar, // innovation variance
+					      math::max(_params.auxvel_gate, 1.f));                     // innovation gate
 
 			if (isHorizontalAidingActive()) {
 				fuseHorizontalVelocity(_aid_src_aux_vel);

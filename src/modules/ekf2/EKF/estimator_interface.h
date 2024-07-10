@@ -348,15 +348,15 @@ protected:
 	OutputPredictor _output_predictor{};
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	airspeedSample _airspeed_sample_delayed{};
+	airspeedSample _airspeed_sample_delayed {};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	extVisionSample _ev_sample_prev{};
+	extVisionSample _ev_sample_prev {};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	RingBuffer<sensor::rangeSample> *_range_buffer{nullptr};
+	RingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
 
 	sensor::SensorRangeFinder _range_sensor{};
@@ -364,7 +364,7 @@ protected:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
+	RingBuffer<flowSample> 	*_flow_buffer {nullptr};
 
 	flowSample _flow_sample_delayed{};
 
@@ -387,7 +387,7 @@ protected:
 	float _gpos_origin_epv{0.0f}; // vertical position uncertainty of the global origin
 
 #if defined(CONFIG_EKF2_GNSS)
-	RingBuffer<gnssSample> *_gps_buffer{nullptr};
+	RingBuffer<gnssSample> *_gps_buffer {nullptr};
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
@@ -406,7 +406,7 @@ protected:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	RingBuffer<dragSample> *_drag_buffer{nullptr};
+	RingBuffer<dragSample> *_drag_buffer {nullptr};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
@@ -424,25 +424,25 @@ protected:
 	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	RingBuffer<magSample> *_mag_buffer{nullptr};
+	RingBuffer<magSample> *_mag_buffer {nullptr};
 	uint64_t _time_last_mag_buffer_push{0};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
+	RingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};
+	RingBuffer<extVisionSample> *_ext_vision_buffer {nullptr};
 	uint64_t _time_last_ext_vision_buffer_push{0};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_AUXVEL)
-	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
+	RingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
 #endif // CONFIG_EKF2_AUXVEL
-	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
+	RingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	RingBuffer<baroSample> *_baro_buffer{nullptr};
+	RingBuffer<baroSample> *_baro_buffer {nullptr};
 	uint64_t _time_last_baro_buffer_push{0};
 #endif // CONFIG_EKF2_BAROMETER
 
@@ -457,7 +457,7 @@ protected:
 	uint64_t _wmm_gps_time_last_set{0};      // time WMM last set
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	float _mag_declination_gps{NAN};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
+	float _mag_declination_gps {NAN};        // magnetic declination returned by the geo library using the last valid GPS position (rad)
 	float _mag_inclination_gps{NAN};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
 	float _mag_strength_gps{NAN};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
 

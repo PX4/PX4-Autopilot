@@ -109,12 +109,12 @@ void Ekf::controlMagFusion()
 		sym::ComputeMagInnovInnovVarAndHx(_state.vector(), P, mag_sample.mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
 
 		updateAidSourceStatus(aid_src,
-					mag_sample.time_us,                      // sample timestamp
-					mag_sample.mag,                          // observation
-					Vector3f(R_MAG, R_MAG, R_MAG),           // observation variance
-					mag_innov,                               // innovation
-					innov_var,                               // innovation variance
-					math::max(_params.mag_innov_gate, 1.f)); // innovation gate
+				      mag_sample.time_us,                      // sample timestamp
+				      mag_sample.mag,                          // observation
+				      Vector3f(R_MAG, R_MAG, R_MAG),           // observation variance
+				      mag_innov,                               // innovation
+				      innov_var,                               // innovation variance
+				      math::max(_params.mag_innov_gate, 1.f)); // innovation gate
 
 		// Perform an innovation consistency check and report the result
 		_innov_check_fail_status.flags.reject_mag_x = (aid_src.test_ratio[0] > 1.f);
@@ -134,7 +134,8 @@ void Ekf::controlMagFusion()
 				&& checkMagField(mag_sample.mag)
 				&& (_mag_counter > 3) // wait until we have more than a few samples through the filter
 				&& (_control_status.flags.yaw_align == _control_status_prev.flags.yaw_align) // no yaw alignment change this frame
-				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) // don't allow starting on same frame as yaw reset
+				&& (_state_reset_status.reset_count.quat ==
+				    _state_reset_count_prev.quat) // don't allow starting on same frame as yaw reset
 				&& isNewestSampleRecent(_time_last_mag_buffer_push, MAG_MAX_INTERVAL);
 
 		checkMagHeadingConsistency(mag_sample);
@@ -145,22 +146,22 @@ void Ekf::controlMagFusion()
 
 
 		{
-		const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
-		const bool common_conditions_passing = _control_status.flags.mag
-						       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
-						           || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
-						       && !_control_status.flags.mag_fault
-						       && !_control_status.flags.mag_field_disturbed
-						       && !_control_status.flags.ev_yaw
-						       && !_control_status.flags.gps_yaw;
+			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
+			const bool common_conditions_passing = _control_status.flags.mag
+							       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
+									       || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
+							       && !_control_status.flags.mag_fault
+							       && !_control_status.flags.mag_field_disturbed
+							       && !_control_status.flags.ev_yaw
+							       && !_control_status.flags.gps_yaw;
 
-		_control_status.flags.mag_3D = common_conditions_passing
-					       && (_params.mag_fusion_type == MagFuseType::AUTO)
-					       && _control_status.flags.mag_aligned_in_flight;
+			_control_status.flags.mag_3D = common_conditions_passing
+						       && (_params.mag_fusion_type == MagFuseType::AUTO)
+						       && _control_status.flags.mag_aligned_in_flight;
 
-		_control_status.flags.mag_hdg = common_conditions_passing
-						&& ((_params.mag_fusion_type == MagFuseType::HEADING)
-						    || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
+			_control_status.flags.mag_hdg = common_conditions_passing
+							&& ((_params.mag_fusion_type == MagFuseType::HEADING)
+							    || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
 		}
 
 		// TODO: allow clearing mag_fault if mag_3d is good?
