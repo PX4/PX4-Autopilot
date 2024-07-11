@@ -101,6 +101,8 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 
 			resetMagCov();
 
+			stopMagFusion();
+
 			return false;
 		}
 
