@@ -19,7 +19,7 @@ parameters:
           7:  3.125 Hz
           8:  1.5625 Hz
         reboot_required: true
-        default: [1]
+        default: [3]
       BMM350_AVG:
         description:
           short: BMM350 data averaging

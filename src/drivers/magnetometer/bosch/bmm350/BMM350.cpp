@@ -223,7 +223,9 @@ void BMM350::RunImpl()
 				if (ret == PX4_OK && (status_0 & PWR_NORMAL) != 0) {
 					ret = PX4_ERROR;
 				}
+
 				ret = UpdateMagOffsets();
+
 				if (ret == PX4_OK) {
 					PX4_DEBUG("Going to FGR");
 					_state = STATE::FGR;
@@ -654,12 +656,14 @@ int BMM350::UpdateMagOffsets()
 		if (ReadOTPWord(idx, &otp_data[idx]) != PX4_OK) {
 			return PX4_ERROR;
 		}
+
 		PX4_DEBUG("i: %i, val = %i", idx, otp_data[idx]);
 	}
 
-	if(RegisterWrite(Register::OTP_CMD, PWR_OFF_OTP) != PX4_OK){
+	if (RegisterWrite(Register::OTP_CMD, PWR_OFF_OTP) != PX4_OK) {
 		return PX4_ERROR;
 	}
+
 	PX4_DEBUG("var_id: %i", (otp_data[30] & 0x7f00) >> 9);
 
 	PX4_DEBUG("UPDATING OFFSETS");
