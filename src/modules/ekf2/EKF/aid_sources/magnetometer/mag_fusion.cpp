@@ -125,7 +125,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
 		}
 
-		if (measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index])) {
+		if (fuseMeasurement(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index])) {
 			fused[index] = true;
 		}
 	}
@@ -179,15 +179,7 @@ bool Ekf::fuseDeclination(float decl_sigma)
 
 		const float innovation = wrap_pi(decl_pred - decl_measurement);
 
-		if (innovation_variance < R_DECL) {
-			// variance calculation is badly conditioned
-			return false;
-		}
-
-		// Calculate the Kalman gains
-		VectorState Kfusion = P * H / innovation_variance;
-
-		const bool is_fused = measurementUpdate(Kfusion, H, R_DECL, innovation);
+		const bool is_fused = fuseMeasurement(H, R_DECL, innovation, innovation_variance);
 
 		_fault_status.flags.bad_mag_decl = !is_fused;
 

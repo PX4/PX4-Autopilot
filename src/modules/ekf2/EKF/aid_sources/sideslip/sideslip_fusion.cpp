@@ -141,12 +141,12 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
-	const bool is_fused = measurementUpdate(K, H, sideslip.observation_variance, sideslip.innovation);
-
-	sideslip.fused = is_fused;
-	_fault_status.flags.bad_sideslip = !is_fused;
-
-	if (is_fused) {
+	if (fuseMeasurement(K, H, sideslip.observation_variance, sideslip.innovation)) {
+		sideslip.fused = true;
 		sideslip.time_last_fuse = _time_delayed_us;
+
+		_fault_status.flags.bad_sideslip = false;
 	}
+
+	_fault_status.flags.bad_sideslip = !sideslip.fused;
 }

@@ -115,11 +115,7 @@ void Ekf::fuseGpsYaw(float antenna_yaw_offset)
 		resetGyroBiasZCov();
 	}
 
-	// calculate the Kalman gains
-	// only calculate gains for states we are using
-	VectorState Kfusion = P * H / aid_src.innovation_variance;
-
-	const bool is_fused = measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+	const bool is_fused = fuseMeasurement(H, aid_src.observation_variance, aid_src.innovation, aid_src.innovation_variance);
 	_fault_status.flags.bad_hdg = !is_fused;
 	aid_src.fused = is_fused;
 

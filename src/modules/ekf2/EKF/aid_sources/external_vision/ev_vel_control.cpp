@@ -278,8 +278,8 @@ bool Ekf::fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSampl
 					      math::max(_params.ev_vel_innov_gate, 1.f));	// innovation gate
 
 			if (!current_aid_src.innovation_rejected) {
-				fuseBodyVelocity(current_aid_src, current_aid_src.innovation_variance, H);
-
+				current_aid_src.fused = fuseMeasurement(H, current_aid_src.observation_variance,
+									current_aid_src.innovation, current_aid_src.innovation_variance);
 			}
 
 			aid_src.innovation[index] = current_aid_src.innovation;

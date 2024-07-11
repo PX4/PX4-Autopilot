@@ -61,12 +61,13 @@ bool ZeroVelocityUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delaye
 
 			// Set a low variance initially for faster leveling and higher
 			// later to let the states follow the measurements
-			const float obs_var = ekf.control_status_flags().tilt_align ? sq(0.2f) : sq(0.001f);
-			Vector3f innov_var = ekf.getVelocityVariance() + obs_var;
+			const float R = ekf.control_status_flags().tilt_align ? sq(0.2f) : sq(0.001f);
 
-			for (unsigned i = 0; i < 3; i++) {
-				const float innovation = ekf.state().vel(i) - vel_obs(i);
-				ekf.fuseDirectStateMeasurement(innovation, innov_var(i), obs_var, State::vel.idx + i);
+			const Vector3f innov = ekf.state().vel - vel_obs;
+			const Vector3f innov_var = ekf.getVelocityVariance() + R;
+
+			for (unsigned i = 0; i <= 2; i++) {
+				ekf.fuseDirectStateMeasurement(State::vel.idx + i, R, innov(i), innov_var(i));
 			}
 
 			_time_last_fuse = imu_delayed.time_us;

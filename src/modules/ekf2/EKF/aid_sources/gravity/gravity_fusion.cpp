@@ -103,13 +103,11 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 							     -1.f))(index) - measurement(index);
 		}
 
-		VectorState K = P * H / _aid_src_gravity.innovation_variance[index];
-
 		const bool accel_clipping = imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2];
 
 		if (_control_status.flags.gravity_vector && !_aid_src_gravity.innovation_rejected && !accel_clipping) {
-			fused[index] = measurementUpdate(K, H, _aid_src_gravity.observation_variance[index],
-							 _aid_src_gravity.innovation[index]);
+			fused[index] = fuseMeasurement(H, _aid_src_gravity.observation_variance[index],
+						       _aid_src_gravity.innovation[index], _aid_src_gravity.innovation_variance[index]);
 		}
 	}
 
