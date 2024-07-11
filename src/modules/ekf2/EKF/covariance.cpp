@@ -54,45 +54,9 @@ void Ekf::initialiseCovariance()
 	P.zero();
 
 	resetQuatCov(0.f); // Start with no initial uncertainty to improve fine leveling through zero vel/pos fusion
-
-	// velocity
-#if defined(CONFIG_EKF2_GNSS)
-	const float vel_var = sq(fmaxf(_params.gps_vel_noise, 0.01f));
-#else
-	const float vel_var = sq(0.5f);
-#endif
-	P.uncorrelateCovarianceSetVariance<State::vel.dof>(State::vel.idx, Vector3f(vel_var, vel_var, sq(1.5f) * vel_var));
-
-	// position
-#if defined(CONFIG_EKF2_BAROMETER)
-	float z_pos_var = sq(fmaxf(_params.baro_noise, 0.01f));
-#else
-	float z_pos_var = sq(1.f);
-#endif // CONFIG_EKF2_BAROMETER
-
-#if defined(CONFIG_EKF2_GNSS)
-	const float xy_pos_var = sq(fmaxf(_params.gps_pos_noise, 0.01f));
-
-	if (_control_status.flags.gps_hgt) {
-		z_pos_var = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
-	}
-
-#else
-	const float xy_pos_var = sq(fmaxf(_params.pos_noaid_noise, 0.01f));
-#endif
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-
-	if (_control_status.flags.rng_hgt) {
-		z_pos_var = sq(fmaxf(_params.range_noise, 0.01f));
-	}
-
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-	P.uncorrelateCovarianceSetVariance<State::pos.dof>(State::pos.idx, Vector3f(xy_pos_var, xy_pos_var, z_pos_var));
-
+	resetVelocityCov();
+	resetPositionCov();
 	resetGyroBiasCov();
-
 	resetAccelBiasCov();
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -104,8 +68,7 @@ void Ekf::initialiseCovariance()
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	// use the ground clearance value as our uncertainty
-	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
+	resetTerrainCov();
 #endif // CONFIG_EKF2_TERRAIN
 }
 

@@ -45,8 +45,7 @@ void Ekf::initTerrain()
 	// assume a ground clearance
 	_state.terrain = _state.pos(2) + _params.rng_gnd_clearance;
 
-	// use the ground clearance value as our uncertainty
-	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
+	resetTerrainCov();
 }
 
 void Ekf::controlTerrainFakeFusion()
@@ -100,4 +99,13 @@ bool Ekf::isTerrainEstimateValid() const
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	return valid;
+}
+
+void Ekf::resetTerrainCov()
+{
+	// reset terrain covariances
+
+	// use the ground clearance value as our uncertainty
+	float terrain_var = math::max(sq(_params.rng_gnd_clearance), sq(0.01f));
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, terrain_var);
 }

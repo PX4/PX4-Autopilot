@@ -181,3 +181,16 @@ void Ekf::resetHorizontalPositionToLastKnown()
 	// Used when falling back to non-aiding mode of operation
 	resetHorizontalPositionTo(_last_known_pos.xy(), sq(_params.pos_noaid_noise));
 }
+
+void Ekf::resetPositionCov()
+{
+	// reset position covariances
+	ECL_INFO("resetting position covariances");
+
+	float xy_var = sq(math::max(_params.pos_noaid_noise, 0.01f));
+	float z_var = sq(1.f);
+
+	Vector3f pos_var{xy_var, xy_var, z_var};
+
+	P.uncorrelateCovarianceSetVariance<State::pos.dof>(State::pos.idx, pos_var);
+}

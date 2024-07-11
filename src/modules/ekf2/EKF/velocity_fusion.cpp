@@ -156,3 +156,15 @@ void Ekf::resetVelocityTo(const Vector3f &new_vel, const Vector3f &new_vel_var)
 	resetHorizontalVelocityTo(Vector2f(new_vel), Vector2f(new_vel_var(0), new_vel_var(1)));
 	resetVerticalVelocityTo(new_vel(2), new_vel_var(2));
 }
+
+void Ekf::resetVelocityCov()
+{
+	// reset velocity covariances
+	ECL_INFO("resetting velocity covariances");
+
+	float default_var = sq(1.f); // TODO: configurable?
+
+	Vector3f vel_var{default_var, default_var, default_var};
+
+	P.uncorrelateCovarianceSetVariance<State::vel.dof>(State::vel.idx, vel_var);
+}

@@ -110,6 +110,8 @@ public:
 	// get the terrain variance
 	float getTerrainVariance() const { return P(State::terrain.idx, State::terrain.idx); }
 
+	void resetTerrainCov();
+
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -796,11 +798,16 @@ private:
 
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
 
+	void resetVelocityCov();
+
 
 	void resetHorizontalPositionToLastKnown();
 
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
+
+	void resetPositionCov();
+
 
 	bool isHeightResetRequired() const;
 
