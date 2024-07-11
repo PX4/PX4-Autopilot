@@ -280,6 +280,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_statustext(msg);
 		break;
 
+	case MAVLINK_MSG_ID_OPEN_DRONE_ID_OPERATOR_ID:
+		handle_message_open_drone_id_operator_id(msg);
+		break;
+
 #if !defined(CONSTRAINED_FLASH)
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
@@ -3082,6 +3086,23 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.received_from_mavlink = true;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void MavlinkReceiver::handle_message_open_drone_id_operator_id(
+	mavlink_message_t *msg)
+{
+	mavlink_open_drone_id_operator_id_t odid_module;
+	mavlink_msg_open_drone_id_operator_id_decode(msg, &odid_module);
+
+	open_drone_id_operator_id_s odid_operator_id{};
+	memset(&odid_operator_id, 0, sizeof(odid_operator_id));
+
+	odid_operator_id.timestamp = hrt_absolute_time();
+	memcpy(odid_operator_id.id_or_mac, odid_module.id_or_mac, sizeof(odid_operator_id.id_or_mac));
+	odid_operator_id.operator_id_type = odid_module.operator_id_type;
+	memcpy(odid_operator_id.operator_id, odid_module.operator_id, sizeof(odid_operator_id.operator_id));
+
+	_open_drone_id_operator_id_pub.publish(odid_operator_id);
 }
 
 void
