@@ -128,29 +128,39 @@ uint8_t BMM350::GetODR(int value)
 	}
 }
 
-hrt_abstime BMM350::OdrToUs(uint8_t odr) {
- switch (odr) {
-        case ODR_400HZ:
-            return 2500_us;
-        case ODR_200HZ:
-            return 5000_us;
-        case ODR_100HZ:
-            return 10000_us;
-        case ODR_50HZ:
-            return 20000_us;
-        case ODR_25HZ:
-            return 40000_us;
-        case ODR_12_5HZ:
-            return 80000_us;
-        case ODR_6_25HZ:
-            return 160000_us;
-        case ODR_3_125HZ:
-            return 320000_us;
-        case ODR_1_5625HZ:
-            return 640000_us;
-        default:
-            return 5000_us;
-    }
+hrt_abstime BMM350::OdrToUs(uint8_t odr)
+{
+	switch (odr) {
+	case ODR_400HZ:
+		return 2500_us;
+
+	case ODR_200HZ:
+		return 5000_us;
+
+	case ODR_100HZ:
+		return 10000_us;
+
+	case ODR_50HZ:
+		return 20000_us;
+
+	case ODR_25HZ:
+		return 40000_us;
+
+	case ODR_12_5HZ:
+		return 80000_us;
+
+	case ODR_6_25HZ:
+		return 160000_us;
+
+	case ODR_3_125HZ:
+		return 320000_us;
+
+	case ODR_1_5625HZ:
+		return 640000_us;
+
+	default:
+		return 5000_us;
+	}
 }
 
 uint8_t BMM350::GetAVG(int value)
@@ -172,18 +182,14 @@ uint8_t BMM350::GetAVG(int value)
 int BMM350::probe()
 {
 	for (int i = 0; i < 3; i++) {
-		const uint8_t CMD = RegisterRead(Register::CMD);
-		const uint8_t CHIP_ID = RegisterRead(Register::CHIP_ID);
+		uint8_t chip_id;
 
-		PX4_DEBUG("CMD: 0x%02hhX, CHIP_ID: 0x%02hhX", CMD, CHIP_ID);
+		if (PX4_OK == RegisterRead(Register::CHIP_ID, &chip_id)) {
+			PX4_DEBUG("CHIP_ID: 0x%02hhX", chip_id);
 
-		if (CHIP_ID == chip_identification_number) {
-			PX4_DEBUG("Found chip");
-			return PX4_OK;
-
-		} else if (CHIP_ID == 0 && CMD == 0) {
-			PX4_DEBUG("Suspended, but found");
-			return PX4_OK;
+			if (chip_id == chip_identification_number) {
+				return PX4_OK;
+			}
 		}
 	}
 
@@ -197,131 +203,186 @@ void BMM350::RunImpl()
 
 	switch (_state) {
 	case STATE::RESET: {
-			RegisterWrite(Register::CMD, SOFT_RESET);
-			_reset_timestamp = now;
-			_state = STATE::WAIT_FOR_RESET;
-			perf_count(_reset_perf);
+			if (RegisterWrite(Register::CMD, SOFT_RESET) == PX4_OK) {
+				_reset_timestamp = now;
+				_state = STATE::WAIT_FOR_RESET;
+				perf_count(_reset_perf);
+			}
+
 			ScheduleDelayed(10_ms);
 		}
 		break;
 
 	case STATE::WAIT_FOR_RESET: {
-			uint8_t chipId;
+			int ret = probe();
 
-			if ((chipId = RegisterRead(Register::CHIP_ID)) == chip_identification_number) {
-				UpdateMagOffsets();
-				RegisterWrite(Register::OTP_CMD, PWR_OFF_OTP);
-				PX4_DEBUG("After reset chip id = %i", chipId);
-				_state = STATE::AFTER_RESET;
-				ScheduleDelayed(10_ms);
+			if (ret == PX4_OK) {
+				uint8_t status_0;
+				ret = RegisterRead(Register::PMU_STATUS_0, &status_0);
+
+				if (ret == PX4_OK && (status_0 & PWR_NORMAL) != 0) {
+					ret = PX4_ERROR;
+				}
+				ret = UpdateMagOffsets();
+				if (ret == PX4_OK) {
+					PX4_DEBUG("Going to FGR");
+					_state = STATE::FGR;
+					ScheduleDelayed(10_ms);
+
+				} else {
+					_state = STATE::RESET;
+					ScheduleDelayed(10_ms);
+				}
 
 			} else {
-				_state = STATE::RESET;
-				ScheduleDelayed(30_ms);
+				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+					PX4_DEBUG("Reset failed, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 10 ms");
+					ScheduleDelayed(10_ms);
+				}
 			}
 		}
 		break;
 
-	case STATE::AFTER_RESET:
-		uint8_t chipId;
-
-		if (((chipId = RegisterRead(Register::CHIP_ID)) == chip_identification_number)) {
-
-			// Prep self test
-			RegisterWrite(Register::PMU_CMD, PMU_CMD_SUSPEND);
-			px4_usleep(30000);
+	case STATE::FGR: {
+			int ret;
 			uint8_t odr_reg_data = (ODR_100HZ & 0xf);
 			odr_reg_data = ((odr_reg_data & ~(0x30)) | ((AVG_2 << 0x4) & 0x30));
-			RegisterWrite(Register::PMU_CMD_AGGR_SET, odr_reg_data);
-			RegisterWrite(Register::PMU_CMD_AXIS_EN, EN_XYZ);
-			RegisterWrite(Register::PMU_CMD, PMU_CMD_FGR);
-			px4_usleep(30000);
-			RegisterWrite(Register::PMU_CMD, PMU_CMD_BR_FAST);
-			px4_usleep(4000);
-			RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
+			ret = RegisterWrite(Register::PMU_CMD_AGGR_SET, odr_reg_data);
+			ret = RegisterWrite(Register::PMU_CMD_AXIS_EN, EN_XYZ);
+			ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_FGR);
 
-			PX4_DEBUG("Chip id found going to self test id= %i", chipId);
-			_state = STATE::SELF_TEST_CHECK;
-			ScheduleDelayed(10_ms);
-
-		} else {
-			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-				PX4_DEBUG("Reset failed, retrying");
-				_state = STATE::RESET;
-				ScheduleDelayed(100_ms);
+			if (ret == PX4_OK) {
+				PX4_DEBUG("Going to BR");
+				_state = STATE::BR;
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				_state = STATE::RESET;
 			}
-		}
 
+			ScheduleDelayed(30_ms);
+		}
 		break;
+
+	case STATE::BR: {
+			uint8_t status_0;
+			_state = STATE::RESET;
+			int ret = RegisterRead(Register::PMU_STATUS_0, &status_0);
+
+			if (ret == PX4_OK && PMU_CMD_STATUS_0_RES(status_0) == PMU_STATUS_FGR) {
+				ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_BR_FAST);
+
+				if (ret == PX4_OK) {
+					PX4_DEBUG("Going to after reset");
+					_state = STATE::AFTER_RESET;
+				}
+			}
+
+			ScheduleDelayed(4_ms);
+		}
+		break;
+
+	case STATE::AFTER_RESET: {
+			uint8_t status_0;
+			_state = STATE::RESET;
+			int ret = RegisterRead(Register::PMU_STATUS_0, &status_0);
+
+			if (ret == PX4_OK && PMU_CMD_STATUS_0_RES(status_0) == PMU_STATUS_BR_FAST) {
+				_state = STATE::MEASURE_FORCED;
+				_self_test_state = SELF_TEST_STATE::INIT;
+				PX4_DEBUG("Going to fast FM");
+			}
+
+			ScheduleNow();
+		}
+		break;
+
+	case STATE::MEASURE_FORCED: {
+			int ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
+
+			if (ret == PX4_OK) {
+				_state = STATE::SELF_TEST_CHECK;
+
+			} else {
+				_state = STATE::RESET;
+			}
+
+			ScheduleDelayed(OdrToUs(_mag_odr_mode));
+			break;
+		}
 
 	case STATE::SELF_TEST_CHECK: {
 
-			float out_ust[4] = {0.0f};
+			float xyzt[4];
+			_state = STATE::RESET;
 
-			float out_ustxh = 0.0f, out_ustxl = 0.0f, out_ustyh = 0.0f, out_ustyl = 0.0f, out_ust_x = 0.0f, out_ust_y = 0.0f;
-			RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_POS_X);
-			px4_usleep(1000);
-			RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
-			px4_usleep(6000);
-			ReadOutRawData(out_ust);
-			out_ustxh = out_ust[0];
-
-			RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_NEG_X);
-			px4_usleep(1000);
-			RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
-			px4_usleep(6000);
-			ReadOutRawData(out_ust);
-			out_ustxl = out_ust[0];
-
-
-			RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_POS_Y);
-			px4_usleep(1000);
-			RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
-			px4_usleep(6000);
-			ReadOutRawData(out_ust);
-			out_ustyh = out_ust[1];
-
-			RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_NEG_Y);
-			px4_usleep(1000);
-			RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
-			px4_usleep(6000);
-			ReadOutRawData(out_ust);
-			out_ustyl = out_ust[1];
-
-			out_ust_x = out_ustxh - out_ustxl;
-			out_ust_y = out_ustyh - out_ustyl;
-
-			PX4_DEBUG("outustxh = %.5f, outustxl = %.5f", static_cast<double>(out_ustxh), static_cast<double>(out_ustxl));
-			PX4_DEBUG("outustyh = %.5f, outustyl = %.5f", static_cast<double>(out_ustyh), static_cast<double>(out_ustyl));
-			PX4_DEBUG("out_ust_x = %.5f, out_ust_y = %.5f", static_cast<double>(out_ust_x), static_cast<double>(out_ust_y));
-
-			// Datasheet 5.1.6
-			if (out_ust_x >= 130 && out_ust_y >= 130) {
-				PX4_DEBUG("Running to configure");
-				_state = STATE::CONFIGURE;
-				ScheduleDelayed(10_ms);
-
-			} else if (perf_event_count(_self_test_failed_perf) >= 5) {
-				PX4_DEBUG("Failed after 5 attempts, procceed still");
-				_state = STATE::CONFIGURE;
-				ScheduleDelayed(10_ms);
-
-			} else {
+			if (ReadOutRawData(xyzt) != PX4_OK) {
 				perf_count(_self_test_failed_perf);
-				_state = STATE::RESET;
-				ScheduleDelayed(1_s);
+				ScheduleNow();
 			}
-		}
 
+			switch (_self_test_state) {
+			case SELF_TEST_STATE::INIT:
+				memcpy(_initial_self_test_values, xyzt, sizeof(_initial_self_test_values));
+				RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_POS_X);
+				_self_test_state = SELF_TEST_STATE::POS_X;
+				_state = STATE::MEASURE_FORCED;
+				break;
+
+			case SELF_TEST_STATE::POS_X:
+				if (xyzt[0] - _initial_self_test_values[0] >= 130.0f) {
+					RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_NEG_X);
+					_self_test_state = SELF_TEST_STATE::NEG_X;
+					_state = STATE::MEASURE_FORCED;
+				}
+
+				break;
+
+			case SELF_TEST_STATE::NEG_X:
+				if (xyzt[0] - _initial_self_test_values[0] <= -130.0f) {
+					RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_POS_Y);
+					_self_test_state = SELF_TEST_STATE::POS_Y;
+					_state = STATE::MEASURE_FORCED;
+				}
+
+				break;
+
+			case SELF_TEST_STATE::POS_Y:
+				if (xyzt[1] - _initial_self_test_values[1] >= 130.0f) {
+					RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_NEG_Y);
+					_self_test_state = SELF_TEST_STATE::NEG_Y;
+					_state = STATE::MEASURE_FORCED;
+				}
+
+				break;
+
+			case SELF_TEST_STATE::NEG_Y:
+				if (xyzt[1] - _initial_self_test_values[1] <= -130.0f) {
+					RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_DISABLE);
+					PX4_DEBUG("Self test good, going to configure");
+					_state = STATE::CONFIGURE;
+				}
+
+				break;
+
+			}
+
+			if (_state == STATE::RESET) {
+				PX4_DEBUG("Self test failed");
+				perf_count(_self_test_failed_perf);
+			}
+
+			ScheduleDelayed(1_ms);
+		}
 		break;
 
 
 	case STATE::CONFIGURE:
-		if (Configure()) {
+		if (Configure() == PX4_OK) {
 			_state = STATE::READ;
 			PX4_DEBUG("Configure went fine");
 			ScheduleOnInterval(OdrToUs(_mag_odr_mode), 50_ms);
@@ -344,14 +405,13 @@ void BMM350::RunImpl()
 	case STATE::READ: {
 			// -- start get_compensated_mag_xyz_temp_data
 			int8_t res = 0;
-			uint8_t idx;
 			float out_data[4] = {0.0f};
 			float dut_offset_coeff[3], dut_sensit_coeff[3], dut_tcos[3], dut_tcss[3];
 			float cr_ax_comp_x, cr_ax_comp_y, cr_ax_comp_z;
 
 			res = ReadOutRawData(out_data);
 
-			if (res == 0) {
+			if (res == PX4_OK) {
 				// Apply compensation to temperature reading
 				out_data[3] = (1 + _mag_comp_vals.dut_sensit_coef.t_sens) * out_data[3] +
 					      _mag_comp_vals.dut_offset_coef.t_offs;
@@ -373,7 +433,7 @@ void BMM350::RunImpl()
 				dut_tcss[1] = _mag_comp_vals.dut_tcs.tcs_y;
 				dut_tcss[2] = _mag_comp_vals.dut_tcs.tcs_z;
 
-				for (idx = 0; idx < 3; idx++) {
+				for (int idx = 0; idx < 3; idx++) {
 					out_data[idx] *= 1 + dut_sensit_coeff[idx];
 					out_data[idx] += dut_offset_coeff[idx];
 					out_data[idx] += dut_tcos[idx] * (out_data[3] - _mag_comp_vals.dut_t0);
@@ -399,7 +459,7 @@ void BMM350::RunImpl()
 				out_data[2] = cr_ax_comp_z;
 				_px4_mag.set_error_count(perf_event_count(_bad_read_perf) + perf_event_count(_self_test_failed_perf));
 				_px4_mag.set_temperature(out_data[3]);
-				_px4_mag.update(now, cr_ax_comp_x, cr_ax_comp_y, cr_ax_comp_z);
+				_px4_mag.update(now, out_data[0], out_data[1], out_data[2]);
 
 			} else {
 				perf_count(_bad_read_perf);
@@ -410,14 +470,19 @@ void BMM350::RunImpl()
 	}
 }
 
-bool BMM350::Configure()
+int BMM350::Configure()
 {
 	PX4_DEBUG("Configuring");
-	bool success = true;
 	uint8_t readData = 0;
+	int ret;
 
 	// Set pad drive
-	RegisterWrite(Register::PAD_CTRL, (_mag_pad_drive & 0x7));
+	ret = RegisterWrite(Register::PAD_CTRL, (_mag_pad_drive & 0x7));
+
+	if (ret != PX4_OK) {
+		PX4_DEBUG("Couldn't set pad drive, defaults to 7");
+	}
+
 	// Set PMU data aggregation
 	uint8_t odr = _mag_odr_mode;
 	uint8_t avg = _mag_avg_mode;
@@ -435,40 +500,56 @@ bool BMM350::Configure()
 	uint8_t odr_reg_data = (odr & 0xf);
 	odr_reg_data = ((odr_reg_data & ~(0x30)) | ((avg << 0x4) & 0x30));
 
-	RegisterWrite(Register::PMU_CMD_AGGR_SET, odr_reg_data);
+	ret = RegisterWrite(Register::PMU_CMD_AGGR_SET, odr_reg_data);
 
-	if ((readData = RegisterRead(Register::PMU_CMD_AGGR_SET)) != odr_reg_data) {
-		PX4_DEBUG("Couldn't set PMU AGGR REG");
-		success = false;
+	if (ret != PX4_OK) {
+		PX4_DEBUG("Cannot set PMU AGG REG");
+	}
+
+	ret = RegisterRead(Register::PMU_CMD_AGGR_SET, &readData);
+
+	if (ret != PX4_OK || readData != odr_reg_data) {
+		PX4_DEBUG("Couldn't check PMU AGGR REG");
 	}
 
 	odr_reg_data = PMU_CMD_UPDATE_OAE;
-	RegisterWrite(Register::PMU_CMD, odr_reg_data);
+	ret = RegisterWrite(Register::PMU_CMD, odr_reg_data);
 
-	if ((readData = RegisterRead(Register::PMU_CMD)) != odr_reg_data) {
-		PX4_DEBUG("Couldn't set PMU CMD REG");
-		success = false;
+	if (ret != PX4_OK) {
+		PX4_DEBUG("Couldn't write PMU CMD REG");
+	}
+
+	ret = RegisterRead(Register::PMU_CMD, &readData);
+
+	if (ret != PX4_OK || readData != odr_reg_data) {
+		PX4_DEBUG("Couldn't check PMU CMD REG");
 	}
 
 	// Enable AXIS
-	uint8_t axis_data = (1 & 0x01);
-	axis_data = ((axis_data & ~(0x02)) | ((1 << 0x1) & 0x02));
-	axis_data = ((axis_data & ~(0x04)) | ((1 << 0x2) & 0x04)); // evaluates to 0x07
-
+	uint8_t axis_data = EN_X | EN_Y | EN_Z;
 	// PMU_CMD_AXIS_EN
-	RegisterWrite(Register::PMU_CMD_AXIS_EN, axis_data);
+	ret = RegisterWrite(Register::PMU_CMD_AXIS_EN, axis_data);
 
-	if ((readData = RegisterRead(Register::PMU_CMD_AXIS_EN)) != axis_data) {
-		PX4_DEBUG("Couldnt set AXIS");
-		success = false;
+	if (ret != PX4_OK) {
+		PX4_DEBUG("Couldn't write AXIS data");
 	}
 
-	RegisterWrite(Register::PMU_CMD, PMU_CMD_NM);
+	ret = RegisterRead(Register::PMU_CMD_AXIS_EN, &readData);
+
+	if (ret != PX4_OK || readData != axis_data) {
+		PX4_DEBUG("Couldn't cross check the set AXIS");
+	}
+
+	ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_NM);
+
+	if (ret != PX4_OK) {
+		PX4_DEBUG("Failed to start mag in normal mode");
+	}
 
 	// microTesla -> Gauss
 	_px4_mag.set_scale(0.01f);
 
-	return success;
+	return ret;
 }
 
 int32_t BMM350::FixSign(uint32_t inval, int8_t num_bits)
@@ -483,7 +564,7 @@ int32_t BMM350::FixSign(uint32_t inval, int8_t num_bits)
 	return retval;
 }
 
-int8_t BMM350::ReadOutRawData(float *out_data)
+int BMM350::ReadOutRawData(float *out_data)
 {
 	if (out_data == NULL) {
 		return -1;
@@ -491,28 +572,23 @@ int8_t BMM350::ReadOutRawData(float *out_data)
 
 	float temp = 0.0;
 	struct BMM350::raw_mag_data raw_data = {0};
-	float lsb_to_ut_degc[4];
 
 	// --- Start read_uncomp_mag_temp_data
 	uint8_t mag_data[14] = {0};
-	uint8_t raw_reg[14] = {0};
 
 	uint32_t raw_mag_x, raw_mag_y, raw_mag_z, raw_temp;
 	uint8_t cmd = static_cast<uint8_t>(Register::DATAX_XLSB);
 
-	uint8_t res = transfer(&cmd, 1, (uint8_t *)&raw_reg, sizeof(raw_reg));
+	uint8_t res = transfer(&cmd, 1, (uint8_t *)&mag_data, sizeof(mag_data));
 
 	if (res != PX4_OK) {
 		return -1;
 	}
 
-	// Throwaway first two bytes
-	memcpy(mag_data, raw_reg + 2, sizeof(mag_data) - 2);
-
-	raw_mag_x = mag_data[0] + ((uint32_t)mag_data[1] << 8) + ((uint32_t)mag_data[2] << 16);
-	raw_mag_y = mag_data[3] + ((uint32_t)mag_data[4] << 8) + ((uint32_t)mag_data[5] << 16);
-	raw_mag_z = mag_data[6] + ((uint32_t)mag_data[7] << 8) + ((uint32_t)mag_data[8] << 16);
-	raw_temp = mag_data[9] + ((uint32_t)mag_data[10] << 8) + ((uint32_t)mag_data[11] << 16);
+	raw_mag_x = mag_data[2] + ((uint32_t)mag_data[3] << 8) + ((uint32_t)mag_data[4] << 16);
+	raw_mag_y = mag_data[5] + ((uint32_t)mag_data[6] << 8) + ((uint32_t)mag_data[7] << 16);
+	raw_mag_z = mag_data[8] + ((uint32_t)mag_data[9] << 8) + ((uint32_t)mag_data[10] << 16);
+	raw_temp = mag_data[11] + ((uint32_t)mag_data[12] << 8) + ((uint32_t)mag_data[13] << 16);
 
 	raw_data.raw_x = FixSign(raw_mag_x, 24);
 	raw_data.raw_y = FixSign(raw_mag_y, 24);
@@ -520,34 +596,11 @@ int8_t BMM350::ReadOutRawData(float *out_data)
 	raw_data.raw_t = FixSign(raw_temp, 24);
 	// --- End read_uncomp_mag_temp_data
 
-	// --- Start update_dafault_coefiecients
-	float bxy_sens, bz_sens, temp_sens, ina_xy_gain_trgt, ina_z_gain_trgt, adc_gain, lut_gain;
-	float power;
-
-	bxy_sens = 14.55f;
-	bz_sens = 9.0f;
-	temp_sens = 0.00204f;
-
-	ina_xy_gain_trgt = 19.46f;
-
-	ina_z_gain_trgt = 31.0;
-
-	adc_gain = 1 / 1.5f;
-	lut_gain = 0.714607238769531f;
-
-	power = (float)(1000000.0 / 1048576.0);
-
-	lsb_to_ut_degc[0] = (power / (bxy_sens * ina_xy_gain_trgt * adc_gain * lut_gain));
-	lsb_to_ut_degc[1] = (power / (bxy_sens * ina_xy_gain_trgt * adc_gain * lut_gain));
-	lsb_to_ut_degc[2] = (power / (bz_sens * ina_z_gain_trgt * adc_gain * lut_gain));
-	lsb_to_ut_degc[3] = 1 / (temp_sens * adc_gain * lut_gain * 1048576);
-	// --- End update_default_coeficients
-
 	// --- Start read_out_raw_data
-	out_data[0] = (float)raw_data.raw_x * lsb_to_ut_degc[0];
-	out_data[1] = (float)raw_data.raw_y * lsb_to_ut_degc[1];
-	out_data[2] = (float)raw_data.raw_z * lsb_to_ut_degc[2];
-	out_data[3] = (float)raw_data.raw_t * lsb_to_ut_degc[3];
+	out_data[0] = (float)raw_data.raw_x * lsb_to_utc_degc[0];
+	out_data[1] = (float)raw_data.raw_y * lsb_to_utc_degc[1];
+	out_data[2] = (float)raw_data.raw_z * lsb_to_utc_degc[2];
+	out_data[3] = (float)raw_data.raw_t * lsb_to_utc_degc[3];
 
 	// Adjust temperature
 	if (out_data[3] > 0.0f) {
@@ -565,39 +618,48 @@ int8_t BMM350::ReadOutRawData(float *out_data)
 	return res;
 }
 
-int8_t BMM350::ReadOTPWord(uint8_t addr, uint16_t *lsb_msb)
+int BMM350::ReadOTPWord(uint8_t addr, uint16_t *lsb_msb)
 {
-	if (lsb_msb == NULL) {
-		return -1;
-	}
-
 	uint8_t otp_cmd = OTP_DIR_READ | (addr & OTP_WORD_MSK);
-	RegisterWrite(Register::OTP_CMD, otp_cmd);
+	int ret = RegisterWrite(Register::OTP_CMD, otp_cmd);
 	uint8_t otp_status = 0;
 
-	do {
-		px4_usleep(300);
-		otp_status = RegisterRead(Register::OTP_STATUS);
-	} while (!(otp_status & 0x01));
+	if (ret == PX4_OK) {
+		do {
+			ret = RegisterRead(Register::OTP_STATUS, &otp_status);
 
-	uint8_t msb = RegisterRead(Register::OTP_DATA_MSB);
-	uint8_t lsb = RegisterRead(Register::OTP_DATA_LSB);
-	*lsb_msb = ((msb << 8) | lsb) & 0xffff;
-	return 1;
+			if (ret != PX4_OK) {
+				return PX4_ERROR;
+			}
+		} while (!(otp_status & 0x01));
+
+		uint8_t msb, lsb;
+		ret = RegisterRead(Register::OTP_DATA_MSB, &msb);
+
+		if (ret == PX4_OK) {
+			ret  = RegisterRead(Register::OTP_DATA_LSB, &lsb);
+			*lsb_msb = ((msb << 8) | lsb) & 0xffff;
+		}
+	}
+
+	return ret;
 }
 
-void BMM350::UpdateMagOffsets()
+int BMM350::UpdateMagOffsets()
 {
 	PX4_DEBUG("DUMPING OTP");
-	uint16_t otp_word = 0;
 	uint16_t otp_data[32] = {0};
 
 	for (int idx = 0; idx < 32; idx++) {
-		ReadOTPWord(idx, &otp_word);
-		otp_data[idx] = otp_word;
+		if (ReadOTPWord(idx, &otp_data[idx]) != PX4_OK) {
+			return PX4_ERROR;
+		}
 		PX4_DEBUG("i: %i, val = %i", idx, otp_data[idx]);
 	}
 
+	if(RegisterWrite(Register::OTP_CMD, PWR_OFF_OTP) != PX4_OK){
+		return PX4_ERROR;
+	}
 	PX4_DEBUG("var_id: %i", (otp_data[30] & 0x7f00) >> 9);
 
 	PX4_DEBUG("UPDATING OFFSETS");
@@ -656,9 +718,10 @@ void BMM350::UpdateMagOffsets()
 	_mag_comp_vals.cross_axis.cross_y_x = FixSign(cross_y_x, 8) / 800.0f;
 	_mag_comp_vals.cross_axis.cross_z_x = FixSign(cross_z_x, 8) / 800.0f;
 	_mag_comp_vals.cross_axis.cross_z_y = FixSign(cross_z_y, 8) / 800.0f;
+	return PX4_OK;
 }
 
-uint8_t BMM350::RegisterRead(Register reg)
+int BMM350::RegisterRead(Register reg, uint8_t *value)
 {
 	const uint8_t cmd = static_cast<uint8_t>(reg);
 	uint8_t buffer[3] = {0};
@@ -666,13 +729,15 @@ uint8_t BMM350::RegisterRead(Register reg)
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("register read 0x%02hhX failed, ret = %d", cmd, ret);
-		return -1;
+
+	} else {
+		*value = buffer[2];
 	}
 
-	return buffer[2];
+	return ret;
 }
 
-void BMM350::RegisterWrite(Register reg, uint8_t value)
+int BMM350::RegisterWrite(Register reg, uint8_t value)
 {
 	uint8_t buffer[2] {(uint8_t)reg, value};
 	int ret = transfer(buffer, sizeof(buffer), nullptr, 0);
@@ -680,4 +745,6 @@ void BMM350::RegisterWrite(Register reg, uint8_t value)
 	if (ret != PX4_OK) {
 		PX4_DEBUG("register write 0x%02hhX failed, ret = %d", (uint8_t)reg, ret);
 	}
+
+	return ret;
 }

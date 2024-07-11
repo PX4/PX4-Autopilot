@@ -44,6 +44,10 @@
 
 namespace Bosch_BMM350
 {
+#define ENABLE_X_AXIS(axis_data) (axis_data = (axis_data & ~(0x01)) | (1 & 0x01))
+#define ENABLE_Y_AXIS(axis_data) (axis_data = ((axis_data & ~(0x02)) | ((1 << 0x1) & 0x02)))
+#define ENABLE_Z_AXIS(axis_data) (axis_data = ((axis_data & ~(0x04)) | ((1 << 0x2) & 0x04)))
+
 static constexpr uint32_t I2C_SPEED = 400 * 1000;
 static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x14;
 static constexpr uint8_t chip_identification_number = 0x33;
@@ -63,8 +67,8 @@ enum class Register : uint8_t {
 	DATAX_XLSB = 0x31,
 
 	OTP_CMD = 0x50,
-	OTP_DATA_LSB = 0x52,
-	OTP_DATA_MSB = 0x53,
+	OTP_DATA_MSB = 0x52,
+	OTP_DATA_LSB = 0x53,
 	OTP_STATUS = 0x55,
 
 	TMR_SELF_TEST_USER = 0x60,
@@ -89,7 +93,8 @@ enum PMU_CONTROL_CMD : uint8_t {
 	PMU_CMD_NM_TC = 0x09
 };
 
-static inline uint8_t PMU_CMD_STATUS_0_RES(uint8_t val){
+static inline uint8_t PMU_CMD_STATUS_0_RES(uint8_t val)
+{
 	return (val >> 5) & 0x7;
 };
 
@@ -99,6 +104,18 @@ enum PMU_STATUS_0_BIT : uint8_t {
 	AVG_OVWR = (1 << 2),
 	PWR_NORMAL = (1 << 3),
 	ILLEGAL_CMD = (1 << 4)
+};
+
+enum PMU_STATUS_VALUE {
+	PMU_STATUS_SUS = 0x0,
+	PMU_STATUS_NM = 0x1,
+	PMU_STATUS_UPDATE_OAE = 0x2,
+	PMU_STATUS_FM = 0x3,
+	PMU_STATUS_FM_FAST = 0x4,
+	PMU_STATUS_FGR = 0x5,
+	PMU_STATUS_FGR_FAST = 0x6,
+	PMU_STATUS_BR = 0x7,
+	PMU_STATUS_BR_FAST = 0x7,
 };
 
 enum ODR_CONTROL_CMD : uint8_t {
@@ -118,6 +135,12 @@ enum AVG_CONTROL_CMD : uint8_t {
 	AVG_2 = 0x1,
 	AVG_4 = 0x2,
 	AVG_8 = 0x3
+};
+
+enum ENABLE_AXIS_BIT : uint8_t {
+	EN_X = (1 << 0),
+	EN_Y = (1 << 1),
+	EN_Z = (1 << 2)
 };
 
 enum OTP_CONTROL_CMD : uint8_t {

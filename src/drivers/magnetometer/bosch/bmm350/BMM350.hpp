@@ -131,17 +131,17 @@ private:
 
 	int probe() override;
 	bool Reset();
-	bool Configure();
+	int Configure();
 
-	uint8_t RegisterRead(Register reg);
-	void RegisterWrite(Register reg, uint8_t value);
+	int RegisterRead(Register reg, uint8_t *value);
+	int RegisterWrite(Register reg, uint8_t value);
 
 	int8_t CompensateAxisAndTemp();
-	int8_t ReadOutRawData(float *out_data);
-	int8_t ReadOTPWord(uint8_t addr, uint16_t *lsb_msb);
+	int ReadOutRawData(float *out_data);
+	int ReadOTPWord(uint8_t addr, uint16_t *lsb_msb);
 	int32_t FixSign(uint32_t inval, int8_t num_bits);
 
-	void UpdateMagOffsets();
+	int UpdateMagOffsets();
 	void ParametersUpdate(bool force = false);
 	void UpdateMagParams();
 	uint8_t GetODR(int value);
@@ -159,18 +159,47 @@ private:
 
 	mag_compensate_vals _mag_comp_vals{0};
 
+	float _initial_self_test_values[4];
+
 	uint8_t _mag_odr_mode = ODR_200HZ;
 	uint8_t _mag_avg_mode = AVG_2;
 	uint8_t _mag_pad_drive = 7;
 
+
+	static constexpr float BXY_SENS = 14.55f;
+	static constexpr float BZ_SENS = 9.0f;
+	static constexpr float TEMP_SENS = 0.00204f;
+	static constexpr float INA_XY_GAIN_TRT = 19.46f;
+	static constexpr float INA_Z_GAIN_TRT = 31.0f;
+	static constexpr float ADC_GAIN = 1 / 1.5f;
+	static constexpr float LUT_GAIN = 0.714607238769531f;
+	static constexpr float POWER = 1000000.0f / 1048576.0f;
+	float lsb_to_utc_degc[4] = {
+		(POWER / (BXY_SENS *INA_XY_GAIN_TRT *ADC_GAIN * LUT_GAIN)),
+		(POWER / (BXY_SENS *INA_XY_GAIN_TRT *ADC_GAIN * LUT_GAIN)),
+		(POWER / (BZ_SENS *INA_Z_GAIN_TRT *ADC_GAIN * LUT_GAIN)),
+		1 / (TEMP_SENS *ADC_GAIN *LUT_GAIN * 1048576)
+	};
+
 	enum class STATE : uint8_t {
 		RESET,
 		WAIT_FOR_RESET,
+		FGR,
+		BR,
 		AFTER_RESET,
+		MEASURE_FORCED,
 		SELF_TEST_CHECK,
 		CONFIGURE,
 		READ,
 	} _state{STATE::RESET};
+
+	enum class SELF_TEST_STATE : uint8_t {
+		INIT,
+		POS_X,
+		NEG_X,
+		POS_Y,
+		NEG_Y
+	} _self_test_state{SELF_TEST_STATE::INIT};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::BMM350_ODR>) _param_bmm350_odr,
