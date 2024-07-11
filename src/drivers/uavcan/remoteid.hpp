@@ -33,18 +33,23 @@
 
 #pragma once
 
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/topics/open_drone_id_operator_id.h>
+#include <uORB/topics/open_drone_id_arm_status.h>
 
 #include <uavcan/uavcan.hpp>
 #include <dronecan/remoteid/BasicID.hpp>
 #include <dronecan/remoteid/Location.hpp>
 #include <dronecan/remoteid/System.hpp>
+#include <dronecan/remoteid/ArmStatus.hpp>
+#include <dronecan/remoteid/OperatorID.hpp>
 
 #include <px4_platform_common/module_params.h>
 
@@ -68,6 +73,9 @@ private:
 	void send_basic_id();
 	void send_location();
 	void send_system();
+	void send_operator_id();
+
+	void arm_status_sub_cb(const uavcan::ReceivedDataStructure<dronecan::remoteid::ArmStatus> &msg);
 
 	uavcan::INode &_node;
 
@@ -77,8 +85,16 @@ private:
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
+	uORB::Subscription _open_drone_id_operator_id{ORB_ID(open_drone_id_operator_id)};
+	uORB::Publication<open_drone_id_arm_status_s> _open_drone_id_arm_status_pub{ORB_ID(open_drone_id_arm_status)};
 
 	uavcan::Publisher<dronecan::remoteid::BasicID> _uavcan_pub_remoteid_basicid;
 	uavcan::Publisher<dronecan::remoteid::Location> _uavcan_pub_remoteid_location;
 	uavcan::Publisher<dronecan::remoteid::System> _uavcan_pub_remoteid_system;
+	uavcan::Publisher<dronecan::remoteid::OperatorID> _uavcan_pub_remoteid_operator_id;
+
+	using ArmStatusBinder = uavcan::MethodBinder < UavcanRemoteIDController *,
+	      void (UavcanRemoteIDController::*)(const uavcan::ReceivedDataStructure<dronecan::remoteid::ArmStatus> &) >;
+
+	uavcan::Subscriber<dronecan::remoteid::ArmStatus, ArmStatusBinder> _uavcan_sub_arm_status;
 };
