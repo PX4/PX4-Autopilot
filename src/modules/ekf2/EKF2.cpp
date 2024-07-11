@@ -536,7 +536,7 @@ void EKF2::Run()
 			}
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE) {
-				if (_ekf.control_status_flags().wind_dead_reckoning) {
+				if (_ekf.control_status_flags().wind_dead_reckoning || !_ekf.control_status_flags().in_air) {
 					_ekf.resetWindToExternalObservation(vehicle_command.param1, vehicle_command.param3, vehicle_command.param2,
 									    vehicle_command.param4);
 				}

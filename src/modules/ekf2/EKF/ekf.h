@@ -772,7 +772,7 @@ private:
 
 	// fuse synthetic zero sideslip measurement
 	void updateSideslip(estimator_aid_source1d_s &_aid_src_sideslip) const;
-	void fuseSideslip(estimator_aid_source1d_s &_aid_src_sideslip);
+	bool fuseSideslip(estimator_aid_source1d_s &_aid_src_sideslip);
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
@@ -797,8 +797,6 @@ private:
 
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
-
-	void resetWindTo(const Vector2f &wind, const Vector2f &wind_var);
 
 	bool isHeightResetRequired() const;
 

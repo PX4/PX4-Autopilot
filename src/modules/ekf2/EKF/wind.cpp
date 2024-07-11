@@ -37,7 +37,6 @@
  */
 
 #include "ekf.h"
-#include <ekf_derivation/generated/compute_wind_init_and_cov_from_wind_speed_and_direction.h>
 
 void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy, float wind_direction_accuracy)
 {
@@ -45,21 +44,19 @@ void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction,
 
 	// wind direction is given as azimuth where wind blows FROM, we need direction where wind blows TO
 	const float wind_direction_rad = wrap_pi(math::radians(wind_direction) + M_PI_F);
-
-	const float wind_direction_var = sq(math::radians(wind_direction_accuracy));
-	const float wind_speed_var = sq(wind_speed_accuracy);
-
-	matrix::SquareMatrix<float, 2> P_wind;
-	Vector2f wind;
-
-	sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_var, wind_direction_var, &wind, &P_wind);
-
-	const Vector2f wind_var = P_wind.diag();
+	Vector2f wind = wind_speed_constrained * Vector2f(cosf(wind_direction_rad), sinf(wind_direction_rad));
 
 	ECL_INFO("reset wind states to external observation");
 	_information_events.flags.reset_wind_to_ext_obs = true;
 
-	resetWindTo(wind, wind_var);
+	Vector2f innov = _state.wind_vel - wind;
+	float R = sq(0.1f);
+	Vector2f innov_var{P(State::wind_vel.idx, State::wind_vel.idx) + R, P(State::wind_vel.idx + 1, State::wind_vel.idx + 1) + R};
+	const bool control_status_wind_prev = _control_status.flags.wind;
+	_control_status.flags.wind = true;
+	fuseDirectStateMeasurement(innov(0), innov_var(0), R, State::wind_vel.idx);
+	fuseDirectStateMeasurement(innov(1), innov_var(1), R, State::wind_vel.idx + 1);
+	_control_status.flags.wind = control_status_wind_prev;
 
 	// reset the horizontal velocity variances to allow the velocity states to be pulled towards
 	// a solution that is aligned with the newly set wind estimates

@@ -64,16 +64,10 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 			updateSideslip(_aid_src_sideslip);
 			_innov_check_fail_status.flags.reject_sideslip = _aid_src_sideslip.innovation_rejected;
 
-			// If starting wind state estimation, reset the wind states and covariances before fusing any data
-			if (!_control_status.flags.wind) {
-				// activate the wind states
-				_control_status.flags.wind = true;
-				// reset the timeout timers to prevent repeated resets
-				_aid_src_sideslip.time_last_fuse = imu_delayed.time_us;
+			if (!fuseSideslip(_aid_src_sideslip) && !_control_status.flags.wind) {
 				resetWindToZero();
 			}
-
-			fuseSideslip(_aid_src_sideslip);
+			_control_status.flags.wind = true;
 		}
 	}
 }
@@ -96,10 +90,10 @@ void Ekf::updateSideslip(estimator_aid_source1d_s &aid_src) const
 				 math::max(_params.beta_innov_gate, 1.f)); // innovation gate
 }
 
-void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
+bool Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 {
 	if (sideslip.innovation_rejected) {
-		return;
+		return false;
 	}
 
 	// determine if we need the sideslip fusion to correct states other than wind
@@ -125,7 +119,7 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 
 		ECL_ERR("sideslip badly conditioned - %s covariance reset", action_string);
 
-		return;
+		return false;
 	}
 
 	_fault_status.flags.bad_sideslip = false;
@@ -149,4 +143,5 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 	if (is_fused) {
 		sideslip.time_last_fuse = _time_delayed_us;
 	}
+	return is_fused;
 }
