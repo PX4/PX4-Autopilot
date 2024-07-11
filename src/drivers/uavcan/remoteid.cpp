@@ -44,7 +44,9 @@ UavcanRemoteIDController::UavcanRemoteIDController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_remoteid_basicid(node),
 	_uavcan_pub_remoteid_location(node),
-	_uavcan_pub_remoteid_system(node)
+	_uavcan_pub_remoteid_system(node),
+	_uavcan_pub_remoteid_operator_id(node),
+	_uavcan_sub_arm_status(node)
 {
 }
 
@@ -53,6 +55,14 @@ int UavcanRemoteIDController::init()
 	// Setup timer and call back function for periodic updates
 	_timer.setCallback(TimerCbBinder(this, &UavcanRemoteIDController::periodic_update));
 	_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
+
+	int res = _uavcan_sub_arm_status.start(ArmStatusBinder(this, &UavcanRemoteIDController::arm_status_sub_cb));
+
+	if (res < 0) {
+		PX4_WARN("ArmStatus sub failed %i", res);
+		return res;
+	}
+
 	return 0;
 }
 
@@ -63,6 +73,7 @@ void UavcanRemoteIDController::periodic_update(const uavcan::TimerEvent &)
 	send_basic_id();
 	send_location();
 	send_system();
+	send_operator_id();
 }
 
 void UavcanRemoteIDController::send_basic_id()
@@ -253,4 +264,38 @@ void UavcanRemoteIDController::send_system()
 			_uavcan_pub_remoteid_system.broadcast(msg);
 		}
 	}
+}
+
+void UavcanRemoteIDController::send_operator_id()
+{
+	open_drone_id_operator_id_s operator_id;
+
+	if (_open_drone_id_operator_id.copy(&operator_id)) {
+
+		dronecan::remoteid::OperatorID msg {};
+
+		for (unsigned i = 0; i < sizeof(operator_id.id_or_mac); ++i) {
+			msg.id_or_mac.push_back(operator_id.id_or_mac[i]);
+		}
+
+		msg.operator_id_type = operator_id.operator_id_type;
+
+		for (unsigned i = 0; i < sizeof(operator_id.operator_id); ++i) {
+			msg.operator_id.push_back(operator_id.operator_id[i]);
+		}
+
+		_uavcan_pub_remoteid_operator_id.broadcast(msg);
+	}
+}
+
+void
+UavcanRemoteIDController::arm_status_sub_cb(const uavcan::ReceivedDataStructure<dronecan::remoteid::ArmStatus> &msg)
+{
+	open_drone_id_arm_status_s arm_status{};
+
+	arm_status.timestamp = hrt_absolute_time();
+	arm_status.status = msg.status;
+	memcpy(arm_status.error, msg.error.c_str(), sizeof(arm_status.error));
+
+	_open_drone_id_arm_status_pub.publish(arm_status);
 }
