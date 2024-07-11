@@ -123,7 +123,7 @@ TEST_F(EkfBasicsTest, initialControlMode)
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_fault);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnd_effect);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().rng_stuck);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().gps_yaw);
+	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnss_yaw);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_aligned_in_flight);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().ev_vel);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().synthetic_mag_z);
@@ -178,7 +178,7 @@ TEST_F(EkfBasicsTest, gpsFusion)
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_fault);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnd_effect);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().rng_stuck);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().gps_yaw);
+	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnss_yaw);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_aligned_in_flight);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().ev_vel);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().synthetic_mag_z);

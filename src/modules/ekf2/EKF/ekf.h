@@ -147,7 +147,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.innovation;
 		}
 
@@ -176,7 +176,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.innovation_variance;
 		}
 
@@ -205,7 +205,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.test_ratio;
 		}
 
@@ -991,17 +991,17 @@ private:
 	void resetGpsDriftCheckFilters();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGpsYawFusion(const gnssSample &gps_sample);
-	void stopGpsYawFusion();
+	void controlGnssYawFusion(const gnssSample &gps_sample);
+	void stopGnssYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw(float antenna_yaw_offset);
+	void fuseGnssYaw(float antenna_yaw_offset);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetYawToGps(float gnss_yaw, float gnss_yaw_offset);
+	bool resetYawToGnss(float gnss_yaw, float gnss_yaw_offset);
 
-	void updateGpsYaw(const gnssSample &gps_sample);
+	void updateGnssYaw(const gnssSample &gps_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
 

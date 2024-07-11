@@ -193,7 +193,7 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
 		if (PX4_ISFINITE(gnss_sample.yaw)) {
-			_time_last_gps_yaw_buffer_push = _time_latest_us;
+			_time_last_gnss_yaw_buffer_push = _time_latest_us;
 		}
 
 #endif // CONFIG_EKF2_GNSS_YAW
