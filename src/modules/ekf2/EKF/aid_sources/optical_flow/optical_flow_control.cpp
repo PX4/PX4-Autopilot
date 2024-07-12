@@ -217,15 +217,29 @@ void Ekf::resetFlowFusion()
 void Ekf::resetTerrainToFlow()
 {
 	ECL_INFO("reset hagl to flow");
+
 	// TODO: use the flow data
-	_state.terrain = fmaxf(0.0f, _state.pos(2));
+	const float new_terrain = fmaxf(0.0f, _state.pos(2));
+	const float delta_terrain = new_terrain - _state.terrain;
+	_state.terrain = new_terrain;
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 100.f);
-	_terrain_vpos_reset_counter++;
 
 	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
 
 	_innov_check_fail_status.flags.reject_optflow_X = false;
 	_innov_check_fail_status.flags.reject_optflow_Y = false;
+
+
+	// record the state change
+	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
+		_state_reset_status.hagl_change = delta_terrain;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.hagl_change += delta_terrain;
+	}
+
+	_state_reset_status.reset_count.hagl++;
 }
 
 void Ekf::stopFlowFusion()
