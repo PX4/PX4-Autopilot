@@ -281,7 +281,7 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 
 			if (show_all || !strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
 				time_t timestamp = px4_build_timestamp();
-				PX4_INFO_RAW("Build date: %s\n", asctime(gmtime(&timestamp)));
+				PX4_INFO_RAW("Build date: %s", asctime(gmtime(&timestamp)));
 				ret = 0;
 			}
 
