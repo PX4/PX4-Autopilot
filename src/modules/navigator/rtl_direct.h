@@ -102,6 +102,14 @@ public:
 
 	void setRtlPosition(PositionYawSetpoint position, loiter_point_s loiter_pos);
 
+	bool isLoiterindDownOrMovingToTransitionPoint() const
+	{
+		// during the following states the vehicle is loitering down to transition altitude or moving to the
+		// land waypoint at transition altitude
+		return _rtl_state == RTLState::LOITER_HOLD || _rtl_state == RTLState::MOVE_TO_LAND
+		       || _rtl_state == RTLState::TRANSITION_TO_MC;
+	}
+
 private:
 	/**
 	 * @brief Return to launch state machine.

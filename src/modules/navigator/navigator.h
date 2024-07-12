@@ -255,6 +255,11 @@ public:
 
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
 
+	bool isLanding()
+	{
+		return (_navigation_mode == &_rtl && _rtl.isLanding()) || (_navigation_mode == &_mission && _mission.isLanding());
+	}
+
 	// RTL
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
@@ -268,6 +273,7 @@ public:
 	float get_param_mis_takeoff_alt() const { return _param_mis_takeoff_alt.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
 	float get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
+	float get_fw_min_height() const { return _param_fw_min_height.get(); }
 
 	float get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 
@@ -408,6 +414,7 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
 		(ParamFloat<px4::params::MIS_PD_TO>)       _param_mis_payload_delivery_timeout,
-		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt
+		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt,
+		(ParamFloat<px4::params::NAV_VTL_MIN_HGT>)   _param_fw_min_height
 	)
 };

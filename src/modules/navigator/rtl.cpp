@@ -712,3 +712,26 @@ land_approaches_s RTL::readVtolLandApproaches(PositionYawSetpoint rtl_position) 
 
 	return vtol_land_approaches;
 }
+
+bool RTL::isLanding()
+{
+	bool is_landing = false;
+
+	switch (_rtl_type) {
+	case RtlType::RTL_MISSION_FAST: // Fall through
+	case RtlType::RTL_MISSION_FAST_REVERSE: // Fall through
+	case RtlType::RTL_DIRECT_MISSION_LAND:
+		is_landing = _rtl_mission_type_handle && _rtl_mission_type_handle->isLanding();
+		break;
+
+	case RtlType::RTL_DIRECT:
+		is_landing = _rtl_direct.isLoiterindDownOrMovingToTransitionPoint();
+		break;
+
+	default:
+		break;
+
+	}
+
+	return is_landing;
+}

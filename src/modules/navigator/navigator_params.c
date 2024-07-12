@@ -187,3 +187,20 @@ PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_MIN_LTR_ALT, -1.f);
+
+
+/**
+ * Minimum height above ground for vtol landings.
+ *
+ * Minimum height above ground in fixed wing mode during a vtol landing (mission landing or rtl with landing pattern).
+ * When the estimated distance to the ground is below this value, the system will
+ * increase the current altitude setpoint (by max 30m) to maintain this distance.
+ * Setting the value to 0 will disable the feature.
+ *
+ * @unit m
+ * @min 0
+ * @decimal 1
+ * @increment 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_VTL_MIN_HGT, 0.0f);

@@ -55,6 +55,9 @@
 
 using matrix::wrap_pi;
 
+static constexpr float max_height_correction =
+	30.0f; // maximum altitude we can add on top of setpoint to avoid terrain during landing
+
 MissionBlock::MissionBlock(Navigator *navigator) :
 	NavigatorMode(navigator)
 {
@@ -1010,4 +1013,34 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 		_navigator->get_precland()->set_mode(PrecLandMode::Required);
 		_navigator->get_precland()->on_activation();
 	}
+}
+
+void MissionBlock::updateMinAltDuringVtolLandingAndRepublishTriplet(mission_item_s mission_item)
+{
+	// APX4 Custom start: Whenever we get too close to terrain in fixed wing mode, change the altitude setpoint in the triplet to maintain the
+	// minimum distance to terrain and republish the triplet. We only do this when we are executing a landing.
+	// We also change the mission item altitude used for acceptance calculations to prevent getting stuck in a loop.
+	const float fw_min_height = _navigator->get_fw_min_height();
+
+	float alt_sp_msl = get_absolute_altitude_for_item(mission_item);
+
+	if (fw_min_height > FLT_EPSILON && _navigator->get_vstatus()->is_vtol && _navigator->force_vtol()
+	    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	    && _navigator->get_local_position()->dist_bottom_valid && _navigator->get_local_position()->dist_bottom < fw_min_height
+	    && _navigator->get_global_position()->alt > alt_sp_msl && _navigator->isLanding()) {
+		const float alt_corrected =  _navigator->get_global_position()->alt + fw_min_height -
+					     _navigator->get_local_position()->dist_bottom;
+
+		alt_sp_msl = math::constrain(alt_corrected, alt_sp_msl,
+					     alt_sp_msl + max_height_correction);
+
+		struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
+		curr_sp->alt = alt_sp_msl;
+		_navigator->set_position_setpoint_triplet_updated();
+
+		_mission_item.altitude = alt_sp_msl;
+		_mission_item.altitude_is_relative = false;
+	}
+
+	// APX4 Custom end
 }
