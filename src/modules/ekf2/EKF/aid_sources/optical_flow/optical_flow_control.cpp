@@ -89,8 +89,9 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		// calculate the optical flow observation variance
 		const float R_LOS = calcOptFlowMeasVar(flow_sample);
 
+		const float epsilon = 1e-3f;
 		Vector2f innov_var;
-		sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, FLT_EPSILON, &innov_var, &H);
+		sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, epsilon, &innov_var, &H);
 
 		// run the innovation consistency check and record result
 		updateAidSourceStatus(_aid_src_optical_flow,
