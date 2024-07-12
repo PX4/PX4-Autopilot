@@ -318,17 +318,17 @@ def compute_wind_init_and_cov_from_wind_speed_and_direction(
         wind_direction: sf.Scalar,
         wind_speed_var: sf.Scalar,
         wind_direction_var: sf.Scalar
-)-> (sf.V2, sf.M22):
+)-> (sf.V2, sf.V2):
     wind = sf.V2(wind_speed * sf.cos(wind_direction), wind_speed * sf.sin(wind_direction))
-    J = wind.jacobian([wind_speed, wind_direction])
+    H = wind.jacobian([wind_speed, wind_direction])
 
     R = sf.M22()
     R[0,0] = wind_speed_var
     R[1,1] = wind_direction_var
 
-    P = J * R * J.T
-
-    return (wind, P)
+    P = H * R * H.T
+    P_diag = sf.V2(P[0,0], P[1,1])
+    return (wind, P_diag)
 
 
 def predict_sideslip(

@@ -41,30 +41,27 @@
 
 void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy, float wind_direction_accuracy)
 {
-	const float wind_speed_constrained = math::max(wind_speed, 0.0f);
+	if (!_control_status.flags.in_air) {
 
-	// wind direction is given as azimuth where wind blows FROM, we need direction where wind blows TO
-	const float wind_direction_rad = wrap_pi(math::radians(wind_direction) + M_PI_F);
+		const float wind_speed_constrained = math::max(wind_speed, 0.0f);
 
-	const float wind_direction_var = sq(math::radians(wind_direction_accuracy));
-	const float wind_speed_var = sq(wind_speed_accuracy);
+		// wind direction is given as azimuth where wind blows FROM, we need direction where wind blows TO
+		const float wind_direction_rad = wrap_pi(math::radians(wind_direction) + M_PI_F);
 
-	matrix::SquareMatrix<float, 2> P_wind;
-	Vector2f wind;
+		const float wind_direction_var = sq(math::radians(wind_direction_accuracy));
+		const float wind_speed_var = sq(wind_speed_accuracy);
 
-	sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_var, wind_direction_var, &wind, &P_wind);
+		Vector2f wind;
+		Vector2f wind_var;
 
-	const Vector2f wind_var = P_wind.diag();
+		sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_var, wind_direction_var, &wind, &wind_var);
 
-	ECL_INFO("reset wind states to external observation");
-	_information_events.flags.reset_wind_to_ext_obs = true;
+		ECL_INFO("reset wind states to external observation");
+		_information_events.flags.reset_wind_to_ext_obs = true;
 
-	resetWindTo(wind, wind_var);
+		resetWindTo(wind, wind_var);
 
-	// reset the horizontal velocity variances to allow the velocity states to be pulled towards
-	// a solution that is aligned with the newly set wind estimates
-	static constexpr float hor_vel_var = 25.0f;
-	P.uncorrelateCovarianceSetVariance<2>(State::vel.idx, hor_vel_var);
+	}
 }
 
 void Ekf::resetWindTo(const Vector2f &wind, const Vector2f &wind_var)
@@ -72,11 +69,11 @@ void Ekf::resetWindTo(const Vector2f &wind, const Vector2f &wind_var)
 	_state.wind_vel = wind;
 
 	if (PX4_ISFINITE(wind_var(0))) {
-		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx, math::max(sq(_params.initial_wind_uncertainty), wind_var(0)));
+		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx, math::min(sq(_params.initial_wind_uncertainty), wind_var(0)));
 	}
 
 	if (PX4_ISFINITE(wind_var(1))) {
-		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx + 1, math::max(sq(_params.initial_wind_uncertainty), wind_var(1)));
+		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx + 1, math::min(sq(_params.initial_wind_uncertainty), wind_var(1)));
 	}
 }
 

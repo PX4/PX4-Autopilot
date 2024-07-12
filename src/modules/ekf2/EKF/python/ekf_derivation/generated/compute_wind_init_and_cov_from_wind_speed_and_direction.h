@@ -23,25 +23,23 @@ namespace sym {
  *
  * Outputs:
  *     wind: Matrix21
- *     P_wind: Matrix22
+ *     P_wind: Matrix21
  */
 template <typename Scalar>
 void ComputeWindInitAndCovFromWindSpeedAndDirection(
     const Scalar wind_speed, const Scalar wind_direction, const Scalar wind_speed_var,
     const Scalar wind_direction_var, matrix::Matrix<Scalar, 2, 1>* const wind = nullptr,
-    matrix::Matrix<Scalar, 2, 2>* const P_wind = nullptr) {
-  // Total ops: 18
+    matrix::Matrix<Scalar, 2, 1>* const P_wind = nullptr) {
+  // Total ops: 14
 
   // Input arrays
 
-  // Intermediate terms (7)
+  // Intermediate terms (5)
   const Scalar _tmp0 = std::cos(wind_direction);
   const Scalar _tmp1 = std::sin(wind_direction);
   const Scalar _tmp2 = std::pow(_tmp0, Scalar(2));
   const Scalar _tmp3 = std::pow(_tmp1, Scalar(2));
   const Scalar _tmp4 = wind_direction_var * std::pow(wind_speed, Scalar(2));
-  const Scalar _tmp5 = _tmp0 * _tmp1;
-  const Scalar _tmp6 = -_tmp4 * _tmp5 + _tmp5 * wind_speed_var;
 
   // Output terms (2)
   if (wind != nullptr) {
@@ -52,12 +50,10 @@ void ComputeWindInitAndCovFromWindSpeedAndDirection(
   }
 
   if (P_wind != nullptr) {
-    matrix::Matrix<Scalar, 2, 2>& _p_wind = (*P_wind);
+    matrix::Matrix<Scalar, 2, 1>& _p_wind = (*P_wind);
 
     _p_wind(0, 0) = _tmp2 * wind_speed_var + _tmp3 * _tmp4;
-    _p_wind(1, 0) = _tmp6;
-    _p_wind(0, 1) = _tmp6;
-    _p_wind(1, 1) = _tmp2 * _tmp4 + _tmp3 * wind_speed_var;
+    _p_wind(1, 0) = _tmp2 * _tmp4 + _tmp3 * wind_speed_var;
   }
 }  // NOLINT(readability/fn_size)
 

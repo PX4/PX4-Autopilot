@@ -790,7 +790,7 @@ private:
 
 	// fuse synthetic zero sideslip measurement
 	void updateSideslip(estimator_aid_source1d_s &_aid_src_sideslip) const;
-	void fuseSideslip(estimator_aid_source1d_s &_aid_src_sideslip);
+	bool fuseSideslip(estimator_aid_source1d_s &_aid_src_sideslip);
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)

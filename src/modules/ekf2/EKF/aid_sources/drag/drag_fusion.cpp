@@ -57,6 +57,9 @@ void Ekf::controlDragFusion(const imuSample &imu_delayed)
 
 		if (_drag_buffer->pop_first_older_than(imu_delayed.time_us, &drag_sample)) {
 			fuseDrag(drag_sample);
+			if (!_aid_src_drag.fused && !_control_status.flags.fuse_aspd && !_control_status.flags.fuse_beta) {
+				resetWind();
+			}
 		}
 	}
 }
