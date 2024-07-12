@@ -93,53 +93,21 @@ public:
 	/**
 	 * Check if there is a new update.
 	 * */
-	bool updated()
-	{
-		if (advertised() && (hrt_elapsed_time(&_last_update) >= _interval_us)) {
-			return _subscription.updated();
-		}
-
-		return false;
-	}
+	bool updated();
 
 	/**
 	 * Copy the struct if updated.
 	 * @param dst The destination pointer where the struct will be copied.
 	 * @return true only if topic was updated and copied successfully.
 	 */
-	bool update(void *dst)
-	{
-		if (updated()) {
-			return copy(dst);
-		}
-
-		return false;
-	}
+	bool update(void *dst);
 
 	/**
 	 * Copy the struct
 	 * @param dst The destination pointer where the struct will be copied.
 	 * @return true only if topic was copied successfully.
 	 */
-	bool copy(void *dst)
-	{
-		if (_subscription.copy(dst)) {
-			const hrt_abstime now = hrt_absolute_time();
-
-			// make sure we don't set a timestamp before the timer started counting (now - _interval_us would wrap because it's unsigned)
-			if (now > _interval_us) {
-				// shift last update time forward, but don't let it get further behind than the interval
-				_last_update = math::constrain(_last_update + _interval_us, now - _interval_us, now);
-
-			} else {
-				_last_update = now;
-			}
-
-			return true;
-		}
-
-		return false;
-	}
+	bool copy(void *dst);
 
 	bool		valid() const { return _subscription.valid(); }
 
