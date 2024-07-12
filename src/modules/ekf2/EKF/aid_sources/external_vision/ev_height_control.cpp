@@ -38,8 +38,9 @@
 
 #include "ekf.h"
 
-void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-				const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src)
+void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+				estimator_aid_source1d_s &aid_src)
 {
 	static constexpr const char *AID_SRC_NAME = "EV height";
 
@@ -77,10 +78,12 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 	float measurement_var = math::max(pos_cov(2, 2), sq(_params.ev_pos_noise), sq(0.01f));
 
 #if defined(CONFIG_EKF2_GNSS)
+
 	// increase minimum variance if GPS active
 	if (_control_status.flags.gps_hgt) {
 		measurement_var = math::max(measurement_var, sq(_params.gps_pos_noise));
 	}
+
 #endif // CONFIG_EKF2_GNSS
 
 	const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
@@ -150,7 +153,8 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 				if (ev_sample.vel.isAllFinite() && (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))) {
 
 					// correct velocity for offset relative to IMU
-					const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+					const Vector3f angular_velocity = (imu_sample.delta_ang / imu_sample.delta_ang_dt) - _state.gyro_bias;
+					const Vector3f vel_offset_body = angular_velocity % pos_offset_body;
 					const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 
 					switch (ev_sample.vel_frame) {

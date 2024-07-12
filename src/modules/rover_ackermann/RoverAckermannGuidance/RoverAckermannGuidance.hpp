@@ -43,10 +43,11 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/home_position.h>
 
 // Standard library includes
 #include <matrix/matrix/math.hpp>
@@ -78,8 +79,9 @@ public:
 
 	/**
 	 * @brief Compute guidance for ackermann rover and return motor_setpoint for throttle and steering.
+	 * @param nav_state Vehicle navigation state
 	 */
-	motor_setpoint purePursuit();
+	motor_setpoint purePursuit(const int nav_state);
 
 	/**
 	 * @brief Update global/local waypoint coordinates and acceptance radius
@@ -143,6 +145,7 @@ private:
 	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
+	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 
 	// uORB publications
 	uORB::Publication<rover_ackermann_guidance_status_s> _rover_ackermann_guidance_status_pub{ORB_ID(rover_ackermann_guidance_status)};
@@ -156,18 +159,18 @@ private:
 	Vector2d _curr_pos{};
 	Vector2f _curr_pos_local{};
 	PID_t _pid_throttle;
-	hrt_abstime _time_stamp_last{0};
+	hrt_abstime _timestamp{0};
 
 	// Waypoint variables
 	Vector2d _curr_wp{};
 	Vector2d _next_wp{};
 	Vector2d _prev_wp{};
+	Vector2d _home_position{};
 	Vector2f _curr_wp_local{};
 	Vector2f _prev_wp_local{};
 	Vector2f _next_wp_local{};
 	float _acceptance_radius{0.5f};
-	float _prev_acc_rad{0.f};
-	bool _mission_finished{false};
+	float _prev_acceptance_radius{0.5f};
 
 	// Parameters
 	DEFINE_PARAMETERS(
@@ -177,7 +180,6 @@ private:
 		(ParamFloat<px4::params::RA_LOOKAHD_MAX>) _param_ra_lookahd_max,
 		(ParamFloat<px4::params::RA_LOOKAHD_MIN>) _param_ra_lookahd_min,
 		(ParamFloat<px4::params::RA_ACC_RAD_MAX>) _param_ra_acc_rad_max,
-		(ParamFloat<px4::params::RA_ACC_RAD_DEF>) _param_ra_acc_rad_def,
 		(ParamFloat<px4::params::RA_ACC_RAD_GAIN>) _param_ra_acc_rad_gain,
 		(ParamFloat<px4::params::RA_MISS_VEL_DEF>) _param_ra_miss_vel_def,
 		(ParamFloat<px4::params::RA_MISS_VEL_MIN>) _param_ra_miss_vel_min,
@@ -185,6 +187,8 @@ private:
 		(ParamFloat<px4::params::RA_SPEED_P>) _param_ra_p_speed,
 		(ParamFloat<px4::params::RA_SPEED_I>) _param_ra_i_speed,
 		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
+		(ParamFloat<px4::params::RA_MAX_JERK>) _param_ra_max_jerk,
+		(ParamFloat<px4::params::RA_MAX_ACCEL>) _param_ra_max_accel,
 		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad
 	)
 };

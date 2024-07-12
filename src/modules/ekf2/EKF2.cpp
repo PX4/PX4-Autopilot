@@ -497,6 +497,12 @@ void EKF2::Run()
 		vehicle_command_s vehicle_command;
 
 		if (_vehicle_command_sub.update(&vehicle_command)) {
+
+			vehicle_command_ack_s command_ack{};
+			command_ack.command = vehicle_command.command;
+			command_ack.target_system = vehicle_command.source_system;
+			command_ack.target_component = vehicle_command.source_component;
+
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
 				double latitude = vehicle_command.param5;
 				double longitude = vehicle_command.param6;
@@ -509,15 +515,24 @@ void EKF2::Run()
 					PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
 						 _instance, latitude, longitude, static_cast<double>(altitude));
 
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
 				} else {
 					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
 						_instance, latitude, longitude, static_cast<double>(altitude));
-				}
-			}
 
-			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
-				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning) &&
-				    PX4_ISFINITE(vehicle_command.param2) && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)) {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+				}
+
+				command_ack.timestamp = hrt_absolute_time();
+				_vehicle_command_ack_pub.publish(command_ack);
+
+			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
+
+				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning
+				     || (!_ekf.control_status_flags().in_air && !_ekf.control_status_flags().gps)) && PX4_ISFINITE(vehicle_command.param2)
+				    && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)
+				   ) {
 
 					const float measurement_delay_seconds = math::constrain(vehicle_command.param2, 0.0f,
 										kMaxDelaySecondsExternalPosMeasurement);
@@ -530,9 +545,21 @@ void EKF2::Run()
 					}
 
 					// TODO add check for lat and long validity
-					_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
-							accuracy, timestamp_observation);
+					if (_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
+							accuracy, timestamp_observation)
+					   ) {
+						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+					} else {
+						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
+					}
+
+				} else {
+					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED; // TODO: expand
 				}
+
+				command_ack.timestamp = hrt_absolute_time();
+				_vehicle_command_ack_pub.publish(command_ack);
 			}
 		}
 	}
@@ -1080,16 +1107,7 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 		_filter_information_event_changes++;
 	}
 
-	// warning events
-	uint32_t warning_events = _ekf.warning_event_status().value;
-	bool warning_event_updated = false;
-
-	if (warning_events != 0) {
-		warning_event_updated = true;
-		_filter_warning_event_changes++;
-	}
-
-	if (information_event_updated || warning_event_updated) {
+	if (information_event_updated) {
 		estimator_event_flags_s event_flags{};
 		event_flags.timestamp_sample = _ekf.time_delayed_us();
 
@@ -1112,27 +1130,12 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 		event_flags.reset_hgt_to_rng                    = _ekf.information_event_flags().reset_hgt_to_rng;
 		event_flags.reset_hgt_to_ev                     = _ekf.information_event_flags().reset_hgt_to_ev;
 
-		event_flags.warning_event_changes               = _filter_warning_event_changes;
-		event_flags.gps_quality_poor                    = _ekf.warning_event_flags().gps_quality_poor;
-		event_flags.gps_fusion_timout                   = _ekf.warning_event_flags().gps_fusion_timout;
-		event_flags.gps_data_stopped                    = _ekf.warning_event_flags().gps_data_stopped;
-		event_flags.gps_data_stopped_using_alternate    = _ekf.warning_event_flags().gps_data_stopped_using_alternate;
-		event_flags.height_sensor_timeout               = _ekf.warning_event_flags().height_sensor_timeout;
-		event_flags.stopping_navigation                 = _ekf.warning_event_flags().stopping_mag_use;
-		event_flags.invalid_accel_bias_cov_reset        = _ekf.warning_event_flags().invalid_accel_bias_cov_reset;
-		event_flags.bad_yaw_using_gps_course            = _ekf.warning_event_flags().bad_yaw_using_gps_course;
-		event_flags.stopping_mag_use                    = _ekf.warning_event_flags().stopping_mag_use;
-		event_flags.vision_data_stopped                 = _ekf.warning_event_flags().vision_data_stopped;
-		event_flags.emergency_yaw_reset_mag_stopped     = _ekf.warning_event_flags().emergency_yaw_reset_mag_stopped;
-		event_flags.emergency_yaw_reset_gps_yaw_stopped = _ekf.warning_event_flags().emergency_yaw_reset_gps_yaw_stopped;
-
 		event_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_event_flags_pub.update(event_flags);
 
 		_last_event_flags_publish = event_flags.timestamp;
 
 		_ekf.clear_information_events();
-		_ekf.clear_warning_events();
 
 	} else if ((_last_event_flags_publish != 0) && (timestamp >= _last_event_flags_publish + 1_s)) {
 		// continue publishing periodically
@@ -1226,6 +1229,7 @@ void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
 	estimator_gps_status.check_fail_max_vert_drift   = _ekf.gps_check_fail_status_flags().vdrift;
 	estimator_gps_status.check_fail_max_horz_spd_err = _ekf.gps_check_fail_status_flags().hspeed;
 	estimator_gps_status.check_fail_max_vert_spd_err = _ekf.gps_check_fail_status_flags().vspeed;
+	estimator_gps_status.check_fail_spoofed_gps      = _ekf.gps_check_fail_status_flags().spoofed;
 
 	estimator_gps_status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_gps_status_pub.publish(estimator_gps_status);
@@ -1616,8 +1620,19 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Distance to bottom surface (ground) in meters, must be positive
 	lpos.dist_bottom = math::max(_ekf.getHagl(), 0.f);
+	lpos.dist_bottom_var = _ekf.getTerrainVariance();
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
-	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
+
+	lpos.dist_bottom_sensor_bitfield = vehicle_local_position_s::DIST_BOTTOM_SENSOR_NONE;
+
+	if (_ekf.control_status_flags().rng_terrain) {
+		lpos.dist_bottom_sensor_bitfield |= vehicle_local_position_s::DIST_BOTTOM_SENSOR_RANGE;
+	}
+
+	if (_ekf.control_status_flags().opt_flow_terrain) {
+		lpos.dist_bottom_sensor_bitfield |= vehicle_local_position_s::DIST_BOTTOM_SENSOR_FLOW;
+	}
+
 #endif // CONFIG_EKF2_TERRAIN
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
@@ -1910,6 +1925,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_ev_yaw_fault            = _ekf.control_status_flags().ev_yaw_fault;
 		status_flags.cs_mag_heading_consistent  = _ekf.control_status_flags().mag_heading_consistent;
 		status_flags.cs_aux_gpos                = _ekf.control_status_flags().aux_gpos;
+		status_flags.cs_rng_terrain    = _ekf.control_status_flags().rng_terrain;
+		status_flags.cs_opt_flow_terrain    = _ekf.control_status_flags().opt_flow_terrain;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2016,7 +2033,7 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 		_ekf.getFlowGyro().copyTo(flow_vel.gyro_rate);
 
 		_ekf.getFlowGyroBias().copyTo(flow_vel.gyro_bias);
-		_ekf.getRefBodyRate().copyTo(flow_vel.ref_gyro);
+		_ekf.getFlowRefBodyRate().copyTo(flow_vel.ref_gyro);
 
 		flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
@@ -2420,6 +2437,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.yaw = vehicle_gps_position.heading, //TODO: move to different message
 			.yaw_acc = vehicle_gps_position.heading_accuracy,
 			.yaw_offset = vehicle_gps_position.heading_offset,
+			.spoofed = vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_MULTIPLE,
 		};
 
 		_ekf.setGpsData(gnss_sample);
@@ -2634,8 +2652,7 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 				&& (_ekf.fault_status().value == 0)
 				&& !_ekf.fault_status_flags().bad_acc_bias
 				&& !_ekf.fault_status_flags().bad_acc_clipping
-				&& !_ekf.fault_status_flags().bad_acc_vertical
-				&& !_ekf.warning_event_flags().invalid_accel_bias_cov_reset;
+				&& !_ekf.fault_status_flags().bad_acc_vertical;
 
 	const bool learning_valid = bias_valid && !_ekf.accel_bias_inhibited();
 

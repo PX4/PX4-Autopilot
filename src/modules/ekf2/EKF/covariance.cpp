@@ -76,14 +76,17 @@ void Ekf::initialiseCovariance()
 	if (_control_status.flags.gps_hgt) {
 		z_pos_var = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
 	}
+
 #else
 	const float xy_pos_var = sq(fmaxf(_params.pos_noaid_noise, 0.01f));
 #endif
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
+
 	if (_control_status.flags.rng_hgt) {
 		z_pos_var = sq(fmaxf(_params.range_noise, 0.01f));
 	}
+
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	P.uncorrelateCovarianceSetVariance<State::pos.dof>(State::pos.idx, Vector3f(xy_pos_var, xy_pos_var, z_pos_var));
@@ -131,14 +134,14 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	P = sym::PredictCovariance(_state.vector(), P,
-				   imu_delayed.delta_vel / math::max(imu_delayed.delta_vel_dt, FLT_EPSILON), accel_var,
-				   imu_delayed.delta_ang / math::max(imu_delayed.delta_ang_dt, FLT_EPSILON), gyro_var,
+				   imu_delayed.delta_vel / imu_delayed.delta_vel_dt, accel_var,
+				   imu_delayed.delta_ang / imu_delayed.delta_ang_dt, gyro_var,
 				   dt);
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
 
-	// gyro bias: add process noise unless state is inhibited
+	// gyro bias: add process noise
 	{
 		const float gyro_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
 		const float gyro_bias_process_noise = sq(gyro_bias_sig);
@@ -146,13 +149,13 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
 			const unsigned i = State::gyro_bias.idx + index;
 
-			if (!_gyro_bias_inhibit[index]) {
+			if (P(i, i) < gyro_var) {
 				P(i, i) += gyro_bias_process_noise;
 			}
 		}
 	}
 
-	// accel bias: add process noise unless state is inhibited
+	// accel bias: add process noise
 	{
 		const float accel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
 		const float accel_bias_process_noise = sq(accel_bias_sig);
@@ -160,7 +163,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		for (unsigned index = 0; index < State::accel_bias.dof; index++) {
 			const unsigned i = State::accel_bias.idx + index;
 
-			if (!_accel_bias_inhibit[index]) {
+			if (P(i, i) < accel_var(index)) {
 				P(i, i) += accel_bias_process_noise;
 			}
 		}
@@ -191,13 +194,16 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 			P(i, i) += mag_B_process_noise;
 		}
 	}
+
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 
 #if defined(CONFIG_EKF2_WIND)
+
 	if (_control_status.flags.wind) {
 		// wind vel: add process noise
-		float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f, 1.f) * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
+		float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f,
+					    1.f) * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
 		float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
 
 		for (unsigned index = 0; index < State::wind_vel.dof; index++) {
@@ -205,18 +211,22 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 			P(i, i) += wind_vel_process_noise;
 		}
 	}
+
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_TERRAIN)
+
 	if (_height_sensor_ref != HeightSensor::RANGE) {
 		// predict the state variance growth where the state is the vertical position of the terrain underneath the vehicle
 		// process noise due to errors in vehicle height estimate
 		float terrain_process_noise = sq(imu_delayed.delta_vel_dt * _params.terrain_p_noise);
 
 		// process noise due to terrain gradient
-		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(1)));
+		terrain_process_noise += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(
+						 1)));
 		P(State::terrain.idx, State::terrain.idx) += terrain_process_noise;
 	}
+
 #endif // CONFIG_EKF2_TERRAIN
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
@@ -244,16 +254,20 @@ void Ekf::constrainStateVariances()
 	constrainStateVarLimitRatio(State::accel_bias, kAccelBiasVarianceMin, 1.f);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
+
 	if (_control_status.flags.mag) {
 		constrainStateVarLimitRatio(State::mag_I, kMagVarianceMin, 1.f);
 		constrainStateVarLimitRatio(State::mag_B, kMagVarianceMin, 1.f);
 	}
+
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
+
 	if (_control_status.flags.wind) {
 		constrainStateVarLimitRatio(State::wind_vel, 1e-6f, 1e6f);
 	}
+
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_TERRAIN)

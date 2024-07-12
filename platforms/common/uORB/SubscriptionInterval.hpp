@@ -125,8 +125,16 @@ public:
 	{
 		if (_subscription.copy(dst)) {
 			const hrt_abstime now = hrt_absolute_time();
-			// shift last update time forward, but don't let it get further behind than the interval
-			_last_update = math::constrain(_last_update + _interval_us, now - _interval_us, now);
+
+			// make sure we don't set a timestamp before the timer started counting (now - _interval_us would wrap because it's unsigned)
+			if (now > _interval_us) {
+				// shift last update time forward, but don't let it get further behind than the interval
+				_last_update = math::constrain(_last_update + _interval_us, now - _interval_us, now);
+
+			} else {
+				_last_update = now;
+			}
+
 			return true;
 		}
 
@@ -160,7 +168,7 @@ public:
 protected:
 
 	Subscription	_subscription;
-	uint64_t	_last_update{0};	// last update in microseconds
+	uint64_t	_last_update{0};	// last subscription update in microseconds
 	uint32_t	_interval_us{0};	// maximum update interval in microseconds
 
 };

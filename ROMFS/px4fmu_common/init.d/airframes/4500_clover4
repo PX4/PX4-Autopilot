@@ -8,6 +8,7 @@
 # @maintainer Oleg Kalachev <okalachev@gmail.com>
 #
 # @board px4_fmu-v2 exclude
+# @board px4_fmu-v4pro exclude
 # @board bitcraze_crazyflie exclude
 #
 

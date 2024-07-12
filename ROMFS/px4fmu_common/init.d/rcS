@@ -217,25 +217,31 @@ else
 	fi
 	unset BOARD_RC_DEFAULTS
 
-	#
-	# Set parameters and env variables for selected SYS_AUTOSTART.
-	#
-	set AUTOSTART_PATH etc/init.d/rc.autostart
+	# Load airframe configuration based on SYS_AUTOSTART parameter
 	if ! param compare SYS_AUTOSTART 0
 	then
-		if param greater SYS_AUTOSTART 1000000
+		# rc.autostart directly run the right airframe script which sets the VEHICLE_TYPE
+		# Look for airframe in ROMFS
+		. ${R}etc/init.d/rc.autostart
+
+		if [ ${VEHICLE_TYPE} == none ]
 		then
-			# Use external startup file
+			# Look for airframe on SD card
 			if [ $SDCARD_AVAILABLE = yes ]
 			then
-				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
+				. ${R}etc/init.d/rc.autostart_ext
 			else
-				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
+				echo "ERROR [init] SD card not mounted - can't load external airframe"
 			fi
 		fi
-		. ${R}$AUTOSTART_PATH
+
+		if [ ${VEHICLE_TYPE} == none ]
+		then
+			echo "ERROR [init] No airframe file found for SYS_AUTOSTART value"
+			param set SYS_AUTOSTART 0
+			tune_control play error
+		fi
 	fi
-	unset AUTOSTART_PATH
 
 	# Check parameter version and reset upon airframe configuration version mismatch.
 	# Reboot required because "param reset_all" would reset all "param set" lines from airframe.

@@ -38,6 +38,7 @@
 
 void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
+#if defined(MODULE_NAME)
     if (_aux_global_position_sub.updated()) {
         vehicle_global_position_s aux_global_position{};
         _aux_global_position_sub.copy(&aux_global_position);
@@ -54,12 +55,15 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
         sample.lat_lon_reset_counter = aux_global_position.lat_lon_reset_counter;
 
         _aux_global_position_buffer.push(sample);
+
         _time_last_buffer_push = imu_delayed.time_us;
     }
+#endif // MODULE_NAME
 
     AuxGlobalPositionSample sample;
 
     if (_aux_global_position_buffer.pop_first_older_than(imu_delayed.time_us, &sample)) {
+
         if (!(_param_ekf2_agp_ctrl.get() & static_cast<int32_t>(Ctrl::HPOS))) {
             return;
         }
@@ -126,14 +130,21 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
             break;
         }
 
+#if defined(MODULE_NAME)
         aid_src.timestamp = hrt_absolute_time();
         _estimator_aid_src_aux_global_position_pub.publish(aid_src);
+
         _test_ratio_filtered = math::max(fabsf(aid_src.test_ratio_filtered[0]), fabsf(aid_src.test_ratio_filtered[1]));
+#endif // MODULE_NAME
+
     } else if ((_state != State::stopped) && isTimedOut(_time_last_buffer_push, imu_delayed.time_us, (uint64_t)5e6)) {
         ekf.disableControlStatusAuxGpos();
         _state = State::stopped;
         ECL_WARN("Aux global position data stopped");
     }
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+}
+
 }
 
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION

@@ -318,6 +318,22 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 		_gps_was_fused = ekf_gps_fusion;
 
+		if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED)) {
+			if (!_gnss_spoofed) {
+				_gnss_spoofed = true;
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "GNSS signal spoofed\t");
+				}
+
+				events::send(events::ID("check_estimator_gnss_warning_spoofing"), {events::Log::Alert, events::LogInternal::Info},
+					     "GNSS signal spoofed");
+			}
+
+		} else {
+			_gnss_spoofed = false;
+		}
+
 		if (!context.isArmed() && ekf_gps_check_fail) {
 			NavModes required_groups_gps = required_groups;
 			events::Log log_level = events::Log::Error;
@@ -449,6 +465,18 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
 							    events::ID("check_estimator_gps_vert_speed_drift_too_high"),
 							    log_level, "GPS Vertical Speed Drift too high");
+
+			} else if (estimator_status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_SPOOFED)) {
+				message = "Preflight%s: GPS signal spoofed";
+				/* EVENT
+				 * @description
+				 * <profile name="dev">
+				 * This check can be configured via <param>EKF2_GPS_CHECK</param> parameter.
+				 * </profile>
+				 */
+				reporter.armingCheckFailure(required_groups_gps, health_component_t::gps,
+							    events::ID("check_estimator_gps_spoofed"),
+							    log_level, "GPS signal spoofed");
 
 			} else {
 				if (!ekf_gps_fusion) {

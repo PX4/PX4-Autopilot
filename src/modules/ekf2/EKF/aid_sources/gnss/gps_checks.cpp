@@ -48,15 +48,16 @@
 #include <mathlib/mathlib.h>
 
 // GPS pre-flight check bit locations
-#define MASK_GPS_NSATS  (1<<0)
-#define MASK_GPS_PDOP   (1<<1)
-#define MASK_GPS_HACC   (1<<2)
-#define MASK_GPS_VACC   (1<<3)
-#define MASK_GPS_SACC   (1<<4)
-#define MASK_GPS_HDRIFT (1<<5)
-#define MASK_GPS_VDRIFT (1<<6)
-#define MASK_GPS_HSPD   (1<<7)
-#define MASK_GPS_VSPD   (1<<8)
+#define MASK_GPS_NSATS   (1<<0)
+#define MASK_GPS_PDOP    (1<<1)
+#define MASK_GPS_HACC    (1<<2)
+#define MASK_GPS_VACC    (1<<3)
+#define MASK_GPS_SACC    (1<<4)
+#define MASK_GPS_HDRIFT  (1<<5)
+#define MASK_GPS_VDRIFT  (1<<6)
+#define MASK_GPS_HSPD    (1<<7)
+#define MASK_GPS_VSPD    (1<<8)
+#define MASK_GPS_SPOOFED (1<<9)
 
 void Ekf::collect_gps(const gnssSample &gps)
 {
@@ -125,6 +126,7 @@ void Ekf::collect_gps(const gnssSample &gps)
 					_wmm_gps_time_last_set = _time_delayed_us;
 				}
 			}
+
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(gps.lat));
@@ -136,6 +138,8 @@ void Ekf::collect_gps(const gnssSample &gps)
 
 bool Ekf::runGnssChecks(const gnssSample &gps)
 {
+	_gps_check_fail_status.flags.spoofed = gps.spoofed;
+
 	// Check the fix type
 	_gps_check_fail_status.flags.fix = (gps.fix_type < 3);
 
@@ -154,7 +158,8 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	constexpr float filt_time_const = 10.0f;
-	const float dt = math::constrain(float(int64_t(gps.time_us) - int64_t(_gps_pos_prev.getProjectionReferenceTimestamp())) * 1e-6f, 0.001f, filt_time_const);
+	const float dt = math::constrain(float(int64_t(gps.time_us) - int64_t(_gps_pos_prev.getProjectionReferenceTimestamp()))
+					 * 1e-6f, 0.001f, filt_time_const);
 	const float filter_coef = dt / filt_time_const;
 
 	// The following checks are only valid when the vehicle is at rest
@@ -240,7 +245,8 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 		(_gps_check_fail_status.flags.hdrift  && (_params.gps_check_mask & MASK_GPS_HDRIFT)) ||
 		(_gps_check_fail_status.flags.vdrift  && (_params.gps_check_mask & MASK_GPS_VDRIFT)) ||
 		(_gps_check_fail_status.flags.hspeed  && (_params.gps_check_mask & MASK_GPS_HSPD)) ||
-		(_gps_check_fail_status.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD))
+		(_gps_check_fail_status.flags.vspeed  && (_params.gps_check_mask & MASK_GPS_VSPD)) ||
+		(_gps_check_fail_status.flags.spoofed && (_params.gps_check_mask & MASK_GPS_SPOOFED))
 	) {
 		_last_gps_fail_us = _time_delayed_us;
 		return false;

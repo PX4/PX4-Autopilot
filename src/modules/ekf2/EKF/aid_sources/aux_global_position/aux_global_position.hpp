@@ -96,8 +96,8 @@ private:
 	uint64_t _time_last_buffer_push{0};
 
 	enum class Ctrl : uint8_t {
-		HPOS  = (1<<0),
-		VPOS  = (1<<1)
+		HPOS  = (1 << 0),
+		VPOS  = (1 << 1)
 	};
 
 	enum class State {

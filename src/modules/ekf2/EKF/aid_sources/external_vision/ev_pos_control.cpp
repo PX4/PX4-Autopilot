@@ -41,8 +41,9 @@
 static constexpr const char *EV_AID_SRC_NAME = "EV position";
 
 
-void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-			     const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src)
+void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+			     const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+			     estimator_aid_source2d_s &aid_src)
 {
 	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
 					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
@@ -161,12 +162,12 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 	const Vector2f pos_obs_var = measurement_var + _ev_pos_b_est.getBiasVar();
 
 	updateAidSourceStatus(aid_src,
-				 ev_sample.time_us,                                      // sample timestamp
-				 position,                                               // observation
-				 pos_obs_var,                                            // observation variance
-				 Vector2f(_state.pos) - position,                        // innovation
-				 Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
-				 math::max(_params.ev_pos_innov_gate, 1.f));             // innovation gate
+			      ev_sample.time_us,                                      // sample timestamp
+			      position,                                               // observation
+			      pos_obs_var,                                            // observation variance
+			      Vector2f(_state.pos) - position,                        // innovation
+			      Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
+			      math::max(_params.ev_pos_innov_gate, 1.f));             // innovation gate
 
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the vertical position innovation
@@ -205,7 +206,8 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 	}
 }
 
-void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src)
+void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var,
+			   estimator_aid_source2d_s &aid_src)
 {
 	// activate fusion
 	// TODO:  (_params.position_sensor_ref == PositionSensor::EV)
@@ -229,7 +231,8 @@ void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurem
 	_control_status.flags.ev_pos = true;
 }
 
-void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src)
+void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient,
+			    bool reset, estimator_aid_source2d_s &aid_src)
 {
 	if (reset) {
 
