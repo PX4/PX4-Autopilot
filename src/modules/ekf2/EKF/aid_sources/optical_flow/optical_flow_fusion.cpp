@@ -72,7 +72,8 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 		} else if (index == 1) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			const float R_LOS = _aid_src_optical_flow.observation_variance[1];
-			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, FLT_EPSILON, &_aid_src_optical_flow.innovation_variance[1], &H);
+			const float epsilon = 1e-3f;
+			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, epsilon, &_aid_src_optical_flow.innovation_variance[1], &H);
 
 			// recalculate the innovation using the updated state
 			const Vector3f flow_gyro_corrected = _flow_sample_delayed.gyro_rate - _flow_gyro_bias;
