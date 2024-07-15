@@ -333,7 +333,7 @@ float Ekf::getHeadingInnovationTestRatio() const
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-	if (_control_status.flags.gps_yaw) {
+	if (_control_status.flags.gnss_yaw) {
 		test_ratio = math::max(test_ratio, fabsf(_aid_src_gnss_yaw.test_ratio_filtered));
 	}
 

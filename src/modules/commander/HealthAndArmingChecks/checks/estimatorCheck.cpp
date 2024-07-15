@@ -623,7 +623,7 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 			}
 		}
 
-		if (estimator_status_flags.cs_gps_yaw_fault) {
+		if (estimator_status_flags.cs_gnss_yaw_fault) {
 			/* EVENT
 			 * @description
 			 * Land now

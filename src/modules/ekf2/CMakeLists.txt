@@ -175,7 +175,7 @@ if(CONFIG_EKF2_GNSS)
 	)
 
 	if(CONFIG_EKF2_GNSS_YAW)
-		list(APPEND EKF_SRCS EKF/aid_sources/gnss/gps_yaw_fusion.cpp)
+		list(APPEND EKF_SRCS EKF/aid_sources/gnss/gnss_yaw_control.cpp)
 	endif()
 
 	list(APPEND EKF_LIBS yaw_estimator)

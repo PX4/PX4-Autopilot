@@ -153,7 +153,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 							       && !_control_status.flags.mag_fault
 							       && !_control_status.flags.mag_field_disturbed
 							       && !_control_status.flags.ev_yaw
-							       && !_control_status.flags.gps_yaw;
+							       && !_control_status.flags.gnss_yaw;
 
 			_control_status.flags.mag_3D = common_conditions_passing
 						       && (_params.mag_fusion_type == MagFuseType::AUTO)
