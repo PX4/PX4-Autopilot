@@ -198,11 +198,11 @@ private:
 	// vehicle_local_position: reset counters
 	vehicle_local_position_s _local_position_last{};
 	matrix::Vector2f _delta_xy_reset{};
-	float _delta_hagl_reset{0.f};
+	float _delta_z_reset{0.f};
 	matrix::Vector2f _delta_vxy_reset{};
 	float _delta_vz_reset{0.f};
 	float _delta_heading_reset{0};
-	float _delta_z_reset{0.f};
+	float _delta_hagl_reset{0.f};
 
 	uint8_t _xy_reset_counter{0};
 	uint8_t _z_reset_counter{0};
@@ -221,6 +221,7 @@ private:
 	double _delta_lon_reset{0};
 	float _delta_alt_reset{0.f};
 	float _delta_terrain_reset{0.f};
+
 	uint8_t _lat_lon_reset_counter{0};
 	uint8_t _alt_reset_counter{0};
 	uint8_t _terrain_reset_counter{0};
