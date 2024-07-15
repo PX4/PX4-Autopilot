@@ -26,12 +26,12 @@ bool cs_mag_fault             # 18 - true when the magnetometer has been declare
 bool cs_fuse_aspd             # 19 - true when airspeed measurements are being fused
 bool cs_gnd_effect            # 20 - true when protection from ground effect induced static pressure rise is active
 bool cs_rng_stuck             # 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
-bool cs_gps_yaw               # 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
+bool cs_gnss_yaw              # 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
 bool cs_mag_aligned_in_flight # 23 - true when the in-flight mag field alignment has been completed
 bool cs_ev_vel                # 24 - true when local frame velocity data fusion from external vision measurements is intended
 bool cs_synthetic_mag_z       # 25 - true when we are using a synthesized measurement for the magnetometer Z component
 bool cs_vehicle_at_rest       # 26 - true when the vehicle is at rest
-bool cs_gps_yaw_fault         # 27 - true when the GNSS heading has been declared faulty and is no longer being used
+bool cs_gnss_yaw_fault        # 27 - true when the GNSS heading has been declared faulty and is no longer being used
 bool cs_rng_fault             # 28 - true when the range finder has been declared faulty and is no longer being used
 bool cs_inertial_dead_reckoning # 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 bool cs_wind_dead_reckoning     # 30 - true if we are navigationg reliant on wind relative measurements
