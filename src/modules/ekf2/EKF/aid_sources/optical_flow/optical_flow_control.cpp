@@ -71,8 +71,6 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					    : _params.flow_qual_min_gnd;
 
 		const bool is_quality_good = (flow_sample.quality >= min_quality);
-		const bool is_magnitude_good = flow_sample.flow_rate.isAllFinite()
-					       && !flow_sample.flow_rate.longerThan(_flow_max_rate);
 
 		bool is_tilt_good = true;
 
@@ -120,6 +118,10 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		const bool is_within_max_sensor_dist = getHagl() <= _flow_max_distance;
 
+		const bool is_magnitude_good = flow_sample.flow_rate.isAllFinite()
+					       && !flow_sample.flow_rate.longerThan(_flow_max_rate)
+					       && !flow_compensated.longerThan(_flow_max_rate);
+
 		const bool continuing_conditions_passing = (_params.flow_ctrl == 1)
 				&& _control_status.flags.tilt_align
 				&& is_within_max_sensor_dist;
@@ -142,7 +144,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
-					if (is_flow_required && is_quality_good) {
+					if (is_flow_required && is_quality_good && is_magnitude_good) {
 						resetFlowFusion();
 
 						if (_control_status.flags.opt_flow_terrain && !isTerrainEstimateValid()) {

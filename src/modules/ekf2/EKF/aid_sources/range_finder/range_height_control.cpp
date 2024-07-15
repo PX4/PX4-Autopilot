@@ -232,21 +232,20 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 {
-	aid_src.observation = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
-	aid_src.innovation = getHagl() - aid_src.observation;
+	const float measurement = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
+	const float measurement_variance = getRngVar();
 
-	const float observation_variance = getRngVar();
 	float innovation_variance;
-	sym::ComputeHaglInnovVar(P, observation_variance, &innovation_variance);
+	sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
 
 	const float innov_gate = math::max(_params.range_innov_gate, 1.f);
 	updateAidSourceStatus(aid_src,
-			      _range_sensor.getSampleAddress()->time_us,                           // sample timestamp
-			      math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance), // observation
-			      observation_variance,                                                // observation variance
-			      getHagl() - aid_src.observation,                                     // innovation
-			      innovation_variance,                                                 // innovation variance
-			      math::max(_params.range_innov_gate, 1.f));                            // innovation gate
+			      _range_sensor.getSampleAddress()->time_us, // sample timestamp
+			      measurement,                               // observation
+			      measurement_variance,                      // observation variance
+			      getHagl() - measurement,                   // innovation
+			      innovation_variance,                       // innovation variance
+			      innov_gate);                               // innovation gate
 
 	// z special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
