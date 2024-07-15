@@ -122,7 +122,10 @@ public:
 	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
 
 	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
-	const Vector2f &getFlowVelNE() const { return _flow_vel_ne; }
+	Vector2f getFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody()(0), getFlowVelBody()(1), 0.f)); }
+
+	const Vector2f &getFilteredFlowVelBody() const { return _flow_vel_body_lpf.getState(); }
+	Vector2f getFilteredFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody()(0), getFilteredFlowVelBody()(1), 0.f)); }
 
 	const Vector2f &getFlowCompensated() const { return _flow_rate_compensated; }
 	const Vector2f &getFlowUncompensated() const { return _flow_sample_delayed.flow_rate; }
@@ -632,9 +635,11 @@ private:
 
 	// optical flow processing
 	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
-	Vector2f _flow_vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
-	Vector2f _flow_vel_ne{};		///< velocity from corrected flow measurement (local frame) (m/s)
 	Vector3f _ref_body_rate{};
+
+	Vector2f _flow_vel_body{};                      ///< velocity from corrected flow measurement (body frame)(m/s)
+	AlphaFilter<Vector2f> _flow_vel_body_lpf{0.1f}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
+	uint32_t _flow_counter{0};                      ///< number of flow samples read for initialization
 
 	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
 #endif // CONFIG_EKF2_OPTICAL_FLOW

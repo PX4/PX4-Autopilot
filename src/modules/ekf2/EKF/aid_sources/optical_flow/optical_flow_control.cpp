@@ -122,8 +122,16 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		const float range = predictFlowRange();
 		_flow_vel_body(0) = -flow_compensated(1) * range;
 		_flow_vel_body(1) =  flow_compensated(0) * range;
-		_flow_vel_ne = Vector2f(_R_to_earth * Vector3f(_flow_vel_body(0), _flow_vel_body(1), 0.f));
 
+		if (_flow_counter == 0) {
+			_flow_vel_body_lpf.reset(_flow_vel_body);
+			_flow_counter = 1;
+
+		} else {
+
+			_flow_vel_body_lpf.update(_flow_vel_body);
+			_flow_counter++;
+		}
 
 		// Check if we are in-air and require optical flow to control position drift
 		bool is_flow_required = _control_status.flags.in_air
@@ -144,6 +152,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				&& is_quality_good
 				&& is_magnitude_good
 				&& is_tilt_good
+				&& (_flow_counter > 10)
 				&& (isTerrainEstimateValid() || isHorizontalAidingActive())
 				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
@@ -219,7 +228,7 @@ void Ekf::resetFlowFusion()
 	_information_events.flags.reset_vel_to_flow = true;
 
 	const float flow_vel_var = sq(predictFlowRange()) * calcOptFlowMeasVar(_flow_sample_delayed);
-	resetHorizontalVelocityTo(_flow_vel_ne, flow_vel_var);
+	resetHorizontalVelocityTo(getFilteredFlowVelNE(), flow_vel_var);
 
 	// reset position, estimate is relative to initial position in this mode, so we start with zero error
 	if (!_control_status.flags.in_air) {
@@ -273,6 +282,8 @@ void Ekf::stopFlowFusion()
 
 		_innov_check_fail_status.flags.reject_optflow_X = false;
 		_innov_check_fail_status.flags.reject_optflow_Y = false;
+
+		_flow_counter = 0;
 	}
 }
 
