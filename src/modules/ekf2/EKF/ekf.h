@@ -104,9 +104,6 @@ public:
 	float getTerrainVertPos() const { return _state.terrain; };
 	float getHagl() const { return _state.terrain - _state.pos(2); }
 
-	// get the number of times the vertical terrain position has been reset
-	uint8_t getTerrainVertPosResetCounter() const { return _terrain_vpos_reset_counter; };
-
 	// get the terrain variance
 	float getTerrainVariance() const { return P(State::terrain.idx, State::terrain.idx); }
 
@@ -358,6 +355,13 @@ public:
 		*counter = _state_reset_status.reset_count.posD;
 	}
 
+	uint8_t get_hagl_reset_count() const { return _state_reset_status.reset_count.hagl; }
+	void get_hagl_reset(float *delta, uint8_t *counter) const
+	{
+		*delta = _state_reset_status.hagl_change;
+		*counter = _state_reset_status.reset_count.hagl;
+	}
+
 	// return the amount the local vertical velocity changed in the last reset and the number of reset events
 	uint8_t get_velD_reset_count() const { return _state_reset_status.reset_count.velD; }
 	void get_velD_reset(float *delta, uint8_t *counter) const
@@ -551,6 +555,7 @@ private:
 		uint8_t posNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
 		uint8_t posD{0};	///< number of vertical position reset events (allow to wrap if count exceeds 255)
 		uint8_t quat{0};	///< number of quaternion reset events (allow to wrap if count exceeds 255)
+		uint8_t hagl{0};	///< number of height above ground level reset events (allow to wrap if count exceeds 255)
 	};
 
 	struct StateResets {
@@ -559,6 +564,7 @@ private:
 		Vector2f posNE_change;	///< North, East position change due to last reset (m)
 		float posD_change;	///< Down position change due to last reset (m)
 		Quatf quat_change;	///< quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
+		float hagl_change;	///< Height above ground level change due to last reset (m)
 
 		StateResetCounts reset_count{};
 	};
@@ -599,8 +605,6 @@ private:
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Terrain height state estimation
-	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
-
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
 #endif // CONFIG_EKF2_TERRAIN
 

@@ -267,9 +267,23 @@ float Ekf::getRngVar() const
 
 void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
 {
-	_state.terrain = _state.pos(2) + aid_src.observation;
+	const float new_terrain = _state.pos(2) + aid_src.observation;
+	const float delta_terrain = new_terrain - _state.terrain;
+
+	_state.terrain = new_terrain;
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, aid_src.observation_variance);
-	_terrain_vpos_reset_counter++;
+
+	// record the state change
+	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
+		_state_reset_status.hagl_change = delta_terrain;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.hagl_change += delta_terrain;
+	}
+
+	_state_reset_status.reset_count.hagl++;
+
 
 	aid_src.time_last_fuse = _time_delayed_us;
 }
