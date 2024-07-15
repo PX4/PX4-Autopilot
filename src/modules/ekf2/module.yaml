@@ -149,7 +149,7 @@ parameters:
         7: Max horizontal speed (EKF2_REQ_HDRIFT)
         8: Max vertical velocity discrepancy (EKF2_REQ_VDRIFT)
         9: Spoofing check
-      default: 245
+      default: 1023
       min: 0
       max: 1023
     EKF2_REQ_EPH:
