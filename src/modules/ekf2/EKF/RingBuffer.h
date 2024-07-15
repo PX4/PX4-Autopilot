@@ -119,38 +119,38 @@ public:
 
 	bool pop_first_older_than(const uint64_t &timestamp, data_type *sample)
 	{
-		// start looking from newest observation data
+		bool found = false;
+
 		for (uint8_t i = 0; i < _size; i++) {
+			// start looking from newest observation data
 			int index = (_head - i);
 			index = index < 0 ? _size + index : index;
 
-			if (timestamp >= _buffer[index].time_us && timestamp < _buffer[index].time_us + (uint64_t)1e5) {
-				*sample = _buffer[index];
+			if ((_buffer[index].time_us != 0) && (timestamp >= _buffer[index].time_us)) {
 
-				// Now we can set the tail to the item which
-				// comes after the one we removed since we don't
-				// want to have any older data in the buffer
-				if (index == _head) {
-					_tail = _head;
-					_first_write = true;
+				if (!found && (timestamp < _buffer[index].time_us + 100'000)) {
+					*sample = _buffer[index];
 
-				} else {
-					_tail = (index + 1) % _size;
+					// Now we can set the tail to the item which
+					// comes after the one we removed since we don't
+					// want to have any older data in the buffer
+					if (index == _head) {
+						_tail = _head;
+						_first_write = true;
+
+					} else {
+						_tail = (index + 1) % _size;
+					}
+
+					found = true;
 				}
 
+				// invalidate any older data
 				_buffer[index].time_us = 0;
-
-				return true;
-			}
-
-			if (index == _tail) {
-				// we have reached the tail and haven't got a
-				// match
-				return false;
 			}
 		}
 
-		return false;
+		return found;
 	}
 
 	int get_used_size() const { return sizeof(*this) + sizeof(data_type) * entries(); }
