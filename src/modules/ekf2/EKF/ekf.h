@@ -533,7 +533,9 @@ public:
 	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
 	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in degrees
 	*/
-	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy, float wind_direction_accuracy);
+	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
+					    float wind_direction_accuracy);
+	bool _external_wind_init{false};
 
 	void updateParameters();
 

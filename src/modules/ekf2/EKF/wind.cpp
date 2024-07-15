@@ -39,7 +39,8 @@
 #include "ekf.h"
 #include <ekf_derivation/generated/compute_wind_init_and_cov_from_wind_speed_and_direction.h>
 
-void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy, float wind_direction_accuracy)
+void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
+		float wind_direction_accuracy)
 {
 	if (!_control_status.flags.in_air) {
 
@@ -54,10 +55,12 @@ void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction,
 		Vector2f wind;
 		Vector2f wind_var;
 
-		sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_var, wind_direction_var, &wind, &wind_var);
+		sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_var,
+				wind_direction_var, &wind, &wind_var);
 
 		ECL_INFO("reset wind states to external observation");
 		_information_events.flags.reset_wind_to_ext_obs = true;
+		_external_wind_init = true;
 
 		resetWindTo(wind, wind_var);
 
@@ -69,11 +72,13 @@ void Ekf::resetWindTo(const Vector2f &wind, const Vector2f &wind_var)
 	_state.wind_vel = wind;
 
 	if (PX4_ISFINITE(wind_var(0))) {
-		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx, math::min(sq(_params.initial_wind_uncertainty), wind_var(0)));
+		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx,
+						      math::min(sq(_params.initial_wind_uncertainty), wind_var(0)));
 	}
 
 	if (PX4_ISFINITE(wind_var(1))) {
-		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx + 1, math::min(sq(_params.initial_wind_uncertainty), wind_var(1)));
+		P.uncorrelateCovarianceSetVariance<1>(State::wind_vel.idx + 1,
+						      math::min(sq(_params.initial_wind_uncertainty), wind_var(1)));
 	}
 }
 
@@ -86,10 +91,12 @@ void Ekf::resetWindCov()
 void Ekf::resetWind()
 {
 #if defined(CONFIG_EKF2_AIRSPEED)
+
 	if (_control_status.flags.fuse_aspd && isRecent(_airspeed_sample_delayed.time_us, 1e6)) {
 		resetWindUsingAirspeed(_airspeed_sample_delayed);
 		return;
 	}
+
 #endif // CONFIG_EKF2_AIRSPEED
 
 	resetWindToZero();

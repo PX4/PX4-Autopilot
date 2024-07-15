@@ -128,12 +128,15 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			if (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent) {
 				resetVelUsingAirspeed(airspeed_sample);
 
-			} else if (!_control_status.flags.wind) {
-				// If starting wind state estimation, reset the wind states and covariances before fusing any data
-				// Also catch the case where sideslip fusion enabled wind estimation recently and didn't converge yet.
+			} else if ((!_external_wind_init
+				    && (!_control_status.flags.wind
+					|| getWindVelocityVariance().longerThan(sq(_params.initial_wind_uncertainty))))
+				   || _aid_src_airspeed.innovation_rejected) {
 				resetWindUsingAirspeed(airspeed_sample);
+				_aid_src_airspeed.time_last_fuse = _time_delayed_us;
 			}
 
+			_external_wind_init = false;
 			_control_status.flags.wind = true;
 			_control_status.flags.fuse_aspd = true;
 		}

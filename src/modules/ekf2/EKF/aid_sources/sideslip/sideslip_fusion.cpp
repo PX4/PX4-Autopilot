@@ -64,9 +64,10 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 			updateSideslip(_aid_src_sideslip);
 			_innov_check_fail_status.flags.reject_sideslip = _aid_src_sideslip.innovation_rejected;
 
-			if (!fuseSideslip(_aid_src_sideslip) && !_control_status.flags.wind) {
-				resetWindToZero();
+			if (!fuseSideslip(_aid_src_sideslip) && !_control_status.flags.wind && !_external_wind_init) {
+				resetWind();
 			}
+
 			_control_status.flags.wind = true;
 		}
 	}
@@ -144,5 +145,6 @@ bool Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 	if (is_fused) {
 		sideslip.time_last_fuse = _time_delayed_us;
 	}
+
 	return is_fused;
 }
