@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,32 +31,65 @@
  *
  ****************************************************************************/
 
-#include "ekf.h"
+/**
+ * @file bmp581_i2c.cpp
+ *
+ * I2C interface for BMP581
+ */
 
-void Ekf::controlAuxVelFusion(const imuSample &imu_sample)
+#include <drivers/device/i2c.h>
+
+#include "bmp581.h"
+
+class BMP581_I2C: public device::I2C, public IBMP581
 {
-	if (_auxvel_buffer) {
-		auxVelSample sample;
+public:
+	BMP581_I2C(uint8_t bus, uint32_t device, int bus_frequency);
+	virtual ~BMP581_I2C() = default;
 
-		if (_auxvel_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
+	int init();
 
-			updateAidSourceStatus(_aid_src_aux_vel,
-					      sample.time_us,                                           // sample timestamp
-					      sample.vel,                                               // observation
-					      sample.velVar,                                            // observation variance
-					      Vector2f(_state.vel.xy()) - sample.vel,                   // innovation
-					      Vector2f(getStateVariance<State::vel>()) + sample.velVar, // innovation variance
-					      math::max(_params.auxvel_gate, 1.f));                     // innovation gate
+	uint8_t get_reg(uint8_t addr);
+	int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
+	int set_reg(uint8_t value, uint8_t addr);
 
-			if (isHorizontalAidingActive()) {
-				fuseHorizontalVelocity(_aid_src_aux_vel);
-			}
-		}
-	}
+	uint32_t get_device_id() const override { return device::I2C::get_device_id(); }
+
+	uint8_t get_device_address() const override { return device::I2C::get_device_address(); }
+};
+
+IBMP581 *bmp581_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency)
+{
+	return new BMP581_I2C(busnum, device, bus_frequency);
 }
 
-void Ekf::stopAuxVelFusion()
+BMP581_I2C::BMP581_I2C(uint8_t bus, uint32_t device, int bus_frequency) :
+	I2C(DRV_BARO_DEVTYPE_BMP581, MODULE_NAME, bus, device, bus_frequency)
 {
-	ECL_INFO("stopping aux vel fusion");
-	//_control_status.flags.aux_vel = false;
 }
+
+int BMP581_I2C::init()
+{
+	return I2C::init();
+}
+
+uint8_t BMP581_I2C::get_reg(uint8_t addr)
+{
+	uint8_t cmd[2] = { (uint8_t)(addr), 0};
+	transfer(&cmd[0], 1, &cmd[1], 1);
+
+	return cmd[1];
+}
+
+int BMP581_I2C::get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len)
+{
+	const uint8_t cmd = (uint8_t)(addr);
+	return transfer(&cmd, sizeof(cmd), buf, len);
+}
+
+int BMP581_I2C::set_reg(uint8_t value, uint8_t addr)
+{
+	uint8_t cmd[2] = { (uint8_t)(addr), value};
+	return transfer(cmd, sizeof(cmd), nullptr, 0);
+}
+

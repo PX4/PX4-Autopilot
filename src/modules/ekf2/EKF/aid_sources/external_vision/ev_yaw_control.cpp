@@ -38,8 +38,9 @@
 
 #include "ekf.h"
 
-void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-			     const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src)
+void Ekf::controlEvYawFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+			     const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+			     estimator_aid_source1d_s &aid_src)
 {
 	static constexpr const char *AID_SRC_NAME = "EV yaw";
 

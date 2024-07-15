@@ -524,8 +524,13 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 	float throttle_setpoint{param.throttle_min};
 
 	if (1.f - param.fast_descend < FLT_EPSILON) {
-		// During fast descend, we control airspeed over the pitch control loop and give minimal thrust.
-		throttle_setpoint = param.throttle_min;
+		// During fast descend, we control airspeed over the pitch control loop. Give minimal thrust as soon as we are descending
+		if (specific_energy_rates.spe_rate.estimate > 0) { // We have a positive altitude rate and are stil climbing
+			throttle_setpoint = param.throttle_trim; // Do not cut off throttle yet
+
+		} else {
+			throttle_setpoint = param.throttle_min;
+		}
 
 	} else {
 		_calcThrottleControlUpdate(dt, limit, ste_rate, param, flag);

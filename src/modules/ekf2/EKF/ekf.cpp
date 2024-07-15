@@ -89,8 +89,6 @@ void Ekf::reset()
 	_control_status.flags.in_air = true;
 	_control_status_prev.flags.in_air = true;
 
-	_ang_rate_delayed_raw.zero();
-
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
@@ -263,13 +261,6 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// constrain states
 	_state.vel = matrix::constrain(_state.vel, -1000.f, 1000.f);
 	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
-
-	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
-	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate
-	// due to insufficient averaging
-	if (imu_delayed.delta_ang_dt > 0.25f * _dt_ekf_avg) {
-		_ang_rate_delayed_raw = imu_delayed.delta_ang / imu_delayed.delta_ang_dt;
-	}
 
 
 	// calculate a filtered horizontal acceleration with a 1 sec time constant

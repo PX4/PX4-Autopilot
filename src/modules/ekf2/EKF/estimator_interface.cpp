@@ -94,7 +94,17 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 
 		_imu_updated = true;
 
-		_imu_buffer.push(_imu_down_sampler.getDownSampledImuAndTriggerReset());
+		imuSample imu_downsampled = _imu_down_sampler.getDownSampledImuAndTriggerReset();
+
+		// as a precaution constrain the integration delta time to prevent numerical problems
+		const float filter_update_period_s = _params.filter_update_interval_us * 1e-6f;
+		const float imu_min_dt = 0.5f * filter_update_period_s;
+		const float imu_max_dt = 2.0f * filter_update_period_s;
+
+		imu_downsampled.delta_ang_dt = math::constrain(imu_downsampled.delta_ang_dt, imu_min_dt, imu_max_dt);
+		imu_downsampled.delta_vel_dt = math::constrain(imu_downsampled.delta_vel_dt, imu_min_dt, imu_max_dt);
+
+		_imu_buffer.push(imu_downsampled);
 
 		// get the oldest data from the buffer
 		_time_delayed_us = _imu_buffer.get_oldest().time_us;
@@ -183,7 +193,7 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
 		if (PX4_ISFINITE(gnss_sample.yaw)) {
-			_time_last_gps_yaw_buffer_push = _time_latest_us;
+			_time_last_gnss_yaw_buffer_push = _time_latest_us;
 		}
 
 #endif // CONFIG_EKF2_GNSS_YAW

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,32 +31,47 @@
  *
  ****************************************************************************/
 
-#include "ekf.h"
+#include "SubscriptionInterval.hpp"
 
-void Ekf::controlAuxVelFusion(const imuSample &imu_sample)
+namespace uORB
 {
-	if (_auxvel_buffer) {
-		auxVelSample sample;
 
-		if (_auxvel_buffer->pop_first_older_than(imu_sample.time_us, &sample)) {
-
-			updateAidSourceStatus(_aid_src_aux_vel,
-					      sample.time_us,                                           // sample timestamp
-					      sample.vel,                                               // observation
-					      sample.velVar,                                            // observation variance
-					      Vector2f(_state.vel.xy()) - sample.vel,                   // innovation
-					      Vector2f(getStateVariance<State::vel>()) + sample.velVar, // innovation variance
-					      math::max(_params.auxvel_gate, 1.f));                     // innovation gate
-
-			if (isHorizontalAidingActive()) {
-				fuseHorizontalVelocity(_aid_src_aux_vel);
-			}
-		}
+bool SubscriptionInterval::updated()
+{
+	if (advertised() && (hrt_elapsed_time(&_last_update) >= _interval_us)) {
+		return _subscription.updated();
 	}
+
+	return false;
 }
 
-void Ekf::stopAuxVelFusion()
+bool SubscriptionInterval::update(void *dst)
 {
-	ECL_INFO("stopping aux vel fusion");
-	//_control_status.flags.aux_vel = false;
+	if (updated()) {
+		return copy(dst);
+	}
+
+	return false;
 }
+
+bool SubscriptionInterval::copy(void *dst)
+{
+	if (_subscription.copy(dst)) {
+		const hrt_abstime now = hrt_absolute_time();
+
+		// make sure we don't set a timestamp before the timer started counting (now - _interval_us would wrap because it's unsigned)
+		if (now > _interval_us) {
+			// shift last update time forward, but don't let it get further behind than the interval
+			_last_update = math::constrain(_last_update + _interval_us, now - _interval_us, now);
+
+		} else {
+			_last_update = now;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+} // namespace uORB

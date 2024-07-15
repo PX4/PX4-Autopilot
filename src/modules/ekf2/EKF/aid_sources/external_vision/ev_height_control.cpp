@@ -38,8 +38,9 @@
 
 #include "ekf.h"
 
-void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-				const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src)
+void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+				estimator_aid_source1d_s &aid_src)
 {
 	static constexpr const char *AID_SRC_NAME = "EV height";
 
@@ -147,33 +148,6 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 				_information_events.flags.reset_hgt_to_ev = true;
 				resetVerticalPositionTo(measurement - bias_est.getBias(), measurement_var);
 				bias_est.setBias(-_state.pos(2) + measurement);
-
-				// reset vertical velocity
-				if (ev_sample.vel.isAllFinite() && (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))) {
-
-					// correct velocity for offset relative to IMU
-					const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
-					const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-
-					switch (ev_sample.vel_frame) {
-					case VelocityFrame::LOCAL_FRAME_NED:
-					case VelocityFrame::LOCAL_FRAME_FRD: {
-							const Vector3f reset_vel = ev_sample.vel - vel_offset_earth;
-							resetVerticalVelocityTo(reset_vel(2), math::max(ev_sample.velocity_var(2), sq(_params.ev_vel_noise)));
-						}
-						break;
-
-					case VelocityFrame::BODY_FRAME_FRD: {
-							const Vector3f reset_vel = _R_to_earth * (ev_sample.vel - vel_offset_body);
-							const Matrix3f reset_vel_cov = _R_to_earth * matrix::diag(ev_sample.velocity_var) * _R_to_earth.transpose();
-							resetVerticalVelocityTo(reset_vel(2), math::max(reset_vel_cov(2, 2), sq(_params.ev_vel_noise)));
-						}
-						break;
-					}
-
-				} else {
-					resetVerticalVelocityToZero();
-				}
 
 				aid_src.time_last_fuse = _time_delayed_us;
 

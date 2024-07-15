@@ -316,7 +316,7 @@ struct parameters {
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
-	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
+	float gnss_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
 # endif // CONFIG_EKF2_GNSS_YAW
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
@@ -553,12 +553,12 @@ union filter_control_status_u {
 		uint64_t fuse_aspd               : 1; ///< 19 - airspeed measurements are being fused
 		uint64_t gnd_effect              : 1; ///< 20 - protection from ground effect induced static pressure rise is active
 		uint64_t rng_stuck               : 1; ///< 21 - rng data wasn't ready and new values haven't changed enough
-		uint64_t gps_yaw                 : 1; ///< 22 - yaw (not ground course) data fusion from a GPS receiver is intended
+		uint64_t gnss_yaw                : 1; ///< 22 - yaw (not ground course) data fusion from a GPS receiver is intended
 		uint64_t mag_aligned_in_flight   : 1; ///< 23 - the in-flight mag field alignment has been completed
 		uint64_t ev_vel                  : 1; ///< 24 - local frame velocity data fusion from vision measurements is intended
 		uint64_t synthetic_mag_z         : 1; ///< 25 - using a synthesized measurement for the magnetometer Z component
 		uint64_t vehicle_at_rest         : 1; ///< 26 - the vehicle is at rest
-		uint64_t gps_yaw_fault           : 1; ///< 27 - the GNSS heading has been declared faulty and is no longer being used
+		uint64_t gnss_yaw_fault          : 1; ///< 27 - the GNSS heading has been declared faulty and is no longer being used
 		uint64_t rng_fault               : 1; ///< 28 - the range finder has been declared faulty and is no longer being used
 		uint64_t inertial_dead_reckoning : 1; ///< 29 - longer fusing measurements that constrain horizontal velocity drift
 		uint64_t wind_dead_reckoning     : 1; ///< 30 - navigation reliant on wind relative measurements
@@ -595,16 +595,6 @@ union ekf_solution_status_u {
 	} flags;
 	uint16_t value;
 };
-
-#if defined(CONFIG_EKF2_TERRAIN)
-union terrain_fusion_status_u {
-	struct {
-		bool range_finder : 1;  ///< 0 - fusing range finder data for terrain
-		bool flow         : 1;  ///< 1 - fusing flow data for terrain
-	} flags;
-	uint8_t value;
-};
-#endif // CONFIG_EKF2_TERRAIN
 
 // define structure used to communicate information events
 union information_event_status_u {

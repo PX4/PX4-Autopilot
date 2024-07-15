@@ -104,9 +104,6 @@ public:
 	float getTerrainVertPos() const { return _state.terrain; };
 	float getHagl() const { return _state.terrain - _state.pos(2); }
 
-	// get the number of times the vertical terrain position has been reset
-	uint8_t getTerrainVertPosResetCounter() const { return _terrain_vpos_reset_counter; };
-
 	// get the terrain variance
 	float getTerrainVariance() const { return P(State::terrain.idx, State::terrain.idx); }
 
@@ -147,7 +144,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.innovation;
 		}
 
@@ -176,7 +173,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.innovation_variance;
 		}
 
@@ -205,7 +202,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.test_ratio;
 		}
 
@@ -356,6 +353,13 @@ public:
 	{
 		*delta = _state_reset_status.posD_change;
 		*counter = _state_reset_status.reset_count.posD;
+	}
+
+	uint8_t get_hagl_reset_count() const { return _state_reset_status.reset_count.hagl; }
+	void get_hagl_reset(float *delta, uint8_t *counter) const
+	{
+		*delta = _state_reset_status.hagl_change;
+		*counter = _state_reset_status.reset_count.hagl;
 	}
 
 	// return the amount the local vertical velocity changed in the last reset and the number of reset events
@@ -551,6 +555,7 @@ private:
 		uint8_t posNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
 		uint8_t posD{0};	///< number of vertical position reset events (allow to wrap if count exceeds 255)
 		uint8_t quat{0};	///< number of quaternion reset events (allow to wrap if count exceeds 255)
+		uint8_t hagl{0};	///< number of height above ground level reset events (allow to wrap if count exceeds 255)
 	};
 
 	struct StateResets {
@@ -559,14 +564,13 @@ private:
 		Vector2f posNE_change;	///< North, East position change due to last reset (m)
 		float posD_change;	///< Down position change due to last reset (m)
 		Quatf quat_change;	///< quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
+		float hagl_change;	///< Height above ground level change due to last reset (m)
 
 		StateResetCounts reset_count{};
 	};
 
 	StateResets _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
 	StateResetCounts _state_reset_count_prev{};
-
-	Vector3f _ang_rate_delayed_raw{};	///< uncorrected angular rate vector at fusion time horizon (rad/sec)
 
 	StateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
@@ -601,8 +605,6 @@ private:
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Terrain height state estimation
-	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
-
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
 #endif // CONFIG_EKF2_TERRAIN
 
@@ -841,7 +843,7 @@ private:
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range height
-	void controlRangeHaglFusion();
+	void controlRangeHaglFusion(const imuSample &imu_delayed);
 	bool isConditionalRangeAidSuitable();
 	void stopRngHgtFusion();
 	void stopRngTerrFusion();
@@ -934,16 +936,20 @@ private:
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// control fusion of external vision observations
-	void controlExternalVisionFusion();
+	void controlExternalVisionFusion(const imuSample &imu_sample);
 	void updateEvAttitudeErrorFilter(extVisionSample &ev_sample, bool ev_reset);
-	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-				   const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
-	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-				const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src);
-	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-				const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
-	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-				const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
+	void controlEvHeightFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+				   const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+				   estimator_aid_source1d_s &aid_src);
+	void controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+				estimator_aid_source2d_s &aid_src);
+	void controlEvVelFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+				estimator_aid_source3d_s &aid_src);
+	void controlEvYawFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+				estimator_aid_source1d_s &aid_src);
 	void resetVelocityToEV(const Vector3f &measurement, const Vector3f &measurement_var, const VelocityFrame &vel_frame);
 	Vector3f rotateVarianceToEkf(const Vector3f &measurement_var);
 
@@ -966,7 +972,7 @@ private:
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
 	void stopGpsFusion();
-	void updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
+	void updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src);
 	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
 	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
 	bool tryYawEmergencyReset();
@@ -987,17 +993,17 @@ private:
 	void resetGpsDriftCheckFilters();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGpsYawFusion(const gnssSample &gps_sample);
-	void stopGpsYawFusion();
+	void controlGnssYawFusion(const gnssSample &gps_sample);
+	void stopGnssYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw(float antenna_yaw_offset);
+	void fuseGnssYaw(float antenna_yaw_offset);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetYawToGps(float gnss_yaw, float gnss_yaw_offset);
+	bool resetYawToGnss(float gnss_yaw, float gnss_yaw_offset);
 
-	void updateGpsYaw(const gnssSample &gps_sample);
+	void updateGnssYaw(const gnssSample &gps_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
 
@@ -1015,7 +1021,7 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations
-	void controlMagFusion();
+	void controlMagFusion(const imuSample &imu_sample);
 
 	bool checkHaglYawResetReq() const;
 
@@ -1048,7 +1054,7 @@ private:
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// control fusion of auxiliary velocity observations
-	void controlAuxVelFusion();
+	void controlAuxVelFusion(const imuSample &imu_sample);
 	void stopAuxVelFusion();
 #endif // CONFIG_EKF2_AUXVEL
 
@@ -1061,13 +1067,13 @@ private:
 	void checkHeightSensorRefFallback();
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	void controlBaroHeightFusion();
+	void controlBaroHeightFusion(const imuSample &imu_sample);
 	void stopBaroHgtFusion();
 
 	void updateGroundEffect();
 
 # if defined(CONFIG_EKF2_BARO_COMPENSATION)
-	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) const;
+	float compensateBaroForDynamicPressure(const imuSample &imu_sample, float baro_alt_uncompensated) const;
 # endif // CONFIG_EKF2_BARO_COMPENSATION
 
 #endif // CONFIG_EKF2_BAROMETER

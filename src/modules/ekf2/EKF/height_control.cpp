@@ -45,7 +45,7 @@ void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 #if defined(CONFIG_EKF2_BAROMETER)
 	updateGroundEffect();
 
-	controlBaroHeightFusion();
+	controlBaroHeightFusion(imu_delayed);
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
@@ -53,7 +53,7 @@ void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	controlRangeHaglFusion();
+	controlRangeHaglFusion(imu_delayed);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 	checkHeightSensorRefFallback();

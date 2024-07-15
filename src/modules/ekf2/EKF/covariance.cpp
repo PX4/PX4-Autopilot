@@ -135,8 +135,8 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	P = sym::PredictCovariance(_state.vector(), P,
-				   imu_delayed.delta_vel / math::max(imu_delayed.delta_vel_dt, FLT_EPSILON), accel_var,
-				   imu_delayed.delta_ang / math::max(imu_delayed.delta_ang_dt, FLT_EPSILON), gyro_var,
+				   imu_delayed.delta_vel / imu_delayed.delta_vel_dt, accel_var,
+				   imu_delayed.delta_ang / imu_delayed.delta_ang_dt, gyro_var,
 				   dt);
 
 	// Construct the process noise variance diagonal for those states with a stationary process model

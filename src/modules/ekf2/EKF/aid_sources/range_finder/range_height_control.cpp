@@ -39,7 +39,7 @@
 #include "ekf.h"
 #include "ekf_derivation/generated/compute_hagl_innov_var.h"
 
-void Ekf::controlRangeHaglFusion()
+void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 {
 	static constexpr const char *HGT_SRC_NAME = "RNG";
 
@@ -47,7 +47,7 @@ void Ekf::controlRangeHaglFusion()
 
 	if (_range_buffer) {
 		// Get range data from buffer and check validity
-		rng_data_ready = _range_buffer->pop_first_older_than(_time_delayed_us, _range_sensor.getSampleAddress());
+		rng_data_ready = _range_buffer->pop_first_older_than(imu_sample.time_us, _range_sensor.getSampleAddress());
 		_range_sensor.setDataReadiness(rng_data_ready);
 
 		// update range sensor angle parameters in case they have changed
@@ -55,7 +55,7 @@ void Ekf::controlRangeHaglFusion()
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
 
-		_range_sensor.runChecks(_time_delayed_us, _R_to_earth);
+		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
 
 		if (_range_sensor.isDataHealthy()) {
 			// correct the range data for position offset relative to the IMU
@@ -72,7 +72,7 @@ void Ekf::controlRangeHaglFusion()
 
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
 				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2),
-							      P(State::vel.idx + 2, State::vel.idx + 2), horizontal_motion, _time_delayed_us);
+							      P(State::vel.idx + 2, State::vel.idx + 2), horizontal_motion, imu_sample.time_us);
 			}
 
 		} else {
@@ -151,7 +151,7 @@ void Ekf::controlRangeHaglFusion()
 					_control_status.flags.rng_hgt = true;
 					stopRngTerrFusion();
 
-					aid_src.time_last_fuse = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
 				}
 
 			} else {
@@ -180,10 +180,12 @@ void Ekf::controlRangeHaglFusion()
 					_information_events.flags.reset_hgt_to_rng = true;
 					resetVerticalPositionTo(-(aid_src.observation - _state.terrain));
 
-					// reset vertical velocity
-					resetVerticalVelocityToZero();
+					// reset vertical velocity if no valid sources available
+					if (!isVerticalVelocityAidingActive()) {
+						resetVerticalVelocityToZero();
+					}
 
-					aid_src.time_last_fuse = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
@@ -232,21 +234,20 @@ void Ekf::controlRangeHaglFusion()
 
 void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 {
-	aid_src.observation = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
-	aid_src.innovation = getHagl() - aid_src.observation;
+	const float measurement = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
+	const float measurement_variance = getRngVar();
 
-	const float observation_variance = getRngVar();
 	float innovation_variance;
-	sym::ComputeHaglInnovVar(P, observation_variance, &innovation_variance);
+	sym::ComputeHaglInnovVar(P, measurement_variance, &innovation_variance);
 
 	const float innov_gate = math::max(_params.range_innov_gate, 1.f);
 	updateAidSourceStatus(aid_src,
-			      _range_sensor.getSampleAddress()->time_us,                           // sample timestamp
-			      math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance), // observation
-			      observation_variance,                                                // observation variance
-			      getHagl() - aid_src.observation,                                     // innovation
-			      innovation_variance,                                                 // innovation variance
-			      math::max(_params.range_innov_gate, 1.f));                           // innovation gate
+			      _range_sensor.getSampleAddress()->time_us, // sample timestamp
+			      measurement,                               // observation
+			      measurement_variance,                      // observation variance
+			      getHagl() - measurement,                   // innovation
+			      innovation_variance,                       // innovation variance
+			      innov_gate);                               // innovation gate
 
 	// z special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
@@ -268,9 +269,23 @@ float Ekf::getRngVar() const
 
 void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
 {
-	_state.terrain = _state.pos(2) + aid_src.observation;
+	const float new_terrain = _state.pos(2) + aid_src.observation;
+	const float delta_terrain = new_terrain - _state.terrain;
+
+	_state.terrain = new_terrain;
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, aid_src.observation_variance);
-	_terrain_vpos_reset_counter++;
+
+	// record the state change
+	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
+		_state_reset_status.hagl_change = delta_terrain;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.hagl_change += delta_terrain;
+	}
+
+	_state_reset_status.reset_count.hagl++;
+
 
 	aid_src.time_last_fuse = _time_delayed_us;
 }

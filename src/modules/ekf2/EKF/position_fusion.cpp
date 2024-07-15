@@ -167,7 +167,18 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	_state.terrain += delta_z;
-#endif
+
+	// record the state change
+	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
+		_state_reset_status.hagl_change = delta_z;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.hagl_change += delta_z;
+	}
+
+	_state_reset_status.reset_count.hagl++;
+#endif // CONFIG_EKF2_TERRAIN
 
 	// Reset the timout timer
 	_time_last_hgt_fuse = _time_delayed_us;
