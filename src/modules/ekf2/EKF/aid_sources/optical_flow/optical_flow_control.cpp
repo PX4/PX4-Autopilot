@@ -116,7 +116,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					&& (_control_status.flags.inertial_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
 					    || isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow));
 
-		const bool is_within_max_sensor_dist = getHagl() <= _flow_max_distance;
+		const bool is_within_sensor_dist = (getHagl() >= _flow_min_distance) && (getHagl() <= _flow_max_distance);
 
 		const bool is_magnitude_good = flow_sample.flow_rate.isAllFinite()
 					       && !flow_sample.flow_rate.longerThan(_flow_max_rate)
@@ -124,12 +124,13 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		const bool continuing_conditions_passing = (_params.flow_ctrl == 1)
 				&& _control_status.flags.tilt_align
-				&& is_within_max_sensor_dist;
+				&& is_within_sensor_dist;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& is_quality_good
 				&& is_magnitude_good
 				&& is_tilt_good
+				&& (isTerrainEstimateValid() || isHorizontalAidingActive())
 				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
 		// If the height is relative to the ground, terrain height cannot be observed.
