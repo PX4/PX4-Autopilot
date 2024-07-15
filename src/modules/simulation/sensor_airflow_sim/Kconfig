@@ -1,0 +1,5 @@
+menuconfig MODULES_SIMULATION_SENSOR_AIRFLOW_SIM
+	bool "sensor_airflow_sim"
+	default n
+	---help---
+		Enable support for sensor_airflow_sim

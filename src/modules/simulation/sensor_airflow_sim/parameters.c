@@ -32,72 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file ft7_technolofies.hpp
- * @author Henry Kotze <henry@flycloudline.com>
+ * Enable simulated airflow sensor instance
  *
- * Driver for the FT Technology Wind Sensor. FT742
- */
+ * @reboot_required true
+ * @min 0
+ * @max 1
+ * @group Sensors
+ * @value 0 Disabled
+ * @value 1 Enabled
+  */
+PARAM_DEFINE_INT32(SENS_EN_ARFLWSIM, 0);
 
-#pragma once
+/**
+ * airflow sensor X offset
+ *
+ * @unit m
+ * @group Sensors
+  */
+PARAM_DEFINE_FLOAT(ARFLWSIM_X_OFFST, 0);
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/sensor_airflow.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/device.h>
-#include <lib/parameters/param.h>
-#include <lib/perf/perf_counter.h>
-#include <matrix/helper_functions.hpp>
-
-#include <drivers/drv_hrt.h>
-
-using namespace time_literals;
-
-
-class Ft7Technologies : public px4::ScheduledWorkItem
-{
-public:
-	Ft7Technologies(const char *port);
-	~Ft7Technologies() override;
-
-	int 			init();
-	void				print_info();
-
-private:
-
-	void				start();
-	void				stop();
-	void				Run() override;
-	int				measure();
-	int				collect();
-	bool 				checksum(char *buf, uint32_t checksum);
-	uint8_t				hex2int(char ch);
-
-	uORB::Publication<sensor_airflow_s> _sensor_airflow_pub{ORB_ID(sensor_airflow)};
-
-	char 				_port[20] {};
-	char 				_readbuf[30] {};
-	uint64_t         		_interval{100000};
-	bool				_collect_phase{false};
-	int				_fd{-1};
-	char				_linebuf[20] {};
-	hrt_abstime			_last_read{0};
-	hrt_abstime			_last_measure{0};
-
-	char 				_raw_angle[5];
-	char 				_raw_speed[5];
-	char 				_raw_status[2];
-	char 				_raw_checksum[3];
-
-	uint16_t 			_checksum{0};
-	uint32_t 			_hex_checksum{0};
-	int				_msg_part_counter{0};
-	int				_byte_counter{0};
-	int				_msg_byte_counter{0};
-	uint32_t			_checksum_counter{0};
-
-	perf_counter_t			_sample_perf;
-	perf_counter_t			_comms_errors;
-
-};
+/**
+ * airflow sensor y offset
+ *
+ * @unit m
+ * @group Sensors
+  */
+PARAM_DEFINE_FLOAT(ARFLWSIM_Z_OFFST, 0);
