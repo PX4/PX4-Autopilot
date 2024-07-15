@@ -407,7 +407,7 @@ public:
 	float getHeightAboveGroundInnovationTestRatio() const;
 
 	// return a bitmask integer that describes which state estimates are valid
-	void get_ekf_soln_status(uint16_t *status) const;
+	uint16_t get_ekf_soln_status() const;
 
 	HeightSensor getHeightSensorRef() const { return _height_sensor_ref; }
 

@@ -1825,7 +1825,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.beta_test_ratio = _ekf.getSyntheticSideslipInnovationTestRatio();
 
 	_ekf.get_ekf_lpos_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy);
-	_ekf.get_ekf_soln_status(&status.solution_status_flags);
+	status.solution_status_flags = _ekf.get_ekf_soln_status();
 
 	// reset counters
 	status.reset_count_vel_ne = _ekf.state_reset_status().reset_count.velNE;
