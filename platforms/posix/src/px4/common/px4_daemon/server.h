@@ -77,6 +77,7 @@ public:
 
 	struct CmdThreadSpecificData {
 		FILE *thread_stdout; // stdout of this thread
+		FILE *thread_stdin;  // stdin of this thread
 		bool is_atty; // whether file descriptor refers to a terminal
 	};
 
