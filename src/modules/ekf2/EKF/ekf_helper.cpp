@@ -531,50 +531,70 @@ float Ekf::getHeightAboveGroundInnovationTestRatio() const
 	return NAN;
 }
 
-void Ekf::get_ekf_soln_status(uint16_t *status) const
+uint16_t Ekf::get_ekf_soln_status() const
 {
-	ekf_solution_status_u soln_status{};
-	// TODO: Is this accurate enough?
+	// LEGACY Mavlink bitmask containing state of estimator solution (see Mavlink ESTIMATOR_STATUS_FLAGS)
+	union ekf_solution_status_u {
+		struct {
+			uint16_t attitude           : 1;
+			uint16_t velocity_horiz     : 1;
+			uint16_t velocity_vert      : 1;
+			uint16_t pos_horiz_rel      : 1;
+			uint16_t pos_horiz_abs      : 1;
+			uint16_t pos_vert_abs       : 1;
+			uint16_t pos_vert_agl       : 1;
+			uint16_t const_pos_mode     : 1;
+			uint16_t pred_pos_horiz_rel : 1;
+			uint16_t pred_pos_horiz_abs : 1;
+			uint16_t gps_glitch         : 1;
+			uint16_t accel_error        : 1;
+		} flags;
+		uint16_t value;
+	} soln_status{};
+
+	// 1	ESTIMATOR_ATTITUDE	True if the attitude estimate is good
 	soln_status.flags.attitude = attitude_valid();
-	soln_status.flags.velocity_horiz = (isHorizontalAidingActive() || (_control_status.flags.fuse_beta
-					    && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
-	soln_status.flags.velocity_vert = (_control_status.flags.baro_hgt || _control_status.flags.ev_hgt
-					   || _control_status.flags.gps_hgt || _control_status.flags.rng_hgt) && (_fault_status.value == 0);
-	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos
-					   || _control_status.flags.opt_flow) && (_fault_status.value == 0);
-	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos)
-					  && (_fault_status.value == 0);
-	soln_status.flags.pos_vert_abs = soln_status.flags.velocity_vert;
+
+	// 2	ESTIMATOR_VELOCITY_HORIZ	True if the horizontal velocity estimate is good
+	soln_status.flags.velocity_horiz = local_position_is_valid();
+
+	// 4	ESTIMATOR_VELOCITY_VERT	True if the vertical velocity estimate is good
+	soln_status.flags.velocity_vert = isLocalVerticalVelocityValid() || isLocalVerticalPositionValid();
+
+	// 8	ESTIMATOR_POS_HORIZ_REL	True if the horizontal position (relative) estimate is good
+	soln_status.flags.pos_horiz_rel = local_position_is_valid();
+
+	// 16	ESTIMATOR_POS_HORIZ_ABS	True if the horizontal position (absolute) estimate is good
+	soln_status.flags.pos_horiz_abs = global_position_is_valid();
+
+	// 32	ESTIMATOR_POS_VERT_ABS	True if the vertical position (absolute) estimate is good
+	soln_status.flags.pos_vert_abs = isVerticalAidingActive();
+
+	// 64	ESTIMATOR_POS_VERT_AGL	True if the vertical position (above ground) estimate is good
 #if defined(CONFIG_EKF2_TERRAIN)
 	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
 #endif // CONFIG_EKF2_TERRAIN
-	soln_status.flags.const_pos_mode = !soln_status.flags.velocity_horiz;
-	soln_status.flags.pred_pos_horiz_rel = soln_status.flags.pos_horiz_rel;
-	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_horiz_abs;
 
-	bool mag_innov_good = true;
+	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
+	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.vehicle_at_rest;
 
-#if defined(CONFIG_EKF2_MAGNETOMETER)
+	// 256	ESTIMATOR_PRED_POS_HORIZ_REL	True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
+	soln_status.flags.pred_pos_horiz_rel = isHorizontalAidingActive();
 
-	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-		if (Vector3f(_aid_src_mag.test_ratio).max() < 1.f) {
-			mag_innov_good = false;
-		}
-	}
+	// 512	ESTIMATOR_PRED_POS_HORIZ_ABS	True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
+	soln_status.flags.pred_pos_horiz_abs = _control_status.flags.gps || _control_status.flags.aux_gpos;
 
-#endif // CONFIG_EKF2_MAGNETOMETER
-
+	// 1024	ESTIMATOR_GPS_GLITCH	True if the EKF has detected a GPS glitch
 #if defined(CONFIG_EKF2_GNSS)
 	const bool gps_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
 	const bool gps_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
-
-	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad) && mag_innov_good;
-#else
-	(void)mag_innov_good;
+	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad);
 #endif // CONFIG_EKF2_GNSS
 
-	soln_status.flags.accel_error = _fault_status.flags.bad_acc_vertical;
-	*status = soln_status.value;
+	// 2048	ESTIMATOR_ACCEL_ERROR	True if the EKF has detected bad accelerometer data
+	soln_status.flags.accel_error = _fault_status.flags.bad_acc_vertical || _fault_status.flags.bad_acc_clipping;
+
+	return soln_status.value;
 }
 
 void Ekf::fuse(const VectorState &K, float innovation)
