@@ -194,6 +194,8 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 
 		_fault_status.flags.bad_airspeed = true;
 
+		stopAirspeedFusion();
+
 		return;
 	}
 

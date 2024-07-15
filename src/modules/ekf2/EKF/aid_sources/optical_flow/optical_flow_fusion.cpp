@@ -63,6 +63,7 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			// we need to reinitialise the covariance matrix and abort this fusion step
 			ECL_ERR("Opt flow error - covariance reset");
 			initialiseCovariance();
+			stopFlowFusion();
 			return false;
 		}
 
