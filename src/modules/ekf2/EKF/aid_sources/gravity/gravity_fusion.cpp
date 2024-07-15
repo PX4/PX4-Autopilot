@@ -83,6 +83,8 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	// update the states and covariance using sequential fusion
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains and observation jacobians
+		const Vector3f gravity_vector_pred = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f, -1.f));
+
 		if (index == 0) {
 			// everything was already computed above
 
@@ -91,16 +93,14 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 			sym::ComputeGravityYInnovVarAndH(state_vector, P, measurement_var, &_aid_src_gravity.innovation_variance[index], &H);
 
 			// recalculate innovation using the updated state
-			_aid_src_gravity.innovation[index] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f,
-							     -1.f))(index) - measurement(index);
+			_aid_src_gravity.innovation[index] = gravity_vector_pred(index) - measurement(index);
 
 		} else if (index == 2) {
 			// recalculate innovation variance because state covariances have changed due to previous fusion (linearise using the same initial state for all axes)
 			sym::ComputeGravityZInnovVarAndH(state_vector, P, measurement_var, &_aid_src_gravity.innovation_variance[index], &H);
 
 			// recalculate innovation using the updated state
-			_aid_src_gravity.innovation[index] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f,
-							     -1.f))(index) - measurement(index);
+			_aid_src_gravity.innovation[index] = gravity_vector_pred(index) - measurement(index);
 		}
 
 		VectorState K = P * H / _aid_src_gravity.innovation_variance[index];

@@ -62,13 +62,13 @@ void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
 
 		const bool continuing_conditions_passing = _control_status.flags.tilt_align;
 
-		const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push,
-				2 * GNSS_YAW_MAX_INTERVAL);
+		// Maximum allowable time interval between GNSS yaw measurements (uSec)
+		static constexpr uint64_t GNSS_YAW_MAX_INTERVAL{1'500'000};
+		const bool data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push, 2 * GNSS_YAW_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _gps_checks_passed
-				&& !is_gnss_yaw_data_intermittent
-				&& !_gps_intermittent;
+				&& !data_intermittent;
 
 		if (_control_status.flags.gnss_yaw) {
 			if (continuing_conditions_passing) {

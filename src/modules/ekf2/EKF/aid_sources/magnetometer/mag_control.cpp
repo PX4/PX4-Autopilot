@@ -41,6 +41,9 @@
 
 #include <ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h>
 
+// Maximum allowable time interval between magnetic field measurements (uSec)
+static constexpr uint64_t MAG_MAX_INTERVAL{500'000};
+
 void Ekf::controlMagFusion(const imuSample &imu_sample)
 {
 	static constexpr const char *AID_SRC_NAME = "mag";
@@ -134,8 +137,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				&& checkMagField(mag_sample.mag)
 				&& (_mag_counter > 3) // wait until we have more than a few samples through the filter
 				&& (_control_status.flags.yaw_align == _control_status_prev.flags.yaw_align) // no yaw alignment change this frame
-				&& (_state_reset_status.reset_count.quat ==
-				    _state_reset_count_prev.quat) // don't allow starting on same frame as yaw reset
+				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat)    // no yaw reset this frame
 				&& isNewestSampleRecent(_time_last_mag_buffer_push, MAG_MAX_INTERVAL);
 
 		checkMagHeadingConsistency(mag_sample);
@@ -145,26 +147,23 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
 
 
-		{
-			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
-			const bool common_conditions_passing = _control_status.flags.mag
-							       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
-									       || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
-							       && !_control_status.flags.mag_fault
-							       && !_control_status.flags.mag_field_disturbed
-							       && !_control_status.flags.ev_yaw
-							       && !_control_status.flags.gnss_yaw;
+		const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
 
-			_control_status.flags.mag_3D = common_conditions_passing
-						       && (_params.mag_fusion_type == MagFuseType::AUTO)
-						       && _control_status.flags.mag_aligned_in_flight;
+		const bool common_conditions_passing = _control_status.flags.mag
+						       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
+								       || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
+						       && !_control_status.flags.mag_fault
+						       && !_control_status.flags.mag_field_disturbed
+						       && !_control_status.flags.ev_yaw
+						       && !_control_status.flags.gnss_yaw;
 
-			_control_status.flags.mag_hdg = common_conditions_passing
-							&& ((_params.mag_fusion_type == MagFuseType::HEADING)
-							    || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
-		}
+		_control_status.flags.mag_3D = common_conditions_passing
+					       && (_params.mag_fusion_type == MagFuseType::AUTO)
+					       && _control_status.flags.mag_aligned_in_flight;
 
-		// TODO: allow clearing mag_fault if mag_3d is good?
+		_control_status.flags.mag_hdg = common_conditions_passing
+						&& ((_params.mag_fusion_type == MagFuseType::HEADING)
+						    || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
 
 		if (_control_status.flags.mag_3D && !_control_status_prev.flags.mag_3D) {
 			ECL_INFO("starting mag 3D fusion");

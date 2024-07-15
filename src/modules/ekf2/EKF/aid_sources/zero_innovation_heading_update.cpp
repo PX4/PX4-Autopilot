@@ -44,8 +44,7 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 				|| _control_status.flags.ev_yaw || _control_status.flags.gnss_yaw;
 
 	// fuse zero innovation at a limited rate if the yaw variance is too large
-	if (!yaw_aiding
-	    && isTimedOut(_time_last_heading_fuse, (uint64_t)200'000)) {
+	if (!yaw_aiding && isTimedOut(_time_last_heading_fuse, 200'000)) {
 
 		// Use an observation variance larger than usual but small enough
 		// to constrain the yaw variance just below the threshold
@@ -61,7 +60,8 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 		computeYawInnovVarAndH(obs_var, aid_src_status.innovation_variance, H_YAW);
 
 		if (!_control_status.flags.tilt_align
-		    || (aid_src_status.innovation_variance - obs_var) > sq(_params.mag_heading_noise)) {
+		    || ((aid_src_status.innovation_variance - obs_var) > sq(_params.mag_heading_noise))
+		   ) {
 			// The yaw variance is too large, fuse fake measurement
 			fuseYaw(aid_src_status, H_YAW);
 		}

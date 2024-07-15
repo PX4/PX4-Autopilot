@@ -72,8 +72,8 @@ bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &lo
 	return _NED_origin_initialised;
 }
 
-bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude, const float eph,
-			     const float epv)
+bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude,
+			     const float eph, const float epv)
 {
 	// sanity check valid latitude/longitude and altitude anywhere between the Mariana Trench and edge of Space
 	if (PX4_ISFINITE(latitude) && (abs(latitude) <= 90)
@@ -536,14 +536,21 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	ekf_solution_status_u soln_status{};
 	// TODO: Is this accurate enough?
 	soln_status.flags.attitude = attitude_valid();
-	soln_status.flags.velocity_horiz = (isHorizontalAidingActive() || (_control_status.flags.fuse_beta
-					    && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
+
+	soln_status.flags.velocity_horiz = (isHorizontalAidingActive()
+					    || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
+
 	soln_status.flags.velocity_vert = (_control_status.flags.baro_hgt || _control_status.flags.ev_hgt
-					   || _control_status.flags.gps_hgt || _control_status.flags.rng_hgt) && (_fault_status.value == 0);
+					   || _control_status.flags.gps_hgt || _control_status.flags.rng_hgt)
+					  && (_fault_status.value == 0);
+
 	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos
-					   || _control_status.flags.opt_flow) && (_fault_status.value == 0);
+					   || _control_status.flags.opt_flow)
+					  && (_fault_status.value == 0);
+
 	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos)
 					  && (_fault_status.value == 0);
+
 	soln_status.flags.pos_vert_abs = soln_status.flags.velocity_vert;
 #if defined(CONFIG_EKF2_TERRAIN)
 	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
@@ -580,36 +587,37 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 void Ekf::fuse(const VectorState &K, float innovation)
 {
 	// quat_nominal
-	Quatf delta_quat(matrix::AxisAnglef(K.slice<State::quat_nominal.dof, 1>(State::quat_nominal.idx,
-					    0) * (-1.f * innovation)));
+	Quatf delta_quat(AxisAnglef(K.slice<State::quat_nominal.dof, 1>(State::quat_nominal.idx, 0)
+				    * (-1.f * innovation)));
 	_state.quat_nominal = delta_quat * _state.quat_nominal;
 	_state.quat_nominal.normalize();
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// vel
-	_state.vel = matrix::constrain(_state.vel - K.slice<State::vel.dof, 1>(State::vel.idx, 0) * innovation, -1.e3f, 1.e3f);
+	_state.vel -= K.slice<State::vel.dof, 1>(State::vel.idx, 0) * innovation;
+	_state.vel = matrix::constrain(_state.vel, -1.e3f, 1.e3f);
 
 	// pos
-	_state.pos = matrix::constrain(_state.pos - K.slice<State::pos.dof, 1>(State::pos.idx, 0) * innovation, -1.e6f, 1.e6f);
+	_state.pos -= K.slice<State::pos.dof, 1>(State::pos.idx, 0) * innovation;
+	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
 	// gyro_bias
-	_state.gyro_bias = matrix::constrain(_state.gyro_bias - K.slice<State::gyro_bias.dof, 1>(State::gyro_bias.idx,
-					     0) * innovation,
-					     -getGyroBiasLimit(), getGyroBiasLimit());
+	_state.gyro_bias -= K.slice<State::gyro_bias.dof, 1>(State::gyro_bias.idx, 0) * innovation;
+	_state.gyro_bias = matrix::constrain(_state.gyro_bias, -getGyroBiasLimit(), getGyroBiasLimit());
 
 	// accel_bias
-	_state.accel_bias = matrix::constrain(_state.accel_bias - K.slice<State::accel_bias.dof, 1>(State::accel_bias.idx,
-					      0) * innovation,
-					      -getAccelBiasLimit(), getAccelBiasLimit());
+	_state.accel_bias -= K.slice<State::accel_bias.dof, 1>(State::accel_bias.idx, 0) * innovation;
+	_state.accel_bias = matrix::constrain(_state.accel_bias, -getAccelBiasLimit(), getAccelBiasLimit());
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 
 	// mag_I, mag_B
 	if (_control_status.flags.mag) {
-		_state.mag_I = matrix::constrain(_state.mag_I - K.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) * innovation, -1.f,
-						 1.f);
-		_state.mag_B = matrix::constrain(_state.mag_B - K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation,
-						 -getMagBiasLimit(), getMagBiasLimit());
+		_state.mag_I -= K.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) * innovation;
+		_state.mag_I = matrix::constrain(_state.mag_I, -1.f, 1.f);
+
+		_state.mag_B -= K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation;
+		_state.mag_B = matrix::constrain(_state.mag_B, -getMagBiasLimit(), getMagBiasLimit());
 	}
 
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -618,8 +626,8 @@ void Ekf::fuse(const VectorState &K, float innovation)
 
 	// wind_vel
 	if (_control_status.flags.wind) {
-		_state.wind_vel = matrix::constrain(_state.wind_vel - K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx,
-						    0) * innovation, -1.e2f, 1.e2f);
+		_state.wind_vel -= K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation;
+		_state.wind_vel = matrix::constrain(_state.wind_vel, -1.e2f, 1.e2f);
 	}
 
 #endif // CONFIG_EKF2_WIND
@@ -787,6 +795,8 @@ void Ekf::updateGroundEffect()
 #endif // CONFIG_EKF2_TERRAIN
 			if (_control_status.flags.gnd_effect) {
 				// Turn off ground effect compensation if it times out
+				static constexpr uint64_t GNDEFFECT_TIMEOUT = 10e6;
+
 				if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
 					_control_status.flags.gnd_effect = false;
 				}

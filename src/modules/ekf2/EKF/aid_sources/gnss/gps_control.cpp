@@ -55,8 +55,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			      imu_delayed.delta_vel, imu_delayed.delta_vel_dt,
 			      (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest));
 
-	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
-
 	// check for arrival of new sensor data at the fusion time horizon
 	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
 

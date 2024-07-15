@@ -269,6 +269,8 @@ void Ekf::checkVerticalAccelerationHealth(const imuSample &imu_delayed)
 
 	// declare a bad vertical acceleration measurement and make the declaration persist
 	// for a minimum of BADACC_PROBATION seconds
+	static constexpr uint64_t BADACC_PROBATION = 10e6;
+
 	if (_fault_status.flags.bad_acc_vertical) {
 		_fault_status.flags.bad_acc_vertical = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
 

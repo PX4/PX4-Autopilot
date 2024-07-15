@@ -260,11 +260,11 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 
 float Ekf::getRngVar() const
 {
-	return fmaxf(
-		       P(State::pos.idx + 2, State::pos.idx + 2)
-		       + sq(_params.range_noise)
-		       + sq(_params.range_noise_scaler * _range_sensor.getRange()),
-		       0.f);
+	float rng_var = P(State::pos.idx + 2, State::pos.idx + 2)
+			+ sq(_params.range_noise)
+			+ sq(_params.range_noise_scaler * _range_sensor.getRange());
+
+	return math::max(rng_var, 0.f);
 }
 
 void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)

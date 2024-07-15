@@ -38,6 +38,9 @@
 
 #include "ekf.h"
 
+// Maximum allowable time interval between external vision system measurements (uSec)
+static constexpr uint64_t EV_MAX_INTERVAL{200'000};
+
 void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 {
 	_ev_pos_b_est.predict(_dt_ekf_avg);
@@ -55,10 +58,8 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 
 		const bool starting_conditions_passing = quality_sufficient
 				&& ((ev_sample.time_us - _ev_sample_prev.time_us) < EV_MAX_INTERVAL)
-				&& ((_params.ev_quality_minimum <= 0)
-				    || (_ev_sample_prev.quality >= _params.ev_quality_minimum)) // previous quality sufficient
-				&& ((_params.ev_quality_minimum <= 0)
-				    || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
+				&& ((_params.ev_quality_minimum <= 0) || (_ev_sample_prev.quality >= _params.ev_quality_minimum))
+				&& ((_params.ev_quality_minimum <= 0) || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum))
 				&& isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
 
 		updateEvAttitudeErrorFilter(ev_sample, ev_reset);
