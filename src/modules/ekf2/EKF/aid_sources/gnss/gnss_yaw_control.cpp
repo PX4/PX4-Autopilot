@@ -226,7 +226,7 @@ bool Ekf::resetYawToGnss(const float gnss_yaw, const float gnss_yaw_offset)
 		return false;
 	}
 
-	// GNSS yaw measurement is alreday compensated for antenna offset in the driver
+	// GNSS yaw measurement is already compensated for antenna offset in the driver
 	const float measured_yaw = gnss_yaw;
 
 	const float yaw_variance = sq(fmaxf(_params.gnss_heading_noise, 1.e-2f));
