@@ -90,11 +90,19 @@ bool SerialImpl::configure()
 
 	case 460800: speed = B460800; break;
 
+	case 500000: speed = B500000; break;
+
+	case 576000: speed = B576000; break;
+
 #ifndef B921600
 #define B921600 921600
 #endif
 
 	case 921600: speed = B921600; break;
+
+	case 1000000: speed = B1000000; break;
+
+	case 1500000: speed = B1500000; break;
 
 	default:
 		speed = _baudrate;
