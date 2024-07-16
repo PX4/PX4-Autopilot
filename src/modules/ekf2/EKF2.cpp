@@ -563,8 +563,14 @@ void EKF2::Run()
 			}
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE) {
-				_ekf.resetWindToExternalObservation(vehicle_command.param1, vehicle_command.param3, vehicle_command.param2,
-									vehicle_command.param4);
+#if defined(CONFIG_EKF2_WIND)
+				// wind direction is given as azimuth where wind blows FROM
+				// PX4 backend expects direction where wind blows TO
+				const float wind_direction_rad = wrap_pi(math::radians(vehicle_command.param3) + M_PI_F);
+				const float wind_direction_accuracy_rad = math::radians(vehicle_command.param4);
+				_ekf.resetWindToExternalObservation(vehicle_command.param1, wind_direction_rad, vehicle_command.param2,
+								    wind_direction_accuracy_rad);
+#endif // CONFIG_EKF2_WIND
 			}
 		}
 	}

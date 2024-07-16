@@ -529,9 +529,9 @@ public:
 	* @brief Resets the wind states to an external observation
 	*
 	* @param wind_speed The wind speed in m/s
-	* @param wind_direction The azimuth (from true north) from where the wind is flowing from in degrees (0 to 360)
+	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
 	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
-	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in degrees
+	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
 	*/
 	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
 					    float wind_direction_accuracy);

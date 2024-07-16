@@ -45,17 +45,13 @@ void Ekf::resetWindToExternalObservation(float wind_speed, float wind_direction,
 	if (!_control_status.flags.in_air) {
 
 		const float wind_speed_constrained = math::max(wind_speed, 0.0f);
-
-		// wind direction is given as azimuth where wind blows FROM, we need direction where wind blows TO
-		const float wind_direction_rad = wrap_pi(math::radians(wind_direction) + M_PI_F);
-
-		const float wind_direction_var = sq(math::radians(wind_direction_accuracy));
+		const float wind_direction_var = sq(wind_direction_accuracy);
 		const float wind_speed_var = sq(wind_speed_accuracy);
 
 		Vector2f wind;
 		Vector2f wind_var;
 
-		sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction_rad, wind_speed_var,
+		sym::ComputeWindInitAndCovFromWindSpeedAndDirection(wind_speed_constrained, wind_direction, wind_speed_var,
 				wind_direction_var, &wind, &wind_var);
 
 		ECL_INFO("reset wind states to external observation");
