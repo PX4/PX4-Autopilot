@@ -33,6 +33,7 @@
 
 #include <px4_platform_common/events.h>
 #include "EKF2.hpp"
+#include "Utility/Sorting.hpp"
 
 using namespace time_literals;
 using math::constrain;
@@ -2796,9 +2797,76 @@ int EKF2::task_spawn(int argc, char *argv[])
 			}
 		}
 
+		uORB::SubscriptionData<sensors_status_s> sensors_status_mag_sub{ORB_ID(sensors_status_mag)};
+		uORB::SubscriptionData<sensors_status_imu_s> sensors_status_imu_sub{ORB_ID(sensors_status_imu)};
+		sensors_status_s mag_status_data = {};
+		sensors_status_imu_s imu_status_data = {};
+
+		mag_status_data = sensors_status_mag_sub.get();
+		imu_status_data = sensors_status_imu_sub.get();
+
+		const uint8_t mag_param_priorities[MAX_NUM_MAGS] {mag_status_data.priority[0], mag_status_data.priority[1], mag_status_data.priority[2], mag_status_data.priority[3]};
+		const uint8_t imu_param_priorities[MAX_NUM_IMUS] {imu_status_data.accel_priority[0], imu_status_data.accel_priority[1], imu_status_data.accel_priority[2], imu_status_data.accel_priority[3]};
+
+		// Define two arrays to store the sensor priorities and the original sensor instance index
+		uint8_t mag_priorities[MAX_NUM_MAGS] {};
+		uint8_t mag_priorities_sensor_indexes[MAX_NUM_MAGS] {};
+		uint8_t imu_priorities[MAX_NUM_IMUS] {};
+		uint8_t imu_priorities_sensor_indexes[MAX_NUM_IMUS] {};
+
+		uint8_t mag_instances_valid = 0;
+		uint8_t imu_instances_valid = 0;
+
+		// Initialize MAGs pair array
+		for (int i = 0; i < MAX_NUM_MAGS; i++) {
+			mag_priorities[i] = mag_param_priorities[i];
+			mag_priorities_sensor_indexes[i] = i;
+
+			// Priority higher than Disabled
+			if (mag_param_priorities[i] > 0) {
+				mag_instances_valid++;
+			}
+
+		}
+
+		// Initialize IMUs pair array
+		for (int i = 0; i < MAX_NUM_MAGS; i++) {
+			imu_priorities[i] = imu_param_priorities[i];
+			imu_priorities_sensor_indexes[i] = i;
+
+			// Priority higher than Disabled
+			if (imu_param_priorities[i] > 0) {
+				imu_instances_valid++;
+			}
+
+		}
+
+		// Inverse sort by sensor priority while keeping track of the original sensor number
+		sortPair(mag_priorities, mag_priorities_sensor_indexes, MAX_NUM_MAGS, true);
+		sortPair(imu_priorities, imu_priorities_sensor_indexes, MAX_NUM_IMUS, true);
+
+		PX4_INFO("Initialized MAGs (positive priority): %d", mag_instances_valid);
+
+		for (int i = 0; i < MAX_NUM_MAGS; i++) {
+			PX4_INFO("MAGs priorities - i: %" PRIu8 "  MAG%" PRIu8 "  Priority: %" PRIu8, i, mag_priorities_sensor_indexes[i],
+				 mag_priorities[i]);
+		}
+
+		PX4_INFO("Initialized IMUs (positive priority): %d", imu_instances_valid);
+
+		for (int i = 0; i < MAX_NUM_IMUS; i++) {
+			PX4_INFO("IMUs priorities - i: %" PRIu8 "  ACC%" PRIu8 "  Priority: %" PRIu8, i, imu_priorities_sensor_indexes[i],
+				 imu_priorities[i]);
+		}
+
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
-		int multi_instances_allocated = 0;
+		// Number of instances is limited by the number of valid sensors (not uninitialized or disabled) that are beeing published
+		const uint8_t imu_instances_limited = math::min(static_cast<uint8_t>(imu_instances), imu_instances_valid);
+		const uint8_t mag_instances_limited = math::min(static_cast<uint8_t>(mag_instances), mag_instances_valid);
+		const uint8_t multi_instances = math::min(static_cast<uint8_t>(imu_instances_limited * mag_instances_limited),
+						static_cast<uint8_t>(EKF2_MAX_INSTANCES));
+
+		uint8_t multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -2812,34 +2880,44 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			vehicle_status_sub.update();
 
-			for (uint8_t mag = 0; mag < mag_instances; mag++) {
-				uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
+			uint8_t selected_mag = 0;
+			uint8_t selected_imu = 0;
 
-				for (uint8_t imu = 0; imu < imu_instances; imu++) {
+			for (uint8_t mag = 0; mag < mag_instances_valid; mag++) {
 
-					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
+				selected_mag = mag_priorities_sensor_indexes[mag];
+				uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), selected_mag};
+				//PX4_DEBUG("Selected_mag MAG:%" PRIu16, selected_mag);
+
+				for (uint8_t imu = 0; imu < imu_instances_valid; imu++) {
+
+					selected_imu = imu_priorities_sensor_indexes[imu];
+					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), selected_imu};
+					//PX4_DEBUG("Selected_imu IMU:%" PRIu16, selected_imu);
 					vehicle_mag_sub.update();
 
-					// Mag & IMU data must be valid, first mag can be ignored initially
-					if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
+					// Mag & IMU data must be valid, first mag (mag0) can be ignored initially
+					if ((vehicle_mag_sub.advertised() || selected_mag == 0) && (vehicle_imu_sub.advertised())) {
+						if (!ekf2_instance_created[selected_imu][selected_mag]) {
 
-						if (!ekf2_instance_created[imu][mag]) {
-							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
+							// TODO Allocation and initialization should be refactored into a different method or helper function
+							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false); //Might be done by start order
 
-							if (ekf2_inst && ekf2_inst->multi_init(imu, mag)) {
+							if (ekf2_inst && ekf2_inst->multi_init(selected_imu, selected_mag)) {
 								int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
 
 								if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
 									_objects[actual_instance].store(ekf2_inst);
 									success = true;
 									multi_instances_allocated++;
-									ekf2_instance_created[imu][mag] = true;
-
+									ekf2_instance_created[selected_imu][selected_mag] = true;
 									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-										  imu, vehicle_imu_sub.get().accel_device_id,
-										  mag, vehicle_mag_sub.get().device_id);
+										  selected_imu, vehicle_imu_sub.get().accel_device_id,
+										  selected_mag, vehicle_mag_sub.get().device_id);
 
 									_ekf2_selector.load()->ScheduleNow();
+
+									if (multi_instances_allocated >= multi_instances) { return PX4_OK;}
 
 								} else {
 									PX4_ERR("instance numbering problem instance: %d", actual_instance);
@@ -2848,7 +2926,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 								}
 
 							} else {
-								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
+								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, selected_imu, selected_mag);
 								px4_usleep(100000);
 								break;
 							}
@@ -2864,6 +2942,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 			if (multi_instances_allocated < multi_instances) {
 				px4_usleep(10000);
 			}
+
 		}
 
 	} else
