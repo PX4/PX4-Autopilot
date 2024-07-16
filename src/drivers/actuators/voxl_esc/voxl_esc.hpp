@@ -133,6 +133,16 @@ private:
 
 	static constexpr uint16_t VOXL_ESC_NUM_INIT_RETRIES = 3;
 
+	static constexpr float    VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT = -0.1f;
+	static constexpr float    VOXL_ESC_GPIO_CTL_THRESHOLD = 0.0f;
+
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX1 = 1;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX2 = 2;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX3 = 3;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX4 = 4;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX5 = 5;
+	static constexpr uint32_t VOXL_ESC_GPIO_CTL_AUX6 = 6;
+
 	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, VOXL_ESC_PWM_MAX); }
 	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, VOXL_ESC_RPM_MAX); }
 
@@ -156,6 +166,7 @@ private:
 		int32_t		publish_battery_status{0};
 		int32_t		esc_warn_temp_threshold{0};
 		int32_t		esc_over_temp_threshold{0};
+		int32_t		gpio_ctl_channel{0};
 	} voxl_esc_params_t;
 
 	struct EscChan {
@@ -218,6 +229,9 @@ private:
 	int32_t			_rpm_turtle_min{0};
 	int32_t			_rpm_fullscale{0};
 	manual_control_setpoint_s _manual_control_setpoint{};
+
+	bool			_gpio_ctl_en{false};
+	bool			_gpio_ctl_high{true};
 
 	uint16_t		_cmd_id{0};
 	Command			_current_cmd;

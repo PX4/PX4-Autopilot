@@ -118,7 +118,7 @@ int VoxlEsc::init()
 	//https://cwiki.apache.org/confluence/display/NUTTX/Detaching+File+Descriptors
 	//detaching file descriptors is not implemented in the current version of nuttx that px4 uses
 	//
-	//There is no problem when running on VOXL2, but in order to have the same logical flow on both systems, 
+	//There is no problem when running on VOXL2, but in order to have the same logical flow on both systems,
 	//we will initialize uart and query the device in Run()
 
 	ScheduleNow();
@@ -199,7 +199,7 @@ int VoxlEsc::device_init()
 					if (packet_type == ESC_PACKET_TYPE_VERSION_EXT_RESPONSE && packet_size == sizeof(QC_ESC_EXTENDED_VERSION_INFO)) {
 						QC_ESC_EXTENDED_VERSION_INFO ver;
 						memcpy(&ver, _fb_packet.buffer, packet_size);
-						
+
 						PX4_INFO("VOXL_ESC: \tESC ID     : %i", ver.id);
 						PX4_INFO("VOXL_ESC: \tBoard Type : %i: %s", ver.hw_version, board_id_to_name(ver.hw_version));
 
@@ -238,7 +238,7 @@ int VoxlEsc::device_init()
 	//check the firmware hashes to make sure they are the same. Firmware hash has 8 chars plus optional "*"
 	for (int esc_id=1; esc_id < VOXL_ESC_OUTPUT_CHANNELS; esc_id++){
 		if (strncmp(_version_info[0].firmware_git_version,_version_info[esc_id].firmware_git_version, 9) != 0) {
-			PX4_ERR("VOXL_ESC: ESC %d Firmware hash does not match ESC 0 firmware hash:  (%.12s) != (%.12s)", 
+			PX4_ERR("VOXL_ESC: ESC %d Firmware hash does not match ESC 0 firmware hash:  (%.12s) != (%.12s)",
 				esc_id, _version_info[esc_id].firmware_git_version, _version_info[0].firmware_git_version);
 			esc_detection_fault = true;
 		}
@@ -302,9 +302,11 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 
 	param_get(param_find("VOXL_ESC_VLOG"),    &params->verbose_logging);
 	param_get(param_find("VOXL_ESC_PUB_BST"), &params->publish_battery_status);
-	
+
 	param_get(param_find("VOXL_ESC_T_WARN"), &params->esc_warn_temp_threshold);
 	param_get(param_find("VOXL_ESC_T_OVER"), &params->esc_over_temp_threshold);
+
+	param_get(param_find("GPIO_CTL_CH"), &params->gpio_ctl_channel);
 
 	if (params->rpm_min >= params->rpm_max) {
 		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_RPM_MIN.  Please verify parameters.");
@@ -339,6 +341,12 @@ int VoxlEsc::load_params(voxl_esc_params_t *params, ch_assign_t *map)
 	if (params->turtle_cosphi < 0.0f || params->turtle_cosphi > 100.0f) {
 		PX4_ERR("VOXL_ESC: Invalid parameter VOXL_ESC_T_COSP.  Please verify parameters.");
 		params->turtle_cosphi = 0.0f;
+		ret = PX4_ERROR;
+	}
+
+	if (params->gpio_ctl_channel < 0 || params->gpio_ctl_channel > 6) {
+		PX4_ERR("VOXL_ESC: Invalid parameter GPIO_CTL_CH.  Please verify parameters.");
+		params->gpio_ctl_channel = 0;
 		ret = PX4_ERROR;
 	}
 
@@ -515,19 +523,19 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 					_esc_status.timestamp = _esc_status.esc[id].timestamp;
 					_esc_status.counter++;
-					
-					
+
+
 					if ((_parameters.esc_over_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_over_temp_threshold))
 					{
 					  _esc_status.esc[id].failures |= 1<<(esc_report_s::FAILURE_OVER_ESC_TEMPERATURE);
 					}
-					
+
 					//TODO: do we also issue a warning if over-temperature threshold is exceeded?
 					if ((_parameters.esc_warn_temp_threshold > 0) && (_esc_status.esc[id].esc_temperature > _parameters.esc_warn_temp_threshold))
 					{
 					  _esc_status.esc[id].failures |= 1<<(esc_report_s::FAILURE_WARN_ESC_TEMPERATURE);
 					}
-					
+
 
 					//print ESC status just for debugging
 					/*
@@ -543,7 +551,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 			else if (packet_type == ESC_PACKET_TYPE_VERSION_RESPONSE && packet_size == sizeof(QC_ESC_VERSION_INFO)) {
 				QC_ESC_VERSION_INFO ver;
 				memcpy(&ver, _fb_packet.buffer, packet_size);
-				
+
 				PX4_INFO("VOXL_ESC: ESC ID: %i", ver.id);
 				PX4_INFO("VOXL_ESC: HW Version: %i", ver.hw_version);
 				PX4_INFO("VOXL_ESC: SW Version: %i", ver.sw_version);
@@ -565,7 +573,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 			} else if (packet_type == ESC_PACKET_TYPE_FB_POWER_STATUS && packet_size == sizeof(QC_ESC_FB_POWER_STATUS)) {
 				QC_ESC_FB_POWER_STATUS packet;
 				memcpy(&packet,_fb_packet.buffer, packet_size);
-				
+
 				float voltage = packet.voltage * 0.001f; // Voltage is reported at 1 mV resolution
 				float current = packet.current * 0.008f; // Total current is reported at 8mA resolution
 
@@ -581,7 +589,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 						_battery.updateAndPublishBatteryStatus(current_time);
 					}
 				}
-				
+
 			}
 
 		} else { //parser error
@@ -1196,6 +1204,12 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
 
+	// counter to track how many times uart_write has been called with gpio data
+	static int gpio_write_counter = 0;
+
+	// store the previous state of _gpio_ctl_high
+	static bool prev_gpio_ctl_high = _gpio_ctl_high;
+
 	if (num_outputs != VOXL_ESC_OUTPUT_CHANNELS) {
 		return false;
 	}
@@ -1224,7 +1238,7 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			}
 		}
 	}
-	
+
 
 	Command cmd;
 	cmd.len = qc_esc_create_rpm_packet4_fb(_esc_chans[0].rate_req,
@@ -1240,9 +1254,54 @@ bool VoxlEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			sizeof(cmd.buf),
 			_extended_rpm);
 
+
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("VOXL_ESC: Failed to send packet");
 		return false;
+	}
+
+	// Track and manage gpio command writes
+	bool write_gpio_command = false;
+
+	if (_gpio_ctl_en) {
+		if (_gpio_ctl_high != prev_gpio_ctl_high) {
+			gpio_write_counter = 0;
+		}
+
+		if (gpio_write_counter < 10) {
+			write_gpio_command = true;
+			gpio_write_counter++;
+		}
+
+		prev_gpio_ctl_high = _gpio_ctl_high;
+
+		if (write_gpio_command) {
+			Command gpio_cmd;
+			const int ESC_PACKET_TYPE_GPIO_CMD = 15;
+			uint8_t data[5];
+
+			int esc_id = 0; // In future un-hardcode
+			int val = 0;
+
+			if ( _gpio_ctl_high ) {
+				val = 1;
+			}
+
+			data[0] = esc_id; // esc id
+			data[1] = 80; // 01010000 : pin F0
+			data[2] = 0; // 0: output, 1: input
+			data[3] = val; //cmd LSB
+			data[4] = 0; // cmd MSB
+
+			// type, data, size
+			gpio_cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_GPIO_CMD, (uint8_t *) & (data[0]), 5, gpio_cmd.buf, sizeof(gpio_cmd.buf));
+
+			if (_uart_port->uart_write(gpio_cmd.buf, gpio_cmd.len) != gpio_cmd.len) {
+				PX4_ERR("VOXL_ESC: Failed to send gpio packet");
+				return false;
+			}
+		}
+
 	}
 
 	// increment ESC id from which to request feedback in round robin order
@@ -1399,6 +1458,46 @@ void VoxlEsc::Run()
 
 	}
 
+	// check if gpio control is enabled
+	if (_parameters.gpio_ctl_channel > 0) {
+
+		if (_manual_control_setpoint_sub.updated()) {
+
+			_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
+
+			_gpio_ctl_en = true;
+			float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
+
+			switch (_parameters.gpio_ctl_channel) {
+				case VOXL_ESC_GPIO_CTL_AUX1:
+					gpio_setpoint = _manual_control_setpoint.aux1;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX2:
+					gpio_setpoint = _manual_control_setpoint.aux2;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX3:
+					gpio_setpoint = _manual_control_setpoint.aux3;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX4:
+					gpio_setpoint = _manual_control_setpoint.aux4;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX5:
+					gpio_setpoint = _manual_control_setpoint.aux5;
+					break;
+				case VOXL_ESC_GPIO_CTL_AUX6:
+					gpio_setpoint = _manual_control_setpoint.aux6;
+					break;
+			}
+
+			if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
+				_gpio_ctl_high = false;
+
+			} else {
+				_gpio_ctl_high = true;
+			}
+		}
+	}
+
 	if (!_outputs_on) {
 		if (_actuator_test_sub.updated()) {
 			// values are set in ActuatorTest::update, we just need to enable outputs to let them through
@@ -1544,9 +1643,11 @@ void VoxlEsc::print_params()
 
 	PX4_INFO("Params: VOXL_ESC_VLOG: %" PRId32,    _parameters.verbose_logging);
 	PX4_INFO("Params: VOXL_ESC_PUB_BST: %" PRId32, _parameters.publish_battery_status);
-	
+
 	PX4_INFO("Params: VOXL_ESC_T_WARN: %" PRId32, _parameters.esc_warn_temp_threshold);
 	PX4_INFO("Params: VOXL_ESC_T_OVER: %" PRId32, _parameters.esc_over_temp_threshold);
+
+	PX4_INFO("Params: GPIO_CTL_CH: %" PRId32, _parameters.gpio_ctl_channel);
 }
 
 int VoxlEsc::print_status()
