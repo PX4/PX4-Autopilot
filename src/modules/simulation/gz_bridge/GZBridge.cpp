@@ -171,11 +171,11 @@ int GZBridge::init()
 
 #if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
-	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
+	std::string airspeed_topic = "/world/" + _world_name + "/model/" + _model_name +
 					"/link/airspeed_link/sensor/air_speed/air_speed";
 
-	if (!_node.Subscribe(airpressure_topic, &GZBridge::airspeedCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", airpressure_topic.c_str());
+	if (!_node.Subscribe(airspeed_topic, &GZBridge::airspeedCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", airspeed_topic.c_str());
 		return PX4_ERROR;
 	}
 
