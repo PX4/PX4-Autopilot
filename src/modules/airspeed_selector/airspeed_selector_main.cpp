@@ -370,7 +370,7 @@ AirspeedModule::Run()
 		input_data.air_pressure_pa = _vehicle_air_data.baro_pressure_pa;
 		input_data.accel_z = _accel.xyz[2];
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
-		input_data.mag_test_ratio = _estimator_status.mag_test_ratio;
+		input_data.hdg_test_ratio = _estimator_status.hdg_test_ratio;
 		input_data.tecs_timestamp = _tecs_status.timestamp;
 		input_data.fixed_wing_tecs_throttle = _tecs_status.throttle_sp;
 		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
