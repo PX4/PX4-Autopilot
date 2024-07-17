@@ -77,13 +77,15 @@ void Ekf::controlTerrainFakeFusion()
 
 bool Ekf::isTerrainEstimateValid() const
 {
+	bool valid = false;
+
 	if (_time_last_terrain_fuse != 0) {
 		// Assume being valid when the uncertainty is small compared to the height above ground
 		float hagl_var = INFINITY;
 		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
 
 		if (hagl_var < fmaxf(sq(0.1f * getHagl()), 0.2f)) {
-			return true;
+			valid = true;
 		}
 	}
 
@@ -91,10 +93,10 @@ bool Ekf::isTerrainEstimateValid() const
 
 	// Assume that the terrain estimate is always valid when direct observations are fused
 	if (_control_status.flags.rng_terrain && isRecent(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max)) {
-		return true;
+		valid = true;
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-	return false;
+	return valid;
 }
