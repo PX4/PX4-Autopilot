@@ -94,7 +94,6 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
-	int battery_required_count = 0;
 	bool battery_has_fault = false;
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
@@ -106,6 +105,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	hrt_abstime oldest_update = hrt_absolute_time();
 	float worst_battery_time_s{NAN};
 	int num_connected_batteries{0};
+	bool is_required_battery_missing{false};
 
 	for (auto &battery_sub : _battery_status_subs) {
 		int index = battery_sub.get_instance();
@@ -115,8 +115,18 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			continue;
 		}
 
-		if (battery.is_required) {
-			battery_required_count++;
+		if (battery.is_required && !battery.connected) {
+			is_required_battery_missing = true;
+			/* EVENT
+			 * @description
+			 * Make sure all required batteries are connected.
+			 */
+			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_missing"),
+							events::Log::Error, "Battery {1} missing", index + 1);
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i missing\t", index + 1);
+			}
 		}
 
 		if (!_last_armed && context.isArmed()) {
@@ -259,16 +269,17 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	reporter.failsafeFlags().battery_unhealthy =
 		// All connected batteries are regularly being published
 		hrt_elapsed_time(&oldest_update) > 5_s
-		// There is at least one connected battery (in any slot)
-		|| num_connected_batteries < battery_required_count
+		// There is a required battery that's missing
+		|| is_required_battery_missing
 		// No currently-connected batteries have any fault
 		|| battery_has_fault
 		|| reporter.failsafeFlags().battery_warning == battery_status_s::BATTERY_WARNING_FAILED;
 
-	if (reporter.failsafeFlags().battery_unhealthy && !battery_has_fault) { // faults are reported above already
+	if (reporter.failsafeFlags().battery_unhealthy
+	    && !is_required_battery_missing && !battery_has_fault) { // missing batteries and faults are reported above already
 		/* EVENT
 		 * @description
-		 * Make sure all batteries are connected and operational.
+		 * Make sure all batteries are operational.
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::battery, events::ID("check_battery_unhealthy"),
 				       events::Log::Error, "Battery unhealthy");
