@@ -121,3 +121,61 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0, -1, -1]
+
+        BAT_LOW_THR:
+            description:
+                short: Low threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as low.
+                    This has to be higher than the critical threshold.
+            type: float
+            unit: norm
+            min: 0.12
+            max: 0.5
+            decimal: 2
+            increment: 0.01
+            default: 0.15
+
+        BAT_CRIT_THR:
+            description:
+                short: Critical threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as critically low.
+                    This has to be lower than the low threshold. This threshold commonly
+                    will trigger RTL.
+            type: float
+            unit: norm
+            min: 0.05
+            max: 0.25
+            decimal: 2
+            increment: 0.01
+            default: 0.07
+
+        BAT_EMERGEN_THR:
+            description:
+                short: Emergency threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as dangerously low.
+                    This has to be lower than the critical threshold. This threshold commonly
+                    will trigger landing.
+            type: float
+            unit: norm
+            min: 0.03
+            max: 0.1
+            decimal: 2
+            increment: 0.01
+            default: 0.05
+
+        BAT_AVRG_CURRENT:
+            description:
+                short: Expected battery current in flight.
+                long: |
+                    This value is used to initialize the in-flight average current estimation,
+                    which in turn is used for estimating remaining flight time and RTL triggering.
+            type: float
+            unit: A
+            min: 0
+            max: 500
+            decimal: 2
+            increment: 0.1
+            default: 15
