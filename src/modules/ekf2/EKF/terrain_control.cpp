@@ -67,15 +67,7 @@ void Ekf::controlTerrainFakeFusion()
 	    && !_control_status.flags.rng_terrain
 	    && !_control_status.flags.opt_flow_terrain) {
 
-		bool recent_terrain_aiding = false;
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-		recent_terrain_aiding |= isRecent(_aid_src_rng_hgt.time_last_fuse, (uint64_t)1e6);
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		recent_terrain_aiding |= isRecent(_aid_src_optical_flow.time_last_fuse, (uint64_t)1e6);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
+		bool recent_terrain_aiding = isRecent(_time_last_terrain_fuse, (uint64_t)1e6);
 
 		if (_control_status.flags.vehicle_at_rest || !recent_terrain_aiding) {
 			initTerrain();
@@ -85,15 +77,22 @@ void Ekf::controlTerrainFakeFusion()
 
 bool Ekf::isTerrainEstimateValid() const
 {
-	// Assume being valid when the uncertainty is small compared to the height above ground
-	float hagl_var = INFINITY;
-	sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
-	bool valid = hagl_var < fmaxf(sq(0.1f * getHagl()), 0.2f);
+	bool valid = false;
+
+	if (_time_last_terrain_fuse != 0) {
+		// Assume being valid when the uncertainty is small compared to the height above ground
+		float hagl_var = INFINITY;
+		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
+
+		if (hagl_var < fmaxf(sq(0.1f * getHagl()), 0.2f)) {
+			valid = true;
+		}
+	}
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 	// Assume that the terrain estimate is always valid when direct observations are fused
-	if (_control_status.flags.rng_terrain && isRecent(_aid_src_rng_hgt.time_last_fuse, (uint64_t)5e6)) {
+	if (_control_status.flags.rng_terrain && isRecent(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max)) {
 		valid = true;
 	}
 

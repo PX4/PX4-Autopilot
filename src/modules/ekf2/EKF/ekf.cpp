@@ -110,6 +110,7 @@ void Ekf::reset()
 	_time_last_hor_vel_fuse = 0;
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
+	_time_last_terrain_fuse = 0;
 
 	_last_known_pos.setZero();
 
