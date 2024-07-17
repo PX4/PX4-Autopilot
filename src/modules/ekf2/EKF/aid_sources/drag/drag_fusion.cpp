@@ -51,10 +51,8 @@ void Ekf::controlDragFusion(const imuSample &imu_delayed)
 			_control_status.flags.wind = true;
 
 			if (!_external_wind_init) {
-				resetWindToZero();
+				resetWindCov();
 			}
-
-			_external_wind_init = false;
 		}
 
 		dragSample drag_sample;

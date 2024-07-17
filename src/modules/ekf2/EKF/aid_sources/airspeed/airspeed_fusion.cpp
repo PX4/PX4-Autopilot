@@ -62,6 +62,10 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		_control_status.flags.wind = false;
 	}
 
+	if (_control_status.flags.wind && _external_wind_init) {
+		_external_wind_init = false;
+	}
+
 #if defined(CONFIG_EKF2_GNSS)
 
 	// clear yaw estimator airspeed (updated later with true airspeed if airspeed fusion is active)
@@ -135,7 +139,6 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 				_aid_src_airspeed.time_last_fuse = _time_delayed_us;
 			}
 
-			_external_wind_init = false;
 			_control_status.flags.wind = true;
 			_control_status.flags.fuse_aspd = true;
 		}

@@ -64,11 +64,12 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 			updateSideslip(_aid_src_sideslip);
 			_innov_check_fail_status.flags.reject_sideslip = _aid_src_sideslip.innovation_rejected;
 
-			if (!fuseSideslip(_aid_src_sideslip) && !_control_status.flags.wind && !_external_wind_init) {
-				resetWind();
-			}
+			if (fuseSideslip(_aid_src_sideslip)) {
+				_control_status.flags.wind = true;
 
-			_control_status.flags.wind = true;
+			} else if (!_external_wind_init && !_control_status.flags.wind) {
+				resetWindCov();
+			}
 		}
 	}
 }
