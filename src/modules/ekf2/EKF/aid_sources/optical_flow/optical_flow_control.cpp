@@ -109,13 +109,20 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		const float range = predictFlowRange();
 		const Vector2f flow_vel_body{-flow_compensated(1) *range, flow_compensated(0) *range};
 
+		// compute the range from the compensated optical flow and current velocity state
+		const Vector2f vel_body = flowSensorVelocity(flow_gyro_corrected).xy();
+		const float flow_range = 0.5f * (math::max(0.f, vel_body(0) / -flow_compensated(1))
+						 + math::max(0.f, vel_body(1) / flow_compensated(0)));
+
 		if (_flow_counter == 0) {
 			_flow_vel_body.reset(flow_vel_body);
+			_flow_range.reset(flow_range);
 			_flow_counter = 1;
 
 		} else {
 
 			_flow_vel_body.update(flow_vel_body);
+			_flow_range.update(flow_range);
 			_flow_counter++;
 		}
 

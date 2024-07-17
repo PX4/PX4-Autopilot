@@ -123,6 +123,7 @@ public:
 
 	const Vector2f &getFlowVelBody() const { return _flow_vel_body.getState(); }
 	Vector2f getFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody()(0), getFlowVelBody()(1), 0.f)); }
+	float getFlowRange() const { return _flow_range.getState(); }
 
 	const Vector2f &getFlowCompensated() const { return _flow_rate_compensated; }
 	const Vector2f &getFlowUncompensated() const { return _flow_sample_delayed.flow_rate; }
@@ -621,6 +622,7 @@ private:
 	Vector3f _ref_body_rate{};
 
 	AlphaFilter<Vector2f> _flow_vel_body{0.1f}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
+	AlphaFilter<float> _flow_range{0.1f};       ///< range from corrected flow measurement (m)
 	uint32_t _flow_counter{0};                  ///< number of flow samples read for initialization
 
 	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
@@ -867,6 +869,9 @@ private:
 
 	// calculate optical flow body angular rate compensation
 	void calcOptFlowBodyRateComp(const flowSample &flow_sample);
+
+	// velocity in the optical flow sensor body frame
+	Vector3f flowSensorVelocity(const Vector3f &flow_gyro) const;
 
 	float predictFlowRange() const;
 	Vector2f predictFlow(const Vector3f &flow_gyro) const;

@@ -3,6 +3,7 @@ uint64 timestamp_sample                # the timestamp of the raw data (microsec
 
 float32[2] vel_body                    # velocity obtained from gyro-compensated and distance-scaled optical flow raw measurements in body frame(m/s)
 float32[2] vel_ne                      # same as vel_body but in local frame (m/s)
+float32 flow_range                     # range calculated from compensated flow and velocity estimate (m)
 
 float32[2] flow_rate_uncompensated     # integrated optical flow measurement (rad/s)
 float32[2] flow_rate_compensated       # integrated optical flow measurement compensated for angular motion (rad/s)

@@ -2030,6 +2030,7 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 
 		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
 		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
+		flow_vel.flow_range = _ekf.getFlowRange();
 
 		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_rate_uncompensated);
 		_ekf.getFlowCompensated().copyTo(flow_vel.flow_rate_compensated);
