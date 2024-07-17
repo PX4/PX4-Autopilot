@@ -196,6 +196,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// Distance Sensor(AFBRS50): optional
+	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
+				   "/link/BroadcomSensor/sensor/broadcomafbrs50/scan";
+
+	if (!_node.Subscribe(lidar_sensor, &GZBridge::LaserScantoLidarSensorCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
+	}
+
 #if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
 	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
@@ -739,6 +747,28 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	}
 
 	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::LaserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
+{
+	distance_sensor_s distance_sensor{};
+	distance_sensor.timestamp = hrt_absolute_time();
+	distance_sensor.device_id = 0;
+	distance_sensor.min_distance = scan.range_min();
+	distance_sensor.max_distance = scan.range_max();
+	distance_sensor.current_distance = scan.ranges()[0];
+	distance_sensor.variance = 0.0f;
+	distance_sensor.signal_quality = -1;
+	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	distance_sensor.h_fov = scan.angle_max() - scan.angle_min();
+	distance_sensor.v_fov = scan.angle_max() - scan.angle_min();
+	distance_sensor.q[0] = scan.world_pose().orientation().x();
+	distance_sensor.q[1] = scan.world_pose().orientation().y();
+	distance_sensor.q[2] = scan.world_pose().orientation().z();
+	distance_sensor.q[3] = scan.world_pose().orientation().w();
+	distance_sensor.orientation = distance_sensor_s::ROTATION_CUSTOM;
+
+	_distance_sensor_pub.publish(distance_sensor);
 }
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
