@@ -128,10 +128,9 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			if (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent) {
 				resetVelUsingAirspeed(airspeed_sample);
 
-			} else if ((!_external_wind_init
-				    && (!_control_status.flags.wind
-					|| getWindVelocityVariance().longerThan(sq(_params.initial_wind_uncertainty))))
-				   || _aid_src_airspeed.innovation_rejected) {
+			} else if (!_external_wind_init
+				   && (!_control_status.flags.wind
+				       || getWindVelocityVariance().longerThan(sq(_params.initial_wind_uncertainty)))) {
 				resetWindUsingAirspeed(airspeed_sample);
 				_aid_src_airspeed.time_last_fuse = _time_delayed_us;
 			}
