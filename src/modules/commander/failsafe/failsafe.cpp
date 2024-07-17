@@ -475,7 +475,6 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 
 	// Battery flight time remaining failsafe
-
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
 		       ActionOptions(fromRemainingFlightTimeLowActParam(_param_com_fltt_low_act.get())));
 
@@ -512,18 +511,19 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 
-	// Failure detector
+	// Handle fails during spoolup just after arming
 	if ((_armed_time != 0)
 	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
 	   ) {
 		CHECK_FAILSAFE(status_flags, fd_esc_arming_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
+		CHECK_FAILSAFE(status_flags, battery_unhealthy, ActionOptions(Action::Disarm).cannotBeDeferred());
 	}
 
+	// Handle fails during the early takeoff phase
 	if ((_armed_time != 0)
 	    && (time_us < _armed_time
 		+ static_cast<hrt_abstime>((_param_com_lkdown_tko.get() + _param_com_spoolup_time.get()) * 1_s))
 	   ) {
-		// This handles the case where something fails during the early takeoff phase
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
 
 	} else if (!circuit_breaker_enabled_by_val(_param_cbrk_flightterm.get(), CBRK_FLIGHTTERM_KEY)) {
