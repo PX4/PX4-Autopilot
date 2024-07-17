@@ -109,6 +109,22 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 	return false;
 }
 
+Vector3f Ekf::flowSensorVelocity(const Vector3f &flow_gyro) const
+{
+	// calculate the sensor position relative to the IMU
+	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
+
+	// calculate the velocity of the sensor relative to the imu in body frame
+	// Note: flow gyro is the negative of the body angular velocity, thus use minus sign
+	const Vector3f vel_rel_imu_body = -flow_gyro % pos_offset_body;
+
+	// calculate the velocity of the sensor in the earth frame
+	const Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
+
+	// rotate into body frame
+	return _state.quat_nominal.rotateVectorInverse(vel_rel_earth);
+}
+
 float Ekf::predictFlowRange() const
 {
 	// calculate the sensor position relative to the IMU
@@ -134,18 +150,8 @@ float Ekf::predictFlowRange() const
 
 Vector2f Ekf::predictFlow(const Vector3f &flow_gyro) const
 {
-	// calculate the sensor position relative to the IMU
-	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
-
-	// calculate the velocity of the sensor relative to the imu in body frame
-	// Note: flow gyro is the negative of the body angular velocity, thus use minus sign
-	const Vector3f vel_rel_imu_body = -flow_gyro % pos_offset_body;
-
-	// calculate the velocity of the sensor in the earth frame
-	const Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
-
 	// rotate into body frame
-	const Vector2f vel_body = _state.quat_nominal.rotateVectorInverse(vel_rel_earth).xy();
+	const Vector2f vel_body = flowSensorVelocity(flow_gyro).xy();
 
 	// calculate range from focal point to centre of image
 	const float range = predictFlowRange();
