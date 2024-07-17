@@ -80,7 +80,7 @@ private:
 			est_msg.vel_ratio = est.vel_test_ratio;
 			est_msg.pos_horiz_ratio = est.pos_test_ratio;
 			est_msg.pos_vert_ratio = est.hgt_test_ratio;
-			est_msg.mag_ratio = est.mag_test_ratio;
+			est_msg.mag_ratio = est.hdg_test_ratio;
 			est_msg.hagl_ratio = est.hagl_test_ratio;
 			est_msg.tas_ratio = est.tas_test_ratio;
 			est_msg.pos_horiz_accuracy = est.pos_horiz_accuracy;

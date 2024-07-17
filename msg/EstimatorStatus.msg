@@ -71,7 +71,7 @@ uint32 filter_fault_flags	# Bitmask to indicate EKF internal faults
 float32 pos_horiz_accuracy # 1-Sigma estimated horizontal position accuracy relative to the estimators origin (m)
 float32 pos_vert_accuracy # 1-Sigma estimated vertical position accuracy relative to the estimators origin (m)
 
-float32 mag_test_ratio # low-pass filtered ratio of the largest magnetometer innovation component to the innovation test limit
+float32 hdg_test_ratio # low-pass filtered ratio of the largest heading innovation component to the innovation test limit
 float32 vel_test_ratio # low-pass filtered ratio of the largest velocity innovation component to the innovation test limit
 float32 pos_test_ratio # low-pass filtered ratio of the largest horizontal position innovation component to the innovation test limit
 float32 hgt_test_ratio # low-pass filtered ratio of the vertical position innovation to the innovation test limit
