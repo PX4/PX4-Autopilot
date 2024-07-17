@@ -58,7 +58,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_data_stuck(input_data.timestamp);
 	check_load_factor(input_data.accel_z);
-	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio,
+	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.hdg_test_ratio,
 				  input_data.ground_velocity, input_data.gnss_valid);
 	check_first_principle(input_data.timestamp, input_data.fixed_wing_tecs_throttle,
 			      input_data.fixed_wing_tecs_throttle_trim, input_data.tecs_timestamp, input_data.q_att);
@@ -214,7 +214,7 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 
 void
 AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_status_vel_test_ratio,
-		float estimator_status_mag_test_ratio, const matrix::Vector3f &vI, bool gnss_valid)
+		float estimator_status_hdg_test_ratio, const matrix::Vector3f &vI, bool gnss_valid)
 {
 	// Check normalised innovation levels with requirement for continuous data and use of hysteresis
 	// to prevent false triggering.
@@ -228,7 +228,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		_innovations_check_failed = false;
 		_aspd_innov_integ_state = 0.f;
 
-	} else if (!gnss_valid || estimator_status_vel_test_ratio > 1.f || estimator_status_mag_test_ratio > 1.f) {
+	} else if (!gnss_valid || estimator_status_vel_test_ratio > 1.f || estimator_status_hdg_test_ratio > 1.f) {
 		//nav velocity data is likely not good
 		//don't run the test but don't reset the check if it had previously failed when nav velocity data was still likely good
 		_aspd_innov_integ_state = 0.f;
