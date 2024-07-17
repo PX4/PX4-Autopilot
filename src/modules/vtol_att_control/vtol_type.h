@@ -251,12 +251,6 @@ public:
 
 	virtual void parameters_update() = 0;
 
-	/**
-	 * @brief Set current time delta
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void setDt(float dt) {_dt = dt; }
 
 	/**
 	 * @brief Resets the transition timer states.
@@ -305,6 +299,7 @@ protected:
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
+	float _last_thr_in_mc = 0.f;
 
 	hrt_abstime _trans_finished_ts = 0;
 	hrt_abstime _transition_start_timestamp{0};
@@ -325,8 +320,6 @@ protected:
 	float update_and_get_backtransition_pitch_sp();
 	bool isFrontTransitionCompleted();
 	virtual bool isFrontTransitionCompletedBase();
-
-	float _dt{0.0025f}; // time step [s]
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
 

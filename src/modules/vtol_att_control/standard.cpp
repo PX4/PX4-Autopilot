@@ -200,8 +200,11 @@ void Standard::update_transition_state()
 
 		} else if (_pusher_throttle <= _param_vt_f_trans_thr.get()) {
 			// ramp up throttle to the target throttle value
+			const float dt = math::min((now - _last_time_pusher_transition_update) / 1e6f, 0.05f);
 			_pusher_throttle = math::min(_pusher_throttle +
-						     _param_vt_psher_slew.get() * _dt, _param_vt_f_trans_thr.get());
+						     _param_vt_psher_slew.get() * dt, _param_vt_f_trans_thr.get());
+
+			_last_time_pusher_transition_update = now;
 		}
 
 		_airspeed_trans_blend_margin = getTransitionAirspeed() - getBlendAirspeed();

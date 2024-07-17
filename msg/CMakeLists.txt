@@ -98,6 +98,7 @@ set(msg_files
 	FollowTarget.msg
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
+	FuelTankStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
@@ -178,6 +179,8 @@ set(msg_files
 	RcParameterMap.msg
 	RegisterExtComponentReply.msg
 	RegisterExtComponentRequest.msg
+	RoverAckermannGuidanceStatus.msg
+	RoverAckermannStatus.msg
 	Rpm.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg

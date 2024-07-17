@@ -803,6 +803,21 @@ PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
 PARAM_DEFINE_FLOAT(COM_CPU_MAX, 95.0f);
 
 /**
+ * Maximum allowed RAM usage to pass checks
+ *
+ * The check fails if the RAM usage is above this threshold.
+ *
+ * A negative value disables the check.
+ *
+ * @group Commander
+ * @unit %
+ * @min -1
+ * @max 100
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(COM_RAM_MAX, 95.0f);
+
+/**
  * Required number of redundant power modules
  *
  * This configures a check to verify the expected number of 5V rail power supplies are present. By default only one is expected.

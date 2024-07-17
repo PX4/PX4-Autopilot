@@ -466,18 +466,13 @@ flash_func_sector_size(unsigned sector)
 }
 
 void
-flash_func_erase_sector(unsigned sector)
+flash_func_erase_sector(unsigned sector, bool force)
 {
 	if (sector > BOARD_FLASH_SECTORS || (int)sector < BOARD_FIRST_FLASH_SECTOR_TO_ERASE) {
 		return;
 	}
 
-	/* blank-check the sector */
-
-	bool blank = up_progmem_ispageerased(sector) == 0;
-
-	/* erase the sector if it failed the blank check */
-	if (!blank) {
+	if (force || (up_progmem_ispageerased(sector) != 0)) {
 		up_progmem_eraseblock(sector);
 	}
 }

@@ -832,7 +832,7 @@ Serial bus driver for the VectorNav VN-100, VN-200, VN-300.
 
 Most boards are configured to enable/start the driver on a specified UART using the SENS_VN_CFG parameter.
 
-Setup/usage information: https://docs.px4.io/master/en/sensor/vectornav.html
+Setup/usage information: https://docs.px4.io/main/en/sensor/vectornav.html
 
 ### Examples
 

@@ -49,8 +49,10 @@
 
 void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 {
-	_control_status.flags.fuse_beta = _params.beta_fusion_enabled && _control_status.flags.fixed_wing
-		&& _control_status.flags.in_air && !_control_status.flags.fake_pos;
+	_control_status.flags.fuse_beta = _params.beta_fusion_enabled
+					  && _control_status.flags.fixed_wing
+					  && _control_status.flags.in_air
+					  && !_control_status.flags.fake_pos;
 
 	if (_control_status.flags.fuse_beta) {
 
@@ -76,26 +78,22 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::updateSideslip(estimator_aid_source1d_s &sideslip) const
+void Ekf::updateSideslip(estimator_aid_source1d_s &aid_src) const
 {
-	// reset flags
-	resetEstimatorAidStatus(sideslip);
+	float observation = 0.f;
+	const float R = math::max(sq(_params.beta_noise), sq(0.01f)); // observation noise variance
+	const float epsilon = 1e-3f;
+	float innov;
+	float innov_var;
+	sym::ComputeSideslipInnovAndInnovVar(_state.vector(), P, R, epsilon, &innov, &innov_var);
 
-	const float R = sq(_params.beta_noise); // observation noise variance
-
-	float innov = 0.f;
-	float innov_var = 0.f;
-	sym::ComputeSideslipInnovAndInnovVar(_state.vector(), P, R, FLT_EPSILON, &innov, &innov_var);
-
-	sideslip.observation = 0.f;
-	sideslip.observation_variance = R;
-	sideslip.innovation = innov;
-	sideslip.innovation_variance = innov_var;
-
-	sideslip.timestamp_sample = _time_delayed_us;
-
-	const float innov_gate = fmaxf(_params.beta_innov_gate, 1.f);
-	setEstimatorAidStatusTestRatio(sideslip, innov_gate);
+	updateAidSourceStatus(aid_src,
+			      _time_delayed_us,                         // sample timestamp
+			      observation,                              // observation
+			      R,                                        // observation variance
+			      innov,                                    // innovation
+			      innov_var,                                // innovation variance
+			      math::max(_params.beta_innov_gate, 1.f)); // innovation gate
 }
 
 void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
@@ -103,6 +101,7 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 	if (sideslip.innovation_rejected) {
 		return;
 	}
+
 	// determine if we need the sideslip fusion to correct states other than wind
 	bool update_wind_only = !_control_status.flags.wind_dead_reckoning;
 
@@ -131,10 +130,11 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 
 	_fault_status.flags.bad_sideslip = false;
 
+	const float epsilon = 1e-3f;
 	VectorState H; // Observation jacobian
 	VectorState K; // Kalman gain vector
 
-	sym::ComputeSideslipHAndK(_state.vector(), P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
+	sym::ComputeSideslipHAndK(_state.vector(), P, sideslip.innovation_variance, epsilon, &H, &K);
 
 	if (update_wind_only) {
 		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);

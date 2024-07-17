@@ -132,7 +132,7 @@ void EkfWrapper::disableGpsHeadingFusion()
 
 bool EkfWrapper::isIntendingGpsHeadingFusion() const
 {
-	return _ekf->control_status_flags().gps_yaw;
+	return _ekf->control_status_flags().gnss_yaw;
 }
 
 void EkfWrapper::enableFlowFusion()
@@ -240,38 +240,14 @@ bool EkfWrapper::isWindVelocityEstimated() const
 	return _ekf->control_status_flags().wind;
 }
 
-void EkfWrapper::enableTerrainRngFusion()
-{
-	_ekf_params->terrain_fusion_mode |= TerrainFusionMask::TerrainFuseRangeFinder;
-}
-
-void EkfWrapper::disableTerrainRngFusion()
-{
-	_ekf_params->terrain_fusion_mode &= ~TerrainFusionMask::TerrainFuseRangeFinder;
-}
-
 bool EkfWrapper::isIntendingTerrainRngFusion() const
 {
-	terrain_fusion_status_u terrain_status;
-	terrain_status.value = _ekf->getTerrainEstimateSensorBitfield();
-	return terrain_status.flags.range_finder;
-}
-
-void EkfWrapper::enableTerrainFlowFusion()
-{
-	_ekf_params->terrain_fusion_mode |= TerrainFusionMask::TerrainFuseOpticalFlow;
-}
-
-void EkfWrapper::disableTerrainFlowFusion()
-{
-	_ekf_params->terrain_fusion_mode &= ~TerrainFusionMask::TerrainFuseOpticalFlow;
+	return _ekf->control_status_flags().rng_terrain;
 }
 
 bool EkfWrapper::isIntendingTerrainFlowFusion() const
 {
-	terrain_fusion_status_u terrain_status;
-	terrain_status.value = _ekf->getTerrainEstimateSensorBitfield();
-	return terrain_status.flags.flow;
+	return _ekf->control_status_flags().opt_flow_terrain;
 }
 
 Eulerf EkfWrapper::getEulerAngles() const

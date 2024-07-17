@@ -164,6 +164,8 @@ void VtolType::update_transition_state()
 	_time_since_trans_start = (float)(t_now - _transition_start_timestamp) * 1e-6f;
 
 	check_quadchute_condition();
+
+	_last_thr_in_mc = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 }
 
 float VtolType::update_and_get_backtransition_pitch_sp()
@@ -324,7 +326,7 @@ void VtolType::handleEkfResets()
 		_altitude_reset_counter = _local_pos->z_reset_counter;
 
 		if (PX4_ISFINITE(_quadchute_ref_alt)) {
-			_quadchute_ref_alt += _local_pos->delta_z;
+			_quadchute_ref_alt -= _local_pos->delta_z;
 		}
 
 	}

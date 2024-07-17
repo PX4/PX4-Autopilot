@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2017 - 2022 PX4 Development Team. All rights reserved.
+# Copyright (c) 2017 - 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -132,7 +132,9 @@ list(GET VERSION_LIST 2 PX4_VERSION_PATCH)
 string(REPLACE "-" ";" PX4_VERSION_PATCH ${PX4_VERSION_PATCH})
 list(GET PX4_VERSION_PATCH 0 PX4_VERSION_PATCH)
 
-message(STATUS "PX4 version: ${PX4_GIT_TAG} (${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH})")
+# # Capture only the hash part after 'g'
+string(REGEX MATCH "g([a-f0-9]+)$" GIT_HASH "${PX4_GIT_TAG}")
+set(PX4_GIT_HASH ${CMAKE_MATCH_1})
 
 define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  BRIEF_DOCS "PX4 module libs"

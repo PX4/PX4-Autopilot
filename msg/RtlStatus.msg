@@ -8,8 +8,8 @@ bool has_vtol_approach 		      # flag if approaches are defined for current RTL_
 uint8 rtl_type	      		      # Type of RTL chosen
 uint8 safe_point_index 		      # index of the chosen safe point, if in RTL_STATUS_TYPE_DIRECT_SAFE_POINT mode
 
-uint8 RTL_STATUS_TYPE_NONE=0       # RTL type is pending if evaluation can't pe performed currently e.g. when it is still loading the safe points
-uint8 RTL_STATUS_TYPE_DIRECT_SAFE_POINT=1 # RTL type is chosen to directly go to a safe point or home position
-uint8 RTL_STATUS_TYPE_DIRECT_MISSION_LAND=2 # RTL type is going straight to the beginning of the mission landing
-uint8 RTL_STATUS_TYPE_FOLLOW_MISSION=3 	# RTL type is following the mission from closest point to mission landing
-uint8 RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE=4 # RTL type is following the mission in reverse to the start position
+uint8 RTL_STATUS_TYPE_NONE=0       		# pending if evaluation can't pe performed currently e.g. when it is still loading the safe points
+uint8 RTL_STATUS_TYPE_DIRECT_SAFE_POINT=1 	# chosen to directly go to a safe point or home position
+uint8 RTL_STATUS_TYPE_DIRECT_MISSION_LAND=2 	# going straight to the beginning of the mission landing
+uint8 RTL_STATUS_TYPE_FOLLOW_MISSION=3 		# Following the mission from start index to mission landing. Start index is current WP if in Mission mode, and closest WP otherwise.
+uint8 RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE=4 	# Following the mission in reverse from start index to the beginning of the mission. Start index is previous WP if in Mission mode, and closest WP otherwise.

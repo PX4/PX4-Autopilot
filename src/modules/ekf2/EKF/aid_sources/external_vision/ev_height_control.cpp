@@ -38,8 +38,9 @@
 
 #include "ekf.h"
 
-void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-				const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src)
+void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+				estimator_aid_source1d_s &aid_src)
 {
 	static constexpr const char *AID_SRC_NAME = "EV height";
 
@@ -77,19 +78,21 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 	float measurement_var = math::max(pos_cov(2, 2), sq(_params.ev_pos_noise), sq(0.01f));
 
 #if defined(CONFIG_EKF2_GNSS)
+
 	// increase minimum variance if GPS active
 	if (_control_status.flags.gps_hgt) {
 		measurement_var = math::max(measurement_var, sq(_params.gps_pos_noise));
 	}
+
 #endif // CONFIG_EKF2_GNSS
 
 	const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
 
-	updateVerticalPositionAidSrcStatus(ev_sample.time_us,
-					   measurement - bias_est.getBias(),
-					   measurement_var + bias_est.getBiasVar(),
-					   math::max(_params.ev_pos_innov_gate, 1.f),
-					   aid_src);
+	updateVerticalPositionAidStatus(aid_src,
+					ev_sample.time_us,
+					measurement - bias_est.getBias(),           // observation
+					measurement_var + bias_est.getBiasVar(),    // observation variance
+					math::max(_params.ev_pos_innov_gate, 1.f)); // innovation gate
 
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the vertical position innovation
@@ -146,33 +149,6 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 				resetVerticalPositionTo(measurement - bias_est.getBias(), measurement_var);
 				bias_est.setBias(-_state.pos(2) + measurement);
 
-				// reset vertical velocity
-				if (ev_sample.vel.isAllFinite() && (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))) {
-
-					// correct velocity for offset relative to IMU
-					const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
-					const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-
-					switch (ev_sample.vel_frame) {
-					case VelocityFrame::LOCAL_FRAME_NED:
-					case VelocityFrame::LOCAL_FRAME_FRD: {
-							const Vector3f reset_vel = ev_sample.vel - vel_offset_earth;
-							resetVerticalVelocityTo(reset_vel(2), math::max(ev_sample.velocity_var(2), sq(_params.ev_vel_noise)));
-						}
-						break;
-
-					case VelocityFrame::BODY_FRAME_FRD: {
-							const Vector3f reset_vel = _R_to_earth * (ev_sample.vel - vel_offset_body);
-							const Matrix3f reset_vel_cov = _R_to_earth * matrix::diag(ev_sample.velocity_var) * _R_to_earth.transpose();
-							resetVerticalVelocityTo(reset_vel(2), math::max(reset_vel_cov(2, 2), sq(_params.ev_vel_noise)));
-						}
-						break;
-					}
-
-				} else {
-					resetVerticalVelocityToZero();
-				}
-
 				aid_src.time_last_fuse = _time_delayed_us;
 
 			} else if (is_fusion_failing) {
@@ -220,7 +196,6 @@ void Ekf::stopEvHgtFusion()
 		}
 
 		_ev_hgt_b_est.setFusionInactive();
-		resetEstimatorAidStatus(_aid_src_ev_hgt);
 
 		_control_status.flags.ev_hgt = false;
 	}

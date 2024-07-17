@@ -66,18 +66,26 @@ using math::Utilities::sq;
 using math::Utilities::updateYawInRotMat;
 
 // maximum sensor intervals in usec
-static constexpr uint64_t BARO_MAX_INTERVAL     = 200e3;  ///< Maximum allowable time interval between pressure altitude measurements (uSec)
-static constexpr uint64_t EV_MAX_INTERVAL       = 200e3;  ///< Maximum allowable time interval between external vision system measurements (uSec)
-static constexpr uint64_t GNSS_MAX_INTERVAL     = 500e3;  ///< Maximum allowable time interval between GNSS measurements (uSec)
-static constexpr uint64_t GNSS_YAW_MAX_INTERVAL = 1500e3; ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
-static constexpr uint64_t MAG_MAX_INTERVAL      = 500e3;  ///< Maximum allowable time interval between magnetic field measurements (uSec)
+static constexpr uint64_t BARO_MAX_INTERVAL     =
+	200e3;  ///< Maximum allowable time interval between pressure altitude measurements (uSec)
+static constexpr uint64_t EV_MAX_INTERVAL       =
+	200e3;  ///< Maximum allowable time interval between external vision system measurements (uSec)
+static constexpr uint64_t GNSS_MAX_INTERVAL     =
+	500e3;  ///< Maximum allowable time interval between GNSS measurements (uSec)
+static constexpr uint64_t GNSS_YAW_MAX_INTERVAL =
+	1500e3; ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
+static constexpr uint64_t MAG_MAX_INTERVAL      =
+	500e3;  ///< Maximum allowable time interval between magnetic field measurements (uSec)
 
 // bad accelerometer detection and mitigation
-static constexpr uint64_t BADACC_PROBATION = 10e6; ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
-static constexpr float BADACC_BIAS_PNOISE = 4.9f;  ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
+static constexpr uint64_t BADACC_PROBATION =
+	10e6; ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
+static constexpr float BADACC_BIAS_PNOISE =
+	4.9f;  ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
 
 // ground effect compensation
-static constexpr uint64_t GNDEFFECT_TIMEOUT = 10e6; ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
+static constexpr uint64_t GNDEFFECT_TIMEOUT =
+	10e6; ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
 
 enum class PositionFrame : uint8_t {
 	LOCAL_FRAME_NED = 0,
@@ -93,20 +101,21 @@ enum class VelocityFrame : uint8_t {
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 enum GeoDeclinationMask : uint8_t {
 	// Bit locations for mag_declination_source
-	USE_GEO_DECL  = (1<<0), ///< set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
-	SAVE_GEO_DECL = (1<<1)  ///< set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
+	USE_GEO_DECL  = (1 << 0), ///< set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
+	SAVE_GEO_DECL = (1 << 1) ///< set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
 };
 
 enum MagFuseType : uint8_t {
 	// Integer definitions for mag_fusion_type
 	AUTO    = 0,   	///< The selection of either heading or 3D magnetometer fusion will be automatic
 	HEADING = 1,   	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
-	NONE    = 5    	///< Do not use magnetometer under any circumstance..
+	NONE    = 5,   	///< Do not use magnetometer under any circumstance.
+	INIT    = 6     ///< Use the mag for heading initialization only.
 };
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_TERRAIN)
-enum TerrainFusionMask : uint8_t {
+enum class TerrainFusionMask : uint8_t {
 	TerrainFuseRangeFinder = (1 << 0),
 	TerrainFuseOpticalFlow = (1 << 1)
 };
@@ -127,16 +136,16 @@ enum class PositionSensor : uint8_t {
 };
 
 enum class ImuCtrl : uint8_t {
-	GyroBias      = (1<<0),
-	AccelBias     = (1<<1),
-	GravityVector = (1<<2),
+	GyroBias      = (1 << 0),
+	AccelBias     = (1 << 1),
+	GravityVector = (1 << 2),
 };
 
 enum class GnssCtrl : uint8_t {
-	HPOS  = (1<<0),
-	VPOS  = (1<<1),
-	VEL  = (1<<2),
-	YAW  = (1<<3)
+	HPOS  = (1 << 0),
+	VPOS  = (1 << 1),
+	VEL  = (1 << 2),
+	YAW  = (1 << 3)
 };
 
 enum class RngCtrl : uint8_t {
@@ -146,10 +155,10 @@ enum class RngCtrl : uint8_t {
 };
 
 enum class EvCtrl : uint8_t {
-	HPOS = (1<<0),
-	VPOS = (1<<1),
-	VEL  = (1<<2),
-	YAW  = (1<<3)
+	HPOS = (1 << 0),
+	VPOS = (1 << 1),
+	VEL  = (1 << 2),
+	YAW  = (1 << 3)
 };
 
 enum class MagCheckMask : uint8_t {
@@ -182,6 +191,7 @@ struct gnssSample {
 	float       yaw{};        ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
 	float       yaw_acc{};    ///< 1-std yaw error (rad)
 	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
+	bool        spoofed{};    ///< true if GNSS data is spoofed
 };
 
 struct magSample {
@@ -269,7 +279,7 @@ struct parameters {
 	float accel_bias_p_noise{1.0e-2f};      ///< process noise for IMU accelerometer bias prediction (m/sec**3)
 
 #if defined(CONFIG_EKF2_WIND)
-	const float initial_wind_uncertainty{1.0f};     ///< 1-sigma initial uncertainty in wind velocity (m/sec)
+	const float initial_wind_uncertainty {1.0f};    ///< 1-sigma initial uncertainty in wind velocity (m/sec)
 	float wind_vel_nsd{1.0e-2f};        ///< process noise spectral density for wind velocity prediction (m/sec**2/sqrt(Hz))
 	const float wind_vel_nsd_scaler{0.5f};      ///< scaling of wind process noise with vertical velocity
 #endif // CONFIG_EKF2_WIND
@@ -280,7 +290,7 @@ struct parameters {
 	float initial_tilt_err{0.1f};           ///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	int32_t baro_ctrl{1};
+	int32_t baro_ctrl {1};
 	float baro_delay_ms{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
 	float baro_noise{2.0f};                 ///< observation noise for barometric height fusion (m)
 	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
@@ -303,7 +313,7 @@ struct parameters {
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_GNSS)
-	int32_t gnss_ctrl{static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
+	int32_t gnss_ctrl {static_cast<int32_t>(GnssCtrl::HPOS) | static_cast<int32_t>(GnssCtrl::VEL)};
 	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
 
 	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
@@ -328,7 +338,7 @@ struct parameters {
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
-	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
+	float gnss_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
 # endif // CONFIG_EKF2_GNSS_YAW
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
@@ -344,7 +354,7 @@ struct parameters {
 	float mag_heading_noise{3.0e-1f};       ///< measurement noise used for simple heading fusion (rad)
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	float mag_delay_ms{0.0f};               ///< magnetometer measurement delay relative to the IMU (mSec)
+	float mag_delay_ms {0.0f};              ///< magnetometer measurement delay relative to the IMU (mSec)
 
 	float mage_p_noise{1.0e-3f};            ///< process noise for earth magnetic field prediction (Gauss/sec)
 	float magb_p_noise{1.0e-4f};            ///< process noise for body magnetic field prediction (Gauss/sec)
@@ -381,16 +391,13 @@ struct parameters {
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
-				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
-
-	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
+	float terrain_p_noise {5.0f};           ///< process noise for terrain offset (m/sec)
 	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
 	const float terrain_timeout{10.f};      ///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_TERRAIN) || defined(CONFIG_EKF2_OPTICAL_FLOW) || defined(CONFIG_EKF2_RANGE_FINDER)
-	float rng_gnd_clearance{0.1f};          ///< minimum valid value for range when on ground (m)
+	float rng_gnd_clearance {0.1f};         ///< minimum valid value for range when on ground (m)
 #endif // CONFIG_EKF2_TERRAIN || CONFIG_EKF2_OPTICAL_FLOW || CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -400,10 +407,8 @@ struct parameters {
 	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)
 	float range_innov_gate{5.0f};           ///< range finder fusion innovation consistency gate size (STD)
-	float rng_hgt_bias_nsd{0.13f};          ///< process noise for range height bias estimation (m/s/sqrt(Hz))
 	float rng_sens_pitch{0.0f};             ///< Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
 	float range_noise_scaler{0.0f};         ///< scaling from range measurement to noise (m/m)
-	const float vehicle_variance_scaler{0.0f};      ///< gain applied to vehicle height variance used in calculation of height above ground observation variance
 	float max_hagl_for_range_aid{5.0f};     ///< maximum height above ground for which we allow to use the range finder as height source (if rng_control == 1)
 	float max_vel_for_range_aid{1.0f};      ///< maximum ground velocity for which we allow to use the range finder as height source (if rng_control == 1)
 	float range_aid_innov_gate{1.0f};       ///< gate size used for innovation consistency checks for range aid fusion
@@ -436,7 +441,7 @@ struct parameters {
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	int32_t flow_ctrl{0};
+	int32_t flow_ctrl {0};
 	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 
 	// optical flow fusion
@@ -497,7 +502,8 @@ union fault_status_u {
 		bool bad_hdg           : 1; ///< 3 - true if the fusion of the heading angle has encountered a numerical error
 		bool bad_mag_decl      : 1; ///< 4 - true if the fusion of the magnetic declination has encountered a numerical error
 		bool bad_airspeed      : 1; ///< 5 - true if fusion of the airspeed has encountered a numerical error
-		bool bad_sideslip      : 1; ///< 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
+bool bad_sideslip      :
+		1; ///< 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
 		bool bad_optflow_X     : 1; ///< 7 - true if fusion of the optical flow X axis has encountered a numerical error
 		bool bad_optflow_Y     : 1; ///< 8 - true if fusion of the optical flow Y axis has encountered a numerical error
 		bool bad_acc_bias      : 1; ///< 9 - true if bad delta velocity bias estimates have been detected
@@ -520,7 +526,7 @@ union innovation_fault_status_u {
 		bool reject_yaw       : 1; ///< 7 - true if the yaw observation has been rejected
 		bool reject_airspeed  : 1; ///< 8 - true if the airspeed observation has been rejected
 		bool reject_sideslip  : 1; ///< 9 - true if the synthetic sideslip observation has been rejected
-		bool reject_hagl      : 1; ///< 10 - true if the height above ground observation has been rejected
+		bool reject_hagl      : 1; ///< 10 - unused
 		bool reject_optflow_X : 1; ///< 11 - true if the X optical flow observation has been rejected
 		bool reject_optflow_Y : 1; ///< 12 - true if the Y optical flow observation has been rejected
 	} flags;
@@ -540,6 +546,7 @@ union gps_check_fail_status_u {
 		uint16_t vdrift : 1; ///< 7 - true if vertical drift is excessive (can only be used when stationary on ground)
 		uint16_t hspeed : 1; ///< 8 - true if horizontal speed is excessive (can only be used when stationary on ground)
 		uint16_t vspeed : 1; ///< 9 - true if vertical speed error is excessive
+		uint16_t spoofed: 1; ///< 10 - true if the GNSS data is spoofed
 	} flags;
 	uint16_t value;
 };
@@ -557,7 +564,8 @@ union filter_control_status_u {
 		uint64_t in_air                  : 1; ///< 7 - true when the vehicle is airborne
 		uint64_t wind                    : 1; ///< 8 - true when wind velocity is being estimated
 		uint64_t baro_hgt                : 1; ///< 9 - true when baro height is being fused as a primary height reference
-		uint64_t rng_hgt                 : 1; ///< 10 - true when range finder height is being fused as a primary height reference
+uint64_t rng_hgt                 :
+		1; ///< 10 - true when range finder height is being fused as a primary height reference
 		uint64_t gps_hgt                 : 1; ///< 11 - true when GPS height is being fused as a primary height reference
 		uint64_t ev_pos                  : 1; ///< 12 - true when local position data fusion from external vision is intended
 		uint64_t ev_yaw                  : 1; ///< 13 - true when yaw data from external vision measurements fusion is intended
@@ -565,60 +573,45 @@ union filter_control_status_u {
 		uint64_t fuse_beta               : 1; ///< 15 - true when synthetic sideslip measurements are being fused
 		uint64_t mag_field_disturbed     : 1; ///< 16 - true when the mag field does not match the expected strength
 		uint64_t fixed_wing              : 1; ///< 17 - true when the vehicle is operating as a fixed wing vehicle
-		uint64_t mag_fault               : 1; ///< 18 - true when the magnetometer has been declared faulty and is no longer being used
+uint64_t mag_fault               :
+		1; ///< 18 - true when the magnetometer has been declared faulty and is no longer being used
 		uint64_t fuse_aspd               : 1; ///< 19 - true when airspeed measurements are being fused
-		uint64_t gnd_effect              : 1; ///< 20 - true when protection from ground effect induced static pressure rise is active
-		uint64_t rng_stuck               : 1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
-		uint64_t gps_yaw                 : 1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
+uint64_t gnd_effect              :
+		1; ///< 20 - true when protection from ground effect induced static pressure rise is active
+uint64_t rng_stuck               :
+		1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
+uint64_t gnss_yaw                 :
+		1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
 		uint64_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
-		uint64_t ev_vel                  : 1; ///< 24 - true when local frame velocity data fusion from external vision measurements is intended
-		uint64_t synthetic_mag_z         : 1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
+uint64_t ev_vel                  :
+		1; ///< 24 - true when local frame velocity data fusion from external vision measurements is intended
+uint64_t synthetic_mag_z         :
+		1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
 		uint64_t vehicle_at_rest         : 1; ///< 26 - true when the vehicle is at rest
-		uint64_t gps_yaw_fault           : 1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
-		uint64_t rng_fault               : 1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
-		uint64_t inertial_dead_reckoning : 1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
+uint64_t gnss_yaw_fault           :
+		1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
+uint64_t rng_fault               :
+		1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
+uint64_t inertial_dead_reckoning :
+		1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 		uint64_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
 		uint64_t rng_kin_consistent      : 1; ///< 31 - true when the range finder kinematic consistency check is passing
 		uint64_t fake_pos                : 1; ///< 32 - true when fake position measurements are being fused
 		uint64_t fake_hgt                : 1; ///< 33 - true when fake height measurements are being fused
 		uint64_t gravity_vector          : 1; ///< 34 - true when gravity vector measurements are being fused
-		uint64_t mag                     : 1; ///< 35 - true if 3-axis magnetometer measurement fusion (mag states only) is intended
-		uint64_t ev_yaw_fault            : 1; ///< 36 - true when the EV heading has been declared faulty and is no longer being used
-		uint64_t mag_heading_consistent  : 1; ///< 37 - true when the heading obtained from mag data is declared consistent with the filter
-		uint64_t aux_gpos                : 1;
+uint64_t mag                     :
+		1; ///< 35 - true if 3-axis magnetometer measurement fusion (mag states only) is intended
+uint64_t ev_yaw_fault            :
+		1; ///< 36 - true when the EV heading has been declared faulty and is no longer being used
+uint64_t mag_heading_consistent  :
+		1; ///< 37 - true when the heading obtained from mag data is declared consistent with the filter
+		uint64_t aux_gpos                : 1; ///< 38 - true if auxiliary global position measurement fusion is intended
+		uint64_t rng_terrain             : 1; ///< 39 - true if we are fusing range finder data for terrain
+		uint64_t opt_flow_terrain        : 1; ///< 40 - true if we are fusing flow data for terrain
 
 	} flags;
 	uint64_t value;
 };
-
-// Mavlink bitmask containing state of estimator solution
-union ekf_solution_status_u {
-	struct {
-		uint16_t attitude           : 1; ///< 0 - True if the attitude estimate is good
-		uint16_t velocity_horiz     : 1; ///< 1 - True if the horizontal velocity estimate is good
-		uint16_t velocity_vert      : 1; ///< 2 - True if the vertical velocity estimate is good
-		uint16_t pos_horiz_rel      : 1; ///< 3 - True if the horizontal position (relative) estimate is good
-		uint16_t pos_horiz_abs      : 1; ///< 4 - True if the horizontal position (absolute) estimate is good
-		uint16_t pos_vert_abs       : 1; ///< 5 - True if the vertical position (absolute) estimate is good
-		uint16_t pos_vert_agl       : 1; ///< 6 - True if the vertical position (above ground) estimate is good
-		uint16_t const_pos_mode     : 1; ///< 7 - True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
-		uint16_t pred_pos_horiz_rel : 1; ///< 8 - True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
-		uint16_t pred_pos_horiz_abs : 1; ///< 9 - True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
-		uint16_t gps_glitch         : 1; ///< 10 - True if the EKF has detected a GPS glitch
-		uint16_t accel_error        : 1; ///< 11 - True if the EKF has detected bad accelerometer data
-	} flags;
-	uint16_t value;
-};
-
-#if defined(CONFIG_EKF2_TERRAIN)
-union terrain_fusion_status_u {
-	struct {
-		bool range_finder : 1;  ///< 0 - true if we are fusing range finder data
-		bool flow         : 1;  ///< 1 - true if we are fusing flow data
-	} flags;
-	uint8_t value;
-};
-#endif // CONFIG_EKF2_TERRAIN
 
 // define structure used to communicate information events
 union information_event_status_u {
@@ -631,35 +624,22 @@ union information_event_status_u {
 		bool reset_pos_to_last_known    : 1; ///< 5 - true when the position states are reset to the last known position
 		bool reset_pos_to_gps           : 1; ///< 6 - true when the position states are reset to the gps measurement
 		bool reset_pos_to_vision        : 1; ///< 7 - true when the position states are reset to the vision system measurement
-		bool starting_gps_fusion        : 1; ///< 8 - true when the filter starts using gps measurements to correct the state estimates
-		bool starting_vision_pos_fusion : 1; ///< 9 - true when the filter starts using vision system position measurements to correct the state estimates
-		bool starting_vision_vel_fusion : 1; ///< 10 - true when the filter starts using vision system velocity measurements to correct the state estimates
-		bool starting_vision_yaw_fusion : 1; ///< 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
-		bool yaw_aligned_to_imu_gps     : 1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
+bool starting_gps_fusion        :
+		1; ///< 8 - true when the filter starts using gps measurements to correct the state estimates
+bool starting_vision_pos_fusion :
+		1; ///< 9 - true when the filter starts using vision system position measurements to correct the state estimates
+bool starting_vision_vel_fusion :
+		1; ///< 10 - true when the filter starts using vision system velocity measurements to correct the state estimates
+bool starting_vision_yaw_fusion :
+		1; ///< 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
+bool yaw_aligned_to_imu_gps     :
+		1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
 		bool reset_hgt_to_baro          : 1; ///< 13 - true when the vertical position state is reset to the baro measurement
 		bool reset_hgt_to_gps           : 1; ///< 14 - true when the vertical position state is reset to the gps measurement
 		bool reset_hgt_to_rng           : 1; ///< 15 - true when the vertical position state is reset to the rng measurement
 		bool reset_hgt_to_ev            : 1; ///< 16 - true when the vertical position state is reset to the ev measurement
-		bool reset_pos_to_ext_obs       : 1; ///< 17 - true when horizontal position was reset to an external observation while deadreckoning
-	} flags;
-	uint32_t value;
-};
-
-// define structure used to communicate information events
-union warning_event_status_u {
-	struct {
-		bool gps_quality_poor                   : 1; ///< 0 - true when the gps is failing quality checks
-		bool gps_fusion_timout                  : 1; ///< 1 - true when the gps data has not been used to correct the state estimates for a significant time period
-		bool gps_data_stopped                   : 1; ///< 2 - true when the gps data has stopped for a significant time period
-		bool gps_data_stopped_using_alternate   : 1; ///< 3 - true when the gps data has stopped for a significant time period but the filter is able to use other sources of data to maintain navigation
-		bool height_sensor_timeout              : 1; ///< 4 - true when the height sensor has not been used to correct the state estimates for a significant time period
-		bool stopping_navigation                : 1; ///< 5 - true when the filter has insufficient data to estimate velocity and position and is falling back to an attitude, height and height rate mode of operation
-		bool invalid_accel_bias_cov_reset       : 1; ///< 6 - true when the filter has detected bad acceerometer bias state estimates and has reset the corresponding covariance matrix elements
-		bool bad_yaw_using_gps_course           : 1; ///< 7 - true when the filter has detected an invalid yaw estimate and has reset the yaw angle to the GPS ground course
-		bool stopping_mag_use                   : 1; ///< 8 - true when the filter has detected bad magnetometer data and is stopping further use of the magnetometer data
-		bool vision_data_stopped                : 1; ///< 9 - true when the vision system data has stopped for a significant time period
-		bool emergency_yaw_reset_mag_stopped    : 1; ///< 10 - true when the filter has detected bad magnetometer data, has reset the yaw to anothter source of data and has stopped further use of the magnetometer data
-		bool emergency_yaw_reset_gps_yaw_stopped: 1; ///< 11 - true when the filter has detected bad GNSS yaw data, has reset the yaw to anothter source of data and has stopped further use of the GNSS yaw data
+bool reset_pos_to_ext_obs       :
+		1; ///< 17 - true when horizontal position was reset to an external observation while deadreckoning
 	} flags;
 	uint32_t value;
 };

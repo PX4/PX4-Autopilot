@@ -74,6 +74,8 @@ public:
 		updateParams();
 	}
 
+	float test_ratio_filtered() const { return _test_ratio_filtered; }
+
 private:
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t time_delayed_us, uint64_t timeout_period) const
 	{
@@ -94,8 +96,8 @@ private:
 	uint64_t _time_last_buffer_push{0};
 
 	enum class Ctrl : uint8_t {
-		HPOS  = (1<<0),
-		VPOS  = (1<<1)
+		HPOS  = (1 << 0),
+		VPOS  = (1 << 1)
 	};
 
 	enum class State {
@@ -105,6 +107,8 @@ private:
 	};
 
 	State _state{State::stopped};
+
+	float _test_ratio_filtered{INFINITY};
 
 #if defined(MODULE_NAME)
 	struct reset_counters_s {

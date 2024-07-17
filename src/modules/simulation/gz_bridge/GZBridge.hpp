@@ -59,6 +59,7 @@
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/wheel_encoders.h>
+#include <uORB/topics/obstacle_distance.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
@@ -68,6 +69,7 @@
 #include <gz/msgs/fluid_pressure.pb.h>
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
+#include <gz/msgs/laserscan.pb.h>
 
 using namespace time_literals;
 
@@ -108,6 +110,7 @@ private:
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 	void LaserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
+	void laserScanCallback(const gz::msgs::LaserScan &scan);
 
 	/**
 	*
@@ -124,6 +127,7 @@ private:
 
 	//uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<distance_sensor_s>          _distance_sensor_pub{ORB_ID(distance_sensor)};
+	uORB::Publication<obstacle_distance_s>        _obstacle_distance_pub{ORB_ID(obstacle_distance)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};

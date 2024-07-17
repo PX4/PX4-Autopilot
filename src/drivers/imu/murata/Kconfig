@@ -1,0 +1,3 @@
+menu "Murata"
+rsource "*/Kconfig"
+endmenu #Murata

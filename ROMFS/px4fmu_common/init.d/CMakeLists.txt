@@ -84,6 +84,13 @@ if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
 	)
 endif()
 
+if(CONFIG_MODULES_ROVER_ACKERMANN)
+	px4_add_romfs_files(
+		rc.rover_ackermann_apps
+		rc.rover_ackermann_defaults
+	)
+endif()
+
 if(CONFIG_MODULES_UUV_ATT_CONTROL)
 	px4_add_romfs_files(
 		rc.uuv_apps

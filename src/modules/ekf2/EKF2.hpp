@@ -78,6 +78,7 @@
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -162,6 +163,7 @@ private:
 
 	void Run() override;
 
+	void AdvertiseTopics();
 	void VerifyParams();
 
 	void PublishAidSourceStatus(const hrt_abstime &timestamp);
@@ -337,19 +339,6 @@ private:
 	hrt_abstime _status_aux_vel_pub_last{0};
 #endif // CONFIG_EKF2_AUXVEL
 
-#if defined(CONFIG_EKF2_TERRAIN)
-
-# if defined(CONFIG_EKF2_RANGE_FINDER)
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_terrain_range_finder_pub {ORB_ID(estimator_aid_src_terrain_range_finder)};
-	hrt_abstime _status_terrain_range_finder_pub_last{0};
-# endif // CONFIG_EKF2_RANGE_FINDER
-
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_terrain_optical_flow_pub {ORB_ID(estimator_aid_src_terrain_optical_flow)};
-	hrt_abstime _status_terrain_optical_flow_pub_last{0};
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-#endif // CONFIG_EKF2_TERRAIN
-
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	uORB::Subscription _vehicle_optical_flow_sub {ORB_ID(vehicle_optical_flow)};
 	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
@@ -399,17 +388,17 @@ private:
 
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	hrt_abstime _status_rng_hgt_pub_last {0};
-	float _last_rng_hgt_bias_published{};
 
-	uORB::PublicationMulti<estimator_bias_s> _estimator_rng_hgt_bias_pub {ORB_ID(estimator_rng_hgt_bias)};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_rng_hgt_pub{ORB_ID(estimator_aid_src_rng_hgt)};
 
 	uORB::SubscriptionMultiArray<distance_sensor_s> _distance_sensor_subs{ORB_ID::distance_sensor};
@@ -429,7 +418,6 @@ private:
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};
 	uint32_t _innov_check_fail_status_changes{0};
-	uint32_t _filter_warning_event_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
@@ -497,6 +485,7 @@ private:
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
 
 	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::EKF2_LOG_VERBOSE>) _param_ekf2_log_verbose,
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
@@ -619,7 +608,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _param_ekf2_min_rng,
 #endif // CONFIG_EKF2_TERRAIN || CONFIG_EKF2_OPTICAL_FLOW || CONFIG_EKF2_RANGE_FINDER
 #if defined(CONFIG_EKF2_TERRAIN)
-		(ParamExtInt<px4::params::EKF2_TERR_MASK>) _param_ekf2_terr_mask,
 		(ParamExtFloat<px4::params::EKF2_TERR_NOISE>) _param_ekf2_terr_noise,
 		(ParamExtFloat<px4::params::EKF2_TERR_GRAD>) _param_ekf2_terr_grad,
 #endif // CONFIG_EKF2_TERRAIN

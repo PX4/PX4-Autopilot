@@ -41,8 +41,9 @@
 static constexpr const char *EV_AID_SRC_NAME = "EV position";
 
 
-void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
-			     const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src)
+void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
+			     const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
+			     estimator_aid_source2d_s &aid_src)
 {
 	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
 					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
@@ -126,12 +127,14 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 	}
 
 #if defined(CONFIG_EKF2_GNSS)
+
 	// increase minimum variance if GPS active (position reference)
 	if (_control_status.flags.gps) {
 		for (int i = 0; i < 2; i++) {
 			pos_cov(i, i) = math::max(pos_cov(i, i), sq(_params.gps_pos_noise));
 		}
 	}
+
 #endif // CONFIG_EKF2_GNSS
 
 	const Vector2f measurement{pos(0), pos(1)};
@@ -155,18 +158,24 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 		}
 	}
 
-	updateHorizontalPositionAidSrcStatus(ev_sample.time_us,
-					     measurement - _ev_pos_b_est.getBias(),        // observation
-					     measurement_var + _ev_pos_b_est.getBiasVar(), // observation variance
-					     math::max(_params.ev_pos_innov_gate, 1.f),    // innovation gate
-					     aid_src);
+	const Vector2f position = measurement - _ev_pos_b_est.getBias();
+	const Vector2f pos_obs_var = measurement_var + _ev_pos_b_est.getBiasVar();
+
+	updateAidSourceStatus(aid_src,
+			      ev_sample.time_us,                                      // sample timestamp
+			      position,                                               // observation
+			      pos_obs_var,                                            // observation variance
+			      Vector2f(_state.pos) - position,                        // innovation
+			      Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
+			      math::max(_params.ev_pos_innov_gate, 1.f));             // innovation gate
 
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the vertical position innovation
 	if (measurement_valid && quality_sufficient) {
 		_ev_pos_b_est.setMaxStateNoise(Vector2f(sqrtf(measurement_var(0)), sqrtf(measurement_var(1))));
 		_ev_pos_b_est.setProcessNoiseSpectralDensity(_params.ev_hgt_bias_nsd); // TODO
-		_ev_pos_b_est.fuseBias(measurement - Vector2f(_state.pos.xy()), measurement_var + Vector2f(getStateVariance<State::pos>()));
+		_ev_pos_b_est.fuseBias(measurement - Vector2f(_state.pos.xy()),
+				       measurement_var + Vector2f(getStateVariance<State::pos>()));
 	}
 
 	if (!measurement_valid) {
@@ -197,7 +206,8 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 	}
 }
 
-void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src)
+void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var,
+			   estimator_aid_source2d_s &aid_src)
 {
 	// activate fusion
 	// TODO:  (_params.position_sensor_ref == PositionSensor::EV)
@@ -221,7 +231,8 @@ void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurem
 	_control_status.flags.ev_pos = true;
 }
 
-void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src)
+void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient,
+			    bool reset, estimator_aid_source2d_s &aid_src)
 {
 	if (reset) {
 
@@ -297,8 +308,6 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 void Ekf::stopEvPosFusion()
 {
 	if (_control_status.flags.ev_pos) {
-		resetEstimatorAidStatus(_aid_src_ev_pos);
-
 		_control_status.flags.ev_pos = false;
 	}
 }

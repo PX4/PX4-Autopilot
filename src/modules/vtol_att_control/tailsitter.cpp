@@ -67,6 +67,10 @@ void Tailsitter::update_vtol_state()
 
 	if (_vtol_vehicle_status->fixed_wing_system_failure) {
 		// Failsafe event, switch to MC mode immediately
+		if (_vtol_mode != vtol_mode::MC_MODE) {
+			_transition_start_timestamp = hrt_absolute_time();
+		}
+
 		_vtol_mode = vtol_mode::MC_MODE;
 
 	} else if (!_attc->is_fixed_wing_requested()) {
@@ -121,6 +125,7 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_BACK:
 			// failsafe into fixed wing mode
 			_vtol_mode = vtol_mode::FW_MODE;
+			_trans_finished_ts = hrt_absolute_time();
 			break;
 		}
 	}
@@ -225,6 +230,11 @@ void Tailsitter::update_transition_state()
 
 	_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
 
+	if (_vtol_mode == vtol_mode::TRANSITION_BACK) {
+		const float progress = math::constrain(_time_since_trans_start / B_TRANS_THRUST_BLENDING_DURATION, 0.f, 1.f);
+		blendThrottleBeginningBackTransition(progress);
+	}
+
 	_v_att_sp->timestamp = hrt_absolute_time();
 
 	const Eulerf euler_sp(_q_trans_sp);
@@ -238,7 +248,7 @@ void Tailsitter::update_transition_state()
 void Tailsitter::waiting_on_tecs()
 {
 	// copy the last trust value from the front transition
-	_v_att_sp->thrust_body[0] = _thrust_transition;
+	_v_att_sp->thrust_body[0] = -_last_thr_in_mc;
 }
 
 void Tailsitter::update_fw_state()
@@ -294,12 +304,27 @@ void Tailsitter::fill_actuator_outputs()
 			_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * _param_vt_fw_difthr_s_r.get();
 		}
 
+		// for the short period after switching to FW where there is no thrust published yet from the FW controller,
+		// keep publishing the last MC thrust to keep the motors running
+		if (hrt_elapsed_time(&_trans_finished_ts) < 50_ms) {
+			_thrust_setpoint_0->xyz[2] = _last_thr_in_mc;
+			_torque_setpoint_0->xyz[0] = 0.f;
+			_torque_setpoint_0->xyz[1] = 0.f;
+			_torque_setpoint_0->xyz[2] = 0.f;
+		}
+
 	} else {
+		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
+
+		// for the short period after starting the backtransition where there is no thrust published yet from the MC controller,
+		// keep publishing the last FW thrust to keep the motors running
+		if (_vtol_mode != vtol_mode::TRANSITION_FRONT_P1 && hrt_elapsed_time(&_transition_start_timestamp) < 50_ms) {
+			_thrust_setpoint_0->xyz[2] = -_last_thr_in_fw_mode;
+		}
+
 		_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_mc->xyz[0];
 		_torque_setpoint_0->xyz[1] = _vehicle_torque_setpoint_virtual_mc->xyz[1];
 		_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_mc->xyz[2];
-
-		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 	}
 
 	// Control surfaces
@@ -329,4 +354,15 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 	}
 
 	return transition_to_fw;
+}
+
+void Tailsitter::blendThrottleAfterFrontTransition(float scale)
+{
+	// note: MC throttle is negative (as in negative z), while FW throttle is positive (positive x)
+	_v_att_sp->thrust_body[0] = scale * _v_att_sp->thrust_body[0] + (1.f - scale) * (-_last_thr_in_mc);
+}
+
+void Tailsitter::blendThrottleBeginningBackTransition(float scale)
+{
+	_v_att_sp->thrust_body[2] = scale * _v_att_sp->thrust_body[2] + (1.f - scale) * (-_last_thr_in_fw_mode);
 }

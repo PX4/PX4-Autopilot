@@ -964,6 +964,7 @@ private:
 
 		(ParamFloat<px4::params::FW_T_HRATE_FF>) _param_fw_t_hrate_ff,
 		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_h_error_tc,
+		(ParamFloat<px4::params::FW_T_F_ALT_ERR>) _param_fw_t_fast_alt_err,
 		(ParamFloat<px4::params::FW_T_THR_INTEG>) _param_fw_t_thr_integ,
 		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>) _param_fw_t_I_gain_pit,
 		(ParamFloat<px4::params::FW_T_PTCH_DAMP>) _param_fw_t_ptch_damp,
@@ -989,7 +990,6 @@ private:
 		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
 		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
 		(ParamFloat<px4::params::FW_SPOILERS_LND>) _param_fw_spoilers_lnd,
-		(ParamFloat<px4::params::FW_SPOILERS_DESC>) _param_fw_spoilers_desc,
 
 		(ParamInt<px4::params::FW_POS_STK_CONF>) _param_fw_pos_stk_conf,
 

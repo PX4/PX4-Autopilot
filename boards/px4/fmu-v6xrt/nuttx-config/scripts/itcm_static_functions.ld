@@ -6,6 +6,7 @@
 *(.text.board_autoled_on)
 *(.text.clock_timer)
 *(.text.exception_common)
+*(.text.flexio_irq_handler)
 *(.text.hrt_absolute_time)
 *(.text.hrt_call_enter)
 *(.text.hrt_tim_isr)

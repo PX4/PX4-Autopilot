@@ -77,7 +77,7 @@ MavlinkFtpTest::MavlinkFtpTest() :
 void MavlinkFtpTest::_init()
 {
 	_expected_seq_number = 0;
-	_ftp_server = new MavlinkFTP(nullptr);
+	_ftp_server = new MavlinkFTP(_mavlink);
 	_ftp_server->set_unittest_worker(MavlinkFtpTest::receive_message_handler_generic, this);
 
 	_create_test_files();

@@ -293,10 +293,6 @@ public:
 	const innovation_fault_status_u &innov_check_fail_status() const { return _innov_check_fail_status; }
 	const decltype(innovation_fault_status_u::flags) &innov_check_fail_status_flags() const { return _innov_check_fail_status.flags; }
 
-	const warning_event_status_u &warning_event_status() const { return _warning_events; }
-	const decltype(warning_event_status_u::flags) &warning_event_flags() const { return _warning_events.flags; }
-	void clear_warning_events() { _warning_events.value = 0; }
-
 	const information_event_status_u &information_event_status() const { return _information_events; }
 	const decltype(information_event_status_u::flags) &information_event_flags() const { return _information_events.flags; }
 	void clear_information_events() { _information_events.value = 0; }
@@ -348,15 +344,15 @@ protected:
 	OutputPredictor _output_predictor{};
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	airspeedSample _airspeed_sample_delayed{};
+	airspeedSample _airspeed_sample_delayed {};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	extVisionSample _ev_sample_prev{};
+	extVisionSample _ev_sample_prev {};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	RingBuffer<sensor::rangeSample> *_range_buffer{nullptr};
+	RingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
 
 	sensor::SensorRangeFinder _range_sensor{};
@@ -364,7 +360,7 @@ protected:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
+	RingBuffer<flowSample> 	*_flow_buffer {nullptr};
 
 	flowSample _flow_sample_delayed{};
 
@@ -387,7 +383,7 @@ protected:
 	float _gpos_origin_epv{0.0f}; // vertical position uncertainty of the global origin
 
 #if defined(CONFIG_EKF2_GNSS)
-	RingBuffer<gnssSample> *_gps_buffer{nullptr};
+	RingBuffer<gnssSample> *_gps_buffer {nullptr};
 	uint64_t _time_last_gps_buffer_push{0};
 
 	gnssSample _gps_sample_delayed{};
@@ -401,13 +397,12 @@ protected:
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// innovation consistency check monitoring ratios
-	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
-	uint64_t _time_last_gps_yaw_buffer_push{0};
+	uint64_t _time_last_gnss_yaw_buffer_push{0};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	RingBuffer<dragSample> *_drag_buffer{nullptr};
+	RingBuffer<dragSample> *_drag_buffer {nullptr};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
@@ -425,25 +420,25 @@ protected:
 	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	RingBuffer<magSample> *_mag_buffer{nullptr};
+	RingBuffer<magSample> *_mag_buffer {nullptr};
 	uint64_t _time_last_mag_buffer_push{0};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
+	RingBuffer<airspeedSample> *_airspeed_buffer {nullptr};
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};
+	RingBuffer<extVisionSample> *_ext_vision_buffer {nullptr};
 	uint64_t _time_last_ext_vision_buffer_push{0};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_AUXVEL)
-	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
+	RingBuffer<auxVelSample> *_auxvel_buffer {nullptr};
 #endif // CONFIG_EKF2_AUXVEL
-	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
+	RingBuffer<systemFlagUpdate> *_system_flag_buffer {nullptr};
 
 #if defined(CONFIG_EKF2_BAROMETER)
-	RingBuffer<baroSample> *_baro_buffer{nullptr};
+	RingBuffer<baroSample> *_baro_buffer {nullptr};
 	uint64_t _time_last_baro_buffer_push{0};
 #endif // CONFIG_EKF2_BAROMETER
 
@@ -458,7 +453,7 @@ protected:
 	uint64_t _wmm_gps_time_last_set{0};      // time WMM last set
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	float _mag_declination_gps{NAN};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
+	float _mag_declination_gps {NAN};        // magnetic declination returned by the geo library using the last valid GPS position (rad)
 	float _mag_inclination_gps{NAN};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
 	float _mag_strength_gps{NAN};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
 
@@ -474,7 +469,6 @@ protected:
 
 	// these are used to record single frame events for external monitoring and should NOT be used for
 	// state logic becasue they will be cleared externally after being read.
-	warning_event_status_u _warning_events{};
 	information_event_status_u _information_events{};
 
 	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)

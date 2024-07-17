@@ -125,32 +125,23 @@ parameters:
     EKF2_GPS_CHECK:
       description:
         short: Integer bitmask controlling GPS checks
-        long: 'Set bits to 1 to enable checks. Checks enabled by the following bit
-          positions 0 : Minimum required sat count set by EKF2_REQ_NSATS 1 : Maximum
-          allowed PDOP set by EKF2_REQ_PDOP 2 : Maximum allowed horizontal position
-          error set by EKF2_REQ_EPH 3 : Maximum allowed vertical position error set
-          by EKF2_REQ_EPV 4 : Maximum allowed speed error set by EKF2_REQ_SACC 5 :
-          Maximum allowed horizontal position rate set by EKF2_REQ_HDRIFT. This check
-          will only run when the vehicle is on ground and stationary. 6 : Maximum
-          allowed vertical position rate set by EKF2_REQ_VDRIFT. This check will only
-          run when the vehicle is on ground and stationary. 7 : Maximum allowed horizontal
-          speed set by EKF2_REQ_HDRIFT. This check will only run when the vehicle
-          is on ground and stationary. 8 : Maximum allowed vertical velocity discrepancy
-          set by EKF2_REQ_VDRIFT'
+        long: 'Each threshold value is defined by the parameter indicated next to the check.
+          Drift and offset checks only run when the vehicle is on ground and stationary.'
       type: bitmask
       bit:
-        0: Min sat count (EKF2_REQ_NSATS)
-        1: Max PDOP (EKF2_REQ_PDOP)
-        2: Max horizontal position error (EKF2_REQ_EPH)
-        3: Max vertical position error (EKF2_REQ_EPV)
-        4: Max speed error (EKF2_REQ_SACC)
-        5: Max horizontal position rate (EKF2_REQ_HDRIFT)
-        6: Max vertical position rate (EKF2_REQ_VDRIFT)
-        7: Max horizontal speed (EKF2_REQ_HDRIFT)
-        8: Max vertical velocity discrepancy (EKF2_REQ_VDRIFT)
-      default: 245
+        0: Sat count (EKF2_REQ_NSATS)
+        1: PDOP (EKF2_REQ_PDOP)
+        2: EPH (EKF2_REQ_EPH)
+        3: EPV (EKF2_REQ_EPV)
+        4: Speed accuracy (EKF2_REQ_SACC)
+        5: Horizontal position drift (EKF2_REQ_HDRIFT)
+        6: Vertical position drift (EKF2_REQ_VDRIFT)
+        7: Horizontal speed offset (EKF2_REQ_HDRIFT)
+        8: Vertical speed offset (EKF2_REQ_VDRIFT)
+        9: Spoofing
+      default: 1023
       min: 0
-      max: 511
+      max: 1023
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS
@@ -401,19 +392,18 @@ parameters:
           heading or 3-component vector. The fusion of magnetometer data as a three
           component vector enables vehicle body fixed hard iron errors to be learned,
           but requires a stable earth field. If set to 'Automatic' magnetic heading
-          fusion is used when on-ground and 3-axis magnetic field fusion in-flight
-          with fallback to magnetic heading fusion if there is insufficient motion
-          to make yaw or magnetic field states observable. If set to 'Magnetic heading'
-          magnetic heading fusion is used at all times. If set to 'None' the magnetometer
-          will not be used under any circumstance. If no external source of yaw is
-          available, it is possible to use post-takeoff horizontal movement combined
-          with GPS velocity measurements to align the yaw angle with the timer required
-          (depending on the amount of movement and GPS data quality).
+          fusion is used when on-ground and 3-axis magnetic field fusion in-flight.
+          If set to 'Magnetic heading' magnetic heading fusion is used at all times.
+          If set to 'None' the magnetometer will not be used under any circumstance.
+          If no external source of yaw is available, it is possible to use post-takeoff
+          horizontal movement combined with GNSS velocity measurements to align the yaw angle.
+          If set to 'Init' the magnetometer is only used to initalize the heading.
       type: enum
       values:
         0: Automatic
         1: Magnetic heading
         5: None
+        6: Init
       default: 0
       reboot_required: true
     EKF2_MAG_ACCLIM:
@@ -525,7 +515,7 @@ parameters:
         1: Vertical position
         2: 3D velocity
         3: Yaw
-      default: 15
+      default: 0
       min: 0
       max: 15
     EKF2_GPS_CTRL:
@@ -550,8 +540,7 @@ parameters:
           unexpected errors. For these reasons, if accurate control of height relative
           to ground is required, it is recommended to use the MPC_ALT_MODE parameter
           instead, unless baro errors are severe enough to cause problems with landing
-          and takeoff. To en-/disable range finder for terrain height estimation,
-          use EKF2_TERR_MASK instead. If this parameter is enabled then the estimator
+          and takeoff. If this parameter is enabled then the estimator
           will make use of the range finder measurements to estimate its height in
           addition to other height sources (if activated). Range sensor aiding can
           be enabled (i.e.: always use) or set in "conditional" mode. Conditional
@@ -566,19 +555,6 @@ parameters:
         1: Enabled (conditional mode)
         2: Enabled
       default: 1
-    EKF2_TERR_MASK:
-      description:
-        short: Integer bitmask controlling fusion sources of the terrain estimator
-        long: 'Set bits in the following positions to enable: 0 : Set to true to use
-          range finder data if available 1 : Set to true to use optical flow data
-          if available'
-      type: bitmask
-      bit:
-        0: use range finder
-        1: use optical flow
-      default: 3
-      min: 0
-      max: 3
     EKF2_NOAID_TOUT:
       description:
         short: Maximum inertial dead-reckoning time
@@ -1318,7 +1294,7 @@ parameters:
       bit:
         0: Horizontal position
         1: Vertical position
-      default: 1
+      default: 0
       min: 0
       max: 3
     EKF2_AGP_DELAY:
@@ -1350,3 +1326,8 @@ parameters:
       min: 1.0
       unit: SD
       decimal: 1
+    EKF2_LOG_VERBOSE:
+      description:
+        short: Verbose logging
+      type: boolean
+      default: 1

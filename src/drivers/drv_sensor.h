@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -133,6 +133,8 @@
 #define DRV_IMU_DEVTYPE_ADIS16477	0x59
 #define DRV_IMU_DEVTYPE_ADIS16507	0x5A
 
+#define DRV_IMU_DEVTYPE_SCH16T		0x5B
+
 #define DRV_BARO_DEVTYPE_MPC2520	0x5F
 #define DRV_BARO_DEVTYPE_LPS22HB	0x60
 
@@ -149,6 +151,7 @@
 #define DRV_ACC_DEVTYPE_BMI085          0x6C
 #define DRV_GYR_DEVTYPE_BMI085          0x6D
 #define DRV_BARO_DEVTYPE_BMP390         0x6E
+#define DRV_BARO_DEVTYPE_BMP581		0x6F
 
 #define DRV_DIST_DEVTYPE_LL40LS       0x70
 #define DRV_DIST_DEVTYPE_MAPPYDOT     0x71

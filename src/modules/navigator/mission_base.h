@@ -314,6 +314,13 @@ protected:
 	 */
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
+	/**
+	 * @brief Set the Mission Index
+	 *
+	 * @param[in] index Index of the mission item
+	 */
+	void setMissionIndex(int32_t index);
+
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
 	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
@@ -420,13 +427,6 @@ private:
 	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
 	 */
 	bool cameraWasTriggering();
-
-	/**
-	 * @brief Set the Mission Index
-	 *
-	 * @param[in] index Index of the mission item
-	 */
-	void setMissionIndex(int32_t index);
 
 	/**
 	 * @brief Parameters update

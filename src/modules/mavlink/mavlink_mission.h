@@ -77,7 +77,7 @@ class Mavlink;
 class MavlinkMissionManager
 {
 public:
-	explicit MavlinkMissionManager(Mavlink *mavlink);
+	explicit MavlinkMissionManager(Mavlink &mavlink);
 
 	~MavlinkMissionManager() = default;
 
@@ -146,7 +146,7 @@ private:
 
 	MavlinkRateLimiter	_slow_rate_limiter{1000 * 1000};		///< Rate limit sending of the current WP sequence to 1 Hz
 
-	Mavlink *_mavlink;
+	Mavlink &_mavlink;
 
 	static constexpr unsigned int	FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT =
 		2;	///< Error count limit before stopping to report FS errors

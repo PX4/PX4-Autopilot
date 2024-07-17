@@ -32,19 +32,10 @@ then
 	param set-default SENS_TEMP_ID 2490378
 fi
 
-param set-default EKF2_BARO_DELAY 39
-param set-default EKF2_BARO_NOISE 0.9
-param set-default EKF2_HGT_REF 0
-param set-default EKF2_MAG_DELAY 60
-param set-default EKF2_MAG_NOISE 0.06
 param set-default EKF2_MULTI_IMU 2
 param set-default EKF2_OF_CTRL 1
-param set-default EKF2_OF_DELAY 28
 param set-default EKF2_OF_N_MIN 0.05
 param set-default EKF2_RNG_A_HMAX 25
-param set-default EKF2_RNG_DELAY 105
-param set-default EKF2_RNG_NOISE 0.03
 param set-default EKF2_RNG_QLTY_T 0.1
-param set-default EKF2_RNG_SFE 0.03
 
 param set-default SENS_FLOW_RATE 150

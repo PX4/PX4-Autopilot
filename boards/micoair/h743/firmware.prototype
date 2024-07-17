@@ -1,0 +1,13 @@
+{
+    "board_id": 1166,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the MicoAir743 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "MicoAir743",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1835008,
+    "git_identity": "",
+    "board_revision": 0
+}

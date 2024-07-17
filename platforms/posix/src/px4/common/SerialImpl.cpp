@@ -244,7 +244,7 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 	return ret;
 }
 
-ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count, uint32_t timeout_us)
+ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t character_count, uint32_t timeout_ms)
 {
 	if (!_open) {
 		PX4_ERR("Cannot readAtLeast from serial device until it has been opened");
@@ -257,6 +257,7 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 	}
 
 	const hrt_abstime start_time_us = hrt_absolute_time();
+	hrt_abstime timeout_us = timeout_ms * 1000;
 	int total_bytes_read = 0;
 
 	while ((total_bytes_read < (int) character_count) && (hrt_elapsed_time(&start_time_us) < timeout_us)) {
@@ -265,11 +266,11 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 		fds[0].fd = _serial_fd;
 		fds[0].events = POLLIN;
 
-		hrt_abstime remaining_time = timeout_us - hrt_elapsed_time(&start_time_us);
+		hrt_abstime elapsed_time_us = hrt_elapsed_time(&start_time_us);
 
-		if (remaining_time <= 0) { break; }
+		if (elapsed_time_us > timeout_us) { break; }
 
-		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), remaining_time);
+		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), (timeout_us - elapsed_time_us) / 1000);
 
 		if (ret > 0) {
 			if (fds[0].revents & POLLIN) {
