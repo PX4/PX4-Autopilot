@@ -35,15 +35,15 @@
  * Position/Altitude mode variant
  *
  * The supported sub-modes are:
- * "Direct velocity"
- * Sticks directly map to velocity setpoints without smoothing.
- * Also applies to vertical direction and Altitude mode.
- * Useful for velocity control tuning.
- * "Smoothed velocity"
- * Sticks map to velocity but with maximum acceleration and jerk limits based on
- * jerk optimized trajectory generator (different algorithm than 1).
- * "Acceleration based"
- * Sticks map to acceleration and there's a virtual brake drag
+ * - "Direct velocity":
+ *   Sticks directly map to velocity setpoints without smoothing.
+ *   Also applies to vertical direction and Altitude mode.
+ *   Useful for velocity control tuning.
+ * - "Smoothed velocity":
+ *   Sticks map to velocity but with maximum acceleration and jerk limits based on
+ *   jerk optimized trajectory generator (different algorithm than 1).
+ *  - "Acceleration based":
+ *  Sticks map to acceleration and there's a virtual brake drag
  *
  * @value 0 Direct velocity
  * @value 3 Smoothed velocity
