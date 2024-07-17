@@ -247,7 +247,7 @@ public:
 	// At the next startup, set param.mag_declination_deg to the value saved
 	bool get_mag_decl_deg(float &val) const
 	{
-		if (_NED_origin_initialised && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
+		if (_pos_ref.isInitialized() && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
 			val = math::degrees(_mag_declination_gps);
 			return true;
 
@@ -258,7 +258,7 @@ public:
 
 	bool get_mag_inc_deg(float &val) const
 	{
-		if (_NED_origin_initialised) {
+		if (_pos_ref.isInitialized()) {
 			val = math::degrees(_mag_inclination_gps);
 			return true;
 
@@ -304,7 +304,8 @@ public:
 	const imuSample &get_imu_sample_delayed() const { return _imu_buffer.get_oldest(); }
 	const uint64_t &time_delayed_us() const { return _time_delayed_us; }
 
-	const bool &global_origin_valid() const { return _NED_origin_initialised; }
+	bool global_origin_valid() const { return _pos_ref.isInitialized(); }
+	void setNedOriginInitialised() { _NED_origin_initialised = true; }
 	const MapProjection &global_origin() const { return _pos_ref; }
 	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_gps_alt_ref) ? _gps_alt_ref : 0.f; }
 

@@ -107,7 +107,13 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 				_state = State::starting;
 
 				if (ekf.global_origin_valid()) {
+					if (aid_src.innovation_rejected) {
+						ekf.resetHorizontalPositionTo(Vector2f(aid_src.observation), Vector2f(aid_src.observation_variance));
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
+					}
+
 					ekf.enableControlStatusAuxGpos();
+					ekf.setNedOriginInitialised();
 					_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 					_state = State::active;
 

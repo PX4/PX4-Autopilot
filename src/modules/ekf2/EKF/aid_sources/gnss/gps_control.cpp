@@ -109,7 +109,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		const bool continuing_conditions_passing = (gnss_vel_enabled || gnss_pos_enabled)
 				&& _control_status.flags.tilt_align
 				&& _control_status.flags.yaw_align
-				&& _NED_origin_initialised;
+				&& _pos_ref.isInitialized();
 		const bool starting_conditions_passing = continuing_conditions_passing && _gps_checks_passed;
 
 		if (_control_status.flags.gps) {
@@ -318,6 +318,7 @@ void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 	_information_events.flags.reset_pos_to_gps = true;
 	resetHorizontalPositionTo(Vector2f(aid_src.observation), Vector2f(aid_src.observation_variance));
 	_gpos_origin_eph = 0.f; // The uncertainty of the global origin is now contained in the local position uncertainty
+	_NED_origin_initialised = true;
 
 	resetAidSourceStatusZeroInnovation(aid_src);
 }

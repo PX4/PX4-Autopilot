@@ -69,7 +69,7 @@ bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &lo
 	latitude = _pos_ref.getProjectionReferenceLat();
 	longitude = _pos_ref.getProjectionReferenceLon();
 	origin_alt  = getEkfGlobalOriginAltitude();
-	return _NED_origin_initialised;
+	return _pos_ref.isInitialized();
 }
 
 bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude, const float eph,
@@ -80,14 +80,14 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 	    && PX4_ISFINITE(longitude) && (abs(longitude) <= 180)
 	    && PX4_ISFINITE(altitude) && (altitude > -12'000.f) && (altitude < 100'000.f)
 	   ) {
-		bool current_pos_available = false;
+		bool current_gpos_available = false;
 		double current_lat = static_cast<double>(NAN);
 		double current_lon = static_cast<double>(NAN);
 
 		// if we are already doing aiding, correct for the change in position since the EKF started navigating
 		if (_pos_ref.isInitialized() && isHorizontalAidingActive()) {
 			_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
-			current_pos_available = true;
+			current_gpos_available = true;
 		}
 
 		const float gps_alt_ref_prev = _gps_alt_ref;
@@ -114,12 +114,14 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		_gpos_origin_eph = eph;
 		_gpos_origin_epv = epv;
 
-		_NED_origin_initialised = true;
-
-		if (current_pos_available) {
+		if (current_gpos_available) {
 			// reset horizontal position if we already have a global origin
 			Vector2f position = _pos_ref.project(current_lat, current_lon);
 			resetHorizontalPositionTo(position);
+			_NED_origin_initialised = true;
+
+		} else if (isHorizontalAidingActive()) {
+			_NED_origin_initialised = true;
 		}
 
 		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {

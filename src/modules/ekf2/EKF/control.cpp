@@ -163,4 +163,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	updateDeadReckoningStatus();
+
+	if (!local_position_is_valid()) {
+		_NED_origin_initialised = false;
+		_gpos_origin_eph = INFINITY;
+		_gpos_origin_epv = INFINITY;
+	}
 }
