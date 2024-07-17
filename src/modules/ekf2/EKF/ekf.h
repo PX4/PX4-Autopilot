@@ -144,7 +144,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.innovation;
 		}
 
@@ -173,7 +173,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.innovation_variance;
 		}
 
@@ -202,7 +202,7 @@ public:
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
+		if (_control_status.flags.gnss_yaw) {
 			return _aid_src_gnss_yaw.test_ratio;
 		}
 
@@ -407,7 +407,7 @@ public:
 	float getHeightAboveGroundInnovationTestRatio() const;
 
 	// return a bitmask integer that describes which state estimates are valid
-	void get_ekf_soln_status(uint16_t *status) const;
+	uint16_t get_ekf_soln_status() const;
 
 	HeightSensor getHeightSensorRef() const { return _height_sensor_ref; }
 
@@ -653,7 +653,7 @@ private:
 	Vector3f _gps_pos_deriv_filt{};	///< GPS NED position derivative (m/sec)
 	Vector2f _gps_velNE_filt{};	///< filtered GPS North and East velocity (m/sec)
 
-	float _gps_velD_diff_filt{0.0f};	///< GPS filtered Down velocity (m/sec)
+	float _gps_vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
@@ -996,17 +996,17 @@ private:
 	void resetGpsDriftCheckFilters();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGpsYawFusion(const gnssSample &gps_sample);
-	void stopGpsYawFusion();
+	void controlGnssYawFusion(const gnssSample &gps_sample);
+	void stopGnssYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw(float antenna_yaw_offset);
+	void fuseGnssYaw(float antenna_yaw_offset);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetYawToGps(float gnss_yaw, float gnss_yaw_offset);
+	bool resetYawToGnss(float gnss_yaw, float gnss_yaw_offset);
 
-	void updateGpsYaw(const gnssSample &gps_sample);
+	void updateGnssYaw(const gnssSample &gps_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
 

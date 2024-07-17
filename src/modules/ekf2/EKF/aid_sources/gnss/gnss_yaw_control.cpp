@@ -32,37 +32,122 @@
  ****************************************************************************/
 
 /**
- * @file gps_yaw_fusion.cpp
- * Definition of functions required to use yaw obtained from GPS dual antenna measurements.
- * Equations generated using EKF/python/ekf_derivation/main.py
- *
- * @author Paul Riseborough <p_riseborough@live.com.au>
+ * @file gnss_yaw_control.cpp
+ * Definition of functions required to use yaw obtained from GNSS dual antenna measurements.
+ * Equations generated using src/modules/ekf2/EKF/python/ekf_derivation/derivation.py
  *
  */
 
 #include "ekf.h"
-#include <ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h>
 
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::updateGpsYaw(const gnssSample &gps_sample)
+#include <ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h>
+
+void Ekf::controlGnssYawFusion(const gnssSample &gnss_sample)
+{
+	if (!(_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
+	    || _control_status.flags.gnss_yaw_fault) {
+
+		stopGnssYawFusion();
+		return;
+	}
+
+	const bool is_new_data_available = PX4_ISFINITE(gnss_sample.yaw);
+
+	if (is_new_data_available) {
+
+		updateGnssYaw(gnss_sample);
+
+		const bool continuing_conditions_passing = _control_status.flags.tilt_align;
+
+		const bool is_gnss_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push,
+				2 * GNSS_YAW_MAX_INTERVAL);
+
+		const bool starting_conditions_passing = continuing_conditions_passing
+				&& _gps_checks_passed
+				&& !is_gnss_yaw_data_intermittent
+				&& !_gps_intermittent;
+
+		if (_control_status.flags.gnss_yaw) {
+			if (continuing_conditions_passing) {
+
+				fuseGnssYaw(gnss_sample.yaw_offset);
+
+				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
+
+				if (is_fusion_failing) {
+					stopGnssYawFusion();
+
+					// Before takeoff, we do not want to continue to rely on the current heading
+					// if we had to stop the fusion
+					if (!_control_status.flags.in_air) {
+						ECL_INFO("clearing yaw alignment");
+						_control_status.flags.yaw_align = false;
+					}
+				}
+
+			} else {
+				// Stop GNSS yaw fusion but do not declare it faulty
+				stopGnssYawFusion();
+			}
+
+		} else {
+			if (starting_conditions_passing) {
+				// Try to activate GNSS yaw fusion
+				const bool not_using_ne_aiding = !_control_status.flags.gps && !_control_status.flags.aux_gpos;
+
+				if (!_control_status.flags.in_air
+				    || !_control_status.flags.yaw_align
+				    || not_using_ne_aiding) {
+
+					// Reset before starting the fusion
+					if (resetYawToGnss(gnss_sample.yaw, gnss_sample.yaw_offset)) {
+
+						resetAidSourceStatusZeroInnovation(_aid_src_gnss_yaw);
+
+						_control_status.flags.gnss_yaw = true;
+						_control_status.flags.yaw_align = true;
+					}
+
+				} else if (!_aid_src_gnss_yaw.innovation_rejected) {
+					// Do not force a reset but wait for the consistency check to pass
+					_control_status.flags.gnss_yaw = true;
+					fuseGnssYaw(gnss_sample.yaw_offset);
+				}
+
+				if (_control_status.flags.gnss_yaw) {
+					ECL_INFO("starting GNSS yaw fusion");
+				}
+			}
+		}
+
+	} else if (_control_status.flags.gnss_yaw
+		   && !isNewestSampleRecent(_time_last_gnss_yaw_buffer_push, _params.reset_timeout_max)) {
+
+		// No yaw data in the message anymore. Stop until it comes back.
+		stopGnssYawFusion();
+	}
+}
+
+void Ekf::updateGnssYaw(const gnssSample &gnss_sample)
 {
 	// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-	const float measured_hdg = wrap_pi(gps_sample.yaw + gps_sample.yaw_offset);
+	const float measured_hdg = wrap_pi(gnss_sample.yaw + gnss_sample.yaw_offset);
 
-	const float yaw_acc = PX4_ISFINITE(gps_sample.yaw_acc) ? gps_sample.yaw_acc : 0.f;
-	const float R_YAW = sq(fmaxf(yaw_acc, _params.gps_heading_noise));
+	const float yaw_acc = PX4_ISFINITE(gnss_sample.yaw_acc) ? gnss_sample.yaw_acc : 0.f;
+	const float R_YAW = sq(fmaxf(yaw_acc, _params.gnss_heading_noise));
 
 	float heading_pred;
 	float heading_innov_var;
 
 	VectorState H;
-	sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, gps_sample.yaw_offset, R_YAW, FLT_EPSILON,
+	sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, gnss_sample.yaw_offset, R_YAW, FLT_EPSILON,
 					    &heading_pred, &heading_innov_var, &H);
 
 	updateAidSourceStatus(_aid_src_gnss_yaw,
-			      gps_sample.time_us,                          // sample timestamp
+			      gnss_sample.time_us,                          // sample timestamp
 			      measured_hdg,                                // observation
 			      R_YAW,                                       // observation variance
 			      wrap_pi(heading_pred - measured_hdg),        // innovation
@@ -70,7 +155,7 @@ void Ekf::updateGpsYaw(const gnssSample &gps_sample)
 			      math::max(_params.heading_innov_gate, 1.f)); // innovation gate
 }
 
-void Ekf::fuseGpsYaw(float antenna_yaw_offset)
+void Ekf::fuseGnssYaw(float antenna_yaw_offset)
 {
 	auto &aid_src = _aid_src_gnss_yaw;
 
@@ -99,7 +184,8 @@ void Ekf::fuseGpsYaw(float antenna_yaw_offset)
 
 		// we reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
-		ECL_ERR("GPS yaw numerical error - covariance reset");
+		ECL_ERR("GNSS yaw numerical error - covariance reset");
+		stopGnssYawFusion();
 		return;
 	}
 
@@ -129,7 +215,7 @@ void Ekf::fuseGpsYaw(float antenna_yaw_offset)
 	}
 }
 
-bool Ekf::resetYawToGps(const float gnss_yaw, const float gnss_yaw_offset)
+bool Ekf::resetYawToGnss(const float gnss_yaw, const float gnss_yaw_offset)
 {
 	// define the predicted antenna array vector and rotate into earth frame
 	const Vector3f ant_vec_bf = {cosf(gnss_yaw_offset), sinf(gnss_yaw_offset), 0.0f};
@@ -140,11 +226,21 @@ bool Ekf::resetYawToGps(const float gnss_yaw, const float gnss_yaw_offset)
 		return false;
 	}
 
-	// GPS yaw measurement is alreday compensated for antenna offset in the driver
+	// GNSS yaw measurement is already compensated for antenna offset in the driver
 	const float measured_yaw = gnss_yaw;
 
-	const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.e-2f));
+	const float yaw_variance = sq(fmaxf(_params.gnss_heading_noise, 1.e-2f));
 	resetQuatStateYaw(measured_yaw, yaw_variance);
 
 	return true;
+}
+
+void Ekf::stopGnssYawFusion()
+{
+	if (_control_status.flags.gnss_yaw) {
+
+		_control_status.flags.gnss_yaw = false;
+
+		ECL_INFO("stopping GNSS yaw fusion");
+	}
 }

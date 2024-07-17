@@ -339,17 +339,12 @@ uint16_t Battery::determineFaults()
 
 void Battery::computeScale()
 {
-	const float voltage_range = (_params.v_charged - _params.v_empty);
+	_scale = _params.v_charged / _cell_voltage_filter_v.getState();
 
-	// reusing capacity calculation to get single cell voltage before drop
-	const float bat_v = _params.v_empty + (voltage_range * _state_of_charge_volt_based);
+	if (PX4_ISFINITE(_scale)) {
+		_scale = math::constrain(_scale, 1.f, 1.3f); // Allow at most 30% compensation
 
-	_scale = _params.v_charged / bat_v;
-
-	if (_scale > 1.3f) { // Allow at most 30% compensation
-		_scale = 1.3f;
-
-	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
+	} else {
 		_scale = 1.f;
 	}
 }

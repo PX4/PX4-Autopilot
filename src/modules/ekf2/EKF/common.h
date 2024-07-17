@@ -338,7 +338,7 @@ struct parameters {
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
-	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
+	float gnss_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
 # endif // CONFIG_EKF2_GNSS_YAW
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
@@ -580,7 +580,7 @@ uint64_t gnd_effect              :
 		1; ///< 20 - true when protection from ground effect induced static pressure rise is active
 uint64_t rng_stuck               :
 		1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
-uint64_t gps_yaw                 :
+uint64_t gnss_yaw                 :
 		1; ///< 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
 		uint64_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
 uint64_t ev_vel                  :
@@ -588,7 +588,7 @@ uint64_t ev_vel                  :
 uint64_t synthetic_mag_z         :
 		1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
 		uint64_t vehicle_at_rest         : 1; ///< 26 - true when the vehicle is at rest
-uint64_t gps_yaw_fault           :
+uint64_t gnss_yaw_fault           :
 		1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
 uint64_t rng_fault               :
 		1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
@@ -611,28 +611,6 @@ uint64_t mag_heading_consistent  :
 
 	} flags;
 	uint64_t value;
-};
-
-// Mavlink bitmask containing state of estimator solution
-union ekf_solution_status_u {
-	struct {
-		uint16_t attitude           : 1; ///< 0 - True if the attitude estimate is good
-		uint16_t velocity_horiz     : 1; ///< 1 - True if the horizontal velocity estimate is good
-		uint16_t velocity_vert      : 1; ///< 2 - True if the vertical velocity estimate is good
-		uint16_t pos_horiz_rel      : 1; ///< 3 - True if the horizontal position (relative) estimate is good
-		uint16_t pos_horiz_abs      : 1; ///< 4 - True if the horizontal position (absolute) estimate is good
-		uint16_t pos_vert_abs       : 1; ///< 5 - True if the vertical position (absolute) estimate is good
-		uint16_t pos_vert_agl       : 1; ///< 6 - True if the vertical position (above ground) estimate is good
-uint16_t const_pos_mode     :
-		1; ///< 7 - True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
-uint16_t pred_pos_horiz_rel :
-		1; ///< 8 - True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
-uint16_t pred_pos_horiz_abs :
-		1; ///< 9 - True if the EKF has sufficient data to enter a mode that will provide a (absolute) position estimate
-		uint16_t gps_glitch         : 1; ///< 10 - True if the EKF has detected a GPS glitch
-		uint16_t accel_error        : 1; ///< 11 - True if the EKF has detected bad accelerometer data
-	} flags;
-	uint16_t value;
 };
 
 // define structure used to communicate information events
