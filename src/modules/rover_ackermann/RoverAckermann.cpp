@@ -112,7 +112,7 @@ void RoverAckermann::Run()
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-			_motor_setpoint = _ackermann_guidance.purePursuit(_nav_state);
+			_motor_setpoint = _ackermann_guidance.computeGuidance(_nav_state);
 			break;
 
 		default: // Unimplemented nav states will stop the rover
