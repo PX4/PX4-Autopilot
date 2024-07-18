@@ -79,9 +79,9 @@ void set_tune_override(const int tune_id);
 void set_tune(const int tune_id);
 
 void tune_home_set(bool use_buzzer);
-void tune_mission_ok(bool use_buzzer);
-void tune_mission_warn(bool use_buzzer);
-void tune_mission_fail(bool use_buzzer);
+void tune_mission_ok(bool use_buzzer, int led_color, int led_mode);
+void tune_mission_warn(bool use_buzzer, int led_color, int led_mode);
+void tune_mission_fail(bool use_buzzer, int led_color, int led_mode);
 void tune_positive(bool use_buzzer);
 void tune_neutral(bool use_buzzer);
 void tune_negative(bool use_buzzer);

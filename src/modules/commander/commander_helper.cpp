@@ -229,30 +229,30 @@ void tune_home_set(bool use_buzzer)
 	}
 }
 
-void tune_mission_ok(bool use_buzzer)
+void tune_mission_ok(bool use_buzzer, int led_color, int led_mode)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_color, led_mode);
 
 	if (use_buzzer) {
 		set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
 	}
 }
 
-void tune_mission_warn(bool use_buzzer)
+void tune_mission_warn(bool use_buzzer, int led_color, int led_mode)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_YELLOW, led_control_s::MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_color, led_mode);
 
 	if (use_buzzer) {
 		set_tune(tune_control_s::TUNE_ID_NOTIFY_NEUTRAL);
 	}
 }
 
-void tune_mission_fail(bool use_buzzer)
+void tune_mission_fail(bool use_buzzer, int led_color, int led_mode)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_color, led_mode);
 
 	if (use_buzzer) {
 		set_tune(tune_control_s::TUNE_ID_NOTIFY_NEGATIVE);

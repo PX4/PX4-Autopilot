@@ -353,12 +353,8 @@ private:
 		(ParamInt<px4::params::COM_MISN_O_CLR>)    _param_mission_is_ok,
 		(ParamInt<px4::params::COM_MISN_W_CLR>)  _param_mission_is_warning,
 		(ParamInt<px4::params::COM_MISN_F_CLR>)  _param_mission_is_fail,
-		(ParamInt<px4::params::COM_HOME_SET_CLR>)   _param_home_set,
 		(ParamInt<px4::params::COM_MISN_O_MD>)   _param_mission_is_ok_mode,
 		(ParamInt<px4::params::COM_MISN_W_MD>)   _param_mission_is_warning_mode,
-		(ParamInt<px4::params::COM_MISN_F_MD>)   _param_mission_is_fail_mode,
-		(ParamInt<px4::params::COM_HOME_SET_MD>)   _param_home_set_mode
-
-
+		(ParamInt<px4::params::COM_MISN_F_MD>)   _param_mission_is_fail_mode
 	)
 };

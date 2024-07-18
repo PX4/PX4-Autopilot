@@ -1106,21 +1106,6 @@ PARAM_DEFINE_INT32(COM_MISN_W_CLR, 4);
  * @value 8 COLOR_WHITE
  */
 PARAM_DEFINE_INT32(COM_MISN_F_CLR, 1);
-/**
- * It is the color that indicates that the home is setted.
- *
- * @group Commander
- * @value 0 COLOR_OFF
- * @value 1 COLOR_RED
- * @value 2 COLOR_GREEN
- * @value 3 COLOR_BLUE
- * @value 4 COLOR_YELLOW
- * @value 5 COLOR_PURPLE
- * @value 6 COLOR_AMBER
- * @value 7 COLOR_CYAN
- * @value 8 COLOR_WHITE
- */
-PARAM_DEFINE_INT32(COM_HOME_SET_CLR, 2);
 
 /**
  * It is the mode that indicates that the mission is suitable.
@@ -1166,18 +1151,3 @@ PARAM_DEFINE_INT32(COM_MISN_W_MD, 5);
  * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
  */
 PARAM_DEFINE_INT32(COM_MISN_F_MD, 5);
-
-/**
- * It is the mode that indicates that the home is setted.
- *
- * @group Commander
- * @value 0 MODE_OFF # turn LED off
- * @value 1 MODE_ON  # turn LED on
- * @value 2 MODE_DISABLED # disable this priority (switch to lower priority setting)
- * @value 3 MODE_BLINK_SLOW
- * @value 4 MODE_BLINK_NORMAL
- * @value 5 MODE_BLINK_FAST
- * @value 6 MODE_BREATHE # continuously increase & decrease brightness (solid color if driver does not support it)
- * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
- */
-PARAM_DEFINE_INT32(COM_HOME_SET_MD, 5);
