@@ -209,21 +209,24 @@ void RoverAckermannGuidance::updateWaypoints()
 	_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
 
 	// Global waypoint coordinates
-	if (position_setpoint_triplet.current.valid) {
+	if (position_setpoint_triplet.current.valid && PX4_ISFINITE(position_setpoint_triplet.current.lat)
+	    && PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
 		_curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
 
 	} else {
 		_curr_wp = Vector2d(0, 0);
 	}
 
-	if (position_setpoint_triplet.previous.valid) {
+	if (position_setpoint_triplet.previous.valid && PX4_ISFINITE(position_setpoint_triplet.previous.lat)
+	    && PX4_ISFINITE(position_setpoint_triplet.previous.lon)) {
 		_prev_wp = Vector2d(position_setpoint_triplet.previous.lat, position_setpoint_triplet.previous.lon);
 
 	} else {
 		_prev_wp = _curr_pos;
 	}
 
-	if (position_setpoint_triplet.next.valid) {
+	if (position_setpoint_triplet.next.valid && PX4_ISFINITE(position_setpoint_triplet.next.lat)
+	    && PX4_ISFINITE(position_setpoint_triplet.next.lon)) {
 		_next_wp = Vector2d(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
 
 	} else {
@@ -280,45 +283,16 @@ float RoverAckermannGuidance::calcDesiredSteering(const Vector2f &curr_wp_local,
 		const Vector2f &curr_pos_local, const float &lookahead_gain, const float &lookahead_min, const float &lookahead_max,
 		const float &wheel_base, const float &desired_speed, const float &vehicle_yaw)
 {
-	// Calculate crosstrack error
-	const Vector2f prev_wp_to_curr_wp_local = curr_wp_local - prev_wp_local;
-
-	if (prev_wp_to_curr_wp_local.norm() < FLT_EPSILON) { // Avoid division by 0 (this case should not happen)
-		return 0.f;
-	}
-
-	const Vector2f prev_wp_to_curr_pos_local = curr_pos_local - prev_wp_local;
-	const Vector2f distance_on_line_segment = ((prev_wp_to_curr_pos_local * prev_wp_to_curr_wp_local) /
-			prev_wp_to_curr_wp_local.norm()) * prev_wp_to_curr_wp_local.normalized();
-	const Vector2f crosstrack_error = (prev_wp_local + distance_on_line_segment) - curr_pos_local;
-
-	// Calculate desired heading towards lookahead point
-	float desired_heading{0.f};
-	float lookahead_distance = math::constrain(lookahead_gain * desired_speed,
-				   lookahead_min, lookahead_max);
-
-	if (crosstrack_error.longerThan(lookahead_distance)) {
-		if (crosstrack_error.norm() < lookahead_max) {
-			lookahead_distance = crosstrack_error.norm(); // Scale lookahead radius
-			desired_heading = calcDesiredHeading(curr_wp_local, prev_wp_local, curr_pos_local, lookahead_distance);
-
-		} else { // Excessively large crosstrack error
-			desired_heading = calcDesiredHeading(curr_wp_local, curr_pos_local, curr_pos_local, lookahead_distance);
-		}
-
-	} else { // Crosstrack error smaller than lookahead
-		desired_heading = calcDesiredHeading(curr_wp_local, prev_wp_local, curr_pos_local, lookahead_distance);
-	}
-
 	// Calculate desired steering to reach lookahead point
+	const float lookahead_distance = math::constrain(lookahead_gain * desired_speed,
+					 lookahead_min, lookahead_max);
+	const float desired_heading = _pure_pursuit.calcDesiredHeading(curr_wp_local, prev_wp_local, curr_pos_local,
+				      lookahead_distance);
 	const float heading_error = matrix::wrap_pi(desired_heading - vehicle_yaw);
-
 	// For logging
 	_rover_ackermann_guidance_status.lookahead_distance = lookahead_distance;
 	_rover_ackermann_guidance_status.heading_error = (heading_error * 180.f) / (M_PI_F);
-	_rover_ackermann_guidance_status.crosstrack_error = crosstrack_error.norm();
 
-	// Calculate desired steering
 	if (math::abs_t(heading_error) <= M_PI_2_F) {
 		return atanf(2 * wheel_base * sinf(heading_error) / lookahead_distance);
 
@@ -330,47 +304,5 @@ float RoverAckermannGuidance::calcDesiredSteering(const Vector2f &curr_wp_local,
 		return atanf(2 * wheel_base * (-1.0f + sinf(heading_error + M_PI_2_F)) /
 			     lookahead_distance);
 	}
-}
 
-float RoverAckermannGuidance::calcDesiredHeading(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
-		const Vector2f &curr_pos_local,
-		const float &lookahead_distance)
-{
-	// Setup variables
-	const float line_segment_slope = (curr_wp_local(1) - prev_wp_local(1)) / (curr_wp_local(0) - prev_wp_local(0));
-	const float line_segment_rover_offset = prev_wp_local(1) - curr_pos_local(1) + line_segment_slope * (curr_pos_local(
-			0) - prev_wp_local(0));
-	const float a = -line_segment_slope;
-	const float c = -line_segment_rover_offset;
-	const float r = lookahead_distance;
-	const float x0 = -a * c / (a * a + 1.0f);
-	const float y0 = -c / (a * a + 1.0f);
-
-	// Calculate intersection points
-	if (c * c > r * r * (a * a + 1.0f) + FLT_EPSILON) { // No intersection points exist
-		return 0.f;
-
-	} else if (abs(c * c - r * r * (a * a + 1.0f)) < FLT_EPSILON) { // One intersection point exists
-		return atan2f(y0, x0);
-
-	} else { // Two intersetion points exist
-		const float d = r * r - c * c / (a * a + 1.0f);
-		const float mult = sqrt(d / (a * a + 1.0f));
-		const float ax = x0 + mult;
-		const float bx = x0 - mult;
-		const float ay = y0 - a * mult;
-		const float by = y0 + a * mult;
-		const Vector2f point1(ax, ay);
-		const Vector2f point2(bx, by);
-		const Vector2f distance1 = (curr_wp_local - curr_pos_local) - point1;
-		const Vector2f distance2 = (curr_wp_local - curr_pos_local) - point2;
-
-		// Return intersection point closer to current waypoint
-		if (distance1.norm_squared() < distance2.norm_squared()) {
-			return atan2f(ay, ax);
-
-		} else {
-			return atan2f(by, bx);
-		}
-	}
 }

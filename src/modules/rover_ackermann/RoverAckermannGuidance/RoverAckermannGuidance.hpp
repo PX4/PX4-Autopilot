@@ -35,6 +35,7 @@
 
 // PX4 includes
 #include <px4_platform_common/module_params.h>
+#include <lib/pure_pursuit/PurePursuit.hpp>
 
 // uORB includes
 #include <uORB/Publication.hpp>
@@ -121,17 +122,6 @@ public:
 				  const float &lookahead_gain, const float &lookahead_min, const float &lookahead_max, const float &wheel_base,
 				  const float &desired_speed, const float &vehicle_yaw);
 
-	/**
-	 * @brief Return desired heading to the intersection point between a circle with a radius of
-	 * lookahead_distance around the vehicle and a line segment from the previous to the current waypoint.
-	 * @param curr_wp_local Current waypoint in local frame.
-	 * @param prev_wp_local Previous waypoint in local frame.
-	 * @param curr_pos_local Current position of the vehicle in local frame.
-	 * @param lookahead_distance Radius of circle around vehicle.
-	 */
-	float calcDesiredHeading(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local, const Vector2f &curr_pos_local,
-				 const float &lookahead_distance);
-
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -154,6 +144,7 @@ private:
 
 
 	MapProjection _global_local_proj_ref{}; // Transform global to local coordinates.
+	PurePursuit _pure_pursuit; // Pure pursuit library
 
 	// Rover variables
 	Vector2d _curr_pos{};
