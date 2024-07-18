@@ -56,7 +56,7 @@ void RoverAckermannGuidance::updateParams()
 			   1); // Output limit
 }
 
-RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::purePursuit(const int nav_state)
+RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(const int nav_state)
 {
 	// Initializations
 	float desired_speed{0.f};
@@ -76,12 +76,12 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::purePursuit(const
 		vehicle_local_position_s local_position{};
 		_local_position_sub.copy(&local_position);
 
-		if (!_global_local_proj_ref.isInitialized()
-		    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != local_position.ref_timestamp)) {
-			_global_local_proj_ref.initReference(local_position.ref_lat, local_position.ref_lon, local_position.ref_timestamp);
+		if (!_global_ned_proj_ref.isInitialized()
+		    || (_global_ned_proj_ref.getProjectionReferenceTimestamp() != local_position.ref_timestamp)) {
+			_global_ned_proj_ref.initReference(local_position.ref_lat, local_position.ref_lon, local_position.ref_timestamp);
 		}
 
-		_curr_pos_local = Vector2f(local_position.x, local_position.y);
+		_curr_pos_ned = Vector2f(local_position.x, local_position.y);
 		const Vector3f rover_velocity = {local_position.vx, local_position.vy, local_position.vz};
 		actual_speed = rover_velocity.norm();
 	}
@@ -162,7 +162,7 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::purePursuit(const
 		}
 
 		// Calculate desired steering
-		desired_steering = calcDesiredSteering(_curr_wp_local, _prev_wp_local, _curr_pos_local, _param_ra_lookahd_gain.get(),
+		desired_steering = calcDesiredSteering(_curr_wp_ned, _prev_wp_ned, _curr_pos_ned, _param_ra_lookahd_gain.get(),
 						       _param_ra_lookahd_min.get(), _param_ra_lookahd_max.get(), _param_ra_wheel_base.get(), desired_speed, vehicle_yaw);
 		desired_steering = math::constrain(desired_steering, -_param_ra_max_steer_angle.get(),
 						   _param_ra_max_steer_angle.get());
@@ -233,16 +233,16 @@ void RoverAckermannGuidance::updateWaypoints()
 		_next_wp = _home_position; // Enables corner slow down with RTL
 	}
 
-	// Local waypoint coordinates
-	_curr_wp_local = _global_local_proj_ref.project(_curr_wp(0), _curr_wp(1));
-	_prev_wp_local = _global_local_proj_ref.project(_prev_wp(0), _prev_wp(1));
-	_next_wp_local = _global_local_proj_ref.project(_next_wp(0), _next_wp(1));
+	// NED waypoint coordinates
+	_curr_wp_ned = _global_ned_proj_ref.project(_curr_wp(0), _curr_wp(1));
+	_prev_wp_ned = _global_ned_proj_ref.project(_prev_wp(0), _prev_wp(1));
+	_next_wp_ned = _global_ned_proj_ref.project(_next_wp(0), _next_wp(1));
 
 	// Update acceptance radius
 	_prev_acceptance_radius = _acceptance_radius;
 
 	if (_param_ra_acc_rad_max.get() >= _param_nav_acc_rad.get()) {
-		_acceptance_radius = updateAcceptanceRadius(_curr_wp_local, _prev_wp_local, _next_wp_local, _param_nav_acc_rad.get(),
+		_acceptance_radius = updateAcceptanceRadius(_curr_wp_ned, _prev_wp_ned, _next_wp_ned, _param_nav_acc_rad.get(),
 				     _param_ra_acc_rad_gain.get(), _param_ra_acc_rad_max.get(), _param_ra_wheel_base.get(), _param_ra_max_steer_angle.get());
 
 	} else {
@@ -250,19 +250,19 @@ void RoverAckermannGuidance::updateWaypoints()
 	}
 }
 
-float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
-		const Vector2f &next_wp_local, const float &default_acceptance_radius, const float &acceptance_radius_gain,
+float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
+		const Vector2f &next_wp_ned, const float &default_acceptance_radius, const float &acceptance_radius_gain,
 		const float &acceptance_radius_max, const float &wheel_base, const float &max_steer_angle)
 {
 	// Setup variables
-	const Vector2f curr_to_prev_wp_local = prev_wp_local - curr_wp_local;
-	const Vector2f curr_to_next_wp_local = next_wp_local - curr_wp_local;
+	const Vector2f curr_to_prev_wp_ned = prev_wp_ned - curr_wp_ned;
+	const Vector2f curr_to_next_wp_ned = next_wp_ned - curr_wp_ned;
 	float acceptance_radius = default_acceptance_radius;
 
 	// Calculate acceptance radius s.t. the rover cuts the corner tangential to the current and next line segment
-	if (curr_to_next_wp_local.norm() > FLT_EPSILON && curr_to_prev_wp_local.norm() > FLT_EPSILON) {
-		const float theta = acosf((curr_to_prev_wp_local * curr_to_next_wp_local) / (curr_to_prev_wp_local.norm() *
-					  curr_to_next_wp_local.norm())) / 2.f;
+	if (curr_to_next_wp_ned.norm() > FLT_EPSILON && curr_to_prev_wp_ned.norm() > FLT_EPSILON) {
+		const float theta = acosf((curr_to_prev_wp_ned * curr_to_next_wp_ned) / (curr_to_prev_wp_ned.norm() *
+					  curr_to_next_wp_ned.norm())) / 2.f;
 		const float min_turning_radius = wheel_base / sinf(max_steer_angle);
 		const float acceptance_radius_temp = min_turning_radius / tanf(theta);
 		const float acceptance_radius_temp_scaled = acceptance_radius_gain *
@@ -279,14 +279,14 @@ float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_loc
 	return acceptance_radius;
 }
 
-float RoverAckermannGuidance::calcDesiredSteering(const Vector2f &curr_wp_local, const Vector2f &prev_wp_local,
-		const Vector2f &curr_pos_local, const float &lookahead_gain, const float &lookahead_min, const float &lookahead_max,
+float RoverAckermannGuidance::calcDesiredSteering(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
+		const Vector2f &curr_pos_ned, const float &lookahead_gain, const float &lookahead_min, const float &lookahead_max,
 		const float &wheel_base, const float &desired_speed, const float &vehicle_yaw)
 {
 	// Calculate desired steering to reach lookahead point
 	const float lookahead_distance = math::constrain(lookahead_gain * desired_speed,
 					 lookahead_min, lookahead_max);
-	const float desired_heading = _pure_pursuit.calcDesiredHeading(curr_wp_local, prev_wp_local, curr_pos_local,
+	const float desired_heading = _pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned,
 				      lookahead_distance);
 	const float heading_error = matrix::wrap_pi(desired_heading - vehicle_yaw);
 	// For logging
@@ -296,12 +296,8 @@ float RoverAckermannGuidance::calcDesiredSteering(const Vector2f &curr_wp_local,
 	if (math::abs_t(heading_error) <= M_PI_2_F) {
 		return atanf(2 * wheel_base * sinf(heading_error) / lookahead_distance);
 
-	} else if (heading_error > FLT_EPSILON) {
-		return atanf(2 * wheel_base * (1.0f + sinf(heading_error - M_PI_2_F)) /
-			     lookahead_distance);
-
 	} else {
-		return atanf(2 * wheel_base * (-1.0f + sinf(heading_error + M_PI_2_F)) /
+		return atanf(2 * wheel_base * (sign(heading_error) * 1.0f + sinf(heading_error - sign(heading_error) * M_PI_2_F)) /
 			     lookahead_distance);
 	}
 
