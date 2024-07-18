@@ -143,6 +143,13 @@ serial_ports = {
         "default_baudrate": 57600,
         },
 
+    # USB
+    "USB": {
+        "label": "USB",
+        "index": 501,
+        "default_baudrate": 2000000,
+        },
+
     }
 
 parser = argparse.ArgumentParser(description='Generate Serial params & startup script')
