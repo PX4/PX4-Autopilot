@@ -143,7 +143,7 @@ add_library(ecl_EKF
 	${EKF_SRCS}
 )
 
-add_dependencies(ecl_EKF prebuild_targets)
+add_dependencies(ecl_EKF prebuild_targets ekf_symforce_generated)
 target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PATH})
 
 target_link_libraries(ecl_EKF

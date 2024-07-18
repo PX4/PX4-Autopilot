@@ -33,42 +33,18 @@
 
 add_subdirectory(Utility)
 
-option(EKF2_SYMFORCE_GEN "ekf2 generate symforce output" OFF)
+option(EKF2_SYMFORCE_GEN "ekf2 generate symforce output" ON)
 
-# Symforce code generation TODO:fixme
+# Symforce code generation
 execute_process(
     COMMAND ${PYTHON_EXECUTABLE} -m symforce.symbolic
     RESULT_VARIABLE PYTHON_SYMFORCE_EXIT_CODE
     OUTPUT_QUIET
 )
 
-# for now only provide symforce target helper if derivation.py generation isn't default
-if((NOT CONFIG_EKF2_MAGNETOMETER) OR (NOT CONFIG_EKF2_WIND))
-	set(EKF2_SYMFORCE_GEN ON)
-endif()
-
 set(EKF_DERIVATION_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/EKF/python/ekf_derivation)
 
-set(EKF_GENERATED_FILES ${EKF_DERIVATION_SRC_DIR}/generated/state.h)
-set(EKF_GENERATED_DERIVATION_INCLUDE_PATH "${EKF_DERIVATION_SRC_DIR}/..")
-
 if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
-
-	# regenerate default in tree
-	add_custom_command(
-		OUTPUT
-			${EKF_DERIVATION_SRC_DIR}/generated/predict_covariance.h
-			${EKF_DERIVATION_SRC_DIR}/generated/state.h
-		COMMAND
-			${PYTHON_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py
-		DEPENDS
-			${EKF_DERIVATION_SRC_DIR}/derivation.py
-			${EKF_DERIVATION_SRC_DIR}/utils/derivation_utils.py
-
-		WORKING_DIRECTORY ${EKF_DERIVATION_SRC_DIR}
-		COMMENT "Symforce code generation (default)"
-		USES_TERMINAL
-	)
 
 	# generate to build directory
 	set(EKF_DERIVATION_DST_DIR ${CMAKE_CURRENT_BINARY_DIR}/ekf_derivation)
@@ -91,8 +67,7 @@ if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 
 	add_custom_command(
 		OUTPUT
-			${EKF_DERIVATION_DST_DIR}/generated/predict_covariance.h
-			${EKF_DERIVATION_DST_DIR}/generated/state.h
+			${EKF_GENERATED_FILES}
 		COMMAND
 			${PYTHON_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py ${SYMFORCE_ARGS}
 		DEPENDS
@@ -100,18 +75,28 @@ if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 			${EKF_DERIVATION_SRC_DIR}/utils/derivation_utils.py
 
 		WORKING_DIRECTORY ${EKF_DERIVATION_DST_DIR}
-		COMMENT "Symforce code generation"
+		COMMENT "ekf2 symforce code generation"
+		#USES_TERMINAL
+	)
+else()
+	# generation disabled or symforce not available, use pre-generated default files in tree (src/modules/ekf2/EKF/python/ekf_derivation/generated)
+	set(EKF_GENERATED_FILES ${EKF_DERIVATION_SRC_DIR}/generated/state.h)
+	set(EKF_GENERATED_DERIVATION_INCLUDE_PATH "${EKF_DERIVATION_SRC_DIR}/..")
+endif()
+
+# symforce in tree code generation helper
+if(${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0)
+	# regenerate default symforce output in tree (src/modules/ekf2/EKF/python/ekf_derivation/generated)
+	add_custom_target(ekf2_generate_symforce_default
+		COMMAND ${PYTHON_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py
+		DEPENDS ${EKF_DERIVATION_SRC_DIR}/derivation.py
+		WORKING_DIRECTORY ${EKF_DERIVATION_SRC_DIR}
+		COMMENT "Symforce code generation (default)"
 		USES_TERMINAL
 	)
-
-
-
-	add_custom_target(ekf2_symforce_generate
-		DEPENDS
-			${EKF_DERIVATION_SRC_DIR}/generated/predict_covariance.h
-			${EKF_DERIVATION_DST_DIR}/generated/predict_covariance.h
-	)
 endif()
+
+add_custom_target(ekf_symforce_generated DEPENDS ${EKF_GENERATED_FILES})
 
 set(EKF_LIBS)
 set(EKF_SRCS)
@@ -258,9 +243,11 @@ px4_add_module(
 		px4_work_queue
 		world_magnetic_model
 
+		ekf_symforce_generated
 		${EKF_LIBS}
 		bias_estimator
 		output_predictor
+
 	UNITY_BUILD
 	)
 
