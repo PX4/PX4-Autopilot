@@ -1074,7 +1074,7 @@ PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
  * @value 7 COLOR_CYAN
  * @value 8 COLOR_WHITE
  */
-PARAM_DEFINE_INT32(COM_MISN_OK_CLR, 2);
+PARAM_DEFINE_INT32(COM_MISN_O_CLR, 2);
 
 /**
  * It is the color that indicates that the mission is warning.
@@ -1090,7 +1090,7 @@ PARAM_DEFINE_INT32(COM_MISN_OK_CLR, 2);
  * @value 7 COLOR_CYAN
  * @value 8 COLOR_WHITE
  */
-PARAM_DEFINE_INT32(COM_MISN_WARN_CLR, 4);
+PARAM_DEFINE_INT32(COM_MISN_W_CLR, 4);
 /**
  * It is the color that indicates that the mission is fail.
  *
@@ -1105,7 +1105,7 @@ PARAM_DEFINE_INT32(COM_MISN_WARN_CLR, 4);
  * @value 7 COLOR_CYAN
  * @value 8 COLOR_WHITE
  */
-PARAM_DEFINE_INT32(COM_MISN_FAIL_CLR, 1);
+PARAM_DEFINE_INT32(COM_MISN_F_CLR, 1);
 /**
  * It is the color that indicates that the home is setted.
  *
@@ -1121,3 +1121,63 @@ PARAM_DEFINE_INT32(COM_MISN_FAIL_CLR, 1);
  * @value 8 COLOR_WHITE
  */
 PARAM_DEFINE_INT32(COM_HOME_SET_CLR, 2);
+
+/**
+ * It is the mode that indicates that the mission is suitable.
+ *
+ * @group Commander
+ * @value 0 MODE_OFF # turn LED off
+ * @value 1 MODE_ON  # turn LED on
+ * @value 2 MODE_DISABLED # disable this priority (switch to lower priority setting)
+ * @value 3 MODE_BLINK_SLOW
+ * @value 4 MODE_BLINK_NORMAL
+ * @value 5 MODE_BLINK_FAST
+ * @value 6 MODE_BREATHE # continuously increase & decrease brightness (solid color if driver does not support it)
+ * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
+ */
+PARAM_DEFINE_INT32(COM_MISN_O_MD, 5);
+
+/**
+ * It is the mode that indicates that the mission is warning.
+ *
+ * @group Commander
+ * @value 0 MODE_OFF # turn LED off
+ * @value 1 MODE_ON  # turn LED on
+ * @value 2 MODE_DISABLED # disable this priority (switch to lower priority setting)
+ * @value 3 MODE_BLINK_SLOW
+ * @value 4 MODE_BLINK_NORMAL
+ * @value 5 MODE_BLINK_FAST
+ * @value 6 MODE_BREATHE # continuously increase & decrease brightness (solid color if driver does not support it)
+ * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
+ */
+PARAM_DEFINE_INT32(COM_MISN_W_MD, 5);
+
+/**
+ * It is the mode that indicates that the mission is fail.
+ *
+ * @group Commander
+ * @value 0 MODE_OFF # turn LED off
+ * @value 1 MODE_ON  # turn LED on
+ * @value 2 MODE_DISABLED # disable this priority (switch to lower priority setting)
+ * @value 3 MODE_BLINK_SLOW
+ * @value 4 MODE_BLINK_NORMAL
+ * @value 5 MODE_BLINK_FAST
+ * @value 6 MODE_BREATHE # continuously increase & decrease brightness (solid color if driver does not support it)
+ * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
+ */
+PARAM_DEFINE_INT32(COM_MISN_F_MD, 5);
+
+/**
+ * It is the mode that indicates that the home is setted.
+ *
+ * @group Commander
+ * @value 0 MODE_OFF # turn LED off
+ * @value 1 MODE_ON  # turn LED on
+ * @value 2 MODE_DISABLED # disable this priority (switch to lower priority setting)
+ * @value 3 MODE_BLINK_SLOW
+ * @value 4 MODE_BLINK_NORMAL
+ * @value 5 MODE_BLINK_FAST
+ * @value 6 MODE_BREATHE # continuously increase & decrease brightness (solid color if driver does not support it)
+ * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
+ */
+PARAM_DEFINE_INT32(COM_HOME_SET_MD, 5);
