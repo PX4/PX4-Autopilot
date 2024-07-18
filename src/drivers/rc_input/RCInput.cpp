@@ -124,26 +124,11 @@ RCInput::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 	const char *device_name = nullptr;
-	bool silent = false;
-#if defined(RC_SERIAL_PORT)
-	device_name = RC_SERIAL_PORT;
-#endif // RC_SERIAL_PORT
-
-#if defined(RC_SERIAL_PORT) && defined(PX4IO_SERIAL_DEVICE)
-
-	// if RC_SERIAL_PORT == PX4IO_SERIAL_DEVICE then don't use it by default if the px4io is running
-	if ((strcmp(RC_SERIAL_PORT, PX4IO_SERIAL_DEVICE) == 0) && (access("/dev/px4io", R_OK) == 0)) {
-		device_name = nullptr;
-		silent = true;
-	}
-
-#endif // RC_SERIAL_PORT && PX4IO_SERIAL_DEVICE
 
 	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_name = myoptarg;
-			silent = false;
 			break;
 
 		case '?':
@@ -161,6 +146,20 @@ RCInput::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
+#if defined(CONFIG_BOARD_SERIAL_RC) && defined(PX4IO_SERIAL_DEVICE)
+
+	// if board has optional RC (CONFIG_BOARD_SERIAL_RC) potentially on same
+	// serial as px4io (PX4IO_SERIAL_DEVICE) don't allow conflict (silently for now)
+	if ((strcmp(device_name, PX4IO_SERIAL_DEVICE) == 0)
+	    && (strcmp(CONFIG_BOARD_SERIAL_RC, PX4IO_SERIAL_DEVICE) == 0)
+	    && (access("/dev/px4io", R_OK) == 0)
+	   ) {
+		PX4_INFO("unable to start, conflict with PX4IO on %s", device_name);
+		return PX4_OK;
+	}
+
+#endif // CONFIG_BOARD_SERIAL_RC && PX4IO_SERIAL_DEVICE
+
 	if (device_name && (access(device_name, R_OK | W_OK) == 0)) {
 		RCInput *instance = new RCInput(device_name);
 
@@ -176,15 +175,12 @@ RCInput::task_spawn(int argc, char *argv[])
 
 		return PX4_OK;
 
-	} else if (silent) {
-		return PX4_OK;
-
 	} else {
 		if (device_name) {
 			PX4_ERR("invalid device (-d) %s", device_name);
 
 		} else {
-			PX4_INFO("valid device required");
+			PX4_ERR("valid device required");
 		}
 	}
 

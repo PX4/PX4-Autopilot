@@ -159,7 +159,7 @@
 
 #define HRT_PPM_CHANNEL         /* T3C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PB4 T3C1 */ GPIO_TIM3_CH1IN_2
-#define RC_SERIAL_PORT          "/dev/ttyS5"
+
 #define RC_SERIAL_SINGLEWIRE
 
 /**

@@ -29,7 +29,6 @@ set LOGGER_ARGS ""
 set LOGGER_BUF 8
 set PARAM_FILE ""
 set PARAM_BACKUP_FILE ""
-set RC_INPUT_ARGS ""
 set STORAGE_AVAILABLE no
 set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_FORMAT no
@@ -464,9 +463,6 @@ else
 	#
 	. ${R}etc/init.d/rc.serial
 
-	# Must be started after the serial config is read
-	rc_input start $RC_INPUT_ARGS
-
 	# Manages USB interface
 	if ! cdcacm_autostart start
 	then
@@ -620,7 +616,6 @@ unset LOGGER_BUF
 unset PARAM_FILE
 unset PARAM_BACKUP_FILE
 unset PARAM_DEFAULTS_VER
-unset RC_INPUT_ARGS
 unset STORAGE_AVAILABLE
 unset SDCARD_EXT_PATH
 unset SDCARD_FORMAT

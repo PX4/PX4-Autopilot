@@ -24,11 +24,8 @@ parameters:
             default: -1
 
 serial_config:
-    - command: set RC_INPUT_ARGS "-d ${SERIAL_DEV}"
+    - command: "rc_input start -d ${SERIAL_DEV}"
       port_config_param:
         name: RC_PORT_CONFIG
         group: Serial
         default: RC
-        description_extended: |
-            Setting this to 'Disabled' will use a board-specific default port
-            for RC input.

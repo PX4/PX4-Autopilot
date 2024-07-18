@@ -107,10 +107,6 @@
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
 
-/* RC Serial port */
-
-#define RC_SERIAL_PORT          "/dev/ttyS0"
-
 #define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
 #define SDIO_SLOTNO             0  /* Only one slot */

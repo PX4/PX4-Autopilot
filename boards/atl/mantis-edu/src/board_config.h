@@ -143,7 +143,6 @@
 #define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
 /* RC Serial port */
-#define RC_SERIAL_PORT                     "/dev/ttyS5"
 #define RC_SERIAL_SINGLEWIRE
 
 /* power on/off */

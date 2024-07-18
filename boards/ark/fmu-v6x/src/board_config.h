@@ -319,10 +319,6 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-/* RC Serial port */
-
-#define RC_SERIAL_PORT                     "/dev/ttyS5"
-
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  1
 #define INPUT_CAP1_CHANNEL     /* T1C2 */ 2

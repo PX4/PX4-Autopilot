@@ -148,7 +148,6 @@
 #define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
 /* RC Serial port */
-#define RC_SERIAL_PORT                     "/dev/ttyS5"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* SD card bringup does not work if performed on the IDLE thread because it
