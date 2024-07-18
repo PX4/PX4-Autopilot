@@ -1059,3 +1059,65 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
+
+/**
+ * It is the color that indicates that the mission is suitable.
+ *
+ * @group Commander
+ * @value 0 COLOR_OFF
+ * @value 1 COLOR_RED
+ * @value 2 COLOR_GREEN
+ * @value 3 COLOR_BLUE
+ * @value 4 COLOR_YELLOW
+ * @value 5 COLOR_PURPLE
+ * @value 6 COLOR_AMBER
+ * @value 7 COLOR_CYAN
+ * @value 8 COLOR_WHITE
+ */
+PARAM_DEFINE_INT32(COM_MISN_OK_CLR, 2);
+
+/**
+ * It is the color that indicates that the mission is warning.
+ *
+ * @group Commander
+ * @value 0 COLOR_OFF
+ * @value 1 COLOR_RED
+ * @value 2 COLOR_GREEN
+ * @value 3 COLOR_BLUE
+ * @value 4 COLOR_YELLOW
+ * @value 5 COLOR_PURPLE
+ * @value 6 COLOR_AMBER
+ * @value 7 COLOR_CYAN
+ * @value 8 COLOR_WHITE
+ */
+PARAM_DEFINE_INT32(COM_MISN_WARN_CLR, 4);
+/**
+ * It is the color that indicates that the mission is fail.
+ *
+ * @group Commander
+ * @value 0 COLOR_OFF
+ * @value 1 COLOR_RED
+ * @value 2 COLOR_GREEN
+ * @value 3 COLOR_BLUE
+ * @value 4 COLOR_YELLOW
+ * @value 5 COLOR_PURPLE
+ * @value 6 COLOR_AMBER
+ * @value 7 COLOR_CYAN
+ * @value 8 COLOR_WHITE
+ */
+PARAM_DEFINE_INT32(COM_MISN_FAIL_CLR, 1);
+/**
+ * It is the color that indicates that the home is setted.
+ *
+ * @group Commander
+ * @value 0 COLOR_OFF
+ * @value 1 COLOR_RED
+ * @value 2 COLOR_GREEN
+ * @value 3 COLOR_BLUE
+ * @value 4 COLOR_YELLOW
+ * @value 5 COLOR_PURPLE
+ * @value 6 COLOR_AMBER
+ * @value 7 COLOR_CYAN
+ * @value 8 COLOR_WHITE
+ */
+PARAM_DEFINE_INT32(COM_HOME_SET_CLR, 2);

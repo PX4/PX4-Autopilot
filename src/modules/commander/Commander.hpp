@@ -349,6 +349,10 @@ private:
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_takeoff_finished_action,
-		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
+		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
+		(ParamInt<px4::params::COM_MISN_OK_CLR>)    _param_mission_is_ok,
+		(ParamInt<px4::params::COM_MISN_WARN_CLR>)  _param_mission_is_warning,
+		(ParamInt<px4::params::COM_MISN_FAIL_CLR>)  _param_mission_is_fail,
+		(ParamInt<px4::params::COM_HOME_SET_CLR>)   _param_home_set
 	)
 };
