@@ -9,7 +9,7 @@
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
-PX4_SIM_MODEL=${PX4_SIM_MODEL:=holybro-x500}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=holybro_x500}
 
 param set-default SIM_GZ_EN 1
 param set-default SIM_GZ_RUN_GZSIM 0

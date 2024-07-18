@@ -6,7 +6,7 @@ export PATH=/px4_sitl/bin:$PATH
 case $PX4_VEHICLE_TYPE in
   mc)
     export PX4_SYS_AUTOSTART=4401
-    export PX4_GZ_MODEL=holybro-x500
+    export PX4_GZ_MODEL=holybro_x500
     ;;
   rover)
     export PX4_SYS_AUTOSTART=50005
