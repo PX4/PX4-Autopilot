@@ -200,15 +200,15 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_WIND)
 
-	if (_control_status.flags.wind) {
-		// wind vel: add process noise
-		float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f,
-					    1.f) * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
+	// wind vel: add process noise
+	if (!_external_wind_init) {
+		float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f, 1.f)
+					    * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
 		float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
 
 		for (unsigned index = 0; index < State::wind_vel.dof; index++) {
 			const unsigned i = State::wind_vel.idx + index;
-			P(i, i) += wind_vel_process_noise;
+			P(i, i) = fminf(P(i, i) + wind_vel_process_noise, sq(_params.initial_wind_uncertainty));
 		}
 	}
 
@@ -348,11 +348,3 @@ void Ekf::resetMagCov()
 	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.mag_noise));
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_WIND)
-void Ekf::resetWindCov()
-{
-	// start with a small initial uncertainty to improve the initial estimate
-	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
-}
-#endif // CONFIG_EKF2_WIND
