@@ -1061,93 +1061,93 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
 PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
 
 /**
- * It is the color that indicates that the mission is suitable.
+ * Mission suitable LED color
  *
  * @group Commander
- * @value 0 COLOR_OFF
- * @value 1 COLOR_RED
- * @value 2 COLOR_GREEN
- * @value 3 COLOR_BLUE
- * @value 4 COLOR_YELLOW
- * @value 5 COLOR_PURPLE
- * @value 6 COLOR_AMBER
- * @value 7 COLOR_CYAN
- * @value 8 COLOR_WHITE
+ * @value 0 OFF
+ * @value 1 RED
+ * @value 2 GREEN
+ * @value 3 BLUE
+ * @value 4 YELLOW
+ * @value 5 PURPLE
+ * @value 6 AMBER
+ * @value 7 CYAN
+ * @value 8 WHITE
  */
 PARAM_DEFINE_INT32(COM_MISN_O_CLR, 2);
 
 /**
- * It is the color that indicates that the mission is warning.
+ * Mission warning LED color
  *
  * @group Commander
- * @value 0 COLOR_OFF
- * @value 1 COLOR_RED
- * @value 2 COLOR_GREEN
- * @value 3 COLOR_BLUE
- * @value 4 COLOR_YELLOW
- * @value 5 COLOR_PURPLE
- * @value 6 COLOR_AMBER
- * @value 7 COLOR_CYAN
- * @value 8 COLOR_WHITE
+ * @value 0 OFF
+ * @value 1 RED
+ * @value 2 GREEN
+ * @value 3 BLUE
+ * @value 4 YELLOW
+ * @value 5 PURPLE
+ * @value 6 AMBER
+ * @value 7 CYAN
+ * @value 8 WHITE
  */
 PARAM_DEFINE_INT32(COM_MISN_W_CLR, 4);
 /**
- * It is the color that indicates that the mission is fail.
+ * Mission fail LED color
  *
  * @group Commander
- * @value 0 COLOR_OFF
- * @value 1 COLOR_RED
- * @value 2 COLOR_GREEN
- * @value 3 COLOR_BLUE
- * @value 4 COLOR_YELLOW
- * @value 5 COLOR_PURPLE
- * @value 6 COLOR_AMBER
- * @value 7 COLOR_CYAN
- * @value 8 COLOR_WHITE
+ * @value 0 OFF
+ * @value 1 RED
+ * @value 2 GREEN
+ * @value 3 BLUE
+ * @value 4 YELLOW
+ * @value 5 PURPLE
+ * @value 6 AMBER
+ * @value 7 CYAN
+ * @value 8 WHITE
  */
 PARAM_DEFINE_INT32(COM_MISN_F_CLR, 1);
 
 /**
- * It is the mode that indicates that the mission is suitable.
+ * Mission suitable LED mode
  *
  * @group Commander
- * @value 0 MODE_OFF # turn LED off
- * @value 1 MODE_ON  # turn LED on
- * @value 2 MODE_DISABLED # disable this priority (switch to lower priority setting)
+ * @value 0 OFF
+ * @value 1 ON
+ * @value 2 MODE_DISABLED
  * @value 3 MODE_BLINK_SLOW
  * @value 4 MODE_BLINK_NORMAL
  * @value 5 MODE_BLINK_FAST
- * @value 6 MODE_BREATHE # continuously increase & decrease brightness (solid color if driver does not support it)
- * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
+ * @value 6 MODE_BREATHE
+ * @value 7 MODE_FLASH
  */
 PARAM_DEFINE_INT32(COM_MISN_O_MD, 5);
 
 /**
- * It is the mode that indicates that the mission is warning.
+ * Mission warning LED mode
  *
  * @group Commander
- * @value 0 MODE_OFF # turn LED off
- * @value 1 MODE_ON  # turn LED on
- * @value 2 MODE_DISABLED # disable this priority (switch to lower priority setting)
+ * @value 0 OFF
+ * @value 1 ON
+ * @value 2 MODE_DISABLED
  * @value 3 MODE_BLINK_SLOW
  * @value 4 MODE_BLINK_NORMAL
  * @value 5 MODE_BLINK_FAST
- * @value 6 MODE_BREATHE # continuously increase & decrease brightness (solid color if driver does not support it)
- * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
+ * @value 6 MODE_BREATHE
+ * @value 7 MODE_FLASH
  */
 PARAM_DEFINE_INT32(COM_MISN_W_MD, 5);
 
 /**
- * It is the mode that indicates that the mission is fail.
+ * Mission fail LED mode
  *
  * @group Commander
- * @value 0 MODE_OFF # turn LED off
- * @value 1 MODE_ON  # turn LED on
- * @value 2 MODE_DISABLED # disable this priority (switch to lower priority setting)
+ * @value 0 OFF
+ * @value 1 ON
+ * @value 2 MODE_DISABLED
  * @value 3 MODE_BLINK_SLOW
  * @value 4 MODE_BLINK_NORMAL
  * @value 5 MODE_BLINK_FAST
- * @value 6 MODE_BREATHE # continuously increase & decrease brightness (solid color if driver does not support it)
- * @value 7 MODE_FLASH # two fast blinks (on/off) with timing as in MODE_BLINK_FAST and then off for a while
+ * @value 6 MODE_BREATHE
+ * @value 7 MODE_FLASH
  */
 PARAM_DEFINE_INT32(COM_MISN_F_MD, 5);
