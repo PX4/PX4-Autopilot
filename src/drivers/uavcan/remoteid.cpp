@@ -44,6 +44,7 @@ UavcanRemoteIDController::UavcanRemoteIDController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_remoteid_basicid(node),
 	_uavcan_pub_remoteid_location(node),
+	_uavcan_pub_remoteid_self_id(node),
 	_uavcan_pub_remoteid_system(node),
 	_uavcan_pub_remoteid_operator_id(node),
 	_uavcan_sub_arm_status(node)
@@ -72,6 +73,7 @@ void UavcanRemoteIDController::periodic_update(const uavcan::TimerEvent &)
 
 	send_basic_id();
 	send_location();
+	send_self_id();
 	send_system();
 	send_operator_id();
 }
@@ -263,6 +265,28 @@ void UavcanRemoteIDController::send_system()
 
 			_uavcan_pub_remoteid_system.broadcast(msg);
 		}
+	}
+}
+
+void UavcanRemoteIDController::send_self_id()
+{
+	open_drone_id_self_id_s self_id;
+
+	if (_open_drone_id_self_id.copy(&self_id)) {
+
+		dronecan::remoteid::SelfID msg {};
+
+		for (unsigned i = 0; i < sizeof(self_id.id_or_mac); ++i) {
+			msg.id_or_mac.push_back(self_id.id_or_mac[i]);
+		}
+
+		msg.description_type = self_id.description_type;
+
+		for (unsigned i = 0; i < sizeof(self_id.description); ++i) {
+			msg.description.push_back(self_id.description[i]);
+		}
+
+		_uavcan_pub_remoteid_self_id.broadcast(msg);
 	}
 }
 

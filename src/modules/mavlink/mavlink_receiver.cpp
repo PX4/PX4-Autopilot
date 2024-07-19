@@ -284,6 +284,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_open_drone_id_operator_id(msg);
 		break;
 
+	case MAVLINK_MSG_ID_OPEN_DRONE_ID_SELF_ID:
+		handle_message_open_drone_id_self_id(msg);
+		break;
+
 #if !defined(CONSTRAINED_FLASH)
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
@@ -3103,6 +3107,22 @@ void MavlinkReceiver::handle_message_open_drone_id_operator_id(
 	memcpy(odid_operator_id.operator_id, odid_module.operator_id, sizeof(odid_operator_id.operator_id));
 
 	_open_drone_id_operator_id_pub.publish(odid_operator_id);
+}
+
+void MavlinkReceiver::handle_message_open_drone_id_self_id(mavlink_message_t *msg)
+{
+	mavlink_open_drone_id_self_id_t odid_module;
+	mavlink_msg_open_drone_id_self_id_decode(msg, &odid_module);
+
+	open_drone_id_self_id_s odid_self_id{};
+	memset(&odid_self_id, 0, sizeof(odid_self_id));
+
+	odid_self_id.timestamp = hrt_absolute_time();
+	memcpy(odid_self_id.id_or_mac, odid_module.id_or_mac, sizeof(odid_self_id.id_or_mac));
+	odid_self_id.description_type = odid_module.description_type;
+	memcpy(odid_self_id.description, odid_module.description, sizeof(odid_self_id.description));
+
+	_open_drone_id_self_id_pub.publish(odid_self_id);
 }
 
 void
