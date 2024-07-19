@@ -190,11 +190,10 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 						/* EVENT
 						 * @description
 						 * The battery reported a failure which might be dangerous to fly with.
-						 * Manufacturer error code: {4}
 						 */
-						reporter.healthFailure<uint8_t, battery_fault_reason_t, events::px4::enums::suggested_action_t, uint32_t>
+						reporter.healthFailure<uint8_t, battery_fault_reason_t, events::px4::enums::suggested_action_t>
 						(NavModes::All, health_component_t::battery, events::ID("check_battery_fault"), {events::Log::Emergency, events::LogInternal::Warning},
-						 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action, battery.custom_faults);
+						 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action);
 
 						if (reporter.mavlink_log_pub()) {
 							mavlink_log_emergency(reporter.mavlink_log_pub(), "Battery %d: %s. %s \t", index + 1,
