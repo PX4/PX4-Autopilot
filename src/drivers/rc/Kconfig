@@ -4,6 +4,6 @@ menu "RC"
         default n
         select DRIVERS_RC_CRSF_RC
         ---help---
-            Enable default set of magnetometer drivers
+            Enable default set of rc drivers
     rsource "*/Kconfig"
 endmenu
