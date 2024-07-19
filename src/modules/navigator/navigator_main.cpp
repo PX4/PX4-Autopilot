@@ -1522,6 +1522,13 @@ void Navigator::set_gimbal_neutral()
 	publish_vehicle_cmd(&vcmd);
 }
 
+void Navigator::sendWarningDescentStoppedDueToTerrain()
+{
+	mavlink_log_critical(&_mavlink_log_pub, "Terrain collision risk, descent is stopped\t");
+	events::send(events::ID("navigator_terrain_collision_risk"), events::Log::Critical,
+		     "Terrain collision risk, descent is stopped");
+}
+
 int Navigator::print_usage(const char *reason)
 {
 	if (reason) {
