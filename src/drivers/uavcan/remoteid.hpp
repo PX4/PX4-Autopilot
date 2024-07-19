@@ -43,10 +43,12 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/open_drone_id_operator_id.h>
 #include <uORB/topics/open_drone_id_arm_status.h>
+#include <uORB/topics/open_drone_id_self_id.h>
 
 #include <uavcan/uavcan.hpp>
 #include <dronecan/remoteid/BasicID.hpp>
 #include <dronecan/remoteid/Location.hpp>
+#include <dronecan/remoteid/SelfID.hpp>
 #include <dronecan/remoteid/System.hpp>
 #include <dronecan/remoteid/ArmStatus.hpp>
 #include <dronecan/remoteid/OperatorID.hpp>
@@ -72,6 +74,7 @@ private:
 
 	void send_basic_id();
 	void send_location();
+	void send_self_id();
 	void send_system();
 	void send_operator_id();
 
@@ -86,10 +89,12 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _open_drone_id_operator_id{ORB_ID(open_drone_id_operator_id)};
+	uORB::Subscription _open_drone_id_self_id{ORB_ID(open_drone_id_self_id)};
 	uORB::Publication<open_drone_id_arm_status_s> _open_drone_id_arm_status_pub{ORB_ID(open_drone_id_arm_status)};
 
 	uavcan::Publisher<dronecan::remoteid::BasicID> _uavcan_pub_remoteid_basicid;
 	uavcan::Publisher<dronecan::remoteid::Location> _uavcan_pub_remoteid_location;
+	uavcan::Publisher<dronecan::remoteid::SelfID> _uavcan_pub_remoteid_self_id;
 	uavcan::Publisher<dronecan::remoteid::System> _uavcan_pub_remoteid_system;
 	uavcan::Publisher<dronecan::remoteid::OperatorID> _uavcan_pub_remoteid_operator_id;
 
