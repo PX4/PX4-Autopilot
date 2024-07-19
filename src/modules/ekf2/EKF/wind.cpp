@@ -84,26 +84,9 @@ void Ekf::resetWindCov()
 	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
 }
 
-void Ekf::resetWind()
-{
-#if defined(CONFIG_EKF2_AIRSPEED)
-
-	if (_control_status.flags.fuse_aspd && isRecent(_airspeed_sample_delayed.time_us, 1e6)) {
-		resetWindUsingAirspeed(_airspeed_sample_delayed);
-		return;
-	}
-
-#endif // CONFIG_EKF2_AIRSPEED
-
-	resetWindToZero();
-}
-
 void Ekf::resetWindToZero()
 {
 	ECL_INFO("reset wind to zero");
-
-	// If we don't have an airspeed measurement, then assume the wind is zero
 	_state.wind_vel.setZero();
-
 	resetWindCov();
 }

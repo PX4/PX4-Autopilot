@@ -1107,8 +1107,6 @@ private:
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-	// perform a reset of the wind states and related covariances
-	void resetWind();
 	void resetWindCov();
 	void resetWindToZero();
 #endif // CONFIG_EKF2_WIND

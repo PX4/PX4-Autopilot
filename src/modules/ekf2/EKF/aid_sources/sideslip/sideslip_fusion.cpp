@@ -110,7 +110,7 @@ bool Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 		const char *action_string = nullptr;
 
 		if (update_wind_only) {
-			resetWind();
+			resetWindCov();
 			action_string = "wind";
 
 		} else {
