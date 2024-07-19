@@ -350,11 +350,11 @@ private:
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_takeoff_finished_action,
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
-		(ParamInt<px4::params::COM_MISN_O_CLR>)    _param_mission_is_ok,
-		(ParamInt<px4::params::COM_MISN_W_CLR>)  _param_mission_is_warning,
-		(ParamInt<px4::params::COM_MISN_F_CLR>)  _param_mission_is_fail,
-		(ParamInt<px4::params::COM_MISN_O_MD>)   _param_mission_is_ok_mode,
-		(ParamInt<px4::params::COM_MISN_W_MD>)   _param_mission_is_warning_mode,
-		(ParamInt<px4::params::COM_MISN_F_MD>)   _param_mission_is_fail_mode
+		(ParamInt<px4::params::COM_LED_O_CLR>)      _param_led_mission_is_ok,
+		(ParamInt<px4::params::COM_LED_W_CLR>)      _param_led_mission_is_warning,
+		(ParamInt<px4::params::COM_LED_F_CLR>)      _param_led_mission_is_fail,
+		(ParamInt<px4::params::COM_LED_O_MD>)       _param_led_mission_is_ok_mode,
+		(ParamInt<px4::params::COM_LED_W_MD>)       _param_led_mission_is_warning_mode,
+		(ParamInt<px4::params::COM_LED_F_MD>)       _param_led_mission_is_fail_mode
 	)
 };
