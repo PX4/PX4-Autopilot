@@ -44,6 +44,7 @@
 #include <uORB/topics/open_drone_id_operator_id.h>
 #include <uORB/topics/open_drone_id_arm_status.h>
 #include <uORB/topics/open_drone_id_self_id.h>
+#include <uORB/topics/open_drone_id_system.h>
 
 #include <uavcan/uavcan.hpp>
 #include <dronecan/remoteid/BasicID.hpp>
@@ -90,6 +91,7 @@ private:
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _open_drone_id_operator_id{ORB_ID(open_drone_id_operator_id)};
 	uORB::Subscription _open_drone_id_self_id{ORB_ID(open_drone_id_self_id)};
+	uORB::Subscription _open_drone_id_system{ORB_ID(open_drone_id_system)};
 	uORB::Publication<open_drone_id_arm_status_s> _open_drone_id_arm_status_pub{ORB_ID(open_drone_id_arm_status)};
 
 	uavcan::Publisher<dronecan::remoteid::BasicID> _uavcan_pub_remoteid_basicid;
