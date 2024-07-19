@@ -136,4 +136,3 @@ bool GHSTTelemetry::send_gps2_status()
 
 	return ghst_send_telemetry_gps2_status(_uart_fd, ground_speed, ground_course, num_sats, home_dist, home_dir, flags);
 }
-
