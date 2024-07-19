@@ -54,7 +54,6 @@ uint8 BATTERY_FAULT_FAILED_TO_ARM = 10 # Battery had a problem while arming
 uint8 BATTERY_FAULT_COUNT = 11 # Counter - keep it as last element!
 
 uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication.
-uint32 custom_faults 	# Bitmask indicating smart battery internal manufacturer faults, those are not user actionable.
 uint8 warning		# Current battery warning
 uint8 mode 		# Battery mode. Note, the normal operation mode
 
