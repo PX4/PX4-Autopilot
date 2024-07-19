@@ -50,7 +50,7 @@ uint8 BATTERY_FAULT_INCOMPATIBLE_VOLTAGE = 6 # Vehicle voltage is not compatible
 uint8 BATTERY_FAULT_INCOMPATIBLE_FIRMWARE = 7 # Battery firmware is not compatible with current autopilot firmware
 uint8 BATTERY_FAULT_INCOMPATIBLE_MODEL = 8 # Battery model is not supported by the system
 uint8 BATTERY_FAULT_HARDWARE_FAILURE = 9 # hardware problem
-uint8 BATTERY_WARNING_OVER_TEMPERATURE = 10 # Over-temperature
+uint8 BATTERY_FAULT_FAILED_TO_ARM = 10 # Battery had a problem while arming
 uint8 BATTERY_FAULT_COUNT = 11 # Counter - keep it as last element!
 
 uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication.
