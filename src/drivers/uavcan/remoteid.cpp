@@ -236,34 +236,65 @@ void UavcanRemoteIDController::send_location()
 
 void UavcanRemoteIDController::send_system()
 {
-	sensor_gps_s vehicle_gps_position;
-	home_position_s home_position;
+	open_drone_id_system_s system;
 
-	if (_vehicle_gps_position_sub.copy(&vehicle_gps_position) && _home_position_sub.copy(&home_position)) {
-		if (vehicle_gps_position.fix_type >= 3
-		    && home_position.valid_alt && home_position.valid_hpos) {
+	if (_open_drone_id_system.advertised() && _open_drone_id_system.copy(&system)) {
 
-			dronecan::remoteid::System msg {};
+		// Use what ground station sends us.
 
-			// msg.id_or_mac // Only used for drone ID data received from other UAs.
-			msg.operator_location_type = MAV_ODID_OPERATOR_LOCATION_TYPE_TAKEOFF;
-			msg.classification_type = MAV_ODID_CLASSIFICATION_TYPE_UNDECLARED;
-			msg.operator_latitude = home_position.lat * 1e7;
-			msg.operator_longitude = home_position.lon * 1e7;
-			msg.area_count = 1;
-			msg.area_radius = 0;
-			msg.area_ceiling = -1000;
-			msg.area_floor = -1000;
-			msg.category_eu = MAV_ODID_CATEGORY_EU_UNDECLARED;
-			msg.class_eu = MAV_ODID_CLASS_EU_UNDECLARED;
-			float wgs84_amsl_offset = vehicle_gps_position.altitude_ellipsoid_m - vehicle_gps_position.altitude_msl_m;
-			msg.operator_altitude_geo = home_position.alt + wgs84_amsl_offset;
+		dronecan::remoteid::System msg {};
+		msg.timestamp = system.timestamp;
 
-			// timestamp: 32 bit Unix Timestamp in seconds since 00:00:00 01/01/2019.
-			static uint64_t utc_offset_s = 1'546'300'800; // UTC seconds since 00:00:00 01/01/2019
-			msg.timestamp = vehicle_gps_position.time_utc_usec / 1e6 - utc_offset_s;
+		for (unsigned i = 0; i < sizeof(system.id_or_mac); ++i) {
+			msg.id_or_mac.push_back(system.id_or_mac[i]);
+		}
 
-			_uavcan_pub_remoteid_system.broadcast(msg);
+		msg.operator_location_type = system.operator_location_type;
+		msg.classification_type = system.classification_type;
+		msg.operator_latitude = system.operator_latitude;
+		msg.operator_longitude = system.operator_longitude;
+		msg.area_count = system.area_count;
+		msg.area_radius = system.area_radius;
+		msg.area_ceiling = system.area_ceiling;
+		msg.area_floor = system.area_floor;
+		msg.category_eu = system.category_eu;
+		msg.class_eu = system.class_eu;
+		msg.operator_altitude_geo = system.operator_altitude_geo;
+
+		_uavcan_pub_remoteid_system.broadcast(msg);
+
+	} else {
+		// And otherwise, send our home/takeoff location.
+
+		sensor_gps_s vehicle_gps_position;
+		home_position_s home_position;
+
+		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position) && _home_position_sub.copy(&home_position)) {
+			if (vehicle_gps_position.fix_type >= 3
+			    && home_position.valid_alt && home_position.valid_hpos) {
+
+				dronecan::remoteid::System msg {};
+
+				// msg.id_or_mac // Only used for drone ID data received from other UAs.
+				msg.operator_location_type = MAV_ODID_OPERATOR_LOCATION_TYPE_TAKEOFF;
+				msg.classification_type = MAV_ODID_CLASSIFICATION_TYPE_UNDECLARED;
+				msg.operator_latitude = home_position.lat * 1e7;
+				msg.operator_longitude = home_position.lon * 1e7;
+				msg.area_count = 1;
+				msg.area_radius = 0;
+				msg.area_ceiling = -1000;
+				msg.area_floor = -1000;
+				msg.category_eu = MAV_ODID_CATEGORY_EU_UNDECLARED;
+				msg.class_eu = MAV_ODID_CLASS_EU_UNDECLARED;
+				float wgs84_amsl_offset = vehicle_gps_position.altitude_ellipsoid_m - vehicle_gps_position.altitude_msl_m;
+				msg.operator_altitude_geo = home_position.alt + wgs84_amsl_offset;
+
+				// timestamp: 32 bit Unix Timestamp in seconds since 00:00:00 01/01/2019.
+				static uint64_t utc_offset_s = 1'546'300'800; // UTC seconds since 00:00:00 01/01/2019
+				msg.timestamp = vehicle_gps_position.time_utc_usec / 1e6 - utc_offset_s;
+
+				_uavcan_pub_remoteid_system.broadcast(msg);
+			}
 		}
 	}
 }
