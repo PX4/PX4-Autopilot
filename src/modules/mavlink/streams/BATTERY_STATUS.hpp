@@ -114,20 +114,7 @@ private:
 					break;
 				}
 
-				switch (battery_status.mode) {
-				case (battery_status_s::BATTERY_MODE_AUTO_DISCHARGING):
-					bat_msg.mode = MAV_BATTERY_MODE_AUTO_DISCHARGING;
-					break;
-
-				case (battery_status_s::BATTERY_MODE_HOT_SWAP):
-					bat_msg.mode = MAV_BATTERY_MODE_HOT_SWAP;
-					break;
-
-				default:
-					bat_msg.mode = MAV_BATTERY_MODE_UNKNOWN;
-					break;
-				}
-
+				bat_msg.mode = MAV_BATTERY_MODE_UNKNOWN;
 				bat_msg.fault_bitmask = battery_status.faults;
 
 				// check if temperature valid

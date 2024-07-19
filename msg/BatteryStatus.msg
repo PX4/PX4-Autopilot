@@ -55,13 +55,6 @@ uint8 BATTERY_FAULT_COUNT = 11 # Counter - keep it as last element!
 
 uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication.
 uint8 warning		# Current battery warning
-uint8 mode 		# Battery mode. Note, the normal operation mode
-
-uint8 BATTERY_MODE_UNKNOWN = 0 # Battery does not support a mode, or if it does, is operational
-uint8 BATTERY_MODE_AUTO_DISCHARGING = 1 # Battery is auto discharging (towards storage level)
-uint8 BATTERY_MODE_HOT_SWAP = 2 # Battery in hot-swap mode
-uint8 BATTERY_MODE_COUNT = 3 # Counter - keep it as last element (once we're fully migrated to events interface we can just comment this)!
-
 
 uint8 MAX_INSTANCES = 4
 

@@ -72,22 +72,6 @@ static constexpr const char *battery_fault_reason_str(battery_fault_reason_t bat
 	return "";
 };
 
-
-using battery_mode_t = events::px4::enums::battery_mode_t;
-static_assert(battery_status_s::BATTERY_MODE_COUNT == (static_cast<uint8_t>(battery_mode_t::_max) + 1)
-	      , "Battery mode flags mismatch!");
-static constexpr const char *battery_mode_str(battery_mode_t battery_mode)
-{
-	switch (battery_mode) {
-	case battery_mode_t::autodischarging: return "auto discharging";
-
-	case battery_mode_t::hotswap: return "hot-swap";
-
-	default: return "unknown";
-	}
-}
-
-
 void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
@@ -133,34 +117,18 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			_battery_connected_at_arming[index] = battery.connected;
 		}
 
-		if (context.isArmed()) {
+		if (context.isArmed() && !battery.connected && _battery_connected_at_arming[index]) { // If disconnected after arming
+			/* EVENT
+			 */
+			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_disconnected"),
+							events::Log::Emergency, "Battery {1} disconnected", index + 1);
 
-			if (!battery.connected && _battery_connected_at_arming[index]) { // If disconnected after arming
-				/* EVENT
-				 */
-				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_disconnected"),
-								events::Log::Emergency, "Battery {1} disconnected", index + 1);
-
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i disconnected\t", index + 1);
-				}
-
-				// trigger a battery failsafe action if a battery disconnects in flight
-				worst_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i disconnected\t", index + 1);
 			}
 
-			if (battery.mode != 0) {
-				/* EVENT
-				 */
-				reporter.healthFailure<uint8_t, events::px4::enums::battery_mode_t>(NavModes::All, health_component_t::battery,
-						events::ID("check_battery_mode"),
-						events::Log::Critical, "Battery {1} mode: {2}", index + 1, static_cast<battery_mode_t>(battery.mode));
-
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %d is in %s mode!\t", index + 1,
-							     battery_mode_str(static_cast<battery_mode_t>(battery.mode)));
-				}
-			}
+			// trigger a battery failsafe action if a battery disconnects in flight
+			worst_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 		}
 
 		if (battery.connected) {

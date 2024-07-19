@@ -660,24 +660,6 @@
                         }
                     }
                 },
-                "battery_mode_t": {
-                    "type": "uint8_t",
-                    "description": "Smart battery modes of operation",
-                    "entries": {
-                        "0": {
-                            "name": "unknown",
-                            "description": "unknown"
-                        },
-                        "1": {
-                            "name": "autodischarging",
-                            "description": "auto discharging towards storage level"
-                        },
-                        "2": {
-                            "name": "hotswap",
-                            "description": "hot-swap"
-                        }
-                    }
-                },
                 "esc_fault_reason_t": {
                     "type": "uint8_t",
                     "description": "Bitfield for ESC failure reason",
