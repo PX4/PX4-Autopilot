@@ -88,13 +88,6 @@ if(gz-transport_FOUND)
 	     ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gz_*
 	)
 
-	# remove any _gz_ssrc_ files
-	foreach(gz_airframe IN LISTS gz_airframes)
-		if(gz_airframe MATCHES "_gz_ssrc_")
-			list(REMOVE_ITEM gz_airframes ${gz_airframe})
-		endif()
-	endforeach()
-
 	# remove any .post files
 	foreach(gz_airframe IN LISTS gz_airframes)
 		if(gz_airframe MATCHES ".post")

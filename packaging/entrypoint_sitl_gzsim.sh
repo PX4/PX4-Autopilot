@@ -13,7 +13,7 @@ case $PX4_VEHICLE_TYPE in
     export PX4_GZ_MODEL=scout_mini
     ;;
   vtol)
-    export PX4_SYS_AUTOSTART=4004
+    export PX4_SYS_AUTOSTART=4404
     export PX4_GZ_MODEL=standard_vtol
     ;;
   fw)
@@ -31,6 +31,7 @@ esac
 
 export PX4_GZ_MODEL_NAME=$DRONE_DEVICE_ID
 export PX4_GZ_WORLD=${PX4_GZ_WORLD:-default}
+export PX4_RUN_GZSIM=0
 export GZ_PARTITION=sim
 export GZ_IP=${GZ_IP:-127.0.0.1}
 
