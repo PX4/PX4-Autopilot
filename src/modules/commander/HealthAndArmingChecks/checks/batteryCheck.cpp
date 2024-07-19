@@ -53,7 +53,7 @@ static constexpr const char *battery_fault_reason_str(battery_fault_reason_t bat
 
 	case battery_fault_reason_t::over_current: return "over current";
 
-	case battery_fault_reason_t::fault_temperature: return "critical temperature";
+	case battery_fault_reason_t::over_temperature: return "over temperature";
 
 	case battery_fault_reason_t::under_temperature: return "under temperature";
 
@@ -65,7 +65,7 @@ static constexpr const char *battery_fault_reason_str(battery_fault_reason_t bat
 
 	case battery_fault_reason_t::hardware_fault: return "hardware fault";
 
-	case battery_fault_reason_t::over_temperature: return "near temperature limit";
+	case battery_fault_reason_t::failed_to_arm: return "failed to arm";
 
 	}
 
