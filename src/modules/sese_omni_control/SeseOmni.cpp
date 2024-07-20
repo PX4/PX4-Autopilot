@@ -141,14 +141,14 @@ void SeseOmni::Run()
 				actuator_controls_status_s status;
 
 				thrust_setpoint.timestamp = now;
-				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * _max_speed;
-				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * _max_speed;
+				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * thrust_scaling.get();
+				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * thrust_scaling.get();
 				thrust_setpoint.xyz[2] = 0.0f;
 
 				torque_setpoint.timestamp = now;
 				torque_setpoint.xyz[0] = 0.0f;
 				torque_setpoint.xyz[1] = 0.0f;
-				torque_setpoint.xyz[2] = manual_control_setpoint.roll * _max_speed;
+				torque_setpoint.xyz[2] = manual_control_setpoint.roll * torque_scaling.get();
 
 				status.timestamp = torque_setpoint.timestamp;
 
@@ -175,8 +175,8 @@ void SeseOmni::Run()
 				vehicle_thrust_setpoint_s thrust_setpoint{};
 
 				thrust_setpoint.timestamp = now;
-				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * _max_speed;
-				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * _max_speed;
+				thrust_setpoint.xyz[0] = -manual_control_setpoint.throttle * thrust_scaling.get();
+				thrust_setpoint.xyz[1] = manual_control_setpoint.yaw * thrust_scaling.get();
 				thrust_setpoint.xyz[2] = heading_sp.get();
 
 				_vehicle_thrust_setpoint_pub.publish(thrust_setpoint);
@@ -196,7 +196,7 @@ void SeseOmni::Run()
 			torque_setpoint.timestamp = now;
 			torque_setpoint.xyz[0] = 0.0f;
 			torque_setpoint.xyz[1] = 0.0f;
-			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, desired_heading, current_heading, 0.0f, dt);
+			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, desired_heading, current_heading, 0.0f, dt)*torque_scaling.get();
 
 			status.timestamp = torque_setpoint.timestamp;
 
@@ -233,7 +233,7 @@ void SeseOmni::Run()
 			torque_setpoint.timestamp = now;
 			torque_setpoint.xyz[0] = 0.0f;
 			torque_setpoint.xyz[1] = 0.0f;
-			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, heading_setpoint, heading, 0.0f, dt);
+			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, heading_setpoint, heading, 0.0f, dt)*torque_scaling.get();
 
 
 			float velocity_x_setpoint = pid_calculate(&_x_pos_pid, x_pos_setpoint, x_pos_ned, velocity_x_ned, dt);
@@ -248,8 +248,8 @@ void SeseOmni::Run()
 			float acceleration_y_body_frame = sin_heading * acceleration_x_ned + cos_heading * acceleration_y_ned;
 
 			thrust_setpoint.timestamp = now;
-			thrust_setpoint.xyz[0] = pid_calculate(&_x_velocity_pid, velocity_x_setpoint, velocity_x_body_frame, acceleration_x_body_frame, dt);
-			thrust_setpoint.xyz[1] = pid_calculate(&_y_velocity_pid, velocity_y_setpoint, velocity_y_body_frame, acceleration_y_body_frame, dt);
+			thrust_setpoint.xyz[0] = pid_calculate(&_x_velocity_pid, velocity_x_setpoint, velocity_x_body_frame, acceleration_x_body_frame, dt)*thrust_scaling.get();
+			thrust_setpoint.xyz[1] = pid_calculate(&_y_velocity_pid, velocity_y_setpoint, velocity_y_body_frame, acceleration_y_body_frame, dt)*thrust_scaling.get();
 			thrust_setpoint.xyz[2] = 0.0f;
 
 
