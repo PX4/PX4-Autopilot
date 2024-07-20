@@ -126,6 +126,9 @@ private:
 		(ParamFloat<px4::params::Y_VEL_D_GAIN>) y_velocity_d_gain,
 		(ParamFloat<px4::params::HEADING_SP>) heading_sp,
 		(ParamFloat<px4::params::X_POS_SP>) x_pos_sp,
-		(ParamFloat<px4::params::Y_POS_SP>) y_pos_sp
+		(ParamFloat<px4::params::Y_POS_SP>) y_pos_sp,
+		(ParamFloat<px4::params::THRUST_SCALING>) thrust_scaling,
+		(ParamFloat<px4::params::TORQUE_SCALING>) torque_scaling
+
 	);
 };

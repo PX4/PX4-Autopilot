@@ -29,6 +29,9 @@ publications:
   - topic: /fmu/out/failsafe_flags
     type: px4_msgs::msg::FailsafeFlags
 
+  - topic: /fmu/out/vehicle_local_position_setpoint
+    type: px4_msgs::msg::VehicleLocalPositionSetpoint
+
   - topic: /fmu/out/manual_control_setpoint
     type: px4_msgs::msg::ManualControlSetpoint
 
@@ -43,6 +46,9 @@ publications:
 
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
+
+  - topic: /fmu/out/trajectory_setpoint
+    type: px4_msgs::msg::TrajectorySetpoint
 
   # - topic: /fmu/out/vehicle_angular_velocity
   #   type: px4_msgs::msg::VehicleAngularVelocity
