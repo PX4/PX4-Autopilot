@@ -75,4 +75,22 @@ parameters:
         increment: 0.001
         decimal: 3
         default: 1
+      USV_THR_MAX:
+        description:
+          short: Thrust max
+        type: float
+        min: 0
+        max: 1
+        increment: 0.01
+        decimal: 2
+        default: 1
+      USV_TRQ_MAX:
+        description:
+          short: Torque max
+        type: float
+        min: 0
+        max: 1
+        increment: 0.01
+        decimal: 2
+        default: 1
 

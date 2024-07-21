@@ -152,7 +152,10 @@ private:
 	(ParamFloat<px4::params::USV_DIST_EPSI>) _param_usv_dist_epsi,
 	(ParamFloat<px4::params::USV_POS_P>) _param_usv_pos_p,
 	(ParamFloat<px4::params::USV_SPEED_MAX>) _param_usv_speed_max,
-	(ParamFloat<px4::params::USV_SPEED_FFG>) _param_usv_speed_ffg
+	(ParamFloat<px4::params::USV_SPEED_FFG>) _param_usv_speed_ffg,
+	(ParamFloat<px4::params::USV_THR_MAX>) _param_usv_thr_max,
+	(ParamFloat<px4::params::USV_TRQ_MAX>) _param_usv_trq_max
+
 
 	)
 

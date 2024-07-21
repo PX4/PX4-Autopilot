@@ -224,10 +224,10 @@ void BoatPosControl::Run()
 	}
 	else if (_armed && vehicle_control_mode.flag_control_manual_enabled) {
 		_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
-		v_thrust_sp.xyz[0] = _manual_control_setpoint.throttle ; // adjusting manual setpoint until the range is properly defined in the Mavlink interface
+		v_thrust_sp.xyz[0] = math::constrain(_manual_control_setpoint.throttle, -_param_usv_thr_max.get(), _param_usv_thr_max.get()) ; // adjusting manual setpoint until the range is properly defined in the Mavlink interface
 		_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 
-		v_torque_sp.xyz[2] = -_manual_control_setpoint.roll*0.1f;
+		v_torque_sp.xyz[2] = math::constrain(-_manual_control_setpoint.roll,-_param_usv_trq_max.get(),_param_usv_trq_max.get());
 		_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 
 
