@@ -67,13 +67,23 @@
 #include <uORB/topics/debug_key_value.h>
 #include <string.h>
 
-#include "differential_drive/DifferentialDriveGuidance/DifferentialDriveGuidance.hpp"
+//#include "differential_drive/DifferentialDriveGuidance/DifferentialDriveGuidance.hpp"
 
 using matrix::Dcmf;
 
 using namespace matrix;
 
 using namespace time_literals;
+
+/**
+ * @brief Enum class for the different states of guidance.
+ */
+enum class GuidanceState {
+	TURNING, ///< The vehicle is currently turning.
+	DRIVING, ///< The vehicle is currently driving straight.
+	GOAL_REACHED ///< The vehicle has reached its goal.
+};
+
 
 class BoatPosControl : public ModuleBase<BoatPosControl>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -133,7 +143,7 @@ private:
 	bool _armed = false;
 	bool _position_ctrl_ena = false;
 	vehicle_control_mode_s vehicle_control_mode;
-	DifferentialDriveGuidance _differential_drive_guidance{this};
+	//DifferentialDriveGuidance _differential_drive_guidance{this};
 
 	DEFINE_PARAMETERS((ParamFloat<px4::params::USV_SPEED_P>) _param_usv_speed_p,
 	(ParamFloat<px4::params::USV_YAW_RATE_P>) _param_usv_yaw_rate_p,

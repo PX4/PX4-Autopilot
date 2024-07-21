@@ -149,6 +149,12 @@ if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
 	)
 endif()
 
+if(CONFIG_MODULES_BOAT_POS_CONTROL)
+	px4_add_romfs_files(
+		70001_boat_mot_catamaran
+	)
+endif()
+
 if(CONFIG_MODULES_UUV_ATT_CONTROL)
 	px4_add_romfs_files(
 		# [60000, 61000] (Unmanned) Underwater Robots

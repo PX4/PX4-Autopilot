@@ -74,7 +74,11 @@ if(CONFIG_MODULES_ROVER_POS_CONTROL)
 		rc.rover_defaults
 
 		rc.boat_defaults # hack
+	)
+endif()
 
+if(CONFIG_MODULES_BOAT_POS_CONTROL)
+	px4_add_romfs_files(
 		rc.boat_differential_apps
 		rc.boat_differential_defaults
 	)
