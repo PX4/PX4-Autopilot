@@ -670,7 +670,7 @@ parameters:
         short: Optical flow aiding
         long: Enable optical flow fusion.
       type: boolean
-      default: 0
+      default: 1
     EKF2_OF_N_MIN:
       description:
         short: Optical flow minimum noise
