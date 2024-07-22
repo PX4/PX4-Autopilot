@@ -257,6 +257,9 @@ mavlink boot_complete
 if [ "$OSD" == "ENABLE" ] || [ "$OSD" == "DJI" ]; then
     /bin/echo "Starting DJI OSD driver"
     msp_osd start -d /dev/ttyHS1
+elif [ "$OSD" == "DJI_MSP_DP" ]; then 
+    /bin/echo "Starting DJI MSP DP OSD driver"
+    msp_dp_osd start -d /dev/ttyHS1
 elif [ "$OSD" == "HDZERO" ] && [ "$PLATFORM" == "M0054" ]; then 
     /bin/echo "Starting HDZero OSD driver for M0054"
     msp_dp_osd start -d /dev/ttyHS1
