@@ -31,7 +31,10 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 #include <matrix/math.hpp>
+#include <px4_platform_common/module_params.h>
 
 using namespace matrix;
 
@@ -50,6 +53,10 @@ using namespace matrix;
  * Pure pursuit is a path following algorithm that uses the intersection between the path and
  * a circle (the radius of which is referred to as lookahead distance) around the vehicle as
  * the target point for the vehicle.
+ * The lookahead distance is defined as v * k.
+ * 	v: Vehicle ground speed [m/s]
+ * 	k: Tuning parameter (Implemented as PP_LOOKAHD_GAIN)
+ * The lookahead distance is further constrained between an upper and lower threshhold (Implemented as PP_LOOKAHD_MAX, PP_LOOKAHD_MIN).
  * 							C
  * 		  				       /
  * 						    __/__
@@ -68,24 +75,52 @@ using namespace matrix;
  * 				⌄
  * 			(+- 3.14159 rad)
  *
- * Input:  Current/prev waypoint and the vehicle position in NED frame as well as the lookahead distance.
- * Output: Calculates the intersection points and returns the heading towards the point that is closer to the current waypoint.
+ * Input:  Current/prev waypoint and the vehicle position in NED frame as well as the vehicle speed.
+ * Output: Calculates the intersection points as described above and returns the heading towards the point that is closer to the current waypoint.
  */
-class PurePursuit
+class PurePursuit : public ModuleParams
 {
 public:
+	PurePursuit(ModuleParams *parent);
+	~PurePursuit() = default;
+
 	/**
 	 * @brief Return heading towards the intersection point between a circle with a radius of
-	 * lookahead_distance around the vehicle and an extended line segment from the previous to the current waypoint.
+	 * vehicle_speed * PP_LOOKAHD_GAIN around the vehicle and an extended line segment from the previous to the current waypoint.
 	 * Exceptions:
-	 * 	Will return heading towards the current waypoint if it is closer to the vehicle than the lookahead.
+	 * 	Will return heading towards the current waypoint if it is closer to the vehicle than the lookahead or if the waypoints overlap.
 	 * 	Will return heading towards the closest point on the path if there are no intersection points (crosstrack error bigger than lookahead).
 	 * 	Will return NAN if input is invalid.
 	 * @param curr_wp_ned North/East coordinates of current waypoint in NED frame [m].
 	 * @param prev_wp_ned North/East coordinates of previous waypoint in NED frame [m].
 	 * @param curr_pos_ned North/East coordinates of current position of the vehicle in NED frame [m].
-	 * @param lookahead_distance Radius of circle around vehicle [m].
+	 * @param vehicle_speed Vehicle speed [m/s].
+	 * @param RA_LOOKAHD_GAIN Tuning parameter [-]
+	 * @param RA_LOOKAHD_MAX Maximum lookahead distance [m]
+	 * @param RA_LOOKAHD_MIN Minimum lookahead distance [m]
 	 */
 	float calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
-				 const float lookahead_distance);
+				 const float vehicle_speed);
+
+	float getLookaheadDistance() {return _lookahead_distance;};
+
+protected:
+	/**
+	 * @brief Update the parameters of the module.
+	 */
+	void updateParams() override;
+
+	struct {
+		param_t lookahead_gain;
+		param_t lookahead_max;
+		param_t lookahead_min;
+	} _param_handles{};
+
+	struct {
+		float lookahead_gain{1.f};
+		float lookahead_max{10.f};
+		float lookahead_min{1.f};
+	} _params{};
+private:
+	float _lookahead_distance{0.f};
 };

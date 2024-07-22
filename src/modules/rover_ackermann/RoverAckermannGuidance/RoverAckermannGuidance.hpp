@@ -111,15 +111,12 @@ public:
 	 * @param curr_wp_ned Current waypoint in NED frame.
 	 * @param prev_wp_ned Previous waypoint in NED frame.
 	 * @param curr_pos_ned Current position of the vehicle in NED frame.
-	 * @param lookahead_gain Tuning parameter for the lookahead distance pure pursuit controller.
-	 * @param lookahead_min Minimum lookahead distance.
-	 * @param lookahead_max Maximum lookahead distance.
 	 * @param wheel_base Rover wheelbase.
 	 * @param desired_speed Desired speed for the rover.
 	 * @param vehicle_yaw Current yaw of the rover.
 	 */
 	float calcDesiredSteering(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
-				  const float &lookahead_gain, const float &lookahead_min, const float &lookahead_max, const float &wheel_base,
+				  const float &wheel_base,
 				  const float &desired_speed, const float &vehicle_yaw);
 
 protected:
@@ -144,14 +141,14 @@ private:
 
 
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates.
-	PurePursuit _pure_pursuit; // Pure pursuit library
+	PurePursuit _pure_pursuit{this}; // Pure pursuit library
 
 	// Rover variables
 	Vector2d _curr_pos{};
 	Vector2f _curr_pos_ned{};
 	PID_t _pid_throttle;
 	hrt_abstime _timestamp{0};
-	float _prev_desired_steering{0.f};
+	float _desired_steering{0.f};
 
 	// Waypoint variables
 	Vector2d _curr_wp{};
@@ -168,9 +165,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RA_WHEEL_BASE>) _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_steer_angle,
-		(ParamFloat<px4::params::RA_LOOKAHD_GAIN>) _param_ra_lookahd_gain,
-		(ParamFloat<px4::params::RA_LOOKAHD_MAX>) _param_ra_lookahd_max,
-		(ParamFloat<px4::params::RA_LOOKAHD_MIN>) _param_ra_lookahd_min,
 		(ParamFloat<px4::params::RA_ACC_RAD_MAX>) _param_ra_acc_rad_max,
 		(ParamFloat<px4::params::RA_ACC_RAD_GAIN>) _param_ra_acc_rad_gain,
 		(ParamFloat<px4::params::RA_MISS_VEL_DEF>) _param_ra_miss_vel_def,
