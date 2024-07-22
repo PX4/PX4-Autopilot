@@ -90,10 +90,15 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command, b
 
 	// commanded heading behaviour
 	if (PX4_ISFINITE(command.param3)) {
-		_yaw_behaviour = command.param3;
+		if (command.param3 - 5.0f < FLT_EPSILON) {
+			// only change yaw behaviour to the parameter if we are not in an active orbit.
+			if (!_is_position_on_circle()) {
+				_yaw_behaviour = _param_mc_orbit_yaw_mod.get();
+			}
 
-	} else {
-		_yaw_behaviour = _param_mc_orbit_yaw_mod.get();
+		} else {
+			_yaw_behaviour = command.param3;
+		}
 	}
 
 	// save current yaw estimate for ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING
