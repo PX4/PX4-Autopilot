@@ -141,14 +141,14 @@ void MavlinkLogHandler::state_listing()
 	DIR *dp = opendir(kLogDir);
 
 	if (!dp) {
-		PX4_WARN("No logs available");
+		PX4_DEBUG("No logs available");
 		return;
 	}
 
 	FILE *fp = fopen(kLogListFilePath, "r");
 
 	if (!fp) {
-		PX4_WARN("Failed to open log list file");
+		PX4_DEBUG("Failed to open log list file");
 		closedir(dp);
 		return;
 	}
@@ -175,7 +175,7 @@ void MavlinkLogHandler::state_listing()
 
 		// If parsed lined successfully, send the entry
 		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &time_utc, &size_bytes, filepath) != 3) {
-			PX4_WARN("sscanf failed");
+			PX4_DEBUG("sscanf failed");
 			continue;
 		}
 
@@ -216,7 +216,7 @@ void MavlinkLogHandler::state_sending_data()
 		if (offset && fseek(_current_entry.fp, offset, SEEK_CUR)) {
 			fclose(_current_entry.fp);
 			_current_entry.fp = nullptr;
-			PX4_WARN("seek error");
+			PX4_DEBUG("seek error");
 			_state = LogHandlerState::Idle;
 		}
 
@@ -224,7 +224,7 @@ void MavlinkLogHandler::state_sending_data()
 		mavlink_log_data_t msg;
 
 		if (_current_entry.offset >= _current_entry.size_bytes) {
-			PX4_WARN("Entry offset equal to file size");
+			PX4_DEBUG("Entry offset equal to file size");
 			_state = LogHandlerState::Idle;
 			return;
 		}
@@ -274,7 +274,7 @@ void MavlinkLogHandler::handle_log_request_list(const mavlink_message_t *msg)
 void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 {
 	if (!_logs_listed) {
-		PX4_WARN("Logs not yet listed");
+		PX4_DEBUG("Logs not yet listed");
 		_state = LogHandlerState::Idle;
 		return;
 	}
@@ -283,7 +283,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 	mavlink_msg_log_request_data_decode(msg, &request);
 
 	if (request.id >= _num_logs) {
-		PX4_WARN("Requested log %" PRIu16 " but we only have %u", request.id, _num_logs);
+		PX4_DEBUG("Requested log %" PRIu16 " but we only have %u", request.id, _num_logs);
 		_state = LogHandlerState::Idle;
 		return;
 	}
@@ -299,7 +299,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 		LogEntry entry = {};
 
 		if (!log_entry_from_id(request.id, &entry)) {
-			PX4_WARN("Log file ID %u does not exist", request.id);
+			PX4_DEBUG("Log file ID %u does not exist", request.id);
 			_state = LogHandlerState::Idle;
 			return;
 		}
@@ -308,7 +308,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 		entry.offset = request.ofs;
 
 		if (!entry.fp) {
-			PX4_WARN("Failed to open file %s", entry.filepath);
+			PX4_DEBUG("Failed to open file %s", entry.filepath);
 			return;
 		}
 
@@ -317,8 +317,8 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 
 	// Stop if offset request is larger than file
 	if (request.ofs >= _current_entry.size_bytes) {
-		PX4_WARN("Request offset %" PRIu32 "greater than file size %" PRIu32, request.ofs,
-			 _current_entry.size_bytes);
+		PX4_DEBUG("Request offset %" PRIu32 "greater than file size %" PRIu32, request.ofs,
+			  _current_entry.size_bytes);
 		_state = LogHandlerState::Idle;
 		return;
 	}
@@ -362,14 +362,14 @@ bool MavlinkLogHandler::create_log_list_file()
 	DIR *dp = opendir(kLogDir);
 
 	if (!dp) {
-		PX4_WARN("No logs available");
+		PX4_DEBUG("No logs available");
 		return false;
 	}
 
 	FILE *temp_fp = fopen(kLogListFilePathTemp, "w");
 
 	if (!temp_fp) {
-		PX4_WARN("Failed to create temp file");
+		PX4_DEBUG("Failed to create temp file");
 		closedir(dp);
 		return false;
 	}
@@ -402,7 +402,7 @@ bool MavlinkLogHandler::create_log_list_file()
 		bool path_is_ok = (ret > 0) && (ret < (int)sizeof(dirpath));
 
 		if (!path_is_ok) {
-			PX4_WARN("Log subdir path error: %s", dirpath);
+			PX4_DEBUG("Log subdir path error: %s", dirpath);
 			continue;
 		}
 
@@ -415,7 +415,7 @@ bool MavlinkLogHandler::create_log_list_file()
 
 	// Rename temp file to data file
 	if (rename(kLogListFilePathTemp, kLogListFilePath)) {
-		PX4_WARN("Failed to rename temp file");
+		PX4_DEBUG("Failed to rename temp file");
 		return false;
 	}
 
@@ -447,14 +447,14 @@ void MavlinkLogHandler::write_entries_to_file(FILE *fp, const char *dir)
 		bool path_is_ok = (ret > 0) && (ret < (int)sizeof(filepath));
 
 		if (!path_is_ok) {
-			PX4_WARN("Log subdir path error: %s", filepath);
+			PX4_DEBUG("Log subdir path error: %s", filepath);
 			continue;
 		}
 
 		struct stat filestat;
 
 		if (stat(filepath, &filestat) != 0) {
-			PX4_WARN("stat() failed: %s", filepath);
+			PX4_DEBUG("stat() failed: %s", filepath);
 			continue;
 		}
 
@@ -490,7 +490,7 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 	FILE *fp = fopen(kLogListFilePath, "r");
 
 	if (!fp) {
-		PX4_WARN("Failed to open %s", kLogListFilePath);
+		PX4_DEBUG("Failed to open %s", kLogListFilePath);
 		closedir(dp);
 		return false;
 	}
@@ -507,7 +507,7 @@ bool MavlinkLogHandler::log_entry_from_id(uint16_t log_id, LogEntry *entry)
 		}
 
 		if (sscanf(line, "%" PRIu32 " %" PRIu32 " %s", &(entry->time_utc), &(entry->size_bytes), entry->filepath) != 3) {
-			PX4_WARN("sscanf failed");
+			PX4_DEBUG("sscanf failed");
 			continue;
 		}
 
@@ -548,7 +548,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 				delete_all_logs(filepath);
 
 				if (rmdir(filepath)) {
-					PX4_WARN("Error removing %s", filepath);
+					PX4_DEBUG("Error removing %s", filepath);
 				}
 			}
 		}
@@ -560,7 +560,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir)
 
 			if (path_is_ok) {
 				if (unlink(filepath)) {
-					PX4_WARN("Error unlinking %s", filepath);
+					PX4_DEBUG("Error unlinking %s", filepath);
 				}
 			}
 		}
