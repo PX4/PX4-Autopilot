@@ -166,6 +166,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_septentrio-gps_canbootloader
+    ark_teseo-gps_canbootloader:
+      short: ark_teseo-gps_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_teseo-gps_canbootloader
     ark_cannode_default:
       short: ark_cannode_default
       buildType: MinSizeRel
