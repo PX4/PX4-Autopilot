@@ -115,11 +115,11 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	const float dt = 0.5f * (imu_delayed.delta_vel_dt + imu_delayed.delta_ang_dt);
 
 	// gyro noise variance
-	float gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
+	float gyro_noise = _params.gyro_noise;
 	const float gyro_var = sq(gyro_noise);
 
 	// accel noise variance
-	float accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+	float accel_noise = _params.accel_noise;
 	Vector3f accel_var;
 
 	for (unsigned i = 0; i < 3; i++) {
@@ -143,7 +143,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// gyro bias: add process noise
 	{
-		const float gyro_bias_sig = dt * math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
+		const float gyro_bias_sig = dt * _params.gyro_bias_p_noise;
 		const float gyro_bias_process_noise = sq(gyro_bias_sig);
 
 		for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
@@ -157,7 +157,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	// accel bias: add process noise
 	{
-		const float accel_bias_sig = dt * math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
+		const float accel_bias_sig = dt * _params.accel_bias_p_noise;
 		const float accel_bias_process_noise = sq(accel_bias_sig);
 
 		for (unsigned index = 0; index < State::accel_bias.dof; index++) {
@@ -172,7 +172,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// mag_I: add process noise
-	float mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.f, 1.f);
+	float mag_I_sig = dt * _params.mage_p_noise;
 	float mag_I_process_noise = sq(mag_I_sig);
 
 	for (unsigned index = 0; index < State::mag_I.dof; index++) {
@@ -184,7 +184,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	}
 
 	// mag_B: add process noise
-	float mag_B_sig = dt * math::constrain(_params.magb_p_noise, 0.f, 1.f);
+	float mag_B_sig = dt * _params.magb_p_noise;
 	float mag_B_process_noise = sq(mag_B_sig);
 
 	for (unsigned index = 0; index < State::mag_B.dof; index++) {
@@ -201,8 +201,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 #if defined(CONFIG_EKF2_WIND)
 
 	// wind vel: add process noise
-	float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f, 1.f)
-				    * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
+	float wind_vel_nsd_scaled = _params.wind_vel_nsd * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
 	float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
 
 	for (unsigned index = 0; index < State::wind_vel.dof; index++) {
