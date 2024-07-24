@@ -328,6 +328,7 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 		    && fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1)
 		   ) {
 			ECL_INFO("fused external observation as position measurement");
+			_state_reset_status.reset_count.posNE++;
 			_time_last_hor_pos_fuse = _time_delayed_us;
 			_last_known_pos.xy() = _state.pos.xy();
 			return true;

@@ -406,12 +406,10 @@ private:
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
 
 	// ESTIMATOR RESET COUNTERS
-
-	// captures the number of times the estimator has reset the horizontal position
-	uint8_t _pos_reset_counter{0};
-
-	// captures the number of times the estimator has reset the altitude state
-	uint8_t _alt_reset_counter{0};
+	uint8_t _vxy_reset_counter{0};
+	uint8_t _vz_reset_counter{0};
+	uint8_t _xy_reset_counter{0};
+	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
 
