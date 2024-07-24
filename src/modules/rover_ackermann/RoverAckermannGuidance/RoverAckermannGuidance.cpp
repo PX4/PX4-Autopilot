@@ -125,9 +125,9 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 						  _curr_wp(0),
 						  _curr_wp(1));
 
-		if(distance_to_curr_wp > _param_nav_acc_rad.get()){
+		if (distance_to_curr_wp > _param_nav_acc_rad.get()) {
 			if (_param_ra_miss_vel_min.get() > 0.f  && _param_ra_miss_vel_min.get() < _param_ra_miss_vel_def.get()
-			&& _param_ra_miss_vel_gain.get() > FLT_EPSILON) { // Cornering slow down effect
+			    && _param_ra_miss_vel_gain.get() > FLT_EPSILON) { // Cornering slow down effect
 				if (distance_to_prev_wp <= _prev_acceptance_radius && _prev_acceptance_radius > FLT_EPSILON) {
 					const float cornering_speed = _param_ra_miss_vel_gain.get() / _prev_acceptance_radius;
 					desired_speed = math::constrain(cornering_speed, _param_ra_miss_vel_min.get(), _param_ra_miss_vel_def.get());
@@ -138,7 +138,7 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 
 				} else { // Straight line speed
 					if (_param_ra_max_accel.get() > FLT_EPSILON && _param_ra_max_jerk.get() > FLT_EPSILON
-					&& _acceptance_radius > FLT_EPSILON) {
+					    && _acceptance_radius > FLT_EPSILON) {
 						float max_velocity{0.f};
 
 						if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
@@ -164,9 +164,9 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 
 			// Calculate desired steering
 			desired_steering = calcDesiredSteering(_curr_wp_ned, _prev_wp_ned, _curr_pos_ned, _param_ra_lookahd_gain.get(),
-							_param_ra_lookahd_min.get(), _param_ra_lookahd_max.get(), _param_ra_wheel_base.get(), desired_speed, vehicle_yaw);
+							       _param_ra_lookahd_min.get(), _param_ra_lookahd_max.get(), _param_ra_wheel_base.get(), desired_speed, vehicle_yaw);
 			desired_steering = math::constrain(desired_steering, -_param_ra_max_steer_angle.get(),
-							_param_ra_max_steer_angle.get());
+							   _param_ra_max_steer_angle.get());
 			_prev_desired_steering = desired_steering;
 
 		} else { // In acceptance radius of current wp but still hasn't change meaning there is a delay to stay in
