@@ -80,6 +80,9 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 	_roll_slew_rate.setForcedValue(0.f);
 
+	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
+	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_h_error_tc.get() * _param_fw_thrtc_sc.get());
+
 }
 
 FixedwingPositionControl::~FixedwingPositionControl()
@@ -420,6 +423,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 
 	tecs_status.altitude_sp = alt_sp;
 	tecs_status.altitude_reference = debug_output.altitude_reference;
+	tecs_status.altitude_time_constant = _tecs.get_altitude_error_time_constant();
 	tecs_status.height_rate_reference = debug_output.height_rate_reference;
 	tecs_status.height_rate_direct = debug_output.height_rate_direct;
 	tecs_status.height_rate_setpoint = debug_output.control.altitude_rate_control;
@@ -2466,7 +2470,8 @@ FixedwingPositionControl::Run()
 
 		// restore nominal TECS parameters in case changed intermittently (e.g. in landing handling)
 		_tecs.set_speed_weight(_param_fw_t_spdweight.get());
-		_tecs.set_altitude_error_time_constant(_param_fw_t_h_error_tc.get());
+		updateAltitudeTimeConstant(control_interval);
+		_tecs.set_altitude_error_time_constant(_tecs_alt_time_const_slew_rate.getState());
 
 		// restore lateral-directional guidance parameters (changed in takeoff mode)
 		_npfg.setPeriod(_param_npfg_period.get());
@@ -2802,6 +2807,23 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 		reset_landing_state();
 		_time_started_landing = now;
 	}
+}
+
+void FixedwingPositionControl::updateAltitudeTimeConstant(float dt)
+{
+	// Target time constant for the TECS altitude tracker
+	float alt_tracking_tc = _param_fw_t_h_error_tc.get();
+
+	// Are conditions for low-height altitude tracking satisfied?
+	const bool is_low_height = _param_fw_t_thr_low_hgt.get() >= 0.f && _local_pos.dist_bottom_valid
+				   && _local_pos.dist_bottom < _param_fw_t_thr_low_hgt.get();
+
+	if (is_low_height) {
+		// If low-height conditions satisfied, compute target time constant for altitude tracking
+		alt_tracking_tc *= _param_fw_thrtc_sc.get();
+	}
+
+	_tecs_alt_time_const_slew_rate.update(alt_tracking_tc, dt);
 }
 
 Vector2f
