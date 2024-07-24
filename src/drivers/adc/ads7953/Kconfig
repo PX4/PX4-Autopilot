@@ -1,0 +1,5 @@
+menuconfig DRIVERS_ADC_ADS7953
+	bool "ads7953"
+	default n
+	---help---
+		Enable support for ads7953
