@@ -132,6 +132,8 @@ void Ekf::reset()
 	}
 
 	_zero_velocity_update.reset();
+
+	updateParameters();
 }
 
 bool Ekf::update()
@@ -339,6 +341,21 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 
 void Ekf::updateParameters()
 {
+	_params.gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
+	_params.accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+
+	_params.gyro_bias_p_noise = math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
+	_params.accel_bias_p_noise = math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	_params.mage_p_noise = math::constrain(_params.mage_p_noise, 0.f, 1.f);
+	_params.magb_p_noise = math::constrain(_params.magb_p_noise, 0.f, 1.f);
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_WIND)
+	_params.wind_vel_nsd = math::constrain(_params.wind_vel_nsd, 0.f, 1.f);
+#endif // CONFIG_EKF2_WIND
+
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
