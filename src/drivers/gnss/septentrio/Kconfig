@@ -1,5 +1,0 @@
-menuconfig DRIVERS_GNSS_SEPTENTRIO
-	bool "Septentrio GNSS receivers"
-	default n
-	---help---
-		Enable support for Septentrio receivers
