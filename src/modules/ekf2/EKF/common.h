@@ -167,6 +167,11 @@ enum class MagCheckMask : uint8_t {
 	FORCE_WMM   = (1 << 2)
 };
 
+enum class FlowGyroSource : uint8_t {
+	Auto     = 0,
+	Internal = 1
+};
+
 struct imuSample {
 	uint64_t    time_us{};                ///< timestamp of the measurement (uSec)
 	Vector3f    delta_ang{};              ///< delta angle in body frame (integrated gyro measurements) (rad)
@@ -442,6 +447,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	int32_t flow_ctrl {0};
+	int32_t flow_gyro_src {static_cast<int32_t>(FlowGyroSource::Auto)};
 	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 
 	// optical flow fusion

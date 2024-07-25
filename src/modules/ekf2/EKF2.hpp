@@ -656,6 +656,8 @@ private:
 		// optical flow fusion
 		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
 		_param_ekf2_of_ctrl, ///< optical flow fusion selection
+		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
+		_param_ekf2_of_gyr_src,
 		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)
 		_param_ekf2_of_delay, ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
