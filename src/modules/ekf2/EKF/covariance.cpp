@@ -247,57 +247,36 @@ void Ekf::constrainStateVariances()
 	// Covariance diagonal limits. Use same values for states which
 	// belong to the same group (e.g. vel_x, vel_y, vel_z)
 
-	constrainStateVar(State::quat_nominal, 1e-9f, 1.f);
 	constrainStateVar(State::vel, 1e-6f, 1e6f);
 	constrainStateVar(State::pos, 1e-6f, 1e6f);
-	constrainStateVarLimitRatio(State::gyro_bias, kGyroBiasVarianceMin, 1.f);
-	constrainStateVarLimitRatio(State::accel_bias, kAccelBiasVarianceMin, 1.f);
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-	if (_control_status.flags.mag) {
-		constrainStateVarLimitRatio(State::mag_I, kMagVarianceMin, 1.f);
-		constrainStateVarLimitRatio(State::mag_B, kMagVarianceMin, 1.f);
-	}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-
-	if (_control_status.flags.wind) {
-		constrainStateVarLimitRatio(State::wind_vel, 1e-6f, 1e6f);
-	}
-
+	constrainStateVar(State::wind_vel, 1e-6f, 1e6f);
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_TERRAIN)
-	constrainStateVarLimitRatio(State::terrain, 0.f, 1e4f);
+	constrainStateVar(State::terrain, 1e-6f, 1e6f);
 #endif // CONFIG_EKF2_TERRAIN
+
+	static constexpr float kMaxVarRatio = 1e8f;
+
+	float max_var = P.diag().max();
+	float min_var = max_var / kMaxVarRatio;
+
+	for (unsigned row = 0; row < State::size; row++) {
+		unsigned column = row;
+
+		if (P(row, column) < min_var) {
+			ECL_DEBUG("constraining P(%d,%d) %.8f->%.8f", row, column, (double)P(row, column), (double)min_var);
+			P(row, column) = min_var;
+		}
+	}
 }
 
 void Ekf::constrainStateVar(const IdxDof &state, float min, float max)
 {
 	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
 		P(i, i) = math::constrain(P(i, i), min, max);
-	}
-}
-
-void Ekf::constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio)
-{
-	// the ratio of a max and min variance must not exceed max_ratio
-	float state_var_max = 0.f;
-
-	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
-		if (P(i, i) > state_var_max) {
-			state_var_max = P(i, i);
-		}
-	}
-
-	float limited_max = math::constrain(state_var_max, min, max);
-	float limited_min = math::constrain(limited_max / max_ratio, min, max);
-
-	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
-		P(i, i) = math::constrain(P(i, i), limited_min, limited_max);
 	}
 }
 

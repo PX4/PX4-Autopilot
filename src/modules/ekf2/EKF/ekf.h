@@ -554,14 +554,6 @@ private:
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
 
-	static constexpr float kGyroBiasVarianceMin{1e-9f};
-	static constexpr float kAccelBiasVarianceMin{1e-9f};
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	static constexpr float kMagVarianceMin = 1e-6f;
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-
 	struct StateResetCounts {
 		uint8_t velNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
 		uint8_t velD{0};	///< number of vertical velocity reset events (allow to wrap if count exceeds 255)
@@ -940,7 +932,6 @@ private:
 	void constrainStateVariances();
 
 	void constrainStateVar(const IdxDof &state, float min, float max);
-	void constrainStateVarLimitRatio(const IdxDof &state, float min, float max, float max_ratio = 1.e6f);
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value

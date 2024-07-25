@@ -234,8 +234,8 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				if (!_control_status.flags.yaw_align
 				    || wmm_updated
 				    || !_state.mag_I.longerThan(0.f)
-				    || (getStateVariance<State::mag_I>().min() < kMagVarianceMin)
-				    || (getStateVariance<State::mag_B>().min() < kMagVarianceMin)
+				    || (getStateVariance<State::mag_I>().min() < FLT_EPSILON)
+				    || (getStateVariance<State::mag_B>().min() < FLT_EPSILON)
 				   ) {
 					ECL_INFO("starting %s fusion, resetting states", AID_SRC_NAME);
 
