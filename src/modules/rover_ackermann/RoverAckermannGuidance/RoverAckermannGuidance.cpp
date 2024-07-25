@@ -125,7 +125,7 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 						  _curr_wp(0),
 						  _curr_wp(1));
 
-		if (distance_to_curr_wp > _param_nav_acc_rad.get()) {
+		if (distance_to_curr_wp > _acceptance_radius) {
 			if (_param_ra_miss_vel_min.get() > 0.f  && _param_ra_miss_vel_min.get() < _param_ra_miss_vel_def.get()
 			    && _param_ra_miss_vel_gain.get() > FLT_EPSILON) { // Cornering slow down effect
 				if (distance_to_prev_wp <= _prev_acceptance_radius && _prev_acceptance_radius > FLT_EPSILON) {
@@ -169,8 +169,8 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 							   _param_ra_max_steer_angle.get());
 			_prev_desired_steering = desired_steering;
 
-		} else { // In acceptance radius of current wp but still hasn't change meaning there is a delay to stay in
-			desired_steering = _prev_desired_steering; // To avoid steering on the spot and premature wheel wear
+		} else { // Catch delay command
+			desired_steering = _prev_desired_steering; // Avoid steering on the spot
 			desired_speed = 0.f;
 		}
 	}
