@@ -2321,14 +2321,14 @@ FixedwingPositionControl::Run()
 
 		// handle estimator reset events. we only adjust setpoins for manual modes
 		if (_control_mode.flag_control_manual_enabled) {
-			if (_control_mode.flag_control_altitude_enabled && _local_pos.vz_reset_counter != _vz_reset_counter) {
+			if (_control_mode.flag_control_altitude_enabled && _local_pos.z_reset_counter != _z_reset_counter) {
 				// make TECS accept step in altitude and demanded altitude
 				_tecs.handle_alt_step(_current_altitude, -_local_pos.vz);
 			}
 
 			// adjust navigation waypoints in position control mode
 			if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
-			    && _local_pos.vxy_reset_counter != _vxy_reset_counter) {
+			    && _local_pos.xy_reset_counter != _xy_reset_counter) {
 
 				// reset heading hold flag, which will re-initialise position control
 				_hdg_hold_enabled = false;
@@ -2338,7 +2338,7 @@ FixedwingPositionControl::Run()
 		// Convert Local setpoints to global setpoints
 		if (!_global_local_proj_ref.isInitialized()
 		    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)
-		    || (_local_pos.vxy_reset_counter != _vxy_reset_counter)) {
+		    || (_local_pos.xy_reset_counter != _xy_reset_counter)) {
 
 			double reference_latitude = 0.;
 			double reference_longitude = 0.;
@@ -2623,8 +2623,7 @@ FixedwingPositionControl::Run()
 			_spoilers_setpoint_pub.publish(spoilers_setpoint);
 		}
 
-		_vz_reset_counter = _local_pos.vz_reset_counter;
-		_vxy_reset_counter = _local_pos.vxy_reset_counter;
+		_z_reset_counter = _local_pos.z_reset_counter;
 		_xy_reset_counter = _local_pos.xy_reset_counter;
 
 		perf_end(_loop_perf);

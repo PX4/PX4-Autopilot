@@ -406,9 +406,8 @@ private:
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
 
 	// ESTIMATOR RESET COUNTERS
-	uint8_t _vxy_reset_counter{0};
-	uint8_t _vz_reset_counter{0};
 	uint8_t _xy_reset_counter{0};
+	uint8_t _z_reset_counter{0};
 	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
