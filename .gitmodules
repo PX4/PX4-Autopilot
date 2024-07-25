@@ -91,3 +91,6 @@
 [submodule "boards/ssrc/saluki-nxp93"]
 	path = boards/ssrc/saluki-nxp93
 	url = git@github.com:tiiuae/saluki-nxp93.git
+[submodule "Tools/simulation/gz/plugins/px4-gzsim-plugins"]
+	path = Tools/simulation/gz/plugins/px4-gzsim-plugins
+	url = https://github.com/tiiuae/px4-gzsim-plugins.git

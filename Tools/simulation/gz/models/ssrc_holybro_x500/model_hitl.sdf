@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version='1.9'>
+  <model name='ssrc_holybro_x500_hitl'>
+    <include merge='true'>
+      <uri>model://ssrc_holybro_x500</uri>
+    </include>
+    <plugin filename="libmavlink_hitl_gazebosim.so" name="mavlink_interface::GazeboMavlinkInterface">
+      <robotNamespace/>
+      <imuSubTopic>/link/base_link/sensor/imu_sensor/imu</imuSubTopic>
+      <poseSubTopic>/pose/info</poseSubTopic>
+      <mavlink_addr>192.168.200.101</mavlink_addr>
+      <mavlink_udp_local_port>14542</mavlink_udp_local_port>
+      <mavlink_udp_remote_port>14543</mavlink_udp_remote_port>
+      <mavlink_tcp_port>4560</mavlink_tcp_port>
+      <use_tcp>0</use_tcp>
+    </plugin>
+  </model>
+</sdf>

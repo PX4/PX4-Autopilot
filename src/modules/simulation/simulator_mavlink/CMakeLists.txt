@@ -57,6 +57,7 @@ px4_add_module(
 
 include(sitl_targets_flightgear.cmake)
 include(sitl_targets_gazebo-classic.cmake)
+include(sitl_targets_gz-sim.cmake)
 include(sitl_targets_jmavsim.cmake)
 include(sitl_targets_jsbsim.cmake)
 
