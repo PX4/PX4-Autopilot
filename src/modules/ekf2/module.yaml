@@ -671,6 +671,16 @@ parameters:
         long: Enable optical flow fusion.
       type: boolean
       default: 1
+    EKF2_OF_GYR_SRC:
+      description:
+        short: Optical flow angular rate compensation source
+        long: 'Auto: use gyro from optical flow message if available, internal gyro otherwise.
+               Internal: always use internal gyro'
+      type: enum
+      values:
+        0: Auto
+        1: Internal
+      default: 0
     EKF2_OF_N_MIN:
       description:
         short: Optical flow minimum noise

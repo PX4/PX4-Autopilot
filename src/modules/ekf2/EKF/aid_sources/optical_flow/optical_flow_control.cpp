@@ -56,12 +56,25 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		_ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - getGyroBias());
 
 		// ensure valid flow sample gyro rate before proceeding
-		if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_rate(1))) {
-			_flow_sample_delayed.gyro_rate = _ref_body_rate;
+		switch (static_cast<FlowGyroSource>(_params.flow_gyro_src)) {
+		default:
 
-		} else if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(2))) {
-			// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
-			_flow_sample_delayed.gyro_rate(2) = _ref_body_rate(2);
+		/* FALLTHROUGH */
+		case FlowGyroSource::Auto:
+			if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_rate(1))) {
+				_flow_sample_delayed.gyro_rate = _ref_body_rate;
+			}
+
+			if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(2))) {
+				// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
+				_flow_sample_delayed.gyro_rate(2) = _ref_body_rate(2);
+			}
+
+			break;
+
+		case FlowGyroSource::Internal:
+			_flow_sample_delayed.gyro_rate = _ref_body_rate;
+			break;
 		}
 
 		const flowSample &flow_sample = _flow_sample_delayed;
