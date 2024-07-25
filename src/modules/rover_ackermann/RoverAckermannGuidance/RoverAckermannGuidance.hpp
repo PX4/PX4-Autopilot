@@ -151,6 +151,7 @@ private:
 	Vector2f _curr_pos_ned{};
 	PID_t _pid_throttle;
 	hrt_abstime _timestamp{0};
+	float _prev_desired_steering{0.f};
 
 	// Waypoint variables
 	Vector2d _curr_wp{};
