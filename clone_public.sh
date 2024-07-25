@@ -13,6 +13,7 @@ do
   [[ "${repo}" == *px4_fw_update_client ]] || \
   [[ "${repo}" == *secure_udp ]] || \
   [[ "${repo}" == *saluki_packaging ]] || \
+  [[ "${repo}" == *rust_px4_nuttx ]] || \
   [[ "${repo}" == *process ]] && continue
   git submodule update --init --recursive "${repo}"
 done <<< "$(git submodule status | awk '{print $2}')"
