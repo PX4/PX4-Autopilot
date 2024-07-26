@@ -2170,7 +2170,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 
 			// if there's a reset-by-fusion, the ekf needs some time to converge,
 			// therefore we go into track holiding for 2 seconds
-			if (_local_pos.timestamp - _time_last_xy_reset < 2e6) {
+			if (_local_pos.timestamp - _time_last_xy_reset < 2_s) {
 				_hdg_hold_position.lat = _current_latitude;
 				_hdg_hold_position.lon = _current_longitude;
 			}
