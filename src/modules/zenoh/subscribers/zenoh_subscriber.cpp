@@ -41,16 +41,18 @@
 
 #include "zenoh_subscriber.hpp"
 
-static void data_handler_cb(const z_sample_t *sample, void *arg)
+static void data_handler_cb(const z_loaned_sample_t *sample, void *arg)
 {
 	static_cast<Zenoh_Subscriber *>(arg)->data_handler(sample);
 }
 
-void Zenoh_Subscriber::data_handler(const z_sample_t *sample)
+void Zenoh_Subscriber::data_handler(const z_loaned_sample_t *sample)
 {
-	z_owned_str_t keystr = z_keyexpr_to_string(sample->keyexpr);
-	printf(">> [Subscriber] Received ('%s' size '%d')\n", z_str_loan(&keystr), (int)sample->payload.len);
-	z_str_drop(z_str_move(&keystr));
+	z_view_string_t keystr;
+	z_keyexpr_as_view_string(z_sample_keyexpr(sample), &keystr);
+	z_owned_slice_t value;
+	z_bytes_deserialize_into_slice(z_sample_payload(sample), &value);
+	printf(">> [Subscriber] Received ('%s' size '%d')\n", z_string_data(z_loan(keystr)), (int)z_slice_len(z_loan(value)));
 }
 
 
@@ -71,9 +73,10 @@ int Zenoh_Subscriber::undeclare_subscriber()
 	return 0;
 }
 
-int Zenoh_Subscriber::declare_subscriber(z_session_t s, const char *keyexpr)
+int Zenoh_Subscriber::declare_subscriber(z_owned_session_t s, const char *keyexpr)
 {
-	z_owned_closure_sample_t callback = z_closure_sample(data_handler_cb, NULL, this);
+   	z_owned_closure_sample_t callback;
+	z_closure_sample(&callback, data_handler_cb, NULL, this);
 
 	if (_rostopic) {
 		strncpy(this->_topic, (char *)_rt_prefix, _rt_prefix_offset);
@@ -89,8 +92,12 @@ int Zenoh_Subscriber::declare_subscriber(z_session_t s, const char *keyexpr)
 		strncpy(this->_topic, (char *)keyexpr, sizeof(this->_topic));
 	}
 
-	_sub = z_declare_subscriber(s, z_keyexpr(this->_topic), z_closure_sample_move(&callback), NULL);
-
+	z_view_keyexpr_t ke;
+	z_view_keyexpr_from_str(&ke, this->_topic);
+	if (z_declare_subscriber(&_sub, z_loan(s), z_loan(ke), z_closure_sample_move(&callback), NULL) < 0) {
+		printf("Unable to declare subscriber.\n");
+		exit(-1);
+	}
 
 	if (!z_subscriber_check(&_sub)) {
 		printf("Unable to declare subscriber for key expression!\n %s\n", keyexpr);

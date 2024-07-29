@@ -58,11 +58,11 @@ public:
 	Zenoh_Subscriber(bool rostopic = true);
 	virtual ~Zenoh_Subscriber();
 
-	virtual int declare_subscriber(z_session_t s, const char *keyexpr);
+	virtual int declare_subscriber(z_owned_session_t s, const char *keyexpr);
 
 	virtual int undeclare_subscriber();
 
-	virtual void data_handler(const z_sample_t *sample);
+	virtual void data_handler(const z_loaned_sample_t *sample);
 
 	virtual void print();
 

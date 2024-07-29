@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 #include "zenoh.h"
+#include "zenoh-pico/api/macros.h"
+#include "zenoh-pico/api/primitives.h"
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/cli.h>
@@ -78,27 +80,36 @@ void ZENOH::run()
 
 	z_config.getNetworkConfig(mode, locator);
 
-	z_owned_config_t config = z_config_default();
-	zp_config_insert(z_config_loan(&config), Z_CONFIG_MODE_KEY, z_string_make(mode));
+	z_owned_config_t config;
+	z_config_default(&config);
+	zp_config_insert(z_loan_mut(config), Z_CONFIG_MODE_KEY, mode);
 
 	if (locator[0] != 0) {
-		zp_config_insert(z_config_loan(&config), Z_CONFIG_PEER_KEY, z_string_make(locator));
+		zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, locator);
 
 	} else if (strcmp(Z_CONFIG_MODE_PEER, mode) == 0) {
-		zp_config_insert(z_config_loan(&config), Z_CONFIG_PEER_KEY, z_string_make(Z_CONFIG_MULTICAST_LOCATOR_DEFAULT));
+		zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, Z_CONFIG_MULTICAST_LOCATOR_DEFAULT);
 	}
 
 	PX4_INFO("Opening session...");
-	z_owned_session_t s = z_open(z_config_move(&config));
-
-	if (!z_session_check(&s)) {
-		PX4_ERR("Unable to open session!");
+	z_owned_session_t s;
+	ret = z_open(&s, z_move(config));
+	if (ret  < 0) {
+		PX4_ERR("Unable to open session, ret: %d", ret);
 		return;
 	}
 
+	PX4_INFO("Checking session...");
+	if (!z_session_check(&s)) {
+		PX4_ERR("Unable to check session!");
+		return;
+	}
+	
+	PX4_INFO("Starting reading/writing tasks...");
 	// Start read and lease tasks for zenoh-pico
-	if (zp_start_read_task(z_session_loan(&s), NULL) < 0 || zp_start_lease_task(z_session_loan(&s), NULL) < 0) {
+	if (zp_start_read_task(z_loan_mut(s), NULL) < 0 || zp_start_lease_task(z_loan_mut(s), NULL) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
+		z_close(z_move(s));
 		return;
 	}
 
@@ -114,7 +125,7 @@ void ZENOH::run()
 			_zenoh_subscribers[i] = genSubscriber(type);
 
 			if (_zenoh_subscribers[i] != 0) {
-				_zenoh_subscribers[i]->declare_subscriber(z_session_loan(&s), topic);
+				_zenoh_subscribers[i]->declare_subscriber(s, topic);
 			}
 
 
@@ -141,7 +152,7 @@ void ZENOH::run()
 			_zenoh_publishers[i] = genPublisher(type);
 
 			if (_zenoh_publishers[i] != 0) {
-				_zenoh_publishers[i]->declare_publisher(z_session_loan(&s), topic);
+				_zenoh_publishers[i]->declare_publisher(s, topic);
 				_zenoh_publishers[i]->setPollFD(&pfds[i]);
 			}
 		}
@@ -154,13 +165,12 @@ void ZENOH::run()
 	if (_pub_count == 0) {
 		// Nothing to publish but we don't want to stop this thread
 		while (!should_exit()) {
-			sleep(2);
+			usleep(1000);
 		}
 	}
 
 	while (!should_exit()) {
 		int pret = px4_poll(pfds, _pub_count, 100);
-
 		if (pret == 0) {
 			//PX4_INFO("Zenoh poll timeout\n");
 
@@ -194,8 +204,8 @@ void ZENOH::run()
 	free(_zenoh_publishers);
 
 	// Stop read and lease tasks for zenoh-pico
-	zp_stop_read_task(z_session_loan(&s));
-	zp_stop_lease_task(z_session_loan(&s));
+	zp_stop_read_task(z_session_loan_mut(&s));
+	zp_stop_lease_task(z_session_loan_mut(&s));
 
 	z_close(z_session_move(&s));
 	exit_and_cleanup();
@@ -234,8 +244,8 @@ Zenoh demo bridge
 	PX4_INFO_RAW("     addsubscriber <zenoh_topic> <uorb_topic>  Publish Zenoh topic to uORB\n");
 	PX4_INFO_RAW("     net           <mode> <locator>            Zenoh network mode\n");
 	PX4_INFO_RAW("          <mode>    values: client|peer   \n");
-	PX4_INFO_RAW("          <locator> client: locator address for router\n");
-	PX4_INFO_RAW("                    peer: multicast address e.g. udp/224.0.0.225:7447#iface=eth0\n");
+	PX4_INFO_RAW("          <locator> client: locator address e.g. tcp/10.41.10.1:7447#iface=eth0\n");
+	PX4_INFO_RAW("                    peer: multicast address e.g. udp/224.0.0.224:7446#iface=eth0\n");
 	return 0;
 }
 

@@ -54,7 +54,7 @@ public:
 	Zenoh_Publisher(bool rostopic = true);
 	virtual ~Zenoh_Publisher();
 
-	virtual int declare_publisher(z_session_t s, const char *keyexpr);
+	virtual int declare_publisher(z_owned_session_t s, const char *keyexpr);
 
 	virtual int undeclare_publisher();
 
