@@ -670,9 +670,9 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 	}
 
 	// update flight uuid
-	const int32_t flight_uuid = _param_flight_uuid.get() + 1;
-	_param_flight_uuid.set(flight_uuid);
-	_param_flight_uuid.commit_no_notification();
+	const int32_t flight_uuid = _param_com_flight_uuid.get() + 1;
+	_param_com_flight_uuid.set(flight_uuid);
+	_param_com_flight_uuid.commit_no_notification();
 
 	_status_changed = true;
 
@@ -1991,7 +1991,7 @@ void Commander::checkForMissionUpdate()
 			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
 				// Transition mode to loiter or auto-mission after takeoff is completed.
-				if ((_param_takeoff_finished_action.get() == 1) && auto_mission_available) {
+				if ((_param_com_takeoff_act.get() == 1) && auto_mission_available) {
 					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
 				} else {
@@ -2236,7 +2236,7 @@ void Commander::handleAutoDisarm()
 	if (isArmed()) {
 
 		// Check for auto-disarm on landing or pre-flight
-		if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
+		if (_param_com_disarm_land.get() > 0 || _param_com_disarm_prflt.get() > 0) {
 
 			const bool landed_amid_mission = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 							 && !_mission_result_sub.get().finished;
@@ -2247,8 +2247,8 @@ void Commander::handleAutoDisarm()
 				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
 				_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
-			} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
-				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
+			} else if (_param_com_disarm_prflt.get() > 0 && !_have_taken_off_since_arming) {
+				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_prflt.get() * 1_s);
 				_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
 			}
 
