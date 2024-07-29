@@ -121,6 +121,7 @@ void SeseOmni::Run()
 			_manual_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL);
 			_acro_driving = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO);
 			_position_control = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL);
+			_hold_mode = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 
 		}
 	}
@@ -238,6 +239,63 @@ void SeseOmni::Run()
 
 			float velocity_x_setpoint = pid_calculate(&_x_pos_pid, x_pos_setpoint, x_pos_ned, velocity_x_ned, dt);
 			float velocity_y_setpoint = pid_calculate(&_y_pos_pid, y_pos_setpoint, y_pos_ned, velocity_y_ned, dt);
+
+			// Transformation from NED to body frame
+			float sin_heading = sin(heading);
+			float cos_heading = cos(heading);
+			float velocity_x_body_frame = cos_heading * velocity_x_ned - sin_heading * velocity_y_ned;
+			float velocity_y_body_frame = sin_heading * velocity_x_ned + cos_heading * velocity_y_ned;
+			float acceleration_x_body_frame = cos_heading * acceleration_x_ned - sin_heading * acceleration_y_ned;
+			float acceleration_y_body_frame = sin_heading * acceleration_x_ned + cos_heading * acceleration_y_ned;
+
+			thrust_setpoint.timestamp = now;
+			thrust_setpoint.xyz[0] = pid_calculate(&_x_velocity_pid, velocity_x_setpoint, velocity_x_body_frame, acceleration_x_body_frame, dt)*thrust_scaling.get();
+			thrust_setpoint.xyz[1] = pid_calculate(&_y_velocity_pid, velocity_y_setpoint, velocity_y_body_frame, acceleration_y_body_frame, dt)*thrust_scaling.get();
+			thrust_setpoint.xyz[2] = 0.0f;
+
+
+			status.timestamp = now;
+			for (int i = 0; i < 3; i++)
+			{
+				status.control_power[i] = 100.0f;
+			}
+
+			_vehicle_torque_setpoint_pub.publish(torque_setpoint);
+			_vehicle_thrust_setpoint_pub.publish(thrust_setpoint);
+			_actuator_controls_status_pub.publish(status);
+		}
+	}
+	else if(_hold_mode){
+		if (_local_pos_setpoint_sub.update(&_local_pos_setpoint)) {
+			_x_pos_sp = _local_pos_setpoint.x;
+			_y_pos_sp = _local_pos_setpoint.y;
+		}
+		if (_local_pos_sub.update(&_local_pos)) {
+			const float dt = math::min((now - _time_stamp_last), 5000_ms) / 1e3f;
+			_time_stamp_last = now;
+
+			float heading_setpoint = heading_sp.get();
+
+			float heading = _local_pos.heading;
+			float x_pos_ned = _local_pos.x;
+			float y_pos_ned = _local_pos.y;
+			float velocity_x_ned = _local_pos.vx;
+			float velocity_y_ned = _local_pos.vy;
+			float acceleration_x_ned = _local_pos.ax;
+			float acceleration_y_ned = _local_pos.ay;
+
+			vehicle_torque_setpoint_s torque_setpoint{};
+			vehicle_thrust_setpoint_s thrust_setpoint{};
+			actuator_controls_status_s status;
+
+			torque_setpoint.timestamp = now;
+			torque_setpoint.xyz[0] = 0.0f;
+			torque_setpoint.xyz[1] = 0.0f;
+			torque_setpoint.xyz[2] = pid_calculate(&_att_pid, heading_setpoint, heading, 0.0f, dt)*torque_scaling.get();
+
+
+			float velocity_x_setpoint = pid_calculate(&_x_pos_pid, this->_x_pos_sp, x_pos_ned, velocity_x_ned, dt);
+			float velocity_y_setpoint = pid_calculate(&_y_pos_pid, this->_y_pos_sp, y_pos_ned, velocity_y_ned, dt);
 
 			// Transformation from NED to body frame
 			float sin_heading = sin(heading);

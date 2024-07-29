@@ -49,6 +49,7 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <lib/pid/pid.h>
 
 using namespace time_literals;
@@ -80,6 +81,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _local_pos_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
 	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
 
@@ -92,6 +94,8 @@ private:
 	bool _mission_driving = false;
 	bool _acro_driving = false;
 	bool _position_control = false;
+	bool _hold_mode = false;
+	vehicle_local_position_setpoint_s _local_pos_setpoint{};
 	vehicle_local_position_s _local_pos{};
 	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
 
@@ -107,6 +111,9 @@ private:
 
 	float _max_speed{0.1f};
 	float _max_angular_velocity{0.1f};
+
+	float _x_pos_sp{0.0};
+	float _y_pos_sp{0.0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ATT_P_GAIN>) att_p_gain,
