@@ -58,7 +58,7 @@ float PurePursuit::calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2
 				      const float vehicle_speed)
 {
 	// Check input validity
-	if (!curr_wp_ned.isAllFinite() || !curr_pos_ned.isAllFinite() || vehicle_speed < 0.f
+	if (!curr_wp_ned.isAllFinite() || !curr_pos_ned.isAllFinite() || vehicle_speed < -FLT_EPSILON
 	    || !PX4_ISFINITE(vehicle_speed) || !prev_wp_ned.isAllFinite()) {
 		return NAN;
 	}
