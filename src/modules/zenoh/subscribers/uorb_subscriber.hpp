@@ -65,7 +65,7 @@ public:
 	{
 		char data[_uorb_meta->o_size];
 
-		const z_loaned_bytes_t* payload = z_sample_payload(sample);
+		const z_loaned_bytes_t *payload = z_sample_payload(sample);
 		size_t len = z_bytes_len(payload);
 
 		dds_istream_t is = {.m_buffer = (unsigned char *)(payload), .m_size = static_cast<int>(len),

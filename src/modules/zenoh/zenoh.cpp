@@ -94,18 +94,21 @@ void ZENOH::run()
 	PX4_INFO("Opening session...");
 	z_owned_session_t s;
 	ret = z_open(&s, z_move(config));
+
 	if (ret  < 0) {
 		PX4_ERR("Unable to open session, ret: %d", ret);
 		return;
 	}
 
 	PX4_INFO("Checking session...");
+
 	if (!z_session_check(&s)) {
 		PX4_ERR("Unable to check session!");
 		return;
 	}
-	
+
 	PX4_INFO("Starting reading/writing tasks...");
+
 	// Start read and lease tasks for zenoh-pico
 	if (zp_start_read_task(z_loan_mut(s), NULL) < 0 || zp_start_lease_task(z_loan_mut(s), NULL) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
@@ -171,6 +174,7 @@ void ZENOH::run()
 
 	while (!should_exit()) {
 		int pret = px4_poll(pfds, _pub_count, 100);
+
 		if (pret == 0) {
 			//PX4_INFO("Zenoh poll timeout\n");
 
