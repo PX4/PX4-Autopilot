@@ -1,20 +1,15 @@
-FROM ghcr.io/tiiuae/fog-ros-baseimage-builder:v2.1.0
+FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget
+RUN apt update && apt install -y \
+    curl lsb-release \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list
-RUN wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
-RUN apt-get update && apt-get install -y --no-install-recommends \
-   libignition-transport8-dev \
-   && rm -rf /var/lib/apt/lists/*
+RUN curl https://packages.osrfoundation.org/gazebo.gpg --output /tmp/pkgs-osrf-archive-keyring.gpg
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/tmp/pkgs-osrf-archive-keyring.gpg, trusted=yes] http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" | \
+    tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget
-
-RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list
-RUN wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt update
+RUN apt install -y \
     libignition-transport8-dev \
     && rm -rf /var/lib/apt/lists/*
 
