@@ -185,7 +185,7 @@ parameters:
           long: SetPoint for X axis position (in NED)
         type: float
         unit: m
-        min: 0.0
+        min: -10.0
         max: 10
         increment: 0.001
         decimal: 3
@@ -194,6 +194,28 @@ parameters:
         description:
           short: SetPoint for Y axis position (in NED)
           long: SetPoint for Y axis position (in NED)
+        type: float
+        unit: m
+        min: -10.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      THRUST_SCALING:
+        description:
+          short: Scaling factor for thrust
+          long: Scaling factor for thrust
+        type: float
+        unit: m
+        min: 0.0
+        max: 10
+        increment: 0.001
+        decimal: 3
+        default: 0.0
+      TORQUE_SCALING:
+        description:
+          short: Scaling factor for torque
+          long: Scaling factor for torque
         type: float
         unit: m
         min: 0.0
