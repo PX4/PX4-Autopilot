@@ -1970,15 +1970,15 @@ void Commander::checkForMissionUpdate()
 
 				if (!auto_mission_available) {
 					/* the mission is invalid */
-					tune_mission_fail(true);
+					tune_mission_fail(true, _param_led_mission_is_fail.get(), _param_led_mission_is_fail_mode.get());
 
 				} else if (mission_result.warning) {
 					/* the mission has a warning */
-					tune_mission_warn(true);
+					tune_mission_warn(true, _param_led_mission_is_warning.get(), _param_led_mission_is_warning_mode.get());
 
 				} else {
 					/* the mission is valid */
-					tune_mission_ok(true);
+					tune_mission_ok(true, _param_led_mission_is_ok.get(), _param_led_mission_is_ok_mode.get());
 				}
 			}
 		}

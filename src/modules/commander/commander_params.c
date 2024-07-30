@@ -1015,3 +1015,95 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
+
+/**
+ * Mission suitable LED color
+ *
+ * @group Commander
+ * @value 0 OFF
+ * @value 1 RED
+ * @value 2 GREEN
+ * @value 3 BLUE
+ * @value 4 YELLOW
+ * @value 5 PURPLE
+ * @value 6 AMBER
+ * @value 7 CYAN
+ * @value 8 WHITE
+ */
+PARAM_DEFINE_INT32(COM_LED_O_CLR, 2);
+
+/**
+ * Mission warning LED color
+ *
+ * @group Commander
+ * @value 0 OFF
+ * @value 1 RED
+ * @value 2 GREEN
+ * @value 3 BLUE
+ * @value 4 YELLOW
+ * @value 5 PURPLE
+ * @value 6 AMBER
+ * @value 7 CYAN
+ * @value 8 WHITE
+ */
+PARAM_DEFINE_INT32(COM_LED_W_CLR, 4);
+/**
+ * Mission fail LED color
+ *
+ * @group Commander
+ * @value 0 OFF
+ * @value 1 RED
+ * @value 2 GREEN
+ * @value 3 BLUE
+ * @value 4 YELLOW
+ * @value 5 PURPLE
+ * @value 6 AMBER
+ * @value 7 CYAN
+ * @value 8 WHITE
+ */
+PARAM_DEFINE_INT32(COM_LED_F_CLR, 1);
+
+/**
+ * Mission suitable LED mode
+ *
+ * @group Commander
+ * @value 0 OFF
+ * @value 1 ON
+ * @value 2 MODE_DISABLED
+ * @value 3 MODE_BLINK_SLOW
+ * @value 4 MODE_BLINK_NORMAL
+ * @value 5 MODE_BLINK_FAST
+ * @value 6 MODE_BREATHE
+ * @value 7 MODE_FLASH
+ */
+PARAM_DEFINE_INT32(COM_LED_O_MD, 5);
+
+/**
+ * Mission warning LED mode
+ *
+ * @group Commander
+ * @value 0 OFF
+ * @value 1 ON
+ * @value 2 MODE_DISABLED
+ * @value 3 MODE_BLINK_SLOW
+ * @value 4 MODE_BLINK_NORMAL
+ * @value 5 MODE_BLINK_FAST
+ * @value 6 MODE_BREATHE
+ * @value 7 MODE_FLASH
+ */
+PARAM_DEFINE_INT32(COM_LED_W_MD, 5);
+
+/**
+ * Mission fail LED mode
+ *
+ * @group Commander
+ * @value 0 OFF
+ * @value 1 ON
+ * @value 2 MODE_DISABLED
+ * @value 3 MODE_BLINK_SLOW
+ * @value 4 MODE_BLINK_NORMAL
+ * @value 5 MODE_BLINK_FAST
+ * @value 6 MODE_BREATHE
+ * @value 7 MODE_FLASH
+ */
+PARAM_DEFINE_INT32(COM_LED_F_MD, 5);
