@@ -27,43 +27,6 @@ parameters:
         decimal: 2
         default: 0.5236
 
-      RA_LOOKAHD_GAIN:
-        description:
-          short: Tuning parameter for the pure pursuit controller
-          long: Lower value -> More aggressive controller (beware overshoot/oscillations)
-        type: float
-        min: 0.1
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 1
-
-      RA_LOOKAHD_MAX:
-        description:
-          short: Maximum lookahead distance for the pure pursuit controller
-          long: |
-            This is the maximum crosstrack error before the controller starts
-            targeting the current waypoint rather then the path between the previous
-            and next waypoint.
-        type: float
-        unit: m
-        min: 0.1
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 10
-
-      RA_LOOKAHD_MIN:
-        description:
-          short: Minimum lookahead distance for the pure pursuit controller
-        type: float
-        unit: m
-        min: 0.1
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 1
-
       RA_ACC_RAD_MAX:
         description:
           short: Maximum acceptance radius for the waypoints
