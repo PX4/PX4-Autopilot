@@ -44,6 +44,7 @@
 #include "geofence.h"
 #include "land.h"
 #include "precland.h"
+#include "precloiter.h"
 #include "loiter.h"
 #include "mission.h"
 #include "navigator_mode.h"
@@ -163,6 +164,7 @@ public:
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+	PrecLoiter *get_precloiter() { return &_precloiter; } /**< allow others, e.g. Mission, to use the precision loiter block */
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -350,6 +352,7 @@ private:
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
+	PrecLoiter	_precloiter;			/**< class for handling precision loiter commands */
 	RTL 		_rtl;				/**< class that handles RTL */
 	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
 

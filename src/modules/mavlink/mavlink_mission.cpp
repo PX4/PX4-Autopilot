@@ -1601,6 +1601,11 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_DO_SET_ACTUATOR:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			break;
+		case MAV_CMD_DO_PRECISION_HOLD:
+
+			mission_item->nav_cmd = NAV_CMD_DO_PRECISION_HOLD;
+			mission_item->params[0] = mavlink_mission_item->param1; // Height above target
+			break;
 
 		default:
 			mission_item->nav_cmd = NAV_CMD_INVALID;
@@ -1691,6 +1696,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case NAV_CMD_SET_CAMERA_ZOOM:
 		case NAV_CMD_SET_CAMERA_FOCUS:
 		case NAV_CMD_DO_VTOL_TRANSITION:
+		:
+		case MAV_CMD_DO_PRECISION_HOLD:
 			break;
 
 		default:
