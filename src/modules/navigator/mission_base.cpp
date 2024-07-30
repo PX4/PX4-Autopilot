@@ -1383,6 +1383,8 @@ bool MissionBase::canRunMissionFeasibility()
 {
 	return _navigator->home_global_position_valid() && // Need to have a home position checked
 	       _navigator->get_global_position()->timestamp > 0 && // Need to have a position, for first waypoint check
+	       _navigator->get_global_position()->lat_lon_valid &&
+	       _navigator->get_global_position()->alt_valid &&
 	       (_geofence_status_sub.get().timestamp > 0) && // Geofence data must be loaded
 	       (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
 	       (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY);

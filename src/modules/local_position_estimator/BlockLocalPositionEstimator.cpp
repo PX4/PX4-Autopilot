@@ -806,7 +806,9 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().timestamp_sample = _timeStamp;
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;
+		_pub_gpos.get().lat_lon_valid = _estimatorInitialized & EST_XY;
 		_pub_gpos.get().alt = alt;
+		_pub_gpos.get().alt_valid = _estimatorInitialized & EST_Z;
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);

@@ -604,19 +604,19 @@ uint16_t Ekf::get_ekf_soln_status() const
 	soln_status.flags.attitude = attitude_valid();
 
 	// 2	ESTIMATOR_VELOCITY_HORIZ	True if the horizontal velocity estimate is good
-	soln_status.flags.velocity_horiz = local_position_is_valid();
+	soln_status.flags.velocity_horiz = isLocalHorizontalPositionValid();
 
 	// 4	ESTIMATOR_VELOCITY_VERT	True if the vertical velocity estimate is good
 	soln_status.flags.velocity_vert = isLocalVerticalVelocityValid() || isLocalVerticalPositionValid();
 
 	// 8	ESTIMATOR_POS_HORIZ_REL	True if the horizontal position (relative) estimate is good
-	soln_status.flags.pos_horiz_rel = local_position_is_valid();
+	soln_status.flags.pos_horiz_rel = isLocalHorizontalPositionValid();
 
 	// 16	ESTIMATOR_POS_HORIZ_ABS	True if the horizontal position (absolute) estimate is good
-	soln_status.flags.pos_horiz_abs = global_position_is_valid();
+	soln_status.flags.pos_horiz_abs = isGlobalHorizontalPositionValid();
 
 	// 32	ESTIMATOR_POS_VERT_ABS	True if the vertical position (absolute) estimate is good
-	soln_status.flags.pos_vert_abs = isVerticalAidingActive();
+	soln_status.flags.pos_vert_abs = isGlobalVerticalPositionValid();
 
 	// 64	ESTIMATOR_POS_VERT_AGL	True if the vertical position (above ground) estimate is good
 #if defined(CONFIG_EKF2_TERRAIN)

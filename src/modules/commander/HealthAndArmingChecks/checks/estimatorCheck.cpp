@@ -745,7 +745,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	}
 
 	failsafe_flags.global_position_invalid =
-		!checkPosVelValidity(now, xy_valid, gpos.eph, lpos_eph_threshold, gpos.timestamp,
+		!checkPosVelValidity(now, gpos.lat_lon_valid, gpos.eph, lpos_eph_threshold, gpos.timestamp,
 				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
 
 	// Additional warning if the system is about to enter position-loss failsafe after dead-reckoning period
