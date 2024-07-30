@@ -258,8 +258,8 @@ void RoverAckermannGuidance::updateWaypoints()
 }
 
 float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
-		const Vector2f &next_wp_ned, const float &default_acceptance_radius, const float &acceptance_radius_gain,
-		const float &acceptance_radius_max, const float &wheel_base, const float &max_steer_angle)
+		const Vector2f &next_wp_ned, const float default_acceptance_radius, const float acceptance_radius_gain,
+		const float acceptance_radius_max, const float wheel_base, const float max_steer_angle)
 {
 	// Setup variables
 	const Vector2f curr_to_prev_wp_ned = prev_wp_ned - curr_wp_ned;
@@ -287,7 +287,7 @@ float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_ned
 }
 
 float RoverAckermannGuidance::calcDesiredSteering(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
-		const Vector2f &curr_pos_ned, const float &wheel_base, const float &desired_speed, const float &vehicle_yaw)
+		const Vector2f &curr_pos_ned, const float wheel_base, const float desired_speed, const float vehicle_yaw)
 {
 	// Calculate desired steering to reach lookahead point
 	const float desired_heading = _pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned,

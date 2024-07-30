@@ -82,7 +82,7 @@ public:
 	 * @brief Compute guidance for ackermann rover and return motor_setpoint for throttle and steering.
 	 * @param nav_state Vehicle navigation state
 	 */
-	motor_setpoint computeGuidance(const int nav_state);
+	motor_setpoint computeGuidance(int nav_state);
 
 	/**
 	 * @brief Update global/NED waypoint coordinates and acceptance radius
@@ -103,8 +103,8 @@ public:
 	 * @param max_steer_angle Rover maximum steer angle.
 	 */
 	float updateAcceptanceRadius(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
-				     const Vector2f &next_wp_ned, const float &default_acceptance_radius, const float &acceptance_radius_gain,
-				     const float &acceptance_radius_max, const float &wheel_base, const float &max_steer_angle);
+				     const Vector2f &next_wp_ned, float default_acceptance_radius, float acceptance_radius_gain,
+				     float acceptance_radius_max, float wheel_base, float max_steer_angle);
 
 	/**
 	 * @brief Calculate and return desired steering input
@@ -116,8 +116,7 @@ public:
 	 * @param vehicle_yaw Current yaw of the rover.
 	 */
 	float calcDesiredSteering(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
-				  const float &wheel_base,
-				  const float &desired_speed, const float &vehicle_yaw);
+				  float wheel_base, float desired_speed, float vehicle_yaw);
 
 protected:
 	/**

@@ -55,8 +55,8 @@ using namespace matrix;
  * the target point for the vehicle.
  * The lookahead distance is defined as v * k.
  * 	v: Vehicle ground speed [m/s]
- * 	k: Tuning parameter (Implemented as PP_LOOKAHD_GAIN)
- * The lookahead distance is further constrained between an upper and lower threshhold (Implemented as PP_LOOKAHD_MAX, PP_LOOKAHD_MIN).
+ * 	k: Tuning parameter
+ * The lookahead distance is further constrained between an upper and lower threshhold.
  * 							C
  * 		  				       /
  * 						    __/__
@@ -100,7 +100,7 @@ public:
 	 * @param RA_LOOKAHD_MIN Minimum lookahead distance [m]
 	 */
 	float calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
-				 const float vehicle_speed);
+				 float vehicle_speed);
 
 	float getLookaheadDistance() {return _lookahead_distance;};
 
