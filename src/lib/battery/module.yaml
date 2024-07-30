@@ -81,7 +81,6 @@ parameters:
                 14: 14S Battery
                 15: 15S Battery
                 16: 16S Battery
-            reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0, 0, 0]
