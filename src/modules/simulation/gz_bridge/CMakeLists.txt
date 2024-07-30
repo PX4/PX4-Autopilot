@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+add_subdirectory(camera)
+
 # Find the gz_Transport library
 # First look for GZ Harmonic libraries
 find_package(gz-transport NAMES gz-transport13)
@@ -69,6 +71,7 @@ if(gz-transport_FOUND)
 		DEPENDS
 			mixer_module
 			px4_work_queue
+			gz_camera
 			${GZ_TRANSPORT_LIB}
 		MODULE_CONFIG
 			module.yaml
@@ -92,7 +95,8 @@ if(gz-transport_FOUND)
 		default
 		windy
 		baylands
-  		lawn
+		lawn
+		aruco
 	)
 
 	# find corresponding airframes
