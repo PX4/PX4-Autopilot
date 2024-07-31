@@ -42,6 +42,8 @@ import re
 import em
 import yaml
 
+DEFAULT_POLLING_RATE = 10
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--topic-msg-dir", dest='msgdir', type=str,
                     help="Topics message, by default using relative path 'msg/'", default="msg")
@@ -98,6 +100,10 @@ def process_message_type(msg_type):
     msg_type['dds_type'] = msg_type['type'].replace("::msg::", "::msg::dds_::") + "_"
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
+    if "polling_interval" not in msg_type:
+        msg_type["polling_interval"] = DEFAULT_POLLING_RATE
+    else:
+        msg_type["polling_interval"] = int(msg_type["polling_interval"])
 
 pubs_not_empty = msg_map['publications'] is not None
 if pubs_not_empty:
