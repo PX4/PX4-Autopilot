@@ -142,6 +142,12 @@ __EXPORT uint32_t version_tag_to_vendor_version_number(const char *tag);
 __EXPORT uint32_t px4_firmware_vendor_version(void);
 
 /**
+ * get the PX4 Firmware vendor version git tag top number
+ * @return number of git commits after git tag
+ */
+__EXPORT uint32_t px4_firmware_git_top_number(void);
+
+/**
  * get the board version (last 8 bytes should be silicon ID, if any)
  */
 __EXPORT uint32_t px4_board_version(void);
