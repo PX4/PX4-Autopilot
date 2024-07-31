@@ -176,7 +176,7 @@ int Logger::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("logger",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_LOG_CAPTURE,
-				      PX4_STACK_ADJUSTED(3700),
+				      PX4_STACK_ADJUSTED(CONFIG_LOGGER_STACK_SIZE),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
