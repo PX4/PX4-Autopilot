@@ -2164,23 +2164,20 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 				_hdg_hold_enabled = true;
 				_hdg_hold_yaw = _yaw;
 
-				_hdg_hold_position.lat = _current_latitude;
-				_hdg_hold_position.lon = _current_longitude;
+				_hdg_hold_position = Vector2f(_local_pos.x, _local_pos.y);
 			}
 
 			// if there's a reset-by-fusion, the ekf needs some time to converge,
 			// therefore we go into track holiding for 2 seconds
 			if (_local_pos.timestamp - _time_last_xy_reset < 2_s) {
-				_hdg_hold_position.lat = _current_latitude;
-				_hdg_hold_position.lon = _current_longitude;
+				_hdg_hold_position = Vector2f(_local_pos.x, _local_pos.y);
 			}
 
 			Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-			Vector2f curr_wp_local = _global_local_proj_ref.project(_hdg_hold_position.lat, _hdg_hold_position.lon);
 
 			_npfg.setAirspeedNom(calibrated_airspeed_sp * _eas2tas);
 			_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
-			navigateLine(curr_wp_local, _hdg_hold_yaw, curr_pos_local, ground_speed, _wind_vel);
+			navigateLine(_hdg_hold_position, _hdg_hold_yaw, curr_pos_local, ground_speed, _wind_vel);
 			_att_sp.roll_body = getCorrectedNpfgRollSetpoint();
 			calibrated_airspeed_sp = _npfg.getAirspeedRef() / _eas2tas;
 
