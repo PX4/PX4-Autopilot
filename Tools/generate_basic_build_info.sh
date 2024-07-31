@@ -16,7 +16,11 @@ if [ -z "${1:-}" ]; then
 fi
 
 repo=$(basename `git rev-parse --show-toplevel`)
+# short sha for compatibility
 sha=$(git rev-parse --short HEAD)
+# separate px4_sha for long sha
+px4_sha=$(git rev-parse HEAD)
+
 # github variables are set only in github
 if [ -z "${GITHUB_SERVER_URL:-}" ] || [ -z "${GITHUB_REPOSITORY:-}" ] || [ -z "${GITHUB_RUN_ID:-}" ]; then
 	build_url="undefined"
@@ -28,6 +32,7 @@ fi
 declare -A build_info
 build_info["reponame"]=${repo}
 build_info["sha"]=${sha}
+build_info["px4_firmware_sha"]=${px4_sha}
 build_info["build_url"]=${build_url}
 
 # loop thru associative array and print key value pairs

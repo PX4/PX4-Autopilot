@@ -242,6 +242,11 @@ uint32_t px4_firmware_vendor_version(void)
 	return version_tag_to_vendor_version_number(PX4_GIT_TAG_STR);
 }
 
+uint32_t px4_firmware_git_top_number(void)
+{
+	return PX4_GIT_VERSION_TOP;
+}
+
 const char *px4_firmware_git_branch(void)
 {
 	return PX4_GIT_BRANCH_NAME;
