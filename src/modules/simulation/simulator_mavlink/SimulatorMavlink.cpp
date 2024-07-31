@@ -247,8 +247,8 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 
 		if (sensors.id == 0) {
 			// gyro 0 is simulated FIFO
-			static constexpr float GYRO_FIFO_SCALE = math::radians(2000.f / 32768.f);
-			static constexpr float GYRO_FIFO_RANGE = math::radians(2000.f);
+			static constexpr float GYRO_FIFO_SCALE = math::radians(8000.f / 32768.f);
+			static constexpr float GYRO_FIFO_RANGE = math::radians(8000.f);
 
 			_px4_gyro[sensors.id].set_scale(GYRO_FIFO_SCALE);
 			_px4_gyro[sensors.id].set_range(GYRO_FIFO_RANGE);
