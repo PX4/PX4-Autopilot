@@ -37,6 +37,7 @@ publications:
 
   - topic: /fmu/out/sensor_combined
     type: px4_msgs::msg::SensorCombined
+    polling_interval: 1
 
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
