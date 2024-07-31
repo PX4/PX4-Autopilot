@@ -1,0 +1,26 @@
+--- a/platforms/nuttx/src/px4/stm/stm32_common/adc/adc.cpp
++++ b/platforms/nuttx/src/px4/stm/stm32_common/adc/adc.cpp
+@@ -125,7 +125,7 @@ int px4_arch_adc_init(uint32_t base_address)
+ 	/* do calibration if supported */
+ #ifdef ADC_CR2_CAL
+ 	rCR2(base_address) |= ADC_CR2_CAL;
+-	px4_usleep(100);
++	up_udelay(100);
+ 
+ 	if (rCR2(base_address) & ADC_CR2_CAL) {
+ 		return -1;
+@@ -165,11 +165,11 @@ int px4_arch_adc_init(uint32_t base_address)
+ 
+ 	/* power-cycle the ADC and turn it on */
+ 	rCR2(base_address) &= ~ADC_CR2_ADON;
+-	px4_usleep(10);
++    up_udelay(10);
+ 	rCR2(base_address) |= ADC_CR2_ADON;
+-	px4_usleep(10);
++    up_udelay(10);
+ 	rCR2(base_address) |= ADC_CR2_ADON;
+-	px4_usleep(10);
++    up_udelay(10);
+ 
+ 	/* kick off a sample and wait for it to complete */
+ 	hrt_abstime now = hrt_absolute_time();

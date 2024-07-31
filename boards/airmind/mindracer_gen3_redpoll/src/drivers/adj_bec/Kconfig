@@ -1,0 +1,6 @@
+menuconfig Adjustable_BEC
+    bool "Adjustable_BEC"
+    default y
+    ---help---
+        Enable adjustable BEC output
+
