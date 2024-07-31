@@ -60,42 +60,42 @@
  */
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-    initIOTimer(Timer::Timer8),
-    initIOTimer(Timer::Timer3),
+	initIOTimer(Timer::Timer8),
+	initIOTimer(Timer::Timer3),
 	initIOTimer(Timer::Timer9),
-    initIOTimer(Timer::Timer4),
-    initIOTimer(Timer::Timer1),
+	initIOTimer(Timer::Timer4),
+	initIOTimer(Timer::Timer1),
 	initIOTimer(Timer::Timer2),
-    //initIOTimer(Timer::Timer13),
-    //initIOTimer(Timer::Timer5),
-    //initIOTimer(Timer::Timer14),
-    //initIOTimer(Timer::Timer16),
+	//initIOTimer(Timer::Timer13),
+	//initIOTimer(Timer::Timer5),
+	//initIOTimer(Timer::Timer14),
+	//initIOTimer(Timer::Timer16),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-    //AUX CH1~8
+	//AUX CH1~8
 	initIOTimerChannel(io_timers, {Timer::Timer8, Timer::Channel1}, {GPIO::PortC, GPIO::Pin6}),
 	initIOTimerChannel(io_timers, {Timer::Timer8, Timer::Channel2}, {GPIO::PortC, GPIO::Pin7}),
 	initIOTimerChannel(io_timers, {Timer::Timer8, Timer::Channel3}, {GPIO::PortC, GPIO::Pin8}),
 	initIOTimerChannel(io_timers, {Timer::Timer8, Timer::Channel4}, {GPIO::PortC, GPIO::Pin9}),
-    initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel3}, {GPIO::PortB, GPIO::Pin10}),
-    initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin15}),
-    initIOTimerChannel(io_timers, {Timer::Timer9, Timer::Channel1}, {GPIO::PortE, GPIO::Pin5}),
-    initIOTimerChannel(io_timers, {Timer::Timer9, Timer::Channel2}, {GPIO::PortE, GPIO::Pin6}),
-    //FMU CH1~6
+	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel3}, {GPIO::PortB, GPIO::Pin10}),
+	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin15}),
+	initIOTimerChannel(io_timers, {Timer::Timer9, Timer::Channel1}, {GPIO::PortE, GPIO::Pin5}),
+	initIOTimerChannel(io_timers, {Timer::Timer9, Timer::Channel2}, {GPIO::PortE, GPIO::Pin6}),
+	//FMU CH1~6
 	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel1}, {GPIO::PortD, GPIO::Pin12}),
 	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel2}, {GPIO::PortD, GPIO::Pin13}),
-    initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel3}, {GPIO::PortD, GPIO::Pin14}),
-    initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel4}, {GPIO::PortD, GPIO::Pin15}),
+	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel3}, {GPIO::PortD, GPIO::Pin14}),
+	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel4}, {GPIO::PortD, GPIO::Pin15}),
 	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::PortE, GPIO::Pin11}),
 	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel3}, {GPIO::PortA, GPIO::Pin10}),
-    //initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortH, GPIO::Pin6}),
-    //initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel2}, {GPIO::PortH, GPIO::Pin9}),
-    //others
-    //initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel1}, {GPIO::PortA, GPIO::Pin8}), /* Heater*/
-    //initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin15}), /* SPIx_SYNC*/
-    initIOTimerChannelCapture(io_timers, {Timer::Timer3, Timer::Channel4}, {GPIO::PortB, GPIO::Pin1}), /* FMU_CAP1*/
-    //initIOTimerChannel(io_timers, {Timer::Timer13, Timer::Channel1}, {GPIO::PortA, GPIO::Pin6}), /* BUZZ*/
+	//initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortH, GPIO::Pin6}),
+	//initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel2}, {GPIO::PortH, GPIO::Pin9}),
+	//others
+	//initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel1}, {GPIO::PortA, GPIO::Pin8}), /* Heater*/
+	//initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin15}), /* SPIx_SYNC*/
+	initIOTimerChannelCapture(io_timers, {Timer::Timer3, Timer::Channel4}, {GPIO::PortB, GPIO::Pin1}), /* FMU_CAP1*/
+	//initIOTimerChannel(io_timers, {Timer::Timer13, Timer::Channel1}, {GPIO::PortA, GPIO::Pin6}), /* BUZZ*/
 };
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =

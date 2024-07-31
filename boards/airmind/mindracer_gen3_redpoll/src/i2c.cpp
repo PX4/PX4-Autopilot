@@ -37,10 +37,10 @@
 #include <px4_platform_common/i2c.h>
 
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-    initI2CBusInternal(1),
-    //initI2CBusExternal(4),
-    initI2CBusExternal(4),
-    //initI2CBusInternal(3),
+	initI2CBusInternal(1),
+	//initI2CBusExternal(4),
+	initI2CBusExternal(4),
+	//initI2CBusInternal(3),
 };
 #if 0
 bool px4_i2c_device_external(const uint32_t device_id)

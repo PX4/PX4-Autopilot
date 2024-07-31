@@ -96,9 +96,9 @@
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below */
 
 #define PX4_ADC_GPIO  \
-    /* PA0 */  ADC1_GPIO(0),  \
-    /* PA2 */  ADC1_GPIO(2),  \
-    /* PA4 */  ADC1_GPIO(4),  \
+	/* PA0 */  ADC1_GPIO(0),  \
+	/* PA2 */  ADC1_GPIO(2),  \
+	/* PA4 */  ADC1_GPIO(4),  \
 	/* PA5 */  ADC1_GPIO(5),  \
 	/* PA6 */  ADC1_GPIO(6),  \
 	/* PB0 */  ADC1_GPIO(8),  \
@@ -377,11 +377,11 @@
 		GPIO_CAN1_RX,                     \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_nPOWER_IN_A,                 \
-        GPIO_VDD_3V3_SD_CARD_EN,          \
+		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_RSSI_IN_INIT,                \
 		GPIO_nARMED_INIT,                 \
-        GPIO_TONE_ALARM_IDLE              \
+		GPIO_TONE_ALARM_IDLE              \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER

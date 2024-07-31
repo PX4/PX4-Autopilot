@@ -36,14 +36,14 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-    initSPIBusExternal(SPI::Bus::SPI2, {
-        initSPIConfigExternal(SPI::CS{GPIO::PortD, GPIO::Pin2}, SPI::DRDY{GPIO::PortE, GPIO::Pin4}),
-        initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin2})
-    }),
-    initSPIBus(SPI::Bus::SPI3, {
-        initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortC, GPIO::Pin15}),
-        initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::PortC, GPIO::Pin13}),
-    }),
+	initSPIBusExternal(SPI::Bus::SPI2, {
+		initSPIConfigExternal(SPI::CS{GPIO::PortD, GPIO::Pin2}, SPI::DRDY{GPIO::PortE, GPIO::Pin4}),
+		initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin2})
+	}),
+	initSPIBus(SPI::Bus::SPI3, {
+		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortC, GPIO::Pin15}),
+		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::PortC, GPIO::Pin13}),
+	}),
 	initSPIBus(SPI::Bus::SPI4, {
 		//initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortF, GPIO::Pin2}, SPI::DRDY{GPIO::PortB, GPIO::Pin4}),
 		initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortD, GPIO::Pin11}, SPI::DRDY{GPIO::PortD, GPIO::Pin5}),

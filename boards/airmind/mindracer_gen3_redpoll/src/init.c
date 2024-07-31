@@ -169,22 +169,24 @@ stm32_boardinitialize(void)
 	/* configure USB interfaces */
 
 	stm32_usbinitialize();
-    
-    /* Need hrt running before using the ADC */
-    hrt_init();
+
+	/* Need hrt running before using the ADC */
+	hrt_init();
 
 #if !defined(CONFIG_BUILD_FLAT)
-    hrt_ioctl_init();
+	hrt_ioctl_init();
 #endif
 
 #if !defined(BOOTLOADER)
-    if (OK == board_determine_hw_info()) {
-        syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
-               board_get_hw_type_name());
 
-    } else {
-        syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
-    }
+	if (OK == board_determine_hw_info()) {
+		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
+		       board_get_hw_type_name());
+
+	} else {
+		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
+	}
+
 #endif //!BOOTLOADER
 }
 
@@ -218,7 +220,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #if !defined(BOOTLOADER)
 
 	/* Power on Interfaces */
-    VDD_3V3_SD_CARD_EN(true);
+	VDD_3V3_SD_CARD_EN(true);
 
 	px4_platform_init();
 
@@ -238,30 +240,31 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		//led_on(LED_RED);
 	}
 
-    stm32_spiinitialize();
+	stm32_spiinitialize();
 
-    board_spi_reset(10, 0xffff);
+	board_spi_reset(10, 0xffff);
 
 #if defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SPI)
-    /* Get the SPI port for the microSD slot */
-    struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
+	/* Get the SPI port for the microSD slot */
+	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
-    if (!spi_dev) {
-        syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-    }
+	if (!spi_dev) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
+	}
 
-    /* Now bind the SPI interface to the MMCSD driver */
-    int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_dev);
+	/* Now bind the SPI interface to the MMCSD driver */
+	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_dev);
 
-    if (result != OK) {
-        syslog(LOG_ERR, "[boot] Could not bind MMCSD driver, expected on MindRacer Gen.3 Redpoll.\n");
-    }
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] Could not bind MMCSD driver, expected on MindRacer Gen.3 Redpoll.\n");
+	}
+
 #  endif /* CONFIG_MMCSD */
 
 	/* Configure the HW based on the manifest */
 
 	px4_platform_configure();
-    
+
 #endif //BOOTLOADER
 	return OK;
 }

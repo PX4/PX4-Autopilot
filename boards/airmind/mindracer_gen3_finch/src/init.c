@@ -179,20 +179,20 @@ stm32_boardinitialize(void)
 
 	/* configure USB interfaces */
 	stm32_usbinitialize();
-    
-    hrt_init();
+
+	hrt_init();
 
 #if !defined(CONFIG_BUILD_FLAT)
-    hrt_ioctl_init();
+	hrt_ioctl_init();
 #endif
 
-    if (OK == board_determine_hw_info()) {
-        syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
-               board_get_hw_type_name());
+	if (OK == board_determine_hw_info()) {
+		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
+		       board_get_hw_type_name());
 
-    } else {
-        syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
-    }
+	} else {
+		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
+	}
 
 }
 
@@ -234,22 +234,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Need hrt running before using the ADC */
 	px4_platform_init();
-    
+
 	/* configure SPI interfaces (after we determined the HW version) */
 	stm32_spiinitialize();
 
 	/* Does this board have CAN 2 or CAN 3 if not decouple the RX
 	 * from IP block Leave TX connected
 	 */
-/*
-	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_CAN2)) {
-		//px4_arch_configgpio(_GPIO_PULL_DOWN_INPUT(GPIO_CAN2_RX));
-	}
+	/*
+		if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_CAN2)) {
+			//px4_arch_configgpio(_GPIO_PULL_DOWN_INPUT(GPIO_CAN2_RX));
+		}
 
-	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_CAN3)) {
-		//px4_arch_configgpio(_GPIO_PULL_DOWN_INPUT(GPIO_CAN3_RX));
-	}
-*/
+		if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_CAN3)) {
+			//px4_arch_configgpio(_GPIO_PULL_DOWN_INPUT(GPIO_CAN3_RX));
+		}
+	*/
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
@@ -273,44 +273,45 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #if defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SPI)
-    /* Get the SPI port for the microSD slot */
-    struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
+	/* Get the SPI port for the microSD slot */
+	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
-    if (!spi_dev) {
-        syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
-        //led_on(LED_BLUE);
-    }
+	if (!spi_dev) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
+		//led_on(LED_BLUE);
+	}
 
-    /* Now bind the SPI interface to the MMCSD driver */
-    int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_dev);
+	/* Now bind the SPI interface to the MMCSD driver */
+	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_dev);
 
-    if (result != OK) {
-        syslog(LOG_ERR, "[boot] Could not bind MMCSD driver\n");
-    }
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] Could not bind MMCSD driver\n");
+	}
 
-    up_udelay(20);
+	up_udelay(20);
 
 #if defined(FLASH_BASED_PARAMS)
-    static sector_descriptor_t params_sector_map[] = {
-        {1, 32 * 1024, 0x081effff},
-        {2, 32 * 1024, 0x081f7fff},
-        {0, 0, 0},
-    };
+	static sector_descriptor_t params_sector_map[] = {
+		{1, 32 * 1024, 0x081effff},
+		{2, 32 * 1024, 0x081f7fff},
+		{0, 0, 0},
+	};
 
-    /* Initialize the flashfs layer to use heap allocated memory */
-    result = parameter_flashfs_init(params_sector_map, NULL, 0);
+	/* Initialize the flashfs layer to use heap allocated memory */
+	result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
-    if (result != OK) {
-        syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-        led_on(LED_AMBER);
-    }
-    else {
-        led_on(LED_AMBER);
-        //PX4_ERROR("Use Flash based params.\n");
-    }
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		led_on(LED_AMBER);
+
+	} else {
+		led_on(LED_AMBER);
+		//PX4_ERROR("Use Flash based params.\n");
+	}
+
 #endif
 #endif /* defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SPI) */
-    
+
 	/* Configure the HW based on the manifest */
 
 	px4_platform_configure();

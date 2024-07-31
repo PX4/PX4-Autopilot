@@ -90,11 +90,11 @@ static uint32_t g_ledmap[] = {
 __EXPORT void led_init(void)
 {
 	/* Configure LED GPIOs for output */
-    /*
+	/*
 	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
 		//g_ledmap[2] = GPIO_nSAFETY_SWITCH_LED_OUT;
 	}
-*/
+	*/
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		stm32_configgpio(g_ledmap[l]);
 	}
