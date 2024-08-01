@@ -42,8 +42,6 @@ import re
 import em
 import yaml
 
-DEFAULT_MAX_RATE_HZ = 100
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--topic-msg-dir", dest='msgdir', type=str,
                     help="Topics message, by default using relative path 'msg/'", default="msg")
@@ -87,6 +85,11 @@ with open(args.yaml_file, 'r') as file:
 merged_em_globals = {}
 all_type_includes = []
 
+if "default_max_rate_hz" not in msg_map:
+    msg_map["default_max_rate_hz"] = 100
+else:
+    msg_map["default_max_rate_hz"] = int(msg_map["default_max_rate_hz"])
+
 def process_message_type(msg_type):
     # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
     simple_base_type = msg_type['type'].split('::')[-1]
@@ -101,7 +104,7 @@ def process_message_type(msg_type):
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
     if "max_rate_hz" not in msg_type:
-        msg_type["max_rate_hz"] = DEFAULT_MAX_RATE_HZ
+        msg_type["max_rate_hz"] = msg_map["default_max_rate_hz"]
     else:
         msg_type["max_rate_hz"] = int(msg_type["max_rate_hz"])
 

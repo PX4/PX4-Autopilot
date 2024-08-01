@@ -3,6 +3,8 @@
 # This file maps all the topics that are to be used on the uXRCE-DDS client.
 #
 #####
+default_max_rate_hz: 100
+
 publications:
 
   - topic: /fmu/out/register_ext_component_reply
