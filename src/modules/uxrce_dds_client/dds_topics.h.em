@@ -75,7 +75,7 @@ void SendTopicsSubs::init() {
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
 		fds[idx].events = POLLIN;
-		orb_set_interval(fds[idx].fd, send_subscriptions[idx].max_rate_hz ? 1000000 / send_subscriptions[idx].max_rate_hz : 0);
+		orb_set_interval(fds[idx].fd, send_subscriptions[idx].max_rate_hz ? 1000 / send_subscriptions[idx].max_rate_hz : 0);
 	}
 }
 
