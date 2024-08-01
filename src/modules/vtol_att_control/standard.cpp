@@ -149,8 +149,8 @@ void Standard::update_vtol_state()
 				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
 				exit_backtransition_speed_condition = vel(0) < _params->mpc_xy_cruise;
 
-			} else if (PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
-				exit_backtransition_speed_condition = _airspeed_validated->calibrated_airspeed_m_s < _params->mpc_xy_cruise;
+			} else if (PX4_ISFINITE(get_filtered_airspeed())) {
+				exit_backtransition_speed_condition = get_filtered_airspeed() < _params->mpc_xy_cruise;
 			}
 
 			const bool exit_backtransition_time_condition = time_since_trans_start > _params->back_trans_duration;
@@ -177,7 +177,7 @@ void Standard::update_vtol_state()
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 
-			const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
+			const bool airspeed_triggers_transition = PX4_ISFINITE(get_filtered_airspeed())
 					&& !_params->airspeed_disabled;
 			const bool minimum_trans_time_elapsed = time_since_trans_start > getMinimumFrontTransitionTime();
 
@@ -185,20 +185,8 @@ void Standard::update_vtol_state()
 
 			if (minimum_trans_time_elapsed) {
 				if (airspeed_triggers_transition) {
-
-					// The logic that will prevent spikes in airspeed measurements to trigger the transition
-					if ((_timestamp_transition_speed_detected == 0) &&
-					    (_airspeed_validated->calibrated_airspeed_m_s >= _params->transition_airspeed)) {
-						_timestamp_transition_speed_detected = hrt_absolute_time();
-
-					} else if (_airspeed_validated->calibrated_airspeed_m_s < _params->transition_airspeed) {
-						_timestamp_transition_speed_detected = 0;
-					}
-
-					if ((_timestamp_transition_speed_detected != 0) &&
-					    (hrt_elapsed_time(&_timestamp_transition_speed_detected) >= 250_ms)) {
+					if (get_filtered_airspeed() >= _params->transition_airspeed) {
 						transition_to_fw = true;
-						_timestamp_transition_speed_detected = 0;
 					}
 
 				} else {
@@ -271,17 +259,19 @@ void Standard::update_transition_state()
 		}
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
+		float filtered_airspeed = get_filtered_airspeed();
+
 		if (_airspeed_trans_blend_margin > 0.0f &&
-		    PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
-		    _airspeed_validated->calibrated_airspeed_m_s > 0.0f &&
-		    _airspeed_validated->calibrated_airspeed_m_s >= _params->airspeed_blend &&
+		    PX4_ISFINITE(filtered_airspeed) &&
+		    filtered_airspeed > 0.0f &&
+		    filtered_airspeed >= _params->airspeed_blend &&
 		    time_since_trans_start > getMinimumFrontTransitionTime()) {
 
-			mc_weight = 1.0f - fabsf(_airspeed_validated->calibrated_airspeed_m_s - _params->airspeed_blend) /
+			mc_weight = 1.0f - fabsf(filtered_airspeed - _params->airspeed_blend) /
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
 
-		} else if (_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
+		} else if (_params->airspeed_disabled || !PX4_ISFINITE(filtered_airspeed)) {
 			mc_weight = 1.0f - time_since_trans_start / getMinimumFrontTransitionTime();
 			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
 

@@ -677,3 +677,8 @@ float VtolType::getOpenLoopFrontTransitionTime() const
 {
 	return getFrontTransitionTimeFactor() * _params->front_trans_time_openloop;
 }
+
+float VtolType::get_filtered_airspeed() const
+{
+	return _attc->get_filtered_airspeed();
+}

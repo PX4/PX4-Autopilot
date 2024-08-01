@@ -53,6 +53,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
@@ -144,16 +145,23 @@ public:
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
 	struct vehicle_local_position_setpoint_s	*get_local_pos_sp() {return &_local_pos_sp;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
-
 	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_0() {return &_torque_setpoint_0;}
 	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_1() {return &_torque_setpoint_1;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
 
+	/**
+	 * @brief Low pass filtered airspeed to be used during transition
+	 * @returns filtered airspeed in [m/s], or NAN if airspeed is invalid
+	 *
+	*/
+	float                                            get_filtered_airspeed();
+
 	struct Params 					*get_params() {return &_params;}
 
 private:
 	void Run() override;
+	void update_filtered_airspeed(const struct airspeed_validated_s &sample);
 
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
@@ -185,6 +193,10 @@ private:
 	uORB::PublicationMulti<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint1_pub{ORB_ID(vehicle_torque_setpoint)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
+
+	AlphaFilter<float> _airspeed_filtered;
+	hrt_abstime _airspeed_filtered_last_timestamp{0};
+	bool _airspeed_filtered_valid{false};
 
 	vehicle_attitude_setpoint_s		_v_att_sp{};			//vehicle attitude setpoint
 	vehicle_attitude_setpoint_s 		_fw_virtual_att_sp{};	// virtual fw attitude setpoint
@@ -246,6 +258,7 @@ private:
 		param_t back_trans_dec_sp;
 		param_t vt_mc_on_fmu;
 		param_t vt_forward_thrust_enable_mode;
+		param_t vt_arsp_tau;
 		param_t mpc_land_alt1;
 		param_t mpc_land_alt2;
 		param_t sys_ctrl_alloc;

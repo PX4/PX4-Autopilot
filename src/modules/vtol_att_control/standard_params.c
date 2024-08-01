@@ -62,6 +62,17 @@
 PARAM_DEFINE_INT32(VT_FWD_THRUST_EN, 0);
 
 /**
+* Time constant for filtering airspeed measurements used during transition.
+*
+* @unit s
+* @decimal 1
+* @min 0.0
+* @max 5.0
+* @group VTOL Attitude Control
+*/
+PARAM_DEFINE_FLOAT(VT_ARSP_TAU, 1.0f);
+
+/**
  * Fixed-wing actuator thrust scale for hover forward flight.
  *
  * Scale applied to the demanded down-pitch to get the fixed-wing forward actuation in hover mode.

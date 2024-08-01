@@ -79,6 +79,7 @@ struct Params {
 	float back_trans_dec_sp;
 	bool vt_mc_on_fmu;
 	int32_t vt_forward_thrust_enable_mode;
+	float vt_arsp_tau;
 	float mpc_land_alt1;
 	float mpc_land_alt2;
 };
@@ -188,6 +189,13 @@ public:
 	 * Pusher assist in hover (pusher/pull for standard VTOL, motor tilt for tiltrotor)
 	 */
 	float pusher_assist();
+
+	/**
+	 * @brief Low pass filtered airspeed to be used during transition
+	 * @returns filtered airspeed in [m/s], or NAN if airspeed is invalid
+	 *
+	 */
+	float get_filtered_airspeed() const;
 
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
 
