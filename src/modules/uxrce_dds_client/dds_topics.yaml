@@ -37,7 +37,7 @@ publications:
 
   - topic: /fmu/out/sensor_combined
     type: px4_msgs::msg::SensorCombined
-    polling_interval: 1
+    max_rate_hz: 1000
 
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
