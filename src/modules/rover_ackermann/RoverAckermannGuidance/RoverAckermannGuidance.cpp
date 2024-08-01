@@ -268,8 +268,10 @@ float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_ned
 
 	// Calculate acceptance radius s.t. the rover cuts the corner tangential to the current and next line segment
 	if (curr_to_next_wp_ned.norm() > FLT_EPSILON && curr_to_prev_wp_ned.norm() > FLT_EPSILON) {
-		const float theta = acosf((curr_to_prev_wp_ned * curr_to_next_wp_ned) / (curr_to_prev_wp_ned.norm() *
-					  curr_to_next_wp_ned.norm())) / 2.f;
+		float cosin = (curr_to_prev_wp_ned * curr_to_next_wp_ned) / (curr_to_prev_wp_ned.norm() *
+				curr_to_next_wp_ned.norm());
+		cosin = math::constrain<float>(cosin, -1.f, 1.f); // Protect against float precision problem
+		const float theta = acosf(cosin) / 2.f;
 		const float min_turning_radius = wheel_base / sinf(max_steer_angle);
 		const float acceptance_radius_temp = min_turning_radius / tanf(theta);
 		const float acceptance_radius_temp_scaled = acceptance_radius_gain *
