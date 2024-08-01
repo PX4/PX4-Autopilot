@@ -55,8 +55,6 @@ I2C::_config_i2c_bus_func_t  I2C::_config_i2c_bus  = NULL;
 I2C::_set_i2c_address_func_t I2C::_set_i2c_address = NULL;
 I2C::_i2c_transfer_func_t    I2C::_i2c_transfer    = NULL;
 
-pthread_mutex_t I2C::_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
 	CDev(name, nullptr),
 	_frequency(frequency / 1000)
@@ -68,6 +66,8 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
+
+    _mutex = PTHREAD_MUTEX_INITIALIZER;
 
 	PX4_INFO("*** I2C Device ID 0x%x %d", _device_id.devid, _device_id.devid);
 }

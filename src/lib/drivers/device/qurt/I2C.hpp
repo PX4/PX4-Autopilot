@@ -127,7 +127,7 @@ private:
 	static _config_i2c_bus_func_t  _config_i2c_bus;
 	static _set_i2c_address_func_t _set_i2c_address;
 	static _i2c_transfer_func_t    _i2c_transfer;
-	static pthread_mutex_t         _mutex;
+	pthread_mutex_t                _mutex;
 };
 
 } // namespace device
