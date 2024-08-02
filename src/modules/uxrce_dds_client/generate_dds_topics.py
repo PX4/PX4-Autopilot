@@ -85,10 +85,10 @@ with open(args.yaml_file, 'r') as file:
 merged_em_globals = {}
 all_type_includes = []
 
-if "default_max_rate_hz" not in msg_map:
-    msg_map["default_max_rate_hz"] = 100
+if 'default_max_rate_hz' not in msg_map:
+    msg_map['default_max_rate_hz'] = 100.0
 else:
-    msg_map["default_max_rate_hz"] = int(msg_map["default_max_rate_hz"])
+    msg_map['default_max_rate_hz'] = int(msg_map['default_max_rate_hz'])
 
 def process_message_type(msg_type):
     # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
@@ -103,16 +103,18 @@ def process_message_type(msg_type):
     msg_type['dds_type'] = msg_type['type'].replace("::msg::", "::msg::dds_::") + "_"
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
-    if "max_rate_hz" not in msg_type:
-        msg_type["max_rate_hz"] = msg_map["default_max_rate_hz"]
+    if 'max_rate_hz' not in msg_type:
+        msg_type['max_rate_hz'] = msg_map['default_max_rate_hz']
     else:
-        msg_type["max_rate_hz"] = int(msg_type["max_rate_hz"])
+        msg_type['max_rate_hz'] = float(msg_type['max_rate_hz'])
 
 pubs_not_empty = msg_map['publications'] is not None
 if pubs_not_empty:
     for p in msg_map['publications']:
         process_message_type(p)
 
+# Remove disabled publications
+msg_map['publications'] = list(filter(lambda x: x['max_rate_hz'] > 0, msg_map['publications']))
 merged_em_globals['publications'] = msg_map['publications'] if pubs_not_empty else []
 
 subs_not_empty = msg_map['subscriptions'] is not None

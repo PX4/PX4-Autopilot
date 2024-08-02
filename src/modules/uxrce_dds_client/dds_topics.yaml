@@ -3,7 +3,7 @@
 # This file maps all the topics that are to be used on the uXRCE-DDS client.
 #
 #####
-default_max_rate_hz: 100
+default_max_rate_hz: 100.0
 
 publications:
 
@@ -39,7 +39,7 @@ publications:
 
   - topic: /fmu/out/sensor_combined
     type: px4_msgs::msg::SensorCombined
-    max_rate_hz: 1000
+    max_rate_hz: 1000.0
 
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
