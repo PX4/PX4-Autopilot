@@ -175,6 +175,10 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
 	);
 
+	control::BlockLowPass _vel_x_filtered;
+	control::BlockLowPass _vel_y_filtered;
+	control::BlockLowPass _vel_z_filtered;
+
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */

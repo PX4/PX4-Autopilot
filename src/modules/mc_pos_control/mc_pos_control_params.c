@@ -518,6 +518,19 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.8f);
 PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
 
 /**
+ * Low pass filter cut freq. for velocity measurements used in multicopter position control
+ *
+ * A low cut off frequency means that there will be a more low-pass filtering
+ * If the frequency is set higher than 999 Hz, the filter will be disabled.
+ *
+ * @unit Hz
+ * @min 0.5
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_LP, 1000.0f);
+
+/**
  * Low pass filter cut freq. for numerical velocity derivative
  *
  * @unit Hz
