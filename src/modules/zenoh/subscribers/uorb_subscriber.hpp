@@ -50,7 +50,7 @@ class uORB_Zenoh_Subscriber : public Zenoh_Subscriber
 {
 public:
 	uORB_Zenoh_Subscriber(const orb_metadata *meta, const uint32_t *ops) :
-		Zenoh_Subscriber(true),
+		Zenoh_Subscriber(),
 		_uorb_meta{meta},
 		_cdr_ops(ops)
 	{

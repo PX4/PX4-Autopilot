@@ -42,9 +42,8 @@
 #include "zenoh_publisher.hpp"
 
 
-Zenoh_Publisher::Zenoh_Publisher(bool rostopic)
+Zenoh_Publisher::Zenoh_Publisher()
 {
-	this->_rostopic = rostopic;
 	this->_topic[0] = 0x0;
 }
 
@@ -61,19 +60,7 @@ int Zenoh_Publisher::undeclare_publisher()
 
 int Zenoh_Publisher::declare_publisher(z_owned_session_t s, const char *keyexpr)
 {
-	if (_rostopic) {
-		strncpy(this->_topic, (char *)_rt_prefix, _rt_prefix_offset);
-
-		if (keyexpr[0] == '/') {
-			strncpy(this->_topic + _rt_prefix_offset, keyexpr + 1, sizeof(this->_topic) - _rt_prefix_offset);
-
-		} else {
-			strncpy(this->_topic + _rt_prefix_offset, keyexpr, sizeof(this->_topic) - _rt_prefix_offset);
-		}
-
-	} else {
-		strncpy(this->_topic, keyexpr, sizeof(this->_topic));
-	}
+	strncpy(this->_topic, keyexpr, sizeof(this->_topic));
 
 	z_view_keyexpr_t ke;
 	z_view_keyexpr_from_str(&ke, this->_topic);

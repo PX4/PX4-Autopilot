@@ -56,9 +56,8 @@ void Zenoh_Subscriber::data_handler(const z_loaned_sample_t *sample)
 }
 
 
-Zenoh_Subscriber::Zenoh_Subscriber(bool rostopic)
+Zenoh_Subscriber::Zenoh_Subscriber()
 {
-	this->_rostopic = rostopic;
 	this->_topic[0] = 0x0;
 }
 
@@ -78,19 +77,7 @@ int Zenoh_Subscriber::declare_subscriber(z_owned_session_t s, const char *keyexp
 	z_owned_closure_sample_t callback;
 	z_closure_sample(&callback, data_handler_cb, NULL, this);
 
-	if (_rostopic) {
-		strncpy(this->_topic, (char *)_rt_prefix, _rt_prefix_offset);
-
-		if (keyexpr[0] == '/') {
-			strncpy(this->_topic + _rt_prefix_offset, keyexpr + 1, sizeof(this->_topic) - _rt_prefix_offset);
-
-		} else {
-			strncpy(this->_topic + _rt_prefix_offset, keyexpr, sizeof(this->_topic) - _rt_prefix_offset);
-		}
-
-	} else {
-		strncpy(this->_topic, (char *)keyexpr, sizeof(this->_topic));
-	}
+	strncpy(this->_topic, keyexpr, sizeof(this->_topic));
 
 	z_view_keyexpr_t ke;
 	z_view_keyexpr_from_str(&ke, this->_topic);
