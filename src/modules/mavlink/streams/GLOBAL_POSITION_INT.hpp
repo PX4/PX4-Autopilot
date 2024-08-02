@@ -72,8 +72,8 @@ private:
 
 			mavlink_global_position_int_t msg{};
 
-			if (lpos.z_valid && lpos.z_global) {
-				msg.alt = (-lpos.z + lpos.ref_alt) * 1000.0f;
+			if (gpos.alt_valid) {
+				msg.alt = gpos.alt * 1000.0f;
 
 			} else {
 				// fall back to baro altitude
@@ -103,8 +103,15 @@ private:
 			}
 
 			msg.time_boot_ms = gpos.timestamp / 1000;
-			msg.lat = gpos.lat * 1e7;
-			msg.lon = gpos.lon * 1e7;
+
+			if (gpos.lat_lon_valid) {
+				msg.lat = gpos.lat * 1e7;
+				msg.lon = gpos.lon * 1e7;
+
+			} else {
+				msg.lat = INT32_MAX;
+				msg.lon = INT32_MAX;
+			}
 
 			msg.vx = lpos.vx * 100.0f;
 			msg.vy = lpos.vy * 100.0f;
