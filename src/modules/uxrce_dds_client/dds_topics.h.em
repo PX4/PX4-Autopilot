@@ -44,7 +44,7 @@ struct SendSubscription {
 	const char* topic;
 	uint32_t topic_size;
 	UcdrSerializeMethod ucdr_serialize_method;
-	uint16_t max_rate_hz;
+	float max_rate_hz;
 };
 
 // Subscribers for messages to send
@@ -75,7 +75,7 @@ void SendTopicsSubs::init() {
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
 		fds[idx].events = POLLIN;
-		orb_set_interval(fds[idx].fd, send_subscriptions[idx].max_rate_hz ? 1000 / send_subscriptions[idx].max_rate_hz : 0);
+		orb_set_interval(fds[idx].fd, send_subscriptions[idx].max_rate_hz > 0 ? 1000 / send_subscriptions[idx].max_rate_hz : 100);
 	}
 }
 
