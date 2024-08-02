@@ -294,17 +294,17 @@ public:
 
 	bool isLocalHorizontalPositionValid() const
 	{
-		return (!_horizontal_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
+		return !_horizontal_deadreckon_time_exceeded;
 	}
 
 	bool isLocalVerticalPositionValid() const
 	{
-		return !_vertical_position_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
+		return !_vertical_position_deadreckon_time_exceeded;
 	}
 
 	bool isLocalVerticalVelocityValid() const
 	{
-		return !_vertical_velocity_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
+		return !_vertical_velocity_deadreckon_time_exceeded;
 	}
 
 	bool isYawFinalAlignComplete() const

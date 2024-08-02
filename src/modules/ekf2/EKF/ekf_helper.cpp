@@ -777,7 +777,6 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	if (inertial_dead_reckoning) {
 		if (isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max)) {
-			// deadreckon time exceeded
 			if (!_horizontal_deadreckon_time_exceeded) {
 				ECL_WARN("horizontal dead reckon time exceeded");
 				_horizontal_deadreckon_time_exceeded = true;
