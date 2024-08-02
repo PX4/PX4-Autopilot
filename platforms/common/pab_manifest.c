@@ -257,7 +257,7 @@ static const px4_hw_mft_item_t base_configuration_5[] = {
 	},
 };
 
-// BASE ID 6  Not allocated
+// BASE ID 6  ZeroOne Base
 // BASE ID 7  Read from EEPROM
 // BASE ID 8  Skynode QS with USB - Alaised to ID 0
 
