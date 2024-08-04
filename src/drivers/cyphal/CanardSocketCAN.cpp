@@ -174,7 +174,7 @@ int16_t CanardSocketCAN::transmit(const CanardTxQueueItem &txf, int timeout_ms)
 	_send_tv->tv_usec = deadline_systick % 1000000ULL;
 	_send_tv->tv_sec = (deadline_systick - _send_tv->tv_usec) / 1000000ULL;
 
-	return sendmsg(_fd, &_send_msg, 0);
+	return sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
 }
 
 int16_t CanardSocketCAN::receive(CanardRxFrame *rxf)
