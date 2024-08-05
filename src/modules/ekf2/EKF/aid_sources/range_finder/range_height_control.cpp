@@ -173,7 +173,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
-				if (isHeightResetRequired() && _control_status.flags.rng_hgt) {
+				if (isHeightResetRequired() && _control_status.flags.rng_hgt && (_height_sensor_ref == HeightSensor::RANGE)) {
 					// All height sources are failing
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
