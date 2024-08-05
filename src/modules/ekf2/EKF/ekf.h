@@ -284,12 +284,12 @@ public:
 
 	bool isGlobalHorizontalPositionValid() const
 	{
-		return (_NED_origin_initialised && isLocalHorizontalPositionValid());
+		return _ned_global_ref_valid && isLocalHorizontalPositionValid();
 	}
 
 	bool isGlobalVerticalPositionValid() const
 	{
-		return _NED_origin_initialised && isLocalVerticalPositionValid();
+		return _ned_global_ref_valid && isLocalVerticalPositionValid();
 	}
 
 	bool isLocalHorizontalPositionValid() const

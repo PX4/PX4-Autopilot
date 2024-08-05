@@ -247,7 +247,7 @@ public:
 	// At the next startup, set param.mag_declination_deg to the value saved
 	bool get_mag_decl_deg(float &val) const
 	{
-		if (_pos_ref.isInitialized() && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
+		if (_ned_global_ref.isInitialized() && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
 			val = math::degrees(_mag_declination_gps);
 			return true;
 
@@ -258,7 +258,7 @@ public:
 
 	bool get_mag_inc_deg(float &val) const
 	{
-		if (_pos_ref.isInitialized()) {
+		if (_ned_global_ref.isInitialized()) {
 			val = math::degrees(_mag_inclination_gps);
 			return true;
 
@@ -304,9 +304,8 @@ public:
 	const imuSample &get_imu_sample_delayed() const { return _imu_buffer.get_oldest(); }
 	const uint64_t &time_delayed_us() const { return _time_delayed_us; }
 
-	bool global_origin_valid() const { return _pos_ref.isInitialized(); }
-	void setNedOriginInitialised() { _NED_origin_initialised = true; }
-	const MapProjection &global_origin() const { return _pos_ref; }
+	void setNedGlobalRefValid() { _ned_global_ref_valid = true; }
+	const MapProjection &getNedGlobalRef() const { return _ned_global_ref; }
 	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_gps_alt_ref) ? _gps_alt_ref : 0.f; }
 
 	OutputPredictor &output_predictor() { return _output_predictor; };
@@ -377,8 +376,8 @@ protected:
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
-	bool _NED_origin_initialised{false};
-	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
+	bool _ned_global_ref_valid{false};
+	MapProjection _ned_global_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
 	float _gps_alt_ref{NAN};		///< WGS-84 height (m)
 	float _gpos_origin_eph{0.0f}; // horizontal position uncertainty of the global origin
 	float _gpos_origin_epv{0.0f}; // vertical position uncertainty of the global origin

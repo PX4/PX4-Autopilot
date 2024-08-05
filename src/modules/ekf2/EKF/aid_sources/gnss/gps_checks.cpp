@@ -61,20 +61,20 @@
 
 void Ekf::collect_gps(const gnssSample &gps)
 {
-	if (_filter_initialised && !_pos_ref.isInitialized() && _gps_checks_passed) {
+	if (!_ned_global_ref.isInitialized() && _gps_checks_passed) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 		const double lat = gps.lat;
 		const double lon = gps.lon;
 
-		_pos_ref.initReference(lat, lon, gps.time_us);
+		_ned_global_ref.initReference(lat, lon, gps.time_us);
 
 		// if we are already doing aiding, correct for the change in position since the EKF started navigating
-		if (isHorizontalAidingActive()) {
+		if (isLocalHorizontalPositionValid()) {
 			double est_lat;
 			double est_lon;
-			_pos_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
-			_pos_ref.initReference(est_lat, est_lon, gps.time_us);
-			_NED_origin_initialised = true;
+			_ned_global_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
+			_ned_global_ref.initReference(est_lat, est_lon, gps.time_us);
+			_ned_global_ref_valid = true;
 		}
 
 		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
@@ -94,7 +94,7 @@ void Ekf::collect_gps(const gnssSample &gps)
 		// a rough 2D fix is sufficient to lookup declination
 		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.hacc < 1000);
 
-		if (gps_rough_2d_fix && (_gps_checks_passed || !_pos_ref.isInitialized())) {
+		if (gps_rough_2d_fix && (_gps_checks_passed || !_ned_global_ref.isInitialized())) {
 
 			// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 #if defined(CONFIG_EKF2_MAGNETOMETER)

@@ -279,12 +279,12 @@ void Ekf::predictState(const imuSample &imu_delayed)
 bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
 		uint64_t timestamp_observation)
 {
-	if (!_pos_ref.isInitialized()) {
+	if (!_ned_global_ref.isInitialized()) {
 		ECL_WARN("unable to reset global position, position reference not initialized");
 		return false;
 	}
 
-	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg);
+	Vector2f pos_corrected = _ned_global_ref.project(lat_deg, lon_deg);
 
 	// apply a first order correction using velocity at the delayed time horizon and the delta time
 	if ((timestamp_observation > 0) && (isHorizontalAidingActive() || !_horizontal_deadreckon_time_exceeded)) {

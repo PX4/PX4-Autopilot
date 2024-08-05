@@ -165,7 +165,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	updateDeadReckoningStatus();
 
 	if (!isLocalHorizontalPositionValid()) {
-		_NED_origin_initialised = false;
+		_ned_global_ref_valid = false;
 		_gpos_origin_eph = INFINITY;
 		_gpos_origin_epv = INFINITY;
 	}

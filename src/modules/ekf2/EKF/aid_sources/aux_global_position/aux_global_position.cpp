@@ -76,8 +76,8 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 		estimator_aid_source2d_s aid_src{};
 		Vector2f position;
 
-		if (ekf.global_origin_valid()) {
-			position = ekf.global_origin().project(sample.latitude, sample.longitude);
+		if (ekf.getNedGlobalRef().isInitialized()) {
+			position = ekf.getNedGlobalRef().project(sample.latitude, sample.longitude);
 			//const float hgt = ekf.getEkfGlobalOriginAltitude() - (float)sample.altitude;
 			// relax the upper observation noise limit which prevents bad measurements perturbing the position estimate
 			float pos_noise = math::max(sample.eph, _param_ekf2_agp_noise.get(), 0.01f);
@@ -96,7 +96,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)
 						 && ekf.control_status_flags().yaw_align;
 		const bool continuing_conditions = starting_conditions
-						   && ekf.global_origin_valid();
+						   && ekf.getNedGlobalRef().isInitialized();
 
 		switch (_state) {
 		case State::stopped:
@@ -106,14 +106,14 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			if (starting_conditions) {
 				_state = State::starting;
 
-				if (ekf.global_origin_valid()) {
+				if (ekf.getNedGlobalRef().isInitialized()) {
 					if (aid_src.innovation_rejected) {
 						ekf.resetHorizontalPositionTo(Vector2f(aid_src.observation), Vector2f(aid_src.observation_variance));
 						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 					}
 
 					ekf.enableControlStatusAuxGpos();
-					ekf.setNedOriginInitialised();
+					ekf.setNedGlobalRefValid();
 					_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 					_state = State::active;
 

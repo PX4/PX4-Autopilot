@@ -1166,7 +1166,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 	global_pos.timestamp_sample = timestamp;
 
 	// Position of local NED origin in GPS / WGS84 frame
-	_ekf.global_origin().reproject(position(0), position(1), global_pos.lat, global_pos.lon);
+	_ekf.getNedGlobalRef().reproject(position(0), position(1), global_pos.lat, global_pos.lon);
 	global_pos.lat_lon_valid = _ekf.isGlobalHorizontalPositionValid();
 
 	global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
@@ -1561,13 +1561,14 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.v_z_valid = _ekf.isLocalVerticalVelocityValid() || _ekf.isLocalVerticalPositionValid();
 
 	// Position of local NED origin in GPS / WGS84 frame
-	if (_ekf.global_origin_valid()) {
-		lpos.ref_timestamp = _ekf.global_origin().getProjectionReferenceTimestamp();
-		lpos.ref_lat = _ekf.global_origin().getProjectionReferenceLat(); // Reference point latitude in degrees
-		lpos.ref_lon = _ekf.global_origin().getProjectionReferenceLon(); // Reference point longitude in degrees
+	if (_ekf.getNedGlobalRef().isInitialized()) {
+		lpos.ref_timestamp = _ekf.getNedGlobalRef().getProjectionReferenceTimestamp();
+		lpos.ref_lat = _ekf.getNedGlobalRef().getProjectionReferenceLat(); // Reference point latitude in degrees
+		lpos.ref_lon = _ekf.getNedGlobalRef().getProjectionReferenceLon(); // Reference point longitude in degrees
 		lpos.ref_alt = _ekf.getEkfGlobalOriginAltitude();           // Reference point in MSL altitude meters
-		lpos.xy_global = true;
-		lpos.z_global = true;
+
+		lpos.xy_global = _ekf.isGlobalHorizontalPositionValid();
+		lpos.z_global = _ekf.isGlobalVerticalPositionValid();
 
 	} else {
 		lpos.ref_timestamp = 0;

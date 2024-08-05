@@ -65,11 +65,11 @@ Vector3f Ekf::calcEarthRateNED(float lat_rad) const
 
 bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const
 {
-	origin_time = _pos_ref.getProjectionReferenceTimestamp();
-	latitude = _pos_ref.getProjectionReferenceLat();
-	longitude = _pos_ref.getProjectionReferenceLon();
+	origin_time = _ned_global_ref.getProjectionReferenceTimestamp();
+	latitude = _ned_global_ref.getProjectionReferenceLat();
+	longitude = _ned_global_ref.getProjectionReferenceLon();
 	origin_alt  = getEkfGlobalOriginAltitude();
-	return _pos_ref.isInitialized();
+	return _ned_global_ref.isInitialized();
 }
 
 bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude, const float eph,
@@ -85,15 +85,15 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		double current_lon = static_cast<double>(NAN);
 
 		// if we are already doing aiding, correct for the change in position since the EKF started navigating
-		if (_pos_ref.isInitialized() && isHorizontalAidingActive()) {
-			_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
+		if (_ned_global_ref.isInitialized() && isGlobalHorizontalPositionValid()) {
+			_ned_global_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
 			current_gpos_available = true;
 		}
 
 		const float gps_alt_ref_prev = _gps_alt_ref;
 
 		// reinitialize map projection to latitude, longitude, altitude, and reset position
-		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
+		_ned_global_ref.initReference(latitude, longitude, _time_delayed_us);
 		_gps_alt_ref = altitude;
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -115,16 +115,16 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		_gpos_origin_epv = epv;
 
 		if (current_gpos_available) {
-			// reset horizontal position if we already have a global origin
-			Vector2f position = _pos_ref.project(current_lat, current_lon);
+			// reset horizontal position if we already have a global reference
+			Vector2f position = _ned_global_ref.project(current_lat, current_lon);
 			resetHorizontalPositionTo(position);
-			_NED_origin_initialised = true;
+			_ned_global_ref_valid = true;
 
-		} else if (isHorizontalAidingActive()) {
-			_NED_origin_initialised = true;
+		} else if (isLocalHorizontalPositionValid()) {
+			_ned_global_ref_valid = true;
 		}
 
-		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
+		if (PX4_ISFINITE(gps_alt_ref_prev) && isGlobalVerticalPositionValid()) {
 			// determine current z
 			const float z_prev = _state.pos(2);
 			const float current_alt = -z_prev + gps_alt_ref_prev;
@@ -151,7 +151,7 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	float eph = INFINITY;
 	float epv = INFINITY;
 
-	if (global_origin_valid()) {
+	if (_ned_global_ref_valid) {
 		// report absolute accuracy taking into account the uncertainty in location of the origin
 		eph = sqrtf(P.trace<2>(State::pos.idx + 0) + sq(_gpos_origin_eph));
 		epv = sqrtf(P.trace<1>(State::pos.idx + 2) + sq(_gpos_origin_epv));

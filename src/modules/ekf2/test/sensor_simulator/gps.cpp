@@ -98,11 +98,11 @@ void Gps::stepHorizontalPositionByMeters(const Vector2f hpos_change)
 	double lat_new {0.0};
 	double lon_new {0.0};
 
-	_ekf->global_origin().project(_gps_data.lat, _gps_data.lon, hposN_curr, hposE_curr);
+	_ekf->getNedGlobalRef().project(_gps_data.lat, _gps_data.lon, hposN_curr, hposE_curr);
 
 	Vector2f hpos_new = Vector2f{hposN_curr, hposE_curr} + hpos_change;
 
-	_ekf->global_origin().reproject(hpos_new(0), hpos_new(1), lat_new, lon_new);
+	_ekf->getNedGlobalRef().reproject(hpos_new(0), hpos_new(1), lat_new, lon_new);
 
 	_gps_data.lon = lon_new;
 	_gps_data.lat = lat_new;
