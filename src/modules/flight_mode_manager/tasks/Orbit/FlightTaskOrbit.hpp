@@ -44,7 +44,6 @@
 #include "FlightTaskManualAltitudeSmoothVel.hpp"
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/orbit_status.h>
-//#include <uORB/topics/vehicle_command.h>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <lib/motion_planning/VelocitySmoothing.hpp>
