@@ -23,11 +23,14 @@ parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 parser.add_argument('-p', '--pretty', dest='pretty', action='store_true',
                     help='Pretty output instead of a single line')
+parser.add_argument('-g', '--groups', dest='group', action='store_true',
+                    help='Groups targets')
 
 args = parser.parse_args()
 verbose = args.verbose
 
 build_configs = []
+grouped_targets = {}
 excluded_boards = ['modalai_voxl2', 'px4_ros2']  # TODO: fix and enable
 excluded_manufacturers = ['atlflight']
 excluded_platforms = ['qurt']
@@ -41,6 +44,7 @@ def process_target(px4board_file, target_name):
     ret = None
     platform = None
     toolchain = None
+    group = None
 
     if px4board_file.endswith("default.px4board") or \
         px4board_file.endswith("recovery.px4board") or \
@@ -63,19 +67,25 @@ def process_target(px4board_file, target_name):
         # get the container based on the platform and toolchain
         if platform == 'posix':
             container = 'px4io/px4-dev-base-focal:2021-09-08'
+            group = 'base'
             if toolchain:
                 if toolchain.startswith('aarch64'):
                     container = 'px4io/px4-dev-aarch64:2022-08-12'
+                    group = 'aarch64'
                 elif toolchain == 'arm-linux-gnueabihf':
                     container = 'px4io/px4-dev-armhf:2023-06-26'
+                    group = 'armhf'
                 else:
                     if verbose: print(f'unmatched toolchain: {toolchain}')
         elif platform == 'nuttx':
             container = 'px4io/px4-dev-nuttx-focal:2022-08-12'
+            group = 'nuttx'
         else:
             if verbose: print(f'unmatched platform: {platform}')
 
         ret = {'target': target_name, 'container': container}
+        if(args.group):
+            ret['arch'] = group
 
     return ret
 
@@ -105,12 +115,55 @@ for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
                     if verbose: print(f'excluding label {label} ({target_name})')
                     continue
                 target = process_target(files.path, target_name)
+                # print(target)
+                if (args.group and target is not None):
+                    if (target['arch'] not in grouped_targets):
+                        grouped_targets[target['arch']] = {}
+                        grouped_targets[target['arch']]['container'] = target['container']
+                        grouped_targets[target['arch']]['manufacturers'] = {}
+                    if(manufacturer.name not in grouped_targets[target['arch']]['manufacturers']):
+                        grouped_targets[target['arch']]['manufacturers'][manufacturer.name] = {}
+                        grouped_targets[target['arch']]['manufacturers'][manufacturer.name] = []
+                    grouped_targets[target['arch']]['manufacturers'][manufacturer.name].append(target_name)
                 if target is not None:
                     build_configs.append(target)
-
 
 github_action_config = { 'include': build_configs }
 extra_args = {}
 if args.pretty:
     extra_args['indent'] = 2
-print(json.dumps(github_action_config, **extra_args))
+
+if (args.group):
+    final_groups = []
+    temp_group = []
+    last_man = ''
+    last_arch = ''
+    for arch in grouped_targets:
+        if(last_arch != arch and len(temp_group) > 0):
+            last_arch = arch
+            final_groups.append({
+                "container": grouped_targets[arch]['container'],
+                "targets": temp_group
+            })
+            temp_group = []
+        for man in grouped_targets[arch]['manufacturers']:
+            for tar in grouped_targets[arch]['manufacturers'][man]:
+                if(last_man != man):
+                    if(len(grouped_targets[arch]['manufacturers'][man]) > 10):
+                        last_man = man
+                        final_groups.append({
+                            "container": grouped_targets[arch]['container'],
+                            "targets": grouped_targets[arch]['manufacturers'][man]
+                        })
+                    else:
+                        temp_group.append(tar)
+
+            if(len(temp_group) > 15):
+                final_groups.append({
+                    "container": grouped_targets[arch]['container'],
+                    "targets": temp_group
+                })
+                temp_group = []
+    print(json.dumps(final_groups, **extra_args))
+else:
+    print(json.dumps(github_action_config, **extra_args))
