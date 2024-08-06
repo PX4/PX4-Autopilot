@@ -51,25 +51,42 @@ int netconfig_main(int argc, char *argv[])
 {
 	struct in_addr addr;
 	int32_t mav_id;
+	int32_t mav_comp_id;
+	int32_t ip;
 	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
 
 	param_get(param_find("MAV_SYS_ID"), &mav_id);
+	param_get(param_find("MAV_COMP_ID"), &mav_comp_id);
 
-	if (mav_id < 1) {
+	if (mav_id < 1 || mav_id > 63 || mav_comp_id < 1 || mav_comp_id > 4) {
 		return PX4_ERROR;
 	}
 
-	/* IP: CONFIG_NETCONFIG_IPSUBNET + mav_id */
+	/* IP: CONFIG_NETCONFIG_IPSUBNET 3 bytes
+	 * last byte:
+	 *   2 high bits: mav_comp_id - 1
+	 *   6 low bits: mav_id
+	 */
 
-	addr.s_addr = CONFIG_NETCONFIG_IPSUBNET;
+	addr.s_addr = CONFIG_NETCONFIG_IPSUBNET & 0xffffff;
 
-	mav_id += 100;
+	/* Autopilot IP examples:
+	   MAV_ID 1:
+	   192.168.202.1 : primary FC1 (comp_id 1)
+	   192.168.202.65 : redundant FC2 (comp_id 2)
+	   192.168.202.129 : redundant FC3 (comp_id 3)
+	   192.168.202.193 : redundant FC4 (comp_id 4)
+	   MAV_ID 2:
+	   192.168.202.2 : primary FC1 (comp_id 1)
+	   192.168.202.66 : redundant FC2 (comp_id 2)
+	   192.168.202.130 : redundant FC3 (comp_id 3)
+	   192.168.202.194 : redundant FC4 (comp_id 4)
+	*/
 
-	if (mav_id > 253) {
-		return PX4_ERROR;
-	}
+	mav_comp_id--;
+	ip = ((mav_comp_id & 0x3) << 6) + mav_id;
 
-	addr.s_addr |= ((uint32_t)mav_id << 24);
+	addr.s_addr |= ip << 24;
 	netlib_set_ipv4addr(ifname, &addr);
 
 	/* GW */
