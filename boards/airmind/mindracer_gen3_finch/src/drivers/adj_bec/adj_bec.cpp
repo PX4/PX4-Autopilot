@@ -226,4 +226,3 @@ extern "C" __EXPORT int adj_bec_main(int argc, char *argv[])
 	adj_bec::usage();
 	return PX4_ERROR;
 }
-

@@ -6,4 +6,3 @@
         SRCS
             adj_bec.cpp
         )
-

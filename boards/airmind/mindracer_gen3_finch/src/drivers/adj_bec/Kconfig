@@ -3,4 +3,3 @@ menuconfig Adjustable_BEC
     default y
     ---help---
         Enable adjustable BEC output
-
