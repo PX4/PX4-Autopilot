@@ -195,6 +195,31 @@ else
 		param load /fs/mtd_caldata
 	fi
 
+	# FREEFLY CUSTOM: factory calibration: rotation param update.
+	# Can be removed after all vehicles are migrated to a release > 2.1
+	if param compare CAL_MAG1_ROT 23
+	then
+		echo "Updating factory rotation param CAL_MAG1_ROT"
+		param set CAL_MAG1_ROT 43
+		param save /fs/mtd_caldata
+	fi
+
+	# FREEFLY CUSTOM: factory calibration: remove old mag cals
+	# If the airframe has an old mag cal, remove it from eeprom to avoid chance of resetting params and getting values from EEPROM
+	# logic: If CAL_MAG0_XOFF is not zero (thus has a stored mag cal of any type), but does NOT have a
+	# nonzero CAL_MAG0_XODIAG (thus is an old mag cal), wipe ALL CAL_MAG* params from EEPROM and save
+	#
+	if ! param compare CAL_MAG0_XOFF 0
+	then
+		if param compare CAL_MAG0_XODIAG 0
+		then
+			echo "old magcal detected in eeprom, removing"
+			param reset CAL_MAG*
+			param save /fs/mtd_caldata
+		fi
+	fi
+
+
 	param select $PARAM_FILE
 	if ! param import
 	then
@@ -310,6 +335,13 @@ else
 	# Reboot required because "param reset_all" would reset all "param set" lines from airframe.
 	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
 	then
+		# FREEFLY CUSTOM
+		if ! param greater SYS_PARAM_VER 72
+		then
+			echo "Parameter version older than 73 for 1.1.11. Resetting mag calibration."
+			param reset CAL_MAG0* CAL_MAG1*
+		fi
+
 		echo "Switched to different parameter version. Resetting parameters."
 		param set SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
 		param set SYS_AUTOCONFIG 1
