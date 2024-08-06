@@ -104,8 +104,9 @@ void RtlDirect::on_active()
 		set_rtl_item();
 	}
 
-	if (_rtl_state == RTLState::LOITER_HOLD) { //TODO: rename _rtl_state to _rtl_state_next
+	if (_rtl_state != RTLState::IDLE) { //TODO: rename _rtl_state to _rtl_state_next (when in IDLE we're actually in LAND)
 		//check for terrain collision and update altitude if needed
+		// note: it may trigger multiple times during a RTL, as every time the altitude set is reset
 		updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
 	}
 
