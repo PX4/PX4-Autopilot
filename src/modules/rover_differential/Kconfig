@@ -1,0 +1,6 @@
+menuconfig MODULES_ROVER_DIFFERENTIAL
+	bool "rover_differential"
+	default n
+	depends on MODULES_CONTROL_ALLOCATOR
+	---help---
+		Enable support for control of differential rovers

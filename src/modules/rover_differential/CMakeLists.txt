@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,19 @@
 #
 ############################################################################
 
-px4_add_library(DifferentialDriveControl
-	DifferentialDriveControl.cpp
-)
+add_subdirectory(RoverDifferentialGuidance)
 
-target_link_libraries(DifferentialDriveControl PUBLIC pid)
-target_include_directories(DifferentialDriveControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+px4_add_module(
+	MODULE modules__rover_differential
+	MAIN rover_differential
+	SRCS
+		RoverDifferential.cpp
+		RoverDifferential.hpp
+	DEPENDS
+		RoverDifferentialGuidance
+		px4_work_queue
+		modules__control_allocator # for parameter CA_R_REV
+		pure_pursuit
+	MODULE_CONFIG
+		module.yaml
+)
