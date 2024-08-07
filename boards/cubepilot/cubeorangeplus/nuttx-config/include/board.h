@@ -195,6 +195,12 @@
 
 #define STM32_RCC_D3CCIPR_ADCSRC     RCC_D3CCIPR_ADCSEL_PLL2     /* ADC 1 2 3 clock source */
 
+/* UART clock selection */
+/* reset to default to overwrite any changes done by any bootloader */
+
+#define STM32_RCC_D2CCIP2R_USART234578_SEL RCC_D2CCIP2R_USART234578SEL_RCC
+#define STM32_RCC_D2CCIP2R_USART16_SEL     RCC_D2CCIP2R_USART16SEL_RCC
+
 /* FLASH wait states */
 #define BOARD_FLASH_WAITSTATES 2
 
