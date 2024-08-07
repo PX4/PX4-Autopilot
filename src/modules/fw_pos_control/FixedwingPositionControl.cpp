@@ -1532,8 +1532,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
 		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(_param_fw_thr_idle.get(), get_tecs_thrust());
 
-		_flaps_setpoint = _param_fw_flaps_to_scl.get();
-
 		// retract ladning gear once passed the climbout state
 		if (_runway_takeoff.getState() > RunwayTakeoffState::CLIMBOUT) {
 			_new_landing_gear_position = landing_gear_s::GEAR_UP;
@@ -1634,6 +1632,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
+	_flaps_setpoint = _param_fw_flaps_to_scl.get();
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, _takeoff_ground_alt);
 
 	if (!_vehicle_status.in_transition_to_fw) {
