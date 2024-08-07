@@ -2,7 +2,7 @@
 # Standard apps for a differential drive rover.
 
 # Start rover differential drive controller.
-differential_drive start
+rover_differential start
 
 # Start Land Detector.
 land_detector start rover

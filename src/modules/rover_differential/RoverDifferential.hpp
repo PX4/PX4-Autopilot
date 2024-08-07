@@ -33,31 +33,41 @@
 
 #pragma once
 
+// PX4 includes
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+// uORB includes
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/differential_drive_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/rover_differential_status.h>
 
-#include "DifferentialDriveControl/DifferentialDriveControl.hpp"
-#include "DifferentialDriveGuidance/DifferentialDriveGuidance.hpp"
-#include "DifferentialDriveKinematics/DifferentialDriveKinematics.hpp"
+// Standard libraries
+#include <lib/pid/pid.h>
+#include <matrix/matrix/math.hpp>
+
+// Local includes
+#include "RoverDifferentialGuidance/RoverDifferentialGuidance.hpp"
 
 using namespace time_literals;
 
-class DifferentialDrive : public ModuleBase<DifferentialDrive>, public ModuleParams,
+class RoverDifferential : public ModuleBase<RoverDifferential>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
 public:
-	DifferentialDrive();
-	~DifferentialDrive() override = default;
+	RoverDifferential();
+	~RoverDifferential() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -70,36 +80,57 @@ public:
 
 	bool init();
 
+	/**
+	 * @brief Computes motor commands for differential drive.
+	 *
+	 * @param forward_speed Linear velocity along the x-axis.
+	 * @param speed_diff Speed difference between left and right wheels.
+	 * @return matrix::Vector2f Motor velocities for the right and left motors.
+	 */
+	matrix::Vector2f computeMotorCommands(float forward_speed, const float speed_diff);
+
 protected:
 	void updateParams() override;
 
 private:
 	void Run() override;
+
+	// uORB Subscriptions
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Publication<differential_drive_setpoint_s> _differential_drive_setpoint_pub{ORB_ID(differential_drive_setpoint)};
 
-	bool _manual_driving = false;
-	bool _mission_driving = false;
-	bool _acro_driving = false;
-	hrt_abstime _time_stamp_last{0}; /**< time stamp when task was last updated */
+	// uORB Publications
+	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<rover_differential_status_s> _rover_differential_status_pub{ORB_ID(rover_differential_status)};
 
-	DifferentialDriveGuidance _differential_drive_guidance{this};
-	DifferentialDriveControl _differential_drive_control{this};
-	DifferentialDriveKinematics _differential_drive_kinematics{this};
+	// Instances
+	RoverDifferentialGuidance _rover_differential_guidance{this};
 
-	float _max_speed{0.f};
-	float _max_angular_velocity{0.f};
+	// Variables
+	float _vehicle_body_yaw_rate{0.f};
+	float _vehicle_forward_speed{0.f};
+	float _vehicle_yaw{0.f};
+	float _max_yaw_rate{0.f};
+	int _nav_state{0};
+	matrix::Quatf _vehicle_attitude_quaternion{};
+	hrt_abstime _timestamp{0};
+	PID_t _pid_yaw_rate; // The PID controller for yaw rate
+	RoverDifferentialGuidance::differential_setpoint _differential_setpoint;
+
+	// Constants
+	static constexpr float YAW_RATE_ERROR_THRESHOLD = 0.1f; // [rad/s] Error threshold for the closed loop yaw rate control
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RDD_ANG_SCALE>) _param_rdd_ang_velocity_scale,
-		(ParamFloat<px4::params::RDD_SPEED_SCALE>) _param_rdd_speed_scale,
-		(ParamFloat<px4::params::RDD_WHEEL_BASE>) _param_rdd_wheel_base,
-		(ParamFloat<px4::params::RDD_WHEEL_SPEED>) _param_rdd_wheel_speed,
-		(ParamFloat<px4::params::RDD_WHEEL_RADIUS>) _param_rdd_wheel_radius,
-		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
+		(ParamFloat<px4::params::RD_MAN_YAW_SCALE>) _param_rd_man_yaw_scale,
+		(ParamFloat<px4::params::RD_WHEEL_TRACK>) _param_rd_wheel_track,
+		(ParamFloat<px4::params::RD_YAW_RATE_P>) _param_rd_p_gain_yaw_rate,
+		(ParamFloat<px4::params::RD_YAW_RATE_I>) _param_rd_i_gain_yaw_rate,
+		(ParamFloat<px4::params::RD_MAX_SPEED>) _param_rd_max_speed,
+		(ParamFloat<px4::params::RD_MAX_YAW_RATE>) _param_rd_max_yaw_rate,
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
 	)
 };

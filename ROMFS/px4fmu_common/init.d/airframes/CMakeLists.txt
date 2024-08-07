@@ -143,7 +143,7 @@ if(CONFIG_MODULES_ROVER_POS_CONTROL)
 	)
 endif()
 
-if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
+if(CONFIG_MODULES_ROVER_DIFFERENTIAL)
 	px4_add_romfs_files(
 		50003_aion_robotics_r1_rover
 	)
