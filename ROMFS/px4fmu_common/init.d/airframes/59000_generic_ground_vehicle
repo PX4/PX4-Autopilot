@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Generic Ground Vehicle (Ackermann)
+# @name Generic Ground Vehicle (Deprecated)
 #
 # @type Rover
 # @class Rover

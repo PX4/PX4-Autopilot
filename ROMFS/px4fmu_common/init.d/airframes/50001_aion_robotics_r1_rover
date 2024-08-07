@@ -15,9 +15,6 @@
 
 param set-default BAT1_N_CELLS 4
 
-param set-default EKF2_GBIAS_INIT 0.01
-param set-default EKF2_ANGERR_INIT 0.01
-
 # Set geometry & output configration
 param set-default RBCLW_ADDRESS 128
 param set-default RBCLW_FUNC1 101
