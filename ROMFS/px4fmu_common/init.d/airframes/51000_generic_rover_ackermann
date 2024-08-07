@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Generic ackermann rover
+# @name Generic Rover Ackermann
 #
 # @type Rover
 # @class Rover
