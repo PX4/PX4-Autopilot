@@ -128,6 +128,9 @@ for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
                 if target is not None:
                     build_configs.append(target)
 
+def comma_targets(targets):
+    return ",".join(targets)
+
 github_action_config = { 'include': build_configs }
 extra_args = {}
 if args.pretty:
@@ -143,7 +146,8 @@ if (args.group):
             last_arch = arch
             final_groups.append({
                 "container": grouped_targets[arch]['container'],
-                "targets": temp_group
+                "targets": comma_targets(temp_group),
+                'arch': arch
             })
             temp_group = []
         for man in grouped_targets[arch]['manufacturers']:
@@ -153,7 +157,8 @@ if (args.group):
                         last_man = man
                         final_groups.append({
                             "container": grouped_targets[arch]['container'],
-                            "targets": grouped_targets[arch]['manufacturers'][man]
+                            "targets": comma_targets(grouped_targets[arch]['manufacturers'][man]),
+                            'arch': arch
                         })
                     else:
                         temp_group.append(tar)
@@ -161,7 +166,8 @@ if (args.group):
             if(len(temp_group) > 15):
                 final_groups.append({
                     "container": grouped_targets[arch]['container'],
-                    "targets": temp_group
+                    "targets": comma_targets(temp_group),
+                    'arch': arch
                 })
                 temp_group = []
     print(json.dumps(final_groups, **extra_args))
