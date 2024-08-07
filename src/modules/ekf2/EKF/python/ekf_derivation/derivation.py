@@ -383,32 +383,15 @@ def predict_vel_body(
     R_to_body = state["quat_nominal"].inverse()
     return R_to_body * vel
 
-def compute_ev_body_vel_hx(
+def compute_body_vel_h(
         state: VState,
-) -> (VTangent):
-
+) -> (VTangent, VTangent, VTangent):
     state = vstate_to_state(state)
     meas_pred = predict_vel_body(state)
     Hx = jacobian_chain_rule(meas_pred[0], state)
-    return (Hx.T)
-
-def compute_ev_body_vel_hy(
-        state: VState,
-) -> (VTangent):
-
-    state = vstate_to_state(state)
-    meas_pred = predict_vel_body(state)[1]
-    Hy = jacobian_chain_rule(meas_pred, state)
-    return (Hy.T)
-
-def compute_ev_body_vel_hz(
-        state: VState,
-) -> (VTangent):
-
-    state = vstate_to_state(state)
-    meas_pred = predict_vel_body(state)[2]
-    Hz = jacobian_chain_rule(meas_pred, state)
-    return (Hz.T)
+    Hy = jacobian_chain_rule(meas_pred[1], state)
+    Hz = jacobian_chain_rule(meas_pred[2], state)
+    return (Hx.T, Hy.T, Hz.T)
 
 def predict_mag_body(state) -> sf.V3:
     mag_field_earth = state["mag_I"]
@@ -746,8 +729,6 @@ generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas
 generate_px4_function(compute_gravity_xyz_innov_var_and_hx, output_names=["innov_var", "Hx"])
 generate_px4_function(compute_gravity_y_innov_var_and_h, output_names=["innov_var", "Hy"])
 generate_px4_function(compute_gravity_z_innov_var_and_h, output_names=["innov_var", "Hz"])
-generate_px4_function(compute_ev_body_vel_hx, output_names=["H"])
-generate_px4_function(compute_ev_body_vel_hy, output_names=["H"])
-generate_px4_function(compute_ev_body_vel_hz, output_names=["H"])
+generate_px4_function(compute_body_vel_h, output_names=["Hx", "Hy", "Hz"])
 
 generate_px4_state(State, tangent_idx)

@@ -37,6 +37,7 @@
  */
 
 #include "ekf.h"
+#include "aid_sources/external_vision/ev_vel.h"
 
 void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 {
@@ -62,8 +63,28 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 				&& isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
 
 		updateEvAttitudeErrorFilter(ev_sample, ev_reset);
+
+		ExternalVisionVel *ev_vel = nullptr;
+
+		switch (ev_sample.vel_frame) {
+		case VelocityFrame::BODY_FRAME_FRD:
+			ev_vel = new BodyFrameEV(*this, ev_sample, imu_sample);
+			break;
+
+		case VelocityFrame::LOCAL_FRAME_NED:
+			ev_vel = new NEDLocalFrameEV(*this, ev_sample, imu_sample);
+			break;
+
+		case VelocityFrame::LOCAL_FRAME_FRD:
+			ev_vel = new FRDLocalFrameEV(*this, ev_sample, imu_sample);
+			break;
+
+		default:
+			return;
+		}
+
 		controlEvYawFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
-		controlEvVelFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+		controlEvVelFusion(*ev_vel, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 		controlEvPosFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_pos);
 		controlEvHeightFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient,
 				      _aid_src_ev_hgt);
@@ -71,6 +92,8 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 		if (quality_sufficient) {
 			_ev_sample_prev = ev_sample;
 		}
+
+		delete ev_vel;
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.ev_yaw
 		    || _control_status.flags.ev_hgt)
