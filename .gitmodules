@@ -4,7 +4,7 @@
 	branch = master
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
-	url = https://github.com/dronecan/libuavcan.git
+	url = https://github.com/aviant-tech/libuavcan.git
 	branch = main
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
