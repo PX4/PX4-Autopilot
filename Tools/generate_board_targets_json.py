@@ -170,6 +170,6 @@ if (args.group):
                     'arch': arch
                 })
                 temp_group = []
-    print(json.dumps(final_groups, **extra_args))
+    print(json.dumps({ "include": final_groups }, **extra_args))
 else:
     print(json.dumps(github_action_config, **extra_args))
