@@ -26,7 +26,6 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
             for param in group.GetParams():
                 name = param.GetName()
                 short_desc = param.GetFieldValue("short_desc") or ''
-                #short_desc = html.escape(short_desc)
 
                 # Add fullstop to short_desc if not present
                 if short_desc:
@@ -34,7 +33,6 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                         short_desc += "."
 
                 long_desc = param.GetFieldValue("long_desc") or ''
-                 #long_desc = html.escape(long_desc)
 
                 #Strip out short text from start of long text, if it ends in fullstop
                 if long_desc.startswith(short_desc):
