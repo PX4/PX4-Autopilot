@@ -452,12 +452,17 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 			break;
 		}
 
-		if (temp_vertex_i.frame != NAV_FRAME_GLOBAL && temp_vertex_i.frame != NAV_FRAME_GLOBAL_INT
-		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
-		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		switch (temp_vertex_i.frame) {
+		case NAV_FRAME_GLOBAL:
+		case NAV_FRAME_GLOBAL_INT:
+		case NAV_FRAME_GLOBAL_RELATIVE_ALT:
+		case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+			break;
+
+		default:
 			// TODO: handle different frames
 			PX4_ERR("Frame type %i not supported", (int)temp_vertex_i.frame);
-			break;
+			goto loop_exit;
 		}
 
 		if (((double)temp_vertex_i.lon >= lon) != ((double)temp_vertex_j.lon >= lon) &&
@@ -467,6 +472,8 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 		}
 	}
 
+loop_exit:
+	
 	return c;
 }
 
