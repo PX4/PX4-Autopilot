@@ -81,7 +81,7 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
                 if bitmask_list:
                     result += bitmask_output
                 # Format the ranges as a table.
-                result += f"Reboot | minValue | maxValue | increment | default | unit\n--- | --- | --- | --- | --- | ---\n{reboot_required} | {min_val} | {max_val} | {increment} | {def_val} | {unit} \n\n"
+                result += f"Reboot | minValue | maxValue | increment | default | unit\n--- | --- | --- | --- | --- | ---\n{'&check;' if reboot_required else '&nbsp;' } | {min_val} | {max_val} | {increment} | {def_val} | {unit} \n\n"
 
         self.output = result
 
