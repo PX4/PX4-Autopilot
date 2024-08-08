@@ -26,12 +26,20 @@ If a listed parameter is missing from the Firmware see: [Finding/Updating Parame
             for param in group.GetParams():
                 name = param.GetName()
                 short_desc = param.GetFieldValue("short_desc") or ''
+                #short_desc = html.escape(short_desc)
+
+                # Add fullstop to short_desc if not present
                 if short_desc:
                     if not short_desc.strip().endswith('.'):
                         short_desc += "."
-                #short_desc = html.escape(short_desc)
+
                 long_desc = param.GetFieldValue("long_desc") or ''
-                #long_desc = html.escape(long_desc)
+                 #long_desc = html.escape(long_desc)
+
+                #Strip out short text from start of long text, if it ends in fullstop
+                if long_desc.startswith(short_desc):
+                    long_desc = long_desc[len(short_desc):].lstrip()
+
                 min_val = param.GetFieldValue("min") or ''
                 max_val = param.GetFieldValue("max") or ''
                 increment = param.GetFieldValue("increment") or ''
