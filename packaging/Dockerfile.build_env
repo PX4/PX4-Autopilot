@@ -14,6 +14,10 @@ RUN mkdir -p /artifacts && chown -R builder:builder /artifacts
 
 USER builder
 
+# Define Rust compiler
+ENV RUSTUP_HOME=/opt/rust CARGO_HOME=/home/builder/.cargo
+ENV PATH=$PATH:/opt/rust/bin
+
 VOLUME /px4-firmware/sources
 WORKDIR /px4-firmware/sources
 

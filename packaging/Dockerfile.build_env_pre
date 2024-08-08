@@ -25,6 +25,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN mkdir -p /tools
 
+# Install Rust compiler
+ENV RUSTUP_HOME /opt/rust
+ENV CARGO_HOME /opt/rust
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path
+RUN /opt/rust/bin/rustup target add riscv64gc-unknown-none-elf
+
 RUN curl -LOs https://static.dev.sifive.com/dev-tools/freedom-tools/v2020.12/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz && \
     tar xf riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz -C /tools && \
     rm -f riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz
