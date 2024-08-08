@@ -15,6 +15,7 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
 
@@ -28,20 +29,24 @@ jobs:
       - uses: actions/checkout@v1
         with:
           token: ${{ secrets.ACCESS_TOKEN }}
+
       - name: ownership workaround
         run: git config --system --add safe.directory '*'
+
       - name: ccache setup timestamp
         id: ccache_cache_timestamp
         shell: cmake -P {0}
         run: |
           string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
           message("::set-output name=timestamp::${current_date}")
+
       - name: ccache setup keys
         uses: actions/cache@v2
         with:
           path: ~/.ccache
           key: ${{ matrix.arch }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
           restore-keys: ${{ matrix.arch }}-ccache-
+
       - name: setup ccache
         run: |
             mkdir -p ~/.ccache
@@ -52,11 +57,14 @@ jobs:
             echo "hash_dir = false" >> ~/.ccache/ccache.conf
             ccache -s
             ccache -z
+
       - name: build target group
         run: |
-          for target in ${matrix.targets//,/ }
-          do
-              make $target
-          done
+            matrix_targets=${{matrix.targets}}
+            for target in ${matrix_targets//,/}
+            do
+                make $target
+            done
+
       - name: ccache post-run
         run: ccache -s
