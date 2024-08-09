@@ -472,6 +472,16 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		CHECK_FAILSAFE(status_flags, local_position_accuracy_low, ActionOptions(Action::RTL));
 	}
 
+	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
+	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		CHECK_FAILSAFE(status_flags, navigator_failure,
+			       ActionOptions(Action::Land).clearOn(ClearCondition::OnModeChangeOrDisarm));
+
+	} else {
+		CHECK_FAILSAFE(status_flags, navigator_failure,
+			       ActionOptions(Action::Hold).clearOn(ClearCondition::OnModeChangeOrDisarm));
+	}
+
 	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 
 	// Battery flight time remaining failsafe
