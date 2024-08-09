@@ -2,6 +2,7 @@ uint64 timestamp		# time since system start (microseconds)
 
 float32 altitude_sp			# Altitude setpoint AMSL [m]
 float32 altitude_reference		# Altitude setpoint reference AMSL [m]
+float32 altitude_time_constant		# Time constant of the altitude tracker [s]
 float32 height_rate_reference		# Height rate setpoint reference [m/s]
 float32 height_rate_direct		# Direct height rate setpoint from velocity reference generator [m/s]
 float32 height_rate_setpoint		# Height rate setpoint [m/s]

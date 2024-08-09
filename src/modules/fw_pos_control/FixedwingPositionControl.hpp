@@ -175,6 +175,8 @@ static constexpr uint64_t ROLL_WARNING_TIMEOUT = 2_s;
 // [-] Can-run threshold needed to trigger the roll-constraining failsafe warning
 static constexpr float ROLL_WARNING_CAN_RUN_THRESHOLD = 0.9f;
 
+// [s] slew rate with which we change altitude time constant
+static constexpr float TECS_ALT_TIME_CONST_SLEW_RATE = 1.0f;
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -286,6 +288,8 @@ private:
 	float _reference_altitude{NAN}; // [m AMSL] altitude of the local projection reference point
 
 	bool _landed{true};
+
+	bool _is_low_height{false};
 
 	// MANUAL MODES
 
@@ -400,6 +404,9 @@ private:
 	TECS _tecs;
 
 	bool _tecs_is_running{false};
+
+	// Smooths changes in the altitude tracking error time constant value
+	SlewRate<float> _tecs_alt_time_const_slew_rate;
 
 	// VTOL / TRANSITION
 	bool _is_vtol_tailsitter{false};
@@ -826,6 +833,21 @@ private:
 				   const float land_point_alt, const Vector2f &local_position, const Vector2f &local_land_point);
 
 	/*
+	 * Checks if the vehicle satisfies conditions for low-height flight
+	 *
+	 * @return bool True if conditions are satisfied, false otherwise
+	 */
+	bool checkLowHeightConditions();
+
+	/*
+	 * Updates TECS altitude time constant according to the _is_low_height control flag.
+	 * For low-height flight conditions,
+	 *
+	 * @param dt Update time step [s]
+	 */
+	void updateTECSAltitudeTimeConstant(const float dt);
+
+	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
 	 * method of the same name. Takes two waypoints, steering the vehicle to track
 	 * the line segment between them.
@@ -953,6 +975,7 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
+		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
 		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
 

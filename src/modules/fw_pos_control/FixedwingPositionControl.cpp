@@ -80,6 +80,9 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 	_roll_slew_rate.setForcedValue(0.f);
 
+	_tecs_alt_time_const_slew_rate.setSlewRate(TECS_ALT_TIME_CONST_SLEW_RATE);
+	_tecs_alt_time_const_slew_rate.setForcedValue(_param_fw_t_h_error_tc.get() * _param_fw_thrtc_sc.get());
+
 }
 
 FixedwingPositionControl::~FixedwingPositionControl()
@@ -420,6 +423,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 
 	tecs_status.altitude_sp = alt_sp;
 	tecs_status.altitude_reference = debug_output.altitude_reference;
+	tecs_status.altitude_time_constant = _tecs.get_altitude_error_time_constant();
 	tecs_status.height_rate_reference = debug_output.height_rate_reference;
 	tecs_status.height_rate_direct = debug_output.height_rate_direct;
 	tecs_status.height_rate_setpoint = debug_output.control.altitude_rate_control;
@@ -1236,7 +1240,9 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
 		// landing airspeed and potentially tighter altitude control) already such that we don't
 		// have to do this switch (which can cause significant altitude errors) close to the ground.
-		_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+
+		_is_low_height = true; // In low-height flight, TECS will control altitude tighter
+
 		airspeed_sp = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
 			      _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
 		_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
@@ -1270,7 +1276,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 			_att_sp.roll_body = 0.0f;
 		}
 
-		_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+		_is_low_height = true; // In low-height flight, TECS will control altitude tighter
 	}
 
 	tecs_update_pitch_throttle(control_interval,
@@ -1657,8 +1663,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_land, adjusted_min_airspeed,
 				ground_speed);
-	// Enable tighter altitude control for landings
-	_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+
+	_is_low_height = true; // In low-height flight, TECS will control altitude tighter
 
 	// now handle position
 	const Vector2f local_position{_local_pos.x, _local_pos.y};
@@ -1885,8 +1891,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_land, adjusted_min_airspeed,
 				ground_speed);
 
-	// Enable tighter altitude control for landings
-	_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+	_is_low_height = true; // In low-height flight, TECS will control altitude tighter
 
 	const Vector2f local_position{_local_pos.x, _local_pos.y};
 	Vector2f local_landing_orbit_center = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -2461,9 +2466,11 @@ FixedwingPositionControl::Run()
 
 		update_in_air_states(_local_pos.timestamp);
 
+		// check if generic low-height flight conditions are satisfied
+		_is_low_height = checkLowHeightConditions();
+
 		// restore nominal TECS parameters in case changed intermittently (e.g. in landing handling)
 		_tecs.set_speed_weight(_param_fw_t_spdweight.get());
-		_tecs.set_altitude_error_time_constant(_param_fw_t_h_error_tc.get());
 
 		// restore lateral-directional guidance parameters (changed in takeoff mode)
 		_npfg.setPeriod(_param_npfg_period.get());
@@ -2591,6 +2598,8 @@ FixedwingPositionControl::Run()
 			_roll_slew_rate.setForcedValue(_roll);
 		}
 
+
+
 		// Publish estimate of level flight
 		_flight_phase_estimation_pub.get().timestamp = hrt_absolute_time();
 		_flight_phase_estimation_pub.update();
@@ -2678,6 +2687,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 
 	/* No underspeed protection in landing mode */
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
+
+	/* Update altitude time constant */
+	updateTECSAltitudeTimeConstant(control_interval);
 
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
@@ -2799,6 +2811,27 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 		reset_landing_state();
 		_time_started_landing = now;
 	}
+}
+
+bool FixedwingPositionControl::checkLowHeightConditions()
+{
+	// Are conditions for low-height
+	return _param_fw_t_thr_low_hgt.get() >= 0.f && _local_pos.dist_bottom_valid
+	       && _local_pos.dist_bottom < _param_fw_t_thr_low_hgt.get();
+}
+
+void FixedwingPositionControl::updateTECSAltitudeTimeConstant(const float dt)
+{
+	// Target time constant for the TECS altitude tracker
+	float alt_tracking_tc = _param_fw_t_h_error_tc.get();
+
+	if (_is_low_height) {
+		// If low-height conditions satisfied, compute target time constant for altitude tracking
+		alt_tracking_tc *= _param_fw_thrtc_sc.get();
+	}
+
+	_tecs_alt_time_const_slew_rate.update(alt_tracking_tc, dt);
+	_tecs.set_altitude_error_time_constant(_tecs_alt_time_const_slew_rate.getState());
 }
 
 Vector2f
