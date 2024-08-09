@@ -8,7 +8,9 @@ on:
 jobs:
   group_targets:
     runs-on: self-hosted
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container:
+      image: px4io/px4-dev-base-focal:2021-09-08
+      options: --user 1000
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -24,7 +26,9 @@ jobs:
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
-    container: ${{ matrix.container }}
+    container:
+      image: ${{ matrix.container }}
+      options: --user 1000
     steps:
       - uses: actions/checkout@v1
         with:
