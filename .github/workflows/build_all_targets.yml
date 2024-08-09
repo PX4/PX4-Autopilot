@@ -7,7 +7,7 @@ on:
 
 jobs:
   group_targets:
-    runs-on: [self-hosted, ubuntu]
+    runs-on: self-hosted
     container:
       image: px4io/px4-dev-base-focal:2021-09-08
       options: --user 1000
