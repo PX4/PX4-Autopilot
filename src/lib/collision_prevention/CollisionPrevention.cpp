@@ -40,8 +40,6 @@
 #include "CollisionPrevention.hpp"
 #include <px4_platform_common/events.h>
 
-using namespace matrix;
-using namespace time_literals;
 
 namespace
 {
@@ -113,7 +111,7 @@ bool CollisionPrevention::is_active()
 }
 
 void
-CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &vehicle_attitude)
+CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle, const Quatf &vehicle_attitude)
 {
 	int msg_index = 0;
 	float vehicle_orientation_deg = math::degrees(Eulerf(vehicle_attitude).psi());
@@ -197,6 +195,36 @@ CollisionPrevention::_enterData(int map_index, float sensor_range, float sensor_
 	return false;
 }
 
+bool
+CollisionPrevention::_checkSetpointDirectionFeasability()
+{
+	bool setpoint_feasible = true;
+
+	for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
+		// check if our setpoint is either pointing in a direction where data exists, or if not, wether we are allowed to go where there is no data
+		if ((_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == _setpoint_index) && (!_param_cp_go_nodata.get()
+				|| (_param_cp_go_nodata.get() && _data_fov[i]))) {
+			setpoint_feasible =  false;
+
+		}
+	}
+
+	return setpoint_feasible;
+}
+
+void
+CollisionPrevention::_transformSetpoint(const Vector2f &setpoint)
+{
+	const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
+	_setpoint_dir = setpoint / setpoint.norm();;
+	const float sp_angle_body_frame = atan2f(_setpoint_dir(1), _setpoint_dir(0)) - vehicle_yaw_angle_rad;
+	const float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) -
+					       _obstacle_map_body_frame.angle_offset);
+	_setpoint_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
+	// change setpoint direction slightly (max by _param_cp_guide_ang degrees) to help guide through narrow gaps
+	_adaptSetpointDirection(_setpoint_dir, _setpoint_index, vehicle_yaw_angle_rad);
+}
+
 void
 CollisionPrevention::_updateObstacleMap()
 {
@@ -244,11 +272,48 @@ CollisionPrevention::_updateObstacleMap()
 	_obstacle_distance_pub.publish(_obstacle_map_body_frame);
 }
 
+void CollisionPrevention::_updateObstacleData()
+{
+	_obstacle_data_present = false;
+	_closest_dist = UINT16_MAX;
+	_closest_dist_dir.setZero();
+	const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
+
+	for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
+
+		// if the data is stale, reset the bin
+		if (getTime() - _data_timestamps[i] > RANGE_STREAM_TIMEOUT_US) {
+			_obstacle_map_body_frame.distances[i] = UINT16_MAX;
+		}
+
+		float angle = wrap_2pi(vehicle_yaw_angle_rad + math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG +
+				       _obstacle_map_body_frame.angle_offset));
+		const Vector2f bin_direction = {cosf(angle), sinf(angle)};
+		uint bin_distance = _obstacle_map_body_frame.distances[i];
+
+		// check if there is avaliable data and the data of the map is not stale
+		if (bin_distance < UINT16_MAX
+		    && (getTime() - _obstacle_map_body_frame.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+			_obstacle_data_present = true;
+		}
+
+		if (bin_distance * 0.01f < _closest_dist) {
+			_closest_dist = bin_distance * 0.01f;
+			_closest_dist_dir = bin_direction;
+		}
+	}
+}
+
 void
-CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &vehicle_attitude)
+CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, const Quatf &vehicle_attitude)
 {
 	// clamp at maximum sensor range
 	float distance_reading = math::min(distance_sensor.current_distance, distance_sensor.max_distance);
+
+	// negative values indicate out of range but valid measurements.
+	if (fabsf(distance_sensor.current_distance - -1.f) < FLT_EPSILON && distance_sensor.signal_quality == 0) {
+		distance_reading = distance_sensor.max_distance;
+	}
 
 	// discard values below min range
 	if ((distance_reading > distance_sensor.min_distance)) {
@@ -268,7 +333,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		if (upper_bound < 0) { upper_bound++; }
 
 		// rotate vehicle attitude into the sensor body frame
-		matrix::Quatf attitude_sensor_frame = vehicle_attitude;
+		Quatf attitude_sensor_frame = vehicle_attitude;
 		attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
 		float sensor_dist_scale = cosf(Eulerf(attitude_sensor_frame).theta());
 
@@ -294,7 +359,6 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 void
 CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad)
 {
-	const float col_prev_d = _param_cp_dist.get();
 	const int guidance_bins = floor(_param_cp_guide_ang.get() / INTERNAL_MAP_INCREMENT_DEG);
 	const int sp_index_original = setpoint_index;
 	float best_cost = 9999.f;
@@ -310,7 +374,7 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 			int bin = wrap_bin(j);
 
 			if (_obstacle_map_body_frame.distances[bin] == UINT16_MAX) {
-				mean_dist += col_prev_d * 100.f;
+				mean_dist += _param_cp_dist.get() * 100.f;
 
 			} else {
 				mean_dist += _obstacle_map_body_frame.distances[bin];
@@ -319,7 +383,7 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 
 		const int bin = wrap_bin(i);
 		mean_dist = mean_dist / (2.f * filter_size + 1.f);
-		const float deviation_cost = col_prev_d * 50.f * abs(i - sp_index_original);
+		const float deviation_cost = _param_cp_dist.get() * 50.f * abs(i - sp_index_original);
 		const float bin_cost = deviation_cost - mean_dist - _obstacle_map_body_frame.distances[bin];
 
 		if (bin_cost < best_cost && _obstacle_map_body_frame.distances[bin] != UINT16_MAX) {
@@ -376,7 +440,7 @@ CollisionPrevention::_sensorOrientationToYawOffset(const distance_sensor_s &dist
 		break;
 
 	case distance_sensor_s::ROTATION_CUSTOM:
-		offset = matrix::Eulerf(matrix::Quatf(distance_sensor.q)).psi();
+		offset = Eulerf(Quatf(distance_sensor.q)).psi();
 		break;
 	}
 
@@ -384,154 +448,164 @@ CollisionPrevention::_sensorOrientationToYawOffset(const distance_sensor_s &dist
 }
 
 void
-CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vector2f &curr_pos,
-		const Vector2f &curr_vel)
+CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel, const Vector2f &setpoint_vel)
 {
 	_updateObstacleMap();
+	_updateObstacleData();
 
-	// read parameters
-	const float col_prev_d = _param_cp_dist.get();
-	const float col_prev_dly = _param_cp_delay.get();
-	const bool move_no_data = _param_cp_go_nodata.get();
-	const float xy_p = _param_mpc_xy_p.get();
-	const float max_jerk = _param_mpc_jerk_max.get();
-	const float max_accel = _param_mpc_acc_hor.get();
-	const matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
+	const Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
 	const float vehicle_yaw_angle_rad = Eulerf(attitude).psi();
 
-	const float setpoint_length = setpoint.norm();
+	const float setpoint_length = setpoint_accel.norm();
+	_min_dist_to_keep = math::max(_obstacle_map_body_frame.min_distance / 100.0f, _param_cp_dist.get());
 
-	const hrt_abstime constrain_time = getTime();
-	int num_fov_bins = 0;
+	const hrt_abstime now = getTime();
 
-	if ((constrain_time - _obstacle_map_body_frame.timestamp) < RANGE_STREAM_TIMEOUT_US) {
-		if (setpoint_length > 0.001f) {
+	float vel_comp_accel = INFINITY;
+	Vector2f vel_comp_accel_dir{};
+	Vector2f constr_accel_setpoint{};
 
-			Vector2f setpoint_dir = setpoint / setpoint_length;
-			float vel_max = setpoint_length;
-			const float min_dist_to_keep = math::max(_obstacle_map_body_frame.min_distance / 100.0f, col_prev_d);
+	const bool is_stick_deflected = setpoint_length > 0.001f;
 
-			const float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
-			const float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) -
-							       _obstacle_map_body_frame.angle_offset);
-			int sp_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
+	if (_obstacle_data_present && is_stick_deflected) {
 
-			// change setpoint direction slightly (max by _param_cp_guide_ang degrees) to help guide through narrow gaps
-			_adaptSetpointDirection(setpoint_dir, sp_index, vehicle_yaw_angle_rad);
+		_transformSetpoint(setpoint_accel);
 
-			// limit speed for safe flight
-			for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) { // disregard unused bins at the end of the message
+		_getVelocityCompensationAcceleration(vehicle_yaw_angle_rad, setpoint_vel, now,
+						     vel_comp_accel, vel_comp_accel_dir);
 
-				// delete stale values
-				const hrt_abstime data_age = constrain_time - _data_timestamps[i];
-
-				if (data_age > RANGE_STREAM_TIMEOUT_US) {
-					_obstacle_map_body_frame.distances[i] = UINT16_MAX;
-				}
-
-				const float distance = _obstacle_map_body_frame.distances[i] * 0.01f; // convert to meters
-				const float max_range = _data_maxranges[i] * 0.01f; // convert to meters
-				float angle = math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
-
-				// convert from body to local frame in the range [0, 2*pi]
-				angle = wrap_2pi(vehicle_yaw_angle_rad + angle);
-
-				// get direction of current bin
-				const Vector2f bin_direction = {cosf(angle), sinf(angle)};
-
-				//count number of bins in the field of valid_new
-				if (_obstacle_map_body_frame.distances[i] < UINT16_MAX) {
-					num_fov_bins ++;
-				}
-
-				if (_obstacle_map_body_frame.distances[i] > _obstacle_map_body_frame.min_distance
-				    && _obstacle_map_body_frame.distances[i] < UINT16_MAX) {
-
-					if (setpoint_dir.dot(bin_direction) > 0) {
-						// calculate max allowed velocity with a P-controller (same gain as in the position controller)
-						const float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
-						float delay_distance = curr_vel_parallel * col_prev_dly;
-
-						if (distance < max_range) {
-							delay_distance += curr_vel_parallel * (data_age * 1e-6f);
-						}
-
-						const float stop_distance = math::max(0.f, distance - min_dist_to_keep - delay_distance);
-						const float vel_max_posctrl = xy_p * stop_distance;
-
-						const float vel_max_smooth = math::trajectory::computeMaxSpeedFromDistance(max_jerk, max_accel, stop_distance, 0.f);
-						const float projection = bin_direction.dot(setpoint_dir);
-						float vel_max_bin = vel_max;
-
-						if (projection > 0.01f) {
-							vel_max_bin = math::min(vel_max_posctrl, vel_max_smooth) / projection;
-						}
-
-						// constrain the velocity
-						if (vel_max_bin >= 0) {
-							vel_max = math::min(vel_max, vel_max_bin);
-						}
-					}
-
-				} else if (_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == sp_index) {
-					if (!move_no_data || (move_no_data && _data_fov[i])) {
-						vel_max = 0.f;
-					}
-				}
-			}
-
-			//if the sensor field of view is zero, never allow to move (even if move_no_data=1)
-			if (num_fov_bins == 0) {
-				vel_max = 0.f;
-			}
-
-			setpoint = setpoint_dir * vel_max;
+		if (_checkSetpointDirectionFeasability()) {
+			constr_accel_setpoint = _constrainAccelerationSetpoint(setpoint_length);
 		}
 
-	} else {
-		//allow no movement
-		float vel_max = 0.f;
-		setpoint = setpoint * vel_max;
+		setpoint_accel = constr_accel_setpoint + vel_comp_accel * vel_comp_accel_dir;
+
+	} else if (!_obstacle_data_present)
+
+	{
+		// allow no movement
+		PX4_WARN("No obstacle data, not moving...");
+		setpoint_accel.setZero();
 
 		// if distance data is stale, switch to Loiter
 		if (getElapsedTime(&_last_timeout_warning) > 1_s && getElapsedTime(&_time_activated) > 1_s) {
-
-			if ((constrain_time - _obstacle_map_body_frame.timestamp) > TIMEOUT_HOLD_US
-			    && getElapsedTime(&_time_activated) > TIMEOUT_HOLD_US) {
+			if ((now - _obstacle_map_body_frame.timestamp) > TIMEOUT_HOLD_US &&
+			    getElapsedTime(&_time_activated) > TIMEOUT_HOLD_US) {
 				_publishVehicleCmdDoLoiter();
 			}
 
 			_last_timeout_warning = getTime();
 		}
+	}
+}
+
+float
+CollisionPrevention::_getObstacleDistance(const Vector2f &direction)
+{
+	const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
+	Vector2f dir = direction / direction.norm();
+	const float sp_angle_body_frame = atan2f(dir(1), dir(0)) - vehicle_yaw_angle_rad;
+	const float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) -
+					       _obstacle_map_body_frame.angle_offset);
+	int dir_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
+
+	return _obstacle_map_body_frame.distances[dir_index] * 0.01f;
+}
+
+Vector2f
+CollisionPrevention::_constrainAccelerationSetpoint(const float &setpoint_length)
+{
+	Vector2f new_setpoint{};
+	const Vector2f normal_component = _closest_dist_dir * (_setpoint_dir.dot(_closest_dist_dir));
+	const Vector2f tangential_component = _setpoint_dir - normal_component;
+
+	const float normal_scale = _getScale(_closest_dist);
 
 
+	const float closest_dist_tangential = _getObstacleDistance(tangential_component);
+	const float tangential_scale = _getScale(closest_dist_tangential);
+
+
+	// only scale accelerations towards the obstacle
+	if (_closest_dist_dir.dot(_setpoint_dir) > 0) {
+		new_setpoint = (tangential_component * tangential_scale + normal_component * normal_scale) * setpoint_length;
+
+	} else {
+		new_setpoint = _setpoint_dir * setpoint_length;
+	}
+
+	return new_setpoint;
+}
+
+float
+CollisionPrevention::_getScale(const float &reference_distance)
+{
+	float scale = (reference_distance - _min_dist_to_keep);
+	const float scale_distance = math::max(_min_dist_to_keep, _param_mpc_vel_manual.get() / _param_mpc_xy_p.get());
+
+	// if scale is positive, square it and scale it with the scale_distance
+	scale = scale > 0 ? powf(scale / scale_distance, 2) : scale;
+	scale = math::min(scale, 1.0f);
+	return scale;
+}
+
+void CollisionPrevention::_getVelocityCompensationAcceleration(const float vehicle_yaw_angle_rad,
+		const matrix::Vector2f &setpoint_vel,
+		const hrt_abstime now, float &vel_comp_accel, Vector2f &vel_comp_accel_dir)
+{
+	for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
+		const float max_range = _data_maxranges[i] * 0.01f;
+
+		// get the vector pointing into the direction of current bin
+		float bin_angle = wrap_2pi(vehicle_yaw_angle_rad + math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG +
+					   _obstacle_map_body_frame.angle_offset));
+
+		const Vector2f bin_direction = { cosf(bin_angle), sinf(bin_angle) };
+		float bin_distance = _obstacle_map_body_frame.distances[i];
+
+		// only consider bins which are between min and max values
+		if (bin_distance > _obstacle_map_body_frame.min_distance && bin_distance < UINT16_MAX) {
+			const float distance = bin_distance * 0.01f;
+
+			// Assume current velocity is sufficiently close to the setpoint velocity, this breaks down if flying high
+			// acceleration maneuvers
+			const float curr_vel_parallel = math::max(0.f, setpoint_vel.dot(bin_direction));
+			float delay_distance = curr_vel_parallel * _param_cp_delay.get();
+
+			const hrt_abstime data_age = now - _data_timestamps[i];
+
+			if (distance < max_range) {
+				delay_distance += curr_vel_parallel * (data_age * 1e-6f);
+			}
+
+			const float stop_distance = math::max(0.f, distance - _min_dist_to_keep - delay_distance);
+
+			const float max_vel = math::trajectory::computeMaxSpeedFromDistance(_param_mpc_jerk_max.get(),
+					      _param_mpc_acc_hor.get(), stop_distance, 0.f);
+			// we dont take the minimum of the last term because of stop_distance is zero but current velocity is not, we want the acceleration to become negative and slow us down.
+			const float curr_acc_vel_constraint = _param_mpc_vel_p_acc.get() * (max_vel - curr_vel_parallel);
+
+			if (curr_acc_vel_constraint < vel_comp_accel) {
+				vel_comp_accel = curr_acc_vel_constraint;
+				vel_comp_accel_dir = bin_direction;
+			}
+		}
 	}
 }
 
 void
-CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed, const Vector2f &curr_pos,
-				    const Vector2f &curr_vel)
+CollisionPrevention::modifySetpoint(Vector2f &setpoint_accel, const Vector2f &setpoint_vel)
 {
 	//calculate movement constraints based on range data
-	Vector2f new_setpoint = original_setpoint;
-	_calculateConstrainedSetpoint(new_setpoint, curr_pos, curr_vel);
-
-	//warn user if collision prevention starts to interfere
-	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
-				      || new_setpoint(0) > original_setpoint(0) + 0.05f * max_speed
-				      || new_setpoint(1) < original_setpoint(1) - 0.05f * max_speed
-				      || new_setpoint(1) > original_setpoint(1) + 0.05f * max_speed);
-
-	_interfering = currently_interfering;
+	Vector2f original_setpoint = setpoint_accel;
+	_calculateConstrainedSetpoint(setpoint_accel, setpoint_vel);
 
 	// publish constraints
 	collision_constraints_s	constraints{};
-	constraints.timestamp = getTime();
 	original_setpoint.copyTo(constraints.original_setpoint);
-	new_setpoint.copyTo(constraints.adapted_setpoint);
+	setpoint_accel.copyTo(constraints.adapted_setpoint);
+	constraints.timestamp = getTime();
 	_constraints_pub.publish(constraints);
-
-	original_setpoint = new_setpoint;
 }
 
 void CollisionPrevention::_publishVehicleCmdDoLoiter()
