@@ -158,6 +158,16 @@ void RtlDirect::set_rtl_item()
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+	if (_global_pos_sub.get().terrain_alt_valid
+	    && ((_rtl_alt - _global_pos_sub.get().terrain_alt) > _navigator->get_local_position()->hagl_max)) {
+		// Handle case where the RTL altidude is above the maximum HAGL and land in place instead of RTL
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return alt higher than max HAGL, landing\t");
+		events::send(events::ID("rtl_fail_max_hagl"), events::Log::Warning, "RTL: return alt higher than max HAGL, landing");
+
+		_navigator->trigger_failsafe(getNavigatorStateId());
+		_rtl_state = RTLState::IDLE;
+	}
+
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon,
 				       _global_pos_sub.get().lat, _global_pos_sub.get().lon);
 	const float loiter_altitude = math::min(_land_approach.height_m, _rtl_alt);

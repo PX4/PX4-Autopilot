@@ -41,6 +41,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * and many more...
  */
 
 #include "navigator.h"
@@ -897,6 +898,8 @@ void Navigator::run()
 			publish_mission_result();
 		}
 
+		publish_navigator_status();
+
 		_geofence.run();
 
 		perf_end(_loop_perf);
@@ -1352,6 +1355,40 @@ void Navigator::set_mission_failure_heading_timeout()
 		mavlink_log_critical(&_mavlink_log_pub, "unable to reach heading within timeout\t");
 		events::send(events::ID("navigator_mission_failure_heading"), events::Log::Critical,
 			     "Mission failure: unable to reach heading within timeout");
+	}
+}
+
+void Navigator::trigger_failsafe(const uint8_t nav_state)
+{
+	if (!_navigator_status.failure || _navigator_status.nav_state != nav_state) {
+		_navigator_status.failure = true;
+		_navigator_status.nav_state = nav_state;
+
+		_navigator_status_updated = true;
+	}
+}
+
+void Navigator::publish_navigator_status()
+{
+	uint8_t current_nav_state = _vstatus.nav_state;
+
+	if (_navigation_mode != nullptr) {
+		current_nav_state = _navigation_mode->getNavigatorStateId();
+	}
+
+	if (_navigator_status.nav_state != current_nav_state) {
+		_navigator_status.nav_state = current_nav_state;
+		_navigator_status.failure = false;
+		_navigator_status_updated = true;
+	}
+
+	if (_navigator_status_updated
+	    || (hrt_elapsed_time(&_last_navigator_status_publication) > 500_ms)) {
+		_navigator_status.timestamp = hrt_absolute_time();
+		_navigator_status_pub.publish(_navigator_status);
+
+		_navigator_status_updated = false;
+		_last_navigator_status_publication = hrt_absolute_time();
 	}
 }
 
