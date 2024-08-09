@@ -137,10 +137,6 @@ menu "Zenoh publishers/subscribers"
 		bool "debug_vect"
 		default n
 
-	config ZENOH_PUBSUB_DIFFERENTIAL_DRIVE_SETPOINT
-		bool "differential_drive_setpoint"
-		default n
-
 	config ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
 		bool "differential_pressure"
 		default n
@@ -577,6 +573,14 @@ menu "Zenoh publishers/subscribers"
 		bool "rover_ackermann_status"
 		default n
 
+	config ZENOH_PUBSUB_ROVER_DIFFERENTIAL_GUIDANCE_STATUS
+		bool "rover_differential_guidance_status"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_DIFFERENTIAL_STATUS
+		bool "rover_differential_status"
+		default n
+
 	config ZENOH_PUBSUB_RPM
 		bool "rpm"
 		default n
@@ -904,7 +908,6 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_DEBUG_KEY_VALUE
 	select ZENOH_PUBSUB_DEBUG_VALUE
 	select ZENOH_PUBSUB_DEBUG_VECT
-	select ZENOH_PUBSUB_DIFFERENTIAL_DRIVE_SETPOINT
 	select ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
 	select ZENOH_PUBSUB_DISTANCE_SENSOR
 	select ZENOH_PUBSUB_EKF2_TIMESTAMPS
@@ -1014,6 +1017,8 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REQUEST
 	select ZENOH_PUBSUB_ROVER_ACKERMANN_GUIDANCE_STATUS
 	select ZENOH_PUBSUB_ROVER_ACKERMANN_STATUS
+	select ZENOH_PUBSUB_ROVER_DIFFERENTIAL_GUIDANCE_STATUS
+	select ZENOH_PUBSUB_ROVER_DIFFERENTIAL_STATUS
 	select ZENOH_PUBSUB_RPM
 	select ZENOH_PUBSUB_RTL_STATUS
 	select ZENOH_PUBSUB_RTL_TIME_ESTIMATE
