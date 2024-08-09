@@ -178,3 +178,16 @@ parameters:
             decimal: 2
             increment: 0.1
             default: 15
+
+        BAT_AVRG_SOC:
+            description:
+                short: Expected average SoC derivative during flight.
+                long: |
+                    This value is used to initialize the in-flight average SoC derivative,
+                    which in turn is used for estimating remaining flight time and RTL triggering.
+            type: float
+            min: 0
+            max: 100
+            decimal: 4
+            increment: 0.0001
+            default: 0.001

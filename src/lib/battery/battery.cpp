@@ -57,6 +57,8 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_current_average_filter_a.setParameters(expected_filter_dt, 50.f);
 	_ocv_filter_v.setParameters(expected_filter_dt, 1.f);
 	_cell_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
+	_soc_derivative_filter.setParameters(expected_filter_dt, 50.f);
+	_flight_time_filter.setParameters(expected_filter_dt, 50.f);
 
 	if (index > 9 || index < 1) {
 		PX4_ERR("Battery index must be between 1 and 9 (inclusive). Received %d. Defaulting to 1.", index);
@@ -92,6 +94,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
 
 	_param_handles.bat_avrg_current = param_find("BAT_AVRG_CURRENT");
+	_param_handles.bat_avrg_soc = param_find("BAT_AVRG_SOC");
 
 	updateParams();
 }
@@ -148,7 +151,7 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.discharged_mah = _discharged_mah;
 	battery_status.remaining = _state_of_charge;
 	battery_status.scale = _scale;
-	battery_status.time_remaining_s = computeRemainingTime(_current_a);
+	battery_status.time_remaining_s = computeRemainingTime(_state_of_charge);
 	battery_status.temperature = NAN;
 	battery_status.cell_count = _params.n_cells;
 	battery_status.connected = _connected;
@@ -340,10 +343,11 @@ void Battery::computeScale()
 	}
 }
 
-float Battery::computeRemainingTime(float current_a)
+float Battery::computeRemainingTime(const float state_of_charge)
 {
 	float time_remaining_s = NAN;
-	bool reset_current_avg_filter = false;
+	bool reset_soc_derivative_filter = false;
+	hrt_abstime timestamp = hrt_absolute_time();
 
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
@@ -352,7 +356,7 @@ float Battery::computeRemainingTime(float current_a)
 			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !_vehicle_status_is_fw) {
-				reset_current_avg_filter = true;
+				reset_soc_derivative_filter = true;
 			}
 
 			_vehicle_status_is_fw = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
@@ -362,28 +366,31 @@ float Battery::computeRemainingTime(float current_a)
 	_flight_phase_estimation_sub.update();
 
 	// reset filter if not feasible, negative or we did a VTOL transition to FW mode
-	if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON
-	    || reset_current_avg_filter) {
-		_current_average_filter_a.reset(_params.bat_avrg_current);
+	if (!PX4_ISFINITE(_soc_derivative_filter.getState()) || _soc_derivative_filter.getState() < FLT_EPSILON
+	    || reset_soc_derivative_filter) {
+		_soc_derivative_filter.reset(_params.bat_avrg_soc);
 	}
 
-	if (_armed && PX4_ISFINITE(current_a)) {
+	const float dt = math::constrain(timestamp - _last_flight_time_update, 1_ms, 5000_ms) * 1e-6f;
+
+	if (_armed && _state_of_charge < 0.99f && PX4_ISFINITE(dt)) {
 		// For FW only update when we are in level flight
-		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
+		if (!_vehicle_status_is_fw || ((timestamp - _flight_phase_estimation_sub.get().timestamp) < 2_s
 					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
-			// only update with positive numbers
-			_current_average_filter_a.update(fmaxf(current_a, 0.f));
+			_soc_derivative_filter.update((_prev_state_of_charge - _state_of_charge) / dt);
 		}
+
+	} else {
+		_soc_derivative_filter.reset(_params.bat_avrg_soc);
+		_flight_time_filter.reset(_state_of_charge / fmaxf(_soc_derivative_filter.getState(), FLT_EPSILON));
 	}
 
-	// Remaining time estimation only possible with capacity
-	if (_params.capacity > 0.f) {
-		const float remaining_capacity_mah = _state_of_charge * _params.capacity;
-		const float current_ma = fmaxf(_current_average_filter_a.getState() * 1e3f, FLT_EPSILON);
-		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
-	}
+	time_remaining_s = _state_of_charge / fmaxf(_soc_derivative_filter.getState(), FLT_EPSILON);
+	_flight_time_filter.update(time_remaining_s);
+	_last_flight_time_update = timestamp;
+	_prev_state_of_charge = state_of_charge;
 
-	return time_remaining_s;
+	return _flight_time_filter.getState();
 }
 
 void Battery::updateParams()
@@ -399,6 +406,7 @@ void Battery::updateParams()
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
 	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);
+	param_get(_param_handles.bat_avrg_soc, &_params.bat_avrg_soc);
 
 	if (n_cells != _params.n_cells) {
 		_internal_resistance_initialized = false;

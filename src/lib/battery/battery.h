@@ -123,6 +123,7 @@ protected:
 		param_t emergen_thr;
 		param_t source;
 		param_t bat_avrg_current;
+		param_t bat_avrg_soc;
 	} _param_handles{};
 
 	struct {
@@ -136,6 +137,7 @@ protected:
 		float emergen_thr;
 		int32_t source;
 		float bat_avrg_current;
+		float bat_avrg_soc;
 	} _params{};
 
 	const int _index;
@@ -150,7 +152,7 @@ private:
 	uint8_t determineWarning(float state_of_charge);
 	uint16_t determineFaults();
 	void computeScale();
-	float computeRemainingTime(float current_a);
+	float computeRemainingTime(const float state_of_charge);
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<flight_phase_estimation_s> _flight_phase_estimation_sub{ORB_ID(flight_phase_estimation)};
@@ -165,6 +167,8 @@ private:
 	float _voltage_v{0.f};
 	AlphaFilter<float> _ocv_filter_v;
 	AlphaFilter<float> _cell_voltage_filter_v;
+	AlphaFilter<float> _soc_derivative_filter;
+	AlphaFilter<float> _flight_time_filter;
 	float _current_a{-1};
 	AlphaFilter<float>
 	_current_average_filter_a; ///< averaging filter for current. For FW, it is the current in level flight.
@@ -172,12 +176,14 @@ private:
 	float _discharged_mah_loop{0.f};
 	float _state_of_charge_volt_based{-1.f}; // [0,1]
 	float _state_of_charge{-1.f}; // [0,1]
+	float _prev_state_of_charge{-1.f}; // [0, 1]
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};
 	hrt_abstime _last_unconnected_timestamp{0};
+	hrt_abstime _last_flight_time_update{0};
 
 	// Internal Resistance estimation
 	void updateInternalResistanceEstimation(const float voltage_v, const float current_a);
