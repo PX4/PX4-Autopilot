@@ -67,7 +67,7 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
 
-    _mutex = PTHREAD_MUTEX_INITIALIZER;
+	_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 	PX4_INFO("*** I2C Device ID 0x%x %d", _device_id.devid, _device_id.devid);
 }
