@@ -196,11 +196,20 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+
+	// Distance Sensor(AFBRS50): optional
+	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
+				   "/link/BroadcomSensor/sensor/broadcomafbrs50/scan";
+
+	if (!_node.Subscribe(lidar_sensor, &GZBridge::LaserScantoLidarSensorCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
+  }
 	// Laser Scan: optional
 	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
 
 	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
 		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
+
 	}
 
 #if 0
@@ -748,6 +757,33 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
+
+void GZBridge::LaserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
+{
+
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	distance_sensor_s distance_sensor{};
+	distance_sensor.timestamp = hrt_absolute_time();
+	distance_sensor.device_id = 0;
+	distance_sensor.min_distance = static_cast<float>(scan.range_min());
+	distance_sensor.max_distance = static_cast<float>(scan.range_max());
+	distance_sensor.current_distance = static_cast<float>(scan.ranges()[0]);
+	distance_sensor.variance = 0.0f;
+	distance_sensor.signal_quality = -1;
+	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	distance_sensor.h_fov = static_cast<float>(scan.angle_max() - scan.angle_min());
+	distance_sensor.v_fov = static_cast<float>(scan.angle_max() - scan.angle_min());
+	distance_sensor.q[0] = scan.world_pose().orientation().x();
+	distance_sensor.q[1] = scan.world_pose().orientation().y();
+	distance_sensor.q[2] = scan.world_pose().orientation().z();
+	distance_sensor.q[3] = scan.world_pose().orientation().w();
+	distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	_distance_sensor_pub.publish(distance_sensor);
+}
 void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 {
 	static constexpr int SECTOR_SIZE_DEG = 10; // PX4 Collision Prevention only has 36 sectors of 10 degrees each
@@ -827,6 +863,7 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 	}
 
 	_obstacle_distance_pub.publish(obs);
+
 }
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
