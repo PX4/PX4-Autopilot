@@ -119,7 +119,7 @@ if [ -z ${SCRIPT} ]; then
 	fi
 
 	while [ $n -lt $num_vehicles ]; do
-		spawn_model ${vehicle_model} $(($n + 1))
+		spawn_model ${vehicle_model} $n
 		n=$(($n + 1))
 	done
 else
