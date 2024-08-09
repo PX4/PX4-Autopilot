@@ -203,10 +203,8 @@ TEST_F(EkfFlowTest, inAirConvergence)
 	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
-	// Let it reset but not fuse more measurements. We actually need to send 2
-	// samples to get a reset because the first one cannot be used as the gyro
-	// compensation needs to be accumulated between two samples.
-	_sensor_simulator.runTrajectorySeconds(0.14);
+
+	_sensor_simulator.runTrajectorySeconds(1.0);
 
 	// THEN: estimated velocity should match simulated velocity
 	Vector3f estimated_velocity = _ekf->getVelocity();
