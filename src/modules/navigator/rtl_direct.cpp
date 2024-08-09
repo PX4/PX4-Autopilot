@@ -51,7 +51,7 @@
 using namespace math;
 
 RtlDirect::RtlDirect(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator)
 {
 	_destination.lat = static_cast<double>(NAN);
@@ -318,7 +318,7 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::IDLE: {
 			set_idle_item(&_mission_item);
-			_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+			_navigator->mode_completed(getNavigatorStateId());
 			break;
 		}
 

@@ -46,8 +46,8 @@
 #include "mission_feasibility_checker.h"
 #include "navigator.h"
 
-MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed) :
-	MissionBlock(navigator),
+MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed, uint8_t navigator_state_id) :
+	MissionBlock(navigator, navigator_state_id),
 	ModuleParams(navigator),
 	_dataman_cache_size_signed(dataman_cache_size_signed)
 {
@@ -476,7 +476,7 @@ MissionBase::set_mission_items()
 
 	if (set_end_of_mission) {
 		setEndOfMissionItems();
-		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }
 

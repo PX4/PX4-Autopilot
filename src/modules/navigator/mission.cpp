@@ -65,7 +65,7 @@ using namespace time_literals;
 static constexpr int32_t DEFAULT_MISSION_CACHE_SIZE = 10;
 
 Mission::Mission(Navigator *navigator) :
-	MissionBase(navigator, DEFAULT_MISSION_CACHE_SIZE)
+	MissionBase(navigator, DEFAULT_MISSION_CACHE_SIZE, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 {
 }
 
