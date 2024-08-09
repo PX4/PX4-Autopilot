@@ -95,7 +95,7 @@ PARAM_DEFINE_INT32(MPC_ALT_MODE, 2);
 /**
  * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
  *
- * Only used with MPC_POS_MODE 0 or MPC_ALT_MODE 2
+ * Only used with MPC_POS_MODE Direct velocity or MPC_ALT_MODE 2
  *
  * @unit m/s
  * @min 0
