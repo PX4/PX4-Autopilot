@@ -212,8 +212,7 @@ FixedwingPositionControl::airspeed_poll()
 		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
-		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-		    && (airspeed_validated.calibrated_airspeed_m_s > FLT_EPSILON)) {
+		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
 
 			airspeed_valid = true;
 
