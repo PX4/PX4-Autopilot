@@ -635,12 +635,14 @@ int BMM350::ReadOTPWord(uint8_t addr, uint16_t *lsb_msb)
 			}
 		} while (!(otp_status & 0x01));
 
-		uint8_t msb, lsb;
+		uint8_t msb = 0, lsb = 0;
 		ret = RegisterRead(Register::OTP_DATA_MSB, &msb);
 
 		if (ret == PX4_OK) {
 			ret  = RegisterRead(Register::OTP_DATA_LSB, &lsb);
-			*lsb_msb = ((msb << 8) | lsb) & 0xffff;
+			if(ret == PX4_OK){
+				*lsb_msb = ((msb << 8) | lsb) & 0xffff;
+			}
 		}
 	}
 
