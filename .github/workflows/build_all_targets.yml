@@ -7,7 +7,7 @@ on:
 
 jobs:
   group_targets:
-    runs-on: self-hosted
+    runs-on: [self-hosted, ubuntu]
     container:
       image: px4io/px4-dev-base-focal:2021-09-08
       options: --user 1000
@@ -41,7 +41,7 @@ jobs:
       #   run: git config --system --add safe.directory '*'
 
       - name: ccache setup keys
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.ccache
           key: ${{ matrix.arch }}-ccache-${{ needs.group_targets.outputs.timestamp }}
