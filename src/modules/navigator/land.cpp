@@ -42,7 +42,7 @@
 #include "navigator.h"
 
 Land::Land(Navigator *navigator) :
-	MissionBlock(navigator)
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
 {
 }
 
@@ -93,7 +93,7 @@ Land::on_active()
 	if (_navigator->get_land_detected()->landed) {
 		_navigator->get_mission_result()->finished = true;
 		_navigator->set_mission_result_updated();
-		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND);
+		_navigator->mode_completed(getNavigatorStateId());
 		set_idle_item(&_mission_item);
 
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

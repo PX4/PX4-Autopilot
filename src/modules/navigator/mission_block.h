@@ -64,7 +64,7 @@ public:
 	/**
 	 * Constructor
 	 */
-	MissionBlock(Navigator *navigator);
+	MissionBlock(Navigator *navigator, uint8_t navigator_state_id);
 	virtual ~MissionBlock() = default;
 
 	MissionBlock(const MissionBlock &) = delete;

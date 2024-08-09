@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,70 +30,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file navigator_mode.cpp
- *
- * Base class for different modes in navigator
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
 
-#include "navigator_mode.h"
-#include "navigator.h"
+#pragma once
 
-NavigatorMode::NavigatorMode(Navigator *navigator, uint8_t navigator_state_id) :
-	_navigator(navigator),
-	_navigator_state_id(navigator_state_id)
+#include "../Common.hpp"
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/navigator_status.h>
+
+
+class NavigatorChecks : public HealthAndArmingCheckBase
 {
-	/* set initial mission items */
-	on_inactivation();
-	on_inactive();
-}
+public:
+	NavigatorChecks() = default;
+	~NavigatorChecks() = default;
 
-void
-NavigatorMode::run(bool active)
-{
-	if (active) {
-		if (!_active) {
-			on_activation();
+	void checkAndReport(const Context &context, Report &reporter) override;
 
-		} else {
-			/* periodic updates when active */
-			on_active();
-		}
-
-	} else {
-		/* periodic updates when inactive */
-		if (_active) {
-			on_inactivation();
-
-		} else {
-			on_inactive();
-		}
-	}
-
-	_active = active;
-}
-
-void
-NavigatorMode::on_inactive()
-{
-}
-
-void
-NavigatorMode::on_inactivation()
-{
-}
-
-void
-NavigatorMode::on_activation()
-{
-	/* invalidate position setpoint by default */
-	_navigator->get_position_setpoint_triplet()->current.valid = false;
-}
-
-void
-NavigatorMode::on_active()
-{
-}
+private:
+	uORB::Subscription _navigator_status_sub{ORB_ID(navigator_status)};
+};

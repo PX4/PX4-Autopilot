@@ -49,6 +49,7 @@
 #include "checks/escCheck.hpp"
 #include "checks/estimatorCheck.hpp"
 #include "checks/failureDetectorCheck.hpp"
+#include "checks/navigatorCheck.hpp"
 #include "checks/gyroCheck.hpp"
 #include "checks/imuConsistencyCheck.hpp"
 #include "checks/loggerCheck.hpp"
@@ -129,6 +130,7 @@ private:
 	EscChecks _esc_checks;
 	EstimatorChecks _estimator_checks;
 	FailureDetectorChecks _failure_detector_checks;
+	NavigatorChecks _navigator_checks;
 	GyroChecks _gyro_checks;
 	ImuConsistencyChecks _imu_consistency_checks;
 	LoggerChecks _logger_checks;
@@ -167,6 +169,7 @@ private:
 		&_esc_checks,
 		&_estimator_checks,
 		&_failure_detector_checks,
+		&_navigator_checks,
 		&_gyro_checks,
 		&_imu_consistency_checks,
 		&_logger_checks,

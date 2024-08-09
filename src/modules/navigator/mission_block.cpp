@@ -55,8 +55,8 @@
 
 using matrix::wrap_pi;
 
-MissionBlock::MissionBlock(Navigator *navigator) :
-	NavigatorMode(navigator)
+MissionBlock::MissionBlock(Navigator *navigator, uint8_t navigator_state_id) :
+	NavigatorMode(navigator, navigator_state_id)
 {
 
 }

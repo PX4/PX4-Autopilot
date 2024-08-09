@@ -65,7 +65,7 @@ class Navigator;
 class MissionBase : public MissionBlock, public ModuleParams
 {
 public:
-	MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed);
+	MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed, uint8_t navigator_state_id);
 	~MissionBase() override = default;
 
 	virtual void on_inactive() override;

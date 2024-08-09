@@ -49,6 +49,7 @@ bool vtol_fixed_wing_system_failure   # vehicle in fixed-wing system failure fai
 bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
 bool local_position_accuracy_low      # Local position estimate has dropped below threshold, but is currently still declared valid
+bool navigator_failure        	      # Navigator failed to execute a mode
 
 # Failure detector
 bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)

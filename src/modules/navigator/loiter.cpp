@@ -43,7 +43,7 @@
 #include "navigator.h"
 
 Loiter::Loiter(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER),
 	ModuleParams(navigator)
 {
 }
