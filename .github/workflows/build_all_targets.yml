@@ -20,7 +20,7 @@ jobs:
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
 
   setup:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
