@@ -5,5 +5,7 @@
 targets=$1
 for target in ${targets//,/ }
 do
+    echo "::group::Building: [${target}]"
     make $target
+    echo "::endgroup::"
 done
