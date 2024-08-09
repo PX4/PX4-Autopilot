@@ -161,8 +161,8 @@ void RtlDirect::set_rtl_item()
 	if (_global_pos_sub.get().terrain_alt_valid
 	    && ((_rtl_alt - _global_pos_sub.get().terrain_alt) > _navigator->get_local_position()->hagl_max)) {
 		// Handle case where the RTL altidude is above the maximum HAGL and land in place instead of RTL
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return alt higher than max HAGL, landing\t");
-		events::send(events::ID("rtl_fail_max_hagl"), events::Log::Warning, "RTL: return alt higher than max HAGL, landing");
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return alt higher than max HAGL\t");
+		events::send(events::ID("rtl_fail_max_hagl"), events::Log::Error, "RTL: return alt higher than max HAGL");
 
 		_navigator->trigger_failsafe(getNavigatorStateId());
 		_rtl_state = RTLState::IDLE;
