@@ -242,6 +242,15 @@ PARAM_DEFINE_INT32(SYS_HAS_NUM_ASPD, 0);
 PARAM_DEFINE_INT32(SYS_HAS_NUM_DIST, 0);
 
 /**
+ * Number of differential pressure sensors to check being available
+ *
+ * @group System
+ * @min 0
+ * @max 4
+ */
+PARAM_DEFINE_INT32(SYS_HAS_NUM_DPRS, 0);
+
+/**
  * Enable factory calibration mode
  *
  * If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.
