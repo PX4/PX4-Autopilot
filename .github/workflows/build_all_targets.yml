@@ -60,11 +60,7 @@ jobs:
 
       - name: build target group
         run: |
-            matrix_targets=${{matrix.targets}}
-            for target in ${matrix_targets//,/ }
-            do
-                make $target
-            done
+            ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
 
       - name: ccache post-run
         run: ccache -s
