@@ -34,6 +34,7 @@
 /**
  * @file CollisionPrevention.hpp
  * @author Tanja Baumann <tanja@auterion.com>
+ * @author Claudio Chies <claudio@chies.com>
  *
  * CollisionPrevention controller.
  *
@@ -60,6 +61,12 @@
 #include <uORB/topics/vehicle_command.h>
 
 using namespace time_literals;
+using matrix::Vector2f;
+using matrix::Vector3f;
+using matrix::Quatf;
+using matrix::Eulerf;
+using matrix::wrap;
+using matrix::wrap_2pi;
 
 class CollisionPrevention : public ModuleParams
 {
@@ -74,13 +81,10 @@ public:
 
 	/**
 	 * Computes collision free setpoints
-	 * @param original_setpoint, setpoint before collision prevention intervention
-	 * @param max_speed, maximum xy speed
-	 * @param curr_pos, current vehicle position
-	 * @param curr_vel, current vehicle velocity
+	 * @param setpoint_accel setpoint purely based on sticks, to be modified
+	 * @param setpoint_vel current velocity setpoint as information to be able to stop in time, does not get changed
 	 */
-	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed,
-			    const matrix::Vector2f &curr_pos, const matrix::Vector2f &curr_vel);
+	void modifySetpoint(Vector2f &setpoint_accel, const Vector2f &setpoint_vel);
 
 protected:
 
@@ -90,13 +94,13 @@ protected:
 	uint16_t _data_maxranges[sizeof(_obstacle_map_body_frame.distances) / sizeof(
 										    _obstacle_map_body_frame.distances[0])]; /**< in cm */
 
-	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &vehicle_attitude);
+	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const Quatf &vehicle_attitude);
 
 	/**
 	 * Updates obstacle distance message with measurement from offboard
 	 * @param obstacle, obstacle_distance message to be updated
 	 */
-	void _addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &vehicle_attitude);
+	void _addObstacleSensorData(const obstacle_distance_s &obstacle, const Quatf &vehicle_attitude);
 
 	/**
 	 * Computes an adaption to the setpoint direction to guide towards free space
@@ -104,7 +108,40 @@ protected:
 	 * @param setpoint_index, index of the setpoint in the internal obstacle map
 	 * @param vehicle_yaw_angle_rad, vehicle orientation
 	 */
-	void _adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad);
+	void _adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad);
+
+	/**
+	 * Calculate the constrained setpoint cosdering the current obstacle distances, the current acceleration setpoint and velocity setpoint
+	 */
+	void _calculateConstrainedSetpoint(Vector2f &setpoint_accel, const Vector2f &setpoint_vel);
+
+	/**
+	 * Constrain the acceleration setpoint based on the distance to the obstacle
+	 * The Scaling of the acceleration setpoint is linear below the min_dist_to_keep and quadratic until the scale_distance above
+	 *           +1          ________ _ _
+	 * ┌─┐      │           //
+	 * │X│      │          //
+	 * │X│      │         //
+	 * │X│      │       ///
+	 * │X│      │     //
+	 * │X│      │/////
+	 * │X│──────┼─────────────┬─────────────
+	 * │X│     /│             scale_distance
+	 * │X│    / │
+	 * │X│   /  │
+	 * │X│  /   │
+	 * │X│ /    │
+	 * └─┘/     │
+	 *           -1
+	 */
+	Vector2f _constrainAccelerationSetpoint(const float &setpoint_length);
+
+	void _getVelocityCompensationAcceleration(const float vehicle_yaw_angle_rad, const matrix::Vector2f &setpoint_vel,
+			const hrt_abstime now, float &vel_comp_accel, Vector2f &vel_comp_accel_dir);
+
+	float _getObstacleDistance(const Vector2f &direction);
+
+	float _getScale(const float &reference_distance);
 
 	/**
 	 * Determines whether a new sensor measurement is used
@@ -114,6 +151,10 @@ protected:
 	 */
 	bool _enterData(int map_index, float sensor_range, float sensor_reading);
 
+	bool _checkSetpointDirectionFeasability();
+
+	void _transformSetpoint(const Vector2f &setpoint);
+
 
 	//Timing functions. Necessary to mock time in the tests
 	virtual hrt_abstime getTime();
@@ -122,10 +163,20 @@ protected:
 
 private:
 
-	bool _interfering{false};		/**< states if the collision prevention interferes with the user input */
+	bool _data_stale{true}; 		/**< states if the data is stale */
 	bool _was_active{false};		/**< states if the collision prevention interferes with the user input */
+	bool _obstacle_data_present{false};	/**< states if obstacle data is present */
+
+	int _setpoint_index{};			/**< index of the setpoint*/
+	Vector2f _setpoint_dir{};		/**< direction of the setpoint*/
+
+	float _closest_dist{};			/**< closest distance to an obstacle  */
+	Vector2f _closest_dist_dir{NAN, NAN};	/**< direction of the closest obstacle  */
+
+	float _min_dist_to_keep{};
 
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
+	Vector2f _DEBUG;
 
 	uORB::Publication<collision_constraints_s>	_constraints_pub{ORB_ID(collision_constraints)};		/**< constraints publication */
 	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance_fused)};	/**< obstacle_distance publication */
@@ -142,13 +193,15 @@ private:
 	hrt_abstime	_time_activated{0};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist, /**< collision prevention keep minimum distance */
-		(ParamFloat<px4::params::CP_DELAY>) _param_cp_delay, /**< delay of the range measurement data*/
-		(ParamFloat<px4::params::CP_GUIDE_ANG>) _param_cp_guide_ang, /**< collision prevention change setpoint angle */
-		(ParamBool<px4::params::CP_GO_NO_DATA>) _param_cp_go_nodata, /**< movement allowed where no data*/
-		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, /**< vehicle maximum jerk*/
-		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor /**< vehicle maximum horizontal acceleration*/
+		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist, 		/**< collision prevention keep minimum distance */
+		(ParamFloat<px4::params::CP_DELAY>) _param_cp_delay, 		/**< delay of the range measurement data*/
+		(ParamFloat<px4::params::CP_GUIDE_ANG>) _param_cp_guide_ang, 	/**< collision prevention change setpoint angle */
+		(ParamBool<px4::params::CP_GO_NO_DATA>) _param_cp_go_nodata, 	/**< movement allowed where no data*/
+		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, 		/**< p gain from position controller*/
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, 	/**< vehicle maximum jerk*/
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, 	/**< vehicle maximum horizontal acceleration*/
+		(ParamFloat<px4::params::MPC_XY_VEL_P_ACC>) _param_mpc_vel_p_acc, /**< p gain from velocity controller*/
+		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual   /**< maximum velocity in manual flight mode*/
 	)
 
 	/**
@@ -164,15 +217,15 @@ private:
 	 * @param curr_pos, current vehicle position
 	 * @param curr_vel, current vehicle velocity
 	 */
-	void _calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
-					   const matrix::Vector2f &curr_vel);
+	void _calculateConstrainedSetpoint(Vector2f &setpoint, const Vector2f &curr_pos,
+					   const Vector2f &curr_vel);
 
 	/**
 	 * Publishes collision_constraints message
 	 * @param original_setpoint, setpoint before collision prevention intervention
 	 * @param adapted_setpoint, collision prevention adaped setpoint
 	 */
-	void _publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
+	void _publishConstrainedSetpoint(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint);
 
 	/**
 	 * Publishes obstacle_distance message with fused data from offboard and from distance sensors
@@ -184,6 +237,11 @@ private:
 	 * Aggregates the sensor data into a internal obstacle map in body frame
 	 */
 	void _updateObstacleMap();
+
+	/**
+	 * Updates the obstacle data based on stale data and calculates values from the map
+	 */
+	void _updateObstacleData();
 
 	/**
 	 * Publishes vehicle command.

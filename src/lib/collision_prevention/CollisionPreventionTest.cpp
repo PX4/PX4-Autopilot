@@ -104,8 +104,6 @@ TEST_F(CollisionPreventionTest, noSensorData)
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
-	float max_speed = 3.f;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
@@ -117,7 +115,7 @@ TEST_F(CollisionPreventionTest, noSensorData)
 	cp.paramsChanged();
 
 	matrix::Vector2f modified_setpoint = original_setpoint;
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 
 	// THEN: collision prevention should be enabled and limit the speed to zero
 	EXPECT_TRUE(cp.is_active());
@@ -130,8 +128,6 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint1(10, 0);
 	matrix::Vector2f original_setpoint2(-10, 0);
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = hrt_absolute_time();
@@ -141,9 +137,12 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	attitude.q[3] = 0.0f;
 
 	// AND: a parameter handle
-	param_t param = param_handle(px4::params::CP_DIST);
-	float value = 10; // try to keep 10m distance
-	param_set(param, &value);
+	param_t param1 = param_handle(px4::params::CP_DIST);
+	float value1 = 10; // try to keep 10m distance
+	param_set(param1, &value1);
+	param_t param2 = param_handle(px4::params::CP_GUIDE_ANG);
+	float value2 = 0; // dont guide sideways
+	param_set(param2, &value2);
 	cp.paramsChanged();
 
 	// AND: an obstacle message
@@ -174,19 +173,20 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
 	matrix::Vector2f modified_setpoint1 = original_setpoint1;
 	matrix::Vector2f modified_setpoint2 = original_setpoint2;
-	cp.modifySetpoint(modified_setpoint1, max_speed, curr_pos, curr_vel);
-	cp.modifySetpoint(modified_setpoint2, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint1, curr_vel);
+	cp.modifySetpoint(modified_setpoint2, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
 	orb_unadvertise(vehicle_attitude_pub);
 
 	// THEN: the internal map should know the obstacle
-	// case 1: the velocity setpoint should be cut down to zero
-	// case 2: the velocity setpoint should stay the same as the input
+	// case 1: the acceleration setpoint should be negative as its pushing you away from the obstacle, and sideways acceleration should be low
+	// case 2: the acceleration setpoint should be lower
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().min_distance, 100);
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
-
-	EXPECT_FLOAT_EQ(0.f, modified_setpoint1.norm()) << modified_setpoint1(0) << "," << modified_setpoint1(1);
-	EXPECT_FLOAT_EQ(original_setpoint2.norm(), modified_setpoint2.norm());
+	EXPECT_GT(0.f, modified_setpoint1(0)) << modified_setpoint1(0);
+	EXPECT_EQ(0.f, fabsf(modified_setpoint1(1))) << modified_setpoint1(1);
+	EXPECT_GT(0.f, modified_setpoint2(0))  << original_setpoint2(0);
+	EXPECT_EQ(0.f, fabsf(modified_setpoint2(1))) << modified_setpoint2(1);
 }
 
 TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
@@ -195,8 +195,6 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint1(10, 0);
 	matrix::Vector2f original_setpoint2(-10, 0);
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = hrt_absolute_time();
@@ -234,19 +232,23 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 	//WHEN:  We run the setpoint modification
 	matrix::Vector2f modified_setpoint1 = original_setpoint1;
 	matrix::Vector2f modified_setpoint2 = original_setpoint2;
-	cp.modifySetpoint(modified_setpoint1, max_speed, curr_pos, curr_vel);
-	cp.modifySetpoint(modified_setpoint2, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint1, curr_vel);
+	cp.modifySetpoint(modified_setpoint2, curr_vel);
 	orb_unadvertise(distance_sensor_pub);
 	orb_unadvertise(vehicle_attitude_pub);
 
 	// THEN: the internal map should know the obstacle
-	// case 1: the velocity setpoint should be cut down to zero because there is an obstacle
-	// case 2: the velocity setpoint should be cut down to zero because there is no data
+	// case 1: the acceleration setpoint should be negative as its pushing you away from the obstacle, and sideways acceleration should be low
+	// case 2: the acceleration setpoint should be lower
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().min_distance, 100);
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
 
-	EXPECT_FLOAT_EQ(0.f, modified_setpoint1.norm()) << modified_setpoint1(0) << "," << modified_setpoint1(1);
-	EXPECT_FLOAT_EQ(0.f, modified_setpoint2.norm()) << modified_setpoint2(0) << "," << modified_setpoint2(1);
+	EXPECT_FLOAT_EQ(cp.getObstacleMap().min_distance, 100);
+	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
+	EXPECT_GT(0.f, modified_setpoint1(0)) << modified_setpoint1(0);
+	EXPECT_EQ(0.f, fabsf(modified_setpoint1(1))) << modified_setpoint1(1);
+	EXPECT_GT(0.f, modified_setpoint2(0))  << original_setpoint2(0);
+	EXPECT_EQ(0.f, fabsf(modified_setpoint2(1))) << modified_setpoint2(1);
 }
 
 TEST_F(CollisionPreventionTest, testPurgeOldData)
@@ -256,8 +258,6 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	hrt_abstime start_time = hrt_absolute_time();
 	mocked_time = start_time;
 	matrix::Vector2f original_setpoint(10, 0);
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = start_time;
@@ -268,7 +268,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 
 	// AND: a parameter handle
 	param_t param = param_handle(px4::params::CP_DIST);
-	float value = 10; // try to keep 10m distance
+	float value = 1; // try to keep 10m distance
 	param_set(param, &value);
 	cp.paramsChanged();
 
@@ -308,7 +308,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	for (int i = 0; i < 10; i++) {
 
 		matrix::Vector2f modified_setpoint = original_setpoint;
-		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+		cp.modifySetpoint(modified_setpoint, curr_vel);
 
 		mocked_time = mocked_time + 100000; //advance time by 0.1 seconds
 		message_lost_data.timestamp = mocked_time;
@@ -345,8 +345,6 @@ TEST_F(CollisionPreventionTest, testNoRangeData)
 	hrt_abstime start_time = hrt_absolute_time();
 	mocked_time = start_time;
 	matrix::Vector2f original_setpoint(10, 0);
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = start_time;
@@ -386,7 +384,7 @@ TEST_F(CollisionPreventionTest, testNoRangeData)
 	for (int i = 0; i < 10; i++) {
 
 		matrix::Vector2f modified_setpoint = original_setpoint;
-		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+		cp.modifySetpoint(modified_setpoint, curr_vel);
 
 		//advance time by 0.1 seconds but no new message comes in
 		mocked_time = mocked_time + 100000;
@@ -411,13 +409,11 @@ TEST_F(CollisionPreventionTest, noBias)
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
 	param_t param = param_handle(px4::params::CP_DIST);
-	float value = 5; // try to keep 5m distance
+	float value = 2; // try to keep 2m distance
 	param_set(param, &value);
 	cp.paramsChanged();
 
@@ -439,7 +435,7 @@ TEST_F(CollisionPreventionTest, noBias)
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 	matrix::Vector2f modified_setpoint = original_setpoint;
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
 
 	// THEN: setpoint should go into the same direction as the stick input
@@ -451,8 +447,6 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
@@ -493,7 +487,7 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 		matrix::Vector2f modified_setpoint = original_setpoint;
 		message.timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
-		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+		cp.modifySetpoint(modified_setpoint, curr_vel);
 
 		//THEN: if the resulting setpoint demands velocities bigger zero, it must lie inside the FOV
 		float setpoint_length = modified_setpoint.norm();
@@ -514,8 +508,6 @@ TEST_F(CollisionPreventionTest, goNoData)
 {
 	// GIVEN: a simple setup condition with the initial state (no distance data)
 	TestCollisionPrevention cp;
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: an obstacle message
@@ -532,7 +524,7 @@ TEST_F(CollisionPreventionTest, goNoData)
 		float angle = i * message.increment;
 
 		if (angle > 0.f && angle < 40.f) {
-			message.distances[i] = 700;
+			message.distances[i] = 1000;
 
 		} else {
 			message.distances[i] = UINT16_MAX;
@@ -541,7 +533,7 @@ TEST_F(CollisionPreventionTest, goNoData)
 
 	// AND: a parameter handle
 	param_t param = param_handle(px4::params::CP_DIST);
-	float value = 5; // try to keep 5m distance
+	float value = 2; // try to keep 5m distance
 	param_set(param, &value);
 	cp.paramsChanged();
 
@@ -549,8 +541,8 @@ TEST_F(CollisionPreventionTest, goNoData)
 	matrix::Vector2f original_setpoint = {-5, 0};
 	matrix::Vector2f modified_setpoint = original_setpoint;
 
-	//THEN: the modified setpoint should be zero velocity
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	//THEN: the modified setpoint should be zero acceleration
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 	EXPECT_FLOAT_EQ(modified_setpoint.norm(), 0.f);
 
 	//WHEN: we change the parameter CP_GO_NO_DATA to allow flying ouside the FOV
@@ -561,7 +553,7 @@ TEST_F(CollisionPreventionTest, goNoData)
 
 	//THEN: When all bins contain UINT_16MAX the setpoint should be zero even if CP_GO_NO_DATA=1
 	modified_setpoint = original_setpoint;
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 	EXPECT_FLOAT_EQ(modified_setpoint.norm(), 0.f);
 
 	//THEN: As soon as the range data contains any valid number, flying outside the FOV is allowed
@@ -570,7 +562,7 @@ TEST_F(CollisionPreventionTest, goNoData)
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 
 	modified_setpoint = original_setpoint;
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 	EXPECT_FLOAT_EQ(modified_setpoint.norm(), original_setpoint.norm());
 	orb_unadvertise(obstacle_distance_pub);
 }
@@ -580,8 +572,6 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: distance set to 5m
@@ -608,7 +598,7 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 	matrix::Vector2f modified_setpoint_default_jerk = original_setpoint;
-	cp.modifySetpoint(modified_setpoint_default_jerk, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint_default_jerk, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
 
 	// AND: we now set max jerk to 0.1
@@ -619,10 +609,38 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 
 	// WHEN: we run the setpoint modification again
 	matrix::Vector2f modified_setpoint_limited_jerk = original_setpoint;
-	cp.modifySetpoint(modified_setpoint_limited_jerk, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint_limited_jerk, curr_vel);
 
 	// THEN: the new setpoint should be much slower than the one with default jerk
 	EXPECT_LT(modified_setpoint_limited_jerk.norm() * 10, modified_setpoint_default_jerk.norm());
+}
+TEST_F(CollisionPreventionTest, addOutOfRangeDistanceSensorData)
+{
+	// GIVEN: a vehicle attitude and a distance sensor message
+	TestCollisionPrevention cp;
+	cp.getObstacleMap().increment = 10.f;
+	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	distance_sensor_s distance_sensor {};
+	distance_sensor.min_distance = 0.2f;
+	distance_sensor.max_distance = 20.f;
+	distance_sensor.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+	// Distance is out of Range
+	distance_sensor.current_distance = -1.f;
+	distance_sensor.signal_quality = 0;
+
+	uint32_t distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
+
+	//THEN: the correct bins in the map should be filled
+	for (uint32_t i = 0; i < distances_array_size; i++) {
+		if (i == 0) {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], distance_sensor.max_distance * 100.f);
+
+		} else {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX);
+		}
+	}
 }
 
 TEST_F(CollisionPreventionTest, addDistanceSensorData)
@@ -1062,8 +1080,6 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
-	float max_speed = 3;
-	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = hrt_absolute_time();
@@ -1115,7 +1131,7 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
 	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
 	matrix::Vector2f modified_setpoint = original_setpoint;
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 
 	// THEN: the internal map data should contain the long range measurement
 	EXPECT_EQ(500, cp.getObstacleMap().distances[2]);
@@ -1124,10 +1140,10 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	// WHEN: we publish the short range message followed by a long range message
 	short_range_msg.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &short_range_msg);
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 	long_range_msg.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 
 	// THEN: the internal map data should contain the short range measurement
 	EXPECT_EQ(150, cp.getObstacleMap().distances[2]);
@@ -1136,10 +1152,10 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	// WHEN: we publish the short range message with values out of range followed by a long range message
 	short_range_msg_no_obstacle.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &short_range_msg_no_obstacle);
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 	long_range_msg.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint, curr_vel);
 
 	// THEN: the internal map data should contain the short range measurement
 	EXPECT_EQ(500, cp.getObstacleMap().distances[2]);
