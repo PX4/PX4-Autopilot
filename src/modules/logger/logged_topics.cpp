@@ -51,6 +51,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("airspeed", 1000);
 	add_optional_topic("airspeed_validated", 200);
 	add_optional_topic("autotune_attitude_control_status", 100);
+	add_optional_topic("auto_trim_status", 200);
 	add_optional_topic("camera_capture");
 	add_optional_topic("camera_trigger");
 	add_optional_topic("can_interface_status", 10);

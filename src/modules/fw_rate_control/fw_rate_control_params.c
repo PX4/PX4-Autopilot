@@ -296,6 +296,21 @@ PARAM_DEFINE_INT32(FW_BAT_SCALE_EN, 0);
 PARAM_DEFINE_INT32(FW_ARSP_SCALE_EN, 1);
 
 /**
+ * Auto-Trim mode
+ *
+ * In calibration mode, the estimated trim is used to set the TRIM_ROLL/PITCH/YAW
+ * parameters after landing. The parameter is then changed to continuous mode.
+ * In continuous mode, part of the auto-trim estimated
+ * during flight is used to update the existing trim.
+ *
+ * @group FW Rate Control
+ * @value 0 Disabled
+ * @value 1 Calibration
+ * @value 2 Continuous
+ */
+PARAM_DEFINE_INT32(FW_ATRIM_MODE, 1);
+
+/**
 * Roll trim increment at minimum airspeed
 *
 * This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MIN.
