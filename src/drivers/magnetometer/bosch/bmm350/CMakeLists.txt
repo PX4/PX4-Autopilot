@@ -31,5 +31,18 @@
 #
 ############################################################################
 
-add_subdirectory(bmm150)
-add_subdirectory(bmm350)
+px4_add_module(
+	MODULE drivers__magnetometer__bosch__bmm350
+	MAIN bmm350
+	COMPILE_FLAGS
+	SRCS
+		BMM350.cpp
+		BMM350.hpp
+		bmm350_main.cpp
+		Bosch_BMM350_registers.hpp
+	DEPENDS
+		drivers_magnetometer
+		px4_work_queue
+	MODULE_CONFIG
+		module.yaml
+	)

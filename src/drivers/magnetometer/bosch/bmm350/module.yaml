@@ -1,0 +1,44 @@
+module_name: BMM350
+parameters:
+  - group: Magnetometer
+    definitions:
+      BMM350_ODR:
+        description:
+          short: BMM350 ODR rate
+          long: |
+            Defines which ODR rate to use during data polling.
+        type: enum
+        values:
+          0:  400 Hz
+          1:  200 Hz
+          2:  100 Hz
+          3:  50 Hz
+          4:  25 Hz
+          5:  12.5 Hz
+          6:  6.25 Hz
+          7:  3.125 Hz
+          8:  1.5625 Hz
+        reboot_required: true
+        default: [3]
+      BMM350_AVG:
+        description:
+          short: BMM350 data averaging
+          long: |
+            Defines which averaging mode to use during data polling.
+        type: enum
+        values:
+          0: No averaging
+          1: 2 sample averaging
+          2: 4 sample averaging
+          3: 8 sample averaging
+        reboot_required: true
+        default: [1]
+      BMM350_DRIVE:
+        description:
+          short: BMM350 pad drive strength setting
+          long: |
+            This setting helps avoid signal problems like overshoot or undershoot.
+        type: int32
+        min: 0
+        max: 7
+        default: [7]
