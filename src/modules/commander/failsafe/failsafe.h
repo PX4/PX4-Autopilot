@@ -56,7 +56,9 @@ private:
 	enum class ManualControlLossExceptionBits : int32_t {
 		Mission = (1 << 0),
 		Hold = (1 << 1),
-		Offboard = (1 << 2)
+		Offboard = (1 << 2),
+		RTL = (1 << 3),
+		Land = (1 << 4)
 	};
 
 	// COM_LOW_BAT_ACT parameter values
