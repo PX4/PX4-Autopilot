@@ -235,6 +235,7 @@ MissionBase::on_activation()
 	checkClimbRequired(_mission.current_seq);
 	set_mission_items();
 
+	_replay_index = _mission.current_seq;
 	_inactivation_index = -1; // reset
 
 	// reset cruise speed
@@ -293,17 +294,22 @@ MissionBase::on_active()
 		_align_heading_necessary = false;
 	}
 
-	// replay gimbal and camera commands immediately after resuming mission
-	if (haveCachedGimbalOrCameraItems()) {
-		replayCachedGimbalCameraItems();
-	}
+	// Replay cached mission commands once the last mission waypoint is re-reached after the mission interruption.
+	// Each replay function also clears the cached items afterwards
+	if (_mission.current_seq > _replay_index)
+	{
+		// replay gimbal and camera commands immediately after resuming mission
+		if (haveCachedGimbalOrCameraItems()) {
+			replayCachedGimbalCameraItems();
+		}
 
-	// replay trigger commands upon raching the resume waypoint if the trigger relay flag is set
-	if (cameraWasTriggering() && is_mission_item_reached_or_completed()) {
-		replayCachedTriggerItems();
-	}
+		// replay trigger commands upon
+		if (cameraWasTriggering()) {
+			replayCachedTriggerItems();
+		}
 
-	replayCachedSpeedChangeItems();
+		replayCachedSpeedChangeItems();
+	}
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
