@@ -1549,7 +1549,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					   _param_fw_thr_min.get(),
 					   _param_fw_thr_max.get(),
 					   _param_sinkrate_target.get(),
-					   _performance_model.getMaximumClimbRate(_air_density));
+					   _performance_model.getMaximumClimbRate(_air_density),
+					   true); // disable underspeed handling
 
 		_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed()); // reset after TECS calculation
 
@@ -1634,7 +1635,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 						   _param_fw_thr_min.get(),
 						   max_takeoff_throttle,
 						   _param_sinkrate_target.get(),
-						   _performance_model.getMaximumClimbRate(_air_density));
+						   _performance_model.getMaximumClimbRate(_air_density),
+						   true); // disable underspeed handling
 
 			if (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 				// explicitly set idle throttle until motors are enabled
