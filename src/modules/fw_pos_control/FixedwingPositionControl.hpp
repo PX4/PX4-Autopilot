@@ -289,6 +289,8 @@ private:
 
 	bool _landed{true};
 
+	bool _is_low_height{false};
+
 	// MANUAL MODES
 
 	// indicates whether we have completed a manual takeoff in a position control mode
@@ -830,10 +832,20 @@ private:
 	void initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
 				   const float land_point_alt, const Vector2f &local_position, const Vector2f &local_land_point);
 
-	/**
-	 * @brief Updates the value of the TECS altitude tracking time constant.
-	*/
-	void updateAltitudeTimeConstant(float dt);
+	/*
+	 * Checks if the vehicle satisfies conditions for low-height flight
+	 *
+	 * @return bool True if conditions are satisfied, false otherwise
+	 */
+	bool checkLowHeightConditions();
+
+	/*
+	 * Updates TECS altitude time constant according to the _is_low_height control flag.
+	 * For low-height flight conditions,
+	 *
+	 * @param dt Update time step [s]
+	 */
+	void updateTECSAltitudeTimeConstant(const float dt);
 
 	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
