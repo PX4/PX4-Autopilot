@@ -137,6 +137,9 @@ if args.pretty:
     extra_args['indent'] = 2
 
 if (args.group):
+    if(verbose):
+        import pprint
+        pprint.pp(grouped_targets)
     final_groups = []
     temp_group = []
     group_number = {}
@@ -148,43 +151,50 @@ if (args.group):
         if(arch not in group_number):
                 group_number[arch] = 0
 
+        # print('arch:', arch, ' - last_arch:', last_arch)
         if(last_arch != arch and len(temp_group) > 0):
-
-            group_name = arch + "-" + str(group_number[arch])
+            group_name = last_arch + "-" + str(group_number[last_arch])
+            group_number[last_arch] += 1
+            targets = comma_targets(temp_group)
+            # print("Append-1: [", group_name, "]", targets)
             final_groups.append({
-                "container": grouped_targets[arch]['container'],
-                "targets": comma_targets(temp_group),
-                "arch": arch,
+                "container": grouped_targets[last_arch]['container'],
+                "targets": targets,
+                "arch": last_arch,
                 "group": group_name
             })
             last_arch = arch
-            group_number[arch] += 1
             temp_group = []
         for man in grouped_targets[arch]['manufacturers']:
             for tar in grouped_targets[arch]['manufacturers'][man]:
                 if(last_man != man):
                     if(len(grouped_targets[arch]['manufacturers'][man]) > 10):
                         group_name = arch + "-" + man
+                        targets = comma_targets(grouped_targets[arch]['manufacturers'][man])
                         last_man = man
+                        # print("Append-2: [", group_name , "]", " - ", targets)
                         final_groups.append({
                             "container": grouped_targets[arch]['container'],
-                            "targets": comma_targets(grouped_targets[arch]['manufacturers'][man]),
+                            "targets": targets,
                             "arch": arch,
                             "group": group_name
                         })
                     else:
                         temp_group.append(tar)
+                        # print('Temp(', len(temp_group), '):[', man, '][', arch, ':', last_arch, ']: ', tar)
 
             if(len(temp_group) > 15):
                 group_name = arch + "-" + str(group_number[arch])
+                last_arch = arch
+                group_number[arch] += 1
+                targets = comma_targets(temp_group)
+                # print("Append-3: [", group_name, "]", " - ", targets)
                 final_groups.append({
                     "container": grouped_targets[arch]['container'],
-                    "targets": comma_targets(temp_group),
+                    "targets": targets,
                     "arch": arch,
                     "group": group_name
                 })
-                last_arch = arch
-                group_number[arch] += 1
                 temp_group = []
     print(json.dumps({ "include": final_groups }, **extra_args))
 else:
