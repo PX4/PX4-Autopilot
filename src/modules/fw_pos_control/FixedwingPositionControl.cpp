@@ -212,8 +212,7 @@ FixedwingPositionControl::airspeed_poll()
 		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
 		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
-		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-		    && (airspeed_validated.calibrated_airspeed_m_s > FLT_EPSILON)) {
+		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)) {
 
 			airspeed_valid = true;
 
@@ -1525,7 +1524,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					   _param_fw_thr_min.get(),
 					   _param_fw_thr_max.get(),
 					   _param_sinkrate_target.get(),
-					   _performance_model.getMaximumClimbRate(_air_density));
+					   _performance_model.getMaximumClimbRate(_air_density),
+					   true); // disable underspeed handling
 
 		_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed()); // reset after TECS calculation
 
@@ -1603,7 +1603,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 						   _param_fw_thr_min.get(),
 						   max_takeoff_throttle,
 						   _param_sinkrate_target.get(),
-						   _performance_model.getMaximumClimbRate(_air_density));
+						   _performance_model.getMaximumClimbRate(_air_density),
+						   true); // disable underspeed handling
 
 			if (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 				// explicitly set idle throttle until motors are enabled
