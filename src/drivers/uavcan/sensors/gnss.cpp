@@ -466,6 +466,10 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.heading = heading;
 	report.heading_offset = heading_offset;
 	report.heading_accuracy = heading_accuracy;
+	report.quality_corrections = UINT8_MAX;
+	report.quality_receiver = UINT8_MAX;
+	report.quality_gnss_signals = UINT8_MAX;
+	report.quality_post_processing = UINT8_MAX;
 
 	report.noise_per_ms = noise_per_ms;
 	report.jamming_indicator = jamming_indicator;

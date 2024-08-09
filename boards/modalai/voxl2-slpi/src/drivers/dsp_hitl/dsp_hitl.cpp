@@ -1235,6 +1235,10 @@ handle_message_hil_gps_dsp(mavlink_message_t *msg)
 
 	gps.heading = NAN;
 	gps.heading_offset = NAN;
+	gps.quality_corrections = UINT8_MAX;
+	gps.quality_receiver = UINT8_MAX;
+	gps.quality_gnss_signals = UINT8_MAX;
+	gps.quality_post_processing = UINT8_MAX;
 
 	gps.timestamp = hrt_absolute_time();
 
