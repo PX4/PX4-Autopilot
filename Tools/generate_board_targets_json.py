@@ -139,36 +139,52 @@ if args.pretty:
 if (args.group):
     final_groups = []
     temp_group = []
+    group_number = {}
     last_man = ''
     last_arch = ''
     for arch in grouped_targets:
+        if(last_arch == ''):
+            last_arch = arch
+        if(arch not in group_number):
+                group_number[arch] = 0
+
         if(last_arch != arch and len(temp_group) > 0):
+
+            group_name = arch + "-" + str(group_number[arch])
             final_groups.append({
                 "container": grouped_targets[arch]['container'],
                 "targets": comma_targets(temp_group),
-                'arch': last_arch
+                "arch": arch,
+                "group": group_name
             })
             last_arch = arch
+            group_number[arch] += 1
             temp_group = []
         for man in grouped_targets[arch]['manufacturers']:
             for tar in grouped_targets[arch]['manufacturers'][man]:
                 if(last_man != man):
                     if(len(grouped_targets[arch]['manufacturers'][man]) > 10):
+                        group_name = arch + "-" + man
                         last_man = man
                         final_groups.append({
                             "container": grouped_targets[arch]['container'],
                             "targets": comma_targets(grouped_targets[arch]['manufacturers'][man]),
-                            'arch': arch
+                            "arch": arch,
+                            "group": group_name
                         })
                     else:
                         temp_group.append(tar)
 
             if(len(temp_group) > 15):
+                group_name = arch + "-" + str(group_number[arch])
                 final_groups.append({
                     "container": grouped_targets[arch]['container'],
                     "targets": comma_targets(temp_group),
-                    'arch': arch
+                    "arch": arch,
+                    "group": group_name
                 })
+                last_arch = arch
+                group_number[arch] += 1
                 temp_group = []
     print(json.dumps({ "include": final_groups }, **extra_args))
 else:

@@ -17,11 +17,11 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
-
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
 
   setup:
+    name: ${{ matrix.group }}
     runs-on: self-hosted
     needs: group_targets
     strategy:
