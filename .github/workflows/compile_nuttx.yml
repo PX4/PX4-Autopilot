@@ -34,6 +34,7 @@ jobs:
           cuav_can-gps-v1,
           cuav_nora,
           cuav_x7pro,
+          cuav_7-nano,
           cubepilot_cubeorange,
           cubepilot_cubeorangeplus,
           cubepilot_cubeyellow,
