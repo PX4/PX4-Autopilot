@@ -140,9 +140,11 @@ bool FlightTaskOrbit::sendTelemetry()
 	orbit_status.yaw_behaviour = _yaw_behaviour;
 
 	if (_geo_projection.isInitialized()) {
+		// While chainging altitude by stick _position_setpoint(2) is not set (NAN)
+		float local_altitude = PX4_ISFINITE(_position_setpoint(2)) ? _position_setpoint(2) : _position(2);
 		// local -> global
 		_geo_projection.reproject(_center(0), _center(1), orbit_status.x, orbit_status.y);
-		orbit_status.z = _global_local_alt0 - _position_setpoint(2);
+		orbit_status.z = _global_local_alt0 - local_altitude;
 
 	} else {
 		return false; // don't send the message if the transformation failed

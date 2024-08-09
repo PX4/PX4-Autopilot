@@ -58,13 +58,54 @@ void RoverAckermannGuidance::updateParams()
 
 RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(const int nav_state)
 {
-	// Initializations
-	float desired_speed{0.f};
-	float vehicle_yaw{0.f};
-	float actual_speed{0.f};
-	bool mission_finished{false};
+	updateSubscriptions();
 
-	// uORB subscriber updates
+	// Catch return to launch
+	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		_mission_finished = _distance_to_next_wp < _acceptance_radius;
+	}
+
+	// Guidance logic
+	if (_mission_finished) { // Mission is finished
+		_desired_steering = 0.f;
+		_desired_speed = 0.f;
+
+	} else if (_distance_to_curr_wp < _acceptance_radius) { // Catch delay command
+		_desired_speed = 0.f;
+
+	} else { // Regular guidance algorithm
+		_desired_speed = calcDesiredSpeed(_param_ra_miss_vel_def.get(), _param_ra_miss_vel_min.get(),
+						  _param_ra_miss_vel_gain.get(), _distance_to_prev_wp, _distance_to_curr_wp, _acceptance_radius,
+						  _prev_acceptance_radius, _param_ra_max_accel.get(), _param_ra_max_jerk.get(), nav_state);
+
+		_desired_steering = calcDesiredSteering(_pure_pursuit, _curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
+							_param_ra_wheel_base.get(), _desired_speed, _vehicle_yaw, _param_ra_max_steer_angle.get());
+
+	}
+
+	// Calculate throttle setpoint
+	hrt_abstime timestamp_prev = _timestamp;
+	_timestamp = hrt_absolute_time();
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
+	const float throttle = calcThrottleSetpoint(_pid_throttle, _desired_speed, _actual_speed, _param_ra_max_speed.get(),
+			       dt);
+
+	// Publish ackermann controller status (logging)
+	_rover_ackermann_guidance_status.timestamp = _timestamp;
+	_rover_ackermann_guidance_status.desired_speed = _desired_speed;
+	_rover_ackermann_guidance_status.pid_throttle_integral = _pid_throttle.integral;
+	_rover_ackermann_guidance_status_pub.publish(_rover_ackermann_guidance_status);
+
+	// Return motor setpoints
+	motor_setpoint motor_setpoint_temp;
+	motor_setpoint_temp.steering = math::interpolate<float>(_desired_steering, -_param_ra_max_steer_angle.get(),
+				       _param_ra_max_steer_angle.get(), -1.f, 1.f); // Normalize steering setpoint
+	motor_setpoint_temp.throttle = throttle;
+	return motor_setpoint_temp;
+}
+
+void RoverAckermannGuidance::updateSubscriptions()
+{
 	if (_vehicle_global_position_sub.updated()) {
 		vehicle_global_position_s vehicle_global_position{};
 		_vehicle_global_position_sub.copy(&vehicle_global_position);
@@ -82,7 +123,7 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 
 		_curr_pos_ned = Vector2f(local_position.x, local_position.y);
 		const Vector3f rover_velocity = {local_position.vx, local_position.vy, local_position.vz};
-		actual_speed = rover_velocity.norm();
+		_actual_speed = rover_velocity.norm();
 	}
 
 	if (_home_position_sub.updated()) {
@@ -92,158 +133,63 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 	}
 
 	if (_position_setpoint_triplet_sub.updated()) {
-		updateWaypoints();
+		updateWaypointsAndAcceptanceRadius();
 	}
 
 	if (_vehicle_attitude_sub.updated()) {
 		vehicle_attitude_s vehicle_attitude{};
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
 		matrix::Quatf vehicle_attitude_quaternion = Quatf(vehicle_attitude.q);
-		vehicle_yaw = matrix::Eulerf(vehicle_attitude_quaternion).psi();
+		_vehicle_yaw = matrix::Eulerf(vehicle_attitude_quaternion).psi();
 	}
 
 	if (_mission_result_sub.updated()) {
 		mission_result_s mission_result{};
 		_mission_result_sub.copy(&mission_result);
-		mission_finished = mission_result.finished;
+		_mission_finished = mission_result.finished;
 	}
-
-	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-	    && get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1), _next_wp(0),
-					     _next_wp(1)) < _acceptance_radius) { // Return to launch
-		mission_finished = true;
-	}
-
-	// Guidance logic
-	if (mission_finished) {
-		_desired_steering = 0.f;
-
-	} else {
-		const float distance_to_prev_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-						  _prev_wp(0),
-						  _prev_wp(1));
-		const float distance_to_curr_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-						  _curr_wp(0),
-						  _curr_wp(1));
-
-		if (distance_to_curr_wp < _acceptance_radius) { // Catch delay command
-			desired_speed = 0.f;
-
-		} else {
-			// Calculate desired speed
-			if (_param_ra_miss_vel_min.get() > 0.f  && _param_ra_miss_vel_min.get() < _param_ra_miss_vel_def.get()
-			    && _param_ra_miss_vel_gain.get() > FLT_EPSILON) { // Cornering slow down effect
-				if (distance_to_prev_wp <= _prev_acceptance_radius && _prev_acceptance_radius > FLT_EPSILON) {
-					const float cornering_speed = _param_ra_miss_vel_gain.get() / _prev_acceptance_radius;
-					desired_speed = math::constrain(cornering_speed, _param_ra_miss_vel_min.get(), _param_ra_miss_vel_def.get());
-
-				} else if (distance_to_curr_wp <= _acceptance_radius && _acceptance_radius > FLT_EPSILON) {
-					const float cornering_speed = _param_ra_miss_vel_gain.get() / _acceptance_radius;
-					desired_speed = math::constrain(cornering_speed, _param_ra_miss_vel_min.get(), _param_ra_miss_vel_def.get());
-
-				} else { // Straight line speed
-					if (_param_ra_max_accel.get() > FLT_EPSILON && _param_ra_max_jerk.get() > FLT_EPSILON
-					    && _acceptance_radius > FLT_EPSILON) {
-						float max_velocity{0.f};
-
-						if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
-							max_velocity = math::trajectory::computeMaxSpeedFromDistance(_param_ra_max_jerk.get(),
-									_param_ra_max_accel.get(), distance_to_curr_wp, 0.f);
-
-						} else {
-							const float cornering_speed = _param_ra_miss_vel_gain.get() / _acceptance_radius;
-							max_velocity = math::trajectory::computeMaxSpeedFromDistance(_param_ra_max_jerk.get(),
-									_param_ra_max_accel.get(), distance_to_curr_wp - _acceptance_radius, cornering_speed);
-						}
-
-						desired_speed = math::constrain(max_velocity, _param_ra_miss_vel_min.get(), _param_ra_miss_vel_def.get());
-
-					} else {
-						desired_speed = _param_ra_miss_vel_def.get();
-					}
-				}
-
-			} else {
-				desired_speed = _param_ra_miss_vel_def.get();
-			}
-
-			// Calculate desired steering
-			_desired_steering = calcDesiredSteering(_curr_wp_ned, _prev_wp_ned, _curr_pos_ned, _param_ra_wheel_base.get(),
-								desired_speed, vehicle_yaw);
-			_desired_steering = math::constrain(_desired_steering, -_param_ra_max_steer_angle.get(),
-							    _param_ra_max_steer_angle.get());
-		}
-	}
-
-	// Throttle PID
-	hrt_abstime timestamp_prev = _timestamp;
-	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 5000_ms) * 1e-6f;
-	float throttle = 0.f;
-
-	if (desired_speed < FLT_EPSILON) {
-		pid_reset_integral(&_pid_throttle);
-
-	} else {
-		throttle = pid_calculate(&_pid_throttle, desired_speed, actual_speed, 0,
-					 dt);
-	}
-
-	if (_param_ra_max_speed.get() > 0.f) { // Feed-forward term
-		throttle += math::interpolate<float>(desired_speed,
-						     0.f, _param_ra_max_speed.get(),
-						     0.f, 1.f);
-	}
-
-	// Publish ackermann controller status (logging)
-	_rover_ackermann_guidance_status.timestamp = _timestamp;
-	_rover_ackermann_guidance_status.desired_speed = desired_speed;
-	_rover_ackermann_guidance_status.pid_throttle_integral = _pid_throttle.integral;
-	_rover_ackermann_guidance_status_pub.publish(_rover_ackermann_guidance_status);
-
-	// Return motor setpoints
-	motor_setpoint motor_setpoint_temp;
-	motor_setpoint_temp.steering = math::interpolate<float>(_desired_steering, -_param_ra_max_steer_angle.get(),
-				       _param_ra_max_steer_angle.get(),
-				       -1.f, 1.f);
-	motor_setpoint_temp.throttle = math::constrain(throttle, 0.f, 1.f);
-	return motor_setpoint_temp;
 }
 
-void RoverAckermannGuidance::updateWaypoints()
+void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 {
 	position_setpoint_triplet_s position_setpoint_triplet{};
 	_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
 
 	// Global waypoint coordinates
+	Vector2d prev_wp = _curr_pos.isAllFinite() ? _curr_pos : Vector2d(0, 0); // Fallback if previous waypoint is invalid
+	Vector2d curr_wp(0, 0);
+	Vector2d next_wp = _home_position.isAllFinite() ? _home_position : Vector2d(0, 0); // Enables corner slow down with RTL
+
 	if (position_setpoint_triplet.current.valid && PX4_ISFINITE(position_setpoint_triplet.current.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
-		_curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
+		curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
 
-	} else {
-		_curr_wp = Vector2d(0, 0);
 	}
 
 	if (position_setpoint_triplet.previous.valid && PX4_ISFINITE(position_setpoint_triplet.previous.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.previous.lon)) {
-		_prev_wp = Vector2d(position_setpoint_triplet.previous.lat, position_setpoint_triplet.previous.lon);
+		prev_wp = Vector2d(position_setpoint_triplet.previous.lat, position_setpoint_triplet.previous.lon);
 
-	} else {
-		_prev_wp = _curr_pos;
 	}
 
 	if (position_setpoint_triplet.next.valid && PX4_ISFINITE(position_setpoint_triplet.next.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.next.lon)) {
-		_next_wp = Vector2d(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
+		next_wp = Vector2d(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
 
-	} else {
-		_next_wp = _home_position; // Enables corner slow down with RTL
 	}
 
+	// Distances to waypoints
+	_distance_to_prev_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
+			       prev_wp(0), prev_wp(1));
+	_distance_to_curr_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
+			       curr_wp(0), curr_wp(1));
+	_distance_to_next_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
+			       next_wp(0), next_wp(1));
+
 	// NED waypoint coordinates
-	_curr_wp_ned = _global_ned_proj_ref.project(_curr_wp(0), _curr_wp(1));
-	_prev_wp_ned = _global_ned_proj_ref.project(_prev_wp(0), _prev_wp(1));
-	_next_wp_ned = _global_ned_proj_ref.project(_next_wp(0), _next_wp(1));
+	_curr_wp_ned = _global_ned_proj_ref.project(curr_wp(0), curr_wp(1));
+	_prev_wp_ned = _global_ned_proj_ref.project(prev_wp(0), prev_wp(1));
+	_next_wp_ned = _global_ned_proj_ref.project(next_wp(0), next_wp(1));
 
 	// Update acceptance radius
 	_prev_acceptance_radius = _acceptance_radius;
@@ -287,24 +233,90 @@ float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_ned
 	return acceptance_radius;
 }
 
-float RoverAckermannGuidance::calcDesiredSteering(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
-		const Vector2f &curr_pos_ned, const float wheel_base, const float desired_speed, const float vehicle_yaw)
+float RoverAckermannGuidance::calcDesiredSpeed(const float miss_vel_def, const float miss_vel_min,
+		const float miss_vel_gain, const float distance_to_prev_wp, const float distance_to_curr_wp, const float acc_rad,
+		const float prev_acc_rad, const float max_accel, const float max_jerk, const int nav_state)
 {
-	// Calculate desired steering to reach lookahead point
-	const float desired_heading = _pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned,
+	// Catch improper values
+	if (miss_vel_min < 0.f  || miss_vel_min > miss_vel_def || miss_vel_gain < FLT_EPSILON) {
+		return miss_vel_def;
+	}
+
+	// Cornering slow down effect
+	if (distance_to_prev_wp <= prev_acc_rad && prev_acc_rad > FLT_EPSILON) {
+		const float cornering_speed = miss_vel_gain / prev_acc_rad;
+		return math::constrain(cornering_speed, miss_vel_min, miss_vel_def);
+
+	} else if (distance_to_curr_wp <= acc_rad && acc_rad > FLT_EPSILON) {
+		const float cornering_speed = miss_vel_gain / acc_rad;
+		return math::constrain(cornering_speed, miss_vel_min, miss_vel_def);
+
+	}
+
+	// Straight line speed
+	if (max_accel > FLT_EPSILON && max_jerk > FLT_EPSILON && acc_rad > FLT_EPSILON) {
+		float max_velocity{0.f};
+
+		if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+			max_velocity = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
+					max_accel, distance_to_curr_wp, 0.f);
+
+		} else {
+			const float cornering_speed = miss_vel_gain / acc_rad;
+			max_velocity = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
+					max_accel, distance_to_curr_wp - acc_rad, cornering_speed);
+		}
+
+		return math::constrain(max_velocity, miss_vel_min, miss_vel_def);
+
+	} else {
+		return miss_vel_def;
+	}
+
+}
+
+float RoverAckermannGuidance::calcDesiredSteering(PurePursuit &pure_pursuit, const Vector2f &curr_wp_ned,
+		const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned, const float wheel_base, const float desired_speed,
+		const float vehicle_yaw, const float max_steering)
+{
+	const float desired_heading = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned,
 				      desired_speed);
-	const float lookahead_distance = _pure_pursuit.getLookaheadDistance();
+	const float lookahead_distance = pure_pursuit.getLookaheadDistance();
 	const float heading_error = matrix::wrap_pi(desired_heading - vehicle_yaw);
 	// For logging
 	_rover_ackermann_guidance_status.lookahead_distance = lookahead_distance;
 	_rover_ackermann_guidance_status.heading_error = (heading_error * 180.f) / (M_PI_F);
 
+	float desired_steering{0.f};
+
 	if (math::abs_t(heading_error) <= M_PI_2_F) {
-		return atanf(2 * wheel_base * sinf(heading_error) / lookahead_distance);
+		desired_steering = atanf(2 * wheel_base * sinf(heading_error) / lookahead_distance);
+
 
 	} else {
-		return atanf(2 * wheel_base * (sign(heading_error) * 1.0f + sinf(heading_error - sign(heading_error) * M_PI_2_F)) /
-			     lookahead_distance);
+		desired_steering = atanf(2 * wheel_base * (sign(heading_error) * 1.0f + sinf(heading_error -
+					 sign(heading_error) * M_PI_2_F)) / lookahead_distance);
 	}
 
+	return math::constrain(desired_steering, -max_steering, max_steering);
+
+}
+
+float RoverAckermannGuidance::calcThrottleSetpoint(PID_t &pid_throttle, const float desired_speed,
+		const float actual_speed, const float max_speed, const float dt)
+{
+	float throttle = 0.f;
+
+	if (desired_speed < FLT_EPSILON) {
+		pid_reset_integral(&pid_throttle);
+
+	} else {
+		throttle = pid_calculate(&pid_throttle, desired_speed, actual_speed, 0, dt);
+	}
+
+	if (_param_ra_max_speed.get() > 0.f) { // Feed-forward term
+		throttle += math::interpolate<float>(desired_speed, 0.f, max_speed, 0.f, 1.f);
+	}
+
+	return math::constrain(throttle, 0.f, 1.f);
 }
