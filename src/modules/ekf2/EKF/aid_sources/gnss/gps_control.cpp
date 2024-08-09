@@ -158,19 +158,18 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				ECL_INFO("starting GPS fusion");
 				_information_events.flags.starting_gps_fusion = true;
 
-				// when already using another velocity source velocity reset is not necessary
-				if (!isHorizontalAidingActive()
-				    || isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
-				    || !_control_status_prev.flags.yaw_align
-				   ) {
-					// reset velocity
-					if (gnss_vel_enabled) {
+				if (gnss_vel_enabled) {
+					// reset velocity if necessary
+					if (!fuseVelocity(_aid_src_gnss_vel)) {
 						resetVelocityToGnss(_aid_src_gnss_vel);
 					}
 				}
 
 				if (gnss_pos_enabled) {
-					resetHorizontalPositionToGnss(_aid_src_gnss_pos);
+					// reset position if necessary
+					if (!fuseHorizontalPosition(_aid_src_gnss_pos)) {
+						resetHorizontalPositionToGnss(_aid_src_gnss_pos);
+					}
 				}
 
 				_control_status.flags.gps = true;
