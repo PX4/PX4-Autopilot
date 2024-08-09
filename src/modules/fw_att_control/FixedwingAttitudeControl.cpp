@@ -96,17 +96,16 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 
-				_att_sp.roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
+				const float roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
-				_att_sp.pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
-						     + radians(_param_fw_psp_off.get());
-				_att_sp.pitch_body = constrain(_att_sp.pitch_body,
-							       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
+				float pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
+						   + radians(_param_fw_psp_off.get());
+				pitch_body = constrain(pitch_body,
+						       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-				_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
 				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
-				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+				const Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
 				q.copyTo(_att_sp.q_d);
 
 				_att_sp.reset_integral = false;
@@ -325,16 +324,22 @@ void FixedwingAttitudeControl::Run()
 			/* Run attitude controllers */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
-				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
-					_roll_ctrl.control_roll(_att_sp.roll_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+				const Eulerf setpoint(Quatf(_att_sp.q_d));
+				const float roll_body = setpoint.phi();
+				const float pitch_body = setpoint.theta();
+
+				if (PX4_ISFINITE(roll_body) && PX4_ISFINITE(pitch_body)) {
+
+					_roll_ctrl.control_roll(roll_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 								euler_angles.theta());
-					_pitch_ctrl.control_pitch(_att_sp.pitch_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+					_pitch_ctrl.control_pitch(pitch_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 								  euler_angles.theta());
-					_yaw_ctrl.control_yaw(_att_sp.roll_body, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+					_yaw_ctrl.control_yaw(roll_body, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 							      euler_angles.theta(), get_airspeed_constrained());
 
 					if (wheel_control) {
-						_wheel_ctrl.control_attitude(_att_sp.yaw_body, euler_angles.psi());
+						Eulerf attitude_setpoint(Quatf(_att_sp.q_d));
+						_wheel_ctrl.control_attitude(attitude_setpoint.psi(), euler_angles.psi());
 
 					} else {
 						_wheel_ctrl.reset_integrator();

@@ -97,9 +97,8 @@ void UUVPOSControl::publish_attitude_setpoint(const float thrust_x, const float 
 	vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
 	vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
 
-	vehicle_attitude_setpoint.roll_body = roll_des;
-	vehicle_attitude_setpoint.pitch_body = pitch_des;
-	vehicle_attitude_setpoint.yaw_body = yaw_des;
+	Quatf attitude_setpoint(Eulerf(roll_des, pitch_des, yaw_des));
+	attitude_setpoint.copyTo(vehicle_attitude_setpoint.q_d);
 
 	vehicle_attitude_setpoint.thrust_body[0] = thrust_x;
 	vehicle_attitude_setpoint.thrust_body[1] = thrust_y;

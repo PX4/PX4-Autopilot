@@ -122,8 +122,8 @@ RoverPositionControl::manual_control_setpoint_poll()
 
 				if (_control_mode.flag_control_attitude_enabled) {
 					// STABILIZED mode generate the attitude setpoint from manual user inputs
-					_att_sp.roll_body = 0.0;
-					_att_sp.pitch_body = 0.0;
+					float roll_body = 0.0;
+					float pitch_body = 0.0;
 
 					/* reset yaw setpoint to current position if needed */
 					if (_reset_yaw_sp) {
@@ -137,10 +137,10 @@ RoverPositionControl::manual_control_setpoint_poll()
 						_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
 					}
 
-					_att_sp.yaw_body = _manual_yaw_sp;
+					float yaw_body = _manual_yaw_sp;
 					_att_sp.thrust_body[0] = _manual_control_setpoint.throttle;
 
-					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+					Quatf q(Eulerf(roll_body, pitch_body, yaw_body));
 					q.copyTo(_att_sp.q_d);
 
 					_att_sp.timestamp = hrt_absolute_time();
