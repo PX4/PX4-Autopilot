@@ -89,6 +89,7 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_FALSE(_ekf->global_position_is_valid());
 
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_sensor_simulator._vio.setVelocityFrameToLocalNED();
 	_sensor_simulator.runSeconds(2);
 
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionPositionFusion());
@@ -119,6 +120,7 @@ TEST_F(EkfExternalVisionTest, visionVelocityReset)
 
 	_sensor_simulator._vio.setVelocity(simulated_velocity);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_sensor_simulator._vio.setVelocityFrameToLocalNED();
 	_sensor_simulator.startExternalVision();
 	// Note: test duration needs to allow time for tilt alignment to complete
 	_ekf->set_vehicle_at_rest(false);
@@ -152,8 +154,11 @@ TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 	const Vector3f simulated_velocity_in_ekf_frame =
 		Dcmf(vision_to_ekf) * simulated_velocity_in_vision_frame;
 	_sensor_simulator._vio.setVelocity(simulated_velocity_in_vision_frame);
+	_sensor_simulator._vio.setVelocityFrameToLocalFRD();
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startExternalVision();
+	_sensor_simulator.startGps();
 	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.runMicroseconds(2e5);
 
@@ -203,6 +208,7 @@ TEST_F(EkfExternalVisionTest, visionHorizontalPositionResetWithAlignment)
 		Dcmf(vision_to_ekf) * simulated_position_in_vision_frame;
 	_sensor_simulator._vio.setPosition(simulated_position_in_vision_frame);
 	_ekf_wrapper.enableExternalVisionPositionFusion();
+	_ekf_wrapper.setMagFuseTypeNone();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runMicroseconds(2e5);
 
@@ -240,12 +246,15 @@ TEST_F(EkfExternalVisionTest, visionAlignment)
 	// the y EKF frame axis
 	_sensor_simulator._vio.setVelocityVariance(Vector3f{2.0f, 0.01f, 0.01f});
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_ekf_wrapper.enableExternalVisionHeadingFusion();
+	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startExternalVision();
+	_sensor_simulator.startGps();
 
 	const Vector3f velVar_init = _ekf->getVelocityVariance();
 	EXPECT_NEAR(velVar_init(0), velVar_init(1), 0.0001);
 
-	_sensor_simulator.runSeconds(4);
+	_sensor_simulator.runSeconds(20);
 
 	// THEN: velocity uncertainty in y should be bigger
 	const Vector3f velVar_new = _ekf->getVelocityVariance();

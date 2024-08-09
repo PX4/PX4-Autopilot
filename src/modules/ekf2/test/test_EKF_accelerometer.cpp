@@ -207,6 +207,7 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionBaroEvVel)
 {
 	// GIVEN: baro and EV vel fusion
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_ekf_wrapper.enableExternalVisionHeadingFusion();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(1);
 
@@ -227,6 +228,7 @@ TEST_F(EkfAccelerometerTest, imuFallingDetectionEvVelHgt)
 {
 	// GIVEN: EV height and vel fusion
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_ekf_wrapper.enableExternalVisionHeadingFusion();
 	_ekf_wrapper.enableExternalVisionHeightFusion();
 	_sensor_simulator.startExternalVision();
 	_ekf_wrapper.disableBaroHeightFusion();

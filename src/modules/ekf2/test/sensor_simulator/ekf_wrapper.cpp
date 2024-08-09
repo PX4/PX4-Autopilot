@@ -187,12 +187,12 @@ bool EkfWrapper::isIntendingExternalVisionVelocityFusion() const
 
 void EkfWrapper::enableExternalVisionHeadingFusion()
 {
-	_ekf_params->ev_ctrl |= static_cast<int32_t>(EvCtrl::YAW);
+	_ekf_params->ev_ctrl |= static_cast<int32_t>(EvCtrl::ORIENTATION);
 }
 
 void EkfWrapper::disableExternalVisionHeadingFusion()
 {
-	_ekf_params->ev_ctrl &= ~static_cast<int32_t>(EvCtrl::YAW);
+	_ekf_params->ev_ctrl &= ~static_cast<int32_t>(EvCtrl::ORIENTATION);
 }
 
 bool EkfWrapper::isIntendingExternalVisionHeadingFusion() const

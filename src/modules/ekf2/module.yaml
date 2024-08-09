@@ -508,13 +508,13 @@ parameters:
       description:
         short: External vision (EV) sensor aiding
         long: 'Set bits in the following positions to enable: 0 : Horizontal position
-          fusion 1 : Vertical position fusion 2 : 3D velocity fusion 3 : Yaw'
+          fusion 1 : Vertical position fusion 2 : 3D velocity fusion 3 : Orientation'
       type: bitmask
       bit:
         0: Horizontal position
         1: Vertical position
         2: 3D velocity
-        3: Yaw
+        3: Orientation
       default: 0
       min: 0
       max: 15

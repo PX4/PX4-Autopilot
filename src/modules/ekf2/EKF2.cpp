@@ -300,7 +300,7 @@ void EKF2::AdvertiseTopics()
 			_estimator_aid_src_ev_vel_pub.advertise();
 		}
 
-		if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::YAW)) {
+		if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::ORIENTATION)) {
 			_estimator_aid_src_ev_yaw_pub.advertise();
 		}
 

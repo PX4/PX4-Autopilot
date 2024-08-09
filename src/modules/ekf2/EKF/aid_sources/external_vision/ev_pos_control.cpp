@@ -45,14 +45,18 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 			     const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 			     estimator_aid_source2d_s &aid_src)
 {
-	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
-					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
-
 	// determine if we should use EV position aiding
 	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::HPOS))
 					     && _control_status.flags.tilt_align
 					     && PX4_ISFINITE(ev_sample.pos(0))
 					     && PX4_ISFINITE(ev_sample.pos(1));
+
+	const bool ev_q_available = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::ORIENTATION))
+				    && ev_sample.quat.isAllFinite();
+
+	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
+					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
+
 
 	// correct position for offset relative to IMU
 	const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
@@ -86,17 +90,9 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 		break;
 
 	case PositionFrame::LOCAL_FRAME_FRD:
-		if (_control_status.flags.ev_yaw) {
-			// using EV frame
-			pos = ev_sample.pos - pos_offset_earth;
-			pos_cov = matrix::diag(ev_sample.position_var);
-
-			_ev_pos_b_est.setFusionInactive();
-			_ev_pos_b_est.reset();
-
-		} else {
+		if (ev_q_available && !_control_status.flags.ev_yaw) {
 			// rotate EV to the EKF reference frame
-			const Dcmf R_ev_to_ekf = Dcmf(_ev_q_error_filt.getState());
+			const Dcmf R_ev_to_ekf(_ev_q_error_filt.getState());
 
 			pos = R_ev_to_ekf * ev_sample.pos - pos_offset_earth;
 			pos_cov = R_ev_to_ekf * matrix::diag(ev_sample.position_var) * R_ev_to_ekf.transpose();
@@ -115,6 +111,17 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 			} else {
 				_ev_pos_b_est.setFusionInactive();
 			}
+
+		} else if (!_control_status.flags.yaw_align) {
+			// using EV frame
+			pos = ev_sample.pos - pos_offset_earth;
+			pos_cov = matrix::diag(ev_sample.position_var);
+
+			_ev_pos_b_est.setFusionInactive();
+			_ev_pos_b_est.reset();
+
+		} else {
+			continuing_conditions_passing = false;
 		}
 
 		break;

@@ -92,7 +92,8 @@ void Ekf::updateEvAttitudeErrorFilter(extVisionSample &ev_sample, bool ev_reset)
 {
 	const Quatf q_error((_state.quat_nominal * ev_sample.quat.inversed()).normalized());
 
-	if (!q_error.isAllFinite()) {
+	if (!ev_sample.quat.isAllFinite() || !q_error.isAllFinite()) {
+		_ev_q_error_initialized = false;
 		return;
 	}
 

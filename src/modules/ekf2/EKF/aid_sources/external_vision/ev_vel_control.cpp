@@ -47,13 +47,17 @@ void Ekf::controlEvVelFusion(const imuSample &imu_sample, const extVisionSample 
 {
 	static constexpr const char *AID_SRC_NAME = "EV velocity";
 
-	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
-					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
-
 	// determine if we should use EV velocity aiding
 	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))
 					     && _control_status.flags.tilt_align
 					     && ev_sample.vel.isAllFinite();
+
+	const bool ev_q_available = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::ORIENTATION))
+				    && ev_sample.quat.isAllFinite();
+
+	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
+					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
+
 
 	// correct velocity for offset relative to IMU
 	const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - _state.gyro_bias;
@@ -80,19 +84,22 @@ void Ekf::controlEvVelFusion(const imuSample &imu_sample, const extVisionSample 
 		break;
 
 	case VelocityFrame::LOCAL_FRAME_FRD:
-		if (_control_status.flags.ev_yaw) {
-			// using EV frame
-			measurement = ev_sample.vel - vel_offset_earth;
-			measurement_var = ev_sample.velocity_var;
-
-		} else {
+		if (ev_q_available && !_control_status.flags.ev_yaw) {
 			// rotate EV to the EKF reference frame
-			const Dcmf R_ev_to_ekf = Dcmf(_ev_q_error_filt.getState());
+			const Dcmf R_ev_to_ekf(_ev_q_error_filt.getState());
 
 			measurement = R_ev_to_ekf * ev_sample.vel - vel_offset_earth;
 			measurement_var = matrix::SquareMatrix3f(R_ev_to_ekf * matrix::diag(ev_sample.velocity_var) *
 					  R_ev_to_ekf.transpose()).diag();
 			minimum_variance = math::max(minimum_variance, ev_sample.orientation_var.max());
+
+		} else if (!_control_status.flags.yaw_align) {
+			// using EV frame
+			measurement = ev_sample.vel - vel_offset_earth;
+			measurement_var = ev_sample.velocity_var;
+
+		} else {
+			continuing_conditions_passing = false;
 		}
 
 		break;
