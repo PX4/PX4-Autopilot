@@ -5,14 +5,14 @@ on:
     types: [created]
 
 env:
-  PX4_DEV_TARGETS: 'px4_fmu-v5x_default:auterion_fmu-v6x_default:auterion_fmu-v6n_default:auterion_fmu-v6s_default:px4_fmu-v5x_performance-test:auterion_fmu-v6x_performance-test:auterion_fmu-v6n_performance-test:auterion_fmu-v6s_performance-test:auterion_fmu-v6x_bootloader:auterion_fmu-v6n_bootloader:auterion_fmu-v6s_bootloader:ark_fmu-v6x_default:ark_fmu-v6x_bootloader:auterion_fmu-v6s_gcs'
-  PX4_PROD_TARGETS: 'px4_fmu-v5x_default:auterion_fmu-v6x_default:auterion_fmu-v6n_default:auterion_fmu-v6s_default:ark_fmu-v6x_default:auterion_fmu-v6s_gcs'
+  PX4_DEV_TARGETS: 'px4_fmu-v5x_default'
+  PX4_PROD_TARGETS: 'px4_fmu-v5x_default'
   DEV_BUILD_FLAGS: ''
   PROD_BUILD_FLAGS: 'PX4_RESTRICTED_BUILD=1'
-  PX4_TARGET_NAME_PREFIX: ''
-  AUTERIONOS_REPO: 'Auterion/AuterionOS'
+  PX4_TARGET_NAME_PREFIX: 'ff-'
+  AUTERIONOS_REPO: 'Auterion/astro_distro_container'
   AUTERIONOS_BASE_BRANCH: 'master'
-  AUTERIONOS_TEAM_REVIEWER: 'distro-aos-infrastructure'
+  AUTERIONOS_TEAM_REVIEWER: ''
 
 jobs:
   release:
