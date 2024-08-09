@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +31,70 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef OPEN_DRONE_ID_ARM_STATUS_HPP
+#define OPEN_DRONE_ID_ARM_STATUS_HPP
 
-#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/open_drone_id_arm_status.h>
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/equipment/indication/LightsCommand.hpp>
-
-#include <lib/led/led.h>
-#include <px4_platform_common/module_params.h>
-
-class UavcanRGBController : public ModuleParams
+class MavlinkStreamOpenDroneIdArmStatus : public MavlinkStream
 {
 public:
-	UavcanRGBController(uavcan::INode &node);
-	~UavcanRGBController() = default;
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamOpenDroneIdArmStatus(mavlink);
+	}
 
-	// setup periodic updater
-	int init();
+	static constexpr const char *get_name_static()
+	{
+		return "OPEN_DRONE_ID_ARM_STATUS";
+	}
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_OPEN_DRONE_ID_ARM_STATUS;
+	}
+
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
+
+	unsigned get_size() override
+	{
+		return _open_drone_id_arm_status_sub.advertised()
+		       ? MAVLINK_MSG_ID_OPEN_DRONE_ID_ARM_STATUS_LEN +
+		       MAVLINK_NUM_NON_PAYLOAD_BYTES
+		       : 0;
+	}
 
 private:
-	// Max update rate to avoid excessive bus traffic
-	static constexpr unsigned MAX_RATE_HZ = 20;
+	explicit MavlinkStreamOpenDroneIdArmStatus(Mavlink *mavlink)
+		: MavlinkStream(mavlink) {}
 
-	void periodic_update(const uavcan::TimerEvent &);
+	uORB::Subscription _open_drone_id_arm_status_sub{ORB_ID(open_drone_id_arm_status)};
 
-	uavcan::equipment::indication::RGB565 brightness_to_rgb565(uint8_t brightness);
+	bool send() override
+	{
+		open_drone_id_arm_status_s drone_id_arm;
 
-	typedef uavcan::MethodBinder<UavcanRGBController *, void (UavcanRGBController::*)(const uavcan::TimerEvent &)>
-	TimerCbBinder;
+		if (_open_drone_id_arm_status_sub.update(&drone_id_arm)) {
 
-	uavcan::INode &_node;
-	uavcan::Publisher<uavcan::equipment::indication::LightsCommand> _uavcan_pub_lights_cmd;
-	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
+			mavlink_open_drone_id_arm_status_t msg{};
 
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+			msg.status = drone_id_arm.status;
 
-	LedController _led_controller;
+			for (uint8_t i = 0; i < sizeof(drone_id_arm.error); ++i) {
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col,
-		(ParamInt<px4::params::UAVCAN_LGT_STROB>) _param_mode_strobe,
-		(ParamInt<px4::params::UAVCAN_LGT_NAV>) _param_mode_nav,
-		(ParamInt<px4::params::UAVCAN_LGT_LAND>) _param_mode_land
-	)
+				msg.error[i] = drone_id_arm.error[i];
+
+			}
+
+			mavlink_msg_open_drone_id_arm_status_send_struct(_mavlink->get_channel(),
+					&msg);
+
+			return true;
+		}
+
+		return false;
+	}
 };
+
+#endif // OPEN_DRONE_ID_ARM_STATUS_HPP
+

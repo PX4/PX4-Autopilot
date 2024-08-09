@@ -26,6 +26,10 @@ if DRIVERS_UAVCAN
         bool "Include safety state controller"
         default y
 
+    config UAVCAN_REMOTEID_CONTROLLER
+        bool "Include remote ID controller"
+        default y
+
     config UAVCAN_RGB_CONTROLLER
         bool "Include rgb controller"
         default y

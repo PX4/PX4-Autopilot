@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,46 +33,20 @@
 
 #pragma once
 
-#include <uORB/topics/actuator_armed.h>
+#include <stdint.h>
+#include <mavlink/common/mavlink.h>
 
-#include <uavcan/uavcan.hpp>
-#include <uavcan/equipment/indication/LightsCommand.hpp>
-
-#include <lib/led/led.h>
-#include <px4_platform_common/module_params.h>
-
-class UavcanRGBController : public ModuleParams
+namespace open_drone_id_translations
 {
-public:
-	UavcanRGBController(uavcan::INode &node);
-	~UavcanRGBController() = default;
 
-	// setup periodic updater
-	int init();
+MAV_ODID_UA_TYPE odidTypeForMavType(uint8_t system_type);
 
-private:
-	// Max update rate to avoid excessive bus traffic
-	static constexpr unsigned MAX_RATE_HZ = 20;
+MAV_ODID_SPEED_ACC odidSpeedAccForVariance(float s_variance_m_s);
 
-	void periodic_update(const uavcan::TimerEvent &);
+MAV_ODID_HOR_ACC odidHorAccForEph(float eph);
 
-	uavcan::equipment::indication::RGB565 brightness_to_rgb565(uint8_t brightness);
+MAV_ODID_VER_ACC odidVerAccForEpv(float epv);
 
-	typedef uavcan::MethodBinder<UavcanRGBController *, void (UavcanRGBController::*)(const uavcan::TimerEvent &)>
-	TimerCbBinder;
+MAV_ODID_TIME_ACC odidTimeForElapsed(uint64_t elapsed);
 
-	uavcan::INode &_node;
-	uavcan::Publisher<uavcan::equipment::indication::LightsCommand> _uavcan_pub_lights_cmd;
-	uavcan::TimerEventForwarder<TimerCbBinder> _timer;
-
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-
-	LedController _led_controller;
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_LGT_ANTCL>) _param_mode_anti_col,
-		(ParamInt<px4::params::UAVCAN_LGT_STROB>) _param_mode_strobe,
-		(ParamInt<px4::params::UAVCAN_LGT_NAV>) _param_mode_nav,
-		(ParamInt<px4::params::UAVCAN_LGT_LAND>) _param_mode_land
-	)
-};
+} // open_drone_id_translations
