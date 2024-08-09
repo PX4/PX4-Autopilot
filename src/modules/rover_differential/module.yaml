@@ -155,7 +155,7 @@ parameters:
         type: float
         unit: rad
         min: 0.001
-        max: 180
+        max: 3.14159
         increment: 0.01
         decimal: 3
         default: 0.0872665
@@ -166,7 +166,7 @@ parameters:
         type: float
         unit: rad
         min: 0.001
-        max: 180
+        max: 3.14159
         increment: 0.01
         decimal: 3
         default: 0.174533
