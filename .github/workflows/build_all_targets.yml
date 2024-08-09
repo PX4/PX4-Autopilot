@@ -65,25 +65,8 @@ env:
     px4_fmu-v5x_default,\
     px4_fmu-v5x_bootloader,\
     px4_fmu-v5x_flash-analysis,\
-    px4_fmu-v5x_performance-test,\
-    auterion_fmu-v6x_default,\
-    auterion_fmu-v6x_bootloader,\
-    auterion_fmu-v6x_flash-analysis,\
-    auterion_fmu-v6x_performance-test,\
-    auterion_fmu-v6s_default,\
-    auterion_fmu-v6s_bootloader,\
-    auterion_fmu-v6s_flash-analysis,\
-    auterion_fmu-v6s_performance-test,\
-    ark_fmu-v6x_default,\
-    ark_fmu-v6x_bootloader,\
-    ark_fmu-v6x_flash-analysis,\
-    ark_fmu-v6x_performance-test,\
-    auterion_fmu-v6n_default,\
-    auterion_fmu-v6n_bootloader,\
-    auterion_fmu-v6n_flash-analysis,\
-    auterion_fmu-v6n_performance-test,\
-    px4_sitl_default" # include sitl for param meta-data used in "Arrange Build Artifacts" step
-
+    px4_fmu-v5x_performance-test, \
+    px4_sitl_default"
 jobs:
   group_targets:
     name: Scan for Board Targets

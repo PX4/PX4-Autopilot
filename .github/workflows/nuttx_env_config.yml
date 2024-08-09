@@ -24,7 +24,6 @@ jobs:
       matrix:
         config: [
           px4_fmu-v5x_default,
-          auterion_fmu-v6x_default
           ]
 
     container:

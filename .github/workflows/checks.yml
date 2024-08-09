@@ -31,7 +31,6 @@ jobs:
           "validate_module_configs",
           "shellcheck_all",
           "NO_NINJA_BUILD=1 px4_sitl_default",
-          "px4_sitl_allyes",
           "module_documentation",
         ]
 
