@@ -34,8 +34,8 @@ jobs:
         with:
           token: ${{ secrets.ACCESS_TOKEN }}
 
-      - name: ownership workaround
-        run: git config --system --add safe.directory '*'
+      # - name: ownership workaround
+      #   run: git config --system --add safe.directory '*'
 
       - name: ccache setup timestamp
         id: ccache_cache_timestamp
