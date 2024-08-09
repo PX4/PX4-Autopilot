@@ -42,4 +42,3 @@ parameters:
         min: 0
         max: 7
         default: [7]
-

@@ -640,7 +640,8 @@ int BMM350::ReadOTPWord(uint8_t addr, uint16_t *lsb_msb)
 
 		if (ret == PX4_OK) {
 			ret  = RegisterRead(Register::OTP_DATA_LSB, &lsb);
-			if(ret == PX4_OK){
+
+			if (ret == PX4_OK) {
 				*lsb_msb = ((msb << 8) | lsb) & 0xffff;
 			}
 		}
