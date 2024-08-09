@@ -61,7 +61,7 @@ jobs:
       - name: build target group
         run: |
             matrix_targets=${{matrix.targets}}
-            for target in ${matrix_targets//,/}
+            for target in ${matrix_targets//,/ }
             do
                 make $target
             done
