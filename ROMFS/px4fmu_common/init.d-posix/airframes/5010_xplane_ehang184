@@ -1,0 +1,187 @@
+#!/bin/sh
+#
+# PX4 SITL Configuration Script for Ehang Airtaxi (QuadCopter) in X-Plane
+#
+# This script configures PX4 SITL for the Ehang 184 Airtaxi, modelled as a quadcopter.
+# It's specifically designed for X-Plane simulation, representing a more sophisticated Multirotor simulation.
+#
+# Usage: Run with 'make px4_sitl xplane_ehang184'.
+#
+# Airframe: Ehang Airtaxi
+# Compatible Simulator: X-Plane
+# @name ehang4 (QuadCopter) X-Plane SITL
+# @type Quadrotor Wide
+# @maintainer alireza787b <p30planets@gmail.com>
+# Date: Nov 2023
+# @url https://github.com/alireza787b/px4xplane/
+
+# ---- Start of Configuration ----
+
+
+. ${R}etc/init.d/rc.mc_defaults
+
+
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR3_KM -0.05
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+param set-default CA_FAILURE_MODE 0
+param set-default CA_METHOD 2
+param set-default CA_ROTOR0_AZ -1
+param set-default CA_ROTOR0_CT 6.5
+param set-default CA_ROTOR0_KM -0.05
+param set-default CA_ROTOR0_PX 1.4
+param set-default CA_ROTOR0_PY -1.4
+param set-default CA_ROTOR1_AX 0
+param set-default CA_ROTOR1_AY 0
+param set-default CA_ROTOR1_AZ -1
+param set-default CA_ROTOR1_CT 6.5
+param set-default CA_ROTOR1_PX 1.4
+param set-default CA_ROTOR1_PY 1.4
+param set-default CA_ROTOR1_PZ 0
+param set-default CA_ROTOR2_AX 0
+param set-default CA_ROTOR2_AY 0
+param set-default CA_ROTOR2_AZ -1
+param set-default CA_ROTOR2_CT 6.5
+param set-default CA_ROTOR2_KM 0.05
+param set-default CA_ROTOR2_PX -1.4
+param set-default CA_ROTOR2_PY -1.4
+param set-default CA_ROTOR2_PZ 0
+param set-default CA_ROTOR3_AX 0
+param set-default CA_ROTOR3_AY 0
+param set-default CA_ROTOR3_AZ -1
+param set-default CA_ROTOR3_CT 6.5
+param set-default CA_ROTOR3_PX -1.4
+param set-default CA_ROTOR3_PY 1.4
+param set-default CA_ROTOR3_PZ 0
+
+param set-default CP_DELAY 0.4
+param set-default CP_DIST -1
+param set-default CP_GO_NO_DATA 0
+param set-default CP_GUIDE_ANG 30
+param set-default EKF2_TAS_GATE 3
+param set-default EKF2_WIND_NSD 0.01
+param set-default FLW_TGT_ALT_M 0
+param set-default FLW_TGT_DST 8
+param set-default FLW_TGT_FA 180
+param set-default FLW_TGT_HT 8
+param set-default FLW_TGT_MAX_VEL 5
+param set-default FLW_TGT_RS 0.1
+param set-default FW_PSP_OFF 0
+param set-default GPS_UBX_DYNMODEL 6
+param set-default HTE_ACC_GATE 3
+param set-default HTE_HT_ERR_INIT 0.1
+param set-default HTE_HT_NOISE 0.0036
+param set-default HTE_THR_RANGE 0.2
+param set-default HTE_VXY_THR 10
+param set-default HTE_VZ_THR 2
+param set-default IMU_GYRO_RATEMAX 800
+param set-default LNDMC_ALT_GND 2
+param set-default LNDMC_ROT_MAX 20
+param set-default LNDMC_TRIG_TIME 1
+param set-default LNDMC_XY_VEL_MAX 1.5
+param set-default LNDMC_Z_VEL_MAX 0.25
+param set-default MC_ACRO_EXPO 0
+param set-default MC_ACRO_EXPO_Y 0
+param set-default MC_ACRO_P_MAX 100
+param set-default MC_ACRO_R_MAX 100
+param set-default MC_ACRO_SUPEXPO 0
+param set-default MC_ACRO_SUPEXPOY 0
+param set-default MC_ACRO_Y_MAX 100
+param set-default MC_AT_APPLY 1
+param set-default MC_AT_RISE_TIME 0.14
+param set-default MC_AT_START 0
+param set-default MC_AT_SYSID_AMP 0.7
+param set-default MC_BAT_SCALE_EN 0
+param set-default MC_MAN_TILT_TAU 0
+param set-default MC_ORBIT_RAD_MAX 1000
+param set-default MC_PITCHRATE_D 0.01
+param set-default MC_PITCHRATE_FF 0
+param set-default MC_PITCHRATE_I 0.1
+param set-default MC_PITCHRATE_K 3
+param set-default MC_PITCHRATE_MAX 220
+param set-default MC_PITCHRATE_P 0.15
+param set-default MC_PR_INT_LIM 0.3
+param set-default MC_ROLLRATE_D 0.01
+param set-default MC_ROLLRATE_FF 0
+param set-default MC_ROLLRATE_I 0.1
+param set-default MC_ROLLRATE_K 2.25
+param set-default MC_ROLLRATE_MAX 220
+param set-default MC_ROLLRATE_P 0.15
+param set-default MC_RR_INT_LIM 0.3
+param set-default MC_YAWRATE_I 0
+param set-default MC_YAWRATE_K 0.6
+param set-default MC_YAW_WEIGHT 0.4
+param set-default MPC_ALT_MODE 0
+param set-default MPC_HOLD_MAX_XY 0.8
+param set-default MPC_HOLD_MAX_Z 0.6
+param set-default MPC_LAND_ALT1 10
+param set-default MPC_LAND_ALT2 5
+param set-default MPC_LAND_ALT3 1
+param set-default MPC_LAND_CRWL 0.3
+param set-default MPC_LAND_RADIUS 1000
+param set-default MPC_MANTHR_MIN 0.08
+param set-default MPC_MAN_TILT_MAX 35
+param set-default MPC_MAN_Y_TAU 0.08
+param set-default MPC_POS_MODE 4
+param set-default MPC_THR_CURVE 0
+param set-default MPC_THR_HOVER 0.5
+param set-default MPC_THR_MAX 1
+param set-default MPC_THR_MIN 0.12
+param set-default MPC_THR_XY_MARG 0.3
+param set-default MPC_TILTMAX_AIR 45
+param set-default MPC_TILTMAX_LND 12
+param set-default MPC_TKO_RAMP_T 3
+param set-default MPC_TKO_SPEED 1.5
+param set-default MPC_USE_HTE 1
+param set-default MPC_VELD_LP 5
+param set-default MPC_VEL_MANUAL 10
+param set-default MPC_VEL_MAN_BACK -1
+param set-default MPC_VEL_MAN_SIDE -1
+param set-default MPC_XY_ERR_MAX 2
+param set-default MPC_XY_MAN_EXPO 0.6
+param set-default MPC_XY_P 0.05
+param set-default MPC_XY_TRAJ_P 0.5
+param set-default MPC_XY_VEL_ALL -10
+param set-default MPC_XY_VEL_D_ACC 1.5
+param set-default MPC_XY_VEL_I_ACC 0.2
+param set-default MPC_XY_VEL_MAX 12
+param set-default MPC_XY_VEL_P_ACC 1.2
+param set-default MPC_YAW_EXPO 0.6
+param set-default MPC_YAW_MODE 0
+param set-default MPC_Z_MAN_EXPO 0.6
+param set-default MPC_Z_P 0.25
+param set-default MPC_Z_VEL_ALL -3
+param set-default MPC_Z_VEL_D_ACC 0.2
+param set-default MPC_Z_VEL_I_ACC 2
+param set-default MPC_Z_VEL_MAX_DN 1.5
+param set-default MPC_Z_VEL_MAX_UP 3
+param set-default MPC_Z_VEL_P_ACC 3
+param set-default NAV_ACC_RAD 2
+param set-default RTL_DESCEND_ALT 10
+param set-default RTL_RETURN_ALT 30
+param set-default SYS_VEHICLE_RESP -0.4
+param set-default WV_EN 0
+param set-default WV_GAIN 1
+param set-default WV_ROLL_MIN 1
+param set-default WV_YRATE_MAX 90
+param set-default MC_PITCH_P 0.3
+param set-default MC_ROLL_P 0.3
+param set-default MC_YAWRATE_D 0
+param set-default MC_YAWRATE_FF 0.2
+param set-default MC_YAWRATE_MAX 100
+param set-default MC_YAWRATE_P 2
+param set-default MC_YAW_P 0.6
+param set-default MC_YR_INT_LIM 0.3
+param set-default MPC_HOLD_DZ 0.3
+param set-default MPC_JERK_AUTO 1
+param set-default MPC_JERK_MAX 3
+param set-default MPC_LAND_RC_HELP 1
+param set-default MPC_MAN_Y_MAX 30
+param set-default MPC_XY_CRUISE 10
+param set-default MPC_YAWRAUTO_ACC 20
+param set-default MPC_YAWRAUTO_MAX 30
