@@ -143,12 +143,12 @@ if (args.group):
     last_arch = ''
     for arch in grouped_targets:
         if(last_arch != arch and len(temp_group) > 0):
-            last_arch = arch
             final_groups.append({
                 "container": grouped_targets[arch]['container'],
                 "targets": comma_targets(temp_group),
-                'arch': arch
+                'arch': last_arch
             })
+            last_arch = arch
             temp_group = []
         for man in grouped_targets[arch]['manufacturers']:
             for tar in grouped_targets[arch]['manufacturers'][man]:
