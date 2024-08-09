@@ -406,6 +406,34 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	_mavlink.handle_message(msg);
 }
 
+void MavlinkReceiver::handle_messages_in_gimbal_mode(mavlink_message_t &msg)
+{
+	switch (msg.msgid) {
+	case MAVLINK_MSG_ID_HEARTBEAT:
+		handle_message_heartbeat(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_ATTITUDE:
+		handle_message_gimbal_manager_set_attitude(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_MANAGER_SET_MANUAL_CONTROL:
+		handle_message_gimbal_manager_set_manual_control(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_DEVICE_INFORMATION:
+		handle_message_gimbal_device_information(&msg);
+		break;
+
+	case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
+		handle_message_gimbal_device_attitude_status(&msg);
+		break;
+	}
+
+	// Message forwarding
+	_mavlink.handle_message(&msg);
+}
+
 bool
 MavlinkReceiver::evaluate_target_ok(int command, int target_system, int target_component)
 {
@@ -3176,7 +3204,16 @@ MavlinkReceiver::run()
 							_mavlink.set_proto_version(2);
 						}
 
-						handle_message(&msg);
+						switch (_mavlink.get_mode()) {
+						case Mavlink::MAVLINK_MODE::MAVLINK_MODE_GIMBAL:
+							handle_messages_in_gimbal_mode(msg);
+							break;
+
+						default:
+							handle_message(&msg);
+							break;
+						}
+
 						_mavlink.set_has_received_messages(true); // Received first message, unlock wait to transmit '-w' command-line flag
 						update_rx_stats(msg);
 
