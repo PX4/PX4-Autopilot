@@ -1353,9 +1353,11 @@ UavcanNode::get_next_dirty_node_id(uint8_t base)
  */
 static void print_usage()
 {
-	PX4_INFO("usage: \n"
-		 "\tuavcan {start|status|stop|shrink|update}\n"
-		 "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>");
+	PX4_INFO_RAW("usage: \n"
+		     "\tuavcan {start|status|stop|shrink|update}\n"
+		     "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>"
+		     "\t        reset <node-id>"
+		    );
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
@@ -1416,6 +1418,17 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 		::exit(0);
 	}
 
+	if (!std::strcmp(argv[1], "reset")) {
+		int node_arg = 2;
+
+		if (argc < node_arg + 1) {
+			errx(1, "Node id required");
+		}
+
+		int nodeid = atoi(argv[node_arg]);
+		return inst->reset_node(nodeid);
+	}
+
 	/*
 	 * Parameter setting commands
 	 *
@@ -1425,9 +1438,9 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 	 *  uavcan param set <node> <name> <value>
 	 *
 	 */
-	int node_arg = !std::strcmp(argv[1], "reset") ? 2 : 3;
+	if (!std::strcmp(argv[1], "param")) {
+		int node_arg = 3;
 
-	if (!std::strcmp(argv[1], "param") || node_arg == 2) {
 		if (argc < node_arg + 1) {
 			errx(1, "Node id required");
 		}
@@ -1438,11 +1451,7 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 			errx(1, "Invalid Node id");
 		}
 
-		if (node_arg == 2) {
-
-			return inst->reset_node(nodeid);
-
-		} else if (!std::strcmp(argv[2], "list")) {
+		if (!std::strcmp(argv[2], "list")) {
 
 			return inst->list_params(nodeid);
 
