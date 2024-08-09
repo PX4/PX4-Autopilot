@@ -55,6 +55,17 @@ I2C::_config_i2c_bus_func_t  I2C::_config_i2c_bus  = NULL;
 I2C::_set_i2c_address_func_t I2C::_set_i2c_address = NULL;
 I2C::_i2c_transfer_func_t    I2C::_i2c_transfer    = NULL;
 
+// There is a mutex per I2C bus. A mutex isn't required with normal
+// use since per bus I2C accesses are made via work item tied to a per bus thread.
+// But it is here anyways in case someone decides to use the bus in some different
+// custom code that has a separate thread.
+struct I2C::_bus_mutex_t I2C::_bus_mutex[I2C::MAX_I2C_BUS] = {
+	{1, PTHREAD_MUTEX_INITIALIZER},
+	{2, PTHREAD_MUTEX_INITIALIZER},
+	{4, PTHREAD_MUTEX_INITIALIZER},
+	{5, PTHREAD_MUTEX_INITIALIZER}
+};
+
 I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t address, const uint32_t frequency) :
 	CDev(name, nullptr),
 	_frequency(frequency / 1000)
@@ -66,8 +77,6 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
-
-    _mutex = PTHREAD_MUTEX_INITIALIZER;
 
 	PX4_INFO("*** I2C Device ID 0x%x %d", _device_id.devid, _device_id.devid);
 }
@@ -91,10 +100,25 @@ I2C::init()
 		goto out;
 	}
 
-	pthread_mutex_lock(&_mutex);
+	if (_mutex == nullptr) {
+		for (int i = 0; i < MAX_I2C_BUS; i++) {
+			if (get_device_bus() == _bus_mutex[i]._bus) {
+				_mutex = &_bus_mutex[i]._mutex;
+				break;
+			}
+		}
+		if (_mutex == nullptr) {
+			PX4_ERR("NULL i2c bus mutex");
+			goto out;
+		} else {
+			PX4_INFO("Set up I2C bus mutex for bus %d", get_device_bus());
+		}
+	}
+
+	pthread_mutex_lock(_mutex);
 	// Open the actual I2C device
 	_i2c_fd = _config_i2c_bus(get_device_bus(), get_device_address(), _frequency);
-	pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(_mutex);
 
 	if (_i2c_fd == PX4_ERROR) {
 		PX4_ERR("i2c init failed");
@@ -131,9 +155,9 @@ I2C::set_device_address(int address)
 	if ((_i2c_fd != PX4_ERROR) && (_set_i2c_address != NULL)) {
 		PX4_INFO("Set i2c address 0x%x, fd %d", address, _i2c_fd);
 
-		pthread_mutex_lock(&_mutex);
+		pthread_mutex_lock(_mutex);
 		_set_i2c_address(_i2c_fd, address);
-		pthread_mutex_unlock(&_mutex);
+		pthread_mutex_unlock(_mutex);
 
 		Device::set_device_address(address);
 	}
@@ -150,9 +174,9 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 		do {
 			// PX4_INFO("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
-			pthread_mutex_lock(&_mutex);
+			pthread_mutex_lock(_mutex);
 			ret = _i2c_transfer(_i2c_fd, send, send_len, recv, recv_len);
-			pthread_mutex_unlock(&_mutex);
+			pthread_mutex_unlock(_mutex);
 
 			if (ret != PX4_ERROR) { break; }
 

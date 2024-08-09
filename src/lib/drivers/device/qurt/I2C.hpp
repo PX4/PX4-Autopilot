@@ -124,10 +124,18 @@ protected:
 private:
 	uint32_t		               _frequency{0};
 	int                            _i2c_fd{-1};
+	pthread_mutex_t*               _mutex;
+
+	static const int MAX_I2C_BUS{4};
+
 	static _config_i2c_bus_func_t  _config_i2c_bus;
 	static _set_i2c_address_func_t _set_i2c_address;
 	static _i2c_transfer_func_t    _i2c_transfer;
-	pthread_mutex_t                _mutex;
+
+	static struct _bus_mutex_t {
+		int _bus;
+		pthread_mutex_t _mutex{PTHREAD_MUTEX_INITIALIZER};
+	} _bus_mutex[MAX_I2C_BUS];
 };
 
 } // namespace device
