@@ -41,6 +41,7 @@
 #define EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
 
 #include <mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
 
 class RangeFinderConsistencyCheck final
 {
@@ -49,14 +50,16 @@ public:
 	~RangeFinderConsistencyCheck() = default;
 
 	void update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, bool horizontal_motion, uint64_t time_us);
+	void checkIfBlocked(const float dist_bottom, const float current_hgt, const uint64_t time_us);
 
-	void setGate(float gate) { _gate = gate; }
+	void setParam(float gate, float block_dist) { _gate = gate; _max_fog_dist = block_dist; }
 
 	float getTestRatio() const { return _test_ratio; }
 	float getSignedTestRatioLpf() const { return _signed_test_ratio_lpf.getState(); }
 	float getInnov() const { return _innov; }
 	float getInnovVar() const { return _innov_var; }
 	bool isKinematicallyConsistent() const { return _is_kinematically_consistent; }
+	bool isBlocked() const { return _is_blocked; }
 
 private:
 	void updateConsistency(float vz, uint64_t time_us);
@@ -73,6 +76,12 @@ private:
 	bool _is_kinematically_consistent{true};
 	uint64_t _time_last_inconsistent_us{};
 	uint64_t _time_last_horizontal_motion{};
+
+	bool _is_blocked{false};
+	float _max_fog_dist{0.f};
+	math::MedianFilter<float, 11> _distance_filter{};
+	float _prev_median_dist;
+
 
 	static constexpr float _signed_test_ratio_tau = 2.f;
 

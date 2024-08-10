@@ -93,3 +93,21 @@ void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
 		}
 	}
 }
+
+void RangeFinderConsistencyCheck::checkIfBlocked(const float dist_bottom, const float current_hgt,
+		const uint64_t time_us)
+{
+	if (time_us - _time_last_update_us < 1e6) {
+
+		float median_dist = _distance_filter.apply(dist_bottom);
+
+		if (!_is_blocked && median_dist < _max_fog_dist && _prev_median_dist - median_dist > 2.f * _max_fog_dist) {
+			_is_blocked = true;
+
+		} else if (_is_blocked && median_dist > 2.f * _max_fog_dist) {
+			_is_blocked = false;
+		}
+
+		_prev_median_dist = median_dist;
+	}
+}
