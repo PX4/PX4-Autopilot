@@ -264,7 +264,9 @@ private:
 		vehicle_attitude_setpoint_s attitude_sp;
 
 		if (_attitude_sp_sub.update(&attitude_sp)) {
-			msg->target_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
+
+			msg->target_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(matrix::Eulerf(matrix::Quatf(
+						      attitude_sp.q_d)).psi())) * 0.5f);
 			return true;
 		}
 
