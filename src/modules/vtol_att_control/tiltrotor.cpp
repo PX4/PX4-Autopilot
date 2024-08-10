@@ -203,7 +203,7 @@ void Tiltrotor::update_transition_state()
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
+	const Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
 	float roll_body = attitude_setpoint_euler.phi();
 	float pitch_body = attitude_setpoint_euler.theta();
 	float yaw_body = attitude_setpoint_euler.psi();
@@ -217,6 +217,7 @@ void Tiltrotor::update_transition_state()
 		}
 
 		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
 	} else {

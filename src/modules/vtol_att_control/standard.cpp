@@ -172,6 +172,11 @@ void Standard::update_transition_state()
 
 	VtolType::update_transition_state();
 
+	const Eulerf attitude_setpoint_euler(Quatf(_v_att_sp->q_d));
+	float roll_body = attitude_setpoint_euler.phi();
+	float pitch_body = attitude_setpoint_euler.theta();
+	float yaw_body = attitude_setpoint_euler.psi();
+
 	// we get attitude setpoint from a multirotor flighttask if climbrate is controlled.
 	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
 	if (_v_control_mode->flag_control_climb_rate_enabled) {
@@ -181,6 +186,7 @@ void Standard::update_transition_state()
 		}
 
 		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
 
 	} else {
 		// we need a recent incoming (fw virtual) attitude setpoint, otherwise return (means the previous setpoint stays active)
@@ -226,22 +232,19 @@ void Standard::update_transition_state()
 		}
 
 		// ramp up FW_PSP_OFF
-		const Eulerf setpoint_euler(Quatf(_v_att_sp->q_d));
-		const float pitch_body = math::radians(_param_fw_psp_off.get()) * (1.0f - mc_weight);
+		pitch_body = math::radians(_param_fw_psp_off.get()) * (1.0f - mc_weight);
 		_v_att_sp->thrust_body[0] = _pusher_throttle;
-		const Quatf q_sp(Eulerf(setpoint_euler.phi(), pitch_body, setpoint_euler.psi()));
+		const Quatf q_sp(Eulerf(roll_body, pitch_body, yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
 	} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
-		Eulerf setpoint_euler(Quatf(_v_att_sp->q_d));
-		float pitch_body = setpoint_euler.theta();
 
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
 			// control backtransition deceleration using pitch.
 			pitch_body = update_and_get_backtransition_pitch_sp();
 		}
 
-		const Quatf q_sp(Eulerf(setpoint_euler.phi(), pitch_body, setpoint_euler.psi()));
+		const Quatf q_sp(Eulerf(roll_body, pitch_body, yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
 		_pusher_throttle = 0.0f;
