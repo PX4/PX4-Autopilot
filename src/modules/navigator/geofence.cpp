@@ -406,17 +406,25 @@ bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double
 {
 	bool checksPass = true;
 
-	if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
+	switch (polygon.fence_type) {
+	case NAV_CMD_FENCE_CIRCLE_INCLUSION:
 		checksPass &= insideCircle(polygon, lat, lon, altitude);
+		break;
 
-	} else if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+	case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
 		checksPass &= !insideCircle(polygon, lat, lon, altitude);
+		break;
 
-	} else if (polygon.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
+	case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 		checksPass &= insidePolygon(polygon, lat, lon, altitude);
+		break;
 
-	} else if (polygon.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+	case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 		checksPass &= !insidePolygon(polygon, lat, lon, altitude);
+		break;
+
+	default:
+		break;
 	}
 
 	return checksPass;
@@ -482,9 +490,14 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 		return false;
 	}
 
-	if (circle_point.frame != NAV_FRAME_GLOBAL && circle_point.frame != NAV_FRAME_GLOBAL_INT
-	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
-	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+	switch (circle_point.nav_cmd) {
+	case NAV_FRAME_GLOBAL:
+	case NAV_FRAME_GLOBAL_INT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
+	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		break;
+
+	default:
 		// TODO: handle different frames
 		PX4_ERR("Frame type %i not supported", (int)circle_point.frame);
 		return false;
@@ -675,20 +688,25 @@ void Geofence::printStatus()
 	for (int i = 0; i < _num_polygons; ++i) {
 		total_num_vertices += _polygons[i].vertex_count;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
+		switch (_polygons[i].fence_type) {
+		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
 			++num_inclusion_polygons;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 			++num_exclusion_polygons;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
+		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
 			++num_inclusion_circles;
-		}
+			break;
 
-		if (_polygons[i].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+		case NAV_CMD_FENCE_CIRCLE_EXCLUSION:
 			++num_exclusion_circles;
+			break;
+
+		default:
+			break;
 		}
 	}
 
