@@ -973,6 +973,7 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 	// Hard-code descend rate to 0.5m/s. This is a compromise to give the system to recover,
 	// but not letting it drift too far away.
 	const float descend_rate = -0.5f;
+	const bool disable_underspeed_handling = false;
 
 	tecs_update_pitch_throttle(control_interval,
 				   _current_altitude,
@@ -983,7 +984,7 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 				   _param_fw_thr_max.get(),
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get(),
-				   false,
+				   disable_underspeed_handling,
 				   descend_rate);
 
 	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
@@ -1170,6 +1171,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	float yaw_body = _yaw;
+	const bool disable_underspeed_handling = false;
 
 	tecs_update_pitch_throttle(control_interval,
 				   position_sp_alt,
@@ -1180,7 +1182,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get(),
-				   false,
+				   disable_underspeed_handling,
 				   pos_sp_curr.vz);
 	const float pitch_body = get_tecs_pitch();
 
@@ -1541,6 +1543,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_tecs.resetIntegrals();
 		}
 
+		const bool disable_underspeed_handling = true;
+
 		tecs_update_pitch_throttle(control_interval,
 					   altitude_setpoint_amsl,
 					   target_airspeed,
@@ -1550,7 +1554,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					   _param_fw_thr_max.get(),
 					   _param_sinkrate_target.get(),
 					   _performance_model.getMaximumClimbRate(_air_density),
-					   true); // disable underspeed handling
+					   disable_underspeed_handling);
 
 		_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed()); // reset after TECS calculation
 
@@ -1626,6 +1630,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
 							   _param_fw_thr_idle.get() : _param_fw_thr_max.get();
+			const bool disable_underspeed_handling = true;
 
 			tecs_update_pitch_throttle(control_interval,
 						   altitude_setpoint_amsl,
@@ -1636,7 +1641,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 						   max_takeoff_throttle,
 						   _param_sinkrate_target.get(),
 						   _performance_model.getMaximumClimbRate(_air_density),
-						   true); // disable underspeed handling
+						   disable_underspeed_handling);
 
 			if (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 				// explicitly set idle throttle until motors are enabled
@@ -1813,6 +1818,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 		const float throttle_max = flare_ramp_interpolator_sqrt * _param_fw_thr_idle.get() +
 					   (1.0f - flare_ramp_interpolator_sqrt) *
 					   _param_fw_thr_max.get();
+		const bool disable_underspeed_handling = true;
 
 		tecs_update_pitch_throttle(control_interval,
 					   altitude_setpoint,
@@ -1823,7 +1829,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 					   throttle_max,
 					   _param_sinkrate_target.get(),
 					   _param_climbrate_target.get(),
-					   true,
+					   disable_underspeed_handling,
 					   height_rate_setpoint);
 
 		/* set the attitude and throttle commands */
@@ -2029,6 +2035,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		const float throttle_max = flare_ramp_interpolator_sqrt * _param_fw_thr_idle.get() +
 					   (1.0f - flare_ramp_interpolator_sqrt) *
 					   _param_fw_thr_max.get();
+		const bool disable_underspeed_handling = true;
 
 		tecs_update_pitch_throttle(control_interval,
 					   _current_altitude, // is not controlled, control descend rate
@@ -2039,7 +2046,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 					   throttle_max,
 					   _param_sinkrate_target.get(),
 					   _param_climbrate_target.get(),
-					   true,
+					   disable_underspeed_handling,
 					   height_rate_setpoint);
 
 		/* set the attitude and throttle commands */
@@ -2085,6 +2092,8 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		const float glide_slope_sink_rate = airspeed_land * glide_slope / sqrtf(glide_slope * glide_slope + 1.0f);
 		const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
 						   _param_fw_t_sink_max.get());
+		const bool disable_underspeed_handling = false;
+
 		tecs_update_pitch_throttle(control_interval,
 					   _current_altitude, // is not controlled, control descend rate
 					   target_airspeed,
@@ -2094,7 +2103,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 					   _param_fw_thr_max.get(),
 					   desired_max_sinkrate,
 					   _param_climbrate_target.get(),
-					   false,
+					   disable_underspeed_handling,
 					   -glide_slope_sink_rate); // heightrate = -sinkrate
 
 		/* set the attitude and throttle commands */
@@ -2151,6 +2160,8 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 		throttle_max = 0.0f;
 	}
 
+	const bool disable_underspeed_handling = false;
+
 	tecs_update_pitch_throttle(control_interval,
 				   _current_altitude,
 				   calibrated_airspeed_sp,
@@ -2160,7 +2171,7 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 				   throttle_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get(),
-				   false,
+				   disable_underspeed_handling,
 				   height_rate_sp);
 
 	float roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
@@ -2251,6 +2262,8 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 		}
 	}
 
+	const bool disable_underspeed_handling = false;
+
 	tecs_update_pitch_throttle(control_interval,
 				   _current_altitude, // TODO: check if this is really what we want.. or if we want to lock the altitude.
 				   calibrated_airspeed_sp,
@@ -2260,7 +2273,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 				   throttle_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get(),
-				   false,
+				   disable_underspeed_handling,
 				   height_rate_sp);
 
 	if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.roll) >= HDG_HOLD_MAN_INPUT_THRESH ||
