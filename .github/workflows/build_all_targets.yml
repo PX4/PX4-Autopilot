@@ -7,7 +7,7 @@ on:
 
 jobs:
   group_targets:
-    runs-on: self-hosted
+    runs-on: [runs-on,runner=8cpu-linux-x64,"run-id=${{ github.run_id }}"]
     container:
       image: px4io/px4-dev-base-focal:2021-09-08
       options: --user 1000
