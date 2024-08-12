@@ -35,16 +35,12 @@ px4_add_module(
 	MODULE modules__mavlink__mavlink_tests
 	MAIN mavlink_tests
 	STACK_MAIN 8192
-	INCLUDES
-		${MAVLINK_LIBRARY_DIR}
-		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}
 	COMPILE_FLAGS
 		-DMAVLINK_FTP_UNIT_TEST
 		#-DMAVLINK_FTP_DEBUG
 		-DMavlinkStream=MavlinkStreamTest
 		-DMavlinkFTP=MavlinkFTPTest
 		-Wno-cast-align # TODO: fix and enable
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 		-Wno-double-promotion # The fix has been proposed as PR upstream (2020-03-08)
 	SRCS
 		mavlink_tests.cpp
@@ -52,5 +48,5 @@ px4_add_module(
 		../mavlink_stream.cpp
 		../mavlink_ftp.cpp
 	DEPENDS
-		mavlink_c_generate
+		mavlink_c
 	)
