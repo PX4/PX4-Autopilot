@@ -648,7 +648,7 @@ Geofence::loadFromFile(const char *filename)
 
 	} else {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence: import error\t");
-		events::send(events::ID("navigator_geofence_import_failed"), events::Log::Error, "Geofence: import error");
+		events::send(events::ID("navigator_geofence_import_failed"), events::Log::Critical, "Geofence: import error");
 	}
 
 	updateFence();
