@@ -25,7 +25,7 @@ jobs:
 
   setup:
     name: ${{ matrix.group }}
-    runs-on: self-hosted
+    runs-on: [runs-on,runner=8cpu-linux-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
