@@ -288,7 +288,7 @@ public:
 
 	void sendWarningDescentStoppedDueToTerrain();
 
-	void trigger_failsafe(uint8_t nav_state);
+	void trigger_hagl_failsafe(uint8_t nav_state);
 
 private:
 

@@ -42,6 +42,17 @@ void NavigatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (context.status().nav_state == status.nav_state) {
-		reporter.failsafeFlags().navigator_failure = status.failure;
+
+		reporter.failsafeFlags().navigator_failure = (status.failure != navigator_status_s::FAILURE_NONE);
+
+		if (status.failure == navigator_status_s::FAILURE_HAGL) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(NavModes::All,
+						    health_component_t::system,
+						    events::ID("check_navigator_failure_hagl"),
+						    events::Log::Error,
+						    "Waypoint above maximum height");
+		}
 	}
 }
