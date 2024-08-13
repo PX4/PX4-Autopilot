@@ -31,7 +31,7 @@ jobs:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
     container:
       image: ${{ matrix.container }}
-      options: --user 1000
+      options: --user 1001
     steps:
       - uses: actions/checkout@v1
         with:
