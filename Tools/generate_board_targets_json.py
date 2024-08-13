@@ -115,7 +115,7 @@ for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
                     if verbose: print(f'excluding label {label} ({target_name})')
                     continue
                 target = process_target(files.path, target_name)
-                # print(target)
+
                 if (args.group and target is not None):
                     if (target['arch'] not in grouped_targets):
                         grouped_targets[target['arch']] = {}
@@ -151,12 +151,12 @@ if (args.group):
         if(arch not in group_number):
                 group_number[arch] = 0
 
-        # print('arch:', arch, ' - last_arch:', last_arch)
+        if verbose: print('arch:', arch, ' - last_arch:', last_arch)
         if(last_arch != arch and len(temp_group) > 0):
             group_name = last_arch + "-" + str(group_number[last_arch])
             group_number[last_arch] += 1
             targets = comma_targets(temp_group)
-            # print("Append-1: [", group_name, "]", targets)
+            if verbose: print("Append-1: [", group_name, "]", targets)
             final_groups.append({
                 "container": grouped_targets[last_arch]['container'],
                 "targets": targets,
@@ -172,7 +172,7 @@ if (args.group):
                         group_name = arch + "-" + man
                         targets = comma_targets(grouped_targets[arch]['manufacturers'][man])
                         last_man = man
-                        # print("Append-2: [", group_name , "]", " - ", targets)
+                        if verbose: print("Append-2: [", group_name , "]", " - ", targets)
                         final_groups.append({
                             "container": grouped_targets[arch]['container'],
                             "targets": targets,
@@ -181,14 +181,14 @@ if (args.group):
                         })
                     else:
                         temp_group.append(tar)
-                        # print('Temp(', len(temp_group), '):[', man, '][', arch, ':', last_arch, ']: ', tar)
+                        if verbose: print('Temp(', len(temp_group), '):[', man, '][', arch, ':', last_arch, ']: ', tar)
 
             if(len(temp_group) > 4):
                 group_name = arch + "-" + str(group_number[arch])
                 last_arch = arch
                 group_number[arch] += 1
                 targets = comma_targets(temp_group)
-                # print("Append-3: [", group_name, "]", " - ", targets)
+                if verbose: print("Append-3: [", group_name, "]", " - ", targets)
                 final_groups.append({
                     "container": grouped_targets[arch]['container'],
                     "targets": targets,
