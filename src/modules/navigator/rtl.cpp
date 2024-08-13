@@ -283,10 +283,12 @@ void RTL::on_active()
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		_rtl_mission_type_handle->on_active();
+		_rtl_mission_type_handle->updateFailsafeChecks();
 		break;
 
 	case RtlType::RTL_DIRECT:
 		_rtl_direct.on_active();
+		_rtl_direct.updateFailsafeChecks();
 		break;
 
 	default:

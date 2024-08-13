@@ -80,6 +80,8 @@ public:
 	 */
 	virtual void on_active();
 
+	virtual void updateFailsafeChecks() {};
+
 protected:
 	Navigator *_navigator{nullptr};
 
