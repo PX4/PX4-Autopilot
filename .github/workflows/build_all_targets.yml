@@ -24,7 +24,7 @@ jobs:
     #       echo "::group::DebugTargets"
     #       ./Tools/generate_board_targets_json.py --group --verbose
     #       echo "::endgroup::"
-    # - id: set-timestamp
+    - id: set-timestamp
       run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
   setup:
