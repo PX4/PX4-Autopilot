@@ -599,6 +599,9 @@ void ICM40609D::FIFOReset()
 	// SIGNAL_PATH_RESET: FIFO flush
 	RegisterSetBits(Register::BANK_0::SIGNAL_PATH_RESET, SIGNAL_PATH_RESET_BIT::FIFO_FLUSH);
 
+	// Read INT_STATUS to clear
+	RegisterRead(Register::BANK_0::INT_STATUS);
+
 	// reset while FIFO is disabled
 	_drdy_timestamp_sample.store(0);
 }
