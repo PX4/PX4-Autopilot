@@ -7,7 +7,7 @@ on:
 
 jobs:
   group_targets:
-    runs-on: [runs-on,runner=8cpu-linux-x64,"run-id=${{ github.run_id }}"]
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     container:
       image: px4io/px4-dev-base-focal:2021-09-08
       # options: --user 1001
@@ -20,12 +20,17 @@ jobs:
       #   token: ${{ secrets.ACCESS_TOKEN }}
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
+    - name: debug groups
+      run: |
+          echo "::group::DebugTargets"
+          ./Tools/generate_board_targets_json.py --group --verbose
+          echo "::endgroup::"
     - id: set-timestamp
       run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
   setup:
     name: ${{ matrix.group }}
-    runs-on: [runs-on,runner=8cpu-linux-x64,"run-id=${{ github.run_id }}"]
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
