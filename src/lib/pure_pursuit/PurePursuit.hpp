@@ -95,9 +95,9 @@ public:
 	 * @param prev_wp_ned North/East coordinates of previous waypoint in NED frame [m].
 	 * @param curr_pos_ned North/East coordinates of current position of the vehicle in NED frame [m].
 	 * @param vehicle_speed Vehicle speed [m/s].
-	 * @param RA_LOOKAHD_GAIN Tuning parameter [-]
-	 * @param RA_LOOKAHD_MAX Maximum lookahead distance [m]
-	 * @param RA_LOOKAHD_MIN Minimum lookahead distance [m]
+	 * @param PP_LOOKAHD_GAIN Tuning parameter [-]
+	 * @param PP_LOOKAHD_MAX Maximum lookahead distance [m]
+	 * @param PP_LOOKAHD_MIN Minimum lookahead distance [m]
 	 */
 	float calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
 				 float vehicle_speed);

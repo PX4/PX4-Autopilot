@@ -249,8 +249,6 @@ public:
 
 	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	int mission_instance_count() const { return _mission_result.mission_id; }
-
 	void set_mission_failure_heading_timeout();
 
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }

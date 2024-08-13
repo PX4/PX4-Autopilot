@@ -126,7 +126,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
-				if (isHeightResetRequired()) {
+				if (isHeightResetRequired() && (_height_sensor_ref == HeightSensor::BARO)) {
 					// All height sources are failing
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
@@ -142,10 +142,13 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else if (is_fusion_failing) {
-					// Some other height source is still working
 					ECL_WARN("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
 					stopBaroHgtFusion();
-					_baro_hgt_faulty = true;
+
+					if (isRecent(_time_last_hgt_fuse, _params.hgt_fusion_timeout_max)) {
+						// Some other height source is still working
+						_baro_hgt_faulty = true;
+					}
 				}
 
 			} else {
