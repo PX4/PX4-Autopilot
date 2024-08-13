@@ -1358,10 +1358,10 @@ void Navigator::set_mission_failure_heading_timeout()
 	}
 }
 
-void Navigator::trigger_failsafe(const uint8_t nav_state)
+void Navigator::trigger_hagl_failsafe(const uint8_t nav_state)
 {
-	if (!_navigator_status.failure || _navigator_status.nav_state != nav_state) {
-		_navigator_status.failure = true;
+	if ((_navigator_status.failure != navigator_status_s::FAILURE_HAGL) || _navigator_status.nav_state != nav_state) {
+		_navigator_status.failure = navigator_status_s::FAILURE_HAGL;
 		_navigator_status.nav_state = nav_state;
 
 		_navigator_status_updated = true;
@@ -1378,7 +1378,7 @@ void Navigator::publish_navigator_status()
 
 	if (_navigator_status.nav_state != current_nav_state) {
 		_navigator_status.nav_state = current_nav_state;
-		_navigator_status.failure = false;
+		_navigator_status.failure = navigator_status_s::FAILURE_NONE;
 		_navigator_status_updated = true;
 	}
 

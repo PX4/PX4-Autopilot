@@ -164,7 +164,7 @@ void RtlDirect::set_rtl_item()
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return alt higher than max HAGL\t");
 		events::send(events::ID("rtl_fail_max_hagl"), events::Log::Error, "RTL: return alt higher than max HAGL");
 
-		_navigator->trigger_failsafe(getNavigatorStateId());
+		_navigator->trigger_hagl_failsafe(getNavigatorStateId());
 		_rtl_state = RTLState::IDLE;
 	}
 
