@@ -61,6 +61,7 @@ NavigatorMode::run(bool active)
 		} else {
 			/* periodic updates when active */
 			on_active();
+			updateFailsafeChecks();
 		}
 
 	} else {
