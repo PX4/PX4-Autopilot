@@ -183,6 +183,19 @@ if (args.group):
                         temp_group.append(tar)
                         if verbose: print('Temp(', len(temp_group), '):[', man, '][', arch, ':', last_arch, ']: ', tar)
 
+            if(last_arch != arch and len(temp_group) > 0):
+                group_name = last_arch + "-" + str(group_number[last_arch])
+                group_number[last_arch] += 1
+                targets = comma_targets(temp_group)
+                if verbose: print("Append-4: [", group_name, "]", targets)
+                final_groups.append({
+                    "container": grouped_targets[last_arch]['container'],
+                    "targets": targets,
+                    "arch": last_arch,
+                    "group": group_name
+                })
+                last_arch = arch
+                temp_group = []
             if(len(temp_group) > 4):
                 group_name = arch + "-" + str(group_number[arch])
                 last_arch = arch
