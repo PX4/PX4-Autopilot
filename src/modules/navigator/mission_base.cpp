@@ -235,7 +235,7 @@ MissionBase::on_activation()
 	checkClimbRequired(_mission.current_seq);
 	set_mission_items();
 
-	_replay_index = _mission.current_seq;
+	_mission_activation_index = _mission.current_seq;
 	_inactivation_index = -1; // reset
 
 	// reset cruise speed
@@ -294,16 +294,22 @@ MissionBase::on_active()
 		_align_heading_necessary = false;
 	}
 
+	// Replay camera mode commands immediately upon mission resume
+	if (haveCachedCameraModeItems()){
+		replayCachedCameraModeItems();
+	}
+
+
 	// Replay cached mission commands once the last mission waypoint is re-reached after the mission interruption.
 	// Each replay function also clears the cached items afterwards
-	if (_mission.current_seq > _replay_index)
+	if (_mission.current_seq > _mission_activation_index)
 	{
-		// replay gimbal and camera commands immediately after resuming mission
-		if (haveCachedGimbalOrCameraItems()) {
-			replayCachedGimbalCameraItems();
+		// replay gimbal commands
+		if (haveCachedGimbalItems()) {
+			replayCachedGimbalItems();
 		}
 
-		// replay trigger commands upon
+		// replay trigger commands
 		if (cameraWasTriggering()) {
 			replayCachedTriggerItems();
 		}
@@ -1261,7 +1267,7 @@ void MissionBase::cacheItem(const mission_item_s &mission_item)
 	}
 }
 
-void MissionBase::replayCachedGimbalCameraItems()
+void MissionBase::replayCachedGimbalItems()
 {
 	if (_last_gimbal_configure_item.nav_cmd > 0) {
 		issue_command(_last_gimbal_configure_item);
@@ -1272,7 +1278,10 @@ void MissionBase::replayCachedGimbalCameraItems()
 		issue_command(_last_gimbal_control_item);
 		_last_gimbal_control_item = {}; // delete cached item
 	}
+}
 
+void MissionBase::replayCachedCameraModeItems()
+{
 	if (_last_camera_mode_item.nav_cmd > 0) {
 		issue_command(_last_camera_mode_item);
 		_last_camera_mode_item = {}; // delete cached item
@@ -1303,11 +1312,15 @@ void MissionBase::resetItemCache()
 	_last_camera_trigger_item = {};
 }
 
-bool MissionBase::haveCachedGimbalOrCameraItems()
+bool MissionBase::haveCachedGimbalItems()
 {
 	return _last_gimbal_configure_item.nav_cmd > 0 ||
-	       _last_gimbal_control_item.nav_cmd > 0 ||
-	       _last_camera_mode_item.nav_cmd > 0;
+	       _last_gimbal_control_item.nav_cmd > 0;
+}
+
+bool MissionBase::haveCachedCameraModeItems()
+{
+	return _last_camera_mode_item.nav_cmd > 0;
 }
 
 bool MissionBase::cameraWasTriggering()

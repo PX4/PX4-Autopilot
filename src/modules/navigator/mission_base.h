@@ -328,7 +328,7 @@ protected:
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
-	int _replay_index{-1};					/**< Index of the mission item that will bring the drone back to a mission waypoint */
+	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */
 
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
@@ -399,9 +399,14 @@ private:
 	void updateCachedItemsUpToIndex(int end_index);
 
 	/**
-	 * @brief Replay the cached gimbal and camera mode items
+	 * @brief Replay the cached gimbal items
 	 */
-	void replayCachedGimbalCameraItems();
+	void replayCachedGimbalItems();
+
+	/**
+	 * @brief Replay the cached camera mode items
+	 */
+	void replayCachedCameraModeItems();
 
 	/**
 	 * @brief Replay the cached trigger items
@@ -416,11 +421,18 @@ private:
 	void replayCachedSpeedChangeItems();
 
 	/**
-	 * @brief Check if there are cached gimbal or camera mode items to be replayed
+	 * @brief Check if there are cached gimbal items to be replayed
 	 *
 	 * @return true if there are cached items
 	 */
-	bool haveCachedGimbalOrCameraItems();
+	bool haveCachedGimbalItems();
+
+	/**
+	 * @brief Check if there are cached camera mode items to be replayed
+	 *
+	 * @return true if there are cached items
+	 */
+	bool haveCachedCameraModeItems();
 
 	/**
 	 * @brief Check if the camera was triggering
