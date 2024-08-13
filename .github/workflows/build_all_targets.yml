@@ -16,7 +16,8 @@ jobs:
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
     steps:
     - uses: actions/checkout@v4
-      # with:
+      with:
+        submodules: true
       #   token: ${{ secrets.ACCESS_TOKEN }}
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
@@ -27,6 +28,10 @@ jobs:
           echo "::endgroup::"
     - id: set-timestamp
       run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
+    - name: Debug with tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        detached: true
 
   setup:
     name: ${{ matrix.group }}
@@ -39,7 +44,8 @@ jobs:
       # options: --user 1001
     steps:
       - uses: actions/checkout@v4
-        # with:
+        with:
+          submodules: true
         #   token: ${{ secrets.ACCESS_TOKEN }}
       - name: ccache setup keys
         uses: actions/cache@v4
