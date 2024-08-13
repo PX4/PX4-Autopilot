@@ -59,14 +59,14 @@ jobs:
             ccache -s
             ccache -z
 
-      - name: build target group
-        run: |
-            ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
-
       - name: Debug with tmate session
         uses: mxschmitt/action-tmate@v3
         with:
           detached: true
+
+      - name: build target group
+        run: |
+            ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
 
       - name: ccache post-run
         run: ccache -s
