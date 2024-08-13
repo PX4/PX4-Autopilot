@@ -15,7 +15,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
     - id: set-matrix
@@ -33,13 +33,9 @@ jobs:
       image: ${{ matrix.container }}
       options: --user 1001
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.ACCESS_TOKEN }}
-
-      # - name: ownership workaround
-      #   run: git config --system --add safe.directory '*'
-
       - name: ccache setup keys
         uses: actions/cache@v4
         with:
