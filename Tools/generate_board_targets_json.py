@@ -196,6 +196,9 @@ if (args.group):
                     "group": group_name
                 })
                 temp_group = []
+    if(verbose):
+        import pprint
+        pprint.pp(final_groups)
     print(json.dumps({ "include": final_groups }, **extra_args))
 else:
     print(json.dumps(github_action_config, **extra_args))
