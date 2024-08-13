@@ -16,22 +16,16 @@ jobs:
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: true
       #   token: ${{ secrets.ACCESS_TOKEN }}
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
-    - name: debug groups
-      run: |
-          echo "::group::DebugTargets"
-          ./Tools/generate_board_targets_json.py --group --verbose
-          echo "::endgroup::"
-    - id: set-timestamp
+    # - name: debug groups
+    #   run: |
+    #       echo "::group::DebugTargets"
+    #       ./Tools/generate_board_targets_json.py --group --verbose
+    #       echo "::endgroup::"
+    # - id: set-timestamp
       run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
-    - name: Debug with tmate session
-      uses: mxschmitt/action-tmate@v3
-      with:
-        detached: true
 
   setup:
     name: ${{ matrix.group }}
@@ -68,6 +62,11 @@ jobs:
       - name: build target group
         run: |
             ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
+
+      - name: Debug with tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
 
       - name: ccache post-run
         run: ccache -s
