@@ -168,7 +168,7 @@ if (args.group):
         for man in grouped_targets[arch]['manufacturers']:
             for tar in grouped_targets[arch]['manufacturers'][man]:
                 if(last_man != man):
-                    if(len(grouped_targets[arch]['manufacturers'][man]) > 10):
+                    if(len(grouped_targets[arch]['manufacturers'][man]) > 5):
                         group_name = arch + "-" + man
                         targets = comma_targets(grouped_targets[arch]['manufacturers'][man])
                         last_man = man
@@ -183,7 +183,7 @@ if (args.group):
                         temp_group.append(tar)
                         # print('Temp(', len(temp_group), '):[', man, '][', arch, ':', last_arch, ']: ', tar)
 
-            if(len(temp_group) > 15):
+            if(len(temp_group) > 4):
                 group_name = arch + "-" + str(group_number[arch])
                 last_arch = arch
                 group_number[arch] += 1
