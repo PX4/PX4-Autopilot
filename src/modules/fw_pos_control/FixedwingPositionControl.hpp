@@ -289,8 +289,6 @@ private:
 
 	bool _landed{true};
 
-	bool _is_low_height{false};
-
 	// MANUAL MODES
 
 	// indicates whether we have completed a manual takeoff in a position control mode
@@ -768,12 +766,13 @@ private:
 	 * @param throttle_max Maximum throttle command [0,1]
 	 * @param desired_max_sink_rate The desired max sink rate commandable when altitude errors are large [m/s]
 	 * @param desired_max_climb_rate The desired max climb rate commandable when altitude errors are large [m/s]
+	 * @param is_low_height Define whether we are in low-height flight for tighter altitude tracking
 	 * @param disable_underspeed_detection True if underspeed detection should be disabled
 	 * @param hgt_rate_sp Height rate setpoint [m/s]
 	 */
 	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp, float pitch_min_rad,
 					float pitch_max_rad, float throttle_min, float throttle_max,
-					const float desired_max_sink_rate, const float desired_max_climb_rate,
+					const float desired_max_sink_rate, const float desired_max_climb_rate, const bool is_low_height,
 					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
 
 	/**
@@ -840,12 +839,12 @@ private:
 	bool checkLowHeightConditions();
 
 	/*
-	 * Updates TECS altitude time constant according to the _is_low_height control flag.
-	 * For low-height flight conditions,
+	 * Updates TECS altitude time constant according to the is_low_height parameter.
 	 *
+	 * @param is_low_height Boolean flag defining whether we are in low-height flight
 	 * @param dt Update time step [s]
 	 */
-	void updateTECSAltitudeTimeConstant(const float dt);
+	void updateTECSAltitudeTimeConstant(const bool is_low_height, const float dt);
 
 	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
