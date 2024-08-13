@@ -16,8 +16,8 @@ jobs:
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
     steps:
     - uses: actions/checkout@v3
-      with:
-        token: ${{ secrets.ACCESS_TOKEN }}
+      # with:
+      #   token: ${{ secrets.ACCESS_TOKEN }}
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
     - id: set-timestamp
@@ -34,8 +34,8 @@ jobs:
       options: --user 1001
     steps:
       - uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.ACCESS_TOKEN }}
+        # with:
+        #   token: ${{ secrets.ACCESS_TOKEN }}
       - name: ccache setup keys
         uses: actions/cache@v4
         with:
