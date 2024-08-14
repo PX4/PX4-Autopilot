@@ -8,8 +8,8 @@ on:
 jobs:
   group_targets:
     runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
-    container:
-      image: px4io/px4-dev-base-focal:2021-09-08
+    # container:
+    #   image: px4io/px4-dev-base-focal:2021-09-08
       # options: --user 1001
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -17,6 +17,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       #   token: ${{ secrets.ACCESS_TOKEN }}
+    - name: Install Python dependencies
+      uses: py-actions/py-dependency-install@v4
+      with:
+        path: "./Tools/setup/requirements.txt"
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
     # - name: debug groups
