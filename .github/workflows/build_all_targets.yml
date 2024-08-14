@@ -72,7 +72,7 @@ jobs:
             ccache -z
 
       - name: Debug with tmate session
-        uses: mxschmitt/action-tmate@v4
+        uses: mxschmitt/action-tmate@v3
         with:
           detached: true
           sudo: false
