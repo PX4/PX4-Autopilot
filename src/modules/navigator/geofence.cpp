@@ -104,7 +104,7 @@ void Geofence::run()
 			_initiate_fence_updated = false;
 			_dataman_state	= DatamanState::Read;
 
-			geofence_status_s status;
+			geofence_status_s status{};
 			status.timestamp = hrt_absolute_time();
 			status.geofence_id = _opaque_id;
 			status.status = geofence_status_s::GF_STATUS_LOADING;
@@ -159,7 +159,7 @@ void Geofence::run()
 				_dataman_state = DatamanState::UpdateRequestWait;
 				_fence_updated = true;
 
-				geofence_status_s status;
+				geofence_status_s status{};
 				status.timestamp = hrt_absolute_time();
 				status.geofence_id = _opaque_id;
 				status.status = geofence_status_s::GF_STATUS_READY;
@@ -179,7 +179,7 @@ void Geofence::run()
 			_updateFence();
 			_fence_updated = true;
 
-			geofence_status_s status;
+			geofence_status_s status{};
 			status.timestamp = hrt_absolute_time();
 			status.geofence_id = _opaque_id;
 			status.status = geofence_status_s::GF_STATUS_READY;
