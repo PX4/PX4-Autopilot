@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - 'mrpollo/ci_runner_groups'
+    - 'mrpollo/ci_groups'
 
 jobs:
   group_targets:
