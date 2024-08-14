@@ -41,7 +41,7 @@ jobs:
             arch: 'nuttx'
     container:
       image: ${{ matrix.container }}
-      options: --user 1001
+      # options: --user 1001
     steps:
       - uses: actions/checkout@v4
         with:
