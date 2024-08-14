@@ -423,7 +423,7 @@ bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double
 		checksPass &= !insidePolygon(polygon, lat, lon, altitude);
 		break;
 
-	default:  // unknown fence typesss
+	default:  // unknown fence type
 		break;
 	}
 
