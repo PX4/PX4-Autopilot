@@ -285,7 +285,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @unit s
  * @min 0.0
  * @max 25.0
- * @decimal 3
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(COM_FAIL_ACT_T, 5.f);
 
