@@ -10,7 +10,7 @@ jobs:
     runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     container:
       image: px4io/px4-dev-base-focal:2021-09-08
-      # options: --user 1001
+      options: --user 1001
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
@@ -35,7 +35,7 @@ jobs:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
     container:
       image: ${{ matrix.container }}
-      # options: --user 1001
+      options: --user 1001
     steps:
       - uses: actions/checkout@v4
         with:
