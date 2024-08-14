@@ -199,6 +199,7 @@ int BMM350::probe()
 void BMM350::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
+	int ret = PX4_OK;
 	ParametersUpdate();
 
 	switch (_state) {
@@ -214,9 +215,10 @@ void BMM350::RunImpl()
 		break;
 
 	case STATE::WAIT_FOR_RESET: {
-			int ret = probe();
+			ret = probe();
 
 			if (ret == PX4_OK) {
+				_state = STATE::RESET;
 				uint8_t status_0;
 				ret = RegisterRead(Register::PMU_STATUS_0, &status_0);
 
@@ -224,17 +226,17 @@ void BMM350::RunImpl()
 					ret = PX4_ERROR;
 				}
 
-				ret = UpdateMagOffsets();
+				if (ret == PX4_OK) {
+					ret = UpdateMagOffsets();
+				}
 
 				if (ret == PX4_OK) {
 					PX4_DEBUG("Going to FGR");
 					_state = STATE::FGR;
-					ScheduleDelayed(10_ms);
 
-				} else {
-					_state = STATE::RESET;
-					ScheduleDelayed(10_ms);
 				}
+
+				ScheduleDelayed(10_ms);
 
 			} else {
 				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
@@ -251,19 +253,22 @@ void BMM350::RunImpl()
 		break;
 
 	case STATE::FGR: {
-			int ret;
+			_state = STATE::RESET;
 			uint8_t odr_reg_data = (ODR_100HZ & 0xf);
 			odr_reg_data = ((odr_reg_data & ~(0x30)) | ((AVG_2 << 0x4) & 0x30));
 			ret = RegisterWrite(Register::PMU_CMD_AGGR_SET, odr_reg_data);
-			ret = RegisterWrite(Register::PMU_CMD_AXIS_EN, EN_XYZ);
-			ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_FGR);
+
+			if (ret == PX4_OK) {
+				ret = RegisterWrite(Register::PMU_CMD_AXIS_EN, EN_XYZ);
+			}
+
+			if (ret == PX4_OK) {
+				ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_FGR);
+			}
 
 			if (ret == PX4_OK) {
 				PX4_DEBUG("Going to BR");
 				_state = STATE::BR;
-
-			} else {
-				_state = STATE::RESET;
 			}
 
 			ScheduleDelayed(30_ms);
@@ -273,7 +278,7 @@ void BMM350::RunImpl()
 	case STATE::BR: {
 			uint8_t status_0;
 			_state = STATE::RESET;
-			int ret = RegisterRead(Register::PMU_STATUS_0, &status_0);
+			ret = RegisterRead(Register::PMU_STATUS_0, &status_0);
 
 			if (ret == PX4_OK && PMU_CMD_STATUS_0_RES(status_0) == PMU_STATUS_FGR) {
 				ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_BR_FAST);
@@ -291,7 +296,7 @@ void BMM350::RunImpl()
 	case STATE::AFTER_RESET: {
 			uint8_t status_0;
 			_state = STATE::RESET;
-			int ret = RegisterRead(Register::PMU_STATUS_0, &status_0);
+			ret = RegisterRead(Register::PMU_STATUS_0, &status_0);
 
 			if (ret == PX4_OK && PMU_CMD_STATUS_0_RES(status_0) == PMU_STATUS_BR_FAST) {
 				_state = STATE::MEASURE_FORCED;
@@ -304,7 +309,7 @@ void BMM350::RunImpl()
 		break;
 
 	case STATE::MEASURE_FORCED: {
-			int ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
+			ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_FAST_FM);
 
 			if (ret == PX4_OK) {
 				_state = STATE::SELF_TEST_CHECK;
@@ -325,19 +330,23 @@ void BMM350::RunImpl()
 			if (ReadOutRawData(xyzt) != PX4_OK) {
 				perf_count(_self_test_failed_perf);
 				ScheduleNow();
+				break;
 			}
 
 			switch (_self_test_state) {
 			case SELF_TEST_STATE::INIT:
 				memcpy(_initial_self_test_values, xyzt, sizeof(_initial_self_test_values));
-				RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_POS_X);
-				_self_test_state = SELF_TEST_STATE::POS_X;
-				_state = STATE::MEASURE_FORCED;
+
+				if (RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_POS_X) == PX4_OK) {
+					_self_test_state = SELF_TEST_STATE::POS_X;
+					_state = STATE::MEASURE_FORCED;
+				}
+
 				break;
 
 			case SELF_TEST_STATE::POS_X:
-				if (xyzt[0] - _initial_self_test_values[0] >= 130.0f) {
-					RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_NEG_X);
+				if (xyzt[0] - _initial_self_test_values[0] >= 130.0f &&
+				    RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_NEG_X) == PX4_OK) {
 					_self_test_state = SELF_TEST_STATE::NEG_X;
 					_state = STATE::MEASURE_FORCED;
 				}
@@ -345,8 +354,8 @@ void BMM350::RunImpl()
 				break;
 
 			case SELF_TEST_STATE::NEG_X:
-				if (xyzt[0] - _initial_self_test_values[0] <= -130.0f) {
-					RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_POS_Y);
+				if (xyzt[0] - _initial_self_test_values[0] <= -130.0f &&
+				    RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_POS_Y) == PX4_OK) {
 					_self_test_state = SELF_TEST_STATE::POS_Y;
 					_state = STATE::MEASURE_FORCED;
 				}
@@ -354,8 +363,8 @@ void BMM350::RunImpl()
 				break;
 
 			case SELF_TEST_STATE::POS_Y:
-				if (xyzt[1] - _initial_self_test_values[1] >= 130.0f) {
-					RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_NEG_Y);
+				if (xyzt[1] - _initial_self_test_values[1] >= 130.0f &&
+				    RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_NEG_Y) == PX4_OK) {
 					_self_test_state = SELF_TEST_STATE::NEG_Y;
 					_state = STATE::MEASURE_FORCED;
 				}
@@ -363,8 +372,8 @@ void BMM350::RunImpl()
 				break;
 
 			case SELF_TEST_STATE::NEG_Y:
-				if (xyzt[1] - _initial_self_test_values[1] <= -130.0f) {
-					RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_DISABLE);
+				if (xyzt[1] - _initial_self_test_values[1] <= -130.0f &&
+				    RegisterWrite(Register::TMR_SELF_TEST_USER, SELF_TEST_DISABLE) == PX4_OK) {
 					PX4_DEBUG("Self test good, going to configure");
 					_state = STATE::CONFIGURE;
 				}
@@ -406,14 +415,13 @@ void BMM350::RunImpl()
 
 	case STATE::READ: {
 			// -- start get_compensated_mag_xyz_temp_data
-			int8_t res = 0;
 			float out_data[4] = {0.0f};
 			float dut_offset_coeff[3], dut_sensit_coeff[3], dut_tcos[3], dut_tcss[3];
 			float cr_ax_comp_x, cr_ax_comp_y, cr_ax_comp_z;
 
-			res = ReadOutRawData(out_data);
+			ret = ReadOutRawData(out_data);
 
-			if (res == PX4_OK) {
+			if (ret == PX4_OK) {
 				// Apply compensation to temperature reading
 				out_data[3] = (1 + _mag_comp_vals.dut_sensit_coef.t_sens) * out_data[3] +
 					      _mag_comp_vals.dut_offset_coef.t_offs;
@@ -483,6 +491,7 @@ int BMM350::Configure()
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("Couldn't set pad drive, defaults to 7");
+		return ret;
 	}
 
 	// Set PMU data aggregation
@@ -506,12 +515,14 @@ int BMM350::Configure()
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("Cannot set PMU AGG REG");
+		return ret;
 	}
 
 	ret = RegisterRead(Register::PMU_CMD_AGGR_SET, &readData);
 
 	if (ret != PX4_OK || readData != odr_reg_data) {
 		PX4_DEBUG("Couldn't check PMU AGGR REG");
+		return ret;
 	}
 
 	odr_reg_data = PMU_CMD_UPDATE_OAE;
@@ -519,12 +530,14 @@ int BMM350::Configure()
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("Couldn't write PMU CMD REG");
+		return ret;
 	}
 
 	ret = RegisterRead(Register::PMU_CMD, &readData);
 
 	if (ret != PX4_OK || readData != odr_reg_data) {
 		PX4_DEBUG("Couldn't check PMU CMD REG");
+		return ret;
 	}
 
 	// Enable AXIS
@@ -534,18 +547,21 @@ int BMM350::Configure()
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("Couldn't write AXIS data");
+		return ret;
 	}
 
 	ret = RegisterRead(Register::PMU_CMD_AXIS_EN, &readData);
 
 	if (ret != PX4_OK || readData != axis_data) {
 		PX4_DEBUG("Couldn't cross check the set AXIS");
+		return ret;
 	}
 
 	ret = RegisterWrite(Register::PMU_CMD, PMU_CMD_NM);
 
 	if (ret != PX4_OK) {
 		PX4_DEBUG("Failed to start mag in normal mode");
+		return ret;
 	}
 
 	// microTesla -> Gauss
