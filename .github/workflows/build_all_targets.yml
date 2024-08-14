@@ -7,10 +7,10 @@ on:
 
 jobs:
   group_targets:
-    runs-on: self-hosted
-    container:
-      image: px4io/px4-dev-base-focal:2021-09-08
-      options: --user 1000
+    runs-on: [ubuntu-latest,self-hosted]
+    # container:
+    #   image: px4io/px4-dev-base-focal:2021-09-08
+    #   options: --user 1000
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
@@ -18,6 +18,10 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: Install Python Dependencies
+      uses: py-actions/py-dependency-install@v4
+      with:
+        path: "./Tools/setup/requirements.txt"
     - id: set-matrix
       run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
     - id: set-timestamp
@@ -25,7 +29,7 @@ jobs:
 
   setup:
     name: ${{ matrix.group }}
-    runs-on: self-hosted
+    runs-on: [ubuntu-latest,self-hosted]
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
@@ -44,8 +48,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.ccache
-          key: ${{ matrix.arch }}-ccache-${{ needs.group_targets.outputs.timestamp }}
-          restore-keys: ${{ matrix.arch }}-ccache-${{ needs.group_targets.outputs.timestamp }}
+          key: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
+          restore-keys: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
 
       - name: setup ccache
         run: |
