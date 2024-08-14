@@ -224,6 +224,16 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				{events::Log::Warning, events::LogInternal::Warning},
 				"Failsafe warning:", mavlink_mode);
 
+			} else if (action == Action::Descend || action == Action::FallbackAltCtrl || action == Action::FallbackStab) {
+				/* EVENT
+				* @description Failsafe actions that disengage the autopilot (remove position control)
+				* @type append_health_and_arming_messages
+				*/
+				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
+					events::ID("commander_failsafe_enter_autopilot_disengaged"),
+				{events::Log::Critical, events::LogInternal::Warning},
+				"Failsafe activated: Autopilot disengaged, switching to {2}", mavlink_mode, failsafe_action);
+
 			} else {
 				/* EVENT
 				* @type append_health_and_arming_messages
@@ -231,7 +241,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
 					events::ID("commander_failsafe_enter_generic"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe activated: Autopilot disengaged, switching to {2}", mavlink_mode, failsafe_action);
+				"Failsafe activated: switching to {2}", mavlink_mode, failsafe_action);
 			}
 
 		} else {
