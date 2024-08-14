@@ -1,0 +1,20 @@
+{
+    "mode": "sitl",
+    "simulator": "gz_sim",
+    "mavlink_connection": "udp://:14540",
+    "tests":
+    [
+        {
+            "model": "x500",
+            "vehicle": "x500",
+            "test_filter": "[multicopter],[offboard][offboard_attitude]",
+            "timeout_min": 10
+        },
+        {
+            "model": "ssrc_standard_vtol",
+            "vehicle": "ssrc_standard_vtol",
+            "test_filter": "[vtol], [vtol_wind], [vtol_airspeed_fail]",
+            "timeout_min": 10
+        }
+    ]
+}

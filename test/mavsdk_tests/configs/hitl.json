@@ -1,0 +1,14 @@
+{
+	"mode": "hitl",
+	"simulator": "gazebo",
+	"mavlink_connection": "udp://:14540",
+	"tests":
+	[
+	    {
+		"model": "iris_hitl_set_your_model",
+		"vehicle": "iris_hitl_set_your_model",
+		"test_filter": "[multicopter],[offboard][offboard_attitude]",
+		"timeout_min": 10
+	    }
+	]
+    }
