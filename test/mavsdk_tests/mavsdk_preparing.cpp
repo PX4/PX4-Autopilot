@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 	}
 
 	if (connection_url.empty()) {
-		std::cerr << "No connection URL  was supplied" << std::endl;
+		std::cerr << "Connection URL not provided" << std::endl;
 		return 1;
 	}
 
@@ -101,14 +101,14 @@ int main(int argc, char **argv)
 	auto res_polling = poll_condition_with_timeout([&]() { return mavsdk.systems().size() > 0;}, std::chrono::seconds(25));
 
 	if (not res_polling) {
-		std::cerr << "Polling was failed" << std::endl;
+		std::cerr << "Polling failed" << std::endl;
 		return 1;
 	}
 
 	auto system = mavsdk.systems().at(0);
 
 	if (!system) {
-		std::cerr << "The system wasn't be found" << std::endl;
+		std::cerr << "The system could not be found" << std::endl;
 		return 1;
 	}
 
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
 
 			if (param.set_param_int(param_name, param_value) != Param::Result::Success) {
-				std::cerr << "Fail setting param: " << param_name << ", value: "
+				std::cerr << "Fail setting parameter: " << param_name << ", value: "
 					  << param_value << std::endl;
 				return 1;
 			}
@@ -144,11 +144,11 @@ int main(int argc, char **argv)
 		}
 
 		if (attempt <= max_attemp) {
-			std::cout << "Param " << param_name << " was successly set after " << attempt
+			std::cout << "Parameter " << param_name << " was successly set after " << attempt
 				  << " attempt. Tne new value " << param_value << std::endl;
 
 		} else {
-			std::cerr << "Fail. Setting param: " << param_name << " wasn't set to value: "
+			std::cerr << "Fail. Setting parameter: " << param_name << " wasn't set to value: "
 				  << param_value << "after " << max_attemp << " attempts. " << std::endl;
 			return 1;
 		}

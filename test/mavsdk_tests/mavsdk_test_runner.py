@@ -313,13 +313,13 @@ class Tester:
         elif (self.connection == "ethernet"):
             res = self.reboot_using_ethernen()
         else:
-            print("Chose incorrect connection")
+            print("Wrong connection selected")
 
         if (res):
             print("The device has successfully rebooted")
             time.sleep(15)
         else:
-            print("Rebooting failed")
+            print("Reboot failed")
 
 
 
@@ -340,7 +340,7 @@ class Tester:
         if res:
             print("Device has ", self.connection, " connection")
         else:
-            print("Device doesn't has ",self.connection, " connection")
+            print("Device doesn't have ",self.connection, " connection")
 
         return res
 
