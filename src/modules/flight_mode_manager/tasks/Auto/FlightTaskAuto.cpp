@@ -247,12 +247,12 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	if (_type_previous != WaypointType::land) {
 		// initialize yaw and xy-position
 		_land_heading = _yaw_setpoint;
-		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
-		_initial_land_position = Vector3f(_target(0), _target(1), NAN);
+		_stick_acceleration_xy.resetPosition(Vector2f(_triplet_target(0), _triplet_target(1)));
+		_initial_land_position = Vector3f(_triplet_target(0), _triplet_target(1), NAN);
 	}
 
 	// Update xy-position in case of landing position changes (etc. precision landing)
-	_land_position = Vector3f(_target(0), _target(1), NAN);
+	_land_position = Vector3f(_triplet_target(0), _triplet_target(1), NAN);
 
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
