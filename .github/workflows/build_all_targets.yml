@@ -32,7 +32,13 @@ jobs:
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
     strategy:
-      matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+      # matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+      matrix:
+        include:
+          - group: 'nuttx-px4'
+            targets: 'px4_fmu-v5x_default,px4_fmu-v6x_default'
+            container: 'px4io/px4-dev-nuttx-focal:2022-08-12'
+            arch: 'nuttx'
     container:
       image: ${{ matrix.container }}
       options: --user 1001
@@ -41,6 +47,12 @@ jobs:
         with:
           submodules: true
         #   token: ${{ secrets.ACCESS_TOKEN }}
+      - name: debug permissions
+        run: |
+          echo "::group::DebugPermissions"
+          echo $UID
+          echo $PATH
+          echo "::endgroup::"
       - name: ccache setup keys
         uses: actions/cache@v4
         with:
