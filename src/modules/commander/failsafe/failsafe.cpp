@@ -292,7 +292,7 @@ FailsafeBase::Action Failsafe::fromOffboardLossActParam(int param_value, uint8_t
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 		break;
 
-	case offboard_loss_failsafe_mode::Manual:
+	case offboard_loss_failsafe_mode::Stabilized:
 		action = Action::FallbackStab;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
 		break;
