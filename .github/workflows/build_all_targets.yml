@@ -3,12 +3,10 @@ name: Build all targets
 on:
   push:
     branches:
-    # - 'main'
-    # - 'stable'
-    # - 'beta'
-    # - 'release/*'
-    - 'mrpollo/ci_runner_groups'
-    - 'mrpollo/ci_groups'
+    - 'main'
+    - 'stable'
+    - 'beta'
+    - 'release/*'
   pull_request:
     branches:
     - '*'
@@ -78,6 +76,7 @@ jobs:
           path: |
             build/**/*.px4
             build/**/*.bin
+          compression-level: 0
 
       - name: ccache post-run
         run: ccache -s
