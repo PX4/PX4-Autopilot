@@ -36,7 +36,6 @@ jobs:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
     container:
       image: ${{ matrix.container }}
-      options: --user 1000
     steps:
       - uses: actions/checkout@v1
         with:
@@ -66,6 +65,14 @@ jobs:
       - name: build target group
         run: |
             ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
+
+      - name: Upload px4 package
+        uses: actions/upload-artifact@v2
+        with:
+          name: px4_package_${{matrix.config}}
+          path: |
+            build/**/*.px4
+            build/**/*.bin
 
       - name: ccache post-run
         run: ccache -s
