@@ -19,8 +19,8 @@ jobs:
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
     steps:
     - uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.ACCESS_TOKEN }}
+      # with:
+      #   token: ${{ secrets.ACCESS_TOKEN }}
     - name: Install Python Dependencies
       uses: py-actions/py-dependency-install@v4
       with:
@@ -40,8 +40,8 @@ jobs:
       image: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.ACCESS_TOKEN }}
+        # with:
+        #   token: ${{ secrets.ACCESS_TOKEN }}
 
       - name: ownership workaround
         run: git config --system --add safe.directory '*'
