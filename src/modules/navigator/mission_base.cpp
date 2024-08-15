@@ -46,8 +46,8 @@
 #include "mission_feasibility_checker.h"
 #include "navigator.h"
 
-MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed) :
-	MissionBlock(navigator),
+MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed, uint8_t navigator_state_id) :
+	MissionBlock(navigator, navigator_state_id),
 	ModuleParams(navigator),
 	_dataman_cache_size_signed(dataman_cache_size_signed)
 {
@@ -235,6 +235,7 @@ MissionBase::on_activation()
 	checkClimbRequired(_mission.current_seq);
 	set_mission_items();
 
+	_mission_activation_index = _mission.current_seq;
 	_inactivation_index = -1; // reset
 
 	// reset cruise speed
@@ -293,17 +294,27 @@ MissionBase::on_active()
 		_align_heading_necessary = false;
 	}
 
-	// replay gimbal and camera commands immediately after resuming mission
-	if (haveCachedGimbalOrCameraItems()) {
-		replayCachedGimbalCameraItems();
+	// Replay camera mode commands immediately upon mission resume
+	if (haveCachedCameraModeItems()) {
+		replayCachedCameraModeItems();
 	}
 
-	// replay trigger commands upon raching the resume waypoint if the trigger relay flag is set
-	if (cameraWasTriggering() && is_mission_item_reached_or_completed()) {
-		replayCachedTriggerItems();
-	}
 
-	replayCachedSpeedChangeItems();
+	// Replay cached mission commands once the last mission waypoint is re-reached after the mission interruption.
+	// Each replay function also clears the cached items afterwards
+	if (_mission.current_seq > _mission_activation_index) {
+		// replay gimbal commands
+		if (haveCachedGimbalItems()) {
+			replayCachedGimbalItems();
+		}
+
+		// replay trigger commands
+		if (cameraWasTriggering()) {
+			replayCachedTriggerItems();
+		}
+
+		replayCachedSpeedChangeItems();
+	}
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
@@ -465,7 +476,7 @@ MissionBase::set_mission_items()
 
 	if (set_end_of_mission) {
 		setEndOfMissionItems();
-		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }
 
@@ -1255,7 +1266,7 @@ void MissionBase::cacheItem(const mission_item_s &mission_item)
 	}
 }
 
-void MissionBase::replayCachedGimbalCameraItems()
+void MissionBase::replayCachedGimbalItems()
 {
 	if (_last_gimbal_configure_item.nav_cmd > 0) {
 		issue_command(_last_gimbal_configure_item);
@@ -1266,7 +1277,10 @@ void MissionBase::replayCachedGimbalCameraItems()
 		issue_command(_last_gimbal_control_item);
 		_last_gimbal_control_item = {}; // delete cached item
 	}
+}
 
+void MissionBase::replayCachedCameraModeItems()
+{
 	if (_last_camera_mode_item.nav_cmd > 0) {
 		issue_command(_last_camera_mode_item);
 		_last_camera_mode_item = {}; // delete cached item
@@ -1297,11 +1311,15 @@ void MissionBase::resetItemCache()
 	_last_camera_trigger_item = {};
 }
 
-bool MissionBase::haveCachedGimbalOrCameraItems()
+bool MissionBase::haveCachedGimbalItems()
 {
 	return _last_gimbal_configure_item.nav_cmd > 0 ||
-	       _last_gimbal_control_item.nav_cmd > 0 ||
-	       _last_camera_mode_item.nav_cmd > 0;
+	       _last_gimbal_control_item.nav_cmd > 0;
+}
+
+bool MissionBase::haveCachedCameraModeItems()
+{
+	return _last_camera_mode_item.nav_cmd > 0;
 }
 
 bool MissionBase::cameraWasTriggering()

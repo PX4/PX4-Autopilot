@@ -55,7 +55,7 @@ static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES{10.0f}; // [m] We 
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
 RTL::RTL(Navigator *navigator) :
-	NavigatorMode(navigator),
+	NavigatorMode(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator),
 	_rtl_direct(navigator)
 {

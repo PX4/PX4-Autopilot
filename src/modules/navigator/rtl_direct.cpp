@@ -51,7 +51,7 @@
 using namespace math;
 
 RtlDirect::RtlDirect(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator)
 {
 	_destination.lat = static_cast<double>(NAN);
@@ -157,6 +157,16 @@ void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s 
 void RtlDirect::set_rtl_item()
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	if (_global_pos_sub.get().terrain_alt_valid
+	    && ((_rtl_alt - _global_pos_sub.get().terrain_alt) > _navigator->get_local_position()->hagl_max)) {
+		// Handle case where the RTL altidude is above the maximum HAGL and land in place instead of RTL
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return alt higher than max HAGL\t");
+		events::send(events::ID("rtl_fail_max_hagl"), events::Log::Error, "RTL: return alt higher than max HAGL");
+
+		_navigator->trigger_hagl_failsafe(getNavigatorStateId());
+		_rtl_state = RTLState::IDLE;
+	}
 
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon,
 				       _global_pos_sub.get().lat, _global_pos_sub.get().lon);
@@ -318,7 +328,7 @@ void RtlDirect::set_rtl_item()
 
 	case RTLState::IDLE: {
 			set_idle_item(&_mission_item);
-			_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+			_navigator->mode_completed(getNavigatorStateId());
 			break;
 		}
 

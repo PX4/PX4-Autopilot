@@ -69,6 +69,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/navigator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
@@ -283,7 +284,11 @@ public:
 
 	void mode_completed(uint8_t nav_state, uint8_t result = mode_completed_s::RESULT_SUCCESS);
 
+	void set_failsafe_status(uint8_t nav_state, bool failsafe);
+
 	void sendWarningDescentStoppedDueToTerrain();
+
+	void trigger_hagl_failsafe(uint8_t nav_state);
 
 private:
 
@@ -305,6 +310,7 @@ private:
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
+	uORB::Publication<navigator_status_s>		_navigator_status_pub{ORB_ID(navigator_status)};
 	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
 	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_command_s>		_vehicle_cmd_pub{ORB_ID(vehicle_command)};
@@ -324,6 +330,7 @@ private:
 
 	// Publications
 	geofence_result_s				_geofence_result{};
+	navigator_status_s				_navigator_status{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
@@ -333,7 +340,10 @@ private:
 
 	Geofence	_geofence;			/**< class that handles the geofence */
 	GeofenceBreachAvoidance _gf_breach_avoidance;
-	hrt_abstime _last_geofence_check = 0;
+	hrt_abstime _last_geofence_check{0};
+
+	bool _navigator_status_updated{false};
+	hrt_abstime _last_navigator_status_publication{0};
 
 	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
 
@@ -385,6 +395,8 @@ private:
 	 * Publish the mission result so commander and mavlink know what is going on
 	 */
 	void publish_mission_result();
+
+	void publish_navigator_status();
 
 	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 
