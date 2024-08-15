@@ -41,8 +41,8 @@ jobs:
         with:
           token: ${{ secrets.ACCESS_TOKEN }}
 
-      # - name: ownership workaround
-      #   run: git config --system --add safe.directory '*'
+      - name: ownership workaround
+        run: git config --system --add safe.directory '*'
 
       - name: ccache setup keys
         uses: actions/cache@v3
