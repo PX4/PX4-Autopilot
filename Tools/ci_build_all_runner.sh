@@ -9,8 +9,7 @@ for target in ${targets//,/ }
 do
     echo "::group::Building: [${target}]"
     start=$(date +%s)
-    # make $target
-    sleep 2
+    make $target
     stop=$(date +%s)
     diff=$(($stop-$start))
     build_time="$(($diff /60/60))h $(($diff /60))m $(($diff % 60))s elapsed"
