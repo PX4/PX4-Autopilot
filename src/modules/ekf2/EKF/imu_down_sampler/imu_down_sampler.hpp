@@ -51,6 +51,8 @@ public:
 	explicit ImuDownSampler(int32_t &target_dt_us);
 	~ImuDownSampler() = default;
 
+	// integrate imu samples until target dt reached
+	// returns true if target dt is reached
 	bool update(const imuSample &imu_sample_new);
 
 	imuSample getDownSampledImuAndTriggerReset()
@@ -64,15 +66,9 @@ private:
 	void reset();
 
 	imuSample _imu_down_sampled{};
-	Quatf _delta_angle_accumulated{};
-
 	int _accumulated_samples{0};
-	int _required_samples{1};
 
 	int32_t &_target_dt_us;
-
-	float _target_dt_s{0.010f};
-	float _min_dt_s{0.005f};
 
 	float _delta_ang_dt_avg{0.005f};
 };
