@@ -18,17 +18,18 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
     steps:
-    - uses: actions/checkout@v4
-      # with:
-      #   token: ${{ secrets.ACCESS_TOKEN }}
-    - name: Install Python Dependencies
-      uses: py-actions/py-dependency-install@v4
-      with:
-        path: "./Tools/setup/requirements.txt"
-    - id: set-matrix
-      run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
-    - id: set-timestamp
-      run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
+      - uses: actions/checkout@v4
+
+      - name: Install Python Dependencies
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "./Tools/setup/requirements.txt"
+
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
+
+      - id: set-timestamp
+        run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
   setup:
     name: ${{ matrix.group }}
@@ -40,8 +41,8 @@ jobs:
       image: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v4
-        # with:
-        #   token: ${{ secrets.ACCESS_TOKEN }}
+        with:
+          fetch-depth: 0
 
       - name: ownership workaround
         run: git config --system --add safe.directory '*'
