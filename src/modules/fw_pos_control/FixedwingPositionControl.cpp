@@ -943,7 +943,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 void
 FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_interval)
 {
-	// check if generic low-height flight conditions are satisfied
 	const bool is_low_height = checkLowHeightConditions();
 
 	// only control altitude and airspeed ("fixed-bank loiter")
@@ -982,7 +981,6 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 	const float descend_rate = -0.5f;
 	const bool disable_underspeed_handling = false;
 
-	// check if generic low-height flight conditions are satisfied
 	const bool is_low_height = checkLowHeightConditions();
 
 	tecs_update_pitch_throttle(control_interval,
@@ -1131,7 +1129,6 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
-	// check if generic low-height flight conditions are satisfied
 	const bool is_low_height = checkLowHeightConditions();
 
 	tecs_update_pitch_throttle(control_interval,
@@ -1189,7 +1186,6 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	float yaw_body = _yaw;
 	const bool disable_underspeed_handling = false;
 
-	// check if generic low-height flight conditions are satisfied
 	const bool is_low_height = checkLowHeightConditions();
 
 	tecs_update_pitch_throttle(control_interval,
@@ -1264,7 +1260,6 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
 	Vector2f vehicle_to_loiter_center{curr_wp_local - curr_pos_local};
 
-	// check if generic low-height flight conditions are satisfied
 	bool is_low_height = checkLowHeightConditions();
 
 	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _npfg.switchDistance(500);
@@ -1373,7 +1368,6 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 		tecs_fw_thr_max = _param_fw_thr_max.get();
 	}
 
-	// check if generic low-height flight conditions are satisfied
 	const bool is_low_height = checkLowHeightConditions();
 
 	tecs_update_pitch_throttle(control_interval,
@@ -1451,7 +1445,6 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 
 	float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
-	// check if generic low-height flight conditions are satisfied
 	const bool is_low_height = checkLowHeightConditions();
 
 	tecs_update_pitch_throttle(control_interval,
@@ -1501,7 +1494,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		adjusted_min_airspeed = takeoff_airspeed;
 	}
 
-	// check if generic low-height flight conditions are satisfied
 	const bool is_low_height = checkLowHeightConditions();
 
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
@@ -2352,7 +2344,6 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 void FixedwingPositionControl::control_backtransition(const float control_interval, const Vector2f &ground_speed,
 		const position_setpoint_s &pos_sp_curr)
 {
-	// check if generic low-height flight conditions are satisfied
 	const bool is_low_height = checkLowHeightConditions();
 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
@@ -2830,7 +2821,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	/* No underspeed protection in landing mode */
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 
-	/* Update altitude time constant */
 	updateTECSAltitudeTimeConstant(is_low_height, control_interval);
 
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
