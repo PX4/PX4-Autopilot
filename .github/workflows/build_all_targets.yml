@@ -16,7 +16,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
     - name: Install Python Dependencies
@@ -37,7 +37,7 @@ jobs:
     container:
       image: ${{ matrix.container }}
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.ACCESS_TOKEN }}
 
@@ -45,7 +45,7 @@ jobs:
         run: git config --system --add safe.directory '*'
 
       - name: ccache setup keys
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.ccache
           key: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
@@ -67,7 +67,7 @@ jobs:
             ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
 
       - name: Upload px4 package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: px4_package_${{matrix.group}}
           path: |
