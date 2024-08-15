@@ -13,8 +13,8 @@ case $PX4_VEHICLE_TYPE in
     export PX4_GZ_MODEL=scout_mini
     ;;
   vtol)
-    export PX4_SYS_AUTOSTART=4404
-    export PX4_GZ_MODEL=standard_vtol
+    export PX4_SYS_AUTOSTART=4430
+    export PX4_GZ_MODEL=striver_mini
     ;;
   fw)
     export PX4_SYS_AUTOSTART=4440

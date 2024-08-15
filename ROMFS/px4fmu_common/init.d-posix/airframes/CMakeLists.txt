@@ -79,11 +79,12 @@ px4_add_romfs_files(
 	4004_gz_standard_vtol
 	4005_gz_x500_vision
 	4006_gz_px4vision
-
+  
 	4401_gz_ssrc_holybro_x500
 	4440_gz_ssrc_skywalker_x8
 	4404_gz_ssrc_standard_vtol
-	50005_gz_ssrc_scout_mini
+	4430_gz_ssrc_strivermini
+  50005_gz_ssrc_scout_mini
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post

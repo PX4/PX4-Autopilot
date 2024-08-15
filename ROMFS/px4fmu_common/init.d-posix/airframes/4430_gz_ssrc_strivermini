@@ -1,0 +1,173 @@
+#!/bin/sh
+#
+# @name SSRC Striver Mini
+#
+# @type Standard VTOL
+# @class VTOL
+#
+# @maintainer
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output AUX1 Aileron 1
+# @output AUX2 Aileron 2
+# @output AUX3 Elevator 1
+# @output AUX4 Elevator 2
+# @output AUX5 Rudder
+# @output AUX6 Throttle
+
+. ${R}etc/init.d/rc.vtol_defaults
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=strivermini}
+
+param set-default SIM_GZ_EN 1
+param set-default SIM_GZ_RUN_GZSIM 0
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+
+param set-default FD_ACT_EN 0
+param set-default FD_ACT_MOT_TOUT 500
+param set-default COM_PREARM_MODE 2
+
+# Control allocator parameters
+param set-default CA_AIRFRAME 2
+param set-default CA_ROTOR_COUNT 5
+param set-default CA_ROTOR0_PX 0.37
+param set-default CA_ROTOR0_PY 0.42
+param set-default CA_ROTOR1_PX -0.41
+param set-default CA_ROTOR1_PY -0.42
+param set-default CA_ROTOR2_PX 0.37
+param set-default CA_ROTOR2_PY -0.42
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.41
+param set-default CA_ROTOR3_PY 0.42
+param set-default CA_ROTOR3_KM -0.05
+param set-default CA_ROTOR4_AX 1.0
+param set-default CA_ROTOR4_AZ 0.0
+param set-default CA_ROTOR4_PX 0.0
+param set-default CA_ROTOR4_KM 0.05
+
+param set-default CA_SV_CS_COUNT 5
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TRIM 0.1
+param set-default CA_SV_CS3_TYPE 3
+param set-default CA_SV_CS3_TRQ_P 1.0
+param set-default CA_SV_CS3_TRIM 0.1
+param set-default CA_SV_CS4_TYPE 4
+param set-default CA_SV_CS4_TRQ_Y 1.0
+
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_MIN1 10
+param set-default SIM_GZ_EC_MAX1 1500
+
+param set-default SIM_GZ_EC_FUNC2 102
+param set-default SIM_GZ_EC_MIN2 10
+param set-default SIM_GZ_EC_MAX2 1500
+
+param set-default SIM_GZ_EC_FUNC3 103
+param set-default SIM_GZ_EC_MIN3 10
+param set-default SIM_GZ_EC_MAX3 1500
+
+param set-default SIM_GZ_EC_FUNC4 104
+param set-default SIM_GZ_EC_MIN4 10
+param set-default SIM_GZ_EC_MAX4 1500
+
+param set-default SIM_GZ_EC_FUNC5 105
+param set-default SIM_GZ_EC_MIN5 0
+param set-default SIM_GZ_EC_MAX5 3500
+
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_FUNC5 205
+
+# Fixed wing specific
+param set-default FW_RR_IMAX 0.4000
+param set-default FW_YR_IMAX 0.4000
+
+param set-default FW_YR_P 0.2
+param set-default FW_YR_I 0.01
+
+param set-default FW_RR_FF 0.5
+param set-default FW_RR_P 0.05
+param set-default FW_RR_I 0.1
+param set-default FW_RR_IMAX 0.4
+
+param set-default FW_R_LIM 50.0
+param set-default FW_R_RMAX 70.0
+param set-default FW_R_TC 0.4
+
+param set-default FW_PR_FF 0.5
+param set-default FW_PR_I 0.1
+param set-default FW_PR_IMAX 0.4
+
+param set-default FW_P_LIM_MAX 30.0
+param set-default FW_P_LIM_MIN -30.0
+
+# Airspeed parameters
+param set-default ASPD_PRIMARY 1
+param set-default FW_AIRSPD_MAX 25.0
+param set-default FW_AIRSPD_MIN 15.0
+param set-default FW_AIRSPD_STALL 12.0
+param set-default FW_AIRSPD_TRIM 18.0
+
+# VTOL specific
+# VTOL type
+param set-default VT_TYPE 2
+
+# Airspeed at which we can start blending both fw and mc controls.
+param set-default VT_ARSP_BLEND 8.0
+
+# Airspeed at which we can switch to fw mode
+param set-default VT_ARSP_TRANS 14.0
+
+# Back-transition duration
+param set-default VT_B_TRANS_DUR 10.0
+param set-default VT_B_TRANS_RAMP 3.0
+
+# Transition duration
+param set-default VT_F_TRANS_DUR 6.0
+param set-default VT_F_TRANS_THR 1.0
+
+# VTOL takeoff
+param set-default VTO_LOITER_ALT 20
+
+param set-default MC_AIRMODE 0
+param set-default MC_ROLLRATE_P 0.14
+param set-default MC_ROLLRATE_I 0.2
+param set-default MC_PITCHRATE_P 0.14
+param set-default MC_PITCHRATE_I 0.2
+param set-default MC_YAW_P 2.0
+param set-default MC_YAW_WEIGHT 0.5
+param set-default MC_YAWRATE_P 0.2
+param set-default MC_YAWRATE_I 0.1
+param set-default MC_YAWRATE_MAX 120.0
+
+param set-default MPC_XY_P 0.95
+param set-default MPC_XY_VEL_P_ACC 1.8
+param set-default MPC_XY_VEL_I_ACC 0.4
+param set-default MPC_XY_VEL_D_ACC 0.2
+param set-default MPC_YAW_MODE 4
+
+param set-default NAV_ACC_RAD 10.0
+
+# # QuadChute altitude (transition to quad mode as a failsafe)
+# param set-default VT_FW_MIN_ALT 5
+
+# # QuadChute angle limits
+# param set-default VT_FW_QC_P 35
+# param set-default VT_FW_QC_R 60
+
+param set-default FD_ESCS_EN 0
