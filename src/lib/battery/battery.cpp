@@ -108,10 +108,6 @@ void Battery::updateCurrent(const float current_a)
 
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 {
-	if (!_battery_initialized && _internal_resistance_initialized && _params.n_cells > 0) {
-		resetInternalResistanceEstimation(_voltage_v, _current_a);
-	}
-
 	// Require minimum voltage otherwise override connected status
 	if (_voltage_v < LITHIUM_BATTERY_RECOGNITION_VOLTAGE) {
 		_connected = false;
@@ -121,8 +117,12 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 		_last_unconnected_timestamp = timestamp;
 	}
 
-	// wait with initializing filters to avoid relying on a voltage sample from the rising edge
+	// Wait with initializing filters to avoid relying on a voltage sample from the rising edge
 	_battery_initialized = _connected && (timestamp > _last_unconnected_timestamp + 2_s);
+
+	if (_connected && !_battery_initialized && _internal_resistance_initialized && _params.n_cells > 0) {
+		resetInternalResistanceEstimation(_voltage_v, _current_a);
+	}
 
 	sumDischarged(timestamp, _current_a);
 	_state_of_charge_volt_based =
