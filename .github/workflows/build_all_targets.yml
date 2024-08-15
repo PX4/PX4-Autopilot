@@ -4,6 +4,8 @@ on:
   push:
     branches:
     # - 'main'
+    # - 'stable'
+    # - 'beta'
     # - 'release/*'
     - 'mrpollo/ci_runner_groups'
     - 'mrpollo/ci_groups'
