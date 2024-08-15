@@ -72,7 +72,7 @@ jobs:
       - name: Upload px4 package
         uses: actions/upload-artifact@v4
         with:
-          name: px4_package_${{matrix.group}}
+          name: px4_${{matrix.group}}_build_artifacts
           path: |
             build/**/*.px4
             build/**/*.bin
