@@ -61,6 +61,7 @@ struct ekf_reset_counters_s {
 	uint8_t z;
 	uint8_t vz;
 	uint8_t heading;
+	uint8_t hagl;
 };
 
 class FlightTask : public ModuleParams
@@ -191,6 +192,7 @@ protected:
 	virtual void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) {};
 	virtual void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) {};
 	virtual void _ekfResetHandlerPositionZ(float delta_z) {};
+	virtual void _ekfResetHandlerHagl(float delta_hagl) {};
 	virtual void _ekfResetHandlerVelocityZ(float delta_vz) {};
 	virtual void _ekfResetHandlerHeading(float delta_psi) {};
 

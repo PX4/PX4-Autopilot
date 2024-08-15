@@ -41,7 +41,7 @@
 
 #include <ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h>
 
-void Ekf::controlMagFusion()
+void Ekf::controlMagFusion(const imuSample &imu_sample)
 {
 	static constexpr const char *AID_SRC_NAME = "mag";
 	estimator_aid_source3d_s &aid_src = _aid_src_mag;
@@ -59,7 +59,7 @@ void Ekf::controlMagFusion()
 
 	magSample mag_sample;
 
-	if (_mag_buffer && _mag_buffer->pop_first_older_than(_time_delayed_us, &mag_sample)) {
+	if (_mag_buffer && _mag_buffer->pop_first_older_than(imu_sample.time_us, &mag_sample)) {
 
 		if (mag_sample.reset || (_mag_counter == 0)) {
 			// sensor or calibration has changed, reset low pass filter
@@ -109,12 +109,12 @@ void Ekf::controlMagFusion()
 		sym::ComputeMagInnovInnovVarAndHx(_state.vector(), P, mag_sample.mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
 
 		updateAidSourceStatus(aid_src,
-					mag_sample.time_us,                      // sample timestamp
-					mag_sample.mag,                          // observation
-					Vector3f(R_MAG, R_MAG, R_MAG),           // observation variance
-					mag_innov,                               // innovation
-					innov_var,                               // innovation variance
-					math::max(_params.mag_innov_gate, 1.f)); // innovation gate
+				      mag_sample.time_us,                      // sample timestamp
+				      mag_sample.mag,                          // observation
+				      Vector3f(R_MAG, R_MAG, R_MAG),           // observation variance
+				      mag_innov,                               // innovation
+				      innov_var,                               // innovation variance
+				      math::max(_params.mag_innov_gate, 1.f)); // innovation gate
 
 		// Perform an innovation consistency check and report the result
 		_innov_check_fail_status.flags.reject_mag_x = (aid_src.test_ratio[0] > 1.f);
@@ -134,7 +134,8 @@ void Ekf::controlMagFusion()
 				&& checkMagField(mag_sample.mag)
 				&& (_mag_counter > 3) // wait until we have more than a few samples through the filter
 				&& (_control_status.flags.yaw_align == _control_status_prev.flags.yaw_align) // no yaw alignment change this frame
-				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) // don't allow starting on same frame as yaw reset
+				&& (_state_reset_status.reset_count.quat ==
+				    _state_reset_count_prev.quat) // don't allow starting on same frame as yaw reset
 				&& isNewestSampleRecent(_time_last_mag_buffer_push, MAG_MAX_INTERVAL);
 
 		checkMagHeadingConsistency(mag_sample);
@@ -145,22 +146,22 @@ void Ekf::controlMagFusion()
 
 
 		{
-		const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
-		const bool common_conditions_passing = _control_status.flags.mag
-						       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
-						           || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
-						       && !_control_status.flags.mag_fault
-						       && !_control_status.flags.mag_field_disturbed
-						       && !_control_status.flags.ev_yaw
-						       && !_control_status.flags.gps_yaw;
+			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
+			const bool common_conditions_passing = _control_status.flags.mag
+							       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
+									       || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
+							       && !_control_status.flags.mag_fault
+							       && !_control_status.flags.mag_field_disturbed
+							       && !_control_status.flags.ev_yaw
+							       && !_control_status.flags.gnss_yaw;
 
-		_control_status.flags.mag_3D = common_conditions_passing
-					       && (_params.mag_fusion_type == MagFuseType::AUTO)
-					       && _control_status.flags.mag_aligned_in_flight;
+			_control_status.flags.mag_3D = common_conditions_passing
+						       && (_params.mag_fusion_type == MagFuseType::AUTO)
+						       && _control_status.flags.mag_aligned_in_flight;
 
-		_control_status.flags.mag_hdg = common_conditions_passing
-						&& ((_params.mag_fusion_type == MagFuseType::HEADING)
-						    || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
+			_control_status.flags.mag_hdg = common_conditions_passing
+							&& ((_params.mag_fusion_type == MagFuseType::HEADING)
+							    || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D));
 		}
 
 		// TODO: allow clearing mag_fault if mag_3d is good?
@@ -184,7 +185,7 @@ void Ekf::controlMagFusion()
 				if (mag_sample.reset || checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_pre_takeoff)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
-					aid_src.time_last_fuse = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else {
 					// The normal sequence is to fuse the magnetometer data first before fusing
@@ -212,7 +213,7 @@ void Ekf::controlMagFusion()
 					if (no_ne_aiding_or_pre_takeoff) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 						resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
-						aid_src.time_last_fuse = _time_delayed_us;
+						aid_src.time_last_fuse = imu_sample.time_us;
 
 					} else {
 						ECL_WARN("stopping %s, fusion failing", AID_SRC_NAME);
@@ -241,7 +242,7 @@ void Ekf::controlMagFusion()
 					bool reset_heading = !_control_status.flags.yaw_align;
 
 					resetMagStates(_mag_lpf.getState(), reset_heading);
-					aid_src.time_last_fuse = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
 
 					if (reset_heading) {
 						_control_status.flags.yaw_align = true;
@@ -558,4 +559,3 @@ float Ekf::getMagDeclination()
 	// otherwise use the parameter value
 	return math::radians(_params.mag_declination_deg);
 }
-

@@ -42,6 +42,8 @@ px4_add_module(
 	DEPENDS
 		RoverAckermannGuidance
 		px4_work_queue
+		SlewRate
+		pure_pursuit
 	MODULE_CONFIG
 		module.yaml
 )

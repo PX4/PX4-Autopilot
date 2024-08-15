@@ -62,6 +62,10 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		_control_status.flags.wind = false;
 	}
 
+	if (_control_status.flags.wind && _external_wind_init) {
+		_external_wind_init = false;
+	}
+
 #if defined(CONFIG_EKF2_GNSS)
 
 	// clear yaw estimator airspeed (updated later with true airspeed if airspeed fusion is active)
@@ -89,7 +93,8 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 
 		updateAirspeed(airspeed_sample, _aid_src_airspeed);
 
-		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
+		_innov_check_fail_status.flags.reject_airspeed =
+			_aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
 
 		const bool continuing_conditions_passing = _control_status.flags.in_air
 				&& _control_status.flags.fixed_wing
@@ -127,10 +132,11 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			if (_control_status.flags.inertial_dead_reckoning && !is_airspeed_consistent) {
 				resetVelUsingAirspeed(airspeed_sample);
 
-			} else if (!_control_status.flags.wind || getWindVelocityVariance().longerThan(_params.initial_wind_uncertainty)) {
-				// If starting wind state estimation, reset the wind states and covariances before fusing any data
-				// Also catch the case where sideslip fusion enabled wind estimation recently and didn't converge yet.
+			} else if (!_external_wind_init
+				   && (!_control_status.flags.wind
+				       || getWindVelocityVariance().longerThan(sq(_params.initial_wind_uncertainty)))) {
 				resetWindUsingAirspeed(airspeed_sample);
+				_aid_src_airspeed.time_last_fuse = _time_delayed_us;
 			}
 
 			_control_status.flags.wind = true;
@@ -155,12 +161,12 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 					     &innov, &innov_var);
 
 	updateAidSourceStatus(aid_src,
-				 airspeed_sample.time_us,                 // sample timestamp
-				 airspeed_sample.true_airspeed,           // observation
-				 R,                                       // observation variance
-				 innov,                                   // innovation
-				 innov_var,                               // innovation variance
-				 math::max(_params.tas_innov_gate, 1.f)); // innovation gate
+			      airspeed_sample.time_us,                 // sample timestamp
+			      airspeed_sample.true_airspeed,           // observation
+			      R,                                       // observation variance
+			      innov,                                   // innovation
+			      innov_var,                               // innovation variance
+			      math::max(_params.tas_innov_gate, 1.f)); // innovation gate
 }
 
 void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src)
@@ -216,6 +222,10 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 
 	if (is_fused) {
 		aid_src.time_last_fuse = _time_delayed_us;
+
+		if (!update_wind_only) {
+			_time_last_hor_vel_fuse = _time_delayed_us;
+		}
 	}
 }
 

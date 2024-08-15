@@ -125,32 +125,23 @@ parameters:
     EKF2_GPS_CHECK:
       description:
         short: Integer bitmask controlling GPS checks
-        long: 'Set bits to 1 to enable checks. Checks enabled by the following bit
-          positions 0 : Minimum required sat count set by EKF2_REQ_NSATS 1 : Maximum
-          allowed PDOP set by EKF2_REQ_PDOP 2 : Maximum allowed horizontal position
-          error set by EKF2_REQ_EPH 3 : Maximum allowed vertical position error set
-          by EKF2_REQ_EPV 4 : Maximum allowed speed error set by EKF2_REQ_SACC 5 :
-          Maximum allowed horizontal position rate set by EKF2_REQ_HDRIFT. This check
-          will only run when the vehicle is on ground and stationary. 6 : Maximum
-          allowed vertical position rate set by EKF2_REQ_VDRIFT. This check will only
-          run when the vehicle is on ground and stationary. 7 : Maximum allowed horizontal
-          speed set by EKF2_REQ_HDRIFT. This check will only run when the vehicle
-          is on ground and stationary. 8 : Maximum allowed vertical velocity discrepancy
-          set by EKF2_REQ_VDRIFT'
+        long: 'Each threshold value is defined by the parameter indicated next to the check.
+          Drift and offset checks only run when the vehicle is on ground and stationary.'
       type: bitmask
       bit:
-        0: Min sat count (EKF2_REQ_NSATS)
-        1: Max PDOP (EKF2_REQ_PDOP)
-        2: Max horizontal position error (EKF2_REQ_EPH)
-        3: Max vertical position error (EKF2_REQ_EPV)
-        4: Max speed error (EKF2_REQ_SACC)
-        5: Max horizontal position rate (EKF2_REQ_HDRIFT)
-        6: Max vertical position rate (EKF2_REQ_VDRIFT)
-        7: Max horizontal speed (EKF2_REQ_HDRIFT)
-        8: Max vertical velocity discrepancy (EKF2_REQ_VDRIFT)
-      default: 245
+        0: Sat count (EKF2_REQ_NSATS)
+        1: PDOP (EKF2_REQ_PDOP)
+        2: EPH (EKF2_REQ_EPH)
+        3: EPV (EKF2_REQ_EPV)
+        4: Speed accuracy (EKF2_REQ_SACC)
+        5: Horizontal position drift (EKF2_REQ_HDRIFT)
+        6: Vertical position drift (EKF2_REQ_VDRIFT)
+        7: Horizontal speed offset (EKF2_REQ_HDRIFT)
+        8: Vertical speed offset (EKF2_REQ_VDRIFT)
+        9: Spoofing
+      default: 1023
       min: 0
-      max: 511
+      max: 1023
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS
@@ -679,6 +670,16 @@ parameters:
         short: Optical flow aiding
         long: Enable optical flow fusion.
       type: boolean
+      default: 1
+    EKF2_OF_GYR_SRC:
+      description:
+        short: Optical flow angular rate compensation source
+        long: 'Auto: use gyro from optical flow message if available, internal gyro otherwise.
+               Internal: always use internal gyro'
+      type: enum
+      values:
+        0: Auto
+        1: Internal
       default: 0
     EKF2_OF_N_MIN:
       description:

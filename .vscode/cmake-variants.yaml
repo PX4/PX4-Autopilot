@@ -111,6 +111,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v6xrt_bootloader
+    3dr_ctrl-zero-h7-oem-revg_default:
+      short: 3dr_ctrl-zero-h7-oem-revg
+      buildType: MinSizeRel
+      settings:
+        CONFIG: 3dr_ctrl-zero-h7-oem-revg_default
     airmind_mindpx-v2_default:
       short: airmind_mindpx-v2
       buildType: MinSizeRel

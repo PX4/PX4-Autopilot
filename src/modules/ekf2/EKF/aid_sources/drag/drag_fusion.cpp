@@ -48,9 +48,11 @@ void Ekf::controlDragFusion(const imuSample &imu_delayed)
 	if ((_params.drag_ctrl > 0) && _drag_buffer) {
 
 		if (!_control_status.flags.wind && !_control_status.flags.fake_pos && _control_status.flags.in_air) {
-			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
-			resetWindToZero();
+
+			if (!_external_wind_init) {
+				resetWindCov();
+			}
 		}
 
 		dragSample drag_sample;
@@ -169,12 +171,12 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	}
 
 	updateAidSourceStatus(_aid_src_drag,
-				 drag_sample.time_us,  // sample timestamp
-				 observation,          // observation
-				 observation_variance, // observation variance
-				 innovation,           // innovation
-				 innovation_variance,  // innovation variance
-				 innov_gate);          // innovation gate
+			      drag_sample.time_us,  // sample timestamp
+			      observation,          // observation
+			      observation_variance, // observation variance
+			      innovation,           // innovation
+			      innovation_variance,  // innovation variance
+			      innov_gate);          // innovation gate
 
 	if (fused[0] && fused[1]) {
 		_aid_src_drag.fused = true;

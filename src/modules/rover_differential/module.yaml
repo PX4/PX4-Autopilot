@@ -1,0 +1,172 @@
+module_name: Rover Differential
+
+parameters:
+  - group: Rover Differential
+    definitions:
+
+      RD_WHEEL_TRACK:
+        description:
+          short: Wheel track
+          long: Distance from the center of the right wheel to the center of the left wheel
+        type: float
+        unit: m
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+
+      RD_MAN_YAW_SCALE:
+        description:
+          short: Manual yaw rate scale
+          long: |
+            In manual mode the setpoint for the yaw rate received from the rc remote
+            is scaled by this value.
+        type: float
+        min: 0.01
+        max: 1
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RD_HEADING_P:
+        description:
+          short: Proportional gain for heading controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RD_HEADING_I:
+        description:
+            short: Integral gain for heading controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.1
+
+      RD_SPEED_P:
+        description:
+          short: Proportional gain for speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RD_SPEED_I:
+        description:
+          short: Integral gain for ground speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0
+
+      RD_YAW_RATE_P:
+        description:
+          short: Proportional gain for angular velocity controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RD_YAW_RATE_I:
+        description:
+          short: Integral gain for angular velocity controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0
+
+      RD_MAX_JERK:
+        description:
+          short: Maximum jerk
+          long: Limit for forwards acc/deceleration change.
+        type: float
+        unit: m/s^3
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.5
+
+      RD_MAX_ACCEL:
+        description:
+          short: Maximum acceleration
+          long: Maximum acceleration is used to limit the acceleration of the rover
+        type: float
+        unit: m/s^2
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0.5
+
+      RD_MAX_SPEED:
+        description:
+          short: Maximum speed the rover can drive
+          long: This parameter is used to map desired speeds to normalized motor commands.
+        type: float
+        unit: m/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 7
+
+      RD_MAX_YAW_RATE:
+        description:
+          short: Maximum allowed yaw rate for the rover.
+          long: |
+            This parameter is used to cap desired yaw rates and map controller inputs to desired yaw rates in acro mode.
+        type: float
+        unit: deg/s
+        min: 0.01
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: 90
+
+      RD_MISS_SPD_DEF:
+        description:
+          short: Default rover speed during a mission
+        type: float
+        unit: m/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RD_TRANS_TRN_DRV:
+        description:
+            short: Heading error threshhold to switch from spot turning to driving
+        type: float
+        unit: rad
+        min: 0.001
+        max: 3.14159
+        increment: 0.01
+        decimal: 3
+        default: 0.0872665
+
+      RD_TRANS_DRV_TRN:
+        description:
+            short: Heading error threshhold to switch from driving to spot turning
+        type: float
+        unit: rad
+        min: 0.001
+        max: 3.14159
+        increment: 0.01
+        decimal: 3
+        default: 0.174533

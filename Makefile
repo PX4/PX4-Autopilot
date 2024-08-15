@@ -324,6 +324,7 @@ px4io_update:
 	git status
 
 bootloaders_update: \
+	3dr_ctrl-zero-h7-oem-revg_bootloader \
 	ark_fmu-v6x_bootloader \
 	ark_pi6x_bootloader \
 	cuav_nora_bootloader \
@@ -379,9 +380,9 @@ doxygen:
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/doxygen
 	@touch "$(SRC_DIR)"/build/doxygen/Documentation/.nojekyll
 
-# Astyle
+# Style
 # --------------------------------------------------------------------
-.PHONY: check_format format
+.PHONY: check_format format check_newlines
 
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
@@ -391,6 +392,10 @@ check_format:
 format:
 	$(call colorecho,'Formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
+
+check_newlines:
+	$(call colorecho,'Checking for missing or duplicate newlines at the end of files')
+	@"$(SRC_DIR)"/Tools/astyle/check_newlines.sh
 
 # Testing
 # --------------------------------------------------------------------
@@ -545,7 +550,7 @@ distclean:
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
 %:
 	$(if $(filter $(FIRST_ARG),$@), \
-		$(error "Make target $@ not found. It either does not exist or $@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
+		$(error "Make target $@ not found. It either does not exist or $@ cannot be the first argument. Use '$(MAKE) list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
 # Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
 help:

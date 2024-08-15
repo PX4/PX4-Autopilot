@@ -96,7 +96,7 @@ if(CONFIG_EKF2_GNSS)
 	)
 
 	if(CONFIG_EKF2_GNSS_YAW)
-		list(APPEND EKF_SRCS aid_sources/gnss/gps_yaw_fusion.cpp)
+		list(APPEND EKF_SRCS aid_sources/gnss/gnss_yaw_control.cpp)
 	endif()
 
 	add_subdirectory(yaw_estimator)
@@ -137,6 +137,10 @@ endif()
 if(CONFIG_EKF2_TERRAIN)
 	list(APPEND EKF_SRCS terrain_control.cpp)
 endif()
+
+if(CONFIG_EKF2_WIND)
+	list(APPEND EKF_SRCS wind.cpp)
+endif ()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_library(ecl_EKF

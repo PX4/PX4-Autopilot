@@ -66,7 +66,7 @@ struct airspeed_validator_update_data {
 	float air_temperature_celsius;
 	float accel_z;
 	float vel_test_ratio;
-	float mag_test_ratio;
+	float hdg_test_ratio;
 	bool in_fixed_wing_flight;
 	float fixed_wing_tecs_throttle;
 	float fixed_wing_tecs_throttle_trim;
@@ -213,7 +213,7 @@ private:
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_data_stuck(uint64_t timestamp);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
-				       float estimator_status_mag_test_ratio, const matrix::Vector3f &vI, bool gnss_valid);
+				       float estimator_status_hdg_test_ratio, const matrix::Vector3f &vI, bool gnss_valid);
 	void check_load_factor(float accel_z);
 	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
 				   const uint64_t tecs_timestamp, const Quatf &att_q);

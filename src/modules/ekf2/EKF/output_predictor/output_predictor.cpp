@@ -261,7 +261,8 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 }
 
 void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
-		const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state, const matrix::Vector3f &gyro_bias, const matrix::Vector3f &accel_bias)
+		const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state, const matrix::Vector3f &gyro_bias,
+		const matrix::Vector3f &accel_bias)
 {
 	// calculate an average filter update time
 	if (_time_last_correct_states_us != 0) {
@@ -365,7 +366,8 @@ void OutputPredictor::applyCorrectionToVerticalOutputBuffer(float vert_vel_corre
 		next_state.vert_vel += vert_vel_correction;
 
 		// position is propagated forward using the corrected velocity and a trapezoidal integrator
-		next_state.vert_vel_integ = current_state.vert_vel_integ + (current_state.vert_vel + next_state.vert_vel) * 0.5f * next_state.dt;
+		next_state.vert_vel_integ = current_state.vert_vel_integ + (current_state.vert_vel + next_state.vert_vel) * 0.5f *
+					    next_state.dt;
 
 		// advance the index
 		index = (index + 1) % size;

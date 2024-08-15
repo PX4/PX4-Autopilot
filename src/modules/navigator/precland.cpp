@@ -62,7 +62,7 @@
 static constexpr const char *LOST_TARGET_ERROR_MESSAGE = "Lost landing target while landing";
 
 PrecLand::PrecLand(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND),
 	ModuleParams(navigator)
 {
 	_handle_param_acceleration_hor = param_find("MPC_ACC_HOR");

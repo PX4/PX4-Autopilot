@@ -38,7 +38,7 @@
 
 #include "ekf.h"
 
-void Ekf::controlBaroHeightFusion()
+void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 {
 	static constexpr const char *HGT_SRC_NAME = "baro";
 
@@ -49,10 +49,10 @@ void Ekf::controlBaroHeightFusion()
 
 	baroSample baro_sample;
 
-	if (_baro_buffer && _baro_buffer->pop_first_older_than(_time_delayed_us, &baro_sample)) {
+	if (_baro_buffer && _baro_buffer->pop_first_older_than(imu_sample.time_us, &baro_sample)) {
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
-		const float measurement = compensateBaroForDynamicPressure(baro_sample.hgt);
+		const float measurement = compensateBaroForDynamicPressure(imu_sample, baro_sample.hgt);
 #else
 		const float measurement = baro_sample.hgt;
 #endif
@@ -126,7 +126,7 @@ void Ekf::controlBaroHeightFusion()
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
-				if (isHeightResetRequired()) {
+				if (isHeightResetRequired() && (_height_sensor_ref == HeightSensor::BARO)) {
 					// All height sources are failing
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
@@ -134,16 +134,21 @@ void Ekf::controlBaroHeightFusion()
 					resetVerticalPositionTo(-(_baro_lpf.getState() - bias_est.getBias()), measurement_var);
 					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
 
-					// reset vertical velocity
-					resetVerticalVelocityToZero();
+					// reset vertical velocity if no valid sources available
+					if (!isVerticalVelocityAidingActive()) {
+						resetVerticalVelocityToZero();
+					}
 
-					aid_src.time_last_fuse = _time_delayed_us;
+					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else if (is_fusion_failing) {
-					// Some other height source is still working
 					ECL_WARN("stopping %s height fusion, fusion failing", HGT_SRC_NAME);
 					stopBaroHgtFusion();
-					_baro_hgt_faulty = true;
+
+					if (isRecent(_time_last_hgt_fuse, _params.hgt_fusion_timeout_max)) {
+						// Some other height source is still working
+						_baro_hgt_faulty = true;
+					}
 				}
 
 			} else {
@@ -166,7 +171,7 @@ void Ekf::controlBaroHeightFusion()
 					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
 				}
 
-				aid_src.time_last_fuse = _time_delayed_us;
+				aid_src.time_last_fuse = imu_sample.time_us;
 				bias_est.setFusionActive();
 				_control_status.flags.baro_hgt = true;
 			}
@@ -195,7 +200,7 @@ void Ekf::stopBaroHgtFusion()
 }
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
-float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const
+float Ekf::compensateBaroForDynamicPressure(const imuSample &imu_sample, const float baro_alt_uncompensated) const
 {
 	if (_control_status.flags.wind && local_position_is_valid()) {
 		// calculate static pressure error = Pmeas - Ptruth
@@ -203,7 +208,8 @@ float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) 
 		// negative X and Y directions. Used to correct baro data for positional errors
 
 		// Calculate airspeed in body frame
-		const Vector3f vel_imu_rel_body_ned = _R_to_earth * (_ang_rate_delayed_raw % _params.imu_pos_body);
+		const Vector3f angular_velocity = (imu_sample.delta_ang / imu_sample.delta_ang_dt) - _state.gyro_bias;
+		const Vector3f vel_imu_rel_body_ned = _R_to_earth * (angular_velocity % _params.imu_pos_body);
 		const Vector3f velocity_earth = _state.vel - vel_imu_rel_body_ned;
 
 		const Vector3f wind_velocity_earth(_state.wind_vel(0), _state.wind_vel(1), 0.0f);

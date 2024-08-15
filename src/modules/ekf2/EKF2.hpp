@@ -42,7 +42,6 @@
 #define EKF2_HPP
 
 #include "EKF/ekf.h"
-#include "Utility/PreFlightChecker.hpp"
 
 #include "EKF2Selector.hpp"
 
@@ -418,7 +417,6 @@ private:
 	uint32_t _filter_control_status_changes{0};
 	uint32_t _filter_fault_status_changes{0};
 	uint32_t _innov_check_fail_status_changes{0};
-	uint32_t _filter_warning_event_changes{0};
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
@@ -478,8 +476,6 @@ private:
 	hrt_abstime _status_gravity_pub_last {0};
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
 #endif // CONFIG_EKF2_GRAVITY_FUSION
-
-	PreFlightChecker _preflt_checker;
 
 	Ekf _ekf;
 
@@ -660,6 +656,8 @@ private:
 		// optical flow fusion
 		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
 		_param_ekf2_of_ctrl, ///< optical flow fusion selection
+		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
+		_param_ekf2_of_gyr_src,
 		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)
 		_param_ekf2_of_delay, ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)

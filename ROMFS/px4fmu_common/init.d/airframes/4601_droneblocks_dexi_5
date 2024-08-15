@@ -68,6 +68,9 @@ param set-default MPC_THR_MIN 0.025
 param set-default MPC_VEL_MANUAL 5.0
 param set-default MPC_XY_VEL_MAX 8.0
 
+param set-default RC_CRSF_PRT_CFG 300
+param set-default RC_CRSF_TEL_EN 1
+
 param set-default RTL_RETURN_ALT 15
 
 param set-default SENS_FLOW_MINHGT 0.0

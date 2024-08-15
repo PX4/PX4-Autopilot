@@ -78,7 +78,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 			if (_control_status.flags.gps && isTimedOut(_last_gps_pass_us, _params.reset_timeout_max)) {
 				stopGpsFusion();
-				_warning_events.flags.gps_quality_poor = true;
 				ECL_WARN("GPS quality poor - stopping use");
 			}
 		}
@@ -87,12 +86,11 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			updateGnssPos(gnss_sample, _aid_src_gnss_pos);
 		}
 
-		updateGnssVel(gnss_sample, _aid_src_gnss_vel);
+		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);
 
 	} else if (_control_status.flags.gps) {
 		if (!isNewestSampleRecent(_time_last_gps_buffer_push, _params.reset_timeout_max)) {
 			stopGpsFusion();
-			_warning_events.flags.gps_data_stopped = true;
 			ECL_WARN("GPS data stopped");
 		}
 	}
@@ -100,7 +98,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	if (_gps_data_ready) {
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		const gnssSample &gnss_sample = _gps_sample_delayed;
-		controlGpsYawFusion(gnss_sample);
+		controlGnssYawFusion(gnss_sample);
 #endif // CONFIG_EKF2_GNSS_YAW
 
 		controlGnssYawEstimator(_aid_src_gnss_vel);
@@ -134,15 +132,21 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				}
 
 				if (do_vel_pos_reset) {
-					ECL_WARN("GPS fusion timeout, resetting velocity / position");
+					ECL_WARN("GPS fusion timeout, resetting");
+				}
 
-					if (gnss_vel_enabled) {
+				if (gnss_vel_enabled) {
+					if (do_vel_pos_reset) {
 						resetVelocityToGnss(_aid_src_gnss_vel);
-					}
 
-					if (gnss_pos_enabled) {
-						resetHorizontalPositionToGnss(_aid_src_gnss_pos);
+					} else if (isHeightResetRequired()) {
+						// reset vertical velocity if height is failing
+						resetVerticalVelocityTo(_aid_src_gnss_vel.observation[2], _aid_src_gnss_vel.observation_variance[2]);
 					}
+				}
+
+				if (gnss_pos_enabled && do_vel_pos_reset) {
+					resetHorizontalPositionToGnss(_aid_src_gnss_pos);
 				}
 
 			} else {
@@ -175,12 +179,13 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src)
+void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_sample, estimator_aid_source3d_s &aid_src)
 {
 	// correct velocity for offset relative to IMU
 	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
 
-	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+	const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - _state.gyro_bias;
+	const Vector3f vel_offset_body = angular_velocity % pos_offset_body;
 	const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 	const Vector3f velocity = gnss_sample.vel - vel_offset_earth;
 
@@ -190,12 +195,12 @@ void Ekf::updateGnssVel(const gnssSample &gnss_sample, estimator_aid_source3d_s 
 	const float innovation_gate = math::max(_params.gps_vel_innov_gate, 1.f);
 
 	updateAidSourceStatus(aid_src,
-				 gnss_sample.time_us,                  // sample timestamp
-				 velocity,                             // observation
-				 vel_obs_var,                          // observation variance
-				 _state.vel - velocity,                // innovation
-				 getVelocityVariance() + vel_obs_var,  // innovation variance
-				 innovation_gate);                     // innovation gate
+			      gnss_sample.time_us,                  // sample timestamp
+			      velocity,                             // observation
+			      vel_obs_var,                          // observation variance
+			      _state.vel - velocity,                // innovation
+			      getVelocityVariance() + vel_obs_var,  // innovation variance
+			      innovation_gate);                     // innovation gate
 
 	// vz special case if there is bad vertical acceleration data, then don't reject measurement if GNSS reports velocity accuracy is acceptable,
 	// but limit innovation to prevent spikes that could destabilise the filter
@@ -228,12 +233,12 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 	const Vector2f pos_obs_var(pos_var, pos_var);
 
 	updateAidSourceStatus(aid_src,
-				 gnss_sample.time_us,                                    // sample timestamp
-				 position,                                               // observation
-				 pos_obs_var,                                            // observation variance
-				 Vector2f(_state.pos) - position,                        // innovation
-				 Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
-				 math::max(_params.gps_pos_innov_gate, 1.f));            // innovation gate
+			      gnss_sample.time_us,                                    // sample timestamp
+			      position,                                               // observation
+			      pos_obs_var,                                            // observation variance
+			      Vector2f(_state.pos) - position,                        // innovation
+			      Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
+			      math::max(_params.gps_pos_innov_gate, 1.f));            // innovation gate
 }
 
 void Ekf::controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel)
@@ -276,14 +281,12 @@ bool Ekf::tryYawEmergencyReset()
 			// stop using the magnetometer in the main EKF otherwise its fusion could drag the yaw around
 			// and cause another navigation failure
 			_control_status.flags.mag_fault = true;
-			_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
 		}
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
-		if (_control_status.flags.gps_yaw) {
-			_control_status.flags.gps_yaw_fault = true;
-			_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
+		if (_control_status.flags.gnss_yaw) {
+			_control_status.flags.gnss_yaw_fault = true;
 		}
 
 #endif // CONFIG_EKF2_GNSS_YAW
@@ -351,104 +354,6 @@ bool Ekf::shouldResetGpsFusion() const
 	return (is_reset_required || is_inflight_nav_failure);
 }
 
-#if defined(CONFIG_EKF2_GNSS_YAW)
-void Ekf::controlGpsYawFusion(const gnssSample &gps_sample)
-{
-	if (!(_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::YAW))
-	    || _control_status.flags.gps_yaw_fault) {
-
-		stopGpsYawFusion();
-		return;
-	}
-
-	const bool is_new_data_available = PX4_ISFINITE(gps_sample.yaw);
-
-	if (is_new_data_available) {
-
-		updateGpsYaw(gps_sample);
-
-		const bool continuing_conditions_passing = _control_status.flags.tilt_align;
-
-		const bool is_gps_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push,
-				2 * GNSS_YAW_MAX_INTERVAL);
-
-		const bool starting_conditions_passing = continuing_conditions_passing
-				&& _gps_checks_passed
-				&& !is_gps_yaw_data_intermittent
-				&& !_gps_intermittent;
-
-		if (_control_status.flags.gps_yaw) {
-			if (continuing_conditions_passing) {
-
-				fuseGpsYaw(gps_sample.yaw_offset);
-
-				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
-
-				if (is_fusion_failing) {
-					stopGpsYawFusion();
-
-					// Before takeoff, we do not want to continue to rely on the current heading
-					// if we had to stop the fusion
-					if (!_control_status.flags.in_air) {
-						ECL_INFO("clearing yaw alignment");
-						_control_status.flags.yaw_align = false;
-					}
-				}
-
-			} else {
-				// Stop GPS yaw fusion but do not declare it faulty
-				stopGpsYawFusion();
-			}
-
-		} else {
-			if (starting_conditions_passing) {
-				// Try to activate GPS yaw fusion
-				const bool not_using_ne_aiding = !_control_status.flags.gps && !_control_status.flags.aux_gpos;
-
-				if (!_control_status.flags.in_air
-				    || !_control_status.flags.yaw_align
-				    || not_using_ne_aiding) {
-
-					// Reset before starting the fusion
-					if (resetYawToGps(gps_sample.yaw, gps_sample.yaw_offset)) {
-
-						resetAidSourceStatusZeroInnovation(_aid_src_gnss_yaw);
-
-						_control_status.flags.gps_yaw = true;
-						_control_status.flags.yaw_align = true;
-					}
-
-				} else if (!_aid_src_gnss_yaw.innovation_rejected) {
-					// Do not force a reset but wait for the consistency check to pass
-					_control_status.flags.gps_yaw = true;
-					fuseGpsYaw(gps_sample.yaw_offset);
-				}
-
-				if (_control_status.flags.gps_yaw) {
-					ECL_INFO("starting GPS yaw fusion");
-				}
-			}
-		}
-
-	} else if (_control_status.flags.gps_yaw
-		   && !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, _params.reset_timeout_max)) {
-
-		// No yaw data in the message anymore. Stop until it comes back.
-		stopGpsYawFusion();
-	}
-}
-
-void Ekf::stopGpsYawFusion()
-{
-	if (_control_status.flags.gps_yaw) {
-
-		_control_status.flags.gps_yaw = false;
-
-		ECL_INFO("stopping GPS yaw fusion");
-	}
-}
-#endif // CONFIG_EKF2_GNSS_YAW
-
 void Ekf::stopGpsFusion()
 {
 	if (_control_status.flags.gps) {
@@ -462,7 +367,7 @@ void Ekf::stopGpsFusion()
 
 	stopGpsHgtFusion();
 #if defined(CONFIG_EKF2_GNSS_YAW)
-	stopGpsYawFusion();
+	stopGnssYawFusion();
 #endif // CONFIG_EKF2_GNSS_YAW
 
 	_yawEstimator.reset();

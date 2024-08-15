@@ -85,12 +85,12 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			const Vector2f pos_obs_var(pos_var, pos_var);
 
 			ekf.updateAidSourceStatus(aid_src,
-						     sample.time_us,                                    // sample timestamp
-						     position,                                          // observation
-						     pos_obs_var,                                       // observation variance
-						     Vector2f(ekf.state().pos) - position,              // innovation
-						     Vector2f(ekf.getPositionVariance()) + pos_obs_var, // innovation variance
-						     math::max(_param_ekf2_agp_gate.get(), 1.f));       // innovation gate
+						  sample.time_us,                                    // sample timestamp
+						  position,                                          // observation
+						  pos_obs_var,                                       // observation variance
+						  Vector2f(ekf.state().pos) - position,              // innovation
+						  Vector2f(ekf.getPositionVariance()) + pos_obs_var, // innovation variance
+						  math::max(_param_ekf2_agp_gate.get(), 1.f));       // innovation gate
 		}
 
 		const bool starting_conditions = PX4_ISFINITE(sample.latitude) && PX4_ISFINITE(sample.longitude)

@@ -184,6 +184,7 @@ private:
 	void resetInternalResistanceEstimation(const float voltage_v, const float current_a);
 	matrix::Vector2f _RLS_est; // [Open circuit voltage estimate [V], Total internal resistance estimate [Ohm]]^T
 	matrix::Matrix2f _estimation_covariance;
+	bool _internal_resistance_initialized{false};
 	float _estimation_covariance_norm{0.f};
 	float _internal_resistance_estimate{0.005f}; // [Ohm] Per cell estimate of the internal resistance
 	float _voltage_prediction{0.f}; // [V] Predicted voltage of the estimator

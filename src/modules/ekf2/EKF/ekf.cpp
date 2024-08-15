@@ -89,8 +89,6 @@ void Ekf::reset()
 	_control_status.flags.in_air = true;
 	_control_status_prev.flags.in_air = true;
 
-	_ang_rate_delayed_raw.zero();
-
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
@@ -112,6 +110,7 @@ void Ekf::reset()
 	_time_last_hor_vel_fuse = 0;
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
+	_time_last_terrain_fuse = 0;
 
 	_last_known_pos.setZero();
 
@@ -133,6 +132,8 @@ void Ekf::reset()
 	}
 
 	_zero_velocity_update.reset();
+
+	updateParameters();
 }
 
 bool Ekf::update()
@@ -168,7 +169,8 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes(imu_sample_delayed);
 
-		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos, _state.gyro_bias, _state.accel_bias);
+		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos,
+						      _state.gyro_bias, _state.accel_bias);
 
 		return true;
 	}
@@ -263,13 +265,6 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel = matrix::constrain(_state.vel, -1000.f, 1000.f);
 	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
-	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
-	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate
-	// due to insufficient averaging
-	if (imu_delayed.delta_ang_dt > 0.25f * _dt_ekf_avg) {
-		_ang_rate_delayed_raw = imu_delayed.delta_ang / imu_delayed.delta_ang_dt;
-	}
-
 
 	// calculate a filtered horizontal acceleration with a 1 sec time constant
 	// this are used for manoeuvre detection elsewhere
@@ -281,7 +276,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
 }
 
-bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation)
+bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
+		uint64_t timestamp_observation)
 {
 	if (!_pos_ref.isInitialized()) {
 		ECL_WARN("unable to reset global position, position reference not initialized");
@@ -315,7 +311,7 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 
 	const float sq_gate = sq(5.f); // magic hardcoded gate
 	const Vector2f test_ratio{sq(innov(0)) / (sq_gate * innov_var(0)),
-					sq(innov(1)) / (sq_gate * innov_var(1))};
+				  sq(innov(1)) / (sq_gate * innov_var(1))};
 
 	const bool innov_rejected = (test_ratio.max() > 1.f);
 
@@ -331,9 +327,10 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 
 	} else {
 		if (fuseDirectStateMeasurement(innov(0), innov_var(0), obs_var, State::pos.idx + 0)
-		 && fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1)
-		) {
+		    && fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1)
+		   ) {
 			ECL_INFO("fused external observation as position measurement");
+			_state_reset_status.reset_count.posNE++;
 			_time_last_hor_pos_fuse = _time_delayed_us;
 			_last_known_pos.xy() = _state.pos.xy();
 			return true;
@@ -345,6 +342,21 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 
 void Ekf::updateParameters()
 {
+	_params.gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
+	_params.accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+
+	_params.gyro_bias_p_noise = math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
+	_params.accel_bias_p_noise = math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	_params.mage_p_noise = math::constrain(_params.mage_p_noise, 0.f, 1.f);
+	_params.magb_p_noise = math::constrain(_params.magb_p_noise, 0.f, 1.f);
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_WIND)
+	_params.wind_vel_nsd = math::constrain(_params.wind_vel_nsd, 0.f, 1.f);
+#endif // CONFIG_EKF2_WIND
+
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
@@ -366,40 +378,49 @@ void Ekf::print_status()
 	printf("\nStates: (%.4f seconds ago)\n", (_time_latest_us - _time_delayed_us) * 1e-6);
 	printf("Orientation (%d-%d): [%.3f, %.3f, %.3f, %.3f] (Euler [%.1f, %.1f, %.1f] deg) var: [%.1e, %.1e, %.1e]\n",
 	       State::quat_nominal.idx, State::quat_nominal.idx + State::quat_nominal.dof - 1,
-	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2), (double)_state.quat_nominal(3),
-	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).phi()), (double)math::degrees(matrix::Eulerf(_state.quat_nominal).theta()), (double)math::degrees(matrix::Eulerf(_state.quat_nominal).psi()),
-	       (double)getStateVariance<State::quat_nominal>()(0), (double)getStateVariance<State::quat_nominal>()(1), (double)getStateVariance<State::quat_nominal>()(2)
+	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2),
+	       (double)_state.quat_nominal(3),
+	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).phi()),
+	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).theta()),
+	       (double)math::degrees(matrix::Eulerf(_state.quat_nominal).psi()),
+	       (double)getStateVariance<State::quat_nominal>()(0), (double)getStateVariance<State::quat_nominal>()(1),
+	       (double)getStateVariance<State::quat_nominal>()(2)
 	      );
 
 	printf("Velocity (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::vel.idx, State::vel.idx + State::vel.dof - 1,
 	       (double)_state.vel(0), (double)_state.vel(1), (double)_state.vel(2),
-	       (double)getStateVariance<State::vel>()(0), (double)getStateVariance<State::vel>()(1), (double)getStateVariance<State::vel>()(2)
+	       (double)getStateVariance<State::vel>()(0), (double)getStateVariance<State::vel>()(1),
+	       (double)getStateVariance<State::vel>()(2)
 	      );
 
 	printf("Position (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::pos.idx, State::pos.idx + State::pos.dof - 1,
 	       (double)_state.pos(0), (double)_state.pos(1), (double)_state.pos(2),
-	       (double)getStateVariance<State::pos>()(0), (double)getStateVariance<State::pos>()(1), (double)getStateVariance<State::pos>()(2)
+	       (double)getStateVariance<State::pos>()(0), (double)getStateVariance<State::pos>()(1),
+	       (double)getStateVariance<State::pos>()(2)
 	      );
 
 	printf("Gyro Bias (%d-%d): [%.6f, %.6f, %.6f] var: [%.1e, %.1e, %.1e]\n",
 	       State::gyro_bias.idx, State::gyro_bias.idx + State::gyro_bias.dof - 1,
 	       (double)_state.gyro_bias(0), (double)_state.gyro_bias(1), (double)_state.gyro_bias(2),
-	       (double)getStateVariance<State::gyro_bias>()(0), (double)getStateVariance<State::gyro_bias>()(1), (double)getStateVariance<State::gyro_bias>()(2)
+	       (double)getStateVariance<State::gyro_bias>()(0), (double)getStateVariance<State::gyro_bias>()(1),
+	       (double)getStateVariance<State::gyro_bias>()(2)
 	      );
 
 	printf("Accel Bias (%d-%d): [%.6f, %.6f, %.6f] var: [%.1e, %.1e, %.1e]\n",
 	       State::accel_bias.idx, State::accel_bias.idx + State::accel_bias.dof - 1,
 	       (double)_state.accel_bias(0), (double)_state.accel_bias(1), (double)_state.accel_bias(2),
-	       (double)getStateVariance<State::accel_bias>()(0), (double)getStateVariance<State::accel_bias>()(1), (double)getStateVariance<State::accel_bias>()(2)
+	       (double)getStateVariance<State::accel_bias>()(0), (double)getStateVariance<State::accel_bias>()(1),
+	       (double)getStateVariance<State::accel_bias>()(2)
 	      );
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	printf("Magnetic Field (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::mag_I.idx, State::mag_I.idx + State::mag_I.dof - 1,
 	       (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
-	       (double)getStateVariance<State::mag_I>()(0), (double)getStateVariance<State::mag_I>()(1), (double)getStateVariance<State::mag_I>()(2)
+	       (double)getStateVariance<State::mag_I>()(0), (double)getStateVariance<State::mag_I>()(1),
+	       (double)getStateVariance<State::mag_I>()(2)
 	      );
 
 	printf("Magnetic Bias (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",

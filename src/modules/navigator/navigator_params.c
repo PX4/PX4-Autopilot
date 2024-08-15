@@ -187,3 +187,21 @@ PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_MIN_LTR_ALT, -1.f);
+
+/**
+ * Minimum height above ground during Mission and RTL
+ *
+ * Minimum height above ground the vehicle is allowed to descend to during Mission and RTL,
+ * excluding landing commands.
+ * Requires a distance sensor to be set up.
+ * Note: only prevents the vehicle from descending further, but does not force it to climb.
+ *
+ * Set to a negative value to disable.
+ *
+ * @unit m
+ * @min -1
+ * @decimal 1
+ * @increment 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_MIN_GND_DIST, -1.f);

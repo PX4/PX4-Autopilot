@@ -31,8 +31,6 @@
 #
 #############################################################################
 
-add_subdirectory(Utility)
-
 option(EKF2_SYMFORCE_GEN "ekf2 generate symforce output" OFF)
 
 # Symforce code generation TODO:fixme
@@ -175,7 +173,7 @@ if(CONFIG_EKF2_GNSS)
 	)
 
 	if(CONFIG_EKF2_GNSS_YAW)
-		list(APPEND EKF_SRCS EKF/aid_sources/gnss/gps_yaw_fusion.cpp)
+		list(APPEND EKF_SRCS EKF/aid_sources/gnss/gnss_yaw_control.cpp)
 	endif()
 
 	list(APPEND EKF_LIBS yaw_estimator)
@@ -216,6 +214,10 @@ if(CONFIG_EKF2_TERRAIN)
 	list(APPEND EKF_SRCS EKF/terrain_control.cpp)
 endif()
 
+if(CONFIG_EKF2_WIND)
+	list(APPEND EKF_SRCS EKF/wind.cpp)
+endif ()
+
 add_subdirectory(EKF)
 
 px4_add_module(
@@ -254,7 +256,6 @@ px4_add_module(
 		geo
 		hysteresis
 		perf
-		EKF2Utility
 		px4_work_queue
 		world_magnetic_model
 
