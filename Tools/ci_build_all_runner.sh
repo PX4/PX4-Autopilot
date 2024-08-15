@@ -3,7 +3,7 @@
 # Please only modify if you know what you are doing
 set -e
 
-echo "### Build Summary" >> $GITHUB_STEP_SUMMARY
+echo "### :clock1: Build Times" >> $GITHUB_STEP_SUMMARY
 targets=$1
 for target in ${targets//,/ }
 do
@@ -13,7 +13,7 @@ do
     stop=$(date +%s)
     diff=$(($stop-$start))
     build_time="$(($diff /60/60))h $(($diff /60))m $(($diff % 60))s elapsed"
-    echo "::notice ::[Build Time]: $build_time."
-    echo "* $target - $build_time" >> $GITHUB_STEP_SUMMARY
+    echo -e "\033[0;32mBuild Time: [$build_time]"
+    echo "* **$target** - $build_time" >> $GITHUB_STEP_SUMMARY
     echo "::endgroup::"
 done
