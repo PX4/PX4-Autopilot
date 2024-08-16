@@ -276,7 +276,7 @@ void MulticopterRateControl::updateActuatorControlsStatus(const vehicle_torque_s
 
 	if (_energy_integration_time > 500e-3f) {
 
-		actuator_controls_status_s status;
+		actuator_controls_status_s status{};
 		status.timestamp = vehicle_torque_setpoint.timestamp;
 
 		for (int i = 0; i < 3; i++) {
