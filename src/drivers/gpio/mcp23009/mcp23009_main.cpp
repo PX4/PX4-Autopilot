@@ -97,7 +97,7 @@ void MCP23009::RunImpl()
 
 	// read every time we run, either when requested or when scheduled on interval
 	{
-		gpio_in_s _gpio_in;
+		gpio_in_s _gpio_in{};
 		_gpio_in.timestamp = hrt_absolute_time();
 		_gpio_in.device_id = get_device_id();
 		uint8_t input;
