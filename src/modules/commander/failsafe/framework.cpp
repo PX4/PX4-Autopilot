@@ -477,7 +477,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 	// Check if we should enter delayed Hold
 	if (_current_delay > 0 && !_user_takeover_active && allow_user_takeover <= UserTakeoverAllowed::AlwaysModeSwitchOnly
-	    && selected_action != Action::Disarm && selected_action != Action::Terminate) {
+	    && selected_action != Action::Disarm && selected_action != Action::Terminate && selected_action != Action::Hold) {
 		returned_state.delayed_action = selected_action;
 		selected_action = Action::Hold;
 		allow_user_takeover = UserTakeoverAllowed::AlwaysModeSwitchOnly;
