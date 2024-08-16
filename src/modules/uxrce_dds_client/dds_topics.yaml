@@ -67,6 +67,12 @@ publications:
   - topic: /fmu/out/home_position
     type: px4_msgs::msg::HomePosition
 
+  - topic: /fmu/out/actuator_armed
+    type: px4_msgs::msg::ActuatorArmed
+
+  - topic: /fmu/out/estimator_gps_status
+    type: px4_msgs::msg::EstimatorGpsStatus
+
 subscriptions:
 
   - topic: /fmu/in/offboard_control_mode
