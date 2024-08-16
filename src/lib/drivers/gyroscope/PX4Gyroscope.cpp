@@ -116,7 +116,7 @@ void PX4Gyroscope::update(const hrt_abstime &timestamp_sample, float x, float y,
 	// Apply rotation (before scaling)
 	rotate_3f(_rotation, x, y, z);
 
-	sensor_gyro_s report;
+	sensor_gyro_s report{};
 
 	report.timestamp_sample = timestamp_sample;
 	report.device_id = _device_id;
@@ -150,7 +150,7 @@ void PX4Gyroscope::updateFIFO(sensor_gyro_fifo_s &sample)
 
 
 	// publish
-	sensor_gyro_s report;
+	sensor_gyro_s report{};
 	report.timestamp_sample = sample.timestamp_sample;
 	report.device_id = _device_id;
 	report.temperature = _temperature;
