@@ -727,7 +727,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
 
 	// Additional warning if the system is about to enter position-loss failsafe after dead-reckoning period
-	const float eph_critical = 2.5f * _param_com_pos_fs_eph.get(); // threshold used to trigger the navigation failsafe
+	const float eph_critical = 2.5f * lpos_eph_threshold; // threshold used to trigger the navigation failsafe
 	const float gpos_critical_warning_thrld = math::max(0.9f * eph_critical, math::max(eph_critical - 10.f, 0.f));
 
 	estimator_status_flags_s estimator_status_flags;
