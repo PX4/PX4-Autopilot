@@ -414,8 +414,7 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD, -1.f);
 /**
  * Altitude time constant factor for landing and low-height flight
  *
- * During landing, the TECS altitude time constant (FW_T_ALT_TC)
- * is multiplied by this value.
+ * The TECS altitude time constant (FW_T_ALT_TC) is multiplied by this value.
  *
  * @unit
  * @min 0.2
@@ -431,8 +430,8 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
  *
  * Defines the height (distance to bottom) threshold below which tighter altitude
  * tracking gets enabled (see FW_LND_THRTC_SC). Below this height, TECS smoothly
- * transitions the altitude tracking time constant from FW_T_ALT_TC to
- * FW_LND_THRTC_SC*FW_T_ALT_TC.
+ * (1 sec / sec) transitions the altitude tracking time constant from FW_T_ALT_TC
+ * to FW_LND_THRTC_SC*FW_T_ALT_TC.
  *
  * If equal to -1, low-height traking is disabled.
  *
