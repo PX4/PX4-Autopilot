@@ -69,7 +69,8 @@
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
 #include <gz/msgs/laserscan.pb.h>
-#include <gz/msgs9/gz/msgs/stringmsg.pb.h>
+#include <gz/msgs/stringmsg.pb.h>
+#include <gz/msgs/scene.pb.h>
 
 using namespace time_literals;
 
@@ -119,6 +120,17 @@ private:
 	 * @return false
 	 */
 	bool callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req);
+
+
+	/**
+	 * @brief Call scene info service
+	 *
+	 * @param service
+	 * @param req
+	 * @return true
+	 * @return false
+	 */
+	bool callSceneInfoMsgService(const std::string &service);
 
 	/**
 	 * @brief Call String service

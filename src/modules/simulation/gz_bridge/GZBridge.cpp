@@ -154,15 +154,26 @@ int GZBridge::init()
 				return PX4_ERROR;
 			}
 
-			system_usleep(2000000);
+			std::string scene_info_service = "/world/default/scene/info";
+			bool scene_created = false;
+
+			while (scene_created == false) {
+				if (!callSceneInfoMsgService(scene_info_service)) {
+					PX4_WARN("Service call timed out as Gazebo has not been detected.");
+					system_usleep(2000000);
+
+				} else {
+					scene_created = true;
+				}
+			}
 
 			gz::msgs::StringMsg follow_msg{};
 			follow_msg.set_data(_model_name);
-			callStringMsgService("/gui/follow", follow_msg);
+			bool call_string_service = callStringMsgService("/gui/follow", follow_msg);
 			gz::msgs::Vector3d follow_offset_msg{};
-			follow_offset_msg.set_x(-6.0);
-			follow_offset_msg.set_y(0.0);
-			follow_offset_msg.set_z(6.0);
+			follow_offset_msg.set_x(-2.0);
+			follow_offset_msg.set_y(-2.0);
+			follow_offset_msg.set_z(2.0);
 			callVector3dService("/gui/follow/offset", follow_offset_msg);
 		}
 	}
@@ -841,12 +852,35 @@ bool GZBridge::callEntityFactoryService(const std::string &service, const gz::ms
 	if (_node.Request(service, req, 1000, rep, result)) {
 		if (!rep.data() || !result) {
 			PX4_ERR("EntityFactory service call failed.");
-			return PX4_ERROR;
+			return false;
 		}
 
 	} else {
 		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
-		return PX4_ERROR;
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callSceneInfoMsgService(const std::string &service)
+{
+	bool result;
+	gz::msgs::Empty req;
+	gz::msgs::Scene rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!result) {
+			PX4_ERR("Scene Info service call failed.");
+			return false;
+
+		} else {
+			return true;
+		}
+
+	} else {
+		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		return false;
 	}
 
 	return true;
