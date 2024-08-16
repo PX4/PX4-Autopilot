@@ -61,6 +61,9 @@ docker run -it --rm -w "${SRC_DIR}" \
 	--env=PX4_UBSAN \
 	--env=TRAVIS_BRANCH \
 	--env=TRAVIS_BUILD_ID \
+	--env=DISPLAY \
+	--volume /tmp/.X11-unix:/tmp/.X11-unix \
+	--volume $HOME/.Xauthority:/home/root/.Xauthority \
 	--publish 14556:14556/udp \
 	--volume=${CCACHE_DIR}:${CCACHE_DIR}:rw \
 	--volume=${SRC_DIR}:${SRC_DIR}:rw \
