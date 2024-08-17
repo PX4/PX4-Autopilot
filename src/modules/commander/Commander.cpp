@@ -837,7 +837,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						default:
 							main_ret = TRANSITION_DENIED;
 							mavlink_log_critical(&_mavlink_log_pub, "Unsupported auto mode\t");
-							events::send(events::ID("commander_unsupported_auto_mode"), events::Log::Error,
+							events::send(events::ID("commander_unsupported_auto_mode"), events::Log::Critical,
 								     "Unsupported auto mode");
 							break;
 						}
@@ -917,7 +917,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			if (arming_action != vehicle_command_s::ARMING_ACTION_ARM
 			    && arming_action != vehicle_command_s::ARMING_ACTION_DISARM) {
 				mavlink_log_critical(&_mavlink_log_pub, "Unsupported ARM_DISARM param: %.3f\t", (double)cmd.param1);
-				events::send<float>(events::ID("commander_unsupported_arm_disarm_param"), events::Log::Error,
+				events::send<float>(events::ID("commander_unsupported_arm_disarm_param"), events::Log::Critical,
 						    "Unsupported ARM_DISARM param: {1:.3}", cmd.param1);
 
 			} else {
@@ -2811,7 +2811,7 @@ void Commander::dataLinkCheck()
 			_vehicle_status.gcs_connection_lost_counter++;
 
 			mavlink_log_info(&_mavlink_log_pub, "Connection to ground station lost\t");
-			events::send(events::ID("commander_gcs_lost"), {events::Log::Warning, events::LogInternal::Info},
+			events::send(events::ID("commander_gcs_lost"), {events::Log::Info, events::LogInternal::Info},
 				     "Connection to ground control station lost");
 
 			_status_changed = true;
@@ -2872,7 +2872,7 @@ void Commander::battery_status_check()
 
 			if (!isArmed() && (px4_shutdown_request(60_s) == 0)) {
 				mavlink_log_critical(&_mavlink_log_pub, "Dangerously low battery! Shutting system down in 60 seconds\t");
-				events::send(events::ID("commander_low_bat_shutdown"), {events::Log::Emergency, events::LogInternal::Warning},
+				events::send(events::ID("commander_low_bat_shutdown"), {events::Log::Critical, events::LogInternal::Warning},
 					     "Dangerously low battery! Shutting system down");
 
 				while (1) { px4_usleep(1); }
@@ -2882,7 +2882,7 @@ void Commander::battery_status_check()
 				/* EVENT
 				 * @description Cannot shut down, most likely the system does not support it.
 				 */
-				events::send(events::ID("commander_low_bat_shutdown_failed"), {events::Log::Emergency, events::LogInternal::Error},
+				events::send(events::ID("commander_low_bat_shutdown_failed"), {events::Log::Critical, events::LogInternal::Error},
 					     "Dangerously low battery! System shut down failed");
 			}
 
