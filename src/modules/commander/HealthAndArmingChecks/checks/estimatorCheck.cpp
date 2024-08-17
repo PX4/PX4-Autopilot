@@ -679,7 +679,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 			 * This check can be configured via <param>COM_POS_LOW_EPH</param> parameter.
 			 * </profile>
 			 */
-			events::send(events::ID("check_estimator_low_position_accuracy"), {events::Log::Error, events::LogInternal::Info},
+			events::send(events::ID("check_estimator_low_position_accuracy"), {events::Log::Warning, events::LogInternal::Info},
 				     "Local position estimate has low accuracy");
 
 			if (reporter.mavlink_log_pub()) {
@@ -751,7 +751,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 				* This warning is triggered when the position error estimate is 90% of (or only 10m below) <param>COM_POS_FS_EPH</param> parameter.
 				* </profile>
 				*/
-				events::send(events::ID("check_estimator_position_failure_imminent"), {events::Log::Error, events::LogInternal::Info},
+				events::send(events::ID("check_estimator_position_failure_imminent"), {events::Log::Critical, events::LogInternal::Info},
 					     "Estimated position error is approaching the failsafe threshold");
 
 				if (reporter.mavlink_log_pub()) {
