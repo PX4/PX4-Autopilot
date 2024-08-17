@@ -852,7 +852,7 @@ void EKF2::VerifyParams()
 		/* EVENT
 		 * @description <param>EKF2_MAG_TYPE</param> is set to {1:.0}.
 		 */
-		events::send<float>(events::ID("ekf2_mag_type_invalid"), events::Log::Warning,
+		events::send<float>(events::ID("ekf2_mag_type_invalid"), events::Log::Critical,
 				    "EKF2_MAG_TYPE invalid, resetting to default", _param_ekf2_mag_type.get());
 
 		_param_ekf2_mag_type.set(0);
