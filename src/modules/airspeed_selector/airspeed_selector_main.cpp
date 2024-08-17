@@ -662,7 +662,7 @@ void AirspeedModule::select_airspeed_and_publish()
 
 		} else if (_prev_airspeed_index == 0 && _valid_airspeed_index == -1) {
 			mavlink_log_info(&_mavlink_log_pub, "Airspeed estimation invalid\t");
-			events::send(events::ID("airspeed_selector_estimation_invalid"), events::Log::Error,
+			events::send(events::ID("airspeed_selector_estimation_invalid"), events::Log::Info,
 				     "Airspeed estimation invalid");
 
 		} else if (_prev_airspeed_index == -1 && _valid_airspeed_index == 0) {
