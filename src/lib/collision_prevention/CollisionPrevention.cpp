@@ -160,7 +160,7 @@ CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 	} else {
 		mavlink_log_critical(&_mavlink_log_pub, "Obstacle message received in unsupported frame %i\t",
 				     obstacle.frame);
-		events::send<uint8_t>(events::ID("col_prev_unsup_frame"), events::Log::Error,
+		events::send<uint8_t>(events::ID("col_prev_unsup_frame"), events::Log::Critical,
 				      "Obstacle message received in unsupported frame {1}", obstacle.frame);
 	}
 }
