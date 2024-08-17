@@ -316,7 +316,7 @@ void ManualControl::updateParams()
 				/* EVENT
 				* @description <param>MAN_ARM_GESTURE</param> is now set to disable arm/disarm stick gesture.
 				*/
-				events::send(events::ID("rc_update_arm_stick_gesture_disabled_with_switch"), {events::Log::Info, events::LogInternal::Disabled},
+				events::send(events::ID("rc_update_arm_stick_gesture_disabled_with_switch"), {events::Log::Critical, events::LogInternal::Disabled},
 					     "Arm stick gesture disabled if arm switch in use");
 			}
 		}
@@ -338,7 +338,7 @@ void ManualControl::updateParams()
 					/* EVENT
 					* @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.
 					*/
-					events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Error, events::LogInternal::Disabled},
+					events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Critical, events::LogInternal::Disabled},
 						     "Yaw Airmode requires disabling the stick arm gesture");
 				}
 			}
