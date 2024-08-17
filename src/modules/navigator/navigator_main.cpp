@@ -403,7 +403,7 @@ void Navigator::run()
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence\t");
-					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
+					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Critical, events::LogInternal::Info},
 						     "Reposition is outside geofence");
 				}
 
@@ -484,7 +484,7 @@ void Navigator::run()
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
-					events::send(events::ID("navigator_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
+					events::send(events::ID("navigator_change_altitude_outside_geofence"), {events::Log::Critical, events::LogInternal::Info},
 						     "Altitude change is outside geofence");
 				}
 
@@ -864,7 +864,7 @@ void Navigator::run()
 				vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 				publish_vehicle_cmd(&vcmd);
 				mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
-				events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
+				events::send(events::ID("navigator_transition_descend"), events::Log::Info,
 					     "Transition to hover mode and descend");
 			}
 

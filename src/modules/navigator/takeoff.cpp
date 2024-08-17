@@ -115,7 +115,7 @@ Takeoff::set_takeoff_position()
 		// If the suggestion is lower than our current alt, let's not go down.
 		takeoff_altitude_amsl = _navigator->get_global_position()->alt;
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
-		events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Critical, events::LogInternal::Info},
 			     "Already higher than takeoff altitude (not descending)");
 	}
 

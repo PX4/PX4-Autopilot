@@ -502,7 +502,7 @@ Mission::save_mission_state()
 		/* EVENT
 		 * @description No mission or storage failure
 		 */
-		events::send(events::ID("mission_invalid_mission_state"), events::Log::Error, "Invalid mission state");
+		events::send(events::ID("mission_invalid_mission_state"), events::Log::Critical, "Invalid mission state");
 
 		/* write modified state only if changed */
 		success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
