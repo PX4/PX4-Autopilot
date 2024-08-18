@@ -33,7 +33,7 @@
 
 
 /**
- * @file fw_pos_control_main.hpp
+ * @file FixedwingPositionControl.hpp
  * Implementation of various fixed-wing position level navigation/control modes.
  *
  * The implementation for the controllers is in a separate library. This class only

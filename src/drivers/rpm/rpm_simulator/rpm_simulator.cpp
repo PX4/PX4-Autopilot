@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file rpm_simulator.c
+ * @file rpm_simulator.cpp
  * Simple app for publishing RPM messages with custom value.
  *
  * Usage: rpm_simulator <rpm_value>

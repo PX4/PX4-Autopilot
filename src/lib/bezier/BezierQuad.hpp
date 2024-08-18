@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file BerzierQuad.hpp
+ * @file BezierQuad.hpp
  *
  * Quadratic bezier lib
  *

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file batt_smbus.h
+ * @file batt_smbus.cpp
  *
  * Header for a battery monitor connected via SMBus (I2C).
  * Designed for BQ40Z50-R1/R2 and BQ40Z80

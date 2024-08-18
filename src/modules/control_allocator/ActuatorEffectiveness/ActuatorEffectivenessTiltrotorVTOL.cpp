@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ActuatorEffectivenessTiltrotorVTOL.hpp
+ * @file ActuatorEffectivenessTiltrotorVTOL.cpp
  *
  * Actuator effectiveness for tiltrotor VTOL
  *

@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mission.cpp
+ * @file mission.cpp
  *
  * Helper class to access missions
  *
