@@ -105,7 +105,7 @@ private:
 	uint8_t                         _parsed_state{0};
 	bool                            _sop_valid{false};
 	uint16_t                        _calc_crc{0};
-	uint8_t                         _num_retries{2};
+	uint8_t                         _num_retries{0};
 	int32_t                         _yaw_cfg{0};
 	int32_t                         _orient_cfg{0};
 	int32_t                         _collision_constraint{0};
