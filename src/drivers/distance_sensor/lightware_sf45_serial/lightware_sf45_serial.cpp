@@ -164,9 +164,8 @@ int SF45LaserSerial::collect()
 	/* read from the sensor (uart buffer) */
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (_consecutive_fail_count > 15 && !_sensor_ready) {
+	if (_consecutive_fail_count > 50 && !_sensor_ready) {
 		PX4_ERR("Restarting the state machine");
-		_consecutive_fail_count = 0;
 		start();
 	}
 
