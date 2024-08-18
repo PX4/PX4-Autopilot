@@ -45,7 +45,6 @@
 
 /* Configuration Constants */
 #define SF45_MAX_PAYLOAD 256
-// TODO: decide what happens next. Maybe switch out of guided mode.
 #define SF45_SCALE_FACTOR 0.01f
 
 SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
