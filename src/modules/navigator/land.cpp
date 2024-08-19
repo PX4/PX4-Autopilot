@@ -86,7 +86,7 @@ Land::on_active()
 	    _navigator->get_vstatus()->in_transition_mode) {
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-		// create a wp in front of the VTOL until which the VTOL in multicopter mode is able to decelerate
+		// create a wp in front of the VTOL while in back-transition, based on MPC settings that will apply in MC phase afterwards
 		_navigator->calculate_breaking_stop(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 		_navigator->set_position_setpoint_triplet_updated();
