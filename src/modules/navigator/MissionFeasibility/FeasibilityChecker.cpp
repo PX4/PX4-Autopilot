@@ -629,7 +629,7 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 
 		_first_waypoint_found = true;
 
-		float dist_to_1wp_from_home_pos = get_distance_to_next_waypoint(
+		const float dist_to_1wp_from_home_pos = get_distance_to_next_waypoint(
 				mission_item.lat, mission_item.lon,
 				_home_lat_lon(0), _home_lat_lon(1));
 
@@ -643,7 +643,7 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 					     "First waypoint far away from home: %dm. Correct mission loaded?\t",
 					     (int)dist_to_1wp_from_home_pos);
 			events::send<uint32_t>(events::ID("navigator_mis_first_wp_far"), {events::Log::Warning, events::LogInternal::Info},
-					       "First waypoint far away from home: {1m} Correct mission loaded?", (uint32_t)dist_to_1wp_from_home_pos);
+					       "First waypoint far away from Home: {1m} Correct mission loaded?", (uint32_t)dist_to_1wp_from_home_pos);
 
 			return false;
 		}
