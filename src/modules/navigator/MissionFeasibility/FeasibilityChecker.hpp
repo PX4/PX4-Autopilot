@@ -78,18 +78,12 @@ public:
 	bool someCheckFailed()
 	{
 		return _takeoff_failed ||
-		       _distance_first_waypoint_failed ||
 		       _distance_between_waypoints_failed ||
 		       _land_pattern_validity_failed ||
 		       _fixed_wing_land_approach_failed ||
 		       _mission_validity_failed ||
 		       _takeoff_land_available_failed;
 	}
-
-	/**
-	 * @brief Reset all data
-	*/
-	void reset();
 
 private:
 	orb_advert_t *_mavlink_log_pub{nullptr};
@@ -117,7 +111,6 @@ private:
 	bool _mission_validity_failed{false};
 	bool _takeoff_failed{false};
 	bool _land_pattern_validity_failed{false};
-	bool _distance_first_waypoint_failed{false};
 	bool _distance_between_waypoints_failed{false};
 	bool _fixed_wing_land_approach_failed{false};
 	bool _takeoff_land_available_failed{false};
@@ -141,6 +134,11 @@ private:
 	double _last_lat{(double)NAN};
 	double _last_lon{(double)NAN};
 	int _last_cmd{-1};
+
+	/**
+	 * @brief Reset all data
+	*/
+	void reset();
 
 	/**
 	 * @brief Update data from external topics, e.g home position

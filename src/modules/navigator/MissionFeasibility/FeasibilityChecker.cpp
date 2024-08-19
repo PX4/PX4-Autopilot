@@ -49,7 +49,6 @@ void FeasibilityChecker::reset()
 	_mission_validity_failed = false;
 	_takeoff_failed = false;
 	_land_pattern_validity_failed = false;
-	_distance_first_waypoint_failed = false;
 	_distance_between_waypoints_failed = false;
 	_fixed_wing_land_approach_failed = false;
 	_takeoff_land_available_failed = false;
@@ -199,8 +198,8 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 		_distance_between_waypoints_failed = !checkDistancesBetweenWaypoints(mission_item);
 	}
 
-	if (!_distance_first_waypoint_failed) {
-		_distance_first_waypoint_failed = !checkHorizontalDistanceToFirstWaypoint(mission_item);
+	if (!_first_waypoint_found) {
+		checkHorizontalDistanceToFirstWaypoint(mission_item);
 	}
 
 	if (!_takeoff_failed) {
@@ -631,7 +630,7 @@ bool FeasibilityChecker::hasMissionBothOrNeitherTakeoffAndLanding()
 bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
 	if (_param_mis_dist_1wp > FLT_EPSILON &&
-	    (_current_position_lat_lon.isAllFinite()) && !_first_waypoint_found &&
+	    (_current_position_lat_lon.isAllFinite()) &&
 	    MissionBlock::item_contains_position(mission_item)) {
 
 		_first_waypoint_found = true;
@@ -653,9 +652,8 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 			mavlink_log_critical(_mavlink_log_pub,
 					     "First waypoint too far away: %dm, %d max\t",
 					     (int)dist_to_1wp_from_current_pos, (int)_param_mis_dist_1wp);
-			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp_from_current_pos,
-							 (uint32_t)_param_mis_dist_1wp);
+			events::send<uint32_t>(events::ID("navigator_mis_first_wp_far"), {events::Log::Warning, events::LogInternal::Info},
+					       "First waypoint far away: {1m} Correct mission loaded?", (uint32_t)dist_to_1wp_from_current_pos);
 
 			return false;
 		}
