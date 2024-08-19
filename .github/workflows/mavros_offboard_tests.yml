@@ -22,12 +22,14 @@ jobs:
           #- {test_file: "mavros_posix_tests_offboard_rpyrt_ctl.test", vehicle: "iris", build_type: "RelWithDebInfo"}
 
     container:
-      image: px4io/px4-dev-ros-melodic:2021-09-08
+      image: px4io/px4-dev-ros-noetic:2024-05-18
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp

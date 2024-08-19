@@ -11,11 +11,13 @@ jobs:
 
   airframe:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-focal:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: airframe metadata
       run: |
@@ -37,11 +39,13 @@ jobs:
 
   module:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: module documentation
       run: |
@@ -52,11 +56,13 @@ jobs:
 
   parameter:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: parameter metadata
       run: |
@@ -76,11 +82,13 @@ jobs:
 
   events:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: events metadata
       run: |
@@ -103,11 +111,13 @@ jobs:
 
   uorb_graph:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2022-08-12
+    container: px4io/px4-dev-nuttx-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: uORB graph
       run: |
@@ -118,11 +128,13 @@ jobs:
 
   ROS2_msgs:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
 
     - name: PX4 ROS2 msgs
       run: |

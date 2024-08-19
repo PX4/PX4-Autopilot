@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #***************************************************************************
 #
 #   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
@@ -36,8 +36,6 @@
 # @author Andreas Antener <andreas@uaventure.com>
 #
 
-# The shebang of this file is currently Python2 because some
-# dependencies such as pymavlink don't play well with Python3 yet.
 from __future__ import division
 
 PKG = 'px4'

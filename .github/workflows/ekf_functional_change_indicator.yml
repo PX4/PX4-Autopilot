@@ -5,11 +5,13 @@ on: pull_request
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
+    container: px4io/px4-dev-base-jammy:2024-05-18
     steps:
-    - uses: actions/checkout@v2.3.1
+    - uses: actions/checkout@v1
       with:
-        fetch-depth: 0
+        token: ${{ secrets.ACCESS_TOKEN }}
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
     - name: checkout newest version of branch
       run: |
         git fetch origin pull/${{github.event.pull_request.number}}/head:${{github.head_ref}}
