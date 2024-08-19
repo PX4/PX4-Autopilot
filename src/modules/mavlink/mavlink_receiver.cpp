@@ -726,7 +726,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 				send_ack = true;
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 				_mavlink.send_statustext_critical("Not enough bandwidth to enable log streaming\t");
-				events::send<uint32_t>(events::ID("mavlink_log_not_enough_bw"), events::Log::Error,
+				events::send<uint32_t>(events::ID("mavlink_log_not_enough_bw"), events::Log::Critical,
 						       "Not enough bandwidth to enable log streaming ({1} \\< 5000)", _mavlink.get_data_rate());
 
 			} else {
@@ -1086,7 +1086,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		} else {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED coordinate frame %" PRIu8 " unsupported\t",
 					     target_local_ned.coordinate_frame);
-			events::send<uint8_t>(events::ID("mavlink_rcv_sp_target_unsup_coord"), events::Log::Error,
+			events::send<uint8_t>(events::ID("mavlink_rcv_sp_target_unsup_coord"), events::Log::Critical,
 					      "SET_POSITION_TARGET_LOCAL_NED: coordinate frame {1} unsupported", target_local_ned.coordinate_frame);
 			return;
 		}
@@ -1102,7 +1102,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
-			events::send(events::ID("mavlink_rcv_sp_target_unsup_force"), events::Log::Error,
+			events::send(events::ID("mavlink_rcv_sp_target_unsup_force"), events::Log::Critical,
 				     "SET_POSITION_TARGET_LOCAL_NED: FORCE is not supported");
 			return;
 		}
@@ -1123,7 +1123,7 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 		} else {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED invalid\t");
-			events::send(events::ID("mavlink_rcv_sp_target_invalid"), events::Log::Error,
+			events::send(events::ID("mavlink_rcv_sp_target_invalid"), events::Log::Critical,
 				     "SET_POSITION_TARGET_LOCAL_NED: invalid, missing position, velocity or acceleration");
 		}
 	}
@@ -1194,7 +1194,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			} else {
 				mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT invalid coordinate frame %" PRIu8 "\t",
 						     target_global_int.coordinate_frame);
-				events::send<uint8_t>(events::ID("mavlink_rcv_sp_target_gl_invalid_coord"), events::Log::Error,
+				events::send<uint8_t>(events::ID("mavlink_rcv_sp_target_gl_invalid_coord"), events::Log::Critical,
 						      "SET_POSITION_TARGET_GLOBAL_INT invalid coordinate frame {1}", target_global_int.coordinate_frame);
 				return;
 			}
@@ -1224,7 +1224,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");
-			events::send(events::ID("mavlink_rcv_sp_target_gl_unsup_force"), events::Log::Error,
+			events::send(events::ID("mavlink_rcv_sp_target_gl_unsup_force"), events::Log::Critical,
 				     "SET_POSITION_TARGET_GLOBAL_INT: FORCE is not supported");
 			return;
 		}
@@ -1532,7 +1532,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	default:
 		mavlink_log_critical(&_mavlink_log_pub, "ODOMETRY: estimator_type %" PRIu8 " unsupported\t",
 				     odom_in.estimator_type);
-		events::send<uint8_t>(events::ID("mavlink_rcv_odom_unsup_estimator_type"), events::Log::Error,
+		events::send<uint8_t>(events::ID("mavlink_rcv_odom_unsup_estimator_type"), events::Log::Critical,
 				      "ODOMETRY: unsupported estimator_type {1}", odom_in.estimator_type);
 		return;
 	}
@@ -2515,7 +2515,7 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		// We only support MAV_FRAME_LOCAL_NED. In this case, the frame was unsupported.
 		mavlink_log_critical(&_mavlink_log_pub, "Landing target: coordinate frame %" PRIu8 " unsupported\t",
 				     landing_target.frame);
-		events::send<uint8_t>(events::ID("mavlink_rcv_lnd_target_unsup_coord"), events::Log::Error,
+		events::send<uint8_t>(events::ID("mavlink_rcv_lnd_target_unsup_coord"), events::Log::Critical,
 				      "Landing target: unsupported coordinate frame {1}", landing_target.frame);
 
 	} else {

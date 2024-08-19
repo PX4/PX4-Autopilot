@@ -84,7 +84,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command, b
 
 	} else {
 		mavlink_log_critical(&_mavlink_log_pub, "Orbit radius limit exceeded\t");
-		events::send(events::ID("orbit_radius_exceeded"), events::Log::Alert, "Orbit radius limit exceeded");
+		events::send(events::ID("orbit_radius_exceeded"), events::Log::Critical, "Orbit radius limit exceeded");
 		success = false;
 	}
 

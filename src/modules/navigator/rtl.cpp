@@ -411,7 +411,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission land item could not be read.\t");
-			events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Error,
+			events::send(events::ID("rtl_failed_to_read_land_item"), events::Log::Critical,
 				     "Mission land item could not be read");
 		}
 
@@ -512,7 +512,7 @@ void RTL::setSafepointAsDestination(PositionYawSetpoint &rtl_position,
 
 	default:
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unsupported MAV_FRAME\t");
-		events::send<uint8_t>(events::ID("rtl_unsupported_mav_frame"), events::Log::Error, "RTL: unsupported MAV_FRAME ({1})",
+		events::send<uint8_t>(events::ID("rtl_unsupported_mav_frame"), events::Log::Critical, "RTL: unsupported MAV_FRAME ({1})",
 				      mission_safe_point.frame);
 		break;
 	}

@@ -110,7 +110,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 {
 	if (_navigator->get_geofence().isHomeRequired() && !home_valid) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
-		events::send(events::ID("navigator_mis_geofence_no_home"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("navigator_mis_geofence_no_home"), {events::Log::Critical, events::LogInternal::Info},
 			     "Geofence requires a valid home position");
 		return false;
 	}
@@ -131,7 +131,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 
 			if (missionitem.altitude_is_relative && !home_valid) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
-				events::send(events::ID("navigator_mis_geofence_no_home2"), {events::Log::Error, events::LogInternal::Info},
+				events::send(events::ID("navigator_mis_geofence_no_home2"), {events::Log::Critical, events::LogInternal::Info},
 					     "Geofence requires a valid home position");
 				return false;
 			}
@@ -143,7 +143,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 				    missionitem.lat, missionitem.lon, missionitem.altitude)) {
 
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", i + 1);
-				events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Error, events::LogInternal::Info},
+				events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Critical, events::LogInternal::Info},
 						      "Geofence violation for waypoint {1}",
 						      i + 1);
 				return false;

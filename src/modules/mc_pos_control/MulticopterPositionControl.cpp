@@ -178,7 +178,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_TILTMAX_AIR</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_tilt_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_tilt_set"), events::Log::Critical,
 					    "Maximum tilt limit has been constrained to a safe value", MAX_SAFE_TILT_DEG);
 		}
 
@@ -189,7 +189,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_TILTMAX_LND</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_land_tilt_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_land_tilt_set"), events::Log::Critical,
 					    "Land tilt limit has been constrained by maximum tilt", _param_mpc_tiltmax_air.get());
 		}
 
@@ -220,7 +220,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_XY_CRUISE</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_cruise_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_cruise_set"), events::Log::Critical,
 					    "Cruise speed has been constrained by maximum speed", _param_mpc_xy_vel_max.get());
 		}
 
@@ -231,7 +231,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_VEL_MANUAL</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_man_vel_set"), events::Log::Critical,
 					    "Manual speed has been constrained by maximum speed", _param_mpc_xy_vel_max.get());
 		}
 
@@ -242,7 +242,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_VEL_MAN_BACK</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_back_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_man_vel_back_set"), events::Log::Critical,
 					    "Manual backward speed has been constrained by forward speed", _param_mpc_vel_manual.get());
 		}
 
@@ -253,7 +253,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_VEL_MAN_SIDE</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_side_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_man_vel_side_set"), events::Log::Critical,
 					    "Manual sideways speed has been constrained by forward speed", _param_mpc_vel_manual.get());
 		}
 
@@ -264,7 +264,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_Z_V_AUTO_UP</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_up_vel_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_up_vel_set"), events::Log::Critical,
 					    "Ascent speed has been constrained by max speed", _param_mpc_z_vel_max_up.get());
 		}
 
@@ -275,7 +275,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_Z_V_AUTO_DN</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_down_vel_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_down_vel_set"), events::Log::Critical,
 					    "Descent speed has been constrained by max speed", _param_mpc_z_vel_max_dn.get());
 		}
 
@@ -288,7 +288,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			/* EVENT
 			 * @description <param>MPC_THR_HOVER</param> is set to {1:.0}.
 			 */
-			events::send<float>(events::ID("mc_pos_ctrl_hover_thrust_set"), events::Log::Warning,
+			events::send<float>(events::ID("mc_pos_ctrl_hover_thrust_set"), events::Log::Critical,
 					    "Hover thrust has been constrained by min/max thrust", _param_mpc_thr_hover.get());
 		}
 

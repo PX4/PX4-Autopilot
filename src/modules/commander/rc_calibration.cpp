@@ -59,7 +59,7 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 
 	if (!changed) {
 		mavlink_log_critical(mavlink_log_pub, "no inputs, aborting\t");
-		events::send(events::ID("commander_cal_no_inputs"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("commander_cal_no_inputs"), {events::Log::Critical, events::LogInternal::Info},
 			     "No inputs, aborting RC trim calibration");
 		return PX4_ERROR;
 	}

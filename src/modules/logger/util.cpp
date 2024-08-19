@@ -234,7 +234,7 @@ int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb
 		 * @description Either manually free up some space, or enable automatic log rotation
 		 * via <param>SDLOG_DIRS_MAX</param>.
 		 */
-		events::send<uint32_t>(events::ID("logger_storage_full"), events::Log::Error,
+		events::send<uint32_t>(events::ID("logger_storage_full"), events::Log::Critical,
 				       "Not logging, storage is almost full: {1} MiB", (uint32_t)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
 		return 1;
 	}

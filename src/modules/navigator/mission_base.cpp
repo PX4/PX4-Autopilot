@@ -373,12 +373,12 @@ void MissionBase::update_mission()
 		if (_land_detected_sub.get().landed) {
 			/* landed, refusing to take off without a mission */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff\t");
-			events::send(events::ID("mission_not_valid_refuse"), {events::Log::Error, events::LogInternal::Disabled},
+			events::send(events::ID("mission_not_valid_refuse"), {events::Log::Critical, events::LogInternal::Disabled},
 				     "No valid mission available, refusing takeoff");
 
 		} else {
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, loitering\t");
-			events::send(events::ID("mission_not_valid_loiter"), {events::Log::Error, events::LogInternal::Disabled},
+			events::send(events::ID("mission_not_valid_loiter"), {events::Log::Critical, events::LogInternal::Disabled},
 				     "No valid mission available, loitering");
 		}
 
@@ -488,7 +488,7 @@ bool MissionBase::loadCurrentMissionItem()
 
 	if (!success) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission item could not be set.\t");
-		events::send(events::ID("mission_item_set_failed"), events::Log::Error,
+		events::send(events::ID("mission_item_set_failed"), events::Log::Critical,
 			     "Mission item could not be set");
 	}
 
@@ -940,7 +940,7 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Waypoint could not be read.\t");
-			events::send<uint16_t>(events::ID("mission_failed_to_read_wp"), events::Log::Error,
+			events::send<uint16_t>(events::ID("mission_failed_to_read_wp"), events::Log::Critical,
 					       "Waypoint {1} could not be read from storage", new_mission_index);
 			return PX4_ERROR;
 		}
@@ -960,7 +960,7 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 					if (!success) {
 						/* not supposed to happen unless the datamanager can't access the dataman */
 						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP waypoint could not be written.\t");
-						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
+						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Critical,
 							     "DO JUMP waypoint could not be written");
 						// Still continue searching for next non jump item.
 					}
@@ -1138,7 +1138,7 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Could not set mission closest to position.\t");
-			events::send(events::ID("mission_failed_set_closest"), events::Log::Error,
+			events::send(events::ID("mission_failed_set_closest"), events::Log::Critical,
 				     "Could not set mission closest to position");
 			return PX4_ERROR;
 		}
@@ -1210,7 +1210,7 @@ void MissionBase::resetMissionJumpCounter()
 		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission could not reset jump count.\t");
-			events::send(events::ID("mission_failed_set_jump_count"), events::Log::Error,
+			events::send(events::ID("mission_failed_set_jump_count"), events::Log::Critical,
 				     "Mission could not reset jump count");
 			break;
 		}

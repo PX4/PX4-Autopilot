@@ -152,7 +152,7 @@ CameraCapture::publish_trigger()
 	if (_trigger_rate_failure.load()) {
 		mavlink_log_warning(&_mavlink_log_pub, "Hardware fault: Camera capture disabled\t");
 		events::send(events::ID("camera_capture_trigger_rate_exceeded"),
-			     events::Log::Error, "Hardware fault: Camera capture disabled");
+			     events::Log::Warning, "Hardware fault: Camera capture disabled");
 		_trigger_rate_failure.store(false);
 	}
 

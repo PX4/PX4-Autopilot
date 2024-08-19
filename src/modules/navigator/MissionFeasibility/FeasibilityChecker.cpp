@@ -247,7 +247,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 
 
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: No home pos, WP %d uses rel alt\t", current_index + 1);
-		events::send<int16_t>(events::ID("navigator_mis_no_home_rel_alt"), {events::Log::Error, events::LogInternal::Info},
+		events::send<int16_t>(events::ID("navigator_mis_no_home_rel_alt"), {events::Log::Critical, events::LogInternal::Info},
 				      "Mission rejected: No home position, waypoint {1} uses relative altitude",
 				      current_index + 1);
 		return false;
@@ -300,7 +300,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: item %i: unsupported cmd: %d\t",
 				     (int)(current_index + 1),
 				     (int)mission_item.nav_cmd);
-		events::send<uint16_t, uint16_t>(events::ID("navigator_mis_unsup_cmd"), {events::Log::Error, events::LogInternal::Warning},
+		events::send<uint16_t, uint16_t>(events::ID("navigator_mis_unsup_cmd"), {events::Log::Critical, events::LogInternal::Warning},
 						 "Mission rejected: item {1}: unsupported command: {2}", current_index + 1, mission_item.nav_cmd);
 		return false;
 	}
@@ -309,7 +309,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	if ((current_index == 0) && mission_item.nav_cmd == NAV_CMD_LAND && _is_landed) {
 
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: starts with landing\t");
-		events::send(events::ID("navigator_mis_starts_w_landing"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("navigator_mis_starts_w_landing"), {events::Log::Critical, events::LogInternal::Info},
 			     "Mission rejected: starts with landing");
 		return false;
 	}
@@ -329,7 +329,7 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 
 		if (takeoff_alt < FLT_EPSILON) {
 			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Takeoff altitude below home altitude!\t");
-			events::send<float>(events::ID("navigator_mis_takeoff_too_low"), {events::Log::Error, events::LogInternal::Info},
+			events::send<float>(events::ID("navigator_mis_takeoff_too_low"), {events::Log::Critical, events::LogInternal::Info},
 					    "Mission rejected: takeoff altitude too low! Minimum: {1:.1m_v}",
 					    mission_item.altitude_is_relative ? 0.0f : _home_alt_msl);
 			return false;
@@ -346,7 +346,7 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 
 		if (_found_item_with_position) {
 			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: takeoff not first waypoint item\t");
-			events::send(events::ID("navigator_mis_takeoff_not_first"), {events::Log::Error, events::LogInternal::Info},
+			events::send(events::ID("navigator_mis_takeoff_not_first"), {events::Log::Critical, events::LogInternal::Info},
 				     "Mission rejected: takeoff is not the first waypoint item");
 			return false;
 		}
@@ -401,7 +401,7 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 			if (relative_approach_altitude < FLT_EPSILON) {
 				mavlink_log_critical(_mavlink_log_pub,
 						     "Mission rejected: the approach waypoint must be above the landing point.\t");
-				events::send(events::ID("navigator_mis_approach_wp_below_land"), {events::Log::Error, events::LogInternal::Info},
+				events::send(events::ID("navigator_mis_approach_wp_below_land"), {events::Log::Critical, events::LogInternal::Info},
 					     "Mission rejected: the approach waypoint must be above the landing point");
 				return false;
 			}
@@ -419,7 +419,7 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 				if (distance_orbit_center_to_land <= orbit_radius) {
 					mavlink_log_critical(_mavlink_log_pub,
 							     "Mission rejected: the landing point must be outside the orbit radius.\t");
-					events::send(events::ID("navigator_mis_land_wp_inside_orbit_radius"), {events::Log::Error, events::LogInternal::Info},
+					events::send(events::ID("navigator_mis_land_wp_inside_orbit_radius"), {events::Log::Critical, events::LogInternal::Info},
 						     "Mission rejected: the landing point must be outside the orbit radius");
 					return false;
 				}
@@ -437,7 +437,7 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 			} else {
 				mavlink_log_critical(_mavlink_log_pub,
 						     "Mission rejected: unsupported landing approach entrance waypoint type. Only ORBIT_TO_ALT or WAYPOINT allowed.\t");
-				events::send(events::ID("navigator_mis_unsupported_landing_approach_wp"), {events::Log::Error, events::LogInternal::Info},
+				events::send(events::ID("navigator_mis_unsupported_landing_approach_wp"), {events::Log::Critical, events::LogInternal::Info},
 					     "Mission rejected: unsupported landing approach entrance waypoint type. Only ORBIT_TO_ALT or WAYPOINT allowed");
 				return false;
 			}
@@ -459,7 +459,7 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 				mavlink_log_critical(_mavlink_log_pub,
 						     "Mission rejected: the landing glide slope is steeper than the vehicle setting of %d.%d degrees.\t",
 						     (int)land_angle_left_of_decimal, (int)land_angle_first_after_decimal);
-				events::send<uint8_t, uint8_t>(events::ID("navigator_mis_glide_slope_too_steep"), {events::Log::Error, events::LogInternal::Info},
+				events::send<uint8_t, uint8_t>(events::ID("navigator_mis_glide_slope_too_steep"), {events::Log::Critical, events::LogInternal::Info},
 							       "Mission rejected: the landing glide slope is steeper than the vehicle setting of {1}.{2} degrees",
 							       land_angle_left_of_decimal, land_angle_first_after_decimal);
 
@@ -469,7 +469,7 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 				mavlink_log_critical(_mavlink_log_pub,
 						     "Reduce the glide slope, lower the entrance altitude %d meters, or increase the landing approach distance %d meters.\t",
 						     (int)acceptable_entrance_alt, (int)acceptable_landing_dist);
-				events::send<uint32_t, uint32_t>(events::ID("navigator_mis_correct_glide_slope"), {events::Log::Error, events::LogInternal::Info},
+				events::send<uint32_t, uint32_t>(events::ID("navigator_mis_correct_glide_slope"), {events::Log::Critical, events::LogInternal::Info},
 								 "Reduce the glide slope, lower the entrance altitude {1} meters, or increase the landing approach distance {2} meters",
 								 acceptable_entrance_alt, acceptable_landing_dist);
 
@@ -492,7 +492,7 @@ bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, 
 	if (mission_item.nav_cmd == NAV_CMD_DO_LAND_START) {
 		if (_do_land_start_index >= 0) {
 			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: more than one land start.\t");
-			events::send(events::ID("navigator_mis_multiple_land"), {events::Log::Error, events::LogInternal::Info},
+			events::send(events::ID("navigator_mis_multiple_land"), {events::Log::Critical, events::LogInternal::Info},
 				     "Mission rejected: more than one land start commands");
 			return false;
 
@@ -510,7 +510,7 @@ bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, 
 
 		} else {
 			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: starts with land waypoint.\t");
-			events::send(events::ID("navigator_mis_starts_w_landing2"), {events::Log::Error, events::LogInternal::Info},
+			events::send(events::ID("navigator_mis_starts_w_landing2"), {events::Log::Critical, events::LogInternal::Info},
 				     "Mission rejected: starts with landing");
 			return false;
 		}
@@ -519,7 +519,7 @@ bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, 
 		if (land_start_found && _do_land_start_index < current_index) {
 			mavlink_log_critical(_mavlink_log_pub,
 					     "Mission rejected: land start item before RTL item not possible.\t");
-			events::send(events::ID("navigator_mis_land_before_rtl"), {events::Log::Error, events::LogInternal::Info},
+			events::send(events::ID("navigator_mis_land_before_rtl"), {events::Log::Critical, events::LogInternal::Info},
 				     "Mission rejected: land start item before RTL item is not possible");
 			return false;
 		}
@@ -527,7 +527,7 @@ bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, 
 
 	if (current_index == last_index && land_start_found && (_do_land_start_index > _landing_approach_index)) {
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: invalid land start.\t");
-		events::send(events::ID("navigator_mis_invalid_land"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("navigator_mis_invalid_land"), {events::Log::Critical, events::LogInternal::Info},
 			     "Mission rejected: invalid land start");
 		return false;
 	}
@@ -552,7 +552,7 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 
 		if (!result) {
 			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Takeoff waypoint required.\t");
-			events::send(events::ID("navigator_mis_takeoff_missing"), {events::Log::Error, events::LogInternal::Info},
+			events::send(events::ID("navigator_mis_takeoff_missing"), {events::Log::Critical, events::LogInternal::Info},
 				     "Mission rejected: Takeoff waypoint required");
 			return false;
 		}
@@ -564,7 +564,7 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 
 		if (!result) {
 			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Landing waypoint/pattern required.\t");
-			events::send(events::ID("navigator_mis_land_missing"), {events::Log::Error, events::LogInternal::Info},
+			events::send(events::ID("navigator_mis_land_missing"), {events::Log::Critical, events::LogInternal::Info},
 				     "Mission rejected: Landing waypoint/pattern required");
 		}
 
@@ -575,7 +575,7 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 
 		if (!result) {
 			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Takeoff or Landing item missing.\t");
-			events::send(events::ID("navigator_mis_takeoff_or_land_missing"), {events::Log::Error, events::LogInternal::Info},
+			events::send(events::ID("navigator_mis_takeoff_or_land_missing"), {events::Log::Critical, events::LogInternal::Info},
 				     "Mission rejected: Takeoff or Landing item missing");
 		}
 
@@ -595,7 +595,7 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 
 			if (!result) {
 				mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Landing waypoint/pattern required.");
-				events::send(events::ID("feasibility_mis_in_air_landing_req"), {events::Log::Error, events::LogInternal::Info},
+				events::send(events::ID("feasibility_mis_in_air_landing_req"), {events::Log::Critical, events::LogInternal::Info},
 					     "Mission rejected: Landing waypoint/pattern required");
 			}
 		}
@@ -616,12 +616,12 @@ bool FeasibilityChecker::hasMissionBothOrNeitherTakeoffAndLanding()
 
 	if (!result && (_has_takeoff)) {
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Landing item or remove Takeoff.\t");
-		events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Critical, events::LogInternal::Info},
 			     "Mission rejected: Add Landing item or remove Takeoff");
 
 	} else if (!result && (_landing_valid)) {
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Add Takeoff item or remove Landing.\t");
-		events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Critical, events::LogInternal::Info},
 			     "Mission rejected: Add Takeoff item or remove Landing");
 	}
 
@@ -653,7 +653,7 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 			mavlink_log_critical(_mavlink_log_pub,
 					     "First waypoint too far away: %dm, %d max\t",
 					     (int)dist_to_1wp_from_current_pos, (int)_param_mis_dist_1wp);
-			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
+			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Critical, events::LogInternal::Info},
 							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp_from_current_pos,
 							 (uint32_t)_param_mis_dist_1wp);
 
@@ -688,7 +688,7 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 			mavlink_log_critical(_mavlink_log_pub,
 					     "Distance between waypoint and gate too close: %d meters\t",
 					     (int)dist_between_waypoints);
-			events::send<float, float>(events::ID("navigator_mis_wp_gate_too_close"), {events::Log::Error, events::LogInternal::Info},
+			events::send<float, float>(events::ID("navigator_mis_wp_gate_too_close"), {events::Log::Critical, events::LogInternal::Info},
 						   "Distance between waypoint and gate too close: {1:.3m} (minimum: {2:.3m})", dist_between_waypoints, 0.05f);
 
 
@@ -711,7 +711,7 @@ bool FeasibilityChecker::checkItemsFitToVehicleType(const mission_item_s &missio
 	     || mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION)) {
 
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Mission contains VTOL items but vehicle is not a VTOL\t");
-		events::send(events::ID("navigator_mis_vtol_items"), {events::Log::Error, events::LogInternal::Info},
+		events::send(events::ID("navigator_mis_vtol_items"), {events::Log::Critical, events::LogInternal::Info},
 			     "Mission rejected: Mission contains VTOL items but vehicle is not a VTOL");
 
 		return false;
