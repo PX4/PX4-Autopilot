@@ -1,7 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
- *       Author: David Sidrane <david.sidrane@nscdg.com>
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+ *       Author: Ludovic Vanasse <ludovicvanasse@gmail.com> but
+ * based on David Sidrane's <david.sidrane@nscdg.com> work
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
