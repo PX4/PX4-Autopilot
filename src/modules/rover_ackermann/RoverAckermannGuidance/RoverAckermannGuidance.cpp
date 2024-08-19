@@ -83,7 +83,7 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 
 	} else { // Regular guidance algorithm
 
-		_desired_speed = calcDesiredSpeed(_param_ra_miss_vel_def.get(), _param_ra_miss_vel_min.get(),
+		_desired_speed = calcDesiredSpeed(_wp_max_desired_vel, _param_ra_miss_vel_min.get(),
 						  _param_ra_miss_vel_gain.get(), _distance_to_prev_wp, _distance_to_curr_wp, _acceptance_radius,
 						  _prev_acceptance_radius, _param_ra_max_accel.get(), _param_ra_max_jerk.get(), nav_state);
 
@@ -202,6 +202,11 @@ void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 	} else {
 		_acceptance_radius = _param_nav_acc_rad.get();
 	}
+	if (position_setpoint_triplet.current.cruising_speed>0.f){
+		_wp_max_desired_vel = math::min(position_setpoint_triplet.current.cruising_speed, _param_ra_miss_vel_def.get());
+	} else {
+		_wp_max_desired_vel = _param_ra_miss_vel_def.get();
+	}
 }
 
 float RoverAckermannGuidance::updateAcceptanceRadius(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
@@ -267,7 +272,6 @@ float RoverAckermannGuidance::calcDesiredSpeed(const float miss_vel_def, const f
 			max_velocity = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
 					max_accel, distance_to_curr_wp - acc_rad, cornering_speed);
 		}
-		printf("d %f\n",(double)max_velocity);
 		return math::constrain(max_velocity, miss_vel_min, miss_vel_def);
 
 	} else {

@@ -213,6 +213,7 @@ private:
 	float _distance_to_next_wp{0.f};
 	float _acceptance_radius{0.5f};
 	float _prev_acceptance_radius{0.5f};
+	float _wp_max_desired_vel{0.f};
 	bool _mission_finished{false};
 
 	// Parameters
