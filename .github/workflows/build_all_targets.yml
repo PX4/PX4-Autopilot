@@ -27,9 +27,11 @@ jobs:
           path: "./Tools/setup/requirements.txt"
 
       - id: set-matrix
+        name: Scan build directory and make matrix list
         run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
 
       - id: set-timestamp
+        name: Set timestamp for cache
         run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
   setup:
@@ -37,7 +39,14 @@ jobs:
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
     strategy:
-      matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+      # matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+      matrix:
+        include:
+          - container: px4io/px4-dev-armhf:2023-06-26
+            targets: px4_sitl_allyes,px4_sitl_default,px4_sitl_zenoh
+            arch: armhf
+            group: armhf-0
+            len: 4
     container:
       image: ${{ matrix.container }}
     steps:
@@ -45,17 +54,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: ownership workaround
+      - name: Git Ownership Workaround
         run: git config --system --add safe.directory '*'
 
-      - name: ccache setup keys
+      - name: Cache Key Config
         uses: actions/cache@v4
         with:
           path: ~/.ccache
           key: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
           restore-keys: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
 
-      - name: setup ccache
+      - name: Cache Conf Config
         run: |
             mkdir -p ~/.ccache
             echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
@@ -66,11 +75,11 @@ jobs:
             ccache -s
             ccache -z
 
-      - name: build target group
+      - name: Build Target Group
         run: |
             ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
 
-      - name: Upload px4 package
+      - name: Upload Artifacts as Zip
         uses: actions/upload-artifact@v4
         with:
           name: px4_${{matrix.group}}_build_artifacts
@@ -79,5 +88,132 @@ jobs:
             build/**/*.bin
           compression-level: 0
 
-      - name: ccache post-run
+      - name: Cache Post-Run
         run: ccache -s
+
+  sitl_tests:
+    name: SITL Tests
+    runs-on: ubuntu-latest
+    needs:
+      - setup
+      - group_targets
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {model: "iris",          latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
+          - {model: "tailsitter" ,   latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo" } # Florida
+          - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage" } # Zurich
+    container:
+      image: px4io/px4-dev-simulation-focal:2021-09-08
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git Ownership Workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: Cache Key Config
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: nuttx-base-ccache-${{ needs.group_targets.outputs.timestamp }}
+          restore-keys: nuttx-base-ccache-${{ needs.group_targets.outputs.timestamp }}
+
+      - name: Cache Conf Config
+        run: |
+            mkdir -p ~/.ccache
+            echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+            echo "compression = true" >> ~/.ccache/ccache.conf
+            echo "compression_level = 6" >> ~/.ccache/ccache.conf
+            echo "max_size = 120M" >> ~/.ccache/ccache.conf
+            echo "hash_dir = false" >> ~/.ccache/ccache.conf
+            ccache -s
+            ccache -z
+
+      - name: Download MAVSDK
+        run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+
+      - name: Install MAVSDK
+        run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+
+      - name: Check PX4 Environment Variables
+        env:
+          PX4_HOME_LAT: ${{matrix.config.latitude}}
+          PX4_HOME_LON: ${{matrix.config.longitude}}
+          PX4_HOME_ALT: ${{matrix.config.altitude}}
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+        run: |
+            export
+            ulimit -a
+
+      - name: Build PX4
+        env:
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+        run: make px4_sitl_default
+
+      - name: Cache Post-Run [px4_sitl_default]
+        run: ccache -s
+
+      - name: Build SITL Gazebo
+        env:
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+        run: make px4_sitl_default sitl_gazebo-classic
+
+      - name: Cache Post-Run [sitl_gazebo-classic]
+        run: ccache -s
+
+      - name: Build PX4 / MAVSDK tests
+        env:
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+          DONT_RUN: 1
+        run: make px4_sitl_default sitl_gazebo-classic mavsdk_tests
+
+      - name: Cache Post-Run [px4_sitl_default sitl_gazebo-classic mavsdk_tests]
+        run: ccache -s
+
+      - name: Core Dump Settings
+        run: |
+            ulimit -c unlimited
+            echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
+
+      - name: Run SITL / MAVSDK Tests
+        env:
+          PX4_HOME_LAT: ${{matrix.config.latitude}}
+          PX4_HOME_LON: ${{matrix.config.longitude}}
+          PX4_HOME_ALT: ${{matrix.config.altitude}}
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json --verbose
+        timeout-minutes: 45
+
+      - name: Look at Core files
+        if: failure()
+        run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
+
+      - name: Upload PX4 coredump
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coredump
+          path: px4.core
+
+      - name: Setup & Generate Coverage Report
+        if: contains(matrix.config.build_type, 'Coverage')
+        run: |
+            git config --global credential.helper "" # disable the keychain credential helper
+            git config --global --add credential.helper store # enable the local store credential helper
+            echo "https://x-access-token:${{ secrets.ACCESS_TOKEN }}@github.com" >> ~/.git-credentials # add credential
+            git config --global url."https://github.com/".insteadof git@github.com: # credentials add credential
+            mkdir -p coverage
+            lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
+
+      - name: Upload Coverage Information to Codecov
+        if: contains(matrix.config.build_type, 'Coverage')
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: mavsdk
+          file: coverage/lcov.info
