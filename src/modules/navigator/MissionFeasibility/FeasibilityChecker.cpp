@@ -642,6 +642,12 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 			mavlink_log_critical(_mavlink_log_pub,
 					     "First waypoint far away from home: %dm. Correct mission loaded?\t",
 					     (int)dist_to_1wp_from_home_pos);
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* This check can be configured via <param>MIS_DIST_1WP</param> parameter.
+			* </profile>
+			*/
 			events::send<uint32_t>(events::ID("navigator_mis_first_wp_far"), {events::Log::Warning, events::LogInternal::Info},
 					       "First waypoint far away from Home: {1m} Correct mission loaded?", (uint32_t)dist_to_1wp_from_home_pos);
 
