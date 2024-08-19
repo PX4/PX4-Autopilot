@@ -45,6 +45,8 @@ bool cs_mag_heading_consistent  # 37 - true when the heading obtained from mag d
 bool cs_aux_gpos                # 38 - true if auxiliary global position measurement fusion is intended
 bool cs_rng_terrain             # 39 - true if we are fusing range finder data for terrain
 bool cs_opt_flow_terrain        # 40 - true if we are fusing flow data for terrain
+bool cs_valid_fake_pos          # 41 - true if a valid constant position is being fused
+bool cs_constant_pos            # 42 - true if the vehicle is at a constant position
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes
