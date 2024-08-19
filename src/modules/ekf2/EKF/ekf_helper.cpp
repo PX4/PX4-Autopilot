@@ -622,7 +622,8 @@ uint16_t Ekf::get_ekf_soln_status() const
 #endif // CONFIG_EKF2_TERRAIN
 
 	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
-	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.vehicle_at_rest;
+	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.valid_fake_pos
+					   || _control_status.flags.vehicle_at_rest;
 
 	// 256	ESTIMATOR_PRED_POS_HORIZ_REL	True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 	soln_status.flags.pred_pos_horiz_rel = isHorizontalAidingActive();
@@ -767,6 +768,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	// zero velocity update
 	if (isRecent(_zero_velocity_update.time_last_fuse(), _params.no_aid_timeout_max)) {
+		// only respect as a valid aiding source now if we expect to have another valid source once in air
+		if (aiding_expected_in_air) {
+			inertial_dead_reckoning = false;
+		}
+	}
+
+	if (_control_status.flags.valid_fake_pos && isRecent(_aid_src_fake_pos.time_last_fuse, _params.no_aid_timeout_max)) {
 		// only respect as a valid aiding source now if we expect to have another valid source once in air
 		if (aiding_expected_in_air) {
 			inertial_dead_reckoning = false;

@@ -1131,7 +1131,7 @@ private:
 	}
 
 	void resetFakePosFusion();
-	void stopFakePosFusion();
+	bool runFakePosStateMachine(bool enable_condition_passing, bool status_flag, estimator_aid_source2d_s &aid_src);
 
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)

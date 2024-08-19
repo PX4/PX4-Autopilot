@@ -62,6 +62,8 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			if (system_flags_delayed.gnd_effect) {
 				set_gnd_effect();
 			}
+
+			set_constant_pos(system_flags_delayed.constant_pos);
 		}
 	}
 
