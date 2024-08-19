@@ -120,8 +120,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: nuttx-base-0-ccache-${{ needs.group_targets.outputs.timestamp }}
-          restore-keys: nuttx-base-0-ccache-${{ needs.group_targets.outputs.timestamp }}
+          key: base-0-ccache-${{ needs.group_targets.outputs.timestamp }}
+          restore-keys: base-0-ccache-${{ needs.group_targets.outputs.timestamp }}
 
       - name: Cache Conf Config
         run: |
