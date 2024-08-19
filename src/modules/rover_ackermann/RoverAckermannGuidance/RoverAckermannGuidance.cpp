@@ -62,11 +62,11 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 
 	// Distances to waypoints
 	_distance_to_prev_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-			_prev_wp(0), _prev_wp(1));
+			       _prev_wp(0), _prev_wp(1));
 	_distance_to_curr_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-			_curr_wp(0), _curr_wp(1));
+			       _curr_wp(0), _curr_wp(1));
 	_distance_to_next_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-			_next_wp(0), _next_wp(1));
+			       _next_wp(0), _next_wp(1));
 
 	// Catch return to launch
 	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
@@ -202,8 +202,10 @@ void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 	} else {
 		_acceptance_radius = _param_nav_acc_rad.get();
 	}
-	if (position_setpoint_triplet.current.cruising_speed>0.f){
+
+	if (position_setpoint_triplet.current.cruising_speed > 0.f) {
 		_wp_max_desired_vel = math::min(position_setpoint_triplet.current.cruising_speed, _param_ra_miss_vel_def.get());
+
 	} else {
 		_wp_max_desired_vel = _param_ra_miss_vel_def.get();
 	}
@@ -272,6 +274,7 @@ float RoverAckermannGuidance::calcDesiredSpeed(const float miss_vel_def, const f
 			max_velocity = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
 					max_accel, distance_to_curr_wp - acc_rad, cornering_speed);
 		}
+
 		return math::constrain(max_velocity, miss_vel_min, miss_vel_def);
 
 	} else {
