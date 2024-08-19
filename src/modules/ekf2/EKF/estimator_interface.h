@@ -179,6 +179,8 @@ public:
 		_control_status.flags.vehicle_at_rest = at_rest;
 	}
 
+	void set_constant_pos(bool constant_pos) { _control_status.flags.constant_pos = constant_pos; }
+
 	// return true if the attitude is usable
 	bool attitude_valid() const { return _control_status.flags.tilt_align; }
 
