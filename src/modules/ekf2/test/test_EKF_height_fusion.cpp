@@ -261,6 +261,93 @@ TEST_F(EkfHeightFusionTest, gpsRefFailOver)
 	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::UNKNOWN);
 }
 
+TEST_F(EkfHeightFusionTest, gpsRefAllHgtFailReset)
+{
+	// GIVEN: EKF that fuses GNSS (reference) and baro
+	_sensor_simulator.startBaro();
+	_sensor_simulator.startGps();
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.enableGpsHeightFusion();
+
+	_sensor_simulator.runSeconds(11);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::GNSS);
+
+	const Vector3f previous_position = _ekf->getPosition();
+
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// WHEN:
+	const float gnss_height_step = 10.f;
+	_sensor_simulator._gps.stepHeightByMeters(gnss_height_step);
+
+	const float baro_height_step = 5.f;
+	_sensor_simulator._baro.setData(_sensor_simulator._baro.getData() + baro_height_step);
+	_sensor_simulator.runSeconds(15);
+
+	// THEN: then the fusion of both sensors starts to fail and the height is reset to the
+	// reference sensor (GNSS)
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+
+	const Vector3f new_position = _ekf->getPosition();
+	EXPECT_NEAR(new_position(2), previous_position(2) - gnss_height_step, 0.2f);
+
+	// Also check the reset counters to make sure the reset logic triggered
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+}
+
+TEST_F(EkfHeightFusionTest, baroRefAllHgtFailReset)
+{
+	// GIVEN: EKF that fuses GNSS and baro (reference)
+	_sensor_simulator.startBaro();
+	_sensor_simulator.startGps();
+	_ekf_wrapper.setBaroHeightRef();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.enableGpsHeightFusion();
+
+	_sensor_simulator.runSeconds(11);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO);
+
+	const Vector3f previous_position = _ekf->getPosition();
+
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// WHEN:
+	const float gnss_height_step = 10.f;
+	_sensor_simulator._gps.stepHeightByMeters(gnss_height_step);
+
+	const float baro_height_step = 5.f;
+	_sensor_simulator._baro.setData(_sensor_simulator._baro.getData() + baro_height_step);
+	_sensor_simulator.runSeconds(20);
+
+	// THEN: then the fusion of both sensors starts to fail and the height is reset to the
+	// reference sensor (baro)
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+
+	const Vector3f new_position = _ekf->getPosition();
+	EXPECT_NEAR(new_position(2), previous_position(2) - baro_height_step, 0.2f);
+
+	// Also check the reset counters to make sure the reset logic triggered
+	reset_logging_checker.capturePostResetState();
+
+	// The velocity does not reset as baro only provides height measurement
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
+
+	// The height resets twice in a row as the baro innovation is not corrected after a height
+	// reset and triggers a new reset at the next iteration
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(2));
+}
+
 TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 {
 	_sensor_simulator.startBaro();

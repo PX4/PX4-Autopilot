@@ -41,6 +41,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * and many more...
  */
 
 #include "navigator.h"
@@ -897,6 +898,8 @@ void Navigator::run()
 			publish_mission_result();
 		}
 
+		publish_navigator_status();
+
 		_geofence.run();
 
 		perf_end(_loop_perf);
@@ -1355,6 +1358,40 @@ void Navigator::set_mission_failure_heading_timeout()
 	}
 }
 
+void Navigator::trigger_hagl_failsafe(const uint8_t nav_state)
+{
+	if ((_navigator_status.failure != navigator_status_s::FAILURE_HAGL) || _navigator_status.nav_state != nav_state) {
+		_navigator_status.failure = navigator_status_s::FAILURE_HAGL;
+		_navigator_status.nav_state = nav_state;
+
+		_navigator_status_updated = true;
+	}
+}
+
+void Navigator::publish_navigator_status()
+{
+	uint8_t current_nav_state = _vstatus.nav_state;
+
+	if (_navigation_mode != nullptr) {
+		current_nav_state = _navigation_mode->getNavigatorStateId();
+	}
+
+	if (_navigator_status.nav_state != current_nav_state) {
+		_navigator_status.nav_state = current_nav_state;
+		_navigator_status.failure = navigator_status_s::FAILURE_NONE;
+		_navigator_status_updated = true;
+	}
+
+	if (_navigator_status_updated
+	    || (hrt_elapsed_time(&_last_navigator_status_publication) > 500_ms)) {
+		_navigator_status.timestamp = hrt_absolute_time();
+		_navigator_status_pub.publish(_navigator_status);
+
+		_navigator_status_updated = false;
+		_last_navigator_status_publication = hrt_absolute_time();
+	}
+}
+
 void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 {
 	vcmd->timestamp = hrt_absolute_time();
@@ -1520,6 +1557,13 @@ void Navigator::set_gimbal_neutral()
 	vcmd.param4 = NAN;
 	vcmd.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
 	publish_vehicle_cmd(&vcmd);
+}
+
+void Navigator::sendWarningDescentStoppedDueToTerrain()
+{
+	mavlink_log_critical(&_mavlink_log_pub, "Terrain collision risk, descent is stopped\t");
+	events::send(events::ID("navigator_terrain_collision_risk"), events::Log::Critical,
+		     "Terrain collision risk, descent is stopped");
 }
 
 int Navigator::print_usage(const char *reason)

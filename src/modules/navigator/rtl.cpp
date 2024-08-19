@@ -55,7 +55,7 @@ static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES{10.0f}; // [m] We 
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
 RTL::RTL(Navigator *navigator) :
-	NavigatorMode(navigator),
+	NavigatorMode(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator),
 	_rtl_direct(navigator)
 {
@@ -283,10 +283,12 @@ void RTL::on_active()
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		_rtl_mission_type_handle->on_active();
+		_rtl_mission_type_handle->updateFailsafeChecks();
 		break;
 
 	case RtlType::RTL_DIRECT:
 		_rtl_direct.on_active();
+		_rtl_direct.updateFailsafeChecks();
 		break;
 
 	default:

@@ -50,19 +50,11 @@ uint8 BATTERY_FAULT_INCOMPATIBLE_VOLTAGE = 6 # Vehicle voltage is not compatible
 uint8 BATTERY_FAULT_INCOMPATIBLE_FIRMWARE = 7 # Battery firmware is not compatible with current autopilot firmware
 uint8 BATTERY_FAULT_INCOMPATIBLE_MODEL = 8 # Battery model is not supported by the system
 uint8 BATTERY_FAULT_HARDWARE_FAILURE = 9 # hardware problem
-uint8 BATTERY_WARNING_OVER_TEMPERATURE = 10 # Over-temperature
+uint8 BATTERY_FAULT_FAILED_TO_ARM = 10 # Battery had a problem while arming
 uint8 BATTERY_FAULT_COUNT = 11 # Counter - keep it as last element!
 
 uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication.
-uint32 custom_faults 	# Bitmask indicating smart battery internal manufacturer faults, those are not user actionable.
 uint8 warning		# Current battery warning
-uint8 mode 		# Battery mode. Note, the normal operation mode
-
-uint8 BATTERY_MODE_UNKNOWN = 0 # Battery does not support a mode, or if it does, is operational
-uint8 BATTERY_MODE_AUTO_DISCHARGING = 1 # Battery is auto discharging (towards storage level)
-uint8 BATTERY_MODE_HOT_SWAP = 2 # Battery in hot-swap mode
-uint8 BATTERY_MODE_COUNT = 3 # Counter - keep it as last element (once we're fully migrated to events interface we can just comment this)!
-
 
 uint8 MAX_INSTANCES = 4
 

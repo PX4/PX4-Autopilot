@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# @name Axial SCX10 2 Trail Honcho
+#
+# @url https://www.axialadventure.com/product/1-10-scx10-ii-trail-honcho-4wd-rock-crawler-brushed-rtr/AXID9059.html
+#
+# @type Rover
+# @class Rover
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.rover_ackermann_defaults
+
+param set-default BAT1_N_CELLS 3
+
+# Rover parameters
+param set-default NAV_ACC_RAD 0.5
+param set-default RA_ACC_RAD_GAIN 2
+param set-default RA_ACC_RAD_MAX 3
+param set-default RA_MAX_ACCEL 0.5
+param set-default RA_MAX_JERK 10
+param set-default RA_MAX_SPEED 2.7
+param set-default RA_MAX_STR_ANG 0.5236
+param set-default RA_MAX_STR_RATE 270
+param set-default RA_MISS_VEL_DEF 2.7
+param set-default RA_MISS_VEL_GAIN 3.5
+param set-default RA_MISS_VEL_MIN 1
+param set-default RA_SPEED_I 0.1
+param set-default RA_SPEED_P 0.5
+param set-default RA_WHEEL_BASE 0.321
+
+# Pure pursuit parameters
+param set-default PP_LOOKAHD_GAIN 1
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1.5

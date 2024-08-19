@@ -59,6 +59,15 @@
  * 				|
  * 				⌄
  * 			(+- 3.14159 rad)
+ *
+ * NOTE:
+ * 	The tuning parameters for the pure pursuit algorithm are set to the following for all tests:
+ * 	   PP_LOOKAHD_GAIN = 1.f
+ * 	   PP_LOOKAHD_MAX = 10.f
+ * 	   PP_LOOKAHD_MIN = 1.f
+ * 	This way passing the vehicle_speed in calcDesiredHeading function is equivalent to passing
+ * 	the lookahead distance.
+ *
 ******************************************************************/
 
 #include <gtest/gtest.h>
@@ -66,9 +75,14 @@
 
 using namespace matrix;
 
-TEST(PurePursuitTest, InvalidLookaheadDistance)
+class PurePursuitTest : public ::testing::Test
 {
-	PurePursuit pure_pursuit;
+public:
+	PurePursuit pure_pursuit{nullptr};
+};
+
+TEST_F(PurePursuitTest, InvalidSpeed)
+{
 	//      V   C
 	//         /
 	//  	  /
@@ -77,20 +91,16 @@ TEST(PurePursuitTest, InvalidLookaheadDistance)
 	const Vector2f curr_wp_ned(10.f, 10.f);
 	const Vector2f prev_wp_ned(0.f, 0.f);
 	const Vector2f curr_pos_ned(10.f, 0.f);
-	// Zero lookahead
-	const float desired_heading1 = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned, 0.f);
-	// Negative lookahead
-	const float desired_heading2 = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned, -1.f);
-	// NaN lookahead
-	const float desired_heading3 = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned, NAN);
+	// Negative speed
+	const float desired_heading1 = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned, -1.f);
+	// NaN speed
+	const float desired_heading2 = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned, NAN);
 	EXPECT_FALSE(PX4_ISFINITE(desired_heading1));
 	EXPECT_FALSE(PX4_ISFINITE(desired_heading2));
-	EXPECT_FALSE(PX4_ISFINITE(desired_heading3));
 }
 
-TEST(PurePursuitTest, InvalidWaypoints)
+TEST_F(PurePursuitTest, InvalidWaypoints)
 {
-	PurePursuit pure_pursuit;
 	//	V   C
 	//         /
 	//  	  /
@@ -115,9 +125,8 @@ TEST(PurePursuitTest, InvalidWaypoints)
 	EXPECT_FALSE(PX4_ISFINITE(desired_heading3));
 }
 
-TEST(PurePursuitTest, OutOfLookahead)
+TEST_F(PurePursuitTest, OutOfLookahead)
 {
-	PurePursuit pure_pursuit;
 	const float lookahead_distance{5.f};
 	//	V   C
 	//         /
@@ -133,13 +142,12 @@ TEST(PurePursuitTest, OutOfLookahead)
 	const float desired_heading2 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(10.f,
 				       10.f),
 				       lookahead_distance);
-	EXPECT_NEAR(desired_heading1, M_PI_2_F + M_PI_4_F, FLT_EPSILON); // Fallback: Bearing to current waypoint
-	EXPECT_NEAR(desired_heading2, M_PI_F, FLT_EPSILON); 		 // Fallback: Bearing to current waypoint
+	EXPECT_NEAR(desired_heading1, M_PI_2_F + M_PI_4_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
+	EXPECT_NEAR(desired_heading2, M_PI_F, FLT_EPSILON); 		 // Fallback: Bearing to closest point on path
 }
 
-TEST(PurePursuitTest, WaypointOverlap)
+TEST_F(PurePursuitTest, WaypointOverlap)
 {
-	PurePursuit pure_pursuit;
 	const float lookahead_distance{5.f};
 	//	    C/P
 	//
@@ -157,13 +165,12 @@ TEST(PurePursuitTest, WaypointOverlap)
 	const float desired_heading2 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 0.f), Vector2f(0.f, 0.f), Vector2f(10.f,
 				       10.f),
 				       lookahead_distance);
-	EXPECT_NEAR(desired_heading1, M_PI_4_F, FLT_EPSILON); 		    // Fallback: Bearing to current waypoint
-	EXPECT_NEAR(desired_heading2, -(M_PI_4_F + M_PI_2_F), FLT_EPSILON); // Fallback: Bearing to current waypoint
+	EXPECT_NEAR(desired_heading1, M_PI_4_F, FLT_EPSILON); 		    // Fallback: Bearing to closest point on path
+	EXPECT_NEAR(desired_heading2, -(M_PI_4_F + M_PI_2_F), FLT_EPSILON); // Fallback: Bearing to closest point on path
 }
 
-TEST(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
+TEST_F(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
 {
-	PurePursuit pure_pursuit;
 	const float lookahead_distance{5.f};
 	//	P -- V -- C
 	const float desired_heading1 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(0.f,
@@ -190,5 +197,5 @@ TEST(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
 	EXPECT_NEAR(desired_heading1, M_PI_2_F, FLT_EPSILON);
 	EXPECT_NEAR(desired_heading2, M_PI_2_F + M_PI_4_F, FLT_EPSILON);
 	EXPECT_NEAR(desired_heading3, -(M_PI_2_F + M_PI_4_F), FLT_EPSILON);
-	EXPECT_NEAR(desired_heading4, M_PI_F, FLT_EPSILON); // Fallback: Bearing to current waypoint
+	EXPECT_NEAR(desired_heading4, M_PI_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
 }

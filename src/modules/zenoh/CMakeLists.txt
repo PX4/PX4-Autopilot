@@ -57,6 +57,7 @@ target_compile_options(zenohpico PUBLIC -Wno-cast-align
 			-DZ_BATCH_SIZE_TX=512
 			-DZ_FRAG_MAX_SIZE=1024)
 
+target_compile_options(zenohpico PRIVATE -Wno-missing-prototypes)
 if(CONFIG_PLATFORM_NUTTX)
     target_compile_options(zenohpico PRIVATE -DUNIX_NO_MULTICAST_IF)
 endif()
@@ -72,7 +73,6 @@ px4_add_module(
 		SRCS
 		zenoh.cpp
 		zenoh_config.cpp
-		zenoh.h
 		publishers/zenoh_publisher.cpp
 		subscribers/zenoh_subscriber.cpp
 		MODULE_CONFIG
@@ -96,6 +96,5 @@ px4_add_module(
 			-Wno-double-promotion
 			-Wno-unused
 			-DZENOH_LINUX
-			-DZENOH_NO_STDATOMIC
 			-D_Bool=int8_t
 )

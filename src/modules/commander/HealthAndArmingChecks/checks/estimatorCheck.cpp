@@ -533,19 +533,6 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 	estimator_status_flags_s estimator_status_flags;
 
 	if (_estimator_status_flags_sub.copy(&estimator_status_flags)) {
-
-		bool dead_reckoning = estimator_status_flags.cs_wind_dead_reckoning
-				      || estimator_status_flags.cs_inertial_dead_reckoning;
-
-		if (!dead_reckoning) {
-			// position requirements (update if not dead reckoning)
-			bool gps             = estimator_status_flags.cs_gps;
-			bool optical_flow    = estimator_status_flags.cs_opt_flow;
-			bool vision_position = estimator_status_flags.cs_ev_pos;
-
-			_position_reliant_on_optical_flow = !gps && optical_flow && !vision_position;
-		}
-
 		// Check for a magnetometer fault and notify the user
 		if (estimator_status_flags.cs_mag_fault) {
 			/* EVENT
@@ -722,15 +709,6 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	// Check if quality checking of position accuracy and consistency is to be performed
 	const float lpos_eph_threshold = (_param_com_pos_fs_eph.get() < 0) ? INFINITY : _param_com_pos_fs_eph.get();
 
-	float lpos_eph_threshold_relaxed = lpos_eph_threshold;
-
-	// Set the allowable position uncertainty based on combination of flight and estimator state
-	// When we are in a operator demanded position control mode and are solely reliant on optical flow,
-	// do not check position error because it will gradually increase throughout flight and the operator will compensate for the drift
-	if (_position_reliant_on_optical_flow) {
-		lpos_eph_threshold_relaxed = INFINITY;
-	}
-
 	bool xy_valid = lpos.xy_valid && !_nav_test_failed;
 	bool v_xy_valid = lpos.v_xy_valid && !_nav_test_failed;
 
@@ -749,7 +727,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
 
 	// Additional warning if the system is about to enter position-loss failsafe after dead-reckoning period
-	const float eph_critical = 2.5f * _param_com_pos_fs_eph.get(); // threshold used to trigger the navigation failsafe
+	const float eph_critical = 2.5f * lpos_eph_threshold; // threshold used to trigger the navigation failsafe
 	const float gpos_critical_warning_thrld = math::max(0.9f * eph_critical, math::max(eph_critical - 10.f, 0.f));
 
 	estimator_status_flags_s estimator_status_flags;
@@ -792,6 +770,10 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	failsafe_flags.local_position_invalid =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold, lpos.timestamp,
 				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
+
+
+	// In some modes we assume that the operator will compensate for the drift so we do not need to check the position error
+	const float lpos_eph_threshold_relaxed = INFINITY;
 
 	failsafe_flags.local_position_invalid_relaxed =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold_relaxed, lpos.timestamp,

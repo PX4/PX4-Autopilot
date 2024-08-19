@@ -142,7 +142,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 
 			const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
-			if (isHeightResetRequired() && quality_sufficient) {
+			if (isHeightResetRequired() && quality_sufficient && (_height_sensor_ref == HeightSensor::EV)) {
 				// All height sources are failing
 				ECL_WARN("%s fusion reset required, all height sources failing", AID_SRC_NAME);
 				_information_events.flags.reset_hgt_to_ev = true;

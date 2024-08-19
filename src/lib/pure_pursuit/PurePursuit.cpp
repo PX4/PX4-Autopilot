@@ -34,21 +34,43 @@
 #include "PurePursuit.hpp"
 #include <mathlib/mathlib.h>
 
+
+PurePursuit::PurePursuit(ModuleParams *parent) : ModuleParams(parent)
+{
+	_param_handles.lookahead_gain = param_find("PP_LOOKAHD_GAIN");
+	_param_handles.lookahead_max = param_find("PP_LOOKAHD_MAX");
+	_param_handles.lookahead_min = param_find("PP_LOOKAHD_MIN");
+	updateParams();
+}
+
+void PurePursuit::updateParams()
+{
+	param_get(_param_handles.lookahead_gain, &_params.lookahead_gain);
+	param_get(_param_handles.lookahead_max, &_params.lookahead_max);
+	param_get(_param_handles.lookahead_min, &_params.lookahead_min);
+
+	ModuleParams::updateParams();
+
+}
+
 float PurePursuit::calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
 				      const Vector2f &curr_pos_ned,
-				      const float lookahead_distance)
+				      const float vehicle_speed)
 {
 	// Check input validity
-	if (!curr_wp_ned.isAllFinite() || !curr_pos_ned.isAllFinite() || lookahead_distance < FLT_EPSILON
-	    || !PX4_ISFINITE(lookahead_distance) || !prev_wp_ned.isAllFinite()) {
+	if (!curr_wp_ned.isAllFinite() || !curr_pos_ned.isAllFinite() || vehicle_speed < -FLT_EPSILON
+	    || !PX4_ISFINITE(vehicle_speed) || !prev_wp_ned.isAllFinite()) {
 		return NAN;
 	}
+
+	_lookahead_distance = math::constrain(_params.lookahead_gain * vehicle_speed,
+					      _params.lookahead_min, _params.lookahead_max);
 
 	// Pure pursuit
 	const Vector2f curr_pos_to_curr_wp = curr_wp_ned - curr_pos_ned;
 	const Vector2f prev_wp_to_curr_wp = curr_wp_ned - prev_wp_ned;
 
-	if (curr_pos_to_curr_wp.norm() < lookahead_distance
+	if (curr_pos_to_curr_wp.norm() < _lookahead_distance
 	    || prev_wp_to_curr_wp.norm() <
 	    FLT_EPSILON) { // Target current waypoint if closer to it than lookahead or waypoints overlap
 		return atan2f(curr_pos_to_curr_wp(1), curr_pos_to_curr_wp(0));
@@ -61,11 +83,11 @@ float PurePursuit::calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2
 	const Vector2f curr_pos_to_path = distance_on_line_segment -
 					  prev_wp_to_curr_pos; // Shortest vector from the current position to the path
 
-	if (curr_pos_to_path.norm() > lookahead_distance) { // Target closest point on path if there is no intersection point
+	if (curr_pos_to_path.norm() > _lookahead_distance) { // Target closest point on path if there is no intersection point
 		return atan2f(curr_pos_to_path(1), curr_pos_to_path(0));
 	}
 
-	const float line_extension = sqrt(powf(lookahead_distance, 2.f) - powf(curr_pos_to_path.norm(),
+	const float line_extension = sqrt(powf(_lookahead_distance, 2.f) - powf(curr_pos_to_path.norm(),
 					  2.f)); // Length of the vector from the endpoint of distance_on_line_segment to the intersection point
 	const Vector2f prev_wp_to_intersection_point = distance_on_line_segment + line_extension *
 			prev_wp_to_curr_wp_u;

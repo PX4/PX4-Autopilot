@@ -94,16 +94,6 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_param_handles.bat_avrg_current = param_find("BAT_AVRG_CURRENT");
 
 	updateParams();
-
-	// Internal resistance estimation initializations
-	_RLS_est(0) = OCV_DEFAULT * _params.n_cells;
-	_RLS_est(1) = R_DEFAULT * _params.n_cells;
-	_estimation_covariance(0, 0) = OCV_COVARIANCE * _params.n_cells;
-	_estimation_covariance(0, 1) = 0.f;
-	_estimation_covariance(1, 0) = 0.f;
-	_estimation_covariance(1, 1) = R_COVARIANCE * _params.n_cells;
-	_estimation_covariance_norm = sqrtf(powf(_estimation_covariance(0, 0), 2.f) + 2.f * powf(_estimation_covariance(1, 0),
-					    2.f) + powf(_estimation_covariance(1, 1), 2.f));
 }
 
 void Battery::updateVoltage(const float voltage_v)
@@ -118,10 +108,6 @@ void Battery::updateCurrent(const float current_a)
 
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 {
-	if (!_battery_initialized) {
-		resetInternalResistanceEstimation(_voltage_v, _current_a);
-	}
-
 	// Require minimum voltage otherwise override connected status
 	if (_voltage_v < LITHIUM_BATTERY_RECOGNITION_VOLTAGE) {
 		_connected = false;
@@ -131,8 +117,12 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 		_last_unconnected_timestamp = timestamp;
 	}
 
-	// wait with initializing filters to avoid relying on a voltage sample from the rising edge
+	// Wait with initializing filters to avoid relying on a voltage sample from the rising edge
 	_battery_initialized = _connected && (timestamp > _last_unconnected_timestamp + 2_s);
+
+	if (_connected && !_battery_initialized && _internal_resistance_initialized && _params.n_cells > 0) {
+		resetInternalResistanceEstimation(_voltage_v, _current_a);
+	}
 
 	sumDischarged(timestamp, _current_a);
 	_state_of_charge_volt_based =
@@ -172,8 +162,9 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.internal_resistance_estimate = _internal_resistance_estimate;
 	battery_status.ocv_estimate = _voltage_v + _internal_resistance_estimate * _params.n_cells * _current_a;
 	battery_status.ocv_estimate_filtered = _ocv_filter_v.getState();
-	battery_status.volt_based_soc_estimate = math::interpolate(_ocv_filter_v.getState() / _params.n_cells,
-			_params.v_empty, _params.v_charged, 0.f, 1.f);
+	battery_status.volt_based_soc_estimate = _params.n_cells > 0 ? math::interpolate(_ocv_filter_v.getState() /
+			_params.n_cells,
+			_params.v_empty, _params.v_charged, 0.f, 1.f) : -1.f;
 	battery_status.voltage_prediction = _voltage_prediction;
 	battery_status.prediction_error = _prediction_error;
 	battery_status.estimation_covariance_norm = _estimation_covariance_norm;
@@ -397,6 +388,7 @@ float Battery::computeRemainingTime(float current_a)
 
 void Battery::updateParams()
 {
+	const int n_cells = _first_parameter_update ? 0 : _params.n_cells;
 	param_get(_param_handles.v_empty, &_params.v_empty);
 	param_get(_param_handles.v_charged, &_params.v_charged);
 	param_get(_param_handles.n_cells, &_params.n_cells);
@@ -407,6 +399,22 @@ void Battery::updateParams()
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
 	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);
+
+	if (n_cells != _params.n_cells) {
+		_internal_resistance_initialized = false;
+	}
+
+	if (!_internal_resistance_initialized && _params.n_cells > 0) {
+		_RLS_est(0) = OCV_DEFAULT * _params.n_cells;
+		_RLS_est(1) = R_DEFAULT * _params.n_cells;
+		_estimation_covariance(0, 0) = OCV_COVARIANCE * _params.n_cells;
+		_estimation_covariance(0, 1) = 0.f;
+		_estimation_covariance(1, 0) = 0.f;
+		_estimation_covariance(1, 1) = R_COVARIANCE * _params.n_cells;
+		_estimation_covariance_norm = sqrtf(powf(_estimation_covariance(0, 0), 2.f) + 2.f * powf(_estimation_covariance(1, 0),
+						    2.f) + powf(_estimation_covariance(1, 1), 2.f));
+		_internal_resistance_initialized = true;
+	}
 
 	ModuleParams::updateParams();
 
