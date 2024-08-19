@@ -117,12 +117,6 @@ void FeasibilityChecker::updateData()
 		_is_landed = land_detected.landed;
 	}
 
-	if (_vehicle_global_position_sub.updated()) {
-		vehicle_global_position_s vehicle_global_position = {};
-		_vehicle_global_position_sub.copy(&vehicle_global_position);
-		_current_position_lat_lon = matrix::Vector2d(vehicle_global_position.lat, vehicle_global_position.lon);
-	}
-
 	if (_rtl_status_sub.updated()) {
 		rtl_status_s rtl_status = {};
 		_rtl_status_sub.copy(&rtl_status);
@@ -630,30 +624,26 @@ bool FeasibilityChecker::hasMissionBothOrNeitherTakeoffAndLanding()
 bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
 	if (_param_mis_dist_1wp > FLT_EPSILON &&
-	    (_current_position_lat_lon.isAllFinite()) &&
+	    (_home_lat_lon.isAllFinite()) &&
 	    MissionBlock::item_contains_position(mission_item)) {
 
 		_first_waypoint_found = true;
 
-		float dist_to_1wp_from_current_pos = 1e6f;
+		float dist_to_1wp_from_home_pos = get_distance_to_next_waypoint(
+				mission_item.lat, mission_item.lon,
+				_home_lat_lon(0), _home_lat_lon(1));
 
-		if (_current_position_lat_lon.isAllFinite()) {
-			dist_to_1wp_from_current_pos = get_distance_to_next_waypoint(
-							       mission_item.lat, mission_item.lon,
-							       _current_position_lat_lon(0), _current_position_lat_lon(1));
-		}
-
-		if (dist_to_1wp_from_current_pos < _param_mis_dist_1wp) {
+		if (dist_to_1wp_from_home_pos < _param_mis_dist_1wp) {
 
 			return true;
 
 		} else {
 			/* item is too far from current position */
 			mavlink_log_critical(_mavlink_log_pub,
-					     "First waypoint too far away: %dm, %d max\t",
-					     (int)dist_to_1wp_from_current_pos, (int)_param_mis_dist_1wp);
+					     "First waypoint far away from home: %dm. Correct mission loaded?\t",
+					     (int)dist_to_1wp_from_home_pos);
 			events::send<uint32_t>(events::ID("navigator_mis_first_wp_far"), {events::Log::Warning, events::LogInternal::Info},
-					       "First waypoint far away: {1m} Correct mission loaded?", (uint32_t)dist_to_1wp_from_current_pos);
+					       "First waypoint far away from home: {1m} Correct mission loaded?", (uint32_t)dist_to_1wp_from_home_pos);
 
 			return false;
 		}

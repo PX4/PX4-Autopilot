@@ -91,7 +91,6 @@ private:
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _land_detector_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _rtl_status_sub{ORB_ID(rtl_status)};
 
 	// parameters
@@ -104,7 +103,6 @@ private:
 	float _home_alt_msl{NAN};
 	bool _has_vtol_approach{false};
 	matrix::Vector2d _home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	matrix::Vector2d _current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	VehicleType _vehicle_type{VehicleType::RotaryWing};
 
 	// internal flags to keep track of which checks failed
