@@ -1042,3 +1042,29 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_i
 		_mission_item.altitude_is_relative = false;
 	}
 }
+
+void MissionBlock::updateFailsafeChecks()
+{
+	updateMaxHaglFailsafe();
+}
+
+void MissionBlock::updateMaxHaglFailsafe()
+{
+	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+
+	if (_navigator->get_global_position()->terrain_alt_valid
+	    && ((target_alt - _navigator->get_global_position()->terrain_alt) > _navigator->get_local_position()->hagl_max)) {
+		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
+		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");
+
+		_navigator->trigger_hagl_failsafe(getNavigatorStateId());
+
+		// While waiting for a failsafe action from commander, keep the curren position
+		setLoiterItemFromCurrentPosition(&_mission_item);
+
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+
+		_navigator->set_position_setpoint_triplet_updated();
+	}
+}

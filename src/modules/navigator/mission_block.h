@@ -145,6 +145,8 @@ public:
 	void set_align_mission_item(struct mission_item_s *const mission_item,
 				    const struct mission_item_s *const mission_item_next) const;
 
+	void updateFailsafeChecks() override;
+
 protected:
 	/**
 	 * @brief heading mode for setting navigation items
@@ -249,4 +251,8 @@ protected:
 	bool _payload_deploy_ack_successful{false};	// Flag to keep track of whether we received an acknowledgement for a successful payload deployment
 	hrt_abstime _payload_deployed_time{0};		// Last payload deployment start time to handle timeouts
 	float _payload_deploy_timeout_s{0.0f};		// Timeout for payload deployment in Mission class, to prevent endless loop if successful deployment ack is never received
+
+private:
+	void updateMaxHaglFailsafe();
+
 };

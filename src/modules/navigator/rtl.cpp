@@ -283,10 +283,12 @@ void RTL::on_active()
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		_rtl_mission_type_handle->on_active();
+		_rtl_mission_type_handle->updateFailsafeChecks();
 		break;
 
 	case RtlType::RTL_DIRECT:
 		_rtl_direct.on_active();
+		_rtl_direct.updateFailsafeChecks();
 		break;
 
 	default:
@@ -528,13 +530,14 @@ float RTL::calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &
 	// avoid the vehicle touching the ground while still moving horizontally.
 	const float return_altitude_min_outside_acceptance_rad_amsl = rtl_position.alt + 2.0f * _param_nav_acc_rad.get();
 
-	float return_altitude_amsl = rtl_position.alt + _param_rtl_return_alt.get();
+	const float max_return_altitude = rtl_position.alt + _param_rtl_return_alt.get();
+
+	float return_altitude_amsl = max_return_altitude;
 
 	if (destination_dist <= _param_nav_acc_rad.get()) {
 		return_altitude_amsl = rtl_position.alt + 2.0f * destination_dist;
 
 	} else {
-
 		if (destination_dist <= _param_rtl_min_dist.get()) {
 
 			// constrain cone half angle to meaningful values. All other cases are already handled above.
@@ -549,7 +552,7 @@ float RTL::calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &
 		return_altitude_amsl = max(return_altitude_amsl, return_altitude_min_outside_acceptance_rad_amsl);
 	}
 
-	return max(return_altitude_amsl, _global_pos_sub.get().alt);
+	return constrain(return_altitude_amsl, _global_pos_sub.get().alt, max_return_altitude);
 }
 
 void RTL::init_rtl_mission_type()
