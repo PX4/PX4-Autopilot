@@ -42,7 +42,7 @@ jobs:
       # matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
       matrix:
         include:
-          - container: px4io/px4-dev-base:2023-06-26
+          - container: px4io/px4-dev-base-focal:2021-09-08
             targets: px4_sitl_allyes,px4_sitl_default,px4_sitl_zenoh
             arch: base
             group: base-0
