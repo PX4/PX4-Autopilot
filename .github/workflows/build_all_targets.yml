@@ -42,10 +42,10 @@ jobs:
       # matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
       matrix:
         include:
-          - container: px4io/px4-dev-armhf:2023-06-26
+          - container: px4io/px4-dev-base:2023-06-26
             targets: px4_sitl_allyes,px4_sitl_default,px4_sitl_zenoh
-            arch: armhf
-            group: armhf-0
+            arch: base
+            group: base-0
             len: 4
     container:
       image: ${{ matrix.container }}
@@ -93,7 +93,7 @@ jobs:
 
   sitl_tests:
     name: SITL Tests
-    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
+    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs:
       - setup
       - group_targets
@@ -120,8 +120,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: nuttx-base-ccache-${{ needs.group_targets.outputs.timestamp }}
-          restore-keys: nuttx-base-ccache-${{ needs.group_targets.outputs.timestamp }}
+          key: nuttx-base-0-ccache-${{ needs.group_targets.outputs.timestamp }}
+          restore-keys: nuttx-base-0-ccache-${{ needs.group_targets.outputs.timestamp }}
 
       - name: Cache Conf Config
         run: |
