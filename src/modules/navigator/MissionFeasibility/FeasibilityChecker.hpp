@@ -85,6 +85,11 @@ public:
 		       _takeoff_land_available_failed;
 	}
 
+	/**
+	 * @brief Reset all data
+	*/
+	void reset();
+
 private:
 	orb_advert_t *_mavlink_log_pub{nullptr};
 
@@ -132,11 +137,6 @@ private:
 	double _last_lat{(double)NAN};
 	double _last_lon{(double)NAN};
 	int _last_cmd{-1};
-
-	/**
-	 * @brief Reset all data
-	*/
-	void reset();
 
 	/**
 	 * @brief Update data from external topics, e.g home position

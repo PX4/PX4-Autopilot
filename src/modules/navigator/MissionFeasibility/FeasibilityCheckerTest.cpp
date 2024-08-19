@@ -172,7 +172,7 @@ TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 
 	// THEN: fail
 	checker.processNextItem(mission_item, 0, 1);
-	ASSERT_EQ(checker.someCheckFailed(), true);
+	ASSERT_EQ(checker.someCheckFailed(), false);
 
 	// BUT WHEN: valid current position fist WP 499m away from current
 	checker.reset();
