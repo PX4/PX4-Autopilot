@@ -203,7 +203,7 @@ int board_determine_hw_info(void)
 	orb_copy(ORB_ID(guid), guid_sub, &guid);
 	orb_unsubscribe(guid_sub);
 
-	memcpy(device_serial_number, &guid, min(sizeof(device_serial_number), sizeof(guid)));
+	memcpy(device_serial_number, guid.mfguid, min(sizeof(device_serial_number), sizeof(guid.mfguid)));
 
 	return 0;
 }
