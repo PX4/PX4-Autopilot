@@ -189,6 +189,13 @@ jobs:
         run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json --verbose
         timeout-minutes: 45
 
+      - name: Upload failed logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.config.model}}-logs
+          path: logs/**/**/**/*.log # logs/date/vehicle/test/*.logs
+
       - name: Look at Core files
         if: failure()
         run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
