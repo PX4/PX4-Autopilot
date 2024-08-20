@@ -34,11 +34,15 @@
 #ifndef HIL_ACTUATOR_CONTROLS_HPP
 #define HIL_ACTUATOR_CONTROLS_HPP
 
+#include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_test.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 
 class MavlinkStreamHILActuatorControls : public MavlinkStream, ModuleParams
 {
@@ -63,19 +67,37 @@ private:
 	{
 		_act_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 
+		int32_t rover_type = -1;
+		param_get(param_find("RI_ROVER_TYPE"), &rover_type);
+
+		if (rover_type >= 0) {
+			param_get(param_find("GND_SPEED_MAX"), &_rover_max_speed);
+			_rover_thrust_sub = uORB::Subscription{ORB_ID(vehicle_thrust_setpoint)};
+			_rover_torque_sub = uORB::Subscription{ORB_ID(vehicle_torque_setpoint)};
+			_is_rover = true;
+		}
+
 		for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; ++i) {
 			char param_name[17];
-			snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", "HIL_ACT", "FUNC", i + 1);
 			param_get(param_find(param_name), &_output_functions[i]);
 		}
 	}
 
 	uORB::Subscription _act_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _act_test_sub{ORB_ID(actuator_test)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _rover_thrust_sub;
+	uORB::Subscription _rover_torque_sub;
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
 	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
+
+	bool _is_rover{false};
+	float _rover_max_speed{0.0f};
+	float _rover_thrust_control{0.0f};
+	float _rover_torque_control{0.0f};
 
 	void send_esc_telemetry(mavlink_hil_actuator_controls_t &hil_act_control, vehicle_status_s &vehicle_status)
 	{
@@ -84,14 +106,14 @@ private:
 		const int max_esc_count = math::min(actuator_outputs_s::NUM_ACTUATOR_OUTPUTS, esc_status_s::CONNECTED_ESC_MAX);
 
 		const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-		int max_esc_index = 0;
 
 		for (int i = 0; i < max_esc_count; i++) {
-			if (_output_functions[i] != 0) {
-				max_esc_index = i;
+			if (_output_functions[i] == 0 || _output_functions[i] < (int)OutputFunction::Motor1
+			    || _output_functions[i] > (int)OutputFunction::MotorMax) {
+				return;
 			}
 
-			esc_status.esc[i].actuator_function = _output_functions[i]; // TODO: this should be in pwm_sim...
+			esc_status.esc[i].actuator_function = _output_functions[i];
 			esc_status.esc[i].timestamp = esc_status.timestamp;
 			esc_status.esc[i].esc_errorcount = 0; // TODO
 			esc_status.esc[i].esc_voltage = 11.1f + math::abs_t(hil_act_control.controls[i]) * 3.0f; // TODO: magic number
@@ -99,25 +121,69 @@ private:
 							0.0f; // TODO: magic number
 			esc_status.esc[i].esc_rpm = hil_act_control.controls[i] * 6000;  // TODO: magic number
 			esc_status.esc[i].esc_temperature = 20.0f + math::abs_t(hil_act_control.controls[i]) * 40.0f;
+			esc_status.esc_count += 1;
 		}
 
-		esc_status.esc_count = max_esc_index + 1;
 		esc_status.esc_armed_flags = (1u << esc_status.esc_count) - 1;
 		esc_status.esc_online_flags = (1u << esc_status.esc_count) - 1;
 
 		_esc_status_pub.publish(esc_status);
 	}
 
+	bool updateRoverCmdVel()
+	{
+		if (_is_rover) {
+			bool do_update = false;
+
+			// Check torque setppoint update
+			if (_rover_torque_sub.updated()) {
+				vehicle_torque_setpoint_s vehicle_torque_setpoint_msg;
+
+				if (_rover_torque_sub.copy(&vehicle_torque_setpoint_msg)) {
+					_rover_torque_control = vehicle_torque_setpoint_msg.xyz[2];
+					do_update = true;
+				}
+			}
+
+			// Check thrust setpoint update
+			if (_rover_thrust_sub.updated()) {
+				vehicle_thrust_setpoint_s vehicle_thrust_setpoint_msg;
+
+				if (_rover_thrust_sub.copy(&vehicle_thrust_setpoint_msg)) {
+					/**
+					 * On physical rover the max speed scale back is only for mission mode
+					 * But here, we simplify the logic and apply the scale back for both
+					 * manual and mission mode
+					 */
+					_rover_thrust_control = vehicle_thrust_setpoint_msg.xyz[0] * _rover_max_speed;
+					do_update = true;
+				}
+			}
+
+			return do_update ? true : false;
+
+		} else {
+			return false;
+		}
+	}
+
 	bool send() override
 	{
 		actuator_outputs_s act;
 
-		if (_act_sub.update(&act)) {
+		if (_act_sub.update(&act) || updateRoverCmdVel()) {
 			mavlink_hil_actuator_controls_t msg{};
 			msg.time_usec = act.timestamp;
 
-			for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
-				msg.controls[i] = act.output[i];
+			if (_is_rover) {
+				// Use last two control inputs for rover vel cmd
+				msg.controls[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS - 1] = _rover_thrust_control;
+				msg.controls[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS - 2] = _rover_torque_control;
+
+			} else {
+				for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
+					msg.controls[i] = act.output[i];
+				}
 			}
 
 			// mode (MAV_MODE_FLAG)
@@ -155,11 +221,30 @@ private:
 				}
 			}
 
-			msg.flags = 0;
+			actuator_test_s actuator_test;
+
+			if (_act_test_sub.copy(&actuator_test)) {
+				if (actuator_test.action != 0) {
+					msg.mode |= MAV_MODE_FLAG_TEST_ENABLED;
+				}
+			}
+
+			// [custom use of flag] depending on OutputFunction, if output function is motor type, set bit in bitfield
+			uint64_t flags = 0;
+
+			for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
+				if (_output_functions[i] >= (int)OutputFunction::Motor1 && _output_functions[i] <= (int)OutputFunction::MotorMax) {
+					flags |= (1ULL << i);
+				}
+			}
+
+			msg.flags = flags;
 
 			mavlink_msg_hil_actuator_controls_send_struct(_mavlink->get_channel(), &msg);
 
-			send_esc_telemetry(msg, status);
+			if (!_is_rover) {
+				send_esc_telemetry(msg, status);
+			}
 
 			return true;
 		}

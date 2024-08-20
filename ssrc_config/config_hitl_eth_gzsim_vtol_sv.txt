@@ -1,0 +1,120 @@
+# Default parameter set for HITL with ethernet Gazebo Sim connection on standard VTOL
+# [ type: hitl_eth_gzsim ]
+
+param set SYS_AUTOSTART 13000
+param set SYS_AUTOCONFIG 0
+
+####################################
+# general HITL configuration
+####################################
+
+# Set HITL related flag
+param set SYS_HITL 1
+param set MAV_HITL_SHOME 1
+param set SENS_EN_GPSSIM 1
+param set SENS_EN_BAROSIM 1
+param set SENS_EN_MAGSIM 1
+param set SENS_EN_ARSPDSIM 1
+
+# Disable safety switch
+param set COM_PREARM_MODE 0
+param set CBRK_IO_SAFETY 22027
+
+# Disable RC loss failsafe check
+param set NAV_RCL_ACT 0
+
+# Disable RC input requirement
+param set COM_RC_IN_MODE 1
+
+# EKF2
+param set EKF2_MULTI_IMU 1
+
+####################################
+# specific vtol HITL configuration
+####################################
+
+# HITL PWM functions
+param set HIL_ACT_FUNC1 101
+param set HIL_ACT_MIN1 10
+param set HIL_ACT_MAX1 1500
+param set HIL_ACT_FUNC2 102
+param set HIL_ACT_MIN2 10
+param set HIL_ACT_MAX2 1500
+param set HIL_ACT_FUNC3 103
+param set HIL_ACT_MIN3 10
+param set HIL_ACT_MAX3 1500
+param set HIL_ACT_FUNC4 104
+param set HIL_ACT_MIN4 10
+param set HIL_ACT_MAX4 1500
+param set HIL_ACT_FUNC5 105
+param set HIL_ACT_MIN5 0
+param set HIL_ACT_MAX5 3500
+param set HIL_ACT_FUNC6 201
+param set HIL_ACT_DIS6 500
+param set HIL_ACT_FUNC7 202
+param set HIL_ACT_DIS7 500
+param set HIL_ACT_FUNC8 203
+param set HIL_ACT_DIS8 500
+
+
+# Control allocator parameters
+param set CA_ROTOR_COUNT 5
+param set CA_ROTOR0_PX 0.1515
+param set CA_ROTOR0_PY 0.245
+param set CA_ROTOR0_KM 0.05
+param set CA_ROTOR1_PX -0.1515
+param set CA_ROTOR1_PY -0.1875
+param set CA_ROTOR1_KM 0.05
+param set CA_ROTOR2_PX 0.1515
+param set CA_ROTOR2_PY -0.245
+param set CA_ROTOR2_KM -0.05
+param set CA_ROTOR3_PX -0.1515
+param set CA_ROTOR3_PY 0.1875
+param set CA_ROTOR3_KM -0.05
+param set CA_ROTOR4_AX 1.0
+param set CA_ROTOR4_AZ 0.0
+param set CA_ROTOR4_PX 0.2
+
+param set CA_SV_CS_COUNT 3
+param set CA_SV_CS0_TYPE 1
+param set CA_SV_CS0_TRQ_R -0.5
+param set CA_SV_CS1_TYPE 2
+param set CA_SV_CS1_TRQ_R 0.5
+param set CA_SV_CS2_TYPE 3
+param set CA_SV_CS2_TRQ_P 1.0
+param set CA_SV_CS3_TRQ_Y 0.0
+param set CA_SV_CS3_TYPE 0
+
+# Airspeed parameters
+param set ASPD_PRIMARY 1
+
+param set FW_PR_FF 0.2
+param set FW_PR_P 0.9
+param set FW_PSP_OFF 2.0
+param set FW_P_LIM_MIN -15.0
+param set FW_RR_FF 0.1
+param set FW_RR_P 0.3
+param set FW_THR_TRIM 0.25
+param set FW_THR_MAX 0.6
+param set FW_THR_MIN 0.05
+param set FW_T_CLMB_MAX 8.0
+param set FW_T_SINK_MAX 2.7
+param set FW_T_SINK_MIN 2.2
+
+param set MC_AIRMODE 1
+param set MC_ROLLRATE_P 0.3
+param set MC_YAW_P 1.6
+
+param set MIS_TAKEOFF_ALT 10.0
+
+param set MPC_XY_P 0.8
+param set MPC_XY_VEL_P_ACC 3.0
+param set MPC_XY_VEL_I_ACC 4.0
+param set MPC_XY_VEL_D_ACC 0.1
+
+param set NAV_ACC_RAD 5.0
+
+param set VT_FWD_THRUST_EN 4
+param set VT_F_TRANS_THR 0.75
+param set VT_TYPE 2
+param set FD_ESCS_EN 0

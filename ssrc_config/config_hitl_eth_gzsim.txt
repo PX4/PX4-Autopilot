@@ -1,4 +1,5 @@
 # Default parameter set for HITL with ethernet Gazebo Sim connection (partly derived from indoor flying parameters)
+# Currently this is used for FC only HITL with ssrc holybro x500 airframe
 # [ type: hitl_eth_gzsim ]
 
 #####################################

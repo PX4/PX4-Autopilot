@@ -44,10 +44,15 @@
 PWMSim::PWMSim(bool hil_mode_enabled) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	_mixing_output.setAllDisarmedValues(PWM_SIM_DISARMED_MAGIC);
-	_mixing_output.setAllFailsafeValues(PWM_SIM_FAILSAFE_MAGIC);
-	_mixing_output.setAllMinValues(PWM_SIM_PWM_MIN_MAGIC);
-	_mixing_output.setAllMaxValues(PWM_SIM_PWM_MAX_MAGIC);
+	for (int i = 0; i < MAX_ACTUATORS; ++i) {
+		char param_name[17];
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "MIN", i + 1);
+		param_get(param_find(param_name), &_pwm_min[i]);
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "MAX", i + 1);
+		param_get(param_find(param_name), &_pwm_max[i]);
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "DIS", i + 1);
+		param_get(param_find(param_name), &_pwm_disarmed[i]);
+	}
 
 	_mixing_output.setIgnoreLockdown(hil_mode_enabled);
 }
@@ -69,7 +74,7 @@ bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], un
 		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
 
 		for (int i = 0; i < (int)num_outputs; i++) {
-			if (outputs[i] != PWM_SIM_DISARMED_MAGIC) {
+			if (outputs[i] != _pwm_disarmed[i]) {
 
 				OutputFunction function = _mixing_output.outputFunction(i);
 				bool is_reversible = reversible_outputs & (1u << i);
@@ -78,12 +83,12 @@ bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], un
 				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax)
 				    && !is_reversible) {
 					// Scale non-reversible motors to [0, 1]
-					actuator_outputs.output[i] = (output - PWM_SIM_PWM_MIN_MAGIC) / (PWM_SIM_PWM_MAX_MAGIC - PWM_SIM_PWM_MIN_MAGIC);
+					actuator_outputs.output[i] = (output - _pwm_min[i]) / (_pwm_max[i] - _pwm_min[i]);
 
 				} else {
 					// Scale everything else to [-1, 1]
-					const float pwm_center = (PWM_SIM_PWM_MAX_MAGIC + PWM_SIM_PWM_MIN_MAGIC) / 2.f;
-					const float pwm_delta = (PWM_SIM_PWM_MAX_MAGIC - PWM_SIM_PWM_MIN_MAGIC) / 2.f;
+					const float pwm_center = (_pwm_max[i] + _pwm_min[i]) / 2.f;
+					const float pwm_delta = (_pwm_max[i] - _pwm_min[i]) / 2.f;
 					actuator_outputs.output[i] = (output - pwm_center) / pwm_delta;
 				}
 			}
@@ -177,7 +182,7 @@ int PWMSim::print_usage(const char *reason)
 ### Description
 Driver for simulated PWM outputs.
 
-Its only function is to take `actuator_control` uORB messages,
+Its only function is to take `actuator_motors` and `actuator_servos` uORB messages,
 mix them with any loaded mixer and output the result to the
 `actuator_output` uORB topic.
 

@@ -40,7 +40,6 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <lib/airspeed/airspeed.h>
 #include <lib/conversion/rotation.h>
 #include <lib/systemlib/px4_macros.h>
 
@@ -2660,15 +2659,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	const double dt = math::constrain((timestamp_sample - _hil_timestamp_prev) * 1e-6, 0.001, 0.1);
 	_hil_timestamp_prev = timestamp_sample;
-
-	/* airspeed */
-	airspeed_s airspeed{};
-	airspeed.timestamp_sample = timestamp_sample;
-	airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
-	airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
-	airspeed.air_temperature_celsius = 15.f;
-	airspeed.timestamp = hrt_absolute_time();
-	_airspeed_pub.publish(airspeed);
 
 	/* Receive attitude quaternion from gz-sim and publish vehicle attitude
 	 * groundtruth and angular velocity ground truth

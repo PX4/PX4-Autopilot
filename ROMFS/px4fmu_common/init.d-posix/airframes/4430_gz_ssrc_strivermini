@@ -24,7 +24,12 @@ PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=strivermini}
 
 param set-default SIM_GZ_EN 1
-param set-default SIM_GZ_RUN_GZSIM 0
+param set-default SIM_GZ_SHOME 1
+if [ "$PX4_RUN_GZSIM" = "0" ]; then
+  param set-default SIM_GZ_RUN_GZSIM 0
+else
+  param set-default SIM_GZ_RUN_GZSIM 1
+fi
 
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
@@ -142,7 +147,7 @@ param set-default VT_F_TRANS_DUR 6.0
 param set-default VT_F_TRANS_THR 1.0
 
 # VTOL takeoff
-param set-default VTO_LOITER_ALT 20
+param set-default VTO_LOITER_ALT 20.0
 
 param set-default MC_AIRMODE 0
 param set-default MC_ROLLRATE_P 0.14

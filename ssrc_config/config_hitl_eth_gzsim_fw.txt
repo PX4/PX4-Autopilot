@@ -1,0 +1,107 @@
+# Default parameter set for HITL with ethernet Gazebo Sim connection on Skywalker X8 FW
+# [ type: hitl_eth_gzsim ]
+
+param set SYS_AUTOSTART 4421
+param set SYS_AUTOCONFIG 0
+
+####################################
+# general HITL configuration
+####################################
+
+# Set HITL related flag
+param set SYS_HITL 1
+param set MAV_HITL_SHOME 1
+param set SENS_EN_GPSSIM 1
+param set SENS_EN_BAROSIM 1
+param set SENS_EN_MAGSIM 1
+param set SENS_EN_ARSPDSIM 1
+
+# Disable safety switch
+param set COM_PREARM_MODE 0
+param set CBRK_IO_SAFETY 22027
+
+# Disable RC loss failsafe check
+param set NAV_RCL_ACT 0
+
+# Disable RC input requirement
+param set COM_RC_IN_MODE 1
+
+# EKF2
+param set EKF2_MULTI_IMU 1
+
+####################################
+# specific fw HITL configuration
+####################################
+
+# Override airframe defaults
+param set ASPD_DO_CHECKS 7
+param set FW_LAUN_DETCN_ON 0
+
+# HITL PWM functions
+param set HIL_ACT_FUNC1 201
+param set HIL_ACT_DIS1 500
+param set HIL_ACT_FUNC2 202
+param set HIL_ACT_DIS2 500
+param set HIL_ACT_FUNC4 101
+param set HIL_ACT_MIN4 150
+param set HIL_ACT_MAX4 3000
+
+# Control allocator parameters
+param set CA_AIRFRAME 1
+param set CA_ROTOR_COUNT 1
+param set CA_SV_CS_COUNT 2
+param set CA_SV_CS0_TYPE 5
+param set CA_SV_CS0_TRQ_P 0.5
+param set CA_SV_CS0_TRQ_R -0.5
+param set CA_SV_CS1_TYPE 6
+param set CA_SV_CS1_TRQ_P 0.5
+param set CA_SV_CS1_TRQ_R 0.5
+
+# Airspeed parameters
+param set ASPD_PRIMARY 1
+
+# Maximum landing slope angle in deg
+param set FW_LND_ANG 8.0
+
+# RC loss failsafe to HOLD mode
+param set COM_RC_IN_MODE 1
+
+# Maximum manual roll angle
+param set FW_MAN_R_MAX 60.0
+
+# Fixed wing control
+# Pitch rate
+param set FW_PR_P 0.9
+param set FW_PR_FF 0.5
+param set FW_PR_I 0.5
+param set TRIM_PITCH -0.15
+# Pitch angle in deg
+param set FW_PSP_OFF 0.0
+param set FW_P_LIM_MIN -15.0
+# Roll rate
+param set FW_RR_FF 0.5
+param set FW_RR_P 0.3
+param set FW_RR_I 0.5
+# Yaw rate
+param set FW_YR_FF 0.5
+param set FW_YR_P 0.6
+param set FW_YR_I 0.5
+#Throttle limit
+param set FW_THR_MAX 0.6
+param set FW_THR_MIN 0.05
+param set FW_THR_TRIM 0.25
+# Climb and sink rate
+param set FW_T_CLMB_MAX 8.0
+param set FW_T_SINK_MAX 2.7
+param set FW_T_SINK_MIN 2.2
+
+# Navigation
+param set NAV_ACC_RAD 15.0
+param set NAV_DLL_ACT 2
+
+# Misc
+param set RTL_RETURN_ALT 30.0
+param set RTL_DESCEND_ALT 30.0
+param set FW_LND_USETER 0
+param set RWTO_TKOFF 1
+param set FD_ESCS_EN 0
