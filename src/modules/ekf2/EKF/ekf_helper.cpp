@@ -72,63 +72,97 @@ bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &lo
 	return _NED_origin_initialised;
 }
 
+bool Ekf::checkLatLonValidity(const double latitude, const double longitude, const float eph)
+{
+	const bool lat_valid = (PX4_ISFINITE(latitude) && (abs(latitude) <= 90));
+	const bool lon_valid = (PX4_ISFINITE(longitude) && (abs(longitude) <= 180));
+	const bool eph_valid = (PX4_ISFINITE(eph) && (eph >= 0.f));
+
+	return (lat_valid && lon_valid && eph_valid);
+}
+
+bool Ekf::checkAltitudeValidity(const float altitude, const float epv)
+{
+	// sanity check valid altitude anywhere between the Mariana Trench and edge of Space
+	const bool alt_valid = (PX4_ISFINITE(altitude) && ((altitude > -12'000.f) && (altitude < 100'000.f)));
+	const bool epv_valid = (PX4_ISFINITE(epv) && (epv >= 0.f));
+
+	return alt_valid && epv_valid;
+}
+
 bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude, const float eph,
 			     const float epv)
 {
-	// sanity check valid latitude/longitude and altitude anywhere between the Mariana Trench and edge of Space
-	if (PX4_ISFINITE(latitude) && (abs(latitude) <= 90)
-	    && PX4_ISFINITE(longitude) && (abs(longitude) <= 180)
-	    && PX4_ISFINITE(altitude) && (altitude > -12'000.f) && (altitude < 100'000.f)
-	   ) {
-		bool current_pos_available = false;
-		double current_lat = static_cast<double>(NAN);
-		double current_lon = static_cast<double>(NAN);
-
-		// if we are already doing aiding, correct for the change in position since the EKF started navigating
-		if (_pos_ref.isInitialized() && isHorizontalAidingActive()) {
-			_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
-			current_pos_available = true;
-		}
-
-		const float gps_alt_ref_prev = _gps_alt_ref;
-
-		// reinitialize map projection to latitude, longitude, altitude, and reset position
-		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
-		_gps_alt_ref = altitude;
-
-		updateWmm(current_lat, current_lon);
-
-		_gpos_origin_eph = eph;
-		_gpos_origin_epv = epv;
-
-		_NED_origin_initialised = true;
-
-		if (current_pos_available) {
-			// reset horizontal position if we already have a global origin
-			Vector2f position = _pos_ref.project(current_lat, current_lon);
-			resetHorizontalPositionTo(position);
-		}
-
-		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
-			// determine current z
-			const float z_prev = _state.pos(2);
-			const float current_alt = -z_prev + gps_alt_ref_prev;
-#if defined(CONFIG_EKF2_GNSS)
-			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
-#endif // CONFIG_EKF2_GNSS
-			resetVerticalPositionTo(_gps_alt_ref - current_alt);
-			ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev,
-				  (double)_state.pos(2));
-#if defined(CONFIG_EKF2_GNSS)
-			// adjust existing GPS height bias
-			_gps_hgt_b_est.setBias(gps_hgt_bias);
-#endif // CONFIG_EKF2_GNSS
-		}
-
-		return true;
+	if (!setLatLonOrigin(latitude, longitude, eph)) {
+		return false;
 	}
 
-	return false;
+	// altitude is optional
+	setAltOrigin(altitude, epv);
+
+	return true;
+}
+
+bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const float eph)
+{
+	if (!checkLatLonValidity(latitude, longitude, eph)) {
+		return false;
+	}
+
+	bool current_pos_available = false;
+	double current_lat = static_cast<double>(NAN);
+	double current_lon = static_cast<double>(NAN);
+
+	// if we are already doing aiding, correct for the change in position since the EKF started navigating
+	if (_pos_ref.isInitialized() && isHorizontalAidingActive()) {
+		_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
+		current_pos_available = true;
+	}
+
+	// reinitialize map projection to latitude, longitude, altitude, and reset position
+	_pos_ref.initReference(latitude, longitude, _time_delayed_us);
+	_gpos_origin_eph = eph;
+
+	_NED_origin_initialised = true;
+
+	updateWmm(current_lat, current_lon);
+
+	if (current_pos_available) {
+		// reset horizontal position if we already have a global origin
+		Vector2f position = _pos_ref.project(current_lat, current_lon);
+		resetHorizontalPositionTo(position);
+	}
+
+	return true;
+}
+
+bool Ekf::setAltOrigin(const float altitude, const float epv)
+{
+	if (!checkAltitudeValidity(altitude, epv)) {
+		return false;
+	}
+
+	const float gps_alt_ref_prev = _gps_alt_ref;
+	_gps_alt_ref = altitude;
+	_gpos_origin_epv = epv;
+
+	if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
+		// determine current z
+		const float z_prev = _state.pos(2);
+		const float current_alt = -z_prev + gps_alt_ref_prev;
+#if defined(CONFIG_EKF2_GNSS)
+		const float gps_hgt_bias = _gps_hgt_b_est.getBias();
+#endif // CONFIG_EKF2_GNSS
+		resetVerticalPositionTo(_gps_alt_ref - current_alt);
+		ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev,
+			  (double)_state.pos(2));
+#if defined(CONFIG_EKF2_GNSS)
+		// adjust existing GPS height bias
+		_gps_hgt_b_est.setBias(gps_hgt_bias);
+#endif // CONFIG_EKF2_GNSS
+	}
+
+	return true;
 }
 
 void Ekf::updateWmm(const double lat, const double lon)
