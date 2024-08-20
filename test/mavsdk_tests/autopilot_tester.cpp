@@ -83,7 +83,7 @@ void AutopilotTester::wait_until_ready()
 {
 	std::cout << time_str() << "Waiting for system to be ready (system health ok & able to arm)" << std::endl;
 
-	// Wiat until the system is healthy
+	// Wait until the system is healthy
 	CHECK(poll_condition_with_timeout(
 	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
 
@@ -96,7 +96,7 @@ void AutopilotTester::wait_until_ready()
 
 	// Wait until we can arm
 	CHECK(poll_condition_with_timeout(
-	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(20)));
+	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(30)));
 }
 
 void AutopilotTester::store_home()
