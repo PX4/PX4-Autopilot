@@ -64,27 +64,31 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 
 		updateEvAttitudeErrorFilter(ev_sample, ev_reset);
 
-		ExternalVisionVel *ev_vel = nullptr;
+		controlEvYawFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
 
 		switch (ev_sample.vel_frame) {
-		case VelocityFrame::BODY_FRAME_FRD:
-			ev_vel = new BodyFrameEV(*this, ev_sample, imu_sample);
-			break;
+		case VelocityFrame::BODY_FRAME_FRD: {
+				BodyFrameEV ev_vel_body(*this, ev_sample, imu_sample);
+				controlEvVelFusion(ev_vel_body, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
 
-		case VelocityFrame::LOCAL_FRAME_NED:
-			ev_vel = new NEDLocalFrameEV(*this, ev_sample, imu_sample);
-			break;
+		case VelocityFrame::LOCAL_FRAME_NED: {
+				NEDLocalFrameEV ev_vel_ned(*this, ev_sample, imu_sample);
+				controlEvVelFusion(ev_vel_ned, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
 
-		case VelocityFrame::LOCAL_FRAME_FRD:
-			ev_vel = new FRDLocalFrameEV(*this, ev_sample, imu_sample);
-			break;
+		case VelocityFrame::LOCAL_FRAME_FRD: {
+				FRDLocalFrameEV ev_vel_frd(*this, ev_sample, imu_sample);
+				controlEvVelFusion(ev_vel_frd, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
 
 		default:
 			return;
 		}
 
-		controlEvYawFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
-		controlEvVelFusion(*ev_vel, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 		controlEvPosFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_pos);
 		controlEvHeightFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient,
 				      _aid_src_ev_hgt);
@@ -92,8 +96,6 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 		if (quality_sufficient) {
 			_ev_sample_prev = ev_sample;
 		}
-
-		delete ev_vel;
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.ev_yaw
 		    || _control_status.flags.ev_hgt)
