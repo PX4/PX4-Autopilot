@@ -1,3 +1,9 @@
+# NOTE: this workflow is now running on Dronecode / PX4 AWS account.
+# - For questions about this setup please reach out to rroche@linuxfoundation.org
+# - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
+#   and comment the "runs-on: [runs-on,runner=..." lines.
+# - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
+
 name: Build all targets
 
 on:
@@ -14,6 +20,7 @@ on:
 jobs:
   group_targets:
     name: Scan for Board Targets
+    # runs-on: ubuntu-latest
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -34,6 +41,7 @@ jobs:
 
   setup:
     name: ${{ matrix.group }}
+    # runs-on: ubuntu-latest
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
     strategy:
