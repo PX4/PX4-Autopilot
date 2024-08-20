@@ -424,7 +424,7 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
+void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
