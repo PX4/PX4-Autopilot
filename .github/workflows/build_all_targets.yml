@@ -194,6 +194,7 @@ jobs:
         run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
 
       - name: Setup tmate session
+        if: failure()
         uses: mxschmitt/action-tmate@v3
 
       - name: Upload PX4 coredump
