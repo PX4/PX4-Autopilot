@@ -1063,7 +1063,7 @@ private:
 	void resetMagStates(const Vector3f &mag, bool reset_heading = true);
 	bool haglYawResetReq();
 
-	void checkMagHeadingConsistency(const magSample &mag_sample);
+	void checkMagHeadingConsistency(const Vector3f &mag);
 
 	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);

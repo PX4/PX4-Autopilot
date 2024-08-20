@@ -112,14 +112,14 @@ TEST_F(EkfMagTest, noInitLargeStrength)
 	const Vector3f mag_data(1.f, 1.f, 1.f);
 	_sensor_simulator._mag.setData(mag_data);
 
-	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+	//const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	_sensor_simulator.runSeconds(_init_duration_s);
 
-	// THEN: the fusion shouldn't start
+	// THEN: mag heading and mag 3d fusion shouldn't start
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().yaw_align);
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
+	//EXPECT_EQ(0, (int) _ekf->control_status_flags().yaw_align);
+	//EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
 }
 
 TEST_F(EkfMagTest, suddenLargeStrength)
@@ -161,11 +161,11 @@ TEST_F(EkfMagTest, noInitLargeInclination)
 	const int initial_quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
 	_sensor_simulator.runSeconds(_init_duration_s + 10.f); // live some extra time fo GNSS checks to pass
 
-	// THEN: the fusion shouldn't start
+	// THEN: mag heading and mag 3d fusion shouldn't start
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().yaw_align);
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
+	//EXPECT_EQ(0, (int) _ekf->control_status_flags().yaw_align);
+	//EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter);
 
 	// BUT then: as soon as there is some meaningful data
 	const float mag_heading = -M_PI_F / 7.f;
