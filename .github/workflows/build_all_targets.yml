@@ -35,8 +35,8 @@ jobs:
         run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
   setup:
-    name: ${{ matrix.group }}
-    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
+    name: Building ${{ matrix.group }}
+    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
@@ -92,7 +92,7 @@ jobs:
         run: ccache -s
 
   sitl_tests:
-    name: SITL Tests
+    name: Running SITL Tests
     runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs:
       - setup
@@ -192,6 +192,9 @@ jobs:
       - name: Look at Core files
         if: failure()
         run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       - name: Upload PX4 coredump
         if: failure()
