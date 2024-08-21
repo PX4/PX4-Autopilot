@@ -1,11 +1,11 @@
 /*************************************************************************//**
  * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Provides status codes for the AFBR-S50 API.
+ * @brief       This file is part of the AFBR-S50 API.
+ * @details     Provides status codes for the AFBR-S50 API.
  *
  * @copyright
  *
- * Copyright (c) 2021, Broadcom Inc
+ * Copyright (c) 2023, Broadcom Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,25 +36,32 @@
 
 #ifndef ARGUS_STATUS_H
 #define ARGUS_STATUS_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 
 /*!***************************************************************************
- * @defgroup    status Status Codes
+ * @defgroup    argus_status Status Codes
+ * @ingroup     argus
+ *
  * @brief       Status and Error Code Definitions
+ *
  * @details     Defines status and error codes for function return values.
  *              Basic status number structure:
  *              - 0 is OK or no error.
  *              - negative values determine errors.
  *              - positive values determine warnings or status information.
  *              .
- * @addtogroup  status
+ *
+ * @addtogroup  argus_status
  * @{
  *****************************************************************************/
 
 /*!***************************************************************************
- * @brief  	Type used for all status and error return values.
- * @details	Basic status number structure:
+ * @brief   Type used for all status and error return values.
+ * @details Basic status number structure:
  *           - 0 is OK or no error.
  *           - negative values determine errors.
  *           - positive values determine warnings or status information.
@@ -138,8 +145,8 @@ enum Status {
 	 ********** NVM / Flash  Layer Status *********************************************************
 	 *********************************************************************************************/
 
-	/*! -98: Flash Error: The version of the settings in the flash memory is not compatible. */
-	ERROR_NVM_INVALID_FILE_VERSION = -98,
+	/*! -98: Flash Error: The read memory block was not written previously and contains no data. */
+	ERROR_NVM_EMPTY = -98,
 
 	/*! -99: Flash Error: The memory is out of range. */
 	ERROR_NVM_OUT_OF_RANGE = -99,
@@ -183,6 +190,13 @@ enum Status {
 	/*! -102: AFBR-S50 Error: Inconsistent configuration parameters. */
 	ERROR_ARGUS_INVALID_CFG = -102,
 
+	/*! -103: AFBR-S50 Error: The evaluation function has been called but no
+	 *  raw data is available yet.
+	 *  See also #Argus_EvaluateData for more information. */
+	ERROR_ARGUS_BUFFER_EMPTY = -103,
+
+	/*! -104: AFBR-S50 Error: Invalid slave identifier is passed to the module. */
+	ERROR_ARGUS_INVALID_SLAVE = -104,
 
 	/*! -105: AFBR-S50 Error: Invalid measurement mode configuration parameter. */
 	ERROR_ARGUS_INVALID_MODE = -105,
@@ -190,7 +204,6 @@ enum Status {
 	/*! -107: AFBR-S50 Error: The APD bias voltage is reinitializing due to a dropout.
 	 *  The current measurement data set is invalid! */
 	ERROR_ARGUS_BIAS_VOLTAGE_REINIT = -107,
-
 
 	/*! -109: AFBR-S50 Error: The EEPROM readout has failed. The failure is detected
 	 *  by three distinct read attempts, each resulting in invalid data.
@@ -224,7 +237,6 @@ enum Status {
 	 *  requested command. */
 	ERROR_ARGUS_BUSY = -191,
 
-
 	/*! -199: AFBR-S50 Error: Unknown module number. */
 	ERROR_ARGUS_UNKNOWN_MODULE = -199,
 
@@ -235,23 +247,21 @@ enum Status {
 	ERROR_ARGUS_UNKNOWN_LASER = -197,
 
 
+	/*! 191: AFBR-S50 Status (internal): The device is currently busy with testing the
+	 *  SPI connection to the device. */
+	STATUS_ARGUS_BUSY_TEST = 191,
 
-	/*! 193: AFBR-S50 Status (internal): The device is currently busy with updating the
-	 *  configuration (i.e. with writing register values). */
-	STATUS_ARGUS_BUSY_CFG_UPDATE = 193,
-
-	/*! 194: AFBR-S50 Status (internal): The device is currently busy with updating the
-	 *  calibration data (i.e. writing to register values). */
-	STATUS_ARGUS_BUSY_CAL_UPDATE = 194,
+	/*! 192: AFBR-S50 Status (internal): The device is currently busy with updating the
+	 *  settings parameter (i.e. with writing register values). */
+	STATUS_ARGUS_BUSY_UPDATE = 192,
 
 	/*! 195: AFBR-S50 Status (internal): The device is currently executing a calibration
-	 * 	sequence. */
+	 *  sequence. */
 	STATUS_ARGUS_BUSY_CAL_SEQ = 195,
 
 	/*! 196: AFBR-S50 Status (internal): The device is currently executing a measurement
 	 *  cycle. */
 	STATUS_ARGUS_BUSY_MEAS = 196,
-
 
 	/*! 100: AFBR-S50 Status (internal): The ASIC is initializing a new measurement, i.e.
 	 *  a register value is written that starts an integration cycle on the ASIC. */
@@ -260,9 +270,10 @@ enum Status {
 	/*! 103: AFBR-S50 Status (internal): The ASIC is performing an integration cycle. */
 	STATUS_ARGUS_ACTIVE = 103,
 
-
-
 };
 
 /*! @} */
+#ifdef __cplusplus
+} // extern "C"
+#endif
 #endif /* ARGUS_STATUS_H */

@@ -1,11 +1,11 @@
 /*************************************************************************//**
  * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Defines the Shot Noise Monitor (SNM) setup parameters.
+ * @brief       This file is part of the AFBR-S50 API.
+ * @details     Defines the Shot Noise Monitor (SNM) setup parameters.
  *
  * @copyright
  *
- * Copyright (c) 2021, Broadcom Inc
+ * Copyright (c) 2023, Broadcom Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,30 +36,33 @@
 
 #ifndef ARGUS_SNM_H
 #define ARGUS_SNM_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*!***************************************************************************
- * @defgroup 	argussnm Shot Noise Monitor
- * @ingroup		argusapi
+ * @defgroup    argus_snm Shot Noise Monitor
+ * @ingroup     argus_api
  *
- * @brief		Shot Noise Monitor (SNM) parameter definitions and API functions.
+ * @brief       Shot Noise Monitor (SNM) parameter definitions and API functions.
  *
- * @details		The SNM is an algorithm to monitor and react on shot noise
- * 				induced by harsh environment conditions like high ambient
- * 				light.
+ * @details     The SNM is an algorithm to monitor and react on shot noise
+ *              induced by harsh environment conditions like high ambient
+ *              light.
  *
- *				The AFBR-S50 API provides three modes:
- *				- Dynamic: Automatic mode, automatically adopts to current
- *						   ambient conditions.
- *				- Static (Outdoor): Static mode, optimized for outdoor applications.
- *				- Static (Indoor): Static mode, optimized for indoor applications.
- *				.
+ *              The AFBR-S50 API provides three modes:
+ *              - Dynamic: Automatic mode, automatically adopts to current
+ *                         ambient conditions.
+ *              - Static (Outdoor): Static mode, optimized for outdoor applications.
+ *              - Static (Indoor): Static mode, optimized for indoor applications.
+ *              .
  *
- * @addtogroup 	argussnm
+ * @addtogroup  argus_snm
  * @{
  *****************************************************************************/
 
 /*! The Shot Noise Monitor modes enumeration. */
-typedef enum {
+typedef enum argus_snm_mode_t {
 	/*! Static Shot Noise Monitoring Mode, optimized for indoor applications.
 	 *  Assumes the best case scenario, i.e. no bad influence from ambient conditions.
 	 *  Thus it uses a fixed setting that will result in the best performance.
@@ -79,4 +82,7 @@ typedef enum {
 
 
 /*! @} */
+#ifdef __cplusplus
+} // extern "C"
+#endif
 #endif /* ARGUS_SNM_H */

@@ -1,11 +1,11 @@
 /*************************************************************************//**
  * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Provides definitions and basic macros for fixed point data types.
+ * @brief       This file is part of the AFBR-S50 API.
+ * @details     Provides definitions and basic macros for fixed point data types.
  *
  * @copyright
  *
- * Copyright (c) 2021, Broadcom Inc
+ * Copyright (c) 2023, Broadcom Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,23 +36,30 @@
 
 #ifndef FP_DEF_H
 #define FP_DEF_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*!***************************************************************************
- * @defgroup	fixedpoint Fixed Point Math
- * @ingroup		argusutil
- * @brief		A basic math library for fixed point number in the Qx.y fomat.
- * @details		This module contains common fixed point type definitions as
- * 				well as some basic math algorithms. All types are based on
- * 				integer types. The number are defined with the Q number format.
+ * @defgroup    argus_fp Fixed Point Math
+ * @ingroup     argus_util
  *
- * 				 - For a description of the Q number format refer to:
- * 					https://en.wikipedia.org/wiki/Q_(number_format)
- * 				 - Another resource for fixed point math in C might be found at
- * 					http://www.eetimes.com/author.asp?section_id=36&doc_id=1287491
- * 				 .
- * @warning		This definitions are not portable and work only with
- * 				little-endian systems!
- * @addtogroup 	fixedpoint
+ * @brief       A basic math library for fixed point number in the Qx.y fomat.
+ *
+ * @details     This module contains common fixed point type definitions as
+ *              well as some basic math algorithms. All types are based on
+ *              integer types. The number are defined with the Q number format.
+ *
+ *               - For a description of the Q number format refer to:
+ *                  https://en.wikipedia.org/wiki/Q_(number_format)
+ *               - Another resource for fixed point math in C might be found at
+ *                  http://www.eetimes.com/author.asp?section_id=36&doc_id=1287491
+ *               .
+ *
+ * @warning     This definitions are not portable and work only with
+ *              little-endian systems!
+ *
+ * @addtogroup  argus_fp
  * @{
  *****************************************************************************/
 
@@ -66,11 +73,11 @@
  ***** UQ6.2
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ6.2
- * @details	An unsigned fixed point number format based on the 8-bit unsigned
- * 			integer type with 6 integer and 2 fractional bits.
- * 			- Range: 0 .. 63.75
- * 			- Granularity: 0.25
+ * @brief   Unsigned fixed point number: UQ6.2
+ * @details An unsigned fixed point number format based on the 8-bit unsigned
+ *          integer type with 6 integer and 2 fractional bits.
+ *          - Range: 0 .. 63.75
+ *          - Granularity: 0.25
  *****************************************************************************/
 typedef uint8_t uq6_2_t;
 
@@ -86,11 +93,11 @@ typedef uint8_t uq6_2_t;
  ***** UQ4.4
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ4.4
- * @details	An unsigned fixed point number format based on the 8-bit unsigned
- * 			integer type with 4 integer and 4 fractional bits.
- * 			- Range: 0 .. 15.9375
- * 			- Granularity: 0.0625
+ * @brief   Unsigned fixed point number: UQ4.4
+ * @details An unsigned fixed point number format based on the 8-bit unsigned
+ *          integer type with 4 integer and 4 fractional bits.
+ *          - Range: 0 .. 15.9375
+ *          - Granularity: 0.0625
  *****************************************************************************/
 typedef uint8_t uq4_4_t;
 
@@ -106,11 +113,11 @@ typedef uint8_t uq4_4_t;
  ***** UQ2.6
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ2.6
- * @details	An unsigned fixed point number format based on the 8-bit unsigned
- * 			integer type with 2 integer and 6 fractional bits.
- * 			- Range: 0 .. 3.984375
- * 			- Granularity: 0.015625
+ * @brief   Unsigned fixed point number: UQ2.6
+ * @details An unsigned fixed point number format based on the 8-bit unsigned
+ *          integer type with 2 integer and 6 fractional bits.
+ *          - Range: 0 .. 3.984375
+ *          - Granularity: 0.015625
  *****************************************************************************/
 typedef uint8_t uq2_6_t;
 
@@ -126,11 +133,11 @@ typedef uint8_t uq2_6_t;
  ***** UQ1.7
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ1.7
- * @details	An unsigned fixed point number format based on the 8-bit unsigned
- * 			integer type with 1 integer and 7 fractional bits.
- * 			- Range: 0 .. 1.9921875
- * 			- Granularity: 0.0078125
+ * @brief   Unsigned fixed point number: UQ1.7
+ * @details An unsigned fixed point number format based on the 8-bit unsigned
+ *          integer type with 1 integer and 7 fractional bits.
+ *          - Range: 0 .. 1.9921875
+ *          - Granularity: 0.0078125
  *****************************************************************************/
 typedef uint8_t uq1_7_t;
 
@@ -146,11 +153,11 @@ typedef uint8_t uq1_7_t;
  ***** UQ0.8
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ0.8
- * @details	An unsigned fixed point number format based on the 8-bit unsigned
- * 			integer type with 1 integer and 7 fractional bits.
- * 			- Range: 0 .. 0.99609375
- * 			- Granularity: 0.00390625
+ * @brief   Unsigned fixed point number: UQ0.8
+ * @details An unsigned fixed point number format based on the 8-bit unsigned
+ *          integer type with 1 integer and 7 fractional bits.
+ *          - Range: 0 .. 0.99609375
+ *          - Granularity: 0.00390625
  *****************************************************************************/
 typedef uint8_t uq0_8_t;
 
@@ -167,11 +174,11 @@ typedef uint8_t uq0_8_t;
  ***** Q3.4
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q3.4
- * @details	A signed fixed point number format based on the 8-bit signed
- * 			integer type with 3 integer and 4 fractional bits.
- * 			- Range: -8 ... 7.9375
- * 			- Granularity: 0.0625
+ * @brief   Signed fixed point number: Q3.4
+ * @details A signed fixed point number format based on the 8-bit signed
+ *          integer type with 3 integer and 4 fractional bits.
+ *          - Range: -8 ... 7.9375
+ *          - Granularity: 0.0625
  *****************************************************************************/
 typedef int8_t q3_4_t;
 
@@ -189,11 +196,11 @@ typedef int8_t q3_4_t;
  ***** Q1.6
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q1.6
- * @details	A signed fixed point number format based on the 8-bit signed
- * 			integer type with 1 integer and 6 fractional bits.
- * 			- Range: -2 ... 1.984375
- * 			- Granularity: 0.015625
+ * @brief   Signed fixed point number: Q1.6
+ * @details A signed fixed point number format based on the 8-bit signed
+ *          integer type with 1 integer and 6 fractional bits.
+ *          - Range: -2 ... 1.984375
+ *          - Granularity: 0.015625
  *****************************************************************************/
 typedef int8_t q1_6_t;
 
@@ -215,11 +222,11 @@ typedef int8_t q1_6_t;
  ***** UQ12.4
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ12.4
- * @details	An unsigned fixed point number format based on the 16-bit unsigned
- * 			integer type with 12 integer and 4 fractional bits.
- * 			- Range: 0 ... 4095.9375
- * 			- Granularity: 0.0625
+ * @brief   Unsigned fixed point number: UQ12.4
+ * @details An unsigned fixed point number format based on the 16-bit unsigned
+ *          integer type with 12 integer and 4 fractional bits.
+ *          - Range: 0 ... 4095.9375
+ *          - Granularity: 0.0625
  *****************************************************************************/
 typedef uint16_t uq12_4_t;
 
@@ -235,11 +242,11 @@ typedef uint16_t uq12_4_t;
  ***** UQ10.6
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ10.6
- * @details	An unsigned fixed point number format based on the 16-bit unsigned
- * 			integer type with 10 integer and 6 fractional bits.
- * 			- Range: 0 ... 1023.984375
- * 			- Granularity: 0.015625
+ * @brief   Unsigned fixed point number: UQ10.6
+ * @details An unsigned fixed point number format based on the 16-bit unsigned
+ *          integer type with 10 integer and 6 fractional bits.
+ *          - Range: 0 ... 1023.984375
+ *          - Granularity: 0.015625
  *****************************************************************************/
 typedef uint16_t uq10_6_t;
 
@@ -255,11 +262,11 @@ typedef uint16_t uq10_6_t;
  ***** UQ1.15
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ1.15
- * @details	An unsigned fixed point number format based on the 16-bit unsigned
- * 			integer type with 1 integer and 15 fractional bits.
- * 			- Range: 0 .. 1.999969
- * 			- Granularity: 0.000031
+ * @brief   Unsigned fixed point number: UQ1.15
+ * @details An unsigned fixed point number format based on the 16-bit unsigned
+ *          integer type with 1 integer and 15 fractional bits.
+ *          - Range: 0 .. 1.999969
+ *          - Granularity: 0.000031
  *****************************************************************************/
 typedef uint16_t uq1_15_t;
 
@@ -275,11 +282,11 @@ typedef uint16_t uq1_15_t;
  ***** UQ0.16
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ0.16
- * @details	An unsigned fixed point number format based on the 16-bit unsigned
- * 			integer type with 0 integer and 16 fractional bits.
- * 			- Range: 0 .. 0.9999847412109375
- * 			- Granularity: 1.52587890625e-5
+ * @brief   Unsigned fixed point number: UQ0.16
+ * @details An unsigned fixed point number format based on the 16-bit unsigned
+ *          integer type with 0 integer and 16 fractional bits.
+ *          - Range: 0 .. 0.9999847412109375
+ *          - Granularity: 1.52587890625e-5
  *****************************************************************************/
 typedef uint16_t uq0_16_t;
 
@@ -296,11 +303,11 @@ typedef uint16_t uq0_16_t;
  ***** Q11.4
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q11.4
- * @details	A signed fixed point number format based on the 16-bit signed
- * 			integer type with 11 integer and 4 fractional bits.
- * 			- Range: -2048 ... 2047.9375
- * 			- Granularity: 0.0625
+ * @brief   Signed fixed point number: Q11.4
+ * @details A signed fixed point number format based on the 16-bit signed
+ *          integer type with 11 integer and 4 fractional bits.
+ *          - Range: -2048 ... 2047.9375
+ *          - Granularity: 0.0625
  *****************************************************************************/
 typedef int16_t q11_4_t;
 
@@ -319,11 +326,11 @@ typedef int16_t q11_4_t;
  ***** Q7.8
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q7.8
- * @details	A signed fixed point number format based on the 16-bit signed
- * 			integer type with 7 integer and 8 fractional bits.
- * 			- Range: -128 .. 127.99609375
- * 			- Granularity: 0.00390625
+ * @brief   Signed fixed point number: Q7.8
+ * @details A signed fixed point number format based on the 16-bit signed
+ *          integer type with 7 integer and 8 fractional bits.
+ *          - Range: -128 .. 127.99609375
+ *          - Granularity: 0.00390625
  *****************************************************************************/
 typedef int16_t q7_8_t;
 
@@ -342,11 +349,11 @@ typedef int16_t q7_8_t;
  ***** Q3.12
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q3.12
- * @details	A signed fixed point number format based on the 16-bit integer
- * 			type with 3 integer and 12 fractional bits.
- * 			- Range: -8 .. 7.99975586
- * 			- Granularity: 0.00024414
+ * @brief   Signed fixed point number: Q3.12
+ * @details A signed fixed point number format based on the 16-bit integer
+ *          type with 3 integer and 12 fractional bits.
+ *          - Range: -8 .. 7.99975586
+ *          - Granularity: 0.00024414
  *****************************************************************************/
 typedef int16_t q3_12_t;
 
@@ -365,11 +372,11 @@ typedef int16_t q3_12_t;
  ***** Q0.15
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q0.15
- * @details	A signed fixed point number format based on the 16-bit integer
- * 			type with 0 integer and 15 fractional bits.
- * 			- Range: -1 .. 0.999969482
- * 			- Granularity: 0.000030518
+ * @brief   Signed fixed point number: Q0.15
+ * @details A signed fixed point number format based on the 16-bit integer
+ *          type with 0 integer and 15 fractional bits.
+ *          - Range: -1 .. 0.999969482
+ *          - Granularity: 0.000030518
  *****************************************************************************/
 typedef int16_t q0_15_t;
 
@@ -389,11 +396,11 @@ typedef int16_t q0_15_t;
  ***** UQ28.4
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ28.4
- * @details	An unsigned fixed point number format based on the 32-bit unsigned
- * 			integer type with 28 integer and 4 fractional bits.
- * 			- Range: 0 ... 268435455.9375
- * 			- Granularity: 0.0625
+ * @brief   Unsigned fixed point number: UQ28.4
+ * @details An unsigned fixed point number format based on the 32-bit unsigned
+ *          integer type with 28 integer and 4 fractional bits.
+ *          - Range: 0 ... 268435455.9375
+ *          - Granularity: 0.0625
  *****************************************************************************/
 typedef uint32_t uq28_4_t;
 
@@ -409,11 +416,11 @@ typedef uint32_t uq28_4_t;
  ***** UQ16.16
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ16.16
- * @details	An unsigned fixed point number format based on the 32-bit unsigned
- * 			integer type with 16 integer and 16 fractional bits.
- * 			- Range: 0 ... 65535.999984741
- * 			- Granularity: 0.000015259
+ * @brief   Unsigned fixed point number: UQ16.16
+ * @details An unsigned fixed point number format based on the 32-bit unsigned
+ *          integer type with 16 integer and 16 fractional bits.
+ *          - Range: 0 ... 65535.999984741
+ *          - Granularity: 0.000015259
  *****************************************************************************/
 typedef uint32_t uq16_16_t;
 
@@ -432,11 +439,11 @@ typedef uint32_t uq16_16_t;
  ***** UQ10.22
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Unsigned fixed point number: UQ10.22
- * @details	An unsigned fixed point number format based on the 32-bit unsigned
- * 			integer type with 10 integer and 22 fractional bits.
- * 			- Range: 0 ... 1023.99999976158
- * 			- Granularity: 2.38418579101562E-07
+ * @brief   Unsigned fixed point number: UQ10.22
+ * @details An unsigned fixed point number format based on the 32-bit unsigned
+ *          integer type with 10 integer and 22 fractional bits.
+ *          - Range: 0 ... 1023.99999976158
+ *          - Granularity: 2.38418579101562E-07
  *****************************************************************************/
 typedef uint32_t uq10_22_t;
 
@@ -456,11 +463,11 @@ typedef uint32_t uq10_22_t;
  ***** Q27.4
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q27.4
- * @details	A signed fixed point number format based on the 32-bit signed
- * 			integer type with 27 integer and 4 fractional bits.
- * 			- Range: -134217728 ... 134217727.9375
- * 			- Granularity: 0.0625
+ * @brief   Signed fixed point number: Q27.4
+ * @details A signed fixed point number format based on the 32-bit signed
+ *          integer type with 27 integer and 4 fractional bits.
+ *          - Range: -134217728 ... 134217727.9375
+ *          - Granularity: 0.0625
  *****************************************************************************/
 typedef int32_t q27_4_t;
 
@@ -476,14 +483,34 @@ typedef int32_t q27_4_t;
 
 
 /*******************************************************************************
+ ***** Q16.15
+ ******************************************************************************/
+/*!***************************************************************************
+ * @brief   Signed fixed point number: Q16.15
+ * @details A signed fixed point number format based on the 32-bit integer
+ *          type with 16 integer and 15 fractional bits.
+ *          - Range: -65536 .. 65536.999969482
+ *          - Granularity: 0.000030518
+ *****************************************************************************/
+typedef int32_t q16_15_t;
+
+/*! Minimum value of Q16.15 number format. */
+#define Q16_15_MIN ((q16_15_t)INT32_MIN)
+
+/*! Maximum value of Q16.15 number format. */
+#define Q16_15_MAX ((q16_15_t)INT32_MAX)
+
+
+
+/*******************************************************************************
  ***** Q15.16
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q15.16
- * @details	A signed fixed point number format based on the 32-bit integer
- * 			type with 15 integer and 16 fractional bits.
- * 			- Range: -32768 .. 32767.99998
- * 			- Granularity: 1.52588E-05
+ * @brief   Signed fixed point number: Q15.16
+ * @details A signed fixed point number format based on the 32-bit integer
+ *          type with 15 integer and 16 fractional bits.
+ *          - Range: -32768 .. 32767.99998
+ *          - Granularity: 1.52588E-05
  *****************************************************************************/
 typedef int32_t q15_16_t;
 
@@ -502,11 +529,11 @@ typedef int32_t q15_16_t;
  ***** Q9.22
  ******************************************************************************/
 /*!***************************************************************************
- * @brief	Signed fixed point number: Q9.22
- * @details	A signed fixed point number format based on the 32-bit integer
- * 			type with 9 integer and 22 fractional bits.
- * 			- Range: -512 ... 511.9999998
- * 			- Granularity: 2.38418579101562E-07
+ * @brief   Signed fixed point number: Q9.22
+ * @details A signed fixed point number format based on the 32-bit integer
+ *          type with 9 integer and 22 fractional bits.
+ *          - Range: -512 ... 511.9999998
+ *          - Granularity: 2.38418579101562E-07
  *****************************************************************************/
 typedef int32_t q9_22_t;
 
@@ -522,4 +549,7 @@ typedef int32_t q9_22_t;
 
 
 /*! @} */
+#ifdef __cplusplus
+} // extern "C"
+#endif
 #endif /* FP_DEF_H */

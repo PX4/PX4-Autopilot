@@ -44,13 +44,16 @@
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/perf/perf_counter.h>
-#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
-class AFBRS50 : public px4::ScheduledWorkItem
+class AFBRS50 : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	AFBRS50(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -75,18 +78,16 @@ public:
 private:
 	void Run() override;
 
-	void UpdateMode();
+	void Evaluate_rate();
 
-	void ProcessMeasurement(void *data);
+	void ProcessMeasurement(argus_hnd_t *hnd);
 
-	static status_t measurement_ready_callback(status_t status, void *data);
+	static status_t measurement_ready_callback(status_t status, argus_hnd_t *hnd);
 
 	void get_info();
-	status_t set_mode(argus_mode_t mode);
-	status_t set_rate(uint32_t rate_hz);
+	status_t set_rate_and_dfm(uint32_t rate_hz, argus_dfm_mode_t dfm_mode);
 
 	argus_hnd_t *_hnd{nullptr};
-	argus_mode_t _mode{ARGUS_MODE_B}; // Short-Range
 
 	enum class STATE : uint8_t {
 		TEST,
@@ -98,14 +99,24 @@ private:
 	PX4Rangefinder _px4_rangefinder;
 
 	hrt_abstime _measurement_time{0};
+	hrt_abstime _last_rate_switch{0};
 
 	perf_counter_t _sample_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": sample interval")};
 
 	uint32_t _measure_interval{1000000 / 50}; // 50Hz
 	float _current_distance{0};
 	int8_t _current_quality{0};
-	const float _short_range_threshold = 4.0; //meters
-	const float _long_range_threshold = 6.0; //meters
 	float _max_distance;
 	float _min_distance;
+	uint32_t _current_rate{0};
+
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SENS_AFBR_MODE>)   _p_sens_afbr_mode,
+		(ParamInt<px4::params::SENS_AFBR_S_RATE>)  _p_sens_afbr_s_rate,
+		(ParamInt<px4::params::SENS_AFBR_L_RATE>)  _p_sens_afbr_l_rate,
+		(ParamInt<px4::params::SENS_AFBR_THRESH>) _p_sens_afbr_thresh,
+		(ParamInt<px4::params::SENS_AFBR_HYSTER>)    _p_sens_afbr_hyster
+	);
 };

@@ -1,12 +1,12 @@
 /*************************************************************************//**
  * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Defines the dynamic configuration adaption (DCA) setup parameters
- * 				and data structure.
+ * @brief       This file is part of the AFBR-S50 API.
+ * @details     Defines the dynamic configuration adaption (DCA) setup parameters
+ *              and data structure.
  *
  * @copyright
  *
- * Copyright (c) 2021, Broadcom Inc
+ * Copyright (c) 2023, Broadcom Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,34 +37,37 @@
 
 #ifndef ARGUS_DCA_H
 #define ARGUS_DCA_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*!***************************************************************************
- * @defgroup 	argusdca Dynamic Configuration Adaption
- * @ingroup		argusapi
+ * @defgroup    argus_dca Dynamic Configuration Adaption
+ * @ingroup     argus_api
  *
- * @brief		Dynamic Configuration Adaption (DCA) parameter definitions and API functions.
+ * @brief       Dynamic Configuration Adaption (DCA) parameter definitions and API functions.
  *
- * @details		The DCA contains an algorithms that detect ambient conditions
- * 				and adopt the device configuration to the changing parameters
- * 				dynamically while operating the sensor. This is achieved by
- * 				rating the currently received signal quality and changing the
- * 				device configuration accordingly to the gathered information
- * 				from the current measurement frame results before the next
- * 				integration cycle starts.
+ * @details     The DCA contains an algorithms that detect ambient conditions
+ *              and adopt the device configuration to the changing parameters
+ *              dynamically while operating the sensor. This is achieved by
+ *              rating the currently received signal quality and changing the
+ *              device configuration accordingly to the gathered information
+ *              from the current measurement frame results before the next
+ *              integration cycle starts.
  *
- * 				The DCA consists of the following features:
- * 			 	- Static or Dynamic mode. The first is utilizing the nominal
- * 			 	  values while the latter is dynamically adopting between min.
- * 			 	  and max. value and starting from the nominal values.
- * 			 	- Analog Integration Depth Adaption (from multiple patterns down to single pulses)
- * 			 	- Optical Output Power Adaption
- * 			 	- Pixel Input Gain Adaption (w/ ambient light rejection)
- * 			 	- ADC Sensitivity (i.e. ADC Range) Adaption
- * 			 	- Power Saving Ratio (to decrease the average output power and thus the current consumption)
- * 			 	- All that features are heeding the Laser Safety limits.
- * 				.
+ *              The DCA consists of the following features:
+ *              - Static or Dynamic mode. The first is utilizing the nominal
+ *                values while the latter is dynamically adopting between min.
+ *                and max. value and starting from the nominal values.
+ *              - Analog Integration Depth Adaption (from multiple patterns down to single pulses)
+ *              - Optical Output Power Adaption
+ *              - Pixel Input Gain Adaption (w/ ambient light rejection)
+ *              - ADC Sensitivity (i.e. ADC Range) Adaption
+ *              - Power Saving Ratio (to decrease the average output power and thus the current consumption)
+ *              - All that features are heeding the Laser Safety limits.
+ *              .
  *
- * @addtogroup 	argusdca
+ * @addtogroup  argus_dca
  * @{
  *****************************************************************************/
 
@@ -73,39 +76,26 @@
 
 
 /*! The minimum amplitude threshold value. */
-#define ARGUS_CFG_DCA_ATH_MIN		(1U << 6U)
+#define ARGUS_CFG_DCA_ATH_MIN       (1U << 6U)
 
 /*! The maximum amplitude threshold value. */
-#define ARGUS_CFG_DCA_ATH_MAX		(0xFFFFU)
+#define ARGUS_CFG_DCA_ATH_MAX       (0xFFFFU)
 
 
 /*! The minimum saturated pixel threshold value. */
-#define ARGUS_CFG_DCA_PXTH_MIN		(1U)
+#define ARGUS_CFG_DCA_PXTH_MIN      (1U)
 
 /*! The maximum saturated pixel threshold value. */
-#define ARGUS_CFG_DCA_PXTH_MAX		(33U)
+#define ARGUS_CFG_DCA_PXTH_MAX      (33U)
 
 
 /*! The maximum analog integration depth in UQ10.6 format,
  * i.e. the maximum pattern count per sample. */
-#define ARGUS_CFG_DCA_DEPTH_MAX 	((uq10_6_t)(ADS_SEQCT_N_MASK << (6U - ADS_SEQCT_N_SHIFT)))
+#define ARGUS_CFG_DCA_DEPTH_MAX     ((uq10_6_t)(0xFFC0U))
 
 /*! The minimum analog integration depth in UQ10.6 format,
  *  i.e. the minimum pattern count per sample. */
-#define ARGUS_CFG_DCA_DEPTH_MIN 	((uq10_6_t)(1U)) // 1/64, i.e. 1/2 nibble
-
-
-/*! The maximum optical output power, i.e. the maximum VCSEL high current in LSB. */
-#define ARGUS_CFG_DCA_POWER_MAX_LSB (ADS_LASET_VCSEL_HC1_MASK >> ADS_LASET_VCSEL_HC1_SHIFT)
-
-/*! The minimum optical output power, i.e. the minimum VCSEL high current in mA. */
-#define ARGUS_CFG_DCA_POWER_MIN_LSB (1)
-
-/*! The maximum optical output power, i.e. the maximum VCSEL high current in LSB. */
-#define ARGUS_CFG_DCA_POWER_MAX		(ADS0032_HIGH_CURRENT_LSB2MA(ARGUS_CFG_DCA_POWER_MAX_LSB + 1))
-
-/*! The minimum optical output power, i.e. the minimum VCSEL high current in mA. */
-#define ARGUS_CFG_DCA_POWER_MIN 	(1)
+#define ARGUS_CFG_DCA_DEPTH_MIN     ((uq10_6_t)(1U)) // 1/64, i.e. 1/2 nibble
 
 
 /*! The dynamic configuration algorithm Pixel Input Gain stage count. */
@@ -139,9 +129,9 @@
 
 
 /*!***************************************************************************
- * @brief	The dynamic configuration algorithm enable flags.
+ * @brief   The dynamic configuration algorithm enable flags.
  *****************************************************************************/
-typedef enum {
+typedef enum argus_dca_enable_t {
 	/*! @internal
 	 *
 	 *  DCA is disabled and will be completely skipped.
@@ -160,9 +150,9 @@ typedef enum {
 } argus_dca_enable_t;
 
 /*!***************************************************************************
- * @brief	The DCA amplitude evaluation method.
+ * @brief   The DCA amplitude evaluation method.
  *****************************************************************************/
-typedef enum {
+typedef enum argus_dca_amplitude_mode_t {
 	/*! Evaluate the DCA amplitude as the maximum of all valid amplitudes. */
 	DCA_AMPLITUDE_MAX = 1U,
 
@@ -172,9 +162,9 @@ typedef enum {
 } argus_dca_amplitude_mode_t;
 
 /*!***************************************************************************
- * @brief	The dynamic configuration algorithm Optical Output Power stages enumerator.
+ * @brief   The dynamic configuration algorithm Optical Output Power stages enumerator.
  *****************************************************************************/
-typedef enum {
+typedef enum argus_dca_power_t {
 	/*! Use low output power stage. */
 	DCA_POWER_LOW = 0,
 
@@ -187,9 +177,9 @@ typedef enum {
 } argus_dca_power_t;
 
 /*!***************************************************************************
- * @brief	The dynamic configuration algorithm Pixel Input Gain stages enumerator.
+ * @brief   The dynamic configuration algorithm Pixel Input Gain stages enumerator.
  *****************************************************************************/
-typedef enum {
+typedef enum argus_dca_gain_t {
 	/*! Low gain stage. */
 	DCA_GAIN_LOW = 0,
 
@@ -206,113 +196,113 @@ typedef enum {
 
 
 /*!***************************************************************************
- * @brief	State flags for the current frame.
- * @details	State flags determine the current state of the measurement frame:
- * 			- [0]: #ARGUS_STATE_MEASUREMENT_MODE
- * 			- [1]: #ARGUS_STATE_DUAL_FREQ_MODE
- * 			- [2]: #ARGUS_STATE_MEASUREMENT_FREQ
- * 			- [3]: #ARGUS_STATE_DEBUG_MODE
- * 			- [4]: #ARGUS_STATE_WEAK_SIGNAL
- * 			- [5]: #ARGUS_STATE_BGL_WARNING
- * 			- [6]: #ARGUS_STATE_BGL_ERROR
- * 			- [7]: #ARGUS_STATE_PLL_LOCKED
- * 			- [8]: #ARGUS_STATE_LASER_WARNING
- * 			- [9]: #ARGUS_STATE_LASER_ERROR
- * 			- [10]: #ARGUS_STATE_HAS_DATA
- * 			- [11]: #ARGUS_STATE_HAS_AUX_DATA
- * 			- [12]: #ARGUS_STATE_DCA_MAX
- * 			- [13]: DCA Power Stage
- * 			- [14-15]: DCA Gain Stages
- * 			.
+ * @brief   State flags for the current frame.
+ * @details State flags determine the current state of the measurement frame:
+ *          - [0]: #ARGUS_STATE_XTALK_MONITOR_ACTIVE
+ *          - [1]: #ARGUS_STATE_DUAL_FREQ_MODE
+ *          - [2]: #ARGUS_STATE_MEASUREMENT_FREQ
+ *          - [3]: #ARGUS_STATE_DEBUG_MODE
+ *          - [4]: #ARGUS_STATE_WEAK_SIGNAL
+ *          - [5]: #ARGUS_STATE_BGL_WARNING
+ *          - [6]: #ARGUS_STATE_BGL_ERROR
+ *          - [7]: #ARGUS_STATE_PLL_LOCKED
+ *          - [8]: #ARGUS_STATE_LASER_WARNING
+ *          - [9]: #ARGUS_STATE_LASER_ERROR
+ *          - [10]: #ARGUS_STATE_HAS_DATA
+ *          - [11]: #ARGUS_STATE_HAS_AUX_DATA
+ *          - [12]: #ARGUS_STATE_DCA_MAX
+ *          - [13]: DCA Power Stage
+ *          - [14-15]: DCA Gain Stages
+ *          .
  *****************************************************************************/
-typedef enum {
+typedef enum argus_state_t {
 	/*! No state flag set. */
 	ARGUS_STATE_NONE = 0,
 
-	/*! 0x0001: Measurement Mode.
-	 *  		- 0: Mode A: Long Range / Medium Precision
-	 *  		- 1: Mode B: Short Range / High Precision */
-	ARGUS_STATE_MEASUREMENT_MODE = 1U << 0U,
+	/*! 0x0001: Crosstalk Monitor is enabled and updating.
+	 *          - 0: Inactive: crosstalk monitor values are not updated,
+	 *          - 1: Active: crosstalk monitor values are updated. */
+	ARGUS_STATE_XTALK_MONITOR_ACTIVE = 1U << 0U,
 
 	/*! 0x0002: Dual Frequency Mode Enabled.
-	 *  		- 0: Disabled: measurements with base frequency,
-	 *  		- 1: Enabled: measurement with detuned frequency. */
+	 *          - 0: Disabled: measurements with base frequency,
+	 *          - 1: Enabled: measurement with detuned frequency. */
 	ARGUS_STATE_DUAL_FREQ_MODE = 1U << 1U,
 
 	/*! 0x0004: Measurement Frequency for Dual Frequency Mode
 	 *          (only if #ARGUS_STATE_DUAL_FREQ_MODE flag is set).
-	 *  		- 0: A-Frame w/ detuned frequency,
-	 *  		- 1: B-Frame w/ detuned frequency */
+	 *          - 0: A-Frame w/ detuned frequency,
+	 *          - 1: B-Frame w/ detuned frequency */
 	ARGUS_STATE_MEASUREMENT_FREQ = 1U << 2U,
 
 	/*! 0x0008: Debug Mode. If set, the range value of erroneous pixels
-	 * 		  	are not cleared or reset.
-	 * 			- 0: Disabled (default).
-	 *  		- 1: Enabled. */
+	 *          are not cleared or reset.
+	 *          - 0: Disabled (default).
+	 *          - 1: Enabled. */
 	ARGUS_STATE_DEBUG_MODE = 1U << 3U,
 
 	/*! 0x0010: Weak Signal Flag.
-	 * 			Set whenever the Pixel Binning Algorithm is detecting a
-	 * 			weak signal, i.e. if the amplitude dies not reach its
-	 * 			(absolute) threshold. If the Golden Pixel is enabled,
-	 *  	  	this also indicates that the Pixel Binning Algorithm
-	 *  	  	falls back to the Golden Pixel.
-	 * 			- 0: Normal Signal.
-	 *  		- 1: Weak Signal or Golden Pixel Mode. */
+	 *          Set whenever the Pixel Binning Algorithm is detecting a
+	 *          weak signal, i.e. if the amplitude dies not reach its
+	 *          (absolute) threshold. If the Golden Pixel is enabled,
+	 *          this also indicates that the Pixel Binning Algorithm
+	 *          falls back to the Golden Pixel.
+	 *          - 0: Normal Signal.
+	 *          - 1: Weak Signal or Golden Pixel Mode. */
 	ARGUS_STATE_WEAK_SIGNAL = 1U << 4U,
 
 	/*! 0x0020: Background Light Warning Flag.
-	 *        	Set whenever the background light is very high and the
-	 *        	measurement data might be unreliable.
-	 *  		- 0: No Warning: Background Light is within valid range.
-	 *  		- 1: Warning: Background Light is very high. */
+	 *          Set whenever the background light is very high and the
+	 *          measurement data might be unreliable.
+	 *          - 0: No Warning: Background Light is within valid range.
+	 *          - 1: Warning: Background Light is very high. */
 	ARGUS_STATE_BGL_WARNING = 1U << 5U,
 
 	/*! 0x0040: Background Light Error Flag.
-	 *        	Set whenever the background light is too high and the
-	 *        	measurement data is unreliable or invalid.
-	 *  		- 0: No Error: Background Light is within valid range.
-	 *  		- 1: Error: Background Light is too high. */
+	 *          Set whenever the background light is too high and the
+	 *          measurement data is unreliable or invalid.
+	 *          - 0: No Error: Background Light is within valid range.
+	 *          - 1: Error: Background Light is too high. */
 	ARGUS_STATE_BGL_ERROR = 1U << 6U,
 
 	/*! 0x0080: PLL_LOCKED bit.
-	 *  		- 0: PLL not locked at start of integration.
-	 *  		- 1: PLL locked at start of integration. */
+	 *          - 0: PLL not locked at start of integration.
+	 *          - 1: PLL locked at start of integration. */
 	ARGUS_STATE_PLL_LOCKED = 1U << 7U,
 
 	/*! 0x0100: Laser Failure Warning Flag.
-	 *        	Set whenever the an invalid system condition is detected.
-	 *        	(i.e. DCA at max state but no amplitude on any (incl. reference)
-	 *        	pixel, not amplitude but any saturated pixel).
-	 *  		- 0: No Warning: Laser is operating properly.
-	 *  		- 1: Warning: Invalid laser conditions detected. If the invalid
-	 *  		     condition stays, a laser malfunction error is raised. */
+	 *          Set whenever the an invalid system condition is detected.
+	 *          (i.e. DCA at max state but no amplitude on any (incl. reference)
+	 *          pixel, not amplitude but any saturated pixel).
+	 *          - 0: No Warning: Laser is operating properly.
+	 *          - 1: Warning: Invalid laser conditions detected. If the invalid
+	 *               condition stays, a laser malfunction error is raised. */
 	ARGUS_STATE_LASER_WARNING = 1U << 8U,
 
 	/*! 0x0200: Laser Failure Error Flag.
-	 * 			Set whenever a laser malfunction error is raised and the
-	 * 			system is put into a safe state.
-	 *  		- 0: No Error: Laser is operating properly.
-	 *  		- 1: Error: Invalid laser conditions are detected for a certain
-	 *  		     soak time and the system is put into a safe state. */
+	 *          Set whenever a laser malfunction error is raised and the
+	 *          system is put into a safe state.
+	 *          - 0: No Error: Laser is operating properly.
+	 *          - 1: Error: Invalid laser conditions are detected for a certain
+	 *               soak time and the system is put into a safe state. */
 	ARGUS_STATE_LASER_ERROR = 1U << 9U,
 
 	/*! 0x0400: Set if current frame has distance measurement data available.
-	 *  		- 0: No measurement data available, all values are 0 or stalled.
-	 *  		- 1: Measurement data is available and correctly evaluated. */
+	 *          - 0: No measurement data available, all values are 0 or stalled.
+	 *          - 1: Measurement data is available and correctly evaluated. */
 	ARGUS_STATE_HAS_DATA = 1U << 10U,
 
 	/*! 0x0800: Set if current frame has auxiliary measurement data available.
-	 *  		- 0: No auxiliary data available, all values are 0 or stalled.
-	 *  		- 1: Auxiliary data is available and correctly evaluated. */
+	 *          - 0: No auxiliary data available, all values are 0 or stalled.
+	 *          - 1: Auxiliary data is available and correctly evaluated. */
 	ARGUS_STATE_HAS_AUX_DATA = 1U << 11U,
 
 	/*! 0x1000: DCA Maximum State Flag.
-	 *  		Set whenever the DCA has extended all its parameters to their
-	 *  		maximum values and can not increase the integration energy any
-	 *  		further.
-	 *  		- 0: DCA has not yet reached its maximum state.
-	 *  		- 1: DCA has reached its maximum state and can not increase any further. */
+	 *          Set whenever the DCA has extended all its parameters to their
+	 *          maximum values and can not increase the integration energy any
+	 *          further.
+	 *          - 0: DCA has not yet reached its maximum state.
+	 *          - 1: DCA has reached its maximum state and can not increase any further. */
 	ARGUS_STATE_DCA_MAX = 1U << 12U,
 
 	/*! 0x2000: DCA is in high Optical Output Power stage. */
@@ -333,20 +323,20 @@ typedef enum {
 } argus_state_t;
 
 /*!***************************************************************************
- * @brief	Dynamic Configuration Adaption (DCA) Parameters.
- * @details	DCA contains:
- * 			 - Static or dynamic mode. The first is utilizing the nominal values
- * 			   while the latter is dynamically adopting between min. and max.
- * 			   value and starting form the nominal values.
- * 			 - Analog Integration Depth Adaption down to single pulses.
- * 			 - Optical Output Power Adaption
- * 			 - Pixel Input Gain Adaption
- * 			 - Digital Integration Depth Adaption
- * 			 - Dynamic Global Phase Shift Injection.
- * 			 - All that features are heeding the Laser Safety limits.
- * 			 .
+ * @brief   Dynamic Configuration Adaption (DCA) Parameters.
+ * @details DCA contains:
+ *           - Static or dynamic mode. The first is utilizing the nominal values
+ *             while the latter is dynamically adopting between min. and max.
+ *             value and starting form the nominal values.
+ *           - Analog Integration Depth Adaption down to single pulses.
+ *           - Optical Output Power Adaption
+ *           - Pixel Input Gain Adaption
+ *           - Digital Integration Depth Adaption
+ *           - Dynamic Global Phase Shift Injection.
+ *           - All that features are heeding the Laser Safety limits.
+ *           .
  *****************************************************************************/
-typedef struct {
+typedef struct argus_cfg_dca_t {
 	/*! Enables the automatic configuration adaption features.
 	 *  Enables the dynamic part if #DCA_ENABLE_DYNAMIC and the static only if
 	 *  #DCA_ENABLE_STATIC. */
@@ -494,4 +484,7 @@ typedef struct {
 } argus_cfg_dca_t;
 
 /*! @} */
+#ifdef __cplusplus
+} // extern "C"
+#endif
 #endif /* ARGUS_DCA_H */
