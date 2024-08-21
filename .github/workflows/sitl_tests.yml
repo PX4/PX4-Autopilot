@@ -1,3 +1,8 @@
+# NOTE: this workflow is now running on Dronecode / PX4 AWS account.
+# - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
+#   and comment the "runs-on: [runs-on,runner=..." lines.
+# - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
+
 name: SITL Tests
 
 on:
@@ -12,8 +17,6 @@ jobs:
   build:
     name: Testing PX4 ${{ matrix.config.model }}
     runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
-    # outputs:
-    #   timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
     container:
       image: px4io/px4-dev-simulation-focal:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
