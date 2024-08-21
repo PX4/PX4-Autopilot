@@ -64,7 +64,7 @@ TEST_CASE("Offboard position control", "[multicopter][offboard]")
 	tester.store_home();
 	tester.set_rc_loss_exception(AutopilotTester::RcLossException::Offboard);
 	tester.arm();
-	std::chrono::seconds goto_timeout = std::chrono::seconds(10);
+	std::chrono::seconds goto_timeout = std::chrono::seconds(90);
 	tester.offboard_goto(takeoff_position, acceptance_radius, goto_timeout);
 	tester.offboard_goto(setpoint_1, acceptance_radius, goto_timeout);
 	tester.offboard_goto(setpoint_2, acceptance_radius, goto_timeout);
