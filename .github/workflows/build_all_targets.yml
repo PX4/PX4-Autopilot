@@ -1,5 +1,4 @@
 # NOTE: this workflow is now running on Dronecode / PX4 AWS account.
-# - For questions about this setup please reach out to rroche@linuxfoundation.org
 # - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
 #   and comment the "runs-on: [runs-on,runner=..." lines.
 # - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
