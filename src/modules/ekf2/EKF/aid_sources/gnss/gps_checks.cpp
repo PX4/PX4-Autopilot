@@ -63,31 +63,14 @@ void Ekf::collect_gps(const gnssSample &gps)
 {
 	if (_filter_initialised && !_NED_origin_initialised && _gps_checks_passed) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-		const double lat = gps.lat;
-		const double lon = gps.lon;
-
 		if (!_pos_ref.isInitialized()) {
-			_pos_ref.initReference(lat, lon, gps.time_us);
-
-			// if we are already doing aiding, correct for the change in position since the EKF started navigating
-			if (isHorizontalAidingActive()) {
-				double est_lat;
-				double est_lon;
-				_pos_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
-				_pos_ref.initReference(est_lat, est_lon, gps.time_us);
-			}
+			setLatLonOriginFromCurrentPos(gps.lat, gps.lon, gps.hacc);
 		}
 
 		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
 		if (!PX4_ISFINITE(_gps_alt_ref)) {
-			_gps_alt_ref = gps.alt + _state.pos(2);
+			setAltOriginFromCurrentPos(gps.alt, gps.vacc);
 		}
-
-		_NED_origin_initialised = true;
-
-		// save the horizontal and vertical position uncertainty of the origin
-		_gpos_origin_eph = gps.hacc;
-		_gpos_origin_epv = gps.vacc;
 
 		_information_events.flags.gps_checks_passed = true;
 		ECL_INFO("GPS checks passed");
