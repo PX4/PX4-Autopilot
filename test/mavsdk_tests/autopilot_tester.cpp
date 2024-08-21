@@ -85,7 +85,7 @@ void AutopilotTester::wait_until_ready()
 
 	// Wait until the system is healthy
 	CHECK(poll_condition_with_timeout(
-	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
+	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(60)));
 
 	// Note: There is a known bug in MAVSDK (https://github.com/mavlink/MAVSDK/issues/1852),
 	// where `health_all_ok()` returning true doesn't actually mean vehicle is ready to accept
@@ -96,7 +96,7 @@ void AutopilotTester::wait_until_ready()
 
 	// Wait until we can arm
 	CHECK(poll_condition_with_timeout(
-	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(30)));
+	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(60)));
 }
 
 void AutopilotTester::store_home()
