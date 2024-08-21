@@ -63,4 +63,3 @@ param set-default PWM_MAIN_FUNC9 422
 # Landing gear
 param set-default PWM_MAIN_FUNC10 400
 param set-default PWM_MAIN_FUNC11 400
-

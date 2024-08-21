@@ -1,9 +1,7 @@
 uint64 timestamp			# time since system start (microseconds)
 bool connected				# Whether or not a battery is connected, based on a voltage threshold
 float32 voltage_v			# Battery voltage in volts, 0 if unknown
-float32 voltage_filtered_v	# Battery voltage in volts, filtered, 0 if unknown
 float32 current_a			# Battery current in amperes, -1 if unknown
-float32 current_filtered_a	# Battery current in amperes, filtered, 0 if unknown
 float32 current_average_a	# Battery current average in amperes (for FW average in level flight), -1 if unknown
 float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
 float32 remaining			# From 1 to 0, -1 if unknown
@@ -52,27 +50,23 @@ uint8 BATTERY_FAULT_INCOMPATIBLE_VOLTAGE = 6 # Vehicle voltage is not compatible
 uint8 BATTERY_FAULT_INCOMPATIBLE_FIRMWARE = 7 # Battery firmware is not compatible with current autopilot firmware
 uint8 BATTERY_FAULT_INCOMPATIBLE_MODEL = 8 # Battery model is not supported by the system
 uint8 BATTERY_FAULT_HARDWARE_FAILURE = 9 # hardware problem
-uint8 BATTERY_WARNING_OVER_TEMPERATURE = 10 # Over-temperature
+uint8 BATTERY_FAULT_FAILED_TO_ARM = 10 # Battery had a problem while arming
 uint8 BATTERY_FAULT_COUNT = 11 # Counter - keep it as last element!
 
 uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication.
-uint32 custom_faults 	# Bitmask indicating smart battery internal manufacturer faults, those are not user actionable.
 uint8 warning		# Current battery warning
-uint8 mode 		# Battery mode. Note, the normal operation mode
-
-uint8 BATTERY_MODE_UNKNOWN = 0 # Battery does not support a mode, or if it does, is operational
-uint8 BATTERY_MODE_AUTO_DISCHARGING = 1 # Battery is auto discharging (towards storage level)
-uint8 BATTERY_MODE_HOT_SWAP = 2 # Battery in hot-swap mode
-uint8 BATTERY_MODE_COUNT = 3 # Counter - keep it as last element (once we're fully migrated to events interface we can just comment this)!
-
 
 uint8 MAX_INSTANCES = 4
 
-float32 average_power               # The average power of the current discharge
-float32 available_energy            # The predicted charge or energy remaining in the battery
 float32 full_charge_capacity_wh     # The compensated battery capacity
 float32 remaining_capacity_wh       # The compensated battery capacity remaining
-float32 design_capacity             # The design capacity of the battery
-uint16 average_time_to_full         # The predicted remaining time until the battery reaches full charge, in minutes
 uint16 over_discharge_count         # Number of battery overdischarge
 float32 nominal_voltage             # Nominal voltage of the battery pack
+
+float32 internal_resistance_estimate            # [Ohm] Internal resistance per cell estimate
+float32 ocv_estimate                            # [V] Open circuit voltage estimate
+float32 ocv_estimate_filtered			# [V] Filtered open circuit voltage estimate
+float32 volt_based_soc_estimate			# [0, 1] Normalized volt based state of charge estimate
+float32 voltage_prediction			# [V] Predicted voltage
+float32 prediction_error                        # [V] Prediction error
+float32 estimation_covariance_norm		# Norm of the covariance matrix

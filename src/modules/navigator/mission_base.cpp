@@ -46,8 +46,8 @@
 #include "mission_feasibility_checker.h"
 #include "navigator.h"
 
-MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed) :
-	MissionBlock(navigator),
+MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed, uint8_t navigator_state_id) :
+	MissionBlock(navigator, navigator_state_id),
 	ModuleParams(navigator),
 	_dataman_cache_size_signed(dataman_cache_size_signed)
 {
@@ -235,6 +235,7 @@ MissionBase::on_activation()
 	checkClimbRequired(_mission.current_seq);
 	set_mission_items();
 
+	_mission_activation_index = _mission.current_seq;
 	_inactivation_index = -1; // reset
 
 	// reset cruise speed
@@ -253,6 +254,7 @@ MissionBase::on_active()
 
 	updateMavlinkMission();
 	updateDatamanCache();
+	updateMissionAltAfterHomeChanged();
 
 	/* Check the mission */
 	if (!_mission_checked && canRunMissionFeasibility()) {
@@ -292,17 +294,27 @@ MissionBase::on_active()
 		_align_heading_necessary = false;
 	}
 
-	// replay gimbal and camera commands immediately after resuming mission
-	if (haveCachedGimbalOrCameraItems()) {
-		replayCachedGimbalCameraItems();
+	// Replay camera mode commands immediately upon mission resume
+	if (haveCachedCameraModeItems()) {
+		replayCachedCameraModeItems();
 	}
 
-	// replay trigger commands upon raching the resume waypoint if the trigger relay flag is set
-	if (cameraWasTriggering() && is_mission_item_reached_or_completed()) {
-		replayCachedTriggerItems();
-	}
 
-	replayCachedSpeedChangeItems();
+	// Replay cached mission commands once the last mission waypoint is re-reached after the mission interruption.
+	// Each replay function also clears the cached items afterwards
+	if (_mission.current_seq > _mission_activation_index) {
+		// replay gimbal commands
+		if (haveCachedGimbalItems()) {
+			replayCachedGimbalItems();
+		}
+
+		// replay trigger commands
+		if (cameraWasTriggering()) {
+			replayCachedTriggerItems();
+		}
+
+		replayCachedSpeedChangeItems();
+	}
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
@@ -351,11 +363,13 @@ MissionBase::on_active()
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
 	}
+
+	updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
 }
 
 void MissionBase::update_mission()
 {
-	if (_mission.count == 0u || !_is_current_planned_mission_item_valid || !_navigator->get_mission_result()->valid) {
+	if (_mission.count == 0u || !_is_current_planned_mission_item_valid || !isMissionValid()) {
 		if (_land_detected_sub.get().landed) {
 			/* landed, refusing to take off without a mission */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "No valid mission available, refusing takeoff\t");
@@ -440,24 +454,33 @@ MissionBase::advance_mission()
 void
 MissionBase::set_mission_items()
 {
-	if (_is_current_planned_mission_item_valid) {
-		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
-		loadCurrentMissionItem();
+	bool set_end_of_mission{false};
 
-		/* force vtol land */
-		if (_navigator->force_vtol() && _mission_item.nav_cmd == NAV_CMD_LAND) {
-			_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
+	if (_is_current_planned_mission_item_valid && _mission_type == MissionType::MISSION_TYPE_MISSION && isMissionValid()) {
+		/* By default set the mission item to the current planned mission item. Depending on request, it can be altered. */
+		if (loadCurrentMissionItem()) {
+			/* force vtol land */
+			if (_navigator->force_vtol() && _mission_item.nav_cmd == NAV_CMD_LAND) {
+				_mission_item.nav_cmd = NAV_CMD_VTOL_LAND;
+			}
+
+			setActiveMissionItems();
+
+		} else {
+			set_end_of_mission = true;
 		}
 
-		setActiveMissionItems();
-
 	} else {
+		set_end_of_mission = true;
+	}
+
+	if (set_end_of_mission) {
 		setEndOfMissionItems();
-		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+		_navigator->mode_completed(getNavigatorStateId());
 	}
 }
 
-void MissionBase::loadCurrentMissionItem()
+bool MissionBase::loadCurrentMissionItem()
 {
 	const dm_item_t dm_item = static_cast<dm_item_t>(_mission.mission_dataman_id);
 	bool success = _dataman_cache.loadWait(dm_item, _mission.current_seq, reinterpret_cast<uint8_t *>(&_mission_item),
@@ -468,6 +491,8 @@ void MissionBase::loadCurrentMissionItem()
 		events::send(events::ID("mission_item_set_failed"), events::Log::Error,
 			     "Mission item could not be set");
 	}
+
+	return success;
 }
 
 void MissionBase::setEndOfMissionItems()
@@ -856,7 +881,6 @@ void MissionBase::publish_navigator_mission_item()
 {
 	navigator_mission_item_s navigator_mission_item{};
 
-	navigator_mission_item.instance_count = _navigator->mission_instance_count();
 	navigator_mission_item.sequence_current = _mission.current_seq;
 	navigator_mission_item.nav_cmd = _mission_item.nav_cmd;
 	navigator_mission_item.latitude = _mission_item.lat;
@@ -1242,7 +1266,7 @@ void MissionBase::cacheItem(const mission_item_s &mission_item)
 	}
 }
 
-void MissionBase::replayCachedGimbalCameraItems()
+void MissionBase::replayCachedGimbalItems()
 {
 	if (_last_gimbal_configure_item.nav_cmd > 0) {
 		issue_command(_last_gimbal_configure_item);
@@ -1253,7 +1277,10 @@ void MissionBase::replayCachedGimbalCameraItems()
 		issue_command(_last_gimbal_control_item);
 		_last_gimbal_control_item = {}; // delete cached item
 	}
+}
 
+void MissionBase::replayCachedCameraModeItems()
+{
 	if (_last_camera_mode_item.nav_cmd > 0) {
 		issue_command(_last_camera_mode_item);
 		_last_camera_mode_item = {}; // delete cached item
@@ -1284,11 +1311,15 @@ void MissionBase::resetItemCache()
 	_last_camera_trigger_item = {};
 }
 
-bool MissionBase::haveCachedGimbalOrCameraItems()
+bool MissionBase::haveCachedGimbalItems()
 {
 	return _last_gimbal_configure_item.nav_cmd > 0 ||
-	       _last_gimbal_control_item.nav_cmd > 0 ||
-	       _last_camera_mode_item.nav_cmd > 0;
+	       _last_gimbal_control_item.nav_cmd > 0;
+}
+
+bool MissionBase::haveCachedCameraModeItems()
+{
+	return _last_camera_mode_item.nav_cmd > 0;
 }
 
 bool MissionBase::cameraWasTriggering()
@@ -1374,4 +1405,30 @@ bool MissionBase::canRunMissionFeasibility()
 	       (_geofence_status_sub.get().timestamp > 0) && // Geofence data must be loaded
 	       (_geofence_status_sub.get().geofence_id == _mission.geofence_id) &&
 	       (_geofence_status_sub.get().status == geofence_status_s::GF_STATUS_READY);
+}
+
+void MissionBase::updateMissionAltAfterHomeChanged()
+{
+	if (_navigator->get_home_position()->update_count > _home_update_counter) {
+		float new_alt = get_absolute_altitude_for_item(_mission_item);
+		float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
+
+		if (_navigator->get_position_setpoint_triplet()->previous.valid
+		    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
+			_navigator->get_position_setpoint_triplet()->previous.alt = _navigator->get_position_setpoint_triplet()->previous.alt +
+					altitude_diff;
+		}
+
+		_navigator->get_position_setpoint_triplet()->current.alt = _navigator->get_position_setpoint_triplet()->current.alt +
+				altitude_diff;
+
+		if (_navigator->get_position_setpoint_triplet()->next.valid
+		    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->next.alt)) {
+			_navigator->get_position_setpoint_triplet()->next.alt = _navigator->get_position_setpoint_triplet()->next.alt +
+					altitude_diff;
+		}
+
+		_navigator->set_position_setpoint_triplet_updated();
+		_home_update_counter = _navigator->get_home_position()->update_count;
+	}
 }

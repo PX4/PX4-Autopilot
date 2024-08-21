@@ -114,11 +114,11 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.div           = 1,
 			.mux           = ACMP_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
-		.flexio1_clk_root =
+		.flexio1_clk_root = /* 432 / 4 = 108Mhz */
 		{
 			.enable        = 1,
-			.div           = 2,
-			.mux           = FLEXIO1_CLK_ROOT_SYS_PLL3_DIV2,
+			.div           = 4,
+			.mux           = FLEXIO1_CLK_ROOT_SYS_PLL2_PFD3,
 		},
 		.flexio2_clk_root =
 		{
@@ -492,9 +492,9 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		.mfd             = 268435455,
 		.ss_enable       = 0,
 		.pfd0            = 27, /* (528 * 18) / 27 = 352 MHz */
-		.pfd1            = 16, /* (528 * 16) / 16 = 594 MHz */
-		.pfd2            = 24, /* (528 * 24) / 27 = 396 MHz */
-		.pfd3            = 32, /* (528 * 32) / 27 = 297 MHz */
+		.pfd1            = 16, /* (528 * 18) / 16 = 594 MHz */
+		.pfd2            = 24, /* (528 * 18) / 24 = 396 MHz */
+		.pfd3            = 22, /* (528 * 18) / 22 = 216 MHz */
 	},
 	.sys_pll3 =
 	{

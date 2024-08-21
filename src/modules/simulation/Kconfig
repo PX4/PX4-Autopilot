@@ -2,6 +2,7 @@ menu "Simulation"
     menuconfig COMMON_SIMULATION
         bool "Common simulation modules"
         default n
+        depends on PLATFORM_POSIX
         select MODULES_SIMULATION_BATTERY_SIMULATOR
         select MODULES_SIMULATION_PWM_OUT_SIM
         select MODULES_SIMULATION_SENSOR_AIRSPEED_SIM

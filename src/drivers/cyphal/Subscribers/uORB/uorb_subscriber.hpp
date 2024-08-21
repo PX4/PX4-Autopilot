@@ -85,7 +85,7 @@ public:
 			_uorb_pub.publish(*data);
 
 		} else {
-			PX4_ERR("uORB over UAVCAN %s payload size mismatch got %d expected %d",
+			PX4_ERR("uORB over UAVCAN %s payload size mismatch got %zu expected %zu",
 				_subj_sub._subject_name, receive.payload_size, get_payload_size(data));
 		}
 	};

@@ -43,7 +43,7 @@ uint16 VEHICLE_CMD_DO_CHANGE_ALTITUDE = 186		# Set the vehicle to Loiter mode an
 uint16 VEHICLE_CMD_DO_SET_ACTUATOR = 187		# Sets actuators (e.g. servos) to a desired value. |Actuator 1| Actuator 2| Actuator 3| Actuator 4| Actuator 5| Actuator 6| Index|
 uint16 VEHICLE_CMD_DO_LAND_START = 189			# Mission command to perform a landing. This is used as a marker in a mission to tell the autopilot where a sequence of mission items that represents a landing starts. It may also be sent via a COMMAND_LONG to trigger a landing, in which case the nearest (geographically) landing sequence in the mission will be used. The Latitude/Longitude is optional, and may be set to 0/0 if not needed. If specified then it will be used to help find the closest landing sequence. |Empty| Empty| Empty| Empty| Latitude| Longitude| Empty|
 uint16 VEHICLE_CMD_DO_GO_AROUND = 191			# Mission command to safely abort an autonomous landing. |Altitude (meters)| Empty| Empty| Empty| Empty| Empty| Empty|
-uint16 VEHICLE_CMD_DO_REPOSITION = 192
+uint16 VEHICLE_CMD_DO_REPOSITION = 192			# Reposition to specific WGS84 GPS position. |Ground speed [m/s] |Bitmask |Loiter radius [m] for planes |Yaw	[deg] |Latitude	|Longitude |Altitude |
 uint16 VEHICLE_CMD_DO_PAUSE_CONTINUE = 193
 uint16 VEHICLE_CMD_DO_SET_ROI_LOCATION = 195		# Sets the region of interest (ROI) to a location. This can then be used by the vehicles control system to control the vehicle attitude and the attitude of various sensors such as cameras. |Empty| Empty| Empty| Empty| Latitude| Longitude| Altitude|
 uint16 VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET = 196 	# Sets the region of interest (ROI) to be toward next waypoint, with optional pitch/roll/yaw offset. This can then be used by the vehicles control system to control the vehicle attitude and the attitude of various sensors such as cameras. |Empty| Empty| Empty| Empty| pitch offset from next waypoint| roll offset from next waypoint| yaw offset from next waypoint|
@@ -102,6 +102,7 @@ uint16 VEHICLE_CMD_FIXED_MAG_CAL_YAW = 42006            # Magnetometer calibrati
 uint16 VEHICLE_CMD_DO_WINCH = 42600			# Command to operate winch.
 
 uint16 VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE = 43003 # external reset of estimator global position when deadreckoning
+uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
 
 # PX4 vehicle commands (beyond 16 bit mavlink commands)
 uint32 VEHICLE_CMD_PX4_INTERNAL_START    = 65537        # start of PX4 internal only vehicle commands (> UINT16_MAX)
@@ -156,6 +157,14 @@ uint8 SPEED_TYPE_AIRSPEED = 0
 uint8 SPEED_TYPE_GROUNDSPEED = 1
 uint8 SPEED_TYPE_CLIMB_SPEED = 2
 uint8 SPEED_TYPE_DESCEND_SPEED = 3
+
+# used as param3 in CMD_DO_ORBIT
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER = 0
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING = 1
+uint8 ORBIT_YAW_BEHAVIOUR_UNCONTROLLED = 2
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE = 3
+uint8 ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED = 4
+uint8 ORBIT_YAW_BEHAVIOUR_UNCHANGED = 5
 
 # used as param1 in ARM_DISARM command
 int8 ARMING_ACTION_DISARM = 0

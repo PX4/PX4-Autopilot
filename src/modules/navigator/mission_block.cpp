@@ -55,8 +55,8 @@
 
 using matrix::wrap_pi;
 
-MissionBlock::MissionBlock(Navigator *navigator) :
-	NavigatorMode(navigator)
+MissionBlock::MissionBlock(Navigator *navigator, uint8_t navigator_state_id) :
+	NavigatorMode(navigator, navigator_state_id)
 {
 
 }
@@ -1009,5 +1009,62 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 	} else { //_mission_item.land_precision == 2
 		_navigator->get_precland()->set_mode(PrecLandMode::Required);
 		_navigator->get_precland()->on_activation();
+	}
+}
+
+void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_item_s mission_item)
+{
+	// Avoid flying into terrain using the distance sensor. Enable through the parameter NAV_MIN_GND_DIST.
+	// Only active during commanded descents with vz>0 (to prevent climb-aways), excluding landing and VTOL transitions.
+	// It changes the altitude setpoint in the triplet to maintain the current altitude and republish the triplet.
+	// We also change the mission item altitude used for acceptance calculations to prevent getting stuck in a loop.
+
+	// This threshold is needed to prevent the check from re-triggering due to small altitude over-shoots while
+	// tracking the new altitude setpoint.
+	static constexpr float kAltitudeDifferenceForDescentCondition = 2.f;
+
+
+	if (_navigator->get_nav_min_gnd_dist_param() > FLT_EPSILON && _mission_item.nav_cmd != NAV_CMD_LAND
+	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND && _mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION
+	    && _navigator->get_local_position()->dist_bottom_valid
+	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
+	    && _navigator->get_local_position()->vz > FLT_EPSILON
+	    && _navigator->get_global_position()->alt - get_absolute_altitude_for_item(mission_item) >
+	    kAltitudeDifferenceForDescentCondition) {
+
+		_navigator->sendWarningDescentStoppedDueToTerrain();
+
+		struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
+		curr_sp->alt = _navigator->get_global_position()->alt;
+		_navigator->set_position_setpoint_triplet_updated();
+
+		_mission_item.altitude = _navigator->get_global_position()->alt;
+		_mission_item.altitude_is_relative = false;
+	}
+}
+
+void MissionBlock::updateFailsafeChecks()
+{
+	updateMaxHaglFailsafe();
+}
+
+void MissionBlock::updateMaxHaglFailsafe()
+{
+	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+
+	if (_navigator->get_global_position()->terrain_alt_valid
+	    && ((target_alt - _navigator->get_global_position()->terrain_alt) > _navigator->get_local_position()->hagl_max)) {
+		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
+		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
+		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");
+
+		_navigator->trigger_hagl_failsafe(getNavigatorStateId());
+
+		// While waiting for a failsafe action from commander, keep the curren position
+		setLoiterItemFromCurrentPosition(&_mission_item);
+
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+
+		_navigator->set_position_setpoint_triplet_updated();
 	}
 }

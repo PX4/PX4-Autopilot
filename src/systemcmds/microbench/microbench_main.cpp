@@ -69,7 +69,7 @@ const struct {
 	{"microbench_matrix",	test_microbench_matrix,	0},
 	{"microbench_uorb",	test_microbench_uorb,	0},
 
-	{nullptr,			nullptr, 		0}
+	{"null",			nullptr, 		0}
 };
 
 #define NMICROBENCHMARKS (sizeof(microbenchmarks) / sizeof(microbenchmarks[0]))

@@ -18,4 +18,3 @@ param set-default LPE_FUSION 132
 
 # AEQ: External heading set to use vision input
 param set-default ATT_EXT_HDG_M 1
-

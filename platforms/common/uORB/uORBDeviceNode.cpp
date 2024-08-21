@@ -412,7 +412,10 @@ int16_t uORB::DeviceNode::process_add_subscription()
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
-		ch->send_message(_meta->o_name, _meta->o_size, _data);
+		// Only send the most recent data to initialize the remote end.
+		if (_data_valid) {
+			ch->send_message(_meta->o_name, _meta->o_size, _data + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)));
+		}
 	}
 
 	return PX4_OK;

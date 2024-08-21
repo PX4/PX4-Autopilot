@@ -518,7 +518,7 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 	// We can't return early instead because we need to copy all topics that triggered poll.
 
 	bool exit_loop = false;
-	UpdateResult update_result = already_active ? UpdateResult::UpdatedActive : UpdateResult::NoUpdate;
+	UpdateResult update_result = UpdateResult::NoUpdate;
 
 	while (!exit_loop && poll_timeout >= 0) {
 
@@ -856,7 +856,9 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 			control_data.compid_primary_control = new_compid_primary_control;
 		}
 
-		return UpdateResult::UpdatedActive;
+		// Just doing the configuration doesn't mean there is actually an update to use yet.
+		// After that we still need to have an actual setpoint.
+		return UpdateResult::NoUpdate;
 
 		// TODO: support secondary control
 		// TODO: support gimbal device id for multiple gimbals
@@ -880,7 +882,7 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 			_ack_vehicle_command(vehicle_command,
 					     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-			return UpdateResult::UpdatedActive;
+			return UpdateResult::UpdatedActiveOnce;
 
 		} else {
 			PX4_INFO("GIMBAL_MANAGER_PITCHYAW from %d/%d denied, in control: %d/%d",

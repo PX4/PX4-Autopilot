@@ -1,5 +1,6 @@
 menuconfig DRIVERS_IMU_BOSCH_BMI088_I2C
 	bool "bosch bmi088_i2c"
 	default n
+	depends on !DRIVERS_IMU_BOSCH_BMI088
 	---help---
 		Enable support for bosch bmi088_i2c

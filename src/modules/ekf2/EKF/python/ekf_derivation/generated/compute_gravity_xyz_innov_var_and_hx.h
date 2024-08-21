@@ -16,60 +16,57 @@ namespace sym {
  * Symbolic function: compute_gravity_xyz_innov_var_and_hx
  *
  * Args:
- *     state: Matrix24_1
- *     P: Matrix23_23
+ *     state: Matrix25_1
+ *     P: Matrix24_24
  *     R: Scalar
  *
  * Outputs:
  *     innov_var: Matrix31
- *     Hx: Matrix23_1
+ *     Hx: Matrix24_1
  */
 template <typename Scalar>
-void ComputeGravityXyzInnovVarAndHx(const matrix::Matrix<Scalar, 24, 1>& state,
-                                    const matrix::Matrix<Scalar, 23, 23>& P, const Scalar R,
+void ComputeGravityXyzInnovVarAndHx(const matrix::Matrix<Scalar, 25, 1>& state,
+                                    const matrix::Matrix<Scalar, 24, 24>& P, const Scalar R,
                                     matrix::Matrix<Scalar, 3, 1>* const innov_var = nullptr,
-                                    matrix::Matrix<Scalar, 23, 1>* const Hx = nullptr) {
-  // Total ops: 51
+                                    matrix::Matrix<Scalar, 24, 1>* const Hx = nullptr) {
+  // Total ops: 53
 
   // Input arrays
 
-  // Intermediate terms (16)
-  const Scalar _tmp0 = std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp1 = std::pow(state(0, 0), Scalar(2));
-  const Scalar _tmp2 = std::pow(state(2, 0), Scalar(2));
-  const Scalar _tmp3 = std::pow(state(1, 0), Scalar(2));
-  const Scalar _tmp4 = _tmp0 + _tmp1 - _tmp2 - _tmp3;
-  const Scalar _tmp5 = 2 * state(2, 0);
-  const Scalar _tmp6 = _tmp5 * state(3, 0);
-  const Scalar _tmp7 = 2 * state(1, 0);
-  const Scalar _tmp8 = _tmp7 * state(0, 0);
-  const Scalar _tmp9 = -_tmp6 - _tmp8;
-  const Scalar _tmp10 = -_tmp0 - _tmp1 + _tmp2 + _tmp3;
-  const Scalar _tmp11 = _tmp5 * state(0, 0);
-  const Scalar _tmp12 = _tmp7 * state(3, 0);
-  const Scalar _tmp13 = -_tmp11 + _tmp12;
-  const Scalar _tmp14 = _tmp6 + _tmp8;
-  const Scalar _tmp15 = _tmp11 - _tmp12;
+  // Intermediate terms (13)
+  const Scalar _tmp0 = 2 * state(0, 0);
+  const Scalar _tmp1 = -_tmp0 * state(3, 0);
+  const Scalar _tmp2 = 2 * state(2, 0);
+  const Scalar _tmp3 = _tmp2 * state(1, 0);
+  const Scalar _tmp4 = _tmp1 - _tmp3;
+  const Scalar _tmp5 = std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp6 = std::pow(state(0, 0), Scalar(2));
+  const Scalar _tmp7 = std::pow(state(1, 0), Scalar(2)) - std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp8 = -_tmp5 + _tmp6 + _tmp7;
+  const Scalar _tmp9 = _tmp1 + _tmp3;
+  const Scalar _tmp10 = _tmp5 - _tmp6 + _tmp7;
+  const Scalar _tmp11 = _tmp0 * state(1, 0) - _tmp2 * state(3, 0);
+  const Scalar _tmp12 = _tmp2 * state(0, 0) + 2 * state(1, 0) * state(3, 0);
 
   // Output terms (2)
   if (innov_var != nullptr) {
     matrix::Matrix<Scalar, 3, 1>& _innov_var = (*innov_var);
 
-    _innov_var(0, 0) = R + _tmp4 * (P(1, 1) * _tmp4 + P(2, 1) * _tmp9) +
-                       _tmp9 * (P(1, 2) * _tmp4 + P(2, 2) * _tmp9);
-    _innov_var(1, 0) = R + _tmp10 * (P(0, 0) * _tmp10 + P(2, 0) * _tmp13) +
-                       _tmp13 * (P(0, 2) * _tmp10 + P(2, 2) * _tmp13);
-    _innov_var(2, 0) = R + _tmp14 * (P(0, 0) * _tmp14 + P(1, 0) * _tmp15) +
-                       _tmp15 * (P(0, 1) * _tmp14 + P(1, 1) * _tmp15);
+    _innov_var(0, 0) = R + _tmp4 * (P(0, 0) * _tmp4 + P(1, 0) * _tmp8) +
+                       _tmp8 * (P(0, 1) * _tmp4 + P(1, 1) * _tmp8);
+    _innov_var(1, 0) = R + _tmp10 * (P(0, 0) * _tmp10 + P(1, 0) * _tmp9) +
+                       _tmp9 * (P(0, 1) * _tmp10 + P(1, 1) * _tmp9);
+    _innov_var(2, 0) = R + _tmp11 * (P(0, 0) * _tmp11 + P(1, 0) * _tmp12) +
+                       _tmp12 * (P(0, 1) * _tmp11 + P(1, 1) * _tmp12);
   }
 
   if (Hx != nullptr) {
-    matrix::Matrix<Scalar, 23, 1>& _hx = (*Hx);
+    matrix::Matrix<Scalar, 24, 1>& _hx = (*Hx);
 
     _hx.setZero();
 
-    _hx(1, 0) = _tmp4;
-    _hx(2, 0) = _tmp9;
+    _hx(0, 0) = _tmp4;
+    _hx(1, 0) = _tmp8;
   }
 }  // NOLINT(readability/fn_size)
 

@@ -110,15 +110,17 @@ void task_main(int argc, char *argv[])
 		}
 	}
 
-	int uart_fd = dsm_init(device_path);
+	int uart_fd = qurt_uart_open(device_path, 115200);
 
 	if (uart_fd < 0) {
-		PX4_ERR("dsm init failed");
+		PX4_ERR("uart open failed");
 		return;
 
 	} else if (verbose) {
-		PX4_INFO("Spektrum RC: dsm_init succeeded");
+		PX4_INFO("Spektrum RC: uart open succeeded");
 	}
+
+	dsm_proto_init();
 
 	orb_advert_t rc_pub = nullptr;
 

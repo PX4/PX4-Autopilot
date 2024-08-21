@@ -41,7 +41,6 @@ param set-default FW_T_SINK_MIN 2.2
 
 param set-default FW_W_EN 1
 
-param set-default MIS_LTRMIN_ALT 30
 param set-default MIS_TAKEOFF_ALT 30
 
 param set-default NAV_ACC_RAD 15
@@ -71,4 +70,3 @@ param set-default PWM_MAIN_FUNC7 202
 param set-default PWM_MAIN_FUNC8 203
 param set-default PWM_MAIN_FUNC9 206
 param set-default PWM_MAIN_REV 256
-

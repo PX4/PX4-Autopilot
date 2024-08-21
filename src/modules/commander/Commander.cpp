@@ -598,6 +598,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 		if (!_health_and_arming_checks.canArm(_vehicle_status.nav_state)) {
 			tune_negative(true);
+			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Resolve system health failures first\t");
+			events::send(events::ID("commander_arm_denied_resolve_failures"), {events::Log::Critical, events::LogInternal::Info},
+				     "Arming denied: Resolve system health failures first");
 			return TRANSITION_DENIED;
 		}
 	}
@@ -667,9 +670,9 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 	}
 
 	// update flight uuid
-	const int32_t flight_uuid = _param_flight_uuid.get() + 1;
-	_param_flight_uuid.set(flight_uuid);
-	_param_flight_uuid.commit_no_notification();
+	const int32_t flight_uuid = _param_com_flight_uuid.get() + 1;
+	_param_com_flight_uuid.set(flight_uuid);
+	_param_com_flight_uuid.commit_no_notification();
 
 	_status_changed = true;
 
@@ -1106,7 +1109,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
 			// if no high latency telemetry exists send a failed acknowledge
-			if (_high_latency_datalink_heartbeat > _boot_timestamp) {
+			if (_high_latency_datalink_timestamp < _boot_timestamp) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 				mavlink_log_critical(&_mavlink_log_pub, "Control high latency failed! Telemetry unavailable\t");
 				events::send(events::ID("commander_ctrl_high_latency_failed"), {events::Log::Critical, events::LogInternal::Info},
@@ -1988,7 +1991,7 @@ void Commander::checkForMissionUpdate()
 			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
 			    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
 				// Transition mode to loiter or auto-mission after takeoff is completed.
-				if ((_param_takeoff_finished_action.get() == 1) && auto_mission_available) {
+				if ((_param_com_takeoff_act.get() == 1) && auto_mission_available) {
 					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
 				} else {
@@ -2233,7 +2236,7 @@ void Commander::handleAutoDisarm()
 	if (isArmed()) {
 
 		// Check for auto-disarm on landing or pre-flight
-		if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
+		if (_param_com_disarm_land.get() > 0 || _param_com_disarm_prflt.get() > 0) {
 
 			const bool landed_amid_mission = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 							 && !_mission_result_sub.get().finished;
@@ -2244,8 +2247,8 @@ void Commander::handleAutoDisarm()
 				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
 				_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
-			} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
-				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
+			} else if (_param_com_disarm_prflt.get() > 0 && !_have_taken_off_since_arming) {
+				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_prflt.get() * 1_s);
 				_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
 			}
 
@@ -2631,7 +2634,7 @@ int Commander::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("commander",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_DEFAULT + 40,
-				      3250,
+				      PX4_STACK_ADJUSTED(3250),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -2669,6 +2672,28 @@ void Commander::enable_hil()
 
 void Commander::dataLinkCheck()
 {
+	// high latency data link
+	iridiumsbd_status_s iridium_status;
+
+	if (_iridiumsbd_status_sub.update(&iridium_status)) {
+		_high_latency_datalink_timestamp = iridium_status.last_at_ok_timestamp;
+
+		if (_vehicle_status.high_latency_data_link_lost &&
+		    (_high_latency_datalink_timestamp > _high_latency_datalink_lost) &&
+		    (_high_latency_datalink_regained == 0)
+		   ) {
+			_high_latency_datalink_regained = _high_latency_datalink_timestamp;
+		}
+
+		if (_vehicle_status.high_latency_data_link_lost &&
+		    (_high_latency_datalink_regained != 0) &&
+		    (hrt_elapsed_time(&_high_latency_datalink_regained) > (_param_com_hldl_reg_t.get() * 1_s))
+		   ) {
+			_vehicle_status.high_latency_data_link_lost = false;
+			_status_changed = true;
+		}
+	}
+
 	for (auto &telemetry_status :  _telemetry_status_subs) {
 		telemetry_status_s telemetry;
 
@@ -2682,16 +2707,18 @@ void Commander::dataLinkCheck()
 				break;
 
 			case telemetry_status_s::LINK_TYPE_IRIDIUM: {
-					iridiumsbd_status_s iridium_status;
 
-					if (_iridiumsbd_status_sub.update(&iridium_status)) {
-						_high_latency_datalink_heartbeat = iridium_status.last_heartbeat;
+					if ((_high_latency_datalink_timestamp > 0) &&
+					    (hrt_elapsed_time(&_high_latency_datalink_timestamp) > (_param_com_hldl_loss_t.get() * 1_s))) {
 
-						if (_vehicle_status.high_latency_data_link_lost) {
-							if (hrt_elapsed_time(&_high_latency_datalink_lost) > (_param_com_hldl_reg_t.get() * 1_s)) {
-								_vehicle_status.high_latency_data_link_lost = false;
-								_status_changed = true;
-							}
+						_high_latency_datalink_lost = _high_latency_datalink_timestamp;
+						_high_latency_datalink_regained = 0;
+
+						if (!_vehicle_status.high_latency_data_link_lost) {
+							_vehicle_status.high_latency_data_link_lost = true;
+							mavlink_log_critical(&_mavlink_log_pub, "High latency data link lost\t");
+							events::send(events::ID("commander_high_latency_lost"), events::Log::Critical, "High latency data link lost");
+							_status_changed = true;
 						}
 					}
 
@@ -2831,19 +2858,6 @@ void Commander::dataLinkCheck()
 
 			_avoidance_system_lost = true;
 			_vehicle_status.avoidance_system_valid = false;
-		}
-	}
-
-	// high latency data link loss failsafe
-	if (_high_latency_datalink_heartbeat > 0
-	    && hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_param_com_hldl_loss_t.get() * 1_s)) {
-		_high_latency_datalink_lost = hrt_absolute_time();
-
-		if (!_vehicle_status.high_latency_data_link_lost) {
-			_vehicle_status.high_latency_data_link_lost = true;
-			mavlink_log_critical(&_mavlink_log_pub, "High latency data link lost\t");
-			events::send(events::ID("commander_high_latency_lost"), events::Log::Critical, "High latency data link lost");
-			_status_changed = true;
 		}
 	}
 }

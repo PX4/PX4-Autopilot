@@ -97,6 +97,11 @@ private:
 	};
 
 private:
+
+	/**
+	 * @brief Check mission landing validity
+	 * @return true if mission has a land start, a land and is valid
+	 */
 	bool hasMissionLandStart() const;
 
 	/**

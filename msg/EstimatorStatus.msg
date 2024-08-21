@@ -15,6 +15,7 @@ uint8 GPS_CHECK_FAIL_MAX_HORZ_DRIFT = 6		# 6 : maximum allowed horizontal positi
 uint8 GPS_CHECK_FAIL_MAX_VERT_DRIFT = 7		# 7 : maximum allowed vertical position drift fail - requires stationary vehicle
 uint8 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8	# 8 : maximum allowed horizontal speed fail - requires stationary vehicle
 uint8 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 9	# 9 : maximum allowed vertical velocity discrepancy fail
+uint8 GPS_CHECK_FAIL_SPOOFED = 10		# 10 : GPS signal is spoofed
 
 uint64 control_mode_flags	# Bitmask to indicate EKF logic state
 uint8 CS_TILT_ALIGN = 0		# 0 - true if the filter tilt alignment is complete
@@ -69,27 +70,14 @@ uint32 filter_fault_flags	# Bitmask to indicate EKF internal faults
 
 float32 pos_horiz_accuracy # 1-Sigma estimated horizontal position accuracy relative to the estimators origin (m)
 float32 pos_vert_accuracy # 1-Sigma estimated vertical position accuracy relative to the estimators origin (m)
-uint16 innovation_check_flags # Bitmask to indicate pass/fail status of innovation consistency checks
-# 0 - true if velocity observations have been rejected
-# 1 - true if horizontal position observations have been rejected
-# 2 - true if true if vertical position observations have been rejected
-# 3 - true if the X magnetometer observation has been rejected
-# 4 - true if the Y magnetometer observation has been rejected
-# 5 - true if the Z magnetometer observation has been rejected
-# 6 - true if the yaw observation has been rejected
-# 7 - true if the airspeed observation has been rejected
-# 8 - true if the synthetic sideslip observation has been rejected
-# 9 - true if the height above ground observation has been rejected
-# 10 - true if the X optical flow observation has been rejected
-# 11 - true if the Y optical flow observation has been rejected
 
-float32 mag_test_ratio # ratio of the largest magnetometer innovation component to the innovation test limit
-float32 vel_test_ratio # ratio of the largest velocity innovation component to the innovation test limit
-float32 pos_test_ratio # ratio of the largest horizontal position innovation component to the innovation test limit
-float32 hgt_test_ratio # ratio of the vertical position innovation to the innovation test limit
-float32 tas_test_ratio # ratio of the true airspeed innovation to the innovation test limit
-float32 hagl_test_ratio # ratio of the height above ground innovation to the innovation test limit
-float32 beta_test_ratio # ratio of the synthetic sideslip innovation to the innovation test limit
+float32 hdg_test_ratio # low-pass filtered ratio of the largest heading innovation component to the innovation test limit
+float32 vel_test_ratio # low-pass filtered ratio of the largest velocity innovation component to the innovation test limit
+float32 pos_test_ratio # low-pass filtered ratio of the largest horizontal position innovation component to the innovation test limit
+float32 hgt_test_ratio # low-pass filtered ratio of the vertical position innovation to the innovation test limit
+float32 tas_test_ratio # low-pass filtered ratio of the true airspeed innovation to the innovation test limit
+float32 hagl_test_ratio # low-pass filtered ratio of the height above ground innovation to the innovation test limit
+float32 beta_test_ratio # low-pass filtered ratio of the synthetic sideslip innovation to the innovation test limit
 
 uint16 solution_status_flags # Bitmask indicating which filter kinematic state outputs are valid for flight control use.
 # 0 - True if the attitude estimate is good
@@ -114,9 +102,10 @@ uint8 reset_count_quat   # number of quaternion reset events (allow to wrap if c
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
 
 bool pre_flt_fail_innov_heading
+bool pre_flt_fail_innov_height
+bool pre_flt_fail_innov_pos_horiz
 bool pre_flt_fail_innov_vel_horiz
 bool pre_flt_fail_innov_vel_vert
-bool pre_flt_fail_innov_height
 bool pre_flt_fail_mag_field_disturbed
 
 uint32 accel_device_id

@@ -340,7 +340,7 @@ int MS5837::_collect()
 		sensor_baro.timestamp_sample = timestamp_sample;
 		sensor_baro.device_id = get_device_id();
 		sensor_baro.pressure = P;
-		sensor_baro.temperature = T;
+		sensor_baro.temperature = _last_temperature;
 		sensor_baro.error_count = perf_event_count(_comms_errors);
 		sensor_baro.timestamp = hrt_absolute_time();
 		_sensor_baro_pub.publish(sensor_baro);

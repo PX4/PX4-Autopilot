@@ -69,6 +69,7 @@ if(CONFIG_MODULES_MC_RATE_CONTROL)
 		4071_ifo
 		4073_ifo-s
 		4500_clover4
+		4601_droneblocks_dexi_5
 		4901_crazyflie21
 
 		# [5000, 5999] Quadrotor +
@@ -135,16 +136,27 @@ if(CONFIG_MODULES_VTOL_ATT_CONTROL)
 	)
 endif()
 
-if(CONFIG_MODULES_ROVER_POS_CONTROL)
+if(CONFIG_MODULES_ROVER_DIFFERENTIAL)
 	px4_add_romfs_files(
-		50000_generic_ground_vehicle
-		50004_nxpcup_car_dfrobot_gpx
+		# [50000, 50999] Differential rovers
+		50000_generic_rover_differential
+		50001_aion_robotics_r1_rover
 	)
 endif()
 
-if(CONFIG_MODULES_DIFFERENTIAL_DRIVE)
+if(CONFIG_MODULES_ROVER_ACKERMANN)
 	px4_add_romfs_files(
-		50003_aion_robotics_r1_rover
+		# [51000, 51999] Ackermann rovers
+		51000_generic_rover_ackermann
+		51001_axial_scx10_2_trail_honcho
+	)
+endif()
+
+if(CONFIG_MODULES_ROVER_POS_CONTROL)
+	px4_add_romfs_files(
+		# [59000, 59999] Rover position control (deprecated)
+		59000_generic_ground_vehicle
+		59001_nxpcup_car_dfrobot_gpx
 	)
 endif()
 

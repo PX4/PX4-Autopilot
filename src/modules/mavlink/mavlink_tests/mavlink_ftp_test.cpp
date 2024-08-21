@@ -43,7 +43,7 @@
 #include "../mavlink_ftp.h"
 
 #ifdef __PX4_NUTTX
-#define PX4_MAVLINK_TEST_DATA_DIR "/fs/microsd/ftp_unit_test_data"
+#define PX4_MAVLINK_TEST_DATA_DIR CONFIG_BOARD_ROOT_PATH "/ftp_unit_test_data"
 #else
 #define PX4_MAVLINK_TEST_DATA_DIR "ftp_unit_test_data"
 #endif
@@ -77,7 +77,7 @@ MavlinkFtpTest::MavlinkFtpTest() :
 void MavlinkFtpTest::_init()
 {
 	_expected_seq_number = 0;
-	_ftp_server = new MavlinkFTP(nullptr);
+	_ftp_server = new MavlinkFTP(_mavlink);
 	_ftp_server->set_unittest_worker(MavlinkFtpTest::receive_message_handler_generic, this);
 
 	_create_test_files();

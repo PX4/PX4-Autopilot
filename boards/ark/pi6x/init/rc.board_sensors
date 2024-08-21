@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# ARKPI6X specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -I -b 3 -t 1 -k start
+fi
+
+if ver hwtypecmp ARKPI6X000
+then
+	# Internal SPI bus ICM42688p with SPIX measured frequency of 32.051kHz
+	icm42688p -R 3 -s -b 1 -C 32051 start
+
+	# Internal SPI bus ICM42688p with SPIX measured frequency of 32.051kHz
+	icm42688p -R 1 -s -b 2 -C 32051 start
+fi
+
+# Internal magnetometer on I2C
+if ! iis2mdc -R 4 -I -b 4 start
+then
+	mmc5983ma -I -b 4 start
+fi
+
+# Internal Baro on I2C
+bmp388 -I -b 4 start
+
+# Internal optical flow
+paw3902 -s -b 3 start -Y 90
+
+# Internal distance sensor
+afbrs50 start

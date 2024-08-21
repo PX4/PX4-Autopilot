@@ -35,6 +35,7 @@ pipeline {
 
           def nuttx_builds_archive = [
             target: [
+                     "3dr_ctrl-zero-h7-oem-revg_default",
                      "airmind_mindpx-v2_default",
                      "ark_can-flow_canbootloader",
                      "ark_can-flow_default",
@@ -46,6 +47,8 @@ pipeline {
                      "ark_cannode_default",
                      "ark_fmu-v6x_bootloader",
                      "ark_fmu-v6x_default",
+                     "ark_pi6x_bootloader",
+                     "ark_pi6x_default",
                      "atl_mantis-edu_default",
                      "av_x-v1_default",
                      "bitcraze_crazyflie21_default",

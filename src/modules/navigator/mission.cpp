@@ -65,7 +65,7 @@ using namespace time_literals;
 static constexpr int32_t DEFAULT_MISSION_CACHE_SIZE = 10;
 
 Mission::Mission(Navigator *navigator) :
-	MissionBase(navigator, DEFAULT_MISSION_CACHE_SIZE)
+	MissionBase(navigator, DEFAULT_MISSION_CACHE_SIZE, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 {
 }
 
@@ -215,6 +215,23 @@ void Mission::setActiveMissionItems()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
+
+	/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
+	if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&
+	    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) &&
+	    (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
+	    !_land_detected_sub.get().landed) {
+		if (setNextMissionItem()) {
+			if (!loadCurrentMissionItem()) {
+				setEndOfMissionItems();
+				return;
+			}
+
+		} else {
+			setEndOfMissionItems();
+			return;
+		}
+	}
 
 	if (item_contains_position(_mission_item)) {
 

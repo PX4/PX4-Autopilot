@@ -95,7 +95,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 
 	# java (jmavsim)
 	sudo pacman -S --noconfirm --needed \
-		ant
+		ant \
 		;
 
 	# Gazebo setup

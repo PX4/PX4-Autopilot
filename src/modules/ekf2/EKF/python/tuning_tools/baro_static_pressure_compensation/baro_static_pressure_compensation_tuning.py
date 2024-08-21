@@ -150,7 +150,7 @@ def baroCorrection(x, v_body):
 
     return correction
 
-def run(logfile):
+def run(logfile, w_hpf):
     (t, v_body, baro, v_local_z, gnss_h) = getAllData(logfile)
 
     # x[0]: pcoef_xn / g
@@ -162,8 +162,10 @@ def run(logfile):
 
     # Remove low ferquency part of the signal as we're only interested in the short-term errors
     baro_error -= baro_error[0]
-    sos = butter(4, 0.01, 'hp', fs=1/(t[1]-t[0]), output='sos')
-    baro_error = sosfilt(sos, baro_error)
+
+    if (w_hpf > 0):
+        sos = butter(4, w_hpf, 'hp', fs=1/(t[1]-t[0]), output='sos')
+        baro_error = sosfilt(sos, baro_error)
 
     J = lambda x: np.sum(np.power(baro_error - baroCorrection(x, v_body), 2.0)) # cost function
 
@@ -224,8 +226,10 @@ if __name__ == '__main__':
 
     # Provide parameter file path and name
     parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
+    parser.add_argument('--hpf', help='Cuttoff frequency of high-pass filter on baro error (Hz)', type=float, default=-1)
     args = parser.parse_args()
 
     logfile = os.path.abspath(args.logfile) # Convert to absolute path
+    w_hpf = 2 * np.pi * args.hpf
 
-    run(logfile)
+    run(logfile, w_hpf)

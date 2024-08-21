@@ -41,6 +41,8 @@
 #include <airspeed/airspeed.h>
 #include <lib/wind_estimator/WindEstimator.hpp>
 #include <uORB/topics/airspeed_wind.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/FilteredDerivative.hpp>
 
 
 using matrix::Dcmf;
@@ -56,7 +58,7 @@ struct airspeed_validator_update_data {
 	float airspeed_true_raw;
 	uint64_t airspeed_timestamp;
 	matrix::Vector3f ground_velocity;
-	bool lpos_valid;
+	bool gnss_valid;
 	float lpos_evh;
 	float lpos_evv;
 	matrix::Quatf q_att;
@@ -64,8 +66,11 @@ struct airspeed_validator_update_data {
 	float air_temperature_celsius;
 	float accel_z;
 	float vel_test_ratio;
-	float mag_test_ratio;
+	float hdg_test_ratio;
 	bool in_fixed_wing_flight;
+	float fixed_wing_tecs_throttle;
+	float fixed_wing_tecs_throttle_trim;
+	uint64_t tecs_timestamp;
 };
 
 class AirspeedValidator
@@ -83,6 +88,9 @@ public:
 	float get_TAS() { return _TAS; }
 	bool get_airspeed_valid() { return _airspeed_valid; }
 	float get_CAS_scale_validated() {return _CAS_scale_validated;}
+	float get_airspeed_derivative() { return _IAS_derivative.getState(); }
+	float get_throttle_filtered() { return _throttle_filtered.getState(); }
+	float get_pitch_filtered() { return _pitch_filtered.getState(); }
 
 	airspeed_wind_s get_wind_estimator_states(uint64_t timestamp);
 
@@ -118,6 +126,10 @@ public:
 	void set_enable_data_stuck_check(bool enable) { _data_stuck_check_enabled = enable; }
 	void set_enable_innovation_check(bool enable) { _innovation_check_enabled = enable; }
 	void set_enable_load_factor_check(bool enable) { _load_factor_check_enabled = enable; }
+	void set_enable_first_principle_check(bool enable) { _first_principle_check_enabled = enable; }
+	void set_psp_off_param(float psp_off_param) { _param_psp_off = psp_off_param; }
+	void set_throttle_max_param(float throttle_max_param) { _param_throttle_max = throttle_max_param; }
+	void set_fp_t_window(float t_window) { _aspd_fp_t_window = t_window; }
 
 private:
 
@@ -127,9 +139,16 @@ private:
 	bool _data_stuck_check_enabled{false};
 	bool _innovation_check_enabled{false};
 	bool _load_factor_check_enabled{false};
+	bool _first_principle_check_enabled{false};
 
 	// airspeed scale validity check
 	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
+
+	static constexpr float kHighThrottleDelta =
+		0.05f; ///<  throttle delta above trim throttle required to consider throttle high
+	static constexpr float kIASDerivateThreshold =
+		0.1f; ///< threshold for IAS derivative to detect airspeed failure. Failure is
+	// detected if in a high throttle and low pitch situation and the filtered IAS derivative is below this threshold
 
 	// general states
 	bool _in_fixed_wing_flight{false}; ///< variable to bypass innovation and load factor checks
@@ -150,9 +169,7 @@ private:
 	float _tas_innov_threshold{1.0}; ///< innovation error threshold for triggering innovation check failure
 	float _tas_innov_integ_threshold{-1.0}; ///< integrator innovation error threshold for triggering innovation check failure
 	uint64_t	_time_last_aspd_innov_check{0};	///< time airspeed innovation was last checked (uSec)
-	uint64_t	_time_last_tas_pass{0};		///< last time innovation checks passed
 	float		_aspd_innov_integ_state{0.0f};	///< integral of excess normalised airspeed innovation (sec)
-	static constexpr uint64_t TAS_INNOV_FAIL_DELAY{1_s};	///< time required for innovation levels to pass or fail (usec)
 	uint64_t	_time_wind_estimator_initialized{0};		///< time last time wind estimator was initialized (uSec)
 
 	// states of load factor check
@@ -160,10 +177,21 @@ private:
 	float _airspeed_stall{8.0f}; ///< stall speed of aircraft used for load factor check
 	float	_load_factor_ratio{0.5f};	///< ratio of maximum load factor predicted by stall speed to measured load factor
 
+	// first principle check
+	bool _first_principle_check_failed{false}; ///< first principle check has detected failure
+	float _aspd_fp_t_window{0.f}; ///< time window for first principle check
+	FilteredDerivative<float> _IAS_derivative; ///< indicated airspeed derivative for first principle check
+	AlphaFilter<float> _throttle_filtered; ///< filtered throttle for first principle check
+	AlphaFilter<float> _pitch_filtered; ///< filtered pitch for first principle check
+	hrt_abstime _time_last_first_principle_check{0}; ///< time airspeed first principle was last checked (uSec)
+	hrt_abstime _time_last_first_principle_check_passing{0}; ///< time airspeed first principle was last passing (uSec)
+	float _param_psp_off{0.0f}; ///< parameter pitch in level flight [rad]
+	float _param_throttle_max{0.0f}; ///< parameter maximum throttle value
+
 	// states of airspeed valid declaration
 	bool _airspeed_valid{true}; ///< airspeed valid (pitot or groundspeed-windspeed)
-	int _checks_fail_delay{3}; ///< delay for airspeed invalid declaration after single check failure (Sec)
-	int _checks_clear_delay{-1}; ///< delay for airspeed valid declaration after all checks passed again (Sec)
+	float _checks_fail_delay{2.f}; ///< delay for airspeed invalid declaration after single check failure (Sec)
+	float _checks_clear_delay{-1.f}; ///< delay for airspeed valid declaration after all checks passed again (Sec)
 	uint64_t	_time_checks_passed{0};	///< time the checks have last passed (uSec)
 	uint64_t	_time_checks_failed{0};	///< time the checks have last not passed (uSec)
 
@@ -177,16 +205,18 @@ private:
 
 	void update_in_fixed_wing_flight(bool in_fixed_wing_flight) { _in_fixed_wing_flight = in_fixed_wing_flight; }
 
-	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool lpos_valid,
+	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool gnss_valid,
 				   const matrix::Vector3f &vI,
 				   float lpos_evh, float lpos_evv, const Quatf &q_att);
-	void update_CAS_scale_validated(bool lpos_valid, const matrix::Vector3f &vI, float airspeed_true_raw);
+	void update_CAS_scale_validated(bool gnss_valid, const matrix::Vector3f &vI, float airspeed_true_raw);
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_data_stuck(uint64_t timestamp);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
-				       float estimator_status_mag_test_ratio, const matrix::Vector3f &vI, bool lpos_valid);
+				       float estimator_status_hdg_test_ratio, const matrix::Vector3f &vI, bool gnss_valid);
 	void check_load_factor(float accel_z);
+	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
+				   const uint64_t tecs_timestamp, const Quatf &att_q);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
 	void reset_CAS_scale_check();

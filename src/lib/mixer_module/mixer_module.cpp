@@ -455,13 +455,16 @@ bool MixingOutput::update()
 		}
 	}
 
-	if (!all_disabled) {
+	// Send output if any function mapped or one last disabling sample
+	if (!all_disabled || !_was_all_disabled) {
 		if (!_armed.armed && !_armed.manual_lockdown) {
 			_actuator_test.overrideValues(outputs, _max_num_outputs);
 		}
 
 		limitAndUpdateOutputs(outputs, has_updates);
 	}
+
+	_was_all_disabled = all_disabled;
 
 	return true;
 }

@@ -43,13 +43,6 @@ else
     param load
 fi
 
-# Start logging and use timestamps for log files when possible.
-# Add the "-e" option to start logging immediately. Default is
-# to log only when armed. Caution must be used with the "-e" option
-# because if power is removed without stopping the logger gracefully then
-# the log file may be corrupted.
-logger start -e -t -b 200
-
 /bin/sleep 1
 
 # Start all of the processing modules on DSP
@@ -96,6 +89,9 @@ mavlink stream -u 14556 -s GLOBAL_POSITION_INT -r 30
 
 # start the slow normal mode for voxl-mavlink-server to forward to GCS
 mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
+
+# Start logging and use timestamps for log files when possible.
+logger start -t -b 256
 
 /bin/sleep 1
 

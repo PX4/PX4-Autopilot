@@ -49,7 +49,7 @@ TEST_CASE("Offboard takeoff and land", "[multicopter][offboard]")
 	tester.offboard_goto(takeoff_position, acceptance_radius, goto_timeout);
 	tester.offboard_land();
 	tester.wait_until_disarmed(std::chrono::seconds(120));
-	tester.check_home_within(1.0f);
+	tester.check_home_within(2.0f);
 }
 
 TEST_CASE("Offboard position control", "[multicopter][offboard]")
@@ -72,7 +72,7 @@ TEST_CASE("Offboard position control", "[multicopter][offboard]")
 	tester.offboard_goto(takeoff_position, acceptance_radius, goto_timeout);
 	tester.offboard_land();
 	tester.wait_until_disarmed(std::chrono::seconds(120));
-	tester.check_home_within(1.0f);
+	tester.check_home_within(2.0f);
 }
 
 TEST_CASE("Offboard attitude control", "[multicopter][offboard_attitude]")

@@ -56,31 +56,6 @@ public:
 	SubscriptionBlocking(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
 		SubscriptionCallback(meta, interval_us, instance)
 	{
-		// pthread_mutexattr_init
-		pthread_mutexattr_t attr;
-		int ret_attr_init = pthread_mutexattr_init(&attr);
-
-		if (ret_attr_init != 0) {
-			PX4_ERR("pthread_mutexattr_init failed, status=%d", ret_attr_init);
-		}
-
-#if defined(PTHREAD_PRIO_NONE)
-		// pthread_mutexattr_settype
-		//  PTHREAD_PRIO_NONE not available on cygwin
-		int ret_mutexattr_settype = pthread_mutexattr_settype(&attr, PTHREAD_PRIO_NONE);
-
-		if (ret_mutexattr_settype != 0) {
-			PX4_ERR("pthread_mutexattr_settype failed, status=%d", ret_mutexattr_settype);
-		}
-
-#endif // PTHREAD_PRIO_NONE
-
-		// pthread_mutex_init
-		int ret_mutex_init = pthread_mutex_init(&_mutex, &attr);
-
-		if (ret_mutex_init != 0) {
-			PX4_ERR("pthread_mutex_init failed, status=%d", ret_mutex_init);
-		}
 	}
 
 	virtual ~SubscriptionBlocking()

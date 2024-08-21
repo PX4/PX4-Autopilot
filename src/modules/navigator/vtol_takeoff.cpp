@@ -43,7 +43,7 @@
 using matrix::wrap_pi;
 
 VtolTakeoff::VtolTakeoff(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF),
 	ModuleParams(navigator)
 {
 }
@@ -151,7 +151,7 @@ VtolTakeoff::on_active()
 				// the VTOL takeoff is done
 				_navigator->get_mission_result()->finished = true;
 				_navigator->set_mission_result_updated();
-				_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
+				_navigator->mode_completed(getNavigatorStateId());
 
 				break;
 			}

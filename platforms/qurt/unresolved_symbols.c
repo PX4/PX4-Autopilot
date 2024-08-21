@@ -2,6 +2,7 @@
 #include <time.h>
 #include <px4_log.h>
 #include <qurt_alloc.h>
+#include <termios.h>
 
 __attribute__((visibility("default"))) void free(void *ptr)
 {
@@ -29,5 +30,23 @@ __attribute__((visibility("default"))) void *realloc(void *ptr, size_t size)
 __attribute__((visibility("default"))) int nanosleep(const struct timespec *req, struct timespec *rem)
 {
 	PX4_ERR("Undefined nanosleep called");
+	return -1;
+}
+
+__attribute__((visibility("default"))) int tcgetattr(int fd, struct termios *termiosp)
+{
+	PX4_ERR("Undefined tcgetattr called");
+	return -1;
+}
+
+__attribute__((visibility("default"))) int cfsetspeed(struct termios *termiosp, speed_t speed)
+{
+	PX4_ERR("Undefined cfsetspeed called");
+	return -1;
+}
+
+__attribute__((visibility("default"))) int tcsetattr(int fd, int options, const struct termios *termiosp)
+{
+	PX4_ERR("Undefined tcsetattr called");
 	return -1;
 }

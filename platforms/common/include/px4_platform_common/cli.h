@@ -50,3 +50,15 @@
  * @return 0 on success, -errno otherwise
  */
 int px4_get_parameter_value(const char *option, int &value);
+
+/**
+ * Parse a CLI argument to a float. There are 2 valid formats:
+ * - 'p:<param_name>'
+ *   in this case the parameter is loaded from an integer parameter
+ * - <float>
+ *   a floating-point value, so just a string to float conversion is done
+ * @param option CLI argument
+ * @param value returned value
+ * @return 0 on success, -errno otherwise
+ */
+int px4_get_parameter_value(const char *option, float &value);

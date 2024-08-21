@@ -56,6 +56,15 @@ bool UavcanParamManager::GetParamByName(const char *param_name, uavcan_register_
 		}
 	}
 
+	for (auto &param : _type_registers) {
+		if (strcmp(param_name, param.name) == 0) {
+			uavcan_register_Value_1_0_select_string_(&value);
+			value._string.value.count = strlen(param.value);
+			memcpy(&value._string, param.value, value._string.value.count);
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -73,18 +82,35 @@ bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, ua
 		}
 	}
 
+	for (auto &param : _type_registers) {
+		if (strncmp((char *)name.name.elements, param.name, name.name.count) == 0) {
+			uavcan_register_Value_1_0_select_string_(&value);
+			value._string.value.count = strlen(param.value);
+			memcpy(&value._string, param.value, value._string.value.count);
+			return true;
+		}
+	}
+
 	return false;
 }
 
 bool UavcanParamManager::GetParamName(uint32_t id, uavcan_register_Name_1_0 &name)
 {
-	if (id >= sizeof(_uavcan_params) / sizeof(UavcanParamBinder)) {
+	size_t number_of_integer_registers = sizeof(_uavcan_params) / sizeof(UavcanParamBinder);
+	size_t number_of_type_registers = sizeof(_type_registers) / sizeof(CyphalTypeRegister);
+
+	if (id < sizeof(_uavcan_params) / sizeof(UavcanParamBinder)) {
+		strncpy((char *)name.name.elements, _uavcan_params[id].uavcan_name, uavcan_register_Name_1_0_name_ARRAY_CAPACITY_);
+		name.name.count = strlen(_uavcan_params[id].uavcan_name);
+
+	} else if (id < number_of_integer_registers + number_of_type_registers) {
+		id -= number_of_integer_registers;
+		strncpy((char *)name.name.elements, _type_registers[id].name, strlen(_type_registers[id].name));
+		name.name.count = strlen(_type_registers[id].name);
+
+	} else {
 		return false;
 	}
-
-	strncpy((char *)name.name.elements, _uavcan_params[id].uavcan_name, uavcan_register_Name_1_0_name_ARRAY_CAPACITY_);
-
-	name.name.count = strlen(_uavcan_params[id].uavcan_name);
 
 	return true;
 }

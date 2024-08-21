@@ -126,7 +126,7 @@ class Mavlink;
 class MavlinkReceiver : public ModuleParams
 {
 public:
-	MavlinkReceiver(Mavlink *parent);
+	MavlinkReceiver(Mavlink &parent);
 	~MavlinkReceiver() override;
 
 	void start();
@@ -155,6 +155,7 @@ private:
 					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
 
 	void handle_message(mavlink_message_t *msg);
+	void handle_messages_in_gimbal_mode(mavlink_message_t &msg);
 
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
@@ -246,7 +247,7 @@ private:
 	 */
 	void updateParams() override;
 
-	Mavlink				*_mavlink;
+	Mavlink &_mavlink;
 
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
