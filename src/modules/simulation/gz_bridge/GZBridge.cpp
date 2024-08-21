@@ -150,16 +150,31 @@ int GZBridge::init()
 
 		// If PX4_GZ_STANDALONE has been set, you can try to connect but GZ_SIM_RESOURCE_PATH needs to be set correctly to work.
 		else {
-			if (_node.Request(create_service, req, 1000, rep, result)) {
-				if (!rep.data() || !result) {
-					PX4_ERR("EntityFactory service call failed.");
-					return PX4_ERROR;
-				}
-
-			} else {
-				PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+			if (!callEntityFactoryService(create_service, req)) {
 				return PX4_ERROR;
 			}
+
+			std::string scene_info_service = "/world/default/scene/info";
+			bool scene_created = false;
+
+			while (scene_created == false) {
+				if (!callSceneInfoMsgService(scene_info_service)) {
+					PX4_WARN("Service call timed out as Gazebo has not been detected.");
+					system_usleep(2000000);
+
+				} else {
+					scene_created = true;
+				}
+			}
+
+			gz::msgs::StringMsg follow_msg{};
+			follow_msg.set_data(_model_name);
+			bool call_string_service = callStringMsgService("/gui/follow", follow_msg);
+			gz::msgs::Vector3d follow_offset_msg{};
+			follow_offset_msg.set_x(-2.0);
+			follow_offset_msg.set_y(-2.0);
+			follow_offset_msg.set_z(2.0);
+			callVector3dService("/gui/follow/offset", follow_offset_msg);
 		}
 	}
 
@@ -828,6 +843,93 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 
 	_obstacle_distance_pub.publish(obs);
 }
+
+bool GZBridge::callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req)
+{
+	bool result;
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("EntityFactory service call failed.");
+			return false;
+		}
+
+	} else {
+		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callSceneInfoMsgService(const std::string &service)
+{
+	bool result;
+	gz::msgs::Empty req;
+	gz::msgs::Scene rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!result) {
+			PX4_ERR("Scene Info service call failed.");
+			return false;
+
+		} else {
+			return true;
+		}
+
+	} else {
+		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callStringMsgService(const std::string &service, const gz::msgs::StringMsg &req)
+{
+	bool result;
+
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("String service call failed");
+			return false;
+
+		}
+	}
+
+	else {
+		PX4_ERR("Service call timed out: %s", service.c_str());
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callVector3dService(const std::string &service, const gz::msgs::Vector3d &req)
+{
+	bool result;
+
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("String service call failed");
+			return false;
+
+		}
+	}
+
+	else {
+		PX4_ERR("Service call timed out: %s", service.c_str());
+		return false;
+	}
+
+	return true;
+}
+
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
 {
