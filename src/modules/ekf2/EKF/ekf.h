@@ -261,9 +261,11 @@ public:
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
 	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
-	bool checkLatLonValidity(double latitude, double longitude, float eph = 0.f);
-	bool checkAltitudeValidity(float altitude, float epv = 0.f);
-	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = 0.f, float epv = 0.f);
+	bool checkLatLonValidity(double latitude, double longitude);
+	bool checkAltitudeValidity(float altitude);
+	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = NAN, float epv = NAN);
+	bool setEkfGlobalOriginFromCurrentPos(double latitude, double longitude, float altitude, float eph = NAN,
+					      float epv = NAN);
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const;
@@ -769,6 +771,9 @@ private:
 
 	bool setLatLonOrigin(double latitude, double longitude, float eph = NAN);
 	bool setAltOrigin(float altitude, float epv = NAN);
+
+	bool setLatLonOriginFromCurrentPos(double latitude, double longitude, float eph = NAN);
+	bool setAltOriginFromCurrentPos(float altitude, float epv = NAN);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);

@@ -72,22 +72,18 @@ bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &lo
 	return _NED_origin_initialised;
 }
 
-bool Ekf::checkLatLonValidity(const double latitude, const double longitude, const float eph)
+bool Ekf::checkLatLonValidity(const double latitude, const double longitude)
 {
 	const bool lat_valid = (PX4_ISFINITE(latitude) && (abs(latitude) <= 90));
 	const bool lon_valid = (PX4_ISFINITE(longitude) && (abs(longitude) <= 180));
-	const bool eph_valid = (PX4_ISFINITE(eph) && (eph >= 0.f));
 
-	return (lat_valid && lon_valid && eph_valid);
+	return (lat_valid && lon_valid);
 }
 
-bool Ekf::checkAltitudeValidity(const float altitude, const float epv)
+bool Ekf::checkAltitudeValidity(const float altitude)
 {
 	// sanity check valid altitude anywhere between the Mariana Trench and edge of Space
-	const bool alt_valid = (PX4_ISFINITE(altitude) && ((altitude > -12'000.f) && (altitude < 100'000.f)));
-	const bool epv_valid = (PX4_ISFINITE(epv) && (epv >= 0.f));
-
-	return alt_valid && epv_valid;
+	return (PX4_ISFINITE(altitude) && ((altitude > -12'000.f) && (altitude < 100'000.f)));
 }
 
 bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude, const float eph,
@@ -105,7 +101,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const float eph)
 {
-	if (!checkLatLonValidity(latitude, longitude, eph)) {
+	if (!checkLatLonValidity(latitude, longitude)) {
 		return false;
 	}
 
@@ -121,7 +117,10 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 
 	// reinitialize map projection to latitude, longitude, altitude, and reset position
 	_pos_ref.initReference(latitude, longitude, _time_delayed_us);
-	_gpos_origin_eph = eph;
+
+	if (PX4_ISFINITE(eph) && (eph >= 0.f)) {
+		_gpos_origin_eph = eph;
+	}
 
 	_NED_origin_initialised = true;
 
@@ -136,13 +135,16 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 
 bool Ekf::setAltOrigin(const float altitude, const float epv)
 {
-	if (!checkAltitudeValidity(altitude, epv)) {
+	if (!checkAltitudeValidity(altitude)) {
 		return false;
 	}
 
 	const float gps_alt_ref_prev = _gps_alt_ref;
 	_gps_alt_ref = altitude;
-	_gpos_origin_epv = epv;
+
+	if (PX4_ISFINITE(epv) && (epv >= 0.f)) {
+		_gpos_origin_epv = epv;
+	}
 
 	if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
 		// determine current z
@@ -158,6 +160,59 @@ bool Ekf::setAltOrigin(const float altitude, const float epv)
 		// adjust existing GPS height bias
 		_gps_hgt_b_est.setBias(gps_hgt_bias);
 #endif // CONFIG_EKF2_GNSS
+	}
+
+	return true;
+}
+
+bool Ekf::setEkfGlobalOriginFromCurrentPos(const double latitude, const double longitude, const float altitude,
+		const float eph, const float epv)
+{
+	if (!setLatLonOriginFromCurrentPos(latitude, longitude, eph)) {
+		return false;
+	}
+
+	// altitude is optional
+	setAltOriginFromCurrentPos(altitude, epv);
+
+	return true;
+}
+
+bool Ekf::setLatLonOriginFromCurrentPos(const double latitude, const double longitude, const float eph)
+{
+	if (!checkLatLonValidity(latitude, longitude)) {
+		return false;
+	}
+
+	_pos_ref.initReference(latitude, longitude, _time_delayed_us);
+
+	// if we are already doing aiding, correct for the change in position since the EKF started navigating
+	if (isHorizontalAidingActive()) {
+		double est_lat;
+		double est_lon;
+		_pos_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
+		_pos_ref.initReference(est_lat, est_lon, _time_delayed_us);
+	}
+
+	if (PX4_ISFINITE(eph) && (eph >= 0.f)) {
+		_gpos_origin_eph = eph;
+	}
+
+	_NED_origin_initialised = true;
+
+	return true;
+}
+
+bool Ekf::setAltOriginFromCurrentPos(const float altitude, const float epv)
+{
+	if (!checkAltitudeValidity(altitude)) {
+		return false;
+	}
+
+	_gps_alt_ref = altitude + _state.pos(2);
+
+	if (PX4_ISFINITE(epv) && (epv >= 0.f)) {
+		_gpos_origin_epv = epv;
 	}
 
 	return true;
