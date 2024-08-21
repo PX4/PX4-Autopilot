@@ -280,8 +280,7 @@ bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 		uint64_t timestamp_observation)
 {
 	if (!_pos_ref.isInitialized()) {
-		ECL_WARN("unable to reset global position, position reference not initialized");
-		return false;
+		return setLatLonOriginFromCurrentPos(lat_deg, lon_deg, accuracy);
 	}
 
 	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg);
