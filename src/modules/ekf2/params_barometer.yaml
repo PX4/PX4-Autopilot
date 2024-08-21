@@ -1,0 +1,130 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_BARO_CTRL:
+      description:
+        short: Barometric sensor height aiding
+        long: If this parameter is enabled then the estimator will make use of the
+          barometric height measurements to estimate its height in addition to other
+          height sources (if activated).
+      type: boolean
+      default: 1
+    EKF2_BARO_DELAY:
+      description:
+        short: Barometer measurement delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_BARO_GATE:
+      description:
+        short: Gate size for barometric and GPS height fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_BARO_NOISE:
+      description:
+        short: Measurement noise for barometric altitude
+      type: float
+      default: 3.5
+      min: 0.01
+      max: 15.0
+      unit: m
+      decimal: 2
+    EKF2_GND_EFF_DZ:
+      description:
+        short: Baro deadzone range for height fusion
+        long: Sets the value of deadzone applied to negative baro innovations. Deadzone
+          is enabled when EKF2_GND_EFF_DZ > 0.
+      type: float
+      default: 4.0
+      min: 0.0
+      max: 10.0
+      unit: m
+      decimal: 1
+    EKF2_GND_MAX_HGT:
+      description:
+        short: Height above ground level for ground effect zone
+        long: Sets the maximum distance to the ground level where negative baro innovations
+          are expected.
+      type: float
+      default: 0.5
+      min: 0.0
+      max: 5.0
+      unit: m
+      decimal: 1
+    EKF2_PCOEF_XP:
+      description:
+        short: Static pressure position error coefficient for the positive X axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a positive wind relative velocity along the X body axis. If the baro
+          height estimate rises during forward flight, then this will be a negative
+          number.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_PCOEF_XN:
+      description:
+        short: Static pressure position error coefficient for the negative X axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a negative wind relative velocity along the X body axis. If the baro
+          height estimate rises during backwards flight, then this will be a negative
+          number.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_PCOEF_YP:
+      description:
+        short: Pressure position error coefficient for the positive Y axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a wind relative velocity along the positive Y (RH) body axis. If the
+          baro height estimate rises during sideways flight to the right, then this
+          will be a negative number.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_PCOEF_YN:
+      description:
+        short: Pressure position error coefficient for the negative Y axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a wind relative velocity along the negative Y (LH) body axis. If the
+          baro height estimate rises during sideways flight to the left, then this
+          will be a negative number.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_PCOEF_Z:
+      description:
+        short: Static pressure position error coefficient for the Z axis
+        long: This is the ratio of static pressure error to dynamic pressure generated
+          by a wind relative velocity along the Z body axis.
+      type: float
+      default: 0.0
+      min: -0.5
+      max: 0.5
+      decimal: 2
+    EKF2_ASPD_MAX:
+      description:
+        short: Maximum airspeed used for baro static pressure compensation
+      type: float
+      default: 20.0
+      min: 5.0
+      max: 50.0
+      unit: m/s
+      decimal: 1
