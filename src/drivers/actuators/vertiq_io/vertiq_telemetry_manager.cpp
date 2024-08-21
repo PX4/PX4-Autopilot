@@ -113,7 +113,8 @@ uint16_t VertiqTelemetryManager::UpdateTelemetry()
 		// also update our internal report for logging
 		_esc_status.esc[_current_module_id_target_index].esc_address  = _module_ids_in_use[_number_of_module_ids_for_telem];
 		_esc_status.esc[_current_module_id_target_index].timestamp    = time_now;
-		_esc_status.esc[_current_module_id_target_index].esc_rpm      = telem_response.speed;
+		_esc_status.esc[_current_module_id_target_index].esc_rpm      = telem_response.speed * 60.0f * M_1_PI_F *
+				0.5f; //We get back rad/s, convert to rpm
 		_esc_status.esc[_current_module_id_target_index].esc_voltage  = telem_response.voltage * 0.01;
 		_esc_status.esc[_current_module_id_target_index].esc_current  = telem_response.current * 0.01;
 		_esc_status.esc[_current_module_id_target_index].esc_power    =
