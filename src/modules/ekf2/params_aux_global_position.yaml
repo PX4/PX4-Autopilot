@@ -1,0 +1,45 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_AGP_CTRL:
+      description:
+        short: Aux global position (AGP) sensor aiding
+        long: 'Set bits in the following positions to enable: 0 : Horizontal position
+          fusion 1 : Vertical position fusion'
+      type: bitmask
+      bit:
+        0: Horizontal position
+        1: Vertical position
+      default: 0
+      min: 0
+      max: 3
+    EKF2_AGP_DELAY:
+      description:
+        short: Aux global position estimator delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_AGP_NOISE:
+      description:
+        short: Measurement noise for aux global position measurements
+        long:  Used to lower bound or replace the uncertainty included in the message
+      type: float
+      default: 0.9
+      min: 0.01
+      unit: m
+      decimal: 2
+    EKF2_AGP_GATE:
+      description:
+        short: Gate size for aux global position fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1
