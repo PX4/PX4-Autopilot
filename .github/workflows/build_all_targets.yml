@@ -39,14 +39,7 @@ jobs:
     runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
     strategy:
-      # matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
-      matrix:
-        include:
-          - container: px4io/px4-dev-base-focal:2021-09-08
-            targets: px4_sitl_allyes,px4_sitl_default
-            arch: base
-            group: base-0
-            len: 4
+      matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
     container:
       image: ${{ matrix.container }}
     steps:
@@ -198,10 +191,6 @@ jobs:
             logs/**/**/**/*.log
             logs/**/**/**/*.ulg
             log/**/*.ulg
-
-      # - name: Setup tmate session
-      #   if: failure()
-      #   uses: mxschmitt/action-tmate@v3
 
       - name: Look at Core files
         if: failure() && ${{ hashFiles('px4.core') != '' }}
