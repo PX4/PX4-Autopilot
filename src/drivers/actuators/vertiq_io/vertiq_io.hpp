@@ -207,7 +207,3 @@ private:
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 	)
 };
-
-
-
-
