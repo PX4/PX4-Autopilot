@@ -39,6 +39,7 @@ function generate_metadata() {
     saluki_file_info=$(cat ${SALUKI_FILE_INFO_JSON} |
         jq -c '.files[] | select (.filename | contains("'${px4_filename}'")) |
         .filename = "'${px4_bin_filename}'" |
+        .px4_firmware_sha = "'${px4_sha}'" |
         .type = "px4-bin"')
     echo ${saluki_file_info} > ${validation_file}
 
@@ -74,6 +75,9 @@ if [ -n "$PX4_EXPORT_DIR" ]; then
     if [ -f ${TEMP_JSON} ]; then
         rm ${TEMP_JSON}
     fi
+
+    # px4 sha from the original json file
+    px4_sha=$(cat ${SALUKI_FILE_INFO_JSON} | jq -r '.px4_firmware_sha')
 
     # find all px4 files in the firmware directory
     for px4_file in /firmware/*.px4; do
