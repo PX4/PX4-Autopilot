@@ -85,7 +85,6 @@ px4_add_romfs_files(
 	4011_gz_lawnmower
 	4012_gz_rover_ackermann
 	4013_gz_x500_lidar
-	4014_gz_quadtailsitter
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
