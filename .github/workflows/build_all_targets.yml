@@ -193,7 +193,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.config.model}}-logs
+          name: failed-${{matrix.config.model}}-logs.zip
           path: logs/**/**/**/*.log # logs/date/vehicle/test/*.logs
 
       - name: Look at Core files
