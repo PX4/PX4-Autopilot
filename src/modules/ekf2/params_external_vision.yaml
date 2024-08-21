@@ -1,0 +1,121 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_EV_CTRL:
+      description:
+        short: External vision (EV) sensor aiding
+        long: 'Set bits in the following positions to enable: 0 : Horizontal position
+          fusion 1 : Vertical position fusion 2 : 3D velocity fusion 3 : Yaw'
+      type: bitmask
+      bit:
+        0: Horizontal position
+        1: Vertical position
+        2: 3D velocity
+        3: Yaw
+      default: 0
+      min: 0
+      max: 15
+    EKF2_EV_DELAY:
+      description:
+        short: Vision Position Estimator delay relative to IMU measurements
+      type: float
+      default: 0
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_EV_NOISE_MD:
+      description:
+        short: External vision (EV) noise mode
+        long: If set to 0 (default) the measurement noise is taken from the vision
+          message and the EV noise parameters are used as a lower bound. If set to
+          1 the observation noise is set from the parameters directly,
+      type: enum
+      values:
+        0: EV reported variance (parameter lower bound)
+        1: EV noise parameters
+      default: 0
+    EKF2_EV_QMIN:
+      description:
+        short: External vision (EV) minimum quality (optional)
+        long: External vision will only be started and fused if the quality metric
+          is above this threshold. The quality metric is a completely optional field
+          provided by some VIO systems.
+      type: int32
+      default: 0
+      min: 0
+      max: 100
+      decimal: 1
+    EKF2_EVA_NOISE:
+      description:
+        short: Measurement noise for vision angle measurements
+        long:  Used to lower bound or replace the uncertainty included in the message
+      type: float
+      default: 0.1
+      min: 0.05
+      unit: rad
+      decimal: 2
+    EKF2_EVP_GATE:
+      description:
+        short: Gate size for vision position fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_EVP_NOISE:
+      description:
+        short: Measurement noise for vision position measurements
+        long:  Used to lower bound or replace the uncertainty included in the message
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m
+      decimal: 2
+    EKF2_EVV_GATE:
+      description:
+        short: Gate size for vision velocity estimate fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_EVV_NOISE:
+      description:
+        short: Measurement noise for vision velocity measurements
+        long:  Used to lower bound or replace the uncertainty included in the message
+      type: float
+      default: 0.1
+      min: 0.01
+      unit: m/s
+      decimal: 2
+    EKF2_EV_POS_X:
+      description:
+        short: X position of VI sensor focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_EV_POS_Y:
+      description:
+        short: Y position of VI sensor focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_EV_POS_Z:
+      description:
+        short: Z position of VI sensor focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
