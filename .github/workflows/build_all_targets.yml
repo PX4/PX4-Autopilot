@@ -34,7 +34,7 @@ jobs:
         name: Set timestamp for cache
         run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
-  setup:
+  build:
     name: Building ${{ matrix.group }}
     runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
@@ -95,7 +95,7 @@ jobs:
     name: Running SITL Tests
     runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs:
-      - setup
+      - build
       - group_targets
     strategy:
       fail-fast: false
