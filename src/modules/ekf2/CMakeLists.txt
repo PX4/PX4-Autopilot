@@ -262,6 +262,8 @@ px4_add_module(
 
 	MODULE_CONFIG
 		module.yaml
+		params_gyro_bias.yaml
+		params_accel_bias.yaml
 		params_multi.yaml
 		params_volatile.yaml
 		params_selector.yaml
