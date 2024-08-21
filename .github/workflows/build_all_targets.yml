@@ -82,7 +82,7 @@ jobs:
       - name: Upload Artifacts as Zip
         uses: actions/upload-artifact@v4
         with:
-          name: px4_${{matrix.group}}_build_artifacts
+          name: px4_${{matrix.group}}_build_artifacts.zip
           path: |
             build/**/*.px4
             build/**/*.bin
@@ -196,16 +196,16 @@ jobs:
           name: failed-${{matrix.config.model}}-logs.zip
           path: logs/**/**/**/*.log # logs/date/vehicle/test/*.logs
 
+      # - name: Setup tmate session
+      #   if: failure()
+      #   uses: mxschmitt/action-tmate@v3
+
       - name: Look at Core files
-        if: failure()
+        if: failure() && ${{ hashFiles('px4.core') != '' }}
         run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
 
-      - name: Setup tmate session
-        if: failure()
-        uses: mxschmitt/action-tmate@v3
-
       - name: Upload PX4 coredump
-        if: failure()
+        if: failure() && ${{ hashFiles('px4.core') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: coredump
