@@ -153,7 +153,6 @@ bool DatamanClient::readSync(dm_item_t item, uint32_t index, uint8_t *buffer, ui
 		return false;
 	}
 
-	bool success = false;
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	dataman_request_s request;
@@ -165,7 +164,7 @@ bool DatamanClient::readSync(dm_item_t item, uint32_t index, uint8_t *buffer, ui
 	request.item = static_cast<uint8_t>(item);
 
 	dataman_response_s response{};
-	success = syncHandler(request, response, timestamp, timeout);
+	bool success = syncHandler(request, response, timestamp, timeout);
 
 	if (success) {
 
@@ -190,7 +189,6 @@ bool DatamanClient::writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 		return false;
 	}
 
-	bool success = false;
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	dataman_request_s request;
@@ -204,7 +202,7 @@ bool DatamanClient::writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 	memcpy(request.data, buffer, length);
 
 	dataman_response_s response{};
-	success = syncHandler(request, response, timestamp, timeout);
+	bool success = syncHandler(request, response, timestamp, timeout);
 
 	if (success) {
 
@@ -221,7 +219,6 @@ bool DatamanClient::writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 
 bool DatamanClient::clearSync(dm_item_t item, hrt_abstime timeout)
 {
-	bool success = false;
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	dataman_request_s request;
@@ -231,7 +228,7 @@ bool DatamanClient::clearSync(dm_item_t item, hrt_abstime timeout)
 	request.item = static_cast<uint8_t>(item);
 
 	dataman_response_s response{};
-	success = syncHandler(request, response, timestamp, timeout);
+	bool success = syncHandler(request, response, timestamp, timeout);
 
 	if (success) {
 
