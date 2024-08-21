@@ -101,8 +101,9 @@ private:
 	bool updateClock(const uint64_t tv_sec, const uint64_t tv_nsec);
 
 	void clockCallback(const gz::msgs::Clock &clock);
-
+#if 0
 	void airspeedCallback(const gz::msgs::AirSpeed &air_speed);
+#endif
 	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
