@@ -190,7 +190,7 @@ jobs:
           path: |
             logs/**/**/**/*.log
             logs/**/**/**/*.ulg
-            log/**/*.ulg
+            build/px4_sitl_default/tmp_mavsdk_tests/rootfs/*.ulg
 
       - name: Look at Core files
         if: failure() && ${{ hashFiles('px4.core') != '' }}
