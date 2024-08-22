@@ -43,6 +43,7 @@
 #include <px4_platform_common/time.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/esc_status.h>
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define PARAM_PREFIX "PWM_MAIN"
@@ -76,6 +77,9 @@ public:
 private:
 	void Run() override;
 
+	void send_esc_telemetry(hrt_abstime now, float actuator_outputs[MAX_ACTUATORS], bool actuator_armed[MAX_ACTUATORS],
+				unsigned num_outputs);
+
 	static constexpr uint16_t PWM_SIM_DISARMED_MAGIC = 900;
 	static constexpr uint16_t PWM_SIM_FAILSAFE_MAGIC = 600;
 	static constexpr uint16_t PWM_SIM_PWM_MIN_MAGIC = 1000;
@@ -85,7 +89,8 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Publication<actuator_outputs_s> _actuator_outputs_sim_pub{ORB_ID(actuator_outputs_sim)};
-
+	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	int32_t _output_functions[actuator_outputs_s::NUM_ACTUATOR_OUTPUTS] {};
 	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 };

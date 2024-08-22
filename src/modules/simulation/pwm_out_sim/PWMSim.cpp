@@ -44,6 +44,12 @@
 PWMSim::PWMSim(bool hil_mode_enabled) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; ++i) {
+		char param_name[17];
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
+		param_get(param_find(param_name), &_output_functions[i]);
+	}
+
 	_mixing_output.setAllDisarmedValues(PWM_SIM_DISARMED_MAGIC);
 	_mixing_output.setAllFailsafeValues(PWM_SIM_FAILSAFE_MAGIC);
 	_mixing_output.setAllMinValues(PWM_SIM_PWM_MIN_MAGIC);
@@ -58,6 +64,33 @@ PWMSim::~PWMSim()
 	perf_free(_interval_perf);
 }
 
+void PWMSim::send_esc_telemetry(hrt_abstime ts, float actuator_outputs[MAX_ACTUATORS],
+				bool actuator_armed[MAX_ACTUATORS], unsigned num_outputs)
+{
+	esc_status_s esc_status{};
+
+	if (num_outputs > esc_status_s::CONNECTED_ESC_MAX) {
+		num_outputs = esc_status_s::CONNECTED_ESC_MAX;
+	}
+
+	for (unsigned i = 0; i < num_outputs; i++) {
+		esc_status.esc[i].actuator_function = _output_functions[i];
+		esc_status.esc[i].timestamp = ts;
+		esc_status.esc[i].esc_errorcount = 0; // TODO
+		esc_status.esc[i].esc_voltage = 11.1f + math::abs_t(actuator_outputs[i]) * 3.0f; // TODO: magic number
+		esc_status.esc[i].esc_current = actuator_armed[i] ? 1.0f + math::abs_t(actuator_outputs[i]) * 15.0f :
+						0.0f; // TODO: magic number
+		esc_status.esc[i].esc_rpm = actuator_outputs[i] * 6000;  // TODO: magic number
+		esc_status.esc[i].esc_temperature = 20.0f + math::abs_t(actuator_outputs[i]) * 40.0f;
+	}
+
+	esc_status.esc_count = num_outputs;
+	esc_status.esc_armed_flags = (1u << esc_status.esc_count) - 1;
+	esc_status.esc_online_flags = (1u << esc_status.esc_count) - 1;
+
+	_esc_status_pub.publish(esc_status);
+}
+
 bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			   unsigned num_control_groups_updated)
 {
@@ -65,6 +98,7 @@ bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], un
 	if (num_control_groups_updated > 0) {
 		actuator_outputs_s actuator_outputs{};
 		actuator_outputs.noutputs = num_outputs;
+		bool actuator_armed[MAX_ACTUATORS] {};
 
 		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
 
@@ -74,6 +108,8 @@ bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], un
 				OutputFunction function = _mixing_output.outputFunction(i);
 				bool is_reversible = reversible_outputs & (1u << i);
 				float output = outputs[i];
+
+				actuator_armed[i] = true;
 
 				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax)
 				    && !is_reversible) {
@@ -89,8 +125,13 @@ bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], un
 			}
 		}
 
-		actuator_outputs.timestamp = hrt_absolute_time();
+		hrt_abstime now = hrt_absolute_time();
+		actuator_outputs.timestamp = now;
 		_actuator_outputs_sim_pub.publish(actuator_outputs);
+
+		// TODO: Add an option to receive ESC telemetry from gazebo via Mavlink and skip this one
+		send_esc_telemetry(now, actuator_outputs.output, actuator_armed, num_outputs);
+
 		return true;
 	}
 
