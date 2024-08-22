@@ -94,7 +94,6 @@ if(gz-transport_FOUND)
 		baylands
   		lawn
 		rover
-		lawn
 		aruco
 	)
 
