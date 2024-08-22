@@ -121,6 +121,11 @@ public:
 	static int		stop();
 
 	/**
+	 * Status of PWMESC driver
+	*/
+	static int              status();
+
+	/**
 	 * Return if the PWMESC driver is already running
 	 */
 	bool		running() {return _initialized;};
@@ -176,6 +181,11 @@ private:
 	static PWMESC	*_instance;
 
 	/**
+	 * Status of PWMESC driver
+	*/
+	int                     printStatus();
+
+	/**
 	 * Trampoline to the worker task
 	 */
 	static int		task_main_trampoline(int argc, char *argv[]);
@@ -199,9 +209,9 @@ private:
 	/**
 	 * Get the singleton instance
 	 */
-	static inline PWMESC *getInstance()
+	static inline PWMESC *getInstance(bool allocate = false)
 	{
-		if (_instance == nullptr) {
+		if (_instance == nullptr && allocate) {
 			/* create the driver */
 			_instance = new PWMESC();
 		}
@@ -483,7 +493,7 @@ PWMESC::start(int argc, char *argv[])
 {
 	int ret = 0;
 
-	if (PWMESC::getInstance() == nullptr) {
+	if (PWMESC::getInstance(true) == nullptr) {
 		PX4_ERR("Driver allocation failed");
 		return -1;
 	}
@@ -518,7 +528,7 @@ int
 PWMESC::stop()
 {
 	if (PWMESC::getInstance() == nullptr) {
-		PX4_ERR("Driver allocation failed");
+		PX4_ERR("Not started");
 		return -1;
 	}
 
@@ -533,12 +543,34 @@ PWMESC::stop()
 	return 0;
 }
 
+int PWMESC::printStatus()
+{
+	_mixing_output.printStatus();
+	return 0;
+}
+
+int
+PWMESC::status()
+{
+	if (PWMESC::getInstance() == nullptr) {
+		PX4_INFO("Not started");
+		return 0;
+	}
+
+	if (!PWMESC::getInstance()->running()) {
+		PX4_ERR("Not running");
+		return -1;
+	}
+
+	return PWMESC::getInstance()->printStatus();
+}
+
 int
 pwm_esc_main(int argc, char *argv[])
 {
 	/* check for sufficient number of arguments */
 	if (argc < 2) {
-		PX4_ERR("Need a command, try 'start' / 'stop'");
+		PX4_ERR("Need a command, try 'start' / 'stop' / 'status'");
 		return -1;
 	}
 
@@ -548,6 +580,10 @@ pwm_esc_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		return PWMESC::stop();
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		return PWMESC::status();
 	}
 
 	return 0;
