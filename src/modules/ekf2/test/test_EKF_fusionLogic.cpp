@@ -271,6 +271,7 @@ TEST_F(EkfFusionLogicTest, doVisionPositionFusion)
 {
 	// WHEN: allow vision position to be fused and we send vision data
 	_ekf_wrapper.enableExternalVisionPositionFusion();
+	_ekf_wrapper.setMagFuseTypeNone();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(4);
 
@@ -299,6 +300,7 @@ TEST_F(EkfFusionLogicTest, doVisionVelocityFusion)
 {
 	// WHEN: allow vision position to be fused and we send vision data
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
+	_ekf_wrapper.setMagFuseTypeNone();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(4);
 
