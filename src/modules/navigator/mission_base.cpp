@@ -183,10 +183,6 @@ MissionBase::on_inactivation()
 	_navigator->set_gimbal_neutral(); // point forward
 	_navigator->release_gimbal_control();
 
-	if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
-	}
-
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 
@@ -355,13 +351,6 @@ MissionBase::on_active()
 	    && (_navigator->abort_landing())) {
 
 		do_abort_landing();
-	}
-
-	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND) {
-		_navigator->get_precland()->on_active();
-
-	} else if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
 	}
 
 	updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);

@@ -184,6 +184,7 @@ Mission::do_need_move_to_takeoff()
 	return false;
 }
 
+
 void Mission::setActiveMissionItems()
 {
 	/* Get mission item that comes after current if available */
