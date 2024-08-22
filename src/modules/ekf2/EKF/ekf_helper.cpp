@@ -182,10 +182,9 @@ bool Ekf::setEkfGlobalOriginFromCurrentPos(const double latitude, const double l
 
 bool Ekf::setLatLonOriginFromCurrentPos(const double latitude, const double longitude, const float eph)
 {
-	// Enabling this would trigger the change indicator
-	// if (!checkLatLonValidity(latitude, longitude, eph)) {
-	// 	return false;
-	// }
+	if (!checkLatLonValidity(latitude, longitude)) {
+		return false;
+	}
 
 	_pos_ref.initReference(latitude, longitude, _time_delayed_us);
 
@@ -197,21 +196,26 @@ bool Ekf::setLatLonOriginFromCurrentPos(const double latitude, const double long
 		_pos_ref.initReference(est_lat, est_lon, _time_delayed_us);
 	}
 
-	_NED_origin_initialised = true;
+	if (PX4_ISFINITE(eph) && (eph >= 0.f)) {
+		_gpos_origin_eph = eph;
+	}
 
-	_gpos_origin_eph = eph;
+	_NED_origin_initialised = true;
 
 	return true;
 }
 
 bool Ekf::setAltOriginFromCurrentPos(const float altitude, const float epv)
 {
-	if (!checkAltitudeValidity(altitude, epv)) {
+	if (!checkAltitudeValidity(altitude)) {
 		return false;
 	}
 
 	_gps_alt_ref = altitude + _state.pos(2);
-	_gpos_origin_epv = epv;
+
+	if (PX4_ISFINITE(epv) && (epv >= 0.f)) {
+		_gpos_origin_epv = epv;
+	}
 
 	return true;
 }
