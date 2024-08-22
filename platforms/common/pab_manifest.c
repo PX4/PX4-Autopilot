@@ -357,6 +357,7 @@ static const px4_hw_mft_item_t base_configuration_17[] = {
 };
 
 // BASE ID 0x100 Holybro Pixhawk Jetson Baseboard Alaised to ID 0
+// BASE ID 0x150 ZeroOne Pixhawk Baseboard Alaised to ID 0
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
