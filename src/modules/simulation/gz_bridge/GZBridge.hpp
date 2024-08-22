@@ -69,6 +69,8 @@
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
 #include <gz/msgs/laserscan.pb.h>
+#include <gz/msgs/stringmsg.pb.h>
+#include <gz/msgs/scene.pb.h>
 
 using namespace time_literals;
 
@@ -110,6 +112,45 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
 
+	/**
+	 * @brief Call Entityfactory service
+	 *
+	 * @param req
+	 * @return true
+	 * @return false
+	 */
+	bool callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req);
+
+
+	/**
+	 * @brief Call scene info service
+	 *
+	 * @param service
+	 * @param req
+	 * @return true
+	 * @return false
+	 */
+	bool callSceneInfoMsgService(const std::string &service);
+
+	/**
+	 * @brief Call String service
+	 *
+	 * @param service
+	 * @param req
+	 * @return true
+	 * @return false
+	 */
+	bool callStringMsgService(const std::string &service, const gz::msgs::StringMsg &req);
+
+	/**
+	 * @brief Call Vector3d Service
+	 *
+	 * @param service
+	 * @param req
+	 * @return true
+	 * @return false
+	 */
+	bool callVector3dService(const std::string &service, const gz::msgs::Vector3d &req);
 	/**
 	*
 	* Convert a quaterion from FLU_to_ENU frames (ROS convention)
