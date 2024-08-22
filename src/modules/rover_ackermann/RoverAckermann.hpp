@@ -59,6 +59,7 @@
 
 // Local includes
 #include "RoverAckermannGuidance/RoverAckermannGuidance.hpp"
+using motor_setpoint_struct = RoverAckermannGuidance::motor_setpoint;
 
 using namespace time_literals;
 
@@ -83,11 +84,31 @@ public:
 
 	bool init();
 
+
 protected:
 	void updateParams() override;
 
 private:
 	void Run() override;
+
+	/**
+	 * @brief Update uORB subscriptions.
+	 */
+	void updateSubscriptions();
+
+	/**
+	 * @brief Apply slew rates to motor setpoints.
+	 * @param motor_setpoint Normalized steering and throttle setpoints.
+	 * @param dt Time since last update [s].
+	 * @return Motor setpoint with applied slew rates.
+	 */
+	motor_setpoint_struct applySlewRates(motor_setpoint_struct motor_setpoint, float dt);
+
+	/**
+	 * @brief Publish motor setpoints to ActuatorMotors/ActuatorServos and logging values to RoverAckermannStatus.
+	 * @param motor_setpoint_with_slew_rate Normalized motor_setpoint with applied slew rates.
+	 */
+	void publishMotorSetpoints(motor_setpoint_struct motor_setpoint_with_slew_rates);
 
 	// uORB subscriptions
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -100,12 +121,12 @@ private:
 	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
 	uORB::Publication<rover_ackermann_status_s> _rover_ackermann_status_pub{ORB_ID(rover_ackermann_status)};
 
-	// Instances
+	// Class instances
 	RoverAckermannGuidance _ackermann_guidance{this};
 
 	// Variables
 	int _nav_state{0};
-	RoverAckermannGuidance::motor_setpoint _motor_setpoint;
+	motor_setpoint_struct _motor_setpoint;
 	hrt_abstime _timestamp{0};
 	float _actual_speed{0.f};
 	SlewRate<float> _steering_with_rate_limit{0.f};

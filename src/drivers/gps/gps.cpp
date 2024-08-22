@@ -1214,10 +1214,12 @@ GPS::publish()
 void
 GPS::publishSatelliteInfo()
 {
-	if (_instance == Instance::Main) {
+	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
 		if (_p_report_sat_info != nullptr) {
 			_report_sat_info_pub.publish(*_p_report_sat_info);
 		}
+
+		_is_gps_main_advertised.store(true);
 
 	} else {
 		//we don't publish satellite info for the secondary gps

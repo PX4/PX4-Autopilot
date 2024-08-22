@@ -324,6 +324,7 @@ px4io_update:
 	git status
 
 bootloaders_update: \
+	3dr_ctrl-zero-h7-oem-revg_bootloader \
 	ark_fmu-v6x_bootloader \
 	ark_pi6x_bootloader \
 	cuav_nora_bootloader \
@@ -549,14 +550,14 @@ distclean:
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
 %:
 	$(if $(filter $(FIRST_ARG),$@), \
-		$(error "Make target $@ not found. It either does not exist or $@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
+		$(error "Make target $@ not found. It either does not exist or $@ cannot be the first argument. Use '$(MAKE) list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
 # Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
 help:
 	@echo "Usage: $(MAKE) <target>"
 	@echo "Where <target> is one of:"
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | \
-		awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
+		awk -v RS= -F: '/(^|\n)# Files(\n|$$)/,/(^|\n)# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
 		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(Makefile)'
 	@echo
 	@echo "Or, $(MAKE) <config_target> [<make_target(s)>]"

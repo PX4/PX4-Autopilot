@@ -100,12 +100,12 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
 
-				if (isHeightResetRequired()) {
+				if (isHeightResetRequired() && (_height_sensor_ref == HeightSensor::GNSS)) {
 					// All height sources are failing
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_gps = true;
-					resetVerticalPositionTo(-(measurement - bias_est.getBias()), measurement_var);
+					resetVerticalPositionTo(aid_src.observation, measurement_var);
 					bias_est.setBias(_state.pos(2) + measurement);
 
 					aid_src.time_last_fuse = _time_delayed_us;
