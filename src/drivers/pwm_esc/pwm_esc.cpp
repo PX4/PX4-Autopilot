@@ -60,6 +60,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/actuator_outputs.h>
 
 #include <nuttx/timers/pwm.h>
 
@@ -171,7 +172,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1000000};
 
 	/* advertised topics */
-	uORB::PublicationMulti<actuator_outputs_s>		_actuator_outputs_pub{ORB_ID(actuator_outputs)};
+	uORB::PublicationMulti<actuator_outputs_s>		_actuator_outputs_sim_pub{ORB_ID(actuator_outputs_sim)};
 
 	actuator_armed_s		_actuator_armed;
 
@@ -324,14 +325,47 @@ PWMESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 		pwm.channels[i].channel = i + 1;
 	}
 
-	/* Only publish if not in hitl */
 
-	if (!_hitl_mode &&
-	    ::ioctl(_pwm_fd[0], PWMIOC_SETCHARACTERISTICS,
-		    (unsigned long)((uintptr_t)&pwm)) < 0) {
-		PX4_ERR("PWMIOC_SETCHARACTERISTICS failed: %d\n",
-			errno);
-		ret = false;
+	if (!_hitl_mode) {
+		/* When not in hitl, run PWMs */
+		if (::ioctl(_pwm_fd[0], PWMIOC_SETCHARACTERISTICS,
+			    (unsigned long)((uintptr_t)&pwm)) < 0) {
+			PX4_ERR("PWMIOC_SETCHARACTERISTICS failed: %d\n",
+				errno);
+			ret = false;
+		}
+
+	} else {
+		// In hitl, publish actuator_outputs_sim
+		// Only publish once we receive actuator_controls (important for lock-step to work correctly)
+		actuator_outputs_s actuator_outputs_sim{};
+
+		if (num_control_groups_updated > 0) {
+			for (int i = 0; i < (int)num_outputs; i++) {
+				uint16_t disarmed = _mixing_output.disarmedValue(i);
+				uint16_t min = _mixing_output.minValue(i);
+				uint16_t max = _mixing_output.maxValue(i);
+
+				OutputFunction function = _mixing_output.outputFunction(i);
+				float output = outputs[i];
+
+				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax)) {
+					// Scale motors to [0, 1]
+					actuator_outputs_sim.output[i] = (output - disarmed) / (max - disarmed);
+
+				} else {
+					// Scale everything else to [-1, 1]
+					const float pwm_center = (max + min) / 2.f;
+					const float pwm_delta = (max - min) / 2.f;
+					actuator_outputs_sim.output[i] = (output - pwm_center) / pwm_delta;
+				}
+			}
+
+			actuator_outputs_sim.timestamp = hrt_absolute_time();
+			_actuator_outputs_sim_pub.publish(actuator_outputs_sim);
+		}
+
+		ret = true;
 	}
 
 	return ret;
