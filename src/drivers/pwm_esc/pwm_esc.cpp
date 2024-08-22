@@ -38,6 +38,7 @@
  */
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/sem.hpp>
 
@@ -92,7 +93,7 @@ public:
 	 *
 	 * Initialize all class variables.
 	 */
-	PWMESC();
+	PWMESC(bool hitl);
 
 	/**
 	 * Destructor.
@@ -124,6 +125,11 @@ public:
 	 * Status of PWMESC driver
 	*/
 	static int              status();
+
+	/**
+	 * Usage of PWMESC driver
+	*/
+	static int print_usage(const char *reason);
 
 	/**
 	 * Return if the PWMESC driver is already running
@@ -160,7 +166,7 @@ private:
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
-	MixingOutput _mixing_output{PARAM_PREFIX, PWMESC_MAX_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1000000};
 
@@ -209,11 +215,11 @@ private:
 	/**
 	 * Get the singleton instance
 	 */
-	static inline PWMESC *getInstance(bool allocate = false)
+	static inline PWMESC *getInstance(bool allocate = false, bool hitl = false)
 	{
 		if (_instance == nullptr && allocate) {
 			/* create the driver */
-			_instance = new PWMESC();
+			_instance = new PWMESC(hitl);
 		}
 
 		return _instance;
@@ -228,14 +234,15 @@ private:
 
 PWMESC *PWMESC::_instance = nullptr;
 
-PWMESC::PWMESC() :
+PWMESC::PWMESC(bool hitl) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_task(-1),
 	_task_should_exit(false),
 	_perf_update(perf_alloc(PC_ELAPSED, "pwm update")),
-	_hitl_mode(false)
+	_mixing_output(hitl ? "PWM_MAIN" : PARAM_PREFIX, PWMESC_MAX_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto,
+		       true),
+	_hitl_mode(hitl)
 {
-
 	/* initialize tick semaphores */
 	px4_sem_init(&_update_sem, 0, 0);
 	px4_sem_setprotocol(&_update_sem, SEM_PRIO_NONE);
@@ -270,8 +277,6 @@ PWMESC::~PWMESC()
 int
 PWMESC::init(bool hitl_mode)
 {
-	_hitl_mode = hitl_mode;
-
 	/* start the main task */
 	_task = px4_task_spawn_cmd("pwm_esc",
 				   SCHED_DEFAULT,
@@ -492,8 +497,14 @@ int
 PWMESC::start(int argc, char *argv[])
 {
 	int ret = 0;
+	int32_t hitl_mode;
 
-	if (PWMESC::getInstance(true) == nullptr) {
+	if (param_get(param_find("SYS_HITL"), &hitl_mode) != PX4_OK) {
+		PX4_ERR("Can't read parameter SYS_HITL");
+		return -1;
+	}
+
+	if (PWMESC::getInstance(true, hitl_mode != 0) == nullptr) {
 		PX4_ERR("Driver allocation failed");
 		return -1;
 	}
@@ -501,18 +512,6 @@ PWMESC::start(int argc, char *argv[])
 	if (PWMESC::getInstance()->running()) {
 		PX4_ERR("Already running");
 		return -1;
-	}
-
-	bool hitl_mode = false;
-
-	/* Check if started in hil mode */
-	for (int extra_args = 1; extra_args < argc; extra_args++) {
-		if (!strcmp(argv[extra_args], "hil")) {
-			hitl_mode = true;
-
-		} else if (argv[extra_args][0] != '\0') {
-			PX4_WARN("unknown argument: %s", argv[extra_args]);
-		}
 	}
 
 	if (OK != PWMESC::getInstance()->init(hitl_mode)) {
@@ -565,26 +564,44 @@ PWMESC::status()
 	return PWMESC::getInstance()->printStatus();
 }
 
+int PWMESC::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Driver for PWM outputs.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("pwm_esc", "driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
 int
 pwm_esc_main(int argc, char *argv[])
 {
 	/* check for sufficient number of arguments */
 	if (argc < 2) {
-		PX4_ERR("Need a command, try 'start' / 'stop' / 'status'");
+		PWMESC::print_usage("Need a command");
 		return -1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 		return PWMESC::start(argc - 1, argv + 1);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
+	} else if (!strcmp(argv[1], "stop")) {
 		return PWMESC::stop();
-	}
-
-	if (!strcmp(argv[1], "status")) {
+	} else if (!strcmp(argv[1], "status")) {
 		return PWMESC::status();
+	} else {
+		PWMESC::print_usage("Invalid command");
 	}
 
-	return 0;
+	return -1;
 }
