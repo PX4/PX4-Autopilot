@@ -54,6 +54,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
+		_range_sensor.setMaxFogDistance(_params.rng_fog);
 
 		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
 
@@ -70,9 +71,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
 				const float var = sq(_params.range_noise) + dist_dependant_var;
 
-				_rng_consistency_check.setParam(_params.range_kin_consistency_gate, _params.rng_fog);
-				// todo how to condition the checkIfBlocked check...
-				_rng_consistency_check.checkIfBlocked(_range_sensor.getDistBottom(), _state.pos(2), imu_sample.time_us);
+				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
 				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2),
 							      P(State::vel.idx + 2, State::vel.idx + 2), horizontal_motion, imu_sample.time_us);
 			}
@@ -89,8 +88,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			}
 		}
 
-		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent()
-				&& !_rng_consistency_check.isBlocked();
+		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
 
 	} else {
 		return;
@@ -108,8 +106,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				&& _control_status.flags.tilt_align
 				&& measurement_valid
 				&& _range_sensor.isDataHealthy()
-				&& _rng_consistency_check.isKinematicallyConsistent()
-				&& !_rng_consistency_check.isBlocked();
+				&& _rng_consistency_check.isKinematicallyConsistent();
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)
