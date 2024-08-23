@@ -103,6 +103,14 @@ void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 			}
 
 			sensor_sample.sensor_data[i] = std::stod(value_string);
+
+			if (sensor_sample.sensor_type == sensor_info::measurement_t::GPS) {
+				if (i == 1 || i == 2) {
+					// GPS lat/lon was previously stored as a scaled integer
+					sensor_sample.sensor_data[i] = sensor_sample.sensor_data[i] * 1e-7;
+				}
+			}
+
 			i++;
 		}
 
@@ -257,9 +265,9 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 		_baro.setData((float) sample.sensor_data[0]);
 
 	} else if (sample.sensor_type == sensor_info::measurement_t::GPS) {
-		_gps.setAltitude((int32_t) sample.sensor_data[0]);
-		_gps.setLatitude((int32_t) sample.sensor_data[1]);
-		_gps.setLongitude((int32_t) sample.sensor_data[2]);
+		_gps.setAltitude(sample.sensor_data[0]);
+		_gps.setLatitude(sample.sensor_data[1]);
+		_gps.setLongitude(sample.sensor_data[2]);
 		_gps.setVelocity(Vector3f((float) sample.sensor_data[3],
 					  (float) sample.sensor_data[4],
 					  (float) sample.sensor_data[5]));
