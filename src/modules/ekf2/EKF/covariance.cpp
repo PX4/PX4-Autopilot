@@ -96,7 +96,8 @@ void Ekf::initialiseCovariance()
 	resetAccelBiasCov();
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	resetMagCov();
+	resetMagEarthCov();
+	resetMagBiasCov();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
@@ -340,11 +341,17 @@ void Ekf::resetAccelBiasCov()
 }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-void Ekf::resetMagCov()
+void Ekf::resetMagEarthCov()
 {
-	ECL_INFO("reset mag covariance");
+	ECL_INFO("reset mag earth covariance");
 
 	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, sq(_params.mag_noise));
+}
+
+void Ekf::resetMagBiasCov()
+{
+	ECL_INFO("reset mag bias covariance");
+
 	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.mag_noise));
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
