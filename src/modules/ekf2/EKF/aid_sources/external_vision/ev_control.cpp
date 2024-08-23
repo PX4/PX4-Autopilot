@@ -68,19 +68,19 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 
 		switch (ev_sample.vel_frame) {
 		case VelocityFrame::BODY_FRAME_FRD: {
-				BodyFrameEV ev_vel_body(*this, ev_sample, imu_sample);
+				EvVelBodyFrameFrd ev_vel_body(*this, ev_sample, _params.ev_vel_noise, imu_sample);
 				controlEvVelFusion(ev_vel_body, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 				break;
 			}
 
 		case VelocityFrame::LOCAL_FRAME_NED: {
-				NEDLocalFrameEV ev_vel_ned(*this, ev_sample, imu_sample);
+				EvVelLocalFrameNed ev_vel_ned(*this, ev_sample, _params.ev_vel_noise, imu_sample);
 				controlEvVelFusion(ev_vel_ned, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 				break;
 			}
 
 		case VelocityFrame::LOCAL_FRAME_FRD: {
-				FRDLocalFrameEV ev_vel_frd(*this, ev_sample, imu_sample);
+				EvVelLocalFrameFrd ev_vel_frd(*this, ev_sample, _params.ev_vel_noise, imu_sample);
 				controlEvVelFusion(ev_vel_frd, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 				break;
 			}

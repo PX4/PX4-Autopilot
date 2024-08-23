@@ -51,12 +51,10 @@ void Ekf::controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_c
 	// determine if we should use EV velocity aiding
 	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))
 					     && _control_status.flags.tilt_align
-					     && ev.sample.vel.isAllFinite();
+					     && ev._sample.vel.isAllFinite();
 
 
-	ev.min_variance = sq(_params.ev_vel_noise);
-	continuing_conditions_passing &= ev.setMeasurement() && ev.measurement.isAllFinite()
-					 && ev.measurement_var.isAllFinite();
+	continuing_conditions_passing &= ev._measurement.isAllFinite() && ev._measurement_var.isAllFinite();
 
 	float gate = math::max(_params.ev_vel_innov_gate, 1.f);
 
@@ -123,8 +121,8 @@ void Ekf::controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_c
 			// activate fusion, only reset if necessary
 			if (!isHorizontalAidingActive() || yaw_alignment_changed) {
 				ECL_INFO("starting %s fusion, resetting velocity to (%.3f, %.3f, %.3f)", AID_SRC_NAME,
-					 (double)ev.measurement(0), (double)ev.measurement(1),
-					 (double)ev.measurement(2));
+					 (double)ev._measurement(0), (double)ev._measurement(1),
+					 (double)ev._measurement(2));
 				_information_events.flags.reset_vel_to_vision = true;
 				ev.resetVelocity();
 				resetAidSourceStatusZeroInnovation(aid_src);
@@ -167,17 +165,14 @@ void Ekf::fuseLocalFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64
 void Ekf::fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_t &timestamp,
 				const Vector3f &measurement, const Vector3f &measurement_var, const float &innovation_gate)
 {
-	const auto state_vector = _state.vector();
-
-	matrix::Vector<VectorState, 3> H;
-
-	sym::ComputeBodyVelH(state_vector, &H(0), &H(1), &H(2));
+	VectorState H[3];
+	sym::ComputeBodyVelH(_state.vector(), &H[0], &H[1], &H[2]);
 
 	Vector3f innov = _R_to_earth.transpose() * _state.vel - measurement;
 	Vector3f innov_var;
 
 	for (uint8_t index = 0; index <= 2; index++) {
-		innov_var(index) = (H(index).T() * P * H(index))(0, 0) + measurement_var(index);
+		innov_var(index) = (H[index].T() * P * H[index])(0, 0) + measurement_var(index);
 	}
 
 	updateAidSourceStatus(aid_src,
@@ -193,8 +188,8 @@ void Ekf::fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_
 
 		for (uint8_t index = 0; index <= 2; index++) {
 			if (aid_src.fused) {
-				VectorState Kfusion = P * H(index) / aid_src.innovation_variance[index];
-				aid_src.fused &= measurementUpdate(Kfusion, H(index), aid_src.observation_variance[index], aid_src.innovation[index]);
+				VectorState Kfusion = P * H[index] / aid_src.innovation_variance[index];
+				aid_src.fused &= measurementUpdate(Kfusion, H[index], aid_src.observation_variance[index], aid_src.innovation[index]);
 			}
 		}
 

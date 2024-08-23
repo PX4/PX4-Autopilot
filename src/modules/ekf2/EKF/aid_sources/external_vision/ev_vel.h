@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,144 +45,132 @@
 class ExternalVisionVel
 {
 public:
-	ExternalVisionVel(Ekf &ekf_instance, const extVisionSample &vision_sample, const imuSample &imu_sample)
-		: ekf(ekf_instance), sample(vision_sample)
+	ExternalVisionVel(Ekf &ekf_instance, const extVisionSample &vision_sample, const float ev_vel_noise,
+			  const imuSample &imu_sample) : _ekf(ekf_instance), _sample(vision_sample)
 	{
-
-		const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - ekf._state.gyro_bias;
-		position_offset_body = ekf._params.ev_pos_body - ekf._params.imu_pos_body;
-		velocity_offset_body = angular_velocity % position_offset_body;
+		_min_variance = sq(ev_vel_noise);
+		const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - _ekf._state.gyro_bias;
+		Vector3f _position_offset_body = _ekf._params.ev_pos_body - _ekf._params.imu_pos_body;
+		_velocity_offset_body = angular_velocity % _position_offset_body;
 	}
 
 	virtual ~ExternalVisionVel() = default;
-	virtual bool setMeasurement() = 0;
 	virtual bool fuseVelocity(estimator_aid_source3d_s &aid_src, float gate)
 	{
-		ekf.fuseLocalFrameVelocity(aid_src, aid_src.timestamp, measurement,
-					   measurement_var, gate);
+		_ekf.fuseLocalFrameVelocity(aid_src, aid_src.timestamp, _measurement,
+					    _measurement_var, gate);
 		return aid_src.fused;
 
 	}
 
 	virtual void resetVelocity()
 	{
-		ekf.resetVelocityTo(measurement, measurement_var);
+		_ekf.resetVelocityTo(_measurement, _measurement_var);
 	}
 
 	void resetVerticalVelocity()
 	{
-		ekf.resetVerticalVelocityTo(measurement(2), measurement_var(2));
+		_ekf.resetVerticalVelocityTo(_measurement(2), _measurement_var(2));
 	}
 
 	void enforceMinimumVariance()
 	{
-		min_variance = math::max(min_variance, sq(0.01f));
+		_min_variance = math::max(_min_variance, sq(0.01f));
 
 		for (int i = 0; i < 3; ++i) {
-			measurement_var(i) = math::max(measurement_var(i), min_variance);
+			_measurement_var(i) = math::max(_measurement_var(i), _min_variance);
 		}
 	}
 
-	Ekf &ekf;
-	const extVisionSample &sample;
-	float min_variance;
-	Vector3f measurement;
-	Vector3f measurement_var;
-	Vector3f position_offset_body;
-	Vector3f velocity_offset_body;
-	Vector3f velocity_offset_earth;
+	Ekf &_ekf;
+	const extVisionSample &_sample;
+	float _min_variance;
+	Vector3f _measurement{NAN, NAN, NAN};
+	Vector3f _measurement_var;
+	Vector3f _velocity_offset_body;
 };
 
-class BodyFrameEV : public ExternalVisionVel
+class EvVelBodyFrameFrd : public ExternalVisionVel
 {
 public:
-	BodyFrameEV(Ekf &ekf_instance, extVisionSample &vision_sample, const imuSample &imu_sample) :
-		ExternalVisionVel(ekf_instance, vision_sample, imu_sample) {}
+	EvVelBodyFrameFrd(Ekf &ekf_instance, extVisionSample &vision_sample, const float ev_vel_noise,
+			  const imuSample &imu_sample) :
+		ExternalVisionVel(ekf_instance, vision_sample, ev_vel_noise, imu_sample)
+	{
+		_measurement = _sample.vel - _velocity_offset_body;
+		_measurement_var = _sample.velocity_var;
+		enforceMinimumVariance();
+	}
 
 	void resetVelocity() override
 	{
-		const matrix::SquareMatrix<float, 3> rotated_variance = ekf._R_to_earth * matrix::diag(
-					measurement_var) * ekf._R_to_earth.transpose();
-		const Vector3f measurement_variance_ekf_frame = rotated_variance.diag() * 5.f; // variance bump
-		ekf.resetVelocityTo(ekf._R_to_earth * measurement, measurement_variance_ekf_frame);
+		const matrix::SquareMatrix3f rotated_variance = _ekf._R_to_earth * matrix::diag(
+					_measurement_var) * _ekf._R_to_earth.transpose();
+		// bump the variance by a factor of 5 to make teh reset less aggressive
+		const Vector3f measurement_variance_ekf_frame = rotated_variance.diag() * 5.f;
+		_ekf.resetVelocityTo(_ekf._R_to_earth * _measurement, measurement_variance_ekf_frame);
 	}
 
 	void resetVerticalVelocity()
 	{
-		const matrix::SquareMatrix<float, 3> rotated_variance = ekf._R_to_earth * matrix::diag(
-					measurement_var) * ekf._R_to_earth.transpose();
-		const Vector3f measurement_variance_ekf_frame = rotated_variance.diag() * 5.f; // variance bump
-		ekf.resetVerticalVelocityTo((ekf._R_to_earth * measurement)(2, 0),
-					    measurement_variance_ekf_frame(2));
-	}
-
-	bool setMeasurement() override
-	{
-		measurement = sample.vel - velocity_offset_body;
-		measurement_var = sample.velocity_var;
-		enforceMinimumVariance();
-		return true;
+		const matrix::SquareMatrix3f rotated_variance = _ekf._R_to_earth * matrix::diag(
+					_measurement_var) * _ekf._R_to_earth.transpose();
+		// bump the variance by a factor of 5 to make teh reset less aggressive
+		const Vector3f measurement_variance_ekf_frame = rotated_variance.diag() * 5.f;
+		_ekf.resetVerticalVelocityTo((_ekf._R_to_earth * _measurement)(2, 0),
+					     measurement_variance_ekf_frame(2));
 	}
 
 	bool fuseVelocity(estimator_aid_source3d_s &aid_src, float gate) override
 	{
-		ekf.fuseBodyFrameVelocity(aid_src, sample.time_us, measurement,
-					  measurement_var, gate);
+		_ekf.fuseBodyFrameVelocity(aid_src, _sample.time_us, _measurement,
+					   _measurement_var, gate);
 		return aid_src.fused;
 	}
 };
 
-class NEDLocalFrameEV : public ExternalVisionVel
+class EvVelLocalFrameNed : public ExternalVisionVel
 {
 public:
-	NEDLocalFrameEV(Ekf &ekf_instance, extVisionSample &vision_sample, const imuSample &imu_sample) :
-		ExternalVisionVel(ekf_instance, vision_sample, imu_sample) {}
-
-	bool setMeasurement() override
+	EvVelLocalFrameNed(Ekf &ekf_instance, extVisionSample &vision_sample, const float ev_vel_noise,
+			   const imuSample &imu_sample) :
+		ExternalVisionVel(ekf_instance, vision_sample, ev_vel_noise, imu_sample)
 	{
-		if (ekf._control_status.flags.yaw_align) {
-			measurement = sample.vel - velocity_offset_body;
-			measurement_var = sample.velocity_var;
+		const Vector3f velocity_offset_earth = _ekf._R_to_earth * _velocity_offset_body;
+
+		if (_ekf._control_status.flags.yaw_align) {
+			_measurement = _sample.vel - velocity_offset_earth;
+			_measurement_var = _sample.velocity_var;
 			enforceMinimumVariance();
-			return true;
 		}
-
-		return false;
 	}
-
 };
 
-class FRDLocalFrameEV : public ExternalVisionVel
+class EvVelLocalFrameFrd : public ExternalVisionVel
 {
 public:
-	FRDLocalFrameEV(Ekf &ekf_instance, extVisionSample &vision_sample, const imuSample &imu_sample) :
-		ExternalVisionVel(ekf_instance,	vision_sample, imu_sample) {}
-
-	bool setMeasurement() override
+	EvVelLocalFrameFrd(Ekf &ekf_instance, extVisionSample &vision_sample, const float ev_vel_noise,
+			   const imuSample &imu_sample) :
+		ExternalVisionVel(ekf_instance,	vision_sample, ev_vel_noise, imu_sample)
 	{
-		velocity_offset_earth = ekf._R_to_earth * velocity_offset_body;
+		const Vector3f velocity_offset_earth = _ekf._R_to_earth * _velocity_offset_body;
 
-		if (ekf._control_status.flags.ev_yaw) {
+		if (_ekf._control_status.flags.ev_yaw) {
 			// Using EV frame
-			measurement = sample.vel - velocity_offset_earth;
-			measurement_var = sample.velocity_var;
+			_measurement = _sample.vel - velocity_offset_earth;
+			_measurement_var = _sample.velocity_var;
 
 		} else {
 			// Rotate EV to the EKF reference frame
-			const Dcmf rotation_ev_to_ekf = Dcmf(ekf._ev_q_error_filt.getState());
-			measurement = rotation_ev_to_ekf * sample.vel - velocity_offset_earth;
-			measurement_var = matrix::SquareMatrix3f(rotation_ev_to_ekf * matrix::diag(
-						  sample.velocity_var) * rotation_ev_to_ekf.transpose()).diag();
-			min_variance = math::max(min_variance, sample.orientation_var.max());
+			const Dcmf rotation_ev_to_ekf = Dcmf(_ekf._ev_q_error_filt.getState());
+			_measurement = rotation_ev_to_ekf * _sample.vel - velocity_offset_earth;
+			_measurement_var = matrix::SquareMatrix3f(rotation_ev_to_ekf * matrix::diag(
+						   _sample.velocity_var) * rotation_ev_to_ekf.transpose()).diag();
+			_min_variance = math::max(_min_variance, _sample.orientation_var.max());
 		}
 
-		printf("var pre %f, %f", (double)measurement_var(0), (double)measurement_var(1));
-
 		enforceMinimumVariance();
-		printf("var post %f, %f", (double)measurement_var(0), (double)measurement_var(1));
-		return true;
 	}
-
 };
 
 #endif // ExternalVisionVel_H

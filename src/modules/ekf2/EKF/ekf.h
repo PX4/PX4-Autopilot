@@ -556,9 +556,9 @@ public:
 private:
 
 	friend class ExternalVisionVel;
-	friend class BodyFrameEV;
-	friend class NEDLocalFrameEV;
-	friend class FRDLocalFrameEV;
+	friend class EvVelBodyFrameFrd;
+	friend class EvVelLocalFrameNed;
+	friend class EvVelLocalFrameFrd;
 
 	// set the internal states and status to their default value
 	void reset();
