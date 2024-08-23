@@ -1,0 +1,90 @@
+# NOTE: this workflow is now running on Dronecode / PX4 AWS account.
+# - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
+#   and comment the "runs-on: [runs-on,runner=..." lines.
+# - If you would like to duplicate this setup try setting up "RunsOn" on your own AWS account try https://runs-on.com
+
+name: Build all targets
+
+on:
+  push:
+    branches:
+    - 'main'
+    - 'stable'
+    - 'beta'
+    - 'release/*'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  group_targets:
+    name: Scan for Board Targets
+    # runs-on: ubuntu-latest
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python Dependencies
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: "./Tools/setup/requirements.txt"
+
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py --group)"
+
+      - id: set-timestamp
+        run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
+
+  setup:
+    name: ${{ matrix.group }}
+    # runs-on: ubuntu-latest
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
+    needs: group_targets
+    strategy:
+      matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: ccache setup keys
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
+          restore-keys: ${{ matrix.group }}-ccache-${{ needs.group_targets.outputs.timestamp }}
+
+      - name: setup ccache
+        run: |
+            mkdir -p ~/.ccache
+            echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+            echo "compression = true" >> ~/.ccache/ccache.conf
+            echo "compression_level = 6" >> ~/.ccache/ccache.conf
+            echo "max_size = 120M" >> ~/.ccache/ccache.conf
+            echo "hash_dir = false" >> ~/.ccache/ccache.conf
+            ccache -s
+            ccache -z
+
+      - name: build target group
+        run: |
+            ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
+
+      - name: Upload px4 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: px4_${{matrix.group}}_build_artifacts
+          path: |
+            build/**/*.px4
+            build/**/*.bin
+          compression-level: 0
+
+      - name: ccache post-run
+        run: ccache -s

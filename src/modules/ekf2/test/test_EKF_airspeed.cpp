@@ -78,13 +78,15 @@ public:
 
 TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 {
-
 	const Vector3f simulated_velocity_earth(0.0f, 1.5f, 0.0f);
 	const Vector2f airspeed_body(2.4f, 0.0f);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator._vio.setVelocity(simulated_velocity_earth);
 	_sensor_simulator._vio.setVelocityFrameToLocalNED();
 	_sensor_simulator.startExternalVision();
+
+	// Let the EV fusion start first to reset the velocity estimate
+	_sensor_simulator.runSeconds(0.5);
 
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);

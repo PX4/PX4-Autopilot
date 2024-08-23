@@ -452,7 +452,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_triplet_prev_wp(2) = -(_sub_triplet_setpoint.get().previous.alt - _reference_altitude);
 
 		} else {
-			_triplet_prev_wp = _position;
+			_triplet_prev_wp = _triplet_target;
 		}
 
 		_prev_was_valid = _sub_triplet_setpoint.get().previous.valid;

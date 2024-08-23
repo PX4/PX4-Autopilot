@@ -259,6 +259,7 @@ public:
 	// return true if the origin is valid
 	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
 	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = 0.f, float epv = 0.f);
+	void updateWmm(double lat, double lon);
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const;
@@ -293,17 +294,17 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid() const
 	{
-		return (!_horizontal_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
+		return !_horizontal_deadreckon_time_exceeded;
 	}
 
 	bool isLocalVerticalPositionValid() const
 	{
-		return !_vertical_position_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
+		return !_vertical_position_deadreckon_time_exceeded;
 	}
 
 	bool isLocalVerticalVelocityValid() const
 	{
-		return !_vertical_velocity_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
+		return !_vertical_velocity_deadreckon_time_exceeded;
 	}
 
 	bool isYawFinalAlignComplete() const
@@ -1131,7 +1132,7 @@ private:
 	}
 
 	void resetFakePosFusion();
-	void stopFakePosFusion();
+	bool runFakePosStateMachine(bool enable_condition_passing, bool status_flag, estimator_aid_source2d_s &aid_src);
 
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)

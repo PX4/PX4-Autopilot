@@ -96,20 +96,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
 		_gps_alt_ref = altitude;
 
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-		const float mag_declination_gps = math::radians(get_mag_declination_degrees(latitude, longitude));
-		const float mag_inclination_gps = math::radians(get_mag_inclination_degrees(latitude, longitude));
-		const float mag_strength_gps = get_mag_strength_gauss(latitude, longitude);
-
-		if (PX4_ISFINITE(mag_declination_gps) && PX4_ISFINITE(mag_inclination_gps) && PX4_ISFINITE(mag_strength_gps)) {
-			_mag_declination_gps = mag_declination_gps;
-			_mag_inclination_gps = mag_inclination_gps;
-			_mag_strength_gps = mag_strength_gps;
-
-			_wmm_gps_time_last_set = _time_delayed_us;
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
+		updateWmm(current_lat, current_lon);
 
 		_gpos_origin_eph = eph;
 		_gpos_origin_epv = epv;
@@ -143,6 +130,39 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 	return false;
 }
+
+void Ekf::updateWmm(const double lat, const double lon)
+{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	// set the magnetic field data returned by the geo library using the current GPS position
+	const float mag_declination_gps = math::radians(get_mag_declination_degrees(lat, lon));
+	const float mag_inclination_gps = math::radians(get_mag_inclination_degrees(lat, lon));
+	const float mag_strength_gps = get_mag_strength_gauss(lat, lon);
+
+	if (PX4_ISFINITE(mag_declination_gps) && PX4_ISFINITE(mag_inclination_gps) && PX4_ISFINITE(mag_strength_gps)) {
+
+		const bool mag_declination_changed = (fabsf(mag_declination_gps - _mag_declination_gps) > math::radians(1.f));
+		const bool mag_inclination_changed = (fabsf(mag_inclination_gps - _mag_inclination_gps) > math::radians(1.f));
+
+		if ((_wmm_gps_time_last_set == 0)
+		    || !PX4_ISFINITE(_mag_declination_gps)
+		    || !PX4_ISFINITE(_mag_inclination_gps)
+		    || !PX4_ISFINITE(_mag_strength_gps)
+		    || mag_declination_changed
+		    || mag_inclination_changed
+		   ) {
+			_mag_declination_gps = mag_declination_gps;
+			_mag_inclination_gps = mag_inclination_gps;
+			_mag_strength_gps = mag_strength_gps;
+
+			_wmm_gps_time_last_set = _time_delayed_us;
+		}
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+}
+
 
 void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 {
@@ -622,7 +642,8 @@ uint16_t Ekf::get_ekf_soln_status() const
 #endif // CONFIG_EKF2_TERRAIN
 
 	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
-	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.vehicle_at_rest;
+	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.valid_fake_pos
+					   || _control_status.flags.vehicle_at_rest;
 
 	// 256	ESTIMATOR_PRED_POS_HORIZ_REL	True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 	soln_status.flags.pred_pos_horiz_rel = isHorizontalAidingActive();
@@ -767,6 +788,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	// zero velocity update
 	if (isRecent(_zero_velocity_update.time_last_fuse(), _params.no_aid_timeout_max)) {
+		// only respect as a valid aiding source now if we expect to have another valid source once in air
+		if (aiding_expected_in_air) {
+			inertial_dead_reckoning = false;
+		}
+	}
+
+	if (_control_status.flags.valid_fake_pos && isRecent(_aid_src_fake_pos.time_last_fuse, _params.no_aid_timeout_max)) {
 		// only respect as a valid aiding source now if we expect to have another valid source once in air
 		if (aiding_expected_in_air) {
 			inertial_dead_reckoning = false;

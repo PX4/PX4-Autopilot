@@ -854,21 +854,19 @@ void Navigator::run()
 			if (did_not_switch_takeoff_to_loiter && did_not_switch_to_loiter_with_valid_loiter_setpoint) {
 				reset_triplets();
 			}
+		}
 
-
-			// transition to hover in Descend mode
-			if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&
-			    _vstatus.is_vtol && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
-			    force_vtol()) {
-				vehicle_command_s vcmd = {};
-				vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-				vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-				publish_vehicle_cmd(&vcmd);
-				mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
-				events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
-					     "Transition to hover mode and descend");
-			}
-
+		// VTOL: transition to hover in Descend mode if force_vtol() is true
+		if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&
+		    _vstatus.is_vtol && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
+		    force_vtol()) {
+			vehicle_command_s vcmd = {};
+			vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+			vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			publish_vehicle_cmd(&vcmd);
+			mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
+			events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
+				     "Transition to hover mode and descend");
 		}
 
 		_navigation_mode = navigation_mode_new;
