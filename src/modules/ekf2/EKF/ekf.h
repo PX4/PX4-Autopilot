@@ -773,7 +773,7 @@ private:
 
 	// fuse magnetometer declination measurement
 	//  declination uncertainty in radians
-	bool fuseDeclination(float decl_measurement_rad, float decl_sigma);
+	bool fuseDeclination(float decl_measurement_rad, float decl_sigma, bool update_all_states = false);
 
 #endif // CONFIG_EKF2_MAGNETOMETER
 
