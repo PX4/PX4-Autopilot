@@ -1108,7 +1108,8 @@ private:
 	void resetQuatCov(const Vector3f &rot_var_ned);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	void resetMagCov();
+	void resetMagEarthCov();
+	void resetMagBiasCov();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
