@@ -68,7 +68,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_control_status.flags.mag_fault = false;
 
 			_state.mag_B.zero();
-			resetMagCov();
+			resetMagBiasCov();
+
+			stopMagFusion();
 
 			_mag_lpf.reset(mag_sample.mag);
 			_mag_counter = 1;
@@ -210,7 +212,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if (mag_sample.reset || checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_pre_takeoff)) {
+				if (checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_pre_takeoff)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 					aid_src.time_last_fuse = imu_sample.time_us;
@@ -313,6 +315,9 @@ void Ekf::stopMagFusion()
 	if (_control_status.flags.mag) {
 		ECL_INFO("stopping mag fusion");
 
+		resetMagEarthCov();
+		resetMagBiasCov();
+
 		if (_control_status.flags.yaw_align && (_control_status.flags.mag_3D || _control_status.flags.mag_hdg)) {
 			// reset yaw alignment from mag unless using GNSS aiding
 			const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
@@ -371,25 +376,35 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	const Vector3f mag_I_before_reset = _state.mag_I;
 	const Vector3f mag_B_before_reset = _state.mag_B;
 
-	// reset covariances to default
-	resetMagCov();
+	static constexpr float kMagEarthMinGauss = 0.01f; // minimum difference in mag earth field strength for reset (Gauss)
 
 	// if world magnetic model (inclination, declination, strength) available then use it to reset mag states
 	if (_wmm_earth_field_gauss.longerThan(0.f) && _wmm_earth_field_gauss.isAllFinite()) {
 		// use expected earth field to reset states
 
-		// mag_B: reset
+		// mag_I: reset, skipped if negligible change in state
+		const Vector3f mag_I = _wmm_earth_field_gauss;
+		bool mag_I_reset = false;
+
+		if ((_state.mag_I - mag_I).longerThan(kMagEarthMinGauss)) {
+			_state.mag_I = mag_I;
+			resetMagEarthCov();
+			mag_I_reset = true;
+		}
+
+		// mag_B: reset, skipped if mag_I didn't change
 		if (!reset_heading && _control_status.flags.yaw_align) {
-			// mag_B: reset using WMM
-			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
-			_state.mag_B = mag - (R_to_body * _wmm_earth_field_gauss);
+			if (mag_I_reset) {
+				// mag_B: reset using WMM
+				const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
+				_state.mag_B = mag - (R_to_body * _wmm_earth_field_gauss);
+				resetMagBiasCov();
+			} // otherwise keep existing mag_B state (!mag_I_reset)
 
 		} else {
 			_state.mag_B.zero();
+			resetMagBiasCov();
 		}
-
-		// mag_I: reset, skipped if no change in state and variance good
-		_state.mag_I = _wmm_earth_field_gauss;
 
 		if (reset_heading) {
 			resetMagHeading(mag);
@@ -398,34 +413,32 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	} else {
 		// mag_B: reset
 		_state.mag_B.zero();
+		resetMagBiasCov();
 
-		// Use the magnetometer measurement to reset the field states
+		// Use the magnetometer measurement to reset the heading
 		if (reset_heading) {
 			resetMagHeading(mag);
 		}
 
-		// mag_I: use the last magnetometer measurements to reset the field states
-		_state.mag_I = _R_to_earth * mag;
+		// mag_I: use the last magnetometer measurement to reset the field states
+		const Vector3f mag_I = _R_to_earth * mag;
+
+		if ((_state.mag_I - mag_I).longerThan(kMagEarthMinGauss)) {
+			_state.mag_I = mag_I;
+			resetMagEarthCov();
+		}
 	}
 
-	if (!mag_I_before_reset.longerThan(0.f)) {
-		ECL_INFO("initializing mag I [%.3f, %.3f, %.3f], mag B [%.3f, %.3f, %.3f]",
-			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
-			 (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2)
-			);
-
-	} else {
+	if ((_state.mag_I - mag_I_before_reset).longerThan(0.f)) {
 		ECL_INFO("resetting mag I [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
 			 (double)mag_I_before_reset(0), (double)mag_I_before_reset(1), (double)mag_I_before_reset(2),
-			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2)
-			);
+			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2));
+	}
 
-		if (mag_B_before_reset.longerThan(0.f) || _state.mag_B.longerThan(0.f)) {
-			ECL_INFO("resetting mag B [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
-				 (double)mag_B_before_reset(0), (double)mag_B_before_reset(1), (double)mag_B_before_reset(2),
-				 (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2)
-				);
-		}
+	if ((_state.mag_B - mag_B_before_reset).longerThan(0.f)) {
+		ECL_INFO("resetting mag B [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
+			 (double)mag_B_before_reset(0), (double)mag_B_before_reset(1), (double)mag_B_before_reset(2),
+			 (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2));
 	}
 
 	// record the start time for the magnetic field alignment
