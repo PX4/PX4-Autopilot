@@ -151,7 +151,7 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 	return false;
 }
 
-bool Ekf::fuseDeclination(float decl_measurement_rad, float decl_sigma)
+bool Ekf::fuseDeclination(float decl_measurement_rad, float decl_sigma, bool update_all_states)
 {
 	// observation variance (rad**2)
 	const float R_DECL = sq(decl_sigma);
@@ -173,6 +173,19 @@ bool Ekf::fuseDeclination(float decl_measurement_rad, float decl_sigma)
 
 	// Calculate the Kalman gains
 	VectorState Kfusion = P * H / innovation_variance;
+
+	if (!update_all_states) {
+		// zero non-mag Kalman gains if not updating all states
+
+		// copy mag_I and mag_B Kalman gains
+		const Vector3f K_mag_I = Kfusion.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0);
+		const Vector3f K_mag_B = Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0);
+
+		// zero all Kalman gains, then restore mag
+		Kfusion.setZero();
+		Kfusion.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) = K_mag_I;
+		Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
+	}
 
 	const bool is_fused = measurementUpdate(Kfusion, H, R_DECL, innovation);
 
