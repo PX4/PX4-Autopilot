@@ -698,10 +698,22 @@ Commander::Commander() :
 	// default for vtol is rotary wing
 	_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-	_param_mav_comp_id = param_find("MAV_COMP_ID");
-	_param_mav_sys_id = param_find("MAV_SYS_ID");
+	param_t param_mav_comp_id = param_find("MAV_COMP_ID");
+	param_t param_mav_sys_id = param_find("MAV_SYS_ID");
 	_param_mav_type = param_find("MAV_TYPE");
 	_param_rc_map_fltmode = param_find("RC_MAP_FLTMODE");
+
+	int32_t value_int32 = 0;
+
+	// MAV_SYS_ID => vehicle_status.system_id
+	if ((param_mav_sys_id != PARAM_INVALID) && (param_get(param_mav_sys_id, &value_int32) == PX4_OK)) {
+		_vehicle_status.system_id = value_int32;
+	}
+
+	// MAV_COMP_ID => vehicle_status.component_id
+	if ((param_mav_comp_id != PARAM_INVALID) && (param_get(param_mav_comp_id, &value_int32) == PX4_OK)) {
+		_vehicle_status.component_id = value_int32;
+	}
 
 	updateParameters();
 }
@@ -1682,21 +1694,10 @@ void Commander::updateParameters()
 
 	int32_t value_int32 = 0;
 
-	// MAV_SYS_ID => vehicle_status.system_id
-	if ((_param_mav_sys_id != PARAM_INVALID) && (param_get(_param_mav_sys_id, &value_int32) == PX4_OK)) {
-		_vehicle_status.system_id = value_int32;
-	}
-
-	// MAV_COMP_ID => vehicle_status.component_id
-	if ((_param_mav_comp_id != PARAM_INVALID) && (param_get(_param_mav_comp_id, &value_int32) == PX4_OK)) {
-		_vehicle_status.component_id = value_int32;
-	}
-
 	// MAV_TYPE -> vehicle_status.system_type
 	if ((_param_mav_type != PARAM_INVALID) && (param_get(_param_mav_type, &value_int32) == PX4_OK)) {
 		_vehicle_status.system_type = value_int32;
 	}
-
 
 	_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
 
