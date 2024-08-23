@@ -545,9 +545,8 @@ void EKF2::Run()
 						accuracy = vehicle_command.param3;
 					}
 
-					// TODO add check for lat and long validity
-					if (_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
-							accuracy, timestamp_observation)
+					if (_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
+							accuracy, accuracy, timestamp_observation)
 					   ) {
 						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
