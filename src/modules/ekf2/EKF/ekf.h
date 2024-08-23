@@ -533,7 +533,7 @@ public:
 		return true;
 	}
 
-	bool resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
+	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
 	/**
