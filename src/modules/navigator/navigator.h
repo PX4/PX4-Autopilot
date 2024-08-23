@@ -177,6 +177,8 @@ public:
 
 	float get_loiter_radius() { return _param_nav_loiter_rad.get(); }
 
+	bool use_waypoint_acceptance_radius() { return _param_nav_use_wp_rad.get(); }
+
 	/**
 	 * Returns the default acceptance radius defined by the parameter
 	 */
@@ -405,6 +407,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,		/**< acceptance for takeoff */
+		(ParamInt<px4::params::NAV_USE_WP_RAD>)     _param_nav_use_wp_rad,	/**< use waypoint acceptance radius */
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)   _param_nav_fw_alt_rad,	/**< acceptance rad for fixedwing alt */
 		(ParamFloat<px4::params::NAV_FW_ALTL_RAD>)
 		_param_nav_fw_altl_rad,	/**< acceptance rad for fixedwing alt before landing*/

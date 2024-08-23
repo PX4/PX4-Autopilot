@@ -15,3 +15,5 @@ param set-default COM_SPOOLUP_TIME 10
 
 # No need for minimum collective pitch (or airmode) to keep torque authority
 param set-default MPC_MANTHR_MIN 0
+
+param set-default NAV_USE_WP_RAD 1
