@@ -194,8 +194,17 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				} else {
 					if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
 						ECL_INFO("starting optical flow, resetting");
-						resetFlowFusion();
-						_control_status.flags.opt_flow = true;
+
+						// prevent a reset at the very limit of the sensor range, faulty measurement would reset the velocity and
+						// could not be correctly by further measurements because the range is above the selected limit
+						// when its above 95% only allow optical flow fusion
+						if (getHagl() < 0.95f * _flow_max_distance) {
+							resetFlowFusion();
+							_control_status.flags.opt_flow = true;
+
+						} else if (fuseOptFlow(H, _control_status.flags.opt_flow_terrain)) {
+							_control_status.flags.opt_flow = true;
+						}
 
 					} else if (_control_status.flags.opt_flow_terrain) {
 						ECL_INFO("starting optical flow, resetting terrain");
@@ -217,7 +226,8 @@ void Ekf::resetFlowFusion()
 {
 	ECL_INFO("reset velocity to flow");
 	_information_events.flags.reset_vel_to_flow = true;
-	resetHorizontalVelocityTo(_flow_vel_ne, calcOptFlowMeasVar(_flow_sample_delayed));
+	float reset_var = sq(predictFlowRange()) * calcOptFlowMeasVar(_flow_sample_delayed);
+	resetHorizontalVelocityTo(_flow_vel_ne, reset_var);
 
 	// reset position, estimate is relative to initial position in this mode, so we start with zero error
 	if (!_control_status.flags.in_air) {
