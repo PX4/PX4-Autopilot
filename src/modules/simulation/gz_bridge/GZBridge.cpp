@@ -154,7 +154,7 @@ int GZBridge::init()
 				return PX4_ERROR;
 			}
 
-			std::string scene_info_service = "/world/default/scene/info";
+			std::string scene_info_service = "/world/" + _world_name + "/scene/info";
 			bool scene_created = false;
 
 			while (scene_created == false) {
