@@ -461,6 +461,7 @@ add_custom_command(OUTPUT ${uorb_graph_config}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
 		${graph_module_list} --src-path src/lib
 		--merge-depends
+		--exclude-path src/atena
 		--exclude-path src/examples
 		--exclude-path src/lib/parameters # FIXME: enable & fix
 		--file ${PX4_SOURCE_DIR}/Tools/uorb_graph/graph_${uorb_graph_config}

@@ -109,10 +109,11 @@ FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
 
 	add_custom_command(OUTPUT ${coverage_cleaned}
 		COMMAND ${LCOV_PATH} --quiet
-			--remove ${coverage_info} 'tests/*' '/usr/*' 'src/examples*'
+			--remove ${coverage_info} 'tests/*' '/usr/*' 'src/examples*' 'src/atena*'
 			--output-file ${coverage_cleaned}
 		DEPENDS ${coverage_info}
 	)
+
 
 	add_custom_target(${_targetname}_genhtml
 		COMMAND ${GENHTML_PATH} --quiet -o coverage-html ${coverage_cleaned}

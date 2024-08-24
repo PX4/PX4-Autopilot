@@ -214,6 +214,18 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			list(APPEND config_module_list examples/${example})
 		endif()
 
+		# Find variable name
+		string(REGEX MATCH "^CONFIG_ATENA[^=]+" Atena ${NameAndValue})
+
+		if(Atena)
+			# Find the value
+			string(REPLACE "${Name}=" "" Value ${NameAndValue})
+			string(REPLACE "CONFIG_ATENA_" "" atena ${Name})
+			string(TOLOWER ${atena} atena)
+
+			list(APPEND config_module_list atena/${atena})
+		endif()
+
 	endforeach()
 
 	# Put every module not in userspace also to kernel list

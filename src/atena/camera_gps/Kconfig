@@ -1,0 +1,5 @@
+menuconfig ATENA_CAMERA_GPS
+	bool "camera_gps"
+	default n
+	---help---
+		Enable support for camera_gps
