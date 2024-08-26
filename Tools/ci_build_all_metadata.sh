@@ -4,13 +4,13 @@
 set -e
 
 targets=$1
-json_output="["
+json_output="{["
 for target in ${targets//,/ }
 do
     json_output="${json_output}'build/${target}/*.bin',"
     json_output="${json_output}'build/${target}/*.px4',"
 done
-json_output="PATH_TO_TARGETS=${json_output}'']"
+json_output="PATH_TO_TARGETS=${json_output}'']}"
 # echo "${json_output}" >> $GITHUB_ENV
 echo $json_output
 # build/**/*.bin

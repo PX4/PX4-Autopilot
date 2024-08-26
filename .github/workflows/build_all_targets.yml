@@ -44,7 +44,15 @@ jobs:
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
     needs: group_targets
     strategy:
-      matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+      # matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+      matrix:
+        include:
+          - container: 'px4io/px4-dev-nuttx-focal:2022-08-12'
+          - targets: 'px4_fmu-v2_fixedwing,px4_fmu-v2_default,px4_fmu-v2_multicopter,px4_fmu-v2_lto'
+          - arch: 'nuttx'
+          - group: 'nuttx-px4-3'
+          - len: 4
+
     container:
       image: ${{ matrix.container }}
     steps:
