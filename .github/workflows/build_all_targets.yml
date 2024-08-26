@@ -76,14 +76,13 @@ jobs:
       - name: build target group
         run: |
             ./Tools/ci_build_all_runner.sh ${{matrix.targets}}
+            ./Tools/ci_build_all_metadata.sh ${{matrix.targets}} >> $GITHUB_ENV
 
       - name: Upload px4 package
         uses: actions/upload-artifact@v4
         with:
           name: px4_${{matrix.group}}_build_artifacts
-          path: |
-            build/**/*.px4
-            build/**/*.bin
+          path: ${{ env.PATH_TO_TARGETS }}
           compression-level: 0
 
       - name: ccache post-run
