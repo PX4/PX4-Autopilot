@@ -82,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: px4_${{matrix.group}}_build_artifacts
-          path: ${{ env.PATH_TO_TARGETS }}
+          path: ${{ fromJson(env.PATH_TO_TARGETS) }}
           compression-level: 0
 
       - name: ccache post-run
