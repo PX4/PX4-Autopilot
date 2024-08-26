@@ -110,7 +110,7 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 	double current_lon = static_cast<double>(NAN);
 
 	// if we are already doing aiding, correct for the change in position since the EKF started navigating
-	if (_pos_ref.isInitialized() && isHorizontalAidingActive()) {
+	if (_pos_ref.isInitialized() && local_position_is_valid()) {
 		_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
 		current_pos_available = true;
 	}
@@ -148,7 +148,7 @@ bool Ekf::setAltOrigin(const float altitude, const float epv)
 		_gpos_origin_epv = epv;
 	}
 
-	if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
+	if (PX4_ISFINITE(gps_alt_ref_prev) && isLocalVerticalPositionValid()) {
 		// determine current z
 		const float z_prev = _state.pos(2);
 		const float current_alt = -z_prev + gps_alt_ref_prev;
@@ -189,7 +189,7 @@ bool Ekf::setLatLonOriginFromCurrentPos(const double latitude, const double long
 	_pos_ref.initReference(latitude, longitude, _time_delayed_us);
 
 	// if we are already doing aiding, correct for the change in position since the EKF started navigating
-	if (isHorizontalAidingActive()) {
+	if (local_position_is_valid()) {
 		double est_lat;
 		double est_lon;
 		_pos_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
