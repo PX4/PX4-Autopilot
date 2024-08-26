@@ -151,21 +151,18 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 	return false;
 }
 
-bool Ekf::fuseDeclination(float decl_measurement_rad, float decl_sigma, bool update_all_states)
+bool Ekf::fuseDeclination(float decl_measurement_rad, float R, bool update_all_states)
 {
-	// observation variance (rad**2)
-	const float R_DECL = sq(decl_sigma);
-
 	VectorState H;
 	float decl_pred;
 	float innovation_variance;
 
-	sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON,
+	sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R, FLT_EPSILON,
 			&decl_pred, &innovation_variance, &H);
 
 	const float innovation = wrap_pi(decl_pred - decl_measurement_rad);
 
-	if (innovation_variance < R_DECL) {
+	if (innovation_variance < R) {
 		// variance calculation is badly conditioned
 		_fault_status.flags.bad_mag_decl = true;
 		return false;
@@ -187,7 +184,7 @@ bool Ekf::fuseDeclination(float decl_measurement_rad, float decl_sigma, bool upd
 		Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
 	}
 
-	const bool is_fused = measurementUpdate(Kfusion, H, R_DECL, innovation);
+	const bool is_fused = measurementUpdate(Kfusion, H, R, innovation);
 
 	_fault_status.flags.bad_mag_decl = !is_fused;
 
