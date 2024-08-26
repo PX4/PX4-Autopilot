@@ -1925,6 +1925,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_aux_gpos                = _ekf.control_status_flags().aux_gpos;
 		status_flags.cs_rng_terrain    = _ekf.control_status_flags().rng_terrain;
 		status_flags.cs_opt_flow_terrain    = _ekf.control_status_flags().opt_flow_terrain;
+		status_flags.cs_valid_fake_pos      = _ekf.control_status_flags().valid_fake_pos;
+		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2590,6 +2592,15 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 			flags.at_rest = vehicle_land_detected.at_rest;
 			flags.in_air = !vehicle_land_detected.landed;
 			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
+		}
+
+		launch_detection_status_s launch_detection_status;
+
+		if (_launch_detection_status_sub.copy(&launch_detection_status)
+		    && (ekf2_timestamps.timestamp < launch_detection_status.timestamp + 3_s)) {
+
+			flags.constant_pos = (launch_detection_status.launch_detection_state ==
+					      launch_detection_status_s::STATE_WAITING_FOR_LAUNCH);
 		}
 
 		_ekf.setSystemFlagData(flags);

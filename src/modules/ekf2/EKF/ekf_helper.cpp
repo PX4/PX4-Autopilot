@@ -642,7 +642,8 @@ uint16_t Ekf::get_ekf_soln_status() const
 #endif // CONFIG_EKF2_TERRAIN
 
 	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
-	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.vehicle_at_rest;
+	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.valid_fake_pos
+					   || _control_status.flags.vehicle_at_rest;
 
 	// 256	ESTIMATOR_PRED_POS_HORIZ_REL	True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 	soln_status.flags.pred_pos_horiz_rel = isHorizontalAidingActive();
@@ -793,6 +794,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		}
 	}
 
+	if (_control_status.flags.valid_fake_pos && isRecent(_aid_src_fake_pos.time_last_fuse, _params.no_aid_timeout_max)) {
+		// only respect as a valid aiding source now if we expect to have another valid source once in air
+		if (aiding_expected_in_air) {
+			inertial_dead_reckoning = false;
+		}
+	}
+
 	if (inertial_dead_reckoning) {
 		if (isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max)) {
 			// deadreckon time exceeded
@@ -890,17 +898,21 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
 	// xy accel bias learning is also disabled on ground as those states are poorly observable when perpendicular to the gravity vector
 	{
+		const Vector3f gyro_corrected = imu_delayed.delta_ang / imu_delayed.delta_ang_dt - _state.gyro_bias;
+
 		const float alpha = math::constrain((imu_delayed.delta_ang_dt / _params.acc_bias_learn_tc), 0.f, 1.f);
 		const float beta = 1.f - alpha;
-		_ang_rate_magnitude_filt = fmaxf(imu_delayed.delta_ang.norm() / imu_delayed.delta_ang_dt,
-						 beta * _ang_rate_magnitude_filt);
+
+		_ang_rate_magnitude_filt = fmaxf(gyro_corrected.norm(), beta * _ang_rate_magnitude_filt);
 	}
 
 	{
+		const Vector3f accel_corrected = imu_delayed.delta_vel / imu_delayed.delta_vel_dt - _state.accel_bias;
+
 		const float alpha = math::constrain((imu_delayed.delta_vel_dt / _params.acc_bias_learn_tc), 0.f, 1.f);
 		const float beta = 1.f - alpha;
 
-		_accel_magnitude_filt = fmaxf(imu_delayed.delta_vel.norm() / imu_delayed.delta_vel_dt, beta * _accel_magnitude_filt);
+		_accel_magnitude_filt = fmaxf(accel_corrected.norm(), beta * _accel_magnitude_filt);
 	}
 
 
