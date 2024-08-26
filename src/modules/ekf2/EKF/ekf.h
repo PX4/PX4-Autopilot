@@ -772,8 +772,8 @@ private:
 		     bool update_all_states = false, bool update_tilt = false);
 
 	// fuse magnetometer declination measurement
-	//  declination uncertainty in radians
-	bool fuseDeclination(float decl_measurement_rad, float decl_sigma, bool update_all_states = false);
+	//  R: declination observation variance (rad**2)
+	bool fuseDeclination(const float decl_measurement_rad, const float R, bool update_all_states = false);
 
 #endif // CONFIG_EKF2_MAGNETOMETER
 

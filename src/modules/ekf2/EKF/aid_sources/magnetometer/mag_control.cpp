@@ -205,14 +205,14 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		// if we are using 3-axis magnetometer fusion, but without external NE aiding,
 		// then the declination must be fused as an observation to prevent long term heading drift
-		const bool no_ne_aiding_or_pre_takeoff = !using_ne_aiding || !_control_status.flags.in_air;
-		_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_pre_takeoff;
+		const bool no_ne_aiding_or_not_moving = !using_ne_aiding || _control_status.flags.vehicle_at_rest;
+		_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_not_moving;
 
 		if (_control_status.flags.mag) {
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if (checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_pre_takeoff)) {
+				if (checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_not_moving)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 					aid_src.time_last_fuse = imu_sample.time_us;
@@ -234,19 +234,26 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 					if (_control_status.flags.mag_dec) {
 
+						// observation variance (rad**2)
+						const float R_DECL = sq(0.5f);
+
 						if ((_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL)
 						    && PX4_ISFINITE(_wmm_declination_rad)
 						   ) {
+							// using declination from the world magnetic model
 							fuseDeclination(_wmm_declination_rad, 0.5f, update_all_states);
 
 						} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
 							   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
 							  ) {
-
-							fuseDeclination(math::radians(_params.mag_declination_deg), 0.5f, update_all_states);
+							// using previously saved declination
+							fuseDeclination(math::radians(_params.mag_declination_deg), R_DECL, update_all_states);
 
 						} else {
-							_control_status.flags.mag_dec = false;
+							// if there is no aiding coming from an inertial frame we need to fuse some declination
+							// even if we don't know the value, it's better to fuse 0 than nothing
+							float declination_rad = 0.f;
+							fuseDeclination(declination_rad, R_DECL);
 						}
 					}
 				}
@@ -254,7 +261,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
-					if (no_ne_aiding_or_pre_takeoff) {
+					if (no_ne_aiding_or_not_moving) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 						resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 						aid_src.time_last_fuse = imu_sample.time_us;
