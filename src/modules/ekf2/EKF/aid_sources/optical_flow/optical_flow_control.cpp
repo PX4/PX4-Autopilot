@@ -169,7 +169,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
 					if (is_flow_required && is_quality_good && is_magnitude_good) {
-						resetFlowFusion();
+						resetFlowFusion(flow_sample);
 
 						if (_control_status.flags.opt_flow_terrain && !isTerrainEstimateValid()) {
 							resetTerrainToFlow();
@@ -203,7 +203,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				} else {
 					if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
 						ECL_INFO("starting optical flow, resetting");
-						resetFlowFusion();
+						resetFlowFusion(flow_sample);
 						_control_status.flags.opt_flow = true;
 
 					} else if (_control_status.flags.opt_flow_terrain) {
@@ -222,12 +222,12 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::resetFlowFusion()
+void Ekf::resetFlowFusion(const flowSample &flow_sample)
 {
 	ECL_INFO("reset velocity to flow");
 	_information_events.flags.reset_vel_to_flow = true;
 
-	const float flow_vel_var = sq(predictFlowRange()) * calcOptFlowMeasVar(_flow_sample_delayed);
+	const float flow_vel_var = sq(predictFlowRange()) * calcOptFlowMeasVar(flow_sample);
 	resetHorizontalVelocityTo(getFilteredFlowVelNE(), flow_vel_var);
 
 	// reset position, estimate is relative to initial position in this mode, so we start with zero error
