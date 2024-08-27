@@ -113,7 +113,7 @@ include(px4_parse_function_args)
 include(px4_git)
 
 execute_process(
-	COMMAND git describe --exclude ext/* --match v[0-9]*.[0-9]*.[0-9]* --abbrev=0 --tags
+	COMMAND git describe --exclude ext/* --match v[0-9]*.[0-9]*.[0-9]* --tags
 	OUTPUT_VARIABLE PX4_GIT_TAG
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	RESULTS_VARIABLE GIT_DESCRIBE_RESULT
