@@ -154,7 +154,7 @@ int GZBridge::init()
 				return PX4_ERROR;
 			}
 
-			std::string scene_info_service = "/world/default/scene/info";
+			std::string scene_info_service = "/world/" + _world_name + "/scene/info";
 			bool scene_created = false;
 
 			while (scene_created == false) {
@@ -169,7 +169,7 @@ int GZBridge::init()
 
 			gz::msgs::StringMsg follow_msg{};
 			follow_msg.set_data(_model_name);
-			bool call_string_service = callStringMsgService("/gui/follow", follow_msg);
+			callStringMsgService("/gui/follow", follow_msg);
 			gz::msgs::Vector3d follow_offset_msg{};
 			follow_offset_msg.set_x(-2.0);
 			follow_offset_msg.set_y(-2.0);

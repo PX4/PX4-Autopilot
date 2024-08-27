@@ -566,6 +566,13 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				  (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) &&
 				  !_land_detected_sub.get().landed;
 
+	/* ignore yaw for landing items */
+	/* XXX: if specified heading for landing is desired we could add another step before the descent
+		* that aligns the vehicle first */
+	if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
+		_mission_item.yaw = NAN;
+	}
+
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
 		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
@@ -653,13 +660,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				startPrecLand(_mission_item.land_precision);
 			}
 		}
-	}
-
-	/* ignore yaw for landing items */
-	/* XXX: if specified heading for landing is desired we could add another step before the descent
-		* that aligns the vehicle first */
-	if (_mission_item.nav_cmd == NAV_CMD_LAND || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
-		_mission_item.yaw = NAN;
 	}
 }
 
