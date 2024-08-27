@@ -261,6 +261,7 @@ struct systemFlagUpdate {
 	bool in_air{true};
 	bool is_fixed_wing{false};
 	bool gnd_effect{false};
+	bool constant_pos{false};
 };
 
 struct parameters {
@@ -614,6 +615,8 @@ uint64_t mag_heading_consistent  :
 		uint64_t aux_gpos                : 1; ///< 38 - true if auxiliary global position measurement fusion is intended
 		uint64_t rng_terrain             : 1; ///< 39 - true if we are fusing range finder data for terrain
 		uint64_t opt_flow_terrain        : 1; ///< 40 - true if we are fusing flow data for terrain
+		uint64_t valid_fake_pos          : 1; ///< 41 - true if a valid constant position is being fused
+		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
 
 	} flags;
 	uint64_t value;

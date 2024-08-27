@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser(description="""Extract version info from git an
 generate a version header file. The working directory is expected to be
 the root of Firmware.""")
 parser.add_argument('filename', metavar='version.h', help='Header output file')
+parser.add_argument('--git_tag', help='git tag string')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose output', default=False)
 parser.add_argument('--validate', dest='validate', action='store_true',
@@ -36,8 +37,11 @@ header = """
 
 
 # PX4
-git_describe_cmd = 'git describe --exclude ext/* --always --tags --dirty'
-git_tag = subprocess.check_output(git_describe_cmd.split(),
+if args.git_tag:
+    git_tag = args.git_tag
+else:
+    git_describe_cmd = 'git describe --exclude ext/* --always --tags --dirty'
+    git_tag = subprocess.check_output(git_describe_cmd.split(),
                                   stderr=subprocess.STDOUT).decode('utf-8').strip()
 
 try:
@@ -57,17 +61,7 @@ if validate:
     # now check the version format
     m = re.match(r'v([0-9]+)\.([0-9]+)\.[0-9]+(((-dev)|(-alpha[0-9]+)|(-beta[0-9]+)|(-rc[0-9]+))|'\
                  r'(-[0-9]+\.[0-9]+\.[0-9]+((-dev)|(-alpha[0-9]+)|(-beta[0-9]+)|([-]?rc[0-9]+))?))?$', git_tag_test)
-    if m:
-        # format matches, check the major and minor numbers
-        major = int(m.group(1))
-        minor = int(m.group(2))
-        if major < 1 or (major == 1 and minor < 9):
-            print("")
-            print("Error: PX4 version too low, expected at least v1.9.0")
-            print("Check the git tag (current tag: '{:}')".format(git_tag_test))
-            print("")
-            sys.exit(1)
-    else:
+    if not m:
         print("")
         print("Error: the git tag '{:}' does not match the expected format.".format(git_tag_test))
         print("")
@@ -103,9 +97,9 @@ except:
 if tag_or_branch is None:
     # replace / so it can be used as directory name
     tag_or_branch = git_branch_name.replace('/', '-')
-    # either a release or master branch (used for metadata)
+    # either a release or main branch (used for metadata)
     if not tag_or_branch.startswith('release-'):
-        tag_or_branch = 'master'
+        tag_or_branch = 'main'
 
 header += f"""
 #define PX4_GIT_VERSION_STR "{git_version}"
@@ -115,7 +109,7 @@ header += f"""
 
 #define PX4_GIT_OEM_VERSION_STR  "{oem_tag}"
 
-#define PX4_GIT_TAG_OR_BRANCH_NAME "{tag_or_branch}" // special variable: git tag, release or master branch
+#define PX4_GIT_TAG_OR_BRANCH_NAME "{tag_or_branch}" // special variable: git tag, release or main branch
 """
 
 

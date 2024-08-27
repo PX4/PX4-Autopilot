@@ -217,7 +217,9 @@ void Ekf::resetFlowFusion()
 {
 	ECL_INFO("reset velocity to flow");
 	_information_events.flags.reset_vel_to_flow = true;
-	resetHorizontalVelocityTo(_flow_vel_ne, calcOptFlowMeasVar(_flow_sample_delayed));
+
+	const float flow_vel_var = sq(predictFlowRange()) * calcOptFlowMeasVar(_flow_sample_delayed);
+	resetHorizontalVelocityTo(_flow_vel_ne, flow_vel_var);
 
 	// reset position, estimate is relative to initial position in this mode, so we start with zero error
 	if (!_control_status.flags.in_air) {
