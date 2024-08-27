@@ -37,7 +37,7 @@
  * @file simulator.h
  *
  * This module interfaces via MAVLink to a software in the loop simulator (SITL)
- * such as jMAVSim or Gazebo.
+ * such as jMAVSim or gazebo-classic.
  */
 
 #pragma once
