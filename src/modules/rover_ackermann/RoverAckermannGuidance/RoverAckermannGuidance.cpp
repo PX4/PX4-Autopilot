@@ -204,7 +204,7 @@ void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 	}
 
 	if (position_setpoint_triplet.current.cruising_speed > 0.f) {
-		_wp_max_desired_vel = math::min(position_setpoint_triplet.current.cruising_speed, _param_ra_miss_vel_def.get());
+		_wp_max_desired_vel = math::constrain(position_setpoint_triplet.current.cruising_speed, 0.f, _param_ra_max_speed.get());
 
 	} else {
 		_wp_max_desired_vel = _param_ra_miss_vel_def.get();
