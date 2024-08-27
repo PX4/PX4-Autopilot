@@ -233,7 +233,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		sudo apt-get update -y --quiet
 
 		# Install Gazebo
-		gazebo_packages="gz-garden"
+		gazebo_packages="gz-harmonic"
 	elif [[ "${UBUNTU_RELEASE}" == "21.3" ]]; then
 		echo "Gazebo (Garden) will be installed"
 		echo "Earlier versions will be removed"
