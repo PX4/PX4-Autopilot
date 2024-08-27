@@ -40,7 +40,7 @@ header = """
 if args.git_tag:
     git_tag = args.git_tag
 else:
-    git_describe_cmd = 'git describe --exclude ext/* --always --tags --dirty'
+    git_describe_cmd = 'git describe --exclude ext/* --match v[0-9]*.[0-9]*.[0-9]* --abbrev=0 --tags'
     git_tag = subprocess.check_output(git_describe_cmd.split(),
                                   stderr=subprocess.STDOUT).decode('utf-8').strip()
 
