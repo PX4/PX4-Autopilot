@@ -336,6 +336,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			_information_events.flags.reset_pos_to_ext_obs = true;
 
 			resetHorizontalPositionTo(hpos, obs_var);
+			_last_known_pos.xy() = _state.pos.xy();
 
 		} else {
 			ECL_INFO("fuse external observation as position measurement");
@@ -348,6 +349,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			_state_reset_status.posNE_change.zero();
 
 			_time_last_hor_pos_fuse = _time_delayed_us;
+			_last_known_pos.xy() = _state.pos.xy();
 		}
 	}
 
@@ -363,6 +365,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 
 			ECL_INFO("reset height to external observation");
 			resetVerticalPositionTo(vpos, obs_var);
+			_last_known_pos(2) = _state.pos(2);
 		}
 	}
 
