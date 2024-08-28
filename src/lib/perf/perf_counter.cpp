@@ -281,7 +281,7 @@ perf_free(perf_counter_t handle)
 		char shmname[PERF_SHMNAME_MAX];
 
 		/* should not fail, if object creation succeeded ? */
-		if (perf_shmname(shmname, handle->name, sizeof(shmname) >= 0)) {
+		if (perf_shmname(shmname, handle->name, sizeof(shmname)) >= 0) {
 			shm_unlink(shmname);
 		}
 
