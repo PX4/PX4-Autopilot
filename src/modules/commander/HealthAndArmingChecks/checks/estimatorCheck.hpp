@@ -59,6 +59,12 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+	enum class GnssArmingCheck : uint8_t {
+		DenyArming = 0,
+		WarningOnly = 1,
+		Disabled = 2
+	};
+
 	void checkEstimatorStatus(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
 				  NavModes required_groups);
 	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);
@@ -108,7 +114,7 @@ private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode,
 					(ParamInt<px4::params::COM_ARM_MAG_STR>) _param_com_arm_mag_str,
-					(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_com_arm_wo_gps,
+					(ParamInt<px4::params::COM_ARM_WO_GPS>) _param_com_arm_wo_gps,
 					(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 					(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
 					(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
