@@ -57,8 +57,9 @@
 
 #include "perf_counter.h"
 
+#define PERF_MAX_INSTANCE	10
 #define PERF_SHMNAME_PREFIX	"_perf_"
-#define PERF_SHMNAME_STR	PERF_SHMNAME_PREFIX "%s"
+#define PERF_SHMNAME_STR	PERF_SHMNAME_PREFIX "%s_%d"
 #define PERF_SHMNAME_MAX	NAME_MAX + 1
 
 #ifndef CONFIG_FS_SHMFS_VFS_PATH
@@ -75,6 +76,7 @@ struct perf_ctr_header {
 #else
 	char 			name[PERF_SHMNAME_MAX]; /**< counter name */
 #endif
+	uint8_t			instance; /**< counter instance */
 };
 
 /**
@@ -141,9 +143,9 @@ static size_t perf_shmsize(int fd)
 	return sb.st_size;
 }
 
-static int perf_shmname(char *shmname, const char *name, size_t size)
+static int perf_shmname(char *shmname, const char *name, uint8_t instance, size_t size)
 {
-	int ret = snprintf(shmname, size, PERF_SHMNAME_STR, name);
+	int ret = snprintf(shmname, size, PERF_SHMNAME_STR, name, instance);
 
 	if ((size_t)ret >= size) {
 		return -ENAMETOOLONG;
@@ -191,23 +193,32 @@ static void perf_reset_cb(perf_counter_t handle, void *arg)
 perf_counter_t
 perf_alloc(enum perf_counter_type type, const char *name)
 {
-	perf_counter_t ctr;
+	perf_counter_t ctr = nullptr;
 	char shmname[PERF_SHMNAME_MAX];
 	int ret;
 	int fd;
+	int inst;
 
-	/* generate name for shmfs file */
-	ret = perf_shmname(shmname, name, sizeof(shmname));
+	/* Find first free instance number */
+	for (inst = 0; inst < PERF_MAX_INSTANCE; inst++) {
+		/* generate name for shmfs file and append instance number to it */
+		ret = perf_shmname(shmname, name, inst, sizeof(shmname));
 
-	if (ret < 0) {
-		PX4_ERR("failed to allocate perf counter %s", name);
-		return nullptr;
+		if (ret < 0) {
+			PX4_ERR("failed to allocate perf counter %s", name);
+			return nullptr;
+		}
+
+		/* Try to allocate new shm object. This will fail for multi-instance counters
+		 * until unused instance is found */
+		fd = shm_open(shmname, O_CREAT | O_RDWR | O_EXCL, 0666);
+
+		if (fd >= 0) {
+			break;
+		}
 	}
 
-	/* try to allocate new shm object and map it */
-	ctr = nullptr;
-	fd = shm_open(shmname, O_CREAT | O_RDWR | O_EXCL, 0666);
-
+	/* map shm object */
 	if (fd >= 0) {
 		ret = ftruncate(fd, perf_size(type));
 
@@ -229,6 +240,7 @@ perf_alloc(enum perf_counter_type type, const char *name)
 #else
 		strncpy(ctr->name, name, PERF_SHMNAME_MAX);
 #endif
+		ctr->instance = inst;
 	}
 
 	return ctr;
@@ -242,8 +254,8 @@ perf_alloc_once(enum perf_counter_type type, const char *name)
 	char shmname[PERF_SHMNAME_MAX];
 	int ret;
 
-	/* generate name for shmfs file */
-	ret = perf_shmname(shmname, name, sizeof(shmname));
+	/* Generate name for shmfs file. Only the first instance of counter is searched */
+	ret = perf_shmname(shmname, name, 0, sizeof(shmname));
 
 	if (ret < 0) {
 		PX4_ERR("failed to allocate perf counter %s", name);
@@ -281,7 +293,7 @@ perf_free(perf_counter_t handle)
 		char shmname[PERF_SHMNAME_MAX];
 
 		/* should not fail, if object creation succeeded ? */
-		if (perf_shmname(shmname, handle->name, sizeof(shmname)) >= 0) {
+		if (perf_shmname(shmname, handle->name, handle->instance, sizeof(shmname)) >= 0) {
 			shm_unlink(shmname);
 		}
 
@@ -526,17 +538,17 @@ perf_print_counter(perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
-		PX4_INFO_RAW("%s: %" PRIu64 " events\n",
-			     handle->name,
+		PX4_INFO_RAW("%d: %s: %" PRIu64 " events\n",
+			     handle->instance, handle->name,
 			     ((struct perf_ctr_count *)handle)->event_count);
 		break;
 
 	case PC_ELAPSED: {
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
-			PX4_INFO_RAW("%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
+			PX4_INFO_RAW("%d: %s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
 				     "us %5.3fus rms\n",
-				     handle->name,
+				     handle->instance, handle->name,
 				     pce->event_count,
 				     pce->time_total,
 				     (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
@@ -550,8 +562,8 @@ perf_print_counter(perf_counter_t handle)
 			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
 			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
-			PX4_INFO_RAW("%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
-				     handle->name,
+			PX4_INFO_RAW("%d: %s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
+				     handle->instance, handle->name,
 				     pci->event_count,
 				     (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
 				     pci->time_least,
@@ -577,8 +589,8 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 
 	switch (handle->type) {
 	case PC_COUNT:
-		num_written = snprintf(buffer, length, "%s: %" PRIu64 " events",
-				       handle->name,
+		num_written = snprintf(buffer, length, "%d: %s: %" PRIu64 " events",
+				       handle->instance, handle->name,
 				       ((struct perf_ctr_count *)handle)->event_count);
 		break;
 
@@ -586,8 +598,8 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
 			float rms = sqrtf(pce->M2 / (pce->event_count - 1));
 			num_written = snprintf(buffer, length,
-					       "%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
-					       handle->name,
+					       "%d: %s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
+					       handle->instance, handle->name,
 					       pce->event_count,
 					       pce->time_total,
 					       (pce->event_count == 0) ? 0 : (double)pce->time_total / (double)pce->event_count,
@@ -602,8 +614,8 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 			float rms = sqrtf(pci->M2 / (pci->event_count - 1));
 
 			num_written = snprintf(buffer, length,
-					       "%s: %" PRIu64 " events, %.2f avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
-					       handle->name,
+					       "%d: %s: %" PRIu64 " events, %.2f avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
+					       handle->instance, handle->name,
 					       pci->event_count,
 					       (pci->event_count == 0) ? 0 : (double)(pci->time_last - pci->time_first) / (double)pci->event_count,
 					       pci->time_least,
