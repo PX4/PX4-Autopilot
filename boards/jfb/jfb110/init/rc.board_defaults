@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+param set-default BAT1_V_DIV 18.182
+param set-default BAT2_V_DIV 18.182
+
+param set-default BAT1_A_PER_V 36.364
+param set-default BAT2_A_PER_V 36.364
+
+param set-default SYS_USE_IO 0
+
+param set-default SYS_DM_BACKEND 1
+
+safety_button start
