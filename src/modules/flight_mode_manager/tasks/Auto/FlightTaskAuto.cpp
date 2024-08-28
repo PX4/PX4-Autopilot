@@ -121,6 +121,8 @@ bool FlightTaskAuto::update()
 		_gear.landing_gear = landing_gear_s::GEAR_UP;
 	}
 
+	_checkEmergencyBraking();
+
 	switch (_type) {
 	case WaypointType::idle:
 		// Send zero thrust setpoint
@@ -162,7 +164,6 @@ bool FlightTaskAuto::update()
 				_yawspeed_setpoint);
 	}
 
-	_checkEmergencyBraking();
 	Vector3f waypoints[] = {_prev_wp, _position_setpoint, _next_wp};
 
 	if (isTargetModified()) {
@@ -248,11 +249,36 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		// initialize yaw and xy-position
 		_land_heading = _yaw_setpoint;
 		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
-		_initial_land_position = Vector3f(_target(0), _target(1), NAN);
+		// If no target is available, use the current velocity and position to find a feasible landing position
+		const float velocity_xy = _velocity.xy().norm();
+		float braking_distance = 0.f;
+
+		if (_is_emergency_braking_active) {
+			// If emergency braking is active, use the current velocity to estimate the braking distance
+			braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_xy,
+					   CONSTANTS_ONE_G, CONSTANTS_ONE_G, 0.2f * CONSTANTS_ONE_G);
+
+		} else {
+			braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_xy,
+					   _param_mpc_jerk_auto.get(), _param_mpc_acc_hor.get(), 0.2f * _param_mpc_jerk_auto.get());
+		}
+
+		const Vector2f braking_direction = _velocity.xy();
+		Vector2f braking_location = Vector2f{_position.xy()} + braking_direction.unit_or_zero() * braking_distance;
+
+		_initial_land_position = Vector3f(braking_location(0), braking_location(1), NAN);
+		_land_position = _initial_land_position;
+
 	}
 
 	// Update xy-position in case of landing position changes (etc. precision landing)
-	_land_position = Vector3f(_target(0), _target(1), NAN);
+	if (_target.isAllFinite() && (_target - _prev_wp).norm() > FLT_EPSILON) {
+		_land_position = Vector3f(_target(0), _target(1), NAN);
+	}
+
+	if (_is_emergency_braking_active) {
+		_position_smoothing.forceSetPosition(_position);
+	}
 
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
