@@ -282,7 +282,7 @@ PWMESC::init(bool hitl_mode)
 	_task = px4_task_spawn_cmd("pwm_esc",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				   3048,
+				   PX4_STACK_ADJUSTED(3048),
 				   (px4_main_t)&PWMESC::task_main_trampoline,
 				   nullptr);
 
