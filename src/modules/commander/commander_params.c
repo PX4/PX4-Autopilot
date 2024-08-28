@@ -225,11 +225,14 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
- * Allow arming without GPS
+ * GPS preflight check
+ *
+ * Measures taken when a check defined by EKF2_GPS_CHECK is failing.
  *
  * @group Commander
- * @value 0 Require GPS lock to arm
- * @value 1 Allow arming without GPS
+ * @value 0 Deny arming
+ * @value 1 Warning only
+ * @value 2 Disabled
  */
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
