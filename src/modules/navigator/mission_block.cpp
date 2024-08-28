@@ -1030,13 +1030,16 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 {
 	if (_mission_item.land_precision == 1) {
 		_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+				     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
 
-	} else { //_mission_item.land_precision == 2
+	} else if(_mission_item.land_precision == 2){
 		_navigator->get_precland()->set_mode(PrecLandMode::Required);
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+				     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
 	}
 
-	send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
-			     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
+
 }
 
 void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_item_s mission_item)
