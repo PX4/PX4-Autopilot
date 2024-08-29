@@ -612,8 +612,6 @@ private:
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
-	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
-
 	Vector3f _earth_rate_NED{};	///< earth rotation vector (NED) in rad/s
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
@@ -1094,7 +1092,6 @@ private:
 	void stopAuxVelFusion();
 #endif // CONFIG_EKF2_AUXVEL
 
-	void checkVerticalAccelerationBias(const imuSample &imu_delayed);
 	void checkVerticalAccelerationHealth(const imuSample &imu_delayed);
 	Likelihood estimateInertialNavFallingLikelihood() const;
 
