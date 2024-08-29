@@ -182,6 +182,7 @@ set(msg_files
 	RoverAckermannGuidanceStatus.msg
 	RoverAckermannStatus.msg
 	RoverDifferentialGuidanceStatus.msg
+	RoverDifferentialSetpoint.msg
 	RoverDifferentialStatus.msg
 	Rpm.msg
 	RtlStatus.msg
