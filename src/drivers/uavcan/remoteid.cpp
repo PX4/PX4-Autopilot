@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include "remoteid.hpp"
-#include <lib/open_drone_id/open_drone_id_translations.hpp>
+#include <modules/mavlink/open_drone_id_translations.hpp>
 #include <drivers/drv_hrt.h>
 
 using namespace time_literals;
