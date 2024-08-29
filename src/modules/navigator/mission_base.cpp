@@ -386,12 +386,12 @@ MissionBase::isLanding()
 		if ((num_found_items > 0U) && _mission.current_seq == next_mission_items_index[0U]
 		    && _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
 			const float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
-									      _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+						_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
 			// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
 			const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
-								      && fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-								     _navigator->get_loiter_radius();
+					&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
+					_navigator->get_loiter_radius();
 
 			on_landing_stage = d_current <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs);
 		}
