@@ -177,8 +177,6 @@ public:
 
 	float get_loiter_radius() { return _param_nav_loiter_rad.get(); }
 
-	bool on_mission_landing() { return _mission.isLanding(); }
-
 	/**
 	 * Returns the default acceptance radius defined by the parameter
 	 */
