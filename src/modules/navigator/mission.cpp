@@ -209,9 +209,10 @@ void Mission::setActiveMissionItems()
 			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		}
 
-		// prevent lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
+		// prevent fixed wing lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
 		// is not achieved.
-		if (isLanding() && _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && isLanding() &&
+		    && _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
 		}
 
