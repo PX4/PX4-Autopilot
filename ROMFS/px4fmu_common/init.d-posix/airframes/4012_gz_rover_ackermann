@@ -15,9 +15,6 @@ param set-default SIM_GZ_EN 1 # Gazebo bridge
 param set-default NAV_ACC_RAD 0.5
 param set-default RA_ACC_RAD_GAIN 2
 param set-default RA_ACC_RAD_MAX 3
-param set-default RA_LOOKAHD_GAIN 1
-param set-default RA_LOOKAHD_MAX 10
-param set-default RA_LOOKAHD_MIN 1
 param set-default RA_MAX_ACCEL 1.5
 param set-default RA_MAX_JERK 15
 param set-default RA_MAX_SPEED 3
@@ -29,6 +26,11 @@ param set-default RA_MISS_VEL_MIN 1
 param set-default RA_SPEED_I 0.01
 param set-default RA_SPEED_P 2
 param set-default RA_WHEEL_BASE 0.321
+
+# Pure Pursuit parameters
+param set-default PP_LOOKAHD_GAIN 1
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1
 
 # Simulated sensors
 param set-default SENS_EN_GPSSIM 1

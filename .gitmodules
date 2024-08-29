@@ -71,7 +71,7 @@
 [submodule "src/modules/zenoh/zenoh-pico"]
 	path = src/modules/zenoh/zenoh-pico
 	url = https://github.com/px4/zenoh-pico
-	branch = pr-zubf-werror-fix
+	branch = dev/1.0.0-px4
 [submodule "src/lib/heatshrink/heatshrink"]
 	path = src/lib/heatshrink/heatshrink
 	url = https://github.com/PX4/heatshrink.git

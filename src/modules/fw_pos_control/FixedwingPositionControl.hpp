@@ -298,7 +298,7 @@ private:
 	bool _hdg_hold_enabled{false}; // heading hold enabled
 	bool _yaw_lock_engaged{false}; // yaw is locked for heading hold
 
-	position_setpoint_s _hdg_hold_position{}; // position where heading hold started
+	Vector2f _hdg_hold_position{}; // position where heading hold started
 
 	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
 	float _manual_control_setpoint_for_height_rate{0.0f};
@@ -406,12 +406,9 @@ private:
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
 
 	// ESTIMATOR RESET COUNTERS
-
-	// captures the number of times the estimator has reset the horizontal position
-	uint8_t _pos_reset_counter{0};
-
-	// captures the number of times the estimator has reset the altitude state
-	uint8_t _alt_reset_counter{0};
+	uint8_t _xy_reset_counter{0};
+	uint8_t _z_reset_counter{0};
+	uint64_t _time_last_xy_reset{0};
 
 	// LATERAL-DIRECTIONAL GUIDANCE
 

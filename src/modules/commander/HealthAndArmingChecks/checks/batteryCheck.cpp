@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "batteryCheck.hpp"
+#include <lib/circuit_breaker/circuit_breaker.h>
 
 #include <px4_platform_common/events.h>
 
@@ -52,7 +53,7 @@ static constexpr const char *battery_fault_reason_str(battery_fault_reason_t bat
 
 	case battery_fault_reason_t::over_current: return "over current";
 
-	case battery_fault_reason_t::fault_temperature: return "critical temperature";
+	case battery_fault_reason_t::over_temperature: return "over temperature";
 
 	case battery_fault_reason_t::under_temperature: return "under temperature";
 
@@ -64,32 +65,19 @@ static constexpr const char *battery_fault_reason_str(battery_fault_reason_t bat
 
 	case battery_fault_reason_t::hardware_fault: return "hardware fault";
 
-	case battery_fault_reason_t::over_temperature: return "near temperature limit";
+	case battery_fault_reason_t::failed_to_arm: return "failed to arm";
 
 	}
 
 	return "";
 };
 
-
-using battery_mode_t = events::px4::enums::battery_mode_t;
-static_assert(battery_status_s::BATTERY_MODE_COUNT == (static_cast<uint8_t>(battery_mode_t::_max) + 1)
-	      , "Battery mode flags mismatch!");
-static constexpr const char *battery_mode_str(battery_mode_t battery_mode)
-{
-	switch (battery_mode) {
-	case battery_mode_t::autodischarging: return "auto discharging";
-
-	case battery_mode_t::hotswap: return "hot-swap";
-
-	default: return "unknown";
-	}
-}
-
-
 void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	int battery_required_count = 0;
+	if (circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
+		return;
+	}
+
 	bool battery_has_fault = false;
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
@@ -101,6 +89,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	hrt_abstime oldest_update = hrt_absolute_time();
 	float worst_battery_time_s{NAN};
 	int num_connected_batteries{0};
+	bool is_required_battery_missing{false};
 
 	for (auto &battery_sub : _battery_status_subs) {
 		int index = battery_sub.get_instance();
@@ -110,42 +99,36 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			continue;
 		}
 
-		if (battery.is_required) {
-			battery_required_count++;
+		if (battery.is_required && !battery.connected) {
+			is_required_battery_missing = true;
+			/* EVENT
+			 * @description
+			 * Make sure all required batteries are connected.
+			 */
+			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_missing"),
+							events::Log::Error, "Battery {1} missing", index + 1);
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i missing\t", index + 1);
+			}
 		}
 
 		if (!_last_armed && context.isArmed()) {
 			_battery_connected_at_arming[index] = battery.connected;
 		}
 
-		if (context.isArmed()) {
+		if (context.isArmed() && !battery.connected && _battery_connected_at_arming[index]) { // If disconnected after arming
+			/* EVENT
+			 */
+			reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_disconnected"),
+							events::Log::Emergency, "Battery {1} disconnected", index + 1);
 
-			if (!battery.connected && _battery_connected_at_arming[index]) { // If disconnected after arming
-				/* EVENT
-				 */
-				reporter.healthFailure<uint8_t>(NavModes::All, health_component_t::battery, events::ID("check_battery_disconnected"),
-								events::Log::Emergency, "Battery {1} disconnected", index + 1);
-
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i disconnected\t", index + 1);
-				}
-
-				// trigger a battery failsafe action if a battery disconnects in flight
-				worst_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %i disconnected\t", index + 1);
 			}
 
-			if (battery.mode != 0) {
-				/* EVENT
-				 */
-				reporter.healthFailure<uint8_t, events::px4::enums::battery_mode_t>(NavModes::All, health_component_t::battery,
-						events::ID("check_battery_mode"),
-						events::Log::Critical, "Battery {1} mode: {2}", index + 1, static_cast<battery_mode_t>(battery.mode));
-
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %d is in %s mode!\t", index + 1,
-							     battery_mode_str(static_cast<battery_mode_t>(battery.mode)));
-				}
-			}
+			// trigger a battery failsafe action if a battery disconnects in flight
+			worst_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 		}
 
 		if (battery.connected) {
@@ -175,11 +158,10 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 						/* EVENT
 						 * @description
 						 * The battery reported a failure which might be dangerous to fly with.
-						 * Manufacturer error code: {4}
 						 */
-						reporter.healthFailure<uint8_t, battery_fault_reason_t, events::px4::enums::suggested_action_t, uint32_t>
+						reporter.healthFailure<uint8_t, battery_fault_reason_t, events::px4::enums::suggested_action_t>
 						(NavModes::All, health_component_t::battery, events::ID("check_battery_fault"), {events::Log::Emergency, events::LogInternal::Warning},
-						 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action, battery.custom_faults);
+						 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action);
 
 						if (reporter.mavlink_log_pub()) {
 							mavlink_log_emergency(reporter.mavlink_log_pub(), "Battery %d: %s. %s \t", index + 1,
@@ -254,16 +236,17 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	reporter.failsafeFlags().battery_unhealthy =
 		// All connected batteries are regularly being published
 		hrt_elapsed_time(&oldest_update) > 5_s
-		// There is at least one connected battery (in any slot)
-		|| num_connected_batteries < battery_required_count
+		// There is a required battery that's missing
+		|| is_required_battery_missing
 		// No currently-connected batteries have any fault
 		|| battery_has_fault
 		|| reporter.failsafeFlags().battery_warning == battery_status_s::BATTERY_WARNING_FAILED;
 
-	if (reporter.failsafeFlags().battery_unhealthy && !battery_has_fault) { // faults are reported above already
+	if (reporter.failsafeFlags().battery_unhealthy
+	    && !is_required_battery_missing && !battery_has_fault) { // missing batteries and faults are reported above already
 		/* EVENT
 		 * @description
-		 * Make sure all batteries are connected and operational.
+		 * Make sure all batteries are operational.
 		 */
 		reporter.healthFailure(NavModes::All, health_component_t::battery, events::ID("check_battery_unhealthy"),
 				       events::Log::Error, "Battery unhealthy");
@@ -285,7 +268,7 @@ void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, f
 	rtl_time_estimate_s rtl_time_estimate;
 
 	// Compare estimate of RTL time to estimate of remaining flight time
-	// add hysterisis: if already in the condition, only get out of it if the remaining flight time is significantly higher again
+	// add hysteresis: if already in the condition, only get out of it if the remaining flight time is significantly higher again
 	const float hysteresis_factor = reporter.failsafeFlags().battery_low_remaining_time ? 1.1f : 1.0f;
 
 	reporter.failsafeFlags().battery_low_remaining_time = _rtl_time_estimate_sub.copy(&rtl_time_estimate)

@@ -42,7 +42,7 @@
 #include "navigator.h"
 
 Land::Land(Navigator *navigator) :
-	MissionBlock(navigator)
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
 {
 }
 
@@ -57,8 +57,13 @@ Land::on_activation()
 
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->previous.valid = false;
+
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		_navigator->calculate_breaking_stop(_mission_item.lat, _mission_item.lon);
+	}
+
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();
@@ -81,10 +86,8 @@ Land::on_active()
 	    _navigator->get_vstatus()->in_transition_mode) {
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-		// create a virtual wp 1m in front of the vehicle to track during the backtransition
-		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-						   _navigator->get_local_position()->heading, 1.f,
-						   &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
+		// create a wp in front of the VTOL while in back-transition, based on MPC settings that will apply in MC phase afterwards
+		_navigator->calculate_breaking_stop(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 		_navigator->set_position_setpoint_triplet_updated();
 	}
@@ -93,7 +96,7 @@ Land::on_active()
 	if (_navigator->get_land_detected()->landed) {
 		_navigator->get_mission_result()->finished = true;
 		_navigator->set_mission_result_updated();
-		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND);
+		_navigator->mode_completed(getNavigatorStateId());
 		set_idle_item(&_mission_item);
 
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

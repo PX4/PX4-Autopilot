@@ -6,12 +6,6 @@ menuconfig MODULES_ZENOH
 		Enable support for Zenoh
 
 if MODULES_ZENOH
-    config ZENOH_CONFIG_PATH
-        string "Config path"
-        default "/fs/microsd/zenoh"
-        help
-            Path to store network, publishers and subscribers configuration
-
     config ZENOH_DEBUG
         int "Zenoh debug level"
         default 0

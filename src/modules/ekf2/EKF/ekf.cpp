@@ -110,6 +110,7 @@ void Ekf::reset()
 	_time_last_hor_vel_fuse = 0;
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
+	_time_last_terrain_fuse = 0;
 
 	_last_known_pos.setZero();
 
@@ -129,6 +130,8 @@ void Ekf::reset()
 	}
 
 	_zero_velocity_update.reset();
+
+	updateParameters();
 }
 
 bool Ekf::update()
@@ -271,71 +274,119 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
 }
 
-bool Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
-		uint64_t timestamp_observation)
+bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const double longitude, const float altitude,
+		const float eph,
+		const float epv, uint64_t timestamp_observation)
 {
-	if (!_pos_ref.isInitialized()) {
-		ECL_WARN("unable to reset global position, position reference not initialized");
+	if (!checkLatLonValidity(latitude, longitude)) {
 		return false;
 	}
 
-	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg);
+	if (!_pos_ref.isInitialized()) {
+		if (!setLatLonOriginFromCurrentPos(latitude, longitude, eph)) {
+			return false;
+		}
+
+		if (!PX4_ISFINITE(_gps_alt_ref)) {
+			setAltOriginFromCurrentPos(altitude, epv);
+		}
+
+		return true;
+	}
+
+	Vector3f pos_correction;
 
 	// apply a first order correction using velocity at the delayed time horizon and the delta time
-	if ((timestamp_observation > 0) && (isHorizontalAidingActive() || !_horizontal_deadreckon_time_exceeded)) {
+	if ((timestamp_observation > 0) && local_position_is_valid()) {
 
 		timestamp_observation = math::min(_time_latest_us, timestamp_observation);
 
-		float diff_us = 0.f;
+		float dt_us;
 
 		if (_time_delayed_us >= timestamp_observation) {
-			diff_us = static_cast<float>(_time_delayed_us - timestamp_observation);
+			dt_us = static_cast<float>(_time_delayed_us - timestamp_observation);
 
 		} else {
-			diff_us = -static_cast<float>(timestamp_observation - _time_delayed_us);
+			dt_us = -static_cast<float>(timestamp_observation - _time_delayed_us);
 		}
 
-		const float dt_s = diff_us * 1e-6f;
-		pos_corrected += _state.vel.xy() * dt_s;
+		const float dt_s = dt_us * 1e-6f;
+		pos_correction = _state.vel * dt_s;
 	}
 
-	const float obs_var = math::max(sq(accuracy), sq(0.01f));
+	{
+		const Vector2f hpos = _pos_ref.project(latitude, longitude) + pos_correction.xy();
 
-	const Vector2f innov = Vector2f(_state.pos.xy()) - pos_corrected;
-	const Vector2f innov_var = Vector2f(getStateVariance<State::pos>()) + obs_var;
+		const float obs_var = math::max(sq(eph), sq(0.01f));
 
-	const float sq_gate = sq(5.f); // magic hardcoded gate
-	const Vector2f test_ratio{sq(innov(0)) / (sq_gate * innov_var(0)),
-				  sq(innov(1)) / (sq_gate * innov_var(1))};
+		const Vector2f innov = Vector2f(_state.pos.xy()) - hpos;
+		const Vector2f innov_var = Vector2f(getStateVariance<State::pos>()) + obs_var;
 
-	const bool innov_rejected = (test_ratio.max() > 1.f);
+		const float sq_gate = sq(5.f); // magic hardcoded gate
+		const float test_ratio = sq(innov(0)) / (sq_gate * innov_var(0)) + sq(innov(1)) / (sq_gate * innov_var(1));
 
-	if (!_control_status.flags.in_air || (accuracy > 0.f && accuracy < 1.f) || innov_rejected) {
-		// when on ground or accuracy chosen to be very low, we hard reset position
-		// this allows the user to still send hard resets at any time
-		ECL_INFO("reset position to external observation");
-		_information_events.flags.reset_pos_to_ext_obs = true;
+		const bool innov_rejected = (test_ratio > 1.f);
 
-		resetHorizontalPositionTo(pos_corrected, obs_var);
-		_last_known_pos.xy() = _state.pos.xy();
-		return true;
+		if (!_control_status.flags.in_air || (eph > 0.f && eph < 1.f) || innov_rejected) {
+			// when on ground or accuracy chosen to be very low, we hard reset position
+			// this allows the user to still send hard resets at any time
+			ECL_INFO("reset position to external observation");
+			_information_events.flags.reset_pos_to_ext_obs = true;
 
-	} else {
-		if (fuseDirectStateMeasurement(innov(0), innov_var(0), obs_var, State::pos.idx + 0)
-		    && fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1)
-		   ) {
-			ECL_INFO("fused external observation as position measurement");
+			resetHorizontalPositionTo(hpos, obs_var);
+			_last_known_pos.xy() = _state.pos.xy();
+
+		} else {
+			ECL_INFO("fuse external observation as position measurement");
+			fuseDirectStateMeasurement(innov(0), innov_var(0), obs_var, State::pos.idx + 0);
+			fuseDirectStateMeasurement(innov(1), innov_var(1), obs_var, State::pos.idx + 1);
+
+			// Use the reset counters to inform the controllers about a potential large position jump
+			// TODO: compute the actual position change
+			_state_reset_status.reset_count.posNE++;
+			_state_reset_status.posNE_change.zero();
+
 			_time_last_hor_pos_fuse = _time_delayed_us;
 			_last_known_pos.xy() = _state.pos.xy();
-			return true;
 		}
 	}
 
-	return false;
+	if (checkAltitudeValidity(altitude)) {
+		const float altitude_corrected = altitude - pos_correction(2);
+
+		if (!PX4_ISFINITE(_gps_alt_ref)) {
+			setAltOriginFromCurrentPos(altitude_corrected, epv);
+
+		} else {
+			const float vpos = -(altitude_corrected - _gps_alt_ref);
+			const float obs_var = math::max(sq(epv), sq(0.01f));
+
+			ECL_INFO("reset height to external observation");
+			resetVerticalPositionTo(vpos, obs_var);
+			_last_known_pos(2) = _state.pos(2);
+		}
+	}
+
+	return true;
 }
 
 void Ekf::updateParameters()
 {
+	_params.gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
+	_params.accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
+
+	_params.gyro_bias_p_noise = math::constrain(_params.gyro_bias_p_noise, 0.f, 1.f);
+	_params.accel_bias_p_noise = math::constrain(_params.accel_bias_p_noise, 0.f, 1.f);
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	_params.mage_p_noise = math::constrain(_params.mage_p_noise, 0.f, 1.f);
+	_params.magb_p_noise = math::constrain(_params.magb_p_noise, 0.f, 1.f);
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_WIND)
+	_params.wind_vel_nsd = math::constrain(_params.wind_vel_nsd, 0.f, 1.f);
+#endif // CONFIG_EKF2_WIND
+
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION

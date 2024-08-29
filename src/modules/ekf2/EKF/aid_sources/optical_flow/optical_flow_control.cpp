@@ -56,12 +56,25 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		_ref_body_rate = -(imu_delayed.delta_ang / imu_delayed.delta_ang_dt - getGyroBias());
 
 		// ensure valid flow sample gyro rate before proceeding
-		if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_rate(1))) {
-			_flow_sample_delayed.gyro_rate = _ref_body_rate;
+		switch (static_cast<FlowGyroSource>(_params.flow_gyro_src)) {
+		default:
 
-		} else if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(2))) {
-			// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
-			_flow_sample_delayed.gyro_rate(2) = _ref_body_rate(2);
+		/* FALLTHROUGH */
+		case FlowGyroSource::Auto:
+			if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(0)) || !PX4_ISFINITE(_flow_sample_delayed.gyro_rate(1))) {
+				_flow_sample_delayed.gyro_rate = _ref_body_rate;
+			}
+
+			if (!PX4_ISFINITE(_flow_sample_delayed.gyro_rate(2))) {
+				// Some flow modules only provide X ind Y angular rates. If this is the case, complete the vector with our own Z gyro
+				_flow_sample_delayed.gyro_rate(2) = _ref_body_rate(2);
+			}
+
+			break;
+
+		case FlowGyroSource::Internal:
+			_flow_sample_delayed.gyro_rate = _ref_body_rate;
+			break;
 		}
 
 		const flowSample &flow_sample = _flow_sample_delayed;
@@ -89,8 +102,9 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		// calculate the optical flow observation variance
 		const float R_LOS = calcOptFlowMeasVar(flow_sample);
 
+		const float epsilon = 1e-3f;
 		Vector2f innov_var;
-		sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, FLT_EPSILON, &innov_var, &H);
+		sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, R_LOS, epsilon, &innov_var, &H);
 
 		// run the innovation consistency check and record result
 		updateAidSourceStatus(_aid_src_optical_flow,
@@ -108,8 +122,16 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		const float range = predictFlowRange();
 		_flow_vel_body(0) = -flow_compensated(1) * range;
 		_flow_vel_body(1) =  flow_compensated(0) * range;
-		_flow_vel_ne = Vector2f(_R_to_earth * Vector3f(_flow_vel_body(0), _flow_vel_body(1), 0.f));
 
+		if (_flow_counter == 0) {
+			_flow_vel_body_lpf.reset(_flow_vel_body);
+			_flow_counter = 1;
+
+		} else {
+
+			_flow_vel_body_lpf.update(_flow_vel_body);
+			_flow_counter++;
+		}
 
 		// Check if we are in-air and require optical flow to control position drift
 		bool is_flow_required = _control_status.flags.in_air
@@ -130,6 +152,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				&& is_quality_good
 				&& is_magnitude_good
 				&& is_tilt_good
+				&& (_flow_counter > 10)
 				&& (isTerrainEstimateValid() || isHorizontalAidingActive())
 				&& isTimedOut(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6); // Prevent rapid switching
 
@@ -146,7 +169,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
 					if (is_flow_required && is_quality_good && is_magnitude_good) {
-						resetFlowFusion();
+						resetFlowFusion(flow_sample);
 
 						if (_control_status.flags.opt_flow_terrain && !isTerrainEstimateValid()) {
 							resetTerrainToFlow();
@@ -180,7 +203,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				} else {
 					if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
 						ECL_INFO("starting optical flow, resetting");
-						resetFlowFusion();
+						resetFlowFusion(flow_sample);
 						_control_status.flags.opt_flow = true;
 
 					} else if (_control_status.flags.opt_flow_terrain) {
@@ -199,11 +222,13 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::resetFlowFusion()
+void Ekf::resetFlowFusion(const flowSample &flow_sample)
 {
 	ECL_INFO("reset velocity to flow");
 	_information_events.flags.reset_vel_to_flow = true;
-	resetHorizontalVelocityTo(_flow_vel_ne, calcOptFlowMeasVar(_flow_sample_delayed));
+
+	const float flow_vel_var = sq(predictFlowRange()) * calcOptFlowMeasVar(flow_sample);
+	resetHorizontalVelocityTo(getFilteredFlowVelNE(), flow_vel_var);
 
 	// reset position, estimate is relative to initial position in this mode, so we start with zero error
 	if (!_control_status.flags.in_air) {
@@ -257,6 +282,8 @@ void Ekf::stopFlowFusion()
 
 		_innov_check_fail_status.flags.reject_optflow_X = false;
 		_innov_check_fail_status.flags.reject_optflow_Y = false;
+
+		_flow_counter = 0;
 	}
 }
 

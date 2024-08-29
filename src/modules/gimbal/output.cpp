@@ -260,4 +260,3 @@ void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool y
 }
 
 } /* namespace gimbal */
-

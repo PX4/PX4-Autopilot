@@ -63,7 +63,13 @@ void Ekf::controlFakeHgtFusion()
 
 				// always protect against extreme values that could result in a NaN
 				if (aid_src.test_ratio < sq(100.0f / innov_gate)) {
-					fuseVerticalPosition(aid_src);
+					if (!aid_src.innovation_rejected
+					    && fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, aid_src.observation_variance,
+									  State::pos.idx + 2)
+					   ) {
+						aid_src.fused = true;
+						aid_src.time_last_fuse = _time_delayed_us;
+					}
 				}
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);

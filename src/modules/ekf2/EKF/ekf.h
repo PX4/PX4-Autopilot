@@ -122,7 +122,10 @@ public:
 	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
 
 	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
-	const Vector2f &getFlowVelNE() const { return _flow_vel_ne; }
+	Vector2f getFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody()(0), getFlowVelBody()(1), 0.f)); }
+
+	const Vector2f &getFilteredFlowVelBody() const { return _flow_vel_body_lpf.getState(); }
+	Vector2f getFilteredFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody()(0), getFilteredFlowVelBody()(1), 0.f)); }
 
 	const Vector2f &getFlowCompensated() const { return _flow_rate_compensated; }
 	const Vector2f &getFlowUncompensated() const { return _flow_sample_delayed.flow_rate; }
@@ -258,7 +261,11 @@ public:
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
 	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
-	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = 0.f, float epv = 0.f);
+	bool checkLatLonValidity(double latitude, double longitude);
+	bool checkAltitudeValidity(float altitude);
+	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = NAN, float epv = NAN);
+	bool setEkfGlobalOriginFromCurrentPos(double latitude, double longitude, float altitude, float eph = NAN,
+					      float epv = NAN);
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const;
@@ -293,17 +300,17 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid() const
 	{
-		return (!_horizontal_deadreckon_time_exceeded && !_control_status.flags.fake_pos);
+		return !_horizontal_deadreckon_time_exceeded;
 	}
 
 	bool isLocalVerticalPositionValid() const
 	{
-		return !_vertical_position_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
+		return !_vertical_position_deadreckon_time_exceeded;
 	}
 
 	bool isLocalVerticalVelocityValid() const
 	{
-		return !_vertical_velocity_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
+		return !_vertical_velocity_deadreckon_time_exceeded;
 	}
 
 	bool isYawFinalAlignComplete() const
@@ -396,7 +403,8 @@ public:
 
 	float getHeadingInnovationTestRatio() const;
 
-	float getVelocityInnovationTestRatio() const;
+	float getHorizontalVelocityInnovationTestRatio() const;
+	float getVerticalVelocityInnovationTestRatio() const;
 
 	float getHorizontalPositionInnovationTestRatio() const;
 	float getVerticalPositionInnovationTestRatio() const;
@@ -407,7 +415,7 @@ public:
 	float getHeightAboveGroundInnovationTestRatio() const;
 
 	// return a bitmask integer that describes which state estimates are valid
-	void get_ekf_soln_status(uint16_t *status) const;
+	uint16_t get_ekf_soln_status() const;
 
 	HeightSensor getHeightSensorRef() const { return _height_sensor_ref; }
 
@@ -464,6 +472,9 @@ public:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
+	// set the magnetic field data returned by the geo library using position
+	bool updateWorldMagneticModel(const double latitude_deg, const double longitude_deg);
+
 	const auto &aid_src_mag() const { return _aid_src_mag; }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -522,8 +533,20 @@ public:
 		return true;
 	}
 
-	bool resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
+	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
+
+	/**
+	* @brief Resets the wind states to an external observation
+	*
+	* @param wind_speed The wind speed in m/s
+	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
+	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
+	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
+	*/
+	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
+					    float wind_direction_accuracy);
+	bool _external_wind_init{false};
 
 	void updateParameters();
 
@@ -585,6 +608,7 @@ private:
 	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
+	uint64_t _time_last_terrain_fuse{0};
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
@@ -615,9 +639,11 @@ private:
 
 	// optical flow processing
 	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
-	Vector2f _flow_vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
-	Vector2f _flow_vel_ne{};		///< velocity from corrected flow measurement (local frame) (m/s)
 	Vector3f _ref_body_rate{};
+
+	Vector2f _flow_vel_body{};                      ///< velocity from corrected flow measurement (body frame)(m/s)
+	AlphaFilter<Vector2f> _flow_vel_body_lpf{0.1f}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
+	uint32_t _flow_counter{0};                      ///< number of flow samples read for initialization
 
 	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -650,7 +676,7 @@ private:
 	Vector3f _gps_pos_deriv_filt{};	///< GPS NED position derivative (m/sec)
 	Vector2f _gps_velNE_filt{};	///< filtered GPS North and East velocity (m/sec)
 
-	float _gps_velD_diff_filt{0.0f};	///< GPS filtered Down velocity (m/sec)
+	float _gps_vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
@@ -741,6 +767,12 @@ private:
 		P.slice<S.dof, S.dof>(S.idx, S.idx) = cov;
 	}
 
+	bool setLatLonOrigin(double latitude, double longitude, float eph = NAN);
+	bool setAltOrigin(float altitude, float epv = NAN);
+
+	bool setLatLonOriginFromCurrentPos(double latitude, double longitude, float eph = NAN);
+	bool setAltOriginFromCurrentPos(float altitude, float epv = NAN);
+
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
 	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
@@ -753,8 +785,8 @@ private:
 		     bool update_all_states = false, bool update_tilt = false);
 
 	// fuse magnetometer declination measurement
-	// argument passed in is the declination uncertainty in radians
-	bool fuseDeclination(float decl_sigma);
+	//  R: declination observation variance (rad**2)
+	bool fuseDeclination(const float decl_measurement_rad, const float R, bool update_all_states = false);
 
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -778,7 +810,7 @@ private:
 
 	// fuse synthetic zero sideslip measurement
 	void updateSideslip(estimator_aid_source1d_s &_aid_src_sideslip) const;
-	void fuseSideslip(estimator_aid_source1d_s &_aid_src_sideslip);
+	bool fuseSideslip(estimator_aid_source1d_s &_aid_src_sideslip);
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
@@ -803,6 +835,8 @@ private:
 
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
+
+	void resetWindTo(const Vector2f &wind, const Vector2f &wind_var);
 
 	bool isHeightResetRequired() const;
 
@@ -852,7 +886,7 @@ private:
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion(const imuSample &imu_delayed);
-	void resetFlowFusion();
+	void resetFlowFusion(const flowSample &flow_sample);
 	void stopFlowFusion();
 
 	void updateOnGroundMotionForOpticalFlowChecks();
@@ -1086,12 +1120,11 @@ private:
 	void resetQuatCov(const Vector3f &rot_var_ned);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	void resetMagCov();
+	void resetMagEarthCov();
+	void resetMagBiasCov();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-	// perform a reset of the wind states and related covariances
-	void resetWind();
 	void resetWindCov();
 	void resetWindToZero();
 #endif // CONFIG_EKF2_WIND
@@ -1114,7 +1147,7 @@ private:
 	}
 
 	void resetFakePosFusion();
-	void stopFakePosFusion();
+	bool runFakePosStateMachine(bool enable_condition_passing, bool status_flag, estimator_aid_source2d_s &aid_src);
 
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)

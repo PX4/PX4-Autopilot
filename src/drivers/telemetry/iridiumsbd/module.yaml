@@ -12,4 +12,3 @@ serial_config:
       port_config_param:
         name: ISBD_CONFIG
         group: Iridium SBD
-

@@ -37,5 +37,3 @@
 #define SYSTEM_ADC_BASE 0 // not used on kinetis
 
 #include <px4_platform/adc.h>
-
-

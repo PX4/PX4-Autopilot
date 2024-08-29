@@ -181,6 +181,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_param_ekf2_of_ctrl(_params->flow_ctrl),
+	_param_ekf2_of_gyr_src(_params->flow_gyro_src),
 	_param_ekf2_of_delay(_params->flow_delay_ms),
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
@@ -544,9 +545,8 @@ void EKF2::Run()
 						accuracy = vehicle_command.param3;
 					}
 
-					// TODO add check for lat and long validity
-					if (_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
-							accuracy, timestamp_observation)
+					if (_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
+							accuracy, accuracy, timestamp_observation)
 					   ) {
 						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -560,6 +560,17 @@ void EKF2::Run()
 
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
+			}
+
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE) {
+#if defined(CONFIG_EKF2_WIND)
+				// wind direction is given as azimuth where wind blows FROM
+				// PX4 backend expects direction where wind blows TO
+				const float wind_direction_rad = wrap_pi(math::radians(vehicle_command.param3) + M_PI_F);
+				const float wind_direction_accuracy_rad = math::radians(vehicle_command.param4);
+				_ekf.resetWindToExternalObservation(vehicle_command.param1, wind_direction_rad, vehicle_command.param2,
+								    wind_direction_accuracy_rad);
+#endif // CONFIG_EKF2_WIND
 			}
 		}
 	}
@@ -1333,43 +1344,6 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 
 	innovations.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovations_pub.publish(innovations);
-
-	// calculate noise filtered velocity innovations which are used for pre-flight checking
-	if (_ekf.control_status_prev_flags().in_air != _ekf.control_status_flags().in_air) {
-		// fully reset on takeoff or landing
-		_preflt_checker.reset();
-	}
-
-	if (!_ekf.control_status_flags().in_air) {
-		// TODO: move to run before publications
-		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_OPTICAL_FLOW)
-		// set dist bottom to scale flow innovation
-		const float dist_bottom = _ekf.getHagl();
-		_preflt_checker.setDistBottom(dist_bottom);
-#endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-		_preflt_checker.setUsingEvPosAiding(_ekf.control_status_flags().ev_pos);
-		_preflt_checker.setUsingEvVelAiding(_ekf.control_status_flags().ev_vel);
-		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_BAROMETER)
-		_preflt_checker.setUsingBaroHgtAiding(_ekf.control_status_flags().baro_hgt);
-#endif // CONFIG_EKF2_BAROMETER
-		_preflt_checker.setUsingGpsHgtAiding(_ekf.control_status_flags().gps_hgt);
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-		_preflt_checker.setUsingRngHgtAiding(_ekf.control_status_flags().rng_hgt);
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-		_preflt_checker.setVehicleCanObserveHeadingInFlight(_ekf.control_status_flags().fixed_wing);
-
-		_preflt_checker.update(_ekf.get_dt_ekf_avg(), innovations);
-	}
 }
 
 void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
@@ -1816,8 +1790,24 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.control_mode_flags = _ekf.control_status().value;
 	status.filter_fault_flags = _ekf.fault_status().value;
 
-	status.mag_test_ratio = _ekf.getHeadingInnovationTestRatio();
-	status.vel_test_ratio = _ekf.getVelocityInnovationTestRatio();
+	// vel_test_ratio
+	float vel_xy_test_ratio = _ekf.getHorizontalVelocityInnovationTestRatio();
+	float vel_z_test_ratio = _ekf.getVerticalVelocityInnovationTestRatio();
+
+	if (PX4_ISFINITE(vel_xy_test_ratio) && PX4_ISFINITE(vel_z_test_ratio)) {
+		status.vel_test_ratio = math::max(vel_xy_test_ratio, vel_z_test_ratio);
+
+	} else if (PX4_ISFINITE(vel_xy_test_ratio)) {
+		status.vel_test_ratio = vel_xy_test_ratio;
+
+	} else if (PX4_ISFINITE(vel_z_test_ratio)) {
+		status.vel_test_ratio = vel_z_test_ratio;
+
+	} else {
+		status.vel_test_ratio = NAN;
+	}
+
+	status.hdg_test_ratio = _ekf.getHeadingInnovationTestRatio();
 	status.pos_test_ratio = _ekf.getHorizontalPositionInnovationTestRatio();
 	status.hgt_test_ratio = _ekf.getVerticalPositionInnovationTestRatio();
 	status.tas_test_ratio = _ekf.getAirspeedInnovationTestRatio();
@@ -1825,7 +1815,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.beta_test_ratio = _ekf.getSyntheticSideslipInnovationTestRatio();
 
 	_ekf.get_ekf_lpos_accuracy(&status.pos_horiz_accuracy, &status.pos_vert_accuracy);
-	_ekf.get_ekf_soln_status(&status.solution_status_flags);
+	status.solution_status_flags = _ekf.get_ekf_soln_status();
 
 	// reset counters
 	status.reset_count_vel_ne = _ekf.state_reset_status().reset_count.velNE;
@@ -1836,10 +1826,13 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
-	status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
-	status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
-	status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
-	status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
+	static constexpr float kMinTestRatioPreflight = 0.5f;
+	status.pre_flt_fail_innov_heading   = (kMinTestRatioPreflight < status.hdg_test_ratio);
+	status.pre_flt_fail_innov_height    = (kMinTestRatioPreflight < status.hgt_test_ratio);
+	status.pre_flt_fail_innov_pos_horiz = (kMinTestRatioPreflight < status.pos_test_ratio);
+	status.pre_flt_fail_innov_vel_horiz = (kMinTestRatioPreflight < vel_xy_test_ratio);
+	status.pre_flt_fail_innov_vel_vert  = (kMinTestRatioPreflight < vel_z_test_ratio);
+
 	status.pre_flt_fail_mag_field_disturbed = _ekf.control_status_flags().mag_field_disturbed;
 
 	status.accel_device_id = _device_id_accel;
@@ -1931,6 +1924,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_aux_gpos                = _ekf.control_status_flags().aux_gpos;
 		status_flags.cs_rng_terrain    = _ekf.control_status_flags().rng_terrain;
 		status_flags.cs_opt_flow_terrain    = _ekf.control_status_flags().opt_flow_terrain;
+		status_flags.cs_valid_fake_pos      = _ekf.control_status_flags().valid_fake_pos;
+		status_flags.cs_constant_pos        = _ekf.control_status_flags().constant_pos;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2030,6 +2025,9 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
 		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
 
+		_ekf.getFilteredFlowVelBody().copyTo(flow_vel.vel_body_filtered);
+		_ekf.getFilteredFlowVelNE().copyTo(flow_vel.vel_ne_filtered);
+
 		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_rate_uncompensated);
 		_ekf.getFlowCompensated().copyTo(flow_vel.flow_rate_compensated);
 
@@ -2081,14 +2079,19 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 		if (_airspeed_validated_sub.update(&airspeed_validated)) {
 
 			if (PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-			    && PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
-			    && (airspeed_validated.calibrated_airspeed_m_s > 0.f)
 			    && (airspeed_validated.selected_airspeed_index > 0)
 			   ) {
+				float cas2tas = 1.f;
+
+				if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
+				    && (airspeed_validated.calibrated_airspeed_m_s > FLT_EPSILON)) {
+					cas2tas = airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s;
+				}
+
 				airspeedSample airspeed_sample {
 					.time_us = airspeed_validated.timestamp,
 					.true_airspeed = airspeed_validated.true_airspeed_m_s,
-					.eas2tas = airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s,
+					.eas2tas = cas2tas,
 				};
 				_ekf.setAirspeedData(airspeed_sample);
 			}
@@ -2590,6 +2593,15 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 			flags.at_rest = vehicle_land_detected.at_rest;
 			flags.in_air = !vehicle_land_detected.landed;
 			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
+		}
+
+		launch_detection_status_s launch_detection_status;
+
+		if (_launch_detection_status_sub.copy(&launch_detection_status)
+		    && (ekf2_timestamps.timestamp < launch_detection_status.timestamp + 3_s)) {
+
+			flags.constant_pos = (launch_detection_status.launch_detection_state ==
+					      launch_detection_status_s::STATE_WAITING_FOR_LAUNCH);
 		}
 
 		_ekf.setSystemFlagData(flags);

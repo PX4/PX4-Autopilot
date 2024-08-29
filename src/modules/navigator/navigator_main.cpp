@@ -41,6 +41,7 @@
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Thomas Gubler <thomasgubler@gmail.com>
+ * and many more...
  */
 
 #include "navigator.h"
@@ -853,21 +854,19 @@ void Navigator::run()
 			if (did_not_switch_takeoff_to_loiter && did_not_switch_to_loiter_with_valid_loiter_setpoint) {
 				reset_triplets();
 			}
+		}
 
-
-			// transition to hover in Descend mode
-			if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&
-			    _vstatus.is_vtol && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
-			    force_vtol()) {
-				vehicle_command_s vcmd = {};
-				vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
-				vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-				publish_vehicle_cmd(&vcmd);
-				mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
-				events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
-					     "Transition to hover mode and descend");
-			}
-
+		// VTOL: transition to hover in Descend mode if force_vtol() is true
+		if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&
+		    _vstatus.is_vtol && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
+		    force_vtol()) {
+			vehicle_command_s vcmd = {};
+			vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
+			vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			publish_vehicle_cmd(&vcmd);
+			mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
+			events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
+				     "Transition to hover mode and descend");
 		}
 
 		_navigation_mode = navigation_mode_new;
@@ -896,6 +895,8 @@ void Navigator::run()
 		if (_mission_result_updated) {
 			publish_mission_result();
 		}
+
+		publish_navigator_status();
 
 		_geofence.run();
 
@@ -1069,7 +1070,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("navigator",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_NAVIGATION,
-				      PX4_STACK_ADJUSTED(2160),
+				      PX4_STACK_ADJUSTED(2200),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -1355,6 +1356,40 @@ void Navigator::set_mission_failure_heading_timeout()
 	}
 }
 
+void Navigator::trigger_hagl_failsafe(const uint8_t nav_state)
+{
+	if ((_navigator_status.failure != navigator_status_s::FAILURE_HAGL) || _navigator_status.nav_state != nav_state) {
+		_navigator_status.failure = navigator_status_s::FAILURE_HAGL;
+		_navigator_status.nav_state = nav_state;
+
+		_navigator_status_updated = true;
+	}
+}
+
+void Navigator::publish_navigator_status()
+{
+	uint8_t current_nav_state = _vstatus.nav_state;
+
+	if (_navigation_mode != nullptr) {
+		current_nav_state = _navigation_mode->getNavigatorStateId();
+	}
+
+	if (_navigator_status.nav_state != current_nav_state) {
+		_navigator_status.nav_state = current_nav_state;
+		_navigator_status.failure = navigator_status_s::FAILURE_NONE;
+		_navigator_status_updated = true;
+	}
+
+	if (_navigator_status_updated
+	    || (hrt_elapsed_time(&_last_navigator_status_publication) > 500_ms)) {
+		_navigator_status.timestamp = hrt_absolute_time();
+		_navigator_status_pub.publish(_navigator_status);
+
+		_navigator_status_updated = false;
+		_last_navigator_status_publication = hrt_absolute_time();
+	}
+}
+
 void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 {
 	vcmd->timestamp = hrt_absolute_time();
@@ -1520,6 +1555,13 @@ void Navigator::set_gimbal_neutral()
 	vcmd.param4 = NAN;
 	vcmd.param5 = gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL;
 	publish_vehicle_cmd(&vcmd);
+}
+
+void Navigator::sendWarningDescentStoppedDueToTerrain()
+{
+	mavlink_log_critical(&_mavlink_log_pub, "Terrain collision risk, descent is stopped\t");
+	events::send(events::ID("navigator_terrain_collision_risk"), events::Log::Critical,
+		     "Terrain collision risk, descent is stopped");
 }
 
 int Navigator::print_usage(const char *reason)

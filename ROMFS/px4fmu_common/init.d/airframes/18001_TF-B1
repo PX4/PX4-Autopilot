@@ -23,4 +23,3 @@ param set-default MAV_0_MODE 1
 param set-default MAV_0_CONFIG 102
 param set-default GPS_UBX_DYNMODEL 8
 param set-default SER_TEL2_BAUD 9600
-

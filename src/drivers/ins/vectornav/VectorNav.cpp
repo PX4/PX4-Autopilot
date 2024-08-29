@@ -368,7 +368,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 				test_ratio = 0.1f;
 			}
 
-			estimator_status.mag_test_ratio = test_ratio;
+			estimator_status.hdg_test_ratio = test_ratio;
 			estimator_status.vel_test_ratio = test_ratio;
 			estimator_status.pos_test_ratio = test_ratio;
 			estimator_status.hgt_test_ratio = test_ratio;

@@ -40,6 +40,7 @@
 #include "EKF/ekf.h"
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "test_helper/reset_logging_checker.h"
 
 
 class EkfAirspeedTest : public ::testing::Test
@@ -78,13 +79,15 @@ public:
 
 TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 {
-
 	const Vector3f simulated_velocity_earth(0.0f, 1.5f, 0.0f);
 	const Vector2f airspeed_body(2.4f, 0.0f);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator._vio.setVelocity(simulated_velocity_earth);
 	_sensor_simulator._vio.setVelocityFrameToLocalNED();
 	_sensor_simulator.startExternalVision();
+
+	// Let the EV fusion start first to reset the velocity estimate
+	_sensor_simulator.runSeconds(0.5);
 
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
@@ -180,9 +183,11 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoning)
 	const double latitude_new  = -15.0000005;
 	const double longitude_new = -115.0000005;
 	const float altitude_new  = 1500.0;
+	const float eph = 50.f;
+	const float epv = 10.f;
 
 	_ekf->setEkfGlobalOrigin(latitude_new, longitude_new, altitude_new);
-	_ekf->resetGlobalPosToExternalObservation(latitude_new, longitude_new, 50.f, 0);
+	_ekf->resetGlobalPosToExternalObservation(latitude_new, longitude_new, altitude_new, eph, epv, 0);
 
 	// Simulate the fact that the sideslip can start immediately, without
 	// waiting for a measurement sample.
@@ -197,8 +202,82 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoning)
 
 	EXPECT_TRUE(_ekf_wrapper.isWindVelocityEstimated());
 	const Vector3f vel = _ekf->getVelocity();
-	EXPECT_NEAR(vel.norm(), airspeed_body.norm(), 1e-3f);
+	EXPECT_NEAR(vel.norm(), airspeed_body.norm(), 1e-2f);
 	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
 	EXPECT_NEAR(vel_wind_earth(0), 0.f, .1f);
 	EXPECT_NEAR(vel_wind_earth(1), 0.f, .1f);
+
+	EXPECT_TRUE(_ekf->global_position_is_valid());
+}
+
+TEST_F(EkfAirspeedTest, testAirspeedDeadReckoningLatLonAltReset)
+{
+	// GIVEN: a flying fixed-wing dead-reckoning with airspeed and sideslip fusion
+	const Vector3f simulated_velocity_earth(-3.6f, 8.f, 0.0f);
+	const Vector2f airspeed_body(15.f, 0.0f);
+	_sensor_simulator.runSeconds(10);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_is_fixed_wing(true);
+
+	double latitude  = -15.0000005;
+	double longitude = -115.0000005;
+	float altitude  = 1500.0;
+	const float eph = 50.f;
+	const float epv = 1.f;
+
+	_ekf->setEkfGlobalOrigin(latitude, longitude, altitude);
+	_ekf->resetGlobalPosToExternalObservation(latitude, longitude, altitude, eph, epv, 0);
+
+	_ekf_wrapper.enableBetaFusion();
+	_sensor_simulator.runSeconds(1.f);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
+
+	_sensor_simulator.startAirspeedSensor();
+	_sensor_simulator._airspeed.setData(airspeed_body(0), airspeed_body(0));
+	_sensor_simulator.runSeconds(10.f);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
+
+	EXPECT_TRUE(_ekf->global_position_is_valid());
+
+	// WHEN: an external position reset is sent
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	double latitude_new = -16.0000005;
+	double longitude_new = -116.0000005;
+	float altitude_new = 1602.0;
+	_ekf->resetGlobalPosToExternalObservation(latitude_new, longitude_new, altitude_new, eph, epv, 0);
+
+	const Vector3f pos_new = _ekf->getPosition();
+	const float altitude_est = -pos_new(2) + _ekf->getEkfGlobalOriginAltitude();
+
+	double latitude_est, longitude_est;
+	_ekf->global_origin().reproject(pos_new(0), pos_new(1), latitude_est, longitude_est);
+
+	// THEN: the global position is adjusted accordingly
+	EXPECT_NEAR(altitude_est, altitude_new, 0.01f);
+	EXPECT_NEAR(latitude_est, latitude_new, 1e-3f);
+	EXPECT_NEAR(longitude_est, longitude_new, 1e-3f);
+	EXPECT_TRUE(_ekf->global_position_is_valid());
+
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(1));
+
+	// AND WHEN: only the lat/lon is valid
+	latitude_new = -16.0000005;
+	longitude_new = -116.0000005;
+	altitude_new = NAN;
+	_ekf->resetGlobalPosToExternalObservation(latitude_new, longitude_new, altitude_new, eph, epv, 0);
+
+	// THEN: lat/lon are reset but not the altitude
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(0));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(2));
 }

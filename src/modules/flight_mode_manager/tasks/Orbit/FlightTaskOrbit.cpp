@@ -90,7 +90,14 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command, b
 
 	// commanded heading behaviour
 	if (PX4_ISFINITE(command.param3)) {
-		_yaw_behaviour = command.param3;
+		if (static_cast<uint8_t>(command.param3 + .5f) == vehicle_command_s::ORBIT_YAW_BEHAVIOUR_UNCHANGED) {
+			if (!_currently_orbiting) {	// only change the yaw behaviour if we are not actively orbiting
+				_yaw_behaviour = _param_mc_orbit_yaw_mod.get();
+			}
+
+		} else {
+			_yaw_behaviour = command.param3;
+		}
 	}
 
 	// save current yaw estimate for ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING
@@ -133,9 +140,11 @@ bool FlightTaskOrbit::sendTelemetry()
 	orbit_status.yaw_behaviour = _yaw_behaviour;
 
 	if (_geo_projection.isInitialized()) {
+		// While chainging altitude by stick _position_setpoint(2) is not set (NAN)
+		float local_altitude = PX4_ISFINITE(_position_setpoint(2)) ? _position_setpoint(2) : _position(2);
 		// local -> global
 		_geo_projection.reproject(_center(0), _center(1), orbit_status.x, orbit_status.y);
-		orbit_status.z = _global_local_alt0 - _position_setpoint(2);
+		orbit_status.z = _global_local_alt0 - local_altitude;
 
 	} else {
 		return false; // don't send the message if the transformation failed
@@ -165,6 +174,7 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
+	_currently_orbiting = false;
 	_orbit_radius = _radius_min;
 	_orbit_velocity = 1.f;
 	_center = _position;
@@ -199,6 +209,7 @@ bool FlightTaskOrbit::activate(const trajectory_setpoint_s &last_setpoint)
 bool FlightTaskOrbit::update()
 {
 	bool ret = true;
+	_currently_orbiting = true;
 	_updateTrajectoryBoundaries();
 	_adjustParametersByStick();
 
