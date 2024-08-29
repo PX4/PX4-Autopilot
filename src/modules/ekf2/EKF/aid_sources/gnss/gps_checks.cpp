@@ -88,7 +88,7 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 	_gps_check_fail_status.flags.spoofed = gps.spoofed;
 
 	// Check the fix type
-	_gps_check_fail_status.flags.fix = (gps.fix_type < 3);
+	_gps_check_fail_status.flags.fix = ((int32_t)(gps.fix_type) < _params.req_fix);
 
 	// Check the number of satellites
 	_gps_check_fail_status.flags.nsats = (gps.nsats < _params.req_nsats);

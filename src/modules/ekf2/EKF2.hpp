@@ -526,6 +526,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _param_ekf2_gps_v_gate,
 
 		(ParamExtInt<px4::params::EKF2_GPS_CHECK>) _param_ekf2_gps_check,
+		(ParamExtInt<px4::params::EKF2_REQ_FIX>)      _param_ekf2_req_fix,
 		(ParamExtFloat<px4::params::EKF2_REQ_EPH>)    _param_ekf2_req_eph,
 		(ParamExtFloat<px4::params::EKF2_REQ_EPV>)    _param_ekf2_req_epv,
 		(ParamExtFloat<px4::params::EKF2_REQ_SACC>)   _param_ekf2_req_sacc,
