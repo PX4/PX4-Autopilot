@@ -236,7 +236,7 @@ private:
 
 			if (_vehicle_air_data_sub.copy(&vehicle_air_data) && (hrt_elapsed_time(&vehicle_air_data.timestamp) < 10_s)) {
 				msg.altitude_barometric = vehicle_air_data.baro_alt_meter;
-				msg.barometer_accuracy = MAV_ODID_VER_ACC_150_METER; // TODO
+				// TODO: msg.barometer_accuracy
 				updated = true;
 			}
 		}
