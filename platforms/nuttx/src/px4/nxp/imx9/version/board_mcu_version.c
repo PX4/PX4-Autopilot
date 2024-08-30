@@ -217,9 +217,17 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 	unsigned len = sizeof(hw_version_table) / sizeof(hw_version_table[0]);
 
 	if (hw_version < len) {
-		*rev = hw_version_table[hw_version].rev;
-		*revstr = hw_version_table[hw_version].revstr;
-		*errata = hw_version_table[hw_version].errata;
+		if (rev) {
+			*rev = hw_version_table[hw_version].rev;
+		}
+
+		if (revstr) {
+			*revstr = hw_version_table[hw_version].revstr;
+		}
+
+		if (errata) {
+			*errata = hw_version_table[hw_version].errata;
+		}
 	}
 
 	return hw_version;
