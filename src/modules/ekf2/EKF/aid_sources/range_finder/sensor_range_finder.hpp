@@ -66,7 +66,6 @@ public:
 	SensorRangeFinder() = default;
 	~SensorRangeFinder() override = default;
 
-	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth, const float local_pos_z);
 	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth);
 	bool isHealthy() const override { return _is_sample_valid; }
 	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
