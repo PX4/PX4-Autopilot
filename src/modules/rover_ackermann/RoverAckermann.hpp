@@ -39,27 +39,25 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/slew_rate/SlewRate.hpp>
 
 // uORB includes
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos.h>
-#include <uORB/topics/rover_ackermann_status.h>
+#include <uORB/topics/rover_ackermann_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 
 // Standard library includes
 #include <math.h>
+#include <matrix/matrix/math.hpp>
 
 // Local includes
 #include "RoverAckermannGuidance/RoverAckermannGuidance.hpp"
-using motor_setpoint_struct = RoverAckermannGuidance::motor_setpoint;
+#include "RoverAckermannControl/RoverAckermannControl.hpp"
 
 using namespace time_literals;
 
@@ -96,49 +94,25 @@ private:
 	 */
 	void updateSubscriptions();
 
-	/**
-	 * @brief Apply slew rates to motor setpoints.
-	 * @param motor_setpoint Normalized steering and throttle setpoints.
-	 * @param dt Time since last update [s].
-	 * @return Motor setpoint with applied slew rates.
-	 */
-	motor_setpoint_struct applySlewRates(motor_setpoint_struct motor_setpoint, float dt);
-
-	/**
-	 * @brief Publish motor setpoints to ActuatorMotors/ActuatorServos and logging values to RoverAckermannStatus.
-	 * @param motor_setpoint_with_slew_rate Normalized motor_setpoint with applied slew rates.
-	 */
-	void publishMotorSetpoints(motor_setpoint_struct motor_setpoint_with_slew_rates);
-
 	// uORB subscriptions
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	// uORB publications
-	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
-	uORB::Publication<rover_ackermann_status_s> _rover_ackermann_status_pub{ORB_ID(rover_ackermann_status)};
+	uORB::Publication<rover_ackermann_setpoint_s> _rover_ackermann_setpoint_pub{ORB_ID(rover_ackermann_setpoint)};
 
 	// Class instances
 	RoverAckermannGuidance _ackermann_guidance{this};
+	RoverAckermannControl _ackermann_control{this};
 
 	// Variables
+	matrix::Quatf _vehicle_attitude_quaternion{};
 	int _nav_state{0};
-	motor_setpoint_struct _motor_setpoint;
-	hrt_abstime _timestamp{0};
-	float _actual_speed{0.f};
-	SlewRate<float> _steering_with_rate_limit{0.f};
-	SlewRate<float> _throttle_with_accel_limit{0.f};
+	float _vehicle_forward_speed{0.f};
+	float _vehicle_yaw{0.f};
 	bool _armed{false};
 
-	// Parameters
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
-		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_steer_angle,
-		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
-		(ParamFloat<px4::params::RA_MAX_ACCEL>) _param_ra_max_accel,
-		(ParamFloat<px4::params::RA_MAX_STR_RATE>) _param_ra_max_steering_rate
-	)
 };
