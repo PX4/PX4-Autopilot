@@ -183,7 +183,7 @@ private:
 	bool _is_blocked{false};
 	float _max_fog_dist{0.f};	//< maximum distance at which the range finder could detect fog (m)
 	math::MedianFilter<float, 5> _median_dist{};
-	float _prev_median_dist;
+	float _prev_median_dist{0.f};
 };
 
 } // namespace sensor
