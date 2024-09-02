@@ -15,6 +15,7 @@ do
   [[ "${repo}" == *saluki_packaging ]] || \
   [[ "${repo}" == *rust_px4_nuttx ]] || \
   [[ "${repo}" == *rust_module_example ]] || \
+  [[ "${repo}" == *secure_udp_proxy ]] || \
   [[ "${repo}" == *process ]] && continue
   git submodule update --init --recursive "${repo}"
 done <<< "$(git submodule status | awk '{print $2}')"
