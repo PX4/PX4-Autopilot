@@ -106,3 +106,6 @@
 [submodule "src/modules/rust_module_example"]
 	path = src/modules/rust_module_example
 	url = git@github.com:tiiuae/rust_module_example.git
+[submodule "src/modules/secure_udp_proxy"]
+	path = src/modules/secure_udp_proxy
+	url = git@github.com:tiiuae/secure-udp-proxy.git
