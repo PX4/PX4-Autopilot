@@ -354,7 +354,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 #ifdef PX4_USERSPACE_HRT
 			*(uintptr_t *)arg = hrt_absolute_time_usr_base();
 #else
-			*(uintptr_t *)arg = NULL;
+			*(uintptr_t *)arg = (uintptr_t)NULL;
 #endif
 		}
 		break;
