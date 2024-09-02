@@ -39,6 +39,8 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
+#include <lib/world_magnetic_model/geo_mag_declination.h>
+
 #include <ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h>
 
 void Ekf::controlMagFusion(const imuSample &imu_sample)
@@ -66,7 +68,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_control_status.flags.mag_fault = false;
 
 			_state.mag_B.zero();
-			resetMagCov();
+			resetMagBiasCov();
+
+			stopMagFusion();
 
 			_mag_lpf.reset(mag_sample.mag);
 			_mag_counter = 1;
@@ -76,15 +80,43 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			_mag_counter++;
 		}
 
+		// check for WMM update periodically or if global origin has changed
+		bool wmm_updated = false;
+
+		if (global_origin().isInitialized()) {
+
+			bool origin_newer_than_last_mag = (global_origin().getProjectionReferenceTimestamp() > aid_src.time_last_fuse);
+
+			if (global_origin_valid()
+			    && (origin_newer_than_last_mag || (local_position_is_valid() && isTimedOut(_wmm_mag_time_last_checked, 10e6)))
+			   ) {
+				// position of local NED origin in GPS / WGS84 frame
+				double latitude_deg;
+				double longitude_deg;
+				global_origin().reproject(_state.pos(0), _state.pos(1), latitude_deg, longitude_deg);
+
+				if (updateWorldMagneticModel(latitude_deg, longitude_deg)) {
+					wmm_updated = true;
+				}
+
+				_wmm_mag_time_last_checked = _time_delayed_us;
+
+			} else if (origin_newer_than_last_mag) {
+				// use global origin to update WMM
+				if (updateWorldMagneticModel(global_origin().getProjectionReferenceLat(),
+							     global_origin().getProjectionReferenceLon())
+				   ) {
+					wmm_updated = true;
+				}
+			}
+		}
+
 		// if enabled, use knowledge of theoretical magnetic field vector to calculate a synthetic magnetomter Z component value.
 		// this is useful if there is a lot of interference on the sensor measurement.
 		if (_params.synthesize_mag_z && (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL)
-		    && (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps))
+		    && (_wmm_earth_field_gauss.isAllFinite() && _wmm_earth_field_gauss.longerThan(0.f))
 		   ) {
-			const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps))
-							* Vector3f(_mag_strength_gps, 0, 0);
-
-			mag_sample.mag(2) = calculate_synthetic_mag_z_measurement(mag_sample.mag, mag_earth_pred);
+			mag_sample.mag(2) = calculate_synthetic_mag_z_measurement(mag_sample.mag, _wmm_earth_field_gauss);
 
 			_control_status.flags.synthetic_mag_z = true;
 
@@ -140,8 +172,6 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		checkMagHeadingConsistency(mag_sample);
 
-		// WMM update can occur on the last epoch, just after mag fusion
-		const bool wmm_updated = (_wmm_gps_time_last_set >= aid_src.time_last_fuse);
 		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
 
 
@@ -175,14 +205,14 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		// if we are using 3-axis magnetometer fusion, but without external NE aiding,
 		// then the declination must be fused as an observation to prevent long term heading drift
-		const bool no_ne_aiding_or_pre_takeoff = !using_ne_aiding || !_control_status.flags.in_air;
-		_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_pre_takeoff;
+		const bool no_ne_aiding_or_not_moving = !using_ne_aiding || _control_status.flags.vehicle_at_rest;
+		_control_status.flags.mag_dec = _control_status.flags.mag && no_ne_aiding_or_not_moving;
 
 		if (_control_status.flags.mag) {
 
 			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-				if (mag_sample.reset || checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_pre_takeoff)) {
+				if (checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_not_moving)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 					aid_src.time_last_fuse = imu_sample.time_us;
@@ -203,14 +233,35 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 					}
 
 					if (_control_status.flags.mag_dec) {
-						fuseDeclination(0.5f);
+
+						// observation variance (rad**2)
+						const float R_DECL = sq(0.5f);
+
+						if ((_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL)
+						    && PX4_ISFINITE(_wmm_declination_rad)
+						   ) {
+							// using declination from the world magnetic model
+							fuseDeclination(_wmm_declination_rad, 0.5f, update_all_states);
+
+						} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
+							   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
+							  ) {
+							// using previously saved declination
+							fuseDeclination(math::radians(_params.mag_declination_deg), R_DECL, update_all_states);
+
+						} else {
+							// if there is no aiding coming from an inertial frame we need to fuse some declination
+							// even if we don't know the value, it's better to fuse 0 than nothing
+							float declination_rad = 0.f;
+							fuseDeclination(declination_rad, R_DECL);
+						}
 					}
 				}
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
-					if (no_ne_aiding_or_pre_takeoff) {
+					if (no_ne_aiding_or_not_moving) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 						resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 						aid_src.time_last_fuse = imu_sample.time_us;
@@ -271,6 +322,9 @@ void Ekf::stopMagFusion()
 	if (_control_status.flags.mag) {
 		ECL_INFO("stopping mag fusion");
 
+		resetMagEarthCov();
+		resetMagBiasCov();
+
 		if (_control_status.flags.yaw_align && (_control_status.flags.mag_3D || _control_status.flags.mag_hdg)) {
 			// reset yaw alignment from mag unless using GNSS aiding
 			const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
@@ -329,28 +383,35 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	const Vector3f mag_I_before_reset = _state.mag_I;
 	const Vector3f mag_B_before_reset = _state.mag_B;
 
-	// reset covariances to default
-	resetMagCov();
+	static constexpr float kMagEarthMinGauss = 0.01f; // minimum difference in mag earth field strength for reset (Gauss)
 
 	// if world magnetic model (inclination, declination, strength) available then use it to reset mag states
-	if (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps)) {
-
+	if (_wmm_earth_field_gauss.longerThan(0.f) && _wmm_earth_field_gauss.isAllFinite()) {
 		// use expected earth field to reset states
-		const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps))
-						* Vector3f(_mag_strength_gps, 0, 0);
 
-		// mag_B: reset
+		// mag_I: reset, skipped if negligible change in state
+		const Vector3f mag_I = _wmm_earth_field_gauss;
+		bool mag_I_reset = false;
+
+		if ((_state.mag_I - mag_I).longerThan(kMagEarthMinGauss)) {
+			_state.mag_I = mag_I;
+			resetMagEarthCov();
+			mag_I_reset = true;
+		}
+
+		// mag_B: reset, skipped if mag_I didn't change
 		if (!reset_heading && _control_status.flags.yaw_align) {
-			// mag_B: reset using WMM
-			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
-			_state.mag_B = mag - (R_to_body * mag_earth_pred);
+			if (mag_I_reset) {
+				// mag_B: reset using WMM
+				const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
+				_state.mag_B = mag - (R_to_body * _wmm_earth_field_gauss);
+				resetMagBiasCov();
+			} // otherwise keep existing mag_B state (!mag_I_reset)
 
 		} else {
 			_state.mag_B.zero();
+			resetMagBiasCov();
 		}
-
-		// mag_I: reset, skipped if no change in state and variance good
-		_state.mag_I = mag_earth_pred;
 
 		if (reset_heading) {
 			resetMagHeading(mag);
@@ -359,34 +420,32 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	} else {
 		// mag_B: reset
 		_state.mag_B.zero();
+		resetMagBiasCov();
 
-		// Use the magnetometer measurement to reset the field states
+		// Use the magnetometer measurement to reset the heading
 		if (reset_heading) {
 			resetMagHeading(mag);
 		}
 
-		// mag_I: use the last magnetometer measurements to reset the field states
-		_state.mag_I = _R_to_earth * mag;
+		// mag_I: use the last magnetometer measurement to reset the field states
+		const Vector3f mag_I = _R_to_earth * mag;
+
+		if ((_state.mag_I - mag_I).longerThan(kMagEarthMinGauss)) {
+			_state.mag_I = mag_I;
+			resetMagEarthCov();
+		}
 	}
 
-	if (!mag_I_before_reset.longerThan(0.f)) {
-		ECL_INFO("initializing mag I [%.3f, %.3f, %.3f], mag B [%.3f, %.3f, %.3f]",
-			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
-			 (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2)
-			);
-
-	} else {
+	if ((_state.mag_I - mag_I_before_reset).longerThan(0.f)) {
 		ECL_INFO("resetting mag I [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
 			 (double)mag_I_before_reset(0), (double)mag_I_before_reset(1), (double)mag_I_before_reset(2),
-			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2)
-			);
+			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2));
+	}
 
-		if (mag_B_before_reset.longerThan(0.f) || _state.mag_B.longerThan(0.f)) {
-			ECL_INFO("resetting mag B [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
-				 (double)mag_B_before_reset(0), (double)mag_B_before_reset(1), (double)mag_B_before_reset(2),
-				 (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2)
-				);
-		}
+	if ((_state.mag_B - mag_B_before_reset).longerThan(0.f)) {
+		ECL_INFO("resetting mag B [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
+			 (double)mag_B_before_reset(0), (double)mag_B_before_reset(1), (double)mag_B_before_reset(2),
+			 (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2));
 	}
 
 	// record the start time for the magnetic field alignment
@@ -451,8 +510,8 @@ bool Ekf::checkMagField(const Vector3f &mag_sample)
 	_mag_strength = mag_sample.length();
 
 	if (_params.mag_check & static_cast<int32_t>(MagCheckMask::STRENGTH)) {
-		if (PX4_ISFINITE(_mag_strength_gps)) {
-			if (!isMeasuredMatchingExpected(_mag_strength, _mag_strength_gps, _params.mag_check_strength_tolerance_gs)) {
+		if (PX4_ISFINITE(_wmm_field_strength_gauss)) {
+			if (!isMeasuredMatchingExpected(_mag_strength, _wmm_field_strength_gauss, _params.mag_check_strength_tolerance_gs)) {
 				_control_status.flags.mag_field_disturbed = true;
 				is_check_failing = true;
 			}
@@ -475,9 +534,9 @@ bool Ekf::checkMagField(const Vector3f &mag_sample)
 	_mag_inclination = asinf(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
 
 	if (_params.mag_check & static_cast<int32_t>(MagCheckMask::INCLINATION)) {
-		if (PX4_ISFINITE(_mag_inclination_gps)) {
+		if (PX4_ISFINITE(_wmm_inclination_rad)) {
 			const float inc_tol_rad = radians(_params.mag_check_inclination_tolerance_deg);
-			const float inc_error_rad = wrap_pi(_mag_inclination - _mag_inclination_gps);
+			const float inc_error_rad = wrap_pi(_mag_inclination - _wmm_inclination_rad);
 
 			if (fabsf(inc_error_rad) > inc_tol_rad) {
 				_control_status.flags.mag_field_disturbed = true;
@@ -549,13 +608,60 @@ float Ekf::getMagDeclination()
 		// Use value consistent with earth field state
 		return atan2f(_state.mag_I(1), _state.mag_I(0));
 
-	} else if (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL) {
-		// use parameter value until GPS is available, then use value returned by geo library
-		if (PX4_ISFINITE(_mag_declination_gps)) {
-			return _mag_declination_gps;
+	} else if ((_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL)
+		   && PX4_ISFINITE(_wmm_declination_rad)
+		  ) {
+		// if available use value returned by geo library
+		return _wmm_declination_rad;
+
+	} else if ((_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)
+		   && PX4_ISFINITE(_params.mag_declination_deg) && (fabsf(_params.mag_declination_deg) > 0.f)
+		  ) {
+		// using saved mag declination
+		return math::radians(_params.mag_declination_deg);
+	}
+
+	// otherwise unavailable
+	return 0.f;
+}
+
+bool Ekf::updateWorldMagneticModel(const double latitude_deg, const double longitude_deg)
+{
+	// set the magnetic field data returned by the geo library using the current GPS position
+	const float declination_rad = math::radians(get_mag_declination_degrees(latitude_deg, longitude_deg));
+	const float inclination_rad = math::radians(get_mag_inclination_degrees(latitude_deg, longitude_deg));
+	const float strength_gauss = get_mag_strength_gauss(latitude_deg, longitude_deg);
+
+	if (PX4_ISFINITE(declination_rad) && PX4_ISFINITE(inclination_rad) && PX4_ISFINITE(strength_gauss)) {
+
+		const bool declination_changed = (fabsf(declination_rad - _wmm_declination_rad) > math::radians(1.f));
+		const bool inclination_changed = (fabsf(inclination_rad - _wmm_inclination_rad) > math::radians(1.f));
+		const bool strength_changed = (fabsf(strength_gauss - _wmm_field_strength_gauss) > 0.01f);
+
+		if (!PX4_ISFINITE(_wmm_declination_rad)
+		    || !PX4_ISFINITE(_wmm_inclination_rad)
+		    || !PX4_ISFINITE(_wmm_field_strength_gauss)
+		    || !_wmm_earth_field_gauss.longerThan(0.f)
+		    || !_wmm_earth_field_gauss.isAllFinite()
+		    || declination_changed
+		    || inclination_changed
+		    || strength_changed
+		   ) {
+
+			ECL_DEBUG("WMM declination updated %.3f -> %.3f deg (lat=%.6f, lon=%.6f)",
+				  (double)math::degrees(_wmm_declination_rad), (double)math::degrees(declination_rad),
+				  (double)latitude_deg, (double)longitude_deg
+				 );
+
+			_wmm_declination_rad = declination_rad;
+			_wmm_inclination_rad = inclination_rad;
+			_wmm_field_strength_gauss = strength_gauss;
+
+			_wmm_earth_field_gauss = Dcmf(Eulerf(0, -inclination_rad, declination_rad)) * Vector3f(strength_gauss, 0, 0);
+
+			return true;
 		}
 	}
 
-	// otherwise use the parameter value
-	return math::radians(_params.mag_declination_deg);
+	return false;
 }

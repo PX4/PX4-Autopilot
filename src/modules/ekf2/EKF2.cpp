@@ -162,6 +162,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
 	_param_ekf2_rng_qlty_t(_params->range_valid_quality_s),
 	_param_ekf2_rng_k_gate(_params->range_kin_consistency_gate),
+	_param_ekf2_rng_fog(_params->rng_fog),
 	_param_ekf2_rng_pos_x(_params->rng_pos_body(0)),
 	_param_ekf2_rng_pos_y(_params->rng_pos_body(1)),
 	_param_ekf2_rng_pos_z(_params->rng_pos_body(2)),
@@ -545,9 +546,8 @@ void EKF2::Run()
 						accuracy = vehicle_command.param3;
 					}
 
-					// TODO add check for lat and long validity
-					if (_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
-							accuracy, timestamp_observation)
+					if (_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6, vehicle_command.param7,
+							accuracy, accuracy, timestamp_observation)
 					   ) {
 						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1938,7 +1938,6 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.fs_bad_sideslip          = _ekf.fault_status_flags().bad_sideslip;
 		status_flags.fs_bad_optflow_x         = _ekf.fault_status_flags().bad_optflow_X;
 		status_flags.fs_bad_optflow_y         = _ekf.fault_status_flags().bad_optflow_Y;
-		status_flags.fs_bad_acc_bias          = _ekf.fault_status_flags().bad_acc_bias;
 		status_flags.fs_bad_acc_vertical      = _ekf.fault_status_flags().bad_acc_vertical;
 		status_flags.fs_bad_acc_clipping      = _ekf.fault_status_flags().bad_acc_clipping;
 
@@ -2026,6 +2025,9 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 
 		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
 		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
+
+		_ekf.getFilteredFlowVelBody().copyTo(flow_vel.vel_body_filtered);
+		_ekf.getFilteredFlowVelNE().copyTo(flow_vel.vel_ne_filtered);
 
 		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_rate_uncompensated);
 		_ekf.getFlowCompensated().copyTo(flow_vel.flow_rate_compensated);
@@ -2664,7 +2666,6 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 	const bool bias_valid = (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::AccelBias))
 				&& _ekf.control_status_flags().tilt_align
 				&& (_ekf.fault_status().value == 0)
-				&& !_ekf.fault_status_flags().bad_acc_bias
 				&& !_ekf.fault_status_flags().bad_acc_clipping
 				&& !_ekf.fault_status_flags().bad_acc_vertical;
 
