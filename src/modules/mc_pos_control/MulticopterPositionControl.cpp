@@ -46,6 +46,9 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
+	_vel_x_filtered(this, "VEL_LP"),
+	_vel_y_filtered(this, "VEL_LP"),
+	_vel_z_filtered(this, "VEL_LP"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD")
@@ -263,8 +266,19 @@ PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehic
 	}
 
 	if (PX4_ISFINITE(local_pos.vx) && PX4_ISFINITE(local_pos.vy) && local_pos.v_xy_valid) {
-		states.velocity(0) = local_pos.vx;
-		states.velocity(1) = local_pos.vy;
+		_vel_x_filtered.update(local_pos.vx);
+		_vel_y_filtered.update(local_pos.vy);
+
+		if (_vel_x_filtered.getFCut() > 999.f || _vel_y_filtered.getFCut() > 999.f) {
+			// Bypass the veloctiy LPF completely if the cutoff frequency is set very high
+			states.velocity(0) = local_pos.vx;
+			states.velocity(1) = local_pos.vy;
+
+		} else {
+			states.velocity(0) = _vel_x_filtered.getState();
+			states.velocity(1) = _vel_y_filtered.getState();
+		}
+
 		states.acceleration(0) = _vel_x_deriv.update(local_pos.vx);
 		states.acceleration(1) = _vel_y_deriv.update(local_pos.vy);
 
@@ -280,7 +294,17 @@ PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehic
 	}
 
 	if (PX4_ISFINITE(local_pos.vz) && local_pos.v_z_valid) {
-		states.velocity(2) = local_pos.vz;
+		_vel_z_filtered.update(local_pos.vz);
+
+		if (_vel_z_filtered.getFCut() > 999.f) {
+			// Bypass the veloctiy LPF completely if the cutoff frequency is set very high
+			states.velocity(2) = local_pos.vz;
+
+		} else {
+			states.velocity(2) = _vel_z_filtered.getState();
+
+		}
+
 		states.acceleration(2) = _vel_z_deriv.update(states.velocity(2));
 
 	} else {
