@@ -166,14 +166,9 @@ void Ekf::fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_
 				const Vector3f &measurement, const Vector3f &measurement_var, const float &innovation_gate)
 {
 	VectorState H[3];
-	sym::ComputeBodyVelH(_state.vector(), &H[0], &H[1], &H[2]);
-
-	Vector3f innov = _R_to_earth.transpose() * _state.vel - measurement;
 	Vector3f innov_var;
-
-	for (uint8_t index = 0; index <= 2; index++) {
-		innov_var(index) = (H[index].T() * P * H[index])(0, 0) + measurement_var(index);
-	}
+	Vector3f innov = _R_to_earth.transpose() * _state.vel - measurement;
+	sym::ComputeBodyVelH(_state.vector(), P, measurement_var, &innov_var, &H[0], &H[1], &H[2]);
 
 	updateAidSourceStatus(aid_src,
 			      timestamp,				// sample timestamp
