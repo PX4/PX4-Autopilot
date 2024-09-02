@@ -131,7 +131,7 @@ static int launch_kernel_builtin(int argc, char **argv)
 		return builtin->main(argc, argv);
 	}
 
-	return ENOENT;
+	return -ENOENT;
 }
 
 /************************************************************************************
@@ -144,7 +144,11 @@ static int launch_kernel_builtin(int argc, char **argv)
 
 static int platform_ioctl(unsigned int cmd, unsigned long arg)
 {
-	int ret = PX4_OK;
+	int ret = OK;
+
+	if (arg == 0) {
+		return -EINVAL;
+	}
 
 	switch (cmd) {
 	case PLATFORMIOCLAUNCH: {
