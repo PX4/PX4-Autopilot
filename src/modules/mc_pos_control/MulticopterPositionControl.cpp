@@ -46,9 +46,9 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
-	_vel_x_filtered(this, "VEL_LP"),
-	_vel_y_filtered(this, "VEL_LP"),
-	_vel_z_filtered(this, "VEL_LP"),
+	_vel_x_filtered(this, "XY_VEL_LP"),
+	_vel_y_filtered(this, "XY_VEL_LP"),
+	_vel_z_filtered(this, "Z_VEL_LP"),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD")
