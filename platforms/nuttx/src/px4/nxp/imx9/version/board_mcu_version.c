@@ -70,8 +70,8 @@
 #  define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
-static unsigned hw_version = 0;
-static unsigned hw_revision = 0;
+static unsigned hw_version = BOARD_DEFAULT_VER;
+static unsigned hw_revision = BOARD_DEFAULT_REV;
 static char hw_info[HW_INFO_SIZE] = {0};
 
 /* Unique ID offset (undocumented, 128bits in bank 6) */
