@@ -20,7 +20,7 @@ parameters:
         description:
           short: Manual yaw rate scale
           long: |
-            In manual mode the setpoint for the yaw rate received from the rc remote
+            In manual mode the setpoint for the yaw rate received from the yaw stick
             is scaled by this value.
         type: float
         min: 0.001
