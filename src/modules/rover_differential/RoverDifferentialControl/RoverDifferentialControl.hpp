@@ -72,6 +72,11 @@ public:
 	 */
 	void computeMotorCommands(float vehicle_yaw, float vehicle_yaw_rate, float vehicle_forward_speed);
 
+	/**
+	 * @brief Reset PID controllers
+	 */
+	void resetControllers();
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.

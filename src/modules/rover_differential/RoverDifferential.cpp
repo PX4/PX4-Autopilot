@@ -115,6 +115,10 @@ void RoverDifferential::Run()
 		break;
 	}
 
+	if (!_armed) { // Reset on disarm
+		_rover_differential_control.resetControllers();
+	}
+
 	_rover_differential_control.computeMotorCommands(_vehicle_yaw, _vehicle_yaw_rate, _vehicle_forward_speed);
 
 }
@@ -132,6 +136,7 @@ void RoverDifferential::updateSubscriptions()
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
 		_nav_state = vehicle_status.nav_state;
+		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 	}
 
 	if (_vehicle_angular_velocity_sub.updated()) {
