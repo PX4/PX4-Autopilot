@@ -503,7 +503,7 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	switch (calling_reason) {
 	case arm_disarm_reason_t::transition_to_standby: return "";
 
-	case arm_disarm_reason_t::rc_stick: return "RC";
+	case arm_disarm_reason_t::rc_stick: return "Stick gesture";
 
 	case arm_disarm_reason_t::rc_switch: return "RC (switch)";
 

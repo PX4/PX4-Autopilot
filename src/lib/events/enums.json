@@ -448,7 +448,7 @@
                         },
                         "1": {
                             "name": "rc_stick",
-                            "description": "RC"
+                            "description": "Stick gesture"
                         },
                         "2": {
                             "name": "rc_switch",
