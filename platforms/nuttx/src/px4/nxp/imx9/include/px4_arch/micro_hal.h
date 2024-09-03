@@ -137,8 +137,7 @@ static inline uintptr_t hrt_absolute_time_usr_base(void)
 }
 #endif
 
-// TODO!
-#  define px4_cache_aligned_data()
-#  define px4_cache_aligned_alloc malloc
+#  define px4_cache_aligned_data() aligned_data(ARMV8A_DCACHE_LINESIZE)
+#  define px4_cache_aligned_alloc(s) memalign(ARMV8A_DCACHE_LINESIZE, (s))
 
 __END_DECLS
