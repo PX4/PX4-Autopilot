@@ -1629,7 +1629,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 	// Silently ignore RC actions during RC calibration
 	if (_vehicle_status.rc_calibration_in_progress
-	    && (action_request.source == action_request_s::SOURCE_RC_STICK_GESTURE
+	    && (action_request.source == action_request_s::SOURCE_MANUAL_CONTROL_GESTURE
 		|| action_request.source == action_request_s::SOURCE_RC_SWITCH
 		|| action_request.source == action_request_s::SOURCE_RC_BUTTON
 		|| action_request.source == action_request_s::SOURCE_RC_MODE_SLOT)) {
@@ -1637,7 +1637,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 	}
 
 	switch (action_request.source) {
-	case action_request_s::SOURCE_RC_STICK_GESTURE: arm_disarm_reason = arm_disarm_reason_t::rc_stick; break;
+	case action_request_s::SOURCE_MANUAL_CONTROL_GESTURE: arm_disarm_reason = arm_disarm_reason_t::rc_stick; break;
 
 	case action_request_s::SOURCE_RC_SWITCH: arm_disarm_reason = arm_disarm_reason_t::rc_switch; break;
 
