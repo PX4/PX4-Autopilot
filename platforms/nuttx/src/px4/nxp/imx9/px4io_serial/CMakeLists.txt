@@ -31,10 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(board_critmon board_critmon)
-add_subdirectory(adc adc)
-add_subdirectory(board_reset board_reset)
-add_subdirectory(hrt hrt)
-add_subdirectory(tone_alarm tone_alarm)
-add_subdirectory(version version)
-add_subdirectory(px4io_serial)
+px4_add_library(arch_px4io_serial
+	px4io_serial.cpp
+)
