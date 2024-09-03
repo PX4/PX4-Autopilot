@@ -174,3 +174,10 @@ matrix::Vector2f RoverDifferentialControl::computeInverseKinematics(float forwar
 	return Vector2f(forward_speed_normalized - speed_diff_normalized,
 			forward_speed_normalized + speed_diff_normalized);
 }
+
+void RoverDifferentialControl::resetControllers()
+{
+	pid_reset_integral(&_pid_throttle);
+	pid_reset_integral(&_pid_yaw_rate);
+	pid_reset_integral(&_pid_yaw);
+}

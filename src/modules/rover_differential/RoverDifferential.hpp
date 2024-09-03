@@ -111,6 +111,7 @@ private:
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	int _nav_state{0};
+	bool _armed{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RD_MAN_YAW_SCALE>) _param_rd_man_yaw_scale,
