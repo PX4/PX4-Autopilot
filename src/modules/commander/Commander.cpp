@@ -887,7 +887,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			}
 
 			if (desired_nav_state != vehicle_status_s::NAVIGATION_STATE_MAX) {
-				if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd))) {
+
+				// Special handling for LAND mode: always allow to switch into it such that if used
+				// as emergency mode it is always available. When triggering it the user generally wants
+				// the vehicle to descend immediately, and if that means to switch to DESCEND it is fine.
+
+				const bool force = desired_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+				if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd), false, force)) {
 					main_ret = TRANSITION_CHANGED;
 
 				} else {
@@ -1062,7 +1069,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
-			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, getSourceFromCommand(cmd))) {
+			// Special handling for LAND mode: always allow to switch into it such that if used
+			// as emergency mode it is always available. When triggering it the user generally wants
+			// the vehicle to descend immediately, and if that means to switch to DESCEND it is fine.
+			const bool force = true;
+
+			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, getSourceFromCommand(cmd), false,
+							force)) {
 				mavlink_log_info(&_mavlink_log_pub, "Landing at current position\t");
 				events::send(events::ID("commander_landing_current_pos"), events::Log::Info,
 					     "Landing at current position");
