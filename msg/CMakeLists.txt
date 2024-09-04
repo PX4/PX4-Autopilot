@@ -128,6 +128,7 @@ set(msg_files
 	MissionResult.msg
 	MountOrientation.msg
 	ModalIoData.msg
+	ModalIoMavlinkData.msg
 	ModeCompleted.msg
 	NavigatorMissionItem.msg
 	NormalizedUnsignedSetpoint.msg
