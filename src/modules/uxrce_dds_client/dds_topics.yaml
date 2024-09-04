@@ -37,6 +37,12 @@ publications:
 
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
+    
+  - topic: /fmu/out/actuator_outputs_sim
+    type: px4_msgs::msg::ActuatorOutputs
+    
+  - topic: /fmu/out/vehicle_attitude_setpoint
+    type: px4_msgs::msg::VehicleAttitudeSetpoint
 
   # - topic: /fmu/out/vehicle_angular_velocity
   #   type: px4_msgs::msg::VehicleAngularVelocity
