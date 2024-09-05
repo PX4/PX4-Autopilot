@@ -316,7 +316,7 @@ void ManualControl::updateParams()
 				/* EVENT
 				* @description <param>MAN_ARM_GESTURE</param> is now set to disable arm/disarm stick gesture.
 				*/
-				events::send(events::ID("rc_update_arm_stick_gesture_disabled_with_switch"), {events::Log::Info, events::LogInternal::Disabled},
+				events::send(events::ID("stick_gesture_disabled_by_arm_switch"), {events::Log::Info, events::LogInternal::Disabled},
 					     "Arm stick gesture disabled if arm switch in use");
 			}
 		}
@@ -356,7 +356,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_centered, input.timestamp);
 
 	if (_param_man_arm_gesture.get() && !previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
-		sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_MANUAL_CONTROL_GESTURE);
+		sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_STICK_GESTURE);
 	}
 
 	// Disarm gesture
@@ -366,7 +366,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
 
 	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
-		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_MANUAL_CONTROL_GESTURE);
+		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_STICK_GESTURE);
 	}
 
 	// Kill gesture
@@ -377,7 +377,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 		_stick_kill_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_lower_right, input.timestamp);
 
 		if (!previous_stick_kill_hysteresis && _stick_kill_hysteresis.get_state()) {
-			sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_MANUAL_CONTROL_GESTURE);
+			sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_STICK_GESTURE);
 		}
 	}
 }
