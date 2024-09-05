@@ -592,6 +592,12 @@ handle_message_odometry_dsp(mavlink_message_t *msg)
 		modal_io_mavlink_data_s odom_data;
 		odom_data.timestamp = timestamp;
 		odom_data.dump_message = (int) dump_message;
+
+		int index = (int) position_source::VIO;
+		if (position_source_data[index].fail) {
+			odom_in.quality = -1;
+		}
+
 		memcpy(&odom_data.odometry, &odom_in, sizeof(mavlink_odometry_t));
 		_mav_odom_pub.publish(odom_data);
 

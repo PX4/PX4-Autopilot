@@ -225,8 +225,8 @@ void MavlinkOdometryBridge::Run()
 
 			int quality = odom_in->quality;
 			if(odom_in->quality>=100) quality = 100;
-			// if(odom_in->quality<1) quality = -1;
-			if(odom_in->quality<50) quality = 50;
+			if(odom_in->quality<1) quality = -1;
+			// if(odom_in->quality<50) quality = 50;
 
 			s.quality = quality;
 
