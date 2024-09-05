@@ -103,3 +103,6 @@
 [submodule "src/lib/rust_px4_nuttx"]
 	path = src/lib/rust_px4_nuttx
 	url = git@github.com:tiiuae/rust_px4_nuttx_lib.git
+[submodule "src/modules/rust_module_example"]
+	path = src/modules/rust_module_example
+	url = git@github.com:tiiuae/rust_module_example.git
