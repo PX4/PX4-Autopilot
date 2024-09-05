@@ -234,7 +234,8 @@ private:
 	 *
 	 * @return PX4_OK on success, PX4_ERROR on fail.
 	 */
-	int set_message_interval(int msgId, float interval, int data_rate = -1);
+	int set_message_interval(int msgId, float interval, int data_rate = -1, float param3 = 0.0f, float param4 = 0.0f,
+				 int param5 = 0, int param6 = 0, int response_target = 0);
 	void get_message_interval(int msgId);
 
 	bool evaluate_target_ok(int command, int target_system, int target_component);
