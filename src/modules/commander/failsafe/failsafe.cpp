@@ -153,6 +153,50 @@ FailsafeBase::ActionOptions Failsafe::fromImbalancedPropActParam(int param_value
 	return options;
 }
 
+FailsafeBase::Action Failsafe::fromModeFailureActParam(int param_value,  uint8_t &user_intended_mode)
+{
+	Action action = Action(param_value);
+
+	switch (action) {
+	case Action::FallbackPosCtrl:
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+		break;
+
+	case Action::FallbackAltCtrl:
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+		break;
+
+	case Action::FallbackStab:
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+		break;
+
+	case Action::Hold:
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		break;
+
+	case Action::RTL:
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		break;
+
+	case Action::Land:
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+		break;
+
+	case Action::Descend:
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+		break;
+
+	case Action::Terminate:
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+		break;
+
+	default:
+		break;
+	}
+
+	return action;
+}
+
 FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_value)
 {
 	ActionOptions options{};
@@ -628,8 +672,7 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 
 	// Last, check can_run for intended mode
 	if (!modeCanRun(status_flags, user_intended_mode)) {
-		action = Action::RTL;
-		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		action = fromModeFailureActParam(_param_com_mod_failure_act.get(), user_intended_mode);
 	}
 
 	return action;
