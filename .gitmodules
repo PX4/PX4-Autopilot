@@ -100,3 +100,6 @@
 [submodule "src/lib/secure_udp"]
 	path = src/lib/secure_udp
 	url = git@github.com:tiiuae/px4-lib-secure-udp.git
+[submodule "src/lib/rust_px4_nuttx"]
+	path = src/lib/rust_px4_nuttx
+	url = git@github.com:tiiuae/rust_px4_nuttx_lib.git
