@@ -60,6 +60,7 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 
 	case gcs_connection_loss_failsafe_mode::Land_mode:
 		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
 	case gcs_connection_loss_failsafe_mode::Terminate:
@@ -113,6 +114,7 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 
 	case geofence_violation_action::Land_mode:
 		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
 	default:
