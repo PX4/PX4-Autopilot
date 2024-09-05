@@ -2145,25 +2145,36 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	}
 
 	manual_control_setpoint_s manual_control_setpoint{};
-	manual_control_setpoint.pitch = mavlink_manual_control.x / 1000.f;
-	manual_control_setpoint.roll = mavlink_manual_control.y / 1000.f;
+
+	if (math::isInRange((int)mavlink_manual_control.x, -1000, 1000)) { manual_control_setpoint.pitch = mavlink_manual_control.x / 1000.f; }
+
+	if (math::isInRange((int)mavlink_manual_control.y, -1000, 1000)) { manual_control_setpoint.roll = mavlink_manual_control.y / 1000.f; }
+
 	// For backwards compatibility at the moment interpret throttle in range [0,1000]
-	manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f;
-	manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f;
+	if (math::isInRange((int)mavlink_manual_control.z, 0, 1000)) { manual_control_setpoint.throttle = ((mavlink_manual_control.z / 1000.f) * 2.f) - 1.f; }
+
+	if (math::isInRange((int)mavlink_manual_control.r, -1000, 1000)) { manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f; }
+
 	// Pass along the button states
 	manual_control_setpoint.buttons = mavlink_manual_control.buttons;
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 2)) { manual_control_setpoint.aux1 = mavlink_manual_control.aux1 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 2)
+	    && math::isInRange((int)mavlink_manual_control.aux1, -1000, 1000)) { manual_control_setpoint.aux1 = mavlink_manual_control.aux1 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 3)) { manual_control_setpoint.aux2 = mavlink_manual_control.aux2 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 3)
+	    && math::isInRange((int)mavlink_manual_control.aux2, -1000, 1000)) { manual_control_setpoint.aux2 = mavlink_manual_control.aux2 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 4)) { manual_control_setpoint.aux3 = mavlink_manual_control.aux3 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 4)
+	    && math::isInRange((int)mavlink_manual_control.aux3, -1000, 1000)) { manual_control_setpoint.aux3 = mavlink_manual_control.aux3 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 5)) { manual_control_setpoint.aux4 = mavlink_manual_control.aux4 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 5)
+	    && math::isInRange((int)mavlink_manual_control.aux4, -1000, 1000)) { manual_control_setpoint.aux4 = mavlink_manual_control.aux4 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 6)) { manual_control_setpoint.aux5 = mavlink_manual_control.aux5 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 6)
+	    && math::isInRange((int)mavlink_manual_control.aux5, -1000, 1000)) { manual_control_setpoint.aux5 = mavlink_manual_control.aux5 / 1000.0f; }
 
-	if (mavlink_manual_control.enabled_extensions & (1u << 7)) { manual_control_setpoint.aux6 = mavlink_manual_control.aux6 / 1000.0f; }
+	if (mavlink_manual_control.enabled_extensions & (1u << 7)
+	    && math::isInRange((int)mavlink_manual_control.aux6, -1000, 1000)) { manual_control_setpoint.aux6 = mavlink_manual_control.aux6 / 1000.0f; }
 
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink.get_instance_id();
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
