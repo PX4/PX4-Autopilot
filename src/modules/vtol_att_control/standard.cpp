@@ -334,9 +334,9 @@ void Standard::fill_actuator_outputs()
 		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2] * _mc_throttle_weight;
 
 		// FW actuators
-		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0] * (1.f - _mc_roll_weight);
-		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1] * (1.f - _mc_pitch_weight);
-		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * (1.f - _mc_yaw_weight);
+		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0];
+		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1];
+		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2];
 		_thrust_setpoint_0->xyz[0] = _pusher_throttle;
 
 		break;
