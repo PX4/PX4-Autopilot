@@ -44,14 +44,32 @@
 PWMSim::PWMSim(bool hil_mode_enabled) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	for (int i = 0; i < MAX_ACTUATORS; ++i) {
-		char param_name[17];
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "MIN", i + 1);
-		param_get(param_find(param_name), &_pwm_min[i]);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "MAX", i + 1);
-		param_get(param_find(param_name), &_pwm_max[i]);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "DIS", i + 1);
-		param_get(param_find(param_name), &_pwm_disarmed[i]);
+	int32_t use_hitl = 0;
+	param_get(param_find("SYS_HITL"), &use_hitl);
+
+	if (use_hitl) {
+		for (int i = 0; i < MAX_ACTUATORS; ++i) {
+			char param_name[17];
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "MIN", i + 1);
+			param_get(param_find(param_name), &_pwm_min[i]);
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "MAX", i + 1);
+			param_get(param_find(param_name), &_pwm_max[i]);
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "DIS", i + 1);
+			param_get(param_find(param_name), &_pwm_disarmed[i]);
+		}
+
+	} else {
+		// SITL gazebo classic case
+		for (int i = 0; i < MAX_ACTUATORS; ++i) {
+			_pwm_min[i] = PWM_SIM_PWM_MIN_MAGIC;
+			_pwm_max[i] = PWM_SIM_PWM_MAX_MAGIC;
+			_pwm_disarmed[i] = PWM_SIM_DISARMED_MAGIC;
+		}
+
+		_mixing_output.setAllDisarmedValues(PWM_SIM_DISARMED_MAGIC);
+		_mixing_output.setAllFailsafeValues(PWM_SIM_FAILSAFE_MAGIC);
+		_mixing_output.setAllMinValues(PWM_SIM_PWM_MIN_MAGIC);
+		_mixing_output.setAllMaxValues(PWM_SIM_PWM_MAX_MAGIC);
 	}
 
 	_mixing_output.setIgnoreLockdown(hil_mode_enabled);
