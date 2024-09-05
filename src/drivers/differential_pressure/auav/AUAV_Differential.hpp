@@ -47,12 +47,18 @@ static constexpr uint8_t EEPROM_DIFF_DLW 	= 0x32;
 static constexpr uint8_t EEPROM_DIFF_TC50 	= 0x33;
 static constexpr uint8_t EEPROM_DIFF_ES		= 0x34;
 
+/* Measurement rate is 100Hz */
+static constexpr unsigned DIFF_MEAS_RATE = 100;
+static constexpr int64_t DIFF_CONVERSION_INTERVAL = (1000000 / DIFF_MEAS_RATE); /* microseconds */
+
 class AUAV_Differential : public AUAV
 {
 public:
 	AUAV_Differential(const I2CSPIDriverConfig &config);
 	~AUAV_Differential() override;
 
-	void RunImpl() override;
-	void print_status() override;
+private:
+	void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) override;
+	int64_t get_conversion_interval() override;
+	calib_eeprom_addr_t get_calib_eeprom_addr() override;
 };

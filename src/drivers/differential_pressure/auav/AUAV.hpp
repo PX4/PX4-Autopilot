@@ -54,20 +54,66 @@ public:
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
-	virtual void RunImpl() = 0;
-
+	virtual void RunImpl();
+	void print_status() override;
 	int init() override;
-	virtual void print_status() = 0;
 
 protected:
-	int read_calibration_eeprom(uint8_t eeprom_address, uint16_t &data);
-
 	enum class STATE : uint8_t {
 		READ_CALIBDATA,
 		REQUEST_MEASUREMENT,
 		GATHER_MEASUREMENT
 	};
 
+	struct calib_eeprom_addr_t {
+		uint8_t addr_a_hw;
+		uint8_t addr_a_lw;
+		uint8_t addr_b_hw;
+		uint8_t addr_b_lw;
+		uint8_t addr_c_hw;
+		uint8_t addr_c_lw;
+		uint8_t addr_d_hw;
+		uint8_t addr_d_lw;
+		uint8_t addr_tc50;
+		uint8_t addr_es;
+	};
+
+	struct calib_data_raw_t {
+		uint16_t a_hw;
+		uint16_t a_lw;
+		uint16_t b_hw;
+		uint16_t b_lw;
+		uint16_t c_hw;
+		uint16_t c_lw;
+		uint16_t d_hw;
+		uint16_t d_lw;
+		uint16_t tc50;
+		uint16_t es;
+	};
+
+	struct calib_data_t {
+		float a;
+		float b;
+		float c;
+		float d;
+		float es;
+		float tc50h;
+		float tc50l;
+	};
+
+	void handle_state_read_calibdata();
+	void handle_state_request_measurement();
+	void handle_state_gather_measurement();
+
+	virtual void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) = 0;
+	virtual int64_t get_conversion_interval() = 0;
+	virtual calib_eeprom_addr_t get_calib_eeprom_addr() = 0;
+
+	int read_calibration_eeprom(uint8_t eeprom_address, uint16_t &data);
+	void convert_raw_calib_data(calib_data_raw_t calib_data_raw);
+	float correct_pressure(uint32_t pressure, uint32_t temperature);
+
 	STATE _state{STATE::READ_CALIBDATA};
+	calib_data_t _calib_data {};
 	perf_counter_t _comms_errors;
 };

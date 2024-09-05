@@ -40,24 +40,30 @@ AUAV_Differential::AUAV_Differential(const I2CSPIDriverConfig &config) :
 
 AUAV_Differential::~AUAV_Differential()
 {
+}
+
+void AUAV_Differential::publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample)
+{
 
 }
 
-void AUAV_Differential::RunImpl()
+int64_t AUAV_Differential::get_conversion_interval()
 {
-	switch (_state) {
-	case STATE::READ_CALIBDATA:
-		break;
-
-	case STATE::REQUEST_MEASUREMENT:
-		break;
-
-	case STATE::GATHER_MEASUREMENT:
-		break;
-	}
+	return DIFF_CONVERSION_INTERVAL;
 }
 
-void AUAV_Differential::print_status()
+AUAV::calib_eeprom_addr_t AUAV_Differential::get_calib_eeprom_addr()
 {
-
+	return calib_eeprom_addr_t {
+		EEPROM_DIFF_AHW,
+		EEPROM_DIFF_ALW,
+		EEPROM_DIFF_BHW,
+		EEPROM_DIFF_BLW,
+		EEPROM_DIFF_CHW,
+		EEPROM_DIFF_CLW,
+		EEPROM_DIFF_DHW,
+		EEPROM_DIFF_DLW,
+		EEPROM_DIFF_TC50,
+		EEPROM_DIFF_ES
+	};
 }

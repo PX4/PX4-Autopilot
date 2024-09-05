@@ -49,8 +49,8 @@ static constexpr uint8_t EEPROM_ABS_TC50 	= 0x37;
 static constexpr uint8_t EEPROM_ABS_ES		= 0x38;
 
 /* Measurement rate is 100Hz */
-static constexpr unsigned MEAS_RATE = 100;
-static constexpr int64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microseconds */
+static constexpr unsigned ABS_MEAS_RATE = 100;
+static constexpr int64_t ABS_CONVERSION_INTERVAL = (1000000 / ABS_MEAS_RATE); /* microseconds */
 
 class AUAV_Absolute : public AUAV
 {
@@ -58,41 +58,10 @@ public:
 	AUAV_Absolute(const I2CSPIDriverConfig &config);
 	~AUAV_Absolute() override;
 
-	void RunImpl() override;
-	void print_status() override;
-
 private:
-	void handle_state_read_calibdata();
-	void handle_state_request_measurement();
-	void handle_state_gather_measurement();
+	void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) override;
+	int64_t get_conversion_interval() override;
+	calib_eeprom_addr_t get_calib_eeprom_addr() override;
 
-	float correct_pressure(uint32_t pressure, uint32_t temperature);
-
-	void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample);
-
-	struct calib_data_raw_t {
-		uint16_t a_hw;
-		uint16_t a_lw;
-		uint16_t b_hw;
-		uint16_t b_lw;
-		uint16_t c_hw;
-		uint16_t c_lw;
-		uint16_t d_hw;
-		uint16_t d_lw;
-		uint16_t tc50;
-		uint16_t es;
-	};
-
-	struct calib_data_t {
-		float a;
-		float b;
-		float c;
-		float d;
-		float es;
-		float tc50h;
-		float tc50l;
-	};
-
-	calib_data_t _calib_data {};
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 };
