@@ -62,6 +62,7 @@ private:
 	void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) override;
 	int64_t get_conversion_interval() override;
 	calib_eeprom_addr_t get_calib_eeprom_addr() override;
+	float convert_pressure_dig(float pressure_dig) override;
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 };

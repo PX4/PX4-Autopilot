@@ -44,7 +44,14 @@ AUAV_Differential::~AUAV_Differential()
 
 void AUAV_Differential::publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample)
 {
-
+	differential_pressure_s differential_pressure{};
+	differential_pressure.timestamp_sample = timestamp_sample;
+	differential_pressure.device_id = get_device_id();
+	differential_pressure.differential_pressure_pa = pressure_p;
+	differential_pressure.temperature = temperature_c;
+	differential_pressure.error_count = perf_event_count(_comms_errors);
+	differential_pressure.timestamp = hrt_absolute_time();
+	_differential_pressure_pub.publish(differential_pressure);
 }
 
 int64_t AUAV_Differential::get_conversion_interval()
@@ -66,4 +73,10 @@ AUAV::calib_eeprom_addr_t AUAV_Differential::get_calib_eeprom_addr()
 		EEPROM_DIFF_TC50,
 		EEPROM_DIFF_ES
 	};
+}
+
+float AUAV_Differential::convert_pressure_dig(float pressure_dig)
+{
+	float pressure_in_h = 1.25f * ((pressure_dig - (1 << 23)) / (1 << 24)) * _cal_range;
+	return pressure_in_h * 249.08f;
 }

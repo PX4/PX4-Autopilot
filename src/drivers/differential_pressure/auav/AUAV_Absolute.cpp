@@ -74,3 +74,9 @@ AUAV::calib_eeprom_addr_t AUAV_Absolute::get_calib_eeprom_addr()
 		EEPROM_ABS_ES
 	};
 }
+
+float AUAV_Absolute::convert_pressure_dig(float pressure_dig)
+{
+	float pressure_mbar = 250.f + 1.25f * (pressure_dig - (0.1f * (1 << 24))) / (1 << 24) * 1000.f;
+	return pressure_mbar * 100;
+}

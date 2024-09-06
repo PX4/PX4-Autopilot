@@ -34,6 +34,7 @@
 #pragma once
 
 #include "AUAV.hpp"
+#include <uORB/topics/differential_pressure.h>
 
 /* AUAV EEPROM addresses for differential channel */
 static constexpr uint8_t EEPROM_DIFF_AHW 	= 0x2B;
@@ -61,4 +62,7 @@ private:
 	void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) override;
 	int64_t get_conversion_interval() override;
 	calib_eeprom_addr_t get_calib_eeprom_addr() override;
+	float convert_pressure_dig(float pressure_dig) override;
+
+	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 };

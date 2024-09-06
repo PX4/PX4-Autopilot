@@ -103,9 +103,37 @@ int AUAV::init()
 		return ret;
 	}
 
+	int32_t hw_model;
+	param_get(param_find("SENS_EN_AUAVX"), &hw_model);
+
+	switch (hw_model) {
+		case 1: /* AUAV L05D (+- 5 inH20) */
+			_cal_range = 10.0f;
+			break;
+		case 2: /* AUAV L10D (+- 10 inH20) */
+			_cal_range = 20.0f;
+			break;
+		case 3: /* AUAV L30D (+- 30 inH20) */
+			_cal_range = 60.0f;
+			break;
+	}
+
 	ScheduleClear();
 	ScheduleNow();
 	return OK;
+}
+
+int AUAV::probe()
+{
+	uint8_t res_data = 0;
+	int status = transfer(nullptr, 0, &res_data, sizeof(res_data));
+
+	/* Probe checks if the sensor reports as being powered on in its status */
+	if ((res_data & 0x40) == 0) {
+		status = PX4_ERROR;
+	}
+
+	return status;
 }
 
 void AUAV::handle_state_read_calibdata()
@@ -160,15 +188,14 @@ void AUAV::handle_state_gather_measurement()
 	if (status == PX4_OK && (res_data[0] & 0x20) == 0) {
 		const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-		uint32_t pressure = (res_data[1] << 16) | (res_data[2] << 8) | (res_data[3]);
-		uint32_t temperature = (res_data[4] << 16) | (res_data[5] << 8) | (res_data[6]);
+		uint32_t pressure_raw = (res_data[1] << 16) | (res_data[2] << 8) | (res_data[3]);
+		uint32_t temperature_raw = (res_data[4] << 16) | (res_data[5] << 8) | (res_data[6]);
 
-		float corrected_pressure = correct_pressure(pressure, temperature);
-		float absolute_pressure = 250.f + 1.25f * (corrected_pressure - (0.1f * (1 << 24))) / (1 << 24) * 1000.f;
-		float absolute_pressure_p = absolute_pressure * 100;
-		float corrected_temperature = ((temperature * 155.0f) / (1 << 24)) - 45.0f;
+		float pressure_dig = correct_pressure(pressure_raw, temperature_raw);
+		float pressure_p = convert_pressure_dig(pressure_dig);
+		float temperature = ((temperature_raw * 155.0f) / (1 << 24)) - 45.0f;
 
-		publish_pressure(absolute_pressure_p, corrected_temperature, timestamp_sample);
+		publish_pressure(pressure_p, temperature, timestamp_sample);
 
 		_state = STATE::REQUEST_MEASUREMENT;
 		ScheduleNow();

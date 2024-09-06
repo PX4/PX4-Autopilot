@@ -34,8 +34,9 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <lib/perf/perf_counter.h>
 #include <lib/drivers/device/i2c.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/PublicationMulti.hpp>
 
@@ -108,6 +109,7 @@ protected:
 	virtual void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) = 0;
 	virtual int64_t get_conversion_interval() = 0;
 	virtual calib_eeprom_addr_t get_calib_eeprom_addr() = 0;
+	virtual float convert_pressure_dig(float pressure_dig) = 0;
 
 	int read_calibration_eeprom(uint8_t eeprom_address, uint16_t &data);
 	void convert_raw_calib_data(calib_data_raw_t calib_data_raw);
@@ -116,4 +118,9 @@ protected:
 	STATE _state{STATE::READ_CALIBDATA};
 	calib_data_t _calib_data {};
 	perf_counter_t _comms_errors;
+
+	float _cal_range{10.0f};
+
+private:
+	int probe() override;
 };

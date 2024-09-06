@@ -36,6 +36,9 @@
  *
  * @reboot_required true
  * @group Sensors
- * @boolean
-  */
-PARAM_DEFINE_INT32(SENS_EN_AUAV, 0);
+ * @value 0 Sensor disabled, when explicitly started treated as AUAV L05D
+ * @value 1 AUAV L05D
+ * @value 2 AUAV L10D
+ * @value 3 AUAV L30D
+ */
+PARAM_DEFINE_INT32(SENS_EN_AUAVX, 0);
