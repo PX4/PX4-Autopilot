@@ -231,6 +231,8 @@ void FlightTaskAuto::rcHelpModifyYaw(float &yaw_sp)
 
 void FlightTaskAuto::_prepareLandSetpoints()
 {
+	// IMPORTANT: This Landing logic is only used for Precision Landing, for the other Landing see FlightTaskLand
+
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
 
 	// Slow down automatic descend close to ground
