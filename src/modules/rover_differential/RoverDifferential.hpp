@@ -39,6 +39,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/pure_pursuit/PurePursuit.hpp>
 
 // uORB includes
 #include <uORB/Publication.hpp>
@@ -103,8 +104,10 @@ private:
 	// Instances
 	RoverDifferentialGuidance _rover_differential_guidance{this};
 	RoverDifferentialControl _rover_differential_control{this};
+	PurePursuit _posctl_pure_pursuit{this}; // Pure pursuit library
 
 	// Variables
+	Vector2f _curr_pos_ned{};
 	matrix::Quatf _vehicle_attitude_quaternion{};
 	float _vehicle_yaw_rate{0.f};
 	float _vehicle_forward_speed{0.f};
@@ -112,6 +115,10 @@ private:
 	float _max_yaw_rate{0.f};
 	int _nav_state{0};
 	bool _armed{false};
+	bool _yaw_ctl{false}; // Indicates if the rover is doing yaw or yaw rate control in Stabilized and Position mode
+	float _stab_desired_yaw{0.f}; // Yaw setpoint for Stabilized mode
+	Vector2f _pos_ctl_course_direction{}; // Course direction for Position mode
+	Vector2f _pos_ctl_start_position_ned{}; // Initial rover position for course control in Position mode
 
 	// Thresholds to avoid moving at rest due to measurement noise
 	static constexpr float YAW_RATE_THRESHOLD =
@@ -121,6 +128,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RD_MAN_YAW_SCALE>) _param_rd_man_yaw_scale,
-		(ParamFloat<px4::params::RD_MAX_YAW_RATE>) _param_rd_max_yaw_rate
+		(ParamFloat<px4::params::RD_MAX_YAW_RATE>) _param_rd_max_yaw_rate,
+		(ParamFloat<px4::params::RD_MAX_SPEED>) _param_rd_max_speed,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max
 	)
 };

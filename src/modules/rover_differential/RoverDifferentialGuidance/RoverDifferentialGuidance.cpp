@@ -216,7 +216,7 @@ void RoverDifferentialGuidance::updateWaypoints()
 
 	// Waypoint cruising speed
 	if (position_setpoint_triplet.current.cruising_speed > 0.f) {
-		_max_forward_speed = position_setpoint_triplet.current.cruising_speed;
+		_max_forward_speed = math::constrain(position_setpoint_triplet.current.cruising_speed, 0.f, _param_rd_max_speed.get());
 
 	} else {
 		_max_forward_speed = _param_rd_miss_spd_def.get();

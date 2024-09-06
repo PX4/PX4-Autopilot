@@ -113,6 +113,19 @@ parameters:
         decimal: 2
         default: 0.5
 
+      RD_MAX_SPEED:
+        description:
+          short: Maximum speed setpoint
+          long: |
+            This parameter is used to cap desired forward speed and map controller inputs to desired speeds in Position mode.
+        type: float
+        unit: m/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
       RD_MAX_THR_SPD:
         description:
           short: Speed the rover drives at maximum throttle
@@ -133,7 +146,8 @@ parameters:
         description:
           short: Maximum allowed yaw rate for the rover
           long: |
-            This parameter is used to cap desired yaw rates and map controller inputs to desired yaw rates in acro mode.
+            This parameter is used to cap desired yaw rates and map controller inputs to desired yaw rates
+            in Acro,Stabilized and Position mode.
         type: float
         unit: deg/s
         min: 0.01
