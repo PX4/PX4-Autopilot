@@ -291,13 +291,13 @@ void CrsfRc::Run()
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 					case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-					case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+					case vehicle_status_s::NAVIGATION_STATE_LAND:
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 					case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 						flight_mode = "Auto";
 						break;
 
-					/*case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
+					/*case vehicle_status_s::NAVIGATION_STATE_LANDENGFAIL:
 						flight_mode = "Failure";
 						break;*/
 

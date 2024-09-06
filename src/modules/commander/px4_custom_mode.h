@@ -162,7 +162,7 @@ static inline union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+	case vehicle_status_s::NAVIGATION_STATE_LAND:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		break;

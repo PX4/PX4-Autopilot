@@ -57,7 +57,7 @@ static inline uint32_t getValidNavStates()
 	       (1u << vehicle_status_s::NAVIGATION_STATE_OFFBOARD) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_STAB) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_LAND) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT) |

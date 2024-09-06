@@ -567,7 +567,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 	// fallthrough
 	case Action::Land:
-		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
+		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_LAND)) {
 			selected_action = Action::Land;
 			break;
 		}
@@ -600,9 +600,9 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 	// UX improvement (this is optional for safety): change failsafe to a warning in certain situations.
 	// If already landing, do not go into RTL
-	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_LAND) {
 		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
-		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
+		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_LAND)) {
 			selected_action = Action::Warn;
 			returned_state.delayed_action = Action::None;
 		}
@@ -656,7 +656,7 @@ uint8_t FailsafeBase::modeFromAction(const Action &action, uint8_t user_intended
 
 	case Action::RTL: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-	case Action::Land: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+	case Action::Land: return vehicle_status_s::NAVIGATION_STATE_LAND;
 
 	case Action::Descend: return vehicle_status_s::NAVIGATION_STATE_DESCEND;
 

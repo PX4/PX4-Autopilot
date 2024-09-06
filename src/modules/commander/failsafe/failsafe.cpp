@@ -304,7 +304,7 @@ FailsafeBase::Action Failsafe::fromOffboardLossActParam(int param_value, uint8_t
 
 	case offboard_loss_failsafe_mode::Land_mode:
 		action = Action::Land;
-		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_LAND;
 		break;
 
 	case offboard_loss_failsafe_mode::Hold_mode:
@@ -435,7 +435,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	// GCS connection loss
-	const bool gcs_connection_loss_ignored = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND ||
+	const bool gcs_connection_loss_ignored = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_LAND ||
 			state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND || ignore_link_failsafe;
 
 	if (_param_nav_dll_act.get() != int32_t(gcs_connection_loss_failsafe_mode::Disabled) && !gcs_connection_loss_ignored) {
@@ -613,7 +613,7 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL
 		    && !modeCanRun(status_flags, user_intended_mode)) {
 			action = Action::Land;
-			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+			user_intended_mode = vehicle_status_s::NAVIGATION_STATE_LAND;
 
 			// Land -> Descend
 			if (!modeCanRun(status_flags, user_intended_mode)) {

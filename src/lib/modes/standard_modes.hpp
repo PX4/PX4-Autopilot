@@ -64,7 +64,7 @@ static inline StandardMode getStandardModeFromNavState(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION: return StandardMode::MISSION;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND: return StandardMode::LAND;
+	case vehicle_status_s::NAVIGATION_STATE_LAND: return StandardMode::LAND;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF: return StandardMode::TAKEOFF;
 		// Note: all other standard modes do not directly map, or are vehicle-type specific
@@ -83,7 +83,7 @@ static inline uint8_t getNavStateFromStandardMode(StandardMode mode)
 
 	case StandardMode::MISSION: return vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 
-	case StandardMode::LAND: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+	case StandardMode::LAND: return vehicle_status_s::NAVIGATION_STATE_LAND;
 
 	case StandardMode::TAKEOFF: return vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
 

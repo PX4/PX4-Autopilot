@@ -185,6 +185,17 @@ void FlightModeManager::start_flight_task()
 		}
 	}
 
+	// Landing
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_LAND) {
+		found_some_task = true;
+		FlightTaskError error = switchTask(FlightTaskIndex::Land);
+
+		if (error != FlightTaskError::NoError) {
+			matching_task_running = false;
+			task_failure = true;
+		}
+	}
+
 	// Navigator interface for autonomous modes
 	if (_vehicle_control_mode_sub.get().flag_control_auto_enabled
 	    && !nav_state_descend) {

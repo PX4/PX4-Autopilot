@@ -171,7 +171,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			// deny transition from MC to FW in Takeoff, Land, RTL and Orbit
 			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
 			    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
-			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_LAND
 			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
 			     ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 

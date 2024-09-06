@@ -70,7 +70,7 @@ void WindChecks::checkAndReport(const Context &context, Report &reporter)
 			   && wind_limit_exceeded
 			   && warning_timeout_passed
 			   && context.status().nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-			   && context.status().nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+			   && context.status().nav_state != vehicle_status_s::NAVIGATION_STATE_LAND) {
 
 			events::send<float>(events::ID("check_above_wind_limits_warning"),
 			{events::Log::Warning, events::LogInternal::Warning},
@@ -81,7 +81,7 @@ void WindChecks::checkAndReport(const Context &context, Report &reporter)
 			   && wind.longerThan(_param_com_wind_warn.get())
 			   && warning_timeout_passed
 			   && context.status().nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-			   && context.status().nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+			   && context.status().nav_state != vehicle_status_s::NAVIGATION_STATE_LAND) {
 
 			events::send<float>(events::ID("check_high_wind_warning"),
 			{events::Log::Warning, events::LogInternal::Info},

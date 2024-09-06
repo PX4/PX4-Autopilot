@@ -831,7 +831,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_LAND:
-							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET:
@@ -1062,14 +1062,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
-			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, getSourceFromCommand(cmd))) {
+			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_LAND, getSourceFromCommand(cmd))) {
 				mavlink_log_info(&_mavlink_log_pub, "Landing at current position\t");
 				events::send(events::ID("commander_landing_current_pos"), events::Log::Info,
 					     "Landing at current position");
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND);
+				printRejectMode(vehicle_status_s::NAVIGATION_STATE_LAND);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}

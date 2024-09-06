@@ -801,7 +801,7 @@ void Navigator::run()
 			break;
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+		case vehicle_status_s::NAVIGATION_STATE_LAND:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_land;
 			break;
