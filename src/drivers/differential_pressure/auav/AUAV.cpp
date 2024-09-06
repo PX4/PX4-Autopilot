@@ -107,15 +107,17 @@ int AUAV::init()
 	param_get(param_find("SENS_EN_AUAVX"), &hw_model);
 
 	switch (hw_model) {
-		case 1: /* AUAV L05D (+- 5 inH20) */
-			_cal_range = 10.0f;
-			break;
-		case 2: /* AUAV L10D (+- 10 inH20) */
-			_cal_range = 20.0f;
-			break;
-		case 3: /* AUAV L30D (+- 30 inH20) */
-			_cal_range = 60.0f;
-			break;
+	case 1: /* AUAV L05D (+- 5 inH20) */
+		_cal_range = 10.0f;
+		break;
+
+	case 2: /* AUAV L10D (+- 10 inH20) */
+		_cal_range = 20.0f;
+		break;
+
+	case 3: /* AUAV L30D (+- 30 inH20) */
+		_cal_range = 60.0f;
+		break;
 	}
 
 	ScheduleClear();
@@ -159,8 +161,9 @@ void AUAV::handle_state_read_calibdata()
 		ScheduleNow();
 
 	} else {
+		/* In case of an error, try reading the calib data again after a backoff period */
 		perf_count(_comms_errors);
-		ScheduleDelayed(1_ms);
+		ScheduleDelayed(10_ms);
 	}
 }
 
@@ -174,8 +177,9 @@ void AUAV::handle_state_request_measurement()
 		ScheduleDelayed(get_conversion_interval());
 
 	} else {
+		/* In case of an error, start the next measurement after a backoff period */
 		perf_count(_comms_errors);
-		ScheduleDelayed(1_ms);
+		ScheduleDelayed(10_ms);
 	}
 }
 
@@ -201,9 +205,10 @@ void AUAV::handle_state_gather_measurement()
 		ScheduleNow();
 
 	} else {
+		/* In case of an error, ignore the results and start the next measurement */
 		perf_count(_comms_errors);
 		_state = STATE::REQUEST_MEASUREMENT;
-		ScheduleDelayed(1_ms);
+		ScheduleNow();
 	}
 }
 

@@ -48,8 +48,8 @@ static constexpr uint8_t EEPROM_ABS_DLW 	= 0x36;
 static constexpr uint8_t EEPROM_ABS_TC50 	= 0x37;
 static constexpr uint8_t EEPROM_ABS_ES		= 0x38;
 
-/* Measurement rate is 100Hz */
-static constexpr unsigned ABS_MEAS_RATE = 100;
+/* Measurement rate is 50Hz */
+static constexpr unsigned ABS_MEAS_RATE = 50;
 static constexpr int64_t ABS_CONVERSION_INTERVAL = (1000000 / ABS_MEAS_RATE); /* microseconds */
 
 class AUAV_Absolute : public AUAV
