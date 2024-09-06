@@ -59,7 +59,7 @@ bool RoverLandDetector::_get_landed_state()
 		return true; // If Landing has been requested then say we have landed.
 
 	} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-		   && distance_to_home < _param_nav_acc_rad.get()) {
+		   && distance_to_home < _param_nav_acc_rad.get() && _param_rtl_land_delay.get() > -FLT_EPSILON) {
 		return true; // If the rover reaches the home position during RTL we say we have landed
 
 	} else {

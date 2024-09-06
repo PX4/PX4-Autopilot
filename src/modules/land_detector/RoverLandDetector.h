@@ -68,7 +68,8 @@ private:
 	matrix::Vector2d _home_position{};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,
+		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_rtl_land_delay
 	)
 
 };
