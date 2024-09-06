@@ -6,8 +6,8 @@ actuator_output:
     - param_prefix: HIL_ACT
       channel_label: Channel
       standard_params:
-        disarmed: { min: 0, max: 1000, default: 0 }
+        disarmed: { min: 0, max: 3500, default: 0 }
         min: { min: 0, max: 1000, default: 0 }
-        max: { min: 0, max: 1000, default: 1000 }
-        failsafe: { min: 0, max: 1000 }
+        max: { min: 0, max: 3500, default: 1000 }
+        failsafe: { min: 0, max: 3500 }
       num_channels: 16
