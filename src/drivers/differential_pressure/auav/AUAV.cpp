@@ -62,12 +62,14 @@ I2CSPIDriverBase *AUAV::instantiate(const I2CSPIDriverConfig &config, const int 
 AUAV::AUAV(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms errors"))
 {
 }
 
 AUAV::~AUAV()
 {
+	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
@@ -91,6 +93,7 @@ void AUAV::RunImpl()
 void AUAV::print_status()
 {
 	I2CSPIDriverBase::print_status();
+	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 }
 
@@ -185,6 +188,8 @@ void AUAV::handle_state_request_measurement()
 
 void AUAV::handle_state_gather_measurement()
 {
+	perf_begin(_sample_perf);
+
 	uint8_t res_data[7];
 	int status = transfer(nullptr, 0, res_data, sizeof(res_data));
 
@@ -201,15 +206,15 @@ void AUAV::handle_state_gather_measurement()
 
 		publish_pressure(pressure_p, temperature_c, timestamp_sample);
 
-		_state = STATE::REQUEST_MEASUREMENT;
-		ScheduleNow();
-
 	} else {
-		/* In case of an error, ignore the results and start the next measurement */
+		/* In case of an error, ignore the results */
 		perf_count(_comms_errors);
-		_state = STATE::REQUEST_MEASUREMENT;
-		ScheduleNow();
 	}
+
+	_state = STATE::REQUEST_MEASUREMENT;
+	ScheduleNow();
+
+	perf_end(_sample_perf);
 }
 
 int AUAV::read_calibration_eeprom(const uint8_t eeprom_address, uint16_t &data)
@@ -245,10 +250,10 @@ void AUAV::process_calib_data_raw(const calib_data_raw_t calib_data_raw)
 	_calib_data.es = (float)(calib_data_raw.es & 0xFF) / 0x7F;
 }
 
-float AUAV::correct_pressure(const uint32_t pressure, const uint32_t temperature) const
+float AUAV::correct_pressure(const uint32_t pressure_raw, const uint32_t temperature_raw) const
 {
 	/* Correct the pressure using the calib data as described in the datasheet */
-	const int32_t p_raw = pressure - 0x800000;
+	const int32_t p_raw = pressure_raw - 0x800000;
 	const float p_norm = (float) p_raw / 0x7FFFFF;
 
 	const float ap = _calib_data.a * p_norm * p_norm * p_norm;
@@ -258,7 +263,7 @@ float AUAV::correct_pressure(const uint32_t pressure, const uint32_t temperature
 	const float c_corr = ap + bp + cp + _calib_data.d;
 	const float p_corr = p_norm + c_corr;
 
-	const int32_t t_diff = temperature - 7576807;
+	const int32_t t_diff = temperature_raw - 7576807;
 	const float p_nfso = (p_corr + 1.0f) / 2.0f;
 
 	float tc50;

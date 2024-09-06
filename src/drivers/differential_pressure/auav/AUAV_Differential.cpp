@@ -38,7 +38,8 @@ AUAV_Differential::AUAV_Differential(const I2CSPIDriverConfig &config) :
 {
 }
 
-void AUAV_Differential::publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample)
+void AUAV_Differential::publish_pressure(const float pressure_p, const float temperature_c,
+		const hrt_abstime timestamp_sample)
 {
 	differential_pressure_s differential_pressure{};
 	differential_pressure.timestamp = hrt_absolute_time();

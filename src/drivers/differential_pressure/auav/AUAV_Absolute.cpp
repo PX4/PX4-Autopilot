@@ -38,7 +38,8 @@ AUAV_Absolute::AUAV_Absolute(const I2CSPIDriverConfig &config) :
 {
 }
 
-void AUAV_Absolute::publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample)
+void AUAV_Absolute::publish_pressure(const float pressure_p, const float temperature_c,
+				     const hrt_abstime timestamp_sample)
 {
 	sensor_baro_s sensor_baro{};
 	sensor_baro.timestamp = hrt_absolute_time();

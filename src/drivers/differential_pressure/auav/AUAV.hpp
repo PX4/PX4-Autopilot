@@ -102,7 +102,8 @@ protected:
 		float es;
 	};
 
-	virtual void publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample) = 0;
+	virtual void publish_pressure(const float pressure_p, const float temperature_c,
+				      const hrt_abstime timestamp_sample) = 0;
 	virtual int64_t get_conversion_interval() const = 0;
 	virtual calib_eeprom_addr_t get_calib_eeprom_addr() const = 0;
 	virtual float process_pressure_dig(const float pressure_dig) const = 0;
@@ -113,12 +114,14 @@ protected:
 
 	int read_calibration_eeprom(const uint8_t eeprom_address, uint16_t &data);
 	void process_calib_data_raw(const calib_data_raw_t calib_data_raw);
-	float correct_pressure(const uint32_t pressure, const uint32_t temperature) const;
+	float correct_pressure(const uint32_t pressure_raw, const uint32_t temperature_raw) const;
 	float process_temperature_raw(const float temperature_raw) const;
 
 	float _cal_range{10.0f};
 	STATE _state{STATE::READ_CALIBDATA};
 	calib_data_t _calib_data {};
+
+	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
 
 private:
