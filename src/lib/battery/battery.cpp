@@ -106,6 +106,11 @@ void Battery::updateCurrent(const float current_a)
 	_current_a = current_a;
 }
 
+void Battery::updateTemperature(const float temperature_c)
+{
+	_temperature_c = temperature_c;
+}
+
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 {
 	// Require minimum voltage otherwise override connected status
@@ -149,7 +154,7 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.remaining = _state_of_charge;
 	battery_status.scale = _scale;
 	battery_status.time_remaining_s = computeRemainingTime(_current_a);
-	battery_status.temperature = NAN;
+	battery_status.temperature = _temperature_c;
 	battery_status.cell_count = _params.n_cells;
 	battery_status.connected = _connected;
 	battery_status.source = _source;
