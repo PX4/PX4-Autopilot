@@ -35,7 +35,7 @@
 #include "AUAV_Absolute.hpp"
 #include "AUAV_Differential.hpp"
 
-I2CSPIDriverBase *AUAV::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
+I2CSPIDriverBase *AUAV::instantiate(const I2CSPIDriverConfig &config, const int runtime_instance)
 {
 	AUAV *instance = nullptr;
 
@@ -96,14 +96,14 @@ void AUAV::print_status()
 
 int AUAV::init()
 {
-	int ret = I2C::init();
+	const int ret = I2C::init();
 
 	if (ret != PX4_OK) {
 		DEVICE_DEBUG("I2C::init failed (%i)", ret);
 		return ret;
 	}
 
-	int32_t hw_model;
+	int32_t hw_model = 0;
 	param_get(param_find("SENS_EN_AUAVX"), &hw_model);
 
 	switch (hw_model) {
@@ -122,7 +122,7 @@ int AUAV::init()
 
 	ScheduleClear();
 	ScheduleNow();
-	return OK;
+	return PX4_OK;
 }
 
 int AUAV::probe()
@@ -130,7 +130,7 @@ int AUAV::probe()
 	uint8_t res_data = 0;
 	int status = transfer(nullptr, 0, &res_data, sizeof(res_data));
 
-	/* Probe checks if the sensor reports as being powered on in its status */
+	/* Check that the sensor is active. Reported in bit 6 of the status byte */
 	if ((res_data & 0x40) == 0) {
 		status = PX4_ERROR;
 	}
@@ -156,7 +156,7 @@ void AUAV::handle_state_read_calibdata()
 	status = status || read_calibration_eeprom(calib_data_eeprom_addr.addr_es, calib_data_raw.es);
 
 	if (status == PX4_OK) {
-		convert_raw_calib_data(calib_data_raw);
+		process_calib_data_raw(calib_data_raw);
 		_state = STATE::REQUEST_MEASUREMENT;
 		ScheduleNow();
 
@@ -192,14 +192,14 @@ void AUAV::handle_state_gather_measurement()
 	if (status == PX4_OK && (res_data[0] & 0x20) == 0) {
 		const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-		uint32_t pressure_raw = (res_data[1] << 16) | (res_data[2] << 8) | (res_data[3]);
-		uint32_t temperature_raw = (res_data[4] << 16) | (res_data[5] << 8) | (res_data[6]);
+		const uint32_t pressure_raw = (res_data[1] << 16) | (res_data[2] << 8) | (res_data[3]);
+		const uint32_t temperature_raw = (res_data[4] << 16) | (res_data[5] << 8) | (res_data[6]);
 
-		float pressure_dig = correct_pressure(pressure_raw, temperature_raw);
-		float pressure_p = convert_pressure_dig(pressure_dig);
-		float temperature = ((temperature_raw * 155.0f) / (1 << 24)) - 45.0f;
+		const float pressure_dig = correct_pressure(pressure_raw, temperature_raw);
+		const float pressure_p = process_pressure_dig(pressure_dig);
+		const float temperature_c = process_temperature_raw(temperature_raw);
 
-		publish_pressure(pressure_p, temperature, timestamp_sample);
+		publish_pressure(pressure_p, temperature_c, timestamp_sample);
 
 		_state = STATE::REQUEST_MEASUREMENT;
 		ScheduleNow();
@@ -212,18 +212,18 @@ void AUAV::handle_state_gather_measurement()
 	}
 }
 
-int AUAV::read_calibration_eeprom(uint8_t eeprom_address, uint16_t &data)
+int AUAV::read_calibration_eeprom(const uint8_t eeprom_address, uint16_t &data)
 {
-	uint8_t req_data[3] = {eeprom_address, 0x0, 0x0};
+	const uint8_t req_data[3] = {eeprom_address, 0x0, 0x0};
 	int status = transfer(req_data, sizeof(req_data), nullptr, 0);
 
 	/* Wait for the EEPROM read access. Worst case is 2000us */
 	px4_usleep(2000);
 
 	uint8_t res_data[3];
-	status |= transfer(nullptr, 0, res_data, sizeof(res_data));
+	status = status || transfer(nullptr, 0, res_data, sizeof(res_data));
 
-	/* If bit 5 is set to 1, the sensor is still busy. This read is considered invalid */
+	/* If bit 5 of the status byte is set to 1, the sensor is still busy. This read is considered invalid */
 	if (res_data[0] & 0x20) {
 		status = PX4_ERROR;
 	}
@@ -232,7 +232,7 @@ int AUAV::read_calibration_eeprom(uint8_t eeprom_address, uint16_t &data)
 	return status;
 }
 
-void AUAV::convert_raw_calib_data(calib_data_raw_t calib_data_raw)
+void AUAV::process_calib_data_raw(const calib_data_raw_t calib_data_raw)
 {
 	/* Conversion of calib data as described in the datasheet */
 	_calib_data.a = (float)((calib_data_raw.a_hw << 16) | calib_data_raw.a_lw) / 0x7FFFFFFF;
@@ -245,21 +245,21 @@ void AUAV::convert_raw_calib_data(calib_data_raw_t calib_data_raw)
 	_calib_data.es = (float)(calib_data_raw.es & 0xFF) / 0x7F;
 }
 
-float AUAV::correct_pressure(uint32_t pressure, uint32_t temperature)
+float AUAV::correct_pressure(const uint32_t pressure, const uint32_t temperature) const
 {
 	/* Correct the pressure using the calib data as described in the datasheet */
-	int32_t p_raw = pressure - 0x800000;
-	float p_norm = (float) p_raw / 0x7FFFFF;
+	const int32_t p_raw = pressure - 0x800000;
+	const float p_norm = (float) p_raw / 0x7FFFFF;
 
-	float ap = _calib_data.a * p_norm * p_norm * p_norm;
-	float bp = _calib_data.b * p_norm * p_norm;
-	float cp = _calib_data.c * p_norm;
+	const float ap = _calib_data.a * p_norm * p_norm * p_norm;
+	const float bp = _calib_data.b * p_norm * p_norm;
+	const float cp = _calib_data.c * p_norm;
 
-	float c_corr = ap + bp + cp + _calib_data.d;
-	float p_corr = p_norm + c_corr;
+	const float c_corr = ap + bp + cp + _calib_data.d;
+	const float p_corr = p_norm + c_corr;
 
-	int32_t t_diff = temperature - 7576807;
-	float p_nfso = (p_corr + 1.0f) / 2.0f;
+	const int32_t t_diff = temperature - 7576807;
+	const float p_nfso = (p_corr + 1.0f) / 2.0f;
 
 	float tc50;
 	float p_diff;
@@ -278,8 +278,13 @@ float AUAV::correct_pressure(uint32_t pressure, uint32_t temperature)
 		p_diff = 0.5f - p_nfso;
 	}
 
-	float t_corr = ((1.0f - (_calib_data.es * 2.5f * p_diff)) * t_diff * tc50) / (100.0f * 100.0f * 167772.2f);
-	float p_corrt = p_nfso - t_corr;
-	float p_comp = (uint32_t)(p_corrt * (float)0xFFFFFF);
+	const float t_corr = ((1.0f - (_calib_data.es * 2.5f * p_diff)) * t_diff * tc50) / (100.0f * 100.0f * 167772.2f);
+	const float p_corrt = p_nfso - t_corr;
+	const float p_comp = (uint32_t)(p_corrt * (float)0xFFFFFF);
 	return p_comp;
+}
+
+float AUAV::process_temperature_raw(const float temperature_raw) const
+{
+	return ((temperature_raw * 155.0f) / (1 << 24)) - 45.0f;
 }

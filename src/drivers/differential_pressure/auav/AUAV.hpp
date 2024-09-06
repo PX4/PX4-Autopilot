@@ -49,10 +49,10 @@ static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interfac
 class AUAV : public device::I2C, public I2CSPIDriver<AUAV>
 {
 public:
-	AUAV(const I2CSPIDriverConfig &config);
+	explicit AUAV(const I2CSPIDriverConfig &config);
 	virtual ~AUAV();
 
-	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, const int runtime_instance);
 	static void print_usage();
 
 	virtual void RunImpl();
@@ -97,29 +97,29 @@ protected:
 		float b;
 		float c;
 		float d;
-		float es;
 		float tc50h;
 		float tc50l;
+		float es;
 	};
+
+	virtual void publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample) = 0;
+	virtual int64_t get_conversion_interval() const = 0;
+	virtual calib_eeprom_addr_t get_calib_eeprom_addr() const = 0;
+	virtual float process_pressure_dig(const float pressure_dig) const = 0;
 
 	void handle_state_read_calibdata();
 	void handle_state_request_measurement();
 	void handle_state_gather_measurement();
 
-	virtual void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) = 0;
-	virtual int64_t get_conversion_interval() = 0;
-	virtual calib_eeprom_addr_t get_calib_eeprom_addr() = 0;
-	virtual float convert_pressure_dig(float pressure_dig) = 0;
+	int read_calibration_eeprom(const uint8_t eeprom_address, uint16_t &data);
+	void process_calib_data_raw(const calib_data_raw_t calib_data_raw);
+	float correct_pressure(const uint32_t pressure, const uint32_t temperature) const;
+	float process_temperature_raw(const float temperature_raw) const;
 
-	int read_calibration_eeprom(uint8_t eeprom_address, uint16_t &data);
-	void convert_raw_calib_data(calib_data_raw_t calib_data_raw);
-	float correct_pressure(uint32_t pressure, uint32_t temperature);
-
+	float _cal_range{10.0f};
 	STATE _state{STATE::READ_CALIBDATA};
 	calib_data_t _calib_data {};
 	perf_counter_t _comms_errors;
-
-	float _cal_range{10.0f};
 
 private:
 	int probe() override;

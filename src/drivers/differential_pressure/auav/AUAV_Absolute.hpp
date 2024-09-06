@@ -52,17 +52,20 @@ static constexpr uint8_t EEPROM_ABS_ES		= 0x38;
 static constexpr unsigned ABS_MEAS_RATE = 50;
 static constexpr int64_t ABS_CONVERSION_INTERVAL = (1000000 / ABS_MEAS_RATE); /* microseconds */
 
+/* Conversions */
+static constexpr float MBAR_TO_PA = 100.0f;
+
 class AUAV_Absolute : public AUAV
 {
 public:
-	AUAV_Absolute(const I2CSPIDriverConfig &config);
-	~AUAV_Absolute() override;
+	explicit AUAV_Absolute(const I2CSPIDriverConfig &config);
+	~AUAV_Absolute() = default;
 
 private:
-	void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) override;
-	int64_t get_conversion_interval() override;
-	calib_eeprom_addr_t get_calib_eeprom_addr() override;
-	float convert_pressure_dig(float pressure_dig) override;
+	void publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample) override;
+	int64_t get_conversion_interval() const override;
+	calib_eeprom_addr_t get_calib_eeprom_addr() const override;
+	float process_pressure_dig(const float pressure_dig) const override;
 
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 };

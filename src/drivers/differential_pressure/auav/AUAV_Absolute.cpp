@@ -38,28 +38,24 @@ AUAV_Absolute::AUAV_Absolute(const I2CSPIDriverConfig &config) :
 {
 }
 
-AUAV_Absolute::~AUAV_Absolute()
-{
-}
-
-void AUAV_Absolute::publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample)
+void AUAV_Absolute::publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample)
 {
 	sensor_baro_s sensor_baro{};
+	sensor_baro.timestamp = hrt_absolute_time();
 	sensor_baro.timestamp_sample = timestamp_sample;
 	sensor_baro.device_id = get_device_id();
 	sensor_baro.pressure = pressure_p;
 	sensor_baro.temperature = temperature_c;
 	sensor_baro.error_count = perf_event_count(_comms_errors);
-	sensor_baro.timestamp = hrt_absolute_time();
 	_sensor_baro_pub.publish(sensor_baro);
 }
 
-int64_t AUAV_Absolute::get_conversion_interval()
+int64_t AUAV_Absolute::get_conversion_interval() const
 {
 	return ABS_CONVERSION_INTERVAL;
 }
 
-AUAV::calib_eeprom_addr_t AUAV_Absolute::get_calib_eeprom_addr()
+AUAV::calib_eeprom_addr_t AUAV_Absolute::get_calib_eeprom_addr() const
 {
 	return calib_eeprom_addr_t {
 		EEPROM_ABS_AHW,
@@ -75,8 +71,8 @@ AUAV::calib_eeprom_addr_t AUAV_Absolute::get_calib_eeprom_addr()
 	};
 }
 
-float AUAV_Absolute::convert_pressure_dig(float pressure_dig)
+float AUAV_Absolute::process_pressure_dig(const float pressure_dig) const
 {
-	float pressure_mbar = 250.f + 1.25f * (pressure_dig - (0.1f * (1 << 24))) / (1 << 24) * 1000.f;
-	return pressure_mbar * 100;
+	const float pressure_mbar = 250.f + 1.25f * ((pressure_dig - (0.1f * (1 << 24))) / (1 << 24)) * 1000.f;
+	return pressure_mbar * MBAR_TO_PA;
 }

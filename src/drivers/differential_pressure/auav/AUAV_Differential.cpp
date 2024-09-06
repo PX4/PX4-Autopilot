@@ -38,28 +38,24 @@ AUAV_Differential::AUAV_Differential(const I2CSPIDriverConfig &config) :
 {
 }
 
-AUAV_Differential::~AUAV_Differential()
-{
-}
-
-void AUAV_Differential::publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample)
+void AUAV_Differential::publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample)
 {
 	differential_pressure_s differential_pressure{};
+	differential_pressure.timestamp = hrt_absolute_time();
 	differential_pressure.timestamp_sample = timestamp_sample;
 	differential_pressure.device_id = get_device_id();
 	differential_pressure.differential_pressure_pa = pressure_p;
 	differential_pressure.temperature = temperature_c;
 	differential_pressure.error_count = perf_event_count(_comms_errors);
-	differential_pressure.timestamp = hrt_absolute_time();
 	_differential_pressure_pub.publish(differential_pressure);
 }
 
-int64_t AUAV_Differential::get_conversion_interval()
+int64_t AUAV_Differential::get_conversion_interval() const
 {
 	return DIFF_CONVERSION_INTERVAL;
 }
 
-AUAV::calib_eeprom_addr_t AUAV_Differential::get_calib_eeprom_addr()
+AUAV::calib_eeprom_addr_t AUAV_Differential::get_calib_eeprom_addr() const
 {
 	return calib_eeprom_addr_t {
 		EEPROM_DIFF_AHW,
@@ -75,8 +71,8 @@ AUAV::calib_eeprom_addr_t AUAV_Differential::get_calib_eeprom_addr()
 	};
 }
 
-float AUAV_Differential::convert_pressure_dig(float pressure_dig)
+float AUAV_Differential::process_pressure_dig(const float pressure_dig) const
 {
-	float pressure_in_h = 1.25f * ((pressure_dig - (1 << 23)) / (1 << 24)) * _cal_range;
-	return pressure_in_h * 249.08f;
+	const float pressure_in_h = 1.25f * ((pressure_dig - (1 << 23)) / (1 << 24)) * _cal_range;
+	return pressure_in_h * INH_TO_PA;
 }

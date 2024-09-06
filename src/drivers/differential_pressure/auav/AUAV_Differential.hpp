@@ -52,17 +52,20 @@ static constexpr uint8_t EEPROM_DIFF_ES		= 0x34;
 static constexpr unsigned DIFF_MEAS_RATE = 100;
 static constexpr int64_t DIFF_CONVERSION_INTERVAL = (1000000 / DIFF_MEAS_RATE); /* microseconds */
 
+/* Conversions */
+static constexpr float INH_TO_PA = 249.08f;
+
 class AUAV_Differential : public AUAV
 {
 public:
-	AUAV_Differential(const I2CSPIDriverConfig &config);
-	~AUAV_Differential() override;
+	explicit AUAV_Differential(const I2CSPIDriverConfig &config);
+	~AUAV_Differential() = default;
 
 private:
-	void publish_pressure(float pressure_p, float temperature_c, hrt_abstime timestamp_sample) override;
-	int64_t get_conversion_interval() override;
-	calib_eeprom_addr_t get_calib_eeprom_addr() override;
-	float convert_pressure_dig(float pressure_dig) override;
+	void publish_pressure(const float pressure_p, const float temperature_c, const hrt_abstime timestamp_sample) override;
+	int64_t get_conversion_interval() const override;
+	calib_eeprom_addr_t get_calib_eeprom_addr() const override;
+	float process_pressure_dig(const float pressure_dig) const override;
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 };
