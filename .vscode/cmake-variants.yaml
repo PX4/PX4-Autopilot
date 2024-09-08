@@ -286,6 +286,11 @@ CONFIG:
       buildType: MiniSizeRel
       settings:
         CONFIG: matek_gnss-m9n-f4_default
+    micoair_h743_default:
+      short: micoair_h743
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel

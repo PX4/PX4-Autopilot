@@ -41,10 +41,6 @@
 
 #include "ekf.h"
 
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-# include <lib/world_magnetic_model/geo_mag_declination.h>
-#endif // CONFIG_EKF2_MAGNETOMETER
-
 #include <mathlib/mathlib.h>
 
 // GPS pre-flight check bit locations
@@ -63,46 +59,27 @@ void Ekf::collect_gps(const gnssSample &gps)
 {
 	if (_filter_initialised && !_NED_origin_initialised && _gps_checks_passed) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-		const double lat = gps.lat;
-		const double lon = gps.lon;
-
 		if (!_pos_ref.isInitialized()) {
-			_pos_ref.initReference(lat, lon, gps.time_us);
-
-			// if we are already doing aiding, correct for the change in position since the EKF started navigating
-			if (isHorizontalAidingActive()) {
-				double est_lat;
-				double est_lon;
-				_pos_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
-				_pos_ref.initReference(est_lat, est_lon, gps.time_us);
-			}
+			setLatLonOriginFromCurrentPos(gps.lat, gps.lon, gps.hacc);
 		}
 
 		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
 		if (!PX4_ISFINITE(_gps_alt_ref)) {
-			_gps_alt_ref = gps.alt + _state.pos(2);
+			setAltOriginFromCurrentPos(gps.alt, gps.vacc);
 		}
 
-		_NED_origin_initialised = true;
-
-		// save the horizontal and vertical position uncertainty of the origin
-		_gpos_origin_eph = gps.hacc;
-		_gpos_origin_epv = gps.vacc;
-
 		_information_events.flags.gps_checks_passed = true;
-		ECL_INFO("GPS checks passed");
-	}
 
-	if ((isTimedOut(_wmm_gps_time_last_checked, 1e6)) || (_wmm_gps_time_last_set == 0)) {
-		// a rough 2D fix is sufficient to lookup declination
+		ECL_INFO("GPS origin set to lat=%.6f, lon=%.6f",
+			 _pos_ref.getProjectionReferenceLat(), _pos_ref.getProjectionReferenceLon());
+
+	} else {
+		// a rough 2D fix is sufficient to lookup earth spin rate
 		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.hacc < 1000);
 
 		if (gps_rough_2d_fix && (_gps_checks_passed || !_NED_origin_initialised)) {
-			updateWmm(gps.lat, gps.lon);
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(gps.lat));
 		}
-
-		_wmm_gps_time_last_checked = _time_delayed_us;
 	}
 }
 

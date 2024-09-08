@@ -70,7 +70,7 @@ private:
 	enum class offboard_loss_failsafe_mode : int32_t {
 		Position_mode = 0,
 		Altitude_mode = 1,
-		Manual = 2,
+		Stabilized = 2,
 		Return_mode = 3,
 		Land_mode = 4,
 		Hold_mode = 5,

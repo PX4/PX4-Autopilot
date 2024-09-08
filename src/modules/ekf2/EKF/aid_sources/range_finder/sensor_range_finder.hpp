@@ -44,6 +44,7 @@
 #include "Sensor.hpp"
 
 #include <matrix/math.hpp>
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
 
 namespace estimator
 {
@@ -99,6 +100,8 @@ public:
 		_rng_valid_max_val = max_distance;
 	}
 
+	void setMaxFogDistance(float max_fog_dist) { _max_fog_dist = max_fog_dist; }
+
 	void setQualityHysteresis(float valid_quality_threshold_s)
 	{
 		_quality_hyst_us = uint64_t(valid_quality_threshold_s * 1e6f);
@@ -129,6 +132,7 @@ private:
 	bool isTiltOk() const { return _cos_tilt_rng_to_earth > _range_cos_max_tilt; }
 	bool isDataInRange() const;
 	void updateStuckCheck();
+	void updateFogCheck(const float dist_bottom, const uint64_t time_us);
 
 	rangeSample _sample{};
 
@@ -172,6 +176,14 @@ private:
 	 */
 	uint64_t _time_bad_quality_us{};	///< timestamp at which range finder signal quality was 0 (used for hysteresis)
 	uint64_t _quality_hyst_us{};		///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (us)
+
+	/*
+	 * Fog check
+	 */
+	bool _is_blocked{false};
+	float _max_fog_dist{0.f};	//< maximum distance at which the range finder could detect fog (m)
+	math::MedianFilter<float, 5> _median_dist{};
+	float _prev_median_dist{0.f};
 };
 
 } // namespace sensor

@@ -291,6 +291,7 @@ using namespace time_literals;
 #define INA228_CONST                         13107.2e6f  /* is an internal fixed value used to ensure scaling is maintained properly  */
 #define INA228_SHUNT                         0.0005f   /* Shunt is 500 uOhm */
 #define INA228_VSCALE                        1.95e-04f  /* LSB of voltage is 195.3125 uV/LSB */
+#define INA228_TSCALE                        7.8125e-03f /* LSB of temperature is 7.8125 mDegC/LSB */
 
 #define swap16(w)                            __builtin_bswap16((w))
 #define swap32(d)                            __builtin_bswap32((d))
@@ -339,6 +340,7 @@ private:
 	int32_t           _bus_voltage{0};
 	int64_t           _power{0};
 	int32_t           _current{0};
+	int16_t           _temperature{0};
 	int32_t           _shunt{0};
 	int16_t           _cal{0};
 	int16_t           _range{INA228_ADCRANGE_HIGH};

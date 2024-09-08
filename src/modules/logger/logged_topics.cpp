@@ -105,6 +105,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("rover_ackermann_guidance_status", 100);
 	add_optional_topic("rover_ackermann_status", 100);
 	add_optional_topic("rover_differential_guidance_status", 100);
+	add_optional_topic("rover_differential_setpoint", 100);
 	add_optional_topic("rover_differential_status", 100);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);

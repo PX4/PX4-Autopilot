@@ -205,11 +205,15 @@ private:
 	Vector2f _curr_wp_ned{};
 	Vector2f _prev_wp_ned{};
 	Vector2f _next_wp_ned{};
+	Vector2d _curr_wp{};
+	Vector2d _prev_wp{};
+	Vector2d _next_wp{};
 	float _distance_to_prev_wp{0.f};
 	float _distance_to_curr_wp{0.f};
 	float _distance_to_next_wp{0.f};
 	float _acceptance_radius{0.5f};
 	float _prev_acceptance_radius{0.5f};
+	float _wp_max_desired_vel{0.f};
 	bool _mission_finished{false};
 
 	// Parameters

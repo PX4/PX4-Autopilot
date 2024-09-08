@@ -20,73 +20,73 @@ parameters:
         description:
           short: Manual yaw rate scale
           long: |
-            In manual mode the setpoint for the yaw rate received from the rc remote
+            In manual mode the setpoint for the yaw rate received from the yaw stick
             is scaled by this value.
         type: float
-        min: 0.01
+        min: 0.001
         max: 1
         increment: 0.01
-        decimal: 2
+        decimal: 3
         default: 1
 
-      RD_HEADING_P:
+      RD_YAW_P:
         description:
-          short: Proportional gain for heading controller
+          short: Proportional gain for closed loop yaw controller
         type: float
         min: 0
         max: 100
         increment: 0.01
-        decimal: 2
+        decimal: 3
         default: 1
 
-      RD_HEADING_I:
+      RD_YAW_I:
         description:
-            short: Integral gain for heading controller
+            short: Integral gain for closed loop yaw controller
         type: float
         min: 0
         max: 100
         increment: 0.01
-        decimal: 2
-        default: 0.1
+        decimal: 3
+        default: 0
 
       RD_SPEED_P:
         description:
-          short: Proportional gain for speed controller
+          short: Proportional gain for closed loop forward speed controller
         type: float
         min: 0
         max: 100
         increment: 0.01
-        decimal: 2
+        decimal: 3
         default: 1
 
       RD_SPEED_I:
         description:
-          short: Integral gain for ground speed controller
+          short: Integral gain for closed loop forward speed controller
         type: float
         min: 0
         max: 100
         increment: 0.01
-        decimal: 2
+        decimal: 3
         default: 0
 
       RD_YAW_RATE_P:
         description:
-          short: Proportional gain for angular velocity controller
+          short: Proportional gain for closed loop yaw rate controller
         type: float
         min: 0
         max: 100
         increment: 0.01
-        decimal: 2
+        decimal: 3
         default: 1
 
       RD_YAW_RATE_I:
         description:
-          short: Integral gain for angular velocity controller
+          short: Integral gain for closed loop yaw rate controller
         type: float
         min: 0
         max: 100
         increment: 0.01
-        decimal: 2
+        decimal: 3
         default: 0
 
       RD_MAX_JERK:
@@ -123,11 +123,11 @@ parameters:
         max: 100
         increment: 0.01
         decimal: 2
-        default: 7
+        default: 1
 
       RD_MAX_YAW_RATE:
         description:
-          short: Maximum allowed yaw rate for the rover.
+          short: Maximum allowed yaw rate for the rover
           long: |
             This parameter is used to cap desired yaw rates and map controller inputs to desired yaw rates in acro mode.
         type: float
@@ -140,7 +140,7 @@ parameters:
 
       RD_MISS_SPD_DEF:
         description:
-          short: Default rover speed during a mission
+          short: Default forward speed for the rover during auto modes
         type: float
         unit: m/s
         min: 0
@@ -151,7 +151,7 @@ parameters:
 
       RD_TRANS_TRN_DRV:
         description:
-            short: Heading error threshhold to switch from spot turning to driving
+            short: Yaw error threshhold to switch from spot turning to driving
         type: float
         unit: rad
         min: 0.001
@@ -162,7 +162,12 @@ parameters:
 
       RD_TRANS_DRV_TRN:
         description:
-            short: Heading error threshhold to switch from driving to spot turning
+            short: Yaw error threshhold to switch from driving to spot turning
+            long: |
+              This threshold is used for the state machine to switch from driving to turning based on the
+              error between the desired and actual yaw. It is also used as the threshold whether the rover should come
+              to a smooth stop at the next waypoint. This slow down effect is active if the angle between the
+              line segments from prevWP-currWP and currWP-nextWP is smaller then 180 - RD_TRANS_DRV_TRN.
         type: float
         unit: rad
         min: 0.001
