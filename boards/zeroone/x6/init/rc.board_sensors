@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# PX4 FMUv6X specific board sensors init
+# ZeroOne X6 specific board sensors init
 #------------------------------------------------------------------------------
 set HAVE_PM2 yes
 set INA_CONFIGURED no
@@ -55,8 +55,8 @@ then
 	set INA_CONFIGURED yes
 fi
 
-#Start Auterion Power Module selector for Skynode boards
-if ver hwbasecmp 009 010 011
+#Start Auterion Power Module selector for zeroone boards
+if ver hwbasecmp 150
 then
 	pm_selector_auterion start
 else
