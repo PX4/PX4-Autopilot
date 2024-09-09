@@ -447,12 +447,12 @@
                             "description": "Transition to standby"
                         },
                         "1": {
-                            "name": "rc_stick",
-                            "description": "RC"
+                            "name": "stick_gesture",
+                            "description": "Stick gesture"
                         },
                         "2": {
                             "name": "rc_switch",
-                            "description": "RC (switch)"
+                            "description": "RC switch"
                         },
                         "3": {
                             "name": "command_internal",
