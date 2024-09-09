@@ -337,8 +337,6 @@ MissionBlock::is_mission_item_reached_or_completed()
 				acceptance_radius = _mission_item.acceptance_radius;
 			}
 
-			struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
-
 			float alt_acc_rad_m = _navigator->get_altitude_acceptance_radius();
 
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
