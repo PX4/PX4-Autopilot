@@ -73,7 +73,7 @@ public:
 	virtual void on_activation() override;
 	virtual void on_active() override;
 
-	bool isLanding();
+	virtual bool isLanding();
 
 protected:
 

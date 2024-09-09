@@ -304,6 +304,28 @@ void RTL::on_active()
 	}
 }
 
+bool RTL::isLanding()
+{
+	bool is_landing{false};
+
+	switch (_rtl_type) {
+	case RtlType::RTL_MISSION_FAST:
+	case RtlType::RTL_MISSION_FAST_REVERSE:
+	case RtlType::RTL_DIRECT_MISSION_LAND:
+		is_landing = _rtl_mission_type_handle->isLanding();
+		break;
+
+	case RtlType::RTL_DIRECT:
+		is_landing = _rtl_direct.isLanding();
+		break;
+
+	default:
+		break;
+	}
+
+	return is_landing;
+}
+
 void RTL::setRtlTypeAndDestination()
 {
 
