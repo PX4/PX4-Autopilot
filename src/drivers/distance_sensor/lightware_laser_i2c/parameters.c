@@ -54,7 +54,7 @@ PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
  *
  * @value 0 Disabled
  * @value 1 Enabled
- * @value 2 Disabled during VTOL fast forward flight
+ * @value 2 Enabled in VTOL MC mode, listen to request from system in FW mode
  *
  * @min 0
  * @max 2
