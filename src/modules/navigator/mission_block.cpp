@@ -339,9 +339,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
 
-			float alt_acc_rad_m = (PX4_ISFINITE(curr_sp->alt_acceptance_radius)
-					       && curr_sp->alt_acceptance_radius > FLT_EPSILON) ? curr_sp->alt_acceptance_radius :
-					      _navigator->get_altitude_acceptance_radius();
+			float alt_acc_rad_m = _navigator->get_altitude_acceptance_radius();
 
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
 			if (_mission_item.vtol_back_transition
