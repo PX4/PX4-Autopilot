@@ -272,6 +272,7 @@ private:
 	double _current_latitude{0};
 	double _current_longitude{0};
 	float _current_altitude{0.f};
+	float _aoa{0};
 
 	float _roll{0.f};
 	float _pitch{0.0f};

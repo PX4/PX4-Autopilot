@@ -15,6 +15,7 @@ float32 true_airspeed_derivative_raw	# True airspeed derivative raw [m/s^2]
 
 float32 total_energy_rate_sp		# Total energy rate setpoint [m^2/s^3]
 float32 total_energy_rate		# Total energy rate estimate [m^2/s^3]
+float32 alpha			# Angle of attack in radians
 
 float32 total_energy_balance_rate_sp	# Energy balance rate setpoint [m^2/s^3]
 float32 total_energy_balance_rate	# Energy balance rate estimate [m^2/s^3]
