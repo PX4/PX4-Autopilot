@@ -221,24 +221,11 @@ private:
 
 	px4::atomic<int> _scheduled_reset{(int)GPSRestartType::None};
 
-	/**
-	 * Publish the gps struct
-	 */
-	void 				publish();
+	void publish();
+	uint64_t get_delay_us() const;
 
-	/**
-	 * Publish the satellite info
-	 */
 	void 				publishSatelliteInfo();
-
-	/**
-	 * Publish RTCM corrections
-	 */
 	void 				publishRTCMCorrections(uint8_t *data, size_t len);
-
-	/**
-	 * Publish RTCM corrections
-	 */
 	void 				publishRelativePosition(sensor_gnss_relative_s &gnss_relative);
 
 	/**
@@ -1179,6 +1166,14 @@ void
 GPS::publish()
 {
 	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
+		if ((_report_gps_pos.timestamp_sample == 0) || (_report_gps_pos.timestamp_sample == _report_gps_pos.timestamp)) {
+			const uint64_t delay_us = get_delay_us();
+
+			if (_report_gps_pos.timestamp > delay_us) {
+				_report_gps_pos.timestamp_sample = _report_gps_pos.timestamp - get_delay_us();
+			}
+		}
+
 		_report_gps_pos.device_id = get_device_id();
 
 		_report_gps_pos.selected_rtcm_instance = _selected_rtcm_instance;
@@ -1209,6 +1204,33 @@ GPS::publish()
 			_jamming_state = _report_gps_pos.jamming_state;
 		}
 	}
+}
+
+uint64_t
+GPS::get_delay_us() const
+{
+	float delay_ms;
+
+	switch (_instance) {
+	case Instance::Main:
+		param_get(param_find("GPS_1_DELAY"), &delay_ms);
+		break;
+
+	case Instance::Secondary:
+		param_get(param_find("GPS_2_DELAY"), &delay_ms);
+		break;
+
+	default:
+		delay_ms = 0.f;
+		break;
+	}
+
+	if (delay_ms < -FLT_EPSILON) {
+		// If not specified (< 0), use generic delay as this is more realistic than 0
+		delay_ms = 110.f;
+	}
+
+	return static_cast<uint64_t>(delay_ms * 1e3f);
 }
 
 void

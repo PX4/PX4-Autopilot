@@ -47,7 +47,6 @@ param set-default EKF2_BCOEF_Y 25.5
 
 param set-default EKF2_DRAG_CTRL 1
 
-param set-default EKF2_GPS_DELAY 100
 param set-default EKF2_GPS_POS_X 0.06
 param set-default EKF2_GPS_V_NOISE 0.5
 
@@ -79,6 +78,7 @@ param set-default EKF2_RNG_POS_Z 0.033
 
 param set-default EKF2_TERR_NOISE 1
 
+param set-default GPS_1_DELAY 100
 
 # Maximum allowed angle velocity in the landed state
 param set-default LNDMC_ROT_MAX 40
