@@ -122,6 +122,12 @@ private:
 
 private:
 	/**
+	 * @brief Update the RTL state machine.
+	 *
+	 */
+	void _updateRtlState();
+
+	/**
 	 * @brief Set the return to launch control setpoint.
 	 *
 	 */
