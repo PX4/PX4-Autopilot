@@ -1118,9 +1118,14 @@ float Navigator::get_default_acceptance_radius()
 float Navigator::get_altitude_acceptance_radius()
 {
 	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+
+		const position_setpoint_s &curr_sp = get_position_setpoint_triplet()->current;
 		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
 
-		if (!force_vtol() && next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
+		if ((PX4_ISFINITE(curr_sp.alt_acceptance_radius) && curr_sp.alt_acceptance_radius > FLT_EPSILON)) {
+			return curr_sp.alt_acceptance_radius;
+
+		} else if (!force_vtol() && next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
 			// Use separate (tighter) altitude acceptance for clean altitude starting point before FW landing
 			return _param_nav_fw_altl_rad.get();
 
