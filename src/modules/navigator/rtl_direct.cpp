@@ -101,10 +101,11 @@ void RtlDirect::on_active()
 	parameters_update();
 
 	if (_rtl_state != RTLState::IDLE && is_mission_item_reached_or_completed()) {
+		_updateRtlState();
 		set_rtl_item();
 	}
 
-	if (_rtl_state != RTLState::IDLE) { //TODO: rename _rtl_state to _rtl_state_next (when in IDLE we're actually in LAND)
+	if (_rtl_state != RTLState::IDLE && _rtl_state != RTLState::LAND) {
 		//check for terrain collision and update altitude if needed
 		// note: it may trigger multiple times during a RTL, as every time the altitude set is reset
 		updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
@@ -154,6 +155,61 @@ void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s 
 	}
 }
 
+void RtlDirect::_updateRtlState()
+{
+	RTLState new_state{RTLState::IDLE};
+
+	switch (_rtl_state) {
+	case RTLState::CLIMBING:
+		new_state = RTLState::MOVE_TO_LOITER;
+		break;
+
+	case RTLState::MOVE_TO_LOITER:
+		new_state = RTLState::LOITER_DOWN;
+		break;
+
+	case RTLState::LOITER_DOWN:
+		new_state = RTLState::LOITER_HOLD;
+		break;
+
+	case RTLState::LOITER_HOLD:
+		if (_vehicle_status_sub.get().is_vtol
+		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			new_state = RTLState::MOVE_TO_LAND;
+
+		} else {
+			new_state = RTLState::MOVE_TO_LAND_HOVER;
+		}
+
+		break;
+
+	case RTLState::MOVE_TO_LAND:
+		new_state = RTLState::TRANSITION_TO_MC;
+		break;
+
+	case RTLState::TRANSITION_TO_MC:
+		new_state = RTLState::MOVE_TO_LAND_HOVER;
+		break;
+
+	case RTLState::MOVE_TO_LAND_HOVER:
+		new_state = RTLState::LAND;
+		break;
+
+	case RTLState::LAND:
+		new_state = RTLState::IDLE;
+		break;
+
+	case RTLState::IDLE: // Fallthrough
+	default:
+		new_state = RTLState::IDLE;
+		break;
+	}
+
+	_rtl_state = new_state;
+
+}
+
+
 void RtlDirect::set_rtl_item()
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -174,7 +230,6 @@ void RtlDirect::set_rtl_item()
 			};
 			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, _navigator->get_loiter_radius());
 
-			_rtl_state = RTLState::MOVE_TO_LOITER;
 			break;
 		}
 
@@ -196,8 +251,6 @@ void RtlDirect::set_rtl_item()
 				pos_yaw_sp.yaw = (is_close_to_destination && !_param_wv_en.get()) ? _destination.yaw : NAN;
 				setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			}
-
-			_rtl_state = RTLState::LOITER_DOWN;
 
 			break;
 		}
@@ -224,8 +277,6 @@ void RtlDirect::set_rtl_item()
 			// Disable previous setpoint to prevent drift.
 			pos_sp_triplet->previous.valid = false;
 
-			_rtl_state = RTLState::LOITER_HOLD;
-
 			break;
 		}
 
@@ -242,14 +293,6 @@ void RtlDirect::set_rtl_item()
 			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering\t");
 				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "RTL: completed, loitering");
-			}
-
-			if (_vehicle_status_sub.get().is_vtol
-			    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				_rtl_state = RTLState::MOVE_TO_LAND;
-
-			} else {
-				_rtl_state = RTLState::MOVE_TO_LAND_HOVER;
 			}
 
 			break;
@@ -274,15 +317,11 @@ void RtlDirect::set_rtl_item()
 			pos_sp_triplet->previous.alt = get_absolute_altitude_for_item(_mission_item);
 			pos_sp_triplet->previous.valid = true;
 
-			_rtl_state = RTLState::TRANSITION_TO_MC;
-
 			break;
 		}
 
 	case RTLState::TRANSITION_TO_MC: {
 			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-
-			_rtl_state = RTLState::MOVE_TO_LAND_HOVER;
 
 			break;
 		}
@@ -295,8 +334,6 @@ void RtlDirect::set_rtl_item()
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
-			_rtl_state = RTLState::LAND;
-
 			break;
 		}
 
@@ -308,8 +345,6 @@ void RtlDirect::set_rtl_item()
 			_mission_item.land_precision = _param_rtl_pld_md.get();
 
 			startPrecLand(_mission_item.land_precision);
-
-			_rtl_state = RTLState::IDLE;
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
 			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "RTL: land at destination");
