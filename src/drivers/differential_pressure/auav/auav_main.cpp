@@ -44,7 +44,7 @@ void AUAV::print_usage()
 	PRINT_MODULE_USAGE_PARAM_FLAG('D', "Differential pressure sensing", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('A', "Absolute pressure sensing", true);
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(I2C_ADDRESS_DIFFERENTIAL);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x26);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -58,7 +58,7 @@ extern "C" int auav_main(int argc, char *argv[])
 
 	int ch;
 	uint16_t device_type = 0;
-	const char *name;
+	const char *name = MODULE_NAME;
 
 	while ((ch = cli.getOpt(argc, argv, "DA")) != EOF) {
 		switch (ch) {
