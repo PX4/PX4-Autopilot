@@ -499,7 +499,7 @@ void LightwareLaser::RunImpl()
 
 	case State::Running:
 		if (!_restriction) {
-			_px4_rangefinder.set_mode(distance_sensor_s::DISTANCE_SENSOR_MODE_RUN);
+			_px4_rangefinder.set_mode(distance_sensor_s::MODE_ENABLED);
 
 			if (PX4_OK != collect()) {
 				PX4_DEBUG("collection error");
@@ -511,7 +511,7 @@ void LightwareLaser::RunImpl()
 			}
 
 		} else {
-			_px4_rangefinder.set_mode(distance_sensor_s::DISTANCE_SENSOR_MODE_DISABLED);
+			_px4_rangefinder.set_mode(distance_sensor_s::MODE_DISABLED);
 
 			if (!_prev_restriction) { // Publish disabled status once
 				_px4_rangefinder.update(hrt_absolute_time(), -1.f, 0);
