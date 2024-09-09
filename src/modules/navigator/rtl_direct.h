@@ -103,6 +103,8 @@ public:
 
 	void setRtlPosition(PositionYawSetpoint position, loiter_point_s loiter_pos);
 
+	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
+
 private:
 	/**
 	 * @brief Return to launch state machine.
