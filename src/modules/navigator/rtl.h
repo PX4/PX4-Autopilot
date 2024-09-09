@@ -89,6 +89,8 @@ public:
 
 	void updateSafePoints(uint32_t new_safe_point_id) { _initiate_safe_points_updated = true; _safe_points_id = new_safe_point_id; }
 
+	bool isLanding();
+
 private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
