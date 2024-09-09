@@ -41,7 +41,7 @@ uint8 ROTATION_DOWNWARD_FACING = 25 # MAV_SENSOR_ROTATION_PITCH_270
 
 uint8 ROTATION_CUSTOM          = 100 # MAV_SENSOR_ROTATION_CUSTOM
 
-uint8 mode 			# mode of operation
-uint8 DISTANCE_SENSOR_MODE_UNKNOWN = 0 # Unknown mode
-uint8 DISTANCE_SENSOR_MODE_RUN    = 1 # sensor is running continuosly
-uint8 DISTANCE_SENSOR_MODE_DISABLED = 2 # sensor is disabled per request
+uint8 mode
+uint8 MODE_UNKNOWN  = 0
+uint8 MODE_ENABLED  = 1
+uint8 MODE_DISABLED = 2
