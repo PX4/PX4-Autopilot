@@ -39,11 +39,31 @@ static constexpr int max_topic_size = 512;
 static_assert(sizeof(@(pub['simple_base_type'])_s) <= max_topic_size, "topic too large, increase max_topic_size");
 @[    end for]@
 
+
+
+// SFINAE to use R::MESSAGE_VERSION if it exists, and 0 otherwise
+template <typename R>
+class MessageVersionHelper
+{
+	template <typename C>
+	static constexpr uint32_t get(decltype(&C::MESSAGE_VERSION)) { return C::MESSAGE_VERSION; }
+	template <typename C>
+	static constexpr uint32_t get(...) { return 0; }
+public:
+	static constexpr uint32_t m = get<R>(0);
+};
+
+template <typename T>
+static constexpr uint32_t get_message_version() {
+	return MessageVersionHelper<T>::m;
+}
+
 struct SendSubscription {
 	const struct orb_metadata *orb_meta;
 	uxrObjectId data_writer;
 	const char* dds_type_name;
 	const char* topic;
+	uint32_t message_version;
 	uint32_t topic_size;
 	UcdrSerializeMethod ucdr_serialize_method;
 };
@@ -56,6 +76,7 @@ struct SendTopicsSubs {
 			  uxr_object_id(0, UXR_INVALID_ID),
 			  "@(pub['dds_type'])",
 			  "@(pub['topic'])",
+			  get_message_version<@(pub['simple_base_type'])_s>(),
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
 			  &ucdr_serialize_@(pub['simple_base_type']),
 			},
@@ -99,6 +120,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 			if (send_subscriptions[idx].data_writer.id == UXR_INVALID_ID) {
 				// data writer not created yet
 				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
+								   send_subscriptions[idx].message_version,
 								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
 			}
 

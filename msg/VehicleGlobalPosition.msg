@@ -4,6 +4,7 @@
 # estimator, which will take more sources of information into account than just GPS,
 # e.g. control inputs of the vehicle in a Kalman-filter implementation.
 #
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp		# time since system start (microseconds)
 uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
