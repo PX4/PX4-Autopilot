@@ -33,7 +33,7 @@
 
 /**
  * Test code for the Heading Smoothing library
- * Run this test only using make tests TESTFILTER=HeadingSmoothing
+ * Run exclusively this test with the command "make tests TESTFILTER=HeadingSmoothing"
  */
 
 #include "mathlib/math/Limits.hpp"
@@ -46,22 +46,26 @@ using namespace matrix;
 class HeadingSmoothingTest : public ::testing::Test
 {
 public:
+	HeadingSmoothingTest()
+	{
+		_smoothing.setMaxHeadingRate(15.f);
+		_smoothing.setMaxHeadingAccel(1.f);
+	}
+
 	HeadingSmoothing _smoothing;
+	float _dt{.1f};
 };
 
 TEST_F(HeadingSmoothingTest, convergence)
 {
-	const float dt = 0.1f;
-	const float heading_corrent = math::radians(0.f);
+	const float heading_current = math::radians(0.f);
 	const float heading_target = math::radians(5.f);
-	_smoothing.reset(heading_corrent, 0.f);
-	_smoothing.setMaxHeadingRate(15.f);
-	_smoothing.setMaxHeadingAccel(1.f);
+	_smoothing.reset(heading_current, 0.f);
 
-	const int nb_steps = ceilf(1.f / dt);
+	const int nb_steps = ceilf(1.f / _dt);
 
 	for (int i = 0; i < nb_steps; i++) {
-		_smoothing.update(heading_target, dt);
+		_smoothing.update(heading_target, _dt);
 	}
 
 	const float heading = _smoothing.getSmoothedHeading();
@@ -72,17 +76,14 @@ TEST_F(HeadingSmoothingTest, convergence)
 
 TEST_F(HeadingSmoothingTest, zero_crossing)
 {
-	const float dt = 0.1f;
-	const float heading_corrent = math::radians(-95.f);
+	const float heading_current = math::radians(-95.f);
 	const float heading_target = math::radians(5.f);
-	_smoothing.reset(heading_corrent, 0.f);
-	_smoothing.setMaxHeadingRate(15.f);
-	_smoothing.setMaxHeadingAccel(1.f);
+	_smoothing.reset(heading_current, 0.f);
 
-	const int nb_steps = ceilf(4.f / dt);
+	const int nb_steps = ceilf(4.f / _dt);
 
 	for (int i = 0; i < nb_steps; i++) {
-		_smoothing.update(heading_target, dt);
+		_smoothing.update(heading_target, _dt);
 	}
 
 	const float heading = _smoothing.getSmoothedHeading();
@@ -93,40 +94,34 @@ TEST_F(HeadingSmoothingTest, zero_crossing)
 
 TEST_F(HeadingSmoothingTest, wrap_pi)
 {
-	const float dt = 0.1f;
-	const float heading_corrent = math::radians(-170.f);
+	const float heading_current = math::radians(-170.f);
 	const float heading_target = math::radians(170.f);
-	_smoothing.reset(heading_corrent, 0.f);
-	_smoothing.setMaxHeadingRate(15.f);
-	_smoothing.setMaxHeadingAccel(1.f);
+	_smoothing.reset(heading_current, 0.f);
 
-	const int nb_steps = ceilf(2.f / dt);
+	const int nb_steps = ceilf(2.f / _dt);
 
 	for (int i = 0; i < nb_steps; i++) {
-		_smoothing.update(heading_target, dt);
+		_smoothing.update(heading_target, _dt);
 	}
 
 	const float heading = _smoothing.getSmoothedHeading();
 	const float heading_rate = _smoothing.getSmoothedHeadingRate();
-	printf("heading: %f, rate: %f\n", (double)math::degrees(heading), (double)heading_rate);
 	EXPECT_EQ(heading, heading_target) << "heading (deg): " << math::degrees(heading);
 	EXPECT_EQ(heading_rate, 0.f);
 }
 
 TEST_F(HeadingSmoothingTest, positive_rate)
 {
-	const float dt = 0.1f;
-	const float heading_corrent = math::radians(-170.f);
-	const float heading_target = math::radians(-20.f);
-	_smoothing.reset(heading_corrent, 0.f);
-	const float max_heading_rate = 0.15;
+	const float max_heading_rate = .15f;
 	_smoothing.setMaxHeadingRate(max_heading_rate);
-	_smoothing.setMaxHeadingAccel(1.f);
+	const float heading_current = math::radians(-170.f);
+	const float heading_target = math::radians(-20.f);
+	_smoothing.reset(heading_current, 0.f);
 
-	const int nb_steps = ceilf(2.f / dt);
+	const int nb_steps = ceilf(2.f / _dt);
 
 	for (int i = 0; i < nb_steps; i++) {
-		_smoothing.update(heading_target, dt);
+		_smoothing.update(heading_target, _dt);
 	}
 
 	const float heading_rate = _smoothing.getSmoothedHeadingRate();
@@ -135,18 +130,16 @@ TEST_F(HeadingSmoothingTest, positive_rate)
 
 TEST_F(HeadingSmoothingTest, negative_rate)
 {
-	const float dt = 0.1f;
-	const float heading_corrent = math::radians(-20.f);
-	const float heading_target = math::radians(-140.f);
-	_smoothing.reset(heading_corrent, 0.f);
 	const float max_heading_rate = 0.15;
 	_smoothing.setMaxHeadingRate(max_heading_rate);
-	_smoothing.setMaxHeadingAccel(1.f);
+	const float heading_current = math::radians(-20.f);
+	const float heading_target = math::radians(-140.f);
+	_smoothing.reset(heading_current, 0.f);
 
-	const int nb_steps = ceilf(2.f / dt);
+	const int nb_steps = ceilf(2.f / _dt);
 
 	for (int i = 0; i < nb_steps; i++) {
-		_smoothing.update(heading_target, dt);
+		_smoothing.update(heading_target, _dt);
 	}
 
 	const float heading_rate = _smoothing.getSmoothedHeadingRate();
