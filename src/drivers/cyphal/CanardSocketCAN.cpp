@@ -177,7 +177,15 @@ int16_t CanardSocketCAN::transmit(const CanardTxQueueItem &txf, int timeout_ms)
 #ifdef CONFIG_NET_CAN_RAW_TX_DEADLINE
 	return sendmsg(_fd, &_send_msg, 0);
 #else
-	return sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
+	/* Use non-blocking calls for devices that don't implement TX deadline*/
+	auto res = sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
+
+	/* Treat EAGAIN as a timeout instead of an error. Return 0, so CanardHandle will send the frame again later. */
+	if (res < 0 && errno == EAGAIN) {
+		return 0;
+	}
+
+	return res;
 #endif
 }
 
