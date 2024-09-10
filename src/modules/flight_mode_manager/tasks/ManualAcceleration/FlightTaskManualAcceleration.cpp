@@ -59,6 +59,7 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 
 bool FlightTaskManualAcceleration::update()
 {
+	setMaxDistanceToGround(_sub_vehicle_local_position.get().hagl_max_xy);
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
 
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _yaw_setpoint, _position,

@@ -1628,7 +1628,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 			      || _ekf.control_status_flags().wind_dead_reckoning;
 
 	// get control limit information
-	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
+	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max_z, &lpos.hagl_max_xy);
 
 	// convert NaN to INFINITY
 	if (!PX4_ISFINITE(lpos.vxy_max)) {
@@ -1643,8 +1643,12 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 		lpos.hagl_min = INFINITY;
 	}
 
-	if (!PX4_ISFINITE(lpos.hagl_max)) {
-		lpos.hagl_max = INFINITY;
+	if (!PX4_ISFINITE(lpos.hagl_max_z)) {
+		lpos.hagl_max_z = INFINITY;
+	}
+
+	if (!PX4_ISFINITE(lpos.hagl_max_xy)) {
+		lpos.hagl_max_xy = INFINITY;
 	}
 
 	// publish vehicle local position data

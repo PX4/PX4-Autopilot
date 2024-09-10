@@ -208,8 +208,9 @@ public:
 	//  vxy_max : Maximum ground relative horizontal speed (meters/sec). NaN when limiting is not needed.
 	//  vz_max : Maximum ground relative vertical speed (meters/sec). NaN when limiting is not needed.
 	//  hagl_min : Minimum height above ground (meters). NaN when limiting is not needed.
-	// hagl_max : Maximum height above ground (meters). NaN when limiting is not needed.
-	void get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const;
+	//  hagl_max_z : Maximum height above ground for vertical altitude control (meters). NaN when limiting is not needed.
+	//  hagl_max_xy : Maximum height above ground for horizontal position control (meters). NaN when limiting is not needed.
+	void get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max_z, float *hagl_max_xy) const;
 
 	void resetGyroBias();
 	void resetGyroBiasCov();
