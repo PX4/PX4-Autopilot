@@ -41,10 +41,10 @@ permissions:
 
 env:
   saluki_fpga_repo: "ghcr.io/tiiuae/saluki-fpga"
-  saluki_pi_fpga_version: "4.15.0"
-  saluki_v2_fpga_version: "4.15.0"
-  saluki_v3_fpga_version: "4.15.0"
-  saluki_fmu2_fpga_version: "4.15.0"
+  saluki_pi_fpga_version: "4.16.0"
+  saluki_v2_fpga_version: "4.16.0"
+  saluki_v3_fpga_version: "4.16.0"
+  saluki_fmu2_fpga_version: "4.16.0"
 
 jobs:
   fc_matrix:
@@ -240,24 +240,24 @@ jobs:
           else
             container_name="${{ steps.containermeta.outputs.tags }}"
           fi
-          echo "Container name: $container_name"
+          echo "Container name: ${container_name}"
 
           # display mermaid flowchart
           echo '```mermaid'   >> $GITHUB_STEP_SUMMARY
           echo "flowchart LR" >> $GITHUB_STEP_SUMMARY
 
           # inputs
-          echo "FPGA-V2[(Saluki-v2 FPGA\n${{ needs.variables.outputs.saluki_v2_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
-          echo "FPGA-V3[(Saluki-v3 FPGA\n${{ needs.variables.outputs.saluki_v3_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
-          echo "FPGA-PI[(Saluki-pi FPGA\n${{ needs.variables.outputs.saluki_pi_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
-          echo "FPGA-PI[(Saluki-fmu2 FPGA\n${{ needs.variables.outputs.saluki_fmu2_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
-          echo "PX4-SHA[${{ github.repository }}\n$GITHUB_REF]" >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-V2[(Saluki-v2 FPGA<br>${{ needs.variables.outputs.saluki_v2_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-V3[(Saluki-v3 FPGA<br>${{ needs.variables.outputs.saluki_v3_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-PI[(Saluki-pi FPGA<br>${{ needs.variables.outputs.saluki_pi_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-FMU2[(Saluki-fmu2 FPGA<br>${{ needs.variables.outputs.saluki_fmu2_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "PX4-SHA[${{ github.repository }}<br>$GITHUB_REF]" >> $GITHUB_STEP_SUMMARY
 
           # build
           echo "BUILD[build PX4 fwupdater]"                  >> $GITHUB_STEP_SUMMARY
 
-          # outputs
-          echo "OUTPUT[(${container_name})]"       >> $GITHUB_STEP_SUMMARY
+          # output
+          echo "OUTPUT[($(echo ${container_name}|sed 's/:/<br>/'))]" >> $GITHUB_STEP_SUMMARY
 
           # links
           echo "PX4-SHA --> BUILD"                 >> $GITHUB_STEP_SUMMARY
@@ -265,6 +265,7 @@ jobs:
           echo "FPGA-V3 --> BUILD"                 >> $GITHUB_STEP_SUMMARY
           echo "FPGA-PI --> BUILD"                 >> $GITHUB_STEP_SUMMARY
           echo "FPGA-FMU2 --> BUILD"               >> $GITHUB_STEP_SUMMARY
+
           echo "BUILD --> OUTPUT"                  >> $GITHUB_STEP_SUMMARY
           # end mermaid flowchart
           echo '```'                               >> $GITHUB_STEP_SUMMARY
@@ -291,16 +292,6 @@ jobs:
           echo '```shell' >> $GITHUB_STEP_SUMMARY
           echo "${docker_cp_cmd}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-
-          # This flashing is not currently working, just keeping it here for the future
-          # echo "## Flash this px4 firmware to your Saluki" >> $GITHUB_STEP_SUMMARY
-          # echo "To flash this firmware to your Saluki, you can use the following command:" >> $GITHUB_STEP_SUMMARY
-          # docker_flash_cmd='docker run --rm --network=host --entrypoint= --device=${dev}:/dev/px4serial '
-          # docker_flash_cmd+=$container_name
-          # docker_flash_cmd+=' sh -c "/bin/px_uploader.py ssrc_saluki-v2_default-*.px4"'
-          # echo '```shell' >> $GITHUB_STEP_SUMMARY
-          # echo "${docker_flash_cmd}" >> $GITHUB_STEP_SUMMARY
-          # echo '```' >> $GITHUB_STEP_SUMMARY
 
           # separator
           echo '---' >> $GITHUB_STEP_SUMMARY
