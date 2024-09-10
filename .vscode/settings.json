@@ -129,5 +129,15 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
-        "ros.distro": "humble"
+        "ros.distro": "humble",
+        "python.autoComplete.extraPaths": [
+                "/home/claudio_chies/ros2_ws/install/px4_msgs/local/lib/python3.10/dist-packages",
+                "/opt/ros/humble/lib/python3.10/site-packages",
+                "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ],
+        "python.analysis.extraPaths": [
+                "/home/claudio_chies/ros2_ws/install/px4_msgs/local/lib/python3.10/dist-packages",
+                "/opt/ros/humble/lib/python3.10/site-packages",
+                "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ]
 }
