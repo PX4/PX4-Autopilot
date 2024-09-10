@@ -370,7 +370,7 @@ MissionBase::on_active()
 bool
 MissionBase::isLanding()
 {
-	if (hasMissionLandStart()) {
+	if (hasMissionLandStart() && (_mission.current_seq > _mission.land_start_index)) {
 		static constexpr size_t max_num_next_items{1u};
 		int32_t next_mission_items_index[max_num_next_items];
 		size_t num_found_items;
