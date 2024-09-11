@@ -225,7 +225,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 
 	# Gazebo / Gazebo classic installation
 	if [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-		echo "Gazebo (Garden) will be installed"
+		echo "Gazebo (Harmonic) will be installed"
 		echo "Earlier versions will be removed"
 		# Add Gazebo binary repository
 		sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
@@ -233,7 +233,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		sudo apt-get update -y --quiet
 
 		# Install Gazebo
-		gazebo_packages="gz-garden"
+		gazebo_packages="gz-harmonic"
 	elif [[ "${UBUNTU_RELEASE}" == "21.3" ]]; then
 		echo "Gazebo (Garden) will be installed"
 		echo "Earlier versions will be removed"

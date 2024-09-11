@@ -145,6 +145,7 @@ private:
 	typeof(px4::msg::VehicleStatus::vehicle_type) _vehicle_type{px4::msg::VehicleStatus::VEHICLE_TYPE_UNKNOWN};
 	bool _restriction{false};
 	bool _auto_restriction{false};
+	bool _prev_restriction{false};
 };
 
 LightwareLaser::LightwareLaser(const I2CSPIDriverConfig &config) :
@@ -438,7 +439,7 @@ int LightwareLaser::updateRestriction()
 		updateParams();
 	}
 
-	bool _prev_restriction{_restriction};
+	_prev_restriction = _restriction;
 
 	switch (_param_sf1xx_mode.get()) {
 	case 0: // Sensor disabled
@@ -498,6 +499,8 @@ void LightwareLaser::RunImpl()
 
 	case State::Running:
 		if (!_restriction) {
+			_px4_rangefinder.set_mode(distance_sensor_s::MODE_ENABLED);
+
 			if (PX4_OK != collect()) {
 				PX4_DEBUG("collection error");
 
@@ -506,6 +509,14 @@ void LightwareLaser::RunImpl()
 					_consecutive_errors = 0;
 				}
 			}
+
+		} else {
+			_px4_rangefinder.set_mode(distance_sensor_s::MODE_DISABLED);
+
+			if (!_prev_restriction) { // Publish disabled status once
+				_px4_rangefinder.update(hrt_absolute_time(), -1.f, 0);
+			}
+
 		}
 
 		ScheduleDelayed(_conversion_interval);

@@ -261,6 +261,7 @@ struct systemFlagUpdate {
 	bool in_air{true};
 	bool is_fixed_wing{false};
 	bool gnd_effect{false};
+	bool constant_pos{false};
 };
 
 struct parameters {
@@ -420,6 +421,7 @@ struct parameters {
 	float range_valid_quality_s{1.0f};      ///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
 	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
+	float rng_fog{0.f};                 	///< max distance which a blocked range sensor measures (fog, dirt) [m]
 
 	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -512,7 +514,7 @@ bool bad_sideslip      :
 		1; ///< 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
 		bool bad_optflow_X     : 1; ///< 7 - true if fusion of the optical flow X axis has encountered a numerical error
 		bool bad_optflow_Y     : 1; ///< 8 - true if fusion of the optical flow Y axis has encountered a numerical error
-		bool bad_acc_bias      : 1; ///< 9 - true if bad delta velocity bias estimates have been detected
+		bool __UNUSED          : 1; ///< 9 -
 		bool bad_acc_vertical  : 1; ///< 10 - true if bad vertical accelerometer data has been detected
 		bool bad_acc_clipping  : 1; ///< 11 - true if delta velocity data contains clipping (asymmetric railing)
 	} flags;
@@ -614,6 +616,8 @@ uint64_t mag_heading_consistent  :
 		uint64_t aux_gpos                : 1; ///< 38 - true if auxiliary global position measurement fusion is intended
 		uint64_t rng_terrain             : 1; ///< 39 - true if we are fusing range finder data for terrain
 		uint64_t opt_flow_terrain        : 1; ///< 40 - true if we are fusing flow data for terrain
+		uint64_t valid_fake_pos          : 1; ///< 41 - true if a valid constant position is being fused
+		uint64_t constant_pos            : 1; ///< 42 - true if the vehicle is at a constant position
 
 	} flags;
 	uint64_t value;

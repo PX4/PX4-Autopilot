@@ -503,9 +503,9 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 	switch (calling_reason) {
 	case arm_disarm_reason_t::transition_to_standby: return "";
 
-	case arm_disarm_reason_t::rc_stick: return "RC";
+	case arm_disarm_reason_t::stick_gesture: return "Stick gesture";
 
-	case arm_disarm_reason_t::rc_switch: return "RC (switch)";
+	case arm_disarm_reason_t::rc_switch: return "RC switch";
 
 	case arm_disarm_reason_t::command_internal: return "internal command";
 
@@ -583,7 +583,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				return TRANSITION_DENIED;
 			}
 
-		} else if (calling_reason == arm_disarm_reason_t::rc_stick
+		} else if (calling_reason == arm_disarm_reason_t::stick_gesture
 			   || calling_reason == arm_disarm_reason_t::rc_switch
 			   || calling_reason == arm_disarm_reason_t::rc_button) {
 
@@ -634,12 +634,12 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		const bool mc_manual_thrust_mode = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						   && _vehicle_control_mode.flag_control_manual_enabled
 						   && !_vehicle_control_mode.flag_control_climb_rate_enabled;
-		const bool commanded_by_rc = (calling_reason == arm_disarm_reason_t::rc_stick)
+		const bool commanded_by_rc = (calling_reason == arm_disarm_reason_t::stick_gesture)
 					     || (calling_reason == arm_disarm_reason_t::rc_switch)
 					     || (calling_reason == arm_disarm_reason_t::rc_button);
 
 		if (!landed && !(mc_manual_thrust_mode && commanded_by_rc && _param_com_disarm_man.get())) {
-			if (calling_reason != arm_disarm_reason_t::rc_stick) {
+			if (calling_reason != arm_disarm_reason_t::stick_gesture) {
 				mavlink_log_critical(&_mavlink_log_pub, "Disarming denied: not landed\t");
 				events::send(events::ID("commander_disarm_denied_not_landed"),
 				{events::Log::Critical, events::LogInternal::Info},
@@ -698,10 +698,22 @@ Commander::Commander() :
 	// default for vtol is rotary wing
 	_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-	_param_mav_comp_id = param_find("MAV_COMP_ID");
-	_param_mav_sys_id = param_find("MAV_SYS_ID");
+	param_t param_mav_comp_id = param_find("MAV_COMP_ID");
+	param_t param_mav_sys_id = param_find("MAV_SYS_ID");
 	_param_mav_type = param_find("MAV_TYPE");
 	_param_rc_map_fltmode = param_find("RC_MAP_FLTMODE");
+
+	int32_t value_int32 = 0;
+
+	// MAV_SYS_ID => vehicle_status.system_id
+	if ((param_mav_sys_id != PARAM_INVALID) && (param_get(param_mav_sys_id, &value_int32) == PX4_OK)) {
+		_vehicle_status.system_id = value_int32;
+	}
+
+	// MAV_COMP_ID => vehicle_status.component_id
+	if ((param_mav_comp_id != PARAM_INVALID) && (param_get(param_mav_comp_id, &value_int32) == PX4_OK)) {
+		_vehicle_status.component_id = value_int32;
+	}
 
 	updateParameters();
 }
@@ -875,7 +887,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			}
 
 			if (desired_nav_state != vehicle_status_s::NAVIGATION_STATE_MAX) {
-				if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd))) {
+
+				// Special handling for LAND mode: always allow to switch into it such that if used
+				// as emergency mode it is always available. When triggering it the user generally wants
+				// the vehicle to descend immediately, and if that means to switch to DESCEND it is fine.
+
+				const bool force = desired_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+
+				if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd), false, force)) {
 					main_ret = TRANSITION_CHANGED;
 
 				} else {
@@ -1050,7 +1069,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
-			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, getSourceFromCommand(cmd))) {
+			// Special handling for LAND mode: always allow to switch into it such that if used
+			// as emergency mode it is always available. When triggering it the user generally wants
+			// the vehicle to descend immediately, and if that means to switch to DESCEND it is fine.
+			const bool force = true;
+
+			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, getSourceFromCommand(cmd), false,
+							force)) {
 				mavlink_log_info(&_mavlink_log_pub, "Landing at current position\t");
 				events::send(events::ID("commander_landing_current_pos"), events::Log::Info,
 					     "Landing at current position");
@@ -1487,6 +1512,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
 	case vehicle_command_s::VEHICLE_CMD_DO_WINCH:
 	case vehicle_command_s::VEHICLE_CMD_DO_GRIPPER:
+	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1603,7 +1629,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 	// Silently ignore RC actions during RC calibration
 	if (_vehicle_status.rc_calibration_in_progress
-	    && (action_request.source == action_request_s::SOURCE_RC_STICK_GESTURE
+	    && (action_request.source == action_request_s::SOURCE_STICK_GESTURE
 		|| action_request.source == action_request_s::SOURCE_RC_SWITCH
 		|| action_request.source == action_request_s::SOURCE_RC_BUTTON
 		|| action_request.source == action_request_s::SOURCE_RC_MODE_SLOT)) {
@@ -1611,7 +1637,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 	}
 
 	switch (action_request.source) {
-	case action_request_s::SOURCE_RC_STICK_GESTURE: arm_disarm_reason = arm_disarm_reason_t::rc_stick; break;
+	case action_request_s::SOURCE_STICK_GESTURE: arm_disarm_reason = arm_disarm_reason_t::stick_gesture; break;
 
 	case action_request_s::SOURCE_RC_SWITCH: arm_disarm_reason = arm_disarm_reason_t::rc_switch; break;
 
@@ -1682,21 +1708,10 @@ void Commander::updateParameters()
 
 	int32_t value_int32 = 0;
 
-	// MAV_SYS_ID => vehicle_status.system_id
-	if ((_param_mav_sys_id != PARAM_INVALID) && (param_get(_param_mav_sys_id, &value_int32) == PX4_OK)) {
-		_vehicle_status.system_id = value_int32;
-	}
-
-	// MAV_COMP_ID => vehicle_status.component_id
-	if ((_param_mav_comp_id != PARAM_INVALID) && (param_get(_param_mav_comp_id, &value_int32) == PX4_OK)) {
-		_vehicle_status.component_id = value_int32;
-	}
-
 	// MAV_TYPE -> vehicle_status.system_type
 	if ((_param_mav_type != PARAM_INVALID) && (param_get(_param_mav_type, &value_int32) == PX4_OK)) {
 		_vehicle_status.system_type = value_int32;
 	}
-
 
 	_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
 

@@ -48,7 +48,8 @@ void DistanceSensorChecks::checkAndReport(const Context &context, Report &report
 
 		if (exists) {
 			distance_sensor_s dist_sens;
-			valid = _distance_sensor_sub[instance].copy(&dist_sens) && hrt_elapsed_time(&dist_sens.timestamp) < 1_s;
+			valid = _distance_sensor_sub[instance].copy(&dist_sens) && ((hrt_elapsed_time(&dist_sens.timestamp) < 1_s)
+					|| (dist_sens.mode == distance_sensor_s::MODE_DISABLED));
 			reporter.setIsPresent(health_component_t::distance_sensor);
 		}
 

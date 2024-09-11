@@ -1,0 +1,14 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_AVEL_DELAY:
+      description:
+        short: Auxiliary Velocity Estimate delay relative to IMU measurements
+      type: float
+      default: 5
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1

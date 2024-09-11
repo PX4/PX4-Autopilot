@@ -60,6 +60,7 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 
 	case gcs_connection_loss_failsafe_mode::Land_mode:
 		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
 	case gcs_connection_loss_failsafe_mode::Terminate:
@@ -113,6 +114,7 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 
 	case geofence_violation_action::Land_mode:
 		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
 	default:
@@ -290,7 +292,7 @@ FailsafeBase::Action Failsafe::fromOffboardLossActParam(int param_value, uint8_t
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 		break;
 
-	case offboard_loss_failsafe_mode::Manual:
+	case offboard_loss_failsafe_mode::Stabilized:
 		action = Action::FallbackStab;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
 		break;
@@ -355,6 +357,7 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 
 	case command_after_high_wind_failsafe::Land_mode:
 		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
 	default:
