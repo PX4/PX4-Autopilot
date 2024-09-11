@@ -69,7 +69,7 @@ jobs:
       run: ccache -s
 
     - name: Upload px4 package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: px4_package_${{matrix.config}}
         path: |
