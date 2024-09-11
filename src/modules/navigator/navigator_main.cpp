@@ -112,7 +112,7 @@ Navigator::Navigator() :
 
 	_distance_sensor_mode_change_request_pub.advertise();
 	_distance_sensor_mode_change_request_pub.get().timestamp = hrt_absolute_time();
-	_distance_sensor_mode_change_request_pub.get().req_mode = distance_sensor_mode_change_request_s::MODE_DISABLED;
+	_distance_sensor_mode_change_request_pub.get().request_on_off = distance_sensor_mode_change_request_s::REQUEST_OFF;
 	_distance_sensor_mode_change_request_pub.update();
 
 	// Update the timeout used in mission_block (which can't hold it's own parameters)
@@ -1459,21 +1459,21 @@ void Navigator::publish_distance_sensor_mode_request()
 	// Send request to enable distance sensor when in the landing phase of a mission or RTL
 	if (((_navigation_mode == &_rtl) && _rtl.isLanding()) || ((_navigation_mode == &_mission) && _mission.isLanding())) {
 
-		if (_distance_sensor_mode_change_request_pub.get().req_mode !=
-		    distance_sensor_mode_change_request_s::MODE_ENABLED) {
+		if (_distance_sensor_mode_change_request_pub.get().request_on_off !=
+		    distance_sensor_mode_change_request_s::REQUEST_ON) {
 
 			_distance_sensor_mode_change_request_pub.get().timestamp = hrt_absolute_time();
-			_distance_sensor_mode_change_request_pub.get().req_mode =
-				distance_sensor_mode_change_request_s::MODE_ENABLED;
+			_distance_sensor_mode_change_request_pub.get().request_on_off =
+				distance_sensor_mode_change_request_s::REQUEST_ON;
 			_distance_sensor_mode_change_request_pub.update();
 		}
 
-	} else if (_distance_sensor_mode_change_request_pub.get().req_mode !=
-		   distance_sensor_mode_change_request_s::MODE_DISABLED) {
+	} else if (_distance_sensor_mode_change_request_pub.get().request_on_off !=
+		   distance_sensor_mode_change_request_s::REQUEST_OFF) {
 
 		_distance_sensor_mode_change_request_pub.get().timestamp = hrt_absolute_time();
-		_distance_sensor_mode_change_request_pub.get().req_mode =
-			distance_sensor_mode_change_request_s::MODE_DISABLED;
+		_distance_sensor_mode_change_request_pub.get().request_on_off =
+			distance_sensor_mode_change_request_s::REQUEST_OFF;
 		_distance_sensor_mode_change_request_pub.update();
 	}
 }
