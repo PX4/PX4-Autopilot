@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,27 +62,27 @@ void VertiqConfigurationHandler::InitConfigurationClients(uint8_t object_id)
 
 void VertiqConfigurationHandler::InitClientEntryWrappers()
 {
-	AddNewClientEntry<float, float>(param_find("MAX_VELOCITY"), &(_prop_input_parser_client->velocity_max_));
-	AddNewClientEntry<float, float>(param_find("MAX_VOLTS"), &(_prop_input_parser_client->volts_max_));
-	AddNewClientEntry<uint8_t, int32_t>(param_find("CONTROL_MODE"), &(_prop_input_parser_client->mode_));
-	AddNewClientEntry<uint8_t, int32_t>(param_find("VERTIQ_MOTOR_DIR"), &(_prop_input_parser_client->sign_));
-	AddNewClientEntry<uint8_t, int32_t>(param_find("VERTIQ_FC_DIR"), &(_prop_input_parser_client->flip_negative_));
+	AddNewClientEntry<float, float>(param_find("VTQ_MAX_VELOCITY"), &(_prop_input_parser_client->velocity_max_));
+	AddNewClientEntry<float, float>(param_find("VTQ_MAX_VOLTS"), &(_prop_input_parser_client->volts_max_));
+	AddNewClientEntry<uint8_t, int32_t>(param_find("VTQ_CONTROL_MODE"), &(_prop_input_parser_client->mode_));
+	AddNewClientEntry<uint8_t, int32_t>(param_find("VTQ_MOTOR_DIR"), &(_prop_input_parser_client->sign_));
+	AddNewClientEntry<uint8_t, int32_t>(param_find("VTQ_FC_DIR"), &(_prop_input_parser_client->flip_negative_));
 
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
-	AddNewClientEntry<uint8_t, int32_t>(param_find("THROTTLE_CVI"), &(_ifci_client->throttle_cvi_));
+	AddNewClientEntry<uint8_t, int32_t>(param_find("VTQ_THROTTLE_CVI"), &(_ifci_client->throttle_cvi_));
 #endif //CONFIG_USE_IFCI_CONFIGURATION
 
 #ifdef CONFIG_USE_PULSING_CONFIGURATION
-	AddNewClientEntry<uint8_t, int32_t> (param_find("PULSE_VOLT_MODE"),
+	AddNewClientEntry<uint8_t, int32_t> (param_find("VTQ_PULSE_V_MODE"),
 					     &(_pulsing_rectangular_input_parser_client->pulsing_voltage_mode_));
-	AddNewClientEntry<uint8_t, int32_t>(param_find("X_CVI"), &(_ifci_client->x_cvi_));
-	AddNewClientEntry<uint8_t, int32_t>(param_find("Y_CVI"), &(_ifci_client->y_cvi_));
-	AddNewClientEntry<float, float>(param_find("ZERO_ANGLE"), &(_voltage_superposition_client->zero_angle_));
-	AddNewClientEntry<float, float>(param_find("VELOCITY_CUTOFF"),
+	AddNewClientEntry<uint8_t, int32_t>(param_find("VTQ_X_CVI"), &(_ifci_client->x_cvi_));
+	AddNewClientEntry<uint8_t, int32_t>(param_find("VTQ_Y_CVI"), &(_ifci_client->y_cvi_));
+	AddNewClientEntry<float, float>(param_find("VTQ_ZERO_ANGLE"), &(_voltage_superposition_client->zero_angle_));
+	AddNewClientEntry<float, float>(param_find("VTQ_VELO_CUTOFF"),
 					&(_voltage_superposition_client->velocity_cutoff_));
-	AddNewClientEntry<float, float>(param_find("TORQUE_OFF_ANGLE"),
+	AddNewClientEntry<float, float>(param_find("VTQ_TQUE_OFF_ANG"),
 					&(_voltage_superposition_client->propeller_torque_offset_angle_));
-	AddNewClientEntry<float, float>(param_find("PULSE_VOLT_LIM"),
+	AddNewClientEntry<float, float>(param_find("VTQ_PULSE_V_LIM"),
 					&(_pulsing_rectangular_input_parser_client->pulsing_voltage_limit_));
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 }
