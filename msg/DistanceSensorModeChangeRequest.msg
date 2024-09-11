@@ -1,5 +1,5 @@
 uint64 timestamp		# time since system start (microseconds)
 
-uint8 req_mode 			# requested mode of operation
-uint8 MODE_DISABLED = 0
-uint8 MODE_ENABLED  = 1
+uint8 request_on_off 			# request to disable/enable the distance sensor
+uint8 REQUEST_OFF = 0
+uint8 REQUEST_ON  = 1
