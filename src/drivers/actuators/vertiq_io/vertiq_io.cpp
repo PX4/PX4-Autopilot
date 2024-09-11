@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -213,10 +213,6 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 	} else {
 		//Put the modules into coast
 		switch (_param_vertiq_disarm_behavior.get()) {
-		case USER_MIXER_VALUE:
-			OutputControls(outputs);
-			break;
-
 		case TRIGGER_MOTOR_DISARM:
 			_broadcast_arming_handler.motor_armed_.set(*_serial_interface.GetIquartInterface(), 0);
 			break;

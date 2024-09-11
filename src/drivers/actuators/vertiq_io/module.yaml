@@ -7,9 +7,10 @@ serial_config:
 
 actuator_output:
   output_groups:
-    - param_prefix: VERTIQ_IO
-      group_label: 'ESCs'
-      channel_label: 'ESC'
+    - param_prefix: VTQ_IO
+      group_label: 'CVIs'
+      channel_label: 'CVI'
+      instance_start: 0
       standard_params:
         disarmed: { min: 0, max: 65535, default: 0 }
         min: { min: 0, max: 65535, default: 0 }
@@ -20,7 +21,7 @@ actuator_output:
 parameters:
     - group: Vertiq IO
       definitions:
-        VERTIQ_BAUD:
+        VTQ_BAUD:
             description:
                 short: The IQUART driver's baud rate
                 long: |
@@ -28,7 +29,7 @@ parameters:
             type: int32
             reboot_required: true
             default: 115200
-        VERTIQ_NUM_CVS:
+        VTQ_NUM_CVS:
             description:
               short: The number of Vertiq IFCI parameters to use
               long: |
@@ -38,7 +39,7 @@ parameters:
             max: 16
             reboot_required: true
             default: 0
-        DISARM_TRIGGER:
+        VTQ_DISARM_TRIG:
             description:
                 short: The triggered behavior sent to the motors on PX4 disarm
                 long: |
@@ -46,12 +47,11 @@ parameters:
                     or set a predefined throttle setpoint
             type: enum
             values:
-                0: Use Mixer Defined Value
-                1: Send Explicit Disarm
-                2: Coast Motors
-                3: Set Predefined Velocity Setpoint
+                0: Send Explicit Disarm
+                1: Coast Motors
+                2: Set Predefined Velocity Setpoint
             default: 0
-        DISARM_VELO:
+        VTQ_DISARM_VELO:
             description:
                 short: Velocity sent when DISARM_TRIGGER is Set Predefined Velocity Setpoint
                 long: This is the velocity that will be sent to all motors when PX4 is disarmed and DISARM_TRIGGER is Set Predefined Velocity Setpoint
@@ -59,7 +59,7 @@ parameters:
             min: 0
             max: 100
             default: 0
-        ARMING_BEHAVE:
+        VTQ_ARM_BEHAVE:
             description:
                 short: The triggered behavior on PX4 arm
                 long: |
@@ -69,7 +69,7 @@ parameters:
                 0: Use Motor Arm Behavior
                 1: Send Explicit Arm Command
             default: 0
-        TARGET_MODULE_ID:
+        VTQ_TRGT_MOD_ID:
             description:
                 short: The Module ID of the module you would like to communicate with
                 long: |
@@ -78,7 +78,7 @@ parameters:
                     use this value to instantiate itself.
             type: int32
             default: 0
-        TRIGGER_READ:
+        VTQ_REDO_READ:
             description:
                 short: Reinitialize the target module's values into the PX4 parameters
                 long: |
@@ -86,7 +86,7 @@ parameters:
                     This is especially useful if your flight controller powered on before your connected modules
             type: boolean
             default: 0
-        THROTTLE_CVI:
+        VTQ_THROTTLE_CVI:
             description:
                 short: Module Param - The module's Throttle Control Value Index
                 long: |
@@ -95,7 +95,7 @@ parameters:
             min: 0
             max: 255
             default: 0
-        CONTROL_MODE:
+        VTQ_CONTROL_MODE:
             description:
                 short: Module Param - The module's control mechanism
                 long: |
@@ -111,21 +111,21 @@ parameters:
                 1: Voltage
                 2: Velocity
             default: 0
-        MAX_VELOCITY:
+        VTQ_MAX_VELOCITY:
             description:
                 short: Module Param - Maximum velocity when CONTROL_MODE is set to Velocity
                 long: |
                     Only relevant in Velocity Mode. This is the velocity the controller will command at full throttle.
             type: float
             default: 0
-        MAX_VOLTS:
+        VTQ_MAX_VOLTS:
             description:
                 short: Module Param - Maximum voltage when CONTROL_MODE is set to Voltage
                 long: |
                     Only relevant in Voltage Mode. This is the voltage the controller will command at full throttle.
             type: float
             default: 0
-        VERTIQ_MOTOR_DIR:
+        VTQ_MOTOR_DIR:
             description:
                 short: Module Param - The direction that the module should spin
                 long: |
@@ -138,7 +138,7 @@ parameters:
                 3: 2D Counter Clockwise
                 4: 2D Clockwise
             default: 0
-        VERTIQ_FC_DIR:
+        VTQ_FC_DIR:
             description:
                 short: Module Param - If the flight controller uses 2D or 3D communication
                 long: |
@@ -149,28 +149,28 @@ parameters:
                 0: 2D
                 1: 3D
             default: 0
-        ZERO_ANGLE:
+        VTQ_ZERO_ANGLE:
             description:
                 short: Module Param - The encoder angle at which theta is zero
                 long: |
                     The encoder angle at which theta is zero. Adjust this number to change the location of 0 phase when pulsing.
             type: float
             default: 0
-        VELOCITY_CUTOFF:
+        VTQ_VELO_CUTOFF:
             description:
                 short: Module Param - The minimum velocity required to allow pulsing
                 long: |
                     This is the velocity at which pulsing is allowed. Any velocity between VELOCITY_CUTOFF and -VELOCITY_CUTOFF will not pulse.
             type: float
             default: 0
-        TORQUE_OFF_ANGLE:
+        VTQ_TQUE_OFF_ANG:
             description:
                 short: Module Param - Offsets pulse angle to allow for mechanical properties
                 long: |
                     This offsets where the pulse starts around the motor to allow for propeller mechanical properties.
             type: float
             default: 0
-        PULSE_VOLT_MODE:
+        VTQ_PULSE_V_MODE:
             description:
                 short: Module Param - 0 = Supply Voltage Mode, 1 = Voltage Limit Mode
                 long: |
@@ -181,14 +181,14 @@ parameters:
                 0: Supply Voltage Mode
                 1: Voltage Limit Mode
             default: 0
-        PULSE_VOLT_LIM:
+        VTQ_PULSE_V_LIM:
             description:
                 short: Module Param - Max pulsing voltage limit when in Voltage Limit Mode
                 long: |
                     This sets the max pulsing voltage limit when in Voltage Limit Mode.
             type: float
             default: 0
-        X_CVI:
+        VTQ_X_CVI:
             description:
                 short: Module Param - CVI for the X rectangular coordinate
                 long: |
@@ -197,7 +197,7 @@ parameters:
             min: 0
             max: 255
             default: 0
-        Y_CVI:
+        VTQ_Y_CVI:
             description:
                 short: Module Param - CVI for the Y rectangular coordinate
                 long: |
@@ -206,7 +206,7 @@ parameters:
             min: 0
             max: 255
             default: 0
-        TELEM_IDS_1:
+        VTQ_TELEM_IDS_1:
             description:
                 short: Module IDs [0, 31] that you would like to request telemetry from
                 long: |
@@ -247,7 +247,7 @@ parameters:
                 31: Module ID 31
             reboot_required: true
             default: 0
-        TELEM_IDS_2:
+        VTQ_TELEM_IDS_2:
             description:
                 short: Module IDs [32, 62] that you would like to request telemetry from
                 long: |
