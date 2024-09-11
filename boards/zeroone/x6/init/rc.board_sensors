@@ -174,4 +174,3 @@ ms5611 -X start
 
 unset INA_CONFIGURED
 unset HAVE_PM2
-
