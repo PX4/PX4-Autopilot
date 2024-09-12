@@ -56,7 +56,7 @@ then
 fi
 
 #Start Auterion Power Module selector for zeroone boards
-if ver hwbasecmp 150
+if ver hwbasecmp 009 010 011
 then
 	pm_selector_auterion start
 else
