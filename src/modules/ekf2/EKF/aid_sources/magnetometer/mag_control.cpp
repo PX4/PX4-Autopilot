@@ -85,7 +85,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		if (global_origin().isInitialized()) {
 
-			bool origin_newer_than_last_mag = (global_origin().getProjectionReferenceTimestamp() > aid_src.time_last_fuse);
+			bool origin_newer_than_last_mag = (global_origin().getProjectionReferenceTimestamp() >= aid_src.time_last_fuse);
 
 			if (global_origin_valid()
 			    && (origin_newer_than_last_mag || (local_position_is_valid() && isTimedOut(_wmm_mag_time_last_checked, 10e6)))
@@ -172,13 +172,14 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 		checkMagHeadingConsistency(mag_sample.mag - _state.mag_B);
 
 		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
+		const bool mag_field_checks_passing = checkMagField(mag_sample.mag - _state.mag_B);
 
 
 		{
 			const bool mag_consistent_or_no_ne_aiding = _control_status.flags.mag_heading_consistent || !using_ne_aiding;
 
-			const bool common_conditions_passing = checkMagField(mag_sample.mag - _state.mag_B)
-							       && _control_status.flags.mag
+			const bool common_conditions_passing = _control_status.flags.mag
+							       && mag_field_checks_passing
 							       && ((_control_status.flags.yaw_align && mag_consistent_or_no_ne_aiding)
 									       || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
 							       && !_control_status.flags.mag_fault
@@ -209,11 +210,13 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 
 		if (_control_status.flags.mag) {
 
-			if (continuing_conditions_passing && _control_status.flags.yaw_align) {
+			if (continuing_conditions_passing) {
 
 				if (checkHaglYawResetReq() || (wmm_updated && no_ne_aiding_or_not_moving)) {
 					ECL_INFO("reset to %s", AID_SRC_NAME);
-					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
+					const bool reset_heading = !_control_status.flags.yaw_align || _control_status.flags.mag_hdg
+								   || _control_status.flags.mag_3D;
+					resetMagStates(_mag_lpf.getState(), reset_heading);
 					aid_src.time_last_fuse = imu_sample.time_us;
 
 				} else {
@@ -222,7 +225,11 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 					// declination angle over time.
 					const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
 					const bool update_tilt = _control_status.flags.mag_3D;
-					fuseMag(mag_sample.mag, R_MAG, H, aid_src, update_all_states, update_tilt);
+					const bool fused = fuseMag(mag_sample.mag, R_MAG, H, aid_src, update_all_states, update_tilt);
+
+					if (!_control_status.flags.yaw_align && fused && mag_field_checks_passing) {
+						_control_status.flags.yaw_align = true;
+					}
 
 					// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 					if (update_all_states && update_tilt) {
@@ -295,7 +302,12 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 					aid_src.time_last_fuse = imu_sample.time_us;
 
 					if (reset_heading) {
-						_control_status.flags.yaw_align = true;
+						if (mag_field_checks_passing) {
+							// Just initialize the heading to start estimating the
+							// mag states but do not consider the heading as aligned
+							_control_status.flags.yaw_align = true;
+						}
+
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
 
@@ -641,9 +653,9 @@ bool Ekf::updateWorldMagneticModel(const double latitude_deg, const double longi
 		   ) {
 
 			ECL_INFO("WMM declination updated %.3f -> %.3f deg (lat=%.6f, lon=%.6f)",
-				  (double)math::degrees(_wmm_declination_rad), (double)math::degrees(declination_rad),
-				  (double)latitude_deg, (double)longitude_deg
-				 );
+				 (double)math::degrees(_wmm_declination_rad), (double)math::degrees(declination_rad),
+				 (double)latitude_deg, (double)longitude_deg
+				);
 
 			_wmm_declination_rad = declination_rad;
 			_wmm_inclination_rad = inclination_rad;
