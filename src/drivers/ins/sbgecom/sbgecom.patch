@@ -1,0 +1,124 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 42d1404..3355005 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -36,6 +36,7 @@ if (USE_DEPRECATED_MACROS)
+ endif()
+ 
+ add_library(${PROJECT_NAME} STATIC)
++add_dependencies(${PROJECT_NAME} prebuild_targets)
+ 
+ file(GLOB_RECURSE COMMON_SRC ${PROJECT_SOURCE_DIR}/common/*.c)
+ file(GLOB_RECURSE ECOM_SRC ${PROJECT_SOURCE_DIR}/src/*.c)
+@@ -194,3 +195,18 @@ install(DIRECTORY common/
+ install(DIRECTORY src/
+         DESTINATION include
+         FILES_MATCHING PATTERN "*.h")
++
++target_compile_options(${PROJECT_NAME}
++        PRIVATE
++        -Wno-format
++        -Wno-format-security
++        -Wno-bad-function-cast
++        -Wno-double-promotion
++        -Wno-type-limits
++        -Wno-maybe-uninitialized
++        -Wno-float-equal
++)
++
++if("${PX4_PLATFORM}" MATCHES "nuttx")
++    target_compile_definitions(${PROJECT_NAME} PUBLIC __NUTTX__)
++endif()
+diff --git a/common/interfaces/sbgInterfaceSerialUnix.c b/common/interfaces/sbgInterfaceSerialUnix.c
+index eb7796c..99c52e0 100644
+--- a/common/interfaces/sbgInterfaceSerialUnix.c
++++ b/common/interfaces/sbgInterfaceSerialUnix.c
+@@ -6,10 +6,17 @@
+ #include <errno.h>
+ #include <termios.h>
+ #include <sys/ioctl.h>
++#include <assert.h>
+ 
+ // sbgCommonLib headers
+ #include <sbgCommon.h>
+ #include <interfaces/sbgInterfaceSerial.h>
++#include <px4_platform_common/log.h>
++
++#ifdef __PX4_NUTTX
++#include <nuttx/clock.h>
++#include <nuttx/arch.h>
++#endif
+ 
+ //----------------------------------------------------------------------//
+ //- Definitions                                                        -//
+@@ -447,19 +454,21 @@ SbgErrorCode sbgInterfaceSerialCreate(SbgInterface *pInterface, const char *devi
+                 // Define com port options
+                 //
+                 options.c_cflag |=  (CLOCAL | CREAD);       // Enable the receiver and set local mode...
+-                options.c_cflag &= ~(PARENB|CSTOPB|CSIZE);  // No parity, 1 stop bit, mask character size bits
++                options.c_cflag &= ~(PARENB | CSTOPB);      // No parity, 1 stop bit, mask character size bits
++                options.c_cflag &= CSIZE;
+                 options.c_cflag |= CS8;                     // Select 8 data bits
+                 options.c_cflag &= ~CRTSCTS;                // Disable Hardware flow control
+ 
+                 //
+                 // Disable software flow control
+                 //
+-                options.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
++                options.c_iflag &= ~(IXON | IXOFF | IXANY);                             // Disable software flow control
++                options.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|ICRNL|INPCK);    // Disable any special handling of received bytes
+ 
+                 //
+                 // We would like raw input
+                 //
+-                options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG /*| IEXTEN | ECHONL*/);
++                options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG | ECHONL | IEXTEN);
+                 options.c_oflag &= ~OPOST;
+ 
+                 //
+diff --git a/common/platform/sbgPlatform.c b/common/platform/sbgPlatform.c
+index 95a50ac..0c9f358 100644
+--- a/common/platform/sbgPlatform.c
++++ b/common/platform/sbgPlatform.c
+@@ -119,28 +119,4 @@ SBG_COMMON_LIB_API void sbgPlatformDebugLogMsg(const char *pFileName, const char
+     {
+         gLogCallback(pFileName, pFunctionName, line, pCategory, logType, errorCode, errorMsg);
+     }
+-    else
+-    {
+-        //
+-        // Log the correct message according to the log type
+-        //
+-        switch (logType)
+-        {
+-        case SBG_DEBUG_LOG_TYPE_ERROR:
+-            fprintf(stderr, "*ERR * %s(%"PRIu32"): %s - %s\n\r", pFunctionName, line, sbgErrorCodeToString(errorCode), errorMsg);
+-            break;
+-        case SBG_DEBUG_LOG_TYPE_WARNING:
+-            fprintf(stderr, "*WARN* %s(%"PRIu32"): %s - %s\n\r", pFunctionName, line, sbgErrorCodeToString(errorCode), errorMsg);
+-            break;
+-        case SBG_DEBUG_LOG_TYPE_INFO:
+-            fprintf(stderr, "*INFO* %s(%"PRIu32"): %s\n\r", pFunctionName, line, errorMsg);
+-            break;
+-        case SBG_DEBUG_LOG_TYPE_DEBUG:
+-            fprintf(stderr, "*DBG * %s(%"PRIu32"): %s\n\r", pFunctionName, line, errorMsg);
+-            break;
+-        default:
+-            fprintf(stderr, "*UKNW* %s(%"PRIu32"): %s\n\r", pFunctionName, line, errorMsg);
+-            break;
+-        }
+-    }
+ }
+diff --git a/common/sbgCommon.h b/common/sbgCommon.h
+index 4bef011..fd858d4 100644
+--- a/common/sbgCommon.h
++++ b/common/sbgCommon.h
+@@ -103,7 +103,7 @@ extern "C" {
+  * Default: 1024
+  */
+ #ifndef SBG_CONFIG_LOG_MAX_SIZE
+-#define SBG_CONFIG_LOG_MAX_SIZE                         ((size_t)(1024))
++#define SBG_CONFIG_LOG_MAX_SIZE                         ((size_t)(128))
+ #endif
+ 
+ /*!
