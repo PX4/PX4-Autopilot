@@ -1,35 +1,43 @@
 #!/bin/sh
 #
 # @name Typhoon H480 SITL
-#
+# modified by Gabriel Pimentel
 # @type Hexarotor x
 #
 
 . ${R}etc/init.d/rc.mc_defaults
 
-param set-default MAV_TYPE 13
+param set-default MAV_TYPE 13           # MAV_TYPE: 13 - Hexarotor x
+
+# VTOL Tiltrotor
+# param set-default MAV_TYPE 21
+# param set-default CA_AIRFRAME 3
 
 param set-default MC_PITCHRATE_P 0.08
 param set-default MC_PITCHRATE_I 0.04
 param set-default MC_PITCHRATE_D 0.001
 param set-default MC_PITCH_P 9
+
+#param set-default MC_PITCHRATE_MAX 0.0      # Max pitch rate
+
 param set-default MC_ROLLRATE_P 0.08
 param set-default MC_ROLLRATE_I 0.04
 param set-default MC_ROLLRATE_D 0.001
 param set-default MC_ROLL_P 9
-param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_P_ACC 3
+param set-default MPC_XY_VEL_I_ACC 4
+param set-default MPC_XY_VEL_D_ACC 0.1
 
-param set-default RTL_DESCEND_ALT 10
+param set-default RTL_DESCEND_ALT 5.0
 
 param set-default TRIG_INTERFACE 3
 param set-default TRIG_MODE 4
-param set-default MNT_MODE_IN 4
-param set-default MNT_MODE_OUT 2
+#param set-default MNT_MODE_IN 4
+#param set-default MNT_MODE_OUT 2
 param set-default MAV_PROTO_VER 2
 
-param set-default CA_AIRFRAME 0
-param set-default CA_ROTOR_COUNT 6
+param set-default CA_AIRFRAME 8	    # Airframe de Multicopter com tilt rotors no QGroundControl
+param set-default CA_ROTOR_COUNT 6  # Número de motores
 
 param set-default CA_ROTOR0_PX 0
 param set-default CA_ROTOR0_PY 1
@@ -56,10 +64,32 @@ param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
 param set-default PWM_MAIN_FUNC5 105
 param set-default PWM_MAIN_FUNC6 106
+
+# Configuração dos servos de tilt para os motores 0 e 1
+param set-default CA_SV_TL_COUNT 2      # Número de servomotores
+param set-default CA_ROTOR0_TILT 1  	# Servo de tilt associado ao motor 0
+param set-default CA_ROTOR1_TILT 2  	# Servo de tilt associado ao motor 1
+
+param set-default CA_SV_TL1_MINA -45.0	# Angulo minimo do servomotor 0
+param set-default CA_SV_TL1_MAXA  45.0	# Angulo máximo do servomotor 0
+param set-default CA_SV_TL2_MINA -45.0	# Angulo minimo do servomotor 1
+param set-default CA_SV_TL2_MAXA  45.0	# Angulo máximo do servomotor 1
+
+param set-default CA_SV_TL1_TD 0        # Direção da inclinação do servomotor 0 (0: frente, 90: direita)
+param set-default CA_SV_TL2_TD 0        # Direção da inclinação do servomotor 1 (0: frente, 90: direita)
+
+param set-default CA_SV_TL1_CT 2        # Função de controle do servomotor 0 (0: None, 1: Yaw, 2: Pitch, 3: Yaw and pitch)
+param set-default CA_SV_TL2_CT 2        # Função de controle do servomotor 1 (0: None, 1: Yaw, 2: Pitch, 3: Yaw and pitch)
+
+# Tilt rotor
+param set-default PWM_MAIN_FUNC7 201	# Canal de entrada do servomotor 0
+param set-default PWM_MAIN_FUNC8 202	# Canal de entrada do servomotor 1
+
 # Gimbal
-param set-default PWM_MAIN_FUNC7 420
-param set-default PWM_MAIN_FUNC8 421
-param set-default PWM_MAIN_FUNC9 422
-# Landing gear
+#param set-default PWM_MAIN_FUNC7 420
+#param set-default PWM_MAIN_FUNC8 421
+#param set-default PWM_MAIN_FUNC9 422
+
+# Landing gear (pernas do hexacoptero)
 param set-default PWM_MAIN_FUNC10 400
 param set-default PWM_MAIN_FUNC11 400
