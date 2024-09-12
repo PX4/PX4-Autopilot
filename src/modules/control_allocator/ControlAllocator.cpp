@@ -45,9 +45,19 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
+#include <iostream>
+#include <cmath>
+#include <unistd.h>
+
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <matrix/math.hpp>
+#include <mathlib/mathlib.h>
 
 using namespace matrix;
 using namespace time_literals;
+
 
 ControlAllocator::ControlAllocator() :
 	ModuleParams(nullptr),
@@ -58,7 +68,6 @@ ControlAllocator::ControlAllocator() :
 	_control_allocator_status_pub[1].advertise();
 
 	_actuator_motors_pub.advertise();
-	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
 
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
@@ -408,24 +417,24 @@ ControlAllocator::Run()
 
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
-		c[0](0) = _torque_sp(0);
-		c[0](1) = _torque_sp(1);
-		c[0](2) = _torque_sp(2);
-		c[0](3) = _thrust_sp(0);
-		c[0](4) = _thrust_sp(1);
-		c[0](5) = _thrust_sp(2);
+		c[0](0) = _torque_sp(0); // Roll torque
+		c[0](1) = _torque_sp(1); // Pitch torque
+		c[0](2) = _torque_sp(2); // Yaw torque
+		c[0](3) = _thrust_sp(0); // X thrust
+		c[0](4) = _thrust_sp(1); // Y thrust
+		c[0](5) = _thrust_sp(2); // Z thrust
 
 		if (_num_control_allocation > 1) {
 			if (_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint)) {
-				c[1](0) = vehicle_torque_setpoint.xyz[0];
-				c[1](1) = vehicle_torque_setpoint.xyz[1];
-				c[1](2) = vehicle_torque_setpoint.xyz[2];
+				c[1](0) = vehicle_torque_setpoint.xyz[0]; // Roll torque
+				c[1](1) = vehicle_torque_setpoint.xyz[1]; // Pitch torque
+				c[1](2) = vehicle_torque_setpoint.xyz[2]; // Yaw torque
 			}
 
 			if (_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint)) {
-				c[1](3) = vehicle_thrust_setpoint.xyz[0];
-				c[1](4) = vehicle_thrust_setpoint.xyz[1];
-				c[1](5) = vehicle_thrust_setpoint.xyz[2];
+				c[1](3) = vehicle_thrust_setpoint.xyz[0]; // X thrust
+				c[1](4) = vehicle_thrust_setpoint.xyz[1]; // Y thrust
+				c[1](5) = vehicle_thrust_setpoint.xyz[2]; // Z thrust
 			}
 		}
 
@@ -648,8 +657,38 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
 
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
+
 }
 
+// Function to verify altitude in meters
+bool verify_alt(float desired_altitude) {
+    // Subscribe to the vehicle_local_position topic
+    int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+
+    // Verify if the subscription was successful
+    if (vehicle_local_position_sub < 0) {
+        //PX4_WARN("Failed to copy vehicle_local_position data");
+        return false;
+    }
+
+    // Variable to store the vehicle_local_position data
+    vehicle_local_position_s vehicle_local_position;
+
+    // Update the vehicle_local_position data
+    if (orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &vehicle_local_position) != PX4_OK) {
+        //PX4_WARN("Failed to copy vehicle_local_position data");
+        orb_unsubscribe(vehicle_local_position_sub);
+        return false;
+    }
+
+    // Close the subscription
+    orb_unsubscribe(vehicle_local_position_sub);
+
+    // Verify if the altitude is less than or equal to the desired altitude
+    return vehicle_local_position.z <= desired_altitude;
+}
+
+// Publish PWM in motors
 void
 ControlAllocator::publish_actuator_controls()
 {
@@ -660,10 +699,6 @@ ControlAllocator::publish_actuator_controls()
 	actuator_motors_s actuator_motors;
 	actuator_motors.timestamp = hrt_absolute_time();
 	actuator_motors.timestamp_sample = _timestamp_sample;
-
-	actuator_servos_s actuator_servos;
-	actuator_servos.timestamp = actuator_motors.timestamp;
-	actuator_servos.timestamp_sample = _timestamp_sample;
 
 	actuator_motors.reversible_flags = _param_r_rev.get();
 
@@ -692,26 +727,8 @@ ControlAllocator::publish_actuator_controls()
 		actuator_motors.control[i] = NAN;
 	}
 
+	//process_attitude_data();
 	_actuator_motors_pub.publish(actuator_motors);
-
-	// servos
-	if (_num_actuators[1] > 0) {
-		int servos_idx;
-
-		for (servos_idx = 0; servos_idx < _num_actuators[1] && servos_idx < actuator_servos_s::NUM_CONTROLS; servos_idx++) {
-			int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
-			float actuator_sp = _control_allocation[selected_matrix]->getActuatorSetpoint()(actuator_idx_matrix[selected_matrix]);
-			actuator_servos.control[servos_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
-			++actuator_idx_matrix[selected_matrix];
-			++actuator_idx;
-		}
-
-		for (int i = servos_idx; i < actuator_servos_s::NUM_CONTROLS; i++) {
-			actuator_servos.control[i] = NAN;
-		}
-
-		_actuator_servos_pub.publish(actuator_servos);
-	}
 }
 
 void

@@ -600,6 +600,7 @@ void MulticopterPositionControl::Run()
 		}
 	}
 
+	//PX4_INFO("%f, %f, %f", (double)_setpoint.position[0], (double)_setpoint.position[1], (double)_setpoint.position[2]); // NED
 	perf_end(_cycle_perf);
 }
 

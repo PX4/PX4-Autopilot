@@ -77,8 +77,20 @@ public:
 	 */
 	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint)
 	{
-		_attitude_setpoint_q = qd;
+		// Converter o quaternion para ângulos de Euler
+		matrix::Eulerf euler_angles(qd);
+
+		// Ajustar o componente de pitch para zero
+		euler_angles.theta() = 0.0f;
+
+		// Converter os ângulos de Euler de volta para um quaternion
+		matrix::Quatf qd_modified(euler_angles);
+
+		// Definir o quaternion modificado como o setpoint de atitude
+		_attitude_setpoint_q = qd_modified;
 		_attitude_setpoint_q.normalize();
+
+		// Definir o setpoint de velocidade de yaw
 		_yawspeed_setpoint = yawspeed_setpoint;
 	}
 

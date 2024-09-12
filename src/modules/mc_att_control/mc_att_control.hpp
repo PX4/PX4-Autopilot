@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_servos.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 
@@ -68,6 +69,7 @@ public:
 	MulticopterAttitudeControl(bool vtol = false);
 	~MulticopterAttitudeControl() override;
 
+
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
@@ -78,6 +80,8 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	bool init();
+
+	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
 private:
 	void Run() override;
@@ -94,6 +98,10 @@ private:
 	 */
 	void generate_attitude_setpoint(const matrix::Quatf &q, float dt, bool reset_yaw_sp);
 
+	void setServoAngle(int servo_index, float angle);
+	void setPitchSetpoint(const matrix::Quatf &q, float desired_pitch);
+
+	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
 	AttitudeControl _attitude_control; /**< class for attitude control calculations */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -110,6 +118,7 @@ private:
 
 	uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_attitude_setpoint_s>  _vehicle_attitude_setpoint_pub;
+
 
 	manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
 	vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */
