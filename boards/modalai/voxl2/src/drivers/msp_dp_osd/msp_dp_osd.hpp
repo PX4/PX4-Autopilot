@@ -41,6 +41,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_status.h>
@@ -56,6 +57,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/mavlink_tunnel.h>
 
 #include "MspDPV1.hpp"
 #include <drivers/osd/msp_osd/MessageDisplay/MessageDisplay.hpp>
@@ -129,11 +131,21 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_visual_odometry_sub{ORB_ID(vehicle_visual_odometry)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_mavlink_tunnel_sub{this, ORB_ID(mavlink_tunnel)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// local heartbeat
 	bool _heartbeat{false};
+
+	static const int MAX_REMOTE_OSD_FIELDS{2};
+	static const int MAX_REMOTE_OSD_STRING_LEN{50};
+	typedef struct {
+		int row;
+		int col;
+		char string[MAX_REMOTE_OSD_STRING_LEN + 1];
+	} msp_dp_remote_osd_t;
+	msp_dp_remote_osd_t _remote_osd[MAX_REMOTE_OSD_FIELDS];
 
 	typedef struct {
 		int32_t		rssi_col;
@@ -188,5 +200,7 @@ private:
 	uint8_t _band{5};
 	uint8_t _channel{1};
 	uint16_t _frequency{0x161A};
+
+	bool _remote_enable{0};
 };
 

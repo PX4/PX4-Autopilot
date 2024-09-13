@@ -340,3 +340,14 @@ PARAM_DEFINE_INT32(OSD_CHANNEL, 1);
  * @value 3 - Boscam E
  */
 PARAM_DEFINE_INT32(OSD_BAND, 5);
+
+/**
+ * Remote OSD enable
+ *
+ * Allow external entities to display OSD strings
+ *
+ * @group OSD
+ * @value 0 - Disabled
+ * @value 1 - Enabled
+ */
+PARAM_DEFINE_INT32(OSD_REMOTE, 0);

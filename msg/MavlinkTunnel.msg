@@ -18,3 +18,5 @@ uint8 target_system      # System ID (can be 0 for broadcast, but this is discou
 uint8 target_component   # Component ID (can be 0 for broadcast, but this is discouraged)
 uint8 payload_length     # Length of the data transported in payload
 uint8[128] payload       # Data itself
+
+uint8 ORB_QUEUE_LENGTH = 8

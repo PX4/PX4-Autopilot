@@ -88,6 +88,14 @@ MspDPOsd::~MspDPOsd()
 
 bool MspDPOsd::init()
 {
+	// Initialize remote OSD data
+	for (int i = 0; i < MAX_REMOTE_OSD_FIELDS; i++) {
+		_remote_osd[i].row = -1;
+		_remote_osd[i].col = -1;
+	}
+
+	_vehicle_mavlink_tunnel_sub.registerCallback();
+
 	ScheduleOnInterval(100_ms);
 
 	return true;
@@ -109,6 +117,39 @@ void MspDPOsd::Run()
 		_parameter_update_sub.copy(&param_update);
 		updateParams(); 
 		parameters_update();
+	}
+
+	// Check if any remote OSD updates
+	if (_remote_enable && _vehicle_mavlink_tunnel_sub.updated()) {
+		mavlink_tunnel_s remote_osd{};
+		while (_vehicle_mavlink_tunnel_sub.update(&remote_osd)) {
+			if (remote_osd.payload_type == 0xfff0) {
+				int row = (int) remote_osd.payload[0];
+				int col = (int) remote_osd.payload[1];
+				char *osd_string = (char*) &remote_osd.payload[2];
+				// PX4_INFO("Remote OSD: %u %u %s", row, col, osd_string);
+				for (int i = 0; i < MAX_REMOTE_OSD_FIELDS; i++) {
+					// See if entry already exists for this string
+					if ((row == _remote_osd[i].row) && (col == _remote_osd[i].col)) {
+						// PX4_INFO("Updating entry %d", i);
+						strncpy(_remote_osd[i].string, osd_string, MAX_REMOTE_OSD_STRING_LEN);
+						break;
+					}
+					// If we get to unallocated entries then this is a new remote string
+					if (_remote_osd[i].row == -1) {
+						// PX4_INFO("Adding entry %d", i);
+						_remote_osd[i].row = row;
+						_remote_osd[i].col = col;
+						strncpy(_remote_osd[i].string, osd_string, MAX_REMOTE_OSD_STRING_LEN);
+						break;
+					}
+				}
+			}
+		}
+		// Updates are signaled via callback and happen outside of standard
+		// OSD refresh cycles so just return here and normal cycle processing
+		// will handle the refresh.
+		return;
 	}
 
 	// perform first time initialization, if needed
@@ -371,6 +412,20 @@ void MspDPOsd::Run()
 		this->Send(MSP_CMD_DISPLAYPORT, &crosshair_output, MSP_DIRECTION_REPLY);		
 	}
 
+	// Remote OSD input
+	if (_remote_enable){
+		for (int i = 0; i < MAX_REMOTE_OSD_FIELDS; i++) {
+			// Look for initialized OSD strings
+			if (_remote_osd[i].row != -1) {
+				uint8_t remote_osd_output[sizeof(msp_dp_cmd_t) + strlen(_remote_osd[i].string)]{0};
+				msp_dp_osd::construct_OSD_write(_remote_osd[i].col, _remote_osd[i].row, false, _remote_osd[i].string, remote_osd_output, sizeof(remote_osd_output));
+				this->Send(MSP_CMD_DISPLAYPORT, &remote_osd_output, MSP_DIRECTION_REPLY);
+			} else {
+				break;
+			}
+		}
+	}
+
 	// DRAW whole screen
 	displayportMspCommand_e draw{MSP_DP_DRAW_SCREEN};
 	this->Send(MSP_CMD_DISPLAYPORT, &draw, MSP_DIRECTION_REPLY);
@@ -390,6 +445,7 @@ void MspDPOsd::parameters_update()
 {
 	int32_t band_t{0};
 	int32_t channel_t{0};
+	int32_t remote_enable_t{0};
 
 	// update our display rate and dwell time
 	_display.set_period(hrt_abstime(_param_osd_scroll_rate.get() * 1000ULL));
@@ -433,6 +489,7 @@ void MspDPOsd::parameters_update()
 
 	param_get(param_find("OSD_CHANNEL"), 	&channel_t);
 	param_get(param_find("OSD_BAND"),    	&band_t);
+	param_get(param_find("OSD_REMOTE"),  	&remote_enable_t);
 
 	param_get(param_find("RC_MAP_THROTTLE"), &_sticks.throttle);
 	param_get(param_find("RC_MAP_ROLL"),     &_sticks.roll);
@@ -441,6 +498,7 @@ void MspDPOsd::parameters_update()
 
 	this->_band = (uint8_t)band_t;
 	this->_channel = (uint8_t)channel_t;
+	this->_remote_enable = (bool) remote_enable_t;
 }
 
 int MspDPOsd::task_spawn(int argc, char *argv[])
