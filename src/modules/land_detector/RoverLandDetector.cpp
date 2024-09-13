@@ -55,12 +55,13 @@ bool RoverLandDetector::_get_landed_state()
 	const float distance_to_home = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
 				       _home_position(0), _home_position(1));
 
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+	    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
 		return true; // If Landing has been requested then say we have landed.
 
 	} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
 		   && distance_to_home < _param_nav_acc_rad.get() && _param_rtl_land_delay.get() > -FLT_EPSILON) {
-		return true; // If the rover reaches the home position during RTL we say we have landed
+		return true; // If the rover reaches the home position during RTL we say we have landed.
 
 	} else {
 		return !_armed;  // If we are armed we are not landed.
