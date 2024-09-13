@@ -120,6 +120,7 @@ px4_add_module(
 		mavlink_timesync.cpp
 		mavlink_ulog.cpp
 		MavlinkStatustextHandler.cpp
+		open_drone_id_translations.cpp
 		tune_publisher.cpp
 	MODULE_CONFIG
 		module.yaml

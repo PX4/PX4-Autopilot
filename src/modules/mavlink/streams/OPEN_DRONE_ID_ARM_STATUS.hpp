@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,41 +31,69 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef OPEN_DRONE_ID_ARM_STATUS_HPP
+#define OPEN_DRONE_ID_ARM_STATUS_HPP
 
-#include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/open_drone_id_arm_status.h>
 
-class PX4Rangefinder
+class MavlinkStreamOpenDroneIdArmStatus : public MavlinkStream
 {
 public:
-	PX4Rangefinder(const uint32_t device_id,
-		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	~PX4Rangefinder();
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamOpenDroneIdArmStatus(mavlink);
+	}
 
-	// Set the MAV_DISTANCE_SENSOR type (LASER, ULTRASOUND, INFRARED, RADAR)
-	void set_rangefinder_type(uint8_t rangefinder_type) { _distance_sensor_pub.get().type = rangefinder_type; };
+	static constexpr const char *get_name_static()
+	{
+		return "OPEN_DRONE_ID_ARM_STATUS";
+	}
+	static constexpr uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_OPEN_DRONE_ID_ARM_STATUS;
+	}
 
-	void set_device_id(const uint32_t device_id) { _distance_sensor_pub.get().device_id = device_id; };
-	void set_device_type(const uint8_t device_type);
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
-	void set_fov(const float fov) { set_hfov(fov); set_vfov(fov); }
-	void set_hfov(const float fov) { _distance_sensor_pub.get().h_fov = fov; }
-	void set_vfov(const float fov) { _distance_sensor_pub.get().v_fov = fov; }
-
-	void set_max_distance(const float distance) { _distance_sensor_pub.get().max_distance = distance; }
-	void set_min_distance(const float distance) { _distance_sensor_pub.get().min_distance = distance; }
-
-	void set_orientation(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-
-	void set_mode(const uint8_t mode) { _distance_sensor_pub.get().mode = mode; }
-
-	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);
-
-	int get_instance() { return _distance_sensor_pub.get_instance(); };
+	unsigned get_size() override
+	{
+		return _open_drone_id_arm_status_sub.advertised()
+		       ? MAVLINK_MSG_ID_OPEN_DRONE_ID_ARM_STATUS_LEN +
+		       MAVLINK_NUM_NON_PAYLOAD_BYTES
+		       : 0;
+	}
 
 private:
-	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
+	explicit MavlinkStreamOpenDroneIdArmStatus(Mavlink *mavlink)
+		: MavlinkStream(mavlink) {}
+
+	uORB::Subscription _open_drone_id_arm_status_sub{ORB_ID(open_drone_id_arm_status)};
+
+	bool send() override
+	{
+		open_drone_id_arm_status_s drone_id_arm;
+
+		if (_open_drone_id_arm_status_sub.update(&drone_id_arm)) {
+
+			mavlink_open_drone_id_arm_status_t msg{};
+
+			msg.status = drone_id_arm.status;
+
+			for (uint8_t i = 0; i < sizeof(drone_id_arm.error); ++i) {
+
+				msg.error[i] = drone_id_arm.error[i];
+
+			}
+
+			mavlink_msg_open_drone_id_arm_status_send_struct(_mavlink->get_channel(),
+					&msg);
+
+			return true;
+		}
+
+		return false;
+	}
 };
+
+#endif // OPEN_DRONE_ID_ARM_STATUS_HPP

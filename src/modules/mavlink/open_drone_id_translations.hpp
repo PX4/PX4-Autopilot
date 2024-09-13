@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,39 +33,20 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/distance_sensor.h>
+#include <stdint.h>
+#include <mavlink/common/mavlink.h>
 
-class PX4Rangefinder
+namespace open_drone_id_translations
 {
-public:
-	PX4Rangefinder(const uint32_t device_id,
-		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	~PX4Rangefinder();
 
-	// Set the MAV_DISTANCE_SENSOR type (LASER, ULTRASOUND, INFRARED, RADAR)
-	void set_rangefinder_type(uint8_t rangefinder_type) { _distance_sensor_pub.get().type = rangefinder_type; };
+MAV_ODID_UA_TYPE odidTypeForMavType(uint8_t system_type);
 
-	void set_device_id(const uint32_t device_id) { _distance_sensor_pub.get().device_id = device_id; };
-	void set_device_type(const uint8_t device_type);
+MAV_ODID_SPEED_ACC odidSpeedAccForVariance(float s_variance_m_s);
 
-	void set_fov(const float fov) { set_hfov(fov); set_vfov(fov); }
-	void set_hfov(const float fov) { _distance_sensor_pub.get().h_fov = fov; }
-	void set_vfov(const float fov) { _distance_sensor_pub.get().v_fov = fov; }
+MAV_ODID_HOR_ACC odidHorAccForEph(float eph);
 
-	void set_max_distance(const float distance) { _distance_sensor_pub.get().max_distance = distance; }
-	void set_min_distance(const float distance) { _distance_sensor_pub.get().min_distance = distance; }
+MAV_ODID_VER_ACC odidVerAccForEpv(float epv);
 
-	void set_orientation(const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+MAV_ODID_TIME_ACC odidTimeForElapsed(uint64_t elapsed);
 
-	void set_mode(const uint8_t mode) { _distance_sensor_pub.get().mode = mode; }
-
-	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);
-
-	int get_instance() { return _distance_sensor_pub.get_instance(); };
-
-private:
-	uORB::PublicationMultiData<distance_sensor_s> _distance_sensor_pub{ORB_ID(distance_sensor)};
-};
+} // open_drone_id_translations

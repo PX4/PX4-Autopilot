@@ -97,6 +97,7 @@
 #include "streams/OPEN_DRONE_ID_BASIC_ID.hpp"
 #include "streams/OPEN_DRONE_ID_LOCATION.hpp"
 #include "streams/OPEN_DRONE_ID_SYSTEM.hpp"
+#include "streams/OPEN_DRONE_ID_ARM_STATUS.hpp"
 #include "streams/OPTICAL_FLOW_RAD.hpp"
 #include "streams/ORBIT_EXECUTION_STATUS.hpp"
 #include "streams/PING.hpp"
@@ -457,6 +458,9 @@ static const StreamListItem streams_list[] = {
 #if defined(OPEN_DRONE_ID_SYSTEM_HPP)
 	create_stream_list_item<MavlinkStreamOpenDroneIdSystem>(),
 #endif // OPEN_DRONE_ID_SYSTEM_HPP
+#if defined(OPEN_DRONE_ID_ARM_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamOpenDroneIdArmStatus>(),
+#endif // OPEN_DRONE_ID_ARM_STATUS_HPP
 #if defined(ESC_INFO_HPP)
 	create_stream_list_item<MavlinkStreamESCInfo>(),
 #endif // ESC_INFO_HPP

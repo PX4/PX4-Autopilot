@@ -111,6 +111,13 @@ private:
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	int _nav_state{0};
+	bool _armed{false};
+
+	// Thresholds to avoid moving at rest due to measurement noise
+	static constexpr float YAW_RATE_THRESHOLD =
+		0.02f; // [rad/s] The minimum threshold for the yaw rate measurement not to be interpreted as zero
+	static constexpr float SPEED_THRESHOLD =
+		0.1f; // [m/s] The minimum threshold for the speed measurement not to be interpreted as zero
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RD_MAN_YAW_SCALE>) _param_rd_man_yaw_scale,

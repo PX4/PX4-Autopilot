@@ -115,6 +115,10 @@ void RoverDifferential::Run()
 		break;
 	}
 
+	if (!_armed) { // Reset on disarm
+		_rover_differential_control.resetControllers();
+	}
+
 	_rover_differential_control.computeMotorCommands(_vehicle_yaw, _vehicle_yaw_rate, _vehicle_forward_speed);
 
 }
@@ -132,12 +136,13 @@ void RoverDifferential::updateSubscriptions()
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
 		_nav_state = vehicle_status.nav_state;
+		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 	}
 
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};
 		_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity);
-		_vehicle_yaw_rate = vehicle_angular_velocity.xyz[2];
+		_vehicle_yaw_rate = fabsf(vehicle_angular_velocity.xyz[2]) > YAW_RATE_THRESHOLD ? vehicle_angular_velocity.xyz[2] : 0.f;
 	}
 
 	if (_vehicle_attitude_sub.updated()) {
@@ -152,7 +157,7 @@ void RoverDifferential::updateSubscriptions()
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 		Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		_vehicle_forward_speed = velocity_in_body_frame(0);
+		_vehicle_forward_speed = fabsf(velocity_in_body_frame(0)) > SPEED_THRESHOLD ? velocity_in_body_frame(0) : 0.f;
 	}
 }
 

@@ -73,6 +73,8 @@ public:
 	virtual void on_activation() override;
 	virtual void on_active() override;
 
+	bool isLanding();
+
 protected:
 
 	/**
@@ -320,6 +322,7 @@ protected:
 	 * @param[in] index Index of the mission item
 	 */
 	void setMissionIndex(int32_t index);
+
 
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/

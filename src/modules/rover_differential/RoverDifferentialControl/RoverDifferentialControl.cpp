@@ -84,32 +84,24 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 
 	// Closed loop yaw control (Overrides yaw rate setpoint)
 	if (PX4_ISFINITE(_rover_differential_setpoint.yaw_setpoint)) {
-		if (fabsf(_rover_differential_setpoint.yaw_setpoint - vehicle_yaw) < FLT_EPSILON) {
-			_rover_differential_setpoint.yaw_rate_setpoint = 0.f;
-			pid_reset_integral(&_pid_yaw);
-
-		} else {
-			const float heading_error = matrix::wrap_pi(_rover_differential_setpoint.yaw_setpoint - vehicle_yaw);
-			_rover_differential_setpoint.yaw_rate_setpoint = pid_calculate(&_pid_yaw, heading_error, 0, 0, dt);
-		}
+		float heading_error = matrix::wrap_pi(_rover_differential_setpoint.yaw_setpoint - vehicle_yaw);
+		_rover_differential_setpoint.yaw_rate_setpoint = pid_calculate(&_pid_yaw, heading_error, 0, 0, dt);
 	}
 
 	// Yaw rate control
 	float speed_diff_normalized{0.f};
 
 	if (PX4_ISFINITE(_rover_differential_setpoint.yaw_rate_setpoint)) { // Closed loop yaw rate control
-		if (fabsf(_rover_differential_setpoint.yaw_rate_setpoint) < FLT_EPSILON) {
-			speed_diff_normalized = 0.f;
-			pid_reset_integral(&_pid_yaw_rate);
-
-		} else {
-			const float speed_diff = _rover_differential_setpoint.yaw_rate_setpoint * _param_rd_wheel_track.get(); // Feedforward
-			speed_diff_normalized = math::interpolate<float>(speed_diff, -_param_rd_max_speed.get(),
-						_param_rd_max_speed.get(), -1.f, 1.f);
-			speed_diff_normalized = math::constrain(speed_diff_normalized +
-								pid_calculate(&_pid_yaw_rate, _rover_differential_setpoint.yaw_rate_setpoint, vehicle_yaw_rate, 0, dt),
-								-1.f, 1.f); // Feedback
+		if (_param_rd_wheel_track.get() > FLT_EPSILON && _param_rd_max_thr_yaw_r.get() > FLT_EPSILON) { // Feedforward
+			const float speed_diff = _rover_differential_setpoint.yaw_rate_setpoint * _param_rd_wheel_track.get() /
+						 2.f;
+			speed_diff_normalized = math::interpolate<float>(speed_diff, -_param_rd_max_thr_yaw_r.get(),
+						_param_rd_max_thr_yaw_r.get(), -1.f, 1.f);
 		}
+
+		speed_diff_normalized = math::constrain(speed_diff_normalized +
+							pid_calculate(&_pid_yaw_rate, _rover_differential_setpoint.yaw_rate_setpoint, vehicle_yaw_rate, 0, dt),
+							-1.f, 1.f); // Feedback
 
 	} else { // Use normalized setpoint
 		speed_diff_normalized = PX4_ISFINITE(_rover_differential_setpoint.yaw_rate_setpoint_normalized) ?
@@ -117,35 +109,34 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 	}
 
 	// Speed control
-	float throttle{0.f};
+	float forward_speed_normalized{0.f};
 
 	if (PX4_ISFINITE(_rover_differential_setpoint.forward_speed_setpoint)) { // Closed loop speed control
-		if (fabsf(_rover_differential_setpoint.forward_speed_setpoint) < FLT_EPSILON) {
-			pid_reset_integral(&_pid_throttle);
-
-		} else {
-			throttle = pid_calculate(&_pid_throttle, _rover_differential_setpoint.forward_speed_setpoint, vehicle_forward_speed, 0,
-						 dt);
-
-			if (_param_rd_max_speed.get() > FLT_EPSILON) { // Feed-forward term
-				throttle += math::interpolate<float>(_rover_differential_setpoint.forward_speed_setpoint,
-								     0.f, _param_rd_max_speed.get(),
-								     0.f, 1.f);
-			}
+		if (_param_rd_max_thr_spd.get() > FLT_EPSILON) { // Feedforward
+			forward_speed_normalized = math::interpolate<float>(_rover_differential_setpoint.forward_speed_setpoint,
+						   -_param_rd_max_thr_spd.get(), _param_rd_max_thr_spd.get(),
+						   -1.f, 1.f);
 		}
 
+		forward_speed_normalized = math::constrain(forward_speed_normalized + pid_calculate(&_pid_throttle,
+					   _rover_differential_setpoint.forward_speed_setpoint,
+					   vehicle_forward_speed, 0,
+					   dt), -1.f, 1.f); // Feedback
+
 	} else { // Use normalized setpoint
-		throttle = PX4_ISFINITE(_rover_differential_setpoint.forward_speed_setpoint_normalized) ?
-			   math::constrain(_rover_differential_setpoint.forward_speed_setpoint_normalized, -1.f, 1.f) : 0.f;
+		forward_speed_normalized = PX4_ISFINITE(_rover_differential_setpoint.forward_speed_setpoint_normalized) ?
+					   math::constrain(_rover_differential_setpoint.forward_speed_setpoint_normalized, -1.f, 1.f) : 0.f;
 	}
 
 	// Publish rover differential status (logging)
 	rover_differential_status_s rover_differential_status{};
 	rover_differential_status.timestamp = _timestamp;
 	rover_differential_status.actual_speed = vehicle_forward_speed;
-	rover_differential_status.actual_yaw_deg = M_RAD_TO_DEG_F * vehicle_yaw;
-	rover_differential_status.desired_yaw_rate_deg_s = M_RAD_TO_DEG_F * _rover_differential_setpoint.yaw_rate_setpoint;
-	rover_differential_status.actual_yaw_rate_deg_s = M_RAD_TO_DEG_F * vehicle_yaw_rate;
+	rover_differential_status.actual_yaw = vehicle_yaw;
+	rover_differential_status.desired_yaw_rate = _rover_differential_setpoint.yaw_rate_setpoint;
+	rover_differential_status.actual_yaw_rate = vehicle_yaw_rate;
+	rover_differential_status.forward_speed_normalized = forward_speed_normalized;
+	rover_differential_status.speed_diff_normalized = speed_diff_normalized;
 	rover_differential_status.pid_yaw_rate_integral = _pid_yaw_rate.integral;
 	rover_differential_status.pid_throttle_integral = _pid_throttle.integral;
 	rover_differential_status.pid_yaw_integral = _pid_yaw.integral;
@@ -154,7 +145,7 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 	// Publish to motors
 	actuator_motors_s actuator_motors{};
 	actuator_motors.reversible_flags = _param_r_rev.get();
-	computeInverseKinematics(throttle, speed_diff_normalized).copyTo(actuator_motors.control);
+	computeInverseKinematics(forward_speed_normalized, speed_diff_normalized).copyTo(actuator_motors.control);
 	actuator_motors.timestamp = _timestamp;
 	_actuator_motors_pub.publish(actuator_motors);
 
@@ -173,4 +164,11 @@ matrix::Vector2f RoverDifferentialControl::computeInverseKinematics(float forwar
 	// Calculate the left and right wheel speeds
 	return Vector2f(forward_speed_normalized - speed_diff_normalized,
 			forward_speed_normalized + speed_diff_normalized);
+}
+
+void RoverDifferentialControl::resetControllers()
+{
+	pid_reset_integral(&_pid_throttle);
+	pid_reset_integral(&_pid_yaw_rate);
+	pid_reset_integral(&_pid_yaw);
 }
