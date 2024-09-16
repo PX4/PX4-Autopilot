@@ -96,6 +96,10 @@ void AutopilotTester::wait_until_ready()
 {
 	std::cout << time_str() << "Waiting for system to be ready (system health ok & able to arm)" << std::endl;
 
+	// Switch to Hold mode since the tests assume that's the initial mode when the drone gets position lock without stick input
+	const auto result = _action->hold();
+	REQUIRE(result == Action::Result::Success);
+
 	// Wait until the system is healthy
 	CHECK(poll_condition_with_timeout(
 	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
