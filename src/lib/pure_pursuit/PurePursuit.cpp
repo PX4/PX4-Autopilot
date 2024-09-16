@@ -78,18 +78,16 @@ float PurePursuit::calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2
 
 	const Vector2f prev_wp_to_curr_pos = curr_pos_ned - prev_wp_ned;
 	const Vector2f prev_wp_to_curr_wp_u = prev_wp_to_curr_wp.unit_or_zero();
-	const Vector2f distance_on_line_segment = (prev_wp_to_curr_pos * prev_wp_to_curr_wp_u) *
-			prev_wp_to_curr_wp_u; // Projection of prev_wp_to_curr_pos onto prev_wp_to_curr_wp
-	const Vector2f curr_pos_to_path = distance_on_line_segment -
-					  prev_wp_to_curr_pos; // Shortest vector from the current position to the path
+	_distance_on_line_segment = (prev_wp_to_curr_pos * prev_wp_to_curr_wp_u) * prev_wp_to_curr_wp_u;
+	_curr_pos_to_path = _distance_on_line_segment - prev_wp_to_curr_pos;
 
-	if (curr_pos_to_path.norm() > _lookahead_distance) { // Target closest point on path if there is no intersection point
-		return atan2f(curr_pos_to_path(1), curr_pos_to_path(0));
+	if (_curr_pos_to_path.norm() > _lookahead_distance) { // Target closest point on path if there is no intersection point
+		return atan2f(_curr_pos_to_path(1), _curr_pos_to_path(0));
 	}
 
-	const float line_extension = sqrt(powf(_lookahead_distance, 2.f) - powf(curr_pos_to_path.norm(),
-					  2.f)); // Length of the vector from the endpoint of distance_on_line_segment to the intersection point
-	const Vector2f prev_wp_to_intersection_point = distance_on_line_segment + line_extension *
+	const float line_extension = sqrt(powf(_lookahead_distance, 2.f) - powf(_curr_pos_to_path.norm(),
+					  2.f)); // Length of the vector from the endpoint of _distance_on_line_segment to the intersection point
+	const Vector2f prev_wp_to_intersection_point = _distance_on_line_segment + line_extension *
 			prev_wp_to_curr_wp_u;
 	const Vector2f curr_pos_to_intersection_point = prev_wp_to_intersection_point - prev_wp_to_curr_pos;
 	return atan2f(curr_pos_to_intersection_point(1), curr_pos_to_intersection_point(0));
