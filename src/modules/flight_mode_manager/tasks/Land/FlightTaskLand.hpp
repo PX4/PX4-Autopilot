@@ -47,6 +47,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include "Sticks.hpp"
+#include "StickAccelerationXY.hpp"
+#include "StickYaw.hpp"
 
 using matrix::Vector3f;
 using matrix::Vector2f;
@@ -59,12 +61,13 @@ public:
 
 	bool update() override;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
-
 	void reActivate() override;
 
 protected:
 	PositionSmoothing _position_smoothing;
 	Sticks _sticks{this};
+	StickAccelerationXY _stick_acceleration_xy{this};
+	StickYaw _stick_yaw{this};
 
 	uORB::SubscriptionData<home_position_s>		_sub_home_position{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s>	_sub_vehicle_status{ORB_ID(vehicle_status)};
@@ -79,6 +82,8 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) 	_param_mpc_land_alt2,
 					(ParamFloat<px4::params::MPC_LAND_ALT3>) 	_param_mpc_land_alt3,
 					(ParamFloat<px4::params::MPC_LAND_CRWL>) 	_param_mpc_land_crawl_speed,
+					(ParamFloat<px4::params::MPC_LAND_RADIUS>) 	_param_mpc_land_radius,
+					(ParamInt<px4::params::MPC_LAND_RC_HELP>) 	_param_mpc_land_rc_help,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) 	_param_mpc_land_speed,
 					(ParamFloat<px4::params::MPC_XY_ERR_MAX>) 	_param_mpc_xy_err_max,
 					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) 	_param_mpc_xy_traj_p,
@@ -92,11 +97,12 @@ private:
 	void _HandleHighVelocities();
 	void _PerformLanding();
 	void _SmoothBrakingPath();
-	void _updateTrajConstraints();
+	void _UpdateTrajConstraints();
 
 	bool _landing{false};
 	bool _is_initialized{false};
 	bool _exceeded_max_vel{false};
+
 	Vector3f _initial_land_position;
 	Vector3f _land_position;
 	float _land_heading{0.0f};
