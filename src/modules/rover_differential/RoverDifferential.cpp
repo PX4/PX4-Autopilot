@@ -107,14 +107,15 @@ void RoverDifferential::Run()
 				rover_differential_setpoint.timestamp = timestamp;
 				rover_differential_setpoint.forward_speed_setpoint = NAN;
 				rover_differential_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
+				rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+						STICK_DEADZONE), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
 				rover_differential_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_differential_setpoint.yaw_setpoint = NAN;
 
-				if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
+				if (fabsf(rover_differential_setpoint.yaw_rate_setpoint) > FLT_EPSILON
 				    || fabsf(rover_differential_setpoint.forward_speed_setpoint_normalized) < FLT_EPSILON) { // Closed loop yaw rate control
 					_yaw_ctl = false;
-					rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(manual_control_setpoint.roll,
-							-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-					rover_differential_setpoint.yaw_setpoint = NAN;
+
 
 				} else { // Closed loop yaw control if the yaw rate input is zero (keep current yaw)
 					if (!_yaw_ctl) {
@@ -141,14 +142,15 @@ void RoverDifferential::Run()
 				rover_differential_setpoint.forward_speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
 						-1.f, 1.f, -_param_rd_max_speed.get(), _param_rd_max_speed.get());
 				rover_differential_setpoint.forward_speed_setpoint_normalized = NAN;
+				rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+						STICK_DEADZONE), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
 				rover_differential_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_differential_setpoint.yaw_setpoint = NAN;
 
-				if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
+				if (fabsf(rover_differential_setpoint.yaw_rate_setpoint) > FLT_EPSILON
 				    || fabsf(rover_differential_setpoint.forward_speed_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
 					_yaw_ctl = false;
-					rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(manual_control_setpoint.roll,
-							-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-					rover_differential_setpoint.yaw_setpoint = NAN;
+
 
 				} else { // Course control if the yaw rate input is zero (keep driving on a straight line)
 					if (!_yaw_ctl) {

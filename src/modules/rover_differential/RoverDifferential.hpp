@@ -126,6 +126,10 @@ private:
 	static constexpr float SPEED_THRESHOLD =
 		0.1f; // [m/s] The minimum threshold for the speed measurement not to be interpreted as zero
 
+	// Stick input deadzone
+	static constexpr float STICK_DEADZONE =
+		0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RD_MAN_YAW_SCALE>) _param_rd_man_yaw_scale,
 		(ParamFloat<px4::params::RD_MAX_YAW_RATE>) _param_rd_max_yaw_rate,
