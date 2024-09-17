@@ -38,7 +38,9 @@
 
 #include "ekf.h"
 #include "aid_sources/external_vision/ev_vel.h"
-#include "ekf_derivation/generated/compute_body_vel_h.h"
+#include "ekf_derivation/generated/compute_body_vel_innov_var_h.h"
+#include "ekf_derivation/generated/compute_body_vel_y_innov_var.h"
+#include "ekf_derivation/generated/compute_body_vel_z_innov_var.h"
 
 void Ekf::controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_conditions_passing, const bool ev_reset,
 			     const bool quality_sufficient, estimator_aid_source3d_s &aid_src)
@@ -168,7 +170,8 @@ void Ekf::fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_
 	VectorState H[3];
 	Vector3f innov_var;
 	Vector3f innov = _R_to_earth.transpose() * _state.vel - measurement;
-	sym::ComputeBodyVelH(_state.vector(), P, measurement_var, &innov_var, &H[0], &H[1], &H[2]);
+	const auto state_vector = _state.vector();
+	sym::ComputeBodyVelInnovVarH(state_vector, P, measurement_var, &innov_var, &H[0], &H[1], &H[2]);
 
 	updateAidSourceStatus(aid_src,
 			      timestamp,				// sample timestamp
@@ -183,6 +186,14 @@ void Ekf::fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_
 
 		for (uint8_t index = 0; index <= 2; index++) {
 			if (aid_src.fused) {
+				if (index == 1) {
+					sym::ComputeBodyVelYInnovVar(state_vector, P, measurement_var(index), &aid_src.innovation_variance[index]);
+
+				} else if (index == 2) {
+					sym::ComputeBodyVelZInnovVar(state_vector, P, measurement_var(index), &aid_src.innovation_variance[index]);
+				}
+
+				aid_src.innovation[index] = Vector3f(_R_to_earth.transpose().row(index)) * _state.vel - measurement(index);
 				VectorState Kfusion = P * H[index] / aid_src.innovation_variance[index];
 				aid_src.fused &= measurementUpdate(Kfusion, H[index], aid_src.observation_variance[index], aid_src.innovation[index]);
 			}

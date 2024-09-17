@@ -50,8 +50,8 @@ public:
 	{
 		_min_variance = sq(ev_vel_noise);
 		const Vector3f angular_velocity = imu_sample.delta_ang / imu_sample.delta_ang_dt - _ekf._state.gyro_bias;
-		Vector3f _position_offset_body = _ekf._params.ev_pos_body - _ekf._params.imu_pos_body;
-		_velocity_offset_body = angular_velocity % _position_offset_body;
+		Vector3f position_offset_body = _ekf._params.ev_pos_body - _ekf._params.imu_pos_body;
+		_velocity_offset_body = angular_velocity % position_offset_body;
 	}
 
 	virtual ~ExternalVisionVel() = default;
@@ -106,7 +106,7 @@ public:
 	{
 		const matrix::SquareMatrix3f rotated_variance = _ekf._R_to_earth * matrix::diag(
 					_measurement_var) * _ekf._R_to_earth.transpose();
-		// bump the variance by a factor of 5 to make teh reset less aggressive
+		// bump the variance to decrease cross-correlation and increase uncertainty of velocity
 		const Vector3f measurement_variance_ekf_frame = rotated_variance.diag() * 5.f;
 		_ekf.resetVelocityTo(_ekf._R_to_earth * _measurement, measurement_variance_ekf_frame);
 	}
@@ -115,7 +115,7 @@ public:
 	{
 		const matrix::SquareMatrix3f rotated_variance = _ekf._R_to_earth * matrix::diag(
 					_measurement_var) * _ekf._R_to_earth.transpose();
-		// bump the variance by a factor of 5 to make teh reset less aggressive
+		// bump the variance to decrease cross-correlation and increase uncertainty of velocity
 		const Vector3f measurement_variance_ekf_frame = rotated_variance.diag() * 5.f;
 		_ekf.resetVerticalVelocityTo((_ekf._R_to_earth * _measurement)(2, 0),
 					     measurement_variance_ekf_frame(2));
