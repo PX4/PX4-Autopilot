@@ -2953,13 +2953,11 @@ Mavlink::display_status()
 		       broadcast_enabled() ? "YES" : "NO");
 		printf("\tMulticast enabled: %s\n",
 		       multicast_enabled() ? "YES" : "NO");
-#ifdef __PX4_POSIX
 
 		if (get_client_source_initialized()) {
 			printf("\tpartner IP: %s\n", inet_ntoa(get_client_source_address().sin_addr));
 		}
 
-#endif
 		break;
 #endif // MAVLINK_UDP
 
