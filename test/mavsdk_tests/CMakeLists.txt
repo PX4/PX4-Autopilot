@@ -44,7 +44,7 @@ if(MAVSDK_FOUND)
     )
 
     add_executable(mavsdk_preparing
-    mavsdk_preparing.cpp
+        mavsdk_preparing.cpp
     )
 
     target_link_libraries(mavsdk_preparing
