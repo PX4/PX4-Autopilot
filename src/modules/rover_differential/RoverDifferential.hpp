@@ -61,6 +61,14 @@
 
 using namespace time_literals;
 
+// Constants
+static constexpr float STICK_DEADZONE =
+	0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
+static constexpr float YAW_RATE_THRESHOLD =
+	0.02f; // [rad/s] The minimum threshold for the yaw rate measurement not to be interpreted as zero
+static constexpr float SPEED_THRESHOLD =
+	0.1f; // [m/s] The minimum threshold for the speed measurement not to be interpreted as zero
+
 class RoverDifferential : public ModuleBase<RoverDifferential>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
@@ -119,16 +127,6 @@ private:
 	float _stab_desired_yaw{0.f}; // Yaw setpoint for Stabilized mode
 	Vector2f _pos_ctl_course_direction{}; // Course direction for Position mode
 	Vector2f _pos_ctl_start_position_ned{}; // Initial rover position for course control in Position mode
-
-	// Thresholds to avoid moving at rest due to measurement noise
-	static constexpr float YAW_RATE_THRESHOLD =
-		0.02f; // [rad/s] The minimum threshold for the yaw rate measurement not to be interpreted as zero
-	static constexpr float SPEED_THRESHOLD =
-		0.1f; // [m/s] The minimum threshold for the speed measurement not to be interpreted as zero
-
-	// Stick input deadzone
-	static constexpr float STICK_DEADZONE =
-		0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RD_MAN_YAW_SCALE>) _param_rd_man_yaw_scale,
