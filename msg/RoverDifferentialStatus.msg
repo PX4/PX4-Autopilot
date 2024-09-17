@@ -1,13 +1,14 @@
 uint64 timestamp # time since system start (microseconds)
 
-float32 actual_speed	         # [m/s] Actual forward speed of the rover
-float32 actual_yaw               # [rad] Actual yaw of the rover
-float32 actual_yaw_rate          # [rad/s] Actual yaw rate of the rover
-float32 desired_yaw_rate         # [rad/s] Yaw rate setpoint for the closed loop yaw rate controller
-float32 forward_speed_normalized # [-1, 1] Normalized forward speed setpoint
-float32 speed_diff_normalized    # [-1, 1] Normalized speed difference setpoint between the left and right motor
-float32 pid_yaw_integral         # Integral of the PID for the closed loop yaw controller
-float32 pid_yaw_rate_integral    # Integral of the PID for the closed loop yaw rate controller
-float32 pid_throttle_integral    # Integral of the PID for the closed loop speed controller
+float32 measured_forward_speed	        # [m/s] Measured speed in body x direction. Forwards: positiv, Backwards: negativ
+float32 adjusted_forward_speed_setpoint # [m/s] Speed setpoint after applying slew rate
+float32 measured_yaw                    # [rad] Measured yaw
+float32 adjusted_yaw_setpoint           # [rad] Yaw setpoint after applying slew rate
+float32 clyaw_yaw_rate_setpoint         # [rad/s] Yaw rate setpoint output by the closed loop yaw controller
+float32 measured_yaw_rate               # [rad/s] Measured yaw rate
+float32 adjusted_yaw_rate_setpoint      # [rad/s] Yaw rate setpoint from the closed loop yaw controller
+float32 pid_yaw_integral                # Integral of the PID for the closed loop yaw controller
+float32 pid_yaw_rate_integral           # Integral of the PID for the closed loop yaw rate controller
+float32 pid_throttle_integral           # Integral of the PID for the closed loop speed controller
 
 # TOPICS rover_differential_status

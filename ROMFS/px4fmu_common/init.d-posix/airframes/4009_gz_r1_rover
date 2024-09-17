@@ -13,22 +13,23 @@ param set-default SIM_GZ_EN 1 # Gazebo bridge
 
 # Rover parameters
 param set-default RD_WHEEL_TRACK 0.3
-param set-default RD_MAN_YAW_SCALE 0.1
-param set-default RD_MAX_ACCEL 6
+param set-default RD_MAX_ACCEL 5
+param set-default RD_MAX_DECEL 10
 param set-default RD_MAX_JERK 30
-param set-default RD_MAX_THR_YAW_R 5
-param set-default RD_YAW_RATE_P 0.1
-param set-default RD_YAW_RATE_I 0
+param set-default RD_MAX_THR_YAW_R 1.5
+param set-default RD_YAW_RATE_P 0.25
+param set-default RD_YAW_RATE_I 0.01
 param set-default RD_YAW_P 5
-param set-default RD_YAW_I 0
-param set-default RD_MAX_SPEED 5
-param set-default RD_MAX_THR_SPD 7
-param set-default RD_SPEED_P 1
-param set-default RD_SPEED_I 0
+param set-default RD_YAW_I 0.1
+param set-default RD_MAX_SPEED 2
+param set-default RD_MAX_THR_SPD 2.15
+param set-default RD_SPEED_P 0.1
+param set-default RD_SPEED_I 0.01
 param set-default RD_MAX_YAW_RATE 180
-param set-default RD_MISS_SPD_DEF 5
+param set-default RD_MISS_SPD_DEF 2
 param set-default RD_TRANS_DRV_TRN 0.349066
 param set-default RD_TRANS_TRN_DRV 0.174533
+param set-default RD_MAX_YAW_ACCEL 1000
 
 # Pure pursuit parameters
 param set-default PP_LOOKAHD_MAX 30
@@ -43,13 +44,13 @@ param set-default SENS_EN_ARSPDSIM 0
 
 # Actuator mapping
 param set-default SIM_GZ_WH_FUNC1 101 # right wheel
-param set-default SIM_GZ_WH_MIN1 0
-param set-default SIM_GZ_WH_MAX1 200
+param set-default SIM_GZ_WH_MIN1 70
+param set-default SIM_GZ_WH_MAX1 130
 param set-default SIM_GZ_WH_DIS1 100
 
 param set-default SIM_GZ_WH_FUNC2 102 # left wheel
-param set-default SIM_GZ_WH_MIN2 0
-param set-default SIM_GZ_WH_MAX2 200
+param set-default SIM_GZ_WH_MIN2 70
+param set-default SIM_GZ_WH_MAX2 130
 param set-default SIM_GZ_WH_DIS2 100
 
 param set-default SIM_GZ_WH_REV 1 # reverse right wheel

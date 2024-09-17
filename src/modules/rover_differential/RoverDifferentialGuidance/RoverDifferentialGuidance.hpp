@@ -140,11 +140,11 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,
-		(ParamFloat<px4::params::RD_MAX_JERK>) _param_rd_max_jerk,
-		(ParamFloat<px4::params::RD_MAX_ACCEL>) _param_rd_max_accel,
-		(ParamFloat<px4::params::RD_MAX_SPEED>) _param_rd_max_speed,
-		(ParamFloat<px4::params::RD_MISS_SPD_DEF>) _param_rd_miss_spd_def,
+		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,
+		(ParamFloat<px4::params::RD_MAX_JERK>)      _param_rd_max_jerk,
+		(ParamFloat<px4::params::RD_MAX_DECEL>)     _param_rd_max_decel,
+		(ParamFloat<px4::params::RD_MAX_SPEED>)     _param_rd_max_speed,
+		(ParamFloat<px4::params::RD_MISS_SPD_DEF>)  _param_rd_miss_spd_def,
 		(ParamFloat<px4::params::RD_TRANS_TRN_DRV>) _param_rd_trans_trn_drv,
 		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn
 
