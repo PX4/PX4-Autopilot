@@ -20,7 +20,7 @@ parameters:
         description:
           short: Manual yaw rate scale
           long: |
-            In manual mode the setpoint for the yaw rate received from the rc remote
+            In manual mode the setpoint for the yaw rate received from the yaw stick
             is scaled by this value.
         type: float
         min: 0.001
@@ -115,8 +115,25 @@ parameters:
 
       RD_MAX_SPEED:
         description:
-          short: Maximum speed the rover can drive
-          long: This parameter is used to map desired speeds to normalized motor commands.
+          short: Maximum speed setpoint
+          long: |
+            This parameter is used to cap desired forward speed and map controller inputs to desired speeds in Position mode.
+        type: float
+        unit: m/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RD_MAX_THR_SPD:
+        description:
+          short: Speed the rover drives at maximum throttle
+          long: |
+            This parameter is used to calculate the feedforward term of the closed loop speed control which linearly
+            maps desired speeds to normalized motor commands [-1. 1].
+            A good starting point is the observed ground speed when the rover drives at maximum throttle in manual mode.
+            Increase this parameter if the rover is faster than the setpoint, and decrease if the rover is slower.
         type: float
         unit: m/s
         min: 0
@@ -129,7 +146,8 @@ parameters:
         description:
           short: Maximum allowed yaw rate for the rover
           long: |
-            This parameter is used to cap desired yaw rates and map controller inputs to desired yaw rates in acro mode.
+            This parameter is used to cap desired yaw rates and map controller inputs to desired yaw rates
+            in Acro,Stabilized and Position mode.
         type: float
         unit: deg/s
         min: 0.01
@@ -137,6 +155,23 @@ parameters:
         increment: 0.01
         decimal: 2
         default: 90
+
+      RD_MAX_THR_YAW_R:
+        description:
+          short: Yaw rate turning left/right wheels at max speed in opposite directions
+          long: |
+            This parameter is used to calculate the feedforward term of the closed loop yaw rate control.
+            The controller first calculates the required speed difference between the left and right motor to achieve the desired yaw rate.
+            This desired speed difference is then linearly mapped to normalized motor commands.
+            A good starting point is twice the speed the rover drives at maximum throttle (RD_MAX_THR_SPD)).
+            Increase this parameter if the rover turns faster than the setpoint, and decrease if the rover turns slower.
+        type: float
+        unit: m/s
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 2
 
       RD_MISS_SPD_DEF:
         description:

@@ -72,6 +72,11 @@ public:
 	 */
 	void computeMotorCommands(float vehicle_yaw, float vehicle_yaw_rate, float vehicle_forward_speed);
 
+	/**
+	 * @brief Reset PID controllers
+	 */
+	void resetControllers();
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -108,7 +113,8 @@ private:
 	// Parameters
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RD_WHEEL_TRACK>) _param_rd_wheel_track,
-		(ParamFloat<px4::params::RD_MAX_SPEED>) _param_rd_max_speed,
+		(ParamFloat<px4::params::RD_MAX_THR_SPD>) _param_rd_max_thr_spd,
+		(ParamFloat<px4::params::RD_MAX_THR_YAW_R>) _param_rd_max_thr_yaw_r,
 		(ParamFloat<px4::params::RD_MAX_YAW_RATE>) _param_rd_max_yaw_rate,
 		(ParamFloat<px4::params::RD_YAW_RATE_P>) _param_rd_yaw_rate_p,
 		(ParamFloat<px4::params::RD_YAW_RATE_I>) _param_rd_yaw_rate_i,

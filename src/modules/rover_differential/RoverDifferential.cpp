@@ -99,12 +99,94 @@ void RoverDifferential::Run()
 
 		} break;
 
+	case vehicle_status_s::NAVIGATION_STATE_STAB: {
+			manual_control_setpoint_s manual_control_setpoint{};
+
+			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+				rover_differential_setpoint_s rover_differential_setpoint{};
+				rover_differential_setpoint.timestamp = timestamp;
+				rover_differential_setpoint.forward_speed_setpoint = NAN;
+				rover_differential_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
+				rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+						STICK_DEADZONE), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+				rover_differential_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_differential_setpoint.yaw_setpoint = NAN;
+
+				if (fabsf(rover_differential_setpoint.yaw_rate_setpoint) > FLT_EPSILON
+				    || fabsf(rover_differential_setpoint.forward_speed_setpoint_normalized) < FLT_EPSILON) { // Closed loop yaw rate control
+					_yaw_ctl = false;
+
+
+				} else { // Closed loop yaw control if the yaw rate input is zero (keep current yaw)
+					if (!_yaw_ctl) {
+						_stab_desired_yaw = _vehicle_yaw;
+						_yaw_ctl = true;
+					}
+
+					rover_differential_setpoint.yaw_setpoint = _stab_desired_yaw;
+					rover_differential_setpoint.yaw_rate_setpoint = NAN;
+
+				}
+
+				_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
+			}
+
+		} break;
+
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL: {
+			manual_control_setpoint_s manual_control_setpoint{};
+
+			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+				rover_differential_setpoint_s rover_differential_setpoint{};
+				rover_differential_setpoint.timestamp = timestamp;
+				rover_differential_setpoint.forward_speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
+						-1.f, 1.f, -_param_rd_max_speed.get(), _param_rd_max_speed.get());
+				rover_differential_setpoint.forward_speed_setpoint_normalized = NAN;
+				rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
+						STICK_DEADZONE), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+				rover_differential_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_differential_setpoint.yaw_setpoint = NAN;
+
+				if (fabsf(rover_differential_setpoint.yaw_rate_setpoint) > FLT_EPSILON
+				    || fabsf(rover_differential_setpoint.forward_speed_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
+					_yaw_ctl = false;
+
+
+				} else { // Course control if the yaw rate input is zero (keep driving on a straight line)
+					if (!_yaw_ctl) {
+						_pos_ctl_course_direction = Vector2f(cos(_vehicle_yaw), sin(_vehicle_yaw));
+						_pos_ctl_start_position_ned = _curr_pos_ned;
+						_yaw_ctl = true;
+					}
+
+					// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
+					const float vector_scaling = sqrtf(powf(_param_pp_lookahd_max.get(),
+										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceOnLineSegment();
+					const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(
+							rover_differential_setpoint.forward_speed_setpoint) *
+									     vector_scaling * _pos_ctl_course_direction;
+					// Calculate yaw setpoint
+					const float yaw_setpoint = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned,
+								   _pos_ctl_start_position_ned, _curr_pos_ned, fabsf(_vehicle_forward_speed));
+					rover_differential_setpoint.yaw_setpoint = sign(rover_differential_setpoint.forward_speed_setpoint) >= 0 ?
+							yaw_setpoint : matrix::wrap_pi(M_PI_F + yaw_setpoint); // Flip yaw setpoint when driving backwards
+					rover_differential_setpoint.yaw_rate_setpoint = NAN;
+
+				}
+
+				_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
+			}
+
+		} break;
+
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 		_rover_differential_guidance.computeGuidance(_vehicle_yaw, _vehicle_forward_speed, _nav_state);
 		break;
 
 	default: // Unimplemented nav states will stop the rover
+		_rover_differential_control.resetControllers();
+		_yaw_ctl = false;
 		rover_differential_setpoint_s rover_differential_setpoint{};
 		rover_differential_setpoint.forward_speed_setpoint = NAN;
 		rover_differential_setpoint.forward_speed_setpoint_normalized = 0.f;
@@ -113,6 +195,11 @@ void RoverDifferential::Run()
 		rover_differential_setpoint.yaw_setpoint = NAN;
 		_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
 		break;
+	}
+
+	if (!_armed) { // Reset when disarmed
+		_rover_differential_control.resetControllers();
+		_yaw_ctl = false;
 	}
 
 	_rover_differential_control.computeMotorCommands(_vehicle_yaw, _vehicle_yaw_rate, _vehicle_forward_speed);
@@ -131,13 +218,20 @@ void RoverDifferential::updateSubscriptions()
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
+
+		if (vehicle_status.nav_state != _nav_state) { // Reset on mode change
+			_rover_differential_control.resetControllers();
+			_yaw_ctl = false;
+		}
+
 		_nav_state = vehicle_status.nav_state;
+		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 	}
 
 	if (_vehicle_angular_velocity_sub.updated()) {
 		vehicle_angular_velocity_s vehicle_angular_velocity{};
 		_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity);
-		_vehicle_yaw_rate = vehicle_angular_velocity.xyz[2];
+		_vehicle_yaw_rate = fabsf(vehicle_angular_velocity.xyz[2]) > YAW_RATE_THRESHOLD ? vehicle_angular_velocity.xyz[2] : 0.f;
 	}
 
 	if (_vehicle_attitude_sub.updated()) {
@@ -150,9 +244,10 @@ void RoverDifferential::updateSubscriptions()
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
+		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
 		Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
-		_vehicle_forward_speed = velocity_in_body_frame(0);
+		_vehicle_forward_speed = fabsf(velocity_in_body_frame(0)) > SPEED_THRESHOLD ? velocity_in_body_frame(0) : 0.f;
 	}
 }
 

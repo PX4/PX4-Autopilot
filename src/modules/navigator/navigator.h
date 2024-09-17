@@ -64,6 +64,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/distance_sensor_mode_change_request.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/home_position.h>
@@ -316,6 +317,7 @@ private:
 	uORB::Publication<vehicle_command_s>		_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
 	uORB::Publication<mode_completed_s> _mode_completed_pub{ORB_ID(mode_completed)};
+	uORB::PublicationData<distance_sensor_mode_change_request_s> _distance_sensor_mode_change_request_pub{ORB_ID(distance_sensor_mode_change_request)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 
@@ -335,6 +337,7 @@ private:
 	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
 	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
+
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -399,6 +402,8 @@ private:
 	void publish_navigator_status();
 
 	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
+
+	void publish_distance_sensor_mode_request();
 
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
 
