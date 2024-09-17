@@ -63,7 +63,7 @@ void RoverDifferential::Run()
 
 	updateSubscriptions();
 
-	// Generate and publish attitude and velocity setpoints
+	// Generate and publish attitude, rate and speed setpoints
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	switch (_nav_state) {
@@ -76,7 +76,19 @@ void RoverDifferential::Run()
 				rover_differential_setpoint.forward_speed_setpoint = NAN;
 				rover_differential_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
 				rover_differential_setpoint.yaw_setpoint = NAN;
-				rover_differential_setpoint.yaw_rate_setpoint_normalized = manual_control_setpoint.roll * _param_rd_man_yaw_scale.get();
+
+				if (_max_yaw_rate > FLT_EPSILON && _param_rd_max_thr_yaw_r.get() > FLT_EPSILON) {
+					const float scaled_yaw_rate_input = math::interpolate<float>(manual_control_setpoint.roll,
+									    -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+					const float speed_diff = scaled_yaw_rate_input * _param_rd_wheel_track.get() / 2.f;
+					rover_differential_setpoint.speed_diff_setpoint_normalized = math::interpolate<float>(speed_diff,
+							-_param_rd_max_thr_yaw_r.get(), _param_rd_max_thr_yaw_r.get(), -1.f, 1.f);
+
+				} else {
+					rover_differential_setpoint.speed_diff_setpoint_normalized = manual_control_setpoint.roll;
+
+				}
+
 				rover_differential_setpoint.yaw_rate_setpoint = NAN;
 				_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
 			}
@@ -92,7 +104,7 @@ void RoverDifferential::Run()
 				rover_differential_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
 				rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(manual_control_setpoint.roll,
 						-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_differential_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_differential_setpoint.speed_diff_setpoint_normalized = NAN;
 				rover_differential_setpoint.yaw_setpoint = NAN;
 				_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
 			}
@@ -109,7 +121,7 @@ void RoverDifferential::Run()
 				rover_differential_setpoint.forward_speed_setpoint_normalized = manual_control_setpoint.throttle;
 				rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
 						STICK_DEADZONE), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_differential_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_differential_setpoint.speed_diff_setpoint_normalized = NAN;
 				rover_differential_setpoint.yaw_setpoint = NAN;
 
 				if (fabsf(rover_differential_setpoint.yaw_rate_setpoint) > FLT_EPSILON
@@ -144,7 +156,7 @@ void RoverDifferential::Run()
 				rover_differential_setpoint.forward_speed_setpoint_normalized = NAN;
 				rover_differential_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.roll,
 						STICK_DEADZONE), -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_differential_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_differential_setpoint.speed_diff_setpoint_normalized = NAN;
 				rover_differential_setpoint.yaw_setpoint = NAN;
 
 				if (fabsf(rover_differential_setpoint.yaw_rate_setpoint) > FLT_EPSILON
@@ -191,7 +203,7 @@ void RoverDifferential::Run()
 		rover_differential_setpoint.forward_speed_setpoint = NAN;
 		rover_differential_setpoint.forward_speed_setpoint_normalized = 0.f;
 		rover_differential_setpoint.yaw_rate_setpoint = NAN;
-		rover_differential_setpoint.yaw_rate_setpoint_normalized = 0.f;
+		rover_differential_setpoint.speed_diff_setpoint_normalized = 0.f;
 		rover_differential_setpoint.yaw_setpoint = NAN;
 		_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
 		break;
