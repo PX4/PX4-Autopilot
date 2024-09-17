@@ -55,6 +55,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/distance_sensor_mode_change_request.h>
 
 using namespace time_literals;
 
@@ -143,6 +144,8 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	typeof(px4::msg::VehicleStatus::vehicle_type) _vehicle_type{px4::msg::VehicleStatus::VEHICLE_TYPE_UNKNOWN};
+	uORB::Subscription _dist_sense_mode_change_sub{ORB_ID(distance_sensor_mode_change_request)};
+	typeof(px4::msg::DistanceSensorModeChangeRequest::request_on_off) _req_mode{px4::msg::DistanceSensorModeChangeRequest::REQUEST_OFF};
 	bool _restriction{false};
 	bool _auto_restriction{false};
 	bool _prev_restriction{false};
@@ -412,6 +415,17 @@ void LightwareLaser::start()
 
 int LightwareLaser::updateRestriction()
 {
+	if (_dist_sense_mode_change_sub.updated()) {
+		distance_sensor_mode_change_request_s dist_sense_mode_change;
+
+		if (_dist_sense_mode_change_sub.copy(&dist_sense_mode_change)) {
+			_req_mode = dist_sense_mode_change.request_on_off;
+
+		} else {
+			_req_mode = distance_sensor_mode_change_request_s::REQUEST_OFF;
+		}
+	}
+
 	px4::msg::VehicleStatus vehicle_status;
 
 	if (_vehicle_status_sub.update(&vehicle_status)) {
@@ -452,7 +466,7 @@ int LightwareLaser::updateRestriction()
 		break;
 
 	case 2:
-		_restriction = _auto_restriction;
+		_restriction = _auto_restriction && _req_mode != distance_sensor_mode_change_request_s::REQUEST_ON;
 		break;
 	}
 
