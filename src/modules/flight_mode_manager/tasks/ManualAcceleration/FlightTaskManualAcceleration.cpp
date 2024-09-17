@@ -59,8 +59,39 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 
 bool FlightTaskManualAcceleration::update()
 {
-	setMaxDistanceToGround(_sub_vehicle_local_position.get().hagl_max_xy);
+	const vehicle_local_position_s vehicle_local_pos = _sub_vehicle_local_position.get();
+	setMaxDistanceToGround(vehicle_local_pos.hagl_max_xy);
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
+
+	float max_hagl_ratio = 0.0f;
+
+	if (PX4_ISFINITE(vehicle_local_pos.hagl_max_xy)) {
+		max_hagl_ratio = (vehicle_local_pos.dist_bottom) / vehicle_local_pos.hagl_max_xy;
+	}
+
+	// limit horizontal velocity near max hagl to decrease chance of larger gound distance jumps
+	const float factor_threshold = 0.8f; // threshold ratio of max_hagl
+	const float min_vel = 2.f; // minimum max-velocity near max_hagl
+
+	if (max_hagl_ratio > factor_threshold) {
+		max_hagl_ratio = math::min(max_hagl_ratio, 1.f);
+		float flow_vxy_max = math::min(vehicle_local_pos.vxy_max, _param_mpc_vel_manual.get());
+
+		flow_vxy_max = flow_vxy_max + (max_hagl_ratio - factor_threshold) * (min_vel - flow_vxy_max) /
+			       (min_vel - factor_threshold);
+
+		const float current_vel_constraint = _stick_acceleration_xy.getVelocityConstraint();
+
+		if (abs(current_vel_constraint - flow_vxy_max) > 0.1f) {
+			// adjust velocity constraint with a lag because good tracking is required for the drag estimation
+			const float v_limit = math::constrain(flow_vxy_max, current_vel_constraint - _deltatime * _param_mpc_acc_hor.get(),
+							      current_vel_constraint + _deltatime * _param_mpc_acc_hor.get());
+			_stick_acceleration_xy.setVelocityConstraint(v_limit);
+		}
+
+	} else {
+		_stick_acceleration_xy.setVelocityConstraint(math::min(_param_mpc_vel_manual.get(), vehicle_local_pos.vxy_max));
+	}
 
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _yaw_setpoint, _position,
 			_velocity_setpoint_feedback.xy(), _deltatime);

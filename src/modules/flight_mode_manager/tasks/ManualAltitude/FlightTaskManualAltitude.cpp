@@ -231,8 +231,12 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 		    && _velocity_setpoint(2) <= 0.f) {
 
 			_position_setpoint(2) = _position(2) - _max_distance_to_ground + _dist_to_bottom;
-			_velocity_setpoint(2) = - math::constrain(_param_mpc_z_p.get() * (_max_distance_to_ground - _dist_to_bottom),
-						-_param_mpc_z_vel_max_dn.get(), _param_mpc_z_vel_max_up.get());
+			_velocity_setpoint(2) = NAN;
+
+			if (_dist_to_bottom > _max_distance_to_ground) {
+				_velocity_setpoint(2) = math::constrain(_param_mpc_z_p.get() * (_dist_to_bottom - _max_distance_to_ground),
+									0.f, _param_mpc_z_vel_max_dn.get());
+			}
 		}
 	}
 }

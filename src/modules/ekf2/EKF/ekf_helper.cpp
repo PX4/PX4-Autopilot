@@ -375,17 +375,6 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
 		flow_hagl_max = math::max(flow_hagl_max * 0.9f, flow_hagl_max - 1.0f);
 
-		if (!control_status_flags().fixed_wing) {
-			float max_hagl_factor = (_state.terrain - _state.pos(2)) / flow_hagl_max;
-
-			// limit horizontal velocity near max hagl to decrease chance of large distance to ground jumps
-			if (max_hagl_factor > 0.9f) {
-				max_hagl_factor = math::min(max_hagl_factor, 1.f);
-				flow_vxy_max = flow_vxy_max + (max_hagl_factor - 0.9f) * (1.f - flow_vxy_max) * 10.f;
-
-			}
-		}
-
 		*vxy_max = flow_vxy_max;
 		*hagl_min = flow_hagl_min;
 		*hagl_max_xy = flow_hagl_max;

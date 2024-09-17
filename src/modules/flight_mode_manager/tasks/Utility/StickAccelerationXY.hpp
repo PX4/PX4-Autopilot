@@ -64,6 +64,7 @@ public:
 	float getMaxAcceleration() { return _param_mpc_acc_hor.get(); };
 	float getMaxJerk() { return _param_mpc_jerk_max.get(); };
 	void setVelocityConstraint(float vel) { _velocity_constraint = fmaxf(vel, FLT_EPSILON); };
+	float getVelocityConstraint() { return _velocity_constraint; };
 
 private:
 	CollisionPrevention _collision_prevention{this};
