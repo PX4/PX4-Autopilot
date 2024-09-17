@@ -21,7 +21,6 @@ param set-default COM_ARM_WO_GPS 1
 
 # Rover parameters
 param set-default RD_WHEEL_TRACK 0.9
-param set-default RD_MAN_YAW_SCALE 0.1
 param set-default RD_YAW_RATE_I 0.1
 param set-default RD_YAW_RATE_P 5
 param set-default RD_MAX_ACCEL 1
