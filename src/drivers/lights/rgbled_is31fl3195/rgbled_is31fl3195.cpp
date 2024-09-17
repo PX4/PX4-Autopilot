@@ -413,7 +413,7 @@ extern "C" __EXPORT int rgbled_is31fl3195_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = RGBLED_IS31FL3195;
 	BusCLIArguments cli{true, false};
-	cli.default_i2c_frequency = 100000;
+	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = ADDR;
 	cli.custom1 = 123;
 	cli.custom2 = CURRENT_BAND_CB_P5;
