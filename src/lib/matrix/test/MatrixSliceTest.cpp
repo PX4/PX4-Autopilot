@@ -262,6 +262,65 @@ TEST(MatrixSliceTest, Slice)
 	float O_check_data_12 [4] = {2.5, 3, 4, 5};
 	EXPECT_EQ(res_12, (SquareMatrix<float, 2>(O_check_data_12)));
 }
+TEST(MatrixSliceTest, SliceAdditions)
+{
+	float data[9] = {0, 2, 3,
+			 4, 5, 6,
+			 7, 8, 10
+			};
+	SquareMatrix<float, 3> A(data);
+
+	// addition
+	SquareMatrix<float, 3> O = SquareMatrix3f(data);
+	float operand_data [4] = {2, 1, -3, -1};
+	const SquareMatrix<float, 2> operand(operand_data);
+
+	auto res_1 = O.slice<2, 2>(1, 0) + operand;
+	float res_1_check_data[4] = {6, 6, 4, 7};
+	EXPECT_EQ(res_1, (SquareMatrix<float, 2>(res_1_check_data)));
+
+	auto res_2 = O.slice<2, 1>(1, 1) + operand.slice<2, 1>(0, 0);
+	float res_2_check_data[2] = {7, 5};
+	EXPECT_EQ(res_2, (Matrix<float, 2, 1>(res_2_check_data)));
+
+	auto res_3 = O.slice<3, 3>(0, 0) + -1;
+	float res_3_check_data[9] = {-1, 1, 2, 3, 4, 5, 6, 7, 9};
+	EXPECT_EQ(res_3, (SquareMatrix<float, 3>(res_3_check_data)));
+
+	auto res_4 = O.col(1) + Vector3f{1, -2, 3};
+	float res_4_check_data[3] = {3, 3, 11};
+	EXPECT_EQ(res_4, (Vector3f(res_4_check_data)));
+
+}
+TEST(MatrixSliceTest, SliceSubtractions)
+{
+	float data[9] = {0, 2, 3,
+			 4, 5, 6,
+			 7, 8, 10
+			};
+	SquareMatrix<float, 3> A(data);
+
+	// subtraction
+	SquareMatrix<float, 3> O = SquareMatrix3f(data);
+	float operand_data[4] = {2, 1, -3, -1};
+	const SquareMatrix<float, 2> operand(operand_data);
+
+	auto res_1 = O.slice<2, 2>(1, 0) - operand;
+	float res_1_check_data[4] = {2, 4, 10, 9};
+	EXPECT_EQ(res_1, (SquareMatrix<float, 2>(res_1_check_data)));
+
+	auto res_2 = O.slice<2, 1>(1, 1) - operand.slice<2, 1>(0, 0);
+	float res_2_check_data[2] = {3, 11};
+	EXPECT_EQ(res_2, (Matrix<float, 2, 1>(res_2_check_data)));
+
+	auto res_3 = O.slice<3, 3>(0, 0) - -1;
+	float res_3_check_data[9] = {1, 3, 4, 5, 6, 7, 8, 9, 11};
+	EXPECT_EQ(res_3, (SquareMatrix<float, 3>(res_3_check_data)));
+
+	auto res_4 = O.col(1) - Vector3f{1, -2, 3};
+	float res_4_check_data[3] = {1, 7, 5};
+	EXPECT_EQ(res_4, (Vector3f(res_4_check_data)));
+}
 
 TEST(MatrixSliceTest, XYAssignmentTest)
 {

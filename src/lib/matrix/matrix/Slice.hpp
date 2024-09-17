@@ -116,6 +116,93 @@ public:
 		return self;
 	}
 
+	template<size_t MM, size_t NN>
+	Matrix<Type, P, Q> operator-(const SliceT<const Matrix<Type, MM, NN>, Type, P, Q, MM, NN> &other)
+	{
+		Matrix<Type, P, Q> res;
+		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
+
+		for (size_t i = 0; i < P; i++) {
+			for (size_t j = 0; j < Q; j++) {
+				res(i, j) = self(i, j) - other(i, j);
+			}
+		}
+
+		return res;
+	}
+
+
+	Matrix<Type, P, Q> operator-(const Matrix<Type, P, Q> &other)
+	{
+		Matrix<Type, P, Q> res;
+		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
+
+		for (size_t i = 0; i < P; i++) {
+			for (size_t j = 0; j < Q; j++) {
+				res(i, j) = self(i, j) - other(i, j);
+			}
+		}
+
+		return res;
+	}
+
+	Matrix<Type, P, Q> operator-(const Type &other)
+	{
+		Matrix<Type, P, Q> res;
+		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
+
+		for (size_t i = 0; i < P; i++) {
+			for (size_t j = 0; j < Q; j++) {
+				res(i, j) = self(i, j) - other;
+			}
+		}
+
+		return res;
+	}
+
+	template<size_t MM, size_t NN>
+	Matrix<Type, P, Q> operator+(const SliceT<const Matrix<Type, MM, NN>, Type, P, Q, MM, NN> &other)
+	{
+		Matrix<Type, P, Q> res;
+		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
+
+		for (size_t i = 0; i < P; i++) {
+			for (size_t j = 0; j < Q; j++) {
+				res(i, j) = self(i, j) + other(i, j);
+			}
+		}
+
+		return res;
+	}
+
+	Matrix<Type, P, Q> operator+(const Matrix<Type, P, Q> &other)
+	{
+		Matrix<Type, P, Q> res;
+		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
+
+		for (size_t i = 0; i < P; i++) {
+			for (size_t j = 0; j < Q; j++) {
+				res(i, j) = self(i, j) + other(i, j);
+			}
+		}
+
+		return res;
+	}
+
+	Matrix<Type, P, Q> operator+(const Type &other)
+	{
+		Matrix<Type, P, Q> res;
+		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
+
+		for (size_t i = 0; i < P; i++) {
+			for (size_t j = 0; j < Q; j++) {
+				res(i, j) = self(i, j) + other;
+			}
+		}
+
+		return res;
+	}
+
 	// allow assigning vectors to a slice that are in the axis
 	template <size_t DUMMY = 1> // make this a template function since it only exists for some instantiations
 	SliceT<MatrixT, Type, 1, Q, M, N> &operator=(const Vector<Type, Q> &other)
