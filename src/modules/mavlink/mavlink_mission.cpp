@@ -901,11 +901,13 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_time_last_recv = hrt_absolute_time();
 
 			if (_transfer_in_progress) {
-				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+				send_mission_ack(msg->sysid, msg->compid, MAV_MISSION_ERROR);
 				return;
 			}
 
 			_transfer_in_progress = true;
+			_transfer_partner_sysid = msg->sysid;
+			_transfer_partner_compid = msg->compid;
 			_mission_type = (MAV_MISSION_TYPE)wpc.mission_type;
 			_transfer_current_crc32 = 0;
 
@@ -983,8 +985,6 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 
 			_state = MAVLINK_WPM_STATE_GETLIST;
 			_transfer_seq = 0;
-			_transfer_partner_sysid = msg->sysid;
-			_transfer_partner_compid = msg->compid;
 			_transfer_count = wpc.count;
 			_transfer_current_seq = -1;
 			_transfer_land_start_marker = -1;
@@ -1354,10 +1354,10 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 			if (ret == PX4_OK) {
 				PX4_DEBUG("WPM: CLEAR_ALL OK (mission_type=%i)", _mission_type);
 
-				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
+				send_mission_ack(msg->sysid, msg->compid, MAV_MISSION_ACCEPTED);
 
 			} else {
-				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+				send_mission_ack(msg->sysid, msg->compid, MAV_MISSION_ERROR);
 			}
 
 		} else {
