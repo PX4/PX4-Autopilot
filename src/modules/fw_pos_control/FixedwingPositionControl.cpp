@@ -687,6 +687,11 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 	_skipping_takeoff_detection = false;
 
+	if (!_control_mode.flag_control_position_enabled && _control_mode.flag_control_velocity_enabled) {
+		_control_mode_current = FW_POSCTRL_MODE_AUTO_VELOCITY;
+		return;
+	}
+
 	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
 	    && _control_mode.flag_control_position_enabled) {
 		if (PX4_ISFINITE(_pos_sp_triplet.current.vx) && PX4_ISFINITE(_pos_sp_triplet.current.vy)
@@ -892,10 +897,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 
-	case position_setpoint_s::SETPOINT_TYPE_VELOCITY:
-		control_auto_velocity(control_interval, curr_pos, ground_speed, current_sp);
-		break;
-
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 #ifdef CONFIG_FIGURE_OF_EIGHT
 		if (current_sp.loiter_pattern == position_setpoint_s::LOITER_TYPE_FIGUREEIGHT) {
@@ -1002,10 +1003,6 @@ FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp
 		const position_setpoint_s &pos_sp_next)
 {
 	uint8_t position_sp_type = pos_sp_curr.type;
-
-	if (!_control_mode.flag_control_position_enabled && _control_mode.flag_control_velocity_enabled) {
-		return position_setpoint_s::SETPOINT_TYPE_VELOCITY;
-	}
 
 	Vector2d curr_wp{0, 0};
 
@@ -2591,6 +2588,11 @@ FixedwingPositionControl::Run()
 		case FW_POSCTRL_MODE_AUTO: {
 				control_auto(control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
 					     _pos_sp_triplet.next);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_VELOCITY: {
+				control_auto_velocity(control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 
