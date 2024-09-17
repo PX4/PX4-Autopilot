@@ -441,12 +441,6 @@ else
 	# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
 	. ${R}etc/init.d/rc.vehicle_setup
 
-	# Pre-takeoff continuous magnetometer calibration
-	if param compare -s MBE_ENABLE 1
-	then
-		mag_bias_estimator start
-	fi
-
 	#
 	# Optional board mavlink streams: rc.board_mavlink
 	#

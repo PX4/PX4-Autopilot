@@ -52,7 +52,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
-#include <uORB/topics/magnetometer_bias_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight_mag.h>
@@ -91,7 +90,6 @@ private:
 	 */
 	void calcMagInconsistency();
 
-	void UpdateMagBiasEstimate();
 	void UpdateMagCalibration();
 	void UpdatePowerCompensation();
 
@@ -112,13 +110,12 @@ private:
 
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status), 0};
-	uORB::Subscription _magnetometer_bias_estimate_sub{ORB_ID(magnetometer_bias_estimate)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	// Used to check, save and use learned magnetometer biases
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
 
-	bool _in_flight_mag_cal_available{false}; ///< from navigation filter
+	bool _mag_cal_available{false}; ///< from navigation filter
 
 	struct MagCal {
 		uint32_t device_id{0};
@@ -134,8 +131,6 @@ private:
 	};
 
 	hrt_abstime _last_calibration_update{0};
-
-	matrix::Vector3f _calibration_estimator_bias[MAX_SENSOR_COUNT] {};
 
 	calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
 
@@ -174,6 +169,7 @@ private:
 	int8_t _selected_sensor_sub_index{-1};
 
 	bool _armed{false};
+	bool _was_armed{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,
