@@ -387,7 +387,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		}
 
 	} else {
-		send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+		send_mission_ack(sysid, compid, MAV_MISSION_ERROR);
 
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
 			mavlink_log_critical(_mavlink.get_mavlink_log_pub(),
