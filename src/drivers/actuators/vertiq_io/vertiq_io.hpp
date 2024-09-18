@@ -89,19 +89,11 @@ public:
 	*/
 	bool init();
 
-	// /** @see ModuleBase */
-	// static int task_spawn(int argc, char *argv[]);
-
-	// /** @see ModuleBase */
-	// static int custom_command(int argc, char *argv[]);
-
-	// /** @see ModuleBase */
-	// static int print_usage(const char *reason = nullptr);
-
-	// int print_status() override;
-
+	/**
+	 * @brief Print information about how to use our module
+	 *
+	 */
 	void print_info();
-
 
 	/** @see OutputModuleInterface */
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],

@@ -48,8 +48,11 @@ int VertiqSerialInterface::InitSerial(const char *uart_device, unsigned baud)
 	//Make sure we're starting clean
 	DeinitSerial();
 
+	//Populate our version of the uart device name
+	strncpy(_port_in_use, uart_device, sizeof(_port_in_use));
+
 	//Open up the port with read/write permissions and O_NOCTTY which is, "/* Required by POSIX */"
-	_uart_fd = ::open(uart_device, O_RDWR | O_NOCTTY);
+	_uart_fd = ::open(_port_in_use, O_RDWR | O_NOCTTY);
 
 	if (_uart_fd < 0) {
 		PX4_ERR("failed to open serial port: %s err: %d", uart_device, errno);
@@ -164,15 +167,14 @@ int VertiqSerialInterface::ConfigureSerialPeripheral(unsigned baud)
 		return -errno;
 	}
 
+	close(_uart_fd);
+	_uart_fd = -1;
+
 	return 0;
 }
 
 bool VertiqSerialInterface::CheckForRx()
 {
-	if (_uart_fd < 0) {
-		return -1;
-	}
-
 	// read from the uart. This must be non-blocking, so check first if there is data available
 	_bytes_available = 0;
 	int ret = ioctl(_uart_fd, FIONREAD, (unsigned long)&_bytes_available);
@@ -197,6 +199,9 @@ uint8_t *VertiqSerialInterface::ReadAndSetRxBytes()
 
 void VertiqSerialInterface::ProcessSerialRx(ClientAbstract **client_array, uint8_t number_of_clients)
 {
+	//Make sure we can actually talk
+	ReOpenSerial();
+
 	//We have bytes
 	if (CheckForRx()) {
 		uint8_t *data_ptr = ReadAndSetRxBytes();
@@ -217,6 +222,9 @@ void VertiqSerialInterface::ProcessSerialRx(ClientAbstract **client_array, uint8
 
 void VertiqSerialInterface::ProcessSerialTx()
 {
+	//Make sure we can actually talk
+	ReOpenSerial();
+
 	//while there's stuff to write, write it
 	//Clients are responsible for adding TX messages to the buffer through get/set/save commands
 	while (_iquart_interface.GetTxBytes(_tx_buf, _bytes_available)) {
@@ -227,4 +235,11 @@ void VertiqSerialInterface::ProcessSerialTx()
 GenericInterface *VertiqSerialInterface::GetIquartInterface()
 {
 	return &_iquart_interface;
+}
+
+void VertiqSerialInterface::ReOpenSerial()
+{
+	if (_uart_fd < 0) {
+		_uart_fd = open(_port_in_use, O_RDWR | O_NOCTTY);
+	}
 }

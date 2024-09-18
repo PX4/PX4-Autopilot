@@ -76,6 +76,8 @@ VertiqIo::~VertiqIo()
 //called by our task_spawn function
 bool VertiqIo::init()
 {
+	_serial_interface.InitSerial(_port, _param_vertiq_baud.get());
+
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	//Grab the number of IFCI control values the user wants to use
 	_cvs_in_use = (uint8_t)_param_vertiq_number_of_cvs.get();
@@ -91,8 +93,6 @@ bool VertiqIo::init()
 	//Initialize our telemetry handler
 	_telem_manager.Init(_telem_bitmask, (uint8_t)_param_vertiq_target_module_id.get());
 	_telem_manager.StartPublishing(&_esc_status_pub);
-
-	_serial_interface.InitSerial(_port, _param_vertiq_baud.get());
 
 	//Make sure we get our thread into execution
 	ScheduleNow();
@@ -118,12 +118,6 @@ void VertiqIo::Run()
 	//Increment our loop counter
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
-
-	//Someone asked to change the telemetry port, or we booted up
-	if (_request_telemetry_init.load()) {
-
-		_request_telemetry_init.store(false);
-	}
 
 	//Handle IQUART reception and transmission
 	_client_manager.HandleClientCommunication();
@@ -259,29 +253,6 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 	return true;
 }
 
-// int VertiqIo::task_spawn(int argc, char *argv[])
-// {
-// 	VertiqIo *instance = new VertiqIo();
-
-// 	if (instance) {
-// 		_object.store(instance);
-// 		_task_id = task_id_is_work_queue;
-
-// 		if (instance->init()) {
-// 			return PX4_OK;
-// 		}
-
-// 	} else {
-// 		PX4_ERR("alloc failed");
-// 	}
-
-// 	delete instance;
-// 	_object.store(nullptr);
-// 	_task_id = -1;
-
-// 	return PX4_ERROR;
-// }
-
 void VertiqIo::print_info()
 {
 	perf_print_counter(_loop_perf);
@@ -289,42 +260,6 @@ void VertiqIo::print_info()
 
 	_mixing_output.printStatus();
 }
-
-// int VertiqIo::print_usage(const char *reason)
-// {
-// 	if (reason) {
-// 		PX4_WARN("%s\n", reason);
-// 	}
-
-// 	PRINT_MODULE_USAGE_NAME("vertiq_io", "driver");
-// 	PRINT_MODULE_USAGE_COMMAND("start");
-
-// 	PRINT_MODULE_USAGE_COMMAND_DESCR("iquart_port", "Enable IQUART on a UART port.");
-// 	PRINT_MODULE_USAGE_ARG("<device>", "UART device", false);
-
-// 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-// 	return 0;
-// }
-
-// int VertiqIo::custom_command(int argc, char *argv[])
-// {
-// 	const char *verb = argv[0];
-
-// 	if (!strcmp(verb, "iquart_port")) {
-// 		if (argc > 1) {
-// 			// telemetry can be requested before the module is started
-// 			strncpy(_telemetry_device, argv[1], sizeof(_telemetry_device) - 1);
-// 			_telemetry_device[sizeof(_telemetry_device) - 1] = '\0';
-// 			_request_telemetry_init.store(true);
-// 		}
-
-// 		return 0;
-// 	}
-
-// 	return print_usage("unknown command");
-// }
-
 
 /**
  * Local functions in support of the shell command.
@@ -398,33 +333,12 @@ int stop()
 int
 usage()
 {
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
+	PRINT_MODULE_USAGE_NAME("vertiq_io", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("<device>", "UART device", false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-Serial bus driver for the Benewake TFmini LiDAR.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_TFMINI_CFG parameter.
-
-Setup/usage information: https://docs.px4.io/main/en/sensor/tfmini.html
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ tfmini start -d /dev/ttyS1
-Stop driver
-$ tfmini stop
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("tfmini", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Driver status");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Print driver status");
+	return 0;
 	return PX4_OK;
 }
 
