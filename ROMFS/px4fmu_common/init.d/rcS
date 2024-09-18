@@ -602,13 +602,6 @@ else
 		zenoh start
 	fi
 
-	#Check if the Vertiq serial driver has somewhere to go
-	if param greater -s VERTIQ_IO_CFG 0
-	then
-		vertiq_io start
-	fi
-
-
 #
 # End of autostart.
 #
