@@ -93,6 +93,7 @@ if(gz-transport_FOUND)
 		windy
 		baylands
   		lawn
+		aruco
 		rover
 	)
 
