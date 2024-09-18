@@ -347,7 +347,7 @@ usage()
 extern "C" __EXPORT int vertiq_io_main(int argc, char *argv[])
 {
 	int ch = 0;
-	const char *device_path = VERTIQ_DEFAULT_PORT;
+	const char *device_path = nullptr;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
@@ -367,6 +367,11 @@ extern "C" __EXPORT int vertiq_io_main(int argc, char *argv[])
 	if (myoptind >= argc) {
 		PX4_ERR("unrecognized command");
 		return vertiq_namespace::usage();
+	}
+
+	if (!device_path) {
+		PX4_ERR("Missing device");
+		return PX4_ERROR;
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {

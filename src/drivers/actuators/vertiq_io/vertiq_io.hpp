@@ -65,8 +65,6 @@
 #include "iq-module-communication-cpp/inc/pulsing_rectangular_input_parser_client.hpp"
 #endif //CONFIG_USE_PULSING_CONFIGURATION
 
-#define VERTIQ_DEFAULT_PORT "/dev/ttyS1"
-
 enum DISARM_BEHAVIORS {TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_VELOCITY};
 enum ARM_BEHAVIORS {USE_MOTOR_ARMING, FORCE_ARMING};
 
