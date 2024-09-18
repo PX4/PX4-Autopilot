@@ -48,36 +48,33 @@ public:
 	RangeFinderConsistencyCheck() = default;
 	~RangeFinderConsistencyCheck() = default;
 
-	void update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, bool horizontal_motion, uint64_t time_us);
-
-	void setGate(float gate) { _gate = gate; }
-
-	float getTestRatio() const { return _test_ratio; }
-	float getSignedTestRatioLpf() const { return _signed_test_ratio_lpf.getState(); }
+	float getTestRatioLpf() const { return _test_ratio_lpf.getState(); }
 	float getInnov() const { return _innov; }
 	float getInnovVar() const { return _innov_var; }
+
 	bool isKinematicallyConsistent() const { return _is_kinematically_consistent; }
+	void UpdateMiniKF(float z, float z_var, float vz, float vz_var, float dist_bottom, float dist_bottom_var,
+			  uint64_t time_us);
+	void initMiniKF(float p1, float p2, float x1, float x2);
+	void stopMiniKF() { _initialized = false; }
+	bool isRunning() { return _initialized; }
+
+	matrix::SquareMatrix<float, 2> _R{};
+	matrix::SquareMatrix<float, 2> _P{};
+	matrix::SquareMatrix<float, 2> _A{};
+	matrix::SquareMatrix<float, 2> _H{};
+	matrix::Vector2f _x{};
+	bool _initialized{false};
 
 private:
-	void updateConsistency(float vz, uint64_t time_us);
-
-	uint64_t _time_last_update_us{};
-	float _dist_bottom_prev{};
-
-	float _test_ratio{};
-	AlphaFilter<float> _signed_test_ratio_lpf{}; // average signed test ratio used to detect a bias in the data
-	float _gate{.2f};
 	float _innov{};
 	float _innov_var{};
-
+	uint64_t _time_last_update_us{0};
+	float _dist_bottom_prev{};
+	AlphaFilter<float> _test_ratio_lpf{0.3}; // average signed test ratio used to detect a bias in the data
+	float _gate{1.f};
 	bool _is_kinematically_consistent{true};
-	uint64_t _time_last_inconsistent_us{};
-	uint64_t _time_last_horizontal_motion{};
-
-	static constexpr float _signed_test_ratio_tau = 2.f;
-
-	static constexpr float _min_vz_for_valid_consistency = .5f;
-	static constexpr uint64_t _consistency_hyst_time_us = 1e6;
+	int _sample_count{0};
 };
 
 #endif // !EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
