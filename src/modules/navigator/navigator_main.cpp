@@ -110,6 +110,11 @@ Navigator::Navigator() :
 	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
+	_distance_sensor_mode_change_request_pub.advertise();
+	_distance_sensor_mode_change_request_pub.get().timestamp = hrt_absolute_time();
+	_distance_sensor_mode_change_request_pub.get().request_on_off = distance_sensor_mode_change_request_s::REQUEST_OFF;
+	_distance_sensor_mode_change_request_pub.update();
+
 	// Update the timeout used in mission_block (which can't hold it's own parameters)
 	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
 
@@ -898,6 +903,8 @@ void Navigator::run()
 
 		publish_navigator_status();
 
+		publish_distance_sensor_mode_request();
+
 		_geofence.run();
 
 		perf_end(_loop_perf);
@@ -1445,6 +1452,30 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 	}
 
 	_vehicle_cmd_pub.publish(*vcmd);
+}
+
+void Navigator::publish_distance_sensor_mode_request()
+{
+	// Send request to enable distance sensor when in the landing phase of a mission or RTL
+	if (((_navigation_mode == &_rtl) && _rtl.isLanding()) || ((_navigation_mode == &_mission) && _mission.isLanding())) {
+
+		if (_distance_sensor_mode_change_request_pub.get().request_on_off !=
+		    distance_sensor_mode_change_request_s::REQUEST_ON) {
+
+			_distance_sensor_mode_change_request_pub.get().timestamp = hrt_absolute_time();
+			_distance_sensor_mode_change_request_pub.get().request_on_off =
+				distance_sensor_mode_change_request_s::REQUEST_ON;
+			_distance_sensor_mode_change_request_pub.update();
+		}
+
+	} else if (_distance_sensor_mode_change_request_pub.get().request_on_off !=
+		   distance_sensor_mode_change_request_s::REQUEST_OFF) {
+
+		_distance_sensor_mode_change_request_pub.get().timestamp = hrt_absolute_time();
+		_distance_sensor_mode_change_request_pub.get().request_on_off =
+			distance_sensor_mode_change_request_s::REQUEST_OFF;
+		_distance_sensor_mode_change_request_pub.update();
+	}
 }
 
 void Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result)

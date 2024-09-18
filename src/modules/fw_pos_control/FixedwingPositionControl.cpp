@@ -424,7 +424,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	tecs_status.height_rate_setpoint = debug_output.control.altitude_rate_control;
 	tecs_status.height_rate = -_local_pos.vz;
 	tecs_status.equivalent_airspeed_sp = equivalent_airspeed_sp;
-	tecs_status.true_airspeed_sp = _eas2tas * equivalent_airspeed_sp;
+	tecs_status.true_airspeed_sp = debug_output.true_airspeed_sp;
 	tecs_status.true_airspeed_filtered = debug_output.true_airspeed_filtered;
 	tecs_status.true_airspeed_derivative_sp = debug_output.control.true_airspeed_derivative_control;
 	tecs_status.true_airspeed_derivative = debug_output.true_airspeed_derivative;
@@ -439,6 +439,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
 	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
+	tecs_status.fast_descend_ratio = debug_output.fast_descend;
 
 	tecs_status.timestamp = hrt_absolute_time();
 

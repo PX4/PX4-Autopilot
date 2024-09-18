@@ -103,6 +103,8 @@ public:
 				 float vehicle_speed);
 
 	float getLookaheadDistance() {return _lookahead_distance;};
+	float getCrosstrackError() {return _curr_pos_to_path.norm();};
+	float getDistanceOnLineSegment() {return _distance_on_line_segment.norm();};
 
 protected:
 	/**
@@ -122,5 +124,7 @@ protected:
 		float lookahead_min{1.f};
 	} _params{};
 private:
-	float _lookahead_distance{0.f};
+	float _lookahead_distance{0.f}; // Radius of the circle around the vehicle
+	Vector2f _distance_on_line_segment{}; // Projection of prev_wp_to_curr_pos onto prev_wp_to_curr_wp
+	Vector2f _curr_pos_to_path{}; // Shortest vector from the current position to the path
 };

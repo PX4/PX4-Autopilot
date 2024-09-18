@@ -102,7 +102,6 @@ public:
 
 };
 
-
 using Vector2f = Vector2<float>;
 using Vector2d = Vector2<double>;
 
