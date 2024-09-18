@@ -317,6 +317,7 @@ public:
 	}
 };
 
+using SquareMatrix2f = SquareMatrix<float, 2>;
 using SquareMatrix3f = SquareMatrix<float, 3>;
 using SquareMatrix3d = SquareMatrix<double, 3>;
 

@@ -21,6 +21,7 @@ param set-default RD_YAW_RATE_P 0.1
 param set-default RD_YAW_RATE_I 0
 param set-default RD_YAW_P 5
 param set-default RD_YAW_I 0
+param set-default RD_MAX_SPEED 5
 param set-default RD_MAX_THR_SPD 7
 param set-default RD_SPEED_P 1
 param set-default RD_SPEED_I 0
