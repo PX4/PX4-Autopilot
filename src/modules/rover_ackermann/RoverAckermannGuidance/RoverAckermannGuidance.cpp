@@ -60,6 +60,14 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 {
 	updateSubscriptions();
 
+	// Distances to waypoints
+	_distance_to_prev_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
+			       _prev_wp(0), _prev_wp(1));
+	_distance_to_curr_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
+			       _curr_wp(0), _curr_wp(1));
+	_distance_to_next_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
+			       _next_wp(0), _next_wp(1));
+
 	// Catch return to launch
 	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 		_mission_finished = _distance_to_next_wp < _acceptance_radius;
@@ -74,7 +82,8 @@ RoverAckermannGuidance::motor_setpoint RoverAckermannGuidance::computeGuidance(c
 		_desired_speed = 0.f;
 
 	} else { // Regular guidance algorithm
-		_desired_speed = calcDesiredSpeed(_param_ra_miss_vel_def.get(), _param_ra_miss_vel_min.get(),
+
+		_desired_speed = calcDesiredSpeed(_wp_max_desired_vel, _param_ra_miss_vel_min.get(),
 						  _param_ra_miss_vel_gain.get(), _distance_to_prev_wp, _distance_to_curr_wp, _acceptance_radius,
 						  _prev_acceptance_radius, _param_ra_max_accel.get(), _param_ra_max_jerk.get(), nav_state);
 
@@ -156,40 +165,32 @@ void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 	_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
 
 	// Global waypoint coordinates
-	Vector2d prev_wp = _curr_pos.isAllFinite() ? _curr_pos : Vector2d(0, 0); // Fallback if previous waypoint is invalid
-	Vector2d curr_wp(0, 0);
-	Vector2d next_wp = _home_position.isAllFinite() ? _home_position : Vector2d(0, 0); // Enables corner slow down with RTL
+	_prev_wp = _curr_pos.isAllFinite() ? _curr_pos : Vector2d(0, 0); // Fallback if previous waypoint is invalid
+	_curr_wp = Vector2d(0, 0);
+	_next_wp = _home_position.isAllFinite() ? _home_position : Vector2d(0, 0); // Enables corner slow down with RTL
 
 	if (position_setpoint_triplet.current.valid && PX4_ISFINITE(position_setpoint_triplet.current.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
-		curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
+		_curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
 
 	}
 
 	if (position_setpoint_triplet.previous.valid && PX4_ISFINITE(position_setpoint_triplet.previous.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.previous.lon)) {
-		prev_wp = Vector2d(position_setpoint_triplet.previous.lat, position_setpoint_triplet.previous.lon);
+		_prev_wp = Vector2d(position_setpoint_triplet.previous.lat, position_setpoint_triplet.previous.lon);
 
 	}
 
 	if (position_setpoint_triplet.next.valid && PX4_ISFINITE(position_setpoint_triplet.next.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.next.lon)) {
-		next_wp = Vector2d(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
+		_next_wp = Vector2d(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
 
 	}
 
-	// Distances to waypoints
-	_distance_to_prev_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-			       prev_wp(0), prev_wp(1));
-	_distance_to_curr_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-			       curr_wp(0), curr_wp(1));
-	_distance_to_next_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-			       next_wp(0), next_wp(1));
-
 	// NED waypoint coordinates
-	_curr_wp_ned = _global_ned_proj_ref.project(curr_wp(0), curr_wp(1));
-	_prev_wp_ned = _global_ned_proj_ref.project(prev_wp(0), prev_wp(1));
-	_next_wp_ned = _global_ned_proj_ref.project(next_wp(0), next_wp(1));
+	_curr_wp_ned = _global_ned_proj_ref.project(_curr_wp(0), _curr_wp(1));
+	_prev_wp_ned = _global_ned_proj_ref.project(_prev_wp(0), _prev_wp(1));
+	_next_wp_ned = _global_ned_proj_ref.project(_next_wp(0), _next_wp(1));
 
 	// Update acceptance radius
 	_prev_acceptance_radius = _acceptance_radius;
@@ -200,6 +201,13 @@ void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 
 	} else {
 		_acceptance_radius = _param_nav_acc_rad.get();
+	}
+
+	if (position_setpoint_triplet.current.cruising_speed > 0.f) {
+		_wp_max_desired_vel = math::constrain(position_setpoint_triplet.current.cruising_speed, 0.f, _param_ra_max_speed.get());
+
+	} else {
+		_wp_max_desired_vel = _param_ra_miss_vel_def.get();
 	}
 }
 

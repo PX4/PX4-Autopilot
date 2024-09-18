@@ -35,5 +35,4 @@ px4_add_library(RoverDifferentialGuidance
 	RoverDifferentialGuidance.cpp
 )
 
-target_link_libraries(RoverDifferentialGuidance PUBLIC pid)
 target_include_directories(RoverDifferentialGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

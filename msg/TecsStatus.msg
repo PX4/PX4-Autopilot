@@ -27,3 +27,4 @@ float32 pitch_sp_rad			# Current pitch setpoint [rad]
 float32 throttle_trim			# estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions
 
 float32 underspeed_ratio		# 0: no underspeed, 1: maximal underspeed. Controller takes measures to avoid stall proportional to ratio if >0.
+float32 fast_descend_ratio 		#  value indicating if fast descend mode is enabled with ramp up and ramp down [0-1]

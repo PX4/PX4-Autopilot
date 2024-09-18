@@ -47,6 +47,7 @@
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <lib/motion_planning/VelocitySmoothing.hpp>
+#include <lib/slew_rate/SlewRate.hpp>
 
 
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel
@@ -127,6 +128,7 @@ private:
 	bool _currently_orbiting{false};
 	float _initial_heading = 0.f; /**< the heading of the drone when the orbit command was issued */
 	SlewRateYaw<float> _slew_rate_yaw;
+	SlewRate<float> _slew_rate_velocity;
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
