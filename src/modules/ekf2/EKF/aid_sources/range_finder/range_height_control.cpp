@@ -68,13 +68,24 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			if (_control_status.flags.in_air) {
 				const bool horizontal_motion = _control_status.flags.fixed_wing
 							       || (sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f));
+				const bool vertical_motion = sq(_state.vel(2)) > fmaxf(P(State::vel.idx + 2, State::vel.idx + 2), 0.1f);
 
 				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
-				const float var = sq(_params.range_noise) + dist_dependant_var;
+				const float dist_var = sq(_params.range_noise) + dist_dependant_var;
 
-				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2),
-							      P(State::vel.idx + 2, State::vel.idx + 2), horizontal_motion, imu_sample.time_us);
+				if (horizontal_motion) {
+					_rng_consistency_check.stopMiniKF();
+
+				} else if (vertical_motion) {
+					if (!_rng_consistency_check.isRunning()) {
+						_rng_consistency_check.initMiniKF(P(State::pos.idx + 2, State::pos.idx + 2), P(State::terrain.idx, State::terrain.idx),
+										  _state.pos(2), _state.terrain);
+					}
+
+					_rng_consistency_check.UpdateMiniKF(_state.pos(2), P(State::pos.idx + 2, State::pos.idx + 2), _state.vel(2),
+									    P(State::vel.idx + 2, State::vel.idx + 2), _range_sensor.getRange(), dist_var, imu_sample.time_us);
+				}
+
 			}
 
 		} else {

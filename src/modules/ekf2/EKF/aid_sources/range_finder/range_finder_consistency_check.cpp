@@ -37,55 +37,63 @@
 
 #include <aid_sources/range_finder/range_finder_consistency_check.hpp>
 
-void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var,
-		bool horizontal_motion, uint64_t time_us)
-{
-	if (horizontal_motion) {
-		_time_last_horizontal_motion = time_us;
-	}
+using namespace matrix;
 
+void RangeFinderConsistencyCheck::initMiniKF(float p1, float p2, float x1, float x2)
+{
+	_R.setZero();
+	_A.setIdentity();
+	float p[4] = {p1, 0.f, 0.f, p2};
+	_P = Matrix<float, 2, 2>(p);
+	float h[4] = {1.f, 0.f, -1.f, 1.f};
+	_H = Matrix<float, 2, 2>(h);
+	_x(0) = x1;
+	_x(1) = x2;
+	_initialized = true;
+	_sample_count = 0;
+}
+
+void RangeFinderConsistencyCheck::UpdateMiniKF(float z, float z_var, float vz, float vz_var, float dist_bottom,
+		float dist_bottom_var, uint64_t time_us)
+{
 	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
 
-	if ((_time_last_update_us == 0)
-	    || (dt < 0.001f) || (dt > 0.5f)) {
+	if (_time_last_update_us == 0 || dt > 1.f) {
 		_time_last_update_us = time_us;
-		_dist_bottom_prev = dist_bottom;
 		return;
 	}
 
-	const float vel_bottom = (dist_bottom - _dist_bottom_prev) / dt;
-	_innov = -vel_bottom - vz; // vel_bottom is +up while vz is +down
-
-	// Variance of the time derivative of a random variable: var(dz/dt) = 2*var(z) / dt^2
-	const float var = 2.f * dist_bottom_var / (dt * dt);
-	_innov_var = var + vz_var;
-
-	const float normalized_innov_sq = (_innov * _innov) / _innov_var;
-	_test_ratio = normalized_innov_sq / (_gate * _gate);
-	_signed_test_ratio_lpf.setParameters(dt, _signed_test_ratio_tau);
-	const float signed_test_ratio = matrix::sign(_innov) * _test_ratio;
-	_signed_test_ratio_lpf.update(signed_test_ratio);
-
-	updateConsistency(vz, time_us);
-
 	_time_last_update_us = time_us;
-	_dist_bottom_prev = dist_bottom;
-}
 
-void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
-{
-	if (fabsf(_signed_test_ratio_lpf.getState()) >= 1.f) {
-		if ((time_us - _time_last_horizontal_motion) > _signed_test_ratio_tau) {
-			_is_kinematically_consistent = false;
-			_time_last_inconsistent_us = time_us;
-		}
+	_R(0, 0) = z_var;
+	_R(1, 1) = dist_bottom_var;
+
+	SquareMatrix<float, 2> Q;
+	const float process_noise = 0.01f;
+	Q(0, 0) = dt * dt * vz_var + process_noise;
+	Q(1, 1) = process_noise * 0.5f;
+	_x(0) += dt * vz;
+	_P = _A * _P * _A.transpose() + Q;
+
+	const Vector2f measurements(z, dist_bottom);
+	const Vector2f y = measurements - _H * _x;
+	const Matrix2f S = _H * _P * _H.transpose() + _R;
+	float test_ratio = math::min(sq(y(1)) / (sq(_gate) * S(1, 1)), 2.f);
+
+	if (test_ratio < 1.f) {
+		Matrix2f K = _P * _H.transpose() * S.I();
+		_x = _x + K * y;
+		_P = _P - K * _H * _P;
+		_P = 0.5f * (_P + _P.transpose()); // Ensure symmetry
+	}
+
+	_innov = y(1);
+	_innov_var = S(1, 1);
+
+	if (_sample_count++ > 10) {
+		_is_kinematically_consistent  = _test_ratio_lpf.update(test_ratio) < 1.f;
 
 	} else {
-		if ((fabsf(vz) > _min_vz_for_valid_consistency)
-		    && (_test_ratio < 1.f)
-		    && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)
-		   ) {
-			_is_kinematically_consistent = true;
-		}
+		_test_ratio_lpf.update(test_ratio);
 	}
 }
