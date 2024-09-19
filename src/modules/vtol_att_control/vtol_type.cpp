@@ -46,6 +46,7 @@
 #include <px4_platform_common/defines.h>
 #include <matrix/math.hpp>
 #include <lib/atmosphere/atmosphere.h>
+#include <lib/geo/geo.h>
 
 using namespace matrix;
 
@@ -176,10 +177,45 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 
 	const float track = atan2f(_local_pos->vy, _local_pos->vx);
 	const float accel_body_forward = cosf(track) * _local_pos->ax + sinf(track) * _local_pos->ay;
+	const float vel_body_forward = cosf(track) * _local_pos->vx + sinf(track) * _local_pos->vy;
 
-	// increase the target deceleration setpoint provided to the controller by 20%
-	// to make overshooting the transition waypoint less likely in the presence of tracking errors
-	const float dec_sp = _param_vt_b_dec_mss.get() * 1.2f;
+	// Add 20% factor to maximum allowed deceleration
+	const float default_dec_sp = _param_vt_b_dec_mss.get() * 1.2f;
+	// Maximum allowed deceleration setpoint as a function of the nominal deceleration setpoint
+	const float max_dec_sp = 2.f * default_dec_sp;
+
+	float dec_sp = default_dec_sp;
+
+	if (_attc->get_pos_sp_triplet()->current.valid) {
+		// Add position feedback to the deceleration setpoint calculation
+
+		// Compute backtransition end-point in local reference frame body x-direction -> dist_body_forward
+		MapProjection map_proj{_attc->get_local_pos()->ref_lat , _attc->get_local_pos()->ref_lon};
+
+		float pos_sp_x, pos_sp_y = 0.f;
+		map_proj.project(_attc->get_pos_sp_triplet()->current.lat, _attc->get_pos_sp_triplet()->current.lon, pos_sp_x, pos_sp_y);
+
+		// Compute backtransition end-point w.r.t. vehicle
+		const float pos_sp_dx = pos_sp_x - _local_pos->x;
+		const float pos_sp_dy = pos_sp_y - _local_pos->y;
+
+		// Compute the deceleration setpoint if the backtransition end-point is ahead of the vehicle
+		const float vel_proj = _local_pos->vx * pos_sp_dx + _local_pos->vy * pos_sp_dy;
+		if (vel_proj > 0.0f) {
+			const float dist_body_forward = cosf(track) * pos_sp_dx + sinf(track) * pos_sp_dy;
+
+			if (fabsf(dist_body_forward) > FLT_EPSILON) {
+				// Compute deceleration setpoint
+				// Note this is deceleration (i.e. negative acceleration), and therefore the minus sign is skipped
+				dec_sp = vel_body_forward*vel_body_forward / (2.f * dist_body_forward);
+
+				// Check if the deceleration setpoint is within limits
+				if (!PX4_ISFINITE(dec_sp) || (dec_sp > max_dec_sp) || (dec_sp < 0.0f)) {
+					dec_sp = default_dec_sp;
+				}
+			}
+		}
+	}
 
 	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
 	const float accel_error_forward = dec_sp + accel_body_forward;
