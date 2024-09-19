@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file EKF2.cpp
+ * @file EKF2.hpp
  * Implementation of the attitude and position estimator.
  *
  * @author Roman Bapst

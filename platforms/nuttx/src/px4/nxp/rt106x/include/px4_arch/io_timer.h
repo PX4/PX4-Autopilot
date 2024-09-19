@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file drv_io_timer.h
+ * @file io_timer.h
  *
  * imxrt-specific PWM output data.
  */

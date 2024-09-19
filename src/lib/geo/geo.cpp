@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file geo.c
+ * @file geo.cpp
  *
  * Geo / math functions to perform geodesic calculations
  *

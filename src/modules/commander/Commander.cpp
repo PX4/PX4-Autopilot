@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file commander.cpp
+ * @file Commander.cpp
  *
  * Main state machine / business logic
  *

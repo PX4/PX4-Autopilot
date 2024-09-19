@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file sPort_data.c
+ * @file sPort_data.cpp
  * @author Stefan Rado <px4@sradonia.net>
  * @author Mark Whitehorn <kd0aij@github.com>
  *

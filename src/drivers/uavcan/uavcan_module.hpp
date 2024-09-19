@@ -38,7 +38,7 @@
 #include <drivers/device/device.h>
 
 /**
- * @file uavcan.hpp
+ * @file uavcan_module.hpp
  *
  * Public header for the UAVCAN module
  *

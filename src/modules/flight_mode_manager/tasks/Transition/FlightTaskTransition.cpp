@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskTranstion.cpp
+ * @file FlightTaskTransition.cpp
  */
 
 #include "FlightTaskTransition.hpp"

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file default_tunes.h
+ * @file default_tunes.cpp
  */
 
 #include "tunes.h"
