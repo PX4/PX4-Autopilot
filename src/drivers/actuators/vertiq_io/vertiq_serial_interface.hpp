@@ -104,6 +104,12 @@ public:
 	GenericInterface *GetIquartInterface();
 
 private:
+	/**
+	 * @brief Ensures that the serial port is open. Opens it if not
+	 *
+	 */
+	void ReOpenSerial();
+
 	GenericInterface _iquart_interface;
 
 	uint8_t _bytes_available;
@@ -114,6 +120,7 @@ private:
 
 	//The port that we're using for communication
 	int _uart_fd{-1};
+	char _port_in_use[20] {};
 
 #if ! defined(__PX4_QURT)
 	struct termios		_orig_cfg;

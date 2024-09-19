@@ -35,9 +35,8 @@
 #include <px4_platform_common/log.h>
 
 px4::atomic_bool VertiqIo::_request_telemetry_init{false};
-char VertiqIo::_telemetry_device[] {};
 
-VertiqIo::VertiqIo() :
+VertiqIo::VertiqIo(const char *port) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_serial_interface(),
 	_client_manager(&_serial_interface),
@@ -47,6 +46,12 @@ VertiqIo::VertiqIo() :
 	_broadcast_arming_handler(_kBroadcastID),
 	_operational_ifci(_kBroadcastID)
 {
+	// store port name
+	strncpy(_port, port, sizeof(_port) - 1);
+
+	// enforce null termination
+	_port[sizeof(_port) - 1] = '\0';
+
 	//Make sure we get the correct initial values for our parameters
 	updateParams();
 
@@ -60,6 +65,9 @@ VertiqIo::VertiqIo() :
 
 VertiqIo::~VertiqIo()
 {
+	//Be inactive
+	stop();
+
 	//Free our counters/timers
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
@@ -68,6 +76,8 @@ VertiqIo::~VertiqIo()
 //called by our task_spawn function
 bool VertiqIo::init()
 {
+	_serial_interface.InitSerial(_port, _param_vertiq_baud.get());
+
 #ifdef CONFIG_USE_IFCI_CONFIGURATION
 	//Grab the number of IFCI control values the user wants to use
 	_cvs_in_use = (uint8_t)_param_vertiq_number_of_cvs.get();
@@ -90,6 +100,17 @@ bool VertiqIo::init()
 	return true;
 }
 
+void VertiqIo::start()
+{
+	ScheduleNow();
+}
+
+void VertiqIo::stop()
+{
+	ScheduleClear();
+}
+
+
 //This is the same as a while(1) loop
 void VertiqIo::Run()
 {
@@ -97,19 +118,6 @@ void VertiqIo::Run()
 	//Increment our loop counter
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
-
-	//If we should leave, then clean up our mess and get out
-	if (should_exit()) {
-		ScheduleClear();
-		exit_and_cleanup();
-		return;
-	}
-
-	//Someone asked to change the telemetry port, or we booted up
-	if (_request_telemetry_init.load()) {
-		_serial_interface.InitSerial(_telemetry_device, _param_vertiq_baud.get());
-		_request_telemetry_init.store(false);
-	}
 
 	//Handle IQUART reception and transmission
 	_client_manager.HandleClientCommunication();
@@ -142,7 +150,6 @@ void VertiqIo::Run()
 	//stop our timer
 	perf_end(_loop_perf);
 }
-
 
 void VertiqIo::parameters_update()
 {
@@ -243,75 +250,142 @@ bool VertiqIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 	return true;
 }
 
-int VertiqIo::task_spawn(int argc, char *argv[])
-{
-	VertiqIo *instance = new VertiqIo();
-
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
-
-		if (instance->init()) {
-			return PX4_OK;
-		}
-
-	} else {
-		PX4_ERR("alloc failed");
-	}
-
-	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
-
-	return PX4_ERROR;
-}
-
-int VertiqIo::print_status()
+void VertiqIo::print_info()
 {
 	perf_print_counter(_loop_perf);
 	perf_print_counter(_loop_interval_perf);
 
 	_mixing_output.printStatus();
+}
+
+/**
+ * Local functions in support of the shell command.
+ */
+namespace vertiq_namespace
+{
+
+VertiqIo	*g_dev{nullptr};
+
+int start(const char *port);
+int status();
+int stop();
+int usage();
+
+int
+start(const char *port)
+{
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
+		return PX4_OK;
+	}
+
+	// Instantiate the driver.
+	g_dev = new VertiqIo(port);
+
+	if (g_dev == nullptr) {
+		PX4_ERR("driver start failed");
+		return PX4_ERROR;
+	}
+
+	if (!g_dev->init()) {
+		PX4_ERR("driver start failed");
+		delete g_dev;
+		g_dev = nullptr;
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
+}
+
+int
+status()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return 1;
+	}
+
+	printf("state @ %p\n", g_dev);
+	g_dev->print_info();
+
 	return 0;
 }
 
-int VertiqIo::print_usage(const char *reason)
+int stop()
 {
-	if (reason) {
-		PX4_WARN("%s\n", reason);
+	if (g_dev != nullptr) {
+		PX4_INFO("stopping driver");
+		delete g_dev;
+		g_dev = nullptr;
+		PX4_INFO("driver stopped");
+
+	} else {
+		PX4_ERR("driver not running");
+		return 1;
 	}
 
+	return PX4_OK;
+}
+
+int
+usage()
+{
 	PRINT_MODULE_USAGE_NAME("vertiq_io", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("iquart_port", "Enable IQUART on a UART port.");
 	PRINT_MODULE_USAGE_ARG("<device>", "UART device", false);
-
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+	return PX4_OK;
 }
 
-int VertiqIo::custom_command(int argc, char *argv[])
-{
-	const char *verb = argv[0];
-
-	if (!strcmp(verb, "iquart_port")) {
-		if (argc > 1) {
-			// telemetry can be requested before the module is started
-			strncpy(_telemetry_device, argv[1], sizeof(_telemetry_device) - 1);
-			_telemetry_device[sizeof(_telemetry_device) - 1] = '\0';
-			_request_telemetry_init.store(true);
-		}
-
-		return 0;
-	}
-
-	return print_usage("unknown command");
-}
-
+} // namespace
 
 extern "C" __EXPORT int vertiq_io_main(int argc, char *argv[])
 {
-	return VertiqIo::main(argc, argv);
+	int ch = 0;
+	const char *device_path = nullptr;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+
+		case 'd':
+			device_path = myoptarg;
+			break;
+
+		default:
+			PX4_WARN("Unknown option!");
+			return PX4_ERROR;
+		}
+	}
+
+	if (myoptind >= argc) {
+		PX4_ERR("unrecognized command");
+		return vertiq_namespace::usage();
+	}
+
+	if (!device_path) {
+		PX4_ERR("Missing device");
+		return PX4_ERROR;
+	}
+
+	if (!strcmp(argv[myoptind], "start")) {
+		if (strcmp(device_path, "") != 0) {
+			return vertiq_namespace::start(device_path);
+
+		} else {
+			PX4_WARN("Please specify device path!");
+			return vertiq_namespace::usage();
+		}
+
+	} else if (!strcmp(argv[myoptind], "stop")) {
+		return vertiq_namespace::stop();
+
+	} else if (!strcmp(argv[myoptind], "status")) {
+		return vertiq_namespace::status();
+	}
+
+	return vertiq_namespace::usage();
 }

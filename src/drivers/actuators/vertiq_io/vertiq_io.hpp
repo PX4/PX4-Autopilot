@@ -39,6 +39,7 @@
 
 #include <px4_log.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
 
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -67,38 +68,30 @@
 enum DISARM_BEHAVIORS {TRIGGER_MOTOR_DISARM, COAST_MOTOR, SEND_PREDEFINED_VELOCITY};
 enum ARM_BEHAVIORS {USE_MOTOR_ARMING, FORCE_ARMING};
 
-class VertiqIo : public ModuleBase<VertiqIo>, public OutputModuleInterface
+class VertiqIo : public OutputModuleInterface
 {
 
 public:
 	/**
 	* @brief Create a new VertiqIo object
 	*/
-	VertiqIo();
+	VertiqIo(const char *port);
 
 	/**
 	* @brief destruct a VertiqIo object
 	*/
-	~VertiqIo() override;
+	~VertiqIo();
 
 	/**
 	* @brief initialize the VertiqIo object. This will be called by the task_spawn function. Makes sure that the thread gets scheduled.
 	*/
 	bool init();
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	int print_status() override;
-
-	/** @see ModuleBase::run() */
-	void Run() override;
+	/**
+	 * @brief Print information about how to use our module
+	 *
+	 */
+	void print_info();
 
 	/** @see OutputModuleInterface */
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
@@ -116,6 +109,11 @@ private:
 	 * Check for parameter changes and update them if needed.
 	 */
 	void parameters_update();
+	void Run() override;
+	void start();
+	void stop();
+
+	char _port[20] {};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")};
