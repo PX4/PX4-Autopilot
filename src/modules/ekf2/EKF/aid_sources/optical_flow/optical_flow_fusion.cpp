@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file optflow_fusion.cpp
+ * @file optical_flow_fusion.cpp
  */
 
 #include "ekf.h"

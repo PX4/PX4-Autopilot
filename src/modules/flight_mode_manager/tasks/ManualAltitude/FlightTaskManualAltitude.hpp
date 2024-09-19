@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualAltitude.hpp
+ * @file FlightTaskManualAltitude.hpp
  *
  * Flight task for manual controlled altitude.
  */
