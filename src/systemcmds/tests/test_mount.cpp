@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file test_mount.c
+ * @file test_mount.cpp
  * Device mount / unmount stress test
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ms5837.cpp
+ * @file MS5837.cpp
  * Driver for the MS5837 barometric pressure sensor connected via I2C.
  */
 
