@@ -147,9 +147,6 @@ void VertiqIo::Run()
 		_actuator_test_active = _actuator_test.action == actuator_test_s::ACTION_DO_CONTROL;
 	}
 
-	//Make sure we get our thread into execution
-	// ScheduleNow();
-
 	//stop our timer
 	perf_end(_loop_perf);
 }
