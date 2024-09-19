@@ -651,6 +651,14 @@ public:
 	float get_pitch_setpoint() {return _control.getPitchSetpoint();}
 	float get_throttle_setpoint() {return _control.getThrottleSetpoint();}
 
+	/**
+	 * Returns the altitude tracking time constant
+	 */
+	float get_altitude_error_time_constant() const
+	{
+		return 1.0f / math::max(_control_param.altitude_error_gain, 0.01f);
+	}
+
 	uint64_t timestamp() { return _update_timestamp; }
 	float get_underspeed_ratio() { return _control.getRatioUndersped(); }
 
