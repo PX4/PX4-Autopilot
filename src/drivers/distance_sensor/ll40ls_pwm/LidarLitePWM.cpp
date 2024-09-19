@@ -33,7 +33,7 @@
 
 
 /**
- * @file LidarLitePWM.h
+ * @file LidarLitePWM.cpp
  * @author Johan Jansen <jnsn.johan@gmail.com>
  * @author Ban Siesta <bansiesta@gmail.com>
  *

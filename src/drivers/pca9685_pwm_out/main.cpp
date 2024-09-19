@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file pca9685/main.cpp
+ * @file main.cpp
  *
  * This file serves as the wrapper layer for PCA9685 driver, working with parameters
  * and scheduling stuffs on PX4 side.

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ActuatorEffectivenessRotors.hpp
+ * @file ActuatorEffectivenessRotors.cpp
  *
  * Actuator effectiveness computed from rotors position and orientation
  *

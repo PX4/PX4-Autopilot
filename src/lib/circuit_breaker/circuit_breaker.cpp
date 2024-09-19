@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file circuit_breaker.c
+ * @file circuit_breaker.cpp
  *
  * Circuit breaker parameters.
  * Analog to real aviation circuit breakers these parameters

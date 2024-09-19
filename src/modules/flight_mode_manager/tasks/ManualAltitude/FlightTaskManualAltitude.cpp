@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualAltitude.cpp
+ * @file FlightTaskManualAltitude.cpp
  */
 
 #include "FlightTaskManualAltitude.hpp"

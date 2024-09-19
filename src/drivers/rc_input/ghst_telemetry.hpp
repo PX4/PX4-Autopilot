@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ghst_telemetry.cpp
+ * @file ghst_telemetry.hpp
  *
  * IRC Ghost (Immersion RC Ghost) telemetry.
  *

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file VTOL_att_control_main.cpp
+ * @file vtol_att_control_main.cpp
  * Implementation of an attitude controller for VTOL airframes. This module receives data
  * from both the fixed wing- and the multicopter attitude controllers and processes it.
  * It computes the correct actuator controls depending on which mode the vehicle is in (hover, forward-
