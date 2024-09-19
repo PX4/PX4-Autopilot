@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file rtl.cpp
+ * @file rtl_direct.cpp
  *
  * Helper class to access RTL
  *

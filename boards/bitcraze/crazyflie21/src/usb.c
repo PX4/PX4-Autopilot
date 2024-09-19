@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file crazyflie_usb.c
+ * @file usb.c
  *
  * Board-specific USB functions.
  */

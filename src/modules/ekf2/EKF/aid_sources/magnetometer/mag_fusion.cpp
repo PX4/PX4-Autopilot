@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file heading_fusion.cpp
+ * @file mag_fusion.cpp
  * Magnetometer fusion methods.
  * Equations generated using EKF/python/ekf_derivation/main.py
  *
