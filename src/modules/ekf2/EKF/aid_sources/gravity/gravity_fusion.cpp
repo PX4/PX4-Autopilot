@@ -78,8 +78,6 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 			      innovation_variance,                                         // innovation variance
 			      0.25f);                                                      // innovation gate
 
-	bool fused[3] {false, false, false};
-
 	// update the states and covariance using sequential fusion
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains and observation jacobians
@@ -108,13 +106,10 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 		const bool accel_clipping = imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2];
 
 		if (_control_status.flags.gravity_vector && !_aid_src_gravity.innovation_rejected && !accel_clipping) {
-			fused[index] = measurementUpdate(K, H, _aid_src_gravity.observation_variance[index],
-							 _aid_src_gravity.innovation[index]);
+			measurementUpdate(K, H, _aid_src_gravity.observation_variance[index], _aid_src_gravity.innovation[index]);
 		}
 	}
 
-	if (fused[0] && fused[1] && fused[2]) {
-		_aid_src_gravity.fused = true;
-		_aid_src_gravity.time_last_fuse = imu.time_us;
-	}
+	_aid_src_gravity.fused = true;
+	_aid_src_gravity.time_last_fuse = imu.time_us;
 }
