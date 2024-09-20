@@ -182,27 +182,24 @@ void Ekf::fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_
 			      innovation_gate);				// innovation gate
 
 	if (!aid_src.innovation_rejected) {
-		aid_src.fused = true;
-
 		for (uint8_t index = 0; index <= 2; index++) {
-			if (aid_src.fused) {
-				if (index == 1) {
-					sym::ComputeBodyVelYInnovVar(state_vector, P, measurement_var(index), &aid_src.innovation_variance[index]);
+			if (index == 1) {
+				sym::ComputeBodyVelYInnovVar(state_vector, P, measurement_var(index), &aid_src.innovation_variance[index]);
 
-				} else if (index == 2) {
-					sym::ComputeBodyVelZInnovVar(state_vector, P, measurement_var(index), &aid_src.innovation_variance[index]);
-				}
-
-				aid_src.innovation[index] = Vector3f(_R_to_earth.transpose().row(index)) * _state.vel - measurement(index);
-				VectorState Kfusion = P * H[index] / aid_src.innovation_variance[index];
-				aid_src.fused &= measurementUpdate(Kfusion, H[index], aid_src.observation_variance[index], aid_src.innovation[index]);
+			} else if (index == 2) {
+				sym::ComputeBodyVelZInnovVar(state_vector, P, measurement_var(index), &aid_src.innovation_variance[index]);
 			}
+
+			aid_src.innovation[index] = Vector3f(_R_to_earth.transpose().row(index)) * _state.vel - measurement(index);
+
+			VectorState Kfusion = P * H[index] / aid_src.innovation_variance[index];
+			measurementUpdate(Kfusion, H[index], aid_src.observation_variance[index], aid_src.innovation[index]);
 		}
 
-		if (aid_src.fused) {
-			_time_last_hor_vel_fuse = _time_delayed_us;
-			_time_last_ver_vel_fuse = _time_delayed_us;
-			aid_src.time_last_fuse = _time_delayed_us;
-		}
+		aid_src.fused = true;
+		aid_src.time_last_fuse = _time_delayed_us;
+
+		_time_last_hor_vel_fuse = _time_delayed_us;
+		_time_last_ver_vel_fuse = _time_delayed_us;
 	}
 }
