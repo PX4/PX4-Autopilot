@@ -1065,3 +1065,54 @@ bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 	fuse(K, innov);
 	return true;
 }
+
+bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+{
+	clearInhibitedStateKalmanGains(K);
+
+#if false
+	// Matrix implementation of the Joseph stabilized covariance update
+	// This is extremely expensive to compute. Use for debugging purposes only.
+	auto A = matrix::eye<float, State::size>();
+	A -= K.multiplyByTranspose(H);
+	P = A * P;
+	P = P.multiplyByTranspose(A);
+
+	const VectorState KR = K * R;
+	P += KR.multiplyByTranspose(K);
+#else
+	// Efficient implementation of the Joseph stabilized covariance update
+	// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
+	// P = (I - K * H) * P * (I - K * H).T   + K * R * K.T
+	//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
+	//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
+
+	// Step 1: conventional update
+	// Compute P_temp and store it in P to avoid allocating more memory
+	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
+	VectorState PH = P * H; // H is stored as a column vector. H is in fact H.T
+
+	for (unsigned i = 0; i < State::size; i++) {
+		for (unsigned j = 0; j < State::size; j++) {
+			P(i, j) -= K(i) * PH(j); // P is now not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
+		}
+	}
+
+	// Step 2: stabilized update
+	PH = P * H; // H is stored as a column vector. H is in fact H.T
+
+	for (unsigned i = 0; i < State::size; i++) {
+		for (unsigned j = 0; j <= i; j++) {
+			P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
+			P(j, i) = P(i, j);
+		}
+	}
+
+#endif
+
+	constrainStateVariances();
+
+	// apply the state corrections
+	fuse(K, innovation);
+	return true;
+}
