@@ -730,8 +730,9 @@ MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 			switch_to_idle_state();
 		}
 
-		if (_state == MAVLINK_WPM_STATE_IDLE || (_state == MAVLINK_WPM_STATE_SENDLIST
-				&& (uint8_t)_mission_type == wprl.mission_type)) {
+		if ((_state == MAVLINK_WPM_STATE_IDLE) || ((_state == MAVLINK_WPM_STATE_SENDLIST)
+				&& ((uint8_t)_mission_type == wprl.mission_type) && (msg->sysid == _transfer_partner_sysid)
+				&& (msg->compid == _transfer_partner_compid))) {
 			_time_last_recv = hrt_absolute_time();
 
 			_state = MAVLINK_WPM_STATE_SENDLIST;
