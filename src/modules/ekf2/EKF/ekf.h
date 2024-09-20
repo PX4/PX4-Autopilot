@@ -246,7 +246,7 @@ public:
 	}
 
 	// fuse single direct state measurement (eg NED velocity, NED position, mag earth field, etc)
-	bool fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
+	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
 
 	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
 
@@ -834,7 +834,8 @@ private:
 	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
 	{
 		VectorState Kfusion = P * H / innov_var;
-		aid_src.fused = measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+		measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+		aid_src.fused = true;
 	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 

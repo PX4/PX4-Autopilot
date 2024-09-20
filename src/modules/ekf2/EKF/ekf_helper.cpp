@@ -1005,7 +1005,7 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index)
+void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index)
 {
 	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 
@@ -1063,7 +1063,6 @@ bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 
 	// apply the state corrections
 	fuse(K, innov);
-	return true;
 }
 
 bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)

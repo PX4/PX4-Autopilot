@@ -36,12 +36,12 @@
 bool Ekf::fuseHorizontalVelocity(estimator_aid_source2d_s &aid_src)
 {
 	// vx, vy
-	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
-					  State::vel.idx + 0)
-	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
-					  State::vel.idx + 1)
-	   ) {
+	if (!aid_src.innovation_rejected) {
+		for (unsigned i = 0; i < 2; i++) {
+			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
+						   State::vel.idx + i);
+		}
+
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
 
@@ -57,14 +57,12 @@ bool Ekf::fuseHorizontalVelocity(estimator_aid_source2d_s &aid_src)
 bool Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 {
 	// vx, vy, vz
-	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
-					  State::vel.idx + 0)
-	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
-					  State::vel.idx + 1)
-	    && fuseDirectStateMeasurement(aid_src.innovation[2], aid_src.innovation_variance[2], aid_src.observation_variance[2],
-					  State::vel.idx + 2)
-	   ) {
+	if (!aid_src.innovation_rejected) {
+		for (unsigned i = 0; i < 3; i++) {
+			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
+						   State::vel.idx + i);
+		}
+
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
 
