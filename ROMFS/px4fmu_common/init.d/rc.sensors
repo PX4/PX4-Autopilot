@@ -184,15 +184,10 @@ then
 	asp5033 start -X
 fi
 
-# AUAV differential pressure sensor external I2C
+# AUAV absolute/differential pressure sensor external I2C
 if param greater -s SENS_EN_AUAVX 0
 then
 	auav start -D -X
-fi
-
-# AUAV absolute pressure sensor external I2C
-if param greater -s SENS_EN_AUAVX 0
-then
 	auav start -A -X
 fi
 
