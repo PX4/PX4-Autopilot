@@ -1176,7 +1176,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.cruising_speed = get_cruising_speed();
 	sp.cruising_throttle = get_cruising_throttle();
 	sp.valid = false;
-	sp.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+	sp.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	sp.loiter_direction_counter_clockwise = false;
 }
 

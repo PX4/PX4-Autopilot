@@ -108,13 +108,6 @@ bool FlightTaskAuto::update()
 	// always reset constraints because they might change depending on the type
 	_setDefaultConstraints();
 
-	// The only time a thrust set-point is sent out is during
-	// idle. Hence, reset thrust set-point to NAN in case the
-	// vehicle exits idle.
-	if (_type_previous == WaypointType::idle) {
-		_acceleration_setpoint.setNaN();
-	}
-
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
 	if (_highEnoughForLandingGear()) {
@@ -122,12 +115,6 @@ bool FlightTaskAuto::update()
 	}
 
 	switch (_type) {
-	case WaypointType::idle:
-		// Send zero thrust setpoint
-		_position_setpoint.setNaN(); // Don't require any position/velocity setpoints
-		_velocity_setpoint.setNaN();
-		_acceleration_setpoint = Vector3f(0.f, 0.f, 100.f); // High downwards acceleration to make sure there's no thrust
-		break;
 
 	case WaypointType::land:
 		_prepareLandSetpoints();
