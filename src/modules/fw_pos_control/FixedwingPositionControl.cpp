@@ -944,7 +944,7 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 		_att_sp.thrust_body[0] = _param_fw_thr_min.get();
 
 	} else {
-		_att_sp.thrust_body[0] = min(get_tecs_thrust(), _param_fw_thr_max.get());
+		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
 	}
 
 	const float pitch_body = get_tecs_pitch();
@@ -1442,7 +1442,7 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 				   _param_climbrate_target.get(),
 				   is_low_height);
 
-	_att_sp.thrust_body[0] = min(get_tecs_thrust(), tecs_fw_thr_max);
+	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : min(get_tecs_thrust(), tecs_fw_thr_max);
 	const float pitch_body = get_tecs_pitch();
 
 	const Quatf attitude_setpoint(Eulerf(roll_body, pitch_body, yaw_body));
@@ -2090,7 +2090,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		const float blended_throttle = flare_ramp_interpolator * get_tecs_thrust() + (1.0f - flare_ramp_interpolator) *
 					       _flare_states.initial_throttle_setpoint;
 
-		_att_sp.thrust_body[0] = blended_throttle;
+		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : blended_throttle;
 
 	} else {
 
