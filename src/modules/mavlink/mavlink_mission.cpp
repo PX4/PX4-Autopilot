@@ -901,7 +901,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
 			_time_last_recv = hrt_absolute_time();
 
-			if (_transfer_in_progress) {
+			if (_transfer_in_progress) { // Transfer over different mavlink instance. ignore
 				send_mission_ack(msg->sysid, msg->compid, MAV_MISSION_ERROR);
 				return;
 			}
@@ -994,6 +994,13 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 		} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
 			_time_last_recv = hrt_absolute_time();
 
+			if (msg->sysid != _transfer_partner_sysid || msg->compid != _transfer_partner_compid) {
+				PX4_DEBUG("WPM: Request from another partner while receiveing. Ignore");
+
+				send_mission_ack(msg->sysid, msg->compid, MAV_MISSION_ERROR);
+				return;
+			}
+
 			if (_transfer_seq == 0) {
 				/* looks like our MISSION_REQUEST was lost, try again */
 				PX4_DEBUG("WPM: MISSION_COUNT %u from ID %u (again)", wpc.count, msg->sysid);
@@ -1015,7 +1022,7 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_mavlink.send_statustext_critical("WPM: IGN MISSION_COUNT: Busy\t");
 			events::send(events::ID("mavlink_mission_ignore_mis_count"), events::Log::Error,
 				     "Mission upload busy, ignoring MISSION_COUNT");
-			send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
+			send_mission_ack(msg->sysid, msg->compid, MAV_MISSION_ERROR);
 			return;
 		}
 
@@ -1634,7 +1641,6 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 	return MAV_MISSION_ACCEPTED;
 }
-
 
 int
 MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *mission_item,
