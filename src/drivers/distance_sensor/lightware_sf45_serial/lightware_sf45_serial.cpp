@@ -117,29 +117,29 @@ int SF45LaserSerial::measure()
 	switch (_sensor_state) {
 
 	// sensor should now respond
-	case 0:
+	case STATE_UNINIT:
 		while (_num_retries--) {
 			sf45_send(SF_PRODUCT_NAME, false, &_product_name[0], 0);
-			_sensor_state = 0;
+			_sensor_state = STATE_UNINIT;
 		}
 
-		_sensor_state = 1;
+		_sensor_state = STATE_SEND_PRODUCT_NAME;
 		break;
 
-	case 1:
+	case STATE_SEND_PRODUCT_NAME:
 		// Update rate default to 50 readings/s
 		sf45_send(SF_UPDATE_RATE, true, &rate, sizeof(uint8_t));
-		_sensor_state = 2;
+		_sensor_state = STATE_SEND_UPDATE_RATE;
 		break;
 
-	case 2:
+	case STATE_SEND_UPDATE_RATE:
 		sf45_send(SF_DISTANCE_OUTPUT, true, &_data_output, sizeof(_data_output));
-		_sensor_state = 3;
+		_sensor_state = STATE_SEND_DISTANCE_DATA;
 		break;
 
-	case 3:
+	case STATE_SEND_DISTANCE_DATA:
 		sf45_send(SF_STREAM, true, &_stream_data, sizeof(_stream_data));
-		_sensor_state = 4;
+		_sensor_state = STATE_SEND_STREAM;
 		break;
 
 	default:
@@ -166,35 +166,31 @@ int SF45LaserSerial::collect()
 
 	if (_consecutive_fail_count > 50 && !_sensor_ready) {
 		PX4_ERR("Restarting the state machine");
-		start();
+		return PX4_ERROR;
 	}
 
-	if (_sensor_state == 1) {
+	if (_sensor_state == STATE_SEND_PRODUCT_NAME) {
 
 		ret = ::read(_fd, &readbuf[0], 22);
 
 		if (ret < 0) {
-			PX4_ERR("Read err state 1: %d", ret);
+			PX4_ERR("ERROR (ack from sending product name cmd): %d", ret);
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
-			// Data received but not read
-			tcflush(_fd, TCIFLUSH);
 			return ret;
 		}
 
 		sf45_request_handle(ret, readbuf);
 		ScheduleDelayed(_interval * 3);
 
-	} else if (_sensor_state == 2) {
+	} else if (_sensor_state == STATE_SEND_UPDATE_RATE) {
 
 		ret = ::read(_fd, &readbuf[0], 7);
 
 		if (ret < 0) {
-			PX4_ERR("Read err state 2: %d", ret);
+			PX4_ERR("ERROR (ack from sending update rate cmd): %d", ret);
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
-			// Data received but not read
-			tcflush(_fd, TCIFLUSH);
 			return ret;
 		}
 
@@ -203,16 +199,14 @@ int SF45LaserSerial::collect()
 			ScheduleDelayed(_interval * 3);
 		}
 
-	} else if (_sensor_state == 3) {
+	} else if (_sensor_state == STATE_SEND_DISTANCE_DATA) {
 
 		ret = ::read(_fd, &readbuf[0], 8);
 
 		if (ret < 0) {
-			PX4_ERR("Read err state 3: %d", ret);
+			PX4_ERR("ERROR (ack from sending distance data cmd): %d", ret);
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
-			// Data received but not read
-			tcflush(_fd, TCIFLUSH);
 			return ret;
 		}
 
@@ -221,21 +215,22 @@ int SF45LaserSerial::collect()
 			ScheduleDelayed(_interval * 3);
 		}
 
+		// Stream data from sensor
+
 	} else {
 
 		ret = ::read(_fd, &readbuf[0], 10);
 
 		if (ret < 0) {
-			PX4_ERR("Read err state 4: %d", ret);
+			PX4_ERR("ERROR (ack from streaming distance data): %d", ret);
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
-			// Data received but not read
-			tcflush(_fd, TCIFLUSH);
 			return ret;
 		}
 
 		uint8_t flags_payload = (readbuf[1] >> 6) | (readbuf[2] << 2);
 
+		// Process the incoming distance data
 		if (readbuf[3] == SF_DISTANCE_DATA_CM && flags_payload == 5) {
 
 			for (uint8_t i = 0; i < ret; ++i) {
@@ -251,26 +246,22 @@ int SF45LaserSerial::collect()
 			ret = ::read(_fd, &readbuf[0], 10);
 
 			if (ret < 0) {
-				PX4_ERR("Read err: %d", ret);
+				PX4_ERR("ERROR (unknown sensor data): %d", ret);
 				perf_count(_comms_errors);
 				perf_end(_sample_perf);
-				// Data received but not read
-				tcflush(_fd, TCIFLUSH);
 				return ret;
 			}
 		}
 	}
 
 	if (ret < 0) {
-		PX4_DEBUG("read err: %d", ret);
+		PX4_ERR("ERROR (processing distance data): %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 
 		/* only throw an error if we time out */
 		if (read_elapsed > (_interval * 2)) {
 			PX4_DEBUG("Timing out...");
-			// Data received but not read
-			tcflush(_fd, TCIFLUSH);
 			return ret;
 
 		} else {
@@ -319,7 +310,7 @@ void SF45LaserSerial::Run()
 		_fd = ::open(_port, O_RDWR | O_NOCTTY);
 
 		if (_fd < 0) {
-			PX4_ERR("open failed (%i)", errno);
+			PX4_ERR("serial open failed (%i)", errno);
 			return;
 		}
 
@@ -463,9 +454,7 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
 					_calc_crc = 0;
 					perf_count(_comms_errors);
 					perf_end(_sample_perf);
-					// Data received but not read
-					tcflush(_fd, TCIFLUSH);
-					PX4_WARN("Start of packet not valid: %d", _sensor_state);
+					PX4_DEBUG("Start of packet not valid: %d", _sensor_state);
 					_consecutive_fail_count++;
 					break;
 				} // end else
@@ -490,9 +479,7 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
 					_calc_crc = 0;
 					perf_count(_comms_errors);
 					perf_end(_sample_perf);
-					// Data received but not read
-					tcflush(_fd, TCIFLUSH);
-					PX4_WARN("Payload length error: %d", _sensor_state);
+					PX4_DEBUG("Payload length error: %d", _sensor_state);
 					_consecutive_fail_count++;
 					break;
 
@@ -529,10 +516,8 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
 					restart_flag = true;
 					perf_count(_comms_errors);
 					perf_end(_sample_perf);
-					// Data received but not read
-					tcflush(_fd, TCIFLUSH);
 					_consecutive_fail_count++;
-					PX4_WARN("Unknown message ID: %d", _sensor_state);
+					PX4_DEBUG("Unknown message ID: %d", _sensor_state);
 					break;
 
 				}
@@ -604,9 +589,7 @@ void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
 					restart_flag = true;
 					perf_count(_comms_errors);
 					perf_end(_sample_perf);
-					// Data received but not read
-					tcflush(_fd, TCIFLUSH);
-					PX4_WARN("CRC mismatch: %d", _sensor_state);
+					PX4_DEBUG("CRC mismatch: %d", _sensor_state);
 					break;
 				}
 			}
@@ -708,15 +691,15 @@ void SF45LaserSerial::sf45_send(uint8_t msg_id, bool write, int *data, uint8_t d
 	packet_len = (uint8_t)len;
 
 	// DEBUG
-	/*for (uint8_t i = 0; i < packet_len; ++i) {
-		PX4_INFO("INFO: Send byte: %d", packet_buff[i]);
-	}*/
+	for (uint8_t i = 0; i < packet_len; ++i) {
+		PX4_DEBUG("DEBUG: Send byte: %d", packet_buff[i]);
+	}
 
 	ret = ::write(_fd, packet_buff, packet_len);
 
 	if (ret != packet_len) {
 		perf_count(_comms_errors);
-		PX4_ERR("write fail %d", ret);
+		PX4_ERR("serial write fail %d", ret);
 		// Flush data written, not transmitted
 		tcflush(_fd, TCOFLUSH);
 	}
