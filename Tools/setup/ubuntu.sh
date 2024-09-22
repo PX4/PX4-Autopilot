@@ -2,7 +2,7 @@
 
 set -e
 
-## Bash script to setup PX4 development environment on Ubuntu LTS (22.04, 20.04, 18.04).
+## Bash script to setup PX4 development environment on Ubuntu LTS (24.04, 22.04, 20.04, 18.04).
 ## Can also be used in docker.
 ##
 ## Installs:
@@ -49,27 +49,16 @@ if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
 	return 1
 fi
 
-
 # check ubuntu version
 # otherwise warn and point to docker?
-UBUNTU_RELEASE="`lsb_release -rs`"
-
-if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
-	echo "Ubuntu 14.04 is no longer supported"
+UBUNTU_RELEASE="$(lsb_release -rs)"
+SUPPORTED_UBUNTU_VERSIONS=("18.04" "20.04" "22.04" "24.04")
+if [[ ! " ${SUPPORTED_UBUNTU_VERSIONS[*]} " =~ ${UBUNTU_RELEASE} ]]; then
+	echo "Unsupported Ubuntu version: ${UBUNTU_RELEASE}"
 	exit 1
-elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
-	echo "Ubuntu 16.04 is no longer supported"
-	exit 1
-elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-	echo "Ubuntu 18.04"
-elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
-	echo "Ubuntu 20.04"
-elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-	echo "Ubuntu 22.04"
-elif [[ "${UBUNTU_RELEASE}" == "21.3" ]]; then
-	echo "Linux Mint 21.3"
+else
+	echo "Ubuntu ${UBUNTU_RELEASE}"
 fi
-
 
 echo
 echo "Installing PX4 general dependencies"
@@ -105,12 +94,17 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-if [ -n "$VIRTUAL_ENV" ]; then
-	# virtual environments don't allow --user option
-	python -m pip install -r ${DIR}/requirements.txt
+PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+REQUIRED_VERSION="3.11"
+if [[ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" == "$REQUIRED_VERSION" ]]; then
+	python3 -m pip install --break-system-packages -r ${DIR}/requirements.txt
 else
-	# older versions of Ubuntu require --user option
-	python3 -m pip install --user -r ${DIR}/requirements.txt
+	if [ -n "$VIRTUAL_ENV" ]; then
+		# virtual environments don't allow --user option
+		python -m pip install -r ${DIR}/requirements.txt
+	else
+		python3 -m pip install --user -r ${DIR}/requirements.txt
+	fi
 fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
@@ -137,9 +131,6 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		libisl-dev \
 		libmpc-dev \
 		libmpfr-dev \
-		libncurses5 \
-		libncurses5-dev \
-		libncursesw5-dev \
 		libtool \
 		pkg-config \
 		screen \
@@ -153,7 +144,20 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		kconfig-frontends \
 		;
 	fi
-
+	if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+			kconfig-frontends \
+			libncurses6 \
+			libncurses-dev \
+			libncursesw6 \
+			;
+	else
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+			libncurses5 \
+			libncurses5-dev \
+			libncursesw5-dev \
+			;
+	fi
 
 	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
@@ -209,6 +213,8 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		java_version=11
 	elif [[ "${UBUNTU_RELEASE}" == "21.3" ]]; then
 		java_version=11
+	elif [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
+		java_version=11
 	else
 		java_version=14
 	fi
@@ -224,7 +230,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-$java_version")
 
 	# Gazebo / Gazebo classic installation
-	if [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
+	if [[ "${UBUNTU_RELEASE}" == "22.04" || "${UBUNTU_RELEASE}" == "24.04" ]]; then
 		echo "Gazebo (Harmonic) will be installed"
 		echo "Earlier versions will be removed"
 		# Add Gazebo binary repository
