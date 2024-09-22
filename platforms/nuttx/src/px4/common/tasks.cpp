@@ -110,7 +110,7 @@ const char *px4_get_taskname(void)
 int px4_exec(const char *appname, char *const *argv, const char *redirfile, int oflags)
 {
 #ifdef CONFIG_BUILTIN
-	return exec_builtin(appname, argv, redirfile, oflags);
+	return exec_builtin(appname, argv, NULL, redirfile, oflags);
 #else
 	char path[CONFIG_PATH_MAX];
 	posix_spawn_file_actions_t file_actions;
