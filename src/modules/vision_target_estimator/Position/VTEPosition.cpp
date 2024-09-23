@@ -120,6 +120,7 @@ bool VTEPosition::init()
 void VTEPosition::resetFilter()
 {
 	_estimator_initialized = false;
+	_last_vision_obs_fused_time = 0;
 	_bias_set = false;
 	_mission_position.valid = false;
 	_has_timed_out = false;
@@ -483,6 +484,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
 
 			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
+				_last_vision_obs_fused_time = hrt_absolute_time();
 				pos_fused = true;
 			}
 		}
@@ -1017,9 +1019,10 @@ void VTEPosition::publishTarget()
 
 	_targetEstimatorStatePub.publish(vte_state);
 
-	// If the target is static, use the relative to aid the EKF2 state estimation.
+	// If the target is static, valid and vision obs was fused recently, use the relative to aid the EKF2 state estimation.
 	// Check performed in EKF2 to use target vel: if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid)
-	target_pose.rel_vel_valid = target_pose.is_static && _param_vte_ekf_aid.get() && target_pose.rel_pos_valid;
+	target_pose.rel_vel_valid = target_pose.is_static && _param_vte_ekf_aid.get() && target_pose.rel_pos_valid &&
+				    (hrt_absolute_time() - _last_vision_obs_fused_time) < measurement_valid_TIMEOUT_US;
 
 	// TODO: decide what to do with Bias lim
 	float bias_lim = _param_vte_bias_lim.get();
