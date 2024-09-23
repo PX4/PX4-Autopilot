@@ -45,8 +45,6 @@
 
 #include "VTEPosition.h"
 
-#define SEC2USEC 1000000.0f
-
 namespace vision_target_estimator
 {
 
@@ -82,7 +80,7 @@ bool VTEPosition::init()
 
 	_target_mode = (TargetMode)_param_vte_mode.get();
 	_vte_aid_mask = _param_vte_aid_mask.get();
-	_vte_TIMEOUT_US = (uint32_t)(_param_vte_btout.get() * SEC2USEC);
+	_vte_TIMEOUT_US = (uint32_t)(_param_vte_btout.get() * 1_s);
 
 	if (_vte_aid_mask == SensorFusionMask::NO_SENSOR_FUSION) {
 		PX4_ERR("VTE: no data fusion enabled. Modify VTE_AID_MASK and reboot");
@@ -211,7 +209,7 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned)
 	// predict target position with the help of accel data
 
 	// Time from last prediciton
-	const float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
+	const float dt = (hrt_absolute_time() - _last_predict) / 1_s;
 
 	// The rotated input cov (from body to NED R*cov*R^T) is the same as the original input cov since input_cov = acc_unc * Identiy and R*R^T = Identity
 	const SquareMatrix<float, Direction::nb_directions> input_cov = diag(Vector3f(_drone_acc_unc, _drone_acc_unc,
@@ -828,7 +826,7 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 		return false;
 	}
 
-	const float dt_sync_s = dt_sync_us / SEC2USEC;
+	const float dt_sync_s = dt_sync_us / 1_s;
 
 	for (int j = 0; j < Direction::nb_directions; j++) {
 
