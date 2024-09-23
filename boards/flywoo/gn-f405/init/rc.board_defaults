@@ -9,9 +9,6 @@ param set-default SYS_AUTOSTART 4001
 # system_power unavailable
 param set-default CBRK_SUPPLY_CHK 894281
 
-# Disable safety switch by default
-param set-default CBRK_IO_SAFETY 22027
-
 param set-default EKF2_MAG_TYPE 5
 param set-default SENS_BOARD_ROT 6
 
