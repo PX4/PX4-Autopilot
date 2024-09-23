@@ -157,6 +157,10 @@ void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s 
 
 void RtlDirect::_updateRtlState()
 {
+	// RTL_LAND_DELAY > 0 -> wait seconds, < 0 wait indefinitely
+	const bool wait_at_rtl_descend_alt = fabsf(_param_rtl_land_delay.get()) > FLT_EPSILON;
+	const bool is_multicopter = (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+
 	RTLState new_state{RTLState::IDLE};
 
 	switch (_rtl_state) {
@@ -165,7 +169,13 @@ void RtlDirect::_updateRtlState()
 		break;
 
 	case RTLState::MOVE_TO_LOITER:
-		new_state = RTLState::LOITER_DOWN;
+		if (!is_multicopter || wait_at_rtl_descend_alt) {
+			new_state = RTLState::LOITER_DOWN;
+
+		} else {
+			new_state = RTLState::LAND;
+		}
+
 		break;
 
 	case RTLState::LOITER_DOWN:
@@ -206,7 +216,6 @@ void RtlDirect::_updateRtlState()
 	}
 
 	_rtl_state = new_state;
-
 }
 
 
