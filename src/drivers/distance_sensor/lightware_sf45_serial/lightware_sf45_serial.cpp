@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -154,7 +154,6 @@ int SF45LaserSerial::collect()
 	perf_begin(_sample_perf);
 
 	/* clear buffer if last read was too long ago */
-	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 	int ret;
 	/* the buffer for read chars is buflen minus null termination */
 	uint8_t readbuf[SF45_MAX_PAYLOAD];
@@ -164,10 +163,7 @@ int SF45LaserSerial::collect()
 	/* read from the sensor (uart buffer) */
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (_consecutive_fail_count > 50 && !_sensor_ready) {
-		PX4_ERR("Restarting the state machine");
-		return PX4_ERROR;
-	}
+
 
 	if (_sensor_state == STATE_SEND_PRODUCT_NAME) {
 
@@ -254,23 +250,9 @@ int SF45LaserSerial::collect()
 		}
 	}
 
-	if (ret < 0) {
-		PX4_ERR("ERROR (processing distance data): %d", ret);
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-
-		/* only throw an error if we time out */
-		if (read_elapsed > (_interval * 2)) {
-			PX4_DEBUG("Timing out...");
-			return ret;
-
-		} else {
-
-			return -EAGAIN;
-		}
-
-	} else if (ret == 0) {
-		return -EAGAIN;
+	if (_consecutive_fail_count > 35 && !_sensor_ready) {
+		PX4_ERR("Restarting the state machine");
+		return PX4_ERROR;
 	}
 
 	_last_read = hrt_absolute_time();
@@ -381,12 +363,8 @@ void SF45LaserSerial::Run()
 		}
 
 		if (OK != collect_ret) {
-			/* we know the sensor needs about five seconds to initialize */
-			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
-				PX4_ERR("collection error #%u", _consecutive_fail_count);
-			}
-
-			_consecutive_fail_count++;
+			//  Too many packet errors in init, restart the consecutive fail count
+			_consecutive_fail_count = 0;
 
 			/* restart the measurement state machine */
 			start();
