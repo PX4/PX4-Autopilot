@@ -266,6 +266,7 @@ private:
 	bool _gps_pos_is_offset{false};
 	bool _bias_set{false};
 
+	uint64_t _last_vision_obs_fused_time{0};
 	bool _estimator_initialized{false};
 
 	Base_KF_decoupled *_target_estimator[Direction::nb_directions] {nullptr, nullptr, nullptr};
