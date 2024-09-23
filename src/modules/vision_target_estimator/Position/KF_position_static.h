@@ -92,7 +92,7 @@ public:
 		_state_covariance(State::bias, State::bias) = augmented_state_var(AugmentedState::bias);
 	};
 
-	matrix::Vector<float, AugmentedState::COUNT> getAugmentedState()
+	matrix::Vector<float, AugmentedState::COUNT> getAugmentedState() override
 	{
 		matrix::Vector<float, AugmentedState::COUNT> augmented_state;
 		augmented_state(AugmentedState::pos_rel) = _state(State::pos_rel);
@@ -102,7 +102,7 @@ public:
 		return augmented_state;
 	};
 
-	matrix::Vector<float, AugmentedState::COUNT> getAugmentedStateVar()
+	matrix::Vector<float, AugmentedState::COUNT> getAugmentedStateVar() override
 	{
 		matrix::Vector<float, AugmentedState::COUNT> augmented_state_var;
 		augmented_state_var(AugmentedState::pos_rel) = _state_covariance(State::pos_rel, State::pos_rel);

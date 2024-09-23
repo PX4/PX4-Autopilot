@@ -80,9 +80,9 @@ public:
 		_state_covariance = var_mat;
 	};
 
-	matrix::Vector<float, AugmentedState::COUNT> getAugmentedState() { return _state;}
+	matrix::Vector<float, AugmentedState::COUNT> getAugmentedState() override { return _state;}
 
-	matrix::Vector<float, AugmentedState::COUNT> getAugmentedStateVar()
+	matrix::Vector<float, AugmentedState::COUNT> getAugmentedStateVar() override
 	{
 		const matrix::SquareMatrix<float, AugmentedState::COUNT> var_mat = _state_covariance;
 		return var_mat.diag();
