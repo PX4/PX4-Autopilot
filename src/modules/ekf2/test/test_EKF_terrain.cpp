@@ -214,3 +214,33 @@ TEST_F(EkfTerrainTest, testHeightReset)
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 	EXPECT_NEAR(estimated_distance_to_ground, _ekf->getHagl(), 1e-3f);
 }
+
+TEST_F(EkfTerrainTest, testRngStartInAir)
+{
+	// GIVEN: rng for terrain but not flow
+	_ekf_wrapper.disableFlowFusion();
+	_ekf_wrapper.enableRangeHeightFusion();
+
+	const float rng_height = 18;
+	const float flow_height = 1.f;
+	runFlowAndRngScenario(rng_height, flow_height);
+
+	// THEN: the terrain should reset using rng
+	EXPECT_NEAR(rng_height, _ekf->getHagl(), 1e-3f);
+
+	// AND: the terrain state should be highly correlated with the other height states
+	auto P = _ekf->covariances();
+	const float var_terrain = _ekf->getTerrainVariance();
+
+	const float corr_terrain_vz = P(State::vel.idx + 2,
+					State::terrain.idx) / sqrtf(_ekf->getVelocityVariance()(2) * var_terrain);
+	EXPECT_NEAR(corr_terrain_vz, 0.6f, 0.03f);
+
+	const float corr_terrain_z = P(State::pos.idx + 2,
+				       State::terrain.idx) / sqrtf(_ekf->getPositionVariance()(2) * var_terrain);
+	EXPECT_NEAR(corr_terrain_z, 0.8f, 0.03f);
+
+	const float corr_terrain_abias_z = P(State::accel_bias.idx + 2,
+					     State::terrain.idx) / sqrtf(_ekf->getAccelBiasVariance()(2) * var_terrain);
+	EXPECT_NEAR(corr_terrain_abias_z, -0.4f, 0.03f);
+}
