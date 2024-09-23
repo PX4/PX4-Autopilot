@@ -169,6 +169,7 @@ endif()
 if(CONFIG_OPENAMP)
 	list(APPEND nuttx_libs nuttx_openamp)
 	target_link_libraries(nuttx_drivers INTERFACE nuttx_openamp)
+	target_link_libraries(nuttx_openamp INTERFACE nuttx_drivers)
 endif()
 
 file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
