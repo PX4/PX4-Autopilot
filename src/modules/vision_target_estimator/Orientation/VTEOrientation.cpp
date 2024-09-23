@@ -45,8 +45,6 @@
 
 #include "VTEOrientation.h"
 
-#define SEC2USEC 1000000.0f
-
 namespace vision_target_estimator
 {
 
@@ -70,7 +68,7 @@ bool VTEOrientation::init()
 {
 
 	_target_mode = (TargetMode)_param_vte_mode.get();
-	_vte_TIMEOUT_US = (uint32_t)(_param_vte_btout.get() * SEC2USEC);
+	_vte_TIMEOUT_US = (uint32_t)(_param_vte_btout.get() * 1_s);
 
 	return selectTargetEstimator();
 }
@@ -123,7 +121,7 @@ bool VTEOrientation::initEstimator(const float theta_init)
 void VTEOrientation::predictionStep()
 {
 	// Time from last prediciton
-	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
+	float dt = (hrt_absolute_time() - _last_predict) / 1_s;
 
 	_target_estimator_orientation->predictState(dt);
 	_target_estimator_orientation->predictCov(dt);
@@ -220,7 +218,7 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 	if (dt_sync_us > measurement_valid_TIMEOUT_US) {
 
 		PX4_INFO("Orientation obs. rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
-			 (double)(dt_sync_us / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
+			 (double)(dt_sync_us / 1_s), (double)(measurement_valid_TIMEOUT_US / 1_s));
 
 		// No measurement update, set to false
 		target_innov.fused = false;
@@ -228,7 +226,7 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 	} else if (target_orientation_obs.updated_theta) {
 
 		// Convert time sync to seconds
-		const float dt_sync_s = dt_sync_us / SEC2USEC;
+		const float dt_sync_s = dt_sync_us / 1_s;
 
 		_target_estimator_orientation->syncState(dt_sync_s);
 		_target_estimator_orientation->setH(target_orientation_obs.meas_h_theta);
