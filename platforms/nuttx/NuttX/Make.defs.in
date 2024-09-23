@@ -207,7 +207,7 @@ LDENDGROUP   = --end-group
 LDLIBPATH = $(foreach PATH, $(USERLIBS), $(addprefix -L, $(dir $(PATH))))
 LDLIBFILES = $(foreach PATH, $(USERLIBS), $(notdir $(PATH)))
 LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LDLIBFILES)))
-LDELFFLAGS = -e _start -Bstatic
+LDELFFLAGS = -e __start -Bstatic
 LDELFFLAGS += $(addprefix -T, $(ELFLDNAME))
 
 ifeq ($(CONFIG_BINFMT_ELF_RELOCATABLE),y)

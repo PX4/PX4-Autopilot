@@ -303,7 +303,7 @@ if (CONFIG_BUILD_KERNEL)
 			-fno-rtti
 
 			-Wl,--script=${LDSCRIPT}
-			-Wl,--entry=_start
+			-Wl,--entry=__start
 			-Wl,-r
 			-Wl,-Bstatic
 			-Wl,-Map=${PX4_CONFIG}.map
