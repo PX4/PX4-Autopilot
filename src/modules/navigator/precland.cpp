@@ -181,7 +181,7 @@ PrecLand::on_active()
 	}
 
 #if !defined(CONSTRAINED_FLASH)
-	_publish_prec_land_status(true);
+	_publish_prec_land_status(_state != PrecLandState::Done);
 #endif
 }
 
