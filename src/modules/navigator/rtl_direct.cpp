@@ -300,6 +300,9 @@ void RtlDirect::set_rtl_item()
 				/* Set the altitude tracking to best effort but not strictly enforce it */
 				altitude_acceptance_radius = FLT_MAX;
 
+				if (_force_heading) {
+					_mission_item.force_heading = true;
+				}
 			}
 
 			break;
