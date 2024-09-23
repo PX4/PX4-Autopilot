@@ -135,92 +135,9 @@ public:
 	const Vector3f &getFlowRefBodyRate() const { return _ref_body_rate; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	float getHeadingInnov() const
-	{
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-			return Vector3f(_aid_src_mag.innovation).max();
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (_control_status.flags.gnss_yaw) {
-			return _aid_src_gnss_yaw.innovation;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-
-		if (_control_status.flags.ev_yaw) {
-			return _aid_src_ev_yaw.innovation;
-		}
-
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-		return 0.f;
-	}
-
-	float getHeadingInnovVar() const
-	{
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-			return Vector3f(_aid_src_mag.innovation_variance).max();
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (_control_status.flags.gnss_yaw) {
-			return _aid_src_gnss_yaw.innovation_variance;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-
-		if (_control_status.flags.ev_yaw) {
-			return _aid_src_ev_yaw.innovation_variance;
-		}
-
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-		return 0.f;
-	}
-
-	float getHeadingInnovRatio() const
-	{
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-			return Vector3f(_aid_src_mag.test_ratio).max();
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (_control_status.flags.gnss_yaw) {
-			return _aid_src_gnss_yaw.test_ratio;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-
-		if (_control_status.flags.ev_yaw) {
-			return _aid_src_ev_yaw.test_ratio;
-		}
-
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-		return 0.f;
-	}
+	float getHeadingInnov() const;
+	float getHeadingInnovVar() const;
+	float getHeadingInnovRatio() const;
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	const auto &aid_src_drag() const { return _aid_src_drag; }
@@ -862,46 +779,7 @@ private:
 	float getMagDeclination();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	void clearInhibitedStateKalmanGains(VectorState &K) const
-	{
-		for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
-			if (_gyro_bias_inhibit[i]) {
-				K(State::gyro_bias.idx + i) = 0.f;
-			}
-		}
-
-		for (unsigned i = 0; i < State::accel_bias.dof; i++) {
-			if (_accel_bias_inhibit[i]) {
-				K(State::accel_bias.idx + i) = 0.f;
-			}
-		}
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-		if (!_control_status.flags.mag) {
-			for (unsigned i = 0; i < State::mag_I.dof; i++) {
-				K(State::mag_I.idx + i) = 0.f;
-			}
-		}
-
-		if (!_control_status.flags.mag) {
-			for (unsigned i = 0; i < State::mag_B.dof; i++) {
-				K(State::mag_B.idx + i) = 0.f;
-			}
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_WIND)
-
-		if (!_control_status.flags.wind) {
-			for (unsigned i = 0; i < State::wind_vel.dof; i++) {
-				K(State::wind_vel.idx + i) = 0.f;
-			}
-		}
-
-#endif // CONFIG_EKF2_WIND
-	}
+	void clearInhibitedStateKalmanGains(VectorState &K) const;
 
 	// limit the diagonal of the covariance matrix
 	void constrainStateVariances();
