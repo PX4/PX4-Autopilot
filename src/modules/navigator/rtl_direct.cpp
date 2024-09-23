@@ -220,6 +220,8 @@ void RtlDirect::set_rtl_item()
 
 	const bool is_close_to_destination = destination_dist < _param_rtl_min_dist.get();
 
+	float altitude_acceptance_radius = static_cast<float>(NAN);
+
 	switch (_rtl_state) {
 	case RTLState::CLIMBING: {
 			PositionYawSetpoint pos_yaw_sp {
@@ -293,6 +295,11 @@ void RtlDirect::set_rtl_item()
 			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering\t");
 				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "RTL: completed, loitering");
+
+			} else {
+				/* Set the altitude tracking to best effort but not strictly enforce it */
+				altitude_acceptance_radius = FLT_MAX;
+
 			}
 
 			break;
@@ -370,6 +377,7 @@ void RtlDirect::set_rtl_item()
 	} else {
 		// Convert mission item to current position setpoint and make it valid.
 		if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
+			pos_sp_triplet->current.alt_acceptance_radius = altitude_acceptance_radius;
 			_navigator->set_position_setpoint_triplet_updated();
 		}
 	}
