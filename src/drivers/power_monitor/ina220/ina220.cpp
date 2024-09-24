@@ -87,10 +87,10 @@ INA220::INA220(const I2CSPIDriverConfig &config, int battery_index) :
 
 	if (_ch_type == PM_CH_TYPE_VBATT) {
 		// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
-		_battery.setConnected(false);
-		_battery.updateVoltage(0.f);
-		_battery.updateCurrent(0.f);
-		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+		Battery::InputSample invalid_sample {
+			.timestamp = hrt_absolute_time(),
+		};
+		_battery.updateAndPublishBatteryStatus(invalid_sample);
 	}
 
 }
@@ -246,10 +246,16 @@ INA220::collect()
 
 	switch (_ch_type) {
 	case PM_CH_TYPE_VBATT: {
-			_battery.setConnected(success);
-			_battery.updateVoltage(_voltage);
-			_battery.updateCurrent(_current);
-			_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+			Battery::InputSample sample {
+				.timestamp = hrt_absolute_time(),
+			};
+
+			if (success) {
+				sample.voltage_v = _voltage;
+				sample.current_a = _current;
+			}
+
+			_battery.updateAndPublishBatteryStatus(sample);
 		}
 		break;
 
@@ -328,10 +334,10 @@ INA220::RunImpl()
 	} else {
 
 		if (_ch_type == PM_CH_TYPE_VBATT) {
-			_battery.setConnected(false);
-			_battery.updateVoltage(0.f);
-			_battery.updateCurrent(0.f);
-			_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+			Battery::InputSample invalid_sample {
+				.timestamp = hrt_absolute_time()
+			};
+			_battery.updateAndPublishBatteryStatus(invalid_sample);
 		}
 
 		if (init() != PX4_OK) {

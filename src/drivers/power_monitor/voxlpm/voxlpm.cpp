@@ -70,12 +70,6 @@ VOXLPM::init()
 	_initialized = false;
 	int ret = PX4_ERROR;
 
-	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
-		_battery.setConnected(false);
-		_battery.updateVoltage(0.f);
-		_battery.updateCurrent(0.f);
-	}
-
 	/* do I2C init, it will probe the bus for two possible configurations, LTC2946 or INA231 */
 	if (I2C::init() != OK) {
 		return ret;
@@ -83,7 +77,10 @@ VOXLPM::init()
 
 	// Don't actually publish anything unless we have had a successful probe
 	if (_ch_type == VOXLPM_CH_TYPE_VBATT) {
-		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+		Battery::InputSample invalid_sample {
+			.timestamp = hrt_absolute_time()
+		};
+		_battery.updateAndPublishBatteryStatus(invalid_sample);
 	}
 
 	/* If we've probed and succeeded we'll have an accurate address here for the VBat addr */
@@ -345,11 +342,13 @@ VOXLPM::measure()
 	if (ret == PX4_OK) {
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
+				Battery::InputSample sample {
+					.timestamp = tnow,
+					.voltage_v = _voltage,
+					.current_a = _amperage
+				};
 
-				_battery.setConnected(true);
-				_battery.updateVoltage(_voltage);
-				_battery.updateCurrent(_amperage);
-				_battery.updateAndPublishBatteryStatus(tnow);
+				_battery.updateAndPublishBatteryStatus(sample);
 			}
 
 		// fallthrough
@@ -372,10 +371,10 @@ VOXLPM::measure()
 
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
-				_battery.setConnected(true);
-				_battery.updateVoltage(0.f);
-				_battery.updateCurrent(0.f);
-				_battery.updateAndPublishBatteryStatus(tnow);
+				Battery::InputSample invalid_sample {
+					.timestamp = tnow
+				};
+				_battery.updateAndPublishBatteryStatus(invalid_sample);
 			}
 			break;
 

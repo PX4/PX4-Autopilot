@@ -58,6 +58,8 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_ocv_filter_v.setParameters(expected_filter_dt, 1.f);
 	_cell_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
 
+	_connected_state_hysteresis.set_hysteresis_time_from(true, 2_s);
+
 	if (index > 9 || index < 1) {
 		PX4_ERR("Battery index must be between 1 and 9 (inclusive). Received %d. Defaulting to 1.", index);
 	}
@@ -96,42 +98,37 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	updateParams();
 }
 
-void Battery::updateVoltage(const float voltage_v)
+void  Battery::updateBatteryStatus(const InputSample &sample)
 {
-	_voltage_v = voltage_v;
-}
+	_connected_state_hysteresis.set_state_and_update(sample.valid(), sample.timestamp);
 
-void Battery::updateCurrent(const float current_a)
-{
-	_current_a = current_a;
-}
-
-void Battery::updateTemperature(const float temperature_c)
-{
-	_temperature_c = temperature_c;
-}
-
-void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
-{
-	// Require minimum voltage otherwise override connected status
-	if (_voltage_v < LITHIUM_BATTERY_RECOGNITION_VOLTAGE) {
-		_connected = false;
+	if (!sample.valid()) {
+		_last_valid_current_timestamp = 0;
+		return;
 	}
 
-	if (!_connected || (_last_unconnected_timestamp == 0)) {
-		_last_unconnected_timestamp = timestamp;
-	}
+	_last_valid_sample = sample;
 
 	// Wait with initializing filters to avoid relying on a voltage sample from the rising edge
-	_battery_initialized = _connected && (timestamp > _last_unconnected_timestamp + 2_s);
+	_battery_initialized = _connected_state_hysteresis.get_state()
+			       && (sample.timestamp - _connected_state_hysteresis.get_last_time_to_change_state()) > 2_s;
 
-	if (_connected && !_battery_initialized && _internal_resistance_initialized && _params.n_cells > 0) {
-		resetInternalResistanceEstimation(_voltage_v, _current_a);
+	if (sample.currentAndVoltageValid() && _connected_state_hysteresis.get_state() && !_battery_initialized
+	    && _internal_resistance_initialized
+	    && _params.n_cells > 0) {
+		resetInternalResistanceEstimation(sample.voltage_v, sample.current_a);
 	}
 
-	sumDischarged(timestamp, _current_a);
+	if (sample.currentValid()) {
+		sumDischarged(sample.timestamp, sample.current_a);
+		_last_valid_current_timestamp = sample.timestamp;
+
+	} else {
+		_last_valid_current_timestamp = 0;
+	}
+
 	_state_of_charge_volt_based =
-		calculateStateOfChargeVoltageBased(_voltage_v, _current_a);
+		calculateStateOfChargeVoltageBased(sample);
 
 	if (!_external_state_of_charge) {
 		estimateStateOfCharge();
@@ -139,24 +136,25 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 
 	computeScale();
 
-	if (_connected && _battery_initialized) {
+	if (_connected_state_hysteresis.get_state() && _battery_initialized) {
 		_warning = determineWarning(_state_of_charge);
 	}
 }
 
+
 battery_status_s Battery::getBatteryStatus()
 {
 	battery_status_s battery_status{};
-	battery_status.voltage_v = _voltage_v;
-	battery_status.current_a = _current_a;
+	battery_status.voltage_v = _last_valid_sample.voltage_v;
+	battery_status.current_a = _last_valid_sample.current_a;
 	battery_status.current_average_a = _current_average_filter_a.getState();
 	battery_status.discharged_mah = _discharged_mah;
 	battery_status.remaining = _state_of_charge;
 	battery_status.scale = _scale;
-	battery_status.time_remaining_s = computeRemainingTime(_current_a);
-	battery_status.temperature = _temperature_c;
+	battery_status.time_remaining_s = computeRemainingTime(_last_valid_sample.current_a);
+	battery_status.temperature = _last_valid_sample.temperature_c;
 	battery_status.cell_count = _params.n_cells;
-	battery_status.connected = _connected;
+	battery_status.connected = _connected_state_hysteresis.get_state();
 	battery_status.source = _source;
 	battery_status.priority = _priority;
 	battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
@@ -165,7 +163,8 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.timestamp = hrt_absolute_time();
 	battery_status.faults = determineFaults();
 	battery_status.internal_resistance_estimate = _internal_resistance_estimate;
-	battery_status.ocv_estimate = _voltage_v + _internal_resistance_estimate * _params.n_cells * _current_a;
+	battery_status.ocv_estimate = _last_valid_sample.voltage_v + _internal_resistance_estimate * _params.n_cells *
+				      _last_valid_sample.current_a;
 	battery_status.ocv_estimate_filtered = _ocv_filter_v.getState();
 	battery_status.volt_based_soc_estimate = _params.n_cells > 0 ? math::interpolate(_ocv_filter_v.getState() /
 			_params.n_cells,
@@ -183,51 +182,42 @@ void Battery::publishBatteryStatus(const battery_status_s &battery_status)
 	}
 }
 
-void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
+void Battery::updateAndPublishBatteryStatus(const InputSample &sample)
 {
-	updateBatteryStatus(timestamp);
+	updateBatteryStatus(sample);
 	publishBatteryStatus(getBatteryStatus());
 }
 
 void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
 {
-	// Not a valid measurement
-	if (current_a < 0.f) {
-		// Because the measurement was invalid we need to stop integration
-		// and re-initialize with the next valid measurement
-		_last_timestamp = 0;
-		return;
-	}
-
 	// Ignore first update because we don't know dt.
-	if (_last_timestamp != 0) {
-		const float dt = (timestamp - _last_timestamp) / 1e6;
+	if (_last_valid_current_timestamp != 0) {
+		const float dt = (timestamp - _last_valid_current_timestamp) / 1e6;
 		// mAh since last loop: (current[A] * 1000 = [mA]) * (dt[s] / 3600 = [h])
 		_discharged_mah_loop = (current_a * 1e3f) * (dt / 3600.f);
 		_discharged_mah += _discharged_mah_loop;
 	}
 
-	_last_timestamp = timestamp;
 }
 
-float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a)
+float Battery::calculateStateOfChargeVoltageBased(const InputSample &sample)
 {
-	if (_params.n_cells == 0) {
+	if (_params.n_cells == 0 || !sample.voltageValid()) {
 		return -1.0f;
 	}
 
 	// remaining battery capacity based on voltage
-	float cell_voltage = voltage_v / _params.n_cells;
+	float cell_voltage = sample.voltage_v / _params.n_cells;
 
 	// correct battery voltage locally for load drop according to internal resistance and current
-	if (current_a > FLT_EPSILON) {
-		updateInternalResistanceEstimation(voltage_v, current_a);
+	if (sample.currentValid()) {
+		updateInternalResistanceEstimation(sample.voltage_v, sample.current_a);
 
 		if (_params.r_internal >= 0.f) { // Use user specified internal resistance value
-			cell_voltage += _params.r_internal * current_a;
+			cell_voltage += _params.r_internal * sample.current_a;
 
 		} else { // Use estimated internal resistance value
-			cell_voltage += _internal_resistance_estimate * current_a;
+			cell_voltage += _internal_resistance_estimate * sample.current_a;
 		}
 
 	}
@@ -325,7 +315,7 @@ uint16_t Battery::determineFaults()
 	uint16_t faults{0};
 
 	if ((_params.n_cells > 0)
-	    && (_voltage_v > (_params.n_cells * _params.v_charged * 1.05f))) {
+	    && (_last_valid_sample.voltage_v > (_params.n_cells * _params.v_charged * 1.05f))) {
 		// Reported as a "spike" since "over-voltage" does not exist in MAV_BATTERY_FAULT
 		faults |= (1 << battery_status_s::BATTERY_FAULT_SPIKES);
 	}

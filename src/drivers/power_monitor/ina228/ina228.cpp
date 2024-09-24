@@ -85,11 +85,11 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 	_power_lsb = 3.2f * _current_lsb;
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
-	_battery.setConnected(false);
-	_battery.updateVoltage(0.f);
-	_battery.updateCurrent(0.f);
-	_battery.updateTemperature(0.f);
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	Battery::InputSample invalid_sample {
+		.timestamp = hrt_absolute_time()
+	};
+
+	_battery.updateAndPublishBatteryStatus(invalid_sample);
 }
 
 INA228::~INA228()
@@ -309,25 +309,23 @@ INA228::collect()
 	//success = success && (read(INA228_REG_VSHUNT, _shunt) == PX4_OK);
 	success = success && (read(INA228_REG_DIETEMP, _temperature) == PX4_OK);
 
-	if (!success) {
-		PX4_DEBUG("error reading from sensor");
-		_bus_voltage = _power = _current = _shunt = 0;
-	}
-
-	_battery.setConnected(success);
-	_battery.updateVoltage(static_cast<float>(_bus_voltage * INA228_VSCALE));
-	_battery.updateCurrent(static_cast<float>(_current * _current_lsb));
-	_battery.updateTemperature(static_cast<float>(_temperature * INA228_TSCALE));
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
-
-	perf_end(_sample_perf);
+	Battery::InputSample sample{
+		.timestamp = hrt_absolute_time()
+	};
 
 	if (success) {
-		return PX4_OK;
+		sample.voltage_v = static_cast<float>(_bus_voltage * INA228_VSCALE);
+		sample.current_a = static_cast<float>(_current * _current_lsb);
+		sample.temperature_c = static_cast<float>(_temperature * INA228_TSCALE);
 
 	} else {
-		return PX4_ERROR;
+		PX4_DEBUG("error reading from sensor");
 	}
+
+	_battery.updateAndPublishBatteryStatus(sample);
+	perf_end(_sample_perf);
+
+	return success ? PX4_OK : PX4_ERROR;
 }
 
 void
@@ -381,11 +379,11 @@ INA228::RunImpl()
 		ScheduleDelayed(INA228_CONVERSION_INTERVAL);
 
 	} else {
-		_battery.setConnected(false);
-		_battery.updateVoltage(0.f);
-		_battery.updateCurrent(0.f);
-		_battery.updateTemperature(0.f);
-		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+		Battery::InputSample invalid_sample {
+			.timestamp = hrt_absolute_time()
+		};
+
+		_battery.updateAndPublishBatteryStatus(invalid_sample);
 
 		if (init() != PX4_OK) {
 			ScheduleDelayed(INA228_INIT_RETRY_INTERVAL_US);
