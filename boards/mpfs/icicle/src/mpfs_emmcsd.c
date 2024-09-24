@@ -42,7 +42,7 @@
 #include <nuttx/mmcsd.h>
 #include <nuttx/fs/partition.h>
 
-#include "mpfs_emmcsd.h"
+#include "mpfs_sdio.h"
 #include "board_config.h"
 
 /****************************************************************************
