@@ -183,10 +183,11 @@ else
 		param select-backup $PARAM_BACKUP_FILE
 	fi
 
-	if mft query -q -k MFT -s MFT_ETHERNET -v 1
-	then
-		netman update -i eth0
-	fi
+	# in Saluki we use netconfig in rc.board_mavlink
+	# if mft query -q -k MFT -s MFT_ETHERNET -v 1
+	# then
+	# 	netman update -i eth0
+	# fi
 
 	#
 	# If the airframe has been previously reset SYS_AUTCONFIG will have been set to 1 and other params will be reset on the next boot.
