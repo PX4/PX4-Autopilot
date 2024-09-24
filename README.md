@@ -63,8 +63,9 @@ Note: This is the source of truth for the active maintainers of PX4 ecosystem.
 | Multirotor | [Matthias Grob](https://github.com/MaEtUgR) |
 | Fixed Wing | [Thomas Stastny](https://github.com/tstastny) |
 | Hybrid VTOL | [Silvan Fuhrer](https://github.com/sfuhrer) |
+| Rover | [Christian Friedrich](https://github.com/chfriedrich98) |
 | Boat | x |
-| Rover | x |
+
 
 See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/PX4-Autopilot/graphs/contributors) (Github). However it may be not up to date.
 
