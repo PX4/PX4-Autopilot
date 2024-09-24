@@ -100,7 +100,8 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 
 void  Battery::updateBatteryStatus(const InputSample &sample)
 {
-	_connected_state_hysteresis.set_state_and_update(sample.valid(), sample.timestamp);
+	const bool battery_connected = sample.valid() && sample.voltage_v >= LITHIUM_BATTERY_RECOGNITION_VOLTAGE;
+	_connected_state_hysteresis.set_state_and_update(battery_connected, sample.timestamp);
 
 	if (!sample.valid()) {
 		_last_valid_current_timestamp = 0;
