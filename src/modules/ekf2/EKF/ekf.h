@@ -67,6 +67,7 @@
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
 enum class Likelihood { LOW, MEDIUM, HIGH };
+class ExternalVisionVel;
 
 class Ekf final : public EstimatorInterface
 {
@@ -421,6 +422,11 @@ public:
 	friend class AuxGlobalPosition;
 
 private:
+
+	friend class ExternalVisionVel;
+	friend class EvVelBodyFrameFrd;
+	friend class EvVelLocalFrameNed;
+	friend class EvVelLocalFrameFrd;
 
 	// set the internal states and status to their default value
 	void reset();
@@ -807,14 +813,15 @@ private:
 	void controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 				estimator_aid_source2d_s &aid_src);
-	void controlEvVelFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
-				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
-				estimator_aid_source3d_s &aid_src);
+	void controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_conditions_passing, const bool ev_reset,
+				const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
 	void controlEvYawFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 				estimator_aid_source1d_s &aid_src);
-	void resetVelocityToEV(const Vector3f &measurement, const Vector3f &measurement_var, const VelocityFrame &vel_frame);
-	Vector3f rotateVarianceToEkf(const Vector3f &measurement_var);
+	void fuseLocalFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_t &timestamp, const Vector3f &measurement,
+				    const Vector3f &measurement_var, const float &innovation_gate);
+	void fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_t &timestamp, const Vector3f &measurement,
+				   const Vector3f &measurement_var, const float &innovation_gate);
 
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient,
