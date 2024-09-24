@@ -59,6 +59,8 @@ public:
 
 	bool get_state() const { return _state; }
 
+	hrt_abstime get_last_time_to_change_state() const { return _last_time_to_change_state; };
+
 	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us);
 
 	void set_state_and_update(const bool new_state, const hrt_abstime &now_us);
