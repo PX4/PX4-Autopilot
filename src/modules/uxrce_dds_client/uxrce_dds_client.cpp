@@ -50,6 +50,7 @@
 #include <unistd.h>
 
 #define PARTICIPANT_XML_SIZE 512
+static constexpr uint8_t TIMESYNC_MAX_TIMEOUTS = 10;
 
 using namespace time_literals;
 
@@ -345,18 +346,28 @@ bool UxrceddsClient::setup_session(uxrSession* session)
 
 	uxr_set_request_callback(session, on_request, this);
 
-	// Spin until sync with the Agent
+	uint8_t sync_timeouts = 0;
+
+	// Spin until sync with the Agent or the session sync has multiple timeouts
 	while (_synchronize_timestamps) {
-		if (uxr_sync_session(session, 1000) && _timesync.sync_converged()) {
-			PX4_INFO("synchronized with time offset %-5" PRId64 "us", session->time_offset / 1000);
+		if (uxr_sync_session(session, 1000)) {
+			if (_timesync.sync_converged()) {
+				PX4_INFO("synchronized with time offset %-5" PRId64 "us", session->time_offset / 1000);
 
-			if (_param_uxrce_dds_syncc.get() > 0) {
-				syncSystemClock(session);
+				if (_param_uxrce_dds_syncc.get() > 0) {
+					syncSystemClock(session);
+				}
+
+				break;
 			}
-
-			break;
+			sync_timeouts = 0;
+		} else {
+			sync_timeouts++;
 		}
 
+		if (sync_timeouts > TIMESYNC_MAX_TIMEOUTS) {
+			return false;
+		}
 		px4_usleep(10'000);
 	}
 
@@ -521,6 +532,10 @@ void UxrceddsClient::run()
 			if (_comm && _connected) {
 				break;
 			}
+		}
+
+		if (should_exit()) {
+			return;
 		}
 
 		hrt_abstime last_sync_session = 0;
