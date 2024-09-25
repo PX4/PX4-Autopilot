@@ -189,6 +189,9 @@ set(msg_files
 	RoverDifferentialGuidanceStatus.msg
 	RoverDifferentialSetpoint.msg
 	RoverDifferentialStatus.msg
+	RoverMecanumGuidanceStatus.msg
+	RoverMecanumSetpoint.msg
+	RoverMecanumStatus.msg
 	Rpm.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
