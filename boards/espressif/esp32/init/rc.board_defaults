@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+dhcpd_start wlan0
+mavlink start -u 14550 -o 14550 -m 0 -r 1000 -x -p -s
+mavlink start -d /dev/ttyS1 -b 115200 -f -w -Z
