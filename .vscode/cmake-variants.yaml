@@ -346,3 +346,13 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: raspberrypi_pico_default
+    zeroone_x6_default:
+      short: zeroone_x6
+      buildType: MinSizeRel
+      settings:
+        CONFIG: zeroone_x6_default
+    zeroone_x6_bootloader:
+      short: zeroone_x6_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: zeroone_x6_bootloader

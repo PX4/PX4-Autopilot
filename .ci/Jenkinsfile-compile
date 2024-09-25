@@ -130,6 +130,9 @@ pipeline {
                      "thepeach_k1_default",
                      "thepeach_r1_default",
                      "uvify_core_default",
+                     "zeroone_x6_bootloader",
+                     "zeroone_x6_default",
+                     "zeroone_x6_rover",
             ],
             image: docker_images.nuttx,
             archive: true
