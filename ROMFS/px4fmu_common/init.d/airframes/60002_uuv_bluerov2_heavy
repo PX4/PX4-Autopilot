@@ -23,9 +23,6 @@
 . ${R}etc/init.d/rc.uuv_defaults
 
 
-# companion computer is connected via USB permanently
-param set-default CBRK_IO_SAFETY 22027
-
 param set-default MAV_1_CONFIG 102
 
 param set-default BAT1_A_PER_V 37.8798
