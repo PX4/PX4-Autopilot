@@ -209,7 +209,7 @@ void UxrceddsClient::deinit()
 	_comm = nullptr;
 }
 
-bool UxrceddsClient::setup_session(uxrSession* session)
+bool UxrceddsClient::setup_session(uxrSession *session)
 {
 	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
 	_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
@@ -244,14 +244,14 @@ bool UxrceddsClient::setup_session(uxrSession* session)
 	// Streams
 	// Reliable for setup, afterwards best-effort to send the data (important: need to create all 4 streams)
 	_reliable_out = uxr_create_output_reliable_stream(session, _output_reliable_stream_buffer,
-					sizeof(_output_reliable_stream_buffer), STREAM_HISTORY);
+			sizeof(_output_reliable_stream_buffer), STREAM_HISTORY);
 
 	_best_effort_out = uxr_create_output_best_effort_stream(session, _output_data_stream_buffer,
-					sizeof(_output_data_stream_buffer));
+			   sizeof(_output_data_stream_buffer));
 
 	uxrStreamId reliable_in = uxr_create_input_reliable_stream(session, _input_reliable_stream_buffer,
-					sizeof(_input_reliable_stream_buffer),
-					STREAM_HISTORY);
+				  sizeof(_input_reliable_stream_buffer),
+				  STREAM_HISTORY);
 
 	uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(session);
 
@@ -265,44 +265,44 @@ bool UxrceddsClient::setup_session(uxrSession* session)
 	if (_participant_config == ParticipantConfig::Custom) {
 		// Create participant by reference (XML not required)
 		participant_req = uxr_buffer_create_participant_ref(session, _reliable_out, _participant_id, domain_id,
-					"px4_participant", UXR_REPLACE);
+				  "px4_participant", UXR_REPLACE);
 
 	} else {
 		// Construct participant XML and create participant by XML
 		char participant_xml[PARTICIPANT_XML_SIZE];
 		int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
-					(_participant_config == ParticipantConfig::LocalHostOnly) ?
-					"<dds>"
-					"<profiles>"
-					"<transport_descriptors>"
-					"<transport_descriptor>"
-					"<transport_id>udp_localhost</transport_id>"
-					"<type>UDPv4</type>"
-					"<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
-					"</transport_descriptor>"
-					"</transport_descriptors>"
-					"</profiles>"
-					"<participant>"
-					"<rtps>"
-					:
-					"<dds>"
-					"<participant>"
-					"<rtps>",
-					_client_namespace != nullptr ?
-					_client_namespace
-					:
-					"",
-					(_participant_config == ParticipantConfig::LocalHostOnly) ?
-					"<useBuiltinTransports>false</useBuiltinTransports>"
-					"<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
-					"</rtps>"
-					"</participant>"
-					"</dds>"
-					:
-					"</rtps>"
-					"</participant>"
-					"</dds>"
-					);
+				   (_participant_config == ParticipantConfig::LocalHostOnly) ?
+				   "<dds>"
+				   "<profiles>"
+				   "<transport_descriptors>"
+				   "<transport_descriptor>"
+				   "<transport_id>udp_localhost</transport_id>"
+				   "<type>UDPv4</type>"
+				   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
+				   "</transport_descriptor>"
+				   "</transport_descriptors>"
+				   "</profiles>"
+				   "<participant>"
+				   "<rtps>"
+				   :
+				   "<dds>"
+				   "<participant>"
+				   "<rtps>",
+				   _client_namespace != nullptr ?
+				   _client_namespace
+				   :
+				   "",
+				   (_participant_config == ParticipantConfig::LocalHostOnly) ?
+				   "<useBuiltinTransports>false</useBuiltinTransports>"
+				   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
+				   "</rtps>"
+				   "</participant>"
+				   "</dds>"
+				   :
+				   "</rtps>"
+				   "</participant>"
+				   "</dds>"
+				  );
 
 		if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
 			PX4_ERR("create entities failed: namespace too long");
@@ -310,7 +310,7 @@ bool UxrceddsClient::setup_session(uxrSession* session)
 		}
 
 		participant_req = uxr_buffer_create_participant_xml(session, _reliable_out, _participant_id, domain_id,
-					participant_xml, UXR_REPLACE);
+				  participant_xml, UXR_REPLACE);
 	}
 
 	uint8_t request_status;
@@ -328,7 +328,7 @@ bool UxrceddsClient::setup_session(uxrSession* session)
 	// create VehicleCommand replier
 	if (_num_of_repliers < MAX_NUM_REPLIERS) {
 		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
-							_num_of_repliers))) {
+						      _num_of_repliers))) {
 			PX4_ERR("replier init failed");
 			return false;
 		}
@@ -348,7 +348,7 @@ bool UxrceddsClient::setup_session(uxrSession* session)
 
 	uint8_t sync_timeouts = 0;
 
-	// Spin until sync with the Agent or the session sync has multiple timeouts
+	// Spin until in sync with the Agent or the session time sync has multiple timeouts
 	while (_synchronize_timestamps) {
 		if (uxr_sync_session(session, 1000)) {
 			if (_timesync.sync_converged()) {
@@ -360,7 +360,9 @@ bool UxrceddsClient::setup_session(uxrSession* session)
 
 				break;
 			}
+
 			sync_timeouts = 0;
+
 		} else {
 			sync_timeouts++;
 		}
@@ -368,13 +370,14 @@ bool UxrceddsClient::setup_session(uxrSession* session)
 		if (sync_timeouts > TIMESYNC_MAX_TIMEOUTS) {
 			return false;
 		}
+
 		px4_usleep(10'000);
 	}
 
 	return true;
 }
 
-void UxrceddsClient::delete_session(uxrSession* session)
+void UxrceddsClient::delete_session(uxrSession *session)
 {
 	delete_repliers();
 	uxr_delete_session_retries(session, _connected ? 1 : 0);
@@ -662,6 +665,7 @@ void UxrceddsClient::run()
 			perf_end(_loop_perf);
 
 		}
+
 		delete_session(&session);
 	}
 }
