@@ -32,27 +32,10 @@
  ****************************************************************************/
 #pragma once
 
+#include <board_config.h>
 
-__BEGIN_DECLS
+#define SYSTEM_ADC_BASE 0 // not used on kinetis
 
-#include "/home/henry/autonosky/px4-autopilot_private/platforms/nuttx/NuttX/nuttx/include/nuttx/irq.h"
+#include <px4_platform/adc.h>
 
-/* For historical reasons (NuttX STM32 numbering) PX4 bus numbering is 1 based
- * All PX4 code, including, board code is written to assuming 1 based numbering.
- * The following macros are used to allow the board config to define the bus
- * numbers in terms of the NuttX driver numbering. 1,2,3 for one based numbering
- * schemes or 0,1,2 for zero based schemes.
- */
 
-#define PX4_BUS_NUMBER_TO_PX4(x)        ((x)+PX4_BUS_OFFSET)  /* Use to define Zero based to match Nuttx Driver but provide 1 based to PX4 */
-#define PX4_BUS_NUMBER_FROM_PX4(x)      ((x)-PX4_BUS_OFFSET)  /* Use to map PX4 1 based to NuttX driver 0 based */
-
-#define px4_enter_critical_section()       enter_critical_section()
-#define px4_leave_critical_section(flags)  leave_critical_section(flags)
-
-#define px4_udelay(usec) up_udelay(usec)
-#define px4_mdelay(msec) up_mdelay(msec)
-
-#include <arch/board/board.h>
-
-__END_DECLS

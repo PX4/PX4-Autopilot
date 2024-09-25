@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,29 +30,73 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-
-__BEGIN_DECLS
-
-#include "/home/henry/autonosky/px4-autopilot_private/platforms/nuttx/NuttX/nuttx/include/nuttx/irq.h"
-
-/* For historical reasons (NuttX STM32 numbering) PX4 bus numbering is 1 based
- * All PX4 code, including, board code is written to assuming 1 based numbering.
- * The following macros are used to allow the board config to define the bus
- * numbers in terms of the NuttX driver numbering. 1,2,3 for one based numbering
- * schemes or 0,1,2 for zero based schemes.
+/**
+ * @file board_mcu_version.c
+ * Implementation of RP2040 based SoC version API
  */
 
-#define PX4_BUS_NUMBER_TO_PX4(x)        ((x)+PX4_BUS_OFFSET)  /* Use to define Zero based to match Nuttx Driver but provide 1 based to PX4 */
-#define PX4_BUS_NUMBER_FROM_PX4(x)      ((x)-PX4_BUS_OFFSET)  /* Use to map PX4 1 based to NuttX driver 0 based */
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 
-#define px4_enter_critical_section()       enter_critical_section()
-#define px4_leave_critical_section(flags)  leave_critical_section(flags)
+#define RP2040_CPUID_BASE	(0 + 0xed00)
 
-#define px4_udelay(usec) up_udelay(usec)
-#define px4_mdelay(msec) up_mdelay(msec)
+/* magic numbers from reference manual */
 
-#include <arch/board/board.h>
+enum MCU_REV {
+	MCU_REV_RP2040_REV_1 = 0x1
+};
 
-__END_DECLS
+/* Define any issues with the Silicon as lines separated by \n
+ * omitting the last \n
+ */
+#define RP2040_ERRATA "This device does not have a unique id!"
+
+
+// RP2040 datasheet CPUID register
+# define REVID_MASK    0xF
+# define DEVID_MASK    0xFFFFFFF0
+
+# define RP2040_DEVICE_ID	0x410CC60
+
+
+int board_mcu_version(char *rev, const char **revstr, const char **errata)
+{
+	// uint32_t abc = getreg32(rp2040_cpuid_base);
+	uint32_t abc = 0;//
+
+	int32_t chip_version = (abc & DEVID_MASK) > 4;
+	enum MCU_REV revid = abc & REVID_MASK;
+	const char *chip_errata = NULL;
+
+	switch (chip_version) {
+
+
+	case RP2040_DEVICE_ID:
+		*revstr = "RP2040";
+		chip_errata = RP2040_ERRATA;
+		break;
+
+	default:
+		*revstr = "RPI???";
+		break;
+	}
+
+	switch (revid) {
+
+	case MCU_REV_RP2040_REV_1:
+		*rev = '1';
+		break;
+
+	default:
+		*rev = '?';
+		revid = -1;
+		break;
+	}
+
+	if (errata) {
+		*errata = chip_errata;
+	}
+
+	return revid;
+}

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,29 +30,75 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-
-__BEGIN_DECLS
-
-#include "/home/henry/autonosky/px4-autopilot_private/platforms/nuttx/NuttX/nuttx/include/nuttx/irq.h"
-
-/* For historical reasons (NuttX STM32 numbering) PX4 bus numbering is 1 based
- * All PX4 code, including, board code is written to assuming 1 based numbering.
- * The following macros are used to allow the board config to define the bus
- * numbers in terms of the NuttX driver numbering. 1,2,3 for one based numbering
- * schemes or 0,1,2 for zero based schemes.
+/**
+ * @file led.c
+ *
+ * PX4FMU LED backend.
  */
 
-#define PX4_BUS_NUMBER_TO_PX4(x)        ((x)+PX4_BUS_OFFSET)  /* Use to define Zero based to match Nuttx Driver but provide 1 based to PX4 */
-#define PX4_BUS_NUMBER_FROM_PX4(x)      ((x)-PX4_BUS_OFFSET)  /* Use to map PX4 1 based to NuttX driver 0 based */
+#include <px4_platform_common/px4_config.h>
 
-#define px4_enter_critical_section()       enter_critical_section()
-#define px4_leave_critical_section(flags)  leave_critical_section(flags)
+#include <stdbool.h>
 
-#define px4_udelay(usec) up_udelay(usec)
-#define px4_mdelay(msec) up_mdelay(msec)
+#include "board_config.h"
 
 #include <arch/board/board.h>
 
+/*
+ * Ideally we'd be able to get these from arm_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
 __END_DECLS
+
+
+
+static uint32_t g_ledmap[] = {
+	GPIO_LED_BLUE,    // Indexed by LED_BLUE
+	GPIO_LED_RED,     // Indexed by LED_RED, LED_AMBER
+	GPIO_LED_GREEN,   // Indexed by LED_GREEN
+};
+
+__EXPORT void led_init(void)
+{
+	/* Configure LED GPIOs for output */
+	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
+		px4_arch_configgpio(g_ledmap[l]);
+	}
+}
+
+static void phy_set_led(int led, bool state)
+{
+	/* Pull Down to switch on */
+	px4_arch_gpiowrite(g_ledmap[led], !state);
+}
+
+static bool phy_get_led(int led)
+{
+
+	return !px4_arch_gpioread(g_ledmap[led]);
+}
+
+__EXPORT void led_on(int led)
+{
+	phy_set_led(led, true);
+}
+
+__EXPORT void led_off(int led)
+{
+	phy_set_led(led, false);
+}
+
+__EXPORT void led_toggle(int led)
+{
+
+	phy_set_led(led, !phy_get_led(led));
+}

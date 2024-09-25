@@ -1,0 +1,5 @@
+add_subdirectory(hrt hrt)
+add_subdirectory(version version)
+add_subdirectory(board_critmon board_critmon)
+add_subdirectory(board_reset board_reset)
+add_subdirectory(spi spi)

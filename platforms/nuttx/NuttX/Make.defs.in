@@ -93,26 +93,49 @@ else
    MAXOPTIMIZATION = -Os
 endif
 
-FLAGS = $(MAXOPTIMIZATION) -g2 \
-	-fdata-sections \
-	-ffunction-sections \
-	-fno-builtin-printf \
-	-fno-common \
-	-fno-strength-reduce \
-	-fno-strict-aliasing \
-	-fomit-frame-pointer \
-	-Wall \
-	-Wextra \
-	-Wlogical-op \
-	-Wno-cpp \
-	-Wno-format-truncation \
-	-Wno-maybe-uninitialized \
-	-Wno-missing-field-initializers \
-	-Wno-stringop-truncation \
-	-Wno-sign-compare \
-	-Wno-type-limits \
-	-Wno-unused-parameter \
-	-Wpointer-arith
+ifeq ($(CONFIG_ARCH_CHIP_ESP32),y)
+	FLAGS = $(MAXOPTIMIZATION) -g2 \
+		-fdata-sections \
+		-ffunction-sections \
+		-fno-builtin-printf \
+		-fno-common \
+		-fno-strength-reduce \
+		-fno-strict-aliasing \
+		-fomit-frame-pointer \
+		-Wall \
+		-Werror \
+		-Wextra \
+		-Wlogical-op \
+		-Wno-cpp \
+		-Wno-format-truncation \
+		-Wno-maybe-uninitialized \
+		-Wno-missing-field-initializers \
+		-Wno-stringop-truncation \
+		-Wno-sign-compare \
+		-Wno-type-limits \
+		-Wno-unused-parameter
+else
+	FLAGS = $(MAXOPTIMIZATION) -g2 \
+		-fdata-sections \
+		-ffunction-sections \
+		-fno-builtin-printf \
+		-fno-common \
+		-fno-strength-reduce \
+		-fno-strict-aliasing \
+		-fomit-frame-pointer \
+		-Wall \
+		-Wextra \
+		-Wlogical-op \
+		-Wno-cpp \
+		-Wno-format-truncation \
+		-Wno-maybe-uninitialized \
+		-Wno-missing-field-initializers \
+		-Wno-stringop-truncation \
+		-Wno-sign-compare \
+		-Wno-type-limits \
+		-Wno-unused-parameter \
+		-Wpointer-arith
+endif
 
 FLAGS += $(EXTRAFLAGS)
 
