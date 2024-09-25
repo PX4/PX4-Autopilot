@@ -87,7 +87,9 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 
 		if (@(pub['topic_simple'])_data_writer.id == UXR_INVALID_ID) {
 			// data writer not created yet
-			create_data_writer(session, reliable_out_stream_id, participant_id, ORB_ID::@(pub['topic_simple']), client_namespace, "@(pub['topic_name'])", "@(pub['dds_type'])", @(pub['topic_simple'])_data_writer);
+			if (!create_data_writer(session, reliable_out_stream_id, participant_id, ORB_ID::@(pub['topic_simple']), client_namespace, "@(pub['topic_name'])", "@(pub['dds_type'])", @(pub['topic_simple'])_data_writer)) {
+				@(pub['topic_simple'])_data_writer.id = UXR_INVALID_ID;
+			}
 		}
 
 		if (@(pub['topic_simple'])_data_writer.id != UXR_INVALID_ID) {
@@ -107,7 +109,6 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 		} else {
 			//PX4_ERR("Error UXR_INVALID_ID @(pub['topic_simple'])");
 		}
-
 	}
 @[    end for]@
 }
@@ -152,14 +153,15 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 
 bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace)
 {
+	bool ret = true;
 @[    for idx, sub in enumerate(subscriptions)]@
 	{
 			uint16_t queue_depth = uORB::DefaultQueueSize<@(sub['simple_base_type'])_s>::value * 2; // use a bit larger queue size than internal
-			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic_name'])", "@(sub['dds_type'])", queue_depth);
+			ret = create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic_name'])", "@(sub['dds_type'])", queue_depth);
 	}
 @[    end for]@
 
 	uxr_set_topic_callback(session, on_topic_update, this);
 
-	return true;
+	return ret;
 }
