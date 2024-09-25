@@ -57,6 +57,7 @@ pipeline {
                      "cuav_can-gps-v1_default",
                      "cuav_nora_default",
                      "cuav_x7pro_default",
+                     "cuav_7-nano_default"
                      "cubepilot_cubeorange_default",
                      "cubepilot_cubeorangeplus_default",
                      "cubepilot_cubeyellow_default",
