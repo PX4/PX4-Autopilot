@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         language: [c-cpp]
-        product: [ssrc_saluki-v2_default, ssrc_saluki-nxp93_flat]
+        product: [ssrc_saluki-v2_default, ssrc_saluki-nxp93_default]
 
     container:
       image: ghcr.io/tiiuae/px4-firmware-builder-base:latest
