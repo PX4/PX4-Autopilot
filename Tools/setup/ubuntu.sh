@@ -155,7 +155,14 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			g++-multilib \
 			gcc-arm-none-eabi \
 			gcc-multilib \
+			esptool \
 			;
+
+		echo
+		echo "Fetching Xtensa compilers"
+		wget -q -P $DIR https://github.com/espressif/crosstool-NG/releases/download/esp-13.2.0_20240530/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz
+		sudo tar -xf $DIR/xtensa-esp-elf-13.2.0_20240530-x86_64-linux-gnu.tar.xz -C /opt
+		echo 'export PATH=$PATH:/opt/xtensa-esp-elf/bin/' >> /home/$USER/.bashrc
 	fi
 
 	if [[ "${INSTALL_ARCH}" == "aarch64" ]]; then
