@@ -49,6 +49,7 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#include "takeoff_no_nav.h"
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 #include "vtol_takeoff.h"
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
@@ -92,7 +93,7 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -362,6 +363,7 @@ private:
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+	TakeoffNoNav	_takeoff_no_nav;		/**< class for handling takeoff commands without navigation */
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */

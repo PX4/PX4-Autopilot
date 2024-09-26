@@ -409,6 +409,10 @@ int Commander::custom_command(int argc, char *argv[])
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_LAND);
 
+			} else if (!strcmp(argv[1], "auto:takeoff_no_nav")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF_NO_NAV);
+
 			} else if (!strcmp(argv[1], "auto:precland")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
@@ -840,6 +844,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND:
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+							break;
+
+						case PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF_NO_NAV:
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF_NO_NAV;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_EXTERNAL1...PX4_CUSTOM_SUB_MODE_EXTERNAL8:
@@ -2017,6 +2025,11 @@ void Commander::checkForMissionUpdate()
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.
 				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+
+			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF_NO_NAV) {
+				// Transition to loiter when the takeoff is completed (force into the Loiter, if not possible do failsafe).
+				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false,
+							    true);
 			}
 		}
 	}

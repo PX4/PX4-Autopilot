@@ -38,6 +38,7 @@ parameters:
                 8: Stabilized
                 12: Follow Me
                 13: Precision Land
+                16: Takeoff w/o navigation
                 100: External Mode 1
                 101: External Mode 2
                 102: External Mode 3

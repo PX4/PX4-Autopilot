@@ -79,6 +79,7 @@ Navigator::Navigator() :
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_vtol_takeoff(this),
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+	_takeoff_no_nav(this),
 	_land(this),
 	_precland(this),
 	_rtl(this)
@@ -92,6 +93,8 @@ Navigator::Navigator() :
 	_navigation_mode_array[5] = &_precland;
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_navigation_mode_array[6] = &_vtol_takeoff;
+	_navigation_mode_array[7] = &_takeoff_no_nav;
+
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 	/* iterate through navigation modes and initialize _mission_item for each */
@@ -805,6 +808,11 @@ void Navigator::run()
 			navigation_mode_new = &_vtol_takeoff;
 			break;
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF_NO_NAV:
+			_pos_sp_triplet_published_invalid_once = false;
+			navigation_mode_new = &_takeoff_no_nav;
+			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 			_pos_sp_triplet_published_invalid_once = false;

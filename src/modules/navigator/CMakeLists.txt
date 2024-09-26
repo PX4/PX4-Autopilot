@@ -47,6 +47,7 @@ set(NAVIGATOR_SOURCES
 	rtl_mission_fast.cpp
 	rtl_mission_fast_reverse.cpp
 	takeoff.cpp
+	takeoff_no_nav.cpp
 	land.cpp
 	precland.cpp
 	mission_feasibility_checker.cpp

@@ -61,7 +61,8 @@ static inline uint32_t getValidNavStates()
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) |
 	       (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT) |
-	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
+	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF_NO_NAV);
 
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "update valid nav states");
 }
@@ -78,7 +79,7 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"8: unallocated",
 	"9: unallocated",
 	"Acro",
-	"11: UNUSED",
+	"Takeoff w/o Navigation",
 	"Descend",
 	"Termination",
 	"Offboard",

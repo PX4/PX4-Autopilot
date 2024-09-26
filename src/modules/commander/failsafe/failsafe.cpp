@@ -424,7 +424,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool rc_loss_ignored_offboard = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
 					      && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Offboard);
 	const bool rc_loss_ignored_takeoff = (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
-					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
+					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF ||
+					      state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF_NO_NAV)
 					     && (_param_com_rcl_except.get() & (int)ManualControlLossExceptionBits::Hold);
 	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
 				     rc_loss_ignored_takeoff || ignore_link_failsafe || _manual_control_lost_at_arming;
