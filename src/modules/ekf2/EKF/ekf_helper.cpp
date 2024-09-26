@@ -1005,7 +1005,7 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index)
+void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index)
 {
 	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 
@@ -1063,7 +1063,6 @@ bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 
 	// apply the state corrections
 	fuse(K, innov);
-	return true;
 }
 
 bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
@@ -1115,4 +1114,210 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 	// apply the state corrections
 	fuse(K, innovation);
 	return true;
+}
+
+void Ekf::updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t &timestamp_sample,
+				const float &observation, const float &observation_variance,
+				const float &innovation, const float &innovation_variance,
+				float innovation_gate) const
+{
+	bool innovation_rejected = false;
+
+	const float test_ratio = sq(innovation) / (sq(innovation_gate) * innovation_variance);
+
+	if ((status.timestamp_sample > 0) && (timestamp_sample > status.timestamp_sample)) {
+
+		const float dt_s = math::constrain((timestamp_sample - status.timestamp_sample) * 1e-6f, 0.001f, 1.f);
+
+		static constexpr float tau = 0.5f;
+		const float alpha = math::constrain(dt_s / (dt_s + tau), 0.f, 1.f);
+
+		// test_ratio_filtered
+		if (PX4_ISFINITE(status.test_ratio_filtered)) {
+			status.test_ratio_filtered += alpha * (matrix::sign(innovation) * test_ratio - status.test_ratio_filtered);
+
+		} else {
+			// otherwise, init the filtered test ratio
+			status.test_ratio_filtered = test_ratio;
+		}
+
+		// innovation_filtered
+		if (PX4_ISFINITE(status.innovation_filtered)) {
+			status.innovation_filtered += alpha * (innovation - status.innovation_filtered);
+
+		} else {
+			// otherwise, init the filtered innovation
+			status.innovation_filtered = innovation;
+		}
+
+
+		// limit extremes in filtered values
+		static constexpr float kNormalizedInnovationLimit = 2.f;
+		static constexpr float kTestRatioLimit = sq(kNormalizedInnovationLimit);
+
+		if (test_ratio > kTestRatioLimit) {
+
+			status.test_ratio_filtered = math::constrain(status.test_ratio_filtered, -kTestRatioLimit, kTestRatioLimit);
+
+			const float innov_limit = kNormalizedInnovationLimit * innovation_gate * sqrtf(innovation_variance);
+			status.innovation_filtered = math::constrain(status.innovation_filtered, -innov_limit, innov_limit);
+		}
+
+	} else {
+		// invalid timestamp_sample, reset
+		status.test_ratio_filtered = test_ratio;
+		status.innovation_filtered = innovation;
+	}
+
+	status.test_ratio = test_ratio;
+
+	status.observation = observation;
+	status.observation_variance = observation_variance;
+
+	status.innovation = innovation;
+	status.innovation_variance = innovation_variance;
+
+	if ((test_ratio > 1.f)
+	    || !PX4_ISFINITE(test_ratio)
+	    || !PX4_ISFINITE(status.innovation)
+	    || !PX4_ISFINITE(status.innovation_variance)
+	   ) {
+		innovation_rejected = true;
+	}
+
+	status.timestamp_sample = timestamp_sample;
+
+	// if any of the innovations are rejected, then the overall innovation is rejected
+	status.innovation_rejected = innovation_rejected;
+
+	// reset
+	status.fused = false;
+}
+
+void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
+{
+	for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
+		if (_gyro_bias_inhibit[i]) {
+			K(State::gyro_bias.idx + i) = 0.f;
+		}
+	}
+
+	for (unsigned i = 0; i < State::accel_bias.dof; i++) {
+		if (_accel_bias_inhibit[i]) {
+			K(State::accel_bias.idx + i) = 0.f;
+		}
+	}
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	if (!_control_status.flags.mag) {
+		for (unsigned i = 0; i < State::mag_I.dof; i++) {
+			K(State::mag_I.idx + i) = 0.f;
+		}
+	}
+
+	if (!_control_status.flags.mag) {
+		for (unsigned i = 0; i < State::mag_B.dof; i++) {
+			K(State::mag_B.idx + i) = 0.f;
+		}
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_WIND)
+
+	if (!_control_status.flags.wind) {
+		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
+			K(State::wind_vel.idx + i) = 0.f;
+		}
+	}
+
+#endif // CONFIG_EKF2_WIND
+}
+
+float Ekf::getHeadingInnov() const
+{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		return Vector3f(_aid_src_mag.innovation).max();
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (_control_status.flags.gnss_yaw) {
+		return _aid_src_gnss_yaw.innovation;
+	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	if (_control_status.flags.ev_yaw) {
+		return _aid_src_ev_yaw.innovation;
+	}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	return 0.f;
+}
+
+float Ekf::getHeadingInnovVar() const
+{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		return Vector3f(_aid_src_mag.innovation_variance).max();
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (_control_status.flags.gnss_yaw) {
+		return _aid_src_gnss_yaw.innovation_variance;
+	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	if (_control_status.flags.ev_yaw) {
+		return _aid_src_ev_yaw.innovation_variance;
+	}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	return 0.f;
+}
+
+float Ekf::getHeadingInnovRatio() const
+{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		return Vector3f(_aid_src_mag.test_ratio).max();
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (_control_status.flags.gnss_yaw) {
+		return _aid_src_gnss_yaw.test_ratio;
+	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	if (_control_status.flags.ev_yaw) {
+		return _aid_src_ev_yaw.test_ratio;
+	}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	return 0.f;
 }

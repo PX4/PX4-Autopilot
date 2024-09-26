@@ -231,6 +231,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x7pro_default
+    cuav_7-nano_default:
+      short: cuav_7-nano
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_7-nano_default
     cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
@@ -346,3 +351,13 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: raspberrypi_pico_default
+    zeroone_x6_default:
+      short: zeroone_x6
+      buildType: MinSizeRel
+      settings:
+        CONFIG: zeroone_x6_default
+    zeroone_x6_bootloader:
+      short: zeroone_x6_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: zeroone_x6_bootloader
