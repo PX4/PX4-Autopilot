@@ -321,11 +321,16 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		_pitch = euler_angles(1);
 		_yaw = euler_angles(2);
 
-		Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
+		const Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
 		_body_acceleration_x = body_acceleration(0);
 
-		Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
-		_body_velocity_x = body_velocity(0);
+		if (_local_pos.v_xy_valid) {
+			const Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
+			_body_velocity_x = body_velocity(0);
+
+		} else {
+			_body_velocity_x = NAN;
+		}
 
 		// load factor due to banking
 		_tecs.set_load_factor(getLoadFactor());
@@ -372,17 +377,16 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 	}
 
 	// Adapt cruise airspeed when otherwise the min groundspeed couldn't be maintained
-	if (!_wind_valid && !in_takeoff_situation) {
+	if (!_wind_valid && !in_takeoff_situation && PX4_ISFINITE(_body_velocity_x) && _body_velocity_x > FLT_EPSILON) {
 		/*
 		 * This error value ensures that a plane (as long as its throttle capability is
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
 		 * by wind). Not countering this would lead to a fly-away. Only non-zero in presence
 		 * of sufficient wind. "minimum ground speed undershoot".
 		 */
-		const float ground_speed_body = _body_velocity_x;
 
-		if (ground_speed_body < _param_fw_gnd_spd_min.get()) {
-			calibrated_airspeed_setpoint += _param_fw_gnd_spd_min.get() - ground_speed_body;
+		if (_body_velocity_x < _param_fw_gnd_spd_min.get()) {
+			calibrated_airspeed_setpoint += _param_fw_gnd_spd_min.get() - _body_velocity_x;
 		}
 	}
 
