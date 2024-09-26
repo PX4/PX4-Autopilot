@@ -261,14 +261,14 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 
 	ret = nxsem_tickwait_uninterruptible(&_recv_sem, MSEC2TICK(10));
 
-	if (ret == -ETIMEDOUT) {
+	if (ret != OK) {
 		_stop_dma();
+
 		nxsem_reset(&_recv_sem, 0);
 		perf_count(_pc_timeouts);
 		perf_cancel(_pc_txns); /* don't count this as a transaction */
-	}
 
-	if (ret == OK) {
+	} else {
 		/* Check packet CRC */
 
 		uint8_t crc = _current_packet->crc;
@@ -361,8 +361,6 @@ ArchPX4IOSerial::_do_interrupt()
 void
 ArchPX4IOSerial::_stop_dma()
 {
-	/* Mark that we don't care about any DMA data any more */
-
 	_waiting_for_dma = false;
 
 	/* Stop the DMA channels */
@@ -375,8 +373,4 @@ ArchPX4IOSerial::_stop_dma()
 	while (getreg32(PX4IO_SERIAL_BASE + IMX9_LPUART_STAT_OFFSET) & LPUART_STAT_RDRF) {
 		getreg32(PX4IO_SERIAL_BASE + IMX9_LPUART_DATA_OFFSET);
 	}
-
-	/* Clear any error status flags */
-
-	modreg32(ERR_FLAGS_MASK, ERR_FLAGS_MASK, PX4IO_SERIAL_BASE + IMX9_LPUART_STAT_OFFSET);
 }
