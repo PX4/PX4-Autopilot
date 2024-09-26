@@ -212,7 +212,7 @@ esp32_board_initialize(void)
 static struct spi_dev_s *spi2;
 #endif
 
-#ifdef CONFIG_ESP32_SPI32
+#ifdef CONFIG_ESP32_SPI3
 static struct spi_dev_s *spi3;
 #endif
 
@@ -247,7 +247,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
-#ifdef CONFIG_ESP32_SPI3A3
+#ifdef CONFIG_ESP32_SPI3
 	spi3 = esp32_spibus_initialize(3);
 
 	if (!spi3) {
