@@ -320,22 +320,6 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 		return false;
 	}
 
-	if (!_pubs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
-		PX4_ERR("pubs init failed");
-		return false;
-	}
-
-	// create VehicleCommand replier
-	if (_num_of_repliers < MAX_NUM_REPLIERS) {
-		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
-						      _num_of_repliers))) {
-			PX4_ERR("replier init failed");
-			return false;
-		}
-	}
-
-	_connected = true;
-
 	// Set time-callback.
 	if (_synchronize_timestamps) {
 		uxr_set_time_callback(session, on_time, &_timesync);
@@ -345,7 +329,6 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 	}
 
 	uxr_set_request_callback(session, on_request, this);
-
 	uint8_t sync_timeouts = 0;
 
 	// Spin until in sync with the Agent or the session time sync has multiple timeouts
@@ -374,6 +357,21 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 		px4_usleep(10'000);
 	}
 
+	if (!_pubs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+		PX4_ERR("pubs init failed");
+		return false;
+	}
+
+	// create VehicleCommand replier
+	if (_num_of_repliers < MAX_NUM_REPLIERS) {
+		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
+						      _num_of_repliers))) {
+			PX4_ERR("replier init failed");
+			return false;
+		}
+	}
+
+	_connected = true;
 	return true;
 }
 
@@ -859,7 +857,7 @@ int UxrceddsClient::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("uxrce_dds_client",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_DEFAULT,
-				      PX4_STACK_ADJUSTED(12000),
+				      PX4_STACK_ADJUSTED(8000),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 

@@ -84,6 +84,7 @@ void SendTopicsSubs::reset() {
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		send_subscriptions[idx].data_writer = uxr_object_id(0, UXR_INVALID_ID);
 		orb_unsubscribe(fds[idx].fd);
+		fds[idx].fd = -1;
 	}
 };
 
