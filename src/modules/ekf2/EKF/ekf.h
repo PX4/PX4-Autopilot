@@ -67,6 +67,7 @@
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
 enum class Likelihood { LOW, MEDIUM, HIGH };
+class ExternalVisionVel;
 
 class Ekf final : public EstimatorInterface
 {
@@ -135,92 +136,9 @@ public:
 	const Vector3f &getFlowRefBodyRate() const { return _ref_body_rate; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	float getHeadingInnov() const
-	{
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-			return Vector3f(_aid_src_mag.innovation).max();
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (_control_status.flags.gnss_yaw) {
-			return _aid_src_gnss_yaw.innovation;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-
-		if (_control_status.flags.ev_yaw) {
-			return _aid_src_ev_yaw.innovation;
-		}
-
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-		return 0.f;
-	}
-
-	float getHeadingInnovVar() const
-	{
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-			return Vector3f(_aid_src_mag.innovation_variance).max();
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (_control_status.flags.gnss_yaw) {
-			return _aid_src_gnss_yaw.innovation_variance;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-
-		if (_control_status.flags.ev_yaw) {
-			return _aid_src_ev_yaw.innovation_variance;
-		}
-
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-		return 0.f;
-	}
-
-	float getHeadingInnovRatio() const
-	{
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-			return Vector3f(_aid_src_mag.test_ratio).max();
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (_control_status.flags.gnss_yaw) {
-			return _aid_src_gnss_yaw.test_ratio;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-
-		if (_control_status.flags.ev_yaw) {
-			return _aid_src_ev_yaw.test_ratio;
-		}
-
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-		return 0.f;
-	}
+	float getHeadingInnov() const;
+	float getHeadingInnovVar() const;
+	float getHeadingInnovRatio() const;
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	const auto &aid_src_drag() const { return _aid_src_drag; }
@@ -328,7 +246,9 @@ public:
 	}
 
 	// fuse single direct state measurement (eg NED velocity, NED position, mag earth field, etc)
-	bool fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
+	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
+
+	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
 
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
@@ -482,57 +402,6 @@ public:
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 #endif // CONFIG_EKF2_AUXVEL
 
-	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
-	{
-		clearInhibitedStateKalmanGains(K);
-
-#if false
-		// Matrix implementation of the Joseph stabilized covariance update
-		// This is extremely expensive to compute. Use for debugging purposes only.
-		auto A = matrix::eye<float, State::size>();
-		A -= K.multiplyByTranspose(H);
-		P = A * P;
-		P = P.multiplyByTranspose(A);
-
-		const VectorState KR = K * R;
-		P += KR.multiplyByTranspose(K);
-#else
-		// Efficient implementation of the Joseph stabilized covariance update
-		// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
-		// P = (I - K * H) * P * (I - K * H).T   + K * R * K.T
-		//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
-		//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
-
-		// Step 1: conventional update
-		// Compute P_temp and store it in P to avoid allocating more memory
-		// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
-		VectorState PH = P * H; // H is stored as a column vector. H is in fact H.T
-
-		for (unsigned i = 0; i < State::size; i++) {
-			for (unsigned j = 0; j < State::size; j++) {
-				P(i, j) -= K(i) * PH(j); // P is now not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
-			}
-		}
-
-		// Step 2: stabilized update
-		PH = P * H; // H is stored as a column vector. H is in fact H.T
-
-		for (unsigned i = 0; i < State::size; i++) {
-			for (unsigned j = 0; j <= i; j++) {
-				P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
-				P(j, i) = P(i, j);
-			}
-		}
-
-#endif
-
-		constrainStateVariances();
-
-		// apply the state corrections
-		fuse(K, innovation);
-		return true;
-	}
-
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
@@ -553,6 +422,11 @@ public:
 	friend class AuxGlobalPosition;
 
 private:
+
+	friend class ExternalVisionVel;
+	friend class EvVelBodyFrameFrd;
+	friend class EvVelLocalFrameNed;
+	friend class EvVelLocalFrameFrd;
 
 	// set the internal states and status to their default value
 	void reset();
@@ -911,46 +785,7 @@ private:
 	float getMagDeclination();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	void clearInhibitedStateKalmanGains(VectorState &K) const
-	{
-		for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
-			if (_gyro_bias_inhibit[i]) {
-				K(State::gyro_bias.idx + i) = 0.f;
-			}
-		}
-
-		for (unsigned i = 0; i < State::accel_bias.dof; i++) {
-			if (_accel_bias_inhibit[i]) {
-				K(State::accel_bias.idx + i) = 0.f;
-			}
-		}
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-
-		if (!_control_status.flags.mag) {
-			for (unsigned i = 0; i < State::mag_I.dof; i++) {
-				K(State::mag_I.idx + i) = 0.f;
-			}
-		}
-
-		if (!_control_status.flags.mag) {
-			for (unsigned i = 0; i < State::mag_B.dof; i++) {
-				K(State::mag_B.idx + i) = 0.f;
-			}
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_WIND)
-
-		if (!_control_status.flags.wind) {
-			for (unsigned i = 0; i < State::wind_vel.dof; i++) {
-				K(State::wind_vel.idx + i) = 0.f;
-			}
-		}
-
-#endif // CONFIG_EKF2_WIND
-	}
+	void clearInhibitedStateKalmanGains(VectorState &K) const;
 
 	// limit the diagonal of the covariance matrix
 	void constrainStateVariances();
@@ -978,14 +813,15 @@ private:
 	void controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 				estimator_aid_source2d_s &aid_src);
-	void controlEvVelFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
-				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
-				estimator_aid_source3d_s &aid_src);
+	void controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_conditions_passing, const bool ev_reset,
+				const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
 	void controlEvYawFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 				estimator_aid_source1d_s &aid_src);
-	void resetVelocityToEV(const Vector3f &measurement, const Vector3f &measurement_var, const VelocityFrame &vel_frame);
-	Vector3f rotateVarianceToEkf(const Vector3f &measurement_var);
+	void fuseLocalFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_t &timestamp, const Vector3f &measurement,
+				    const Vector3f &measurement_var, const float &innovation_gate);
+	void fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_t &timestamp, const Vector3f &measurement,
+				   const Vector3f &measurement_var, const float &innovation_gate);
 
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient,
@@ -998,7 +834,8 @@ private:
 	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
 	{
 		VectorState Kfusion = P * H / innov_var;
-		aid_src.fused = measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+		measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+		aid_src.fused = true;
 	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
@@ -1184,80 +1021,7 @@ private:
 	void updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t &timestamp_sample,
 				   const float &observation, const float &observation_variance,
 				   const float &innovation, const float &innovation_variance,
-				   float innovation_gate = 1.f) const
-	{
-		bool innovation_rejected = false;
-
-		const float test_ratio = sq(innovation) / (sq(innovation_gate) * innovation_variance);
-
-		if ((status.timestamp_sample > 0) && (timestamp_sample > status.timestamp_sample)) {
-
-			const float dt_s = math::constrain((timestamp_sample - status.timestamp_sample) * 1e-6f, 0.001f, 1.f);
-
-			static constexpr float tau = 0.5f;
-			const float alpha = math::constrain(dt_s / (dt_s + tau), 0.f, 1.f);
-
-			// test_ratio_filtered
-			if (PX4_ISFINITE(status.test_ratio_filtered)) {
-				status.test_ratio_filtered += alpha * (matrix::sign(innovation) * test_ratio - status.test_ratio_filtered);
-
-			} else {
-				// otherwise, init the filtered test ratio
-				status.test_ratio_filtered = test_ratio;
-			}
-
-			// innovation_filtered
-			if (PX4_ISFINITE(status.innovation_filtered)) {
-				status.innovation_filtered += alpha * (innovation - status.innovation_filtered);
-
-			} else {
-				// otherwise, init the filtered innovation
-				status.innovation_filtered = innovation;
-			}
-
-
-			// limit extremes in filtered values
-			static constexpr float kNormalizedInnovationLimit = 2.f;
-			static constexpr float kTestRatioLimit = sq(kNormalizedInnovationLimit);
-
-			if (test_ratio > kTestRatioLimit) {
-
-				status.test_ratio_filtered = math::constrain(status.test_ratio_filtered, -kTestRatioLimit, kTestRatioLimit);
-
-				const float innov_limit = kNormalizedInnovationLimit * innovation_gate * sqrtf(innovation_variance);
-				status.innovation_filtered = math::constrain(status.innovation_filtered, -innov_limit, innov_limit);
-			}
-
-		} else {
-			// invalid timestamp_sample, reset
-			status.test_ratio_filtered = test_ratio;
-			status.innovation_filtered = innovation;
-		}
-
-		status.test_ratio = test_ratio;
-
-		status.observation = observation;
-		status.observation_variance = observation_variance;
-
-		status.innovation = innovation;
-		status.innovation_variance = innovation_variance;
-
-		if ((test_ratio > 1.f)
-		    || !PX4_ISFINITE(test_ratio)
-		    || !PX4_ISFINITE(status.innovation)
-		    || !PX4_ISFINITE(status.innovation_variance)
-		   ) {
-			innovation_rejected = true;
-		}
-
-		status.timestamp_sample = timestamp_sample;
-
-		// if any of the innovations are rejected, then the overall innovation is rejected
-		status.innovation_rejected = innovation_rejected;
-
-		// reset
-		status.fused = false;
-	}
+				   float innovation_gate = 1.f) const;
 
 	// state was reset to aid source, keep observation and update all other fields appropriately (zero innovation, etc)
 	template <typename T>
