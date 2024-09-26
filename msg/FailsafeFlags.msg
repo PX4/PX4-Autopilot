@@ -38,7 +38,7 @@ bool manual_control_signal_lost       # Manual control (RC) signal lost
 bool gcs_connection_lost              # GCS connection lost
 
 # Battery
-uint8 battery_warning                 # Battery warning level
+uint8 battery_warning                 # Battery warning level (see BatteryStatus.msg)
 bool battery_low_remaining_time       # Low battery based on remaining flight time
 bool battery_unhealthy                # Battery unhealthy
 
