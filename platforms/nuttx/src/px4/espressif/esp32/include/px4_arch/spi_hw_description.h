@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,11 +37,26 @@
 #include <px4_platform_common/spi.h>
 #include <px4_arch/micro_hal.h>
 
+#if defined(CONFIG_ESP32_SPI)
+
+#include <esp32_gpio.h>
+
 static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::CS cs_gpio, SPI::DRDY drdy_gpio = {})
 {
 	px4_spi_bus_device_t ret{};
-	ret.cs_gpio = getGPIOPin(cs_gpio.pin);
-	ret.drdy_gpio = getGPIOPin(drdy_gpio.pin);
+	if(cs_gpio.pin == -1)
+	{
+		ret.cs_gpio = 0;
+	}else{
+		ret.cs_gpio = (cs_gpio.pin | GPIO_PULLUP | GPIO_OUTPUT);
+	}
+
+	if(drdy_gpio.pin == -1)
+	{
+		ret.drdy_gpio = 0;
+	}else{
+		ret.drdy_gpio = (drdy_gpio.pin | GPIO_INPUT);
+	}
 
 	if (PX4_SPIDEVID_TYPE(devid) == 0) { // it's a PX4 device (internal or external)
 		ret.devid = PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, devid);
@@ -87,7 +102,13 @@ static inline constexpr px4_spi_bus_t initSPIBus(SPI::Bus bus, const px4_spi_bus
 	ret.bus = (int)bus;
 	ret.is_external = false;
 
-	ret.power_enable_gpio = getGPIOPin(power_enable.pin);
+	if(power_enable.pin == -1)
+	{
+		ret.power_enable_gpio = 0;
+	}else{
+		ret.power_enable_gpio = (power_enable.pin | GPIO_OUTPUT | GPIO_PULLUP);
+	}
+
 
 	return ret;
 }
@@ -102,6 +123,10 @@ static inline constexpr px4_spi_bus_t initSPIBusExternal(SPI::Bus bus, const bus
 	px4_spi_bus_t ret{};
 
 	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
+		if (devices.devices[i].cs_gpio.pin == -1) {
+			break;
+		}
+
 		ret.devices[i] = initSPIDevice(i, devices.devices[i].cs_gpio, devices.devices[i].drdy_gpio);
 	}
 
@@ -119,35 +144,76 @@ static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI
 	return ret;
 }
 
-// constexpr bool validateSPIConfig(const px4_spi_bus_t spi_buses_conf[SPI_BUS_MAX_BUS_ITEMS]);
+struct px4_spi_bus_array_t {
+	px4_spi_bus_t item[SPI_BUS_MAX_BUS_ITEMS];
+};
+static inline constexpr px4_spi_bus_all_hw_t initSPIHWVersion(int hw_version_revision,
+		const px4_spi_bus_array_t &bus_items)
+{
+	px4_spi_bus_all_hw_t ret{};
+
+	for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+		ret.buses[i] = bus_items.item[i];
+	}
+
+	ret.board_hw_version_revision = hw_version_revision;
+	return ret;
+}
+static constexpr bool validateSPIConfig(const px4_spi_bus_t spi_buses_conf[SPI_BUS_MAX_BUS_ITEMS]);
+
+static constexpr bool validateSPIConfig(const px4_spi_bus_all_hw_t spi_buses_conf[BOARD_NUM_SPI_CFG_HW_VERSIONS])
+{
+	for (int ver = 0; ver < BOARD_NUM_SPI_CFG_HW_VERSIONS; ++ver) {
+		validateSPIConfig(spi_buses_conf[ver].buses);
+	}
+
+	for (int ver = 1; ver < BOARD_NUM_SPI_CFG_HW_VERSIONS; ++ver) {
+		for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+			const bool equal_power_enable_gpio = spi_buses_conf[ver].buses[i].power_enable_gpio == spi_buses_conf[ver -
+							     1].buses[i].power_enable_gpio;
+			// currently board_control_spi_sensors_power_configgpio() depends on that - this restriction can be removed
+			// by ensuring board_control_spi_sensors_power_configgpio() is called after the hw version is determined
+			// and SPI config is initialized.
+			constexpr_assert(equal_power_enable_gpio, "All HW versions must define the same power enable GPIO");
+		}
+	}
+
+	return false;
+}
 
 constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS])
 {
 	const bool nuttx_enabled_spi_buses[] = {
-#ifdef CONFIG_RP2040_SPI0
+		false,
+#ifdef CONFIG_ESP32_SPI2
 		true,
 #else
 		false,
 #endif
-#ifdef CONFIG_RP2040_SPI1
+#ifdef CONFIG_ESP32_SPI3
 		true,
 #else
 		false,
 #endif
+		false,
+		false,
+		false,
 	};
 
 	for (unsigned i = 0; i < sizeof(nuttx_enabled_spi_buses) / sizeof(nuttx_enabled_spi_buses[0]); ++i) {
 		bool found_bus = false;
 
 		for (int j = 0; j < SPI_BUS_MAX_BUS_ITEMS; ++j) {
-			if (spi_busses_conf[j].bus == (int)i + 1) {
+			if (spi_busses_conf[j].bus == (int)i+1) {
 				found_bus = true;
 			}
 		}
 
 		// Either the bus is enabled in NuttX and configured in spi_busses_conf, or disabled and not configured
-		constexpr_assert(found_bus == nuttx_enabled_spi_buses[i], "SPI bus config mismatch (CONFIG_RP2040_SPIx)");
+		constexpr_assert(found_bus == nuttx_enabled_spi_buses[i], "SPI bus config mismatch (CONFIG_ESP32_SPIx)");
 	}
 
 	return false;
 }
+
+#endif // CONFIG_SPI

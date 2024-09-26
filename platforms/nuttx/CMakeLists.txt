@@ -302,6 +302,9 @@ if(CONFIG_ARCH_CHIP_ESP32)
 	${PX4_STARTUP_DIR}/esp32_rtc.o
 	${PX4_STARTUP_DIR}/esp32_start.o
 	${PX4_STARTUP_DIR}/esp32_serial.o
+	${PX4_STARTUP_DIR}/esp32_spi.o
+	${PX4_STARTUP_DIR}/esp32_spicache.o
+	${PX4_STARTUP_DIR}/esp32_spiflash.o
 	${PX4_STARTUP_DIR}/esp32_systemreset.o
 	${PX4_STARTUP_DIR}/esp32_timerisr.o
 	${PX4_STARTUP_DIR}/esp32_user.o

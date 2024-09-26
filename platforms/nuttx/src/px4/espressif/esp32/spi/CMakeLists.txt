@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,3 +35,5 @@ px4_add_library(arch_spi
 	spi.cpp
 )
 target_compile_options(arch_spi PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+
+target_link_libraries (arch_spi PRIVATE drivers_board) # px4_spi_buses

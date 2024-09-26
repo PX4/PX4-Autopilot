@@ -59,6 +59,8 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/analog/adc.h>
+#include <nuttx/sdio.h>
+#include <nuttx/mmcsd.h>
 #include <nuttx/mm/gran.h>
 
 #include "board_config.h"
@@ -74,8 +76,8 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
-# if defined(FLASH_BASED_PARAMS)
-#  include <parameters/flashparams/flashfs.h>
+#ifdef CONFIG_ESP32_SPIFLASH
+#include "esp32_board_spiflash.h"
 #endif
 
 /****************************************************************************
@@ -177,6 +179,8 @@ esp32_board_initialize(void)
 	// /* configure LEDs */
 	board_autoled_initialize();
 
+	// esp32_spiinitialize();
+
 }
 
 /****************************************************************************
@@ -204,7 +208,14 @@ esp32_board_initialize(void)
  *
  ****************************************************************************/
 
-// static struct spi_dev_s *spi1;
+#ifdef CONFIG_ESP32_SPI22
+static struct spi_dev_s *spi2;
+#endif
+
+#ifdef CONFIG_ESP32_SPI32
+static struct spi_dev_s *spi3;
+#endif
+
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
@@ -219,22 +230,50 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* initial LED state */
 	drv_led_start();
-	led_on(LED_RED);
-	led_on(LED_GREEN);
-	led_on(LED_BLUE);
-	up_mdelay(4000);
-	led_off(LED_RED);
-	led_off(LED_GREEN);
-	led_off(LED_BLUE);
-	up_mdelay(4000);
-	led_on(LED_RED);
-	led_on(LED_GREEN);
-	led_on(LED_BLUE);
 
+#ifdef CONFIG_ESP32_SPI22
+	spi2 = esp32_spibus_initialize(2);
+
+	if (!spi2) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
+		led_on(LED_RED);
+	}
+
+	// Default SPI1 to 10MHz
+	SPI_SETFREQUENCY(spi2, 10000000);
+	SPI_SETBITS(spi2, 8);
+	SPI_SETMODE(spi2, SPIDEV_MODE3);
+	up_udelay(20);
+
+#endif
+
+#ifdef CONFIG_ESP32_SPI3A3
+	spi3 = esp32_spibus_initialize(3);
+
+	if (!spi3) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
+		led_on(LED_RED);
+	}
+
+	SPI_SETFREQUENCY(spi3, 8 * 1000 * 1000);
+	SPI_SETBITS(spi3, 8);
+	SPI_SETMODE(spi3, SPIDEV_MODE3);
+#endif
+
+	#ifdef CONFIG_ESP32_SPIFLASH2
+  	int ret = esp32_spiflash_init();
+  	if (ret)
+    	{
+      	syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
+    	}
+	#endif
 
 	/* Configure the HW based on the manifest */
 
 	px4_platform_configure();
+
+
+
 
 	return OK;
 }

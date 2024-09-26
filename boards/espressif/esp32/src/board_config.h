@@ -60,6 +60,8 @@
 
 #define PX4_NUMBER_I2C_BUSES 2
 
+#define BOARD_SPI_BUS_MAX_BUS_ITEMS 2
+
 /*
  * ADC channels
  *
@@ -122,7 +124,7 @@ __BEGIN_DECLS
  *
  ****************************************************************************************************/
 
-extern void esp32_usbinitialize(void);
+extern void esp32_spiinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 

@@ -4,9 +4,49 @@
 
 __BEGIN_DECLS
 
+#include <esp32_tim.h>
 #include <esp32_spi.h>
 #include <esp32_i2c.h>
 #include <esp32_gpio.h>
+
+#  define INPUT             (1 << 0)
+#  define OUTPUT            (1 << 1)
+#  define FUNCTION          (1 << 2)
+
+#define PULLUP              (1 << 3)
+#define PULLDOWN            (1 << 4)
+#define OPEN_DRAIN          (1 << 5)
+
+// bits		Function
+// 0-5		GPIO number. 0-40 is valid.
+// 6		input
+// 7		output
+// 8		fun
+// 9		pull up
+// 10		pull down
+// 11		open drain
+// 12-14	GPIO function select
+// 15-31	Unused
+
+#define GPIO_SET_SHIFT  6
+#define GPIO_INPUT	(1 << 6)
+#define GPIO_OUTPUT	(1 << 7)
+#define GPIO_FUNCTION	(1 << 8)
+
+#define GPIO_PULLUP	(1 << 9)
+#define GPIO_PULLDOWN	(1 << 10)
+#define GPIO_OPEN_DRAIN	(1 << 11)
+
+#define GPIO_FUN(func)	(func << 12)	// Function select
+
+#define GPIO_NUM_MASK		0x3f
+#define	GPIO_INPUT_MASK		0x40
+#define	GPIO_OUTPUT_MASK	0x80
+#define	GPIO_FUNCTION_MASK	0x100
+#define	GPIO_PULLUP_MASK	0x200
+#define	GPIO_PULLDOWN_MASK	0x400
+#define	GPIO_OPEN_DRAIN_MASK	0x800
+#define	GPIO_FUN_SELECT_MASK	0x7000
 
 #define PX4_NUMBER_I2C_BUSES 2
 
@@ -54,9 +94,9 @@ __BEGIN_DECLS
 #define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
 #define PX4_BUS_OFFSET       1                  /* RP2040 buses are 0 based and adjustment is needed */
-#define px4_spibus_initialize(bus_num_1based)   esp32_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#define px4_spibus_initialize(bus_num_1based)   esp32_spibus_initialize(bus_num_1based)
 
-#define px4_i2cbus_initialize(bus_num_1based)   esp32_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#define px4_i2cbus_initialize(bus_num_1based)   esp32_i2cbus_initialize(bus_num_1based)
 #define px4_i2cbus_uninitialize(pdev)           esp32_i2cbus_uninitialize(pdev)
 
 #define px4_arch_configgpio(pinset)		esp32_configgpio(pinset, 0)			// Defined in io_pins/rp2040_pinset.c

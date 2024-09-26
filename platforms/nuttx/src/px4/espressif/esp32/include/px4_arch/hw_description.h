@@ -217,9 +217,9 @@ namespace SPI
 {
 
 enum class Bus {
-	SPI0 = 1,
-	SPI1,
+	SPI1 = 1,
 	SPI2,
+	SPI3,
 };
 
 using CS = GPIO::GPIOPin; ///< chip-select pin

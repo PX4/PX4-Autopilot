@@ -30,24 +30,47 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
+
 #include <nuttx/spi/spi.h>
-
-const constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-#ifdef CONFIG_ESP32_SPI2
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::Pin4}),
-
-	}),
-#endif
-#ifdef CONFIG_ESP32_SPI3
-	initSPIBus(SPI::Bus::SPI3, {
-		initSPIDevice(DRV_BARO_DEVTYPE_BMP280, SPI::CS{GPIO::Pin17}, SPI::DRDY{GPIO::Pin0}),
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::Pin5}, SPI::DRDY{GPIO::Pin2}),
-
-	}),
-#endif
+#include <px4_platform_common/px4_manifest.h>
+//                                                                      KiB BS    nB
+static const px4_mft_device_t flash = {             // 24AA64FT on Base  8K 32 X 256
+	.bus_type = px4_mft_device_t::ONCHIP
 };
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+
+static const px4_mtd_entry_t fmu_flash = {
+	.device = &flash,
+	.npart = 1,
+	.partd = {
+		{
+			.type = MTD_PARAMETERS,
+			.path = "/fs/mtd_params",
+			.nblocks = 128
+		}
+	},
+};
+
+static const px4_mtd_manifest_t board_mtd_config = {
+	.nconfigs   = 1,
+	.entries = {
+		&fmu_flash,
+	}
+};
+
+static const px4_mft_entry_s mtd_mft = {
+	.type = MTD,
+	.pmft = (void *) &board_mtd_config,
+};
+
+static const px4_mft_s mft = {
+	.nmft = 1,
+	.mfts = {&mtd_mft}
+};
+
+#include <px4_platform_common/log.h>
+const px4_mft_s *board_get_manifest(void)
+{
+printf("manifest");
+	return &mft;
+}
