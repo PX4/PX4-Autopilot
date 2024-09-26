@@ -178,7 +178,7 @@ esp32_board_initialize(void)
 
 	// /* configure LEDs */
 	board_autoled_initialize();
-
+	// up_mdelay(2);
 	// esp32_spiinitialize();
 
 }

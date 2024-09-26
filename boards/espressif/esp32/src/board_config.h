@@ -75,7 +75,7 @@
 
 /* High-resolution timer */
 #define HRT_TIMER 0
-#define HRT_TIMER_GPOUP 0
+#define HRT_TIMER_GPOUP 1
 #define HRT_TIMER_CHANNEL 0
 #define HRT_PPM_CHANNEL 1	// Number really doesn't matter for this board
 // #define GPIO_PPM_IN		(16 | GPIO_FUN(RP2040_GPIO_FUNC_SIO))
