@@ -66,6 +66,8 @@
 #include "hardware/esp32_soc.h"
 #include "hardware/esp32_tim.h"
 #include "hardware/esp32_dport.h"
+#include "esp32_irq.h"
+#include <xtensa.h>
 
 #ifdef CONFIG_DEBUG_HRT
 #  define hrtinfo _info
@@ -76,47 +78,63 @@
 #ifdef HRT_TIMER
 
 #if HRT_TIMER_GROUP == 0
-# define TIM0_BASE	DR_REG_TIMERGROUP0_BASE
-# define TIM1_BASE	DR_REG_TIMERGROUP1_BASE
+# define TIM_BASE	DR_REG_TIMERGROUP0_BASE
+#elif HRT_TIMER_GROUP == 1
+# define TIM_BASE	DR_REG_TIMERGROUP1_BASE
 #else
-# error HRT_TIMER_GROUP must be a value between 0 and 0
+# error HRT_TIMER_GROUP must be a value between 0 and 1
 #endif
 
 /* HRT configuration */
 #if   HRT_TIMER == 0
-# define HRT_TIMER_VECTOR
-# define HRT_TIMER_CLOCK	APB_CLK_FREQ
-# define HRT_TIMER_BASE		TIM0_BASE
-# define HRT_TIMER_CONFIG_REG	TIM0_BASE + TIM_CONFIG_OFFSET
-# define HRT_TIMER_LO_REG	TIM0_BASE + TIM_LO_OFFSET
-# define HRT_TIMER_HI_REG	TIM0_BASE + TIM_HI_OFFSET
-# define HRT_TIMER_UPDATE_REG	TIM0_BASE + TIM_UPDATE_OFFSET
-# define HRT_TIMER_ALARM_LO_REG	TIM0_BASE + TIMG_ALARM_LO_OFFSET
-# define HRT_TIMER_ALARM_HI_REG	TIM0_BASE + TIMG_ALARM_HI_OFFSET
-# define HRT_TIMER_LOAD_LO_REG	TIM0_BASE + TIM_LOAD_LO_OFFSET
-# define HRT_TIMER_LOAD_HI_REG	TIM0_BASE + TIM_LOAD_HI_OFFSET
-# define HRT_TIMER_LOAD_REG	TIM0_BASE + TIM_LOAD_OFFSET
+# define HRT_TIMER_PERIPH		ESP32_PERIPH_TG_T0_LEVEL
+# define HRT_TIMER_PRIO			1
+# define HRT_TIMER_VECTOR	        ESP32_IRQ_TG_T0_LEVEL
+# define HRT_TIMER_CLOCK	        APB_CLK_FREQ
+# define HRT_TIMER_BASE                 TIM_BASE
+# define HRT_TIMER_CONFIG_REG           TIM_BASE + TIM_CONFIG_OFFSET
+# define HRT_TIMER_LO_REG               TIM_BASE + TIM_LO_OFFSET
+# define HRT_TIMER_HI_REG               TIM_BASE + TIM_HI_OFFSET
+# define HRT_TIMER_UPDATE_REG           TIM_BASE + TIM_UPDATE_OFFSET
+# define HRT_TIMER_ALARM_LO_REG         TIM_BASE + TIMG_ALARM_LO_OFFSET
+# define HRT_TIMER_ALARM_HI_REG         TIM_BASE + TIMG_ALARM_HI_OFFSET
+# define HRT_TIMER_LOAD_LO_REG          TIM_BASE + TIM_LOAD_LO_OFFSET
+# define HRT_TIMER_LOAD_HI_REG          TIM_BASE + TIM_LOAD_HI_OFFSET
+# define HRT_TIMER_LOAD_REG		TIM_BASE + TIM_LOAD_OFFSET
+# define HRT_TIMER_INT_ENA_REG          TIM_BASE + TIM0_INT_ENA_OFFSET
+# define HRT_TIMER_INT_ST_REG           TIM_BASE + TIM0_INT_ST_OFFSET
+# define HRT_TIMER_INT_CLR_REG          TIM_BASE + 0xA4
 # if CONFIG_STM32_TIM1
 #  error must not set CONFIG_STM32_TIM1=y and HRT_TIMER=1
 # endif
 #elif HRT_TIMER == 1
+# define HRT_TIMER_VECTOR	ESP32_IRQ_TG_T1_LEVEL
 # define HRT_TIMER_CLOCK	APB_CLK_FREQ
-# define HRT_TIMER_BASE		TIM1_BASE
-# define HRT_TIMER_CONFIG_REG	TIM1_BASE + TIM_CONFIG_OFFSET
-# define HRT_TIMER_LO_REG	TIM1_BASE + TIM_LO_OFFSET
-# define HRT_TIMER_HI_REG	TIM1_BASE + TIM_HI_OFFSET
-# define HRT_TIMER_UPDATE_REG	TIM1_BASE + TIM_UPDATE_OFFSET
-# define HRT_TIMER_ALARM_LO_REG	TIM1_BASE + TIMG_ALARM_LO_OFFSET
-# define HRT_TIMER_ALARM_HI_REG	TIM1_BASE + TIMG_ALARM_HI_OFFSET
-# define HRT_TIMER_LOAD_LO_REG	TIM1_BASE + TIM_LOAD_LO_OFFSET
-# define HRT_TIMER_LOAD_HI_REG	TIM1_BASE + TIM_LOAD_HI_OFFSET
-# define HRT_TIMER_LOAD_REG	TIM1_BASE + TIM_LOAD_OFFSET
+# define HRT_TIMER_BASE		TIM_BASE
+# define HRT_TIMER_CONFIG_REG	TIM_BASE + TIM_CONFIG_OFFSET
+# define HRT_TIMER_LO_REG	TIM_BASE + TIM_LO_OFFSET
+# define HRT_TIMER_HI_REG	TIM_BASE + TIM_HI_OFFSET
+# define HRT_TIMER_UPDATE_REG	TIM_BASE + TIM_UPDATE_OFFSET
+# define HRT_TIMER_ALARM_LO_REG	TIM_BASE + TIMG_ALARM_LO_OFFSET
+# define HRT_TIMER_ALARM_HI_REG	TIM_BASE + TIMG_ALARM_HI_OFFSET
+# define HRT_TIMER_LOAD_LO_REG	TIM_BASE + TIM_LOAD_LO_OFFSET
+# define HRT_TIMER_LOAD_HI_REG	TIM_BASE + TIM_LOAD_HI_OFFSET
+# define HRT_TIMER_LOAD_REG	TIM_BASE + TIM_LOAD_OFFSET
+# define HRT_TIMER_INT_ENA	TIM_BASE + TIM1_INT_ENA_OFFSET
 # if CONFIG_STM32_TIM2
 #  error must not set CONFIG_STM32_TIM2=y and HRT_TIMER=2
 # endif
 #else
 # error HRT_TIMER must be a value between 0 and 1
 #endif
+
+#define REG(_reg)	(*(volatile uint32_t *)(HRT_TIMER_BASE + _reg))
+
+#define rLO 		REG(TIM_LO_OFFSET)
+#define rHI 		REG(TIM_HI_OFFSET)
+#define rUPDATE 	REG(TIM_UPDATE_OFFSET)
+#define rALARMLO 	REG(TIMG_ALARM_LO_OFFSET)
+#define rALARMHI 	REG(TIMG_ALARM_HI_OFFSET)
 
 /*
  * HRT clock must be a multiple of 1MHz greater than 1MHz
@@ -174,6 +192,9 @@ __EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 static void		hrt_tim_init(void);
 static int		hrt_tim_isr(int irq, void *context, void *arg);
 static void		hrt_latency_update(void);
+static void 		esp32_tim_modifyreg32(uint32_t base, uint32_t offset, uint32_t clearbits,uint32_t setbits);
+static void 		esp32_tim_putreg(uint32_t base, uint32_t offset, uint32_t value);
+static uint32_t 	esp32_tim_getreg(uint32_t base, uint32_t offset);
 
 /* callout list manipulation */
 static void		hrt_call_internal(struct hrt_call *entry,
@@ -188,12 +209,19 @@ static void		hrt_call_invoke(void);
 
 int hrt_ioctl(unsigned int cmd, unsigned long arg);
 
-__EXPORT uint16_t ppm_buffer[0];
-__EXPORT uint16_t ppm_frame_length = 0;
-__EXPORT unsigned ppm_decoded_channels = 0;
-__EXPORT uint64_t ppm_last_valid_decode = 0;
+static void esp32_tim_modifyreg32(uint32_t base, uint32_t offset, uint32_t clearbits, uint32_t setbits)
+{
+	modifyreg32(base + offset, clearbits, setbits);
+}
+static void esp32_tim_putreg(uint32_t base, uint32_t offset, uint32_t value)
+{
+  	putreg32(value, base + offset);
+}
+static uint32_t esp32_tim_getreg(uint32_t base, uint32_t offset)
+{
 
-#define PPM_DEBUG 0
+  return getreg32(base + offset);
+}
 
 /**
  * Initialise the timer we are going to use.
@@ -201,87 +229,89 @@ __EXPORT uint64_t ppm_last_valid_decode = 0;
  * We expect that we'll own one of the reduced-function STM32 general
  * timers, and that we can use channel 1 in compare mode.
  */
+
 static void
 hrt_tim_init(void)
 {
-	/* claim our interrupt vector */
-	irq_attach(DPORT_APP_TIMER_INT1_MAP_REG, hrt_tim_isr, NULL);
 
-	/* clock/power on our timer */
-	// modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
+	// ESP32_TIM_SETPRE(tim, ESP32_HRT_TIMER_PRESCALER);
+	uint32_t mask = ((uint32_t)(HRT_TIMER_CLOCK / 1000000) - 1) << TIMG_T0_DIVIDER_S;
+  	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, TIMG_T0_DIVIDER_M, mask);
 
-	/* disable and configure the timer */
-	REG_CLR_BIT(HRT_TIMER_CONFIG_REG, TIMG_T0_EN);
+	// ESP32_TIM_SETMODE(tim, ESP32_TIM_MODE_UP);
+	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_INCREASE);
 
-	// time-base counter will increment every clock tick
-	REG_SET_BIT(HRT_TIMER_CONFIG_REG, TIMG_T0_INCREASE);
+	// ESP32_TIM_CLEAR(tim);
+	esp32_tim_putreg(TIM_BASE, TIM_LOAD_LO_OFFSET, 0);
+  	esp32_tim_putreg(TIM_BASE, TIM_LOAD_HI_OFFSET, 0);
+	esp32_tim_putreg(TIM_BASE, TIM_LOAD_OFFSET, BIT(0)); //reload
 
-	// auto-reload at alarm is enabled
-	REG_SET_BIT(HRT_TIMER_CONFIG_REG, TIMG_T0_AUTORELOAD);
+	// ESP32_TIM_SETCTR(tim, 0); //set counter value
+  	esp32_tim_putreg(TIM_BASE, TIM_LOAD_LO_OFFSET, 0);
+  	esp32_tim_putreg(TIM_BASE, TIM_LOAD_HI_OFFSET, 0);
 
-	// configure timer to free run at 1Mhz
-	REG_SET_BITS(HRT_TIMER_CONFIG_REG, (HRT_TIMER_CLOCK / 1000000) - 1, TIMG_T0_DIVIDER);
+	// ESP32_TIM_RLD_NOW(tim);   //reload value now
+  	esp32_tim_putreg(TIM_BASE, TIM_LOAD_OFFSET, BIT(0)); //reload
 
-	// an alarm will generate an edge type interrupt.
-	REG_SET_BIT(HRT_TIMER_CONFIG_REG, TIMG_T0_EDGE_INT_EN);
+	// ESP32_TIM_SETALRVL(tim, 1000);		//alarm value
+	uint64_t val = 1000;
+  	uint64_t low_64 = val & LOW_32_MASK;
+  	uint64_t high_64 = (val >> SHIFT_32) & LOW_32_MASK;
+  	esp32_tim_putreg(TIM_BASE, TIMG_ALARM_LO_OFFSET, (uint32_t)low_64);
+  	esp32_tim_putreg(TIM_BASE, TIMG_ALARM_HI_OFFSET, (uint32_t)high_64);
 
-	// an alarm will not generate a level type interrupt
-	REG_CLR_BIT(HRT_TIMER_CONFIG_REG, TIMG_T0_LEVEL_INT_EN);
+        // ESP32_TIM_SETALRM(tim, true);		//enable alarm
+      	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_ALARM_EN);
+	// ESP32_TIM_SETARLD(tim, false);		//auto reload
+      	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, TIMG_T0_AUTORELOAD, 0);
 
-	// the alarm is enabled.
-	REG_SET_BIT(HRT_TIMER_CONFIG_REG, TIMG_T0_ALARM_EN);
+	// ESP32_TIM_SETISR(tim, hrt_tim_isr, NULL);
+	esp32_setup_irq(0, HRT_TIMER_PERIPH, HRT_TIMER_PRIO, ESP32_CPUINT_LEVEL);
+	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr, NULL);
+	up_enable_irq(HRT_TIMER_VECTOR);
 
-	// set the alarm at 1000
-	// set the alarm just infront of the current timer value
-	REG_WRITE(HRT_TIMER_ALARM_LO_REG, 0x3e8);
-	REG_WRITE(HRT_TIMER_ALARM_HI_REG, 0x00);
+	// ESP32_TIM_ENABLEINT(tim);
+  	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_LEVEL_INT_EN);
+      	esp32_tim_modifyreg32(TIM_BASE, TIM0_INT_ENA_OFFSET, 0, TIMG_T0_INT_ENA);
 
-	// reload value will be zero
-	REG_WRITE(HRT_TIMER_LOAD_LO_REG, 0x00);
-	REG_WRITE(HRT_TIMER_LOAD_HI_REG, 0x00);
+	// ESP32_TIM_START(tim);
+  	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_EN);
 
-	// set the timer to zero!
-	REG_WRITE(HRT_TIMER_LOAD_REG, 0x01);
-
-	/* enable the timer */
-	REG_SET_BIT(HRT_TIMER_CONFIG_REG, TIMG_T0_EN);
-
-	/* enable interrupts */
-	up_enable_irq(DPORT_APP_TIMER_INT1_MAP_REG);
 }
 
 /**
  * Handle the compare interrupt by calling the callout dispatcher
  * and then re-scheduling the next deadline.
  */
-static int
+static int IRAM_ATTR
 hrt_tim_isr(int irq, void *context, void *arg)
 {
-	// uint32_t status;
+	// uint32_t status = REG_READ(DPORT_APP_INTR_STATUS_1_REG);
 
 	/* grab the timer for latency tracking purposes */
-	REG_WRITE(HRT_TIMER_UPDATE_REG, 0x1);
+  	uint32_t value_32;
+  	latency_actual = 0;
+  	/* Dummy value to latch the counter value to read it */
+  	esp32_tim_putreg(TIM_BASE, TIM_UPDATE_OFFSET, BIT(0));
+  	/* Read value */
+  	value_32 = esp32_tim_getreg(TIM_BASE, TIM_HI_OFFSET); /* High 32 bits */
+  	latency_actual |= (uint64_t)value_32;
+  	latency_actual <<= SHIFT_32;
+  	value_32 = esp32_tim_getreg(TIM_BASE, TIM_LO_OFFSET); /* Low 32 bits */
+  	latency_actual |= (uint64_t)value_32;
 
-	latency_actual = (uint64_t)(REG_READ(HRT_TIMER_HI_REG)) << 32 | REG_READ(HRT_TIMER_LO_REG);
+	/* do latency calculations */
+	hrt_latency_update();
 
-	// /* copy interrupt status */
-	// status = REG_READ(HRT_TIMER_HI_REG);
+	/* run any callouts that have met their deadline */
+	hrt_call_invoke();
 
-	// /* ack the interrupts we just read */
-	// rSR = ~status;
+	/* and schedule the next interrupt */
+	hrt_call_reschedule();
 
-	/* was this a timer tick? */
-	// if (status & SR_INT_HRT) {
-
-		/* do latency calculations */
-		hrt_latency_update();
-
-		/* run any callouts that have met their deadline */
-		hrt_call_invoke();
-
-		/* and schedule the next interrupt */
-		hrt_call_reschedule();
-	// }
+	// acknowledge the interrupt
+        esp32_tim_putreg(TIM_BASE, TIM0_CLR_OFFSET, TIMG_T0_INT_CLR);
+      	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_ALARM_EN);
 
 	return OK;
 }
@@ -290,11 +320,11 @@ hrt_tim_isr(int irq, void *context, void *arg)
  * Fetch a never-wrapping absolute time value in microseconds from
  * some arbitrary epoch shortly after system start.
  */
-hrt_abstime
+hrt_abstime IRAM_ATTR
 hrt_absolute_time(void)
 {
 	hrt_abstime	abstime;
-	uint64_t	count;
+	// uint64_t	count;
 	irqstate_t	flags;
 
 	/*
@@ -307,14 +337,8 @@ hrt_absolute_time(void)
 
 	/* prevent re-entry */
 	flags = px4_enter_critical_section();
-
-	/* get the current counter value */
-	REG_WRITE(HRT_TIMER_UPDATE_REG, 0x1);
-	count = (uint64_t)(HRT_TIMER_HI_REG) << 32 | REG_READ(HRT_TIMER_LO_REG);
-
-
-	/* compute the current time */
-	abstime = HRT_COUNTER_SCALE(count);
+	rUPDATE = 1;
+	abstime = (hrt_abstime)(((uint64_t)rHI << 32) | (uint64_t)rLO);
 
 	px4_leave_critical_section(flags);
 
@@ -346,7 +370,7 @@ hrt_init(void)
 /**
  * Call callout(arg) after interval has elapsed.
  */
-void
+void __attribute__ ((section(".iram1")))
 hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg)
 {
 	hrt_call_internal(entry,
@@ -359,7 +383,7 @@ hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, v
 /**
  * Call callout(arg) at calltime.
  */
-void
+void __attribute__ ((section(".iram1")))
 hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg)
 {
 	hrt_call_internal(entry, calltime, 0, callout, arg);
@@ -368,7 +392,7 @@ hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, v
 /**
  * Call callout(arg) every period.
  */
-void
+void __attribute__ ((section(".iram1")))
 hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg)
 {
 	hrt_call_internal(entry,
@@ -378,7 +402,7 @@ hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, 
 			  arg);
 }
 
-static void
+static void __attribute__ ((section(".iram1")))
 hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime interval, hrt_callout callout, void *arg)
 {
 	irqstate_t flags = px4_enter_critical_section();
@@ -410,7 +434,7 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
  *
  * Always returns false for repeating callouts.
  */
-bool
+bool __attribute__ ((section(".iram1")))
 hrt_called(struct hrt_call *entry)
 {
 	return (entry->deadline == 0);
@@ -419,7 +443,7 @@ hrt_called(struct hrt_call *entry)
 /**
  * Remove the entry from the callout list.
  */
-void
+void __attribute__ ((section(".iram1")))
 hrt_cancel(struct hrt_call *entry)
 {
 	irqstate_t flags = px4_enter_critical_section();
@@ -435,7 +459,7 @@ hrt_cancel(struct hrt_call *entry)
 	px4_leave_critical_section(flags);
 }
 
-static void
+static void __attribute__ ((section(".iram1")))
 hrt_call_enter(struct hrt_call *entry)
 {
 	struct hrt_call	*call, *next;
@@ -463,7 +487,7 @@ hrt_call_enter(struct hrt_call *entry)
 	hrtinfo("scheduled\n");
 }
 
-static void
+static void __attribute__ ((section(".iram1")))
 hrt_call_invoke(void)
 {
 	struct hrt_call	*call;
@@ -517,7 +541,7 @@ hrt_call_invoke(void)
  *
  * This routine must be called with interrupts disabled.
  */
-static void
+static void __attribute__ ((section(".iram1")))
 hrt_call_reschedule()
 {
 	hrt_abstime	now = hrt_absolute_time();
@@ -555,8 +579,8 @@ hrt_call_reschedule()
 	/* set the new compare value and remember it for latency tracking */
 	latency_baseline = deadline & 0xffff;
 
-	REG_WRITE(HRT_TIMER_ALARM_LO_REG, latency_baseline & 0xffff);
-	REG_WRITE(HRT_TIMER_ALARM_HI_REG, latency_baseline >> 32);
+	rALARMLO = (uint32_t)(deadline & 0xffffffff);
+	rALARMHI = (uint32_t)((deadline >> 32) & 0xffffffff);
 }
 
 static void
@@ -577,13 +601,13 @@ hrt_latency_update(void)
 	latency_counters[index]++;
 }
 
-void
+void __attribute__ ((section(".iram1")))
 hrt_call_init(struct hrt_call *entry)
 {
 	memset(entry, 0, sizeof(*entry));
 }
 
-void
+void __attribute__ ((section(".iram1")))
 hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
 {
 	entry->deadline = hrt_absolute_time() + delay;
