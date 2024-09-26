@@ -260,7 +260,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETMODE(spi3, SPIDEV_MODE3);
 #endif
 
-	#ifdef CONFIG_ESP32_SPIFLASH2
+	#ifdef CONFIG_ESP32_SPIFLASH
   	int ret = esp32_spiflash_init();
   	if (ret)
     	{
