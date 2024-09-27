@@ -216,7 +216,8 @@ void Sih::sensor_step()
 
 	reconstruct_sensors_signals(now);
 
-	if ((_vehicle == VehicleType::FW || _vehicle == VehicleType::TS) && now - _airspeed_time >= 50_ms) {
+	if ((_vehicle == VehicleType::FW || _vehicle == VehicleType::TS || _vehicle == VehicleType::SVTOL)
+	    && now - _airspeed_time >= 50_ms) {
 		_airspeed_time = now;
 		send_airspeed(now);
 	}
@@ -311,7 +312,7 @@ void Sih::generate_force_and_torques()
 		_T_B = Vector3f(_T_MAX * _u[3], 0.0f, 0.0f); 	// forward thruster
 		// _Mt_B = Vector3f(_Q_MAX*_u[3], 0.0f,0.0f); 	// thruster torque
 		_Mt_B = Vector3f();
-		generate_fw_aerodynamics();
+		generate_fw_aerodynamics(_u[0], _u[1], _u[2], _u[3]);
 
 	} else if (_vehicle == VehicleType::TS) {
 		_T_B = Vector3f(0.0f, 0.0f, -_T_MAX * (_u[0] + _u[1]));
@@ -320,17 +321,24 @@ void Sih::generate_force_and_torques()
 
 		// _Fa_I = -_KDV * _v_I;   // first order drag to slow down the aircraft
 		// _Ma_B = -_KDW * _w_B;   // first order angular damper
+
+	} else if (_vehicle == VehicleType::SVTOL) {
+		_T_B = Vector3f(_T_MAX * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
+		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
+				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
+				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
+		generate_fw_aerodynamics(_u[4], _u[5], _u[6], 0);
 	}
 }
 
-void Sih::generate_fw_aerodynamics()
+void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust)
 {
 	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
 	float altitude = _H0 - _p_I(2);
-	_wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
-	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
-	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX * _u[3]);
-	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
+	_wing_l.update_aero(_v_B, _w_B, altitude, roll_cmd * FLAP_MAX);
+	_wing_r.update_aero(_v_B, _w_B, altitude, -roll_cmd * FLAP_MAX);
+	_tailplane.update_aero(_v_B, _w_B, altitude, pitch_cmd * FLAP_MAX, _T_MAX * thrust);
+	_fin.update_aero(_v_B, _w_B, altitude, yaw_cmd * FLAP_MAX, _T_MAX * thrust);
 	_fuselage.update_aero(_v_B, _w_B, altitude);
 
 	// sum of aerodynamic forces
@@ -383,7 +391,7 @@ void Sih::equations_of_motion(const float dt)
 
 	// fake ground, avoid free fall
 	if (_p_I(2) > 0.0f && (_v_I_dot(2) > 0.0f || _v_I(2) > 0.0f)) {
-		if (_vehicle == VehicleType::MC || _vehicle == VehicleType::TS) {
+		if (_vehicle == VehicleType::MC || _vehicle == VehicleType::TS || _vehicle == VehicleType::SVTOL) {
 			if (!_grounded) {    // if we just hit the floor
 				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
 				_v_I_dot = -_v_I / dt;
@@ -457,6 +465,7 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
 	_airspeed_pub.publish(airspeed);
+	PX4_INFO("test");
 }
 
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
@@ -619,6 +628,9 @@ int Sih::print_status()
 		PX4_INFO("aoa [deg]: %d", (int)(degrees(_ts[4].get_aoa())));
 		PX4_INFO("v segment (m/s)");
 		_ts[4].get_vS().print();
+
+	} else if (_vehicle == VehicleType::SVTOL) {
+		PX4_INFO("Running Standard VTOL");
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);
