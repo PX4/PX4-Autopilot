@@ -42,6 +42,7 @@ px4_add_module(
 		Position/VTEPosition.cpp
 		Position/KF_position_moving.cpp
 		Position/KF_position_static.cpp
+		Position/KF_position_unified.cpp
 		Orientation/VTEOrientation.cpp
 		Orientation/KF_orientation_moving.cpp
 		Orientation/KF_orientation_static.cpp
