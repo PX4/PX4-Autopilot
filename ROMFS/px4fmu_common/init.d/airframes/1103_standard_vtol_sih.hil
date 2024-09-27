@@ -52,6 +52,8 @@ param set-default CA_SV_CS1_TRQ_P 1
 param set-default CA_SV_CS1_TYPE 3
 param set-default CA_SV_CS2_TRQ_Y 1
 
+param set HIL_ACT_REV 32
+
 param set-default FW_AIRSPD_MAX 12
 param set-default FW_AIRSPD_MIN 7
 param set-default FW_AIRSPD_TRIM 10
