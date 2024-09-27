@@ -82,6 +82,7 @@ uint16 VEHICLE_CMD_RUN_PREARM_CHECKS = 401      	# Instructs a target system to 
 uint16 VEHICLE_CMD_INJECT_FAILURE = 420			# Inject artificial failure for testing purposes
 uint16 VEHICLE_CMD_START_RX_PAIR = 500			# Starts receiver pairing |0:Spektrum| 0:Spektrum DSM2, 1:Spektrum DSMX|
 uint16 VEHICLE_CMD_REQUEST_MESSAGE = 512    		# Request to send a single instance of the specified message
+uint16 VEHICLE_CMD_REQUEST_CAMERA_INFORMATION = 521     # Request camera information (CAMERA_INFORMATION). |0: No action 1: Request camera capabilities| Reserved (all remaining params)| Reserved (default:0)| Reserved (default:0)| Reserved (default:0)| Reserved (default:0)| Reserved (default:0)|  */
 uint16 VEHICLE_CMD_SET_CAMERA_MODE = 530		# Set camera capture mode (photo, video, etc.)
 uint16 VEHICLE_CMD_SET_CAMERA_ZOOM = 531		# Set camera zoom
 uint16 VEHICLE_CMD_SET_CAMERA_FOCUS = 532
