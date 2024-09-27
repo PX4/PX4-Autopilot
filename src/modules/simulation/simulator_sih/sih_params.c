@@ -332,6 +332,7 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
  * @value 0 Multicopter
  * @value 1 Fixed-Wing
  * @value 2 Tailsitter
+ * @value 3 Standard VTOL
  * @reboot_required true
  * @group Simulation In Hardware
  */

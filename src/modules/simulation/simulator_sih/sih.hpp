@@ -132,7 +132,7 @@ private:
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
 
 	// hard constants
-	static constexpr uint16_t NB_MOTORS = 6;
+	static constexpr uint16_t NB_MOTORS = 9;
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -159,7 +159,7 @@ private:
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
 	void publish_ground_truth(const hrt_abstime &time_now_us);
-	void generate_fw_aerodynamics();
+	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust);
 	void generate_ts_aerodynamics();
 	void sensor_step();
 
@@ -200,7 +200,7 @@ private:
 	matrix::Vector3f    _w_B_dot{};       // body rates differential
 	float       _u[NB_MOTORS] {};         // thruster signals
 
-	enum class VehicleType {MC, FW, TS};
+	enum class VehicleType {MC, FW, TS, SVTOL};
 	VehicleType _vehicle = VehicleType::MC;
 
 	// aerodynamic segments for the fixedwing
