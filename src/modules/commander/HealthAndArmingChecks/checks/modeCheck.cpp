@@ -58,7 +58,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		 * @description
 		 * Wait until the estimator initialized
 		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_attitude, health_component_t::system,
+		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_attitude, health_component_t::attitude_estimate,
 					    events::ID("check_modes_attitude"),
 					    events::Log::Critical, "No valid attitude estimate");
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_attitude);
@@ -78,7 +78,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	if (local_position_modes != NavModes::None) {
 		/* EVENT
 		 */
-		reporter.armingCheckFailure(local_position_modes, health_component_t::system,
+		reporter.armingCheckFailure(local_position_modes, health_component_t::local_position_estimate,
 					    events::ID("check_modes_local_pos"),
 					    events::Log::Error, "No valid local position estimate");
 		reporter.clearCanRunBits(local_position_modes);
@@ -87,7 +87,8 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	if (reporter.failsafeFlags().global_position_invalid && reporter.failsafeFlags().mode_req_global_position != 0) {
 		/* EVENT
 		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_global_position, health_component_t::system,
+		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_global_position,
+					    health_component_t::global_position_estimate,
 					    events::ID("check_modes_global_pos"),
 					    events::Log::Error, "No valid global position estimate");
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_global_position);

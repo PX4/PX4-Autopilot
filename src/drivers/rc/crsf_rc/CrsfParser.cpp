@@ -161,6 +161,8 @@ static float MapF(const float x, const float in_min, const float in_max, const f
 	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
+#define CONSTRAIN_CHAN(x) ConstrainF(x, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX)
+
 static bool ProcessChannelData(const uint8_t *data, const uint32_t size, CrsfPacket_t *const new_packet)
 {
 	uint32_t raw_channels[CRSF_CHANNEL_COUNT];
@@ -169,25 +171,24 @@ static bool ProcessChannelData(const uint8_t *data, const uint32_t size, CrsfPac
 	new_packet->message_type = CRSF_MESSAGE_TYPE_RC_CHANNELS;
 
 	// Decode channel data
-	raw_channels[0] = (data[0] | data[1] << 8) & 0x07FF;
-	raw_channels[1] = (data[1]  >> 3 | data[2] << 5) & 0x07FF;
-	raw_channels[2] = (data[2] >> 6 | data[3] << 2 | data[4] << 10) & 0x07FF;
-	raw_channels[3] = (data[4] >> 1 | data[5] << 7) & 0x07FF;
-	raw_channels[4] = (data[5] >> 4 | data[6] << 4) & 0x07FF;
-	raw_channels[5] = (data[6] >> 7 | data[7] << 1 | data[8] << 9) & 0x07FF;
-	raw_channels[6] = (data[8] >> 2 | data[9] << 6) & 0x07FF;
-	raw_channels[7] = (data[9] >> 5 | data[10] << 3) & 0x07FF;
-	raw_channels[8] = (data[11] | data[12] << 8) & 0x07FF;
-	raw_channels[9] = (data[12] >> 3 | data[13] << 5) & 0x07FF;
-	raw_channels[10] = (data[13] >> 6 | data[14] << 2 | data[15] << 10) & 0x07FF;
-	raw_channels[11] = (data[15] >> 1 | data[16] << 7) & 0x07FF;
-	raw_channels[12] = (data[16] >> 4 | data[17] << 4) & 0x07FF;
-	raw_channels[13] = (data[17] >> 7 | data[18] << 1 | data[19] << 9) & 0x07FF;
-	raw_channels[14] = (data[19] >> 2 | data[20] << 6) & 0x07FF;
-	raw_channels[15] = (data[20] >> 5 | data[21] << 3) & 0x07FF;
+	raw_channels[0] = CONSTRAIN_CHAN((data[0] | data[1] << 8) & 0x07FF);
+	raw_channels[1] = CONSTRAIN_CHAN((data[1]  >> 3 | data[2] << 5) & 0x07FF);
+	raw_channels[2] = CONSTRAIN_CHAN((data[2] >> 6 | data[3] << 2 | data[4] << 10) & 0x07FF);
+	raw_channels[3] = CONSTRAIN_CHAN((data[4] >> 1 | data[5] << 7) & 0x07FF);
+	raw_channels[4] = CONSTRAIN_CHAN((data[5] >> 4 | data[6] << 4) & 0x07FF);
+	raw_channels[5] = CONSTRAIN_CHAN((data[6] >> 7 | data[7] << 1 | data[8] << 9) & 0x07FF);
+	raw_channels[6] = CONSTRAIN_CHAN((data[8] >> 2 | data[9] << 6) & 0x07FF);
+	raw_channels[7] = CONSTRAIN_CHAN((data[9] >> 5 | data[10] << 3) & 0x07FF);
+	raw_channels[8] = CONSTRAIN_CHAN((data[11] | data[12] << 8) & 0x07FF);
+	raw_channels[9] = CONSTRAIN_CHAN((data[12] >> 3 | data[13] << 5) & 0x07FF);
+	raw_channels[10] = CONSTRAIN_CHAN((data[13] >> 6 | data[14] << 2 | data[15] << 10) & 0x07FF);
+	raw_channels[11] = CONSTRAIN_CHAN((data[15] >> 1 | data[16] << 7) & 0x07FF);
+	raw_channels[12] = CONSTRAIN_CHAN((data[16] >> 4 | data[17] << 4) & 0x07FF);
+	raw_channels[13] = CONSTRAIN_CHAN((data[17] >> 7 | data[18] << 1 | data[19] << 9) & 0x07FF);
+	raw_channels[14] = CONSTRAIN_CHAN((data[19] >> 2 | data[20] << 6) & 0x07FF);
+	raw_channels[15] = CONSTRAIN_CHAN((data[20] >> 5 | data[21] << 3) & 0x07FF);
 
 	for (i = 0; i < CRSF_CHANNEL_COUNT; i++) {
-		raw_channels[i] = ConstrainF(raw_channels[i], CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX);
 		new_packet->channel_data.channels[i] = MapF((float)raw_channels[i], CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX,
 						       1000.0f, 2000.0f);
 	}

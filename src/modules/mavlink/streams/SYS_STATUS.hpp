@@ -150,7 +150,12 @@ private:
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_3D_MAG, health_component_t::magnetometer, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_GPS, health_component_t::gps, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_RC_RECEIVER, health_component_t::remote_control, msg);
-			fillOutComponent(health_report, MAV_SYS_STATUS_AHRS, health_component_t::local_position_estimate, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_ATTITUDE_STABILIZATION, health_component_t::attitude_estimate,
+					 msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_XY_POSITION_CONTROL, health_component_t::local_position_estimate,
+					 msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_AHRS, health_component_t::attitude_estimate, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_LOGGING, health_component_t::logging, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_ABSOLUTE_PRESSURE, health_component_t::absolute_pressure, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_DIFFERENTIAL_PRESSURE, health_component_t::differential_pressure,
 					 msg);
@@ -165,8 +170,8 @@ private:
 			const battery_status_s &lowest_battery = battery_status[lowest_battery_index];
 
 			if (lowest_battery.connected) {
-				msg.voltage_battery = lowest_battery.voltage_filtered_v * 1000.0f;
-				msg.current_battery = lowest_battery.current_filtered_a * 100.0f;
+				msg.voltage_battery = lowest_battery.voltage_v * 1000.0f;
+				msg.current_battery = lowest_battery.current_a * 100.0f;
 				msg.battery_remaining = ceilf(lowest_battery.remaining * 100.0f);
 
 			} else {

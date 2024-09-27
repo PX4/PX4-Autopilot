@@ -52,12 +52,33 @@ RtlMissionFastReverse::RtlMissionFastReverse(Navigator *navigator) :
 
 }
 
+void RtlMissionFastReverse::on_inactive()
+{
+	MissionBase::on_inactive();
+	_vehicle_status_sub.update();
+	_mission_index_prior_rtl = _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ?
+				   _mission.current_seq : -1;
+}
+
+void RtlMissionFastReverse::on_inactivation()
+{
+	MissionBase::on_inactivation();
+	_in_landing_phase = false;
+}
+
 void RtlMissionFastReverse::on_activation()
 {
 	_home_pos_sub.update();
 
-	_is_current_planned_mission_item_valid = setMissionToClosestItem(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-			_global_pos_sub.get().alt, _home_pos_sub.get().alt, _vehicle_status_sub.get()) == PX4_OK;
+	// set mission item to closest item if not already in mission. If we are in mission, set to the previous item.
+	if (_mission_index_prior_rtl < 0) {
+		_is_current_planned_mission_item_valid = setMissionToClosestItem(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+				_global_pos_sub.get().alt, _home_pos_sub.get().alt, _vehicle_status_sub.get()) == PX4_OK;
+
+	} else {
+		setMissionIndex(math::max(_mission_index_prior_rtl - 1, 0));
+		_is_current_planned_mission_item_valid = isMissionValid();
+	}
 
 	if (_land_detected_sub.get().landed) {
 		// already landed, no need to do anything, invalidate the position mission item.
@@ -105,6 +126,7 @@ void RtlMissionFastReverse::setActiveMissionItems()
 		    _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 		    num_found_items == 0) {
 			handleLanding(new_work_item_type);
+			_in_landing_phase = true;
 
 		} else {
 			// convert mission item to a simple waypoint, keep loiter to alt
@@ -116,6 +138,8 @@ void RtlMissionFastReverse::setActiveMissionItems()
 			_mission_item.time_inside = 0.0f;
 
 			pos_sp_triplet->previous = pos_sp_triplet->current;
+
+			_in_landing_phase = false;
 		}
 
 		if (num_found_items > 0) {

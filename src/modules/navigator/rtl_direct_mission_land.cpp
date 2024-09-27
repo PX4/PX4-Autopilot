@@ -125,8 +125,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 	// Climb to altitude
 	if (_needs_climbing && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
-		// do not use LOITER_TO_ALT for rotary wing mode as it would then always climb to at least MIS_LTRMIN_ALT,
-		// even if current climb altitude is below (e.g. RTL immediately after take off)
+		// TODO: check if we also should use NAV_CMD_LOITER_TO_ALT for rotary wing
 		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 
@@ -213,6 +212,13 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+		// prevent lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
+		// is not achieved.
+		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && MissionBase::isLanding()
+		    && _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
+		}
 	}
 
 	issue_command(_mission_item);

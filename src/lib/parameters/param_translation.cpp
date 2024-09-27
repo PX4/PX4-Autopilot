@@ -73,5 +73,74 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2024-04-15 SYS_MC_EST_GROUP removed
+	if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SYS_MC_EST_GROUP", node->name) == 0)) {
+
+		int32_t value = node->i32;
+
+		// value 1 local_position_estimator, attitude_estimator_q (unsupported)
+		if (value == 1) {
+			// enable local_position_estimator
+			int32_t lpe_en_val = 1;
+			int lpe_en_ret = param_set(param_find("LPE_EN"), &lpe_en_val);
+
+			// enable attitude_estimator_q
+			int32_t att_en_val = 1;
+			int att_en_ret = param_set(param_find("ATT_EN"), &att_en_val);
+
+			// disable ekf2 (only if enabling lpe and att_w was successful)
+			if (lpe_en_ret == PX4_OK && att_en_ret == PX4_OK) {
+				int32_t ekf2_en_val = 0;
+				param_set(param_find("EKF2_EN"), &ekf2_en_val);
+
+			} else {
+				int32_t ekf2_en_val = 1;
+				param_set(param_find("EKF2_EN"), &ekf2_en_val);
+			}
+
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		// value 2 ekf2 (recommended)
+		if (value == 2) {
+			// disable local_position_estimator
+			int32_t lpe_en_val = 0;
+			param_set(param_find("LPE_EN"), &lpe_en_val);
+
+			// disable attitude_estimator_q
+			int32_t att_en_val = 0;
+			param_set(param_find("ATT_EN"), &att_en_val);
+
+			// enable ekf2
+			int32_t ekf2_en_val = 1;
+			param_set(param_find("EKF2_EN"), &ekf2_en_val);
+
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+
+		// value 3 Q attitude estimator (no position)
+		if (value == 3) {
+			// disable local_position_estimator
+			int32_t lpe_en_val = 0;
+			param_set(param_find("LPE_EN"), &lpe_en_val);
+
+			// enable attitude_estimator_q
+			int32_t att_en_val = 1;
+			int att_en_ret = param_set(param_find("ATT_EN"), &att_en_val);
+
+			// disable ekf2 (only if enabling att_w was successful)
+			if (att_en_ret == PX4_OK) {
+				int32_t ekf2_en_val = 0;
+				param_set(param_find("EKF2_EN"), &ekf2_en_val);
+
+			} else {
+				int32_t ekf2_en_val = 1;
+				param_set(param_find("EKF2_EN"), &ekf2_en_val);
+			}
+
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
 	return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
 }

@@ -38,8 +38,6 @@ px4_add_module(
 		crc16.c
 		crc16.h
 
-		voxl_esc_serial.cpp
-		voxl_esc_serial.hpp
 		voxl_esc.cpp
 		voxl_esc.hpp
 		qc_esc_packet_types.h

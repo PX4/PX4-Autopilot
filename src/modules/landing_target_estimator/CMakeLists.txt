@@ -41,4 +41,3 @@ px4_add_module(
 		KalmanFilter.cpp
 	DEPENDS
 	)
-

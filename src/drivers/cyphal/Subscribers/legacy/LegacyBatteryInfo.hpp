@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Battery.hpp
+ * @file LegacyBatteryInfo.hpp
  *
  * Defines basic functionality of UAVCAN legacy Battery subscription
  *
@@ -76,8 +76,6 @@ public:
 
 		battery_status_s bat_status {0};
 		bat_status.timestamp = hrt_absolute_time();
-		bat_status.voltage_filtered_v = bat_info.voltage;
-		bat_status.current_filtered_a = bat_info.current;
 		bat_status.current_average_a = bat_info.average_power_10sec;
 		bat_status.remaining = bat_info.state_of_charge_pct / 100.0f;
 		bat_status.scale = -1;

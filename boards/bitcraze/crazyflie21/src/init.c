@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file crazyflie_init.c
+ * @file init.c
  *
  * Crazyflie specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.

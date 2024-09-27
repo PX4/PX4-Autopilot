@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ActuatorEffectivenessTailsitterVTOL.hpp
+ * @file ActuatorEffectivenessTailsitterVTOL.cpp
  *
  * Actuator effectiveness for tailsitter VTOL
  */

@@ -15,14 +15,29 @@ param set-default SIM_GZ_EN 1 # Gazebo bridge
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
-param set-default SENS_EN_ARSPDSIM 1
+param set-default SENS_EN_ARSPDSIM 0
 # We can arm and drive in manual mode when it slides and GPS check fails:
 param set-default COM_ARM_WO_GPS 1
 
-# Set Differential Drive Kinematics Library parameters:
-param set RDD_WHEEL_BASE 0.9
-param set RDD_WHEEL_RADIUS 0.22
-param set RDD_WHEEL_SPEED 10.0	# Maximum wheel speed rad/s, approx 8 km/h
+# Rover parameters
+param set-default RD_WHEEL_TRACK 0.9
+param set-default RD_MAN_YAW_SCALE 0.1
+param set-default RD_YAW_RATE_I 0.1
+param set-default RD_YAW_RATE_P 5
+param set-default RD_MAX_ACCEL 1
+param set-default RD_MAX_JERK 3
+param set-default RD_MAX_SPEED 8
+param set-default RD_YAW_P 5
+param set-default RD_YAW_I 0.1
+param set-default RD_MAX_YAW_RATE 30
+param set-default RD_MISS_SPD_DEF 8
+param set-default RD_TRANS_DRV_TRN 0.349066
+param set-default RD_TRANS_TRN_DRV 0.174533
+
+# Pure pursuit parameters
+param set-default PP_LOOKAHD_MAX 30
+param set-default PP_LOOKAHD_MIN 2
+param set-default PP_LOOKAHD_GAIN 1
 
 # Actuator mapping - set SITL motors/servos output parameters:
 
@@ -36,14 +51,14 @@ param set-default SIM_GZ_WH_FUNC1 101 # right wheel
 param set-default SIM_GZ_WH_FUNC2 102 # left wheel
 #param set-default SIM_GZ_WH_MIN2 0
 #param set-default SIM_GZ_WH_MAX2 200
-#aram set-default SIM_GZ_WH_DIS2 100
+#param set-default SIM_GZ_WH_DIS2 100
 #param set-default SIM_GZ_WH_FAIL2 100
 
 param set-default SIM_GZ_WH_REV 0 # no need to reverse any wheels
 
-# Note: The servo configurations ( SIM_GZ_SV_FUNC*) outlined below are intended for educational purposes in this simulation. 
-# They do not have physical effects in the simulated environment, except for actuating the joints. Their definitions are meant to demonstrate 
-# how actuators could be mapped and configured in a real-world application, providing a foundation for understanding and implementing actuator 
+# Note: The servo configurations ( SIM_GZ_SV_FUNC*) outlined below are intended for educational purposes in this simulation.
+# They do not have physical effects in the simulated environment, except for actuating the joints. Their definitions are meant to demonstrate
+# how actuators could be mapped and configured in a real-world application, providing a foundation for understanding and implementing actuator
 # controls in practical scenarios.
 
 # Cutter deck blades clutch, PCA9685 servo channel 3,  "RC FLAPS" (406) - leftmost switch, or "Servo 3" (203):

@@ -129,12 +129,6 @@ else
     DAEMON="-d"
 fi
 
-if [ ! -f /data/px4/param/parameters ]; then
-   echo "[INFO] Setting default parameters for PX4 on voxl"
-   px4 $DAEMON -s /etc/modalai/voxl-px4-set-default-parameters.config
-   /bin/sync
-fi
-
 if [ $SENSOR_CAL == "FAKE" ]; then
    /bin/echo "[INFO] Setting up fake sensor calibration values"
    px4 $DAEMON -s /etc/modalai/voxl-px4-fake-imu-calibration.config

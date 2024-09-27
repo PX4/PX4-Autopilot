@@ -16,48 +16,41 @@ namespace sym {
  * Symbolic function: compute_yaw_innov_var_and_h
  *
  * Args:
- *     state: Matrix24_1
- *     P: Matrix23_23
+ *     state: Matrix25_1
+ *     P: Matrix24_24
  *     R: Scalar
  *
  * Outputs:
  *     innov_var: Scalar
- *     H: Matrix23_1
+ *     H: Matrix24_1
  */
 template <typename Scalar>
-void ComputeYawInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
-                            const matrix::Matrix<Scalar, 23, 23>& P, const Scalar R,
+void ComputeYawInnovVarAndH(const matrix::Matrix<Scalar, 25, 1>& state,
+                            const matrix::Matrix<Scalar, 24, 24>& P, const Scalar R,
                             Scalar* const innov_var = nullptr,
-                            matrix::Matrix<Scalar, 23, 1>* const H = nullptr) {
-  // Total ops: 36
+                            matrix::Matrix<Scalar, 24, 1>* const H = nullptr) {
+  // Total ops: 1
+
+  // Unused inputs
+  (void)state;
 
   // Input arrays
 
-  // Intermediate terms (5)
-  const Scalar _tmp0 = 2 * state(2, 0);
-  const Scalar _tmp1 = 2 * state(1, 0);
-  const Scalar _tmp2 = -_tmp0 * state(0, 0) + _tmp1 * state(3, 0);
-  const Scalar _tmp3 = _tmp0 * state(3, 0) + _tmp1 * state(0, 0);
-  const Scalar _tmp4 = std::pow(state(0, 0), Scalar(2)) - std::pow(state(1, 0), Scalar(2)) -
-                       std::pow(state(2, 0), Scalar(2)) + std::pow(state(3, 0), Scalar(2));
+  // Intermediate terms (0)
 
   // Output terms (2)
   if (innov_var != nullptr) {
     Scalar& _innov_var = (*innov_var);
 
-    _innov_var = R + _tmp2 * (P(0, 0) * _tmp2 + P(1, 0) * _tmp3 + P(2, 0) * _tmp4) +
-                 _tmp3 * (P(0, 1) * _tmp2 + P(1, 1) * _tmp3 + P(2, 1) * _tmp4) +
-                 _tmp4 * (P(0, 2) * _tmp2 + P(1, 2) * _tmp3 + P(2, 2) * _tmp4);
+    _innov_var = P(2, 2) + R;
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 23, 1>& _h = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
     _h.setZero();
 
-    _h(0, 0) = _tmp2;
-    _h(1, 0) = _tmp3;
-    _h(2, 0) = _tmp4;
+    _h(2, 0) = 1;
   }
 }  // NOLINT(readability/fn_size)
 

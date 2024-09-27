@@ -71,7 +71,7 @@
 [submodule "src/modules/zenoh/zenoh-pico"]
 	path = src/modules/zenoh/zenoh-pico
 	url = https://github.com/px4/zenoh-pico
-	branch = pr-zubf-werror-fix
+	branch = dev/1.0.0-px4
 [submodule "src/lib/heatshrink/heatshrink"]
 	path = src/lib/heatshrink/heatshrink
 	url = https://github.com/PX4/heatshrink.git
@@ -81,5 +81,9 @@
 	url = https://github.com/PX4/PX4-gazebo-models.git
 	branch = main
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
-	path = src/modules/muorb/apps/libfc-sensor-api
+	path = boards/modalai/voxl2/libfc-sensor-api
 	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libfc-sensor-api.git
+[submodule "src/drivers/actuators/vertiq_io/iq-module-communication-cpp"]
+	path = src/drivers/actuators/vertiq_io/iq-module-communication-cpp
+	url = https://github.com/PX4/iq-module-communication-cpp.git
+	branch = master

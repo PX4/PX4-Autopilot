@@ -139,7 +139,3 @@ def find_checks_that_apply(
         innov_fail_checks.append('ofy')
 
     return sensor_checks, innov_fail_checks
-
-
-
-

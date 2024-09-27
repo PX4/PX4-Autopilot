@@ -6,16 +6,40 @@
 . ${R}etc/init.d/rc.rover_differential_defaults
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
-PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=rover}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=r1_rover}
 
 param set-default SIM_GZ_EN 1 # Gazebo bridge
+
+# Rover parameters
+param set-default RD_WHEEL_TRACK 0.3
+param set-default RD_MAN_YAW_SCALE 0.1
+param set-default RD_MAX_ACCEL 6
+param set-default RD_MAX_JERK 30
+param set-default RD_MAX_THR_YAW_R 5
+param set-default RD_YAW_RATE_P 0.1
+param set-default RD_YAW_RATE_I 0
+param set-default RD_YAW_P 5
+param set-default RD_YAW_I 0
+param set-default RD_MAX_SPEED 5
+param set-default RD_MAX_THR_SPD 7
+param set-default RD_SPEED_P 1
+param set-default RD_SPEED_I 0
+param set-default RD_MAX_YAW_RATE 180
+param set-default RD_MISS_SPD_DEF 5
+param set-default RD_TRANS_DRV_TRN 0.349066
+param set-default RD_TRANS_TRN_DRV 0.174533
+
+# Pure pursuit parameters
+param set-default PP_LOOKAHD_MAX 30
+param set-default PP_LOOKAHD_MIN 2
+param set-default PP_LOOKAHD_GAIN 1
 
 # Simulated sensors
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
-param set-default SENS_EN_ARSPDSIM 1
+param set-default SENS_EN_ARSPDSIM 0
 
 # Actuator mapping
 param set-default SIM_GZ_WH_FUNC1 101 # right wheel

@@ -270,6 +270,11 @@
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PH2  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN2)
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
+/* MCP23009 GPIO expander */
+#define BOARD_GPIO_VDD_5V_COMP_VALID           "/dev/gpio4"
+#define BOARD_GPIO_VDD_5V_CAN1_GPS1_VALID      "/dev/gpio5"
+
+
 /* Spare GPIO */
 
 #define GPIO_PG6                        /* PG6  */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTG|GPIO_PIN6)
@@ -319,9 +324,12 @@
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 /* RC Serial port */
-
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
+/* Some RC protocols are bi-directional, therefore we need a half-duplex UART */
 #define RC_SERIAL_SINGLEWIRE
+/* The STM32 UART by default wires half-duplex mode to the TX pin, but our
+ * signal in routed to the RX pin, so we need to swap the pins */
+#define RC_SERIAL_SWAP_RXTX
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  1

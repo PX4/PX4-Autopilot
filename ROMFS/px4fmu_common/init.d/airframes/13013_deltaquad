@@ -29,7 +29,6 @@ param set-default BAT1_N_CELLS 4
 param set-default BAT1_R_INTERNAL 0.0025
 
 param set-default SYS_HAS_NUM_ASPD 0
-param set-default CBRK_IO_SAFETY 22027
 
 param set-default EKF2_GPS_POS_X -0.12
 param set-default EKF2_IMU_POS_X -0.12
@@ -66,7 +65,6 @@ param set-default MC_PITCHRATE_I 0.05
 param set-default MC_YAWRATE_MAX 20
 param set-default MC_AIRMODE 1
 
-param set-default MIS_DIST_1WP 100
 param set-default MIS_TAKEOFF_ALT 15
 
 param set-default MPC_XY_P 0.8

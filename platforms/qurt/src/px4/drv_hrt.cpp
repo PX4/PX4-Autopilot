@@ -81,7 +81,7 @@ static void hrt_unlock()
 	px4_sem_post(&_hrt_lock);
 }
 
-int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
+int px4_clock_settime(clockid_t clk_id, const struct timespec *tp)
 {
 	return 0;
 }

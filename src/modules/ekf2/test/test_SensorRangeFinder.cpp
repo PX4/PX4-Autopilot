@@ -34,10 +34,10 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include "EKF/common.h"
-#include "EKF/sensor_range_finder.hpp"
+#include "EKF/aid_sources/range_finder/sensor_range_finder.hpp"
 #include <matrix/math.hpp>
 
-using estimator::rangeSample;
+using estimator::sensor::rangeSample;
 using matrix::Dcmf;
 using matrix::Eulerf;
 using namespace estimator::sensor;
@@ -51,6 +51,7 @@ public:
 		_range_finder.setPitchOffset(0.f);
 		_range_finder.setCosMaxTilt(0.707f);
 		_range_finder.setLimits(_min_range, _max_range);
+		_range_finder.setMaxFogDistance(2.f);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -60,20 +61,21 @@ public:
 
 protected:
 	SensorRangeFinder _range_finder{};
-	const rangeSample _good_sample{(uint64_t)2e6, 1.f, 100}; // {time_us, range, quality}
+	const rangeSample _good_sample{(uint64_t)2e6, 5.f, 100}; // {time_us, range, quality}
 	const float _min_range{0.5f};
 	const float _max_range{10.f};
 
-	void updateSensorAtRate(uint64_t duration_us, uint64_t dt_update_us, uint64_t dt_sensor_us);
+	void updateSensorAtRate(rangeSample sample, uint64_t duration_us, uint64_t dt_update_us, uint64_t dt_sensor_us);
 	void testTilt(const Eulerf &euler, bool should_pass);
 };
 
-void SensorRangeFinderTest::updateSensorAtRate(uint64_t duration_us, uint64_t dt_update_us, uint64_t dt_sensor_us)
+void SensorRangeFinderTest::updateSensorAtRate(rangeSample sample, uint64_t duration_us, uint64_t dt_update_us,
+		uint64_t dt_sensor_us)
 {
 	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
 
-	rangeSample new_sample = _good_sample;
-	uint64_t t_now_us = _good_sample.time_us;
+	rangeSample new_sample = sample;
+	uint64_t t_now_us = sample.time_us;
 
 	for (int i = 0; i < int(duration_us / dt_update_us); i++) {
 		t_now_us += dt_update_us;
@@ -307,7 +309,7 @@ TEST_F(SensorRangeFinderTest, continuity)
 	const uint64_t dt_update_us = 10e3;
 	uint64_t dt_sensor_us = 4e6;
 	uint64_t duration_us = 8e6;
-	updateSensorAtRate(duration_us, dt_update_us, dt_sensor_us);
+	updateSensorAtRate(_good_sample, duration_us, dt_update_us, dt_sensor_us);
 
 	// THEN: the data should be marked as unhealthy
 	// Note that it also fails the out-of-date test here
@@ -317,14 +319,14 @@ TEST_F(SensorRangeFinderTest, continuity)
 	// AND WHEN: the data rate is acceptable
 	dt_sensor_us = 3e5;
 	duration_us = 5e5;
-	updateSensorAtRate(duration_us, dt_update_us, dt_sensor_us);
+	updateSensorAtRate(_good_sample, duration_us, dt_update_us, dt_sensor_us);
 
 	// THEN: it should still fail until the filter converge
 	// to the new datarate
 	EXPECT_FALSE(_range_finder.isDataHealthy());
 	EXPECT_FALSE(_range_finder.isHealthy());
 
-	updateSensorAtRate(duration_us, dt_update_us, dt_sensor_us);
+	updateSensorAtRate(_good_sample, duration_us, dt_update_us, dt_sensor_us);
 	EXPECT_TRUE(_range_finder.isDataHealthy());
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
@@ -344,4 +346,50 @@ TEST_F(SensorRangeFinderTest, distBottom)
 	const Dcmf attitude20{Eulerf(-0.35f, 0.f, 0.f)};
 	_range_finder.runChecks(sample.time_us, attitude20);
 	EXPECT_FLOAT_EQ(_range_finder.getDistBottom(), sample.rng * cosf(-0.35));
+}
+
+TEST_F(SensorRangeFinderTest, blockedByFog)
+{
+	// WHEN: sensor is not blocked by fog
+	const Dcmf attitude{Eulerf(0.f, 0.f, 0.f)};
+	const uint64_t dt_update_us = 10e3;
+	uint64_t dt_sensor_us = 3e5;
+	uint64_t duration_us = 5e5;
+
+	updateSensorAtRate(_good_sample, duration_us, dt_update_us, dt_sensor_us);
+	// THEN: the data should be marked as healthy
+	EXPECT_TRUE(_range_finder.isDataHealthy());
+	EXPECT_TRUE(_range_finder.isHealthy());
+
+
+	// WHEN: sensor is then blocked by fog
+	// range jumps to value below 2m
+	uint64_t t_now_us = _range_finder.getSampleAddress()->time_us;
+	rangeSample sample{t_now_us, 1.f, 100};
+	updateSensorAtRate(sample, duration_us, dt_update_us, dt_sensor_us);
+
+	// THEN: the data should be marked as unhealthy
+	EXPECT_FALSE(_range_finder.isDataHealthy());
+	EXPECT_FALSE(_range_finder.isHealthy());
+
+	// WHEN: the sensor is not blocked by fog anymore
+	sample.rng = 5.f;
+	updateSensorAtRate(sample, duration_us, dt_update_us, dt_sensor_us);
+
+	// THEN: the data should be marked as healthy again
+	EXPECT_TRUE(_range_finder.isDataHealthy());
+	EXPECT_TRUE(_range_finder.isHealthy());
+
+	// WHEN: the sensor is is not jumping to a value below 2m
+	while (sample.rng > _min_range) {
+		sample.time_us += dt_update_us;
+		_range_finder.setSample(sample);
+		_range_finder.runChecks(sample.time_us, attitude);
+		sample.rng -= 0.5f;
+	}
+
+	// THEN: the data should still be marked as healthy
+	EXPECT_TRUE(_range_finder.isDataHealthy());
+	EXPECT_TRUE(_range_finder.isHealthy());
+
 }

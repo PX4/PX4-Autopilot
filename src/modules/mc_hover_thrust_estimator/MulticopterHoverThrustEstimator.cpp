@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file hover_thrust_estimator.cpp
+ * @file MulticopterHoverThrustEstimator.cpp
  *
  * @author Mathieu Bresciani 	<brescianimathieu@gmail.com>
  */

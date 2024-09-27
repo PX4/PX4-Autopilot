@@ -1,0 +1,103 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_OF_CTRL:
+      description:
+        short: Optical flow aiding
+        long: Enable optical flow fusion.
+      type: boolean
+      default: 1
+    EKF2_OF_DELAY:
+      description:
+        short: Optical flow measurement delay relative to IMU measurements
+        long: Assumes measurement is timestamped at trailing edge of integration period
+      type: float
+      default: 20
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_OF_GATE:
+      description:
+        short: Gate size for optical flow fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 3.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_OF_N_MIN:
+      description:
+        short: Optical flow minimum noise
+        long: Measurement noise for the optical flow sensor when it's reported quality
+          metric is at the maximum
+      type: float
+      default: 0.15
+      min: 0.05
+      unit: rad/s
+      decimal: 2
+    EKF2_OF_N_MAX:
+      description:
+        short: Optical flow maximum noise
+        long: Measurement noise for the optical flow sensor when it's reported quality
+          metric is at the minimum
+      type: float
+      default: 0.5
+      min: 0.05
+      unit: rad/s
+      decimal: 2
+    EKF2_OF_QMIN:
+      description:
+        short: In air optical flow minimum quality
+        long: Optical Flow data will only be used in air if the sensor reports a
+          quality metric >= EKF2_OF_QMIN
+      type: int32
+      default: 1
+      min: 0
+      max: 255
+    EKF2_OF_QMIN_GND:
+      description:
+        short: On ground optical flow minimum quality
+        long: Optical Flow data will only be used on the ground if the sensor reports
+          a quality metric >= EKF2_OF_QMIN_GND
+      type: int32
+      default: 0
+      min: 0
+      max: 255
+    EKF2_OF_GYR_SRC:
+      description:
+        short: Optical flow angular rate compensation source
+        long: 'Auto: use gyro from optical flow message if available, internal gyro otherwise.
+               Internal: always use internal gyro'
+      type: enum
+      values:
+        0: Auto
+        1: Internal
+      default: 0
+    EKF2_OF_POS_X:
+      description:
+        short: X position of optical flow focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_OF_POS_Y:
+      description:
+        short: Y position of optical flow focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_OF_POS_Z:
+      description:
+        short: Z position of optical flow focal point in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3

@@ -96,6 +96,9 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 #if defined(CONFIG_UAVCAN_SAFETY_STATE_CONTROLLER)
 	_safety_state_controller(_node),
 #endif
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+	_remoteid_controller(_node),
+#endif
 #if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 	_rgbled_controller(_node),
 #endif
@@ -558,6 +561,16 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return ret;
 	}
 
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+	ret = _remoteid_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+#endif
+
+
 #if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 	ret = _rgbled_controller.init();
 
@@ -743,6 +756,41 @@ UavcanNode::Run()
 	}
 
 	_node.spinOnce(); // expected to be non-blocking
+
+	// Publish status
+	constexpr hrt_abstime status_pub_interval = 100_ms;
+
+	if (hrt_absolute_time() - _last_can_status_pub >= status_pub_interval) {
+		_last_can_status_pub = hrt_absolute_time();
+
+		for (int i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
+			if (i > UAVCAN_NUM_IFACES) {
+				break;
+			}
+
+			auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
+
+			if (!iface) {
+				continue;
+			}
+
+			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+			can_interface_status_s status{
+				.timestamp = hrt_absolute_time(),
+				.io_errors = iface_perf_cnt.errors,
+				.frames_tx = iface_perf_cnt.frames_tx,
+				.frames_rx = iface_perf_cnt.frames_rx,
+				.interface = static_cast<uint8_t>(i),
+			};
+
+			if (_can_status_pub_handles[i] == nullptr) {
+				int instance{0};
+				_can_status_pub_handles[i] = orb_advertise_multi(ORB_ID(can_interface_status), nullptr, &instance);
+			}
+
+			(void)orb_publish(ORB_ID(can_interface_status), _can_status_pub_handles[i], &status);
+		}
+	}
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {

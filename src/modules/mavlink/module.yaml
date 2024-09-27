@@ -32,6 +32,10 @@ serial_config:
         then
             set MAV_ARGS "${MAV_ARGS} -z"
         fi
+        if param compare MAV_${i}_MODE 6
+        then
+            set MAV_ARGS "${MAV_ARGS} -F p:MAV_${i}_HL_FREQ"
+        fi
         mavlink start ${MAV_ARGS} -x
       port_config_param:
         name: MAV_${i}_CONFIG
@@ -177,4 +181,22 @@ parameters:
                 2: Auto-detected
             num_instances: *max_num_config_instances
             default: [2, 2, 2]
+            reboot_required: true
+
+        MAV_${i}_HL_FREQ:
+            description:
+                short: Configures the frequency of HIGH_LATENCY2 stream for instance ${i}
+                long: |
+                    Positive real value that configures the transmission frequency of the
+                    HIGH_LATENCY2 stream for instance ${i}, configured in iridium mode.
+                    This parameter has no effect if the instance mode is different from iridium.
+
+            type: float
+            decimal: 3
+            increment: 0.001
+            unit: Hz
+            min: 0.0
+            max: 50.0
+            num_instances: *max_num_config_instances
+            default: [0.015, 0.015, 0.015]
             reboot_required: true

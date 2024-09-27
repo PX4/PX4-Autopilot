@@ -64,7 +64,7 @@ class Mavlink;
 class MavlinkParametersManager
 {
 public:
-	explicit MavlinkParametersManager(Mavlink *mavlink);
+	explicit MavlinkParametersManager(Mavlink &mavlink);
 	~MavlinkParametersManager() = default;
 
 	/**
@@ -159,7 +159,7 @@ protected:
 	hrt_abstime _param_update_time{0};
 	int _param_update_index{0};
 
-	Mavlink *_mavlink;
+	Mavlink &_mavlink;
 
 	bool _first_send{false};
 };

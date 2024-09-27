@@ -243,8 +243,8 @@ void Sih::parameters_updated()
 	_KDW = _sih_kdw.get();
 	_H0 = _sih_h0.get();
 
-	_LAT0 = (double)_sih_lat0.get() * 1.0e-7;
-	_LON0 = (double)_sih_lon0.get() * 1.0e-7;
+	_LAT0 = (double)_sih_lat0.get();
+	_LON0 = (double)_sih_lon0.get();
 	_COS_LAT0 = cosl((long double)radians(_LAT0));
 
 	_MASS = _sih_mass.get();
@@ -450,7 +450,8 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
+	// airspeed sensor is mounted along the negative Z axis since the vehicle is a tailsitter
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, -_v_B(2) + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.air_temperature_celsius = NAN;
 	airspeed.confidence = 0.7f;

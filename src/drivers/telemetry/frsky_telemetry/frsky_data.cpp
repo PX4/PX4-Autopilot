@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file frsky_data.c
+ * @file frsky_data.cpp
  *
  * @author Stefan Rado <px4@sradonia.net>
  *

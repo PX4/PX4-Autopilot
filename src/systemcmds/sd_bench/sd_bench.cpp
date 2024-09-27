@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file sd_bench.c
+ * @file sd_bench.cpp
  *
  * SD Card benchmarking
  */
@@ -50,11 +50,13 @@
 
 #include <drivers/drv_hrt.h>
 
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
 typedef struct sdb_config {
 	int num_runs; ///< number of runs
 	int run_duration; ///< duration of a single run [ms]
 	bool synchronized; ///< call fsync after each block?
-	bool aligned;
+	int unaligned;
 	unsigned int total_blocks_written;
 } sdb_config_t;
 
@@ -83,6 +85,7 @@ static void usage()
 	PRINT_MODULE_USAGE_PARAM_FLAG('k', "Keep the test file", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Call fsync after each block (default=at end of each run)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('u', "Test performance with unaligned data", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('U', "Test performance with forced byte unaligned data", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verify data and block number", true);
 }
 
@@ -98,10 +101,11 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 	cfg.synchronized = false;
 	cfg.num_runs = 5;
 	cfg.run_duration = 2000;
-	cfg.aligned = true;
+	cfg.unaligned = 0;
 	uint8_t *block = nullptr;
+	uint8_t *block_alloc = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:ksuv", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:ksuUv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			block_size = strtol(myoptarg, nullptr, 0);
@@ -124,7 +128,11 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 			break;
 
 		case 'u':
-			cfg.aligned = false;
+			cfg.unaligned = 2;
+			break;
+
+		case 'U':
+			cfg.unaligned = 1;
 			break;
 
 		case 'v':
@@ -151,11 +159,24 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 	}
 
 	//create some data block
-	if (cfg.aligned) {
-		block = (uint8_t *)px4_cache_aligned_alloc(block_size);
+	if (cfg.unaligned == 0) {
+		block_alloc = (uint8_t *)px4_cache_aligned_alloc(block_size);
+		block = block_alloc;
 
 	} else {
-		block = (uint8_t *)malloc(block_size);
+		block_alloc = (uint8_t *)malloc(block_size + 4);
+
+		if (block_alloc) {
+			// Force odd byte alignment
+			if (cfg.unaligned == 1 && ((uintptr_t)block_alloc % 0x1) == 0) {
+				block = block_alloc + 1;
+
+			} else {
+				block = block_alloc;
+			}
+		}
+
+		printf("Block ptr %p\n", block);
 	}
 
 	if (!block) {
@@ -177,7 +198,7 @@ extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 		read_test(bench_fd, &cfg, block, block_size);
 	}
 
-	free(block);
+	free(block_alloc);
 	close(bench_fd);
 
 	if (!keep) {
@@ -202,6 +223,7 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 	unsigned int total_blocks = 0;
 	cfg->total_blocks_written = 0;
 	unsigned int *blocknumber = (unsigned int *)(void *)&block[0];
+	unsigned int max_max_write_time = 0;
 
 	for (int run = 0; run < cfg->num_runs; ++run) {
 		hrt_abstime start = hrt_absolute_time();
@@ -245,24 +267,40 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 		total_elapsed += elapsed;
 		total_blocks += num_blocks;
+		max_max_write_time = MAX(max_max_write_time, max_write_time);
 	}
 
 	cfg->total_blocks_written = total_blocks;
 	PX4_INFO("  Avg   : %8.2lf KB/s", (double)block_size * total_blocks / total_elapsed / 1024.);
+	PX4_INFO("  Overall max write time: %i ms", max_max_write_time);
 }
 
 int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 {
 	uint8_t *read_block = nullptr;
+	uint8_t *block_alloc = nullptr;
 
 	PX4_INFO("");
 	PX4_INFO("Testing Sequential Read Speed of %d blocks", cfg->total_blocks_written);
 
-	if (cfg->aligned) {
-		read_block = (uint8_t *)px4_cache_aligned_alloc(block_size);
+	if (cfg->unaligned == 0) {
+		block_alloc = (uint8_t *)px4_cache_aligned_alloc(block_size);
+		read_block = block_alloc;
 
 	} else {
-		read_block = (uint8_t *)malloc(block_size);
+		block_alloc = (uint8_t *)malloc(block_size + 4);
+
+		if (block_alloc) {
+			// Force odd byte alignment
+			if (cfg->unaligned == 1 && ((uintptr_t)block_alloc % 0x1) == 0) {
+				read_block = block_alloc + 1;
+
+			} else {
+				read_block = block_alloc;
+			}
+		}
+
+		printf("Read Block ptr %p\n", read_block);
 	}
 
 	if (!read_block) {
@@ -326,6 +364,6 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 	PX4_INFO("  Avg   : %8.2lf KB/s %d blocks read and verified", (double)block_size * total_blocks / total_elapsed / 1024.,
 		 total_blocks);
-	free(read_block);
+	free(block_alloc);
 	return 0;
 }

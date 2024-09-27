@@ -44,4 +44,3 @@ px4_add_module(
 		drivers_magnetometer
 		px4_work_queue
 	)
-

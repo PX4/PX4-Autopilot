@@ -53,6 +53,16 @@
 #include <uORB/topics/distance_sensor.h>
 
 #include "sf45_commands.h"
+
+enum SF_SERIAL_STATE {
+	STATE_UNINIT = 0,
+	STATE_SEND_PRODUCT_NAME = 1,
+	STATE_SEND_UPDATE_RATE = 2,
+	STATE_SEND_DISTANCE_DATA = 3,
+	STATE_SEND_STREAM = 4,
+};
+
+
 class SF45LaserSerial : public px4::ScheduledWorkItem
 {
 public:
@@ -105,7 +115,7 @@ private:
 	uint8_t                         _parsed_state{0};
 	bool                            _sop_valid{false};
 	uint16_t                        _calc_crc{0};
-	uint8_t                         _num_retries{2};
+	uint8_t                         _num_retries{0};
 	int32_t                         _yaw_cfg{0};
 	int32_t                         _orient_cfg{0};
 	int32_t                         _collision_constraint{0};

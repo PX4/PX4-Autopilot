@@ -225,11 +225,14 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
- * Allow arming without GPS
+ * GPS preflight check
+ *
+ * Measures taken when a check defined by EKF2_GPS_CHECK is failing.
  *
  * @group Commander
- * @value 0 Require GPS lock to arm
- * @value 1 Allow arming without GPS
+ * @value 0 Deny arming
+ * @value 1 Warning only
+ * @value 2 Disabled
  */
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
@@ -285,7 +288,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * @unit s
  * @min 0.0
  * @max 25.0
- * @decimal 3
+ * @decimal 1
  */
 PARAM_DEFINE_FLOAT(COM_FAIL_ACT_T, 5.f);
 
@@ -335,14 +338,14 @@ PARAM_DEFINE_INT32(COM_QC_ACT, 0);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
- * @value  0 Position mode
- * @value  1 Altitude mode
- * @value  2 Manual
- * @value  3 Return mode
- * @value  4 Land mode
- * @value  5 Hold mode
- * @value  6 Terminate
- * @value  7 Disarm
+ * @value 0 Position mode
+ * @value 1 Altitude mode
+ * @value 2 Stabilized
+ * @value 3 Return mode
+ * @value 4 Land mode
+ * @value 5 Hold mode
+ * @value 6 Terminate
+ * @value 7 Disarm
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
@@ -357,50 +360,6 @@ PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(COM_OBC_LOSS_T, 5.0f);
-
-/**
- * Maximum EKF position innovation test ratio that will allow arming
- *
- * @group Commander
- * @min 0.1
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_POS, 0.5f);
-
-/**
- * Maximum EKF velocity innovation test ratio that will allow arming
- *
- * @group Commander
- * @min 0.1
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_VEL, 0.5f);
-
-/**
- * Maximum EKF height innovation test ratio that will allow arming
- *
- * @group Commander
- * @min 0.1
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_HGT, 1.0f);
-
-/**
- * Maximum EKF yaw innovation test ratio that will allow arming
- *
- * @group Commander
- * @min 0.1
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
 
 /**
  * Maximum accelerometer inconsistency between IMU units that will allow arming
@@ -494,16 +453,12 @@ PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 30.0f);
 PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
 
 /**
- * Position control navigation loss response.
+ * Position mode navigation loss response
  *
- * This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control.
+ * This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control in manual Position mode.
  *
- * If Altitude/Manual is selected: assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
- *
- * If Land/Descend is selected: assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to Descend.
- *
- * @value 0 Altitude/Manual
- * @value 1 Land/Descend
+ * @value 0 Altitude mode
+ * @value 1 Land mode (descend)
  *
  * @group Commander
  */
@@ -801,6 +756,21 @@ PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
  * @increment 1
  */
 PARAM_DEFINE_FLOAT(COM_CPU_MAX, 95.0f);
+
+/**
+ * Maximum allowed RAM usage to pass checks
+ *
+ * The check fails if the RAM usage is above this threshold.
+ *
+ * A negative value disables the check.
+ *
+ * @group Commander
+ * @unit %
+ * @min -1
+ * @max 100
+ * @increment 1
+ */
+PARAM_DEFINE_FLOAT(COM_RAM_MAX, 95.0f);
 
 /**
  * Required number of redundant power modules

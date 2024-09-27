@@ -75,11 +75,11 @@ static int ramtron_attach(mtd_instance_s &instance)
 	return ENXIO;
 #else
 
-	/* start the RAMTRON driver, attempt 10 times */
+	/* start the RAMTRON driver at 30MHz */
 
-	int spi_speed_mhz = 10;
+	unsigned long spi_speed_hz = 30'000'000;
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; spi_speed_hz > 0; i++) {
 		/* initialize the right spi */
 		struct spi_dev_s *spi = px4_spibus_initialize(px4_find_spi_bus(instance.devid));
 
@@ -90,7 +90,7 @@ static int ramtron_attach(mtd_instance_s &instance)
 
 		/* this resets the spi bus, set correct bus speed again */
 		SPI_LOCK(spi, true);
-		SPI_SETFREQUENCY(spi, spi_speed_mhz * 1000 * 1000);
+		SPI_SETFREQUENCY(spi, spi_speed_hz);
 		SPI_SETBITS(spi, 8);
 		SPI_SETMODE(spi, SPIDEV_MODE3);
 		SPI_SELECT(spi, instance.devid, false);
@@ -108,7 +108,7 @@ static int ramtron_attach(mtd_instance_s &instance)
 		}
 
 		// try reducing speed for next attempt
-		spi_speed_mhz--;
+		spi_speed_hz -= 1'000'000;
 		px4_usleep(10000);
 	}
 
@@ -118,7 +118,7 @@ static int ramtron_attach(mtd_instance_s &instance)
 		return -EIO;
 	}
 
-	int ret = instance.mtd_dev->ioctl(instance.mtd_dev, MTDIOC_SETSPEED, (unsigned long)spi_speed_mhz * 1000 * 1000);
+	int ret = instance.mtd_dev->ioctl(instance.mtd_dev, MTDIOC_SETSPEED, spi_speed_hz);
 
 	if (ret != OK) {
 		// FIXME: From the previous warning call, it looked like this should have been fatal error instead. Tried

@@ -9,11 +9,12 @@ menu "Magnetometer"
         select DRIVERS_MAGNETOMETER_QMC5883L
         select DRIVERS_MAGNETOMETER_ISENTEK_IST8308
         select DRIVERS_MAGNETOMETER_ISENTEK_IST8310
-        select DRIVERS_MAGNETOMETER_LIS2MDL
         select DRIVERS_MAGNETOMETER_LIS3MDL
         select DRIVERS_MAGNETOMETER_LSM303AGR
         select DRIVERS_MAGNETOMETER_RM3100
         select DRIVERS_MAGNETOMETER_VTRANTECH_VCM1193L
+        select DRIVERS_MAGNETOMETER_MEMSIC_MMC5983MA
+        select DRIVERS_MAGNETOMETER_ST_IIS2MDC
         ---help---
             Enable default set of magnetometer drivers
     rsource "*/Kconfig"

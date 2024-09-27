@@ -20,7 +20,6 @@ adb shell chmod a+x /usr/bin/voxl-px4-hitl-start
 
 # Push configuration file
 adb shell mkdir -p /etc/modalai
-adb push boards/modalai/voxl2/target/voxl-px4-set-default-parameters.config /etc/modalai
 adb push boards/modalai/voxl2/target/voxl-px4-fake-imu-calibration.config /etc/modalai
 adb push boards/modalai/voxl2/target/voxl-px4-hitl-set-default-parameters.config /etc/modalai
 
@@ -128,6 +127,7 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-uart_esc_driver"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-flight_mode_manager"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-imu_server"
 adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-apps_sbus"
+adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-voxl_save_cal_params"
 
 # Make sure any required directories exist
 adb shell "/bin/mkdir -p /data/px4/param"

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file test_EKF_utils.cpp
+ * @file UtilitiesTest.cpp
  *
  * @brief Unit tests for the miscellaneous EKF utilities
  */

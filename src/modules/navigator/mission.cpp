@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mission.cpp
+ * @file mission.cpp
  *
  * Helper class to access missions
  *
@@ -65,7 +65,7 @@ using namespace time_literals;
 static constexpr int32_t DEFAULT_MISSION_CACHE_SIZE = 10;
 
 Mission::Mission(Navigator *navigator) :
-	MissionBase(navigator, DEFAULT_MISSION_CACHE_SIZE)
+	MissionBase(navigator, DEFAULT_MISSION_CACHE_SIZE, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 {
 }
 
@@ -91,41 +91,6 @@ Mission::on_activation()
 	MissionBase::on_activation();
 }
 
-bool
-Mission::isLanding()
-{
-	if (get_land_start_available()) {
-		static constexpr size_t max_num_next_items{1u};
-		int32_t next_mission_items_index[max_num_next_items];
-		size_t num_found_items;
-
-		getNextPositionItems(_mission.land_start_index + 1, next_mission_items_index, num_found_items, max_num_next_items);
-
-		// vehicle is currently landing if
-		//  mission valid, still flying, and in the landing portion of mission (past land start marker)
-		bool on_landing_stage = (num_found_items > 0U) &&  _mission.current_seq > next_mission_items_index[0U];
-
-		// special case: if the land start index is at a LOITER_TO_ALT WP, then we're in the landing sequence already when the
-		// distance to the WP is below the loiter radius + acceptance.
-		if ((num_found_items > 0U) && _mission.current_seq == next_mission_items_index[0U]
-		    && _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
-			const float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
-						_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-
-			// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
-			const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
-					&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
-					_navigator->get_loiter_radius();
-
-			on_landing_stage = d_current <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs);
-		}
-
-		return _navigator->get_mission_result()->valid && on_landing_stage;
-
-	} else {
-		return false;
-	}
-}
 
 bool
 Mission::set_current_mission_index(uint16_t index)
@@ -216,6 +181,23 @@ void Mission::setActiveMissionItems()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	const position_setpoint_s current_setpoint_copy = pos_sp_triplet->current;
 
+	/* Skip VTOL/FW Takeoff item if in air, fixed-wing and didn't start the takeoff already*/
+	if ((_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_TAKEOFF) &&
+	    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) &&
+	    (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) &&
+	    !_land_detected_sub.get().landed) {
+		if (setNextMissionItem()) {
+			if (!loadCurrentMissionItem()) {
+				setEndOfMissionItems();
+				return;
+			}
+
+		} else {
+			setEndOfMissionItems();
+			return;
+		}
+	}
+
 	if (item_contains_position(_mission_item)) {
 
 		handleTakeoff(new_work_item_type, next_mission_items, num_found_items);
@@ -225,6 +207,13 @@ void Mission::setActiveMissionItems()
 		// TODO Precision land needs to be refactored: https://github.com/PX4/Firmware/issues/14320
 		if (new_work_item_type != WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND) {
 			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+		}
+
+		// prevent fixed wing lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
+		// is not achieved.
+		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && isLanding() &&
+		    _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
 		}
 
 		// Allow a rotary wing vehicle to decelerate before reaching a wp with a hold time or a timeout

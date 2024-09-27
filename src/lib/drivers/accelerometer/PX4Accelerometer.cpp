@@ -179,5 +179,5 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 void PX4Accelerometer::UpdateClipLimit()
 {
 	// 99.9% of potential max
-	_clip_limit = math::constrain((_range / _scale) * 0.999f, 0.f, (float)INT16_MAX);
+	_clip_limit = fabsf(_range / _scale * 0.999f);
 }
