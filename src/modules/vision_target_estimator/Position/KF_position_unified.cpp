@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+// TODO: rename to KF_position and clean up comments
+
 /**
  * @file KF_position_moving.cpp
  * @brief Filter to estimate the pose of moving targets. State: [pos_rel, vel_uav, bias, acc_target, vel_target]

@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+// TODO: rename to KF_position and clean up comments
+
 /**
  * @file KF_position_moving.h
  * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
@@ -79,9 +81,8 @@ public:
 		_state_covariance = var_mat;
 	};
 
-	matrix::Vector<float, vtest::State::size> getAugmentedState() { return _state;}
-
-	matrix::Vector<float, vtest::State::size> getAugmentedStateVar()
+	matrix::Vector<float, vtest::State::size> getState() { return _state;}
+	matrix::Vector<float, vtest::State::size> getStateVar()
 	{
 		const matrix::SquareMatrix<float, vtest::State::size> var_mat = _state_covariance;
 		return var_mat.diag();
