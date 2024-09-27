@@ -89,18 +89,20 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f
 		P.uncorrelateCovarianceSetVariance<1>(State::vel.idx + 1, math::max(sq(0.01f), new_horz_vel_var(1)));
 	}
 
-	P.uncorrelateCovarianceSetVariance<1>(State::pos.idx, P(State::pos.idx, State::pos.idx));
-	P.uncorrelateCovarianceSetVariance<1>(State::pos.idx + 1, P(State::pos.idx + 1, State::pos.idx + 1));
+	recordHorizontalVelReset(delta_horz_vel);
+}
 
-	_output_predictor.resetHorizontalVelocityTo(delta_horz_vel);
+void Ekf::recordHorizontalVelReset(const Vector2f &delta_vel)
+{
+	_output_predictor.resetHorizontalVelocityTo(delta_vel);
 
 	// record the state change
 	if (_state_reset_status.reset_count.velNE == _state_reset_count_prev.velNE) {
-		_state_reset_status.velNE_change = delta_horz_vel;
+		_state_reset_status.velNE_change = delta_vel;
 
 	} else {
 		// there's already a reset this update, accumulate total delta
-		_state_reset_status.velNE_change += delta_horz_vel;
+		_state_reset_status.velNE_change += delta_vel;
 	}
 
 	_state_reset_status.reset_count.velNE++;
@@ -117,8 +119,6 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 	if (PX4_ISFINITE(new_vert_vel_var)) {
 		P.uncorrelateCovarianceSetVariance<1>(State::vel.idx + 2, math::max(sq(0.01f), new_vert_vel_var));
 	}
-
-	P.uncorrelateCovarianceSetVariance<1>(State::pos.idx + 2, P(State::pos.idx + 2, State::pos.idx + 2));
 
 	_output_predictor.resetVerticalVelocityTo(delta_vert_vel);
 

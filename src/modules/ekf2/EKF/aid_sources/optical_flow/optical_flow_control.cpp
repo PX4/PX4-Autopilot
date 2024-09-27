@@ -39,6 +39,7 @@
 #include "ekf.h"
 
 #include <ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h>
+#include <ekf_derivation/generated/compute_flow_y_innov_var_and_h.h>
 
 void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 {
@@ -169,7 +170,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 				if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)) {
 					if (is_flow_required && is_quality_good && is_magnitude_good) {
-						resetFlowFusion(flow_sample);
+						resetFlowFusion(flow_sample, H);
 
 						if (_control_status.flags.opt_flow_terrain && !isTerrainEstimateValid()) {
 							resetTerrainToFlow();
@@ -203,7 +204,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				} else {
 					if (isTerrainEstimateValid() || (_height_sensor_ref == HeightSensor::RANGE)) {
 						ECL_INFO("starting optical flow, resetting");
-						resetFlowFusion(flow_sample);
+						resetFlowFusion(flow_sample, H);
 						_control_status.flags.opt_flow = true;
 
 					} else if (_control_status.flags.opt_flow_terrain) {
@@ -222,13 +223,59 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::resetFlowFusion(const flowSample &flow_sample)
+void Ekf::resetFlowFusion(const flowSample &flow_sample, VectorState &H)
 {
+	// dont force hard reset if innovation is acceptable
+	if (!_aid_src_optical_flow.innovation_rejected) {
+		Vector2f v_xy_pre = _state.vel.xy();
+		fuseOptFlow(H, _control_status.flags.opt_flow_terrain);
+
+		// record velocity diff for output-predictor because it does not correspond to IMU measurements
+		Vector2f diff = _state.vel.xy() - v_xy_pre;
+		recordHorizontalVelReset(diff);
+		return;
+	}
+
 	ECL_INFO("reset velocity to flow");
 	_information_events.flags.reset_vel_to_flow = true;
 
 	const float flow_vel_var = sq(predictFlowRange()) * calcOptFlowMeasVar(flow_sample);
-	resetHorizontalVelocityTo(getFilteredFlowVelNE(), flow_vel_var);
+	const float epsilon = 1e-3f;
+	Vector2f innov_var_vector;
+	sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, flow_vel_var, epsilon, &innov_var_vector, &H);
+
+	const auto state_vector = _state.vector();
+	VectorState Kfusion;
+	Vector2f vel_desired = getFilteredFlowVelNE();
+	const Vector3f flow_gyro_corrected = _flow_sample_delayed.gyro_rate - _flow_gyro_bias;
+	Vector2f innov = predictFlow(flow_gyro_corrected) - vel_desired;
+
+	// there is a cross-correlation built up between the attitude/gyro-bias states and the position
+	// uncertainties which causes unstable behavior when not reset
+	P.slice<State::pos.dof, State::quat_nominal.dof>(State::pos.idx, State::quat_nominal.idx) = 0.f;
+	P.slice<State::quat_nominal.dof, State::pos.dof>(State::quat_nominal.idx, State::pos.idx) = 0.f;
+	P.slice<State::pos.dof, State::gyro_bias.dof>(State::pos.idx, State::gyro_bias.idx) = 0.f;
+	P.slice<State::gyro_bias.dof, State::pos.dof>(State::gyro_bias.idx, State::pos.idx) = 0.f;
+
+	for (int index = 0; index < 2; index++) {
+		P.uncorrelateCovariance<1>(State::vel.idx + index);
+
+		if (index == 1) {
+			const float R_LOS = flow_vel_var;
+			sym::ComputeFlowYInnovVarAndH(state_vector, P, R_LOS, epsilon, &innov_var_vector(1), &H);
+		}
+
+		// y = H * state - z
+		// state_desired = x - K * y
+		// K = state - state_desired / y
+		// K = delta_state / y
+		float delta_vel = _state.vel(index) - vel_desired(index);
+		Kfusion.setZero();
+		Kfusion(State::vel.idx + index) = delta_vel / innov(index);
+		measurementUpdate(Kfusion, H, flow_vel_var, innov(index));
+	}
+
+	recordHorizontalVelReset(vel_desired - Vector2f(state_vector.slice<2, 1>(State::vel.idx, 0)));
 
 	// reset position, estimate is relative to initial position in this mode, so we start with zero error
 	if (!_control_status.flags.in_air) {
