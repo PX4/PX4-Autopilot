@@ -76,7 +76,7 @@ void Sih::run()
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
 	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
-					  static_cast<typeof _sih_vtype.get()>(2));
+					  static_cast<typeof _sih_vtype.get()>(3));
 
 	_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 
@@ -323,7 +323,7 @@ void Sih::generate_force_and_torques()
 		// _Ma_B = -_KDW * _w_B;   // first order angular damper
 
 	} else if (_vehicle == VehicleType::SVTOL) {
-		_T_B = Vector3f(_T_MAX * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
+		_T_B = Vector3f(_T_MAX * 2 * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
@@ -458,14 +458,21 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
+
 	// airspeed sensor is mounted along the negative Z axis since the vehicle is a tailsitter
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, -_v_B(2) + generate_wgn() * 0.2f);
+	if (_vehicle == VehicleType::TS) {
+
+		airspeed.true_airspeed_m_s = fmaxf(0.1f, -_v_B(2) + generate_wgn() * 0.2f);
+
+	} else {
+		airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
+	}
+
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.air_temperature_celsius = NAN;
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
 	_airspeed_pub.publish(airspeed);
-	PX4_INFO("test");
 }
 
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
