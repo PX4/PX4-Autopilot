@@ -396,9 +396,12 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 		Vector3f pos_init;
 		Vector3f uav_vel_init;
-		Vector3f target_acc_init;	// Assume null target absolute acceleration
 		Vector3f bias_init;
+#if defined(CONFIG_VTEST_MOVING)
+		Vector3f target_acc_init;	// Assume null target absolute acceleration
 		Vector3f target_vel_init;
+#endif // CONFIG_VTEST_MOVING
+
 
 		// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
 		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
@@ -419,9 +422,13 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 			_bias_set = true;
 		}
 
+#if defined(CONFIG_VTEST_MOVING)
+
 		if (_target_gps_vel.valid && (_is_meas_valid(_target_gps_vel.timestamp))) {
 			target_vel_init = _target_gps_vel.xyz;
 		}
+
+#endif // CONFIG_VTEST_MOVING
 
 		// Define initial relative velocity of the target w.r.t. to the drone in NED frame
 		if (_uav_gps_vel.valid && (_is_meas_valid(_uav_gps_vel.timestamp))) {
