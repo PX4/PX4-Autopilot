@@ -219,7 +219,8 @@ ControlAllocationSequentialDesaturation::mixYaw()
 	// Change yaw acceleration to unsaturate the outputs if needed (do not change roll/pitch),
 	// and allow some yaw response at maximum thrust
 	ActuatorVector max_prev = _actuator_max;
-	_actuator_max += (_actuator_max - _actuator_min) * 0.15f;
+	// Uncomment line below to allow some yaw response at maximum thrust
+	//_actuator_max += (_actuator_max - _actuator_min) * 0.15f;
 	desaturateActuators(_actuator_sp, yaw);
 	_actuator_max = max_prev;
 
