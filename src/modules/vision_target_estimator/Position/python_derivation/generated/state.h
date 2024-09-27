@@ -10,22 +10,22 @@
 namespace vtest
 {
 struct StateSample {
-	float r{};
-	float v_uav{};
+	float pos_rel{};
+	float vel_uav{};
 	float bias{};
 
 	matrix::Vector<float, 3> Data() const
 	{
 		matrix::Vector<float, 3> state;
-		state.slice<1, 1>(0, 0) = r;
-		state.slice<1, 1>(1, 0) = v_uav;
+		state.slice<1, 1>(0, 0) = pos_rel;
+		state.slice<1, 1>(1, 0) = vel_uav;
 		state.slice<1, 1>(2, 0) = bias;
 		return state;
 	};
 
 	const matrix::Vector<float, 3> &vector() const
 	{
-		return *reinterpret_cast<matrix::Vector<float, 3>*>(const_cast<float *>(reinterpret_cast<const float *>(&r)));
+		return *reinterpret_cast<matrix::Vector<float, 3>*>(const_cast<float *>(reinterpret_cast<const float *>(&pos_rel)));
 	};
 
 };
@@ -34,8 +34,8 @@ static_assert(sizeof(matrix::Vector<float, 3>) == sizeof(StateSample), "state ve
 struct IdxDof { unsigned idx; unsigned dof; };
 namespace State
 {
-static constexpr IdxDof r{0, 1};
-static constexpr IdxDof v_uav{1, 1};
+static constexpr IdxDof pos_rel{0, 1};
+static constexpr IdxDof vel_uav{1, 1};
 static constexpr IdxDof bias{2, 1};
 static constexpr uint8_t size{3};
 };

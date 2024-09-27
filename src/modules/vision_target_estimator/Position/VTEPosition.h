@@ -72,6 +72,8 @@
 #include <lib/geo/geo.h>
 #include "KF_position_static.h"
 #include "KF_position_moving.h"
+#include "KF_position_unified.h"
+#include "python_derivation/generated/state.h"
 
 using namespace time_literals;
 
@@ -160,14 +162,6 @@ private:
 
 	bool _has_timed_out{false};
 
-	enum class TargetMode {
-		Stationary = 0,
-		Moving = 1,
-		NotInit
-	};
-
-	TargetMode _target_mode{TargetMode::NotInit};
-
 	enum ObservationType {
 		target_gps_pos = 0,
 		mission_gps_pos = 1,
@@ -185,7 +179,7 @@ private:
 		updated_xyz; // Indicates if we have an observation in the x, y or z direction
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
-		matrix::Matrix<float, Direction::nb_directions, Base_KF_decoupled::AugmentedState::COUNT>
+		matrix::Matrix<float, Direction::nb_directions, vtest::State::size>
 		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the AugmentedState
 	};
 
@@ -208,8 +202,8 @@ private:
 		FUSE_TARGET_GPS_VEL     = (1 << 4),   ///< set to true if target GPS velocity data is ready to be fused
 	};
 
-	bool selectTargetEstimator();
-	bool initEstimator(const matrix::Matrix <float, Direction::nb_directions, Base_KF_decoupled::AugmentedState::COUNT>
+	bool initTargetEstimator();
+	bool initEstimator(const matrix::Matrix <float, Direction::nb_directions, vtest::State::size>
 			   &state_init);
 	bool update_step(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc);
@@ -218,8 +212,10 @@ private:
 	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report,
 				     const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 	bool processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
-	bool processObsGNSSVelRel(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
+	bool processObsGNSSVelUav(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
+#if defined(CONFIG_VTEST_MOVING)
 	bool processObsGNSSVelTarget(const target_gnss_s &target_GNSS_report, targetObsPos &obs);
+#endif // CONFIG_VTEST_MOVING
 
 	bool fuse_meas(const matrix::Vector3f &vehicle_acc_ned, const targetObsPos &target_pos_obs);
 	void publishTarget();
@@ -269,7 +265,8 @@ private:
 	uint64_t _last_vision_obs_fused_time{0};
 	bool _estimator_initialized{false};
 
-	Base_KF_decoupled *_target_estimator[Direction::nb_directions] {nullptr, nullptr, nullptr};
+	KF_position_unified *_target_estimator[Direction::nb_directions] {nullptr, nullptr, nullptr};
+
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 

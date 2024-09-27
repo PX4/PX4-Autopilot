@@ -61,16 +61,16 @@ moving = args.moving
 
 # The state vector is organized in an ordered dictionary
 State = Values(
-    r=sf.V1(),
-    v_uav=sf.V1(),
+    pos_rel=sf.V1(),
+    vel_uav=sf.V1(),
     bias=sf.V1(),
-    a_target=sf.V1(),
-    v_target=sf.V1()
+    acc_target=sf.V1(),
+    vel_target=sf.V1()
 )
 
 if not moving:
-    del State["a_target"]
-    del State["v_target"]
+    del State["acc_target"]
+    del State["vel_target"]
 
 class IdxDof():
     def __init__(self, idx, dof):
@@ -134,7 +134,7 @@ def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, acc_var
     Q[idx_bias, idx_bias] = bias_var
 
     if moving:
-        idx_a_target = tangent_idx['a_target'].idx
+        idx_a_target = tangent_idx['acc_target'].idx
         Q[idx_a_target, idx_a_target] = acc_var
 
     return G * input_var * G.T + Q + Phi * covariance * Phi.T
