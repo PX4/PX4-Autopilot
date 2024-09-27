@@ -1499,6 +1499,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE:
 	case vehicle_command_s::VEHICLE_CMD_DO_WINCH:
 	case vehicle_command_s::VEHICLE_CMD_DO_GRIPPER:
+	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE:
+	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -2601,23 +2603,28 @@ void Commander::answer_command(const vehicle_command_s &cmd, uint8_t result)
 		break;
 
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED:
+		PX4_DEBUG("command %" PRIu32 " denied", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED:
+		PX4_DEBUG("command %" PRIu32 " failed", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
+		PX4_DEBUG("command %" PRIu32 " temporarily rejected", cmd.command);
 		tune_negative(true);
 		break;
 
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
+		PX4_WARN("command %" PRIu32 " unsupported", cmd.command);
 		tune_negative(true);
 		break;
 
 	default:
-		break;
+		PX4_ERR("command %" PRIu32 " invalid result %d", cmd.command, result);
+		return;
 	}
 
 	/* publish ACK */
