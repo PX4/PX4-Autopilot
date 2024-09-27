@@ -65,14 +65,14 @@
 struct pwm_info_s pwm_info;
 struct pwm_lowerhalf_s *pwm;
 
-int up_pwm_servo_set(unsigned channel, servo_position_t value)
+int up_pwm_servo_set(unsigned channel, uint16_t value)
 {
 	//syslog(LOG_INFO, "PWM set ch: %d value:%d\n", channel,value);
 	pwm_info.channels[channel].duty = (value*pwm_info.frequency)/(1000000/65535);
 	return OK;
 }
 
-servo_position_t up_pwm_servo_get(unsigned channel)
+uint16_t up_pwm_servo_get(unsigned channel)
 {
 	//syslog(LOG_INFO, "PWM get ch: %d\n", channel);
 	return pwm_info.channels[channel].duty;
