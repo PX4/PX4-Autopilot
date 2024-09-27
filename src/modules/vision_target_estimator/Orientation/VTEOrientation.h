@@ -137,7 +137,7 @@ private:
 		matrix::Vector2f meas_h_theta;
 	};
 
-	bool selectTargetEstimator();
+	bool initTargetEstimator();
 	bool initEstimator(const float theta_init);
 	bool update_step();
 	void predictionStep();

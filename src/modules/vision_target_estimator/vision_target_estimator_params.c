@@ -113,6 +113,8 @@ PARAM_DEFINE_INT32(VTE_AID_MASK, 14);
  */
 PARAM_DEFINE_INT32(VTE_TASK_MASK, 1);
 
+
+// TODO: remove
 /**
  * Target mode
  *
