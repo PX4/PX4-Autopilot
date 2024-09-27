@@ -66,11 +66,11 @@ VTEOrientation::~VTEOrientation()
 
 bool VTEOrientation::init()
 {
-
+	// TODO: remove target mode.
 	_target_mode = (TargetMode)_param_vte_mode.get();
 	_vte_TIMEOUT_US = (uint32_t)(_param_vte_btout.get() * 1_s);
 
-	return selectTargetEstimator();
+	return initTargetEstimator();
 }
 
 void VTEOrientation::resetFilter()
@@ -310,7 +310,7 @@ void VTEOrientation::set_range_sensor(const float dist, const bool valid)
 	_range_sensor.last_update = hrt_absolute_time();
 }
 
-bool VTEOrientation::selectTargetEstimator()
+bool VTEOrientation::initTargetEstimator()
 {
 	Base_KF_orientation *tmp_theta = nullptr;
 
