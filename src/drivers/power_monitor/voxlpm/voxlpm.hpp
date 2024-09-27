@@ -246,7 +246,7 @@ private:
 	int 			measure_ina231();
 
 	bool			_initialized;
-	static constexpr unsigned _meas_interval_us{100_ms};
+	static constexpr unsigned _meas_interval_us{40_ms};
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 

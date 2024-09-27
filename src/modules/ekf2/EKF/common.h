@@ -289,6 +289,8 @@ struct parameters {
 	int32_t baro_ctrl{1};
 	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
 
+	int32_t bounce_fix{0};
+
 	int32_t sensor_interval_max_ms{10};     ///< maximum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
 
 	// measurement time delays
@@ -491,6 +493,11 @@ struct parameters {
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
+
+	// Fake Position Fusion Parameters
+	int32_t fp_tout{2000000};
+	float fp_alim{2.0f};
+	float fp_costilt{0.906f};
 };
 
 union fault_status_u {

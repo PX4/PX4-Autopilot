@@ -193,11 +193,20 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 
 		ssize_t pos = snprintf((char *)log_message.text, max_length, __px4__log_modulename_pfmt, module_name);
 
+		static constexpr ssize_t subtext_max_length = sizeof(log_message_s::subtext);
+
+		char subtext[max_length];
 		va_list argptr;
 		va_start(argptr, fmt);
-		pos += vsnprintf((char *)log_message.text + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
+		vsnprintf((char *)subtext, max_length, fmt, argptr);
 		va_end(argptr);
+
+		pos += snprintf((char *)log_message.text + pos, math::max(max_length - pos, (ssize_t)0), "%s", subtext);
 		log_message.text[max_length - 1] = 0; //ensure 0-termination
+
+		snprintf((char *)log_message.subtext, subtext_max_length, "%s", subtext);
+		log_message.subtext[subtext_max_length - 1] = 0; //ensure 0-termination
+
 		log_message.timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
 	}

@@ -57,6 +57,8 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/log_message.h>
+#include <uORB/topics/parameter_selector.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 // PX4 events interface
 #include <px4_platform_common/events.h>
@@ -69,14 +71,6 @@
 
 namespace msp_dp_osd
 {
-
-// construct an MSP_NAME struct
-//  note: this is actually how we display _all_ string information
-msp_name_t construct_display_message(const vehicle_status_s &vehicle_status,
-				     const vehicle_attitude_s &vehicle_attitude,
-				     const log_message_s &log_message,
-				     const int log_level,
-				     msp_osd::MessageDisplay &display);
 
 // Construct a vtx config struct
 msp_dp_vtx_config_t construct_vtx_config(uint8_t band, uint8_t channel);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,16 @@
  *
  ****************************************************************************/
 
-#pragma once
-
-#include "../Common.hpp"
-
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/manual_control_setpoint.h>
-
-class RcAndDataLinkChecks : public HealthAndArmingCheckBase
-{
-public:
-	RcAndDataLinkChecks() = default;
-	~RcAndDataLinkChecks() = default;
-
-	void checkAndReport(const Context &context, Report &reporter) override;
-
-private:
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-
-	hrt_abstime	_last_valid_manual_control_setpoint{0};
-
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
-					(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
-					(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act
-				       )
-};
+/**
+ * Maximum Vz Velocity
+ *
+ * The maximum climb or descent rate during the flight task
+ *
+ * @unit m/s
+ * @min 0.1
+ * @max 10000.0
+ * @increment 0.01
+ * @decimal 3
+ * @group FlightTask
+ */
+PARAM_DEFINE_FLOAT(FLGT_VZ_MAX, 1.0f);

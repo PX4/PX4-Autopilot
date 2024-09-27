@@ -38,7 +38,7 @@
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_RSSI_COL, -1);
 
@@ -49,274 +49,252 @@ PARAM_DEFINE_INT32(OSD_RSSI_COL, -1);
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_RSSI_ROW, -1);
 
 /**
- *OSD Current Draw column 
+ *OSD Current Draw column
  *
  * Selects which column to place Current Draw element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_CURR_COL, -1);
 
 /**
- * OSD Current Draw row 
+ * OSD Current Draw row
  *
  * Selects which row to place Current Draw element in.
  *
  * @group OSD
+ * @value -1 - Disabled
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_CURR_ROW, -1);
 
 /**
- *OSD Battery column 
+ *OSD Battery column
  *
  * Selects which column to place Battery element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_BATT_COL, -1);
 
 /**
- * OSD Battery row 
+ * OSD Battery row
  *
  * Selects which row to place Battery element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_BATT_ROW, -1);
 
 /**
- *OSD Cell Battery column 
+ *OSD Cell Battery column
  *
  * Selects which column to place Cell Battery element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_CBATT_COL, -1);
 
 /**
- * OSD Cell Battery row 
+ * OSD Cell Battery row
  *
  * Selects which row to place Cell Battery element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_CBATT_ROW, -1);
 
 /**
- *OSD Disarmed Message column 
+ *OSD Disarmed Message column
  *
  * Selects which column to place Disarmed Message element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_DIS_COL, -1);
 
 /**
- * OSD Disarmed Message row 
+ * OSD Disarmed Message row
  *
  * Selects which row to place Disarmed Message element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_DIS_ROW, -1);
 
 /**
- *OSD Status Message column 
+ *OSD Status Message column
  *
  * Selects which column to place Status Message element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_STATUS_COL, -1);
 
 /**
- * OSD Status Message row 
+ * OSD Status Message row
  *
  * Selects which row to place Status Message element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_STATUS_ROW, -1);
 
 /**
- *OSD Flight Mode column 
+ *OSD Flight Mode column
  *
  * Selects which column to place Flight Mode element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_FM_COL, -1);
 
 /**
- * OSD Flight Mode row 
+ * OSD Flight Mode row
  *
  * Selects which row to place Flight Mode element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_FM_ROW, -1);
 
 /**
- *OSD Latitude column 
+ *OSD Latitude column
  *
  * Selects which column to place Latitude element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_LAT_COL, -1);
 
 /**
- * OSD Latitude row 
+ * OSD Latitude row
  *
  * Selects which row to place Latitude element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_LAT_ROW, -1);
 
 /**
- *OSD Longitude column 
+ *OSD Longitude column
  *
  * Selects which column to place Longitude element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_LONG_COL, -1);
 
 /**
- * OSD Longitude row 
+ * OSD Longitude row
  *
  * Selects which row to place Longitude element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_LONG_ROW, -1);
 
 /**
- *OSD direction/distance to home column 
+ *OSD direction/distance to home column
  *
  * Selects which column to place direction/distance to home element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_HOME_COL, -1);
 
 /**
- * OSD direction/distance to home row 
+ * OSD direction/distance to home row
  *
  * Selects which row to place direction/distance to home element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_HOME_ROW, -1);
 
 /**
- *OSD crosshair column 
+ *OSD crosshair column
  *
  * Selects which column to place crosshair element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_CH_COL, -1);
 
 /**
- * OSD crosshair row 
+ * OSD crosshair row
  *
  * Selects which row to place crosshair element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_CH_ROW, -1);
 
 /**
- *OSD heading angle column 
+ *OSD heading angle column
  *
  * Selects which column to place heading angle element in.
  *
  * @group OSD
  * @min -1
- * @max 49
+ * @max 51
  */
 PARAM_DEFINE_INT32(OSD_HDG_COL, -1);
 
 /**
- * OSD heading angle row 
+ * OSD heading angle row
  *
  * Selects which row to place heading angle element in.
  *
  * @group OSD
  * @min -1
- * @max 17
+ * @max 19
  */
 PARAM_DEFINE_INT32(OSD_HDG_ROW, -1);
-
-/**
- * OSD VIO quality row 
- *
- * Selects which row to place VIO quality element in.
- *
- * @group OSD
- * @min -1
- * @max 17
- */
-PARAM_DEFINE_INT32(OSD_VIO_COL, -1);
-
-/**
- *OSD VIO quality column 
- *
- * Selects which column to place VIO quality element in.
- *
- * @group OSD
- * @min -1
- * @max 49
- */
-PARAM_DEFINE_INT32(OSD_VIO_ROW, -1);
-
 
 /**
  * VTX channel

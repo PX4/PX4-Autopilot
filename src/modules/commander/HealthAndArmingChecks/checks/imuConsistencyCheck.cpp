@@ -41,78 +41,86 @@ void ImuConsistencyChecks::checkAndReport(const Context &context, Report &report
 		return;
 	}
 
-	// Use the difference between IMU's to detect a bad calibration.
-	// If a single IMU is fitted, the value being checked will be zero so this check will always pass.
-	for (unsigned i = 0; i < (sizeof(imu.accel_inconsistency_m_s_s) / sizeof(imu.accel_inconsistency_m_s_s[0])); i++) {
-		if (imu.accel_device_ids[i] != 0) {
+	// IMU Accelerometer Consistency check is positive perform the check
+	if (_param_com_arm_imu_acc.get() > 0.0f) {
 
-			const float accel_inconsistency_m_s_s = imu.accel_inconsistency_m_s_s[i];
+		// Use the difference between IMU's to detect a bad calibration.
+		// If a single IMU is fitted, the value being checked will be zero so this check will always pass.
+		for (unsigned i = 0; i < (sizeof(imu.accel_inconsistency_m_s_s) / sizeof(imu.accel_inconsistency_m_s_s[0])); i++) {
+			if (imu.accel_device_ids[i] != 0) {
 
-			NavModes required_groups = NavModes::None;
+				const float accel_inconsistency_m_s_s = imu.accel_inconsistency_m_s_s[i];
 
-			if (accel_inconsistency_m_s_s > _param_com_arm_imu_acc.get()) {
-				required_groups = NavModes::All;
-			}
+				NavModes required_groups = NavModes::None;
 
-			if (accel_inconsistency_m_s_s > _param_com_arm_imu_acc.get() * 0.8f) {
-				/* EVENT
-				 * @description
-				 * Check the calibration.
-				 *
-				 * Inconsistency value: {2}.
-				 * Configured Threshold: {3}.
-				 *
-				 * <profile name="dev">
-				 * This check can be configured via <param>COM_ARM_IMU_ACC</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure<uint8_t, float, float>(required_groups, health_component_t::accel,
-						events::ID("check_imu_accel_inconsistent"),
-						events::Log::Warning, "Accel {1} inconsistent", i, accel_inconsistency_m_s_s, _param_com_arm_imu_acc.get());
-
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Accel %u inconsistent - check cal", i);
+				if (accel_inconsistency_m_s_s > _param_com_arm_imu_acc.get()) {
+					required_groups = NavModes::All;
 				}
 
-				break;
+				if (accel_inconsistency_m_s_s > _param_com_arm_imu_acc.get() * 0.8f) {
+					/* EVENT
+					* @description
+					* Check the calibration.
+					*
+					* Inconsistency value: {2}.
+					* Configured Threshold: {3}.
+					*
+					* <profile name="dev">
+					* This check can be configured via <param>COM_ARM_IMU_ACC</param> parameter.
+					* </profile>
+					*/
+					reporter.armingCheckFailure<uint8_t, float, float>(required_groups, health_component_t::accel,
+							events::ID("check_imu_accel_inconsistent"),
+							events::Log::Warning, "Accel {1} inconsistent", i, accel_inconsistency_m_s_s, _param_com_arm_imu_acc.get());
+
+					if (reporter.mavlink_log_pub()) {
+						mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Accel %u inconsistent - check cal", i);
+					}
+
+					break;
+				}
 			}
 		}
 	}
 
-	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
-	for (unsigned i = 0; i < (sizeof(imu.gyro_inconsistency_rad_s) / sizeof(imu.gyro_inconsistency_rad_s[0])); i++) {
-		if (imu.gyro_device_ids[i] != 0) {
+	// IMU Gyro Consistency check is positive perform the check
+	if (_param_com_arm_imu_gyr.get() > 0.0f) {
 
-			const float gyro_inconsistency_rad_s = imu.gyro_inconsistency_rad_s[i];
+		// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
+		for (unsigned i = 0; i < (sizeof(imu.gyro_inconsistency_rad_s) / sizeof(imu.gyro_inconsistency_rad_s[0])); i++) {
+			if (imu.gyro_device_ids[i] != 0) {
 
-			NavModes required_groups = NavModes::None;
+				const float gyro_inconsistency_rad_s = imu.gyro_inconsistency_rad_s[i];
 
-			if (gyro_inconsistency_rad_s > _param_com_arm_imu_gyr.get()) {
-				required_groups = NavModes::All;
-			}
+				NavModes required_groups = NavModes::None;
 
-			if (gyro_inconsistency_rad_s > _param_com_arm_imu_gyr.get() * 0.5f) {
-				/* EVENT
-				 * @description
-				 * Check the calibration.
-				 *
-				 * Inconsistency value: {2}.
-				 * Configured Threshold: {3}.
-				 *
-				 * <profile name="dev">
-				 * This check can be configured via <param>COM_ARM_IMU_GYR</param> parameter.
-				 * </profile>
-				 */
-				reporter.armingCheckFailure<uint8_t, float, float>(required_groups, health_component_t::gyro,
-						events::ID("check_imu_gyro_inconsistent"),
-						events::Log::Warning, "Gyro {1} inconsistent", i, gyro_inconsistency_rad_s, _param_com_arm_imu_gyr.get());
-
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Gyro %u inconsistent - check cal", i);
+				if (gyro_inconsistency_rad_s > _param_com_arm_imu_gyr.get()) {
+					required_groups = NavModes::All;
 				}
 
-				break;
+				if (gyro_inconsistency_rad_s > _param_com_arm_imu_gyr.get() * 0.5f) {
+					/* EVENT
+					* @description
+					* Check the calibration.
+					*
+					* Inconsistency value: {2}.
+					* Configured Threshold: {3}.
+					*
+					* <profile name="dev">
+					* This check can be configured via <param>COM_ARM_IMU_GYR</param> parameter.
+					* </profile>
+					*/
+					reporter.armingCheckFailure<uint8_t, float, float>(required_groups, health_component_t::gyro,
+							events::ID("check_imu_gyro_inconsistent"),
+							events::Log::Warning, "Gyro {1} inconsistent", i, gyro_inconsistency_rad_s, _param_com_arm_imu_gyr.get());
+
+					if (reporter.mavlink_log_pub()) {
+						mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Gyro %u inconsistent - check cal", i);
+					}
+
+					break;
+				}
 			}
 		}
-	}
+	} // if (_param_com_arm_imu_gyr.get() > 0.0)
 }

@@ -78,7 +78,7 @@ MspDPOsd::MspDPOsd(const char *device) :
 	// back up device name for connection later
 	strcpy(_device, device);
 
-	PX4_INFO("MSP OSD running on %s", _device);
+	PX4_INFO("MSP DP OSD running on %s", _device);
 }
 
 MspDPOsd::~MspDPOsd()
@@ -115,7 +115,7 @@ void MspDPOsd::Run()
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
-		updateParams(); 
+		updateParams();
 		parameters_update();
 	}
 
@@ -177,7 +177,7 @@ void MspDPOsd::Run()
 		// Clear old info on OSD
 		const auto clear_osd_msg = msp_dp_osd::construct_OSD_clear();
 		this->Send(MSP_CMD_DISPLAYPORT, &clear_osd_msg, MSP_DIRECTION_REPLY);
-	
+
 		// Send OSD Canvas size
 		const auto osd_canvas_msg = msp_dp_osd::construct_OSD_canvas(row_max[resolution], column_max[resolution]);
 		this->Send(MSP_SET_OSD_CANVAS, &osd_canvas_msg, MSP_DIRECTION_REPLY);
@@ -217,7 +217,7 @@ void MspDPOsd::Run()
 		{
 			const char* disarmed_msg = "DISARMED";
 			uint8_t disarmed_output[sizeof(msp_dp_cmd_t) + sizeof(disarmed_msg)+1]{0};	// size of output buffer is size of OSD display port command struct and the buffer you want shown on OSD
-			msp_dp_osd::construct_OSD_write(_parameters.disarmed_col, _parameters.disarmed_row, false, disarmed_msg, disarmed_output, sizeof(disarmed_output));	
+			msp_dp_osd::construct_OSD_write(_parameters.disarmed_col, _parameters.disarmed_row, false, disarmed_msg, disarmed_output, sizeof(disarmed_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &disarmed_output, MSP_DIRECTION_REPLY);
 		}
 
@@ -228,8 +228,23 @@ void MspDPOsd::Run()
 			_vehicle_attitude_sub.copy(&vehicle_attitude);
 			log_message_s log_message{};
 			_log_message_sub.copy(&log_message);
-			const auto display_msg = msp_dp_osd::construct_display_message(vehicle_status, vehicle_attitude, log_message, _param_osd_log_level.get(), _display);
-			uint8_t display_msg_output[sizeof(msp_dp_cmd_t) + sizeof(display_msg.craft_name)+1]{0};	
+
+			esc_status_s esc_status{};
+			_esc_status_sub.copy(&esc_status);
+
+			parameter_selector_s parameter_selector{};
+			_parameter_selector_sub.copy(&parameter_selector);
+
+			const auto display_msg = construct_display_message(
+								vehicle_status,
+								vehicle_attitude,
+								log_message,
+								esc_status,
+								parameter_selector,
+								_param_osd_log_level.get(),
+								_display);
+			uint8_t display_msg_output[sizeof(msp_dp_cmd_t) + sizeof(display_msg.craft_name)+1]{0};
+
 			msp_dp_osd::construct_OSD_write(_parameters.status_col, _parameters.status_row, false, display_msg.craft_name, display_msg_output, sizeof(display_msg_output));	// display_msg max size (w/o warning) is 15
 			this->Send(MSP_CMD_DISPLAYPORT, &display_msg_output, MSP_DIRECTION_REPLY);
 		}
@@ -237,43 +252,9 @@ void MspDPOsd::Run()
 		// Flight Mode -> BOTTOM-MIDDLE BOTTOM
 		if (_parameters.flight_mode_col != -1 && _parameters.flight_mode_row != -1){
 			const auto flight_mode = msp_dp_osd::construct_flight_mode(vehicle_status);
-			uint8_t flight_mode_output[sizeof(msp_dp_cmd_t) + sizeof(flight_mode)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.flight_mode_col, _parameters.flight_mode_row, false, flight_mode, flight_mode_output, sizeof(flight_mode_output));	
+			uint8_t flight_mode_output[sizeof(msp_dp_cmd_t) + sizeof(flight_mode)+1]{0};
+			msp_dp_osd::construct_OSD_write(_parameters.flight_mode_col, _parameters.flight_mode_row, false, flight_mode, flight_mode_output, sizeof(flight_mode_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &flight_mode_output, MSP_DIRECTION_REPLY);
-		}
-	}
-
-	// VIO quality
-	{
-		if(_parameters.vio_col != -1 && _parameters.vio_row != -1){
-			// "VIO" header
-			vehicle_odometry_s vio{}; 
-			_vehicle_visual_odometry_sub.copy(&vio);
-			uint8_t vio_header_output[sizeof(msp_dp_cmd_t) + sizeof("VIO")]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.vio_col, _parameters.vio_row, false, "VIO", vio_header_output, sizeof("VIO"));
-			this->Send(MSP_CMD_DISPLAYPORT, &vio_header_output, MSP_DIRECTION_REPLY);
-
-			// Place integer value indicating quality value below "VIO"
-			std::string vio_quality = vio.quality < 0 ? std::to_string(-1) : std::to_string(vio.quality/10);
-			uint8_t vio_quality_output[sizeof(msp_dp_cmd_t) + vio_quality.size() + 1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.vio_col+1, _parameters.vio_row+1, false, vio_quality.c_str(), vio_quality_output, vio_quality.size());
-			this->Send(MSP_CMD_DISPLAYPORT, &vio_quality_output, MSP_DIRECTION_REPLY);
-
-			// VIO Quality bar
-			std::string vio_quality_bar;
-			if (vio.quality/10 < 1){
-				vio_quality_bar = {SYM_PB_START, SYM_PB_EMPTY, SYM_PB_EMPTY, SYM_PB_EMPTY, SYM_PB_CLOSE};	
-			} else if (vio.quality/10 < 4){
-				vio_quality_bar = {SYM_PB_START, SYM_PB_FULL, SYM_PB_EMPTY, SYM_PB_EMPTY, SYM_PB_CLOSE};	
-			} else if (vio.quality/10 < 7){
-				vio_quality_bar = {SYM_PB_START, SYM_PB_FULL, SYM_PB_FULL, SYM_PB_EMPTY, SYM_PB_CLOSE};	
-			} else {
-				vio_quality_bar = {SYM_PB_START, SYM_PB_FULL, SYM_PB_FULL, SYM_PB_FULL, SYM_PB_CLOSE};	
-			}
-			
-			uint8_t vio_quality_bar_output[sizeof(msp_dp_cmd_t) + vio_quality_bar.size() + 1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.vio_col-1, _parameters.vio_row+2, false, vio_quality_bar.c_str(), vio_quality_bar_output, vio_quality_bar.size());
-			this->Send(MSP_CMD_DISPLAYPORT, &vio_quality_bar_output, MSP_DIRECTION_REPLY);
 		}
 	}
 
@@ -290,8 +271,8 @@ void MspDPOsd::Run()
 		if (_parameters.rssi_col != -1 && _parameters.rssi_row != -1){
 			char rssi[5];
 			snprintf(rssi, sizeof(rssi), "%c%d", SYM_RSSI, (int)input_rc.rssi_dbm);
-			uint8_t rssi_output[sizeof(msp_dp_cmd_t) + sizeof(rssi)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.rssi_col, _parameters.rssi_row, false, rssi, rssi_output, sizeof(rssi_output));	
+			uint8_t rssi_output[sizeof(msp_dp_cmd_t) + sizeof(rssi)+1]{0};
+			msp_dp_osd::construct_OSD_write(_parameters.rssi_col, _parameters.rssi_row, false, rssi, rssi_output, sizeof(rssi_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &rssi_output, MSP_DIRECTION_REPLY);
 		}
 	}
@@ -306,8 +287,8 @@ void MspDPOsd::Run()
 			char batt[8];
 			// uint8_t battery_symbol = SYM_BATT_FULL;	// Could probably make this change based on battery level...
 			snprintf(batt, sizeof(batt), "%c%.2f%c", SYM_BATT_FULL, static_cast<double>(battery_status.voltage_v), SYM_VOLT);
-			uint8_t battery_output[sizeof(msp_dp_cmd_t) + sizeof(batt)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.battery_col, _parameters.battery_row, false, batt, battery_output, sizeof(battery_output));	
+			uint8_t battery_output[sizeof(msp_dp_cmd_t) + sizeof(batt)+1]{0};
+			msp_dp_osd::construct_OSD_write(_parameters.battery_col, _parameters.battery_row, false, batt, battery_output, sizeof(battery_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &battery_output, MSP_DIRECTION_REPLY);
 		}
 
@@ -316,8 +297,8 @@ void MspDPOsd::Run()
 			char batt_cell[7];
 			// uint8_t battery_symbol = SYM_BATT_FULL;	// Could probably make this change based on battery level...
 			snprintf(batt_cell, sizeof(batt_cell), "%c%.2f%c", SYM_BATT_FULL, static_cast<double>(battery_status.voltage_v/battery_status.cell_count), SYM_VOLT);
-			uint8_t batt_cell_output[sizeof(msp_dp_cmd_t) + sizeof(batt_cell)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.cell_battery_col, _parameters.cell_battery_row, false, batt_cell, batt_cell_output, sizeof(batt_cell_output));	
+			uint8_t batt_cell_output[sizeof(msp_dp_cmd_t) + sizeof(batt_cell)+1]{0};
+			msp_dp_osd::construct_OSD_write(_parameters.cell_battery_col, _parameters.cell_battery_row, false, batt_cell, batt_cell_output, sizeof(batt_cell_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &batt_cell_output, MSP_DIRECTION_REPLY);
 		}
 
@@ -325,31 +306,41 @@ void MspDPOsd::Run()
 		if(_parameters.current_draw_col != -1 && _parameters.current_draw_row != -1){
 			char current_draw[8];
 			snprintf(current_draw, sizeof(current_draw), "%.3f%c", static_cast<double>(battery_status.current_filtered_a), SYM_AMP);
-			uint8_t current_draw_output[sizeof(msp_dp_cmd_t) + sizeof(current_draw)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.current_draw_col, _parameters.current_draw_row, false, current_draw, current_draw_output, sizeof(current_draw_output));	
+			uint8_t current_draw_output[sizeof(msp_dp_cmd_t) + sizeof(current_draw)+1]{0};
+			msp_dp_osd::construct_OSD_write(_parameters.current_draw_col, _parameters.current_draw_row, false, current_draw, current_draw_output, sizeof(current_draw_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &current_draw_output, MSP_DIRECTION_REPLY);
 		}
+	}
+
+	// MSP_BATTERY_STATE
+	// This is required to fill the DJI Battery Indicator in the right hand corner
+	{
+		battery_status_s battery_status{};
+		_battery_status_sub.copy(&battery_status);
+
+		const auto msg = construct_BATTERY_STATE(battery_status);
+		this->Send(MSP_BATTERY_STATE, &msg);
 	}
 
 	// GPS LAT/LONG
 	{
 		sensor_gps_s vehicle_gps_position{};
 		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
-		
-		// GPS Longitude 
+
+		// GPS Longitude
 		if(_parameters.longitude_col != -1 && _parameters.longitude_row != -1){
 			char longitude[11];
 			snprintf(longitude, sizeof(longitude), "%c%.7f", SYM_LON, static_cast<double>(vehicle_gps_position.lon)*1e-7);
-			uint8_t longitude_output[sizeof(msp_dp_cmd_t) + sizeof(longitude)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.longitude_col, _parameters.longitude_row, false, longitude, longitude_output, sizeof(longitude_output));	
+			uint8_t longitude_output[sizeof(msp_dp_cmd_t) + sizeof(longitude)+1]{0};
+			msp_dp_osd::construct_OSD_write(_parameters.longitude_col, _parameters.longitude_row, false, longitude, longitude_output, sizeof(longitude_output));
 		}
 
 		// GPS Latitude
 		if(_parameters.latitude_col != -1 && _parameters.latitude_row != -1){
 			char latitude[11];
 			snprintf(latitude, sizeof(latitude), "%c%.7f", SYM_LAT, static_cast<double>(vehicle_gps_position.lat)*1e-7);
-			uint8_t latitude_output[sizeof(msp_dp_cmd_t) + sizeof(latitude)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.latitude_col, _parameters.latitude_row, false, latitude, latitude_output, sizeof(latitude_output));	
+			uint8_t latitude_output[sizeof(msp_dp_cmd_t) + sizeof(latitude)+1]{0};
+			msp_dp_osd::construct_OSD_write(_parameters.latitude_col, _parameters.latitude_row, false, latitude, latitude_output, sizeof(latitude_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &latitude_output, MSP_DIRECTION_REPLY);
 		}
 	}
@@ -383,33 +374,33 @@ void MspDPOsd::Run()
 
 			distance_to_home = (int16_t)distance_to_home_f; // meters
 			bearing_to_home = msp_dp_osd::get_symbol_from_bearing(bearing_to_home_f);
-		} 
-	
+		}
+
 		// Direction/Distance to home
 		if(_parameters.to_home_col != -1 && _parameters.to_home_row != -1){
 			char to_home[8];
 			snprintf(to_home, sizeof(to_home), "%c%c%i%c", bearing_to_home, SYM_HOMEFLAG, distance_to_home, SYM_M);
-			uint8_t to_home_output[sizeof(msp_dp_cmd_t) + sizeof(to_home)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.to_home_col, _parameters.to_home_row, false, to_home, to_home_output, sizeof(to_home_output));	
+			uint8_t to_home_output[sizeof(msp_dp_cmd_t) + sizeof(to_home)+1]{0};
+			msp_dp_osd::construct_OSD_write(_parameters.to_home_col, _parameters.to_home_row, false, to_home, to_home_output, sizeof(to_home_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &to_home_output, MSP_DIRECTION_REPLY);
 		}
 
 		// Heading Angle
-		if(_parameters.heading_col != -1 && _parameters.heading_row != -1){
+		if(_param_osd_hdg_col.get() != -1 && _param_osd_hdg_row.get() != -1){
 			char heading[5];
 			snprintf(heading, sizeof(heading), "%c%i", bearing_to_home, (int16_t)vehicle_gps_position.heading);
-			uint8_t heading_output[sizeof(msp_dp_cmd_t) + sizeof(heading)+1]{0};	
-			msp_dp_osd::construct_OSD_write(_parameters.heading_col, _parameters.heading_row, false, heading, heading_output, sizeof(heading_output));	
+			uint8_t heading_output[sizeof(msp_dp_cmd_t) + sizeof(heading)+1]{0};
+			msp_dp_osd::construct_OSD_write(_param_osd_hdg_col.get(), _param_osd_hdg_row.get(), false, heading, heading_output, sizeof(heading_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &heading_output, MSP_DIRECTION_REPLY);
 		}
 	}
 
 	// CROSSHAIRS
-	if(_parameters.crosshair_col != -1 && _parameters.crosshair_row != 1){
+	if(_param_osd_ch_col.get() != -1 && _param_osd_ch_row.get() != 1){
 		char crosshair[4] = {SYM_AH_CENTER_LINE, SYM_AH_CENTER, SYM_AH_CENTER_LINE_RIGHT, '\0'};
-		uint8_t crosshair_output[sizeof(msp_dp_cmd_t) + sizeof(crosshair)]{0};	
-		msp_dp_osd::construct_OSD_write(_parameters.crosshair_col, _parameters.crosshair_row, false, crosshair, crosshair_output, sizeof(crosshair_output));	
-		this->Send(MSP_CMD_DISPLAYPORT, &crosshair_output, MSP_DIRECTION_REPLY);		
+		uint8_t crosshair_output[sizeof(msp_dp_cmd_t) + sizeof(crosshair)]{0};
+		msp_dp_osd::construct_OSD_write(_param_osd_ch_col.get(), _param_osd_ch_row.get(), false, crosshair, crosshair_output, sizeof(crosshair_output));
+		this->Send(MSP_CMD_DISPLAYPORT, &crosshair_output, MSP_DIRECTION_REPLY);
 	}
 
 	// Remote OSD input
@@ -478,14 +469,21 @@ void MspDPOsd::parameters_update()
 	param_get(param_find("OSD_HOME_COL"), 	&_parameters.to_home_col);
 	param_get(param_find("OSD_HOME_ROW"), 	&_parameters.to_home_row);
 
-	param_get(param_find("OSD_CH_COL"), 	&_parameters.crosshair_col);
-	param_get(param_find("OSD_CH_ROW"), 	&_parameters.crosshair_row);
+	// param_get(param_find("OSD_CH_COL"), 	&_parameters.crosshair_col);
+	// param_get(param_find("OSD_CH_ROW"), 	&_parameters.crosshair_row);
 
-	param_get(param_find("OSD_HDG_COL"), 	&_parameters.heading_col);
-	param_get(param_find("OSD_HDG_ROW"), 	&_parameters.heading_row);
+	// param_get(param_find("OSD_HDG_COL"), 	&_parameters.heading_col);
+	// param_get(param_find("OSD_HDG_ROW"), 	&_parameters.heading_row);
 
-	param_get(param_find("OSD_VIO_COL"), 	&_parameters.vio_col);
-	param_get(param_find("OSD_VIO_ROW"), 	&_parameters.vio_row);
+	// param_get(param_find("OSD_CH_COL"), 	&_param_osd_ch_col.get());
+	// param_get(param_find("OSD_CH_ROW"), 	&_param_osd_ch_row.get());
+
+	// param_get(param_find("OSD_HDG_COL"), 	&_param_osd_hdg_col.get());
+	// param_get(param_find("OSD_HDG_ROW"), 	&_param_osd_hdg_row.get());
+
+	param_get(param_find("OSD_BATT_LOW_V"), 	&_parameters.osd_batt_low_v);
+	param_get(param_find("OSD_DISPLAY_OPTS"), 	&_parameters.osd_display_opts);
+	param_get(param_find("OSD_HDG_RST_CHAN"), 	&_parameters.osd_hdg_rst_chan);
 
 	param_get(param_find("OSD_CHANNEL"), 	&channel_t);
 	param_get(param_find("OSD_BAND"),    	&band_t);
@@ -589,7 +587,7 @@ int MspDPOsd::print_status()
 // Ex: "msp_dp_osd -s TEST -h 5 -v 5 write_string" -> Write "TEST" at row 5/column 5
 // NOTE: To disable screen clearing, use "msp_dp_osd toggle_clear" command 
 int MspDPOsd::custom_command(int argc, char *argv[])
-{	
+{
 	int myoptind = 0;
 	int ch;
 	int row{0};
@@ -659,12 +657,12 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 			strncpy(cmd_band, myoptarg, strlen(myoptarg) + 1);
 			PX4_INFO("Got Band: %s", cmd_band);
 			break;
-		
+
 		case 'c':
 			cmd_channel = atoi(myoptarg);
 			PX4_INFO("Got channel: %u", cmd_channel);
 			break;
-	
+
 		case 'p':
 			cmd_power = atoi(myoptarg);
 			if (cmd_power < 1 || cmd_power > 3){
@@ -719,7 +717,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
-	// Turn auto clear OSD on/off 
+	// Turn auto clear OSD on/off
 	if(!strcmp(verb,"toggle_clear")){
 		PX4_INFO("");
 		PX4_INFO("Sending TOGGLING CLEAR");
@@ -727,7 +725,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
-	// Release OSD 
+	// Release OSD
 	if(!strcmp(verb,"release")){
 		PX4_INFO("");
 		PX4_INFO("Sending RELEASE CMD");
@@ -736,7 +734,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
-	// Config OSD resolution, font 
+	// Config OSD resolution, font
 	if(!strcmp(verb,"osd_config")){
 		PX4_INFO("");
 		PX4_INFO("Sending OSD CONFIG CMD");
@@ -747,7 +745,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
-	// Config OSD Canvas size 
+	// Config OSD Canvas size
 	if(!strcmp(verb,"osd_canvas")){
 		PX4_INFO("");
 		PX4_INFO("Sending OSD CANVAS CMD");
@@ -756,14 +754,14 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
-	// Config VTX Band and Channel settings  
+	// Config VTX Band and Channel settings
 	if(!strcmp(verb,"vtx")){
 		/* Fields:
 		protocol: 5 -> MSP
 		band:	  5 -> RC Band R (E,F,R)
 		channel:  1 -> Channel (Ex: R1, R2, F1, etc)
 		power:	  1 -> 0 (0mw), 1 (25mW), 2 (200mW)
-		pit:	  0 -> Pit mode off 
+		pit:	  0 -> Pit mode off
 		freq:	  0x161A -> 5658 MHz
 		*/
 
@@ -780,7 +778,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		uint16_t freq{get_instance()->_frequency};
 
 		if(*cmd_band == 'R'){
-			band = 5;		
+			band = 5;
 		}else if (*cmd_band == 'F'){
 			band = 4;
 		} else if (*cmd_band == 'E'){
@@ -815,7 +813,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
-	// Config VTX Power settings  
+	// Config VTX Power settings
 	if(!strcmp(verb,"power")){
 		uint8_t protocol{5};
 		uint8_t band{get_instance()->_band};

@@ -72,7 +72,7 @@ static constexpr wq_config_t INS1{"wq:INS1", 6000, -15};
 static constexpr wq_config_t INS2{"wq:INS2", 6000, -16};
 static constexpr wq_config_t INS3{"wq:INS3", 6000, -17};
 
-static constexpr wq_config_t hp_default{"wq:hp_default", 1900, -18};
+static constexpr wq_config_t hp_default{"wq:hp_default", 2100, -18};
 
 static constexpr wq_config_t uavcan{"wq:uavcan", 3624, -19};
 
@@ -89,7 +89,7 @@ static constexpr wq_config_t ttyS9{"wq:ttyS9", 1728, -30};
 static constexpr wq_config_t ttyACM0{"wq:ttyACM0", 1728, -31};
 static constexpr wq_config_t ttyUnknown{"wq:ttyUnknown", 1728, -32};
 
-static constexpr wq_config_t lp_default{"wq:lp_default", 1920, -50};
+static constexpr wq_config_t lp_default{"wq:lp_default", 2120, -50};
 
 static constexpr wq_config_t test1{"wq:test1", 2000, 0};
 static constexpr wq_config_t test2{"wq:test2", 2000, 0};

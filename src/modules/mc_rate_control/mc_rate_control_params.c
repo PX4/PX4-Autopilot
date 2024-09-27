@@ -65,6 +65,18 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
 PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.2f);
 
 /**
+ * Roll rate I gain in acro mode
+ *
+ * Roll rate integral gain in acro mode. Set to a value < 0 to use MC_ROLLRATE_I in acro mode.
+ *
+ * @min -1.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_ACRO_RRATE_I, -1.0f);
+
+/**
  * Roll rate integrator limit
  *
  * Roll rate integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large roll moment trim changes.
@@ -144,6 +156,18 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.2f);
+
+/**
+ * Pitch rate I gain in acro mode
+ *
+ * Pitch rate integral gain in acro mode. Set to a value < 0 to use MC_PITCHRATE_I in acro mode.
+ *
+ * @min -1.0
+ * @decimal 3
+ * @increment 0.01
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_ACRO_PRATE_I, -1.0f);
 
 /**
  * Pitch rate integrator limit

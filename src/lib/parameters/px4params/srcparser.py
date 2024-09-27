@@ -362,6 +362,7 @@ class SourceParser(object):
                                 'Ohm', 'V', 'A',
                                 'us', 'ms', 's',
                                 'S', 'A/%', '(m/s^2)^2', 'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',
+                                'rpm', 'RPM',
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
                                 'N/(m/s)', 'Nm/rad', 'Nm/(rad/s)', 'Nm', 'N',
                                 'rpm',

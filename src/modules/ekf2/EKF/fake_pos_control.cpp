@@ -48,6 +48,19 @@ void Ekf::controlFakePosFusion()
 					 && isTimedOut(aid_src.time_last_fuse, (uint64_t)2e5); // Fuse fake position at a limited rate
 
 	if (fake_pos_data_ready) {
+		const float accel_xy_mag_2 = sq(_accel_vec_filt(0)) + sq(_accel_vec_filt(1));
+
+		//PX4_INFO("accel_xy_mag_2, R(2,2): %f, %f", (double)accel_xy_mag_2, (double)_R_to_earth(2, 2));
+
+		// check if fake position fusion checks have failed
+		if ( (accel_xy_mag_2 > (_params.fp_alim * _params.fp_alim)) || (_R_to_earth(2, 2) < _params.fp_costilt) )
+		{
+			// FIXME REBASE note in 1.13 this was _ = _time_last_imu;
+				// timestamps of latest in buffer saved measurement in microseconds
+				// uint64_t _time_last_imu{0};
+			// In 1.14 this is gone but are now both _time_latest_us and _time_delayed_us (delayed time horizon)
+			_time_last_fake_pos_cond_failed = _time_latest_us;
+		}
 
 		Vector2f obs_var;
 
@@ -64,11 +77,12 @@ void Ekf::controlFakePosFusion()
 		}
 
 		const float innov_gate = 3.f;
-
+		const uint64_t time_since_last_fake_pos_cond_failed = _time_latest_us - _time_last_fake_pos_cond_failed;
+		const bool continuing_conditions_passing = !isHorizontalAidingActive()
+							&& (time_since_last_fake_pos_cond_failed > (uint64_t)_params.fp_tout);
 		updateHorizontalPositionAidSrcStatus(_time_delayed_us, Vector2f(_last_known_pos), obs_var, innov_gate, aid_src);
 
 
-		const bool continuing_conditions_passing = !isHorizontalAidingActive();
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _horizontal_deadreckon_time_exceeded;
 
@@ -119,12 +133,15 @@ void Ekf::resetFakePosFusion()
 	resetHorizontalVelocityToZero();
 
 	_aid_src_fake_pos.time_last_fuse = _time_delayed_us;
+	//PX4_INFO("resetting fake position fusion to: %f, %f", (double)_last_known_posNE(0), (double)_last_known_posNE(1));
 }
 
 void Ekf::stopFakePosFusion()
 {
 	if (_control_status.flags.fake_pos) {
 		ECL_INFO("stop fake position fusion");
+		//PX4_INFO("stopping fake position fusion");
+
 		_control_status.flags.fake_pos = false;
 
 		resetEstimatorAidStatus(_aid_src_fake_pos);

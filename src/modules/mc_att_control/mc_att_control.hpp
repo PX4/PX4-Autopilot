@@ -130,6 +130,7 @@ private:
 	bool _vtol{false};
 	bool _vtol_tailsitter{false};
 	bool _vtol_in_transition_mode{false};
+	bool _filter_attitude_setpoint{false};
 
 	uint8_t _quat_reset_counter{0};
 
@@ -145,6 +146,10 @@ private:
 		(ParamFloat<px4::params::MC_ROLLRATE_MAX>)  _param_mc_rollrate_max,
 		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _param_mc_pitchrate_max,
 		(ParamFloat<px4::params::MC_YAWRATE_MAX>)   _param_mc_yawrate_max,
+
+		(ParamFloat<px4::params::MC_MAX_FF_SPEED>) _param_mc_max_ff_speed,
+		(ParamFloat<px4::params::MC_FF_FACTOR>)    _param_mc_ff_factor,
+		(ParamFloat<px4::params::MC_FF_TILT_TAU>)  _param_mc_ff_tilt_tau,
 
 		/* Stabilized mode params */
 		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max,    /**< maximum tilt allowed for manual flight */

@@ -164,7 +164,7 @@ void SendProtocol::update(const hrt_abstime &now)
 		} else {
 			if (num_drops == 0) { // avoid console spamming
 				// This happens if either an event dropped in uORB or update() is not called fast enough
-				PX4_WARN("Event dropped (%i, %i)", (int)_latest_sequence, buffer_sequence);
+				PX4_INFO("Event dropped (%i, %i)", (int)_latest_sequence, buffer_sequence);
 			}
 
 			++num_drops;
@@ -172,7 +172,7 @@ void SendProtocol::update(const hrt_abstime &now)
 	}
 
 	if (num_drops > 1) {
-		PX4_WARN("Dropped %i events (seq=%i)", num_drops, _latest_sequence);
+		PX4_INFO("Dropped %i events (seq=%i)", num_drops, _latest_sequence);
 	}
 
 	if (now - _last_current_sequence_sent > current_sequence_interval) {

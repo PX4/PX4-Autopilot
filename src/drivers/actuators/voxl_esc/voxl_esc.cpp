@@ -487,6 +487,35 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 							 (int)rpm, (int)power, (int)voltage, (int)current, (int)temperature);
 					}
 
+					uint8_t state = esc_report_s::ESC_STATE_UNKNOWN;
+					// This is wholly unecessary for this ESC since the states are based off of it
+					switch (fb.id_state & 0x0F)
+					{
+					case esc_report_s::ESC_STATE_NOT_SPINNING:
+						state = esc_report_s::ESC_STATE_NOT_SPINNING;
+						break;
+
+					case esc_report_s::ESC_STATE_SPINNING_UP:
+						state = esc_report_s::ESC_STATE_SPINNING_UP;
+						break;
+
+					case esc_report_s::ESC_STATE_SPINUP_START_NO_CONTROL:
+						state = esc_report_s::ESC_STATE_SPINUP_START_NO_CONTROL;
+						break;
+
+					case esc_report_s::ESC_STATE_SPINNING:
+						state = esc_report_s::ESC_STATE_SPINNING;
+						break;
+					default:
+						state = esc_report_s::ESC_STATE_UNKNOWN;
+						break;
+					}
+
+					if (_turtle_mode_en && _outputs_on) {
+						state = esc_report_s::ESC_STATE_TURTLE_MODE;
+					}
+
+
 					_esc_chans[id].rate_meas     = fb.rpm;
 					_esc_chans[id].power_applied = fb.power;
 					_esc_chans[id].state         = fb.id_state & 0x0F;
@@ -501,7 +530,7 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					_esc_status.esc[id].timestamp    = tnow;
 					_esc_status.esc[id].esc_rpm      = fb.rpm;
 					_esc_status.esc[id].esc_power    = fb.power;
-					_esc_status.esc[id].esc_state    = fb.id_state & 0x0F;
+					_esc_status.esc[id].esc_state    = state;
 					_esc_status.esc[id].esc_cmdcount = fb.cmd_counter;
 					_esc_status.esc[id].esc_voltage  = _esc_chans[id].voltage;
 					_esc_status.esc[id].esc_current  = _esc_chans[id].current;

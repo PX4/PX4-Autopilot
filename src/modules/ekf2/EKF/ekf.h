@@ -555,6 +555,8 @@ public:
 //		/////////////////////////////////////
 	}
 
+	void setCanResetZVelOnClipping(const bool val) { _can_reset_z_vel_on_clipping = val; }
+
 private:
 
 	// set the internal states and status to their default value
@@ -609,6 +611,8 @@ private:
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
+
+	uint64_t _time_last_fake_pos_cond_failed{0}; ///< time of the last failure of the fake position fusion conditions (uSec)
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
@@ -778,6 +782,8 @@ private:
 	uint16_t _clip_counter{0};		///< counter that increments when clipping ad decrements when not
 
 	float _height_rate_lpf{0.0f};
+
+	bool _can_reset_z_vel_on_clipping{false};
 
 	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);

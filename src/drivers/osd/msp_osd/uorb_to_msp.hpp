@@ -57,6 +57,8 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/log_message.h>
+#include <uORB/topics/parameter_selector.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 // PX4 events interface
 #include <px4_platform_common/events.h>
@@ -68,13 +70,21 @@
 namespace msp_osd
 {
 
-// construct an MSP_NAME struct
-//  note: this is actually how we display _all_ string information
-msp_name_t construct_display_message(const vehicle_status_s &vehicle_status,
-				     const vehicle_attitude_s &vehicle_attitude,
-				     const log_message_s &log_message,
-				     const int log_level,
-				     MessageDisplay &display);
+// // construct an MSP_NAME struct
+// //  note: this is actually how we display _all_ string information
+// msp_name_t construct_display_message(const struct vehicle_status_s& vehicle_status,
+// 				     const struct vehicle_attitude_s& vehicle_attitude,
+// 				     const struct log_message_s& log_message,
+// 				     const struct esc_status_s& esc_status,
+// 				     const struct parameter_selector_s& parameter_selector,
+// 				     const int log_level,
+// 				     MessageDisplay& display);
+
+// // Helper functions for constructing the display message
+// void set_arm_status_string(const hrt_abstime& now, const struct vehicle_status_s& vehicle_status, MessageDisplay& display);
+// void set_flight_mode_string(const hrt_abstime& now, const struct vehicle_status_s& vehicle_status, const struct esc_status_s& esc_status, const struct parameter_selector_s& parameter_selector, MessageDisplay& display);
+// void set_warning_string(const hrt_abstime& now, const struct log_message_s& log_message, const int log_level, MessageDisplay& display);
+// void set_heading_string(const hrt_abstime& now, const struct vehicle_attitude_s& vehicle_attitude, MessageDisplay& display);
 
 // construct an MSP_FC_VARIANT struct
 msp_fc_variant_t construct_FC_VARIANT();
@@ -84,9 +94,6 @@ msp_status_BF_t construct_STATUS(const vehicle_status_s &vehicle_status);
 
 // construct an MSP_ANALOG struct
 msp_analog_t construct_ANALOG(const battery_status_s &battery_status, const input_rc_s &input_rc);
-
-// construct an MSP_BATTERY_STATE struct
-msp_battery_state_t construct_BATTERY_STATE(const battery_status_s &battery_status);
 
 // construct an MSP_RAW_GPS struct
 msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,

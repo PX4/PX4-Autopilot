@@ -127,6 +127,9 @@ qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 param touch SYS_AUTOCONFIG
 param touch SDLOG_MODE
 
+param set SYS_AUTOCONFIG 0
+param set SYS_AUTOSTART 22200
+
 # ESC driver
 if [ "$ESC" == "VOXL_ESC" ]; then
     /bin/echo "Starting VOXL ESC driver"
@@ -234,6 +237,9 @@ fi
 
 qshell commander start
 
+# Start the parameter selctor to have various speed modes for a given flight mode
+qshell param_set_selector start
+
 # This is needed for altitude and position hold modes
 qshell flight_mode_manager start
 
@@ -271,7 +277,7 @@ mavlink boot_complete
 
 # Optional MSP OSD driver for DJI or HDZero goggles
 # This is only supported on M0054 (with M0125 accessory board)
-if [ "$OSD" == "ENABLE" ] || [ "$OSD" == "DJI" ]; then
+if [ "$OSD" == "ENABLE" ] || [ "$OSD" == "DJI" ] || [ "$OSD" == "MSP_DJI" ]; then
     /bin/echo "Starting DJI OSD driver"
     msp_osd start -d /dev/ttyHS1
 elif [ "$PLATFORM" == "M0054" ] && [ "$OSD" == "HDZERO" ] || [ "$OSD" == "DJI_MSP_DP" ]; then 

@@ -70,8 +70,9 @@ protected:
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max, /**< scaling factor from stick to yaw rate */
 					(ParamFloat<px4::params::MPC_MAN_Y_TAU>) _param_mpc_man_y_tau,
 					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max, /**< maximum tilt allowed for manual flight */
-					(ParamFloat<px4::params::MC_MAN_TILT_TAU>) _param_mc_man_tilt_tau
-				       )
+					(ParamFloat<px4::params::MC_MAN_TILT_TAU>) _param_mc_man_tilt_tau,
+					(ParamFloat<px4::params::FLGT_VZ_MAX>) _param_flgt_vz_max
+					)
 private:
 
 	/**

@@ -114,6 +114,7 @@ private:
 		Land_mode = 3,
 		Terminate = 5,
 		Disarm = 6,
+		Descend = 7,
 	};
 
 	enum class command_after_quadchute : int32_t {
@@ -152,6 +153,7 @@ private:
 					(ParamInt<px4::params::NAV_DLL_ACT>) 	_param_nav_dll_act,
 					(ParamInt<px4::params::NAV_RCL_ACT>) 	_param_nav_rcl_act,
 					(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
+					(ParamInt<px4::params::COM_RCL_ACT>) 	_param_com_rcl_act,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,

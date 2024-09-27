@@ -7,7 +7,15 @@ float32 esc_temperature					# Temperature measured from current ESC [degC] - if 
 uint8 esc_address					# Address of current ESC (in most cases 1-8 / must be set by driver)
 uint8 esc_cmdcount					# Counter of number of commands
 
-uint8 esc_state					# State of ESC - depend on Vendor
+uint8 esc_state						# State of ESC - depend on Vendor
+
+uint8 ESC_STATE_NOT_SPINNING = 0
+uint8 ESC_STATE_SPINNING_UP = 1			# Startup burst
+uint8 ESC_STATE_SPINUP_START_NO_CONTROL = 4	# ESC Start up spinning no user control
+uint8 ESC_STATE_SPINNING = 5			# ESC spinning under user control
+uint8 ESC_STATE_TURTLE_MODE = 16		# Turtle Mode
+uint8 ESC_STATE_UNKNOWN = 17			# Unknown
+uint8 ESC_STATE_COUNT = 18 			# Counter - keep it as last element!
 
 uint8 actuator_function				# actuator output function (one of Motor1...MotorN)
 

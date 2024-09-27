@@ -34,8 +34,9 @@ bool offboard_control_signal_lost     # Offboard signal lost
 bool home_position_invalid            # No home position available
 
 # Control links
-bool manual_control_signal_lost       # Manual control (RC) signal lost
-bool gcs_connection_lost              # GCS connection lost
+bool manual_control_signal_lost       		# Manual control (RC) signal lost
+bool manual_control_signal_lost_action		# Activate the manual control (RC) signal lost action
+bool gcs_connection_lost              		# GCS connection lost
 
 # Battery
 uint8 battery_warning                 # Battery warning level

@@ -101,10 +101,39 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 		rate_setpoint += q.inversed().dcm_z() * _yawspeed_setpoint;
 	}
 
+	//add in the roll and pitch feedforward setpoints
+	rate_setpoint(0) += _rollspeed_setpoint;
+	rate_setpoint(1) += _pitchspeed_setpoint;
+
 	// limit rates
 	for (int i = 0; i < 3; i++) {
 		rate_setpoint(i) = math::constrain(rate_setpoint(i), -_rate_limit(i), _rate_limit(i));
 	}
 
 	return rate_setpoint;
+}
+
+
+matrix::Quatf AttitudeControl::quaternionFilterRollPitch(const matrix::Quatf &q_in, const matrix::Quatf &q_last, const float dt)
+{
+	const float alpha_quat = dt/(dt + _ff_tilt_tau);
+
+	matrix::Quatf q_diff = q_last.inversed() * q_in; //QD = Q_WORLD_DES
+	q_diff.normalize();
+	q_diff.canonicalize();
+
+	// filter roll and pitch axes of q_diff
+	const float q_diff1_filt = alpha_quat * q_diff(1);
+	const float q_diff2_filt = alpha_quat * q_diff(2);
+	const float q_diff3_filt = q_diff(3);
+
+	const float q_diff0_filt = std::sqrt(1.0f - q_diff1_filt*q_diff1_filt - q_diff2_filt*q_diff2_filt - q_diff3_filt*q_diff3_filt);
+
+	matrix::Quatf q_diff_filt(q_diff0_filt, q_diff1_filt, q_diff2_filt, q_diff3_filt);
+
+	// update with the filtered quaternion
+	matrix::Quatf q_out = q_last * q_diff_filt;
+	q_out.normalize();
+
+	return q_out;
 }

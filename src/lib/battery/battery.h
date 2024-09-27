@@ -59,6 +59,10 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 
+// Logging and Publishing to GCS
+#include <uORB/topics/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
+
 /**
  * BatteryBase is a base class for any type of battery.
  *
@@ -122,8 +126,12 @@ protected:
 		param_t low_thr;
 		param_t crit_thr;
 		param_t emergen_thr;
+		param_t low_time;
+		param_t crit_time;
 		param_t source;
 		param_t bat_avrg_current;
+		param_t fs_volt_low;
+		param_t fs_volt_low_time;
 	} _param_handles{};
 
 	struct {
@@ -136,8 +144,12 @@ protected:
 		float low_thr;
 		float crit_thr;
 		float emergen_thr;
+		float low_time;
+		float crit_time;
 		int32_t source;
 		float bat_avrg_current;
+		float fs_volt_low;		// Failsafe for low voltage (V)
+		float fs_volt_low_time;		// Amount of time (s) that volt_low must be below its parameter before a failsafe is activated
 	} _params{};
 
 	const int _index;
@@ -149,7 +161,11 @@ private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
 	float calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a);
 	void estimateStateOfCharge();
-	uint8_t determineWarning(float state_of_charge);
+	uint8_t determineWarning_SOC(float state_of_charge);
+	uint8_t determineWarning_TimeRemaining(float time_remaining_s);
+	uint8_t determineWarning_Voltage(const float voltage_v);
+	void reportWarnings(const float voltage_v);
+
 	void computeScale();
 	float computeRemainingTime(float current_a);
 
@@ -174,8 +190,14 @@ private:
 	float _state_of_charge_volt_based{-1.f}; // [0,1]
 	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
+	float _time_remaining_s{-1.f};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
+
 	hrt_abstime _last_unconnected_timestamp{0};
+	hrt_abstime _timer_limit_reporting {0}; 	// Time (us) this is only for limiting reporting
+	hrt_abstime _timer_fs_volt_low_us {0};		// Time (us) of the first low voltage failsafe
+
+	orb_advert_t _mavlink_log_pub{nullptr};
 };

@@ -81,8 +81,7 @@ void FlightTaskManualAltitudeCommandVel::_scaleSticks()
 	_yawspeed_setpoint = _applyYawspeedFilter(yawspeed_target);
 
 	// Use sticks input with deadzone and exponential curve for vertical velocity
-	const float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
-	_velocity_setpoint(2) = vel_max_z * _sticks.getPositionExpo()(2);
+	_velocity_setpoint(2) = _param_flgt_vz_max.get() * _sticks.getPositionExpo()(2);
 }
 
 float FlightTaskManualAltitudeCommandVel::_applyYawspeedFilter(float yawspeed_target)

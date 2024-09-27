@@ -38,7 +38,7 @@
  *
  * @reboot_required true
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Disabled
  * @value 1 - VOXL ESC
  * @min 0
@@ -51,7 +51,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_CONFIG, 0);
  *
  * Default rate is 250Kbps, which is used in off-the-shelf MoadalAI ESC products.
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @unit bit/s
  */
 PARAM_DEFINE_INT32(VOXL_ESC_BAUD, 250000);
@@ -81,7 +81,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_BAUD, 250000);
  *
  * Minimum RPM for ESC
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @unit rpm
  */
 PARAM_DEFINE_INT32(VOXL_ESC_RPM_MIN, 5500);
@@ -91,7 +91,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_RPM_MIN, 5500);
  *
  * Maximum RPM for ESC
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @unit rpm
  */
 PARAM_DEFINE_INT32(VOXL_ESC_RPM_MAX, 15000);
@@ -103,7 +103,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_RPM_MAX, 15000);
  *
  * @reboot_required true
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - None
  * @value 1 - Turtle Mode enabled via AUX1
  * @value 2 - Turtle Mode enabled via AUX2
@@ -116,7 +116,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_MODE, 0);
 /**
  * UART ESC ID 1 Spin Direction Flag
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Default
  * @value 1 - Reverse
  */
@@ -125,7 +125,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_SDIR1, 0);
 /**
  * UART ESC ID 2 Spin Direction Flag
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Default
  * @value 1 - Reverse
  */
@@ -134,7 +134,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_SDIR2, 0);
 /**
  * UART ESC ID 3 Spin Direction Flag
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Default
  * @value 1 - Reverse
  */
@@ -143,7 +143,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_SDIR3, 0);
 /**
  * UART ESC ID 4 Spin Direction Flag
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Default
  * @value 1 - Reverse
  */
@@ -152,7 +152,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_SDIR4, 0);
 /**
  * UART ESC Turtle Mode Crash Flip Motor Percent
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @min 1
  * @max 100
  * @decimal 10
@@ -163,7 +163,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_PERC, 90);
 /**
  * UART ESC Turtle Mode Crash Flip Motor Deadband
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @min 0
  * @max 100
  * @decimal 10
@@ -174,7 +174,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_DEAD, 20);
 /**
  * UART ESC Turtle Mode Crash Flip Motor STICK_MINF
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @min 0.0
  * @max 100.0
  * @decimal 10
@@ -185,7 +185,7 @@ PARAM_DEFINE_FLOAT(VOXL_ESC_T_MINF, 0.15);
 /**
  * UART ESC Turtle Mode Crash Flip Motor expo
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @min 0
  * @max 100
  * @decimal 10
@@ -196,7 +196,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_EXPO, 35);
 /**
  * UART ESC Turtle Mode Cosphi
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @min 0.000
  * @max 1.000
  * @decimal 10
@@ -209,7 +209,7 @@ PARAM_DEFINE_FLOAT(VOXL_ESC_T_COSP, 0.990);
  *
  * @reboot_required true
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Disabled
  * @value 1 - Enabled
  * @min 0
@@ -225,7 +225,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_VLOG, 0);
  *
  * @reboot_required true
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Disabled
  * @value 1 - Enabled
  * @min 0
@@ -241,7 +241,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_PUB_BST, 1);
  *
  * @reboot_required true
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Disabled
  * @min 0
  * @max 200
@@ -256,7 +256,7 @@ PARAM_DEFINE_INT32(VOXL_ESC_T_WARN, 0);
  *
  * @reboot_required true
  *
- * @group VOXL ESC
+ * @group VOXL_ESC
  * @value 0 - Disabled
  * @min 0
  * @max 200

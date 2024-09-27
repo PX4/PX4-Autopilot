@@ -142,3 +142,67 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0, -1]
+
+        BAT_LOW_TIME:
+            description:
+                short: Battery Low Time Remaining Threshold
+                long: |
+                    Sets the threshold for when when the battery will be reported as low due to
+                    the estimated time remaining.
+                    This has to be higher than the critical threshold.
+                    To disable set to -1.0.
+            type: float
+            unit: s
+            min: -1.0
+            max: 3000000
+            decimal: 2
+            increment: 1
+            reboot_required: true
+            default: -1.0
+
+        BAT_CRIT_TIME:
+            description:
+                short: Battery Critical Time Remaining Threshold
+                long: |
+                    Sets the threshold for when when the battery will be reported as critical due to
+                    the estimated time remaining.
+                    To disable set to -1.0.
+            type: float
+            unit: s
+            min: -1.0
+            max: 3000000
+            decimal: 2
+            increment: 1
+            reboot_required: true
+            default: -1.0
+
+        BAT_LOW_VOLT:
+            description:
+                short: Battery Low Voltage Failsafe
+                long: |
+                    Voltage where the battery will be reported as low due to voltage.
+                    This will only be reported once the voltage has been low at least BAT_LOW_V_TIME seconds
+                    To disable set to -1.0.
+            type: float
+            unit: V
+            min: -1.0
+            max: 3000000
+            decimal: 3
+            increment: 0.1
+            reboot_required: true
+            default: -1.0
+
+        BAT_LOW_V_TIME:
+            description:
+                short: Battery Low Voltage Failsafe Time
+                long: |
+                    Set the time period that the battery must be below BATT_LOW_VOLT before being reported.
+                    To disable set to -1.0.
+            type: float
+            unit: s
+            min: -1.0
+            max: 100
+            decimal: 3
+            increment: 0.1
+            reboot_required: true
+            default: -1.0

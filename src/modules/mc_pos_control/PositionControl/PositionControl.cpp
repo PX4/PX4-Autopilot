@@ -72,8 +72,11 @@ void PositionControl::setHorizontalThrustMargin(const float margin)
 	_lim_thr_xy_margin = margin;
 }
 
-void PositionControl::updateHoverThrust(const float hover_thrust_new)
+void PositionControl::updateHoverThrust(const float hover_thrust)
 {
+	// This constrain needs to match the constraint in setHoverThrust
+	const float hover_thrust_new = math::constrain(hover_thrust, POSCONTROL_HOVER_THRUST_MIN, POSCONTROL_HOVER_THRUST_MAX);
+
 	// Given that the equation for thrust is T = a_sp * Th / g - Th
 	// with a_sp = desired acceleration, Th = hover thrust and g = gravity constant,
 	// we want to find the acceleration that needs to be added to the integrator in order obtain
@@ -81,10 +84,12 @@ void PositionControl::updateHoverThrust(const float hover_thrust_new)
 	// T' = T => a_sp' * Th' / g - Th' = a_sp * Th / g - Th
 	// so a_sp' = (a_sp - g) * Th / Th' + g
 	// we can then add a_sp' - a_sp to the current integrator to absorb the effect of changing Th by Th'
-	if (hover_thrust_new > FLT_EPSILON) {
-		_vel_int(2) += (_acc_sp(2) - CONSTANTS_ONE_G) * _hover_thrust / hover_thrust_new + CONSTANTS_ONE_G - _acc_sp(2);
-		setHoverThrust(hover_thrust_new);
-	}
+	_vel_int(2) += (_acc_sp(2) - CONSTANTS_ONE_G) * _hover_thrust / hover_thrust_new + CONSTANTS_ONE_G - _acc_sp(2);
+
+	// limit thrust integral
+	_vel_int(2) = math::min(fabsf(_vel_int(2)), CONSTANTS_ONE_G) * sign(_vel_int(2));
+
+	setHoverThrust(hover_thrust_new);
 }
 
 void PositionControl::setState(const PositionControlStates &states)

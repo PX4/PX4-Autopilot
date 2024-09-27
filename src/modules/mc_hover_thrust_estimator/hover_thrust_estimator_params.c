@@ -115,12 +115,27 @@ PARAM_DEFINE_FLOAT(HTE_VXY_THR, 10.0);
 PARAM_DEFINE_FLOAT(HTE_VZ_THR, 2.0);
 
 /**
- * Max deviation from MPC_THR_HOVER
+ * Maximum value for the hover thrust estimator
  *
- * Defines the range of the hover thrust estimate around MPC_THR_HOVER.
- * A value of 0.2 with MPC_THR_HOVER at 0.5 results in a range of [0.3, 0.7].
+ * Must be greater than MPC_THR_HOVER
  *
  * Set to a large value if the vehicle operates in varying physical conditions that
+ * affect the required hover thrust strongly (e.g. differently sized payloads).
+ *
+ * @decimal 2
+ * @min 0.01
+ * @max 0.9
+ * @unit normalized_thrust
+ * @group Hover Thrust Estimator
+ */
+PARAM_DEFINE_FLOAT(HTE_THR_MAX, 0.7);
+
+/**
+ * Minimum value for the hover thrust estimator
+ *
+ * Must be less than MPC_THR_HOVER
+ *
+ * Set to a low value if the vehicle operates in varying physical conditions that
  * affect the required hover thrust strongly (e.g. differently sized payloads).
  *
  * @decimal 2
@@ -129,4 +144,4 @@ PARAM_DEFINE_FLOAT(HTE_VZ_THR, 2.0);
  * @unit normalized_thrust
  * @group Hover Thrust Estimator
  */
-PARAM_DEFINE_FLOAT(HTE_THR_RANGE, 0.2);
+PARAM_DEFINE_FLOAT(HTE_THR_MIN, 0.3);

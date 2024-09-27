@@ -16,7 +16,7 @@ parameters:
             reboot_required: true
             default: 1
 
-        PARAM_SET:
+        PSET_MODE:
             description:
                 short: Selected Parameter Set
                 long: |
@@ -28,19 +28,18 @@ parameters:
             type: enum
             values:
                 0: DISABLED
-                1: ACRO_FAST
-                2: ALT_FAST
+                1: ALT_FAST
+                2: ALT_MEDIUM
                 3: ALT_SLOW
-                4: RESERVED4
+                4: ACRO_FAST
                 5: RESERVED5
-            reboot_required: false
             default: 0
 
-        PARAM_SET_CHANL:
+        PSET_CHANNEL:
             description:
-                short: RC Channel used to set the PARAM_SET parameter.
+                short: RC Channel used to set the PSET_MODE parameter.
                 long: |
-                    If enabled, this param will be used to set the PARAM_SET parameter.
+                    If enabled, this param will be used to set the PSET_MODE parameter.
 
                     This enables mapping an RC switch to a set of parameter changes. The
                     existing method for doing this (RC_MAP_PARAM*) only supports dials
@@ -69,3 +68,135 @@ parameters:
                 18: CHANNEL18
             reboot_required: true
             default: 0
+
+        PSET_FST_TILT:
+            description:
+                short: Fast mode MPC_TILT_MAX
+                long: |
+                    Fast mode: The parameter value to use for
+                                    MPC_TILTMAX_AIR
+                                    MPC_MAN_TILT_MAX
+            type: float
+            unit: deg
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 100
+            default: 50.0
+
+        PSET_FST_VELZ:
+            description:
+                short: Fast mode MPC_Z_VEL_MAX Down & Up
+                long: |
+                    Fast mode: The parameter value to use for
+                                    MPC_Z_VEL_MAX_DN
+                                    MPC_Z_VEL_MAX_UP
+            type: float
+            unit: m/s
+            decimal: 2
+            increment: 0.01
+            min: 0
+            max: 100
+            default: 3.0
+
+        PSET_FST_TAU:
+            description:
+                short: Fast mode MC_MAN_TILT_TAU
+                long: |
+                    Fast mode: The parameter value to use for
+                                    MC_MAN_TILT_TAU
+            type: float
+            unit: s
+            decimal: 2
+            increment: 0.01
+            min: 0
+            max: 2.0
+            default: 0.0
+
+        PSET_MED_TILT:
+            description:
+                short: Medium mode MPC_TILT_MAX
+                long: |
+                    Medium mode: The parameter value to use for
+                                    MPC_TILTMAX_AIR
+                                    MPC_MAN_TILT_MAX
+            type: float
+            unit: deg
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 100
+            default: 20.0
+
+        PSET_MED_VELZ:
+            description:
+                short: Medium mode MPC_Z_VEL_MAX Down & Up
+                long: |
+                    Medium mode: The parameter value to use for
+                                    MPC_Z_VEL_MAX_DN
+                                    MPC_Z_VEL_MAX_UP
+            type: float
+            unit: m/s
+            decimal: 2
+            increment: 0.01
+            min: 0
+            max: 100
+            default: 1.5
+
+        PSET_MED_TAU:
+            description:
+                short: Medium mode MC_MAN_TILT_TAU
+                long: |
+                    Medium mode: The parameter value to use for
+                                    MC_MAN_TILT_TAU
+            type: float
+            unit: s
+            decimal: 2
+            increment: 0.01
+            min: 0
+            max: 2.0
+            default: 0.0
+
+        PSET_SLW_TILT:
+            description:
+                short: Slow mode MPC_TILT_MAX
+                long: |
+                    Slow mode: The parameter value to use for
+                                    MPC_TILTMAX_AIR
+                                    MPC_MAN_TILT_MAX
+            type: float
+            unit: deg
+            decimal: 2
+            increment: 0.1
+            min: 0
+            max: 100
+            default: 10.0
+
+        PSET_SLW_VELZ:
+            description:
+                short: Slow mode MPC_Z_VEL_MAX Down & Up
+                long: |
+                    Slow mode: The parameter value to use for
+                                    MPC_Z_VEL_MAX_DN
+                                    MPC_Z_VEL_MAX_UP
+            type: float
+            unit: m/s
+            decimal: 2
+            increment: 0.01
+            min: 0
+            max: 100
+            default: 1.0
+
+        PSET_SLW_TAU:
+            description:
+                short: Slow mode MC_MAN_TILT_TAU
+                long: |
+                    Slow mode: The parameter value to use for
+                                    MC_MAN_TILT_TAU
+            type: float
+            unit: s
+            decimal: 2
+            increment: 0.01
+            min: 0
+            max: 2.0
+            default: 0.0

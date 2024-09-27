@@ -69,6 +69,8 @@
 //in betaflight configurator set OSD elements to your desired positions and in CLI type "set osd" to retreieve the numbers.
 //234 -> not visible. Horizontally 2048-2074(spacing 1), vertically 2048-2528(spacing 32). 26 characters X 15 lines
 
+// Element Number 2546 is as close as you can get in the bottom right corner without overlapping the Main Battery voltage display element
+
 // Currently working elements positions (hardcoded)
 
 /* center col
@@ -92,17 +94,18 @@ const uint16_t osd_home_dist_pos = 2095;
 
 // Bottom row 1
 const uint16_t osd_gps_speed_pos = 2413;
-const uint16_t osd_power_pos = 2415;
 const uint16_t osd_altitude_pos = 2416;
 
 // Bottom Row 2
 const uint16_t osd_rssi_value_pos = 2445;
-const uint16_t osd_avg_cell_voltage_pos = 2446;
 const uint16_t osd_mah_drawn_pos = 2449;
 
 // Bottom Row 3
-const uint16_t osd_craft_name_pos = 2480;
+const uint16_t osd_craft_name_pos = 2543;
 const uint16_t osd_crosshairs_pos = 2319;
+
+const uint16_t osd_power_pos = 2415;
+const uint16_t osd_avg_cell_voltage_pos = 2545;
 
 // Right
 const uint16_t osd_main_batt_voltage_pos = 2073;
@@ -281,10 +284,18 @@ void MspOsd::Run()
 		log_message_s log_message{};
 		_log_message_sub.copy(&log_message);
 
-		const auto display_message = msp_osd::construct_display_message(
+		esc_status_s esc_status{};
+		_esc_status_sub.copy(&esc_status);
+
+		parameter_selector_s parameter_selector{};
+		_parameter_selector_sub.copy(&parameter_selector);
+
+		const auto display_message = construct_display_message(
 						     vehicle_status,
 						     vehicle_attitude,
 						     log_message,
+						     esc_status,
+						     parameter_selector,
 						     _param_osd_log_level.get(),
 						     _display);
 		this->Send(MSP_NAME, &display_message);
@@ -324,7 +335,7 @@ void MspOsd::Run()
 		battery_status_s battery_status{};
 		_battery_status_sub.copy(&battery_status);
 
-		const auto msg = msp_osd::construct_BATTERY_STATE(battery_status);
+		const auto msg = construct_BATTERY_STATE(battery_status);
 		this->Send(MSP_BATTERY_STATE, &msg);
 	}
 

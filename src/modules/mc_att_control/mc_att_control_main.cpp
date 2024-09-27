@@ -93,6 +93,10 @@ MulticopterAttitudeControl::parameters_updated()
 						radians(_param_mc_yawrate_max.get())));
 
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
+
+	_attitude_control.setMaxFFSpeed(radians(_param_mc_max_ff_speed.get()));
+	_attitude_control.setAttitudeFFFactor(_param_mc_ff_factor.get());
+	_attitude_control.setFFTiltTau(_param_mc_ff_tilt_tau.get());
 }
 
 float
@@ -184,7 +188,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
 	// update attitude controller setpoint immediately
-	_attitude_control.setAttitudeSetpoint(q_sp, attitude_setpoint.yaw_sp_move_rate);
+	_attitude_control.setAttitudeSetpointFilter(q_sp, attitude_setpoint.yaw_sp_move_rate);
 	_thrust_setpoint_body = Vector3f(attitude_setpoint.thrust_body);
 	_last_attitude_setpoint = attitude_setpoint.timestamp;
 }
@@ -221,13 +225,32 @@ MulticopterAttitudeControl::Run()
 
 		const Quatf q{v_att.q};
 
+		// update vehicle status
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
+
+			if (_vehicle_status_sub.copy(&vehicle_status)) {
+				_vehicle_type_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+				_vtol = vehicle_status.is_vtol;
+				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
+				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
+				_filter_attitude_setpoint = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL);
+			}
+		}
+
 		// Check for new attitude setpoint
-		if (_vehicle_attitude_setpoint_sub.updated()) {
-			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
+		// if in altitude mode set the setpoint on every iteration for filtering
+		vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
 
-			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
-			    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
-
+		if (_filter_attitude_setpoint && _vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)) {
+			_attitude_control.setAttitudeSetpointFilter(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+			_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+			if (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint) {
+				_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
+			}
+		}
+		else if (_vehicle_attitude_setpoint_sub.updated()) {
+			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint) && vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint) {
 				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
 				_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
 				_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
@@ -252,18 +275,6 @@ MulticopterAttitudeControl::Run()
 		/* check for updates in other topics */
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
-
-		if (_vehicle_status_sub.updated()) {
-			vehicle_status_s vehicle_status;
-
-			if (_vehicle_status_sub.copy(&vehicle_status)) {
-				_vehicle_type_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-				_vtol = vehicle_status.is_vtol;
-				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
-				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
-
-			}
-		}
 
 		if (_vehicle_local_position_sub.updated()) {
 			vehicle_local_position_s vehicle_local_position;

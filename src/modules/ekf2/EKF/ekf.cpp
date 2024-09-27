@@ -284,6 +284,12 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// compensate for acceleration due to gravity
 	_state.vel(2) += CONSTANTS_ONE_G * imu_delayed.delta_vel_dt;
 
+	if (_params.bounce_fix && _can_reset_z_vel_on_clipping && imu_delayed.delta_vel_clipping[2] && _state.vel(2) > 0)
+	{
+		PX4_DEBUG("Setting Z velocity to zero due to clipping on z axis");
+		_state.vel(2) = 0.0;
+	}
+
 	// predict position states via trapezoidal integration of velocity
 	_state.pos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
 

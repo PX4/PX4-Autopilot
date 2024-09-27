@@ -779,13 +779,13 @@ struct msp_name_t {
 } __attribute__((packed));
 
 struct msp_battery_state_t {
-	uint8_t batteryCellCount;
-	uint16_t batteryCapacity;
-	uint8_t legacyBatteryVoltage;
-	uint16_t mAhDrawn;
-	uint16_t amperage;
-	uint8_t batteryState;
-	uint16_t batteryVoltage;
+	uint8_t batteryCellCount;		// Number of battery cells in series, O : battery not detected
+	uint16_t batteryCapacity;		// miliamp hours (mAh)
+	uint8_t legacyBatteryVoltage;		// voltage: deci-volts (0.1 Volts scale)
+	uint16_t mAhDrawn;			// miliamp hours (mAh) discharged
+	uint16_t amperage;			// current in 0.01 A steps, range is -320A to 320A
+	uint8_t batteryState;			// battery alerts
+	uint16_t batteryVoltage;		// centi-Volts (0.01 Volts scale)
 } __attribute__((packed));
 
 // MSP_STATUS reply customized for BF/DJI

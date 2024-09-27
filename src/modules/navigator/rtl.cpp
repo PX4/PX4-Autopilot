@@ -731,10 +731,20 @@ void RTL::calcRtlTimeEstimate(const RTLState rtl_state, rtl_time_estimate_s &rtl
 {
 	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
-	// Sum up time estimate for various segments of the landing procedure
-	switch (rtl_state) {
-	case RTL_STATE_NONE:
-	case RTL_STATE_CLIMB: {
+	// We can have a valid home position but not be using position control??
+	// Or just as importantly later on not have a valid current_position
+	// UOrbs: vehicle_status_flags, local_position
+
+	const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
+
+	if (!_navigator->home_global_position_valid() || !local_pos.xy_valid || !local_pos.z_valid) {
+		rtl_time_estimate.valid = false;
+
+	} else {
+		// Sum up time estimate for various segments of the landing procedure
+		switch (rtl_state) {
+		case RTL_STATE_NONE:
+		case RTL_STATE_CLIMB: {
 			// Climb segment is only relevant if the drone is below return altitude
 			const float climb_dist = gpos.alt < _rtl_alt ? (_rtl_alt - gpos.alt) : 0;
 
@@ -743,73 +753,74 @@ void RTL::calcRtlTimeEstimate(const RTLState rtl_state, rtl_time_estimate_s &rtl
 			}
 		}
 
-	// FALLTHROUGH
-	case RTL_STATE_RETURN:
+		// FALLTHROUGH
+		case RTL_STATE_RETURN:
 
-		// Add cruise segment to home
-		rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
-				_destination.lat, _destination.lon, gpos.lat, gpos.lon) / getCruiseGroundSpeed();
+			// Add cruise segment to home
+			rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
+					_destination.lat, _destination.lon, gpos.lat, gpos.lon) / getCruiseGroundSpeed();
 
-	// FALLTHROUGH
-	case RTL_STATE_HEAD_TO_CENTER:
-	case RTL_STATE_TRANSITION_TO_MC:
-	case RTL_STATE_DESCEND: {
-			// when descending, the target altitude is stored in the current mission item
-			float initial_altitude = 0.f;
-			float loiter_altitude = 0.f;
+		// FALLTHROUGH
+		case RTL_STATE_HEAD_TO_CENTER:
+		case RTL_STATE_TRANSITION_TO_MC:
+		case RTL_STATE_DESCEND: {
+				// when descending, the target altitude is stored in the current mission item
+				float initial_altitude = 0.f;
+				float loiter_altitude = 0.f;
 
-			if (rtl_state == RTL_STATE_DESCEND) {
-				// Take current vehicle altitude as the starting point for calculation
-				initial_altitude = gpos.alt;  // TODO: Check if this is in the right frame
-				loiter_altitude = _mission_item.altitude;  // Next waypoint = loiter
+				if (rtl_state == RTL_STATE_DESCEND) {
+					// Take current vehicle altitude as the starting point for calculation
+					initial_altitude = gpos.alt;  // TODO: Check if this is in the right frame
+					loiter_altitude = _mission_item.altitude;  // Next waypoint = loiter
 
 
-			} else {
-				// Take the return altitude as the starting point for the calculation
-				initial_altitude = _rtl_alt; // CLIMB and RETURN
-				loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
+				} else {
+					// Take the return altitude as the starting point for the calculation
+					initial_altitude = _rtl_alt; // CLIMB and RETURN
+					loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
+				}
+
+				// Add descend segment (first landing phase: return alt to loiter alt)
+				rtl_time_estimate.time_estimate += fabsf(initial_altitude - loiter_altitude) / getDescendRate();
 			}
 
-			// Add descend segment (first landing phase: return alt to loiter alt)
-			rtl_time_estimate.time_estimate += fabsf(initial_altitude - loiter_altitude) / getDescendRate();
+		// FALLTHROUGH
+		case RTL_STATE_LOITER:
+			// Add land delay (the short pause for deploying landing gear)
+			// TODO: Check if landing gear is deployed or not
+			rtl_time_estimate.time_estimate += _param_rtl_land_delay.get();
+
+		// FALLTHROUGH
+		case RTL_MOVE_TO_LAND_HOVER_VTOL:
+		case RTL_STATE_LAND: {
+				float initial_altitude;
+
+				// Add land segment (second landing phase) which comes after LOITER
+				if (rtl_state == RTL_STATE_LAND) {
+					// If we are in this phase, use the current vehicle altitude  instead
+					// of the altitude paramteter to get a continous time estimate
+					initial_altitude = gpos.alt;
+
+
+				} else {
+					// If this phase is not active yet, simply use the loiter altitude,
+					// which is where the LAND phase will start
+					const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
+					initial_altitude = loiter_altitude;
+				}
+
+				// Prevent negative times when close to the ground
+				if (initial_altitude > _destination.alt) {
+					rtl_time_estimate.time_estimate += (initial_altitude - _destination.alt) / getHoverLandSpeed();
+				}
+			}
+
+			break;
+
+		case RTL_STATE_LANDED:
+			// Remaining time is 0
+			break;
 		}
-
-	// FALLTHROUGH
-	case RTL_STATE_LOITER:
-		// Add land delay (the short pause for deploying landing gear)
-		// TODO: Check if landing gear is deployed or not
-		rtl_time_estimate.time_estimate += _param_rtl_land_delay.get();
-
-	// FALLTHROUGH
-	case RTL_MOVE_TO_LAND_HOVER_VTOL:
-	case RTL_STATE_LAND: {
-			float initial_altitude;
-
-			// Add land segment (second landing phase) which comes after LOITER
-			if (rtl_state == RTL_STATE_LAND) {
-				// If we are in this phase, use the current vehicle altitude  instead
-				// of the altitude paramteter to get a continous time estimate
-				initial_altitude = gpos.alt;
-
-
-			} else {
-				// If this phase is not active yet, simply use the loiter altitude,
-				// which is where the LAND phase will start
-				const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
-				initial_altitude = loiter_altitude;
-			}
-
-			// Prevent negative times when close to the ground
-			if (initial_altitude > _destination.alt) {
-				rtl_time_estimate.time_estimate += (initial_altitude - _destination.alt) / getHoverLandSpeed();
-			}
-		}
-
-		break;
-
-	case RTL_STATE_LANDED:
-		// Remaining time is 0
-		break;
 	}
 
 	// Prevent negative durations as phyiscally they make no sense. These can

@@ -587,9 +587,11 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_BIAS, 3.0f);
 /**
  * Maximum accelerometer inconsistency between IMU units that will allow arming
  *
+ * Set to -1 to dsiable the check
+ *
  * @group Commander
  * @unit m/s^2
- * @min 0.1
+ * @min -1.0
  * @max 1.0
  * @decimal 2
  * @increment 0.05
@@ -599,9 +601,11 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_ACC, 0.7f);
 /**
  * Maximum rate gyro inconsistency between IMU units that will allow arming
  *
+ * Set to -1 to dsiable the check
+ *
  * @group Commander
  * @unit rad/s
- * @min 0.02
+ * @min -1.0
  * @max 0.3
  * @decimal 3
  * @increment 0.01
@@ -823,8 +827,9 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Disarm
+ * @value 7 Descend
  * @min 0
- * @max 6
+ * @max 7
  *
  * @group Commander
  */
@@ -842,8 +847,9 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Disarm
+ * @value 7 Descend
  * @min 1
- * @max 6
+ * @max 7
  *
  * @group Commander
  */
@@ -862,6 +868,41 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
+
+/**
+ * Delay between RC loss and configured reaction to
+ *
+ * RC signal not updated -> still use data for COM_RC_LOSS_T seconds
+ * Consider RC signal lost -> wait COM_RCL_ACT_T seconds in Hold mode to regain signal
+ * React with failsafe action NAV_RCL_ACT
+ *
+ * A zero value disables the delay.
+ *
+ * @group Commander
+ * @unit s
+ * @min 0.0
+ * @max 25.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(COM_RCL_ACT_T, 15.0f);
+
+/**
+ * Set RC_Loss failsafe mode that will occur
+ *
+ * The RC loss failsafe action will only be entered after a timeout,
+ * set by COM_RCL_ACT_T in seconds.
+ *
+ * @value 1 Hold mode
+ * @value 2 Return mode
+ * @value 3 Land mode
+ * @value 5 Terminate
+ * @value 6 Disarm
+ * @value 7 Descend
+ * @min 0
+ * @max 7
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_RCL_ACT, 2);
 
 /**
  * Set the actuator failure failsafe mode
@@ -1148,3 +1189,30 @@ PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
  * @unit m
  */
 PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
+
+/**
+ * Initial Flight Mode
+ *
+ * The flightmode when the vehicle first boots.
+ *
+ * @group Commander
+ * @value -1 UNASSIGNED
+ * @value 0 MANUAL
+ * @value 1 ALTCTL
+ * @value 2 POSCTL
+ * @value 3 AUTO_MISSION
+ * @value 4 AUTO_LOITER
+ * @value 5 AUTO_RTL
+ * @value 10 ACRO
+ * @value 12 DESCEND
+ * @value 13 TERMINATION
+ * @value 14 OFFBOARD
+ * @value 15 STAB
+ * @value 17 AUTO_TAKEOFF
+ * @value 18 AUTO_LAND
+ * @value 19 AUTO_FOLLOW_TARGET
+ * @value 20 AUTO_PRECLAND
+ * @value 21 ORBIT
+ * @value 22 AUTO_VTOL_TAKEOFF
+ */
+PARAM_DEFINE_INT32(COM_FLTMODE_INIT, -1);

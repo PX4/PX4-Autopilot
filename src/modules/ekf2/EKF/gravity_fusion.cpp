@@ -46,16 +46,28 @@
 
 void Ekf::controlGravityFusion(const imuSample &imu)
 {
+	constexpr float xmin = 0.9f;
+	constexpr float xmax = 1.1f;
+
 	// fuse gravity observation if our overall acceleration isn't too big
 	const float gravity_scale = _accel_vec_filt.norm() / CONSTANTS_ONE_G;
 
 	_control_status.flags.gravity_vector = (_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
-					       && (((gravity_scale >= 0.9f && gravity_scale <= 1.1f)) || _control_status.flags.vehicle_at_rest)
+					       && (((gravity_scale >= xmin && gravity_scale <= xmax)) || _control_status.flags.vehicle_at_rest)
 					       && !isHorizontalAidingActive();
 
 	// get raw accelerometer reading at delayed horizon and expected measurement noise (gaussian)
 	const Vector3f measurement = imu.delta_vel / imu.delta_vel_dt - getAccelBias();
-	const float measurement_var = sq(_params.gravity_noise);
+
+	// calculate observation noise, scaled by incoming acceleration norm
+	float noise = _params.gravity_noise;
+	{
+		// scale stddev to a hyperbola (y = ax^2 + b)
+		const float g = max(5.0f, _params.gravity_noise);
+		const float a = (g - noise) / sq(xmax - 1.0f);
+		noise += a * sq(gravity_scale - 1.0f);
+	}
+	const float measurement_var = sq(noise);
 
 	// calculate kalman gains and innovation variances
 	Vector3f innovation; // innovation of the last gravity fusion observation (m/s**2)

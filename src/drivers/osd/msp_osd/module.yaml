@@ -97,3 +97,38 @@ parameters:
             min: 100
             max: 10000
             default: 500
+
+        # Battery Low Voltage
+        OSD_BATT_LOW_V:
+            description:
+                short: OSD Battery Low Voltage (V)
+                long: |
+                    Battery voltage below which the OSD battery indicator turns red
+            type: float
+            min: 0.0
+            max: 10000
+            default: 21.6
+
+        # Display options
+        OSD_DISPLAY_OPTS:
+            description:
+                short: OSD Display Options
+                long: |
+                    Configure alternative options for display elements, IE for heading using clock directions instead of compass direction
+            type: bitmask
+            bit:
+                0: USE_CLOCK_DIRECTIONS_FOR_HEADING
+            default: 0
+
+        # Heading Display Reset Channel
+        OSD_HDG_RST_CHAN:
+            description:
+                short: OSD Heading Display Reset Channel
+                long: |
+                  RC channel that resets the current heading to be North (12 O'Clock) for OSD display if it is high
+            type: enum
+            values:
+                0: Disabled
+                1: AUX1
+                2: AUX2
+            default: 0

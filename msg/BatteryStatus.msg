@@ -53,7 +53,13 @@ uint8 BATTERY_FAULT_INCOMPATIBLE_FIRMWARE = 7 # Battery firmware is not compatib
 uint8 BATTERY_FAULT_INCOMPATIBLE_MODEL = 8 # Battery model is not supported by the system
 uint8 BATTERY_FAULT_HARDWARE_FAILURE = 9 # hardware problem
 uint8 BATTERY_WARNING_OVER_TEMPERATURE = 10 # Over-temperature
-uint8 BATTERY_FAULT_COUNT = 11 # Counter - keep it as last element!
+uint8 BATTERY_FAULT_LOW_VOLTAGE = 11		# Low voltage detected for at least BATT_LOW_V_TIME
+uint8 BATTERY_FAULT_CRITICAL_VOLTAGE = 12	# Critical Voltage detected for at least BATT_LOW_V_TIME
+uint8 BATTERY_FAULT_LOW_TIME_REMAINING = 13	# Low time remaining
+uint8 BATTERY_FAULT_CRITCAL_TIME_REMAINING = 14	# Critical time remaining
+uint8 BATTERY_FAULT_NONE = 15			# No fault detected, FIXME this should be at 0 (so we can directly OR all fault reporting to return if no faults) ... But changing may have consquences for other systems??
+uint8 BATTERY_FAULT_COUNT = 16 # Counter - keep it as last element!
+
 
 uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication.
 uint32 custom_faults 	# Bitmask indicating smart battery internal manufacturer faults, those are not user actionable.

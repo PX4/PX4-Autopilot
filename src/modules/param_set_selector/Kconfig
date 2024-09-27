@@ -7,6 +7,6 @@ menuconfig MODULES_PARAM_SET_SELECTOR
 menuconfig USER_PARAM_SET_SELECTOR
 	bool "param_set_selector running as userspace module"
 	default n
-	depends on BOARD_PROTECTED && MODULES_SENSORS
+	depends on BOARD_PROTECTED && MODULES_PARAM_SET_SELECTOR
 	---help---
 		Put param_set_selector in userspace memory

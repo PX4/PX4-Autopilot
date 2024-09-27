@@ -81,9 +81,19 @@ MulticopterRateControl::parameters_updated()
 	// to the ideal (K * [1 + 1/sTi + sTd]) form
 	const Vector3f rate_k = Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
 
+	float rollrate_i = _param_mc_rollrate_i.get();
+	if (_in_acro_mode && _param_mc_acro_rrate_i.get() >= 0) {
+		rollrate_i = _param_mc_acro_rrate_i.get();
+	}
+
+	float pitchrate_i = _param_mc_pitchrate_i.get();
+	if (_in_acro_mode && _param_mc_acro_prate_i.get() >= 0) {
+		pitchrate_i = _param_mc_acro_prate_i.get();
+	}
+
 	_rate_control.setGains(
 		rate_k.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get())),
-		rate_k.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get())),
+		rate_k.emult(Vector3f(rollrate_i, pitchrate_i, _param_mc_yawrate_i.get())),
 		rate_k.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get())));
 
 	_rate_control.setIntegratorLimit(
@@ -167,6 +177,12 @@ MulticopterRateControl::Run()
 		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
 
 		if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_attitude_enabled) {
+			if (!_in_acro_mode) {
+				_in_acro_mode = true;
+				updateParams();
+				parameters_updated();
+			}
+
 			// generate the rate setpoint from sticks
 			manual_control_setpoint_s manual_control_setpoint;
 
@@ -192,6 +208,12 @@ MulticopterRateControl::Run()
 			}
 
 		} else if (_vehicle_rates_setpoint_sub.update(&vehicle_rates_setpoint)) {
+			if (_in_acro_mode) {
+				_in_acro_mode = false;
+				updateParams();
+				parameters_updated();
+			}
+
 			if (_vehicle_rates_setpoint_sub.copy(&vehicle_rates_setpoint)) {
 				_rates_setpoint(0) = PX4_ISFINITE(vehicle_rates_setpoint.roll)  ? vehicle_rates_setpoint.roll  : rates(0);
 				_rates_setpoint(1) = PX4_ISFINITE(vehicle_rates_setpoint.pitch) ? vehicle_rates_setpoint.pitch : rates(1);

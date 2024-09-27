@@ -57,6 +57,13 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 
 		reporter.failsafeFlags().manual_control_signal_lost = true;
 
+
+		if(!reporter.failsafeFlags().manual_control_signal_lost_action && hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rcl_act_t.get() * 1_s) {
+			events::send(events::ID("commander_rc_loss_act"), {events::Log::Critical, events::LogInternal::Info},
+			"RC Loss Action Active");
+			reporter.failsafeFlags().manual_control_signal_lost_action = true;
+		}
+
 	} else {
 		reporter.setIsPresent(health_component_t::remote_control);
 
@@ -67,6 +74,7 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 		}
 
 		reporter.failsafeFlags().manual_control_signal_lost = false;
+		reporter.failsafeFlags().manual_control_signal_lost_action = false;
 		_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 	}
 

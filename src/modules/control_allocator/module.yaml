@@ -125,8 +125,8 @@ parameters:
             description:
                 short: Position of rotor ${i} along X body axis
             type: float
-            decimal: 2
-            increment: 0.1
+            decimal: 3
+            increment: 0.001
             unit: m
             num_instances: *max_num_mc_motors
             min: -100
@@ -136,8 +136,8 @@ parameters:
             description:
                 short: Position of rotor ${i} along Y body axis
             type: float
-            decimal: 2
-            increment: 0.1
+            decimal: 3
+            increment: 0.001
             unit: m
             num_instances: *max_num_mc_motors
             min: -100
@@ -147,8 +147,8 @@ parameters:
             description:
                 short: Position of rotor ${i} along Z body axis
             type: float
-            decimal: 2
-            increment: 0.1
+            decimal: 3
+            increment: 0.001
             unit: m
             num_instances: *max_num_mc_motors
             min: -100

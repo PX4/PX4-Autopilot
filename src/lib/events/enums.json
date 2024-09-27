@@ -585,6 +585,26 @@
                         "10": {
                             "name": "over_temperature",
                             "description": "Battery is over-heating"
+                        },
+                        "11": {
+                            "name": "low_voltage",
+                            "description": "Low voltage detected for at least BATT_LOW_V_TIME"
+                        },
+                        "12": {
+                            "name": "critical_voltage",
+                            "description": "Critical voltage detected for at least BATT_LOW_V_TIME"
+                        },
+                        "13": {
+                            "name": "low_time_remaining",
+                            "description": "Low time remaining"
+                        },
+                        "14": {
+                            "name": "critical_time_remaining",
+                            "description": "Critical time remaining"
+                        },
+                        "15": {
+                            "name": "none",
+                            "description": "no fault detected, FIXME should be moved to 0?"
                         }
                     }
                 },

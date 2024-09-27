@@ -141,9 +141,12 @@ private:
 	AlphaFilter<float> _act_control_pitch_filter;
 	AlphaFilter<float> _act_control_yaw_filter;
 
+	bool _in_acro_mode{false};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
 		(ParamFloat<px4::params::MC_ROLLRATE_I>) _param_mc_rollrate_i,
+		(ParamFloat<px4::params::MC_ACRO_RRATE_I>) _param_mc_acro_rrate_i,
 		(ParamFloat<px4::params::MC_RR_INT_LIM>) _param_mc_rr_int_lim,
 		(ParamFloat<px4::params::MC_ROLLRATE_D>) _param_mc_rollrate_d,
 		(ParamFloat<px4::params::MC_ROLLRATE_FF>) _param_mc_rollrate_ff,
@@ -151,6 +154,7 @@ private:
 
 		(ParamFloat<px4::params::MC_PITCHRATE_P>) _param_mc_pitchrate_p,
 		(ParamFloat<px4::params::MC_PITCHRATE_I>) _param_mc_pitchrate_i,
+		(ParamFloat<px4::params::MC_ACRO_PRATE_I>) _param_mc_acro_prate_i,
 		(ParamFloat<px4::params::MC_PR_INT_LIM>) _param_mc_pr_int_lim,
 		(ParamFloat<px4::params::MC_PITCHRATE_D>) _param_mc_pitchrate_d,
 		(ParamFloat<px4::params::MC_PITCHRATE_FF>) _param_mc_pitchrate_ff,

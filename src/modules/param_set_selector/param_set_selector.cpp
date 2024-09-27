@@ -46,6 +46,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/parameter_selector.h>
 
 using namespace time_literals;
 
@@ -71,21 +72,25 @@ private:
 	/**< hardcoded parameter sets */
 	enum class ParameterSet {
 		DISABLED = 0,
-                ACRO_FAST = 1,
-                ALT_FAST = 2,
+                ALT_FAST = 1,
+		ALT_MEDIUM = 2,
                 ALT_SLOW = 3,
-                RESERVED4 = 4,
+		ACRO_FAST = 4,
                 RESERVED5 = 5
 	};
 
 	/** Core loop method. */
 	void Run() override;
 
-	/** Check if we should update from rc input. */
-	void set_from_rc_input();
+	/** Check if we should update from rc input.
+	 * Returns true if the selector state has changed
+	*/
+	bool set_from_rc_input();
 
-	/** Check if we should update from params. */
-	void set_from_params();
+	/** Check if we should update from params.
+	 * Returns true if the selector state has changed
+	*/
+	bool set_from_params();
 
 	/** switch to the given set. */
 	void switchSet(const ParameterSet& set);
@@ -107,9 +112,24 @@ private:
 
 	/**< define *our* parameters */
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::PARAM_SET>) _param_param_set,
-		(ParamInt<px4::params::PARAM_SET_CHANL>) _param_param_set_rc_channel
+		(ParamInt<px4::params::PSET_MODE>)		_param_pset_mode,
+		(ParamInt<px4::params::PSET_CHANNEL>)		_param_param_set_channel,
+		(ParamFloat<px4::params::PSET_FST_TILT>)	_param_pset_fst_tilt,
+		(ParamFloat<px4::params::PSET_FST_VELZ>) 	_param_pset_fst_velz,
+		(ParamFloat<px4::params::PSET_FST_TAU>)		_param_pset_fst_tau,
+		(ParamFloat<px4::params::PSET_MED_TILT>)	_param_pset_med_tilt,
+		(ParamFloat<px4::params::PSET_MED_VELZ>) 	_param_pset_med_velz,
+		(ParamFloat<px4::params::PSET_MED_TAU>)		_param_pset_med_tau,
+		(ParamFloat<px4::params::PSET_SLW_TILT>)	_param_pset_slw_tilt,
+		(ParamFloat<px4::params::PSET_SLW_VELZ>) 	_param_pset_slw_velz,
+		(ParamFloat<px4::params::PSET_SLW_TAU>)		_param_pset_slw_tau,
+		(ParamFloat<px4::params::FLGT_VZ_MAX>)		_param_flgt_vz_max
 	)
+
+	/* Parameter uorb publication */
+	uORB::Publication<parameter_selector_s> _parameter_selector_pub{ORB_ID(parameter_selector)};
+	parameter_selector_s _parameter_selector;
+	uint32_t _instance; 	// Number of times the uorb parameter_selector has been published
 };
 
 ParamSetSelector::ParamSetSelector() :
@@ -121,7 +141,7 @@ ParamSetSelector::ParamSetSelector() :
 	updateParams();
 
 	// get the channel to listen on for RC inputs
-	_rc_channel_index = static_cast<int>(_param_param_set_rc_channel.get()) - 1;
+	_rc_channel_index = static_cast<int>(_param_param_set_channel.get()) - 1;
 }
 
 ParamSetSelector::~ParamSetSelector()
@@ -129,18 +149,18 @@ ParamSetSelector::~ParamSetSelector()
 	ScheduleClear();
 }
 
-void ParamSetSelector::set_from_rc_input()
+bool ParamSetSelector::set_from_rc_input()
 {
 	// exit early if we aren't updated
 	if (!_input_rc_sub.updated())
-		return;
+		return false;
 
 	// get channel value
 	const uint8_t idx = static_cast<uint8_t>(_rc_channel_index);
 	if (_rc_channel_index >= input_rc_s::RC_INPUT_MAX_CHANNELS) {
 		// if we get here something really bad happened. like this should be an assert
 		PX4_ERR("Invalid channel index requested: %i", idx);
-		return;
+		return false;
 	}
 
 	// get latest RC input value
@@ -151,11 +171,11 @@ void ParamSetSelector::set_from_rc_input()
 	// map PWM values (~1000-2000) to our acceptable range ([3,2,1])
 	// @TODO make this configurable somehow? users could choose
 	float normalized = (static_cast<float>(pwm) - 1000.0f) / 1000.0f;
-	int requested = std::round(2.0f * (1.0f - math::constrain(normalized, 0.0f, 1.0f)) + 1.0f);
+	int requested = round(2.0f * (1.0f - math::constrain(normalized, 0.0f, 1.0f)) + 1.0f);
 
 	// if this matches our current value do nothing
 	if (static_cast<ParameterSet>(requested) == _current_set)
-		return;
+		return false;
 
 	// update local variables and perform parameter set switch
 	PX4_DEBUG("Switching from Parameter Set #%i to #%i", static_cast<int>(_current_set), requested);
@@ -163,80 +183,115 @@ void ParamSetSelector::set_from_rc_input()
 	switchSet(_current_set);
 
 	// also set the corresponding param to prevent confusing disconnects
-	param_set(param_find("PARAM_SET"), &requested);
+	param_set(param_find("PSET_MODE"), &requested);
+
+	return true;
 }
 
-void ParamSetSelector::set_from_params()
+bool ParamSetSelector::set_from_params()
 {
 	// update parameter set, if modified
-	ParameterSet requested = static_cast<ParameterSet>(_param_param_set.get());
-	if (requested != _current_set)
+	ParameterSet requested = static_cast<ParameterSet>(_param_pset_mode.get());
+	if (requested == _current_set)
 	{
-		_current_set = requested;
-		switchSet(requested);
+		return false;
 	}
+
+	_current_set = requested;
+	switchSet(requested);
+	return true;
 }
 
 void ParamSetSelector::switchSet(const ParameterSet& set)
 {
-	// initialize set of parameters we support - defaults to ALT_SLOW
+	// initialize set of parameters we support - defaults to a baseline ALT_MED
 	float mpc_tiltmax_air {20.0};
 	float mpc_man_tilt_max {20.0};
-	float mpc_z_vel_max_dn {1.5};
-	float mpc_z_vel_max_up {1.5};
 	int mc_airmode {0};
+	float mc_man_tilt_tau {20.0};
+	float param_flgt_vz_max {1.5};
 
 	// switch to the new parameter set
+	_parameter_selector.state = uint8_t(set);
 	switch (set)
 	{
 		case ParameterSet::DISABLED:
 			return;
 		case ParameterSet::ACRO_FAST:
 		{
+			strncpy(_parameter_selector.short_string, "ACR", sizeof(_parameter_selector.short_string));
+
 			// hardcoded params for ACRO_FAST
 			mpc_man_tilt_max = 65.0;
 			mpc_tiltmax_air = 65.0;
-			mpc_z_vel_max_dn = 10.0;
-			mpc_z_vel_max_up = 10.0;
 			mc_airmode = 0; // typically 2
 			PX4_INFO("Updating to ACRO_FAST params.");
 			break;
 		}
 		case ParameterSet::ALT_FAST:
 		{
+			strncpy(_parameter_selector.short_string, "FST", sizeof(_parameter_selector.short_string));
+
 			// hardcoded params for ALT_FAST
-			mpc_man_tilt_max = 50.0;
-			mpc_tiltmax_air = 50.0;
-			mpc_z_vel_max_dn = 3.0;
-			mpc_z_vel_max_up = 3.0;
 			mc_airmode = 0;
+
+			mpc_man_tilt_max = _param_pset_fst_tilt.get();
+			mpc_tiltmax_air  = _param_pset_fst_tilt.get();
+			param_flgt_vz_max = _param_pset_fst_velz.get();
+			mc_man_tilt_tau  = _param_pset_fst_tau.get();
+
 			PX4_INFO("Updating to ALT_FAST params.");
+			break;
+		}
+		case ParameterSet::ALT_MEDIUM:
+		{
+			strncpy(_parameter_selector.short_string, "MED", sizeof(_parameter_selector.short_string));
+
+			// hardcoded params for ALT_MEDIUM
+			mc_airmode = 0;
+
+			mpc_man_tilt_max = _param_pset_med_tilt.get();
+			mpc_tiltmax_air  = _param_pset_med_tilt.get();
+			param_flgt_vz_max = _param_pset_med_velz.get();
+			mc_man_tilt_tau  = _param_pset_med_tau.get();
+
+			PX4_INFO("Updating to ALT_MEDIUM params.");
 			break;
 		}
 		case ParameterSet::ALT_SLOW:
 		{
+			strncpy(_parameter_selector.short_string, "SLW", sizeof(_parameter_selector.short_string));
+
 			// hardcoded params for ALT_SLOW
-			mpc_man_tilt_max = 20.0;
-			mpc_tiltmax_air = 20.0;
-			mpc_z_vel_max_dn = 1.5;
-			mpc_z_vel_max_up = 1.5;
 			mc_airmode = 0;
+
+			mpc_man_tilt_max = _param_pset_slw_tilt.get();
+			mpc_tiltmax_air  = _param_pset_slw_tilt.get();
+			param_flgt_vz_max = _param_pset_slw_velz.get();
+			mc_man_tilt_tau  = _param_pset_slw_tau.get();
+
 			PX4_INFO("Updating to ALT_SLOW params.");
 			break;
 		}
-		case ParameterSet::RESERVED4:
 		case ParameterSet::RESERVED5:
+			strncpy(_parameter_selector.short_string, "RS5", sizeof(_parameter_selector.short_string));
+			break;
 		default:
+			// Should not get here
+			strncpy(_parameter_selector.short_string, "ERR", sizeof(_parameter_selector.short_string));
 			return;
 	}
 
 	// if we got this far, set each param
+	// FIXME  grab the handles at init instead of using string look ups
 	param_set_no_notification(param_find("MPC_TILTMAX_AIR"), &mpc_tiltmax_air);
 	param_set_no_notification(param_find("MPC_MAN_TILT_MAX"), &mpc_man_tilt_max);
-	param_set_no_notification(param_find("MPC_Z_VEL_MAX_DN"), &mpc_z_vel_max_dn);
-	param_set_no_notification(param_find("MPC_Z_VEL_MAX_UP"), &mpc_z_vel_max_up);
 	param_set_no_notification(param_find("MC_AIRMODE"), &mc_airmode);
-	
+	param_set_no_notification(param_find("MC_MAN_TILT_TAU"), &mc_man_tilt_tau);
+
+	// Update Parameters
+	param_set_no_notification(param_find("FLGT_VZ_MAX"), &param_flgt_vz_max);
+
 	// batch notify other modules that these have changed
 	param_notify_changes();
 }
@@ -262,10 +317,20 @@ void ParamSetSelector::Run()
 	}
 
 	// try to update from an RC input
+	bool state_has_changed = false;
 	if (_rc_channel_index >= 0)
-		set_from_rc_input();
+		state_has_changed = set_from_rc_input();
 	else
-		set_from_params();
+		state_has_changed = set_from_params();
+
+	// Publish parameter_selector uorb if the selector state has changed
+	if (state_has_changed) {
+		_parameter_selector.instance = _instance;
+		_instance ++;
+
+		_parameter_selector_pub.publish(_parameter_selector);
+	}
+
 
 	// schedule next iteration
 	ScheduleDelayed(100_ms);
@@ -322,7 +387,7 @@ This module toggles between disjoint collections (sets) of parameters.
 
 ### Implementation
 
-Monitors the 'PARAM_SET' parameter. If the parameter is updated, switch
+Monitors the 'PSET_MODE' parameter. If the parameter is updated, switch
 to the set defined by that parameter and update all corresponding parameters.
 
 )DESCR_STR");

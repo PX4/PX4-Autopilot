@@ -77,3 +77,9 @@ void UserModeIntention::onDisarm()
 {
 	_user_intented_nav_state = _nav_state_after_disarming;
 }
+
+void UserModeIntention::setInitialMode(uint8_t user_initial_nav_state)
+{
+	_user_intented_nav_state = user_initial_nav_state;
+	_nav_state_after_disarming = user_initial_nav_state;
+}

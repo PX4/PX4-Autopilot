@@ -114,7 +114,7 @@ void MessageDisplay::get(char *string, const uint32_t current_time)
 		// add a warning message, if it's not empty
 		if (strlen(warning_msg) != 0) {
 			// copy as much of warning message as we can fit
-			strcat(full_message, "   WARN: ");
+			strcat(full_message, "  !! ");		// Minimal number of char spacer for faster scrolling
 			const size_t chars_used {20};
 			strncat(full_message, warning_msg, MSG_BUFFER_SIZE - chars_used - FULL_MSG_LENGTH - 1);
 
