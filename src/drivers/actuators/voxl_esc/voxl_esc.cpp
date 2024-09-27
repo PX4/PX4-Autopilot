@@ -1459,11 +1459,14 @@ void VoxlEsc::Run()
 		update_leds(_led_rsc.mode, _led_rsc.control);
 	}
 
-	if (_parameters.mode > 0) {
-		/* if turtle mode enabled, we go straight to the sticks, no mix */
-		if (_manual_control_setpoint_sub.updated()) {
+	/* check whether sticks have been updated */
+	if (_manual_control_setpoint_sub.updated()) {
 
-			_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
+		_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
+
+		if (_parameters.mode > 0) {
+			/* if turtle mode enabled, we go straight to the sticks, no mix */
+
 
 			if (!_outputs_on) {
 
@@ -1483,16 +1486,12 @@ void VoxlEsc::Run()
 					_turtle_mode_en = false;
 				}
 			}
+
+
 		}
 
-	}
-
-	// check if gpio control is enabled
-	if (_parameters.gpio_ctl_channel > 0) {
-
-		if (_manual_control_setpoint_sub.updated()) {
-
-			_manual_control_setpoint_sub.copy(&_manual_control_setpoint);
+		// check if gpio control is enabled
+		if (_parameters.gpio_ctl_channel > 0) {
 
 			_gpio_ctl_en = true;
 			float gpio_setpoint = VOXL_ESC_GPIO_CTL_DISABLED_SETPOINT;
@@ -1520,10 +1519,10 @@ void VoxlEsc::Run()
 
 			if (gpio_setpoint > VOXL_ESC_GPIO_CTL_THRESHOLD) {
 				_gpio_ctl_high = false;
-
 			} else {
 				_gpio_ctl_high = true;
 			}
+
 		}
 	}
 
