@@ -57,7 +57,7 @@ VTEPosition::VTEPosition() :
 	_targetEstimatorStatePub.advertise();
 	_vte_aid_gps_pos_target_pub.advertise();
 	_vte_aid_gps_pos_mission_pub.advertise();
-	_vte_aid_gps_vel_rel_pub.advertise();
+	_vte_aid_gps_vel_uav_pub.advertise();
 	_vte_aid_gps_vel_target_pub.advertise();
 	_vte_aid_fiducial_marker_pub.advertise();
 
@@ -128,9 +128,11 @@ bool VTEPosition::init()
 
 	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("VTE target GPS position data fusion enabled");}
 
+	if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_VEL) { PX4_INFO("VTE target GPS velocity data fusion enabled");}
+
 	if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) { PX4_INFO("VTE PX4 mission position fusion enabled");}
 
-	if (_vte_aid_mask & SensorFusionMask::USE_GPS_REL_VEL) { PX4_INFO("VTE relative GPS velocity data fusion enabled");}
+	if (_vte_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL) { PX4_INFO("VTE UAV GPS velocity data fusion enabled");}
 
 	if (_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) { PX4_INFO("VTE target external vision-based relative position data fusion enabled");}
 
@@ -265,294 +267,382 @@ void VTEPosition::predictionStep(const Vector3f &vehicle_acc_ned)
 	}
 }
 
-
-
 bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 {
-
-	sensor_gps_s vehicle_gps_position;
-	target_gnss_s target_GNSS_report;
-	fiducial_marker_pos_report_s fiducial_marker_pose;
-
-	targetObsPos obs_gps_pos_target;
-	targetObsPos obs_gps_pos_mission;
-	targetObsPos obs_gps_vel_rel;
-	targetObsPos obs_gps_vel_target;
+	// Process data from all observations
 	targetObsPos obs_fiducial_marker;
+	targetObsPos obs_gps_pos_mission, obs_gps_pos_target;
+	targetObsPos obs_gps_vel_uav, obs_gps_vel_target;
 
-	int vte_fusion_aid_mask = ObservationValidMask::NO_VALID_DATA;
+	// Update the targetObsPos and vte_fusion_aid_mask if any valid observation.
+	ObservationValidMask vte_fusion_aid_mask = ObservationValidMask::NO_VALID_DATA;
+	processVisionData(vte_fusion_aid_mask, obs_fiducial_marker);
+	processGpsData(vte_fusion_aid_mask, obs_gps_pos_target, obs_gps_pos_mission, obs_gps_vel_uav, obs_gps_vel_target);
 
-	// Process data from all topics
-
-	/* VISION */
-	if ((_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS)
-	    && _fiducial_marker_report_sub.update(&fiducial_marker_pose)) {
-
-		obs_fiducial_marker.type = fiducial_marker;
-
-		if ((_is_meas_valid(fiducial_marker_pose.timestamp)) && processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
-			vte_fusion_aid_mask += ObservationValidMask::FUSE_EXT_VIS_POS;
-		}
-	}
-
-	/* GPS BASED OBSERVATIONS */
-	bool vehicle_gps_position_updated = _vehicle_gps_position_sub.update(&vehicle_gps_position);
-
-	if (_is_meas_updated(vehicle_gps_position.timestamp)) {
-
-		bool target_GPS_updated = _target_gnss_sub.update(&target_GNSS_report);
-
-		/* TARGET GPS */
-		if ((_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GPS_updated
-		    && target_GNSS_report.abs_pos_updated) {
-
-			obs_gps_pos_target.type = target_gps_pos;
-
-			if ((_is_meas_valid(target_GNSS_report.timestamp))
-			    && processObsGNSSPosTarget(target_GNSS_report, vehicle_gps_position, obs_gps_pos_target)) {
-				vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_POS;
-			}
-		}
-
-		/* MISSION GPS POSE */
-		if ((_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) && vehicle_gps_position_updated && _mission_position.valid) {
-
-			obs_gps_pos_mission.type = mission_gps_pos;
-
-			if ((_is_meas_valid(vehicle_gps_position.timestamp))
-			    && processObsGNSSPosMission(vehicle_gps_position, obs_gps_pos_mission)) {
-				vte_fusion_aid_mask += ObservationValidMask::FUSE_MISSION_POS;
-			}
-		}
-
-		// Keep track of the drone GPS velocity
-		_uav_gps_vel.timestamp = vehicle_gps_position.timestamp;
-		_uav_gps_vel.valid = (vehicle_gps_position.vel_ned_valid && (PX4_ISFINITE(vehicle_gps_position.vel_n_m_s)
-				      && PX4_ISFINITE(vehicle_gps_position.vel_e_m_s) && PX4_ISFINITE(vehicle_gps_position.vel_d_m_s)));
-		_uav_gps_vel.xyz(Direction::x) = vehicle_gps_position.vel_n_m_s;
-		_uav_gps_vel.xyz(Direction::y) = vehicle_gps_position.vel_e_m_s;
-		_uav_gps_vel.xyz(Direction::z) = vehicle_gps_position.vel_d_m_s;
-
-		// Keep track of the target GPS velocity
-		_target_gps_vel.timestamp = target_GNSS_report.timestamp;
-		_target_gps_vel.valid = (target_GNSS_report.vel_ned_updated && PX4_ISFINITE(target_GNSS_report.vel_n_m_s)
-					 && PX4_ISFINITE(target_GNSS_report.vel_e_m_s)
-					 && PX4_ISFINITE(target_GNSS_report.vel_d_m_s));
-		_target_gps_vel.xyz(Direction::x) = target_GNSS_report.vel_n_m_s;
-		_target_gps_vel.xyz(Direction::y) = target_GNSS_report.vel_e_m_s;
-		_target_gps_vel.xyz(Direction::z) = target_GNSS_report.vel_d_m_s;
-
-		if ((_vte_aid_mask & SensorFusionMask::USE_GPS_REL_VEL)) {
-
-#if defined(CONFIG_VTEST_MOVING)
-
-			/* TARGET GPS VELOCITY */
-			if (target_GPS_updated && _target_gps_vel.valid) {
-
-				obs_gps_vel_target.type = vel_target_gps;
-
-				if ((_is_meas_valid(target_GNSS_report.timestamp)) && processObsGNSSVelTarget(target_GNSS_report, obs_gps_vel_target)) {
-					vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_VEL;
-				}
-			}
-
-#endif // CONFIG_VTEST_MOVING
-
-			/* RELATIVE GPS velocity */
-			if (_uav_gps_vel.valid && vehicle_gps_position_updated) {
-
-				obs_gps_vel_rel.type = vel_rel_gps;
-
-				if ((_is_meas_valid(vehicle_gps_position.timestamp)) && processObsGNSSVelUav(vehicle_gps_position, obs_gps_vel_rel)) {
-					vte_fusion_aid_mask += ObservationValidMask::FUSE_GPS_REL_VEL;
-				}
-			}
-		}
-	}
-
-	const bool new_gnss_pos_sensor = (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) ||
-					 (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS);
-	const bool new_non_gnss_pos_sensor = (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS);
-	const bool new_pos_sensor = new_non_gnss_pos_sensor || new_gnss_pos_sensor;
-	const bool new_vel_sensor = (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) ||
-				    (vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL);
-
-	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
-	const bool should_set_bias = new_non_gnss_pos_sensor && (_is_meas_valid(_pos_rel_gnss.timestamp));
-
-	if (!_estimator_initialized) {
-
-		if (!new_pos_sensor) {
-			return false;
-		}
-
-		const bool has_initial_velocity_estimate = (_local_velocity.valid && (_is_meas_valid(_local_velocity.timestamp))) ||
-				(_uav_gps_vel.valid && (_is_meas_valid(_uav_gps_vel.timestamp)));
-
-		if (!has_initial_velocity_estimate) {
-			PX4_WARN("No UAV velocity estimate. Estimator cannot be started.");
-			return false;
-		}
-
-		Vector3f pos_init;
-		Vector3f uav_vel_init;
-		Vector3f bias_init;
-#if defined(CONFIG_VTEST_MOVING)
-		Vector3f target_acc_init;	// Assume null target absolute acceleration
-		Vector3f target_vel_init;
-#endif // CONFIG_VTEST_MOVING
-
-
-		// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
-		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
-			pos_init = obs_fiducial_marker.meas_xyz;
-
-		} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
-			pos_init = obs_gps_pos_target.meas_xyz;
-
-		} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
-			pos_init = obs_gps_pos_mission.meas_xyz;
-		}
-
-		// Compute the initial bias as the difference between the GPS and external position estimate.
-		if (should_set_bias) {
-			// We assume that gnss observations have a bias but other position obs don't. It follows: gnss_obs = state + bias <--> bias = gnss_obs - state
-			PX4_INFO("VTE Position setting GNSS bias.");
-			bias_init =  _pos_rel_gnss.xyz - pos_init;
-			_bias_set = true;
-		}
-
-#if defined(CONFIG_VTEST_MOVING)
-
-		if (_target_gps_vel.valid && (_is_meas_valid(_target_gps_vel.timestamp))) {
-			target_vel_init = _target_gps_vel.xyz;
-		}
-
-#endif // CONFIG_VTEST_MOVING
-
-		// Define initial relative velocity of the target w.r.t. to the drone in NED frame
-		if (_uav_gps_vel.valid && (_is_meas_valid(_uav_gps_vel.timestamp))) {
-
-			uav_vel_init = _uav_gps_vel.xyz;
-
-		} else if (_local_velocity.valid && (_is_meas_valid(_local_velocity.timestamp))) {
-
-			uav_vel_init = _local_velocity.xyz;
-		}
-
-		// Initial state
-		matrix::Matrix <float, Direction::nb_directions, vtest::State::size> state_init;
-		state_init.col(vtest::State::pos_rel.idx) = pos_init;
-		state_init.col(vtest::State::vel_uav.idx) = uav_vel_init;
-		state_init.col(vtest::State::bias.idx) = bias_init;
-
-#if defined(CONFIG_VTEST_MOVING)
-		state_init.col(vtest::State::acc_target.idx) = target_acc_init;
-		state_init.col(vtest::State::vel_target.idx) = target_vel_init;
-#endif // CONFIG_VTEST_MOVING
-
-
-		if (initEstimator(state_init)) {
-			PX4_INFO("VTE Position Estimator properly initialized.");
-			_estimator_initialized = true;
-			_uav_gps_vel.valid = false;
-			_target_gps_vel.valid = false;
-			_last_update = hrt_absolute_time();
-			_last_predict = _last_update;
-
-		} else {
-			resetFilter();
-		}
-	}
-
-	if (!_estimator_initialized) {
+	// No new observations --> no fusion.
+	if (vte_fusion_aid_mask == ObservationValidMask::NO_VALID_DATA) {
 		return false;
 	}
 
-	// Once a position measurement other than the target GPS is available, reset the position and bias but keep the velocity estimate.
-	if (!_bias_set && should_set_bias) {
+	// Check if we have new observations
+	const bool new_pos_sensor = _hasNewPositionSensorData(vte_fusion_aid_mask);
 
-		PX4_INFO("Second relative position measurement available, re-setting position and bias.");
-
-		const float state_pos_var = _param_vte_pos_unc_in.get();
-		const float state_bias_var = _param_vte_bias_unc_in.get();
-
-		const Vector3f state_pos_var_vect(state_pos_var, state_pos_var, state_pos_var);
-		const Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
-		const Vector3f pos_init = obs_fiducial_marker.meas_xyz;
-
-		// Compute the initial bias as the difference between the GPS and external position estimate.
-		// We assume that gnss observations have a bias but other position obs don't. It follows: gnss_obs = state + bias <--> bias = gnss_obs - state
-		const Vector3f bias_init =  _pos_rel_gnss.xyz - pos_init;
-
-		/* Reset filter's state and variance*/
-		for (int i = 0; i < Direction::nb_directions; i++) {
-
-			matrix::Vector<float, vtest::State::size> temp_state = _target_estimator[i]->getState();
-			temp_state(vtest::State::bias.idx) = bias_init(i);
-			temp_state(vtest::State::pos_rel.idx) = pos_init(i);
-			_target_estimator[i]->setState(temp_state);
-
-			matrix::Vector<float, vtest::State::size> temp_state_var =
-				_target_estimator[i]->getStateVar();
-			temp_state_var(vtest::State::bias.idx) = state_bias_var_vect(i);
-			temp_state_var(vtest::State::pos_rel.idx) = state_pos_var_vect(i);
-			_target_estimator[i]->setStateVar(temp_state_var);
-		}
-
-		_bias_set = true;
+	// Only init estimator once we have a valid position observation
+	if (!_estimator_initialized && !new_pos_sensor) {
+		return false;
 	}
 
-	// If we have a new sensor: fuse available measurements and publish innov.
+	const bool new_vel_sensor = _hasNewVelocitySensorData(vte_fusion_aid_mask);
+
+	// Initialize estimator if not already initialized
+	if (!_estimator_initialized &&
+	    !initializeEstimator(vte_fusion_aid_mask, obs_fiducial_marker, obs_gps_pos_target, obs_gps_pos_mission)) {
+		return false;
+	}
+
+	// Update bias if needed. For now the only non-gnss measurement is vision.
+	updateBiasIfNeeded(vte_fusion_aid_mask, obs_fiducial_marker.meas_xyz);
+
+	// Fuse new sensor data
 	if (new_pos_sensor || new_vel_sensor) {
 
-		if (vte_fusion_aid_mask == ObservationValidMask::NO_VALID_DATA) {
-			return false;
-		}
-
-		bool pos_fused = false;
-
-		/*TARGET GPS*/
-		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
-
-			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_target)) {
-				pos_fused = true;
-			}
-		}
-
-		/*MISSION POS GPS*/
-		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
-
-			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_mission)) {
-				pos_fused = true;
-			}
-		}
-
-		/*VISION*/
-		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
-
-			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
-				_last_vision_obs_fused_time = hrt_absolute_time();
-				pos_fused = true;
-			}
-		}
-
-		/*GPS RELATIVE VELOCITY*/
-		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL) {
-			fuse_meas(vehicle_acc_ned, obs_gps_vel_rel);
-		}
-
-		/*TARGET GPS VELOCITY*/
-		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) {
-			fuse_meas(vehicle_acc_ned, obs_gps_vel_target);
-		}
-
-		// If at least one pos measurement was fused, consider the filter updated
-		return pos_fused;
-
+		return fuseNewSensorData(vehicle_acc_ned, vte_fusion_aid_mask, obs_fiducial_marker, obs_gps_pos_target,
+					 obs_gps_pos_mission, obs_gps_vel_uav, obs_gps_vel_target);
 	}
 
 	return false;
+}
+
+void VTEPosition::processVisionData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_fiducial_marker)
+{
+	fiducial_marker_pos_report_s fiducial_marker_pose;
+
+	if (!((_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS)
+	      && _fiducial_marker_report_sub.update(&fiducial_marker_pose))) {
+		return;
+	}
+
+	obs_fiducial_marker.type = fiducial_marker;
+
+	if (_is_meas_valid(fiducial_marker_pose.timestamp) &&
+	    processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
+
+		vte_fusion_aid_mask = static_cast<ObservationValidMask>(vte_fusion_aid_mask | ObservationValidMask::FUSE_EXT_VIS_POS);
+	}
+}
+
+void VTEPosition::processGpsData(ObservationValidMask &vte_fusion_aid_mask,
+				 targetObsPos &obs_gps_pos_target,
+				 targetObsPos &obs_gps_pos_mission,
+				 targetObsPos &obs_gps_vel_uav,
+				 targetObsPos &obs_gps_vel_target)
+{
+	sensor_gps_s vehicle_gps_position;
+	const bool vehicle_gps_position_updated = _vehicle_gps_position_sub.update(&vehicle_gps_position);
+
+	if (!_is_meas_updated(vehicle_gps_position.timestamp)) {
+		return;
+	}
+
+	target_gnss_s target_GNSS_report;
+	const bool target_GPS_updated = _target_gnss_sub.update(&target_GNSS_report);
+
+	// Process target GPS position
+	processTargetGpsPosition(target_GPS_updated, target_GNSS_report, vehicle_gps_position, vte_fusion_aid_mask,
+				 obs_gps_pos_target);
+
+	// Process mission GPS pose
+	processMissionGpsPosition(vehicle_gps_position_updated, vehicle_gps_position, vte_fusion_aid_mask, obs_gps_pos_mission);
+
+	// Update and process UAV GPS velocity
+	updateUavGpsVelocity(vehicle_gps_position);
+	processUavGpsVelocity(vehicle_gps_position_updated, vehicle_gps_position, vte_fusion_aid_mask, obs_gps_vel_uav);
+
+	// Update and process target GPS velocity
+	updateTargetGpsVelocity(target_GNSS_report);
+#if defined(CONFIG_VTEST_MOVING)
+	processTargetGpsVelocity(target_GPS_updated, target_GNSS_report, vte_fusion_aid_mask, obs_gps_vel_target);
+#endif // CONFIG_VTEST_MOVING
+
+}
+
+void VTEPosition::processTargetGpsPosition(const bool target_GPS_updated,
+		const target_gnss_s &target_GNSS_report,
+		const sensor_gps_s &vehicle_gps_position,
+		ObservationValidMask &vte_fusion_aid_mask,
+		targetObsPos &obs_gps_pos_target)
+{
+	if (!((_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS)
+	      && target_GPS_updated
+	      && target_GNSS_report.abs_pos_updated)) {
+		return;
+	}
+
+	obs_gps_pos_target.type = target_gps_pos;
+
+	if (_is_meas_valid(target_GNSS_report.timestamp) &&
+	    processObsGNSSPosTarget(target_GNSS_report, vehicle_gps_position, obs_gps_pos_target)) {
+
+		vte_fusion_aid_mask = static_cast<ObservationValidMask>(vte_fusion_aid_mask |
+				      ObservationValidMask::FUSE_TARGET_GPS_POS);
+	}
+}
+
+void VTEPosition::processMissionGpsPosition(const bool vehicle_gps_position_updated,
+		const sensor_gps_s &vehicle_gps_position,
+		ObservationValidMask &vte_fusion_aid_mask,
+		targetObsPos &obs_gps_pos_mission)
+{
+	if (!((_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) && vehicle_gps_position_updated && _mission_position.valid)) {
+		return;
+	}
+
+	obs_gps_pos_mission.type = mission_gps_pos;
+
+	if (_is_meas_valid(vehicle_gps_position.timestamp) &&
+	    processObsGNSSPosMission(vehicle_gps_position, obs_gps_pos_mission)) {
+
+		vte_fusion_aid_mask = static_cast<ObservationValidMask>(vte_fusion_aid_mask | ObservationValidMask::FUSE_MISSION_POS);
+	}
+}
+
+void VTEPosition::processUavGpsVelocity(const bool vehicle_gps_position_updated,
+					const sensor_gps_s &vehicle_gps_position,
+					ObservationValidMask &vte_fusion_aid_mask,
+					targetObsPos &obs_gps_vel_uav)
+{
+
+	if (!(_vte_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL && vehicle_gps_position_updated && _uav_gps_vel.valid)) {
+		return;
+	}
+
+	obs_gps_vel_uav.type = uav_gps_vel;
+
+	if (_is_meas_valid(vehicle_gps_position.timestamp) &&
+	    processObsGNSSVelUav(vehicle_gps_position, obs_gps_vel_uav)) {
+
+		vte_fusion_aid_mask = static_cast<ObservationValidMask>(vte_fusion_aid_mask | ObservationValidMask::FUSE_UAV_GPS_VEL);
+	}
+
+}
+
+#if defined(CONFIG_VTEST_MOVING)
+void VTEPosition::processTargetGpsVelocity(const bool target_GPS_updated,
+		const target_gnss_s &target_GNSS_report,
+		ObservationValidMask &vte_fusion_aid_mask,
+		targetObsPos &obs_gps_vel_target)
+{
+
+	if (!(_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_VEL && target_GPS_updated && _target_gps_vel.valid)) {
+		return;
+	}
+
+	obs_gps_vel_target.type = target_gps_vel;
+
+	if (_is_meas_valid(target_GNSS_report.timestamp) &&
+	    processObsGNSSVelTarget(target_GNSS_report, obs_gps_vel_target)) {
+
+		vte_fusion_aid_mask = static_cast<ObservationValidMask>(vte_fusion_aid_mask |
+				      ObservationValidMask::FUSE_TARGET_GPS_VEL);
+	}
+
+}
+#endif // CONFIG_VTEST_MOVING
+
+void VTEPosition::updateUavGpsVelocity(const sensor_gps_s &vehicle_gps_position)
+{
+	_uav_gps_vel.timestamp = vehicle_gps_position.timestamp;
+	_uav_gps_vel.valid = (vehicle_gps_position.vel_ned_valid &&
+			      PX4_ISFINITE(vehicle_gps_position.vel_n_m_s) &&
+			      PX4_ISFINITE(vehicle_gps_position.vel_e_m_s) &&
+			      PX4_ISFINITE(vehicle_gps_position.vel_d_m_s));
+
+	_uav_gps_vel.xyz(Direction::x) = vehicle_gps_position.vel_n_m_s;
+	_uav_gps_vel.xyz(Direction::y) = vehicle_gps_position.vel_e_m_s;
+	_uav_gps_vel.xyz(Direction::z) = vehicle_gps_position.vel_d_m_s;
+}
+
+void VTEPosition::updateTargetGpsVelocity(const target_gnss_s &target_GNSS_report)
+{
+	_target_gps_vel.timestamp = target_GNSS_report.timestamp;
+	_target_gps_vel.valid = (target_GNSS_report.vel_ned_updated &&
+				 PX4_ISFINITE(target_GNSS_report.vel_n_m_s) &&
+				 PX4_ISFINITE(target_GNSS_report.vel_e_m_s) &&
+				 PX4_ISFINITE(target_GNSS_report.vel_d_m_s));
+
+	_target_gps_vel.xyz(Direction::x) = target_GNSS_report.vel_n_m_s;
+	_target_gps_vel.xyz(Direction::y) = target_GNSS_report.vel_e_m_s;
+	_target_gps_vel.xyz(Direction::z) = target_GNSS_report.vel_d_m_s;
+}
+
+bool VTEPosition::initializeEstimator(const ObservationValidMask &vte_fusion_aid_mask,
+				      const targetObsPos &obs_fiducial_marker,
+				      const targetObsPos &obs_gps_pos_target,
+				      const targetObsPos &obs_gps_pos_mission)
+{
+	if (!_hasNewPositionSensorData(vte_fusion_aid_mask)) {
+		return false;
+	}
+
+	// Check for initial velocity estimate
+	const bool has_initial_velocity_estimate = (_local_velocity.valid && _is_meas_valid(_local_velocity.timestamp)) ||
+			(_uav_gps_vel.valid && _is_meas_valid(_uav_gps_vel.timestamp));
+
+	if (!has_initial_velocity_estimate) {
+		PX4_WARN("No UAV velocity estimate. Estimator cannot be started.");
+		return false;
+	}
+
+	// Initialize state variables
+	Vector3f pos_init;
+	Vector3f uav_vel_init;
+	Vector3f bias_init;
+#if defined(CONFIG_VTEST_MOVING)
+	Vector3f target_acc_init;	// Assume null target absolute acceleration
+	Vector3f target_vel_init;
+#endif // CONFIG_VTEST_MOVING
+
+
+	// Define the initial relative position
+	if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
+		pos_init = obs_fiducial_marker.meas_xyz;
+
+	} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
+		pos_init = obs_gps_pos_target.meas_xyz;
+
+	} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
+		pos_init = obs_gps_pos_mission.meas_xyz;
+	}
+
+	// Compute initial bias if needed
+	if (_should_set_bias(vte_fusion_aid_mask)) {
+		PX4_INFO("VTE Position setting GNSS bias.");
+		bias_init = _pos_rel_gnss.xyz - pos_init;
+		_bias_set = true;
+	}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	if (_target_gps_vel.valid && (_is_meas_valid(_target_gps_vel.timestamp))) {
+		target_vel_init = _target_gps_vel.xyz;
+	}
+
+#endif // CONFIG_VTEST_MOVING
+
+	// Define initial UAV velocity
+	if (_uav_gps_vel.valid && _is_meas_valid(_uav_gps_vel.timestamp)) {
+		uav_vel_init = _uav_gps_vel.xyz;
+
+	} else if (_local_velocity.valid && _is_meas_valid(_local_velocity.timestamp)) {
+		uav_vel_init = _local_velocity.xyz;
+	}
+
+	// Initialize estimator state
+	matrix::Matrix <float, Direction::nb_directions, vtest::State::size> state_init;
+	state_init.col(vtest::State::pos_rel.idx) = pos_init;
+	state_init.col(vtest::State::vel_uav.idx) = uav_vel_init;
+	state_init.col(vtest::State::bias.idx) = bias_init;
+
+#if defined(CONFIG_VTEST_MOVING)
+	state_init.col(vtest::State::acc_target.idx) = target_acc_init;
+	state_init.col(vtest::State::vel_target.idx) = target_vel_init;
+#endif // CONFIG_VTEST_MOVING
+
+	if (!initEstimator(state_init)) {
+		resetFilter();
+		return false;
+	}
+
+	PX4_INFO("VTE Position Estimator properly initialized.");
+	_estimator_initialized = true;
+	_uav_gps_vel.valid = false;
+	_target_gps_vel.valid = false;
+	_last_update = hrt_absolute_time();
+	_last_predict = _last_update;
+	return true;
+}
+
+void VTEPosition::updateBiasIfNeeded(const ObservationValidMask &vte_fusion_aid_mask, const Vector3f &pos_init)
+{
+
+	if (_bias_set || !_should_set_bias(vte_fusion_aid_mask)) {
+		return;
+	}
+
+	PX4_INFO("Second relative position measurement available, re-setting position and bias.");
+
+	const float state_pos_var = _param_vte_pos_unc_in.get();
+	const float state_bias_var = _param_vte_bias_unc_in.get();
+
+	const Vector3f state_pos_var_vect(state_pos_var, state_pos_var, state_pos_var);
+	const Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
+
+	// Compute the initial bias
+	const Vector3f bias_init = _pos_rel_gnss.xyz - pos_init;
+
+	// Reset filter's state and variance
+	for (int i = 0; i < Direction::nb_directions; i++) {
+		matrix::Vector<float, vtest::State::size> temp_state = _target_estimator[i]->getState();
+		temp_state(vtest::State::bias.idx) = bias_init(i);
+		temp_state(vtest::State::pos_rel.idx) = pos_init(i);
+		_target_estimator[i]->setState(temp_state);
+
+		matrix::Vector<float, vtest::State::size> temp_state_var = _target_estimator[i]->getStateVar();
+		temp_state_var(vtest::State::bias.idx) = state_bias_var_vect(i);
+		temp_state_var(vtest::State::pos_rel.idx) = state_pos_var_vect(i);
+		_target_estimator[i]->setStateVar(temp_state_var);
+	}
+
+	_bias_set = true;
+}
+
+bool VTEPosition::fuseNewSensorData(const Vector3f &vehicle_acc_ned,
+				    const ObservationValidMask &vte_fusion_aid_mask,
+				    const targetObsPos &obs_fiducial_marker,
+				    const targetObsPos &obs_gps_pos_target,
+				    const targetObsPos &obs_gps_pos_mission,
+				    const targetObsPos &obs_gps_vel_uav,
+				    const targetObsPos &obs_gps_vel_target)
+{
+	bool pos_fused = false;
+
+	// Fuse target GPS position
+	if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
+		if (fuse_meas(vehicle_acc_ned, obs_gps_pos_target)) {
+			pos_fused = true;
+		}
+	}
+
+	// Fuse mission GPS position
+	if (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
+		if (fuse_meas(vehicle_acc_ned, obs_gps_pos_mission)) {
+			pos_fused = true;
+		}
+	}
+
+	// Fuse vision position
+	if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
+		if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
+			_last_vision_obs_fused_time = hrt_absolute_time();
+			pos_fused = true;
+		}
+	}
+
+	// Fuse GPS relative velocity
+	if (vte_fusion_aid_mask & ObservationValidMask::FUSE_UAV_GPS_VEL) {
+		fuse_meas(vehicle_acc_ned, obs_gps_vel_uav);
+	}
+
+#if defined(CONFIG_VTEST_MOVING)
+
+	// Fuse target GPS velocity
+	if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) {
+		fuse_meas(vehicle_acc_ned, obs_gps_vel_target);
+	}
+
+#endif // CONFIG_VTEST_MOVING
+
+	return pos_fused;
 }
 
 /*Vision observation: [rx, ry, rz]*/
@@ -926,11 +1016,11 @@ void VTEPosition::publishInnov(const estimator_aid_source3d_s &target_innov, con
 		_vte_aid_gps_pos_mission_pub.publish(target_innov);
 		break;
 
-	case ObservationType::vel_rel_gps:
-		_vte_aid_gps_vel_rel_pub.publish(target_innov);
+	case ObservationType::uav_gps_vel:
+		_vte_aid_gps_vel_uav_pub.publish(target_innov);
 		break;
 
-	case ObservationType::vel_target_gps:
+	case ObservationType::target_gps_vel:
 		_vte_aid_gps_vel_target_pub.publish(target_innov);
 		break;
 
