@@ -36,7 +36,7 @@ px4_add_module(
 	MAIN vision_target_estimator
 	COMPILE_FLAGS
 	STACK_MAX
-        3600
+        5000
 	SRCS
 		VisionTargetEst.cpp
 		Position/VTEPosition.cpp

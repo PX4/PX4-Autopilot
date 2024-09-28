@@ -166,6 +166,7 @@ private:
 		uav_gps_vel = 2,
 		target_gps_vel = 3,
 		fiducial_marker = 4,
+		nb_observation_types = 5
 	};
 
 	struct targetObsPos {
@@ -173,8 +174,7 @@ private:
 		ObservationType type;
 		hrt_abstime timestamp;
 
-		matrix::Vector<bool, Direction::nb_directions>
-		updated_xyz; // Indicates if we have an observation in the x, y or z direction
+		bool updated; // Indicates if we observations were updated. Only one value for x,y,z directions to reduce stack size.
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
 		matrix::Matrix<float, Direction::nb_directions, vtest::State::size>
@@ -236,58 +236,38 @@ private:
 
 
 	bool initializeEstimator(const ObservationValidMask &vte_fusion_aid_mask,
-				 const targetObsPos &obs_fiducial_marker,
-				 const targetObsPos &obs_gps_pos_target,
-				 const targetObsPos &obs_gps_pos_mission);
-
-	void updateBiasIfNeeded(const ObservationValidMask &vte_fusion_aid_mask, const matrix::Vector3f &pos_init);
-
-	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned,
-			       const ObservationValidMask &vte_fusion_aid_mask,
-			       const targetObsPos &obs_fiducial_marker,
-			       const targetObsPos &obs_gps_pos_target,
-			       const targetObsPos &obs_gps_pos_mission,
-			       const targetObsPos &obs_gps_vel_rel,
-			       const targetObsPos &obs_gps_vel_target);
+				 const targetObsPos observations[ObservationType::nb_observation_types]);
+	void updateBias(const matrix::Vector3f &pos_init);
+	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObservationValidMask &vte_fusion_aid_mask,
+			       const targetObsPos observations[ObservationType::nb_observation_types]);
+	void processObservations(ObservationValidMask &vte_fusion_aid_mask,
+				 targetObsPos observations[ObservationType::nb_observation_types]);
 
 	/* Vision data */
-	void processVisionData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_fiducial_marker);
+	void handleVisionData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_fiducial_marker);
+	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose);
 	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObsPos &obs);
 
-	/* GPS data */
-	void processGpsData(ObservationValidMask &vte_fusion_aid_mask,
-			    targetObsPos &obs_gps_pos_target,
-			    targetObsPos &obs_gps_pos_mission,
-			    targetObsPos &obs_gps_vel_rel,
-			    targetObsPos &obs_gps_vel_target);
-
-	void processTargetGpsPosition(const bool target_GPS_updated,
-				      const target_gnss_s &target_GNSS_report,
-				      const sensor_gps_s &vehicle_gps_position,
-				      ObservationValidMask &vte_fusion_aid_mask,
-				      targetObsPos &obs_gps_pos_target);
-
-	void processMissionGpsPosition(const bool vehicle_gps_position_updated,
-				       const sensor_gps_s &vehicle_gps_position,
-				       ObservationValidMask &vte_fusion_aid_mask,
-				       targetObsPos &obs_gps_pos_mission);
-
-	void processUavGpsVelocity(
-		const bool vehicle_gps_position_updated,
-		const sensor_gps_s &vehicle_gps_position,
-		ObservationValidMask &vte_fusion_aid_mask,
-		targetObsPos &obs_gps_vel_uav);
-
-	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report,
-				     const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
+	/* UAV GPS data */
+	void handleUavGpsData(const sensor_gps_s &vehicle_gps_position,
+			      ObservationValidMask &vte_fusion_aid_mask,
+			      targetObsPos &obs_gps_pos_mission,
+			      targetObsPos &obs_gps_vel_uav);
+	bool isVehicleGpsDataValid(const sensor_gps_s &vehicle_gps_position);
 	bool processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 	bool processObsGNSSVelUav(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
+
+	/* Target GPS data */
+	void handleTargetGpsData(const bool vehicle_gps_valid,
+				 const sensor_gps_s &vehicle_gps_position,
+				 const target_gnss_s &target_GNSS_report,
+				 ObservationValidMask &vte_fusion_aid_mask,
+				 targetObsPos &obs_gps_pos_target,
+				 targetObsPos &obs_gps_vel_target);
+	bool isTargetGpsDataValid(const target_gnss_s &target_GNSS_report);
+	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report, const sensor_gps_s &vehicle_gps_position,
+				     targetObsPos &obs);
 #if defined(CONFIG_VTEST_MOVING)
-	void processTargetGpsVelocity(
-		const bool target_GPS_updated,
-		const target_gnss_s &target_GNSS_report,
-		ObservationValidMask &vte_fusion_aid_mask,
-		targetObsPos &obs_gps_vel_target);
 	bool processObsGNSSVelTarget(const target_gnss_s &target_GNSS_report, targetObsPos &obs);
 #endif // CONFIG_VTEST_MOVING
 
