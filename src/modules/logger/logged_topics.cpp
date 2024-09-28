@@ -200,7 +200,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vision_target_est_orientation", 100);
 	add_optional_topic("vte_aid_gps_pos_target", 100);
 	add_optional_topic("vte_aid_gps_pos_mission", 100);
-	add_optional_topic("vte_aid_gps_vel_rel", 100);
+	add_optional_topic("vte_aid_gps_vel_uav", 100);
 	add_optional_topic("vte_aid_gps_vel_target", 100);
 	add_optional_topic("vte_aid_fiducial_marker", 100);
 	add_optional_topic("vte_aid_ev_yaw", 100);
