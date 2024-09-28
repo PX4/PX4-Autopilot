@@ -141,7 +141,7 @@ protected:
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_pos_target_pub{ORB_ID(vte_aid_gps_pos_target)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_pos_mission_pub{ORB_ID(vte_aid_gps_pos_mission)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_target_pub{ORB_ID(vte_aid_gps_vel_target)};
-	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_rel_pub{ORB_ID(vte_aid_gps_vel_rel)};
+	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_uav_pub{ORB_ID(vte_aid_gps_vel_uav)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_fiducial_marker_pub{ORB_ID(vte_aid_fiducial_marker)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -163,8 +163,8 @@ private:
 	enum ObservationType {
 		target_gps_pos = 0,
 		mission_gps_pos = 1,
-		vel_rel_gps = 2,
-		vel_target_gps = 3,
+		uav_gps_vel = 2,
+		target_gps_vel = 3,
 		fiducial_marker = 4,
 	};
 
@@ -185,16 +185,17 @@ private:
 		// Bit locations for fusion_mode
 		NO_SENSOR_FUSION    = 0,
 		USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
-		USE_GPS_REL_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data (and target GPS velocity data if the target is moving)
+		USE_UAV_GPS_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data
 		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
 		USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission position
+		USE_TARGET_GPS_VEL  = (1 << 4),		///< set to true to use target GPS velocity data. Only for moving targets.
 	};
 
 	enum ObservationValidMask : uint8_t {
 		// Bit locations for valid observations
 		NO_VALID_DATA 	     = 0,
 		FUSE_TARGET_GPS_POS  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
-		FUSE_GPS_REL_VEL     = (1 << 1),    ///< set to true if drone GPS velocity data (and target GPS velocity data if the target is moving)
+		FUSE_UAV_GPS_VEL     = (1 << 1),    ///< set to true if drone GPS velocity data (and target GPS velocity data if the target is moving)
 		FUSE_EXT_VIS_POS 	  = (1 << 2),    ///< set to true if target external vision-based relative position data is ready to be fused
 		FUSE_MISSION_POS     = (1 << 3),    ///< set to true if the PX4 mission position is ready to be fused
 		FUSE_TARGET_GPS_VEL     = (1 << 4),   ///< set to true if target GPS velocity data is ready to be fused
@@ -206,12 +207,87 @@ private:
 	bool update_step(const matrix::Vector3f &vehicle_acc_ned);
 	void predictionStep(const matrix::Vector3f &acc);
 
+	void updateTargetGpsVelocity(const target_gnss_s &target_GNSS_report);
+	void updateUavGpsVelocity(const sensor_gps_s &vehicle_gps_position);
+
+	inline bool _hasNewNonGpsPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	{
+		return vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS;
+	}
+
+	inline bool _hasNewPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	{
+		return vte_fusion_aid_mask & (ObservationValidMask::FUSE_MISSION_POS |
+					      ObservationValidMask::FUSE_TARGET_GPS_POS |
+					      ObservationValidMask::FUSE_EXT_VIS_POS);
+	}
+
+	inline bool _hasNewVelocitySensorData(const ObservationValidMask &vte_fusion_aid_mask) const
+	{
+		return vte_fusion_aid_mask & (ObservationValidMask::FUSE_TARGET_GPS_VEL |
+					      ObservationValidMask::FUSE_UAV_GPS_VEL);
+	}
+
+	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
+	inline bool _should_set_bias(const ObservationValidMask &vte_fusion_aid_mask)
+	{
+		return _is_meas_valid(_pos_rel_gnss.timestamp) && _hasNewNonGpsPositionSensorData(vte_fusion_aid_mask);
+	};
+
+
+	bool initializeEstimator(const ObservationValidMask &vte_fusion_aid_mask,
+				 const targetObsPos &obs_fiducial_marker,
+				 const targetObsPos &obs_gps_pos_target,
+				 const targetObsPos &obs_gps_pos_mission);
+
+	void updateBiasIfNeeded(const ObservationValidMask &vte_fusion_aid_mask, const matrix::Vector3f &pos_init);
+
+	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned,
+			       const ObservationValidMask &vte_fusion_aid_mask,
+			       const targetObsPos &obs_fiducial_marker,
+			       const targetObsPos &obs_gps_pos_target,
+			       const targetObsPos &obs_gps_pos_mission,
+			       const targetObsPos &obs_gps_vel_rel,
+			       const targetObsPos &obs_gps_vel_target);
+
+	/* Vision data */
+	void processVisionData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_fiducial_marker);
 	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObsPos &obs);
+
+	/* GPS data */
+	void processGpsData(ObservationValidMask &vte_fusion_aid_mask,
+			    targetObsPos &obs_gps_pos_target,
+			    targetObsPos &obs_gps_pos_mission,
+			    targetObsPos &obs_gps_vel_rel,
+			    targetObsPos &obs_gps_vel_target);
+
+	void processTargetGpsPosition(const bool target_GPS_updated,
+				      const target_gnss_s &target_GNSS_report,
+				      const sensor_gps_s &vehicle_gps_position,
+				      ObservationValidMask &vte_fusion_aid_mask,
+				      targetObsPos &obs_gps_pos_target);
+
+	void processMissionGpsPosition(const bool vehicle_gps_position_updated,
+				       const sensor_gps_s &vehicle_gps_position,
+				       ObservationValidMask &vte_fusion_aid_mask,
+				       targetObsPos &obs_gps_pos_mission);
+
+	void processUavGpsVelocity(
+		const bool vehicle_gps_position_updated,
+		const sensor_gps_s &vehicle_gps_position,
+		ObservationValidMask &vte_fusion_aid_mask,
+		targetObsPos &obs_gps_vel_uav);
+
 	bool processObsGNSSPosTarget(const target_gnss_s &target_GNSS_report,
 				     const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 	bool processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 	bool processObsGNSSVelUav(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 #if defined(CONFIG_VTEST_MOVING)
+	void processTargetGpsVelocity(
+		const bool target_GPS_updated,
+		const target_gnss_s &target_GNSS_report,
+		ObservationValidMask &vte_fusion_aid_mask,
+		targetObsPos &obs_gps_vel_target);
 	bool processObsGNSSVelTarget(const target_gnss_s &target_GNSS_report, targetObsPos &obs);
 #endif // CONFIG_VTEST_MOVING
 
