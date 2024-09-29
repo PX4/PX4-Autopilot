@@ -303,8 +303,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 	// Update bias if needed.
 	if (!_bias_set && _should_set_bias(vte_fusion_aid_mask)) {
-		// For now the only non-gnss measurement is vision.
-		updateBias(observations[ObservationType::fiducial_marker].meas_xyz);
+		updateBias(vte_fusion_aid_mask, observations);
 	}
 
 	// Fuse new sensor data
@@ -594,17 +593,8 @@ bool VTEPosition::initializeEstimator(const ObservationValidMask &vte_fusion_aid
 	Vector3f target_vel_init;
 #endif // CONFIG_VTEST_MOVING
 
-
-	// Define the initial relative position
-	if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
-		pos_init = observations[ObservationType::fiducial_marker].meas_xyz;
-
-	} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
-		pos_init = observations[ObservationType::target_gps_pos].meas_xyz;
-
-	} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
-		pos_init = observations[ObservationType::mission_gps_pos].meas_xyz;
-	}
+	// Get the initial position based on the current valid observations
+	getPosInit(vte_fusion_aid_mask, observations, pos_init);
 
 	// Compute initial bias if needed
 	if (_should_set_bias(vte_fusion_aid_mask)) {
@@ -654,11 +644,36 @@ bool VTEPosition::initializeEstimator(const ObservationValidMask &vte_fusion_aid
 	return true;
 }
 
-void VTEPosition::updateBias(const Vector3f &pos_init)
+void VTEPosition::getPosInit(const ObservationValidMask &vte_fusion_aid_mask,
+			     const targetObsPos observations[ObservationType::nb_observation_types], matrix::Vector3f &pos_init)
+{
+
+	// Non-GNSS observations must have the priority as this function is also used to get the initial GNSS bias
+	if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
+		pos_init = observations[ObservationType::fiducial_marker].meas_xyz;
+
+	} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_UWB) {
+		pos_init = observations[ObservationType::uwb].meas_xyz;
+
+	} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
+		pos_init = observations[ObservationType::target_gps_pos].meas_xyz;
+
+	} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
+		pos_init = observations[ObservationType::mission_gps_pos].meas_xyz;
+	}
+
+}
+
+void VTEPosition::updateBias(const ObservationValidMask &vte_fusion_aid_mask,
+			     const targetObsPos observations[ObservationType::nb_observation_types])
 {
 
 	// TODO: decide if we print the bias and the pos_init
 	PX4_INFO("Second relative position measurement available, re-setting position and bias.");
+
+	// Get the initial position based on the current valid observations
+	Vector3f pos_init;
+	getPosInit(vte_fusion_aid_mask, observations, pos_init);
 
 	const float state_pos_var = _param_vte_pos_unc_in.get();
 	const float state_bias_var = _param_vte_bias_unc_in.get();
