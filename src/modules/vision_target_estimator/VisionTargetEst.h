@@ -99,8 +99,39 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 private:
+	struct localPose {
+		bool pos_valid = false;
+		matrix::Vector3f xyz;
+
+		bool vel_valid = false;
+		matrix::Vector3f vel_xyz;
+
+		bool dist_valid = false;
+		float dist_bottom = 0, f;
+
+		bool yaw_valid = false;
+		float yaw = 0.f;
+
+		hrt_abstime timestamp{0};
+	};
+
 	void Run() override;
 	void updateParams() override;
+	void handle_exit();
+	void stop_all_estimators();
+	void start_estimators_if_needed();
+	bool estimators_stopped_due_to_timeout();
+	void perform_estimations();
+	void perform_position_update(const localPose &local_pose, const bool local_pose_updated);
+	void perform_orientation_update(const localPose &local_pose, const bool local_pose_updated);
+	void publish_acceleration(const matrix::Vector3f &vehicle_acc_ned_sampled);
+
+	inline bool no_active_task() {return _vte_current_task == VisionTargetEstTask::VTE_NO_TASK;};
+	inline bool no_estimator_running()
+	{
+		return (!_vte_orientation_enabled || !_orientation_estimator_running) && (!_vte_position_enabled
+				|| !_position_estimator_running);
+	};
 
 	void update_task_topics();
 	bool new_task_available();
@@ -154,22 +185,6 @@ private:
 	VTEPosition *_vte_position {nullptr};
 	bool _vte_position_enabled{false};
 	hrt_abstime _last_update_pos{0};
-
-	struct localPose {
-		bool pos_valid = false;
-		matrix::Vector3f xyz;
-
-		bool vel_valid = false;
-		matrix::Vector3f vel_xyz;
-
-		bool dist_valid = false;
-		float dist_bottom = 0, f;
-
-		bool yaw_valid = false;
-		float yaw = 0.f;
-
-		hrt_abstime timestamp{0};
-	};
 
 	matrix::Vector3f _gps_pos_offset;
 	bool _gps_pos_is_offset;
