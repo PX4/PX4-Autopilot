@@ -109,10 +109,18 @@ bool VTEOrientation::initEstimator(const float theta_init)
 
 	PX4_INFO("Theta init %.2f", (double)theta_init);
 
-	_target_estimator_orientation->setPosition(theta_init);
-	_target_estimator_orientation->setVelocity(0.f);
-	_target_estimator_orientation->setStatePosVar(_yaw_unc);
-	_target_estimator_orientation->setStateVelVar(_yaw_unc);
+	matrix::Vector<float, vtest::State::size> state_init;
+	// For moving targets, vtest::State::yaw_rate is init to zero, no need to explicitly set it.
+	state_init(vtest::State::yaw) = theta_init;
+
+	matrix::Vector<float, vtest::State::size> state_var_init;
+
+	for (int i = 0; i < vtest::State::size; i++) {
+		state_var_init(i) = _yaw_unc;
+	}
+
+	_target_estimator_orientation->setState(state_init);
+	_target_estimator_orientation->setStateVar(state_var_init);
 
 	return true;
 }
@@ -197,7 +205,7 @@ bool VTEOrientation::processObsVisionOrientation(const fiducial_marker_yaw_repor
 		obs.updated_theta = true;
 		obs.meas_unc_theta = vision_r_theta_unc;
 		obs.meas_theta = vision_r_theta;
-		obs.meas_h_theta(Base_KF_orientation::AugmentedState::yaw) = 1;
+		obs.meas_h_theta(vtest::State::yaw) = 1;
 
 		return true;
 	}
@@ -264,16 +272,20 @@ void VTEOrientation::publishTarget()
 {
 	vision_target_est_orientation_s vision_target_orientation{};
 
+	matrix::Vector<float, vtest::State::size> state = _target_estimator_orientation->getState();
+	matrix::Vector<float, vtest::State::size> state_var = _target_estimator_orientation->getStateVar();
+
 	vision_target_orientation.timestamp = _last_predict;
 	vision_target_orientation.orientation_valid = (hrt_absolute_time() - _last_update < target_valid_TIMEOUT_US);
 
-	vision_target_orientation.theta = _target_estimator_orientation->getPosition();
-	vision_target_orientation.cov_theta =  _target_estimator_orientation->getPosVar();
+	vision_target_orientation.theta = state(vtest::State::yaw);
+	vision_target_orientation.cov_theta = state_var(vtest::State::yaw);
 
-	if (_target_mode == TargetMode::Moving) {
-		vision_target_orientation.v_theta = _target_estimator_orientation->getVelocity();
-		vision_target_orientation.cov_v_theta =  _target_estimator_orientation->getVelVar();
-	}
+#if defined(CONFIG_VTEST_MOVING)
+	vision_target_orientation.v_theta = state(vtest::State::yaw_rate);
+	vision_target_orientation.cov_v_theta =  state_var(vtest::State::yaw_rate);
+
+#endif // CONFIG_VTEST_MOVING
 
 	_targetOrientationPub.publish(vision_target_orientation);
 }
@@ -312,22 +324,9 @@ void VTEOrientation::set_range_sensor(const float dist, const bool valid)
 
 bool VTEOrientation::initTargetEstimator()
 {
-	Base_KF_orientation *tmp_theta = nullptr;
+	KF_orientation_unified *tmp_theta = new KF_orientation_unified;
 
-	bool init_failed = true;
-
-	if (_target_mode == TargetMode::Moving) {
-		tmp_theta = new KF_orientation_moving;
-		PX4_INFO("VTE orientation init for moving targets.");
-
-	} else {
-		tmp_theta = new KF_orientation_static;
-		PX4_INFO("VTE orientation init for static targets.");
-	}
-
-	init_failed = (tmp_theta == nullptr);
-
-	if (init_failed) {
+	if (tmp_theta == nullptr) {
 		PX4_ERR("VTE orientation init failed");
 		return false;
 
