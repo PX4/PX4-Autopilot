@@ -31,9 +31,11 @@
  *
  ****************************************************************************/
 
+// TODO: rename to KF_position and clean up comments
+
 /**
- * @file KF_orientation_static.h
- * @brief Filter to estimate the orientation of static targets. State: [theta]
+ * @file KF_position_moving.h
+ * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -43,70 +45,67 @@
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
-
-#include "base_KF_orientation.h"
+#include "python_derivation/generated/state.h"
 
 #pragma once
 
 namespace vision_target_estimator
 {
-class KF_orientation_static : public Base_KF_orientation
+class KF_orientation_unified
 {
 public:
 	/**
 	 * Default constructor, state not initialized
 	 */
-	KF_orientation_static() {};
+	KF_orientation_unified() {};
 
 	/**
 	 * Default desctructor
 	 */
-	~KF_orientation_static() {};
+	~KF_orientation_unified() {};
 
 	//Prediction step:
-	void predictState(float dt) override {};
-	void predictCov(float dt) override {};
+	void predictState(float dt);
+	void predictCov(float dt);
 
 	// Backwards state prediciton
-	void syncState(float dt) override;
+	void syncState(float dt);
 
-	void setH(const matrix::Vector<float, AugmentedState::COUNT> &h_meas) override;
+	void setH(const matrix::Vector<float, vtest::State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
 
-	float computeInnovCov(float measUnc) override;
-	float computeInnov(float meas) override;
+	void setState(const matrix::Vector<float, vtest::State::size> &state) {_state = state;}
 
-	bool update() override;
+	void setStateVar(const matrix::Vector<float, vtest::State::size> &var)
+	{
+		const matrix::SquareMatrix<float, vtest::State::size> var_mat = diag(var);
+		_state_covariance = var_mat;
+	};
 
-	void setNISthreshold(float nis_threshold) override { _nis_threshold = nis_threshold; };
+	matrix::Vector<float, vtest::State::size> getState() { return _state;}
+	matrix::Vector<float, vtest::State::size> getStateVar()
+	{
+		const matrix::SquareMatrix<float, vtest::State::size> var_mat = _state_covariance;
+		return var_mat.diag();
+	};
 
-	// Init: x_0
-	void setPosition(float pos) override { _state = pos; };
+	float computeInnovCov(float measUnc);
+	float computeInnov(float meas);
 
-	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _state_covariance = pos_unc; };
+	bool update();
 
-	// Retreive output of filter
-	float getPosition() override { return _state; };
+	void setNISthreshold(float nis_threshold) { _nis_threshold = nis_threshold; };
 
-	float getPosVar() override { return _state_covariance; };
-
-	float getTestRatio() override {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
-
-	float getVelVar() override { return 0.f; };
-	float getVelocity() override { return 0.f; };
-	void setStateVelVar(float vel_unc) override { };
-	void setVelocity(float vel) override { };
-
+	float getTestRatio() {if (fabsf(_innov_cov) < 1e-6f) {return -1.f;} else {return _innov / _innov_cov * _innov;} };
 
 private:
 
-	float _state;
+	matrix::Vector<float, vtest::State::size> _state;
 
-	float _sync_state;
+	matrix::Vector<float, vtest::State::size> _sync_state;
 
-	float _meas_matrix_row_vect;
+	matrix::Vector<float, vtest::State::size> _meas_matrix_row_vect;
 
-	float _state_covariance;
+	matrix::Matrix<float, vtest::State::size, vtest::State::size> _state_covariance;
 
 	float _innov{0.0f}; // residual of last measurement update
 
