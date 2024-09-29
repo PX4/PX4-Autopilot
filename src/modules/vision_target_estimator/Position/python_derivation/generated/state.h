@@ -31,12 +31,11 @@ struct StateSample {
 };
 static_assert(sizeof(matrix::Vector<float, 3>) == sizeof(StateSample), "state vector doesn't match StateSample size");
 
-struct IdxDof { unsigned idx; unsigned dof; };
 namespace State
 {
-static constexpr IdxDof pos_rel{0, 1};
-static constexpr IdxDof vel_uav{1, 1};
-static constexpr IdxDof bias{2, 1};
+static constexpr uint8_t pos_rel{0};
+static constexpr uint8_t vel_uav{1};
+static constexpr uint8_t bias{2};
 static constexpr uint8_t size{3};
 };
 }

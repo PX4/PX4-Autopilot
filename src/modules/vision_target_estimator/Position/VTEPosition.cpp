@@ -196,17 +196,17 @@ bool VTEPosition::initEstimator(const Matrix<float, Direction::nb_directions, vt
 	const Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
 
 	matrix::Matrix <float, Direction::nb_directions, vtest::State::size> state_var_init;
-	state_var_init.col(vtest::State::pos_rel.idx) = state_pos_var_vect;
-	state_var_init.col(vtest::State::vel_uav.idx) = state_vel_var_vect;
-	state_var_init.col(vtest::State::bias.idx) = state_bias_var_vect;
+	state_var_init.col(vtest::State::pos_rel) = state_pos_var_vect;
+	state_var_init.col(vtest::State::vel_uav) = state_vel_var_vect;
+	state_var_init.col(vtest::State::bias) = state_bias_var_vect;
 
 #if defined(CONFIG_VTEST_MOVING)
 	const float state_acc_var = _param_vte_acc_unc_in.get();
 	const float state_target_vel_var = _param_vte_vel_unc_in.get();
 	const Vector3f state_acc_var_vect(state_acc_var, state_acc_var, state_acc_var);
 	const Vector3f state_target_vel_var_vect(state_target_vel_var, state_target_vel_var, state_target_vel_var);
-	state_var_init.col(vtest::State::acc_target.idx) = state_acc_var_vect;
-	state_var_init.col(vtest::State::vel_target.idx) = state_target_vel_var_vect;
+	state_var_init.col(vtest::State::acc_target) = state_acc_var_vect;
+	state_var_init.col(vtest::State::vel_target) = state_target_vel_var_vect;
 
 #endif // CONFIG_VTEST_MOVING
 
@@ -217,25 +217,25 @@ bool VTEPosition::initEstimator(const Matrix<float, Direction::nb_directions, vt
 	}
 
 	// Debug INFO
-	PX4_INFO("Pos init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::pos_rel.idx),
-		 (double)state_init(Direction::y, vtest::State::pos_rel.idx), (double)state_init(Direction::z,
-				 vtest::State::pos_rel.idx));
-	PX4_INFO("Vel uav init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::vel_uav.idx),
-		 (double)state_init(Direction::y, vtest::State::vel_uav.idx), (double)state_init(Direction::z,
-				 vtest::State::vel_uav.idx));
-	PX4_INFO("Bias init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::bias.idx),
-		 (double)state_init(Direction::y, vtest::State::bias.idx), (double)state_init(Direction::z,
-				 vtest::State::bias.idx));
+	PX4_INFO("Pos init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::pos_rel),
+		 (double)state_init(Direction::y, vtest::State::pos_rel), (double)state_init(Direction::z,
+				 vtest::State::pos_rel));
+	PX4_INFO("Vel uav init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::vel_uav),
+		 (double)state_init(Direction::y, vtest::State::vel_uav), (double)state_init(Direction::z,
+				 vtest::State::vel_uav));
+	PX4_INFO("Bias init %.2f %.2f %.2f", (double)state_init(Direction::x, vtest::State::bias),
+		 (double)state_init(Direction::y, vtest::State::bias), (double)state_init(Direction::z,
+				 vtest::State::bias));
 
 #if defined(CONFIG_VTEST_MOVING)
 	PX4_INFO("Target acc init %.2f %.2f %.2f", (double)state_init(Direction::x,
-			vtest::State::acc_target.idx),
-		 (double)state_init(Direction::y, vtest::State::acc_target.idx), (double)state_init(Direction::z,
-				 vtest::State::acc_target.idx));
+			vtest::State::acc_target),
+		 (double)state_init(Direction::y, vtest::State::acc_target), (double)state_init(Direction::z,
+				 vtest::State::acc_target));
 	PX4_INFO("Target vel init %.2f %.2f %.2f", (double)state_init(Direction::x,
-			vtest::State::vel_target.idx),
-		 (double)state_init(Direction::y, vtest::State::vel_target.idx), (double)state_init(Direction::z,
-				 vtest::State::vel_target.idx));
+			vtest::State::vel_target),
+		 (double)state_init(Direction::y, vtest::State::vel_target), (double)state_init(Direction::z,
+				 vtest::State::vel_target));
 #endif // CONFIG_VTEST_MOVING
 
 	return true;
@@ -424,9 +424,9 @@ bool VTEPosition::processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &ob
 
 	obs.meas_xyz = pos_ned;
 
-	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel.idx) = 1;
-	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel.idx) = 1;
-	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel.idx) = 1;
+	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel) = 1;
 
 	const float unc = math::max(math::min(distance / 20.f, 2.f), 0.1f);
 
@@ -631,13 +631,13 @@ bool VTEPosition::initializeEstimator(const ObservationValidMask &vte_fusion_aid
 
 	// Initialize estimator state
 	matrix::Matrix <float, Direction::nb_directions, vtest::State::size> state_init;
-	state_init.col(vtest::State::pos_rel.idx) = pos_init;
-	state_init.col(vtest::State::vel_uav.idx) = uav_vel_init;
-	state_init.col(vtest::State::bias.idx) = bias_init;
+	state_init.col(vtest::State::pos_rel) = pos_init;
+	state_init.col(vtest::State::vel_uav) = uav_vel_init;
+	state_init.col(vtest::State::bias) = bias_init;
 
 #if defined(CONFIG_VTEST_MOVING)
-	state_init.col(vtest::State::acc_target.idx) = target_acc_init;
-	state_init.col(vtest::State::vel_target.idx) = target_vel_init;
+	state_init.col(vtest::State::acc_target) = target_acc_init;
+	state_init.col(vtest::State::vel_target) = target_vel_init;
 #endif // CONFIG_VTEST_MOVING
 
 	if (!initEstimator(state_init)) {
@@ -672,13 +672,13 @@ void VTEPosition::updateBias(const Vector3f &pos_init)
 	// Reset filter's state and variance
 	for (int i = 0; i < Direction::nb_directions; i++) {
 		matrix::Vector<float, vtest::State::size> temp_state = _target_estimator[i]->getState();
-		temp_state(vtest::State::bias.idx) = bias_init(i);
-		temp_state(vtest::State::pos_rel.idx) = pos_init(i);
+		temp_state(vtest::State::bias) = bias_init(i);
+		temp_state(vtest::State::pos_rel) = pos_init(i);
 		_target_estimator[i]->setState(temp_state);
 
 		matrix::Vector<float, vtest::State::size> temp_state_var = _target_estimator[i]->getStateVar();
-		temp_state_var(vtest::State::bias.idx) = state_bias_var_vect(i);
-		temp_state_var(vtest::State::pos_rel.idx) = state_pos_var_vect(i);
+		temp_state_var(vtest::State::bias) = state_bias_var_vect(i);
+		temp_state_var(vtest::State::pos_rel) = state_pos_var_vect(i);
 		_target_estimator[i]->setStateVar(temp_state_var);
 	}
 
@@ -770,9 +770,9 @@ bool VTEPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_
 	obs.updated = true;
 
 	// Assume noise correlation negligible:
-	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel.idx) = 1;
-	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel.idx) = 1;
-	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel.idx) = 1;
+	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel) = 1;
 
 	obs.meas_xyz = vision_ned;
 
@@ -810,9 +810,9 @@ bool VTEPosition::processObsGNSSVelUav(const sensor_gps_s &vehicle_gps_position,
 
 	obs.meas_xyz = vel_uav_ned;
 
-	obs.meas_h_xyz(Direction::x, vtest::State::vel_uav.idx) = 1;
-	obs.meas_h_xyz(Direction::y, vtest::State::vel_uav.idx) = 1;
-	obs.meas_h_xyz(Direction::z, vtest::State::vel_uav.idx) = 1;
+	obs.meas_h_xyz(Direction::x, vtest::State::vel_uav) = 1;
+	obs.meas_h_xyz(Direction::y, vtest::State::vel_uav) = 1;
+	obs.meas_h_xyz(Direction::z, vtest::State::vel_uav) = 1;
 
 	const float unc = fmaxf(vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s,
 				_gps_vel_noise * _gps_vel_noise);
@@ -853,9 +853,9 @@ bool VTEPosition::processObsGNSSVelTarget(const target_gnss_s &target_GNSS_repor
 	obs.meas_unc_xyz(Direction::y) = unc;
 	obs.meas_unc_xyz(Direction::z) = unc;
 
-	obs.meas_h_xyz(Direction::x, vtest::State::vel_target.idx) = 1;
-	obs.meas_h_xyz(Direction::y, vtest::State::vel_target.idx) = 1;
-	obs.meas_h_xyz(Direction::z, vtest::State::vel_target.idx) = 1;
+	obs.meas_h_xyz(Direction::x, vtest::State::vel_target) = 1;
+	obs.meas_h_xyz(Direction::y, vtest::State::vel_target) = 1;
+	obs.meas_h_xyz(Direction::z, vtest::State::vel_target) = 1;
 
 	obs.timestamp = target_GNSS_report.timestamp;
 
@@ -906,14 +906,14 @@ bool VTEPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_posit
 
 	// GPS already in NED, no rotation required.
 	// Obs: [pos_rel + bias]
-	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel.idx) = 1;
-	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel.idx) = 1;
-	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel.idx) = 1;
+	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel) = 1;
 
 	if (_bias_set) {
-		obs.meas_h_xyz(Direction::x, vtest::State::bias.idx) = 1;
-		obs.meas_h_xyz(Direction::y, vtest::State::bias.idx) = 1;
-		obs.meas_h_xyz(Direction::z, vtest::State::bias.idx) = 1;
+		obs.meas_h_xyz(Direction::x, vtest::State::bias) = 1;
+		obs.meas_h_xyz(Direction::y, vtest::State::bias) = 1;
+		obs.meas_h_xyz(Direction::z, vtest::State::bias) = 1;
 	}
 
 	obs.timestamp = vehicle_gps_position.timestamp;
@@ -992,14 +992,14 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_GNSS_repor
 
 	// GPS already in NED, no rotation required.
 	// Obs: [pos_rel + bias]
-	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel.idx) = 1;
-	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel.idx) = 1;
-	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel.idx) = 1;
+	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel) = 1;
+	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel) = 1;
 
 	if (_bias_set) {
-		obs.meas_h_xyz(Direction::x, vtest::State::bias.idx) = 1;
-		obs.meas_h_xyz(Direction::y, vtest::State::bias.idx) = 1;
-		obs.meas_h_xyz(Direction::z, vtest::State::bias.idx) = 1;
+		obs.meas_h_xyz(Direction::x, vtest::State::bias) = 1;
+		obs.meas_h_xyz(Direction::y, vtest::State::bias) = 1;
+		obs.meas_h_xyz(Direction::z, vtest::State::bias) = 1;
 	}
 
 	obs.timestamp = target_GNSS_report.timestamp;
@@ -1157,33 +1157,33 @@ void VTEPosition::publishTarget()
 	matrix::Vector<float, vtest::State::size> state_var_z = _target_estimator[Direction::z]->getStateVar();
 
 	// Fill target relative pose
-	target_pose.x_rel = state_x(vtest::State::pos_rel.idx);
-	target_pose.y_rel = state_y(vtest::State::pos_rel.idx);
-	target_pose.z_rel = state_z(vtest::State::pos_rel.idx);
+	target_pose.x_rel = state_x(vtest::State::pos_rel);
+	target_pose.y_rel = state_y(vtest::State::pos_rel);
+	target_pose.z_rel = state_z(vtest::State::pos_rel);
 
-	target_pose.cov_x_rel = state_var_x(vtest::State::pos_rel.idx);
-	target_pose.cov_y_rel = state_var_y(vtest::State::pos_rel.idx);
-	target_pose.cov_z_rel = state_var_z(vtest::State::pos_rel.idx);
+	target_pose.cov_x_rel = state_var_x(vtest::State::pos_rel);
+	target_pose.cov_y_rel = state_var_y(vtest::State::pos_rel);
+	target_pose.cov_z_rel = state_var_z(vtest::State::pos_rel);
 
 	// Fill target relative velocity
-	target_pose.vx_rel = -state_x(vtest::State::vel_uav.idx);
-	target_pose.vy_rel = -state_y(vtest::State::vel_uav.idx);
-	target_pose.vz_rel = -state_z(vtest::State::vel_uav.idx);
+	target_pose.vx_rel = -state_x(vtest::State::vel_uav);
+	target_pose.vy_rel = -state_y(vtest::State::vel_uav);
+	target_pose.vz_rel = -state_z(vtest::State::vel_uav);
 
-	target_pose.cov_vx_rel = state_var_x(vtest::State::vel_uav.idx);
-	target_pose.cov_vy_rel = state_var_y(vtest::State::vel_uav.idx);
-	target_pose.cov_vz_rel = state_var_z(vtest::State::vel_uav.idx);
+	target_pose.cov_vx_rel = state_var_x(vtest::State::vel_uav);
+	target_pose.cov_vy_rel = state_var_y(vtest::State::vel_uav);
+	target_pose.cov_vz_rel = state_var_z(vtest::State::vel_uav);
 
 #if defined(CONFIG_VTEST_MOVING)
 	// If target is moving, relative velocity = vel_target - vel_uav
-	target_pose.vx_rel += state_x(vtest::State::vel_target.idx);
-	target_pose.vy_rel += state_y(vtest::State::vel_target.idx);
-	target_pose.vz_rel += state_z(vtest::State::vel_target.idx);
+	target_pose.vx_rel += state_x(vtest::State::vel_target);
+	target_pose.vy_rel += state_y(vtest::State::vel_target);
+	target_pose.vz_rel += state_z(vtest::State::vel_target);
 
 	// Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y)
-	target_pose.cov_vx_rel += state_var_x(vtest::State::vel_target.idx);
-	target_pose.cov_vy_rel += state_var_y(vtest::State::vel_target.idx);
-	target_pose.cov_vz_rel += state_var_z(vtest::State::vel_target.idx);
+	target_pose.cov_vx_rel += state_var_x(vtest::State::vel_target);
+	target_pose.cov_vy_rel += state_var_y(vtest::State::vel_target);
+	target_pose.cov_vz_rel += state_var_z(vtest::State::vel_target);
 
 #endif // CONFIG_VTEST_MOVING
 
@@ -1197,39 +1197,39 @@ void VTEPosition::publishTarget()
 	vte_state.cov_z_rel = target_pose.cov_z_rel;
 
 	// Fill uav velocity
-	vte_state.vx_uav = state_x(vtest::State::vel_uav.idx);
-	vte_state.vy_uav = state_y(vtest::State::vel_uav.idx);
-	vte_state.vz_uav = state_z(vtest::State::vel_uav.idx);
+	vte_state.vx_uav = state_x(vtest::State::vel_uav);
+	vte_state.vy_uav = state_y(vtest::State::vel_uav);
+	vte_state.vz_uav = state_z(vtest::State::vel_uav);
 
-	vte_state.cov_vx_uav = state_var_x(vtest::State::vel_uav.idx);
-	vte_state.cov_vy_uav = state_var_y(vtest::State::vel_uav.idx);
-	vte_state.cov_vz_uav = state_var_z(vtest::State::vel_uav.idx);
+	vte_state.cov_vx_uav = state_var_x(vtest::State::vel_uav);
+	vte_state.cov_vy_uav = state_var_y(vtest::State::vel_uav);
+	vte_state.cov_vz_uav = state_var_z(vtest::State::vel_uav);
 
-	vte_state.x_bias = state_x(vtest::State::bias.idx);
-	vte_state.y_bias = state_y(vtest::State::bias.idx);
-	vte_state.z_bias = state_z(vtest::State::bias.idx);
+	vte_state.x_bias = state_x(vtest::State::bias);
+	vte_state.y_bias = state_y(vtest::State::bias);
+	vte_state.z_bias = state_z(vtest::State::bias);
 
-	vte_state.cov_x_bias = state_var_x(vtest::State::bias.idx);
-	vte_state.cov_y_bias = state_var_y(vtest::State::bias.idx);
-	vte_state.cov_z_bias = state_var_z(vtest::State::bias.idx);
+	vte_state.cov_x_bias = state_var_x(vtest::State::bias);
+	vte_state.cov_y_bias = state_var_y(vtest::State::bias);
+	vte_state.cov_z_bias = state_var_z(vtest::State::bias);
 
 #if defined(CONFIG_VTEST_MOVING)
 
-	vte_state.vx_target = state_x(vtest::State::vel_target.idx);
-	vte_state.vy_target = state_y(vtest::State::vel_target.idx);
-	vte_state.vz_target = state_z(vtest::State::vel_target.idx);
+	vte_state.vx_target = state_x(vtest::State::vel_target);
+	vte_state.vy_target = state_y(vtest::State::vel_target);
+	vte_state.vz_target = state_z(vtest::State::vel_target);
 
-	vte_state.cov_vx_target = state_var_x(vtest::State::vel_target.idx);
-	vte_state.cov_vy_target = state_var_y(vtest::State::vel_target.idx);
-	vte_state.cov_vz_target = state_var_z(vtest::State::vel_target.idx);
+	vte_state.cov_vx_target = state_var_x(vtest::State::vel_target);
+	vte_state.cov_vy_target = state_var_y(vtest::State::vel_target);
+	vte_state.cov_vz_target = state_var_z(vtest::State::vel_target);
 
-	vte_state.ax_target = state_x(vtest::State::acc_target.idx);
-	vte_state.ay_target = state_y(vtest::State::acc_target.idx);
-	vte_state.az_target = state_z(vtest::State::acc_target.idx);
+	vte_state.ax_target = state_x(vtest::State::acc_target);
+	vte_state.ay_target = state_y(vtest::State::acc_target);
+	vte_state.az_target = state_z(vtest::State::acc_target);
 
-	vte_state.cov_ax_target = state_var_x(vtest::State::acc_target.idx);
-	vte_state.cov_ay_target = state_var_y(vtest::State::acc_target.idx);
-	vte_state.cov_az_target = state_var_z(vtest::State::acc_target.idx);
+	vte_state.cov_ax_target = state_var_x(vtest::State::acc_target);
+	vte_state.cov_ay_target = state_var_y(vtest::State::acc_target);
+	vte_state.cov_az_target = state_var_z(vtest::State::acc_target);
 
 #endif // CONFIG_VTEST_MOVING
 
