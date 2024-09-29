@@ -61,6 +61,7 @@ VTEPosition::VTEPosition() :
 	_vte_aid_gps_vel_uav_pub.advertise();
 	_vte_aid_gps_vel_target_pub.advertise();
 	_vte_aid_fiducial_marker_pub.advertise();
+	_vte_aid_uwb_pub.advertise();
 
 	_check_params(true);
 }
@@ -322,6 +323,9 @@ void VTEPosition::processObservations(ObservationValidMask &vte_fusion_aid_mask,
 	/* Handle Vision Data */
 	handleVisionData(vte_fusion_aid_mask, observations[ObservationType::fiducial_marker]);
 
+	/* Handle UWB Data */
+	handleUwbData(vte_fusion_aid_mask, observations[ObservationType::uwb]);
+
 	/* Handle UAV GPS position */
 	sensor_gps_s vehicle_gps_position;
 	const bool vehicle_gps_position_updated = _vehicle_gps_position_sub.update(&vehicle_gps_position);
@@ -368,6 +372,76 @@ bool VTEPosition::isVisionDataValid(const fiducial_marker_pos_report_s &fiducial
 {
 	// TODO: extend checks
 	return _is_meas_valid(fiducial_marker_pose.timestamp);
+}
+
+
+void VTEPosition::handleUwbData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_uwb)
+{
+
+	sensor_uwb_s uwb_report;
+
+	if (!((_vte_aid_mask & SensorFusionMask::USE_UWB)
+	      && _sensor_uwb_sub.update(&uwb_report))) {
+		return;
+	}
+
+	if (!isUwbDataValid(uwb_report)) {
+		return;
+	}
+
+	if (processObsUwb(uwb_report, obs_uwb)) {
+		vte_fusion_aid_mask = static_cast<ObservationValidMask>(vte_fusion_aid_mask | ObservationValidMask::FUSE_UWB);
+	}
+
+}
+
+
+bool VTEPosition::isUwbDataValid(const sensor_uwb_s &uwb_report)
+{
+
+	// TODO: extend checks
+	return _is_meas_valid(uwb_report.timestamp);
+
+}
+
+
+bool VTEPosition::processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &obs)
+{
+
+	// Convert degrees to radians
+	const float theta_rad = uwb_report.aoa_azimuth_dev * (M_PIf32 / 180.0f);
+	const float phi_rad = uwb_report.aoa_elevation_dev * (M_PIf32 / 180.0f);
+
+	const float distance = uwb_report.distance;
+
+	// Calculate the relative position components
+	const float delta_x = distance * cosf(phi_rad) * cosf(theta_rad);
+	const float delta_y = distance * cosf(phi_rad) * sinf(theta_rad);
+	const float delta_z = -distance * sinf(phi_rad); // Negative because Z is down in NED
+
+	// Total position in NED frame
+	const Vector3f pos_ned(uwb_report.offset_x + delta_x, uwb_report.offset_y + delta_y, uwb_report.offset_z + delta_z);
+
+	obs.meas_xyz = pos_ned;
+
+	obs.meas_h_xyz(Direction::x, vtest::State::pos_rel.idx) = 1;
+	obs.meas_h_xyz(Direction::y, vtest::State::pos_rel.idx) = 1;
+	obs.meas_h_xyz(Direction::z, vtest::State::pos_rel.idx) = 1;
+
+	const float unc = math::max(math::min(distance / 20.f, 2.f), 0.1f);
+
+	obs.meas_unc_xyz(Direction::x) = unc;
+	obs.meas_unc_xyz(Direction::y) = unc;
+	obs.meas_unc_xyz(Direction::z) = unc;
+
+	obs.timestamp = uwb_report.timestamp;
+
+	obs.type = ObservationType::uwb;
+	obs.updated = true;
+
+
+	// TODO: fix function and then return true.
+	return false;
 }
 
 
@@ -1045,6 +1119,10 @@ void VTEPosition::publishInnov(const estimator_aid_source3d_s &target_innov, con
 
 	case ObservationType::fiducial_marker:
 		_vte_aid_fiducial_marker_pub.publish(target_innov);
+		break;
+
+	case ObservationType::uwb:
+		_vte_aid_uwb_pub.publish(target_innov);
 		break;
 
 	case ObservationType::nb_observation_types:
