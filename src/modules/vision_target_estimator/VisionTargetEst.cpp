@@ -299,8 +299,7 @@ void VisionTargetEst::update_task_topics()
 void VisionTargetEst::Run()
 {
 	if (should_exit()) {
-		_vehicle_attitude_sub.unregisterCallback();
-		exit_and_cleanup();
+		handle_exit();
 		return;
 	}
 
@@ -308,36 +307,19 @@ void VisionTargetEst::Run()
 
 	// If a new task is available, stop the estimators if they were already running
 	if (new_task_available()) {
-		if (_vte_position_enabled && _position_estimator_running) {
-			stop_position_estimator();
-		}
-
-		if (_vte_orientation_enabled && _orientation_estimator_running) {
-			stop_orientation_estimator();
-		}
-
+		stop_all_estimators();
 	}
 
 	// No task running, early return
-	if (_vte_current_task == VisionTargetEstTask::VTE_NO_TASK) {
+	if (no_active_task()) {
 		return;
 	}
 
 	// Task is running, check if an estimator must be started or re-started
-	if ((!_position_estimator_running && _vte_position_enabled)) {
-
-		_position_estimator_running = start_position_estimator();
-	}
-
-	if ((!_orientation_estimator_running && _vte_orientation_enabled)) {
-
-		_orientation_estimator_running = start_orientation_estimator();
-	}
+	start_estimators_if_needed();
 
 	// Early return if no estimator is running or activated
-	if ((!_vte_orientation_enabled || !_orientation_estimator_running) && (!_vte_position_enabled
-			|| !_position_estimator_running)) {
-
+	if (no_estimator_running()) {
 		if (is_current_task_done()) {
 			_vte_current_task = VisionTargetEstTask::VTE_NO_TASK;
 		}
@@ -347,121 +329,34 @@ void VisionTargetEst::Run()
 
 	// Stop estimators once task is completed
 	if (is_current_task_done()) {
-
-		if (_vte_position_enabled && _position_estimator_running) {
-			stop_position_estimator();
-		}
-
-		if (_vte_orientation_enabled && _orientation_estimator_running) {
-			stop_orientation_estimator();
-		}
-
+		stop_all_estimators();
 		_vte_current_task = VisionTargetEstTask::VTE_NO_TASK;
-
 		return;
 	}
 
-	// Stop computations if the position estimator timedout
-	if (_position_estimator_running && _vte_position->has_timed_out()) {
-		stop_position_estimator();
-		PX4_INFO("Estimator TIMEOUT, position VTE stopped.");
-
-		// Early return if no other estimator is running
-		if (!_orientation_estimator_running) {
-			return;
-		}
-	}
-
-	// Stop computations if the position estimator timedout
-	if (_orientation_estimator_running && _vte_orientation->has_timed_out()) {
-		stop_orientation_estimator();
-		PX4_INFO("Estimator TIMEOUT, orientation VTE stopped.");
-
-		// Early return if no other estimator is running
-		if (!_position_estimator_running) {
-			return;
-		}
+	if (estimators_stopped_due_to_timeout()) {
+		return;
 	}
 
 	// Early return checks passed, start filter computations.
-	perf_begin(_cycle_perf);
+	perform_estimations();
+}
 
-	localPose local_pose;
+void VisionTargetEst::handle_exit()
+{
+	_vehicle_attitude_sub.unregisterCallback();
+	exit_and_cleanup();
+}
 
-	const bool local_pose_updated = get_local_pose(local_pose);
-
-	/* Update position filter at vte_pos_UPDATE_RATE_HZ */
-	if (_vte_position_enabled) {
-
-		matrix::Vector3f gps_pos_offset_ned;
-		matrix::Vector3f vel_offset;
-		const bool vel_offset_updated = get_gps_velocity_offset(vel_offset);
-
-		matrix::Vector3f vehicle_acc_ned;
-
-		/* Downsample acceleration ned */
-		if (get_input(vehicle_acc_ned, gps_pos_offset_ned, vel_offset, vel_offset_updated)) {
-
-			/* If the acceleration has been averaged for too long, early return */
-			if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
-				PX4_INFO("Forced acc downsample reset");
-				reset_acc_downsample();
-				return;
-			}
-
-			_vehicle_acc_ned_sum += vehicle_acc_ned;
-			_loops_count ++;
-
-			if (has_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
-
-				perf_begin(_cycle_perf_pos);
-
-				if (local_pose_updated) {
-					_vte_position->set_local_velocity(local_pose.vel_xyz, local_pose.vel_valid, local_pose.timestamp);
-					_vte_position->set_local_position(local_pose.xyz, local_pose.pos_valid, local_pose.timestamp);
-					_vte_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
-				}
-
-				_vte_position->set_gps_pos_offset(gps_pos_offset_ned, _gps_pos_is_offset);
-
-				if (vel_offset_updated) {
-					_vte_position->set_velocity_offset(vel_offset);
-				}
-
-				const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
-
-				_vte_position->update(vehicle_acc_ned_sampled);
-
-				/* Publish downsampled acceleration*/
-				vehicle_acceleration_s vte_acc_input_report;
-				vte_acc_input_report.timestamp = hrt_absolute_time();
-
-				for (int i = 0; i < 3; i++) {
-					vte_acc_input_report.xyz[i] = vehicle_acc_ned_sampled(i);
-				}
-
-				_vte_acc_input_pub.publish(vte_acc_input_report);
-
-				reset_acc_downsample();
-				perf_end(_cycle_perf_pos);
-			}
-		}
+void VisionTargetEst::stop_all_estimators()
+{
+	if (_vte_position_enabled && _position_estimator_running) {
+		stop_position_estimator();
 	}
 
-	/* Update orientation filter at vte_yaw_UPDATE_RATE_HZ */
-	if (_vte_orientation_enabled && has_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
-		perf_begin(_cycle_perf_yaw);
-
-		if (local_pose_updated) {
-			_vte_orientation->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
-		}
-
-		_vte_orientation->update();
-		perf_end(_cycle_perf_yaw);
+	if (_vte_orientation_enabled && _orientation_estimator_running) {
+		stop_orientation_estimator();
 	}
-
-	perf_end(_cycle_perf);
-
 }
 
 void VisionTargetEst::stop_position_estimator()
@@ -488,6 +383,135 @@ void VisionTargetEst::stop_orientation_estimator()
 
 	_orientation_estimator_running = false;
 	_vte_orientation_stop_time = hrt_absolute_time();
+}
+
+void VisionTargetEst::start_estimators_if_needed()
+{
+
+	if (!_position_estimator_running && _vte_position_enabled) {
+		_position_estimator_running = start_position_estimator();
+	}
+
+	if (!_orientation_estimator_running && _vte_orientation_enabled) {
+		_orientation_estimator_running = start_orientation_estimator();
+	}
+
+	return;
+}
+
+bool VisionTargetEst::estimators_stopped_due_to_timeout()
+{
+	bool all_estimators_stopped = true;
+
+	if (_position_estimator_running && _vte_position->has_timed_out()) {
+		stop_position_estimator();
+		PX4_INFO("Estimator TIMEOUT, position VTE stopped.");
+
+	} else {
+		all_estimators_stopped = false;
+	}
+
+	if (_orientation_estimator_running && _vte_orientation->has_timed_out()) {
+		stop_orientation_estimator();
+		PX4_INFO("Estimator TIMEOUT, orientation VTE stopped.");
+
+	} else {
+		all_estimators_stopped = false;
+	}
+
+	// Early return if all estimators are stopped
+	return all_estimators_stopped;
+}
+
+void VisionTargetEst::perform_estimations()
+{
+	perf_begin(_cycle_perf);
+
+	localPose local_pose;
+	const bool local_pose_updated = get_local_pose(local_pose);
+
+	if (_vte_position_enabled) {
+		perform_position_update(local_pose, local_pose_updated);
+	}
+
+	if (_vte_orientation_enabled && has_elapsed(_last_update_yaw, (1_s / vte_yaw_UPDATE_RATE_HZ))) {
+		perform_orientation_update(local_pose, local_pose_updated);
+	}
+
+	perf_end(_cycle_perf);
+}
+
+void VisionTargetEst::perform_position_update(const localPose &local_pose, const bool local_pose_updated)
+{
+	matrix::Vector3f gps_pos_offset_ned;
+	matrix::Vector3f vel_offset;
+	const bool vel_offset_updated = get_gps_velocity_offset(vel_offset);
+
+	matrix::Vector3f vehicle_acc_ned;
+
+	/* Downsample acceleration ned */
+	if (get_input(vehicle_acc_ned, gps_pos_offset_ned, vel_offset, vel_offset_updated)) {
+
+		/* If the acceleration has been averaged for too long, early return */
+		if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
+			PX4_INFO("Forced acc downsample reset");
+			reset_acc_downsample();
+			return;
+		}
+
+		_vehicle_acc_ned_sum += vehicle_acc_ned;
+		_loops_count ++;
+
+		if (has_elapsed(_last_update_pos, (1_s / vte_pos_UPDATE_RATE_HZ))) {
+
+			perf_begin(_cycle_perf_pos);
+
+			if (local_pose_updated) {
+				_vte_position->set_local_velocity(local_pose.vel_xyz, local_pose.vel_valid, local_pose.timestamp);
+				_vte_position->set_local_position(local_pose.xyz, local_pose.pos_valid, local_pose.timestamp);
+				_vte_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
+			}
+
+			_vte_position->set_gps_pos_offset(gps_pos_offset_ned, _gps_pos_is_offset);
+
+			if (vel_offset_updated) {
+				_vte_position->set_velocity_offset(vel_offset);
+			}
+
+			const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
+
+			_vte_position->update(vehicle_acc_ned_sampled);
+			publish_acceleration(vehicle_acc_ned_sampled);
+
+			reset_acc_downsample();
+
+			perf_end(_cycle_perf_pos);
+		}
+	}
+}
+
+void VisionTargetEst::perform_orientation_update(const localPose &local_pose, const bool local_pose_updated)
+{
+	perf_begin(_cycle_perf_yaw);
+
+	if (local_pose_updated) {
+		_vte_orientation->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
+	}
+
+	_vte_orientation->update();
+	perf_end(_cycle_perf_yaw);
+}
+
+void VisionTargetEst::publish_acceleration(const matrix::Vector3f &vehicle_acc_ned_sampled)
+{
+	vehicle_acceleration_s vte_acc_input_report;
+	vte_acc_input_report.timestamp = hrt_absolute_time();
+
+	for (int i = 0; i < 3; i++) {
+		vte_acc_input_report.xyz[i] = vehicle_acc_ned_sampled(i);
+	}
+
+	_vte_acc_input_pub.publish(vte_acc_input_report);
 }
 
 bool VisionTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)
