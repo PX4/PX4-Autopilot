@@ -395,8 +395,6 @@ void VisionTargetEst::start_estimators_if_needed()
 	if (!_orientation_estimator_running && _vte_orientation_enabled) {
 		_orientation_estimator_running = start_orientation_estimator();
 	}
-
-	return;
 }
 
 bool VisionTargetEst::estimators_stopped_due_to_timeout()
