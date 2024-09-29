@@ -65,6 +65,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_uwb.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
@@ -143,6 +144,7 @@ protected:
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_target_pub{ORB_ID(vte_aid_gps_vel_target)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_gps_vel_uav_pub{ORB_ID(vte_aid_gps_vel_uav)};
 	uORB::Publication<estimator_aid_source3d_s> _vte_aid_fiducial_marker_pub{ORB_ID(vte_aid_fiducial_marker)};
+	uORB::Publication<estimator_aid_source3d_s> _vte_aid_uwb_pub{ORB_ID(vte_aid_uwb)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -166,7 +168,8 @@ private:
 		uav_gps_vel = 2,
 		target_gps_vel = 3,
 		fiducial_marker = 4,
-		nb_observation_types = 5
+		uwb = 5,
+		nb_observation_types = 6
 	};
 
 	struct targetObsPos {
@@ -189,6 +192,7 @@ private:
 		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
 		USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission position
 		USE_TARGET_GPS_VEL  = (1 << 4),		///< set to true to use target GPS velocity data. Only for moving targets.
+		USE_UWB = (1 << 5) ///< set to true to use UWB.
 	};
 
 	enum ObservationValidMask : uint8_t {
@@ -199,6 +203,7 @@ private:
 		FUSE_EXT_VIS_POS 	  = (1 << 2),    ///< set to true if target external vision-based relative position data is ready to be fused
 		FUSE_MISSION_POS     = (1 << 3),    ///< set to true if the PX4 mission position is ready to be fused
 		FUSE_TARGET_GPS_VEL     = (1 << 4),   ///< set to true if target GPS velocity data is ready to be fused
+		FUSE_UWB 				= (1 << 5) ///< set to true if UWB data is ready to be fused
 	};
 
 	bool initTargetEstimator();
@@ -248,6 +253,11 @@ private:
 	bool isVisionDataValid(const fiducial_marker_pos_report_s &fiducial_marker_pose);
 	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObsPos &obs);
 
+	/* UWB data */
+	void handleUwbData(ObservationValidMask &vte_fusion_aid_mask, targetObsPos &obs_uwb);
+	bool isUwbDataValid(const sensor_uwb_s &uwb_report);
+	bool processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &obs);
+
 	/* UAV GPS data */
 	void handleUavGpsData(const sensor_gps_s &vehicle_gps_position,
 			      ObservationValidMask &vte_fusion_aid_mask,
@@ -279,6 +289,7 @@ private:
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Subscription _target_gnss_sub{ORB_ID(target_gnss)};
+	uORB::Subscription _sensor_uwb_sub{ORB_ID(sensor_uwb)};
 
 	perf_counter_t _vte_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE prediction")};
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
