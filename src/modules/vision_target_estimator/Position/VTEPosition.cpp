@@ -409,8 +409,8 @@ bool VTEPosition::processObsUwb(const sensor_uwb_s &uwb_report, targetObsPos &ob
 {
 
 	// Convert degrees to radians
-	const float theta_rad = uwb_report.aoa_azimuth_dev * static_cast<float>(M_PI / 180.0);
-	const float phi_rad = uwb_report.aoa_elevation_dev * static_cast<float>(M_PI / 180.0);
+	const float theta_rad = math::radians(uwb_report.aoa_azimuth_dev);
+	const float phi_rad = math::radians(uwb_report.aoa_elevation_dev);
 
 	const float distance = uwb_report.distance;
 
