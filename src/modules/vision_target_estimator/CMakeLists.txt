@@ -42,8 +42,7 @@ px4_add_module(
 		Position/VTEPosition.cpp
 		Position/KF_position_unified.cpp
 		Orientation/VTEOrientation.cpp
-		Orientation/KF_orientation_moving.cpp
-		Orientation/KF_orientation_static.cpp
+		Orientation/KF_orientation_unified.cpp
 	DEPENDS
 		mathlib
 		px4_work_queue

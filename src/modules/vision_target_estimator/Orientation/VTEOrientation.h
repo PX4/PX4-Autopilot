@@ -63,9 +63,8 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
-#include "KF_orientation_moving.h"
-#include "KF_orientation_static.h"
-#include "base_KF_orientation.h"
+#include "KF_orientation_unified.h"
+#include "python_derivation/generated/state.h"
 
 using namespace time_literals;
 
@@ -134,7 +133,7 @@ private:
 		bool updated_theta = false;
 		float meas_theta = 0.f;
 		float meas_unc_theta = 0.f;
-		matrix::Vector2f meas_h_theta;
+		matrix::Vector<float, vtest::State::size> meas_h_theta;
 	};
 
 	bool initTargetEstimator();
@@ -167,7 +166,7 @@ private:
 
 	bool _estimator_initialized{false};
 
-	Base_KF_orientation *_target_estimator_orientation {nullptr};
+	KF_orientation_unified *_target_estimator_orientation {nullptr};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
