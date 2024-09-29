@@ -217,7 +217,8 @@ private:
 
 	inline bool _hasNewNonGpsPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
 	{
-		return vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS;
+		return (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS)
+		       || (vte_fusion_aid_mask & ObservationValidMask::FUSE_UWB);
 	}
 
 	inline bool _hasNewPositionSensorData(const ObservationValidMask &vte_fusion_aid_mask) const
@@ -242,7 +243,10 @@ private:
 
 	bool initializeEstimator(const ObservationValidMask &vte_fusion_aid_mask,
 				 const targetObsPos observations[ObservationType::nb_observation_types]);
-	void updateBias(const matrix::Vector3f &pos_init);
+	void updateBias(const ObservationValidMask &vte_fusion_aid_mask,
+			const targetObsPos observations[ObservationType::nb_observation_types]);
+	void getPosInit(const ObservationValidMask &vte_fusion_aid_mask,
+			const targetObsPos observations[ObservationType::nb_observation_types], matrix::Vector3f &pos_init);
 	bool fuseNewSensorData(const matrix::Vector3f &vehicle_acc_ned, ObservationValidMask &vte_fusion_aid_mask,
 			       const targetObsPos observations[ObservationType::nb_observation_types]);
 	void processObservations(ObservationValidMask &vte_fusion_aid_mask,
