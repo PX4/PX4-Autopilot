@@ -131,16 +131,13 @@ def build_state_struct(state, T="float"):
     return out
 
 def build_tangent_state_struct(state, tangent_state_index):
-    out = "struct IdxDof { unsigned idx; unsigned dof; };\n"
+    out = "namespace State {\n"
 
-    out += "namespace State {\n"
-
-    start_index = 0
     for key in tangent_state_index.keys():
-        out += f"\tstatic constexpr IdxDof {key}{{{tangent_state_index[key].idx}, {tangent_state_index[key].dof}}};\n"
+        out += f"\tstatic constexpr uint8_t {key}{{{tangent_state_index[key].idx}}};\n"
 
     out += f"\tstatic constexpr uint8_t size{{{state.tangent_dim()}}};\n"
-    out += "};\n" # namespace State
+    out += "};\n"  # namespace State
     return out
 
 def generate_px4_state(state, tangent_state_index):
