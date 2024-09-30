@@ -134,6 +134,10 @@ private:
 
 	px4_sem_t		_recv_sem;
 
+	/** dma error perf counter */
+
+	perf_counter_t		_pc_dmaerrs;
+
 	/**
 	 * DMA completion handler.
 	 */

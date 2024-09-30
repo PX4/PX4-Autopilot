@@ -38,6 +38,7 @@
  */
 
 #include <px4_arch/px4io_serial.h>
+#include <perf/perf_counter.h>
 
 #include <syslog.h>
 
@@ -63,7 +64,8 @@ static const struct uart_config_s g_px4io_config = {
 
 ArchPX4IOSerial::ArchPX4IOSerial() :
 	_current_packet(nullptr),
-	_recv_sem(SEM_INITIALIZER(0))
+	_recv_sem(SEM_INITIALIZER(0)),
+	_pc_dmaerrs(perf_alloc(PC_COUNT, "px4io: dmaerrs"))
 {
 	px4_sem_setprotocol(&_recv_sem, SEM_PRIO_NONE);
 
@@ -88,6 +90,8 @@ ArchPX4IOSerial::~ArchPX4IOSerial()
 
 	imx9_dmach_free(_rx_dma);
 	imx9_dmach_free(_tx_dma);
+
+	perf_free(_pc_dmaerrs);
 }
 
 int
@@ -161,6 +165,7 @@ ArchPX4IOSerial::ioctl(unsigned operation, unsigned &arg)
 						perf_print_counter(_pc_txns);
 						perf_print_counter(_pc_retries);
 						perf_print_counter(_pc_timeouts);
+						perf_print_counter(_pc_dmaerrs);
 						perf_print_counter(_pc_crcerrs);
 						perf_print_counter(_pc_protoerrs);
 						perf_print_counter(_pc_uerrs);
@@ -216,9 +221,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 			(uintptr_t)_current_packet + DMA_ALIGN_UP(sizeof(IOPacket)));
 #endif
 
-	/* Start the RX DMA */
-
-	_waiting_for_dma = true;
+	/* Configure the RX and TX DMA */
 
 	struct imx9_edma_xfrconfig_s rx_config;
 	rx_config.saddr  = PX4IO_SERIAL_BASE + IMX9_LPUART_DATA_OFFSET;
@@ -233,11 +236,6 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 #ifdef CONFIG_IMX9_EDMA_ELINK
 	rx_config.linkch = NULL;
 #endif
-
-	imx9_dmach_xfrsetup(_rx_dma, &rx_config);
-	imx9_dmach_start(_rx_dma, _dma_callback, (void *)this);
-
-	/* Start the TX DMA */
 
 	struct imx9_edma_xfrconfig_s tx_config;
 
@@ -254,8 +252,29 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 	tx_config.linkch = NULL;
 #endif
 
-	imx9_dmach_xfrsetup(_tx_dma, &tx_config);
-	imx9_dmach_start(_tx_dma, nullptr, nullptr);
+	/* If setup fails, just stop and exit */
+
+	if (imx9_dmach_xfrsetup(_rx_dma, &rx_config) != OK ||
+	    imx9_dmach_xfrsetup(_tx_dma, &tx_config) != OK) {
+		_stop_dma();
+		perf_count(_pc_dmaerrs);
+		perf_cancel(_pc_txns);
+		return -EIO;
+	}
+
+	/* Start DMA. imx9_dmach_start can only return OK at the time of writing this,
+	 * but keep the error checking to look proper
+	 */
+
+	_waiting_for_dma = true;
+
+	if (imx9_dmach_start(_rx_dma, _dma_callback, (void *)this) != OK ||
+	    imx9_dmach_start(_tx_dma, nullptr, nullptr) != OK) {
+		_stop_dma();
+		perf_count(_pc_dmaerrs);
+		perf_cancel(_pc_txns);
+		return -EIO;
+	}
 
 	/* Wait for response, max 10 ms */
 
