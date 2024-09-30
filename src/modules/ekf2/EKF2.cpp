@@ -1176,7 +1176,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 
 		global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
 #if defined(CONFIG_EKF2_GNSS)
-		global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
+		global_pos.alt_ellipsoid = altAmslToEllipsoid(global_pos.alt);
 #else
 		global_pos.alt_ellipsoid = global_pos.alt;
 #endif
@@ -2051,29 +2051,6 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-#if defined(CONFIG_EKF2_GNSS)
-float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
-{
-	float height_diff = static_cast<float>(_gps_alttitude_ellipsoid) * 1e-3f - amsl_hgt;
-
-	if (_gps_alttitude_ellipsoid_previous_timestamp == 0) {
-
-		_wgs84_hgt_offset = height_diff;
-		_gps_alttitude_ellipsoid_previous_timestamp = _gps_time_usec;
-
-	} else if (_gps_time_usec != _gps_alttitude_ellipsoid_previous_timestamp) {
-
-		// apply a 10 second first order low pass filter to baro offset
-		float dt = 1e-6f * (_gps_time_usec - _gps_alttitude_ellipsoid_previous_timestamp);
-		_gps_alttitude_ellipsoid_previous_timestamp = _gps_time_usec;
-		float offset_rate_correction = 0.1f * (height_diff - _wgs84_hgt_offset);
-		_wgs84_hgt_offset += dt * constrain(offset_rate_correction, -0.1f, 0.1f);
-	}
-
-	return amsl_hgt + _wgs84_hgt_offset;
-}
-#endif // CONFIG_EKF2_GNSS
-
 #if defined(CONFIG_EKF2_AIRSPEED)
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 {
@@ -2433,11 +2410,14 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			return; //TODO: change and set to NAN
 		}
 
+		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
+		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
+
 		gnssSample gnss_sample{
 			.time_us = vehicle_gps_position.timestamp,
 			.lat = vehicle_gps_position.latitude_deg,
 			.lon = vehicle_gps_position.longitude_deg,
-			.alt = static_cast<float>(vehicle_gps_position.altitude_msl_m),
+			.alt = altitude_amsl,
 			.vel = vel_ned,
 			.hacc = vehicle_gps_position.eph,
 			.vacc = vehicle_gps_position.epv,
@@ -2454,9 +2434,30 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		_ekf.setGpsData(gnss_sample);
 
-		_gps_time_usec = gnss_sample.time_us;
-		_gps_alttitude_ellipsoid = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3));
+		const float geoid_height = altitude_ellipsoid - altitude_amsl;
+
+		if (_last_geoid_height_update_us == 0) {
+			_geoid_height_lpf.reset(geoid_height);
+			_last_geoid_height_update_us = gnss_sample.time_us;
+
+		} else if (gnss_sample.time_us > _last_geoid_height_update_us) {
+			const float dt = 1e-6f * (gnss_sample.time_us - _last_geoid_height_update_us);
+			_geoid_height_lpf.setParameters(dt, kGeoidHeightLpfTimeConstant);
+			_geoid_height_lpf.update(geoid_height);
+			_last_geoid_height_update_us = gnss_sample.time_us;
+		}
+
 	}
+}
+
+float EKF2::altEllipsoidToAmsl(float ellipsoid_alt) const
+{
+	return ellipsoid_alt - _geoid_height_lpf.getState();
+}
+
+float EKF2::altAmslToEllipsoid(float amsl_alt) const
+{
+	return amsl_alt + _geoid_height_lpf.getState();
 }
 #endif // CONFIG_EKF2_GNSS
 
