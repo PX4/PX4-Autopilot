@@ -175,7 +175,10 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	else
 		echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2 && \
+		# downloading from PX4 S3 bucket instead of windows.net for greater download speed
+		# windows.net is throttling our runners and downloads can take anywhere between 5 to 10 mins
+		# significantly slowing down our CI
+		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://px4-tools.s3.us-west-2.amazonaws.com/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2 && \
 			sudo tar -jxf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 -C /opt/;
 
 		# add arm-none-eabi-gcc to user's PATH
