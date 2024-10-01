@@ -525,12 +525,12 @@ void MulticopterPositionControl::Run()
 					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
 			const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
 						 _param_mpc_z_vel_max_dn.get();
-
 			// Allow ramping from zero thrust on takeoff
 			const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
 			_control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
 
-			float max_speed_xy = _param_mpc_xy_vel_max.get();
+			float max_speed_xy = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_xy :
+					     _param_mpc_xy_vel_max.get();
 
 			if (PX4_ISFINITE(vehicle_local_position.vxy_max)) {
 				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);

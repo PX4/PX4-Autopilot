@@ -810,6 +810,12 @@ void FlightTaskAuto::_updateTrajConstraints()
 	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
 	_position_smoothing.setMaxJerk(_param_mpc_jerk_auto.get()); // TODO : Should be computed using heading
 
+	// Stretch the constraints of the velocity controller to leave some room for an additional
+	// correction required by the altitude/vertical position controller
+	_constraints.speed_down = 1.2f * _param_mpc_z_v_auto_dn.get();
+	_constraints.speed_up = 1.2f * _param_mpc_xy_vel_max.get();
+	_constraints.speed_xy = 1.2f * _param_mpc_xy_vel_max.get();;
+
 	if (_is_emergency_braking_active) {
 		// When initializing with large velocity, allow 1g of
 		// acceleration in 1s on all axes for fast braking
@@ -821,6 +827,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 		// cutting out the feedforward
 		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_down);
 		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_up);
+		_constraints.speed_xy = math::max(_position_smoothing.getCurrentVelocityXY().norm(), _constraints.speed_xy);
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
@@ -847,11 +854,6 @@ void FlightTaskAuto::_updateTrajConstraints()
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
 	}
-
-	// Stretch the constraints of the velocity controller to leave some room for an additional
-	// correction required by the altitude/vertical position controller
-	_constraints.speed_down = math::max(_constraints.speed_down, 1.2f * _param_mpc_z_v_auto_dn.get());;
-	_constraints.speed_up = math::max(_constraints.speed_up, 1.2f * _param_mpc_z_v_auto_up.get());;
 }
 
 bool FlightTaskAuto::_highEnoughForLandingGear()
