@@ -83,6 +83,24 @@ public:
 	 */
 	void computeGuidance(float vehicle_forward_speed, float vehicle_yaw, int nav_state, bool armed);
 
+	/**
+	 * @brief Calculate desired steering angle. The desired steering is calulated as the steering that is required to
+	 * reach the point calculated using the pure pursuit algorithm (see PurePursuit.hpp).
+	 * @param pure_pursuit Pure pursuit class instance.
+	 * @param curr_wp_ned Current waypoint in NED frame [m].
+	 * @param prev_wp_ned Previous waypoint in NED frame [m].
+	 * @param curr_pos_ned Current position of the vehicle in NED frame [m].
+	 * @param wheel_base Rover wheelbase [m].
+	 * @param desired_speed Desired speed for the rover [m/s].
+	 * @param vehicle_yaw Current yaw of the rover [rad].
+	 * @param max_steering Maximum steering angle of the rover [rad].
+	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
+	 * @param armed Vehicle arm status
+	 * @return Steering setpoint for the rover [rad].
+	 */
+	float calcDesiredSteering(PurePursuit &pure_pursuit, const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
+				  const Vector2f &curr_pos_ned, float wheel_base, float desired_speed, float vehicle_yaw, float max_steering, bool armed);
+
 protected:
 	/**
 	 * @brief Update the parameters of the module.
@@ -123,7 +141,6 @@ private:
 	 * maximum acceleration and jerk.
 	 * @param cruising_speed Cruising speed [m/s].
 	 * @param miss_speed_min Minimum speed setpoint [m/s].
-	 * @param miss_speed_gain Tuning parameter for the slow down effect during cornering [-].
 	 * @param distance_to_prev_wp Distance to the previous waypoint [m].
 	 * @param distance_to_curr_wp Distance to the current waypoint [m].
 	 * @param acc_rad Acceptance radius of the current waypoint [m].
@@ -136,27 +153,9 @@ private:
 	 * @param max_speed Maximum speed setpoint [m/s]
 	 * @return Speed setpoint [m/s].
 	 */
-	float calcDesiredSpeed(float cruising_speed, float miss_speed_min, float miss_speed_gain, float distance_to_prev_wp,
+	float calcDesiredSpeed(float cruising_speed, float miss_speed_min, float distance_to_prev_wp,
 			       float distance_to_curr_wp, float acc_rad, float prev_acc_rad, float max_accel, float max_jerk, int nav_state,
 			       float waypoint_transition_angle, float prev_waypoint_transition_angle, float max_speed);
-
-	/**
-	 * @brief Calculate desired steering angle. The desired steering is calulated as the steering that is required to
-	 * reach the point calculated using the pure pursuit algorithm (see PurePursuit.hpp).
-	 * @param pure_pursuit Pure pursuit class instance.
-	 * @param curr_wp_ned Current waypoint in NED frame [m].
-	 * @param prev_wp_ned Previous waypoint in NED frame [m].
-	 * @param curr_pos_ned Current position of the vehicle in NED frame [m].
-	 * @param wheel_base Rover wheelbase [m].
-	 * @param desired_speed Desired speed for the rover [m/s].
-	 * @param vehicle_yaw Current yaw of the rover [rad].
-	 * @param max_steering Maximum steering angle of the rover [rad].
-	 * @param waypoint_transition_angle Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
-	 * @param armed Vehicle arm status
-	 * @return Steering setpoint for the rover [rad].
-	 */
-	float calcDesiredSteering(PurePursuit &pure_pursuit, const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
-				  const Vector2f &curr_pos_ned, float wheel_base, float desired_speed, float vehicle_yaw, float max_steering, bool armed);
 
 	// uORB subscriptions
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
@@ -197,6 +196,7 @@ private:
 	float _waypoint_transition_angle{0.f}; // Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	float _prev_waypoint_transition_angle{0.f}; // Previous Angle between the prevWP-currWP and currWP-nextWP line segments [rad]
 	uint _nav_cmd{0};
+	float _min_speed{0.f};
 
 	// Parameters
 	DEFINE_PARAMETERS(
@@ -205,13 +205,12 @@ private:
 		(ParamFloat<px4::params::RA_ACC_RAD_MAX>) _param_ra_acc_rad_max,
 		(ParamFloat<px4::params::RA_ACC_RAD_GAIN>) _param_ra_acc_rad_gain,
 		(ParamFloat<px4::params::RA_MISS_SPD_DEF>) _param_ra_miss_spd_def,
-		(ParamFloat<px4::params::RA_MISS_SPD_MIN>) _param_ra_miss_spd_min,
-		(ParamFloat<px4::params::RA_MISS_SPD_GAIN>) _param_ra_miss_spd_gain,
 		(ParamFloat<px4::params::RA_SPEED_P>) _param_ra_p_speed,
 		(ParamFloat<px4::params::RA_SPEED_I>) _param_ra_i_speed,
 		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
 		(ParamFloat<px4::params::RA_MAX_JERK>) _param_ra_max_jerk,
 		(ParamFloat<px4::params::RA_MAX_DECEL>) _param_ra_max_decel,
+		(ParamFloat<px4::params::RA_MAX_LAT_ACCEL>) _param_ra_max_lat_accel,
 		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad
 	)
 };
