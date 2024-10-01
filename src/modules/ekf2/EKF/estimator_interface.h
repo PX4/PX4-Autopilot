@@ -466,7 +466,7 @@ protected:
 	float _mag_strength{NAN};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	bool _external_wind_init {false};
+	bool _external_wind_init{false};
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};
