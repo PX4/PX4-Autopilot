@@ -83,11 +83,13 @@ void *px4_mmap(void *start, size_t length, int prot, int flags, int fd, off_t of
 
 	filep->f_inode->i_crefs++;
 	inode_unlock();
+	fs_putfilep(filep);
 	return vaddr;
 
 errout_with_lock:
 	inode_unlock();
 errout:
+	fs_putfilep(filep);
 	set_errno(-ret);
 	return MAP_FAILED;
 }
