@@ -109,7 +109,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		const bool continuing_conditions_passing = (gnss_vel_enabled || gnss_pos_enabled)
 				&& _control_status.flags.tilt_align
 				&& _control_status.flags.yaw_align
-				&& _NED_origin_initialised;
+				&& _pos_ref.isInitialized();
 		const bool starting_conditions_passing = continuing_conditions_passing && _gps_checks_passed;
 
 		if (_control_status.flags.gps) {

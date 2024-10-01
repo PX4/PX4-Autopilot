@@ -152,6 +152,17 @@ public:
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
 	Vector2f getWindVelocityVariance() const { return getStateVariance<State::wind_vel>(); }
+
+	/**
+	* @brief Resets the wind states to an external observation
+	*
+	* @param wind_speed The wind speed in m/s
+	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
+	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
+	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
+	*/
+	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
+					    float wind_direction_accuracy);
 #endif // CONFIG_EKF2_WIND
 
 	template <const IdxDof &S>
@@ -177,8 +188,7 @@ public:
 	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
-	// return true if the origin is valid
-	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
+	void getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
 	bool checkLatLonValidity(double latitude, double longitude);
 	bool checkAltitudeValidity(float altitude);
 	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = NAN, float epv = NAN);
@@ -212,7 +222,7 @@ public:
 	// and have not started using synthetic position observations to constrain drift
 	bool global_position_is_valid() const
 	{
-		return (_NED_origin_initialised && local_position_is_valid());
+		return (_pos_ref.isInitialized() && local_position_is_valid());
 	}
 
 	// return true if the local position estimate is valid
@@ -404,18 +414,6 @@ public:
 
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
-
-	/**
-	* @brief Resets the wind states to an external observation
-	*
-	* @param wind_speed The wind speed in m/s
-	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
-	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
-	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
-	*/
-	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
-					    float wind_direction_accuracy);
-	bool _external_wind_init{false};
 
 	void updateParameters();
 
