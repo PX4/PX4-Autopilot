@@ -187,8 +187,10 @@ public:
 	// get vehicle landed status data
 	bool get_in_air_status() const { return _control_status.flags.in_air; }
 
+#if defined(CONFIG_EKF2_WIND)
 	// get wind estimation status
-	bool get_wind_status() const { return _control_status.flags.wind; }
+	bool get_wind_status() const { return _control_status.flags.wind || _external_wind_init; }
+#endif // CONFIG_EKF2_WIND
 
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
@@ -463,6 +465,8 @@ protected:
 	float _mag_inclination{NAN};
 	float _mag_strength{NAN};
 #endif // CONFIG_EKF2_MAGNETOMETER
+
+	bool _external_wind_init {false};
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};
