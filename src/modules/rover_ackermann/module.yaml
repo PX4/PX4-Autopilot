@@ -68,34 +68,6 @@ parameters:
         decimal: 2
         default: 2
 
-      RA_MISS_SPD_MIN:
-        description:
-          short: Minimum rover speed during a mission
-          long: |
-            The speed off the rover is reduced based on the corner it has to take
-            to smooth the trajectory (Set to -1 to disable)
-        type: float
-        unit: m/s
-        min: -1
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 1
-
-      RA_MISS_SPD_GAIN:
-        description:
-          short: Tuning parameter for the speed reduction during cornering
-          long: |
-            The cornering speed is equal to the inverse of the acceptance radius
-            of the WP multiplied with this factor.
-            Lower value -> More speed reduction during cornering.
-        type: float
-        min: 0.05
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 5
-
       RA_SPEED_P:
         description:
           short: Proportional gain for ground speed controller
@@ -168,8 +140,7 @@ parameters:
           long: |
             This is used for the deceleration slew rate, the feed-forward term
             for the speed controller during missions and the corner slow down effect.
-            Note: For the corner slow down effect RA_MAX_JERK, RA_MISS_VEL_GAIN and
-            RA_MISS_VEL_MIN also have to be set.
+            Note: For the corner slow down effect RA_MAX_JERK also has to be set.
         type: float
         unit: m/s^2
         min: -1
@@ -184,8 +155,7 @@ parameters:
           long: |
             Limit for forwards acc/deceleration change.
             This is used for the corner slow down effect.
-            Note: RA_MAX_ACCEL, RA_MISS_VEL_GAIN and RA_MISS_VEL_MIN also have to be set
-            for this to be enabled.
+            Note: RA_MAX_ACCEL also has to be set for this to be enabled.
         type: float
         unit: m/s^3
         min: -1
@@ -204,3 +174,37 @@ parameters:
         increment: 0.01
         decimal: 2
         default: -1
+
+      RA_MAX_LAT_ACCEL:
+        description:
+          short: Maximum allowed lateral acceleration
+          long: |
+            This parameter is used to cap the lateral acceleration and map controller inputs to desired lateral acceleration
+            in Acro, Stabilized and Position mode.
+        type: float
+        unit: m/s^2
+        min: 0.01
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: 0.01
+
+      RA_LAT_ACCEL_P:
+        description:
+          short: Proportional gain for lateral acceleration controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0
+
+      RA_LAT_ACCEL_I:
+        description:
+          short: Integral gain for lateral acceleration controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0

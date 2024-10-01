@@ -39,6 +39,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/pure_pursuit/PurePursuit.hpp>
 
 // uORB includes
 #include <uORB/Publication.hpp>
@@ -54,12 +55,19 @@
 // Standard library includes
 #include <math.h>
 #include <matrix/matrix/math.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 // Local includes
 #include "RoverAckermannGuidance/RoverAckermannGuidance.hpp"
 #include "RoverAckermannControl/RoverAckermannControl.hpp"
 
 using namespace time_literals;
+
+// Constants
+static constexpr float STICK_DEADZONE =
+	0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
+static constexpr float SPEED_THRESHOLD =
+	0.1f; // [m/s] The minimum threshold for the speed measurement not to be interpreted as zero
 
 class RoverAckermann : public ModuleBase<RoverAckermann>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -107,6 +115,7 @@ private:
 	// Class instances
 	RoverAckermannGuidance _ackermann_guidance{this};
 	RoverAckermannControl _ackermann_control{this};
+	PurePursuit _posctl_pure_pursuit{this}; // Pure pursuit library
 
 	// Variables
 	matrix::Quatf _vehicle_attitude_quaternion{};
@@ -114,5 +123,23 @@ private:
 	float _vehicle_forward_speed{0.f};
 	float _vehicle_yaw{0.f};
 	bool _armed{false};
+	bool _course_control{false};
+	Vector2f _pos_ctl_course_direction{};
+	Vector2f _pos_ctl_start_position_ned{};
+	Vector2f _curr_pos_ned{};
+	float _vehicle_lateral_acceleration{0.f};
+	AlphaFilter<float> _ax_filter;
+	AlphaFilter<float> _ay_filter;
+	AlphaFilter<float> _az_filter;
+
+	// Parameters
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::RA_WHEEL_BASE>) _param_ra_wheel_base,
+		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_steer_angle,
+		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
+		(ParamFloat<px4::params::RA_MAX_LAT_ACCEL>) _param_ra_max_lat_accel,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max
+
+	)
 
 };
