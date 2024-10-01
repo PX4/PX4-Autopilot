@@ -48,6 +48,10 @@ void RoverAckermannGuidance::updateParams()
 {
 	ModuleParams::updateParams();
 
+	if (_param_ra_wheel_base.get() > FLT_EPSILON && _param_ra_max_lat_accel.get() > FLT_EPSILON
+	    && _param_ra_max_steer_angle.get() > FLT_EPSILON) {
+		_min_speed = sqrt(_param_ra_wheel_base.get() * _param_ra_max_lat_accel.get() / tanf(_param_ra_max_steer_angle.get()));
+	}
 }
 
 void RoverAckermannGuidance::computeGuidance(const float vehicle_forward_speed,
@@ -60,8 +64,6 @@ void RoverAckermannGuidance::computeGuidance(const float vehicle_forward_speed,
 					  _prev_wp(0), _prev_wp(1));
 	const float distance_to_curr_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
 					  _curr_wp(0), _curr_wp(1));
-	// const float distance_to_next_wp = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
-	// 				  _next_wp(0), _next_wp(1));
 
 	// Catch return to launch
 	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
@@ -78,8 +80,8 @@ void RoverAckermannGuidance::computeGuidance(const float vehicle_forward_speed,
 
 	} else { // Regular guidance algorithm
 
-		_desired_speed = calcDesiredSpeed(_cruising_speed, _param_ra_miss_spd_min.get(),
-						  _param_ra_miss_spd_gain.get(), distance_to_prev_wp, distance_to_curr_wp, _acceptance_radius,
+		_desired_speed = calcDesiredSpeed(_cruising_speed, _min_speed, distance_to_prev_wp, distance_to_curr_wp,
+						  _acceptance_radius,
 						  _prev_acceptance_radius, _param_ra_max_decel.get(), _param_ra_max_jerk.get(), nav_state, _waypoint_transition_angle,
 						  _prev_waypoint_transition_angle, _param_ra_max_speed.get());
 
@@ -98,8 +100,10 @@ void RoverAckermannGuidance::computeGuidance(const float vehicle_forward_speed,
 	rover_ackermann_setpoint.timestamp = timestamp;
 	rover_ackermann_setpoint.forward_speed_setpoint = _desired_speed;
 	rover_ackermann_setpoint.forward_speed_setpoint_normalized = NAN;
-	rover_ackermann_setpoint.steering_setpoint = _desired_steering;
+	rover_ackermann_setpoint.steering_setpoint = NAN;
 	rover_ackermann_setpoint.steering_setpoint_normalized = NAN;
+	rover_ackermann_setpoint.lateral_acceleration_setpoint = powf(vehicle_forward_speed,
+			2.f) * tanf(_desired_steering) / _param_ra_wheel_base.get();
 	_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);
 
 }
@@ -231,24 +235,24 @@ float RoverAckermannGuidance::updateAcceptanceRadius(const float waypoint_transi
 }
 
 float RoverAckermannGuidance::calcDesiredSpeed(const float cruising_speed, const float miss_speed_min,
-		const float miss_speed_gain, const float distance_to_prev_wp, const float distance_to_curr_wp, const float acc_rad,
+		const float distance_to_prev_wp, const float distance_to_curr_wp, const float acc_rad,
 		const float prev_acc_rad, const float max_decel, const float max_jerk, const int nav_state,
 		const float waypoint_transition_angle, const float prev_waypoint_transition_angle, const float max_speed)
 {
 	// Catch improper values
-	if (miss_speed_min < 0.f  || miss_speed_min > cruising_speed || miss_speed_gain < FLT_EPSILON) {
+	if (miss_speed_min < -FLT_EPSILON  || miss_speed_min > cruising_speed) {
 		return cruising_speed;
 	}
 
 	// Cornering slow down effect
 	if (distance_to_prev_wp <= prev_acc_rad && prev_acc_rad > FLT_EPSILON) {
-		const float cornering_speed = max_speed - miss_speed_gain * math::interpolate(M_PI_F - prev_waypoint_transition_angle,
-					      0.f, M_PI_F, 0.f, 1.f);
+		const float turning_circle = prev_acc_rad * tanf(prev_waypoint_transition_angle / 2.f);
+		const float cornering_speed = sqrtf(turning_circle * _param_ra_max_lat_accel.get());
 		return math::constrain(cornering_speed, miss_speed_min, cruising_speed);
 
 	} else if (distance_to_curr_wp <= acc_rad && acc_rad > FLT_EPSILON) {
-		const float cornering_speed = max_speed - miss_speed_gain * math::interpolate(M_PI_F - waypoint_transition_angle, 0.f,
-					      M_PI_F, 0.f, 1.f);
+		const float turning_circle = acc_rad * tanf(waypoint_transition_angle / 2.f);
+		const float cornering_speed = sqrtf(turning_circle * _param_ra_max_lat_accel.get());
 		return math::constrain(cornering_speed, miss_speed_min, cruising_speed);
 
 	}
@@ -262,8 +266,8 @@ float RoverAckermannGuidance::calcDesiredSpeed(const float cruising_speed, const
 					      max_decel, distance_to_curr_wp, 0.f);
 
 		} else {
-			float cornering_speed = max_speed - miss_speed_gain * math::interpolate(M_PI_F - waypoint_transition_angle, 0.f, M_PI_F,
-						0.f, 1.f);
+			const float turning_circle = acc_rad * tanf(waypoint_transition_angle / 2.f);
+			float cornering_speed = sqrtf(turning_circle * _param_ra_max_lat_accel.get());
 			cornering_speed = math::constrain(cornering_speed, miss_speed_min, cruising_speed);
 			straight_line_speed = math::trajectory::computeMaxSpeedFromDistance(max_jerk,
 					      max_decel, distance_to_curr_wp - acc_rad, cornering_speed);
