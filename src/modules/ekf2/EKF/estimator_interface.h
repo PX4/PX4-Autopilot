@@ -188,7 +188,6 @@ public:
 	bool get_in_air_status() const { return _control_status.flags.in_air; }
 
 #if defined(CONFIG_EKF2_WIND)
-	// get wind estimation status
 	bool get_wind_status() const { return _control_status.flags.wind || _external_wind_init; }
 #endif // CONFIG_EKF2_WIND
 
