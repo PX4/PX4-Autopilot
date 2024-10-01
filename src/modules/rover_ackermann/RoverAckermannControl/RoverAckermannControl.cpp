@@ -50,8 +50,15 @@ void RoverAckermannControl::updateParams()
 	ModuleParams::updateParams();
 
 	pid_set_parameters(&_pid_throttle,
-			   _param_ra_p_speed.get(), // Proportional gain
-			   _param_ra_i_speed.get(), // Integral gain
+			   _param_ra_speed_p.get(), // Proportional gain
+			   _param_ra_speed_i.get(), // Integral gain
+			   0, // Derivative gain
+			   1, // Integral limit
+			   1); // Output limit
+
+	pid_set_parameters(&_pid_lat_accel,
+			   _param_ra_lat_accel_p.get(), // Proportional gain
+			   _param_ra_lat_accel_i.get(), // Integral gain
 			   0, // Derivative gain
 			   1, // Integral limit
 			   1); // Output limit
@@ -67,7 +74,8 @@ void RoverAckermannControl::updateParams()
 	}
 }
 
-void RoverAckermannControl::computeMotorCommands(const float vehicle_forward_speed, const float vehicle_yaw)
+void RoverAckermannControl::computeMotorCommands(const float vehicle_forward_speed, const float vehicle_yaw,
+		const float vehicle_lateral_acceleration)
 {
 	// Timestamps
 	hrt_abstime timestamp_prev = _timestamp;
@@ -88,6 +96,32 @@ void RoverAckermannControl::computeMotorCommands(const float vehicle_forward_spe
 		forward_speed_normalized = calcNormalizedSpeedSetpoint(_rover_ackermann_setpoint.forward_speed_setpoint_normalized,
 					   vehicle_forward_speed, dt, true);
 
+	}
+
+	// Closed loop lateral acceleration control (overrides steering setpoint)
+	if (PX4_ISFINITE(_rover_ackermann_setpoint.lateral_acceleration_setpoint)) {
+		float vehicle_forward_speed_temp{0.f};
+
+		if (PX4_ISFINITE(_rover_ackermann_setpoint.forward_speed_setpoint)) { // Use valid measurement if available
+			vehicle_forward_speed_temp = vehicle_forward_speed;
+
+		} else if (PX4_ISFINITE(forward_speed_normalized) && _param_ra_max_thr_speed.get() > FLT_EPSILON) {
+			vehicle_forward_speed_temp = math::interpolate<float>(forward_speed_normalized,
+						     -1.f, 1.f, -_param_ra_max_thr_speed.get(), _param_ra_max_thr_speed.get());
+		}
+
+		if (fabsf(vehicle_forward_speed_temp) > FLT_EPSILON) {
+			float steering_setpoint = asinf(math::constrain(_param_ra_wheel_base.get() *
+							_rover_ackermann_setpoint.lateral_acceleration_setpoint / powf(
+								vehicle_forward_speed_temp, 2.f), -1.f, 1.f));
+			steering_setpoint += pid_calculate(&_pid_lat_accel, _rover_ackermann_setpoint.lateral_acceleration_setpoint,
+							   vehicle_lateral_acceleration, 0, dt);
+			_rover_ackermann_setpoint.steering_setpoint = math::constrain(steering_setpoint, -_param_ra_max_steer_angle.get(),
+					_param_ra_max_steer_angle.get());
+
+		} else {
+			_rover_ackermann_setpoint.steering_setpoint = 0.f;
+		}
 	}
 
 	// Steering control
@@ -116,7 +150,9 @@ void RoverAckermannControl::computeMotorCommands(const float vehicle_forward_spe
 	_rover_ackermann_status.measured_forward_speed = vehicle_forward_speed;
 	_rover_ackermann_status.steering_setpoint_normalized = steering_normalized;
 	_rover_ackermann_status.adjusted_steering_setpoint_normalized = _steering_with_rate_limit.getState();
+	_rover_ackermann_status.measured_lateral_acceleration = vehicle_lateral_acceleration;
 	_rover_ackermann_status.pid_throttle_integral = _pid_throttle.integral;
+	_rover_ackermann_status.pid_lat_accel_integral = _pid_lat_accel.integral;
 	_rover_ackermann_status_pub.publish(_rover_ackermann_status);
 
 	// Publish to motor
