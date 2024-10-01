@@ -211,11 +211,20 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// Laser Scan: optional
-	std::string laser_scan_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/link/sensor/lidar_2d_v2/scan";
+	// Lidar 1D Distance Scan: optional
+	std::string lidar_distance_scan_topic = "/world/" + _world_name + "/model/" + _model_name +
+						"/link/base_link/sensor/distance_sensor/scan";
 
-	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
-		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
+	if (!_node.Subscribe(lidar_distance_scan_topic, &GZBridge::lidarDistanceScanCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_distance_scan_topic.c_str());
+	}
+
+	// Lidar 2D Obstacle Scan: optional
+	std::string lidar_obstacle_scan_topic = "/world/" + _world_name + "/model/" + _model_name +
+						"/link/link/sensor/lidar_2d_v2/scan";
+
+	if (!_node.Subscribe(lidar_obstacle_scan_topic, &GZBridge::lidarObstacleScanCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_obstacle_scan_topic.c_str());
 	}
 
 #if 0
@@ -763,7 +772,38 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
+void GZBridge::lidarDistanceScanCallback(const gz::msgs::LaserScan &scan)
+{
+	// Publish to uORB
+	distance_sensor_s distance_sensor {};
+
+	distance_sensor.timestamp = hrt_absolute_time();
+	distance_sensor.device_id = 0x20629a; // 0x276270: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0x62, TYPE: SIMULATION
+	distance_sensor.min_distance = scan.range_min();
+	distance_sensor.max_distance = scan.range_max();
+	distance_sensor.current_distance = 0;
+	distance_sensor.variance = 0;
+	distance_sensor.signal_quality = -1;
+	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	distance_sensor.mode = distance_sensor_s::MODE_ENABLED;
+
+	if (!scan.ranges().empty()) {
+		float distance = scan.ranges()[0];
+
+		if (!isinf(distance)) {
+			distance_sensor.current_distance = distance;
+			distance_sensor.signal_quality = 100;
+
+		} else {
+			distance_sensor.signal_quality = 0;
+		}
+	}
+
+	_distance_sensor_pub.publish(distance_sensor);
+}
+
+void GZBridge::lidarObstacleScanCallback(const gz::msgs::LaserScan &scan)
 {
 	static constexpr int SECTOR_SIZE_DEG = 10; // PX4 Collision Prevention only has 36 sectors of 10 degrees each
 
