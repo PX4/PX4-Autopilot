@@ -71,8 +71,11 @@ public:
 
 	/**
 	 * @brief Compute motor commands based on setpoints
+	 * @param vehicle_forward_speed Measured speed in body x direction. Positiv: forwards, Negativ: backwards [m/s]
+	 * @param vehicle_yaw Measured yaw [rad]
+	 * @param vehicle_lateral_acceleration Measured acceleration in body y direction. Positiv: right, Negativ: left [m/s^s]
 	 */
-	void computeMotorCommands(float vehicle_forward_speed, float vehicle_yaw);
+	void computeMotorCommands(float vehicle_forward_speed, float vehicle_yaw, float vehicle_lateral_acceleration);
 
 	/**
 	 * @brief Reset PID controllers and slew rates
@@ -112,19 +115,23 @@ private:
 
 	// Controllers
 	PID_t _pid_throttle; // The PID controller for the closed loop speed control
+	PID_t _pid_lat_accel; // The PID controller for the closed loop speed control
 	SlewRate<float> _steering_with_rate_limit{0.f};
 	SlewRate<float> _forward_speed_setpoint_with_accel_limit{0.f};
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RA_SPEED_P>) _param_ra_p_speed,
-		(ParamFloat<px4::params::RA_SPEED_I>) _param_ra_i_speed,
+		(ParamFloat<px4::params::RA_SPEED_P>) _param_ra_speed_p,
+		(ParamFloat<px4::params::RA_SPEED_I>) _param_ra_speed_i,
+		(ParamFloat<px4::params::RA_LAT_ACCEL_P>) _param_ra_lat_accel_p,
+		(ParamFloat<px4::params::RA_LAT_ACCEL_I>) _param_ra_lat_accel_i,
 		(ParamFloat<px4::params::RA_MAX_ACCEL>) _param_ra_max_accel,
 		(ParamFloat<px4::params::RA_MAX_DECEL>) _param_ra_max_decel,
 		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
 		(ParamFloat<px4::params::RA_MAX_THR_SPEED>) _param_ra_max_thr_speed,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_steer_angle,
 		(ParamFloat<px4::params::RA_MAX_STR_RATE>) _param_ra_max_steering_rate,
+		(ParamFloat<px4::params::RA_WHEEL_BASE>) _param_ra_wheel_base,
 		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
 	)
 };
