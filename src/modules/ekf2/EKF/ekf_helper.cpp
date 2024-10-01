@@ -63,13 +63,12 @@ Vector3f Ekf::calcEarthRateNED(float lat_rad) const
 			-CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad));
 }
 
-bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const
+void Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const
 {
 	origin_time = _pos_ref.getProjectionReferenceTimestamp();
 	latitude = _pos_ref.getProjectionReferenceLat();
 	longitude = _pos_ref.getProjectionReferenceLon();
 	origin_alt  = getEkfGlobalOriginAltitude();
-	return _NED_origin_initialised;
 }
 
 bool Ekf::checkLatLonValidity(const double latitude, const double longitude)
@@ -121,8 +120,6 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 	if (PX4_ISFINITE(eph) && (eph >= 0.f)) {
 		_gpos_origin_eph = eph;
 	}
-
-	_NED_origin_initialised = true;
 
 	if (current_pos_available) {
 		// reset horizontal position if we already have a global origin
@@ -197,8 +194,6 @@ bool Ekf::setLatLonOriginFromCurrentPos(const double latitude, const double long
 	if (PX4_ISFINITE(eph) && (eph >= 0.f)) {
 		_gpos_origin_eph = eph;
 	}
-
-	_NED_origin_initialised = true;
 
 	return true;
 }
