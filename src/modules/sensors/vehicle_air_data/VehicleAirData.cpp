@@ -78,23 +78,6 @@ void VehicleAirData::Stop()
 	}
 }
 
-void VehicleAirData::AirTemperatureUpdate()
-{
-	differential_pressure_s differential_pressure;
-
-	static constexpr float temperature_min_celsius = -20.f;
-	static constexpr float temperature_max_celsius = 35.f;
-
-	// update air temperature if data from differential pressure sensor is finite and not exactly 0
-	// limit the range to max 35°C to limt the error due to heated up airspeed sensors prior flight
-	if (_differential_pressure_sub.update(&differential_pressure) && PX4_ISFINITE(differential_pressure.temperature)
-	    && fabsf(differential_pressure.temperature) > FLT_EPSILON) {
-
-		_air_temperature_celsius = math::constrain(differential_pressure.temperature, temperature_min_celsius,
-					   temperature_max_celsius);
-	}
-}
-
 bool VehicleAirData::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
@@ -139,8 +122,6 @@ void VehicleAirData::Run()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
 	const bool parameter_update = ParametersUpdate();
-
-	AirTemperatureUpdate();
 
 	bool updated[MAX_SENSOR_COUNT] {};
 
