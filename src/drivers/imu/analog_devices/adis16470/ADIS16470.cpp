@@ -173,9 +173,13 @@ void ADIS16470::RunImpl()
 
 			if (DIAG_STAT != 0) {
 				PX4_ERR("DIAG_STAT: %#X", DIAG_STAT);
+				PX4_ERR("Repeat RESET after nonzero DIAG_STAT: %#X", DIAG_STAT);
+					_state = STATE::RESET;
+				ScheduleDelayed(100_ms);
 
 			} else {
 				PX4_DEBUG("self test passed");
+				PX4_INFO("Self test passed - DIAG_STAT: %#X", DIAG_STAT);
 				_self_test_passed = true;
 				_state = STATE::RESET;
 				ScheduleNow();

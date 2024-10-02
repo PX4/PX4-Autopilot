@@ -24,7 +24,7 @@ if ver hwtypecmp V30
 then
 	# Check for Pixhawk 2.0 cube (isolated IMU on SPI4)
 	#  mpu6000 on v2.0, mpu9250 on v2.1
-	if mpu6000 -s -b 4 -R 10 -q start
+	if mpu6000 -s -b 4 -R 10 -q start      
 	then
 		set BOARD_FMUV3 20
 	else
@@ -72,7 +72,7 @@ then
 	then
 		# v2.0 internal mpu6000
 		mpu6000 -s -b 1 start
-
+				
 		# v2.0 Has internal hmc5883 on SPI1
 		hmc5883 -T -s -b 1 -R 8 start
 	fi
@@ -93,7 +93,8 @@ then
 else
 	# $BOARD_FMUV3 = 0 -> FMUv2
 
-	mpu6000 -s -b 1 -R 14 start
+	#mpu6000 -s -b 1 -R 14 start
+	adis16470 -S -c 1 -b 1 -R 16 start
 
 	# As we will use the external mag and the ICM-20608-G
 	# V2 build hwtypecmp is always false
@@ -104,8 +105,8 @@ else
 	# else: On the PixhawkMini the mpu9250 has been disabled due to HW errata
 	fi
 
-	l3gd20 -s -b 1 start
-	lsm303d -s -b 1 start
+	#l3gd20 -s -b 1 start #gyro only
+	#lsm303d -s -b 1 start #accelerometer and magnetometer
 fi
 
 unset BOARD_FMUV3
