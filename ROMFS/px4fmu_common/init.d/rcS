@@ -105,6 +105,13 @@ then
 		fi
 	fi
 
+  if [ -e /fs/microsd/new ]
+  then
+    echo "Updating external autostart files"
+    rm -r $SDCARD_EXT_PATH
+    mv /fs/microsd/new $SDCARD_EXT_PATH
+  fi
+
 	# Check for an update of the ext_autostart folder, and replace the old one with it
 	if [ -e /fs/microsd/ext_autostart_new ]
 	then
