@@ -1755,6 +1755,9 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.cell_count = cell_count;
 	battery_status.temperature = (float)battery_mavlink.temperature;
 	battery_status.connected = true;
+	
+	//entered for HIL: battery simulation from Simulink
+	battery_status.time_remaining_s = battery_mavlink.time_remaining;//NAN;
 
 	// Set the battery warning based on remaining charge.
 	//  Note: Smallest values must come first in evaluation.
@@ -2331,7 +2334,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	}
 
 	// battery status
-	{
+	/*{
 		battery_status_s hil_battery_status{};
 
 		hil_battery_status.timestamp = timestamp;
@@ -2344,7 +2347,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_battery_status.time_remaining_s = NAN;
 
 		_battery_pub.publish(hil_battery_status);
-	}
+	}*/
 }
 
 void
@@ -2366,19 +2369,19 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.alt = hil_gps.alt;
 	gps.alt_ellipsoid = hil_gps.alt;
 
-	gps.s_variance_m_s = 0.25f;
-	gps.c_variance_rad = 0.5f;
+	gps.s_variance_m_s = 0.5f;//0.25f; //replaced with actual flight data
+	gps.c_variance_rad = 1.0f; //0.5f;  //replaced with actual flight data
 	gps.fix_type = hil_gps.fix_type;
 
 	gps.eph = (float)hil_gps.eph * 1e-2f; // cm -> m
 	gps.epv = (float)hil_gps.epv * 1e-2f; // cm -> m
 
-	gps.hdop = 0; // TODO
-	gps.vdop = 0; // TODO
+	gps.hdop = 1.2; // TODO - zeroes replaced with actual flight data
+	gps.vdop = 1.2; // TODO
 
-	gps.noise_per_ms = 0;
-	gps.automatic_gain_control = 0;
-	gps.jamming_indicator = 0;
+	gps.noise_per_ms = 90; //zeroes replaced with actual flight data
+	gps.automatic_gain_control = 2730; //zeroes replaced with actual flight data
+	gps.jamming_indicator = 30; //zeroes replaced with actual flight data
 	gps.jamming_state = 0;
 
 	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
