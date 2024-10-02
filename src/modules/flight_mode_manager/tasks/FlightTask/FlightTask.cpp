@@ -66,6 +66,8 @@ void FlightTask::_checkEkfResetCounters()
 	if (_sub_vehicle_local_position.get().dist_bottom_reset_counter != _reset_counters.hagl) {
 		_ekfResetHandlerHagl(_sub_vehicle_local_position.get().delta_dist_bottom);
 		_reset_counters.hagl = _sub_vehicle_local_position.get().dist_bottom_reset_counter;
+
+		_dist_to_bottom = NAN;
 	}
 
 	if (_sub_vehicle_local_position.get().vz_reset_counter != _reset_counters.vz) {
