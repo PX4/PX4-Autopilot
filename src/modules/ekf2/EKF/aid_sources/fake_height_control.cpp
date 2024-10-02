@@ -51,7 +51,7 @@ void Ekf::controlFakeHgtFusion()
 		const float obs_var = sq(_params.pos_noaid_noise);
 		const float innov_gate = 3.f;
 
-		updateVerticalPositionAidStatus(aid_src, _time_delayed_us, _last_known_pos(2), obs_var, innov_gate);
+		updateVerticalPositionAidStatus(aid_src, _time_delayed_us, -_last_known_gpos.altitude(), obs_var, innov_gate);
 
 		const bool continuing_conditions_passing = !isVerticalAidingActive();
 		const bool starting_conditions_passing = continuing_conditions_passing
@@ -98,7 +98,7 @@ void Ekf::controlFakeHgtFusion()
 void Ekf::resetFakeHgtFusion()
 {
 	ECL_INFO("reset fake height fusion");
-	_last_known_pos(2) = _state.pos(2);
+	_last_known_gpos.setAltitude(_gpos.altitude());
 
 	resetVerticalVelocityToZero();
 	resetHeightToLastKnown();
@@ -109,8 +109,8 @@ void Ekf::resetFakeHgtFusion()
 void Ekf::resetHeightToLastKnown()
 {
 	_information_events.flags.reset_pos_to_last_known = true;
-	ECL_INFO("reset height to last known (%.3f)", (double)_last_known_pos(2));
-	resetVerticalPositionTo(_last_known_pos(2), sq(_params.pos_noaid_noise));
+	ECL_INFO("reset height to last known (%.3f)", (double)_last_known_gpos.altitude());
+	resetHeightTo(_last_known_gpos.altitude(), sq(_params.pos_noaid_noise));
 }
 
 void Ekf::stopFakeHgtFusion()

@@ -99,7 +99,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 	if (measurement_valid && quality_sufficient) {
 		bias_est.setMaxStateNoise(sqrtf(measurement_var));
 		bias_est.setProcessNoiseSpectralDensity(_params.ev_hgt_bias_nsd);
-		bias_est.fuseBias(measurement - _state.pos(2), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
+		bias_est.fuseBias(measurement + _gpos.altitude(), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 	}
 
 	const bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VPOS))
@@ -117,11 +117,11 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 
 					if (_height_sensor_ref == HeightSensor::EV) {
 						_information_events.flags.reset_hgt_to_ev = true;
-						resetVerticalPositionTo(measurement, measurement_var);
+						resetHeightTo(-measurement, measurement_var);
 						bias_est.reset();
 
 					} else {
-						bias_est.setBias(-_state.pos(2) + measurement);
+						bias_est.setBias(_gpos.altitude() + measurement);
 					}
 
 					aid_src.time_last_fuse = _time_delayed_us;
@@ -146,8 +146,8 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 				// All height sources are failing
 				ECL_WARN("%s fusion reset required, all height sources failing", AID_SRC_NAME);
 				_information_events.flags.reset_hgt_to_ev = true;
-				resetVerticalPositionTo(measurement - bias_est.getBias(), measurement_var);
-				bias_est.setBias(-_state.pos(2) + measurement);
+				resetHeightTo(-measurement - bias_est.getBias(), measurement_var);
+				bias_est.setBias(_gpos.altitude() + measurement);
 
 				aid_src.time_last_fuse = _time_delayed_us;
 
@@ -170,14 +170,14 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 			if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::EV)) {
 				ECL_INFO("starting %s fusion, resetting state", AID_SRC_NAME);
 				_information_events.flags.reset_hgt_to_ev = true;
-				resetVerticalPositionTo(measurement, measurement_var);
+				resetHeightTo(-measurement, measurement_var);
 
 				_height_sensor_ref = HeightSensor::EV;
 				bias_est.reset();
 
 			} else {
 				ECL_INFO("starting %s fusion", AID_SRC_NAME);
-				bias_est.setBias(-_state.pos(2) + measurement);
+				bias_est.setBias(_gpos.altitude() + measurement);
 			}
 
 			aid_src.time_last_fuse = _time_delayed_us;

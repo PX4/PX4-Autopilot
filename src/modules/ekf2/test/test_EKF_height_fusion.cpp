@@ -123,7 +123,7 @@ TEST_F(EkfHeightFusionTest, baroRef)
 	/* EXPECT_EQ(status.bias, _sensor_simulator._baro.getData()); */ // This is the real bias, but the estimator isn't running so the status isn't updated
 	EXPECT_EQ(baro_status.bias, 0.f);
 	const BiasEstimator::status &gps_status = _ekf->getGpsHgtBiasEstimatorStatus();
-	EXPECT_NEAR(gps_status.bias, -baro_increment, 0.2f);
+	EXPECT_NEAR(gps_status.bias, _sensor_simulator._gps.getData().alt - _sensor_simulator._baro.getData(), 0.2f);
 
 	const float terrain = _ekf->getTerrainVertPos();
 	EXPECT_NEAR(terrain, -baro_increment, 1.2f);
@@ -170,8 +170,13 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
 
-	// AND WHEN: the baro data increases
 	const float baro_initial = _sensor_simulator._baro.getData();
+
+	const BiasEstimator::status &baro_status_initial = _ekf->getBaroBiasEstimatorStatus();
+	const float baro_rel_initial = baro_initial - _sensor_simulator._gps.getData().alt;
+	EXPECT_NEAR(baro_status_initial.bias, baro_rel_initial, 0.6f);
+
+	// AND WHEN: the baro data increases
 	const float baro_increment = 5.f;
 	_sensor_simulator._baro.setData(baro_initial + baro_increment);
 	_sensor_simulator.runSeconds(100);
@@ -180,7 +185,7 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	// the GPS height value and the baro gets its bias estimated
 	EXPECT_NEAR(_ekf->getPosition()(2), 0.f, 1.f);
 	const BiasEstimator::status &baro_status = _ekf->getBaroBiasEstimatorStatus();
-	EXPECT_NEAR(baro_status.bias, baro_initial + baro_increment, 1.3f);
+	EXPECT_NEAR(baro_status.bias, baro_rel_initial + baro_increment, 1.3f);
 
 	const float terrain = _ekf->getTerrainVertPos();
 	EXPECT_NEAR(terrain, 0.f, 1.1f); // TODO: why?
@@ -196,7 +201,7 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
-	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_initial + baro_increment - gps_step, 0.2f);
+	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_rel_initial + baro_increment - gps_step, 0.2f);
 
 	// and the innovations are close to zero
 	EXPECT_NEAR(_ekf->aid_src_baro_hgt().innovation, 0.f, 0.2f);
@@ -367,6 +372,7 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 
 	ResetLoggingChecker reset_logging_checker(_ekf);
 	reset_logging_checker.capturePreResetState();
+	const float baro_bias_prev = _ekf->getBaroBiasEstimatorStatus().bias;
 
 	const float alt_increment = 4478.f;
 	_ekf->setEkfGlobalOrigin(lat, lon, alt + alt_increment);
@@ -376,9 +382,12 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 	EXPECT_NEAR(_ekf->getPosition()(2), alt_increment, 1.f);
 
 	reset_logging_checker.capturePostResetState();
-	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, _sensor_simulator._baro.getData() + alt_increment, 0.2f);
+
+	// An origin reset doesn't change the baro bias as it is relative to the height reference (GNSS)
+	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_bias_prev, 0.3f);
 
 	EXPECT_NEAR(_ekf->getTerrainVertPos(), alt_increment, 1.f);
+
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
 	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 }

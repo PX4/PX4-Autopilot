@@ -345,3 +345,49 @@ TEST_F(EkfFlowTest, yawMotionNoMagFusion)
 	_ekf->state().vector().print();
 	_ekf->covariances().print();
 }
+
+TEST_F(EkfFlowTest, deadReckoning)
+{
+	ResetLoggingChecker reset_logging_checker(_ekf);
+
+	// WHEN: simulate being 5m above ground
+	const float simulated_distance_to_ground = 5.f;
+	_sensor_simulator._trajectory[2].setCurrentPosition(-simulated_distance_to_ground);
+	startRangeFinderFusion(simulated_distance_to_ground);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+
+	// WHEN: moving a couple of meters while doing flow dead_reckoning
+	Vector3f simulated_velocity(0.5f, -0.2f, 0.f);
+	_sensor_simulator._trajectory[0].setCurrentVelocity(simulated_velocity(0));
+	_sensor_simulator._trajectory[1].setCurrentVelocity(simulated_velocity(1));
+	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
+	_ekf_wrapper.enableFlowFusion();
+	_sensor_simulator.startFlow();
+
+	_sensor_simulator.runTrajectorySeconds(5.f);
+
+	simulated_velocity = Vector3f(0.f, 0.f, 0.f);
+	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
+
+	_sensor_simulator.runTrajectorySeconds(_sensor_simulator._trajectory[0].getTotalTime());
+
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+	const Vector3f lpos_before_reset = _ekf->getPosition();
+	const float altitude_ref_prev = _ekf->getEkfGlobalOriginAltitude();
+
+	const double latitude_new  = -15.0000005;
+	const double longitude_new = -115.0000005;
+	const float altitude_new  = 1500.0;
+	const float eph = 50.f;
+	const float epv = 10.f;
+	_ekf->setEkfGlobalOrigin(latitude_new, longitude_new, altitude_new, eph, epv);
+
+	const Vector3f lpos_after_reset = _ekf->getPosition();
+
+	EXPECT_NEAR(lpos_after_reset(0), lpos_before_reset(0), 1e-3);
+	EXPECT_NEAR(lpos_after_reset(1), lpos_before_reset(1), 1e-3);
+	EXPECT_NEAR(lpos_after_reset(2), lpos_before_reset(2) + (altitude_new - altitude_ref_prev), 1e-3);
+}
