@@ -1,0 +1,40 @@
+Mixer for Tailsitter with + motor configuration and elevons
+===========================================================
+
+This file defines a single mixer for tailsitter with motors in + configuration.  All controls
+are mixed 100%.
+
+#R: 4+
+#Summing mixer for Quad+
+
+#Motor0
+M:3
+S: 0 3   00000   20000   -10000 -10000  10000
+S: 0 0   -20000   -20000    0 -10000  10000
+S: 0 2   20000   20000    0 -10000  10000
+
+#Motor1
+M:3
+S: 0 3   00000   20000   -10000 -10000  10000
+S: 0 0   20000   20000    0 -10000  10000
+S: 0 2   20000   20000    0 -10000  10000
+
+#Motor2
+M:3
+S: 0 3   00000   20000   -10000 -10000  10000
+S: 0 1   20000   20000    0 -10000  10000
+S: 0 2   -20000   -20000    0 -10000  10000
+
+#Motor3
+M:3
+S: 0 3   00000   20000   -10000 -10000  10000
+S: 0 1   -20000   -20000    0 -10000  10000
+S: 0 2   -20000   -20000    0 -10000  10000
+
+# mixer for canard rudder
+M: 1
+S: 0 0   -10000   -10000    0 -10000  10000
+
+# mixer for canard elevator
+M: 1
+S: 0 1  10000  10000    0 -10000  10000

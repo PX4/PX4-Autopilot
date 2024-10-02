@@ -1,0 +1,213 @@
+#!/bin/sh
+#
+# @name HIL_Fowler_v0.1MC
+#
+# @type Simulation
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 ROLL channel control
+# @output MAIN6 PITCH channel control
+#
+# @maintainer Serhii Larkov <sergelarkov@ukr.net>
+#
+# @board px4_fmu-v2 exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+set MIXER fowler_quad_+
+
+param set SYS_HITL 1
+
+param set UAVCAN_ENABLE 0
+
+param set-default HIL_ACT_FUNC1 101
+param set-default HIL_ACT_FUNC2 102
+param set-default HIL_ACT_FUNC3 103
+param set-default HIL_ACT_FUNC4 104
+
+#Battery
+param set-default BAT1_A_PER_V 43.04
+param set-default BAT1_CAPACITY 1550
+param set-default BAT1_N_CELLS 5
+param set-default BAT1_R_INTERNAL 0.01
+param set-default BAT1_V_DIV 10.89999962
+param set-default BAT1_V_EMPTY 3.5
+param set-default BAT_CRIT_THR 0.30
+param set-default BAT_EMERGEN_THR 0.20
+param set-default BAT_LOW_THR 0.40
+
+#SENSORS
+param set-default CAL_AIR_CMODEL 1
+param set-default IMU_GYRO_DNF_BW 30
+param set-default IMU_GYRO_DNF_EN 2
+param set-default IMU_GYRO_DNF_HMC 3
+param set-default IMU_GYRO_FFT_EN 1
+param set-default IMU_GYRO_FFT_LEN 256
+param set-default IMU_GYRO_FFT_MAX 960
+param set-default IMU_GYRO_FFT_MIN 15
+param set-default IMU_GYRO_NF0_BW 50
+param set-default IMU_GYRO_NF0_FRQ 85
+param set-default IMU_GYRO_NF1_BW 18
+param set-default IMU_GYRO_NF1_FRQ 29
+param set-default IMU_GYRO_RATEMAX 400
+param set-default IMU_INTEG_RATE 200
+param set-default SENS_EN_VL53L1X 1
+
+#GEOMETRY
+param set-default CA_ROTOR0_CT 15.0
+param set-default CA_ROTOR0_KM 0.02
+param set-default CA_ROTOR0_PX 0.0
+param set-default CA_ROTOR0_PY 0.1
+param set-default CA_ROTOR0_PZ 0.07
+param set-default CA_ROTOR1_CT 15.0
+param set-default CA_ROTOR1_KM 0.02
+param set-default CA_ROTOR1_PX 0.0
+param set-default CA_ROTOR1_PY -0.1
+param set-default CA_ROTOR1_PZ 0.07
+param set-default CA_ROTOR2_CT 15.0
+param set-default CA_ROTOR2_KM -0.02
+param set-default CA_ROTOR2_PX 0.1
+param set-default CA_ROTOR2_PY 0.0
+param set-default CA_ROTOR2_PZ 0.07
+param set-default CA_ROTOR3_CT 15.0
+param set-default CA_ROTOR3_KM -0.02
+param set-default CA_ROTOR3_PX -0.1
+param set-default CA_ROTOR3_PY 0.0
+param set-default CA_ROTOR3_PZ 0.07
+param set-default CA_ROTOR_COUNT 4
+
+#COMMANDER
+param set-default COM_DISARM_LAND 0.01
+param set-default COM_DISARM_PRFLT -1
+#Data for COM_FLTMODE not included
+param set-default COM_POS_FS_EPH 10
+param set-default COM_POS_FS_EPV 15
+
+#MULTICOPTER POSITION CONTROL
+param set-default MPC_ACC_HOR 15.0
+param set-default MPC_ACC_HOR_MAX 25.0
+param set-default MPC_ACC_UP_MAX 40.0
+param set-default MPC_JERK_AUTO 20.0
+param set-default MPC_JERK_MAX 40.0
+param set-default MPC_JERK_AUTO 20.0
+param set-default MPC_LAND_ALT1 15.0
+param set-default MPC_LAND_ALT3 1.5
+param set-default MPC_MAN_TILT_MAX 45.0
+param set-default MPC_THR_HOVER 0.25
+param set-default MPC_THR_MIN 0.05
+param set-default MPC_THR_MAX 0.90
+param set-default MPC_TILTMAX_AIR 80.0
+param set-default MPC_TKO_SPEED 20.0
+param set-default MPC_VEL_MANUAL 20.0
+param set-default MPC_TKO_RAMP_T 0
+param set-default MPC_XY_CRUISE 30.0
+param set-default MPC_XY_VEL_ALL -40.0
+param set-default MPC_XY_VEL_MAX 30.0
+param set-default MPC_XY_ERR_MAX 15.0
+param set-default MPC_YAW_MODE 3
+param set-default MPC_Z_VEL_ALL -40.0
+param set-default MPC_Z_VEL_MAX_DN 4.0
+param set-default MPC_Z_VEL_MAX_UP 40.0
+param set-default MPC_Z_V_AUTO_DN 4.0
+param set-default MPC_Z_V_AUTO_UP 20.0
+
+#EKF2
+param set-default EKF2_GPS_CHECK 3
+param set-default EKF2_GPS_POS_Z -0.10
+param set-default EKF2_IMU_POS_Z -0.025
+param set-default EKF2_REQ_NSATS 8
+param set-default EKF2_REQ_PDOP 4.0
+
+#GPS
+param set-default GPS_UBX_DYNMODEL 8
+
+#MAVLINK
+param set-default MAV_0_FORWARD 0
+param set-default MAV_0_RATE 1200
+
+#Multicopter rate control
+param set-default MC_AIRMODE 2
+param set-default MC_PITCHRATE_D 0.0028
+param set-default MC_PITCHRATE_I 0.175
+param set-default MC_PITCHRATE_P 0.100
+param set-default MC_ROLLRATE_D 0.0028
+param set-default MC_ROLLRATE_I 0.175
+param set-default MC_ROLLRATE_P 0.100
+param set-default MC_YAWRATE_D 0.0000
+param set-default MC_YAWRATE_I 0.05
+param set-default MC_YAWRATE_P 0.100
+
+#Mission
+param set-default MIS_LTRMIN_ALT 15.0
+param set-default MIS_TAKEOFF_ALT 20.0
+param set-default MIS_YAW_ERR 30.0
+param set-default MPC_YAW_MODE 3
+param set-default NAV_ACC_RAD 2.0
+param set-default NAV_MC_ALT_RAD 2.5
+
+#PWM Outputs
+param set-default PWM_MAIN_OUT 123456
+param set-default PWM_AUX_OUT 0
+param set-default PWM_MAIN_DIS1 900
+param set-default PWM_MAIN_DIS2 900
+param set-default PWM_MAIN_DIS3 900
+param set-default PWM_MAIN_DIS4 900
+param set-default PWM_MAIN_DIS5 760
+param set-default PWM_MAIN_DIS6 760
+param set-default PWM_MAIN_FAIL5 760
+param set-default PWM_MAIN_FAIL6 760
+param set-default PWM_MAIN_MAX 1950
+param set-default PWM_MAIN_MAX1 2000
+param set-default PWM_MAIN_MAX2 2000
+param set-default PWM_MAIN_MAX3 2000
+param set-default PWM_MAIN_MAX4 2000
+param set-default PWM_MAIN_MAX5 920
+param set-default PWM_MAIN_MAX6 920
+param set-default PWM_MAIN_MIN 1075
+param set-default PWM_MAIN_MIN1 1000
+param set-default PWM_MAIN_MIN2 1000
+param set-default PWM_MAIN_MIN3 1000
+param set-default PWM_MAIN_MIN4 1000
+param set-default PWM_MAIN_MIN5 600
+param set-default PWM_MAIN_MIN6 600
+param set-default PWM_MAIN_OUT 123456
+param set-default PWM_MAIN_RATE 300
+
+#Radio Calibration
+param set-default RC_MAP_PITCH 3
+param set-default RC_MAP_ROLL 2
+param set-default RC_MAP_THROTTLE 1
+param set-default RC_MAP_YAW 4
+
+#Radio Swithces
+param set-default RC_MAP_ARM_SW 11
+param set-default RC_MAP_KILL_SW 12
+param set-default RC_MAP_FLT_MODE 10
+param set-default RC_MAP_RETURN_SW 9
+
+#RETURN MODE
+param set-default RTL_DESCENT_ALT 20.0
+param set-default RTL_RETURN_ALT 50.0
+
+#Return to Land
+param set-default RTL_TIME_MARGIN 30.0
+
+#Simulation in Hardware
+param set-default SIH_IXX 0.0216
+param set-default SIH_IYY 0.0216
+param set-default SIH_IZZ 0.0036
+param set-default SIH_KDV 0.46
+param set-default SIH_KDW 0.0
+param set-default SIH_MASS 1.2
+param set-default SIH_Q_MAX 0.216
+param set-default SIH_T_MAX 14.7
+param set-default SIH_VEHICLE_TYPE 0
+
+set PWM_OUT 123456
+
+pwm rate -c 123456 -r 300
