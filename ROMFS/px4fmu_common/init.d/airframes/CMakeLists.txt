@@ -39,6 +39,7 @@ px4_add_romfs_files(
 	1001_rc_quad_x.hil
 	1002_standard_vtol.hil
 	1005_fowlerMC.hil
+	1006_fowlerVTOL.hil
 	1100_rc_quad_x_sih.hil
 	1101_rc_plane_sih.hil
 	1102_tailsitter_duo_sih.hil
@@ -159,6 +160,7 @@ px4_add_romfs_files(
 	18001_TF-B1
 
 	# [22000, 22999] Reserve for custom models
+	23001_fowler02
 
 	24001_dodeca_cox
 

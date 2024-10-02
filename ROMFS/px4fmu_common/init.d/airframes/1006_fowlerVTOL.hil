@@ -1,9 +1,9 @@
 #!/bin/sh
 #
-# @name HIL_Fowler_v0.1MC
+# @name HIL_Fowler_v0.2VTOL
 #
 # @type Simulation
-# @class Copter
+# @class VTOL
 #
 # @output MAIN1 motor 1
 # @output MAIN2 motor 2
@@ -19,7 +19,7 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER fowler_quad_+
+set MIXER fowler_vtol_+
 
 param set SYS_HITL 1
 
@@ -209,6 +209,8 @@ param set-default SIH_MASS 1.2
 param set-default SIH_Q_MAX 0.216
 param set-default SIH_T_MAX 14.7
 param set-default SIH_VEHICLE_TYPE 0
+
+param set-default MAV_TYPE 22
 
 set PWM_OUT 123456
 
