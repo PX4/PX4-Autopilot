@@ -73,7 +73,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 
 			if (_baro_counter <= _obs_buffer_length) {
 				// Initialize the pressure offset (included in the baro bias)
-				bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
+				bias_est.setBias(-_gpos.altitude() + _baro_lpf.getState());
 			}
 		}
 
@@ -106,7 +106,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 		if (measurement_valid) {
 			bias_est.setMaxStateNoise(sqrtf(measurement_var));
 			bias_est.setProcessNoiseSpectralDensity(_params.baro_bias_nsd);
-			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
+			bias_est.fuseBias(measurement - _gpos.altitude(), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 		}
 
 		// determine if we should use height aiding
@@ -131,8 +131,8 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_baro = true;
-					resetVerticalPositionTo(-(_baro_lpf.getState() - bias_est.getBias()), measurement_var);
-					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
+					resetHeightTo(_baro_lpf.getState() - bias_est.getBias(), measurement_var);
+					bias_est.setBias(-_gpos.altitude() + _baro_lpf.getState());
 
 					// reset vertical velocity if no valid sources available
 					if (!isVerticalVelocityAidingActive()) {
@@ -163,12 +163,12 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					_height_sensor_ref = HeightSensor::BARO;
 
 					_information_events.flags.reset_hgt_to_baro = true;
-					resetVerticalPositionTo(-(_baro_lpf.getState() - bias_est.getBias()), measurement_var);
-					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
+					resetAltitudeTo(measurement, measurement_var);
+					bias_est.reset();
 
 				} else {
 					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
-					bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
+					bias_est.setBias(-_gpos.altitude() + _baro_lpf.getState());
 				}
 
 				aid_src.time_last_fuse = imu_sample.time_us;

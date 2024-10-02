@@ -62,9 +62,9 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 		const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
 		const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-		const float gnss_alt = _gps_sample_delayed.alt + pos_offset_earth(2);
+		const float gnss_alt = gps_sample.alt + pos_offset_earth(2);
 
-		const float measurement = gnss_alt - getEkfGlobalOriginAltitude();
+		const float measurement = gnss_alt;
 		const float measurement_var = sq(noise);
 
 		const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
@@ -81,13 +81,13 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		if (measurement_valid) {
 			bias_est.setMaxStateNoise(sqrtf(measurement_var));
 			bias_est.setProcessNoiseSpectralDensity(_params.gps_hgt_bias_nsd);
-			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
+			bias_est.fuseBias(measurement - _gpos.altitude(), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 		}
 
 		// determine if we should use height aiding
 		const bool continuing_conditions_passing = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
 				&& measurement_valid
-				&& _pos_ref.isInitialized()
+				&& _local_origin_lat_lon.isInitialized()
 				&& _gps_checks_passed;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
@@ -105,8 +105,8 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_gps = true;
-					resetVerticalPositionTo(aid_src.observation, measurement_var);
-					bias_est.setBias(_state.pos(2) + measurement);
+					resetHeightTo(measurement, measurement_var);
+					bias_est.setBias(-_gpos.altitude() + measurement);
 
 					aid_src.time_last_fuse = _time_delayed_us;
 
@@ -128,13 +128,13 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 					_height_sensor_ref = HeightSensor::GNSS;
 
 					_information_events.flags.reset_hgt_to_gps = true;
-					resetVerticalPositionTo(-measurement, measurement_var);
-					_gpos_origin_epv = 0.f; // The uncertainty of the global origin is now contained in the local position uncertainty
+
+					resetAltitudeTo(measurement, measurement_var);
 					bias_est.reset();
 
 				} else {
 					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
-					bias_est.setBias(_state.pos(2) + measurement);
+					bias_est.setBias(-_gpos.altitude() + measurement);
 				}
 
 				aid_src.time_last_fuse = _time_delayed_us;

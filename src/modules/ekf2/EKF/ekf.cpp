@@ -74,7 +74,7 @@ void Ekf::reset()
 	//
 #if defined(CONFIG_EKF2_TERRAIN)
 	// assume a ground clearance
-	_state.terrain = _state.pos(2) + _params.rng_gnd_clearance;
+	_state.terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -97,7 +97,7 @@ void Ekf::reset()
 	resetGpsDriftCheckFilters();
 	_gps_checks_passed = false;
 #endif // CONFIG_EKF2_GNSS
-	_gps_alt_ref = NAN;
+	_local_origin_alt = NAN;
 
 	_output_predictor.reset();
 
@@ -113,7 +113,7 @@ void Ekf::reset()
 	_time_last_heading_fuse = 0;
 	_time_last_terrain_fuse = 0;
 
-	_last_known_pos.setZero();
+	_last_known_gpos.setZero();
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	_baro_counter = 0;
@@ -168,7 +168,7 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes(imu_sample_delayed);
 
-		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos,
+		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _gpos,
 						      _state.gyro_bias, _state.accel_bias);
 
 		return true;
@@ -205,7 +205,7 @@ bool Ekf::initialiseFilter()
 	initialiseCovariance();
 
 	// reset the output predictor state history to match the EKF initial values
-	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);
+	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _gpos);
 
 	return true;
 }
@@ -258,11 +258,11 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.vel(2) += CONSTANTS_ONE_G * imu_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
-	_state.pos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
+	_gpos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
+	_state.pos(2) = -_gpos.altitude();
 
 	// constrain states
 	_state.vel = matrix::constrain(_state.vel, -_params.velocity_limit, _params.velocity_limit);
-	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
 
 	// calculate a filtered horizontal acceleration with a 1 sec time constant
@@ -283,14 +283,12 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 		return false;
 	}
 
-	if (!_pos_ref.isInitialized()) {
-		if (!setLatLonOriginFromCurrentPos(latitude, longitude, eph)) {
+	if (!_local_origin_lat_lon.isInitialized()) {
+		if (!resetLatLonTo(latitude, longitude, sq(eph))) {
 			return false;
 		}
 
-		if (!PX4_ISFINITE(_gps_alt_ref)) {
-			setAltOriginFromCurrentPos(altitude, epv);
-		}
+		resetAltitudeTo(altitude, sq(epv));
 
 		return true;
 	}
@@ -315,12 +313,20 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 		pos_correction = _state.vel * dt_s;
 	}
 
-	{
-		const Vector2f hpos = _pos_ref.project(latitude, longitude) + pos_correction.xy();
+	LatLonAlt gpos(latitude, longitude, altitude);
+	bool alt_valid = true;
 
+	if (!checkAltitudeValidity(gpos.altitude())) {
+		gpos.setAltitude(_gpos.altitude());
+		alt_valid = false;
+	}
+
+	const LatLonAlt gpos_corrected = gpos + pos_correction;
+
+	{
 		const float obs_var = math::max(sq(eph), sq(0.01f));
 
-		const Vector2f innov = Vector2f(_state.pos.xy()) - hpos;
+		const Vector2f innov = (_gpos - gpos_corrected).xy();
 		const Vector2f innov_var = Vector2f(getStateVariance<State::pos>()) + obs_var;
 
 		const float sq_gate = sq(5.f); // magic hardcoded gate
@@ -334,8 +340,8 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			ECL_INFO("reset position to external observation");
 			_information_events.flags.reset_pos_to_ext_obs = true;
 
-			resetHorizontalPositionTo(hpos, obs_var);
-			_last_known_pos.xy() = _state.pos.xy();
+			resetHorizontalPositionTo(gpos_corrected.latitude_deg(), gpos_corrected.longitude_deg(), obs_var);
+			_last_known_gpos.setLatLon(gpos_corrected);
 
 		} else {
 			ECL_INFO("fuse external observation as position measurement");
@@ -348,24 +354,16 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			_state_reset_status.posNE_change.zero();
 
 			_time_last_hor_pos_fuse = _time_delayed_us;
-			_last_known_pos.xy() = _state.pos.xy();
+			_last_known_gpos.setLatLon(gpos_corrected);
 		}
 	}
 
-	if (checkAltitudeValidity(altitude)) {
-		const float altitude_corrected = altitude - pos_correction(2);
+	if (alt_valid) {
+		const float obs_var = math::max(sq(epv), sq(0.01f));
 
-		if (!PX4_ISFINITE(_gps_alt_ref)) {
-			setAltOriginFromCurrentPos(altitude_corrected, epv);
-
-		} else {
-			const float vpos = -(altitude_corrected - _gps_alt_ref);
-			const float obs_var = math::max(sq(epv), sq(0.01f));
-
-			ECL_INFO("reset height to external observation");
-			resetVerticalPositionTo(vpos, obs_var);
-			_last_known_pos(2) = _state.pos(2);
-		}
+		ECL_INFO("reset height to external observation");
+		resetAltitudeTo(gpos_corrected.altitude(), obs_var);
+		_last_known_gpos.setAltitude(gpos_corrected.altitude());
 	}
 
 	return true;
@@ -425,9 +423,10 @@ void Ekf::print_status()
 	       (double)getStateVariance<State::vel>()(2)
 	      );
 
+	const Vector3f position = getPosition();
 	printf("Position (%d-%d): [%.3f, %.3f, %.3f] var: [%.1e, %.1e, %.1e]\n",
 	       State::pos.idx, State::pos.idx + State::pos.dof - 1,
-	       (double)_state.pos(0), (double)_state.pos(1), (double)_state.pos(2),
+	       (double)position(0), (double)position(1), (double) position(2),
 	       (double)getStateVariance<State::pos>()(0), (double)getStateVariance<State::pos>()(1),
 	       (double)getStateVariance<State::pos>()(2)
 	      );
