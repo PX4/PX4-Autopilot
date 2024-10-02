@@ -134,7 +134,6 @@ pipeline {
                      "x-mav_ap-h743v2_default",
                      "zeroone_x6_bootloader",
                      "zeroone_x6_default",
-                     "zeroone_x6_rover",
             ],
             image: docker_images.nuttx,
             archive: true
