@@ -87,7 +87,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		// determine if we should use height aiding
 		const bool continuing_conditions_passing = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
 				&& measurement_valid
-				&& _NED_origin_initialised
+				&& _pos_ref.isInitialized()
 				&& _gps_checks_passed;
 
 		const bool starting_conditions_passing = continuing_conditions_passing

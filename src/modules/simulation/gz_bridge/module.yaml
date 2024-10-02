@@ -33,4 +33,4 @@ actuator_output:
         min: { min: 0, max: 200, default: 0 }
         max: { min: 0, max: 200, default: 200 }
         failsafe: { min: 0, max: 200 }
-      num_channels: 2
+      num_channels: 4

@@ -215,17 +215,13 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
-	const bool is_fused = measurementUpdate(K, H, aid_src.observation_variance, aid_src.innovation);
+	measurementUpdate(K, H, aid_src.observation_variance, aid_src.innovation);
 
-	aid_src.fused = is_fused;
-	_fault_status.flags.bad_airspeed = !is_fused;
+	aid_src.fused = true;
+	aid_src.time_last_fuse = _time_delayed_us;
 
-	if (is_fused) {
-		aid_src.time_last_fuse = _time_delayed_us;
-
-		if (!update_wind_only) {
-			_time_last_hor_vel_fuse = _time_delayed_us;
-		}
+	if (!update_wind_only) {
+		_time_last_hor_vel_fuse = _time_delayed_us;
 	}
 }
 

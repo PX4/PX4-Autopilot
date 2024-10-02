@@ -10,7 +10,6 @@ serial_config:
       port_config_param:
         name: SEP_PORT1_CFG
         group: Septentrio
-        default: GPS1
       label: GPS Port
 
 parameters:

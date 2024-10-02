@@ -152,6 +152,13 @@ if(CONFIG_MODULES_ROVER_ACKERMANN)
 	)
 endif()
 
+if(CONFIG_MODULES_ROVER_MECANUM)
+	px4_add_romfs_files(
+		# [52000, 52999] Mecanum rovers
+		52000_generic_rover_mecanum
+	)
+endif()
+
 if(CONFIG_MODULES_ROVER_POS_CONTROL)
 	px4_add_romfs_files(
 		# [59000, 59999] Rover position control (deprecated)

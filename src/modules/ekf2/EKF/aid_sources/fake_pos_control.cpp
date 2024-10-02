@@ -108,12 +108,12 @@ bool Ekf::runFakePosStateMachine(const bool enable_conditions_passing, bool stat
 {
 	if (status_flag) {
 		if (enable_conditions_passing) {
-			if (!aid_src.innovation_rejected
-			    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
-							  State::pos.idx + 0)
-			    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
-							  State::pos.idx + 1)
-			   ) {
+			if (!aid_src.innovation_rejected) {
+				for (unsigned i = 0; i < 2; i++) {
+					fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
+								   State::pos.idx + i);
+				}
+
 				aid_src.fused = true;
 				aid_src.time_last_fuse = _time_delayed_us;
 			}

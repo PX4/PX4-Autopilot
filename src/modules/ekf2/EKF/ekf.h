@@ -67,6 +67,7 @@
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
 enum class Likelihood { LOW, MEDIUM, HIGH };
+class ExternalVisionVel;
 
 class Ekf final : public EstimatorInterface
 {
@@ -151,6 +152,17 @@ public:
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
 	Vector2f getWindVelocityVariance() const { return getStateVariance<State::wind_vel>(); }
+
+	/**
+	* @brief Resets the wind states to an external observation
+	*
+	* @param wind_speed The wind speed in m/s
+	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
+	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
+	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
+	*/
+	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
+					    float wind_direction_accuracy);
 #endif // CONFIG_EKF2_WIND
 
 	template <const IdxDof &S>
@@ -176,8 +188,7 @@ public:
 	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
-	// return true if the origin is valid
-	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
+	void getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
 	bool checkLatLonValidity(double latitude, double longitude);
 	bool checkAltitudeValidity(float altitude);
 	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = NAN, float epv = NAN);
@@ -211,7 +222,7 @@ public:
 	// and have not started using synthetic position observations to constrain drift
 	bool global_position_is_valid() const
 	{
-		return (_NED_origin_initialised && local_position_is_valid());
+		return (_pos_ref.isInitialized() && local_position_is_valid());
 	}
 
 	// return true if the local position estimate is valid
@@ -245,7 +256,7 @@ public:
 	}
 
 	// fuse single direct state measurement (eg NED velocity, NED position, mag earth field, etc)
-	bool fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
+	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index);
 
 	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
 
@@ -404,23 +415,16 @@ public:
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
-	/**
-	* @brief Resets the wind states to an external observation
-	*
-	* @param wind_speed The wind speed in m/s
-	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
-	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
-	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
-	*/
-	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
-					    float wind_direction_accuracy);
-	bool _external_wind_init{false};
-
 	void updateParameters();
 
 	friend class AuxGlobalPosition;
 
 private:
+
+	friend class ExternalVisionVel;
+	friend class EvVelBodyFrameFrd;
+	friend class EvVelLocalFrameNed;
+	friend class EvVelLocalFrameFrd;
 
 	// set the internal states and status to their default value
 	void reset();
@@ -807,14 +811,15 @@ private:
 	void controlEvPosFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 				estimator_aid_source2d_s &aid_src);
-	void controlEvVelFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
-				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
-				estimator_aid_source3d_s &aid_src);
+	void controlEvVelFusion(ExternalVisionVel &ev, const bool common_starting_conditions_passing, const bool ev_reset,
+				const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
 	void controlEvYawFusion(const imuSample &imu_sample, const extVisionSample &ev_sample,
 				const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient,
 				estimator_aid_source1d_s &aid_src);
-	void resetVelocityToEV(const Vector3f &measurement, const Vector3f &measurement_var, const VelocityFrame &vel_frame);
-	Vector3f rotateVarianceToEkf(const Vector3f &measurement_var);
+	void fuseLocalFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_t &timestamp, const Vector3f &measurement,
+				    const Vector3f &measurement_var, const float &innovation_gate);
+	void fuseBodyFrameVelocity(estimator_aid_source3d_s &aid_src, const uint64_t &timestamp, const Vector3f &measurement,
+				   const Vector3f &measurement_var, const float &innovation_gate);
 
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient,
@@ -827,7 +832,8 @@ private:
 	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
 	{
 		VectorState Kfusion = P * H / innov_var;
-		aid_src.fused = measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+		measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
+		aid_src.fused = true;
 	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 

@@ -60,8 +60,6 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 
 	const auto state_vector = _state.vector();
 
-	bool fused[3] {false, false, false};
-
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
 		// Calculate Kalman gains and observation jacobians
@@ -79,7 +77,6 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 		} else if (index == 2) {
 			// we do not fuse synthesized magnetomter measurements when doing 3D fusion
 			if (_control_status.flags.synthetic_mag_z) {
-				fused[2] = true;
 				continue;
 			}
 
@@ -126,29 +123,21 @@ bool Ekf::fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estima
 			Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
 		}
 
-		if (measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index])) {
-			fused[index] = true;
-		}
+		measurementUpdate(Kfusion, H, aid_src.observation_variance[index], aid_src.innovation[index]);
 	}
+
+	_fault_status.flags.bad_mag_x = false;
+	_fault_status.flags.bad_mag_y = false;
+	_fault_status.flags.bad_mag_z = false;
+
+	aid_src.fused = true;
+	aid_src.time_last_fuse = _time_delayed_us;
 
 	if (update_all_states) {
-		_fault_status.flags.bad_mag_x = !fused[0];
-		_fault_status.flags.bad_mag_y = !fused[1];
-		_fault_status.flags.bad_mag_z = !fused[2];
+		_time_last_heading_fuse = _time_delayed_us;
 	}
 
-	if (fused[0] && fused[1] && fused[2]) {
-		aid_src.fused = true;
-		aid_src.time_last_fuse = _time_delayed_us;
-
-		if (update_all_states) {
-			_time_last_heading_fuse = _time_delayed_us;
-		}
-
-		return true;
-	}
-
-	return false;
+	return true;
 }
 
 bool Ekf::fuseDeclination(float decl_measurement_rad, float R, bool update_all_states)
@@ -184,11 +173,11 @@ bool Ekf::fuseDeclination(float decl_measurement_rad, float R, bool update_all_s
 		Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
 	}
 
-	const bool is_fused = measurementUpdate(Kfusion, H, R, innovation);
+	measurementUpdate(Kfusion, H, R, innovation);
 
-	_fault_status.flags.bad_mag_decl = !is_fused;
+	_fault_status.flags.bad_mag_decl = false;
 
-	return is_fused;
+	return true;
 }
 
 float Ekf::calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const Vector3f &mag_earth_predicted)

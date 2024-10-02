@@ -107,8 +107,6 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		bcoef_inv(1) = bcoef_inv(0);
 	}
 
-	bool fused[] {false, false};
-
 	Vector2f observation{};
 	Vector2f observation_variance{R_ACC, R_ACC};
 	Vector2f innovation{};
@@ -152,7 +150,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 		if (innovation_variance(axis_index) < R_ACC) {
 			// calculation is badly conditioned
-			break;
+			return;
 		}
 
 		const float test_ratio = sq(innovation(axis_index)) / (sq(innov_gate) * innovation_variance(axis_index));
@@ -164,9 +162,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 			VectorState K = P * H / innovation_variance(axis_index);
 
-			if (measurementUpdate(K, H, R_ACC, innovation(axis_index))) {
-				fused[axis_index] = true;
-			}
+			measurementUpdate(K, H, R_ACC, innovation(axis_index));
 		}
 	}
 
@@ -178,8 +174,6 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 			      innovation_variance,  // innovation variance
 			      innov_gate);          // innovation gate
 
-	if (fused[0] && fused[1]) {
-		_aid_src_drag.fused = true;
-		_aid_src_drag.time_last_fuse = _time_delayed_us;
-	}
+	_aid_src_drag.fused = true;
+	_aid_src_drag.time_last_fuse = _time_delayed_us;
 }

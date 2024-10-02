@@ -37,6 +37,7 @@
  */
 
 #include "ekf.h"
+#include "aid_sources/external_vision/ev_vel.h"
 
 void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 {
@@ -62,8 +63,32 @@ void Ekf::controlExternalVisionFusion(const imuSample &imu_sample)
 				&& isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
 
 		updateEvAttitudeErrorFilter(ev_sample, ev_reset);
+
 		controlEvYawFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
-		controlEvVelFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+
+		switch (ev_sample.vel_frame) {
+		case VelocityFrame::BODY_FRAME_FRD: {
+				EvVelBodyFrameFrd ev_vel_body(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				controlEvVelFusion(ev_vel_body, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
+
+		case VelocityFrame::LOCAL_FRAME_NED: {
+				EvVelLocalFrameNed ev_vel_ned(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				controlEvVelFusion(ev_vel_ned, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
+
+		case VelocityFrame::LOCAL_FRAME_FRD: {
+				EvVelLocalFrameFrd ev_vel_frd(*this, ev_sample, _params.ev_vel_noise, imu_sample);
+				controlEvVelFusion(ev_vel_frd, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
+				break;
+			}
+
+		default:
+			return;
+		}
+
 		controlEvPosFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_pos);
 		controlEvHeightFusion(imu_sample, ev_sample, starting_conditions_passing, ev_reset, quality_sufficient,
 				      _aid_src_ev_hgt);

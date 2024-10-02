@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# By disabling all 3 INA modules, we use the
+# i2c_launcher instead.
+param set-default SENS_EN_INA238 0
+param set-default SENS_EN_INA228 0
+param set-default SENS_EN_INA226 0
+
+if ver hwbasecmp 009 010 011
+then
+	# Skynode: use the "custom participant", IP=10.41.10.1 config for uxrce_dds_client
+	param set-default UXRCE_DDS_PTCFG 2
+	param set-default UXRCE_DDS_AG_IP 170461697
+	param set-default UXRCE_DDS_CFG 1000
+else
+	# Mavlink ethernet (CFG 1000)
+	param set-default MAV_2_CONFIG 1000
+	param set-default MAV_2_BROADCAST 1
+	param set-default MAV_2_MODE 0
+	param set-default MAV_2_RADIO_CTL 0
+	param set-default MAV_2_RATE 100000
+	param set-default MAV_2_REMOTE_PRT 14550
+	param set-default MAV_2_UDP_PRT 14550
+fi
+
+safety_button start

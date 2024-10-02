@@ -205,14 +205,13 @@ void Ekf::fuseGnssYaw(float antenna_yaw_offset)
 	// only calculate gains for states we are using
 	VectorState Kfusion = P * H / aid_src.innovation_variance;
 
-	const bool is_fused = measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
-	_fault_status.flags.bad_hdg = !is_fused;
-	aid_src.fused = is_fused;
+	measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
 
-	if (is_fused) {
-		_time_last_heading_fuse = _time_delayed_us;
-		aid_src.time_last_fuse = _time_delayed_us;
-	}
+	_fault_status.flags.bad_hdg = false;
+	aid_src.fused = true;
+	aid_src.time_last_fuse = _time_delayed_us;
+
+	_time_last_heading_fuse = _time_delayed_us;
 }
 
 bool Ekf::resetYawToGnss(const float gnss_yaw, const float gnss_yaw_offset)

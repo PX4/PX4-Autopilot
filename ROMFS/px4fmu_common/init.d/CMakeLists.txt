@@ -92,6 +92,13 @@ if(CONFIG_MODULES_ROVER_ACKERMANN)
 	)
 endif()
 
+if(CONFIG_MODULES_ROVER_MECANUM)
+	px4_add_romfs_files(
+		rc.rover_mecanum_apps
+		rc.rover_mecanum_defaults
+	)
+endif()
+
 if(CONFIG_MODULES_UUV_ATT_CONTROL)
 	px4_add_romfs_files(
 		rc.uuv_apps

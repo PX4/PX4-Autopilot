@@ -56,12 +56,12 @@ void Ekf::updateVerticalPositionAidStatus(estimator_aid_source1d_s &aid_src, con
 bool Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 {
 	// x & y
-	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
-					  State::pos.idx + 0)
-	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
-					  State::pos.idx + 1)
-	   ) {
+	if (!aid_src.innovation_rejected) {
+		for (unsigned i = 0; i < 2; i++) {
+			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
+						   State::pos.idx + i);
+		}
+
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
 
@@ -77,10 +77,10 @@ bool Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 bool Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 {
 	// z
-	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, aid_src.observation_variance,
-					  State::pos.idx + 2)
-	   ) {
+	if (!aid_src.innovation_rejected) {
+		fuseDirectStateMeasurement(aid_src.innovation, aid_src.innovation_variance, aid_src.observation_variance,
+					   State::pos.idx + 2);
+
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
 
