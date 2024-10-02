@@ -94,7 +94,8 @@ else
 	# $BOARD_FMUV3 = 0 -> FMUv2
 
 	#mpu6000 -s -b 1 -R 14 start
-	adis16470 -S -c 1 -b 1 -R 16 start
+	#adis16470 -S -c 1 -b 1 -R 16 start
+        adis16470 -S start -R 16 start
 
 	# As we will use the external mag and the ICM-20608-G
 	# V2 build hwtypecmp is always false
@@ -106,7 +107,7 @@ else
 	fi
 
 	#l3gd20 -s -b 1 start #gyro only
-	#lsm303d -s -b 1 start #accelerometer and magnetometer
+	lsm303d -s -b 1 start #accelerometer and magnetometer
 fi
 
 unset BOARD_FMUV3
