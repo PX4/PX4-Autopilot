@@ -69,7 +69,7 @@ void OutputPredictor::print_status()
 	       _output_vert_buffer.entries(), _output_vert_buffer.get_length(), _output_vert_buffer.get_total_size());
 }
 
-void OutputPredictor::alignOutputFilter(const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state)
+void OutputPredictor::alignOutputFilter(const Quatf &quat_state, const Vector3f &vel_state, const LatLonAlt &gpos_state)
 {
 	const outputSample &output_delayed = _output_buffer.get_oldest();
 
@@ -77,9 +77,12 @@ void OutputPredictor::alignOutputFilter(const Quatf &quat_state, const Vector3f 
 	Quatf q_delta{quat_state * output_delayed.quat_nominal.inversed()};
 	q_delta.normalize();
 
-	// calculate the velocity and position deltas between the output and EKF at the EKF fusion time horizon
+	// calculate the velocity delta between the output and EKF at the EKF fusion time horizon
 	const Vector3f vel_delta = vel_state - output_delayed.vel;
-	const Vector3f pos_delta = pos_state - output_delayed.pos;
+
+	// zero the position error at delayed time and reset the global reference
+	const Vector3f pos_delta = -output_delayed.pos;
+	_global_ref = gpos_state;
 
 	// loop through the output filter state history and add the deltas
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
@@ -156,29 +159,15 @@ void OutputPredictor::resetVerticalVelocityTo(float delta_vert_vel)
 	_output_vert_new.vert_vel += delta_vert_vel;
 }
 
-void OutputPredictor::resetHorizontalPositionTo(const Vector2f &delta_horz_pos)
+void OutputPredictor::resetLatLonTo(const double &new_latitude, const double &new_longitude)
 {
-	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		_output_buffer[index].pos.xy() += delta_horz_pos;
-	}
-
-	_output_new.pos.xy() += delta_horz_pos;
+	_global_ref.setLatitudeDeg(new_latitude);
+	_global_ref.setLongitudeDeg(new_longitude);
 }
 
-void OutputPredictor::resetVerticalPositionTo(const float new_vert_pos, const float vert_pos_change)
+void OutputPredictor::resetAltitudeTo(const float new_altitude, const float vert_pos_change)
 {
-	// apply the change in height / height rate to our newest height / height rate estimate
-	// which have already been taken out from the output buffer
-	_output_new.pos(2) += vert_pos_change;
-
-	// add the reset amount to the output observer buffered data
-	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].pos(2) += vert_pos_change;
-		_output_vert_buffer[i].vert_vel_integ += vert_pos_change;
-	}
-
-	// add the reset amount to the output observer vertical position state
-	_output_vert_new.vert_vel_integ = new_vert_pos;
+	_global_ref.setAltitude(new_altitude);
 }
 
 void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector3f &delta_angle,
@@ -261,7 +250,7 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 }
 
 void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
-		const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state, const matrix::Vector3f &gyro_bias,
+		const Quatf &quat_state, const Vector3f &vel_state, const LatLonAlt &gpos_state, const matrix::Vector3f &gyro_bias,
 		const matrix::Vector3f &accel_bias)
 {
 	// calculate an average filter update time
@@ -317,6 +306,8 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 	const float vel_gain = _dt_correct_states_avg / math::constrain(_vel_tau, _dt_correct_states_avg, 10.f);
 	const float pos_gain = _dt_correct_states_avg / math::constrain(_pos_tau, _dt_correct_states_avg, 10.f);
 
+	const Vector3f pos_state = gpos_state - _global_ref;
+
 	// calculate down velocity and position tracking errors
 	const float vert_vel_err = (vel_state(2) - output_vert_delayed.vert_vel);
 	const float vert_vel_integ_err = (pos_state(2) - output_vert_delayed.vert_vel_integ);
@@ -325,7 +316,7 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 	// using a PD feedback tuned to a 5% overshoot
 	const float vert_vel_correction = vert_vel_integ_err * pos_gain + vert_vel_err * vel_gain * 1.1f;
 
-	applyCorrectionToVerticalOutputBuffer(vert_vel_correction);
+	applyCorrectionToVerticalOutputBuffer(vert_vel_correction, pos_state(2));
 
 	// calculate velocity and position tracking errors
 	const Vector3f vel_err(vel_state - output_delayed.vel);
@@ -342,10 +333,14 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 	_pos_err_integ += pos_err;
 	const Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
 
-	applyCorrectionToOutputBuffer(vel_correction, pos_correction);
+	// as the reference changes, adjust the position correction to keep a constant global position
+	const Vector3f pos_correction_with_ref_change = pos_correction - pos_state;
+	applyCorrectionToOutputBuffer(vel_correction, pos_correction_with_ref_change);
+
+	_global_ref = gpos_state;
 }
 
-void OutputPredictor::applyCorrectionToVerticalOutputBuffer(float vert_vel_correction)
+void OutputPredictor::applyCorrectionToVerticalOutputBuffer(const float vert_vel_correction, const float pos_ref_change)
 {
 	// loop through the vertical output filter state history starting at the oldest and apply the corrections to the
 	// vert_vel states and propagate vert_vel_integ forward using the corrected vert_vel
@@ -367,7 +362,7 @@ void OutputPredictor::applyCorrectionToVerticalOutputBuffer(float vert_vel_corre
 
 		// position is propagated forward using the corrected velocity and a trapezoidal integrator
 		next_state.vert_vel_integ = current_state.vert_vel_integ + (current_state.vert_vel + next_state.vert_vel) * 0.5f *
-					    next_state.dt;
+					    next_state.dt - pos_ref_change;
 
 		// advance the index
 		index = (index + 1) % size;

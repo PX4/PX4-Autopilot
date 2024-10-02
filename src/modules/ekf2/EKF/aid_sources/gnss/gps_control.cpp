@@ -82,10 +82,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			}
 		}
 
-		if (_pos_ref.isInitialized()) {
-			updateGnssPos(gnss_sample, _aid_src_gnss_pos);
-		}
-
+		updateGnssPos(gnss_sample, _aid_src_gnss_pos);
 		updateGnssVel(imu_delayed, gnss_sample, _aid_src_gnss_vel);
 
 	} else if (_control_status.flags.gps) {
@@ -108,9 +105,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		const bool continuing_conditions_passing = (gnss_vel_enabled || gnss_pos_enabled)
 				&& _control_status.flags.tilt_align
-				&& _control_status.flags.yaw_align
-				&& _pos_ref.isInitialized();
+				&& _control_status.flags.yaw_align;
 		const bool starting_conditions_passing = continuing_conditions_passing && _gps_checks_passed;
+		const bool gpos_init_conditions_passing = gnss_pos_enabled && _gps_checks_passed;
 
 		if (_control_status.flags.gps) {
 			if (continuing_conditions_passing) {
@@ -174,6 +171,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				}
 
 				_control_status.flags.gps = true;
+
+			} else if (gpos_init_conditions_passing && !_local_origin_lat_lon.isInitialized()) {
+				resetHorizontalPositionToGnss(_aid_src_gnss_pos);
 			}
 		}
 	}
@@ -221,8 +221,10 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 {
 	// correct position and height for offset relative to IMU
 	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
-	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-	const Vector2f position = _pos_ref.project(gnss_sample.lat, gnss_sample.lon) - pos_offset_earth.xy();
+	const Vector3f pos_offset_earth = Vector3f(_R_to_earth * pos_offset_body);
+	const LatLonAlt measurement(gnss_sample.lat, gnss_sample.lon, gnss_sample.alt);
+	const LatLonAlt measurement_corrected = measurement + (-pos_offset_earth);
+	const Vector2f innovation = (_gpos - measurement_corrected).xy();
 
 	// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
 	float pos_noise = math::max(gnss_sample.hacc, _params.gps_pos_noise);
@@ -237,12 +239,13 @@ void Ekf::updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s 
 
 	const float pos_var = math::max(sq(pos_noise), sq(0.01f));
 	const Vector2f pos_obs_var(pos_var, pos_var);
+	const matrix::Vector2d observation(measurement_corrected.latitude_deg(), measurement_corrected.longitude_deg());
 
 	updateAidSourceStatus(aid_src,
 			      gnss_sample.time_us,                                    // sample timestamp
-			      position,                                               // observation
+			      observation,                                            // observation
 			      pos_obs_var,                                            // observation variance
-			      Vector2f(_state.pos) - position,                        // innovation
+			      innovation,                                             // innovation
 			      Vector2f(getStateVariance<State::pos>()) + pos_obs_var, // innovation variance
 			      math::max(_params.gps_pos_innov_gate, 1.f));            // innovation gate
 }
@@ -322,8 +325,9 @@ void Ekf::resetVelocityToGnss(estimator_aid_source3d_s &aid_src)
 void Ekf::resetHorizontalPositionToGnss(estimator_aid_source2d_s &aid_src)
 {
 	_information_events.flags.reset_pos_to_gps = true;
-	resetHorizontalPositionTo(Vector2f(aid_src.observation), Vector2f(aid_src.observation_variance));
-	_gpos_origin_eph = 0.f; // The uncertainty of the global origin is now contained in the local position uncertainty
+	resetLatLonTo(aid_src.observation[0], aid_src.observation[1],
+		      aid_src.observation_variance[0] +
+		      aid_src.observation_variance[1]);
 
 	resetAidSourceStatusZeroInnovation(aid_src);
 }

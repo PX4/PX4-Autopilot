@@ -43,7 +43,7 @@
 void Ekf::initTerrain()
 {
 	// assume a ground clearance
-	_state.terrain = _state.pos(2) + _params.rng_gnd_clearance;
+	_state.terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
 
 	// use the ground clearance value as our uncertainty
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.rng_gnd_clearance));
@@ -53,7 +53,7 @@ void Ekf::controlTerrainFakeFusion()
 {
 	// If we are on ground, store the local position and time to use as a reference
 	if (!_control_status.flags.in_air) {
-		_last_on_ground_posD = _state.pos(2);
+		_last_on_ground_posD = -_gpos.altitude();
 		_control_status.flags.rng_fault = false;
 
 	} else if (!_control_status_prev.flags.in_air) {
