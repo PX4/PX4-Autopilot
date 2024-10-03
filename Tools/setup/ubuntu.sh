@@ -150,7 +150,18 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			libncurses6 \
 			libncurses-dev \
 			libncursesw6 \
+			libzmq3-dev \
+			libunwind-dev \
 			;
+
+		# Ubuntu 24.04 requires ZeroMQ
+		git clone https://github.com/zeromq/cppzmq.git
+		cd cppzmq
+		mkdir build
+		cd build
+		cmake ..
+		sudo make install
+		cd ../..
 	else
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 			libncurses5 \
