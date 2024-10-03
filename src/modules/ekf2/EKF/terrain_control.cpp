@@ -75,9 +75,31 @@ void Ekf::controlTerrainFakeFusion()
 	}
 }
 
-bool Ekf::isTerrainEstimateValid() const
+void Ekf::updateTerrainValidity()
 {
-	bool valid = false;
+	bool valid_opt_flow_terrain = false;
+	bool valid_rng_terrain = false;
+	bool valid_hagl_var = false;
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+	if (_control_status.flags.opt_flow_terrain
+	    && isRecent(_aid_src_optical_flow.time_last_fuse, _params.hgt_fusion_timeout_max)
+	   ) {
+		valid_opt_flow_terrain = true;
+	}
+
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+
+	if (_control_status.flags.rng_terrain
+	    && isRecent(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max)
+	   ) {
+		valid_rng_terrain = true;
+	}
+
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	if (_time_last_terrain_fuse != 0) {
 		// Assume being valid when the uncertainty is small compared to the height above ground
@@ -85,18 +107,20 @@ bool Ekf::isTerrainEstimateValid() const
 		sym::ComputeHaglInnovVar(P, 0.f, &hagl_var);
 
 		if (hagl_var < fmaxf(sq(0.1f * getHagl()), 0.2f)) {
-			valid = true;
+			valid_hagl_var = true;
 		}
 	}
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
+	if (!_terrain_valid) {
+		// require valid RNG or optical flow (+valid variance) to initially consider terrain valid
+		if (valid_rng_terrain
+		    || (valid_opt_flow_terrain && valid_hagl_var)
+		   ) {
+			_terrain_valid = true;
+		}
 
-	// Assume that the terrain estimate is always valid when direct observations are fused
-	if (_control_status.flags.rng_terrain && isRecent(_aid_src_rng_hgt.time_last_fuse, _params.hgt_fusion_timeout_max)) {
-		valid = true;
+	} else {
+		// terrain was previously valid, continue considering valid if variance is good
+		_terrain_valid = valid_hagl_var;
 	}
-
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-	return valid;
 }
