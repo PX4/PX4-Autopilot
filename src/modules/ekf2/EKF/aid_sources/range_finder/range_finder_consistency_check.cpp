@@ -51,6 +51,7 @@ void RangeFinderConsistencyCheck::initMiniKF(float p1, float p2, float x1, float
 	_x(1) = x2;
 	_initialized = true;
 	_sample_count = 0;
+	_state = KinematicState::UNKNOWN;
 }
 
 void RangeFinderConsistencyCheck::UpdateMiniKF(float z, float z_var, float vz, float vz_var, float dist_bottom,
@@ -90,8 +91,12 @@ void RangeFinderConsistencyCheck::UpdateMiniKF(float z, float z_var, float vz, f
 	_innov = y(1);
 	_innov_var = S(1, 1);
 
-	if (_sample_count++ > 10) {
-		_is_kinematically_consistent  = _test_ratio_lpf.update(test_ratio) < 1.f;
+	if (_sample_count++ > _min_nr_of_samples) {
+		if (_test_ratio_lpf.update(test_ratio) < 1.f) {
+			_state = KinematicState::CONSISTENT;
+		} else {
+			_state = KinematicState::INCONSISTENT;
+		}
 
 	} else {
 		_test_ratio_lpf.update(test_ratio);

@@ -73,10 +73,9 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
 				const float dist_var = sq(_params.range_noise) + dist_dependant_var;
 
-				if (horizontal_motion) {
-					_rng_consistency_check.stopMiniKF();
+				if (_control_status.flags.fixed_wing) {
+					_rng_consistency_check.setFixedWing(true, 2.0f * _params.range_kin_consistency_gate);
 
-				} else if (vertical_motion) {
 					if (!_rng_consistency_check.isRunning()) {
 						_rng_consistency_check.initMiniKF(P(State::pos.idx + 2, State::pos.idx + 2), P(State::terrain.idx, State::terrain.idx),
 										  _state.pos(2), _state.terrain);
@@ -84,8 +83,32 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 					_rng_consistency_check.UpdateMiniKF(_state.pos(2), P(State::pos.idx + 2, State::pos.idx + 2), _state.vel(2),
 									    P(State::vel.idx + 2, State::vel.idx + 2), _range_sensor.getRange(), dist_var, imu_sample.time_us);
-				}
 
+				} else {
+					_rng_consistency_check.setFixedWing(false, _params.range_kin_consistency_gate);
+
+					if (horizontal_motion) {
+						// if state 0: keep state 0
+						// if state 1: set to state 2
+						// if state 2: keep state 2
+						if (_rng_consistency_check.isRunning()) {
+							_rng_consistency_check.stopMiniKF();
+						}
+
+					} else if (vertical_motion) {
+						if (!_rng_consistency_check.isRunning()) {
+							_rng_consistency_check.initMiniKF(P(State::pos.idx + 2, State::pos.idx + 2), P(State::terrain.idx, State::terrain.idx),
+											  _state.pos(2), _state.terrain);
+						}
+
+						_rng_consistency_check.UpdateMiniKF(_state.pos(2), P(State::pos.idx + 2, State::pos.idx + 2), _state.vel(2),
+										    P(State::vel.idx + 2, State::vel.idx + 2), _range_sensor.getRange(), dist_var, imu_sample.time_us);
+
+					} else {
+						_rng_consistency_check.setNotMoving();
+
+					}
+				}
 			}
 
 		} else {
@@ -100,7 +123,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			}
 		}
 
-		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
+		_control_status.flags.rng_kin_consistent = _rng_consistency_check.getConsistencyState() == 1;
+		_control_status.flags.rng_kin_unknown = _rng_consistency_check.getConsistencyState() == 2;
 
 	} else {
 		return;
@@ -118,11 +142,12 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				&& _control_status.flags.tilt_align
 				&& measurement_valid
 				&& _range_sensor.isDataHealthy()
-				&& _rng_consistency_check.isKinematicallyConsistent();
+				&& _rng_consistency_check.isNotKinematicallyInconsistent();
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)
-				&& _range_sensor.isRegularlySendingData();
+				&& _range_sensor.isRegularlySendingData()
+				&& _rng_consistency_check.isKinematicallyConsistent();
 
 
 		const bool do_conditional_range_aid = (_control_status.flags.rng_terrain || _control_status.flags.rng_hgt)
@@ -148,7 +173,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					_control_status.flags.rng_hgt = true;
 					stopRngTerrFusion();
 
-					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected) {
+					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected
+					    && _rng_consistency_check.isKinematicallyConsistent()) {
 						resetTerrainToRng(aid_src);
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
@@ -174,7 +200,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
 					_control_status.flags.rng_hgt = true;
 
-					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected) {
+					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected
+					    && _rng_consistency_check.isKinematicallyConsistent()) {
 						resetTerrainToRng(aid_src);
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
@@ -211,7 +238,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 						stopRngHgtFusion();
 						stopRngTerrFusion();
 
-					} else {
+					} else if (_rng_consistency_check.isKinematicallyConsistent()) {
 						resetTerrainToRng(aid_src);
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}
