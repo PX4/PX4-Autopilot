@@ -180,18 +180,21 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	if (_can_fd) {
 		_send_frame.can_id = frame.id | CAN_EFF_FLAG;
 		_send_frame.len = frame.dlc;
-		memcpy(&_send_frame.data, frame.data, frame.dlc);
+		memcpy(_send_frame.data, frame.data, frame.dlc);
 
 	} else {
 		struct can_frame *net_frame = (struct can_frame *)&_send_frame;
 		net_frame->can_id = frame.id | CAN_EFF_FLAG;
 		net_frame->can_dlc = frame.dlc;
-		memcpy(&net_frame->data, frame.data, frame.dlc);
+		memcpy(net_frame->data, frame.data, frame.dlc);
 	}
 
 	/* Set CAN_RAW_TX_DEADLINE timestamp  */
-	_send_tv->tv_usec = tx_deadline.toUSec() % 1000000ULL;
-	_send_tv->tv_sec = (tx_deadline.toUSec() - _send_tv->tv_usec) / 1000000ULL;
+
+	if (_send_tv) {
+		_send_tv->tv_usec = tx_deadline.toUSec() % 1000000ULL;
+		_send_tv->tv_sec = (tx_deadline.toUSec() - _send_tv->tv_usec) / 1000000ULL;
+	}
 
 	res = sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
 
