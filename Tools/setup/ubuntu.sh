@@ -144,6 +144,11 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		kconfig-frontends \
 		;
 	fi
+	if [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+			libunwind-dev \
+			;
+	fi
 	if [[ "${UBUNTU_RELEASE}" == "24.04" ]]; then
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 			kconfig-frontends \
