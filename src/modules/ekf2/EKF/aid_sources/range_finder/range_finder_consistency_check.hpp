@@ -48,16 +48,52 @@ public:
 	RangeFinderConsistencyCheck() = default;
 	~RangeFinderConsistencyCheck() = default;
 
+	enum class KinematicState : int {
+		INCONSISTENT = 0,
+		CONSISTENT = 1,
+		UNKNOWN = 2
+	};
+
 	float getTestRatioLpf() const { return _test_ratio_lpf.getState(); }
 	float getInnov() const { return _innov; }
 	float getInnovVar() const { return _innov_var; }
 
-	bool isKinematicallyConsistent() const { return _is_kinematically_consistent; }
+	bool isKinematicallyConsistent() const
+	{
+		if (_fixed_wing) {
+			return _state != KinematicState::INCONSISTENT;
+		}
+
+		return _state == KinematicState::CONSISTENT;
+	}
+	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT; }
 	void UpdateMiniKF(float z, float z_var, float vz, float vz_var, float dist_bottom, float dist_bottom_var,
 			  uint64_t time_us);
 	void initMiniKF(float p1, float p2, float x1, float x2);
-	void stopMiniKF() { _initialized = false; }
+	void stopMiniKF()
+	{
+		_initialized = false;
+
+		if (_state == KinematicState::CONSISTENT) {
+			_state = KinematicState::UNKNOWN;
+		}
+	}
+	int getConsistencyState() const { return static_cast<int>(_state); }
+
 	bool isRunning() { return _initialized; }
+
+	void setNotMoving()
+	{
+		if (_state == KinematicState::CONSISTENT) {
+			_state = KinematicState::UNKNOWN;
+		}
+	}
+
+	void setFixedWing(bool is_fixed_wing, float gate)
+	{
+		_fixed_wing = is_fixed_wing;
+		_gate = gate;
+	}
 
 	matrix::SquareMatrix<float, 2> _R{};
 	matrix::SquareMatrix<float, 2> _P{};
@@ -73,8 +109,10 @@ private:
 	float _dist_bottom_prev{};
 	AlphaFilter<float> _test_ratio_lpf{0.3}; // average signed test ratio used to detect a bias in the data
 	float _gate{1.f};
-	bool _is_kinematically_consistent{true};
 	int _sample_count{0};
+	KinematicState _state{KinematicState::UNKNOWN};
+	const int _min_nr_of_samples{10}; // hardcoded
+	bool _fixed_wing{false};
 };
 
 #endif // !EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
