@@ -88,37 +88,39 @@ int esp32_partition_init(void);
 static int init_ota_partitions(void)
 {
   struct mtd_dev_s *mtd;
-  // char blockdev[18];
+  char blockdev[18];
   int ret = OK;
 
-      mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET, CONFIG_ESP32_STORAGE_MTD_SIZE, false);
-
-  ret = register_mtddriver("/fs/mtd_params", mtd, 0777, NULL);
-  if (ret < 0)
-    {
-      ferr("ERROR: Failed to register PARAM MTD: %d\n", ret);
-      return ret;
-    }
+    mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET, CONFIG_ESP32_STORAGE_MTD_SIZE, false);
 
 
-      // esp32_partition_init();
+
+  // ret = register_mtddriver("/fs/mtd_params", mtd, 0777, NULL);
+  // if (ret < 0)
+  //   {
+  //     ferr("ERROR: Failed to register PARAM MTD: %d\n", ret);
+  //     return ret;
+  //   }
+
+
       // mtd = esp32_spiflash_get_mtd();
 
-            // ret = ftl_initialize(0, mtd);
-      // if (ret < 0)
-      //   {
-      //     PX4_INFO("ERROR: Failed to initialize the FTL layer: %d\n", ret);
-      //     return ret;
-      //   }
+            ret = ftl_initialize(0, mtd);
+      if (ret < 0)
+        {
+          PX4_INFO("ERROR: Failed to initialize the FTL layer: %d\n", ret);
+          return ret;
+        }
 
-      // snprintf(blockdev, sizeof(blockdev), "/dev/mtdblock%d", 0);
+      snprintf(blockdev, sizeof(blockdev), "/dev/mtdblock%d", 0);
 
-      // ret = bchdev_register(blockdev, "/fs/mtd_params", false);
-      // if (ret < 0)
-      //   {
-      //     PX4_INFO("ERROR: bchdev_register %s failed: %d\n", "/fs/mtd_params", ret);
-      //     return ret;
-      //   }
+      ret = bchdev_register(blockdev, "/fs/mtd_params", false);
+      if (ret < 0)
+        {
+          PX4_INFO("ERROR: bchdev_register %s failed: %d\n", "/fs/mtd_params", ret);
+          return ret;
+        }
+      // esp32_partition_init();
 
       // ret = ftl_initialize(0, mtd);
       // if (ret < 0)
