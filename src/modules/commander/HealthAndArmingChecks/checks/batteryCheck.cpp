@@ -211,8 +211,8 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 			mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery level\t");
 		}
 
-	} else if (!context.isArmed() && _param_arm_battery_level_min.get() > FLT_EPSILON
-		   && worst_battery_remaining < _param_arm_battery_level_min.get()) {
+	} else if (!context.isArmed() && _param_com_arm_bat_min.get() > FLT_EPSILON
+		   && worst_battery_remaining < _param_com_arm_bat_min.get()) {
 		// if not armed, additionally check if the battery is below the separately configurable preflight threshold
 		/* EVENT
 		 * @description
