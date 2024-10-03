@@ -118,3 +118,4 @@ _eheap = 0x40000000 - 0;
 _eiramheap = 0x400a0000;
 /* Mark the end of the RTC heap (top of the RTC region) */
 _ertcheap = 0x50001fff;
+EXTERN(board_get_manifest)

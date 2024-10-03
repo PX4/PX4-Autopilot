@@ -30,12 +30,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <nuttx/config.h>
+#include <board_config.h>
 
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
 //                                                                      KiB BS    nB
 static const px4_mft_device_t flash = {             // 24AA64FT on Base  8K 32 X 256
 	.bus_type = px4_mft_device_t::ONCHIP
+	// .devid = SPIDEV_FLASH(0)
 };
 
 
@@ -46,7 +49,7 @@ static const px4_mtd_entry_t fmu_flash = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 128
+			.nblocks = 112
 		}
 	},
 };
@@ -68,9 +71,7 @@ static const px4_mft_s mft = {
 	.mfts = {&mtd_mft}
 };
 
-#include <px4_platform_common/log.h>
 const px4_mft_s *board_get_manifest(void)
 {
-printf("manifest");
 	return &mft;
 }

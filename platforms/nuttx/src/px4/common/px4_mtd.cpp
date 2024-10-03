@@ -48,6 +48,7 @@
 #include <px4_platform_common/px4_manifest.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/spi.h>
+#include <px4_platform/micro_hal.h>
 
 #include <inttypes.h>
 #include <errno.h>
@@ -180,7 +181,6 @@ int px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long *blocksiz
 			 unsigned *blkpererase, unsigned *nblocks, unsigned *partsize)
 {
 	/* Get the geometry of the FLASH device */
-
 	FAR struct mtd_geometry_s geo;
 
 	int ret = instance->mtd_dev->ioctl(instance->mtd_dev, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
@@ -359,6 +359,8 @@ memoryout:
 
 		} else if (mtd_list->entries[num_entry]->device->bus_type == px4_mft_device_t::ONCHIP) {
 			instances[i]->n_partitions_current++;
+			instances[i]->part_dev[0] = px4_arch_mtd_dev();
+			instances[i]->mtd_dev = px4_arch_mtd_dev();
 			return 0;
 		}
 

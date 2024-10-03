@@ -63,9 +63,12 @@
 #include <nuttx/mmcsd.h>
 #include <nuttx/mm/gran.h>
 
+
+#include <chip.h>
 #include "board_config.h"
 
 #include <arch/board/board.h>
+#include <px4_platform_common/px4_manifest.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
@@ -76,10 +79,15 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
-#ifdef CONFIG_ESP32_SPIFLASH
-#include "esp32_board_spiflash.h"
+
+# if defined(FLASH_BASED_PARAMS)
+#include <parameters/flashparams/flashfs.h>
 #endif
 
+// #ifdef CONFIG_ESP32_SPIFLASH
+#include "esp32_board_spiflash_setup.h"
+// #endif
+#include <esp32_partition.h>
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -213,7 +221,7 @@ static struct spi_dev_s *spi2;
 #endif
 
 #ifdef CONFIG_ESP32_SPI3
-static struct spi_dev_s *spi3;
+// static struct spi_dev_s *spi3;
 #endif
 
 
@@ -222,7 +230,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	px4_platform_init();
 
 	/* configure the DMA allocator */				// Needs to be figured out
-
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
@@ -248,29 +255,29 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 #ifdef CONFIG_ESP32_SPI3
-	spi3 = esp32_spibus_initialize(3);
+	// spi3 = esp32_spibus_initialize(3);
 
-	if (!spi3) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
-		led_on(LED_RED);
-	}
+	// if (!spi3) {
+	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
+	// 	led_on(LED_RED);
+	// }
 
-	SPI_SETFREQUENCY(spi3, 8 * 1000 * 1000);
-	SPI_SETBITS(spi3, 8);
-	SPI_SETMODE(spi3, SPIDEV_MODE3);
+	// SPI_SETFREQUENCY(spi3, 8 * 1000 * 1000);
+	// SPI_SETBITS(spi3, 8);
+	// SPI_SETMODE(spi3, SPIDEV_MODE3);
 #endif
-
-	#ifdef CONFIG_ESP32_SPIFLASH
   	int ret = esp32_spiflash_init();
   	if (ret)
     	{
       	syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
     	}
-	#endif
-
-	/* Configure the HW based on the manifest */
 
 	px4_platform_configure();
+	/* Configure the HW based on the manifest */
+
+
+	// esp32_partition_init();
+
 
 
 

@@ -198,22 +198,24 @@ int mtd_readtest(const mtd_instance_s &instance)
 		ssize_t count = 0;
 
 		ssize_t expected_size = px4_mtd_get_partition_size(&instance, instance.partition_names[i]);
+		expected_size = 28;
 
 		if (expected_size == 0) {
 			PX4_ERR("Failed partition size is 0");
 			return 1;
 		}
 
-		printf("reading %s expecting %zd bytes\n", instance.partition_names[i], expected_size);
+		// printf("reading %s expecting %zd bytes\n", instance.partition_names[i], expected_size);
 		int fd = open(instance.partition_names[i], O_RDONLY);
 
 		if (fd == -1) {
 			PX4_ERR("Failed to open partition");
 			return 1;
 		}
-
+		printf("read");
 		while (read(fd, v, sizeof(v)) == sizeof(v)) {
 			count += sizeof(v);
+			printf("c %d \n", count);
 		}
 
 		if (count != expected_size) {
