@@ -1640,11 +1640,13 @@ void Logger::write_load_output()
 	_writer.set_need_reliable_transfer(true, _print_load_reason != PrintLoadReason::Watchdog);
 
 	if (_print_load_reason == PrintLoadReason::Watchdog) {
+		// This is just that we see it easily in the log
+		PX4_ERR("Writing watchdog data...");
+#ifdef __PX4_NUTTX
 		bool cycle_trigger = _timer_callback_data.watchdog_data.triggered_by_cycle_delay;
 		bool ready_trigger = _timer_callback_data.watchdog_data.triggered_by_ready_delay;
-
-		// This is just that we see it easily in the log
-		PX4_ERR("Writing watchdog data..., cycle trigger: %d, ready trigger: %d", cycle_trigger, ready_trigger);
+		PX4_ERR("Watchdog triggers - cycle trigger: %d, ready trigger: %d", cycle_trigger, ready_trigger);
+#endif
 		write_perf_data(PrintLoadReason::Watchdog);
 	}
 
