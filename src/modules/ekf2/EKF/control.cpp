@@ -146,9 +146,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	// Additional horizontal velocity data from an auxiliary sensor can be fused
 	controlAuxVelFusion(imu_delayed);
 #endif // CONFIG_EKF2_AUXVEL
-	//
+
 #if defined(CONFIG_EKF2_TERRAIN)
 	controlTerrainFakeFusion();
+	updateTerrainValidity();
 #endif // CONFIG_EKF2_TERRAIN
 
 	controlZeroInnovationHeadingUpdate();
