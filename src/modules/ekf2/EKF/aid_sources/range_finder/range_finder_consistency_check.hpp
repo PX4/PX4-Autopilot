@@ -58,15 +58,8 @@ public:
 	float getInnov() const { return _innov; }
 	float getInnovVar() const { return _innov_var; }
 
-	bool isKinematicallyConsistent() const
-	{
-		if (_fixed_wing) {
-			return _state != KinematicState::INCONSISTENT;
-		}
-
-		return _state == KinematicState::CONSISTENT;
-	}
-	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT; }
+	bool isKinematicallyConsistent() const { return _state == KinematicState::CONSISTENT; }
+	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT || _fixed_wing; }
 	void UpdateMiniKF(float z, float z_var, float vz, float vz_var, float dist_bottom, float dist_bottom_var,
 			  uint64_t time_us);
 	void initMiniKF(float p1, float p2, float x1, float x2);
@@ -107,7 +100,7 @@ private:
 	float _innov_var{};
 	uint64_t _time_last_update_us{0};
 	float _dist_bottom_prev{};
-	AlphaFilter<float> _test_ratio_lpf{0.3}; // average signed test ratio used to detect a bias in the data
+	AlphaFilter<float> _test_ratio_lpf{0.3};
 	float _gate{1.f};
 	int _sample_count{0};
 	KinematicState _state{KinematicState::UNKNOWN};
