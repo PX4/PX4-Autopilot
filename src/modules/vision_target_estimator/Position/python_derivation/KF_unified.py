@@ -97,9 +97,7 @@ class MState(sf.Matrix):
 class VMeas(sf.Matrix):
     SHAPE = (1, State.storage_dim())
 
-
 def get_Phi(dt: sf.Scalar) -> sf.Matrix:
-    n = State.storage_dim()
     Phi = sf.Matrix.zeros(State.storage_dim(), State.storage_dim())
 
     # Helper functions to set blocks in Phi matrix
