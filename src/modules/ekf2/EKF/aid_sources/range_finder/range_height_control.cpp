@@ -66,9 +66,6 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 
 			if (_control_status.flags.in_air) {
-				const bool horizontal_motion = _control_status.flags.fixed_wing
-							       || (sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f));
-				const bool vertical_motion = sq(_state.vel(2)) > fmaxf(P(State::vel.idx + 2, State::vel.idx + 2), 0.1f);
 
 				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
 				const float dist_var = sq(_params.range_noise) + dist_dependant_var;
@@ -78,7 +75,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 					if (!_rng_consistency_check.isRunning()) {
 						_rng_consistency_check.initMiniKF(P(State::pos.idx + 2, State::pos.idx + 2), P(State::terrain.idx, State::terrain.idx),
-										  _state.pos(2), _state.terrain);
+										  _state.pos(2), _state.pos(2) + _range_sensor.getRange());
 					}
 
 					_rng_consistency_check.UpdateMiniKF(_state.pos(2), P(State::pos.idx + 2, State::pos.idx + 2), _state.vel(2),
@@ -86,11 +83,10 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 				} else {
 					_rng_consistency_check.setFixedWing(false, _params.range_kin_consistency_gate);
+					const bool horizontal_motion = (sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f));
+					const bool vertical_motion = sq(_state.vel(2)) > fmaxf(P(State::vel.idx + 2, State::vel.idx + 2), 0.1f);
 
 					if (horizontal_motion) {
-						// if state 0: keep state 0
-						// if state 1: set to state 2
-						// if state 2: keep state 2
 						if (_rng_consistency_check.isRunning()) {
 							_rng_consistency_check.stopMiniKF();
 						}
@@ -98,7 +94,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					} else if (vertical_motion) {
 						if (!_rng_consistency_check.isRunning()) {
 							_rng_consistency_check.initMiniKF(P(State::pos.idx + 2, State::pos.idx + 2), P(State::terrain.idx, State::terrain.idx),
-											  _state.pos(2), _state.terrain);
+											  _state.pos(2), _state.pos(2) + _range_sensor.getRange());
 						}
 
 						_rng_consistency_check.UpdateMiniKF(_state.pos(2), P(State::pos.idx + 2, State::pos.idx + 2), _state.vel(2),
@@ -146,9 +142,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& isNewestSampleRecent(_time_last_range_buffer_push, 2 * estimator::sensor::RNG_MAX_INTERVAL)
-				&& _range_sensor.isRegularlySendingData()
-				&& _rng_consistency_check.isKinematicallyConsistent();
-
+				&& _range_sensor.isRegularlySendingData();
 
 		const bool do_conditional_range_aid = (_control_status.flags.rng_terrain || _control_status.flags.rng_hgt)
 						      && (_params.rng_ctrl == static_cast<int32_t>(RngCtrl::CONDITIONAL))
