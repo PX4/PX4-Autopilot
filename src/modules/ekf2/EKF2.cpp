@@ -1164,7 +1164,7 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 
 void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 {
-	if (_ekf.global_position_is_valid()) {
+	if (_ekf.global_origin_valid() && _ekf.control_status().flags.yaw_align) {
 		const Vector3f position{_ekf.getPosition()};
 
 		// generate and publish global position data
