@@ -79,7 +79,7 @@ static constexpr uint64_t MAG_MAX_INTERVAL      =
 
 // bad accelerometer detection and mitigation
 static constexpr uint64_t BADACC_PROBATION =
-	10e6; ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
+	3e6; ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
 static constexpr float BADACC_BIAS_PNOISE =
 	4.9f;  ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
 
