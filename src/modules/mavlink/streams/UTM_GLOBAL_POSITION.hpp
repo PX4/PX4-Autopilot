@@ -140,7 +140,7 @@ private:
 
 			bool vehicle_in_auto_mode = (vehicle_status.timestamp > 0)
 						    && (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET
-							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_LAND
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
 							|| vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER

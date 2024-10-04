@@ -43,7 +43,6 @@ struct Trajectory {
 /**
  * @class VelocitySmoothing
  *
- * TODO: document the algorithm
  *    |T1| T2 |T3|
  *     ___
  *   __| |____   __ Jerk

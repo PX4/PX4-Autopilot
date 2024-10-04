@@ -51,7 +51,7 @@ bool AirshipLandDetector::_get_ground_contact_state()
 bool AirshipLandDetector::_get_landed_state()
 {
 
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_LAND) {
 		return true; // If Landing has been requested then say we have landed.
 
 	} else {

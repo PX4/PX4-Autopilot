@@ -55,7 +55,7 @@ bool RoverLandDetector::_get_landed_state()
 	const float distance_to_home = get_distance_to_next_waypoint(_curr_pos(0), _curr_pos(1),
 				       _home_position(0), _home_position(1));
 
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_LAND
 	    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
 		return true; // If Landing has been requested then say we have landed.
 

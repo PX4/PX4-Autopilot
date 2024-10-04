@@ -79,7 +79,7 @@ void StatusDisplay::set_leds()
 	_led_control.led_mask = BOARD_REAR_LED_MASK;
 
 	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-	    || nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
+	    || nav_state == vehicle_status_s::NAVIGATION_STATE_LAND) {
 		_led_control.color = led_control_s::COLOR_PURPLE;
 
 	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL) {

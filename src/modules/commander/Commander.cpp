@@ -831,7 +831,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_LAND:
-							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_LAND;
 							break;
 
 						case PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET:
@@ -892,7 +892,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				// as emergency mode it is always available. When triggering it the user generally wants
 				// the vehicle to descend immediately, and if that means to switch to DESCEND it is fine.
 
-				const bool force = desired_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+				const bool force = desired_nav_state == vehicle_status_s::NAVIGATION_STATE_LAND;
 
 				if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd), false, force)) {
 					main_ret = TRANSITION_CHANGED;
@@ -1074,7 +1074,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			// the vehicle to descend immediately, and if that means to switch to DESCEND it is fine.
 			const bool force = true;
 
-			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND, getSourceFromCommand(cmd), false,
+			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_LAND, getSourceFromCommand(cmd), false,
 							force)) {
 				mavlink_log_info(&_mavlink_log_pub, "Landing at current position\t");
 				events::send(events::ID("commander_landing_current_pos"), events::Log::Info,
@@ -1082,7 +1082,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
-				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND);
+				printRejectMode(vehicle_status_s::NAVIGATION_STATE_LAND);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
