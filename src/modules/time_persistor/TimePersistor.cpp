@@ -37,7 +37,8 @@
 #include <px4_platform_common/log.h>
 
 TimePersistor::TimePersistor() :
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 }
 
@@ -46,80 +47,52 @@ TimePersistor::~TimePersistor()
 	fclose(_file);
 }
 
-int TimePersistor::init()
+void TimePersistor::start()
 {
-	if ((_file = fopen(TIME_FILE_PATH, "r+")) == nullptr) {
-		_file = fopen(TIME_FILE_PATH, "w+");
+	ScheduleOnInterval(1_s);
+}
+
+void TimePersistor::Run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup();
+		return;
 	}
 
 	if (!_file) {
-		PX4_ERR("error opening the time file");
-		return PX4_ERROR;
-	}
-
-	time_t t;
-
-	if (read_time(&t) == PX4_OK) {
-		struct timespec ts;
-		ts.tv_sec = t;
-		ts.tv_nsec = 0;
-
-		px4_clock_settime(CLOCK_REALTIME, &ts);
-		return PX4_OK;
-	}
-
-	return PX4_OK;
-}
-
-void TimePersistor::run()
-{
-	while (!should_exit()) {
-		struct timespec ts;
-		px4_clock_gettime(CLOCK_REALTIME, &ts);
-
-		if (write_time(ts.tv_sec) != PX4_OK) {
-			PX4_ERR("error writing RTC to time file");
+		if (init() != PX4_OK) {
+			ScheduleClear();
 			exit_and_cleanup();
+			return;
 		}
+	}
 
-		px4_usleep(1_s);
+	struct timespec ts;
+
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
+
+	if (write_time(ts.tv_sec) != PX4_OK) {
+		PX4_ERR("error writing RTC to time file");
+		exit_and_cleanup();
+		return;
 	}
 }
 
 int TimePersistor::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("time_persistor",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      2048,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
-
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
-	}
-
-	return 0;
-}
-
-TimePersistor *TimePersistor::instantiate(int argc, char *argv[])
-{
 	TimePersistor *instance = new TimePersistor();
 
-	if (instance) {
-		int status = instance->init();
-
-		if (status != PX4_OK) {
-			delete instance;
-			return nullptr;
-		}
-
-	} else {
+	if (!instance) {
 		PX4_ERR("alloc failed");
+		return PX4_ERROR;
 	}
 
-	return instance;
+	_object.store(instance);
+	_task_id = task_id_is_work_queue;
+
+	instance->start();
+	return PX4_OK;
 }
 
 int TimePersistor::custom_command(int argc, char *argv[])
@@ -152,6 +125,30 @@ Explicitly setting the time backwards (e.g. via system_time) is still possible.
 extern "C" __EXPORT int time_persistor_main(int argc, char *argv[])
 {
 	return TimePersistor::main(argc, argv);
+}
+
+int TimePersistor::init()
+{
+	if ((_file = fopen(TIME_FILE_PATH, "r+")) == nullptr) {
+		_file = fopen(TIME_FILE_PATH, "w+");
+	}
+
+	if (!_file) {
+		PX4_ERR("error opening the time file");
+		return PX4_ERROR;
+	}
+
+	time_t t;
+
+	if (read_time(&t) == PX4_OK) {
+		struct timespec ts;
+		ts.tv_sec = t;
+		ts.tv_nsec = 0;
+
+		px4_clock_settime(CLOCK_REALTIME, &ts);
+	}
+
+	return PX4_OK;
 }
 
 int TimePersistor::read_time(time_t *time)

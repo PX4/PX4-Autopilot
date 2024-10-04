@@ -35,13 +35,14 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/time.h>
 
 static constexpr const auto TIME_FILE_PATH = PX4_STORAGEDIR "/time_save.bin";
 
 using namespace time_literals;
 
-class TimePersistor : public ModuleBase<TimePersistor>, public ModuleParams
+class TimePersistor : public ModuleBase<TimePersistor>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	TimePersistor();
@@ -51,22 +52,20 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static TimePersistor *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
 	/** @see ModuleBase::run() */
-	void run() override;
+	void Run() override;
 
-	int init();
+	void start();
 
 private:
+	int init();
 	int read_time(time_t *time);
 	int write_time(const time_t time);
 
-	FILE *_file;
+	FILE *_file = 0;
 };

@@ -38,4 +38,6 @@ px4_add_module(
 	SRCS
 		TimePersistor.cpp
 		TimePersistor.hpp
+	DEPENDS
+		px4_work_queue
 	)
