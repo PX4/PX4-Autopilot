@@ -270,6 +270,8 @@ struct parameters {
 
 	int32_t imu_ctrl{static_cast<int32_t>(ImuCtrl::GyroBias) | static_cast<int32_t>(ImuCtrl::AccelBias)};
 
+	float velocity_limit{100.f};           ///< velocity state limit (m/s)
+
 	// measurement source control
 	int32_t height_sensor_ref{static_cast<int32_t>(HeightSensor::BARO)};
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
