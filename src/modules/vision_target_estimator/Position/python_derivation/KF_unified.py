@@ -77,7 +77,6 @@ class IdxDof():
         self.idx = idx
         self.dof = dof
 
-# TODO: remove dof, all dofs are one here.
 def BuildTangentStateIndex():
     tangent_state_index = {}
     idx = 0
@@ -98,37 +97,80 @@ class MState(sf.Matrix):
 class VMeas(sf.Matrix):
     SHAPE = (1, State.storage_dim())
 
-def get_Phi_G(dt: sf.Scalar) -> T.Tuple[sf.Matrix, sf.Matrix]:
+
+def get_Phi(dt: sf.Scalar) -> sf.Matrix:
+    n = State.storage_dim()
+    Phi = sf.Matrix.zeros(State.storage_dim(), State.storage_dim())
+
+    # Helper functions to set blocks in Phi matrix
+    def set_Phi_block(row_key, col_key, value):
+        idx_row = tangent_idx[row_key].idx
+        dof_row = tangent_idx[row_key].dof
+        idx_col = tangent_idx[col_key].idx
+        dof_col = tangent_idx[col_key].dof
+        if isinstance(value, sf.Matrix):
+            # Ensure the value matrix has the correct shape
+            assert value.shape == (dof_row, dof_col), "Value matrix shape mismatch"
+            Phi[idx_row:idx_row + dof_row, idx_col:idx_col + dof_col] = value
+        else:
+            # Scalar value; create a block matrix
+            block = value * sf.Matrix.eye(dof_row, dof_col)
+            Phi[idx_row:idx_row + dof_row, idx_col:idx_col + dof_col] = block
+
+    # Set the diagonal elements of Phi to 1
+    for key in State.keys_recursive():
+        idx = tangent_idx[key].idx
+        dof = tangent_idx[key].dof
+        for i in range(dof):
+            Phi[idx + i, idx + i] = 1
+
+    set_Phi_block('pos_rel', 'vel_uav', -dt)
+
     if moving:
-        Phi = sf.Matrix([
-            [1, -dt, 0, 0.5*dt*dt, dt],
-            [0, 1,  0, 0, 0],
-            [0, 0,  1, 0, 0],
-            [0, 0,  0, 1, 0],
-            [0, 0,  0, dt, 1],
-        ])
-        G = sf.Matrix([[-0.5*dt*dt], [dt], [0], [0], [0]])
-    else:
-        Phi = sf.Matrix([
-            [1, -dt, 0],
-            [0, 1,  0],
-            [0, 0,  1]
-        ])
-        G = sf.Matrix([[-0.5*dt*dt], [dt], [0]])
-    return Phi, G
+        # Update Phi with off-diagonal elements for the moving filter
+        set_Phi_block('pos_rel', 'acc_target', 0.5 * dt * dt)
+        set_Phi_block('pos_rel', 'vel_target', dt)
+        set_Phi_block('vel_target', 'acc_target', dt)
+
+    return Phi
+
+
+def get_G(dt: sf.Scalar) -> sf.Matrix:
+    G = sf.Matrix.zeros(State.storage_dim(), 1)
+
+    # Helper functions to set blocks in G matrix
+    def set_G_block(key, value):
+        idx = tangent_idx[key].idx
+        dof = tangent_idx[key].dof
+        if isinstance(value, sf.Matrix):
+            # Ensure the value vector has the correct shape
+            assert value.shape == (dof, 1), "Value vector shape mismatch"
+            G[idx:idx + dof, 0] = value
+        else:
+            # Scalar value; create a vector
+            block = sf.Matrix([value] * dof)
+            G[idx:idx + dof, 0] = block
+
+    # Update G with the process noise terms
+    set_G_block('pos_rel', -0.5 * dt * dt)
+    set_G_block('vel_uav', dt)
+
+    return G
 
 def predictState(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> VState:
-    Phi, G = get_Phi_G(dt)
+    Phi = get_Phi(dt)
+    G = get_G(dt)
     return Phi * state + G * acc
 
 def syncState(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> VState:
-    Phi, G = get_Phi_G(dt)
+    Phi = get_Phi(dt)
+    G = get_G(dt)
     return Phi.inv() * (state - G * acc)
 
 def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, acc_var: sf.Scalar, covariance: MState) -> MState:
-    Phi, G = get_Phi_G(dt)
-    n = State.storage_dim()
-    Q = sf.Matrix.zeros(n, n)
+    Phi = get_Phi(dt)
+    G = get_G(dt)
+    Q = sf.Matrix.zeros(State.storage_dim(), State.storage_dim())
 
     idx_bias = tangent_idx['bias'].idx
     Q[idx_bias, idx_bias] = bias_var
