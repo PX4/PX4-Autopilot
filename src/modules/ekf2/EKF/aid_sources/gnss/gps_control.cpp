@@ -204,7 +204,13 @@ void Ekf::updateGnssVel(const imuSample &imu_sample, const gnssSample &gnss_samp
 
 	// vz special case if there is bad vertical acceleration data, then don't reject measurement if GNSS reports velocity accuracy is acceptable,
 	// but limit innovation to prevent spikes that could destabilise the filter
-	if (aid_src.innovation_rejected && _fault_status.flags.bad_acc_vertical && (gnss_sample.sacc < _params.req_sacc)) {
+	bool bad_acc_vz_rejected = _fault_status.flags.bad_acc_vertical
+				   && (aid_src.test_ratio[2] > 1.f)                                   // vz rejected
+				   && (aid_src.test_ratio[0] < 1.f) && (aid_src.test_ratio[1] < 1.f); // vx & vy accepted
+
+	if (bad_acc_vz_rejected
+	    && (gnss_sample.sacc < _params.req_sacc)
+	   ) {
 		const float innov_limit = innovation_gate * sqrtf(aid_src.innovation_variance[2]);
 		aid_src.innovation[2] = math::constrain(aid_src.innovation[2], -innov_limit, innov_limit);
 		aid_src.innovation_rejected = false;
