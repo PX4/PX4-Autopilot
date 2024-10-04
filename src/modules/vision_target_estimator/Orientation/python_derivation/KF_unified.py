@@ -94,13 +94,34 @@ class MState(sf.Matrix):
 class VMeas(sf.Matrix):
     SHAPE = (1, State.storage_dim())
 
-def get_Phi(dt: sf.Scalar) -> T.Tuple[sf.Matrix, sf.Matrix]:
+def get_Phi(dt: sf.Scalar) -> sf.Matrix:
+    Phi = sf.Matrix.zeros(State.storage_dim(), State.storage_dim())
+
+    # Helper function to set blocks in the Phi matrix
+    def set_Phi_block(row_key, col_key, value):
+        idx_row = tangent_idx[row_key].idx
+        dof_row = tangent_idx[row_key].dof
+        idx_col = tangent_idx[col_key].idx
+        dof_col = tangent_idx[col_key].dof
+        if isinstance(value, sf.Matrix):
+            # Ensure the value matrix has the correct shape
+            assert value.shape == (dof_row, dof_col), "Value matrix shape mismatch"
+            Phi[idx_row:idx_row + dof_row, idx_col:idx_col + dof_col] = value
+        else:
+            # Scalar value; create a block matrix
+            block = value * sf.Matrix.eye(dof_row, dof_col)
+            Phi[idx_row:idx_row + dof_row, idx_col:idx_col + dof_col] = block
+
+    # Set the diagonal elements of Phi to 1
+    for key in State.keys_recursive():
+        idx = tangent_idx[key].idx
+        dof = tangent_idx[key].dof
+        for i in range(dof):
+            Phi[idx + i, idx + i] = 1
+
     if moving:
-        Phi = sf.Matrix([
-            [1, dt],
-            [0, 1]])
-    else:
-        Phi = sf.Matrix([[1]])
+        set_Phi_block('yaw', 'yaw_rate', dt)
+
     return Phi
 
 def predictState(dt: sf.Scalar, state: VState) -> VState:
