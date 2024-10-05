@@ -42,12 +42,21 @@ param set-default CA_ROTOR3_PX -0.0762
 param set-default CA_ROTOR3_PY 0.09525
 param set-default CA_ROTOR3_KM -0.05
 
+param set-default PWM_MAIN_FUNC1 102
+param set-default PWM_MAIN_FUNC2 103
+param set-default PWM_MAIN_FUNC3 104
+param set-default PWM_MAIN_FUNC4 101
+
+param set-default PWM_MAIN_TIM0 -3
+param set-default DSHOT_TEL_CFG 104
+
 param set-default EKF2_MIN_RNG 0.01
 param set-default EKF2_OF_POS_X 0.043
 param set-default EKF2_OF_POS_Y 0.011
 param set-default EKF2_OF_QMIN_GND 1
 param set-default EKF2_RNG_POS_X 0.043
 param set-default EKF2_RNG_POS_Y 0.0
+param set-default EKF2_RNG_A_HMAX 25.0
 
 param set-default IMU_GYRO_DNF_EN 2
 
