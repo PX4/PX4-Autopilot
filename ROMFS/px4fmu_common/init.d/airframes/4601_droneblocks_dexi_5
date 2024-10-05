@@ -87,3 +87,9 @@ param set-default SENS_FLOW_MINHGT 0.0
 param set-default SER_TEL2_BAUD 3000000
 
 param set-default UXRCE_DDS_CFG 102
+
+param set-default EKF2_HGT_REF 2
+
+# I saw a very sketchy extreme yaw setpoint that I cant explain
+# https://review.px4.io/plot_app?log=4b69399f-b001-4dc2-acd5-e779fe266799
+param set-default MC_YAWRATE_MAX 100
