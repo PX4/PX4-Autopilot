@@ -91,5 +91,5 @@ param set-default PWM_MAIN_FUNC8 202	# Canal de entrada do servomotor 1
 #param set-default PWM_MAIN_FUNC9 422
 
 # Landing gear (pernas do hexacoptero)
+param set-default PWM_MAIN_FUNC9 400
 param set-default PWM_MAIN_FUNC10 400
-param set-default PWM_MAIN_FUNC11 400

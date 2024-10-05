@@ -1,45 +1,5 @@
-/****************************************************************************
- *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
-
-/**
- * @file ControlAllocator.cpp
- *
- * Control allocator.
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
- */
-
 #include "ControlAllocator.hpp"
+#include "ControlAllocation.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <circuit_breaker/circuit_breaker.h>
@@ -48,12 +8,7 @@
 #include <iostream>
 #include <cmath>
 #include <unistd.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <matrix/math.hpp>
-#include <mathlib/mathlib.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -68,6 +23,7 @@ ControlAllocator::ControlAllocator() :
 	_control_allocator_status_pub[1].advertise();
 
 	_actuator_motors_pub.advertise();
+	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
 
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
@@ -305,6 +261,205 @@ ControlAllocator::update_effectiveness_source()
 	return false;
 }
 
+#include <matrix/math.hpp>
+#include <fstream>
+
+// Set the PWM to motors
+void ControlAllocator::setPWM(int motor_index, float actuator_sp) {
+	actuator_motors_s actuator_motors;
+	_actuator_motors_pub.advertise();
+
+	actuator_motors.control[motor_index] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
+	_actuator_motors_pub.publish(actuator_motors);
+	actuator_motors.timestamp = hrt_absolute_time();
+
+}
+
+// Set the angle of a servo
+void ControlAllocator::setServoAngle(int servo_index, float angle) {
+	actuator_servos_s actuator_servos;
+	_actuator_servos_pub.advertise();
+
+	const float servo_angle_limit = 0.52f;
+
+	actuator_servos.control[servo_index] = PX4_ISFINITE(angle) ? angle : NAN;
+
+	if (servo_index >= 0 && servo_index < actuator_servos_s::NUM_CONTROLS) {
+
+		// Limit the servo angle to 45 degrees in both directions
+		if (angle > servo_angle_limit) {
+			angle = servo_angle_limit;
+		} else if (angle < -servo_angle_limit) {
+			angle = -servo_angle_limit;
+		}
+
+		actuator_servos.control[servo_index] = angle;
+		actuator_servos.timestamp = hrt_absolute_time();
+	}
+
+	// Publish the new servo angle
+	_actuator_servos_pub.publish(actuator_servos);
+
+}
+
+matrix::Matrix<float, 6, 2> pseudoInverse(const matrix::Matrix<float, 2, 6>& mat) {
+    matrix::Matrix<float, 6, 2> mat_T = mat.transpose();
+    matrix::SquareMatrix<float, 2> mat_T_mat = mat * mat_T;
+    matrix::SquareMatrix<float, 2> mat_T_mat_inv = mat_T_mat.I(); // Inversa de mat_T * mat
+
+    return mat_T * mat_T_mat_inv;
+}
+
+matrix::Matrix<float, 6, 5> pseudoInverse2(const matrix::Matrix<float, 5, 6>& mat) {
+    matrix::Matrix<float, 6, 5> mat_T = mat.transpose();
+    matrix::SquareMatrix<float, 5> mat_T_mat = mat * mat_T;
+    matrix::SquareMatrix<float, 5> mat_T_mat_inv = mat_T_mat.I(); // Inversa de mat_T * mat
+
+    return mat_T * mat_T_mat_inv;
+}
+
+
+void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>& torques, matrix::Vector<float, 16> actuator_sp) {
+	// Inicializar variáveis necessárias
+	float IN_ANGLE_1 = math::degrees((actuator_sp)(6));
+	float IN_ANGLE_2 = math::degrees((actuator_sp)(7));
+
+	float ag1_c = std::cos(IN_ANGLE_1);
+	float ag2_c = std::cos(IN_ANGLE_2);
+
+	float f1 = 0.5f;
+	float f2 = std::sqrt(3.0f) / 2.0f;
+
+	float k1 = 9.81f;
+	float k2 = k1 / 100.0f;
+	float l = 0.25f;
+
+	matrix::Vector<float, 2> SEN;
+	matrix::Vector<float, 6> OUT2;
+
+	// Verificar se todos os elementos de actuator_sp são zero
+	bool all_actuators_zero = true;
+	const float epsilon = 1e-6; // Tolerância para comparação de ponto flutuante
+	for (int i = 0; i < 6; ++i) {
+		if (std::fabs((actuator_sp)(i)) > epsilon) {
+		all_actuators_zero = false;
+		break;
+		}
+	}
+
+	if (!all_actuators_zero) {
+		matrix::Matrix<float, 2, 6> M_TiltQuad2;
+		M_TiltQuad2(0, 0) = k1 * (actuator_sp)(0);
+		M_TiltQuad2(0, 1) = k1 * (actuator_sp)(1);
+		M_TiltQuad2(0, 2) = 0;
+		M_TiltQuad2(0, 3) = 0;
+		M_TiltQuad2(0, 4) = 0;
+		M_TiltQuad2(0, 5) = 0;
+
+		M_TiltQuad2(1, 0) = -k1 * (actuator_sp)(0) * l;
+		M_TiltQuad2(1, 1) = k1 * (actuator_sp)(1) * l;
+		M_TiltQuad2(1, 2) = -k2 * (actuator_sp)(2) + k2 * (actuator_sp)(3) + k2 * (actuator_sp)(4) - k2 * (actuator_sp)(5) - k2 * (actuator_sp)(0) * ag1_c + k2 * (actuator_sp)(1) * ag2_c;
+		M_TiltQuad2(1, 3) = 0;
+		M_TiltQuad2(1, 4) = 0;
+		M_TiltQuad2(1, 5) = 0;
+
+		matrix::Matrix<float, 6, 2> M_Inv_TQuad2 = pseudoInverse(M_TiltQuad2);
+		matrix::Vector<float, 2> torques_subset;
+
+		torques_subset(0) = torques(0);
+		torques_subset(1) = torques(5);
+
+		matrix::Matrix<float, 6, 1> ARCSEN_matrix = M_Inv_TQuad2 * torques_subset;
+		matrix::Vector<float, 2> ARCSEN;
+
+		ARCSEN(0) = ARCSEN_matrix(0, 0);
+		ARCSEN(1) = ARCSEN_matrix(1, 0);
+		SEN(0) = std::asin(ARCSEN(0));
+		SEN(1) = std::asin(ARCSEN(1));
+	}
+
+	ag1_c = std::cos(SEN(0));
+	ag2_c = std::cos(SEN(1));
+	float ag1_s = std::sin(SEN(0));
+	float ag2_s = std::sin(SEN(1));
+
+	matrix::Matrix<float, 5, 6> M_TiltQuad1;
+	M_TiltQuad1(0, 0) = k1 * ag1_s;
+	M_TiltQuad1(0, 1) = k1 * ag2_s;
+	M_TiltQuad1(0, 2) = 0;
+	M_TiltQuad1(0, 3) = 0;
+	M_TiltQuad1(0, 4) = 0;
+	M_TiltQuad1(0, 5) = 0;
+
+	M_TiltQuad1(1, 0) = k1 * ag1_c;
+	M_TiltQuad1(1, 1) = k1 * ag2_c;
+	M_TiltQuad1(1, 2) = k1;
+	M_TiltQuad1(1, 3) = k1;
+	M_TiltQuad1(1, 4) = k1;
+	M_TiltQuad1(1, 5) = k1;
+
+	M_TiltQuad1(2, 0) = -k1 * ag1_c * l + k2 * ag1_s;
+	M_TiltQuad1(2, 1) = k1 * ag2_c * l - k2 * ag2_s;
+	M_TiltQuad1(2, 2) = k1 * l * f1;
+	M_TiltQuad1(2, 3) = -k1 * l * f1;
+	M_TiltQuad1(2, 4) = -k1 * l * f1;
+	M_TiltQuad1(2, 5) = k1 * l * f1;
+
+	M_TiltQuad1(3, 0) = 0;
+	M_TiltQuad1(3, 1) = 0;
+	M_TiltQuad1(3, 2) = k1 * l * f2;
+	M_TiltQuad1(3, 3) = -k1 * l * f2;
+	M_TiltQuad1(3, 4) = k1 * l * f2;
+	M_TiltQuad1(3, 5) = -k1 * l * f2;
+
+	M_TiltQuad1(4, 0) = -k1 * ag1_s * l - k2 * ag1_c;
+	M_TiltQuad1(4, 1) = k1 * ag2_s * l + k2 * ag2_c;
+	M_TiltQuad1(4, 2) = -k2;
+	M_TiltQuad1(4, 3) = k2;
+	M_TiltQuad1(4, 4) = k2;
+	M_TiltQuad1(4, 5) = -k2;
+
+	matrix::Matrix<float, 6, 5> M_Inv_TQuad1 = pseudoInverse2(M_TiltQuad1);
+	matrix::Vector<float, 5> torques_subset;
+
+	torques_subset(0) = torques(0);
+	torques_subset(1) = torques(2);
+	torques_subset(2) = torques(3);
+	torques_subset(3) = torques(4);
+	torques_subset(4) = torques(5);
+
+	OUT2 = M_Inv_TQuad1 * torques_subset;
+
+	//PX4_INFO("OUT2: %f %f %f %f %f %f", (double)OUT2(0), (double)OUT2(1), (double)OUT2(2), (double)OUT2(3), (double)OUT2(4), (double)OUT2(5));
+
+	// Verificar se OUT2 contém valores válidos
+	for (int i = 0; i < 6; ++i) {
+		if (std::isnan(OUT2(i)) || OUT2(i) < -1.0f || OUT2(i) > 1.0f) {
+		OUT2(i) = 0.0f;
+		}
+	}
+
+	setPWM(0, OUT2(0));
+	setPWM(1, OUT2(1));
+	setPWM(2, -2.0f*OUT2(2));
+	setPWM(3, -2.0f*OUT2(3));
+	setPWM(4, -2.0f*OUT2(4));
+	setPWM(5, -2.0f*OUT2(5));
+
+	// Atualizar os valores dos atuadores
+	for (int i = 0; i < 6; ++i) {
+		(actuator_sp)(i) = OUT2(i);
+	}
+
+	// Atualizar os ângulos de inclinação
+	//(actuator_sp)(6) = SEN(0);
+	//(actuator_sp)(7) = SEN(0);
+
+	//PX4_INFO("SEN: %f %f", (double)math::degrees(SEN(0)), (double)math::degrees(SEN(1)));
+	//setServoAngle(0, 2.0f*SEN(0));
+	//setServoAngle(1, -2.0f*SEN(1));
+}
+
 void
 ControlAllocator::Run()
 {
@@ -442,17 +597,26 @@ ControlAllocator::Run()
 
 			_control_allocation[i]->setControlSetpoint(c[i]);
 
-			// Do allocation
+			// Allocate actuator setpoint
 			_control_allocation[i]->allocate();
-			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
-			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
-								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
 
-			if (_has_slew_rate) {
-				_control_allocation[i]->applySlewRateLimit(dt);
-			}
+			// Retrieve actuator setpoint
+			matrix::Vector<float, 16> actuator_sp = _control_allocation[i]->getActuatorSetpoint();
 
-			_control_allocation[i]->clipActuatorSetpoint();
+			// Apply the new allocation matrix
+			HexacopterTiltedAllocation(c[i], actuator_sp);
+
+			// Do allocation
+			//_control_allocation[i]->allocate();
+			//_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
+			//_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
+			//					_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
+
+			//if (_has_slew_rate) {
+			//	_control_allocation[i]->applySlewRateLimit(dt);
+			//}
+
+			//_control_allocation[i]->clipActuatorSetpoint();
 		}
 	}
 
@@ -660,34 +824,6 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 
 }
 
-// Function to verify altitude in meters
-bool verify_alt(float desired_altitude) {
-    // Subscribe to the vehicle_local_position topic
-    int vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-
-    // Verify if the subscription was successful
-    if (vehicle_local_position_sub < 0) {
-        //PX4_WARN("Failed to copy vehicle_local_position data");
-        return false;
-    }
-
-    // Variable to store the vehicle_local_position data
-    vehicle_local_position_s vehicle_local_position;
-
-    // Update the vehicle_local_position data
-    if (orb_copy(ORB_ID(vehicle_local_position), vehicle_local_position_sub, &vehicle_local_position) != PX4_OK) {
-        //PX4_WARN("Failed to copy vehicle_local_position data");
-        orb_unsubscribe(vehicle_local_position_sub);
-        return false;
-    }
-
-    // Close the subscription
-    orb_unsubscribe(vehicle_local_position_sub);
-
-    // Verify if the altitude is less than or equal to the desired altitude
-    return vehicle_local_position.z <= desired_altitude;
-}
-
 // Publish PWM in motors
 void
 ControlAllocator::publish_actuator_controls()
@@ -727,7 +863,6 @@ ControlAllocator::publish_actuator_controls()
 		actuator_motors.control[i] = NAN;
 	}
 
-	//process_attitude_data();
 	_actuator_motors_pub.publish(actuator_motors);
 }
 

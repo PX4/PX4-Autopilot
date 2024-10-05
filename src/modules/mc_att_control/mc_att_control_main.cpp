@@ -49,6 +49,9 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 #include <matrix/math.hpp>
+#include <mathlib/mathlib.h>
+#include <fstream>
+
 #include "AttitudeControl/AttitudeControlMath.hpp"
 
 using namespace matrix;
@@ -154,7 +157,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 
 	// we want to fly towards the direction of (roll, pitch)
 	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),
-			      0.0f);
+			      -_man_pitch_input_filter.update(_manual_control_setpoint.pitch * _man_tilt_max));
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
 
 	if (v_norm > _man_tilt_max) { // limit to the configured maximum tilt angle
@@ -188,42 +191,18 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 }
 
-//Set pitch setpoint
-void MulticopterAttitudeControl::setPitchSetpoint(const Quatf &q, float desired_pitch) {
-    vehicle_attitude_setpoint_s attitude_setpoint{};
-
-    // Converter o quaternion para ângulos de Euler
-    matrix::Eulerf euler_angles(q);
-
-    // Ajustar o componente de pitch para o valor desejado
-    euler_angles.theta() = desired_pitch;
-
-    // Converter os ângulos de Euler de volta para um quaternion
-    matrix::Quatf qd(euler_angles);
-
-    // Atualizar a estrutura attitude_setpoint com o novo quaternion
-    qd.copyTo(attitude_setpoint.q_d);
-
-    // Definir outros campos necessários na estrutura attitude_setpoint
-    attitude_setpoint.timestamp = hrt_absolute_time();
-    attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.throttle);
-
-    // Publicar o setpoint de atitude
-    _vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
-}
-
 // Set the angle of a servo
 void MulticopterAttitudeControl::setServoAngle(int servo_index, float angle) {
 	actuator_servos_s actuator_servos;
 	_actuator_servos_pub.advertise();
 
-	const float servo_angle_limit = 0.52f;
-
 	actuator_servos.control[servo_index] = PX4_ISFINITE(angle) ? angle : NAN;
+	const float servo_angle_limit = 0.77f;
 
 	if (servo_index >= 0 && servo_index < actuator_servos_s::NUM_CONTROLS) {
+		actuator_servos.timestamp = hrt_absolute_time();
 
-		// Limit the servo angle to 45 degrees in both directions
+		// Limit the servo angle to defined limit
 		if (angle > servo_angle_limit) {
 			angle = servo_angle_limit;
 		} else if (angle < -servo_angle_limit) {
@@ -231,19 +210,14 @@ void MulticopterAttitudeControl::setServoAngle(int servo_index, float angle) {
 		}
 
 		actuator_servos.control[servo_index] = angle;
-		actuator_servos.timestamp = hrt_absolute_time();
-
-		float servo_angle_deg = math::degrees(angle);
+		//float servo_angle_deg = math::degrees(angle);
 
 		// Show servo angle
-		//PX4_INFO("Servo angle: %f", (double)actuator_servos.control[servo_index]);
-		PX4_INFO("Servo angle: %f", (double)servo_angle_deg);
-		//PX4_INFO("Servo timestamp: %f", (double)actuator_servos.timestamp);
+		PX4_INFO("Servo angle: %f", (double)actuator_servos.control[servo_index]);
 	}
 
 	// Publish the new servo angle
 	_actuator_servos_pub.publish(actuator_servos);
-
 }
 
 void
@@ -269,6 +243,7 @@ MulticopterAttitudeControl::Run()
 
 	// run controller on attitude updates
 	vehicle_attitude_s v_att;
+
 	if (_vehicle_attitude_sub.update(&v_att)) {
 
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
@@ -352,10 +327,6 @@ MulticopterAttitudeControl::Run()
 					_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
 					_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
 					_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
-
-					//PX4_INFO("Pitch: %f", (double)Eulerf(q).theta());
-					float pitch_angle_deg = math::degrees(Eulerf(q).theta());
-					PX4_INFO("Pitch: %f", (double)pitch_angle_deg);
 				}
 			}
 

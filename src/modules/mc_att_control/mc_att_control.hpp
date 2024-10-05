@@ -99,7 +99,6 @@ private:
 	void generate_attitude_setpoint(const matrix::Quatf &q, float dt, bool reset_yaw_sp);
 
 	void setServoAngle(int servo_index, float angle);
-	void setPitchSetpoint(const matrix::Quatf &q, float desired_pitch);
 
 	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
 	AttitudeControl _attitude_control; /**< class for attitude control calculations */
@@ -118,7 +117,6 @@ private:
 
 	uORB::Publication<vehicle_rates_setpoint_s>     _vehicle_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};    /**< rate setpoint publication */
 	uORB::Publication<vehicle_attitude_setpoint_s>  _vehicle_attitude_setpoint_pub;
-
 
 	manual_control_setpoint_s       _manual_control_setpoint {};    /**< manual control setpoint */
 	vehicle_control_mode_s          _vehicle_control_mode {};       /**< vehicle control mode */

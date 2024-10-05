@@ -135,5 +135,6 @@
         ],
         "python.analysis.extraPaths": [
                 "/opt/ros/noetic/lib/python3/dist-packages"
-        ]
+        ],
+        "C_Cpp.errorSquiggles": "disabled"
 }
