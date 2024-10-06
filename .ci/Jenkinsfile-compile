@@ -36,6 +36,8 @@ pipeline {
           def nuttx_builds_archive = [
             target: [
                      "3dr_ctrl-zero-h7-oem-revg_default",
+                     "agam_can-gps_canbootloader",
+                     "agam_can-gps_default",
                      "airmind_mindpx-v2_default",
                      "ark_can-flow_canbootloader",
                      "ark_can-flow_default",
