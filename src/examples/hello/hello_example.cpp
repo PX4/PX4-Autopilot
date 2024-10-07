@@ -52,7 +52,7 @@ int HelloExample::main()
 
 	int i = 0;
 
-	while (!appState.exitRequested() && i < 5) {
+	while (appState.isRunning() && i < 5) {
 		px4_sleep(2);
 
 		printf("  Doing work...\n");
