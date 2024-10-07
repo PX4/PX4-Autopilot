@@ -207,6 +207,11 @@ void VehicleAcceleration::ParametersUpdate(bool force)
 	}
 }
 
+matrix::Vector3f VehicleAcceleration::getLastAccel()
+{
+	return _acceleration_prev;
+}
+
 void VehicleAcceleration::Run()
 {
 	// backup schedule
