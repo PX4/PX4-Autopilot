@@ -253,6 +253,8 @@
 
 #define DRV_INS_DEVTYPE_ILABS           0xE9
 
+#define DRV_INS_DEVTYPE_MS 		0xEA
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
