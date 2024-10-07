@@ -208,20 +208,21 @@ void FlightModeManager::start_flight_task()
 		found_some_task = true;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		switch (_param_mpc_pos_mode.get()) {
-		case 0:
+		switch (Manual_Position_control_sub_mode(_param_mpc_pos_mode.get())) {
+		case Manual_Position_control_sub_mode::Simple_position_control:
 			error = switchTask(FlightTaskIndex::ManualPosition);
 			break;
 
-		case 3:
+		case Manual_Position_control_sub_mode::Smooth_position_control:
 			error = switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
-		case 4:
+		case Manual_Position_control_sub_mode::Acceleration_based_input:
 		default:
-			if (_param_mpc_pos_mode.get() != 4) {
+			if (Manual_Position_control_sub_mode(_param_mpc_pos_mode.get()) !=
+			    Manual_Position_control_sub_mode::Acceleration_based_input) {
 				PX4_ERR("MPC_POS_MODE %" PRId32 " invalid, resetting", _param_mpc_pos_mode.get());
-				_param_mpc_pos_mode.set(4);
+				_param_mpc_pos_mode.set(int32_t(Manual_Position_control_sub_mode::Acceleration_based_input));
 				_param_mpc_pos_mode.commit();
 			}
 
@@ -238,12 +239,12 @@ void FlightModeManager::start_flight_task()
 		found_some_task = true;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		switch (_param_mpc_pos_mode.get()) {
-		case 0:
+		switch (Manual_Position_control_sub_mode(_param_mpc_pos_mode.get())) {
+		case Manual_Position_control_sub_mode::Simple_position_control:
 			error = switchTask(FlightTaskIndex::ManualAltitude);
 			break;
 
-		case 3:
+		case Manual_Position_control_sub_mode::Smooth_position_control:
 		default:
 			error = switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
 			break;
