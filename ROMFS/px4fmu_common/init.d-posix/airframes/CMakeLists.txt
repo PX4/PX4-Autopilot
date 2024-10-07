@@ -88,6 +88,12 @@ px4_add_romfs_files(
 	4014_gz_x500_mono_cam_down
 	4015_gz_r1_rover_mecanum
 
+	5001_xplane_cessna172
+	5002_xplane_tb2
+	5010_xplane_ehang184
+	5020_xplane_alia250
+	5021_xplane_qtailsitter
+
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
 
