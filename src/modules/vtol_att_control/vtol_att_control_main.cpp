@@ -369,6 +369,18 @@ VtolAttitudeControl::Run()
 		// check if mc and fw sp were updated
 		const bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
 		const bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
+		const bool fw_att_ref_sp_updated = _fw_virtual_att_ref_sp_sub.update(&_fw_virtual_att_ref_sp);
+
+		if (fw_att_sp_updated) {
+			_is_in_att_ref_mode = false;
+
+		} else if (fw_att_ref_sp_updated) {
+			_is_in_att_ref_mode = true;
+		}
+
+		if (_is_in_att_ref_mode) {
+			_fw_virtual_att_sp = _fw_virtual_att_ref_sp;
+		}
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
@@ -415,6 +427,10 @@ VtolAttitudeControl::Run()
 			if (fw_att_sp_updated) {
 				_vtol_type->update_fw_state();
 				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
+
+			} else if (fw_att_ref_sp_updated) {
+				_vtol_type->update_fw_state();
+				_vehicle_attitude_ref_sp_pub.publish(_vehicle_attitude_sp);
 			}
 
 			break;
