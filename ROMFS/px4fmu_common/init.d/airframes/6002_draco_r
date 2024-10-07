@@ -121,3 +121,5 @@ param set-default PWM_MAIN_FUNC6 106
 param set-default PWM_MAIN_TIM0 -1
 param set-default PWM_MAIN_TIM1 -1
 param set-default PWM_MAIN_TIM2 -1
+
+param set-default NAV_USE_WP_RAD 1

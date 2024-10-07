@@ -57,7 +57,7 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 80.0f);
 /**
  * Acceptance Radius
  *
- * Default acceptance radius, overridden by acceptance radius of waypoint if set.
+ * Default acceptance radius, can be overridden by acceptance radius of waypoint if NAV_USE_WP_ACC_RAD is enabled.
  * For fixed wing the npfg switch distance is used for horizontal acceptance.
  *
  * @unit m
@@ -68,6 +68,16 @@ PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 80.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
+
+/**
+ * Use Waypoint Acceptance Radius
+ *
+ * Use the waypoint acceptance radius if it is bigger than the default acceptance radius defined by NAV_ACC_RAD.
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_USE_WP_RAD, 0);
 
 /**
  * FW Altitude Acceptance Radius
