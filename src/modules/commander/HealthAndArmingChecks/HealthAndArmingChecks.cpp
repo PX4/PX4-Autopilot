@@ -50,11 +50,13 @@ HealthAndArmingChecks::HealthAndArmingChecks(ModuleParams *parent, vehicle_statu
 	_failsafe_flags.home_position_invalid = true;
 }
 
-bool HealthAndArmingChecks::update(bool force_reporting)
+bool HealthAndArmingChecks::update(bool force_reporting, bool is_arming_request)
 {
 	_reporter.reset();
 
 	_reporter.prepare(_context.status().vehicle_type);
+
+	_context.setIsArmingRequest(is_arming_request);
 
 	for (unsigned i = 0; i < sizeof(_checks) / sizeof(_checks[0]); ++i) {
 		if (!_checks[i]) {

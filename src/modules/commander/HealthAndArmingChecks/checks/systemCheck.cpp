@@ -173,7 +173,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// Arm Requirements: authorization
-	if (_param_com_arm_auth_req.get() != 0 && !context.isArmed()) {
+	if (_param_com_arm_auth_req.get() != 0 && !context.isArmed() && context.isArmingRequest()) {
 		if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
 			/* EVENT
 			 */
