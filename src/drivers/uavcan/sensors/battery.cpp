@@ -230,10 +230,12 @@ void
 UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg,
 				uint8_t instance)
 {
-	_battery[instance]->setConnected(true);
-	_battery[instance]->updateVoltage(msg.voltage);
-	_battery[instance]->updateCurrent(msg.current);
-	_battery[instance]->updateBatteryStatus(hrt_absolute_time());
+	Battery::InputSample sample {
+		.timestamp = hrt_absolute_time(),
+		.voltage_v = msg.voltage,
+		.current_a = msg.current
+	};
+	_battery[instance]->updateBatteryStatus(sample);
 
 	/* Override data that is expected to arrive from UAVCAN msg*/
 	_battery_status[instance] = _battery[instance]->getBatteryStatus();

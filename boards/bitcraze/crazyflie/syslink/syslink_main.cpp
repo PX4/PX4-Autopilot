@@ -402,11 +402,12 @@ Syslink::handle_message(syslink_message_t *msg)
 
 		float vbat; //, iset;
 		memcpy(&vbat, &msg->data[1], sizeof(float));
-		//memcpy(&iset, &msg->data[5], sizeof(float));
 
-		_battery.setConnected(true);
-		_battery.updateVoltage(vbat);
-		_battery.updateAndPublishBatteryStatus(t);
+		Battery::InputSample sample{
+			.timestamp = t,
+			.voltage_v = vbat,
+		};
+		_battery.updateAndPublishBatteryStatus(sample);
 
 		// Update battery charge state
 		if (charging) {

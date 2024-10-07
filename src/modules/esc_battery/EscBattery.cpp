@@ -101,10 +101,13 @@ EscBattery::Run()
 
 		average_voltage_v /= online_esc_count;
 
-		_battery.setConnected(true);
-		_battery.updateVoltage(average_voltage_v);
-		_battery.updateCurrent(total_current_a);
-		_battery.updateAndPublishBatteryStatus(esc_status.timestamp);
+		Battery::InputSample sample {
+			.timestamp = esc_status.timestamp,
+			.voltage_v = average_voltage_v,
+			.current_a = total_current_a
+		};
+
+		_battery.updateAndPublishBatteryStatus(sample);
 	}
 }
 

@@ -79,10 +79,16 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 	const bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			       (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
-	Battery::setConnected(connected);
-	Battery::updateVoltage(voltage_v);
-	Battery::updateCurrent(current_a);
-	Battery::updateAndPublishBatteryStatus(timestamp);
+	Battery::InputSample sample{
+		.timestamp = timestamp,
+	};
+
+	if (connected) {
+		sample.voltage_v = voltage_v;
+		sample.current_a = current_a;
+	}
+
+	Battery::updateAndPublishBatteryStatus(sample);
 }
 
 bool AnalogBattery::is_valid()
