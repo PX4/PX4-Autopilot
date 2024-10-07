@@ -48,6 +48,7 @@
 
 __BEGIN_DECLS
 
+// 결국 16이구만
 #define PWM_OUTPUT_MAX_CHANNELS 16
 
 /* Use defaults unless the board override the defaults by providing

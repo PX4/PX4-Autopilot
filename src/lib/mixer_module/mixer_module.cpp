@@ -402,6 +402,7 @@ void MixingOutput::unregister()
 	}
 }
 
+// 여기가 핵심이라고한다.
 bool MixingOutput::update()
 {
 	// check arming state
@@ -433,7 +434,7 @@ bool MixingOutput::update()
 	_actuator_test.update(_max_num_outputs, _param_thr_mdl_fac.get());
 
 	// get output values
-	float outputs[MAX_ACTUATORS];
+	float outputs[MAX_ACTUATORS]; // MAX_ACTUATORS은 16이다
 	bool all_disabled = true;
 	_reversible_mask = 0;
 
@@ -511,6 +512,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		}
 	}
 
+	// 음... 근데 Roboclaw.hpp에서는 오버라이드를 했으니 이거는 안쓰는건가?? 음.. 그건 아니라고한다.
 	/* now return the outputs to the driver */
 	if (_interface.updateOutputs(stop_motors, _current_output_value, _max_num_outputs, has_updates)) {
 		actuator_outputs_s actuator_outputs{};
