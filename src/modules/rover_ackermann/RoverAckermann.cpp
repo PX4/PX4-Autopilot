@@ -113,8 +113,8 @@ void RoverAckermann::Run()
 				rover_ackermann_setpoint.forward_speed_setpoint_normalized = NAN;
 				rover_ackermann_setpoint.steering_setpoint = NAN;
 				rover_ackermann_setpoint.steering_setpoint_normalized = NAN;
-				rover_ackermann_setpoint.lateral_acceleration_setpoint = math::interpolate(manual_control_setpoint.roll, -1.f, 1.f,
-						-_param_ra_max_lat_accel.get(), _param_ra_max_lat_accel.get());
+				rover_ackermann_setpoint.lateral_acceleration_setpoint = math::interpolate(math::deadzone(manual_control_setpoint.roll,
+						STICK_DEADZONE), -1.f, 1.f, -_param_ra_max_lat_accel.get(), _param_ra_max_lat_accel.get());
 
 				if (fabsf(rover_ackermann_setpoint.lateral_acceleration_setpoint) > FLT_EPSILON
 				    || fabsf(rover_ackermann_setpoint.forward_speed_setpoint) < FLT_EPSILON) { // Closed loop yaw rate control
@@ -138,7 +138,7 @@ void RoverAckermann::Run()
 									target_waypoint_ned, _pos_ctl_start_position_ned, _curr_pos_ned, _param_ra_wheel_base.get(),
 									rover_ackermann_setpoint.forward_speed_setpoint, _vehicle_yaw, _param_ra_max_steer_angle.get(), _armed);
 					rover_ackermann_setpoint.lateral_acceleration_setpoint = powf(_vehicle_forward_speed,
-							2.f) * sinf(steering_setpoint) / _param_ra_wheel_base.get();
+							2.f) * tanf(steering_setpoint) / _param_ra_wheel_base.get();
 				}
 
 				_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);

@@ -47,7 +47,7 @@ RoverAckermannGuidance::RoverAckermannGuidance(ModuleParams *parent) : ModulePar
 void RoverAckermannGuidance::updateParams()
 {
 	ModuleParams::updateParams();
-	_min_speed = sqrt(_param_ra_wheel_base.get() * _param_ra_max_lat_accel.get() / sinf(_param_ra_max_steer_angle.get()));
+	_min_speed = sqrt(_param_ra_wheel_base.get() * _param_ra_max_lat_accel.get() / tanf(_param_ra_max_steer_angle.get()));
 }
 
 void RoverAckermannGuidance::computeGuidance(const float vehicle_forward_speed,
@@ -99,7 +99,7 @@ void RoverAckermannGuidance::computeGuidance(const float vehicle_forward_speed,
 	rover_ackermann_setpoint.steering_setpoint = NAN;
 	rover_ackermann_setpoint.steering_setpoint_normalized = NAN;
 	rover_ackermann_setpoint.lateral_acceleration_setpoint = powf(vehicle_forward_speed,
-			2.f) * sinf(_desired_steering) / _param_ra_wheel_base.get();
+			2.f) * tanf(_desired_steering) / _param_ra_wheel_base.get();
 	_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);
 
 }

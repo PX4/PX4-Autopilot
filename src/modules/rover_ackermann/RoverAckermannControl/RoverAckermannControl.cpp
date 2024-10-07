@@ -111,9 +111,9 @@ void RoverAckermannControl::computeMotorCommands(const float vehicle_forward_spe
 		}
 
 		if (fabsf(vehicle_forward_speed_temp) > FLT_EPSILON) {
-			float steering_setpoint = asinf(math::constrain(_param_ra_wheel_base.get() *
+			float steering_setpoint = atanf(_param_ra_wheel_base.get() *
 							_rover_ackermann_setpoint.lateral_acceleration_setpoint / powf(
-								vehicle_forward_speed_temp, 2.f), -1.f, 1.f));
+								vehicle_forward_speed_temp, 2.f));
 			steering_setpoint += pid_calculate(&_pid_lat_accel, _rover_ackermann_setpoint.lateral_acceleration_setpoint,
 							   vehicle_lateral_acceleration, 0, dt);
 			_rover_ackermann_setpoint.steering_setpoint = math::constrain(steering_setpoint, -_param_ra_max_steer_angle.get(),
@@ -224,4 +224,8 @@ float RoverAckermannControl::calcNormalizedSpeedSetpoint(const float forward_spe
 void RoverAckermannControl::resetControllers()
 {
 	pid_reset_integral(&_pid_throttle);
+	pid_reset_integral(&_pid_lat_accel);
+	_forward_speed_setpoint_with_accel_limit.setForcedValue(0.f);
+	_steering_with_rate_limit.setForcedValue(0.f);
+
 }
