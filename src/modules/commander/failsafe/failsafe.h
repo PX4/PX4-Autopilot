@@ -173,6 +173,7 @@ private:
 	hrt_abstime _armed_time{0};
 	bool _was_armed{false};
 	bool _manual_control_lost_at_arming{false}; ///< true if manual control was lost at arming time
+	uint8_t _battery_warning_at_arming{0}; ///< low battery state at arming time
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FailsafeBase,
 					(ParamInt<px4::params::NAV_DLL_ACT>) 	_param_nav_dll_act,
