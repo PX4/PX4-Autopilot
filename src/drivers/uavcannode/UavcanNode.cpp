@@ -159,6 +159,7 @@ UavcanNode::UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDr
 		       uavcan::ISystemClock &system_clock) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	_node(can_driver, system_clock, _pool_allocator),
+	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_fw_update_listner(_node),
 	_param_server(_node),
