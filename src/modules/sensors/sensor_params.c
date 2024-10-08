@@ -215,6 +215,7 @@ PARAM_DEFINE_INT32(SENS_EXT_I2C_PRB, 1);
  *
  * @value 0 Disabled
  * @value 1 Publish primary IMU selection
+ * @value 2 Publish median IMU selection
  *
  * @category system
  * @reboot_required true
