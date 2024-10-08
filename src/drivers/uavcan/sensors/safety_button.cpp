@@ -60,33 +60,42 @@ void UavcanSafetyButtonBridge::button_sub_cb(const
 		uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
 {
 	bool is_safety = msg.button == ardupilot::indication::Button::BUTTON_SAFETY;
-	bool pressed = msg.press_time >= 10; // 0.1s increments (1s press time for safety button trigger event)
-
-	// Detect safety button trigger event
-	if (is_safety && pressed) {
-		_button_publisher.safetyButtonTriggerEvent();
-	}
 
 	// Detect pairing button trigger event
 	if (is_safety) {
 
-		if (hrt_elapsed_time(&_start_timestamp) > 2_s) {
-			_start_timestamp = hrt_absolute_time();
-			_pairing_button_counter = 0u;
+		// Detect safety button trigger event 0.1s increments (1s press time for safety button trigger event)
+		if (msg.press_time >= 10) {
+			_button_publisher.safetyButtonTriggerEvent();
 		}
 
-		hrt_abstime press_time_us = (msg.press_time * 100 * 1000);
-		hrt_abstime elasped_time = hrt_elapsed_time(&_new_press_timestamp);
+		// Need to press the button 3 times within 2 seconds
+		const hrt_abstime now = hrt_absolute_time();
 
-		if (elasped_time > press_time_us) {
-			_pairing_button_counter++;
-			_new_press_timestamp = hrt_absolute_time();
+		if (now - _pairing_start > 2_s) {
+			// reset state
+			_pairing_start = 0;
+			_pairing_button_counter = 0;
+		}
+
+		bool button_pressed = msg.press_time > 0;
+
+		if (!_button_prev_sate && button_pressed) {
+			if (_pairing_start == 0) {
+				_pairing_start = now;
+			}
+
+			++_pairing_button_counter;
 		}
 
 		if (_pairing_button_counter == ButtonPublisher::PAIRING_BUTTON_EVENT_COUNT) {
 			_button_publisher.pairingButtonTriggerEvent();
-			_start_timestamp = 0u;
+			// reset state
+			_pairing_start = 0;
+			_pairing_button_counter = 0;
 		}
+
+		_button_prev_sate = button_pressed;
 	}
 }
 
