@@ -68,30 +68,27 @@ struct pwm_lowerhalf_s *pwm;
 int up_pwm_servo_set(unsigned channel, uint16_t value)
 {
 	//syslog(LOG_INFO, "PWM set ch: %d value:%d\n", channel,value);
-	pwm_info.channels[channel].duty = (value*pwm_info.frequency)/(1000000/65535);
+	// pwm_info.channels[channel].duty = (value*pwm_info.frequency)/(1000000/65535);
+	pwm_info.channels[channel].duty = value/((1/pwm_info.frequency)*1e6);
 	return OK;
 }
 
 uint16_t up_pwm_servo_get(unsigned channel)
 {
-	//syslog(LOG_INFO, "PWM get ch: %d\n", channel);
-	return pwm_info.channels[channel].duty;
+	return (pwm_info.frequency * pwm_info.channels[channel].duty)*1e-6f;
 }
 
 int up_pwm_servo_init(uint32_t channel_mask)
 {
 
-	// We can only use one of timers to control 8 channels.
-	// so we initiliase the timer according to the parameter set in menuconfig
-	syslog(LOG_ERR, "up_pwm_servo_inti");
-  	pwm = esp32_ledc_init(0);
+  	pwm = esp32_ledc_init(io_timers[0].base);
+
   	if (!pwm)
     	{
       		syslog(LOG_ERR, "[boot] Failed to get the LEDC PWM 0 lower half\n");
     	}
 
 	pwm->ops->setup(pwm);
-
 
 	pwm_info.frequency=50;
 	pwm_info.channels[0].duty = channel_mask & 0b1 ? 0.5 : 0.0;
@@ -130,44 +127,41 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 
 	if(group == 0){
 		#if defined(CONFIG_ESP32_LEDC_TIM0_CHANNELS)
-			return CONFIG_ESP32_LEDC_TIM0_CHANNELS;
+			return (1 << CONFIG_ESP32_LEDC_TIM0_CHANNELS) - 1;
 		#endif
-		return 0;
+		return -1;
 	}
 	else if(group == 1){
 
 		#if defined(CONFIG_ESP32_LEDC_TIM1_CHANNELS)
-			return CONFIG_ESP32_LEDC_TIM1_CHANNELS;
+			return ( 1 << CONFIG_ESP32_LEDC_TIM1_CHANNELS) -1;
 		#endif
-		return 0;
+		return -1;
 	}
 	else if(group == 2){
 		#if defined(CONFIG_ESP32_LEDC_TIM2_CHANNELS)
-			return CONFIG_ESP32_LEDC_TIM2_CHANNELS;
+			return (1 << CONFIG_ESP32_LEDC_TIM2_CHANNELS) - -1;
 		#endif
-		return 0;
+		return -1;
 	}
 	else if(group == 3){
 		#if defined(CONFIG_ESP32_LEDC_TIM3_CHANNELS)
-			return CONFIG_ESP32_LEDC_TIM3_CHANNELS;
+			return (1 << CONFIG_ESP32_LEDC_TIM3_CHANNELS) -1;
 		#endif
-		return 0;
+		return -1;
 	}
 
-	return 0;
+	return -1;
 }
 
 void
 up_pwm_servo_arm(bool armed, uint32_t channel_mask)
 {
-	if(channel_mask == 0x0F)
+	if(armed)
 	{
-		if(armed)
-		{
-			pwm->ops->start(pwm,&pwm_info);
-		}else
-		{
-			pwm->ops->stop(pwm);
-		}
+		pwm->ops->start(pwm,&pwm_info);
+	}else
+	{
+		pwm->ops->stop(pwm);
 	}
 }
