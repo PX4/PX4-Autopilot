@@ -82,7 +82,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		 */
 		reporter.armingCheckFailure(local_position_modes, health_component_t::local_position_estimate,
 					    events::ID("check_modes_local_pos"),
-					    events::Log::Error, "Navigation error: No valid local position estimate");
+					    events::Log::Error, "Navigation error: No valid position estimate");
 		reporter.clearCanRunBits(local_position_modes);
 	}
 
