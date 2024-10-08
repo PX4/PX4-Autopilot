@@ -43,8 +43,7 @@ const constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 #endif
 #ifdef CONFIG_ESP32_SPI3
 	initSPIBus(SPI::Bus::SPI3, {
-		initSPIDevice(DRV_BARO_DEVTYPE_BMP280, SPI::CS{GPIO::Pin17}, SPI::DRDY{GPIO::Pin0}),
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::Pin5}, SPI::DRDY{GPIO::Pin2}),
+		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5})
 
 	}),
 #endif

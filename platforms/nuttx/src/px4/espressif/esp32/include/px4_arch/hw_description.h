@@ -51,12 +51,19 @@ namespace Timer
 enum Timer {
 	Timer0 = 0,
 	Timer1,
+	Timer2,
+	Timer3,
 };
 // These are actually the Operators
 enum Channel {
 	Channel0 = 0,
 	Channel1,
 	Channel2,
+	Channel3,
+	Channel4,
+	Channel5,
+	Channel6,
+	Channel7
 };
 struct TimerChannel {
 	Timer timer;
@@ -69,6 +76,8 @@ static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 	switch (timer) {
 	case Timer::Timer0: return DR_REG_PWM_BASE + 0x04;
 	case Timer::Timer1: return DR_REG_PWM1_BASE + 0x04;
+	case Timer::Timer2: return DR_REG_PWM1_BASE + 0x04;
+	case Timer::Timer3: return DR_REG_PWM1_BASE + 0x04;
 	}
 
 	return 0;

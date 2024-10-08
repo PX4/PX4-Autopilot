@@ -305,11 +305,12 @@ if(CONFIG_ARCH_CHIP_ESP32)
 	${PX4_STARTUP_DIR}/esp32_spi.o
 	${PX4_STARTUP_DIR}/esp32_spicache.o
 	${PX4_STARTUP_DIR}/esp32_spiflash.o
+	${PX4_STARTUP_DIR}/esp32_spiram.o
 	${PX4_STARTUP_DIR}/esp32_systemreset.o
 	${PX4_STARTUP_DIR}/esp32_timerisr.o
 	${PX4_STARTUP_DIR}/esp32_user.o
 	${PX4_STARTUP_DIR}/esp32_wdt.o
-	${PX4_STARTUP_DIR}/esp32_partition.o
+	# ${PX4_STARTUP_DIR}/esp32_partition.o
 	)
 
 	set(NUTTX_NETWORK_LIB

@@ -80,32 +80,25 @@ uint16_t up_pwm_servo_get(unsigned channel)
 
 int up_pwm_servo_init(uint32_t channel_mask)
 {
-	//syslog(LOG_INFO, "channel_mask: %02X\n", channel_mask);
 
-	// int ret = 0;
-
+	// We can only use one of timers to control 8 channels.
+	// so we initiliase the timer according to the parameter set in menuconfig
+	syslog(LOG_ERR, "up_pwm_servo_inti");
   	pwm = esp32_ledc_init(0);
   	if (!pwm)
     	{
       		syslog(LOG_ERR, "[boot] Failed to get the LEDC PWM 0 lower half\n");
     	}
 
- 	/* Register the PWM driver at "/dev/pwm0" */
-  	// ret = pwm_register("/dev/pwm0", pwm);
-  	// if (ret < 0)
-    	// {
-      	// 	syslog(LOG_ERR, "[boot] pwm_register failed: %d\n", ret);
-    	// }
-
 	pwm->ops->setup(pwm);
 
 
 	pwm_info.frequency=50;
-	pwm_info.channels[0].duty=0,
-	pwm_info.channels[1].duty=0,
-	pwm_info.channels[2].duty=0,
-	pwm_info.channels[3].duty=6553,
-	pwm->ops->start(pwm,&pwm_info);
+	pwm_info.channels[0].duty = channel_mask & 0b1 ? 0.5 : 0.0;
+	pwm_info.channels[1].duty = channel_mask  & 0b10 ? 0.5 : 0.0;
+	pwm_info.channels[2].duty = channel_mask & 0b100 ? 0.5 : 0.0;
+	pwm_info.channels[3].duty = channel_mask & 0b1000 ? 0.5 : 0.0;
+	pwm->ops->start(pwm, &pwm_info);
 
 	return channel_mask;
 }
@@ -118,9 +111,7 @@ void up_pwm_servo_deinit(uint32_t channel_mask)
 
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
-	//syslog(LOG_INFO, "group update group: %d rate:%d\n", group,rate);
-
-	if(group == 0)
+	if(group == 0 || group == 1 || group == 2 || group == 3)
 	{
 		pwm_info.frequency = rate;
 		return OK;
@@ -136,9 +127,32 @@ void up_pwm_update(unsigned channels_mask)
 
 uint32_t up_pwm_servo_get_rate_group(unsigned group)
 {
-	//syslog(LOG_INFO, "up_pwm_servo_get_rate_group: %d\n", group);
-	if(group == 0)
-		return 0x0F;
+
+	if(group == 0){
+		#if defined(CONFIG_ESP32_LEDC_TIM0_CHANNELS)
+			return CONFIG_ESP32_LEDC_TIM0_CHANNELS;
+		#endif
+		return 0;
+	}
+	else if(group == 1){
+
+		#if defined(CONFIG_ESP32_LEDC_TIM1_CHANNELS)
+			return CONFIG_ESP32_LEDC_TIM1_CHANNELS;
+		#endif
+		return 0;
+	}
+	else if(group == 2){
+		#if defined(CONFIG_ESP32_LEDC_TIM2_CHANNELS)
+			return CONFIG_ESP32_LEDC_TIM2_CHANNELS;
+		#endif
+		return 0;
+	}
+	else if(group == 3){
+		#if defined(CONFIG_ESP32_LEDC_TIM3_CHANNELS)
+			return CONFIG_ESP32_LEDC_TIM3_CHANNELS;
+		#endif
+		return 0;
+	}
 
 	return 0;
 }
@@ -146,7 +160,6 @@ uint32_t up_pwm_servo_get_rate_group(unsigned group)
 void
 up_pwm_servo_arm(bool armed, uint32_t channel_mask)
 {
-	//syslog(LOG_INFO, "up_pwm_servo_arm armed:%d channel_mask:%02X\n", armed,channel_mask);
 	if(channel_mask == 0x0F)
 	{
 		if(armed)

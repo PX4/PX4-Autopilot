@@ -61,8 +61,33 @@
 
 uint32_t io_timer_get_group(unsigned timer)
 {
-	if(timer == 0)
-		return 0x0F;
-	return 0;
+	if(timer == 0){
+
+		#if defined(CONFIG_ESP32_LEDC_TIM0_CHANNELS)
+			return (1 << CONFIG_ESP32_LEDC_TIM0_CHANNELS) - 1;
+		#endif
+		return -1;
+	}
+	else if(timer == 1){
+
+		#if defined(CONFIG_ESP32_LEDC_TIM1_CHANNELS)
+			return (1 << CONFIG_ESP32_LEDC_TIM1_CHANNELS) - 1;
+		#endif
+		return -1;
+	}
+	else if(timer == 2){
+		#if defined(CONFIG_ESP32_LEDC_TIM2_CHANNELS)
+			return (1 << CONFIG_ESP32_LEDC_TIM2_CHANNELS) - 1;
+		#endif
+		return -1;
+	}
+	else if(timer == 3){
+		#if defined(CONFIG_ESP32_LEDC_TIM3_CHANNELS)
+			return (1 << CONFIG_ESP32_LEDC_TIM3_CHANNELS) -1;
+		#endif
+		return -1;
+	}
+
+	return -1;
 
 }

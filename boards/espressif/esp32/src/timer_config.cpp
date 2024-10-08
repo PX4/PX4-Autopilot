@@ -34,18 +34,16 @@
 #include <px4_arch/io_timer_hw_description.h>
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::Timer0), // this refers to Timer 0 in MCPWM peripheral 1
-	initIOTimer(Timer::Timer1), // this refers to Timer 0 the MCPWM peripheral 2
+	initIOTimer(Timer::Timer0), // this refers to LEDC periherals
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel0}, {GPIO::Pin18}),
-	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel1}, {GPIO::Pin19}),
-	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel2}, {GPIO::Pin20}),
-	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel0}, {GPIO::Pin21}),
-	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel1}, {GPIO::Pin22}),
-	initIOTimerChannel(io_timers, {Timer::Timer1, Timer::Channel2}, {GPIO::Pin23}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel0}, {GPIO::Pin2}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel1}, {GPIO::Pin3}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel2}, {GPIO::Pin4}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel3}, {GPIO::Pin5}),
 };
 
-constexpr io_timers_channel_mapping_t io_timers_channel_mapping = initIOTimerChannelMapping(io_timers,
-		timer_io_channels);
+// constexpr io_timers_channel_mapping_t io_timers_channel_mapping = initIOTimerChannelMapping(io_timers,
+// 		timer_io_channels);
+

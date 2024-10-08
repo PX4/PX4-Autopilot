@@ -50,49 +50,61 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 		Timer::TimerChannel timer, GPIO::GPIOPin pin)
 {
 	timer_io_channels_t ret = {};
-	uint32_t gpio_af = 1;
+	bool nuttx_incorrect_mapping = false;
 
-	// TODO: here we could validate that pin actually maps to the given timer channel
+	bool multiple_timers_configure = false;
+	bool timer_configured = false;
 
-	switch (timer.channel) {
-	case Timer::Channel0:
-		ret.ccr_offset = 0x44;
-		ret.masks = 0;
-		ret.timer_channel = 1;
+	#if defined(CONFIG_ESP32_LEDC_TIM0_CHANNELS)
+		multiple_timers_configure = timer_configured;
+		timer_configured = true;
+	#endif
+	#if defined(CONFIG_ESP32_LEDC_TIM1_CHANNELS)
+		multiple_timers_configure = timer_configured;
+		timer_configured = true;
+
+	#endif
+	#if defined(CONFIG_ESP32_LEDC_TIM2_CHANNELS)
+		multiple_timers_configure = timer_configured;
+		timer_configured = true;
+	#endif
+	#if defined(CONFIG_ESP32_LEDC_TIM3_CHANNELS)
+		multiple_timers_configure = timer_configured;
+		timer_configured = true;
+	#endif
+
+	int channel = timer.channel;
+
+	switch (channel)
+	{
+	case 0:
+		#if defined(CONFIG_ESP32_LEDC_CHANNEL0_PIN)
+			nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL0_PIN;
+		#endif
 		break;
-
-	case Timer::Channel1:
-		ret.ccr_offset = 0x7C;
-		ret.masks = 0;
-		ret.timer_channel = 2;
+	case 1:
+		#if defined(CONFIG_ESP32_LEDC_CHANNEL1_PIN)
+			nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL1_PIN;
+		#endif
 		break;
-
-	case Timer::Channel2:
-		ret.ccr_offset = 0xB4;
-		ret.masks = 0;
-		ret.timer_channel = 3;
+	case 2:
+		#if defined(CONFIG_ESP32_LEDC_CHANNEL2_PIN)
+			nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL2_PIN;
+		#endif
 		break;
-
+	case 3:
+		#if defined(CONFIG_ESP32_LEDC_CHANNEL3_PIN)
+			nuttx_incorrect_mapping = pin.pin == CONFIG_ESP32_LEDC_CHANNEL3_PIN;
+		#endif
+		break;
+	default:
+		break;
 	}
 
-	// uint32_t pin = getGPIOPin(pin)
 
-	// need to be fixed
-	ret.gpio_in = gpio_af;
-	ret.gpio_out = gpio_af;
+	constexpr_assert(nuttx_incorrect_mapping, "PX4 ChannelTimer Mapping different from Nuttx)");
+	constexpr_assert(!multiple_timers_configure, "Only a single timer can be configured in Nuttx");
 
-	// find timer index
-	ret.timer_index = 0xff;
-	const uint32_t timer_base = timerBaseRegister(timer.timer);
-
-	for (int i = 0; i < MAX_IO_TIMERS; ++i) {
-		if (io_timers_conf[i].base == timer_base) {
-			ret.timer_index = i;
-			break;
-		}
-	}
-
-	constexpr_assert(ret.timer_index != 0xff, "Timer not found");
 
 	return ret;
 }
@@ -113,23 +125,27 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 
 	switch (timer) {
 	case Timer::Timer0: // refers to MCPWM peripheral 1
-		ret.base = DR_REG_PWM_BASE + 0x04;
-		ret.clock_register = 0;
-		ret.clock_bit = 0;
-		ret.clock_freq = 160000000;
-		ret.vectorno =  0;
-#if defined(CONFIG_ESP32_TIMER0)
+		ret.base = 0;
+#if defined(CONFIG_ESP32_LEDC_TIM0)
 		nuttx_config_timer_enabled = true;
 #endif
 		break;
 
 	case Timer::Timer1: // refers to MCPWM peripheral 2
-		ret.base = DR_REG_PWM1_BASE + 0x04;
-		ret.clock_register = 0;
-		ret.clock_bit = 0;
-		ret.clock_freq = 160000000;
-		ret.vectorno =  0;
-#if defined(CONFIG_ESP32_TIMER0)
+		ret.base = 1;
+#if defined(CONFIG_ESP32_LEDC_TIM1)
+		nuttx_config_timer_enabled = true;
+#endif
+		break;
+	case Timer::Timer2: // refers to MCPWM peripheral 2
+		ret.base = 2;
+#if defined(CONFIG_ESP32_LEDC_TIM2)
+		nuttx_config_timer_enabled = true;
+#endif
+		break;
+	case Timer::Timer3: // refers to MCPWM peripheral 2
+		ret.base = 4;
+#if defined(CONFIG_ESP32_LEDC_TIM3)
 		nuttx_config_timer_enabled = true;
 #endif
 		break;
@@ -137,8 +153,7 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer)
 	default: break;
 	}
 
-	// This is not strictly required, but for consistency let's make sure NuttX timers are disabled
-	constexpr_assert(!nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be disabled (STM32_TIMx)");
+	constexpr_assert(nuttx_config_timer_enabled, "IO Timer requires NuttX timer config to be Enabled (CONFIG_ESP32_LEDC_TIMx)");
 
 
 	return ret;

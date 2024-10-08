@@ -216,12 +216,12 @@ esp32_board_initialize(void)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_ESP32_SPI22
-static struct spi_dev_s *spi2;
+#ifdef CONFIG_ESP32_SPI2
+// static struct spi_dev_s *spi2;
 #endif
 
 #ifdef CONFIG_ESP32_SPI3
-// static struct spi_dev_s *spi3;
+static struct spi_dev_s *spi3;
 #endif
 
 
@@ -238,33 +238,37 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* initial LED state */
 	drv_led_start();
 
-#ifdef CONFIG_ESP32_SPI22
-	spi2 = esp32_spibus_initialize(2);
+// #ifdef CONFIG_ESP32_SPI2
+// 	spi2 = esp32_spibus_initialize(2);
 
-	if (!spi2) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
+// 	if (!spi2) {
+// 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
+// 		led_on(LED_RED);
+// 	}
+
+// 	// Default SPI1 to 10MHz
+// 	SPI_SETFREQUENCY(spi2, 10000000);
+// 	SPI_SETBITS(spi2, 8);
+// 	SPI_SETMODE(spi2, SPIDEV_MODE3);
+// 	up_udelay(20);
+
+// #endif
+
+#ifdef CONFIG_ESP32_SPI3
+	spi3 = esp32_spibus_initialize(3);
+
+	if (!spi3) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
 		led_on(LED_RED);
 	}
 
-	// Default SPI1 to 10MHz
-	SPI_SETFREQUENCY(spi2, 10000000);
-	SPI_SETBITS(spi2, 8);
-	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	up_udelay(20);
+	/* Now bind the SPI interface to the MMCSD driver */
+	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
 
-#endif
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
+	}
 
-#ifdef CONFIG_ESP32_SPI3
-	// spi3 = esp32_spibus_initialize(3);
-
-	// if (!spi3) {
-	// 	syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
-	// 	led_on(LED_RED);
-	// }
-
-	// SPI_SETFREQUENCY(spi3, 8 * 1000 * 1000);
-	// SPI_SETBITS(spi3, 8);
-	// SPI_SETMODE(spi3, SPIDEV_MODE3);
 #endif
   	int ret = esp32_spiflash_init();
   	if (ret)

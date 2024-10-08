@@ -196,7 +196,6 @@ void PWMOut::Run()
 int PWMOut::task_spawn(int argc, char *argv[])
 {
 	PWMOut *instance = new PWMOut();
-
 	if (!instance) {
 		PX4_ERR("alloc failed");
 		return -1;

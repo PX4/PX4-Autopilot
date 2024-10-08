@@ -93,24 +93,13 @@ static int init_ota_partitions(void)
 
     mtd = esp32_spiflash_alloc_mtdpart(CONFIG_ESP32_STORAGE_MTD_OFFSET, CONFIG_ESP32_STORAGE_MTD_SIZE, false);
 
+    ret = ftl_initialize(0, mtd);
 
-
-  // ret = register_mtddriver("/fs/mtd_params", mtd, 0777, NULL);
-  // if (ret < 0)
-  //   {
-  //     ferr("ERROR: Failed to register PARAM MTD: %d\n", ret);
-  //     return ret;
-  //   }
-
-
-      // mtd = esp32_spiflash_get_mtd();
-
-            ret = ftl_initialize(0, mtd);
-      if (ret < 0)
-        {
-          PX4_INFO("ERROR: Failed to initialize the FTL layer: %d\n", ret);
-          return ret;
-        }
+    if (ret < 0)
+      {
+        PX4_INFO("ERROR: Failed to initialize the FTL layer: %d\n", ret);
+        return ret;
+      }
 
       snprintf(blockdev, sizeof(blockdev), "/dev/mtdblock%d", 0);
 
@@ -120,23 +109,6 @@ static int init_ota_partitions(void)
           PX4_INFO("ERROR: bchdev_register %s failed: %d\n", "/fs/mtd_params", ret);
           return ret;
         }
-      // esp32_partition_init();
-
-      // ret = ftl_initialize(0, mtd);
-      // if (ret < 0)
-      //   {
-      //     PX4_INFO("ERROR: Failed to initialize the FTL layer: %d\n", ret);
-      //     return ret;
-      //   }
-
-      // snprintf(blockdev, sizeof(blockdev), "/dev/mtdblock%d", 0);
-
-      // ret = bchdev_register(blockdev, "/fs/mtd_params", false);
-      // if (ret < 0)
-      //   {
-      //     PX4_INFO("ERROR: bchdev_register %s failed: %d\n", "/fs/mtd_params", ret);
-      //     return ret;
-      //   }
 
   return ret;
 }
@@ -188,19 +160,19 @@ static int setup_littlefs(const char *path, struct mtd_dev_s *mtd,
       return -ENOMEM;
     }
 
-  if (mnt_pt != NULL)
-    {
-      ret = nx_mount(path, "/spi", "littlefs", 0, NULL);
-      if (ret < 0)
-        {
-          ret = nx_mount(path, "/spi", "littlefs", 0, "forceformat");
-          if (ret < 0)
-            {
-              PX4_INFO("ERROR: Failed to mount the FS volume: %d\n", ret);
-              return ret;
-            }
-        }
-    }
+  // if (mnt_pt != NULL)
+  //   {
+  //     ret = nx_mount(path, "/mnt/lfs", "littlefs", 0, "");
+  //     if (ret < 0)
+  //       {
+  //         ret = nx_mount(path, "/fs/lfs", "littlefs", 0, "forceformat");
+  //         if (ret < 0)
+  //           {
+  //             PX4_INFO("ERROR: Failed to mount the FS volume: %d\n", ret);
+  //             return ret;
+  //           }
+  //       }
+  //   }
 
   return OK;
 }
@@ -365,6 +337,13 @@ int esp32_spiflash_init(void)
       return ret;
     }
 
+  // ret = esp32_partition_init();
+  // if (ret < 0)
+  //   {
+  //     syslog(LOG_ERR, "ERROR: Failed to initialize partition error=%d\n",
+  //            ret);
+  //   }
+//
   // ret = init_storage_partition();
   // PX4_INFO("ret = %d = init_storage_paritions()\n", ret);
 
