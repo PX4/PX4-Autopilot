@@ -597,6 +597,13 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		_health_and_arming_checks.update();
 
 		if (!_health_and_arming_checks.canArm(_vehicle_status.nav_state)) {
+
+			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: RTL enabled\t");
+				events::send(events::ID("commander_arm_denied_rtl"), {events::Log::Critical, events::LogInternal::Info},
+					     "Arming denied: RTL enabled");
+			}
+
 			tune_negative(true);
 			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Resolve system health failures first\t");
 			events::send(events::ID("commander_arm_denied_resolve_failures"), {events::Log::Critical, events::LogInternal::Info},
