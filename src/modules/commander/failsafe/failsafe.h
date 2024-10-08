@@ -151,6 +151,7 @@ private:
 
 	static ActionOptions fromGfActParam(int param_value);
 	static ActionOptions fromImbalancedPropActParam(int param_value);
+	static Action fromModeFailureActParam(int param_value, uint8_t &user_intended_mode);
 	static ActionOptions fromActuatorFailureActParam(int param_value);
 	static ActionOptions fromBatteryWarningActParam(int param_value, uint8_t battery_warning);
 	static ActionOptions fromQuadchuteActParam(int param_value);
@@ -185,6 +186,7 @@ private:
 					(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
 					(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
 					(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
+					(ParamInt<px4::params::COM_MOD_FAIL_ACT>) _param_com_mod_failure_act,
 					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
 					(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,

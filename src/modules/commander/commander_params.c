@@ -637,6 +637,30 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 
 /**
+ * Set the mode failure failsafe mode
+ *
+ * Specify mode to use if current mode requirements fails
+ *
+ * See: https://docs.px4.io/main/en/config/safety.html#failsafe-actions
+ *
+ * @min 0
+ * @max 10
+ * @value 0 None
+ * @value 1 Warn
+ * @value 2 Position mode
+ * @value 3 Altitude mode
+ * @value 4 Stabilized
+ * @value 5 Hold mode
+ * @value 6 Return mode
+ * @value 7 Land mode
+ * @value 8 Descend
+ * @value 9 Disarm
+ * @value 10 Terminate
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_MOD_FAIL_ACT, 6);
+
+/**
  * Set the actuator failure failsafe mode
  *
  * Note: actuator failure needs to be enabled and configured via FD_ACT_*
