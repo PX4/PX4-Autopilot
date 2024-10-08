@@ -62,15 +62,6 @@ __BEGIN_DECLS
 #define px4_cache_aligned_data()
 #define px4_cache_aligned_alloc malloc
 
-
-#  define INPUT             (1 << 0)
-#  define OUTPUT            (1 << 1)
-#  define FUNCTION          (1 << 2)
-
-#define PULLUP              (1 << 3)
-#define PULLDOWN            (1 << 4)
-#define OPEN_DRAIN          (1 << 5)
-
 // bits		Function
 // 0-5		GPIO number. 0-40 is valid.
 // 6		input
