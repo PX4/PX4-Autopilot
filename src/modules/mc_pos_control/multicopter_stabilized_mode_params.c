@@ -41,7 +41,7 @@
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MAN_TILT_MAX, 35.f);
+PARAM_DEFINE_FLOAT(MPC_MAN_TILT_MAX, 70.f);
 
 /**
  * Max manual yaw rate for Stabilized, Altitude, Position mode

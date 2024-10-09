@@ -44,7 +44,7 @@
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 20.f);
 
 /**
  * Maximum ascent velocity
@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 4.f);
 
 /**
  * Maximum descent velocity
@@ -93,7 +93,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.f);
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 89.f);
 
 /**
  * Maximum tilt during inital takeoff ramp
@@ -107,7 +107,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.f);
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.f);
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 5.f);
 
 /**
  * Minimum collective thrust in climb rate controlled modes
