@@ -1411,9 +1411,13 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 	vcmd->confirmation = false;
 	vcmd->from_external = false;
 
+	int target_camera_component_id;
+
 	// The camera commands are not processed on the autopilot but will be
 	// sent to the mavlink links to other components.
 	switch (vcmd->command) {
+
+
 	case NAV_CMD_IMAGE_START_CAPTURE:
 
 		if (static_cast<int>(vcmd->param3) == 1) {
@@ -1433,12 +1437,52 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 			_is_capturing_images = true;
 		}
 
-		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
 		break;
 
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
 		_is_capturing_images = false;
-		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
+		break;
+
+	case NAV_CMD_SET_CAMERA_MODE:
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
+		break;
+
+	case NAV_CMD_SET_CAMERA_SOURCE:
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
 		break;
 
 	case NAV_CMD_VIDEO_START_CAPTURE:
