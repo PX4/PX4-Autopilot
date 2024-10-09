@@ -270,6 +270,9 @@ mavlink stream -u 14556 -s ATTITUDE_QUATERNION -r 10
 mavlink stream -u 14556 -s GLOBAL_POSITION_INT -r 30
 mavlink stream -u 14556 -s SCALED_PRESSURE -r 10
 
+# Increase heartbeat rate so VFC can get faster mode updates
+mavlink stream -u 14556 -s HEARTBEAT -r 10
+
 # start the slow normal mode for voxl-mavlink-server to forward to GCS
 mavlink start -x -u 14558 -o 14559 -r 100000 -n lo
 

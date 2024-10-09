@@ -68,13 +68,13 @@ private:
 		if (_mavlink->get_free_tx_buf() >= get_size()) {
 			// always send the heartbeat, independent of the update status of the topics
 			vehicle_status_s vehicle_status{};
-			while (_vehicle_status_sub.update(&vehicle_status)) {}
+			_vehicle_status_sub.copy(&vehicle_status);
 
 			vehicle_control_mode_s vehicle_control_mode{};
-			while (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {}
+			_vehicle_control_mode_sub.copy(&vehicle_control_mode);
 
 			actuator_armed_s actuator_armed{};
-			while (_acturator_armed_sub.update(&actuator_armed)) {}
+			_acturator_armed_sub.copy(&actuator_armed);
 
 			// uint8_t base_mode (MAV_MODE_FLAG) - System mode bitmap.
 			uint8_t base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
