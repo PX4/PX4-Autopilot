@@ -202,7 +202,7 @@ void MspDPOsd::Run()
 	const auto fc_variant_msg = msp_osd::construct_FC_VARIANT();
 	this->Send(MSP_FC_VARIANT, &fc_variant_msg, MSP_DIRECTION_REPLY);
 
-	// VEHICLE STATUS / DISARMED / ERROR MESSAGES / FLIGHT MODE
+	// VEHICLE STATUS / Ready Message / ERROR MESSAGES / FLIGHT MODE
 	{
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
@@ -211,14 +211,22 @@ void MspDPOsd::Run()
 		const auto status_msg = msp_dp_osd::construct_status(vehicle_status);
 		this->Send(MSP_STATUS, &status_msg, MSP_DIRECTION_REPLY);
 
-		// DISARMED Message -> BOTTOM-MIDDLE TOP
+		// Ready or Not Ready message
+		// Do not show when ARMED
 		if(vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED
-			&& _parameters.disarmed_row != -1 && _parameters.disarmed_col != -1)
+			&& _parameters.ready_row != -1 && _parameters.ready_col != -1)
 		{
-			const char* disarmed_msg = "DISARMED";
-			uint8_t disarmed_output[sizeof(msp_dp_cmd_t) + sizeof(disarmed_msg)+1]{0};	// size of output buffer is size of OSD display port command struct and the buffer you want shown on OSD
-			msp_dp_osd::construct_OSD_write(_parameters.disarmed_col, _parameters.disarmed_row, false, disarmed_msg, disarmed_output, sizeof(disarmed_output));
-			this->Send(MSP_CMD_DISPLAYPORT, &disarmed_output, MSP_DIRECTION_REPLY);
+			const char* ready_msg = "";
+
+			if (vehicle_status.pre_flight_checks_pass) {
+				ready_msg = "READY";
+			} else {
+				ready_msg = "NOT READY";
+			}
+
+			uint8_t ready_output[sizeof(msp_dp_cmd_t) + sizeof(ready_msg)+1]{0};	// size of output buffer is size of OSD display port command struct and the buffer you want shown on OSD
+			msp_dp_osd::construct_OSD_write(_parameters.ready_col, _parameters.ready_row, false, ready_msg, ready_output, sizeof(ready_output));
+			this->Send(MSP_CMD_DISPLAYPORT, &ready_output, MSP_DIRECTION_REPLY);
 		}
 
 		// STATUS MESSAGE -> BOTTOM-MIDDLE MIDDLE (PX4 error messages)
@@ -454,8 +462,8 @@ void MspDPOsd::parameters_update()
 	param_get(param_find("OSD_CBATT_COL"), 	&_parameters.cell_battery_col);
 	param_get(param_find("OSD_CBATT_ROW"), 	&_parameters.cell_battery_row);
 
-	param_get(param_find("OSD_DIS_COL"),  	&_parameters.disarmed_col);
-	param_get(param_find("OSD_DIS_ROW"),  	&_parameters.disarmed_row);
+	param_get(param_find("OSD_RDY_COL"),  	&_parameters.ready_col);
+	param_get(param_find("OSD_RDY_ROW"),  	&_parameters.ready_row);
 	param_get(param_find("OSD_STATUS_COL"), &_parameters.status_col);
 	param_get(param_find("OSD_STATUS_ROW"), &_parameters.status_row);
 	param_get(param_find("OSD_FM_COL"),  	&_parameters.flight_mode_col);

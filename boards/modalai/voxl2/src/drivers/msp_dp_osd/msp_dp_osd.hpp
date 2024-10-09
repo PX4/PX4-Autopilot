@@ -174,8 +174,8 @@ private:
 		int32_t		battery_row;
 		int32_t		cell_battery_col;
 		int32_t		cell_battery_row;
-		int32_t		disarmed_col;
-		int32_t		disarmed_row;
+		int32_t		ready_col;
+		int32_t		ready_row;
 		int32_t		status_col;
 		int32_t		status_row;
 		int32_t		flight_mode_col;

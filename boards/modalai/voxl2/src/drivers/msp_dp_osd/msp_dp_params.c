@@ -121,26 +121,26 @@ PARAM_DEFINE_INT32(OSD_CBATT_COL, -1);
 PARAM_DEFINE_INT32(OSD_CBATT_ROW, -1);
 
 /**
- *OSD Disarmed Message column
+ *OSD Ready or Not Ready Message column
  *
- * Selects which column to place Disarmed Message element in.
+ * Selects which column to place the Ready or Not Ready Message element in.
  *
  * @group OSD
  * @min -1
  * @max 51
  */
-PARAM_DEFINE_INT32(OSD_DIS_COL, -1);
+PARAM_DEFINE_INT32(OSD_RDY_COL, -1);
 
 /**
- * OSD Disarmed Message row
+ * OSD Ready or Not Ready Message row
  *
- * Selects which row to place Disarmed Message element in.
+ * Selects which row to place the Ready or Not Ready Message element in.
  *
  * @group OSD
  * @min -1
  * @max 19
  */
-PARAM_DEFINE_INT32(OSD_DIS_ROW, -1);
+PARAM_DEFINE_INT32(OSD_RDY_ROW, -1);
 
 /**
  *OSD Status Message column
