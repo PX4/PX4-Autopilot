@@ -140,6 +140,8 @@ bool VTEPosition::init()
 
 	if (_vte_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) { PX4_INFO("VTE target external vision-based relative position data fusion enabled");}
 
+	if (_vte_aid_mask & SensorFusionMask::USE_UWB) { PX4_INFO("VTE target uwb relative position data fusion enabled");}
+
 	return true;
 }
 
