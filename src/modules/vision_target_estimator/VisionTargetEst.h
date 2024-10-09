@@ -167,6 +167,7 @@ private:
 		// Bit locations for VTE tasks
 		VTE_NO_TASK = 0,
 		VTE_FOR_PREC_LAND  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
+		VTE_DEBUG = (2 << 0) ///< set to true if target GPS position data is ready to be fused
 	};
 
 	int _vte_current_task{VisionTargetEstTask::VTE_NO_TASK};
