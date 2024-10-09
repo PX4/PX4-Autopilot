@@ -254,13 +254,13 @@ if (CONFIG_BUILD_KERNEL)
 	list(APPEND nuttx_userlibs nuttx_crt0)
 
 	# Create the initial boot ROMFS (which contains nsh)
-	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/boot
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/boot/init
 		COMMAND mv ${PX4_BINARY_DIR}/bin/nsh ${PX4_BINARY_DIR}/init
 		COMMAND install -D ${PX4_BINARY_DIR}/init -t ${PX4_BINARY_DIR}/boot
 		COMMAND rm -f ${PX4_BINARY_DIR}/init
 		DEPENDS ${PX4_BINARY_DIR}/bin/nsh
 	)
-	add_custom_target(boot_bins DEPENDS ${PX4_BINARY_DIR}/boot)
+	add_custom_target(boot_bins DEPENDS ${PX4_BINARY_DIR}/boot/init)
 
 	make_bin_romfs(
 		BINDIR ${PX4_BINARY_DIR}/boot
@@ -350,7 +350,7 @@ if (CONFIG_BUILD_KERNEL)
 		OUTPREFIX bin
 		LABEL Px4BinVol
 		STRIPPED "y"
-		DEPS nuttx_app_bins ${px4_bins}
+		DEPS nuttx_app_bins boot_bins ${px4_bins}
 	)
 
 	add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
