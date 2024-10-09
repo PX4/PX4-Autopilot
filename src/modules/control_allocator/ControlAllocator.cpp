@@ -5,8 +5,8 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
-#include <iostream>
 #include <cmath>
+#include <matrix/math.hpp>
 #include <unistd.h>
 #include <matrix/math.hpp>
 
@@ -23,7 +23,6 @@ ControlAllocator::ControlAllocator() :
 	_control_allocator_status_pub[1].advertise();
 
 	_actuator_motors_pub.advertise();
-	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
 
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
@@ -261,47 +260,7 @@ ControlAllocator::update_effectiveness_source()
 	return false;
 }
 
-#include <matrix/math.hpp>
-#include <fstream>
-
-// Set the PWM to motors
-void ControlAllocator::setPWM(int motor_index, float actuator_sp) {
-	actuator_motors_s actuator_motors;
-	_actuator_motors_pub.advertise();
-
-	actuator_motors.control[motor_index] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
-	_actuator_motors_pub.publish(actuator_motors);
-	actuator_motors.timestamp = hrt_absolute_time();
-
-}
-
-// Set the angle of a servo
-void ControlAllocator::setServoAngle(int servo_index, float angle) {
-	actuator_servos_s actuator_servos;
-	_actuator_servos_pub.advertise();
-
-	const float servo_angle_limit = 0.52f;
-
-	actuator_servos.control[servo_index] = PX4_ISFINITE(angle) ? angle : NAN;
-
-	if (servo_index >= 0 && servo_index < actuator_servos_s::NUM_CONTROLS) {
-
-		// Limit the servo angle to 45 degrees in both directions
-		if (angle > servo_angle_limit) {
-			angle = servo_angle_limit;
-		} else if (angle < -servo_angle_limit) {
-			angle = -servo_angle_limit;
-		}
-
-		actuator_servos.control[servo_index] = angle;
-		actuator_servos.timestamp = hrt_absolute_time();
-	}
-
-	// Publish the new servo angle
-	_actuator_servos_pub.publish(actuator_servos);
-
-}
-
+// Funções para calcular a pseudo-inversa de uma matriz
 matrix::Matrix<float, 6, 2> pseudoInverse(const matrix::Matrix<float, 2, 6>& mat) {
     matrix::Matrix<float, 6, 2> mat_T = mat.transpose();
     matrix::SquareMatrix<float, 2> mat_T_mat = mat * mat_T;
@@ -318,7 +277,27 @@ matrix::Matrix<float, 6, 5> pseudoInverse2(const matrix::Matrix<float, 5, 6>& ma
     return mat_T * mat_T_mat_inv;
 }
 
+// Set the PWM to motors
+void ControlAllocator::setPWM(int motor_index, float actuator_sp) {
+	actuator_motors_s actuator_motors;
+	_actuator_motors_pub.advertise();
 
+	actuator_motors.control[motor_index] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
+	_actuator_motors_pub.publish(actuator_motors);
+	actuator_motors.timestamp = hrt_absolute_time();
+
+}
+
+// Set the angle of a servo
+void ControlAllocator::setServo(int servo_index, float angle) {
+	actuator_servos_s actuator_servos;
+	_actuator_servos_pub.advertise();
+
+	actuator_servos.control[servo_index] = PX4_ISFINITE(angle) ? angle : NAN;
+	_actuator_servos_pub.publish(actuator_servos);
+}
+
+// Função para implementar a FCA
 void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>& torques, matrix::Vector<float, 16> actuator_sp) {
 	// Inicializar variáveis necessárias
 	float IN_ANGLE_1 = math::degrees((actuator_sp)(6));
@@ -330,8 +309,8 @@ void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>
 	float f1 = 0.5f;
 	float f2 = std::sqrt(3.0f) / 2.0f;
 
-	float k1 = 9.81f;
-	float k2 = k1 / 100.0f;
+	float k1 = 7.81f;
+	float k2 = 0.0001f*k1;
 	float l = 0.25f;
 
 	matrix::Vector<float, 2> SEN;
@@ -430,34 +409,41 @@ void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>
 
 	OUT2 = M_Inv_TQuad1 * torques_subset;
 
-	//PX4_INFO("OUT2: %f %f %f %f %f %f", (double)OUT2(0), (double)OUT2(1), (double)OUT2(2), (double)OUT2(3), (double)OUT2(4), (double)OUT2(5));
-
-	// Verificar se OUT2 contém valores válidos
+	// Limitar valores de saida dos atuadores
 	for (int i = 0; i < 6; ++i) {
-		if (std::isnan(OUT2(i)) || OUT2(i) < -1.0f || OUT2(i) > 1.0f) {
-		OUT2(i) = 0.0f;
+		if (std::isnan(OUT2(i))) {
+			OUT2(i) = 0.0f;
+		} else if (OUT2(i) > 1.0f) {
+			OUT2(i) = 1.0f;
+		} else if (OUT2(i) < -1.0f) {
+			OUT2(i) = -1.0f;
 		}
 	}
 
-	setPWM(0, OUT2(0));
-	setPWM(1, OUT2(1));
+	// Ajustar os valores e atribuir corretamente aos atuadores
+	actuator_sp(0) = 2.0f*OUT2(0);
+	actuator_sp(1) = 2.0f*OUT2(1);
+	actuator_sp(2) = -2.0f*OUT2(2);
+	actuator_sp(3) = -2.0f*OUT2(3);
+	actuator_sp(4) = -2.0f*OUT2(4);
+	actuator_sp(5) = -2.0f*OUT2(5);
+	actuator_sp(6) = -2.0f*SEN(0);
+	actuator_sp(7) = 2.0f*SEN(1);
+
+	// Publicar os valores dos atuadores
+	setPWM(0, 2.0f*OUT2(0));
+	setPWM(1, 2.0f*OUT2(1));
 	setPWM(2, -2.0f*OUT2(2));
 	setPWM(3, -2.0f*OUT2(3));
 	setPWM(4, -2.0f*OUT2(4));
 	setPWM(5, -2.0f*OUT2(5));
+	setServo(0, -2.0f * SEN(0));
+	setServo(1, 2.0f * SEN(1));
 
-	// Atualizar os valores dos atuadores
-	for (int i = 0; i < 6; ++i) {
-		(actuator_sp)(i) = OUT2(i);
-	}
+	// Visualizar os valores dos atuadores
+	//PX4_INFO("Actuator: %f, %f", -(double)actuator_sp(6), -(double)actuator_sp(7));
+	//PX4_INFO("Actuator: %f, %f, %f, %f, %f, %f", (double)actuator_sp(0), (double)actuator_sp(1), (double)actuator_sp(2), (double)actuator_sp(3), (double)actuator_sp(4), (double)actuator_sp(5));
 
-	// Atualizar os ângulos de inclinação
-	//(actuator_sp)(6) = SEN(0);
-	//(actuator_sp)(7) = SEN(0);
-
-	//PX4_INFO("SEN: %f %f", (double)math::degrees(SEN(0)), (double)math::degrees(SEN(1)));
-	//setServoAngle(0, 2.0f*SEN(0));
-	//setServoAngle(1, -2.0f*SEN(1));
 }
 
 void
@@ -862,7 +848,6 @@ ControlAllocator::publish_actuator_controls()
 	for (int i = motors_idx; i < actuator_motors_s::NUM_CONTROLS; i++) {
 		actuator_motors.control[i] = NAN;
 	}
-
 	_actuator_motors_pub.publish(actuator_motors);
 }
 

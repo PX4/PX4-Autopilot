@@ -141,7 +141,7 @@ private:
 	void HexacopterTiltedAllocation(const matrix::Vector<float, 6>& torques, matrix::Vector<float, 16> actuator_sp);
 
 	void setPWM(int motor_index, float actuator_sp);
-	void setServoAngle(int servo_index, float angle);
+	void setServo(int servo_index, float angle);
 
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
 	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
@@ -185,9 +185,9 @@ private:
 
 	// Outputs
 	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub[2] {ORB_ID(control_allocator_status), ORB_ID(control_allocator_status)};
-
-	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Subscription _vehicle_servo_sub{ORB_ID(actuator_servos)};
 	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
+	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<actuator_servos_trim_s>	_actuator_servos_trim_pub{ORB_ID(actuator_servos_trim)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
