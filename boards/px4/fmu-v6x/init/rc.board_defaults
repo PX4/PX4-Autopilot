@@ -38,3 +38,9 @@ if ver hwbasecmp 00a 008
 then
 	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -U 10
 fi
+
+if param greater -s CYPHAL_ENABLE 0
+then
+	ifup can0
+	ifup can1
+fi
