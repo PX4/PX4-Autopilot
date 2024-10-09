@@ -134,6 +134,8 @@ bool VisionTargetEst::init()
 	} else {
 
 		if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) { PX4_INFO("VTE for precision landing.");}
+
+		if (_vte_task_mask & VisionTargetEstTask::VTE_DEBUG) { PX4_WARN("VTE for DEBUG. Always active.");}
 	}
 
 	if (_param_vte_pos_en.get()) {
@@ -243,6 +245,16 @@ bool VisionTargetEst::new_task_available()
 		_vte_current_task = VisionTargetEstTask::VTE_FOR_PREC_LAND;
 		return true;
 
+	} else if (_vte_task_mask & VisionTargetEstTask::VTE_DEBUG) {
+
+		// DEBUG task already running
+		if (_vte_current_task == VisionTargetEstTask::VTE_DEBUG) {
+			return false;
+		}
+
+		PX4_WARN("VTE, DEBUG task requested.");
+		_vte_current_task = VisionTargetEstTask::VTE_DEBUG;
+		return true;
 	}
 
 	// To add a new task:
