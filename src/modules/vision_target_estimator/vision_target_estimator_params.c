@@ -86,11 +86,12 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  *
  * @group Vision target Estimator
  * @min 0
- * @max 63
+ * @max 31
  * @bit 0 target GNSS position
  * @bit 1 relative GNSS velocity
  * @bit 2 vision relative position
  * @bit 3 mission position
+ * @bit 4 uwb
  *
  *
  * @group Vision target Estimator
@@ -105,8 +106,9 @@ PARAM_DEFINE_INT32(VTE_AID_MASK, 14);
  *
  * @group Vision target Estimator
  * @min 0
- * @max 1
+ * @max 3
  * @bit 0 VTE for precision landing
+ * @bit 1 VTE for DEBUG, always active
  *
  *
  * @group Vision target Estimator
