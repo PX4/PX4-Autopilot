@@ -560,14 +560,14 @@ do_show_quiet(const char *param_name)
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &ii)) {
-			PARAM_PRINT("%ld", (long)ii);
+			PARAM_PRINT("%ld\n", (long)ii);
 		}
 
 		break;
 
 	case PARAM_TYPE_FLOAT:
 		if (!param_get(param, &ff)) {
-			PARAM_PRINT("%4.4f", (double)ff);
+			PARAM_PRINT("%4.4f\n", (double)ff);
 		}
 
 		break;
