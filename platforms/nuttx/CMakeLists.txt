@@ -258,7 +258,7 @@ if (CONFIG_BUILD_KERNEL)
 		COMMAND mv ${PX4_BINARY_DIR}/bin/nsh ${PX4_BINARY_DIR}/init
 		COMMAND install -D ${PX4_BINARY_DIR}/init -t ${PX4_BINARY_DIR}/boot
 		COMMAND rm -f ${PX4_BINARY_DIR}/init
-		DEPENDS nuttx_app_bins
+		DEPENDS ${PX4_BINARY_DIR}/bin/nsh
 	)
 	add_custom_target(boot_bins DEPENDS ${PX4_BINARY_DIR}/boot)
 

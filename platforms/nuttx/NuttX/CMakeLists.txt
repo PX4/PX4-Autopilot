@@ -276,6 +276,7 @@ if (CONFIG_BUILD_KERNEL)
 			TOPDIR="${NUTTX_DIR}"
 			ELFLDNAME="${LDSCRIPT}"
 			USERLIBS="${userlibs}" > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_apps_install.log
+		BYPRODUCTS ${PX4_BINARY_DIR}/bin/nsh
 		DEPENDS ${nuttx_userlibs} nuttx_startup
 	)
 endif()
