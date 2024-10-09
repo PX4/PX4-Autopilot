@@ -86,7 +86,7 @@ function(make_bin_romfs)
 		# Preserve the files with debug symbols
 
 		add_custom_target(debug_${OUTPREFIX}
-			COMMAND cp -r ${BINDIR} ${BINDIR}_debug
+			COMMAND cp -r ${BINDIR}/. ${BINDIR}_debug
 			DEPENDS ${DEPS}
 		)
 
