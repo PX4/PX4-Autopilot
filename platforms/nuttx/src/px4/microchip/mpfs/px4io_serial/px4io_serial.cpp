@@ -137,6 +137,16 @@ int ArchPX4IOSerial::init_uart()
 	putreg32((UART_FCR_XFIFOR | UART_FCR_RFIFOR |
 		  UART_FCR_FIFOE), PX4IO_SERIAL_BASE + MPFS_UART_FCR_OFFSET);
 
+	/* Empty the shift register */
+
+	if ((getreg32(PX4IO_SERIAL_BASE + MPFS_UART_LSR_OFFSET) & UART_LSR_DR) != 0) {
+		getreg32(PX4IO_SERIAL_BASE + MPFS_UART_RBR_OFFSET);
+	}
+
+	/* Clear interrupts */
+
+	getreg32(PX4IO_SERIAL_BASE + MPFS_UART_IIR_OFFSET);
+
 	/* Attach serial interrupt handler */
 
 	irq_attach(PX4IO_SERIAL_VECTOR, _interrupt, this);
@@ -257,6 +267,16 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 
 	putreg32((UART_FCR_RFIFOR | UART_FCR_XFIFOR), PX4IO_SERIAL_BASE + MPFS_UART_FCR_OFFSET);
 
+	/* Empty the shift register */
+
+	if ((getreg32(PX4IO_SERIAL_BASE + MPFS_UART_LSR_OFFSET) & UART_LSR_DR) != 0) {
+		getreg32(PX4IO_SERIAL_BASE + MPFS_UART_RBR_OFFSET);
+	}
+
+	/* Clear pending interrupts */
+
+	getreg32(PX4IO_SERIAL_BASE + MPFS_UART_IIR_OFFSET);
+
 	/* Set first interrupt to occur when at least one byte is available */
 
 	putreg32(0, PX4IO_SERIAL_BASE + MPFS_UART_RFT_OFFSET);
@@ -280,6 +300,10 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 	/* Wait for response, max 10 ms */
 
 	ret = nxsem_tickwait_uninterruptible(&_completion_semaphore, MSEC2TICK(10));
+
+	/* Disable interrupts */
+
+	putreg32(0, PX4IO_SERIAL_BASE + MPFS_UART_IER_OFFSET);
 
 	if (ret == -ETIMEDOUT) {
 		perf_count(_pc_timeouts);
@@ -325,16 +349,25 @@ ArchPX4IOSerial::_do_interrupt()
 	uint8_t *packet = (uint8_t *)_current_packet;
 	bool first_rcv = _packet_cnt == 0 ? true : false;
 	int ret = OK;
+	uint32_t ch;
 
 	switch (status & UART_IIR_IID_MASK) {
 
 	case UART_IIR_IID_RECV:
+	case UART_IIR_IID_TIMEOUT:
 
 		/* Get all the available characters from the RX fifo */
 
-		while ((getreg32(PX4IO_SERIAL_BASE + MPFS_UART_LSR_OFFSET) & UART_LSR_DR) != 0
-		       && _packet_cnt < sizeof(*_current_packet)) {
-			packet[_packet_cnt++] = getreg32(PX4IO_SERIAL_BASE + MPFS_UART_RBR_OFFSET);
+		while ((getreg32(PX4IO_SERIAL_BASE + MPFS_UART_LSR_OFFSET) & UART_LSR_DR) != 0) {
+			/* Read the data out regardless to clear the DR interrupt */
+
+			ch = getreg32(PX4IO_SERIAL_BASE + MPFS_UART_RBR_OFFSET);
+
+			/* Write to user buffer, if there is room */
+
+			if (_packet_cnt < sizeof(*_current_packet)) {
+				packet[_packet_cnt++] = ch;
+			}
 		}
 
 		/* If first bytes of the package were received, extract the packet size */
