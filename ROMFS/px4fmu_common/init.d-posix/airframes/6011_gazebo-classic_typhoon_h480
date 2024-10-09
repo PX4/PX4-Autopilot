@@ -32,8 +32,6 @@ param set-default RTL_DESCEND_ALT 5.0
 
 param set-default TRIG_INTERFACE 3
 param set-default TRIG_MODE 4
-#param set-default MNT_MODE_IN 4
-#param set-default MNT_MODE_OUT 2
 param set-default MAV_PROTO_VER 2
 
 param set-default CA_AIRFRAME 8	    # Airframe de Multicopter com tilt rotors no QGroundControl
@@ -70,10 +68,10 @@ param set-default CA_SV_TL_COUNT 2      # Número de servomotores
 param set-default CA_ROTOR0_TILT 1  	# Servo de tilt associado ao motor 0
 param set-default CA_ROTOR1_TILT 2  	# Servo de tilt associado ao motor 1
 
-param set-default CA_SV_TL1_MINA -45.0	# Angulo minimo do servomotor 0
-param set-default CA_SV_TL1_MAXA  45.0	# Angulo máximo do servomotor 0
-param set-default CA_SV_TL2_MINA -45.0	# Angulo minimo do servomotor 1
-param set-default CA_SV_TL2_MAXA  45.0	# Angulo máximo do servomotor 1
+param set-default CA_SV_TL1_MINA -90.0	# Angulo minimo do servomotor 0
+param set-default CA_SV_TL1_MAXA  90.0	# Angulo máximo do servomotor 0
+param set-default CA_SV_TL2_MINA -90.0	# Angulo minimo do servomotor 1
+param set-default CA_SV_TL2_MAXA  90.0	# Angulo máximo do servomotor 1
 
 param set-default CA_SV_TL1_TD 0        # Direção da inclinação do servomotor 0 (0: frente, 90: direita)
 param set-default CA_SV_TL2_TD 0        # Direção da inclinação do servomotor 1 (0: frente, 90: direita)
