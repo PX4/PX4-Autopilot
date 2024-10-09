@@ -191,7 +191,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 }
 
-// Set the angle of a servo
+// Set the angle of a servo with real pitch angle
 void MulticopterAttitudeControl::setServoAngle(int servo_index, float angle) {
 	actuator_servos_s actuator_servos;
 	_actuator_servos_pub.advertise();
@@ -213,7 +213,7 @@ void MulticopterAttitudeControl::setServoAngle(int servo_index, float angle) {
 		//float servo_angle_deg = math::degrees(angle);
 
 		// Show servo angle
-		PX4_INFO("Servo angle: %f", (double)actuator_servos.control[servo_index]);
+		//PX4_INFO("Servo angle: %f", (double)actuator_servos.control[servo_index]);
 	}
 
 	// Publish the new servo angle
@@ -319,15 +319,22 @@ MulticopterAttitudeControl::Run()
 				if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
 				    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
 					Quatf q_d(vehicle_attitude_setpoint.q_d);
-					float pitch_angle = Eulerf(q_d).theta();
 
-					setServoAngle(0, -pitch_angle);
-					setServoAngle(1, -pitch_angle);
+					// Set the servo angle with real pitch angle and generate new pitch angle (pitch = 0)
+					//float pitch_angle = Eulerf(q_d).theta();
 
-					_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+					//setServoAngle(0, -pitch_angle);
+					//setServoAngle(1, -pitch_angle);
+
+					// Ajustar o setpoint de pitch para zero
+					Eulerf euler_setpoint(q_d);
+					euler_setpoint.theta() = 0.0f; // Definir o pitch para zero
+					q_d = Quatf(euler_setpoint);
+
+					_attitude_control.setAttitudeSetpoint(q_d, vehicle_attitude_setpoint.yaw_sp_move_rate);
 					_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
 					_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
-				}
+					}
 			}
 
 			// Check for a heading reset
