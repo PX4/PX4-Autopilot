@@ -255,7 +255,7 @@ bool PayloadDeliverer::send_gripper_vehicle_command_ack(const hrt_abstime now, c
 	switch (command_result) {
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS:
 		// Fill in the progress percentage field for IN_PROGRESS ack message
-		vcmd_ack.result_param1 = UINT8_MAX;
+		vcmd_ack.progress = UINT8_MAX; // unkown progress according to MAVLink definition
 		break;
 	}
 
