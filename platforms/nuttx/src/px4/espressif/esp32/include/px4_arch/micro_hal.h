@@ -105,7 +105,7 @@ int esp32_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,bool e
 
 #define px4_arch_mtd_dev()				esp32_spiflash_get_mtd()
 
-#define px4_spibus_initialize(bus_num_1based)   esp32_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#define px4_spibus_initialize(bus_num_1based)   esp32_spibus_initialize(bus_num_1based)
 
 #define px4_i2cbus_initialize(bus_num_1based)   esp32_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 #define px4_i2cbus_uninitialize(pdev)           esp32_i2cbus_uninitialize(pdev)

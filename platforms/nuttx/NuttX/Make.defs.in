@@ -113,7 +113,8 @@ ifeq ($(CONFIG_ARCH_CHIP_ESP32),y)
 		-Wno-stringop-truncation \
 		-Wno-sign-compare \
 		-Wno-type-limits \
-		-Wno-unused-parameter
+		-Wno-unused-parameter \
+		-Wno-pointer-arith
 else
 	FLAGS = $(MAXOPTIMIZATION) -g2 \
 		-fdata-sections \

@@ -38,7 +38,7 @@ add_library(drivers_board
 	spi.cpp
 	timer_config.cpp
 	# usb.c
-	esp32_board_spiflash_setup.c
+	esp32_board_spiflash.c
 	esp32_board_wlan.c
 	mtd.cpp
 )

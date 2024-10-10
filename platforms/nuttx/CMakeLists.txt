@@ -255,63 +255,73 @@ else()
 if(CONFIG_ARCH_CHIP_ESP32)
 	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
 	set(NUTTX_STARTUP_OBJS
-	${PX4_STARTUP_DIR}/xtensa_assert.o
-	${PX4_STARTUP_DIR}/xtensa_blocktask.o
-	${PX4_STARTUP_DIR}/xtensa_checkstack.o
-	${PX4_STARTUP_DIR}/xtensa_context.o
-	${PX4_STARTUP_DIR}/xtensa_cpenable.o
-	${PX4_STARTUP_DIR}/xtensa_cpuint.o
-	${PX4_STARTUP_DIR}/xtensa_createstack.o
-	${PX4_STARTUP_DIR}/xtensa_dumpstate.o
-	${PX4_STARTUP_DIR}/xtensa_exit.o
-	${PX4_STARTUP_DIR}/xtensa_initialize.o
-	${PX4_STARTUP_DIR}/xtensa_initialstate.o
-	${PX4_STARTUP_DIR}/xtensa_int_handlers.o
-	${PX4_STARTUP_DIR}/xtensa_irqdispatch.o
-	${PX4_STARTUP_DIR}/xtensa_lowputs.o
-	${PX4_STARTUP_DIR}/xtensa_mdelay.o
-	${PX4_STARTUP_DIR}/xtensa_modifyreg8.o
-	${PX4_STARTUP_DIR}/xtensa_modifyreg16.o
-	${PX4_STARTUP_DIR}/xtensa_modifyreg32.o
-	${PX4_STARTUP_DIR}/xtensa_nputs.o
-	${PX4_STARTUP_DIR}/xtensa_panic.o
-	${PX4_STARTUP_DIR}/xtensa_releasepending.o
-	${PX4_STARTUP_DIR}/xtensa_releasestack.o
-	${PX4_STARTUP_DIR}/xtensa_reprioritizertr.o
-	${PX4_STARTUP_DIR}/xtensa_saveusercontext.o
-	${PX4_STARTUP_DIR}/xtensa_schedsigaction.o
-	${PX4_STARTUP_DIR}/xtensa_sigdeliver.o
-	${PX4_STARTUP_DIR}/xtensa_stackframe.o
-	${PX4_STARTUP_DIR}/xtensa_swint.o
-	${PX4_STARTUP_DIR}/xtensa_udelay.o
-	${PX4_STARTUP_DIR}/xtensa_unblocktask.o
-	${PX4_STARTUP_DIR}/xtensa_user_handler.o
-	${PX4_STARTUP_DIR}/xtensa_usestack.o
 	${PX4_STARTUP_DIR}/xtensa_vectors.o
 	${PX4_STARTUP_DIR}/xtensa_window_vector.o
 	${PX4_STARTUP_DIR}/xtensa_windowspill.o
-
-	${PX4_STARTUP_DIR}/esp32_allocateheap.o
-	${PX4_STARTUP_DIR}/esp32_clockconfig.o
-	${PX4_STARTUP_DIR}/esp32_dma.o
-	${PX4_STARTUP_DIR}/esp32_gpio.o
-	${PX4_STARTUP_DIR}/esp32_idle.o
-	${PX4_STARTUP_DIR}/esp32_irq.o
-	${PX4_STARTUP_DIR}/esp32_region.o
-	${PX4_STARTUP_DIR}/esp32_resetcause.o
-	${PX4_STARTUP_DIR}/esp32_rtc.o
+	${PX4_STARTUP_DIR}/xtensa_int_handlers.o
+	${PX4_STARTUP_DIR}/xtensa_user_handler.o
 	${PX4_STARTUP_DIR}/esp32_start.o
-	${PX4_STARTUP_DIR}/esp32_serial.o
-	${PX4_STARTUP_DIR}/esp32_spi.o
-	${PX4_STARTUP_DIR}/esp32_spicache.o
-	${PX4_STARTUP_DIR}/esp32_spiflash.o
-	${PX4_STARTUP_DIR}/esp32_spiram.o
-	${PX4_STARTUP_DIR}/esp32_systemreset.o
-	${PX4_STARTUP_DIR}/esp32_timerisr.o
-	${PX4_STARTUP_DIR}/esp32_user.o
 	${PX4_STARTUP_DIR}/esp32_wdt.o
-	# ${PX4_STARTUP_DIR}/esp32_partition.o
 	)
+
+
+	# set(NUTTX_STARTUP_OBJS
+	# ${PX4_STARTUP_DIR}/xtensa_assert.o
+	# ${PX4_STARTUP_DIR}/xtensa_blocktask.o
+	# ${PX4_STARTUP_DIR}/xtensa_checkstack.o
+	# ${PX4_STARTUP_DIR}/xtensa_context.o
+	# ${PX4_STARTUP_DIR}/xtensa_cpenable.o
+	# ${PX4_STARTUP_DIR}/xtensa_cpuint.o
+	# ${PX4_STARTUP_DIR}/xtensa_createstack.o
+	# # ${PX4_STARTUP_DIR}/xtensa_dumpstate.o
+	# ${PX4_STARTUP_DIR}/xtensa_exit.o
+	# ${PX4_STARTUP_DIR}/xtensa_initialize.o
+	# ${PX4_STARTUP_DIR}/xtensa_initialstate.o
+	# ${PX4_STARTUP_DIR}/xtensa_int_handlers.o
+	# ${PX4_STARTUP_DIR}/xtensa_irqdispatch.o
+	# ${PX4_STARTUP_DIR}/xtensa_lowputs.o
+	# ${PX4_STARTUP_DIR}/xtensa_mdelay.o
+	# ${PX4_STARTUP_DIR}/xtensa_modifyreg8.o
+	# ${PX4_STARTUP_DIR}/xtensa_modifyreg16.o
+	# ${PX4_STARTUP_DIR}/xtensa_modifyreg32.o
+	# ${PX4_STARTUP_DIR}/xtensa_nputs.o
+	# ${PX4_STARTUP_DIR}/xtensa_panic.o
+	# ${PX4_STARTUP_DIR}/xtensa_releasepending.o
+	# ${PX4_STARTUP_DIR}/xtensa_releasestack.o
+	# ${PX4_STARTUP_DIR}/xtensa_reprioritizertr.o
+	# ${PX4_STARTUP_DIR}/xtensa_saveusercontext.o
+	# ${PX4_STARTUP_DIR}/xtensa_schedsigaction.o
+	# ${PX4_STARTUP_DIR}/xtensa_sigdeliver.o
+	# ${PX4_STARTUP_DIR}/xtensa_stackframe.o
+	# ${PX4_STARTUP_DIR}/xtensa_swint.o
+	# ${PX4_STARTUP_DIR}/xtensa_udelay.o
+	# ${PX4_STARTUP_DIR}/xtensa_unblocktask.o
+	# ${PX4_STARTUP_DIR}/xtensa_user_handler.o
+	# ${PX4_STARTUP_DIR}/xtensa_usestack.o
+	# ${PX4_STARTUP_DIR}/xtensa_vectors.o
+	# ${PX4_STARTUP_DIR}/xtensa_window_vector.o
+	# ${PX4_STARTUP_DIR}/xtensa_windowspill.o
+
+	# ${PX4_STARTUP_DIR}/esp32_allocateheap.o
+	# ${PX4_STARTUP_DIR}/esp32_clockconfig.o
+	# ${PX4_STARTUP_DIR}/esp32_dma.o
+	# ${PX4_STARTUP_DIR}/esp32_gpio.o
+	# ${PX4_STARTUP_DIR}/esp32_idle.o
+	# ${PX4_STARTUP_DIR}/esp32_irq.o
+	# ${PX4_STARTUP_DIR}/esp32_region.o
+	# ${PX4_STARTUP_DIR}/esp32_resetcause.o
+	# ${PX4_STARTUP_DIR}/esp32_rtc.o
+	# ${PX4_STARTUP_DIR}/esp32_start.o
+	# ${PX4_STARTUP_DIR}/esp32_serial.o
+	# ${PX4_STARTUP_DIR}/esp32_spi.o
+	# ${PX4_STARTUP_DIR}/esp32_spicache.o
+	# ${PX4_STARTUP_DIR}/esp32_spiflash.o
+	# ${PX4_STARTUP_DIR}/esp32_systemreset.o
+	# ${PX4_STARTUP_DIR}/esp32_timerisr.o
+	# ${PX4_STARTUP_DIR}/esp32_user.o
+	# ${PX4_STARTUP_DIR}/esp32_wdt.o
+	# ${PX4_STARTUP_DIR}/esp32_partition.o
+	# )
 
 	set(NUTTX_NETWORK_LIB
 	libcore.a
@@ -330,23 +340,18 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		PROPERTIES
 		EXTERNAL_OBJECT true
 		GENERATED true)
+
 	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
+
 	target_link_libraries(nuttx_arch
 			INTERFACE
 			drivers_board
 			arch_hrt
 			arch_board_reset
-			# ${NUTTX_NETWORK_LIB}
-			-Wl,--end-group
-			# -lcore -lrtc -lnet80211 -lpp -lsmartconfig -lespnow -lphy -lwpa_supplicant
 	)
 
-	# add_library(esp32_lib OBJECT
-	# 		${PX4_SOURCE_DIR}/boards/px4/esp32/libs/libphy.a
-	# 		${PX4_SOURCE_DIR}/boards/px4/esp32/libs/libwapi.a)
-
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-	target_link_libraries(nuttx_drivers INTERFACE nuttx_c)
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
 	target_link_libraries(px4 PRIVATE
@@ -358,23 +363,20 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-fno-exceptions
 		-fno-rtti
 		-Wl,--cref
-		#-Wl,-T ${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld
+
 		-Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_out.ld
 		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.ld
 		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_rom.ld
-		-L${NUTTX_CONFIG_DIR_CYG}/scripts
 		-Wl,-Map=${PX4_CONFIG}.map
-
 		-Wl,--gc-sections
 
 		-Wl,--start-group
 			${nuttx_libs}
 			${NUTTX_STARTUP_OBJS}
-		# -Wl,--end-group
-			# ${NUTTX_NETWORK_LIB}
+		-Wl,--end-group
+
 		m
 		gcc
-		# -Wl,--end-group
 		)
 
 		if(NOT USE_LD_GOLD)

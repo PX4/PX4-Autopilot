@@ -270,15 +270,21 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif
+
+
+	// esp32_partition_init();
+	// up_mdelay(100);
   	int ret = esp32_spiflash_init();
   	if (ret)
     	{
       	syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
     	}
 
-	px4_platform_configure();
+
+	// px4_platform_configure();
 	/* Configure the HW based on the manifest */
 
+	// psram_enable(0,1);
 
 	led_on(GPIO_LED_BLUE);
 	up_mdelay(100);
