@@ -44,11 +44,6 @@
 PWMSim::PWMSim(bool hil_mode_enabled) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	_mixing_output.setAllDisarmedValues(PWM_SIM_DISARMED_MAGIC);
-	_mixing_output.setAllFailsafeValues(PWM_SIM_FAILSAFE_MAGIC);
-	_mixing_output.setAllMinValues(PWM_SIM_PWM_MIN_MAGIC);
-	_mixing_output.setAllMaxValues(PWM_SIM_PWM_MAX_MAGIC);
-
 	_mixing_output.setIgnoreLockdown(hil_mode_enabled);
 }
 
@@ -69,7 +64,7 @@ bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], un
 		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
 
 		for (int i = 0; i < (int)num_outputs; i++) {
-			if (outputs[i] != PWM_SIM_DISARMED_MAGIC) {
+			if (outputs[i] != _mixing_output.disarmedValue(i)) {
 
 				OutputFunction function = _mixing_output.outputFunction(i);
 				bool is_reversible = reversible_outputs & (1u << i);
@@ -78,12 +73,13 @@ bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], un
 				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax)
 				    && !is_reversible) {
 					// Scale non-reversible motors to [0, 1]
-					actuator_outputs.output[i] = (output - PWM_SIM_PWM_MIN_MAGIC) / (PWM_SIM_PWM_MAX_MAGIC - PWM_SIM_PWM_MIN_MAGIC);
+					actuator_outputs.output[i] = (output - _mixing_output.minValue(i)) / (_mixing_output.maxValue(
+									     i) - _mixing_output.minValue(i));
 
 				} else {
 					// Scale everything else to [-1, 1]
-					const float pwm_center = (PWM_SIM_PWM_MAX_MAGIC + PWM_SIM_PWM_MIN_MAGIC) / 2.f;
-					const float pwm_delta = (PWM_SIM_PWM_MAX_MAGIC - PWM_SIM_PWM_MIN_MAGIC) / 2.f;
+					const float pwm_center = (_mixing_output.maxValue(i) + _mixing_output.minValue(i)) / 2.f;
+					const float pwm_delta = (_mixing_output.maxValue(i) - _mixing_output.minValue(i)) / 2.f;
 					actuator_outputs.output[i] = (output - pwm_center) / pwm_delta;
 				}
 			}
