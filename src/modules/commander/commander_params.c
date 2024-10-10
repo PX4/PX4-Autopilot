@@ -732,7 +732,7 @@ PARAM_DEFINE_INT32(COM_FORCE_SAFETY, 0);
 PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
 
 /**
- * Timeout value for disarming when kill switch is engaged
+ * Timeout value for disarming after kill switch is engaged
  *
  * @group Commander
  * @unit s
