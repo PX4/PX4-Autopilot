@@ -159,6 +159,7 @@ bool CRSFTelemetry::send_flight_mode()
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF_NO_NAV:
 		flight_mode = "Auto";
 		break;
 
