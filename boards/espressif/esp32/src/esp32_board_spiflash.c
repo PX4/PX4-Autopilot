@@ -512,7 +512,7 @@ static int init_param_partition(void)
       return -ENOMEM;
     }
 
-  ret = register_mtddriver("/dev/param", mtd, 0755, NULL);
+  ret = register_mtddriver("/fs/mtd_params", mtd, 0755, NULL);
   if (ret < 0)
     {
       ferr("ERROR: Failed to register PARAM MTD: %d\n", ret);

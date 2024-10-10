@@ -12,3 +12,4 @@ param set-default CBRK_SUPPLY_CHK 894281
 # Disable safety switch by default
 param set-default CBRK_IO_SAFETY 22027
 
+pwm_out start

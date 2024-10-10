@@ -38,7 +38,7 @@ constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel0}, {GPIO::Pin4}),
+	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel0}, {GPIO::Pin2}),
 	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel1}, {GPIO::Pin13}),
 	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel2}, {GPIO::Pin16}),
 	initIOTimerChannel(io_timers, {Timer::Timer0, Timer::Channel3}, {GPIO::Pin17}),

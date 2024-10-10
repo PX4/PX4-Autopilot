@@ -48,7 +48,7 @@
 #include <stdint.h>
 
 /* LEDs */
-#define GPIO_LED_BLUE	2 | GPIO_OUTPUT
+#define GPIO_LED_BLUE	4 | GPIO_OUTPUT
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS 1
 #define BOARD_OVERLOAD_LED     LED_RED

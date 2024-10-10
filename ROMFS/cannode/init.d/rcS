@@ -20,11 +20,11 @@ set R /
 # Print full system version.
 #
 ver all
+set PARAM_FILE /fs/mtd_params
 
 # Load param file location from kconfig
 . ${R}etc/init.d/rc.filepaths
 
-#
 # Load parameters.
 #
 param select $PARAM_FILE
