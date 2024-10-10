@@ -69,5 +69,5 @@ void UavcanHygrometerBridge::hygro_sub_cb(const uavcan::ReceivedDataStructure<dr
 	report.humidity = msg.humidity;
 	report.timestamp = hrt_absolute_time();
 
-	publish(msg.getSrcNodeID().get(), &report);
+	publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &report);
 }

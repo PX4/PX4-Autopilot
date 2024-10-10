@@ -59,7 +59,7 @@ int UavcanAccelBridge::init()
 
 void UavcanAccelBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::RawIMU> &msg)
 {
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getIfaceIndex(), msg.getSrcNodeID().get());
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
@@ -81,9 +81,9 @@ void UavcanAccelBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 int UavcanAccelBridge::init_driver(uavcan_bridge::Channel *channel)
 {
-	// update device id as we now know our device node_id
-	DeviceId device_id{_device_id};
-
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = channel->iface_idx;
 	device_id.devid_s.devtype = DRV_ACC_DEVTYPE_UAVCAN;
 	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
