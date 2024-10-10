@@ -83,9 +83,10 @@ public:
 	 * Run arming checks and report if necessary.
 	 * This should be called regularly (e.g. 1Hz).
 	 * @param force_reporting if true, force reporting even if nothing changed
+	 * @param is_arming_request if true, then we are running the checks based on an actual arming request
 	 * @return true if there was a report (also when force_reporting=true)
 	 */
-	bool update(bool force_reporting = false);
+	bool update(bool force_reporting = false, bool is_arming_request = false);
 
 	/**
 	 * Whether arming is possible for a given navigation mode
