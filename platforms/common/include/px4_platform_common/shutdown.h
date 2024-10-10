@@ -70,6 +70,14 @@ __EXPORT int px4_register_shutdown_hook(shutdown_hook_t hook);
  */
 __EXPORT int px4_unregister_shutdown_hook(shutdown_hook_t hook);
 
+
+/**
+ * Execute all shutdown hooks
+ * @return true on success, false if one or more hooks failed
+ */
+__EXPORT bool px4_execute_shutdown_hooks();
+
+
 /** Types of reboot requests for PX4 */
 typedef enum {
 	REBOOT_REQUEST = 0,          ///< Normal reboot
