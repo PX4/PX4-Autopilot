@@ -61,6 +61,7 @@
 #include <chip.h>
 #include "hardware/imxrt_tmr.h"
 
+#ifndef BOARD_HAS_CUSTOM_LED_PWM
 int led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 {
 	return 0;
@@ -68,8 +69,8 @@ int led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 int led_pwm_servo_init(void)
 {
 	return 0;
-
 }
+#endif
 
 #if 0 && defined(BOARD_HAS_LED_PWM) || defined(BOARD_HAS_UI_LED_PWM)
 
