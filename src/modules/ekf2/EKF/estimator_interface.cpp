@@ -178,7 +178,6 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 	}
 
 	const int64_t time_us = gnss_sample.time_us
-				- static_cast<int64_t>(_params.gps_delay_ms * 1000)
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 	if (time_us >= static_cast<int64_t>(_gps_buffer->get_newest().time_us + _min_obs_interval_us)) {

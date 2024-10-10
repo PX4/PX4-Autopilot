@@ -276,3 +276,33 @@ PARAM_DEFINE_INT32(GPS_1_GNSS, 0);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_2_GNSS, 0);
+
+/**
+ * GPS measurement delay relative to IMU measurements
+ *
+ * Set to -1 if unknown
+ *
+ * @min -1
+ * @max 300
+ * @unit ms
+ * @decimal 1
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_1_DELAY, -1);
+
+/**
+ * GPS measurement delay relative to IMU measurements
+ *
+ * Set to -1 if unknown
+ *
+ * @min -1
+ * @max 300
+ * @unit ms
+ * @decimal 1
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_2_DELAY, -1);

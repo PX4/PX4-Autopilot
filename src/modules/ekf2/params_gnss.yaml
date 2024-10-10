@@ -17,16 +17,6 @@ parameters:
       default: 7
       min: 0
       max: 15
-    EKF2_GPS_DELAY:
-      description:
-        short: GPS measurement delay relative to IMU measurements
-      type: float
-      default: 110
-      min: 0
-      max: 300
-      unit: ms
-      reboot_required: true
-      decimal: 1
     EKF2_GPS_P_NOISE:
       description:
         short: Measurement noise for GNSS position
