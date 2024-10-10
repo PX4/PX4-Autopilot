@@ -8,14 +8,21 @@ class SourceScanner(object):
     to the Parser.
     """
 
-    def ScanDir(self, srcdir, parser):
+    def ScanDir(self, srcdir, parser, excluded_airframes=None):
         """
         Scans provided path and passes all found contents to the parser using
         parser.Parse method.
         """
+        if excluded_airframes is not None:
+            excluded_airframes = set(excluded_airframes)
+
         extensions = tuple(parser.GetSupportedExtensions())
         for dirname, dirnames, filenames in os.walk(srcdir):
             for filename in filenames:
+                # Skip excluded airframes if provided
+                if excluded_airframes and filename in excluded_airframes:
+                    continue
+
                 extension = os.path.splitext(filename)[1]
                 if extension in extensions:
                     path = os.path.join(dirname, filename)

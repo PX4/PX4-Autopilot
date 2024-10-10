@@ -59,6 +59,47 @@
 #	Example:
 #		px4_generate_airframes_xml(OUT airframes.xml)
 #
+
+include(px4_airframes)
+
+set(EXCLUDED_AIRFRAMES NULL)
+
+if(NOT CONFIG_MODULES_SIMULATION_PWM_OUT_SIM)
+	list(APPEND EXCLUDED_AIRFRAMES ${SIMULATION_AIRFRAMES})
+endif()
+
+if(NOT CONFIG_MODULES_MC_RATE_CONTROL)
+	list(APPEND EXCLUDED_AIRFRAMES ${MULTICOPTER_AIRFRAMES})
+endif()
+
+if(NOT CONFIG_MODULES_FW_RATE_CONTROL)
+	list(APPEND EXCLUDED_AIRFRAMES ${FIXEDWING_AIRFRAMES})
+endif()
+
+if(NOT CONFIG_MODULES_AIRSHIP_ATT_CONTROL)
+	list(APPEND EXCLUDED_AIRFRAMES ${AIRSHIP_AIRFRAMES})
+endif()
+
+if(NOT CONFIG_MODULES_VTOL_ATT_CONTROL)
+	list(APPEND EXCLUDED_AIRFRAMES ${VTOL_AIRFRAMES})
+endif()
+
+if(NOT CONFIG_MODULES_ROVER_DIFFERENTIAL)
+	list(APPEND EXCLUDED_AIRFRAMES ${DIFFERENTIAL_ROVER_AIRFRAMES})
+endif()
+
+if(NOT CONFIG_MODULES_ROVER_ACKERMANN)
+	list(APPEND EXCLUDED_AIRFRAMES ${ACKERMANN_ROVER_AIRFRAMES})
+endif()
+
+if(NOT CONFIG_MODULES_ROVER_POS_CONTROL)
+	list(APPEND EXCLUDED_AIRFRAMES ${ROVER_AIRFRAMES})
+endif()
+
+if(NOT CONFIG_MODULES_UUV_ATT_CONTROL)
+	list(APPEND EXCLUDED_AIRFRAMES ${UUV_AIRFRAMES})
+endif()
+
 function(px4_generate_airframes_xml)
 	px4_parse_function_args(
 		NAME px4_generate_airframes_xml
@@ -71,6 +112,7 @@ function(px4_generate_airframes_xml)
 			--airframes-path ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d
 			--board CONFIG_ARCH_BOARD_${PX4_BOARD}
 			--xml ${PX4_BINARY_DIR}/airframes.xml
+			--excluded_airframes ${EXCLUDED_AIRFRAMES}
 		DEPENDS ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		COMMENT "Creating airframes.xml"
 		)
