@@ -2752,19 +2752,63 @@ FixedwingPositionControl::Run()
 			_landing_gear_pub.publish(landing_gear);
 		}
 
-		// In Manual modes flaps and spoilers are directly controlled in the Attitude controller and not published here
+		// In Manual modes, flaps and spoilers are directly controlled in the Attitude controller and not published here
 		if (_control_mode.flag_control_auto_enabled
-		    && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-			normalized_unsigned_setpoint_s flaps_setpoint;
-			flaps_setpoint.normalized_setpoint = _flaps_setpoint;
-			flaps_setpoint.timestamp = hrt_absolute_time();
-			_flaps_setpoint_pub.publish(flaps_setpoint);
+    			&& _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
-			normalized_unsigned_setpoint_s spoilers_setpoint;
-			spoilers_setpoint.normalized_setpoint = _spoilers_setpoint;
-			spoilers_setpoint.timestamp = hrt_absolute_time();
-			_spoilers_setpoint_pub.publish(spoilers_setpoint);
-		}
+    			airspeed_poll();
+
+    			static bool flaps_retracted_after_rotation = false;
+
+    		if (_landing_abort_status == position_controller_landing_status_s::ABORTED_BY_OPERATOR) {
+
+        		if (_airspeed_valid) {
+
+            			if (_airspeed < _param_rwto_rot_airspd.get() && !flaps_retracted_after_rotation) {
+                		_flaps_setpoint = _param_fw_flaps_lnd_scl.get(); 
+
+            			} else if (!flaps_retracted_after_rotation) {
+                
+                			_flaps_setpoint = 0.0f;
+                			flaps_retracted_after_rotation = true;
+            			}
+        		} else {
+            
+            			_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
+        		}
+
+    		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+    
+        		_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
+        		flaps_retracted_after_rotation = false;
+
+    		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+
+        		_flaps_setpoint = _param_fw_flaps_to_scl.get();
+        		flaps_retracted_after_rotation = false;
+
+    		} else if (_manual_control_setpoint.flaps > FLT_EPSILON) {
+    
+		        _flaps_setpoint = _manual_control_setpoint.flaps;
+        		flaps_retracted_after_rotation = false;
+
+		} else {
+        
+        		_flaps_setpoint = 0.0f;
+        		flaps_retracted_after_rotation = false;
+        
+    		}
+
+    		normalized_unsigned_setpoint_s flaps_setpoint;
+    		flaps_setpoint.normalized_setpoint = _flaps_setpoint;
+    		flaps_setpoint.timestamp = hrt_absolute_time();
+    		_flaps_setpoint_pub.publish(flaps_setpoint);
+
+    		normalized_unsigned_setpoint_s spoilers_setpoint;
+    		spoilers_setpoint.normalized_setpoint = _spoilers_setpoint;
+    		spoilers_setpoint.timestamp = hrt_absolute_time();
+    		_spoilers_setpoint_pub.publish(spoilers_setpoint);
+}
 
 		_z_reset_counter = _local_pos.z_reset_counter;
 		_xy_reset_counter = _local_pos.xy_reset_counter;
