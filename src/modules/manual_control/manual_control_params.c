@@ -58,3 +58,19 @@ PARAM_DEFINE_INT32(MAN_ARM_GESTURE, 1);
  * @max 15
  */
 PARAM_DEFINE_FLOAT(MAN_KILL_GEST_T, -1.f);
+
+/**
+ * Arm/disarm stick gesture type
+ *
+ * Single stick (left stick): lower right to arm, lower left to disarm
+ * Dual stick:
+ * Left stick to the lower right and right stick to the lower left to arm.
+ * Left stick to the lower left and right stick to the lower right to disarm.
+ *
+ * @value 0 Single stick
+ * @value 1 Dual stick
+ * @min 0
+ * @max 1
+ * @group Manual Control
+ */
+PARAM_DEFINE_INT32(MAN_ARM_GES_TYPE, 0);
