@@ -182,7 +182,7 @@ void MspDPOsd::set_flight_mode_string(const hrt_abstime& now, const struct vehic
 		display.set(MessageDisplayType::FLIGHT_MODE, "TERMINATION");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		display.set(MessageDisplayType::FLIGHT_MODE, "OFFBOARD");
+		display.set(MessageDisplayType::FLIGHT_MODE, "POSCTL");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 		display.set(MessageDisplayType::FLIGHT_MODE, "STAB");
@@ -470,7 +470,7 @@ const char* construct_flight_mode(const vehicle_status_s &vehicle_status){
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		flight_mode = "OFFBOARD";
+		flight_mode = "POSCTL";
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
