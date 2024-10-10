@@ -1,0 +1,5 @@
+menuconfig MODULES_ANDROID_SENSOR_MAG_NDK
+	bool "sensor_mag_ndk"
+	default n
+	---help---
+		Enable support for sensor_mag_ndk
