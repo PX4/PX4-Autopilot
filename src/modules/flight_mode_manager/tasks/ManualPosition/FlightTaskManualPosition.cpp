@@ -94,11 +94,6 @@ void FlightTaskManualPosition::_scaleSticks()
 	// Rotate setpoint into local frame
 	Sticks::rotateIntoHeadingFrameXY(vel_sp_xy, _yaw, _yaw_setpoint);
 
-	// collision prevention
-	if (_collision_prevention.is_active()) {
-		_collision_prevention.modifySetpoint(vel_sp_xy, velocity_scale, _position.xy(), _velocity.xy());
-	}
-
 	_velocity_setpoint.xy() = vel_sp_xy;
 }
 
