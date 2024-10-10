@@ -470,7 +470,7 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData 
 {
 	// TODO: Take gimbal_device_information into account.
 
-	gimbal_manager_information_s gimbal_manager_info;
+	gimbal_manager_information_s gimbal_manager_info{};
 	gimbal_manager_info.timestamp = hrt_absolute_time();
 
 	gimbal_manager_info.cap_flags =

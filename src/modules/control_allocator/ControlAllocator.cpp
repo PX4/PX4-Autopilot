@@ -657,11 +657,11 @@ ControlAllocator::publish_actuator_controls()
 		return;
 	}
 
-	actuator_motors_s actuator_motors;
+	actuator_motors_s actuator_motors{};
 	actuator_motors.timestamp = hrt_absolute_time();
 	actuator_motors.timestamp_sample = _timestamp_sample;
 
-	actuator_servos_s actuator_servos;
+	actuator_servos_s actuator_servos{};
 	actuator_servos.timestamp = actuator_motors.timestamp;
 	actuator_servos.timestamp_sample = _timestamp_sample;
 

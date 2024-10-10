@@ -236,7 +236,7 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 
 bool PayloadDeliverer::send_gripper_vehicle_command(const int32_t gripper_action)
 {
-	vehicle_command_s vcmd;
+	vehicle_command_s vcmd{};
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
 	vcmd.param2 = gripper_action;

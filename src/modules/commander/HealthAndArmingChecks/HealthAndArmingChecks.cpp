@@ -91,7 +91,7 @@ bool HealthAndArmingChecks::update(bool force_reporting)
 		_reporter._mavlink_log_pub = nullptr;
 		// LEGACY end
 
-		health_report_s health_report;
+		health_report_s health_report{};
 		_reporter.getHealthReport(health_report);
 		health_report.timestamp = hrt_absolute_time();
 		_health_report_pub.publish(health_report);

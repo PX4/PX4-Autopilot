@@ -62,7 +62,7 @@ void PX4Magnetometer::set_device_type(uint8_t devtype)
 
 void PX4Magnetometer::update(const hrt_abstime &timestamp_sample, float x, float y, float z)
 {
-	sensor_mag_s report;
+	sensor_mag_s report{};
 	report.timestamp_sample = timestamp_sample;
 	report.device_id = _device_id;
 	report.temperature = _temperature;

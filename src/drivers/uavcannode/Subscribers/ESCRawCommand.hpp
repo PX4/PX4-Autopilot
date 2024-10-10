@@ -81,7 +81,7 @@ private:
 	void callback(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::RawCommand> &msg)
 	{
 
-		actuator_motors_s actuator_motors;
+		actuator_motors_s actuator_motors{};
 
 		actuator_motors.timestamp = hrt_absolute_time();
 		actuator_motors.timestamp_sample = actuator_motors.timestamp;

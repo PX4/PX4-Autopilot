@@ -259,7 +259,7 @@ bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, u
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
-		dataman_request_s request;
+		dataman_request_s request{};
 		request.timestamp = timestamp;
 		request.index = index;
 		request.data_length = length;
@@ -297,7 +297,7 @@ bool DatamanClient::writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer, 
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
-		dataman_request_s request;
+		dataman_request_s request{};
 		request.timestamp = timestamp;
 		request.index = index;
 		request.data_length = length;
@@ -332,7 +332,7 @@ bool DatamanClient::clearAsync(dm_item_t item)
 
 		hrt_abstime timestamp = hrt_absolute_time();
 
-		dataman_request_s request;
+		dataman_request_s request{};
 		request.timestamp = timestamp;
 		request.client_id = _client_id;
 		request.request_type = DM_CLEAR;
@@ -397,7 +397,7 @@ void DatamanClient::update()
 
 				_active_request.timestamp = timestamp;
 
-				dataman_request_s request;
+				dataman_request_s request{};
 				request.timestamp = timestamp;
 				request.index = _active_request.index;
 				request.data_length = _active_request.length;
