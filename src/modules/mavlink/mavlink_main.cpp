@@ -1074,6 +1074,21 @@ Mavlink::send_autopilot_capabilities()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_FENCE;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_RALLY;
+
+
+		{
+			param_t param_handle = param_find_no_notification("MNT_MODE_IN");
+			int32_t mnt_mode_in = 0;
+
+			if (mnt_mode_in != PARAM_INVALID) {
+				param_get(param_handle, &mnt_mode_in);
+
+				if (mnt_mode_in == 4) {
+					msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMPONENT_IMPLEMENTS_GIMBAL_MANAGER;
+				}
+			}
+		}
+
 		msg.flight_sw_version = px4_firmware_version();
 		msg.middleware_sw_version = px4_firmware_version();
 		msg.os_sw_version = px4_os_version();
