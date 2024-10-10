@@ -181,7 +181,7 @@ void PWMOut::Run()
 		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
-
+		printf("param updated\n");
 		// update parameters from storage
 		update_params();
 	}

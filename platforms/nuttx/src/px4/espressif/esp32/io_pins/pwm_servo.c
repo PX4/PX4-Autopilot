@@ -65,11 +65,13 @@
 struct pwm_info_s pwm_info;
 struct pwm_lowerhalf_s *pwm;
 
+// duty cycle = duty / 65536 * reload (fractional value)
 int up_pwm_servo_set(unsigned channel, uint16_t value)
 {
 	//syslog(LOG_INFO, "PWM set ch: %d value:%d\n", channel,value);
 	// pwm_info.channels[channel].duty = (value*pwm_info.frequency)/(1000000/65535);
 	pwm_info.channels[channel].duty = value/((1/pwm_info.frequency)*1e6);
+	// pwm->ops->start(pwm, &pwm_info);
 	return OK;
 }
 
@@ -91,7 +93,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 	pwm->ops->setup(pwm);
 
 	pwm_info.frequency=50;
-	pwm_info.channels[0].duty = channel_mask & 0b1 ? 0.5 : 0.0;
+	pwm_info.channels[0].duty = 80;//channel_mask & 0b1 ? 0.5 : 0.0;
 	pwm_info.channels[1].duty = channel_mask  & 0b10 ? 0.5 : 0.0;
 	pwm_info.channels[2].duty = channel_mask & 0b100 ? 0.5 : 0.0;
 	pwm_info.channels[3].duty = channel_mask & 0b1000 ? 0.5 : 0.0;
@@ -110,7 +112,9 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
 	if(group == 0 || group == 1 || group == 2 || group == 3)
 	{
+		printf("new rate: %d\n", rate);
 		pwm_info.frequency = rate;
+		pwm->ops->start(pwm, &pwm_info);
 		return OK;
 	}
 	return ERROR;
