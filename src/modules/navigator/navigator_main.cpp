@@ -838,10 +838,10 @@ void Navigator::run()
 			break;
 		}
 
-		// Do not execute any state machine while we are disarmed
-		if (_vstatus.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-			navigation_mode_new = nullptr;
-		}
+		// // Do not execute any state machine while we are disarmed
+		// if (_vstatus.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		// 	navigation_mode_new = nullptr;
+		// }
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
