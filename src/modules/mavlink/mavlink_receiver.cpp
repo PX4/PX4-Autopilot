@@ -593,8 +593,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		result = handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		if (set_message_interval((int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4,
-					 (int)(vehicle_command.param5 + 0.5), (int)(vehicle_command.param6 + 0.5), (int)(vehicle_command.param7 + 0.5f))) {
+		if (set_message_interval(
+			    (int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
@@ -2274,15 +2274,24 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 }
 
 int
-MavlinkReceiver::set_message_interval(int msgId, float interval, float param3, float param4, int param5, int param6,
-				      int response_target)
+MavlinkReceiver::set_message_interval(int msgId, float interval, float param3, float param4, float param7)
 {
 	if (msgId == MAVLINK_MSG_ID_HEARTBEAT) {
 		return PX4_ERROR;
 	}
 
-	if ((int)(param3 + 0.5f) || (int)(param4 + 0.5f) || param5 || param6 || response_target) {
-		// At least one of the unsupported params is non-zero
+	if (PX4_ISFINITE(param3) && (int)(param3 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL requested param3 not supported.");
+		return PX4_ERROR;
+	}
+
+	if (PX4_ISFINITE(param4) && (int)(param4 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL requested param4 not supported.");
+		return PX4_ERROR;
+	}
+
+	if (PX4_ISFINITE(param7) && (int)(param7 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL response target not supported.");
 		return PX4_ERROR;
 	}
 
