@@ -109,6 +109,21 @@ parameters:
       default: 1023
       min: 0
       max: 1023
+    EKF2_REQ_FIX:
+      description:
+        short: Required fix to use GPS
+      type: int32
+      default: 3
+      min: 1
+      max: 8
+      values:
+        1: Fix type None
+        2: Fix type 2D
+        3: Fix type 3D
+        4: Fix type RTCM Code Differential
+        5: Fix type RTK Float
+        6: Fix type RTK Fixed
+        8: Fix type Extrapolated
     EKF2_REQ_EPH:
       description:
         short: Required EPH to use GPS
