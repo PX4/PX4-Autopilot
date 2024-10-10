@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# Board specific sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+scha63t -A -R 0 -s -b 1 start
+scha63t -G -R 0 -s -b 1 start
+
+iim42652 -R 8 -s -b 3 start
+iim42652 -R 8 -s -b 4 start
+
+unset HAVE_PM2
+
+ms5611 -s -b 1 start
+ms5611 -s -b 4 start
+
+# internal compass
+ist8310 -I -R 6 start
+# External compass
+ist8310 -X -b 1 -R 10 start
