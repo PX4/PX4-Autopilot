@@ -1,0 +1,13 @@
+obj-y += matrix.o
+obj-y += errors.o
+obj-y += matrix_checks.o
+obj-y += printing.o
+obj-y += copy_matrix.o
+obj-y += unary_ops.o
+obj-y += binary_ops.o
+obj-y += vector_ops.o
+obj-y += vector_products.o
+obj-y += iterator.o
+obj-y += strided_matrix.o
+obj-y += matmul.o
+obj-y += tri.o
