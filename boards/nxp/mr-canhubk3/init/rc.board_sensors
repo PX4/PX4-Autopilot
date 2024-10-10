@@ -6,7 +6,7 @@ if ver hwtypecmp MR-CANHUBK3-ADAP
 then
 	icm42688p -c 2 -b 3 -R 0 -S -f 15000 start
 	# Internal magnetometer on I2c on ADAP
-	bmm150 -X -a 18 start
+	bmm150 -X -a 18 -R 8 start
 	ist8310 -X -b 1 -R 10 start
 	# ADC for voltage input sensing
 	board_adc start
