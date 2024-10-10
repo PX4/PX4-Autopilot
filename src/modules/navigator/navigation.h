@@ -60,7 +60,6 @@
 
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
-	NAV_CMD_IDLE = 0,
 	NAV_CMD_WAYPOINT = 16,
 	NAV_CMD_LOITER_UNLIMITED = 17,
 	NAV_CMD_LOITER_TIME_LIMIT = 19,

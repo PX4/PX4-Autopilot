@@ -72,17 +72,11 @@ Takeoff::on_active()
 
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-		// set loiter item so position controllers stop doing takeoff logic
-		if (_navigator->get_land_detected()->landed) {
-			_mission_item.nav_cmd = NAV_CMD_IDLE;
+		if (pos_sp_triplet->current.valid) {
+			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
 
 		} else {
-			if (pos_sp_triplet->current.valid) {
-				setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
-
-			} else {
-				setLoiterItemFromCurrentPosition(&_mission_item);
-			}
+			setLoiterItemFromCurrentPosition(&_mission_item);
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);

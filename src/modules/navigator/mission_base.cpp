@@ -535,10 +535,8 @@ void MissionBase::setEndOfMissionItems()
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	if (_land_detected_sub.get().landed) {
-		_mission_item.nav_cmd = NAV_CMD_IDLE;
-
-	} else {
+	// set a loiter item if not landed
+	if (!_land_detected_sub.get().landed) {
 		if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
 

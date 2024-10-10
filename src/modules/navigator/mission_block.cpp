@@ -103,7 +103,6 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_VTOL_LAND:
 		return _navigator->get_land_detected()->landed;
 
-	case NAV_CMD_IDLE: /* fall through */
 	case NAV_CMD_LOITER_UNLIMITED:
 		return false;
 
@@ -686,9 +685,6 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->gliding_enabled = (_navigator->get_cruising_throttle() < FLT_EPSILON);
 
 	switch (item.nav_cmd) {
-	case NAV_CMD_IDLE:
-		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
-		break;
 
 	case NAV_CMD_TAKEOFF:
 	case NAV_CMD_VTOL_TAKEOFF:
@@ -838,22 +834,6 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
-	item->loiter_radius = _navigator->get_loiter_radius();
-	item->acceptance_radius = _navigator->get_acceptance_radius();
-	item->time_inside = 0.0f;
-	item->autocontinue = true;
-	item->origin = ORIGIN_ONBOARD;
-}
-
-void
-MissionBlock::set_idle_item(struct mission_item_s *item)
-{
-	item->nav_cmd = NAV_CMD_IDLE;
-	item->lat = _navigator->get_home_position()->lat;
-	item->lon = _navigator->get_home_position()->lon;
-	item->altitude_is_relative = false;
-	item->altitude = _navigator->get_home_position()->alt;
-	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_loiter_radius();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
@@ -1031,7 +1011,6 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_i
 
 	if (_navigator->get_nav_min_gnd_dist_param() > FLT_EPSILON && _mission_item.nav_cmd != NAV_CMD_LAND
 	    && _mission_item.nav_cmd != NAV_CMD_VTOL_LAND && _mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION
-	    && _mission_item.nav_cmd != NAV_CMD_IDLE
 	    && _navigator->get_local_position()->dist_bottom_valid
 	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
 	    && _navigator->get_local_position()->vz > FLT_EPSILON
