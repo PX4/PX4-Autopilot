@@ -3,6 +3,9 @@
 # script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
+# store the project root directory path in a variable
+PX4_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../" && pwd )
+
 # Reinstall if --reinstall set
 REINSTALL_FORMULAS=""
 # Install simulation tools?
@@ -48,10 +51,19 @@ else
 fi
 
 # Python dependencies
+echo
 echo "Installing PX4 Python3 dependencies"
-# We need to have future to install pymavlink later.
-python3 -m pip install future
-python3 -m pip install --user -r ${DIR}/requirements.txt
+if [ ! -d ".venv" ]; then
+	echo "Python venv not found. Creating a new virtual vnvironment at .venv"
+	python3 -m venv ${PX4_DIR}/.venv
+fi
+activate () {
+  . $PX4_DIR/.venv/bin/activate
+}
+echo "Activating Python virtual environment"
+activate
+python -m pip install -r ${DIR}/requirements.txt
+
 
 # Optional, but recommended additional simulation tools:
 if [[ $INSTALL_SIM == "--sim-tools" ]]; then
@@ -61,5 +73,8 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		brew reinstall px4-sim
 	fi
 fi
+
+#deactivate venv
+# deactivate
 
 echo "All set! PX4 toolchain installed!"
