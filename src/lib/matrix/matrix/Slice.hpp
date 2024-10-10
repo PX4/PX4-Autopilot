@@ -374,6 +374,21 @@ public:
 		return min_val;
 	}
 
+	// sum of absolute values
+	Type sum_abs() const
+	{
+		const SliceT<MatrixT, Type, P, Q, M, N> &self = *this;
+		Type accum(0);
+
+		for (size_t i = 0; i < P; i++) {
+			for (size_t j = 0; j < Q; j++) {
+				accum += std::abs(self(i, j));
+			}
+		}
+
+		return accum;
+	}
+
 private:
 	size_t _x0, _y0;
 	MatrixT *_data;
