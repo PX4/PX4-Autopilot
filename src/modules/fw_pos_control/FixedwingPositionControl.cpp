@@ -2764,7 +2764,7 @@ FixedwingPositionControl::Run()
 
         		if (_airspeed_valid) {
 
-            			if (_airspeed < _param_rwto_rot_airspd.get() && !flaps_retracted_after_rotation) {
+            			if (_airspeed_eas < _param_rwto_rot_airspd.get() && !flaps_retracted_after_rotation) {
                 		_flaps_setpoint = _param_fw_flaps_lnd_scl.get(); 
 
             			} else if (!flaps_retracted_after_rotation) {
