@@ -88,7 +88,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			bool origin_newer_than_last_mag = (global_origin().getProjectionReferenceTimestamp() > aid_src.time_last_fuse);
 
 			if (global_origin_valid()
-			    && (origin_newer_than_last_mag || (local_position_is_valid() && isTimedOut(_wmm_mag_time_last_checked, 10e6)))
+			    && (origin_newer_than_last_mag || (isLocalHorizontalPositionValid() && isTimedOut(_wmm_mag_time_last_checked, 10e6)))
 			   ) {
 				// position of local NED origin in GPS / WGS84 frame
 				double latitude_deg;

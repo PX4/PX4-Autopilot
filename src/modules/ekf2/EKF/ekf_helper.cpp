@@ -109,7 +109,7 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 	double current_lon = static_cast<double>(NAN);
 
 	// if we are already doing aiding, correct for the change in position since the EKF started navigating
-	if (_pos_ref.isInitialized() && local_position_is_valid()) {
+	if (_pos_ref.isInitialized() && isLocalHorizontalPositionValid()) {
 		_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
 		current_pos_available = true;
 	}
@@ -184,7 +184,7 @@ bool Ekf::setLatLonOriginFromCurrentPos(const double latitude, const double long
 	_pos_ref.initReference(latitude, longitude, _time_delayed_us);
 
 	// if we are already doing aiding, correct for the change in position since the EKF started navigating
-	if (local_position_is_valid()) {
+	if (isLocalHorizontalPositionValid()) {
 		double est_lat;
 		double est_lon;
 		_pos_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
@@ -671,16 +671,16 @@ uint16_t Ekf::get_ekf_soln_status() const
 	soln_status.flags.attitude = attitude_valid();
 
 	// 2	ESTIMATOR_VELOCITY_HORIZ	True if the horizontal velocity estimate is good
-	soln_status.flags.velocity_horiz = local_position_is_valid();
+	soln_status.flags.velocity_horiz = isLocalHorizontalPositionValid();
 
 	// 4	ESTIMATOR_VELOCITY_VERT	True if the vertical velocity estimate is good
 	soln_status.flags.velocity_vert = isLocalVerticalVelocityValid() || isLocalVerticalPositionValid();
 
 	// 8	ESTIMATOR_POS_HORIZ_REL	True if the horizontal position (relative) estimate is good
-	soln_status.flags.pos_horiz_rel = local_position_is_valid();
+	soln_status.flags.pos_horiz_rel = isLocalHorizontalPositionValid();
 
 	// 16	ESTIMATOR_POS_HORIZ_ABS	True if the horizontal position (absolute) estimate is good
-	soln_status.flags.pos_horiz_abs = global_position_is_valid();
+	soln_status.flags.pos_horiz_abs = isGlobalHorizontalPositionValid();
 
 	// 32	ESTIMATOR_POS_VERT_ABS	True if the vertical position (absolute) estimate is good
 	soln_status.flags.pos_vert_abs = isVerticalAidingActive();

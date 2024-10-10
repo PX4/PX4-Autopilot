@@ -417,7 +417,7 @@ int EKF2::print_status(bool verbose)
 {
 	PX4_INFO_RAW("ekf2:%d EKF dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
 		     _instance, (double)_ekf.get_dt_ekf_avg(), _ekf.attitude_valid(),
-		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
+		     _ekf.isLocalHorizontalPositionValid(), _ekf.isGlobalHorizontalPositionValid());
 
 	perf_print_counter(_ekf_update_perf);
 	perf_print_counter(_msg_missed_imu_perf);
@@ -1174,23 +1174,22 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 
 		// Position of local NED origin in GPS / WGS84 frame
 		_ekf.global_origin().reproject(position(0), position(1), global_pos.lat, global_pos.lon);
+		global_pos.lat_lon_valid = _ekf.isGlobalHorizontalPositionValid();
 
 		global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
+		global_pos.alt_valid = _ekf.isGlobalVerticalPositionValid();
+
 #if defined(CONFIG_EKF2_GNSS)
 		global_pos.alt_ellipsoid = altAmslToEllipsoid(global_pos.alt);
-#else
-		global_pos.alt_ellipsoid = global_pos.alt;
 #endif
 
-		// delta_alt, alt_reset_counter
-		//  global altitude has opposite sign of local down position
+		// global altitude has opposite sign of local down position
 		float delta_z = 0.f;
 		uint8_t z_reset_counter = 0;
 		_ekf.get_posD_reset(&delta_z, &z_reset_counter);
 		global_pos.delta_alt = -delta_z;
 		global_pos.alt_reset_counter = z_reset_counter;
 
-		// lat_lon_reset_counter
 		float delta_xy[2] {};
 		uint8_t xy_reset_counter = 0;
 		_ekf.get_posNE_reset(delta_xy, &xy_reset_counter);
@@ -1198,16 +1197,11 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 
 		_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
-		global_pos.terrain_alt = NAN;
-		global_pos.terrain_alt_valid = false;
-
 #if defined(CONFIG_EKF2_TERRAIN)
 
-		if (_ekf.isTerrainEstimateValid()) {
-			// Terrain altitude in m, WGS84
-			global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
-			global_pos.terrain_alt_valid = true;
-		}
+		// Terrain altitude in m, WGS84
+		global_pos.terrain_alt = _ekf.getEkfGlobalOriginAltitude() - _ekf.getTerrainVertPos();
+		global_pos.terrain_alt_valid = _ekf.isTerrainEstimateValid();
 
 		float delta_hagl = 0.f;
 		_ekf.get_hagl_reset(&delta_hagl, &global_pos.terrain_reset_counter);
@@ -1566,8 +1560,8 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.ay = vel_deriv(1);
 	lpos.az = vel_deriv(2);
 
-	lpos.xy_valid = _ekf.local_position_is_valid();
-	lpos.v_xy_valid = _ekf.local_position_is_valid();
+	lpos.xy_valid = _ekf.isLocalHorizontalPositionValid();
+	lpos.v_xy_valid = _ekf.isLocalHorizontalPositionValid();
 
 	// TODO: some modules (e.g.: mc_pos_control) don't handle v_z_valid != z_valid properly
 	lpos.z_valid = _ekf.isLocalVerticalPositionValid() || _ekf.isLocalVerticalVelocityValid();
