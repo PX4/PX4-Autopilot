@@ -185,6 +185,7 @@ set(msg_files
 	RegisterExtComponentReply.msg
 	RegisterExtComponentRequest.msg
 	RoverAckermannGuidanceStatus.msg
+	RoverAckermannSetpoint.msg
 	RoverAckermannStatus.msg
 	RoverDifferentialGuidanceStatus.msg
 	RoverDifferentialSetpoint.msg
