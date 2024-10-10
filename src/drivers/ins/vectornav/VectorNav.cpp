@@ -328,7 +328,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			local_position.vxy_max = INFINITY;
 			local_position.vz_max = INFINITY;
 			local_position.hagl_min = INFINITY;
-			local_position.hagl_max = INFINITY;
+			local_position.hagl_max_z = INFINITY;
+			local_position.hagl_max_xy = INFINITY;
 
 			local_position.unaided_heading = NAN;
 			local_position.timestamp = hrt_absolute_time();
