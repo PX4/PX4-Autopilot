@@ -443,7 +443,7 @@ __BEGIN_DECLS
  * Name: board_rc_singlewire
  *
  * Description:
- *   A board may define RC_SERIAL_SINGLEWIRE, so that RC_SERIAL_PORT is configured
+ *   A board may define RC_SERIAL_SINGLEWIRE, so that CONFIG_BOARD_SERIAL_RC is configured
  *   as singlewire UART.
  *
  * Input Parameters:
@@ -456,7 +456,7 @@ __BEGIN_DECLS
  ************************************************************************************/
 
 #if defined(RC_SERIAL_SINGLEWIRE)
-static inline bool board_rc_singlewire(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
+static inline bool board_rc_singlewire(const char *device) { return strcmp(device, CONFIG_BOARD_SERIAL_RC) == 0; }
 #elif defined(RC_SERIAL_SINGLEWIRE_FORCE)
 static inline bool board_rc_singlewire(const char *device) { return true; }
 #else
@@ -467,7 +467,7 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
  * Name: board_rc_swap_rxtx
  *
  * Description:
- *   A board may define RC_SERIAL_SWAP_RXTX, so that RC_SERIAL_PORT is configured
+ *   A board may define RC_SERIAL_SWAP_RXTX, so that CONFIG_BOARD_SERIAL_RC is configured
  *   as UART with RX/TX swapped.
  *
  *   It can optionaly define RC_SERIAL_SWAP_USING_SINGLEWIRE If the board is wired
@@ -489,7 +489,7 @@ static inline bool board_rc_singlewire(const char *device) { return false; }
  ************************************************************************************/
 
 #if defined(RC_SERIAL_SWAP_RXTX)
-static inline bool board_rc_swap_rxtx(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
+static inline bool board_rc_swap_rxtx(const char *device) { return strcmp(device, CONFIG_BOARD_SERIAL_RC) == 0; }
 #else
 static inline bool board_rc_swap_rxtx(const char *device) { return false; }
 #endif
@@ -499,7 +499,7 @@ static inline bool board_rc_swap_rxtx(const char *device) { return false; }
  *
  * Description:
  *   All boards may optionally define RC_INVERT_INPUT(bool invert) that is
- *   used to invert the RC_SERIAL_PORT RC port (e.g. to toggle an external XOR via
+ *   used to invert the CONFIG_BOARD_SERIAL_RC RC port (e.g. to toggle an external XOR via
  *   GPIO).
  *
  * Input Parameters:
@@ -514,7 +514,7 @@ static inline bool board_rc_swap_rxtx(const char *device) { return false; }
 #ifdef RC_INVERT_INPUT
 static inline bool board_rc_invert_input(const char *device, bool invert)
 {
-	if (strcmp(device, RC_SERIAL_PORT) == 0) { RC_INVERT_INPUT(invert); return true; }
+	if (strcmp(device, CONFIG_BOARD_SERIAL_RC) == 0) { RC_INVERT_INPUT(invert); return true; }
 
 	return false;
 }

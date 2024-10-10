@@ -130,9 +130,6 @@ __END_DECLS
 #define SPEKTRUM_RX_AS_UART()        px4_arch_configgpio(PIN_UART1_RX)
 #define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-/* RC input */
-
-#define RC_SERIAL_PORT          "/dev/ttyS2"      /* UART1 */
 #define GPIO_RSSI_IN            PIN_ADC1_SE13
 
 /* Ethernet Control

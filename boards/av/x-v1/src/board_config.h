@@ -102,9 +102,6 @@
 #define HRT_TIMER		     5  /* use timer5 for the HRT */
 #define HRT_TIMER_CHANNEL    1  /* use capture/compare channel 3 */
 
-/* RC Serial port */
-
-#define RC_SERIAL_PORT                     "/dev/ttyS4"
 
 /* Power switch controls ******************************************************/
 

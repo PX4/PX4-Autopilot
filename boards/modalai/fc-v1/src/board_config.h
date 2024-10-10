@@ -182,8 +182,6 @@
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 /* RC Serial port */
-
-#define RC_SERIAL_PORT                     "/dev/ttyS5"
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* Safety Switch: Enable the FMU to control it as there is no px4io in ModalAI FC-v1 */
