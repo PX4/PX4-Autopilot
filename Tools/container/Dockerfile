@@ -1,4 +1,3 @@
-#
 # PX4 base development environment
 #
 
@@ -20,10 +19,6 @@ RUN apt-get update && apt-get -y --quiet --no-install-recommends install \
   gosu \
   ;
 
-# Set the default workspace directory as a volume
-# This will guarantee the image always has the right permissions
-# and that the workspace directory is always the same
-VOLUME px4 /px4
 # Install PX4 Requirements
 COPY Tools/setup/requirements.txt /tmp/requirements.txt
 COPY Tools/setup/ubuntu.sh /tmp/ubuntu.sh
