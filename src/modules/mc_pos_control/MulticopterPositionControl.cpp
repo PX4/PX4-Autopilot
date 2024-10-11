@@ -556,6 +556,13 @@ void MulticopterPositionControl::Run()
 				states.velocity(2) = vehicle_local_position.z_deriv * weighting + vehicle_local_position.vz * (1.f - weighting);
 			}
 
+			if ((!PX4_ISFINITE(_setpoint.velocity[0]) || !PX4_ISFINITE(_setpoint.velocity[1]))
+			    && (!PX4_ISFINITE(_setpoint.position[0]) || !PX4_ISFINITE(_setpoint.position[1]))) {
+				// Horizontal velocity is not controlled, reset the integrators to avoid
+				// over-corrections when starting again.
+				_control.resetIntegralXY();
+			}
+
 			_control.setState(states);
 
 			// Run position control
@@ -586,6 +593,7 @@ void MulticopterPositionControl::Run()
 			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
 						    vehicle_local_position.timestamp_sample);
+			_control.resetIntegral();
 		}
 
 		// Publish takeoff status

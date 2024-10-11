@@ -261,7 +261,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.pos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
 
 	// constrain states
-	_state.vel = matrix::constrain(_state.vel, -1000.f, 1000.f);
+	_state.vel = matrix::constrain(_state.vel, -_params.velocity_limit, _params.velocity_limit);
 	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
 

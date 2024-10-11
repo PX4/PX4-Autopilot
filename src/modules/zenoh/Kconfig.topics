@@ -137,16 +137,16 @@ menu "Zenoh publishers/subscribers"
 		bool "debug_vect"
 		default n
 
-	config ZENOH_PUBSUB_DIFFERENTIAL_DRIVE_SETPOINT
-		bool "differential_drive_setpoint"
-		default n
-
 	config ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
 		bool "differential_pressure"
 		default n
 
 	config ZENOH_PUBSUB_DISTANCE_SENSOR
 		bool "distance_sensor"
+		default n
+
+	config ZENOH_PUBSUB_DISTANCE_SENSOR_MODE_CHANGE_REQUEST
+		bool "distance_sensor_mode_change_request"
 		default n
 
 	config ZENOH_PUBSUB_EKF2_TIMESTAMPS
@@ -441,6 +441,10 @@ menu "Zenoh publishers/subscribers"
 		bool "navigator_mission_item"
 		default n
 
+	config ZENOH_PUBSUB_NAVIGATOR_STATUS
+		bool "navigator_status"
+		default n
+
 	config ZENOH_PUBSUB_NORMALIZED_UNSIGNED_SETPOINT
 		bool "normalized_unsigned_setpoint"
 		default n
@@ -459,6 +463,22 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_ONBOARD_COMPUTER_STATUS
 		bool "onboard_computer_status"
+		default n
+
+	config ZENOH_PUBSUB_OPEN_DRONE_ID_ARM_STATUS
+		bool "open_drone_id_arm_status"
+		default n
+
+	config ZENOH_PUBSUB_OPEN_DRONE_ID_OPERATOR_ID
+		bool "open_drone_id_operator_id"
+		default n
+
+	config ZENOH_PUBSUB_OPEN_DRONE_ID_SELF_ID
+		bool "open_drone_id_self_id"
+		default n
+
+	config ZENOH_PUBSUB_OPEN_DRONE_ID_SYSTEM
+		bool "open_drone_id_system"
 		default n
 
 	config ZENOH_PUBSUB_ORB_TEST
@@ -575,6 +595,30 @@ menu "Zenoh publishers/subscribers"
 
 	config ZENOH_PUBSUB_ROVER_ACKERMANN_STATUS
 		bool "rover_ackermann_status"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_DIFFERENTIAL_GUIDANCE_STATUS
+		bool "rover_differential_guidance_status"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_DIFFERENTIAL_SETPOINT
+		bool "rover_differential_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_DIFFERENTIAL_STATUS
+		bool "rover_differential_status"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_MECANUM_GUIDANCE_STATUS
+		bool "rover_mecanum_guidance_status"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_MECANUM_SETPOINT
+		bool "rover_mecanum_setpoint"
+		default n
+
+	config ZENOH_PUBSUB_ROVER_MECANUM_STATUS
+		bool "rover_mecanum_status"
 		default n
 
 	config ZENOH_PUBSUB_RPM
@@ -904,9 +948,9 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_DEBUG_KEY_VALUE
 	select ZENOH_PUBSUB_DEBUG_VALUE
 	select ZENOH_PUBSUB_DEBUG_VECT
-	select ZENOH_PUBSUB_DIFFERENTIAL_DRIVE_SETPOINT
 	select ZENOH_PUBSUB_DIFFERENTIAL_PRESSURE
 	select ZENOH_PUBSUB_DISTANCE_SENSOR
+	select ZENOH_PUBSUB_DISTANCE_SENSOR_MODE_CHANGE_REQUEST
 	select ZENOH_PUBSUB_EKF2_TIMESTAMPS
 	select ZENOH_PUBSUB_ESC_REPORT
 	select ZENOH_PUBSUB_ESC_STATUS
@@ -980,11 +1024,16 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_MODE_COMPLETED
 	select ZENOH_PUBSUB_MOUNT_ORIENTATION
 	select ZENOH_PUBSUB_NAVIGATOR_MISSION_ITEM
+	select ZENOH_PUBSUB_NAVIGATOR_STATUS
 	select ZENOH_PUBSUB_NORMALIZED_UNSIGNED_SETPOINT
 	select ZENOH_PUBSUB_NPFG_STATUS
 	select ZENOH_PUBSUB_OBSTACLE_DISTANCE
 	select ZENOH_PUBSUB_OFFBOARD_CONTROL_MODE
 	select ZENOH_PUBSUB_ONBOARD_COMPUTER_STATUS
+	select ZENOH_PUBSUB_OPEN_DRONE_ID_ARM_STATUS
+	select ZENOH_PUBSUB_OPEN_DRONE_ID_OPERATOR_ID
+	select ZENOH_PUBSUB_OPEN_DRONE_ID_SELF_ID
+	select ZENOH_PUBSUB_OPEN_DRONE_ID_SYSTEM
 	select ZENOH_PUBSUB_ORB_TEST
 	select ZENOH_PUBSUB_ORB_TEST_LARGE
 	select ZENOH_PUBSUB_ORB_TEST_MEDIUM
@@ -1014,6 +1063,12 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_REGISTER_EXT_COMPONENT_REQUEST
 	select ZENOH_PUBSUB_ROVER_ACKERMANN_GUIDANCE_STATUS
 	select ZENOH_PUBSUB_ROVER_ACKERMANN_STATUS
+	select ZENOH_PUBSUB_ROVER_DIFFERENTIAL_GUIDANCE_STATUS
+	select ZENOH_PUBSUB_ROVER_DIFFERENTIAL_SETPOINT
+	select ZENOH_PUBSUB_ROVER_DIFFERENTIAL_STATUS
+	select ZENOH_PUBSUB_ROVER_MECANUM_GUIDANCE_STATUS
+	select ZENOH_PUBSUB_ROVER_MECANUM_SETPOINT
+	select ZENOH_PUBSUB_ROVER_MECANUM_STATUS
 	select ZENOH_PUBSUB_RPM
 	select ZENOH_PUBSUB_RTL_STATUS
 	select ZENOH_PUBSUB_RTL_TIME_ESTIMATE

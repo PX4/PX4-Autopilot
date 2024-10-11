@@ -593,12 +593,13 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		result = handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION);
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		if (set_message_interval((int)roundf(cmd_mavlink.param1), cmd_mavlink.param2, cmd_mavlink.param3)) {
+		if (set_message_interval(
+			    (int)(cmd_mavlink.param1 + 0.5f), cmd_mavlink.param2, cmd_mavlink.param3, cmd_mavlink.param4, vehicle_command.param7)) {
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		get_message_interval((int)roundf(cmd_mavlink.param1));
+		get_message_interval((int)(cmd_mavlink.param1 + 0.5f));
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
 
@@ -2273,14 +2274,25 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 }
 
 int
-MavlinkReceiver::set_message_interval(int msgId, float interval, int data_rate)
+MavlinkReceiver::set_message_interval(int msgId, float interval, float param3, float param4, float param7)
 {
 	if (msgId == MAVLINK_MSG_ID_HEARTBEAT) {
 		return PX4_ERROR;
 	}
 
-	if (data_rate > 0) {
-		_mavlink.set_data_rate(data_rate);
+	if (PX4_ISFINITE(param3) && (int)(param3 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL requested param3 not supported.");
+		return PX4_ERROR;
+	}
+
+	if (PX4_ISFINITE(param4) && (int)(param4 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL requested param4 not supported.");
+		return PX4_ERROR;
+	}
+
+	if (PX4_ISFINITE(param7) && (int)(param7 + 0.5f) != 0) {
+		PX4_ERR("SET_MESSAGE_INTERVAL response target not supported.");
+		return PX4_ERROR;
 	}
 
 	// configure_stream wants a rate (msgs/second), so convert here.
@@ -2695,7 +2707,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		const double lon = hil_state.lon * 1e-7;
 
 		if (!_global_local_proj_ref.isInitialized() || !PX4_ISFINITE(_global_local_alt0)) {
-			_global_local_proj_ref.initReference(lat, lon);
+			_global_local_proj_ref.initReference(lat, lon, hrt_absolute_time());
 			_global_local_alt0 = hil_state.alt / 1000.f;
 		}
 

@@ -960,19 +960,18 @@ PARAM_DEFINE_INT32(COM_ARMABLE, 1);
 /**
  * Minimum battery level for arming
  *
- * Additional battery level check that only allows arming if the state of charge of the emptiest
- *  connected battery is above this value.
+ * Threshold for battery percentage below arming is prohibited.
  *
- * A value of 0 disables the check.
+ * A negative value means BAT_CRIT_THR is the threshold.
  *
  * @unit norm
- * @min 0
+ * @min -1
  * @max 0.9
  * @decimal 2
  * @increment 0.01
  * @group Commander
  */
-PARAM_DEFINE_FLOAT(COM_ARM_BAT_MIN, 0.f);
+PARAM_DEFINE_FLOAT(COM_ARM_BAT_MIN, -1.f);
 
 /**
  * Enable throw-start

@@ -68,7 +68,7 @@ float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 				   const vehicle_global_position_s &global_position)
 {
 	if (!_projection_reference.isInitialized()) {
-		_projection_reference.initReference(global_position.lat, global_position.lon);
+		_projection_reference.initReference(global_position.lat, global_position.lon, hrt_absolute_time());
 	}
 
 	float x1, y1, x2, y2;

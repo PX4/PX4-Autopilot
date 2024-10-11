@@ -511,7 +511,7 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 	}
 
 	if (!_projection_reference.isInitialized()) {
-		_projection_reference.initReference(lat, lon);
+		_projection_reference.initReference(lat, lon, hrt_absolute_time());
 	}
 
 	float x1, y1, x2, y2;

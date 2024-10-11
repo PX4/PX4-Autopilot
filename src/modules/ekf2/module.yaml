@@ -172,3 +172,12 @@ parameters:
       max: 1.0
       unit: s
       decimal: 2
+
+    EKF2_VEL_LIM:
+      description:
+        short: Velocity limit
+      type: float
+      default: 100
+      max: 299792458
+      unit: m/s
+      decimal: 1

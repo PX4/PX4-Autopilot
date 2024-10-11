@@ -44,6 +44,7 @@
 #include "EKF/ekf.h"
 
 #include "EKF2Selector.hpp"
+#include "mathlib/math/filter/AlphaFilter.hpp"
 
 #include <float.h>
 
@@ -210,10 +211,8 @@ private:
 	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_GNSS)
-	/*
-	 * Calculate filtered WGS84 height from estimated AMSL height
-	 */
-	float filter_altitude_ellipsoid(float amsl_hgt);
+	float altEllipsoidToAmsl(float ellipsoid_alt) const;
+	float altAmslToEllipsoid(float amsl_alt) const;
 
 	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
@@ -445,10 +444,10 @@ private:
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_GNSS)
-	uint64_t _gps_time_usec {0};
-	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
-	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
-	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
+
+	uint64_t _last_geoid_height_update_us{0};
+	static constexpr float kGeoidHeightLpfTimeConstant = 10.f;
+	AlphaFilter<float> _geoid_height_lpf;  ///< height offset between AMSL and ellipsoid
 
 	hrt_abstime _last_gps_status_published{0};
 
@@ -488,6 +487,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
+		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)

@@ -53,6 +53,8 @@
 #include "srv_base.h"
 
 #define MAX_NUM_REPLIERS 5
+#define STREAM_HISTORY  4
+#define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY) // MTU==512 by default
 
 class UxrceddsClient : public ModuleBase<UxrceddsClient>, public ModuleParams
 {
@@ -118,6 +120,9 @@ private:
 	bool init();
 	void deinit();
 
+	bool setup_session(uxrSession *session);
+	void delete_session(uxrSession *session);
+
 	bool setBaudrate(int fd, unsigned baud);
 
 	void handleMessageFormatRequest();
@@ -158,6 +163,15 @@ private:
 
 	SendTopicsSubs *_subs{nullptr};
 	RcvTopicsPubs *_pubs{nullptr};
+
+	uxrObjectId _participant_id;
+
+	uint8_t _output_reliable_stream_buffer[BUFFER_SIZE] {};
+	uint8_t _output_data_stream_buffer[2048] {};
+	uint8_t _input_reliable_stream_buffer[BUFFER_SIZE] {};
+
+	uxrStreamId _reliable_out;
+	uxrStreamId _best_effort_out;
 
 	SrvBase *_repliers[MAX_NUM_REPLIERS];
 	uint8_t _num_of_repliers{0};

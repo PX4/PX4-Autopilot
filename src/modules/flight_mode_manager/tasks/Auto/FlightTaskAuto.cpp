@@ -623,7 +623,7 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	}
 
 	// init projection
-	_reference_position.initReference(ref_lat, ref_lon);
+	_reference_position.initReference(ref_lat, ref_lon, _time_stamp_current);
 
 	// check if everything is still finite
 	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);

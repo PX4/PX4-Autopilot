@@ -453,7 +453,7 @@ void ManualControl::send_camera_mode_command(CameraMode camera_mode)
 	command.command = vehicle_command_s::VEHICLE_CMD_SET_CAMERA_MODE;
 	command.param2 = static_cast<float>(camera_mode);
 	command.target_system = _system_id;
-	command.target_component = 100; // any camera
+	command.target_component = 100; // MAV_COMP_ID_CAMERA
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();
@@ -467,7 +467,7 @@ void ManualControl::send_photo_command()
 	command.param3 = 1; // one picture
 	command.param4 = _image_sequence++;
 	command.target_system = _system_id;
-	command.target_component = 100; // any camera
+	command.target_component = 100; // MAV_COMP_ID_CAMERA
 
 	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 	command.timestamp = hrt_absolute_time();

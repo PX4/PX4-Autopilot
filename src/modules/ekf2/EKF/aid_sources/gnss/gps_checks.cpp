@@ -57,11 +57,9 @@
 
 void Ekf::collect_gps(const gnssSample &gps)
 {
-	if (_filter_initialised && !_NED_origin_initialised && _gps_checks_passed) {
+	if (_filter_initialised && !_pos_ref.isInitialized() && _gps_checks_passed) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-		if (!_pos_ref.isInitialized()) {
-			setLatLonOriginFromCurrentPos(gps.lat, gps.lon, gps.hacc);
-		}
+		setLatLonOriginFromCurrentPos(gps.lat, gps.lon, gps.hacc);
 
 		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
 		if (!PX4_ISFINITE(_gps_alt_ref)) {
@@ -77,7 +75,7 @@ void Ekf::collect_gps(const gnssSample &gps)
 		// a rough 2D fix is sufficient to lookup earth spin rate
 		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.hacc < 1000);
 
-		if (gps_rough_2d_fix && (_gps_checks_passed || !_NED_origin_initialised)) {
+		if (gps_rough_2d_fix && (_gps_checks_passed || !_pos_ref.isInitialized())) {
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(gps.lat));
 		}
 	}
@@ -172,6 +170,16 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 	} else {
 		// This is the case where the vehicle is on ground and IMU movement is blocking the drift calculation
 		resetGpsDriftCheckFilters();
+	}
+
+	// force horizontal speed failure if above the limit
+	if (gps.vel.xy().longerThan(_params.velocity_limit)) {
+		_gps_check_fail_status.flags.hspeed = true;
+	}
+
+	// force vertical speed failure if above the limit
+	if (fabsf(gps.vel(2)) > _params.velocity_limit) {
+		_gps_check_fail_status.flags.vspeed = true;
 	}
 
 	// save GPS fix for next time

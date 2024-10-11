@@ -608,6 +608,15 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
+	// If already in RTL, do not go into RTL again (would cause a Hold delay first, then re-start RTL)
+	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
+		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)) {
+			selected_action = Action::Warn;
+			returned_state.delayed_action = Action::None;
+		}
+	}
+
 	// If already precision landing, do not go into RTL or Land
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) {
 		if ((selected_action == Action::RTL || selected_action == Action::Land ||
