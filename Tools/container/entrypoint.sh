@@ -17,7 +17,21 @@ if [ -n "${ROS_DISTRO}" ]; then
 	source "/opt/ros/$ROS_DISTRO/setup.bash"
 fi
 
-echo "[docker-entrypoint.sh] Working Directory: /px4"
+echo "[docker-entrypoint.sh] Working Directory: ${pwd}"
 
-cd /px4
-exec "$@"
+# Use the LOCAL_USER_ID if passed in at runtime
+if [ -n "${LOCAL_USER_ID}" ]; then
+	echo "[docker-entrypoint.sh] ⭐️ Starting with: $LOCAL_USER_ID:user"
+	# modify existing user's id
+	usermod -u $LOCAL_USER_ID user
+
+	# git config --global --add safe.directory $(pwd)
+	# git status -s
+	# echo "whatafak"
+
+	# run as user
+	# exec gosu user "$@"
+	exec "$@"
+else
+	exec "$@"
+fi
