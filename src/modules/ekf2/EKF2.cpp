@@ -66,6 +66,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_predict_us(_params->filter_update_interval_us),
 	_param_ekf2_delay_max(_params->delay_max_ms),
 	_param_ekf2_imu_ctrl(_params->imu_ctrl),
+	_param_ekf2_vel_lim(_params->velocity_limit),
 #if defined(CONFIG_EKF2_AUXVEL)
 	_param_ekf2_avel_delay(_params->auxvel_delay_ms),
 #endif // CONFIG_EKF2_AUXVEL
@@ -1164,7 +1165,7 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 
 void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 {
-	if (_ekf.global_position_is_valid()) {
+	if (_ekf.global_origin_valid() && _ekf.control_status().flags.yaw_align) {
 		const Vector3f position{_ekf.getPosition()};
 
 		// generate and publish global position data

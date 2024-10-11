@@ -580,7 +580,7 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 		double lon = hil_state.lon * 1e-7;
 
 		if (!_global_local_proj_ref.isInitialized()) {
-			_global_local_proj_ref.initReference(lat, lon);
+			_global_local_proj_ref.initReference(lat, lon, timestamp);
 			_global_local_alt0 = hil_state.alt / 1000.f;
 		}
 

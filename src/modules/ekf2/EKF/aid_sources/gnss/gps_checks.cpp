@@ -172,6 +172,16 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 		resetGpsDriftCheckFilters();
 	}
 
+	// force horizontal speed failure if above the limit
+	if (gps.vel.xy().longerThan(_params.velocity_limit)) {
+		_gps_check_fail_status.flags.hspeed = true;
+	}
+
+	// force vertical speed failure if above the limit
+	if (fabsf(gps.vel(2)) > _params.velocity_limit) {
+		_gps_check_fail_status.flags.vspeed = true;
+	}
+
 	// save GPS fix for next time
 	_gps_pos_prev.initReference(lat, lon, gps.time_us);
 	_gps_alt_prev = gps.alt;

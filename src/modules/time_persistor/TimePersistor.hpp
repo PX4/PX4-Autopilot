@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,31 +33,39 @@
 
 #pragma once
 
-#include "../Common.hpp"
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/time.h>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/rtl_time_estimate.h>
+static constexpr const auto TIME_FILE_PATH = PX4_STORAGEDIR "/time_save.bin";
 
-class BatteryChecks : public HealthAndArmingCheckBase
+using namespace time_literals;
+
+class TimePersistor : public ModuleBase<TimePersistor>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	BatteryChecks() = default;
-	~BatteryChecks() = default;
+	TimePersistor();
+	~TimePersistor() override;
 
-	void checkAndReport(const Context &context, Report &reporter) override;
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void Run() override;
+
+	void start();
 
 private:
-	void rtlEstimateCheck(const Context &context, Report &reporter, float worst_battery_time_s);
+	int init();
+	int read_time(time_t *time);
+	int write_time(const time_t time);
 
-	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
-	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
-	bool _last_armed{false};
-	bool _battery_connected_at_arming[battery_status_s::MAX_INSTANCES] {};
-
-	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamFloat<px4::params::COM_ARM_BAT_MIN>) _param_com_arm_bat_min,
-					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk
-				       )
+	FILE *_file = 0;
 };

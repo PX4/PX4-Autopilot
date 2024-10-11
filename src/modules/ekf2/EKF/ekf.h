@@ -99,7 +99,7 @@ public:
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// terrain estimate
-	bool isTerrainEstimateValid() const;
+	bool isTerrainEstimateValid() const { return _terrain_valid; }
 
 	// get the estimated terrain vertical position relative to the NED origin
 	float getTerrainVertPos() const { return _state.terrain; };
@@ -500,6 +500,8 @@ private:
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Terrain height state estimation
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
+
+	bool _terrain_valid{false};
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -732,6 +734,8 @@ private:
 	void initTerrain();
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _state.terrain : _last_on_ground_posD; }
 	void controlTerrainFakeFusion();
+
+	void updateTerrainValidity();
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder

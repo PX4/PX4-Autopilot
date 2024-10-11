@@ -77,29 +77,35 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 
 	if (local_position_modes != NavModes::None) {
 		/* EVENT
+		 * @description
+		 * The available positioning data is not sufficient to execute the selected mode.
 		 */
 		reporter.armingCheckFailure(local_position_modes, health_component_t::local_position_estimate,
 					    events::ID("check_modes_local_pos"),
-					    events::Log::Error, "No valid local position estimate");
+					    events::Log::Error, "Navigation error: No valid position estimate");
 		reporter.clearCanRunBits(local_position_modes);
 	}
 
 	if (reporter.failsafeFlags().global_position_invalid && reporter.failsafeFlags().mode_req_global_position != 0) {
 		/* EVENT
+		 * @description
+		 * The available positioning data is not sufficient to execute the selected mode.
 		 */
 		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_global_position,
 					    health_component_t::global_position_estimate,
 					    events::ID("check_modes_global_pos"),
-					    events::Log::Error, "No valid global position estimate");
+					    events::Log::Error, "Navigation error: No valid global position estimate");
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_global_position);
 	}
 
 	if (reporter.failsafeFlags().local_altitude_invalid && reporter.failsafeFlags().mode_req_local_alt != 0) {
 		/* EVENT
+		 * @description
+		 * The available positioning data is not sufficient to execute the selected mode.
 		 */
 		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_local_alt, health_component_t::system,
 					    events::ID("check_modes_local_alt"),
-					    events::Log::Critical, "No valid altitude estimate");
+					    events::Log::Critical, "Navigation error: No valid altitude estimate");
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_local_alt);
 	}
 

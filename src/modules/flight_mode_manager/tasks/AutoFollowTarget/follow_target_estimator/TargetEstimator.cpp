@@ -231,7 +231,8 @@ void TargetEstimator::measurement_update(follow_target_s follow_target)
 	// Decompose follow_target message into the individual measurements for position and velocity
 	const Vector3f vel_measured{follow_target.vx, follow_target.vy, follow_target.vz};
 	Vector3f pos_measured{NAN, NAN, -(follow_target.alt - _vehicle_local_position.ref_alt)};
-	_reference_position.initReference(_vehicle_local_position.ref_lat, _vehicle_local_position.ref_lon);
+	_reference_position.initReference(_vehicle_local_position.ref_lat, _vehicle_local_position.ref_lon,
+					  hrt_absolute_time());
 	_reference_position.project(follow_target.lat, follow_target.lon, pos_measured(0), pos_measured(1));
 
 	// Initialize filter if necessary

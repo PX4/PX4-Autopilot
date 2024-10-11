@@ -111,7 +111,19 @@ if(verbose):
     print("= scanning for boards =")
     print("=======================")
 
-for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
+# We also need to build metadata
+# includes:
+# - Airframe
+# - Parameters
+# - Events
+metadata_targets = ['airframe_metadata', 'parameters_metadata', 'extract_events']
+grouped_targets['base'] = {}
+grouped_targets['base']['container'] = 'px4io/px4-dev-base-focal:2021-09-08'
+grouped_targets['base']['manufacturers'] = {}
+grouped_targets['base']['manufacturers']['px4'] = []
+grouped_targets['base']['manufacturers']['px4'] += metadata_targets
+
+for manufacturer in os.scandir(os.path.join(source_dir, '../boards')):
     if not manufacturer.is_dir():
         continue
     if manufacturer.name in excluded_manufacturers:
@@ -143,7 +155,6 @@ for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
                         grouped_targets[target['arch']]['container'] = target['container']
                         grouped_targets[target['arch']]['manufacturers'] = {}
                     if(manufacturer.name not in grouped_targets[target['arch']]['manufacturers']):
-                        grouped_targets[target['arch']]['manufacturers'][manufacturer.name] = {}
                         grouped_targets[target['arch']]['manufacturers'][manufacturer.name] = []
                     grouped_targets[target['arch']]['manufacturers'][manufacturer.name].append(target_name)
                 if target is not None:
@@ -155,6 +166,11 @@ if(verbose):
     print("= Boards found in ./boards =")
     print("============================")
     pprint.pp(grouped_targets)
+
+if(verbose):
+    print("===================")
+    print("= Generating JSON =")
+    print("===================")
 
 if (args.group):
     # if we are using this script for grouping builds
@@ -179,16 +195,24 @@ if (args.group):
     last_arch = ''
     SPLIT_LIMIT = 10
     LOWER_LIMIT = 5
+    if(verbose):
+        print(f'=:Architectures: [{grouped_targets.keys()}]')
     for arch in grouped_targets:
+        if(verbose):
+            print(f'=:Processing: [{arch}] Last: [{last_arch}]')
+
         if(last_arch == ''):
             last_arch = arch
         if(arch not in group_number):
                 group_number[arch] = 0
 
         if(last_arch != arch and len(temp_group) > 0):
+
             group_name = last_arch + "-" + str(group_number[last_arch])
             group_number[last_arch] += 1
             targets = comma_targets(temp_group)
+            if(verbose):
+                print(f'=:Orphan: [{arch}][{last_arch}][{targets}]')
             final_groups.append({
                 "container": grouped_targets[last_arch]['container'],
                 "targets": targets,
@@ -198,12 +222,22 @@ if (args.group):
             })
             last_arch = arch
             temp_group = []
+
         for man in grouped_targets[arch]['manufacturers']:
+            if(verbose):
+                print(f'=:Processing: [{arch}][{man}]')
             for tar in grouped_targets[arch]['manufacturers'][man]:
+                man_len = len(grouped_targets[arch]['manufacturers'][man])
+                if(verbose):
+                    print(f'=:Processing: [{arch}][{man}][{man_len}][{tar}]')
                 if(last_man != man):
-                    man_len = len(grouped_targets[arch]['manufacturers'][man])
+                    # if(verbose):
+                    #     print(f'=:Processing: [{arch}][{man}][{tar}][{man_len}]')
                     if(man_len > LOWER_LIMIT and man_len < (SPLIT_LIMIT + 1)):
                         # Manufacturers can have their own group
+                        if(verbose):
+                            print(f'=:Processing: ==Manufacturers can have their own group')
+                            print(f'=:Processing: Limits[{LOWER_LIMIT}][{SPLIT_LIMIT}]')
                         group_name = arch + "-" + man
                         targets = comma_targets(grouped_targets[arch]['manufacturers'][man])
                         last_man = man
@@ -234,19 +268,6 @@ if (args.group):
                     else:
                         temp_group.append(tar)
 
-            if(last_arch != arch and len(temp_group) > 0):
-                group_name = last_arch + "-" + str(group_number[last_arch])
-                group_number[last_arch] += 1
-                targets = comma_targets(temp_group)
-                final_groups.append({
-                    "container": grouped_targets[last_arch]['container'],
-                    "targets": targets,
-                    "arch": last_arch,
-                    "group": group_name,
-                    "len": len(temp_group)
-                })
-                last_arch = arch
-                temp_group = []
             if(len(temp_group) > (LOWER_LIMIT - 1)):
                 group_name = arch + "-" + str(group_number[arch])
                 last_arch = arch
