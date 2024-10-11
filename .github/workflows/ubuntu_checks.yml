@@ -1,0 +1,28 @@
+name: Check Ubuntu Developer Environment
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'stable'
+      - 'beta'
+      - 'release/**'
+    pull_request:
+      branches:
+        - '*'
+
+jobs:
+  build:
+    runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu24-full-x64","run-id=${{ github.run_id }}"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build Docker Image
+        run: |
+          ./Tools/container/docker_build.sh
+
+      - name: Test Docker Works
+        run: |
+          ./Tools/container/docker_run.sh
