@@ -1,0 +1,136 @@
+#!/usr/bin/python3
+
+# Notes:
+# Have to apt install socat first
+# socat -d -d pty,raw,echo=0 pty,raw,echo=0
+# - Creates /dev/pts/x and /dev/pts/y
+# Start OSD driver with -d /dev/pts/y
+# Then listen on /dev/pts/x for OSD strings
+
+import serial
+import signal
+import time
+
+def process_payload(data):
+    # print('Processing: ' + str(data))
+    cmd = data[0]
+    if cmd == 0:
+        # print('Heartbeat')
+        pass
+    elif cmd == 2:
+        # print('Clear screen')
+        print('\x1B[2J')
+        print('\x1B[H')
+    elif cmd == 3:
+        output = '\x1B[' + str(data[1]) + ';' + str(data[2]) + 'H'
+        for i in range(4, len(data)):
+            output += chr(data[i])
+        print(output)
+        # print('Write string ' + str(data[1]) + ' ' + str(data[2]) + ' ' + output)
+    elif cmd == 4:
+        # print('Draw screen')
+        pass
+    elif cmd == 5:
+        # print('Config command')
+        pass
+    else:
+        print('Unknown command')
+
+print('Starting voxl-inspect-osd')
+
+ser = serial.Serial('/dev/pts/2', 115200, timeout=1)  # open serial port
+
+def handler(signum, frame):
+	print("\nCtrl-c was pressed, exiting now")
+	ser.close()             # close port
+	exit(0)
+
+signal.signal(signal.SIGINT, handler)
+
+ser.flush()
+
+MSP_DP_INIT = 0
+MSP_DP_HEADER = 1
+MSP_DP_START = 2
+MSP_DP_REPLY = 3
+MSP_DP_SIZE = 4
+MSP_DP_ID = 5
+MSP_DP_PAYLOAD = 6
+
+state = MSP_DP_INIT
+
+payload_size = 0
+payload = []
+
+while True:
+    cmd = ser.read()
+    if len(cmd) == 1:
+
+        if state == MSP_DP_INIT:
+            payload_size = 0
+            payload = []
+            state = MSP_DP_HEADER
+
+        if state == MSP_DP_HEADER:
+            if cmd == b'$':
+                # print('Got message header')
+                state = MSP_DP_START
+        elif state == MSP_DP_START:
+            if cmd == b'M':
+                # print('Got message start')
+                state = MSP_DP_REPLY
+            else:
+                state = MSP_DP_INIT
+        elif state == MSP_DP_REPLY:
+            if cmd == b'>':
+                # print('Got reply')
+                state = MSP_DP_SIZE
+            else:
+                state = MSP_DP_INIT
+        elif state == MSP_DP_SIZE:
+            size = int.from_bytes(cmd, byteorder='big')
+            if size < 60:
+                # print('Payload size: ' + str(size))
+                payload_size = size
+                state = MSP_DP_ID
+            else:
+                print('Illegal payload size: ' + str(size))
+                state = MSP_DP_INIT
+        elif state == MSP_DP_ID:
+            msg_id = int.from_bytes(cmd, byteorder='big')
+            if msg_id == 182:
+                # print('Got MSP_CMD_DISPLAYPORT')
+                state = MSP_DP_PAYLOAD
+            elif msg_id == 188:
+                # print('Got MSP_SET_OSD_CANVAS')
+                state = MSP_DP_INIT
+            elif msg_id == 105:
+                # print('Got MSP_RC')
+                state = MSP_DP_INIT
+            elif msg_id == 101:
+                # print('Got MSP_STATUS')
+                state = MSP_DP_INIT
+            elif msg_id == 2:
+                # print('Got MSP_FC_VARIANT')
+                state = MSP_DP_INIT
+            else:
+                print()
+                print()
+                print('*** Unknown message id: ' + str(msg_id))
+                print()
+                print()
+                state = MSP_DP_INIT
+        elif state == MSP_DP_PAYLOAD:
+            if payload_size:
+                payload += cmd
+                payload_size -= 1
+            if payload_size == 0:
+                if len(payload):
+                    process_payload(payload)
+                state = MSP_DP_INIT
+        else:
+            val = int.from_bytes(cmd, byteorder='big')
+            print('Skipping byte: ' + str(val))
+            state = MSP_DP_INIT
+    elif len(cmd) > 1:
+        print('Got ' + str(len(cmd)) + ' bytes')
