@@ -43,7 +43,7 @@ fi
 
 if [ $SDCARD_AVAILABLE = yes ]
 then
-	logger start
+	logger start -f -r 50
 fi
 
 load_mon start
