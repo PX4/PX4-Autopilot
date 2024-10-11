@@ -41,6 +41,11 @@ then
 	fi
 fi
 
+if [ $SDCARD_AVAILABLE = yes ]
+then
+	logger start
+fi
+
 load_mon start
 
 pwm_out start
