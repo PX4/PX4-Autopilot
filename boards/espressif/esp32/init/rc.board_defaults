@@ -51,6 +51,8 @@ load_mon start
 pwm_out start
 
 
+mavlink start -d /dev/ttyS1 -b 115200
+
 unset SDCARD_AVAILABLE
 unset SDCARD_EXT_PATH
 unset SDCARD_FORMAT

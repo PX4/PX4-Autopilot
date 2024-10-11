@@ -271,13 +271,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif
 
-
-	// esp32_partition_init();
-	// up_mdelay(100);
   	int ret = esp32_spiflash_init();
   	if (ret)
     	{
-      	syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
+      		syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
     	}
 
 
