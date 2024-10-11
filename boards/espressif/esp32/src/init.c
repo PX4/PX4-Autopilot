@@ -281,7 +281,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
     	}
 
 
-	// px4_platform_configure();
+	px4_platform_configure();
 	/* Configure the HW based on the manifest */
 
 	// psram_enable(0,1);

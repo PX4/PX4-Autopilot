@@ -38,7 +38,6 @@
 //                                                                      KiB BS    nB
 static const px4_mft_device_t flash = {             // 24AA64FT on Base  8K 32 X 256
 	.bus_type = px4_mft_device_t::ONCHIP
-	// .devid = SPIDEV_FLASH(0)
 };
 
 
@@ -49,7 +48,7 @@ static const px4_mtd_entry_t fmu_flash = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 112
+			.nblocks = 1
 		}
 	},
 };

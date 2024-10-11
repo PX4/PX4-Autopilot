@@ -2,14 +2,50 @@
 #
 # board specific defaults
 #------------------------------------------------------------------------------
+set SDCARD_AVAILABLE no
+set SDCARD_FORMAT no
 
-param set-default BAT1_V_DIV 13.653333333
-param set-default BAT1_A_PER_V 36.367515152
+if [ -b "/dev/mmcsd0" ]
+then
+	if mount -t vfat /dev/mmcsd0 /fs/microsd
+	then
+		if [ -f "/fs/microsd/.format" ]
+		then
+			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
+			set SDCARD_FORMAT yes
+			rm /fs/microsd/.format
+			umount /fs/microsd
 
-# system_power unavailable
-param set-default CBRK_SUPPLY_CHK 894281
+		else
+			set SDCARD_AVAILABLE yes
+		fi
+	fi
+fi
 
-# Disable safety switch by default
-param set-default CBRK_IO_SAFETY 22027
+if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
+then
+	echo "INFO [init] formatting /dev/mmcsd0"
+
+	if mkfatfs -F 32 /dev/mmcsd0
+	then
+		echo "INFO [init] card formatted"
+
+		if mount -t vfat /dev/mmcsd0 /fs/microsd
+		then
+			set SDCARD_AVAILABLE yes
+		else
+			echo "ERROR [init] card mount failed"
+		fi
+	else
+		echo "ERROR [init] format failed"
+	fi
+fi
+
+load_mon start
 
 pwm_out start
+
+
+unset SDCARD_AVAILABLE
+unset SDCARD_EXT_PATH
+unset SDCARD_FORMAT
