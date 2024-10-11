@@ -1,4 +1,4 @@
-name: Check Ubuntu Developer Environment
+name: Ubuntu environment build
 
 on:
   push:
@@ -13,6 +13,7 @@ on:
 
 jobs:
   build:
+    name: Build and Test Ubuntu
     runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu24-full-x64","run-id=${{ github.run_id }}"]
     steps:
       - uses: actions/checkout@v4
@@ -25,4 +26,4 @@ jobs:
 
       - name: Test Docker Works
         run: |
-          ./Tools/container/docker_run.sh
+          ./Tools/container/docker_run.sh "make px4_fmu-v6x"
