@@ -310,21 +310,22 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 
 	if (_vehicle_gps_position_sub.updated()) {
 		sensor_gps_s vehicle_gps_position;
-		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
-		_gps_lat = vehicle_gps_position.latitude_deg;
-		_gps_lon = vehicle_gps_position.longitude_deg;
-		_gps_alt = vehicle_gps_position.altitude_msl_m;
-		_gps_eph = vehicle_gps_position.eph;
-		_gps_epv = vehicle_gps_position.epv;
+		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)) {
+			_gps_lat = vehicle_gps_position.latitude_deg;
+			_gps_lon = vehicle_gps_position.longitude_deg;
+			_gps_alt = vehicle_gps_position.altitude_msl_m;
+			_gps_eph = vehicle_gps_position.eph;
+			_gps_epv = vehicle_gps_position.epv;
 
-		const hrt_abstime now = hrt_absolute_time();
-		const bool time = (now < vehicle_gps_position.timestamp + 1_s);
-		const bool fix = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
-		const bool eph = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
-		const bool epv = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
-		const bool evh = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
-		_gps_position_for_home_valid = time && fix && eph && epv && evh;
+			const hrt_abstime now = hrt_absolute_time();
+			const bool time = (now < vehicle_gps_position.timestamp + 1_s);
+			const bool fix = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
+			const bool eph = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
+			const bool epv = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
+			const bool evh = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
+			_gps_position_for_home_valid = time && fix && eph && epv && evh;
+		}
 	}
 
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
