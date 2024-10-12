@@ -60,20 +60,6 @@
 #include <lib/avoidance/ObstacleAvoidance.hpp>
 #endif
 
-/**
- * This enum has to agree with position_setpoint_s type definition
- * The only reason for not using the struct position_setpoint is because
- * of the size
- */
-enum class WaypointType : int {
-	position = position_setpoint_s::SETPOINT_TYPE_POSITION,
-	velocity = position_setpoint_s::SETPOINT_TYPE_VELOCITY,
-	loiter = position_setpoint_s::SETPOINT_TYPE_LOITER,
-	takeoff = position_setpoint_s::SETPOINT_TYPE_TAKEOFF,
-	land = position_setpoint_s::SETPOINT_TYPE_LAND,
-	idle = position_setpoint_s::SETPOINT_TYPE_IDLE
-};
-
 enum class State {
 	offtrack, /**< Vehicle is more than cruise speed away from track */
 	target_behind, /**< Vehicle is in front of target. */
@@ -135,7 +121,6 @@ protected:
 	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
 	bool _next_was_valid{false};
 	float _mc_cruise_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
-	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<home_position_s>			_sub_home_position{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s>		_sub_vehicle_status{ORB_ID(vehicle_status)};
@@ -156,7 +141,6 @@ protected:
 	StickYaw _stick_yaw{this};
 	matrix::Vector3f _land_position;
 	float _land_heading;
-	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 	bool _is_emergency_braking_active{false};
 	bool _want_takeoff{false};
 
@@ -196,7 +180,8 @@ private:
 	bool _yaw_lock{false}; /**< if within acceptance radius, lock yaw to current yaw */
 
 	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_triplet_setpoint{ORB_ID(position_setpoint_triplet)};
-
+	uint8_t _type{position_setpoint_s::SETPOINT_TYPE_IDLE}; ///< Type of current target triplet
+	uint8_t _type_previous{position_setpoint_s::SETPOINT_TYPE_IDLE}; ///< Previous type of current target triplet
 	matrix::Vector3f
 	_triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
 	matrix::Vector3f

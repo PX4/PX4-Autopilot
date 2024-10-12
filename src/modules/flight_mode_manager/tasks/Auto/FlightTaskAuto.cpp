@@ -111,7 +111,7 @@ bool FlightTaskAuto::update()
 	// The only time a thrust set-point is sent out is during
 	// idle. Hence, reset thrust set-point to NAN in case the
 	// vehicle exits idle.
-	if (_type_previous == WaypointType::idle) {
+	if (_type_previous == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 		_acceleration_setpoint.setNaN();
 	}
 
@@ -122,18 +122,18 @@ bool FlightTaskAuto::update()
 	}
 
 	switch (_type) {
-	case WaypointType::idle:
+	case position_setpoint_s::SETPOINT_TYPE_IDLE:
 		// Send zero thrust setpoint
 		_position_setpoint.setNaN(); // Don't require any position/velocity setpoints
 		_velocity_setpoint.setNaN();
 		_acceleration_setpoint = Vector3f(0.f, 0.f, 100.f); // High downwards acceleration to make sure there's no thrust
 		break;
 
-	case WaypointType::land:
+	case position_setpoint_s::SETPOINT_TYPE_LAND:
 		_prepareLandSetpoints();
 		break;
 
-	case WaypointType::velocity:
+	case position_setpoint_s::SETPOINT_TYPE_VELOCITY:
 		// XY Velocity waypoint
 		// TODO : Rewiew that. What is the expected behavior?
 		_position_setpoint = Vector3f(NAN, NAN, _position(2));
@@ -141,14 +141,14 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
-	case WaypointType::loiter:
+	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 		if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
 			rcHelpModifyYaw(_yaw_setpoint);
 		}
 
 	// FALLTHROUGH
-	case WaypointType::takeoff:
-	case WaypointType::position:
+	case position_setpoint_s::SETPOINT_TYPE_TAKEOFF:
+	case position_setpoint_s::SETPOINT_TYPE_POSITION:
 	default:
 		// Simple waypoint navigation: go to xyz target, with standard limitations
 		_position_setpoint = _target;
@@ -244,7 +244,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		vertical_speed = _param_mpc_land_crawl_speed.get();
 	}
 
-	if (_type_previous != WaypointType::land) {
+	if (_type_previous != position_setpoint_s::SETPOINT_TYPE_LAND) {
 		// initialize yaw and xy-position
 		_land_heading = _yaw_setpoint;
 		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
@@ -361,7 +361,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (!_sub_triplet_setpoint.get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt)) {
 		// Best we can do is to just set all waypoints to current state
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
-		_type = WaypointType::loiter;
+		_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 		_yaw_setpoint = _yaw;
 		_yawspeed_setpoint = NAN;
 		_target_acceptance_radius = _sub_triplet_setpoint.get().current.acceptance_radius;
@@ -369,7 +369,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		return true;
 	}
 
-	_type = (WaypointType)_sub_triplet_setpoint.get().current.type;
+	_type = _sub_triplet_setpoint.get().current.type;
 
 	// Prioritize cruise speed from the triplet when it's valid and more recent than the previously commanded cruise speed
 	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
@@ -457,7 +457,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 		_prev_was_valid = _sub_triplet_setpoint.get().previous.valid;
 
-		if (_type == WaypointType::loiter) {
+		if (_type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 			_triplet_next_wp = _triplet_target;
 
 		} else if (_isFinite(_sub_triplet_setpoint.get().next) && _sub_triplet_setpoint.get().next.valid) {
@@ -830,7 +830,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 		// until the constraints don't do things like cause controller integrators to saturate. Once the controller
 		// doesn't use z speed constraints, this can go in _prepareTakeoffSetpoints(). Accel limit is to
 		// emulate the motor ramp (also done in the controller) so that the controller can actually track the setpoint.
-		if (_type == WaypointType::takeoff &&  _dist_to_ground < _param_mpc_land_alt1.get()) {
+		if (_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&  _dist_to_ground < _param_mpc_land_alt1.get()) {
 			z_vel_constraint = _param_mpc_tko_speed.get();
 			z_accel_constraint = math::min(z_accel_constraint, _param_mpc_tko_speed.get() / _param_mpc_tko_ramp_t.get());
 
