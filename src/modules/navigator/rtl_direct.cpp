@@ -73,7 +73,6 @@ void RtlDirect::on_inactivation()
 void RtlDirect::on_activation()
 {
 	_global_pos_sub.update();
-	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 
 	parameters_update();
