@@ -523,7 +523,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 					initial_altitude = loiter_altitude;
 				}
 
-				_rtl_time_estimator.addDescendMCLand(_destination.alt - initial_altitude);
+				_rtl_time_estimator.addVertDistance(_destination.alt - initial_altitude);
 			}
 
 			break;
@@ -556,7 +556,6 @@ loiter_point_s RtlDirect::sanitizeLandApproach(loiter_point_s land_approach) con
 	if (!PX4_ISFINITE(land_approach.lat) || !PX4_ISFINITE(land_approach.lon)) {
 		sanitized_land_approach.lat = _destination.lat;
 		sanitized_land_approach.lon = _destination.lon;
-
 	}
 
 	if (!PX4_ISFINITE(land_approach.height_m)) {
