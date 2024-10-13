@@ -422,9 +422,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 						|| (_next_was_valid != _sub_triplet_setpoint.get().next.valid);
 
 	if (_triplet_target.isAllFinite()
-	    && fabsf(_triplet_target(0) - tmp_target(0)) < 0.001f
-	    && fabsf(_triplet_target(1) - tmp_target(1)) < 0.001f
-	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f
+	    && (_triplet_target == tmp_target)
 	    && !prev_next_validity_changed) {
 		// Nothing has changed: just keep old waypoints.
 		triplet_update = false;
