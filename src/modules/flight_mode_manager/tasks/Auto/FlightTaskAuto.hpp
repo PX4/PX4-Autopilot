@@ -126,7 +126,7 @@ protected:
 	uORB::SubscriptionData<vehicle_status_s>		_sub_vehicle_status{ORB_ID(vehicle_status)};
 
 	State _current_state{State::none};
-	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
+	float _target_acceptance_radius{0.f}; /**< Acceptances radius of the target */
 
 	float _yaw_sp_prev{NAN};
 	AlphaFilter<float> _yawspeed_filter;
@@ -179,7 +179,7 @@ private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
 	bool _yaw_lock{false}; /**< if within acceptance radius, lock yaw to current yaw */
 
-	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_triplet_setpoint{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uint8_t _type{position_setpoint_s::SETPOINT_TYPE_IDLE}; ///< Type of current target triplet
 	uint8_t _type_previous{position_setpoint_s::SETPOINT_TYPE_IDLE}; ///< Previous type of current target triplet
 	matrix::Vector3f
@@ -201,7 +201,7 @@ private:
 	matrix::Vector3f _initial_land_position;
 
 	void _limitYawRate(); /**< Limits the rate of change of the yaw setpoint. */
-	bool _evaluateTriplets(); /**< Checks and sets triplets. */
+	bool _evaluatePositionSetpointTriplet(const position_setpoint_triplet_s &triplet);
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 	State _getCurrentState(); /**< Computes the current vehicle state based on the vehicle position and navigator triplets. */
