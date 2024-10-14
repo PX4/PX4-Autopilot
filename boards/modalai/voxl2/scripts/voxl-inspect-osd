@@ -10,8 +10,21 @@
 import serial
 import signal
 import time
+import sys
+
+print('Starting voxl-inspect-osd')
+
+exit_now = False
+
+if len(sys.argv) != 2:
+    print('Error: Need an argument to specify device port')
+    exit(-1)
+
+ser = serial.Serial(sys.argv[1], 115200, timeout=1)  # open serial port
 
 def process_payload(data):
+    global exit_now
+    global ser
     # print('Processing: ' + str(data))
     cmd = data[0]
     if cmd == 0:
@@ -24,26 +37,66 @@ def process_payload(data):
     elif cmd == 3:
         output = '\x1B[' + str(data[1]) + ';' + str(data[2]) + 'H'
         for i in range(4, len(data)):
-            output += chr(data[i])
+            # SYM_BATT_FULL
+            if data[i] == 0x90:
+                output += ' '
+            # SYM_RSSI
+            elif data[i] == 0x01:
+                output += ' '
+            # SYM_VOLT
+            elif data[i] == 0x06:
+                output += 'V'
+            # SYM_AMP
+            elif data[i] == 0x9A:
+                output += 'A'
+            # SYM_LAT
+            elif data[i] == 0x89:
+                output += ' '
+            # SYM_LON
+            elif data[i] == 0x98:
+                output += ' '
+            # SYM_ARROW_NORTH
+            elif data[i] == 0x68:
+                output += '^'
+            # SYM_HOMEFLAG
+            elif data[i] == 0x11:
+                output += ' '
+            # SYM_M
+            elif data[i] == 0x0C:
+                output += 'm'
+            # SYM_M
+            elif data[i] == 0x0C:
+                output += 'm'
+            # SYM_AH_CENTER_LINE
+            elif data[i] == 0x72:
+                output += '-'
+            # SYM_AH_CENTER
+            elif data[i] == 0x73:
+                output += '+'
+            # SYM_AH_CENTER_LINE_RIGHT
+            elif data[i] == 0x74:
+                output += '-'
+            else:
+                output += chr(data[i])
         print(output)
         # print('Write string ' + str(data[1]) + ' ' + str(data[2]) + ' ' + output)
     elif cmd == 4:
         # print('Draw screen')
-        pass
+        print('\x1B[20;0H')
+        if exit_now:
+            ser.close()             # close port
+            print("\nCtrl-c was pressed, exiting now")
+            exit(0)
     elif cmd == 5:
         # print('Config command')
         pass
     else:
         print('Unknown command')
 
-print('Starting voxl-inspect-osd')
-
-ser = serial.Serial('/dev/pts/2', 115200, timeout=1)  # open serial port
-
 def handler(signum, frame):
-	print("\nCtrl-c was pressed, exiting now")
-	ser.close()             # close port
-	exit(0)
+    global exit_now
+    # print("\nCtrl-c was pressed, exiting now")
+    exit_now = True
 
 signal.signal(signal.SIGINT, handler)
 
