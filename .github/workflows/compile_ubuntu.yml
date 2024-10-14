@@ -7,12 +7,12 @@ on:
       - 'stable'
       - 'beta'
       - 'release/**'
-    pull_request:
-      branches:
-        - '*'
+  pull_request:
+    branches:
+      - '*'
 
 jobs:
-  build:
+  build_and_test:
     name: Build and Test Ubuntu
     runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu24-full-x64","run-id=${{ github.run_id }}"]
     steps:
