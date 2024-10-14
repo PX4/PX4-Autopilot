@@ -1,16 +1,16 @@
-module_name: CV7 INS
+module_name: MICROSTRAIN
 parameters:
     - group: Sensors
       definitions:
-        CV7_SCHEDULE:
+        MS_SCHEDULE:
             description:
-                short: rate to run the cv7 module
+                short: rate to run the module
                 long: |
-                    rate to fun cv7 module
+                    rate to run ins module
             type: int32
             default: 2000
 
-        CV7_DELAY:
+        SENSOR_DELAY:
             description:
                 short: Add the 1.9ms delay
                 long: |
@@ -18,50 +18,24 @@ parameters:
             type: boolean
             default: 0
 
-        CV7_UPDATE_RATE:
+        PR_UPDATE_RATE:
             description:
-                short: Update rate for CV7
+                short: Primary Update Rate
                 long: |
-                    Select the update rate at 250, 500, 1000
+                    Accel and Gyro update rate
+                    Max Limit: 1000
+                    The max limit should be divisible by the rate
             type: int32
             default: 500
 
-        CV7_ALIGNMENT:
+        SEC_UPDATE_RATE:
             description:
-                short: Alignment type
+                short: Secondary Update Rate
                 long: |
-                    Select the source of alignment. 0 = Magnetic 1 = Kinematic, 2 = External, 3 = Dual Antenna
+                    Mag and Baro update rate
+                    Max Limit: 1000
+                    The max limit should be divisible by the rate
             type: int32
-            default: 0
+            default: 50
 
-        CV7_INT_MAG_EN:
-            description:
-                short: Enable internal mag in CV7 filter
-                long: |
-                    Select the source of alignment. 0 = Disabled 1 = Enabled
-            type: int32
-            default: 1
 
-        CV7_GPS_X:
-            description:
-                short: CV7 GPS lever arm x
-                long: |
-                    CV7 GPS lever arm x in meters
-            type: float
-            default: 0
-
-        CV7_GPS_Y:
-            description:
-                short: CV7 GPS lever arm y
-                long: |
-                    CV7 GPS lever arm y in meters
-            type: float
-            default: 0
-
-        CV7_GPS_Z:
-            description:
-                short: CV7 GPS lever arm z
-                long: |
-                    CV7 GPS lever arm z in meters
-            type: float
-            default: 0
