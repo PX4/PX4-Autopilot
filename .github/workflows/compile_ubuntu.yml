@@ -51,4 +51,5 @@ jobs:
           run: echo "hello world"
 
       - name: Setup tmate session
+        if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
