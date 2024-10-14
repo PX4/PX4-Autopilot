@@ -79,17 +79,11 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
-
-# if defined(FLASH_BASED_PARAMS)
-#include <parameters/flashparams/flashfs.h>
-#endif
-
 #define LEDC_LS_SIG_OUT0_IDX 79
 
-// #ifdef CONFIG_ESP32_SPIFLASH
+#ifdef CONFIG_ESP32_SPIFLASH
 #include "esp32_board_spiflash_setup.h"
-// #endif
-#include <esp32_partition.h>
+#endif
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/

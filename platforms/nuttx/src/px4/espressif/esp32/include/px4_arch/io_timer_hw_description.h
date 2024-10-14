@@ -52,6 +52,7 @@ static inline constexpr timer_io_channels_t initIOTimerChannel(const io_timers_t
 	timer_io_channels_t ret = {};
 	ret.gpio_out = getGPIOPin(pin.pin);
 	ret.timer_channel = timer.channel;
+	ret.timer_index = timer.timer;
 
 	bool nuttx_incorrect_mapping = false;
 
