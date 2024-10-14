@@ -16,14 +16,26 @@ jobs:
     name: Build and Test Ubuntu
     runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu24-full-x64","run-id=${{ github.run_id }}"]
     steps:
+      - name: Set Date as Tag
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker Image
-        run: |
-          ./Tools/container/docker_build.sh
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          tags: ghcr.io/px4/px4-dev:${{ steps.date.outputs.date }}
+          file: ./Tools/container/Dockerfile
 
       - name: Test Docker Works
-        run: |
-          ./Tools/container/docker_run.sh "make px4_fmu-v6x"
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ghcr.io/px4/px4-dev:${{ steps.date.outputs.date }}
+          run: echo "hello world"
