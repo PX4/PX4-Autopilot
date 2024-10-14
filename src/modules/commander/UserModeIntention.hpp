@@ -102,6 +102,7 @@ private:
 	bool _had_mode_change{false}; ///< true if there was a mode change call since the last getHadModeChangeAndClear()
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl
+		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,
+		(ParamInt<px4::params::COM_TERM_MODE>) _param_com_term_mode
 	);
 };
