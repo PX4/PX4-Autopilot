@@ -232,10 +232,43 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 			}
 		}
 
-		const float max_roll_deg = _param_fd_fail_r.get();
-		const float max_pitch_deg = _param_fd_fail_p.get();
-		const float max_roll(fabsf(math::radians(max_roll_deg)));
-		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
+		vehicle_local_position_s local_position;
+		float current_altitude = 0.0f;
+		bool altitude_valid = false;
+
+		if (_vehicle_local_position_sub.update(&local_position)) {
+			altitude_valid = local_position.z_valid;
+
+			if (altitude_valid) {
+				current_altitude = -local_position.z; // local_position.z is negative when above ground.
+			}
+		}
+
+		float max_roll_deg  = 0.0f;
+		float max_pitch_deg = 0.0f;
+		float max_roll  = 0.0f;
+		float max_pitch = 0.0f;
+		static bool is_limit_over = false;
+
+		const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+		if (is_limit_over == false && current_altitude > _param_fd_fail_low_alt.get()) {
+			is_limit_over = true;
+		}
+
+		if (is_limit_over && armed) {
+			max_roll_deg = _param_fd_fail_r.get();
+			max_pitch_deg = _param_fd_fail_p.get();
+			max_roll = (fabsf(math::radians(max_roll_deg)));
+			max_pitch = (fabsf(math::radians(max_pitch_deg)));
+
+		} else {
+			max_roll_deg = _param_fd_fail_low_r.get();
+			max_pitch_deg = _param_fd_fail_low_p.get();
+			max_roll = (fabsf(math::radians(max_roll_deg)));
+			max_pitch = (fabsf(math::radians(max_pitch_deg)));
+			is_limit_over = false;
+		}
 
 		const bool roll_status = (max_roll > FLT_EPSILON) && (fabsf(roll) > max_roll);
 		const bool pitch_status = (max_pitch > FLT_EPSILON) && (fabsf(pitch) > max_pitch);
@@ -243,8 +276,15 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 		hrt_abstime time_now = hrt_absolute_time();
 
 		// Update hysteresis
-		_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
-		_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_p_ttri.get()));
+		if (current_altitude > _param_fd_fail_low_alt.get()) {
+			_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
+			_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_p_ttri.get()));
+
+		} else {
+			_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_low_r_ttri.get()));
+			_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_low_p_ttri.get()));
+		}
+
 		_roll_failure_hysteresis.set_state_and_update(roll_status, time_now);
 		_pitch_failure_hysteresis.set_state_and_update(pitch_status, time_now);
 
