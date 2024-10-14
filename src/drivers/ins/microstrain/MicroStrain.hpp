@@ -85,19 +85,16 @@ using namespace time_literals;
 
 #include "modal_io_serial.hpp"
 
-class CvIns : public ModuleBase<CvIns>, public ModuleParams, public px4::ScheduledWorkItem
+class MicrosStrain : public ModuleBase<MicrosStrain>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	CvIns(const char *device, int32_t rotation);
-	~CvIns() override;
+	MicrosStrain(const char *device, int32_t rotation);
+	~MicrosStrain() override;
 
 	/* Callbacks */
 
 	// Sensor Callbacks
 	static void sensor_callback(void *user, const mip_packet *packet, mip::Timestamp timestamp);
-
-	// Filter Callbacks
-	static void filter_callback(void *user, const mip_packet *packet, mip::Timestamp timestamp);
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -122,27 +119,17 @@ private:
 	/** @see ModuleBase */
 	void Run() override;
 
-	/// @brief Attempt to connect to the CV7 and set in known configuration
-	void initialize_cv7();
+	/// @brief Attempt to connect to the Sensor and set in known configuration
+	void initialize_ins();
 
-	/// @brief Runs the mip sdk and generate aiding sources
-	void service_cv7();
-
-	void set_sensor_rate(mip_descriptor_rate *sensor_descriptors, uint16_t len, bool is_sensor);
+	void set_sensor_rate(mip_descriptor_rate *sensor_descriptors, uint16_t len);
 
 	int connect_at_baud(int32_t baud);
 
 	void apply_mag_cal();
 
-	struct cv7_configuration {
-		uint16_t sens_imu_update_rate_hz = 500;
-		uint16_t sens_other_update_rate_hz = 50;
-		uint16_t sens_status_update_rate_hz = 5;
-		enum Rotation rot = ROTATION_NONE;
-		uint32_t device_id{0};
-	};
-
-	cv7_configuration _config;
+	enum Rotation rotation = ROTATION_NONE;
+	uint32_t dev_id{0};
 
 	// Sensor types needed for message creation / updating / publishing
 	PX4Accelerometer _px4_accel{0};
@@ -187,15 +174,11 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
-		(ParamInt<px4::params::CV7_SCHEDULE>) _param_cv7_schedule,
-		(ParamInt<px4::params::CV7_DELAY>) _param_cv7_delay,
-		(ParamInt<px4::params::CV7_UPDATE_RATE>) _param_cv7_update_rate,
-		(ParamInt<px4::params::CV7_ALIGNMENT>) _param_cv7_alignment,
-		(ParamInt<px4::params::CV7_INT_MAG_EN>) _param_cv7_int_mag_en,
-		(ParamFloat<px4::params::CV7_GPS_X>) _param_cv7_gps_x,
-		(ParamFloat<px4::params::CV7_GPS_Y>) _param_cv7_gps_y,
-		(ParamFloat<px4::params::CV7_GPS_Z>) _param_cv7_gps_z
+		(ParamInt<px4::params::MS_SCHEDULE>) _param_ms_schedule,
+		(ParamInt<px4::params::SENSOR_DELAY>) _param_sensor_delay,
+		(ParamInt<px4::params::PR_UPDATE_RATE>) _param_pr_update_rate,
+		(ParamInt<px4::params::SEC_UPDATE_RATE>) _param_sec_update_rate
+
 	)
 
 };
