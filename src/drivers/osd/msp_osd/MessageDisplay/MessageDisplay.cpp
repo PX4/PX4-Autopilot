@@ -106,9 +106,13 @@ void MessageDisplay::get(char *string, const uint32_t current_time)
 		// reset and construct full message
 		strcpy(full_message, "");
 		strncat(full_message, flight_mode_msg, 3);	// first three characters of Flight Mode
-		strcat(full_message, "|");
+		if (strlen(flight_mode_msg)) {
+			strcat(full_message, "|");
+		}
 		strncat(full_message, arming_msg, 4);		// first four characters of Arming Message
-		strcat(full_message, "|");
+		if (strlen(arming_msg)) {
+			strcat(full_message, "|");
+		}
 		strncat(full_message, heading_msg, 2);		// first two characters of Heading
 
 		// add a warning message, if it's not empty
