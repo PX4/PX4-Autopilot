@@ -75,6 +75,12 @@ MspDPOsd::MspDPOsd(const char *device) :
 	_display.set_period(_param_osd_scroll_rate.get() * 1000ULL);
 	_display.set_dwell(_param_osd_dwell_time.get() * 1000ULL);
 
+	_warning.set_period(_param_osd_scroll_rate.get() * 1000ULL);
+	_warning.set_dwell(_param_osd_dwell_time.get() * 1000ULL);
+	_warning.set(MessageDisplayType::FLIGHT_MODE, "");
+	_warning.set(MessageDisplayType::ARMING, "");
+	_warning.set(MessageDisplayType::HEADING, "");
+
 	// back up device name for connection later
 	strcpy(_device, device);
 
@@ -227,6 +233,20 @@ void MspDPOsd::Run()
 			uint8_t ready_output[sizeof(msp_dp_cmd_t) + sizeof(ready_msg)+1]{0};	// size of output buffer is size of OSD display port command struct and the buffer you want shown on OSD
 			msp_dp_osd::construct_OSD_write(_parameters.ready_col, _parameters.ready_row, false, ready_msg, ready_output, sizeof(ready_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &ready_output, MSP_DIRECTION_REPLY);
+		}
+
+		if (_parameters.status_col != -1 && _parameters.status_row > 0){
+			log_message_s log_message{};
+			_log_message_sub.copy(&log_message);
+
+			const auto warning_msg = construct_warning_message(
+								log_message,
+								_param_osd_log_level.get(),
+								_warning);
+			uint8_t warning_msg_output[sizeof(msp_dp_cmd_t) + sizeof(warning_msg.craft_name)+1]{0};
+
+			msp_dp_osd::construct_OSD_write(_parameters.status_col, _parameters.status_row - 1, false, warning_msg.craft_name, warning_msg_output, sizeof(warning_msg_output));
+			this->Send(MSP_CMD_DISPLAYPORT, &warning_msg_output, MSP_DIRECTION_REPLY);
 		}
 
 		// STATUS MESSAGE -> BOTTOM-MIDDLE MIDDLE (PX4 error messages)
@@ -449,6 +469,8 @@ void MspDPOsd::parameters_update()
 	// update our display rate and dwell time
 	_display.set_period(hrt_abstime(_param_osd_scroll_rate.get() * 1000ULL));
 	_display.set_dwell(hrt_abstime(_param_osd_dwell_time.get() * 1000ULL));
+	_warning.set_period(hrt_abstime(_param_osd_scroll_rate.get() * 1000ULL));
+	_warning.set_dwell(hrt_abstime(_param_osd_dwell_time.get() * 1000ULL));
 
 	// Get DisplayPort based positions
 	param_get(param_find("OSD_RSSI_COL"),  	&_parameters.rssi_col);
@@ -588,6 +610,10 @@ int MspDPOsd::print_status()
 	char msg[FULL_MSG_BUFFER];
 	_display.get(msg, hrt_absolute_time());
 	PX4_INFO("Current message: \n\t%s", msg);
+
+	// print current warning string
+	_warning.get(msg, hrt_absolute_time());
+	PX4_INFO("Current warning: \n\t%s", msg);
 
 	return 0;
 }

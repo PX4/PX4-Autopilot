@@ -129,6 +129,7 @@ private:
 	int _msp_fd{-1};
 
 	msp_osd::MessageDisplay _display{};
+	msp_osd::MessageDisplay _warning{};
 
 	bool _is_initialized{false};
 
@@ -206,6 +207,10 @@ private:
 					const struct log_message_s& log_message,
 					const struct esc_status_s& esc_status,
 					const struct parameter_selector_s& parameter_selector,
+					const int log_level,
+					msp_osd::MessageDisplay& display);
+
+	msp_name_t construct_warning_message(const struct log_message_s& log_message,
 					const int log_level,
 					msp_osd::MessageDisplay& display);
 

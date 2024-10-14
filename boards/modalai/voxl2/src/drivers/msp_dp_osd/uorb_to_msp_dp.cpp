@@ -88,12 +88,28 @@ msp_name_t MspDPOsd::construct_display_message(const struct vehicle_status_s& ve
 	const auto now = hrt_absolute_time();
 	set_arm_status_string(now, vehicle_status, display);
 	set_flight_mode_string(now, vehicle_status, esc_status, parameter_selector, display);
-	set_warning_string(now, log_message, log_level, display);
+	// Put warning on a separate line
+	// set_warning_string(now, log_message, log_level, display);
 	set_heading_string(now, vehicle_attitude, display);
 
 	// update message and return
 	display.get(display_message.craft_name, hrt_absolute_time());
 	return display_message;
+}
+
+msp_name_t MspDPOsd::construct_warning_message(const struct log_message_s& log_message,
+				     const int log_level,
+				     msp_osd::MessageDisplay &display)
+{
+	// initialize result
+	msp_name_t warning_message {0};
+
+	const auto now = hrt_absolute_time();
+	set_warning_string(now, log_message, log_level, display);
+
+	// update message and return
+	display.get(warning_message.craft_name, hrt_absolute_time());
+	return warning_message;
 }
 
 void MspDPOsd::set_arm_status_string(const hrt_abstime& now, const struct vehicle_status_s& vehicle_status, msp_osd::MessageDisplay& display)
@@ -135,7 +151,7 @@ void MspDPOsd::set_flight_mode_string(const hrt_abstime& now, const struct vehic
 	}
 
 	if (turtle_mode_enabled) {
-		display.set(MessageDisplayType::FLIGHT_MODE, "TURTLE");
+		display.set(MessageDisplayType::FLIGHT_MODE, "TRT");
 		return;
 	}
 
@@ -149,64 +165,64 @@ void MspDPOsd::set_flight_mode_string(const hrt_abstime& now, const struct vehic
 	// display flight mode
 	switch (vehicle_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-		display.set(MessageDisplayType::FLIGHT_MODE, "MANUAL");
+		display.set(MessageDisplayType::FLIGHT_MODE, "MAN");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-		display.set(MessageDisplayType::FLIGHT_MODE, "ALTCTL");
+		display.set(MessageDisplayType::FLIGHT_MODE, "ALT");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		display.set(MessageDisplayType::FLIGHT_MODE, "POSCTL");
+		display.set(MessageDisplayType::FLIGHT_MODE, "POS");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-		display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_MISSION");
+		display.set(MessageDisplayType::FLIGHT_MODE, "A:M");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-		display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_LOITER");
+		display.set(MessageDisplayType::FLIGHT_MODE, "A:L");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_RTL");
+		display.set(MessageDisplayType::FLIGHT_MODE, "A:R");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_UNUSED:
-		display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED");
+		display.set(MessageDisplayType::FLIGHT_MODE, "N/A");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-		display.set(MessageDisplayType::FLIGHT_MODE, "ACRO");
+		display.set(MessageDisplayType::FLIGHT_MODE, "ACR");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_UNUSED1:
-		display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED1");
+		display.set(MessageDisplayType::FLIGHT_MODE, "N/A");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-		display.set(MessageDisplayType::FLIGHT_MODE, "DESCEND");
+		display.set(MessageDisplayType::FLIGHT_MODE, "DES");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-		display.set(MessageDisplayType::FLIGHT_MODE, "TERMINATION");
+		display.set(MessageDisplayType::FLIGHT_MODE, "TRM");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		display.set(MessageDisplayType::FLIGHT_MODE, "POSCTL");
+		display.set(MessageDisplayType::FLIGHT_MODE, "POS");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
-		display.set(MessageDisplayType::FLIGHT_MODE, "STAB");
+		display.set(MessageDisplayType::FLIGHT_MODE, "STA");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_UNUSED2:
-		display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED2");
+		display.set(MessageDisplayType::FLIGHT_MODE, "N/A");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-		display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_TAKEOFF");
+		display.set(MessageDisplayType::FLIGHT_MODE, "A:T");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-		display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_LAND");
+		display.set(MessageDisplayType::FLIGHT_MODE, "A:L");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-		display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_FOLLOW_TARGET");
+		display.set(MessageDisplayType::FLIGHT_MODE, "A:F");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-		display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_PRECLAND");
+		display.set(MessageDisplayType::FLIGHT_MODE, "A:P");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
-		display.set(MessageDisplayType::FLIGHT_MODE, "ORBIT");
+		display.set(MessageDisplayType::FLIGHT_MODE, "ORB");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
-		display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_VTOL_TAKEOFF");
+		display.set(MessageDisplayType::FLIGHT_MODE, "A:V");
 		break;
 	case vehicle_status_s::NAVIGATION_STATE_MAX:
 		display.set(MessageDisplayType::FLIGHT_MODE, "MAX");
