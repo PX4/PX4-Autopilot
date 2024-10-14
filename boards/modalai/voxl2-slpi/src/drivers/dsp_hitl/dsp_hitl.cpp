@@ -1114,9 +1114,11 @@ handle_message_hil_sensor_dsp(mavlink_message_t *msg)
 		battery_status_s hil_battery_status{};
 
 		hil_battery_status.timestamp = gyro_accel_time;
-		hil_battery_status.voltage_v = 16.0f;
-		hil_battery_status.voltage_filtered_v = 16.0f;
+		hil_battery_status.voltage_v = 14.6f;
+		hil_battery_status.cell_count = 4;
+		hil_battery_status.voltage_filtered_v = 14.5f;
 		hil_battery_status.current_a = 10.0f;
+		hil_battery_status.current_filtered_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 		hil_battery_status.connected = true;
 		hil_battery_status.remaining = 0.70;
