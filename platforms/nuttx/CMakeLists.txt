@@ -260,6 +260,8 @@ if(CONFIG_ARCH_CHIP_ESP32)
 	${PX4_STARTUP_DIR}/xtensa_windowspill.o
 	${PX4_STARTUP_DIR}/xtensa_int_handlers.o
 	${PX4_STARTUP_DIR}/xtensa_user_handler.o
+	${PX4_STARTUP_DIR}/xtensa_initialize.o
+	${PX4_STARTUP_DIR}/xtensa_initialstate.o
 	${PX4_STARTUP_DIR}/esp32_start.o
 	${PX4_STARTUP_DIR}/esp32_wdt.o
 	)

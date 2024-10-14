@@ -91,3 +91,8 @@ uint32_t io_timer_get_group(unsigned timer)
 	return -1;
 
 }
+
+uint32_t io_timer_channel_get_gpio_output(unsigned channel)
+{
+	return timer_io_channels[channel].gpio_out | GPIO_OUTPUT | GPIO_PULLUP;
+}
