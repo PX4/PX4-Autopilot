@@ -130,8 +130,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RD_MAN_YAW_SCALE>) _param_rd_man_yaw_scale,
-		(ParamFloat<px4::params::RD_MAX_YAW_RATE>) _param_rd_max_yaw_rate,
-		(ParamFloat<px4::params::RD_MAX_SPEED>) _param_rd_max_speed,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max
+		(ParamFloat<px4::params::RD_MAX_YAW_RATE>)  _param_rd_max_yaw_rate,
+		(ParamFloat<px4::params::RD_MAX_SPEED>)     _param_rd_max_speed,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
 	)
 };
