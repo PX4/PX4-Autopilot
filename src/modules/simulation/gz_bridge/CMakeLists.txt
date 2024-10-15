@@ -90,6 +90,7 @@ if(gz-transport_FOUND)
   		lawn
 		aruco
 		rover
+		walls
 	)
 
 	# find corresponding airframes
