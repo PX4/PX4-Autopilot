@@ -45,7 +45,7 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 	# search all directories with .c files (potentially containing parameters)
 	file(GLOB_RECURSE c_files
 		${PX4_SOURCE_DIR}/src/*.c
-		${external_module_paths}
+		${external_module_paths}/*.c
 		)
 	foreach(file_path ${c_files})
 		get_filename_component(dir_path ${file_path} PATH)

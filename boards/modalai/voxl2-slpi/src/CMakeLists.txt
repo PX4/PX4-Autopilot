@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+set(external_module_paths ${PX4_BOARD_DIR}/../voxl2/src/drivers/msp_dp_osd PARENT_SCOPE)
+
 # Need to make sure that the DSP processor on VOXL2
 # knows about all parameters since some modules need parameters
 # from other modules that are not running on the DSP.
