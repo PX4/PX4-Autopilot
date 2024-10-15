@@ -81,9 +81,12 @@
 
 #define LEDC_LS_SIG_OUT0_IDX 79
 
+#include "esp32_board_wlan_setup.h"
 #ifdef CONFIG_ESP32_SPIFLASH
 #include "esp32_board_spiflash_setup.h"
 #endif
+
+#include "esp32_rt_timer.h"
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -267,17 +270,18 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif
-
   	int ret = esp32_spiflash_init();
   	if (ret)
     	{
       		syslog(LOG_ERR, "ERROR: Failed to initialize SPI Flash\n");
     	}
 
+	esp32_rt_timer_init();
 
 	px4_platform_configure();
 	/* Configure the HW based on the manifest */
 
+	board_wlan_init();
 	// psram_enable(0,1);
 
 	led_on(GPIO_LED_BLUE);

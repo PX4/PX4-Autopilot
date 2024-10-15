@@ -45,7 +45,7 @@
 #include "esp32_spiflash.h"
 #include "esp32_board_spiflash_setup.h"
 
-#define CONFIG_ESP32_SPIFLASH_SPIFFS
+// #define CONFIG_ESP32_SPIFLASH_SPIFFS
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -495,8 +495,8 @@ static int init_storage_partition(void)
   return ret;
 }
 
-#define CONFIG_ESP32_PARAM_MTD_OFFSET   0x310000
-#define CONFIG_ESP32_PARAM_MTD_SIZE     0x50000
+#define CONFIG_ESP32_PARAM_MTD_OFFSET   0x330000
+#define CONFIG_ESP32_PARAM_MTD_SIZE     0x10000
 
 static int init_param_partition(void)
 {

@@ -35,8 +35,9 @@
 
 #include "esp32_spiflash.h"
 #include "esp32_wlan.h"
-#include "netutils/netlib.h"
-#include "netutils/dhcpd.h"
+// #include "/home/henry/autonosky/px4-autopilot_private/platforms/nuttx/NuttX/apps/include/netutils/netlib.h"
+// #include "netutils/dhcpd.h"
+// #include "/home/henry/autonosky/px4-autopilot_private/platforms/nuttx/NuttX/apps/include/netutils/dhcpd.h"
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -67,12 +68,12 @@ int board_wlan_init(void)
 
 
 #ifdef ESP32_WLAN_HAS_STA
-  ret = esp32_wlan_sta_initialize();
-  if (ret)
-    {
-      printf("ERROR: Failed to initialize Wi-Fi station\n");
-      return ret;
-    }
+  // ret = esp32_wlan_sta_initialize();
+  // if (ret)
+  //   {
+  //     printf("ERROR: Failed to initialize Wi-Fi station\n");
+  //     return ret;
+  //   }
 #endif
 
 
@@ -85,8 +86,8 @@ int board_wlan_init(void)
     }
 #endif
 
-  netlib_ifup("wlan1");
-  dhcpd_start("wlan1");
+  // netlib_ifup("wlan1");
+  // dhcpd_start("wlan1");
 
   return ret;
 }

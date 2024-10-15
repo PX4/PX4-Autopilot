@@ -117,22 +117,12 @@ if (NOT CONFIG_BUILD_FLAT)
 		nuttx_kc
 		)
 else()
-if(CONFIG_ARCH_CHIP_ESP32)
-	list(APPEND nuttx_libs
-		nuttx_apps
-		nuttx_arch
-		nuttx_mm
-		nuttx_c
-		# nuttx_net
-		)
-else()
 	list(APPEND nuttx_libs
 		nuttx_apps
 		nuttx_arch
 		nuttx_mm
 		nuttx_c
 		)
-endif()
 endif()
 
 if(CONFIG_NET)
@@ -253,7 +243,10 @@ if (NOT CONFIG_BUILD_FLAT)
 else()
 
 if(CONFIG_ARCH_CHIP_ESP32)
+
 	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
+	set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
+
 	set(NUTTX_STARTUP_OBJS
 	${PX4_STARTUP_DIR}/xtensa_vectors.o
 	${PX4_STARTUP_DIR}/xtensa_window_vector.o
@@ -291,12 +284,17 @@ if(CONFIG_ARCH_CHIP_ESP32)
 			drivers_board
 			arch_hrt
 			arch_board_reset
+			-L${WIRELESS_LIB}
+			-Wl,--start-group
+			${NUTTX_NETWORK_LIB}
+			-Wl,--end-group
 	)
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
-	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
+	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_net)
+	target_link_libraries(nuttx_net INTERFACE nuttx_mm)
 	target_link_libraries(px4 PRIVATE
 		-nostartfiles
 		-nodefaultlibs
@@ -306,6 +304,7 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-fno-exceptions
 		-fno-rtti
 		-Wl,--cref
+		-L${WIRELESS_LIB}
 
 		-Wl,-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32_out.ld
 		-T${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}esp32.ld
@@ -316,6 +315,7 @@ if(CONFIG_ARCH_CHIP_ESP32)
 		-Wl,--start-group
 			${nuttx_libs}
 			${NUTTX_STARTUP_OBJS}
+			${NUTTX_NETWORK_LIB}
 		-Wl,--end-group
 
 		m
