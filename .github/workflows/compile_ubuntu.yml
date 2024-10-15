@@ -41,6 +41,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: false
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           file: ./Tools/container/Dockerfile
 
