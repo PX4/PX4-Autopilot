@@ -1,16 +1,25 @@
 #!/bin/bash
 
 if [[ -z "${DOCKER_TAG}" ]]; then
-  # The default tag name should be hardcoded
-  # to whatever we are currently using in CI on this branch
-  TAG_NAME="2024-10-11"
+	# The default tag name should be hardcoded
+	# to whatever we are currently using in CI on this branch
+	TAG_NAME="2024-10-11"
 else
-  TAG_NAME="${DOCKER_TAG}"
+	TAG_NAME="${DOCKER_TAG}"
+fi
+
+if [[ -z "${REPO_NAME}" ]]; then
+	REPO_NAME="ghcr.io/px4/px4-dev"
+	# REPO_NAME="px4/px4-dev"
+else
+	REPO_NAME="${REPO_NAME}"
+	TAG_NAME=""
 fi
 
 # set the image name and tag
-PX4_DOCKER_REPO="ghcr.io/px4/px4-dev:$TAG_NAME"
+PX4_DOCKER_REPO="$REPO_NAME:$TAG_NAME"
 # get the project root path
+# assumes docker_run.sh lives in ./Tools/container
 SRC_DIR=$(dirname $(realpath $0))
 SRC_DIR=${SRC_DIR%/*/*}
 

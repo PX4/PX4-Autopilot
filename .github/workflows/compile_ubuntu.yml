@@ -37,7 +37,8 @@ jobs:
           tags: |
             type=schedule,pattern={{date 'YYY-MM-DD'}}
 
-      - name: Build Docker Image
+      - id: build
+        name: Build Docker Image
         uses: docker/build-push-action@v6
         with:
           push: false
@@ -46,10 +47,8 @@ jobs:
           file: ./Tools/container/Dockerfile
 
       - name: Test Docker Works
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ${{ steps.meta.outputs.labels }}
-          run: echo "hello world"
+        run: |
+          REPO_NAME=${{ steps.build.outputs.imageid }} ./Tools/container/docker_run.sh make px4_fmu-v4
 
       - name: Setup tmate session
         if: ${{ failure() }}
