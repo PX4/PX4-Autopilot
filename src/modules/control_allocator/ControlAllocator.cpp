@@ -260,21 +260,64 @@ ControlAllocator::update_effectiveness_source()
 	return false;
 }
 
-// Funções para calcular a pseudo-inversa de uma matriz
-matrix::Matrix<float, 6, 2> pseudoInverse(const matrix::Matrix<float, 2, 6>& mat) {
-    matrix::Matrix<float, 6, 2> mat_T = mat.transpose();
-    matrix::SquareMatrix<float, 2> mat_T_mat = mat * mat_T;
-    matrix::SquareMatrix<float, 2> mat_T_mat_inv = mat_T_mat.I(); // Inversa de mat_T * mat
+// Função para verificar modo HOLD
+bool isDroneInHoldMode() {
+    vehicle_status_s vehicle_status;
 
-    return mat_T * mat_T_mat_inv;
+    // Subscrever ao tópico vehicle_status
+    int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+
+    // Atualizar o estado do veículo
+    if (orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status) == PX4_OK) {
+        // Verificar se o estado de navegação é NAVIGATION_STATE_AUTO_LOITER
+        orb_unsubscribe(vehicle_status_sub);
+        return vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+    }
+
+    // Fechar a subscrição
+    orb_unsubscribe(vehicle_status_sub);
+
+    return false;
 }
 
-matrix::Matrix<float, 6, 5> pseudoInverse2(const matrix::Matrix<float, 5, 6>& mat) {
-    matrix::Matrix<float, 6, 5> mat_T = mat.transpose();
-    matrix::SquareMatrix<float, 5> mat_T_mat = mat * mat_T;
-    matrix::SquareMatrix<float, 5> mat_T_mat_inv = mat_T_mat.I(); // Inversa de mat_T * mat
+// Função para verificar modo TAKEOFF
+bool isDroneTakeoffMode() {
+	vehicle_status_s vehicle_status;
 
-    return mat_T * mat_T_mat_inv;
+	    // Subscrever ao tópico vehicle_status
+    int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+
+    // Atualizar o estado do veículo
+    if (orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status) == PX4_OK) {
+        // Verificar se o estado de navegação é NAVIGATION_STATE_AUTO_LOITER
+        orb_unsubscribe(vehicle_status_sub);
+        return vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
+    }
+
+    // Fechar a subscrição
+    orb_unsubscribe(vehicle_status_sub);
+
+    return false;
+}
+
+// Função para verificar modo LAND
+bool isDroneLandMode() {
+	vehicle_status_s vehicle_status;
+
+	    // Subscrever ao tópico vehicle_status
+    int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+
+    // Atualizar o estado do veículo
+    if (orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status) == PX4_OK) {
+        // Verificar se o estado de navegação é NAVIGATION_STATE_AUTO_LOITER
+        orb_unsubscribe(vehicle_status_sub);
+        return vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+    }
+
+    // Fechar a subscrição
+    orb_unsubscribe(vehicle_status_sub);
+
+    return false;
 }
 
 // Set the PWM to motors
@@ -282,9 +325,16 @@ void ControlAllocator::setPWM(int motor_index, float actuator_sp) {
 	actuator_motors_s actuator_motors;
 	_actuator_motors_pub.advertise();
 
+	if (actuator_sp > 1.0f) {
+		actuator_sp = 1.0f;
+	} else if (actuator_sp < -1.0f) {
+		actuator_sp = -1.0f;
+	}
+
 	actuator_motors.control[motor_index] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
 	_actuator_motors_pub.publish(actuator_motors);
 	actuator_motors.timestamp = hrt_absolute_time();
+
 
 }
 
@@ -297,9 +347,19 @@ void ControlAllocator::setServo(int servo_index, float angle) {
 	_actuator_servos_pub.publish(actuator_servos);
 }
 
-// Função para implementar a FCA
+// Função para calcular a pseudo-inversa de uma matriz
+template <size_t Rows, size_t Cols>
+matrix::Matrix<float, Cols, Rows> pseudoInverse(const matrix::Matrix<float, Rows, Cols>& mat) {
+    matrix::Matrix<float, Cols, Rows> mat_T = mat.transpose();
+    matrix::SquareMatrix<float, Rows> mat_T_mat = mat * mat_T;
+    matrix::SquareMatrix<float, Rows> mat_T_mat_inv = mat_T_mat.I(); // Inversa de mat_T * mat
+
+    return mat_T * mat_T_mat_inv;
+}
+
+// Tilt FCA
 void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>& torques, matrix::Vector<float, 16> actuator_sp) {
-	// Inicializar variáveis necessárias
+	// Inicializar variáveis dos tilt
 	float IN_ANGLE_1 = math::degrees((actuator_sp)(6));
 	float IN_ANGLE_2 = math::degrees((actuator_sp)(7));
 
@@ -313,8 +373,8 @@ void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>
 	float k2 = 0.0001f*k1;
 	float l = 0.25f;
 
-	matrix::Vector<float, 2> SEN;
-	matrix::Vector<float, 6> OUT2;
+	matrix::Vector<float, 2> SEN; 	// Angulos dos tilt
+	matrix::Vector<float, 6> OUT2; 	// Saída dos atuadores
 
 	// Verificar se todos os elementos de actuator_sp são zero
 	bool all_actuators_zero = true;
@@ -326,29 +386,30 @@ void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>
 		}
 	}
 
-	if (!all_actuators_zero) {
-		matrix::Matrix<float, 2, 6> M_TiltQuad2;
-		M_TiltQuad2(0, 0) = k1 * (actuator_sp)(0);
-		M_TiltQuad2(0, 1) = k1 * (actuator_sp)(1);
-		M_TiltQuad2(0, 2) = 0;
-		M_TiltQuad2(0, 3) = 0;
-		M_TiltQuad2(0, 4) = 0;
-		M_TiltQuad2(0, 5) = 0;
+	if (all_actuators_zero) {
+		SEN(0) = 0.0f;
+		SEN(1) = 0.0f;
+	} else if (!all_actuators_zero){
+		/////////////////////////////////////////////////////
+		// First part
+		/////////////////////////////////////////////////////
 
-		M_TiltQuad2(1, 0) = -k1 * (actuator_sp)(0) * l;
-		M_TiltQuad2(1, 1) = k1 * (actuator_sp)(1) * l;
-		M_TiltQuad2(1, 2) = -k2 * (actuator_sp)(2) + k2 * (actuator_sp)(3) + k2 * (actuator_sp)(4) - k2 * (actuator_sp)(5) - k2 * (actuator_sp)(0) * ag1_c + k2 * (actuator_sp)(1) * ag2_c;
-		M_TiltQuad2(1, 3) = 0;
-		M_TiltQuad2(1, 4) = 0;
-		M_TiltQuad2(1, 5) = 0;
+		matrix::Matrix<float, 2, 3> Matrix_HTR1;
 
-		matrix::Matrix<float, 6, 2> M_Inv_TQuad2 = pseudoInverse(M_TiltQuad2);
-		matrix::Vector<float, 2> torques_subset;
+		Matrix_HTR1(0, 0) = k1 * actuator_sp(0);
+		Matrix_HTR1(0, 1) = k1 * actuator_sp(1);
+		Matrix_HTR1(0, 2) = 0;
+		Matrix_HTR1(1, 0) = -k1 * actuator_sp(0) * l;
+		Matrix_HTR1(1, 1) = k1 * actuator_sp(1) * l;
+		Matrix_HTR1(1, 2) = -k2 * actuator_sp(2) + k2 * actuator_sp(3) + k2 * actuator_sp(4) - k2 * actuator_sp(5) - k2 * actuator_sp(0) * ag1_c + k2 * actuator_sp(1) * ag2_c;
 
-		torques_subset(0) = torques(0);
-		torques_subset(1) = torques(5);
+		matrix::Matrix<float, 3, 2> Matrix_Inv_HTR1 = pseudoInverse(Matrix_HTR1);
+		matrix::Vector<float, 2> torques_subset1;
 
-		matrix::Matrix<float, 6, 1> ARCSEN_matrix = M_Inv_TQuad2 * torques_subset;
+		torques_subset1(0) = torques(0);
+		torques_subset1(1) = torques(5);
+
+		matrix::Matrix<float, 3, 1> ARCSEN_matrix = Matrix_Inv_HTR1 * torques_subset1;
 		matrix::Vector<float, 2> ARCSEN;
 
 		ARCSEN(0) = ARCSEN_matrix(0, 0);
@@ -357,57 +418,144 @@ void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>
 		SEN(1) = std::asin(ARCSEN(1));
 	}
 
+	/////////////////////////////////////////////////////
+	// Checking estimated values - stage 1
+	/////////////////////////////////////////////////////
+
 	ag1_c = std::cos(SEN(0));
 	ag2_c = std::cos(SEN(1));
+
 	float ag1_s = std::sin(SEN(0));
 	float ag2_s = std::sin(SEN(1));
 
-	matrix::Matrix<float, 5, 6> M_TiltQuad1;
-	M_TiltQuad1(0, 0) = k1 * ag1_s;
-	M_TiltQuad1(0, 1) = k1 * ag2_s;
-	M_TiltQuad1(0, 2) = 0;
-	M_TiltQuad1(0, 3) = 0;
-	M_TiltQuad1(0, 4) = 0;
-	M_TiltQuad1(0, 5) = 0;
+	matrix::Matrix<float, 2, 6> Matrix_HTR2;
 
-	M_TiltQuad1(1, 0) = k1 * ag1_c;
-	M_TiltQuad1(1, 1) = k1 * ag2_c;
-	M_TiltQuad1(1, 2) = k1;
-	M_TiltQuad1(1, 3) = k1;
-	M_TiltQuad1(1, 4) = k1;
-	M_TiltQuad1(1, 5) = k1;
+	Matrix_HTR2(0, 0) = k1 * ag1_s;
+	Matrix_HTR2(0, 1) = k1 * ag2_s;
+	Matrix_HTR2(0, 2) = 0;
+	Matrix_HTR2(0, 3) = 0;
+	Matrix_HTR2(0, 4) = 0;
+	Matrix_HTR2(0, 5) = 0;
 
-	M_TiltQuad1(2, 0) = -k1 * ag1_c * l + k2 * ag1_s;
-	M_TiltQuad1(2, 1) = k1 * ag2_c * l - k2 * ag2_s;
-	M_TiltQuad1(2, 2) = k1 * l * f1;
-	M_TiltQuad1(2, 3) = -k1 * l * f1;
-	M_TiltQuad1(2, 4) = -k1 * l * f1;
-	M_TiltQuad1(2, 5) = k1 * l * f1;
+	Matrix_HTR2(1, 0) = -k1 * ag1_s * l - k2 * ag1_c;
+	Matrix_HTR2(1, 1) = k1 * ag2_s * l + k2 * ag2_c;
+	Matrix_HTR2(1, 2) = -k2;
+	Matrix_HTR2(1, 3) = k2;
+	Matrix_HTR2(1, 4) = k2;
+	Matrix_HTR2(1, 5) = -k2;
 
-	M_TiltQuad1(3, 0) = 0;
-	M_TiltQuad1(3, 1) = 0;
-	M_TiltQuad1(3, 2) = k1 * l * f2;
-	M_TiltQuad1(3, 3) = -k1 * l * f2;
-	M_TiltQuad1(3, 4) = k1 * l * f2;
-	M_TiltQuad1(3, 5) = -k1 * l * f2;
+	matrix::Matrix<float, 5, 6> Matrix_HTR_Complet;
 
-	M_TiltQuad1(4, 0) = -k1 * ag1_s * l - k2 * ag1_c;
-	M_TiltQuad1(4, 1) = k1 * ag2_s * l + k2 * ag2_c;
-	M_TiltQuad1(4, 2) = -k2;
-	M_TiltQuad1(4, 3) = k2;
-	M_TiltQuad1(4, 4) = k2;
-	M_TiltQuad1(4, 5) = -k2;
+	Matrix_HTR_Complet(0, 0) = k1 * ag1_s;
+	Matrix_HTR_Complet(0, 1) = k1 * ag2_s;
+	Matrix_HTR_Complet(0, 2) = 0;
+	Matrix_HTR_Complet(0, 3) = 0;
+	Matrix_HTR_Complet(0, 4) = 0;
+	Matrix_HTR_Complet(0, 5) = 0;
 
-	matrix::Matrix<float, 6, 5> M_Inv_TQuad1 = pseudoInverse2(M_TiltQuad1);
-	matrix::Vector<float, 5> torques_subset;
+	Matrix_HTR_Complet(1, 0) = k1 * ag1_c;
+	Matrix_HTR_Complet(1, 1) = k1 * ag2_c;
+	Matrix_HTR_Complet(1, 2) = k1;
+	Matrix_HTR_Complet(1, 3) = k1;
+	Matrix_HTR_Complet(1, 4) = k1;
+	Matrix_HTR_Complet(1, 5) = k1;
 
-	torques_subset(0) = torques(0);
-	torques_subset(1) = torques(2);
-	torques_subset(2) = torques(3);
-	torques_subset(3) = torques(4);
-	torques_subset(4) = torques(5);
+	Matrix_HTR_Complet(2, 0) = -k1 * ag1_c * l + k2 * ag1_s;
+	Matrix_HTR_Complet(2, 1) = k1 * ag2_c * l - k2 * ag2_s;
+	Matrix_HTR_Complet(2, 2) = k1 * l * f1;
+	Matrix_HTR_Complet(2, 3) = -k1 * l * f1;
+	Matrix_HTR_Complet(2, 4) = -k1 * l * f1;
+	Matrix_HTR_Complet(2, 5) = k1 * l * f1;
 
-	OUT2 = M_Inv_TQuad1 * torques_subset;
+	Matrix_HTR_Complet(3, 0) = 0;
+	Matrix_HTR_Complet(3, 1) = 0;
+	Matrix_HTR_Complet(3, 2) = k1 * l * f2;
+	Matrix_HTR_Complet(3, 3) = -k1 * l * f2;
+	Matrix_HTR_Complet(3, 4) = k1 * l * f2;
+	Matrix_HTR_Complet(3, 5) = -k1 * l * f2;
+
+	Matrix_HTR_Complet(4, 0) = -k1 * ag1_s * l - k2 * ag1_c;
+	Matrix_HTR_Complet(4, 1) = k1 * ag2_s * l + k2 * ag2_c;
+	Matrix_HTR_Complet(4, 2) = -k2;
+	Matrix_HTR_Complet(4, 3) = k2;
+	Matrix_HTR_Complet(4, 4) = k2;
+	Matrix_HTR_Complet(4, 5) = -k2;
+
+	matrix::Matrix<float, 1, 6> Motors;
+
+	Motors(0, 0) = actuator_sp(0);
+	Motors(0, 1) = actuator_sp(1);
+	Motors(0, 2) = actuator_sp(2);
+	Motors(0, 3) = actuator_sp(3);
+	Motors(0, 4) = actuator_sp(4);
+	Motors(0, 5) = actuator_sp(5);
+
+	matrix::Matrix<float, 2, 1> IN_CTRL_OUT_1;
+	matrix::Matrix<float, 5, 1> IN_CTRL_OUT_2;
+
+	IN_CTRL_OUT_1 = Matrix_HTR2 * Motors.transpose();
+	IN_CTRL_OUT_2 = Matrix_HTR_Complet * Motors.transpose();
+
+	/////////////////////////////////////////////////////
+	// Second part
+	/////////////////////////////////////////////////////
+
+	matrix::Matrix<float, 5, 6> Matrix_HTR3;
+
+	Matrix_HTR3(0, 0) = k1 * ag1_s;
+	Matrix_HTR3(0, 1) = k1 * ag2_s;
+	Matrix_HTR3(0, 2) = 0;
+	Matrix_HTR3(0, 3) = 0;
+	Matrix_HTR3(0, 4) = 0;
+	Matrix_HTR3(0, 5) = 0;
+
+	Matrix_HTR3(1, 0) = k1 * ag1_c;
+	Matrix_HTR3(1, 1) = k1 * ag2_c;
+	Matrix_HTR3(1, 2) = k1;
+	Matrix_HTR3(1, 3) = k1;
+	Matrix_HTR3(1, 4) = k1;
+	Matrix_HTR3(1, 5) = k1;
+
+	Matrix_HTR3(2, 0) = -k1 * ag1_c * l + k2 * ag1_s;
+	Matrix_HTR3(2, 1) = k1 * ag2_c * l - k2 * ag2_s;
+	Matrix_HTR3(2, 2) = k1 * l * f1;
+	Matrix_HTR3(2, 3) = -k1 * l * f1;
+	Matrix_HTR3(2, 4) = -k1 * l * f1;
+	Matrix_HTR3(2, 5) = k1 * l * f1;
+
+	Matrix_HTR3(3, 0) = 0;
+	Matrix_HTR3(3, 1) = 0;
+	Matrix_HTR3(3, 2) = k1 * l * f2;
+	Matrix_HTR3(3, 3) = -k1 * l * f2;
+	Matrix_HTR3(3, 4) = k1 * l * f2;
+	Matrix_HTR3(3, 5) = -k1 * l * f2;
+
+	Matrix_HTR3(4, 0) = -k1 * ag1_s * l - k2 * ag1_c;
+	Matrix_HTR3(4, 1) = k1 * ag2_s * l + k2 * ag2_c;
+	Matrix_HTR3(4, 2) = -k2;
+	Matrix_HTR3(4, 3) = k2;
+	Matrix_HTR3(4, 4) = k2;
+	Matrix_HTR3(4, 5) = -k2;
+
+	matrix::Matrix<float, 6, 5> Matrix_Inv_HTR2 = pseudoInverse(Matrix_HTR3);
+	matrix::Vector<float, 5> torques_subset2;
+
+	torques_subset2(0) = torques(0);
+	torques_subset2(1) = torques(2);
+	torques_subset2(2) = torques(3);
+	torques_subset2(3) = torques(4);
+	torques_subset2(4) = torques(5);
+
+	OUT2 = Matrix_Inv_HTR2 * torques_subset2;
+
+	/////////////////////////////////////////////////////
+	// Checking estimated values - stage 2
+	/////////////////////////////////////////////////////
+	matrix::Matrix<float, 2, 1> IN_CTRL_OUT_T1;
+	matrix::Matrix<float, 5, 1> IN_CTRL_OUT_T2;
+
+	IN_CTRL_OUT_T1 = Matrix_HTR2 * OUT2;
+	IN_CTRL_OUT_T2 = Matrix_HTR_Complet * OUT2;
 
 	// Limitar valores de saida dos atuadores
 	for (int i = 0; i < 6; ++i) {
@@ -420,6 +568,10 @@ void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>
 		}
 	}
 
+	for (int i = 0; i < 6; ++i) {
+		PX4_INFO("OUT2(%d): %.4f", i, (double)OUT2(i));
+	}
+
 	// Ajustar os valores e atribuir corretamente aos atuadores
 	actuator_sp(0) = 2.0f*OUT2(0);
 	actuator_sp(1) = 2.0f*OUT2(1);
@@ -427,8 +579,8 @@ void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>
 	actuator_sp(3) = -2.0f*OUT2(3);
 	actuator_sp(4) = -2.0f*OUT2(4);
 	actuator_sp(5) = -2.0f*OUT2(5);
-	actuator_sp(6) = -2.0f*SEN(0);
-	actuator_sp(7) = 2.0f*SEN(1);
+	actuator_sp(6) = 2.0f*SEN(0);
+	actuator_sp(7) = -2.0f*SEN(1);
 
 	// Publicar os valores dos atuadores
 	setPWM(0, 2.0f*OUT2(0));
@@ -437,13 +589,8 @@ void ControlAllocator::HexacopterTiltedAllocation(const matrix::Vector<float, 6>
 	setPWM(3, -2.0f*OUT2(3));
 	setPWM(4, -2.0f*OUT2(4));
 	setPWM(5, -2.0f*OUT2(5));
-	setServo(0, -2.0f * SEN(0));
-	setServo(1, 2.0f * SEN(1));
-
-	// Visualizar os valores dos atuadores
-	//PX4_INFO("Actuator: %f, %f", -(double)actuator_sp(6), -(double)actuator_sp(7));
-	//PX4_INFO("Actuator: %f, %f, %f, %f, %f, %f", (double)actuator_sp(0), (double)actuator_sp(1), (double)actuator_sp(2), (double)actuator_sp(3), (double)actuator_sp(4), (double)actuator_sp(5));
-
+	setServo(0, 2.0f * SEN(0));
+	setServo(1, -2.0f * SEN(1));
 }
 
 void
