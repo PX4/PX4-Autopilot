@@ -164,8 +164,8 @@ bool FlightTaskTransition::isVtolBackTransition() const
 
 float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 {
-	const vehicle_local_position_s local_pos = _sub_vehicle_local_position.get();
-	const position_setpoint_s current_pos_sp = _sub_position_sp_triplet.get().current;
+	const vehicle_local_position_s &local_pos = _sub_vehicle_local_position.get();
+	const position_setpoint_s &current_pos_sp = _sub_position_sp_triplet.get().current;
 
 	// Retrieve default decelaration setpoint
 	const float default_deceleration_sp = _param_vt_b_dec_mss;
