@@ -122,12 +122,12 @@
 uint32_t reload = 0;
 uint32_t prescaler = 0;
 uint32_t shift = 0;
-double cnt_dt = 0;
-uint32_t timer_period = 0;
+uint32_t timer_rate = 0;
 
 void get_optimal_timer_setup(uint32_t desired_freq){
 
 	uint32_t shifted = 1;
+	timer_rate = desired_freq;
 	reload = (20480000000 / desired_freq + LEDC_CLKDIV_MAX) / LEDC_CLKDIV_MAX;
 
   	if (reload == 0)
@@ -151,26 +151,18 @@ void get_optimal_timer_setup(uint32_t desired_freq){
     	}
 	shift = shifted;
 	prescaler = (20480000000 / reload) / desired_freq;
-	cnt_dt = ((prescaler >> 8) + ((prescaler & 0xff)/256))/80000000.0;
-	timer_period  = cnt_dt * reload * 1000000;
-
 }
 
 int up_pwm_servo_set(unsigned channel, uint16_t value)
 {
+	uint32_t duty = (value*timer_rate)*0.065535;
+	uint32_t regval = b16toi(duty * reload + b16HALF);
 
-	uint32_t duty = (value*reload)/timer_period;
-
-  	// uint32_t regval = b16toi(duty + b16HALF);
   	irqstate_t flags;
-	flags = px4_enter_critical_section();
 
-  	SET_CHAN_REG(channel, LEDC_LSCH0_DUTY_REG, duty << 4);
-	/* Set pulse phase 0 */
-  	// SET_CHAN_REG(channel, LEDC_LSCH0_HPOINT_REG, 0);
-  	/* Update clock divide and reload to hardware */
+	flags = px4_enter_critical_section();
+  	SET_CHAN_REG(channel, LEDC_LSCH0_DUTY_REG, regval << 4);
   	SET_CHAN_BITS(channel, LEDC_LSCH0_CONF0_REG, LEDC_PARA_UP_LSCH0);
-	// might be needed to update the LEDC_TIMERx_PARA_UP register
   	px4_leave_critical_section(flags);
 
 	return OK;
