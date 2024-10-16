@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-set(external_module_paths /usr/local/workspace/boards/modalai/voxl2/src/drivers/msp_dp_osd PARENT_SCOPE)
+# set(external_module_paths /usr/local/workspace/boards/modalai/voxl2/src/drivers/msp_dp_osd PARENT_SCOPE)
 
 # Need to make sure that the DSP processor on VOXL2
 # knows about all parameters since some modules need parameters

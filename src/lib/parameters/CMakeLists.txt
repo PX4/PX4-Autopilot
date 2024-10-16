@@ -45,12 +45,13 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 	# search all directories with .c files (potentially containing parameters)
 	file(GLOB_RECURSE c_files
 		${PX4_SOURCE_DIR}/src/*.c
-		${external_module_paths}/*.c
+		${external_module_paths}
 		)
 	foreach(file_path ${c_files})
 		get_filename_component(dir_path ${file_path} PATH)
 		list(APPEND module_list "${dir_path}")
 	endforeach()
+	list(APPEND module_list "/usr/local/workspace/boards/modalai/voxl2/src/drivers/msp_dp_osd")
 
 	# search for all module configs as well
 	file(GLOB_RECURSE yaml_files
