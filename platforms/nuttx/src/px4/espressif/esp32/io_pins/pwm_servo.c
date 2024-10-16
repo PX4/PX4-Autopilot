@@ -158,6 +158,7 @@ void get_optimal_timer_setup(uint32_t desired_freq){
 
 int up_pwm_servo_set(unsigned channel, uint16_t value)
 {
+
 	uint32_t duty = (value*reload)/timer_period;
 
   	// uint32_t regval = b16toi(duty + b16HALF);
@@ -166,7 +167,7 @@ int up_pwm_servo_set(unsigned channel, uint16_t value)
 
   	SET_CHAN_REG(channel, LEDC_LSCH0_DUTY_REG, duty << 4);
 	/* Set pulse phase 0 */
-  	SET_CHAN_REG(channel, LEDC_LSCH0_HPOINT_REG, 0);
+  	// SET_CHAN_REG(channel, LEDC_LSCH0_HPOINT_REG, 0);
   	/* Update clock divide and reload to hardware */
   	SET_CHAN_BITS(channel, LEDC_LSCH0_CONF0_REG, LEDC_PARA_UP_LSCH0);
 	// might be needed to update the LEDC_TIMERx_PARA_UP register
