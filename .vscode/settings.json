@@ -130,34 +130,4 @@
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
         "ros.distro": "humble",
-        "python.autoComplete.extraPaths": [
-                "/home/roque/gz_garden_ws/install/local/lib/python3.10/dist-packages",
-                "/home/roque/platform_px4_ws/build/px4_thruster_controller",
-                "/home/roque/platform_px4_ws/install/px4_thruster_controller/lib/python3.10/site-packages",
-                "/home/roque/platform_px4_ws/build/px4_thrust2force",
-                "/home/roque/platform_px4_ws/install/px4_thrust2force/lib/python3.10/site-packages",
-                "/home/roque/platform_px4_ws/install/px4_msgs/local/lib/python3.10/dist-packages",
-                "/home/roque/platform_px4_ws/build/px4_log_display",
-                "/home/roque/platform_px4_ws/install/px4_log_display/lib/python3.10/site-packages",
-                "/home/roque/ros2_astrobee_ws/install/ff_msgs/local/lib/python3.10/dist-packages",
-                "/home/roque/ros2_astrobee_ws/install/ff_hw_msgs/local/lib/python3.10/dist-packages",
-                "/home/roque/ros2_astrobee_ws/install/astrobee/local/lib/python3.10/dist-packages",
-                "/opt/ros/humble/lib/python3.10/site-packages",
-                "/opt/ros/humble/local/lib/python3.10/dist-packages"
-        ],
-        "python.analysis.extraPaths": [
-                "/home/roque/gz_garden_ws/install/local/lib/python3.10/dist-packages",
-                "/home/roque/platform_px4_ws/build/px4_thruster_controller",
-                "/home/roque/platform_px4_ws/install/px4_thruster_controller/lib/python3.10/site-packages",
-                "/home/roque/platform_px4_ws/build/px4_thrust2force",
-                "/home/roque/platform_px4_ws/install/px4_thrust2force/lib/python3.10/site-packages",
-                "/home/roque/platform_px4_ws/install/px4_msgs/local/lib/python3.10/dist-packages",
-                "/home/roque/platform_px4_ws/build/px4_log_display",
-                "/home/roque/platform_px4_ws/install/px4_log_display/lib/python3.10/site-packages",
-                "/home/roque/ros2_astrobee_ws/install/ff_msgs/local/lib/python3.10/dist-packages",
-                "/home/roque/ros2_astrobee_ws/install/ff_hw_msgs/local/lib/python3.10/dist-packages",
-                "/home/roque/ros2_astrobee_ws/install/astrobee/local/lib/python3.10/dist-packages",
-                "/opt/ros/humble/lib/python3.10/site-packages",
-                "/opt/ros/humble/local/lib/python3.10/dist-packages"
-        ]
 }
