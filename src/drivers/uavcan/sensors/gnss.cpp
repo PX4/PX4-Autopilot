@@ -497,7 +497,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.heading_accuracy = _rel_heading_accuracy;
 
 		if (!_rtk_fixed) {
-			PX4_WARN("GNSS Fix degraded, RTK heading not stable");
+			PX4_DEBUG("GNSS Fix degraded, RTK heading not stable");
 
 		}
 	}
