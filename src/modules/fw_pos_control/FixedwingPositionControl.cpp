@@ -690,6 +690,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 	FW_POSCTRL_MODE commanded_position_control_mode = _control_mode_current;
 
 	_skipping_takeoff_detection = false;
+	const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
 	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
 	    && _control_mode.flag_control_position_enabled) {
@@ -711,7 +712,6 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
 		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
-		const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
 		if (doing_backtransition) {
 			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
@@ -764,8 +764,15 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 			_time_in_fixed_bank_loiter = now;
 		}
 
-		if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
-		    && !_vehicle_status.in_transition_mode) {
+		if (doing_backtransition) {
+			// we handle loss of position control during backtransition as a special case
+			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
+
+		} else if (_param_nav_gpsf_lt.get() > 0.f && _vehicle_status.in_transition_mode) {
+			_control_mode_current = FW_POSCTRL_MODE_AUTO_ALTITUDE;
+
+		} else if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
+			   && !_vehicle_status.in_transition_mode) {
 			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
 				// Need to init because last loop iteration was in a different mode
 				events::send(events::ID("fixedwing_position_control_fb_loiter"), events::Log::Critical,
@@ -2366,9 +2373,13 @@ void FixedwingPositionControl::control_backtransition(const float control_interv
 		_lpos_where_backtrans_started = curr_pos_local;
 	}
 
-	navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+	float roll_body{0.0f};
 
-	float roll_body = getCorrectedNpfgRollSetpoint();
+	if (_control_mode.flag_control_position_enabled) {
+		navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+		roll_body = getCorrectedNpfgRollSetpoint();
+	}
+
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
