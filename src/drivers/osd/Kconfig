@@ -4,6 +4,7 @@ menu "OSD"
         default n
         select DRIVERS_OSD_ATXXXX
         select DRIVERS_OSD_MSP_OSD
+        select DRIVERS_OSD_MSP_DP
         ---help---
             Enable default set of OSD drivers
     rsource "*/Kconfig"

@@ -51,7 +51,6 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 		get_filename_component(dir_path ${file_path} PATH)
 		list(APPEND module_list "${dir_path}")
 	endforeach()
-	list(APPEND module_list "/usr/local/workspace/boards/modalai/voxl2/src/drivers/msp_dp_osd")
 
 	# search for all module configs as well
 	file(GLOB_RECURSE yaml_files

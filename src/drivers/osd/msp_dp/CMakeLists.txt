@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__msp_dp_osd
+	MODULE drivers__osd__msp_dp
 	MAIN msp_dp_osd
 	INCLUDES
 		${PX4_SOURCE_DIR}/src/drivers/osd/msp_osd/MessageDisplay
@@ -43,6 +43,6 @@ px4_add_module(
 		MspDPV1.cpp
 		uorb_to_msp_dp.cpp
 	DEPENDS
-		message_display
+		# message_display
 		px4_work_queue
 	)

@@ -1,0 +1,13 @@
+menuconfig DRIVERS_OSD_MSP_DP
+	bool "msp_dp"
+	default n
+	---help---
+		Enable support for msp_dp osd
+
+menuconfig USER_MSP_DP
+	bool "msp_dp osd running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && DRIVERS_OSD_MSP_DP
+	---help---
+		Put msp_dp osd in userspace memory
+

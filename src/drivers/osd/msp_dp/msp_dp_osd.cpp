@@ -47,7 +47,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <termios.h>
-#include <string>
+#include <string.h>
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -519,10 +519,15 @@ void MspDPOsd::parameters_update()
 	param_get(param_find("OSD_BAND"),    	&band_t);
 	param_get(param_find("OSD_REMOTE"),  	&remote_enable_t);
 
-	param_get(param_find("RC_MAP_THROTTLE"), &_sticks.throttle);
-	param_get(param_find("RC_MAP_ROLL"),     &_sticks.roll);
-	param_get(param_find("RC_MAP_PITCH"),    &_sticks.pitch);
-	param_get(param_find("RC_MAP_YAW"),    	 &_sticks.yaw);
+	int32_t val;
+	param_get(param_find("RC_MAP_THROTTLE"), &val);
+	_sticks.throttle = val;
+	param_get(param_find("RC_MAP_ROLL"),     &val);
+	_sticks.roll = val;
+	param_get(param_find("RC_MAP_PITCH"),    &val);
+	_sticks.pitch = val;
+	param_get(param_find("RC_MAP_YAW"),    	 &val);
+	_sticks.yaw = val;
 
 	this->_band = (uint8_t)band_t;
 	this->_channel = (uint8_t)channel_t;
@@ -680,10 +685,10 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 		case 's':
 			msg_len = strlen(myoptarg);
 			if (msg_len > MSP_OSD_MAX_STRING_LENGTH){
-				PX4_WARN("String length (%lu) too long, max string length: %i. Message may be truncated.", msg_len, MSP_OSD_MAX_STRING_LENGTH);
+				PX4_WARN("String length too long, max string length: %i. Message may be truncated.", MSP_OSD_MAX_STRING_LENGTH);
 				msg_len = MSP_OSD_MAX_STRING_LENGTH;
 			}
-			PX4_INFO("Got string: %s, Length: %lu", myoptarg, msg_len);
+			PX4_INFO("Got string: %s, Length: %lu", myoptarg, (long unsigned int) msg_len);
 			strncpy(cmd_string, myoptarg, msg_len + 1);
 			break;
 
@@ -741,7 +746,7 @@ int MspDPOsd::custom_command(int argc, char *argv[])
 
 		const char* const_cmd_string = cmd_string;
 		uint8_t output[sizeof(msp_dp_cmd_t) + strlen(const_cmd_string)+1]{0};
-		PX4_INFO("Output String: %s\tSize of output: %lu", const_cmd_string, sizeof(output));
+		PX4_INFO("Output String: %s\tSize of output: %lu", const_cmd_string, (long unsigned int) sizeof(output));
 		msp_dp_osd::construct_OSD_write(col, row, false, const_cmd_string, output, sizeof(output));
 		get_instance()->Send(MSP_CMD_DISPLAYPORT, &output, MSP_DIRECTION_REPLY);
 		PX4_INFO("");

@@ -25,3 +25,6 @@ icm42688p -s -b 2 -R 12 start
 
 # Internal I2C baro
 icp201xx -I start
+
+# HD ZERO OSD support
+msp_dp_osd start -d /dev/ttyS6
