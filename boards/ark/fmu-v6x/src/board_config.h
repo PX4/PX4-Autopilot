@@ -194,6 +194,8 @@
 	 (1 << ADC_ADC3_3V3_CHANNEL))               | \
 	(1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL)
 
+#define ADC_RC_RSSI_ADIO TRUE
+
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
 #define HW_REV_VER_ADC_BASE STM32_ADC3_BASE
