@@ -78,12 +78,12 @@ int board_wlan_init(void)
 
 
 #ifdef ESP32_WLAN_HAS_SOFTAP
-  // ret = esp32_wlan_softap_initialize();
-  // if (ret)
-  //   {
-  //     wlerr("ERROR: Failed to initialize Wi-Fi softAP\n");
-  //     return ret;
-  //   }
+  ret = esp32_wlan_softap_initialize();
+  if (ret)
+    {
+      wlerr("ERROR: Failed to initialize Wi-Fi softAP\n");
+      return ret;
+    }
 #endif
 
   // netlib_ifup("wlan1");

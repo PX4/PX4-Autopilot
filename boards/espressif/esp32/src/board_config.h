@@ -72,8 +72,13 @@
 #define ADC_RC_RSSI_CHANNEL          0
 
 /* High-resolution timer */
+/*
+ * For wifi to work, it needs to use its own timer.
+ * Make sure you are not using the timer for hrt
+ * that is being using for the wifi
+*/
 #define HRT_TIMER 0
-#define HRT_TIMER_GPOUP 1
+#define HRT_TIMER_GPOUP 0
 #define HRT_TIMER_CHANNEL 0
 #define HRT_PPM_CHANNEL 1	// Number really doesn't matter for this board
 

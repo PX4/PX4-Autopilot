@@ -278,21 +278,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	esp32_rt_timer_init();
 
-	px4_platform_configure();
+	led_on(GPIO_LED_BLUE);
+	up_mdelay(100);
+	led_off(GPIO_LED_BLUE);
+	up_mdelay(100);
+	led_on(GPIO_LED_BLUE);
+	up_mdelay(100);
+	led_off(GPIO_LED_BLUE);
+
+
+
 	/* Configure the HW based on the manifest */
+	px4_platform_configure();
+
+	up_mdelay(1000);
 
 	board_wlan_init();
-	// psram_enable(0,1);
-
-	led_on(GPIO_LED_BLUE);
-	up_mdelay(100);
-	led_off(GPIO_LED_BLUE);
-	up_mdelay(100);
-	led_on(GPIO_LED_BLUE);
-	up_mdelay(100);
-	led_off(GPIO_LED_BLUE);
-
-
 
 	return OK;
 }
