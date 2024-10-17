@@ -115,7 +115,7 @@ private:
 			vehicle_status_s vehicle_status{};
 
 			if (_vehicle_status_sub.copy(&vehicle_status) && hrt_elapsed_time(&vehicle_status.timestamp) < 10_s) {
-				if (vehicle_status.failsafe && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+				if ((vehicle_status.failsafe && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) || vehicle_status.emergency_declared) {
 					msg.status = MAV_ODID_STATUS_EMERGENCY;
 					updated = true;
 				}
