@@ -333,7 +333,7 @@ void MspDPOsd::Run()
 		// Current draw
 		if(_parameters.current_draw_col != -1 && _parameters.current_draw_row != -1){
 			char current_draw[8];
-			snprintf(current_draw, sizeof(current_draw), "%.3f%c", static_cast<double>(battery_status.current_filtered_a), SYM_AMP);
+			snprintf(current_draw, sizeof(current_draw), "%.1f%c", static_cast<double>(battery_status.current_filtered_a), SYM_AMP);
 			uint8_t current_draw_output[sizeof(msp_dp_cmd_t) + sizeof(current_draw)+1]{0};
 			msp_dp_osd::construct_OSD_write(_parameters.current_draw_col, _parameters.current_draw_row, false, current_draw, current_draw_output, sizeof(current_draw_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &current_draw_output, MSP_DIRECTION_REPLY);

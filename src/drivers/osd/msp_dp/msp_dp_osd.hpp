@@ -157,7 +157,7 @@ private:
 	// local heartbeat
 	bool _heartbeat{false};
 
-	static const int MAX_REMOTE_OSD_FIELDS{2};
+	static const int MAX_REMOTE_OSD_FIELDS{4};
 	static const int MAX_REMOTE_OSD_STRING_LEN{50};
 	typedef struct {
 		int row;
