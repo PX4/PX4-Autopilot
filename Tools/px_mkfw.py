@@ -51,17 +51,19 @@ import subprocess
 #
 def mkdesc():
 	proto = {}
-	proto['magic']		= "PX4FWv1"
-	proto['board_id']	= 0
-	proto['board_revision']	= 0
-	proto['version']	= ""
-	proto['summary']	= ""
-	proto['description']	= ""
-	proto['git_identity']	= "" # git tag
-	proto['git_hash']	= "" # git commit hash
-	proto['build_time']	= 0
-	proto['image']		= bytes()
-	proto['image_size']	= 0
+	proto['magic']		     = "PX4FWv1"
+	proto['board_id']	     = 0
+	proto['board_revision']	     = 0
+	proto['version']	     = ""
+	proto['summary']	     = ""
+	proto['description']	     = ""
+	proto['git_identity']	     = "" # git tag
+	proto['git_hash']	     = "" # git commit hash
+	proto['build_time']	     = 0
+	proto['image']		     = bytes()
+	proto['image_size']	     = 0
+	proto['debug_symbols']       = bytes()
+	proto['debug_symbols_size']  = bytes()
 	return proto
 
 # Parse commandline
@@ -76,6 +78,7 @@ parser.add_argument("--git_identity",	action="store", help="the working director
 parser.add_argument("--parameter_xml",	action="store", help="the parameters.xml file")
 parser.add_argument("--airframe_xml",	action="store", help="the airframes.xml file")
 parser.add_argument("--image",		action="store", help="the firmware image")
+parser.add_argument("--debug_symbols",	action="store", help="the firmware debug symbols")
 args = parser.parse_args()
 
 # Fetch the firmware descriptor prototype if specified
@@ -123,5 +126,10 @@ if args.image != None:
 	bytes = f.read()
 	desc['image_size'] = len(bytes)
 	desc['image'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
+if args.debug_symbols != None:
+	f = open(args.debug_symbols, "rb")
+	bytes = f.read()
+	desc['debug_symbols_size'] = len(bytes)
+	desc['debug_symbols'] = base64.b64encode(zlib.compress(bytes,9)).decode('utf-8')
 
 print(json.dumps(desc, indent=4))
