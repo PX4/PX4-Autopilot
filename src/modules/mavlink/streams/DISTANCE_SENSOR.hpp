@@ -68,7 +68,7 @@ private:
 			if (_distance_sensor_subs[i].update(&dist_sensor)) {
 				mavlink_distance_sensor_t msg{};
 
-				msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
+				msg.time_boot_ms = dist_sensor.timestamp_sample / 1000; /* us to ms */
 
 				switch (dist_sensor.type) {
 				case MAV_DISTANCE_SENSOR_ULTRASOUND:
