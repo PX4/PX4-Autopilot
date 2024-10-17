@@ -68,7 +68,6 @@ public:
 	void addDistance(float hor_dist, const matrix::Vector2f &hor_direction, float vert_dist);
 	void addVertDistance(float alt);
 	void addWait(float time_s);
-	void addDescendMCLand(float alt);
 
 private:
 	/**
@@ -107,13 +106,6 @@ private:
 	float getCruiseSpeed();
 
 	/**
-	 * @brief Get the Hover Land Speed
-	 *
-	 * @return Hover land speed [m/s]
-	 */
-	float getHoverLandSpeed();
-
-	/**
 	 * @brief Get the horizontal wind velocity
 	 *
 	 * @return horizontal wind velocity.
@@ -130,7 +122,6 @@ private:
 
 	param_t		_param_mpc_z_v_auto_up{PARAM_INVALID}; 	/**< MC climb velocity parameter */
 	param_t		_param_mpc_z_v_auto_dn{PARAM_INVALID};  /**< MC descend velocity parameter */
-	param_t		_param_mpc_land_speed{PARAM_INVALID};   /**< MC land descend speed parameter */
 	param_t		_param_fw_climb_rate{PARAM_INVALID};    /**< FW climb speed parameter */
 	param_t		_param_fw_sink_rate{PARAM_INVALID};     /**< FW descend speed parameter */
 
