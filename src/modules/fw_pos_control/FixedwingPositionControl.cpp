@@ -768,9 +768,6 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 			// we handle loss of position control during backtransition as a special case
 			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
 
-		} else if (_param_nav_gpsf_lt.get() > 0.f && _vehicle_status.in_transition_mode) {
-			_control_mode_current = FW_POSCTRL_MODE_AUTO_ALTITUDE;
-
 		} else if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
 			   && !_vehicle_status.in_transition_mode) {
 			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
