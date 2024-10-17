@@ -43,6 +43,8 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
+using namespace time_literals;
+
 namespace gimbal
 {
 
@@ -79,6 +81,27 @@ float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 	float z = altitude - global_position.alt;
 
 	return atan2f(z, target_distance);
+}
+
+bool OutputBase::check_and_handle_setpoint_timeout(ControlData &control_data, const hrt_abstime &now)
+{
+	bool ret = false;
+	const bool timeout = (control_data.timestamp_last_update + 2_s < now);
+	const bool type_angle = (control_data.type == ControlData::Type::Angle);
+
+	if (timeout && type_angle) {
+		// Avoid gimbal keeps on spinning if the last setpoint was angular_velocity but it times out
+		for (int i = 0; i < 3; ++i) {
+			float &vel = control_data.type_data.angle.angular_velocity[i];
+
+			if (PX4_ISFINITE(vel) && (fabsf(vel) > FLT_EPSILON)) {
+				vel = 0.f;
+				ret = true;
+			}
+		}
+	}
+
+	return ret;
 }
 
 void OutputBase::_set_angle_setpoints(const ControlData &control_data)
