@@ -35,6 +35,7 @@
 set(vendorstr_underscore)
 set(productstr_underscore)
 string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
+string(REPLACE "," "_" vendorstr_underscore "${vendorstr_underscore}")
 string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
 
 set(serial_ports)

@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# Mavlink ethernet (CFG 1000)
+param set-default MAV_2_CONFIG 1000
+param set-default MAV_2_BROADCAST 1
+param set-default MAV_2_MODE 0
+param set-default MAV_2_RADIO_CTL 0
+param set-default MAV_2_RATE 100000
+param set-default MAV_2_REMOTE_PRT 14550
+param set-default MAV_2_UDP_PRT 14550
+
+param set-default SENS_EN_INA238 0
+param set-default SENS_EN_INA228 0
+param set-default SENS_EN_INA226 0
+
+param set-default BAT1_V_DIV 18.000000000
+param set-default BAT1_A_PER_V 38.462030303
+
+if [ -f "/fs/microsd/ipcfg-eth0" ]
+then
+else
+	netman update -i eth0
+fi
+
+rgbled_pwm start
+safety_button start
+
+if param greater -s UAVCAN_ENABLE 0
+then
+	ifup can0
+fi
