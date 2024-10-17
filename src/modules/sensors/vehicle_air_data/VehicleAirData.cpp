@@ -37,7 +37,7 @@
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
-
+#include <sensor_calibration/Utilities.hpp>
 
 namespace sensors
 {
@@ -172,6 +172,9 @@ void VehicleAirData::Run()
 				if (_calibration[uorb_index].device_id() != report.device_id) {
 					_calibration[uorb_index].set_device_id(report.device_id);
 					_priority[uorb_index] = _calibration[uorb_index].priority();
+					calibration::SetCalibrationParam(_calibration[uorb_index].SensorString(), "ID", uorb_index, report.device_id);
+					calibration::SetCalibrationParam(_calibration[uorb_index].SensorString(), "PRIO", uorb_index,
+									 (int32_t)_priority[uorb_index]);
 				}
 
 				if (_calibration[uorb_index].enabled()) {
