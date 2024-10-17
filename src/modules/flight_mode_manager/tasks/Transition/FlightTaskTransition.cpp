@@ -100,7 +100,7 @@ bool FlightTaskTransition::update()
 		pitch_setpoint = computeBackTranstionPitchSetpoint();
 	}
 
-	_acceleration_setpoint.xy() = tmp * tanf(math::radians(pitch_setpoint)) * CONSTANTS_ONE_G;
+	_acceleration_setpoint.xy() = tmp * tanf(pitch_setpoint) * CONSTANTS_ONE_G;
 
 	// slowly move vertical velocity setpoint to zero
 	_vel_z_filter.setParameters(math::constrain(_deltatime, 0.01f, 0.1f), _vel_z_filter_time_const);
