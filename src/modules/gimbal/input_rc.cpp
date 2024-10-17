@@ -99,6 +99,7 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 	manual_control_setpoint_s manual_control_setpoint{};
 	orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
+	control_data.timestamp_last_update = manual_control_setpoint.timestamp;
 
 	float new_aux_values[3];
 
