@@ -50,14 +50,15 @@ OutputRC::OutputRC(const Parameters &parameters)
 
 void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
 {
+	hrt_abstime now = hrt_absolute_time();
+
 	if (new_setpoints) {
 		_set_angle_setpoints(control_data);
 	}
 
 	_handle_position_update(control_data);
 
-	hrt_abstime t = hrt_absolute_time();
-	_calculate_angle_output(t);
+	_calculate_angle_output(now);
 
 	_stream_device_attitude_status();
 
@@ -81,7 +82,7 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 	gimbal_controls.timestamp = hrt_absolute_time();
 	_gimbal_controls_pub.publish(gimbal_controls);
 
-	_last_update = t;
+	_last_update = now;
 }
 
 void OutputRC::print_status() const
