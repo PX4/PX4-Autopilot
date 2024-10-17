@@ -53,6 +53,7 @@ public:
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool updateInitialize() override;
 	bool update() override;
+	void setMaxDistanceToGround(float max_distance) { _max_distance_to_ground = max_distance; }
 
 protected:
 	void _ekfResetHandlerHeading(float delta_psi) override; /**< adjust heading setpoint in case of EKF reset event */
@@ -90,7 +91,9 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_SPEED>)
 					_param_mpc_land_speed, /**< desired downwards speed when approaching the ground */
 					(ParamFloat<px4::params::MPC_TKO_SPEED>)
-					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
+					_param_mpc_tko_speed, /**< desired upwards speed when still close to the ground */
+					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor
 				       )
 private:
 	/**
