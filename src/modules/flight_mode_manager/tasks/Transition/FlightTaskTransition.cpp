@@ -203,6 +203,8 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 				// Note this is deceleration (i.e. negative acceleration), and therefore the minus sign is skipped
 				deceleration_sp = vel_body_forward * vel_body_forward / (2.f * dist_body_forward);
 
+				PX4_INFO("Computed deceleration_sp: %f", (double)(deceleration_sp));
+
 				// Check if the deceleration setpoint is finite and within limits
 				if (!PX4_ISFINITE(deceleration_sp)) {
 					deceleration_sp = default_deceleration_sp;
@@ -215,10 +217,13 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 		}
 	}
 
+	PX4_INFO("Applied deceleration_sp: %f", (double)(deceleration_sp));
+
 	// get accel error, positive means decelerating too slow, need to pitch up (must reverse accel_body_forward, as it is a positive number)
 	float deceleration_error = deceleration_sp - (-accel_body_forward);
 
 	float pitch_sp_new = _decel_error_bt_int;
+	PX4_INFO("Pitch setpoint: %f", (double)(math::degrees(pitch_sp_new)));
 
 	updateBackTransitioDecelerationErrorIntegrator(deceleration_error);
 
