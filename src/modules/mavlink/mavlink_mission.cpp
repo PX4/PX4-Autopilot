@@ -502,7 +502,13 @@ MavlinkMissionManager::send()
 
 			_current_seq = mission_result.seq_current;
 
-			PX4_DEBUG("WPM: got mission result, new current_seq: %ld", _current_seq);
+			if (_mavlink->sdlog_reached_wp_enabled()) {
+				PX4_INFO("WPM: got mission result, new current_seq: %" PRId32 ", seq_reached: %" PRId32, _current_seq,
+					 mission_result.seq_reached);
+
+			} else {
+				PX4_DEBUG("WPM: got mission result, new current_seq: %ld", _current_seq);
+			}
 
 			if (mission_result.seq_total > 0) {
 				if (mission_result.seq_current < mission_result.seq_total) {
