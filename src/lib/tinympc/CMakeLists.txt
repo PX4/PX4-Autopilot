@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,25 +31,30 @@
 #
 ############################################################################
 
-add_subdirectory(GotoControl)
-add_subdirectory(PositionControl)
-add_subdirectory(PositionMPC)
-add_subdirectory(Takeoff)
+px4_add_library(tinympc
+	admm.c
+	auxil.c
+	constraint_linear.c
+	cost_lqr.c
+	lqr.c
+	model.c
+	utils.c
+	slap/matrix.c
+	slap/errors.c
+	slap/matrix_checks.c
+	slap/printing.c
+	slap/copy_matrix.c
+	slap/unary_ops.c
+	slap/binary_ops.c
+	slap/vector_ops.c
+	slap/vector_products.c
+	slap/iterator.c
+	slap/strided_matrix.c
+	slap/matmul.c
+	slap/tri.c
+)
 
-px4_add_module(
-	MODULE modules__mc_pos_control
-	MAIN mc_pos_control
-	COMPILE_FLAGS
-	SRCS
-		MulticopterPositionControl.cpp
-		MulticopterPositionControl.hpp
-	DEPENDS
-		GotoControl
-		PositionControl
-		PositionMPC
-		tinympc
-		Takeoff
-		controllib
-		geo
-		SlewRate
-	)
+# TODO: Add test
+# if(PX4_TESTING)
+# 	add_subdirectory(tinympc_test)
+# endif()

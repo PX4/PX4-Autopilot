@@ -38,6 +38,7 @@
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/events.h>
 #include "PositionControl/ControlMath.hpp"
+#include <iostream>
 
 using namespace matrix;
 
@@ -390,6 +391,10 @@ void MulticopterPositionControl::Run()
 
 	perf_begin(_cycle_perf);
 	vehicle_local_position_s vehicle_local_position;
+	#ifdef MPC_CTL
+	vehicle_attitude_s v_att;
+	vehicle_angular_velocity_s angular_velocity;
+	#endif
 
 	if (_local_pos_sub.update(&vehicle_local_position)) {
 		const float dt =
@@ -433,6 +438,10 @@ void MulticopterPositionControl::Run()
 		}
 
 		_trajectory_setpoint_sub.update(&_setpoint);
+		#ifdef MPC_CTL
+		_vehicle_attitude_sub.update(&v_att);
+		_vehicle_angular_velocity_sub.update(&angular_velocity);
+		#endif
 
 		adjustSetpointForEKFResets(vehicle_local_position, _setpoint);
 
@@ -541,6 +550,7 @@ void MulticopterPositionControl::Run()
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 				math::max(speed_down, 0.f));
 
+			// print setpoint:
 			_control.setInputSetpoint(_setpoint);
 
 			// update states
@@ -564,6 +574,9 @@ void MulticopterPositionControl::Run()
 			}
 
 			_control.setState(states);
+			#ifdef MPC_CTL
+			_control.setAttitudeStates(v_att, angular_velocity);
+			#endif
 
 			// Run position control
 			if (!_control.update(dt)) {
