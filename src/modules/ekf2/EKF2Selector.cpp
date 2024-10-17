@@ -364,7 +364,7 @@ bool EKF2Selector::UpdateErrorScores()
 void EKF2Selector::PublishVehicleAttitude()
 {
 	// selected estimator_attitude -> vehicle_attitude
-	vehicle_attitude_s attitude;
+	vehicle_attitude_s attitude{};
 
 	if (_instance[_selected_instance].estimator_attitude_sub.update(&attitude)) {
 		bool instance_change = false;
@@ -418,7 +418,7 @@ void EKF2Selector::PublishVehicleAttitude()
 void EKF2Selector::PublishVehicleLocalPosition()
 {
 	// selected estimator_local_position -> vehicle_local_position
-	vehicle_local_position_s local_position;
+	vehicle_local_position_s local_position{};
 
 	if (_instance[_selected_instance].estimator_local_position_sub.update(&local_position)) {
 		bool instance_change = false;
@@ -544,7 +544,7 @@ void EKF2Selector::PublishVehicleLocalPosition()
 void EKF2Selector::PublishVehicleOdometry()
 {
 	// selected estimator_odometry -> vehicle_odometry
-	vehicle_odometry_s odometry;
+	vehicle_odometry_s odometry{};
 
 	if (_instance[_selected_instance].estimator_odometry_sub.update(&odometry)) {
 
@@ -591,7 +591,7 @@ void EKF2Selector::PublishVehicleOdometry()
 void EKF2Selector::PublishVehicleGlobalPosition()
 {
 	// selected estimator_global_position -> vehicle_global_position
-	vehicle_global_position_s global_position;
+	vehicle_global_position_s global_position{};
 
 	if (_instance[_selected_instance].estimator_global_position_sub.update(&global_position)) {
 		bool instance_change = false;
@@ -672,7 +672,7 @@ void EKF2Selector::PublishVehicleGlobalPosition()
 void EKF2Selector::PublishWindEstimate()
 {
 	// selected estimator_wind -> wind
-	wind_s wind;
+	wind_s wind{};
 
 	if (_instance[_selected_instance].estimator_wind_sub.update(&wind)) {
 		bool publish = true;
