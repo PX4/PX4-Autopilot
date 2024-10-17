@@ -52,7 +52,7 @@ class Navigator;
 class RtlMissionFast : public RtlBase
 {
 public:
-	RtlMissionFast(Navigator *navigator);
+	RtlMissionFast(Navigator *navigator, mission_s mission);
 	~RtlMissionFast() = default;
 
 	void on_activation() override;
