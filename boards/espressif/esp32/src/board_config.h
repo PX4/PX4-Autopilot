@@ -77,10 +77,7 @@
  * Make sure you are not using the timer for hrt
  * that is being using for the wifi
 */
-#define HRT_TIMER 0
-#define HRT_TIMER_GPOUP 0
-#define HRT_TIMER_CHANNEL 0
-#define HRT_PPM_CHANNEL 1	// Number really doesn't matter for this board
+#define HRT_TIMER 2
 
 /* This board provides a DMA pool and APIs */			// Needs to be figured out
 #define BOARD_DMA_ALLOC_POOL_SIZE 2048

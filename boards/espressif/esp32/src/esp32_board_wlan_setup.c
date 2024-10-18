@@ -35,9 +35,6 @@
 
 #include "esp32_spiflash.h"
 #include "esp32_wlan.h"
-// #include "/home/henry/autonosky/px4-autopilot_private/platforms/nuttx/NuttX/apps/include/netutils/netlib.h"
-// #include "netutils/dhcpd.h"
-// #include "/home/henry/autonosky/px4-autopilot_private/platforms/nuttx/NuttX/apps/include/netutils/dhcpd.h"
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/

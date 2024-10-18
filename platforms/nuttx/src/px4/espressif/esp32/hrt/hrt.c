@@ -59,15 +59,14 @@
 #include <errno.h>
 #include <string.h>
 
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-
-
 #include "hardware/esp32_soc.h"
 #include "hardware/esp32_tim.h"
 #include "hardware/esp32_dport.h"
 #include "esp32_irq.h"
 #include <xtensa.h>
+
+#include <board_config.h>
+#include <drivers/drv_hrt.h>
 
 #ifdef CONFIG_DEBUG_HRT
 #  define hrtinfo _info
@@ -75,59 +74,59 @@
 #  define hrtinfo(x...)
 #endif
 
-#ifdef HRT_TIMER
+#ifdef	HRT_TIMER
 
-#if HRT_TIMER_GROUP == 0
-# define TIM_BASE	DR_REG_TIMERGROUP0_BASE
-#elif HRT_TIMER_GROUP == 1
-# define TIM_BASE	DR_REG_TIMERGROUP1_BASE
+#if HRT_TIMER == 0
+# define TIM_BASE	0x3ff5f000
+#elif HRT_TIMER == 1
+# define TIM_BASE	0x3ff5f000 + 0x0024
+#elif HRT_TIMER == 2
+# define TIM_BASE	0x3ff5f000 + 0x1000
+#elif HRT_TIMER == 3
+# define TIM_BASE	0x3ff5f000 + 0x0024 + 0x1000
 #else
-# error HRT_TIMER_GROUP must be a value between 0 and 1
+# error HRT_TIMER must be a value between 0 and 3
 #endif
 
 /* HRT configuration */
-#if   HRT_TIMER == 0
+#if HRT_TIMER == 0
 # define HRT_TIMER_PERIPH		ESP32_PERIPH_TG_T0_LEVEL
 # define HRT_TIMER_PRIO			1
 # define HRT_TIMER_VECTOR	        ESP32_IRQ_TG_T0_LEVEL
 # define HRT_TIMER_CLOCK	        APB_CLK_FREQ
-# define HRT_TIMER_BASE                 TIM_BASE
-# define HRT_TIMER_CONFIG_REG           TIM_BASE + TIM_CONFIG_OFFSET
-# define HRT_TIMER_LO_REG               TIM_BASE + TIM_LO_OFFSET
-# define HRT_TIMER_HI_REG               TIM_BASE + TIM_HI_OFFSET
-# define HRT_TIMER_UPDATE_REG           TIM_BASE + TIM_UPDATE_OFFSET
-# define HRT_TIMER_ALARM_LO_REG         TIM_BASE + TIMG_ALARM_LO_OFFSET
-# define HRT_TIMER_ALARM_HI_REG         TIM_BASE + TIMG_ALARM_HI_OFFSET
-# define HRT_TIMER_LOAD_LO_REG          TIM_BASE + TIM_LOAD_LO_OFFSET
-# define HRT_TIMER_LOAD_HI_REG          TIM_BASE + TIM_LOAD_HI_OFFSET
-# define HRT_TIMER_LOAD_REG		TIM_BASE + TIM_LOAD_OFFSET
-# define HRT_TIMER_INT_ENA_REG          TIM_BASE + TIM0_INT_ENA_OFFSET
-# define HRT_TIMER_INT_ST_REG           TIM_BASE + TIM0_INT_ST_OFFSET
-# define HRT_TIMER_INT_CLR_REG          TIM_BASE + 0xA4
-# if CONFIG_STM32_TIM1
-#  error must not set CONFIG_STM32_TIM1=y and HRT_TIMER=1
+# define HRT_TIMER_BASE                 0x3ff5f000
+# if CONFIG_ESP32_WIFI=y
+#  error must not set CONFIG_ESP32_WIFI=y and HRT_TIMER=1. WIFI makes use of TIMER=0
 # endif
 #elif HRT_TIMER == 1
 # define HRT_TIMER_PERIPH	ESP32_PERIPH_TG_T1_LEVEL
-# define HRT_TIMER_PRIO			1
+# define HRT_TIMER_PRIO		1
 # define HRT_TIMER_VECTOR	ESP32_IRQ_TG_T1_LEVEL
 # define HRT_TIMER_CLOCK	APB_CLK_FREQ
-# define HRT_TIMER_BASE		TIM_BASE
-# define HRT_TIMER_CONFIG_REG	TIM_BASE + TIM_CONFIG_OFFSET
-# define HRT_TIMER_LO_REG	TIM_BASE + TIM_LO_OFFSET
-# define HRT_TIMER_HI_REG	TIM_BASE + TIM_HI_OFFSET
-# define HRT_TIMER_UPDATE_REG	TIM_BASE + TIM_UPDATE_OFFSET
-# define HRT_TIMER_ALARM_LO_REG	TIM_BASE + TIMG_ALARM_LO_OFFSET
-# define HRT_TIMER_ALARM_HI_REG	TIM_BASE + TIMG_ALARM_HI_OFFSET
-# define HRT_TIMER_LOAD_LO_REG	TIM_BASE + TIM_LOAD_LO_OFFSET
-# define HRT_TIMER_LOAD_HI_REG	TIM_BASE + TIM_LOAD_HI_OFFSET
-# define HRT_TIMER_LOAD_REG	TIM_BASE + TIM_LOAD_OFFSET
-# define HRT_TIMER_INT_ENA	TIM_BASE + TIM1_INT_ENA_OFFSET
-# if CONFIG_STM32_TIM2
-#  error must not set CONFIG_STM32_TIM2=y and HRT_TIMER=2
+# define HRT_TIMER_BASE		0x3ff5f000 + 0x0024
+# if CONFIG_ESP32_TIMER1
+#  error must not set CONFIG_ESP32_TIMER1=y and HRT_TIMER=2
+# endif
+#elif HRT_TIMER == 2
+# define HRT_TIMER_PERIPH	ESP32_PERIPH_TG1_T0_LEVEL
+# define HRT_TIMER_PRIO		1
+# define HRT_TIMER_VECTOR	ESP32_IRQ_TG1_T0_LEVEL
+# define HRT_TIMER_CLOCK	APB_CLK_FREQ
+# define HRT_TIMER_BASE		0x3ff5f000 + 0x1000
+# if CONFIG_ESP32_TIMER2
+#  error must not set CONFIG_ESP32_TIMER2=y and HRT_TIMER=2
+# endif
+#elif HRT_TIMER == 3
+# define HRT_TIMER_PERIPH	ESP32_PERIPH_TG1_T1_LEVEL
+# define HRT_TIMER_PRIO		1
+# define HRT_TIMER_VECTOR	ESP32_IRQ_TG1_T1_LEVEL
+# define HRT_TIMER_CLOCK	APB_CLK_FREQ
+# define HRT_TIMER_BASE		0x3ff5f000 + 0x0024 + 0x1000
+# if CONFIG_ESP32_TIMER3
+#  error must not set CONFIG_ESP32_TIMER3=y and HRT_TIMER=2
 # endif
 #else
-# error HRT_TIMER must be a value between 0 and 1
+# error HRT_TIMER must be a value between 0 and 3
 #endif
 
 #define REG(_reg)	(*(volatile uint32_t *)(HRT_TIMER_BASE + _reg))
