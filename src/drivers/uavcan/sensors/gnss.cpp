@@ -47,6 +47,7 @@
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
 #include <lib/parameters/param.h>
+#include <lib/drivers/device/Device.hpp>
 
 using namespace time_literals;
 
@@ -65,8 +66,6 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 	for (uint8_t i = 0; i < _max_channels; i++) {
 		_channel_using_fix2[i] = false;
 	}
-
-	set_device_type(DRV_GPS_DEVTYPE_UAVCAN);
 }
 
 UavcanGnssBridge::~UavcanGnssBridge()
@@ -138,7 +137,7 @@ UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 {
 	// Check to see if this node is also publishing a Fix2 message.
 	// If so, ignore the old "Fix" message for this node.
-	const int8_t ch = get_channel_index_for_node(msg.getSrcNodeID().get());
+	const int8_t ch = get_channel_index_for_node(msg.getIfaceIndex(), msg.getSrcNodeID().get());
 
 	if (ch > -1 && _channel_using_fix2[ch]) {
 		return;
@@ -163,7 +162,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 {
 	using uavcan::equipment::gnss::Fix2;
 
-	const int8_t ch = get_channel_index_for_node(msg.getSrcNodeID().get());
+	const int8_t ch = get_channel_index_for_node(msg.getIfaceIndex(), msg.getSrcNodeID().get());
 
 	if (ch > -1 && !_channel_using_fix2[ch]) {
 		PX4_WARN("GNSS Fix2 msg detected for ch %d; disabling Fix msg for this node", ch);
@@ -340,7 +339,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 				    const uint8_t spoofing_state)
 {
 	sensor_gps_s report{};
-	report.device_id = get_device_id();
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = msg.getIfaceIndex();
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_UAVCAN;
+	device_id.devid_s.address =  msg.getSrcNodeID().get();
+
+	report.device_id = device_id.devid;
 
 	/*
 	 * FIXME HACK
@@ -472,7 +477,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.jamming_state = jamming_state;
 	report.spoofing_state = spoofing_state;
 
-	publish(msg.getSrcNodeID().get(), &report);
+	publish(msg.getIfaceIndex(), msg.getSrcNodeID().get(), &report);
 }
 
 void UavcanGnssBridge::update()

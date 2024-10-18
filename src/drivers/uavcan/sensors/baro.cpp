@@ -91,7 +91,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 {
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
+	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getIfaceIndex(), msg.getSrcNodeID().get());
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return
@@ -105,12 +105,11 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 		return;
 	}
 
-	DeviceId device_id{};
-	device_id.devid_s.bus = 0;
-	device_id.devid_s.bus_type = DeviceBusType_UAVCAN;
-
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType_UAVCAN;
+	device_id.devid_s.bus = msg.getIfaceIndex();
 	device_id.devid_s.devtype = DRV_BARO_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
+	device_id.devid_s.address = msg.getSrcNodeID().get();
 
 	// publish
 	sensor_baro_s sensor_baro{};
