@@ -118,16 +118,8 @@ public:
 	bool valid() const { return _node != nullptr; }
 	bool advertised()
 	{
-		if (valid()) {
-			return Manager::is_advertised(_node);
-		}
-
-		// try to initialize
 		if (subscribe()) {
-			// check again if valid
-			if (valid()) {
-				return Manager::is_advertised(_node);
-			}
+			return Manager::is_advertised(_node);
 		}
 
 		return false;
@@ -138,11 +130,11 @@ public:
 	 */
 	bool updated()
 	{
-		if (!valid()) {
-			subscribe();
+		if (subscribe()) {
+			return Manager::updates_available(_node, _last_generation);
 		}
 
-		return valid() ? Manager::updates_available(_node, _last_generation) : false;
+		return false;
 	}
 
 	/**
@@ -151,11 +143,11 @@ public:
 	 */
 	bool update(void *dst)
 	{
-		if (!valid()) {
-			subscribe();
+		if (subscribe()) {
+			return Manager::orb_data_copy(_node, dst, _last_generation, true);
 		}
 
-		return valid() ? Manager::orb_data_copy(_node, dst, _last_generation, true) : false;
+		return false;
 	}
 
 	/**
@@ -164,11 +156,11 @@ public:
 	 */
 	bool copy(void *dst)
 	{
-		if (!valid()) {
-			subscribe();
+		if (subscribe()) {
+			return Manager::orb_data_copy(_node, dst, _last_generation, false);
 		}
 
-		return valid() ? Manager::orb_data_copy(_node, dst, _last_generation, false) : false;
+		return false;
 	}
 
 	/**
