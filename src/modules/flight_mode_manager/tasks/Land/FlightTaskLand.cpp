@@ -59,19 +59,14 @@ FlightTaskLand::activate(const trajectory_setpoint_s &last_setpoint)
 	}
 
 	_yaw_setpoint  = _land_heading = _yaw; // set the yaw setpoint to the current yaw
-	_position_smoothing.reset(pos_prev, vel_prev, accel_prev);
-
 
 	_acceleration_setpoint = accel_prev;
 	_velocity_setpoint = vel_prev;
 	_position_setpoint = pos_prev;
 
+	_stop.initialize(_acceleration_setpoint, _velocity_setpoint, _position, _deltatime);
 
-
-	// Initialize the Landing locations and parameters
-	// calculate where to land based on the current velocity and acceleration constraints
-	_CalculateBrakingLocation();
-	_initial_land_position = _land_position;
+	_initial_land_position = _land_position = _stop.getStopPosition();
 
 	return ret;
 }
@@ -80,8 +75,6 @@ void
 FlightTaskLand::reActivate()
 {
 	FlightTask::reActivate();
-	// On ground, reset acceleration and velocity to zero
-	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.7f}, _position);
 }
 
 bool
@@ -89,12 +82,7 @@ FlightTaskLand::update()
 {
 	bool ret = FlightTask::update();
 
-	if (!_is_initialized) {
-		_position_smoothing.reset(_acceleration_setpoint, _velocity, _position);
-		_is_initialized = true;
-	}
-
-	if (_velocity.norm() < 0.1f * _param_mpc_xy_vel_max.get() && !_landing) {
+	if (!_stop.isActive() && !_landing) {
 		_landing = true;
 	}
 
@@ -102,7 +90,7 @@ FlightTaskLand::update()
 		_PerformLanding();
 
 	} else {
-		_SmoothBrakingPath();
+		_PerformBraking();
 	}
 
 	return ret;
@@ -180,107 +168,19 @@ FlightTaskLand::_PerformLanding()
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 
 }
+
 void
-FlightTaskLand::_SmoothBrakingPath()
+FlightTaskLand::_PerformBraking()
 {
-	PositionSmoothing::PositionSmoothingSetpoints out_setpoints;
+	_stop.getConstraints(_constraints);
+	_stop.update(_acceleration_setpoint, _velocity_setpoint, _position, _deltatime);
 
-	_HandleHighVelocities();
-
-	_position_smoothing.generateSetpoints(
-		_position,
-		_land_position,
-		Vector3f{0.f, 0.f, 0.f},
-		_deltatime,
-		false,
-		out_setpoints
-	);
-
-	_jerk_setpoint = out_setpoints.jerk;
-	_acceleration_setpoint = out_setpoints.acceleration;
-	_velocity_setpoint = out_setpoints.velocity;
-	_position_setpoint = out_setpoints.position;
+	_initial_land_position = _land_position = _stop.getStopPosition();
+	_jerk_setpoint = _stop.getJerkSetpoint();
+	_acceleration_setpoint = _stop.getAccelerationSetpoint();
+	_velocity_setpoint = _stop.getVelocitySetpoint();
+	_position_setpoint = _stop.getPositionSetpoint();
 	_yaw_setpoint = _land_heading;
-}
-
-void
-FlightTaskLand::_CalculateBrakingLocation()
-{
-	// Calculate the 3D point where we until where we can slow down smoothly and then land based on the current velocities and system constraints on jerk and acceleration.
-	_UpdateTrajConstraints();
-	float delay_scale = 0.4f; // delay scale factor
-	const float velocity_hor_abs = sqrtf(_velocity(0) * _velocity(0) + _velocity(1) * _velocity(1));
-	const float braking_dist_xy = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
-				      _param_mpc_jerk_auto.get(), _param_mpc_acc_hor.get(), delay_scale * _param_mpc_jerk_auto.get());
-	float braking_dist_z = 0.0f;
-
-	if (_velocity(2) < -0.1f) {
-		braking_dist_z = math::trajectory::computeBrakingDistanceFromVelocity(_velocity(2),
-				 _param_mpc_jerk_max.get(), _param_mpc_acc_down_max.get(), 0.f);
-
-	} else if (_velocity(2) > 0.1f) {
-		braking_dist_z = math::trajectory::computeBrakingDistanceFromVelocity(_velocity(2),
-				 _param_mpc_jerk_max.get(), _param_mpc_acc_up_max.get(), 0.f);
-	}
-
-	const Vector3f braking_dir = _velocity.unit_or_zero();
-	const Vector3f braking_dist = {braking_dist_xy, braking_dist_xy, braking_dist_z};
-	_land_position = _position + braking_dir.emult(braking_dist);
-}
-
-
-void
-FlightTaskLand::_HandleHighVelocities()
-{
-	// This logic here is to fix the problem that the trajectory generator will generate a smoot trajectory from the current velocity to zero velocity,
-	// but if the velocity is too high, the Position Controller will be able to comand higher accelerations than set by the parameter which means the vehicle will break faster than expected predicted by the trajectory generator.
-	// But if we then do a reset the deceleration will be smooth again.
-	const bool _exceeded_vel_z = fabsf(_velocity(2)) > math::max(_param_mpc_z_v_auto_dn.get(),
-				     _param_mpc_z_vel_max_up.get());
-	const bool _exceeded_vel_xy = _velocity.xy().norm() > _param_mpc_xy_vel_max.get();
-
-	if ((_exceeded_vel_xy || _exceeded_vel_z) && !_exceeded_max_vel) {
-		_exceeded_max_vel = true;
-
-	} else if ((!_exceeded_vel_xy  && !_exceeded_vel_z)  && _exceeded_max_vel) {
-		// This Reset will be called when the velocity is again in the normal range and will be called only once.
-		_exceeded_max_vel = false;
-		_position_smoothing.reset(_acceleration_setpoint, _velocity, _position);
-		_CalculateBrakingLocation();
-		_initial_land_position = _land_position;
-	}
-}
-
-void
-FlightTaskLand::_UpdateTrajConstraints()
-{
-	// update params of the position smoothing
-	_position_smoothing.setCruiseSpeed(_param_mpc_xy_vel_max.get());
-	_position_smoothing.setHorizontalTrajectoryGain(_param_mpc_xy_traj_p.get());
-	_position_smoothing.setMaxAllowedHorizontalError(_param_mpc_xy_err_max.get());
-	_position_smoothing.setTargetAcceptanceRadius(_param_nav_mc_alt_rad.get());
-	_position_smoothing.setVerticalAcceptanceRadius(_param_nav_mc_alt_rad.get());
-
-	// Update the constraints of the trajectories
-	_position_smoothing.setMaxAccelerationXY(_param_mpc_acc_hor.get());
-	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
-	_position_smoothing.setMaxJerkXY(_param_mpc_jerk_auto.get());
-	_position_smoothing.setMaxJerkZ(_param_mpc_jerk_max.get());
-
-	// set the constraints for the vertical direction
-	// if moving up, acceleration constraint is always in deceleration direction, eg opposite to the velocity
-	if (_velocity(2) < 0.0f && !_landing) {
-		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
-		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_up.get());
-
-	} else if (!_landing) {
-		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_up_max.get());
-		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
-
-	} else {
-		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
-		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
-	}
 }
 
 void

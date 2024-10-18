@@ -816,7 +816,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 	// correction required by the altitude/vertical position controller
 	_constraints.speed_down = 1.2f * _param_mpc_z_v_auto_dn.get();
 	_constraints.speed_up = 1.2f * _param_mpc_xy_vel_max.get();
-	_constraints.speed_xy = 1.2f * _param_mpc_xy_vel_max.get();;
+	_constraints.speed_xy = 1.2f * _param_mpc_xy_vel_max.get();
 
 	if (_is_emergency_braking_active) {
 		// When initializing with large velocity, allow 1g of

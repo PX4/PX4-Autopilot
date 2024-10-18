@@ -54,10 +54,10 @@ Land::on_activation()
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
+
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
-
 	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 

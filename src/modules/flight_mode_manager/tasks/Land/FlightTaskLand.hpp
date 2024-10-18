@@ -49,6 +49,7 @@
 #include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
 #include "StickYaw.hpp"
+#include "Stop.hpp"
 
 using matrix::Vector3f;
 using matrix::Vector2f;
@@ -66,49 +67,32 @@ public:
 protected:
 	void updateParams() override;
 
-	PositionSmoothing _position_smoothing;
 	Sticks _sticks{this};
 	StickAccelerationXY _stick_acceleration_xy{this};
 	StickYaw _stick_yaw{this};
+	Stop _stop{this};
 
 	uORB::SubscriptionData<home_position_s>		_sub_home_position{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s>	_sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_triplet_setpoint{ORB_ID(position_setpoint_triplet)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) 	_param_mpc_acc_down_max,
-					(ParamFloat<px4::params::MPC_ACC_HOR>) 		_param_mpc_acc_hor,
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) 	_param_mpc_acc_up_max,
-					(ParamFloat<px4::params::MPC_JERK_AUTO>) 	_param_mpc_jerk_auto,
-					(ParamFloat<px4::params::MPC_JERK_MAX>) 	_param_mpc_jerk_max,
+
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) 	_param_mpc_land_alt1,
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) 	_param_mpc_land_alt2,
 					(ParamFloat<px4::params::MPC_LAND_ALT3>) 	_param_mpc_land_alt3,
 					(ParamFloat<px4::params::MPC_LAND_CRWL>) 	_param_mpc_land_crawl_speed,
 					(ParamFloat<px4::params::MPC_LAND_RADIUS>) 	_param_mpc_land_radius,
 					(ParamInt<px4::params::MPC_LAND_RC_HELP>) 	_param_mpc_land_rc_help,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) 	_param_mpc_land_speed,
-					(ParamFloat<px4::params::MPC_XY_ERR_MAX>) 	_param_mpc_xy_err_max,
-					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) 	_param_mpc_xy_traj_p,
-					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) 	_param_mpc_xy_vel_max,
-					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) 	_param_mpc_z_v_auto_dn,
-					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) 	_param_mpc_z_v_auto_up,
-					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) 	_param_nav_mc_alt_rad
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) 	_param_mpc_land_speed
 				       );
 private:
-	void _CalculateBrakingLocation();
-	void _HandleHighVelocities();
 	void _PerformLanding();
-	void _SmoothBrakingPath();
-	void _UpdateTrajConstraints();
+	void _PerformBraking();
 
 	bool _landing{false};
-	bool _is_initialized{false};
-	bool _exceeded_max_vel{false};
 
 	Vector3f _initial_land_position;
 	Vector3f _land_position;
 	float _land_heading{0.0f};
-
-
 };

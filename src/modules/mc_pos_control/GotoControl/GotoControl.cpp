@@ -128,6 +128,7 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 		.timestamp = goto_setpoint.timestamp,
 		.speed_up = NAN,
 		.speed_down = NAN,
+		.speed_xy = NAN,
 		.want_takeoff = false
 	};
 	_vehicle_constraints_pub.publish(vehicle_constraints);

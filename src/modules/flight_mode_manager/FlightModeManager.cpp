@@ -153,7 +153,7 @@ void FlightModeManager::start_flight_task()
 	bool matching_task_running = true;
 	bool task_failure = false;
 	const bool nav_state_descend = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
-	const bool nav_state_land = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_LAND);
+	const bool nav_state_land = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND);
 
 	// Follow me
 	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
@@ -400,7 +400,7 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 
 	if (!isAnyTaskActive()) {
 		// no task running
-		return FlightTaskError::NoE rror;
+		return FlightTaskError::NoError;
 	}
 
 	// activation failed
