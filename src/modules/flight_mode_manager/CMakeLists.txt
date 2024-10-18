@@ -42,6 +42,7 @@ list(APPEND flight_tasks_all
 	Auto
 	Descend
 	Failsafe
+	Land
 	ManualAcceleration
 	ManualAccelerationSlow
 	ManualAltitude
