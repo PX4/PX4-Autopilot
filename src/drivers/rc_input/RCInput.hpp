@@ -166,6 +166,7 @@ private:
 	uint32_t	_bytes_rx{0};
 
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RC_RSSI_ADC_CHAN>) _param_rc_rssi_adc_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
 		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
