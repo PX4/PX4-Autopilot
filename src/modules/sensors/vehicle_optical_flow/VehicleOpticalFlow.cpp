@@ -368,7 +368,7 @@ void VehicleOpticalFlow::UpdateDistanceSensor()
 					}
 
 					_distance_sensor_selected = i;
-					_last_range_sensor_update = distance_sensor.timestamp;
+					_last_range_sensor_update = distance_sensor.timestamp_sample;
 					break;
 				}
 			}
@@ -383,12 +383,12 @@ void VehicleOpticalFlow::UpdateDistanceSensor()
 			    && (distance_sensor.current_distance <= distance_sensor.max_distance)) {
 
 				rangeSample sample;
-				sample.time_us = distance_sensor.timestamp;
+				sample.time_us = distance_sensor.timestamp_sample;
 				sample.data = distance_sensor.current_distance;
 
 				_range_buffer.push(sample);
 
-				_last_range_sensor_update = distance_sensor.timestamp;
+				_last_range_sensor_update = distance_sensor.timestamp_sample;
 
 				return;
 			}
