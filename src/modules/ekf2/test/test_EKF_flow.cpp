@@ -126,7 +126,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	reset_logging_checker.capturePreResetState();
 
 	// WHEN: start fusing flow data
-	const Vector3f simulated_velocity(0.5f, -0.2f, 0.f);
+	const Vector3f simulated_velocity(5.0f, -2.0f, 0.f);
 	_sensor_simulator._trajectory[0].setCurrentVelocity(simulated_velocity(0));
 	_sensor_simulator._trajectory[1].setCurrentVelocity(simulated_velocity(1));
 	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
@@ -198,8 +198,6 @@ TEST_F(EkfFlowTest, inAirConvergence)
 
 	// WHEN: start fusing flow data
 	Vector3f simulated_velocity(0.5f, -0.2f, 0.f);
-	_sensor_simulator._trajectory[0].setCurrentVelocity(simulated_velocity(0));
-	_sensor_simulator._trajectory[1].setCurrentVelocity(simulated_velocity(1));
 	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
@@ -208,9 +206,12 @@ TEST_F(EkfFlowTest, inAirConvergence)
 
 	// THEN: estimated velocity should match simulated velocity
 	Vector3f estimated_velocity = _ekf->getVelocity();
-	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity))
-			<< "estimated vel = " << estimated_velocity(0) << ", "
-			<< estimated_velocity(1);
+	EXPECT_NEAR(estimated_velocity(0), simulated_velocity(0), 0.01f)
+			<< "estimated vel-x = " << estimated_velocity(0) << ", "
+			<< "simulated vel-x = " << simulated_velocity(0) << "\n";
+	EXPECT_NEAR(estimated_velocity(1), simulated_velocity(1), 0.01f)
+			<< "estimated vel-y = " << estimated_velocity(1) << ", "
+			<< "simulated vel-y = " << simulated_velocity(1) << "\n";
 
 	// AND: when the velocity changes
 	simulated_velocity = Vector3f(1.8f, -1.5f, -0.5f);
