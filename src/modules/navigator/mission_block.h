@@ -198,11 +198,6 @@ protected:
 	void set_land_item(struct mission_item_s *item);
 
 	/**
-	 * Set idle mission item
-	 */
-	void set_idle_item(struct mission_item_s *item);
-
-	/**
 	 * Set vtol transition item
 	 */
 	void set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode);
