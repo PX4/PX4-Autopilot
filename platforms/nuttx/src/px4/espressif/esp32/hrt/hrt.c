@@ -59,9 +59,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "hardware/esp32_soc.h"
-#include "hardware/esp32_tim.h"
-#include "hardware/esp32_dport.h"
 #include "esp32_irq.h"
 #include <xtensa.h>
 
@@ -76,54 +73,58 @@
 
 #ifdef	HRT_TIMER
 
-#if HRT_TIMER == 0
-# define TIM_BASE	0x3ff5f000
-#elif HRT_TIMER == 1
-# define TIM_BASE	0x3ff5f000 + 0x0024
-#elif HRT_TIMER == 2
-# define TIM_BASE	0x3ff5f000 + 0x1000
-#elif HRT_TIMER == 3
-# define TIM_BASE	0x3ff5f000 + 0x0024 + 0x1000
-#else
-# error HRT_TIMER must be a value between 0 and 3
-#endif
-
 /* HRT configuration */
 #if HRT_TIMER == 0
-# define HRT_TIMER_PERIPH		ESP32_PERIPH_TG_T0_LEVEL
+# define HRT_TIM_BASE			0x3ff5f000
+# define HRT_TIMER_PERIPH		14
 # define HRT_TIMER_PRIO			1
-# define HRT_TIMER_VECTOR	        ESP32_IRQ_TG_T0_LEVEL
-# define HRT_TIMER_CLOCK	        APB_CLK_FREQ
+# define HRT_TIMER_VECTOR	        5 + HRT_TIMER_PERIPH
+# define HRT_TIMER_CLOCK	        80 * 1000000
 # define HRT_TIMER_BASE                 0x3ff5f000
-# if CONFIG_ESP32_WIFI=y
-#  error must not set CONFIG_ESP32_WIFI=y and HRT_TIMER=1. WIFI makes use of TIMER=0
+# define HRT_TIMER_CLR_OFFSET		0x00a4
+# define HRT_TIMER_INT_ENA_OFFSET	0x0098
+# define HRT_TIMER_INT_CLR		1 << 0
+# if CONFIG_ESP32_WIFI
+#  error must not set CONFIG_ESP32_WIFI=y and HRT_TIMER=0. WIFI makes use of TIMER=0
 # endif
 #elif HRT_TIMER == 1
-# define HRT_TIMER_PERIPH	ESP32_PERIPH_TG_T1_LEVEL
-# define HRT_TIMER_PRIO		1
-# define HRT_TIMER_VECTOR	ESP32_IRQ_TG_T1_LEVEL
-# define HRT_TIMER_CLOCK	APB_CLK_FREQ
-# define HRT_TIMER_BASE		0x3ff5f000 + 0x0024
+# define HRT_TIM_BASE			0x3ff5f000 + 0x0024
+# define HRT_TIMER_PERIPH		15
+# define HRT_TIMER_PRIO			1
+# define HRT_TIMER_VECTOR		5 + HRT_TIMER_PERIPH
+# define HRT_TIMER_CLOCK		80 * 1000000
+# define HRT_TIMER_BASE			0x3ff5f000 + 0x0024
+# define HRT_TIMER_CLR_OFFSET		0x0080
+# define HRT_TIMER_INT_ENA_OFFSET	0x0074
+# define HRT_TIMER_INT_CLR		1 << 1
 # if CONFIG_ESP32_TIMER1
-#  error must not set CONFIG_ESP32_TIMER1=y and HRT_TIMER=2
+#  error must not set CONFIG_ESP32_TIMER1=y and HRT_TIMER=1
 # endif
 #elif HRT_TIMER == 2
-# define HRT_TIMER_PERIPH	ESP32_PERIPH_TG1_T0_LEVEL
-# define HRT_TIMER_PRIO		1
-# define HRT_TIMER_VECTOR	ESP32_IRQ_TG1_T0_LEVEL
-# define HRT_TIMER_CLOCK	APB_CLK_FREQ
-# define HRT_TIMER_BASE		0x3ff5f000 + 0x1000
+# define HRT_TIM_BASE			0x3ff5f000 + 0x1000
+# define HRT_TIMER_PERIPH		18
+# define HRT_TIMER_PRIO			1
+# define HRT_TIMER_VECTOR		5 + HRT_TIMER_PERIPH
+# define HRT_TIMER_CLOCK		80 * 1000000
+# define HRT_TIMER_BASE			0x3ff5f000 + 0x1000
+# define HRT_TIMER_CLR_OFFSET		0x00a4
+# define HRT_TIMER_INT_ENA_OFFSET	0x0098
+# define HRT_TIMER_INT_CLR		1 << 0
 # if CONFIG_ESP32_TIMER2
 #  error must not set CONFIG_ESP32_TIMER2=y and HRT_TIMER=2
 # endif
 #elif HRT_TIMER == 3
-# define HRT_TIMER_PERIPH	ESP32_PERIPH_TG1_T1_LEVEL
-# define HRT_TIMER_PRIO		1
-# define HRT_TIMER_VECTOR	ESP32_IRQ_TG1_T1_LEVEL
-# define HRT_TIMER_CLOCK	APB_CLK_FREQ
-# define HRT_TIMER_BASE		0x3ff5f000 + 0x0024 + 0x1000
+# define HRT_TIM_BASE			0x3ff5f000 + 0x0024 + 0x1000
+# define HRT_TIMER_PERIPH		19
+# define HRT_TIMER_PRIO			1
+# define HRT_TIMER_VECTOR		5 + HRT_TIMER_PERIPH
+# define HRT_TIMER_CLOCK		80 * 1000000
+# define HRT_TIMER_BASE			0x3ff5f000 + 0x0024 + 0x1000
+# define HRT_TIMER_CLR_OFFSET		0x0080
+# define HRT_TIMER_INT_ENA_OFFSET	0x0074
+# define HRT_TIMER_INT_CLR		1 << 1
 # if CONFIG_ESP32_TIMER3
-#  error must not set CONFIG_ESP32_TIMER3=y and HRT_TIMER=2
+#  error must not set CONFIG_ESP32_TIMER3=y and HRT_TIMER=3
 # endif
 #else
 # error HRT_TIMER must be a value between 0 and 3
@@ -131,11 +132,29 @@
 
 #define REG(_reg)	(*(volatile uint32_t *)(HRT_TIMER_BASE + _reg))
 
-#define rLO 		REG(TIM_LO_OFFSET)
-#define rHI 		REG(TIM_HI_OFFSET)
-#define rUPDATE 	REG(TIM_UPDATE_OFFSET)
-#define rALARMLO 	REG(TIMG_ALARM_LO_OFFSET)
-#define rALARMHI 	REG(TIMG_ALARM_HI_OFFSET)
+#define HRT_CONFIG_OFFSET  		0x00
+#define HRT_LOAD_LO_OFFSET 		0x0018
+#define HRT_LOAD_HI_OFFSET 		0x001c
+#define HRT_LOAD_OFFSET    		0x0020
+#define HRT_ALARM_LO_OFFSET    		0x0010
+#define HRT_ALARM_HI_OFFSET    		0x0014
+#define HRT_UPDATE_OFFSET		0x000c
+#define HRT_LO_OFFSET 			0x0004
+#define HRT_HI_OFFSET 			0x0008
+#define HRT_DIVIDER_S			13
+#define HRT_DIVIDER_M   		0xffff << 13
+#define HRT_ALARM_EN			1 << 10
+#define HRT_AUTORELOAD			1 << 29
+#define HRT_TIMER_LEVEL_INT_EN		1 << 11
+#define HRT_TIMER_INT_ENA		1 << 0
+#define HRT_TIMER_EN			1 << 31
+#define HRT_INCREASE			1 << 30
+
+#define rLO 		REG(HRT_LO_OFFSET)
+#define rHI 		REG(HRT_HI_OFFSET)
+#define rUPDATE 	REG(HRT_UPDATE_OFFSET)
+#define rALARMLO 	REG(HRT_ALARM_LO_OFFSET)
+#define rALARMHI 	REG(HRT_ALARM_HI_OFFSET)
 
 /*
  * HRT clock must be a multiple of 1MHz greater than 1MHz
@@ -236,35 +255,35 @@ hrt_tim_init(void)
 {
 
 	// ESP32_TIM_SETPRE(tim, ESP32_HRT_TIMER_PRESCALER);
-	uint32_t mask = ((uint32_t)(HRT_TIMER_CLOCK / 1000000) - 1) << TIMG_T0_DIVIDER_S;
-  	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, TIMG_T0_DIVIDER_M, mask);
+	uint32_t mask = ((uint32_t)(HRT_TIMER_CLOCK / 1000000) - 1) << HRT_DIVIDER_S;
+  	esp32_tim_modifyreg32(HRT_TIM_BASE, HRT_CONFIG_OFFSET, HRT_DIVIDER_M, mask);
 
 	// ESP32_TIM_SETMODE(tim, ESP32_TIM_MODE_UP);
-	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_INCREASE);
+	esp32_tim_modifyreg32(HRT_TIM_BASE, HRT_CONFIG_OFFSET, 0, HRT_INCREASE);
 
 	// ESP32_TIM_CLEAR(tim);
-	esp32_tim_putreg(TIM_BASE, TIM_LOAD_LO_OFFSET, 0);
-  	esp32_tim_putreg(TIM_BASE, TIM_LOAD_HI_OFFSET, 0);
-	esp32_tim_putreg(TIM_BASE, TIM_LOAD_OFFSET, BIT(0)); //reload
+	esp32_tim_putreg(HRT_TIM_BASE, HRT_LOAD_LO_OFFSET, 0);
+  	esp32_tim_putreg(HRT_TIM_BASE, HRT_LOAD_HI_OFFSET, 0);
+	esp32_tim_putreg(HRT_TIM_BASE, HRT_LOAD_OFFSET, 1 << 0); //reload
 
 	// ESP32_TIM_SETCTR(tim, 0); //set counter value
-  	esp32_tim_putreg(TIM_BASE, TIM_LOAD_LO_OFFSET, 0);
-  	esp32_tim_putreg(TIM_BASE, TIM_LOAD_HI_OFFSET, 0);
+  	esp32_tim_putreg(HRT_TIM_BASE, HRT_LOAD_LO_OFFSET, 0);
+  	esp32_tim_putreg(HRT_TIM_BASE, HRT_LOAD_HI_OFFSET, 0);
 
 	// ESP32_TIM_RLD_NOW(tim);   //reload value now
-  	esp32_tim_putreg(TIM_BASE, TIM_LOAD_OFFSET, BIT(0)); //reload
+  	esp32_tim_putreg(HRT_TIM_BASE, HRT_LOAD_OFFSET, 1 << 0); //reload
 
 	// ESP32_TIM_SETALRVL(tim, 1000);		//alarm value
 	uint64_t val = 1000;
-  	uint64_t low_64 = val & LOW_32_MASK;
-  	uint64_t high_64 = (val >> SHIFT_32) & LOW_32_MASK;
-  	esp32_tim_putreg(TIM_BASE, TIMG_ALARM_LO_OFFSET, (uint32_t)low_64);
-  	esp32_tim_putreg(TIM_BASE, TIMG_ALARM_HI_OFFSET, (uint32_t)high_64);
+  	uint64_t low_64 = val & 0xffffffff;
+  	uint64_t high_64 = (val >> 32) & 0xffffffff;
+  	esp32_tim_putreg(HRT_TIM_BASE, HRT_ALARM_LO_OFFSET, (uint32_t)low_64);
+  	esp32_tim_putreg(HRT_TIM_BASE, HRT_ALARM_HI_OFFSET, (uint32_t)high_64);
 
         // ESP32_TIM_SETALRM(tim, true);		//enable alarm
-      	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_ALARM_EN);
+      	esp32_tim_modifyreg32(HRT_TIM_BASE, HRT_CONFIG_OFFSET, 0, HRT_ALARM_EN);
 	// ESP32_TIM_SETARLD(tim, false);		//auto reload
-      	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, TIMG_T0_AUTORELOAD, 0);
+      	esp32_tim_modifyreg32(HRT_TIM_BASE, HRT_CONFIG_OFFSET, HRT_AUTORELOAD, 0);
 
 	// ESP32_TIM_SETISR(tim, hrt_tim_isr, NULL);
 	esp32_setup_irq(0, HRT_TIMER_PERIPH, HRT_TIMER_PRIO, ESP32_CPUINT_LEVEL);
@@ -272,11 +291,11 @@ hrt_tim_init(void)
 	up_enable_irq(HRT_TIMER_VECTOR);
 
 	// ESP32_TIM_ENABLEINT(tim);
-  	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_LEVEL_INT_EN);
-      	esp32_tim_modifyreg32(TIM_BASE, TIM0_INT_ENA_OFFSET, 0, TIMG_T0_INT_ENA);
+  	esp32_tim_modifyreg32(HRT_TIM_BASE, HRT_CONFIG_OFFSET, 0, HRT_TIMER_LEVEL_INT_EN);
+      	esp32_tim_modifyreg32(HRT_TIM_BASE, HRT_TIMER_INT_ENA_OFFSET, 0, HRT_TIMER_INT_ENA);
 
 	// ESP32_TIM_START(tim);
-  	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_EN);
+  	esp32_tim_modifyreg32(HRT_TIM_BASE, HRT_CONFIG_OFFSET, 0, HRT_TIMER_EN);
 
 }
 
@@ -293,12 +312,12 @@ hrt_tim_isr(int irq, void *context, void *arg)
   	uint32_t value_32;
   	latency_actual = 0;
   	/* Dummy value to latch the counter value to read it */
-  	esp32_tim_putreg(TIM_BASE, TIM_UPDATE_OFFSET, BIT(0));
+  	esp32_tim_putreg(HRT_TIM_BASE, HRT_UPDATE_OFFSET, 1 << 0);
   	/* Read value */
-  	value_32 = esp32_tim_getreg(TIM_BASE, TIM_HI_OFFSET); /* High 32 bits */
+  	value_32 = esp32_tim_getreg(HRT_TIM_BASE, HRT_HI_OFFSET); /* High 32 bits */
   	latency_actual |= (uint64_t)value_32;
-  	latency_actual <<= SHIFT_32;
-  	value_32 = esp32_tim_getreg(TIM_BASE, TIM_LO_OFFSET); /* Low 32 bits */
+  	latency_actual <<= 32;
+  	value_32 = esp32_tim_getreg(HRT_TIM_BASE, HRT_LO_OFFSET); /* Low 32 bits */
   	latency_actual |= (uint64_t)value_32;
 
 	/* do latency calculations */
@@ -311,8 +330,8 @@ hrt_tim_isr(int irq, void *context, void *arg)
 	hrt_call_reschedule();
 
 	// acknowledge the interrupt
-        esp32_tim_putreg(TIM_BASE, TIM0_CLR_OFFSET, TIMG_T0_INT_CLR);
-      	esp32_tim_modifyreg32(TIM_BASE, TIM_CONFIG_OFFSET, 0, TIMG_T0_ALARM_EN);
+        esp32_tim_putreg(HRT_TIM_BASE, HRT_TIMER_CLR_OFFSET, HRT_TIMER_INT_CLR);
+      	esp32_tim_modifyreg32(HRT_TIM_BASE, HRT_CONFIG_OFFSET, 0, HRT_ALARM_EN);
 
 	return OK;
 }
