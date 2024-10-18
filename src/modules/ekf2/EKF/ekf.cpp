@@ -298,7 +298,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 	Vector3f pos_correction;
 
 	// apply a first order correction using velocity at the delayed time horizon and the delta time
-	if ((timestamp_observation > 0) && local_position_is_valid()) {
+	if ((timestamp_observation > 0) && isLocalHorizontalPositionValid()) {
 
 		timestamp_observation = math::min(_time_latest_us, timestamp_observation);
 
