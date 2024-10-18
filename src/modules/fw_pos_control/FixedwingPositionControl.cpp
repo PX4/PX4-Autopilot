@@ -321,11 +321,16 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		_pitch = euler_angles(1);
 		_yaw = euler_angles(2);
 
-		Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
+		const Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
 		_body_acceleration_x = body_acceleration(0);
 
-		Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
-		_body_velocity_x = body_velocity(0);
+		if (_local_pos.v_xy_valid) {
+			const Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
+			_body_velocity_x = body_velocity(0);
+
+		} else {
+			_body_velocity_x = NAN;
+		}
 
 		// load factor due to banking
 		_tecs.set_load_factor(getLoadFactor());
@@ -372,17 +377,16 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 	}
 
 	// Adapt cruise airspeed when otherwise the min groundspeed couldn't be maintained
-	if (!_wind_valid && !in_takeoff_situation) {
+	if (!_wind_valid && !in_takeoff_situation && PX4_ISFINITE(_body_velocity_x) && _body_velocity_x > FLT_EPSILON) {
 		/*
 		 * This error value ensures that a plane (as long as its throttle capability is
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
 		 * by wind). Not countering this would lead to a fly-away. Only non-zero in presence
 		 * of sufficient wind. "minimum ground speed undershoot".
 		 */
-		const float ground_speed_body = _body_velocity_x;
 
-		if (ground_speed_body < _param_fw_gnd_spd_min.get()) {
-			calibrated_airspeed_setpoint += _param_fw_gnd_spd_min.get() - ground_speed_body;
+		if (_body_velocity_x < _param_fw_gnd_spd_min.get()) {
+			calibrated_airspeed_setpoint += _param_fw_gnd_spd_min.get() - _body_velocity_x;
 		}
 	}
 
@@ -749,6 +753,17 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		} else {
 			_control_mode_current = FW_POSCTRL_MODE_AUTO;
+		}
+
+	} else if (_control_mode.flag_control_auto_enabled
+		   && _control_mode.flag_control_altitude_enabled
+		   && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		_control_mode_current = FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV;
+
+		if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV && !_landed) {
+			// skip takeoff detection when switching from any other mode, auto or manual,
+			// while already in air.
+			_skipping_takeoff_detection = true;
 		}
 
 	} else if (_control_mode.flag_control_auto_enabled
@@ -1725,6 +1740,117 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 }
 
 void
+FixedwingPositionControl::control_auto_takeoff_no_nav(const hrt_abstime &now, const float control_interval,
+		const float current_setpoint_altitude_amsl)
+{
+	if (!_control_mode.flag_armed) {
+		reset_takeoff_state();
+	}
+
+	// for now taking current position setpoint altitude as clearance altitude. this is the altitude we need to
+	// clear all occlusions in the takeoff path
+	const float clearance_altitude_amsl = current_setpoint_altitude_amsl;
+
+	// set the altitude to something above the clearance altitude to ensure the vehicle climbs past the value
+	// (navigator will accept the takeoff as complete once crossing the clearance altitude)
+	const float altitude_setpoint_amsl = clearance_altitude_amsl + kClearanceAltitudeBuffer;
+
+	const float takeoff_airspeed = (_param_fw_tko_airspd.get() > FLT_EPSILON) ? _param_fw_tko_airspd.get() :
+				       _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
+
+	float adjusted_min_airspeed = _performance_model.getMinimumCalibratedAirspeed(getLoadFactor());
+
+	if (takeoff_airspeed < adjusted_min_airspeed) {
+		// adjust underspeed detection bounds for takeoff airspeed
+		_tecs.set_equivalent_airspeed_min(takeoff_airspeed);
+		adjusted_min_airspeed = takeoff_airspeed;
+	}
+
+	const bool is_low_height = checkLowHeightConditions();
+
+	float pitch_body_sp = radians(_takeoff_pitch_min.get());
+
+	if (_runway_takeoff.runwayTakeoffEnabled()) {
+		// not supported // TODO add user warning (event) and exit/thrust 0
+
+	} else {
+		/* Perform launch detection */
+		if (!_skipping_takeoff_detection && _param_fw_laun_detcn_on.get() &&
+		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
+
+			if (_control_mode.flag_armed) {
+				/* Perform launch detection */
+
+				/* Detect launch using body X (forward) acceleration */
+				_launchDetector.update(control_interval, _body_acceleration_x);
+			}
+
+		} else	{
+			/* no takeoff detection --> fly */
+			_launchDetector.forceSetFlyState();
+		}
+
+		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
+			_launch_detected = true;
+			_airspeed_slew_rate_controller.setForcedValue(takeoff_airspeed);
+		}
+
+		/* Set control values depending on the detection state */
+		if (_launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH) {
+			/* Launch has been detected, hence we have to control the plane. */
+
+			const Vector2f ground_speed(0.f, 0.f); // TODO remove
+
+			float target_airspeed = adapt_airspeed_setpoint(control_interval, takeoff_airspeed, adjusted_min_airspeed, ground_speed,
+						true);
+
+			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
+							   _param_fw_thr_idle.get() : _param_fw_thr_max.get();
+			const bool disable_underspeed_handling = true;
+
+			tecs_update_pitch_throttle(control_interval,
+						   altitude_setpoint_amsl,
+						   target_airspeed,
+						   radians(_takeoff_pitch_min.get()),
+						   radians(_param_fw_p_lim_max.get()),
+						   _param_fw_thr_min.get(),
+						   max_takeoff_throttle,
+						   _param_sinkrate_target.get(),
+						   _performance_model.getMaximumClimbRate(_air_density),
+						   is_low_height,
+						   disable_underspeed_handling);
+
+			pitch_body_sp = get_tecs_pitch();
+
+		} else {
+			/* Tell the attitude controller to stop integrating while we are waiting for the launch */
+			_att_sp.reset_integral = true;
+		}
+
+		if (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
+			// explicitly set idle throttle until motors are enabled
+			_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
+
+		} else {
+			_att_sp.thrust_body[0] = get_tecs_thrust();
+		}
+
+		const float roll_body = 0.f;
+		const float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw (if available)
+
+		const Quatf attitude_setpoint(Eulerf(roll_body, pitch_body_sp, yaw_body));
+		attitude_setpoint.copyTo(_att_sp.q_d);
+
+		launch_detection_status_s launch_detection_status;
+		launch_detection_status.timestamp = now;
+		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		_launch_detection_status_pub.publish(launch_detection_status);
+	}
+
+	_flaps_setpoint = _param_fw_flaps_to_scl.get();
+}
+
+void
 FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, const float control_interval,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
@@ -2629,7 +2755,8 @@ FixedwingPositionControl::Run()
 			reset_landing_state();
 		}
 
-		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF) {
+		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF
+		    && _control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV) {
 			reset_takeoff_state();
 		}
 
@@ -2671,6 +2798,11 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_AUTO_TAKEOFF: {
 				control_auto_takeoff(_local_pos.timestamp, control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_TAKEOFF_NO_NAV: {
+				control_auto_takeoff_no_nav(_local_pos.timestamp, control_interval, _pos_sp_triplet.current.alt);
 				break;
 			}
 
