@@ -246,7 +246,17 @@ void ADC::update_system_power(hrt_abstime now)
 	// these are not ADC related, but it is convenient to
 	// publish these to the same topic
 
-	system_power.usb_connected = BOARD_ADC_USB_CONNECTED;
+	const bool usb_connected = BOARD_ADC_USB_CONNECTED;
+
+	if (!_usb_connected && usb_connected) {
+		_usb_connected_count++;
+	}
+
+	_usb_connected = usb_connected;
+
+	system_power.usb_connected = _usb_connected;
+	system_power.usb_connected_count = _usb_connected_count;
+
 	/* If provided used the Valid signal from HW*/
 #if defined(BOARD_ADC_USB_VALID)
 	system_power.usb_valid = BOARD_ADC_USB_VALID;
