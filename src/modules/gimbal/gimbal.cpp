@@ -264,6 +264,11 @@ static int gimbal_thread_main(int argc, char *argv[])
 				thread_data.output_obj->set_stabilize(false, false, false);
 			}
 
+			if (thread_data.output_obj->check_and_handle_setpoint_timeout(thread_data.control_data, hrt_absolute_time())) {
+				// Without flagging an update the changes are not processed in the output
+				update_result = InputBase::UpdateResult::UpdatedActive;
+			}
+
 			// Update output
 			thread_data.output_obj->update(
 				thread_data.control_data,
