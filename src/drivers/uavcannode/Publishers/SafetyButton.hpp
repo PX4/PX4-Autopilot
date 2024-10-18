@@ -40,18 +40,20 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/button_event.h>
 
+#ifndef GPIO_BTN_SAFETY
+#error "board needs to define a safety button gpio pin to use this module"
+#endif
+
 namespace uavcannode
 {
 
 class SafetyButton :
 	public UavcanPublisherBase,
-	public uORB::SubscriptionCallbackWorkItem,
 	private uavcan::Publisher<ardupilot::indication::Button>
 {
 public:
 	SafetyButton(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(ardupilot::indication::Button::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety_button)),
 		uavcan::Publisher<ardupilot::indication::Button>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::Default);
@@ -59,26 +61,52 @@ public:
 
 	void PrintInfo() override
 	{
-		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
-			printf("\t%s -> %s:%d\n",
-			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
-			       ardupilot::indication::Button::getDataTypeFullName(),
-			       ardupilot::indication::Button::DefaultDataTypeID);
-		}
+		printf("\tsafety_button_gpio -> %s:%d\n",
+		       ardupilot::indication::Button::getDataTypeFullName(),
+		       ardupilot::indication::Button::DefaultDataTypeID);
 	}
 
 	void BroadcastAnyUpdates() override
 	{
-		button_event_s safety_button;
+		ardupilot::indication::Button Button{};
+		Button.button = ardupilot::indication::Button::BUTTON_SAFETY;
 
-		if (uORB::SubscriptionCallbackWorkItem::update(&safety_button)) {
-			if (safety_button.triggered) {
-				ardupilot::indication::Button Button{};
-				Button.button = ardupilot::indication::Button::BUTTON_SAFETY;
-				Button.press_time = UINT8_MAX;
-				uavcan::Publisher<ardupilot::indication::Button>::broadcast(Button);
+		const bool button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
+		bool publish = false;
+
+		if (_last_button_state == false && button_pressed) {
+			_button_press_start = hrt_absolute_time();
+			_last_button_state = true;
+		}
+
+		// Calculate the time the button has been pressed in units of 0.1s with a max of 255
+		if (_last_button_state && button_pressed) {
+			const hrt_abstime button_press_duration = hrt_absolute_time() - _button_press_start;
+			Button.press_time = (uint8_t)math::min((button_press_duration / 100000), (hrt_abstime)255);
+
+			// Publish the button state every 0.1s
+			if (hrt_elapsed_time(&_last_button_publish) > 100_ms) {
+				publish = true;
+			}
+
+		} else {
+			Button.press_time = 0;
+			_last_button_state = false;
+
+			// Publish the button state every 1
+			if (hrt_elapsed_time(&_last_button_publish) > 1_s) {
+				publish = true;
 			}
 		}
+
+		if (publish) {
+			_last_button_publish = hrt_absolute_time();
+			uavcan::Publisher<ardupilot::indication::Button>::broadcast(Button);
+		}
 	}
+private:
+	bool        _last_button_state{false};
+	hrt_abstime _button_press_start{0};
+	hrt_abstime _last_button_publish{0};
 };
 } // namespace uavcannode
