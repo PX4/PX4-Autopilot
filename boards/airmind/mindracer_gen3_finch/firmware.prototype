@@ -1,0 +1,13 @@
+{
+    "board_id": 188,
+    "magic": "MindPX",
+    "description": "Firmware for MindPX Gen.3 FCs",
+    "image": "",
+    "build_time": 0,
+    "summary": "MindPX Gen.3",
+    "version": "1.0",
+    "image_size": 0,
+    "image_maxsize": 2064384,
+    "git_identity": "",
+    "board_revision": 0
+}
