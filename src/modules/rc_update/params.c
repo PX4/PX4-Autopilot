@@ -1902,20 +1902,28 @@ PARAM_DEFINE_INT32(RC_MAP_ENG_MOT, 0);
 PARAM_DEFINE_INT32(RC_FAILS_THR, 0);
 
 /**
- * Threshold for selecting return to launch mode
+ * Minimum threshold for selecting return to launch mode.
  *
- * 0-1 indicate where in the full channel range the threshold sits
- * 		0 : min
- * 		1 : max
- * sign indicates polarity of comparison
- * 		positive : true when channel>th
- * 		negative : true when channel<th
+ * Together with  RC_RETURN_TH_MAX defines the range for the return to launch mode selection.
+ * If both value are negative then the polarity is inverted.
  *
  * @min -1
  * @max 1
  * @group Radio Switches
- */
-PARAM_DEFINE_FLOAT(RC_RETURN_TH, 0.75f);
+*/
+PARAM_DEFINE_FLOAT(RC_RETURN_TH_MIN, 0.75f);
+
+/**
+ * Maximum threshold for selecting return to launch mode.
+ *
+ * Together with  RC_RETURN_TH_MIN defines the range for the return to launch mode selection.
+ * If both value are negative then the polarity is inverted.
+ *
+ * @min -1
+ * @max 1
+ * @group Radio Switches
+*/
+PARAM_DEFINE_FLOAT(RC_RETURN_TH_MAX, 1.0f);
 
 /**
  * Threshold for selecting loiter mode
