@@ -29,12 +29,9 @@
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-File: derivation.py
+File: KF_position.py
 Description:
-    Derivation of an error-state EKF based on
-    Sola, Joan. "Quaternion kinematics for the error-state Kalman filter." arXiv preprint arXiv:1711.02508 (2017).
-    The derivation is directly done in discrete-time as this allows us to define the desired type of discretization
-    for each element while defining the equations (easier than a continuous-time derivation followed by a block-wise discretization).
+    Derivation of KF
 """
 
 import argparse
@@ -97,77 +94,55 @@ class MState(sf.Matrix):
 class VMeas(sf.Matrix):
     SHAPE = (1, State.storage_dim())
 
-def get_Phi(dt: sf.Scalar) -> sf.Matrix:
-    Phi = sf.Matrix.zeros(State.storage_dim(), State.storage_dim())
+def symbolic_state(state_structure):
+    symbolic_state = Values()
+    for key in state_structure.keys_recursive():
+        var_type = type(state_structure[key])
+        if hasattr(var_type, 'symbolic'):
+            symbolic_state[key] = var_type.symbolic(key)
 
-    # Helper functions to set blocks in Phi matrix
-    def set_Phi_block(row_key, col_key, value):
-        idx_row = tangent_idx[row_key].idx
-        dof_row = tangent_idx[row_key].dof
-        idx_col = tangent_idx[col_key].idx
-        dof_col = tangent_idx[col_key].dof
-        if isinstance(value, sf.Matrix):
-            # Ensure the value matrix has the correct shape
-            assert value.shape == (dof_row, dof_col), "Value matrix shape mismatch"
-            Phi[idx_row:idx_row + dof_row, idx_col:idx_col + dof_col] = value
-        else:
-            # Scalar value; create a block matrix
-            block = value * sf.Matrix.eye(dof_row, dof_col)
-            Phi[idx_row:idx_row + dof_row, idx_col:idx_col + dof_col] = block
+    return symbolic_state
 
-    # Set the diagonal elements of Phi to 1
-    for key in State.keys_recursive():
-        idx = tangent_idx[key].idx
-        dof = tangent_idx[key].dof
-        for i in range(dof):
-            Phi[idx + i, idx + i] = 1
+def get_Phi_and_G(dt: sf.Scalar,
+) -> MState:
 
-    set_Phi_block('pos_rel', 'vel_uav', -dt)
+    state = symbolic_state(State)
+
+    # Input acceleration (symbolic)
+    acc = sf.Symbol('acc')
+
+    state_pred = state.copy()
+    state_pred["pos_rel"] = state["pos_rel"] - dt * state["vel_uav"] - 0.5 * dt**2 * acc
+    state_pred["vel_uav"] = state["vel_uav"] + dt * acc
+    state_pred["bias"] = state["bias"]
 
     if moving:
-        # Update Phi with off-diagonal elements for the moving filter
-        set_Phi_block('pos_rel', 'acc_target', 0.5 * dt * dt)
-        set_Phi_block('pos_rel', 'vel_target', dt)
-        set_Phi_block('vel_target', 'acc_target', dt)
+        state_pred["pos_rel"] += dt * state["vel_target"] + 0.5 * dt**2 * state["acc_target"]
+        state_pred["vel_target"] = state["vel_target"] + dt * state["acc_target"]
+        state_pred["acc_target"] = state["acc_target"]
 
-    return Phi
+    # State vector
+    state_pred_matrix = sf.Matrix([
+        state_pred[key] for key in state.keys_recursive()
+    ])
 
+    # Compute Jacobian A = ∂f/∂x
+    Phi = state_pred_matrix.jacobian([state])
+    # Compute G = ∂f/∂w
+    G = state_pred_matrix.jacobian(acc)
 
-def get_G(dt: sf.Scalar) -> sf.Matrix:
-    G = sf.Matrix.zeros(State.storage_dim(), 1)
-
-    # Helper functions to set blocks in G matrix
-    def set_G_block(key, value):
-        idx = tangent_idx[key].idx
-        dof = tangent_idx[key].dof
-        if isinstance(value, sf.Matrix):
-            # Ensure the value vector has the correct shape
-            assert value.shape == (dof, 1), "Value vector shape mismatch"
-            G[idx:idx + dof, 0] = value
-        else:
-            # Scalar value; create a vector
-            block = sf.Matrix([value] * dof)
-            G[idx:idx + dof, 0] = block
-
-    # Update G with the process noise terms
-    set_G_block('pos_rel', -0.5 * dt * dt)
-    set_G_block('vel_uav', dt)
-
-    return G
+    return Phi, G
 
 def predictState(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> VState:
-    Phi = get_Phi(dt)
-    G = get_G(dt)
+    Phi, G = get_Phi_and_G(dt)
     return Phi * state + G * acc
 
 def syncState(dt: sf.Scalar, state: VState, acc: sf.Scalar) -> VState:
-    Phi = get_Phi(dt)
-    G = get_G(dt)
+    Phi, G = get_Phi_and_G(dt)
     return Phi.inv() * (state - G * acc)
 
 def predictCov(dt: sf.Scalar, input_var: sf.Scalar, bias_var: sf.Scalar, acc_var: sf.Scalar, covariance: MState) -> MState:
-    Phi = get_Phi(dt)
-    G = get_G(dt)
+    Phi, G = get_Phi_and_G(dt)
     Q = sf.Matrix.zeros(State.storage_dim(), State.storage_dim())
 
     idx_bias = tangent_idx['bias'].idx
