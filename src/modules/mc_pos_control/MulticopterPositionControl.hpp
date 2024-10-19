@@ -119,6 +119,7 @@ private:
 		.timestamp = 0,
 		.speed_up = NAN,
 		.speed_down = NAN,
+		.speed_xy = NAN,
 		.want_takeoff = false,
 	};
 
