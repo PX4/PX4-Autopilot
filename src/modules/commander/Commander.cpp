@@ -43,7 +43,6 @@
 /* commander module headers */
 #include "Arming/ArmAuthorization/ArmAuthorization.h"
 #include "commander_helper.h"
-#include "esc_calibration.h"
 #define DEFINE_GET_PX4_CUSTOM_MODE
 #include "px4_custom_mode.h"
 #include "ModeUtil/control_mode.hpp"
@@ -1339,23 +1338,19 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if ((int)(cmd.param7) == 1) {
 					/* do esc calibration */
-					if (check_battery_disconnected(&_mavlink_log_pub)) {
-						answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-						if (_safety.isButtonAvailable() && !_safety.isSafetyOff()) {
-							mavlink_log_critical(&_mavlink_log_pub, "ESC calibration denied! Press safety button first\t");
-							events::send(events::ID("commander_esc_calibration_denied"), events::Log::Critical,
-								     "ESCs calibration denied");
-
-						} else {
-							_vehicle_status.calibration_enabled = true;
-							_actuator_armed.in_esc_calibration_mode = true;
-							_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
-						}
+					if (_safety.isButtonAvailable() && !_safety.isSafetyOff()) {
+						mavlink_log_critical(&_mavlink_log_pub, "ESC calibration denied! Press safety button first\t");
+						events::send(events::ID("commander_esc_calibration_denied"), events::Log::Critical,
+								"ESCs calibration denied");
 
 					} else {
-						answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+						_vehicle_status.calibration_enabled = true;
+						_actuator_armed.in_esc_calibration_mode = true;
+						_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
 					}
+
 
 				} else if ((int)(cmd.param4) == 0) {
 					/* RC calibration ended - have we been in one worth confirming? */
