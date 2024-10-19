@@ -211,7 +211,7 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   8
+#define DIRECT_PWM_OUTPUT_CHANNELS   9
 
 #define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
 #define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
@@ -249,8 +249,8 @@
 #define FLASH_BASED_PARAMS
 
 /* High-resolution timer */
-#define HRT_TIMER               8  /* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
+#define HRT_TIMER               3  /* use timer3 for the HRT */
+#define HRT_TIMER_CHANNEL       1 /* use capture/compare channel 1 */
 
 /* RC Serial port */
 
