@@ -222,16 +222,17 @@ void MspDPOsd::Run()
 		if(vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED
 			&& _parameters.ready_row != -1 && _parameters.ready_col != -1)
 		{
-			const char* ready_msg = "";
-
+			char ready_msg_buf[12];
+			
 			if (vehicle_status.pre_flight_checks_pass) {
-				ready_msg = "READY";
+				strncpy(ready_msg_buf, "READY", sizeof(ready_msg_buf));
 			} else {
-				ready_msg = "NOT READY";
+				strncpy(ready_msg_buf, "NOT READY", sizeof(ready_msg_buf));
 			}
 
-			uint8_t ready_output[sizeof(msp_dp_cmd_t) + sizeof(ready_msg)+1]{0};	// size of output buffer is size of OSD display port command struct and the buffer you want shown on OSD
-			msp_dp_osd::construct_OSD_write(_parameters.ready_col, _parameters.ready_row, false, ready_msg, ready_output, sizeof(ready_output));
+			uint8_t ready_output[sizeof(msp_dp_cmd_t) + sizeof(ready_msg_buf)+1]{0};	// size of output buffer is size of OSD display port command struct and the buffer you want shown on OSD
+
+			msp_dp_osd::construct_OSD_write(_parameters.ready_col, _parameters.ready_row, false, ready_msg_buf, ready_output, sizeof(ready_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &ready_output, MSP_DIRECTION_REPLY);
 		}
 
@@ -279,8 +280,12 @@ void MspDPOsd::Run()
 
 		// Flight Mode -> BOTTOM-MIDDLE BOTTOM
 		if (_parameters.flight_mode_col != -1 && _parameters.flight_mode_row != -1){
+			char flight_mode_buf[20];
 			const auto flight_mode = msp_dp_osd::construct_flight_mode(vehicle_status);
-			uint8_t flight_mode_output[sizeof(msp_dp_cmd_t) + sizeof(flight_mode)+1]{0};
+			strncpy(flight_mode_buf, flight_mode, sizeof(flight_mode_buf) - 1);
+			flight_mode_buf[sizeof(flight_mode_buf) - 1] = '\0';  // Ensure null termination
+			uint8_t flight_mode_output[sizeof(msp_dp_cmd_t) + strlen(flight_mode_buf) + 1]{0};
+			
 			msp_dp_osd::construct_OSD_write(_parameters.flight_mode_col, _parameters.flight_mode_row, false, flight_mode, flight_mode_output, sizeof(flight_mode_output));
 			this->Send(MSP_CMD_DISPLAYPORT, &flight_mode_output, MSP_DIRECTION_REPLY);
 		}
