@@ -49,9 +49,7 @@ uint16_t board_get_can_interfaces(void)
 {
 	uint16_t enabled_interfaces = 0x3;
 
-	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_CAN2)) {
-		enabled_interfaces &= ~(1 << 1);
-	}
+	enabled_interfaces &= ~(1 << 1);
 
 	return enabled_interfaces;
 }
