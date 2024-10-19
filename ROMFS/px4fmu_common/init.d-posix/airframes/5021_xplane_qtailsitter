@@ -1,0 +1,118 @@
+#!/bin/sh
+#
+#
+#
+# @output MAIN1 Motor 1
+# @output MAIN2 Motor 2
+# @output MAIN3 Motor 3
+# @output MAIN4 Motor 4
+#
+# @xplane_model qtailsitter
+#
+# Airframe: Quad Tailsitter
+# Compatible Simulator: X-Plane
+# @name Quad Tailsitter for X-Plane
+# @class VTOL
+# @type VTOL Quad Tailsitter
+# @maintainer alireza787b <p30planets@gmail.com>
+# Date: Sept 2024
+# @url https://github.com/alireza787b/px4xplane/
+# Description:
+# This is the airframe definition for a 1-meter wingspan control surface-less quad tailsitter,
+# equipped with four high KV motors. The aircraft has a stall speed of approximately 20 m/s
+# and a maximum speed of around 40 m/s. It is designed to operate without any control surfaces,
+# relying solely on differential thrust and torque for control in both multicopter and fixed-wing modes.
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+# Set the MAV type to Quad Tailsitter
+param set-default MAV_TYPE 20
+
+# Airframe-specific parameters
+param set-default CA_AIRFRAME 4
+
+# Rotor configurations (positions and moments)
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.5
+param set-default CA_ROTOR0_PY 0.5
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.5
+param set-default CA_ROTOR1_PY -0.5
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.5
+param set-default CA_ROTOR2_PY -0.5
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.5
+param set-default CA_ROTOR3_PY 0.5
+param set-default CA_ROTOR3_KM -0.05
+
+# Control surface count (set to zero since it's a control surface-less tailsitter)
+param set-default CA_SV_CS_COUNT 0
+
+# Mixer assignments
+param set-default PWM_MAIN_FUNC1 101  # Motor 1
+param set-default PWM_MAIN_FUNC2 102  # Motor 2
+param set-default PWM_MAIN_FUNC3 103  # Motor 3
+param set-default PWM_MAIN_FUNC4 104  # Motor 4
+
+# Flight control parameters
+param set-default FD_FAIL_R 70           # Fail-safe return altitude
+param set-default FW_P_TC 0.2            # Pitch time constant, lower for more responsive control
+param set-default NPFG_PERIOD 8          # Path following period, adjusted for higher speeds
+
+
+# Fixed-wing rate control gains
+param set-default FW_RR_P 0.1            # Roll rate P gain
+param set-default FW_RR_I 0.02           # Roll rate I gain
+param set-default FW_RR_D 0.001          # Roll rate D gain
+param set-default FW_PR_P 0.1            # Pitch rate P gain
+param set-default FW_PR_I 0.02           # Pitch rate I gain
+param set-default FW_PR_D 0.001          # Pitch rate D gain
+param set-default FW_YR_P 0.08           # Yaw rate P gain
+param set-default FW_YR_I 0.01           # Yaw rate I gain
+param set-default FW_YR_D 0.0            # Yaw rate D gain
+
+# Throttle settings
+param set-default FW_THR_TRIM 0.6        # Trim throttle
+param set-default FW_THR_MAX 0.9         # Max throttle
+param set-default FW_THR_MIN 0.1         # Min throttle
+
+# Climb and sink rates
+param set-default FW_T_CLMB_MAX 8        # Max climb rate (m/s)
+param set-default FW_T_SINK_MAX 5        # Max sink rate (m/s)
+param set-default FW_T_SINK_MIN 2        # Min sink rate (m/s)
+
+# Airspeed settings (updated for stall speed of 20 m/s, max speed of 40 m/s)
+param set-default FW_AIRSPD_STALL 20     # Stall speed (m/s)
+param set-default FW_AIRSPD_MIN 24       # Minimum airspeed (m/s)
+param set-default FW_AIRSPD_TRIM 30      # Trim airspeed (m/s)
+param set-default FW_AIRSPD_MAX 40       # Maximum airspeed (m/s)
+
+# Multicopter settings (tuned for high KV motors)
+param set-default MC_AIRMODE 2
+param set-default MC_ROLL_P 6.0
+param set-default MC_PITCH_P 6.0
+param set-default MC_YAW_P 4.5
+param set-default MC_ROLLRATE_P 0.2
+param set-default MC_PITCHRATE_P 0.2
+param set-default MC_YAWRATE_P 0.15
+
+# VTOL transition parameters
+param set-default VT_ARSP_TRANS 26       # Transition airspeed (m/s)
+param set-default VT_F_TRANS_DUR 2       # Front transition duration (s)
+param set-default VT_B_TRANS_DUR 3       # Back transition duration (s)
+param set-default VT_FW_DIFTHR_EN 7      # Enable differential thrust for roll, pitch, yaw
+param set-default VT_FW_DIFTHR_S_R 1.0   # Differential thrust scaling for roll
+param set-default VT_FW_DIFTHR_S_P 1.0   # Differential thrust scaling for pitch
+param set-default VT_FW_DIFTHR_S_Y 1.0   # Differential thrust scaling for yaw
+param set-default VT_TYPE 0              # Tailsitter type
+
+
+param set-default EKF2_TAS_GATE 3
+param set-default EKF2_WIND_NSD 0.01
+
+param set-default EKF2_ABL_TAU 0.3
+param set-default EKF2_ABL_LIM 2
+param set-default EKF2_MAG_TYPE 0
+

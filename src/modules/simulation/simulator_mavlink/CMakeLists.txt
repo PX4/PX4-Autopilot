@@ -59,6 +59,7 @@ include(sitl_targets_flightgear.cmake)
 include(sitl_targets_gazebo-classic.cmake)
 include(sitl_targets_jmavsim.cmake)
 include(sitl_targets_jsbsim.cmake)
+include(sitl_targets_xplane.cmake)
 
 
 # none_iris (legacy compatibility launch helper)
