@@ -34,37 +34,33 @@
 // TODO: rename to KF_position and clean up comments
 
 /**
- * @file KF_position_moving.cpp
- * @brief Filter to estimate the pose of moving targets. State: [pos_rel, vel_uav, bias, acc_target, vel_target]
+ * @file KF_orientation.cpp
+ * @brief Filter to estimate the orientation of moving targets. State: [yaw, yaw_rate]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
 #include "KF_orientation_unified.h"
-#include "python_derivation/generated/syncState.h"
-#include "python_derivation/generated/predictState.h"
-#include "python_derivation/generated/predictCov.h"
-#include "python_derivation/generated/computeInnovCov.h"
 
 namespace vision_target_estimator
 {
 
 void KF_orientation_unified::predictState(float dt)
 {
-	matrix::Vector<float, vtest::State::size> state_updated;
-	sym::Predictstate(dt, _state, &state_updated);
 
-	for (int i = 0; i < vtest::State::size; i++) {
-		_state(i) = matrix::wrap_pi(state_updated(i));
+	matrix::SquareMatrix<float, 2> phi = getPhi(dt);
+	_state = phi * _state;
+
+	for (int i = 0; i < State::size; i++) {
+		_state(i) = matrix::wrap_pi(_state(i));
 	}
 }
 
 void KF_orientation_unified::predictCov(float dt)
 {
-	matrix::Matrix<float, vtest::State::size, vtest::State::size> cov_updated;
-	sym::Predictcov(dt, _state_covariance, &cov_updated);
-	_state_covariance = cov_updated;
+	matrix::SquareMatrix<float, 2> phi = getPhi(dt);
+	_state_covariance = phi * _state_covariance * phi.transpose();
 }
 
 
@@ -82,11 +78,11 @@ bool KF_orientation_unified::update()
 		return false;
 	}
 
-	const matrix::Matrix<float, vtest::State::size, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
+	const matrix::Matrix<float, 2, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
 
-	for (int i = 0; i < vtest::State::size; i++) {
+	for (int i = 0; i < 2; i++) {
 		_state(i) = matrix::wrap_pi(_state(i));
 	}
 
@@ -98,20 +94,17 @@ bool KF_orientation_unified::update()
 void KF_orientation_unified::syncState(float dt)
 {
 
-	matrix::Vector<float, vtest::State::size> synced_state;
-	sym::Syncstate(dt, _state, &synced_state);
+	matrix::SquareMatrix<float, 2> phi = getPhi(dt);
+	_sync_state = matrix::inv(phi) * _state;
 
-	for (int i = 0; i < vtest::State::size; i++) {
-		_sync_state(i) = matrix::wrap_pi(synced_state(i));
+	for (int i = 0; i < 2; i++) {
+		_sync_state(i) = matrix::wrap_pi(_sync_state(i));
 	}
 }
 
 float KF_orientation_unified::computeInnovCov(float meas_unc)
 {
-	float innov_cov_updated;
-	sym::Computeinnovcov(meas_unc, _state_covariance, _meas_matrix_row_vect.transpose(), &innov_cov_updated);
-	_innov_cov = innov_cov_updated;
-
+	_innov_cov = (_meas_matrix_row_vect.transpose() * _state_covariance * _meas_matrix_row_vect)(0, 0) + meas_unc;
 	return _innov_cov;
 }
 

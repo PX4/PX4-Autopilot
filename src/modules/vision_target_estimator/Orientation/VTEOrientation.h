@@ -64,7 +64,6 @@
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include "KF_orientation_unified.h"
-#include "python_derivation/generated/state.h"
 
 using namespace time_literals;
 
@@ -133,7 +132,7 @@ private:
 		bool updated_theta = false;
 		float meas_theta = 0.f;
 		float meas_unc_theta = 0.f;
-		matrix::Vector<float, vtest::State::size> meas_h_theta;
+		matrix::Vector<float, State::size> meas_h_theta;
 	};
 
 	bool initTargetEstimator();
