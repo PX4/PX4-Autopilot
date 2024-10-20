@@ -53,6 +53,7 @@ InputTest::UpdateResult InputTest::update(unsigned int timeout_ms, ControlData &
 	}
 
 	control_data.type = ControlData::Type::Angle;
+	control_data.timestamp_last_update = hrt_absolute_time();
 
 	control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 	control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;

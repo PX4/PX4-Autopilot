@@ -112,7 +112,7 @@ private:
 	UpdateResult _process_set_manual_control(ControlData &control_data,
 			const gimbal_manager_set_manual_control_s &set_manual_control);
 	void _set_control_data_from_set_attitude(ControlData &control_data, const uint32_t flags, const matrix::Quatf &q,
-			const matrix::Vector3f &angular_velocity);
+			const matrix::Vector3f &angular_velocity, const uint64_t timestamp);
 	void _ack_vehicle_command(const vehicle_command_s &cmd, uint8_t result);
 	void _stream_gimbal_manager_information(const ControlData &control_data);
 	void _stream_gimbal_manager_status(const ControlData &control_data);
