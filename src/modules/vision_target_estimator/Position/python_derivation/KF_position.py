@@ -126,7 +126,7 @@ def get_Phi_and_G(dt: sf.Scalar,
         state_pred[key] for key in state.keys_recursive()
     ])
 
-    # Compute Jacobian A = ∂f/∂x
+    # Compute Phi = ∂f/∂x
     Phi = state_pred_matrix.jacobian([state])
     # Compute G = ∂f/∂w
     G = state_pred_matrix.jacobian(acc)
