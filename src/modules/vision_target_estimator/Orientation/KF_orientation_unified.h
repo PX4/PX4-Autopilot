@@ -34,8 +34,8 @@
 // TODO: rename to KF_position and clean up comments
 
 /**
- * @file KF_position_moving.h
- * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
+ * @file KF_orientation.h
+ * @brief Filter to estimate the orientation of moving targets. State: [yaw, yaw_rate]
  *
  * @author Jonas Perolini <jonspero@me.com>
  *
@@ -45,12 +45,19 @@
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
-#include "python_derivation/generated/state.h"
 
 #pragma once
 
 namespace vision_target_estimator
 {
+
+namespace State
+{
+static constexpr uint8_t yaw{0};
+static constexpr uint8_t yaw_rate{1};
+static constexpr uint8_t size{2};
+};
+
 class KF_orientation_unified
 {
 public:
@@ -71,20 +78,20 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt);
 
-	void setH(const matrix::Vector<float, vtest::State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
+	void setH(const matrix::Vector<float, State::size> &h_meas) {_meas_matrix_row_vect = h_meas;}
 
-	void setState(const matrix::Vector<float, vtest::State::size> &state) {_state = state;}
+	void setState(const matrix::Vector<float, State::size> &state) {_state = state;}
 
-	void setStateVar(const matrix::Vector<float, vtest::State::size> &var)
+	void setStateVar(const matrix::Vector<float, State::size> &var)
 	{
-		const matrix::SquareMatrix<float, vtest::State::size> var_mat = diag(var);
+		const matrix::SquareMatrix<float, State::size> var_mat = diag(var);
 		_state_covariance = var_mat;
 	};
 
-	matrix::Vector<float, vtest::State::size> getState() { return _state;}
-	matrix::Vector<float, vtest::State::size> getStateVar()
+	matrix::Vector<float, State::size> getState() { return _state;}
+	matrix::Vector<float, State::size> getStateVar()
 	{
-		const matrix::SquareMatrix<float, vtest::State::size> var_mat = _state_covariance;
+		const matrix::SquareMatrix<float, State::size> var_mat = _state_covariance;
 		return var_mat.diag();
 	};
 
@@ -99,13 +106,24 @@ public:
 
 private:
 
-	matrix::Vector<float, vtest::State::size> _state;
+	matrix::SquareMatrix<float, State::size> getPhi(float dt)
+	{
 
-	matrix::Vector<float, vtest::State::size> _sync_state;
+		float data[State::size * State::size] = {
+			1, dt,
+			0, 1
+		};
 
-	matrix::Vector<float, vtest::State::size> _meas_matrix_row_vect;
+		return matrix::SquareMatrix<float, State::size>(data);
+	}
 
-	matrix::Matrix<float, vtest::State::size, vtest::State::size> _state_covariance;
+	matrix::Vector<float, State::size> _state;
+
+	matrix::Vector<float, State::size> _sync_state;
+
+	matrix::Vector<float, State::size> _meas_matrix_row_vect;
+
+	matrix::Matrix<float, State::size, State::size> _state_covariance;
 
 	float _innov{0.0f}; // residual of last measurement update
 

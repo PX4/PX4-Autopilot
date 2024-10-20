@@ -109,13 +109,13 @@ bool VTEOrientation::initEstimator(const float theta_init)
 
 	PX4_INFO("Theta init %.2f", (double)theta_init);
 
-	matrix::Vector<float, vtest::State::size> state_init;
-	// For moving targets, vtest::State::yaw_rate is init to zero, no need to explicitly set it.
-	state_init(vtest::State::yaw) = theta_init;
+	matrix::Vector<float, State::size> state_init;
+	// For moving targets, State::yaw_rate is init to zero, no need to explicitly set it.
+	state_init(State::yaw) = theta_init;
 
-	matrix::Vector<float, vtest::State::size> state_var_init;
+	matrix::Vector<float, State::size> state_var_init;
 
-	for (int i = 0; i < vtest::State::size; i++) {
+	for (int i = 0; i < State::size; i++) {
 		state_var_init(i) = _yaw_unc;
 	}
 
@@ -205,7 +205,7 @@ bool VTEOrientation::processObsVisionOrientation(const fiducial_marker_yaw_repor
 		obs.updated_theta = true;
 		obs.meas_unc_theta = vision_r_theta_unc;
 		obs.meas_theta = vision_r_theta;
-		obs.meas_h_theta(vtest::State::yaw) = 1;
+		obs.meas_h_theta(State::yaw) = 1;
 
 		return true;
 	}
@@ -272,20 +272,17 @@ void VTEOrientation::publishTarget()
 {
 	vision_target_est_orientation_s vision_target_orientation{};
 
-	matrix::Vector<float, vtest::State::size> state = _target_estimator_orientation->getState();
-	matrix::Vector<float, vtest::State::size> state_var = _target_estimator_orientation->getStateVar();
+	matrix::Vector<float, State::size> state = _target_estimator_orientation->getState();
+	matrix::Vector<float, State::size> state_var = _target_estimator_orientation->getStateVar();
 
 	vision_target_orientation.timestamp = _last_predict;
 	vision_target_orientation.orientation_valid = (hrt_absolute_time() - _last_update < target_valid_TIMEOUT_US);
 
-	vision_target_orientation.theta = state(vtest::State::yaw);
-	vision_target_orientation.cov_theta = state_var(vtest::State::yaw);
+	vision_target_orientation.theta = state(State::yaw);
+	vision_target_orientation.cov_theta = state_var(State::yaw);
 
-#if defined(CONFIG_VTEST_MOVING)
-	vision_target_orientation.v_theta = state(vtest::State::yaw_rate);
-	vision_target_orientation.cov_v_theta =  state_var(vtest::State::yaw_rate);
-
-#endif // CONFIG_VTEST_MOVING
+	vision_target_orientation.v_theta = state(State::yaw_rate);
+	vision_target_orientation.cov_v_theta =  state_var(State::yaw_rate);
 
 	_targetOrientationPub.publish(vision_target_orientation);
 }
