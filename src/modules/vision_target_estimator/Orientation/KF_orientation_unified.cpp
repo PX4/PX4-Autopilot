@@ -49,7 +49,7 @@ namespace vision_target_estimator
 void KF_orientation_unified::predictState(float dt)
 {
 
-	matrix::SquareMatrix<float, 2> phi = getPhi(dt);
+	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
 	_state = phi * _state;
 
 	for (int i = 0; i < State::size; i++) {
@@ -59,7 +59,7 @@ void KF_orientation_unified::predictState(float dt)
 
 void KF_orientation_unified::predictCov(float dt)
 {
-	matrix::SquareMatrix<float, 2> phi = getPhi(dt);
+	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
 	_state_covariance = phi * _state_covariance * phi.transpose();
 }
 
@@ -78,11 +78,11 @@ bool KF_orientation_unified::update()
 		return false;
 	}
 
-	const matrix::Matrix<float, 2, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
+	const matrix::Matrix<float, State::size, 1> kalmanGain = _state_covariance * _meas_matrix_row_vect / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
 
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < State::size; i++) {
 		_state(i) = matrix::wrap_pi(_state(i));
 	}
 
@@ -94,10 +94,10 @@ bool KF_orientation_unified::update()
 void KF_orientation_unified::syncState(float dt)
 {
 
-	matrix::SquareMatrix<float, 2> phi = getPhi(dt);
+	matrix::SquareMatrix<float, State::size> phi = getPhi(dt);
 	_sync_state = matrix::inv(phi) * _state;
 
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < State::size; i++) {
 		_sync_state(i) = matrix::wrap_pi(_sync_state(i));
 	}
 }
