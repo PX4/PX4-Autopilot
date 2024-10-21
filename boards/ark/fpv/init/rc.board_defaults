@@ -24,3 +24,5 @@ if ver hwtypecmp ARKFPV000
 then
 	param set-default SENS_TEMP_ID 3014666
 fi
+
+param set-default BAT1_V_DIV 21.0

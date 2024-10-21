@@ -156,17 +156,22 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL        	/* PB0 */  ADC1_CH(9)
 #define ADC_BATTERY_CURRENT_CHANNEL        	/* PC2 */  ADC3_CH(0)
 #define ADC_SCALED_12V_CHANNEL	     		/* PA4 */  ADC1_CH(18)
-#define ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL     /* PA0 */  ADC1_CH(16)
+#define ADC_SCALED_VDD_3V3_SENSORS_CHANNEL     /* PA0 */  ADC1_CH(16)
 #define ADC_SCALED_V5_CHANNEL                   /* PB1 */  ADC1_CH(5)
 #define ADC_HW_VER_SENSE_CHANNEL                /* PH3 */  ADC3_CH(14)
 #define ADC_HW_REV_SENSE_CHANNEL                /* PH4 */  ADC3_CH(15)
 
 #define ADC_CHANNELS \
-	((1 << ADC_SCALED_VDD_3V3_SENSORS1_CHANNEL) | \
-	 (1 << ADC_SCALED_V5_CHANNEL)) | \
-	(1 << ADC_SCALED_12V_CHANNEL) | \
-	(1 << ADC_BATTERY_VOLTAGE_CHANNEL) | \
-	(1 << ADC_BATTERY_CURRENT_CHANNEL)
+	((1 << ADC_BATTERY_VOLTAGE_CHANNEL)         | \
+	 (1 << ADC_BATTERY_CURRENT_CHANNEL)         | \
+	 (1 << ADC_SCALED_VDD_3V3_SENSORS_CHANNEL)  | \
+	 (1 << ADC_SCALED_V5_CHANNEL)               | \
+	 (1 << ADC_SCALED_12V_CHANNEL))
+
+
+#define BOARD_BATTERY1_V_DIV	 (21.0f) // (20k + 1k) / 1k = 21
+
+#define ADC_SCALED_PAYLOAD_SENSE ADC_SCALED_12V_CHANNEL
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
@@ -235,6 +240,8 @@
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PC13 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN13)
 
 
+#define BOARD_NUMBER_BRICKS             1
+
 /* Define True logic Power Control in arch agnostic form */
 
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
@@ -287,7 +294,7 @@
 #define BOARD_ADC_SERVO_VALID     (1)
 
 #define BOARD_ADC_BRICK_VALID   (px4_arch_gpioread(GPIO_VDD_5V_PGOOD))
-#define BOARD_ADC_12V_RAIL_VALID (px4_arch_gpioread(GPIO_VDD_12V_PGOOD))
+#define BOARD_GPIO_PAYOLOAD_V_VALID (px4_arch_gpioread(GPIO_VDD_12V_PGOOD))
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
