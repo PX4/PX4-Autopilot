@@ -77,11 +77,11 @@ INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
 	_register_cfg[2].clear_bits = ~_shunt_calibration;
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
-	_battery.setConnected(false);
-	_battery.updateVoltage(0.f);
-	_battery.updateCurrent(0.f);
-	_battery.updateTemperature(0.f);
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	Battery::InputSample invalid_sample {
+		.timestamp = hrt_absolute_time()
+	};
+
+	_battery.updateAndPublishBatteryStatus(invalid_sample);
 }
 
 INA238::~INA238()
@@ -245,25 +245,24 @@ int INA238::collect()
 		}
 	}
 
-	if (!success) {
+	Battery::InputSample sample{
+		.timestamp = hrt_absolute_time()
+	};
+
+	if (success) {
+		sample.voltage_v = bus_voltage * INA238_VSCALE;
+		sample.current_a = current * _current_lsb;
+		sample.temperature_c = temperature * INA238_TSCALE;
+
+	} else {
 		PX4_DEBUG("error reading from sensor");
-		bus_voltage = current = 0;
 	}
 
-	_battery.setConnected(success);
-	_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
-	_battery.updateCurrent(static_cast<float>(current * _current_lsb));
-	_battery.updateTemperature(static_cast<float>(temperature * INA238_TSCALE));
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	_battery.updateAndPublishBatteryStatus(sample);
 
 	perf_end(_sample_perf);
 
-	if (success) {
-		return PX4_OK;
-
-	} else {
-		return PX4_ERROR;
-	}
+	return success ? PX4_OK : PX4_ERROR;
 }
 
 void INA238::start()
@@ -310,11 +309,11 @@ void INA238::RunImpl()
 		ScheduleDelayed(INA238_CONVERSION_INTERVAL);
 
 	} else {
-		_battery.setConnected(false);
-		_battery.updateVoltage(0.f);
-		_battery.updateCurrent(0.f);
-		_battery.updateTemperature(0.f);
-		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+		Battery::InputSample invalid_sample {
+			.timestamp = hrt_absolute_time()
+		};
+
+		_battery.updateAndPublishBatteryStatus(invalid_sample);
 
 		if (init() != PX4_OK) {
 			ScheduleDelayed(INA238_INIT_RETRY_INTERVAL_US);
