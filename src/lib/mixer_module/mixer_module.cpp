@@ -259,7 +259,7 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 
 	cleanupFunctions();
 
-	const FunctionProviderBase::Context context{_interface, _param_thr_mdl_fac.reference()};
+	const FunctionProviderBase::Context context{_interface, _param_thr_mdl_fac.reference(), _param_mot_slew_max.reference()};
 	int provider_indexes[MAX_ACTUATORS] {};
 	int next_provider = 0;
 	int subscription_callback_provider_index = INT_MAX;
