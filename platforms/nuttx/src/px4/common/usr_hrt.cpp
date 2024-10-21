@@ -75,17 +75,6 @@ hrt_absolute_time(void)
 }
 
 /**
- * Store the absolute time in an interrupt-safe fashion
- */
-void
-hrt_store_absolute_time(volatile hrt_abstime *t)
-{
-	irqstate_t flags = px4_enter_critical_section();
-	*t = hrt_absolute_time();
-	px4_leave_critical_section(flags);
-}
-
-/**
  * Event dispatcher thread
  */
 int
@@ -122,7 +111,8 @@ void
 hrt_init(void)
 {
 	px4_register_shutdown_hook(hrt_request_stop);
-	g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, 1000, event_thread, NULL);
+	g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, PX4_STACK_ADJUSTED(1024),
+					    event_thread, NULL);
 }
 
 /**
