@@ -59,15 +59,9 @@ using namespace time_literals;
 #define ULANDING_MEASURE_INTERVAL       10_ms
 #define ULANDING_MAX_DISTANCE	        50.0f
 #define ULANDING_MIN_DISTANCE	        0.315f
-#define ULANDING_VERSION	        1
 
-#if ULANDING_VERSION == 1
 #define ULANDING_PACKET_HDR     254
 #define ULANDING_BUFFER_LENGTH  18
-#else
-#define ULANDING_PACKET_HDR     72
-#define ULANDING_BUFFER_LENGTH  9
-#endif
 
 /**
  * Assume standard deviation to be equal to sensor resolution.
