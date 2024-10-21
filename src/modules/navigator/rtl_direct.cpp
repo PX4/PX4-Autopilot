@@ -73,7 +73,6 @@ void RtlDirect::on_inactivation()
 void RtlDirect::on_activation()
 {
 	_global_pos_sub.update();
-	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 
 	parameters_update();
@@ -126,32 +125,29 @@ void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s 
 
 	parameters_update();
 
-	// Only allow to set a new approach if the mode is not activated yet.
-	if (!isActive()) {
-		_destination = rtl_position;
-		_force_heading = false;
+	_destination = rtl_position;
+	_force_heading = false;
 
-		// Input sanitation
-		if (!PX4_ISFINITE(_destination.lat) || !PX4_ISFINITE(_destination.lon)) {
-			// We don't have a valid rtl position, use the home position instead.
-			_destination.lat = _home_pos_sub.get().lat;
-			_destination.lon = _home_pos_sub.get().lon;
-			_destination.alt = _home_pos_sub.get().alt;
-			_destination.yaw = _home_pos_sub.get().yaw;
-		}
+	// Input sanitation
+	if (!PX4_ISFINITE(_destination.lat) || !PX4_ISFINITE(_destination.lon)) {
+		// We don't have a valid rtl position, use the home position instead.
+		_destination.lat = _home_pos_sub.get().lat;
+		_destination.lon = _home_pos_sub.get().lon;
+		_destination.alt = _home_pos_sub.get().alt;
+		_destination.yaw = _home_pos_sub.get().yaw;
+	}
 
-		if (!PX4_ISFINITE(_destination.alt)) {
-			// Not a valid rtl land altitude. Assume same altitude as home position.
-			_destination.alt = _home_pos_sub.get().alt;
-		}
+	if (!PX4_ISFINITE(_destination.alt)) {
+		// Not a valid rtl land altitude. Assume same altitude as home position.
+		_destination.alt = _home_pos_sub.get().alt;
+	}
 
-		_land_approach = sanitizeLandApproach(loiter_pos);
+	_land_approach = sanitizeLandApproach(loiter_pos);
 
-		const float dist_to_destination{get_distance_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon)};
+	const float dist_to_destination{get_distance_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon)};
 
-		if (dist_to_destination > _navigator->get_acceptance_radius()) {
-			_force_heading = true;
-		}
+	if (dist_to_destination > _navigator->get_acceptance_radius()) {
+		_force_heading = true;
 	}
 }
 
@@ -426,7 +422,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 	RTLState start_state_for_estimate;
 
-	if (isActive()) {
+	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 		start_state_for_estimate = _rtl_state;
 
 	} else {
@@ -527,7 +523,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 					initial_altitude = loiter_altitude;
 				}
 
-				_rtl_time_estimator.addDescendMCLand(_destination.alt - initial_altitude);
+				_rtl_time_estimator.addVertDistance(_destination.alt - initial_altitude);
 			}
 
 			break;
@@ -560,7 +556,6 @@ loiter_point_s RtlDirect::sanitizeLandApproach(loiter_point_s land_approach) con
 	if (!PX4_ISFINITE(land_approach.lat) || !PX4_ISFINITE(land_approach.lon)) {
 		sanitized_land_approach.lat = _destination.lat;
 		sanitized_land_approach.lon = _destination.lon;
-
 	}
 
 	if (!PX4_ISFINITE(land_approach.height_m)) {

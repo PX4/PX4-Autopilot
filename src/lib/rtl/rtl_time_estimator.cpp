@@ -51,7 +51,6 @@ RtlTimeEstimator::RtlTimeEstimator() : ModuleParams(nullptr)
 {
 	_param_mpc_z_v_auto_up = param_find("MPC_Z_V_AUTO_UP");
 	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
-	_param_mpc_land_speed = param_find("MPC_LAND_SPEED");
 	_param_fw_climb_rate = param_find("FW_T_CLMB_R_SP");
 	_param_fw_sink_rate = param_find("FW_T_SINK_R_SP");
 	_param_fw_airspeed_trim = param_find("FW_AIRSPD_TRIM");
@@ -130,17 +129,6 @@ void RtlTimeEstimator::addWait(float time_s)
 	}
 }
 
-void RtlTimeEstimator::addDescendMCLand(float alt)
-{
-	if (PX4_ISFINITE(alt)) {
-		_is_valid = true;
-
-		if (alt < -FLT_EPSILON && PX4_ISFINITE(alt)) {
-			_time_estimate += -alt / getHoverLandSpeed();
-		}
-	}
-}
-
 float RtlTimeEstimator::getCruiseGroundSpeed(const matrix::Vector2f &direction_norm)
 {
 	float cruise_speed = getCruiseSpeed();
@@ -200,17 +188,6 @@ float RtlTimeEstimator::getCruiseSpeed()
 		if (_param_rover_cruise_speed == PARAM_INVALID || param_get(_param_rover_cruise_speed, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}
-	}
-
-	return ret;
-}
-
-float RtlTimeEstimator::getHoverLandSpeed()
-{
-	float ret = 1e6f;
-
-	if (_param_mpc_land_speed == PARAM_INVALID || param_get(_param_mpc_land_speed, &ret) != PX4_OK) {
-		ret = 1e6f;
 	}
 
 	return ret;
