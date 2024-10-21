@@ -85,8 +85,8 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
 
-	EXPECT_TRUE(_ekf->local_position_is_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.runSeconds(2);
@@ -95,8 +95,8 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
 
-	EXPECT_TRUE(_ekf->local_position_is_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 
 	_ekf_wrapper.enableExternalVisionHeadingFusion();
 	_sensor_simulator.runSeconds(2);
@@ -105,8 +105,8 @@ TEST_F(EkfExternalVisionTest, checkVisionFusionLogic)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionVelocityFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingExternalVisionHeadingFusion());
 
-	EXPECT_TRUE(_ekf->local_position_is_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 }
 
 TEST_F(EkfExternalVisionTest, visionVelocityReset)

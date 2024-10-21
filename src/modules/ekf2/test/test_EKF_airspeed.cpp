@@ -207,7 +207,7 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoning)
 	EXPECT_NEAR(vel_wind_earth(0), 0.f, .1f);
 	EXPECT_NEAR(vel_wind_earth(1), 0.f, .1f);
 
-	EXPECT_TRUE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
 }
 
 TEST_F(EkfAirspeedTest, testAirspeedDeadReckoningLatLonAltReset)
@@ -239,7 +239,7 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoningLatLonAltReset)
 	_sensor_simulator.runSeconds(10.f);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingAirspeedFusion());
 
-	EXPECT_TRUE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
 
 	// WHEN: an external position reset is sent
 	ResetLoggingChecker reset_logging_checker(_ekf);
@@ -260,7 +260,7 @@ TEST_F(EkfAirspeedTest, testAirspeedDeadReckoningLatLonAltReset)
 	EXPECT_NEAR(altitude_est, altitude_new, 0.01f);
 	EXPECT_NEAR(latitude_est, latitude_new, 1e-3f);
 	EXPECT_NEAR(longitude_est, longitude_new, 1e-3f);
-	EXPECT_TRUE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
 
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));

@@ -117,5 +117,5 @@ TEST_F(EkfFakePosTest, testValidFakePosValidLocalPos)
 	_sensor_simulator.runSeconds(60);
 
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().valid_fake_pos);
-	EXPECT_TRUE(_ekf->local_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 }
