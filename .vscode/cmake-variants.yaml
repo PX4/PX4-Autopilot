@@ -186,6 +186,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_fmu-v6x_default
+    ark_fpv_bootloader:
+      short: ark_fpv_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_fpv_bootloader
+    ark_fpv_default:
+      short: ark_fpv_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_fpv_default
     ark_pi6x_bootloader:
       short: ark_pi6x_bootloader
       buildType: MinSizeRel
