@@ -53,6 +53,9 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 
+	updateParameters();
+	updateSubscribers();
+
 	_vel_z_filter.setParameters(math::constrain(_deltatime, 0.01f, 0.1f), _vel_z_filter_time_const);
 
 	_decel_error_bt_int = 0.f;
@@ -181,12 +184,9 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 
 	if (current_pos_sp.valid && local_pos.xy_valid) {
 
-		// Compute backtransition end-point in local reference frame body x-direction -> dist_body_forward
-		MapProjection map_proj{local_pos.ref_lat, local_pos.ref_lon};
-
 		float pos_sp_x, pos_sp_y = 0.f;
-		map_proj.project(current_pos_sp.lat, current_pos_sp.lon, pos_sp_x,
-				 pos_sp_y);
+		_geo_projection.project(current_pos_sp.lat, current_pos_sp.lon, pos_sp_x,
+					pos_sp_y);
 
 		// Compute backtransition end-point w.r.t. vehicle
 		const float pos_sp_dx = pos_sp_x - local_pos.x;
@@ -203,8 +203,6 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 				// Note this is deceleration (i.e. negative acceleration), and therefore the minus sign is skipped
 				deceleration_sp = vel_body_forward * vel_body_forward / (2.f * dist_body_forward);
 
-				PX4_INFO("Computed deceleration_sp: %f", (double)(deceleration_sp));
-
 				// Check if the deceleration setpoint is finite and within limits
 				if (!PX4_ISFINITE(deceleration_sp)) {
 					deceleration_sp = default_deceleration_sp;
@@ -217,23 +215,26 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 		}
 	}
 
-	PX4_INFO("Applied deceleration_sp: %f", (double)(deceleration_sp));
+	float pitch_sp_new = _decel_error_bt_int;
 
+	// Update deceleration error integrator
 	// get accel error, positive means decelerating too slow, need to pitch up (must reverse accel_body_forward, as it is a positive number)
 	float deceleration_error = deceleration_sp - (-accel_body_forward);
 
-	float pitch_sp_new = _decel_error_bt_int;
-	PX4_INFO("Pitch setpoint: %f", (double)(math::degrees(pitch_sp_new)));
-
 	updateBackTransitioDecelerationErrorIntegrator(deceleration_error);
 
-	return math::constrain(pitch_sp_new, .0f, _pitch_limit_bt);;
+	return math::constrain(pitch_sp_new, 0.f, _pitch_limit_bt);;
 }
 
 void FlightTaskTransition::updateBackTransitioDecelerationErrorIntegrator(const float deceleration_error)
 {
 	float integrator_input = _param_vt_b_dec_i * deceleration_error;
-	_decel_error_bt_int += integrator_input * math::constrain(_deltatime, 0.01f, 0.1f);
-	// Saturate the integrator value
-	_decel_error_bt_int = math::constrain(_decel_error_bt_int, .0f, _pitch_limit_bt);
+
+	if ((_decel_error_bt_int >= _pitch_limit_bt && deceleration_error > 0.f) || (_decel_error_bt_int <= .0f
+			&& deceleration_error < 0.f)) {
+		// If the integrator is already saturated and the error is positive, do not integrate
+		integrator_input = 0.f;
+	}
+
+	_decel_error_bt_int += integrator_input * math::constrain(_deltatime, 0.001f, 0.1f);
 }
