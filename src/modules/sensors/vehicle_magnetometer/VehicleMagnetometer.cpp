@@ -747,7 +747,7 @@ void VehicleMagnetometer::UpdateStatus()
 	}
 }
 
-void VehicleMagnetometer::PrintStatus()
+void VehicleMagnetometer::PrintStatus(matrix::Vector3f accel)
 {
 	if (_selected_sensor_sub_index >= 0) {
 		PX4_INFO_RAW("[vehicle_magnetometer] selected %s: %" PRIu32 " (%" PRId8 ")\n",
@@ -756,6 +756,20 @@ void VehicleMagnetometer::PrintStatus()
 	}
 
 	_voter.print();
+
+	// Yaw angle from this formula https://ahrs.readthedocs.io/en/latest/filters/tilt.html
+	float roll = atan2(accel(1), -accel(2)); // Note negata Az
+	float pitch = atan2(-accel(0), sqrt(accel(1) * accel(1) + accel(2) * accel(2)));
+
+	for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+		if (_calibration[sensor_index].device_id() != 0) {
+			float angle = atan2((double)_last_data[sensor_index](2) * sin(pitch) - (double)_last_data[sensor_index](1) * cos(pitch),
+					    (double)_last_data[sensor_index](0) * cos(roll) +
+					    sin(roll) * ((double)_last_data[sensor_index](1) * sin(pitch) + (double)_last_data[sensor_index](2) * cos(pitch)));
+
+			PX4_INFO_RAW("Sensor %i angle: %05.3f\n", sensor_index, (double)angle * 180 / M_PI);
+		}
+	}
 
 	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 		if (_advertised[i] && (_priority[i] > 0)) {
