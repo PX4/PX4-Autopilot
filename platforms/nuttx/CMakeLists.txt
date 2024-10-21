@@ -148,6 +148,8 @@ else()
 	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin)
 endif()
 
+set(PX4_DEBUG_SYMBOLS_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.dbg)
+
 if (NOT CONFIG_BUILD_FLAT)
 
 	target_link_libraries(nuttx_karch
@@ -237,6 +239,7 @@ if (NOT CONFIG_BUILD_FLAT)
 		COMMAND ${CMAKE_OBJCOPY} --gap-fill 0xFF --pad-to ${CONFIG_NUTTX_USERSPACE} -O binary ${PX4_BINARY_DIR_REL}/${KERNEL_NAME} ${PX4_BINARY_OUTPUT}
 		COMMAND cat ${PX4_BINARY_DIR_REL}/${PX4_BOARD}_user.bin >> ${PX4_BINARY_OUTPUT}
 
+		COMMAND ${CMAKE_OBJCOPY} --only-keep-debug ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_DEBUG_SYMBOLS_OUTPUT}
 		DEPENDS px4 px4_kernel
 	)
 
@@ -292,6 +295,7 @@ else()
 
 	add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
 		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT}
+		COMMAND ${CMAKE_OBJCOPY} --only-keep-debug ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_DEBUG_SYMBOLS_OUTPUT}
 		DEPENDS px4
 	)
 
@@ -310,7 +314,8 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				--git_identity ${PX4_SOURCE_DIR}
 				--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 				--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-				--image ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin > ${fw_package}
+				--image ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+				--debug_symbols ${PX4_BINARY_DIR}/${PX4_CONFIG}.dbg > ${fw_package}
 		DEPENDS
 			${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
 			airframes_xml
