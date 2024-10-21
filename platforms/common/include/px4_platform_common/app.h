@@ -54,7 +54,12 @@ public:
 	void requestExit() { _exitRequested = true; }
 
 	bool isRunning() { return _isRunning; }
-	void setRunning(bool running) { _isRunning = running; }
+	void setRunning(bool running) 
+	{ 
+		if(running) { _exitRequested = false; }
+		
+    		_isRunning = running; 
+	}
 
 protected:
 	bool _exitRequested;
