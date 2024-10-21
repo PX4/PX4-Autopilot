@@ -89,6 +89,7 @@ protected:
 	void _calculate_angle_output(const hrt_abstime &t);
 
 	float _angle_outputs[3] = { 0.f, 0.f, 0.f }; ///< calculated output angles (roll, pitch, yaw) [rad]
+	float _angle_outputs_compensated[3] = { 0.f, 0.f, 0.f }; ///< calculated output angles (roll, pitch, yaw) [rad]
 	hrt_abstime _last_update;
 
 private:
