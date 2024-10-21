@@ -123,14 +123,6 @@ void GotoControl::update(const float dt, const matrix::Vector3f &position, const
 
 	trajectory_setpoint.timestamp = goto_setpoint.timestamp;
 	_trajectory_setpoint_pub.publish(trajectory_setpoint);
-
-	vehicle_constraints_s vehicle_constraints{
-		.timestamp = goto_setpoint.timestamp,
-		.speed_up = NAN,
-		.speed_down = NAN,
-		.want_takeoff = false
-	};
-	_vehicle_constraints_pub.publish(vehicle_constraints);
 }
 
 void GotoControl::resetPositionSmoother(const matrix::Vector3f &position)

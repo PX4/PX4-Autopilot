@@ -72,6 +72,15 @@ bool FlightTaskManualAltitude::activate(const trajectory_setpoint_s &last_setpoi
 	return ret;
 }
 
+void FlightTaskManualAltitude::_setDefaultConstraints()
+{
+	FlightTask::_setDefaultConstraints();
+
+	// Apply velocity limits for manual modes
+	_constraints.speed_up = _param_mpc_z_v_man_up.get();
+	_constraints.speed_down = _param_mpc_z_v_man_dn.get();
+}
+
 void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 {
 	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_min)) {
@@ -92,8 +101,8 @@ void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	// Use sticks input with deadzone and exponential curve for vertical velocity
-	const float vel_max_up = fminf(_param_mpc_z_vel_max_up.get(), _velocity_constraint_up);
-	const float vel_max_down = fminf(_param_mpc_z_vel_max_dn.get(), _velocity_constraint_down);
+	const float vel_max_up = fminf(_param_mpc_z_v_man_up.get(), _velocity_constraint_up);
+	const float vel_max_down = fminf(_param_mpc_z_v_man_dn.get(), _velocity_constraint_down);
 	const float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? vel_max_down : vel_max_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks.getPositionExpo()(2);
 }
@@ -234,10 +243,10 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 		// TODO: manipulate the velocity setpoint instead of tweaking the saturation of the controller
 		if (PX4_ISFINITE(_max_distance_to_ground)) {
 			_constraints.speed_up = math::constrain(_param_mpc_z_p.get() * (_max_distance_to_ground - _dist_to_bottom),
-								-_param_mpc_z_vel_max_dn.get(), _param_mpc_z_vel_max_up.get());
+								-_param_mpc_z_v_man_dn.get(), _param_mpc_z_v_man_up.get());
 
 		} else {
-			_constraints.speed_up = _param_mpc_z_vel_max_up.get();
+			_constraints.speed_up = _param_mpc_z_v_man_up.get();
 		}
 
 		// if distance to bottom exceeded maximum distance, slowly approach maximum distance
@@ -247,10 +256,10 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 			// set position setpoint to maximum distance to ground
 			_position_setpoint(2) = _position(2) + delta_distance_to_max;
 			// limit speed downwards to 0.7m/s
-			_constraints.speed_down = math::min(_param_mpc_z_vel_max_dn.get(), 0.7f);
+			_constraints.speed_down = math::min(_param_mpc_z_v_man_dn.get(), 0.7f);
 
 		} else {
-			_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
+			_constraints.speed_down = _param_mpc_z_v_man_dn.get();
 		}
 	}
 }
