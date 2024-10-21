@@ -69,6 +69,7 @@
 #define GHST_FRAME_CRC_SIZE			(1U)
 #define GHST_FRAME_TYPE_SIZE			(1U)
 #define GHST_TYPE_DATA_CRC_SIZE			(12U)
+#define GHST_ADDR_FC				(130U)
 #define GHST_MAX_NUM_CHANNELS			(16)
 
 enum class ghst_parser_state_t : uint8_t {
@@ -251,7 +252,8 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 
 	if ((ghst_frame.type >= static_cast<uint8_t>(ghstFrameType::frameTypeFirst)) &&
 	    (ghst_frame.type <= static_cast<uint8_t>(ghstFrameType::frameTypeLast)) &&
-	    (ghst_frame.header.length == GHST_TYPE_DATA_CRC_SIZE)) {
+	    (ghst_frame.header.length == GHST_TYPE_DATA_CRC_SIZE) &&
+	    (ghst_frame.header.device_address == GHST_ADDR_FC)) {
 		const uint8_t crc = ghst_frame.payload[ghst_frame.header.length - 2U];
 
 		if (crc == ghst_frame_CRC(ghst_frame)) {
