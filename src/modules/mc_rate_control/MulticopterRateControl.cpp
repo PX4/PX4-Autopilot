@@ -214,7 +214,38 @@ MulticopterRateControl::Run()
 			}
 
 			// run rate controller
-			const Vector3f att_control = _rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
+			Vector3f att_control = _rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
+
+			// low pass filter the roll, pitch, and yaw actuator controls just before publishing
+			if (_param_mc_roll_cutoff.get() > 0.01f) {
+				_act_control_roll_filter.setParameters(dt, 1.f / (_param_mc_roll_cutoff.get() * M_TWOPI_F));
+
+				att_control(0) = _act_control_roll_filter.update(att_control(0));
+
+			} else {
+				_act_control_roll_filter.reset(att_control(0));
+			}
+
+			if (_param_mc_pitch_cutoff.get() > 0.01f) {
+				_act_control_pitch_filter.setParameters(dt, 1.f / (_param_mc_pitch_cutoff.get() * M_TWOPI_F));
+
+				att_control(1) = _act_control_pitch_filter.update(att_control(1));
+
+			} else {
+				_act_control_pitch_filter.reset(att_control(1));
+			}
+
+			if (_param_mc_yaw_cutoff.get() > 0.01f) {
+				_act_control_yaw_filter.setParameters(dt, 1.f / (_param_mc_yaw_cutoff.get() * M_TWOPI_F));
+
+				att_control(2) = _act_control_yaw_filter.update(att_control(2));
+
+			} else {
+				_act_control_yaw_filter.reset(att_control(2));
+			}
+
+			// End low pass filtering of actuator controls
+
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
