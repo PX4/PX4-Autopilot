@@ -8,6 +8,7 @@ do
   [[ "${repo}" == *saluki-sec-scripts ]] || \
   [[ "${repo}" == *pfsoc_crypto ]]  || \
   [[ "${repo}" == *pfsoc_keystore ]]  || \
+  [[ "${repo}" == *imx9_keystore ]]  || \
   [[ "${repo}" == *pf_crypto ]] || \
   [[ "${repo}" == *px4_fw_update_client ]] || \
   [[ "${repo}" == *secure_udp ]] || \
