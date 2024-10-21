@@ -109,3 +109,6 @@
 [submodule "src/modules/secure_udp_proxy"]
 	path = src/modules/secure_udp_proxy
 	url = git@github.com:tiiuae/secure-udp-proxy.git
+[submodule "src/drivers/imx9_keystore"]
+	path = src/drivers/imx9_keystore
+	url = git@github.com:tiiuae/imx9_keystore.git
