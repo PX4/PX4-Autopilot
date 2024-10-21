@@ -38,6 +38,21 @@
  *
  */
 
+
+/**
+ * Minimum motor rise time (slew rate limit)
+ *
+ * Forces the motor output signal to take at least the configured time (in seconds)
+ * to traverse its full range, either [0%, 100%] or [-100%, 100%].
+ *
+ * A value of zero disables the limit.
+ *
+ * @min 0.0
+ * @unit s
+ * @group Motors
+ */
+PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
+
 /**
  * Thrust to motor control signal model parameter
  *
@@ -52,6 +67,6 @@
  * @max 1.0
  * @decimal 1
  * @increment 0.1
- * @group PWM Outputs
+ * @group Motors
  */
 PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);

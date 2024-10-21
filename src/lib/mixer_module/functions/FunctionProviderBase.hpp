@@ -48,6 +48,7 @@ public:
 	struct Context {
 		px4::WorkItem &work_item;
 		const float &thrust_factor;
+		const float &motor_rise_time;
 	};
 
 	FunctionProviderBase() = default;

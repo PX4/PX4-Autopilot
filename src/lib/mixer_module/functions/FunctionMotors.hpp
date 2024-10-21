@@ -50,10 +50,12 @@ public:
 
 	FunctionMotors(const Context &context) :
 		_topic(&context.work_item, ORB_ID(actuator_motors)),
-		_thrust_factor(context.thrust_factor)
+		_thrust_factor(context.thrust_factor),
+		_motor_rise_time(context.motor_rise_time)
 	{
 		for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
 			_data.control[i] = NAN;
+			_last_control[i] = NAN;
 		}
 	}
 
@@ -63,6 +65,23 @@ public:
 	{
 		if (_topic.update(&_data)) {
 			updateValues(_data.reversible_flags, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
+		}
+
+		if (_motor_rise_time > FLT_EPSILON) { // also makes sure to not divide by zero
+			hrt_abstime now = hrt_absolute_time();
+			const float dt = (now - _timestamp_last_update) / 1e6f;
+			// (rise time [-1,1] = 2 / slew) -> (slew = 2 / rise time [-1,1])
+			const float delta_max = 2.f / _motor_rise_time * dt;
+
+			for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
+				if (PX4_ISFINITE(_last_control[i])) {
+					_data.control[i] = _last_control[i] + math::constrain(_data.control[i] - _last_control[i], -delta_max, delta_max);
+				}
+
+				_last_control[i] = _data.control[i];
+			}
+
+			_timestamp_last_update = now;
 		}
 	}
 
@@ -120,4 +139,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _topic;
 	actuator_motors_s _data{};
 	const float &_thrust_factor;
+	const float &_motor_rise_time; // Parameter to configure slew rate
+	float _last_control[actuator_motors_s::NUM_CONTROLS]; // for slew rate
+	hrt_abstime _timestamp_last_update{0};
 };
