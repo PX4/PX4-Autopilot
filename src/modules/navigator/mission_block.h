@@ -53,6 +53,9 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
+#include <commander/px4_custom_mode.h>
+#include <uORB/topics/vehicle_command.h>
+
 // cosine of maximal course error to exit loiter if exit course is enforced (fixed-wing only)
 static constexpr float kCosineExitCourseThreshold = 0.99619f; // cos(5°)
 
