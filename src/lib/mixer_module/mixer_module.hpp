@@ -69,13 +69,14 @@ using namespace time_literals;
 class OutputModuleInterface : public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
+	// 여기 손봐야하나?
+	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS; // 16이란 값이 들어간다
 
 	OutputModuleInterface(const char *name, const px4::wq_config_t &config) :
 		px4::ScheduledWorkItem(name, config),
 		ModuleParams(nullptr)
 	{}
-
+	// updateOurputs() 각 매개변수 설명:
 	/**
 	 * Callback to update the (physical) actuator outputs in the driver
 	 * @param stop_motors if true, all motors must be stopped (if false, individual motors
