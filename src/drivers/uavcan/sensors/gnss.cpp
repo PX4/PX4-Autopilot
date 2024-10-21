@@ -46,6 +46,7 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <lib/parameters/param.h>
 
 using namespace time_literals;
@@ -353,8 +354,9 @@ void UavcanGnssBridge::gnss_relative_sub_cb(const
 	_last_gnss_relative_timestamp = hrt_absolute_time();
 
 	_rel_heading_valid = msg.reported_heading_acc_available;
-	_rel_heading = math::radians(msg.reported_heading_deg);
-	_rel_heading_accuracy = math::radians(msg.reported_heading_acc_deg);
+	// Convert: -pi to pi
+	_rel_heading = matrix::wrap_pi(math::radians(msg.reported_heading_deg));
+	_rel_heading_accuracy = matrix::wrap_2pi(math::radians(msg.reported_heading_acc_deg));
 
 }
 template <typename FixType>
@@ -493,7 +495,9 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid) {
 		report.heading = _rel_heading;
-		report.heading_offset = _rel_heading_offset; // Configured via PX4 uavcan parameter
+
+		// Convert: -pi to pi
+		report.heading_offset = matrix::wrap_pi(math::radians(_rel_heading_offset)); // Configured via PX4 uavcan parameter
 		report.heading_accuracy = _rel_heading_accuracy;
 
 		if (!_rtk_fixed) {
