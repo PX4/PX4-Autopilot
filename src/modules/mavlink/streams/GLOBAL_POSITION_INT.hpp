@@ -76,10 +76,10 @@ private:
 			_home_sub.copy(&home);
 
 			if ((home.timestamp > 0) && home.valid_alt) {
-				msg.relative_alt = gpos.alt + home.alt;
+				msg.relative_alt = (gpos.alt - home.alt) * 1000.0f;
 
 			} else {
-				msg.relative_alt = gpos.alt;
+				msg.relative_alt = gpos.alt * 1000.0f;
 			}
 
 			msg.time_boot_ms = gpos.timestamp / 1000;
