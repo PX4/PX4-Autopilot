@@ -292,3 +292,51 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_K, 1.0f);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
+
+/**
+ * Enable sine injection in rate controller
+ *
+ * @boolean
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_INT32(MC_INJECT_EN, 0);
+
+/**
+ * Specify roll, pitch, or yaw sine injection with 0, 1, or 2
+ *
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_INT32(MC_INJECT_RPY, 2);
+
+/**
+ * Number of frequencies to inject
+ *
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_INT32(MC_INJECT_CNT, 12);
+
+/**
+ * Starting frequency
+ *
+ * @decimal 2
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INJECT_START, 3.0f);
+
+/**
+ * Frequency increment
+ *
+ * @decimal 2
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INJECT_INC, 1.0f);
+
+/**
+ * Amplitude of sine injection
+ *
+ * @min 0
+ * @max 0.3
+ * @decimal 3
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INJECT_AMP, 0.05f);
