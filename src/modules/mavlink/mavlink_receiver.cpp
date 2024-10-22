@@ -803,6 +803,16 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 	mavlink_command_ack_t ack;
 	mavlink_msg_command_ack_decode(msg, &ack);
 
+	// We should not clog the command_ack queue with acks that are not for us.
+	// Therefore, we drop them early and move on.
+	bool target_ok = evaluate_target_ok(0, ack.target_system, ack.target_component);
+
+	if (!target_ok) {
+		PX4_DEBUG("Drop ack %d for %d from %d/%d to %d/%d\n",
+			  ack.result, ack.command, msg->sysid, msg->compid, ack.target_system, ack.target_component);
+		return;
+	}
+
 	MavlinkCommandSender::instance().handle_mavlink_command_ack(ack, msg->sysid, msg->compid, _mavlink.get_channel());
 
 	vehicle_command_ack_s command_ack{};
