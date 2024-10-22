@@ -173,7 +173,7 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 	// Retrieve default decelaration setpoint
 	const float default_deceleration_sp = _param_vt_b_dec_mss;
 	// Maximum allowed deceleration setpoint as a function of the nominal deceleration setpoint
-	const float max_deceleration_sp = 2.5f * default_deceleration_sp;
+	const float max_deceleration_sp = 2.f * default_deceleration_sp;
 
 	float deceleration_sp = default_deceleration_sp;
 
