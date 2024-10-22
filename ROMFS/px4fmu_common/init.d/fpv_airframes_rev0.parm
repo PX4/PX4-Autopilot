@@ -3,10 +3,6 @@
 # Airframe : Rev0
 #
 #
-#
-
-# ESC
-. ${R}etc/init.d/fpv_escs_modalai_tmotor_45A.parm
 
 # Motors
 . ${R}etc/init.d/fpv_motors_xing_2207_1855kv.parm
@@ -21,29 +17,21 @@
 # Control Allocator
 
 # PX4 Motor #1
-# param set-default CA_ROTOR0_PX 0.79664865
-# param set-default CA_ROTOR0_PY 1.0
 param set-default CA_ROTOR0_PX 0.08
 param set-default CA_ROTOR0_PY 0.095
 param set-default CA_ROTOR0_KM 0.050
 
 # PX4 Motor #2
-# param set-default CA_ROTOR1_PX -0.72077735
-# param set-default CA_ROTOR1_PY -1.0
 param set-default CA_ROTOR1_PX -0.07
 param set-default CA_ROTOR1_PY -0.095
 param set-default CA_ROTOR1_KM 0.050
 
 # PX4 Motor #3
-# param set-default CA_ROTOR2_PX 0.79664865
-# param set-default CA_ROTOR2_PY -1.0
 param set-default CA_ROTOR2_PX 0.08
 param set-default CA_ROTOR2_PY -0.095
 param set-default CA_ROTOR2_KM -0.05
 
 # PX4 Motor #4
-# param set-default CA_ROTOR3_PX -0.72077735
-# param set-default CA_ROTOR3_PY 1.0
 param set-default CA_ROTOR3_PX -0.07
 param set-default CA_ROTOR3_PY 0.095
 param set-default CA_ROTOR3_KM -0.05
@@ -70,16 +58,11 @@ param set-default MC_YAWRATE_I 0.5000
 param set-default MC_YAWRATE_MAX 1300.0000
 param set-default MC_YAWRATE_P 0.0599
 
-
-# XY Settings
-# FIXME CHECK XY_P _D, _I
 param set-default MPC_XY_P 0.95
 param set-default MPC_XY_VEL_D_ACC 0.2
 param set-default MPC_XY_VEL_I_ACC 0.1000
 param set-default MPC_XY_VEL_P_ACC 3.000
 
-# FIX & check Rev0 MPC_Z_P 1.0 on cb-005 was default 0.3
-# FIX & check Rev0 MPC_Z_MAN_EXPO 0.60 on cb-005 was default 0.3
 param set-default MPC_Z_P 1.0
 param set-default MPC_Z_MAN_EXPO 0.30
 param set-default MPC_Z_VEL_D_ACC 0.2

@@ -2,6 +2,7 @@
 #
 # ModalAI M0138
 #
+# Manufacturer : ModalAI
 
 # VOXL_ESC
 param set-default VOXL_ESC_CONFIG 1

@@ -1,9 +1,6 @@
 #!/bin/sh
 #
 # Flight Controlers STM32
-# STM32 only parameters
-# This allows different platforms Voxl2, STM, NXP to inherit differently
-# All of these parameters are not functional on the newer platform types IE voxl2
 
 # Enable Power Supply Checking
 # Note this check will prevent arming but not give a message to QGC !
