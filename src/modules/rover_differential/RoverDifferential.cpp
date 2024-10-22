@@ -63,7 +63,7 @@ void RoverDifferential::Run()
 
 	updateSubscriptions();
 
-	// Generate and publish attitude and velocity setpoints
+	// Generate and publish attitude, rate and speed setpoints
 	hrt_abstime timestamp = hrt_absolute_time();
 
 	switch (_nav_state) {
