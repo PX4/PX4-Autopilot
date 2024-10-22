@@ -64,7 +64,8 @@ private:
 		Warning = 0,        // Warning
 		Return = 1,         // Return mode (deprecated)
 		Land = 2,           // Land mode
-		ReturnOrLand = 3    // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+		ReturnOrLand = 3,   // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+		Descend = 4,        // Land without using position
 	};
 
 	enum class offboard_loss_failsafe_mode : int32_t {
@@ -76,6 +77,7 @@ private:
 		Hold_mode = 5,
 		Terminate = 6,
 		Disarm = 7,
+		Descend = 8,
 	};
 
 	enum class position_control_navigation_loss_response : int32_t {
@@ -89,6 +91,7 @@ private:
 		Land_mode = 2,
 		Return_mode = 3,
 		Terminate = 4,
+		Descend_mode = 5,
 	};
 
 	enum class imbalanced_propeller_failsafe_mode : int32_t {
@@ -96,6 +99,7 @@ private:
 		Warning = 0,
 		Return = 1,
 		Land = 2,
+		Descend = 3,
 	};
 
 	enum class geofence_violation_action : int32_t {
@@ -105,6 +109,7 @@ private:
 		Return_mode = 3,
 		Terminate = 4,
 		Land_mode = 5,
+		Descend_mode = 6,
 	};
 
 	enum class gcs_connection_loss_failsafe_mode : int32_t {
@@ -114,6 +119,7 @@ private:
 		Land_mode = 3,
 		Terminate = 5,
 		Disarm = 6,
+		Descend = 7,
 	};
 
 	enum class command_after_quadchute : int32_t {
@@ -121,6 +127,7 @@ private:
 		Return_mode = 0,
 		Land_mode = 1,
 		Hold_mode = 2,
+		Descend_mode = 3,
 	};
 
 	// COM_RC_IN_MODE parameter values
@@ -138,7 +145,8 @@ private:
 		Hold_mode = 2,
 		Return_mode = 3,
 		Terminate = 4,
-		Land_mode = 5
+		Land_mode = 5,
+		Descend = 6,
 	};
 
 	enum class command_after_remaining_flight_time_low : int32_t {

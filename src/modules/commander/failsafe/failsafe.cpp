@@ -63,6 +63,11 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
+	case gcs_connection_loss_failsafe_mode::Descend:
+		options.action = Action::Descend;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
 	case gcs_connection_loss_failsafe_mode::Terminate:
 		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		options.action = Action::Terminate;
@@ -117,6 +122,11 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
+	case geofence_violation_action::Descend_mode:
+		options.action = Action::Descend;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
 	default:
 		options.action = Action::Warn;
 		break;
@@ -148,6 +158,11 @@ FailsafeBase::ActionOptions Failsafe::fromImbalancedPropActParam(int param_value
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
+
+	case imbalanced_propeller_failsafe_mode::Descend:
+		options.action = Action::Descend;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
 	}
 
 	return options;
@@ -169,6 +184,11 @@ FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_valu
 
 	case actuator_failure_failsafe_mode::Land_mode:
 		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case actuator_failure_failsafe_mode::Descend_mode:
+		options.action = Action::Descend;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
@@ -211,6 +231,10 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 			options.action = Action::RTL;
 			break;
 
+		case LowBatteryAction::Descend:
+			options.action = Action::Descend;
+			break;
+
 		case LowBatteryAction::Land:
 			options.action = Action::Land;
 			break;
@@ -229,6 +253,10 @@ FailsafeBase::ActionOptions Failsafe::fromBatteryWarningActParam(int param_value
 		switch ((LowBatteryAction)param_value) {
 		case LowBatteryAction::Return:
 			options.action = Action::RTL;
+			break;
+
+		case LowBatteryAction::Descend:
+			options.action = Action::Descend;
 			break;
 
 		case LowBatteryAction::ReturnOrLand:
@@ -264,6 +292,11 @@ FailsafeBase::ActionOptions Failsafe::fromQuadchuteActParam(int param_value)
 
 	case command_after_quadchute::Land_mode:
 		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case command_after_quadchute::Descend_mode:
+		options.action = Action::Descend;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
@@ -305,6 +338,10 @@ FailsafeBase::Action Failsafe::fromOffboardLossActParam(int param_value, uint8_t
 	case offboard_loss_failsafe_mode::Land_mode:
 		action = Action::Land;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+		break;
+
+	case offboard_loss_failsafe_mode::Descend:
+		action = Action::Descend;
 		break;
 
 	case offboard_loss_failsafe_mode::Hold_mode:
@@ -357,6 +394,11 @@ FailsafeBase::ActionOptions Failsafe::fromHighWindLimitActParam(int param_value)
 
 	case command_after_high_wind_failsafe::Land_mode:
 		options.action = Action::Land;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
+	case command_after_high_wind_failsafe::Descend:
+		options.action = Action::Descend;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
