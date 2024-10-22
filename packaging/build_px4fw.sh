@@ -30,13 +30,6 @@ else
             unset SIGNING_ARGS
         fi
 
-        # TODO: remove this when we want to enable signed boot for imx93
-        if [[ $NAME = saluki-nxp93 ]]
-        then
-            unset SIGNING_TOOL
-            unset SIGNING_ARGS
-        fi
-
         # Remove old build output
         rm -Rf build/${arg}
         # Build
