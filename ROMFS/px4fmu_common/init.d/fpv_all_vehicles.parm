@@ -43,18 +43,6 @@ param set-default COM_ARM_EKF_VEL 0.000
 param set-default COM_ARM_EKF_POS 0.000
 param set-default COM_ARM_EKF_YAW 0.000
 
-# COM_BAT_ACT_T 10.0 (old default) vs 5.0 new default
-# https://github.com/PX4/PX4-Autopilot/commit/455b885f86754985fb07726b7975f0f028537204#diff-98b4e0f87126f3486c8dda8f693ee45c682a856f17958aed5a33d51e5fd27766L300
-# Renamed COM_BAT_ACT_T  -> COM_FAIL_ACT_T
-# I do not like this as it could?? affect other failsafe types other than battery?
-# change in behavior?
-#
-# For now leave at new default
-# param set-default COM_FAIL_ACT_T 10.0
-
-# note these Probably doesnt matter
-# COM_POS_FS_EPV 10
-
 param set-default COM_ARM_BAD_INOV 1
 param set-default COM_ARM_IMU_ACC 0.0
 param set-default COM_ARM_IMU_GYR 0.0
@@ -84,9 +72,6 @@ param set-default FD_FAIL_R 180
 # Turn off Optical Flow Explictly
 param set-default EKF2_OF_CTRL 0
 
-# EKF2_OF_DELAY 20.0 ms (default) or 80.0 ms on Modal Params
-# EKF2_OF_N_MIN 0.15 rad/s vs default of 0.5 rad/s
-
 # Turn off Fake Position Fusion
 param set-default EKF2_FP_ALIM 0.0
 
@@ -107,9 +92,6 @@ param set-default EKF2_GND_EFF_DZ 0.0
 param set-default EKF2_MAG_TYPE 5
 
 # Single-instance EKF Params
-# These changed ??? ot N/A
-# While we should have plenty of power for many ekf lanes
-# it does open up more code
 param set-default SENS_MAG_MODE 1
 param set-default SENS_IMU_MODE 1
 param set-default EKF2_MULTI_MAG 0
@@ -120,9 +102,6 @@ param set-default EKF2_MAG_CHECK 0
 
 # EKF Range Finder Params
 param set-default EKF2_RNG_CTRL 0
-# EKF2_RNG_A_HMAX 5.0 (default) or modal 1.0
-# EKF2_RNG_NOISE 0.1 (default) or 1.0
-
 
 # GPS EKF Checks
 param set-default EKF2_REQ_EPH 6.0000
@@ -133,20 +112,10 @@ param set-default EKF2_REQ_SACC 1.0000
 # Geofence Failsafe Action
 param set-default GF_ACTION 1
 
-# GPS
-# uneeded  I think??
-# param set-default GPS_1_CONFIG 201
-# GPS_UBX_DYNMODEL 6 or Modal 7 (default)
-# We may want to change to
-# param set-default GPS_UBX_DYNMODEL 6
-
 # Hover Thrust Estimator Params
-# We have problems with this section of code and need to work on all the HTE params
 param set-default HTE_HT_NOISE 0.0005
 
 # MPC_THR_HOVER should be between hover thrust estimator's min/max
-# We need to test this minimum further... especially during ground effect to find the true minimum hover level.
-# Note previously HTE_THR_MIN was effectively 0.0
 param set-default HTE_THR_MIN 0.05
 param set-default HTE_THR_MAX 0.6
 
@@ -162,10 +131,6 @@ param set-default IMU_GYRO_FFT_EN 1
 param set-default IMU_GYRO_FFT_LEN 1024
 param set-default IMU_GYRO_FFT_MAX 192.0000
 param set-default IMU_GYRO_FFT_MIN 32.0000
-
-# Shows as N/A on vehicle but can be in the code on 1.14?
-# This module might not be starting?
-# param set-default IMU_GYRO_CAL_EN 1
 
 # Commander only allow manual input from an RC transmitter
 param set-default COM_RC_IN_MODE 0
