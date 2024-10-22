@@ -26,6 +26,6 @@ msp_dp_osd start -d /dev/ttyS6
 
 if param greater VOXL_ESC_CONFIG 0
 then
-	usleep 1000000
+	usleep 1500000
 	voxl_esc start
 fi
