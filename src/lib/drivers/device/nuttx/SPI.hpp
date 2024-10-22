@@ -161,10 +161,12 @@ protected:
 	 */
 	void		set_lockmode(enum LockMode mode) { _locking_mode = mode; }
 
+	void		set_cs_to_sck_delay(uint32_t delay_ns) { _cs_to_sck_ns = delay_ns; }
 private:
 	uint32_t		_device;
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
+	uint32_t		_cs_to_sck_ns {0};
 	struct spi_dev_s	*_dev {nullptr};
 
 	LockMode		_locking_mode{LOCK_THREADS};	/**< selected locking mode */

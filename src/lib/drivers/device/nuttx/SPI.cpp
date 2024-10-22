@@ -50,6 +50,10 @@
 # error This driver requires CONFIG_SPI_EXCHANGE
 #endif
 
+#ifndef SPI_CS_TO_SCK_DELAY
+#define SPI_CS_TO_SCK_DELAY(dev, dly_ns) if (dly_ns) px4_udelay(((dly_ns) + 999) / 1000)
+#endif
+
 namespace device
 {
 
@@ -169,6 +173,7 @@ SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	SPI_SETMODE(_dev, _mode);
 	SPI_SETBITS(_dev, 8);
 	SPI_SELECT(_dev, _device, true);
+	SPI_CS_TO_SCK_DELAY(_dev, _cs_to_sck_ns);
 
 	/* do the transfer */
 	SPI_EXCHANGE(_dev, send, recv, len);
@@ -221,6 +226,7 @@ SPI::_transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 	SPI_SETMODE(_dev, _mode);
 	SPI_SETBITS(_dev, 16);			/* 16 bit transfer */
 	SPI_SELECT(_dev, _device, true);
+	SPI_CS_TO_SCK_DELAY(_dev, _cs_to_sck_ns);
 
 	/* do the transfer */
 	SPI_EXCHANGE(_dev, send, recv, len);
