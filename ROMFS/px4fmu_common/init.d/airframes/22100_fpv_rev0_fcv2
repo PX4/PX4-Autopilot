@@ -41,6 +41,37 @@ param set-default MAV_1_MODE 0
 # PX4 Port Name : TELEM1, "/dev/ttyS6"
 # FCV2 Connector : J1
 param set-default MSP_OSD_CONFIG 101
+
+# skyvision
+param set-default OSD_RSSI_COL -1
+param set-default OSD_RSSI_ROW -1
+param set-default OSD_REMOTE 1
+param set-default OSD_CURR_COL 40
+param set-default OSD_CURR_ROW 16
+param set-default OSD_BATT_COL -1
+param set-default OSD_BATT_ROW -1
+param set-default OSD_CBATT_COL 32
+param set-default OSD_CBATT_ROW 17
+param set-default OSD_RDY_COL 23
+param set-default OSD_RDY_ROW 9
+param set-default OSD_LOG_LEVEL 0
+param set-default OSD_STATUS_COL 23
+param set-default OSD_STATUS_ROW 10
+param set-default OSD_FM_COL 1
+param set-default OSD_FM_ROW 17
+param set-default OSD_HOME_COL -1
+param set-default OSD_HOME_ROW -1
+param set-default OSD_LAT_COL -1
+param set-default OSD_LAT_ROW -1
+param set-default OSD_LONG_COL -1
+param set-default OSD_LONG_ROW -1
+param set-default OSD_CH_COL 24
+param set-default OSD_CH_ROW 8
+param set-default OSD_HDG_COL 26
+param set-default OSD_HDG_ROW 17
+param set-default OSD_CHANNEL 1
+param set-default OSD_BAND 5
+
 param set-default SER_TEL1_BAUD 115200
 
 # Flight Controller Rotation : Pitch 180 deg
