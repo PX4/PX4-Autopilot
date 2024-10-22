@@ -29,3 +29,5 @@ param set-default BAT1_V_DIV 21.0
 
 param set-default RC_CRSF_PRT_CFG 300
 param set-default RC_SBUS_PRT_CFG 0
+
+param set-default IMU_GYRO_DNF_EN 3
