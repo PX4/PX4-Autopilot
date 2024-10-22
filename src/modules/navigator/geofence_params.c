@@ -57,6 +57,7 @@
  * @value 3 Return mode
  * @value 4 Terminate
  * @value 5 Land mode
+ * @value 6 Descend mode
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ACTION, 2);
