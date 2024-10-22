@@ -113,6 +113,7 @@ px4_add_romfs_files(
 	18001_TF-B1
 
 	# [22000, 22999] Reserve for custom models
+	22100_fpv_rev0_fcv2
 
 	24001_dodeca_cox
 

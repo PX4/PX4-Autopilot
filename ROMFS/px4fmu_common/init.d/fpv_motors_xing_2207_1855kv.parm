@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Xing 2207 1855 kV
+#
+# Manufacturer : Xing
+# kV : 1855
+# Max. volts : 6S
+# Website :
+
+param set-default THR_MDL_FAC 0.8069
+
+# If a ModalAI ESC is used then set the RPM based control limits
+if param greater -s VOXL_ESC_CONFIG 0
+then
+	param set-default VOXL_ESC_RPM_MAX 24000
+	param set-default VOXL_ESC_RPM_MIN 3000
+fi

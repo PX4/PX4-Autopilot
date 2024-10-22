@@ -56,4 +56,12 @@ px4_add_romfs_files(
 	rc.vehicle_setup
 	rc.vtol_apps
 	rc.vtol_defaults
+	fpv_airframes_rev0.parm
+	fpv_all_vehicles.parm
+	fpv_escs_modalai_m0138.parm
+	fpv_escs_modalai_tmotor_45A.parm
+	fpv_estimation_and_control_altitude_hold_only.parm
+	fpv_flight_controllers_stm32.parm
+	fpv_motors_xing_2207_1855kv.parm
+	fpv_rc_control_crsf.parm
 )

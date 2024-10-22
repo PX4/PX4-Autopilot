@@ -1,0 +1,395 @@
+#!/bin/sh
+#
+# Parameters for All Vehicles
+#
+#
+#
+
+
+# This parameter is a kludge in the code that defines behaviors specific to modal's vehicles
+# Be careful items and features defined under it could easily be moved outside of its scope
+param set-default MODALAI_CONFIG 1
+
+### ITEMS UNDER TEST ###
+param set-default EKF2_BOUNCE_FIX 1
+
+### ITEMS UNDER TEST ###
+
+# Battery Parameters
+# Note we do not actually use the capacity estimates for failsafes or user notifications
+# Thus they may be populated here but could be incorrect
+param set-default BAT1_CAPACITY 2800.0000
+param set-default BAT1_N_CELLS 6
+param set-default BAT1_R_INTERNAL 0.0123
+param set-default BAT1_V_EMPTY 2.75
+param set-default BAT_N_CELLS 6
+param set-default BAT_LOW_VOLT 18.6
+param set-default BAT_LOW_V_TIME 10
+param set-default BAT_LOW_THR 0.0
+param set-default BAT_CRIT_THR 0.0
+param set-default BAT_EMERGEN_THR 0.0
+
+
+# Control Allocator
+param set-default CA_R_REV 0
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+
+
+# arming / disarming params
+param set-default COM_ARM_EKF_BIAS 0.0000
+param set-default COM_ARM_EKF_HGT 0.0000
+param set-default COM_ARM_EKF_VEL 0.000
+param set-default COM_ARM_EKF_POS 0.000
+param set-default COM_ARM_EKF_YAW 0.000
+
+# COM_BAT_ACT_T 10.0 (old default) vs 5.0 new default
+# https://github.com/PX4/PX4-Autopilot/commit/455b885f86754985fb07726b7975f0f028537204#diff-98b4e0f87126f3486c8dda8f693ee45c682a856f17958aed5a33d51e5fd27766L300
+# Renamed COM_BAT_ACT_T  -> COM_FAIL_ACT_T
+# I do not like this as it could?? affect other failsafe types other than battery?
+# change in behavior?
+#
+# For now leave at new default
+# param set-default COM_FAIL_ACT_T 10.0
+
+# note these Probably doesnt matter
+# COM_POS_FS_EPV 10
+
+param set-default COM_ARM_BAD_INOV 1
+param set-default COM_ARM_IMU_ACC 0.0
+param set-default COM_ARM_IMU_GYR 0.0
+param set-default COM_ARM_MAG_ANG -1
+
+# RC controller mapping params
+# Map all to Altitude Control
+param set-default COM_FLTMODE1 1
+param set-default COM_FLTMODE2 1
+param set-default COM_FLTMODE3 1
+param set-default COM_FLTMODE4 1
+param set-default COM_FLTMODE5 1
+param set-default COM_FLTMODE6 1
+
+# Bootup Flight Mode is Altitude Hold
+param set-default COM_FLTMODE_INIT 1
+
+param set-default COM_DISARM_FORCE 1
+param set-default COM_DISARM_PRFLT -1.0000
+param set-default FD_FAIL_P 180
+param set-default FD_FAIL_R 180
+
+
+# Estimation EKF params
+
+# Optical flow params
+# Turn off Optical Flow Explictly
+param set-default EKF2_OF_CTRL 0
+
+# EKF2_OF_DELAY 20.0 ms (default) or 80.0 ms on Modal Params
+# EKF2_OF_N_MIN 0.15 rad/s vs default of 0.5 rad/s
+
+# Turn off Fake Position Fusion
+param set-default EKF2_FP_ALIM 0.0
+
+# EKF_AID mask (normal == 0)  (2 == enable optical fusion)
+param set-default EKF2_AID_MASK 0
+
+# GPS do not fuse any gps readings into the EKF
+param set-default EKF2_GPS_CTRL 0
+
+# EKF2_IMU_CTRL disable accel and gyro bias estimation and enable gravity fusion
+param set-default EKF2_IMU_CTRL 4
+param set-default EKF2_GRAV_NOISE 1.0
+
+# Baro noise is approximately 0.75m when out of ground effect from logs
+param set-default EKF2_BARO_NOISE 0.75
+param set-default EKF2_GND_EFF_DZ 0.0
+
+param set-default EKF2_MAG_TYPE 5
+
+# Single-instance EKF Params
+# These changed ??? ot N/A
+# While we should have plenty of power for many ekf lanes
+# it does open up more code
+param set-default SENS_MAG_MODE 1
+param set-default SENS_IMU_MODE 1
+param set-default EKF2_MULTI_MAG 0
+param set-default EKF2_MULTI_IMU 0
+
+param set-default EKF2_GPS_CHECK 0
+param set-default EKF2_MAG_CHECK 0
+
+# EKF Range Finder Params
+param set-default EKF2_RNG_CTRL 0
+# EKF2_RNG_A_HMAX 5.0 (default) or modal 1.0
+# EKF2_RNG_NOISE 0.1 (default) or 1.0
+
+
+# GPS EKF Checks
+param set-default EKF2_REQ_EPH 6.0000
+param set-default EKF2_REQ_EPV 10.0000
+param set-default EKF2_REQ_PDOP 3.5000
+param set-default EKF2_REQ_SACC 1.0000
+
+# Geofence Failsafe Action
+param set-default GF_ACTION 1
+
+# GPS
+# uneeded  I think??
+# param set-default GPS_1_CONFIG 201
+# GPS_UBX_DYNMODEL 6 or Modal 7 (default)
+# We may want to change to
+# param set-default GPS_UBX_DYNMODEL 6
+
+# Hover Thrust Estimator Params
+# We have problems with this section of code and need to work on all the HTE params
+param set-default HTE_HT_NOISE 0.0005
+
+# MPC_THR_HOVER should be between hover thrust estimator's min/max
+# We need to test this minimum further... especially during ground effect to find the true minimum hover level.
+# Note previously HTE_THR_MIN was effectively 0.0
+param set-default HTE_THR_MIN 0.05
+param set-default HTE_THR_MAX 0.6
+
+# IMU noise filtering params
+param set-default IMU_GYRO_RATEMAX 800
+param set-default IMU_DGYRO_CUTOFF 60.0000
+param set-default IMU_GYRO_CUTOFF 180.0000
+param set-default IMU_GYRO_DNF_BW 20.0000
+param set-default IMU_GYRO_DNF_EN 2
+
+# IMU FFT Filtering
+param set-default IMU_GYRO_FFT_EN 1
+param set-default IMU_GYRO_FFT_LEN 1024
+param set-default IMU_GYRO_FFT_MAX 192.0000
+param set-default IMU_GYRO_FFT_MIN 32.0000
+
+# Shows as N/A on vehicle but can be in the code on 1.14?
+# This module might not be starting?
+# param set-default IMU_GYRO_CAL_EN 1
+
+# Commander only allow manual input from an RC transmitter
+param set-default COM_RC_IN_MODE 0
+
+#######################################
+# Commander RC Failsafe Parameters
+#    Our failsafe behavior is upon loss of RC inputs after `COM_RC_LOSS_T` seconds then we switch to
+#	a blind land mode (as set by `NAV_RLC_ACT``). Next after an additional `COM_RCL_ACT_T` seconds
+#	the mode switches to `COM_RLC_ACT` (disarm).
+#
+#    Our landing speeds are set such that we descend at 1m/s. This setup allows us to descend approximately one floor
+#	before the disarm action occurs.
+#
+#
+# Failsafe Action 1
+# 	DESCEND the vehicle after the time given by COM_RC_LOSS_T in seconds
+param set-default NAV_RCL_ACT 7
+param set-default COM_RC_LOSS_T 0.3
+#
+# Land Mode Descent Speed (m/s)
+param set-default MPC_LAND_SPEED 3.0
+#
+# Failsafe Action 2 (Override)
+#	Next disarm the vehicle COM_RCL_ACT_T seconds after COM_RC_LOSS_T occurs
+param set-default COM_RCL_ACT 6
+param set-default COM_RCL_ACT_T 4.3
+#
+# Landing Detector Parameter
+#
+# Note the land detector may disarm the vehicle before COM_RCL_ACT occurs
+#  * LNDMC_ALT_GND Turns off ground effect compensation
+#  * The height above ground below which ground effect creates barometric altitude errors.
+#  * A negative value indicates no ground effect.
+#  * The landing detector is dependent on the Z-axis velocity. The z-axis velocity must be below LNDMC_Z_VEL_MAX.
+#  * MPC_LAND_CRWL must be set 1.2 times bigger than LNDMC_Z_VEL_MAX. If not, LNDMC_Z_VEL_MAX get lowered automatically.
+param set-default LNDMC_Z_VEL_MAX 0.50
+param set-default MPC_LAND_CRWL 1.0
+param set-default LNDMC_ALT_GND -1.0000
+# Time-out for auto disarm after landing
+param set-default COM_DISARM_LAND 0.5
+#######################################
+
+# Commander Offboard Control Params
+param set-default COM_OF_LOSS_T 3.0
+
+# Module: magnetometer_bias is not starting
+# These are N/A on vehicle
+# MBE_ENABLE & MBE_LEARN_GAIN
+
+# Set the vehicle type to Quadrotor
+param set-default MAV_TYPE 2
+
+# Turn off Arm/Disarm using stick gestures
+param set-default MAN_ARM_GESTURE 0
+
+# FIXME COME BACK TO MC MPC
+# in course params
+# MC_AT_EN 1  auto tune is enabled !!!!
+# also that param is not found in 1.14
+# module not started
+
+# RC controller feel params
+param set-default MC_ACRO_EXPO 0.30
+param set-default MC_ACRO_EXPO_Y 0.30
+param set-default MC_ACRO_P_MAX 600.0
+param set-default MC_ACRO_R_MAX 600.0
+param set-default MC_ACRO_SUPEXPO 0.84
+param set-default MC_ACRO_SUPEXPOY 0.84
+param set-default MC_ACRO_Y_MAX 600.0
+
+
+# Multi-Copter Position Control
+# Flight Performance restriction params
+param set-default MPC_MANTHR_MIN 0.0400
+param set-default MPC_MAN_TILT_MAX 20.0000
+param set-default MPC_TILTMAX_AIR 20.0000
+
+# Turn off TAU filtering on yaw. This is on by default to 0.008s for PX4
+param set-default MPC_MAN_Y_MAX 450.0
+param set-default MPC_MAN_Y_TAU 0.0
+
+param set-default MPC_THR_MAX 0.8000
+param set-default MPC_THR_MIN 0.0400
+param set-default MPC_THR_HOVER 0.23
+
+param set-default MPC_JERK_MAX 15.0000
+
+param set-default MPC_Z_MAN_EXPO 0.30
+
+# Z (Altitude) Settings
+# MPC_POS_MODE -> Hold position with Velocity Input
+param set-default MPC_POS_MODE 1
+
+# MPC_VZ_SRC use the z_derivative for Z Position control
+param set-default MPC_VZ_SRC 1
+
+param set-default MPC_Z_VEL_MAX_DN 6.0
+param set-default MPC_Z_VEL_MAX_UP 6.0
+
+param set-default MPC_Z_V_AUTO_UP 1.3000
+param set-default MPC_Z_V_AUTO_DN 1.0
+
+# On Screen Display (OSD) Params
+param set-default OSD_CH_HEIGHT -2
+param set-default OSD_SYMBOLS 786945
+param set-default OSD_DWELL_TIME 750
+param set-default OSD_LOG_LEVEL 4
+param set-default OSD_SCROLL_RATE 100
+param set-default OSD_BATT_LOW_V 18.6
+param set-default OSD_HDG_RST_CHAN 2
+param set-default OSD_DISPLAY_OPTS 1
+
+# Parameter Selector Module
+param set-default SELECTOR_ENABLED 1
+param set-default PSET_MODE 3
+param set-default PSET_CHANNEL 6
+param set-default PSET_FST_VELZ 5.0
+param set-default PSET_MED_VELZ 2.0
+
+# RC Ranges
+# These are the full normal range of a TangoIIs, Radiomaster TX16s, etc.
+# This assumes the RC transmitter has had its settings changed such that
+# the output range matches as close as possible IE 1000 uSec approx. equal to 997 uSec
+# MIN 1000.0 , TRIM 1500, MAX 2000
+
+param set-default RC1_MIN 1000.0
+param set-default RC1_MAX 2000.0
+param set-default RC1_TRIM 1500.0
+
+param set-default RC2_MIN 1000.0
+param set-default RC2_MAX 2000.0
+param set-default RC2_TRIM 1500.0
+
+param set-default RC3_MIN 1000.0
+param set-default RC3_MAX 2000.0
+param set-default RC3_TRIM 1000.0
+
+param set-default RC4_MIN 1000.0
+param set-default RC4_MAX 2000.0
+param set-default RC4_TRIM 1500.0
+
+param set-default RC5_MIN 1000.0
+param set-default RC5_MAX 2000.0
+param set-default RC5_TRIM 1500.0
+
+param set-default RC6_MIN 1000.0
+param set-default RC6_MAX 2000.0
+param set-default RC6_TRIM 1500.0
+
+param set-default RC7_MIN 1000.0
+param set-default RC7_MAX 2000.0
+param set-default RC7_TRIM 1500.0
+
+param set-default RC8_MIN 1000.0
+param set-default RC8_MAX 2000.0
+param set-default RC8_TRIM 1500.0
+
+param set-default RC9_MIN 1000.0
+param set-default RC9_MAX 2000.0
+param set-default RC9_TRIM 1500.0
+
+param set-default RC10_MIN 1000.0
+param set-default RC10_MAX 2000.0
+param set-default RC10_TRIM 1500.0
+
+param set-default RC11_MIN 1000.0
+param set-default RC11_MAX 2000.0
+param set-default RC11_TRIM 1500.0
+
+param set-default RC12_MIN 1000.0
+param set-default RC12_MAX 2000.0
+param set-default RC12_TRIM 1500.0
+
+# RC Mapping
+# Aux1 : Turtle Mode
+# Aux2 : OSD Heading Reset
+param set-default RC_MAP_ARM_SW 5
+param set-default RC_MAP_AUX1 10
+param set-default RC_MAP_AUX2 8
+param set-default RC_MAP_FLTMODE 6
+param set-default RC_MAP_KILL_SW 9
+
+param set-default RC_MAP_PITCH 2
+param set-default RC_MAP_ROLL 1
+param set-default RC_MAP_THROTTLE 3
+param set-default RC_MAP_YAW 4
+
+# Logging
+# Enable Defaults & EKF_Replay
+# FIXME Initial Flight_Test Log profile causes odd twitches in hover or increasing/decreasing throttle
+param set SDLOG_PROFILE 3
+
+# SKIP THE SENS_xxx params for now
+# most are correctly N?A since why load info for sensors we dont have
+
+# Optical Flow Sensors
+# param set-default SENS_FLOW_MINHGT 0.70
+# param set-default SENS_FLOW_MAXR 2.5
+# param set-default SENS_FLOW_ROT 2
+
+# Magnetometer
+param set-default SENS_MAG_AUTOCAL 0
+
+# Multi-GPS blending control set to always use the first instance
+param set-default SENS_GPS_MASK 0
+
+# Temperature Calibration Parameters do not exist
+# we may want these later
+# module may not be starting
+# SYS_CAL_ACCEL
+# SYS_CAL_GYRO
+# etc
+
+# Sensor Drivers
+# Enable GPS
+# Disable magnetometer for now
+param set-default SYS_HAS_GPS 1
+param set-default SYS_HAS_MAG 0
+
+# Temperature Compensation for Accel, Baro, Gyro
+# is not loading
+# TC_A_ENABLE
+# TC_B_ENABLE
+# TC_G_ENABLE
+
+# Disable UAVCAN
+ param set-default UAVCAN_ENABLE 0

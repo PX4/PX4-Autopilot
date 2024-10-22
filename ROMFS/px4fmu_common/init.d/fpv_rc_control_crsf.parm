@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# Radio Control TBS CRSF
+#
+# Manufacturer : TBS
+# Examples: TBS Crossfire Nano. Crossfire Nano diversity, Tracer nano
+# Website :
+
+param set-default RC_INPUT_PROTO 6
+
+# CRSF has 12 channels
+param set-default RC_CHAN_CNT 12

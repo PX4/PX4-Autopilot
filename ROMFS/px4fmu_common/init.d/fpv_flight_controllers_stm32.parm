@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Flight Controlers STM32
+# STM32 only parameters
+# This allows different platforms Voxl2, STM, NXP to inherit differently
+# All of these parameters are not functional on the newer platform types IE voxl2
+
+# Enable Power Supply Checking
+# Note this check will prevent arming but not give a message to QGC !
+param set-default CBRK_SUPPLY_CHK 0
+
+# System Checks and Config
+# param set-default SYS_DM_BACKEND 1
+
+# Enables Stack checking
+# param set-default SYS_STCK_EN 1
+
+# Warn when we dont have a SDCard
+param set-default COM_ARM_SDCARD 1
+
+# If the CPU useage goes above 90% prevent arming and prints a message
+param set-default COM_CPU_MAX 90.0
+
+# Log from first armed until shutdown
+param set-default SDLOG_MODE 4
+

@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# Estimation and Control
+#
+# Description :  Enables only estimation and control params needed for altitude hold. All other sources are turned off
+#
+# Estimation Types :
+#	Baro : YES
+#	GPS : not fused
+#	Magnetometer : not fused or enabled (in all vehicles)
+#	External Vision : none
+#	Rangefinder : none onboard, not fused or enabled (in all vehicles)
+# Control Modes:
+#	Altitude Hold, Velocity controlled : YES (in all vehicles)
+#	Position Control : none
+
+
+# Turn off using external vision inputs to the EKF
+param set-default EKF2_EV_CTRL 0
+
+# Sets the height reference to be baro
+param set-default EKF2_HGT_REF 0
+
+# Flight Mode
+# Set Mode 6 to altitude control
+param set-default COM_FLTMODE6 1

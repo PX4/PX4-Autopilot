@@ -1,0 +1,86 @@
+#!/bin/sh
+#
+# Airframe : Rev0
+#
+#
+#
+
+# ESC
+. ${R}etc/init.d/fpv_escs_modalai_tmotor_45A.parm
+
+# Motors
+. ${R}etc/init.d/fpv_motors_xing_2207_1855kv.parm
+
+# Radio Control
+. ${R}etc/init.d/fpv_rc_control_crsf.parm
+
+# Flight Controller
+# STM32 Base Parameters
+. ${R}etc/init.d/fpv_flight_controllers_stm32.parm
+
+# Control Allocator
+
+# PX4 Motor #1
+# param set-default CA_ROTOR0_PX 0.79664865
+# param set-default CA_ROTOR0_PY 1.0
+param set-default CA_ROTOR0_PX 0.08
+param set-default CA_ROTOR0_PY 0.095
+param set-default CA_ROTOR0_KM 0.050
+
+# PX4 Motor #2
+# param set-default CA_ROTOR1_PX -0.72077735
+# param set-default CA_ROTOR1_PY -1.0
+param set-default CA_ROTOR1_PX -0.07
+param set-default CA_ROTOR1_PY -0.095
+param set-default CA_ROTOR1_KM 0.050
+
+# PX4 Motor #3
+# param set-default CA_ROTOR2_PX 0.79664865
+# param set-default CA_ROTOR2_PY -1.0
+param set-default CA_ROTOR2_PX 0.08
+param set-default CA_ROTOR2_PY -0.095
+param set-default CA_ROTOR2_KM -0.05
+
+# PX4 Motor #4
+# param set-default CA_ROTOR3_PX -0.72077735
+# param set-default CA_ROTOR3_PY 1.0
+param set-default CA_ROTOR3_PX -0.07
+param set-default CA_ROTOR3_PY 0.095
+param set-default CA_ROTOR3_KM -0.05
+
+
+# PID controller tuning params
+
+param set-default MC_PITCH_P 8
+param set-default MC_PITCH_CUTOFF 60.0000
+param set-default MC_PITCHRATE_D 0.0013
+param set-default MC_PITCHRATE_I 0.7312
+param set-default MC_PITCHRATE_MAX 1600
+param set-default MC_PITCHRATE_P 0.1050
+param set-default MC_ROLL_P 8
+param set-default MC_ROLL_CUTOFF 60.0000
+param set-default MC_ROLLRATE_D 0.0013
+param set-default MC_ROLLRATE_I 0.5685
+param set-default MC_ROLLRATE_MAX 1600
+param set-default MC_ROLLRATE_P 0.0908
+param set-default MC_YAW_P 1.5
+param set-default MC_YAW_CUTOFF 25.02
+param set-default MC_YAWRATE_I 6.3370
+param set-default MC_YAWRATE_MAX 1300.0000
+param set-default MC_YAWRATE_P 0.1380
+
+
+# XY Settings
+# FIXME CHECK XY_P _D, _I
+param set-default MPC_XY_P 0.95
+param set-default MPC_XY_VEL_D_ACC 0.2
+param set-default MPC_XY_VEL_I_ACC 0.1000
+param set-default MPC_XY_VEL_P_ACC 3.000
+
+# FIX & check Rev0 MPC_Z_P 1.0 on cb-005 was default 0.3
+# FIX & check Rev0 MPC_Z_MAN_EXPO 0.60 on cb-005 was default 0.3
+param set-default MPC_Z_P 1.0
+param set-default MPC_Z_MAN_EXPO 0.30
+param set-default MPC_Z_VEL_D_ACC 0.2
+param set-default MPC_Z_VEL_I_ACC 1.2
+param set-default MPC_Z_VEL_P_ACC 5.7000

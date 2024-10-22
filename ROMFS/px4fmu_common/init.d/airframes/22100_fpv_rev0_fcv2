@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# @name FPV Rev0
+#
+# @type Quadrotor x
+# @class Copter
+#
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+# Parameters that apply to every vehicle SKU
+. ${R}etc/init.d/fpv_all_vehicles.parm
+
+# Physical Airframe
+. ${R}etc/init.d/fpv_airframes_rev0.parm
+
+# Enable only estimation and control params needed for altitude hold.
+. ${R}etc/init.d/fpv_estimation_and_control_altitude_hold_only.parm
+
+#####################################
+# Flight Controller
+# ModalAI FCV2
+# STM32H7
+
+# CRSF RC_Input
+# PX4 Port Name : RC_SERIAL_PORT, "/dev/ttyS5"
+# FCV2 Connector : J12
+
+# GPS
+# PX4 Port Name : GPS1, "/dev/ttyS0"
+# FCV2 Connector : J5
+
+# MAVLINK Configs parameters come back to these. I'm not
+# how these get used can't find like the others easily in the code
+# IE MAV_x_CONFIG
+param set-default MAV_1_CONFIG 0
+param set-default MAV_1_MODE 0
+
+# DJI MSP OSD Telemetry
+# PX4 Port Name : TELEM1, "/dev/ttyS6"
+# FCV2 Connector : J1
+param set-default MSP_OSD_CONFIG 101
+param set-default SER_TEL1_BAUD 115200
+
+# Flight Controller Rotation : Pitch 180 deg
+param set-default SENS_BOARD_ROT 12
+
+# IMU position with respect to the CG
+param set-default EKF2_IMU_POS_Y -0.0155
+param set-default EKF2_IMU_POS_Z 0.0040
+
+# GPS position with respect to the CG
+
+# ESC Motor Mapping & Directions
+. ${R}etc/init.d/fpv_escs_modalai_m0138.parm

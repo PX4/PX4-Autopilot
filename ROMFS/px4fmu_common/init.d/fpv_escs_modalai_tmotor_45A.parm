@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# ModalAI T-Motor 45A (reflashed firmware see voxl-esc-tools)
+#
+# Manufacturer : ModalAI
+# Max. Current : 45A
+# Max. Volts : 6S
+# Website :
+
+
+# VoXL_ESC
+param set-default VOXL_ESC_CONFIG 1
+param set-default VOXL_ESC_BAUD 2000000
+param set-default VOXL_ESC_MODE 1
+param set-default VOXL_ESC_VLOG 1
+
+# Vehicle Customized Parameters
+# Motor Ordering is dependent on the
+
+# # Motor Ordering
+# # FUNC1 -> MOTOR1
+# # FUNC2 -> MOTOR4
+# # FUNC3 -> MOTOR2
+# # FUNC4 -> MOTOR3
+# #
+# param set-default VOXL_ESC_FUNC1 102
+# param set-default VOXL_ESC_FUNC2 104
+# param set-default VOXL_ESC_FUNC3 101
+# param set-default VOXL_ESC_FUNC4 103
+
+# param set-default VOXL_ESC_SDIR1 0
+# param set-default VOXL_ESC_SDIR2 0
+# param set-default VOXL_ESC_SDIR3 0
+# param set-default VOXL_ESC_SDIR4 0

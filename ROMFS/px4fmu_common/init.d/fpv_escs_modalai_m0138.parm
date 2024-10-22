@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# ModalAI M0138
+#
+
+# VOXL_ESC
+param set-default VOXL_ESC_CONFIG 1
+param set-default VOXL_ESC_BAUD 2000000
+param set-default VOXL_ESC_MODE 1
+param set-default VOXL_ESC_VLOG 1
+
+# Vehicle Customized Parameters
+# Motor Ordering is dependent on the
+
+# Motor Ordering
+# FUNC1 -> MOTOR3
+# FUNC2 -> MOTOR2
+# FUNC3 -> MOTOR4
+# FUNC4 -> MOTOR1
+#
+param set-default VOXL_ESC_FUNC1 103
+param set-default VOXL_ESC_FUNC2 102
+param set-default VOXL_ESC_FUNC3 104
+param set-default VOXL_ESC_FUNC4 101
+
+param set-default VOXL_ESC_SDIR1 0
+param set-default VOXL_ESC_SDIR2 0
+param set-default VOXL_ESC_SDIR3 0
+param set-default VOXL_ESC_SDIR4 0
