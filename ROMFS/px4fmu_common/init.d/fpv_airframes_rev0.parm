@@ -51,23 +51,24 @@ param set-default CA_ROTOR3_KM -0.05
 
 # PID controller tuning params
 
-param set-default MC_PITCH_P 8
+param set-default MC_PITCH_P 5.5
 param set-default MC_PITCH_CUTOFF 60.0000
-param set-default MC_PITCHRATE_D 0.0013
-param set-default MC_PITCHRATE_I 0.7312
+param set-default MC_PITCHRATE_D 0.0005
+param set-default MC_PITCHRATE_I 0.4000
 param set-default MC_PITCHRATE_MAX 1600
-param set-default MC_PITCHRATE_P 0.1050
-param set-default MC_ROLL_P 8
+param set-default MC_PITCHRATE_P 0.0799
+param set-default MC_ROLL_P 5.5
 param set-default MC_ROLL_CUTOFF 60.0000
-param set-default MC_ROLLRATE_D 0.0013
-param set-default MC_ROLLRATE_I 0.5685
+param set-default MC_ROLLRATE_D 0.0005
+param set-default MC_ROLLRATE_I 0.2000
 param set-default MC_ROLLRATE_MAX 1600
-param set-default MC_ROLLRATE_P 0.0908
-param set-default MC_YAW_P 1.5
+param set-default MC_ROLLRATE_P 0.0799
+param set-default MC_YAW_P 2.0
 param set-default MC_YAW_CUTOFF 25.02
-param set-default MC_YAWRATE_I 6.3370
+param set-default MC_YAWRATE_D 0.000
+param set-default MC_YAWRATE_I 0.5000
 param set-default MC_YAWRATE_MAX 1300.0000
-param set-default MC_YAWRATE_P 0.1380
+param set-default MC_YAWRATE_P 0.0599
 
 
 # XY Settings

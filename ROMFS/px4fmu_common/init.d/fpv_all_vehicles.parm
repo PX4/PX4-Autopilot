@@ -221,20 +221,15 @@ param set-default MAV_TYPE 2
 # Turn off Arm/Disarm using stick gestures
 param set-default MAN_ARM_GESTURE 0
 
-# FIXME COME BACK TO MC MPC
-# in course params
-# MC_AT_EN 1  auto tune is enabled !!!!
-# also that param is not found in 1.14
-# module not started
 
 # RC controller feel params
-param set-default MC_ACRO_EXPO 0.30
-param set-default MC_ACRO_EXPO_Y 0.30
-param set-default MC_ACRO_P_MAX 600.0
-param set-default MC_ACRO_R_MAX 600.0
-param set-default MC_ACRO_SUPEXPO 0.84
-param set-default MC_ACRO_SUPEXPOY 0.84
-param set-default MC_ACRO_Y_MAX 600.0
+param set-default MC_ACRO_EXPO 0.000
+param set-default MC_ACRO_EXPO_Y 0.000
+param set-default MC_ACRO_P_MAX 200.0
+param set-default MC_ACRO_R_MAX 200.0
+param set-default MC_ACRO_SUPEXPO 0.000
+param set-default MC_ACRO_SUPEXPOY 0.000
+param set-default MC_ACRO_Y_MAX 100.0
 
 
 # Multi-Copter Position Control
