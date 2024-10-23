@@ -249,7 +249,7 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 
 		if (isActive()) {
 			start_item_index = math::max(_mission.current_seq, _mission.land_start_index);
-			is_in_climbing_submode = _needs_climbing;
+			is_in_climbing_submode = _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
 		} else {
 			start_item_index = _mission.land_start_index;
