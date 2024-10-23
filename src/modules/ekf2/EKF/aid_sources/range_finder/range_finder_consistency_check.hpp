@@ -41,6 +41,8 @@
 #define EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
 
 #include <mathlib/math/filter/AlphaFilter.hpp>
+#include <ekf_derivation/generated/state.h>
+
 
 class RangeFinderConsistencyCheck final
 {
@@ -62,13 +64,15 @@ public:
 	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT || _fixed_wing; }
 	void UpdateMiniKF(float z, float z_var, float vz, float vz_var, float dist_bottom, float dist_bottom_var,
 			  uint64_t time_us);
-	void initMiniKF(float p1, float p2, float x1, float x2);
+	void initMiniKF(float var_z, float var_terrain, float z, float dist_bottom);
 	void stopMiniKF()
 	{
-		_initialized = false;
+		if (_initialized) {
+			if (_state == KinematicState::CONSISTENT) {
+				_state = KinematicState::UNKNOWN;
+			}
 
-		if (_state == KinematicState::CONSISTENT) {
-			_state = KinematicState::UNKNOWN;
+			_initialized = false;
 		}
 	}
 	int getConsistencyState() const { return static_cast<int>(_state); }
@@ -88,14 +92,19 @@ public:
 		_gate = gate;
 	}
 
+	void run(const float z, const float vz, const matrix::SquareMatrix<float, estimator::State::size> P,
+		 const float dist_bottom, const float dist_bottom_var, uint64_t time_us);
+
+	uint8_t current_posD_reset_count{0};
+
+private:
+
 	matrix::SquareMatrix<float, 2> _R{};
 	matrix::SquareMatrix<float, 2> _P{};
 	matrix::SquareMatrix<float, 2> _A{};
 	matrix::SquareMatrix<float, 2> _H{};
 	matrix::Vector2f _x{};
 	bool _initialized{false};
-
-private:
 	float _innov{};
 	float _innov_var{};
 	uint64_t _time_last_update_us{0};
@@ -104,8 +113,9 @@ private:
 	float _gate{1.f};
 	int _sample_count{0};
 	KinematicState _state{KinematicState::UNKNOWN};
-	const int _min_nr_of_samples{10}; // hardcoded
+	int _min_nr_of_samples{0};
 	bool _fixed_wing{false};
+	uint8_t _last_posD_reset_count{0};
 };
 
 #endif // !EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
