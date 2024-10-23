@@ -2,39 +2,38 @@ module_name: MICROSTRAIN
 parameters:
     - group: Sensors
       definitions:
-        MS_SCHEDULE:
-            description:
-                short: rate to run the module
-                long: |
-                    rate to run ins module
-            type: int32
-            default: 2000
 
-        SENSOR_DELAY:
+        MS_IMU_RATE_HZ:
             description:
-                short: Add the 1.9ms delay
+                short: Accel Data Rate
                 long: |
-                    boolean to add the reading delay
-            type: boolean
-            default: 0
-
-        PR_UPDATE_RATE:
-            description:
-                short: Primary Update Rate
-                long: |
-                    Accel and Gyro update rate
+                    Accel data rate
+                    The INS driver will be scheduled at a rate 2*MS_IMU_RATE_HZ
                     Max Limit: 1000
                     The max limit should be divisible by the rate
+                    Restart required
             type: int32
             default: 500
 
-        SEC_UPDATE_RATE:
+        MS_MAG_RATE_HZ:
             description:
-                short: Secondary Update Rate
+                short: Mag Data Rate
                 long: |
-                    Mag and Baro update rate
+                    Mag data rate
                     Max Limit: 1000
                     The max limit should be divisible by the rate
+                    Restart required
+            type: int32
+            default: 50
+
+        MS_BARO_RATE_HZ:
+            description:
+                short: Baro data rate
+                long: |
+                    Baro data rate
+                    Max Limit: 1000
+                    The max limit should be divisible by the rate
+                    Restart required
             type: int32
             default: 50
 

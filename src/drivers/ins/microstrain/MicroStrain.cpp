@@ -34,23 +34,12 @@
 #include <lib/drivers/device/Device.hpp>
 
 #include "MicroStrain.hpp"
-#include "mip_sdk/src/mip/mip_all.h"
-#include "mip_sdk/src/mip/mip_parser.h"
 
-uint8_t external_heading_sensor_id = 1;
-uint8_t gnss_antenna_sensor_id = 2;
-uint8_t vehicle_frame_velocity_sensor_id = 3;
-
-static MicrosStrain *ins{nullptr};
-
+static MicroStrain *ins{nullptr};
 
 ModalIoSerial device_uart;
 
-const uint8_t FILTER_ROLL_EVENT_ACTION_ID  = 1;
-const uint8_t FILTER_PITCH_EVENT_ACTION_ID = 2;
-
-
-MicrosStrain::MicrosStrain(const char *uart_port, int32_t rot) :
+MicroStrain::MicroStrain(const char *uart_port, int32_t rot) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1)
 {
@@ -62,6 +51,7 @@ MicrosStrain::MicrosStrain(const char *uart_port, int32_t rot) :
 	_port[19] = '\0';
 
 	rotation = static_cast<Rotation>(rot);
+	ms_schedule_rate_us = (1000000) / (2 * _param_ms_imu_rate_hz.get());
 
 	device::Device::DeviceId device_id{};
 	device_id.devid_s.devtype = DRV_INS_DEVTYPE_MS;
@@ -82,26 +72,14 @@ MicrosStrain::MicrosStrain(const char *uart_port, int32_t rot) :
 	_sensor_baro.error_count = 0;
 }
 
-MicrosStrain::~MicrosStrain()
+MicroStrain::~MicroStrain()
 {
 	if (device_uart.is_open()) {
 		device_uart.uart_close();
 	}
 
-	_sensor_baro_pub.unadvertise();
-	//delete &_sensor_baro_pub;
-
 	PX4_INFO("Destructor");
 	_sensor_baro_pub.unadvertise();
-	_sensor_selection_pub.unadvertise();
-	_vehicle_local_position_pub.unadvertise();
-	_vehicle_angular_velocity_pub.unadvertise();
-	_vehicle_attitude_pub.unadvertise();
-	_global_position_pub.unadvertise();
-	_vehicle_odometry_pub.unadvertise();
-	_debug_array_pub.unadvertise();
-	_estimator_status_pub.unadvertise();
-
 
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
@@ -130,22 +108,13 @@ bool mip_interface_user_recv_from_device(mip_interface *device, uint8_t *buffer,
 
 	PX4_DEBUG("RX 3 %d(%d)", *out_length, max_length);
 
-	ins->_debug_rx_bytes[0] = math::min<uint32_t>(ins->_debug_rx_bytes[0], *out_length);
-	ins->_debug_rx_bytes[1] += *out_length;
-	ins->_debug_rx_bytes[2] = math::max<uint32_t>(ins->_debug_rx_bytes[2], *out_length);
-	ins->_debug_rx_bytes[3]++;
 	return true;
 }
 
 bool mip_interface_user_send_to_device(mip_interface *device, const uint8_t *data, size_t length)
 {
 
-	PX4_DEBUG("TX %d", length);
 	int res = device_uart.uart_write(const_cast<uint8_t *>(data), length);
-
-	if (ins) {
-		ins->_debug_tx_bytes += length;
-	}
 
 	if (res >= 0) {
 		return true;
@@ -155,7 +124,7 @@ bool mip_interface_user_send_to_device(mip_interface *device, const uint8_t *dat
 
 }
 
-int MicrosStrain::connect_at_baud(int32_t baud)
+int MicroStrain::connect_at_baud(int32_t baud)
 {
 	if (device_uart.is_open()) {
 		if (device_uart.uart_set_baud(baud) == PX4_ERROR) {
@@ -171,7 +140,6 @@ int MicrosStrain::connect_at_baud(int32_t baud)
 	PX4_INFO("Serial Port %s with baud of %" PRIu32 " baud", (device_uart.is_open() ? "CONNECTED" : "NOT CONNECTED"), baud);
 
 	// Re-init the interface with the correct timeouts
-	// mip_interface_init(&device, parse_buffer, sizeof(parse_buffer), mip_timeout_from_baudrate(baud) * 1_ms, 250_ms);
 	mip_interface_init(&device, parse_buffer, sizeof(parse_buffer), mip_timeout_from_baudrate(baud) * 1_ms, 250_ms,
 			   &mip_interface_user_send_to_device, &mip_interface_user_recv_from_device, &mip_interface_default_update, NULL);
 
@@ -191,37 +159,140 @@ int MicrosStrain::connect_at_baud(int32_t baud)
 	return PX4_OK;
 }
 
-void MicrosStrain::set_sensor_rate(mip_descriptor_rate *descriptors, uint16_t len)
+mip_cmd_result MicroStrain::get_supported_descriptors()
 {
-	// Get the base rate
-	uint16_t base_rate;
+	const size_t descriptors_max_size = sizeof(_supported_descriptors) / sizeof(_supported_descriptors[0]);
+	uint8_t descriptors_count, extended_descriptors_count;
 
-	if (mip_3dm_get_base_rate(&device, MIP_SENSOR_DATA_DESC_SET, &base_rate) != MIP_ACK_OK) {
-		PX4_ERR("ERROR: Could not get sensor base rate format!");
-		return;
+	mip_cmd_result res = mip_base_get_device_descriptors(&device, _supported_descriptors, descriptors_max_size,
+			     &descriptors_count);
+	mip_cmd_result res_extended = mip_base_get_extended_descriptors(&device, &(_supported_descriptors[descriptors_count]),
+				      descriptors_max_size - descriptors_count, &extended_descriptors_count);
+
+	if (res != MIP_ACK_OK || res_extended != MIP_ACK_OK) {
+		return MIP_NACK_COMMAND_FAILED;
 	}
 
-	PX4_INFO("The INS base rate is %d", base_rate);
+	_supported_desc_len = descriptors_count + extended_descriptors_count;
 
-	for (uint16_t i = 0; i < len; i++) {
-		// Compute the desired decimation and update all of the sensors in this set
-		float decimation = static_cast<float>(base_rate) / static_cast<float>(descriptors[i].decimation);
+	for (uint16_t i = 0; i < _supported_desc_len; i++) {
+		auto descriptor_set = static_cast<uint8_t>((_supported_descriptors[i] & 0xFF00) >> 8);
+		bool unique = true;
 
-		descriptors[i].decimation = static_cast<uint16_t>(decimation);
+		uint16_t j;
+
+		for (j = 0; j < _supported_desc_set_len; j++) {
+			if (_supported_descriptor_sets[j] == descriptor_set) {
+				unique = false;
+				break;
+
+			} else if (_supported_descriptor_sets[j] == 0) {
+				break;
+			}
+		}
+
+		if (unique) {_supported_descriptor_sets[j] = descriptor_set; _supported_desc_set_len++;}
 	}
 
-	// Write the settings
-	mip_cmd_result res = mip_3dm_write_message_format(&device, MIP_SENSOR_DATA_DESC_SET, len, descriptors);
-
-	if (res != MIP_ACK_OK) {
-		PX4_ERR("ERROR: Could not set sensor message format! Result of %d", res);
-		return;
-	}
+	return res;
 }
 
+bool MicroStrain::supports_descriptor(uint8_t descriptor_set, uint8_t field_descriptor)
+{
+	bool check_flag = false;
+
+	for (uint16_t i = 0; i < _supported_desc_set_len; i++) {
+		if (_supported_descriptor_sets[i] == descriptor_set) {
+			check_flag = true;
+			break;
+		}
+	}
+
+	if (!check_flag) {return check_flag;}
+
+	const uint16_t full_descriptor = (descriptor_set << 8) | field_descriptor;
+
+	check_flag = false;
+
+	for (uint16_t i = 0; i < _supported_desc_len; i++) {
+		if (_supported_descriptors[i] == full_descriptor) {
+			check_flag = true;
+			break;
+		}
+	}
+
+	return check_flag;
+}
+
+mip_cmd_result MicroStrain::get_base_rate(uint8_t descriptor_set, uint16_t *base_rate)
+{
 
 
-void MicrosStrain::initialize_ins()
+	if (supports_descriptor(MIP_3DM_CMD_DESC_SET, MIP_CMD_DESC_3DM_GET_BASE_RATE)) {
+		return mip_3dm_get_base_rate(&device, descriptor_set, base_rate);
+
+	} else {
+		switch (descriptor_set) {
+		case MIP_SENSOR_DATA_DESC_SET:
+			return mip_3dm_imu_get_base_rate(&device, base_rate);
+
+		default:
+			return MIP_NACK_INVALID_PARAM;
+		}
+	}
+
+}
+
+mip_cmd_result MicroStrain::configure_imu_message_format()
+{
+	uint8_t num_imu_descriptors = 0;
+	mip_descriptor_rate imu_descriptors[4];
+
+	uint16_t base_rate;
+	// Get the base rate
+	mip_cmd_result res = get_base_rate(MIP_SENSOR_DATA_DESC_SET, &base_rate);
+
+	PX4_INFO("The sensor base rate is %d", base_rate);
+
+	if (res != MIP_ACK_OK) {
+		PX4_ERR("ERROR: Could not get the base rate");
+		return res;
+	}
+
+	uint16_t imu_decimation = base_rate / (uint16_t)_param_ms_imu_rate_hz.get();
+	uint16_t mag_decimation = base_rate / (uint16_t)_param_ms_mag_rate_hz.get();
+	uint16_t baro_decimation = base_rate / (uint16_t)_param_ms_baro_rate_hz.get();
+
+	if (supports_descriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SENSOR_ACCEL_SCALED)
+	    && _param_ms_imu_rate_hz.get() > 0) {
+		imu_descriptors[num_imu_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SENSOR_ACCEL_SCALED, imu_decimation};
+	}
+
+	if (supports_descriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SENSOR_GYRO_SCALED)
+	    && _param_ms_imu_rate_hz.get() > 0) {
+		imu_descriptors[num_imu_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SENSOR_GYRO_SCALED, imu_decimation};
+	}
+
+	if (supports_descriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SENSOR_MAG_SCALED)
+	    && _param_ms_mag_rate_hz.get() > 0) {
+		imu_descriptors[num_imu_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SENSOR_MAG_SCALED, mag_decimation};
+	}
+
+	if (supports_descriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SENSOR_PRESSURE_SCALED)
+	    && _param_ms_baro_rate_hz.get() > 0) {
+		imu_descriptors[num_imu_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SENSOR_PRESSURE_SCALED, baro_decimation};
+	}
+
+
+	// // Write the settings
+	res = mip_3dm_write_message_format(&device, MIP_SENSOR_DATA_DESC_SET, num_imu_descriptors,
+					   imu_descriptors);
+
+	return res;
+
+}
+
+void MicroStrain::initialize_ins()
 {
 	if (_is_initialized) {
 		return;
@@ -287,17 +358,18 @@ void MicrosStrain::initialize_ins()
 		}
 	}
 
+	if (get_supported_descriptors() != MIP_ACK_OK) {
+		PX4_INFO("ERROR: Could not get descriptors");
+		_is_init_failed = true;
+		return;
+	}
 
-	// Scaled Gyro and Accel at a high rate
-	mip_descriptor_rate imu_sensors[4] = {
-		{ MIP_DATA_DESC_SENSOR_ACCEL_SCALED, (uint16_t)_param_pr_update_rate.get()},
-		{ MIP_DATA_DESC_SENSOR_GYRO_SCALED, (uint16_t)_param_pr_update_rate.get()},
-		{ MIP_DATA_DESC_SENSOR_MAG_SCALED, (uint16_t)_param_sec_update_rate.get()},
-		{ MIP_DATA_DESC_SENSOR_PRESSURE_SCALED, (uint16_t)_param_sec_update_rate.get()},
 
-	};
-
-	set_sensor_rate(imu_sensors, 4);
+	if (configure_imu_message_format() != MIP_ACK_OK) {
+		PX4_INFO("ERROR: Could not write message format");
+		_is_init_failed = true;
+		return;
+	}
 
 
 	//
@@ -337,9 +409,9 @@ void MicrosStrain::initialize_ins()
 
 }
 
-void MicrosStrain::sensor_callback(void *user, const mip_packet *packet, mip::Timestamp timestamp)
+void MicroStrain::sensor_callback(void *user, const mip_packet *packet, mip::Timestamp timestamp)
 {
-	MicrosStrain *ref = static_cast<MicrosStrain *>(user);
+	MicroStrain *ref = static_cast<MicroStrain *>(user);
 
 	if (mip_packet_descriptor_set(packet) != MIP_SENSOR_DATA_DESC_SET) {
 		return;
@@ -355,7 +427,7 @@ void MicrosStrain::sensor_callback(void *user, const mip_packet *packet, mip::Ti
 	bool mag_valid = false;
 	bool baro_valid = false;
 
-	auto t = hrt_absolute_time() - (ref->_delay_offset * 1_us);
+	auto t = hrt_absolute_time();
 
 	for (mip_field field = mip_field_first_from_packet(packet); mip_field_is_valid(&field); mip_field_next(&field)) {
 		switch (mip_field_field_descriptor(&field)) {
@@ -376,10 +448,12 @@ void MicrosStrain::sensor_callback(void *user, const mip_packet *packet, mip::Ti
 		}
 	}
 
+
 	if (accel_valid) {
 		ref->_px4_accel.update(t, accel.scaled_accel[0]*CONSTANTS_ONE_G,
 				       accel.scaled_accel[1]*CONSTANTS_ONE_G,
 				       accel.scaled_accel[2]*CONSTANTS_ONE_G);
+
 	}
 
 	if (gyro_valid) {
@@ -404,16 +478,16 @@ void MicrosStrain::sensor_callback(void *user, const mip_packet *packet, mip::Ti
 
 }
 
-bool MicrosStrain::init()
+bool MicroStrain::init()
 {
 	// Run on fixed interval
-	ScheduleOnInterval(_param_ms_schedule.get());
+	ScheduleOnInterval(ms_schedule_rate_us);
 
 	return true;
 }
 
 
-void MicrosStrain::Run()
+void MicroStrain::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -440,8 +514,6 @@ void MicrosStrain::Run()
 		_parameter_update_sub.copy(&param_update);
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
 
-		_delay_offset = _param_sensor_delay.get();
-
 	}
 
 	mip_interface_update(&device, false);
@@ -449,7 +521,7 @@ void MicrosStrain::Run()
 	perf_end(_loop_perf);
 }
 
-int MicrosStrain::task_spawn(int argc, char *argv[])
+int MicroStrain::task_spawn(int argc, char *argv[])
 {
 	int ch;
 	int myoptind = 1;
@@ -484,7 +556,7 @@ int MicrosStrain::task_spawn(int argc, char *argv[])
 	}
 
 	PX4_INFO("Opening device port %s", dev);
-	MicrosStrain *instance = new MicrosStrain(dev, rot);
+	MicroStrain *instance = new MicroStrain(dev, rot);
 
 	if (instance) {
 		_object.store(instance);
@@ -508,34 +580,19 @@ int MicrosStrain::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MicrosStrain::print_status()
+int MicroStrain::print_status()
 {
-	PX4_INFO_RAW("Serial Port Open %d Handle %d Device %s\n", device_uart.is_open(), device_uart.uart_get_fd(),
-		     _port);
-	PX4_INFO_RAW("TX Bytes %lu\n", _debug_tx_bytes);
-	PX4_INFO_RAW("Min %lu\n", _debug_rx_bytes[0]);
-	PX4_INFO_RAW("Total %lu\n", _debug_rx_bytes[1]);
-	PX4_INFO_RAW("Max %lu\n", _debug_rx_bytes[2]);
-	PX4_INFO_RAW("Avg %f\n", static_cast<double>(_debug_rx_bytes[1] * 1.f / _debug_rx_bytes[3] * 1.f));
-	_debug_rx_bytes[0] = UINT32_MAX;
-
-	for (int i = 1; i < 4; i++) {
-		_debug_rx_bytes[i] = 0;
-	}
-
-	_debug_tx_bytes = 0;
-
 	perf_print_counter(_loop_perf);
 	perf_print_counter(_loop_interval_perf);
 	return 0;
 }
 
-int MicrosStrain::custom_command(int argc, char *argv[])
+int MicroStrain::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int MicrosStrain::print_usage(const char *reason)
+int MicroStrain::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -544,13 +601,13 @@ int MicrosStrain::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Microstrain INS Driver.
+MicroStrain INS Driver.
 
 Communicates over serial port an utilizes the manufacturer provided MIP SDK.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("Microstrain", "driver");
+	PRINT_MODULE_USAGE_NAME("MicroStrain", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS4", "<file:dev>", "INS Port", true);
@@ -561,6 +618,6 @@ Communicates over serial port an utilizes the manufacturer provided MIP SDK.
 
 extern "C" __EXPORT int microstrain_main(int argc, char *argv[])
 {
-	return MicrosStrain::main(argc, argv);
+	return MicroStrain::main(argc, argv);
 }
 
