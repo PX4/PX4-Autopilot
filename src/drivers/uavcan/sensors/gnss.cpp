@@ -109,6 +109,10 @@ UavcanGnssBridge::init()
 		return res;
 	}
 
+	// EKF2 TODO
+	param_get(param_find("EKF2_GPS_YAW_OFF"), &_rel_heading_offset);
+	_yaw_offset_rads = matrix::wrap_pi(math::radians(_rel_heading_offset));
+
 	// UAVCAN_PUB_RTCM
 	int32_t uavcan_pub_rtcm = 0;
 	param_get(param_find("UAVCAN_PUB_RTCM"), &uavcan_pub_rtcm);
@@ -193,7 +197,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 		case Fix2::SUB_MODE_RTK_FIXED:
 			fix_type = 6; // RTK fixed
-			_rtk_fixed = true;
+			_carrier_solution_fixed = true;
 			break;
 		}
 
@@ -202,8 +206,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 	// Degraded RTK fix
 	if (fix_type != 6) {
-		_rtk_fixed = false;
-
+		_carrier_solution_fixed = false;
 	}
 
 	float pos_cov[9] {};
@@ -489,17 +492,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.vdop = msg.pdop;
 	}
 
-	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid) {
-		report.heading = _rel_heading;
+	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid) { //&& _carrier_solution_fixed) {
 
-		// Convert: -pi to pi
+		// Apply offset and report corrected heading
+		float corrected_heading = _rel_heading - _yaw_offset_rads;
+		report.heading = corrected_heading;
+		report.heading_offset = _yaw_offset_rads;
 		report.heading_accuracy = _rel_heading_accuracy;
-
-
-		if (!_rtk_fixed) {
-			PX4_DEBUG("GNSS Fix degraded, RTK heading not stable");
-
-		}
 	}
 
 	else {
@@ -509,7 +508,6 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.heading_accuracy = heading_accuracy;
 	}
 
-	report.heading_offset = heading_offset;
 	report.noise_per_ms = noise_per_ms;
 	report.jamming_indicator = jamming_indicator;
 	report.jamming_state = jamming_state;
