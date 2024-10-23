@@ -39,16 +39,16 @@
 
 using namespace matrix;
 
-void RangeFinderConsistencyCheck::initMiniKF(float p1, float p2, float x1, float x2)
+void RangeFinderConsistencyCheck::initMiniKF(float var_z, float var_terrain, float z, float dist_bottom)
 {
 	_R.setZero();
 	_A.setIdentity();
-	float p[4] = {p1, 0.f, 0.f, p2};
+	float p[4] = {var_z, 0.f, 0.f, var_terrain};
 	_P = Matrix<float, 2, 2>(p);
 	float h[4] = {1.f, 0.f, -1.f, 1.f};
 	_H = Matrix<float, 2, 2>(h);
-	_x(0) = x1;
-	_x(1) = x2;
+	_x(0) = z;
+	_x(1) = z + dist_bottom;
 	_initialized = true;
 	_sample_count = 0;
 	_state = KinematicState::UNKNOWN;
@@ -64,41 +64,69 @@ void RangeFinderConsistencyCheck::UpdateMiniKF(float z, float z_var, float vz, f
 		return;
 	}
 
+	if (_min_nr_of_samples == 0) {
+		_min_nr_of_samples = (int)(1.f / dt);
+	}
+
 	_time_last_update_us = time_us;
 
 	_R(0, 0) = z_var;
 	_R(1, 1) = dist_bottom_var;
 
 	SquareMatrix<float, 2> Q;
-	const float process_noise = 0.01f;
+	const float process_noise = 0.001f;
 	Q(0, 0) = dt * dt * vz_var + process_noise;
-	Q(1, 1) = process_noise * 0.5f;
+	Q(1, 1) = process_noise;
 	_x(0) += dt * vz;
 	_P = _A * _P * _A.transpose() + Q;
 
 	const Vector2f measurements(z, dist_bottom);
 	const Vector2f y = measurements - _H * _x;
 	const Matrix2f S = _H * _P * _H.transpose() + _R;
-	float test_ratio = math::min(sq(y(1)) / (sq(_gate) * S(1, 1)), 2.f);
+	float test_ratio = fminf(abs(sq(y(1)) / (sq(_gate) * S(1, 1))), 2.f);
 
-	if (test_ratio < 1.f) {
-		Matrix2f K = _P * _H.transpose() * S.I();
-		_x = _x + K * y;
-		_P = _P - K * _H * _P;
-		_P = 0.5f * (_P + _P.transpose()); // Ensure symmetry
+	Matrix2f K = _P * _H.transpose() * S.I();
+
+	K(0, 0) = 1.f;
+	K(0, 1) = 0.f;
+
+	if (test_ratio > 1.f) {
+		K(1, 0) = 0.f;
+		K(1, 1) = 0.f;
 	}
+
+	_x = _x + K * y;
+	_P = _P - K * _H * _P;
+	_P = 0.5f * (_P + _P.transpose()); // Ensure symmetry
 
 	_innov = y(1);
 	_innov_var = S(1, 1);
 
 	if (_sample_count++ > _min_nr_of_samples) {
+
 		if (_test_ratio_lpf.update(test_ratio) < 1.f) {
 			_state = KinematicState::CONSISTENT;
+
 		} else {
+			_sample_count = 0;
 			_state = KinematicState::INCONSISTENT;
 		}
 
-	} else {
-		_test_ratio_lpf.update(test_ratio);
 	}
+}
+
+void RangeFinderConsistencyCheck::run(const float z, const float vz,
+				      const matrix::SquareMatrix<float, estimator::State::size> P,
+				      const float dist_bottom, const float dist_bottom_var, uint64_t time_us)
+{
+	const float z_var = P(estimator::State::pos.idx + 2, estimator::State::pos.idx + 2);
+	const float vz_var = P(estimator::State::vel.idx + 2, estimator::State::vel.idx + 2);
+
+	if (!_initialized || current_posD_reset_count != _last_posD_reset_count) {
+		_last_posD_reset_count = current_posD_reset_count;
+		const float terrain_var = P(estimator::State::terrain.idx, estimator::State::terrain.idx);
+		initMiniKF(z_var, terrain_var, z, dist_bottom);
+	}
+
+	UpdateMiniKF(z, z_var, vz, vz_var, dist_bottom, dist_bottom_var, time_us);
 }

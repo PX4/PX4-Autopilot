@@ -66,20 +66,12 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 
 			if (_control_status.flags.in_air) {
-
-				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
-				const float dist_var = sq(_params.range_noise) + dist_dependant_var;
+				const float dist_var = getRngVar();
+				_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
 
 				if (_control_status.flags.fixed_wing) {
 					_rng_consistency_check.setFixedWing(true, 2.0f * _params.range_kin_consistency_gate);
-
-					if (!_rng_consistency_check.isRunning()) {
-						_rng_consistency_check.initMiniKF(P(State::pos.idx + 2, State::pos.idx + 2), P(State::terrain.idx, State::terrain.idx),
-										  _state.pos(2), _state.pos(2) + _range_sensor.getRange());
-					}
-
-					_rng_consistency_check.UpdateMiniKF(_state.pos(2), P(State::pos.idx + 2, State::pos.idx + 2), _state.vel(2),
-									    P(State::vel.idx + 2, State::vel.idx + 2), _range_sensor.getRange(), dist_var, imu_sample.time_us);
+					_rng_consistency_check.run(_state.pos(2), _state.vel(2), P, _range_sensor.getRange(), dist_var, imu_sample.time_us);
 
 				} else {
 					_rng_consistency_check.setFixedWing(false, _params.range_kin_consistency_gate);
@@ -92,17 +84,10 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 						}
 
 					} else if (vertical_motion) {
-						if (!_rng_consistency_check.isRunning()) {
-							_rng_consistency_check.initMiniKF(P(State::pos.idx + 2, State::pos.idx + 2), P(State::terrain.idx, State::terrain.idx),
-											  _state.pos(2), _state.pos(2) + _range_sensor.getRange());
-						}
-
-						_rng_consistency_check.UpdateMiniKF(_state.pos(2), P(State::pos.idx + 2, State::pos.idx + 2), _state.vel(2),
-										    P(State::vel.idx + 2, State::vel.idx + 2), _range_sensor.getRange(), dist_var, imu_sample.time_us);
+						_rng_consistency_check.run(_state.pos(2), _state.vel(2), P, _range_sensor.getRange(), dist_var, imu_sample.time_us);
 
 					} else {
 						_rng_consistency_check.setNotMoving();
-
 					}
 				}
 			}
@@ -110,12 +95,16 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		} else {
 			// If we are supposed to be using range finder data but have bad range measurements
 			// and are on the ground, then synthesise a measurement at the expected on ground value
-			if (!_control_status.flags.in_air
-			    && _range_sensor.isRegularlySendingData()
+			if (_range_sensor.isRegularlySendingData()
 			    && _range_sensor.isDataReady()) {
+				if (!_control_status.flags.in_air) {
 
-				_range_sensor.setRange(_params.rng_gnd_clearance);
-				_range_sensor.setValidity(true); // bypass the checks
+					_range_sensor.setRange(_params.rng_gnd_clearance);
+					_range_sensor.setValidity(true); // bypass the checks
+
+				} else {
+					_rng_consistency_check.stopMiniKF();
+				}
 			}
 		}
 
@@ -300,11 +289,9 @@ void Ekf::updateRangeHagl(estimator_aid_source1d_s &aid_src)
 
 float Ekf::getRngVar() const
 {
-	return fmaxf(
-		       P(State::pos.idx + 2, State::pos.idx + 2)
-		       + sq(_params.range_noise)
-		       + sq(_params.range_noise_scaler * _range_sensor.getRange()),
-		       0.f);
+	const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
+	const float dist_var = sq(_params.range_noise) + dist_dependant_var;
+	return dist_var;
 }
 
 void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
