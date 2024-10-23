@@ -169,14 +169,6 @@ void VehicleAirData::Run()
 			while ((sensor_sub_updates < sensor_baro_s::ORB_QUEUE_LENGTH) && _sensor_sub[uorb_index].update(&report)) {
 				sensor_sub_updates++;
 
-				if (_calibration[uorb_index].device_id() != report.device_id) {
-					_calibration[uorb_index].set_device_id(report.device_id);
-					_priority[uorb_index] = _calibration[uorb_index].priority();
-					calibration::SetCalibrationParam(_calibration[uorb_index].SensorString(), "ID", uorb_index, report.device_id);
-					calibration::SetCalibrationParam(_calibration[uorb_index].SensorString(), "PRIO", uorb_index,
-									 (int32_t)_priority[uorb_index]);
-				}
-
 				if (_calibration[uorb_index].enabled()) {
 
 					if (!was_advertised) {
@@ -192,6 +184,8 @@ void VehicleAirData::Run()
 						}
 
 						ParametersUpdate(true);
+						_calibration[uorb_index].set_device_id(report.device_id);
+						_calibration[uorb_index].ParametersSave(uorb_index);
 					}
 
 					// pressure corrected with offset (if available)
