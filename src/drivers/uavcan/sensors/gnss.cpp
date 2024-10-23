@@ -492,7 +492,8 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.vdop = msg.pdop;
 	}
 
-	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid) { //&& _carrier_solution_fixed) {
+	// Only use dual antenna gps if fix type is (6)
+	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid && _carrier_solution_fixed) {
 
 		// Apply offset and report corrected heading
 		float corrected_heading = _rel_heading - _yaw_offset_rads;
