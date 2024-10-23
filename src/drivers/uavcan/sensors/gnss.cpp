@@ -492,7 +492,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.vdop = msg.pdop;
 	}
 
-	// Only use dual antenna gps if fix type is (6)
+	// Only use dual antenna gps yaw if fix type is (6)
 	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid && _carrier_solution_fixed) {
 
 		// Apply offset and report corrected heading
@@ -502,10 +502,12 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.heading_accuracy = _rel_heading_accuracy;
 	}
 
+	// Use ECEF populated local variables (px4 cannode) or NAN values if we aren't receiving updated RTK heading
 	else {
-		// Use NAN values if we aren't receiving updated RTK heading
+
 
 		report.heading = heading;
+		report.heading_offset = heading_offset;
 		report.heading_accuracy = heading_accuracy;
 	}
 
