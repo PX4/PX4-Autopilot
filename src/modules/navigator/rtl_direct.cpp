@@ -423,6 +423,13 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 	_rtl_time_estimator.reset();
 
+	if (_vehicle_status_sub.get().is_vtol) {
+		_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+
+	} else {
+		_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
+	}
+
 	RTLState start_state_for_estimate;
 
 	if (isActive()) {
@@ -506,6 +513,10 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 								    &direction(1));
 				}
 
+				if (_vehicle_status_sub.get().is_vtol) {
+					_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+				}
+
 				_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);
 			}
 
@@ -524,6 +535,10 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 					// If this phase is not active yet, simply use the loiter altitude,
 					// which is where the LAND phase will start
 					initial_altitude = loiter_altitude;
+				}
+
+				if (_vehicle_status_sub.get().is_vtol) {
+					_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 				}
 
 				_rtl_time_estimator.addVertDistance(_destination.alt - initial_altitude);
