@@ -36,7 +36,6 @@
  */
 
 #include "FlightTaskTransition.hpp"
-#include <lib/geo/geo.h>
 
 using namespace matrix;
 
@@ -162,8 +161,6 @@ bool FlightTaskTransition::isVtolBackTransition() const
 	return _sub_vehicle_status.get().in_transition_mode
 	       && !_sub_vehicle_status.get().in_transition_to_fw;
 }
-
-
 
 float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 {

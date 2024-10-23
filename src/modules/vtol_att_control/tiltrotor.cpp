@@ -293,6 +293,10 @@ void Tiltrotor::update_transition_state()
 
 		_mc_yaw_weight = 1.0f;
 
+		// control backtransition deceleration using pitch.
+		if (_v_control_mode->flag_control_climb_rate_enabled) {
+			pitch_body = Eulerf(Quatf(_mc_virtual_att_sp->q_d)).theta();
+		}
 
 		if (_time_since_trans_start < BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
 			// blend throttle from FW value to 0
