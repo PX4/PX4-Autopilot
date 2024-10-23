@@ -59,6 +59,7 @@ RTL::RTL(Navigator *navigator) :
 	ModuleParams(navigator),
 	_rtl_direct(navigator)
 {
+	_rtl_direct.initialize();
 }
 
 void RTL::updateDatamanCache()
@@ -622,6 +623,8 @@ void RTL::init_rtl_mission_type()
 	default:
 		break;
 	}
+
+	_rtl_mission_type_handle->initialize();
 }
 
 void RTL::parameters_update()
