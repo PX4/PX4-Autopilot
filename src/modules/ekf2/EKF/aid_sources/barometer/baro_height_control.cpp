@@ -202,7 +202,7 @@ void Ekf::stopBaroHgtFusion()
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
 float Ekf::compensateBaroForDynamicPressure(const imuSample &imu_sample, const float baro_alt_uncompensated) const
 {
-	if (_control_status.flags.wind && local_position_is_valid()) {
+	if (_control_status.flags.wind && isLocalHorizontalPositionValid()) {
 		// calculate static pressure error = Pmeas - Ptruth
 		// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
 		// negative X and Y directions. Used to correct baro data for positional errors

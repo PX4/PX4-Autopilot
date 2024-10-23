@@ -111,6 +111,6 @@ TEST_F(EKFYawEstimatorTest, inAirYawAlignment)
 	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(1));
 
-	EXPECT_TRUE(_ekf->local_position_is_valid());
-	EXPECT_TRUE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
+	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
 }
