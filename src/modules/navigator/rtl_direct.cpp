@@ -425,7 +425,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 	RTLState start_state_for_estimate;
 
-	if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+	if (isActive()) {
 		start_state_for_estimate = _rtl_state;
 
 	} else {
