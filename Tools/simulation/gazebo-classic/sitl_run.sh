@@ -17,7 +17,7 @@ model="$3"
 world="$4"
 src_path="$5"
 build_path="$6"
-
+model="iris_depth_camera"
 echo SITL ARGS
 
 echo sitl_bin: $sitl_bin

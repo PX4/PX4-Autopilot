@@ -38,6 +38,26 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 #include <px4_platform_common/events.h>
+#include <iostream>
+#include <fstream>
+#include <cmath>
+std::ofstream logfile;
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+void logRollRate(float roll_rate) {
+    // Open file in append mode, only once
+    if (!logfile.is_open()) {
+        logfile.open("/home/susanth/Documents/DronePS/roll_rate_log.txt", std::ios_base::app);
+    }
+
+    if (logfile.is_open()) {
+        // Write the roll rate to the file
+        logfile << "Roll rate: " << roll_rate << " rad/s" << std::endl;
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 using namespace matrix;
 using namespace time_literals;
@@ -128,8 +148,20 @@ MulticopterRateControl::Run()
 		// Guard against too small (< 0.125ms) and too large (> 20ms) dt's.
 		const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.000125f, 0.02f);
 		_last_run = now;
-
+		//susanth update
+		//we can find the rates values here
+		//logging them to analyse them
 		const Vector3f rates{angular_velocity.xyz};
+		float roll_rate = rates(0);  // Roll rate is the X-axis angular velocity
+
+		if(roll_rate>5.00f)
+		{
+			//activate failsafe
+			//motor failure
+			PRINT_MODULE_USAGE_COMMAND("Motor_Failure");
+		}
+		// Log the roll rate to the file
+		logRollRate(roll_rate);
 		const Vector3f angular_accel{angular_velocity.xyz_derivative};
 
 		/* check for updates in other topics */
