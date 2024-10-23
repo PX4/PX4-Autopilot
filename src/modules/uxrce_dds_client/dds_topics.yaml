@@ -8,6 +8,9 @@ publications:
   - topic: /fmu/out/register_ext_component_reply
     type: px4_msgs::msg::RegisterExtComponentReply
 
+  - topic: /fmu/out/airspeed
+    type: px4_msgs::msg::Airspeed
+
   - topic: /fmu/out/arming_check_request
     type: px4_msgs::msg::ArmingCheckRequest
 
