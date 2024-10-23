@@ -109,9 +109,6 @@ UavcanGnssBridge::init()
 		return res;
 	}
 
-	// UAVCAN_GPS_YAW_OFFSET
-	param_get(param_find("GPS_YAW_OFFSET"), &_rel_heading_offset);
-
 	// UAVCAN_PUB_RTCM
 	int32_t uavcan_pub_rtcm = 0;
 	param_get(param_find("UAVCAN_PUB_RTCM"), &uavcan_pub_rtcm);
@@ -318,7 +315,6 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	float heading_offset = NAN;
 	float heading_accuracy = NAN;
 
-
 	int32_t noise_per_ms = -1;
 	int32_t jamming_indicator = -1;
 	uint8_t jamming_state = 0;
@@ -497,8 +493,8 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.heading = _rel_heading;
 
 		// Convert: -pi to pi
-		report.heading_offset = matrix::wrap_pi(math::radians(_rel_heading_offset)); // Configured via PX4 uavcan parameter
 		report.heading_accuracy = _rel_heading_accuracy;
+
 
 		if (!_rtk_fixed) {
 			PX4_DEBUG("GNSS Fix degraded, RTK heading not stable");
@@ -510,11 +506,10 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		// Use NAN values if we aren't receiving updated RTK heading
 
 		report.heading = heading;
-		report.heading_offset = heading_offset;
 		report.heading_accuracy = heading_accuracy;
 	}
 
-
+	report.heading_offset = heading_offset;
 	report.noise_per_ms = noise_per_ms;
 	report.jamming_indicator = jamming_indicator;
 	report.jamming_state = jamming_state;

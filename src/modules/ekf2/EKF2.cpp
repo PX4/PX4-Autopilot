@@ -97,6 +97,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default),
+	_param_ekf2_gps_yaw_off(_params->gps_yaw_off),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)
 	_param_ekf2_baro_ctrl(_params->baro_ctrl),
@@ -2404,6 +2405,17 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		} else {
 			return; //TODO: change and set to NAN
 		}
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+		// Check if the sensor gps heading offset is valid, if not fill via EKF2 param
+		bool is_heading_off_nan = std::isnan(vehicle_gps_position.heading_offset);
+
+		if (is_heading_off_nan) {
+
+			vehicle_gps_position.heading_offset = matrix::wrap_pi(math::radians(_params->gps_yaw_off));
+		}
+
+#endif // CONFIG_EKF2_GNSS_YAW
 
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
