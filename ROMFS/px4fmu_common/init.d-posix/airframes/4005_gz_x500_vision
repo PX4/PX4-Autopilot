@@ -8,3 +8,10 @@
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500_vision}
 
 . ${R}etc/init.d-posix/airframes/4001_gz_x500
+
+# EKF2: Vision position and heading, no GPS
+param set-default SENS_EN_SIMGPS 0
+param set-default EKF2_EV_DELAY 5
+param set-default EKF2_EV_CTRL 15
+param set-default EKF2_HGT_REF 3
+param set-default EKF2_GPS_CTRL 0
