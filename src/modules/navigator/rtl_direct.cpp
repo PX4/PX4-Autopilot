@@ -119,6 +119,12 @@ void RtlDirect::on_active()
 	}
 }
 
+void RtlDirect::on_inactive()
+{
+	_global_pos_sub.update();
+	_vehicle_status_sub.update();
+}
+
 void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s loiter_pos)
 {
 	_home_pos_sub.update();
