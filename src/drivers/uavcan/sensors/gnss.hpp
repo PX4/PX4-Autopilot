@@ -149,9 +149,11 @@ private:
 	float _rel_heading_offset{0.0};
 	float _rel_heading{0.0};
 	bool _rel_heading_valid{false};
+	float _yaw_offset_rads{0.0};
+
 	uint64_t _last_gnss_relative_timestamp{0};
 
-	bool _rtk_fixed{false};
+	bool _carrier_solution_fixed{false};
 
 	perf_counter_t _rtcm_stream_pub_perf{nullptr};
 	perf_counter_t _moving_baseline_data_pub_perf{nullptr};

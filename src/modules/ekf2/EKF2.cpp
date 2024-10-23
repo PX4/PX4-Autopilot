@@ -2406,17 +2406,6 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			return; //TODO: change and set to NAN
 		}
 
-#if defined(CONFIG_EKF2_GNSS_YAW)
-		// Check if the sensor gps heading offset is valid, if not fill via EKF2 param
-		bool is_heading_off_nan = std::isnan(vehicle_gps_position.heading_offset);
-
-		if (is_heading_off_nan) {
-
-			vehicle_gps_position.heading_offset = matrix::wrap_pi(math::radians(_params->gps_yaw_off));
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
 
