@@ -52,9 +52,6 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 
-	updateParameters();
-	updateSubscribers();
-
 	_vel_z_filter.setParameters(math::constrain(_deltatime, 0.01f, 0.1f), _vel_z_filter_time_const);
 
 	_decel_error_bt_int = 0.f;
@@ -227,11 +224,7 @@ void FlightTaskTransition::updateBackTransitioDecelerationErrorIntegrator(const 
 {
 	float integrator_input = _param_vt_b_dec_i * deceleration_error;
 
-	if ((_decel_error_bt_int >= _pitch_limit_bt && deceleration_error > 0.f) || (_decel_error_bt_int <= .0f
-			&& deceleration_error < 0.f)) {
-		// If the integrator is already saturated and the error is positive, do not integrate
-		integrator_input = 0.f;
-	}
-
 	_decel_error_bt_int += integrator_input * math::constrain(_deltatime, 0.001f, 0.1f);
+	// Saturate the integrator value
+	_decel_error_bt_int = math::constrain(_decel_error_bt_int, .0f, _pitch_limit_bt);
 }

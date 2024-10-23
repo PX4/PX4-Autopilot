@@ -243,6 +243,7 @@ void Standard::update_transition_state()
 			// control backtransition deceleration using pitch.
 			pitch_body = Eulerf(Quatf(_mc_virtual_att_sp->q_d)).theta();
 		}
+
 		const Quatf q_sp(Eulerf(roll_body, pitch_body, yaw_body));
 
 		q_sp.copyTo(_v_att_sp->q_d);
