@@ -423,12 +423,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 	_rtl_time_estimator.reset();
 
-	if (_vehicle_status_sub.get().is_vtol) {
-		_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-
-	} else {
-		_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
-	}
+	_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
 
 	RTLState start_state_for_estimate;
 
@@ -516,10 +511,6 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 								    land_approach.lat, land_approach.lon, _destination.lat, _destination.lon);
 					get_vector_to_next_waypoint(land_approach.lat, land_approach.lon, _destination.lat, _destination.lon, &direction(0),
 								    &direction(1));
-				}
-
-				if (_vehicle_status_sub.get().is_vtol) {
-					_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 				}
 
 				_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);

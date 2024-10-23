@@ -241,13 +241,7 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 	_rtl_time_estimator.update();
 	_rtl_time_estimator.reset();
 
-	if (_vehicle_status_sub.get().is_vtol) {
-		_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-
-	} else {
-		_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
-	}
-
+	_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
 
 	if (_mission.count > 0 && hasMissionLandStart()) {
 		int32_t start_item_index{-1};
