@@ -71,15 +71,14 @@ parameters:
             description:
                 short: Motor ${i} slew rate limit
                 long: |
-                  Minimum time allowed for the motor input signal to pass through
-                  the full output range. A value x means that the motor signal
-                  can only go from 0 to 1 in minimum x seconds (in case of
-                  reversible motors, the range is -1 to 1).
+                  Forces the motor output signal to take at least the configured time (in seconds)
+                  to traverse its full rangr normally [0%, 100%] if reversible [-100%, 100%].
 
                   Zero means that slew rate limiting is disabled.
             type: float
             decimal: 2
             increment: 0.01
+            unit: s
             num_instances: *max_num_mc_motors
             min: 0
             max: 10
@@ -90,14 +89,14 @@ parameters:
             description:
                 short: Servo ${i} slew rate limit
                 long: |
-                  Minimum time allowed for the servo input signal to pass through
-                  the full output range. A value x means that the servo signal
-                  can only go from -1 to 1 in minimum x seconds.
+                  Forces the servo output signal to take at least the configured time (in seconds)
+                  to traverse its full range [-100%, 100%].
 
                   Zero means that slew rate limiting is disabled.
             type: float
             decimal: 2
             increment: 0.05
+            unit: s
             num_instances: *max_num_servos
             min: 0
             max: 10
