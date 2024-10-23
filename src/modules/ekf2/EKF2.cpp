@@ -2406,6 +2406,16 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			return; //TODO: change and set to NAN
 		}
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+		if (std::isnan(vehicle_gps_position.heading_offset) && PX4_ISFINITE(vehicle_gps_position.heading)) {
+			// Convert the offset to radians & appy offset
+			float raw_yaw_offset = matrix::wrap_pi(math::radians(_params->gps_yaw_off));
+			vehicle_gps_position.heading_offset = raw_yaw_offset;
+			vehicle_gps_position.heading -= raw_yaw_offset;
+		}
+
+#endif //CONFIG_EKF2_GNSS_YAW
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
 

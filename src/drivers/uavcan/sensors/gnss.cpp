@@ -109,10 +109,6 @@ UavcanGnssBridge::init()
 		return res;
 	}
 
-	// EKF2 TODO
-	param_get(param_find("EKF2_GPS_YAW_OFF"), &_rel_heading_offset);
-	_yaw_offset_rads = matrix::wrap_pi(math::radians(_rel_heading_offset));
-
 	// UAVCAN_PUB_RTCM
 	int32_t uavcan_pub_rtcm = 0;
 	param_get(param_find("UAVCAN_PUB_RTCM"), &uavcan_pub_rtcm);
@@ -493,12 +489,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	}
 
 	// Only use dual antenna gps yaw if fix type is (6)
-	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid && _carrier_solution_fixed) {
+	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid) { // && _carrier_solution_fixed) {
 
 		// Apply offset and report corrected heading
-		float corrected_heading = _rel_heading - _yaw_offset_rads;
-		report.heading = corrected_heading;
-		report.heading_offset = _yaw_offset_rads;
+		// float corrected_heading = _rel_heading - _yaw_offset_rads;
+		// report.heading = corrected_heading;
+		report.heading = _rel_heading;
+		report.heading_offset = NAN;
 		report.heading_accuracy = _rel_heading_accuracy;
 	}
 
