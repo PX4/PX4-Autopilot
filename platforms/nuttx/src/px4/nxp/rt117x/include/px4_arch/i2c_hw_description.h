@@ -1,8 +1,6 @@
 /****************************************************************************
- * config/imxrt1060-evk/src/imxrt_flexspi_nor_boot.c
  *
- *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
- *   Author: Ivan Ucherdzhiev <ivanucherdjiev@gmail.com>
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,33 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
-#include "imxrt_flexspi_nor_boot.h"
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-__attribute__((section(".boot_hdr.ivt")))
-const struct ivt_s g_image_vector_table = {
-	IVT_HEADER,                         /* IVT Header */
-	IMAGE_ENTRY_ADDRESS,                /* Image  Entry Function */
-	IVT_RSVD,                           /* Reserved = 0 */
-	(uint32_t)DCD_ADDRESS,              /* Address where DCD information is stored */
-	(uint32_t)BOOT_DATA_ADDRESS,        /* Address where BOOT Data Structure is stored */
-	(uint32_t)IMAG_VECTOR_TABLE,        /* Pointer to IVT Self (absolute address */
-	(uint32_t)CSF_ADDRESS,              /* Address where CSF file is stored */
-	IVT_RSVD                            /* Reserved = 0 */
-};
-
-__attribute__((section(".boot_hdr.boot_data")))
-const struct boot_data_s g_boot_data = {
-	IMAGE_DEST,                         /* boot start location */
-	(IMAGE_DEST_END - IMAGE_DEST),      /* size */
-	PLUGIN_FLAG,                        /* Plugin flag */
-	0xffffffff                          /* empty - extra data word */
-};
+#include "../../../imxrt/include/px4_arch/i2c_hw_description.h"

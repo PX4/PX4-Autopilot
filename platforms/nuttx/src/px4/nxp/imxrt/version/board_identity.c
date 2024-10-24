@@ -42,7 +42,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <arm_internal.h>
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+#include <hardware/rt117x/imxrt117x_ocotp.h>
+#else
 #include <hardware/imxrt_ocotp.h>
+#endif
 
 #define CPU_UUID_BYTE_FORMAT_ORDER          {3, 2, 1, 0, 7, 6, 5, 4}
 #define SWAP_UINT32(x) (((x) >> 24) | (((x) & 0x00ff0000) >> 8) | (((x) & 0x0000ff00) << 8) | ((x) << 24))
@@ -89,9 +93,13 @@ void board_get_uuid32(uuid_uint32_t uuid_words)
 	 *         word [0] word[1]
 	 * SJC_CHALL[63:32] [31:00]
 	 */
-
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+	uuid_words[0] = getreg32(IMXRT_OCOTP_FUSE(0x10));
+	uuid_words[1] = getreg32(IMXRT_OCOTP_FUSE(0x11));
+#else
 	uuid_words[0] = getreg32(IMXRT_OCOTP_CFG1);
 	uuid_words[1] = getreg32(IMXRT_OCOTP_CFG0);
+#endif
 }
 
 int board_get_uuid32_formated(char *format_buffer, int size,

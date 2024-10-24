@@ -39,10 +39,46 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-
-#include <chip.h>
-#include <hardware/imxrt_usb_analog.h>
 #include "arm_internal.h"
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+#  include <hardware/rt117x/imxrt117x_ocotp.h>
+#  include <hardware/rt117x/imxrt117x_anadig.h>
+#else
+#  include <chip.h>
+#  include <hardware/imxrt_usb_analog.h>
+#endif
+
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+
+#define CHIP_TAG     "i.MX RT11?0 r??"
+#define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
+
+#define SI_REV(n)             ((n & 0x7000000) >> 24)
+#define DIFPROG_TYPE(n)       ((n & 0xF000) >> 12)
+#define DIFPROG_REV_MAJOR(n)  ((n & 0xF0) >> 4)
+#define DIFPROG_REV_MINOR(n)  ((n & 0xF))
+
+int board_mcu_version(char *rev, const char **revstr, const char **errata)
+{
+	uint32_t info = getreg32(IMXRT_ANADIG_MISC_MISC_DIFPROG);
+	static char chip[sizeof(CHIP_TAG)] = CHIP_TAG;
+	*revstr = chip;
+
+	chip[CHIP_TAG_LEN - 6] = '0' + DIFPROG_TYPE(info);
+	chip[CHIP_TAG_LEN - 2] = 'A' + (DIFPROG_REV_MAJOR(info) - 10);
+	chip[CHIP_TAG_LEN - 1] = '0' + DIFPROG_REV_MINOR(info);
+
+	*rev = '0' + SI_REV(getreg32(IMXRT_OCOTP_FUSE(18)));
+
+	if (errata) {
+		*errata = NULL;
+	}
+
+	return 0;
+}
+
+
+#else
 
 #define DIGPROG_MINOR_SHIFT           0
 #define DIGPROG_MINOR_MASK            (0xff << DIGPROG_MINOR_SHIFT)
@@ -74,3 +110,5 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 
 	return 0;
 }
+
+#endif
