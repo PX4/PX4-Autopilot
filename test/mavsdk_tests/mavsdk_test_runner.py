@@ -306,7 +306,6 @@ class Tester:
         return True
 
     def reboot_px4(self):
-        time.sleep(5)
         res = False
         if (self.connection == "serial"):
             res = self.reboot_using_serial()
@@ -320,6 +319,7 @@ class Tester:
             time.sleep(15)
         else:
             print("Reboot failed")
+            exit(-1)
 
 
 

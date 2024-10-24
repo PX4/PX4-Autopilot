@@ -5,8 +5,8 @@
     "tests":
     [
         {
-            "model": "x500",
-            "vehicle": "x500",
+            "model": "ssrc_holybro_x500",
+            "vehicle": "ssrc_holybro_x500",
             "test_filter": "[multicopter],[offboard][offboard_attitude]",
             "timeout_min": 10
         },
@@ -14,6 +14,12 @@
             "model": "ssrc_standard_vtol",
             "vehicle": "ssrc_standard_vtol",
             "test_filter": "[vtol], [vtol_wind], [vtol_airspeed_fail]",
+            "timeout_min": 10
+        },
+        {
+            "model": "ssrc_skywalker_x8",
+            "vehicle": "ssrc_skywalker_x8",
+            "test_filter": "[fw]",
             "timeout_min": 10
         }
     ]

@@ -4,8 +4,8 @@
 #
 
 
-param set SYS_HITL 1
-param set UAVCAN_ENABLE 0
+param set-default SYS_HITL 1
+param set-default UAVCAN_ENABLE 0
 param set-default SYS_FAILURE_EN 1
 
 param set-default SENS_EN_GPSSIM 1
@@ -17,4 +17,13 @@ param set-default SENS_EN_ARSPDSIM 1
 # - without real battery
 param set-default CBRK_SUPPLY_CHK 894281
 # - without safety switch
+param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
+
+
+# Disable RC loss failsafe check
+param set-default COM_RC_LOSS_T 180
+param set-default NAV_RCL_ACT 1
+
+# Disable RC input requirement
+param set-default COM_RC_IN_MODE 1

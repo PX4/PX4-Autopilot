@@ -37,7 +37,7 @@ if(gz-sim8_FOUND)
 
 	include(ExternalProject)
 
-	ExternalProject_Add(gz-sim
+	ExternalProject_Add(gzsim-plugins
 		SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation/gz/plugins/px4-gzsim-plugins/
 		BINARY_DIR ${PX4_BINARY_DIR}/build_gz-sim_plugins
 		INSTALL_COMMAND ""
