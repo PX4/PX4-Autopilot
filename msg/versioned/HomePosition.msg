@@ -1,5 +1,7 @@
 # GPS home position in WGS84 coordinates.
 
+uint32 MESSAGE_VERSION = 0
+
 uint64 timestamp			# time since system start (microseconds)
 
 float64 lat				# Latitude in degrees

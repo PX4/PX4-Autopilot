@@ -1,3 +1,5 @@
+uint32 MESSAGE_VERSION = 0
+
 uint64 timestamp # time since system start (microseconds)
 
 char[25] name                      # either the mode name, or component name

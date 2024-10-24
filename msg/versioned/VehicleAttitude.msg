@@ -1,6 +1,8 @@
 # This is similar to the mavlink message ATTITUDE_QUATERNION, but for onboard use
 # The quaternion uses the Hamilton convention, and the order is q(w, x, y, z)
 
+uint32 MESSAGE_VERSION = 0
+
 uint64 timestamp                # time since system start (microseconds)
 
 uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
