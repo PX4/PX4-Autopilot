@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -131,6 +131,7 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 	(GTIM_CCMR_ICF_NOFILT << GTIM_CCMR1_IC1F_SHIFT)
 
 #define CCMR_C1_PWMOUT_INIT (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE
+#define CCMR_C1_PWMOUT_INVERTED_INIT (GTIM_CCMR_MODE_PWM2 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE
 
 #define CCMR_C1_PWMIN_INIT 0 // TBD
 
@@ -519,6 +520,18 @@ void io_timer_update_dma_req(uint8_t timer, bool enable)
 	}
 }
 
+void io_timer_capture_update_dma_req(uint8_t timer, bool enable)
+{
+	if (enable) {
+		rDIER(timer) |= ATIM_DIER_CC1DE | ATIM_DIER_CC2DE | ATIM_DIER_CC3DE | ATIM_DIER_CC4DE;
+		rEGR(timer)  |= (ATIM_EGR_UG | ATIM_EGR_CC1G | ATIM_EGR_CC2G | ATIM_EGR_CC3G | ATIM_EGR_CC4G);
+
+	} else {
+		rEGR(timer)  &= ~(ATIM_EGR_UG | ATIM_EGR_CC1G | ATIM_EGR_CC2G | ATIM_EGR_CC3G | ATIM_EGR_CC4G);
+		rDIER(timer) &= ~(ATIM_DIER_CC1DE | ATIM_DIER_CC2DE | ATIM_DIER_CC3DE | ATIM_DIER_CC4DE);
+	}
+}
+
 int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_burst_length)
 {
 	int ret_val = OK;
@@ -545,7 +558,7 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
 		rEGR(timer)  = ATIM_EGR_UG;
 
-		// find the lowest channel index for the timer (they are not necesarily in ascending order)
+		// find the lowest channel index for the timer (they are not necessarily in ascending order)
 		unsigned lowest_timer_channel = 4;
 		uint32_t first_channel_index = io_timers_channel_mapping.element[timer].first_channel_index;
 		uint32_t last_channel_index = first_channel_index + io_timers_channel_mapping.element[timer].channel_count;
@@ -572,6 +585,54 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 	}
 
 	return ret_val;
+}
+
+int io_timer_set_capture_mode(uint8_t timer, unsigned dshot_pwm_freq, unsigned channel)
+{
+	rARR(timer)  = -1;
+	rEGR(timer)  = ATIM_EGR_UG | GTIM_EGR_CC1G | GTIM_EGR_CC2G | GTIM_EGR_CC3G | GTIM_EGR_CC4G;
+
+	rPSC(timer) = ((int)(io_timers[timer].clock_freq / (dshot_pwm_freq * 5 / 4)) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
+
+
+
+	switch (timer_io_channels[channel].timer_channel) {
+	case 1:
+		// We need to disable CC1E before we can switch to CC1S to input
+		rCCER(timer) &= ~(GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
+		rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR1_CC1S_SHIFT);
+		rCR1(timer) |= GTIM_CR1_CEN;
+		rCCER(timer) |= (GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
+// We need to pass the offset of the register to read by DMA divided by 4.
+		rDCR(timer)  = 0xD; // 0x34 / 4, offset for CC1
+		break;
+
+	case 2:
+		rCCER(timer) &= ~(GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP);
+		rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR1_CC2S_SHIFT);
+		rCR1(timer) |= GTIM_CR1_CEN;
+		rCCER(timer) |= (GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP);
+		rDCR(timer)  = 0xE; // 0x38 / 4, offset for CC2
+		break;
+
+	case 3:
+		rCCER(timer) &= ~(GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP);
+		rCCMR2(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR2_CC3S_SHIFT);
+		rCR1(timer) |= GTIM_CR1_CEN;
+		rCCER(timer) |= (GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP);
+		rDCR(timer)  = 0xF; // 0x3C / 4, offset for CC3
+		break;
+
+	case 4:
+		rCCER(timer) &= ~(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
+		rCCMR2(timer) |= (GTIM_CCMR_CCS_CCIN1  << GTIM_CCMR2_CC4S_SHIFT);
+		rCR1(timer) |= GTIM_CR1_CEN;
+		rCCER(timer) |= (GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
+		rDCR(timer)  = 0x10; // 0x40 / 4, offset for CC4
+		break;
+	}
+
+	return 0;
 }
 
 static inline void io_timer_set_PWM_mode(unsigned timer)
@@ -773,6 +834,12 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		setbits = CCMR_C1_PWMOUT_INIT;
 		break;
 
+	case IOTimerChanMode_DshotInverted:
+		ccer_setbits = 0;
+		dier_setbits = 0;
+		setbits = CCMR_C1_PWMOUT_INVERTED_INIT;
+		break;
+
 	case IOTimerChanMode_PWMIn:
 		setbits = CCMR_C1_PWMIN_INIT;
 		gpio = timer_io_channels[channel].gpio_in;
@@ -781,6 +848,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 #if !defined(BOARD_HAS_NO_CAPTURE)
 
 	case IOTimerChanMode_Capture:
+	case IOTimerChanMode_CaptureDMA:
 		setbits = CCMR_C1_CAPTURE_INIT;
 		gpio = timer_io_channels[channel].gpio_in;
 		break;
@@ -804,6 +872,13 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 		/* Try to reserve & initialize the timer - it will only do it once */
 
 		rv = io_timer_init_timer(timer, mode);
+
+		if (rv == -16) {
+			// FIXME: I don't understand why exactly this is the way it is.
+			// With this hack I'm able to to toggle the dshot pins from output
+			// to input without problem. But there should be a nicer way.
+			rv = 0;
+		}
 
 		if (rv != 0 && previous_mode == IOTimerChanMode_NotUsed) {
 			/* free the channel if it was not used before */
@@ -897,14 +972,14 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 		break;
 
 	case IOTimerChanMode_Dshot:
+	case IOTimerChanMode_DshotInverted:
 		dier_bit = 0;
-
-	/* fallthrough */
-	case IOTimerChanMode_Capture:
 		cr1_bit  = state ? GTIM_CR1_CEN : 0;
+		break;
 
-	/* fallthrough */
 	case IOTimerChanMode_PWMIn:
+	case IOTimerChanMode_Capture:
+	case IOTimerChanMode_CaptureDMA:
 		break;
 
 	default:
@@ -946,6 +1021,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			     (mode == IOTimerChanMode_PWMOut ||
 			      mode == IOTimerChanMode_OneShot ||
 			      mode == IOTimerChanMode_Dshot ||
+			      mode == IOTimerChanMode_DshotInverted ||
 			      mode == IOTimerChanMode_Trigger))) {
 				action_cache[timer].gpio[shifts] = timer_io_channels[chan_index].gpio_out;
 			}
@@ -1006,6 +1082,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 		if ((mode != IOTimerChanMode_PWMOut) &&
 		    (mode != IOTimerChanMode_OneShot) &&
 		    (mode != IOTimerChanMode_Dshot) &&
+		    (mode != IOTimerChanMode_DshotInverted) &&
 		    (mode != IOTimerChanMode_Trigger)) {
 
 			rv = -EIO;
