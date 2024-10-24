@@ -10,6 +10,8 @@
 #include <uavcan/node/subscriber.hpp>
 #include <uavcan/node/timer.hpp>
 #include <uavcan/protocol/NodeStatus.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/dronecan_node_status.h>
 #include <cassert>
 #include <cstdlib>
 
@@ -77,7 +79,13 @@ private:
 
     Subscriber<protocol::NodeStatus, NodeStatusCallback> sub_;
 
+    dronecan_node_status_s	_node_status{};
+    uORB::Publication<dronecan_node_status_s> _node_status_pub{ORB_ID(dronecan_node_status)};
+
     TimerEventForwarder<TimerCallback> timer_;
+
+    uint8_t _module_id_to_logging_index[dronecan_node_status_s::MAX_NODE_STATUSES_LOGGED]; //Only handle as many node statuses as the DronecanNodeStatus message tells us we can
+    uint8_t _module_ids_being_logged = 0; //Keep track of how many node statuses are in play
 
     struct Entry
     {
@@ -119,6 +127,43 @@ private:
         entry = new_entry_value;
     }
 
+    bool loggingModuleIdNodeStatus(uint8_t reporting_node_id)
+    {
+        for(uint8_t array_index = 0; array_index < dronecan_node_status_s::MAX_NODE_STATUSES_LOGGED; array_index++){
+            if(_module_id_to_logging_index[array_index] == reporting_node_id){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool addModuleIdToLoggedStatuses(uint8_t module_id_to_add)
+    {
+        if(_module_ids_being_logged < dronecan_node_status_s::MAX_NODE_STATUSES_LOGGED){
+            _module_id_to_logging_index[_module_ids_being_logged] = module_id_to_add;
+            _module_ids_being_logged++;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    uint8_t getModuleIdLogIndex(uint8_t module_id)
+    {
+        uint8_t return_array_index = 0;
+
+        for(uint8_t array_index = 0; array_index < dronecan_node_status_s::MAX_NODE_STATUSES_LOGGED; array_index++){
+            if(_module_id_to_logging_index[array_index] == module_id){
+                return_array_index = array_index;
+                break;
+            }
+        }
+
+        return return_array_index;
+    }
+
     void handleNodeStatus(const ReceivedDataStructure<protocol::NodeStatus>& msg)
     {
         Entry new_entry;
@@ -130,6 +175,33 @@ private:
         changeNodeStatus(msg.getSrcNodeID(), new_entry);
 
         handleNodeStatusMessage(msg);
+
+        uint8_t received_node_id = msg.getSrcNodeID().get();
+
+        //Check to see if we're logging this ID already. Use it to determine our next steps
+        bool already_logging_this_id = loggingModuleIdNodeStatus(received_node_id);
+
+        //Check to see if we're already logging this module ID, if not, try to add it to our list of module IDs to log.
+        //If we are, deal with publishing a new message
+        if(!already_logging_this_id){
+            addModuleIdToLoggedStatuses(received_node_id);
+        }else if(already_logging_this_id){
+            //Make a new message with the data we've got
+            auto &node_status_message = _node_status.node_status_id[getModuleIdLogIndex(received_node_id)];
+
+            //Fill in the actual node's status information
+            node_status_message.timestamp = hrt_absolute_time();
+            node_status_message.uptime_sec = msg.uptime_sec;
+            node_status_message.node_id = received_node_id;
+            node_status_message.health = msg.health;
+            node_status_message.mode = msg.mode;
+            node_status_message.sub_mode = msg.sub_mode;
+            node_status_message.vendor_specific_status_code = msg.vendor_specific_status_code;
+
+            _node_status.timestamp = hrt_absolute_time();
+
+            _node_status_pub.publish(_node_status);
+        }
     }
 
     void handleTimerEvent(const TimerEvent&)
@@ -197,6 +269,7 @@ public:
         {
             timer_.setCallback(TimerCallback(this, &NodeStatusMonitor::handleTimerEvent));
             timer_.startPeriodic(MonotonicDuration::fromMSec(TimerPeriodMs100 * 100));
+            _node_status_pub.advertise();
         }
         return res;
     }
