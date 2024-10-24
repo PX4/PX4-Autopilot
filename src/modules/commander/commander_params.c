@@ -271,6 +271,9 @@ PARAM_DEFINE_INT32(COM_DISARM_MAN, 1);
  * @value 0 Warning
  * @value 2 Land mode
  * @value 3 Return at critical level, land at emergency level
+ * @value 4 Descend mode
+ * @min 0
+ * @max 4
  */
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
@@ -304,6 +307,7 @@ PARAM_DEFINE_FLOAT(COM_FAIL_ACT_T, 5.f);
  * @value 0 Warning
  * @value 1 Return
  * @value 2 Land
+ * @value 3 Descend
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
@@ -328,6 +332,7 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
  * @value  0 Return mode
  * @value  1 Land mode
  * @value  2 Hold mode
+ * @value  3 Descend mode
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_QC_ACT, 0);
@@ -346,6 +351,9 @@ PARAM_DEFINE_INT32(COM_QC_ACT, 0);
  * @value 5 Hold mode
  * @value 6 Terminate
  * @value 7 Disarm
+ * @value 8 Descend
+ * @min 0
+ * @max 8
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
@@ -596,8 +604,9 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Disarm
+ * @value 7 Descend
  * @min 0
- * @max 6
+ * @max 7
  *
  * @group Commander
  */
@@ -615,8 +624,9 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Disarm
+ * @value 7 Descend
  * @min 1
- * @max 6
+ * @max 7
  *
  * @group Commander
  */
@@ -649,6 +659,7 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
  * @value 2 Land mode
  * @value 3 Return mode
  * @value 4 Terminate
+ * @value 5 Descend
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_ACT_FAIL_ACT, 0);
@@ -923,6 +934,7 @@ PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
  * @value 3 Return
  * @value 4 Terminate
  * @value 5 Land
+ * @value 6 Descend
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_WIND_MAX_ACT, 0);
