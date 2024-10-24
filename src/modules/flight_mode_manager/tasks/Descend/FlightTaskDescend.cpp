@@ -55,7 +55,7 @@ bool FlightTaskDescend::update()
 	} else {
 		// descend with constant acceleration (crash landing)
 		_velocity_setpoint(2) = NAN;
-		_acceleration_setpoint(2) = .15f;
+		_acceleration_setpoint(2) = .3f;
 	}
 
 	// Nudging
@@ -69,7 +69,7 @@ bool FlightTaskDescend::update()
 		_acceleration_setpoint(2) -= _sticks.getThrottleZeroCentered() * 10.f;
 
 	} else {
-		_acceleration_setpoint = matrix::Vector3f(0.f, 0.f, NAN); // stay level to minimize horizontal drift
+		_acceleration_setpoint.xy() = matrix::Vector2f(0.f, 0.f); // stay level to minimize horizontal drift
 		_yawspeed_setpoint = NAN;
 
 		// keep heading

@@ -961,7 +961,9 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
 	const float yaw_body = 0.f;
 
-	if (_landed) {
+	// Special case: if z or vz estimate is invalid we cannot control height anymore. To prevent a
+	// "climb-away" we set the thrust to MIN in that case.
+	if (_landed || !_local_pos.z_valid || !_local_pos.v_z_valid) {
 		_att_sp.thrust_body[0] = _param_fw_thr_min.get();
 
 	} else {
@@ -1000,7 +1002,11 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
 	const float yaw_body = 0.f;
 
-	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
+	// Special case: if vz estimate is invalid we cannot control height rate anymore. To prevent a
+	// "climb-away" we set the thrust to MIN in that case.
+	_att_sp.thrust_body[0] = (_landed
+				  || !_local_pos.v_z_valid) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
+
 	const float pitch_body = get_tecs_pitch();
 	const Quatf attitude_setpoint(Eulerf(roll_body, pitch_body, yaw_body));
 	attitude_setpoint.copyTo(_att_sp.q_d);
