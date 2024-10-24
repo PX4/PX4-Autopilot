@@ -51,7 +51,6 @@ RtlTimeEstimator::RtlTimeEstimator() : ModuleParams(nullptr)
 {
 	_param_mpc_z_v_auto_up = param_find("MPC_Z_V_AUTO_UP");
 	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
-	_param_mpc_land_speed = param_find("MPC_LAND_SPEED");
 	_param_fw_climb_rate = param_find("FW_T_CLMB_R_SP");
 	_param_fw_sink_rate = param_find("FW_T_SINK_R_SP");
 	_param_fw_airspeed_trim = param_find("FW_AIRSPD_TRIM");
@@ -79,7 +78,6 @@ rtl_time_estimate_s RtlTimeEstimator::getEstimate() const
 
 void RtlTimeEstimator::update()
 {
-	_vehicle_status_sub.update();
 	_wind_sub.update();
 
 	if (_parameter_update_sub.updated()) {
@@ -130,22 +128,11 @@ void RtlTimeEstimator::addWait(float time_s)
 	}
 }
 
-void RtlTimeEstimator::addDescendMCLand(float alt)
-{
-	if (PX4_ISFINITE(alt)) {
-		_is_valid = true;
-
-		if (alt < -FLT_EPSILON && PX4_ISFINITE(alt)) {
-			_time_estimate += -alt / getHoverLandSpeed();
-		}
-	}
-}
-
 float RtlTimeEstimator::getCruiseGroundSpeed(const matrix::Vector2f &direction_norm)
 {
 	float cruise_speed = getCruiseSpeed();
 
-	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		matrix::Vector2f wind = get_wind();
 
 		const float wind_along_dir = wind.dot(direction_norm);
@@ -186,31 +173,20 @@ float RtlTimeEstimator::getCruiseSpeed()
 {
 	float ret = 1e6f;
 
-	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		if (_param_mpc_xy_cruise == PARAM_INVALID || param_get(_param_mpc_xy_cruise, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}
 
-	} else if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	} else if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		if (_param_fw_airspeed_trim == PARAM_INVALID || param_get(_param_fw_airspeed_trim, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}
 
-	} else if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+	} else if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 		if (_param_rover_cruise_speed == PARAM_INVALID || param_get(_param_rover_cruise_speed, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}
-	}
-
-	return ret;
-}
-
-float RtlTimeEstimator::getHoverLandSpeed()
-{
-	float ret = 1e6f;
-
-	if (_param_mpc_land_speed == PARAM_INVALID || param_get(_param_mpc_land_speed, &ret) != PX4_OK) {
-		ret = 1e6f;
 	}
 
 	return ret;
@@ -233,12 +209,12 @@ float RtlTimeEstimator::getClimbRate()
 {
 	float ret = 1e6f;
 
-	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		if (_param_mpc_z_v_auto_up == PARAM_INVALID || param_get(_param_mpc_z_v_auto_up, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}
 
-	} else if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	} else if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
 		if (_param_fw_climb_rate == PARAM_INVALID || param_get(_param_fw_climb_rate, &ret) != PX4_OK) {
 			ret = 1e6f;
@@ -252,12 +228,12 @@ float RtlTimeEstimator::getDescendRate()
 {
 	float ret = 1e6f;
 
-	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		if (_param_mpc_z_v_auto_dn == PARAM_INVALID || param_get(_param_mpc_z_v_auto_dn, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}
 
-	} else if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	} else if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		if (_param_fw_sink_rate == PARAM_INVALID || param_get(_param_fw_sink_rate, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}

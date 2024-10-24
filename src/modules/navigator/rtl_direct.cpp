@@ -73,7 +73,6 @@ void RtlDirect::on_inactivation()
 void RtlDirect::on_activation()
 {
 	_global_pos_sub.update();
-	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 
 	parameters_update();
@@ -118,6 +117,12 @@ void RtlDirect::on_active()
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
 	}
+}
+
+void RtlDirect::on_inactive()
+{
+	_global_pos_sub.update();
+	_vehicle_status_sub.update();
 }
 
 void RtlDirect::setRtlPosition(PositionYawSetpoint rtl_position, loiter_point_s loiter_pos)
@@ -421,7 +426,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 {
 	_global_pos_sub.update();
 	_rtl_time_estimator.update();
-
+	_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
 	_rtl_time_estimator.reset();
 
 	RTLState start_state_for_estimate;
@@ -455,8 +460,13 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 				matrix::Vector2f direction{};
 				get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat,
 							    land_approach.lon, &direction(0), &direction(1));
-				_rtl_time_estimator.addDistance(get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-								land_approach.lat, land_approach.lon), direction, 0.f);
+				float move_to_land_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon)};
+
+				if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+					move_to_land_dist = max(0.f, move_to_land_dist - land_approach.loiter_radius_m);
+				}
+
+				_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);
 			}
 
 		// FALLTHROUGH
@@ -527,7 +537,11 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 					initial_altitude = loiter_altitude;
 				}
 
-				_rtl_time_estimator.addDescendMCLand(_destination.alt - initial_altitude);
+				if (_vehicle_status_sub.get().is_vtol) {
+					_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+				}
+
+				_rtl_time_estimator.addVertDistance(_destination.alt - initial_altitude);
 			}
 
 			break;
@@ -560,7 +574,6 @@ loiter_point_s RtlDirect::sanitizeLandApproach(loiter_point_s land_approach) con
 	if (!PX4_ISFINITE(land_approach.lat) || !PX4_ISFINITE(land_approach.lon)) {
 		sanitized_land_approach.lat = _destination.lat;
 		sanitized_land_approach.lon = _destination.lon;
-
 	}
 
 	if (!PX4_ISFINITE(land_approach.height_m)) {
