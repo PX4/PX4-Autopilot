@@ -426,10 +426,8 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 {
 	_global_pos_sub.update();
 	_rtl_time_estimator.update();
-
-	_rtl_time_estimator.reset();
-
 	_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
+	_rtl_time_estimator.reset();
 
 	RTLState start_state_for_estimate;
 

@@ -63,12 +63,12 @@ public:
 	~RtlTimeEstimator() = default;
 
 	void update();
-	void reset() { _time_estimate = 0.f; _is_valid = false;};
+	void reset() { _time_estimate = 0.f; _is_valid = false; };
 	rtl_time_estimate_s getEstimate() const;
 	void addDistance(float hor_dist, const matrix::Vector2f &hor_direction, float vert_dist);
 	void addVertDistance(float alt);
 	void addWait(float time_s);
-	void setVehicleType(uint8_t vehicle_type) {_vehicle_type = vehicle_type;};
+	void setVehicleType(uint8_t vehicle_type) { _vehicle_type = vehicle_type; };
 
 private:
 	/**

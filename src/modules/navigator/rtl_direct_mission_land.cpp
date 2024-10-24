@@ -239,9 +239,8 @@ void RtlDirectMissionLand::setActiveMissionItems()
 rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 {
 	_rtl_time_estimator.update();
-	_rtl_time_estimator.reset();
-
 	_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
+	_rtl_time_estimator.reset();
 
 	if (_mission.count > 0 && hasMissionLandStart()) {
 		int32_t start_item_index{-1};
@@ -349,7 +348,6 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							// For fixed wing, add diagonal line
 							if ((_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
 							    && (!_vehicle_status_sub.get().is_vtol)) {
-
 
 								_rtl_time_estimator.addDistance(hor_dist, direction,
 												get_absolute_altitude_for_item(next_position_mission_item) - altitude_at_calculation_point);
