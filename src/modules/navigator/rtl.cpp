@@ -608,7 +608,9 @@ void RTL::init_rtl_mission_type()
 		break;
 	}
 
-	_rtl_mission_type_handle->initialize();
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->initialize();
+	}
 }
 
 void RTL::parameters_update()
