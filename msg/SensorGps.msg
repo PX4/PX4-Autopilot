@@ -30,18 +30,28 @@ float32 vdop			# Vertical dilution of precision
 int32 noise_per_ms		# GPS noise per millisecond
 uint16 automatic_gain_control   # Automatic gain control monitor
 
-uint8 JAMMING_STATE_UNKNOWN  = 0
-uint8 JAMMING_STATE_OK       = 1
-uint8 JAMMING_STATE_WARNING  = 2
-uint8 JAMMING_STATE_CRITICAL = 3
+uint8 JAMMING_STATE_UNKNOWN   = 0 #default
+uint8 JAMMING_STATE_OK        = 1
+uint8 JAMMING_STATE_WARNING   = 2
+uint8 JAMMING_STATE_CRITICAL  = 3
+uint8 JAMMING_STATE_MITIGATED = 4
 uint8 jamming_state		# indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
 int32 jamming_indicator		# indicates jamming is occurring
 
-uint8 SPOOFING_STATE_UNKNOWN   = 0
+uint8 SPOOFING_STATE_UNKNOWN   = 0 #default
 uint8 SPOOFING_STATE_NONE      = 1
 uint8 SPOOFING_STATE_INDICATED = 2
 uint8 SPOOFING_STATE_MULTIPLE  = 3
+uint8 SPOOFING_STATE_MITIGATED = 4
 uint8 spoofing_state		# indicates whether spoofing has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
+
+# Combined authentication state (e.g. Galileo OSNMA)
+uint8 AUTHENTICATION_STATE_UNKNOWN      = 0 #default
+uint8 AUTHENTICATION_STATE_INITIALIZING = 1
+uint8 AUTHENTICATION_STATE_FAILED       = 2
+uint8 AUTHENTICATION_STATE_OK           = 3
+uint8 AUTHENTICATION_STATE_DISABLED     = 4
+uint8 authentication_state      # GPS signal authentication state
 
 float32 vel_m_s			# GPS ground speed, (metres/sec)
 float32 vel_n_m_s		# GPS North velocity, (metres/sec)
@@ -54,6 +64,16 @@ int32 timestamp_time_relative	# timestamp + timestamp_time_relative = Time of th
 uint64 time_utc_usec		# Timestamp (microseconds, UTC), this is the timestamp which comes from the gps module. It might be unavailable right after cold start, indicated by a value of 0
 
 uint8 satellites_used		# Number of satellites used
+
+uint32 SYSTEM_ERROR_OK                   = 0 #default
+uint32 SYSTEM_ERROR_INCOMING_CORRECTIONS = 1
+uint32 SYSTEM_ERROR_CONFIGURATION        = 2
+uint32 SYSTEM_ERROR_SOFTWARE             = 4
+uint32 SYSTEM_ERROR_ANTENNA              = 8
+uint32 SYSTEM_ERROR_EVENT_CONGESTION     = 16
+uint32 SYSTEM_ERROR_CPU_OVERLOAD         = 32
+uint32 SYSTEM_ERROR_OUTPUT_CONGESTION    = 64
+uint32 system_error             # General errors with the connected GPS receiver
 
 float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])
 float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])
@@ -68,5 +88,10 @@ uint8 RTCM_MSG_USED_UNKNOWN = 0
 uint8 RTCM_MSG_USED_NOT_USED = 1
 uint8 RTCM_MSG_USED_USED = 2
 uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
+
+uint8 quality_corrections       # Abstract corrections quality from 0 to 10, or 255(default) if not available
+uint8 quality_receiver          # Abstract overall receiver operating status from 0 to 10, or 255(default) if not available
+uint8 quality_gnss_signals      # Abstract quality of GNSS signals from 0 to 10, or 255(default) if not available
+uint8 quality_post_processing   # Abstract expected post processing quality from 0 to 10, or 255(default) if not available
 
 # TOPICS sensor_gps vehicle_gps_position
