@@ -2030,6 +2030,24 @@ PARAM_DEFINE_FLOAT(RC_GEAR_TH, 0.75f);
 PARAM_DEFINE_FLOAT(RC_ENG_MOT_TH, 0.75f);
 
 /**
+ * ADC input channel that provides RSSI.
+ *
+ * 0: do not read RSSI from input
+ * 1: read RSSI from external 3V3 input
+ * 2: read RSSI from external 6V6 input
+ *
+ *
+ * @min 0
+ * @max 2
+ * @value 0 Do not read RSSI from input
+ * @value 1 Read RSSI from external 3V3 input
+ * @value 2 Read RSSI from external 6V6 input
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_ADC_CHAN, 0);
+
+/**
  * PWM input channel that provides RSSI.
  *
  * 0: do not read RSSI from input channel
