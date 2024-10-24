@@ -46,6 +46,7 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <lib/parameters/param.h>
 
 using namespace time_literals;
@@ -58,6 +59,7 @@ UavcanGnssBridge::UavcanGnssBridge(uavcan::INode &node) :
 	_sub_auxiliary(node),
 	_sub_fix(node),
 	_sub_fix2(node),
+	_sub_gnss_heading(node),
 	_pub_moving_baseline_data(node),
 	_pub_rtcm_stream(node),
 	_channel_using_fix2(new bool[_max_channels])
@@ -100,6 +102,12 @@ UavcanGnssBridge::init()
 		return res;
 	}
 
+	res = _sub_gnss_heading.start(RelPosHeadingCbBinder(this, &UavcanGnssBridge::gnss_relative_sub_cb));
+
+	if (res < 0) {
+		PX4_WARN("GNSS relative sub failed %i", res);
+		return res;
+	}
 
 	// UAVCAN_PUB_RTCM
 	int32_t uavcan_pub_rtcm = 0;
@@ -185,10 +193,16 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 		case Fix2::SUB_MODE_RTK_FIXED:
 			fix_type = 6; // RTK fixed
+			_carrier_solution_fixed = true;
 			break;
 		}
 
 		break;
+	}
+
+	// Degraded RTK fix
+	if (fix_type != 6) {
+		_carrier_solution_fixed = false;
 	}
 
 	float pos_cov[9] {};
@@ -295,6 +309,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		}
 	}
 
+	// Invalidate the heading fields FIXME:(PX4 CANNODE)
 	float heading = NAN;
 	float heading_offset = NAN;
 	float heading_accuracy = NAN;
@@ -304,7 +319,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	uint8_t jamming_state = 0;
 	uint8_t spoofing_state = 0;
 
-	// Use ecef_position_velocity for now... There is no heading field
+	// Use ecef_position_velocity for CANNODE until FIXME above resolved
 	if (!msg.ecef_position_velocity.empty()) {
 		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[0])) {
 			heading = msg.ecef_position_velocity[0].velocity_xyz[0];
@@ -328,7 +343,17 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, heading, heading_offset,
 		     heading_accuracy, noise_per_ms, jamming_indicator, jamming_state, spoofing_state);
 }
+void UavcanGnssBridge::gnss_relative_sub_cb(const
+		uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg)
+{
+	_last_gnss_relative_timestamp = hrt_absolute_time();
 
+	_rel_heading_valid = msg.reported_heading_acc_available;
+	// Convert: -pi to pi
+	_rel_heading = matrix::wrap_pi(math::radians(msg.reported_heading_deg));
+	_rel_heading_accuracy = matrix::wrap_2pi(math::radians(msg.reported_heading_acc_deg));
+
+}
 template <typename FixType>
 void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
 				    uint8_t fix_type,
@@ -463,9 +488,25 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.vdop = msg.pdop;
 	}
 
-	report.heading = heading;
-	report.heading_offset = heading_offset;
-	report.heading_accuracy = heading_accuracy;
+	// Only use dual antenna gps yaw if fix type is (6)
+	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid && _carrier_solution_fixed) {
+
+		// Apply offset and report corrected heading
+		// float corrected_heading = _rel_heading - _yaw_offset_rads;
+		// report.heading = corrected_heading;
+		report.heading = _rel_heading;
+		report.heading_offset = NAN;
+		report.heading_accuracy = _rel_heading_accuracy;
+	}
+
+	// Use ECEF populated local variables (px4 cannode) or NAN values if we aren't receiving updated RTK heading
+	else {
+
+
+		report.heading = heading;
+		report.heading_offset = heading_offset;
+		report.heading_accuracy = heading_accuracy;
+	}
 
 	report.noise_per_ms = noise_per_ms;
 	report.jamming_indicator = jamming_indicator;
