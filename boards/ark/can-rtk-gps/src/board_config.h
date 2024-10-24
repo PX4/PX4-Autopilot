@@ -68,6 +68,9 @@
 /* Boot config */
 #define GPIO_BOOT_CONFIG      /* PC15 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN15|GPIO_EXTI)
 
+/* GPS PPS/TIMEPULSE */
+#define GPIO_PPS_INPUT        /* PB2  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTB|GPIO_PIN2)
+
 /* LEDs are driven with open drain to support Anode to 5V or 3.3V */
 #define GPIO_TIM1_CH1         /* PA8  */ (GPIO_TIM1_CH1_1|GPIO_OPENDRAIN|GPIO_SPEED_2MHz)
 #define GPIO_TIM1_CH2         /* PA9  */ (GPIO_TIM1_CH2_1|GPIO_OPENDRAIN|GPIO_SPEED_2MHz)
@@ -103,6 +106,7 @@
 		GPIO_I2C2_SDA_RESET,              \
 		GPIO_42688P_FSYNC,                \
 		GPIO_BOOT_CONFIG,                 \
+		GPIO_PPS_INPUT,                   \
 		GPIO_CAN1_TX,                     \
 		GPIO_CAN1_RX,                     \
 		GPIO_CAN1_SILENT_S0,              \
