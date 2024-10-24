@@ -3,6 +3,8 @@
 # Needs to be kinematically consistent and feasible for smooth flight.
 # setting a value to NaN means the state should not be controlled
 
+uint32 MESSAGE_VERSION = 0
+
 uint64 timestamp # time since system start (microseconds)
 
 # NED local world frame

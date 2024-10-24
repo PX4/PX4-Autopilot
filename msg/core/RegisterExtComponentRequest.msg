@@ -1,4 +1,7 @@
 # Request to register an external component
+
+uint32 MESSAGE_VERSION = 0
+
 uint64 timestamp # time since system start (microseconds)
 
 uint64 request_id                  # ID, set this to a random value
