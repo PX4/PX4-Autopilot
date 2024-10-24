@@ -188,9 +188,7 @@ private:
 	perf_counter_t 		_measure_errors;
 
 	int16_t           _bus_voltage{0};
-	int16_t           _power{0};
 	int16_t           _current{0};
-	int16_t           _shunt{0};
 	int16_t           _cal{0};
 	bool              _mode_triggered{false};
 

@@ -108,10 +108,12 @@ void BatterySimulator::Run()
 
 	vbatt *= _battery.cell_count();
 
-	_battery.setConnected(true);
-	_battery.updateVoltage(vbatt);
-	_battery.updateCurrent(ibatt);
-	_battery.updateAndPublishBatteryStatus(now_us);
+	Battery::InputSample sample{
+		.timestamp = hrt_absolute_time(),
+		.voltage_v = vbatt,
+		.current_a = ibatt
+	};
+	_battery.updateAndPublishBatteryStatus(sample);
 
 	perf_end(_loop_perf);
 }

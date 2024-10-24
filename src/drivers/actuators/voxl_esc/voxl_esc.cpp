@@ -569,15 +569,16 @@ int VoxlEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 				// Limit the frequency of battery status reports
 				if (_parameters.publish_battery_status) {
-					_battery.setConnected(true);
-					_battery.updateVoltage(voltage);
-					_battery.updateCurrent(current);
-
 					hrt_abstime current_time = hrt_absolute_time();
 
 					if ((current_time - _last_battery_report_time) >= _battery_report_interval) {
 						_last_battery_report_time = current_time;
-						_battery.updateAndPublishBatteryStatus(current_time);
+						Battery::InputSample sample{
+							.timestamp = current_time,
+							.voltage_v = voltage,
+							.current_a = current
+						};
+						_battery.updateAndPublishBatteryStatus(sample);
 					}
 				}
 

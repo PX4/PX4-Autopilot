@@ -58,6 +58,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/vehicle_status.h>
+#include <lib/hysteresis/hysteresis.h>
 
 /**
  * BatteryBase is a base class for any type of battery.
@@ -71,6 +72,32 @@ public:
 	Battery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source);
 	~Battery() = default;
 
+	struct InputSample {
+		hrt_abstime timestamp{0};
+		float voltage_v{NAN};
+		float current_a{NAN};
+		float temperature_c{NAN};
+
+		bool valid() const
+		{
+			return timestamp > 0 && voltageValid();
+		}
+
+		bool voltageValid() const
+		{
+			return PX4_ISFINITE(voltage_v);
+		}
+
+		bool currentValid() const
+		{
+			return PX4_ISFINITE(current_a);
+		}
+
+		bool currentAndVoltageValid() const
+		{
+			return currentValid() && voltageValid();
+		}
+	};
 	/**
 	 * Get the battery cell count
 	 */
@@ -87,18 +114,12 @@ public:
 	float full_cell_voltage() { return _params.v_charged; }
 
 	void setPriority(const uint8_t priority) { _priority = priority; }
-	void setConnected(const bool connected) { _connected = connected; }
-	void setStateOfCharge(const float soc) { _state_of_charge = soc; _external_state_of_charge = true; }
-	void updateVoltage(const float voltage_v);
-	void updateCurrent(const float current_a);
-	void updateTemperature(const float temperature_c);
-
 	/**
 	 * Update state of charge calculations
 	 *
-	 * @param timestamp Time at which the battery data sample was measured
+	 * @param sample Input sample containing timestamp, voltage, current and temperature
 	 */
-	void updateBatteryStatus(const hrt_abstime &timestamp);
+	void updateBatteryStatus(const InputSample &sample);
 
 	battery_status_s getBatteryStatus();
 	void publishBatteryStatus(const battery_status_s &battery_status);
@@ -108,7 +129,9 @@ public:
 	 * @see updateBatteryStatus()
 	 * @see publishBatteryStatus()
 	 */
-	void updateAndPublishBatteryStatus(const hrt_abstime &timestamp);
+	void updateAndPublishBatteryStatus(const InputSample &sample);
+
+
 
 protected:
 	static constexpr float LITHIUM_BATTERY_RECOGNITION_VOLTAGE = 2.1f;
@@ -146,7 +169,7 @@ protected:
 
 private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
-	float calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a);
+	float calculateStateOfChargeVoltageBased(const InputSample &sample);
 	void estimateStateOfCharge();
 	uint8_t determineWarning(float state_of_charge);
 	uint16_t determineFaults();
@@ -159,27 +182,24 @@ private:
 
 	bool _external_state_of_charge{false}; ///< inticates that the soc is injected and not updated by this library
 
-	bool _connected{false};
+	InputSample _last_valid_sample {};
 	const uint8_t _source;
 	uint8_t _priority{0};
 	bool _battery_initialized{false};
-	float _voltage_v{0.f};
 	AlphaFilter<float> _ocv_filter_v;
 	AlphaFilter<float> _cell_voltage_filter_v;
-	float _current_a{-1};
 	AlphaFilter<float>
 	_current_average_filter_a; ///< averaging filter for current. For FW, it is the current in level flight.
-	float _temperature_c{NAN};
 	float _discharged_mah{0.f};
 	float _discharged_mah_loop{0.f};
 	float _state_of_charge_volt_based{-1.f}; // [0,1]
 	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
-	hrt_abstime _last_timestamp{0};
+	hrt_abstime _last_valid_current_timestamp{0};
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};
-	hrt_abstime _last_unconnected_timestamp{0};
+	systemlib::Hysteresis _connected_state_hysteresis{false};
 
 	// Internal Resistance estimation
 	void updateInternalResistanceEstimation(const float voltage_v, const float current_a);

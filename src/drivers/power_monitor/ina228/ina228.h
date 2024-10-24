@@ -341,7 +341,6 @@ private:
 	int64_t           _power{0};
 	int32_t           _current{0};
 	int16_t           _temperature{0};
-	int32_t           _shunt{0};
 	int16_t           _cal{0};
 	int16_t           _range{INA228_ADCRANGE_HIGH};
 	bool              _mode_triggered{false};
