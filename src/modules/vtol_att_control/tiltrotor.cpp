@@ -384,10 +384,6 @@ void Tiltrotor::fill_actuator_outputs()
 		collective_thrust_normalized_setpoint = _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 		_thrust_setpoint_0->xyz[2] = -collective_thrust_normalized_setpoint;
 
-		/* allow differential thrust if enabled */
-		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
-			_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * _param_vt_fw_difthr_s_y.get() ;
-		}
 
 	} else {
 		collective_thrust_normalized_setpoint = -_vehicle_thrust_setpoint_virtual_mc->xyz[2] * _mc_throttle_weight;

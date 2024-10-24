@@ -67,7 +67,7 @@ public:
 		allocation_method_out[1] = AllocationMethod::PSEUDO_INVERSE;
 	}
 
-	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	void getNormalizeAsPlanarMC(bool normalize[MAX_NUM_MATRICES]) const override
 	{
 		normalize[0] = true;
 		normalize[1] = false;
@@ -80,6 +80,7 @@ public:
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
 	void setFlightPhase(const FlightPhase &flight_phase) override;
+	void setEnableAuxiliaryMotors(bool enable) override;
 
 private:
 	ActuatorEffectivenessRotors _rotors;

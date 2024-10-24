@@ -284,61 +284,6 @@ PARAM_DEFINE_INT32(VT_FW_QC_HMAX, 0);
 PARAM_DEFINE_FLOAT(VT_F_TR_OL_TM, 6.0f);
 
 /**
- * Differential thrust in forwards flight.
- *
- * Enable differential thrust seperately for roll, pitch, yaw in forward (fixed-wing) mode.
- * The effectiveness of differential thrust around the corresponding axis can be
- * tuned by setting VT_FW_DIFTHR_S_R / VT_FW_DIFTHR_S_P / VT_FW_DIFTHR_S_Y.
- *
- * @min 0
- * @max 7
- * @bit 0 Yaw
- * @bit 1 Roll
- * @bit 2 Pitch
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
-
-/**
- * Roll differential thrust factor in forward flight
- *
- * Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
- *
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_R, 1.f);
-
-/**
- * Pitch differential thrust factor in forward flight
- *
- * Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
- *
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_P, 1.f);
-
-/**
- * Yaw differential thrust factor in forward flight
- *
- * Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
- *
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_Y, 0.1f);
-
-/**
  * Backtransition deceleration setpoint to pitch I gain.
  *
  * @unit rad s/m

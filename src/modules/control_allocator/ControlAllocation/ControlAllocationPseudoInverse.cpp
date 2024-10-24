@@ -59,7 +59,7 @@ ControlAllocationPseudoInverse::updatePseudoInverse()
 	if (_mix_update_needed) {
 		matrix::geninv(_effectiveness, _mix);
 
-		if (_normalization_needs_update && !_had_actuator_failure) {
+		if (_normalization_needs_update) {
 			updateControlAllocationMatrixScale();
 			_normalization_needs_update = false;
 		}
@@ -73,7 +73,7 @@ void
 ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 {
 	// Same scale on roll and pitch
-	if (_normalize_rpy) {
+	if (_normalize_matrix_as_planar_mc) {
 
 		int num_non_zero_roll_torque = 0;
 		int num_non_zero_pitch_torque = 0;
@@ -107,34 +107,52 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 		// Scale yaw separately
 		_control_allocation_scale(2) = _mix.col(2).max();
 
-	} else {
-		_control_allocation_scale(0) = 1.f;
-		_control_allocation_scale(1) = 1.f;
-		_control_allocation_scale(2) = 1.f;
-	}
+		// Scale thrust by the sum of the individual thrust axes, and use the scaling for the Z axis if there's no actuators
+		// (for tilted actuators)
+		_control_allocation_scale(THRUST_Z) = 1.f;
 
-	// Scale thrust by the sum of the individual thrust axes, and use the scaling for the Z axis if there's no actuators
-	// (for tilted actuators)
-	_control_allocation_scale(THRUST_Z) = 1.f;
+		for (int axis_idx = 2; axis_idx >= 0; --axis_idx) {
+			int num_non_zero_thrust = 0;
+			float norm_sum = 0.f;
 
-	for (int axis_idx = 2; axis_idx >= 0; --axis_idx) {
-		int num_non_zero_thrust = 0;
-		float norm_sum = 0.f;
+			for (int i = 0; i < _num_actuators; i++) {
+				float norm = fabsf(_mix(i, 3 + axis_idx));
+				norm_sum += norm;
 
-		for (int i = 0; i < _num_actuators; i++) {
-			float norm = fabsf(_mix(i, 3 + axis_idx));
-			norm_sum += norm;
+				if (norm > FLT_EPSILON) {
+					++num_non_zero_thrust;
+				}
+			}
 
-			if (norm > FLT_EPSILON) {
-				++num_non_zero_thrust;
+			if (num_non_zero_thrust > 0) {
+				_control_allocation_scale(3 + axis_idx) = norm_sum / num_non_zero_thrust;
+
+			} else {
+				_control_allocation_scale(3 + axis_idx) = _control_allocation_scale(THRUST_Z);
 			}
 		}
 
-		if (num_non_zero_thrust > 0) {
-			_control_allocation_scale(3 + axis_idx) = norm_sum / num_non_zero_thrust;
+	} else {
+		// Fixed-wing with control surfaces normalization
+		for (int i = 0; i < NUM_AXES; i++) {
 
-		} else {
-			_control_allocation_scale(3 + axis_idx) = _control_allocation_scale(THRUST_Z);
+			int num_non_zero_actuators = 0;
+
+			for (int j = 0; j < _num_actuators; j++) {
+
+				if (fabsf(_mix(j, i)) > 1e-3f) {
+					++num_non_zero_actuators;
+				}
+			}
+
+			const float axis_norm_scale = _mix.col(i).sum_abs();
+
+			if (num_non_zero_actuators > 0) {
+				_control_allocation_scale(i) = axis_norm_scale / num_non_zero_actuators;
+
+			} else {
+				_control_allocation_scale(i) = 1.f;
+			}
 		}
 	}
 }
@@ -142,27 +160,22 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 void
 ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
 {
-	if (_control_allocation_scale(0) > FLT_EPSILON) {
-		_mix.col(0) /= _control_allocation_scale(0);
-		_mix.col(1) /= _control_allocation_scale(1);
-	}
+	// build the normalized matrix with the raw mixer matrix and the per-axis scales
+	_normalized_mix = _mix;
 
-	if (_control_allocation_scale(2) > FLT_EPSILON) {
-		_mix.col(2) /= _control_allocation_scale(2);
-	}
-
-	if (_control_allocation_scale(3) > FLT_EPSILON) {
-		_mix.col(3) /= _control_allocation_scale(3);
-		_mix.col(4) /= _control_allocation_scale(4);
-		_mix.col(5) /= _control_allocation_scale(5);
+	// TODO check for tilting motors if normalization is correct
+	for (int i = 0; i < NUM_AXES; i++) {
+		if (_control_allocation_scale(i) > FLT_EPSILON) {
+			_normalized_mix.col(i) = _mix.col(i) / _control_allocation_scale(i);
+		}
 	}
 
 	// Set all the small elements to 0 to avoid issues
 	// in the control allocation algorithms
 	for (int i = 0; i < _num_actuators; i++) {
 		for (int j = 0; j < NUM_AXES; j++) {
-			if (fabsf(_mix(i, j)) < 1e-3f) {
-				_mix(i, j) = 0.f;
+			if (fabsf(_normalized_mix(i, j)) < 1e-3f) {
+				_normalized_mix(i, j) = 0.f;
 			}
 		}
 	}
@@ -177,5 +190,5 @@ ControlAllocationPseudoInverse::allocate()
 	_prev_actuator_sp = _actuator_sp;
 
 	// Allocate
-	_actuator_sp = _actuator_trim + _mix * (_control_sp - _control_trim);
+	_actuator_sp = _actuator_trim + _normalized_mix * (_control_sp - _control_trim);
 }
