@@ -703,14 +703,13 @@ private:
 
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f &new_horz_vel_var);
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, float vel_var) { resetHorizontalVelocityTo(new_horz_vel, Vector2f(vel_var, vel_var)); }
-
 	void resetHorizontalVelocityToZero();
+	void recordHorizontalVelReset(const Vector2f &delta_vel);
 
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
-
+	void resetVerticalVelocityToZero();
 
 	void resetHorizontalPositionToLastKnown();
-
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
 
@@ -719,8 +718,6 @@ private:
 	bool isHeightResetRequired() const;
 
 	void resetVerticalPositionTo(float new_vert_pos, float new_vert_pos_var = NAN);
-
-	void resetVerticalVelocityToZero();
 
 	// horizontal and vertical position aid source
 	void updateVerticalPositionAidStatus(estimator_aid_source1d_s &aid_src, const uint64_t &time_us,
@@ -766,7 +763,7 @@ private:
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion(const imuSample &imu_delayed);
-	void resetFlowFusion(const flowSample &flow_sample);
+	void resetFlowFusion(const flowSample &flow_sample, VectorState &H);
 	void stopFlowFusion();
 
 	void updateOnGroundMotionForOpticalFlowChecks();
