@@ -64,8 +64,6 @@
 
 int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
 {
-	sched_lock();
-
 #if !defined(CONFIG_DISABLE_ENVIRON) && !defined(CONFIG_BUILD_KERNEL)
 	/* None of the modules access the environment variables (via getenv() for instance), so delete them
 	 * all. They are only used within the startup script, and NuttX automatically exports them to the children
@@ -81,14 +79,6 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 #else
 	int pid = kthread_create(name, priority, stack_size, entry, argv);
 #endif
-
-	if (pid > 0) {
-		/* configure the scheduler */
-		struct sched_param param = { .sched_priority = priority };
-		sched_setscheduler(pid, scheduler, &param);
-	}
-
-	sched_unlock();
 
 	return pid;
 }

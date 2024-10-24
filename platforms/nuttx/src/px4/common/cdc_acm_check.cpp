@@ -336,16 +336,12 @@ static void mavlink_usb_check(void *arg)
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 
 								else if (launch_passthru) {
-									sched_lock();
 									exec_argv = (char **)gps_argv;
 									px4_exec(exec_argv[0], exec_argv, nullptr, 0);
-									sched_unlock();
 									exec_argv = (char **)passthru_argv;
 								}
 
 #endif
-
-								sched_lock();
 
 								if (px4_exec(exec_argv[0], exec_argv, nullptr, 0) > 0) {
 									usb_auto_start_state = UsbAutoStartState::connected;
@@ -353,8 +349,6 @@ static void mavlink_usb_check(void *arg)
 								} else {
 									usb_auto_start_state = UsbAutoStartState::disconnecting;
 								}
-
-								sched_unlock();
 							}
 						}
 					}
@@ -374,10 +368,8 @@ static void mavlink_usb_check(void *arg)
 
 		case UsbAutoStartState::connected:
 			if (!vbus_present && !vbus_present_prev) {
-				sched_lock();
 				static const char *stop_argv[] {"mavlink", "stop", "-d", USB_DEVICE_PATH, NULL};
 				px4_exec(stop_argv[0], (char **)stop_argv, NULL, 0);
-				sched_unlock();
 
 				usb_auto_start_state = UsbAutoStartState::disconnecting;
 			}
