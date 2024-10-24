@@ -706,11 +706,8 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 		}
 
 	} else if ((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled)
-		   && (_position_setpoint_current_valid
-		       || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+		   && _position_setpoint_current_valid) {
 
-		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
-		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
 		const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
 		if (doing_backtransition) {
@@ -881,16 +878,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	}
 
 	switch (position_sp_type) {
-	case position_setpoint_s::SETPOINT_TYPE_IDLE: {
-			_att_sp.thrust_body[0] = 0.0f;
-			const float roll_body = 0.0f;
-			const float pitch_body = radians(_param_fw_psp_off.get());
-			const float yaw_body = 0.0f;
-
-			const Quatf setpoint(Eulerf(roll_body, pitch_body, yaw_body));
-			setpoint.copyTo(_att_sp.q_d);
-			break;
-		}
 
 	case position_setpoint_s::SETPOINT_TYPE_POSITION:
 		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
@@ -926,15 +913,7 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 
 #endif // CONFIG_FIGURE_OF_EIGHT
 
-	/* Copy thrust output for publication, handle special cases */
-	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-
-		_att_sp.thrust_body[0] = 0.0f;
-
-	} else {
-		// when we are landed state we want the motor to spin at idle speed
-		_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
-	}
+	_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
 
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(current_sp);
@@ -965,7 +944,7 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 		_att_sp.thrust_body[0] = _param_fw_thr_min.get();
 
 	} else {
-		_att_sp.thrust_body[0] = min(get_tecs_thrust(), _param_fw_thr_max.get());
+		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
 	}
 
 	const float pitch_body = get_tecs_pitch();
@@ -1463,7 +1442,7 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 				   _param_climbrate_target.get(),
 				   is_low_height);
 
-	_att_sp.thrust_body[0] = min(get_tecs_thrust(), tecs_fw_thr_max);
+	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : min(get_tecs_thrust(), tecs_fw_thr_max);
 	const float pitch_body = get_tecs_pitch();
 
 	const Quatf attitude_setpoint(Eulerf(roll_body, pitch_body, yaw_body));
@@ -2111,7 +2090,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		const float blended_throttle = flare_ramp_interpolator * get_tecs_thrust() + (1.0f - flare_ramp_interpolator) *
 					       _flare_states.initial_throttle_setpoint;
 
-		_att_sp.thrust_body[0] = blended_throttle;
+		_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_idle.get() : blended_throttle;
 
 	} else {
 

@@ -376,7 +376,6 @@ void RtlDirect::set_rtl_item()
 		}
 
 	case RTLState::IDLE: {
-			set_idle_item(&_mission_item);
 			_navigator->mode_completed(getNavigatorStateId());
 			break;
 		}
