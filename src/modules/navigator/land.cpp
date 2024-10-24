@@ -60,7 +60,7 @@ Land::on_activation()
 
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 	    && _navigator->get_local_position()->xy_global) { // only execute if global position is valid
-		_navigator->calculate_breaking_stop(_mission_item.lat, _mission_item.lon);
+		_navigator->preproject_stop_point(_mission_item.lat, _mission_item.lon);
 	}
 
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
@@ -89,8 +89,7 @@ Land::on_active()
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 		// create a wp in front of the VTOL while in back-transition, based on MPC settings that will apply in MC phase afterwards
-		_navigator->calculate_breaking_stop(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
-
+		_navigator->preproject_stop_point(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 
