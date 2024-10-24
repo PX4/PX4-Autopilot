@@ -47,6 +47,8 @@ pipeline {
                      "ark_cannode_default",
                      "ark_fmu-v6x_bootloader",
                      "ark_fmu-v6x_default",
+                     "ark_fpv_bootloader",
+                     "ark_fpv_default",
                      "ark_pi6x_bootloader",
                      "ark_pi6x_default",
                      "atl_mantis-edu_default",
