@@ -305,9 +305,13 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
 										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
 
-							const float hor_dist = math::max(get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-											 hor_position_at_calculation_point(1), next_position_mission_item.lat,
-											 next_position_mission_item.lon) - next_position_mission_item.loiter_radius, 0.f);
+							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat,
+									 next_position_mission_item.lon);
+
+							if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+								hor_dist = math::max(0.f, hor_dist - next_position_mission_item.loiter_radius);
+							}
 
 							_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
 
@@ -322,9 +326,13 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
 										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
 
-							const float hor_dist = math::max(get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-											 hor_position_at_calculation_point(1), next_position_mission_item.lat,
-											 next_position_mission_item.lon) - next_position_mission_item.loiter_radius, 0.f);
+							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat,
+									 next_position_mission_item.lon);
+
+							if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+								hor_dist = math::max(0.f, hor_dist - next_position_mission_item.loiter_radius);
+							}
 
 							_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
 
