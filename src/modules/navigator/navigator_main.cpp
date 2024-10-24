@@ -356,7 +356,7 @@ void Navigator::run()
 						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-							calculate_breaking_stop(rep->current.lat, rep->current.lon);
+							preproject_stop_point(rep->current.lat, rep->current.lon);
 
 						} else {
 							// For fixedwings we can use the current vehicle's position to define the loiter point
@@ -467,7 +467,7 @@ void Navigator::run()
 					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-						calculate_breaking_stop(rep->current.lat, rep->current.lon);
+						preproject_stop_point(rep->current.lat, rep->current.lon);
 					}
 
 					if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
@@ -1588,7 +1588,7 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	return true;
 }
 
-void Navigator::calculate_breaking_stop(double &lat, double &lon)
+void Navigator::preproject_stop_point(double &lat, double &lon)
 {
 	// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
 	const float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
