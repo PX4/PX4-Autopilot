@@ -37,7 +37,6 @@ using namespace time_literals;
 using namespace matrix;
 
 using math::constrain;
-using math::interpolate;
 using math::radians;
 
 FixedwingRateControl::FixedwingRateControl(bool vtol) :
@@ -54,6 +53,7 @@ FixedwingRateControl::FixedwingRateControl(bool vtol) :
 	parameters_update();
 
 	_rate_ctrl_status_pub.advertise();
+	_trim_slew.setSlewRate(Vector3f(0.01f, 0.01f, 0.01f));
 }
 
 FixedwingRateControl::~FixedwingRateControl()
@@ -97,6 +97,12 @@ FixedwingRateControl::parameters_update()
 }
 
 void
+FixedwingRateControl::save_params()
+{
+	_trim.saveParams();
+}
+
+void
 FixedwingRateControl::vehicle_manual_poll()
 {
 	if (_vcontrol_mode.flag_control_manual_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
@@ -127,13 +133,14 @@ FixedwingRateControl::vehicle_manual_poll()
 
 			} else {
 				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
+				const Vector3f trim = _trim_slew.getState();
 
 				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-								  _param_trim_roll.get(), -1.f, 1.f);
+								  trim(0), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
-								  _param_trim_pitch.get(), -1.f, 1.f);
+								  trim(1), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-								  _param_trim_yaw.get(), -1.f, 1.f);
+								  trim(2), -1.f, 1.f);
 
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}
@@ -256,7 +263,14 @@ void FixedwingRateControl::Run()
 		const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 		_in_fw_or_transition_wo_tailsitter_transition =  is_fixed_wing || is_in_transition_except_tailsitter;
 
-		_vehicle_control_mode_sub.update(&_vcontrol_mode);
+		{
+			const bool armed_prev = _vcontrol_mode.flag_armed;
+			_vehicle_control_mode_sub.update(&_vcontrol_mode);
+
+			if (!_vcontrol_mode.flag_armed && armed_prev) {
+				save_params();
+			}
+		}
 
 		vehicle_land_detected_poll();
 
@@ -269,9 +283,11 @@ void FixedwingRateControl::Run()
 			return;
 		}
 
+		const float airspeed = get_airspeed_and_update_scaling();
+		_trim.setAirspeed(airspeed);
+
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			const float airspeed = get_airspeed_and_update_scaling();
 
 			/* reset integrals where needed */
 			if (_rates_sp.reset_integral) {
@@ -321,78 +337,53 @@ void FixedwingRateControl::Run()
 				}
 			}
 
-			/* bi-linear interpolation over airspeed for actuator trim scheduling */
-			Vector3f trim(_param_trim_roll.get(), _param_trim_pitch.get(), _param_trim_yaw.get());
+			_rates_sp_sub.update(&_rates_sp);
 
-			if (airspeed < _param_fw_airspd_trim.get()) {
-				trim(0) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-						       _param_fw_dtrim_r_vmin.get(),
-						       0.0f);
-				trim(1) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-						       _param_fw_dtrim_p_vmin.get(),
-						       0.0f);
-				trim(2) += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
-						       _param_fw_dtrim_y_vmin.get(),
-						       0.0f);
+			Vector3f body_rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
 
-			} else {
-				trim(0) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						       _param_fw_dtrim_r_vmax.get());
-				trim(1) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						       _param_fw_dtrim_p_vmax.get());
-				trim(2) += interpolate(airspeed, _param_fw_airspd_trim.get(), _param_fw_airspd_max.get(), 0.0f,
-						       _param_fw_dtrim_y_vmax.get());
+			// Tailsitter: rotate setpoint from hover to fixed-wing frame (controller is in fixed-wing frame, interface in hover)
+			if (_vehicle_status.is_vtol_tailsitter) {
+				body_rates_setpoint = Vector3f(-_rates_sp.yaw, _rates_sp.pitch, _rates_sp.roll);
 			}
 
-			if (_vcontrol_mode.flag_control_rates_enabled) {
-				_rates_sp_sub.update(&_rates_sp);
+			// Run attitude RATE controllers which need the desired attitudes from above, add trim.
+			const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
+					_landed);
 
-				Vector3f body_rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
+			const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
+			const Vector3f feedforward = gain_ff.emult(body_rates_setpoint) * _airspeed_scaling;
 
-				// Tailsitter: rotate setpoint from hover to fixed-wing frame (controller is in fixed-wing frame, interface in hover)
-				if (_vehicle_status.is_vtol_tailsitter) {
-					body_rates_setpoint = Vector3f(-_rates_sp.yaw, _rates_sp.pitch, _rates_sp.roll);
-				}
+			Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling + feedforward;
 
-				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
-				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
-						_landed);
+			// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
+			if (!_vcontrol_mode.flag_control_attitude_enabled && !_param_fw_acro_yaw_en.get()) {
+				control_u(2) = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
+				_rate_control.resetIntegral(2);
+			}
 
-				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
-				const Vector3f feedforward = gain_ff.emult(body_rates_setpoint) * _airspeed_scaling;
+			if (control_u.isAllFinite()) {
+				matrix::constrain(control_u + _trim_slew.getState(), -1.f, 1.f).copyTo(_vehicle_torque_setpoint.xyz);
 
-				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling + feedforward;
+			} else {
+				_rate_control.resetIntegral();
+				_trim_slew.getState().copyTo(_vehicle_torque_setpoint.xyz);
+			}
 
-				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
-				if (!_vcontrol_mode.flag_control_attitude_enabled && !_param_fw_acro_yaw_en.get()) {
-					control_u(2) = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
-					_rate_control.resetIntegral(2);
-				}
+			/* throttle passed through if it is finite */
+			_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
 
-				if (control_u.isAllFinite()) {
-					matrix::constrain(control_u + trim, -1.f, 1.f).copyTo(_vehicle_torque_setpoint.xyz);
+			/* scale effort by battery status */
+			if (_param_fw_bat_scale_en.get() && _vehicle_thrust_setpoint.xyz[0] > 0.1f) {
 
-				} else {
-					_rate_control.resetIntegral();
-					trim.copyTo(_vehicle_torque_setpoint.xyz);
-				}
+				if (_battery_status_sub.updated()) {
+					battery_status_s battery_status{};
 
-				/* throttle passed through if it is finite */
-				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
-
-				/* scale effort by battery status */
-				if (_param_fw_bat_scale_en.get() && _vehicle_thrust_setpoint.xyz[0] > 0.1f) {
-
-					if (_battery_status_sub.updated()) {
-						battery_status_s battery_status{};
-
-						if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
-							_battery_scale = battery_status.scale;
-						}
+					if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+						_battery_scale = battery_status.scale;
 					}
-
-					_vehicle_thrust_setpoint.xyz[0] *= _battery_scale;
 				}
+
+				_vehicle_thrust_setpoint.xyz[0] *= _battery_scale;
 			}
 
 			// publish rate controller status
@@ -432,6 +423,9 @@ void FixedwingRateControl::Run()
 				_vehicle_torque_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
 				_vehicle_torque_setpoint_pub.publish(_vehicle_torque_setpoint);
 			}
+
+			_trim.updateAutoTrim(Vector3f(_vehicle_torque_setpoint.xyz), dt);
+			_trim_slew.update(_trim.getTrim(), dt);
 		}
 
 		updateActuatorControlsStatus(dt);
