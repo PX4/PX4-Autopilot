@@ -83,8 +83,9 @@ void
 Land::on_active()
 {
 	/* for VTOL update landing location during back transition */
-	if (_navigator->get_vstatus()->is_vtol &&
-	    _navigator->get_vstatus()->in_transition_mode) {
+	if (_navigator->get_vstatus()->is_vtol
+	    && _navigator->get_vstatus()->in_transition_mode
+	    && _navigator->get_local_position()->xy_global) {
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 		// create a wp in front of the VTOL while in back-transition, based on MPC settings that will apply in MC phase afterwards
