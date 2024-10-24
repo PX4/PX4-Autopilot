@@ -101,6 +101,8 @@ bool failsafe # true if system is in failsafe state (e.g.:RTL, Hover, Terminate,
 bool failsafe_and_user_took_over # true if system is in failsafe state but the user took over control
 uint8 failsafe_defer_state # one of FAILSAFE_DEFER_STATE_*
 
+bool emergency_declared # true if user manually declared an emergency via GCS
+
 # Link loss
 bool gcs_connection_lost              # datalink to GCS lost
 uint8 gcs_connection_lost_counter     # counts unique GCS connection lost events
