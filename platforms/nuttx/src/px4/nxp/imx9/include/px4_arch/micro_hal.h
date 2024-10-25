@@ -37,7 +37,7 @@
 __BEGIN_DECLS
 
 #define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_NXPIMX93
-#define PX4_NUMBER_I2C_BUSES        5
+#define PX4_NUMBER_I2C_BUSES        8
 
 #define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
 #define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
