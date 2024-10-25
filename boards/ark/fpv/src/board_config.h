@@ -245,7 +245,7 @@
 /* Define True logic Power Control in arch agnostic form */
 
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
-#define VDD_12V_EN(on_true)                px4_arch_gpiowrite(GPIO_VDD_12V_EN, (on_true))
+#define PAYLOAD_POWER_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_12V_EN, (on_true))
 
 /* USB OTG FS
  *

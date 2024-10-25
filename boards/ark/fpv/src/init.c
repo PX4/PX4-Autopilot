@@ -110,7 +110,7 @@ __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
 
-	VDD_12V_EN(false);
+	PAYLOAD_POWER_EN(false);
 	board_control_spi_sensors_power(false, 0xffff);
 
 	/* wait for the peripheral rail to reach GND */
@@ -121,7 +121,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* switch the peripheral rail back on */
 	board_control_spi_sensors_power(true, 0xffff);
-	VDD_12V_EN(true);
+	PAYLOAD_POWER_EN(true);
 }
 
 /************************************************************************************
@@ -204,7 +204,7 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-	VDD_12V_EN(true);
+	PAYLOAD_POWER_EN(true);
 
 	/* Need hrt running before using the ADC */
 
