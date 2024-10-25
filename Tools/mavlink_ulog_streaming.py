@@ -39,6 +39,7 @@ class MavlinkLogStreaming():
         self.buf = ''
         self.debug("Connecting with MAVLink to %s ..." % portname)
         self.mav = mavutil.mavlink_connection(portname, autoreconnect=True, baud=baudrate)
+        self.mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GENERIC, mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
         self.mav.wait_heartbeat()
         self.debug("HEARTBEAT OK\n")
         self.debug("Locked serial device\n")
