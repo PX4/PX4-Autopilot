@@ -112,6 +112,13 @@ include(px4_parse_function_args)
 #
 include(px4_git)
 
+# Author: Nalin-Angrish
+# Hardcode the version number because CI tagging was not working
+# on our fork.
+execute_process(
+	COMMAND git tag v1.69.0-beta69
+	)
+
 execute_process(
 	COMMAND git describe --exclude ext/* --always --tags
 	OUTPUT_VARIABLE PX4_GIT_TAG
