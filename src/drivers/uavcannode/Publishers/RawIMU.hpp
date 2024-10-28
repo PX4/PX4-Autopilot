@@ -74,33 +74,31 @@ public:
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&vehicle_imu)) {
 
-			if (!getNode().getUtcTime().isZero()) {
-				uavcan::equipment::ahrs::RawIMU raw_imu{};
+			uavcan::equipment::ahrs::RawIMU raw_imu{};
 
-				raw_imu.timestamp.usec = getNode().getUtcTime().toUSec() - (hrt_absolute_time() -
-							 vehicle_imu.timestamp_sample);
+			raw_imu.timestamp.usec = getNode().getUtcTime().toUSec() - (hrt_absolute_time() -
+						 vehicle_imu.timestamp_sample);
 
-				raw_imu.integration_interval = vehicle_imu.delta_angle_dt;
-				// raw_imu.integration_interval = vehicle_imu.delta_velocity_dt;
+			raw_imu.integration_interval = vehicle_imu.delta_angle_dt;
+			// raw_imu.integration_interval = vehicle_imu.delta_velocity_dt;
 
-				raw_imu.rate_gyro_latest[0] = (vehicle_imu.delta_angle[0] / vehicle_imu.delta_angle_dt) * 1000000;
-				raw_imu.rate_gyro_latest[1] = (vehicle_imu.delta_angle[1] / vehicle_imu.delta_angle_dt) * 1000000;
-				raw_imu.rate_gyro_latest[2] = (vehicle_imu.delta_angle[2] / vehicle_imu.delta_angle_dt) * 1000000;
+			raw_imu.rate_gyro_latest[0] = (vehicle_imu.delta_angle[0] / vehicle_imu.delta_angle_dt) * 1000000;
+			raw_imu.rate_gyro_latest[1] = (vehicle_imu.delta_angle[1] / vehicle_imu.delta_angle_dt) * 1000000;
+			raw_imu.rate_gyro_latest[2] = (vehicle_imu.delta_angle[2] / vehicle_imu.delta_angle_dt) * 1000000;
 
-				raw_imu.rate_gyro_integral[0] = vehicle_imu.delta_angle[0];
-				raw_imu.rate_gyro_integral[1] = vehicle_imu.delta_angle[1];
-				raw_imu.rate_gyro_integral[2] = vehicle_imu.delta_angle[2];
+			raw_imu.rate_gyro_integral[0] = vehicle_imu.delta_angle[0];
+			raw_imu.rate_gyro_integral[1] = vehicle_imu.delta_angle[1];
+			raw_imu.rate_gyro_integral[2] = vehicle_imu.delta_angle[2];
 
-				raw_imu.accelerometer_latest[0] = (vehicle_imu.delta_velocity[0] / vehicle_imu.delta_velocity_dt) * 1000000;
-				raw_imu.accelerometer_latest[1] = (vehicle_imu.delta_velocity[1] / vehicle_imu.delta_velocity_dt) * 1000000;
-				raw_imu.accelerometer_latest[2] = (vehicle_imu.delta_velocity[2] / vehicle_imu.delta_velocity_dt) * 1000000;
+			raw_imu.accelerometer_latest[0] = (vehicle_imu.delta_velocity[0] / vehicle_imu.delta_velocity_dt) * 1000000;
+			raw_imu.accelerometer_latest[1] = (vehicle_imu.delta_velocity[1] / vehicle_imu.delta_velocity_dt) * 1000000;
+			raw_imu.accelerometer_latest[2] = (vehicle_imu.delta_velocity[2] / vehicle_imu.delta_velocity_dt) * 1000000;
 
-				raw_imu.accelerometer_integral[0] = vehicle_imu.delta_velocity[0];
-				raw_imu.accelerometer_integral[1] = vehicle_imu.delta_velocity[1];
-				raw_imu.accelerometer_integral[2] = vehicle_imu.delta_velocity[2];
+			raw_imu.accelerometer_integral[0] = vehicle_imu.delta_velocity[0];
+			raw_imu.accelerometer_integral[1] = vehicle_imu.delta_velocity[1];
+			raw_imu.accelerometer_integral[2] = vehicle_imu.delta_velocity[2];
 
-				uavcan::Publisher<uavcan::equipment::ahrs::RawIMU>::broadcast(raw_imu);
-			}
+			uavcan::Publisher<uavcan::equipment::ahrs::RawIMU>::broadcast(raw_imu);
 
 			// ensure callback is registered
 			uORB::SubscriptionCallbackWorkItem::registerCallback();
