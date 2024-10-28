@@ -230,14 +230,6 @@ void Ekf::resetFlowFusion(const flowSample &flow_sample)
 	const float flow_vel_var = sq(predictFlowRange()) * calcOptFlowMeasVar(flow_sample);
 	resetHorizontalVelocityTo(getFilteredFlowVelNE(), flow_vel_var);
 
-	// reset position, estimate is relative to initial position in this mode, so we start with zero error
-	if (!_control_status.flags.in_air) {
-		ECL_INFO("reset position to zero");
-		//TODO: reset origin instead?
-		resetHorizontalPositionToLastKnown();
-		// resetHorizontalPositionTo(Vector2f(0.f, 0.f), 0.f);
-	}
-
 	resetAidSourceStatusZeroInnovation(_aid_src_optical_flow);
 
 	_innov_check_fail_status.flags.reject_optflow_X = false;
