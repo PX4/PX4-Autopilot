@@ -60,17 +60,11 @@ using namespace mip::C;
 
 using namespace time_literals;
 
-
 class MicroStrain : public ModuleBase<MicroStrain>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	MicroStrain(const char *device, int32_t rotation);
+	MicroStrain(const char *_device);
 	~MicroStrain() override;
-
-	/* Callbacks */
-
-	// Sensor Callbacks
-	static void sensor_callback(void *user, const mip_packet *packet, mip::Timestamp timestamp);
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -84,29 +78,41 @@ public:
 	/** @see ModuleBase */
 	int print_status() override;
 
-	bool init();
+	/* Callbacks */
+
+	// Sensor Callbacks
+	static void sensorCallback(void *user, const mip_packet *packet, mip::Timestamp timestamp);
+
 
 private:
 	/** @see ModuleBase */
 	void Run() override;
 
 	/// @brief Attempt to connect to the Sensor and set in known configuration
-	void initialize_ins();
+	bool initializeIns();
 
-	void set_sensor_rate(mip_descriptor_rate *sensor_descriptors, uint16_t len);
+	mip_cmd_result getSupportedDescriptors();
 
-	mip_cmd_result get_supported_descriptors();
+	bool supportsDescriptor(uint8_t descriptor_set, uint8_t field_descriptor);
 
-	bool supports_descriptor(uint8_t descriptor_set, uint8_t field_descriptor);
+	bool supportsDescriptorSet(uint8_t descriptor_set);
 
-	mip_cmd_result get_base_rate(uint8_t descriptor_set, uint16_t *base_rate);
+	mip_cmd_result getBaseRate(uint8_t descriptor_set, uint16_t *base_rate);
 
-	mip_cmd_result configure_imu_message_format();
+	mip_cmd_result configureImuMessageFormat();
 
-	int connect_at_baud(int32_t baud);
+	mip_cmd_result writeMessageFormat(uint8_t descriptor_set, uint8_t num_descriptors,
+					  const mip::DescriptorRate *descriptors);
 
-	enum Rotation rotation = ROTATION_NONE;
-	uint32_t dev_id{0};
+	int connectAtBaud(int32_t baud);
+
+	mip::CmdResult forceIdle();
+
+	mip_cmd_result writeBaudRate(uint32_t baudrate, uint8_t port);
+
+	bool init();
+
+	uint32_t _dev_id{0};
 
 	// Sensor types needed for message creation / updating / publishing
 	PX4Accelerometer _px4_accel{0};
@@ -124,25 +130,21 @@ private:
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 
-	uint8_t parse_buffer[2048];
+	uint8_t _parse_buffer[2048];
 	bool _is_initialized{false};
-	bool _is_init_failed{false};
-
-	int ms_schedule_rate_us{0};
+	int _ms_schedule_rate_us{0};
 
 	uint16_t _supported_descriptors[1024] = {0};
-	uint8_t _supported_desc_len = 0;
-	uint16_t _supported_descriptor_sets[1000] = {0};
-	uint8_t _supported_desc_set_len = 0;
+	uint16_t _supported_desc_len = 0;
+	uint16_t _supported_descriptor_sets[1024] = {0};
+	uint16_t _supported_desc_set_len = 0;
 
-	/******************************/
-	mip::C::mip_interface device;
+	mip::C::mip_interface _device;
 
 	// Handlers
-	mip_dispatch_handler sensor_data_handler;
-	mip_dispatch_handler filter_data_handler;
+	mip_dispatch_handler _sensor_data_handler;
 
-	char _port[20];
+	char _port[128];
 
 	// Parameters
 	DEFINE_PARAMETERS(

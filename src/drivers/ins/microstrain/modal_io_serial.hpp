@@ -49,14 +49,14 @@ public:
 	ModalIoSerial();
 	virtual ~ModalIoSerial();
 
-	int		uart_open(const char *dev, speed_t speed);
-	int		uart_set_baud(speed_t speed);
-	int		uart_close();
-	int		uart_write(FAR void *buf, size_t len);
-	int		uart_read(FAR void *buf, size_t len);
-	bool		is_open() { return _uart_fd >= 0; };
-	int		uart_get_baud() {return _speed; }
-	int		uart_get_fd() {return _uart_fd; }
+	int		uartOpen(const char *dev, speed_t speed);
+	int		uartSetBaud(speed_t speed);
+	int		uartClose();
+	int		uartWrite(FAR void *buf, size_t len);
+	int		uartRead(FAR void *buf, size_t len);
+	bool		isOpen() { return _uart_fd >= 0; };
+	int		uartGetBaud() {return _speed; }
+	int		uartGetFd() {return _uart_fd; }
 
 private:
 	int			_uart_fd = -1;
