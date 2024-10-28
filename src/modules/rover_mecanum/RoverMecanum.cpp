@@ -161,11 +161,13 @@ void RoverMecanum::Run()
 				rover_mecanum_setpoint.yaw_setpoint = NAN;
 
 				// Reset cruise control if the manual input changes
-				if (!(manual_control_setpoint.throttle < _prev_throttle + STICK_DEADZONE
-				      && manual_control_setpoint.throttle > _prev_throttle - STICK_DEADZONE)
-				    || !(manual_control_setpoint.roll < _prev_roll + STICK_DEADZONE
-					 && manual_control_setpoint.roll > _prev_roll - STICK_DEADZONE)) {
+				if (_yaw_ctl == true && (!(fabsf(manual_control_setpoint.throttle - _prev_throttle) > STICK_DEADZONE)
+							 || !(fabsf(manual_control_setpoint.roll - _prev_roll) > STICK_DEADZONE))) {
 					_yaw_ctl = false;
+					_prev_throttle = manual_control_setpoint.throttle;
+					_prev_roll = manual_control_setpoint.roll;
+
+				} else if (_yaw_ctl == false) {
 					_prev_throttle = manual_control_setpoint.throttle;
 					_prev_roll = manual_control_setpoint.roll;
 				}
