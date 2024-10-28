@@ -41,11 +41,11 @@ ModalIoSerial::ModalIoSerial()
 ModalIoSerial::~ModalIoSerial()
 {
 	if (_uart_fd >= 0) {
-		uart_close();
+		uartClose();
 	}
 }
 
-int ModalIoSerial::uart_open(const char *dev, speed_t speed)
+int ModalIoSerial::uartOpen(const char *dev, speed_t speed)
 {
 	if (_uart_fd >= 0) {
 		PX4_ERR("Port in use: %s (%i)", dev, errno);
@@ -70,7 +70,7 @@ int ModalIoSerial::uart_open(const char *dev, speed_t speed)
 
 	if ((termios_state = tcgetattr(_uart_fd, &_orig_cfg)) < 0) {
 		PX4_ERR("Error configuring port: tcgetattr %s: %d", dev, termios_state);
-		uart_close();
+		uartClose();
 		return -1;
 	}
 
@@ -93,13 +93,13 @@ int ModalIoSerial::uart_open(const char *dev, speed_t speed)
 
 	if (cfsetispeed(&_cfg, speed) < 0 || cfsetospeed(&_cfg, speed) < 0) {
 		PX4_ERR("Error configuring port: %s: %d (cfsetispeed, cfsetospeed)", dev, termios_state);
-		uart_close();
+		uartClose();
 		return -1;
 	}
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &_cfg)) < 0) {
 		PX4_ERR("Error configuring port: %s (tcsetattr)", dev);
-		uart_close();
+		uartClose();
 		return -1;
 	}
 
@@ -110,7 +110,7 @@ int ModalIoSerial::uart_open(const char *dev, speed_t speed)
 	return 0;
 }
 
-int ModalIoSerial::uart_set_baud(speed_t speed)
+int ModalIoSerial::uartSetBaud(speed_t speed)
 {
 #ifndef __PX4_QURT
 
@@ -134,7 +134,7 @@ int ModalIoSerial::uart_set_baud(speed_t speed)
 	return -1;
 }
 
-int ModalIoSerial::uart_close()
+int ModalIoSerial::uartClose()
 {
 #ifndef __PX4_QURT
 
@@ -158,7 +158,7 @@ int ModalIoSerial::uart_close()
 	return 0;
 }
 
-int ModalIoSerial::uart_write(FAR void *buf, size_t len)
+int ModalIoSerial::uartWrite(FAR void *buf, size_t len)
 {
 	if (_uart_fd < 0 || buf == NULL) {
 		PX4_ERR("invalid state for writing or buffer");
@@ -172,7 +172,7 @@ int ModalIoSerial::uart_write(FAR void *buf, size_t len)
 #endif
 }
 
-int ModalIoSerial::uart_read(FAR void *buf, size_t len)
+int ModalIoSerial::uartRead(FAR void *buf, size_t len)
 {
 	if (_uart_fd < 0 || buf == NULL) {
 		PX4_ERR("invalid state for reading or buffer");
