@@ -44,8 +44,6 @@ px4_add_module(
 	MODULE drivers__ins__microstrain
 	MAIN microstrain
 	COMPILE_FLAGS
-		#-DDEBUG_BUILD   # uncomment for PX4_DEBUG output
-		#-O0             # uncomment when debugging
 	SRCS
 		MicroStrain.cpp
 		MicroStrain.hpp
