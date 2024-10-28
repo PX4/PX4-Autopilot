@@ -53,9 +53,8 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	const int max_param_rate = math::max(_param_ms_imu_rate_hz.get(), _param_ms_mag_rate_hz.get(),
 					     _param_ms_baro_rate_hz.get());
 
-	const int rate_multiplier = 2;
-	_ms_schedule_rate_us = (1e6) / (rate_multiplier *
-					max_param_rate);
+	// We always want the schedule rate faster than the highest sensor data rate
+	_ms_schedule_rate_us = (1e6) / (2 * max_param_rate);
 
 	device::Device::DeviceId device_id{};
 	device_id.devid_s.devtype = DRV_INS_DEVTYPE_MICROSTRAIN;
