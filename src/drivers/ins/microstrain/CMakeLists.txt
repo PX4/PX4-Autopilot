@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+
+set(MIP_SDK_DIR ${CMAKE_CURRENT_SOURCE_DIR}/mip_sdk)
+px4_add_git_submodule(TARGET git_mip PATH ${MIP_SDK_DIR})
+
 # Set some options for the MIP SDK which we will reset after building.
 set(MIP_USE_TCP "OFF" CACHE BOOL "" FORCE)
 set(MIP_DISABLE_CPP "ON" CACHE BOOL "" FORCE)
