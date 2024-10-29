@@ -77,12 +77,16 @@ void init_print_load(struct print_load_s *s)
 	s->new_time = system_load.start_time;
 	s->interval_start_time = system_load.start_time;
 
-	sched_lock();
-	// special case for IDLE thread
-	s->last_times[0] = system_load.tasks[0].total_runtime;
-	sched_unlock();
+	irqstate_t flags = px4_enter_critical_section();
 
-	for (int i = 1; i < CONFIG_FS_PROCFS_MAX_TASKS; i++) {
+	// special case for IDLE thread(s)
+	for (int i = 0; i < CONFIG_SMP_NCPUS; i++) {
+		s->last_times[i] = system_load.tasks[i].total_runtime;
+	}
+
+	px4_leave_critical_section(flags);
+
+	for (int i = CONFIG_SMP_NCPUS; i < CONFIG_FS_PROCFS_MAX_TASKS; i++) {
 		s->last_times[i] = 0;
 	}
 
@@ -99,6 +103,9 @@ static constexpr const char *tstate_name(const tstate_t s)
 		return "PEND";
 
 	case TSTATE_TASK_READYTORUN:
+#ifdef CONFIG_SMP
+	case TSTATE_TASK_ASSIGNED:
+#endif
 		return "READY";
 
 	case TSTATE_TASK_RUNNING:
@@ -144,7 +151,7 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 
 	// create a copy of the runtimes because this could be updated during the print output
 	uint64_t total_runtime[CONFIG_FS_PROCFS_MAX_TASKS] {};
-	sched_lock();
+	irqstate_t flags = px4_enter_critical_section();
 
 	print_state->new_time = hrt_absolute_time();
 
@@ -154,7 +161,7 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 		}
 	}
 
-	sched_unlock();
+	px4_leave_critical_section(flags);
 
 	if (print_state->new_time > print_state->interval_start_time) {
 		print_state->interval_time_us = print_state->new_time - print_state->interval_start_time;
@@ -185,10 +192,10 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 
 	for (int i = 0; i < CONFIG_FS_PROCFS_MAX_TASKS; i++) {
 
-		sched_lock(); // need to lock the tcb access (but make it as short as possible)
+		flags = px4_enter_critical_section(); // need to lock the tcb access (but make it as short as possible)
 
 		if (!system_load.tasks[i].valid) {
-			sched_unlock();
+			px4_leave_critical_section(flags);
 			continue;
 		}
 
@@ -233,12 +240,15 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 			}
 		}
 
-		sched_unlock();
+		px4_leave_critical_section(flags);
 
 		switch (tcb_task_state) {
 		case TSTATE_TASK_PENDING:
 		case TSTATE_TASK_READYTORUN:
 		case TSTATE_TASK_RUNNING:
+#ifdef CONFIG_SMP
+		case TSTATE_TASK_ASSIGNED:
+#endif
 			print_state->running_count++;
 			break;
 
@@ -275,8 +285,8 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 
 			current_load = interval_runtime / print_state->interval_time_us;
 
-			if (tcb_pid == 0) {
-				idle_load = current_load;
+			if (tcb_pid < CONFIG_SMP_NCPUS) {
+				idle_load += current_load;
 
 			} else {
 				print_state->total_user_time += interval_runtime;
@@ -324,6 +334,9 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 	cb(user);
 
 	float task_load = (float)(print_state->total_user_time) / print_state->interval_time_us;
+
+	/* Average of idle load over all CPUs */
+	idle_load /= CONFIG_SMP_NCPUS;
 
 	/* this can happen if one tasks total runtime was not computed
 	   correctly by the scheduler instrumentation TODO */

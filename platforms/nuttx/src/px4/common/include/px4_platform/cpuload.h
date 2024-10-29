@@ -39,6 +39,10 @@
 #define CONFIG_FS_PROCFS_MAX_TASKS 64
 #endif
 
+#ifndef CONFIG_SMP_NCPUS
+#define CONFIG_SMP_NCPUS 1
+#endif
+
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 
 #include <sched.h>
