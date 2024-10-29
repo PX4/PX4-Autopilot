@@ -69,21 +69,21 @@ void init_task_hash(void)
 static struct system_load_taskinfo_s *get_task_info(pid_t pid)
 {
 	struct system_load_taskinfo_s *ret = NULL;
-	irqstate_t flags = enter_critical_section();
+	irqstate_t flags = px4_enter_critical_section();
 
 	if (hashtab) {
 		ret = hashtab[HASH(pid)];
 	}
 
-	leave_critical_section(flags);
+	px4_leave_critical_section(flags);
 	return ret;
 }
 
 static void drop_task_info(pid_t pid)
 {
-	irqstate_t flags = enter_critical_section();
+	irqstate_t flags = px4_enter_critical_section();
 	hashtab[HASH(pid)] = NULL;
-	leave_critical_section(flags);
+	px4_leave_critical_section(flags);
 }
 
 static int hash_task_info(struct system_load_taskinfo_s *task_info, pid_t pid)
@@ -95,7 +95,7 @@ static int hash_task_info(struct system_load_taskinfo_s *task_info, pid_t pid)
 
 	/* Use critical section to protect the hash table */
 
-	irqstate_t flags = enter_critical_section();
+	irqstate_t flags = px4_enter_critical_section();
 
 	/* Keep trying until we get it or run out of memory */
 
@@ -109,7 +109,7 @@ retry:
 
 	if (hashtab[hash] == NULL) {
 		hashtab[hash] = task_info;
-		leave_critical_section(flags);
+		px4_leave_critical_section(flags);
 		return OK;
 	}
 
@@ -118,7 +118,7 @@ retry:
 	newtab = (struct system_load_taskinfo_s **)kmm_zalloc(hashtab_size * 2 * sizeof(*newtab));
 
 	if (newtab == NULL) {
-		leave_critical_section(flags);
+		px4_leave_critical_section(flags);
 		return -ENOMEM;
 	}
 
@@ -160,16 +160,16 @@ void cpuload_monitor_start()
 {
 	if (cpuload_monitor_all_count.fetch_add(1) == 0) {
 		// if the count was previously 0 (idle thread only) then clear any existing runtime data
-		sched_lock();
+		irqstate_t flags = px4_enter_critical_section();
 
 		system_load.start_time = hrt_absolute_time();
 
-		for (int i = 1; i < CONFIG_FS_PROCFS_MAX_TASKS; i++) {
+		for (int i = CONFIG_SMP_NCPUS; i < CONFIG_FS_PROCFS_MAX_TASKS; i++) {
 			system_load.tasks[i].total_runtime = 0;
 			system_load.tasks[i].curr_start_time = 0;
 		}
 
-		sched_unlock();
+		px4_leave_critical_section(flags);
 	}
 }
 
@@ -191,25 +191,14 @@ void cpuload_initialize_once()
 		task.valid = false;
 	}
 
-	int static_tasks_count = 2;	// there are at least 2 threads that should be initialized statically - "idle" and "init"
-
-#ifdef CONFIG_PAGING
-	static_tasks_count++;	// include paging thread in initialization
-#endif /* CONFIG_PAGING */
-#if CONFIG_SCHED_WORKQUEUE
-	static_tasks_count++;	// include high priority work0 thread in initialization
-#endif /* CONFIG_SCHED_WORKQUEUE */
-#if CONFIG_SCHED_LPWORK
-	static_tasks_count++;	// include low priority work1 thread in initialization
-#endif /* CONFIG_SCHED_WORKQUEUE */
-
 	// perform static initialization of "system" threads
-	for (system_load.total_count = 0; system_load.total_count < static_tasks_count; system_load.total_count++) {
+	for (system_load.total_count = 0; system_load.total_count < CONFIG_SMP_NCPUS; system_load.total_count++) {
 		system_load.tasks[system_load.total_count].total_runtime = 0;
 		system_load.tasks[system_load.total_count].curr_start_time = 0;
 		system_load.tasks[system_load.total_count].tcb = nxsched_get_tcb(
 					system_load.total_count);	// it is assumed that these static threads have consecutive PIDs
 		system_load.tasks[system_load.total_count].valid = true;
+		hash_task_info(&system_load.tasks[system_load.total_count], system_load.total_count);
 	}
 
 	system_load.initialized = true;
@@ -265,8 +254,8 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 void sched_note_suspend(FAR struct tcb_s *tcb)
 {
 	if (system_load.initialized) {
-		if (tcb->pid == 0) {
-			system_load.tasks[0].total_runtime += hrt_elapsed_time(&system_load.tasks[0].curr_start_time);
+		if (tcb->pid < CONFIG_SMP_NCPUS) {
+			system_load.tasks[tcb->pid].total_runtime += hrt_elapsed_time(&system_load.tasks[tcb->pid].curr_start_time);
 			return;
 
 		} else {
@@ -294,8 +283,8 @@ void sched_note_suspend(FAR struct tcb_s *tcb)
 void sched_note_resume(FAR struct tcb_s *tcb)
 {
 	if (system_load.initialized) {
-		if (tcb->pid == 0) {
-			hrt_store_absolute_time(&system_load.tasks[0].curr_start_time);
+		if (tcb->pid < CONFIG_SMP_NCPUS) {
+			hrt_store_absolute_time(&system_load.tasks[tcb->pid].curr_start_time);
 			return;
 
 		} else {
@@ -341,6 +330,40 @@ void sched_note_syscall_enter(int nr);
 }
 #endif
 
+#endif
+
+#if defined(CONFIG_SMP) && defined(CONFIG_SCHED_INSTRUMENTATION)
+void sched_note_cpu_start(FAR struct tcb_s *tcb, int cpu)
+{
+	/* Not interesting for us */
+}
+
+void sched_note_cpu_started(FAR struct tcb_s *tcb)
+{
+	/* Not interesting for us */
+}
+#endif
+
+#if defined(CONFIG_SMP) && defined(CONFIG_SCHED_INSTRUMENTATION_SWITCH)
+void sched_note_cpu_pause(FAR struct tcb_s *tcb, int cpu)
+{
+	/* Not interesting for us */
+}
+
+void sched_note_cpu_paused(FAR struct tcb_s *tcb)
+{
+	/* Handled via sched_note_suspend */
+}
+
+void sched_note_cpu_resume(FAR struct tcb_s *tcb, int cpu)
+{
+	/* Not interesting for us */
+}
+
+void sched_note_cpu_resumed(FAR struct tcb_s *tcb)
+{
+	/* Handled via sched_note_resume */
+}
 #endif
 
 __END_DECLS

@@ -255,7 +255,7 @@ void LoadMon::stack_usage()
 	static_assert(sizeof(task_stack_info.task_name) == CONFIG_TASK_NAME_SIZE,
 		      "task_stack_info.task_name must match NuttX CONFIG_TASK_NAME_SIZE");
 
-	sched_lock();
+	irqstate_t flags = px4_enter_critical_section();
 
 	if (system_load.tasks[_stack_task_index].valid && (system_load.tasks[_stack_task_index].tcb->pid > 0)) {
 
@@ -282,7 +282,7 @@ void LoadMon::stack_usage()
 #endif // CONFIG_NFILE_DESCRIPTORS_PER_BLOCK
 	}
 
-	sched_unlock();
+	px4_leave_critical_section(flags);
 
 	if (checked_task) {
 		task_stack_info.stack_free = stack_free;
