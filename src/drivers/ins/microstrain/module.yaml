@@ -36,5 +36,3 @@ parameters:
                     Restart required
             type: int32
             default: 50
-
-

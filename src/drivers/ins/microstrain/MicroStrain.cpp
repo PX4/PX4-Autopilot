@@ -639,4 +639,3 @@ extern "C" __EXPORT int microstrain_main(int argc, char *argv[])
 {
 	return MicroStrain::main(argc, argv);
 }
-
