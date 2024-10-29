@@ -8,6 +8,7 @@ if [ $# -gt 0 ]; then
 fi
 
 exec find boards msg src platforms test \
+    -path msg/translation_node -prune -o \
     -path platforms/nuttx/NuttX -prune -o \
     -path platforms/qurt/dspal -prune -o \
     -path src/drivers/ins/vectornav/libvnc -prune -o \
