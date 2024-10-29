@@ -1,0 +1,34 @@
+name: ROS translation node tests
+on:
+  push:
+    branches:
+    - 'main'
+  pull_request:
+    branches:
+    - '*'
+defaults:
+  run:
+    shell: bash
+jobs:
+  build_and_test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-jammy-latest
+    steps:
+      - name: Setup ROS 2
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: humble
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Build and test
+        run: |
+          ros_ws=/ros_ws
+          mkdir -p $ros_ws/src
+          ./Tools/copy_to_ros_ws.sh $ros_ws
+          cd $ros_ws
+          source /opt/ros/humble/setup.sh
+          colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release --symlink-install --event-handlers=console_cohesion+
+          ./build/translation_node/translation_node_unit_tests
