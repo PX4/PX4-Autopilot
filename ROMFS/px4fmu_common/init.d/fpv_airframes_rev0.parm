@@ -68,3 +68,12 @@ param set-default MPC_Z_MAN_EXPO 0.30
 param set-default MPC_Z_VEL_D_ACC 0.2
 param set-default MPC_Z_VEL_I_ACC 1.2
 param set-default MPC_Z_VEL_P_ACC 5.7000
+
+# RC controller feel params
+param set-default MC_ACRO_EXPO 0.690
+param set-default MC_ACRO_EXPO_Y 0.690
+param set-default MC_ACRO_P_MAX 900.0
+param set-default MC_ACRO_R_MAX 900.0
+param set-default MC_ACRO_SUPEXPO 0.700
+param set-default MC_ACRO_SUPEXPOY 0.700
+param set-default MC_ACRO_Y_MAX 700.0

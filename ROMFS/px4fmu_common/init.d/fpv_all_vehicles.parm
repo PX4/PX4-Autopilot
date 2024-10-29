@@ -53,7 +53,7 @@ param set-default COM_ARM_MAG_ANG -1
 param set-default COM_FLTMODE1 1
 param set-default COM_FLTMODE2 1
 param set-default COM_FLTMODE3 1
-param set-default COM_FLTMODE4 1
+param set-default COM_FLTMODE4 0
 param set-default COM_FLTMODE5 1
 param set-default COM_FLTMODE6 1
 

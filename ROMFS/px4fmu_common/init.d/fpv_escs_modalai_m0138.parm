@@ -9,6 +9,8 @@ param set-default VOXL_ESC_CONFIG 1
 param set-default VOXL_ESC_BAUD 2000000
 param set-default VOXL_ESC_MODE 1
 param set-default VOXL_ESC_VLOG 1
+param set-default VOXL_ESC_RPM_MAX 24000
+param set-default VOXL_ESC_RPM_MIN 3000
 
 # Vehicle Customized Parameters
 # Motor Ordering is dependent on the
