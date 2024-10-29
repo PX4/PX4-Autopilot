@@ -8,7 +8,7 @@ jinja2>=2.8
 jsonschema
 kconfiglib
 lxml
-matplotlib>=3.0.*
+matplotlib==3.0.*
 numpy>=1.13
 nunavut>=1.1.0
 packaging
