@@ -38,23 +38,6 @@
 static inline constexpr void getTimerChannelDMAMap(Timer::Timer timer, const DMA &dma, uint32_t *dma_map_ch)
 {
 	// Not supported
-	switch (timer) {
-	case Timer::Timer1:
-	case Timer::Timer2:
-	case Timer::Timer3:
-	case Timer::Timer4:
-	case Timer::Timer5:
-	case Timer::Timer6:
-	case Timer::Timer7:
-	case Timer::Timer8:
-	case Timer::Timer9:
-	case Timer::Timer10:
-	case Timer::Timer11:
-	case Timer::Timer12:
-	case Timer::Timer13:
-	case Timer::Timer14:
-		break;
-	}
 }
 
 static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)

@@ -73,8 +73,15 @@ static int io_timer_handler7(int irq, void *context, void *arg);
 
 #if defined(HAVE_GTIM_CCXNP)
 #define HW_GTIM_CCER_CC1NP GTIM_CCER_CC1NP
+#define HW_GTIM_CCER_CC2NP GTIM_CCER_CC2NP
+#define HW_GTIM_CCER_CC3NP GTIM_CCER_CC3NP
+#define HW_GTIM_CCER_CC4NP GTIM_CCER_CC4NP
+
 #else
 #  define HW_GTIM_CCER_CC1NP    0
+#  define HW_GTIM_CCER_CC2NP    0
+#  define HW_GTIM_CCER_CC3NP    0
+#  define HW_GTIM_CCER_CC4NP    0
 #endif
 
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
@@ -635,31 +642,31 @@ int io_timer_set_dshot_capture_mode(uint8_t timer, uint8_t timer_channel_index, 
 	switch (timer_channel_index) {
 	case 0:
 		rEGR(timer) |= ATIM_EGR_UG | GTIM_EGR_CC1G;
-		rCCER(timer) &= ~(GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
+		rCCER(timer) &= ~(GTIM_CCER_CC1E | GTIM_CCER_CC1P | HW_GTIM_CCER_CC1NP);
 		rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR1_CC1S_SHIFT);
-		rCCER(timer) |= (GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP);
+		rCCER(timer) |= (GTIM_CCER_CC1E | GTIM_CCER_CC1P | HW_GTIM_CCER_CC1NP);
 
 		break;
 
 	case 1:
 		rEGR(timer) |= ATIM_EGR_UG | GTIM_EGR_CC2G;
-		rCCER(timer) &= ~(GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP);
+		rCCER(timer) &= ~(GTIM_CCER_CC2E | GTIM_CCER_CC2P | HW_GTIM_CCER_CC2NP);
 		rCCMR1(timer) |= (GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR1_CC2S_SHIFT);
-		rCCER(timer) |= (GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP);
+		rCCER(timer) |= (GTIM_CCER_CC2E | GTIM_CCER_CC2P | HW_GTIM_CCER_CC2NP);
 		break;
 
 	case 2:
 		rEGR(timer) |= ATIM_EGR_UG | GTIM_EGR_CC3G;
-		rCCER(timer) &= ~(GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP);
+		rCCER(timer) &= ~(GTIM_CCER_CC3E | GTIM_CCER_CC3P | HW_GTIM_CCER_CC3NP);
 		rCCMR2(timer) |= (GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR2_CC3S_SHIFT);
-		rCCER(timer) |= (GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP);
+		rCCER(timer) |= (GTIM_CCER_CC3E | GTIM_CCER_CC3P | HW_GTIM_CCER_CC3NP);
 		break;
 
 	case 3:
 		rEGR(timer) |= ATIM_EGR_UG | GTIM_EGR_CC4G;
-		rCCER(timer) &= ~(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
+		rCCER(timer) &= ~(GTIM_CCER_CC4E | GTIM_CCER_CC4P | HW_GTIM_CCER_CC4NP);
 		rCCMR2(timer) |= (GTIM_CCMR_CCS_CCIN1 << GTIM_CCMR2_CC4S_SHIFT);
-		rCCER(timer) |= (GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
+		rCCER(timer) |= (GTIM_CCER_CC4E | GTIM_CCER_CC4P | HW_GTIM_CCER_CC4NP);
 		break;
 	}
 
