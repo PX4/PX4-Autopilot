@@ -414,18 +414,54 @@ void RCInput::Run()
 		}
 
 
-#if defined(ADC_RC_RSSI_CHANNEL)
+#if defined(ADC_RC_RSSI_CHANNEL) || defined(ADC_RC_RSSI_ADIO)
+
+#if defined(ADC_RC_RSSI_ADIO)
+		int32_t rssi_adc_chan = 0;
+
+		switch (_param_rc_rssi_adc_chan.get()) {
+		case 1:
+			rssi_adc_chan = ADC_ADC3_3V3_CHANNEL;
+			break;
+
+		case 2:
+			rssi_adc_chan = ADC_ADC3_6V6_CHANNEL;
+			break;
+
+		default:
+			rssi_adc_chan = 0;
+			break;
+		}
+
+#elif defined(ADC_RC_RSSI_CHANNEL)
+		int32_t rssi_adc_chan = ADC_RC_RSSI_CHANNEL;
+#endif
 
 		// update ADC sampling
 		if (_adc_report_sub.updated()) {
 			adc_report_s adc;
 
+#if defined(ADC_RC_RSSI_ADIO)
+
+			if (_adc_report_sub.copy(&adc) && (_param_rc_rssi_adc_chan.get() > 0)) {
+#elif defined(ADC_RC_RSSI_CHANNEL)
+
 			if (_adc_report_sub.copy(&adc)) {
+#endif
+
 				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
-					if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
+					if (adc.channel_id[i] == rssi_adc_chan) {
 						float adc_volt = adc.raw_data[i] *
 								 adc.v_ref /
 								 adc.resolution;
+
+#if defined(ADC_RC_RSSI_ADIO)
+
+						if (rssi_adc_chan == ADC_ADC3_6V6_CHANNEL) {
+							adc_volt = adc_volt * 2;
+						}
+
+#endif
 
 						if (_analog_rc_rssi_volt < 0.0f) {
 							_analog_rc_rssi_volt = adc_volt;
@@ -442,7 +478,7 @@ void RCInput::Run()
 			}
 		}
 
-#endif // ADC_RC_RSSI_CHANNEL
+#endif // ADC_RC_RSSI_CHANNEL || ADC_RC_RSSI_ADIO
 
 		bool rc_updated = false;
 
@@ -831,8 +867,7 @@ void RCInput::Run()
 }
 
 #if defined(SPEKTRUM_POWER)
-bool RCInput::bind_spektrum(int arg) const
-{
+bool RCInput::bind_spektrum(int arg) const {
 	int ret = PX4_ERROR;
 
 	/* specify 11ms DSMX. RX will automatically fall back to 22ms or DSM2 if necessary */
@@ -871,8 +906,7 @@ bool RCInput::bind_spektrum(int arg) const
 }
 #endif /* SPEKTRUM_POWER */
 
-int RCInput::custom_command(int argc, char *argv[])
-{
+int RCInput::custom_command(int argc, char *argv[]) {
 #if defined(SPEKTRUM_POWER)
 	const char *verb = argv[0];
 
@@ -899,8 +933,7 @@ int RCInput::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int RCInput::print_status()
-{
+int RCInput::print_status() {
 	PX4_INFO("Max update rate: %u Hz", 1000000 / _current_update_interval);
 
 	if (_device[0] != '\0') {
@@ -948,13 +981,13 @@ int RCInput::print_status()
 		}
 	}
 
-#if ADC_RC_RSSI_CHANNEL
+#if ADC_RC_RSSI_CHANNEL || ADC_RC_RSSI_ADIO
 
 	if (_analog_rc_rssi_stable) {
 		PX4_INFO("vrssi: %dmV", (int)(_analog_rc_rssi_volt * 1000.0f));
 	}
 
-#endif
+#endif // ADC_RC_RSSI_CHANNEL || ADC_RC_RSSI_ADIO
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_publish_interval_perf);
@@ -967,8 +1000,7 @@ int RCInput::print_status()
 }
 
 int
-RCInput::print_usage(const char *reason)
-{
+RCInput::print_usage(const char *reason) {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
 	}
