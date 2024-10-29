@@ -63,7 +63,9 @@ typedef struct __attribute__((__packed__))
 
 	uint32_t fpga_version;
 
+	uint32_t boot_reason;
+
 	/* Reserved for future use */
 
-	uint8_t reserved[424];
+	uint8_t reserved[420];
 } devinfo_t;

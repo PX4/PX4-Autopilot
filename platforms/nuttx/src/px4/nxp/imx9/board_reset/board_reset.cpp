@@ -66,10 +66,7 @@ static void board_reset_enter_bootloader_and_continue_boot()
 
 static void board_reset_enter_app()
 {
-	asm volatile
-	(
-		"b arm64_chip_boot"
-	);
+	__start();
 }
 
 int board_reset(int status)
