@@ -111,15 +111,6 @@ parameters:
       default: 7
       min: 0
       max: 7
-    EKF2_GPS_YAW_OFF:
-      description:
-        short: Heading/Yaw offset for dual antenna GPS
-      type: float
-      default: 0.0
-      min: 0.0
-      max: 360.0
-      unit: deg
-      decimal: 3
     EKF2_GYR_NOISE:
       description:
         short: Rate gyro noise for covariance prediction

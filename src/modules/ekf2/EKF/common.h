@@ -347,7 +347,6 @@ struct parameters {
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
 	float gnss_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
-	float gps_yaw_off{0.0}; 		 ///> gps yaw offset for dual antenna gps
 # endif // CONFIG_EKF2_GNSS_YAW
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
