@@ -442,7 +442,7 @@ class SourceParser(object):
                    re.findall(r"\bstrcmp\b.*\bverb\b.*\"(.+)\"", contents)
 
         doc_commands = module_doc.all_commands() + \
-                [x for value in module_doc.all_values() for x in value.split('|')]
+                [x for value in module_doc.all_values() for x in value.replace(' ', '|').split('|')]
 
         for command in commands:
             if len(command) == 2 and command[0] == '-':
