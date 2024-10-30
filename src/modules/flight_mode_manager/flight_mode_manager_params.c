@@ -34,3 +34,31 @@
 /**
  * @file flight_mode_manager_params.c
  */
+
+/**
+ * Initial orbit velocity
+ *
+ * When the orbit is started, the vehicle will first fly to the orbit circle path at MPC_XY_CRUISE.
+ * Then, it will start to orbit with the velocity specified by this parameter.
+ * Positive values will cause drone to orbit clockwise, negative values counter-clockwise.
+ *
+ * @unit m/s
+ * @min -20.0
+ * @max 20.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ORB_VEL, 1.0f);
+
+/**
+ * Maximum orbit radius
+ *
+ * @unit m
+ * @min 10
+ * @max 1000
+ * @decimal 0
+ * @increment 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ORB_RAD_MAX, 1000.f);

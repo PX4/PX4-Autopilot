@@ -51,6 +51,7 @@ FlightTaskOrbit::FlightTaskOrbit()
 
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
+	parameters_update();
 	bool ret = true;
 	// save previous velocity and roatation direction
 	bool new_is_clockwise = _orbit_velocity > 0;
@@ -71,18 +72,10 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	}
 
 	float new_velocity = signFromBool(new_is_clockwise) * new_absolute_velocity;
-
-	if (math::isInRange(new_radius, _radius_min, _radius_max)) {
-		_started_clockwise = new_is_clockwise;
-		_sanitizeParams(new_radius, new_velocity);
-		_orbit_radius = new_radius;
-		_orbit_velocity = new_velocity;
-
-	} else {
-		mavlink_log_critical(&_mavlink_log_pub, "Orbit radius limit exceeded\t");
-		events::send(events::ID("orbit_radius_exceeded"), events::Log::Alert, "Orbit radius limit exceeded");
-		ret = false;
-	}
+	_started_clockwise = new_is_clockwise;
+	_sanitizeParams(new_radius, new_velocity);
+	_orbit_radius = new_radius;
+	_orbit_velocity = new_velocity;
 
 	// commanded heading behaviour
 	if (PX4_ISFINITE(command.param3)) {
@@ -146,8 +139,9 @@ bool FlightTaskOrbit::sendTelemetry()
 void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 {
 	// clip the radius to be within range
-	radius = math::constrain(radius, _radius_min, _radius_max);
+	radius = math::constrain(radius, _radius_min, _param_mpc_orb_rad_max.get());
 	velocity = math::constrain(velocity, -fabsf(_velocity_max), fabsf(_velocity_max));
+	velocity = math::constrain(velocity, -_param_mpc_xy_vel_max.get(), _param_mpc_xy_vel_max.get());
 
 	bool exceeds_maximum_acceleration = (velocity * velocity) >= _acceleration_max * radius;
 
@@ -160,9 +154,10 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 
 bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
+	parameters_update();
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 	_orbit_radius = _radius_min;
-	_orbit_velocity = 1.f;
+	_orbit_velocity = _param_mpc_orb_vel.get();
 	_center = _position;
 	_initial_heading = _yaw;
 	_slew_rate_yaw.setForcedValue(_yaw);
@@ -365,5 +360,15 @@ void FlightTaskOrbit::_generate_circle_yaw_setpoints()
 		// yawspeed feed-forward because we know the necessary angular rate
 		_yawspeed_setpoint = _orbit_velocity / _orbit_radius;
 		break;
+	}
+}
+
+void FlightTaskOrbit::parameters_update()
+{
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		updateParams();
 	}
 }
