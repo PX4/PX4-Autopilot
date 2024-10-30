@@ -325,6 +325,7 @@ px4io_update:
 
 bootloaders_update: \
 	ark_fmu-v6x_bootloader \
+	ark_fpv_bootloader \
 	ark_pi6x_bootloader \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \

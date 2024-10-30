@@ -29,6 +29,8 @@ uint8 transition_switch          # VTOL transition switch: _HOVER, FORWARD_FLIGH
 uint8 photo_switch               # Photo trigger switch
 uint8 video_switch               # Photo trigger switch
 
+uint8 payload_power_switch       # Payload power switch
+
 uint8 engage_main_motor_switch   # Engage the main motor (for helicopters)
 
 uint32 switch_changes            # number of switch changes
