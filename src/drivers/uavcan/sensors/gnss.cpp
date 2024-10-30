@@ -309,7 +309,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		}
 	}
 
-	// Invalidate the heading fields FIXME:(PX4 CANNODE)
+	// Invalidate the heading fields
 	float heading = NAN;
 	float heading_offset = NAN;
 	float heading_accuracy = NAN;
@@ -320,7 +320,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	uint8_t spoofing_state = 0;
 
 	// Use ecef_position_velocity for CANNODE until FIXME above resolved
-	if (!msg.ecef_position_velocity.empty()) {
+	if (!msg.ecef_position_velocity.empty() && !_rel_heading_valid) {
 		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[0])) {
 			heading = msg.ecef_position_velocity[0].velocity_xyz[0];
 		}
