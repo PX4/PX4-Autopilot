@@ -1,0 +1,36 @@
+name: Ubuntu environment build
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'stable'
+      - 'beta'
+      - 'release/**'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build_and_test:
+    name: Build and Test Ubuntu
+    # strategy:
+    #   fail-fast: false
+    #   matrix:
+    #     version: [ubuntu22, ubuntu24]
+    runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu22-full-x64","run-id=${{ github.run_id }}"]
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          ./Tools/setup/ubuntu.sh
+
+      - name: Make Quick Check
+        run: |
+          make quick_check
+
+      # - name: Debug
+      #   if: ${{ failure() }}
+      #   uses: mxschmitt/action-tmate@v3

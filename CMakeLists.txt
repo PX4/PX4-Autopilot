@@ -408,8 +408,14 @@ include(px4_add_gtest)
 if(BUILD_TESTING)
 	include(gtest)
 
+	set(TESTFILTERARG "")
+
+	if(TESTFILTER)
+		set(TESTFILTERARG "-R ${TESTFILTER}")
+	endif()
+
 	add_custom_target(test_results
-			COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -R ${TESTFILTER} USES_TERMINAL
+			COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test ${TESTFILTERARG}
 			DEPENDS
 				px4
 				examples__dyn_hello
