@@ -2406,13 +2406,14 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 
 		if (fabsf(_param_ekf2_gps_yaw_off.get()) > 0.f) {
-			if (PX4_ISFINITE(vehicle_gps_position.heading_offset) && PX4_ISFINITE(vehicle_gps_position.heading)) {
+			if (!PX4_ISFINITE(vehicle_gps_position.heading_offset) && PX4_ISFINITE(vehicle_gps_position.heading)) {
 				// Convert the offset to radians & appy offset
 				float raw_yaw_offset = matrix::wrap_pi(_param_ekf2_gps_yaw_off.get());
 				vehicle_gps_position.heading_offset = raw_yaw_offset;
 				vehicle_gps_position.heading -= raw_yaw_offset;
 			}
 		}
+
 		const float altitude_amsl = static_cast<float>(vehicle_gps_position.altitude_msl_m);
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
 

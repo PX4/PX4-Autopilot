@@ -489,11 +489,8 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	}
 
 	// Only use dual antenna gps yaw if fix type is (6)
-	if ((hrt_elapsed_time(&_last_gnss_relative_timestamp) < 2_s) && _rel_heading_valid && _carrier_solution_fixed) {
+	if (_rel_heading_valid && _carrier_solution_fixed) {
 
-		// Apply offset and report corrected heading
-		// float corrected_heading = _rel_heading - _yaw_offset_rads;
-		// report.heading = corrected_heading;
 		report.heading = _rel_heading;
 		report.heading_offset = NAN;
 		report.heading_accuracy = _rel_heading_accuracy;
