@@ -2,7 +2,7 @@
 
 set -e
 
-## Bash script to setup PX4 development environment on Ubuntu LTS (22.04, 20.04, 18.04).
+## Bash script to setup PX4 development environment on Ubuntu LTS (24.04, 22.04).
 ## Can also be used in docker.
 ##
 ## Installs:
@@ -53,23 +53,7 @@ fi
 # check ubuntu version
 # otherwise warn and point to docker?
 UBUNTU_RELEASE="`lsb_release -rs`"
-
-if [[ "${UBUNTU_RELEASE}" == "14.04" ]]; then
-	echo "Ubuntu 14.04 is no longer supported"
-	exit 1
-elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
-	echo "Ubuntu 16.04 is no longer supported"
-	exit 1
-elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-	echo "Ubuntu 18.04"
-elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
-	echo "Ubuntu 20.04"
-elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-	echo "Ubuntu 22.04"
-elif [[ "${UBUNTU_RELEASE}" == "21.3" ]]; then
-	echo "Linux Mint 21.3"
-fi
-
+echo "Ubuntu ${UBUNTU_RELEASE}"
 
 echo
 echo "Installing PX4 general dependencies"
@@ -86,7 +70,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	gdb \
 	git \
 	lcov \
-	libfuse2 \
+	libssl-dev \
 	libxml2-dev \
 	libxml2-utils \
 	make \
@@ -126,21 +110,26 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		build-essential \
 		flex \
 		g++-multilib \
+		gcc-arm-none-eabi \
 		gcc-multilib \
 		gdb-multiarch \
 		genromfs \
 		gettext \
 		gperf \
+		kconfig-frontends \
 		libelf-dev \
 		libexpat-dev \
 		libgmp-dev \
 		libisl-dev \
 		libmpc-dev \
 		libmpfr-dev \
-		libncurses5 \
-		libncurses5-dev \
-		libncursesw5-dev \
+		libncurses-dev \
+		libncurses6 \
+		libncursesw6 \
+		libnewlib-arm-none-eabi \
+		libstdc++-arm-none-eabi-newlib \
 		libtool \
+		libunwind-dev \
 		pkg-config \
 		screen \
 		texinfo \
@@ -148,45 +137,10 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		util-linux \
 		vim-common \
 		;
-	if [[ "${UBUNTU_RELEASE}" == "20.04" || "${UBUNTU_RELEASE}" == "22.04" || "${UBUNTU_RELEASE}" == "21.3" ]]; then
-		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
-		kconfig-frontends \
-		;
-	fi
-
 
 	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
 		sudo usermod -aG dialout $USER
-	fi
-
-	# arm-none-eabi-gcc
-	NUTTX_GCC_VERSION="9-2020-q2-update"
-	NUTTX_GCC_VERSION_SHORT="9-2020q2"
-
-	source $HOME/.profile # load changed path for the case the script is reran before relogin
-	if [ $(which arm-none-eabi-gcc) ]; then
-		GCC_VER_STR=$(arm-none-eabi-gcc --version)
-		GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}" || true)
-	fi
-
-	if [[ "$GCC_FOUND_VER" == "1" ]]; then
-		echo "arm-none-eabi-gcc-${NUTTX_GCC_VERSION} found, skipping installation"
-
-	else
-		echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2 && \
-			sudo tar -jxf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 -C /opt/;
-
-		# add arm-none-eabi-gcc to user's PATH
-		exportline="export PATH=/opt/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}/bin:\$PATH"
-
-		if grep -Fxq "$exportline" $HOME/.profile; then
-			echo "${NUTTX_GCC_VERSION} path already set.";
-		else
-			echo $exportline >> $HOME/.profile;
-			source $HOME/.profile; # Allows to directly build NuttX targets in the same terminal
-		fi
 	fi
 fi
 
