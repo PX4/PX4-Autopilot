@@ -193,16 +193,10 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 
 		case Fix2::SUB_MODE_RTK_FIXED:
 			fix_type = 6; // RTK fixed
-			_carrier_solution_fixed = true;
 			break;
 		}
 
 		break;
-	}
-
-	// Degraded RTK fix
-	if (fix_type != 6) {
-		_carrier_solution_fixed = false;
 	}
 
 	float pos_cov[9] {};
@@ -348,7 +342,6 @@ void UavcanGnssBridge::gnss_relative_sub_cb(const
 		uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg)
 {
 	_rel_heading_valid = msg.reported_heading_acc_available;
-	// Convert: -pi to pi
 	_rel_heading = matrix::wrap_pi(math::radians(msg.reported_heading_deg));
 	_rel_heading_accuracy = matrix::wrap_2pi(math::radians(msg.reported_heading_acc_deg));
 
@@ -487,15 +480,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.vdop = msg.pdop;
 	}
 
-	// Only use dual antenna gps yaw if fix type is (6)
-	if (_rel_heading_valid && _carrier_solution_fixed) {
+	// Use heading from RelPosHeading message if available and we have RTK Fixed solution.
+	if (_rel_heading_valid && (fix_type == sensor_gps_s::FIX_TYPE_RTK_FIXED)) {
 		report.heading = _rel_heading;
 		report.heading_offset = NAN;
 		report.heading_accuracy = _rel_heading_accuracy;
-	}
 
-	// Use ECEF populated local variables (px4 cannode) or NAN values if we aren't receiving updated RTK heading
-	else {
+	} else {
 		report.heading = heading;
 		report.heading_offset = heading_offset;
 		report.heading_accuracy = heading_accuracy;

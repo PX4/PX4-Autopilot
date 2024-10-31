@@ -83,7 +83,6 @@ private:
 	void gnss_auxiliary_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Auxiliary> &msg);
 	void gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix> &msg);
 	void gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::gnss::Fix2> &msg);
-	// GNSS Relative Position Heading (AP Periph message)
 	void gnss_relative_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg);
 
 	template <typename FixType>
@@ -148,8 +147,6 @@ private:
 	float _rel_heading_accuracy{NAN};
 	float _rel_heading{NAN};
 	bool _rel_heading_valid{false};
-
-	bool _carrier_solution_fixed{false};
 
 	perf_counter_t _rtcm_stream_pub_perf{nullptr};
 	perf_counter_t _moving_baseline_data_pub_perf{nullptr};
