@@ -39,6 +39,8 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/log.h>
 #include <netinet/in.h>
 #include <netutils/netlib.h>
 #include <lib/parameters/param.h>
@@ -47,7 +49,84 @@ __BEGIN_DECLS
 __EXPORT int  netconfig_main(int argc, char *argv[]);
 __END_DECLS
 
-int netconfig_main(int argc, char *argv[])
+/* string constants for commands */
+static const char sz_nc_help_str[] 	 = "-h";
+static const char sz_nc_init_str[] 	 = "init";
+static const char sz_nc_get_ipv4_str[]  = "get_ipv4";
+static const char sz_nc_get_drip_str[]  = "get_drip";
+static const char sz_nc_set_drip_str[]  = "set_drip";
+
+static void usage(const char *reason)
+{
+	if (reason != nullptr) {
+		PX4_INFO_RAW("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION("Control network configuration");
+
+	PRINT_MODULE_USAGE_NAME("netconfig", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("-h", "Usage info");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("init", "Initialize network");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("get_ipv4", "Get current ipv4 address");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("get_drip", "Get drip (gateway) address");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("set_drip", "Set drip (gateway) address");
+	PRINT_MODULE_USAGE_ARG("<addr>", "address as string (e.g. '192.168.0.1')", false);
+}
+
+void netconfig_print_addr(struct in_addr *addr)
+{
+	char addr_str[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, addr, addr_str, INET_ADDRSTRLEN);
+	printf("%s", addr_str);
+}
+
+int netconfig_get_ipv4()
+{
+	struct in_addr addr;
+	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
+	int ret = netlib_get_ipv4addr(ifname, &addr);
+
+	if (ret == 0) {
+		netconfig_print_addr(&addr);
+		return PX4_OK;
+	}
+
+	PX4_ERR("No ipv4 address found");
+	return PX4_ERROR;
+}
+
+int netconfig_get_drip()
+{
+	struct in_addr addr;
+	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
+	int ret = netlib_get_dripv4addr(ifname, &addr);
+
+	if (ret == 0) {
+		netconfig_print_addr(&addr);
+		return PX4_OK;
+	}
+
+	PX4_ERR("No drip address found");
+	return PX4_ERROR;
+}
+
+int netconfig_set_drip(char *addr_str)
+{
+	struct in_addr addr;
+	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
+	inet_pton(AF_INET, addr_str, &addr);
+	int ret = netlib_set_dripv4addr(ifname, &addr);
+
+	if (ret == 0) {
+		return PX4_OK;
+	}
+
+	PX4_ERR("Set drip address failed");
+	return PX4_ERROR;
+}
+
+
+int netconfig_init()
 {
 	struct in_addr addr;
 	int32_t mav_id;
@@ -100,6 +179,46 @@ int netconfig_main(int argc, char *argv[])
 	netlib_set_ipv4netmask(ifname, &addr);
 
 	netlib_ifup(ifname);
+
+	return PX4_OK;
+}
+
+
+int netconfig_main(int argc, char *argv[])
+{
+	if (argc >= 2) {
+		if (!strncmp(argv[1], sz_nc_help_str, sizeof(sz_nc_help_str))) {
+			usage("");
+			return PX4_OK;
+
+		} else if (!strncmp(argv[1], sz_nc_init_str, sizeof(sz_nc_init_str))) {
+			return netconfig_init();
+
+		} else if (!strncmp(argv[1], sz_nc_get_ipv4_str, sizeof(sz_nc_get_ipv4_str))) {
+			return netconfig_get_ipv4();
+		}
+
+		else if (!strncmp(argv[1], sz_nc_get_drip_str, sizeof(sz_nc_set_drip_str))) {
+			return netconfig_get_drip();
+
+		} else if (!strncmp(argv[1], sz_nc_set_drip_str, sizeof(sz_nc_set_drip_str))) {
+			if (argc >= 3) {
+				return netconfig_set_drip(argv[2]);
+
+			} else {
+				usage("Not enough arguments.");
+				return PX4_ERROR;
+			}
+
+		} else {
+			usage("Invalid arguments.");
+			return PX4_ERROR;
+		}
+
+	} else {
+		// Backward compatibility, perform init in case of no arguments
+		return netconfig_init();
+	}
 
 	return PX4_OK;
 }
