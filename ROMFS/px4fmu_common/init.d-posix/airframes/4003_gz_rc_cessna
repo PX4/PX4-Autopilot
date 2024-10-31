@@ -32,6 +32,8 @@ param set-default FW_RR_FF 0.5
 param set-default FW_RR_P 0.4
 param set-default FW_RR_I 0.7
 
+param set-default FW_R_RMAX 56.15
+
 param set-default FW_YR_FF 0.3
 param set-default FW_YR_P 1.3
 param set-default FW_YR_I 0.7
