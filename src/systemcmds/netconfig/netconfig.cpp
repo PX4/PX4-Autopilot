@@ -53,8 +53,11 @@ __END_DECLS
 static const char sz_nc_help_str[] 	 = "-h";
 static const char sz_nc_init_str[] 	 = "init";
 static const char sz_nc_get_ipv4_str[]  = "get_ipv4";
+static const char sz_nc_set_ipv4_str[]  = "set_ipv4";
 static const char sz_nc_get_drip_str[]  = "get_drip";
 static const char sz_nc_set_drip_str[]  = "set_drip";
+static const char sz_nc_get_mask_str[]  = "get_mask";
+static const char sz_nc_set_mask_str[]  = "set_mask";
 
 static void usage(const char *reason)
 {
@@ -68,9 +71,14 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("-h", "Usage info");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("init", "Initialize network");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("get_ipv4", "Get current ipv4 address");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("set_ipv4", "Set current ipv4 address");
+	PRINT_MODULE_USAGE_ARG("<addr>", "address as string (e.g. '192.168.0.1')", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("get_drip", "Get drip (gateway) address");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set_drip", "Set drip (gateway) address");
 	PRINT_MODULE_USAGE_ARG("<addr>", "address as string (e.g. '192.168.0.1')", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("get_mask", "Get netmask");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("set_mask", "Set netmask");
+	PRINT_MODULE_USAGE_ARG("<addr>", "address as string (e.g. '255.255.255.0')", false);
 }
 
 void netconfig_print_addr(struct in_addr *addr)
@@ -110,6 +118,36 @@ int netconfig_get_drip()
 	return PX4_ERROR;
 }
 
+int netconfig_get_mask()
+{
+	struct in_addr addr;
+	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
+	int ret = netlib_get_ipv4netmask(ifname, &addr);
+
+	if (ret == 0) {
+		netconfig_print_addr(&addr);
+		return PX4_OK;
+	}
+
+	PX4_ERR("No netmask found");
+	return PX4_ERROR;
+}
+
+int netconfig_set_ipv4(char *addr_str)
+{
+	struct in_addr addr;
+	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
+	inet_pton(AF_INET, addr_str, &addr);
+	int ret = netlib_set_ipv4addr(ifname, &addr);
+
+	if (ret == 0) {
+		return PX4_OK;
+	}
+
+	PX4_ERR("Set drip address failed");
+	return PX4_ERROR;
+}
+
 int netconfig_set_drip(char *addr_str)
 {
 	struct in_addr addr;
@@ -122,6 +160,21 @@ int netconfig_set_drip(char *addr_str)
 	}
 
 	PX4_ERR("Set drip address failed");
+	return PX4_ERROR;
+}
+
+int netconfig_set_mask(char *addr_str)
+{
+	struct in_addr addr;
+	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
+	inet_pton(AF_INET, addr_str, &addr);
+	int ret = netlib_set_ipv4netmask(ifname, &addr);
+
+	if (ret == 0) {
+		return PX4_OK;
+	}
+
+	PX4_ERR("Set netmask failed");
 	return PX4_ERROR;
 }
 
@@ -196,14 +249,34 @@ int netconfig_main(int argc, char *argv[])
 
 		} else if (!strncmp(argv[1], sz_nc_get_ipv4_str, sizeof(sz_nc_get_ipv4_str))) {
 			return netconfig_get_ipv4();
-		}
 
-		else if (!strncmp(argv[1], sz_nc_get_drip_str, sizeof(sz_nc_set_drip_str))) {
+		} else if (!strncmp(argv[1], sz_nc_get_drip_str, sizeof(sz_nc_set_drip_str))) {
 			return netconfig_get_drip();
+
+		} else if (!strncmp(argv[1], sz_nc_get_mask_str, sizeof(sz_nc_get_mask_str))) {
+			return netconfig_get_mask();
+
+		} else if (!strncmp(argv[1], sz_nc_set_ipv4_str, sizeof(sz_nc_set_ipv4_str))) {
+			if (argc >= 3) {
+				return netconfig_set_ipv4(argv[2]);
+
+			} else {
+				usage("Not enough arguments.");
+				return PX4_ERROR;
+			}
 
 		} else if (!strncmp(argv[1], sz_nc_set_drip_str, sizeof(sz_nc_set_drip_str))) {
 			if (argc >= 3) {
 				return netconfig_set_drip(argv[2]);
+
+			} else {
+				usage("Not enough arguments.");
+				return PX4_ERROR;
+			}
+
+		} else if (!strncmp(argv[1], sz_nc_set_mask_str, sizeof(sz_nc_set_mask_str))) {
+			if (argc >= 3) {
+				return netconfig_set_mask(argv[2]);
 
 			} else {
 				usage("Not enough arguments.");
