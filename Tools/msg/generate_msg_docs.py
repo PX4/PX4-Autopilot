@@ -11,9 +11,22 @@ import sys
 
 def get_msgs_list(msgdir):
     """
-    Makes list of msg files in the given directory
+    Makes a list of relative paths of .msg files in the given directory
+    and its subdirectories.
+
+    Parameters:
+    msgdir (str): The directory to search for .msg files.
+
+    Returns:
+    list: A list of relative paths to .msg files.
     """
-    return [fn for fn in os.listdir(msgdir) if fn.endswith(".msg")]
+    msgs = []
+    for root, _, files in os.walk(msgdir):
+        for fn in files:
+            if fn.endswith(".msg"):
+                relative_path = os.path.relpath(os.path.join(root, fn), msgdir)
+                msgs.append(relative_path)
+    return msgs
 
 
 if __name__ == "__main__":
@@ -32,7 +45,7 @@ if __name__ == "__main__":
     filelist_in_markdown=''
 
     for msg_file in msg_files:
-        msg_name = os.path.splitext(msg_file)[0]
+        msg_name = os.path.splitext(os.path.basename(msg_file))[0]
         output_file = os.path.join(output_dir, msg_name+'.md')
         msg_filename = os.path.join(msg_path, msg_file)
         print("{:} -> {:}".format(msg_filename, output_file))
