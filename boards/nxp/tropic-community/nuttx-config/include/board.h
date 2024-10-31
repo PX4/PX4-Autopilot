@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/nxp_tropic/include/board.h
+ * nuttx-configs/nxp/nxp_tropic-community/include/board.h
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
