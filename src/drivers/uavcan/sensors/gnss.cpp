@@ -200,8 +200,8 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		break;
 	}
 
-	// If not at least differential, degraded RTK gnss
-	if (fix_type < 4) {
+	// Degraded RTK fix
+	if (fix_type != 6) {
 		_carrier_solution_fixed = false;
 	}
 
@@ -319,8 +319,7 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	uint8_t jamming_state = 0;
 	uint8_t spoofing_state = 0;
 
-	// Uce ecec_position_velocity (if populated)
-	// for heading if relative heading invalid TODO
+	// Use ecef_position_velocity for CANNODE until FIXME above resolved
 	if (!msg.ecef_position_velocity.empty() && !_rel_heading_valid) {
 		if (!std::isnan(msg.ecef_position_velocity[0].velocity_xyz[0])) {
 			heading = msg.ecef_position_velocity[0].velocity_xyz[0];
@@ -489,7 +488,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.vdop = msg.pdop;
 	}
 
-	// Only use dual antenna gps yaw if fix type is >= (4)
+	// Only use dual antenna gps yaw if fix type is (6)
 	if (_rel_heading_valid && _carrier_solution_fixed) {
 
 		report.heading = _rel_heading;
