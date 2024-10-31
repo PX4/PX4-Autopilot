@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * NXP Tropic internal definitions
+ * Tropic Community internal definitions
  */
 
 #pragma once

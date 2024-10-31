@@ -3,7 +3,7 @@
 # PX4 board sensors init
 #------------------------------------------------------------------------------
 #
-# UART mapping on Tropic:
+# UART mapping on Tropic Community:
 #
 # LPUART5       /dev/ttyS0      CONSOLE
 # LPUART3       /dev/ttyS1      GPS
