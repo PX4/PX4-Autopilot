@@ -74,15 +74,15 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
 PARAM_DEFINE_INT32(MIS_TKO_LAND_REQ, 0);
 
 /**
- * Maximal horizontal distance from current position to first waypoint
+ * Maximal horizontal distance from Home to first waypoint
  *
- * Failsafe check to prevent running mission stored from previous flight at a new takeoff location.
- * Set a value of zero or less to disable. The mission will not be started if the current
- * waypoint is more distant than MIS_DIST_1WP from the current position.
+ * There will be a warning message if the current waypoint is more distant than MIS_DIST_1WP from Home.
+ * Has no effect on mission validity.
+ * Set a value of zero or less to disable.
  *
  * @unit m
  * @min -1
- * @max 10000
+ * @max 100000
  * @decimal 1
  * @increment 100
  * @group Mission
