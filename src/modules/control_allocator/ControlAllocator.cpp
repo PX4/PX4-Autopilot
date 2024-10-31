@@ -308,6 +308,12 @@ ControlAllocator::Run()
 
 	perf_begin(_loop_perf);
 
+	performance_s performance;
+	performance.timestamp = hrt_absolute_time();
+	performance.delta_time = performance.timestamp - _last_perf_timestamp;
+	_performance_pub.publish(performance);
+	_last_perf_timestamp = performance.timestamp;
+
 #ifndef ENABLE_LOCKSTEP_SCHEDULER // Backup schedule would interfere with lockstep
 	// Push backup schedule
 	ScheduleDelayed(50_ms);
