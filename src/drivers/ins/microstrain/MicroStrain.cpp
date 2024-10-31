@@ -619,20 +619,30 @@ int MicroStrain::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-MicroStrain INS Driver.
-Supports the CV7-AR and CV7-AHRS
+MicroStrain by HBK Inertial Sensor Driver.
+Currently supports the CV7-AR and CV7-AHRS
 
-Communicates over serial port an utilizes the manufacturer provided MIP SDK.
+Communicates over serial port using submodule MIP_SDK.
+
+### Examples
+Attempt to start driver on a specified serial device.
+The driver will choose /dev/ttyS4 by default if no port is specified
+$ microstrain start -d /dev/ttyS1
+Stop driver
+$ microstrain stop
 
 )DESCR_STR");
 
+
+
 	PRINT_MODULE_USAGE_NAME("MicroStrain", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("ins");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS4", "<file:dev>", "INS Port", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS4", "<file:dev>", "Port", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Driver status");
 
-	return 0;
+	return PX4_OK;
 }
 
 extern "C" __EXPORT int microstrain_main(int argc, char *argv[])
