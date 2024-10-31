@@ -1,4 +1,4 @@
-name: ROS translation node tests
+name: ROS Translation Node Tests
 on:
   push:
     branches:
@@ -12,7 +12,7 @@ defaults:
 jobs:
   build_and_test:
     name: Build and test
-    runs-on: ubuntu-latest
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     container:
       image: rostooling/setup-ros-docker:ubuntu-jammy-latest
     steps:
@@ -21,7 +21,18 @@ jobs:
         with:
           required-ros-distributions: humble
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Workaround for https://github.com/actions/runner/issues/2033
+      - name: ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: Check .msg file versioning
+        if: github.event_name == 'pull_request'
+        run: |
+          ./Tools/ci/check_msg_versioning.sh ${{ github.event.pull_request.base.sha }} ${{github.event.pull_request.head.sha}}
 
       - name: Build and test
         run: |
