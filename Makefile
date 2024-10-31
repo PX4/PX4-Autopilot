@@ -77,7 +77,7 @@ ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 # Get -j or --jobs argument as suggested in:
 # https://stackoverflow.com/a/33616144/8548472
 MAKE_PID := $(shell echo $$PPID)
-j := $(shell ps T | sed -n 's|.*$(MAKE_PID).*$(MAKE).* \(-j\|--jobs\) *\([0-9][0-9]*\).*|\2|p')
+j := $(shell ps T | sed -n 's%.*$(MAKE_PID).*$(MAKE).* \(-j\|--jobs\) *\([0-9][0-9]*\).*%\2%p')
 
 # Default j for clang-tidy
 j_clang_tidy := $(or $(j),4)
