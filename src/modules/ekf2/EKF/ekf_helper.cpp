@@ -160,7 +160,7 @@ bool Ekf::resetGlobalPositionTo(const double latitude, const double longitude, c
 	}
 
 	// altitude is optional
-	resetAltitudeTo(altitude, vpos_var);
+	initialiseAltitudeTo(altitude, vpos_var);
 
 	return true;
 }
@@ -216,7 +216,7 @@ bool Ekf::resetLatLonTo(const double latitude, const double longitude, const flo
 	return true;
 }
 
-bool Ekf::resetAltitudeTo(const float altitude, const float vpos_var)
+bool Ekf::initialiseAltitudeTo(const float altitude, const float vpos_var)
 {
 	if (!checkAltitudeValidity(altitude)) {
 		return false;

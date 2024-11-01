@@ -649,7 +649,7 @@ private:
 	bool setAltOrigin(float altitude, float vpos_var = NAN);
 
 	bool resetLatLonTo(double latitude, double longitude, float hpos_var = NAN);
-	bool resetAltitudeTo(float altitude, float vpos_var = NAN);
+	bool initialiseAltitudeTo(float altitude, float vpos_var = NAN);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
