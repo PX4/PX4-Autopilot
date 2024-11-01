@@ -72,7 +72,7 @@ private:
 
 	// Pairing request
 	hrt_abstime		_pairing_start{0};
-	int				_pairing_button_counter{0};
+	int			_pairing_button_counter{0};
 
 	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
 
