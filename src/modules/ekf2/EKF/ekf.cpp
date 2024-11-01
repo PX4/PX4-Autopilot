@@ -296,7 +296,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			return false;
 		}
 
-		resetAltitudeTo(altitude, sq(epv));
+		initialiseAltitudeTo(altitude, sq(epv));
 
 		return true;
 	}
@@ -370,7 +370,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 		const float obs_var = math::max(sq(epv), sq(0.01f));
 
 		ECL_INFO("reset height to external observation");
-		resetAltitudeTo(gpos_corrected.altitude(), obs_var);
+		initialiseAltitudeTo(gpos_corrected.altitude(), obs_var);
 		_last_known_gpos.setAltitude(gpos_corrected.altitude());
 	}
 

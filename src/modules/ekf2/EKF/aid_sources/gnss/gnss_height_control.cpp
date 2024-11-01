@@ -129,7 +129,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 					_information_events.flags.reset_hgt_to_gps = true;
 
-					resetAltitudeTo(measurement, measurement_var);
+					initialiseAltitudeTo(measurement, measurement_var);
 					bias_est.reset();
 
 				} else {
