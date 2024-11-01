@@ -8,7 +8,6 @@
 
 # Set HITL related flag
 param set SYS_HITL 1
-param set MAV_HITL_SHOME 1
 param set SENS_EN_GPSSIM 1
 param set SENS_EN_BAROSIM 1
 param set SENS_EN_MAGSIM 1

@@ -48,36 +48,3 @@ PARAM_DEFINE_INT32(SIM_GZ_EN, 0);
  * @group Simulator
  */
 PARAM_DEFINE_INT32(SIM_GZ_RUN_GZSIM, 1);
-
-/**
- * use simulator origin (home) position
- *
- * @boolean
- * @reboot_required true
- * @group Simulator
- */
-PARAM_DEFINE_INT32(SIM_GZ_SHOME, 0);
-
-/**
- * simulator origin latitude
- *
- * @unit deg
- * @group Simulator
- */
-PARAM_DEFINE_FLOAT(SIM_GZ_HOME_LAT, 47.397742f);
-
-/**
- * simulator origin longitude
- *
- * @unit deg
- * @group Simulator
- */
-PARAM_DEFINE_FLOAT(SIM_GZ_HOME_LON, 8.545594);
-
-/**
- * simulator origin altitude
- *
- * @unit m
- * @group Simulator
- */
-PARAM_DEFINE_FLOAT(SIM_GZ_HOME_ALT, 488.0);

@@ -13,7 +13,6 @@ PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=skywalker_x8}
 
 param set-default SIM_GZ_EN 1
-param set-default SIM_GZ_SHOME 1
 if [ "$PX4_RUN_GZSIM" = "0" ]; then
   param set-default SIM_GZ_RUN_GZSIM 0
 else

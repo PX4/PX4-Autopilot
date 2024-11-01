@@ -147,6 +147,7 @@ private:
 	pthread_mutex_t _node_mutex;
 
 	MapProjection _pos_ref{};
+	double _alt_ref{}; // starting altitude reference
 
 	matrix::Vector3d _position_prev{};
 	matrix::Vector3d _velocity_prev{};
@@ -164,22 +165,7 @@ private:
 
 	float _temperature{288.15};  // 15 degrees
 
-	uint64_t _gz_sim_gps_time_usec{0};
-
-	double _gz_home_lat{0.0};
-
-	double _gz_home_lon{0.0};
-
-	double _gz_home_alt{0.0};
-
 	gz::transport::Node::Publisher _cmd_vel_pub;
 
 	gz::transport::Node _node;
-
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SIM_GZ_SHOME>) _param_use_sim_home,
-		(ParamFloat<px4::params::SIM_GZ_HOME_LAT>) _param_sim_home_lat,
-		(ParamFloat<px4::params::SIM_GZ_HOME_LON>) _param_sim_home_lon,
-		(ParamFloat<px4::params::SIM_GZ_HOME_ALT>) _param_sim_home_alt
-	)
 };

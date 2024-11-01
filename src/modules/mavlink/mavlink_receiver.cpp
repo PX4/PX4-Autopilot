@@ -2346,10 +2346,19 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
 	if (_mavlink->get_hil_enabled()) {
-		_hitl_sim_gps_time_usec = hil_gps.time_usec;
-		_hitl_sim_home_lat = hil_gps.lat / 1e7;
-		_hitl_sim_home_lon = hil_gps.lon / 1e7;
-		_hitl_sim_home_alt = hil_gps.alt / 1e3f;
+		if (!_hil_pos_ref.isInitialized()) {
+			_hil_pos_ref.initReference(hil_gps.lat / 1e7, hil_gps.lon / 1e7, hrt_absolute_time());
+			_hil_alt_ref = hil_gps.alt / 1e3f;
+
+		} else {
+			// Publish GPS groundtruth
+			vehicle_global_position_s hil_global_position_groundtruth{};
+			hil_global_position_groundtruth.timestamp_sample = hrt_absolute_time();
+			hil_global_position_groundtruth.lat = hil_gps.lat / 1e7;
+			hil_global_position_groundtruth.lon = hil_gps.lon / 1e7;
+			hil_global_position_groundtruth.alt = hil_gps.alt / 1e3f;
+			_gpos_groundtruth_pub.publish(hil_global_position_groundtruth);
+		}
 
 	} else {
 		sensor_gps_s gps{};
@@ -2688,19 +2697,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	 * fields (mmE3) with east in LAT, north in LON, up in ALT
 	 *[TODO create a new mavlink msg maybe called HIL_POSE_INFO for this]
 	 */
-
-	if (!_hil_pos_ref.isInitialized()) {
-		if (!_param_hitl_use_sim_home.get() || _hitl_sim_gps_time_usec) {
-			_hil_pos_ref.initReference(_param_hitl_use_sim_home.get() ? _hitl_sim_home_lat : (double)_param_hitl_home_lat.get(),
-						   _param_hitl_use_sim_home.get() ? _hitl_sim_home_lon : (double)_param_hitl_home_lon.get(),
-						   hrt_absolute_time());
-
-		} else {
-			// no reference set yet
-			return;
-		}
-	}
-
 	vehicle_local_position_s hil_local_position_groundtruth{};
 
 	hil_local_position_groundtruth.timestamp_sample = timestamp_sample;
@@ -2731,29 +2727,11 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		_hil_pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
 	hil_local_position_groundtruth.ref_lon =
 		_hil_pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
-	hil_local_position_groundtruth.ref_alt = _param_hitl_use_sim_home.get() ? static_cast<float>(_hitl_sim_home_alt) :
-			_param_hitl_home_alt.get();
+	hil_local_position_groundtruth.ref_alt = _hil_alt_ref; // Reference altitude AMSL in meters
 	hil_local_position_groundtruth.ref_timestamp = _hil_pos_ref.getProjectionReferenceTimestamp();
 
 	hil_local_position_groundtruth.timestamp = hrt_absolute_time();
 	_lpos_groundtruth_pub.publish(hil_local_position_groundtruth);
-
-	if (_hil_pos_ref.isInitialized()) {
-		/* publish position groundtruth */
-		vehicle_global_position_s hil_global_position_groundtruth{};
-
-		hil_global_position_groundtruth.timestamp_sample = hrt_absolute_time();
-
-		_hil_pos_ref.reproject(hil_local_position_groundtruth.x,
-				       hil_local_position_groundtruth.y,
-				       hil_global_position_groundtruth.lat,
-				       hil_global_position_groundtruth.lon);
-
-		hil_global_position_groundtruth.alt = (_param_hitl_use_sim_home.get() ? static_cast<float>(_hitl_sim_home_alt) :
-						       _param_hitl_home_alt.get()) - static_cast<float>(position(2));
-		hil_global_position_groundtruth.timestamp = hrt_absolute_time();
-		_gpos_groundtruth_pub.publish(hil_global_position_groundtruth);
-	}
 }
 
 #if !defined(CONSTRAINED_FLASH)
