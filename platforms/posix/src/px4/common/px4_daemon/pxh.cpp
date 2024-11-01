@@ -132,11 +132,13 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		// Do nothing
 		return 0;
 
-	} else {
+	} else if (!silently_fail) {
 		//std::cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 		printf("Invalid command: %s\ntype 'help' for a list of commands\n", command.c_str());
 		return -1;
 
+	} else {
+		return -1;
 	}
 }
 
