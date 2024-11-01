@@ -261,7 +261,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	_state.pos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
 
 	// constrain states
-	_state.vel = matrix::constrain(_state.vel, -1000.f, 1000.f);
+	_state.vel = matrix::constrain(_state.vel, -_params.velocity_limit, _params.velocity_limit);
 	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
 
@@ -298,7 +298,7 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 	Vector3f pos_correction;
 
 	// apply a first order correction using velocity at the delayed time horizon and the delta time
-	if ((timestamp_observation > 0) && local_position_is_valid()) {
+	if ((timestamp_observation > 0) && isLocalHorizontalPositionValid()) {
 
 		timestamp_observation = math::min(_time_latest_us, timestamp_observation);
 

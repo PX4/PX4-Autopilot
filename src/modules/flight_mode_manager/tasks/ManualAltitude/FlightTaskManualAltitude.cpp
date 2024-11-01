@@ -279,6 +279,11 @@ void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 	_stick_yaw.ekfResetHandler(delta_psi);
 }
 
+void FlightTaskManualAltitude::_ekfResetHandlerHagl(float delta_hagl)
+{
+	_dist_to_ground_lock = NAN;
+}
+
 void FlightTaskManualAltitude::_updateSetpoints()
 {
 	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime, _unaided_yaw);

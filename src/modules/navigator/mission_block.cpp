@@ -91,6 +91,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_OBLIQUE_SURVEY:
 	case NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL:
 	case NAV_CMD_SET_CAMERA_MODE:
+	case NAV_CMD_SET_CAMERA_SOURCE:
 	case NAV_CMD_SET_CAMERA_ZOOM:
 	case NAV_CMD_SET_CAMERA_FOCUS:
 	case NAV_CMD_DO_CHANGE_SPEED:
@@ -771,11 +772,11 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 }
 
 void
-MissionBlock::setLoiterItemFromCurrentPositionWithBreaking(struct mission_item_s *item)
+MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item)
 {
 	setLoiterItemCommonFields(item);
 
-	_navigator->calculate_breaking_stop(item->lat, item->lon);
+	_navigator->preproject_stop_point(item->lat, item->lon);
 
 	item->altitude = _navigator->get_global_position()->alt;
 	item->loiter_radius = _navigator->get_loiter_radius();
@@ -831,8 +832,15 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 	item->nav_cmd = NAV_CMD_LAND;
 
 	// set land item to current position
-	item->lat = _navigator->get_global_position()->lat;
-	item->lon = _navigator->get_global_position()->lon;
+	if (_navigator->get_local_position()->xy_global) {
+		item->lat = _navigator->get_global_position()->lat;
+		item->lon = _navigator->get_global_position()->lon;
+
+	} else {
+		item->lat = (double)NAN;
+		item->lon = (double)NAN;
+	}
+
 	item->yaw = NAN;
 
 	item->altitude = 0;

@@ -99,7 +99,7 @@ public:
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// terrain estimate
-	bool isTerrainEstimateValid() const;
+	bool isTerrainEstimateValid() const { return _terrain_valid; }
 
 	// get the estimated terrain vertical position relative to the NED origin
 	float getTerrainVertPos() const { return _state.terrain; };
@@ -152,6 +152,17 @@ public:
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
 	Vector2f getWindVelocityVariance() const { return getStateVariance<State::wind_vel>(); }
+
+	/**
+	* @brief Resets the wind states to an external observation
+	*
+	* @param wind_speed The wind speed in m/s
+	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
+	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
+	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
+	*/
+	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
+					    float wind_direction_accuracy);
 #endif // CONFIG_EKF2_WIND
 
 	template <const IdxDof &S>
@@ -177,8 +188,7 @@ public:
 	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
-	// return true if the origin is valid
-	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
+	void getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
 	bool checkLatLonValidity(double latitude, double longitude);
 	bool checkAltitudeValidity(float altitude);
 	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = NAN, float epv = NAN);
@@ -210,13 +220,17 @@ public:
 	// return true if the global position estimate is valid
 	// return true if the origin is set we are not doing unconstrained free inertial navigation
 	// and have not started using synthetic position observations to constrain drift
-	bool global_position_is_valid() const
+	bool isGlobalHorizontalPositionValid() const
 	{
-		return (_NED_origin_initialised && local_position_is_valid());
+		return _pos_ref.isInitialized() && isLocalHorizontalPositionValid();
 	}
 
-	// return true if the local position estimate is valid
-	bool local_position_is_valid() const
+	bool isGlobalVerticalPositionValid() const
+	{
+		return _pos_ref.isInitialized() && isLocalVerticalPositionValid();
+	}
+
+	bool isLocalHorizontalPositionValid() const
 	{
 		return !_horizontal_deadreckon_time_exceeded;
 	}
@@ -405,18 +419,6 @@ public:
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
-	/**
-	* @brief Resets the wind states to an external observation
-	*
-	* @param wind_speed The wind speed in m/s
-	* @param wind_direction The azimuth (from true north) to where the wind is heading in radians
-	* @param wind_speed_accuracy The 1 sigma accuracy of the wind speed estimate in m/s
-	* @param wind_direction_accuracy The 1 sigma accuracy of the wind direction estimate in radians
-	*/
-	void resetWindToExternalObservation(float wind_speed, float wind_direction, float wind_speed_accuracy,
-					    float wind_direction_accuracy);
-	bool _external_wind_init{false};
-
 	void updateParameters();
 
 	friend class AuxGlobalPosition;
@@ -502,6 +504,8 @@ private:
 #if defined(CONFIG_EKF2_TERRAIN)
 	// Terrain height state estimation
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
+
+	bool _terrain_valid{false};
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -734,6 +738,8 @@ private:
 	void initTerrain();
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _state.terrain : _last_on_ground_posD; }
 	void controlTerrainFakeFusion();
+
+	void updateTerrainValidity();
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder

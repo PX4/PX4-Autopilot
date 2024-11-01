@@ -356,7 +356,7 @@ void Navigator::run()
 						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-							calculate_breaking_stop(rep->current.lat, rep->current.lon);
+							preproject_stop_point(rep->current.lat, rep->current.lon);
 
 						} else {
 							// For fixedwings we can use the current vehicle's position to define the loiter point
@@ -467,7 +467,7 @@ void Navigator::run()
 					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-						calculate_breaking_stop(rep->current.lat, rep->current.lon);
+						preproject_stop_point(rep->current.lat, rep->current.lon);
 					}
 
 					if (PX4_ISFINITE(curr->current.loiter_radius) && curr->current.loiter_radius > FLT_EPSILON) {
@@ -1411,9 +1411,13 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 	vcmd->confirmation = false;
 	vcmd->from_external = false;
 
+	int target_camera_component_id;
+
 	// The camera commands are not processed on the autopilot but will be
 	// sent to the mavlink links to other components.
 	switch (vcmd->command) {
+
+
 	case NAV_CMD_IMAGE_START_CAPTURE:
 
 		if (static_cast<int>(vcmd->param3) == 1) {
@@ -1433,12 +1437,52 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 			_is_capturing_images = true;
 		}
 
-		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
 		break;
 
 	case NAV_CMD_IMAGE_STOP_CAPTURE:
 		_is_capturing_images = false;
-		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
+		break;
+
+	case NAV_CMD_SET_CAMERA_MODE:
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
+		break;
+
+	case NAV_CMD_SET_CAMERA_SOURCE:
+		target_camera_component_id = static_cast<int>(vcmd->param1); // Target id from param 1
+
+		if (target_camera_component_id > 0 && target_camera_component_id < 256) {
+			vcmd->target_component = target_camera_component_id;
+
+		} else {
+			vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		}
+
 		break;
 
 	case NAV_CMD_VIDEO_START_CAPTURE:
@@ -1544,7 +1588,7 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	return true;
 }
 
-void Navigator::calculate_breaking_stop(double &lat, double &lon)
+void Navigator::preproject_stop_point(double &lat, double &lon)
 {
 	// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
 	const float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);

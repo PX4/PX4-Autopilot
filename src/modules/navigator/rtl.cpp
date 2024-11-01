@@ -59,6 +59,7 @@ RTL::RTL(Navigator *navigator) :
 	ModuleParams(navigator),
 	_rtl_direct(navigator)
 {
+	_rtl_direct.initialize();
 }
 
 void RTL::updateDatamanCache()
@@ -157,24 +158,6 @@ void RTL::updateDatamanCache()
 	_dataman_cache_landItem.update();
 }
 
-void RTL::on_inactivation()
-{
-	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST: // Fall through
-	case RtlType::RTL_MISSION_FAST_REVERSE: // Fall through
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		_rtl_mission_type_handle->on_inactivation();
-		break;
-
-	case RtlType::RTL_DIRECT:
-		_rtl_direct.on_inactivation();
-		break;
-
-	default:
-		break;
-	}
-}
-
 void RTL::on_inactive()
 {
 	_global_pos_sub.update();
@@ -187,20 +170,11 @@ void RTL::on_inactive()
 
 	parameters_update();
 
-	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST:
-	case RtlType::RTL_MISSION_FAST_REVERSE:
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		_rtl_mission_type_handle->on_inactive();
-		break;
-
-	case RtlType::RTL_DIRECT:
-		_rtl_direct.on_inactive();
-		break;
-
-	default:
-		break;
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->run(false);
 	}
+
+	_rtl_direct.run(false);
 
 	// Limit inactive calculation to 0.5Hz
 	hrt_abstime now{hrt_absolute_time()};
@@ -230,7 +204,10 @@ void RTL::publishRemainingTimeEstimate()
 		case RtlType::RTL_DIRECT_MISSION_LAND:
 		case RtlType::RTL_MISSION_FAST:
 		case RtlType::RTL_MISSION_FAST_REVERSE:
-			estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
+			if (_rtl_mission_type_handle) {
+				estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
+			}
+
 			break;
 
 		default:
@@ -250,12 +227,10 @@ void RTL::on_activation()
 	case RtlType::RTL_MISSION_FAST: // Fall through
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 		_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
-		_rtl_mission_type_handle->on_activation();
 		break;
 
 	case RtlType::RTL_DIRECT:
 		_rtl_direct.setReturnAltMin(_enforce_rtl_alt);
-		_rtl_direct.on_activation();
 		break;
 
 	default:
@@ -279,16 +254,23 @@ void RTL::on_active()
 	updateDatamanCache();
 
 	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST:
-	case RtlType::RTL_MISSION_FAST_REVERSE:
+	case RtlType::RTL_MISSION_FAST: // Fall through
+	case RtlType::RTL_MISSION_FAST_REVERSE: // Fall through
 	case RtlType::RTL_DIRECT_MISSION_LAND:
-		_rtl_mission_type_handle->on_active();
-		_rtl_mission_type_handle->updateFailsafeChecks();
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(true);
+		}
+
+		_rtl_direct.run(false);
 		break;
 
 	case RtlType::RTL_DIRECT:
-		_rtl_direct.on_active();
-		_rtl_direct.updateFailsafeChecks();
+		_rtl_direct.run(true);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(false);
+		}
+
 		break;
 
 	default:
@@ -312,7 +294,10 @@ bool RTL::isLanding()
 	case RtlType::RTL_MISSION_FAST:
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 	case RtlType::RTL_DIRECT_MISSION_LAND:
-		is_landing = _rtl_mission_type_handle->isLanding();
+		if (_rtl_mission_type_handle) {
+			is_landing = _rtl_mission_type_handle->isLanding();
+		}
+
 		break;
 
 	case RtlType::RTL_DIRECT:
@@ -621,6 +606,10 @@ void RTL::init_rtl_mission_type()
 
 	default:
 		break;
+	}
+
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->initialize();
 	}
 }
 

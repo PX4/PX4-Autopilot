@@ -278,7 +278,7 @@ public:
 	void release_gimbal_control();
 	void set_gimbal_neutral();
 
-	void calculate_breaking_stop(double &lat, double &lon);
+	void preproject_stop_point(double &lat, double &lon);
 
 	void stop_capturing_images();
 	void disable_camera_trigger();

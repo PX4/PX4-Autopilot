@@ -230,11 +230,10 @@ private:
 	 *
 	 * @param msgId The ID of the message interval to be set.
 	 * @param interval The interval in usec to send the message.
-	 * @param data_rate The total link data rate in bytes per second.
 	 *
 	 * @return PX4_OK on success, PX4_ERROR on fail.
 	 */
-	int set_message_interval(int msgId, float interval, int data_rate = -1);
+	int set_message_interval(int msgId, float interval, float param3, float param4, float param7);
 	void get_message_interval(int msgId);
 
 	bool evaluate_target_ok(int command, int target_system, int target_component);

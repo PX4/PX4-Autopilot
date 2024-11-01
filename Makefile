@@ -326,6 +326,7 @@ px4io_update:
 bootloaders_update: \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
 	ark_fmu-v6x_bootloader \
+	ark_fpv_bootloader \
 	ark_pi6x_bootloader \
 	cuav_nora_bootloader \
 	cuav_x7pro_bootloader \
