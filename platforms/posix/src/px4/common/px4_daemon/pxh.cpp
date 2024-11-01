@@ -49,6 +49,7 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "pxh.h"
 
@@ -124,17 +125,18 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		list_builtins(_apps);
 		return 0;
 
+	} else if (command == "kill") {
+		return shutdown_handler(0, nullptr);
+
 	} else if (command.length() == 0 || command[0] == '#') {
 		// Do nothing
 		return 0;
 
-	} else if (!silently_fail) {
+	} else {
 		//std::cout << "Invalid command: " << command << "\ntype 'help' for a list of commands" << endl;
 		printf("Invalid command: %s\ntype 'help' for a list of commands\n", command.c_str());
 		return -1;
 
-	} else {
-		return -1;
 	}
 }
 
@@ -549,6 +551,20 @@ void Pxh::_tab_completion(std::string &mystr)
 			}
 		}
 	}
+}
+
+int Pxh::shutdown_handler(int argc, char *argv[])
+{
+	printf("Force shutting down...\n");
+	fflush(stdout);
+
+	// Force kill all child processes
+	int ret = system("pkill -9 -f gz");
+	(void)ret;  // Suppress warning about unused return value
+	printf("Killed gz...\n");
+	ret = system("pkill -9 -f px4");
+	(void)ret;  // Suppress warning about unused return value
+	return 0;
 }
 
 } // namespace px4_daemon
