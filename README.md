@@ -119,7 +119,7 @@ These boards don't fully comply industry standards, and thus is solely maintaine
 
 ### Experimental
 
-These boards are nor maintained by PX4 team nor Manufacturer, and is not guaranteed to be compatible with up to date PX4 releases.
+These boards are not maintained by PX4 team nor Manufacturer, and is not guaranteed to be compatible with up to date PX4 releases.
 
 * [Raspberry PI with Navio 2](https://docs.px4.io/main/en/flight_controller/raspberry_pi_navio2.html)
 * [Bitcraze Crazyflie 2.0](https://docs.px4.io/main/en/complete_vehicles/crazyflie2.html)
