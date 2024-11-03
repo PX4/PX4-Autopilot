@@ -189,8 +189,6 @@ if (args.group):
     #   nuttx-0
     #   nuttx-1
     final_groups = []
-    temp_group = []
-    group_number = {}
     last_man = ''
     last_arch = ''
     SPLIT_LIMIT = 10
@@ -199,88 +197,80 @@ if (args.group):
         print(f'=:Architectures: [{grouped_targets.keys()}]')
     for arch in grouped_targets:
         if(verbose):
-            print(f'=:Processing: [{arch}] Last: [{last_arch}]')
-
-        if(last_arch == ''):
-            last_arch = arch
-        if(arch not in group_number):
-                group_number[arch] = 0
-
-        if(last_arch != arch and len(temp_group) > 0):
-
-            group_name = last_arch + "-" + str(group_number[last_arch])
-            group_number[last_arch] += 1
-            targets = comma_targets(temp_group)
-            if(verbose):
-                print(f'=:Orphan: [{arch}][{last_arch}][{targets}]')
-            final_groups.append({
-                "container": grouped_targets[last_arch]['container'],
-                "targets": targets,
-                "arch": last_arch,
-                "group": group_name,
-                "len": len(temp_group)
-            })
-            last_arch = arch
-            temp_group = []
-
+            print(f'=:Processing: [{arch}]')
+        temp_group = []
         for man in grouped_targets[arch]['manufacturers']:
             if(verbose):
                 print(f'=:Processing: [{arch}][{man}]')
-            for tar in grouped_targets[arch]['manufacturers'][man]:
-                man_len = len(grouped_targets[arch]['manufacturers'][man])
+            man_len = len(grouped_targets[arch]['manufacturers'][man])
+            if(man_len > LOWER_LIMIT and man_len < (SPLIT_LIMIT + 1)):
+                # Manufacturers can have their own group
                 if(verbose):
-                    print(f'=:Processing: [{arch}][{man}][{man_len}][{tar}]')
-                if(last_man != man):
-                    # if(verbose):
-                    #     print(f'=:Processing: [{arch}][{man}][{tar}][{man_len}]')
-                    if(man_len > LOWER_LIMIT and man_len < (SPLIT_LIMIT + 1)):
-                        # Manufacturers can have their own group
-                        if(verbose):
-                            print(f'=:Processing: ==Manufacturers can have their own group')
-                            print(f'=:Processing: Limits[{LOWER_LIMIT}][{SPLIT_LIMIT}]')
-                        group_name = arch + "-" + man
-                        targets = comma_targets(grouped_targets[arch]['manufacturers'][man])
-                        last_man = man
-                        final_groups.append({
-                            "container": grouped_targets[arch]['container'],
-                            "targets": targets,
-                            "arch": arch,
-                            "group": group_name,
-                            "len": len(grouped_targets[arch]['manufacturers'][man])
-                        })
-                    elif(man_len >= (SPLIT_LIMIT + 1)):
-                        # Split big man groups into subgroups
-                        # example: Pixhawk
-                        chunk_limit = SPLIT_LIMIT
-                        chunk_counter = 0
-                        for chunk in chunks(grouped_targets[arch]['manufacturers'][man], chunk_limit):
-                            group_name = arch + "-" + man + "-" + str(chunk_counter)
-                            targets = comma_targets(chunk)
-                            last_man = man
-                            final_groups.append({
-                                "container": grouped_targets[arch]['container'],
-                                "targets": targets,
-                                "arch": arch,
-                                "group": group_name,
-                                "len": len(chunk),
-                            })
-                            chunk_counter += 1
-                    else:
-                        temp_group.append(tar)
-
-            if(len(temp_group) > (LOWER_LIMIT - 1)):
-                group_name = arch + "-" + str(group_number[arch])
-                last_arch = arch
-                group_number[arch] += 1
-                targets = comma_targets(temp_group)
+                    print(f'=:Processing: [{arch}][{man}][{man_len}]==Manufacturers can have their own group')
+                group_name = arch + "-" + man
+                targets = comma_targets(grouped_targets[arch]['manufacturers'][man])
                 final_groups.append({
                     "container": grouped_targets[arch]['container'],
                     "targets": targets,
                     "arch": arch,
                     "group": group_name,
-                    "len": len(temp_group)
+                    "len": len(grouped_targets[arch]['manufacturers'][man])
                 })
-                temp_group = []
+            elif(man_len >= (SPLIT_LIMIT + 1)):
+                # Split big man groups into subgroups
+                # example: Pixhawk
+                if(verbose):
+                    print(f'=:Processing: [{arch}][{man}][{man_len}]==Manufacturers has multiple own groups')
+                chunk_limit = SPLIT_LIMIT
+                chunk_counter = 0
+                for chunk in chunks(grouped_targets[arch]['manufacturers'][man], chunk_limit):
+                    group_name = arch + "-" + man + "-" + str(chunk_counter)
+                    targets = comma_targets(chunk)
+                    final_groups.append({
+                        "container": grouped_targets[arch]['container'],
+                        "targets": targets,
+                        "arch": arch,
+                        "group": group_name,
+                        "len": len(chunk),
+                    })
+                    chunk_counter += 1
+            else:
+                if(verbose):
+                    print(f'=:Processing: [{arch}][{man}][{man_len}]==Manufacturers too small group with others')
+                temp_group.extend(grouped_targets[arch]['manufacturers'][man])
+
+        temp_len = len(temp_group)
+        chunk_counter = 0
+        if(temp_len > 0 and temp_len < (SPLIT_LIMIT + 1)):
+            if(verbose):
+                print(f'=:Processing: [{arch}][orphan][{temp_len}]==Leftover arch can have their own group')
+            group_name = arch + "-" + str(chunk_counter)
+            targets = comma_targets(temp_group)
+            final_groups.append({
+                "container": grouped_targets[arch]['container'],
+                "targets": targets,
+                "arch": arch,
+                "group": group_name,
+                "len": temp_len
+            })
+        elif(temp_len >= (SPLIT_LIMIT + 1)):
+            # Split big man groups into subgroups
+            # example: Pixhawk
+            if(verbose):
+                print(f'=:Processing: [{arch}][orphan][{temp_len}]==Leftover arch can has multpile group')
+            chunk_limit = SPLIT_LIMIT
+            chunk_counter = 0
+            for chunk in chunks(temp_group, chunk_limit):
+                group_name = arch + "-" + str(chunk_counter)
+                targets = comma_targets(chunk)
+                final_groups.append({
+                    "container": grouped_targets[arch]['container'],
+                    "targets": targets,
+                    "arch": arch,
+                    "group": group_name,
+                    "len": len(chunk),
+                })
+                chunk_counter += 1
     if(verbose):
         import pprint
         print("================")
