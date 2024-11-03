@@ -25,9 +25,15 @@ parser.add_argument('-p', '--pretty', dest='pretty', action='store_true',
                     help='Pretty output instead of a single line')
 parser.add_argument('-g', '--groups', dest='group', action='store_true',
                     help='Groups targets')
+parser.add_argument('-f', '--filter', dest='filter', help='comma separated list of board names to use instead of all')
 
 args = parser.parse_args()
 verbose = args.verbose
+
+board_filter = []
+if args.filter:
+    for board in args.filter.split(','):
+        board_filter.append(board)
 
 build_configs = []
 grouped_targets = {}
@@ -140,6 +146,10 @@ for manufacturer in os.scandir(os.path.join(source_dir, '../boards')):
                 board_name = manufacturer.name + '_' + board.name
                 label = files.name[:-9]
                 target_name = manufacturer.name + '_' + board.name + '_' + label
+
+                if board_filter and not board_name in board_filter:
+                    if verbose: print(f'excluding board {board_name} ({target_name})')
+                    continue
 
                 if board_name in excluded_boards:
                     if verbose: print(f'excluding board {board_name} ({target_name})')
