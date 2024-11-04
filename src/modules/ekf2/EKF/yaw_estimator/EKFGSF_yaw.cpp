@@ -132,13 +132,11 @@ void EKFGSF_yaw::fuseVelocity(const Vector2f &vel_NE, const float vel_accuracy, 
 			float total_weight = 0.0f;
 			// calculate weighting for each model assuming a normal distribution
 			const float min_weight = 1e-5f;
-			uint8_t n_weight_clips = 0;
 
 			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 				_model_weights(model_index) = gaussianDensity(model_index) * _model_weights(model_index);
 
 				if (_model_weights(model_index) < min_weight) {
-					n_weight_clips++;
 					_model_weights(model_index) = min_weight;
 				}
 
@@ -146,13 +144,7 @@ void EKFGSF_yaw::fuseVelocity(const Vector2f &vel_NE, const float vel_accuracy, 
 			}
 
 			// normalise the weighting function
-			if (n_weight_clips < N_MODELS_EKFGSF) {
-				_model_weights /= total_weight;
-
-			} else {
-				// all weights have collapsed due to excessive innovation variances so reset filters
-				reset();
-			}
+			_model_weights /= total_weight;
 		}
 
 		// Calculate a composite yaw vector as a weighted average of the states for each model.
@@ -368,6 +360,7 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, co
 	const float oldYaw = _ekf_gsf[model_index].X(2);
 
 	_ekf_gsf[model_index].X -= (K * _ekf_gsf[model_index].innov) * innov_comp_scale_factor;
+	_ekf_gsf[model_index].innov *= innov_comp_scale_factor;
 
 	const float yawDelta = _ekf_gsf[model_index].X(2) - oldYaw;
 
