@@ -418,7 +418,7 @@ string Replay::getOrbFields(const orb_metadata *meta)
 	return format;
 }
 
-bool
+Replay::ReadAndAndAddSubResult
 Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 {
 	_read_buffer.reserve(msg_size + 1);
@@ -428,11 +428,11 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	message[msg_size] = 0;
 
 	if (!file) {
-		return false;
+		return ReadAndAndAddSubResult::kFailure;
 	}
 
 	if (file.tellg() <= _subscription_file_pos) { //already read this subscription
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	_subscription_file_pos = file.tellg();
@@ -444,7 +444,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	if (!orb_meta) {
 		PX4_WARN("Topic %s not found internally. Will ignore it", topic_name.c_str());
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	CompatBase *compat = nullptr;
@@ -520,7 +520,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 				}
 			}
 
-			return true; // not a fatal error
+			return ReadAndAndAddSubResult::kIgnoringMsg; // not a fatal error
 		}
 	}
 
@@ -535,13 +535,13 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	if (!timestamp_found) {
 		delete subscription;
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	if (field_size != 8) {
 		PX4_ERR("Unsupported timestamp with size %i, ignoring the topic %s", field_size, orb_meta->o_name);
 		delete subscription;
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	//find first data message (and the timestamp)
@@ -550,7 +550,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	if (!nextDataMessage(file, *subscription, msg_id)) {
 		delete subscription;
-		return false;
+		return ReadAndAndAddSubResult::kFailure;
 	}
 
 	file.seekg(cur_pos);
@@ -558,7 +558,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	if (!subscription->orb_meta) {
 		//no message found. This is not a fatal error
 		delete subscription;
-		return true;
+		return ReadAndAndAddSubResult::kIgnoringMsg;
 	}
 
 	PX4_DEBUG("adding subscription for %s (msg_id %i)", subscription->orb_meta->o_name, msg_id);
@@ -572,7 +572,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	onSubscriptionAdded(*_subscriptions[msg_id], msg_id);
 
-	return true;
+	return ReadAndAndAddSubResult::kSuccess;
 }
 
 bool
@@ -908,12 +908,18 @@ Replay::run()
 	replay_file.seekg(_data_section_start);
 
 	//we know the next message must be an ADD_LOGGED_MSG
-	replay_file.read((char *)&message_header, ULOG_MSG_HEADER_LEN);
+	ReadAndAndAddSubResult res;
 
-	if (!readAndAddSubscription(replay_file, message_header.msg_size)) {
-		PX4_ERR("Failed to read subscription");
-		return;
-	}
+	do {
+		replay_file.read((char *)&message_header, ULOG_MSG_HEADER_LEN);
+		res = readAndAddSubscription(replay_file, message_header.msg_size);
+
+		if (res == ReadAndAndAddSubResult::kFailure) {
+			PX4_ERR("Failed to read subscription");
+			return;
+		}
+
+	} while (res != ReadAndAndAddSubResult::kSuccess);
 
 	const uint64_t timestamp_offset = getTimestampOffset();
 	uint32_t nr_published_messages = 0;
