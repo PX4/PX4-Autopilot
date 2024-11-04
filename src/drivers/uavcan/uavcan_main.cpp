@@ -635,6 +635,10 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		}
 	}
 
+	// Init Node Status logging
+	_node_ids_being_logged = 0;
+	_node_status_pub.advertise();
+
 	// Start the Node
 	return _node.start();
 }
@@ -1004,6 +1008,41 @@ UavcanNode::Run()
 		}
 	}
 
+	//Check to see if our node status monitor has any new data for us to put out over uORB
+	if (_node_status_monitor.HasFreshNodeStatus()) {
+		//Go ahead and grab the data from the node status monitor
+		uavcan::protocol::NodeStatus received_node_status_data;
+		uint8_t reporting_node_id = _node_status_monitor.GetLastNodeStatusData(&received_node_status_data);
+
+		//We now have everything we need to publish node status properly
+		//Check to see if we're logging this ID already. Use it to determine our next steps
+		bool already_logging_this_id = check_if_already_logging_node_id_status(reporting_node_id);
+
+		//Check to see if we're already logging this module ID, if not, try to add it to our list of module IDs to log.
+		//If we are, deal with publishing a new message
+		if (!already_logging_this_id) {
+			add_node_id_to_logged_statuses(reporting_node_id);
+
+		} else if (already_logging_this_id) {
+			//Now we can finally fill in our publisher's data and publish
+			auto &node_status_message = _node_status.node_status_id[get_node_id_log_index(reporting_node_id)];
+
+			//Fill in the actual node's status information
+			node_status_message.timestamp = hrt_absolute_time();
+			node_status_message.uptime_sec = received_node_status_data.uptime_sec;
+			node_status_message.node_id = reporting_node_id;
+			node_status_message.health = received_node_status_data.health;
+			node_status_message.mode = received_node_status_data.mode;
+			node_status_message.sub_mode = received_node_status_data.sub_mode;
+			node_status_message.vendor_specific_status_code = received_node_status_data.vendor_specific_status_code;
+
+			_node_status.timestamp = hrt_absolute_time();
+
+			_node_status_pub.publish(_node_status);
+		}
+
+	}
+
 	perf_end(_cycle_perf);
 
 	pthread_mutex_unlock(&_node_mutex);
@@ -1359,6 +1398,48 @@ UavcanNode::get_next_dirty_node_id(uint8_t base)
 	for (; base < 128 && !are_node_params_dirty(base); base++);
 
 	return base;
+}
+
+bool
+UavcanNode::check_if_already_logging_node_id_status(uint8_t reporting_node_id)
+{
+	for (uint8_t array_index = 0; array_index < dronecan_node_status_s::MAX_NODE_STATUSES_LOGGED; array_index++) {
+		if (_node_id_to_logging_index[array_index] == reporting_node_id) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool
+UavcanNode::add_node_id_to_logged_statuses(uint8_t node_id_to_add)
+{
+	//If we have space for a new logged ID, and that ID is possible
+	if ((_node_ids_being_logged < dronecan_node_status_s::MAX_NODE_STATUSES_LOGGED)
+	    && (node_id_to_add < uavcan::NodeID::Max)) {
+		_node_id_to_logging_index[_node_ids_being_logged] = node_id_to_add;
+		_node_ids_being_logged++;
+
+		return true;
+	}
+
+	return false;
+}
+
+uint8_t
+UavcanNode::get_node_id_log_index(uint8_t node_id)
+{
+	uint8_t return_array_index = 0;
+
+	for (uint8_t array_index = 0; array_index < dronecan_node_status_s::MAX_NODE_STATUSES_LOGGED; array_index++) {
+		if (_node_id_to_logging_index[array_index] == node_id) {
+			return_array_index = array_index;
+			break;
+		}
+	}
+
+	return return_array_index;
 }
 
 /*

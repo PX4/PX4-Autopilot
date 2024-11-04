@@ -105,6 +105,7 @@
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/dronecan_node_status.h>
 
 using namespace time_literals;
 
@@ -318,6 +319,10 @@ private:
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::PublicationMulti<can_interface_status_s> _can_status_pub{ORB_ID(can_interface_status)};
+	uORB::Publication<dronecan_node_status_s> _node_status_pub{ORB_ID(dronecan_node_status)};
+	dronecan_node_status_s	_node_status{};
+	uint8_t _node_id_to_logging_index[dronecan_node_status_s::MAX_NODE_STATUSES_LOGGED]; //Only handle as many node statuses as the DronecanNodeStatus message tells us we can
+	uint8_t _node_ids_being_logged; //Keep track of how many node statuses are in play
 
 	hrt_abstime _last_can_status_pub{0};
 	orb_advert_t _can_status_pub_handles[UAVCAN_NUM_IFACES] = {nullptr};
@@ -358,6 +363,11 @@ private:
 	uavcan::ServiceClient<uavcan::protocol::RestartNode, RestartNodeCallback> _param_restartnode_client;
 	void param_count(uavcan::NodeID node_id);
 	void param_opcode(uavcan::NodeID node_id);
+
+	// A few functions that will help us properly log Node Status information
+	bool check_if_already_logging_node_id_status(uint8_t reporting_node_id);
+	bool add_node_id_to_logged_statuses(uint8_t node_id_to_add);
+	uint8_t get_node_id_log_index(uint8_t node_id);
 
 	uint8_t get_next_active_node_id(uint8_t base);
 	uint8_t get_next_dirty_node_id(uint8_t base);
