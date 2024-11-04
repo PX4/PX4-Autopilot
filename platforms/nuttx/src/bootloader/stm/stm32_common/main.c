@@ -95,7 +95,7 @@ struct boardinfo board_info = {
 	.board_type	= BOARD_TYPE,
 	.board_rev	= 0,
 	.fw_size	= 0,
-	.systick_mhz	= 480,
+	.systick_mhz	= STM32_CPUCLK_FREQUENCY/1000000,
 };
 
 static void board_init(void);
