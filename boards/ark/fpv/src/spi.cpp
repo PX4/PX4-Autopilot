@@ -40,16 +40,16 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_IIM42653, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
-		initSPIBus(SPI::Bus::SPI6, {
-			initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11})
+		initSPIBusExternal(SPI::Bus::SPI6, {
+			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11})
 		}),
 	}),
 	initSPIFmumID(ARKFPV_1, { // Placeholder
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_IIM42653, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
-		initSPIBus(SPI::Bus::SPI6, {
-			initSPIDevice(DRV_DEVTYPE_UNUSED, SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11})
+		initSPIBusExternal(SPI::Bus::SPI6, {
+			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11})
 		}),
 	}),
 };

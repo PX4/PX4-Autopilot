@@ -112,6 +112,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	PAYLOAD_POWER_EN(false);
 	board_control_spi_sensors_power(false, 0xffff);
+	SPI6_RESET(true);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -122,6 +123,9 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* switch the peripheral rail back on */
 	board_control_spi_sensors_power(true, 0xffff);
 	PAYLOAD_POWER_EN(true);
+
+	/* Release SPI6 Reset */
+	SPI6_RESET(false);
 }
 
 /************************************************************************************
@@ -205,6 +209,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
 	PAYLOAD_POWER_EN(true);
+
+	SPI6_RESET(false);
 
 	/* Need hrt running before using the ADC */
 
