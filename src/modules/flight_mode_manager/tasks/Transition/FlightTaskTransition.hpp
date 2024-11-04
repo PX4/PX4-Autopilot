@@ -77,7 +77,7 @@ private:
 	float _param_vt_b_dec_mss{0.f};
 
 	AlphaFilter<float> _vel_z_filter;
-	float _decel_error_bt_int{0.}; ///< Backtransition deceleration error integrator value
+	float _decel_error_bt_int{0.f}; ///< Backtransition deceleration error integrator value
 
 	static constexpr float _pitch_limit_bt = .3f; ///< Bactransition pitch limit
 
