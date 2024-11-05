@@ -778,7 +778,12 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 
 	distance_sensor_s distance_sensor{};
 	distance_sensor.timestamp = hrt_absolute_time();
-	distance_sensor.device_id = 0;
+	device::Device::DeviceId id;
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.bus = 0;
+	id.devid_s.address = 0;
+	id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+	distance_sensor.device_id = id.devid;
 	distance_sensor.min_distance = static_cast<float>(scan.range_min());
 	distance_sensor.max_distance = static_cast<float>(scan.range_max());
 	distance_sensor.current_distance = static_cast<float>(scan.ranges()[0]);
