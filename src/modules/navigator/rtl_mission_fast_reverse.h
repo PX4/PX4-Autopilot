@@ -52,7 +52,7 @@ class Navigator;
 class RtlMissionFastReverse : public RtlBase
 {
 public:
-	RtlMissionFastReverse(Navigator *navigator);
+	RtlMissionFastReverse(Navigator *navigator, mission_s mission);
 	~RtlMissionFastReverse() = default;
 
 	void on_activation() override;
