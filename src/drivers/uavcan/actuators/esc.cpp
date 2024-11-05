@@ -48,7 +48,8 @@ using namespace time_literals;
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
-	_uavcan_sub_status(node)
+	_uavcan_sub_status(node),
+	_uavcan_sub_status_extended(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
 }
@@ -64,7 +65,16 @@ UavcanEscController::init()
 		return res;
 	}
 
+	//ESC Status Extended subscription
+	res = _uavcan_sub_status_extended.start(StatusExtendedCbBinder(this, &UavcanEscController::esc_status_extended_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("ESC status extended sub failed %i", res);
+		return res;
+	}
+
 	_esc_status_pub.advertise();
+	_status_extended_pub.advertise();  //Make sure people are listening
 
 	return res;
 }
@@ -151,6 +161,32 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status_pub.publish(_esc_status);
+	}
+}
+
+void
+UavcanEscController::esc_status_extended_sub_cb(const
+		uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &received_status_extended_msg)
+{
+	//Make sure it's an ESC we can handle
+	if (received_status_extended_msg.esc_index < dronecan_esc_status_extended_s::CONNECTED_ESC_MAX) {
+		//Grab the ESC we're talking about
+		auto &esc_reference = _status_extended.extended_esc_status_data[received_status_extended_msg.esc_index];
+
+		//Fill in the data
+		esc_reference.input_percent = received_status_extended_msg.input_pct;
+		esc_reference.output_percent = received_status_extended_msg.output_pct;
+		esc_reference.motor_temperature_deg_c = received_status_extended_msg.motor_temperature_degC;
+		esc_reference.motor_angle = received_status_extended_msg.motor_angle;
+		esc_reference.status_flags = received_status_extended_msg.status_flags;
+		esc_reference.esc_index = received_status_extended_msg.esc_index;
+		esc_reference.timestamp = hrt_absolute_time();
+
+		//Make sure to update the timestamp of our top level status
+		_status_extended.timestamp = hrt_absolute_time();
+
+		//Put the data into the world
+		_status_extended_pub.publish(_status_extended);
 	}
 }
 
