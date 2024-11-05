@@ -105,6 +105,11 @@
 #  define GPIO_nARMED_INIT GPIO_TRACED3
 #endif
 
+/* SPI */
+
+#define SPI6_nRESET_EXTERNAL1       /* PF10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN10)
+#define SPI6_RESET(on_true)          px4_arch_gpiowrite(SPI6_nRESET_EXTERNAL1, !(on_true))
+
 /* I2C busses */
 
 /* Devices on the onboard buses.
@@ -327,6 +332,7 @@
 		GPIO_5V_ON_BATTERY,               \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_nARMED_INIT,                 \
+		SPI6_nRESET_EXTERNAL1,            \
 		GPIO_FMU_CH1,     	          \
 		GPIO_FMU_CH2,     	          \
 		GPIO_FMU_CH3,     	          \
