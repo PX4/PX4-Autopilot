@@ -195,9 +195,15 @@ void CrsfRc::Run()
 			uint8_t cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
 			if (!_is_singlewire && !_armed) {
-				if (BindCRSF()) {
-					cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+				if ((int)vcmd.param1 == 1) {
+					// CRSF binding command
+					if (BindCRSF()) {
+						cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					}
 				}
+
+			} else {
+				cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 
 			// publish acknowledgement
