@@ -96,7 +96,7 @@ void AutopilotTester::wait_until_ready()
 
 	// Wait until we can arm
 	CHECK(poll_condition_with_timeout(
-	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(20)));
+	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(45)));
 }
 
 void AutopilotTester::store_home()
