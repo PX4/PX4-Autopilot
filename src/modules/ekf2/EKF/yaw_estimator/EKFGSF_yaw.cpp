@@ -355,14 +355,14 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, co
 	// If the test ratio is greater than 25 (5 Sigma) then reduce the length of the innovation vector to clip it at 5-Sigma
 	// This protects from large measurement spikes
 	const float innov_comp_scale_factor = test_ratio > 25.f ? sqrtf(25.0f / test_ratio) : 1.f;
-
-	// Correct the state vector and capture the change in yaw angle
-	const float oldYaw = _ekf_gsf[model_index].X(2);
-
-	_ekf_gsf[model_index].X -= (K * _ekf_gsf[model_index].innov) * innov_comp_scale_factor;
 	_ekf_gsf[model_index].innov *= innov_comp_scale_factor;
 
-	const float yawDelta = _ekf_gsf[model_index].X(2) - oldYaw;
+	// Correct the state vector
+	const Vector3f delta_state = -K * _ekf_gsf[model_index].innov;
+	const float yawDelta = delta_state(2);
+
+	_ekf_gsf[model_index].X.xy() += delta_state.xy();
+	_ekf_gsf[model_index].X(2) = wrap_pi(_ekf_gsf[model_index].X(2) + yawDelta);
 
 	// apply the change in yaw angle to the AHRS
 	// take advantage of sparseness in the yaw rotation matrix
