@@ -100,6 +100,7 @@ InputMavlinkROI::update(unsigned int timeout_ms, ControlData &control_data, bool
 		if (vehicle_roi.mode == vehicle_roi_s::ROI_NONE) {
 
 			control_data.type = ControlData::Type::Neutral;
+			control_data.timestamp_last_update = vehicle_roi.timestamp;
 			_cur_roi_mode = vehicle_roi.mode;
 			control_data.sysid_primary_control = _parameters.mav_sysid;
 			control_data.compid_primary_control = _parameters.mav_compid;
@@ -120,7 +121,7 @@ InputMavlinkROI::update(unsigned int timeout_ms, ControlData &control_data, bool
 			return UpdateResult::UpdatedActive;
 
 		} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
-			control_data_set_lon_lat(control_data, vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
+			control_data_set_lon_lat(control_data, vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt, vehicle_roi.timestamp);
 
 			_cur_roi_mode = vehicle_roi.mode;
 
@@ -155,6 +156,7 @@ void InputMavlinkROI::_read_control_data_from_position_setpoint_sub(ControlData 
 {
 	position_setpoint_triplet_s position_setpoint_triplet;
 	orb_copy(ORB_ID(position_setpoint_triplet), _position_setpoint_triplet_sub, &position_setpoint_triplet);
+	control_data.timestamp_last_update = position_setpoint_triplet.timestamp;
 	control_data.type_data.lonlat.lon = position_setpoint_triplet.current.lon;
 	control_data.type_data.lonlat.lat = position_setpoint_triplet.current.lat;
 	control_data.type_data.lonlat.altitude = position_setpoint_triplet.current.alt;
@@ -261,6 +263,7 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 		// fallthrough
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
 			control_data.type = ControlData::Type::Neutral;
+			control_data.timestamp_last_update = vehicle_command.timestamp;
 			control_data.sysid_primary_control = vehicle_command.source_system;
 			control_data.compid_primary_control = vehicle_command.source_component;
 			update_result = UpdateResult::UpdatedActiveOnce;
@@ -268,6 +271,7 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING: {
 				control_data.type = ControlData::Type::Angle;
+				control_data.timestamp_last_update = vehicle_command.timestamp;
 				control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 				control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 				control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
@@ -302,7 +306,7 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
 			control_data_set_lon_lat(control_data, (double)vehicle_command.param6, (double)vehicle_command.param5,
-						 vehicle_command.param4);
+						 vehicle_command.param4, vehicle_command.timestamp);
 			control_data.sysid_primary_control = vehicle_command.source_system;
 			control_data.compid_primary_control = vehicle_command.source_component;
 			update_result = UpdateResult::UpdatedActive;
@@ -348,6 +352,7 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 			}
 		}
 
+		control_data.timestamp_last_update = vehicle_command.timestamp;
 		control_data.sysid_primary_control = vehicle_command.source_system;
 		control_data.compid_primary_control = vehicle_command.source_component;
 
@@ -603,7 +608,7 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_set_attitude(C
 							set_attitude.angular_velocity_y,
 							set_attitude.angular_velocity_z);
 
-		_set_control_data_from_set_attitude(control_data, set_attitude.flags, q, angular_velocity);
+		_set_control_data_from_set_attitude(control_data, set_attitude.flags, q, angular_velocity, set_attitude.timestamp);
 		return UpdateResult::UpdatedActive;
 
 	} else {
@@ -619,11 +624,13 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_vehicle_roi(Co
 	if (vehicle_roi.mode == vehicle_roi_s::ROI_NONE) {
 
 		control_data.type = ControlData::Type::Neutral;
+		control_data.timestamp_last_update = vehicle_roi.timestamp;
 		_cur_roi_mode = vehicle_roi.mode;
 		return UpdateResult::UpdatedActiveOnce;
 
 	} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPNEXT) {
 		control_data.type = ControlData::Type::LonLat;
+		control_data.timestamp_last_update = vehicle_roi.timestamp;
 		_read_control_data_from_position_setpoint_sub(control_data);
 		control_data.type_data.lonlat.pitch_fixed_angle = -10.f;
 
@@ -636,7 +643,7 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_vehicle_roi(Co
 		return UpdateResult::UpdatedActive;
 
 	} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
-		control_data_set_lon_lat(control_data, vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
+		control_data_set_lon_lat(control_data, vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt, vehicle_roi.timestamp);
 
 		_cur_roi_mode = vehicle_roi.mode;
 
@@ -656,6 +663,7 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_position_setpo
 		const position_setpoint_triplet_s &position_setpoint_triplet)
 {
 	if (_cur_roi_mode == vehicle_roi_s::ROI_WPNEXT) {
+		control_data.timestamp_last_update = position_setpoint_triplet.timestamp;
 		control_data.type_data.lonlat.lon = position_setpoint_triplet.current.lon;
 		control_data.type_data.lonlat.lat = position_setpoint_triplet.current.lat;
 		control_data.type_data.lonlat.altitude = position_setpoint_triplet.current.alt;
@@ -692,11 +700,13 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
 			control_data.type = ControlData::Type::Neutral;
+			control_data.timestamp_last_update = vehicle_command.timestamp;
 			update_result = InputBase::UpdateResult::UpdatedActiveOnce;
 			break;
 
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING: {
 				control_data.type = ControlData::Type::Angle;
+				control_data.timestamp_last_update = vehicle_command.timestamp;
 				control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 				control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 				control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
@@ -731,7 +741,7 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_GPS_POINT:
 			control_data_set_lon_lat(control_data, (double)vehicle_command.param6, (double)vehicle_command.param5,
-						 vehicle_command.param4);
+						 vehicle_command.param4, vehicle_command.timestamp);
 			update_result = UpdateResult::UpdatedActive;
 			break;
 		}
@@ -872,13 +882,13 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 			const matrix::Eulerf euler(0.0f, math::radians(vehicle_command.param1),
 						   math::radians(vehicle_command.param2));
 			const matrix::Quatf q(euler);
-			const matrix::Vector3f angular_velocity(0.0f, vehicle_command.param3,
-								vehicle_command.param4);
+			const matrix::Vector3f angular_velocity(NAN, math::radians(vehicle_command.param3),
+								math::radians(vehicle_command.param4));
 			const uint32_t flags = vehicle_command.param5;
 
 			// TODO: support gimbal device id for multiple gimbals
 
-			_set_control_data_from_set_attitude(control_data, flags, q, angular_velocity);
+			_set_control_data_from_set_attitude(control_data, flags, q, angular_velocity, vehicle_command.timestamp);
 			_ack_vehicle_command(vehicle_command,
 					     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -922,7 +932,7 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_set_manual_con
 			matrix::Vector3f(NAN, NAN, NAN);
 
 		_set_control_data_from_set_attitude(control_data, set_manual_control.flags, q,
-						    angular_velocity);
+						    angular_velocity, set_manual_control.timestamp);
 
 		return UpdateResult::UpdatedActive;
 
@@ -934,9 +944,10 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_set_manual_con
 }
 
 void InputMavlinkGimbalV2::_set_control_data_from_set_attitude(ControlData &control_data, const uint32_t flags,
-		const matrix::Quatf &q,
-		const matrix::Vector3f &angular_velocity)
+		const matrix::Quatf &q, const matrix::Vector3f &angular_velocity, const uint64_t timestamp)
 {
+	control_data.timestamp_last_update = timestamp;
+
 	if ((flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_RETRACT) != 0) {
 		// not implemented in ControlData
 	} else if ((flags & gimbal_manager_set_attitude_s::GIMBAL_MANAGER_FLAGS_NEUTRAL) != 0) {
@@ -984,6 +995,7 @@ void InputMavlinkGimbalV2::_read_control_data_from_position_setpoint_sub(Control
 {
 	position_setpoint_triplet_s position_setpoint_triplet;
 	orb_copy(ORB_ID(position_setpoint_triplet), _position_setpoint_triplet_sub, &position_setpoint_triplet);
+	control_data.timestamp_last_update = position_setpoint_triplet.timestamp;
 	control_data.type_data.lonlat.lon = position_setpoint_triplet.current.lon;
 	control_data.type_data.lonlat.lat = position_setpoint_triplet.current.lat;
 	control_data.type_data.lonlat.altitude = position_setpoint_triplet.current.alt;
