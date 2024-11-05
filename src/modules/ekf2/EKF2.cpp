@@ -2410,7 +2410,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 				// Apply offset
 				float raw_yaw_offset = matrix::wrap_pi(math::radians(_param_ekf2_gps_yaw_off.get()));
 				vehicle_gps_position.heading_offset = raw_yaw_offset;
-				vehicle_gps_position.heading -= raw_yaw_offset;
+				vehicle_gps_position.heading = matrix::wrap_pi(vehicle_gps_position.heading - raw_yaw_offset);
 			}
 		}
 
