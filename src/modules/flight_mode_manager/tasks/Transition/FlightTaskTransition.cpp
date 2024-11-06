@@ -161,15 +161,16 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 	const vehicle_local_position_s &local_pos = _sub_vehicle_local_position.get();
 	const position_setpoint_s &current_pos_sp = _sub_position_sp_triplet.get().current;
 
-	// Retrieve default decelaration setpoint
+	// Retrieve default decelaration setpoint from param
 	const float default_deceleration_sp = _param_vt_b_dec_mss;
-	// Maximum allowed deceleration setpoint as a function of the nominal deceleration setpoint
-	const float max_deceleration_sp = 2.f * default_deceleration_sp;
 
 	float deceleration_sp = default_deceleration_sp;
 
-	const float track_angle = atan2f(local_pos.vy, local_pos.vx);
-	const float accel_forward = local_pos.ax * cosf(track_angle) + local_pos.ay * sinf(track_angle);
+	const Vector2f position_local{local_pos.x, local_pos.y};
+	const Vector2f velocity_local{local_pos.vx, local_pos.vy};
+	const Vector2f acceleration_local{local_pos.ax, local_pos.ay};
+
+	const float accel_in_flight_direction = acceleration_local.dot(velocity_local.unit_or_zero());
 
 	if (current_pos_sp.valid && local_pos.xy_valid && local_pos.xy_global) {
 
@@ -177,41 +178,26 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 		_geo_projection.project(current_pos_sp.lat, current_pos_sp.lon, position_setpoint_local(0),
 					position_setpoint_local(1));
 
-		// Compute distance to backtransition end-point w.r.t. vehicle
-		Vector2f pos_sp_dist = position_setpoint_local - Vector2f(local_pos.x, local_pos.y);
+		const Vector2f pos_sp_dist = position_setpoint_local - position_local; // backtransition end-point w.r.t. vehicle
+
+		const float dist_body_forward = pos_sp_dist.dot(velocity_local.unit_or_zero());
 
 		// Compute the deceleration setpoint if the backtransition end-point is ahead of the vehicle
-		const float vel_proj = pos_sp_dist * Vector2f(local_pos.vx, local_pos.vy);
+		if (dist_body_forward > FLT_EPSILON && PX4_ISFINITE(velocity_local.norm())) {
 
-		if (vel_proj > FLT_EPSILON) {
-			const float dist_body_forward = pos_sp_dist(0) * cosf(track_angle) + pos_sp_dist(1) * sinf(track_angle);
-
-			if (fabsf(dist_body_forward) > FLT_EPSILON) {
-				// Compute deceleration setpoint
-				// Note this is deceleration (i.e. negative acceleration), and therefore the minus sign is skipped
-				deceleration_sp = Vector2f(local_pos.vx, local_pos.vy).norm_squared() / (2.f * dist_body_forward);
-
-				// Check if the deceleration setpoint is finite and within limits
-				if (!PX4_ISFINITE(deceleration_sp)) {
-					deceleration_sp = default_deceleration_sp;
-
-				} else {
-					// Limit the deceleration setpoint
-					deceleration_sp = math::constrain(deceleration_sp, 0.f, max_deceleration_sp);
-				}
-			}
+			// Note this is deceleration (i.e. negative acceleration), and therefore the minus sign is skipped
+			deceleration_sp = velocity_local.norm_squared() / (2.f * dist_body_forward);
+			// Limit the deceleration setpoint to maximal twice the default deceleration setpoint (param)
+			deceleration_sp = math::constrain(deceleration_sp, 0.f, 2.f * default_deceleration_sp);
 		}
 	}
 
-	const float pitch_sp_new = _decel_error_bt_int;
-
-	// Update deceleration error integrator
-	// get accel error, positive means decelerating too slow, need to pitch up (must reverse accel_body_forward, as it is a positive number)
-	const float deceleration_error = deceleration_sp - (-accel_forward);
+	// positive means decelerating too slow, need to pitch up (must reverse accel_body_forward, as it is a positive number)
+	const float deceleration_error = deceleration_sp - (-accel_in_flight_direction);
 
 	updateBackTransitioDecelerationErrorIntegrator(deceleration_error);
 
-	return pitch_sp_new;
+	return _decel_error_bt_int;
 }
 
 void FlightTaskTransition::updateBackTransitioDecelerationErrorIntegrator(const float deceleration_error)
@@ -219,6 +205,5 @@ void FlightTaskTransition::updateBackTransitioDecelerationErrorIntegrator(const 
 	const float integrator_input = _param_vt_b_dec_i * deceleration_error;
 
 	_decel_error_bt_int += integrator_input * math::constrain(_deltatime, 0.001f, 0.1f);
-	// Saturate the integrator value
 	_decel_error_bt_int = math::constrain(_decel_error_bt_int, 0.f, _pitch_limit_bt);
 }
