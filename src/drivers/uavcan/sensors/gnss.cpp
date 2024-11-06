@@ -342,8 +342,8 @@ void UavcanGnssBridge::gnss_relative_sub_cb(const
 		uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg)
 {
 	_rel_heading_valid = msg.reported_heading_acc_available;
-	_rel_heading = matrix::wrap_pi(math::radians(msg.reported_heading_deg));
-	_rel_heading_accuracy = matrix::wrap_2pi(math::radians(msg.reported_heading_acc_deg));
+	_rel_heading = math::radians(msg.reported_heading_deg);
+	_rel_heading_accuracy = math::radians(msg.reported_heading_acc_deg);
 
 }
 template <typename FixType>
@@ -485,6 +485,10 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.heading = _rel_heading;
 		report.heading_offset = NAN;
 		report.heading_accuracy = _rel_heading_accuracy;
+
+		_rel_heading = NAN;
+		_rel_heading_accuracy = NAN;
+		_rel_heading_valid = false;
 
 	} else {
 		report.heading = heading;
