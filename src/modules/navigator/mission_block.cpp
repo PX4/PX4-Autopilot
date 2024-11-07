@@ -978,7 +978,7 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 		_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
 		_navigator->get_precland()->on_activation();
 
-	} else { //_mission_item.land_precision == 2
+	} else if (_mission_item.land_precision == 2) {
 		_navigator->get_precland()->set_mode(PrecLandMode::Required);
 		_navigator->get_precland()->on_activation();
 	}
