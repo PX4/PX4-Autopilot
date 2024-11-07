@@ -6,6 +6,7 @@ bool GZGimbal::init(const std::string &world_name, const std::string &model_name
 	// Gazebo communication
 	const std::string gimbal_roll_topic = "/model/" + model_name + "/command/gimbal_roll";
 	_gimbal_roll_cmd_publisher = _node.Advertise<gz::msgs::Double>(gimbal_roll_topic);
+
 	if (!_gimbal_roll_cmd_publisher.Valid()) {
 		PX4_ERR("failed to advertise %s", gimbal_roll_topic.c_str());
 		return false;
@@ -13,6 +14,7 @@ bool GZGimbal::init(const std::string &world_name, const std::string &model_name
 
 	const std::string gimbal_pitch_topic = "/model/" + model_name + "/command/gimbal_pitch";
 	_gimbal_pitch_cmd_publisher = _node.Advertise<gz::msgs::Double>(gimbal_pitch_topic);
+
 	if (!_gimbal_pitch_cmd_publisher.Valid()) {
 		PX4_ERR("failed to advertise %s", gimbal_pitch_topic.c_str());
 		return false;
@@ -20,14 +22,16 @@ bool GZGimbal::init(const std::string &world_name, const std::string &model_name
 
 	const std::string gimbal_yaw_topic = "/model/" + model_name + "/command/gimbal_yaw";
 	_gimbal_yaw_cmd_publisher = _node.Advertise<gz::msgs::Double>(gimbal_yaw_topic);
+
 	if (!_gimbal_yaw_cmd_publisher.Valid()) {
 		PX4_ERR("failed to advertise %s", gimbal_yaw_topic.c_str());
 		return false;
 	}
 
-	const std::string gimbal_imu_topic = "/world/" + world_name + "/model/" + model_name + "/link/camera_link/sensor/camera_imu/imu";
-	if (!_node.Subscribe(gimbal_imu_topic, &GZGimbal::gimbalIMUCallback, this))
-	{
+	const std::string gimbal_imu_topic = "/world/" + world_name + "/model/" + model_name +
+					     "/link/camera_link/sensor/camera_imu/imu";
+
+	if (!_node.Subscribe(gimbal_imu_topic, &GZGimbal::gimbalIMUCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", gimbal_imu_topic.c_str());
 		return false;
 	}
@@ -37,20 +41,20 @@ bool GZGimbal::init(const std::string &world_name, const std::string &model_name
 	_mnt_range_pitch_handle = param_find("MNT_RANGE_PITCH");
 	_mnt_range_yaw_handle = param_find("MNT_RANGE_YAW");
 	_mnt_mode_out_handle = param_find("MNT_MODE_OUT");
+
 	if (_mnt_range_roll_handle == PARAM_INVALID ||
 	    _mnt_range_pitch_handle == PARAM_INVALID ||
 	    _mnt_range_yaw_handle == PARAM_INVALID ||
-	    _mnt_mode_out_handle == PARAM_INVALID)
-	{
+	    _mnt_mode_out_handle == PARAM_INVALID) {
 		return false;
 	}
+
 	updateParameters();
 
 	ScheduleOnInterval(200_ms); // @5Hz
 
 	// Schedule on vehicle command messages
-	if (!_vehicle_command_sub.registerCallback())
-	{
+	if (!_vehicle_command_sub.registerCallback()) {
 		return false;
 	}
 
@@ -66,16 +70,16 @@ void GZGimbal::Run()
 	_last_time_update = now;
 
 	updateParameters();
-	if (pollSetpoint())
-	{
+
+	if (pollSetpoint()) {
 		//TODO handle device flags
 		publishJointCommand(_gimbal_roll_cmd_publisher, _roll_stp, _roll_rate_stp, _last_roll_stp, _roll_min, _roll_max, dt);
-		publishJointCommand(_gimbal_pitch_cmd_publisher, _pitch_stp, _pitch_rate_stp, _last_pitch_stp, _pitch_min, _pitch_max, dt);
+		publishJointCommand(_gimbal_pitch_cmd_publisher, _pitch_stp, _pitch_rate_stp, _last_pitch_stp, _pitch_min, _pitch_max,
+				    dt);
 		publishJointCommand(_gimbal_yaw_cmd_publisher, _yaw_stp, _yaw_rate_stp, _last_yaw_stp, _yaw_min, _yaw_max, dt);
 	}
 
-	if (_mnt_mode_out == 2)
-	{
+	if (_mnt_mode_out == 2) {
 		// We have a Mavlink gimbal capable of sending messages
 		publishDeviceInfo();
 		publishDeviceAttitude();
@@ -95,14 +99,14 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 
 	static const matrix::Quatf q_FLU_to_FRD = matrix::Quatf(0.0f, 1.0f, 0.0f, 0.0f);
 	const matrix::Quatf q_gimbal_FLU = matrix::Quatf(IMU_data.orientation().w(),
-							 IMU_data.orientation().x(),
-							 IMU_data.orientation().y(),
-							 IMU_data.orientation().z());
+					   IMU_data.orientation().x(),
+					   IMU_data.orientation().y(),
+					   IMU_data.orientation().z());
 	_q_gimbal = q_FLU_to_FRD * q_gimbal_FLU * q_FLU_to_FRD.inversed();
 
 	matrix::Vector3f rate = q_FLU_to_FRD.rotateVector(matrix::Vector3f(IMU_data.angular_velocity().x(),
-						IMU_data.angular_velocity().y(),
-						IMU_data.angular_velocity().z()));
+				IMU_data.angular_velocity().y(),
+				IMU_data.angular_velocity().z()));
 
 	_gimbal_rate[0] = rate(0);
 	_gimbal_rate[1] = rate(1);
@@ -121,11 +125,10 @@ void GZGimbal::updateParameters()
 
 bool GZGimbal::pollSetpoint()
 {
-	if(_gimbal_device_set_attitude_sub.updated())
-	{
+	if (_gimbal_device_set_attitude_sub.updated()) {
 		gimbal_device_set_attitude_s msg;
-		if (_gimbal_device_set_attitude_sub.copy(&msg))
-		{
+
+		if (_gimbal_device_set_attitude_sub.copy(&msg)) {
 			const matrix::Eulerf gimbal_att_stp(matrix::Quatf(msg.q));
 			_roll_stp = gimbal_att_stp.phi();
 			_pitch_stp = gimbal_att_stp.theta();
@@ -137,32 +140,32 @@ bool GZGimbal::pollSetpoint()
 
 			return true;
 		}
-	}
-	else if (_gimbal_controls_sub.updated())
-	{
+
+	} else if (_gimbal_controls_sub.updated()) {
 		gimbal_controls_s msg;
-		if (_gimbal_controls_sub.copy(&msg))
-		{
+
+		if (_gimbal_controls_sub.copy(&msg)) {
 			// map control inputs from [-1;1] to [min_angle; max_angle] using the range parameters
-			_roll_stp = math::constrain(math::radians(msg.control[msg.INDEX_ROLL] * _mnt_range_roll/2), _roll_min, _roll_max);
-			_pitch_stp = math::constrain(math::radians(msg.control[msg.INDEX_PITCH] * _mnt_range_pitch/2), _pitch_min, _pitch_max);
-			_yaw_stp = math::constrain(math::radians(msg.control[msg.INDEX_YAW] * _mnt_range_yaw/2), _yaw_min, _yaw_max);
+			_roll_stp = math::constrain(math::radians(msg.control[msg.INDEX_ROLL] * _mnt_range_roll / 2), _roll_min, _roll_max);
+			_pitch_stp = math::constrain(math::radians(msg.control[msg.INDEX_PITCH] * _mnt_range_pitch / 2), _pitch_min,
+						     _pitch_max);
+			_yaw_stp = math::constrain(math::radians(msg.control[msg.INDEX_YAW] * _mnt_range_yaw / 2), _yaw_min, _yaw_max);
 
 			return true;
 		}
 	}
+
 	return false;
 }
 
 void GZGimbal::publishDeviceInfo()
 {
-	if (_vehicle_command_sub.updated())
-	{
+	if (_vehicle_command_sub.updated()) {
 		vehicle_command_s cmd;
 		_vehicle_command_sub.copy(&cmd);
+
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE &&
-		     (uint16_t)cmd.param1 == vehicle_command_s::VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION)
-		{
+		    (uint16_t)cmd.param1 == vehicle_command_s::VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION) {
 			// Acknowledge the command
 			vehicle_command_ack_s command_ack{};
 
@@ -175,7 +178,7 @@ void GZGimbal::publishDeviceInfo()
 			_vehicle_command_ack_pub.publish(command_ack);
 
 			// Send the requested message
-		 	gimbal_device_information_s device_info{};
+			gimbal_device_information_s device_info{};
 
 			memcpy(device_info.vendor_name, _vendor_name, sizeof(_vendor_name));
 			memcpy(device_info.model_name, _model_name, sizeof(_model_name));
@@ -218,8 +221,8 @@ void GZGimbal::publishDeviceAttitude()
 	_gimbal_device_attitude_status_pub.publish(gimbal_att);
 }
 
-void GZGimbal::publishJointCommand(gz::transport::Node::Publisher& publisher, const float att_stp, const float rate_stp,
-	 float &last_stp, const float min_stp, const float max_stp, const float dt)
+void GZGimbal::publishJointCommand(gz::transport::Node::Publisher &publisher, const float att_stp, const float rate_stp,
+				   float &last_stp, const float min_stp, const float max_stp, const float dt)
 {
 	gz::msgs::Double msg;
 
@@ -231,32 +234,27 @@ void GZGimbal::publishJointCommand(gz::transport::Node::Publisher& publisher, co
 	publisher.Publish(msg);
 }
 
-float GZGimbal::computeJointSetpoint(const float att_stp, const float rate_stp,const float last_stp, const float dt)
+float GZGimbal::computeJointSetpoint(const float att_stp, const float rate_stp, const float last_stp, const float dt)
 {
 
-	if (PX4_ISFINITE(rate_stp))
-	{
+	if (PX4_ISFINITE(rate_stp)) {
 		const float rate_diff = dt * rate_stp;
-    		const float stp_from_rate = last_stp + rate_diff;
+		const float stp_from_rate = last_stp + rate_diff;
 
-		if (PX4_ISFINITE(att_stp))
-		{
+		if (PX4_ISFINITE(att_stp)) {
 			// We use the attitude rate setpoint but we constrain it by the desired angle
 			return rate_diff > 0 ? math::min(att_stp, stp_from_rate) : math::max(att_stp, stp_from_rate);
-		}
-		else
-		{
+
+		} else {
 			// The rate setpoint is valid while the angle one is not
 			return stp_from_rate;
 		}
-	}
-	else if (PX4_ISFINITE(att_stp))
-	{
+
+	} else if (PX4_ISFINITE(att_stp)) {
 		// Only the angle setpoint is valid
 		return att_stp;
-	}
-	else
-	{
+
+	} else {
 		// Neither setpoint is valid so we steer the gimbal to the default position (roll = pitch = yaw = 0)
 		return 0.0f;
 	}

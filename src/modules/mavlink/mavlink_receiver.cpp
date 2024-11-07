@@ -3087,12 +3087,10 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	gimbal_information.yaw_max = gimbal_device_info_msg.yaw_max;
 	gimbal_information.yaw_min = gimbal_device_info_msg.yaw_min;
 
-	if (gimbal_device_info_msg.gimbal_device_id == 0)
-	{
+	if (gimbal_device_info_msg.gimbal_device_id == 0) {
 		gimbal_information.gimbal_device_compid = msg->compid;
-	}
-	else
-	{
+
+	} else {
 		gimbal_information.gimbal_device_compid = gimbal_device_info_msg.gimbal_device_id;
 	}
 

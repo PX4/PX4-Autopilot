@@ -85,21 +85,24 @@ private:
 	const char _custom_name[32] = "";
 	const uint8_t _firmware_dev_version = 0;
 	const uint8_t _firmware_patch_version = 0;
-  	const uint8_t _firmware_minor_version = 0;
-  	const uint8_t _firmware_major_version = 1;
-  	const uint32_t _firmware_version = (_firmware_dev_version & 0xff) << 24 | (_firmware_patch_version & 0xff) << 16 |
-    					 (_firmware_minor_version & 0xff) << 8 | (_firmware_major_version & 0xff);
+	const uint8_t _firmware_minor_version = 0;
+	const uint8_t _firmware_major_version = 1;
+	const uint32_t _firmware_version = (_firmware_dev_version & 0xff) << 24 | (_firmware_patch_version & 0xff) << 16 |
+					   (_firmware_minor_version & 0xff) << 8 | (_firmware_major_version & 0xff);
 	const uint8_t _hardware_dev_version = 0;
-  	const uint8_t _hardware_patch_version = 0;
-  	const uint8_t _hardware_minor_version = 0;
-  	const uint8_t _hardware_major_version = 1;
+	const uint8_t _hardware_patch_version = 0;
+	const uint8_t _hardware_minor_version = 0;
+	const uint8_t _hardware_major_version = 1;
 	const uint32_t _hardware_version = (_hardware_dev_version & 0xff) << 24 | (_hardware_patch_version & 0xff) << 16 |
-    					 (_hardware_minor_version & 0xff) << 8 | (_hardware_major_version & 0xff);
+					   (_hardware_minor_version & 0xff) << 8 | (_hardware_major_version & 0xff);
 	const uint64_t _uid = 0x9a77a55b3c10971f ;
 	const uint16_t _cap_flags = gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_NEUTRAL |
-			            gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_FOLLOW |
-				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_FOLLOW |
-			            gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS | gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW |
+				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_AXIS |
+				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_ROLL_FOLLOW |
+				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_AXIS |
+				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_PITCH_FOLLOW |
+				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_AXIS |
+				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_HAS_YAW_FOLLOW |
 				    gimbal_device_information_s::GIMBAL_DEVICE_CAP_FLAGS_SUPPORTS_INFINITE_YAW;
 	const uint16_t _custom_cap_flags = 0;
 	const float _roll_min = -0.785398f;
@@ -131,8 +134,9 @@ private:
 	/// @param min_stp minimum joint attitude [rad]
 	/// @param max_stp maximum joint attitude [rad]
 	/// @param dt time interval since the last computation [s]
-	static void publishJointCommand(gz::transport::Node::Publisher& publisher, const float att_stp, const float rate_stp, float &last_stp,
-						const float min_stp, const float max_stp, const float dt);
+	static void publishJointCommand(gz::transport::Node::Publisher &publisher, const float att_stp, const float rate_stp,
+					float &last_stp,
+					const float min_stp, const float max_stp, const float dt);
 	/// @brief Compute joint position setpoint taking into account both desired position and velocity.
 	/// @param att_stp desired joint attitude [rad]
 	/// @param rate_stp desired joint attitude rate [rad/s]

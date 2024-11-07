@@ -265,9 +265,12 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 	}
 
 	// constrain angle outputs to [-range/2, range/2]
-	_angle_outputs[0] = math::constrain(_angle_outputs[0], math::radians(-_parameters.mnt_range_roll/2), math::radians(_parameters.mnt_range_roll/2));
-	_angle_outputs[1] = math::constrain(_angle_outputs[1], math::radians(-_parameters.mnt_range_pitch/2), math::radians(_parameters.mnt_range_pitch/2));
-	_angle_outputs[2] = math::constrain(_angle_outputs[2], math::radians(-_parameters.mnt_range_yaw/2), math::radians(_parameters.mnt_range_yaw/2));
+	_angle_outputs[0] = math::constrain(_angle_outputs[0], math::radians(-_parameters.mnt_range_roll / 2),
+					    math::radians(_parameters.mnt_range_roll / 2));
+	_angle_outputs[1] = math::constrain(_angle_outputs[1], math::radians(-_parameters.mnt_range_pitch / 2),
+					    math::radians(_parameters.mnt_range_pitch / 2));
+	_angle_outputs[2] = math::constrain(_angle_outputs[2], math::radians(-_parameters.mnt_range_yaw / 2),
+					    math::radians(_parameters.mnt_range_yaw / 2));
 
 	// constrain pitch to [MNT_LND_P_MIN, MNT_LND_P_MAX] if landed
 	if (_landed) {

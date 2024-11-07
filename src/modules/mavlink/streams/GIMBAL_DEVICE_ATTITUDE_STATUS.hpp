@@ -74,8 +74,7 @@ private:
 				return false;
 			}
 
-			if (gimbal_device_attitude_status.gimbal_device_id >= 1 && gimbal_device_attitude_status.gimbal_device_id <= 6)
-			{
+			if (gimbal_device_attitude_status.gimbal_device_id >= 1 && gimbal_device_attitude_status.gimbal_device_id <= 6) {
 				// A non-MAVLink gimbal is signalled and addressed using 1 to 6 as the gimbal_device_id
 				mavlink_gimbal_device_attitude_status_t msg{};
 
@@ -99,15 +98,18 @@ private:
 				msg.gimbal_device_id = gimbal_device_attitude_status.gimbal_device_id;
 
 				mavlink_msg_gimbal_device_attitude_status_send_struct(_mavlink->get_channel(), &msg);
-			}
-			else
-			{
+
+			} else {
 				// We have a Mavlink gimbal. We simulate its mavlink instance by spoofing the component ID
 				mavlink_message_t message;
-				mavlink_msg_gimbal_device_attitude_status_pack_chan(_mavlink->get_system_id(), MAV_COMP_ID_GIMBAL, _mavlink->get_channel(), &message,
-						gimbal_device_attitude_status.target_system, gimbal_device_attitude_status.target_component, gimbal_device_attitude_status.timestamp / 1000,
-						gimbal_device_attitude_status.device_flags, gimbal_device_attitude_status.q, gimbal_device_attitude_status.angular_velocity_x,
-						gimbal_device_attitude_status.angular_velocity_y, gimbal_device_attitude_status.angular_velocity_z, gimbal_device_attitude_status.failure_flags,
+				mavlink_msg_gimbal_device_attitude_status_pack_chan(_mavlink->get_system_id(), MAV_COMP_ID_GIMBAL,
+						_mavlink->get_channel(), &message,
+						gimbal_device_attitude_status.target_system, gimbal_device_attitude_status.target_component,
+						gimbal_device_attitude_status.timestamp / 1000,
+						gimbal_device_attitude_status.device_flags, gimbal_device_attitude_status.q,
+						gimbal_device_attitude_status.angular_velocity_x,
+						gimbal_device_attitude_status.angular_velocity_y, gimbal_device_attitude_status.angular_velocity_z,
+						gimbal_device_attitude_status.failure_flags,
 						0, 0, 0);
 				_mavlink->forward_message(&message, _mavlink);
 			}

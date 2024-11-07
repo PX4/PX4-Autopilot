@@ -474,8 +474,8 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_status(const ControlData &cont
 void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData &control_data)
 {
 	gimbal_device_information_s gimbal_device_info;
-	if (_gimbal_device_information_sub.update(&gimbal_device_info) && _parameters.mnt_mode_out == 2)
-	{
+
+	if (_gimbal_device_information_sub.update(&gimbal_device_info) && _parameters.mnt_mode_out == 2) {
 		gimbal_manager_information_s gimbal_manager_info;
 		gimbal_manager_info.timestamp = hrt_absolute_time();
 
@@ -491,9 +491,8 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData 
 		gimbal_manager_info.gimbal_device_id = control_data.device_compid;
 
 		_gimbal_manager_info_pub.publish(gimbal_manager_info);
-	}
-	else if (_parameters.mnt_mode_out == 0)
-	{
+
+	} else if (_parameters.mnt_mode_out == 0) {
 		// since we have a non-Mavlink gimbal device, the gimbal manager itself has to act as the gimbal device
 		gimbal_manager_information_s gimbal_manager_info;
 		gimbal_manager_info.timestamp = hrt_absolute_time();
