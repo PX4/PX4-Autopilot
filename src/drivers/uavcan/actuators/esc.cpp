@@ -74,7 +74,6 @@ UavcanEscController::init()
 	}
 
 	_esc_status_pub.advertise();
-	_status_extended_pub.advertise();  //Make sure people are listening
 
 	return res;
 }
@@ -170,23 +169,19 @@ UavcanEscController::esc_status_extended_sub_cb(const
 {
 	//Make sure it's an ESC we can handle
 	if (received_status_extended_msg.esc_index < dronecan_esc_status_extended_s::CONNECTED_ESC_MAX) {
-		//Grab the ESC we're talking about
-		auto &esc_reference = _status_extended.extended_esc_status_data[received_status_extended_msg.esc_index];
+		//Make a struct to store our data (we'll decide who it belongs to later)
+		dronecan_esc_status_extended_s status_extended_to_publish{};
 
-		//Fill in the data
-		esc_reference.input_percent = received_status_extended_msg.input_pct;
-		esc_reference.output_percent = received_status_extended_msg.output_pct;
-		esc_reference.motor_temperature_deg_c = received_status_extended_msg.motor_temperature_degC;
-		esc_reference.motor_angle = received_status_extended_msg.motor_angle;
-		esc_reference.status_flags = received_status_extended_msg.status_flags;
-		esc_reference.esc_index = received_status_extended_msg.esc_index;
-		esc_reference.timestamp = hrt_absolute_time();
+		status_extended_to_publish.timestamp = hrt_absolute_time();
+		status_extended_to_publish.esc_index = received_status_extended_msg.esc_index;
+		status_extended_to_publish.input_percent = received_status_extended_msg.input_pct;
+		status_extended_to_publish.output_percent = received_status_extended_msg.output_pct;
+		status_extended_to_publish.motor_temperature_deg_c = received_status_extended_msg.motor_temperature_degC;
+		status_extended_to_publish.motor_angle = received_status_extended_msg.motor_angle;
+		status_extended_to_publish.status_flags = received_status_extended_msg.status_flags;
 
-		//Make sure to update the timestamp of our top level status
-		_status_extended.timestamp = hrt_absolute_time();
-
-		//Put the data into the world
-		_status_extended_pub.publish(_status_extended);
+		//Put the data into the world using esc index as our publication index
+		_status_extended_pub[received_status_extended_msg.esc_index].publish(status_extended_to_publish);
 	}
 }
 

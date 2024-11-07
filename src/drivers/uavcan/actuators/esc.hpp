@@ -110,10 +110,21 @@ private:
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
 	esc_status_s	_esc_status{};
-	dronecan_esc_status_extended_s _status_extended{};
 
 	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-	uORB::Publication<dronecan_esc_status_extended_s> _status_extended_pub{ORB_ID(dronecan_esc_status_extended)};
+
+	//This is a PublicationMulti where we know all of the instances live here. So, let's make an array to store as many as we know how to handle (dronecan_esc_status_extended_s::CONNECTED_ESC_MAX)
+	uORB::PublicationMulti<dronecan_esc_status_extended_s>
+	_status_extended_pub[dronecan_esc_status_extended_s::CONNECTED_ESC_MAX] {
+		ORB_ID(dronecan_esc_status_extended),
+		ORB_ID(dronecan_esc_status_extended),
+		ORB_ID(dronecan_esc_status_extended),
+		ORB_ID(dronecan_esc_status_extended),
+		ORB_ID(dronecan_esc_status_extended),
+		ORB_ID(dronecan_esc_status_extended),
+		ORB_ID(dronecan_esc_status_extended),
+		ORB_ID(dronecan_esc_status_extended)
+	};
 
 	uint8_t		_rotor_count{0};
 
