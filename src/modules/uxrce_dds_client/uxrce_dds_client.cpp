@@ -354,6 +354,7 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 		}
 
 		if (sync_timeouts > TIMESYNC_MAX_TIMEOUTS) {
+			PX4_ERR("timeout during time synchronization");
 			return false;
 		}
 
