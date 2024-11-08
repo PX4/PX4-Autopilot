@@ -84,6 +84,7 @@ def main():
                          metavar="BOARD",
                          help="Board to create airframes xml for")
     parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
+    parser.add_argument("-e", "--excluded_airframes", nargs='+', help='Directory to read files from')
     args = parser.parse_args()
 
     # Check for valid command
@@ -98,7 +99,7 @@ def main():
 
     # Scan directories, and parse the files
     if args.verbose: print("Scanning source path " + args.airframes_path)
-    if not scanner.ScanDir(args.airframes_path, parser):
+    if not scanner.ScanDir(args.airframes_path, parser, args.excluded_airframes):
         sys.exit(1)
     # We can't validate yet
     # if not parser.Validate():
