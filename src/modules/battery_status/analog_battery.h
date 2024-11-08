@@ -94,4 +94,7 @@ protected:
 
 private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uint8_t _arming_state{0};
+
+	void updateTopics();
 };

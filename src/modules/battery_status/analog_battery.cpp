@@ -83,12 +83,10 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 
 	// Overwrite the measured current if current overwrite is defined and vehicle is unarmed
 	if (_analog_params.i_overwrite > 0) {
-		vehicle_status_s vehicle_status;
+		updateTopics();
 
-		if (_vehicle_status_sub.update(&vehicle_status)) {
-			if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_DISARMED) {
-				current_a = _analog_params.i_overwrite;
-			}
+		if (_arming_state == vehicle_status_s::ARMING_STATE_DISARMED) {
+			current_a = _analog_params.i_overwrite;
 		}
 	}
 
@@ -140,4 +138,13 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 
 	Battery::updateParams();
+}
+
+void AnalogBattery::updateTopics()
+{
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_arming_state = vehicle_status.arming_state;
+	}
 }
