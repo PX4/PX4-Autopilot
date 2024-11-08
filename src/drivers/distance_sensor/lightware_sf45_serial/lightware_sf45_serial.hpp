@@ -63,10 +63,20 @@ enum SF_SERIAL_STATE {
 };
 
 
+
+enum SensorOrientation {	  // Direction the sensor faces from MAV_SENSOR_ORIENTATION enum
+	ROTATION_FORWARD_FACING = 0,  // MAV_SENSOR_ROTATION_NONE
+	ROTATION_RIGHT_FACING = 2,    // MAV_SENSOR_ROTATION_YAW_90
+	ROTATION_BACKWARD_FACING = 4, // MAV_SENSOR_ROTATION_YAW_180
+	ROTATION_LEFT_FACING = 6,     // MAV_SENSOR_ROTATION_YAW_270
+	ROTATION_UPWARD_FACING = 24,  // MAV_SENSOR_ROTATION_PITCH_90
+	ROTATION_DOWNWARD_FACING = 25 // MAV_SENSOR_ROTATION_PITCH_270
+};
+using namespace time_literals;
 class SF45LaserSerial : public px4::ScheduledWorkItem
 {
 public:
-	SF45LaserSerial(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	SF45LaserSerial(const char *port);
 	~SF45LaserSerial() override;
 
 	int 			        init();
@@ -77,11 +87,11 @@ public:
 	void                            sf45_process_replies(float *data);
 	uint8_t                         sf45_convert_angle(const int16_t yaw);
 	float                           sf45_wrap_360(float f);
-protected:
-	obstacle_distance_s                       _obstacle_map_msg{};
-	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
 
 private:
+	obstacle_distance_s 			_obstacle_map_msg{};
+	uORB::Publication<obstacle_distance_s>	_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
+	static constexpr int BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(obstacle_distance_s::distances[0]);
 
 	void				start();
 	void				stop();
@@ -89,43 +99,46 @@ private:
 	int				measure();
 	int				collect();
 	bool                            _crc_valid{false};
-	PX4Rangefinder                  _px4_rangefinder;
+
+	void 				_publish_obstacle_msg(hrt_abstime now);
+	uint64_t			_data_timestamps[BIN_COUNT];
+
 
 	char 				_port[20] {};
-	int	        _interval{10000};
+	int	        		_interval{10000};
 	bool				_collect_phase{false};
 	int 				_fd{-1};
-	int         _linebuf[256] {};
-	unsigned		_linebuf_index{0};
-	hrt_abstime _last_read{0};
+	int         			_linebuf[256] {};
+	unsigned			_linebuf_index{0};
+	hrt_abstime 			_last_read{0};
 
 	// SF45/B uses a binary protocol to include header,flags
 	// message ID, payload, and checksum
-	bool                            _is_sf45{false};
-	bool                            _init_complete{false};
-	bool                            _sensor_ready{false};
-	uint8_t                         _sensor_state{0};
-	int                             _baud_rate{0};
-	int                             _product_name[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	int                             _stream_data{0};
-	int32_t                         _update_rate{1};
-	int                             _data_output{0};
-	const uint8_t                   _start_of_frame{0xAA};
-	uint16_t                        _data_bytes_recv{0};
-	uint8_t                         _parsed_state{0};
-	bool                            _sop_valid{false};
-	uint16_t                        _calc_crc{0};
-	uint8_t                         _num_retries{0};
-	int32_t                         _yaw_cfg{0};
-	int32_t                         _orient_cfg{0};
-	int32_t                         _collision_constraint{0};
-	uint16_t                        _previous_bin{0};
+	bool				_is_sf45{false};
+	bool				_init_complete{false};
+	bool				_sensor_ready{false};
+	uint8_t				_sensor_state{0};
+	int				_baud_rate{0};
+	int				_product_name[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	int				_stream_data{0};
+	int32_t				_update_rate{1};
+	int				_data_output{0};
+	const uint8_t			_start_of_frame{0xAA};
+	uint16_t			_data_bytes_recv{0};
+	uint8_t				_parsed_state{0};
+	bool				_sop_valid{false};
+	uint16_t			_calc_crc{0};
+	uint8_t				_num_retries{0};
+	int32_t				_yaw_cfg{0};
+	int32_t				_orient_cfg{0};
+	uint8_t				_previous_bin{0};
+	uint16_t			_current_bin_dist{UINT16_MAX};
 
 	// end of SF45/B data members
 
-	unsigned			                  _consecutive_fail_count;
+	unsigned			_consecutive_fail_count;
 
-	perf_counter_t			            _sample_perf;
-	perf_counter_t			            _comms_errors;
+	perf_counter_t			_sample_perf;
+	perf_counter_t			_comms_errors;
 
 };
