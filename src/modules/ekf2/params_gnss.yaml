@@ -54,7 +54,7 @@ parameters:
       min: 0.0
       max: 360.0
       unit: deg
-      decimal: 3
+      decimal: 1
     EKF2_GPS_V_GATE:
       description:
         short: Gate size for GNSS velocity fusion
