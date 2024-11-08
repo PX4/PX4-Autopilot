@@ -47,9 +47,8 @@
 #define SF45_MAX_PAYLOAD 256
 #define SF45_SCALE_FACTOR 0.01f
 
-SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
+SF45LaserSerial::SF45LaserSerial(const char *port) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
@@ -69,15 +68,18 @@ SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
 	}
 
 	_num_retries = 2;
-	_px4_rangefinder.set_device_id(device_id.devid);
-	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
 
 	// populate obstacle map members
 	_obstacle_map_msg.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
+	_obstacle_map_msg.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
 	_obstacle_map_msg.increment = 5;
-	_obstacle_map_msg.angle_offset = 2.5;
-	_obstacle_map_msg.min_distance = UINT16_MAX;
+	_obstacle_map_msg.min_distance = 20;
 	_obstacle_map_msg.max_distance = 5000;
+	_obstacle_map_msg.angle_offset = 0;
+
+	for (uint32_t i = 0 ; i < BIN_COUNT; i++) {
+		_obstacle_map_msg.distances[i] = UINT16_MAX;
+	}
 
 }
 
@@ -91,16 +93,11 @@ SF45LaserSerial::~SF45LaserSerial()
 
 int SF45LaserSerial::init()
 {
-
 	param_get(param_find("SF45_UPDATE_CFG"), &_update_rate);
 	param_get(param_find("SF45_ORIENT_CFG"), &_orient_cfg);
 	param_get(param_find("SF45_YAW_CFG"), &_yaw_cfg);
 
-	/* SF45/B (50M) */
-	_px4_rangefinder.set_min_distance(0.2f);
-	_px4_rangefinder.set_max_distance(50.0f);
 	_interval = 10000;
-
 	start();
 
 	return PX4_OK;
@@ -161,7 +158,6 @@ int SF45LaserSerial::collect()
 	float distance_m = -1.0f;
 
 	/* read from the sensor (uart buffer) */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 
 
@@ -214,7 +210,6 @@ int SF45LaserSerial::collect()
 		// Stream data from sensor
 
 	} else {
-
 		ret = ::read(_fd, &readbuf[0], 10);
 
 		if (ret < 0) {
@@ -262,7 +257,7 @@ int SF45LaserSerial::collect()
 	}
 
 	PX4_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((_crc_valid) ? "OK" : "NO"));
-	_px4_rangefinder.update(timestamp_sample, distance_m);
+
 
 	perf_end(_sample_perf);
 
@@ -687,8 +682,6 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 {
 	switch (rx_field.msg_id) {
 	case SF_DISTANCE_DATA_CM: {
-
-			uint16_t obstacle_dist_cm = 0;
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
 			int16_t raw_yaw = ((rx_field.data[2] << 0) | (rx_field.data[3] << 8));
 			int16_t scaled_yaw = 0;
@@ -700,7 +693,7 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 			}
 
 			// The sensor is facing downward, so the sensor is flipped about it's x-axis -inverse of each yaw angle
-			if (_orient_cfg == 1) {
+			if (_orient_cfg == ROTATION_DOWNWARD_FACING) {
 				raw_yaw = raw_yaw * -1;
 			}
 
@@ -708,10 +701,10 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
 
 			switch (_yaw_cfg) {
-			case 0:
+			case ROTATION_FORWARD_FACING:
 				break;
 
-			case 1:
+			case ROTATION_BACKWARD_FACING:
 				if (scaled_yaw > 180) {
 					scaled_yaw = scaled_yaw - 180;
 
@@ -721,11 +714,11 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 
 				break;
 
-			case 2:
+			case ROTATION_RIGHT_FACING:
 				scaled_yaw = scaled_yaw + 90; // rotation facing right
 				break;
 
-			case 3:
+			case ROTATION_LEFT_FACING:
 				scaled_yaw = scaled_yaw - 90; // rotation facing left
 				break;
 
@@ -733,26 +726,65 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 				break;
 			}
 
-			// Convert to meters for rangefinder update
+			// Convert to meters for the debug message
 			*distance_m = raw_distance * SF45_SCALE_FACTOR;
-			obstacle_dist_cm = (uint16_t)raw_distance;
+			_current_bin_dist = ((uint16_t)raw_distance < _current_bin_dist) ? (uint16_t)raw_distance : _current_bin_dist;
 
 			uint8_t current_bin = sf45_convert_angle(scaled_yaw);
 
-			// If we have moved to a new bin
-
 			if (current_bin != _previous_bin) {
+				PX4_DEBUG("scaled_yaw: \t %d, \t current_bin: \t %d, \t distance: \t %8.4f\n", scaled_yaw, current_bin,
+					  (double)*distance_m);
 
-				// update the current bin to the distance sensor reading
-				// readings in cm
-				_obstacle_map_msg.distances[current_bin] = obstacle_dist_cm;
+				if (_current_bin_dist > _obstacle_map_msg.max_distance) {
+					_current_bin_dist = _obstacle_map_msg.max_distance + 1; // As per ObstacleDistance.msg definition
+				}
+
+				// if the sensor has its cycle delay configured for a low value like 5, it can happen that not every bin gets a measurement.
+				// in this case we assume the measurement to be valid for all bins between the previous and the current bin. win
+				uint8_t start;
+				uint8_t end;
+
+				if (abs(current_bin - _previous_bin) > BIN_COUNT /
+				    4) {	// wrap-around case is assumed to have happend when the distance between the bins is larger than 1/4 of all Bins
+					// TODO: differentiate direction of wrap-around, currently it overwrites a previous measurement.
+					start = math::max(_previous_bin, current_bin);
+					end = math::min(_previous_bin, current_bin);
+
+				} else if (_previous_bin < current_bin) {	// Scanning clockwise
+					start = _previous_bin + 1;
+					end = current_bin;
+
+				} else { 					// scanning counter-clockwise
+					start = current_bin;
+					end = _previous_bin - 1;
+				}
+
+				if (start <= end) {
+					for (uint8_t i = start; i <= end; i++) {_obstacle_map_msg.distances[i] = _current_bin_dist;}
+
+				} else { // wrap-around case
+					for (uint8_t i = start; i < BIN_COUNT; i++) {_obstacle_map_msg.distances[i] = _current_bin_dist;}
+
+					for (uint8_t i = 0; i <= end; i++) {_obstacle_map_msg.distances[i] = _current_bin_dist;}
+				}
+
 				_obstacle_map_msg.timestamp = hrt_absolute_time();
+				_obstacle_distance_pub.publish(_obstacle_map_msg);
 
+				// reset the values for the next measurement
+				if (start <= end) {
+					for (uint8_t i = start; i <= end; i++) {_obstacle_map_msg.distances[i] = UINT16_MAX;}
+
+				} else { // wrap-around case
+					for (uint8_t i = start; i < BIN_COUNT; i++) {_obstacle_map_msg.distances[i] = UINT16_MAX;}
+
+					for (uint8_t i = 0; i <= end; i++) {_obstacle_map_msg.distances[i] = UINT16_MAX;}
+				}
+
+				_current_bin_dist = UINT16_MAX;
+				_previous_bin = current_bin;
 			}
-
-			_previous_bin = current_bin;
-
-			_obstacle_distance_pub.publish(_obstacle_map_msg);
 
 			break;
 		}
