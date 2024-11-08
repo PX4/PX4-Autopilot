@@ -159,7 +159,7 @@
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_BATTERY_VOLTAGE_CHANNEL        	/* PB0 */  ADC1_CH(9)
-#define ADC_BATTERY_CURRENT_CHANNEL        	/* PC2 */  ADC3_CH(0)
+#define ADC_BATTERY_CURRENT_CHANNEL        	/* PC2 */  ADC3_CH(12)
 #define ADC_SCALED_12V_CHANNEL	     		/* PA4 */  ADC1_CH(18)
 #define ADC_SCALED_VDD_3V3_SENSORS_CHANNEL     /* PA0 */  ADC1_CH(16)
 #define ADC_SCALED_V5_CHANNEL                   /* PB1 */  ADC1_CH(5)
