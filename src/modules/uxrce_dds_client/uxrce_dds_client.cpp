@@ -222,6 +222,7 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 	}
 
 	if (!got_response) {
+		PX4_ERR("got no ping from agent");
 		return false;
 	}
 
