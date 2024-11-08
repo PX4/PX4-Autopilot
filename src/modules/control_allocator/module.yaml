@@ -72,7 +72,7 @@ parameters:
                 short: Motor ${i} slew rate limit
                 long: |
                   Forces the motor output signal to take at least the configured time (in seconds)
-                  to traverse its full rangr normally [0%, 100%] if reversible [-100%, 100%].
+                  to traverse its full range (normally [0, 1], or if reversible [-1, 1]).
 
                   Zero means that slew rate limiting is disabled.
             type: float
