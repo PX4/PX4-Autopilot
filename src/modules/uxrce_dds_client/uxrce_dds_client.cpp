@@ -241,6 +241,8 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 		return false;
 	}
 
+	_session_created = true;
+
 	// Streams
 	// Reliable for setup, afterwards best-effort to send the data (important: need to create all 4 streams)
 	_reliable_out = uxr_create_output_reliable_stream(session, _output_reliable_stream_buffer,
@@ -378,10 +380,18 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 void UxrceddsClient::delete_session(uxrSession *session)
 {
 	delete_repliers();
-	uxr_delete_session_retries(session, _connected ? 1 : 0);
+
+	if (_session_created) {
+		uxr_delete_session_retries(session, _connected ? 1 : 0);
+		_session_created = false;
+	}
+
+	if (_subs_initialized) {
+		_subs->reset();
+		_subs_initialized = false;
+	}
 
 	_last_payload_tx_rate = 0;
-	_subs->reset();
 	_timesync.reset_filter();
 }
 
@@ -549,6 +559,7 @@ void UxrceddsClient::run()
 		int poll_error_counter = 0;
 
 		_subs->init();
+		_subs_initialized = true;
 
 		while (!should_exit() && _connected) {
 			perf_begin(_loop_perf);
