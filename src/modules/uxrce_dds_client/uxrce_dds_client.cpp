@@ -123,9 +123,9 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 
 #if defined(UXRCE_DDS_CLIENT_UDP)
 		_transport_udp = new uxrUDPTransport();
-		strncpy(_send_port, send_port, PORT_MAX_LENGTH - 1);
-		strncpy(_recv_port, recv_port, PORT_MAX_LENGTH - 1);
-		strncpy(_agent_ip, agent_ip, AGENT_IP_MAX_LENGTH - 1);
+		snprintf(_send_port, PORT_MAX_LENGTH, "%s", send_port);
+		snprintf(_recv_port, PORT_MAX_LENGTH, "%s", recv_port);
+		snprintf(_agent_ip, AGENT_IP_MAX_LENGTH, "%s", agent_ip);
 
 		if (_transport_udp) {
 			if (uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _recv_port, _send_port)) {
