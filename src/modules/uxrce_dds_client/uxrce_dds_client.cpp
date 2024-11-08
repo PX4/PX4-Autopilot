@@ -113,14 +113,17 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 
 	if (agent_ip) {
 		strncpy(_agent_ip, agent_ip, sizeof(_agent_ip) - 1);
+		_agent_ip[sizeof(_agent_ip) - 1] = 0;
 	}
 
 	if (send_port) {
 		strncpy(_send_port, send_port, sizeof(_send_port) - 1);
+		_send_port[sizeof(_send_port) - 1] = 0;
 	}
 
 	if (recv_port) {
 		strncpy(_recv_port, recv_port, sizeof(_recv_port) - 1);
+		_recv_port[sizeof(_recv_port) - 1] = 0;
 	}
 
 #endif // UXRCE_DDS_CLIENT_UDP
