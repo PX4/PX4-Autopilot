@@ -356,6 +356,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_mr-canhubk3_fmu
+    nxp_tropic-community_default:
+      short: nxp_tropic-community_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_tropic-community_default
     raspberrypi_pico_default:
       short: raspberrypi_pico
       buildType: MinSizeRel

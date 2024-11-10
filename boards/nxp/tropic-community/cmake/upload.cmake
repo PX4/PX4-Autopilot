@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,18 +31,14 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__rgbled_pwm
-	MAIN rgbled_pwm
-	SRCS
-		rgbled_pwm.cpp
-	DEPENDS
-		led
-		arch_io_pins
-		arch_led_pwm
-	)
 
-target_link_libraries(drivers__rgbled_pwm
-	PRIVATE
-		drivers_board # Allows board to override PWM functions
+set(PX4_FW_NAME ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.hex)
+
+add_custom_target(upload_teensy
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/teensy_uploader.py --port ${serial_ports} ${PX4_FW_NAME} --vendor-id 0x1FC9 --product-id 0x0024
+	DEPENDS ${PX4_FW_NAME}
+	COMMENT "uploading px4"
+	VERBATIM
+	USES_TERMINAL
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 )

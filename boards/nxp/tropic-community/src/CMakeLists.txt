@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,18 +31,22 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__rgbled_pwm
-	MAIN rgbled_pwm
-	SRCS
-		rgbled_pwm.cpp
-	DEPENDS
-		led
-		arch_io_pins
-		arch_led_pwm
-	)
+px4_add_library(drivers_board
+	i2c.cpp
+	init.c
+	sdhc.c
+	spi.cpp
+	timer_config.cpp
+	tropic_led_pwm.cpp
+	usb.c
+	imxrt_flexspi_nor_boot.c
+	imxrt_flexspi_nor_flash.c
+)
 
-target_link_libraries(drivers__rgbled_pwm
+
+target_link_libraries(drivers_board
 	PRIVATE
-		drivers_board # Allows board to override PWM functions
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		px4_layer
 )

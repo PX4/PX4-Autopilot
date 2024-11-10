@@ -75,6 +75,7 @@ jobs:
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
+      fail-fast: false
     container:
       image: ${{ matrix.container }}
     steps:
