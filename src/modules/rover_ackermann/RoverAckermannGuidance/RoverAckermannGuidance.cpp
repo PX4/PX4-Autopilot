@@ -204,12 +204,8 @@ void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 	}
 
 	// Waypoint cruising speed
-	if (position_setpoint_triplet.current.cruising_speed > 0.f) {
-		_cruising_speed = math::constrain(position_setpoint_triplet.current.cruising_speed, 0.f, _param_ra_max_speed.get());
-
-	} else {
-		_cruising_speed = _param_ra_miss_spd_def.get();
-	}
+	_cruising_speed = position_setpoint_triplet.current.cruising_speed > 0.f ? math::constrain(
+				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ra_max_speed.get()) : _param_ra_max_speed.get();
 }
 
 float RoverAckermannGuidance::updateAcceptanceRadius(const float waypoint_transition_angle,

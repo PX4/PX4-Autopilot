@@ -204,7 +204,6 @@ private:
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_steer_angle,
 		(ParamFloat<px4::params::RA_ACC_RAD_MAX>) _param_ra_acc_rad_max,
 		(ParamFloat<px4::params::RA_ACC_RAD_GAIN>) _param_ra_acc_rad_gain,
-		(ParamFloat<px4::params::RA_MISS_SPD_DEF>) _param_ra_miss_spd_def,
 		(ParamFloat<px4::params::RA_SPEED_P>) _param_ra_p_speed,
 		(ParamFloat<px4::params::RA_SPEED_I>) _param_ra_i_speed,
 		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
