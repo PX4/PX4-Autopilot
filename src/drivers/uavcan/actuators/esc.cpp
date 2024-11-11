@@ -165,23 +165,25 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 
 void
 UavcanEscController::esc_status_extended_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &received_status_extended_msg)
+		uavcan::ReceivedDataStructure<uavcan::equipment::esc::StatusExtended> &msg)
 {
-	//Make sure it's an ESC we can handle
-	if (received_status_extended_msg.esc_index < dronecan_esc_status_extended_s::CONNECTED_ESC_MAX) {
-		//Make a struct to store our data (we'll decide who it belongs to later)
-		dronecan_esc_status_extended_s status_extended_to_publish{};
+	uint8_t index = msg.esc_index;
 
-		status_extended_to_publish.timestamp = hrt_absolute_time();
-		status_extended_to_publish.esc_index = received_status_extended_msg.esc_index;
-		status_extended_to_publish.input_percent = received_status_extended_msg.input_pct;
-		status_extended_to_publish.output_percent = received_status_extended_msg.output_pct;
-		status_extended_to_publish.motor_temperature_deg_c = received_status_extended_msg.motor_temperature_degC;
-		status_extended_to_publish.motor_angle = received_status_extended_msg.motor_angle;
-		status_extended_to_publish.status_flags = received_status_extended_msg.status_flags;
+	//Make sure it's an ESC we can handle
+	if (index < dronecan_esc_status_extended_s::CONNECTED_ESC_MAX) {
+		//Make a struct to store our data (we'll decide who it belongs to later)
+		dronecan_esc_status_extended_s status{};
+
+		status.timestamp = hrt_absolute_time();
+		status.esc_index = index;
+		status.input_percent = msg.input_pct;
+		status.output_percent = msg.output_pct;
+		status.motor_temperature_deg_c = msg.motor_temperature_degC;
+		status.motor_angle = msg.motor_angle;
+		status.status_flags = msg.status_flags;
 
 		//Put the data into the world using esc index as our publication index
-		_status_extended_pub[received_status_extended_msg.esc_index].publish(status_extended_to_publish);
+		_status_extended_pub[index].publish(status);
 	}
 }
 
