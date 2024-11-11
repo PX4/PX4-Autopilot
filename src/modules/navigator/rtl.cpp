@@ -585,6 +585,8 @@ void RTL::init_rtl_mission_type()
 		_set_rtl_mission_type = RtlType::NONE;
 	}
 
+	mission_s new_mission = _mission_sub.get();
+
 	switch (new_rtl_mission_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator);
@@ -593,13 +595,13 @@ void RTL::init_rtl_mission_type()
 		break;
 
 	case RtlType::RTL_MISSION_FAST:
-		_rtl_mission_type_handle = new RtlMissionFast(_navigator);
+		_rtl_mission_type_handle = new RtlMissionFast(_navigator, new_mission);
 		_set_rtl_mission_type = RtlType::RTL_MISSION_FAST;
 		_rtl_type = RtlType::RTL_MISSION_FAST;
 		break;
 
 	case RtlType::RTL_MISSION_FAST_REVERSE:
-		_rtl_mission_type_handle = new RtlMissionFastReverse(_navigator);
+		_rtl_mission_type_handle = new RtlMissionFastReverse(_navigator, new_mission);
 		_set_rtl_mission_type = RtlType::RTL_MISSION_FAST_REVERSE;
 		_rtl_type = RtlType::RTL_MISSION_FAST_REVERSE;
 		break;
