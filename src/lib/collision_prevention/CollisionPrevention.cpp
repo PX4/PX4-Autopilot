@@ -500,17 +500,23 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel, con
 	}
 }
 
-float
-CollisionPrevention::_getObstacleDistance(const Vector2f &direction)
+float CollisionPrevention::_getObstacleDistance(const Vector2f &direction)
 {
-	const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
-	Vector2f dir = direction / direction.norm();
-	const float sp_angle_body_frame = atan2f(dir(1), dir(0)) - vehicle_yaw_angle_rad;
-	const float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) -
-					       _obstacle_map_body_frame.angle_offset);
-	int dir_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
+	const float direction_norm = direction.norm();
 
-	return _obstacle_map_body_frame.distances[dir_index] * 0.01f;
+	if (direction_norm > FLT_EPSILON) {
+		Vector2f dir = direction / direction_norm;
+		const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
+		const float sp_angle_body_frame = atan2f(dir(1), dir(0)) - vehicle_yaw_angle_rad;
+		const float sp_angle_with_offset_deg =
+			wrap_360(math::degrees(sp_angle_body_frame) - _obstacle_map_body_frame.angle_offset);
+		int dir_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
+		dir_index = math::constrain(dir_index, 0, 71);
+		return _obstacle_map_body_frame.distances[dir_index] * 0.01f;
+
+	} else {
+		return 0.f;
+	}
 }
 
 Vector2f
