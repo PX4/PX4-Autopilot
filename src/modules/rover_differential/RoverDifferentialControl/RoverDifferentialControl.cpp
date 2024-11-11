@@ -58,19 +58,19 @@ void RoverDifferentialControl::updateParams()
 			   _param_rd_yaw_rate_p.get(), // Proportional gain
 			   _param_rd_yaw_rate_i.get(), // Integral gain
 			   0.f, // Derivative gain
-			   1.f, // Integral limit
+			   _param_rd_yaw_rate_i.get() > FLT_EPSILON ? 1.f / _param_rd_yaw_rate_i.get() : 0.f, // Integral limit
 			   1.f); // Output limit
 	pid_set_parameters(&_pid_throttle,
-			   _param_rd_p_gain_speed.get(), // Proportional gain
-			   _param_rd_i_gain_speed.get(), // Integral gain
+			   _param_rd_speed_p.get(), // Proportional gain
+			   _param_rd_speed_i.get(), // Integral gain
 			   0.f, // Derivative gain
-			   1.f, // Integral limit
+			   _param_rd_speed_i.get() > FLT_EPSILON ? 1.f / _param_rd_speed_i.get() : 0.f, // Integral limit
 			   1.f); // Output limit
 	pid_set_parameters(&_pid_yaw,
-			   _param_rd_p_gain_yaw.get(),  // Proportional gain
-			   _param_rd_i_gain_yaw.get(),  // Integral gain
+			   _param_rd_yaw_p.get(),  // Proportional gain
+			   _param_rd_yaw_i.get(),  // Integral gain
 			   0.f,  // Derivative gain
-			   _max_yaw_rate,  // Integral limit
+			   _param_rd_yaw_i.get() > FLT_EPSILON ? _max_yaw_rate / _param_rd_yaw_i.get() : 0.f, // Integral limit
 			   _max_yaw_rate);  // Output limit
 
 	// Update slew rates
@@ -142,9 +142,9 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 	_rover_differential_status.measured_forward_speed = vehicle_forward_speed;
 	_rover_differential_status.measured_yaw = vehicle_yaw;
 	_rover_differential_status.measured_yaw_rate = vehicle_yaw_rate;
-	_rover_differential_status.pid_yaw_rate_integral = _pid_yaw_rate.integral;
-	_rover_differential_status.pid_throttle_integral = _pid_throttle.integral;
-	_rover_differential_status.pid_yaw_integral = _pid_yaw.integral;
+	_rover_differential_status.pid_yaw_rate_integral = _pid_yaw_rate.integral * _param_rd_yaw_rate_i.get();
+	_rover_differential_status.pid_throttle_integral = _pid_throttle.integral * _param_rd_speed_i.get();
+	_rover_differential_status.pid_yaw_integral = _pid_yaw.integral * _param_rd_yaw_i.get();
 	_rover_differential_status_pub.publish(_rover_differential_status);
 
 	// Publish to motors

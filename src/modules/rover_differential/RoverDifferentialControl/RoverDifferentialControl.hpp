@@ -160,10 +160,10 @@ private:
 		(ParamFloat<px4::params::RD_MAX_YAW_ACCEL>) _param_rd_max_yaw_accel,
 		(ParamFloat<px4::params::RD_YAW_RATE_P>)    _param_rd_yaw_rate_p,
 		(ParamFloat<px4::params::RD_YAW_RATE_I>)    _param_rd_yaw_rate_i,
-		(ParamFloat<px4::params::RD_SPEED_P>)       _param_rd_p_gain_speed,
-		(ParamFloat<px4::params::RD_SPEED_I>)       _param_rd_i_gain_speed,
-		(ParamFloat<px4::params::RD_YAW_P>)         _param_rd_p_gain_yaw,
-		(ParamFloat<px4::params::RD_YAW_I>)         _param_rd_i_gain_yaw,
+		(ParamFloat<px4::params::RD_SPEED_P>)       _param_rd_speed_p,
+		(ParamFloat<px4::params::RD_SPEED_I>)       _param_rd_speed_i,
+		(ParamFloat<px4::params::RD_YAW_P>)         _param_rd_yaw_p,
+		(ParamFloat<px4::params::RD_YAW_I>)         _param_rd_yaw_i,
 		(ParamInt<px4::params::CA_R_REV>)           _param_r_rev
 	)
 };
