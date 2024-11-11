@@ -57,17 +57,6 @@ parameters:
         decimal: 2
         default: 2
 
-      RA_MISS_SPD_DEF:
-        description:
-          short: Default rover speed during a mission
-        type: float
-        unit: m/s
-        min: 0
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 2
-
       RA_SPEED_P:
         description:
           short: Proportional gain for ground speed controller
@@ -122,10 +111,7 @@ parameters:
         description:
           short: Maximum acceleration for the rover
           long: |
-            This is used for the acceleration slew rate, the feed-forward term
-            for the speed controller during missions and the corner slow down effect.
-            Note: For the corner slow down effect RA_MAX_JERK, RA_MISS_VEL_GAIN and
-            RA_MISS_VEL_MIN also have to be set.
+            This is used for the acceleration slew rate.
         type: float
         unit: m/s^2
         min: -1
@@ -155,7 +141,7 @@ parameters:
           long: |
             Limit for forwards acc/deceleration change.
             This is used for the corner slow down effect.
-            Note: RA_MAX_ACCEL also has to be set for this to be enabled.
+            Note: RA_MAX_DECEL also has to be set for this to be enabled.
         type: float
         unit: m/s^3
         min: -1
