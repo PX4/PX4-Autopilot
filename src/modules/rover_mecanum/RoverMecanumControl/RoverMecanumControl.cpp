@@ -52,29 +52,32 @@ void RoverMecanumControl::updateParams()
 {
 	ModuleParams::updateParams();
 	_max_yaw_rate = _param_rm_max_yaw_rate.get() * M_DEG_TO_RAD_F;
+
+	// Update PID
+
 	pid_set_parameters(&_pid_yaw_rate,
 			   _param_rm_yaw_rate_p.get(), // Proportional gain
 			   _param_rm_yaw_rate_i.get(), // Integral gain
 			   0.f, // Derivative gain
-			   1.f, // Integral limit
+			   _param_rm_yaw_rate_i.get() > FLT_EPSILON ? 1.f / _param_rm_yaw_rate_i.get() : 0.f, // Integral limit
 			   1.f); // Output limit
 	pid_set_parameters(&_pid_forward_throttle,
-			   _param_rm_p_gain_speed.get(), // Proportional gain
-			   _param_rm_i_gain_speed.get(), // Integral gain
+			   _param_rm_speed_p.get(), // Proportional gain
+			   _param_rm_speed_i.get(), // Integral gain
 			   0.f, // Derivative gain
-			   1.f, // Integral limit
+			   _param_rm_speed_i.get() > FLT_EPSILON ? 1.f / _param_rm_speed_i.get() : 0.f, // Integral limit
 			   1.f); // Output limit
 	pid_set_parameters(&_pid_lateral_throttle,
-			   _param_rm_p_gain_speed.get(), // Proportional gain
-			   _param_rm_i_gain_speed.get(), // Integral gain
+			   _param_rm_speed_p.get(), // Proportional gain
+			   _param_rm_speed_i.get(), // Integral gain
 			   0.f, // Derivative gain
-			   1.f, // Integral limit
+			   _param_rm_speed_i.get() > FLT_EPSILON ? 1.f / _param_rm_speed_i.get() : 0.f, // Integral limit
 			   1.f); // Output limit
 	pid_set_parameters(&_pid_yaw,
-			   _param_rm_p_gain_yaw.get(),  // Proportional gain
-			   _param_rm_i_gain_yaw.get(),  // Integral gain
+			   _param_rm_yaw_p.get(),  // Proportional gain
+			   _param_rm_yaw_i.get(),  // Integral gain
 			   0.f,  // Derivative gain
-			   _max_yaw_rate,  // Integral limit
+			   _param_rm_yaw_i.get() > FLT_EPSILON ? _max_yaw_rate / _param_rm_yaw_i.get() : 0.f, // Integral limit
 			   _max_yaw_rate);  // Output limit
 }
 
@@ -156,10 +159,10 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 	rover_mecanum_status.adjusted_yaw_rate_setpoint = _rover_mecanum_setpoint.yaw_rate_setpoint;
 	rover_mecanum_status.measured_yaw_rate = vehicle_yaw_rate;
 	rover_mecanum_status.measured_yaw = vehicle_yaw;
-	rover_mecanum_status.pid_yaw_rate_integral = _pid_yaw_rate.integral;
-	rover_mecanum_status.pid_yaw_integral = _pid_yaw.integral;
-	rover_mecanum_status.pid_forward_throttle_integral = _pid_forward_throttle.integral;
-	rover_mecanum_status.pid_lateral_throttle_integral = _pid_lateral_throttle.integral;
+	rover_mecanum_status.pid_yaw_rate_integral = _pid_yaw_rate.integral * _param_rm_yaw_rate_i.get();
+	rover_mecanum_status.pid_yaw_integral = _pid_yaw.integral * _param_rm_yaw_i.get();
+	rover_mecanum_status.pid_forward_throttle_integral = _pid_forward_throttle.integral * _param_rm_speed_i.get();
+	rover_mecanum_status.pid_lateral_throttle_integral = _pid_lateral_throttle.integral * _param_rm_speed_i.get();
 	_rover_mecanum_status_pub.publish(rover_mecanum_status);
 
 	// Publish to motors
