@@ -53,14 +53,14 @@ void RoverAckermannControl::updateParams()
 			   _param_ra_speed_p.get(), // Proportional gain
 			   _param_ra_speed_i.get(), // Integral gain
 			   0, // Derivative gain
-			   1, // Integral limit
+			   _param_ra_speed_i.get() > FLT_EPSILON ? 1.f / _param_ra_speed_i.get() : 0.f, // Integral limit
 			   1); // Output limit
 
 	pid_set_parameters(&_pid_lat_accel,
 			   _param_ra_lat_accel_p.get(), // Proportional gain
 			   _param_ra_lat_accel_i.get(), // Integral gain
 			   0, // Derivative gain
-			   1, // Integral limit
+			   _param_ra_lat_accel_i.get() > FLT_EPSILON ? 1.f / _param_ra_lat_accel_i.get() : 0.f, // Integral limit
 			   1); // Output limit
 
 	// Update slew rates
@@ -156,8 +156,8 @@ void RoverAckermannControl::computeMotorCommands(const float vehicle_forward_spe
 	_rover_ackermann_status.steering_setpoint_normalized = steering_normalized;
 	_rover_ackermann_status.adjusted_steering_setpoint_normalized = _steering_with_rate_limit.getState();
 	_rover_ackermann_status.measured_lateral_acceleration = vehicle_lateral_acceleration;
-	_rover_ackermann_status.pid_throttle_integral = _pid_throttle.integral;
-	_rover_ackermann_status.pid_lat_accel_integral = _pid_lat_accel.integral;
+	_rover_ackermann_status.pid_throttle_integral = _pid_throttle.integral *  _param_ra_speed_i.get();
+	_rover_ackermann_status.pid_lat_accel_integral = _pid_lat_accel.integral * _param_ra_lat_accel_i.get();
 	_rover_ackermann_status_pub.publish(_rover_ackermann_status);
 
 	// Publish to motor
