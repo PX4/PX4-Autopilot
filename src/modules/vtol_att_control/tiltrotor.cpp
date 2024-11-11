@@ -295,7 +295,7 @@ void Tiltrotor::update_transition_state()
 
 		// control backtransition deceleration using pitch.
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
-			pitch_body = update_and_get_backtransition_pitch_sp();
+			pitch_body = Eulerf(Quatf(_mc_virtual_att_sp->q_d)).theta();
 		}
 
 		if (_time_since_trans_start < BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
