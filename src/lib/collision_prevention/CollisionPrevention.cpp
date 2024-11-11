@@ -40,6 +40,7 @@
 #include "CollisionPrevention.hpp"
 #include <px4_platform_common/events.h>
 
+using namespace matrix;
 
 namespace
 {
@@ -550,7 +551,7 @@ CollisionPrevention::_getScale(const float &reference_distance)
 }
 
 void CollisionPrevention::_getVelocityCompensationAcceleration(const float vehicle_yaw_angle_rad,
-		const matrix::Vector2f &setpoint_vel,
+		const Vector2f &setpoint_vel,
 		const hrt_abstime now, float &vel_comp_accel, Vector2f &vel_comp_accel_dir)
 {
 	for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {

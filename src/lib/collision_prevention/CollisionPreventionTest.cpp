@@ -34,6 +34,8 @@
 #include <gtest/gtest.h>
 #include "CollisionPrevention.hpp"
 
+using namespace matrix;
+
 // to run: make tests TESTFILTER=CollisionPrevention
 hrt_abstime mocked_time = 0;
 
@@ -53,15 +55,15 @@ public:
 	TestCollisionPrevention() : CollisionPrevention(nullptr) {}
 	void paramsChanged() {CollisionPrevention::updateParamsImpl();}
 	obstacle_distance_s &getObstacleMap() {return _obstacle_map_body_frame;}
-	void test_addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &attitude)
+	void test_addDistanceSensorData(distance_sensor_s &distance_sensor, const Quatf &attitude)
 	{
 		_addDistanceSensorData(distance_sensor, attitude);
 	}
-	void test_addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &attitude)
+	void test_addObstacleSensorData(const obstacle_distance_s &obstacle, const Quatf &attitude)
 	{
 		_addObstacleSensorData(obstacle, attitude);
 	}
-	void test_adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index,
+	void test_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoint_index,
 					 float vehicle_yaw_angle_rad)
 	{
 		_adaptSetpointDirection(setpoint_dir, setpoint_index, vehicle_yaw_angle_rad);
@@ -103,8 +105,8 @@ TEST_F(CollisionPreventionTest, noSensorData)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	matrix::Vector2f original_setpoint(10, 0);
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f original_setpoint(10, 0);
+	Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
 	param_t param = param_handle(px4::params::CP_DIST);
@@ -114,7 +116,7 @@ TEST_F(CollisionPreventionTest, noSensorData)
 	param_set(param, &value);
 	cp.paramsChanged();
 
-	matrix::Vector2f modified_setpoint = original_setpoint;
+	Vector2f modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, curr_vel);
 
 	// THEN: collision prevention should be enabled and limit the speed to zero
@@ -126,9 +128,9 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	matrix::Vector2f original_setpoint1(10, 0);
-	matrix::Vector2f original_setpoint2(-10, 0);
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f original_setpoint1(10, 0);
+	Vector2f original_setpoint2(-10, 0);
+	Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = hrt_absolute_time();
 	attitude.q[0] = 1.0f;
@@ -163,7 +165,6 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 		} else {
 			message.distances[i] = 10001;
 		}
-
 	}
 
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
@@ -171,8 +172,8 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
-	matrix::Vector2f modified_setpoint1 = original_setpoint1;
-	matrix::Vector2f modified_setpoint2 = original_setpoint2;
+	Vector2f modified_setpoint1 = original_setpoint1;
+	Vector2f modified_setpoint2 = original_setpoint2;
 	cp.modifySetpoint(modified_setpoint1, curr_vel);
 	cp.modifySetpoint(modified_setpoint2, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
@@ -193,9 +194,9 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	matrix::Vector2f original_setpoint1(10, 0);
-	matrix::Vector2f original_setpoint2(-10, 0);
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f original_setpoint1(10, 0);
+	Vector2f original_setpoint2(-10, 0);
+	Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = hrt_absolute_time();
 	attitude.q[0] = 1.0f;
@@ -230,8 +231,8 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
 
 	//WHEN:  We run the setpoint modification
-	matrix::Vector2f modified_setpoint1 = original_setpoint1;
-	matrix::Vector2f modified_setpoint2 = original_setpoint2;
+	Vector2f modified_setpoint1 = original_setpoint1;
+	Vector2f modified_setpoint2 = original_setpoint2;
 	cp.modifySetpoint(modified_setpoint1, curr_vel);
 	cp.modifySetpoint(modified_setpoint2, curr_vel);
 	orb_unadvertise(distance_sensor_pub);
@@ -257,8 +258,8 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	TestTimingCollisionPrevention cp;
 	hrt_abstime start_time = hrt_absolute_time();
 	mocked_time = start_time;
-	matrix::Vector2f original_setpoint(10, 0);
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f original_setpoint(10, 0);
+	Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = start_time;
 	attitude.q[0] = 1.0f;
@@ -306,8 +307,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
 
 	for (int i = 0; i < 10; i++) {
-
-		matrix::Vector2f modified_setpoint = original_setpoint;
+		Vector2f modified_setpoint = original_setpoint;
 		cp.modifySetpoint(modified_setpoint, curr_vel);
 
 		mocked_time = mocked_time + 100000; //advance time by 0.1 seconds
@@ -344,8 +344,8 @@ TEST_F(CollisionPreventionTest, testNoRangeData)
 	TestTimingCollisionPrevention cp;
 	hrt_abstime start_time = hrt_absolute_time();
 	mocked_time = start_time;
-	matrix::Vector2f original_setpoint(10, 0);
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f original_setpoint(10, 0);
+	Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = start_time;
 	attitude.q[0] = 1.0f;
@@ -382,8 +382,7 @@ TEST_F(CollisionPreventionTest, testNoRangeData)
 	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
 
 	for (int i = 0; i < 10; i++) {
-
-		matrix::Vector2f modified_setpoint = original_setpoint;
+		Vector2f modified_setpoint = original_setpoint;
 		cp.modifySetpoint(modified_setpoint, curr_vel);
 
 		//advance time by 0.1 seconds but no new message comes in
@@ -408,8 +407,8 @@ TEST_F(CollisionPreventionTest, noBias)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	matrix::Vector2f original_setpoint(10, 0);
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f original_setpoint(10, 0);
+	Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
 	param_t param = param_handle(px4::params::CP_DIST);
@@ -434,7 +433,7 @@ TEST_F(CollisionPreventionTest, noBias)
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
-	matrix::Vector2f modified_setpoint = original_setpoint;
+	Vector2f modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
 
@@ -447,7 +446,7 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
 	param_t param = param_handle(px4::params::CP_DIST);
@@ -480,11 +479,10 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 
 	for (int i = 0; i < distances_array_size; i++) {
-
 		float angle_deg = (float)i * message.increment;
 		float angle_rad = math::radians(angle_deg);
-		matrix::Vector2f original_setpoint = {10.f * cosf(angle_rad), 10.f * sinf(angle_rad)};
-		matrix::Vector2f modified_setpoint = original_setpoint;
+		Vector2f original_setpoint = {10.f * cosf(angle_rad), 10.f * sinf(angle_rad)};
+		Vector2f modified_setpoint = original_setpoint;
 		message.timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 		cp.modifySetpoint(modified_setpoint, curr_vel);
@@ -493,9 +491,9 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 		float setpoint_length = modified_setpoint.norm();
 
 		if (setpoint_length > 0.f) {
-			matrix::Vector2f setpoint_dir = modified_setpoint / setpoint_length;
+			Vector2f setpoint_dir = modified_setpoint / setpoint_length;
 			float sp_angle_body_frame = atan2(setpoint_dir(1), setpoint_dir(0));
-			float sp_angle_deg = math::degrees(matrix::wrap_2pi(sp_angle_body_frame));
+			float sp_angle_deg = math::degrees(wrap_2pi(sp_angle_body_frame));
 			EXPECT_GE(sp_angle_deg, 45.f);
 			EXPECT_LE(sp_angle_deg, 225.f);
 		}
@@ -508,7 +506,7 @@ TEST_F(CollisionPreventionTest, goNoData)
 {
 	// GIVEN: a simple setup condition with the initial state (no distance data)
 	TestCollisionPrevention cp;
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f curr_vel(2, 0);
 
 	// AND: an obstacle message
 	obstacle_distance_s message;
@@ -538,8 +536,8 @@ TEST_F(CollisionPreventionTest, goNoData)
 	cp.paramsChanged();
 
 	// AND: a setpoint outside the field of view
-	matrix::Vector2f original_setpoint = {-5, 0};
-	matrix::Vector2f modified_setpoint = original_setpoint;
+	Vector2f original_setpoint = {-5, 0};
+	Vector2f modified_setpoint = original_setpoint;
 
 	//THEN: the modified setpoint should be zero acceleration
 	cp.modifySetpoint(modified_setpoint, curr_vel);
@@ -571,8 +569,8 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	matrix::Vector2f original_setpoint(10, 0);
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f original_setpoint(10, 0);
+	Vector2f curr_vel(2, 0);
 
 	// AND: distance set to 5m
 	param_t param = param_handle(px4::params::CP_DIST);
@@ -597,7 +595,7 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 	// AND: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
-	matrix::Vector2f modified_setpoint_default_jerk = original_setpoint;
+	Vector2f modified_setpoint_default_jerk = original_setpoint;
 	cp.modifySetpoint(modified_setpoint_default_jerk, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
 
@@ -608,7 +606,7 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 	cp.paramsChanged();
 
 	// WHEN: we run the setpoint modification again
-	matrix::Vector2f modified_setpoint_limited_jerk = original_setpoint;
+	Vector2f modified_setpoint_limited_jerk = original_setpoint;
 	cp.modifySetpoint(modified_setpoint_limited_jerk, curr_vel);
 
 	// THEN: the new setpoint should be much slower than the one with default jerk
@@ -619,7 +617,7 @@ TEST_F(CollisionPreventionTest, addOutOfRangeDistanceSensorData)
 	// GIVEN: a vehicle attitude and a distance sensor message
 	TestCollisionPrevention cp;
 	cp.getObstacleMap().increment = 10.f;
-	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
 	distance_sensor_s distance_sensor {};
 	distance_sensor.min_distance = 0.2f;
 	distance_sensor.max_distance = 20.f;
@@ -648,7 +646,7 @@ TEST_F(CollisionPreventionTest, addDistanceSensorData)
 	// GIVEN: a vehicle attitude and a distance sensor message
 	TestCollisionPrevention cp;
 	cp.getObstacleMap().increment = 10.f;
-	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
 	distance_sensor_s distance_sensor {};
 	distance_sensor.min_distance = 0.2f;
 	distance_sensor.max_distance = 20.f;
@@ -732,13 +730,13 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_attitude)
 	obstacle_msg.max_distance = 2000;
 	obstacle_msg.angle_offset = 0.f;
 
-	matrix::Quaternion<float> vehicle_attitude1(1, 0, 0, 0); //unit transform
-	matrix::Euler<float> attitude2_euler(0, 0, M_PI / 2.0);
-	matrix::Quaternion<float> vehicle_attitude2(attitude2_euler); //90 deg yaw
-	matrix::Euler<float> attitude3_euler(0, 0, -M_PI / 4.0);
-	matrix::Quaternion<float> vehicle_attitude3(attitude3_euler); // -45 deg yaw
-	matrix::Euler<float> attitude4_euler(0, 0, M_PI);
-	matrix::Quaternion<float> vehicle_attitude4(attitude4_euler); // 180 deg yaw
+	Quaternion<float> vehicle_attitude1(1, 0, 0, 0); //unit transform
+	Euler<float> attitude2_euler(0, 0, M_PI / 2.0);
+	Quaternion<float> vehicle_attitude2(attitude2_euler); //90 deg yaw
+	Euler<float> attitude3_euler(0, 0, -M_PI / 4.0);
+	Quaternion<float> vehicle_attitude3(attitude3_euler); // -45 deg yaw
+	Euler<float> attitude4_euler(0, 0, M_PI);
+	Quaternion<float> vehicle_attitude4(attitude4_euler); // 180 deg yaw
 
 	//obstacle at 10-30 deg world frame, distance 5 meters
 	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
@@ -833,13 +831,13 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_bodyframe)
 	obstacle_msg.max_distance = 2000;
 	obstacle_msg.angle_offset = 0.f;
 
-	matrix::Quaternion<float> vehicle_attitude1(1, 0, 0, 0); //unit transform
-	matrix::Euler<float> attitude2_euler(0, 0, M_PI / 2.0);
-	matrix::Quaternion<float> vehicle_attitude2(attitude2_euler); //90 deg yaw
-	matrix::Euler<float> attitude3_euler(0, 0, -M_PI / 4.0);
-	matrix::Quaternion<float> vehicle_attitude3(attitude3_euler); // -45 deg yaw
-	matrix::Euler<float> attitude4_euler(0, 0, M_PI);
-	matrix::Quaternion<float> vehicle_attitude4(attitude4_euler); // 180 deg yaw
+	Quaternion<float> vehicle_attitude1(1, 0, 0, 0); //unit transform
+	Euler<float> attitude2_euler(0, 0, M_PI / 2.0);
+	Quaternion<float> vehicle_attitude2(attitude2_euler); //90 deg yaw
+	Euler<float> attitude3_euler(0, 0, -M_PI / 4.0);
+	Quaternion<float> vehicle_attitude3(attitude3_euler); // -45 deg yaw
+	Euler<float> attitude4_euler(0, 0, M_PI);
+	Quaternion<float> vehicle_attitude4(attitude4_euler); // 180 deg yaw
 
 	//obstacle at 10-30 deg body frame, distance 5 meters
 	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
@@ -934,7 +932,7 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_resolution_offset)
 	obstacle_msg.max_distance = 2000;
 	obstacle_msg.angle_offset = 0.f;
 
-	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
 
 	//obstacle at 0-30 deg world frame, distance 5 meters
 	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
@@ -991,8 +989,8 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_distinct_minimum)
 	obstacle_msg.max_distance = 2000;
 	obstacle_msg.angle_offset = 0.f;
 
-	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
-	float vehicle_yaw_angle_rad = matrix::Eulerf(vehicle_attitude).psi();
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	float vehicle_yaw_angle_rad = Eulerf(vehicle_attitude).psi();
 
 	//obstacle at 0-30 deg world frame, distance 5 meters
 	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
@@ -1004,10 +1002,10 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_distinct_minimum)
 	obstacle_msg.distances[2] = 1000;
 
 	//define setpoint
-	matrix::Vector2f setpoint_dir(1, 0);
+	Vector2f setpoint_dir(1, 0);
 	float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
-	float sp_angle_with_offset_deg = matrix::wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
-					 0.f, 360.f);
+	float sp_angle_with_offset_deg = wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
+					      0.f, 360.f);
 	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
 
 	//set parameter
@@ -1038,8 +1036,8 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
 	obstacle_msg.max_distance = 2000;
 	obstacle_msg.angle_offset = 0.f;
 
-	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
-	float vehicle_yaw_angle_rad = matrix::Eulerf(vehicle_attitude).psi();
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	float vehicle_yaw_angle_rad = Eulerf(vehicle_attitude).psi();
 
 	//obstacle at 0-30 deg world frame, distance 5 meters
 	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
@@ -1053,10 +1051,10 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
 	obstacle_msg.distances[3] = 1000;
 
 	//define setpoint
-	matrix::Vector2f setpoint_dir(1, 0);
+	Vector2f setpoint_dir(1, 0);
 	float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
-	float sp_angle_with_offset_deg = matrix::wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
-					 0.f, 360.f);
+	float sp_angle_with_offset_deg = wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
+					      0.f, 360.f);
 	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
 
 	//set parameter
@@ -1079,8 +1077,8 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	matrix::Vector2f original_setpoint(10, 0);
-	matrix::Vector2f curr_vel(2, 0);
+	Vector2f original_setpoint(10, 0);
+	Vector2f curr_vel(2, 0);
 	vehicle_attitude_s attitude;
 	attitude.timestamp = hrt_absolute_time();
 	attitude.q[0] = 1.0f;
@@ -1130,7 +1128,7 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
 	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
-	matrix::Vector2f modified_setpoint = original_setpoint;
+	Vector2f modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, curr_vel);
 
 	// THEN: the internal map data should contain the long range measurement
@@ -1169,7 +1167,7 @@ TEST_F(CollisionPreventionTest, enterData)
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
 	cp.getObstacleMap().increment = 10.f;
-	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
 
 	//THEN: just after initialization all bins are at UINT16_MAX and any data should be accepted
 	EXPECT_TRUE(cp.test_enterData(8, 2.f, 1.5f)); //shorter range, reading in range
