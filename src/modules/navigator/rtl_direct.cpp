@@ -110,7 +110,7 @@ void RtlDirect::on_active()
 		updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
 	}
 
-	if (_rtl_state == RTLState::LAND && _param_rtl_pld_md.get() > 0) {
+	if (_rtl_state == RTLState::LAND && _mission_item.land_precision > 0) {
 		// Need to update the position and type on the current setpoint triplet.
 		_navigator->get_precland()->on_active();
 
