@@ -97,11 +97,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 	_acceleration_setpoint = stick_xy.emult(acceleration_scale);
 
 	if (_collision_prevention.is_active()) {
-		matrix::Vector2f accel_setpoint_xy = _acceleration_setpoint;
-		matrix::Vector2f vel_setpoint_xy = _velocity_setpoint;
-		_collision_prevention.modifySetpoint(accel_setpoint_xy, vel_setpoint_xy);
-		_acceleration_setpoint = accel_setpoint_xy;
-
+		_collision_prevention.modifySetpoint(_acceleration_setpoint, _velocity_setpoint);
 	}
 
 	// Add drag to limit speed and brake again
