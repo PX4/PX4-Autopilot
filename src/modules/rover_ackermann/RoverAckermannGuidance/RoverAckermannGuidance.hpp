@@ -57,7 +57,7 @@
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <math.h>
-#include <lib/pid/pid.h>
+#include <lib/pid/PID.hpp>
 
 using namespace matrix;
 

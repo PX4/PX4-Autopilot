@@ -42,40 +42,28 @@ RoverMecanumControl::RoverMecanumControl(ModuleParams *parent) : ModuleParams(pa
 {
 	updateParams();
 	_rover_mecanum_status_pub.advertise();
-	pid_init(&_pid_yaw_rate, PID_MODE_DERIVATIV_NONE, 0.001f);
-	pid_init(&_pid_forward_throttle, PID_MODE_DERIVATIV_NONE, 0.001f);
-	pid_init(&_pid_lateral_throttle, PID_MODE_DERIVATIV_NONE, 0.001f);
-	pid_init(&_pid_yaw, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
 void RoverMecanumControl::updateParams()
 {
 	ModuleParams::updateParams();
+
+	_pid_yaw_rate.setGains(_param_rm_yaw_rate_p.get(), _param_rm_yaw_rate_i.get(), 0.f);
+	_pid_yaw_rate.setIntegralLimit(1.f);
+	_pid_yaw_rate.setOutputLimit(1.f);
+
+	_pid_forward_throttle.setGains(_param_rm_p_gain_speed.get(), _param_rm_i_gain_speed.get(), 0.f);
+	_pid_forward_throttle.setIntegralLimit(1.f);
+	_pid_forward_throttle.setOutputLimit(1.f);
+
+	_pid_lateral_throttle.setGains(_param_rm_p_gain_speed.get(), _param_rm_i_gain_speed.get(), 0.f);
+	_pid_lateral_throttle.setIntegralLimit(1.f);
+	_pid_lateral_throttle.setOutputLimit(1.f);
+
 	_max_yaw_rate = _param_rm_max_yaw_rate.get() * M_DEG_TO_RAD_F;
-	pid_set_parameters(&_pid_yaw_rate,
-			   _param_rm_yaw_rate_p.get(), // Proportional gain
-			   _param_rm_yaw_rate_i.get(), // Integral gain
-			   0.f, // Derivative gain
-			   1.f, // Integral limit
-			   1.f); // Output limit
-	pid_set_parameters(&_pid_forward_throttle,
-			   _param_rm_p_gain_speed.get(), // Proportional gain
-			   _param_rm_i_gain_speed.get(), // Integral gain
-			   0.f, // Derivative gain
-			   1.f, // Integral limit
-			   1.f); // Output limit
-	pid_set_parameters(&_pid_lateral_throttle,
-			   _param_rm_p_gain_speed.get(), // Proportional gain
-			   _param_rm_i_gain_speed.get(), // Integral gain
-			   0.f, // Derivative gain
-			   1.f, // Integral limit
-			   1.f); // Output limit
-	pid_set_parameters(&_pid_yaw,
-			   _param_rm_p_gain_yaw.get(),  // Proportional gain
-			   _param_rm_i_gain_yaw.get(),  // Integral gain
-			   0.f,  // Derivative gain
-			   _max_yaw_rate,  // Integral limit
-			   _max_yaw_rate);  // Output limit
+	_pid_yaw.setGains(_param_rm_p_gain_yaw.get(), _param_rm_i_gain_yaw.get(), 0.f);
+	_pid_yaw.setIntegralLimit(_max_yaw_rate);
+	_pid_yaw.setOutputLimit(_max_yaw_rate);
 }
 
 void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const float vehicle_yaw_rate,
@@ -91,11 +79,12 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 
 	// Closed loop yaw control
 	if (PX4_ISFINITE(_rover_mecanum_setpoint.yaw_setpoint)) {
-		const float heading_error = matrix::wrap_pi(_rover_mecanum_setpoint.yaw_setpoint - vehicle_yaw);
-		_rover_mecanum_setpoint.yaw_rate_setpoint = pid_calculate(&_pid_yaw, heading_error, 0.f, 0.f, dt);
+		_pid_yaw.setSetpoint(
+			matrix::wrap_pi(_rover_mecanum_setpoint.yaw_setpoint - vehicle_yaw));  // error as setpoint to take care of wrapping
+		_rover_mecanum_setpoint.yaw_rate_setpoint = _pid_yaw.update(0.f, dt);
 
 	} else {
-		pid_reset_integral(&_pid_yaw);
+		_pid_yaw.resetIntegral();
 	}
 
 	// Yaw rate control
@@ -108,8 +97,9 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 						_param_rm_max_thr_yaw_r.get(), -1.f, 1.f);
 		}
 
+		_pid_yaw_rate.setSetpoint(_rover_mecanum_setpoint.yaw_rate_setpoint);
 		speed_diff_normalized = math::constrain(speed_diff_normalized +
-							pid_calculate(&_pid_yaw_rate, _rover_mecanum_setpoint.yaw_rate_setpoint, vehicle_yaw_rate, 0.f, dt),
+							_pid_yaw_rate.update(vehicle_yaw_rate, dt),
 							-1.f, 1.f); // Feedback
 
 	} else { // Use normalized setpoint
@@ -129,8 +119,8 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 					   -_param_rm_max_thr_spd.get(), _param_rm_max_thr_spd.get(), -1.f, 1.f);
 		}
 
-		forward_throttle += pid_calculate(&_pid_forward_throttle, _rover_mecanum_setpoint.forward_speed_setpoint,
-						  vehicle_forward_speed, 0, dt); // Feedback
+		_pid_forward_throttle.setSetpoint(_rover_mecanum_setpoint.forward_speed_setpoint);
+		forward_throttle += _pid_forward_throttle.update(vehicle_forward_speed, dt);
 
 		// Closed loop lateral speed control
 		if (_param_rm_max_thr_spd.get() > FLT_EPSILON) { // Feedforward
@@ -138,8 +128,8 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 					   -_param_rm_max_thr_spd.get(), _param_rm_max_thr_spd.get(), -1.f, 1.f);
 		}
 
-		lateral_throttle += pid_calculate(&_pid_lateral_throttle, _rover_mecanum_setpoint.lateral_speed_setpoint,
-						  vehicle_lateral_speed, 0, dt); // Feedback
+		_pid_lateral_throttle.setSetpoint(_rover_mecanum_setpoint.lateral_speed_setpoint);
+		lateral_throttle += _pid_lateral_throttle.update(vehicle_lateral_speed, dt);
 
 	} else { // Use normalized setpoint
 		forward_throttle = PX4_ISFINITE(_rover_mecanum_setpoint.forward_speed_setpoint_normalized) ? math::constrain(
@@ -156,10 +146,10 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 	rover_mecanum_status.adjusted_yaw_rate_setpoint = _rover_mecanum_setpoint.yaw_rate_setpoint;
 	rover_mecanum_status.measured_yaw_rate = vehicle_yaw_rate;
 	rover_mecanum_status.measured_yaw = vehicle_yaw;
-	rover_mecanum_status.pid_yaw_rate_integral = _pid_yaw_rate.integral;
-	rover_mecanum_status.pid_yaw_integral = _pid_yaw.integral;
-	rover_mecanum_status.pid_forward_throttle_integral = _pid_forward_throttle.integral;
-	rover_mecanum_status.pid_lateral_throttle_integral = _pid_lateral_throttle.integral;
+	rover_mecanum_status.pid_yaw_rate_integral = _pid_yaw_rate.getIntegral();
+	rover_mecanum_status.pid_yaw_integral = _pid_yaw.getIntegral();
+	rover_mecanum_status.pid_forward_throttle_integral = _pid_forward_throttle.getIntegral();
+	rover_mecanum_status.pid_lateral_throttle_integral = _pid_lateral_throttle.getIntegral();
 	_rover_mecanum_status_pub.publish(rover_mecanum_status);
 
 	// Publish to motors
@@ -213,8 +203,8 @@ matrix::Vector4f RoverMecanumControl::computeInverseKinematics(float forward_thr
 
 void RoverMecanumControl::resetControllers()
 {
-	pid_reset_integral(&_pid_forward_throttle);
-	pid_reset_integral(&_pid_lateral_throttle);
-	pid_reset_integral(&_pid_yaw_rate);
-	pid_reset_integral(&_pid_yaw);
+	_pid_forward_throttle.resetIntegral();
+	_pid_lateral_throttle.resetIntegral();
+	_pid_yaw_rate.resetIntegral();
+	_pid_yaw.resetIntegral();
 }
