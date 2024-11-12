@@ -85,12 +85,9 @@ protected:
 	static constexpr int BIN_SIZE = 360 / BIN_COUNT; // cannot be lower than 5 degrees, should divide 360 evenly
 
 	obstacle_distance_s _obstacle_map_body_frame{};
-	static constexpr int BIN_COUNT_EXTERNAL =
-		sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0]);
-
-	bool _data_fov[BIN_COUNT_EXTERNAL];
-	uint64_t _data_timestamps[BIN_COUNT_EXTERNAL];
-	uint16_t _data_maxranges[BIN_COUNT_EXTERNAL]; /**< in cm */
+	bool _data_fov[BIN_COUNT] {};
+	uint64_t _data_timestamps[BIN_COUNT] {};
+	uint16_t _data_maxranges[BIN_COUNT] {}; /**< in cm */
 
 	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &vehicle_attitude);
 
