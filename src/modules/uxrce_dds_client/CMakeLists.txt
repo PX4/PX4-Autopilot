@@ -32,10 +32,14 @@
 ############################################################################
 
 if(${CMAKE_VERSION} VERSION_LESS "3.11")
-    message(WARNING "skipping uxrce_dds_client, Micro-XRCE-DDS-Client needs to be fixed to work with CMAKE_VERSION ${CMAKE_VERSION}")
+	message(WARNING "skipping uxrce_dds_client, Micro-XRCE-DDS-Client needs to be fixed to work with CMAKE_VERSION ${CMAKE_VERSION}")
 
 else()
-	px4_add_git_submodule(TARGET git_micro_xrce_dds_client PATH "${CMAKE_CURRENT_LIST_DIR}/Micro-XRCE-DDS-Client")
+
+	set(microxrceddsclient_src_dir   ${CMAKE_CURRENT_SOURCE_DIR}/Micro-XRCE-DDS-Client)
+	set(microxrceddsclient_build_dir ${CMAKE_CURRENT_BINARY_DIR})
+
+	px4_add_git_submodule(TARGET git_micro_xrce_dds_client PATH "${microxrceddsclient_src_dir}")
 
 	# If a toolchain file is given, explicitly define its path when building the Micro-XRCE-DDS-CLient
 	if(CMAKE_TOOLCHAIN_FILE MATCHES "cmake$")
@@ -57,9 +61,6 @@ else()
 	if("${lib_dir}" STREQUAL "")
 		set(lib_dir "lib")
 	endif()
-
-	set(microxrceddsclient_src_dir   ${CMAKE_CURRENT_SOURCE_DIR}/Micro-XRCE-DDS-Client)
-	set(microxrceddsclient_build_dir ${CMAKE_CURRENT_BINARY_DIR})
 
 	include(ExternalProject)
 
@@ -114,7 +115,6 @@ else()
 	target_include_directories(microxrceddsclient INTERFACE ${microxrceddsclient_build_dir}/include)
 
 
-
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
 			--topic-msg-dir ${PX4_SOURCE_DIR}/msg
@@ -148,6 +148,8 @@ else()
 			srv_base.cpp
 			srv_base.h
 		DEPENDS
+			git_micro_xrce_dds_client
+			libmicroxrceddsclient_project
 			microxrceddsclient
 			libmicroxrceddsclient
 			libmicrocdr
