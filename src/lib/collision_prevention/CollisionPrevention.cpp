@@ -87,6 +87,15 @@ bool CollisionPrevention::is_active()
 
 void CollisionPrevention::modifySetpoint(Vector2f &setpoint_accel, const Vector2f &setpoint_vel)
 {
+	if (_vehicle_attitude_sub.updated()) {
+		vehicle_attitude_s vehicle_attitude;
+
+		if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+			_vehicle_attitude = Quatf(vehicle_attitude.q);
+			_vehicle_yaw = Eulerf(_vehicle_attitude).psi();
+		}
+	}
+
 	//calculate movement constraints based on range data
 	const Vector2f original_setpoint = setpoint_accel;
 	_updateObstacleMap();
@@ -103,8 +112,6 @@ void CollisionPrevention::modifySetpoint(Vector2f &setpoint_accel, const Vector2
 
 void CollisionPrevention::_updateObstacleMap()
 {
-	_sub_vehicle_attitude.update();
-
 	// add distance sensor data
 	for (auto &dist_sens_sub : _distance_sensor_subs) {
 		distance_sensor_s distance_sensor;
@@ -122,7 +129,7 @@ void CollisionPrevention::_updateObstacleMap()
 				_obstacle_map_body_frame.min_distance = math::min(_obstacle_map_body_frame.min_distance,
 									(uint16_t)(distance_sensor.min_distance * 100.0f));
 
-				_addDistanceSensorData(distance_sensor, Quatf(_sub_vehicle_attitude.get().q));
+				_addDistanceSensorData(distance_sensor, _vehicle_attitude);
 			}
 		}
 	}
@@ -139,7 +146,7 @@ void CollisionPrevention::_updateObstacleMap()
 								obstacle_distance.max_distance);
 			_obstacle_map_body_frame.min_distance = math::min(_obstacle_map_body_frame.min_distance,
 								obstacle_distance.min_distance);
-			_addObstacleSensorData(obstacle_distance, Quatf(_sub_vehicle_attitude.get().q));
+			_addObstacleSensorData(obstacle_distance, _vehicle_yaw);
 		}
 	}
 
@@ -152,7 +159,6 @@ void CollisionPrevention::_updateObstacleData()
 	_obstacle_data_present = false;
 	_closest_dist = UINT16_MAX;
 	_closest_dist_dir.setZero();
-	const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
 
 	for (int i = 0; i < BIN_COUNT; i++) {
 		// if the data is stale, reset the bin
@@ -160,7 +166,7 @@ void CollisionPrevention::_updateObstacleData()
 			_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 		}
 
-		float angle = wrap_2pi(vehicle_yaw_angle_rad + math::radians((float)i * BIN_SIZE +
+		float angle = wrap_2pi(_vehicle_yaw + math::radians((float)i * BIN_SIZE +
 				       _obstacle_map_body_frame.angle_offset));
 		const Vector2f bin_direction = {cosf(angle), sinf(angle)};
 		uint bin_distance = _obstacle_map_body_frame.distances[i];
@@ -180,9 +186,6 @@ void CollisionPrevention::_updateObstacleData()
 
 void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel, const Vector2f &setpoint_vel)
 {
-	const Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
-	const float vehicle_yaw_angle_rad = Eulerf(attitude).psi();
-
 	const float setpoint_length = setpoint_accel.norm();
 	_min_dist_to_keep = math::max(_obstacle_map_body_frame.min_distance / 100.0f, _param_cp_dist.get());
 
@@ -198,7 +201,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel
 
 		_transformSetpoint(setpoint_accel);
 
-		_getVelocityCompensationAcceleration(vehicle_yaw_angle_rad, setpoint_vel, now,
+		_getVelocityCompensationAcceleration(_vehicle_yaw, setpoint_vel, now,
 						     vel_comp_accel, vel_comp_accel_dir);
 
 		if (_checkSetpointDirectionFeasability()) {
@@ -226,11 +229,10 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel
 	}
 }
 
-void
-CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle, const Quatf &vehicle_attitude)
+void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle, const float vehicle_yaw)
 {
 	int msg_index = 0;
-	float vehicle_orientation_deg = math::degrees(Eulerf(vehicle_attitude).psi());
+	float vehicle_orientation_deg = math::degrees(vehicle_yaw);
 	float increment_factor = 1.f / obstacle.increment;
 
 	if (obstacle.frame == obstacle.MAV_FRAME_GLOBAL || obstacle.frame == obstacle.MAV_FRAME_LOCAL_NED) {
@@ -331,14 +333,13 @@ CollisionPrevention::_checkSetpointDirectionFeasability()
 void
 CollisionPrevention::_transformSetpoint(const Vector2f &setpoint)
 {
-	const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
 	_setpoint_dir = setpoint / setpoint.norm();;
-	const float sp_angle_body_frame = atan2f(_setpoint_dir(1), _setpoint_dir(0)) - vehicle_yaw_angle_rad;
+	const float sp_angle_body_frame = atan2f(_setpoint_dir(1), _setpoint_dir(0)) - _vehicle_yaw;
 	const float sp_angle_with_offset_deg = _wrap_360(math::degrees(sp_angle_body_frame) -
 					       _obstacle_map_body_frame.angle_offset);
 	_setpoint_index = floor(sp_angle_with_offset_deg / BIN_SIZE);
 	// change setpoint direction slightly (max by _param_cp_guide_ang degrees) to help guide through narrow gaps
-	_adaptSetpointDirection(_setpoint_dir, _setpoint_index, vehicle_yaw_angle_rad);
+	_adaptSetpointDirection(_setpoint_dir, _setpoint_index, _vehicle_yaw);
 }
 
 void
@@ -488,8 +489,7 @@ float CollisionPrevention::_getObstacleDistance(const Vector2f &direction)
 
 	if (direction_norm > FLT_EPSILON) {
 		Vector2f dir = direction / direction_norm;
-		const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
-		const float sp_angle_body_frame = atan2f(dir(1), dir(0)) - vehicle_yaw_angle_rad;
+		const float sp_angle_body_frame = atan2f(dir(1), dir(0)) - _vehicle_yaw;
 		const float sp_angle_with_offset_deg =
 			_wrap_360(math::degrees(sp_angle_body_frame) - _obstacle_map_body_frame.angle_offset);
 		int dir_index = floor(sp_angle_with_offset_deg / BIN_SIZE);
