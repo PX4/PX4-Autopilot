@@ -13,7 +13,7 @@ parameters:
         max: 10
         increment: 0.001
         decimal: 3
-        default: 0.5
+        default: 1.0
       ATT_I_GAIN:
         description:
           short: Ki Gain for the attitude controller
@@ -46,7 +46,7 @@ parameters:
         max: 10
         increment: 0.001
         decimal: 3
-        default: 0.5
+        default: 1.0
       X_POS_I_GAIN:
         description:
           short: X axis Ki Gain for position controller
@@ -79,7 +79,7 @@ parameters:
         max: 10
         increment: 0.001
         decimal: 3
-        default: 0.5
+        default: 1.0
       Y_POS_I_GAIN:
         description:
           short: Y axis Ki Gain for position controller
@@ -112,7 +112,7 @@ parameters:
         max: 10
         increment: 0.001
         decimal: 3
-        default: 0.5
+        default: 1.0
       X_VEL_I_GAIN:
         description:
           short: X axis Ki Gain for velocity controller
@@ -145,7 +145,7 @@ parameters:
         max: 10
         increment: 0.001
         decimal: 3
-        default: 0.5
+        default: 1.0
       Y_VEL_I_GAIN:
         description:
           short: Y axis Ki Gain for velocity controller
@@ -176,8 +176,8 @@ parameters:
         unit: rad
         min: -3.14
         max: 3.14
-        increment: 0.001
-        decimal: 3
+        increment: 0.01
+        decimal: 2
         default: 0.0
       X_POS_SP:
         description:
@@ -185,9 +185,9 @@ parameters:
           long: SetPoint for X axis position (in NED)
         type: float
         unit: m
-        min: -10.0
-        max: 10
-        increment: 0.001
+        min: -1000.0
+        max: 1000
+        increment: 0.01
         decimal: 3
         default: 0.0
       Y_POS_SP:
@@ -196,9 +196,9 @@ parameters:
           long: SetPoint for Y axis position (in NED)
         type: float
         unit: m
-        min: -10.0
-        max: 10
-        increment: 0.001
+        min: -1000.0
+        max: 1000
+        increment: 0.01
         decimal: 3
         default: 0.0
       THRUST_SCALING:
@@ -211,7 +211,7 @@ parameters:
         max: 10
         increment: 0.001
         decimal: 3
-        default: 0.0
+        default: 1.0
       TORQUE_SCALING:
         description:
           short: Scaling factor for torque
@@ -222,4 +222,4 @@ parameters:
         max: 10
         increment: 0.001
         decimal: 3
-        default: 0.0
+        default: 1.0
