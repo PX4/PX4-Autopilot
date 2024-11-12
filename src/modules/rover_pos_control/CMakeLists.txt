@@ -38,5 +38,5 @@ px4_add_module(
 		RoverPositionControl.hpp
 	DEPENDS
 		l1
-		pid
+		PID
 	)

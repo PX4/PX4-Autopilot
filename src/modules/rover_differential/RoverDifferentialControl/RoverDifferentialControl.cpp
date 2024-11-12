@@ -42,9 +42,6 @@ RoverDifferentialControl::RoverDifferentialControl(ModuleParams *parent) : Modul
 {
 	updateParams();
 	_rover_differential_status_pub.advertise();
-	pid_init(&_pid_yaw_rate, PID_MODE_DERIVATIV_NONE, 0.001f);
-	pid_init(&_pid_throttle, PID_MODE_DERIVATIV_NONE, 0.001f);
-	pid_init(&_pid_yaw, PID_MODE_DERIVATIV_NONE, 0.001f);
 }
 
 void RoverDifferentialControl::updateParams()
@@ -54,24 +51,15 @@ void RoverDifferentialControl::updateParams()
 	_max_yaw_accel = _param_rd_max_yaw_accel.get() * M_DEG_TO_RAD_F;
 
 	// Update PID
-	pid_set_parameters(&_pid_yaw_rate,
-			   _param_rd_yaw_rate_p.get(), // Proportional gain
-			   _param_rd_yaw_rate_i.get(), // Integral gain
-			   0.f, // Derivative gain
-			   1.f, // Integral limit
-			   1.f); // Output limit
-	pid_set_parameters(&_pid_throttle,
-			   _param_rd_p_gain_speed.get(), // Proportional gain
-			   _param_rd_i_gain_speed.get(), // Integral gain
-			   0.f, // Derivative gain
-			   1.f, // Integral limit
-			   1.f); // Output limit
-	pid_set_parameters(&_pid_yaw,
-			   _param_rd_p_gain_yaw.get(),  // Proportional gain
-			   _param_rd_i_gain_yaw.get(),  // Integral gain
-			   0.f,  // Derivative gain
-			   _max_yaw_rate,  // Integral limit
-			   _max_yaw_rate);  // Output limit
+	_pid_yaw_rate.setGains(_param_rd_yaw_rate_p.get(), _param_rd_yaw_rate_i.get(), 0.f);
+	_pid_yaw_rate.setIntegralLimit(1.f);
+	_pid_yaw_rate.setOutputLimit(1.f);
+	_pid_throttle.setGains(_param_rd_p_gain_speed.get(), _param_rd_i_gain_speed.get(), 0.f);
+	_pid_throttle.setIntegralLimit(1.f);
+	_pid_throttle.setOutputLimit(1.f);
+	_pid_yaw.setGains(_param_rd_p_gain_yaw.get(), _param_rd_i_gain_yaw.get(), 0.f);
+	_pid_yaw.setIntegralLimit(_max_yaw_rate);
+	_pid_yaw.setOutputLimit(_max_yaw_rate);
 
 	// Update slew rates
 	if (_max_yaw_rate > FLT_EPSILON) {
@@ -99,8 +87,10 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 	if (PX4_ISFINITE(_rover_differential_setpoint.yaw_setpoint)) {
 		_yaw_setpoint_with_yaw_rate_limit.update(matrix::wrap_pi(_rover_differential_setpoint.yaw_setpoint), dt);
 		_rover_differential_status.adjusted_yaw_setpoint = matrix::wrap_pi(_yaw_setpoint_with_yaw_rate_limit.getState());
-		const float heading_error = matrix::wrap_pi(_yaw_setpoint_with_yaw_rate_limit.getState() - vehicle_yaw);
-		_rover_differential_setpoint.yaw_rate_setpoint = pid_calculate(&_pid_yaw, heading_error, 0, 0, dt);
+		_pid_yaw.setSetpoint(
+			matrix::wrap_pi(_yaw_setpoint_with_yaw_rate_limit.getState() -
+					vehicle_yaw));  // error as setpoint to take care of wrapping
+		_rover_differential_setpoint.yaw_rate_setpoint = _pid_yaw.update(0.f, dt);
 		_rover_differential_status.clyaw_yaw_rate_setpoint = _rover_differential_setpoint.yaw_rate_setpoint;
 
 	} else {
@@ -142,9 +132,9 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 	_rover_differential_status.measured_forward_speed = vehicle_forward_speed;
 	_rover_differential_status.measured_yaw = vehicle_yaw;
 	_rover_differential_status.measured_yaw_rate = vehicle_yaw_rate;
-	_rover_differential_status.pid_yaw_rate_integral = _pid_yaw_rate.integral;
-	_rover_differential_status.pid_throttle_integral = _pid_throttle.integral;
-	_rover_differential_status.pid_yaw_integral = _pid_yaw.integral;
+	_rover_differential_status.pid_yaw_rate_integral = _pid_yaw_rate.getIntegral();
+	_rover_differential_status.pid_throttle_integral = _pid_throttle.getIntegral();
+	_rover_differential_status.pid_yaw_integral = _pid_yaw.getIntegral();
 	_rover_differential_status_pub.publish(_rover_differential_status);
 
 	// Publish to motors
@@ -158,7 +148,7 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 float RoverDifferentialControl::calcNormalizedSpeedDiff(const float yaw_rate_setpoint, const float vehicle_yaw_rate,
 		const float max_thr_yaw_r,
 		const float max_yaw_accel, const float wheel_track, const float dt, SlewRate<float> &yaw_rate_with_accel_limit,
-		PID_t &pid_yaw_rate, const bool normalized)
+		PID &pid_yaw_rate, const bool normalized)
 {
 	float slew_rate_normalization{1.f};
 
@@ -190,8 +180,8 @@ float RoverDifferentialControl::calcNormalizedSpeedDiff(const float yaw_rate_set
 						max_thr_yaw_r, -1.f, 1.f);
 		}
 
-		speed_diff_normalized += pid_calculate(&pid_yaw_rate, yaw_rate_with_accel_limit.getState(), vehicle_yaw_rate, 0,
-						       dt); // Feedback
+		pid_yaw_rate.setSetpoint(yaw_rate_with_accel_limit.getState());
+		speed_diff_normalized += pid_yaw_rate.update(vehicle_yaw_rate, dt);
 	}
 
 	return math::constrain(speed_diff_normalized, -1.f, 1.f);
@@ -200,7 +190,7 @@ float RoverDifferentialControl::calcNormalizedSpeedDiff(const float yaw_rate_set
 
 float RoverDifferentialControl::calcNormalizedSpeedSetpoint(const float forward_speed_setpoint,
 		const float vehicle_forward_speed, const float max_thr_spd, SlewRate<float> &forward_speed_setpoint_with_accel_limit,
-		PID_t &pid_throttle, const float max_accel, const float max_decel, const float dt, const bool normalized)
+		PID &pid_throttle, const float max_accel, const float max_decel, const float dt, const bool normalized)
 {
 	float slew_rate_normalization{1.f};
 
@@ -242,8 +232,8 @@ float RoverDifferentialControl::calcNormalizedSpeedSetpoint(const float forward_
 						   -1.f, 1.f);
 		}
 
-		forward_speed_normalized += pid_calculate(&pid_throttle, _forward_speed_setpoint_with_accel_limit.getState(),
-					    vehicle_forward_speed, 0, dt); // Feedback
+		pid_throttle.setSetpoint(_forward_speed_setpoint_with_accel_limit.getState());
+		forward_speed_normalized += pid_throttle.update(vehicle_forward_speed, dt);
 	}
 
 	return math::constrain(forward_speed_normalized, -1.f, 1.f);
@@ -267,7 +257,7 @@ matrix::Vector2f RoverDifferentialControl::computeInverseKinematics(float forwar
 
 void RoverDifferentialControl::resetControllers()
 {
-	pid_reset_integral(&_pid_throttle);
-	pid_reset_integral(&_pid_yaw_rate);
-	pid_reset_integral(&_pid_yaw);
+	_pid_throttle.resetIntegral();
+	_pid_yaw_rate.resetIntegral();
+	_pid_yaw.resetIntegral();
 }

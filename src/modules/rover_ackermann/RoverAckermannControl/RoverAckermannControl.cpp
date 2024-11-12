@@ -41,27 +41,19 @@ RoverAckermannControl::RoverAckermannControl(ModuleParams *parent) : ModuleParam
 {
 	updateParams();
 	_rover_ackermann_status_pub.advertise();
-	pid_init(&_pid_throttle, PID_MODE_DERIVATIV_NONE, 0.001f);
-
 }
 
 void RoverAckermannControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	pid_set_parameters(&_pid_throttle,
-			   _param_ra_speed_p.get(), // Proportional gain
-			   _param_ra_speed_i.get(), // Integral gain
-			   0, // Derivative gain
-			   _param_ra_speed_i.get() > FLT_EPSILON ? 1.f / _param_ra_speed_i.get() : 0.f, // Integral limit
-			   1); // Output limit
+	_pid_throttle.setGains(_param_ra_speed_p.get(), _param_ra_speed_i.get(), 0.f);
+	_pid_throttle.setIntegralLimit(1.f);
+	_pid_throttle.setOutputLimit(1.f);
 
-	pid_set_parameters(&_pid_lat_accel,
-			   _param_ra_lat_accel_p.get(), // Proportional gain
-			   _param_ra_lat_accel_i.get(), // Integral gain
-			   0, // Derivative gain
-			   _param_ra_lat_accel_i.get() > FLT_EPSILON ? 1.f / _param_ra_lat_accel_i.get() : 0.f, // Integral limit
-			   1); // Output limit
+	_pid_lat_accel.setGains(_param_ra_lat_accel_p.get(), _param_ra_lat_accel_i.get(), 0.f);
+	_pid_lat_accel.setIntegralLimit(1.f);
+	_pid_lat_accel.setOutputLimit(1.f);
 
 	// Update slew rates
 	if (_param_ra_max_accel.get() > FLT_EPSILON && _param_ra_max_speed.get() > FLT_EPSILON) {
@@ -117,8 +109,8 @@ void RoverAckermannControl::computeMotorCommands(const float vehicle_forward_spe
 
 			if (sign(vehicle_forward_speed_temp) ==
 			    1) { // Only do closed loop control when driving forwards (backwards driving is non-minimum phase and can therefor introduce instability)
-				steering_setpoint += pid_calculate(&_pid_lat_accel, _rover_ackermann_setpoint.lateral_acceleration_setpoint,
-								   vehicle_lateral_acceleration, 0, dt);
+				_pid_lat_accel.setSetpoint(_rover_ackermann_setpoint.lateral_acceleration_setpoint);
+				steering_setpoint += _pid_lat_accel.update(vehicle_lateral_acceleration, dt);
 			}
 
 			_rover_ackermann_setpoint.steering_setpoint = math::constrain(steering_setpoint, -_param_ra_max_steer_angle.get(),
@@ -156,8 +148,8 @@ void RoverAckermannControl::computeMotorCommands(const float vehicle_forward_spe
 	_rover_ackermann_status.steering_setpoint_normalized = steering_normalized;
 	_rover_ackermann_status.adjusted_steering_setpoint_normalized = _steering_with_rate_limit.getState();
 	_rover_ackermann_status.measured_lateral_acceleration = vehicle_lateral_acceleration;
-	_rover_ackermann_status.pid_throttle_integral = _pid_throttle.integral *  _param_ra_speed_i.get();
-	_rover_ackermann_status.pid_lat_accel_integral = _pid_lat_accel.integral * _param_ra_lat_accel_i.get();
+	_rover_ackermann_status.pid_throttle_integral = _pid_throttle.getIntegral();
+	_rover_ackermann_status.pid_lat_accel_integral = _pid_lat_accel.getIntegral();
 	_rover_ackermann_status_pub.publish(_rover_ackermann_status);
 
 	// Publish to motor
@@ -218,8 +210,8 @@ float RoverAckermannControl::calcNormalizedSpeedSetpoint(const float forward_spe
 						   -1.f, 1.f);
 		}
 
-		forward_speed_normalized += pid_calculate(&_pid_throttle, _forward_speed_setpoint_with_accel_limit.getState(),
-					    vehicle_forward_speed, 0, dt); // Feedback
+		_pid_throttle.setSetpoint(_forward_speed_setpoint_with_accel_limit.getState());
+		forward_speed_normalized += _pid_throttle.update(vehicle_forward_speed, dt);
 	}
 
 	return math::constrain(forward_speed_normalized, -1.f, 1.f);
@@ -228,8 +220,8 @@ float RoverAckermannControl::calcNormalizedSpeedSetpoint(const float forward_spe
 
 void RoverAckermannControl::resetControllers()
 {
-	pid_reset_integral(&_pid_throttle);
-	pid_reset_integral(&_pid_lat_accel);
+	_pid_throttle.resetIntegral();
+	_pid_lat_accel.resetIntegral();
 	_forward_speed_setpoint_with_accel_limit.setForcedValue(0.f);
 	_steering_with_rate_limit.setForcedValue(0.f);
 

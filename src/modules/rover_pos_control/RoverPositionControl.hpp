@@ -48,7 +48,7 @@
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/pid/pid.h>
+#include <lib/pid/PID.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -128,8 +128,6 @@ private:
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
-	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
@@ -139,7 +137,7 @@ private:
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
-	PID_t _speed_ctrl{};
+	PID _speed_ctrl{};
 
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};		// captures the number of times the estimator has reset the horizontal position

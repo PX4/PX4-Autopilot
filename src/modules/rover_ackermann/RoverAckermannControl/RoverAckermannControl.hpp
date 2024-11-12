@@ -46,7 +46,7 @@
 #include <uORB/topics/actuator_servos.h>
 
 // Standard libraries
-#include <lib/pid/pid.h>
+#include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -114,8 +114,8 @@ private:
 	hrt_abstime _timestamp{0};
 
 	// Controllers
-	PID_t _pid_throttle; // The PID controller for the closed loop speed control
-	PID_t _pid_lat_accel; // The PID controller for the closed loop speed control
+	PID _pid_throttle; // The PID controller for the closed loop speed control
+	PID _pid_lat_accel; // The PID controller for the closed loop speed control
 	SlewRate<float> _steering_with_rate_limit{0.f};
 	SlewRate<float> _forward_speed_setpoint_with_accel_limit{0.f};
 

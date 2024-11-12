@@ -53,7 +53,7 @@
 #include <uORB/topics/rover_mecanum_setpoint.h>
 
 // Standard libraries
-#include <lib/pid/pid.h>
+#include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
 
 // Local includes

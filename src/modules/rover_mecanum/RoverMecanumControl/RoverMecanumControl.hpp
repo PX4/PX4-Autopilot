@@ -46,7 +46,7 @@
 
 
 // Standard libraries
-#include <lib/pid/pid.h>
+#include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -112,10 +112,10 @@ private:
 	float _max_yaw_rate{0.f};
 
 	// Controllers
-	PID_t _pid_forward_throttle; // PID for the closed loop forward speed control
-	PID_t _pid_lateral_throttle; // PID for the closed loop lateral speed control
-	PID_t _pid_yaw; // PID for the closed loop yaw control
-	PID_t _pid_yaw_rate; // PID for the closed loop yaw rate control
+	PID _pid_forward_throttle; // PID for the closed loop forward speed control
+	PID _pid_lateral_throttle; // PID for the closed loop lateral speed control
+	PID _pid_yaw; // PID for the closed loop yaw control
+	PID _pid_yaw_rate; // PID for the closed loop yaw rate control
 
 	// Parameters
 	DEFINE_PARAMETERS(
