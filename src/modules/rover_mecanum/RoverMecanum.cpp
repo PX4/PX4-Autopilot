@@ -81,7 +81,19 @@ void RoverMecanum::Run()
 				rover_mecanum_setpoint.lateral_speed_setpoint = NAN;
 				rover_mecanum_setpoint.lateral_speed_setpoint_normalized = manual_control_setpoint.roll;
 				rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
-				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = manual_control_setpoint.yaw * _param_rm_man_yaw_scale.get();
+
+				if (_max_yaw_rate > FLT_EPSILON && _param_rm_max_thr_yaw_r.get() > FLT_EPSILON) {
+					const float scaled_yaw_rate_input = math::interpolate<float>(manual_control_setpoint.yaw,
+									    -1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
+					const float speed_diff = scaled_yaw_rate_input * _param_rm_wheel_track.get() / 2.f;
+					rover_mecanum_setpoint.speed_diff_setpoint_normalized = math::interpolate<float>(speed_diff,
+							-_param_rm_max_thr_yaw_r.get(), _param_rm_max_thr_yaw_r.get(), -1.f, 1.f);
+
+				} else {
+					rover_mecanum_setpoint.speed_diff_setpoint_normalized = manual_control_setpoint.yaw;
+
+				}
+
 				rover_mecanum_setpoint.yaw_setpoint = NAN;
 				_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
 
@@ -100,7 +112,7 @@ void RoverMecanum::Run()
 				rover_mecanum_setpoint.lateral_speed_setpoint_normalized = manual_control_setpoint.roll;
 				rover_mecanum_setpoint.yaw_rate_setpoint = math::interpolate<float>(manual_control_setpoint.yaw,
 						-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_mecanum_setpoint.speed_diff_setpoint_normalized = NAN;
 				rover_mecanum_setpoint.yaw_setpoint = NAN;
 				_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
 			}
@@ -119,7 +131,7 @@ void RoverMecanum::Run()
 				rover_mecanum_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.yaw,
 						STICK_DEADZONE),
 						-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_mecanum_setpoint.speed_diff_setpoint_normalized = NAN;
 				rover_mecanum_setpoint.yaw_setpoint = NAN;
 
 				if (fabsf(rover_mecanum_setpoint.yaw_rate_setpoint) > FLT_EPSILON
@@ -157,7 +169,7 @@ void RoverMecanum::Run()
 				rover_mecanum_setpoint.yaw_rate_setpoint = math::interpolate<float>(math::deadzone(manual_control_setpoint.yaw,
 						STICK_DEADZONE),
 						-1.f, 1.f, -_max_yaw_rate, _max_yaw_rate);
-				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_mecanum_setpoint.speed_diff_setpoint_normalized = NAN;
 				rover_mecanum_setpoint.yaw_setpoint = NAN;
 
 				// Reset cruise control if the manual input changes
@@ -226,7 +238,7 @@ void RoverMecanum::Run()
 		rover_mecanum_setpoint.lateral_speed_setpoint = NAN;
 		rover_mecanum_setpoint.lateral_speed_setpoint_normalized = 0.f;
 		rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
-		rover_mecanum_setpoint.yaw_rate_setpoint_normalized = 0.f;
+		rover_mecanum_setpoint.speed_diff_setpoint_normalized = 0.f;
 		rover_mecanum_setpoint.yaw_setpoint = NAN;
 		_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
 		break;

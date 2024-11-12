@@ -4,19 +4,6 @@ parameters:
   - group: Rover Mecanum
     definitions:
 
-      RM_MAN_YAW_SCALE:
-        description:
-          short: Manual yaw rate scale
-          long: |
-            In Manual mode the setpoint for the yaw rate received from the control stick
-            is scaled by this value.
-        type: float
-        min: 0.01
-        max: 1
-        increment: 0.01
-        decimal: 2
-        default: 1
-
       RM_WHEEL_TRACK:
         description:
           short: Wheel track

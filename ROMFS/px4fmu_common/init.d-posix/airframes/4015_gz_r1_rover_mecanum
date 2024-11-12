@@ -13,7 +13,6 @@ param set-default SIM_GZ_EN 1 # Gazebo bridge
 
 # Rover parameters
 param set-default RM_WHEEL_TRACK 0.3
-param set-default RM_MAN_YAW_SCALE 0.1
 param set-default RM_YAW_RATE_I 0
 param set-default RM_YAW_RATE_P 0.01
 param set-default RM_MAX_ACCEL 3
@@ -41,23 +40,23 @@ param set-default SENS_EN_ARSPDSIM 0
 
 # Actuator mapping
 param set-default SIM_GZ_WH_FUNC1 102 # right wheel front
-param set-default SIM_GZ_WH_MIN1 0
-param set-default SIM_GZ_WH_MAX1 200
+param set-default SIM_GZ_WH_MIN1 70
+param set-default SIM_GZ_WH_MAX1 130
 param set-default SIM_GZ_WH_DIS1 100
 
 param set-default SIM_GZ_WH_FUNC2 101 # left wheel front
-param set-default SIM_GZ_WH_MIN2 0
-param set-default SIM_GZ_WH_MAX2 200
+param set-default SIM_GZ_WH_MIN2 70
+param set-default SIM_GZ_WH_MAX2 130
 param set-default SIM_GZ_WH_DIS2 100
 
 param set-default SIM_GZ_WH_FUNC3 104 # right wheel back
-param set-default SIM_GZ_WH_MIN3 0
-param set-default SIM_GZ_WH_MAX3 200
+param set-default SIM_GZ_WH_MIN3 70
+param set-default SIM_GZ_WH_MAX3 130
 param set-default SIM_GZ_WH_DIS3 100
 
 param set-default SIM_GZ_WH_FUNC4 103 # left wheel back
-param set-default SIM_GZ_WH_MIN4 0
-param set-default SIM_GZ_WH_MAX4 200
+param set-default SIM_GZ_WH_MIN4 70
+param set-default SIM_GZ_WH_MAX4 130
 param set-default SIM_GZ_WH_DIS4 100
 
 param set-default SIM_GZ_WH_REV 10
