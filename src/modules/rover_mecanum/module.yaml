@@ -173,17 +173,6 @@ parameters:
         decimal: 2
         default: 0.5
 
-      RM_MISS_SPD_DEF:
-        description:
-          short: Default rover speed during a mission
-        type: float
-        unit: m/s
-        min: 0
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 1
-
       RM_MISS_VEL_GAIN:
         description:
           short: Tuning parameter for the velocity reduction during waypoint transition

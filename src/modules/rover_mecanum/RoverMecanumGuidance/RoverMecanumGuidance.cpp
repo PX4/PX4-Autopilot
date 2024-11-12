@@ -41,7 +41,7 @@ using namespace time_literals;
 RoverMecanumGuidance::RoverMecanumGuidance(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
-	_max_velocity_magnitude = _param_rm_miss_spd_def.get();
+	_max_velocity_magnitude = _param_rm_max_speed.get();
 	_rover_mecanum_guidance_status_pub.advertise();
 }
 
@@ -195,13 +195,9 @@ void RoverMecanumGuidance::updateWaypoints()
 	_waypoint_transition_angle = acosf(cosin);
 
 	// Waypoint cruising speed
-	if (position_setpoint_triplet.current.cruising_speed > FLT_EPSILON) {
-		_max_velocity_magnitude = math::constrain(position_setpoint_triplet.current.cruising_speed, 0.f,
-					  _param_rm_max_speed.get());
-
-	} else {
-		_max_velocity_magnitude = _param_rm_miss_spd_def.get();
-	}
+	_max_velocity_magnitude = position_setpoint_triplet.current.cruising_speed > FLT_EPSILON ? math::constrain(
+					  position_setpoint_triplet.current.cruising_speed, 0.f,
+					  _param_rm_max_speed.get()) : _param_rm_max_speed.get();
 
 	// Waypoint yaw setpoint
 	if (PX4_ISFINITE(position_setpoint_triplet.current.yaw)) {
