@@ -243,14 +243,17 @@ void SeseOmni::Run()
 			// Transformation from NED to body frame
 			float sin_heading = sin(heading);
 			float cos_heading = cos(heading);
-			float velocity_x_body_frame = cos_heading * velocity_x_ned - sin_heading * velocity_y_ned;
-			float velocity_y_body_frame = sin_heading * velocity_x_ned + cos_heading * velocity_y_ned;
-			float acceleration_x_body_frame = cos_heading * acceleration_x_ned - sin_heading * acceleration_y_ned;
-			float acceleration_y_body_frame = sin_heading * acceleration_x_ned + cos_heading * acceleration_y_ned;
+			float velocity_x_body_frame = cos_heading * velocity_x_ned + sin_heading * velocity_y_ned;
+			float velocity_y_body_frame = -sin_heading * velocity_x_ned + cos_heading * velocity_y_ned;
+			float acceleration_x_body_frame = cos_heading * acceleration_x_ned + sin_heading * acceleration_y_ned;
+			float acceleration_y_body_frame = -sin_heading * acceleration_x_ned + cos_heading * acceleration_y_ned;
+
+			float velocity_x_setpoint_body_frame = cos_heading * velocity_x_setpoint + sin_heading * velocity_y_setpoint;
+			float velocity_y_setpoint_body_frame = -sin_heading * velocity_x_setpoint + cos_heading * velocity_y_setpoint;
 
 			thrust_setpoint.timestamp = now;
-			thrust_setpoint.xyz[0] = pid_calculate(&_x_velocity_pid, velocity_x_setpoint, velocity_x_body_frame, acceleration_x_body_frame, dt)*thrust_scaling.get();
-			thrust_setpoint.xyz[1] = pid_calculate(&_y_velocity_pid, velocity_y_setpoint, velocity_y_body_frame, acceleration_y_body_frame, dt)*thrust_scaling.get();
+			thrust_setpoint.xyz[0] = pid_calculate(&_x_velocity_pid, velocity_x_setpoint_body_frame, velocity_x_body_frame, acceleration_x_body_frame, dt)*thrust_scaling.get();
+			thrust_setpoint.xyz[1] = pid_calculate(&_y_velocity_pid, velocity_y_setpoint_body_frame, velocity_y_body_frame, acceleration_y_body_frame, dt)*thrust_scaling.get();
 			thrust_setpoint.xyz[2] = 0.0f;
 
 
