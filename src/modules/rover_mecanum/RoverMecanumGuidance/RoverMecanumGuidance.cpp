@@ -110,7 +110,7 @@ void RoverMecanumGuidance::computeGuidance(const float yaw, const int nav_state)
 	rover_mecanum_setpoint.lateral_speed_setpoint = desired_velocity(1);
 	rover_mecanum_setpoint.lateral_speed_setpoint_normalized = NAN;
 	rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
-	rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
+	rover_mecanum_setpoint.speed_diff_setpoint_normalized = NAN;
 	rover_mecanum_setpoint.yaw_setpoint = _desired_yaw;
 	_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
 }

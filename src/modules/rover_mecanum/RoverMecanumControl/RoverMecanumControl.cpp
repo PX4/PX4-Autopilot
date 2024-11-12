@@ -103,8 +103,8 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 							-1.f, 1.f); // Feedback
 
 	} else { // Use normalized setpoint
-		speed_diff_normalized = PX4_ISFINITE(_rover_mecanum_setpoint.yaw_rate_setpoint_normalized) ? math::constrain(
-						_rover_mecanum_setpoint.yaw_rate_setpoint_normalized, -1.f, 1.f) : 0.f;
+		speed_diff_normalized = PX4_ISFINITE(_rover_mecanum_setpoint.speed_diff_setpoint_normalized) ? math::constrain(
+						_rover_mecanum_setpoint.speed_diff_setpoint_normalized, -1.f, 1.f) : 0.f;
 	}
 
 	// Speed control

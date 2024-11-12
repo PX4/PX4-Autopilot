@@ -133,9 +133,10 @@ private:
 	bool _armed{false};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RM_MAX_SPEED>) _param_rm_max_speed,
-		(ParamFloat<px4::params::RM_MAN_YAW_SCALE>) _param_rm_man_yaw_scale,
-		(ParamFloat<px4::params::RM_MAX_YAW_RATE>) _param_rm_max_yaw_rate,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max
+		(ParamFloat<px4::params::RM_MAX_SPEED>)    _param_rm_max_speed,
+		(ParamFloat<px4::params::RM_WHEEL_TRACK>)   _param_rm_wheel_track,
+		(ParamFloat<px4::params::RM_MAX_THR_YAW_R>) _param_rm_max_thr_yaw_r,
+		(ParamFloat<px4::params::RM_MAX_YAW_RATE>)  _param_rm_max_yaw_rate,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
 	)
 };
