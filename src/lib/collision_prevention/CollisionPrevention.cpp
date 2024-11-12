@@ -42,46 +42,24 @@
 
 using namespace matrix;
 
-namespace
-{
-static constexpr int INTERNAL_MAP_INCREMENT_DEG = 10; //cannot be lower than 5 degrees, should divide 360 evenly
-static constexpr int INTERNAL_MAP_USED_BINS = 360 / INTERNAL_MAP_INCREMENT_DEG;
-
-static float wrap_360(float f)
-{
-	return wrap(f, 0.f, 360.f);
-}
-
-static int wrap_bin(int i)
-{
-	i = i % INTERNAL_MAP_USED_BINS;
-
-	while (i < 0) {
-		i += INTERNAL_MAP_USED_BINS;
-	}
-
-	return i;
-}
-
-} // namespace
-
 CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 	ModuleParams(parent)
 {
-	static_assert(INTERNAL_MAP_INCREMENT_DEG >= 5, "INTERNAL_MAP_INCREMENT_DEG needs to be at least 5");
-	static_assert(360 % INTERNAL_MAP_INCREMENT_DEG == 0, "INTERNAL_MAP_INCREMENT_DEG should divide 360 evenly");
+	static_assert(BIN_SIZE >= 5, "BIN_SIZE must be at least 5");
+	static_assert(360 % BIN_SIZE == 0, "BIN_SIZE must divide 360 evenly");
+	static_assert(sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0])
+		      >= BIN_COUNT, "BIN_COUNT must not overflow obstacle_distance.distances");
 
 	// initialize internal obstacle map
 	_obstacle_map_body_frame.timestamp = getTime();
 	_obstacle_map_body_frame.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
-	_obstacle_map_body_frame.increment = INTERNAL_MAP_INCREMENT_DEG;
+	_obstacle_map_body_frame.increment = BIN_SIZE;
 	_obstacle_map_body_frame.min_distance = UINT16_MAX;
 	_obstacle_map_body_frame.max_distance = 0;
 	_obstacle_map_body_frame.angle_offset = 0.f;
-	uint32_t internal_bins = sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0]);
-	uint64_t current_time = getTime();
+	const uint64_t current_time = getTime();
 
-	for (uint32_t i = 0 ; i < internal_bins; i++) {
+	for (uint32_t i = 0 ; i < BIN_COUNT_EXTERNAL; i++) {
 		_data_timestamps[i] = current_time;
 		_data_maxranges[i] = 0;
 		_data_fov[i] = 0;
@@ -121,9 +99,9 @@ CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 	if (obstacle.frame == obstacle.MAV_FRAME_GLOBAL || obstacle.frame == obstacle.MAV_FRAME_LOCAL_NED) {
 		// Obstacle message arrives in local_origin frame (north aligned)
 		// corresponding data index (convert to world frame and shift by msg offset)
-		for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
-			float bin_angle_deg = (float)i * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset;
-			msg_index = ceil(wrap_360(vehicle_orientation_deg + bin_angle_deg - obstacle.angle_offset) * increment_factor);
+		for (int i = 0; i < BIN_COUNT; i++) {
+			float bin_angle_deg = (float)i * BIN_SIZE + _obstacle_map_body_frame.angle_offset;
+			msg_index = ceil(_wrap_360(vehicle_orientation_deg + bin_angle_deg - obstacle.angle_offset) * increment_factor);
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
@@ -139,10 +117,10 @@ CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 	} else if (obstacle.frame == obstacle.MAV_FRAME_BODY_FRD) {
 		// Obstacle message arrives in body frame (front aligned)
 		// corresponding data index (shift by msg offset)
-		for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
-			float bin_angle_deg = (float)i * INTERNAL_MAP_INCREMENT_DEG +
+		for (int i = 0; i < BIN_COUNT; i++) {
+			float bin_angle_deg = (float)i * BIN_SIZE +
 					      _obstacle_map_body_frame.angle_offset;
-			msg_index = ceil(wrap_360(bin_angle_deg - obstacle.angle_offset) * increment_factor);
+			msg_index = ceil(_wrap_360(bin_angle_deg - obstacle.angle_offset) * increment_factor);
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
@@ -201,7 +179,7 @@ CollisionPrevention::_checkSetpointDirectionFeasability()
 {
 	bool setpoint_feasible = true;
 
-	for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
+	for (int i = 0; i < BIN_COUNT; i++) {
 		// check if our setpoint is either pointing in a direction where data exists, or if not, wether we are allowed to go where there is no data
 		if ((_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == _setpoint_index) && (!_param_cp_go_nodata.get()
 				|| (_param_cp_go_nodata.get() && _data_fov[i]))) {
@@ -219,9 +197,9 @@ CollisionPrevention::_transformSetpoint(const Vector2f &setpoint)
 	const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
 	_setpoint_dir = setpoint / setpoint.norm();;
 	const float sp_angle_body_frame = atan2f(_setpoint_dir(1), _setpoint_dir(0)) - vehicle_yaw_angle_rad;
-	const float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) -
+	const float sp_angle_with_offset_deg = _wrap_360(math::degrees(sp_angle_body_frame) -
 					       _obstacle_map_body_frame.angle_offset);
-	_setpoint_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
+	_setpoint_index = floor(sp_angle_with_offset_deg / BIN_SIZE);
 	// change setpoint direction slightly (max by _param_cp_guide_ang degrees) to help guide through narrow gaps
 	_adaptSetpointDirection(_setpoint_dir, _setpoint_index, vehicle_yaw_angle_rad);
 }
@@ -280,14 +258,13 @@ void CollisionPrevention::_updateObstacleData()
 	_closest_dist_dir.setZero();
 	const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
 
-	for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
-
+	for (int i = 0; i < BIN_COUNT; i++) {
 		// if the data is stale, reset the bin
 		if (getTime() - _data_timestamps[i] > RANGE_STREAM_TIMEOUT_US) {
 			_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 		}
 
-		float angle = wrap_2pi(vehicle_yaw_angle_rad + math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG +
+		float angle = wrap_2pi(vehicle_yaw_angle_rad + math::radians((float)i * BIN_SIZE +
 				       _obstacle_map_body_frame.angle_offset));
 		const Vector2f bin_direction = {cosf(angle), sinf(angle)};
 		uint bin_distance = _obstacle_map_body_frame.distances[i];
@@ -323,10 +300,8 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
 		// calculate the field of view boundary bin indices
-		int lower_bound = (int)floor((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) /
-					     INTERNAL_MAP_INCREMENT_DEG);
-		int upper_bound = (int)floor((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
-					     INTERNAL_MAP_INCREMENT_DEG);
+		int lower_bound = (int)floor((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
+		int upper_bound = (int)floor((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 
 		// floor values above zero, ceil values below zero
 		if (lower_bound < 0) { lower_bound++; }
@@ -345,7 +320,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		uint16_t sensor_range = static_cast<uint16_t>(100.0f * distance_sensor.max_distance + 0.5f); // convert to cm
 
 		for (int bin = lower_bound; bin <= upper_bound; ++bin) {
-			int wrapped_bin = wrap_bin(bin);
+			int wrapped_bin = _wrap_bin(bin);
 
 			if (_enterData(wrapped_bin, distance_sensor.max_distance, distance_reading)) {
 				_obstacle_map_body_frame.distances[wrapped_bin] = static_cast<uint16_t>(100.0f * distance_reading + 0.5f);
@@ -360,7 +335,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 void
 CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad)
 {
-	const int guidance_bins = floor(_param_cp_guide_ang.get() / INTERNAL_MAP_INCREMENT_DEG);
+	const int guidance_bins = floor(_param_cp_guide_ang.get() / BIN_SIZE);
 	const int sp_index_original = setpoint_index;
 	float best_cost = 9999.f;
 	int new_sp_index = setpoint_index;
@@ -372,7 +347,7 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 		float mean_dist = 0;
 
 		for (int j = i - filter_size; j <= i + filter_size; j++) {
-			int bin = wrap_bin(j);
+			int bin = _wrap_bin(j);
 
 			if (_obstacle_map_body_frame.distances[bin] == UINT16_MAX) {
 				mean_dist += _param_cp_dist.get() * 100.f;
@@ -382,7 +357,7 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 			}
 		}
 
-		const int bin = wrap_bin(i);
+		const int bin = _wrap_bin(i);
 		mean_dist = mean_dist / (2.f * filter_size + 1.f);
 		const float deviation_cost = _param_cp_dist.get() * 50.f * abs(i - sp_index_original);
 		const float bin_cost = deviation_cost - mean_dist - _obstacle_map_body_frame.distances[bin];
@@ -395,7 +370,7 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 
 	//only change setpoint direction if it was moved to a different bin
 	if (new_sp_index != setpoint_index) {
-		float angle = math::radians((float)new_sp_index * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
+		float angle = math::radians((float)new_sp_index * BIN_SIZE + _obstacle_map_body_frame.angle_offset);
 		angle = wrap_2pi(vehicle_yaw_angle_rad + angle);
 		setpoint_dir = {cosf(angle), sinf(angle)};
 		setpoint_index = new_sp_index;
@@ -509,8 +484,8 @@ float CollisionPrevention::_getObstacleDistance(const Vector2f &direction)
 		const float vehicle_yaw_angle_rad = Eulerf(Quatf(_sub_vehicle_attitude.get().q)).psi();
 		const float sp_angle_body_frame = atan2f(dir(1), dir(0)) - vehicle_yaw_angle_rad;
 		const float sp_angle_with_offset_deg =
-			wrap_360(math::degrees(sp_angle_body_frame) - _obstacle_map_body_frame.angle_offset);
-		int dir_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
+			_wrap_360(math::degrees(sp_angle_body_frame) - _obstacle_map_body_frame.angle_offset);
+		int dir_index = floor(sp_angle_with_offset_deg / BIN_SIZE);
 		dir_index = math::constrain(dir_index, 0, 71);
 		return _obstacle_map_body_frame.distances[dir_index] * 0.01f;
 
@@ -560,12 +535,12 @@ void CollisionPrevention::_getVelocityCompensationAcceleration(const float vehic
 		const Vector2f &setpoint_vel,
 		const hrt_abstime now, float &vel_comp_accel, Vector2f &vel_comp_accel_dir)
 {
-	for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
+	for (int i = 0; i < BIN_COUNT; i++) {
 		const float max_range = _data_maxranges[i] * 0.01f;
 
 		// get the vector pointing into the direction of current bin
-		float bin_angle = wrap_2pi(vehicle_yaw_angle_rad + math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG +
-					   _obstacle_map_body_frame.angle_offset));
+		float bin_angle = wrap_2pi(vehicle_yaw_angle_rad
+					   + math::radians((float)i * BIN_SIZE + _obstacle_map_body_frame.angle_offset));
 
 		const Vector2f bin_direction = { cosf(bin_angle), sinf(bin_angle) };
 		float bin_distance = _obstacle_map_body_frame.distances[i];
@@ -630,4 +605,20 @@ void CollisionPrevention::_publishVehicleCmdDoLoiter()
 	command.from_external = false;
 	command.timestamp = getTime();
 	_vehicle_command_pub.publish(command);
+}
+
+float CollisionPrevention::_wrap_360(const float f)
+{
+	return wrap(f, 0.f, 360.f);
+}
+
+int CollisionPrevention::_wrap_bin(int i)
+{
+	i = i % BIN_COUNT;
+
+	while (i < 0) {
+		i += BIN_COUNT;
+	}
+
+	return i;
 }

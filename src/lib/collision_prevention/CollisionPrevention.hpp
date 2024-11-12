@@ -81,12 +81,16 @@ public:
 	void modifySetpoint(matrix::Vector2f &setpoint_accel, const matrix::Vector2f &setpoint_vel);
 
 protected:
+	static constexpr int BIN_COUNT = 36;
+	static constexpr int BIN_SIZE = 360 / BIN_COUNT; // cannot be lower than 5 degrees, should divide 360 evenly
 
-	obstacle_distance_s _obstacle_map_body_frame {};
-	bool _data_fov[sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0])];
-	uint64_t _data_timestamps[sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0])];
-	uint16_t _data_maxranges[sizeof(_obstacle_map_body_frame.distances) / sizeof(
-										    _obstacle_map_body_frame.distances[0])]; /**< in cm */
+	obstacle_distance_s _obstacle_map_body_frame{};
+	static constexpr int BIN_COUNT_EXTERNAL =
+		sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0]);
+
+	bool _data_fov[BIN_COUNT_EXTERNAL];
+	uint64_t _data_timestamps[BIN_COUNT_EXTERNAL];
+	uint16_t _data_maxranges[BIN_COUNT_EXTERNAL]; /**< in cm */
 
 	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &vehicle_attitude);
 
@@ -154,9 +158,7 @@ protected:
 	virtual hrt_abstime getTime();
 	virtual hrt_abstime getElapsedTime(const hrt_abstime *ptr);
 
-
 private:
-
 	bool _data_stale{true}; 		/**< states if the data is stale */
 	bool _was_active{false};		/**< states if the collision prevention interferes with the user input */
 	bool _obstacle_data_present{false};	/**< states if obstacle data is present */
@@ -242,4 +244,6 @@ private:
 	 */
 	void _publishVehicleCmdDoLoiter();
 
+	static float _wrap_360(const float f);
+	static int _wrap_bin(int i);
 };
