@@ -81,6 +81,15 @@ public:
 	void modifySetpoint(matrix::Vector2f &setpoint_accel, const matrix::Vector2f &setpoint_vel);
 
 protected:
+	/** Aggregates the sensor data into an internal obstacle map in body frame */
+	void _updateObstacleMap();
+
+	/** Updates the obstacle data based on stale data and calculates values from the map */
+	void _updateObstacleData();
+
+	/** Calculate the constrained setpoint considering the current obstacle distances, acceleration setpoint and velocity setpoint */
+	void _calculateConstrainedSetpoint(matrix::Vector2f &setpoint_accel, const matrix::Vector2f &setpoint_vel);
+
 	static constexpr int BIN_COUNT = 36;
 	static constexpr int BIN_SIZE = 360 / BIN_COUNT; // cannot be lower than 5 degrees, should divide 360 evenly
 
@@ -104,11 +113,6 @@ protected:
 	 * @param vehicle_yaw_angle_rad, vehicle orientation
 	 */
 	void _adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad);
-
-	/**
-	 * Calculate the constrained setpoint cosdering the current obstacle distances, the current acceleration setpoint and velocity setpoint
-	 */
-	void _calculateConstrainedSetpoint(matrix::Vector2f &setpoint_accel, const matrix::Vector2f &setpoint_vel);
 
 	/**
 	 * Constrain the acceleration setpoint based on the distance to the obstacle
@@ -225,16 +229,6 @@ private:
 	 * @param obstacle, obstacle_distance message to be publsihed
 	 */
 	void _publishObstacleDistance(obstacle_distance_s &obstacle);
-
-	/**
-	 * Aggregates the sensor data into a internal obstacle map in body frame
-	 */
-	void _updateObstacleMap();
-
-	/**
-	 * Updates the obstacle data based on stale data and calculates values from the map
-	 */
-	void _updateObstacleData();
 
 	/**
 	 * Publishes vehicle command.
