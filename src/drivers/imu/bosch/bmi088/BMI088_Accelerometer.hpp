@@ -124,8 +124,13 @@ private:
 		{ Register::FIFO_WTM_1,            0, 0 },
 		{ Register::FIFO_CONFIG_0,         FIFO_CONFIG_0_BIT::BIT1_ALWAYS | FIFO_CONFIG_0_BIT::FIFO_mode, 0 },
 		{ Register::FIFO_CONFIG_1,         FIFO_CONFIG_1_BIT::BIT4_ALWAYS | FIFO_CONFIG_1_BIT::Acc_en, 0 },
+# if defined(CONFIG_BMI088_ACCELEROMETER_INT1)
 		{ Register::INT1_IO_CONF,          INT1_IO_CONF_BIT::int1_out, 0 },
 		{ Register::INT1_INT2_MAP_DATA,    INT1_INT2_MAP_DATA_BIT::int1_fwm, 0},
+# elif defined(CONFIG_BMI088_ACCELEROMETER_INT2)
+		{ Register::INT2_IO_CONF,	   INT2_IO_CONF_BIT::int2_out, 0 },
+		{ Register::INT1_INT2_MAP_DATA,	   INT1_INT2_MAP_DATA_BIT::int2_fwm, 0},
+# endif
 	};
 };
 
