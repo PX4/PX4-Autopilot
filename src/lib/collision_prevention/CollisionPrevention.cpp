@@ -51,18 +51,14 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 		      >= BIN_COUNT, "BIN_COUNT must not overflow obstacle_distance.distances");
 
 	// initialize internal obstacle map
-	_obstacle_map_body_frame.timestamp = getTime();
 	_obstacle_map_body_frame.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
 	_obstacle_map_body_frame.increment = BIN_SIZE;
 	_obstacle_map_body_frame.min_distance = UINT16_MAX;
-	_obstacle_map_body_frame.max_distance = 0;
-	_obstacle_map_body_frame.angle_offset = 0.f;
-	const uint64_t current_time = getTime();
+
+	static constexpr int BIN_COUNT_EXTERNAL =
+		sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0]);
 
 	for (uint32_t i = 0 ; i < BIN_COUNT_EXTERNAL; i++) {
-		_data_timestamps[i] = current_time;
-		_data_maxranges[i] = 0;
-		_data_fov[i] = 0;
 		_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 	}
 }
