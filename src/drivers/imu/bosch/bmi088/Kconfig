@@ -7,7 +7,7 @@ menuconfig DRIVERS_IMU_BOSCH_BMI088
 if DRIVERS_IMU_BOSCH_BMI088
 
 choice
-	prompt "BMI088 accelerometer intterupt pin"
+	prompt "BMI088 accelerometer interrupt pin"
 	default BMI088_ACCELEROMETER_INT1
 
 config BMI088_ACCELEROMETER_INT_NONE
