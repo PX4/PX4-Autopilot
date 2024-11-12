@@ -618,19 +618,16 @@ CollisionPrevention::modifySetpoint(Vector2f &setpoint_accel, const Vector2f &se
 void CollisionPrevention::_publishVehicleCmdDoLoiter()
 {
 	vehicle_command_s command{};
-	command.timestamp = getTime();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	command.param1 = (float)1; // base mode
-	command.param3 = (float)0; // sub mode
+	command.param1 = 1.f; // base mode VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED
+	command.param2 = (float)PX4_CUSTOM_MAIN_MODE_AUTO;
+	command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
 	command.target_system = 1;
 	command.target_component = 1;
 	command.source_system = 1;
 	command.source_component = 1;
 	command.confirmation = false;
 	command.from_external = false;
-	command.param2 = (float)PX4_CUSTOM_MAIN_MODE_AUTO;
-	command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-
-	// publish the vehicle command
+	command.timestamp = getTime();
 	_vehicle_command_pub.publish(command);
 }
