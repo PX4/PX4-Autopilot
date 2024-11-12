@@ -38,5 +38,3 @@ px4_add_library(PID
 target_include_directories(PID PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_unit_gtest(SRC PIDTest.cpp LINKLIBS PID)
-
-px4_add_library(pid pid.cpp) # TODO: remove deprecated pid library

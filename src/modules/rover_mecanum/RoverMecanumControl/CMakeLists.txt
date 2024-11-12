@@ -35,5 +35,5 @@ px4_add_library(RoverMecanumControl
 	RoverMecanumControl.cpp
 )
 
-target_link_libraries(RoverMecanumControl PUBLIC pid)
+target_link_libraries(RoverMecanumControl PUBLIC PID)
 target_include_directories(RoverMecanumControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

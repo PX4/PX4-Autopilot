@@ -47,7 +47,7 @@
 #include <lib/slew_rate/SlewRateYaw.hpp>
 
 // Standard libraries
-#include <lib/pid/pid.h>
+#include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -100,7 +100,7 @@ private:
 	 * @return Normalized speed differece setpoint with applied slew rates [-1, 1].
 	 */
 	float calcNormalizedSpeedDiff(float yaw_rate_setpoint, float vehicle_yaw_rate, float max_thr_yaw_r, float max_yaw_accel,
-				      float wheel_track, float dt, SlewRate<float> &yaw_rate_with_accel_limit, PID_t &pid_yaw_rate, bool normalized);
+				      float wheel_track, float dt, SlewRate<float> &yaw_rate_with_accel_limit, PID &pid_yaw_rate, bool normalized);
 	/**
 	 * @brief Compute normalized forward speed setpoint and apply slew rates.
 	 * to the forward speed setpoint and doing closed loop speed control if enabled.
@@ -116,7 +116,7 @@ private:
 	 * @return Normalized forward speed setpoint with applied slew rates [-1, 1].
 	 */
 	float calcNormalizedSpeedSetpoint(float forward_speed_setpoint, float vehicle_forward_speed, float max_thr_spd,
-					  SlewRate<float> &forward_speed_setpoint_with_accel_limit, PID_t &pid_throttle, float max_accel, float max_decel,
+					  SlewRate<float> &forward_speed_setpoint_with_accel_limit, PID &pid_throttle, float max_accel, float max_decel,
 					  float dt, bool normalized);
 
 	/**
@@ -142,9 +142,9 @@ private:
 	float _max_yaw_accel{0.f};
 
 	// Controllers
-	PID_t _pid_throttle; // Closed loop speed control
-	PID_t _pid_yaw;      // Closed loop yaw control
-	PID_t _pid_yaw_rate; // Closed loop yaw rate control
+	PID _pid_throttle; // Closed loop speed control
+	PID _pid_yaw;      // Closed loop yaw control
+	PID _pid_yaw_rate; // Closed loop yaw rate control
 	SlewRate<float> _forward_speed_setpoint_with_accel_limit{0.f};
 	SlewRate<float> _yaw_rate_with_accel_limit{0.f};
 	SlewRateYaw<float> _yaw_setpoint_with_yaw_rate_limit;
