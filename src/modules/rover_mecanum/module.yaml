@@ -29,6 +29,22 @@ parameters:
         decimal: 2
         default: 90
 
+      RM_MAX_YAW_ACCEL:
+        description:
+          short: Maximum allowed yaw acceleration for the rover
+          long: |
+            This parameter is used to cap desired yaw acceleration. This is used to adjust incoming yaw rate setpoints
+            to a feasible yaw rate setpoint based on the physical limitation on how fast the yaw rate can change.
+            This leads to a smooth setpoint trajectory for the closed loop yaw rate controller to track.
+            Set to -1 to disable.
+        type: float
+        unit: deg/s^2
+        min: -1
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: -1
+
       RM_MAX_THR_YAW_R:
         description:
           short: Yaw rate turning left/right wheels at max speed in opposite directions
@@ -159,6 +175,21 @@ parameters:
         increment: 0.01
         decimal: 2
         default: 0.5
+
+      RM_MAX_DECEL:
+        description:
+          short: Maximum deceleration
+          long: |
+            Maximum decelaration is used to limit the deceleration of the rover.
+            Set to -1 to disable, causing the rover to decelerate as fast as possible.
+            Caution: This disables the slow down effect in auto modes.
+        type: float
+        unit: m/s^2
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
 
       RM_MISS_VEL_GAIN:
         description:

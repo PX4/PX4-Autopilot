@@ -66,7 +66,7 @@ static constexpr float YAW_RATE_THRESHOLD =
 static constexpr float SPEED_THRESHOLD =
 	0.1f; // [m/s] Threshold for the speed measurement to cut off measurement noise when the rover is standing still
 static constexpr float STICK_DEADZONE =
-	0.3f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
+	0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
 
 using namespace time_literals;
 
