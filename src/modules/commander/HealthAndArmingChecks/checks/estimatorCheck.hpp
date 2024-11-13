@@ -119,6 +119,7 @@ private:
 					(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
 					(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
 					(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay,
-					(ParamFloat<px4::params::COM_POS_LOW_EPH>) _param_com_low_eph
+					(ParamFloat<px4::params::COM_POS_LOW_EPH>) _param_com_low_eph,
+					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act
 				       )
 };
