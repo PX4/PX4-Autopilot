@@ -218,6 +218,14 @@ int GZBridge::init()
 		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
 	}
 
+	// Distance Sensor(AFBRS50): optional
+	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
+				   "/link/lidar_sensor_link/sensor/lidar/scan";
+
+	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
+	}
+
 #if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
 	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
@@ -761,6 +769,49 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 	}
 
 	pthread_mutex_unlock(&_node_mutex);
+}
+void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	distance_sensor_s distance_sensor{};
+	distance_sensor.timestamp = hrt_absolute_time();
+	device::Device::DeviceId id;
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.bus = 0;
+	id.devid_s.address = 0;
+	id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+	distance_sensor.device_id = id.devid;
+	distance_sensor.min_distance = static_cast<float>(scan.range_min());
+	distance_sensor.max_distance = static_cast<float>(scan.range_max());
+	distance_sensor.current_distance = static_cast<float>(scan.ranges()[0]);
+	distance_sensor.variance = 0.0f;
+	distance_sensor.signal_quality = -1;
+	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+
+	gz::msgs::Quaternion pose_orientation = scan.world_pose().orientation();
+	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
+			pose_orientation.w(),
+			pose_orientation.x(),
+			pose_orientation.y(),
+			pose_orientation.z());
+
+	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
+	const gz::math::Quaterniond q_down(0, 1, 0, 0);
+
+	if (q_sensor.Equal(q_front, 0.03)) {
+		distance_sensor.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+
+	} else if (q_sensor.Equal(q_down, 0.03)) {
+		distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	} else {
+		distance_sensor.orientation = distance_sensor_s::ROTATION_CUSTOM;
+	}
+
+	_distance_sensor_pub.publish(distance_sensor);
 }
 
 void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
