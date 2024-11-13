@@ -148,7 +148,8 @@ private:
 		(ParamBool<px4::params::CP_GO_NO_DATA>) _param_cp_go_nodata, /**< movement allowed where no data*/
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, /**< vehicle maximum jerk*/
-		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor /**< vehicle maximum horizontal acceleration*/
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, /**< vehicle maximum horizontal acceleration*/
+		(ParamInt<px4::params::CP_NUM_SECTORS>) _param_cp_num_sectors /**< number of sectors for VFH algorithm */
 	)
 
 	/**
@@ -190,4 +191,18 @@ private:
 	 */
 	void _publishVehicleCmdDoLoiter();
 
+	/**
+	 * Implements the Vector Field Histogram (VFH) algorithm for obstacle avoidance.
+	 */
+	void _implementVFHAlgorithm();
+
+	/**
+	 * Applies negative force to push the drone away if within minimum distance.
+	 */
+	void _applyNegativeForce();
+
+	/**
+	 * Applies allowed components of the sticks vector while up against the invisible wall.
+	 */
+	void _applyAllowedComponents();
 };

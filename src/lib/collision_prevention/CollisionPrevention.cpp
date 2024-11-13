@@ -553,3 +553,24 @@ void CollisionPrevention::_publishVehicleCmdDoLoiter()
 	// publish the vehicle command
 	_vehicle_command_pub.publish(command);
 }
+
+void CollisionPrevention::_implementVFHAlgorithm()
+{
+	// Implement the Vector Field Histogram (VFH) algorithm for obstacle avoidance
+	// This method should be called within the _calculateConstrainedSetpoint method
+	// to adjust the setpoint based on the VFH algorithm
+}
+
+void CollisionPrevention::_applyNegativeForce()
+{
+	// Apply negative force to push the drone away if within minimum distance
+	// This method should be called within the _calculateConstrainedSetpoint method
+	// to apply the negative force based on the minimum distance
+}
+
+void CollisionPrevention::_applyAllowedComponents()
+{
+	// Apply allowed components of the sticks vector while up against the invisible wall
+	// This method should be called within the _calculateConstrainedSetpoint method
+	// to apply the allowed components based on the sticks vector
+}
