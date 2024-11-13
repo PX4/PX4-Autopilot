@@ -61,7 +61,6 @@ set(msg_files
 	CanInterfaceStatus.msg
 	CellularStatus.msg
 	CollisionConstraints.msg
-	CollisionReport.msg
 	ConfigOverrides.msg
 	ControlAllocatorStatus.msg
 	Cpuload.msg

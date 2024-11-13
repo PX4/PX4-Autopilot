@@ -97,10 +97,6 @@ menu "Zenoh publishers/subscribers"
 		bool "collision_constraints"
 		default n
 
-	config ZENOH_PUBSUB_COLLISION_REPORT
-		bool "collision_report"
-		default n
-
 	config ZENOH_PUBSUB_CONFIG_OVERRIDES
 		bool "config_overrides"
 		default n
