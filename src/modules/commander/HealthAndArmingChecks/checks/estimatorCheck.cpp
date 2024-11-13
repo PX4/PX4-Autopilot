@@ -704,11 +704,12 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 			 * This check can be configured via <param>COM_POS_LOW_EPH</param> and <param>COM_POS_LOW_ACT</param> parameters.
 			 * </profile>
 			 */
-			events::send(events::ID("check_estimator_low_position_accuracy"), {events::Log::Error, events::LogInternal::Info},
-				     "Local position estimate has low accuracy");
+			reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_low_position_accuracy"),
+						    events::Log::Error, "Position estimate has low accuracy");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_warning(reporter.mavlink_log_pub(), "Local position estimate has low accuracy\t");
+				mavlink_log_warning(reporter.mavlink_log_pub(), "Position estimate has low accuracy\t");
 			}
 		}
 	}
