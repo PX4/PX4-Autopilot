@@ -169,7 +169,7 @@ void CollisionPrevention::_updateObstacleData()
 		float angle = wrap_2pi(_vehicle_yaw + math::radians((float)i * BIN_SIZE +
 				       _obstacle_map_body_frame.angle_offset));
 		const Vector2f bin_direction = {cosf(angle), sinf(angle)};
-		uint bin_distance = _obstacle_map_body_frame.distances[i];
+		const uint16_t bin_distance = _obstacle_map_body_frame.distances[i];
 
 		// check if there is avaliable data and the data of the map is not stale
 		if (bin_distance < UINT16_MAX
@@ -191,18 +191,19 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel
 
 	const hrt_abstime now = getTime();
 
-	float vel_comp_accel = INFINITY;
-	Vector2f vel_comp_accel_dir{};
-	Vector2f constr_accel_setpoint{};
-
 	const bool is_stick_deflected = setpoint_length > 0.001f;
 
 	if (_obstacle_data_present && is_stick_deflected) {
 
 		_transformSetpoint(setpoint_accel);
 
+		float vel_comp_accel = INFINITY;
+		Vector2f vel_comp_accel_dir{};
+
 		_getVelocityCompensationAcceleration(_vehicle_yaw, setpoint_vel, now,
 						     vel_comp_accel, vel_comp_accel_dir);
+
+		Vector2f constr_accel_setpoint{};
 
 		if (_checkSetpointDirectionFeasability()) {
 			constr_accel_setpoint = _constrainAccelerationSetpoint(setpoint_length);
@@ -210,11 +211,8 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel
 
 		setpoint_accel = constr_accel_setpoint + vel_comp_accel * vel_comp_accel_dir;
 
-	} else if (!_obstacle_data_present)
-
-	{
+	} else if (!_obstacle_data_present) {
 		// allow no movement
-		PX4_WARN("No obstacle data, not moving...");
 		setpoint_accel.setZero();
 
 		// if distance data is stale, switch to Loiter
@@ -224,7 +222,8 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint_accel
 				_publishVehicleCmdDoLoiter();
 			}
 
-			_last_timeout_warning = getTime();
+			PX4_WARN("No obstacle data, not moving...");
+			_last_timeout_warning = now;
 		}
 	}
 }
@@ -263,7 +262,6 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
-
 				if (_enterData(i, obstacle.max_distance * 0.01f, obstacle.distances[msg_index] * 0.01f)) {
 					_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
 					_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
@@ -354,8 +352,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 	}
 
 	// discard values below min range
-	if ((distance_reading > distance_sensor.min_distance)) {
-
+	if (distance_reading > distance_sensor.min_distance) {
 		float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, _obstacle_map_body_frame.angle_offset);
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
@@ -440,7 +437,7 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 float
 CollisionPrevention::_sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset) const
 {
-	float offset = angle_offset > 0.0f ? math::radians(angle_offset) : 0.0f;
+	float offset = math::max(math::radians(angle_offset), 0.f);
 
 	switch (distance_sensor.orientation) {
 	case distance_sensor_s::ROTATION_YAW_0:
