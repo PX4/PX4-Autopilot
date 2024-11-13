@@ -47,18 +47,13 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 {
 	static_assert(BIN_SIZE >= 5, "BIN_SIZE must be at least 5");
 	static_assert(360 % BIN_SIZE == 0, "BIN_SIZE must divide 360 evenly");
-	static_assert(sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0])
-		      >= BIN_COUNT, "BIN_COUNT must not overflow obstacle_distance.distances");
 
 	// initialize internal obstacle map
 	_obstacle_map_body_frame.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
 	_obstacle_map_body_frame.increment = BIN_SIZE;
 	_obstacle_map_body_frame.min_distance = UINT16_MAX;
 
-	static constexpr int BIN_COUNT_EXTERNAL =
-		sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0]);
-
-	for (uint32_t i = 0 ; i < BIN_COUNT_EXTERNAL; i++) {
+	for (uint32_t i = 0 ; i < BIN_COUNT; i++) {
 		_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 	}
 }
@@ -523,6 +518,7 @@ CollisionPrevention::_sensorOrientationToYawOffset(const distance_sensor_s &dist
 
 float CollisionPrevention::_getObstacleDistance(const Vector2f &direction)
 {
+	float obstacle_distance = 0.f;
 	const float direction_norm = direction.norm();
 
 	if (direction_norm > FLT_EPSILON) {
@@ -531,12 +527,11 @@ float CollisionPrevention::_getObstacleDistance(const Vector2f &direction)
 		const float sp_angle_with_offset_deg =
 			_wrap_360(math::degrees(sp_angle_body_frame) - _obstacle_map_body_frame.angle_offset);
 		int dir_index = floor(sp_angle_with_offset_deg / BIN_SIZE);
-		dir_index = math::constrain(dir_index, 0, 71);
-		return _obstacle_map_body_frame.distances[dir_index] * 0.01f;
-
-	} else {
-		return 0.f;
+		dir_index = math::constrain(dir_index, 0, BIN_COUNT - 1);
+		obstacle_distance = _obstacle_map_body_frame.distances[dir_index] * 0.01f;
 	}
+
+	return obstacle_distance;
 }
 
 Vector2f

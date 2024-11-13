@@ -80,7 +80,8 @@ public:
 	 */
 	void modifySetpoint(matrix::Vector2f &setpoint_accel, const matrix::Vector2f &setpoint_vel);
 
-	static constexpr int BIN_COUNT = 72;
+	static constexpr int BIN_COUNT =
+		sizeof(obstacle_distance_s::distances) / sizeof(obstacle_distance_s::distances[0]); // 72
 	static constexpr int BIN_SIZE = 360 / BIN_COUNT; // cannot be lower than 5 degrees, should divide 360 evenly
 
 protected:
