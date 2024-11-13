@@ -8,11 +8,7 @@
  *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 2. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -1205,4 +1201,64 @@ TEST_F(CollisionPreventionTest, enterData)
 	EXPECT_TRUE(cp.test_enterData(8, 20.f, 21.f)); //same range, reading out of range
 	EXPECT_TRUE(cp.test_enterData(8, 30.f, 1.5f)); //longer range, reading in range
 	EXPECT_TRUE(cp.test_enterData(8, 30.f, 31.f)); //longer range, reading out of range
+}
+
+TEST_F(CollisionPreventionTest, testVFHAlgorithm)
+{
+	// GIVEN: a simple setup condition
+	TestCollisionPrevention cp;
+	matrix::Vector2f original_setpoint(10, 0);
+	float max_speed = 3;
+	matrix::Vector2f curr_pos(0, 0);
+	matrix::Vector2f curr_vel(2, 0);
+	vehicle_attitude_s attitude;
+	attitude.timestamp = hrt_absolute_time();
+	attitude.q[0] = 1.0f;
+	attitude.q[1] = 0.0f;
+	attitude.q[2] = 0.0f;
+	attitude.q[3] = 0.0f;
+
+	// AND: a parameter handle
+	param_t param = param_handle(px4::params::CP_DIST);
+	float value = 10; // try to keep 10m distance
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	// AND: an obstacle message
+	obstacle_distance_s message;
+	memset(&message, 0xDEAD, sizeof(message));
+	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
+	message.min_distance = 100;
+	message.max_distance = 10000;
+	message.angle_offset = 0;
+	message.timestamp = hrt_absolute_time();
+	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
+	message.increment = 360 / distances_array_size;
+
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i < 10) {
+			message.distances[i] = 101;
+
+		} else {
+			message.distances[i] = 10001;
+		}
+
+	}
+
+	// WHEN: we publish the message and set the parameter and then run the setpoint modification
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
+	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+	matrix::Vector2f modified_setpoint = original_setpoint;
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	orb_unadvertise(obstacle_distance_pub);
+	orb_unadvertise(vehicle_attitude_pub);
+
+	// THEN: the internal map should know the obstacle
+	EXPECT_FLOAT_EQ(cp.getObstacleMap().min_distance, 100);
+	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
+
+	// THEN: the velocity setpoint should be adjusted by the VFH algorithm
+	EXPECT_FLOAT_EQ(modified_setpoint.norm(), 0.f);
 }
