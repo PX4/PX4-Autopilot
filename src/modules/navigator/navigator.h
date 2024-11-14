@@ -424,10 +424,11 @@ private:
 		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and RTL)*/
 
 		// non-navigator parameters: Mission (MIS_*)
-		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
-		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
-		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
-		(ParamFloat<px4::params::MIS_PD_TO>)       _param_mis_payload_delivery_timeout,
-		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt
+		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>)    _param_mis_takeoff_alt,
+		(ParamFloat<px4::params::MIS_YAW_TMT>)        _param_mis_yaw_tmt,
+		(ParamFloat<px4::params::MIS_YAW_ERR>)        _param_mis_yaw_err,
+		(ParamFloat<px4::params::MIS_PD_TO>)          _param_mis_payload_delivery_timeout,
+		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)     _param_mis_lnd_abrt_alt,
+		(ParamFloat<px4::params::MIS_GIM_WAIT_T>)  _param_mis_gimbal_wait_t
 	)
 };

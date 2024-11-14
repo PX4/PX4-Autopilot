@@ -81,7 +81,6 @@ MissionBlock::is_mission_item_reached_or_completed()
 	case NAV_CMD_DO_CONTROL_VIDEO:
 	case NAV_CMD_DO_MOUNT_CONFIGURE:
 	case NAV_CMD_DO_MOUNT_CONTROL:
-	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
 	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 	case NAV_CMD_DO_SET_ROI:
 	case NAV_CMD_DO_SET_ROI_LOCATION:
@@ -159,6 +158,19 @@ MissionBlock::is_mission_item_reached_or_completed()
 			// We are still waiting for the acknowledgement / execution of deploy
 			return false;
 		}
+
+	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW: {
+			const float gimbal_command_elasped_time_s = (now - _gimbal_command_time) * 1E-6f;
+			if (gimbal_command_elasped_time_s > _gimbal_wait_time) {
+				PX4_DEBUG("Waited %.2f seconds for the gimbal to reach the desired orientation, resuming mission!", (double) _gimbal_wait_time);
+				return true;
+
+			}
+
+			// We are still waiting the desired delay for the gimbal
+			return false;
+		}
+
 
 	case NAV_CMD_DO_GRIPPER: {
 			const float payload_deploy_elasped_time_s = (now - _payload_deployed_time) * 1E-6f;
@@ -595,6 +607,13 @@ MissionBlock::issue_command(const mission_item_s &item)
 			}
 		}
 
+		// Register the Gimbal control command (NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW) timestamp so to wait
+		// for the gimbal to reach the desired position
+		if (item.nav_cmd == NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW)
+		{
+			_gimbal_command_time = hrt_absolute_time();
+		}
+
 		_navigator->publish_vehicle_cmd(&vcmd);
 	}
 }
@@ -619,10 +638,13 @@ MissionBlock::get_time_inside(const mission_item_s &item) const
 // and shouldn't have a timeout defined as it is a DO_* command. It should rather be defined as CONDITION_GRIPPER
 // or so, and have a function named 'item_is_conditional'
 // Reference: https://mavlink.io/en/services/mission.html#mavlink_commands
+// A similar condition applies to DO_GIMBAL_MANAGER_PITCHYAW
 bool
 MissionBlock::item_has_timeout(const mission_item_s &item)
 {
-	return item.nav_cmd == NAV_CMD_DO_WINCH || item.nav_cmd == NAV_CMD_DO_GRIPPER;
+	return item.nav_cmd == NAV_CMD_DO_WINCH ||
+	       item.nav_cmd == NAV_CMD_DO_GRIPPER ||
+	       item.nav_cmd == NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW;
 }
 
 bool
