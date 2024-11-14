@@ -155,3 +155,16 @@ PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_LND_ABRT_ALT, 30);
+
+/**
+ * Time in seconds allowed for the gimbal to reach its commanded attitude before the mission resumes.
+ *
+ * Time allocated for a gimbal command to execute within a mission before resuming.
+ * This ensures the gimbal has reached the commanded orientation before beginning to take pictures.
+ *
+ * @unit s
+ * @min 0
+ * @decimal 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_GIM_WAIT_T, 0.0f);

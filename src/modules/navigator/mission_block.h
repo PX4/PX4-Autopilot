@@ -134,6 +134,19 @@ public:
 	}
 
 	/**
+	 * @brief Set the gimbal wait time
+	 *
+	 * Accessed in Navigator to set the appropriate time to wait for the gimbal to reach
+	 * the desired orientation before resuming the mission
+	 *
+	 * @param wait_time Wait time in seconds
+	 */
+	void set_gimbal_wait_time(const float wait_time)
+	{
+		_gimbal_wait_time = wait_time;
+	}
+
+	/**
 	 * Copies position from setpoint if valid, otherwise copies current position
 	 */
 	void copy_position_if_valid(struct mission_item_s *const mission_item,
@@ -251,6 +264,10 @@ protected:
 	bool _payload_deploy_ack_successful{false};	// Flag to keep track of whether we received an acknowledgement for a successful payload deployment
 	hrt_abstime _payload_deployed_time{0};		// Last payload deployment start time to handle timeouts
 	float _payload_deploy_timeout_s{0.0f};		// Timeout for payload deployment in Mission class, to prevent endless loop if successful deployment ack is never received
+
+	/* Gimbal commands time variables are used in case of NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW to wait for the gimbal movement */
+	hrt_abstime _gimbal_command_time{0};		// Last gimbal command timestamp
+	float _gimbal_wait_time{0.0f};			// Time to wait for the gimbal to reach the desired configuration
 
 private:
 	void updateMaxHaglFailsafe();
