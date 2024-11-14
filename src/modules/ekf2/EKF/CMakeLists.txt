@@ -155,6 +155,7 @@ target_link_libraries(ecl_EKF
 	PRIVATE
 		bias_estimator
 		geo
+		lat_lon_alt
 		output_predictor
 		world_magnetic_model
 		${EKF_LIBS}
