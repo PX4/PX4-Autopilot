@@ -64,6 +64,9 @@ public:
 		float yaw_throttle_scale;
 		float yaw_sign;
 		float spoolup_time;
+		int linearize_servos;
+		float max_sevo_height;
+		float inverse_max_servo_throw;
 	};
 
 	ActuatorEffectivenessHelicopter(ModuleParams *parent, ActuatorType tail_actuator_type);
@@ -84,6 +87,7 @@ public:
 private:
 	float throttleSpoolupProgress();
 	bool mainMotorEnaged();
+	float getLinearServoOutput(float input) const;
 
 	void updateParams() override;
 
@@ -114,6 +118,9 @@ private:
 		param_t yaw_throttle_scale;
 		param_t yaw_ccw;
 		param_t spoolup_time;
+		param_t linearize_servos;
+		param_t max_sevo_throw;
+		param_t inverse_max_servo_throw;
 	};
 	ParamHandles _param_handles{};
 
