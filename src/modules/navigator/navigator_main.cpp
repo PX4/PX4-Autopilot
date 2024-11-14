@@ -117,6 +117,7 @@ Navigator::Navigator() :
 
 	// Update the timeout used in mission_block (which can't hold it's own parameters)
 	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+	_mission.set_gimbal_wait_time(_param_mis_gimbal_wait_t.get());
 
 	_adsb_conflict.set_conflict_detection_params(_param_nav_traff_a_hor_ct.get(),
 			_param_nav_traff_a_ver.get(),
@@ -150,6 +151,8 @@ void Navigator::params_update()
 	}
 
 	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+	_mission.set_gimbal_wait_time(_param_mis_gimbal_wait_t.get());
+
 }
 
 void Navigator::run()
