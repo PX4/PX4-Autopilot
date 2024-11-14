@@ -53,15 +53,9 @@ if ver hwbasecmp 008 009 00a 010 011
 then
 	#SKYNODE base fmu board orientation
 
-	if ver hwtypecmp V5X000 V5X001
-	then
-		# Internal SPI BMI088
-		bmi088 -A -R 2 -s start
-		bmi088 -G -R 2 -s start
-	else
-		# Internal SPI bus ICM20649
-		icm20649 -s -R 4 start
-	fi
+	# Internal SPI BMI088
+	bmi088 -A -R 2 -s start
+	bmi088 -G -R 2 -s start
 
 	# Internal SPI bus ICM42688p
 	icm42688p -R 4 -s start
@@ -78,15 +72,9 @@ then
 else
 	#FMUv5Xbase board orientation
 
-	if ver hwtypecmp V5X000 V5X001
-	then
-		# Internal SPI BMI088
-		bmi088 -A -R 4 -s start
-		bmi088 -G -R 4 -s start
-	else
-		# Internal SPI bus ICM20649
-		icm20649 -s -R 6 start
-	fi
+	# Internal SPI BMI088
+	bmi088 -A -R 4 -s start
+	bmi088 -G -R 4 -s start
 
 	# Internal SPI bus ICM42688p
 	icm42688p -R 6 -s start
