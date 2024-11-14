@@ -65,6 +65,7 @@
 #include <drivers/drv_hrt.h>        // to get the real time
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -162,6 +163,19 @@ private:
 	void generate_fw_aerodynamics();
 	void generate_ts_aerodynamics();
 	void sensor_step();
+	float computeGravity(double lat);
+
+	void ecefToNed();
+	static matrix::Vector3d llaToEcef(double lat, double lon, double alt);
+	matrix::Dcmf computeRotEcefToNed(const double lat, const double lon, const double alt);
+
+	struct Wgs84 {
+		static constexpr double equatorial_radius = 6378137.0;
+		static constexpr double eccentricity = 0.0818191908425;
+		static constexpr double eccentricity2 = eccentricity * eccentricity;
+		static constexpr double gravity_equator = 9.7803253359;
+	};
+
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -185,19 +199,28 @@ private:
 	bool        _grounded{true};// whether the vehicle is on the ground
 
 	matrix::Vector3f    _T_B{};           // thrust force in body frame [N]
-	matrix::Vector3f    _Fa_I{};          // aerodynamic force in inertial frame [N]
 	matrix::Vector3f    _Mt_B{};          // thruster moments in the body frame [Nm]
 	matrix::Vector3f    _Ma_B{};          // aerodynamic moments in the body frame [Nm]
-	matrix::Vector3f    _p_I{};           // inertial position [m]
-	matrix::Vector3f    _v_I{};           // inertial velocity [m/s]
-	matrix::Vector3f    _v_B{};           // body frame velocity [m/s]
-	matrix::Vector3f    _p_I_dot{};       // inertial position differential
-	matrix::Vector3f    _v_I_dot{};       // inertial velocity differential
-	matrix::Quatf       _q{};             // quaternion attitude
-	matrix::Dcmf        _C_IB{};          // body to inertial transformation
+	matrix::Vector3f    _lpos{};          // position in a local tangent-plane frame [m]
+	matrix::Vector3f    _v_N{};           // velocity in local navigation frame (NED, body-fixed) [m/s]
+	matrix::Vector3f    _v_N_dot{};       // time derivative of velocity in local navigation frame [m/s2]
+	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
 	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
-	matrix::Quatf       _dq{};            // quaternion differential
-	matrix::Vector3f    _w_B_dot{};       // body rates differential
+
+	double              _lat{0.0};
+	double              _lon{0.0};
+	double              _alt{0.0};
+
+	// Quantities in Earth-centered-Earth-fixed coordinates
+	matrix::Vector3f    _Fa_E{};          // aerodynamic force in ECEF frame [N]
+	matrix::Vector3f    _gravity_E{};
+	matrix::Vector3f    _coriolis_E{};
+	matrix::Quatf       _q_E{};
+	matrix::Vector3d    _p_E{};
+	matrix::Vector3f    _v_E{};
+	matrix::Vector3f    _v_E_dot{};
+	matrix::Dcmf        _R_N2E;           // local navigation to ECEF frame rotation matrix
+
 	float       _u[NB_MOTORS] {};         // thruster signals
 
 	enum class VehicleType {MC, FW, TS};
@@ -218,7 +241,7 @@ private:
 	static constexpr const float TS_CM = 0.115f;	// longitudinal position of the CM from trailing edge
 	static constexpr const float TS_RP = 0.0625f;	// propeller radius [m]
 	static constexpr const float TS_DEF_MAX = math::radians(39.0f); 	// max deflection
-	matrix::Dcmf _C_BS = matrix::Dcmf(matrix::Eulerf(0.0f, math::radians(90.0f), 0.0f)); // segment to body 90 deg pitch
+	matrix::Dcmf _R_S2B = matrix::Dcmf(matrix::Eulerf(0.0f, math::radians(90.0f), 0.0f)); // segment to body 90 deg pitch
 	AeroSeg _ts[NB_TS_SEG] = {
 		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM, -0.239f, 0.0f), 0.0f, TS_AR),
 		AeroSeg(0.0383f, 0.125f, 0.0f, matrix::Vector3f(0.094f - TS_CM, -0.208f, 0.0f), 0.0f, TS_AR, 0.063f),
@@ -248,9 +271,9 @@ private:
 	// 	};
 
 	// parameters
-	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _H0, _T_TAU;
-	double _LAT0, _LON0, _COS_LAT0;
-	matrix::Vector3f _W_I;  // weight of the vehicle in inertial frame [N]
+	MapProjection _lpos_ref{};
+	float _lpos_ref_alt;
+	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 

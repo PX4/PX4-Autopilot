@@ -68,8 +68,8 @@ void Sih::run()
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
 
-	parameters_updated();
 	init_variables();
+	parameters_updated();
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
@@ -241,15 +241,29 @@ void Sih::parameters_updated()
 	_L_PITCH = _sih_l_pitch.get();
 	_KDV = _sih_kdv.get();
 	_KDW = _sih_kdw.get();
-	_H0 = _sih_h0.get();
 
-	_LAT0 = (double)_sih_lat0.get();
-	_LON0 = (double)_sih_lon0.get();
-	_COS_LAT0 = cosl((long double)radians(_LAT0));
+	if (!_lpos_ref.isInitialized()
+	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
+	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
+	    || (fabsf(_lpos_ref_alt - _sih_h0.get()) > FLT_EPSILON)) {
+		_lpos_ref.initReference(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
+		_lpos_ref_alt = _sih_h0.get();
+
+		// Reset earth position, velocity and attitude
+		_lat = radians(static_cast<double>(_sih_lat0.get()));
+		_lon = radians(static_cast<double>(_sih_lon0.get()));
+		_alt = static_cast<double>(_lpos_ref_alt);
+		_p_E = llaToEcef(_lat, _lon, _alt);
+
+		const Dcmf R_E2N = computeRotEcefToNed(_lat, _lon, _alt);
+		_R_N2E = R_E2N.transpose();
+		_v_E = _R_N2E * _v_N;
+
+		_q_E = Quatf(_R_N2E) * _q;
+		_q_E.normalize();
+	}
 
 	_MASS = _sih_mass.get();
-
-	_W_I = Vector3f(0.0f, 0.0f, _MASS * CONSTANTS_ONE_G);
 
 	_I = diag(Vector3f(_sih_ixx.get(), _sih_iyy.get(), _sih_izz.get()));
 	_I(0, 1) = _I(1, 0) = _sih_ixy.get();
@@ -270,9 +284,12 @@ void Sih::init_variables()
 {
 	srand(1234);    // initialize the random seed once before calling generate_wgn()
 
-	_p_I = Vector3f(0.0f, 0.0f, 0.0f);
-	_v_I = Vector3f(0.0f, 0.0f, 0.0f);
+	_lpos = Vector3f(0.0f, 0.0f, 0.0f);
+	_v_N = Vector3f(0.0f, 0.0f, 0.0f);
+	_p_E = Vector3d(Wgs84::equatorial_radius, 0.0, 0.0);
+	_v_E = Vector3f(0.0f, 0.0f, 0.0f);
 	_q = Quatf(1.0f, 0.0f, 0.0f, 0.0f);
+	_q_E = Quatf(Eulerf(0.f, -M_PI_2_F, 0.f));
 	_w_B = Vector3f(0.0f, 0.0f, 0.0f);
 
 	_u[0] = _u[1] = _u[2] = _u[3] = 0.0f;
@@ -304,7 +321,7 @@ void Sih::generate_force_and_torques()
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
-		_Fa_I = -_KDV * _v_I;   // first order drag to slow down the aircraft
+		_Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
 		_Ma_B = -_KDW * _w_B;   // first order angular damper
 
 	} else if (_vehicle == VehicleType::FW) {
@@ -318,24 +335,24 @@ void Sih::generate_force_and_torques()
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (_u[1] - _u[0]), 0.0f, _Q_MAX * (_u[1] - _u[0]));
 		generate_ts_aerodynamics();
 
-		// _Fa_I = -_KDV * _v_I;   // first order drag to slow down the aircraft
+		// _Fa_E = -_KDV * _v_E;   // first order drag to slow down the aircraft
 		// _Ma_B = -_KDW * _w_B;   // first order angular damper
 	}
 }
 
 void Sih::generate_fw_aerodynamics()
 {
-	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
-	float altitude = _H0 - _p_I(2);
-	_wing_l.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
-	_wing_r.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
-	_tailplane.update_aero(_v_B, _w_B, altitude, -_u[1]*FLAP_MAX, _T_MAX * _u[3]);
-	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
-	_fuselage.update_aero(_v_B, _w_B, altitude);
+	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
+	_wing_l.update_aero(v_B, _w_B, _alt, -_u[0]*FLAP_MAX);
+	_wing_r.update_aero(v_B, _w_B, _alt, _u[0]*FLAP_MAX);
+	_tailplane.update_aero(v_B, _w_B, _alt, -_u[1]*FLAP_MAX, _T_MAX * _u[3]);
+	_fin.update_aero(v_B, _w_B, _alt, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
+	_fuselage.update_aero(v_B, _w_B, _alt);
 
 	// sum of aerodynamic forces
-	_Fa_I = _C_IB * (_wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa()) - _KDV
-		* _v_I;
+	const Vector3f Fa_B = _wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa() -
+			      _KDV * v_B;
+	_Fa_E = _q_E.rotateVector(Fa_B);
 
 	// aerodynamic moments
 	_Ma_B = _wing_l.get_Ma() + _wing_r.get_Ma() + _tailplane.get_Ma() + _fin.get_Ma() + _fuselage.get_Ma() - _KDW * _w_B;
@@ -344,12 +361,12 @@ void Sih::generate_fw_aerodynamics()
 void Sih::generate_ts_aerodynamics()
 {
 	// velocity in body frame [m/s]
-	_v_B = _C_IB.transpose() * _v_I;
+	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
 
 	// the aerodynamic is resolved in a frame like a standard aircraft (nose-right-belly)
-	Vector3f v_ts = _C_BS.transpose() * _v_B;
-	Vector3f w_ts = _C_BS.transpose() * _w_B;
-	float altitude = _H0 - _p_I(2);
+	Vector3f v_ts = _R_S2B.transpose() * v_B;
+	Vector3f w_ts = _R_S2B.transpose() * _w_B;
+	float altitude = _lpos_ref_alt - _lpos(2);
 
 	Vector3f Fa_ts{};
 	Vector3f Ma_ts{};
@@ -366,49 +383,63 @@ void Sih::generate_ts_aerodynamics()
 		Ma_ts += _ts[i].get_Ma();
 	}
 
-	_Fa_I = _C_IB * _C_BS * Fa_ts - _KDV * _v_I; 	// sum of aerodynamic forces
-	_Ma_B = _C_BS * Ma_ts - _KDW * _w_B; 	// aerodynamic moments
+	const Vector3f Fa_B = _R_S2B * Fa_ts - _KDV * v_B; 	// sum of aerodynamic forces
+	_Fa_E = _q_E.rotateVector(Fa_B);
+	_Ma_B = _R_S2B * Ma_ts - _KDW * _w_B; 	// aerodynamic moments
+}
+
+float Sih::computeGravity(const double lat)
+{
+	// Somigliana formula for gravitational acceleration
+	const double sin_lat = sin(lat);
+	const double g = Wgs84::gravity_equator * (1.0 + 0.001931851353 * sin_lat * sin_lat) / sqrt(
+				 1.0 - Wgs84::eccentricity2 * sin_lat * sin_lat);
+	return static_cast<float>(g);
 }
 
 void Sih::equations_of_motion(const float dt)
 {
-	_C_IB = matrix::Dcm<float>(_q); // body to inertial transformation
+	_gravity_E = Vector3f(_R_N2E.col(2)) * computeGravity(_lat); // assume gravity along the Down axis
+	_coriolis_E = -2.f * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE).cross(_v_E);
 
-	// Equations of motion of a rigid body
-	_p_I_dot = _v_I;                        // position differential
-	_v_I_dot = (_W_I + _Fa_I + _C_IB * _T_B) / _MASS;   // conservation of linear momentum
-	// _q_dot = _q.derivative1(_w_B);              // attitude differential
-	_dq = Quatf::expq(0.5f * dt * _w_B);
-	_w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
+	_v_E_dot = _gravity_E + _coriolis_E + (_Fa_E + _q_E.rotateVector(_T_B)) / _MASS;
+	_v_N_dot = _R_N2E.transpose() * _v_E_dot; //TODO: add transport rate
 
 	// fake ground, avoid free fall
-	if (_p_I(2) > 0.0f && (_v_I_dot(2) > 0.0f || _v_I(2) > 0.0f)) {
+	double vertical_acc = Vector3d(_v_E_dot(0), _v_E_dot(1), _v_E_dot(2)).dot(_p_E) / _p_E.norm();
+
+	if ((static_cast<float>(_alt) - _lpos_ref_alt) < 0.f && (vertical_acc <= 0.0 || _v_N(2) > 0.f)) {
 		if (_vehicle == VehicleType::MC || _vehicle == VehicleType::TS) {
 			if (!_grounded) {    // if we just hit the floor
 				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
-				_v_I_dot = -_v_I / dt;
+				_v_N_dot = -_v_N / dt;
+				_v_E_dot = -_v_E / dt;
 
 			} else {
-				_v_I_dot.setZero();
+				_v_N_dot.setZero();
+				_v_E_dot.setZero();
 			}
 
-			_v_I.setZero();
+			_v_N.setZero();
+			_v_E.setZero();
 			_w_B.setZero();
 			_grounded = true;
 
 		} else if (_vehicle == VehicleType::FW) {
 			if (!_grounded) {    // if we just hit the floor
 				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
-				_v_I_dot(2) = -_v_I(2) / dt;
+				_v_N_dot(2) = -_v_N(2) / dt;
 
 			} else {
 				// we only allow negative acceleration in order to takeoff
-				_v_I_dot(2) = fminf(_v_I_dot(2), 0.0f);
+				_v_N_dot(2) = fminf(_v_N_dot(2), 0.0f);
 			}
 
 			// integration: Euler forward
-			_p_I = _p_I + _p_I_dot * dt;
-			_v_I = _v_I + _v_I_dot * dt;
+			Vector3d temp_p_E_dot = Vector3d(_v_E(0), _v_E(1), _v_E(2));
+			_p_E = _p_E + temp_p_E_dot * dt;
+			_v_E = _v_E + _v_E_dot * dt;
+
 			_q = _q * _dq;
 			_q.normalize();
 			_w_B = constrain(_w_B + _w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
@@ -416,16 +447,86 @@ void Sih::equations_of_motion(const float dt)
 		}
 
 	} else {
-		// integration: Euler forward
-		_p_I = _p_I + _p_I_dot * dt;
-		_v_I = _v_I + _v_I_dot * dt;
-		_q = _q * _dq;
-		_q.normalize();
-		// integration Runge-Kutta 4
-		// rk4_update(_p_I, _v_I, _q, _w_B);
-		_w_B = constrain(_w_B + _w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
+		// forward Euler velocity intergation
+		Vector3d v_E_prev(_v_E(0), _v_E(1), _v_E(2));
+		_v_E = _v_E + _v_E_dot * dt;
+		// trapezoidal position integration
+		_p_E = _p_E + (Vector3d(_v_E(0), _v_E(1), _v_E(2)) + v_E_prev) * 0.5 * dt;
+
+		const Quatf dq(AxisAnglef(_w_B * dt));
+
+		_q_E = _q_E  * dq;
+		_q_E.normalize();
+
+		const Vector3f w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
+		_w_B = constrain(_w_B + w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 		_grounded = false;
 	}
+
+	ecefToNed();
+
+	_lpos_ref.project(degrees(_lat), degrees(_lon), _lpos(0), _lpos(1));
+	_lpos(2) = -(static_cast<float>(_alt) - _lpos_ref_alt);
+}
+
+void Sih::ecefToNed()
+{
+	// Convert position using Borkowski closed-form exact solution
+	const double k1 = sqrt(1 - Wgs84::eccentricity2) * std::abs(_p_E(2));
+	const double k2 = Wgs84::eccentricity2 * Wgs84::equatorial_radius;
+	const double beta = sqrt(_p_E(0) * _p_E(0) + _p_E(1) * _p_E(1));
+	const double E = (k1 - k2) / beta;
+	const double F = (k1 + k2) / beta;
+
+	const double P = 4.0 / 3.0 * (E * F + 1);
+	const double Q = 2 * (E * E - F * F);
+	const double D = P * P * P + Q * Q;
+	const double V = pow(sqrt(D) - Q, 1.0 / 3.0) - pow(sqrt(D) + Q, 1.0 / 3.0);
+	const double G = 0.5 * (sqrt(E * E + V) + E);
+	const double T = sqrt(G * G + (F - V * G) / (2 * G - E)) - G;
+
+	_lon = atan2(_p_E(1), _p_E(0));
+	_lat = sign(_p_E(2)) * atan((1 - T * T) / (2 * T * sqrt(1 - Wgs84::eccentricity2)));
+	_alt = (beta - Wgs84::equatorial_radius * T) * cos(_lat) +
+	       (_p_E(2) - sign(_p_E(2)) * Wgs84::equatorial_radius * sqrt(1 - Wgs84::eccentricity2)) * sin(_lat);
+
+	const Dcmf C_SE = computeRotEcefToNed(_lat, _lon, _alt);
+	_R_N2E = C_SE.transpose();
+
+	// Transform velocity to NED frame
+	_v_N = C_SE * _v_E;
+	_q = Quatf(C_SE) * _q_E;
+	_q.normalize();
+}
+
+Vector3d Sih::llaToEcef(const double lat, const double lon, const double alt)
+{
+	const double r_e = Wgs84::equatorial_radius / sqrt(1 - std::pow(Wgs84::eccentricity * sin(lat), 2));
+
+	const double cos_lat = cos(lat);
+	const double sin_lat = sin(lat);
+	const double cos_lon = cos(lon);
+	const double sin_lon = sin(lon);
+
+	return Vector3d((r_e + alt) * cos_lat * cos_lon,
+			(r_e + alt) * cos_lat * sin_lon,
+			((1.0 - Wgs84::eccentricity2) * r_e + alt) * sin_lat);
+}
+
+Dcmf Sih::computeRotEcefToNed(const double lat, const double lon, const double alt)
+{
+	// Calculate the ECEF to NED coordinate transformation matrix
+	const double cos_lat = cos(lat);
+	const double sin_lat = sin(lat);
+	const double cos_lon = cos(lon);
+	const double sin_lon = sin(lon);
+
+	const float val[] = {(float)(-sin_lat * cos_lon), (float)(-sin_lat * sin_lon), (float)cos_lat,
+			     (float) - sin_lon, (float)cos_lon, 0.f,
+			     (float)(-cos_lat * cos_lon), (float)(-cos_lat * sin_lon), (float) - sin_lat
+			    };
+
+	return Dcmf(val);
 }
 
 void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
@@ -435,8 +536,13 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	//     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
 
 	// IMU
-	Vector3f acc = _C_IB.transpose() * (_v_I_dot - Vector3f(0.0f, 0.0f, CONSTANTS_ONE_G)) + noiseGauss3f(0.5f, 1.7f, 1.4f);
-	Vector3f gyro = _w_B + noiseGauss3f(0.14f, 0.07f, 0.03f);
+	const Dcmf R_E2B(_q_E.inversed());
+
+	Vector3f specific_force_B = R_E2B * (_v_E_dot - _gravity_E - _coriolis_E);
+	Vector3f acc = specific_force_B + noiseGauss3f(0.5f, 1.7f, 1.4f);
+
+	const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
+	Vector3f gyro = _w_B + earth_spin_rate_B + noiseGauss3f(0.14f, 0.07f, 0.03f);
 
 	// update IMU every iteration
 	_px4_accel.update(time_now_us, acc(0), acc(1), acc(2));
@@ -448,7 +554,7 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B.norm() + generate_wgn() * 0.2f);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_E.norm() + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.air_temperature_celsius = NAN;
 	airspeed.confidence = 0.7f;
@@ -477,7 +583,7 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 		distance_sensor.current_distance = _distance_snsr_override;
 
 	} else {
-		distance_sensor.current_distance = -_p_I(2) / _C_IB(2, 2);
+		distance_sensor.current_distance = -_lpos(2) / _q.dcm_z()(2);
 
 		if (distance_sensor.current_distance > _distance_snsr_max) {
 			// this is based on lightware lw20 behaviour
@@ -522,25 +628,26 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		local_position.v_xy_valid = true;
 		local_position.v_z_valid = true;
 
-		local_position.x = _p_I(0);
-		local_position.y = _p_I(1);
-		local_position.z = _p_I(2);
+		local_position.x = _lpos(0);
+		local_position.y = _lpos(1);
+		local_position.z = _lpos(2);
 
-		local_position.vx = _v_I(0);
-		local_position.vy = _v_I(1);
-		local_position.vz = _v_I(2);
-		local_position.z_deriv = _v_I(2);
+		local_position.vx = _v_N(0);
+		local_position.vy = _v_N(1);
+		local_position.vz = _v_N(2);
 
-		local_position.ax = _v_I_dot(0);
-		local_position.ay = _v_I_dot(1);
-		local_position.az = _v_I_dot(2);
+		local_position.z_deriv = _v_N(2);
+
+		local_position.ax = _v_N_dot(0);
+		local_position.ay = _v_N_dot(1);
+		local_position.az = _v_N_dot(2);
 
 		local_position.xy_global = true;
 		local_position.z_global = true;
 		local_position.ref_timestamp = _last_run;
-		local_position.ref_lat = _LAT0;
-		local_position.ref_lon = _LON0;
-		local_position.ref_alt = _H0;
+		local_position.ref_lat = _lpos_ref.getProjectionReferenceLat();
+		local_position.ref_lon = _lpos_ref.getProjectionReferenceLon();
+		local_position.ref_alt = _lpos_ref_alt;
 
 		local_position.heading = Eulerf(_q).psi();
 		local_position.heading_good_for_control = true;
@@ -554,11 +661,11 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		// publish global position groundtruth
 		vehicle_global_position_s global_position{};
 		global_position.timestamp_sample = time_now_us;
-		global_position.lat = _LAT0 + degrees((double)_p_I(0) / CONSTANTS_RADIUS_OF_EARTH);;
-		global_position.lon = _LON0 + degrees((double)_p_I(1) / CONSTANTS_RADIUS_OF_EARTH) / _COS_LAT0;;
-		global_position.alt = _H0 - _p_I(2);;
+		global_position.lat = degrees(_lat);
+		global_position.lon = degrees(_lon);
+		global_position.alt = _alt;
 		global_position.alt_ellipsoid = global_position.alt;
-		global_position.terrain_alt = -_p_I(2);
+		global_position.terrain_alt = -_lpos(2);
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
@@ -619,10 +726,10 @@ int Sih::print_status()
 	}
 
 	PX4_INFO("vehicle landed: %d", _grounded);
-	PX4_INFO("inertial position NED (m)");
-	_p_I.print();
-	PX4_INFO("inertial velocity NED (m/s)");
-	_v_I.print();
+	PX4_INFO("local position NED (m)");
+	_lpos.print();
+	PX4_INFO("local velocity NED (m/s)");
+	_v_N.print();
 	PX4_INFO("attitude roll-pitch-yaw (deg)");
 	(Eulerf(_q) * 180.0f / M_PI_F).print();
 	PX4_INFO("angular acceleration roll-pitch-yaw (deg/s)");
@@ -630,8 +737,8 @@ int Sih::print_status()
 	PX4_INFO("actuator signals");
 	Vector<float, 8> u = Vector<float, 8>(_u);
 	u.transpose().print();
-	PX4_INFO("Aerodynamic forces NED inertial (N)");
-	_Fa_I.print();
+	PX4_INFO("Aerodynamic forces NED (N)");
+	(_R_N2E.transpose() * _Fa_E).print();
 	PX4_INFO("Aerodynamic moments body frame (Nm)");
 	_Ma_B.print();
 	PX4_INFO("Thruster moments in body frame (Nm)");
