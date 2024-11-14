@@ -816,7 +816,7 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 
 void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 {
-	static constexpr int SECTOR_SIZE_DEG = 10; // PX4 Collision Prevention only has 36 sectors of 10 degrees each
+	static constexpr int SECTOR_SIZE_DEG = 5; // PX4 Collision Prevention uses 5 degree sectors
 
 	double angle_min_deg = scan.angle_min() * 180 / M_PI;
 	double angle_step_deg = scan.angle_step() * 180 / M_PI;

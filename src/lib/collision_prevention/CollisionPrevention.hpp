@@ -80,6 +80,9 @@ public:
 	 */
 	void modifySetpoint(matrix::Vector2f &setpoint_accel, const matrix::Vector2f &setpoint_vel);
 
+	static constexpr int BIN_COUNT = 72;
+	static constexpr int BIN_SIZE = 360 / BIN_COUNT; // cannot be lower than 5 degrees, should divide 360 evenly
+
 protected:
 	/** Aggregates the sensor data into an internal obstacle map in body frame */
 	void _updateObstacleMap();
@@ -89,9 +92,6 @@ protected:
 
 	/** Calculate the constrained setpoint considering the current obstacle distances, acceleration setpoint and velocity setpoint */
 	void _calculateConstrainedSetpoint(matrix::Vector2f &setpoint_accel, const matrix::Vector2f &setpoint_vel);
-
-	static constexpr int BIN_COUNT = 36;
-	static constexpr int BIN_SIZE = 360 / BIN_COUNT; // cannot be lower than 5 degrees, should divide 360 evenly
 
 	obstacle_distance_s _obstacle_map_body_frame{};
 	bool _data_fov[BIN_COUNT] {};
@@ -179,7 +179,7 @@ private:
 	float _vehicle_yaw{0.f};
 
 	uORB::Publication<collision_constraints_s>	_constraints_pub{ORB_ID(collision_constraints)};		/**< constraints publication */
-	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance_fused)};	/**< obstacle_distance publication */
+	uORB::Publication<obstacle_distance_s>		_obstacle_distance_fused_pub{ORB_ID(obstacle_distance_fused)};	/**< obstacle_distance publication */
 	uORB::Publication<vehicle_command_s>	_vehicle_command_pub{ORB_ID(vehicle_command)};			/**< vehicle command do publication */
 
 	uORB::SubscriptionData<obstacle_distance_s> _sub_obstacle_distance{ORB_ID(obstacle_distance)}; /**< obstacle distances received form a range sensor */
