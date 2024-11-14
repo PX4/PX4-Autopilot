@@ -188,6 +188,7 @@ define cmake-build
 	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ] || [ $(CMAKE_CACHE_CHECK) ]; then \
 		mkdir -p $(BUILD_DIR) \
 		&& cd $(BUILD_DIR) \
+		&& . ${SRC_DIR}/.venv/bin/activate \
 		&& cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) \
 		|| (rm -rf $(BUILD_DIR)); \
 	fi
@@ -215,6 +216,13 @@ define colorecho
 +@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
+.venv: .venv/touchfile
+
+.venv/touchfile: Tools/setup/requirements.txt
+	test -d .venv || python3 -m venv .venv
+	. .venv/bin/activate; pip install -Ur Tools/setup/requirements.txt
+	touch .venv/touchfile
+
 # Get a list of all config targets boards/*/*.px4board
 ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
 
@@ -223,12 +231,12 @@ ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4bo
 #  Do not put any spaces between function arguments.
 
 # All targets.
-$(ALL_CONFIG_TARGETS):
+$(ALL_CONFIG_TARGETS): .venv
 	@$(call cmake-build,$@$(BUILD_DIR_SUFFIX))
 
 # Filter for only default targets to allow omiting the "_default" postfix
 CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
-$(CONFIG_TARGETS_DEFAULT):
+$(CONFIG_TARGETS_DEFAULT): .venv
 	@$(call cmake-build,$@_default$(BUILD_DIR_SUFFIX))
 
 all_config_targets: $(ALL_CONFIG_TARGETS)

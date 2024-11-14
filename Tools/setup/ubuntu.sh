@@ -41,6 +41,8 @@ fi
 
 # script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+# store the project root directory path in a variable
+PX4_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../" && pwd )
 
 # check requirements.txt exists (script not run in source tree)
 REQUIREMENTS_FILE="requirements.txt"
@@ -89,13 +91,16 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-if [ -n "$VIRTUAL_ENV" ]; then
-	# virtual environments don't allow --user option
-	python -m pip install -r ${DIR}/requirements.txt
-else
-	# older versions of Ubuntu require --user option
-	python3 -m pip install --user -r ${DIR}/requirements.txt
+if [ ! -d ".venv" ]; then
+	echo "Python venv not found. Creating a new virtual vnvironment at .venv"
+	python3 -m venv ${PX4_DIR}/.venv
 fi
+activate () {
+  . $PX4_DIR/.venv/bin/activate
+}
+echo "Activating Python virtual environment"
+activate
+python -m pip install -r ${DIR}/requirements.txt
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then

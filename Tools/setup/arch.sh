@@ -66,8 +66,19 @@ sudo pacman -Sy --noconfirm --needed \
 	;
 
 # Python dependencies
+echo
 echo "Installing PX4 Python3 dependencies"
-pip install --break-system-packages -r ${DIR}/${REQUIREMENTS_FILE}
+if [ ! -d ".venv" ]; then
+	echo "Python venv not found. Creating a new virtual vnvironment at .venv"
+	python3 -m venv ${PX4_DIR}/.venv
+fi
+activate () {
+  . $PX4_DIR/.venv/bin/activate
+}
+echo "Activating Python virtual environment"
+activate
+python -m pip install -r ${DIR}/requirements.txt
+
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
