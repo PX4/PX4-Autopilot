@@ -229,8 +229,3 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	fi
 
 fi
-
-if [[ $INSTALL_NUTTX == "true" ]]; then
-	echo
-	echo "Relogin or reboot computer before attempting to build NuttX targets"
-fi
