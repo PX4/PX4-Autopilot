@@ -19,7 +19,7 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY requirements.txt /tmp/requirements.txt
 COPY ubuntu.sh /tmp/ubuntu.sh
 RUN touch /.dockerenv
-RUN bash /tmp/ubuntu.sh
+RUN bash /tmp/ubuntu.sh --no-sim-tools
 
 RUN git config --global --add safe.directory '*'
 
