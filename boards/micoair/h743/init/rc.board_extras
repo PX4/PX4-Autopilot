@@ -4,4 +4,4 @@
 #------------------------------------------------------------------------------
 
 # enable onboard OSD chip
-atxxxx start -s
+# atxxxx start -s
