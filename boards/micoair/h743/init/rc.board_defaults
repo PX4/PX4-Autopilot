@@ -12,7 +12,7 @@ param set-default SYS_HAS_MAG 1
 param set-default PWM_MAIN_TIM0 -4
 param set-default RC_INPUT_PROTO -1
 
-param set-default IMU_GYRO_RATEMAX 2000
+param set-default IMU_GYRO_CUTOFF 80
 param set-default SYS_AUTOSTART 4001
 param set-default MC_PITCHRATE_K 0.4
 param set-default MC_ROLLRATE_K 0.35
