@@ -68,7 +68,7 @@
 
 #include <gz/msgs/imu.pb.h>
 #include <gz/msgs/fluid_pressure.pb.h>
-#include <gz/msgs/air_speed_sensor.pb.h>
+#include <gz/msgs/air_speed.pb.h>
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
 #include <gz/msgs/laserscan.pb.h>
@@ -107,7 +107,7 @@ private:
 
 	void clockCallback(const gz::msgs::Clock &clock);
 
-	void airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed_sensor);
+	void airspeedCallback(const gz::msgs::AirSpeed &air_speed);
 	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);

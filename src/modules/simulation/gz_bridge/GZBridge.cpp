@@ -448,7 +448,7 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 }
 
 
-void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed_sensor)
+void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -456,16 +456,16 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed_sensor
 
 	pthread_mutex_lock(&_node_mutex);
 
-	const uint64_t time_us = (air_speed_sensor.header().stamp().sec() * 1000000)
-				 + (air_speed_sensor.header().stamp().nsec() / 1000);
+	const uint64_t time_us = (air_speed.header().stamp().sec() * 1000000)
+				 + (air_speed.header().stamp().nsec() / 1000);
 
-	double air_speed_value = air_speed_sensor.diff_pressure();
+	double air_speed_value = air_speed.diff_pressure();
 
 	differential_pressure_s report{};
 	report.timestamp_sample = time_us;
 	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 	report.differential_pressure_pa = static_cast<float>(air_speed_value); // hPa to Pa;
-	report.temperature = static_cast<float>(air_speed_sensor.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
+	report.temperature = static_cast<float>(air_speed.temperature()) + atmosphere::kAbsoluteNullCelsius; // K to C
 	report.timestamp = hrt_absolute_time();;
 	_differential_pressure_pub.publish(report);
 
