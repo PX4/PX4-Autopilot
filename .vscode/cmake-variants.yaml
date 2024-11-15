@@ -306,6 +306,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: micoair_h743_default
+    micoair_h743-aio_bootloader:
+      short: micoair_h743-aio_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-aio_bootloader
+    micoair_h743-aio_default:
+      short: micoair_h743-aio
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-aio_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel
