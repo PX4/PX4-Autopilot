@@ -337,9 +337,7 @@ def predict_sideslip(
     vel_rel = state["vel"] - wind
     relative_wind_body = state["quat_nominal"].inverse() * vel_rel
 
-    # Small angle approximation of side slip model
-    # Protect division by zero using epsilon
-    sideslip_pred = add_epsilon_sign(relative_wind_body[1] / relative_wind_body[0], relative_wind_body[0], epsilon)
+    sideslip_pred = sf.atan2(relative_wind_body[1], relative_wind_body[0], epsilon)
 
     return sideslip_pred
 
