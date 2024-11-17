@@ -475,6 +475,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 	if (_interface == GPSHelper::Interface::UART) {
 		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
+		
 		if (ret > 0) {
 			_num_bytes_read += ret;
 		}
