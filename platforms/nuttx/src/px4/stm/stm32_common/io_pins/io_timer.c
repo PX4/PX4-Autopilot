@@ -61,7 +61,6 @@
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
 
-
 static int io_timer_handler0(int irq, void *context, void *arg);
 static int io_timer_handler1(int irq, void *context, void *arg);
 static int io_timer_handler2(int irq, void *context, void *arg);
@@ -71,23 +70,17 @@ static int io_timer_handler5(int irq, void *context, void *arg);
 static int io_timer_handler6(int irq, void *context, void *arg);
 static int io_timer_handler7(int irq, void *context, void *arg);
 
-// #if defined(HAVE_GTIM_CCXNP)
-// #define HW_GTIM_CCER_CC1NP GTIM_CCER_CC1NP
-// #define HW_GTIM_CCER_CC2NP GTIM_CCER_CC2NP
-// #define HW_GTIM_CCER_CC3NP GTIM_CCER_CC3NP
-// #define HW_GTIM_CCER_CC4NP GTIM_CCER_CC4NP
-
-// #else
-// #  define HW_GTIM_CCER_CC1NP    0
-// #  define HW_GTIM_CCER_CC2NP    0
-// #  define HW_GTIM_CCER_CC3NP    0
-// #  define HW_GTIM_CCER_CC4NP    0
-// #endif
-
+#if defined(HAVE_GTIM_CCXNP)
 #define HW_GTIM_CCER_CC1NP GTIM_CCER_CC1NP
 #define HW_GTIM_CCER_CC2NP GTIM_CCER_CC2NP
 #define HW_GTIM_CCER_CC3NP GTIM_CCER_CC3NP
 #define HW_GTIM_CCER_CC4NP GTIM_CCER_CC4NP
+#else
+#  define HW_GTIM_CCER_CC1NP    0
+#  define HW_GTIM_CCER_CC2NP    0
+#  define HW_GTIM_CCER_CC3NP    0
+#  define HW_GTIM_CCER_CC4NP    0
+#endif
 
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
 

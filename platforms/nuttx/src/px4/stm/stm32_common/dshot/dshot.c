@@ -114,8 +114,6 @@ static uint32_t *dshot_output_buffer[MAX_IO_TIMERS] = {};
 static uint16_t dshot_capture_buffer[MAX_NUM_CHANNELS_PER_TIMER][CHANNEL_CAPTURE_BUFF_SIZE]
 px4_cache_aligned_data() = {};
 
-static uint16_t test_buffer[MAX_NUM_CHANNELS_PER_TIMER][CHANNEL_CAPTURE_BUFF_SIZE];
-
 static bool     _bidirectional = false;
 static uint8_t  _bidi_timer_index = 0; // TODO: BDSHOT_TIM param to select timer index?
 static uint32_t _dshot_frequency = 0;
@@ -698,11 +696,6 @@ void up_bdshot_status(void)
 				 read_fail_crc[timer_channel_index],
 				 read_fail_zero[timer_channel_index]);
 		}
-
-		for (uint8_t i = 0; i < CHANNEL_CAPTURE_BUFF_SIZE; i++){
-			PX4_INFO_RAW("%d ", test_buffer[timer_channel_index][i]);
-		}
-		PX4_INFO_RAW("\n");
 	}
 }
 
@@ -769,8 +762,6 @@ unsigned calculate_period(uint8_t timer_index, uint8_t channel_index)
 	uint32_t high = 1; // We start off with high
 	unsigned shifted = 0;
 	unsigned previous = 0;
-
-	memcpy(test_buffer[channel_index], dshot_capture_buffer[channel_index], CHANNEL_CAPTURE_BUFF_SIZE);
 
 	// Loop through the capture buffer for the specified channel
 	for (unsigned i = 1; i < CHANNEL_CAPTURE_BUFF_SIZE; ++i) {
