@@ -239,6 +239,8 @@
 #define DRV_INS_DEVTYPE_VN300 0xE3
 #define DRV_DIFF_PRESS_DEVTYPE_ASP5033  0xE4
 
+#define DRV_BARO_DEVTYPE_SPA06          0xE8
+
 #define DRV_DEVTYPE_UNUSED		0xff
 
 #endif /* _DRV_SENSOR_H */
