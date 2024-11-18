@@ -40,7 +40,7 @@ using namespace matrix;
 RoverDifferentialGuidance::RoverDifferentialGuidance(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
-	_max_forward_speed = _param_rd_miss_spd_def.get();
+	_max_forward_speed = _param_rd_max_speed.get();
 	_rover_differential_guidance_status_pub.advertise();
 }
 
@@ -96,6 +96,16 @@ void RoverDifferentialGuidance::computeGuidance(const float vehicle_yaw, const f
 								_param_rd_max_decel.get(), distance_to_curr_wp, 0.0f);
 					desired_forward_speed = math::constrain(desired_forward_speed, -_max_forward_speed, _max_forward_speed);
 				}
+
+			} else if (_param_rd_max_jerk.get() > FLT_EPSILON && _param_rd_max_decel.get() > FLT_EPSILON
+				   && _param_rd_miss_spd_gain.get() > FLT_EPSILON) {
+				const float speed_reduction = math::constrain(_param_rd_miss_spd_gain.get() * math::interpolate(
+								      M_PI_F - _waypoint_transition_angle, 0.f,
+								      M_PI_F, 0.f, 1.f), 0.f, 1.f);
+				desired_forward_speed = math::trajectory::computeMaxSpeedFromDistance(_param_rd_max_jerk.get(),
+							_param_rd_max_decel.get(), distance_to_curr_wp, _max_forward_speed * (1.f - speed_reduction));
+				desired_forward_speed = math::constrain(desired_forward_speed, -_max_forward_speed,
+									_max_forward_speed);
 			}
 
 		} break;
@@ -219,6 +229,6 @@ void RoverDifferentialGuidance::updateWaypoints()
 		_max_forward_speed = math::constrain(position_setpoint_triplet.current.cruising_speed, 0.f, _param_rd_max_speed.get());
 
 	} else {
-		_max_forward_speed = _param_rd_miss_spd_def.get();
+		_max_forward_speed = _param_rd_max_speed.get();
 	}
 }
