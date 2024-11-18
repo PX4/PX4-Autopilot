@@ -16,10 +16,10 @@ on:
 jobs:
   build:
     name: Testing PX4 ${{ matrix.config.model }}
-    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}"]
-    container:
-      image: px4io/px4-dev-simulation-focal:2021-09-08
-      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
+    # container:
+    #   image: px4io/px4-dev-simulation-focal:2021-09-08
+    #   options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     strategy:
       fail-fast: false
       matrix:
@@ -31,10 +31,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - name: Git Ownership Workaround
-        run: git config --system --add safe.directory '*'
+          fetch-tags: true
+          submodules: false
 
       - id: set-timestamp
         name: Set timestamp for cache
@@ -58,60 +56,41 @@ jobs:
             ccache -s
             ccache -z
 
-      - name: Build PX4
-        env:
-          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-        run: make px4_sitl_default
+      - name: Build and load container image
+        uses: docker/build-push-action@v6
+        with:
+          context: Tools/setup
+          tags: px4-dev:latest
+          platforms: |
+            linux/amd64
+          load: true
+          push: false
 
-      - name: Cache Post-Run [px4_sitl_default]
-        run: ccache -s
-
-      - name: Build SITL Gazebo
-        env:
-          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-        run: make px4_sitl_default sitl_gazebo-classic
-
-      - name: Cache Post-Run [sitl_gazebo-classic]
-        run: ccache -s
-
-      - name: Download MAVSDK
-        run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
-
-      - name: Install MAVSDK
-        run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
-
-      - name: Check PX4 Environment Variables
+      - name: Run Tests
         env:
           PX4_HOME_LAT: ${{matrix.config.latitude}}
           PX4_HOME_LON: ${{matrix.config.longitude}}
           PX4_HOME_ALT: ${{matrix.config.altitude}}
-          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-        run: |
-            export
-            ulimit -a
-
-      - name: Build PX4 / MAVSDK tests
-        env:
           PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
           DONT_RUN: 1
-        run: make px4_sitl_default sitl_gazebo-classic mavsdk_tests
-
-      - name: Cache Post-Run [px4_sitl_default sitl_gazebo-classic mavsdk_tests]
-        run: ccache -s
-
-      - name: Core Dump Settings
-        run: |
+        uses: addnab/docker-run-action@v3
+        with:
+          image: px4-dev:latest
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            make px4_sitl_default
+            ccache -s
+            make px4_sitl_default sitl_gazebo-classic
+            ccache -s
+            wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+            dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+            export
+            ulimit -a
+            make px4_sitl_default sitl_gazebo-classic mavsdk_tests
+            ccache -s
             ulimit -c unlimited
             echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
-
-      - name: Run SITL / MAVSDK Tests
-        env:
-          PX4_HOME_LAT: ${{matrix.config.latitude}}
-          PX4_HOME_LON: ${{matrix.config.longitude}}
-          PX4_HOME_ALT: ${{matrix.config.altitude}}
-          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
-        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json --verbose
-        timeout-minutes: 45
+            test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json --verbose
 
       - name: Upload failed logs
         if: failure()
@@ -134,20 +113,20 @@ jobs:
           name: coredump
           path: px4.core
 
-      - name: Setup & Generate Coverage Report
-        if: contains(matrix.config.build_type, 'Coverage')
-        run: |
-            git config --global credential.helper "" # disable the keychain credential helper
-            git config --global --add credential.helper store # enable the local store credential helper
-            echo "https://x-access-token:${{ secrets.ACCESS_TOKEN }}@github.com" >> ~/.git-credentials # add credential
-            git config --global url."https://github.com/".insteadof git@github.com: # credentials add credential
-            mkdir -p coverage
-            lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
+      # - name: Setup & Generate Coverage Report
+      #   if: contains(matrix.config.build_type, 'Coverage')
+      #   run: |
+      #       git config --global credential.helper "" # disable the keychain credential helper
+      #       git config --global --add credential.helper store # enable the local store credential helper
+      #       echo "https://x-access-token:${{ secrets.ACCESS_TOKEN }}@github.com" >> ~/.git-credentials # add credential
+      #       git config --global url."https://github.com/".insteadof git@github.com: # credentials add credential
+      #       mkdir -p coverage
+      #       lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
 
-      - name: Upload Coverage Information to Codecov
-        if: contains(matrix.config.build_type, 'Coverage')
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: mavsdk
-          file: coverage/lcov.info
+      # - name: Upload Coverage Information to Codecov
+      #   if: contains(matrix.config.build_type, 'Coverage')
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     flags: mavsdk
+      #     file: coverage/lcov.info
