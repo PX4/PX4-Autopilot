@@ -34,7 +34,7 @@
 /**
  * @file spa06.h
  *
- * Shared defines for the spa06 driver.
+ * Shared defines for the SPA06 driver.
  */
 #pragma once
 
@@ -51,7 +51,7 @@
 
 
 #define SPA06_VALUE_RESET 9
-#define SPA06_VALUE_ID    0x10
+#define SPA06_VALUE_ID    0x11
 
 namespace spa06
 {
@@ -60,8 +60,8 @@ namespace spa06
 struct calibration_s {
 	int16_t c0, c1;
 	int32_t c00, c10;
-	int16_t c01, c11, c20, c21, c30;
-}; //calibration data
+	int16_t c01, c11, c20, c21, c30, c31, c40;
+};
 
 struct data_s {
 	uint8_t p_msb;
@@ -71,7 +71,7 @@ struct data_s {
 	uint8_t t_msb;
 	uint8_t t_lsb;
 	uint8_t t_xlsb;
-}; // data
+};
 #pragma pack(pop)
 
 class ISPA06
@@ -96,10 +96,9 @@ public:
 	virtual uint8_t get_device_address() const = 0;
 };
 
-} /* namespace */
+} // namespace spa06
 
 
-/* interface factories */
 #if defined(CONFIG_SPI)
 extern spa06::ISPA06 *spa06_spi_interface(uint8_t busnum, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
 #endif // CONFIG_SPI
