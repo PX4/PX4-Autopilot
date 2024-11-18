@@ -48,6 +48,9 @@
 #include <stdio.h>
 #include <drivers/drv_input_capture.h>
 
+#define TEST_LIMITED_DMA 1
+#define LIMIT_DMA_CHANNELS 1
+
 // DShot protocol definitions
 #define ONE_MOTOR_DATA_SIZE         16u
 #define MOTOR_PWM_BIT_1             14u
@@ -84,6 +87,8 @@ static void init_timers_dma_up(void);
 static void init_timers_dma_capt_comp(uint8_t timer_index);
 static int32_t init_timer_channels(uint8_t timer_index);
 
+static void configure_channels_round_robin(uint8_t timer_index);
+
 static void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 static void capture_complete_callback(void *arg);
 
@@ -100,8 +105,11 @@ typedef struct timer_config_t {
 	bool initialized_channels[4];   // Timer channels initialized (successfully started)
 	bool bidirectional;             // Timer in bidi (inverted) mode
 	bool captcomp_channels[4];      // Channels configured for CaptComp
+	bool round_robin_enabled;
 	uint8_t timer_index;            // Timer index. Necessary to have memory for passing pointer to hrt callback
 } timer_config_t;
+
+static uint8_t _num_dma_available = 0;
 
 static timer_config_t timer_configs[MAX_IO_TIMERS] = {};
 
@@ -252,6 +260,14 @@ static void init_timers_dma_capt_comp(uint8_t timer_index)
 				PX4_DEBUG("Allocated DMA CH Timer Index %u Channel %u", timer_index, timer_channel_index);
 				// Mark this timer channel as bidirectional
 				timer_configs[timer_index].captcomp_channels[timer_channel_index] = true;
+				_num_dma_available++;
+
+#if defined(TEST_LIMITED_DMA)
+				if (_num_dma_available >= LIMIT_DMA_CHANNELS) {
+					PX4_INFO("Limiting DMA channels to %u", _num_dma_available);
+					break;
+				}
+#endif
 			}
 		}
 
@@ -350,6 +366,11 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bi
 		// Use first configured DShot timer (Timer index 0)
 		// TODO: BDSHOT_TIM param to select timer index?
 		init_timers_dma_capt_comp(_bidi_timer_index);
+
+		// Enable round robin if we have 1 - 3 DMA
+		if ((_num_dma_available < 4) && _num_dma_available > 0) {
+			timer_configs[_bidi_timer_index].round_robin_enabled = true;
+		}
 	}
 
 	int32_t channels_init_mask = 0;
@@ -439,6 +460,57 @@ void up_dshot_trigger()
 	}
 }
 
+static void configure_channels_round_robin(uint8_t timer_index)
+{
+	switch (_num_dma_available) {
+	case 1: {
+		for (uint8_t i = 0; i < 4; i++) {
+			if (timer_configs[timer_index].captcomp_channels[i]) {
+				timer_configs[timer_index].captcomp_channels[i] = false;
+				if (i == 3) {
+					timer_configs[timer_index].captcomp_channels[0] = true;
+				} else {
+					timer_configs[timer_index].captcomp_channels[i + 1] = true;
+				}
+				break;
+			}
+		}
+		break;
+	}
+	case 2: {
+		if (timer_configs[timer_index].captcomp_channels[0]) {
+			timer_configs[timer_index].captcomp_channels[0] = false;
+			timer_configs[timer_index].captcomp_channels[1] = true;
+			timer_configs[timer_index].captcomp_channels[2] = false;
+			timer_configs[timer_index].captcomp_channels[3] = true;
+
+		} else {
+			timer_configs[timer_index].captcomp_channels[0] = true;
+			timer_configs[timer_index].captcomp_channels[1] = false;
+			timer_configs[timer_index].captcomp_channels[2] = true;
+			timer_configs[timer_index].captcomp_channels[3] = false;
+		}
+		break;
+	}
+	case 3: {
+		for (uint8_t i = 0; i < 4; i++) {
+			if (!timer_configs[timer_index].captcomp_channels[i]) {
+				timer_configs[timer_index].captcomp_channels[i] = true;
+				if (i == 3) {
+					timer_configs[timer_index].captcomp_channels[0] = false;
+				} else {
+					timer_configs[timer_index].captcomp_channels[i + 1] = false;
+				}
+				break;
+			}
+		}
+		break;
+	}
+	default:
+		break;
+	}
+}
+
 void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
 	uint8_t timer_index = *((uint8_t *)arg);
@@ -460,6 +532,11 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 	memset(dshot_capture_buffer, 0, sizeof(dshot_capture_buffer));
 	up_clean_dcache((uintptr_t) dshot_capture_buffer,
 			(uintptr_t) dshot_capture_buffer + DSHOT_CAPTURE_BUFFER_SIZE(MAX_NUM_CHANNELS_PER_TIMER));
+
+	// If round robin is enabled reconfigure which channels we capture on
+	if (timer_configs[timer_index].round_robin_enabled) {
+		configure_channels_round_robin(timer_index);
+	}
 
 	// Allocate DMA for all enabled channels on this timer
 	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
@@ -655,8 +732,9 @@ int up_bdshot_get_erpm(uint8_t output_channel, int *erpm)
 	uint8_t timer_index = timer_io_channels[output_channel].timer_index;
 	uint8_t timer_channel_index = timer_io_channels[output_channel].timer_channel - 1;
 	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
+	bool captcomp_enabled = timer_configs[timer_index].captcomp_channels[timer_channel_index];
 
-	if (channel_initialized) {
+	if (channel_initialized && captcomp_enabled) {
 		*erpm = _erpms[timer_channel_index];
 		return PX4_OK;
 	}
@@ -682,6 +760,14 @@ int up_bdshot_channel_status(uint8_t channel)
 void up_bdshot_status(void)
 {
 	PX4_INFO("dshot driver stats:");
+
+	if (_bidirectional) {
+		PX4_INFO("Bidirectional DShot enabled");
+		PX4_INFO("Available DMA: %u", _num_dma_available);
+		if (_num_dma_available < 4) {
+			PX4_INFO("Round robin enabled");
+		}
+	}
 
 	uint8_t timer_index = _bidi_timer_index;
 
@@ -761,32 +847,30 @@ unsigned calculate_period(uint8_t timer_index, uint8_t channel_index)
 	uint32_t value = 0;
 	uint32_t high = 1; // We start off with high
 	unsigned shifted = 0;
-	unsigned previous = 0;
+
+	// We can ignore the very first data point as it's the pulse before it starts.
+	unsigned previous = dshot_capture_buffer[channel_index][1];
 
 	// Loop through the capture buffer for the specified channel
-	for (unsigned i = 1; i < CHANNEL_CAPTURE_BUFF_SIZE; ++i) {
+	for (unsigned i = 2; i < CHANNEL_CAPTURE_BUFF_SIZE; ++i) {
 
-		// We can ignore the very first data point as it's the pulse before it starts.
-		if (i > 1) {
-
-			if (dshot_capture_buffer[channel_index][i] == 0) {
-				// Once we get zeros we're through
-				break;
-			}
-
-			// This seemss to work with dshot 150, 300, 600, 1200
-			// The values were found by trial and error to get the quantization just right.
-			const uint32_t bits = (dshot_capture_buffer[channel_index][i] - previous + 5) / 20;
-
-			// Shift the bits into the value
-			for (unsigned bit = 0; bit < bits; ++bit) {
-				value = (value << 1) | high;
-				++shifted;
-			}
-
-			// The next edge toggles.
-			high = !high;
+		if (dshot_capture_buffer[channel_index][i] == 0) {
+			// Once we get zeros we're through
+			break;
 		}
+
+		// This seemss to work with dshot 150, 300, 600, 1200
+		// The values were found by trial and error to get the quantization just right.
+		const uint32_t bits = (dshot_capture_buffer[channel_index][i] - previous + 5) / 20;
+
+		// Convert GCR encoded pulse train into value
+		for (unsigned bit = 0; bit < bits; ++bit) {
+			value = (value << 1) | high;
+			++shifted;
+		}
+
+		// The next edge toggles.
+		high = !high;
 
 		previous = dshot_capture_buffer[channel_index][i];
 	}
