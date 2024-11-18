@@ -26,7 +26,6 @@ param set-default RD_MAX_THR_SPD 2.15
 param set-default RD_SPEED_P 0.1
 param set-default RD_SPEED_I 0.01
 param set-default RD_MAX_YAW_RATE 180
-param set-default RD_MISS_SPD_DEF 2
 param set-default RD_TRANS_DRV_TRN 0.349066
 param set-default RD_TRANS_TRN_DRV 0.174533
 param set-default RD_MAX_YAW_ACCEL 1000
