@@ -2337,11 +2337,6 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 {
-	// Only use to set home position
-	if (_mavlink->get_hil_enabled() && _hil_pos_ref.isInitialized()) {
-		return;
-	}
-
 	mavlink_hil_gps_t hil_gps;
 	mavlink_msg_hil_gps_decode(msg, &hil_gps);
 
