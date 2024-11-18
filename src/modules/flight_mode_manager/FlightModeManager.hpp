@@ -65,6 +65,12 @@ enum class FlightTaskError : int {
 	ActivationFailed = -2
 };
 
+enum class Manual_Position_control_sub_mode : int32_t {
+	Simple_position_control = 0,
+	Smooth_position_control = 3,
+	Acceleration_based_input = 4,
+};
+
 class FlightModeManager : public ModuleBase<FlightModeManager>, public ModuleParams, public px4::WorkItem
 {
 public:
