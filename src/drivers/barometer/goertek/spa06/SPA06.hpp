@@ -76,10 +76,8 @@ private:
 
 	// configuration of pressure measurement rate (PM_RATE) and resolution (PM_PRC)
 	//
-	// bit[7]: reserved
-	//
-	// PM_RATE[6:4]    : 0 | 1 | 2 | 3 | 4  | 5  | 6  | 7
-	// measurement rate: 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128
+	// PM_RATE[7:4]    : 0 | 1 | 2 | 3 | 4  | 5  | 6  | 7   | 8     | 9    | 10   | 11   | 12 | 13 | 14  | 15
+	// measurement rate: 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 25/16 | 25/8 | 25/4 | 25/2 | 25 | 50 | 100 | 200
 	// note: applicable for measurements in background mode only
 	//
 	// PM_PRC[3:0]         : 0      | 1   | 2   | 3    | 4    | 5    | 6     | 7
@@ -87,25 +85,24 @@ private:
 	// measurement time(ms): 3.6    | 5.2 | 8.4 | 14.8 | 27.6 | 53.2 | 104.4 | 206.8
 	// precision(PaRMS)    : 5.0    |     | 2.5 |      | 1.2  | 0.9  | 0.5   |
 	// note: use in combination with a bit shift when the oversampling rate is > 8 times. see CFG_REG(0x19) register
-	static constexpr uint8_t	_curr_prs_cfg{4 << 4 | 4};
+	//
+	// -> 32 measurements per second, 16 oversampling
+	static constexpr uint8_t	_curr_prs_cfg{5 << 4 | 4};
 
 	// configuration of temperature measurment rate (TMP_RATE) and resolution (TMP_PRC)
 	//
 	// temperature measurement: internal sensor (in ASIC) | external sensor (in pressure sensor MEMS element)
-	// TMP_EXT[7]             : 0                         | 1
-	// note: it is highly recommended to use the same temperature sensor as the source of the calibration coefficients wihch can be read from reg 0x28
-	//
-	// TMP_RATE[6:4]   : 0 | 1 | 2 | 3 | 4  | 5  | 6  | 7
-	// measurement rate: 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128
+	// PM_RATE[7:4]    : 0 | 1 | 2 | 3 | 4  | 5  | 6  | 7   | 8     | 9    | 10   | 11   | 12 | 13 | 14  | 15
+	// measurement rate: 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 25/16 | 25/8 | 25/4 | 25/2 | 25 | 50 | 100 | 200
 	// note: applicable for measurements in background mode only
-	//
-	// bit[3]: reserved
 	//
 	// TMP_PRC[2:0]        : 0      | 1 | 2 | 3 | 4  | 5  | 6  | 7
 	// oversampling (times): single | 2 | 4 | 8 | 16 | 32 | 64 | 128
 	// note: single(default) measurement time 3.6ms, other settings are optional, and may not be relevant
 	// note: use in combination with a bit shift when the oversampling rate is > 8 times. see CFG_REG(0x19) register
-	static constexpr uint8_t	_curr_tmp_cfg{1 << 7 | 4 << 4 | 0};
+
+	// -> 32 measurements per second, single oversampling
+	static constexpr uint8_t	_curr_tmp_cfg{5 << 4 | 0};
 
 	bool			_collect_phase{false};
 	float kp;
@@ -115,6 +112,6 @@ private:
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
 
-	static constexpr uint32_t _sample_rate{16};
-	static constexpr uint32_t _measure_interval{1000000 / _sample_rate / 2};
+	static constexpr uint32_t _sample_rate{32};
+	static constexpr uint32_t _measure_interval{1000000 / _sample_rate};
 };

@@ -103,34 +103,44 @@ SPA06::scale_factor(int oversampling_rate)
 int
 SPA06::calibrate()
 {
-	uint8_t buf[18];
+	uint8_t buf[21];
 
 	_interface->read(SPA06_ADDR_CAL, buf, sizeof(buf));
 
-	_cal.c0 = (uint16_t)buf[0] << 4 | (uint16_t)buf[1] >> 4;
+	_cal.c0 = (uint16_t)(buf[0]) << 4 | (uint16_t)(buf[1]) >> 4;
+	// If value is negative, we need to fill the missing bits.
 	_cal.c0 = (_cal.c0 & 1 << 11) ? (0xf000 | _cal.c0) : _cal.c0;
 
-	_cal.c1 = (uint16_t)(buf[1] & 0x0f) << 8 | (uint16_t)buf[2];
+	_cal.c1 = (uint16_t)(buf[1] & 0x0F) << 8 | buf[2];
 	_cal.c1 = (_cal.c1 & 1 << 11) ? (0xf000 | _cal.c1) : _cal.c1;
 
-	_cal.c00 = (uint32_t)buf[3] << 12 | (uint32_t)buf[4] << 4 | (uint16_t)buf[5] >> 4;
+	_cal.c00 = (uint32_t)(buf[3]) << 12 | (uint32_t)(buf[4]) << 4 | (buf[5]) >> 4;
 	_cal.c00 = (_cal.c00 & 1 << 19) ? (0xfff00000 | _cal.c00) : _cal.c00;
 
-	_cal.c10 = (uint32_t)(buf[5] & 0x0f) << 16 | (uint32_t)buf[6] << 8 | (uint32_t)buf[7];
+	_cal.c10 = (uint32_t)(buf[5] & 0x0F) << 16 | (uint32_t)(buf[6]) << 8 | buf[7];
 	_cal.c10 = (_cal.c10 & 1 << 19) ? (0xfff00000 | _cal.c10) : _cal.c10;
 
-	_cal.c01 = (uint16_t)buf[8] << 8 | buf[9];
-	_cal.c11 = (uint16_t)buf[10] << 8 | buf[11];
-	_cal.c20 = (uint16_t)buf[12] << 8 | buf[13];
-	_cal.c21 = (uint16_t)buf[14] << 8 | buf[15];
-	_cal.c30 = (uint16_t)buf[16] << 8 | buf[17];
+	_cal.c01 = (uint16_t)(buf[8]) << 8 | buf[9];
 
-	// PX4_INFO("c0:%d \nc1:%d \nc00:%d \nc10:%d \nc01:%d \nc11:%d \nc20:%d \nc21:%d \nc30:%d\n",
-	// _cal.c0,_cal.c1,
-	// _cal.c00,_cal.c10,
-	// _cal.c01,_cal.c11,_cal.c20,_cal.c21,_cal.c30
-	// );
-	//PX4_DEBUG("c0:%f",_cal.c0);
+	_cal.c11 = (uint16_t)(buf[10]) << 8 | buf[11];
+
+	_cal.c20 = (uint16_t)(buf[12]) << 8 | buf[13];
+
+	_cal.c21 = (uint16_t)(buf[14]) << 8 | buf[15];
+
+	_cal.c30 = (uint16_t)(buf[16]) << 8 | buf[17];
+
+	_cal.c31 = (uint16_t)(buf[18]) << 4 | (uint16_t)(buf[19] & 0xF0) >> 4;
+	_cal.c31 = (_cal.c31 & 1 << 11) ? (0xf000 | _cal.c31) : _cal.c31;
+
+	_cal.c40 = (uint16_t)(buf[19] & 0x0F) << 8 | buf[20];
+	_cal.c40 = (_cal.c40 & 1 << 11) ? (0xf000 | _cal.c40) : _cal.c40;
+
+	PX4_DEBUG("c0:%d\nc1:%d\nc00:%ld\nc10:%ld\nc01:%d\nc11:%d\nc20:%d\nc21:%d\nc30:%d\nc31:%d\nc40:%d\n",
+		  _cal.c0, _cal.c1,
+		  _cal.c00, _cal.c10,
+		  _cal.c01, _cal.c11, _cal.c20, _cal.c21, _cal.c30, _cal.c31, _cal.c40);
+
 	return OK;
 }
 int
@@ -158,7 +168,7 @@ SPA06::init()
 	}
 
 	if (tries < 0) {
-		PX4_DEBUG("spa06 cal failed");
+		PX4_DEBUG("spa06 sensor or coef not ready");
 		return -EIO;
 	}
 
@@ -171,8 +181,9 @@ SPA06::init()
 	_interface->set_reg(_curr_tmp_cfg, SPA06_ADDR_TMP_CFG);
 	kt = 524288.0f;
 
-
+	// Enable FIFO
 	_interface->set_reg(1 << 2, SPA06_ADDR_CFG_REG);
+	// Continuous pressure and temperature mesasurement.
 	_interface->set_reg(7, SPA06_ADDR_MEAS_CFG);
 
 	Start();
@@ -217,8 +228,8 @@ SPA06::collect()
 	// calculate
 	float ftsc = (float)temp_raw / kt;
 	float fpsc = (float)press_raw / kp;
-	float qua2 = (float)_cal.c10 + fpsc * ((float)_cal.c20 + fpsc * (float)_cal.c30);
-	float qua3 = ftsc * fpsc * ((float)_cal.c11 + fpsc * (float)_cal.c21);
+	float qua2 = (float)_cal.c10 + fpsc * ((float)_cal.c20 + fpsc * ((float)_cal.c30) + fpsc * (float)_cal.c40);
+	float qua3 = ftsc * fpsc * ((float)_cal.c11 + fpsc * ((float)_cal.c21) + fpsc * (float)_cal.c31);
 
 	float fp = (float)_cal.c00 + fpsc * qua2 + ftsc * (float)_cal.c01 + qua3;
 	float temperature = (float)_cal.c0 * 0.5f + (float)_cal.c1 * ftsc;
