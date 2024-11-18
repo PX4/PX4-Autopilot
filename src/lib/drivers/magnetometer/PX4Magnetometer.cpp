@@ -40,6 +40,7 @@ PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation) :
 	_device_id{device_id},
 	_rotation{rotation}
 {
+	_sensor_pub.advertise();
 }
 
 PX4Magnetometer::~PX4Magnetometer()
