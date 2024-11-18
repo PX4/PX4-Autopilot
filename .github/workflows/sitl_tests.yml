@@ -82,13 +82,13 @@ jobs:
             git config --global --add safe.directory /workspace
             make px4_sitl_default
             # ccache -s
-            make px4_sitl_default sitl_gazebo-classic
+            make px4_sitl gazebo-classic
             # ccache -s
             wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
             dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
             export
             ulimit -a
-            make px4_sitl_default sitl_gazebo-classic mavsdk_tests
+            make px4_sitl gazebo-classic mavsdk_tests
             # ccache -s
             ulimit -c unlimited
             echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
