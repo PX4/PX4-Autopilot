@@ -48,8 +48,10 @@
 #include <stdio.h>
 #include <drivers/drv_input_capture.h>
 
-#define TEST_LIMITED_DMA 1
-#define LIMIT_DMA_CHANNELS 1
+// This can be overriden for a specific board.
+#ifndef BOARD_DMA_NUM_DSHOT_CHANNELS
+#define BOARD_DMA_NUM_DSHOT_CHANNELS 1
+#endif
 
 // DShot protocol definitions
 #define ONE_MOTOR_DATA_SIZE         16u
@@ -264,12 +266,10 @@ static void init_timers_dma_capt_comp(uint8_t timer_index)
 				timer_configs[timer_index].captcomp_channels[timer_channel_index] = true;
 				_num_dma_available++;
 
-#if defined(TEST_LIMITED_DMA)
-				if (_num_dma_available >= LIMIT_DMA_CHANNELS) {
+				if (_num_dma_available >= BOARD_DMA_NUM_DSHOT_CHANNELS) {
 					PX4_INFO("Limiting DMA channels to %u", _num_dma_available);
 					break;
 				}
-#endif
 			}
 		}
 
