@@ -146,11 +146,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 					1E-6f; // TODO: Add proper microseconds_to_seconds function
 
 			if (_payload_deploy_ack_successful) {
-				PX4_DEBUG("Winch Deploy Ack received! Resuming mission");
+				PX4_DEBUG("Winch has acknowledged, resume mission");
 				return true;
 
 			} else if (payload_deploy_elasped_time_s > _payload_deploy_timeout_s) {
-				PX4_DEBUG("Winch Deploy Timed out, resuming mission!");
+				PX4_DEBUG("Winch timed out, resume mission");
 				return true;
 
 			}
@@ -161,26 +161,25 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW: {
 			const float gimbal_command_elasped_time_s = (now - _gimbal_command_time) * 1E-6f;
-			if (gimbal_command_elasped_time_s > _gimbal_wait_time) {
-				PX4_DEBUG("Waited %.2f seconds for the gimbal to reach the desired orientation, resuming mission!", (double) _gimbal_wait_time);
-				return true;
 
+			if (gimbal_command_elasped_time_s > _gimbal_wait_time) {
+				PX4_DEBUG("Gimbal aligned, resume mission");
+				return true;
 			}
 
 			// We are still waiting the desired delay for the gimbal
 			return false;
 		}
 
-
 	case NAV_CMD_DO_GRIPPER: {
 			const float payload_deploy_elasped_time_s = (now - _payload_deployed_time) * 1E-6f;
 
 			if (_payload_deploy_ack_successful) {
-				PX4_DEBUG("Gripper Deploy Ack received! Resuming mission");
+				PX4_DEBUG("Gripper has acknowledged, resume mission");
 				return true;
 
 			} else if (payload_deploy_elasped_time_s > _payload_deploy_timeout_s) {
-				PX4_DEBUG("Gripper Deploy Timed out, resuming mission!");
+				PX4_DEBUG("Gripper timed out, resume mission");
 				return true;
 
 			}
@@ -609,8 +608,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 		// Register the Gimbal control command (NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW) timestamp so to wait
 		// for the gimbal to reach the desired position
-		if (item.nav_cmd == NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW)
-		{
+		if (item.nav_cmd == NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW) {
 			_gimbal_command_time = hrt_absolute_time();
 		}
 
