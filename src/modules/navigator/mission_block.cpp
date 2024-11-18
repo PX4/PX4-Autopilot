@@ -142,14 +142,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 		break;
 
 	case NAV_CMD_DO_WINCH: {
-			const float payload_deploy_elasped_time_s = (now - _payload_deployed_time) *
-					1E-6f; // TODO: Add proper microseconds_to_seconds function
-
 			if (_payload_deploy_ack_successful) {
 				PX4_DEBUG("Winch has acknowledged, resume mission");
 				return true;
 
-			} else if (payload_deploy_elasped_time_s > _payload_deploy_timeout_s) {
+			} else if (now > _payload_deployed_time + (_payload_deploy_timeout_s * 1_s)) {
 				PX4_DEBUG("Winch timed out, resume mission");
 				return true;
 
@@ -160,9 +157,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 		}
 
 	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW: {
-			const float gimbal_command_elasped_time_s = (now - _gimbal_command_time) * 1E-6f;
-
-			if (gimbal_command_elasped_time_s > _gimbal_wait_time) {
+			if (now > _gimbal_command_time + (_gimbal_wait_time * 1_s)) {
 				PX4_DEBUG("Gimbal aligned, resume mission");
 				return true;
 			}
@@ -172,13 +167,11 @@ MissionBlock::is_mission_item_reached_or_completed()
 		}
 
 	case NAV_CMD_DO_GRIPPER: {
-			const float payload_deploy_elasped_time_s = (now - _payload_deployed_time) * 1E-6f;
-
 			if (_payload_deploy_ack_successful) {
 				PX4_DEBUG("Gripper has acknowledged, resume mission");
 				return true;
 
-			} else if (payload_deploy_elasped_time_s > _payload_deploy_timeout_s) {
+			} else if (now > _payload_deployed_time + (_payload_deploy_timeout_s * 1_s)) {
 				PX4_DEBUG("Gripper timed out, resume mission");
 				return true;
 
