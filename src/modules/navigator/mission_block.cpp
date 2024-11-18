@@ -141,45 +141,14 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 		break;
 
-	case NAV_CMD_DO_WINCH: {
-			if (_payload_deploy_ack_successful) {
-				PX4_DEBUG("Winch has acknowledged, resume mission");
-				return true;
-
-			} else if (now > _payload_deployed_time + (_payload_deploy_timeout_s * 1_s)) {
-				PX4_DEBUG("Winch timed out, resume mission");
-				return true;
-
-			}
-
-			// We are still waiting for the acknowledgement / execution of deploy
-			return false;
+	case NAV_CMD_DO_WINCH:
+	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+	case NAV_CMD_DO_GRIPPER:
+		if (now > _timestamp_command_timeout + (_command_timeout * 1_s)) {
+			return true;
 		}
 
-	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW: {
-			if (now > _gimbal_command_time + (_gimbal_wait_time * 1_s)) {
-				PX4_DEBUG("Gimbal aligned, resume mission");
-				return true;
-			}
-
-			// We are still waiting the desired delay for the gimbal
-			return false;
-		}
-
-	case NAV_CMD_DO_GRIPPER: {
-			if (_payload_deploy_ack_successful) {
-				PX4_DEBUG("Gripper has acknowledged, resume mission");
-				return true;
-
-			} else if (now > _payload_deployed_time + (_payload_deploy_timeout_s * 1_s)) {
-				PX4_DEBUG("Gripper timed out, resume mission");
-				return true;
-
-			}
-
-			// We are still waiting for the acknowledgement / execution of deploy
-			return false;
-		}
+		return false; // Still waiting
 
 	default:
 		/* do nothing, this is a 3D waypoint */
@@ -449,7 +418,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 		/* check if the MAV was long enough inside the waypoint orbit */
 		if ((get_time_inside(_mission_item) < FLT_EPSILON) ||
-		    (now - _time_wp_reached >= (hrt_abstime)(get_time_inside(_mission_item) * 1e6f))) {
+		    (now >= (hrt_abstime)(get_time_inside(_mission_item) * 1_s) + _time_wp_reached)) {
 			time_inside_reached = true;
 		}
 
@@ -553,59 +522,37 @@ MissionBlock::issue_command(const mission_item_s &item)
 		return;
 	}
 
-	if (item.nav_cmd == NAV_CMD_DO_WINCH ||
-	    item.nav_cmd == NAV_CMD_DO_GRIPPER) {
-		// Initiate Payload Deployment
-		vehicle_command_s vcmd = {};
-		vcmd.command = item.nav_cmd;
-		vcmd.param1 = item.params[0];
-		vcmd.param2 = item.params[1];
-		vcmd.param3 = item.params[2];
-		vcmd.param4 = item.params[3];
-		vcmd.param5 = static_cast<double>(item.params[4]);
-		vcmd.param6 = static_cast<double>(item.params[5]);
-		_navigator->publish_vehicle_cmd(&vcmd);
+	// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
+	if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
+		_navigator->acquire_gimbal_control();
+	}
 
-		// Reset payload deploy flag & data to get ready to receive deployment ack result
-		_payload_deploy_ack_successful = false;
-		_payload_deployed_time = hrt_absolute_time();
+	// Mission item's NAV_CMD enums directly map to the according vehicle command
+	// So set the raw value directly (MAV_FRAME_MISSION mission item)
+	vehicle_command_s vcmd = {};
+	vcmd.command = item.nav_cmd;
+	vcmd.param1 = item.params[0];
+	vcmd.param2 = item.params[1];
+	vcmd.param3 = item.params[2];
+	vcmd.param4 = item.params[3];
+	vcmd.param5 = static_cast<double>(item.params[4]);
+	vcmd.param6 = static_cast<double>(item.params[5]);
+	vcmd.param7 = item.params[6];
 
-	} else {
+	if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION) {
+		// We need to send out the ROI location that was parsed potentially with double precision to lat/lon because mission item parameters 5 and 6 only have float precision
+		vcmd.param5 = item.lat;
+		vcmd.param6 = item.lon;
 
-		// This is to support legacy DO_MOUNT_CONTROL as part of a mission.
-		if (item.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL) {
-			_navigator->acquire_gimbal_control();
+		if (item.altitude_is_relative) {
+			vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
 		}
+	}
 
-		// Mission item's NAV_CMD enums directly map to the according vehicle command
-		// So set the raw value directly (MAV_FRAME_MISSION mission item)
-		vehicle_command_s vcmd = {};
-		vcmd.command = item.nav_cmd;
-		vcmd.param1 = item.params[0];
-		vcmd.param2 = item.params[1];
-		vcmd.param3 = item.params[2];
-		vcmd.param4 = item.params[3];
-		vcmd.param5 = static_cast<double>(item.params[4]);
-		vcmd.param6 = static_cast<double>(item.params[5]);
-		vcmd.param7 = item.params[6];
+	_navigator->publish_vehicle_cmd(&vcmd);
 
-		if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION) {
-			// We need to send out the ROI location that was parsed potentially with double precision to lat/lon because mission item parameters 5 and 6 only have float precision
-			vcmd.param5 = item.lat;
-			vcmd.param6 = item.lon;
-
-			if (item.altitude_is_relative) {
-				vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
-			}
-		}
-
-		// Register the Gimbal control command (NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW) timestamp so to wait
-		// for the gimbal to reach the desired position
-		if (item.nav_cmd == NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW) {
-			_gimbal_command_time = hrt_absolute_time();
-		}
-
-		_navigator->publish_vehicle_cmd(&vcmd);
+	if (item_has_timeout(item)) {
+		_timestamp_command_timeout = hrt_absolute_time();
 	}
 }
 
