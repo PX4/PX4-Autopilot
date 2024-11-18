@@ -124,6 +124,31 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 
 	if (PX4_ISFINITE(_rover_mecanum_setpoint.forward_speed_setpoint)
 	    && PX4_ISFINITE(_rover_mecanum_setpoint.lateral_speed_setpoint)) { // Closed loop speed control
+
+		if (_param_rm_max_thr_spd.get() > FLT_EPSILON) {
+
+			forward_speed_normalized = math::interpolate<float>(_rover_mecanum_setpoint.forward_speed_setpoint,
+						   -_param_rm_max_thr_spd.get(), _param_rm_max_thr_spd.get(), -1.f, 1.f);
+
+			lateral_speed_normalized = math::interpolate<float>(_rover_mecanum_setpoint.lateral_speed_setpoint,
+						   -_param_rm_max_thr_spd.get(), _param_rm_max_thr_spd.get(), -1.f, 1.f);
+
+			const float total_speed = fabsf(forward_speed_normalized) + fabsf(lateral_speed_normalized) + fabsf(
+							  speed_diff_normalized);
+
+			if (total_speed > 1.f) { // Adjust speed setpoints if infeasible
+				const float theta = atan2f(fabsf(lateral_speed_normalized), fabsf(forward_speed_normalized));
+				const float magnitude = (1.f - fabsf(speed_diff_normalized)) / (sinf(theta) + cosf(theta));
+				const float normalization = 1.f / (sqrtf(powf(forward_speed_normalized, 2.f) + powf(lateral_speed_normalized, 2.f)));
+				forward_speed_normalized *= magnitude * normalization;
+				lateral_speed_normalized *= magnitude * normalization;
+				_rover_mecanum_setpoint.forward_speed_setpoint = math::interpolate<float>(forward_speed_normalized, -1.f, 1.f,
+						-_param_rm_max_thr_spd.get(), _param_rm_max_thr_spd.get());
+				_rover_mecanum_setpoint.lateral_speed_setpoint = math::interpolate<float>(lateral_speed_normalized, -1.f, 1.f,
+						-_param_rm_max_thr_spd.get(), _param_rm_max_thr_spd.get());
+			}
+		}
+
 		forward_speed_normalized = calcNormalizedSpeedSetpoint(_rover_mecanum_setpoint.forward_speed_setpoint,
 					   vehicle_forward_speed, _param_rm_max_thr_spd.get(), _forward_speed_setpoint_with_accel_limit, _pid_forward_throttle,
 					   _param_rm_max_accel.get(), _param_rm_max_decel.get(), dt, false);
