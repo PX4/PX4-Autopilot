@@ -146,6 +146,7 @@ static void init_timer_config(uint32_t channel_mask)
 			uint8_t timer_index = timer_io_channels[output_channel].timer_index;
 
 			uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
+
 			if ((timer_channel <= 0) || (timer_channel >= 5)) {
 				// invalid channel, only 1 - 4
 				continue;
@@ -228,6 +229,7 @@ static void init_timers_dma_capt_comp(uint8_t timer_index)
 		for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
 
 			uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
+
 			if ((timer_channel <= 0) || (timer_channel >= 5)) {
 				// invalid channel, only 1 - 4
 				continue;
@@ -276,6 +278,7 @@ static void init_timers_dma_capt_comp(uint8_t timer_index)
 			if (timer_index == timer_io_channels[output_channel].timer_index) {
 
 				uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
+
 				if ((timer_channel <= 0) || (timer_channel >= 5)) {
 					// invalid channel, only 1 - 4
 					continue;
@@ -308,6 +311,7 @@ static int32_t init_timer_channels(uint8_t timer_index)
 	for (uint8_t output_channel = 0; output_channel < MAX_TIMER_IO_CHANNELS; output_channel++) {
 
 		uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
+
 		if ((timer_channel <= 0) || (timer_channel >= 5)) {
 			// invalid channel, only 1 - 4
 			continue;
@@ -464,48 +468,60 @@ static void configure_channels_round_robin(uint8_t timer_index)
 {
 	switch (_num_dma_available) {
 	case 1: {
-		for (uint8_t i = 0; i < 4; i++) {
-			if (timer_configs[timer_index].captcomp_channels[i]) {
-				timer_configs[timer_index].captcomp_channels[i] = false;
-				if (i == 3) {
-					timer_configs[timer_index].captcomp_channels[0] = true;
-				} else {
-					timer_configs[timer_index].captcomp_channels[i + 1] = true;
-				}
-				break;
-			}
-		}
-		break;
-	}
-	case 2: {
-		if (timer_configs[timer_index].captcomp_channels[0]) {
-			timer_configs[timer_index].captcomp_channels[0] = false;
-			timer_configs[timer_index].captcomp_channels[1] = true;
-			timer_configs[timer_index].captcomp_channels[2] = false;
-			timer_configs[timer_index].captcomp_channels[3] = true;
+			for (uint8_t i = 0; i < 4; i++) {
+				if (timer_configs[timer_index].captcomp_channels[i]) {
+					timer_configs[timer_index].captcomp_channels[i] = false;
 
-		} else {
-			timer_configs[timer_index].captcomp_channels[0] = true;
-			timer_configs[timer_index].captcomp_channels[1] = false;
-			timer_configs[timer_index].captcomp_channels[2] = true;
-			timer_configs[timer_index].captcomp_channels[3] = false;
-		}
-		break;
-	}
-	case 3: {
-		for (uint8_t i = 0; i < 4; i++) {
-			if (!timer_configs[timer_index].captcomp_channels[i]) {
-				timer_configs[timer_index].captcomp_channels[i] = true;
-				if (i == 3) {
-					timer_configs[timer_index].captcomp_channels[0] = false;
-				} else {
-					timer_configs[timer_index].captcomp_channels[i + 1] = false;
+					if (i == 3) {
+						timer_configs[timer_index].captcomp_channels[0] = true;
+
+					} else {
+						timer_configs[timer_index].captcomp_channels[i + 1] = true;
+					}
+
+					break;
 				}
-				break;
 			}
+
+			break;
 		}
-		break;
-	}
+
+	case 2: {
+			if (timer_configs[timer_index].captcomp_channels[0]) {
+				timer_configs[timer_index].captcomp_channels[0] = false;
+				timer_configs[timer_index].captcomp_channels[1] = true;
+				timer_configs[timer_index].captcomp_channels[2] = false;
+				timer_configs[timer_index].captcomp_channels[3] = true;
+
+			} else {
+				timer_configs[timer_index].captcomp_channels[0] = true;
+				timer_configs[timer_index].captcomp_channels[1] = false;
+				timer_configs[timer_index].captcomp_channels[2] = true;
+				timer_configs[timer_index].captcomp_channels[3] = false;
+			}
+
+			break;
+		}
+
+	case 3: {
+			for (uint8_t i = 0; i < 4; i++) {
+				if (!timer_configs[timer_index].captcomp_channels[i]) {
+					timer_configs[timer_index].captcomp_channels[i] = true;
+
+					if (i == 3) {
+						timer_configs[timer_index].captcomp_channels[0] = false;
+
+					} else {
+						timer_configs[timer_index].captcomp_channels[i + 1] = false;
+					}
+
+					break;
+				}
+			}
+
+			break;
+		}
+
 	default:
 		break;
 	}
@@ -543,6 +559,7 @@ void dma_burst_finished_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 
 		bool is_this_timer = timer_index == timer_io_channels[output_channel].timer_index;
 		uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
+
 		if ((timer_channel <= 0) || (timer_channel >= 5)) {
 			// invalid channel, only 1 - 4
 			continue;
@@ -610,6 +627,7 @@ static void capture_complete_callback(void *arg)
 
 		bool is_this_timer = timer_index == timer_io_channels[output_channel].timer_index;
 		uint8_t timer_channel = timer_io_channels[output_channel].timer_channel;
+
 		if ((timer_channel <= 0) || (timer_channel >= 5)) {
 			// invalid channel, only 1 - 4
 			continue;
@@ -764,6 +782,7 @@ void up_bdshot_status(void)
 	if (_bidirectional) {
 		PX4_INFO("Bidirectional DShot enabled");
 		PX4_INFO("Available DMA: %u", _num_dma_available);
+
 		if (_num_dma_available < 4) {
 			PX4_INFO("Round robin enabled");
 		}
