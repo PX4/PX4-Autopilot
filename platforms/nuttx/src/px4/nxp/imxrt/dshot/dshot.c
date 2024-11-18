@@ -418,6 +418,19 @@ void up_bdshot_erpm(void)
 }
 
 
+int up_bdshot_num_erpm_ready(void)
+{
+	int num_ready = 0;
+
+	for (unsigned i = 0; i < DSHOT_TIMERS; ++i) {
+		if (bdshot_parsed_recv_mask & (1 << i)) {
+			++num_ready;
+		}
+	}
+
+	return num_ready;
+}
+
 
 int up_bdshot_get_erpm(uint8_t channel, int *erpm)
 {

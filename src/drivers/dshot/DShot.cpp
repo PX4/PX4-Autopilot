@@ -309,6 +309,11 @@ int DShot::handle_new_bdshot_erpm(void)
 	esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 	esc_status.esc_armed_flags = _outputs_on;
 
+	// We wait until all are ready.
+	if (up_bdshot_num_erpm_ready() < (int)popcount(_output_mask)) {
+		return 0;
+	}
+
 	for (unsigned i = 0; i < _num_outputs; i++) {
 		if (_mixing_output.isFunctionSet(i)) {
 			if (up_bdshot_get_erpm(i, &erpm) == 0) {

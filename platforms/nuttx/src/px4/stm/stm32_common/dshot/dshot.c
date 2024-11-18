@@ -130,6 +130,7 @@ static uint32_t _dshot_frequency = 0;
 
 // eRPM data for channels on the singular timer
 static int32_t _erpms[MAX_NUM_CHANNELS_PER_TIMER] = {};
+static bool _erpms_ready[MAX_NUM_CHANNELS_PER_TIMER] = {};
 
 // hrt callback handle for captcomp post dma processing
 static struct hrt_call _cc_call;
@@ -671,6 +672,10 @@ void process_capture_results(uint8_t timer_index)
 {
 	for (uint8_t channel_index = 0; channel_index < MAX_NUM_CHANNELS_PER_TIMER; channel_index++) {
 
+		if (!timer_configs[timer_index].captcomp_channels[channel_index]) {
+			continue;
+		}
+
 		// Calculate the period for each channel
 		const unsigned period = calculate_period(timer_index, channel_index);
 
@@ -686,6 +691,9 @@ void process_capture_results(uint8_t timer_index)
 			// Convert the period to eRPM
 			_erpms[channel_index] = (1000000 * 60) / period;
 		}
+
+		// We set it ready anyway, not to hold up other channels when used in round robin.
+		_erpms_ready[channel_index] = true;
 	}
 }
 
@@ -745,15 +753,28 @@ int up_dshot_arm(bool armed)
 				   IO_TIMER_ALL_MODES_CHANNELS);
 }
 
+int up_bdshot_num_erpm_ready(void)
+{
+	int num_ready = 0;
+
+	for (unsigned i = 0; i < MAX_NUM_CHANNELS_PER_TIMER; ++i) {
+		if (_erpms_ready[i]) {
+			++num_ready;
+		}
+	}
+
+	return num_ready;
+}
+
 int up_bdshot_get_erpm(uint8_t output_channel, int *erpm)
 {
 	uint8_t timer_index = timer_io_channels[output_channel].timer_index;
 	uint8_t timer_channel_index = timer_io_channels[output_channel].timer_channel - 1;
 	bool channel_initialized = timer_configs[timer_index].initialized_channels[timer_channel_index];
-	bool captcomp_enabled = timer_configs[timer_index].captcomp_channels[timer_channel_index];
 
-	if (channel_initialized && captcomp_enabled) {
+	if (channel_initialized) {
 		*erpm = _erpms[timer_channel_index];
+		_erpms_ready[timer_channel_index] = false;
 		return PX4_OK;
 	}
 
