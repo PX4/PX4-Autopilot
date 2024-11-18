@@ -1,3 +1,10 @@
+# 11/18/24
+# SITL tests are too incosistent at least one of them failing on every run
+# in a very inconsistent way. For now we are going to disable them, we want
+# to make sure everyone pays attention to CI, having flaky tests dilutes trust
+# in our CI setup. See https://github.com/PX4/PX4-Autopilot/issues/23965
+
+
 # NOTE: this workflow is now running on Dronecode / PX4 AWS account.
 # - If you want to keep the tests running in GitHub Actions you need to uncomment the "runs-on: ubuntu-latest" lines
 #   and comment the "runs-on: [runs-on,runner=..." lines.
