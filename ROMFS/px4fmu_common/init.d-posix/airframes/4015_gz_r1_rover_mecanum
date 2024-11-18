@@ -13,16 +13,18 @@ param set-default SIM_GZ_EN 1 # Gazebo bridge
 
 # Rover parameters
 param set-default RM_WHEEL_TRACK 0.3
-param set-default RM_YAW_RATE_I 0
-param set-default RM_YAW_RATE_P 0.01
+param set-default RM_YAW_RATE_I 0.1
+param set-default RM_YAW_RATE_P 0.1
 param set-default RM_MAX_ACCEL 3
+param set-default RM_MAX_DECEL 5
 param set-default RM_MAX_JERK 5
-param set-default RM_MAX_SPEED 4
-param set-default RM_MAX_THR_SPD 7
-param set-default RM_MAX_THR_YAW_R 7.5
+param set-default RM_MAX_SPEED 2
+param set-default RM_MAX_THR_SPD 2.2
+param set-default RM_MAX_THR_YAW_R 1.2
 param set-default RM_YAW_P 5
 param set-default RM_YAW_I 0.1
-param set-default RM_MAX_YAW_RATE 180
+param set-default RM_MAX_YAW_RATE 120
+param set-default RM_MAX_YAW_ACCEL 240
 param set-default RM_MISS_VEL_GAIN 1
 param set-default RM_SPEED_I 0.01
 param set-default RM_SPEED_P 0.1
