@@ -75,16 +75,15 @@ bool FlightTaskManualAcceleration::update()
 
 	if (max_hagl_ratio > factor_threshold) {
 		max_hagl_ratio = math::min(max_hagl_ratio, 1.f);
-		float flow_vxy_max = math::min(vehicle_local_pos.vxy_max, _param_mpc_vel_manual.get());
+		float vxy_max = math::min(vehicle_local_pos.vxy_max, _param_mpc_vel_manual.get());
 
-		flow_vxy_max = flow_vxy_max + (max_hagl_ratio - factor_threshold) * (min_vel - flow_vxy_max) /
-			       (min_vel - factor_threshold);
+		vxy_max = interpolate(vxy_max, factor_threshold, min_vel, vxy_max, min_vel);
 
 		const float current_vel_constraint = _stick_acceleration_xy.getVelocityConstraint();
 
-		if (abs(current_vel_constraint - flow_vxy_max) > 0.1f) {
-			// adjust velocity constraint with a lag because good tracking is required for the drag estimation
-			const float v_limit = math::constrain(flow_vxy_max, current_vel_constraint - _deltatime * _param_mpc_acc_hor.get(),
+		if (fabsf(current_vel_constraint - vxy_max) > 0.1f) {
+			// gradually adjust velocity constraint because good tracking is required for the drag estimation
+			const float v_limit = math::constrain(vxy_max, current_vel_constraint - _deltatime * _param_mpc_acc_hor.get(),
 							      current_vel_constraint + _deltatime * _param_mpc_acc_hor.get());
 			_stick_acceleration_xy.setVelocityConstraint(v_limit);
 		}
