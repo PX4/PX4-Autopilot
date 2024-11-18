@@ -268,31 +268,15 @@ matrix::Vector4f RoverMecanumControl::computeInverseKinematics(float forward_spe
 		float lateral_speed_normalized,
 		float speed_diff)
 {
-	// Prioritize ratio between forward and lateral speed over either magnitude
-	float combined_speed =  fabsf(forward_speed_normalized) + fabsf(lateral_speed_normalized);
+	const float total_speed = fabsf(forward_speed_normalized) + fabsf(lateral_speed_normalized) + fabsf(speed_diff);
 
-	if (combined_speed > 1.f) {
-		forward_speed_normalized /= combined_speed;
-		lateral_speed_normalized /= combined_speed;
-		combined_speed = 1.f;
-	}
+	if (total_speed > 1.f) { // Adjust speed setpoints if infeasible
+		const float theta = atan2f(fabsf(lateral_speed_normalized), fabsf(forward_speed_normalized));
+		const float magnitude = (1.f - fabsf(speed_diff)) / (sinf(theta) + cosf(theta));
+		const float normalization = 1.f / (sqrtf(powf(forward_speed_normalized, 2.f) + powf(lateral_speed_normalized, 2.f)));
+		forward_speed_normalized *= magnitude * normalization;
+		lateral_speed_normalized *= magnitude * normalization;
 
-	// Prioritize yaw rate over forward and lateral speed
-	const float total_speed = combined_speed + fabsf(speed_diff);
-
-	if (total_speed > 1.f) {
-		const float excess_velocity = fabsf(total_speed - 1.f);
-		const float forward_throttle_temp = forward_speed_normalized - sign(forward_speed_normalized) * 0.5f * excess_velocity;
-		const float lateral_throttle_temp = lateral_speed_normalized - sign(lateral_speed_normalized) * 0.5f * excess_velocity;
-
-		if (sign(forward_throttle_temp) == sign(forward_speed_normalized)
-		    && sign(lateral_speed_normalized) == sign(lateral_throttle_temp)) {
-			forward_speed_normalized = forward_throttle_temp;
-			lateral_speed_normalized = lateral_throttle_temp;
-
-		} else {
-			forward_speed_normalized = lateral_speed_normalized = 0.f;
-		}
 	}
 
 	// Calculate motor commands
