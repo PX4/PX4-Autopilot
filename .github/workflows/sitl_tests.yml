@@ -38,23 +38,23 @@ jobs:
         name: Set timestamp for cache
         run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
-      - name: Cache Key Config
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: sitl-ccache-${{ steps.set-timestamp.outputs.timestamp }}
-          restore-keys: sitl-ccache-${{ steps.set-timestamp.outputs.timestamp }}
+      # - name: Cache Key Config
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.ccache
+      #     key: sitl-ccache-${{ steps.set-timestamp.outputs.timestamp }}
+      #     restore-keys: sitl-ccache-${{ steps.set-timestamp.outputs.timestamp }}
 
-      - name: Cache Conf Config
-        run: |
-            mkdir -p ~/.ccache
-            echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
-            echo "compression = true" >> ~/.ccache/ccache.conf
-            echo "compression_level = 6" >> ~/.ccache/ccache.conf
-            echo "max_size = 120M" >> ~/.ccache/ccache.conf
-            echo "hash_dir = false" >> ~/.ccache/ccache.conf
-            ccache -s
-            ccache -z
+      # - name: Cache Conf Config
+      #   run: |
+      #       mkdir -p ~/.ccache
+      #       echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+      #       echo "compression = true" >> ~/.ccache/ccache.conf
+      #       echo "compression_level = 6" >> ~/.ccache/ccache.conf
+      #       echo "max_size = 120M" >> ~/.ccache/ccache.conf
+      #       echo "hash_dir = false" >> ~/.ccache/ccache.conf
+      #       ccache -s
+      #       ccache -z
 
       - name: Build and load container image
         uses: docker/build-push-action@v6
@@ -79,15 +79,15 @@ jobs:
           options: -v ${{ github.workspace }}:/workspace
           run: |
             make px4_sitl_default
-            ccache -s
+            # ccache -s
             make px4_sitl_default sitl_gazebo-classic
-            ccache -s
+            # ccache -s
             wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
             dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
             export
             ulimit -a
             make px4_sitl_default sitl_gazebo-classic mavsdk_tests
-            ccache -s
+            # ccache -s
             ulimit -c unlimited
             echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
             test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json --verbose
