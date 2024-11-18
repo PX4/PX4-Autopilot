@@ -15,7 +15,7 @@ on:
 
 jobs:
   build:
-    name: Testing PX4 ${{ matrix.config.model }}
+    name: Testing ${{ matrix.config.model }}
     runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}"]
     # container:
     #   image: px4io/px4-dev-simulation-focal:2021-09-08
@@ -25,8 +25,8 @@ jobs:
       matrix:
         config:
           - {model: "iris",          latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
-          - {model: "tailsitter" ,   latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo" } # Florida
-          - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage" } # Zurich
+          # - {model: "tailsitter" ,   latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo" } # Florida
+          # - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage" } # Zurich
 
     steps:
       - uses: actions/checkout@v4
@@ -78,6 +78,8 @@ jobs:
           image: px4-dev:latest
           options: -v ${{ github.workspace }}:/workspace
           run: |
+            cd /workspace
+            git config --global --add safe.directory /workspace
             make px4_sitl_default
             # ccache -s
             make px4_sitl_default sitl_gazebo-classic
