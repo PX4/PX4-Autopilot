@@ -716,6 +716,8 @@ Commander::Commander() :
 	}
 
 	updateParameters();
+
+	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
 }
 
 Commander::~Commander()
@@ -2998,6 +3000,20 @@ void Commander::send_parachute_command()
 	vcmd_pub.publish(vcmd);
 
 	set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
+}
+
+void Commander::onFailsafeNotifyUserTrampoline(void *arg)
+{
+	Commander *commander = static_cast<Commander *>(arg);
+	commander->onFailsafeNotifyUser();
+}
+
+void Commander::onFailsafeNotifyUser()
+{
+	// If we are about to inform about a failsafe, we need to ensure any pending health report is sent out first,
+	// as the failsafe message might reference that. This is only needed in case the report is currently rate-limited,
+	// i.e. it had a recent previous change already.
+	_health_and_arming_checks.reportIfUnreportedDifferences();
 }
 
 int Commander::print_usage(const char *reason)
