@@ -358,8 +358,8 @@ CollisionPrevention::_checkSetpointDirectionFeasability()
 
 	for (int i = 0; i < BIN_COUNT; i++) {
 		// check if our setpoint is either pointing in a direction where data exists, or if not, wether we are allowed to go where there is no data
-		if ((_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == _setpoint_index) && (!_param_cp_go_nodata.get()
-				|| (_param_cp_go_nodata.get() && _data_fov[i]))) {
+		if ((_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == _setpoint_index) && (!_param_cp_go_no_data.get()
+				|| (_param_cp_go_no_data.get() && _data_fov[i]))) {
 			setpoint_feasible =  false;
 
 		}
@@ -605,7 +605,7 @@ void CollisionPrevention::_getVelocityCompensationAcceleration(const float vehic
 			const float max_vel = math::trajectory::computeMaxSpeedFromDistance(_param_mpc_jerk_max.get(),
 					      _param_mpc_acc_hor.get(), stop_distance, 0.f);
 			// we dont take the minimum of the last term because of stop_distance is zero but current velocity is not, we want the acceleration to become negative and slow us down.
-			const float curr_acc_vel_constraint = _param_mpc_vel_p_acc.get() * (max_vel - curr_vel_parallel);
+			const float curr_acc_vel_constraint = _param_mpc_xy_vel_p_acc.get() * (max_vel - curr_vel_parallel);
 
 			if (curr_acc_vel_constraint < vel_comp_accel) {
 				vel_comp_accel = curr_acc_vel_constraint;
