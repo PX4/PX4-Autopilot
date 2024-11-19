@@ -106,11 +106,11 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	int32_t linearize_servos = 0;
 	param_get(_param_handles.linearize_servos, &linearize_servos);
 	_geometry.linearize_servos = (linearize_servos != 0);
-	float max_sevo_throw = 0.f;
-	param_get(_param_handles.max_sevo_throw, &max_sevo_throw);
-	max_sevo_throw *=  M_PI_F / 180.0f;  //converting deg to rad
-	_geometry.max_sevo_height = sinf(max_sevo_throw);
-	_geometry.inverse_max_servo_throw = 1/max_sevo_throw;
+	float max_servo_throw_deg = 0.f;
+	param_get(_param_handles.max_servo_throw, &max_servo_throw_deg);
+	const float max_servo_throw = math::radians(max_servo_throw)
+	_geometry.max_servo_height = sinf(max_servo_throw);
+	_geometry.inverse_max_servo_throw = 1.f / max_servo_throw;
 }
 
 bool ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configuration,
@@ -197,13 +197,12 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 
 float ActuatorEffectivenessHelicopter::getLinearServoOutput(float input) const
 {
-
 	input = math::constrain(input, -1.0f, 1.0f);
 
 	//servo output is calculated by normalizing input to arm rotation of CA_MAX_SVO_THROW degrees as full input for a linear throw
 	float svo_height = _geometry.max_sevo_height * input;
 
-	if (std::isnan(svo_height)) {
+	if (!PX4_ISFINITE(svo_height)) {
 		svo_height = 0.0f;
 	}
 
