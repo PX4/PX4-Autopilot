@@ -88,6 +88,8 @@ public:
 	 */
 	bool update(bool force_reporting = false, bool is_arming_request = false);
 
+	bool reportIfUnreportedDifferences();
+
 	/**
 	 * Whether arming is possible for a given navigation mode
 	 */

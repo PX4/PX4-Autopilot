@@ -170,6 +170,10 @@ void FailsafeBase::removeActions(ClearCondition condition)
 
 void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action delayed_action, Cause cause)
 {
+	if (_on_notify_user_cb) {
+		_on_notify_user_cb(_on_notify_user_arg);
+	}
+
 	int delay_s = (_current_delay + 500_ms) / 1_s;
 	PX4_DEBUG("User notification: failsafe triggered (action=%i, delayed_action=%i, cause=%i, delay=%is)", (int)action,
 		  (int)delayed_action, (int)cause, delay_s);

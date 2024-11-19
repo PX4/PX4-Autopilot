@@ -339,6 +339,11 @@ private:
 
 	bool report(bool is_armed, bool force);
 
+	/**
+	 * Send out any unreported changes if there are any
+	 */
+	bool reportIfUnreportedDifferences(bool is_armed);
+
 	const hrt_abstime _min_reporting_interval;
 
 	/// event buffer: stores current events + arguments.
