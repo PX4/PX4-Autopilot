@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/health_report.h>
@@ -125,18 +126,21 @@ private:
 			updated |= _temperature.valid();
 			updated |= _throttle.valid();
 			updated |= _windspeed.valid();
-			updated |= write_airspeed(&msg);
-			updated |= write_attitude_sp(&msg);
-			updated |= write_battery_status(&msg);
-			updated |= write_estimator_status(&msg);
-			updated |= write_fw_ctrl_status(&msg);
-			updated |= write_geofence_result(&msg);
-			updated |= write_global_position(&msg);
-			updated |= write_mission_result(&msg);
-			updated |= write_tecs_status(&msg);
-			updated |= write_vehicle_status(&msg);
+			updated |= write_attitude_setpoint_if_updated(&msg);
+			updated |= write_estimator_status_if_updated(&msg);
+			updated |= write_fw_ctrl_status_if_updated(&msg);
+			updated |= write_geofence_result_if_updated(&msg);
+			updated |= write_global_position_if_updated(&msg);
+			updated |= write_heading_if_updated(&msg);
+			updated |= write_mission_result_if_updated(&msg);
 			updated |= write_failsafe_flags(&msg);
-			updated |= write_wind(&msg);
+
+			// these topics are already updated in update_data() and thus we just copy them here
+			write_airspeed(&msg);
+			write_battery_status(&msg);
+			write_tecs_status(&msg);
+			write_vehicle_status(&msg);
+			write_wind(&msg);
 
 			if (updated) {
 				msg.timestamp = t / 1000;
@@ -244,7 +248,7 @@ private:
 	{
 		airspeed_s airspeed;
 
-		if (_airspeed_sub.update(&airspeed)) {
+		if (_airspeed_sub.copy(&airspeed)) {
 			if (airspeed.confidence < 0.95f) { // the same threshold as for the commander
 				msg->failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
 			}
@@ -255,12 +259,14 @@ private:
 		return false;
 	}
 
-	bool write_attitude_sp(mavlink_high_latency2_t *msg)
+	bool write_attitude_setpoint_if_updated(mavlink_high_latency2_t *msg)
 	{
 		vehicle_attitude_setpoint_s attitude_sp;
 
 		if (_attitude_sp_sub.update(&attitude_sp)) {
-			msg->target_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
+
+			msg->target_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(matrix::Eulerf(matrix::Quatf(
+						      attitude_sp.q_d)).psi())) * 0.5f);
 			return true;
 		}
 
@@ -274,7 +280,7 @@ private:
 		for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
 			battery_status_s battery;
 
-			if (_batteries[i].subscription.update(&battery)) {
+			if (_batteries[i].subscription.copy(&battery)) {
 				updated = true;
 				_batteries[i].connected = battery.connected;
 
@@ -287,11 +293,12 @@ private:
 		return updated;
 	}
 
-	bool write_estimator_status(mavlink_high_latency2_t *msg)
+	bool write_estimator_status_if_updated(mavlink_high_latency2_t *msg)
 	{
 		// use primary estimator_status
-		if (_estimator_selector_status_sub.updated()) {
-			estimator_selector_status_s estimator_selector_status;
+		estimator_selector_status_s estimator_selector_status;
+
+		if (_estimator_selector_status_sub.update(&estimator_selector_status)) {
 
 			if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
 				if (estimator_selector_status.primary_instance != _estimator_status_sub.get_instance()) {
@@ -304,8 +311,7 @@ private:
 
 		if (_estimator_status_sub.update(&estimator_status)) {
 			if (estimator_status.gps_check_fail_flags > 0 ||
-			    estimator_status.filter_fault_flags > 0 ||
-			    estimator_status.innovation_check_flags > 0) {
+			    estimator_status.filter_fault_flags > 0) {
 
 				msg->failure_flags |= HL_FAILURE_FLAG_ESTIMATOR;
 			}
@@ -320,7 +326,7 @@ private:
 		return false;
 	}
 
-	bool write_fw_ctrl_status(mavlink_high_latency2_t *msg)
+	bool write_fw_ctrl_status_if_updated(mavlink_high_latency2_t *msg)
 	{
 		position_controller_status_s pos_ctrl_status;
 
@@ -334,7 +340,7 @@ private:
 		return false;
 	}
 
-	bool write_geofence_result(mavlink_high_latency2_t *msg)
+	bool write_geofence_result_if_updated(mavlink_high_latency2_t *msg)
 	{
 		geofence_result_s geofence;
 
@@ -350,12 +356,12 @@ private:
 		return false;
 	}
 
-	bool write_global_position(mavlink_high_latency2_t *msg)
+	bool write_global_position_if_updated(mavlink_high_latency2_t *msg)
 	{
 		vehicle_global_position_s global_pos;
 		vehicle_local_position_s local_pos;
 
-		if (_global_pos_sub.update(&global_pos) && _local_pos_sub.update(&local_pos)) {
+		if (_global_pos_sub.update(&global_pos) && _local_pos_sub.copy(&local_pos)) {
 			msg->latitude = global_pos.lat * 1e7;
 			msg->longitude = global_pos.lon * 1e7;
 
@@ -370,7 +376,20 @@ private:
 
 			msg->altitude = altitude;
 
-			msg->heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(local_pos.heading)) * 0.5f);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool write_heading_if_updated(mavlink_high_latency2_t *msg)
+	{
+		vehicle_attitude_s attitude;
+
+		if (_attitude_sub.update(&attitude)) {
+
+			const matrix::Eulerf euler = matrix::Quatf(attitude.q);
+			msg->heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(euler.psi())) * 0.5f);
 
 			return true;
 		}
@@ -378,7 +397,7 @@ private:
 		return false;
 	}
 
-	bool write_mission_result(mavlink_high_latency2_t *msg)
+	bool write_mission_result_if_updated(mavlink_high_latency2_t *msg)
 	{
 		mission_result_s mission_result;
 
@@ -394,7 +413,7 @@ private:
 	{
 		tecs_status_s tecs_status;
 
-		if (_tecs_status_sub.update(&tecs_status)) {
+		if (_tecs_status_sub.copy(&tecs_status)) {
 			int16_t target_altitude;
 			convert_limit_safe(tecs_status.altitude_sp, target_altitude);
 			msg->target_altitude = target_altitude;
@@ -409,7 +428,7 @@ private:
 	{
 		vehicle_status_s status;
 
-		if (_status_sub.update(&status)) {
+		if (_status_sub.copy(&status)) {
 			health_report_s health_report;
 
 			if (_health_report_sub.copy(&health_report)) {
@@ -476,7 +495,7 @@ private:
 	{
 		wind_s wind;
 
-		if (_wind_sub.update(&wind)) {
+		if (_wind_sub.copy(&wind)) {
 			msg->wind_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(atan2f(wind.windspeed_east,
 					    wind.windspeed_north))) * 0.5f);
 			return true;
@@ -625,6 +644,7 @@ private:
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _vehicle_thrust_setpoint_1_sub{ORB_ID(vehicle_thrust_setpoint), 1};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};

@@ -157,16 +157,13 @@ param set-default CBRK_SUPPLY_CHK 894281
 
 # disable check, no CPU load reported on posix yet
 param set-default COM_CPU_MAX -1
+param set-default COM_RAM_MAX -1
 
 # Don't require RC calibration and configuration
 param set-default COM_RC_IN_MODE 1
 
 # Speedup SITL startup
 param set-default EKF2_REQ_GPS_H 0.5
-
-# Multi-EKF
-param set-default EKF2_MULTI_IMU 3
-param set-default SENS_IMU_MODE 0
 
 param set-default IMU_GYRO_FFT_EN 1
 param set-default MAV_PROTO_VER 2 # Ensures QGC does not drop the first few packets after a SITL restart due to MAVLINK 1 packets
@@ -184,12 +181,8 @@ param set-default TRIG_INTERFACE 3
 param set-default SYS_FAILURE_EN 1
 # Enable low-battery actions by default for (automated) testing. Battery sim
 # does not go below 50% by default, but failure injection can trigger failsafes.
-param set-default COM_LOW_BAT_ACT 2
+param set-default COM_LOW_BAT_ACT 3
 
-# Allow to override SYS_MC_EST_GROUP via env
-if [ -n "$SYS_MC_EST_GROUP" ]; then
-	param set SYS_MC_EST_GROUP $SYS_MC_EST_GROUP
-fi
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
@@ -248,12 +241,34 @@ then
 fi
 
 load_mon start
-battery_simulator start
+
+if param compare SIM_BAT_ENABLE 1
+then
+	battery_simulator start
+fi
+
 tone_alarm start
 rc_update start
 manual_control start
 sensors start
 commander start
+
+#
+# state estimator selection
+if param compare -s EKF2_EN 1
+then
+	ekf2 start &
+fi
+
+if param compare -s LPE_EN 1
+then
+	local_position_estimator start
+fi
+
+if param compare -s ATT_EN 1
+then
+	attitude_estimator_q start
+fi
 
 if ! pwm_out_sim start -m sim
 then
@@ -329,7 +344,7 @@ fi
 [ -e "$autostart_file".post ] && . "$autostart_file".post
 
 # Run script to start logging
-if param compare SYS_MC_EST_GROUP 2
+if param compare -s EKF2_EN 1
 then
 	set LOGGER_ARGS "-p ekf2_timestamps"
 else

@@ -107,7 +107,8 @@ TEST_F(EkfBasicsTest, initialControlMode)
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().opt_flow);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_hdg);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_3D);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_dec);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_dec);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().in_air);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().wind);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().baro_hgt);
@@ -122,7 +123,7 @@ TEST_F(EkfBasicsTest, initialControlMode)
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_fault);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnd_effect);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().rng_stuck);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().gps_yaw);
+	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnss_yaw);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_aligned_in_flight);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().ev_vel);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().synthetic_mag_z);
@@ -161,7 +162,8 @@ TEST_F(EkfBasicsTest, gpsFusion)
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().opt_flow);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_hdg);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_3D);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_dec);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag);
+	EXPECT_EQ(1, (int) _ekf->control_status_flags().mag_dec);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().in_air);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().wind);
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().baro_hgt);
@@ -176,7 +178,7 @@ TEST_F(EkfBasicsTest, gpsFusion)
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_fault);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnd_effect);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().rng_stuck);
-	EXPECT_EQ(0, (int) _ekf->control_status_flags().gps_yaw);
+	EXPECT_EQ(0, (int) _ekf->control_status_flags().gnss_yaw);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().mag_aligned_in_flight);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().ev_vel);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().synthetic_mag_z);
@@ -191,7 +193,7 @@ TEST_F(EkfBasicsTest, accelBiasEstimation)
 	_sensor_simulator.startGps();
 	_sensor_simulator.setImuBias(accel_bias_sim, Vector3f(0.0f, 0.0f, 0.0f));
 	_ekf->set_min_required_gps_health_time(1e6);
-	_sensor_simulator.runSeconds(30);
+	_sensor_simulator.runSeconds(60);
 
 	const Vector3f pos = _ekf->getPosition();
 	const Vector3f vel = _ekf->getVelocity();
@@ -281,7 +283,7 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_uninitialized)
 	// Global origin has been initialized but since there is no position aiding, the global
 	// position is still not valid
 	EXPECT_TRUE(_ekf->global_origin_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 
 	_sensor_simulator.runSeconds(1);
 
@@ -305,9 +307,9 @@ TEST_F(EkfBasicsTest, global_position_from_local_ev)
 	_sensor_simulator.runSeconds(1);
 
 	// THEN; since there is no origin, only the local position can be valid
-	EXPECT_TRUE(_ekf->local_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 	EXPECT_FALSE(_ekf->global_origin_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 
 	_latitude_new  = 45.0000005;
 	_longitude_new = 111.0000005;
@@ -318,8 +320,8 @@ TEST_F(EkfBasicsTest, global_position_from_local_ev)
 
 	// THEN: local and global positions are valid
 	EXPECT_TRUE(_ekf->global_origin_valid());
-	EXPECT_TRUE(_ekf->global_position_is_valid());
-	EXPECT_TRUE(_ekf->local_position_is_valid());
+	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 }
 
 TEST_F(EkfBasicsTest, global_position_from_opt_flow)
@@ -336,9 +338,9 @@ TEST_F(EkfBasicsTest, global_position_from_opt_flow)
 	_sensor_simulator.runSeconds(1);
 
 	// THEN; since there is no origin, only the local position can be valid
-	EXPECT_TRUE(_ekf->local_position_is_valid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 	EXPECT_FALSE(_ekf->global_origin_valid());
-	EXPECT_FALSE(_ekf->global_position_is_valid());
+	EXPECT_FALSE(_ekf->isGlobalHorizontalPositionValid());
 
 	_latitude_new  = 45.0000005;
 	_longitude_new = 111.0000005;
@@ -349,8 +351,8 @@ TEST_F(EkfBasicsTest, global_position_from_opt_flow)
 
 	// THEN: local and global positions are valid
 	EXPECT_TRUE(_ekf->global_origin_valid());
-	EXPECT_TRUE(_ekf->global_position_is_valid());
-	EXPECT_TRUE(_ekf->local_position_is_valid());
+	EXPECT_TRUE(_ekf->isGlobalHorizontalPositionValid());
+	EXPECT_TRUE(_ekf->isLocalHorizontalPositionValid());
 }
 
 // TODO: Add sampling tests

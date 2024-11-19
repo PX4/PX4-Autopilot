@@ -1,5 +1,6 @@
 menuconfig DRIVERS_LINUX_PWM_OUT
 	bool "linux_pwm_out"
 	default n
+	depends on PLATFORM_POSIX && !BOARD_TESTING
 	---help---
 		Enable support for linux_pwm_out

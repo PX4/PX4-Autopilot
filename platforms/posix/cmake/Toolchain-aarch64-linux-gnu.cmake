@@ -2,16 +2,8 @@
 
 set(triple aarch64-linux-gnu)
 
-if("${PX4_BOARD}" MATCHES "modalai_voxl2")
-	set(CMAKE_LIBRARY_ARCHITECTURE ${ARM_CROSS_GCC_ROOT}/bin/${triple})
-	set(TOOLCHAIN_PREFIX ${ARM_CROSS_GCC_ROOT}/bin/${triple})
-	set(ARM_CROSS_GCC_ROOT $ENV{ARM_CROSS_GCC_ROOT})
-	set(HEXAGON_ARM_SYSROOT $ENV{HEXAGON_ARM_SYSROOT})
-	set(CMAKE_EXE_LINKER_FLAGS "-Wl,-gc-sections -Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib/aarch64-linux-gnu -Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib/aarch64-linux-gnu")
-else()
-	set(CMAKE_LIBRARY_ARCHITECTURE ${triple})
-	set(TOOLCHAIN_PREFIX ${triple})
-endif()
+set(CMAKE_LIBRARY_ARCHITECTURE ${triple})
+set(TOOLCHAIN_PREFIX ${triple})
 
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR arm)

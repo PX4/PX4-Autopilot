@@ -59,6 +59,7 @@ int px4_get_parameter_value(const char *option, int &value)
 		if (param_handle != PARAM_INVALID) {
 
 			if (param_type(param_handle) != PARAM_TYPE_INT32) {
+				PX4_ERR("Type of param '%s' is different from INT32", param_name);
 				return -EINVAL;
 			}
 
@@ -79,6 +80,51 @@ int px4_get_parameter_value(const char *option, int &value)
 	} else {
 		char *ep;
 		value = strtol(option, &ep, 0);
+
+		if (*ep != '\0') {
+			return -EINVAL;
+		}
+	}
+
+	return 0;
+}
+
+int px4_get_parameter_value(const char *option, float &value)
+{
+	value = 0;
+
+	/* check if this is a param name */
+	if (strncmp("p:", option, 2) == 0) {
+
+		const char *param_name = option + 2;
+
+		/* user wants to use a param name */
+		param_t param_handle = param_find(param_name);
+
+		if (param_handle != PARAM_INVALID) {
+
+			if (param_type(param_handle) != PARAM_TYPE_FLOAT) {
+				PX4_ERR("Type of param '%s' is different from FLOAT", param_name);
+				return -EINVAL;
+			}
+
+			float pwm_parm;
+			int ret = param_get(param_handle, &pwm_parm);
+
+			if (ret != 0) {
+				return ret;
+			}
+
+			value = pwm_parm;
+
+		} else {
+			PX4_ERR("param name '%s' not found", param_name);
+			return -ENXIO;
+		}
+
+	} else {
+		char *ep;
+		value = strtof(option, &ep);
 
 		if (*ep != '\0') {
 			return -EINVAL;

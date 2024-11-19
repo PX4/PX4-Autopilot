@@ -43,6 +43,7 @@ struct SendSubscription {
 	const struct orb_metadata *orb_meta;
 	uxrObjectId data_writer;
 	const char* dds_type_name;
+	const char* topic;
 	uint32_t topic_size;
 	UcdrSerializeMethod ucdr_serialize_method;
 };
@@ -54,6 +55,7 @@ struct SendTopicsSubs {
 			{ ORB_ID(@(pub['topic_simple'])),
 			  uxr_object_id(0, UXR_INVALID_ID),
 			  "@(pub['dds_type'])",
+			  "@(pub['topic'])",
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
 			  &ucdr_serialize_@(pub['simple_base_type']),
 			},
@@ -81,6 +83,8 @@ void SendTopicsSubs::reset() {
 	num_payload_sent = 0;
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		send_subscriptions[idx].data_writer = uxr_object_id(0, UXR_INVALID_ID);
+		orb_unsubscribe(fds[idx].fd);
+		fds[idx].fd = -1;
 	}
 };
 
@@ -96,7 +100,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 			orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
 			if (send_subscriptions[idx].data_writer.id == UXR_INVALID_ID) {
 				// data writer not created yet
-				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].orb_meta->o_name,
+				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
 								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
 			}
 
@@ -168,8 +172,8 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 {
 @[    for idx, sub in enumerate(subscriptions + subscriptions_multi)]@
 	{
-			uint16_t queue_depth = uORB::DefaultQueueSize<@(sub['simple_base_type'])_s>::value * 2; // use a bit larger queue size than internal
-			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic_simple'])", "@(sub['dds_type'])", queue_depth);
+			uint16_t queue_depth = orb_get_queue_size(ORB_ID(@(sub['simple_base_type']))) * 2; // use a bit larger queue size than internal
+			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic'])", "@(sub['dds_type'])", queue_depth);
 	}
 @[    end for]@
 

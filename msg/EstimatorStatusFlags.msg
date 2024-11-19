@@ -26,12 +26,12 @@ bool cs_mag_fault             # 18 - true when the magnetometer has been declare
 bool cs_fuse_aspd             # 19 - true when airspeed measurements are being fused
 bool cs_gnd_effect            # 20 - true when protection from ground effect induced static pressure rise is active
 bool cs_rng_stuck             # 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
-bool cs_gps_yaw               # 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
+bool cs_gnss_yaw              # 22 - true when yaw (not ground course) data fusion from a GPS receiver is intended
 bool cs_mag_aligned_in_flight # 23 - true when the in-flight mag field alignment has been completed
 bool cs_ev_vel                # 24 - true when local frame velocity data fusion from external vision measurements is intended
 bool cs_synthetic_mag_z       # 25 - true when we are using a synthesized measurement for the magnetometer Z component
 bool cs_vehicle_at_rest       # 26 - true when the vehicle is at rest
-bool cs_gps_yaw_fault         # 27 - true when the GNSS heading has been declared faulty and is no longer being used
+bool cs_gnss_yaw_fault        # 27 - true when the GNSS heading has been declared faulty and is no longer being used
 bool cs_rng_fault             # 28 - true when the range finder has been declared faulty and is no longer being used
 bool cs_inertial_dead_reckoning # 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 bool cs_wind_dead_reckoning     # 30 - true if we are navigationg reliant on wind relative measurements
@@ -43,6 +43,10 @@ bool cs_mag                     # 35 - true if 3-axis magnetometer measurement f
 bool cs_ev_yaw_fault            # 36 - true when the EV heading has been declared faulty and is no longer being used
 bool cs_mag_heading_consistent  # 37 - true when the heading obtained from mag data is declared consistent with the filter
 bool cs_aux_gpos                # 38 - true if auxiliary global position measurement fusion is intended
+bool cs_rng_terrain             # 39 - true if we are fusing range finder data for terrain
+bool cs_opt_flow_terrain        # 40 - true if we are fusing flow data for terrain
+bool cs_valid_fake_pos          # 41 - true if a valid constant position is being fused
+bool cs_constant_pos            # 42 - true if the vehicle is at a constant position
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes
@@ -55,15 +59,8 @@ bool fs_bad_airspeed          #  5 - true if fusion of the airspeed has encounte
 bool fs_bad_sideslip          #  6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
 bool fs_bad_optflow_x         #  7 - true if fusion of the optical flow X axis has encountered a numerical error
 bool fs_bad_optflow_y         #  8 - true if fusion of the optical flow Y axis has encountered a numerical error
-bool fs_bad_vel_n             #  9 - true if fusion of the North velocity has encountered a numerical error
-bool fs_bad_vel_e             # 10 - true if fusion of the East velocity has encountered a numerical error
-bool fs_bad_vel_d             # 11 - true if fusion of the Down velocity has encountered a numerical error
-bool fs_bad_pos_n             # 12 - true if fusion of the North position has encountered a numerical error
-bool fs_bad_pos_e             # 13 - true if fusion of the East position has encountered a numerical error
-bool fs_bad_pos_d             # 14 - true if fusion of the Down position has encountered a numerical error
-bool fs_bad_acc_bias          # 15 - true if bad delta velocity bias estimates have been detected
-bool fs_bad_acc_vertical      # 16 - true if bad vertical accelerometer data has been detected
-bool fs_bad_acc_clipping      # 17 - true if delta velocity data contains clipping (asymmetric railing)
+bool fs_bad_acc_vertical      # 10 - true if bad vertical accelerometer data has been detected
+bool fs_bad_acc_clipping      # 11 - true if delta velocity data contains clipping (asymmetric railing)
 
 
 # innovation test failures

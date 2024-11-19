@@ -163,10 +163,10 @@ int TemperatureCalibrationMag::finish()
 	}
 
 	int32_t enabled = 1;
-	int result = param_set_no_notification(param_find("TC_A_ENABLE"), &enabled);
+	int result = param_set_no_notification(param_find("TC_M_ENABLE"), &enabled);
 
 	if (result != PX4_OK) {
-		PX4_ERR("unable to reset TC_A_ENABLE (%i)", result);
+		PX4_ERR("unable to reset TC_M_ENABLE (%i)", result);
 	}
 
 	return result;

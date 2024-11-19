@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file drv_io_timer.h
+ * @file io_timer.h
  *
  * stm32-specific PWM output data.
  */

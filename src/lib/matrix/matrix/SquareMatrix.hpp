@@ -10,19 +10,10 @@
 
 #include <float.h> // FLT_EPSILON
 
-#include "math.hpp"
+#include "Slice.hpp"
 
 namespace matrix
 {
-
-template <typename Type, size_t M, size_t N>
-class Matrix;
-
-template <typename Type, size_t M>
-class Vector;
-
-template <typename Type, size_t P, size_t Q, size_t M, size_t N>
-class Slice;
 
 template <typename Type, size_t  M>
 class SquareMatrix : public Matrix<Type, M, M>
@@ -45,10 +36,8 @@ public:
 	{
 	}
 
-	template<size_t P, size_t Q>
-	SquareMatrix(const Slice<Type, M, M, P, Q> &in_slice) : Matrix<Type, M, M>(in_slice)
-	{
-	}
+	using base = Matrix<Type, M, M>;
+	using base::base;
 
 	SquareMatrix<Type, M> &operator=(const Matrix<Type, M, M> &other)
 	{
@@ -64,15 +53,15 @@ public:
 	}
 
 	template<size_t P, size_t Q>
-	const Slice<Type, P, Q, M, M> slice(size_t x0, size_t y0) const
+	ConstSlice<Type, P, Q, M, M> slice(size_t x0, size_t y0) const
 	{
-		return Slice<Type, P, Q, M, M>(x0, y0, this);
+		return {x0, y0, this};
 	}
 
 	template<size_t P, size_t Q>
 	Slice<Type, P, Q, M, M> slice(size_t x0, size_t y0)
 	{
-		return Slice<Type, P, Q, M, M>(x0, y0, this);
+		return {x0, y0, this};
 	}
 
 	// inverse alias
@@ -328,6 +317,7 @@ public:
 	}
 };
 
+using SquareMatrix2f = SquareMatrix<float, 2>;
 using SquareMatrix3f = SquareMatrix<float, 3>;
 using SquareMatrix3d = SquareMatrix<double, 3>;
 
@@ -629,6 +619,7 @@ SquareMatrix <Type, M> choleskyInv(const SquareMatrix<Type, M> &A)
 	return L_inv.T() * L_inv;
 }
 
+using Matrix2f = SquareMatrix<float, 2>;
 using Matrix3f = SquareMatrix<float, 3>;
 using Matrix3d = SquareMatrix<double, 3>;
 

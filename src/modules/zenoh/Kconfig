@@ -6,18 +6,6 @@ menuconfig MODULES_ZENOH
 		Enable support for Zenoh
 
 if MODULES_ZENOH
-    config ZENOH_CONFIG_PATH
-        string "Config path"
-        default "/fs/microsd/zenoh"
-        help
-            Path to store network, publishers and subscribers configuration
-
-    config ZENOH_SERIAL
-        bool "Zenoh serial transport"
-        default n
-        help
-            Enables transport over serial (Not yet supported on NuttX/Linux)
-
     config ZENOH_DEBUG
         int "Zenoh debug level"
         default 0

@@ -62,17 +62,17 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			if (system_flags_delayed.gnd_effect) {
 				set_gnd_effect();
 			}
+
+			set_constant_pos(system_flags_delayed.constant_pos);
 		}
 	}
 
 	// monitor the tilt alignment
 	if (!_control_status.flags.tilt_align) {
 		// whilst we are aligning the tilt, monitor the variances
-		const Vector3f angle_err_var_vec = getQuaternionVariance();
-
-		// Once the tilt variances have reduced to equivalent of 3deg uncertainty
+		// Once the tilt variances have reduced to equivalent of 3 deg uncertainty
 		// and declare the tilt alignment complete
-		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(math::radians(3.0f))) {
+		if (getTiltVariance() < sq(math::radians(3.f))) {
 			_control_status.flags.tilt_align = true;
 
 			// send alignment status message to the console
@@ -104,7 +104,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control use of observations for aiding
-	controlMagFusion();
+	controlMagFusion(imu_delayed);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -139,13 +139,18 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// Additional data odometry data from an external estimator can be fused.
-	controlExternalVisionFusion();
+	controlExternalVisionFusion(imu_delayed);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// Additional horizontal velocity data from an auxiliary sensor can be fused
-	controlAuxVelFusion();
+	controlAuxVelFusion(imu_delayed);
 #endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_TERRAIN)
+	controlTerrainFakeFusion();
+	updateTerrainValidity();
+#endif // CONFIG_EKF2_TERRAIN
 
 	controlZeroInnovationHeadingUpdate();
 

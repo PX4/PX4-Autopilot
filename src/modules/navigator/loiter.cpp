@@ -43,7 +43,7 @@
 #include "navigator.h"
 
 Loiter::Loiter(Navigator *navigator) :
-	MissionBlock(navigator),
+	MissionBlock(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER),
 	ModuleParams(navigator)
 {
 }
@@ -109,7 +109,7 @@ Loiter::set_loiter_position()
 			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
 
 		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			setLoiterItemFromCurrentPositionWithBreaking(&_mission_item);
+			setLoiterItemFromCurrentPositionWithBraking(&_mission_item);
 
 		} else {
 			setLoiterItemFromCurrentPosition(&_mission_item);

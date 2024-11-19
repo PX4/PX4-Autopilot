@@ -47,6 +47,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -54,6 +55,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 
+#include <lib/rtl/rtl_time_estimator.h>
 #include "mission_block.h"
 #include "navigation.h"
 #include "safe_point_land.hpp"
@@ -90,6 +92,13 @@ public:
 	void on_active() override;
 
 	/**
+	 * @brief on inactive
+	 * Poll required topics also when incative for rtl time estimate.
+	 *
+	 */
+	void on_inactive() override;
+
+	/**
 	 * @brief Calculate the estimated time needed to return to launch.
 	 *
 	 * @return estimated time to return to launch.
@@ -99,7 +108,9 @@ public:
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(DestinationPosition position, loiter_point_s loiter_pos);
+	void setRtlPosition(PositionYawSetpoint position, loiter_point_s loiter_pos);
+
+	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
 private:
 	/**
@@ -120,11 +131,10 @@ private:
 
 private:
 	/**
-	 * @brief Get the horizontal wind velocity
+	 * @brief Update the RTL state machine.
 	 *
-	 * @return horizontal wind velocity.
 	 */
-	matrix::Vector2f get_wind();
+	void _updateRtlState();
 
 	/**
 	 * @brief Set the return to launch control setpoint.
@@ -133,44 +143,21 @@ private:
 	void set_rtl_item();
 
 	/**
-	 * @brief Get the Cruise Ground Speed
+	 * @brief sanitize land_approach
 	 *
-	 * @return Ground speed in cruise mode [m/s].
 	 */
-	float getCruiseGroundSpeed();
-
-	/**
-	 * @brief Get the climb rate
-	 *
-	 * @return Climb rate [m/s]
-	 */
-	float getClimbRate();
-
-	/**
-	 * @brief Get the descend rate
-	 *
-	 * @return descend rate [m/s]
-	 */
-	float getDescendRate();
-
-	/**
-	 * @brief Get the cruise speed
-	 *
-	 * @return cruise speed [m/s]
-	 */
-	float getCruiseSpeed();
-
-	/**
-	 * @brief Get the Hover Land Speed
-	 *
-	 * @return Hover land speed [m/s]
-	 */
-	float getHoverLandSpeed();
+	loiter_point_s sanitizeLandApproach(loiter_point_s land_approach) const;
 
 	/**
 	 * Check for parameter changes and update them if needed.
 	 */
 	void parameters_update();
+
+	/**
+	 * @brief Publish navigator mission item
+	 *
+	 */
+	void publish_rtl_direct_navigator_mission_item();
 
 	RTLState getActivationLandState();
 
@@ -178,8 +165,9 @@ private:
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
+	RtlTimeEstimator _rtl_time_estimator;
 
-	DestinationPosition _destination; ///< the RTL position to fly to
+	PositionYawSetpoint _destination; ///< the RTL position to fly to
 	loiter_point_s _land_approach;
 
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the home position
@@ -190,20 +178,10 @@ private:
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_PLD_MD>)        _param_rtl_pld_md,
 		(ParamFloat<px4::params::RTL_LOITER_RAD>)  _param_rtl_loiter_rad,
-		(ParamInt<px4::params::RTL_HDG_MD>)        _param_rtl_hdg_md,
-		(ParamFloat<px4::params::RTL_TIME_FACTOR>) _param_rtl_time_factor,
-		(ParamInt<px4::params::RTL_TIME_MARGIN>)   _param_rtl_time_margin
+
+		// external params
+		(ParamBool<px4::params::WV_EN>) _param_wv_en
 	)
-
-	param_t		_param_mpc_z_v_auto_up{PARAM_INVALID};
-	param_t		_param_mpc_z_v_auto_dn{PARAM_INVALID};
-	param_t		_param_mpc_land_speed{PARAM_INVALID};
-	param_t		_param_fw_climb_rate{PARAM_INVALID};
-	param_t		_param_fw_sink_rate{PARAM_INVALID};
-
-	param_t 	_param_fw_airspeed_trim{PARAM_INVALID};
-	param_t 	_param_mpc_xy_cruise{PARAM_INVALID};
-	param_t 	_param_rover_cruise_speed{PARAM_INVALID};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
@@ -211,4 +189,5 @@ private:
 	uORB::SubscriptionData<vehicle_land_detected_s> _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle status subscription */
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
+	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item}; /**< Navigator mission item publication*/
 };

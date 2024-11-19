@@ -42,14 +42,11 @@
 using namespace matrix;
 
 MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
-	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
-	_vel_x_deriv(this, "VELD"),
-	_vel_y_deriv(this, "VELD"),
-	_vel_z_deriv(this, "VELD")
+	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint))
 {
+	_sample_interval_s.update(0.01f); // 100 Hz default
 	parameters_update(true);
 	_tilt_limit_slew_rate.setSlewRate(.2f);
 	_takeoff_status_pub.advertise();
@@ -83,7 +80,42 @@ void MulticopterPositionControl::parameters_update(bool force)
 
 		// update parameters from storage
 		ModuleParams::updateParams();
-		SuperBlock::updateParams();
+
+		float sample_freq_hz = 1.f / _sample_interval_s.mean();
+
+		// velocity notch filter
+		if ((_param_mpc_vel_nf_frq.get() > 0.f) && (_param_mpc_vel_nf_bw.get() > 0.f)) {
+			_vel_xy_notch_filter.setParameters(sample_freq_hz, _param_mpc_vel_nf_frq.get(), _param_mpc_vel_nf_bw.get());
+			_vel_z_notch_filter.setParameters(sample_freq_hz, _param_mpc_vel_nf_frq.get(), _param_mpc_vel_nf_bw.get());
+
+		} else {
+			_vel_xy_notch_filter.disable();
+			_vel_z_notch_filter.disable();
+		}
+
+		// velocity xy/z low pass filter
+		if (_param_mpc_vel_lp.get() > 0.f) {
+			_vel_xy_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_vel_lp.get());
+			_vel_z_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_vel_lp.get());
+
+		} else {
+			// disable filtering
+			_vel_xy_lp_filter.setAlpha(1.f);
+			_vel_z_lp_filter.setAlpha(1.f);
+		}
+
+		// velocity derivative xy/z low pass filter
+		if (_param_mpc_veld_lp.get() > 0.f) {
+			_vel_deriv_xy_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_veld_lp.get());
+			_vel_deriv_z_lp_filter.setCutoffFreq(sample_freq_hz, _param_mpc_veld_lp.get());
+
+		} else {
+			// disable filtering
+			_vel_deriv_xy_lp_filter.setAlpha(1.f);
+			_vel_deriv_z_lp_filter.setAlpha(1.f);
+		}
+
+
 
 		int num_changed = 0;
 
@@ -167,6 +199,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 			Vector3f(_param_mpc_xy_vel_i_acc.get(), _param_mpc_xy_vel_i_acc.get(), _param_mpc_z_vel_i_acc.get()),
 			Vector3f(_param_mpc_xy_vel_d_acc.get(), _param_mpc_xy_vel_d_acc.get(), _param_mpc_z_vel_d_acc.get()));
 		_control.setHorizontalThrustMargin(_param_mpc_thr_xy_marg.get());
+		_control.decoupleHorizontalAndVecticalAcceleration(_param_mpc_acc_decouple.get());
 		_goto_control.setParamMpcAccHor(_param_mpc_acc_hor.get());
 		_goto_control.setParamMpcAccDownMax(_param_mpc_acc_down_max.get());
 		_goto_control.setParamMpcAccUpMax(_param_mpc_acc_up_max.get());
@@ -275,7 +308,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 }
 
 PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehicle_local_position_s
-		&vehicle_local_position)
+		&vehicle_local_position, const float dt_s)
 {
 	PositionControlStates states;
 
@@ -299,29 +332,42 @@ PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehic
 	const Vector2f velocity_xy(vehicle_local_position.vx, vehicle_local_position.vy);
 
 	if (vehicle_local_position.v_xy_valid && velocity_xy.isAllFinite()) {
-		states.velocity.xy() = velocity_xy;
-		states.acceleration(0) = _vel_x_deriv.update(velocity_xy(0));
-		states.acceleration(1) = _vel_y_deriv.update(velocity_xy(1));
+		const Vector2f vel_xy_prev = _vel_xy_lp_filter.getState();
+
+		// vel xy notch filter, then low pass filter
+		states.velocity.xy() = _vel_xy_lp_filter.update(_vel_xy_notch_filter.apply(velocity_xy));
+
+		// vel xy derivative low pass filter
+		states.acceleration.xy() = _vel_deriv_xy_lp_filter.update((_vel_xy_lp_filter.getState() - vel_xy_prev) / dt_s);
 
 	} else {
 		states.velocity(0) = states.velocity(1) = NAN;
 		states.acceleration(0) = states.acceleration(1) = NAN;
 
-		// reset derivatives to prevent acceleration spikes when regaining velocity
-		_vel_x_deriv.reset();
-		_vel_y_deriv.reset();
+		// reset filters to prevent acceleration spikes when regaining velocity
+		_vel_xy_lp_filter.reset({});
+		_vel_xy_notch_filter.reset();
+		_vel_deriv_xy_lp_filter.reset({});
 	}
 
 	if (PX4_ISFINITE(vehicle_local_position.vz) && vehicle_local_position.v_z_valid) {
-		states.velocity(2) = vehicle_local_position.vz;
-		states.acceleration(2) = _vel_z_deriv.update(states.velocity(2));
+
+		const float vel_z_prev = _vel_z_lp_filter.getState();
+
+		// vel z notch filter, then low pass filter
+		states.velocity(2) = _vel_z_lp_filter.update(_vel_z_notch_filter.apply(vehicle_local_position.vz));
+
+		// vel z derivative low pass filter
+		states.acceleration(2) = _vel_deriv_z_lp_filter.update((_vel_z_lp_filter.getState() - vel_z_prev) / dt_s);
 
 	} else {
 		states.velocity(2) = NAN;
 		states.acceleration(2) = NAN;
 
-		// reset derivative to prevent acceleration spikes when regaining velocity
-		_vel_z_deriv.reset();
+		// reset filters to prevent acceleration spikes when regaining velocity
+		_vel_z_lp_filter.reset({});
+		_vel_z_notch_filter.reset();
+		_vel_deriv_z_lp_filter.reset({});
 	}
 
 	states.yaw = vehicle_local_position.heading;
@@ -350,8 +396,7 @@ void MulticopterPositionControl::Run()
 			math::constrain(((vehicle_local_position.timestamp_sample - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
 		_time_stamp_last_loop = vehicle_local_position.timestamp_sample;
 
-		// set _dt in controllib Block for BlockDerivative
-		setDt(dt);
+		_sample_interval_s.update(dt);
 
 		if (_vehicle_control_mode_sub.updated()) {
 			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
@@ -379,7 +424,7 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
-		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
+		PositionControlStates states{set_vehicle_states(vehicle_local_position, dt)};
 
 		// if a goto setpoint available this publishes a trajectory setpoint to go there
 		if (_goto_control.checkForSetpoint(vehicle_local_position.timestamp_sample,
@@ -511,6 +556,13 @@ void MulticopterPositionControl::Run()
 				states.velocity(2) = vehicle_local_position.z_deriv * weighting + vehicle_local_position.vz * (1.f - weighting);
 			}
 
+			if ((!PX4_ISFINITE(_setpoint.velocity[0]) || !PX4_ISFINITE(_setpoint.velocity[1]))
+			    && (!PX4_ISFINITE(_setpoint.position[0]) || !PX4_ISFINITE(_setpoint.position[1]))) {
+				// Horizontal velocity is not controlled, reset the integrators to avoid
+				// over-corrections when starting again.
+				_control.resetIntegralXY();
+			}
+
 			_control.setState(states);
 
 			// Run position control
@@ -541,6 +593,7 @@ void MulticopterPositionControl::Run()
 			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
 						    vehicle_local_position.timestamp_sample);
+			_control.resetIntegral();
 		}
 
 		// Publish takeoff status
@@ -637,12 +690,13 @@ void MulticopterPositionControl::adjustSetpointForEKFResets(const vehicle_local_
 	}
 
 	if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-		_vel_x_deriv.reset();
-		_vel_y_deriv.reset();
+		_vel_xy_lp_filter.reset(_vel_xy_lp_filter.getState() + Vector2f(vehicle_local_position.delta_vxy));
+		_vel_xy_notch_filter.reset();
 	}
 
 	if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-		_vel_z_deriv.reset();
+		_vel_z_lp_filter.reset(_vel_z_lp_filter.getState() + vehicle_local_position.delta_vz);
+		_vel_z_notch_filter.reset();
 	}
 
 	// save latest reset counters

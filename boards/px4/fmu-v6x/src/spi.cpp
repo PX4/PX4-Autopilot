@@ -36,7 +36,7 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
-	initSPIHWVersion(V6X00, {
+	initSPIFmumID(V6X_0, {
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
@@ -60,54 +60,7 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		}),
 	}),
 
-	initSPIHWVersion(V6X03, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		}, {GPIO::PortI, GPIO::Pin11}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-		}, {GPIO::PortF, GPIO::Pin4}),
-		initSPIBus(SPI::Bus::SPI3, {
-			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin8}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
-			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin6}),
-		}, {GPIO::PortE, GPIO::Pin7}),
-		//  initSPIBus(SPI::Bus::SPI4, {
-		//    // no devices
-		// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS4_EN from board_config.h
-		//  }, {GPIO::PortG, GPIO::Pin8}),
-		initSPIBus(SPI::Bus::SPI5, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-		}),
-		initSPIBusExternal(SPI::Bus::SPI6, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-		}),
-	}),
-
-	initSPIHWVersion(V6X06, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		}, {GPIO::PortI, GPIO::Pin11}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(DRV_IMU_DEVTYPE_IIM42652, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-		}, {GPIO::PortF, GPIO::Pin4}),
-		initSPIBus(SPI::Bus::SPI3, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ADIS16470, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
-		}, {GPIO::PortE, GPIO::Pin7}),
-		//  initSPIBus(SPI::Bus::SPI4, {
-		//    // no devices
-		// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS4_EN from board_config.h
-		//  }, {GPIO::PortG, GPIO::Pin8}),
-		initSPIBus(SPI::Bus::SPI5, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-		}),
-		initSPIBusExternal(SPI::Bus::SPI6, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-		}),
-	}),
-
-	initSPIHWVersion(V6X21, {
+	initSPIFmumID(V6X_1, {
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
@@ -131,7 +84,7 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		}),
 	}),
 
-	initSPIHWVersion(V6X43, {
+	initSPIFmumID(V6X_3, {
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
@@ -155,7 +108,7 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		}),
 	}),
 
-	initSPIHWVersion(V6X44, {
+	initSPIFmumID(V6X_4, {
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
@@ -178,7 +131,7 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		}),
 	}),
 
-	initSPIHWVersion(V6X46, {
+	initSPIFmumID(V6X_6, {
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
@@ -201,86 +154,15 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		}),
 	}),
 
-	initSPIHWVersion(V6X50, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		}, {GPIO::PortI, GPIO::Pin11}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-		}, {GPIO::PortF, GPIO::Pin4}),
-		initSPIBus(SPI::Bus::SPI3, {
-			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin8}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
-			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin6}),
-		}, {GPIO::PortE, GPIO::Pin7}),
-		//  initSPIBus(SPI::Bus::SPI4, {
-		//    // no devices
-		// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS4_EN from board_config.h
-		//  }, {GPIO::PortG, GPIO::Pin8}),
-		initSPIBus(SPI::Bus::SPI5, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-		}),
-		initSPIBusExternal(SPI::Bus::SPI6, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-		}),
-	}),
-
-	initSPIHWVersion(V6X53, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		}, {GPIO::PortI, GPIO::Pin11}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-		}, {GPIO::PortF, GPIO::Pin4}),
-		initSPIBus(SPI::Bus::SPI3, {
-			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin8}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
-			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin6}),
-		}, {GPIO::PortE, GPIO::Pin7}),
-		//  initSPIBus(SPI::Bus::SPI4, {
-		//    // no devices
-		// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS4_EN from board_config.h
-		//  }, {GPIO::PortG, GPIO::Pin8}),
-		initSPIBus(SPI::Bus::SPI5, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-		}),
-		initSPIBusExternal(SPI::Bus::SPI6, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-		}),
-	}),
-
-	initSPIHWVersion(V6X54, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42670P, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		}, {GPIO::PortI, GPIO::Pin11}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-		}, {GPIO::PortF, GPIO::Pin4}),
-		initSPIBus(SPI::Bus::SPI3, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
-		}, {GPIO::PortE, GPIO::Pin7}),
-		//  initSPIBus(SPI::Bus::SPI4, {
-		//    // no devices
-		// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS4_EN from board_config.h
-		//  }, {GPIO::PortG, GPIO::Pin8}),
-		initSPIBus(SPI::Bus::SPI5, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-		}),
-		initSPIBusExternal(SPI::Bus::SPI6, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-		}),
-	}),
-
-	initSPIHWVersion(V6X56, {
+	initSPIFmumID(V6X_8, {
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
 		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(DRV_IMU_DEVTYPE_IIM42652, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
 		}, {GPIO::PortF, GPIO::Pin4}),
 		initSPIBus(SPI::Bus::SPI3, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ADIS16470, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM45686, SPI::CS{GPIO::PortI, GPIO::Pin4}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
 		}, {GPIO::PortE, GPIO::Pin7}),
 		//  initSPIBus(SPI::Bus::SPI4, {
 		//    // no devices
@@ -295,7 +177,8 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		}),
 	}),
 
-	initSPIHWVersion(V6X0910, {
+
+	initSPIFmumID(V6X_16, {
 		initSPIBus(SPI::Bus::SPI1, {
 			initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
 		}, {GPIO::PortI, GPIO::Pin11}),
@@ -319,29 +202,6 @@ constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSION
 		}),
 	}),
 
-	initSPIHWVersion(V6X1010, {
-		initSPIBus(SPI::Bus::SPI1, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM20602, SPI::CS{GPIO::PortI, GPIO::Pin9}, SPI::DRDY{GPIO::PortF, GPIO::Pin2}),
-		}, {GPIO::PortI, GPIO::Pin11}),
-		initSPIBus(SPI::Bus::SPI2, {
-			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortH, GPIO::Pin5}, SPI::DRDY{GPIO::PortA, GPIO::Pin10}),
-		}, {GPIO::PortF, GPIO::Pin4}),
-		initSPIBus(SPI::Bus::SPI3, {
-			initSPIDevice(DRV_GYR_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin8}, SPI::DRDY{GPIO::PortI, GPIO::Pin7}),
-			initSPIDevice(DRV_ACC_DEVTYPE_BMI088, SPI::CS{GPIO::PortI, GPIO::Pin4}),
-		}, {GPIO::PortE, GPIO::Pin7}),
-		//  initSPIBus(SPI::Bus::SPI4, {
-		//    // no devices
-		// TODO: if enabled, remove GPIO_VDD_3V3_SENSORS4_EN from board_config.h
-		//  }, {GPIO::PortG, GPIO::Pin8}),
-		initSPIBus(SPI::Bus::SPI5, {
-			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortG, GPIO::Pin7})
-		}),
-		initSPIBusExternal(SPI::Bus::SPI6, {
-			initSPIConfigExternal(SPI::CS{GPIO::PortI, GPIO::Pin10}, SPI::DRDY{GPIO::PortD, GPIO::Pin11}),
-			initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin15}, SPI::DRDY{GPIO::PortD, GPIO::Pin12}),
-		}),
-	}),
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses_all_hw);

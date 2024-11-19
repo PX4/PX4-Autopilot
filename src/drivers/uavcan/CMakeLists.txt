@@ -31,12 +31,14 @@
 #
 ############################################################################
 
-set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/drivers/uavcan/libuavcan)
-set(LIBUAVCAN_DIR_DRIVERS ${PX4_SOURCE_DIR}/src/drivers/uavcan/uavcan_drivers)
+set(LIBDRONECAN_DIR ${PX4_SOURCE_DIR}/src/drivers/uavcan/libdronecan)
+set(LIBDRONECAN_DIR_DRIVERS ${PX4_SOURCE_DIR}/src/drivers/uavcan/uavcan_drivers)
 
-px4_add_git_submodule(TARGET git_uavcan PATH ${LIBUAVCAN_DIR})
+set(DSDLC_DIR "${PX4_SOURCE_DIR}/src/drivers/uavcan/libdronecan/dsdl")
 
-set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
+px4_add_git_submodule(TARGET git_uavcan_dsdl PATH ${DSDLC_DIR})
+px4_add_git_submodule(TARGET git_uavcan_pydronecan PATH ${LIBDRONECAN_DIR}/libuavcan/dsdl_compiler/pydronecan)
+
 set(UAVCAN_PLATFORM "generic")
 
 if(CONFIG_ARCH_CHIP)
@@ -75,6 +77,7 @@ add_definitions(
 	-DUAVCAN_${UAVCAN_DRIVER_UPPER}_${OS_UPPER}=1
 	-DUAVCAN_${UAVCAN_DRIVER_UPPER}_NUM_IFACES=${config_uavcan_num_ifaces}
 	-DUAVCAN_${UAVCAN_DRIVER_UPPER}_TIMER_NUMBER=${UAVCAN_TIMER}
+	-DUAVCAN_NUM_IFACES=${config_uavcan_num_ifaces}
 	-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 	-DUAVCAN_DRIVER=uavcan_${UAVCAN_DRIVER}
 	-DUAVCAN_IMPLEMENT_PLACEMENT_NEW=1
@@ -89,25 +92,24 @@ add_compile_options(
 	-Wno-address-of-packed-member
 )
 set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE) # silence libuavcan deprecation warning for now (TODO: fix and remove)
-add_subdirectory(${LIBUAVCAN_DIR} libuavcan EXCLUDE_FROM_ALL)
+add_subdirectory(${LIBDRONECAN_DIR} libdronecan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
 # driver
-add_subdirectory(${LIBUAVCAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver libuavcan_drivers EXCLUDE_FROM_ALL)
+add_subdirectory(${LIBDRONECAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver libuavcan_drivers EXCLUDE_FROM_ALL)
 target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
-	${LIBUAVCAN_DIR}/libuavcan/include
-	${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
+	${LIBDRONECAN_DIR}/libuavcan/include
+	${LIBDRONECAN_DIR}/libuavcan/include/dsdlc_generated
 )
 
 
 # generated DSDL
-set(DSDLC_DIR "${PX4_SOURCE_DIR}/src/drivers/uavcan/dsdl")
 set(DSDLC_INPUTS
-	"${LIBUAVCAN_DIR}/dsdl/ardupilot"
-	"${LIBUAVCAN_DIR}/dsdl/com"
-	"${LIBUAVCAN_DIR}/dsdl/cuav"
-	"${LIBUAVCAN_DIR}/dsdl/dronecan"
-	"${LIBUAVCAN_DIR}/dsdl/uavcan"
+	"${DSDLC_DIR}/ardupilot"
+	"${DSDLC_DIR}/com"
+	"${DSDLC_DIR}/cuav"
+	"${DSDLC_DIR}/dronecan"
+	"${DSDLC_DIR}/uavcan"
 )
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
 
@@ -118,7 +120,7 @@ foreach(DSDLC_INPUT ${DSDLC_INPUTS})
 endforeach(DSDLC_INPUT)
 add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
 	COMMAND
-		${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc
+		${PYTHON_EXECUTABLE} ${LIBDRONECAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc
 			--outdir ${DSDLC_OUTPUT} ${DSDLC_INPUTS}
 			#--verbose
 	COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
@@ -137,15 +139,17 @@ px4_add_module(
 		#-DDEBUG_BUILD
 	INCLUDES
 		${DSDLC_OUTPUT}
-		${LIBUAVCAN_DIR}/libuavcan/include
-		${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
-		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
-		${LIBUAVCAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver/include
+		${LIBDRONECAN_DIR}/libuavcan/include
+		${LIBDRONECAN_DIR}/libuavcan/include/dsdlc_generated
+		${LIBDRONECAN_DIR_DRIVERS}/posix/include
+		${LIBDRONECAN_DIR_DRIVERS}/${UAVCAN_DRIVER}/driver/include
 	SRCS
 		arming_status.cpp
 		arming_status.hpp
 		beep.cpp
 		beep.hpp
+		remoteid.cpp
+		remoteid.hpp
 		rgbled.cpp
 		rgbled.hpp
 		safety_state.cpp
@@ -167,6 +171,8 @@ px4_add_module(
 		sensors/battery.cpp
 		sensors/airspeed.cpp
 		sensors/flow.cpp
+		sensors/fuel_tank_status.cpp
+		sensors/gnss_relative.cpp
 		sensors/gnss.cpp
 		sensors/mag.cpp
 		sensors/rangefinder.cpp
@@ -186,7 +192,8 @@ px4_add_module(
 		mixer_module
 		version
 
-		git_uavcan
+		git_uavcan_dsdl
+		git_uavcan_pydronecan
 		uavcan_${UAVCAN_DRIVER}_driver
 
 		drivers_rangefinder # Fix undefined reference when no distance sensors are selected

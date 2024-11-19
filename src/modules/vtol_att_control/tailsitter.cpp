@@ -67,6 +67,10 @@ void Tailsitter::update_vtol_state()
 
 	if (_vtol_vehicle_status->fixed_wing_system_failure) {
 		// Failsafe event, switch to MC mode immediately
+		if (_vtol_mode != vtol_mode::MC_MODE) {
+			_transition_start_timestamp = hrt_absolute_time();
+		}
+
 		_vtol_mode = vtol_mode::MC_MODE;
 
 	} else if (!_attc->is_fixed_wing_requested()) {
@@ -88,15 +92,8 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_BACK:
 			const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-			float pitch_threshold_mc = PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC;
-
-			// if doing transition in Stabilized mode set threshold to max angle plus 5° margin
-			if (!_v_control_mode->flag_control_altitude_enabled) {
-				pitch_threshold_mc = math::radians(-_param_mpc_tilt_max.get() - 5.f);
-			}
-
 			// check if we have reached pitch angle to switch to MC mode
-			if (pitch >= pitch_threshold_mc || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
+			if (pitch >= PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
 				_vtol_mode = vtol_mode::MC_MODE;
 			}
 
@@ -128,6 +125,7 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_BACK:
 			// failsafe into fixed wing mode
 			_vtol_mode = vtol_mode::FW_MODE;
+			_trans_finished_ts = hrt_absolute_time();
 			break;
 		}
 	}
@@ -172,21 +170,21 @@ void Tailsitter::update_transition_state()
 			// calculate rotation axis for transition.
 			_q_trans_start = Quatf(_v_att->q);
 			Vector3f z = -_q_trans_start.dcm_z();
-			_trans_rot_axis = z.cross(Vector3f(0, 0, -1));
+			_trans_rot_axis = z.cross(Vector3f(0.f, 0.f, -1.f));
 
 			// as heading setpoint we choose the heading given by the direction the vehicle points
-			float yaw_sp = atan2f(z(1), z(0));
+			const float yaw_sp = atan2f(z(1), z(0));
 
 			// the intial attitude setpoint for a backtransition is a combination of the current fw pitch setpoint,
 			// the yaw setpoint and zero roll since we want wings level transition.
-			// If for some reason the fw attitude setpoint is not recent then don't sue it and assume 0 pitch
+			// If for some reason the fw attitude setpoint is not recent then don't use it and assume 0 pitch
 			if (_fw_virtual_att_sp->timestamp > (now - 1_s)) {
-				_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+				const float pitch_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).theta();
+				_q_trans_start = Eulerf(0.f, pitch_body, yaw_sp);
 
 			} else {
-				_q_trans_start = Eulerf(0.0f, 0.f, yaw_sp);
+				_q_trans_start = Eulerf(0.f, 0.f, yaw_sp);
 			}
-
 
 			// attitude during transitions are controlled by mc attitude control so rotate the desired attitude to the
 			// multirotor frame
@@ -194,9 +192,10 @@ void Tailsitter::update_transition_state()
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
 			// initial attitude setpoint for the transition should be with wings level
-			_q_trans_start = Eulerf(0.0f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
-			Vector3f x = Dcmf(Quatf(_v_att->q)) * Vector3f(1, 0, 0);
-			_trans_rot_axis = -x.cross(Vector3f(0, 0, -1));
+			const Eulerf setpoint_euler(Quatf(_mc_virtual_att_sp->q_d));
+			_q_trans_start = Eulerf(0.f, setpoint_euler.theta(), setpoint_euler.psi());
+			Vector3f x = Dcmf(Quatf(_v_att->q)) * Vector3f(1.f, 0.f, 0.f);
+			_trans_rot_axis = -x.cross(Vector3f(0.f, 0.f, -1.f));
 		}
 
 		_q_trans_sp = _q_trans_start;
@@ -206,10 +205,8 @@ void Tailsitter::update_transition_state()
 	_q_trans_sp.normalize();
 
 	// tilt angle (zero if vehicle nose points up (hover))
-	float cos_tilt = _q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) *
-			 _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3);
-	cos_tilt = cos_tilt >  1.0f ?  1.0f : cos_tilt;
-	cos_tilt = cos_tilt < -1.0f ? -1.0f : cos_tilt;
+	const float cos_tilt = math::constrain(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) -
+					       _q_trans_sp(2) * _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3), -1.f, 1.f);
 	const float tilt = acosf(cos_tilt);
 
 	if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
@@ -235,20 +232,21 @@ void Tailsitter::update_transition_state()
 
 	_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
 
+	if (_vtol_mode == vtol_mode::TRANSITION_BACK) {
+		const float progress = math::constrain(_time_since_trans_start / B_TRANS_THRUST_BLENDING_DURATION, 0.f, 1.f);
+		blendThrottleBeginningBackTransition(progress);
+	}
+
 	_v_att_sp->timestamp = hrt_absolute_time();
 
 	const Eulerf euler_sp(_q_trans_sp);
-	_v_att_sp->roll_body = euler_sp.phi();
-	_v_att_sp->pitch_body = euler_sp.theta();
-	_v_att_sp->yaw_body = euler_sp.psi();
-
 	_q_trans_sp.copyTo(_v_att_sp->q_d);
 }
 
 void Tailsitter::waiting_on_tecs()
 {
 	// copy the last trust value from the front transition
-	_v_att_sp->thrust_body[0] = _thrust_transition;
+	_v_att_sp->thrust_body[0] = -_last_thr_in_mc;
 }
 
 void Tailsitter::update_fw_state()
@@ -304,12 +302,27 @@ void Tailsitter::fill_actuator_outputs()
 			_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * _param_vt_fw_difthr_s_r.get();
 		}
 
+		// for the short period after switching to FW where there is no thrust published yet from the FW controller,
+		// keep publishing the last MC thrust to keep the motors running
+		if (hrt_elapsed_time(&_trans_finished_ts) < 50_ms) {
+			_thrust_setpoint_0->xyz[2] = _last_thr_in_mc;
+			_torque_setpoint_0->xyz[0] = 0.f;
+			_torque_setpoint_0->xyz[1] = 0.f;
+			_torque_setpoint_0->xyz[2] = 0.f;
+		}
+
 	} else {
+		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
+
+		// for the short period after starting the backtransition where there is no thrust published yet from the MC controller,
+		// keep publishing the last FW thrust to keep the motors running
+		if (_vtol_mode != vtol_mode::TRANSITION_FRONT_P1 && hrt_elapsed_time(&_transition_start_timestamp) < 50_ms) {
+			_thrust_setpoint_0->xyz[2] = -_last_thr_in_fw_mode;
+		}
+
 		_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_mc->xyz[0];
 		_torque_setpoint_0->xyz[1] = _vehicle_torque_setpoint_virtual_mc->xyz[1];
 		_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_mc->xyz[2];
-
-		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 	}
 
 	// Control surfaces
@@ -329,14 +342,7 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 	bool transition_to_fw = false;
 	const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	float pitch_threshold_fw = PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW;
-
-	// if doing transition in Stabilized mode set threshold to max angle minus 5° margin
-	if (!_v_control_mode->flag_control_altitude_enabled) {
-		pitch_threshold_fw = math::radians(-_param_mpc_tilt_max.get() + 5.f);
-	}
-
-	if (pitch <= pitch_threshold_fw) {
+	if (pitch <= PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW) {
 		if (airspeed_triggers_transition) {
 			transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
 
@@ -346,4 +352,15 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 	}
 
 	return transition_to_fw;
+}
+
+void Tailsitter::blendThrottleAfterFrontTransition(float scale)
+{
+	// note: MC throttle is negative (as in negative z), while FW throttle is positive (positive x)
+	_v_att_sp->thrust_body[0] = scale * _v_att_sp->thrust_body[0] + (1.f - scale) * (-_last_thr_in_mc);
+}
+
+void Tailsitter::blendThrottleBeginningBackTransition(float scale)
+{
+	_v_att_sp->thrust_body[2] = scale * _v_att_sp->thrust_body[2] + (1.f - scale) * (-_last_thr_in_fw_mode);
 }

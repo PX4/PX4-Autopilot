@@ -43,6 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <dataman_client/DatamanClient.hpp>
+#include <uORB/topics/geofence_status.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/parameter_update.h>
@@ -64,13 +65,15 @@ class Navigator;
 class MissionBase : public MissionBlock, public ModuleParams
 {
 public:
-	MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed);
+	MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed, uint8_t navigator_state_id);
 	~MissionBase() override = default;
 
 	virtual void on_inactive() override;
 	virtual void on_inactivation() override;
 	virtual void on_activation() override;
 	virtual void on_active() override;
+
+	virtual bool isLanding();
 
 protected:
 
@@ -117,12 +120,12 @@ protected:
 	void getNextPositionItems(int32_t start_index, int32_t items_index[], size_t &num_found_items,
 				  uint8_t max_num_items);
 	/**
-	 * @brief Has Mission a Land Start or Land Item
+	 * @brief Mission has a land start, a land, and is valid
 	 *
-	 * @return true If mission has a land start of land item and a land item
+	 * @return true If mission has a land start and a land item and is valid
 	 * @return false otherwise
 	 */
-	bool hasMissionLandStart() const { return _mission.land_start_index > 0 && _mission.land_index > 0;};
+	bool hasMissionLandStart() const { return _mission.land_start_index >= 0 && _mission.land_index >= 0 && isMissionValid();};
 	/**
 	 * @brief Go to next Mission Item
 	 * Go to next non jump mission item
@@ -207,13 +210,18 @@ protected:
 	int getNonJumpItem(int32_t &mission_index, mission_item_s &mission, bool execute_jump, bool write_jumps,
 			   bool mission_direction_backward = false);
 	/**
-	 * @brief Is Mission Parameters Valid
+	 * @brief Is Mission Valid
 	 *
-	 * @param mission Mission struct
-	 * @return true is mission parameters are valid
+	 * @return true is mission is valid
 	 * @return false otherwise
 	 */
-	bool isMissionValid(mission_s &mission) const;
+	bool isMissionValid() const;
+
+	/**
+	 * @brief Check whether a mission is ready to go
+	 * @param[in] forced flag if the check has to be run irregardles of any updates.
+	 */
+	void check_mission_valid(bool forced = false);
 
 	/**
 	 * On mission update
@@ -244,8 +252,9 @@ protected:
 	 * @brief Load current mission item
 	 *
 	 * Load current mission item from dataman cache.
+	 * @return true, if the mission item could be loaded, false otherwise
 	 */
-	void loadCurrentMissionItem();
+	bool loadCurrentMissionItem();
 
 	/**
 	 * Set the mission result
@@ -307,13 +316,25 @@ protected:
 	 */
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
+	/**
+	 * @brief Set the Mission Index
+	 *
+	 * @param[in] index Index of the mission item
+	 */
+	void setMissionIndex(int32_t index);
+
+
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
-	bool _initialized_mission_checked{false};		/**< Flag indicating if the initialized mission has been checked by the mission validator*/
+	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
 	bool _system_disarmed_while_inactive{false};		/**< Flag indicating if the system has been disarmed while mission is inactive*/
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
+	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */
+
+	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
+	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
 
 	DatamanCache _dataman_cache{"mission_dm_cache_miss", 10}; /**< Dataman cache of mission items*/
 	DatamanClient	&_dataman_client = _dataman_cache.client(); /**< Dataman client*/
@@ -334,17 +355,12 @@ private:
 	 * @brief Update Dataman cache
 	 *
 	 */
-	void updateDatamanCache();
+	virtual void updateDatamanCache();
 	/**
 	 * @brief Update mission subscription
 	 *
 	 */
 	void updateMavlinkMission();
-
-	/**
-	 * Check whether a mission is ready to go
-	 */
-	void check_mission_valid();
 
 	/**
 	 * Reset mission
@@ -386,9 +402,14 @@ private:
 	void updateCachedItemsUpToIndex(int end_index);
 
 	/**
-	 * @brief Replay the cached gimbal and camera mode items
+	 * @brief Replay the cached gimbal items
 	 */
-	void replayCachedGimbalCameraItems();
+	void replayCachedGimbalItems();
+
+	/**
+	 * @brief Replay the cached camera mode items
+	 */
+	void replayCachedCameraModeItems();
 
 	/**
 	 * @brief Replay the cached trigger items
@@ -403,11 +424,18 @@ private:
 	void replayCachedSpeedChangeItems();
 
 	/**
-	 * @brief Check if there are cached gimbal or camera mode items to be replayed
+	 * @brief Check if there are cached gimbal items to be replayed
 	 *
 	 * @return true if there are cached items
 	 */
-	bool haveCachedGimbalOrCameraItems();
+	bool haveCachedGimbalItems();
+
+	/**
+	 * @brief Check if there are cached camera mode items to be replayed
+	 *
+	 * @return true if there are cached items
+	 */
+	bool haveCachedCameraModeItems();
 
 	/**
 	 * @brief Check if the camera was triggering
@@ -415,13 +443,6 @@ private:
 	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
 	 */
 	bool cameraWasTriggering();
-
-	/**
-	 * @brief Set the Mission Index
-	 *
-	 * @param[in] index Index of the mission item
-	 */
-	void setMissionIndex(int32_t index);
 
 	/**
 	 * @brief Parameters update
@@ -444,8 +465,15 @@ private:
 	 */
 	bool checkMissionDataChanged(mission_s new_mission);
 
-	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
-	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
+	/**
+	 * @brief update current mission altitude after the home position has changed.
+	 */
+
+	void updateMissionAltAfterHomeChanged();
+
+	bool canRunMissionFeasibility();
+
+	uint32_t _home_update_counter = 0; /**< Variable to store the previous value for home change detection.*/
 
 	bool _align_heading_necessary{false}; // if true, heading of vehicle needs to be aligned with heading of next waypoint. Used to create new mission items for heading alignment.
 
@@ -461,4 +489,5 @@ private:
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionData<geofence_status_s> _geofence_status_sub{ORB_ID(geofence_status)};
 };

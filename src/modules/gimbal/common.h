@@ -83,6 +83,7 @@ struct ControlData {
 	// uint8_t sysid_secondary_control = 0; // The MAVLink system ID selected for additional input, not implemented yet.
 	// uint8_t compid_secondary_control = 0; // The MAVLink component ID selected for additional input, not implemented yet.
 	uint8_t device_compid = 0;
+	uint64_t timestamp_last_update{0}; // Timestamp when there was the last setpoint set by the input used for timeout
 };
 
 

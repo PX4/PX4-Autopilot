@@ -1,0 +1,183 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_EN:
+      description:
+        short: EKF2 enable
+      type: boolean
+      default: 1
+    EKF2_LOG_VERBOSE:
+      description:
+        short: Verbose logging
+      type: boolean
+      default: 1
+    EKF2_PREDICT_US:
+      description:
+        short: EKF prediction period
+        long: EKF prediction period in microseconds. This should ideally be an integer
+          multiple of the IMU time delta. Actual filter update will be an integer
+          multiple of IMU update.
+      type: int32
+      default: 10000
+      min: 1000
+      max: 20000
+      unit: us
+    EKF2_DELAY_MAX:
+      description:
+        short: Maximum delay of all the aiding sensors
+        long: Defines the delay between the current time and the delayed-time horizon.
+          This value should be at least as large as the largest EKF2_XXX_DELAY parameter.
+      type: float
+      default: 200
+      min: 0
+      max: 1000
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_ANGERR_INIT:
+      description:
+        short: 1-sigma tilt angle uncertainty after gravity vector alignment
+      type: float
+      default: 0.1
+      min: 0.0
+      max: 0.5
+      unit: rad
+      reboot_required: true
+      decimal: 3
+    EKF2_HDG_GATE:
+      description:
+        short: Gate size for heading fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 2.6
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_HEAD_NOISE:
+      description:
+        short: Measurement noise for magnetic heading fusion
+      type: float
+      default: 0.3
+      min: 0.01
+      max: 1.0
+      unit: rad
+      decimal: 2
+    EKF2_NOAID_NOISE:
+      description:
+        short: Measurement noise for non-aiding position hold
+      type: float
+      default: 10.0
+      min: 0.5
+      max: 50.0
+      unit: m
+      decimal: 1
+    EKF2_NOAID_TOUT:
+      description:
+        short: Maximum inertial dead-reckoning time
+        long: Maximum lapsed time from last fusion of measurements that constrain
+          velocity drift before the EKF will report the horizontal nav solution as
+          invalid
+      type: int32
+      default: 5000000
+      min: 500000
+      max: 10000000
+      unit: us
+    EKF2_HGT_REF:
+      description:
+        short: Determines the reference source of height data used by the EKF
+        long: When multiple height sources are enabled at the same time, the height
+          estimate will always converge towards the reference height source selected
+          by this parameter. The range sensor and vision options should only be used
+          when for operation over a flat surface as the local NED origin will move
+          up and down with ground level.
+      type: enum
+      values:
+        0: Barometric pressure
+        1: GPS
+        2: Range sensor
+        3: Vision
+      default: 1
+      reboot_required: true
+    EKF2_IMU_CTRL:
+      description:
+        short: IMU control
+      type: bitmask
+      bit:
+        0: Gyro Bias
+        1: Accel Bias
+        2: Gravity vector fusion
+      default: 7
+      min: 0
+      max: 7
+    EKF2_GYR_NOISE:
+      description:
+        short: Rate gyro noise for covariance prediction
+      type: float
+      default: 0.015
+      min: 0.0001
+      max: 0.1
+      unit: rad/s
+      decimal: 4
+    EKF2_ACC_NOISE:
+      description:
+        short: Accelerometer noise for covariance prediction
+      type: float
+      default: 0.35
+      min: 0.01
+      max: 1.0
+      unit: m/s^2
+      decimal: 2
+    EKF2_IMU_POS_X:
+      description:
+        short: X position of IMU in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_IMU_POS_Y:
+      description:
+        short: Y position of IMU in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_IMU_POS_Z:
+      description:
+        short: Z position of IMU in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+
+    EKF2_TAU_VEL:
+      description:
+        short: Time constant of the velocity output prediction and smoothing filter
+      type: float
+      default: 0.25
+      max: 1.0
+      unit: s
+      decimal: 2
+    EKF2_TAU_POS:
+      description:
+        short: Output predictor position time constant
+        long: Controls how tightly the output track the EKF states
+      type: float
+      default: 0.25
+      min: 0.1
+      max: 1.0
+      unit: s
+      decimal: 2
+
+    EKF2_VEL_LIM:
+      description:
+        short: Velocity limit
+      type: float
+      default: 100
+      max: 299792458
+      unit: m/s
+      decimal: 1

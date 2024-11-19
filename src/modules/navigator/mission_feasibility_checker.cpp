@@ -41,7 +41,6 @@
  */
 
 #include "mission_feasibility_checker.h"
-#include "MissionFeasibility/FeasibilityChecker.hpp"
 
 #include "mission_block.h"
 #include "navigator.h"
@@ -79,7 +78,8 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
 
-		bool success = _dataman_client.readSync((dm_item_t)mission.dataman_id, i, reinterpret_cast<uint8_t *>(&missionitem),
+		bool success = _dataman_client.readSync((dm_item_t)mission.mission_dataman_id, i,
+							reinterpret_cast<uint8_t *>(&missionitem),
 							sizeof(mission_item_s));
 
 		if (!success) {
@@ -119,7 +119,8 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		for (size_t i = 0; i < mission.count; i++) {
 			struct mission_item_s missionitem = {};
 
-			bool success = _dataman_client.readSync((dm_item_t)mission.dataman_id, i, reinterpret_cast<uint8_t *>(&missionitem),
+			bool success = _dataman_client.readSync((dm_item_t)mission.mission_dataman_id, i,
+								reinterpret_cast<uint8_t *>(&missionitem),
 								sizeof(mission_item_s));
 
 			if (!success) {

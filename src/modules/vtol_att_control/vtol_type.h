@@ -239,12 +239,6 @@ public:
 
 	/**
 	 *
-	 * @return The minimum calibrated airspeed compensated for weight [m/s]
-	 */
-	float getMinimumTransitionAirspeed() const;
-
-	/**
-	 *
 	 * @return The calibrated blending airspeed [m/s]
 	 */
 	float getBlendAirspeed() const;
@@ -257,12 +251,6 @@ public:
 
 	virtual void parameters_update() = 0;
 
-	/**
-	 * @brief Set current time delta
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void setDt(float dt) {_dt = dt; }
 
 	/**
 	 * @brief Resets the transition timer states.
@@ -311,6 +299,7 @@ protected:
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
+	float _last_thr_in_mc = 0.f;
 
 	hrt_abstime _trans_finished_ts = 0;
 	hrt_abstime _transition_start_timestamp{0};
@@ -322,17 +311,14 @@ protected:
 	hrt_abstime _last_loop_ts = 0;
 	float _transition_dt = 0;
 
-	float _quadchute_ref_alt{-MAXFLOAT};	// altitude (AMSL) reference to compute quad-chute altitude loss condition
+	float _quadchute_ref_alt{NAN};	// altitude (AMSL) reference to compute quad-chute altitude loss condition
 
 	float _accel_to_pitch_integ = 0;
 
 	bool _quadchute_command_treated{false};
 
-	float update_and_get_backtransition_pitch_sp();
 	bool isFrontTransitionCompleted();
 	virtual bool isFrontTransitionCompletedBase();
-
-	float _dt{0.0025f}; // time step [s]
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
 
@@ -371,8 +357,7 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
 					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
 					(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
-					(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
-					(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_airspeed_min
+					(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross
 
 				       )
 

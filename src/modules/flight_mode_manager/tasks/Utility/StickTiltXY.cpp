@@ -40,7 +40,18 @@ using namespace matrix;
 
 StickTiltXY::StickTiltXY(ModuleParams *parent) :
 	ModuleParams(parent)
-{}
+{
+	updateParams();
+}
+
+void StickTiltXY::updateParams()
+{
+	ModuleParams::updateParams();
+	// Consider maximum tilt but only between [0.02,3]g sideways acceleration -> ~[1,71]° tilt
+	// Constrain tilt already because tanf(90+°) will give negative result
+	const float maximum_tilt = math::radians(math::constrain(_param_mpc_man_tilt_max.get(), 0.f, 89.f));
+	_maximum_acceleration = math::constrain(tanf(maximum_tilt), .02f, 3.f) * CONSTANTS_ONE_G;
+}
 
 Vector2f StickTiltXY::generateAccelerationSetpoints(Vector2f stick_xy, const float dt, const float yaw,
 		const float yaw_setpoint)
@@ -49,5 +60,5 @@ Vector2f StickTiltXY::generateAccelerationSetpoints(Vector2f stick_xy, const flo
 	_man_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
 	stick_xy = _man_input_filter.update(stick_xy);
 	Sticks::rotateIntoHeadingFrameXY(stick_xy, yaw, yaw_setpoint);
-	return stick_xy * tanf(math::radians(_param_mpc_man_tilt_max.get())) * CONSTANTS_ONE_G;
+	return stick_xy * _maximum_acceleration;
 }

@@ -61,12 +61,17 @@ public:
 				int index = (int)(vehicle_command.param7 + 0.5f);
 
 				if (index == 0) {
-					_data[0] = vehicle_command.param1;
-					_data[1] = vehicle_command.param2;
-					_data[2] = vehicle_command.param3;
-					_data[3] = vehicle_command.param4;
-					_data[4] = vehicle_command.param5;
-					_data[5] = vehicle_command.param6;
+					if (PX4_ISFINITE(vehicle_command.param1)) { _data[0] = vehicle_command.param1; }
+
+					if (PX4_ISFINITE(vehicle_command.param2)) {_data[1] = vehicle_command.param2; }
+
+					if (PX4_ISFINITE(vehicle_command.param3)) {_data[2] = vehicle_command.param3; }
+
+					if (PX4_ISFINITE(vehicle_command.param4)) {_data[3] = vehicle_command.param4; }
+
+					if (PX4_ISFINITE(vehicle_command.param5)) {_data[4] = vehicle_command.param5; }
+
+					if (PX4_ISFINITE(vehicle_command.param6)) {_data[5] = vehicle_command.param6; }
 				}
 			}
 		}

@@ -42,13 +42,13 @@ ZeroVelocityUpdate::ZeroVelocityUpdate()
 
 void ZeroVelocityUpdate::reset()
 {
-	_time_last_zero_velocity_fuse = 0;
+	_time_last_fuse = 0;
 }
 
 bool ZeroVelocityUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
 	// Fuse zero velocity at a limited rate (every 200 milliseconds)
-	const bool zero_velocity_update_data_ready = (_time_last_zero_velocity_fuse + 200'000 < imu_delayed.time_us);
+	const bool zero_velocity_update_data_ready = (_time_last_fuse + 200'000 < imu_delayed.time_us);
 
 	if (zero_velocity_update_data_ready) {
 		const bool continuing_conditions_passing = ekf.control_status_flags().vehicle_at_rest
@@ -58,19 +58,18 @@ bool ZeroVelocityUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delaye
 
 		if (continuing_conditions_passing) {
 			Vector3f vel_obs{0.f, 0.f, 0.f};
-			Vector3f innovation = ekf.state().vel - vel_obs;
 
 			// Set a low variance initially for faster leveling and higher
 			// later to let the states follow the measurements
-
 			const float obs_var = ekf.control_status_flags().tilt_align ? sq(0.2f) : sq(0.001f);
 			Vector3f innov_var = ekf.getVelocityVariance() + obs_var;
 
 			for (unsigned i = 0; i < 3; i++) {
-				ekf.fuseVelPosHeight(innovation(i), innov_var(i), State::vel.idx + i);
+				const float innovation = ekf.state().vel(i) - vel_obs(i);
+				ekf.fuseDirectStateMeasurement(innovation, innov_var(i), obs_var, State::vel.idx + i);
 			}
 
-			_time_last_zero_velocity_fuse = imu_delayed.time_us;
+			_time_last_fuse = imu_delayed.time_us;
 
 			return true;
 		}

@@ -108,12 +108,14 @@ void AdsbConflict::remove_icao_address_from_conflict_list(int traffic_index)
 {
 	_traffic_buffer.icao_address.remove(traffic_index);
 	_traffic_buffer.timestamp.remove(traffic_index);
+	PX4_INFO("icao_address removed. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
 }
 
 void AdsbConflict::add_icao_address_from_conflict_list(uint32_t icao_address)
 {
 	_traffic_buffer.timestamp.push_back(hrt_absolute_time());
 	_traffic_buffer.icao_address.push_back(icao_address);
+	PX4_INFO("icao_address added. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
 }
 
 void AdsbConflict::get_traffic_state()
@@ -129,7 +131,6 @@ void AdsbConflict::get_traffic_state()
 
 	if (old_conflict && _conflict_detected) {
 		old_conflict_warning_expired = (hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]) > CONFLICT_WARNING_TIMEOUT);
-
 	}
 
 	if (new_traffic && _conflict_detected && !_traffic_buffer_full) {
@@ -154,25 +155,25 @@ void AdsbConflict::get_traffic_state()
 
 }
 
+void AdsbConflict::remove_expired_conflicts()
+{
+	for (uint8_t traffic_index = 0; traffic_index < _traffic_buffer.timestamp.size();) {
+		if (hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]) > TRAFFIC_CONFLICT_LIFETIME) {
+			events::send<uint32_t>(events::ID("navigator_traffic_expired"), events::Log::Notice,
+					       "Traffic Conflict {1} Expired and removed from buffer",
+					       _traffic_buffer.icao_address[traffic_index]);
+			remove_icao_address_from_conflict_list(traffic_index);
+
+		} else {
+			traffic_index++;
+		}
+	}
+}
 
 bool AdsbConflict::handle_traffic_conflict()
 {
 
 	get_traffic_state();
-
-	char uas_id[UTM_GUID_MSG_LENGTH]; //GUID of incoming UTM messages
-
-	//convert UAS_id byte array to char array for User Warning
-	for (int i = 0; i < 5; i++) {
-		snprintf(&uas_id[i * 2], sizeof(uas_id) - i * 2, "%02x", _transponder_report.uas_id[PX4_GUID_BYTE_LENGTH - 5 + i]);
-	}
-
-	uint64_t uas_id_int = 0;
-
-	for (int i = 0; i < 8; i++) {
-		uas_id_int |= (uint64_t)(_transponder_report.uas_id[PX4_GUID_BYTE_LENGTH - i - 1]) << (i * 8);
-	}
-
 
 	bool take_action = false;
 
@@ -180,39 +181,30 @@ bool AdsbConflict::handle_traffic_conflict()
 
 	case TRAFFIC_STATE::ADD_CONFLICT:
 	case TRAFFIC_STATE::REMIND_CONFLICT: {
-
-			take_action = send_traffic_warning(math::degrees(_transponder_report.heading) + 180,
-							   (int)fabsf(_crosstrack_error.distance), _transponder_report.flags, uas_id,
+			take_action = send_traffic_warning((int)(math::degrees(_transponder_report.heading) + 180.f),
+							   (int)fabsf(_crosstrack_error.distance), _transponder_report.flags,
 							   _transponder_report.callsign,
-							   uas_id_int);
-
+							   _transponder_report.icao_address);
 		}
 		break;
 
 	case TRAFFIC_STATE::REMOVE_OLD_CONFLICT: {
-
-			mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC UPDATE: %s is no longer in conflict!",
-					     _transponder_report.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ?
-					     _transponder_report.callsign : uas_id);
-
-			events::send<uint64_t>(events::ID("navigator_traffic_resolved"), events::Log::Critical, "Traffic Conflict Resolved",
-					       uas_id_int);
-
+			events::send<uint32_t>(events::ID("navigator_traffic_resolved"), events::Log::Notice,
+					       "Traffic Conflict Resolved {1}!",
+					       _transponder_report.icao_address);
+			_last_traffic_warning_time = hrt_absolute_time();
 		}
 		break;
 
 	case TRAFFIC_STATE::BUFFER_FULL: {
 
-			if (_traffic_state_previous != TRAFFIC_STATE::BUFFER_FULL) {
-				PX4_WARN("Too much traffic! Showing all messages from now on");
+			if ((_traffic_state_previous != TRAFFIC_STATE::BUFFER_FULL)
+			    && (hrt_elapsed_time(&_last_buffer_full_warning_time) > TRAFFIC_WARNING_TIMESTEP)) {
+				events::send(events::ID("buffer_full"), events::Log::Notice, "Too much traffic! Showing all messages from now on");
+				_last_buffer_full_warning_time = hrt_absolute_time();
 			}
 
-			//stop buffering incoming conflicts
-			take_action = send_traffic_warning(math::degrees(_transponder_report.heading) + 180,
-							   (int)fabsf(_crosstrack_error.distance), _transponder_report.flags, uas_id,
-							   _transponder_report.callsign,
-							   uas_id_int);
-
+			//disable conflict warnings when buffer is full
 		}
 		break;
 
@@ -242,49 +234,67 @@ void AdsbConflict::set_conflict_detection_params(float crosstrack_separation, fl
 
 
 bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
-					char uas_id[UTM_GUID_MSG_LENGTH], char tr_callsign[UTM_CALLSIGN_LENGTH], uint64_t uas_id_int)
+					char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address)
 {
 
 	switch (_conflict_detection_params.traffic_avoidance_mode) {
 
 	case 0: {
-			PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
-				 tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr_callsign : uas_id,
-				 traffic_seperation,
-				 traffic_direction);
+
+			if (tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
+
+				PX4_WARN("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
+					 tr_callsign,
+					 traffic_seperation,
+					 traffic_direction, (int)icao_address);
+
+			}
+
+
+			_last_traffic_warning_time = hrt_absolute_time();
+
 			break;
 		}
 
 	case 1: {
-			mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d\t",
-					     tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr_callsign : uas_id,
-					     traffic_seperation,
-					     traffic_direction);
+
+
+			if (tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
+
+				PX4_WARN("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
+					 tr_callsign,
+					 traffic_seperation,
+					 traffic_direction, (int)icao_address);
+
+			}
+
 			/* EVENT
 			 * @description
-			 * - ID: {1}
-			 * - Distance: {2m}
-			 * - Direction: {3} degrees
+			 * - ICAO Address: {1}
+			 * - Traffic Separation Distance: {2m}
+			 * - Heading: {3} degrees
 			 */
-			events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Critical, "Traffic alert",
-					uas_id_int, traffic_seperation, traffic_direction);
+			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Notice,
+					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}",
+					icao_address, traffic_seperation, traffic_direction);
+
+			_last_traffic_warning_time = hrt_absolute_time();
+
 			break;
 		}
 
 	case 2: {
-			mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d\t",
-					     tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr_callsign : uas_id,
-					     traffic_seperation,
-					     traffic_direction);
 			/* EVENT
 			 * @description
-			 * - ID: {1}
-			 * - Distance: {2m}
-			 * - Direction: {3} degrees
+			 * - ICAO Address: {1}
+			 * - Traffic Separation Distance: {2m}
+			 * - Heading: {3} degrees
 			 */
-			events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_rtl"), events::Log::Critical,
-					"Traffic alert, returning home",
-					uas_id_int, traffic_seperation, traffic_direction);
+			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_rtl"), events::Log::Notice,
+					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, returning home",
+					icao_address, traffic_seperation, traffic_direction);
+
+			_last_traffic_warning_time = hrt_absolute_time();
 
 			return true;
 
@@ -292,19 +302,17 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 		}
 
 	case 3: {
-			mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d\t",
-					     tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr_callsign : uas_id,
-					     traffic_seperation,
-					     traffic_direction);
 			/* EVENT
 			 * @description
-			 * - ID: {1}
-			 * - Distance: {2m}
-			 * - Direction: {3} degrees
+			 * - ICAO Address: {1}
+			 * - Traffic Separation Distance: {2m}
+			 * - Heading: {3} degrees
 			 */
-			events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_land"), events::Log::Critical,
-					"Traffic alert, landing",
-					uas_id_int, traffic_seperation, traffic_direction);
+			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_land"), events::Log::Notice,
+					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, landing",
+					icao_address, traffic_seperation, traffic_direction);
+
+			_last_traffic_warning_time = hrt_absolute_time();
 
 			return true;
 
@@ -313,19 +321,18 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 		}
 
 	case 4: {
-			mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d\t",
-					     tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr_callsign : uas_id,
-					     traffic_seperation,
-					     traffic_direction);
 			/* EVENT
 			 * @description
-			 * - ID: {1}
-			 * - Distance: {2m}
-			 * - Direction: {3} degrees
+			 * - ICAO Address: {1}
+			 * - Traffic Separation Distance: {2m}
+			 * - Heading: {3} degrees
 			 */
-			events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_hold"), events::Log::Critical,
-					"Traffic alert, holding position",
-					uas_id_int, traffic_seperation, traffic_direction);
+			events::send<uint32_t, int32_t, int16_t>(events::ID("navigator_traffic_hold"), events::Log::Notice,
+					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, holding position",
+					icao_address, traffic_seperation, traffic_direction);
+
+			_last_traffic_warning_time = hrt_absolute_time();
+
 
 			return true;
 
@@ -391,8 +398,7 @@ void AdsbConflict::fake_traffic(const char *callsign, float distance, float dire
 void AdsbConflict::run_fake_traffic(double &lat_uav, double &lon_uav,
 				    float &alt_uav)
 {
-
-	/*
+	//Test with buffer size of 10
 	//first conflict
 	fake_traffic("LX001", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 1, lat_uav, lon_uav,
@@ -402,18 +408,19 @@ void AdsbConflict::run_fake_traffic(double &lat_uav, double &lon_uav,
 	fake_traffic("LX002", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 2, lat_uav, lon_uav,
 		     alt_uav);
-	fake_traffic("LX0002", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
+	fake_traffic("LX002", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 2, lat_uav, lon_uav,
 		     alt_uav);
-	fake_traffic("LX0002", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
+	fake_traffic("LX002", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 2, lat_uav, lon_uav,
 		     alt_uav);
 
 	//stop spamming
-
+	//new conflicts
 	fake_traffic("LX003", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 3, lat_uav, lon_uav,
 		     alt_uav);
+
 
 	fake_traffic("LX004", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 4, lat_uav, lon_uav,
@@ -445,6 +452,9 @@ void AdsbConflict::run_fake_traffic(double &lat_uav, double &lon_uav,
 		     alt_uav);
 
 	//buffer full
+
+	//buffer full conflicts
+
 	fake_traffic("LX011", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 11, lat_uav, lon_uav,
 		     alt_uav);
@@ -458,7 +468,7 @@ void AdsbConflict::run_fake_traffic(double &lat_uav, double &lon_uav,
 		     alt_uav);
 
 
-	//end conflict
+	//end conflicts
 	fake_traffic("LX001", 5000, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 1, lat_uav, lon_uav,
 		     alt_uav);
@@ -474,30 +484,29 @@ void AdsbConflict::run_fake_traffic(double &lat_uav, double &lon_uav,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 4, lat_uav, lon_uav,
 		     alt_uav);
 
-
 	//new conflicts with space in buffer
 	fake_traffic("LX013", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 13, lat_uav, lon_uav,
 		     alt_uav);
-
+	//spam
 	fake_traffic("LX013", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 13, lat_uav, lon_uav,
 		     alt_uav);
-
+	//new conflict
 	fake_traffic("LX014", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 14, lat_uav, lon_uav,
 		     alt_uav);
-
+	//spam
 	fake_traffic("LX014", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 14, lat_uav, lon_uav,
 		     alt_uav);
-
+	//new conflict
 	fake_traffic("LX015", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 15, lat_uav, lon_uav,
 		     alt_uav);
 
+
 	for (size_t i = 0; i < _traffic_buffer.icao_address.size(); i++) {
 		PX4_INFO("%u ", static_cast<unsigned int>(_traffic_buffer.icao_address[i]));
 	}
-	*/
 }

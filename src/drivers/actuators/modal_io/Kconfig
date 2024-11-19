@@ -1,5 +1,0 @@
-menuconfig DRIVERS_ACTUATORS_MODAL_IO
-	bool "modal_io"
-	default n
-	---help---
-		Enable support for modal_io

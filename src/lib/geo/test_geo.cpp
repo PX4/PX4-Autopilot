@@ -42,7 +42,7 @@ class GeoTest : public ::testing::Test
 public:
 	void SetUp() override
 	{
-		proj.initReference(math::radians(473566094 / 1e7), math::radians(85190237 / 1e7), 0);
+		proj.initReference(473566094 / 1e7, 85190237 / 1e7, 0);
 	}
 
 protected:
@@ -73,7 +73,7 @@ TEST_F(GeoTest, reprojectProject)
 
 TEST_F(GeoTest, projectReproject)
 {
-	// GIVEN: x and y coordinates in the local cartesian frame
+	// GIVEN: lat and lon coordinates in the geographic coordinate system
 	double lat = 47.356616973876953;
 	double lon = 8.5190505981445313;
 	float x;

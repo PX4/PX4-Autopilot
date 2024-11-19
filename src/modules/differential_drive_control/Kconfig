@@ -1,6 +1,0 @@
-menuconfig MODULES_DIFFERENTIAL_DRIVE_CONTROL
-	bool "differential_drive_control"
-	default n
-	depends on MODULES_CONTROL_ALLOCATOR
-	---help---
-		Enable support for control of differential drive rovers

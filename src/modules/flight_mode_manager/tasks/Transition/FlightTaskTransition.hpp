@@ -44,6 +44,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
 
 using namespace time_literals;
@@ -66,12 +67,29 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_position_sp_triplet{ORB_ID(position_setpoint_triplet)};
 
 	param_t _param_handle_pitch_cruise_degrees{PARAM_INVALID};
 	float _param_pitch_cruise_degrees{0.f};
+	param_t _param_handle_vt_b_dec_i{PARAM_INVALID};
+	float _param_vt_b_dec_i{0.f};
+	param_t _param_handle_vt_b_dec_mss{PARAM_INVALID};
+	float _param_vt_b_dec_mss{0.f};
 
 	AlphaFilter<float> _vel_z_filter;
+	float _decel_error_bt_int{0.f}; ///< Backtransition deceleration error integrator value
+
+	static constexpr float _pitch_limit_bt = .3f; ///< Bactransition pitch limit
 
 	void updateParameters();
+	void updateParametersFromStorage();
+
+	void updateSubscribers();
+
+	bool isVtolFrontTransition() const;
+	bool isVtolBackTransition() const;
+
+	float computeBackTranstionPitchSetpoint();
+	void updateBackTransitioDecelerationErrorIntegrator(const float deceleration_error);
 
 };

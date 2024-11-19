@@ -14,7 +14,7 @@ class XMLInject():
     def __init__(self, injected_xml_filename):
         self.groups=[]
 
-        valid_parameter_attributes = set(["category", "default", "name", "type", "volatile"])
+        valid_parameter_attributes = set(["category", "default", "name", "type", "volatile", "boolean"])
         valid_field_tags = set(["board","short_desc", "long_desc", "min", "max", "unit", "decimal", "increment", "reboot_required"])
         valid_other_top_level_tags = set(["group","values"])
 
@@ -42,7 +42,8 @@ class XMLInject():
                         new_param.default = iparam.get('default')
                     elif param_attrib == 'volatile':
                         new_param.SetVolatile()
-
+                    elif param_attrib == "boolean":
+                        new_param.SetBoolean()
 
                 #get param info stored as child tags
                 for child in iparam:

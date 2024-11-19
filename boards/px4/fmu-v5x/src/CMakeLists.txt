@@ -36,7 +36,6 @@ add_library(drivers_board
 	i2c.cpp
 	init.cpp
 	led.c
-	manifest.c
 	mtd.cpp
 	sdio.c
 	spi.cpp

@@ -168,7 +168,7 @@
 
 /* HW Version and Revision drive signals Default to 1 to detect */
 
-#define BOARD_HAS_HW_VERSIONING
+#define BOARD_HAS_HW_VERSIONING // migrate to Split
 
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
@@ -196,7 +196,7 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
 
-/* Define Battery 1 g Divider and A per V. */
+/* Define Battery Voltage Divider and A per V */
 #define BOARD_BATTERY_V_DIV         (13.653333333f)
 #define BOARD_BATTERY_A_PER_V       (36.367515152f)
 

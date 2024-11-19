@@ -192,10 +192,16 @@
 #define STM32_RCC_D2CCIP1R_SPI45SRC  RCC_D2CCIP1R_SPI45SEL_PLL2  /* SPI45 clock source */
 #define STM32_RCC_D3CCIPR_SPI6SRC    RCC_D3CCIPR_SPI6SEL_PLL2    /* SPI6 clock source */
 #define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3    /* USB 1 and 2 clock source */
-#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2     /* ADC 1 2 3 clock source */
+#define STM32_RCC_D3CCIPR_ADCSRC     RCC_D3CCIPR_ADCSEL_PLL2     /* ADC 1 2 3 clock source */
 #define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
 
 #define STM32_FDCANCLK               STM32_HSE_FREQUENCY
+
+/* UART clock selection */
+/* reset to default to overwrite any changes done by any bootloader */
+
+#define STM32_RCC_D2CCIP2R_USART234578_SEL RCC_D2CCIP2R_USART234578SEL_RCC
+#define STM32_RCC_D2CCIP2R_USART16_SEL     RCC_D2CCIP2R_USART16SEL_RCC
 
 /* FLASH wait states */
 #define BOARD_FLASH_WAITSTATES 2
@@ -222,6 +228,9 @@
 
 
 /* UART/USART */
+#define GPIO_USART1_TX	 GPIO_USART1_TX_3      /* PB6  */
+#define GPIO_USART1_RX	 GPIO_USART1_RX_3      /* PB7  */
+
 #define GPIO_USART2_TX   GPIO_USART2_TX_2      /* PD5  */
 #define GPIO_USART2_RX   GPIO_USART2_RX_2      /* PD6  */
 #define GPIO_USART2_CTS  GPIO_USART2_CTS_NSS_2 /* PD3  */
@@ -234,9 +243,6 @@
 
 #define GPIO_UART4_TX    GPIO_UART4_TX_2       /* PA0  */
 #define GPIO_UART4_RX    GPIO_UART4_RX_2       /* PA1  */
-
-#define GPIO_USART6_TX   0                     /* USART6 is RX-only */
-#define GPIO_USART6_RX   GPIO_USART6_RX_1      /* PC7  */
 
 #define GPIO_UART7_TX    GPIO_UART7_TX_3       /* PE8  */
 #define GPIO_UART7_RX    GPIO_UART7_RX_3       /* PE7  */
@@ -268,13 +274,14 @@
 #define GPIO_SPI5_MISO   GPIO_SPI5_MISO_1               /* PF8  */
 #define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_2               /* PF9  */
 
+#define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_1) /* PG13  */
+#define GPIO_SPI6_MISO   GPIO_SPI6_MISO_1               /* PG12  */
+#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_1               /* PG14  */
+
 
 /* I2C */
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9  */
 
-#define GPIO_I2C3_SCL GPIO_I2C3_SCL_2       /* PH7 */
-#define GPIO_I2C3_SDA GPIO_I2C3_SDA_2       /* PH8 */
-
-#define GPIO_I2C4_SCL GPIO_I2C4_SCL_4       /* PB6 */
-#define GPIO_I2C4_SDA GPIO_I2C4_SDA_4       /* PB7 */
+#define GPIO_I2C4_SCL GPIO_I2C4_SCL_2       /* PF14 */
+#define GPIO_I2C4_SDA GPIO_I2C4_SDA_2       /* PF15 */

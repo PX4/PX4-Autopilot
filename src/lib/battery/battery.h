@@ -56,8 +56,8 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
 
 /**
  * BatteryBase is a base class for any type of battery.
@@ -91,6 +91,7 @@ public:
 	void setStateOfCharge(const float soc) { _state_of_charge = soc; _external_state_of_charge = true; }
 	void updateVoltage(const float voltage_v);
 	void updateCurrent(const float current_a);
+	void updateTemperature(const float temperature_c);
 
 	/**
 	 * Update state of charge calculations
@@ -117,7 +118,6 @@ protected:
 		param_t v_charged;
 		param_t n_cells;
 		param_t capacity;
-		param_t v_load_drop;
 		param_t r_internal;
 		param_t low_thr;
 		param_t crit_thr;
@@ -131,7 +131,6 @@ protected:
 		float v_charged;
 		int32_t  n_cells;
 		float capacity;
-		float v_load_drop;
 		float r_internal;
 		float low_thr;
 		float crit_thr;
@@ -154,8 +153,8 @@ private:
 	void computeScale();
 	float computeRemainingTime(float current_a);
 
-	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<flight_phase_estimation_s> _flight_phase_estimation_sub{ORB_ID(flight_phase_estimation)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	bool _external_state_of_charge{false}; ///< inticates that the soc is injected and not updated by this library
@@ -165,11 +164,12 @@ private:
 	uint8_t _priority{0};
 	bool _battery_initialized{false};
 	float _voltage_v{0.f};
-	AlphaFilter<float> _voltage_filter_v;
+	AlphaFilter<float> _ocv_filter_v;
+	AlphaFilter<float> _cell_voltage_filter_v;
 	float _current_a{-1};
-	AlphaFilter<float> _current_filter_a;
-	AlphaFilter<float> _current_average_filter_a;
-	AlphaFilter<float> _throttle_filter;
+	AlphaFilter<float>
+	_current_average_filter_a; ///< averaging filter for current. For FW, it is the current in level flight.
+	float _temperature_c{NAN};
 	float _discharged_mah{0.f};
 	float _discharged_mah_loop{0.f};
 	float _state_of_charge_volt_based{-1.f}; // [0,1]
@@ -178,5 +178,22 @@ private:
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
+	bool _vehicle_status_is_fw{false};
 	hrt_abstime _last_unconnected_timestamp{0};
+
+	// Internal Resistance estimation
+	void updateInternalResistanceEstimation(const float voltage_v, const float current_a);
+	void resetInternalResistanceEstimation(const float voltage_v, const float current_a);
+	matrix::Vector2f _RLS_est; // [Open circuit voltage estimate [V], Total internal resistance estimate [Ohm]]^T
+	matrix::Matrix2f _estimation_covariance;
+	bool _internal_resistance_initialized{false};
+	float _estimation_covariance_norm{0.f};
+	float _internal_resistance_estimate{0.005f}; // [Ohm] Per cell estimate of the internal resistance
+	float _voltage_prediction{0.f}; // [V] Predicted voltage of the estimator
+	float _prediction_error{0.f}; // [V] Error between the predicted and measured voltage
+	static constexpr float LAMBDA = 0.95f; 	// [0, 1] Forgetting factor (Tuning parameter for the RLS algorithm)
+	static constexpr float R_DEFAULT = 0.005f; // [Ohm] Initial per cell estimate of the internal resistance
+	static constexpr float OCV_DEFAULT = 4.2f; // [V] Initial per cell estimate of the open circuit voltage
+	static constexpr float R_COVARIANCE = 0.1f; // Initial per cell covariance of the internal resistance
+	static constexpr float OCV_COVARIANCE = 1.5f; // Initial per cell covariance of the open circuit voltage
 };

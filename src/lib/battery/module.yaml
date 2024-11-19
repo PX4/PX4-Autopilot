@@ -1,4 +1,4 @@
-__max_num_config_instances: &max_num_config_instances 2
+__max_num_config_instances: &max_num_config_instances 3
 
 module_name: battery
 
@@ -7,12 +7,12 @@ parameters:
       definitions:
         BAT${i}_V_EMPTY:
             description:
-                short: Empty cell voltage (5C load)
+                short: Empty cell voltage
                 long: |
-                    Defines the voltage where a single cell of battery 1 is considered empty.
-                    The voltage should be chosen before the steep dropoff to 2.8V. A typical
-                    lithium battery can only be discharged down to 10% before it drops off
-                    to a voltage level damaging the cells.
+                    Defines the voltage where a single cell of the battery is considered empty.
+                    The voltage should be chosen above the steep dropoff at 3.5V. A typical
+                    lithium battery can only be discharged under high load down to 10% before
+                    it drops off to a voltage level damaging the cells.
 
             type: float
             unit: V
@@ -21,14 +21,14 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [3.6, 3.6]
+            default: [3.6, 3.6, 3.6]
 
         BAT${i}_V_CHARGED:
             description:
-                short: Full cell voltage (5C load)
+                short: Full cell voltage
                 long: |
-                    Defines the voltage where a single cell of battery 1 is considered full
-                    under a mild load. This will never be the nominal voltage of 4.2V
+                    Defines the voltage where a single cell of the battery is considered full.
+                    For a more accurate estimate set this below the nominal voltage of e.g. 4.2V
 
             type: float
             unit: V
@@ -37,35 +37,13 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [4.05, 4.05]
-
-        BAT${i}_V_LOAD_DROP:
-            description:
-                short: Voltage drop per cell on full throttle
-                long: |
-                    This implicitly defines the internal resistance
-                    to maximum current ratio for battery 1 and assumes linearity.
-                    A good value to use is the difference between the
-                    5C and 20-25C load. Not used if BAT${i}_R_INTERNAL is
-                    set.
-
-            type: float
-            unit: V
-            min: 0.07
-            max: 0.5
-            decimal: 2
-            increment: 0.01
-            reboot_required: true
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: [0.1, 0.1]
+            default: [4.05, 4.05, 4.05]
 
         BAT${i}_R_INTERNAL:
             description:
                 short: Explicitly defines the per cell internal resistance for battery ${i}
                 long: |
-                    If non-negative, then this will be used in place of
-                    BAT${i}_V_LOAD_DROP for all calculations.
+                    If non-negative, then this will be used instead of the online estimated internal resistance.
 
             type: float
             unit: Ohm
@@ -76,7 +54,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0.005, 0.005]
+            default: [-1.0, -1.0, -1.0]
 
         BAT${i}_N_CELLS:
             description:
@@ -103,10 +81,9 @@ parameters:
                 14: 14S Battery
                 15: 15S Battery
                 16: 16S Battery
-            reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0, 0]
+            default: [0, 0, 0]
 
         BAT${i}_CAPACITY:
             description:
@@ -122,7 +99,7 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [-1.0, -1.0]
+            default: [-1.0, -1.0, -1.0]
 
         BAT${i}_SOURCE:
             description:
@@ -142,4 +119,62 @@ parameters:
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
-            default: [0, -1]
+            default: [0, -1, -1]
+
+        BAT_LOW_THR:
+            description:
+                short: Low threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as low.
+                    This has to be higher than the critical threshold.
+            type: float
+            unit: norm
+            min: 0.12
+            max: 0.5
+            decimal: 2
+            increment: 0.01
+            default: 0.15
+
+        BAT_CRIT_THR:
+            description:
+                short: Critical threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as critically low.
+                    This has to be lower than the low threshold. This threshold commonly
+                    will trigger RTL.
+            type: float
+            unit: norm
+            min: 0.05
+            max: 0.5
+            decimal: 2
+            increment: 0.01
+            default: 0.07
+
+        BAT_EMERGEN_THR:
+            description:
+                short: Emergency threshold.
+                long: |
+                    Sets the threshold when the battery will be reported as dangerously low.
+                    This has to be lower than the critical threshold. This threshold commonly
+                    will trigger landing.
+            type: float
+            unit: norm
+            min: 0.03
+            max: 0.5
+            decimal: 2
+            increment: 0.01
+            default: 0.05
+
+        BAT_AVRG_CURRENT:
+            description:
+                short: Expected battery current in flight.
+                long: |
+                    This value is used to initialize the in-flight average current estimation,
+                    which in turn is used for estimating remaining flight time and RTL triggering.
+            type: float
+            unit: A
+            min: 0
+            max: 500
+            decimal: 2
+            increment: 0.1
+            default: 15

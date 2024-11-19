@@ -120,7 +120,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 
 	_sensor_simulator.runSeconds(5.f);
 
-	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
+	const float estimated_distance_to_ground = _ekf->getHagl();
 	EXPECT_FLOAT_EQ(estimated_distance_to_ground, simulated_distance_to_ground);
 
 	reset_logging_checker.capturePreResetState();
@@ -133,10 +133,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
 
-	// Let it reset but not fuse more measurements. We actually need to send 2
-	// samples to get a reset because the first one cannot be used as the gyro
-	// compensation needs to be accumulated between two samples.
-	_sensor_simulator.runTrajectorySeconds(0.14);
+	_sensor_simulator.runTrajectorySeconds(1);
 
 	// THEN: estimated velocity should match simulated velocity
 	const Vector3f estimated_velocity = _ekf->getVelocity();
@@ -144,7 +141,11 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	simulated_velocity.print();
 	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity))
 			<< "estimated vel = " << estimated_velocity(0) << ", "
-			<< estimated_velocity(1);
+			<< estimated_velocity(1) << "\n"
+			<< "simulated vel = " << simulated_velocity(0) << ", "
+			<< simulated_velocity(1);
+
+	EXPECT_NEAR(simulated_distance_to_ground, _ekf->getHagl(), 0.1f);
 
 	// AND: the reset in velocity should be saved correctly
 	reset_logging_checker.capturePostResetState();
@@ -158,7 +159,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 	ResetLoggingChecker reset_logging_checker(_ekf);
 
 	// WHEN: being on ground
-	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
+	const float estimated_distance_to_ground = _ekf->getHagl();
 	EXPECT_LT(estimated_distance_to_ground, 0.3f);
 
 	reset_logging_checker.capturePreResetState();
@@ -177,11 +178,10 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 	EXPECT_TRUE(isEqual(estimated_horz_velocity, Vector2f(0.f, 0.f)))
 			<< estimated_horz_velocity(0) << ", " << estimated_horz_velocity(1);
 
-	// AND: the reset in velocity should be saved correctly
+	// AND: the horizontal velocity is reset to the flow value
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
-	EXPECT_TRUE(reset_logging_checker.isVelocityDeltaLoggedCorrectly(1e-9f));
 }
 
 TEST_F(EkfFlowTest, inAirConvergence)
@@ -203,10 +203,8 @@ TEST_F(EkfFlowTest, inAirConvergence)
 	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
-	// Let it reset but not fuse more measurements. We actually need to send 2
-	// samples to get a reset because the first one cannot be used as the gyro
-	// compensation needs to be accumulated between two samples.
-	_sensor_simulator.runTrajectorySeconds(0.14);
+
+	_sensor_simulator.runTrajectorySeconds(1.0);
 
 	// THEN: estimated velocity should match simulated velocity
 	Vector3f estimated_velocity = _ekf->getVelocity();
@@ -222,9 +220,9 @@ TEST_F(EkfFlowTest, inAirConvergence)
 	// THEN: estimated velocity should converge to the simulated velocity
 	// This takes a bit of time because the data is inconsistent with IMU measurements
 	estimated_velocity = _ekf->getVelocity();
-	EXPECT_NEAR(estimated_velocity(0), simulated_velocity(0), 0.05f)
+	EXPECT_NEAR(estimated_velocity(0), simulated_velocity(0), 0.01f)
 			<< "estimated vel = " << estimated_velocity(0);
-	EXPECT_NEAR(estimated_velocity(1), simulated_velocity(1), 0.05f)
+	EXPECT_NEAR(estimated_velocity(1), simulated_velocity(1), 0.01f)
 			<< estimated_velocity(1);
 }
 
@@ -241,7 +239,7 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData)
 	_sensor_simulator.runSeconds(5.f);
 
 	// AND WHEN: there is a pure yaw rotation
-	const Vector3f body_rate(0.f, 0.f, 3.14159f);
+	const Vector3f body_rate(0.f, 0.f, 2.9f);
 	const Vector3f flow_offset(0.15, -0.05f, 0.2f);
 	_ekf_wrapper.setFlowOffset(flow_offset);
 
@@ -258,10 +256,11 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData)
 
 	// THEN: the flow due to the yaw rotation and the offsets is canceled
 	// and the velocity estimate stays 0
+	// FIXME: the estimate isn't perfect 0 mainly because the mag simulated measurement isn't rotating
 	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
-	EXPECT_NEAR(estimated_horz_velocity(0), 0.f, 0.01f)
+	EXPECT_NEAR(estimated_horz_velocity(0), 0.f, 0.02f)
 			<< "estimated vel = " << estimated_horz_velocity(0);
-	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.01f)
+	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.02f)
 			<< "estimated vel = " << estimated_horz_velocity(1);
 }
 
@@ -271,6 +270,48 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData)
 	const float simulated_distance_to_ground = 5.f;
 	startRangeFinderFusion(simulated_distance_to_ground);
 	startZeroFlowFusion();
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+
+	_sensor_simulator.runSeconds(5.f);
+
+	// AND WHEN: there is a pure yaw rotation
+	const Vector3f body_rate(0.f, 0.f, 2.9f);
+	const Vector3f flow_offset(-0.15, 0.05f, 0.2f);
+	_ekf_wrapper.setFlowOffset(flow_offset);
+
+	const Vector2f simulated_horz_velocity(body_rate % flow_offset);
+	flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
+	setFlowFromHorizontalVelocityAndDistance(flow_sample, simulated_horz_velocity, simulated_distance_to_ground);
+
+	// use flow sensor gyro data
+	// for clarification of the sign, see definition of flowSample
+	flow_sample.gyro_rate = -body_rate;
+
+	_sensor_simulator._flow.setData(flow_sample);
+	_sensor_simulator._imu.setGyroData(body_rate);
+	_sensor_simulator.runSeconds(10.f);
+
+	// THEN: the flow due to the yaw rotation and the offsets is canceled
+	// and the velocity estimate stays 0
+	// FIXME: the estimate isn't perfect 0 mainly because the mag simulated measurement isn't rotating
+	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
+	EXPECT_NEAR(estimated_horz_velocity(0), 0.f, 0.02f)
+			<< "estimated vel = " << estimated_horz_velocity(0);
+	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.02f)
+			<< "estimated vel = " << estimated_horz_velocity(1);
+	_ekf->state().vector().print();
+	_ekf->covariances().print();
+}
+
+TEST_F(EkfFlowTest, yawMotionNoMagFusion)
+{
+	// WHEN: fusing range finder and optical flow data in air
+	const float simulated_distance_to_ground = 5.f;
+	startRangeFinderFusion(simulated_distance_to_ground);
+	startZeroFlowFusion();
+	_ekf_wrapper.setMagFuseTypeNone();
 
 	_ekf->set_in_air_status(true);
 	_ekf->set_vehicle_at_rest(false);
@@ -301,4 +342,6 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData)
 			<< "estimated vel = " << estimated_horz_velocity(0);
 	EXPECT_NEAR(estimated_horz_velocity(1), 0.f, 0.01f)
 			<< "estimated vel = " << estimated_horz_velocity(1);
+	_ekf->state().vector().print();
+	_ekf->covariances().print();
 }

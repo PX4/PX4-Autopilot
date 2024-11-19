@@ -1,0 +1,11 @@
+#!/bin/sh
+# Ackermann rover parameters.
+
+set VEHICLE_TYPE rover_ackermann
+param set-default MAV_TYPE 10           # MAV_TYPE_GROUND_ROVER
+param set-default CA_AIRFRAME 5         # Rover (Ackermann)
+param set-default CA_R_REV 1            # Motor is assumed to be reversible
+param set-default EKF2_MAG_TYPE 1       # Make sure magnetometer is fused even when not flying
+param set-default NAV_ACC_RAD 0.5       # Waypoint acceptance radius
+param set-default EKF2_GBIAS_INIT 0.01
+param set-default EKF2_ANGERR_INIT 0.01

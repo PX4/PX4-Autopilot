@@ -33,28 +33,12 @@
 
 #include "ekf.h"
 
-#include <ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h>
-#include <ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h>
+#include <ekf_derivation/generated/compute_yaw_innov_var_and_h.h>
 
 #include <mathlib/mathlib.h>
 
-// update quaternion states and covariances using the yaw innovation and yaw observation variance
-bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status)
-{
-	VectorState H_YAW;
-	computeYawInnovVarAndH(aid_src_status.observation_variance, aid_src_status.innovation_variance, H_YAW);
-
-	return fuseYaw(aid_src_status, H_YAW);
-}
-
 bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW)
 {
-	// define the innovation gate size
-	float gate_sigma = math::max(_params.heading_innov_gate, 1.f);
-
-	// innovation test ratio
-	setEstimatorAidStatusTestRatio(aid_src_status, gate_sigma);
-
 	// check if the innovation variance calculation is badly conditioned
 	if (aid_src_status.innovation_variance >= aid_src_status.observation_variance) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
@@ -84,7 +68,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		Kfusion(row) *= heading_innov_var_inv;
 	}
 
-	// set the magnetometer unhealthy if the test fails
+	// set the heading unhealthy if the test fails
 	if (aid_src_status.innovation_rejected) {
 		_innov_check_fail_status.flags.reject_yaw = true;
 
@@ -92,13 +76,14 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		// we allow to use it when on the ground because the large innovation could be caused
 		// by interference or a large initial gyro bias
 		if (!_control_status.flags.in_air
-			&& isTimedOut(_time_last_in_air, (uint64_t)5e6)
-			&& isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
-			) {
+		    && isTimedOut(_time_last_in_air, (uint64_t)5e6)
+		    && isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
+		   ) {
 			// constrain the innovation to the maximum set by the gate
 			// we need to delay this forced fusion to avoid starting it
 			// immediately after touchdown, when the drone is still armed
-			float gate_limit = sqrtf((sq(gate_sigma) * aid_src_status.innovation_variance));
+			const float gate_sigma = math::max(_params.heading_innov_gate, 1.f);
+			const float gate_limit = sqrtf((sq(gate_sigma) * aid_src_status.innovation_variance));
 			aid_src_status.innovation = math::constrain(aid_src_status.innovation, -gate_limit, gate_limit);
 
 			// also reset the yaw gyro variance to converge faster and avoid
@@ -113,32 +98,68 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
-	if (measurementUpdate(Kfusion, aid_src_status.innovation_variance, aid_src_status.innovation)) {
+	measurementUpdate(Kfusion, H_YAW, aid_src_status.observation_variance, aid_src_status.innovation);
 
-		_time_last_heading_fuse = _time_delayed_us;
+	_time_last_heading_fuse = _time_delayed_us;
 
-		aid_src_status.time_last_fuse = _time_delayed_us;
-		aid_src_status.fused = true;
+	aid_src_status.time_last_fuse = _time_delayed_us;
+	aid_src_status.fused = true;
 
-		_fault_status.flags.bad_hdg = false;
+	_fault_status.flags.bad_hdg = false;
 
-		return true;
-
-	} else {
-		_fault_status.flags.bad_hdg = true;
-	}
-
-	// otherwise
-	aid_src_status.fused = false;
-	return false;
+	return true;
 }
 
 void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const
 {
-	if (shouldUse321RotationSequence(_R_to_earth)) {
-		sym::ComputeYaw321InnovVarAndH(_state.vector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
+	sym::ComputeYawInnovVarAndH(_state.vector(), P, variance, &innovation_variance, &H_YAW);
+}
+
+void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
+{
+	// save a copy of the quaternion state for later use in calculating the amount of reset change
+	const Quatf quat_before_reset = _state.quat_nominal;
+
+	// update the yaw angle variance
+	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
+		P.uncorrelateCovarianceSetVariance<1>(2, yaw_variance);
+	}
+
+	// update transformation matrix from body to world frame using the current estimate
+	// update the rotation matrix using the new yaw value
+	_R_to_earth = updateYawInRotMat(yaw, Dcmf(_state.quat_nominal));
+
+	// calculate the amount that the quaternion has changed by
+	const Quatf quat_after_reset(_R_to_earth);
+	const Quatf q_error((quat_after_reset * quat_before_reset.inversed()).normalized());
+
+	// update quaternion states
+	_state.quat_nominal = quat_after_reset;
+
+	// add the reset amount to the output observer buffered data
+	_output_predictor.resetQuaternion(q_error);
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	// update EV attitude error filter
+	if (_ev_q_error_initialized) {
+		const Quatf ev_q_error_updated = (q_error * _ev_q_error_filt.getState()).normalized();
+		_ev_q_error_filt.reset(ev_q_error_updated);
+	}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	// record the state change
+	if (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) {
+		_state_reset_status.quat_change = q_error;
 
 	} else {
-		sym::ComputeYaw312InnovVarAndH(_state.vector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.quat_change = q_error * _state_reset_status.quat_change;
+		_state_reset_status.quat_change.normalize();
 	}
+
+	_state_reset_status.reset_count.quat++;
+
+	_time_last_heading_fuse = _time_delayed_us;
 }

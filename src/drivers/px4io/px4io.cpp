@@ -335,8 +335,7 @@ private:
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_themal,
-		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
+		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_themal
 	)
 };
 
@@ -364,6 +363,13 @@ PX4IO::~PX4IO()
 bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
+	for (size_t i = 0; i < num_outputs; i++) {
+		if (!_mixing_output.isFunctionSet(i)) {
+			// do not run any signal on disabled channels
+			outputs[i] = 0;
+		}
+	}
+
 	if (!_test_fmu_fail) {
 		/* output to the servos */
 		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
@@ -467,9 +473,7 @@ int PX4IO::init()
 	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	if (_param_sys_hitl.get() <= 0) {
-		_mixing_output.setMaxTopicUpdateRate(MIN_TOPIC_UPDATE_INTERVAL);
-	}
+	_mixing_output.setMaxTopicUpdateRate(MIN_TOPIC_UPDATE_INTERVAL);
 
 	_px4io_status_pub.advertise();
 
@@ -518,9 +522,7 @@ void PX4IO::Run()
 	perf_count(_interval_perf);
 
 	/* if we have new control data from the ORB, handle it */
-	if (_param_sys_hitl.get() <= 0) {
-		_mixing_output.update();
-	}
+	_mixing_output.update();
 
 	if (hrt_elapsed_time(&_poll_last) >= 20_ms) {
 		/* run at 50 */
@@ -533,13 +535,11 @@ void PX4IO::Run()
 		io_publish_raw_rc();
 	}
 
-	if (_param_sys_hitl.get() <= 0) {
-		/* check updates on uORB topics and handle it */
-		if (_t_actuator_armed.updated()) {
-			io_set_arming_state();
+	/* check updates on uORB topics and handle it */
+	if (_t_actuator_armed.updated()) {
+		io_set_arming_state();
 
-			// TODO: throttle
-		}
+		// TODO: throttle
 	}
 
 	if (!_mixing_output.armed().armed) {
@@ -705,7 +705,7 @@ void PX4IO::update_params()
 						if (output_function >= (int)OutputFunction::Servo1
 						    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
 							int32_t val = 1500;
-							PX4_INFO("Setting channel %i disarmed to %i", (int) val, i);
+							PX4_INFO("Setting channel %i disarmed to %i", i + 1, (int)val);
 							param_set(_mixing_output.disarmedParamHandle(i), &val);
 
 							// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
@@ -726,7 +726,7 @@ void PX4IO::update_params()
 
 									if (param_get(handle, &tim_config) == 0 && tim_config == 400) {
 										tim_config = 50;
-										PX4_INFO("setting timer %i to %i Hz", timer, (int) tim_config);
+										PX4_INFO("Setting timer %i to %i Hz", timer, (int)tim_config);
 										param_set(handle, &tim_config);
 									}
 								}
@@ -737,10 +737,10 @@ void PX4IO::update_params()
 						if (output_function >= (int)OutputFunction::Motor1
 						    && output_function <= (int)OutputFunction::MotorMax) { // Function got set to a motor
 							int32_t val = 1100;
-							PX4_INFO("Setting channel %i minimum to %i", (int) val, i);
+							PX4_INFO("Setting channel %i minimum to %i", i + 1, (int)val);
 							param_set(_mixing_output.minParamHandle(i), &val);
 							val = 1900;
-							PX4_INFO("Setting channel %i maximum to %i", (int) val, i);
+							PX4_INFO("Setting channel %i maximum to %i", i + 1, (int)val);
 							param_set(_mixing_output.maxParamHandle(i), &val);
 						}
 					}
@@ -806,14 +806,6 @@ PX4IO::io_set_arming_state()
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 		}
-
-		// XXX this is for future support in the commander
-		// but can be removed if unneeded
-		// if (armed.termination_failsafe) {
-		// 	set |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
-		// } else {
-		// 	clear |= PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE;
-		// }
 
 		if (armed.ready_to_arm) {
 			set |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;

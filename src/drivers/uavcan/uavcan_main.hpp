@@ -68,6 +68,10 @@
 
 #include "logmessage.hpp"
 
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+#include "remoteid.hpp"
+#endif
+
 #if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 #include "rgbled.hpp"
 #endif
@@ -96,6 +100,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/can_interface_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
@@ -268,6 +273,9 @@ private:
 #if defined(CONFIG_UAVCAN_SAFETY_STATE_CONTROLLER)
 	UavcanSafetyState         	_safety_state_controller;
 #endif
+#if defined(CONFIG_UAVCAN_REMOTEID_CONTROLLER)
+	UavcanRemoteIDController _remoteid_controller;
+#endif
 #if defined(CONFIG_UAVCAN_RGB_CONTROLLER)
 	UavcanRGBController             _rgbled_controller;
 #endif
@@ -309,6 +317,10 @@ private:
 
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::PublicationMulti<can_interface_status_s> _can_status_pub{ORB_ID(can_interface_status)};
+
+	hrt_abstime _last_can_status_pub{0};
+	orb_advert_t _can_status_pub_handles[UAVCAN_NUM_IFACES] = {nullptr};
 
 	/*
 	 * The MAVLink parameter bridge needs to know the maximum parameter index

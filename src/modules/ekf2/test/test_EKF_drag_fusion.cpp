@@ -144,8 +144,10 @@ TEST_F(EkfDragFusionTest, testLateralMomentumDrag)
 	predicted_accel(0) =   CONSTANTS_ONE_G * sinf(pitch);
 	predicted_accel(1) = - CONSTANTS_ONE_G * sinf(roll);
 	Vector2f wind_speed = predicted_accel / mcoef;
-	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), fmaxf(1.0f, 0.1f * fabsf(wind_speed(0))));
-	EXPECT_NEAR(vel_wind_earth(1), wind_speed(1), fmaxf(1.0f, 0.1f * fabsf(wind_speed(1))));
+	// Note that the wind direction is stightly incorrect heading estimate due to a mismatch between
+	// the simulated mag field and assumed dectination from the WMM
+	EXPECT_NEAR(vel_wind_earth(0), wind_speed(0), fmaxf(1.0f, 0.15f * fabsf(wind_speed.norm())));
+	EXPECT_NEAR(vel_wind_earth(1), wind_speed(1), fmaxf(1.0f, 0.15f * fabsf(wind_speed.norm())));
 };
 
 TEST_F(EkfDragFusionTest, testForwardBluffBodyDrag)

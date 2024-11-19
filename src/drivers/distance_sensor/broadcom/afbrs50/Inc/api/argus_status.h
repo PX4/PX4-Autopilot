@@ -227,11 +227,18 @@ enum Status {
 
 	/*! -114: AFBR-S50 Error: Register data integrity is lost (e.g. due to unexpected
 	 *  power-on-reset cycle or invalid write cycle of SPI. System tries to
-	 *  reset the values. */
+	 *  reset the values.
+	 *
+	 *  @note If this error occurs after intentionally cycling the power supply
+	 *  of the device, use the #Argus_RestoreDeviceState API function to properly
+	 *  recover the current API state into the device to avoid that issue. */
 	ERROR_ARGUS_DATA_INTEGRITY_LOST = -114,
 
 	/*! -115: AFBR-S50 Error: The range offsets calibration failed! */
 	ERROR_ARGUS_RANGE_OFFSET_CALIBRATION_FAILED = -115,
+
+	/*! -116: AFBR-S50 Error: The VSUB calibration failed! */
+	ERROR_ARGUS_VSUB_CALIBRATION_FAILED = -116,
 
 	/*! -191: AFBR-S50 Error: The device is currently busy and cannot execute the
 	 *  requested command. */

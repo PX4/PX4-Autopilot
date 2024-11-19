@@ -1,0 +1,205 @@
+module_name: ekf2
+parameters:
+- group: EKF2
+  definitions:
+    EKF2_GPS_CTRL:
+      description:
+        short: GNSS sensor aiding
+        long: 'Set bits in the following positions to enable: 0 : Longitude and latitude
+          fusion 1 : Altitude fusion 2 : 3D velocity fusion 3 : Dual antenna heading
+          fusion'
+      type: bitmask
+      bit:
+        0: Lon/lat
+        1: Altitude
+        2: 3D velocity
+        3: Dual antenna heading
+      default: 7
+      min: 0
+      max: 15
+    EKF2_GPS_DELAY:
+      description:
+        short: GPS measurement delay relative to IMU measurements
+      type: float
+      default: 110
+      min: 0
+      max: 300
+      unit: ms
+      reboot_required: true
+      decimal: 1
+    EKF2_GPS_P_NOISE:
+      description:
+        short: Measurement noise for GNSS position
+      type: float
+      default: 0.5
+      min: 0.01
+      max: 10.0
+      unit: m
+      decimal: 2
+    EKF2_GPS_P_GATE:
+      description:
+        short: Gate size for GNSS position fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_GPS_YAW_OFF:
+      description:
+        short: Heading/Yaw offset for dual antenna GPS
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 360.0
+      unit: deg
+      decimal: 1
+    EKF2_GPS_V_GATE:
+      description:
+        short: Gate size for GNSS velocity fusion
+        long: Sets the number of standard deviations used by the innovation consistency
+          test.
+      type: float
+      default: 5.0
+      min: 1.0
+      unit: SD
+      decimal: 1
+    EKF2_GPS_V_NOISE:
+      description:
+        short: Measurement noise for GNSS velocity
+      type: float
+      default: 0.3
+      min: 0.01
+      max: 5.0
+      unit: m/s
+      decimal: 2
+    EKF2_GPS_POS_X:
+      description:
+        short: X position of GPS antenna in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_GPS_POS_Y:
+      description:
+        short: Y position of GPS antenna in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_GPS_POS_Z:
+      description:
+        short: Z position of GPS antenna in body frame
+        long: Forward axis with origin relative to vehicle centre of gravity
+      type: float
+      default: 0.0
+      unit: m
+      decimal: 3
+    EKF2_GPS_CHECK:
+      description:
+        short: Integer bitmask controlling GPS checks
+        long: 'Each threshold value is defined by the parameter indicated next to the check.
+          Drift and offset checks only run when the vehicle is on ground and stationary.'
+      type: bitmask
+      bit:
+        0: Sat count (EKF2_REQ_NSATS)
+        1: PDOP (EKF2_REQ_PDOP)
+        2: EPH (EKF2_REQ_EPH)
+        3: EPV (EKF2_REQ_EPV)
+        4: Speed accuracy (EKF2_REQ_SACC)
+        5: Horizontal position drift (EKF2_REQ_HDRIFT)
+        6: Vertical position drift (EKF2_REQ_VDRIFT)
+        7: Horizontal speed offset (EKF2_REQ_HDRIFT)
+        8: Vertical speed offset (EKF2_REQ_VDRIFT)
+        9: Spoofing
+      default: 1023
+      min: 0
+      max: 1023
+    EKF2_REQ_EPH:
+      description:
+        short: Required EPH to use GPS
+      type: float
+      default: 3.0
+      min: 2
+      max: 100
+      unit: m
+      decimal: 1
+    EKF2_REQ_EPV:
+      description:
+        short: Required EPV to use GPS
+      type: float
+      default: 5.0
+      min: 2
+      max: 100
+      unit: m
+      decimal: 1
+    EKF2_REQ_SACC:
+      description:
+        short: Required speed accuracy to use GPS
+      type: float
+      default: 0.5
+      min: 0.5
+      max: 5.0
+      unit: m/s
+      decimal: 2
+    EKF2_REQ_NSATS:
+      description:
+        short: Required satellite count to use GPS
+      type: int32
+      default: 6
+      min: 4
+      max: 12
+    EKF2_REQ_PDOP:
+      description:
+        short: Maximum PDOP to use GPS
+      type: float
+      default: 2.5
+      min: 1.5
+      max: 5.0
+      decimal: 1
+    EKF2_REQ_HDRIFT:
+      description:
+        short: Maximum horizontal drift speed to use GPS
+      type: float
+      default: 0.1
+      min: 0.1
+      max: 1.0
+      unit: m/s
+      decimal: 2
+    EKF2_REQ_VDRIFT:
+      description:
+        short: Maximum vertical drift speed to use GPS
+      type: float
+      default: 0.2
+      min: 0.1
+      max: 1.5
+      decimal: 2
+      unit: m/s
+    EKF2_REQ_GPS_H:
+      description:
+        short: Required GPS health time on startup
+        long: Minimum continuous period without GPS failure required to mark a healthy
+          GPS status. It can be reduced to speed up initialization, but it's recommended
+          to keep this unchanged for a vehicle.
+      type: float
+      default: 10.0
+      min: 0.1
+      decimal: 1
+      unit: s
+      reboot_required: true
+    EKF2_GSF_TAS:
+      description:
+        short: Default value of true airspeed used in EKF-GSF AHRS calculation
+        long: If no airspeed measurements are available, the EKF-GSF AHRS calculation
+          will assume this value of true airspeed when compensating for centripetal
+          acceleration during turns. Set to zero to disable centripetal acceleration
+          compensation during fixed wing flight modes.
+      type: float
+      default: 15.0
+      min: 0.0
+      unit: m/s
+      max: 100.0
+      decimal: 1

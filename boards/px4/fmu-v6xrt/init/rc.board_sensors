@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# PX4 FMUv5 specific board sensors init
+# PX4 FMUv6xrt specific board sensors init
 #------------------------------------------------------------------------------
 #
 # UART mapping on PX4 FMU-V6XRT:
@@ -8,23 +8,25 @@
 # LPUART1       /dev/ttyS0      CONSOLE
 # LPUART3       /dev/ttyS1      GPS
 # LPUART4       /dev/ttyS2      TELEM1
-# LPUART5       /dev/ttyS4      GPS2
-# LPUART6       /dev/ttyS5      PX4IO
-# LPUART8       /dev/ttyS6      TELEM2
-# LPUART10      /dev/ttyS7      TELEM3
-# LPUART11      /dev/ttyS8      EXT2
+# LPUART5       /dev/ttyS3      GPS2
+# LPUART6       /dev/ttyS4      PX4IO
+# LPUART8       /dev/ttyS5      TELEM2
+# LPUART10      /dev/ttyS6      TELEM3
+# LPUART11      /dev/ttyS7      EXT2
 #
 #------------------------------------------------------------------------------
 
 set HAVE_PM2 yes
+set INA_CONFIGURED no
 
-if ver hwtypecmp V6XRT005000
+if mft query -q -k MFT -s MFT_PM2 -v 0
 then
 	set HAVE_PM2 no
 fi
 if param compare -s ADC_ADS1115_EN 1
 then
 	ads1115 start -X
+	board_adc start -n
 else
 	board_adc start
 fi
@@ -39,6 +41,8 @@ then
 	then
 		ina226 -X -b 2 -t 2 -k start
 	fi
+
+	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA228 1
@@ -49,6 +53,8 @@ then
 	then
 		ina228 -X -b 2 -t 2 -k start
 	fi
+
+	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA238 1
@@ -58,6 +64,24 @@ then
 	if [ $HAVE_PM2 = yes ]
 	then
 		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+#Start Auterion Power Module selector for Skynode boards
+if ver hwbasecmp 009 010
+then
+	pm_selector_auterion start
+else
+	if [ $INA_CONFIGURED = no ]
+	then
+		# INA226, INA228, INA238 auto-start
+		i2c_launcher start -b 1
+		if [ $HAVE_PM2 = yes ]
+		then
+			i2c_launcher start -b 2
+		fi
 	fi
 fi
 
@@ -88,4 +112,5 @@ fi
 
 bmp388 -X -b 2 start
 
+unset INA_CONFIGURED
 unset HAVE_PM2

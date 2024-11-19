@@ -67,7 +67,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_status.h>
 #include <uORB/topics/cellular_status.h>
-#include <uORB/topics/collision_report.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
@@ -87,6 +86,9 @@
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/onboard_computer_status.h>
+#include <uORB/topics/open_drone_id_operator_id.h>
+#include <uORB/topics/open_drone_id_self_id.h>
+#include <uORB/topics/open_drone_id_system.h>
 #include <uORB/topics/ping.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/radio_status.h>
@@ -126,7 +128,7 @@ class Mavlink;
 class MavlinkReceiver : public ModuleParams
 {
 public:
-	MavlinkReceiver(Mavlink *parent);
+	MavlinkReceiver(Mavlink &parent);
 	~MavlinkReceiver() override;
 
 	void start();
@@ -155,6 +157,7 @@ private:
 					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
 
 	void handle_message(mavlink_message_t *msg);
+	void handle_messages_in_gimbal_mode(mavlink_message_t &msg);
 
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
@@ -181,6 +184,9 @@ private:
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
 	void handle_message_odometry(mavlink_message_t *msg);
 	void handle_message_onboard_computer_status(mavlink_message_t *msg);
+	void handle_message_open_drone_id_operator_id(mavlink_message_t *msg);
+	void handle_message_open_drone_id_self_id(mavlink_message_t *msg);
+	void handle_message_open_drone_id_system(mavlink_message_t *msg);
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
 	void handle_message_ping(mavlink_message_t *msg);
 	void handle_message_play_tune(mavlink_message_t *msg);
@@ -223,11 +229,10 @@ private:
 	 *
 	 * @param msgId The ID of the message interval to be set.
 	 * @param interval The interval in usec to send the message.
-	 * @param data_rate The total link data rate in bytes per second.
 	 *
 	 * @return PX4_OK on success, PX4_ERROR on fail.
 	 */
-	int set_message_interval(int msgId, float interval, int data_rate = -1);
+	int set_message_interval(int msgId, float interval, float param3, float param4, float param7);
 	void get_message_interval(int msgId);
 
 	bool evaluate_target_ok(int command, int target_system, int target_component);
@@ -246,7 +251,7 @@ private:
 	 */
 	void updateParams() override;
 
-	Mavlink				*_mavlink;
+	Mavlink &_mavlink;
 
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
@@ -296,7 +301,6 @@ private:
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
-	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<follow_target_s>			_follow_target_pub{ORB_ID(follow_target)};
 	uORB::Publication<gimbal_manager_set_attitude_s>	_gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
@@ -311,6 +315,9 @@ private:
 	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<velocity_limits_s>			_velocity_limits_pub{ORB_ID(velocity_limits)};
+	uORB::Publication<open_drone_id_operator_id_s>		_open_drone_id_operator_id_pub{ORB_ID(open_drone_id_operator_id)};
+	uORB::Publication<open_drone_id_self_id_s>		_open_drone_id_self_id_pub{ORB_ID(open_drone_id_self_id)};
+	uORB::Publication<open_drone_id_system_s>		_open_drone_id_system_pub{ORB_ID(open_drone_id_system)};
 	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
 	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};

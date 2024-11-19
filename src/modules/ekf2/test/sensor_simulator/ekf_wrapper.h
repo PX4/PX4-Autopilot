@@ -73,6 +73,8 @@ public:
 	void disableBetaFusion();
 	bool isIntendingBetaFusion() const;
 
+	bool isIntendingAirspeedFusion() const;
+
 	void enableGpsFusion();
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
@@ -108,12 +110,8 @@ public:
 
 	bool isWindVelocityEstimated() const;
 
-	void enableTerrainRngFusion();
-	void disableTerrainRngFusion();
 	bool isIntendingTerrainRngFusion() const;
 
-	void enableTerrainFlowFusion();
-	void disableTerrainFlowFusion();
 	bool isIntendingTerrainFlowFusion() const;
 
 	Eulerf getEulerAngles() const;
@@ -125,6 +123,9 @@ public:
 	void setDragFusionParameters(const float &bcoef_x, const float &bcoef_y, const float &mcoef);
 
 	float getMagHeadingNoise() const;
+
+	void enableGyroBiasEstimation();
+	void disableGyroBiasEstimation();
 
 private:
 	std::shared_ptr<Ekf> _ekf;

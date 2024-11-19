@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file batt_smbus.h
+ * @file batt_smbus.cpp
  *
  * Header for a battery monitor connected via SMBus (I2C).
  * Designed for BQ40Z50-R1/R2 and BQ40Z80
@@ -116,13 +116,11 @@ void BATT_SMBUS::RunImpl()
 
 	// Convert millivolts to volts.
 	new_report.voltage_v = ((float)result) / 1000.0f;
-	new_report.voltage_filtered_v = new_report.voltage_v;
 
 	// Read current.
 	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
 	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
-	new_report.current_filtered_a = new_report.current_a;
 
 	// Read average current.
 	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
@@ -391,6 +389,12 @@ int BATT_SMBUS::get_startup_info()
 
 	uint16_t state_of_health;
 	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, state_of_health);
+
+	/* ManufacturerAccess dummy command to init the ManufacturerBlockAccess routine
+	in the BQ40Zx0 and avoid timeout during LifetimeDataFlush.
+	test Sleep > 20 ms to give time to init the ManufacturerBlockAccess routine*/
+	ret |= _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, BATT_SMBUS_DEVICE_TYPE);
+	px4_usleep(30_ms);
 
 	if (!ret) {
 		_serial_number = serial_num;

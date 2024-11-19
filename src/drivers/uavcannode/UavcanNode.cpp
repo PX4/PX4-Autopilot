@@ -61,6 +61,10 @@
 #include "Publishers/GnssAuxiliary.hpp"
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
+#if defined(CONFIG_UAVCANNODE_INDICATED_AIR_SPEED)
+#include "Publishers/IndicatedAirspeed.hpp"
+#endif // CONFIG_UAVCANNODE_INDICATED_AIR_SPEED
+
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
 #include "Publishers/MagneticFieldStrength2.hpp"
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
@@ -121,7 +125,7 @@ namespace uavcannode
 
 
 /**
- * @file uavcan_main.cpp
+ * @file UavcanNode.cpp
  *
  * Implements basic functionality of UAVCAN node.
  *

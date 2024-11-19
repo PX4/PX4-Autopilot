@@ -63,6 +63,13 @@ void FlightTask::_checkEkfResetCounters()
 		_reset_counters.z = _sub_vehicle_local_position.get().z_reset_counter;
 	}
 
+	if (_sub_vehicle_local_position.get().dist_bottom_reset_counter != _reset_counters.hagl) {
+		_ekfResetHandlerHagl(_sub_vehicle_local_position.get().delta_dist_bottom);
+		_reset_counters.hagl = _sub_vehicle_local_position.get().dist_bottom_reset_counter;
+
+		_dist_to_bottom = NAN;
+	}
+
 	if (_sub_vehicle_local_position.get().vz_reset_counter != _reset_counters.vz) {
 		_ekfResetHandlerVelocityZ(_sub_vehicle_local_position.get().delta_vz);
 		_reset_counters.vz = _sub_vehicle_local_position.get().vz_reset_counter;
@@ -138,7 +145,7 @@ void FlightTask::_evaluateVehicleLocalPosition()
 		// distance to bottom
 		if (_sub_vehicle_local_position.get().dist_bottom_valid
 		    && PX4_ISFINITE(_sub_vehicle_local_position.get().dist_bottom)) {
-			_dist_to_bottom =  _sub_vehicle_local_position.get().dist_bottom;
+			_dist_to_bottom = _sub_vehicle_local_position.get().dist_bottom;
 		}
 
 		// global frame reference coordinates to enable conversions

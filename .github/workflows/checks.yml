@@ -16,6 +16,7 @@ jobs:
       matrix:
         check: [
           "check_format",
+          "check_newlines",
           "tests",
           "tests_coverage",
           "px4_fmu-v2_default stack_check",
@@ -23,6 +24,7 @@ jobs:
           "shellcheck_all",
           "NO_NINJA_BUILD=1 px4_fmu-v5_default",
           "NO_NINJA_BUILD=1 px4_sitl_default",
+          "px4_sitl_allyes",
           "airframe_metadata",
           "module_documentation",
           "parameters_metadata",

@@ -50,22 +50,25 @@ class uORB_Zenoh_Subscriber : public Zenoh_Subscriber
 {
 public:
 	uORB_Zenoh_Subscriber(const orb_metadata *meta, const uint32_t *ops) :
-		Zenoh_Subscriber(true),
+		Zenoh_Subscriber(),
 		_uorb_meta{meta},
 		_cdr_ops(ops)
 	{
 		int instance = 0;
-		_uorb_pub_handle = orb_advertise_multi_queue(_uorb_meta, nullptr, &instance, 1); //FIXME template magic qsize
+		_uorb_pub_handle = orb_advertise_multi(_uorb_meta, nullptr, &instance);
 	};
 
 	~uORB_Zenoh_Subscriber() override = default;
 
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
-	void data_handler(const z_sample_t *sample)
+	void data_handler(const z_loaned_sample_t *sample)
 	{
 		char data[_uorb_meta->o_size];
 
-		dds_istream_t is = {.m_buffer = (unsigned char *)(sample->payload.start), .m_size = static_cast<int>(sample->payload.len),
+		const z_loaned_bytes_t *payload = z_sample_payload(sample);
+		size_t len = z_bytes_len(payload);
+
+		dds_istream_t is = {.m_buffer = (unsigned char *)(payload), .m_size = static_cast<int>(len),
 				    .m_index = 4, .m_xcdr_version = DDSI_RTPS_CDR_ENC_VERSION_2
 				   };
 		dds_stream_read(&is, data, &dds_allocator, _cdr_ops);

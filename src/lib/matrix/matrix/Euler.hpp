@@ -15,16 +15,8 @@
 
 #pragma once
 
-#include "math.hpp"
-
 namespace matrix
 {
-
-template <typename Type>
-class Dcm;
-
-template <typename Type>
-class Quaternion;
 
 /**
  * Euler angles class

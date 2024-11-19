@@ -92,7 +92,7 @@ public:
 
 private:
 	bool _input_available{false};
-	matrix::Vector4f _positions; ///< unmodified manual stick inputs
+	matrix::Vector4f _positions; ///< unmodified manual stick inputs that usually move vehicle in x, y, z and yaw direction
 	matrix::Vector4f _positions_expo; ///< modified manual sticks using expo function
 
 	matrix::Vector<float, 6> _aux_positions;

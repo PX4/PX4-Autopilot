@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_ST_IIS2MDC
+	bool "iis2mdc"
+	default n
+	---help---
+		Enable support for iis2mdc

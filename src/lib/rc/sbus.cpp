@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file sbus.c
+ * @file sbus.cpp
  *
  * Serial protocol decoder for the Futaba S.bus protocol.
  */

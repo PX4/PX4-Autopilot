@@ -1,0 +1,6 @@
+module_name: FT Technologies Digital Wind Sensor (serial)
+serial_config:
+    - command: ft7_technologies start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_FTX_CFG
+        group: Sensors

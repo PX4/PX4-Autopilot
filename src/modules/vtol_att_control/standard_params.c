@@ -48,6 +48,7 @@
  * Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL).
  * Only active if demanded down pitch is below VT_PITCH_MIN.
  * Use VT_FWD_THRUST_SC to tune it.
+ * Descend mode is treated as Landing too.
  *
  * Only active (if enabled) in Altitude, Position and Auto modes, not in Stabilized.
  *

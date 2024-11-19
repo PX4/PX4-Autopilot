@@ -6,19 +6,16 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "Vector3.hpp"
 
 namespace matrix
 {
 
 template <typename Type>
-class Dcm;
-
-template <typename Type>
 class Euler;
 
-template <typename Type>
-class AxisAngle;
+template<typename Type>
+class Quaternion;
 
 /**
  * AxisAngle class
@@ -27,7 +24,7 @@ class AxisAngle;
  * described by this class.
  */
 template<typename Type>
-class AxisAngle : public Vector<Type, 3>
+class AxisAngle : public Vector3<Type>
 {
 public:
 	using Matrix31 = Matrix<Type, 3, 1>;
@@ -38,7 +35,7 @@ public:
 	 * @param data_ array
 	 */
 	explicit AxisAngle(const Type data_[3]) :
-		Vector<Type, 3>(data_)
+		Vector3<Type>(data_)
 	{
 	}
 
@@ -53,7 +50,7 @@ public:
 	 * @param other Matrix31 to copy
 	 */
 	AxisAngle(const Matrix31 &other) :
-		Vector<Type, 3>(other)
+		Vector3<Type>(other)
 	{
 	}
 
@@ -133,7 +130,7 @@ public:
 	{
 		AxisAngle &v = *this;
 		// make sure axis is a unit vector
-		Vector<Type, 3> a = axis_;
+		Vector3<Type> a = axis_;
 		a = a.unit();
 		v(0) = a(0) * angle_;
 		v(1) = a(1) * angle_;
@@ -141,10 +138,10 @@ public:
 	}
 
 
-	Vector<Type, 3> axis()
+	Vector3<Type> axis()
 	{
-		if (Vector<Type, 3>::norm() > 0) {
-			return Vector<Type, 3>::unit();
+		if (Vector3<Type>::norm() > 0) {
+			return Vector3<Type>::unit();
 
 		} else {
 			return Vector3<Type>(1, 0, 0);
@@ -153,7 +150,7 @@ public:
 
 	Type angle()
 	{
-		return Vector<Type, 3>::norm();
+		return Vector3<Type>::norm();
 	}
 };
 

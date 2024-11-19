@@ -48,7 +48,8 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "SquareMatrix.hpp"
+#include "Vector2.hpp"
 
 namespace matrix
 {
@@ -113,10 +114,10 @@ public:
 
 	void renormalize()
 	{
-		/* renormalize rows */
+		// renormalize rows
 		for (size_t r = 0; r < 2; r++) {
-			matrix::Vector2<Type> rvec(Matrix<Type, 1, 2>(this->Matrix<Type, 2, 2>::row(r)).transpose());
-			this->Matrix<Type, 2, 2>::row(r) = rvec.normalized();
+			Vector2<Type> rvec(Matrix<Type, 1, 2>(this->row(r)).transpose());
+			this->row(r) = rvec.normalized();
 		}
 	}
 };

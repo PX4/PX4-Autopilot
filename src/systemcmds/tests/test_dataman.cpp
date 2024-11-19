@@ -153,14 +153,14 @@ DatamanTest::testSyncWriteInvalidItem()
 bool
 DatamanTest::testSyncReadInvalidIndex()
 {
-	bool success = _dataman_client1.readSync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_read, 2);
+	bool success = _dataman_client1.readSync(DM_KEY_SAFE_POINTS_0, DM_KEY_SAFE_POINTS_MAX, _buffer_read, 2);
 	return !success;
 }
 
 bool
 DatamanTest::testSyncWriteInvalidIndex()
 {
-	bool success = _dataman_client1.writeSync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_write, 2);
+	bool success = _dataman_client1.writeSync(DM_KEY_SAFE_POINTS_0, DM_KEY_SAFE_POINTS_MAX, _buffer_write, 2);
 	return !success;
 }
 
@@ -238,7 +238,7 @@ DatamanTest::testSyncWriteReadAllItemsMaxSize()
 	bool success = false;
 
 	// Iterate all items
-	for (uint32_t item = DM_KEY_SAFE_POINTS; item < DM_KEY_NUM_KEYS; ++item) {
+	for (uint32_t item = DM_KEY_SAFE_POINTS_0; item < DM_KEY_NUM_KEYS; ++item) {
 
 		// writeSync
 		for (uint32_t index = 0U; index < _max_index[item]; ++index) {
@@ -289,7 +289,7 @@ DatamanTest::testSyncClearAll()
 	bool success = false;
 
 	// Iterate all items
-	for (uint32_t item = DM_KEY_SAFE_POINTS; item < DM_KEY_NUM_KEYS; ++item) {
+	for (uint32_t item = DM_KEY_SAFE_POINTS_0; item < DM_KEY_NUM_KEYS; ++item) {
 
 		success = _dataman_client1.clearSync((dm_item_t)item);
 
@@ -433,7 +433,7 @@ DatamanTest::testAsyncReadInvalidIndex()
 		case State::Read:
 
 			state = State::ReadWait;
-			success = _dataman_client1.readAsync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_read, 2);
+			success = _dataman_client1.readAsync(DM_KEY_SAFE_POINTS_0, DM_KEY_SAFE_POINTS_MAX, _buffer_read, 2);
 
 			if (!success) {
 				return false;
@@ -489,7 +489,7 @@ DatamanTest::testAsyncWriteInvalidIndex()
 		case State::Write:
 
 			state = State::WriteWait;
-			success = _dataman_client1.writeAsync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_write, 2);
+			success = _dataman_client1.writeAsync(DM_KEY_SAFE_POINTS_0, DM_KEY_SAFE_POINTS_MAX, _buffer_write, 2);
 
 			if (!success) {
 				return false;
@@ -529,7 +529,7 @@ DatamanTest::testAsyncWriteInvalidIndex()
 bool
 DatamanTest::testAsyncReadBufferOverflow()
 {
-	bool success = _dataman_client1.readAsync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_read, OVERFLOW_LENGTH);
+	bool success = _dataman_client1.readAsync(DM_KEY_SAFE_POINTS_0, DM_KEY_SAFE_POINTS_MAX, _buffer_read, OVERFLOW_LENGTH);
 
 	return !success;
 }
@@ -537,7 +537,8 @@ DatamanTest::testAsyncReadBufferOverflow()
 bool
 DatamanTest::testAsyncWriteBufferOverflow()
 {
-	bool success = _dataman_client1.writeAsync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_write, OVERFLOW_LENGTH);
+	bool success = _dataman_client1.writeAsync(DM_KEY_SAFE_POINTS_0, DM_KEY_SAFE_POINTS_MAX, _buffer_write,
+			OVERFLOW_LENGTH);
 
 	return !success;
 }
@@ -715,7 +716,7 @@ DatamanTest::testAsyncWriteReadAllItemsMaxSize()
 	bool success = false;
 	State state = State::Write;
 
-	uint32_t item = DM_KEY_SAFE_POINTS;
+	uint32_t item = DM_KEY_SAFE_POINTS_0;
 	uint32_t index = 0U;
 
 	hrt_abstime start_time = hrt_absolute_time();
@@ -828,7 +829,7 @@ DatamanTest::testAsyncClearAll()
 
 	State state = State::Clear;
 	hrt_abstime start_time = hrt_absolute_time();
-	uint32_t item = DM_KEY_SAFE_POINTS;
+	uint32_t item = DM_KEY_SAFE_POINTS_0;
 
 	//While loop represents a task
 	while (state != State::Exit) {
@@ -1076,7 +1077,7 @@ DatamanTest::testResetItems()
 
 	mission_s mission{};
 	mission.timestamp = hrt_absolute_time();
-	mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 	mission.count = 0;
 	mission.current_seq = 0;
 
@@ -1098,19 +1099,19 @@ DatamanTest::testResetItems()
 	stats.num_items = 0;
 	stats.opaque_id = 0;
 
-	success = _dataman_client1.writeSync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
+	success = _dataman_client1.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats),
 					     sizeof(mission_stats_entry_s));
 
 	if (!success) {
-		PX4_ERR("failed to reset DM_KEY_FENCE_POINTS");
+		PX4_ERR("failed to reset DM_KEY_FENCE_POINTS_STATE");
 		return false;
 	}
 
-	success = _dataman_client1.writeSync(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
+	success = _dataman_client1.writeSync(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats),
 					     sizeof(mission_stats_entry_s));
 
 	if (!success) {
-		PX4_ERR("failed to reset DM_KEY_SAFE_POINTS");
+		PX4_ERR("failed to reset DM_KEY_SAFE_POINTS_STATE");
 		return false;
 	}
 

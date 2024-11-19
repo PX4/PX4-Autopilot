@@ -81,7 +81,7 @@ static void hrt_unlock()
 	px4_sem_post(&_hrt_lock);
 }
 
-int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
+int px4_clock_settime(clockid_t clk_id, const struct timespec *tp)
 {
 	return 0;
 }
@@ -116,14 +116,8 @@ hrt_abstime hrt_absolute_time()
 
 int hrt_set_absolute_time_offset(int32_t time_diff_us)
 {
-	dsp_offset = time_diff_us;
+	// dsp_offset = time_diff_us;
 	return 0;
-}
-
-hrt_abstime hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
-{
-	hrt_abstime delta = hrt_absolute_time() - *then;
-	return delta;
 }
 
 void hrt_store_absolute_time(volatile hrt_abstime *t)

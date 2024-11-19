@@ -57,6 +57,7 @@ static bool operator ==(const manual_control_switches_s &a, const manual_control
 		a.gear_switch == b.gear_switch &&
 		a.photo_switch == b.photo_switch &&
 		a.video_switch == b.video_switch &&
+		a.payload_power_switch == b.payload_power_switch &&
 		a.engage_main_motor_switch == b.engage_main_motor_switch);
 }
 
@@ -162,49 +163,14 @@ void RCUpdate::updateParams()
 			     || _param_rc_map_pitch.get() > 0
 			     || _param_rc_map_yaw.get() > 0);
 
-	// deprecated parameters, will be removed post v1.12 once QGC is updated
 	{
+		// deprecated parameter, needs to be fully removed from QGC
 		int32_t rc_map_value = 0;
 
 		if (param_get(param_find("RC_MAP_MODE_SW"), &rc_map_value) == PX4_OK) {
 			if (rc_map_value != 0) {
 				PX4_WARN("RC_MAP_MODE_SW deprecated");
 				param_reset(param_find("RC_MAP_MODE_SW"));
-			}
-		}
-
-		if (param_get(param_find("RC_MAP_RATT_SW"), &rc_map_value) == PX4_OK) {
-			if (rc_map_value != 0) {
-				PX4_WARN("RC_MAP_RATT_SW deprecated");
-				param_reset(param_find("RC_MAP_RATT_SW"));
-			}
-		}
-
-		if (param_get(param_find("RC_MAP_POSCTL_SW"), &rc_map_value) == PX4_OK) {
-			if (rc_map_value != 0) {
-				PX4_WARN("RC_MAP_POSCTL_SW deprecated");
-				param_reset(param_find("RC_MAP_POSCTL_SW"));
-			}
-		}
-
-		if (param_get(param_find("RC_MAP_ACRO_SW"), &rc_map_value) == PX4_OK) {
-			if (rc_map_value != 0) {
-				PX4_WARN("RC_MAP_ACRO_SW deprecated");
-				param_reset(param_find("RC_MAP_ACRO_SW"));
-			}
-		}
-
-		if (param_get(param_find("RC_MAP_STAB_SW"), &rc_map_value) == PX4_OK) {
-			if (rc_map_value != 0) {
-				PX4_WARN("RC_MAP_STAB_SW deprecated");
-				param_reset(param_find("RC_MAP_STAB_SW"));
-			}
-		}
-
-		if (param_get(param_find("RC_MAP_MAN_SW"), &rc_map_value) == PX4_OK) {
-			if (rc_map_value != 0) {
-				PX4_WARN("RC_MAP_MAN_SW deprecated");
-				param_reset(param_find("RC_MAP_MAN_SW"));
 			}
 		}
 	}
@@ -253,6 +219,8 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_AUX_4] = _param_rc_map_aux4.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_AUX_5] = _param_rc_map_aux5.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_AUX_6] = _param_rc_map_aux6.get() - 1;
+
+	_rc.function[rc_channels_s::FUNCTION_PAYLOAD_POWER] = _param_rc_map_payload_sw.get() - 1;
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
@@ -649,6 +617,11 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)
 	switches.photo_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_3, 0.5f);
 	switches.video_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_4, 0.5f);
+#endif
+
+#if defined(PAYLOAD_POWER_EN)
+	switches.payload_power_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_PAYLOAD_POWER,
+					_param_rc_payload_th.get());
 #endif
 
 	// last 2 switch updates identical within 1 second (simple protection from bad RC data)

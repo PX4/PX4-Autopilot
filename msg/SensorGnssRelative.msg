@@ -15,8 +15,8 @@ float32[3] position_accuracy      # Accuracy of relative position (m)
 float32 heading                   # Heading of the relative position vector (radians)
 float32 heading_accuracy          # Accuracy of heading of the relative position vector (radians)
 
-float32 position_length
-float32 accuracy_length
+float32 position_length           # Length of the position vector (m)
+float32 accuracy_length           # Accuracy of the position length (m)
 
 bool gnss_fix_ok                  # GNSS valid fix (i.e within DOP & accuracy masks)
 bool differential_solution        # differential corrections were applied

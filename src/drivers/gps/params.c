@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -152,8 +152,9 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
  *
  * The offset angle increases clockwise.
  *
- * Set this to 90 if the rover (or Unicore primary) antenna is placed on the
- * right side of the vehicle and the moving base antenna is on the left side.
+ * Set this to 90 if the rover (or Unicore primary, or Septentrio Mosaic Aux)
+ * antenna is placed on the right side of the vehicle and the moving base
+ * antenna is on the left side.
  *
  * (Note: the Unicore primary antenna is the one connected on the right as seen
  *        from the top).
@@ -167,24 +168,6 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
  * @group GPS
  */
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
-
-/**
- * Pitch offset for dual antenna GPS
- *
- * Vertical offsets can be compensated for by adjusting the Pitch offset (Septentrio).
- *
- * Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis. This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame. Since pitch is defined as the right-handed rotation about the vehicle Y axis, a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
- *
- *
- * @min -90
- * @max 90
- * @unit deg
- * @reboot_required true
- * @decimal 3
- *
- * @group GPS
- */
-PARAM_DEFINE_FLOAT(GPS_PITCH_OFFSET, 0.f);
 
 /**
  * Protocol for Main GPS
@@ -202,7 +185,6 @@ PARAM_DEFINE_FLOAT(GPS_PITCH_OFFSET, 0.f);
  * @value 4 Emlid Reach
  * @value 5 Femtomes
  * @value 6 NMEA (generic)
- * @value 7 Septentrio (SBF)
  *
  * @reboot_required true
  * @group GPS
@@ -247,14 +229,16 @@ PARAM_DEFINE_INT32(GPS_2_PROTOCOL, 1);
  * 2 : Use Galileo
  * 3 : Use BeiDou
  * 4 : Use GLONASS
+ * 5 : Use NAVIC
  *
  * @min 0
- * @max 31
+ * @max 63
  * @bit 0 GPS (with QZSS)
  * @bit 1 SBAS
  * @bit 2 Galileo
  * @bit 3 BeiDou
  * @bit 4 GLONASS
+ * @bit 5 NAVIC
  *
  * @reboot_required true
  * @group GPS
@@ -277,14 +261,16 @@ PARAM_DEFINE_INT32(GPS_1_GNSS, 0);
  * 2 : Use Galileo
  * 3 : Use BeiDou
  * 4 : Use GLONASS
+ * 5 : Use NAVIC
  *
  * @min 0
- * @max 31
+ * @max 63
  * @bit 0 GPS (with QZSS)
  * @bit 1 SBAS
  * @bit 2 Galileo
  * @bit 3 BeiDou
  * @bit 4 GLONASS
+ * @bit 5 NAVIC
  *
  * @reboot_required true
  * @group GPS

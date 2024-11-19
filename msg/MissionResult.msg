@@ -1,8 +1,8 @@
 uint64 timestamp		# time since system start (microseconds)
 
-uint16 mission_id   		# Id for the mission for which the result was generated
-uint16 geofence_id  		# Id for the corresponding geofence for which the result was generated (used for mission feasibility)
-uint64 home_position_counter  	# Counter of the home position for which the result was generated (used for mission feasibility)
+uint32 mission_id   		# Id for the mission for which the result was generated
+uint32 geofence_id  		# Id for the corresponding geofence for which the result was generated (used for mission feasibility)
+uint32 home_position_counter  	# Counter of the home position for which the result was generated (used for mission feasibility)
 
 int32 seq_reached		# Sequence of the mission item which has been reached, default -1
 uint16 seq_current		# Sequence of the current mission item

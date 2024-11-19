@@ -138,6 +138,12 @@ then
 	adis16507 -S start
 fi
 
+# SCH16T spi external IMU
+if param compare -s SENS_EN_SCH16T 1
+then
+	sch16t -S start
+fi
+
 # Eagle Tree airspeed sensor external I2C
 if param compare -s SENS_EN_ETSASPD 1
 then
@@ -176,6 +182,13 @@ fi
 if param compare -s SENS_EN_ASP5033 1
 then
 	asp5033 start -X
+fi
+
+# AUAV absolute/differential pressure sensor external I2C
+if param greater -s SENS_EN_AUAVX 0
+then
+	auav start -D -X
+	auav start -A -X
 fi
 
 # SHT3x temperature and hygrometer sensor, external I2C

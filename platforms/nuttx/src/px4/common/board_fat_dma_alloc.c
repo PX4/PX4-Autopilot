@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file board_dma_alloc.c
+ * @file board_fat_dma_alloc.c
  *
  * Provide the board dma allocator interface.
  */

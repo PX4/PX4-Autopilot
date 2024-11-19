@@ -364,7 +364,7 @@
                         },
                         "1": {
                             "name": "manual_control_loss",
-                            "description": "manual control loss"
+                            "description": "Manual control loss"
                         },
                         "2": {
                             "name": "gcs_connection_loss",
@@ -372,15 +372,19 @@
                         },
                         "3": {
                             "name": "low_battery_level",
-                            "description": "low battery level"
+                            "description": "Low battery level"
                         },
                         "4": {
                             "name": "critical_battery_level",
-                            "description": "critical battery level"
+                            "description": "Critical battery level"
                         },
                         "5": {
                             "name": "emergency_battery_level",
-                            "description": "emergency battery level"
+                            "description": "Emergency battery level"
+                        },
+                        "6": {
+                            "name": "low_remaining_flight_time",
+                            "description": "Remaining flight time low"
                         }
                     }
                 },
@@ -398,19 +402,19 @@
                         },
                         "2": {
                             "name": "fallback_posctrl",
-                            "description": "fallback to position control"
+                            "description": "Position mode"
                         },
                         "3": {
                             "name": "fallback_altctrl",
-                            "description": "fallback to altitude control"
+                            "description": "Altitude mode"
                         },
                         "4": {
                             "name": "fallback_stabilized",
-                            "description": "fallback to stabilized"
+                            "description": "Stabilized mode"
                         },
                         "5": {
                             "name": "hold",
-                            "description": "hold"
+                            "description": "Hold"
                         },
                         "6": {
                             "name": "rtl",
@@ -418,11 +422,11 @@
                         },
                         "7": {
                             "name": "land",
-                            "description": "land"
+                            "description": "Land"
                         },
                         "8": {
                             "name": "descend",
-                            "description": "descend"
+                            "description": "Descend"
                         },
                         "9": {
                             "name": "disarm",
@@ -443,12 +447,12 @@
                             "description": "Transition to standby"
                         },
                         "1": {
-                            "name": "rc_stick",
-                            "description": "RC"
+                            "name": "stick_gesture",
+                            "description": "Stick gesture"
                         },
                         "2": {
                             "name": "rc_switch",
-                            "description": "RC (switch)"
+                            "description": "RC switch"
                         },
                         "3": {
                             "name": "command_internal",
@@ -627,7 +631,7 @@
                             "description": "Battery reported over-current"
                         },
                         "4": {
-                            "name": "fault_temperature",
+                            "name": "over_temperature",
                             "description": "Battery has reached a critical temperature which can result in a critical failure"
                         },
                         "5": {
@@ -636,7 +640,7 @@
                         },
                         "6": {
                             "name": "incompatible_voltage",
-                            "description": "Vehicle voltage is not compatible with battery one"
+                            "description": "Voltage mismatch, use equally charged batteries"
                         },
                         "7": {
                             "name": "incompatible_firmware",
@@ -651,26 +655,8 @@
                             "description": "Battery reported an hardware problem"
                         },
                         "10": {
-                            "name": "over_temperature",
-                            "description": "Battery is over-heating"
-                        }
-                    }
-                },
-                "battery_mode_t": {
-                    "type": "uint8_t",
-                    "description": "Smart battery modes of operation",
-                    "entries": {
-                        "0": {
-                            "name": "unknown",
-                            "description": "unknown"
-                        },
-                        "1": {
-                            "name": "autodischarging",
-                            "description": "auto discharging towards storage level"
-                        },
-                        "2": {
-                            "name": "hotswap",
-                            "description": "hot-swap"
+                            "name": "failed_to_arm",
+                            "description": "Battery failed to arm"
                         }
                     }
                 },

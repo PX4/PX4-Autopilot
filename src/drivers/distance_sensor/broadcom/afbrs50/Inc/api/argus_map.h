@@ -58,6 +58,7 @@ extern "C" {
  *****************************************************************************/
 
 #include "utility/int_math.h"
+#include <stdbool.h>
 #include <assert.h>
 
 
@@ -139,6 +140,13 @@ extern "C" {
 
 
 /*!*****************************************************************************
+ * @brief   Macro to create a pixel mask given by the pixels n-index.
+ * @param   n n-index of the pixel.
+ * @return  The pixel mask with only n-index pixel set.
+ ******************************************************************************/
+#define PIXELN_MASK(n) (0x01U << (n))
+
+/*!*****************************************************************************
  * @brief   Macro to determine if a pixel given by the n-index is enabled in a pixel mask.
  * @param   msk 32-bit pixel mask
  * @param   n n-index of the pixel.
@@ -151,15 +159,22 @@ extern "C" {
  * @param   msk 32-bit pixel mask
  * @param   n n-index of the pixel to enable.
  ******************************************************************************/
-#define PIXELN_ENABLE(msk, n) ((msk) |= (0x01U << (n)))
+#define PIXELN_ENABLE(msk, n) ((msk) |= (PIXELN_MASK(n)))
 
 /*!*****************************************************************************
  * @brief   Macro disable a pixel given by the n-index in a pixel mask.
  * @param   msk 32-bit pixel mask
  * @param   n n-index of the pixel to disable.
  ******************************************************************************/
-#define PIXELN_DISABLE(msk, n) ((msk) &= (~(0x01U << (n))))
+#define PIXELN_DISABLE(msk, n) ((msk) &= (~PIXELN_MASK(n)))
 
+
+/*!*****************************************************************************
+ * @brief   Macro to create a pixel mask given by the pixels ADC channel number.
+ * @param   c The ADC channel number of the pixel.
+ * @return  The 32-bit pixel mask with only pixel ADC channel set.
+ ******************************************************************************/
+#define PIXELCH_MASK(c) (0x01U << (PIXEL_CH2N(c)))
 
 /*!*****************************************************************************
  * @brief   Macro to determine if an ADC pixel channel is enabled from a pixel mask.
@@ -183,6 +198,14 @@ extern "C" {
  ******************************************************************************/
 #define PIXELCH_DISABLE(msk, c) (PIXELN_DISABLE(msk, PIXEL_CH2N(c)))
 
+
+/*!*****************************************************************************
+ * @brief   Macro to create a pixel mask given by the pixel x-y-indices.
+ * @param   x x-index of the pixel.
+ * @param   y y-index of the pixel.
+ * @return  The 32-bit pixel mask with only pixel ADC channel set.
+ ******************************************************************************/
+#define PIXELXY_MASK(x, y) (0x01U << (PIXEL_XY2N(x, y)))
 
 /*!*****************************************************************************
  * @brief   Macro to determine if a pixel given by the x-y-indices is enabled in a pixel mask.
@@ -337,10 +360,10 @@ static inline uint32_t ShiftSelectedPixels(const uint32_t pixel_mask,
 
 	uint32_t shifted_mask = 0;
 
-	for (uint8_t x = 0; x < ARGUS_PIXELS_X; ++x) {
-		for (uint8_t y = 0; y < ARGUS_PIXELS_Y; ++y) {
-			int8_t x_src = x - dx;
-			int8_t y_src = y - dy;
+	for (int8_t x = 0; x < ARGUS_PIXELS_X; ++x) {
+		for (int8_t y = 0; y < ARGUS_PIXELS_Y; ++y) {
+			int8_t x_src = (int8_t)(x - dx);
+			int8_t y_src = (int8_t)(y - dy);
 
 			if (dy & 0x1) {
 				/* Compensate for hexagonal pixel shape. */
@@ -409,8 +432,8 @@ static inline uint32_t FillPixelMask(uint32_t pixel_mask,
 		int8_t min_y = -1;
 
 		/* Find nearest not selected pixel. */
-		for (uint8_t x = 0; x < ARGUS_PIXELS_X; ++x) {
-			for (uint8_t y = 0; y < ARGUS_PIXELS_Y; ++y) {
+		for (int8_t x = 0; x < ARGUS_PIXELS_X; ++x) {
+			for (int8_t y = 0; y < ARGUS_PIXELS_Y; ++y) {
 				if (!PIXELXY_ISENABLED(pixel_mask, x, y)) {
 					int32_t distx = (x - center_x) << 1;
 
@@ -423,8 +446,8 @@ static inline uint32_t FillPixelMask(uint32_t pixel_mask,
 
 					if (dist < min_dist) {
 						min_dist = dist;
-						min_x = x;
-						min_y = y;
+						min_x = (int8_t)x;
+						min_y = (int8_t)y;
 					}
 				}
 			}
@@ -438,6 +461,64 @@ static inline uint32_t FillPixelMask(uint32_t pixel_mask,
 
 	return pixel_mask;
 }
+
+/*!*****************************************************************************
+ * @brief   Fills a pixel mask with the direct neighboring pixels around a pixel.
+ *
+ * @details The pixel mask is iteratively filled with the direct neighbors of the
+ *          specified center pixel.
+ *
+ *          Note that the function is able to handle corner and edge pixels and
+ *          also to handle odd/even lines (which have different layouts)
+ *
+ * @param   x The selected pixel x-index.
+ * @param   y The selected pixel y-index.
+ * @return  The filled pixel mask with all direct neighbors of the selected pixel.
+ ******************************************************************************/
+static inline uint32_t GetAdjacentPixelsMask(const uint_fast8_t x,
+		const uint_fast8_t y)
+{
+	assert(x < ARGUS_PIXELS_X);
+	assert(y < ARGUS_PIXELS_Y);
+
+	uint32_t mask = 0u;
+
+	bool isXEdgeLow = (x == 0);
+	bool isXEdgeHigh = (x == (ARGUS_PIXELS_X - 1));
+	bool isYEdgeLow = (y == 0);
+	bool isYEdgeHigh = (y == (ARGUS_PIXELS_Y - 1));
+
+	if (y % 2 == 0) {
+		if (!isYEdgeLow) { PIXELXY_ENABLE(mask, x,     y - 1); }
+
+		if ((!isXEdgeHigh) && (!isYEdgeLow)) { PIXELXY_ENABLE(mask, x + 1, y - 1); }
+
+		if (!isXEdgeHigh) { PIXELXY_ENABLE(mask, x + 1, y); }
+
+		if ((!isXEdgeHigh) && (!isYEdgeHigh)) { PIXELXY_ENABLE(mask, x + 1, y + 1); }
+
+		if (!isYEdgeHigh) { PIXELXY_ENABLE(mask, x,     y + 1); }
+
+		if (!isXEdgeLow) { PIXELXY_ENABLE(mask, x - 1, y); }
+
+	} else {
+		if ((!isXEdgeLow) && (!isYEdgeLow)) { PIXELXY_ENABLE(mask, x - 1, y - 1); }
+
+		if (!isYEdgeLow) { PIXELXY_ENABLE(mask, x,     y - 1); }
+
+		if (!isXEdgeHigh) { PIXELXY_ENABLE(mask, x + 1, y); }
+
+		if (!isYEdgeHigh) { PIXELXY_ENABLE(mask, x,     y + 1); }
+
+		if ((!isXEdgeLow) && (!isYEdgeHigh)) { PIXELXY_ENABLE(mask, x - 1, y + 1); }
+
+		if (!isXEdgeLow) { PIXELXY_ENABLE(mask, x - 1, y); }
+	}
+
+	return mask;
+}
+
+
 /*! @} */
 #ifdef __cplusplus
 } // extern "C"

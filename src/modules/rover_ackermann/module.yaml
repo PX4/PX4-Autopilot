@@ -1,0 +1,196 @@
+module_name: Rover Ackermann
+
+parameters:
+  - group: Rover Ackermann
+    definitions:
+      RA_WHEEL_BASE:
+        description:
+          short: Wheel base
+          long: Distance from the front to the rear axle
+        type: float
+        unit: m
+        min: 0.001
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0.5
+
+      RA_MAX_STR_ANG:
+        description:
+          short: Maximum steering angle
+          long: The maximum angle that the rover can steer
+        type: float
+        unit: rad
+        min: 0.1
+        max: 1.5708
+        increment: 0.01
+        decimal: 2
+        default: 0.5236
+
+      RA_ACC_RAD_MAX:
+        description:
+          short: Maximum acceptance radius for the waypoints
+          long: |
+            The controller scales the acceptance radius based on the angle between
+            the previous, current and next waypoint.
+            Higher value -> smoother trajectory at the cost of how close the rover gets
+            to the waypoint (Set to -1 to disable corner cutting).
+        type: float
+        unit: m
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 3
+
+      RA_ACC_RAD_GAIN:
+        description:
+          short: Tuning parameter for corner cutting
+          long: |
+            The geometric ideal acceptance radius is multiplied by this factor
+            to account for kinematic and dynamic effects.
+            Higher value -> The rover starts to cut the corner earlier.
+        type: float
+        min: 1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 2
+
+      RA_SPEED_P:
+        description:
+          short: Proportional gain for ground speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1
+
+      RA_SPEED_I:
+        description:
+          short: Integral gain for ground speed controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 1
+
+      RA_MAX_SPEED:
+        description:
+          short: Maximum allowed speed
+          long: |
+            This is the maximum allowed speed setpoint when driving in a mode that uses
+            closed loop speed control.
+        type: float
+        unit: m/s
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_THR_SPEED:
+        description:
+          short: Speed the rover drives at maximum throttle
+          long: |
+            This parameter is used to calculate the feedforward term of the closed loop speed control which linearly
+            maps desired speeds to normalized motor commands [-1. 1].
+            A good starting point is the observed ground speed when the rover drives at maximum throttle in manual mode.
+            Increase this parameter if the rover is faster than the setpoint, and decrease if the rover is slower.
+        type: float
+        unit: m/s
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_ACCEL:
+        description:
+          short: Maximum acceleration for the rover
+          long: |
+            This is used for the acceleration slew rate.
+        type: float
+        unit: m/s^2
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_DECEL:
+        description:
+          short: Maximum deceleration for the rover
+          long: |
+            This is used for the deceleration slew rate, the feed-forward term
+            for the speed controller during missions and the corner slow down effect.
+            Note: For the corner slow down effect RA_MAX_JERK also has to be set.
+        type: float
+        unit: m/s^2
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_JERK:
+        description:
+          short: Maximum jerk
+          long: |
+            Limit for forwards acc/deceleration change.
+            This is used for the corner slow down effect.
+            Note: RA_MAX_DECEL also has to be set for this to be enabled.
+        type: float
+        unit: m/s^3
+        min: -1
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_STR_RATE:
+        description:
+          short: Maximum steering rate for the rover
+        type: float
+        unit: deg/s
+        min: -1
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: -1
+
+      RA_MAX_LAT_ACCEL:
+        description:
+          short: Maximum allowed lateral acceleration
+          long: |
+            This parameter is used to cap the lateral acceleration and map controller inputs to desired lateral acceleration
+            in Acro, Stabilized and Position mode.
+        type: float
+        unit: m/s^2
+        min: 0.01
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: 0.01
+
+      RA_LAT_ACCEL_P:
+        description:
+          short: Proportional gain for lateral acceleration controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 0
+
+      RA_LAT_ACCEL_I:
+        description:
+          short: Integral gain for lateral acceleration controller
+        type: float
+        min: 0
+        max: 100
+        increment: 0.001
+        decimal: 3
+        default: 0

@@ -237,11 +237,8 @@ static float get_sphere_radius()
 
 		if (gps_sub.copy(&gps)) {
 			if (hrt_elapsed_time(&gps.timestamp) < 100_s && (gps.fix_type >= 2) && (gps.eph < 1000)) {
-				const double lat = gps.latitude_deg;
-				const double lon = gps.longitude_deg;
-
 				// magnetic field data returned by the geo library using the current GPS position
-				return get_mag_strength_gauss(lat, lon);
+				return get_mag_strength_gauss(gps.latitude_deg, gps.longitude_deg);
 			}
 		}
 	}
@@ -908,7 +905,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
 
-			auto &current_cal = worker_data.calibration[cur_mag];
+			calibration::Magnetometer &current_cal = worker_data.calibration[cur_mag];
 
 			if (current_cal.device_id() != 0) {
 				if (worker_data.append_to_existing_calibration) {
@@ -954,13 +951,14 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	return result;
 }
 
-int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radians, float latitude, float longitude)
+int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radians,
+			     float latitude_deg, float longitude_deg)
 {
 	// magnetometer quick calibration
 	//  if GPS available use world magnetic model to zero mag offsets
 	bool mag_earth_available = false;
 
-	if (PX4_ISFINITE(latitude) && PX4_ISFINITE(longitude)) {
+	if (PX4_ISFINITE(latitude_deg) && PX4_ISFINITE(longitude_deg)) {
 		mag_earth_available = true;
 
 	} else {
@@ -969,8 +967,8 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 		if (vehicle_gps_position_sub.copy(&gps)) {
 			if ((gps.timestamp != 0) && (gps.eph < 1000)) {
-				latitude = (float)gps.latitude_deg;
-				longitude = (float)gps.longitude_deg;
+				latitude_deg = (float)gps.latitude_deg;
+				longitude_deg = (float)gps.longitude_deg;
 				mag_earth_available = true;
 			}
 		}
@@ -981,14 +979,13 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 		return PX4_ERROR;
 
 	} else {
-
 		// magnetic field data returned by the geo library using the current GPS position
-		const float mag_declination_gps = get_mag_declination_radians(latitude, longitude);
-		const float mag_inclination_gps = get_mag_inclination_radians(latitude, longitude);
-		const float mag_strength_gps = get_mag_strength_gauss(latitude, longitude);
+		const float declination_rad = math::radians(get_mag_declination_degrees(latitude_deg, longitude_deg));
+		const float inclination_rad = math::radians(get_mag_inclination_degrees(latitude_deg, longitude_deg));
+		const float field_strength_gauss = get_mag_strength_gauss(latitude_deg, longitude_deg);
 
-		const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) * Vector3f(mag_strength_gps,
-						0, 0);
+		const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -inclination_rad, declination_rad))
+						* Vector3f(field_strength_gauss, 0, 0);
 
 		uORB::Subscription vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 		vehicle_attitude_s attitude{};
@@ -1006,8 +1003,8 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 			return PX4_ERROR;
 		}
 
-		calibration_log_critical(mavlink_log_pub, "Assuming vehicle is facing heading %.1f degrees",
-					 (double)math::radians(heading_radians));
+		calibration_log_info(mavlink_log_pub, "Assuming vehicle is facing heading %.1f degrees",
+				     (double)math::degrees(heading_radians));
 
 		matrix::Eulerf euler{matrix::Quatf{attitude.q}};
 		euler(2) = heading_radians;

@@ -210,9 +210,13 @@ typedef enum argus_dca_gain_t {
  *          - [9]: #ARGUS_STATE_LASER_ERROR
  *          - [10]: #ARGUS_STATE_HAS_DATA
  *          - [11]: #ARGUS_STATE_HAS_AUX_DATA
- *          - [12]: #ARGUS_STATE_DCA_MAX
+ *          - [12]: #ARGUS_STATE_SATURATED_PIXELS
  *          - [13]: DCA Power Stage
  *          - [14-15]: DCA Gain Stages
+ *          - [16]: #ARGUS_STATE_DCA_MIN
+ *          - [17]: #ARGUS_STATE_DCA_MAX
+ *          - [18]: #ARGUS_STATE_DCA_RESET
+ *          - [18-31]: not used
  *          .
  *****************************************************************************/
 typedef enum argus_state_t {
@@ -229,36 +233,35 @@ typedef enum argus_state_t {
 	 *          - 1: Enabled: measurement with detuned frequency. */
 	ARGUS_STATE_DUAL_FREQ_MODE = 1U << 1U,
 
-	/*! 0x0004: Measurement Frequency for Dual Frequency Mode
+	/*! 0x0004: Measurement Frequency for Dual Frequency Mode \n
 	 *          (only if #ARGUS_STATE_DUAL_FREQ_MODE flag is set).
 	 *          - 0: A-Frame w/ detuned frequency,
 	 *          - 1: B-Frame w/ detuned frequency */
 	ARGUS_STATE_MEASUREMENT_FREQ = 1U << 2U,
 
-	/*! 0x0008: Debug Mode. If set, the range value of erroneous pixels
+	/*! 0x0008: Debug Mode. \n
+	 *          If set, the range value of erroneous pixels
 	 *          are not cleared or reset.
 	 *          - 0: Disabled (default).
 	 *          - 1: Enabled. */
 	ARGUS_STATE_DEBUG_MODE = 1U << 3U,
 
-	/*! 0x0010: Weak Signal Flag.
+	/*! 0x0010: Weak Signal Flag. \n
 	 *          Set whenever the Pixel Binning Algorithm is detecting a
 	 *          weak signal, i.e. if the amplitude dies not reach its
-	 *          (absolute) threshold. If the Golden Pixel is enabled,
-	 *          this also indicates that the Pixel Binning Algorithm
-	 *          falls back to the Golden Pixel.
+	 *          (absolute) threshold.
 	 *          - 0: Normal Signal.
-	 *          - 1: Weak Signal or Golden Pixel Mode. */
+	 *          - 1: Weak Signal. */
 	ARGUS_STATE_WEAK_SIGNAL = 1U << 4U,
 
-	/*! 0x0020: Background Light Warning Flag.
+	/*! 0x0020: Background Light Warning Flag. \n
 	 *          Set whenever the background light is very high and the
 	 *          measurement data might be unreliable.
 	 *          - 0: No Warning: Background Light is within valid range.
 	 *          - 1: Warning: Background Light is very high. */
 	ARGUS_STATE_BGL_WARNING = 1U << 5U,
 
-	/*! 0x0040: Background Light Error Flag.
+	/*! 0x0040: Background Light Error Flag. \n
 	 *          Set whenever the background light is too high and the
 	 *          measurement data is unreliable or invalid.
 	 *          - 0: No Error: Background Light is within valid range.
@@ -270,7 +273,7 @@ typedef enum argus_state_t {
 	 *          - 1: PLL locked at start of integration. */
 	ARGUS_STATE_PLL_LOCKED = 1U << 7U,
 
-	/*! 0x0100: Laser Failure Warning Flag.
+	/*! 0x0100: Laser Failure Warning Flag. \n
 	 *          Set whenever the an invalid system condition is detected.
 	 *          (i.e. DCA at max state but no amplitude on any (incl. reference)
 	 *          pixel, not amplitude but any saturated pixel).
@@ -279,7 +282,7 @@ typedef enum argus_state_t {
 	 *               condition stays, a laser malfunction error is raised. */
 	ARGUS_STATE_LASER_WARNING = 1U << 8U,
 
-	/*! 0x0200: Laser Failure Error Flag.
+	/*! 0x0200: Laser Failure Error Flag. \n
 	 *          Set whenever a laser malfunction error is raised and the
 	 *          system is put into a safe state.
 	 *          - 0: No Error: Laser is operating properly.
@@ -297,13 +300,12 @@ typedef enum argus_state_t {
 	 *          - 1: Auxiliary data is available and correctly evaluated. */
 	ARGUS_STATE_HAS_AUX_DATA = 1U << 11U,
 
-	/*! 0x1000: DCA Maximum State Flag.
-	 *          Set whenever the DCA has extended all its parameters to their
-	 *          maximum values and can not increase the integration energy any
-	 *          further.
-	 *          - 0: DCA has not yet reached its maximum state.
-	 *          - 1: DCA has reached its maximum state and can not increase any further. */
-	ARGUS_STATE_DCA_MAX = 1U << 12U,
+	/*! 0x0100: Pixel Saturation Flag. \n
+	 *          Set whenever any pixel is saturated, i.e. its pixel state is
+	 *          #PIXEL_SAT
+	 *          - 0: No saturated pixels.
+	 *          - 1: Any saturated pixels. */
+	ARGUS_STATE_SATURATED_PIXELS = 1U << 12U,
 
 	/*! 0x2000: DCA is in high Optical Output Power stage. */
 	ARGUS_STATE_DCA_POWER_HIGH = DCA_POWER_HIGH << ARGUS_STATE_DCA_POWER_SHIFT,
@@ -319,6 +321,31 @@ typedef enum argus_state_t {
 
 	/*! 0xC000: DCA is in high Pixel Input Gain stage. */
 	ARGUS_STATE_DCA_GAIN_HIGH = DCA_GAIN_HIGH << ARGUS_STATE_DCA_GAIN_SHIFT,
+
+	/*! 0x10000: DCA Minimum State Flag. \n
+	 *           Set whenever the DCA has reduced all its parameters to their
+	 *           minimum values and it can not decrease the integration energy
+	 *           any further.
+	 *           - 0: DCA has not yet reached its minimum state.
+	 *           - 1: DCA has reached its minimum state and can not decrease
+	 *                its parameters any further. */
+	ARGUS_STATE_DCA_MIN = 1U << 16U,
+
+	/*! 0x20000: DCA Maximum State Flag. \n
+	 *           Set whenever the DCA has extended all its parameters to their
+	 *           maximum values and it can not increase the integration energy
+	 *           any further.
+	 *           - 0: DCA has not yet reached its maximum state.
+	 *           - 1: DCA has reached its maximum state and can not increase
+	 *                its parameters any further. */
+	ARGUS_STATE_DCA_MAX = 1U << 17U,
+
+	/*! 0x20000: DCA Reset State Flag. \n
+	 *           Set whenever the DCA is resetting all its parameters to their
+	 *           minimum values because it has detected too many saturated pixels.
+	 *           - 0: DCA is operating in normal mode.
+	 *           - 1: DCA is performing a reset. */
+	ARGUS_STATE_DCA_RESET = 1U << 18U,
 
 } argus_state_t;
 

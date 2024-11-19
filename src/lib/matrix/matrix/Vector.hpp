@@ -8,13 +8,10 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "Matrix.hpp"
 
 namespace matrix
 {
-
-template <typename Type, size_t M, size_t N>
-class Matrix;
 
 template<typename Type, size_t M>
 class Vector : public Matrix<Type, M, 1>
@@ -42,6 +39,22 @@ public:
 
 	template<size_t P, size_t Q, size_t DUMMY = 1>
 	Vector(const Slice<Type, 1, M, P, Q> &slice_in)
+	{
+		Vector &self(*this);
+
+		for (size_t i = 0; i < M; i++) {
+			self(i) = slice_in(0, i);
+		}
+	}
+
+	template<size_t P, size_t Q>
+	Vector(const ConstSlice<Type, M, 1, P, Q> &slice_in) :
+		Matrix<Type, M, 1>(slice_in)
+	{
+	}
+
+	template<size_t P, size_t Q, size_t DUMMY = 1>
+	Vector(const ConstSlice<Type, 1, M, P, Q> &slice_in)
 	{
 		Vector &self(*this);
 

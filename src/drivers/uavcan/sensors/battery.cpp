@@ -104,9 +104,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	_battery_status[instance].timestamp = hrt_absolute_time();
 	_battery_status[instance].voltage_v = msg.voltage;
-	_battery_status[instance].voltage_filtered_v = msg.voltage;
 	_battery_status[instance].current_a = msg.current;
-	_battery_status[instance].current_filtered_a = msg.current;
 	_battery_status[instance].current_average_a = msg.current;
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {

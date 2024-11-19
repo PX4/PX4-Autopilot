@@ -38,9 +38,6 @@ TEST_CASE("Fly forward in position control", "[multicopter][vtol]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
-	tester.wait_until_ready();
-	tester.store_home();
-	tester.arm();
 	tester.fly_forward_in_posctl();
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);
@@ -51,9 +48,6 @@ TEST_CASE("Fly forward in altitude control", "[multicopter][vtol]")
 {
 	AutopilotTester tester;
 	tester.connect(connection_url);
-	tester.wait_until_ready();
-	tester.store_home();
-	tester.arm();
 	tester.fly_forward_in_altctl();
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(180);
 	tester.wait_until_disarmed(until_disarmed_timeout);

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualAltitude.cpp
+ * @file FlightTaskManualAltitude.cpp
  */
 
 #include "FlightTaskManualAltitude.hpp"
@@ -277,6 +277,11 @@ void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 	}
 
 	_stick_yaw.ekfResetHandler(delta_psi);
+}
+
+void FlightTaskManualAltitude::_ekfResetHandlerHagl(float delta_hagl)
+{
+	_dist_to_ground_lock = NAN;
 }
 
 void FlightTaskManualAltitude::_updateSetpoints()

@@ -1,0 +1,108 @@
+name: FLASH usage analysis
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  analyze_flash:
+    name: FLASH usage analysis
+    runs-on: ubuntu-latest
+    container:
+      image: px4io/px4-dev-nuttx-focal
+    strategy:
+      matrix:
+        target: [px4_fmu-v5x, px4_fmu-v6x]
+    outputs:
+      px4_fmu-v5x: ${{ steps.gen-output.outputs.output_px4_fmu-v5x }}
+      px4_fmu-v6x: ${{ steps.gen-output.outputs.output_px4_fmu-v6x }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Git ownership workaround
+        run: git config --system --add safe.directory '*'
+
+      - name: Build
+        run: make ${{ matrix.target }}
+
+      - name: Store the ELF with the change
+        run: cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./with-change.elf
+
+      - name: Clean previous build
+        run: |
+          make clean
+          make distclean
+
+      - name: If it's a PR checkout the base commit
+        if: ${{ github.event.pull_request }}
+        run: git checkout ${{ github.event.pull_request.base.sha }}
+
+      - name: If it's a push checkout the previous commit
+        if: github.event_name == 'push'
+        run: git checkout ${{ github.event.before }}
+
+      - name: Update submodules
+        run: make submodulesupdate
+
+      - name: Build
+        run: make ${{ matrix.target }}
+
+      - name: Store the ELF before the change
+        run: cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./before-change.elf
+
+      - name: bloaty-action
+        uses: carlosperate/bloaty-action@v1.1.0
+        id: bloaty-step
+        with:
+          bloaty-args: -d sections,compileunits -n 0 ./with-change.elf -- ./before-change.elf
+          output-to-summary: true
+
+      - name: Generate output
+        id: gen-output
+        run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "output_${{ matrix.target }}<<$EOF" >> $GITHUB_OUTPUT
+          echo "${{ steps.bloaty-step.outputs.bloaty-output-encoded }}" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+  post_pr_comment:
+    name: Post PR comment
+    runs-on: ubuntu-latest
+    needs: [analyze_flash]
+    steps:
+      - name: If it's a PR add a comment with the bloaty output
+        if: ${{ github.event.pull_request }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const comment = [
+               '## FLASH Analysis',
+               '<details>',
+               '<summary>px4_fmu-v5x</summary>',
+               '',
+               '```',
+               `${{ needs.analyze_flash.outputs.px4_fmu-v5x }}`,
+               '```',
+               '</details>',
+               '',
+               '<details>',
+               '<summary>px4_fmu-v6x</summary>',
+               '',
+               '```',
+               `${{ needs.analyze_flash.outputs.px4_fmu-v6x }}`,
+               '```',
+               '</details>'
+            ]
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment.join('\n')
+            })

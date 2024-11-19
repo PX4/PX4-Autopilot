@@ -36,6 +36,7 @@
 #include "../navigation.h"
 #include <mathlib/mathlib.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/rtl_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -77,11 +78,9 @@ public:
 	bool someCheckFailed()
 	{
 		return _takeoff_failed ||
-		       _distance_first_waypoint_failed ||
 		       _distance_between_waypoints_failed ||
 		       _land_pattern_validity_failed ||
 		       _fixed_wing_land_approach_failed ||
-		       _below_home_alt_failed ||
 		       _mission_validity_failed ||
 		       _takeoff_land_available_failed;
 	}
@@ -97,7 +96,7 @@ private:
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _land_detector_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription _rtl_status_sub{ORB_ID(rtl_status)};
 
 	// parameters
 	float _param_fw_lnd_ang{0.f};
@@ -107,17 +106,15 @@ private:
 
 	bool _is_landed{false};
 	float _home_alt_msl{NAN};
+	bool _has_vtol_approach{false};
 	matrix::Vector2d _home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	matrix::Vector2d _current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	VehicleType _vehicle_type{VehicleType::RotaryWing};
 
 	// internal flags to keep track of which checks failed
 	bool _mission_validity_failed{false};
 	bool _takeoff_failed{false};
 	bool _land_pattern_validity_failed{false};
-	bool _distance_first_waypoint_failed{false};
 	bool _distance_between_waypoints_failed{false};
-	bool _below_home_alt_failed{false};
 	bool _fixed_wing_land_approach_failed{false};
 	bool _takeoff_land_available_failed{false};
 	bool _items_fit_to_vehicle_type_failed{false};
@@ -199,15 +196,6 @@ private:
 	bool checkDistancesBetweenWaypoints(const mission_item_s &mission_item);
 
 	/**
-	 * @brief Check if any waypoint is below the home altitude. Issues warning only.
-	 *
-	 * @param mission_item The current mission item
-	 * @param current_index The current mission index
-	 * @return Always returns true, only issues warning.
-	*/
-	bool checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index);
-
-	/**
 	 * @brief Check fixed wing land approach (fixed wing only)
 	 *
 	 * @param mission_item The current mission item
@@ -258,4 +246,8 @@ private:
 	 * @return False if the check failed.
 	*/
 	void doMulticopterChecks(mission_item_s &mission_item, const int current_index);
+
+	// Helper functions
+
+	bool hasMissionBothOrNeitherTakeoffAndLanding();
 };

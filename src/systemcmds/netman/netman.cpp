@@ -51,10 +51,10 @@
 #include <arpa/inet.h>
 #include <px4_platform_common/shutdown.h>
 
-constexpr char DEFAULT_NETMAN_CONFIG[] = "/fs/microsd/net.cfg";
+constexpr char DEFAULT_NETMAN_CONFIG[] = CONFIG_BOARD_ROOT_PATH "/net.cfg";
 #if defined(CONFIG_NETINIT_DHCPC)
-#  define DEFAULT_PROTO    IPv4PROTO_FALLBACK
-#  define DEFAULT_IP      0XC0A80003  // 192.168.0.3
+#  define DEFAULT_PROTO   IPv4PROTO_FALLBACK
+#  define DEFAULT_IP      CONFIG_NETMAN_FALLBACK_IPADDR
 #else
 #  define DEFAULT_PROTO   IPv4PROTO_STATIC
 #  define DEFAULT_IP      CONFIG_NETINIT_IPADDR
@@ -201,7 +201,7 @@ public:
 		struct ipv4cfg_s ipcfg;
 		int rv = ipcfg_read(netdev, (FAR struct ipcfg_s *) &ipcfg, AF_INET);
 
-		if (rv == -EINVAL ||
+		if (rv == -EINVAL || rv == -ENOENT ||
 		    (rv == OK  && (ipcfg.proto > IPv4PROTO_FALLBACK || ipcfg.ipaddr == 0xffffffff))) {
 			// Build a default
 			ipcfg.ipaddr  = HTONL(DEFAULT_IP);

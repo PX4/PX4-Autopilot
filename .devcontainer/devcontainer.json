@@ -15,6 +15,7 @@
 	"extensions": [
 		"chiehyu.vscode-astyle",
 		"dan-c-underwood.arm",
+		"editorconfig.editorconfig",
 		"fredericbonnet.cmake-test-adapter",
 		"github.vscode-pull-request-github",
 		"marus25.cortex-debug",

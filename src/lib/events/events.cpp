@@ -45,7 +45,7 @@ static uint16_t event_sequence{events::initial_event_sequence};
 namespace events
 {
 
-void send(EventType &event)
+void send(event_s &event)
 {
 	event.timestamp = hrt_absolute_time();
 
@@ -61,7 +61,7 @@ void send(EventType &event)
 		orb_publish(ORB_ID(event), orb_event_pub, &event);
 
 	} else {
-		orb_event_pub = orb_advertise_queue(ORB_ID(event), &event, event_s::ORB_QUEUE_LENGTH);
+		orb_event_pub = orb_advertise(ORB_ID(event), &event);
 	}
 
 	pthread_mutex_unlock(&publish_event_mutex);

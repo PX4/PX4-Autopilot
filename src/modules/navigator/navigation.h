@@ -89,6 +89,7 @@ enum NAV_CMD {
 	NAV_CMD_DO_SET_CAM_TRIGG_DIST = 206,
 	NAV_CMD_OBLIQUE_SURVEY = 260,
 	NAV_CMD_SET_CAMERA_MODE = 530,
+	NAV_CMD_SET_CAMERA_SOURCE = 534,
 	NAV_CMD_SET_CAMERA_ZOOM = 531,
 	NAV_CMD_SET_CAMERA_FOCUS = 532,
 	NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW = 1000,
@@ -200,17 +201,18 @@ struct mission_item_s {
 
 /**
  * dataman housekeeping information for a specific item.
- * Corresponds to the first dataman entry of DM_KEY_FENCE_POINTS and DM_KEY_SAFE_POINTS
+ * Corresponds to the dataman entry of DM_KEY_FENCE_POINTS_STATE and DM_KEY_SAFE_POINTS_STATE
  */
 struct mission_stats_entry_s {
 	uint32_t opaque_id;			/**< opaque identifier for current stored mission stats */
 	uint16_t num_items;			/**< total number of items stored (excluding this one) */
-	uint8_t padding[2];
+	uint8_t dataman_id;			/**< dm_item_t storage place*/
+	uint8_t padding[1];
 };
 
 /**
  * Geofence vertex point.
- * Corresponds to the DM_KEY_FENCE_POINTS dataman item
+ * Corresponds to the DM_KEY_FENCE_POINTS_0 dataman item
  */
 struct mission_fence_point_s {
 	double lat;
@@ -229,15 +231,15 @@ struct mission_fence_point_s {
 };
 
 /**
- * @brief Return to launch position.
- * Defines the position and landing yaw for the return to launch destination.
+ * @brief Position and yaw setpoint struct.
+ * Used in RTL state machine.
  *
  */
-struct DestinationPosition {
-	double lat;	/**< latitude in WGS84 [rad].*/
-	double lon;	/**< longitude in WGS84 [rad].*/
-	float alt;	/**< altitude in MSL [m].*/
-	float yaw;	/**< final yaw when landed [rad].*/
+struct PositionYawSetpoint {
+	double lat;	/**< latitude setpoint in WGS84 [rad].*/
+	double lon;	/**< longitude setpoint in WGS84 [rad].*/
+	float alt;	/**< altitude setpoint in MSL [m].*/
+	float yaw;	/**< yaw setpoint [rad].*/
 };
 
 

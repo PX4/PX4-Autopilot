@@ -15,19 +15,20 @@
 
 #pragma once
 
-#include "math.hpp"
+#include "SquareMatrix.hpp"
+#include "Vector3.hpp"
 
 namespace matrix
 {
 
 template<typename Type>
-class Quaternion;
+class AxisAngle;
 
 template<typename Type>
 class Euler;
 
 template<typename Type>
-class AxisAngle;
+class Quaternion;
 
 /**
  * Direction cosine matrix class
@@ -39,8 +40,6 @@ template<typename Type>
 class Dcm : public SquareMatrix<Type, 3>
 {
 public:
-	using Vector3 = Matrix<Type, 3, 1>;
-
 	/**
 	 * Standard constructor
 	 *
@@ -158,14 +157,10 @@ public:
 		dcm = Quaternion<Type>(aa);
 	}
 
-	Vector<Type, 3> vee() const      // inverse to Vector.hat() operation
+	Vector3<Type> vee() const // inverse to Vector.hat() operation
 	{
 		const Dcm &A(*this);
-		Vector<Type, 3> v;
-		v(0) = -A(1, 2);
-		v(1) =  A(0, 2);
-		v(2) = -A(0, 1);
-		return v;
+		return {-A(1, 2), A(0, 2), -A(0, 1)};
 	}
 
 	void renormalize()

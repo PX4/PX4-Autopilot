@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file blocks.cpp
+ * @file BlockLimit.cpp
  *
  * Controller library code
  */

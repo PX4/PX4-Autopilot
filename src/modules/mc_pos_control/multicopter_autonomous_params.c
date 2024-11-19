@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.5f);
 /**
  * Acceleration for autonomous and for manual modes
  *
- * When piloting manually, this parameter is only used in MPC_POS_MODE 4.
+ * When piloting manually, this parameter is only used in MPC_POS_MODE Acceleration based.
  *
  * @unit m/s^2
  * @min 2
@@ -172,6 +172,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_ACC, 60.f);
  * @value 2 away from home
  * @value 3 along trajectory
  * @value 4 towards waypoint (yaw first)
+ * @value 5 yaw fixed
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);

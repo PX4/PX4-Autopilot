@@ -161,18 +161,6 @@ PARAM_DEFINE_INT32(RTL_PLD_MD, 0);
 PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 80.0f);
 
 /**
- * RTL heading mode
- *
- * Defines the heading behavior during RTL
- *
- * @value 0 Towards next waypoint.
- * @value 1 Heading matches destination.
- * @value 2 Use current heading.
- * @group Return Mode
- */
-PARAM_DEFINE_INT32(RTL_HDG_MD, 0);
-
-/**
  * RTL time estimate safety margin factor
  *
  * Safety factor that is used to scale the actual RTL time estimate.

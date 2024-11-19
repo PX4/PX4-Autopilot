@@ -36,6 +36,9 @@
 
 #ifndef ARGUS_OFFSET_H
 #define ARGUS_OFFSET_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*!***************************************************************************
  * @addtogroup  argus_cal
@@ -48,12 +51,26 @@
  * @brief   Pixel Range Offset Table.
  * @details Contains pixel range offset values for all 32 active pixels.
  *****************************************************************************/
-typedef struct argus_cal_offset_table_t {
-	/*! The offset values per pixel in meter and Q0.15 format. */
-	q0_15_t Table[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
+typedef union argus_cal_offset_table_t {
+	struct {
+		/*! The offset values table for Low Power Stage of all 32 pixels.
+		 *  Unit: meter; Format: Q0.15 */
+		q0_15_t LowPower[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
+
+		/*! The offset values table for High Power Stage of all 32 pixels.
+		 *  Unit: meter; Format: Q0.15 */
+		q0_15_t HighPower[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
+	};
+
+	/*! The offset values table for Low/High Power Stages of all 32 pixels.
+	 *  Unit: meter; Format: Q0.15 */
+	q0_15_t Table[ARGUS_DCA_POWER_STAGE_COUNT][ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
 
 } argus_cal_offset_table_t;
 
 
 /*! @} */
+#ifdef __cplusplus
+} // extern "C"
+#endif
 #endif /* ARGUS_OFFSET_T */

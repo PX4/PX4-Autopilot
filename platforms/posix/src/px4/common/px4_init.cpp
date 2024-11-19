@@ -40,15 +40,34 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <uORB/uORB.h>
 
+#if defined(CONFIG_MODULES_MUORB_APPS)
+extern "C" { int muorb_init(); }
+#endif
+
 int px4_platform_init(void)
 {
 	hrt_init();
 
 	px4::WorkQueueManagerStart();
 
+// MUORB has slightly different startup requirements
+#if defined(CONFIG_MODULES_MUORB_APPS)
+	//Put sleeper in here to allow wq to finish initializing before param_init is called
+	usleep(10000);
+
+	uorb_start();
+
+	muorb_init();
+
+	// Give muorb some time to setup the DSP
+	usleep(100000);
+
+	param_init();
+#else
 	param_init();
 
 	uorb_start();
+#endif
 
 	px4_log_initialize();
 

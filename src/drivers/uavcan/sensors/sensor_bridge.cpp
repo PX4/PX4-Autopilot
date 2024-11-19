@@ -57,8 +57,14 @@
 #if defined(CONFIG_UAVCAN_SENSOR_FLOW)
 #include "flow.hpp"
 #endif
+#if defined(CONFIG_UAVCAN_SENSOR_FUEL_TANK_STATUS)
+#include "fuel_tank_status.hpp"
+#endif
 #if defined(CONFIG_UAVCAN_SENSOR_GNSS)
 #include "gnss.hpp"
+#endif
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_RELATIVE)
+#include "gnss_relative.hpp"
 #endif
 #if defined(CONFIG_UAVCAN_SENSOR_HYGROMETER)
 #include "hygrometer.hpp"
@@ -136,6 +142,17 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 
 #endif
 
+	// fuel tank
+#if defined(CONFIG_UAVCAN_SENSOR_FUEL_TANK_STATUS)
+	int32_t uavcan_sub_fuel_tank = 1;
+	param_get(param_find("UAVCAN_SUB_FUEL"), &uavcan_sub_fuel_tank);
+
+	if (uavcan_sub_fuel_tank != 0) {
+		list.add(new UavcanFuelTankStatusBridge(node));
+	}
+
+#endif
+
 	// GPS
 #if defined(CONFIG_UAVCAN_SENSOR_GNSS)
 	int32_t uavcan_sub_gps = 1;
@@ -143,6 +160,17 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 
 	if (uavcan_sub_gps != 0) {
 		list.add(new UavcanGnssBridge(node));
+	}
+
+#endif
+
+	// GPS relative
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_RELATIVE)
+	int32_t uavcan_sub_gps_rel = 1;
+	param_get(param_find("UAVCAN_SUB_GPS_R"), &uavcan_sub_gps_rel);
+
+	if (uavcan_sub_gps_rel != 0) {
+		list.add(new UavcanGnssRelativeBridge(node));
 	}
 
 #endif

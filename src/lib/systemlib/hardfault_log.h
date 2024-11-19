@@ -213,7 +213,7 @@ typedef struct ssarc_s dump_s;
  * Specifier to the xxxx_NUM definei.e %Y is YYYY so add 2 and %s is -2
  * Also xxxxTIME_FMT need to match in size. See CCASERT in hardfault_log.c
  */
-#define LOG_PATH_BASE       "/fs/microsd/"
+#define LOG_PATH_BASE       CONFIG_BOARD_ROOT_PATH "/"
 #define LOG_PATH_BASE_LEN    ((arraySize(LOG_PATH_BASE))-1)
 
 #define LOG_NAME_FMT        "fault_%s.log"

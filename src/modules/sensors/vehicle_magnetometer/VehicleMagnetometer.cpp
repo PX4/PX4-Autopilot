@@ -461,9 +461,11 @@ void VehicleMagnetometer::Run()
 		}
 
 		if (_advertised[uorb_index]) {
+			int sensor_mag_updates = 0;
 			sensor_mag_s report;
 
-			while (_sensor_sub[uorb_index].update(&report)) {
+			while ((sensor_mag_updates < sensor_mag_s::ORB_QUEUE_LENGTH) && _sensor_sub[uorb_index].update(&report)) {
+				sensor_mag_updates++;
 
 				if (_calibration[uorb_index].device_id() != report.device_id) {
 					_calibration[uorb_index].set_device_id(report.device_id);

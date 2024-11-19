@@ -74,7 +74,7 @@ void px4_log_initialize(void)
 	log_message.severity = 6; // info
 	strcpy((char *)log_message.text, "initialized uORB logging");
 	log_message.timestamp = hrt_absolute_time();
-	orb_log_message_pub = orb_advertise_queue(ORB_ID(log_message), &log_message, log_message_s::ORB_QUEUE_LENGTH);
+	orb_log_message_pub = orb_advertise(ORB_ID(log_message), &log_message);
 }
 
 __EXPORT void px4_log_modulename(int level, const char *module_name, const char *fmt, ...)

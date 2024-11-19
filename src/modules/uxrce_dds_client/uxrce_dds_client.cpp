@@ -49,19 +49,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
-# define UXRCE_DDS_CLIENT_UDP 1
-#endif
-
-#define STREAM_HISTORY  4
-#define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY) // MTU==512 by default
-
 #define PARTICIPANT_XML_SIZE 512
+static constexpr uint8_t TIMESYNC_MAX_TIMEOUTS = 10;
 
 using namespace time_literals;
 
-void on_time(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
-	     int64_t originate_timestamp, void *args)
+static void on_time(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
+		    int64_t originate_timestamp, void *args)
 {
 	// latest round trip time (RTT)
 	int64_t rtt = current_time - originate_timestamp;
@@ -80,21 +74,15 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 	}
 }
 
-void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
-		     int64_t originate_timestamp, void *args)
+static void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received_timestamp,
+			    int64_t transmit_timestamp,
+			    int64_t originate_timestamp, void *args)
 {
 	session->time_offset = 0;
 }
 
-
-void on_request(
-	uxrSession *session,
-	uxrObjectId object_id,
-	uint16_t request_id,
-	SampleIdentity *sample_id,
-	ucdrBuffer *ub,
-	uint16_t length,
-	void *args)
+static void on_request(uxrSession *session, uxrObjectId object_id, uint16_t request_id, SampleIdentity *sample_id,
+		       ucdrBuffer *ub, uint16_t length, void *args)
 {
 	(void) request_id;
 	(void) length;
@@ -110,66 +98,303 @@ void on_request(
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
 			       const char *port, const char *client_namespace) :
 	ModuleParams(nullptr),
+	_transport(transport),
+	_baudrate(baudrate),
 	_client_namespace(client_namespace)
 {
-	if (transport == Transport::Serial) {
+	if (device) {
+		// store serial port name */
+		strncpy(_device, device, sizeof(_device) - 1);
+	}
 
-		int fd = -1;
+#if defined(UXRCE_DDS_CLIENT_UDP)
 
-		for (int attempt = 0; attempt < 3; attempt++) {
-			fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	if (agent_ip) {
+		strncpy(_agent_ip, agent_ip, sizeof(_agent_ip) - 1);
+	}
 
-			if (fd < 0) {
-				PX4_ERR("open %s failed (%i)", device, errno);
-				// sleep before trying again
-				px4_usleep(1_s);
+	if (port) {
+		strncpy(_port, port, sizeof(_port) - 1);
+	}
 
-			} else {
-				break;
-			}
+#endif // UXRCE_DDS_CLIENT_UDP
+}
+
+bool UxrceddsClient::init()
+{
+	deinit();
+
+	if (_transport == Transport::Serial) {
+		int fd = open(_device, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+		if (fd < 0) {
+			PX4_ERR("open %s failed (%i)", _device, errno);
+			return false;
 		}
 
 		_transport_serial = new uxrSerialTransport();
 
-		if (fd >= 0 && setBaudrate(fd, baudrate) == 0 && _transport_serial) {
-			// TODO:
-			uint8_t remote_addr = 0; // Identifier of the Agent in the connection
-			uint8_t local_addr = 1; // Identifier of the Client in the serial connection
+		// TODO:
+		uint8_t remote_addr = 0; // Identifier of the Agent in the connection
+		uint8_t local_addr = 1; // Identifier of the Client in the serial connection
 
-			if (uxr_init_serial_transport(_transport_serial, fd, remote_addr, local_addr)) {
-				_comm = &_transport_serial->comm;
-				_fd = fd;
+		if (_transport_serial
+		    && setBaudrate(fd, _baudrate)
+		    && uxr_init_serial_transport(_transport_serial, fd, remote_addr, local_addr)
+		   ) {
+			PX4_INFO("init serial %s @ %d baud", _device, _baudrate);
 
-			} else {
-				PX4_ERR("uxr_init_serial_transport failed");
-			}
+			_comm = &_transport_serial->comm;
+			_fd = fd;
+
+			return true;
 		}
 
-	} else if (transport == Transport::Udp) {
+		PX4_ERR("init serial %s @ %d baud failed", _device, _baudrate);
+		close(fd);
 
-#if defined(UXRCE_DDS_CLIENT_UDP)
-		_transport_udp = new uxrUDPTransport();
-		strncpy(_port, port, PORT_MAX_LENGTH - 1);
-		strncpy(_agent_ip, agent_ip, AGENT_IP_MAX_LENGTH - 1);
+		delete _transport_serial;
+		_transport_serial = nullptr;
 
-		if (_transport_udp) {
-			if (uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
-				_comm = &_transport_udp->comm;
-				_fd = _transport_udp->platform.poll_fd.fd;
-
-			} else {
-				PX4_ERR("uxr_init_udp_transport failed");
-			}
-		}
-
-
-#else
-		PX4_ERR("UDP not supported");
-#endif
+		return false;
 	}
 
+#if defined(UXRCE_DDS_CLIENT_UDP)
+
+	if (_transport == Transport::Udp) {
+		_transport_udp = new uxrUDPTransport();
+
+		if (_transport_udp && uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
+
+			PX4_INFO("init UDP agent IP:%s, port:%s", _agent_ip, _port);
+
+			_comm = &_transport_udp->comm;
+			_fd = _transport_udp->platform.poll_fd.fd;
+
+			return true;
+
+		} else {
+			PX4_ERR("init UDP agent IP:%s, port:%s failed", _agent_ip, _port);
+		}
+	}
+
+#endif // UXRCE_DDS_CLIENT_UDP
+
+	return false;
+}
+
+void UxrceddsClient::deinit()
+{
+	if (_fd >= 0) {
+		close(_fd);
+		_fd = -1;
+	}
+
+	if (_transport_serial) {
+		uxr_close_serial_transport(_transport_serial);
+		delete _transport_serial;
+		_transport_serial = nullptr;
+	}
+
+#if defined(UXRCE_DDS_CLIENT_UDP)
+
+	if (_transport_udp) {
+		uxr_close_udp_transport(_transport_udp);
+		delete _transport_udp;
+		_transport_udp = nullptr;
+	}
+
+#endif // UXRCE_DDS_CLIENT_UDP
+
+	_comm = nullptr;
+}
+
+bool UxrceddsClient::setup_session(uxrSession *session)
+{
 	_participant_config = static_cast<ParticipantConfig>(_param_uxrce_dds_ptcfg.get());
-	_synchronize_timestamps = _param_uxrce_dds_synct.get() > 0;
+	_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
+
+	bool got_response = false;
+
+	while (!should_exit() && !got_response) {
+		// Sending ping without initing a XRCE session
+		got_response = uxr_ping_agent_attempts(_comm, 1000, 1);
+	}
+
+	if (!got_response) {
+		PX4_ERR("got no ping from agent");
+		return false;
+	}
+
+	// Session
+	// The key identifier of the Client. All Clients connected to an Agent must have a different key.
+	const uint32_t key = (uint32_t)_param_uxrce_key.get();
+
+	if (key == 0) {
+		PX4_ERR("session key must be different from zero");
+		return false;
+	}
+
+	uxr_init_session(session, _comm, key);
+
+	if (!uxr_create_session(session)) {
+		PX4_ERR("uxr_create_session failed");
+		return false;
+	}
+
+	_session_created = true;
+
+	// Streams
+	// Reliable for setup, afterwards best-effort to send the data (important: need to create all 4 streams)
+	_reliable_out = uxr_create_output_reliable_stream(session, _output_reliable_stream_buffer,
+			sizeof(_output_reliable_stream_buffer), STREAM_HISTORY);
+
+	_best_effort_out = uxr_create_output_best_effort_stream(session, _output_data_stream_buffer,
+			   sizeof(_output_data_stream_buffer));
+
+	uxrStreamId reliable_in = uxr_create_input_reliable_stream(session, _input_reliable_stream_buffer,
+				  sizeof(_input_reliable_stream_buffer),
+				  STREAM_HISTORY);
+
+	uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(session);
+
+	// Create entities
+	_participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
+
+	uint16_t domain_id = _param_uxrce_dds_dom_id.get();
+
+	uint16_t participant_req{};
+
+	if (_participant_config == ParticipantConfig::Custom) {
+		// Create participant by reference (XML not required)
+		participant_req = uxr_buffer_create_participant_ref(session, _reliable_out, _participant_id, domain_id,
+				  "px4_participant", UXR_REPLACE);
+
+	} else {
+		// Construct participant XML and create participant by XML
+		char participant_xml[PARTICIPANT_XML_SIZE];
+		int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
+				   (_participant_config == ParticipantConfig::LocalHostOnly) ?
+				   "<dds>"
+				   "<profiles>"
+				   "<transport_descriptors>"
+				   "<transport_descriptor>"
+				   "<transport_id>udp_localhost</transport_id>"
+				   "<type>UDPv4</type>"
+				   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
+				   "</transport_descriptor>"
+				   "</transport_descriptors>"
+				   "</profiles>"
+				   "<participant>"
+				   "<rtps>"
+				   :
+				   "<dds>"
+				   "<participant>"
+				   "<rtps>",
+				   _client_namespace != nullptr ?
+				   _client_namespace
+				   :
+				   "",
+				   (_participant_config == ParticipantConfig::LocalHostOnly) ?
+				   "<useBuiltinTransports>false</useBuiltinTransports>"
+				   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
+				   "</rtps>"
+				   "</participant>"
+				   "</dds>"
+				   :
+				   "</rtps>"
+				   "</participant>"
+				   "</dds>"
+				  );
+
+		if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
+			PX4_ERR("create entities failed: namespace too long");
+			return false;
+		}
+
+		participant_req = uxr_buffer_create_participant_xml(session, _reliable_out, _participant_id, domain_id,
+				  participant_xml, UXR_REPLACE);
+	}
+
+	uint8_t request_status;
+
+	if (!uxr_run_session_until_all_status(session, 1000, &participant_req, &request_status, 1)) {
+		PX4_ERR("create entities failed: participant: %i", request_status);
+		return false;
+	}
+
+	// Set time-callback.
+	if (_synchronize_timestamps) {
+		uxr_set_time_callback(session, on_time, &_timesync);
+
+	} else {
+		uxr_set_time_callback(session, on_time_no_sync, nullptr);
+	}
+
+	uxr_set_request_callback(session, on_request, this);
+	uint8_t sync_timeouts = 0;
+
+	// Spin until in sync with the Agent or the session time sync has multiple timeouts
+	while (_synchronize_timestamps) {
+		if (uxr_sync_session(session, 1000)) {
+			if (_timesync.sync_converged()) {
+				PX4_INFO("synchronized with time offset %-5" PRId64 "us", session->time_offset / 1000);
+
+				if (_param_uxrce_dds_syncc.get() > 0) {
+					syncSystemClock(session);
+				}
+
+				break;
+			}
+
+			sync_timeouts = 0;
+
+		} else {
+			sync_timeouts++;
+		}
+
+		if (sync_timeouts > TIMESYNC_MAX_TIMEOUTS) {
+			PX4_ERR("timeout during time synchronization");
+			return false;
+		}
+
+		px4_usleep(10'000);
+	}
+
+	if (!_pubs->init(session, _reliable_out, reliable_in, best_effort_in, _participant_id, _client_namespace)) {
+		PX4_ERR("pubs init failed");
+		return false;
+	}
+
+	// create VehicleCommand replier
+	if (_num_of_repliers < MAX_NUM_REPLIERS) {
+		if (add_replier(new VehicleCommandSrv(session, _reliable_out, reliable_in, _participant_id, _client_namespace,
+						      _num_of_repliers))) {
+			PX4_ERR("replier init failed");
+			return false;
+		}
+	}
+
+	_connected = true;
+	return true;
+}
+
+void UxrceddsClient::delete_session(uxrSession *session)
+{
+	delete_repliers();
+
+	if (_session_created) {
+		uxr_delete_session_retries(session, _connected ? 1 : 0);
+		_session_created = false;
+	}
+
+	if (_subs_initialized) {
+		_subs->reset();
+		_subs_initialized = false;
+	}
+
+	_last_payload_tx_rate = 0;
+	_timesync.reset_filter();
 }
 
 UxrceddsClient::~UxrceddsClient()
@@ -184,10 +409,17 @@ UxrceddsClient::~UxrceddsClient()
 		delete _transport_serial;
 	}
 
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
+
+#if defined(UXRCE_DDS_CLIENT_UDP)
+
 	if (_transport_udp) {
 		uxr_close_udp_transport(_transport_udp);
 		delete _transport_udp;
 	}
+
+#endif // UXRCE_DDS_CLIENT_UDP
 }
 
 static void fillMessageFormatResponse(const message_format_request_s &message_format_request,
@@ -286,13 +518,9 @@ void UxrceddsClient::syncSystemClock(uxrSession *session)
 
 void UxrceddsClient::run()
 {
-	if (!_comm) {
-		PX4_ERR("init failed");
-		return;
-	}
-
 	_subs = new SendTopicsSubs();
 	_pubs = new RcvTopicsPubs();
+	uxrSession session;
 
 	if (!_subs || !_pubs) {
 		PX4_ERR("alloc failed");
@@ -300,158 +528,27 @@ void UxrceddsClient::run()
 	}
 
 	while (!should_exit()) {
-		bool got_response = false;
-
-		while (!should_exit() && !got_response) {
-			// Sending ping without initing a XRCE session
-			got_response = uxr_ping_agent_attempts(_comm, 1000, 1);
-		}
-
-		if (!got_response) {
-			break;
-		}
-
-		// Session
-		// The key identifier of the Client. All Clients connected to an Agent must have a different key.
-		const uint32_t key = (uint32_t)_param_uxrce_key.get();
-
-		if (key == 0) {
-			PX4_ERR("session key must be different from zero");
-			return;
-		}
-
-		uxrSession session;
-		uxr_init_session(&session, _comm, key);
-
-		// void uxr_create_session_retries(uxrSession* session, size_t retries);
-		if (!uxr_create_session(&session)) {
-			PX4_ERR("uxr_create_session failed");
-			return;
-		}
-
-		// TODO: uxr_set_status_callback
-
-		// Streams
-		// Reliable for setup, afterwards best-effort to send the data (important: need to create all 4 streams)
-		uint8_t output_reliable_stream_buffer[BUFFER_SIZE] {};
-		uxrStreamId reliable_out = uxr_create_output_reliable_stream(&session, output_reliable_stream_buffer,
-					   sizeof(output_reliable_stream_buffer), STREAM_HISTORY);
-
-		uint8_t output_data_stream_buffer[2048] {};
-		uxrStreamId best_effort_out = uxr_create_output_best_effort_stream(&session, output_data_stream_buffer,
-					      sizeof(output_data_stream_buffer));
-
-		uint8_t input_reliable_stream_buffer[BUFFER_SIZE] {};
-		uxrStreamId reliable_in = uxr_create_input_reliable_stream(&session, input_reliable_stream_buffer,
-					  sizeof(input_reliable_stream_buffer),
-					  STREAM_HISTORY);
-
-		uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(&session);
-
-		// Create entities
-		uxrObjectId participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
-
-		uint16_t domain_id = _param_uxrce_dds_dom_id.get();
-
-		uint16_t participant_req{};
-
-		if (_participant_config == ParticipantConfig::Custom) {
-			// Create participant by reference (XML not required)
-			participant_req = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id, domain_id,
-					  "px4_participant", UXR_REPLACE);
-
-		} else {
-			// Construct participant XML and create participant by XML
-			char participant_xml[PARTICIPANT_XML_SIZE];
-			int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
-					   (_participant_config == ParticipantConfig::LocalHostOnly) ?
-					   "<dds>"
-					   "<profiles>"
-					   "<transport_descriptors>"
-					   "<transport_descriptor>"
-					   "<transport_id>udp_localhost</transport_id>"
-					   "<type>UDPv4</type>"
-					   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
-					   "</transport_descriptor>"
-					   "</transport_descriptors>"
-					   "</profiles>"
-					   "<participant>"
-					   "<rtps>"
-					   :
-					   "<dds>"
-					   "<participant>"
-					   "<rtps>",
-					   _client_namespace != nullptr ?
-					   _client_namespace
-					   :
-					   "",
-					   (_participant_config == ParticipantConfig::LocalHostOnly) ?
-					   "<useBuiltinTransports>false</useBuiltinTransports>"
-					   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
-					   "</rtps>"
-					   "</participant>"
-					   "</dds>"
-					   :
-					   "</rtps>"
-					   "</participant>"
-					   "</dds>"
-					  );
-
-			if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
-				PX4_ERR("create entities failed: namespace too long");
-				return;
+		while (!should_exit()) {
+			if (!init()) {
+				px4_usleep(1'000'000);
+				PX4_ERR("init failed, will retry now");
+				continue;
 			}
 
-			participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, domain_id,
-					  participant_xml, UXR_REPLACE);
-		}
-
-		uint8_t request_status;
-
-		if (!uxr_run_session_until_all_status(&session, 1000, &participant_req, &request_status, 1)) {
-			PX4_ERR("create entities failed: participant: %i", request_status);
-			return;
-		}
-
-		if (!_pubs->init(&session, reliable_out, reliable_in, best_effort_in, participant_id, _client_namespace)) {
-			PX4_ERR("pubs init failed");
-			return;
-		}
-
-		// create VehicleCommand replier
-		if (num_of_repliers < MAX_NUM_REPLIERS) {
-			if (add_replier(new VehicleCommandSrv(&session, reliable_out, reliable_in, participant_id, _client_namespace,
-							      num_of_repliers))) {
-				PX4_ERR("replier init failed");
-				return;
+			if (!setup_session(&session)) {
+				delete_session(&session);
+				px4_usleep(1'000'000);
+				PX4_ERR("session setup failed, will retry now");
+				continue;
 			}
-		}
 
-		_connected = true;
-
-		// Set time-callback.
-		if (_synchronize_timestamps) {
-			uxr_set_time_callback(&session, on_time, &_timesync);
-
-		} else {
-			uxr_set_time_callback(&session, on_time_no_sync, nullptr);
-		}
-
-		uxr_set_request_callback(&session, on_request, this);
-
-		// Spin until sync with the Agent
-		while (_synchronize_timestamps) {
-			if (uxr_sync_session(&session, 1000) && _timesync.sync_converged()) {
-				PX4_INFO("synchronized with time offset %-5" PRId64 "us", session.time_offset / 1000);
-
-				if (_param_uxrce_dds_syncc.get() > 0) {
-					syncSystemClock(&session);
-				}
-
+			if (_comm && _connected) {
 				break;
 			}
+		}
 
-			px4_usleep(10_ms);
+		if (should_exit()) {
+			return;
 		}
 
 		hrt_abstime last_sync_session = 0;
@@ -464,48 +561,51 @@ void UxrceddsClient::run()
 		int poll_error_counter = 0;
 
 		_subs->init();
+		_subs_initialized = true;
 
 		while (!should_exit() && _connected) {
+			perf_begin(_loop_perf);
+			perf_count(_loop_interval_perf);
 
-			/* Wait for topic updates for max 1000 ms (1sec) */
-			int poll = px4_poll(&_subs->fds[0], (sizeof(_subs->fds) / sizeof(_subs->fds[0])), 1000);
+			int orb_poll_timeout_ms = 10;
 
-			/* Handle the poll results */
-			if (poll == 0) {
-				/* Timeout, no updates in selected uorbs */
-				continue;
+			int bytes_available = 0;
 
-			} else if (poll < 0) {
-				/* Error */
-				if (poll_error_counter < 10 || poll_error_counter % 50 == 0) {
-					/* Prevent flooding */
-					PX4_ERR("ERROR while polling uorbs: %d", poll);
+			if (ioctl(_fd, FIONREAD, (unsigned long)&bytes_available) == OK) {
+				if (bytes_available > 10) {
+					orb_poll_timeout_ms = 0;
 				}
-
-				poll_error_counter++;
-				continue;
 			}
 
-			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
+			/* Wait for topic updates for max 10 ms */
+			int poll = px4_poll(_subs->fds, (sizeof(_subs->fds) / sizeof(_subs->fds[0])), orb_poll_timeout_ms);
+
+			/* Handle the poll results */
+			if (poll > 0) {
+				_subs->update(&session, _reliable_out, _best_effort_out, _participant_id, _client_namespace);
+
+			} else {
+				if (poll < 0) {
+					// poll error
+					if (poll_error_counter < 10 || poll_error_counter % 50 == 0) {
+						// prevent flooding
+						PX4_ERR("ERROR while polling uorbs: %d", poll);
+					}
+
+					poll_error_counter++;
+				}
+			}
+
+			// run session with 0 timeout (non-blocking)
+			uxr_run_session_timeout(&session, 0);
 
 			// check if there are available replies
 			process_replies();
 
-			// Run the session until we receive no more data or up to a maximum number of iterations.
-			// The maximum observed number of iterations was 6 (SITL). If we were to run only once, data starts to get
-			// delayed, causing registered flight modes to time out.
-			for (int i = 0; i < 10; ++i) {
-				const uint32_t prev_num_payload_received = _pubs->num_payload_received;
-				uxr_run_session_timeout(&session, 0);
-
-				if (_pubs->num_payload_received == prev_num_payload_received) {
-					break;
-				}
-			}
-
 			// time sync session
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
-				if (uxr_sync_session(&session, 100) && _timesync.sync_converged()) {
+
+				if (uxr_sync_session(&session, 10) && _timesync.sync_converged()) {
 					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
 
@@ -513,6 +613,15 @@ void UxrceddsClient::run()
 						syncSystemClock(&session);
 					}
 				}
+
+				if (!_timesync_converged && _timesync.sync_converged()) {
+					PX4_INFO("time sync converged");
+
+				} else if (_timesync_converged && !_timesync.sync_converged()) {
+					PX4_WARN("time sync no longer converged");
+				}
+
+				_timesync_converged = _timesync.sync_converged();
 			}
 
 			handleMessageFormatRequest();
@@ -534,40 +643,45 @@ void UxrceddsClient::run()
 				last_status_update = now;
 			}
 
-			// Handle ping
-			if (now - last_ping > 500_ms) {
+			// Handle ping, unless we're actively sending & receiving payloads successfully
+			if ((_last_payload_tx_rate > 0) && (_last_payload_rx_rate > 0)) {
+				_connected = true;
+				num_pings_missed = 0;
 				last_ping = now;
 
-				if (had_ping_reply) {
-					num_pings_missed = 0;
+			} else {
+				if (hrt_elapsed_time(&last_ping) > 1_s) {
+					last_ping = now;
 
-				} else {
-					++num_pings_missed;
+					if (had_ping_reply) {
+						num_pings_missed = 0;
+
+					} else {
+						++num_pings_missed;
+					}
+
+					int timeout_ms = 1'000; // 1 second
+					uint8_t attempts = 1;
+					uxr_ping_agent_session(&session, timeout_ms, attempts);
+
+					had_ping_reply = false;
 				}
 
-				uxr_ping_agent_session(&session, 0, 1);
-
-				had_ping_reply = false;
+				if (num_pings_missed >= 3) {
+					PX4_INFO("No ping response, disconnecting");
+					_connected = false;
+				}
 			}
 
-			if (num_pings_missed > 2) {
-				PX4_INFO("No ping response, disconnecting");
-				_connected = false;
-			}
+			perf_end(_loop_perf);
 
 		}
 
-		delete_repliers();
-
-		uxr_delete_session_retries(&session, _connected ? 1 : 0);
-		_last_payload_tx_rate = 0;
-		_last_payload_tx_rate = 0;
-		_subs->reset();
-		_timesync.reset_filter();
+		delete_session(&session);
 	}
 }
 
-int UxrceddsClient::setBaudrate(int fd, unsigned baud)
+bool UxrceddsClient::setBaudrate(int fd, unsigned baud)
 {
 	int speed;
 
@@ -640,7 +754,7 @@ int UxrceddsClient::setBaudrate(int fd, unsigned baud)
 
 	default:
 		PX4_ERR("ERR: unknown baudrate: %d", baud);
-		return -EINVAL;
+		return false;
 	}
 
 	struct termios uart_config;
@@ -688,28 +802,28 @@ int UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
 		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
-		return -1;
+		return false;
 	}
 
 	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
 		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
-		return -1;
+		return false;
 	}
 
 	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
 		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
-		return -1;
+		return false;
 	}
 
-	return 0;
+	return true;
 }
 
 bool UxrceddsClient::add_replier(SrvBase *replier)
 {
-	if (num_of_repliers < MAX_NUM_REPLIERS) {
-		repliers_[num_of_repliers] = replier;
+	if (_num_of_repliers < MAX_NUM_REPLIERS) {
+		_repliers[_num_of_repliers] = replier;
 
-		num_of_repliers++;
+		_num_of_repliers++;
 	}
 
 	return false;
@@ -718,11 +832,12 @@ bool UxrceddsClient::add_replier(SrvBase *replier)
 void UxrceddsClient::process_requests(uxrObjectId object_id, SampleIdentity *sample_id, ucdrBuffer *ub,
 				      const int64_t time_offset_us)
 {
-	for (uint8_t i = 0; i < num_of_repliers; i++) {
-		if (object_id.id == repliers_[i]->replier_id_.id
-		    && object_id.type == repliers_[i]->replier_id_.type) {
-			repliers_[i]->process_request(ub, time_offset_us);
-			memcpy(&(repliers_[i]->sample_id_), sample_id, sizeof(repliers_[i]->sample_id_));
+	for (uint8_t i = 0; i < _num_of_repliers; i++) {
+		if (object_id.id == _repliers[i]->replier_id_.id
+		    && object_id.type == _repliers[i]->replier_id_.type) {
+
+			_repliers[i]->process_request(ub, time_offset_us);
+			memcpy(&(_repliers[i]->sample_id_), sample_id, sizeof(_repliers[i]->sample_id_));
 			break;
 		}
 	}
@@ -730,18 +845,19 @@ void UxrceddsClient::process_requests(uxrObjectId object_id, SampleIdentity *sam
 
 void UxrceddsClient::process_replies()
 {
-	for (uint8_t i = 0; i < num_of_repliers; i++) {
-		repliers_[i]->process_reply();
+	for (uint8_t i = 0; i < _num_of_repliers; i++) {
+		_repliers[i]->process_reply();
 	}
 }
 
 void UxrceddsClient::delete_repliers()
 {
-	for (uint8_t i = 0; i < num_of_repliers; i++) {
-		delete (repliers_[i]);
+	for (uint8_t i = 0; i < _num_of_repliers; i++) {
+		delete (_repliers[i]);
+		_repliers[i] = nullptr;
 	}
 
-	num_of_repliers = 0;
+	_num_of_repliers = 0;
 }
 
 int UxrceddsClient::custom_command(int argc, char *argv[])
@@ -754,7 +870,7 @@ int UxrceddsClient::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("uxrce_dds_client",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_DEFAULT,
-				      PX4_STACK_ADJUSTED(10000),
+				      PX4_STACK_ADJUSTED(8000),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -789,6 +905,11 @@ int UxrceddsClient::print_status()
 		PX4_INFO("Payload tx:          %i B/s", _last_payload_tx_rate);
 		PX4_INFO("Payload rx:          %i B/s", _last_payload_rx_rate);
 	}
+
+	PX4_INFO("timesync converged: %s", _timesync.sync_converged() ? "true" : "false");
+
+	perf_print_counter(_loop_perf);
+	perf_print_counter(_loop_interval_perf);
 
 	return 0;
 }
