@@ -66,7 +66,7 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 	_param_handles.yaw_ccw = param_find("CA_HELI_YAW_CCW");
 	_param_handles.spoolup_time = param_find("COM_SPOOLUP_TIME");
 	_param_handles.linearize_servos = param_find("CA_LIN_SERVO");
-	_param_handles.max_sevo_throw = param_find("CA_MAX_SVO_THROW");
+	_param_handles.max_servo_throw = param_find("CA_MAX_SVO_THROW");
 
 	updateParams();
 }
@@ -200,7 +200,7 @@ float ActuatorEffectivenessHelicopter::getLinearServoOutput(float input) const
 	input = math::constrain(input, -1.0f, 1.0f);
 
 	//servo output is calculated by normalizing input to arm rotation of CA_MAX_SVO_THROW degrees as full input for a linear throw
-	float svo_height = _geometry.max_sevo_height * input;
+	float svo_height = _geometry.max_servo_height * input;
 
 	if (!PX4_ISFINITE(svo_height)) {
 		svo_height = 0.0f;
