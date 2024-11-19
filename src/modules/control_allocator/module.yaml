@@ -568,7 +568,7 @@ parameters:
           description:
             short: linearize servo output
             long: |
-              This linearizes the swashplate servo's mechanical output to account for nonlinear output due to arm rotation. Should only be necessary with specific swashplate setups using 4 servos and requires specific setup to work properly. The servo arm must be centered on the mechanical throw at the servo trim position and the servo trim position kept as close to 1500 as possible. If the spline on the servo control horn is not allowing you to get the servo arm perpendicular to the shaft, the use the servo trim parameters to make them perpendicular to the shaft. Leveling the swashplate can only be done using the linkages. set your linkages so that the swashplate in its mid position will give you required collective for hover.
+              Linearize the servo's mechanical output attached to a 4-servos swashplate. Requires setting the servo range of motion using CA_MAX_SVO_THROW.
           type: boolean
           default: 0
         CA_MAX_SVO_THROW:
