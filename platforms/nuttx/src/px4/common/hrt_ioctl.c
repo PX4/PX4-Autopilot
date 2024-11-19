@@ -43,6 +43,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/spinlock.h>
 #include <queue.h>
 
 #ifndef MODULE_NAME
@@ -58,6 +59,14 @@ struct usr_hrt_call {
 static sq_queue_t callout_queue;
 static sq_queue_t callout_freelist;
 static sq_queue_t callout_inflight;
+
+/* SMP spinlock for g_hrt_ioctl_lock.
+ *
+ * Note: when SMP=no the spin lock turns into normal critical section i.e. it
+ * only disables interrupts
+ */
+
+static spinlock_t g_hrt_ioctl_lock = SP_UNLOCKED;
 
 /* Check if entry is in list */
 
@@ -124,7 +133,7 @@ static struct usr_hrt_call *dup_entry(const px4_hrt_handle_t handle, struct hrt_
 {
 	struct usr_hrt_call *e = NULL;
 
-	irqstate_t flags = px4_enter_critical_section();
+	irqstate_t flags = spin_lock_irqsave_wo_note(&g_hrt_ioctl_lock);
 
 	/* check if this is already queued */
 	e = pop_entry(&callout_queue, handle, entry);
@@ -134,7 +143,7 @@ static struct usr_hrt_call *dup_entry(const px4_hrt_handle_t handle, struct hrt_
 		e = (void *)sq_remfirst(&callout_freelist);
 	}
 
-	px4_leave_critical_section(flags);
+	spin_unlock_irqrestore_wo_note(&g_hrt_ioctl_lock, flags);
 
 	if (!e) {
 		/* Allocate a new kernel side item for the user call */
@@ -156,9 +165,9 @@ static struct usr_hrt_call *dup_entry(const px4_hrt_handle_t handle, struct hrt_
 		e->usr_entry = entry;
 
 		/* Add this to the callout_queue list */
-		flags = px4_enter_critical_section();
+		flags = spin_lock_irqsave_wo_note(&g_hrt_ioctl_lock);
 		sq_addfirst(&e->list_item, &callout_queue);
-		px4_leave_critical_section(flags);
+		spin_unlock_irqrestore_wo_note(&g_hrt_ioctl_lock, flags);
 
 	} else {
 		PX4_ERR("out of memory");
@@ -222,7 +231,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 			px4_sem_wait(callout_sem);
 
 			/* Atomically update the pointer to user side hrt entry */
-			flags = px4_enter_critical_section();
+			flags = spin_lock_irqsave_wo_note(&g_hrt_ioctl_lock);
 			e = pop_user(&callout_inflight, callout_sem);
 
 			if (e) {
@@ -241,7 +250,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 				PX4_ERR("HRT_WAITEVENT error no entry");
 			}
 
-			px4_leave_critical_section(flags);
+			spin_unlock_irqrestore_wo_note(&g_hrt_ioctl_lock, flags);
 		}
 		break;
 
@@ -279,7 +288,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 	case HRT_CANCEL:
 		if (h && h->entry) {
 			/* Find the user entry */
-			irqstate_t flags = px4_enter_critical_section();
+			irqstate_t flags = spin_lock_irqsave_wo_note(&g_hrt_ioctl_lock);
 			struct usr_hrt_call *e = pop_entry(&callout_queue, h->handle, h->entry);
 
 			if (e) {
@@ -288,7 +297,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 			}
 
-			px4_leave_critical_section(flags);
+			spin_unlock_irqrestore_wo_note(&g_hrt_ioctl_lock, flags);
 
 		} else {
 			PX4_ERR("HRT_CANCEL called with NULL entry");
@@ -330,7 +339,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 			struct usr_hrt_call *e;
 			irqstate_t flags;
 
-			flags = px4_enter_critical_section();
+			flags = spin_lock_irqsave_wo_note(&g_hrt_ioctl_lock);
 
 			while ((e = (void *)sq_remfirst(&callout_queue))) {
 				if (callback_sem == e->entry.callout_sem) {
@@ -343,7 +352,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 			px4_sem_destroy(callback_sem);
 
-			px4_leave_critical_section(flags);
+			spin_unlock_irqrestore_wo_note(&g_hrt_ioctl_lock, flags);
 
 			*(px4_sem_t **)arg = NULL;
 			kmm_free(callback_sem);
