@@ -92,7 +92,6 @@ private:
 	void				Run() override;
 	int				measure();
 	int				collect();
-
 	bool                            _crc_valid{false};
 	PX4Rangefinder                  _px4_rangefinder;
 

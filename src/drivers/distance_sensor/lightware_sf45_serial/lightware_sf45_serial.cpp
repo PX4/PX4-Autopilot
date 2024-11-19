@@ -102,7 +102,6 @@ int SF45LaserSerial::init()
 
 int SF45LaserSerial::measure()
 {
-
 	int rate = (int)_update_rate;
 	_data_output = 0x101; // raw distance + yaw readings
 	_stream_data = 5; // enable constant streaming
@@ -402,7 +401,6 @@ void SF45LaserSerial::print_info()
 
 void SF45LaserSerial::sf45_request_handle(uint8_t *input_buf)
 {
-
 	// SF45 protocol
 	// Start byte is 0xAA and is the start of packet
 	// Payload length sanity check (0-1023) bytes
