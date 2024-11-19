@@ -63,7 +63,6 @@ enum SF_SERIAL_STATE {
 };
 
 
-
 enum SensorOrientation {	  // Direction the sensor faces from MAV_SENSOR_ORIENTATION enum
 	ROTATION_FORWARD_FACING = 0,  // MAV_SENSOR_ROTATION_NONE
 	ROTATION_RIGHT_FACING = 2,    // MAV_SENSOR_ROTATION_YAW_90
@@ -79,14 +78,14 @@ public:
 	SF45LaserSerial(const char *port);
 	~SF45LaserSerial() override;
 
-	int 			        init();
+	int				init();
 	void				print_info();
-	void                            sf45_request_handle(int val, uint8_t *value);
-	void                            sf45_send(uint8_t msg_id, bool r_w, int *data, uint8_t data_len);
-	uint16_t                        sf45_format_crc(uint16_t crc, uint8_t data_value);
-	void                            sf45_process_replies(float *data);
-	uint8_t                         sf45_convert_angle(const int16_t yaw);
-	float                           sf45_wrap_360(float f);
+	void				sf45_request_handle(uint8_t *value);
+	void				sf45_send(uint8_t msg_id, bool r_w, int *data, uint8_t data_len);
+	uint16_t			sf45_format_crc(uint16_t crc, uint8_t data_value);
+	void				sf45_process_replies(float *data);
+	uint8_t				sf45_convert_angle(const int16_t yaw);
+	float				sf45_wrap_360(float f);
 
 private:
 	obstacle_distance_s 			_obstacle_map_msg{};
@@ -98,19 +97,19 @@ private:
 	void				Run() override;
 	int				measure();
 	int				collect();
-	bool                            _crc_valid{false};
+	bool				_crc_valid{false};
 
 	void 				_publish_obstacle_msg(hrt_abstime now);
 	uint64_t			_data_timestamps[BIN_COUNT];
 
 
 	char 				_port[20] {};
-	int	        		_interval{10000};
+	int				_interval{10000};
 	bool				_collect_phase{false};
 	int 				_fd{-1};
-	int         			_linebuf[256] {};
-	unsigned			_linebuf_index{0};
-	hrt_abstime 			_last_read{0};
+	uint8_t				_linebuf[SF45_MAX_PAYLOAD] {};
+	unsigned			_linebuf_size{0};
+	hrt_abstime			_last_read{0};
 
 	// SF45/B uses a binary protocol to include header,flags
 	// message ID, payload, and checksum

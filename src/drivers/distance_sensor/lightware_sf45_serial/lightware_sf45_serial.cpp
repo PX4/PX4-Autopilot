@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include "lightware_sf45_serial.hpp"
-#include "sf45_commands.h"
 
 #include <inttypes.h>
 #include <fcntl.h>
@@ -44,7 +43,6 @@
 #include <matrix/matrix/math.hpp>
 
 /* Configuration Constants */
-#define SF45_MAX_PAYLOAD 256
 #define SF45_SCALE_FACTOR 0.01f
 
 SF45LaserSerial::SF45LaserSerial(const char *port) :
@@ -105,7 +103,6 @@ int SF45LaserSerial::init()
 
 int SF45LaserSerial::measure()
 {
-
 	int rate = (int)_update_rate;
 	_data_output = 0x101; // raw distance + yaw readings
 	_stream_data = 5; // enable constant streaming
@@ -150,20 +147,13 @@ int SF45LaserSerial::collect()
 {
 	perf_begin(_sample_perf);
 
-	/* clear buffer if last read was too long ago */
 	int ret;
-	/* the buffer for read chars is buflen minus null termination */
-	uint8_t readbuf[SF45_MAX_PAYLOAD];
-
 	float distance_m = -1.0f;
-
-	/* read from the sensor (uart buffer) */
-
-
 
 	if (_sensor_state == STATE_SEND_PRODUCT_NAME) {
 
-		ret = ::read(_fd, &readbuf[0], 22);
+		const int payload_length = 22;
+		ret = ::read(_fd, &_linebuf[0], payload_length);
 
 		if (ret < 0) {
 			PX4_ERR("ERROR (ack from sending product name cmd): %d", ret);
@@ -172,12 +162,13 @@ int SF45LaserSerial::collect()
 			return ret;
 		}
 
-		sf45_request_handle(ret, readbuf);
+		sf45_request_handle(_linebuf);
 		ScheduleDelayed(_interval * 3);
 
 	} else if (_sensor_state == STATE_SEND_UPDATE_RATE) {
 
-		ret = ::read(_fd, &readbuf[0], 7);
+		const int payload_length = 7;
+		ret = ::read(_fd, &_linebuf[0], payload_length);
 
 		if (ret < 0) {
 			PX4_ERR("ERROR (ack from sending update rate cmd): %d", ret);
@@ -186,14 +177,15 @@ int SF45LaserSerial::collect()
 			return ret;
 		}
 
-		if (readbuf[3] == SF_UPDATE_RATE) {
-			sf45_request_handle(ret, readbuf);
+		if (ret == payload_length && _linebuf[3] == SF_UPDATE_RATE) {
+			sf45_request_handle(_linebuf);
 			ScheduleDelayed(_interval * 3);
 		}
 
 	} else if (_sensor_state == STATE_SEND_DISTANCE_DATA) {
 
-		ret = ::read(_fd, &readbuf[0], 8);
+		const int payload_length = 8;
+		ret = ::read(_fd, &_linebuf[0], payload_length);
 
 		if (ret < 0) {
 			PX4_ERR("ERROR (ack from sending distance data cmd): %d", ret);
@@ -202,46 +194,58 @@ int SF45LaserSerial::collect()
 			return ret;
 		}
 
-		if (readbuf[3] == SF_DISTANCE_OUTPUT) {
-			sf45_request_handle(ret, readbuf);
+		if (ret == payload_length && _linebuf[3] == SF_DISTANCE_OUTPUT) {
+			sf45_request_handle(_linebuf);
 			ScheduleDelayed(_interval * 3);
 		}
 
-		// Stream data from sensor
 
 	} else {
-		ret = ::read(_fd, &readbuf[0], 10);
+		// Stream data from sensor
+		const int payload_length = 10;
+
+		size_t max_read = sizeof(_linebuf) - _linebuf_size;
+		ret = ::read(_fd, &_linebuf[_linebuf_size], max_read);
+		_linebuf_size += ret;
 
 		if (ret < 0) {
 			PX4_ERR("ERROR (ack from streaming distance data): %d", ret);
+			_linebuf_size = 0;
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
 			return ret;
 		}
 
-		uint8_t flags_payload = (readbuf[1] >> 6) | (readbuf[2] << 2);
+		// Not enough data to parse a complete packet. Gather more data in the next cycle.
+		if (_linebuf_size < payload_length) {
+			return -EAGAIN;
+		}
 
-		// Process the incoming distance data
-		if (readbuf[3] == SF_DISTANCE_DATA_CM && flags_payload == 5) {
+		int index = _linebuf_size - payload_length;
 
-			for (uint8_t i = 0; i < ret; ++i) {
-				sf45_request_handle(ret, readbuf);
+		while (index >= 0) {
+			if (_linebuf[index] == 0xAA) {
+				uint8_t flags_payload = (_linebuf[index + 1] >> 6) | (_linebuf[index + 2] << 2);
+
+				// Process the incoming distance data
+				if (_linebuf[index + 3] == SF_DISTANCE_DATA_CM && flags_payload == 5) {
+					sf45_request_handle(&_linebuf[index]);
+
+					if (_init_complete && _crc_valid) {
+						sf45_process_replies(&distance_m);
+						_linebuf_size = 0;
+						break;
+					}
+				}
 			}
 
-			if (_init_complete) {
-				sf45_process_replies(&distance_m);
-			} // end if
+			index--;
+		}
 
-		} else {
-
-			ret = ::read(_fd, &readbuf[0], 10);
-
-			if (ret < 0) {
-				PX4_ERR("ERROR (unknown sensor data): %d", ret);
-				perf_count(_comms_errors);
-				perf_end(_sample_perf);
-				return ret;
-			}
+		// The buffer is filled. Either we can't keep up with the stream and/or it contains only invalid data. Reset to try again.
+		if (_linebuf_size >= sizeof(_linebuf)) {
+			_linebuf_size = 0;
+			perf_count(_comms_errors);
 		}
 	}
 
@@ -256,8 +260,7 @@ int SF45LaserSerial::collect()
 		return -EAGAIN;
 	}
 
-	PX4_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((_crc_valid) ? "OK" : "NO"));
-
+	PX4_DEBUG("val (float): %8.4f, valid: %s", (double)distance_m, ((_crc_valid) ? "OK" : "NO"));
 
 	perf_end(_sample_perf);
 
@@ -268,6 +271,9 @@ void SF45LaserSerial::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
+
+	/* reset the UART receive buffer size */
+	_linebuf_size = 0;
 
 	/* schedule a cycle to start things */
 	ScheduleNow();
@@ -394,9 +400,8 @@ void SF45LaserSerial::print_info()
 	perf_print_counter(_comms_errors);
 }
 
-void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
+void SF45LaserSerial::sf45_request_handle(uint8_t *input_buf)
 {
-
 	// SF45 protocol
 	// Start byte is 0xAA and is the start of packet
 	// Payload length sanity check (0-1023) bytes
