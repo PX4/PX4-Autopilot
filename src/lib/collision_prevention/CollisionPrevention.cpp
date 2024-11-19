@@ -371,12 +371,12 @@ CollisionPrevention::_checkSetpointDirectionFeasability()
 void
 CollisionPrevention::_transformSetpoint(const Vector2f &setpoint)
 {
-	_setpoint_dir = setpoint / setpoint.norm();;
-	const float sp_angle_body_frame = atan2f(_setpoint_dir(1), _setpoint_dir(0)) - _vehicle_yaw;
+	const float sp_angle_body_frame = atan2f(setpoint(1), setpoint(0)) - _vehicle_yaw;
 	const float sp_angle_with_offset_deg = _wrap_360(math::degrees(sp_angle_body_frame) -
 					       _obstacle_map_body_frame.angle_offset);
 	_setpoint_index = floor(sp_angle_with_offset_deg / BIN_SIZE);
 	// change setpoint direction slightly (max by _param_cp_guide_ang degrees) to help guide through narrow gaps
+	_setpoint_dir = setpoint.unit_or_zero();
 	_adaptSetpointDirection(_setpoint_dir, _setpoint_index, _vehicle_yaw);
 }
 
