@@ -25,6 +25,15 @@ then
 	mc_autotune_attitude_control start
 fi
 
+#
+# Start Vision Target Estimator.
+#
+
+if param greater -s VTE_EN 0
+then
+	vision_target_estimator start
+fi
+
 fw_rate_control start vtol
 fw_att_control start vtol
 fw_pos_control start vtol

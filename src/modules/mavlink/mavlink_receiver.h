@@ -119,6 +119,9 @@
 # include <uORB/topics/debug_key_value.h>
 # include <uORB/topics/debug_value.h>
 # include <uORB/topics/debug_vect.h>
+# include <uORB/topics/fiducial_marker_pos_report.h>
+# include <uORB/topics/fiducial_marker_yaw_report.h>
+# include <uORB/topics/target_gnss.h>
 #endif // !CONSTRAINED_FLASH
 
 using namespace time_literals;
@@ -218,6 +221,8 @@ private:
 	void handle_message_debug_float_array(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
+	void handle_message_target_relative(mavlink_message_t *msg);
+	void handle_message_target_absolute(mavlink_message_t *msg);
 #endif // !CONSTRAINED_FLASH
 	void handle_message_request_event(mavlink_message_t *msg);
 
@@ -337,6 +342,9 @@ private:
 	uORB::Publication<debug_key_value_s>			_debug_key_value_pub{ORB_ID(debug_key_value)};
 	uORB::Publication<debug_value_s>			_debug_value_pub{ORB_ID(debug_value)};
 	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub{ORB_ID(fiducial_marker_pos_report)};
+	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
+	uORB::Publication<target_gnss_s>		_target_gnss_pub{ORB_ID(target_gnss)};
 #endif // !CONSTRAINED_FLASH
 
 	// ORB publications (multi)

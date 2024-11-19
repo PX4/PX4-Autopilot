@@ -254,6 +254,11 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	// Update xy-position in case of landing position changes (etc. precision landing)
 	_land_position = Vector3f(_target(0), _target(1), NAN);
 
+	// Control yaw while landing
+	if (_param_pld_yaw_en.get()) {
+		_land_heading = _yaw_setpoint;
+	}
+
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
