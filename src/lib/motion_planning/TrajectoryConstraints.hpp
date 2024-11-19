@@ -74,15 +74,11 @@ inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, co
 
 	const bool target_next_different = distance_target_next  > 0.001f;
 	const bool waypoint_overlap = distance_target_next < config.xy_accept_rad;
-	const bool has_reached_altitude = fabsf(target(2) - start_position(2)) < config.z_accept_rad;
-	const bool altitude_stays_same = fabsf(next_target(2) - target(2)) < config.z_accept_rad;
 
 	float speed_at_target = 0.0f;
 
 	if (target_next_different &&
-	    !waypoint_overlap &&
-	    has_reached_altitude &&
-	    altitude_stays_same
+	    !waypoint_overlap
 	   ) {
 		const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
 						  Vector2f((target - next_target).xy()).unit_or_zero()));
