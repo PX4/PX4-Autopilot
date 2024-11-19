@@ -51,6 +51,8 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/rover_mecanum_setpoint.h>
+#include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/offboard_control_mode.h>
 
 // Standard libraries
 #include <lib/pid/PID.hpp>
@@ -106,6 +108,8 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 
 	// uORB Publications
 	uORB::Publication<rover_mecanum_setpoint_s> _rover_mecanum_setpoint_pub{ORB_ID(rover_mecanum_setpoint)};
@@ -136,6 +140,7 @@ private:
 		(ParamFloat<px4::params::RM_MAX_SPEED>) _param_rm_max_speed,
 		(ParamFloat<px4::params::RM_MAN_YAW_SCALE>) _param_rm_man_yaw_scale,
 		(ParamFloat<px4::params::RM_MAX_YAW_RATE>) _param_rm_max_yaw_rate,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max,
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad
 	)
 };

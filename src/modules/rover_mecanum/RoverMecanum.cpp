@@ -218,6 +218,65 @@ void RoverMecanum::Run()
 		_rover_mecanum_guidance.computeGuidance(_vehicle_yaw, _nav_state);
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: {
+			if (_trajectory_setpoint_sub.updated()) {
+				offboard_control_mode_s offboard_control_mode{};
+				_offboard_control_mode_sub.copy(&offboard_control_mode);
+
+				trajectory_setpoint_s trajectory_setpoint{};
+				_trajectory_setpoint_sub.copy(&trajectory_setpoint);
+
+
+				rover_mecanum_setpoint_s rover_mecanum_setpoint{};
+				rover_mecanum_setpoint.timestamp = timestamp;
+				rover_mecanum_setpoint.forward_speed_setpoint = NAN;
+				rover_mecanum_setpoint.forward_speed_setpoint_normalized = NAN;
+				rover_mecanum_setpoint.lateral_speed_setpoint = NAN;
+				rover_mecanum_setpoint.lateral_speed_setpoint_normalized = NAN;
+				rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
+				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
+				rover_mecanum_setpoint.yaw_setpoint = NAN;
+
+				// Translate trajectory setpoint to rover setpoints
+				if (offboard_control_mode.position) {
+					const Vector2f target_waypoint_ned(trajectory_setpoint.position[0], trajectory_setpoint.position[1]);
+
+					if (target_waypoint_ned.isAllFinite()) {
+						const float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
+
+						if (distance_to_target > _param_nav_acc_rad.get()) {
+							const float desired_heading = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned, _curr_pos_ned,
+										      _curr_pos_ned, _param_rm_max_speed.get());
+							const float heading_error = matrix::wrap_pi(desired_heading - _vehicle_yaw);
+							const Vector2f desired_velocity = _param_rm_max_speed.get() * Vector2f(cosf(heading_error), sinf(heading_error));
+							rover_mecanum_setpoint.forward_speed_setpoint = desired_velocity(0);
+							rover_mecanum_setpoint.lateral_speed_setpoint = desired_velocity(1);
+						}
+
+					}
+
+				} else if (offboard_control_mode.velocity) {
+					const Vector3f velocity_in_local_frame(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1],
+									       trajectory_setpoint.velocity[2]);
+					const Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
+
+					if (velocity_in_body_frame.isAllFinite()) {
+						rover_mecanum_setpoint.forward_speed_setpoint = velocity_in_body_frame(0);
+						rover_mecanum_setpoint.lateral_speed_setpoint = velocity_in_body_frame(1);
+					}
+				}
+
+				if (offboard_control_mode.attitude && PX4_ISFINITE(trajectory_setpoint.yaw)) {
+					rover_mecanum_setpoint.yaw_setpoint = trajectory_setpoint.yaw;
+
+				} else if (offboard_control_mode.body_rate && PX4_ISFINITE(trajectory_setpoint.yawspeed)) {
+					rover_mecanum_setpoint.yaw_rate_setpoint = trajectory_setpoint.yawspeed;
+				}
+
+				_rover_mecanum_setpoint_pub.publish(rover_mecanum_setpoint);
+			}
+		} break;
+
 	default: // Unimplemented nav states will stop the rover
 		rover_mecanum_setpoint_s rover_mecanum_setpoint{};
 		rover_mecanum_setpoint.timestamp = timestamp;
@@ -271,6 +330,7 @@ void RoverMecanum::updateSubscriptions()
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
+		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
 		Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
 		// Apply threshold to the velocity measurement to cut off measurement noise when standing still
