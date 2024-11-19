@@ -128,10 +128,15 @@ public:
 
 	bool isArmed() const { return _status.arming_state == vehicle_status_s::ARMING_STATE_ARMED; }
 
+	bool isArmingRequest() const { return _is_arming_request; }
+
+	void setIsArmingRequest(bool is_arming_request) { _is_arming_request = is_arming_request; }
+
 	const vehicle_status_s &status() const { return _status; }
 
 private:
 	const vehicle_status_s &_status;
+	bool _is_arming_request{false};	// true if we currently have an arming request
 };
 
 
@@ -376,7 +381,7 @@ bool Report::addEvent(uint32_t event_id, const events::LogLevels &log_levels, co
 		      Args... args)
 {
 	constexpr unsigned args_size = events::util::sizeofArguments(modes, args...);
-	static_assert(args_size <= sizeof(events::EventType::arguments), "Too many arguments");
+	static_assert(args_size <= sizeof(event_s::arguments), "Too many arguments");
 	unsigned total_size = sizeof(EventBufferHeader) + args_size;
 
 	if (total_size > sizeof(_event_buffer) - _next_buffer_idx) {

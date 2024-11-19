@@ -2,10 +2,6 @@
 	path = src/modules/mavlink/mavlink
 	url = https://github.com/mavlink/mavlink.git
 	branch = master
-[submodule "src/drivers/uavcan/libuavcan"]
-	path = src/drivers/uavcan/libuavcan
-	url = https://github.com/dronecan/libuavcan.git
-	branch = main
 [submodule "Tools/simulation/jmavsim/jMAVSim"]
 	path = Tools/simulation/jmavsim/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
@@ -71,7 +67,7 @@
 [submodule "src/modules/zenoh/zenoh-pico"]
 	path = src/modules/zenoh/zenoh-pico
 	url = https://github.com/px4/zenoh-pico
-	branch = pr-zubf-werror-fix
+	branch = dev/1.0.0-px4
 [submodule "src/lib/heatshrink/heatshrink"]
 	path = src/lib/heatshrink/heatshrink
 	url = https://github.com/PX4/heatshrink.git
@@ -83,3 +79,13 @@
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
 	path = boards/modalai/voxl2/libfc-sensor-api
 	url = https://gitlab.com/voxl-public/voxl-sdk/core-libs/libfc-sensor-api.git
+[submodule "src/drivers/actuators/vertiq_io/iq-module-communication-cpp"]
+	path = src/drivers/actuators/vertiq_io/iq-module-communication-cpp
+	url = https://github.com/PX4/iq-module-communication-cpp.git
+	branch = master
+[submodule "src/drivers/uavcan/libdronecan/dsdl"]
+	path = src/drivers/uavcan/libdronecan/dsdl
+	url = https://github.com/PX4/DSDL.git
+[submodule "src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan"]
+	path = src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan
+	url = https://github.com/dronecan/pydronecan

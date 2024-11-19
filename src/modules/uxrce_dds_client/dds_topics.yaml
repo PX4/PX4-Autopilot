@@ -44,6 +44,9 @@ publications:
   # - topic: /fmu/out/vehicle_angular_velocity
   #   type: px4_msgs::msg::VehicleAngularVelocity
 
+  - topic: /fmu/out/vehicle_land_detected
+    type: px4_msgs::msg::VehicleLandDetected
+
   - topic: /fmu/out/vehicle_attitude
     type: px4_msgs::msg::VehicleAttitude
 
@@ -126,9 +129,6 @@ subscriptions:
 
   - topic: /fmu/in/vehicle_rates_setpoint
     type: px4_msgs::msg::VehicleRatesSetpoint
-
-  - topic: /fmu/in/differential_drive_setpoint
-    type: px4_msgs::msg::DifferentialDriveSetpoint
 
   - topic: /fmu/in/vehicle_visual_odometry
     type: px4_msgs::msg::VehicleOdometry

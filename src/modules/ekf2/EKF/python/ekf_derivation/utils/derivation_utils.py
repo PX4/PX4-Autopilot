@@ -56,7 +56,7 @@ def generate_px4_function(function_name, output_names):
     codegen = Codegen.function(
             function_name,
             output_names=output_names,
-            config=CppConfig())
+            config=CppConfig(zero_initialization_sparsity_threshold=1))
     metadata = codegen.generate_function(
             output_dir="generated",
             skip_directory_nesting=True)

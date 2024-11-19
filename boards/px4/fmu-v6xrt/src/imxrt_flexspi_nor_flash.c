@@ -104,9 +104,10 @@ const struct flexspi_nor_config_s g_flash_fast_config = {
 		.busyBitPolarity = 0u,
 		.lookupTable =
 		{
-			/* Read */// EEH+11H+32bit addr+20dummy cycles+ 4Bytes read data    //200Mhz 18 dummy=10+8
+			/* Read */// EEH+11H+32bit addr+20dummy cycles+ 4Bytes read data
+			/* Macronix manual says 20 dummy cycles @ 200Mhz, FlexSPI peripheral Operand value needs to be 2N in DDR mode hence 0x28 */
 			[0 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0xEE, CMD_DDR, FLEXSPI_8PAD, 0x11),    //0x871187ee,
-			[0 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, DUMMY_DDR, FLEXSPI_8PAD, 0x04),//0xb3048b20,
+			[0 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, DUMMY_DDR, FLEXSPI_8PAD, 0x28),//0xb3288b20,
 			[0 + 2] = FLEXSPI_LUT_SEQ(READ_DDR, FLEXSPI_8PAD, 0x04, STOP_EXE, FLEXSPI_1PAD, 0x00), //0xa704,
 
 			/* Read status */

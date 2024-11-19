@@ -7,6 +7,10 @@
 #
 # @maintainer
 # @board px4_fmu-v2 exclude
+# @board cuav_x7pro exclude
+# @board px4_fmu-v4pro exclude
+# @board px4_fmu-v5x exclude
+# @board px4_fmu-v6x exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
@@ -36,7 +40,6 @@ param set-default COM_RC_LOSS_T 3
 
 
 # ekf2
-param set-default EKF2_TERR_MASK 1
 param set-default EKF2_BARO_NOISE 2
 
 param set-default EKF2_BCOEF_X 31.5

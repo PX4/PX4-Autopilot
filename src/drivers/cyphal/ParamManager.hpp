@@ -103,6 +103,10 @@ typedef struct {
 	bool is_persistent {true};
 } UavcanParamBinder;
 
+typedef struct {
+	const char *name;
+	const char *value;
+} CyphalTypeRegister;
 
 class UavcanParamManager
 {
@@ -116,8 +120,9 @@ public:
 private:
 
 
-	const UavcanParamBinder _uavcan_params[13] {
+	const UavcanParamBinder _uavcan_params[22] {
 		{"uavcan.pub.udral.esc.0.id",                	"UCAN1_ESC_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.pub.udral.readiness.0.id",            	"UCAN1_READ_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.udral.servo.0.id",              	"UCAN1_SERVO_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.udral.gps.0.id",                	"UCAN1_GPS_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.udral.actuator_outputs.0.id",   	"UCAN1_ACTR_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
@@ -130,7 +135,28 @@ private:
 		{"uavcan.sub.udral.legacy_bms.0.id",         	"UCAN1_LG_BMS_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.sub.uorb.sensor_gps.0.id",    		"UCAN1_UORB_GPS",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.uorb.sensor_gps.0.id",    		"UCAN1_UORB_GPS_P",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.zubax.feedback.0.id",            	"UCAN1_FB0_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.zubax.feedback.1.id",            	"UCAN1_FB1_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.zubax.feedback.2.id",            	"UCAN1_FB2_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.zubax.feedback.3.id",            	"UCAN1_FB3_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.zubax.feedback.4.id",            	"UCAN1_FB4_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.zubax.feedback.5.id",            	"UCAN1_FB5_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.zubax.feedback.6.id",            	"UCAN1_FB6_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.zubax.feedback.7.id",            	"UCAN1_FB7_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_SUB"}, //FIXME instancing
 		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_SUB"},
+	};
+
+	CyphalTypeRegister _type_registers[10] {
+		{"uavcan.pub.udral.esc.0.type", 		"reg.udral.service.actuator.common.sp.Vector31"},
+		{"uavcan.pub.udral.readiness.0.type", 		"reg.udral.service.common.Readiness.0.1"},
+		{"uavcan.sub.zubax.feedback.0.type", 		"zubax.telega.CompactFeedback.0.1"},
+		{"uavcan.sub.zubax.feedback.1.type", 		"zubax.telega.CompactFeedback.0.1"},
+		{"uavcan.sub.zubax.feedback.2.type", 		"zubax.telega.CompactFeedback.0.1"},
+		{"uavcan.sub.zubax.feedback.3.type", 		"zubax.telega.CompactFeedback.0.1"},
+		{"uavcan.sub.zubax.feedback.4.type", 		"zubax.telega.CompactFeedback.0.1"},
+		{"uavcan.sub.zubax.feedback.5.type", 		"zubax.telega.CompactFeedback.0.1"},
+		{"uavcan.sub.zubax.feedback.6.type", 		"zubax.telega.CompactFeedback.0.1"},
+		{"uavcan.sub.zubax.feedback.7.type", 		"zubax.telega.CompactFeedback.0.1"},
 	};
 };

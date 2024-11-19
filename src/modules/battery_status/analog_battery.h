@@ -35,6 +35,7 @@
 
 #include <battery/battery.h>
 #include <parameters/param.h>
+#include <uORB/topics/vehicle_status.h>
 
 class AnalogBattery : public Battery
 {
@@ -77,6 +78,7 @@ protected:
 		param_t a_per_v;
 		param_t v_channel;
 		param_t i_channel;
+		param_t i_overwrite;
 	} _analog_param_handles;
 
 	struct {
@@ -85,7 +87,14 @@ protected:
 		float a_per_v;
 		int32_t v_channel;
 		int32_t i_channel;
+		float i_overwrite;
 	} _analog_params;
 
 	virtual void updateParams() override;
+
+private:
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uint8_t _arming_state{0};
+
+	void updateTopics();
 };

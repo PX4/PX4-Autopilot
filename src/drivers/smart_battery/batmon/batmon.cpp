@@ -146,13 +146,11 @@ void Batmon::RunImpl()
 
 	// Convert millivolts to volts.
 	new_report.voltage_v = ((float)result) / 1000.0f;
-	new_report.voltage_filtered_v = new_report.voltage_v;
 
 	// Read current.
 	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
 	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
-	new_report.current_filtered_a = new_report.current_a;
 
 	// Read average current.
 	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
@@ -240,7 +238,7 @@ int Batmon::get_batmon_startup_info()
 	_cell_count = math::min((uint8_t)num_cells, (uint8_t)MAX_CELL_COUNT);
 
 	int32_t _num_cells = num_cells;
-	param_set(param_find("BAT_N_CELLS"), &_num_cells);
+	param_set(param_find("BAT1_N_CELLS"), &_num_cells);
 
 	return ret;
 }

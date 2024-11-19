@@ -100,7 +100,7 @@ bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
 	ModuleParams(nullptr),
-	_receiver(this)
+	_receiver(*this)
 {
 	// initialise parameter cache
 	mavlink_update_parameters();
@@ -438,12 +438,12 @@ Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 }
 
 bool
-Mavlink::component_was_seen(int system_id, int component_id, Mavlink *self)
+Mavlink::component_was_seen(int system_id, int component_id, Mavlink &self)
 {
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
-		if (inst && (inst != self) && (inst->_receiver.component_was_seen(system_id, component_id))) {
+		if (inst && (inst != &self) && (inst->_receiver.component_was_seen(system_id, component_id))) {
 			return true;
 		}
 	}
@@ -1074,6 +1074,21 @@ Mavlink::send_autopilot_capabilities()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_FENCE;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_RALLY;
+
+
+		{
+			param_t param_handle = param_find_no_notification("MNT_MODE_IN");
+			int32_t mnt_mode_in = 0;
+
+			if (mnt_mode_in != PARAM_INVALID) {
+				param_get(param_handle, &mnt_mode_in);
+
+				if (mnt_mode_in == 4) {
+					msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMPONENT_IMPLEMENTS_GIMBAL_MANAGER;
+				}
+			}
+		}
+
 		msg.flight_sw_version = px4_firmware_version();
 		msg.middleware_sw_version = px4_firmware_version();
 		msg.os_sw_version = px4_os_version();
@@ -1429,6 +1444,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
 		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
 		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
 		configure_stream_local("PING", 0.1f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.0f);
@@ -1452,6 +1468,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+		configure_stream_local("FUEL_STATUS", 1.0f);
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1495,6 +1514,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
 		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
 		configure_stream_local("PING", 1.0f);
@@ -1521,6 +1541,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+		configure_stream_local("FUEL_STATUS", 1.0f);
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1586,6 +1609,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 2.0f);
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+		configure_stream_local("FUEL_STATUS", 1.0f);
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1647,6 +1673,8 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
 		configure_stream_local("GPS_STATUS", 1.0f);
+		configure_stream_local("GIMBAL_DEVICE_ATTITUDE_STATUS", 0.5f);
+		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
 		configure_stream_local("HIGHRES_IMU", 50.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
@@ -1655,6 +1683,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
 		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
 		configure_stream_local("PING", 1.0f);
@@ -1684,6 +1713,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+		configure_stream_local("FUEL_STATUS", 2.0f);
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
 #endif // !CONSTRAINED_FLASH
 
 		break;
@@ -1744,6 +1776,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
 		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_ARM_STATUS", 1.f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
 		configure_stream_local("PING", 0.1f);
@@ -1767,6 +1800,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
+#if defined(MAVLINK_MSG_ID_FUEL_STATUS)
+		configure_stream_local("FUEL_STATUS", 1.0f);
+#endif // MAVLINK_MSG_ID_FUEL_STATUS
 #endif // !CONSTRAINED_FLASH
 		break;
 
@@ -1963,10 +1999,6 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 #endif
 
-//		case 'e':
-//			_mavlink_link_termination_allowed = true;
-//			break;
-
 		case 'm': {
 
 				int mode;
@@ -2094,11 +2126,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* USB has no baudrate, but use a magic number for 'fast' */
 		_baudrate = 2000000;
-
-		if (_mode == MAVLINK_MODE_COUNT) {
-			_mode = MAVLINK_MODE_CONFIG;
-		}
-
 		_ftp_on = true;
 		_is_usb_uart = true;
 
@@ -2223,11 +2250,24 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* open the UART device after setting the instance, as it might block */
 	if (get_protocol() == Protocol::SERIAL) {
-		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
 
-		if (_uart_fd < 0) {
-			PX4_ERR("could not open %s", _device_name);
-			return PX4_ERROR;
+		// NOTE: we attempt to open the port multiple times due to sercon returning before
+		// the port is ready to be opened. This avoids needing to sleep() after sercon_main.
+		int attempts = 0;
+		static const int max_attempts = 3;
+
+		while (_uart_fd < 0) {
+			_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
+			attempts++;
+
+			if (_uart_fd < 0 && attempts < max_attempts) {
+				PX4_ERR("could not open %s, retrying", _device_name);
+				px4_usleep(1_s);
+
+			} else if (_uart_fd < 0) {
+				PX4_ERR("failed to open %s after %d attempts, exiting!", _device_name, attempts);
+				return PX4_ERROR;
+			}
 		}
 	}
 
@@ -2255,9 +2295,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	_task_running.store(true);
 
-	bool cmd_logging_start_acknowledgement = false;
-	bool cmd_logging_stop_acknowledgement = false;
-
 	while (!should_exit()) {
 		/* main loop */
 		px4_usleep(_main_loop_delay);
@@ -2266,7 +2303,7 @@ Mavlink::task_main(int argc, char *argv[])
 			check_requested_subscriptions();
 			handleStatus();
 			handleCommands();
-			handleAndGetCurrentCommandAck(cmd_logging_start_acknowledgement, cmd_logging_stop_acknowledgement);
+			handleAndGetCurrentCommandAck();
 			continue;
 		}
 
@@ -2291,7 +2328,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		handleStatus();
 		handleCommands();
-		handleAndGetCurrentCommandAck(cmd_logging_start_acknowledgement, cmd_logging_stop_acknowledgement);
+		handleAndGetCurrentCommandAck();
 
 		/* check for shell output */
 		if (_mavlink_shell && _mavlink_shell->available() > 0) {
@@ -2330,25 +2367,15 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* check for ulog streaming messages */
 		if (_mavlink_ulog) {
-			if (cmd_logging_stop_acknowledgement) {
+			const int ret = _mavlink_ulog->handle_update(get_channel());
+
+			if (ret < 0) { // abort the streaming on error
+				if (ret != -1) {
+					PX4_WARN("mavlink ulog stream update failed, stopping (%i)", ret);
+				}
+
 				_mavlink_ulog->stop();
 				_mavlink_ulog = nullptr;
-
-			} else {
-				if (cmd_logging_start_acknowledgement) {
-					_mavlink_ulog->start_ack_received();
-				}
-
-				int ret = _mavlink_ulog->handle_update(get_channel());
-
-				if (ret < 0) { //abort the streaming on error
-					if (ret != -1) {
-						PX4_WARN("mavlink ulog stream update failed, stopping (%i)", ret);
-					}
-
-					_mavlink_ulog->stop();
-					_mavlink_ulog = nullptr;
-				}
 			}
 		}
 
@@ -2571,7 +2598,7 @@ void Mavlink::handleCommands()
 	}
 }
 
-void Mavlink::handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &logging_stop_ack)
+void Mavlink::handleAndGetCurrentCommandAck()
 {
 	if (_vehicle_command_ack_sub.updated()) {
 		static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
@@ -2601,6 +2628,20 @@ void Mavlink::handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &loggi
 					msg.target_system = command_ack.target_system;
 					msg.target_component = command_ack.target_component;
 
+					// Handle logging acks before sending out the mavlink message to prevent a race condition
+					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+						if (_mavlink_ulog) {
+							_mavlink_ulog->start_ack_received();
+						}
+
+					} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
+						   && command_ack.result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
+						if (_mavlink_ulog) {
+							_mavlink_ulog->stop();
+							_mavlink_ulog = nullptr;
+						}
+					}
+
 					if (_mode == MAVLINK_MODE_IRIDIUM) {
 						if (command_ack.from_external) {
 							// for MAVLINK_MODE_IRIDIUM send only if external
@@ -2611,13 +2652,6 @@ void Mavlink::handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &loggi
 						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
 					}
 
-					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
-						logging_start_ack = true;
-
-					} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
-						   && command_ack.result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
-						logging_stop_ack = true;
-					}
 				}
 			}
 		}

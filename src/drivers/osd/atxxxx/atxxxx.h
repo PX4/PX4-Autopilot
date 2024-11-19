@@ -111,7 +111,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// battery
-	float _battery_voltage_filtered_v{0.f};
+	float _battery_voltage_v{0.f};
 	float _battery_discharge_mah{0.f};
 	bool _battery_valid{false};
 

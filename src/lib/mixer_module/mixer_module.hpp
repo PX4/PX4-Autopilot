@@ -120,7 +120,7 @@ public:
 	 */
 	MixingOutput(const char *param_prefix, uint8_t max_num_outputs, OutputModuleInterface &interface,
 		     SchedulingPolicy scheduling_policy,
-		     bool support_esc_calibration, bool ramp_up = true);
+		     bool support_esc_calibration, bool ramp_up = true, const uint8_t instance_start = 1);
 
 	~MixingOutput();
 
@@ -221,7 +221,7 @@ private:
 
 	void cleanupFunctions();
 
-	void initParamHandles();
+	void initParamHandles(const uint8_t instance_start);
 
 	void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
 
@@ -295,7 +295,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
-		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
 		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac ///< thrust to motor control signal modelling factor
 	)
 };

@@ -32,13 +32,8 @@
 ############################################################################
 
 # Find the gz_Transport library
-# First look for GZ Harmonic libraries
-find_package(gz-transport NAMES gz-transport13)
-
-# If Harmonic not found, look for GZ Garden libraries
-if(NOT gz-transport_FOUND)
-	find_package(gz-transport NAMES gz-transport12)
-endif()
+# Look for GZ Ionic, Harmonic, and Garden library options in that order
+find_package(gz-transport NAMES gz-transport14 gz-transport13 gz-transport12)
 
 if(gz-transport_FOUND)
 
@@ -93,6 +88,8 @@ if(gz-transport_FOUND)
 		windy
 		baylands
   		lawn
+		aruco
+		rover
 	)
 
 	# find corresponding airframes

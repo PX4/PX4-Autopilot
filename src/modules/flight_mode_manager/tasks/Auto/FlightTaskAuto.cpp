@@ -452,7 +452,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_triplet_prev_wp(2) = -(_sub_triplet_setpoint.get().previous.alt - _reference_altitude);
 
 		} else {
-			_triplet_prev_wp = _position;
+			_triplet_prev_wp = _triplet_target;
 		}
 
 		_prev_was_valid = _sub_triplet_setpoint.get().previous.valid;
@@ -623,7 +623,7 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	}
 
 	// init projection
-	_reference_position.initReference(ref_lat, ref_lon);
+	_reference_position.initReference(ref_lat, ref_lon, _time_stamp_current);
 
 	// check if everything is still finite
 	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);
@@ -632,29 +632,27 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 State FlightTaskAuto::_getCurrentState()
 {
 	// Calculate the vehicle current state based on the Navigator triplets and the current position.
-	const Vector2f u_prev_to_target_xy = Vector2f(_triplet_target - _triplet_prev_wp).unit_or_zero();
-	const Vector2f pos_to_target_xy = Vector2f(_triplet_target - _position);
-	const Vector2f prev_to_pos_xy = Vector2f(_position - _triplet_prev_wp);
+	const Vector3f u_prev_to_target = (_triplet_target - _triplet_prev_wp).unit_or_zero();
+	const Vector3f prev_to_pos = _position - _triplet_prev_wp;
+	const Vector3f pos_to_target = _triplet_target - _position;
 	// Calculate the closest point to the vehicle position on the line prev_wp - target
-	const Vector2f closest_pt_xy = Vector2f(_triplet_prev_wp) + u_prev_to_target_xy * (prev_to_pos_xy *
-				       u_prev_to_target_xy);
-	_closest_pt = Vector3f(closest_pt_xy(0), closest_pt_xy(1), _triplet_target(2));
+	_closest_pt = _triplet_prev_wp + u_prev_to_target * (prev_to_pos * u_prev_to_target);
 
 	State return_state = State::none;
 
-	if (u_prev_to_target_xy.length() < FLT_EPSILON) {
+	if (!u_prev_to_target.longerThan(FLT_EPSILON)) {
 		// Previous and target are the same point, so we better don't try to do any special line following
 		return_state = State::none;
 
-	} else if (u_prev_to_target_xy * pos_to_target_xy < 0.0f) {
+	} else if (u_prev_to_target * pos_to_target < 0.0f) {
 		// Target is behind
 		return_state = State::target_behind;
 
-	} else if (u_prev_to_target_xy * prev_to_pos_xy < 0.0f && prev_to_pos_xy.longerThan(_target_acceptance_radius)) {
+	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.longerThan(_target_acceptance_radius)) {
 		// Previous is in front
 		return_state = State::previous_infront;
 
-	} else if (Vector2f(_position - _closest_pt).longerThan(_target_acceptance_radius)) {
+	} else if ((_position - _closest_pt).longerThan(_target_acceptance_radius)) {
 		// Vehicle too far from the track
 		return_state = State::offtrack;
 

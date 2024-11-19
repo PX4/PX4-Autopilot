@@ -82,6 +82,7 @@ uint16 VEHICLE_CMD_RUN_PREARM_CHECKS = 401      	# Instructs a target system to 
 uint16 VEHICLE_CMD_INJECT_FAILURE = 420			# Inject artificial failure for testing purposes
 uint16 VEHICLE_CMD_START_RX_PAIR = 500			# Starts receiver pairing |0:Spektrum| 0:Spektrum DSM2, 1:Spektrum DSMX|
 uint16 VEHICLE_CMD_REQUEST_MESSAGE = 512    		# Request to send a single instance of the specified message
+uint16 VEHICLE_CMD_REQUEST_CAMERA_INFORMATION = 521     # Request camera information (CAMERA_INFORMATION). |0: No action 1: Request camera capabilities| Reserved (all remaining params)| Reserved (default:0)| Reserved (default:0)| Reserved (default:0)| Reserved (default:0)| Reserved (default:0)|
 uint16 VEHICLE_CMD_SET_CAMERA_MODE = 530		# Set camera capture mode (photo, video, etc.)
 uint16 VEHICLE_CMD_SET_CAMERA_ZOOM = 531		# Set camera zoom
 uint16 VEHICLE_CMD_SET_CAMERA_FOCUS = 532
@@ -102,6 +103,7 @@ uint16 VEHICLE_CMD_FIXED_MAG_CAL_YAW = 42006            # Magnetometer calibrati
 uint16 VEHICLE_CMD_DO_WINCH = 42600			# Command to operate winch.
 
 uint16 VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE = 43003 # external reset of estimator global position when deadreckoning
+uint16 VEHICLE_CMD_EXTERNAL_WIND_ESTIMATE = 43004
 
 # PX4 vehicle commands (beyond 16 bit mavlink commands)
 uint32 VEHICLE_CMD_PX4_INTERNAL_START    = 65537        # start of PX4 internal only vehicle commands (> UINT16_MAX)
@@ -156,6 +158,14 @@ uint8 SPEED_TYPE_AIRSPEED = 0
 uint8 SPEED_TYPE_GROUNDSPEED = 1
 uint8 SPEED_TYPE_CLIMB_SPEED = 2
 uint8 SPEED_TYPE_DESCEND_SPEED = 3
+
+# used as param3 in CMD_DO_ORBIT
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER = 0
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING = 1
+uint8 ORBIT_YAW_BEHAVIOUR_UNCONTROLLED = 2
+uint8 ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE = 3
+uint8 ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED = 4
+uint8 ORBIT_YAW_BEHAVIOUR_UNCHANGED = 5
 
 # used as param1 in ARM_DISARM command
 int8 ARMING_ACTION_DISARM = 0

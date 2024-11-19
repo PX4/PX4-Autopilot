@@ -53,7 +53,7 @@
 
 using math::constrain;
 
-static constexpr unsigned get_lookup_table_index(float *val, float min, float max)
+static unsigned get_lookup_table_index(float *val, float min, float max)
 {
 	/* for the rare case of hitting the bounds exactly
 	 * the rounding logic wouldn't fit, so enforce it.
@@ -66,21 +66,21 @@ static constexpr unsigned get_lookup_table_index(float *val, float min, float ma
 	return static_cast<unsigned>((-(min) + *val) / SAMPLING_RES);
 }
 
-static constexpr float get_table_data(float lat, float lon, const int16_t table[LAT_DIM][LON_DIM])
+static float get_table_data(float latitude_deg, float longitude_deg, const int16_t table[LAT_DIM][LON_DIM])
 {
-	lat = math::constrain(lat, SAMPLING_MIN_LAT, SAMPLING_MAX_LAT);
+	latitude_deg = math::constrain(latitude_deg, SAMPLING_MIN_LAT, SAMPLING_MAX_LAT);
 
-	if (lon > SAMPLING_MAX_LON) {
-		lon -= 360;
+	if (longitude_deg > SAMPLING_MAX_LON) {
+		longitude_deg -= 360.f;
 	}
 
-	if (lon < SAMPLING_MIN_LON) {
-		lon += 360;
+	if (longitude_deg < SAMPLING_MIN_LON) {
+		longitude_deg += 360.f;
 	}
 
 	/* round down to nearest sampling resolution */
-	float min_lat = floorf(lat / SAMPLING_RES) * SAMPLING_RES;
-	float min_lon = floorf(lon / SAMPLING_RES) * SAMPLING_RES;
+	float min_lat = floorf(latitude_deg / SAMPLING_RES) * SAMPLING_RES;
+	float min_lon = floorf(longitude_deg / SAMPLING_RES) * SAMPLING_RES;
 
 	/* find index of nearest low sampling point */
 	unsigned min_lat_index = get_lookup_table_index(&min_lat, SAMPLING_MIN_LAT, SAMPLING_MAX_LAT);
@@ -92,8 +92,8 @@ static constexpr float get_table_data(float lat, float lon, const int16_t table[
 	const float data_nw = table[min_lat_index + 1][min_lon_index];
 
 	/* perform bilinear interpolation on the four grid corners */
-	const float lat_scale = constrain((lat - min_lat) / SAMPLING_RES, 0.f, 1.f);
-	const float lon_scale = constrain((lon - min_lon) / SAMPLING_RES, 0.f, 1.f);
+	const float lat_scale = constrain((latitude_deg - min_lat) / SAMPLING_RES, 0.f, 1.f);
+	const float lon_scale = constrain((longitude_deg - min_lon) / SAMPLING_RES, 0.f, 1.f);
 
 	const float data_min = lon_scale * (data_se - data_sw) + data_sw;
 	const float data_max = lon_scale * (data_ne - data_nw) + data_nw;
@@ -101,32 +101,27 @@ static constexpr float get_table_data(float lat, float lon, const int16_t table[
 	return lat_scale * (data_max - data_min) + data_min;
 }
 
-float get_mag_declination_radians(float lat, float lon)
+float get_mag_declination_degrees(float latitude_deg, float longitude_deg)
 {
-	return get_table_data(lat, lon, declination_table) * 1e-4f; // declination table stored as 10^-4 radians
+	// table stored as scaled degrees
+	return get_table_data(latitude_deg, longitude_deg, declination_table) * WMM_DECLINATION_SCALE_TO_DEGREES;
 }
 
-float get_mag_declination_degrees(float lat, float lon)
+float get_mag_inclination_degrees(float latitude_deg, float longitude_deg)
 {
-	return math::degrees(get_mag_declination_radians(lat, lon));
+	// table stored as scaled degrees
+	return get_table_data(latitude_deg, longitude_deg, inclination_table) * WMM_INCLINATION_SCALE_TO_DEGREES;
 }
 
-float get_mag_inclination_radians(float lat, float lon)
+float get_mag_strength_gauss(float latitude_deg, float longitude_deg)
 {
-	return get_table_data(lat, lon, inclination_table) * 1e-4f; // inclination table stored as 10^-4 radians
+	// 1 Gauss = 1e4 Tesla
+	return get_mag_strength_tesla(latitude_deg, longitude_deg) * 1e4f;
 }
 
-float get_mag_inclination_degrees(float lat, float lon)
+float get_mag_strength_tesla(float latitude_deg, float longitude_deg)
 {
-	return math::degrees(get_mag_inclination_radians(lat, lon));
-}
-
-float get_mag_strength_gauss(float lat, float lon)
-{
-	return get_table_data(lat, lon, strength_table) * 1e-4f; // strength table table stored as milli-Gauss * 10
-}
-
-float get_mag_strength_tesla(float lat, float lon)
-{
-	return get_mag_strength_gauss(lat, lon) * 1e-4f; // 1 Gauss == 0.0001 Tesla
+	// table stored as scaled nanotesla
+	return get_table_data(latitude_deg, longitude_deg, totalintensity_table)
+	       * WMM_TOTALINTENSITY_SCALE_TO_NANOTESLA * 1e-9f;
 }

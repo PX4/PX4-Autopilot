@@ -99,6 +99,7 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 	manual_control_setpoint_s manual_control_setpoint{};
 	orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &manual_control_setpoint);
 	control_data.type = ControlData::Type::Angle;
+	control_data.timestamp_last_update = manual_control_setpoint.timestamp;
 
 	float new_aux_values[3];
 
@@ -120,9 +121,12 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 		return false;
 	}();
 
-	if (already_active || major_movement) {
+	if (major_movement) {
 		control_data.sysid_primary_control = _parameters.mav_sysid;
 		control_data.compid_primary_control = _parameters.mav_compid;
+	}
+
+	if (already_active || major_movement) {
 
 		if (_parameters.mnt_rc_in_mode == 0) {
 			// We scale manual input from roll -180..180, pitch -90..90, yaw, -180..180 degrees.

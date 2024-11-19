@@ -9,6 +9,8 @@ uint8 BACKEND_MAVLINK = 2
 uint8 BACKEND_ALL     = 3
 uint8 backend
 
+bool is_logging
+
 float32 total_written_kb       # total written to log in kiloBytes
 float32 write_rate_kb_s        # write rate in kiloBytes/s
 

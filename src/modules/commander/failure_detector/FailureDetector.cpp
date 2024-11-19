@@ -416,10 +416,10 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 
 			// Check if ESC current is too low
 			if (cur_esc_report.esc_current > FLT_EPSILON) {
-				_motor_failure_escs_have_current = true;
+				_motor_failure_esc_has_current[i_esc] = true;
 			}
 
-			if (_motor_failure_escs_have_current) {
+			if (_motor_failure_esc_has_current[i_esc]) {
 				float esc_throttle = 0.f;
 
 				if (PX4_ISFINITE(actuator_motors.control[i_esc])) {

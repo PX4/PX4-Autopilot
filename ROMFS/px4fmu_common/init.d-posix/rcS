@@ -157,6 +157,7 @@ param set-default CBRK_SUPPLY_CHK 894281
 
 # disable check, no CPU load reported on posix yet
 param set-default COM_CPU_MAX -1
+param set-default COM_RAM_MAX -1
 
 # Don't require RC calibration and configuration
 param set-default COM_RC_IN_MODE 1
@@ -180,7 +181,7 @@ param set-default TRIG_INTERFACE 3
 param set-default SYS_FAILURE_EN 1
 # Enable low-battery actions by default for (automated) testing. Battery sim
 # does not go below 50% by default, but failure injection can trigger failsafes.
-param set-default COM_LOW_BAT_ACT 2
+param set-default COM_LOW_BAT_ACT 3
 
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.

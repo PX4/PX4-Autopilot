@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -207,16 +207,6 @@ static int gimbal_thread_main(int argc, char *argv[])
 			update_params(param_handles, params);
 		}
 
-		if (thread_data.last_input_active == -1) {
-			// Reset control as no one is active anymore, or yet.
-			thread_data.control_data.sysid_primary_control = 0;
-			thread_data.control_data.compid_primary_control = 0;
-			// If the output is set to AUX we still want the input to be able to control the gimbal
-			// via mavlink, so we set the device_compid to 1. This follows the mavlink spec which states
-			// that the gimbal_device_id should be between 1 and 6.
-			thread_data.control_data.device_compid = params.mnt_mode_out == 0 ? 1 : 0;
-		}
-
 		InputBase::UpdateResult update_result = InputBase::UpdateResult::NoUpdate;
 
 		if (thread_data.input_objs_len > 0) {
@@ -272,6 +262,11 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 			} else {
 				thread_data.output_obj->set_stabilize(false, false, false);
+			}
+
+			if (thread_data.output_obj->check_and_handle_setpoint_timeout(thread_data.control_data, hrt_absolute_time())) {
+				// Without flagging an update the changes are not processed in the output
+				update_result = InputBase::UpdateResult::UpdatedActive;
 			}
 
 			// Update output
@@ -374,27 +369,77 @@ int gimbal_main(int argc, char *argv[])
 		if (thread_running.load() && g_thread_data && g_thread_data->test_input) {
 
 			if (argc >= 4) {
-				bool found_axis = false;
-				const char *axis_names[3] = {"roll", "pitch", "yaw"};
-				int angles[3] = { 0, 0, 0 };
+
+				float roll_deg = 0.0f;
+				float pitch_deg = 0.0f;
+				float yaw_deg = 0.0f;
+				float rollrate_deg_s = 0.0f;
+				float pitchrate_deg_s = 0.0f;
+				float yawrate_deg_s = 0.0f;
+
+				bool angles_set = false;
+				bool rates_set = false;
 
 				for (int arg_i = 2 ; arg_i < (argc - 1); ++arg_i) {
-					for (int axis_i = 0; axis_i < 3; ++axis_i) {
-						if (!strcmp(argv[arg_i], axis_names[axis_i])) {
-							int angle_deg = (int)strtol(argv[arg_i + 1], nullptr, 0);
-							angles[axis_i] = angle_deg;
-							found_axis = true;
-						}
+
+					if (!strcmp(argv[arg_i], "roll")) {
+						roll_deg = (int)strtof(argv[arg_i + 1], nullptr);
+						angles_set = true;
+
+					} else if (!strcmp(argv[arg_i], "pitch")) {
+						pitch_deg = (int)strtof(argv[arg_i + 1], nullptr);
+						angles_set = true;
+
+					} else if (!strcmp(argv[arg_i], "yaw")) {
+						yaw_deg = (int)strtof(argv[arg_i + 1], nullptr);
+						angles_set = true;
+
+					} else if (!strcmp(argv[arg_i], "rollrate")) {
+						rollrate_deg_s = (int)strtof(argv[arg_i + 1], nullptr);
+						rates_set = true;
+
+					} else if (!strcmp(argv[arg_i], "pitchrate")) {
+						pitchrate_deg_s = (int)strtof(argv[arg_i + 1], nullptr);
+						rates_set = true;
+
+					} else if (!strcmp(argv[arg_i], "yawrate")) {
+						yawrate_deg_s = (int)strtof(argv[arg_i + 1], nullptr);
+						rates_set = true;
+
+					} else {
+						PX4_ERR("Unknown argument: %s", argv[arg_i]);
+						usage();
+						return -1;
 					}
 				}
 
-				if (!found_axis) {
+				if (angles_set && rates_set) {
+					PX4_ERR("This driver doesn't support both, angles and rates, to be set");
+					usage();
+					return -1;
+
+				} else if (angles_set) {
+					g_thread_data->test_input->set_test_input_angles(
+						roll_deg,
+						pitch_deg,
+						yaw_deg
+					);
+					return 0;
+
+				} else if (rates_set) {
+
+					g_thread_data->test_input->set_test_input_angle_rates(
+						rollrate_deg_s,
+						pitchrate_deg_s,
+						yawrate_deg_s
+					);
+					return 0;
+
+				} else {
+					PX4_ERR("No angles or angle rates set");
 					usage();
 					return -1;
 				}
-
-				g_thread_data->test_input->set_test_input(angles[0], angles[1], angles[2]);
-				return 0;
 			}
 
 		} else {
@@ -578,5 +623,6 @@ $ gimbal test pitch -45 yaw 30
 	PRINT_MODULE_USAGE_ARG("<sysid> <compid>", "MAVLink system ID and MAVLink component ID", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one or multiple axes (gimbal must be running)");
 	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
+	PRINT_MODULE_USAGE_ARG("rollrate|pitchrate|yawrate <angle rate>", "Specify an axis and an angle rate in degrees / second", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }

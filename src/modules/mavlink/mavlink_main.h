@@ -172,7 +172,7 @@ public:
 
 	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
 
-	static bool		component_was_seen(int system_id, int component_id, Mavlink *self = nullptr);
+	static bool		component_was_seen(int system_id, int component_id, Mavlink &self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
@@ -597,8 +597,6 @@ private:
 	 */
 	unsigned int		_mavlink_param_queue_index{0};
 
-	bool			_mavlink_link_termination_allowed{false};
-
 	char			*_subscribe_to_stream{nullptr};
 	float			_subscribe_to_stream_rate{0.0f};  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
 	bool			_udp_initialised{false};
@@ -710,7 +708,7 @@ private:
 
 	void handleCommands();
 
-	void handleAndGetCurrentCommandAck(bool &logging_start_ack, bool &logging_stop_ack);
+	void handleAndGetCurrentCommandAck();
 
 	void handleStatus();
 

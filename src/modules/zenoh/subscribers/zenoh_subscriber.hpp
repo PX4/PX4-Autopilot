@@ -55,14 +55,14 @@
 class Zenoh_Subscriber : public ListNode<Zenoh_Subscriber *>
 {
 public:
-	Zenoh_Subscriber(bool rostopic = true);
+	Zenoh_Subscriber();
 	virtual ~Zenoh_Subscriber();
 
-	virtual int declare_subscriber(z_session_t s, const char *keyexpr);
+	virtual int declare_subscriber(z_owned_session_t s, const char *keyexpr);
 
 	virtual int undeclare_subscriber();
 
-	virtual void data_handler(const z_sample_t *sample);
+	virtual void data_handler(const z_loaned_sample_t *sample);
 
 	virtual void print();
 
@@ -71,10 +71,4 @@ protected:
 
 	z_owned_subscriber_t _sub;
 	char _topic[60]; // The Topic name is somewhere is the Zenoh stack as well but no good api to fetch it.
-
-
-	// Indicates ROS2 Topic namespace
-	bool _rostopic;
-	const char *_rt_prefix = "rt/";
-	const size_t _rt_prefix_offset = 3; // "rt/" are 3 chars
 };

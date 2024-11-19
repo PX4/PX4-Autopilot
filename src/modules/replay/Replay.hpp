@@ -262,7 +262,9 @@ private:
 
 	///file parsing methods. They return false, when further parsing should be aborted.
 	bool readFormat(std::ifstream &file, uint16_t msg_size);
-	bool readAndAddSubscription(std::ifstream &file, uint16_t msg_size);
+
+	enum class ReadAndAndAddSubResult : uint8_t { kSuccess, kIgnoringMsg, kFailure };
+	ReadAndAndAddSubResult readAndAddSubscription(std::ifstream &file, uint16_t msg_size);
 	bool readFlagBits(std::ifstream &file, uint16_t msg_size);
 
 	/**

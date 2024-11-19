@@ -65,13 +65,15 @@ class Navigator;
 class MissionBase : public MissionBlock, public ModuleParams
 {
 public:
-	MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed);
+	MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed, uint8_t navigator_state_id);
 	~MissionBase() override = default;
 
 	virtual void on_inactive() override;
 	virtual void on_inactivation() override;
 	virtual void on_activation() override;
 	virtual void on_active() override;
+
+	virtual bool isLanding();
 
 protected:
 
@@ -314,6 +316,14 @@ protected:
 	 */
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
+	/**
+	 * @brief Set the Mission Index
+	 *
+	 * @param[in] index Index of the mission item
+	 */
+	void setMissionIndex(int32_t index);
+
+
 	bool _is_current_planned_mission_item_valid{false};	/**< Flag indicating if the currently loaded mission item is valid*/
 	bool _mission_has_been_activated{false};		/**< Flag indicating if the mission has been activated*/
 	bool _mission_checked{false};				/**< Flag indicating if the mission has been checked by the mission validator*/
@@ -321,6 +331,7 @@ protected:
 	mission_s _mission;					/**< Currently active mission*/
 	float _mission_init_climb_altitude_amsl{NAN}; 		/**< altitude AMSL the vehicle will climb to when mission starts */
 	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
+	int _mission_activation_index{-1};					/**< Index of the mission item that will bring the vehicle back to a mission waypoint */
 
 	int32_t _load_mission_index{-1}; /**< Mission inted of loaded mission items in dataman cache*/
 	int32_t _dataman_cache_size_signed; /**< Size of the dataman cache. A negativ value indicates that previous mission items should be loaded, a positiv value the next mission items*/
@@ -391,9 +402,14 @@ private:
 	void updateCachedItemsUpToIndex(int end_index);
 
 	/**
-	 * @brief Replay the cached gimbal and camera mode items
+	 * @brief Replay the cached gimbal items
 	 */
-	void replayCachedGimbalCameraItems();
+	void replayCachedGimbalItems();
+
+	/**
+	 * @brief Replay the cached camera mode items
+	 */
+	void replayCachedCameraModeItems();
 
 	/**
 	 * @brief Replay the cached trigger items
@@ -408,11 +424,18 @@ private:
 	void replayCachedSpeedChangeItems();
 
 	/**
-	 * @brief Check if there are cached gimbal or camera mode items to be replayed
+	 * @brief Check if there are cached gimbal items to be replayed
 	 *
 	 * @return true if there are cached items
 	 */
-	bool haveCachedGimbalOrCameraItems();
+	bool haveCachedGimbalItems();
+
+	/**
+	 * @brief Check if there are cached camera mode items to be replayed
+	 *
+	 * @return true if there are cached items
+	 */
+	bool haveCachedCameraModeItems();
 
 	/**
 	 * @brief Check if the camera was triggering
@@ -420,13 +443,6 @@ private:
 	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
 	 */
 	bool cameraWasTriggering();
-
-	/**
-	 * @brief Set the Mission Index
-	 *
-	 * @param[in] index Index of the mission item
-	 */
-	void setMissionIndex(int32_t index);
 
 	/**
 	 * @brief Parameters update

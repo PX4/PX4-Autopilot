@@ -55,8 +55,13 @@ float64 ref_lon				# Reference point longitude, (degrees)
 float32 ref_alt				# Reference altitude AMSL, (metres)
 
 # Distance to surface
-float32 dist_bottom			# Distance from from bottom surface to ground, (metres)
 bool dist_bottom_valid			# true if distance to bottom surface is valid
+float32 dist_bottom			# Distance from from bottom surface to ground, (metres)
+float32 dist_bottom_var                 # terrain estimate variance (m^2)
+
+float32 delta_dist_bottom               # Amount of vertical shift of dist bottom estimate in latest reset [m]
+uint8 dist_bottom_reset_counter         # Index of latest dist bottom estimate reset
+
 uint8 dist_bottom_sensor_bitfield	# bitfield indicating what type of sensor is used to estimate dist_bottom
 uint8 DIST_BOTTOM_SENSOR_NONE = 0
 uint8 DIST_BOTTOM_SENSOR_RANGE = 1	# (1 << 0) a range sensor is used to estimate dist_bottom field

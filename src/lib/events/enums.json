@@ -447,12 +447,12 @@
                             "description": "Transition to standby"
                         },
                         "1": {
-                            "name": "rc_stick",
-                            "description": "RC"
+                            "name": "stick_gesture",
+                            "description": "Stick gesture"
                         },
                         "2": {
                             "name": "rc_switch",
-                            "description": "RC (switch)"
+                            "description": "RC switch"
                         },
                         "3": {
                             "name": "command_internal",
@@ -631,7 +631,7 @@
                             "description": "Battery reported over-current"
                         },
                         "4": {
-                            "name": "fault_temperature",
+                            "name": "over_temperature",
                             "description": "Battery has reached a critical temperature which can result in a critical failure"
                         },
                         "5": {
@@ -640,7 +640,7 @@
                         },
                         "6": {
                             "name": "incompatible_voltage",
-                            "description": "Vehicle voltage is not compatible with battery one"
+                            "description": "Voltage mismatch, use equally charged batteries"
                         },
                         "7": {
                             "name": "incompatible_firmware",
@@ -655,26 +655,8 @@
                             "description": "Battery reported an hardware problem"
                         },
                         "10": {
-                            "name": "over_temperature",
-                            "description": "Battery is over-heating"
-                        }
-                    }
-                },
-                "battery_mode_t": {
-                    "type": "uint8_t",
-                    "description": "Smart battery modes of operation",
-                    "entries": {
-                        "0": {
-                            "name": "unknown",
-                            "description": "unknown"
-                        },
-                        "1": {
-                            "name": "autodischarging",
-                            "description": "auto discharging towards storage level"
-                        },
-                        "2": {
-                            "name": "hotswap",
-                            "description": "hot-swap"
+                            "name": "failed_to_arm",
+                            "description": "Battery failed to arm"
                         }
                     }
                 },

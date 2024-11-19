@@ -31,110 +31,116 @@
 #
 ############################################################################
 
+add_subdirectory(bias_estimator)
+add_subdirectory(output_predictor)
+
 set(EKF_LIBS)
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	bias_estimator.cpp
 	control.cpp
 	covariance.cpp
 	ekf.cpp
 	ekf_helper.cpp
 	estimator_interface.cpp
-	fake_height_control.cpp
-	fake_pos_control.cpp
 	height_control.cpp
-	imu_down_sampler.cpp
-	output_predictor.cpp
 	velocity_fusion.cpp
 	position_fusion.cpp
 	yaw_fusion.cpp
-	zero_innovation_heading_update.cpp
 
+	imu_down_sampler/imu_down_sampler.cpp
+
+	aid_sources/fake_height_control.cpp
+	aid_sources/fake_pos_control.cpp
 	aid_sources/ZeroGyroUpdate.cpp
 	aid_sources/ZeroVelocityUpdate.cpp
+	aid_sources/zero_innovation_heading_update.cpp
 )
 
 if(CONFIG_EKF2_AIRSPEED)
-	list(APPEND EKF_SRCS airspeed_fusion.cpp)
+	list(APPEND EKF_SRCS aid_sources/airspeed/airspeed_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
-	list(APPEND EKF_SRCS aux_global_position.cpp)
+	list(APPEND EKF_SRCS aid_sources/aux_global_position/aux_global_position.cpp)
 endif()
 
 if(CONFIG_EKF2_AUXVEL)
-	list(APPEND EKF_SRCS auxvel_fusion.cpp)
+	list(APPEND EKF_SRCS aid_sources/auxvel/auxvel_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_BAROMETER)
 	list(APPEND EKF_SRCS
-		baro_height_control.cpp
+		aid_sources/barometer/baro_height_control.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)
-	list(APPEND EKF_SRCS drag_fusion.cpp)
+	list(APPEND EKF_SRCS aid_sources/drag/drag_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_EXTERNAL_VISION)
 	list(APPEND EKF_SRCS
-		ev_control.cpp
-		ev_height_control.cpp
-		ev_pos_control.cpp
-		ev_vel_control.cpp
-		ev_yaw_control.cpp
+		aid_sources/external_vision/ev_control.cpp
+		aid_sources/external_vision/ev_height_control.cpp
+		aid_sources/external_vision/ev_pos_control.cpp
+		aid_sources/external_vision/ev_vel_control.cpp
+		aid_sources/external_vision/ev_yaw_control.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
-		gnss_height_control.cpp
-		gps_checks.cpp
-		gps_control.cpp
+		aid_sources/gnss/gnss_height_control.cpp
+		aid_sources/gnss/gps_checks.cpp
+		aid_sources/gnss/gps_control.cpp
 	)
+
+	if(CONFIG_EKF2_GNSS_YAW)
+		list(APPEND EKF_SRCS aid_sources/gnss/gnss_yaw_control.cpp)
+	endif()
 
 	add_subdirectory(yaw_estimator)
 	list(APPEND EKF_LIBS yaw_estimator)
 endif()
 
-if(CONFIG_EKF2_GNSS_YAW)
-	list(APPEND EKF_SRCS gps_yaw_fusion.cpp)
-endif()
-
 if(CONFIG_EKF2_GRAVITY_FUSION)
-	list(APPEND EKF_SRCS gravity_fusion.cpp)
+	list(APPEND EKF_SRCS aid_sources/gravity/gravity_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_MAGNETOMETER)
 	list(APPEND EKF_SRCS
-		mag_3d_control.cpp
-		mag_control.cpp
-		mag_fusion.cpp
+		aid_sources/magnetometer/mag_control.cpp
+		aid_sources/magnetometer/mag_fusion.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_OPTICAL_FLOW)
 	list(APPEND EKF_SRCS
-		optical_flow_control.cpp
-		optflow_fusion.cpp
+		aid_sources/optical_flow/optical_flow_control.cpp
+		aid_sources/optical_flow/optical_flow_fusion.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_RANGE_FINDER)
 	list(APPEND EKF_SRCS
-		range_finder_consistency_check.cpp
-		range_height_control.cpp
-		sensor_range_finder.cpp
+		aid_sources/range_finder/range_finder_consistency_check.cpp
+		aid_sources/range_finder/range_height_control.cpp
+		aid_sources/range_finder/range_height_fusion.cpp
+		aid_sources/range_finder/sensor_range_finder.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_SIDESLIP)
-	list(APPEND EKF_SRCS sideslip_fusion.cpp)
+	list(APPEND EKF_SRCS aid_sources/sideslip/sideslip_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_TERRAIN)
-	list(APPEND EKF_SRCS terrain_estimator.cpp)
+	list(APPEND EKF_SRCS terrain_control.cpp)
 endif()
+
+if(CONFIG_EKF2_WIND)
+	list(APPEND EKF_SRCS wind.cpp)
+endif ()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_library(ecl_EKF
@@ -146,7 +152,9 @@ target_include_directories(ecl_EKF PUBLIC ${EKF_GENERATED_DERIVATION_INCLUDE_PAT
 
 target_link_libraries(ecl_EKF
 	PRIVATE
+		bias_estimator
 		geo
+		output_predictor
 		world_magnetic_model
 		${EKF_LIBS}
 )

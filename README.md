@@ -63,8 +63,9 @@ Note: This is the source of truth for the active maintainers of PX4 ecosystem.
 | Multirotor | [Matthias Grob](https://github.com/MaEtUgR) |
 | Fixed Wing | [Thomas Stastny](https://github.com/tstastny) |
 | Hybrid VTOL | [Silvan Fuhrer](https://github.com/sfuhrer) |
+| Rover | [Christian Friedrich](https://github.com/chfriedrich98) |
 | Boat | x |
-| Rover | x |
+
 
 See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/PX4-Autopilot/graphs/contributors) (Github). However it may be not up to date.
 
@@ -118,7 +119,7 @@ These boards don't fully comply industry standards, and thus is solely maintaine
 
 ### Experimental
 
-These boards are nor maintained by PX4 team nor Manufacturer, and is not guaranteed to be compatible with up to date PX4 releases.
+These boards are not maintained by PX4 team nor Manufacturer, and is not guaranteed to be compatible with up to date PX4 releases.
 
 * [Raspberry PI with Navio 2](https://docs.px4.io/main/en/flight_controller/raspberry_pi_navio2.html)
 * [Bitcraze Crazyflie 2.0](https://docs.px4.io/main/en/complete_vehicles/crazyflie2.html)

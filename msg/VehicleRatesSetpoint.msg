@@ -1,6 +1,6 @@
 uint64 timestamp	# time since system start (microseconds)
 
-# body angular rates in NED frame
+# body angular rates in FRD frame
 float32 roll		# [rad/s] roll rate setpoint
 float32 pitch		# [rad/s] pitch rate setpoint
 float32 yaw		# [rad/s] yaw rate setpoint

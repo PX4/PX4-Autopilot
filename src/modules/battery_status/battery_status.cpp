@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file sensors.cpp
+ * @file battery_status.cpp
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Julian Oes <julian@oes.ch>

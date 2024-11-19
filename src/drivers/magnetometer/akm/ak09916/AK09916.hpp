@@ -64,6 +64,30 @@ public:
 	void print_status() override;
 
 private:
+	enum class AKTYPE : uint8_t {
+		AK09916 = 0X09,
+		AK09915 = 0X10,
+		AK09918 = 0x0c,
+	};
+
+	constexpr char const *device_name()
+	{
+		switch (_device) {
+		case AKTYPE::AK09916:
+			return "AK09916";
+
+		case AKTYPE::AK09915:
+			return "AK09915";
+
+		case AKTYPE::AK09918:
+			return "AK09918";
+
+		default:
+			return "Unknown";
+
+		};
+	}
+
 	struct register_config_t {
 		Register reg;
 		uint8_t set_bits{0};
@@ -107,5 +131,5 @@ private:
 		{ Register::CNTL2,   CNTL2_BIT::MODE3_SET, CNTL2_BIT::MODE3_CLEAR },
 	};
 
-	bool _is_ak09918 {false};
+	AKTYPE _device;
 };

@@ -111,6 +111,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v6xrt_bootloader
+    3dr_ctrl-zero-h7-oem-revg_default:
+      short: 3dr_ctrl-zero-h7-oem-revg
+      buildType: MinSizeRel
+      settings:
+        CONFIG: 3dr_ctrl-zero-h7-oem-revg_default
     airmind_mindpx-v2_default:
       short: airmind_mindpx-v2
       buildType: MinSizeRel
@@ -151,16 +156,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-rtk-gps_canbootloader
-    ark_septentrio_gps_default:
-      short: ark_septentrio_gps_default
+    ark_septentrio-gps_default:
+      short: ark_septentrio-gps_default
       buildType: MinSizeRel
       settings:
-        CONFIG: ark_septentrio_gps_default
-    ark_septentrio_gps_canbootloader:
-      short: ark_septentrio_gps_canbootloader
+        CONFIG: ark_septentrio-gps_default
+    ark_septentrio-gps_canbootloader:
+      short: ark_septentrio-gps_canbootloader
       buildType: MinSizeRel
       settings:
-        CONFIG: ark_septentrio_gps_canbootloader
+        CONFIG: ark_septentrio-gps_canbootloader
     ark_cannode_default:
       short: ark_cannode_default
       buildType: MinSizeRel
@@ -181,6 +186,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_fmu-v6x_default
+    ark_fpv_bootloader:
+      short: ark_fpv_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_fpv_bootloader
+    ark_fpv_default:
+      short: ark_fpv_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_fpv_default
     ark_pi6x_bootloader:
       short: ark_pi6x_bootloader
       buildType: MinSizeRel
@@ -226,6 +241,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x7pro_default
+    cuav_7-nano_default:
+      short: cuav_7-nano
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_7-nano_default
     cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
@@ -281,6 +301,21 @@ CONFIG:
       buildType: MiniSizeRel
       settings:
         CONFIG: matek_gnss-m9n-f4_default
+    micoair_h743_default:
+      short: micoair_h743
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743_default
+    micoair_h743-aio_bootloader:
+      short: micoair_h743-aio_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-aio_bootloader
+    micoair_h743-aio_default:
+      short: micoair_h743-aio
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-aio_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel
@@ -331,8 +366,33 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_mr-canhubk3_fmu
+    nxp_tropic-community_default:
+      short: nxp_tropic-community_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_tropic-community_default
     raspberrypi_pico_default:
       short: raspberrypi_pico
       buildType: MinSizeRel
       settings:
         CONFIG: raspberrypi_pico_default
+    zeroone_x6_default:
+      short: zeroone_x6
+      buildType: MinSizeRel
+      settings:
+        CONFIG: zeroone_x6_default
+    zeroone_x6_bootloader:
+      short: zeroone_x6_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: zeroone_x6_bootloader
+    x-mav_ap-h743v2_bootloader:
+      short: x-mav_ap-h743v2-boot
+      buildType: MinSizeRel
+      settings:
+        CONFIG: x-mav_ap-h743v2_bootloader
+    x-mav_ap-h743v2_default:
+      short: x-mav_ap-h743v2
+      buildType: MinSizeRel
+      settings:
+        CONFIG: x-mav_ap-h743v2_default

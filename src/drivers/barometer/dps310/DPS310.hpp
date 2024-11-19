@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file DPS310.cpp
+ * @file DPS310.hpp
  *
  * Driver for the Infineon DPS310 barometer connected via I2C or SPI.
  */

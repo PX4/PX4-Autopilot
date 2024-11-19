@@ -57,6 +57,7 @@ private:
 	bool _battery_connected_at_arming[battery_status_s::MAX_INSTANCES] {};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamFloat<px4::params::COM_ARM_BAT_MIN>) _param_arm_battery_level_min
+					(ParamFloat<px4::params::COM_ARM_BAT_MIN>) _param_com_arm_bat_min,
+					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk
 				       )
 };

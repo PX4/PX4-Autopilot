@@ -164,37 +164,8 @@ void VtolType::update_transition_state()
 	_time_since_trans_start = (float)(t_now - _transition_start_timestamp) * 1e-6f;
 
 	check_quadchute_condition();
-}
 
-float VtolType::update_and_get_backtransition_pitch_sp()
-{
-	// maximum up or down pitch the controller is allowed to demand
-	const float pitch_lim = 0.3f;
-	const Eulerf euler(Quatf(_v_att->q));
-
-	const float track = atan2f(_local_pos->vy, _local_pos->vx);
-	const float accel_body_forward = cosf(track) * _local_pos->ax + sinf(track) * _local_pos->ay;
-
-	// increase the target deceleration setpoint provided to the controller by 20%
-	// to make overshooting the transition waypoint less likely in the presence of tracking errors
-	const float dec_sp = _param_vt_b_dec_mss.get() * 1.2f;
-
-	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
-	const float accel_error_forward = dec_sp + accel_body_forward;
-
-	const float pitch_sp_new = _accel_to_pitch_integ;
-
-	float integrator_input = _param_vt_b_dec_i.get() * accel_error_forward;
-
-	if ((pitch_sp_new >= pitch_lim && accel_error_forward > 0.0f) ||
-	    (pitch_sp_new <= 0.f && accel_error_forward < 0.0f)) {
-		integrator_input = 0.0f;
-	}
-
-	_accel_to_pitch_integ += integrator_input * _transition_dt;
-
-	// only allow positive (pitch up) pitch setpoint
-	return math::constrain(pitch_sp_new, 0.f, pitch_lim);
+	_last_thr_in_mc = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 }
 
 bool VtolType::isFrontTransitionCompleted()
@@ -324,7 +295,7 @@ void VtolType::handleEkfResets()
 		_altitude_reset_counter = _local_pos->z_reset_counter;
 
 		if (PX4_ISFINITE(_quadchute_ref_alt)) {
-			_quadchute_ref_alt += _local_pos->delta_z;
+			_quadchute_ref_alt -= _local_pos->delta_z;
 		}
 
 	}
@@ -561,10 +532,10 @@ float VtolType::pusher_assist()
 		tilt_new = R_yaw_correction * tilt_new;
 
 		// now extract roll and pitch setpoints
-		_v_att_sp->pitch_body = atan2f(tilt_new(0), tilt_new(2));
-		_v_att_sp->roll_body = -asinf(tilt_new(1));
+		const float pitch_body = atan2f(tilt_new(0), tilt_new(2));
+		const float roll_body = -asinf(tilt_new(1));
 
-		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, euler_sp(2)));
+		const Quatf q_sp(Eulerf(roll_body, pitch_body, euler_sp(2)));
 		q_sp.copyTo(_v_att_sp->q_d);
 	}
 

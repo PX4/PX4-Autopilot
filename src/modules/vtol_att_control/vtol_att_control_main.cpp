@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file VTOL_att_control_main.cpp
+ * @file vtol_att_control_main.cpp
  * Implementation of an attitude controller for VTOL airframes. This module receives data
  * from both the fixed wing- and the multicopter attitude controllers and processes it.
  * It computes the correct actuator controls depending on which mode the vehicle is in (hover, forward-
@@ -284,9 +284,9 @@ VtolAttitudeControl::Run()
 		return;
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
-
 #if !defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+	const hrt_abstime now = hrt_absolute_time();
 
 	// prevent excessive scheduling (> 500 Hz)
 	if (now - _last_run_timestamp < 2_ms) {
@@ -294,9 +294,6 @@ VtolAttitudeControl::Run()
 	}
 
 #endif // !ENABLE_LOCKSTEP_SCHEDULER
-
-	const float dt = math::min((now - _last_run_timestamp) / 1e6f, kMaxVTOLAttitudeControlTimeStep);
-	_last_run_timestamp = now;
 
 	if (!_initialized) {
 
@@ -308,8 +305,6 @@ VtolAttitudeControl::Run()
 			return;
 		}
 	}
-
-	_vtol_type->setDt(dt);
 
 	perf_begin(_loop_perf);
 

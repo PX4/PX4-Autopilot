@@ -121,7 +121,7 @@ private:
 	struct {
 		matrix::Vector3f X{};                       // Vel North (m/s),  Vel East (m/s), yaw (rad)s
 		matrix::SquareMatrix<float, 3> P{};         // covariance matrix
-		matrix::SquareMatrix<float, 2> S_inverse{}; // inverse of the innovation covariance matrix
+		float nis{};                                // normalized innovation squared
 		float S_det_inverse{};                      // inverse of the innovation covariance matrix determinant
 		matrix::Vector2f innov{};                   // Velocity N,E innovation (m/s)
 	} _ekf_gsf[N_MODELS_EKFGSF] {};

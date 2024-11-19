@@ -264,7 +264,9 @@ private:
 		vehicle_attitude_setpoint_s attitude_sp;
 
 		if (_attitude_sp_sub.update(&attitude_sp)) {
-			msg->target_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
+
+			msg->target_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(matrix::Eulerf(matrix::Quatf(
+						      attitude_sp.q_d)).psi())) * 0.5f);
 			return true;
 		}
 
@@ -309,8 +311,7 @@ private:
 
 		if (_estimator_status_sub.update(&estimator_status)) {
 			if (estimator_status.gps_check_fail_flags > 0 ||
-			    estimator_status.filter_fault_flags > 0 ||
-			    estimator_status.innovation_check_flags > 0) {
+			    estimator_status.filter_fault_flags > 0) {
 
 				msg->failure_flags |= HL_FAILURE_FLAG_ESTIMATOR;
 			}

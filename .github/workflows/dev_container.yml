@@ -1,0 +1,45 @@
+
+name: Container build
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'stable'
+      - 'beta'
+      - 'release/**'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    name: Build Container
+    runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu24-full-x64","run-id=${{ github.run_id }}"]
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          submodules: false
+
+      - name: Build and load container image
+        uses: docker/build-push-action@v6
+        with:
+          context: Tools/setup
+          tags: px4-dev:latest
+          platforms: |
+            linux/amd64
+          load: true
+          push: false
+
+      - name: make quick_check
+        uses: addnab/docker-run-action@v3
+        with:
+          image: px4-dev:latest
+          options: -v ${{ github.workspace }}:/workspace
+          run: |
+            cd /workspace
+            git config --global --add safe.directory /workspace
+            make px4_sitl_default
+            make px4_fmu-v6x_default
