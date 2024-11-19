@@ -108,7 +108,7 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	_geometry.linearize_servos = (linearize_servos != 0);
 	float max_servo_throw_deg = 0.f;
 	param_get(_param_handles.max_servo_throw, &max_servo_throw_deg);
-	const float max_servo_throw = math::radians(max_servo_throw);
+	const float max_servo_throw = math::radians(max_servo_throw_deg);
 	_geometry.max_servo_height = sinf(max_servo_throw);
 	_geometry.inverse_max_servo_throw = 1.f / max_servo_throw;
 }
