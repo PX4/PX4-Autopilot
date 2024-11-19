@@ -40,6 +40,16 @@ PX4Magnetometer::PX4Magnetometer(uint32_t device_id, enum Rotation rotation) :
 	_device_id{device_id},
 	_rotation{rotation}
 {
+	// Publish initial 0 data just for the sensors module to find
+	// this device, in case "sensors" module start up before initialization
+	// of the magnetometer is not fully complete
+
+	// TODO: This is a workaround. The "sensors" module should find the mags
+	// which start publishing data later
+
+	sensor_mag_s report = {};
+	report.device_id = _device_id;
+	_sensor_pub.publish(report);
 }
 
 PX4Magnetometer::~PX4Magnetometer()
