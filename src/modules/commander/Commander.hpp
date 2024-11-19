@@ -200,6 +200,9 @@ private:
 
 	void modeManagementUpdate();
 
+	static void onFailsafeNotifyUserTrampoline(void *arg);
+	void onFailsafeNotifyUser();
+
 	enum class PrearmedMode {
 		DISABLED = 0,
 		SAFETY_BUTTON = 1,

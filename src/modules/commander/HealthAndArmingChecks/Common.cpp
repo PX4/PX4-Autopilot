@@ -317,3 +317,12 @@ bool Report::report(bool is_armed, bool force)
 			       current_results.health.error, current_results.health.warning);
 	return true;
 }
+
+bool Report::reportIfUnreportedDifferences(bool is_armed)
+{
+	if (_had_unreported_difference) {
+		return report(is_armed, true);
+	}
+
+	return false;
+}

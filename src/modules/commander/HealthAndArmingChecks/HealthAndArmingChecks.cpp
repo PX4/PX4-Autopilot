@@ -120,3 +120,8 @@ void HealthAndArmingChecks::updateParams()
 		_checks[i]->updateParams();
 	}
 }
+
+bool HealthAndArmingChecks::reportIfUnreportedDifferences()
+{
+	return _reporter.reportIfUnreportedDifferences(_context.isArmed());
+}
