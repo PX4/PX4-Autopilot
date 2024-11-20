@@ -43,9 +43,6 @@ import em
 import yaml
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--topic-msg-dir", dest='msgdir', type=str,
-                    help="Topics message, by default using relative path 'msg/'", default="msg")
-
 parser.add_argument("-y", "--dds-topics-file", dest='yaml_file', type=str,
                     help="Setup topics file path, by default using 'dds_topics.yaml'")
 
