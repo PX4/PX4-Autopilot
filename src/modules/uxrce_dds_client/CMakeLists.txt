@@ -117,7 +117,6 @@ else()
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
-			--topic-msg-dir ${PX4_SOURCE_DIR}/msg
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
 			--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
 			--template_file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.h.em
