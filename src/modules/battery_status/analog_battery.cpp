@@ -71,15 +71,47 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 
 	snprintf(param_name, sizeof(param_name), "BAT%d_I_OVERWRITE", index);
 	_analog_param_handles.i_overwrite = param_find(param_name);
+
+#if defined(BOARD_BATTERY_ADC_VOLTAGE_FILTER_S) || defined(BOARD_BATTERY_ADC_CURRENT_FILTER_S)
+	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1e6f;
+#endif
+
+#ifdef BOARD_BATTERY_ADC_VOLTAGE_FILTER_S
+	_voltage_filter.setParameters(expected_filter_dt, BOARD_BATTERY_ADC_VOLTAGE_FILTER_S);
+#endif
+
+#ifdef BOARD_BATTERY_ADC_CURRENT_FILTER_S
+	_current_filter.setParameters(expected_filter_dt, BOARD_BATTERY_ADC_CURRENT_FILTER_S);
+#endif
 }
 
 void
 AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw)
 {
-	const float voltage_v = voltage_raw * _analog_params.v_div;
+	float voltage_v = voltage_raw * _analog_params.v_div;
 	const bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			       (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
+
+#if defined(BOARD_BATTERY_ADC_VOLTAGE_FILTER_S) || defined(BOARD_BATTERY_ADC_CURRENT_FILTER_S)
+
+	if (_last_timestamp == 0) {
+		_last_timestamp = timestamp;
+	}
+
+	const float dt = (timestamp - _last_timestamp) / 1e6f;
+	_last_timestamp = timestamp;
+#endif
+
+#ifdef BOARD_BATTERY_ADC_VOLTAGE_FILTER_S
+	_voltage_filter.update(fmaxf(voltage_v, 0.f), dt);
+	voltage_v = _voltage_filter.getState();
+#endif
+
+#ifdef BOARD_BATTERY_ADC_CURRENT_FILTER_S
+	_current_filter.update(fmaxf(current_a, 0.f), dt);
+	current_a = _current_filter.getState();
+#endif
 
 	// Overwrite the measured current if current overwrite is defined and vehicle is unarmed
 	if (_analog_params.i_overwrite > 0) {
