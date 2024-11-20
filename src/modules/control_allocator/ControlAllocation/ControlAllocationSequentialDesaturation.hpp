@@ -57,6 +57,17 @@ public:
 	void allocate() override;
 
 	void updateParameters() override;
+
+	// This is the minimum actuator yaw granted when the controller is saturated.
+	// In the yaw-only case where outputs are saturated, thrust is reduced by up to this amount.
+	// If MC_REDUCE_THRUST is false, this is ignored.
+	static constexpr float MINIMUM_YAW_MARGIN{0.15f};
+
+	void set_reduce_thrust(bool reduce_thrust)
+	{
+		_param_mc_reduce_thrust.set(reduce_thrust);
+	}
+
 private:
 
 	/**
@@ -108,7 +119,9 @@ private:
 	 *
 	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
 	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
-	 * Thrust can be reduced to unsaturate the upper side.
+	 * Thrust can be reduced to unsaturate the upper side, if MC_REDUCE_THRUST is true.
+	 * If MC_REDUCE_THRUST is false, then thrust will not be reduced.
+	 *
 	 * @see mixYaw() for the exact yaw behavior.
 	 */
 	void mixAirmodeDisabled();
@@ -116,13 +129,21 @@ private:
 	/**
 	 * Mix yaw by updating the actuator setpoint (that already contains roll/pitch/thrust).
 	 *
-	 * Desaturation behavior: thrust is allowed to be decreased up to 15% in order to allow
-	 * some yaw control on the upper end. On the lower end thrust will never be increased,
-	 * but yaw is decreased as much as required.
+	 * Desaturation behavior:
+	 *
+	 * If MC_REDUCE_THRUST is true, thrust is allowed to be decreased up to MINIMUM_YAW_MARGIN
+	 * in order to allow some yaw control on the upper end. On the lower end thrust will never
+	 * be increased, but yaw is decreased as much as required.
+	 *
+	 * If MC_REDUCE_THRUST is false, then thrust is not allowed to be decreased for yaw.
 	 */
 	void mixYaw();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,  ///< air-mode
+		// If false, thrust is never reduced to increase attitude control,
+		// and MINIMUM_YAW_MARGIN has no effect.
+		// Only applies when airmode is disabled.
+		(ParamBool<px4::params::MC_REDUCE_THRUST>) _param_mc_reduce_thrust
 	);
 };
