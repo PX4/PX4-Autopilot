@@ -42,12 +42,14 @@ set(serial_ports)
 if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
 
 	set(px4_usb_path "${vendorstr_underscore}_${productstr_underscore}")
+	set(px4_bl_usb_path "${vendorstr_underscore}_BL")
 
 	list(APPEND serial_ports
 		# NuttX vendor + product string
 		/dev/serial/by-id/*-${px4_usb_path}*
 
 		# Bootloader
+		/dev/serial/by-id/*_${px4_bl_usb_path}*
 		/dev/serial/by-id/*PX4_BL* # typical bootloader USB device string
 		/dev/serial/by-id/*BL_FMU*
 
