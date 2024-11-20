@@ -337,12 +337,12 @@ private:
 	 */
 	bool finalize();
 
-	bool report(bool is_armed, bool force);
+	bool report(bool force);
 
 	/**
 	 * Send out any unreported changes if there are any
 	 */
-	bool reportIfUnreportedDifferences(bool is_armed);
+	bool reportIfUnreportedDifferences();
 
 	const hrt_abstime _min_reporting_interval;
 
