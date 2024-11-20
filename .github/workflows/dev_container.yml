@@ -15,7 +15,7 @@ on:
 jobs:
   build:
     name: Build Container
-    runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu24-full-x64","run-id=${{ github.run_id }}"]
+    runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu24-full-x64","run-id=${{ github.run_id }}",spot=false]
     steps:
 
       - uses: actions/checkout@v4
