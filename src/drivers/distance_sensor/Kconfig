@@ -3,7 +3,6 @@ menu "Distance sensors"
         bool "Common distance sensor's"
         default n
         select DRIVERS_DISTANCE_SENSOR_CM8JL65
-        select DRIVERS_DISTANCE_SENSOR_GY_US42
         select DRIVERS_DISTANCE_SENSOR_LIGHTWARE_LASER_I2C
         select DRIVERS_DISTANCE_SENSOR_LIGHTWARE_LASER_SERIAL
         select DRIVERS_DISTANCE_SENSOR_LL40LS
