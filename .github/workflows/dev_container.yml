@@ -62,10 +62,15 @@ jobs:
           cache-from: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }}
           cache-to: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }},mode=max
 
+      - name: Get Tag Name
+        id: tag_name
+        run: |
+          echo "::set-output name=tag_name::$(echo '${{ fromJSON(steps.docker.outputs.metadata)['image.name'] }}' | sed 's/,.*$//')"
+
       - name: make quick_check
         uses: addnab/docker-run-action@v3
         with:
-          image: ${{ fromJSON(steps.docker.outputs.metadata)['image.name'] }}
+          image: ${{ steps.tag_name.outputs.tag_name }}
           options: -v ${{ github.workspace }}:/workspace
           run: |
             cd /workspace
