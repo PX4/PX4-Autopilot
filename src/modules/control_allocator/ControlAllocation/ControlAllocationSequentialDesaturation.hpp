@@ -57,6 +57,9 @@ public:
 	void allocate() override;
 
 	void updateParameters() override;
+
+	// Normalizes the yaw margin percentage to the range [0, 1].
+	float paramMcYawMargin() const { return _param_mc_yaw_margin_pct.get() / 100.0f; }
 private:
 
 	/**
@@ -123,6 +126,7 @@ private:
 	void mixYaw();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< air-mode
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< air-mode
+		(ParamFloat<px4::params::MC_YAW_MARGIN>) _param_mc_yaw_margin_pct
 	);
 };
