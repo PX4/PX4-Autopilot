@@ -67,7 +67,7 @@ bool HealthAndArmingChecks::update(bool force_reporting, bool is_arming_request)
 	}
 
 	const bool results_changed = _reporter.finalize();
-	const bool reported = _reporter.report(_context.isArmed(), force_reporting);
+	const bool reported = _reporter.report(force_reporting);
 
 	if (reported) {
 
@@ -89,7 +89,7 @@ bool HealthAndArmingChecks::update(bool force_reporting, bool is_arming_request)
 		}
 
 		_reporter.finalize();
-		_reporter.report(_context.isArmed(), false);
+		_reporter.report(false);
 		_reporter._mavlink_log_pub = nullptr;
 		// LEGACY end
 
@@ -123,5 +123,5 @@ void HealthAndArmingChecks::updateParams()
 
 bool HealthAndArmingChecks::reportIfUnreportedDifferences()
 {
-	return _reporter.reportIfUnreportedDifferences(_context.isArmed());
+	return _reporter.reportIfUnreportedDifferences();
 }
