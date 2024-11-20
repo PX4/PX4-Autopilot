@@ -69,7 +69,7 @@ TEST_F(ReporterTest, basic_no_checks)
 
 	reporter.reset();
 	reporter.finalize();
-	reporter.report(false, false);
+	reporter.report(false);
 
 	ASSERT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
 	ASSERT_EQ((uint8_t)reporter.armingCheckResults().can_arm, 0xff);
@@ -92,7 +92,7 @@ TEST_F(ReporterTest, basic_fail_all_modes)
 		reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
 					    events::ID("arming_test_basic_fail_all_modes_fail1"), events::Log::Info, "");
 		reporter.finalize();
-		reporter.report(false, false);
+		reporter.report(false);
 
 		ASSERT_FALSE(reporter.canArm(nav_state));
 		ASSERT_TRUE(reporter.canRun(nav_state));
@@ -113,7 +113,7 @@ TEST_F(ReporterTest, arming_checks_mode_category)
 			       events::ID("arming_test_arming_checks_mode_category_fail2"), events::Log::Info, "");
 	reporter.setIsPresent(health_component_t::battery);
 	reporter.finalize();
-	reporter.report(false, false);
+	reporter.report(false);
 
 	ASSERT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
 	ASSERT_TRUE(reporter.canRun(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
@@ -138,7 +138,7 @@ TEST_F(ReporterTest, arming_checks_mode_category2)
 	reporter.healthFailure(NavModes::Mission, health_component_t::remote_control,
 			       events::ID("arming_test_arming_checks_mode_category2_fail1"), events::Log::Warning, "");
 	reporter.finalize();
-	reporter.report(false, false);
+	reporter.report(false);
 
 	ASSERT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION));
 
@@ -178,7 +178,7 @@ TEST_F(ReporterTest, reporting)
 			}
 
 			reporter.finalize();
-			reporter.report(false, false);
+			reporter.report(false);
 			ASSERT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_POSCTL));
 
 			if (i == 0) {
@@ -219,7 +219,7 @@ TEST_F(ReporterTest, reporting)
 			}
 
 			reporter.finalize();
-			reporter.report(false, false);
+			reporter.report(false);
 			ASSERT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_POSCTL));
 
 			if (i == 0) {
@@ -265,7 +265,7 @@ TEST_F(ReporterTest, reporting_multiple)
 		reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::remote_control,
 						     events::ID("arming_test_reporting_multiple_fail3"), events::Log::Warning, "", 55);
 		reporter.finalize();
-		reporter.report(false, false);
+		reporter.report(false);
 		ASSERT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_POSCTL));
 
 		if (i == 0) {

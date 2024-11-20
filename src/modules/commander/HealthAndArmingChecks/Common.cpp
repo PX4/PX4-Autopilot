@@ -219,7 +219,7 @@ bool Report::finalize()
 	return _results_changed;
 }
 
-bool Report::report(bool is_armed, bool force)
+bool Report::report(bool force)
 {
 	const hrt_abstime now = hrt_absolute_time();
 	const bool has_difference = _had_unreported_difference || _results_changed;
@@ -318,10 +318,10 @@ bool Report::report(bool is_armed, bool force)
 	return true;
 }
 
-bool Report::reportIfUnreportedDifferences(bool is_armed)
+bool Report::reportIfUnreportedDifferences()
 {
 	if (_had_unreported_difference) {
-		return report(is_armed, true);
+		return report(true);
 	}
 
 	return false;
