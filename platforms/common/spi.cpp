@@ -87,7 +87,12 @@ const px4_spi_bus_t *px4_spi_buses{nullptr};
 
 int px4_find_spi_bus(uint32_t devid)
 {
+// px4_spi_buses is only NULL on certain targets depending on defines
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress"
+
 	for (int i = 0; ((px4_spi_bus_t *) px4_spi_buses) != nullptr && i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+#pragma GCC diagnostic pop
 		const px4_spi_bus_t &bus_data = px4_spi_buses[i];
 
 		if (bus_data.bus == -1) {
