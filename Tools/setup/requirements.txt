@@ -1,7 +1,7 @@
 argcomplete
 cerberus
 coverage
-empy==3.3.4
+empy>=3.3,<4
 future
 jinja2>=2.8
 jsonschema
