@@ -113,6 +113,9 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 		fds[1].fd = sub;
 		fds[1].events = POLLIN;
 
+		// Clear screen
+		dprintf(1, "\033[2J\n");
+
 		while (msgs_received < num_msgs) {
 
 			if (poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
@@ -139,6 +142,8 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 				if (fds[1].revents & POLLIN) {
 					msgs_received++;
 
+					// Move cursor to home position
+					dprintf(1, "\033[H");
 					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, msgs_received);
 
 					int ret = listener_print_topic(id, sub);
