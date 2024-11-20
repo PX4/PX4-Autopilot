@@ -42,7 +42,8 @@ if __name__ == "__main__":
     msg_files = get_msgs_list(msg_path)
     msg_files.sort()
 
-    filelist_in_markdown=''
+    versioned_msgs_list = ''
+    unversioned_msgs_list = ''
 
     for msg_file in msg_files:
         msg_name = os.path.splitext(os.path.basename(msg_file))[0]
@@ -94,10 +95,17 @@ if __name__ == "__main__":
         with open(output_file, 'w') as content_file:
             content_file.write(markdown_output)
 
-        index_markdown_file_link='- [%s](%s.md)' % (msg_name,msg_name)
-        if summary_description:
-            index_markdown_file_link+=" — %s" % summary_description
-        filelist_in_markdown+=index_markdown_file_link+"\n"
+        # Categorize as versioned or unversioned
+        if "versioned" in msg_file:
+            versioned_msgs_list += '- [%s](%s.md)' % (msg_name, msg_name)
+            if summary_description:
+                versioned_msgs_list += " — %s" % summary_description
+            versioned_msgs_list += "\n"
+        else:
+            unversioned_msgs_list += '- [%s](%s.md)' % (msg_name, msg_name)
+            if summary_description:
+                unversioned_msgs_list += " — %s" % summary_description
+            unversioned_msgs_list += "\n"
 
     # Write out the index.md file
     index_text="""# uORB Message Reference
@@ -107,10 +115,20 @@ This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Too
 :::
 
 This topic lists the UORB messages available in PX4 (some of which may be may be shared by the [PX4-ROS 2 Bridge](../ros/ros2_comm.md)).
+
+[Versioned messages](../middleware/uorb.md#message-versioning) track changes to their definitions, with each modification resulting in a version increment.
+These messages are most likely shared through the PX4-ROS 2 Bridge.
+
 Graphs showing how these are used [can be found here](../middleware/uorb_graph.md).
 
+## Versioned Messages
+
 %s
-    """ % (filelist_in_markdown)
+
+## Unversioned Messages
+
+%s
+    """ % (versioned_msgs_list, unversioned_msgs_list)
     index_file = os.path.join(output_dir, 'index.md')
     with open(index_file, 'w') as content_file:
             content_file.write(index_text)
