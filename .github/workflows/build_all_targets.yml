@@ -27,7 +27,7 @@ jobs:
   group_targets:
     name: Scan for Board Targets
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=capacity-optimized]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
@@ -75,7 +75,7 @@ jobs:
   setup:
     name: Build Group [${{ matrix.group }}]
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=capacity-optimized]
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: group_targets
     strategy:
       matrix: ${{ fromJson(needs.group_targets.outputs.matrix) }}
@@ -128,7 +128,7 @@ jobs:
   artifacts:
     name: Upload Artifacts to S3
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=capacity-optimized]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [setup, group_targets]
     if: contains(fromJSON('["main", "stable", "beta"]'), needs.group_targets.outputs.branchname)
     steps:
@@ -157,7 +157,7 @@ jobs:
   release:
     name: Create Release and Upload Artifacts
     # runs-on: ubuntu-latest
-    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=capacity-optimized]
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [setup, group_targets]
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     steps:
