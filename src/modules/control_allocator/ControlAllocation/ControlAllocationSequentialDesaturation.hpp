@@ -57,6 +57,10 @@ public:
 	void allocate() override;
 
 	void updateParameters() override;
+
+	// This is the minimum actuator yaw granted when the controller is saturated.
+	// In the yaw-only case where outputs are saturated, thrust is reduced by up to this amount.
+	static constexpr float MINIMUM_YAW_MARGIN{0.15f};
 private:
 
 	/**
