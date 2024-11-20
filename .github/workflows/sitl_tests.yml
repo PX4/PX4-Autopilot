@@ -16,7 +16,7 @@ on:
 jobs:
   build:
     name: Testing PX4 ${{ matrix.config.model }}
-    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=capacity-optimized]
+    runs-on: [runs-on,runner=16cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     container:
       image: px4io/px4-dev-simulation-focal:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
