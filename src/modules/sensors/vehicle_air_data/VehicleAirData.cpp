@@ -38,7 +38,6 @@
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
 
-
 namespace sensors
 {
 
@@ -186,6 +185,12 @@ void VehicleAirData::Run()
 
 						if (_selected_sensor_sub_index < 0) {
 							_sensor_sub[uorb_index].registerCallback();
+						}
+
+						if (!_calibration[uorb_index].calibrated()) {
+							_calibration[uorb_index].set_device_id(report.device_id);
+							_calibration[uorb_index].ParametersSave(uorb_index);
+							param_notify_changes();
 						}
 
 						ParametersUpdate(true);
