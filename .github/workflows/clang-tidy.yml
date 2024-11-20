@@ -17,5 +17,7 @@ jobs:
       with:
         token: ${{secrets.ACCESS_TOKEN}}
 
-    - name: make clang-tidy-quiet
-      run: make clang-tidy-quiet
+    - uses: corrupt952/actions-retry-command@v1.0.7
+      with:
+        command: make clang-tidy-quiet
+        max_attempts: 3
