@@ -69,7 +69,7 @@
 
 //#define USE_VBUS_PULL_DOWN
 #define INTERFACE_USART                1
-#define INTERFACE_USART_CONFIG         "/dev/ttyS6,921600"
+#define INTERFACE_USART_CONFIG         "/dev/ttyS0,921600"
 #define BOOT_DELAY_ADDRESS             0x000001a0
 #define BOARD_TYPE                     59
 #define _FLASH_KBYTES                  (*(uint32_t *)0x1FF1E880)
