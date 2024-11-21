@@ -6,11 +6,6 @@
 name: Build all targets
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        required: true
-        description: release version
   push:
     tags:
       - 'v*'
@@ -51,26 +46,15 @@ jobs:
       - id: set-timestamp
         run: echo "::set-output name=timestamp::$(date +"%Y%m%d%H%M%S")"
 
-      # This job is also triggered with versioned tags
-      #   Creating a and pushing a tag starting with "v" just as "v1.0.0"
-      #   will trigger this workflow and when all builds are done create a Github Release
-      #   then it will upload all binaries built as assets
-      # Additionally, we can also trigger this step manually
-      #   From the Github Actions tab for this repository:
-      #   https://github.com/PX4/PX4-Autopilot/actions/workflows/build_all_targets.yml
-      #   You can now click a "Run Workflow" button that will prompt you for a tag name
-      #   This tag name has to match an existing tag otherwise the new release will be detached
-      #   Note: Only developers with "write" permission to the repository can use this feature
-      - id: set-tag
-        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-        run: echo "::set-output name=tagname::${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
-
       - id: set-branch
         run: echo "::set-output name=branchname::${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
 
       - name: Debug Matrix Output
         if: runner.debug == '1'
-        run: echo "$(./Tools/ci/generate_board_targets_json.py --group --verbose)"
+        run: |
+          echo "${{ steps.set-timestamp.outputs.timestamp }}"
+          echo "${{ steps.set-branch.outputs.branchname }}"
+          echo "$(./Tools/ci/generate_board_targets_json.py --group --verbose)"
 
   setup:
     name: Build Group [${{ matrix.group }}]
@@ -159,20 +143,16 @@ jobs:
     # runs-on: ubuntu-latest
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu22-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [setup, group_targets]
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
-
-      - name: Arrange Binaries
-        run: |
-          mkdir artifacts
-          cp **/**/*.px4 artifacts/
+        with:
+          path: artifacts/
+          merge-multiple: true
 
       - name: Upload Binaries to Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ needs.group_targets.outputs.tagname }}
-          tag_name: ${{ needs.group_targets.outputs.tagname }}
           draft: true
           files: artifacts/*.px4
