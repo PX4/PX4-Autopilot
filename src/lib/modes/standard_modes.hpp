@@ -57,7 +57,7 @@ enum class StandardMode : uint8_t {
 /**
  * @return Get MAVLink standard mode from nav_state
  */
-static inline StandardMode getStandardModeFromNavState(uint8_t nav_state)
+static inline StandardMode getStandardModeFromNavState(uint8_t nav_state, uint8_t vehicle_type, bool is_vtol)
 {
 	switch (nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: return StandardMode::RETURN_HOME;
@@ -67,7 +67,33 @@ static inline StandardMode getStandardModeFromNavState(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND: return StandardMode::LAND;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF: return StandardMode::TAKEOFF;
-		// Note: all other standard modes do not directly map, or are vehicle-type specific
+
+	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+		if (is_vtol || vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    || vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			return StandardMode::ALTITUDE_HOLD;
+		}
+
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		if (!is_vtol && vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			return StandardMode::POSITION_HOLD;
+		}
+
+		if (!is_vtol && vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			return StandardMode::CRUISE;
+		}
+
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+		if (is_vtol || vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    || vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			return StandardMode::ORBIT;
+		}
+
+		break;
 	}
 
 	return StandardMode::NON_STANDARD;
@@ -76,7 +102,7 @@ static inline StandardMode getStandardModeFromNavState(uint8_t nav_state)
 /**
  * @return Get nav_state from a standard mode, or vehicle_status_s::NAVIGATION_STATE_MAX if not supported
  */
-static inline uint8_t getNavStateFromStandardMode(StandardMode mode)
+static inline uint8_t getNavStateFromStandardMode(StandardMode mode, uint8_t vehicle_type, bool is_vtol)
 {
 	switch (mode) {
 	case StandardMode::RETURN_HOME: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
@@ -86,6 +112,39 @@ static inline uint8_t getNavStateFromStandardMode(StandardMode mode)
 	case StandardMode::LAND: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 	case StandardMode::TAKEOFF: return vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
+
+	case StandardMode::ALTITUDE_HOLD:
+		if (is_vtol || vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    || vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			return vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+		}
+
+		break;
+
+	case StandardMode::POSITION_HOLD:
+		if (!is_vtol && vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			return vehicle_status_s::NAVIGATION_STATE_POSCTL;
+		}
+
+		break;
+
+	case StandardMode::CRUISE:
+		if (!is_vtol && vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			return vehicle_status_s::NAVIGATION_STATE_POSCTL;
+		}
+
+		break;
+
+	case StandardMode::ORBIT:
+		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			return vehicle_status_s::NAVIGATION_STATE_ORBIT;
+		}
+
+		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		}
+
+		break;
 
 	default: break;
 	}
