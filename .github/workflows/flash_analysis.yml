@@ -58,10 +58,10 @@ jobs:
         run: cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./before-change.elf
 
       - name: bloaty-action
-        uses: carlosperate/bloaty-action@v1.1.0
+        uses: PX4/bloaty-action@v1.0.0
         id: bloaty-step
         with:
-          bloaty-args: -d sections,compileunits -n 0 ./with-change.elf -- ./before-change.elf
+          bloaty-args: -d sections,compileunits -s vm -n 0 ./with-change.elf -- ./before-change.elf
           output-to-summary: true
 
       - name: Generate output
@@ -69,7 +69,7 @@ jobs:
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "output_${{ matrix.target }}<<$EOF" >> $GITHUB_OUTPUT
-          echo "${{ steps.bloaty-step.outputs.bloaty-output-encoded }}" >> $GITHUB_OUTPUT
+          echo "${{ steps.bloaty-step.outputs }}" >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
 
   post_pr_comment:
@@ -85,18 +85,18 @@ jobs:
             const comment = [
                '## FLASH Analysis',
                '<details>',
-               '<summary>px4_fmu-v5x</summary>',
+               '<summary>px4_fmu-v5x (${{ needs.analyze_flash.outputs.px4_fmu-v5x.bloaty-total-vm-absolute }})</summary>',
                '',
                '```',
-               `${{ needs.analyze_flash.outputs.px4_fmu-v5x }}`,
+               `${{ needs.analyze_flash.outputs.px4_fmu-v5x.bloaty-output-encoded }}`,
                '```',
                '</details>',
                '',
                '<details>',
-               '<summary>px4_fmu-v6x</summary>',
+               '<summary>px4_fmu-v6x (${{ needs.analyze_flash.outputs.px4_fmu-v6x.bloaty-total-vm-absolute }})</summary>',
                '',
                '```',
-               `${{ needs.analyze_flash.outputs.px4_fmu-v6x }}`,
+               `${{ needs.analyze_flash.outputs.px4_fmu-v6x.bloaty-output-encoded }}`,
                '```',
                '</details>'
             ]
