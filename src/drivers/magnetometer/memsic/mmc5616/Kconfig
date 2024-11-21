@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_MEMSIC_MMC5616
+	bool "mmc5616"
+	default n
+	---help---
+		Enable support for Memsic MMC5616
