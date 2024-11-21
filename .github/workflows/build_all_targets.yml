@@ -36,12 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update python packaging to avoid canonicalize_version() error
-        run: |
-            pip3 install -U packaging
-
       - name: Install Python Dependencies
-        uses: py-actions/py-dependency-install@v4
+        uses: MaEtUgR/py-dependency-install@maetugr/fix-packaging-incompatibility
         with:
           path: "./Tools/setup/requirements.txt"
 
