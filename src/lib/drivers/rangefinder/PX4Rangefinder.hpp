@@ -63,6 +63,7 @@ public:
 	void set_mode(const uint8_t mode) { _distance_sensor_pub.get().mode = mode; }
 
 	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality = -1);
+	void update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality, const float q[4]);
 
 	int get_instance() { return _distance_sensor_pub.get_instance(); };
 

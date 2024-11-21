@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include "lightware_sf45_serial.hpp"
-#include "sf45_commands.h"
 
 #include <inttypes.h>
 #include <fcntl.h>
@@ -44,12 +43,12 @@
 #include <matrix/matrix/math.hpp>
 
 /* Configuration Constants */
-#define SF45_MAX_PAYLOAD 256
 #define SF45_SCALE_FACTOR 0.01f
+using namespace matrix;
 
-SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
+SF45LaserSerial::SF45LaserSerial(const char *port) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
-	_px4_rangefinder(0, rotation),
+	_px4_rangefinder(0, distance_sensor_s::ROTATION_CUSTOM),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
@@ -71,13 +70,7 @@ SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
 	_num_retries = 2;
 	_px4_rangefinder.set_device_id(device_id.devid);
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_LIGHTWARE_LASER);
-
-	// populate obstacle map members
-	_obstacle_map_msg.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
-	_obstacle_map_msg.increment = 5;
-	_obstacle_map_msg.angle_offset = 2.5;
-	_obstacle_map_msg.min_distance = UINT16_MAX;
-	_obstacle_map_msg.max_distance = 5000;
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 
 }
 
@@ -97,6 +90,7 @@ int SF45LaserSerial::init()
 	param_get(param_find("SF45_YAW_CFG"), &_yaw_cfg);
 
 	/* SF45/B (50M) */
+	_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_CUSTOM);
 	_px4_rangefinder.set_min_distance(0.2f);
 	_px4_rangefinder.set_max_distance(50.0f);
 	_interval = 10000;
@@ -153,21 +147,13 @@ int SF45LaserSerial::collect()
 {
 	perf_begin(_sample_perf);
 
-	/* clear buffer if last read was too long ago */
 	int ret;
-	/* the buffer for read chars is buflen minus null termination */
-	uint8_t readbuf[SF45_MAX_PAYLOAD];
-
 	float distance_m = -1.0f;
-
-	/* read from the sensor (uart buffer) */
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
-
-
 
 	if (_sensor_state == STATE_SEND_PRODUCT_NAME) {
 
-		ret = ::read(_fd, &readbuf[0], 22);
+		const int payload_length = 22;
+		ret = ::read(_fd, &_linebuf[0], payload_length);
 
 		if (ret < 0) {
 			PX4_ERR("ERROR (ack from sending product name cmd): %d", ret);
@@ -176,12 +162,13 @@ int SF45LaserSerial::collect()
 			return ret;
 		}
 
-		sf45_request_handle(ret, readbuf);
+		sf45_request_handle(_linebuf);
 		ScheduleDelayed(_interval * 3);
 
 	} else if (_sensor_state == STATE_SEND_UPDATE_RATE) {
 
-		ret = ::read(_fd, &readbuf[0], 7);
+		const int payload_length = 7;
+		ret = ::read(_fd, &_linebuf[0], payload_length);
 
 		if (ret < 0) {
 			PX4_ERR("ERROR (ack from sending update rate cmd): %d", ret);
@@ -190,14 +177,15 @@ int SF45LaserSerial::collect()
 			return ret;
 		}
 
-		if (readbuf[3] == SF_UPDATE_RATE) {
-			sf45_request_handle(ret, readbuf);
+		if (ret == payload_length && _linebuf[3] == SF_UPDATE_RATE) {
+			sf45_request_handle(_linebuf);
 			ScheduleDelayed(_interval * 3);
 		}
 
 	} else if (_sensor_state == STATE_SEND_DISTANCE_DATA) {
 
-		ret = ::read(_fd, &readbuf[0], 8);
+		const int payload_length = 8;
+		ret = ::read(_fd, &_linebuf[0], payload_length);
 
 		if (ret < 0) {
 			PX4_ERR("ERROR (ack from sending distance data cmd): %d", ret);
@@ -206,47 +194,58 @@ int SF45LaserSerial::collect()
 			return ret;
 		}
 
-		if (readbuf[3] == SF_DISTANCE_OUTPUT) {
-			sf45_request_handle(ret, readbuf);
+		if (ret == payload_length && _linebuf[3] == SF_DISTANCE_OUTPUT) {
+			sf45_request_handle(_linebuf);
 			ScheduleDelayed(_interval * 3);
 		}
 
-		// Stream data from sensor
 
 	} else {
+		// Stream data from sensor
+		const int payload_length = 10;
 
-		ret = ::read(_fd, &readbuf[0], 10);
+		size_t max_read = sizeof(_linebuf) - _linebuf_size;
+		ret = ::read(_fd, &_linebuf[_linebuf_size], max_read);
+		_linebuf_size += ret;
 
 		if (ret < 0) {
 			PX4_ERR("ERROR (ack from streaming distance data): %d", ret);
+			_linebuf_size = 0;
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
 			return ret;
 		}
 
-		uint8_t flags_payload = (readbuf[1] >> 6) | (readbuf[2] << 2);
+		// Not enough data to parse a complete packet. Gather more data in the next cycle.
+		if (_linebuf_size < payload_length) {
+			return -EAGAIN;
+		}
 
-		// Process the incoming distance data
-		if (readbuf[3] == SF_DISTANCE_DATA_CM && flags_payload == 5) {
+		int index = _linebuf_size - payload_length;
 
-			for (uint8_t i = 0; i < ret; ++i) {
-				sf45_request_handle(ret, readbuf);
+		while (index >= 0) {
+			if (_linebuf[index] == 0xAA) {
+				uint8_t flags_payload = (_linebuf[index + 1] >> 6) | (_linebuf[index + 2] << 2);
+
+				// Process the incoming distance data
+				if (_linebuf[index + 3] == SF_DISTANCE_DATA_CM && flags_payload == 5) {
+					sf45_request_handle(&_linebuf[index]);
+
+					if (_init_complete && _crc_valid) {
+						sf45_process_replies(distance_m);
+						_linebuf_size = 0;
+						break;
+					}
+				}
 			}
 
-			if (_init_complete) {
-				sf45_process_replies(&distance_m);
-			} // end if
+			index--;
+		}
 
-		} else {
-
-			ret = ::read(_fd, &readbuf[0], 10);
-
-			if (ret < 0) {
-				PX4_ERR("ERROR (unknown sensor data): %d", ret);
-				perf_count(_comms_errors);
-				perf_end(_sample_perf);
-				return ret;
-			}
+		// The buffer is filled. Either we can't keep up with the stream and/or it contains only invalid data. Reset to try again.
+		if (_linebuf_size >= sizeof(_linebuf)) {
+			_linebuf_size = 0;
+			perf_count(_comms_errors);
 		}
 	}
 
@@ -261,8 +260,7 @@ int SF45LaserSerial::collect()
 		return -EAGAIN;
 	}
 
-	PX4_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((_crc_valid) ? "OK" : "NO"));
-	_px4_rangefinder.update(timestamp_sample, distance_m);
+	PX4_DEBUG("val (float): %8.4f, valid: %s", (double)distance_m, ((_crc_valid) ? "OK" : "NO"));
 
 	perf_end(_sample_perf);
 
@@ -273,6 +271,9 @@ void SF45LaserSerial::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
+
+	/* reset the UART receive buffer size */
+	_linebuf_size = 0;
 
 	/* schedule a cycle to start things */
 	ScheduleNow();
@@ -399,7 +400,7 @@ void SF45LaserSerial::print_info()
 	perf_print_counter(_comms_errors);
 }
 
-void SF45LaserSerial::sf45_request_handle(int return_val, uint8_t *input_buf)
+void SF45LaserSerial::sf45_request_handle(uint8_t *input_buf)
 {
 
 	// SF45 protocol
@@ -683,24 +684,17 @@ void SF45LaserSerial::sf45_send(uint8_t msg_id, bool write, int *data, uint8_t d
 	}
 }
 
-void SF45LaserSerial::sf45_process_replies(float *distance_m)
+void SF45LaserSerial::sf45_process_replies(float &distance_m)
 {
 	switch (rx_field.msg_id) {
 	case SF_DISTANCE_DATA_CM: {
 
-			uint16_t obstacle_dist_cm = 0;
 			const float raw_distance = (rx_field.data[0] << 0) | (rx_field.data[1] << 8);
 			int16_t raw_yaw = ((rx_field.data[2] << 0) | (rx_field.data[3] << 8));
 			int16_t scaled_yaw = 0;
 
-			// The sensor scans from 0 to -160, so extract negative angle from int16 and represent as if a float
-			if (raw_yaw > 32000) {
-				raw_yaw = raw_yaw - 65535;
-
-			}
-
 			// The sensor is facing downward, so the sensor is flipped about it's x-axis -inverse of each yaw angle
-			if (_orient_cfg == 1) {
+			if (_orient_cfg == ROTATION_DOWNWARD_FACING) {
 				raw_yaw = raw_yaw * -1;
 			}
 
@@ -708,10 +702,10 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
 
 			switch (_yaw_cfg) {
-			case 0:
+			case ROTATION_FORWARD_FACING:
 				break;
 
-			case 1:
+			case ROTATION_BACKWARD_FACING:
 				if (scaled_yaw > 180) {
 					scaled_yaw = scaled_yaw - 180;
 
@@ -721,11 +715,11 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 
 				break;
 
-			case 2:
+			case ROTATION_RIGHT_FACING:
 				scaled_yaw = scaled_yaw + 90; // rotation facing right
 				break;
 
-			case 3:
+			case ROTATION_LEFT_FACING:
 				scaled_yaw = scaled_yaw - 90; // rotation facing left
 				break;
 
@@ -734,26 +728,16 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 			}
 
 			// Convert to meters for rangefinder update
-			*distance_m = raw_distance * SF45_SCALE_FACTOR;
-			obstacle_dist_cm = (uint16_t)raw_distance;
+			distance_m = raw_distance * SF45_SCALE_FACTOR;
 
-			uint8_t current_bin = sf45_convert_angle(scaled_yaw);
+			Quatf quaternion(Eulerf{0, 0, sf45_wrap_360(scaled_yaw)*M_DEG_TO_RAD_F});
+			float q[4];
 
-			// If we have moved to a new bin
-
-			if (current_bin != _previous_bin) {
-
-				// update the current bin to the distance sensor reading
-				// readings in cm
-				_obstacle_map_msg.distances[current_bin] = obstacle_dist_cm;
-				_obstacle_map_msg.timestamp = hrt_absolute_time();
-
+			for (int i = 0; i < 4; i++) {
+				q[i] = quaternion(i);
 			}
 
-			_previous_bin = current_bin;
-
-			_obstacle_distance_pub.publish(_obstacle_map_msg);
-
+			_px4_rangefinder.update(hrt_absolute_time(), distance_m, -1, q);
 			break;
 		}
 
@@ -761,16 +745,6 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 		// add case for future use
 		break;
 	}
-}
-
-uint8_t SF45LaserSerial::sf45_convert_angle(const int16_t yaw)
-{
-
-	uint8_t mapped_sector = 0;
-	float adjusted_yaw = sf45_wrap_360(yaw - _obstacle_map_msg.angle_offset);
-	mapped_sector = round(adjusted_yaw / _obstacle_map_msg.increment);
-
-	return mapped_sector;
 }
 
 float SF45LaserSerial::sf45_wrap_360(float f)

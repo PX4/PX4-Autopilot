@@ -83,3 +83,32 @@ void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float dis
 
 	_distance_sensor_pub.update();
 }
+
+void PX4Rangefinder::update(const hrt_abstime &timestamp_sample, const float distance, const int8_t quality,
+			    const float q[4])
+{
+
+	if (_distance_sensor_pub.get().orientation != distance_sensor_s::ROTATION_CUSTOM) {
+		PX4_ERR("Orientation not set to ROTATION_CUSTOM");
+		return;
+	}
+
+	distance_sensor_s &report = _distance_sensor_pub.get();
+
+	report.timestamp = timestamp_sample;
+	report.current_distance = distance;
+	report.signal_quality = quality;
+
+	// if quality is unavailable (-1) set to 0 if distance is outside bounds
+	if (quality < 0) {
+		if ((distance < report.min_distance) || (distance > report.max_distance)) {
+			report.signal_quality = 0;
+		}
+	}
+
+	for (int i = 0; i < 4; i++) {
+		report.q[i] = q[i];
+	}
+
+	_distance_sensor_pub.update();
+}
