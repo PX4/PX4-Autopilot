@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file optflow_fusion.cpp
+ * @file optical_flow_fusion.cpp
  */
 
 #include "ekf.h"
@@ -54,18 +54,8 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 		return false;
 	}
 
-	bool fused[2] {false, false};
-
 	// fuse observation axes sequentially
 	for (uint8_t index = 0; index <= 1; index++) {
-
-		if (_aid_src_optical_flow.innovation_variance[index] < _aid_src_optical_flow.observation_variance[index]) {
-			// we need to reinitialise the covariance matrix and abort this fusion step
-			ECL_ERR("Opt flow error - covariance reset");
-			initialiseCovariance();
-			return false;
-		}
-
 		if (index == 0) {
 			// everything was already computed above
 
@@ -80,35 +70,36 @@ bool Ekf::fuseOptFlow(VectorState &H, const bool update_terrain)
 			_aid_src_optical_flow.innovation[1] = predictFlow(flow_gyro_corrected)(1) - _aid_src_optical_flow.observation[1];
 		}
 
+		if (_aid_src_optical_flow.innovation_variance[index] < _aid_src_optical_flow.observation_variance[index]) {
+			// we need to reinitialise the covariance matrix and abort this fusion step
+			ECL_ERR("Opt flow error - covariance reset");
+			initialiseCovariance();
+			return false;
+		}
+
 		VectorState Kfusion = P * H / _aid_src_optical_flow.innovation_variance[index];
 
 		if (!update_terrain) {
 			Kfusion(State::terrain.idx) = 0.f;
 		}
 
-		if (measurementUpdate(Kfusion, H, _aid_src_optical_flow.observation_variance[index],
-				      _aid_src_optical_flow.innovation[index])) {
-			fused[index] = true;
-		}
+		measurementUpdate(Kfusion, H, _aid_src_optical_flow.observation_variance[index],
+				  _aid_src_optical_flow.innovation[index]);
 	}
 
-	_fault_status.flags.bad_optflow_X = !fused[0];
-	_fault_status.flags.bad_optflow_Y = !fused[1];
+	_fault_status.flags.bad_optflow_X = false;
+	_fault_status.flags.bad_optflow_Y = false;
 
-	if (fused[0] && fused[1]) {
-		_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
-		_aid_src_optical_flow.fused = true;
+	_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
+	_aid_src_optical_flow.fused = true;
 
-		_time_last_hor_vel_fuse = _time_delayed_us;
+	_time_last_hor_vel_fuse = _time_delayed_us;
 
-		if (update_terrain) {
-			_time_last_terrain_fuse = _time_delayed_us;
-		}
-
-		return true;
+	if (update_terrain) {
+		_time_last_terrain_fuse = _time_delayed_us;
 	}
 
-	return false;
+	return true;
 }
 
 float Ekf::predictFlowRange() const

@@ -452,7 +452,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_triplet_prev_wp(2) = -(_sub_triplet_setpoint.get().previous.alt - _reference_altitude);
 
 		} else {
-			_triplet_prev_wp = _position;
+			_triplet_prev_wp = _triplet_target;
 		}
 
 		_prev_was_valid = _sub_triplet_setpoint.get().previous.valid;
@@ -623,7 +623,7 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	}
 
 	// init projection
-	_reference_position.initReference(ref_lat, ref_lon);
+	_reference_position.initReference(ref_lat, ref_lon, _time_stamp_current);
 
 	// check if everything is still finite
 	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);

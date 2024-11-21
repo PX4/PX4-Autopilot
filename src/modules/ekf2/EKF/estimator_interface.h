@@ -179,14 +179,17 @@ public:
 		_control_status.flags.vehicle_at_rest = at_rest;
 	}
 
+	void set_constant_pos(bool constant_pos) { _control_status.flags.constant_pos = constant_pos; }
+
 	// return true if the attitude is usable
 	bool attitude_valid() const { return _control_status.flags.tilt_align; }
 
 	// get vehicle landed status data
 	bool get_in_air_status() const { return _control_status.flags.in_air; }
 
-	// get wind estimation status
-	bool get_wind_status() const { return _control_status.flags.wind; }
+#if defined(CONFIG_EKF2_WIND)
+	bool get_wind_status() const { return _control_status.flags.wind || _external_wind_init; }
+#endif // CONFIG_EKF2_WIND
 
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
@@ -247,8 +250,8 @@ public:
 	// At the next startup, set param.mag_declination_deg to the value saved
 	bool get_mag_decl_deg(float &val) const
 	{
-		if (_NED_origin_initialised && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
-			val = math::degrees(_mag_declination_gps);
+		if (PX4_ISFINITE(_wmm_declination_rad) && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
+			val = math::degrees(_wmm_declination_rad);
 			return true;
 
 		} else {
@@ -258,8 +261,8 @@ public:
 
 	bool get_mag_inc_deg(float &val) const
 	{
-		if (_NED_origin_initialised) {
-			val = math::degrees(_mag_inclination_gps);
+		if (PX4_ISFINITE(_wmm_inclination_rad)) {
+			val = math::degrees(_wmm_inclination_rad);
 			return true;
 
 		} else {
@@ -270,9 +273,9 @@ public:
 	void get_mag_checks(float &inc_deg, float &inc_ref_deg, float &strength_gs, float &strength_ref_gs) const
 	{
 		inc_deg = math::degrees(_mag_inclination);
-		inc_ref_deg = math::degrees(_mag_inclination_gps);
+		inc_ref_deg = math::degrees(_wmm_inclination_rad);
 		strength_gs = _mag_strength;
-		strength_ref_gs = _mag_strength_gps;
+		strength_ref_gs = _wmm_field_strength_gauss;
 	}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -304,7 +307,7 @@ public:
 	const imuSample &get_imu_sample_delayed() const { return _imu_buffer.get_oldest(); }
 	const uint64_t &time_delayed_us() const { return _time_delayed_us; }
 
-	const bool &global_origin_valid() const { return _NED_origin_initialised; }
+	bool global_origin_valid() const { return _pos_ref.isInitialized(); }
 	const MapProjection &global_origin() const { return _pos_ref; }
 	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_gps_alt_ref) ? _gps_alt_ref : 0.f; }
 
@@ -376,7 +379,6 @@ protected:
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
-	bool _NED_origin_initialised{false};
 	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
 	float _gps_alt_ref{NAN};		///< WGS-84 height (m)
 	float _gpos_origin_eph{0.0f}; // horizontal position uncertainty of the global origin
@@ -449,17 +451,20 @@ protected:
 	// allocate data buffers and initialize interface variables
 	bool initialise_interface(uint64_t timestamp);
 
-	uint64_t _wmm_gps_time_last_checked{0};  // time WMM last checked
-	uint64_t _wmm_gps_time_last_set{0};      // time WMM last set
-
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	float _mag_declination_gps {NAN};        // magnetic declination returned by the geo library using the last valid GPS position (rad)
-	float _mag_inclination_gps{NAN};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
-	float _mag_strength_gps{NAN};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
+	uint64_t _wmm_mag_time_last_checked {0}; // time WMM update last checked by mag control
+
+	float _wmm_declination_rad{NAN};        // magnetic declination returned by the geo library using the last valid GPS position (rad)
+	float _wmm_inclination_rad{NAN};        // magnetic inclination returned by the geo library using the last valid GPS position (rad)
+	float _wmm_field_strength_gauss{NAN};   // magnetic strength returned by the geo library using the last valid GPS position (Gauss)
+
+	Vector3f _wmm_earth_field_gauss{};      // expected magnetic field vector from the last valid GPS position (Gauss)
 
 	float _mag_inclination{NAN};
 	float _mag_strength{NAN};
 #endif // CONFIG_EKF2_MAGNETOMETER
+
+	bool _external_wind_init{false};
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};

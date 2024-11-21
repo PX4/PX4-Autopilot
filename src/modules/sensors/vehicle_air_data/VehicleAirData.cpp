@@ -38,7 +38,6 @@
 #include <lib/geo/geo.h>
 #include <lib/atmosphere/atmosphere.h>
 
-
 namespace sensors
 {
 
@@ -188,6 +187,12 @@ void VehicleAirData::Run()
 							_sensor_sub[uorb_index].registerCallback();
 						}
 
+						if (!_calibration[uorb_index].calibrated()) {
+							_calibration[uorb_index].set_device_id(report.device_id);
+							_calibration[uorb_index].ParametersSave(uorb_index);
+							param_notify_changes();
+						}
+
 						ParametersUpdate(true);
 					}
 
@@ -243,7 +248,7 @@ void VehicleAirData::Run()
 
 				const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _data_sum_count[instance];
 
-				if (timestamp_sample >= _last_publication_timestamp[instance] + interval_us) {
+				if (time_now_us >= _last_publication_timestamp[instance] + interval_us) {
 
 					bool publish = (time_now_us <= timestamp_sample + 1_s);
 
@@ -278,7 +283,7 @@ void VehicleAirData::Run()
 						_vehicle_air_data_pub.publish(out);
 					}
 
-					_last_publication_timestamp[instance] = timestamp_sample;
+					_last_publication_timestamp[instance] = time_now_us;
 
 					// reset
 					_timestamp_sample_sum[instance] = 0;

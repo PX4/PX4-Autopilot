@@ -37,6 +37,7 @@
  */
 
 #include "ekf.h"
+#include "ekf_derivation/generated/compute_hagl_h.h"
 #include "ekf_derivation/generated/compute_hagl_innov_var.h"
 
 void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
@@ -54,6 +55,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		_range_sensor.setPitchOffset(_params.rng_sens_pitch);
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
+		_range_sensor.setMaxFogDistance(_params.rng_fog);
 
 		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
 
@@ -269,13 +271,25 @@ float Ekf::getRngVar() const
 
 void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
 {
-	const float new_terrain = _state.pos(2) + aid_src.observation;
-	const float delta_terrain = new_terrain - _state.terrain;
+	// Since the distance is not a direct observation of the terrain state but is based
+	// on the height state, a reset should consider the height uncertainty. This can be
+	// done by manipulating the Kalman gain to inject all the innovation in the terrain state
+	// and create the correct correlation with the terrain state with a covariance update.
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, 0.f);
 
-	_state.terrain = new_terrain;
-	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, aid_src.observation_variance);
+	const float old_terrain = _state.terrain;
+
+	VectorState H;
+	sym::ComputeHaglH(&H);
+
+	VectorState K;
+	K(State::terrain.idx) = 1.f; // innovation is forced into the terrain state to create a "reset"
+
+	measurementUpdate(K, H, aid_src.observation_variance, aid_src.innovation);
 
 	// record the state change
+	const float delta_terrain = _state.terrain - old_terrain;
+
 	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
 		_state_reset_status.hagl_change = delta_terrain;
 
@@ -285,7 +299,6 @@ void Ekf::resetTerrainToRng(estimator_aid_source1d_s &aid_src)
 	}
 
 	_state_reset_status.reset_count.hagl++;
-
 
 	aid_src.time_last_fuse = _time_delayed_us;
 }

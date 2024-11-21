@@ -2,11 +2,14 @@
 #
 # Holybro KakuteH7Mini specific board sensors init
 #------------------------------------------------------------------------------
+# v1.1=mpu6000   v1.3=bmi270   v1.5=icm42688p
 board_adc start
-
-if ! bmi270 -s -q start
+if ! mpu6000 -R 6 -s -q start
 then
-	icm42688p -R 0 -s start
+  if ! bmi270 -R 6 -s -q start
+  then
+	icm42688p -R 6 -s start
+  fi
 fi
 
 bmp280 -X start

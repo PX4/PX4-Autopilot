@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file drv_hrt.c
+ * @file hrt.c
  * Author: David Sidrane <david_s5@nscdg.com>
  *
  * High-resolution timer callouts and timekeeping.

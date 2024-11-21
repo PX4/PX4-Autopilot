@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_ftp_tests.cpp
+ * @file mavlink_tests.cpp
  */
 
 #include <systemlib/err.h>

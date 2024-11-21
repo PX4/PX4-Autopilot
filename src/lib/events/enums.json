@@ -447,12 +447,12 @@
                             "description": "Transition to standby"
                         },
                         "1": {
-                            "name": "rc_stick",
-                            "description": "RC"
+                            "name": "stick_gesture",
+                            "description": "Stick gesture"
                         },
                         "2": {
                             "name": "rc_switch",
-                            "description": "RC (switch)"
+                            "description": "RC switch"
                         },
                         "3": {
                             "name": "command_internal",
@@ -640,7 +640,7 @@
                         },
                         "6": {
                             "name": "incompatible_voltage",
-                            "description": "Vehicle voltage is not compatible with battery one"
+                            "description": "Voltage mismatch, use equally charged batteries"
                         },
                         "7": {
                             "name": "incompatible_firmware",

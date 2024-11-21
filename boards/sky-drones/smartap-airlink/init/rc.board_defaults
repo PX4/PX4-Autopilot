@@ -21,9 +21,6 @@ param set-default BAT1_A_PER_V 36.00
 
 param set-default BAT_V_OFFS_CURR 0.413
 
-# Disable safety switch
-param set-default CBRK_IO_SAFETY 22027
-
 safety_button start
 
 set LOGGER_BUF 32

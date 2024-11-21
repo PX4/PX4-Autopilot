@@ -1,0 +1,46 @@
+name: Ubuntu environment build
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'stable'
+      - 'beta'
+      - 'release/**'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build_and_test:
+    name: Build and Test
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['ubuntu:22.04', 'ubuntu:24.04']
+    runs-on: [runs-on,runner=8cpu-linux-x64,"image=ubuntu24-full-x64","run-id=${{ github.run_id }}",spot=false]
+    container:
+      image: ${{ matrix.version }}
+      volumes:
+        - /github/workspace:/github/workspace
+    steps:
+
+      - name: Fix git in container
+        run: |
+          # we only need this because we are running the job in a container
+          # when checkout pulls git it does it in a shared volume
+          # and file ownership changes between steps
+          # first we install git since its missing from the base image
+          # then we mark the directory as safe for other instances
+          # of git to use.
+          apt update && apt install git -y
+          git config --global --add safe.directory $(realpath .)
+
+      - uses: actions/checkout@v4
+
+      - name: Install Deps, Build, and Make Quick Check
+        run: |
+          # we need to install dependencies and build on the same step
+          # given the stateless nature of docker images
+          ./Tools/setup/ubuntu.sh
+          make quick_check

@@ -98,21 +98,16 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
-	if (measurementUpdate(Kfusion, H_YAW, aid_src_status.observation_variance, aid_src_status.innovation)) {
+	measurementUpdate(Kfusion, H_YAW, aid_src_status.observation_variance, aid_src_status.innovation);
 
-		_time_last_heading_fuse = _time_delayed_us;
+	_time_last_heading_fuse = _time_delayed_us;
 
-		aid_src_status.time_last_fuse = _time_delayed_us;
-		aid_src_status.fused = true;
+	aid_src_status.time_last_fuse = _time_delayed_us;
+	aid_src_status.fused = true;
 
-		_fault_status.flags.bad_hdg = false;
+	_fault_status.flags.bad_hdg = false;
 
-		return true;
-	}
-
-	// otherwise
-	_fault_status.flags.bad_hdg = true;
-	return false;
+	return true;
 }
 
 void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const

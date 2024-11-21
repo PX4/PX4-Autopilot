@@ -46,10 +46,10 @@
 
 static constexpr int32_t DEFAULT_MISSION_FAST_CACHE_SIZE = 5;
 
-RtlMissionFast::RtlMissionFast(Navigator *navigator) :
+RtlMissionFast::RtlMissionFast(Navigator *navigator, mission_s mission) :
 	RtlBase(navigator, DEFAULT_MISSION_FAST_CACHE_SIZE)
 {
-
+	_mission = mission;
 }
 
 void RtlMissionFast::on_inactive()
@@ -168,6 +168,11 @@ void RtlMissionFast::setActiveMissionItems()
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+
+		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && isLanding() &&
+		    _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
+		}
 	}
 
 	issue_command(_mission_item);

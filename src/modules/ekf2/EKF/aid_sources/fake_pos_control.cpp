@@ -75,55 +75,20 @@ void Ekf::controlFakePosFusion()
 				      Vector2f(getStateVariance<State::pos>()) + obs_var, // innovation variance
 				      innov_gate);                                        // innovation gate
 
-		const bool enable_conditions_passing = !isHorizontalAidingActive()
-						       && ((getTiltVariance() > sq(math::radians(3.f))) || _control_status.flags.vehicle_at_rest)
-						       && (!(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector)) || _control_status.flags.vehicle_at_rest)
-						       && _horizontal_deadreckon_time_exceeded;
+		const bool enable_valid_fake_pos = _control_status.flags.constant_pos || _control_status.flags.vehicle_at_rest;
+		const bool enable_fake_pos = !enable_valid_fake_pos
+					     && (getTiltVariance() > sq(math::radians(3.f)))
+					     && !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GravityVector))
+					     && _horizontal_deadreckon_time_exceeded;
 
-		if (_control_status.flags.fake_pos) {
-			if (enable_conditions_passing) {
+		_control_status.flags.fake_pos = runFakePosStateMachine(enable_fake_pos, _control_status.flags.fake_pos, aid_src);
+		_control_status.flags.valid_fake_pos = runFakePosStateMachine(enable_valid_fake_pos,
+						       _control_status.flags.valid_fake_pos, aid_src);
 
-				// always protect against extreme values that could result in a NaN
-				if ((aid_src.test_ratio[0] < sq(100.0f / innov_gate))
-				    && (aid_src.test_ratio[1] < sq(100.0f / innov_gate))
-				   ) {
-					if (!aid_src.innovation_rejected
-					    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
-									  State::pos.idx + 0)
-					    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
-									  State::pos.idx + 1)
-					   ) {
-						aid_src.fused = true;
-						aid_src.time_last_fuse = _time_delayed_us;
-					}
-				}
-
-				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
-
-				if (is_fusion_failing) {
-					ECL_WARN("fake position fusion failing, resetting");
-					resetFakePosFusion();
-				}
-
-			} else {
-				stopFakePosFusion();
-			}
-
-		} else {
-			if (enable_conditions_passing) {
-				ECL_INFO("start fake position fusion");
-				_control_status.flags.fake_pos = true;
-				resetFakePosFusion();
-
-				if (_control_status.flags.tilt_align) {
-					// The fake position fusion is not started for initial alignement
-					ECL_WARN("stopping navigation");
-				}
-			}
-		}
-
-	} else if (_control_status.flags.fake_pos && isHorizontalAidingActive()) {
-		stopFakePosFusion();
+	} else if ((_control_status.flags.fake_pos || _control_status.flags.valid_fake_pos) && isHorizontalAidingActive()) {
+		ECL_INFO("stop fake position fusion");
+		_control_status.flags.fake_pos = false;
+		_control_status.flags.valid_fake_pos = false;
 	}
 }
 
@@ -138,10 +103,41 @@ void Ekf::resetFakePosFusion()
 	_aid_src_fake_pos.time_last_fuse = _time_delayed_us;
 }
 
-void Ekf::stopFakePosFusion()
+bool Ekf::runFakePosStateMachine(const bool enable_conditions_passing, bool status_flag,
+				 estimator_aid_source2d_s &aid_src)
 {
-	if (_control_status.flags.fake_pos) {
-		ECL_INFO("stop fake position fusion");
-		_control_status.flags.fake_pos = false;
+	if (status_flag) {
+		if (enable_conditions_passing) {
+			if (!aid_src.innovation_rejected) {
+				for (unsigned i = 0; i < 2; i++) {
+					fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
+								   State::pos.idx + i);
+				}
+
+				aid_src.fused = true;
+				aid_src.time_last_fuse = _time_delayed_us;
+			}
+
+			const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
+
+			if (is_fusion_failing) {
+				ECL_WARN("fake position fusion failing, resetting");
+				resetFakePosFusion();
+			}
+
+		} else {
+			ECL_INFO("stop fake position fusion");
+			status_flag = false;
+		}
+
+	} else {
+		if (enable_conditions_passing) {
+			ECL_INFO("start fake position fusion");
+			status_flag = true;
+
+			resetFakePosFusion();
+		}
 	}
+
+	return status_flag;
 }

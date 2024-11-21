@@ -63,85 +63,154 @@ Vector3f Ekf::calcEarthRateNED(float lat_rad) const
 			-CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad));
 }
 
-bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const
+void Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const
 {
 	origin_time = _pos_ref.getProjectionReferenceTimestamp();
 	latitude = _pos_ref.getProjectionReferenceLat();
 	longitude = _pos_ref.getProjectionReferenceLon();
 	origin_alt  = getEkfGlobalOriginAltitude();
-	return _NED_origin_initialised;
+}
+
+bool Ekf::checkLatLonValidity(const double latitude, const double longitude)
+{
+	const bool lat_valid = (PX4_ISFINITE(latitude) && (abs(latitude) <= 90));
+	const bool lon_valid = (PX4_ISFINITE(longitude) && (abs(longitude) <= 180));
+
+	return (lat_valid && lon_valid);
+}
+
+bool Ekf::checkAltitudeValidity(const float altitude)
+{
+	// sanity check valid altitude anywhere between the Mariana Trench and edge of Space
+	return (PX4_ISFINITE(altitude) && ((altitude > -12'000.f) && (altitude < 100'000.f)));
 }
 
 bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude, const float eph,
 			     const float epv)
 {
-	// sanity check valid latitude/longitude and altitude anywhere between the Mariana Trench and edge of Space
-	if (PX4_ISFINITE(latitude) && (abs(latitude) <= 90)
-	    && PX4_ISFINITE(longitude) && (abs(longitude) <= 180)
-	    && PX4_ISFINITE(altitude) && (altitude > -12'000.f) && (altitude < 100'000.f)
-	   ) {
-		bool current_pos_available = false;
-		double current_lat = static_cast<double>(NAN);
-		double current_lon = static_cast<double>(NAN);
-
-		// if we are already doing aiding, correct for the change in position since the EKF started navigating
-		if (_pos_ref.isInitialized() && isHorizontalAidingActive()) {
-			_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
-			current_pos_available = true;
-		}
-
-		const float gps_alt_ref_prev = _gps_alt_ref;
-
-		// reinitialize map projection to latitude, longitude, altitude, and reset position
-		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
-		_gps_alt_ref = altitude;
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-		const float mag_declination_gps = math::radians(get_mag_declination_degrees(latitude, longitude));
-		const float mag_inclination_gps = math::radians(get_mag_inclination_degrees(latitude, longitude));
-		const float mag_strength_gps = get_mag_strength_gauss(latitude, longitude);
-
-		if (PX4_ISFINITE(mag_declination_gps) && PX4_ISFINITE(mag_inclination_gps) && PX4_ISFINITE(mag_strength_gps)) {
-			_mag_declination_gps = mag_declination_gps;
-			_mag_inclination_gps = mag_inclination_gps;
-			_mag_strength_gps = mag_strength_gps;
-
-			_wmm_gps_time_last_set = _time_delayed_us;
-		}
-
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-		_gpos_origin_eph = eph;
-		_gpos_origin_epv = epv;
-
-		_NED_origin_initialised = true;
-
-		if (current_pos_available) {
-			// reset horizontal position if we already have a global origin
-			Vector2f position = _pos_ref.project(current_lat, current_lon);
-			resetHorizontalPositionTo(position);
-		}
-
-		if (PX4_ISFINITE(gps_alt_ref_prev) && isVerticalPositionAidingActive()) {
-			// determine current z
-			const float z_prev = _state.pos(2);
-			const float current_alt = -z_prev + gps_alt_ref_prev;
-#if defined(CONFIG_EKF2_GNSS)
-			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
-#endif // CONFIG_EKF2_GNSS
-			resetVerticalPositionTo(_gps_alt_ref - current_alt);
-			ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev,
-				  (double)_state.pos(2));
-#if defined(CONFIG_EKF2_GNSS)
-			// adjust existing GPS height bias
-			_gps_hgt_b_est.setBias(gps_hgt_bias);
-#endif // CONFIG_EKF2_GNSS
-		}
-
-		return true;
+	if (!setLatLonOrigin(latitude, longitude, eph)) {
+		return false;
 	}
 
-	return false;
+	// altitude is optional
+	setAltOrigin(altitude, epv);
+
+	return true;
+}
+
+bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const float eph)
+{
+	if (!checkLatLonValidity(latitude, longitude)) {
+		return false;
+	}
+
+	bool current_pos_available = false;
+	double current_lat = static_cast<double>(NAN);
+	double current_lon = static_cast<double>(NAN);
+
+	// if we are already doing aiding, correct for the change in position since the EKF started navigating
+	if (_pos_ref.isInitialized() && isLocalHorizontalPositionValid()) {
+		_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
+		current_pos_available = true;
+	}
+
+	// reinitialize map projection to latitude, longitude, altitude, and reset position
+	_pos_ref.initReference(latitude, longitude, _time_delayed_us);
+
+	if (PX4_ISFINITE(eph) && (eph >= 0.f)) {
+		_gpos_origin_eph = eph;
+	}
+
+	if (current_pos_available) {
+		// reset horizontal position if we already have a global origin
+		Vector2f position = _pos_ref.project(current_lat, current_lon);
+		resetHorizontalPositionTo(position);
+	}
+
+	return true;
+}
+
+bool Ekf::setAltOrigin(const float altitude, const float epv)
+{
+	if (!checkAltitudeValidity(altitude)) {
+		return false;
+	}
+
+	const float gps_alt_ref_prev = _gps_alt_ref;
+	_gps_alt_ref = altitude;
+
+	if (PX4_ISFINITE(epv) && (epv >= 0.f)) {
+		_gpos_origin_epv = epv;
+	}
+
+	if (PX4_ISFINITE(gps_alt_ref_prev) && isLocalVerticalPositionValid()) {
+		// determine current z
+		const float z_prev = _state.pos(2);
+		const float current_alt = -z_prev + gps_alt_ref_prev;
+#if defined(CONFIG_EKF2_GNSS)
+		const float gps_hgt_bias = _gps_hgt_b_est.getBias();
+#endif // CONFIG_EKF2_GNSS
+		resetVerticalPositionTo(_gps_alt_ref - current_alt);
+		ECL_DEBUG("EKF global origin updated, resetting vertical position %.1fm -> %.1fm", (double)z_prev,
+			  (double)_state.pos(2));
+#if defined(CONFIG_EKF2_GNSS)
+		// adjust existing GPS height bias
+		_gps_hgt_b_est.setBias(gps_hgt_bias);
+#endif // CONFIG_EKF2_GNSS
+	}
+
+	return true;
+}
+
+bool Ekf::setEkfGlobalOriginFromCurrentPos(const double latitude, const double longitude, const float altitude,
+		const float eph, const float epv)
+{
+	if (!setLatLonOriginFromCurrentPos(latitude, longitude, eph)) {
+		return false;
+	}
+
+	// altitude is optional
+	setAltOriginFromCurrentPos(altitude, epv);
+
+	return true;
+}
+
+bool Ekf::setLatLonOriginFromCurrentPos(const double latitude, const double longitude, const float eph)
+{
+	if (!checkLatLonValidity(latitude, longitude)) {
+		return false;
+	}
+
+	_pos_ref.initReference(latitude, longitude, _time_delayed_us);
+
+	// if we are already doing aiding, correct for the change in position since the EKF started navigating
+	if (isLocalHorizontalPositionValid()) {
+		double est_lat;
+		double est_lon;
+		_pos_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
+		_pos_ref.initReference(est_lat, est_lon, _time_delayed_us);
+	}
+
+	if (PX4_ISFINITE(eph) && (eph >= 0.f)) {
+		_gpos_origin_eph = eph;
+	}
+
+	return true;
+}
+
+bool Ekf::setAltOriginFromCurrentPos(const float altitude, const float epv)
+{
+	if (!checkAltitudeValidity(altitude)) {
+		return false;
+	}
+
+	_gps_alt_ref = altitude + _state.pos(2);
+
+	if (PX4_ISFINITE(epv) && (epv >= 0.f)) {
+		_gpos_origin_epv = epv;
+	}
+
+	return true;
 }
 
 void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
@@ -602,16 +671,16 @@ uint16_t Ekf::get_ekf_soln_status() const
 	soln_status.flags.attitude = attitude_valid();
 
 	// 2	ESTIMATOR_VELOCITY_HORIZ	True if the horizontal velocity estimate is good
-	soln_status.flags.velocity_horiz = local_position_is_valid();
+	soln_status.flags.velocity_horiz = isLocalHorizontalPositionValid();
 
 	// 4	ESTIMATOR_VELOCITY_VERT	True if the vertical velocity estimate is good
 	soln_status.flags.velocity_vert = isLocalVerticalVelocityValid() || isLocalVerticalPositionValid();
 
 	// 8	ESTIMATOR_POS_HORIZ_REL	True if the horizontal position (relative) estimate is good
-	soln_status.flags.pos_horiz_rel = local_position_is_valid();
+	soln_status.flags.pos_horiz_rel = isLocalHorizontalPositionValid();
 
 	// 16	ESTIMATOR_POS_HORIZ_ABS	True if the horizontal position (absolute) estimate is good
-	soln_status.flags.pos_horiz_abs = global_position_is_valid();
+	soln_status.flags.pos_horiz_abs = isGlobalHorizontalPositionValid();
 
 	// 32	ESTIMATOR_POS_VERT_ABS	True if the vertical position (absolute) estimate is good
 	soln_status.flags.pos_vert_abs = isVerticalAidingActive();
@@ -622,7 +691,8 @@ uint16_t Ekf::get_ekf_soln_status() const
 #endif // CONFIG_EKF2_TERRAIN
 
 	// 128	ESTIMATOR_CONST_POS_MODE	True if the EKF is in a constant position mode and is not using external measurements (eg GPS or optical flow)
-	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.vehicle_at_rest;
+	soln_status.flags.const_pos_mode = _control_status.flags.fake_pos || _control_status.flags.valid_fake_pos
+					   || _control_status.flags.vehicle_at_rest;
 
 	// 256	ESTIMATOR_PRED_POS_HORIZ_REL	True if the EKF has sufficient data to enter a mode that will provide a (relative) position estimate
 	soln_status.flags.pred_pos_horiz_rel = isHorizontalAidingActive();
@@ -773,6 +843,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 		}
 	}
 
+	if (_control_status.flags.valid_fake_pos && isRecent(_aid_src_fake_pos.time_last_fuse, _params.no_aid_timeout_max)) {
+		// only respect as a valid aiding source now if we expect to have another valid source once in air
+		if (aiding_expected_in_air) {
+			inertial_dead_reckoning = false;
+		}
+	}
+
 	if (inertial_dead_reckoning) {
 		if (isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max)) {
 			// deadreckon time exceeded
@@ -870,17 +947,21 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
 	// xy accel bias learning is also disabled on ground as those states are poorly observable when perpendicular to the gravity vector
 	{
+		const Vector3f gyro_corrected = imu_delayed.delta_ang / imu_delayed.delta_ang_dt - _state.gyro_bias;
+
 		const float alpha = math::constrain((imu_delayed.delta_ang_dt / _params.acc_bias_learn_tc), 0.f, 1.f);
 		const float beta = 1.f - alpha;
-		_ang_rate_magnitude_filt = fmaxf(imu_delayed.delta_ang.norm() / imu_delayed.delta_ang_dt,
-						 beta * _ang_rate_magnitude_filt);
+
+		_ang_rate_magnitude_filt = fmaxf(gyro_corrected.norm(), beta * _ang_rate_magnitude_filt);
 	}
 
 	{
+		const Vector3f accel_corrected = imu_delayed.delta_vel / imu_delayed.delta_vel_dt - _state.accel_bias;
+
 		const float alpha = math::constrain((imu_delayed.delta_vel_dt / _params.acc_bias_learn_tc), 0.f, 1.f);
 		const float beta = 1.f - alpha;
 
-		_accel_magnitude_filt = fmaxf(imu_delayed.delta_vel.norm() / imu_delayed.delta_vel_dt, beta * _accel_magnitude_filt);
+		_accel_magnitude_filt = fmaxf(accel_corrected.norm(), beta * _accel_magnitude_filt);
 	}
 
 
@@ -919,7 +1000,7 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index)
+void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index)
 {
 	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 
@@ -977,5 +1058,261 @@ bool Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 
 	// apply the state corrections
 	fuse(K, innov);
+}
+
+bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+{
+	clearInhibitedStateKalmanGains(K);
+
+#if false
+	// Matrix implementation of the Joseph stabilized covariance update
+	// This is extremely expensive to compute. Use for debugging purposes only.
+	auto A = matrix::eye<float, State::size>();
+	A -= K.multiplyByTranspose(H);
+	P = A * P;
+	P = P.multiplyByTranspose(A);
+
+	const VectorState KR = K * R;
+	P += KR.multiplyByTranspose(K);
+#else
+	// Efficient implementation of the Joseph stabilized covariance update
+	// Based on "G. J. Bierman. Factorization Methods for Discrete Sequential Estimation. Academic Press, Dover Publications, New York, 1977, 2006"
+	// P = (I - K * H) * P * (I - K * H).T   + K * R * K.T
+	//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
+	//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
+
+	// Step 1: conventional update
+	// Compute P_temp and store it in P to avoid allocating more memory
+	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
+	VectorState PH = P * H; // H is stored as a column vector. H is in fact H.T
+
+	for (unsigned i = 0; i < State::size; i++) {
+		for (unsigned j = 0; j < State::size; j++) {
+			P(i, j) -= K(i) * PH(j); // P is now not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
+		}
+	}
+
+	// Step 2: stabilized update
+	PH = P * H; // H is stored as a column vector. H is in fact H.T
+
+	for (unsigned i = 0; i < State::size; i++) {
+		for (unsigned j = 0; j <= i; j++) {
+			P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
+			P(j, i) = P(i, j);
+		}
+	}
+
+#endif
+
+	constrainStateVariances();
+
+	// apply the state corrections
+	fuse(K, innovation);
 	return true;
+}
+
+void Ekf::updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t &timestamp_sample,
+				const float &observation, const float &observation_variance,
+				const float &innovation, const float &innovation_variance,
+				float innovation_gate) const
+{
+	bool innovation_rejected = false;
+
+	const float test_ratio = sq(innovation) / (sq(innovation_gate) * innovation_variance);
+
+	if ((status.timestamp_sample > 0) && (timestamp_sample > status.timestamp_sample)) {
+
+		const float dt_s = math::constrain((timestamp_sample - status.timestamp_sample) * 1e-6f, 0.001f, 1.f);
+
+		static constexpr float tau = 0.5f;
+		const float alpha = math::constrain(dt_s / (dt_s + tau), 0.f, 1.f);
+
+		// test_ratio_filtered
+		if (PX4_ISFINITE(status.test_ratio_filtered)) {
+			status.test_ratio_filtered += alpha * (matrix::sign(innovation) * test_ratio - status.test_ratio_filtered);
+
+		} else {
+			// otherwise, init the filtered test ratio
+			status.test_ratio_filtered = test_ratio;
+		}
+
+		// innovation_filtered
+		if (PX4_ISFINITE(status.innovation_filtered)) {
+			status.innovation_filtered += alpha * (innovation - status.innovation_filtered);
+
+		} else {
+			// otherwise, init the filtered innovation
+			status.innovation_filtered = innovation;
+		}
+
+
+		// limit extremes in filtered values
+		static constexpr float kNormalizedInnovationLimit = 2.f;
+		static constexpr float kTestRatioLimit = sq(kNormalizedInnovationLimit);
+
+		if (test_ratio > kTestRatioLimit) {
+
+			status.test_ratio_filtered = math::constrain(status.test_ratio_filtered, -kTestRatioLimit, kTestRatioLimit);
+
+			const float innov_limit = kNormalizedInnovationLimit * innovation_gate * sqrtf(innovation_variance);
+			status.innovation_filtered = math::constrain(status.innovation_filtered, -innov_limit, innov_limit);
+		}
+
+	} else {
+		// invalid timestamp_sample, reset
+		status.test_ratio_filtered = test_ratio;
+		status.innovation_filtered = innovation;
+	}
+
+	status.test_ratio = test_ratio;
+
+	status.observation = observation;
+	status.observation_variance = observation_variance;
+
+	status.innovation = innovation;
+	status.innovation_variance = innovation_variance;
+
+	if ((test_ratio > 1.f)
+	    || !PX4_ISFINITE(test_ratio)
+	    || !PX4_ISFINITE(status.innovation)
+	    || !PX4_ISFINITE(status.innovation_variance)
+	   ) {
+		innovation_rejected = true;
+	}
+
+	status.timestamp_sample = timestamp_sample;
+
+	// if any of the innovations are rejected, then the overall innovation is rejected
+	status.innovation_rejected = innovation_rejected;
+
+	// reset
+	status.fused = false;
+}
+
+void Ekf::clearInhibitedStateKalmanGains(VectorState &K) const
+{
+	for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
+		if (_gyro_bias_inhibit[i]) {
+			K(State::gyro_bias.idx + i) = 0.f;
+		}
+	}
+
+	for (unsigned i = 0; i < State::accel_bias.dof; i++) {
+		if (_accel_bias_inhibit[i]) {
+			K(State::accel_bias.idx + i) = 0.f;
+		}
+	}
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	if (!_control_status.flags.mag) {
+		for (unsigned i = 0; i < State::mag_I.dof; i++) {
+			K(State::mag_I.idx + i) = 0.f;
+		}
+	}
+
+	if (!_control_status.flags.mag) {
+		for (unsigned i = 0; i < State::mag_B.dof; i++) {
+			K(State::mag_B.idx + i) = 0.f;
+		}
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_WIND)
+
+	if (!_control_status.flags.wind) {
+		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
+			K(State::wind_vel.idx + i) = 0.f;
+		}
+	}
+
+#endif // CONFIG_EKF2_WIND
+}
+
+float Ekf::getHeadingInnov() const
+{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		return Vector3f(_aid_src_mag.innovation).max();
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (_control_status.flags.gnss_yaw) {
+		return _aid_src_gnss_yaw.innovation;
+	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	if (_control_status.flags.ev_yaw) {
+		return _aid_src_ev_yaw.innovation;
+	}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	return 0.f;
+}
+
+float Ekf::getHeadingInnovVar() const
+{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		return Vector3f(_aid_src_mag.innovation_variance).max();
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (_control_status.flags.gnss_yaw) {
+		return _aid_src_gnss_yaw.innovation_variance;
+	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	if (_control_status.flags.ev_yaw) {
+		return _aid_src_ev_yaw.innovation_variance;
+	}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	return 0.f;
+}
+
+float Ekf::getHeadingInnovRatio() const
+{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		return Vector3f(_aid_src_mag.test_ratio).max();
+	}
+
+#endif // CONFIG_EKF2_MAGNETOMETER
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (_control_status.flags.gnss_yaw) {
+		return _aid_src_gnss_yaw.test_ratio;
+	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+	if (_control_status.flags.ev_yaw) {
+		return _aid_src_ev_yaw.test_ratio;
+	}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	return 0.f;
 }

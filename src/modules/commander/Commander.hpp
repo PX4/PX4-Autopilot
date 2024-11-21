@@ -200,6 +200,9 @@ private:
 
 	void modeManagementUpdate();
 
+	static void onFailsafeNotifyUserTrampoline(void *arg);
+	void onFailsafeNotifyUser();
+
 	enum class PrearmedMode {
 		DISABLED = 0,
 		SAFETY_BUTTON = 1,
@@ -324,8 +327,6 @@ private:
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 
 	// optional parameters
-	param_t _param_mav_comp_id{PARAM_INVALID};
-	param_t _param_mav_sys_id{PARAM_INVALID};
 	param_t _param_mav_type{PARAM_INVALID};
 	param_t _param_rc_map_fltmode{PARAM_INVALID};
 

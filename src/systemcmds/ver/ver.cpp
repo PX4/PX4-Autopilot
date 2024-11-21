@@ -32,7 +32,7 @@
 ****************************************************************************/
 
 /**
-* @file ver.c
+* @file ver.cpp
 *
 * Version command, unifies way of showing versions of HW, SW, Build, GCC
 * In case you want to add new version just extend version_main function

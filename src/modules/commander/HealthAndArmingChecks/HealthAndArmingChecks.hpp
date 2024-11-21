@@ -49,6 +49,7 @@
 #include "checks/escCheck.hpp"
 #include "checks/estimatorCheck.hpp"
 #include "checks/failureDetectorCheck.hpp"
+#include "checks/navigatorCheck.hpp"
 #include "checks/gyroCheck.hpp"
 #include "checks/imuConsistencyCheck.hpp"
 #include "checks/loggerCheck.hpp"
@@ -82,9 +83,12 @@ public:
 	 * Run arming checks and report if necessary.
 	 * This should be called regularly (e.g. 1Hz).
 	 * @param force_reporting if true, force reporting even if nothing changed
+	 * @param is_arming_request if true, then we are running the checks based on an actual arming request
 	 * @return true if there was a report (also when force_reporting=true)
 	 */
-	bool update(bool force_reporting = false);
+	bool update(bool force_reporting = false, bool is_arming_request = false);
+
+	bool reportIfUnreportedDifferences();
 
 	/**
 	 * Whether arming is possible for a given navigation mode
@@ -129,6 +133,7 @@ private:
 	EscChecks _esc_checks;
 	EstimatorChecks _estimator_checks;
 	FailureDetectorChecks _failure_detector_checks;
+	NavigatorChecks _navigator_checks;
 	GyroChecks _gyro_checks;
 	ImuConsistencyChecks _imu_consistency_checks;
 	LoggerChecks _logger_checks;
@@ -167,6 +172,7 @@ private:
 		&_esc_checks,
 		&_estimator_checks,
 		&_failure_detector_checks,
+		&_navigator_checks,
 		&_gyro_checks,
 		&_imu_consistency_checks,
 		&_logger_checks,

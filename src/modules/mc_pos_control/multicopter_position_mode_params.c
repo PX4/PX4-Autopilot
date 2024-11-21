@@ -35,15 +35,14 @@
  * Position/Altitude mode variant
  *
  * The supported sub-modes are:
- * 0 Sticks directly map to velocity setpoints without smoothing.
+ * - "Direct velocity":
+ *   Sticks directly map to velocity setpoints without smoothing.
  *   Also applies to vertical direction and Altitude mode.
  *   Useful for velocity control tuning.
- * 3 Sticks map to velocity but with maximum acceleration and jerk limits based on
- *   jerk optimized trajectory generator (different algorithm than 1).
- * 4 Sticks map to acceleration and there's a virtual brake drag
+ *  - "Acceleration based":
+ *  Sticks map to acceleration and there's a virtual brake drag
  *
  * @value 0 Direct velocity
- * @value 3 Smoothed velocity
  * @value 4 Acceleration based
  * @group Multicopter Position Control
  */
@@ -101,7 +100,6 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.f);
  *
  * MPC_POS_MODE
  * 1 just deceleration
- * 3 acceleration and deceleration
  * 4 not used, use MPC_ACC_HOR instead
  *
  * @unit m/s^2
@@ -122,7 +120,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.f);
  *
  * Setting this to the maximum value essentially disables the limit.
  *
- * Only used with smooth MPC_POS_MODE 3 and 4.
+ * Only used with MPC_POS_MODE Acceleration based.
  *
  * @unit m/s^3
  * @min 0.5

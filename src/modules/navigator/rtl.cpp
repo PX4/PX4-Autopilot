@@ -55,10 +55,11 @@ static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES{10.0f}; // [m] We 
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
 RTL::RTL(Navigator *navigator) :
-	NavigatorMode(navigator),
+	NavigatorMode(navigator, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL),
 	ModuleParams(navigator),
 	_rtl_direct(navigator)
 {
+	_rtl_direct.initialize();
 }
 
 void RTL::updateDatamanCache()
@@ -157,24 +158,6 @@ void RTL::updateDatamanCache()
 	_dataman_cache_landItem.update();
 }
 
-void RTL::on_inactivation()
-{
-	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST: // Fall through
-	case RtlType::RTL_MISSION_FAST_REVERSE: // Fall through
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		_rtl_mission_type_handle->on_inactivation();
-		break;
-
-	case RtlType::RTL_DIRECT:
-		_rtl_direct.on_inactivation();
-		break;
-
-	default:
-		break;
-	}
-}
-
 void RTL::on_inactive()
 {
 	_global_pos_sub.update();
@@ -187,20 +170,11 @@ void RTL::on_inactive()
 
 	parameters_update();
 
-	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST:
-	case RtlType::RTL_MISSION_FAST_REVERSE:
-	case RtlType::RTL_DIRECT_MISSION_LAND:
-		_rtl_mission_type_handle->on_inactive();
-		break;
-
-	case RtlType::RTL_DIRECT:
-		_rtl_direct.on_inactive();
-		break;
-
-	default:
-		break;
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->run(false);
 	}
+
+	_rtl_direct.run(false);
 
 	// Limit inactive calculation to 0.5Hz
 	hrt_abstime now{hrt_absolute_time()};
@@ -230,7 +204,10 @@ void RTL::publishRemainingTimeEstimate()
 		case RtlType::RTL_DIRECT_MISSION_LAND:
 		case RtlType::RTL_MISSION_FAST:
 		case RtlType::RTL_MISSION_FAST_REVERSE:
-			estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
+			if (_rtl_mission_type_handle) {
+				estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
+			}
+
 			break;
 
 		default:
@@ -250,12 +227,10 @@ void RTL::on_activation()
 	case RtlType::RTL_MISSION_FAST: // Fall through
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 		_rtl_mission_type_handle->setReturnAltMin(_enforce_rtl_alt);
-		_rtl_mission_type_handle->on_activation();
 		break;
 
 	case RtlType::RTL_DIRECT:
 		_rtl_direct.setReturnAltMin(_enforce_rtl_alt);
-		_rtl_direct.on_activation();
 		break;
 
 	default:
@@ -279,14 +254,23 @@ void RTL::on_active()
 	updateDatamanCache();
 
 	switch (_rtl_type) {
-	case RtlType::RTL_MISSION_FAST:
-	case RtlType::RTL_MISSION_FAST_REVERSE:
+	case RtlType::RTL_MISSION_FAST: // Fall through
+	case RtlType::RTL_MISSION_FAST_REVERSE: // Fall through
 	case RtlType::RTL_DIRECT_MISSION_LAND:
-		_rtl_mission_type_handle->on_active();
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(true);
+		}
+
+		_rtl_direct.run(false);
 		break;
 
 	case RtlType::RTL_DIRECT:
-		_rtl_direct.on_active();
+		_rtl_direct.run(true);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->run(false);
+		}
+
 		break;
 
 	default:
@@ -300,6 +284,31 @@ void RTL::on_active()
 		_destination_check_time = now;
 		publishRemainingTimeEstimate();
 	}
+}
+
+bool RTL::isLanding()
+{
+	bool is_landing{false};
+
+	switch (_rtl_type) {
+	case RtlType::RTL_MISSION_FAST:
+	case RtlType::RTL_MISSION_FAST_REVERSE:
+	case RtlType::RTL_DIRECT_MISSION_LAND:
+		if (_rtl_mission_type_handle) {
+			is_landing = _rtl_mission_type_handle->isLanding();
+		}
+
+		break;
+
+	case RtlType::RTL_DIRECT:
+		is_landing = _rtl_direct.isLanding();
+		break;
+
+	default:
+		break;
+	}
+
+	return is_landing;
 }
 
 void RTL::setRtlTypeAndDestination()
@@ -528,13 +537,14 @@ float RTL::calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &
 	// avoid the vehicle touching the ground while still moving horizontally.
 	const float return_altitude_min_outside_acceptance_rad_amsl = rtl_position.alt + 2.0f * _param_nav_acc_rad.get();
 
-	float return_altitude_amsl = rtl_position.alt + _param_rtl_return_alt.get();
+	const float max_return_altitude = rtl_position.alt + _param_rtl_return_alt.get();
+
+	float return_altitude_amsl = max_return_altitude;
 
 	if (destination_dist <= _param_nav_acc_rad.get()) {
 		return_altitude_amsl = rtl_position.alt + 2.0f * destination_dist;
 
 	} else {
-
 		if (destination_dist <= _param_rtl_min_dist.get()) {
 
 			// constrain cone half angle to meaningful values. All other cases are already handled above.
@@ -549,7 +559,7 @@ float RTL::calculate_return_alt_from_cone_half_angle(const PositionYawSetpoint &
 		return_altitude_amsl = max(return_altitude_amsl, return_altitude_min_outside_acceptance_rad_amsl);
 	}
 
-	return max(return_altitude_amsl, _global_pos_sub.get().alt);
+	return constrain(return_altitude_amsl, _global_pos_sub.get().alt, max_return_altitude);
 }
 
 void RTL::init_rtl_mission_type()
@@ -575,6 +585,8 @@ void RTL::init_rtl_mission_type()
 		_set_rtl_mission_type = RtlType::NONE;
 	}
 
+	mission_s new_mission = _mission_sub.get();
+
 	switch (new_rtl_mission_type) {
 	case RtlType::RTL_DIRECT_MISSION_LAND:
 		_rtl_mission_type_handle = new RtlDirectMissionLand(_navigator);
@@ -583,19 +595,23 @@ void RTL::init_rtl_mission_type()
 		break;
 
 	case RtlType::RTL_MISSION_FAST:
-		_rtl_mission_type_handle = new RtlMissionFast(_navigator);
+		_rtl_mission_type_handle = new RtlMissionFast(_navigator, new_mission);
 		_set_rtl_mission_type = RtlType::RTL_MISSION_FAST;
 		_rtl_type = RtlType::RTL_MISSION_FAST;
 		break;
 
 	case RtlType::RTL_MISSION_FAST_REVERSE:
-		_rtl_mission_type_handle = new RtlMissionFastReverse(_navigator);
+		_rtl_mission_type_handle = new RtlMissionFastReverse(_navigator, new_mission);
 		_set_rtl_mission_type = RtlType::RTL_MISSION_FAST_REVERSE;
 		_rtl_type = RtlType::RTL_MISSION_FAST_REVERSE;
 		break;
 
 	default:
 		break;
+	}
+
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->initialize();
 	}
 }
 

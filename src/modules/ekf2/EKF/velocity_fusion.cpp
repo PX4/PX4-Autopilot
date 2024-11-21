@@ -36,12 +36,12 @@
 bool Ekf::fuseHorizontalVelocity(estimator_aid_source2d_s &aid_src)
 {
 	// vx, vy
-	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
-					  State::vel.idx + 0)
-	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
-					  State::vel.idx + 1)
-	   ) {
+	if (!aid_src.innovation_rejected) {
+		for (unsigned i = 0; i < 2; i++) {
+			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
+						   State::vel.idx + i);
+		}
+
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
 
@@ -57,14 +57,12 @@ bool Ekf::fuseHorizontalVelocity(estimator_aid_source2d_s &aid_src)
 bool Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 {
 	// vx, vy, vz
-	if (!aid_src.innovation_rejected
-	    && fuseDirectStateMeasurement(aid_src.innovation[0], aid_src.innovation_variance[0], aid_src.observation_variance[0],
-					  State::vel.idx + 0)
-	    && fuseDirectStateMeasurement(aid_src.innovation[1], aid_src.innovation_variance[1], aid_src.observation_variance[1],
-					  State::vel.idx + 1)
-	    && fuseDirectStateMeasurement(aid_src.innovation[2], aid_src.innovation_variance[2], aid_src.observation_variance[2],
-					  State::vel.idx + 2)
-	   ) {
+	if (!aid_src.innovation_rejected) {
+		for (unsigned i = 0; i < 3; i++) {
+			fuseDirectStateMeasurement(aid_src.innovation[i], aid_src.innovation_variance[i], aid_src.observation_variance[i],
+						   State::vel.idx + i);
+		}
+
 		aid_src.fused = true;
 		aid_src.time_last_fuse = _time_delayed_us;
 
@@ -91,6 +89,9 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f
 		P.uncorrelateCovarianceSetVariance<1>(State::vel.idx + 1, math::max(sq(0.01f), new_horz_vel_var(1)));
 	}
 
+	P.uncorrelateCovarianceSetVariance<1>(State::pos.idx, P(State::pos.idx, State::pos.idx));
+	P.uncorrelateCovarianceSetVariance<1>(State::pos.idx + 1, P(State::pos.idx + 1, State::pos.idx + 1));
+
 	_output_predictor.resetHorizontalVelocityTo(delta_horz_vel);
 
 	// record the state change
@@ -116,6 +117,8 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 	if (PX4_ISFINITE(new_vert_vel_var)) {
 		P.uncorrelateCovarianceSetVariance<1>(State::vel.idx + 2, math::max(sq(0.01f), new_vert_vel_var));
 	}
+
+	P.uncorrelateCovarianceSetVariance<1>(State::pos.idx + 2, P(State::pos.idx + 2, State::pos.idx + 2));
 
 	_output_predictor.resetVerticalVelocityTo(delta_vert_vel);
 

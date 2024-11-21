@@ -19,16 +19,18 @@ param set-default BAT1_N_CELLS 3
 param set-default NAV_ACC_RAD 0.5
 param set-default RA_ACC_RAD_GAIN 2
 param set-default RA_ACC_RAD_MAX 3
-param set-default RA_MAX_ACCEL 0.5
-param set-default RA_MAX_JERK 10
-param set-default RA_MAX_SPEED 2.7
+param set-default RA_LAT_ACCEL_I 0.01
+param set-default RA_LAT_ACCEL_P 0.1
+param set-default RA_MAX_ACCEL 1.5
+param set-default RA_MAX_DECEL 10
+param set-default RA_MAX_JERK 20
+param set-default RA_MAX_LAT_ACCEL 3
+param set-default RA_MAX_SPEED 2.5
 param set-default RA_MAX_STR_ANG 0.5236
 param set-default RA_MAX_STR_RATE 270
-param set-default RA_MISS_VEL_DEF 2.7
-param set-default RA_MISS_VEL_GAIN 3.5
-param set-default RA_MISS_VEL_MIN 1
-param set-default RA_SPEED_I 0.1
-param set-default RA_SPEED_P 0.5
+param set-default RA_MAX_THR_SPEED 2.8
+param set-default RA_SPEED_I 0.01
+param set-default RA_SPEED_P 0.1
 param set-default RA_WHEEL_BASE 0.321
 
 # Pure pursuit parameters

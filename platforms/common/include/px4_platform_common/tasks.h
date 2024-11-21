@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_tasks.h
+ * @file tasks.h
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Mark Charlebois (2015) <charlebm@gmail.com>

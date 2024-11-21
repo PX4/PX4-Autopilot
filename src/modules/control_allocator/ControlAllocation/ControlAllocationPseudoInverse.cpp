@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ControlAllocationPseudoInverse.hpp
+ * @file ControlAllocationPseudoInverse.cpp
  *
  * Simple Control Allocation Algorithm
  *

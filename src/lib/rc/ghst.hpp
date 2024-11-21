@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ghst.h
+ * @file ghst.hpp
  *
  * RC protocol definition for IRC Ghost (Immersion RC Ghost).
  *

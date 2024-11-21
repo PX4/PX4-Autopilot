@@ -13,6 +13,9 @@ float64 lon			# Longitude, (degrees)
 float32 alt			# Altitude AMSL, (meters)
 float32 alt_ellipsoid		# Altitude above ellipsoid, (meters)
 
+bool lat_lon_valid
+bool alt_valid
+
 float32 delta_alt 	# Reset delta for altitude
 float32 delta_terrain   # Reset delta for terrain
 uint8 lat_lon_reset_counter	# Counter for reset events on horizontal position coordinates

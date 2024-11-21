@@ -67,7 +67,7 @@ BMP280::init()
 
 	// set config, recommended settings
 	_interface->set_reg(_curr_ctrl, BMP280_ADDR_CTRL);
-	_interface->set_reg(BMP280_CONFIG_F16, BMP280_ADDR_CONFIG);
+	_interface->set_reg(BMP280_CONFIG_F0, BMP280_ADDR_CONFIG);
 
 	// get calibration and pre process them
 	_cal = _interface->get_calibration(BMP280_ADDR_CAL);

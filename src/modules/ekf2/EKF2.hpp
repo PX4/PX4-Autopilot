@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file EKF2.cpp
+ * @file EKF2.hpp
  * Implementation of the attitude and position estimator.
  *
  * @author Roman Bapst
@@ -44,6 +44,7 @@
 #include "EKF/ekf.h"
 
 #include "EKF2Selector.hpp"
+#include "mathlib/math/filter/AlphaFilter.hpp"
 
 #include <float.h>
 
@@ -72,6 +73,7 @@
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_selection.h>
@@ -209,10 +211,8 @@ private:
 	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_GNSS)
-	/*
-	 * Calculate filtered WGS84 height from estimated AMSL height
-	 */
-	float filter_altitude_ellipsoid(float amsl_hgt);
+	float altEllipsoidToAmsl(float ellipsoid_alt) const;
+	float altAmslToEllipsoid(float amsl_alt) const;
 
 	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
@@ -388,6 +388,7 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
@@ -443,10 +444,10 @@ private:
 #endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_GNSS)
-	uint64_t _gps_time_usec {0};
-	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
-	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
-	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
+
+	uint64_t _last_geoid_height_update_us{0};
+	static constexpr float kGeoidHeightLpfTimeConstant = 10.f;
+	AlphaFilter<float> _geoid_height_lpf;  ///< height offset between AMSL and ellipsoid
 
 	hrt_abstime _last_gps_status_published{0};
 
@@ -486,6 +487,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtFloat<px4::params::EKF2_DELAY_MAX>) _param_ekf2_delay_max,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
+		(ParamExtFloat<px4::params::EKF2_VEL_LIM>) _param_ekf2_vel_lim,
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -535,6 +537,7 @@ private:
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas_default,
+		(ParamFloat<px4::params::EKF2_GPS_YAW_OFF>) _param_ekf2_gps_yaw_off,
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -621,6 +624,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>) _param_ekf2_rng_a_igate,
 		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>) _param_ekf2_rng_qlty_t,
 		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>) _param_ekf2_rng_k_gate,
+		(ParamExtFloat<px4::params::EKF2_RNG_FOG>) _param_ekf2_rng_fog,
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>) _param_ekf2_rng_pos_x,
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>) _param_ekf2_rng_pos_y,
 		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,

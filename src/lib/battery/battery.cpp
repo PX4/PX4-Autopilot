@@ -106,12 +106,13 @@ void Battery::updateCurrent(const float current_a)
 	_current_a = current_a;
 }
 
+void Battery::updateTemperature(const float temperature_c)
+{
+	_temperature_c = temperature_c;
+}
+
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 {
-	if (!_battery_initialized && _internal_resistance_initialized && _params.n_cells > 0) {
-		resetInternalResistanceEstimation(_voltage_v, _current_a);
-	}
-
 	// Require minimum voltage otherwise override connected status
 	if (_voltage_v < LITHIUM_BATTERY_RECOGNITION_VOLTAGE) {
 		_connected = false;
@@ -121,8 +122,12 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 		_last_unconnected_timestamp = timestamp;
 	}
 
-	// wait with initializing filters to avoid relying on a voltage sample from the rising edge
+	// Wait with initializing filters to avoid relying on a voltage sample from the rising edge
 	_battery_initialized = _connected && (timestamp > _last_unconnected_timestamp + 2_s);
+
+	if (_connected && !_battery_initialized && _internal_resistance_initialized && _params.n_cells > 0) {
+		resetInternalResistanceEstimation(_voltage_v, _current_a);
+	}
 
 	sumDischarged(timestamp, _current_a);
 	_state_of_charge_volt_based =
@@ -149,7 +154,7 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.remaining = _state_of_charge;
 	battery_status.scale = _scale;
 	battery_status.time_remaining_s = computeRemainingTime(_current_a);
-	battery_status.temperature = NAN;
+	battery_status.temperature = _temperature_c;
 	battery_status.cell_count = _params.n_cells;
 	battery_status.connected = _connected;
 	battery_status.source = _source;

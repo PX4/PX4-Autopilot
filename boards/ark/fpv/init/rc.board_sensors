@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# ARKFPV specific board sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+if ver hwtypecmp ARKFPV000
+then
+	# Internal SPI bus IIM42653
+	iim42653 -R 14 -s -b 1 start
+fi
+
+# Internal magnetometer on I2C
+iis2mdc -R 0 -I -b 4 start
+
+# Internal Baro on I2C
+bmp388 -I -b 2 start

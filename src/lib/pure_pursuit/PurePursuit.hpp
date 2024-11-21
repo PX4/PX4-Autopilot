@@ -95,14 +95,16 @@ public:
 	 * @param prev_wp_ned North/East coordinates of previous waypoint in NED frame [m].
 	 * @param curr_pos_ned North/East coordinates of current position of the vehicle in NED frame [m].
 	 * @param vehicle_speed Vehicle speed [m/s].
-	 * @param RA_LOOKAHD_GAIN Tuning parameter [-]
-	 * @param RA_LOOKAHD_MAX Maximum lookahead distance [m]
-	 * @param RA_LOOKAHD_MIN Minimum lookahead distance [m]
+	 * @param PP_LOOKAHD_GAIN Tuning parameter [-]
+	 * @param PP_LOOKAHD_MAX Maximum lookahead distance [m]
+	 * @param PP_LOOKAHD_MIN Minimum lookahead distance [m]
 	 */
 	float calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
 				 float vehicle_speed);
 
 	float getLookaheadDistance() {return _lookahead_distance;};
+	float getCrosstrackError() {return _curr_pos_to_path.norm();};
+	float getDistanceOnLineSegment() {return _distance_on_line_segment.norm();};
 
 protected:
 	/**
@@ -122,5 +124,7 @@ protected:
 		float lookahead_min{1.f};
 	} _params{};
 private:
-	float _lookahead_distance{0.f};
+	float _lookahead_distance{0.f}; // Radius of the circle around the vehicle
+	Vector2f _distance_on_line_segment{}; // Projection of prev_wp_to_curr_pos onto prev_wp_to_curr_wp
+	Vector2f _curr_pos_to_path{}; // Shortest vector from the current position to the path
 };

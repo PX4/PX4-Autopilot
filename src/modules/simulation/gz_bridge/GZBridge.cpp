@@ -150,16 +150,31 @@ int GZBridge::init()
 
 		// If PX4_GZ_STANDALONE has been set, you can try to connect but GZ_SIM_RESOURCE_PATH needs to be set correctly to work.
 		else {
-			if (_node.Request(create_service, req, 1000, rep, result)) {
-				if (!rep.data() || !result) {
-					PX4_ERR("EntityFactory service call failed.");
-					return PX4_ERROR;
-				}
-
-			} else {
-				PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+			if (!callEntityFactoryService(create_service, req)) {
 				return PX4_ERROR;
 			}
+
+			std::string scene_info_service = "/world/" + _world_name + "/scene/info";
+			bool scene_created = false;
+
+			while (scene_created == false) {
+				if (!callSceneInfoMsgService(scene_info_service)) {
+					PX4_WARN("Service call timed out as Gazebo has not been detected.");
+					system_usleep(2000000);
+
+				} else {
+					scene_created = true;
+				}
+			}
+
+			gz::msgs::StringMsg follow_msg{};
+			follow_msg.set_data(_model_name);
+			callStringMsgService("/gui/follow", follow_msg);
+			gz::msgs::Vector3d follow_offset_msg{};
+			follow_offset_msg.set_x(-2.0);
+			follow_offset_msg.set_y(-2.0);
+			follow_offset_msg.set_z(2.0);
+			callVector3dService("/gui/follow/offset", follow_offset_msg);
 		}
 	}
 
@@ -201,6 +216,14 @@ int GZBridge::init()
 
 	if (!_node.Subscribe(laser_scan_topic, &GZBridge::laserScanCallback, this)) {
 		PX4_WARN("failed to subscribe to %s", laser_scan_topic.c_str());
+	}
+
+	// Distance Sensor(AFBRS50): optional
+	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
+				   "/link/lidar_sensor_link/sensor/lidar/scan";
+
+	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
 	}
 
 #if 0
@@ -747,10 +770,53 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 
 	pthread_mutex_unlock(&_node_mutex);
 }
+void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	distance_sensor_s distance_sensor{};
+	distance_sensor.timestamp = hrt_absolute_time();
+	device::Device::DeviceId id;
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.bus = 0;
+	id.devid_s.address = 0;
+	id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+	distance_sensor.device_id = id.devid;
+	distance_sensor.min_distance = static_cast<float>(scan.range_min());
+	distance_sensor.max_distance = static_cast<float>(scan.range_max());
+	distance_sensor.current_distance = static_cast<float>(scan.ranges()[0]);
+	distance_sensor.variance = 0.0f;
+	distance_sensor.signal_quality = -1;
+	distance_sensor.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+
+	gz::msgs::Quaternion pose_orientation = scan.world_pose().orientation();
+	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
+			pose_orientation.w(),
+			pose_orientation.x(),
+			pose_orientation.y(),
+			pose_orientation.z());
+
+	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
+	const gz::math::Quaterniond q_down(0, 1, 0, 0);
+
+	if (q_sensor.Equal(q_front, 0.03)) {
+		distance_sensor.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+
+	} else if (q_sensor.Equal(q_down, 0.03)) {
+		distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	} else {
+		distance_sensor.orientation = distance_sensor_s::ROTATION_CUSTOM;
+	}
+
+	_distance_sensor_pub.publish(distance_sensor);
+}
 
 void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 {
-	static constexpr int SECTOR_SIZE_DEG = 10; // PX4 Collision Prevention only has 36 sectors of 10 degrees each
+	static constexpr int SECTOR_SIZE_DEG = 5; // PX4 Collision Prevention uses 5 degree sectors
 
 	double angle_min_deg = scan.angle_min() * 180 / M_PI;
 	double angle_step_deg = scan.angle_step() * 180 / M_PI;
@@ -828,6 +894,93 @@ void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 
 	_obstacle_distance_pub.publish(obs);
 }
+
+bool GZBridge::callEntityFactoryService(const std::string &service, const gz::msgs::EntityFactory &req)
+{
+	bool result;
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("EntityFactory service call failed.");
+			return false;
+		}
+
+	} else {
+		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callSceneInfoMsgService(const std::string &service)
+{
+	bool result;
+	gz::msgs::Empty req;
+	gz::msgs::Scene rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!result) {
+			PX4_ERR("Scene Info service call failed.");
+			return false;
+
+		} else {
+			return true;
+		}
+
+	} else {
+		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callStringMsgService(const std::string &service, const gz::msgs::StringMsg &req)
+{
+	bool result;
+
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("String service call failed");
+			return false;
+
+		}
+	}
+
+	else {
+		PX4_ERR("Service call timed out: %s", service.c_str());
+		return false;
+	}
+
+	return true;
+}
+
+bool GZBridge::callVector3dService(const std::string &service, const gz::msgs::Vector3d &req)
+{
+	bool result;
+
+	gz::msgs::Boolean rep;
+
+	if (_node.Request(service, req, 1000, rep, result)) {
+		if (!rep.data() || !result) {
+			PX4_ERR("String service call failed");
+			return false;
+
+		}
+	}
+
+	else {
+		PX4_ERR("Service call timed out: %s", service.c_str());
+		return false;
+	}
+
+	return true;
+}
+
 
 void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU)
 {

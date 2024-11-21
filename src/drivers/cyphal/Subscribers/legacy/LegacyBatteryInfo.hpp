@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file Battery.hpp
+ * @file LegacyBatteryInfo.hpp
  *
  * Defines basic functionality of UAVCAN legacy Battery subscription
  *

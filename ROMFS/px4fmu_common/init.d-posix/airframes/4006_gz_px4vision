@@ -75,7 +75,6 @@ param set-default MPC_Z_VEL_P_ACC 5
 param set-default MPC_Z_VEL_I_ACC 3
 param set-default MPC_LAND_ALT1 3
 param set-default MPC_LAND_ALT2 1
-param set-default MPC_POS_MODE 3
 param set-default CP_GO_NO_DATA 1
 
 # Navigator Parameters
@@ -97,11 +96,6 @@ param set-default IMU_GYRO_CUTOFF 100
 
 # Power Parameters
 param set-default BAT1_N_CELLS 4
-# param set-default BAT1_A_PER_V 36.364		Not found
-# param set-default BAT1_V_DIV 18.182		Not found
-
-# Circuit breakers
-param set-default CBRK_IO_SAFETY 22027
 
 param set-default THR_MDL_FAC 0.3
 

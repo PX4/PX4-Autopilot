@@ -111,6 +111,7 @@ if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 	)
 endif()
 
+set(EKF_MODULE_PARAMS)
 set(EKF_LIBS)
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
@@ -135,24 +136,27 @@ list(APPEND EKF_SRCS
 
 if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS EKF/aid_sources/airspeed/airspeed_fusion.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_airspeed.yaml)
 endif()
 
 if(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	list(APPEND EKF_SRCS EKF/aid_sources/aux_global_position/aux_global_position.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_aux_global_position.yaml)
 endif()
 
 if(CONFIG_EKF2_AUXVEL)
 	list(APPEND EKF_SRCS EKF/aid_sources/auxvel/auxvel_fusion.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_aux_velocity.yaml)
 endif()
 
 if(CONFIG_EKF2_BAROMETER)
-	list(APPEND EKF_SRCS
-		EKF/aid_sources/barometer/baro_height_control.cpp
-	)
+	list(APPEND EKF_SRCS EKF/aid_sources/barometer/baro_height_control.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_barometer.yaml)
 endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)
 	list(APPEND EKF_SRCS EKF/aid_sources/drag/drag_fusion.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_drag.yaml)
 endif()
 
 if(CONFIG_EKF2_EXTERNAL_VISION)
@@ -163,6 +167,7 @@ if(CONFIG_EKF2_EXTERNAL_VISION)
 		EKF/aid_sources/external_vision/ev_vel_control.cpp
 		EKF/aid_sources/external_vision/ev_yaw_control.cpp
 	)
+	list(APPEND EKF_MODULE_PARAMS params_external_vision.yaml)
 endif()
 
 if(CONFIG_EKF2_GNSS)
@@ -177,10 +182,13 @@ if(CONFIG_EKF2_GNSS)
 	endif()
 
 	list(APPEND EKF_LIBS yaw_estimator)
+
+	list(APPEND EKF_MODULE_PARAMS params_gnss.yaml)
 endif()
 
 if(CONFIG_EKF2_GRAVITY_FUSION)
 	list(APPEND EKF_SRCS EKF/aid_sources/gravity/gravity_fusion.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_gravity.yaml)
 endif()
 
 if(CONFIG_EKF2_MAGNETOMETER)
@@ -188,6 +196,7 @@ if(CONFIG_EKF2_MAGNETOMETER)
 		EKF/aid_sources/magnetometer/mag_control.cpp
 		EKF/aid_sources/magnetometer/mag_fusion.cpp
 	)
+	list(APPEND EKF_MODULE_PARAMS params_magnetometer.yaml)
 endif()
 
 if(CONFIG_EKF2_OPTICAL_FLOW)
@@ -195,6 +204,7 @@ if(CONFIG_EKF2_OPTICAL_FLOW)
 		EKF/aid_sources/optical_flow/optical_flow_control.cpp
 		EKF/aid_sources/optical_flow/optical_flow_fusion.cpp
 	)
+	list(APPEND EKF_MODULE_PARAMS params_optical_flow.yaml)
 endif()
 
 if(CONFIG_EKF2_RANGE_FINDER)
@@ -204,18 +214,22 @@ if(CONFIG_EKF2_RANGE_FINDER)
 		EKF/aid_sources/range_finder/range_height_fusion.cpp
 		EKF/aid_sources/range_finder/sensor_range_finder.cpp
 	)
+	list(APPEND EKF_MODULE_PARAMS params_range_finder.yaml)
 endif()
 
 if(CONFIG_EKF2_SIDESLIP)
 	list(APPEND EKF_SRCS EKF/aid_sources/sideslip/sideslip_fusion.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_sideslip.yaml)
 endif()
 
 if(CONFIG_EKF2_TERRAIN)
 	list(APPEND EKF_SRCS EKF/terrain_control.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_terrain.yaml)
 endif()
 
 if(CONFIG_EKF2_WIND)
 	list(APPEND EKF_SRCS EKF/wind.cpp)
+	list(APPEND EKF_MODULE_PARAMS params_wind.yaml)
 endif ()
 
 add_subdirectory(EKF)
@@ -248,9 +262,12 @@ px4_add_module(
 
 	MODULE_CONFIG
 		module.yaml
+		params_gyro_bias.yaml
+		params_accel_bias.yaml
 		params_multi.yaml
 		params_volatile.yaml
 		params_selector.yaml
+		${EKF_MODULE_PARAMS}
 
 	DEPENDS
 		geo

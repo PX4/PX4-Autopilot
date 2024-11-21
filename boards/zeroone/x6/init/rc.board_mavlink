@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# PX4 FMUv6X specific board MAVLink startup script.
+#------------------------------------------------------------------------------
+
+# if skynode base board is detected start Mavlink on Telem2
+if ver hwbasecmp 009 010 011
+then
+	mavlink start -d /dev/ttyS4 -b 3000000 -r 290000 -m onboard_low_bandwidth -x -z
+
+	# Ensure nothing else starts on TEL2 (ttyS4)
+	set PRT_TEL2_ 1
+fi

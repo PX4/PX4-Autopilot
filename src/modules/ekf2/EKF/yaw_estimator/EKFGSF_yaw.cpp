@@ -132,13 +132,11 @@ void EKFGSF_yaw::fuseVelocity(const Vector2f &vel_NE, const float vel_accuracy, 
 			float total_weight = 0.0f;
 			// calculate weighting for each model assuming a normal distribution
 			const float min_weight = 1e-5f;
-			uint8_t n_weight_clips = 0;
 
 			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
 				_model_weights(model_index) = gaussianDensity(model_index) * _model_weights(model_index);
 
 				if (_model_weights(model_index) < min_weight) {
-					n_weight_clips++;
 					_model_weights(model_index) = min_weight;
 				}
 
@@ -146,13 +144,7 @@ void EKFGSF_yaw::fuseVelocity(const Vector2f &vel_NE, const float vel_accuracy, 
 			}
 
 			// normalise the weighting function
-			if (n_weight_clips < N_MODELS_EKFGSF) {
-				_model_weights /= total_weight;
-
-			} else {
-				// all weights have collapsed due to excessive innovation variances so reset filters
-				reset();
-			}
+			_model_weights /= total_weight;
 		}
 
 		// Calculate a composite yaw vector as a weighted average of the states for each model.
@@ -332,11 +324,12 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, co
 
 	matrix::Matrix<float, 3, 2> K;
 	matrix::SquareMatrix<float, 3> P_new;
+	matrix::SquareMatrix<float, 2> S_inverse;
 
 	sym::YawEstComputeMeasurementUpdate(_ekf_gsf[model_index].P,
 					    vel_obs_var,
 					    FLT_EPSILON,
-					    &_ekf_gsf[model_index].S_inverse,
+					    &S_inverse,
 					    &_ekf_gsf[model_index].S_det_inverse,
 					    &K,
 					    &P_new);
@@ -355,21 +348,24 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, co
 		_ekf_gsf[model_index].P(index, index) = fmaxf(_ekf_gsf[model_index].P(index, index), min_var);
 	}
 
-	// test ratio = transpose(innovation) * inverse(innovation variance) * innovation = [1x2] * [2,2] * [2,1] = [1,1]
-	const float test_ratio = _ekf_gsf[model_index].innov * (_ekf_gsf[model_index].S_inverse * _ekf_gsf[model_index].innov);
+	// normalized innovation squared = transpose(innovation) * inverse(innovation variance) * innovation = [1x2] * [2,2] * [2,1] = [1,1]
+	_ekf_gsf[model_index].nis = _ekf_gsf[model_index].innov * (S_inverse * _ekf_gsf[model_index].innov);
 
 	// Perform a chi-square innovation consistency test and calculate a compression scale factor
 	// that limits the magnitude of innovations to 5-sigma
-	// If the test ratio is greater than 25 (5 Sigma) then reduce the length of the innovation vector to clip it at 5-Sigma
+	// If the normalized innovation squared is greater than 25 (5 Sigma) then reduce the length of the innovation vector to clip it at 5-Sigma
 	// This protects from large measurement spikes
-	const float innov_comp_scale_factor = test_ratio > 25.f ? sqrtf(25.0f / test_ratio) : 1.f;
+	if (_ekf_gsf[model_index].nis > sq(5.f)) {
+		_ekf_gsf[model_index].innov *= sqrtf(sq(5.f) / _ekf_gsf[model_index].nis);
+		_ekf_gsf[model_index].nis = sq(5.f);
+	}
 
-	// Correct the state vector and capture the change in yaw angle
-	const float oldYaw = _ekf_gsf[model_index].X(2);
+	// Correct the state vector
+	const Vector3f delta_state = -K * _ekf_gsf[model_index].innov;
+	const float yawDelta = delta_state(2);
 
-	_ekf_gsf[model_index].X -= (K * _ekf_gsf[model_index].innov) * innov_comp_scale_factor;
-
-	const float yawDelta = _ekf_gsf[model_index].X(2) - oldYaw;
+	_ekf_gsf[model_index].X.xy() += delta_state.xy();
+	_ekf_gsf[model_index].X(2) = wrap_pi(_ekf_gsf[model_index].X(2) + yawDelta);
 
 	// apply the change in yaw angle to the AHRS
 	// take advantage of sparseness in the yaw rotation matrix
@@ -417,10 +413,7 @@ void EKFGSF_yaw::initialiseEKFGSF(const Vector2f &vel_NE, const float vel_accura
 
 float EKFGSF_yaw::gaussianDensity(const uint8_t model_index) const
 {
-	// calculate transpose(innovation) * inv(S) * innovation
-	const float normDist = _ekf_gsf[model_index].innov.dot(_ekf_gsf[model_index].S_inverse * _ekf_gsf[model_index].innov);
-
-	return (1.f / (2.f * M_PI_F)) * sqrtf(_ekf_gsf[model_index].S_det_inverse) * expf(-0.5f * normDist);
+	return (1.f / (2.f * M_PI_F)) * sqrtf(_ekf_gsf[model_index].S_det_inverse) * expf(-0.5f * _ekf_gsf[model_index].nis);
 }
 
 bool EKFGSF_yaw::getLogData(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],

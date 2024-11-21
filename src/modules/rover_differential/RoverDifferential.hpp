@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023-2024 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,28 +39,35 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/pure_pursuit/PurePursuit.hpp>
 
 // uORB includes
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/rover_differential_status.h>
+#include <uORB/topics/rover_differential_setpoint.h>
 
 // Standard libraries
-#include <lib/pid/pid.h>
 #include <matrix/matrix/math.hpp>
 
 // Local includes
 #include "RoverDifferentialGuidance/RoverDifferentialGuidance.hpp"
+#include "RoverDifferentialControl/RoverDifferentialControl.hpp"
 
 using namespace time_literals;
+
+// Constants
+static constexpr float STICK_DEADZONE =
+	0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
+static constexpr float YAW_RATE_THRESHOLD =
+	0.02f; // [rad/s] The minimum threshold for the yaw rate measurement not to be interpreted as zero
+static constexpr float SPEED_THRESHOLD =
+	0.1f; // [m/s] The minimum threshold for the speed measurement not to be interpreted as zero
 
 class RoverDifferential : public ModuleBase<RoverDifferential>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -80,20 +87,16 @@ public:
 
 	bool init();
 
-	/**
-	 * @brief Computes motor commands for differential drive.
-	 *
-	 * @param forward_speed Linear velocity along the x-axis.
-	 * @param speed_diff Speed difference between left and right wheels.
-	 * @return matrix::Vector2f Motor velocities for the right and left motors.
-	 */
-	matrix::Vector2f computeMotorCommands(float forward_speed, const float speed_diff);
-
 protected:
 	void updateParams() override;
 
 private:
 	void Run() override;
+
+	/**
+	 * @brief Update uORB subscriptions.
+	 */
+	void updateSubscriptions();
 
 	// uORB Subscriptions
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
@@ -104,33 +107,32 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// uORB Publications
-	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<rover_differential_status_s> _rover_differential_status_pub{ORB_ID(rover_differential_status)};
+	uORB::Publication<rover_differential_setpoint_s> _rover_differential_setpoint_pub{ORB_ID(rover_differential_setpoint)};
 
 	// Instances
 	RoverDifferentialGuidance _rover_differential_guidance{this};
+	RoverDifferentialControl _rover_differential_control{this};
+	PurePursuit _posctl_pure_pursuit{this}; // Pure pursuit library
 
 	// Variables
-	float _vehicle_body_yaw_rate{0.f};
+	Vector2f _curr_pos_ned{};
+	matrix::Quatf _vehicle_attitude_quaternion{};
+	float _vehicle_yaw_rate{0.f};
 	float _vehicle_forward_speed{0.f};
 	float _vehicle_yaw{0.f};
 	float _max_yaw_rate{0.f};
 	int _nav_state{0};
-	matrix::Quatf _vehicle_attitude_quaternion{};
-	hrt_abstime _timestamp{0};
-	PID_t _pid_yaw_rate; // The PID controller for yaw rate
-	RoverDifferentialGuidance::differential_setpoint _differential_setpoint;
-
-	// Constants
-	static constexpr float YAW_RATE_ERROR_THRESHOLD = 0.1f; // [rad/s] Error threshold for the closed loop yaw rate control
+	bool _armed{false};
+	bool _yaw_ctl{false}; // Indicates if the rover is doing yaw or yaw rate control in Stabilized and Position mode
+	float _stab_desired_yaw{0.f}; // Yaw setpoint for Stabilized mode
+	Vector2f _pos_ctl_course_direction{}; // Course direction for Position mode
+	Vector2f _pos_ctl_start_position_ned{}; // Initial rover position for course control in Position mode
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RD_MAN_YAW_SCALE>) _param_rd_man_yaw_scale,
-		(ParamFloat<px4::params::RD_WHEEL_TRACK>) _param_rd_wheel_track,
-		(ParamFloat<px4::params::RD_YAW_RATE_P>) _param_rd_p_gain_yaw_rate,
-		(ParamFloat<px4::params::RD_YAW_RATE_I>) _param_rd_i_gain_yaw_rate,
-		(ParamFloat<px4::params::RD_MAX_SPEED>) _param_rd_max_speed,
-		(ParamFloat<px4::params::RD_MAX_YAW_RATE>) _param_rd_max_yaw_rate,
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
+		(ParamFloat<px4::params::RD_WHEEL_TRACK>)   _param_rd_wheel_track,
+		(ParamFloat<px4::params::RD_MAX_YAW_RATE>)  _param_rd_max_yaw_rate,
+		(ParamFloat<px4::params::RD_MAX_THR_YAW_R>) _param_rd_max_thr_yaw_r,
+		(ParamFloat<px4::params::RD_MAX_SPEED>)     _param_rd_max_speed,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
 	)
 };

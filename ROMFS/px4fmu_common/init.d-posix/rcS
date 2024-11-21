@@ -181,7 +181,7 @@ param set-default TRIG_INTERFACE 3
 param set-default SYS_FAILURE_EN 1
 # Enable low-battery actions by default for (automated) testing. Battery sim
 # does not go below 50% by default, but failure injection can trigger failsafes.
-param set-default COM_LOW_BAT_ACT 2
+param set-default COM_LOW_BAT_ACT 3
 
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
@@ -190,11 +190,11 @@ if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
 	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
 
-	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
+	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 1.0" | bc)
 	echo "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
 	param set COM_RC_LOSS_T $COM_RC_LOSS_T_LONGER
 
-	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
+	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 1.0" | bc)
 	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
 	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
 

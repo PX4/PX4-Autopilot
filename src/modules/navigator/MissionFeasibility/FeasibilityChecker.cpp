@@ -49,7 +49,6 @@ void FeasibilityChecker::reset()
 	_mission_validity_failed = false;
 	_takeoff_failed = false;
 	_land_pattern_validity_failed = false;
-	_distance_first_waypoint_failed = false;
 	_distance_between_waypoints_failed = false;
 	_fixed_wing_land_approach_failed = false;
 	_takeoff_land_available_failed = false;
@@ -116,12 +115,6 @@ void FeasibilityChecker::updateData()
 	if (_land_detector_sub.updated()) {
 		_land_detector_sub.copy(&land_detected);
 		_is_landed = land_detected.landed;
-	}
-
-	if (_vehicle_global_position_sub.updated()) {
-		vehicle_global_position_s vehicle_global_position = {};
-		_vehicle_global_position_sub.copy(&vehicle_global_position);
-		_current_position_lat_lon = matrix::Vector2d(vehicle_global_position.lat, vehicle_global_position.lon);
 	}
 
 	if (_rtl_status_sub.updated()) {
@@ -199,8 +192,8 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 		_distance_between_waypoints_failed = !checkDistancesBetweenWaypoints(mission_item);
 	}
 
-	if (!_distance_first_waypoint_failed) {
-		_distance_first_waypoint_failed = !checkHorizontalDistanceToFirstWaypoint(mission_item);
+	if (!_first_waypoint_found) {
+		checkHorizontalDistanceToFirstWaypoint(mission_item);
 	}
 
 	if (!_takeoff_failed) {
@@ -293,6 +286,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_OBLIQUE_SURVEY &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
+	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_SOURCE &&
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
 	    mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
 	    mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
@@ -378,6 +372,7 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 					     mission_item.nav_cmd != NAV_CMD_OBLIQUE_SURVEY &&
 					     mission_item.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
+					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_SOURCE &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
 					     mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION);
@@ -631,31 +626,32 @@ bool FeasibilityChecker::hasMissionBothOrNeitherTakeoffAndLanding()
 bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
 	if (_param_mis_dist_1wp > FLT_EPSILON &&
-	    (_current_position_lat_lon.isAllFinite()) && !_first_waypoint_found &&
+	    (_home_lat_lon.isAllFinite()) &&
 	    MissionBlock::item_contains_position(mission_item)) {
 
 		_first_waypoint_found = true;
 
-		float dist_to_1wp_from_current_pos = 1e6f;
+		const float dist_to_1wp_from_home_pos = get_distance_to_next_waypoint(
+				mission_item.lat, mission_item.lon,
+				_home_lat_lon(0), _home_lat_lon(1));
 
-		if (_current_position_lat_lon.isAllFinite()) {
-			dist_to_1wp_from_current_pos = get_distance_to_next_waypoint(
-							       mission_item.lat, mission_item.lon,
-							       _current_position_lat_lon(0), _current_position_lat_lon(1));
-		}
-
-		if (dist_to_1wp_from_current_pos < _param_mis_dist_1wp) {
+		if (dist_to_1wp_from_home_pos < _param_mis_dist_1wp) {
 
 			return true;
 
 		} else {
 			/* item is too far from current position */
 			mavlink_log_critical(_mavlink_log_pub,
-					     "First waypoint too far away: %dm, %d max\t",
-					     (int)dist_to_1wp_from_current_pos, (int)_param_mis_dist_1wp);
-			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp_from_current_pos,
-							 (uint32_t)_param_mis_dist_1wp);
+					     "First waypoint far away from home: %dm. Correct mission loaded?\t",
+					     (int)dist_to_1wp_from_home_pos);
+			/* EVENT
+			* @description
+			* <profile name="dev">
+			* This check can be configured via <param>MIS_DIST_1WP</param> parameter.
+			* </profile>
+			*/
+			events::send<uint32_t>(events::ID("navigator_mis_first_wp_far"), {events::Log::Warning, events::LogInternal::Info},
+					       "First waypoint far away from Home: {1m} Correct mission loaded?", (uint32_t)dist_to_1wp_from_home_pos);
 
 			return false;
 		}
