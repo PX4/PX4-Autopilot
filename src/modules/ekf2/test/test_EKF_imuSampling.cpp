@@ -47,8 +47,7 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		_ekf.init(0);
-
+		_ekf.reset();
 	}
 
 	void TearDown() override

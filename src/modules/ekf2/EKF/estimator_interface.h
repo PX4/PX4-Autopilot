@@ -318,9 +318,7 @@ public:
 protected:
 
 	EstimatorInterface() = default;
-	virtual ~EstimatorInterface();
-
-	virtual bool init(uint64_t timestamp) = 0;
+	~EstimatorInterface();
 
 	parameters _params{};		// filter parameters
 
@@ -345,6 +343,11 @@ protected:
 
 	uint64_t _time_delayed_us{0}; // captures the imu sample on the delayed time horizon
 	uint64_t _time_latest_us{0}; // imu sample capturing the newest imu data
+
+	// Variables used by the initial filter alignment
+	bool _is_first_imu_sample{true};
+	AlphaFilter<Vector3f> _accel_lpf{0.1f};	///< filtered accelerometer measurement used to align tilt (m/s/s)
+	AlphaFilter<Vector3f> _gyro_lpf{0.1f};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
 	OutputPredictor _output_predictor{};
 
@@ -378,7 +381,6 @@ protected:
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};		// air density (kg/m**3)
 
 	bool _imu_updated{false};      // true if the ekf should update (completed downsampling process)
-	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	MapProjection _local_origin_lat_lon{};
@@ -449,7 +451,7 @@ protected:
 	fault_status_u _fault_status{};
 
 	// allocate data buffers and initialize interface variables
-	bool initialise_interface(uint64_t timestamp);
+	bool initialise_interface();
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	uint64_t _wmm_mag_time_last_checked {0}; // time WMM update last checked by mag control

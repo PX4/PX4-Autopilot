@@ -80,14 +80,14 @@ public:
 	Ekf()
 	{
 		reset();
+		initialise_interface();
 	};
 
-	virtual ~Ekf() = default;
-
-	// initialise variables to sane values (also interface class)
-	bool init(uint64_t timestamp) override;
+	~Ekf() = default;
 
 	void print_status();
+
+	void reset();
 
 	// should be called every time new data is pushed into the filter
 	bool update();
@@ -427,10 +427,7 @@ private:
 	friend class EvVelLocalFrameNed;
 	friend class EvVelLocalFrameFrd;
 
-	// set the internal states and status to their default value
-	void reset();
-
-	bool initialiseTilt();
+	bool initialiseTilt(const Vector3f &accel);
 
 	// check if the EKF is dead reckoning horizontal velocity using inertial data only
 	void updateDeadReckoningStatus();
@@ -583,11 +580,6 @@ private:
 	estimator_aid_source2d_s _aid_src_aux_vel {};
 #endif // CONFIG_EKF2_AUXVEL
 
-	// Variables used by the initial filter alignment
-	bool _is_first_imu_sample{true};
-	AlphaFilter<Vector3f> _accel_lpf{0.1f};	///< filtered accelerometer measurement used to align tilt (m/s/s)
-	AlphaFilter<Vector3f> _gyro_lpf{0.1f};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
-
 #if defined(CONFIG_EKF2_BAROMETER)
 	estimator_aid_source1d_s _aid_src_baro_hgt {};
 
@@ -625,9 +617,6 @@ private:
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
 	uint64_t _time_good_vert_accel{0};	///< last time a good vertical accel was detected (uSec)
 	uint16_t _clip_counter[3];		///< counter per axis that increments when clipping ad decrements when not
-
-	// initialise filter states of both the delayed ekf and the real time complementary filter
-	bool initialiseFilter(void);
 
 	// initialise ekf covariance matrix
 	void initialiseCovariance();

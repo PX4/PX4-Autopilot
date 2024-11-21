@@ -65,7 +65,7 @@ public:
 		_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
 
 		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
-		_ekf->init(0);
+		_ekf->reset();
 		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);

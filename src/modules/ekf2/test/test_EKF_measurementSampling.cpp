@@ -45,7 +45,7 @@ public:
 
 	void SetUp() override
 	{
-		_ekf->init(0);
+		_ekf->reset();
 	}
 };
 

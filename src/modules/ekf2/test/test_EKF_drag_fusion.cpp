@@ -59,7 +59,7 @@ public:
 	void SetUp() override
 	{
 		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
-		_ekf->init(0);
+		_ekf->reset();
 		_ekf->set_is_fixed_wing(false);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);

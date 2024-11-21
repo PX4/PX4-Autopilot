@@ -833,6 +833,14 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 			UpdateMagCalibration(now);
 #endif // CONFIG_EKF2_MAGNETOMETER
+
+		} else {
+			// if filter not initialized
+
+
+
+
+
 		}
 
 		// publish ekf2_timestamps

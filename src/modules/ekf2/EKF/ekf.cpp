@@ -43,35 +43,13 @@
 
 #include <mathlib/mathlib.h>
 
-bool Ekf::init(uint64_t timestamp)
-{
-	if (!_initialised) {
-		_initialised = initialise_interface(timestamp);
-		reset();
-	}
-
-	return _initialised;
-}
-
 void Ekf::reset()
 {
 	ECL_INFO("reset");
 
+	_state = {};
 	_state.quat_nominal.setIdentity();
-	_state.vel.setZero();
-	_state.pos.setZero();
-	_state.gyro_bias.setZero();
-	_state.accel_bias.setZero();
 
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	_state.mag_I.setZero();
-	_state.mag_B.setZero();
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_WIND)
-	_state.wind_vel.setZero();
-#endif // CONFIG_EKF2_WIND
-	//
 #if defined(CONFIG_EKF2_TERRAIN)
 	// assume a ground clearance
 	_state.terrain = -_gpos.altitude() + _params.rng_gnd_clearance;
@@ -100,6 +78,13 @@ void Ekf::reset()
 	_local_origin_alt = NAN;
 
 	_output_predictor.reset();
+
+	_time_latest_us = 0;
+	_time_delayed_us = 0;
+
+	_imu_updated = false;
+
+	_filter_initialised = false;
 
 	// Ekf private fields
 	_time_last_horizontal_aiding = 0;
@@ -133,18 +118,12 @@ void Ekf::reset()
 	_zero_velocity_update.reset();
 
 	updateParameters();
+
+	initialiseCovariance();
 }
 
 bool Ekf::update()
 {
-	if (!_filter_initialised) {
-		_filter_initialised = initialiseFilter();
-
-		if (!_filter_initialised) {
-			return false;
-		}
-	}
-
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
 		_imu_updated = false;
@@ -159,14 +138,52 @@ bool Ekf::update()
 		float filter_update_s = 1e-6f * _params.filter_update_interval_us;
 		_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * math::constrain(input, 0.5f * filter_update_s, 2.f * filter_update_s);
 
+		// Filter accel for tilt initialization
+		if (_is_first_imu_sample) {
+			_accel_lpf.reset(imu_sample_delayed.delta_vel / imu_sample_delayed.delta_vel_dt);
+			_gyro_lpf.reset(imu_sample_delayed.delta_ang / imu_sample_delayed.delta_ang_dt);
+			_is_first_imu_sample = false;
+
+			_state = {};
+			initialiseTilt(_accel_lpf.getState());
+			initialiseCovariance();
+
+		} else {
+			_accel_lpf.update(imu_sample_delayed.delta_vel / imu_sample_delayed.delta_vel_dt);
+			_gyro_lpf.update(imu_sample_delayed.delta_ang / imu_sample_delayed.delta_ang_dt);
+		}
+
+		if (!_filter_initialised) {
+
+			const float accel_norm = _accel_lpf.getState().norm();
+			const float gyro_norm = _gyro_lpf.getState().norm();
+
+			if ((accel_norm > 0.8f * CONSTANTS_ONE_G)
+			    && (accel_norm < 1.2f * CONSTANTS_ONE_G)
+			    && (gyro_norm < math::radians(15.f))
+			   ) {
+				// once ready reset and init tilt from filtered accel
+				_state = {};
+				initialiseTilt(_accel_lpf.getState());
+				initialiseCovariance();
+
+				// reset the output predictor state history to match the EKF initial values
+				_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _gpos);
+
+				_filter_initialised = true;
+			}
+		}
+
 		updateIMUBiasInhibit(imu_sample_delayed);
 
 		// perform state and covariance prediction for the main filter
 		predictCovariance(imu_sample_delayed);
 		predictState(imu_sample_delayed);
 
-		// control fusion of observation data
-		controlFusionModes(imu_sample_delayed);
+		if (_filter_initialised) {
+			// control fusion of observation data
+			controlFusionModes(imu_sample_delayed);
+		}
 
 		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _gpos,
 						      _state.gyro_bias, _state.accel_bias);
@@ -177,52 +194,10 @@ bool Ekf::update()
 	return false;
 }
 
-bool Ekf::initialiseFilter()
+bool Ekf::initialiseTilt(const Vector3f &accel)
 {
-	// Filter accel for tilt initialization
-	const imuSample &imu_init = _imu_buffer.get_newest();
-
-	// protect against zero data
-	if (imu_init.delta_vel_dt < 1e-4f || imu_init.delta_ang_dt < 1e-4f) {
-		return false;
-	}
-
-	if (_is_first_imu_sample) {
-		_accel_lpf.reset(imu_init.delta_vel / imu_init.delta_vel_dt);
-		_gyro_lpf.reset(imu_init.delta_ang / imu_init.delta_ang_dt);
-		_is_first_imu_sample = false;
-
-	} else {
-		_accel_lpf.update(imu_init.delta_vel / imu_init.delta_vel_dt);
-		_gyro_lpf.update(imu_init.delta_ang / imu_init.delta_ang_dt);
-	}
-
-	if (!initialiseTilt()) {
-		return false;
-	}
-
-	// initialise the state covariance matrix now we have starting values for all the states
-	initialiseCovariance();
-
-	// reset the output predictor state history to match the EKF initial values
-	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _gpos);
-
-	return true;
-}
-
-bool Ekf::initialiseTilt()
-{
-	const float accel_norm = _accel_lpf.getState().norm();
-	const float gyro_norm = _gyro_lpf.getState().norm();
-
-	if (accel_norm < 0.8f * CONSTANTS_ONE_G ||
-	    accel_norm > 1.2f * CONSTANTS_ONE_G ||
-	    gyro_norm > math::radians(15.0f)) {
-		return false;
-	}
-
 	// get initial tilt estimate from delta velocity vector, assuming vehicle is static
-	_state.quat_nominal = Quatf(_accel_lpf.getState(), Vector3f(0.f, 0.f, -1.f));
+	_state.quat_nominal = Quatf(accel, Vector3f(0.f, 0.f, -1.f));
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	return true;

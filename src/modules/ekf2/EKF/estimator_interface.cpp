@@ -78,11 +78,6 @@ EstimatorInterface::~EstimatorInterface()
 // Accumulate imu data and store to buffer at desired rate
 void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 {
-	// TODO: resolve misplaced responsibility
-	if (!_initialised) {
-		_initialised = init(imu_sample.time_us);
-	}
-
 	_time_latest_us = imu_sample.time_us;
 
 	// the output observer always runs
@@ -122,18 +117,19 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 void EstimatorInterface::setMagData(const magSample &mag_sample)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_mag_buffer == nullptr) {
-		_mag_buffer = new RingBuffer<magSample>(_obs_buffer_length);
+		if (_obs_buffer_length > 0) {
+			_mag_buffer = new RingBuffer<magSample>(_obs_buffer_length);
 
-		if (_mag_buffer == nullptr || !_mag_buffer->valid()) {
-			delete _mag_buffer;
-			_mag_buffer = nullptr;
-			printBufferAllocationFailed("mag");
+			if (_mag_buffer == nullptr || !_mag_buffer->valid()) {
+				delete _mag_buffer;
+				_mag_buffer = nullptr;
+				printBufferAllocationFailed("mag");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -161,18 +157,19 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 #if defined(CONFIG_EKF2_GNSS)
 void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_gps_buffer == nullptr) {
-		_gps_buffer = new RingBuffer<gnssSample>(_obs_buffer_length);
+		if (_obs_buffer_length > 0) {
+			_gps_buffer = new RingBuffer<gnssSample>(_obs_buffer_length);
 
-		if (_gps_buffer == nullptr || !_gps_buffer->valid()) {
-			delete _gps_buffer;
-			_gps_buffer = nullptr;
-			printBufferAllocationFailed("GPS");
+			if (_gps_buffer == nullptr || !_gps_buffer->valid()) {
+				delete _gps_buffer;
+				_gps_buffer = nullptr;
+				printBufferAllocationFailed("GPS");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -208,18 +205,19 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 #if defined(CONFIG_EKF2_BAROMETER)
 void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_baro_buffer == nullptr) {
-		_baro_buffer = new RingBuffer<baroSample>(_obs_buffer_length);
+		if (_obs_buffer_length > 0) {
+			_baro_buffer = new RingBuffer<baroSample>(_obs_buffer_length);
 
-		if (_baro_buffer == nullptr || !_baro_buffer->valid()) {
-			delete _baro_buffer;
-			_baro_buffer = nullptr;
-			printBufferAllocationFailed("baro");
+			if (_baro_buffer == nullptr || !_baro_buffer->valid()) {
+				delete _baro_buffer;
+				_baro_buffer = nullptr;
+				printBufferAllocationFailed("baro");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -247,18 +245,19 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 #if defined(CONFIG_EKF2_AIRSPEED)
 void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_airspeed_buffer == nullptr) {
-		_airspeed_buffer = new RingBuffer<airspeedSample>(_obs_buffer_length);
+		if (_obs_buffer_length > 0) {
+			_airspeed_buffer = new RingBuffer<airspeedSample>(_obs_buffer_length);
 
-		if (_airspeed_buffer == nullptr || !_airspeed_buffer->valid()) {
-			delete _airspeed_buffer;
-			_airspeed_buffer = nullptr;
-			printBufferAllocationFailed("airspeed");
+			if (_airspeed_buffer == nullptr || !_airspeed_buffer->valid()) {
+				delete _airspeed_buffer;
+				_airspeed_buffer = nullptr;
+				printBufferAllocationFailed("airspeed");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -285,18 +284,19 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_range_buffer == nullptr) {
-		_range_buffer = new RingBuffer<sensor::rangeSample>(_obs_buffer_length);
+		if (_obs_buffer_length > 0) {
+			_range_buffer = new RingBuffer<sensor::rangeSample>(_obs_buffer_length);
 
-		if (_range_buffer == nullptr || !_range_buffer->valid()) {
-			delete _range_buffer;
-			_range_buffer = nullptr;
-			printBufferAllocationFailed("range");
+			if (_range_buffer == nullptr || !_range_buffer->valid()) {
+				delete _range_buffer;
+				_range_buffer = nullptr;
+				printBufferAllocationFailed("range");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -324,18 +324,19 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_flow_buffer == nullptr) {
-		_flow_buffer = new RingBuffer<flowSample>(_imu_buffer_length);
+		if (_imu_buffer_length > 0) {
+			_flow_buffer = new RingBuffer<flowSample>(_imu_buffer_length);
 
-		if (_flow_buffer == nullptr || !_flow_buffer->valid()) {
-			delete _flow_buffer;
-			_flow_buffer = nullptr;
-			printBufferAllocationFailed("flow");
+			if (_flow_buffer == nullptr || !_flow_buffer->valid()) {
+				delete _flow_buffer;
+				_flow_buffer = nullptr;
+				printBufferAllocationFailed("flow");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -362,18 +363,19 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_ext_vision_buffer == nullptr) {
-		_ext_vision_buffer = new RingBuffer<extVisionSample>(_obs_buffer_length);
+		if (_obs_buffer_length > 0) {
+			_ext_vision_buffer = new RingBuffer<extVisionSample>(_obs_buffer_length);
 
-		if (_ext_vision_buffer == nullptr || !_ext_vision_buffer->valid()) {
-			delete _ext_vision_buffer;
-			_ext_vision_buffer = nullptr;
-			printBufferAllocationFailed("vision");
+			if (_ext_vision_buffer == nullptr || !_ext_vision_buffer->valid()) {
+				delete _ext_vision_buffer;
+				_ext_vision_buffer = nullptr;
+				printBufferAllocationFailed("vision");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -402,18 +404,19 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 #if defined(CONFIG_EKF2_AUXVEL)
 void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_auxvel_buffer == nullptr) {
-		_auxvel_buffer = new RingBuffer<auxVelSample>(_obs_buffer_length);
+		if (_obs_buffer_length > 0) {
+			_auxvel_buffer = new RingBuffer<auxVelSample>(_obs_buffer_length);
 
-		if (_auxvel_buffer == nullptr || !_auxvel_buffer->valid()) {
-			delete _auxvel_buffer;
-			_auxvel_buffer = nullptr;
-			printBufferAllocationFailed("aux vel");
+			if (_auxvel_buffer == nullptr || !_auxvel_buffer->valid()) {
+				delete _auxvel_buffer;
+				_auxvel_buffer = nullptr;
+				printBufferAllocationFailed("aux vel");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -439,18 +442,19 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 
 void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 {
-	if (!_initialised) {
-		return;
-	}
-
 	// Allocate the required buffer size if not previously done
 	if (_system_flag_buffer == nullptr) {
-		_system_flag_buffer = new RingBuffer<systemFlagUpdate>(_obs_buffer_length);
+		if (_obs_buffer_length > 0) {
+			_system_flag_buffer = new RingBuffer<systemFlagUpdate>(_obs_buffer_length);
 
-		if (_system_flag_buffer == nullptr || !_system_flag_buffer->valid()) {
-			delete _system_flag_buffer;
-			_system_flag_buffer = nullptr;
-			printBufferAllocationFailed("system flag");
+			if (_system_flag_buffer == nullptr || !_system_flag_buffer->valid()) {
+				delete _system_flag_buffer;
+				_system_flag_buffer = nullptr;
+				printBufferAllocationFailed("system flag");
+				return;
+			}
+
+		} else {
 			return;
 		}
 	}
@@ -477,16 +481,21 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
 	// sufficient samples have been collected
-	if (_params.drag_ctrl > 0) {
+	if (_params.drag_ctrl) {
 
 		// Allocate the required buffer size if not previously done
 		if (_drag_buffer == nullptr) {
-			_drag_buffer = new RingBuffer<dragSample>(_obs_buffer_length);
+			if (_obs_buffer_length > 0) {
+				_drag_buffer = new RingBuffer<dragSample>(_obs_buffer_length);
 
-			if (_drag_buffer == nullptr || !_drag_buffer->valid()) {
-				delete _drag_buffer;
-				_drag_buffer = nullptr;
-				printBufferAllocationFailed("drag");
+				if (_drag_buffer == nullptr || !_drag_buffer->valid()) {
+					delete _drag_buffer;
+					_drag_buffer = nullptr;
+					printBufferAllocationFailed("drag");
+					return;
+				}
+
+			} else {
 				return;
 			}
 		}
@@ -536,7 +545,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 }
 #endif // CONFIG_EKF2_DRAG_FUSION
 
-bool EstimatorInterface::initialise_interface(uint64_t timestamp)
+bool EstimatorInterface::initialise_interface()
 {
 	const float filter_update_period_ms = _params.filter_update_interval_us / 1000.f;
 
@@ -559,11 +568,6 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		printBufferAllocationFailed("IMU and output");
 		return false;
 	}
-
-	_time_delayed_us = timestamp;
-	_time_latest_us = timestamp;
-
-	_fault_status.value = 0;
 
 	return true;
 }
