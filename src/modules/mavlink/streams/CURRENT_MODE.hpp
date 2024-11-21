@@ -66,7 +66,8 @@ private:
 			mavlink_current_mode_t current_mode{};
 			current_mode.custom_mode = get_px4_custom_mode(vehicle_status.nav_state).data;
 			current_mode.intended_custom_mode = get_px4_custom_mode(vehicle_status.nav_state_user_intention).data;
-			current_mode.standard_mode = (uint8_t) mode_util::getStandardModeFromNavState(vehicle_status.nav_state);
+			current_mode.standard_mode = (uint8_t) mode_util::getStandardModeFromNavState(vehicle_status.nav_state,
+						     vehicle_status.vehicle_type, vehicle_status.is_vtol);
 			mavlink_msg_current_mode_send_struct(_mavlink->get_channel(), &current_mode);
 			return true;
 		}

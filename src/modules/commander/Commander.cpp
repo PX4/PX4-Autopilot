@@ -1450,7 +1450,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_STANDARD_MODE: {
 			mode_util::StandardMode standard_mode = (mode_util::StandardMode) roundf(cmd.param1);
-			uint8_t nav_state = mode_util::getNavStateFromStandardMode(standard_mode);
+			uint8_t nav_state = mode_util::getNavStateFromStandardMode(standard_mode, _vehicle_status.vehicle_type,
+					    _vehicle_status.is_vtol);
 
 			if (nav_state == vehicle_status_s::NAVIGATION_STATE_MAX) {
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
