@@ -1,5 +1,1 @@
-# To support 64-bit OS on Raspberry Pi 4,5
-# sudo apt install g++-aarch64-linux-gnu
-# use "make emlid_navio2_arm64 upload"
-
 CONFIG_BOARD_TOOLCHAIN="aarch64-linux-gnu"
