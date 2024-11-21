@@ -38,6 +38,14 @@ jobs:
         with:
           images: |
             ghcr.io/PX4/px4-dev
+          tags: |
+            type=schedule
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=ref,event=branch,suffix=-{{date 'YYYYMMDD'}}
+            type=ref,event=pr
+            type=sha
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
