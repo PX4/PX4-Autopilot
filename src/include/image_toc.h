@@ -51,6 +51,9 @@
 #define TOC_FLAG1_ICFG 0x40
 #define TOC_FLAG1_RDCT 0x80
 
+#define TOC_FLAG2_USE_SBI 0x1
+#define TOC_FLAG2_RELATIVE_ADRESSES 0x2
+
 #define TOC_START_MAGIC 0x00434f54 /* "TOC" */
 #define TOC_END_MAGIC 0x00444e45 /* "END" */
 
