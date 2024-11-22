@@ -110,7 +110,7 @@ void Ekf::resetHeightToLastKnown()
 {
 	_information_events.flags.reset_pos_to_last_known = true;
 	ECL_INFO("reset height to last known (%.3f)", (double)_last_known_gpos.altitude());
-	resetHeightTo(_last_known_gpos.altitude(), sq(_params.pos_noaid_noise));
+	resetAltitudeTo(_last_known_gpos.altitude(), sq(_params.pos_noaid_noise));
 }
 
 void Ekf::stopFakeHgtFusion()

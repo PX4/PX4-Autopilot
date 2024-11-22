@@ -182,7 +182,7 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_pos,
 	resetHorizontalPositionTo(new_latitude, new_longitude, new_horz_pos_var);
 }
 
-void Ekf::resetHeightTo(const float new_altitude, float new_vert_pos_var)
+void Ekf::resetAltitudeTo(const float new_altitude, float new_vert_pos_var)
 {
 	const float old_altitude = _gpos.altitude();
 	_gpos.setAltitude(new_altitude);
