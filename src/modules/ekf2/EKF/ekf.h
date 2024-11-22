@@ -487,7 +487,8 @@ private:
 
 	LatLonAlt _last_known_gpos{};
 
-	Vector3f _earth_rate_NED{};	///< earth rotation vector (NED) in rad/s
+	Vector3f _earth_rate_NED{}; ///< earth rotation vector (NED) in rad/s
+	double _earth_rate_lat_ref_rad{0.0}; ///< latitude at which the earth rate was evaluated (radians)
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 
