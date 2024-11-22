@@ -15,7 +15,7 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 		# posix_rpi_cross, posix_bebop_default
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2023-06-26"
 	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then
-		# clang tools
+    # clang tools
 		PX4_DOCKER_REPO="px4io/px4-dev-clang:2021-02-04"
 	elif [[ $@ =~ .*tests* ]]; then
 		# run all tests with simulation
@@ -33,10 +33,10 @@ fi
 # docker hygiene
 
 #Delete all stopped containers (including data-only containers)
-#docker rm $(docker ps -a -q)
+# docker container prune
 
 #Delete all 'untagged/dangling' (<none>) images
-#docker rmi $(docker images -q -f dangling=true)
+# docker image prune
 
 echo "PX4_DOCKER_REPO: $PX4_DOCKER_REPO";
 

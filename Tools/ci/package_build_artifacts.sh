@@ -4,8 +4,9 @@ mkdir artifacts
 cp **/**/*.px4 artifacts/
 cp **/**/*.elf artifacts/
 for build_dir_path in build/*/ ; do
+  build_dir_path=${build_dir_path::${#build_dir_path}-1}
   build_dir=${build_dir_path#*/}
-  build_dir=${build_dir::${#build_dir}-1}
+  target_name=$build_dir
   mkdir artifacts/$build_dir
   find artifacts/ -maxdepth 1 -type f -name "*$build_dir*"
   # Airframe
@@ -26,21 +27,23 @@ for build_dir_path in build/*/ ; do
   echo "----------"
 done
 
-# general metadata
-mkdir artifacts/_general/
-cp artifacts/px4_sitl_default/airframes.xml artifacts/_general/
-# Airframe
-cp artifacts/px4_sitl_default/airframes.xml artifacts/_general/
-# Parameters
-cp artifacts/px4_sitl_default/parameters.xml artifacts/_general/
-cp artifacts/px4_sitl_default/parameters.json artifacts/_general/
-cp artifacts/px4_sitl_default/parameters.json.xz artifacts/_general/
-# Actuators
-cp artifacts/px4_sitl_default/actuators.json artifacts/_general/
-cp artifacts/px4_sitl_default/actuators.json.xz artifacts/_general/
-# Events
-cp artifacts/px4_sitl_default/events/all_events.json.xz artifacts/_general/
-# ROS 2 msgs
-cp artifacts/px4_sitl_default/events/all_events.json.xz artifacts/_general/
-# Module Docs
-ls -la artifacts/_general/
+if [ -d artifacts/px4_sitl_default ]; then
+  # general metadata
+  mkdir artifacts/_general/
+  cp artifacts/px4_sitl_default/airframes.xml artifacts/_general/
+  # Airframe
+  cp artifacts/px4_sitl_default/airframes.xml artifacts/_general/
+  # Parameters
+  cp artifacts/px4_sitl_default/parameters.xml artifacts/_general/
+  cp artifacts/px4_sitl_default/parameters.json artifacts/_general/
+  cp artifacts/px4_sitl_default/parameters.json.xz artifacts/_general/
+  # Actuators
+  cp artifacts/px4_sitl_default/actuators.json artifacts/_general/
+  cp artifacts/px4_sitl_default/actuators.json.xz artifacts/_general/
+  # Events
+  cp artifacts/px4_sitl_default/events/all_events.json.xz artifacts/_general/
+  # ROS 2 msgs
+  cp artifacts/px4_sitl_default/events/all_events.json.xz artifacts/_general/
+  # Module Docs
+  ls -la artifacts/_general/
+fi
