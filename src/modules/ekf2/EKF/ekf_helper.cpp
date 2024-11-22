@@ -137,7 +137,7 @@ bool Ekf::setAltOrigin(const float altitude, const float vpos_var)
 	if (!PX4_ISFINITE(_local_origin_alt) && isLocalVerticalPositionValid()) {
 		const float local_alt_prev = _gpos.altitude();
 		_local_origin_alt = altitude;
-		resetHeightTo(local_alt_prev + _local_origin_alt);
+		resetAltitudeTo(local_alt_prev + _local_origin_alt);
 
 	} else {
 		const float delta_origin_alt = altitude - _local_origin_alt;
@@ -235,7 +235,7 @@ bool Ekf::initialiseAltitudeTo(const float altitude, const float vpos_var)
 		ECL_INFO("Origin alt=%.3f", (double)_local_origin_alt);
 	}
 
-	resetHeightTo(altitude, vpos_var);
+	resetAltitudeTo(altitude, vpos_var);
 
 	return true;
 }

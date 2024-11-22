@@ -148,7 +148,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					_height_sensor_ref = HeightSensor::RANGE;
 
 					_information_events.flags.reset_hgt_to_rng = true;
-					resetHeightTo(aid_src.observation, aid_src.observation_variance);
+					resetAltitudeTo(aid_src.observation, aid_src.observation_variance);
 					_state.terrain = 0.f;
 					_control_status.flags.rng_hgt = true;
 					stopRngTerrFusion();
@@ -180,7 +180,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_rng = true;
-					resetHeightTo(aid_src.observation - _state.terrain);
+					resetAltitudeTo(aid_src.observation - _state.terrain);
 
 					// reset vertical velocity if no valid sources available
 					if (!isVerticalVelocityAidingActive()) {

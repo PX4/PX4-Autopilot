@@ -117,7 +117,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 
 					if (_height_sensor_ref == HeightSensor::EV) {
 						_information_events.flags.reset_hgt_to_ev = true;
-						resetHeightTo(-measurement, measurement_var);
+						resetAltitudeTo(-measurement, measurement_var);
 						bias_est.reset();
 
 					} else {
@@ -146,7 +146,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 				// All height sources are failing
 				ECL_WARN("%s fusion reset required, all height sources failing", AID_SRC_NAME);
 				_information_events.flags.reset_hgt_to_ev = true;
-				resetHeightTo(-measurement - bias_est.getBias(), measurement_var);
+				resetAltitudeTo(-measurement - bias_est.getBias(), measurement_var);
 				bias_est.setBias(_gpos.altitude() + measurement);
 
 				aid_src.time_last_fuse = _time_delayed_us;
@@ -170,7 +170,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 			if (_params.height_sensor_ref == static_cast<int32_t>(HeightSensor::EV)) {
 				ECL_INFO("starting %s fusion, resetting state", AID_SRC_NAME);
 				_information_events.flags.reset_hgt_to_ev = true;
-				resetHeightTo(-measurement, measurement_var);
+				resetAltitudeTo(-measurement, measurement_var);
 
 				_height_sensor_ref = HeightSensor::EV;
 				bias_est.reset();
