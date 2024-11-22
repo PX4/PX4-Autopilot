@@ -120,6 +120,21 @@ public:
 					-delta_alt);
 	}
 
+	/*
+	 * Compute the angular rate of the local navigation frame at the current latitude and height
+	 * with respect to an inertial frame and resolved in the navigation frame
+	 */
+	matrix::Vector3f computeAngularRateNavFrame(const matrix::Vector3f &v_ned)
+	{
+		double r_n;
+		double r_e;
+		computeRadiiOfCurvature(_latitude_rad, r_n, r_e);
+		return matrix::Vector3f(
+			       v_ned(1) / (static_cast<float>(r_e) + _altitude),
+			       -v_ned(0) / (static_cast<float>(r_n) + _altitude),
+			       -v_ned(1) * tanf(_latitude_rad) / (static_cast<float>(r_e) + _altitude));
+	}
+
 private:
 	// Convert between curvilinear and cartesian errors
 	static matrix::Vector2d deltaLatLonToDeltaXY(const double latitude, const float altitude)
