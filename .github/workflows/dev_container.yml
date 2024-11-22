@@ -82,6 +82,7 @@ jobs:
 
       - name: Push container image
         uses: docker/build-push-action@v6
+        if: ${{ github.event_name == 'push' }}
         with:
           context: Tools/setup
           tags: ${{ steps.meta.outputs.tags }}
@@ -89,6 +90,6 @@ jobs:
           platforms: |
             linux/amd64
           provenance: mode=max
-          push: ${{ github.event_name == 'push' }}
+          push: true
           cache-from: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }}
           cache-to: type=s3,blobs_prefix=cache/${{ github.repository }}/,manifests_prefix=cache/${{ github.repository }}/,region=${{ env.RUNS_ON_AWS_REGION }},bucket=${{ env.RUNS_ON_S3_BUCKET_CACHE }},mode=max
