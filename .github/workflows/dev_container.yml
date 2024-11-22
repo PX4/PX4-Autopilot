@@ -43,7 +43,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=ref,event=branch,suffix=-{{date 'YYYYMMDD'}}
+            type=ref,event=branch,suffix=-{{date 'YYYYMMDD'}},priority=600
+            type=ref,event=branch,suffix=,priority=500
             type=ref,event=pr
             type=sha
 
