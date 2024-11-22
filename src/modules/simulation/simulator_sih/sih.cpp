@@ -399,30 +399,26 @@ float Sih::computeGravity(const double lat)
 
 void Sih::equations_of_motion(const float dt)
 {
-	_gravity_E = Vector3f(_R_N2E.col(2)) * computeGravity(_lat); // assume gravity along the Down axis
-	_coriolis_E = -2.f * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE).cross(_v_E);
+	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * computeGravity(_lat); // gravity along the Down axis
+	const Vector3f coriolis_acceleration_E = -2.f * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE).cross(_v_E);
 
-	_v_E_dot = _gravity_E + _coriolis_E + (_Fa_E + _q_E.rotateVector(_T_B)) / _MASS;
-	_v_N_dot = _R_N2E.transpose() * _v_E_dot; //TODO: add transport rate
+	const Vector3f weight_E = _MASS * gravity_acceleration_E;
+	Vector3f sum_of_forces_E = _Fa_E + _q_E.rotateVector(_T_B) + weight_E;
 
 	// fake ground, avoid free fall
-	double vertical_acc = Vector3d(_v_E_dot(0), _v_E_dot(1), _v_E_dot(2)).dot(_p_E) / _p_E.norm();
+	const float force_down = Vector3f(_R_N2E.transpose() * sum_of_forces_E)(2);
+	Vector3f ground_force_E;
 
-	if ((static_cast<float>(_alt) - _lpos_ref_alt) < 0.f && (vertical_acc <= 0.0 || _v_N(2) > 0.f)) {
+	if ((static_cast<float>(_alt) - _lpos_ref_alt) < 0.f && force_down > 0.f) {
 		if (_vehicle == VehicleType::MC || _vehicle == VehicleType::TS) {
-			if (!_grounded) {    // if we just hit the floor
-				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
-				_v_N_dot = -_v_N / dt;
-				_v_E_dot = -_v_E / dt;
+			ground_force_E = -sum_of_forces_E;
 
-			} else {
-				_v_N_dot.setZero();
-				_v_E_dot.setZero();
+			if (!_grounded) {
+				// if we just hit the floor
+				// compute the force that will stop the vehicle in one time step
+				ground_force_E += -_v_E / dt * _MASS;
 			}
 
-			_v_N.setZero();
-			_v_E.setZero();
-			_w_B.setZero();
 			_grounded = true;
 
 		} else if (_vehicle == VehicleType::FW) {
@@ -447,21 +443,29 @@ void Sih::equations_of_motion(const float dt)
 		}
 
 	} else {
-		// forward Euler velocity intergation
-		Vector3d v_E_prev(_v_E(0), _v_E(1), _v_E(2));
-		_v_E = _v_E + _v_E_dot * dt;
-		// trapezoidal position integration
-		_p_E = _p_E + (Vector3d(_v_E(0), _v_E(1), _v_E(2)) + v_E_prev) * 0.5 * dt;
-
-		const Quatf dq(AxisAnglef(_w_B * dt));
-
-		_q_E = _q_E  * dq;
-		_q_E.normalize();
-
-		const Vector3f w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
-		_w_B = constrain(_w_B + w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 		_grounded = false;
 	}
+
+	sum_of_forces_E += ground_force_E;
+	const Vector3f acceleration_E = sum_of_forces_E / _MASS;
+	_specific_force_E = acceleration_E - gravity_acceleration_E;
+
+	_v_E_dot = acceleration_E + coriolis_acceleration_E;
+	_v_N_dot = _R_N2E.transpose() * _v_E_dot; //TODO: add transport rate
+
+	// forward Euler velocity intergation
+	Vector3f v_E_prev = _v_E;
+	_v_E = _v_E + _v_E_dot * dt;
+	// trapezoidal position integration
+	_p_E = _p_E + Vector3d(_v_E + v_E_prev) * 0.5 * static_cast<double>(dt);
+
+	const Quatf dq(AxisAnglef(_w_B * dt));
+
+	_q_E = _q_E  * dq;
+	_q_E.normalize();
+
+	const Vector3f w_B_dot = _Im1 * (_Mt_B + _Ma_B - _w_B.cross(_I * _w_B)); // conservation of angular momentum
+	_w_B = constrain(_w_B + w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 
 	ecefToNed();
 
@@ -538,7 +542,7 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	// IMU
 	const Dcmf R_E2B(_q_E.inversed());
 
-	Vector3f specific_force_B = R_E2B * (_v_E_dot - _gravity_E - _coriolis_E);
+	Vector3f specific_force_B = R_E2B * _specific_force_E;
 	Vector3f acc = specific_force_B + noiseGauss3f(0.5f, 1.7f, 1.4f);
 
 	const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
