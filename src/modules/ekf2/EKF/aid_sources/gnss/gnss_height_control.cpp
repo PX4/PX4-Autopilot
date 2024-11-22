@@ -105,7 +105,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_gps = true;
-					resetHeightTo(measurement, measurement_var);
+					resetAltitudeTo(measurement, measurement_var);
 					bias_est.setBias(-_gpos.altitude() + measurement);
 
 					aid_src.time_last_fuse = _time_delayed_us;
