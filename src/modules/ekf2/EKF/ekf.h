@@ -374,8 +374,6 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	void collect_gps(const gnssSample &gps);
-
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 

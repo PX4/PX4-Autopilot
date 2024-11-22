@@ -55,21 +55,6 @@
 #define MASK_GPS_VSPD    (1<<8)
 #define MASK_GPS_SPOOFED (1<<9)
 
-void Ekf::collect_gps(const gnssSample &gps)
-{
-	if (_filter_initialised && !_local_origin_lat_lon.isInitialized() && _gps_checks_passed) {
-		_information_events.flags.gps_checks_passed = true;
-
-	} else {
-		// a rough 2D fix is sufficient to lookup earth spin rate
-		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.hacc < 1000);
-
-		if (gps_rough_2d_fix && (_gps_checks_passed || !_local_origin_lat_lon.isInitialized())) {
-			_earth_rate_NED = calcEarthRateNED((float)math::radians(gps.lat));
-		}
-	}
-}
-
 bool Ekf::runGnssChecks(const gnssSample &gps)
 {
 	_gps_check_fail_status.flags.spoofed = gps.spoofed;
