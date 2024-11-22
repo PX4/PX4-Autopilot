@@ -230,6 +230,11 @@ bool Ekf::initialiseTilt()
 
 void Ekf::predictState(const imuSample &imu_delayed)
 {
+	if (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)) {
+		_earth_rate_lat_ref_rad = _gpos.latitude_rad();
+		_earth_rate_NED = calcEarthRateNED((float)_earth_rate_lat_ref_rad);
+	}
+
 	// apply imu bias corrections
 	const Vector3f delta_ang_bias_scaled = getGyroBias() * imu_delayed.delta_ang_dt;
 	Vector3f corrected_delta_ang = imu_delayed.delta_ang - delta_ang_bias_scaled;
