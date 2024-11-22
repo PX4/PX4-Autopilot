@@ -71,6 +71,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install ccache
+        run: |
+          apt-get --quiet -y update && DEBIAN_FRONTEND=noninteractive apt-get --quiet -y install \
+            ccache
+
       - name: Git ownership workaround
         run: git config --system --add safe.directory '*'
 
@@ -92,9 +97,16 @@ jobs:
             ccache -s
             ccache -z
 
+      - name: Missing dependencies for ${{ matrix.arch }}
+        if: contains(fromJSON('["aarch64", "armhf"]'), matrix.arch)
+        run: |
+          apt-get --quiet -y update && DEBIAN_FRONTEND=noninteractive apt-get --quiet -y install \
+            g++-aarch64-linux-gnu \
+            g++-arm-linux-gnueabihf
+
       - name: Building [${{ matrix.group }}]
         run: |
-            ./Tools/ci/build_all_runner.sh ${{matrix.targets}}
+            ./Tools/ci/build_all_runner.sh ${{matrix.targets}} ${{matrix.arch}}
 
       - name: Arrange Build Artifacts
         run: |
