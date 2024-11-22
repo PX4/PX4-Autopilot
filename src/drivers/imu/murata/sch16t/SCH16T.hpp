@@ -91,8 +91,8 @@ private:
 		UNKNOWN = 0,
 		REV_1 = 1, // ASIC_ID = 0x21, COMP_ID = 0x23
 		REV_2 = 2  // ASIC_ID = 0x20, COMP_ID = 0x17
-    	};
-    	ChipVersion _detected_version = ChipVersion::UNKNOWN;
+	};
+	ChipVersion _detected_version = ChipVersion::UNKNOWN;
 
 	int probe() override;
 	void exit_and_cleanup() override;

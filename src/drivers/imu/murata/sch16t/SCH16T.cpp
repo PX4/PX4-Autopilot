@@ -112,10 +112,12 @@ int SCH16T::probe()
 
 	if (asic_id == 0x21 && comp_id == 0x23) {
 		_detected_version = ChipVersion::REV_1;
+
 	} else if ((asic_id == 0x20 && comp_id == 0x17) || (asic_id == 0x21 && comp_id == 0x24)) {
 		// ASIC_ID = 0x20, COMP_ID = 0x17 is a B13 variant of REV_2
 		// ASIC_ID = 0x21, COMP_ID = 0x24 is a B10 variant of REV_2
 		_detected_version = ChipVersion::REV_2;
+
 	} else {
 		_detected_version = ChipVersion::UNKNOWN;
 		PX4_ERR("Unsupported COMP_ID and ASIC_ID combination");
@@ -127,7 +129,7 @@ int SCH16T::probe()
 	PX4_INFO("Detected Chip Version: %d", static_cast<int>(_detected_version));
 
 	// Return success
-    	return PX4_OK;
+	return PX4_OK;
 }
 
 void SCH16T::Reset()
@@ -396,12 +398,13 @@ void SCH16T::ConfigurationFromParameters()
 	if (_detected_version == ChipVersion::REV_1) {
 		_px4_gyro.set_range(math::radians(327.5f));         // 327.5 °/sec
 		_px4_gyro.set_scale(math::radians(1.f / 1600.f));     // 1600 LSB/(°/sec)
-        	PX4_INFO("Configured gyro for VERSION_1");
-    	} else {
+		PX4_INFO("Configured gyro for VERSION_1");
+
+	} else {
 		_px4_gyro.set_range(math::radians(5000.f));         // 5000 °/sec
 		_px4_gyro.set_scale(math::radians(1.f / 100.f));     // 100 LSB/(°/sec)
-        	PX4_INFO("Configured gyro for VERSION_2");
-    	}
+		PX4_INFO("Configured gyro for VERSION_2");
+	}
 
 	_px4_accel.set_range(163.4f); 		// 163.4 m/s2
 	_px4_accel.set_scale(1.f / 3200.f); // 3200 LSB/(m/s2)
