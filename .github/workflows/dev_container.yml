@@ -90,7 +90,6 @@ jobs:
 
       - name: Push container image
         uses: docker/build-push-action@v6
-        if: ${{ github.event_name == 'push' }}
         with:
           context: Tools/setup
           tags: ${{ steps.meta.outputs.tags }}
