@@ -422,23 +422,15 @@ void Sih::equations_of_motion(const float dt)
 			_grounded = true;
 
 		} else if (_vehicle == VehicleType::FW) {
-			if (!_grounded) {    // if we just hit the floor
-				// for the accelerometer, compute the acceleration that will stop the vehicle in one time step
-				_v_N_dot(2) = -_v_N(2) / dt;
+			Vector3f down_u = _R_N2E.col(2);
+			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
-			} else {
-				// we only allow negative acceleration in order to takeoff
-				_v_N_dot(2) = fminf(_v_N_dot(2), 0.0f);
+			if (!_grounded) {
+				// if we just hit the floor
+				// compute the force that will stop the vehicle in one time step
+				ground_force_E += down_u * (-_v_N(2) / dt) * _MASS;
 			}
 
-			// integration: Euler forward
-			Vector3d temp_p_E_dot = Vector3d(_v_E(0), _v_E(1), _v_E(2));
-			_p_E = _p_E + temp_p_E_dot * dt;
-			_v_E = _v_E + _v_E_dot * dt;
-
-			_q = _q * _dq;
-			_q.normalize();
-			_w_B = constrain(_w_B + _w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 			_grounded = true;
 		}
 
