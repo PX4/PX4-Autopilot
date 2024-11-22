@@ -64,6 +64,7 @@ sudo apt-get update -y --quiet
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 	astyle \
 	build-essential \
+	ccache \
 	cmake \
 	cppcheck \
 	file \
