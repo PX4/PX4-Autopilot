@@ -13,6 +13,14 @@ ENV TZ=UTC
 EXPOSE 14556/udp
 EXPOSE 14557/udp
 
+# Set Up Caching of APT packages
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+	--mount=type=cache,target=/var/lib/apt,sharing=locked \
+	rm -f /etc/apt/apt.conf.d/docker-clean && \
+	echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache && \
+	apt-get --quiet -y update
+
+# Install Shell Script Entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Install PX4 Requirements
