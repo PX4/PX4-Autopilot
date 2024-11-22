@@ -108,9 +108,26 @@ int SCH16T::probe()
 	PX4_INFO("COMP_ID:\t 0x%0x", comp_id);
 	PX4_INFO("ASIC_ID:\t 0x%0x", asic_id);
 
-	bool success = asic_id == 0x21 && comp_id == 0x23;
+	// Determine chip version based on COMP_ID and ASIC_ID
 
-	return success ? PX4_OK : PX4_ERROR;
+	if (asic_id == 0x21 && comp_id == 0x23) {
+		_detected_version = ChipVersion::REV_1;
+	} else if ((asic_id == 0x20 && comp_id == 0x17) || (asic_id == 0x21 && comp_id == 0x24)) {
+		// ASIC_ID = 0x20, COMP_ID = 0x17 is a B13 variant of REV_2
+		// ASIC_ID = 0x21, COMP_ID = 0x24 is a B10 variant of REV_2
+		_detected_version = ChipVersion::REV_2;
+	} else {
+		_detected_version = ChipVersion::UNKNOWN;
+		PX4_ERR("Unsupported COMP_ID and ASIC_ID combination");
+		PX4_ERR("COMP_ID: 0x%04X, ASIC_ID: 0x%04X", comp_id, asic_id);
+		return PX4_ERROR;
+	}
+
+	// Log the detected version
+	PX4_INFO("Detected Chip Version: %d", static_cast<int>(_detected_version));
+
+	// Return success
+    	return PX4_OK;
 }
 
 void SCH16T::Reset()
@@ -375,8 +392,17 @@ void SCH16T::ConfigurationFromParameters()
 	acc12_ctrl.bits.DYN_ACC_XYZ2 = 	ACC12_RANGE_80;
 	acc3_ctrl.bits.DYN_ACC_XYZ3 = 	ACC3_RANGE_260;
 
-	_px4_gyro.set_range(math::radians(327.5f)); 		// 327.5 °/sec
-	_px4_gyro.set_scale(math::radians(1.f / 1600.f)); 	// 1600 LSB/(°/sec)
+	// Set the range and scale for the sensors based on the detected chip version
+	if (_detected_version == ChipVersion::REV_1) {
+		_px4_gyro.set_range(math::radians(327.5f));         // 327.5 °/sec
+		_px4_gyro.set_scale(math::radians(1.f / 1600.f));     // 1600 LSB/(°/sec)
+        	PX4_INFO("Configured gyro for VERSION_1");
+    	} else {
+		_px4_gyro.set_range(math::radians(5000.f));         // 5000 °/sec
+		_px4_gyro.set_scale(math::radians(1.f / 100.f));     // 100 LSB/(°/sec)
+        	PX4_INFO("Configured gyro for VERSION_2");
+    	}
+
 	_px4_accel.set_range(163.4f); 		// 163.4 m/s2
 	_px4_accel.set_scale(1.f / 3200.f); // 3200 LSB/(m/s2)
 
