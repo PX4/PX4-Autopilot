@@ -124,15 +124,15 @@ add_custom_command(
 		${romfs_copy_stamp}
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
 		--board ${PX4_BOARD}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
 		--config-files ${module_config_files} #--verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--params-file ${CONFIG_BOARD_PARAM_FILE}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_copy_stamp}
@@ -330,7 +330,7 @@ add_custom_target(romfs_gen_files_target
 
 add_custom_command(
 	OUTPUT romfs_pruned.stamp
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py --folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py --folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
 	COMMAND ${CMAKE_COMMAND} -E touch romfs_pruned.stamp
 	DEPENDS
 		romfs_copy.stamp

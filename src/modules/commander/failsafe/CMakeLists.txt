@@ -37,7 +37,7 @@ set(generated_uorb_struct_field_mapping_header ${PX4_BINARY_DIR}/generated_uorb_
 set(html_template_file ${CMAKE_CURRENT_SOURCE_DIR}/emscripten_template.html)
 set(html_output_file ${PX4_BINARY_DIR}/failsafe_html_template.html)
 add_custom_command(OUTPUT ${generated_uorb_struct_field_mapping_header} ${html_output_file}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/parse_flags_from_msg.py
+	COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/parse_flags_from_msg.py
 		${failsafe_flags_msg_file} ${generated_uorb_struct_field_mapping_header}
 		${html_template_file} ${html_output_file}
 	DEPENDS

@@ -47,7 +47,7 @@ set(generated_events_px4_file ${generated_events_dir}/px4.json)
 set(generated_events_common_enums_file ${generated_events_dir}/common_with_enums.json)
 add_custom_command(OUTPUT ${generated_events_px4_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_events_dir}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_events.py
 		--base-path ${PX4_SOURCE_DIR}/src
 		--src-path ${all_px4_src_files_relative}
 		--json ${generated_events_px4_file} #--verbose
@@ -64,13 +64,13 @@ add_custom_target(events_px4_json DEPENDS ${generated_events_px4_file})
 
 set(generated_events_file ${generated_events_dir}/all_events.json)
 add_custom_command(OUTPUT ${generated_events_file} ${generated_events_file}.xz
-	COMMAND ${PYTHON_EXECUTABLE} libevents/scripts/combine.py
+	COMMAND ${Python_EXECUTABLE} libevents/scripts/combine.py
 		${generated_events_px4_file}
 		${generated_events_common_enums_file}
 		--output ${generated_events_file}
-	COMMAND ${PYTHON_EXECUTABLE} libevents/scripts/validate.py
+	COMMAND ${Python_EXECUTABLE} libevents/scripts/validate.py
 		${generated_events_file}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/compress.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/compress.py
 		${generated_events_file}
 	DEPENDS
 		${generated_events_px4_file}
@@ -86,7 +86,7 @@ add_custom_target(events_json DEPENDS ${generated_events_file})
 # combine common.json with our enums for the code generation
 add_custom_command(OUTPUT ${generated_events_common_enums_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_events_dir}
-	COMMAND ${PYTHON_EXECUTABLE} libevents/scripts/combine.py
+	COMMAND ${Python_EXECUTABLE} libevents/scripts/combine.py
 		enums.json
 		libevents/events/common.json
 		--output ${generated_events_common_enums_file}
@@ -105,7 +105,7 @@ add_custom_command(OUTPUT ${generated_events_common_enums_file}
 set(generated_events_header ${generated_events_dir}/events_generated.h)
 add_custom_command(OUTPUT ${generated_events_header}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_events_dir}
-	COMMAND ${PYTHON_EXECUTABLE} libevents/scripts/generate.py
+	COMMAND ${Python_EXECUTABLE} libevents/scripts/generate.py
 		--template libevents/libs/cpp/templates/events_generated.h.jinja
 		--output ${generated_events_dir}
 		${generated_events_common_enums_file}

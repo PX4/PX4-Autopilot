@@ -81,7 +81,7 @@ endif()
 string(REPLACE ";" "," serial_ports "${serial_ports}")
 
 add_custom_target(upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_package}
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_package}
 	DEPENDS ${fw_package}
 	COMMENT "uploading px4"
 	VERBATIM
@@ -90,7 +90,7 @@ add_custom_target(upload
 	)
 
 add_custom_target(force-upload
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_package}
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_package}
 	DEPENDS ${fw_package}
 	COMMENT "uploading px4 with --force"
 	VERBATIM

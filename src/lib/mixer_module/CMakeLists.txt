@@ -33,7 +33,7 @@
 
 set(functions_header ${CMAKE_CURRENT_BINARY_DIR}/output_functions.hpp)
 add_custom_command(OUTPUT ${functions_header}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_function_header.py
+	COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_function_header.py
 		${CMAKE_CURRENT_SOURCE_DIR}/output_functions.yaml
 		${functions_header}
 	DEPENDS

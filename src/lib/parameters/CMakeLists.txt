@@ -90,12 +90,12 @@ endif()
 
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--params-file ${generated_serial_params_file}
 		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg}
 		--config-files ${module_config_files}
 		#--verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
 		--params-file ${generated_module_params_file}
 		${added_arguments} ${board_with_io_arg}
 		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
@@ -114,7 +114,7 @@ set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
 set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
 file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c ${PX4_SOURCE_DIR}/src/*parameters.c)
 add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json}.xz
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
+	COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
 		--src-path ${module_list} ${generated_params_dir}
 		--xml ${parameters_xml}
 		--json ${parameters_json}
@@ -123,7 +123,7 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}
 		#--verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
 		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/parameter.schema.json
 		${parameters_json}
 		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
@@ -145,7 +145,7 @@ add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
 # generate px4_parameters.hpp
 add_custom_command(OUTPUT px4_parameters.hpp
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
+	COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS
 		${PX4_BINARY_DIR}/parameters.xml
@@ -157,7 +157,7 @@ add_custom_target(parameters_header DEPENDS px4_parameters.hpp)
 set(SRCS)
 
 list(APPEND SRCS
-	parameters.cpp 
+	parameters.cpp
 	atomic_transaction.cpp
 	autosave.cpp
 )

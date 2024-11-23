@@ -35,7 +35,7 @@ option(EKF2_SYMFORCE_GEN "ekf2 generate symforce output" OFF)
 
 # Symforce code generation TODO:fixme
 execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -m symforce.symbolic
+    COMMAND ${Python_EXECUTABLE} -m symforce.symbolic
     RESULT_VARIABLE PYTHON_SYMFORCE_EXIT_CODE
     OUTPUT_QUIET
 )
@@ -58,7 +58,7 @@ if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 			${EKF_DERIVATION_SRC_DIR}/generated/predict_covariance.h
 			${EKF_DERIVATION_SRC_DIR}/generated/state.h
 		COMMAND
-			${PYTHON_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py
+			${Python_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py
 		DEPENDS
 			${EKF_DERIVATION_SRC_DIR}/derivation.py
 			${EKF_DERIVATION_SRC_DIR}/utils/derivation_utils.py
@@ -92,7 +92,7 @@ if(EKF2_SYMFORCE_GEN AND (${PYTHON_SYMFORCE_EXIT_CODE} EQUAL 0))
 			${EKF_DERIVATION_DST_DIR}/generated/predict_covariance.h
 			${EKF_DERIVATION_DST_DIR}/generated/state.h
 		COMMAND
-			${PYTHON_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py ${SYMFORCE_ARGS}
+			${Python_EXECUTABLE} ${EKF_DERIVATION_SRC_DIR}/derivation.py ${SYMFORCE_ARGS}
 		DEPENDS
 			${EKF_DERIVATION_SRC_DIR}/derivation.py
 			${EKF_DERIVATION_SRC_DIR}/utils/derivation_utils.py

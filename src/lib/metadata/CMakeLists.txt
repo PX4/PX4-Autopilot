@@ -39,14 +39,14 @@ endif()
 set(generated_actuators_metadata_file ${PX4_BINARY_DIR}/actuators.json)
 add_custom_command(OUTPUT ${generated_actuators_metadata_file}
 	${generated_actuators_metadata_file}.xz
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
 		${board_with_io_arg}
 		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
 		--config-files ${module_config_files} #--verbose
 		--compress
 		--board ${PX4_BOARD}
 		--output-file ${generated_actuators_metadata_file}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
 		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/actuators.schema.json
 		${generated_actuators_metadata_file}
 		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI

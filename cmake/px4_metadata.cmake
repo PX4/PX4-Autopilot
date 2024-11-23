@@ -67,7 +67,7 @@ function(px4_generate_airframes_xml)
 		ARGN ${ARGN})
 
 	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/airframes.xml
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 			--airframes-path ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d
 			--board CONFIG_ARCH_BOARD_${PX4_BOARD}
 			--xml ${PX4_BINARY_DIR}/airframes.xml

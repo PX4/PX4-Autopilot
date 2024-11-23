@@ -83,12 +83,12 @@ list(APPEND comp_metadata_types "--type" "5,${PX4_BINARY_DIR}/actuators.json.xz,
 set(component_general_json ${PX4_BINARY_DIR}/component_general.json)
 set(component_information_header ${CMAKE_CURRENT_BINARY_DIR}/checksums.h)
 add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz ${component_information_header}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_component_general.py
+	COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_component_general.py
 		${component_general_json}
 		--compress
 		${comp_metadata_types}
 		--version-file ${PX4_BINARY_DIR}/src/lib/version/build_git_version.h
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_crc.py
+	COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_crc.py
 		${component_general_json}
 		${PX4_BINARY_DIR}/events/all_events.json.xz
 		--output ${component_information_header}

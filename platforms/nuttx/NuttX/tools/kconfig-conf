@@ -6,13 +6,13 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 export APPSDIR="`pwd`/../apps"
 
 if [ "command -v python3" ]; then
-	PYTHON_EXECUTABLE=python3
+	Python_EXECUTABLE=python3
 else
-	PYTHON_EXECUTABLE=python
+	Python_EXECUTABLE=python
 fi
 
 if [ "${1}" = "--olddefconfig" ]; then
-	PYTHONPATH=${DIR} ${PYTHON_EXECUTABLE} ${DIR}/olddefconfig.py > /dev/null
+	PYTHONPATH=${DIR} ${Python_EXECUTABLE} ${DIR}/olddefconfig.py > /dev/null
 else
 	echo "ERROR: ${@} unsupported"
 	exit 1

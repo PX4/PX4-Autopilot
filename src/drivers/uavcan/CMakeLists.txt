@@ -120,7 +120,7 @@ foreach(DSDLC_INPUT ${DSDLC_INPUTS})
 endforeach(DSDLC_INPUT)
 add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
 	COMMAND
-		${PYTHON_EXECUTABLE} ${LIBDRONECAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc
+		${Python_EXECUTABLE} ${LIBDRONECAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc
 			--outdir ${DSDLC_OUTPUT} ${DSDLC_INPUTS}
 			#--verbose
 	COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp

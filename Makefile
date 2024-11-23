@@ -169,7 +169,7 @@ endif
 
 # Pick up specific Python path if set
 ifdef PYTHON_EXECUTABLE
-	override CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+	override CMAKE_ARGS += -DPython_EXECUTABLE=${PYTHON_EXECUTABLE}
 endif
 
 # Functions

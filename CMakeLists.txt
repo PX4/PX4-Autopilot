@@ -173,9 +173,10 @@ set(config_module_list)
 set(config_kernel_list)
 
 # Find Python
-find_package(PythonInterp 3)
+find_package(Python COMPONENTS Interpreter)
+
 # We have a custom error message to tell users how to install python3.
-if(NOT PYTHONINTERP_FOUND)
+if(NOT Python_FOUND)
 	message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
 		"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
 		"    macOS: brew install python")
@@ -184,7 +185,7 @@ endif()
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
 	message(STATUS "python coverage enabled")
-	set(PYTHON_EXECUTABLE coverage run -p)
+	set(Python_EXECUTABLE coverage run -p)
 endif()
 
 include(px4_config)
@@ -481,7 +482,7 @@ foreach(module ${config_module_list})
 endforeach()
 
 add_custom_command(OUTPUT ${uorb_graph_config}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
+	COMMAND ${Python_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
 		${graph_module_list} --src-path src/lib
 		--merge-depends
 		--exclude-path src/examples
@@ -502,7 +503,7 @@ include(package)
 
 # install python requirements using configured python
 add_custom_target(install_python_requirements
-	COMMAND ${PYTHON_EXECUTABLE} -m pip install --break-system-packages --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
+	COMMAND ${Python_EXECUTABLE} -m pip install --break-system-packages --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	DEPENDS ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	USES_TERMINAL
 )
