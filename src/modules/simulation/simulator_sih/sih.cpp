@@ -450,8 +450,7 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
-	// airspeed sensor is mounted along the negative Z axis since the vehicle is a tailsitter
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, -_v_B(2) + generate_wgn() * 0.2f);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B.norm() + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.air_temperature_celsius = NAN;
 	airspeed.confidence = 0.7f;
