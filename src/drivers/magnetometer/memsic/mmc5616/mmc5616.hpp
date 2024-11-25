@@ -10,6 +10,7 @@
 #include "MEMSIC_mmc5616_registers.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <lib/drivers/device/Device.hpp>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/perf/perf_counter.h>
@@ -39,24 +40,22 @@ private:
 		uint8_t clear_bits{0};
 	};
 
-  typedef struct {
-    float x;
-    float y;
-    float z;
-    bool valid;
-  } mmc5616_measurement_t; 
-  
-  mmc5616_measurement_t offset;
+	typedef struct {
+		float x;
+		float y;
+		float z;
+		bool valid;
+	} mmc5616_measurement_t;
 
-	int probe();
+	mmc5616_measurement_t _offset;
 
-	bool Reset();
+	void Reset();
 
 	bool Configure();
-  
-  mmc5616_measurement_t TakeSingleMeasurement();
+	bool CheckIDs();
 
-  bool checkIDs();
+	mmc5616_measurement_t TakeSingleMeasurement();
+
 
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
