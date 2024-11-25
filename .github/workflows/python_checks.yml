@@ -12,14 +12,18 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.ACCESS_TOKEN }}
+        fetch-depth: 0
+
     - name: Install Python3
       run: sudo apt-get install python3 python3-setuptools python3-pip -y
+
     - name: Install tools
       run: python3 -m pip install mypy types-requests flake8 --break-system-packages
+
     - name: Check MAVSDK test scripts with mypy
       run: $HOME/.local/bin/mypy --strict test/mavsdk_tests/*.py
+
     - name: Check MAVSDK test scripts with flake8
       run: $HOME/.local/bin/flake8 test/mavsdk_tests/*.py
