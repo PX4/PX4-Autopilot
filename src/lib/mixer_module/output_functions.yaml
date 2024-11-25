@@ -38,6 +38,10 @@ functions:
 
     Landing_Gear_Wheel: 440
 
+    IC_Engine_Ignition: 450
+    IC_Engine_Choke: 451
+    IC_Engine_Starter: 452
+
     # Add your own here:
     #MyCustomFunction: 10000
 

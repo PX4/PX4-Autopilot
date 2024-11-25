@@ -1,0 +1,77 @@
+parameters:
+  - group: ICE
+    definitions:
+
+      ICE_EN:
+        description:
+          short: Enable internal combustion engine
+          long: TBD
+        type: boolean
+        default: true
+
+      ICE_ON_SOURCE:
+        description:
+          short: Source of input to activate engine
+          long: TBD
+        type: enum
+        default: 0
+        values:
+          0: No activation
+          1: On arming - disarming
+          2: Mavlink?
+          3: Aux1
+          4: Aux2
+          5: Aux3
+          6: Aux4
+
+      ICE_CHOKE_ST_DUR:
+        description:
+          short: Duration for choking before startup
+          long: TBD
+        type: float
+        unit: s
+        min: 0
+        max: 10
+        decimal: 1
+        increment: 0.1
+        default: 1
+
+      ICE_STARTING_DUR:
+        description:
+          short: Duration for starting up (excl. choking)
+          long: TBD
+        type: float
+        unit: s
+        min: 0
+        max: 10
+        decimal: 1
+        increment: 0.1
+        default: 2
+
+      ICE_MIN_RUN_RPM:
+        description:
+          short: Minimum RPM for engine to be declared running
+          long: TBD
+        type: float
+        unit: rpm
+        min: 0
+        max: 10000
+        decimal: 0
+        increment: 1
+        default: 1000
+
+      ICE_STRT_RETRY:
+        description:
+          short: Number of retries for starting engine
+          long: TBD
+        type: int32
+        min: 0
+        max: 10
+        default: 3
+
+      ICE_RETRY_FAULT:
+        description:
+          short: Try to re-start engine if it stops
+          long: TBD
+        type: boolean
+        default: false
