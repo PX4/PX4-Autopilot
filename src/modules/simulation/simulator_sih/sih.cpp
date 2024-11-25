@@ -409,11 +409,9 @@ void Sih::equations_of_motion(const float dt)
 			// integration: Euler forward
 			_p_I = _p_I + _p_I_dot * dt;
 			_v_I = _v_I + _v_I_dot * dt;
-			Eulerf RPY = Eulerf(_q);
-			RPY(0) = 0.0f;	// no roll
-			RPY(1) = radians(0.0f); // pitch slightly up if needed to get some lift
-			_q = Quatf(RPY);
-			_w_B.setZero();
+			_q = _q * _dq;
+			_q.normalize();
+			_w_B = constrain(_w_B + _w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 			_grounded = true;
 		}
 
