@@ -327,9 +327,9 @@ void Sih::generate_fw_aerodynamics()
 {
 	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
 	float altitude = _H0 - _p_I(2);
-	_wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
-	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
-	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX * _u[3]);
+	_wing_l.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
+	_wing_r.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
+	_tailplane.update_aero(_v_B, _w_B, altitude, -_u[1]*FLAP_MAX, _T_MAX * _u[3]);
 	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
 	_fuselage.update_aero(_v_B, _w_B, altitude);
 
