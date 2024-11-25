@@ -180,7 +180,7 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 
 		// Apply linearzsation to the actuator setpoint if enabled
 		if (_geometry.linearize_servos) {
-		actuator_sp(_first_swash_plate_servo_index + i) = getLinearServoOutput(actuator_sp(_first_swash_plate_servo_index + i));
+			actuator_sp(_first_swash_plate_servo_index + i) = getLinearServoOutput(actuator_sp(_first_swash_plate_servo_index + i));
 		}
 
 		// Saturation check for roll & pitch
