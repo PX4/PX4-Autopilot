@@ -151,6 +151,19 @@ param_init()
 #endif
 }
 
+void
+param_fini()
+{
+#if not defined(CONFIG_PARAM_REMOTE)
+	printf("Deleting autosave\n");
+	delete autosave_instance;
+#endif
+	perf_free(param_export_perf);
+	perf_free(param_find_perf);
+	perf_free(param_get_perf);
+	perf_free(param_set_perf);
+}
+
 
 void
 param_notify_changes()

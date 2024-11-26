@@ -40,6 +40,12 @@ menu "Toolchain"
         help
             forces nolockstep behaviour, despite REPLAY env variable
 
+    config BOARD_REBOOT
+        bool "Enable reboot"
+        depends on PLATFORM_POSIX
+        help
+            enables the reboot command
+
     config BOARD_LINUX_TARGET
         bool "Linux OS Target"
         depends on PLATFORM_POSIX

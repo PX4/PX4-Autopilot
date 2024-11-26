@@ -61,5 +61,6 @@
 
 /** time in ms between checks for work in work queues **/
 #define CONFIG_SCHED_WORKPERIOD 50000
+#define CONFIG_BOARDCTL_
 
 #define CONFIG_SCHED_INSTRUMENTATION 1

@@ -46,6 +46,7 @@ add_library(px4_layer
 	drv_hrt.cpp
 	cpuload.cpp
 	print_load.cpp
+	board_ctrl.cpp
 	${PX4_SOURCE_DIR}/platforms/common/Serial.cpp
 	SerialImpl.cpp
 )

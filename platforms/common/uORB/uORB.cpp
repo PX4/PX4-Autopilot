@@ -78,6 +78,12 @@ int uorb_start(void)
 
 	return OK;
 }
+int uorb_stop(void)
+{
+	g_dev = nullptr;
+	uORB::Manager::terminate();
+	return OK;
+}
 
 int uorb_status(void)
 {

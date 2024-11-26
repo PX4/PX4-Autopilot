@@ -73,6 +73,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
+#include "board_ctrl.h"
 
 #include "apps.h"
 #include "px4_daemon/client.h"
@@ -88,23 +89,15 @@ static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
 #endif
 
 
-static volatile bool _exit_requested = false;
-
-
 namespace px4
 {
 void init_once();
 }
 
-static void sig_int_handler(int sig_num);
-
-static void register_sig_handler();
 static void set_cpu_scaling();
 static int create_symlinks_if_needed(std::string &data_path);
 static int create_dirs();
-static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance);
 static std::string get_absolute_binary_path(const std::string &argv0);
-static void wait_to_exit();
 static int get_server_running(int instance, bool *is_running);
 static int set_server_running(int instance);
 static void print_usage();
@@ -113,6 +106,7 @@ static bool file_exists(const std::string &name);
 static std::string file_basename(std::string const &pathname);
 static std::string pwd();
 static int change_directory(const std::string &directory);
+static std::string get_file_lock_path(int instance);
 
 
 #ifdef __PX4_SITL_MAIN_OVERRIDE
@@ -311,7 +305,7 @@ int main(int argc, char **argv)
 
 		if (server_is_running) {
 			// allow running multiple instances, but the server is only started for the first
-			PX4_INFO("PX4 server already running for instance %i", instance);
+			PX4_INFO("PX4 server already running for instance %i (lock file %s)", instance, get_file_lock_path(instance).c_str());
 			return PX4_ERROR;
 		}
 
@@ -338,20 +332,11 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		register_sig_handler();
-		set_cpu_scaling();
-
-		px4_daemon::Server server(instance);
-		server.start();
-
 		ret = create_dirs();
 
 		if (ret != PX4_OK) {
 			return ret;
 		}
-
-		px4::init_once();
-		px4::init(argc, argv, "px4");
 
 		// Don't set this up until PX4 is up and running
 		ret = set_server_running(instance);
@@ -360,21 +345,13 @@ int main(int argc, char **argv)
 			return ret;
 		}
 
-		ret = run_startup_script(commands_file, absolute_binary_path, instance);
+		set_cpu_scaling();
+		BoardParameters params {.argc=argc, .argv=argv, .server_instance=instance, .pxh_off=pxh_off,
+			.commands_file=commands_file, .absolute_binary_paths = absolute_binary_path};
+		Board::init(params);
+		Board::instance()->run();
 
-		if (ret == 0) {
-			// We now block here until we need to exit.
-			if (pxh_off) {
-				wait_to_exit();
-
-			} else {
-				px4_daemon::Pxh pxh;
-				pxh.run_pxh();
-			}
-		}
-
-		// delete lock
-		const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
+		const std::string file_lock_path = get_file_lock_path(instance);
 		int fd_flock = open(file_lock_path.c_str(), O_RDWR, 0666);
 
 		if (fd_flock >= 0) {
@@ -383,12 +360,6 @@ int main(int argc, char **argv)
 			close(fd_flock);
 		}
 
-		if (ret != 0) {
-			return PX4_ERROR;
-		}
-
-		std::string cmd("shutdown");
-		px4_daemon::Pxh::process_line(cmd, true);
 	}
 
 	return PX4_OK;
@@ -476,38 +447,6 @@ int create_dirs()
 	return PX4_OK;
 }
 
-void register_sig_handler()
-{
-	// SIGINT
-	struct sigaction sig_int {};
-	sig_int.sa_handler = sig_int_handler;
-	sig_int.sa_flags = 0; // not SA_RESTART!
-
-	// SIGPIPE
-	// We want to ignore if a PIPE has been closed.
-	struct sigaction sig_pipe {};
-	sig_pipe.sa_handler = SIG_IGN;
-
-#ifdef __PX4_CYGWIN
-	// Do not catch SIGINT on Cygwin such that the process gets killed
-	// TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
-	(void)sig_int; // this variable is unused
-#else
-	sigaction(SIGINT, &sig_int, nullptr);
-#endif
-
-	sigaction(SIGTERM, &sig_int, nullptr);
-	sigaction(SIGPIPE, &sig_pipe, nullptr);
-}
-
-void sig_int_handler(int sig_num)
-{
-	fflush(stdout);
-	printf("\nPX4 Exiting...\n");
-	fflush(stdout);
-	px4_daemon::Pxh::stop();
-	_exit_requested = true;
-}
 
 void set_cpu_scaling()
 {
@@ -543,77 +482,7 @@ std::string get_absolute_binary_path(const std::string &argv0)
 	return pwd() + "/" + base;
 }
 
-int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path,
-		       int instance)
-{
-	std::string shell_command("/bin/sh ");
 
-	shell_command += commands_file + ' ' + std::to_string(instance);
-
-	// Update the PATH variable to include the absolute_binary_path
-	// (required for the px4-alias.sh script and px4-* commands).
-	// They must be within the same directory as the px4 binary
-	const char *path_variable = "PATH";
-	std::string updated_path = absolute_binary_path;
-	const char *path = getenv(path_variable);
-
-	if (path) {
-		std::string spath = path;
-
-		// Check if absolute_binary_path already in PATH
-		bool already_in_path = false;
-		std::size_t current, previous = 0;
-		current = spath.find(':');
-
-		while (current != std::string::npos) {
-			if (spath.substr(previous, current - previous) == absolute_binary_path) {
-				already_in_path = true;
-			}
-
-			previous = current + 1;
-			current = spath.find(':', previous);
-		}
-
-		if (spath.substr(previous, current - previous) == absolute_binary_path) {
-			already_in_path = true;
-		}
-
-		if (!already_in_path) {
-			// Prepend to path to prioritize PX4 commands over potentially already installed PX4 commands.
-			updated_path = updated_path + ":" + path;
-			setenv(path_variable, updated_path.c_str(), 1);
-		}
-	}
-
-
-	PX4_INFO("startup script: %s", shell_command.c_str());
-
-	int ret = 0;
-
-	if (!shell_command.empty()) {
-		ret = system(shell_command.c_str());
-
-		if (ret == 0) {
-			PX4_INFO("Startup script returned successfully");
-
-		} else {
-			PX4_ERR("Startup script returned with return value: %d", ret);
-		}
-
-	} else {
-		PX4_INFO("Startup script empty");
-	}
-
-	return ret;
-}
-
-void wait_to_exit()
-{
-	while (!_exit_requested) {
-		// needs to be a regular sleep not dependent on lockstep (not px4_usleep)
-		usleep(100000);
-	}
-}
 
 void print_usage()
 {
@@ -635,9 +504,13 @@ void print_usage()
 	printf("        e.g.: px4-commander status\n");
 }
 
+std::string get_file_lock_path(int instance){
+	return std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
+}
+
 int get_server_running(int instance, bool *is_server_running)
 {
-	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
+	const std::string file_lock_path = get_file_lock_path(instance);
 	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {
@@ -675,7 +548,7 @@ int get_server_running(int instance, bool *is_server_running)
 
 int set_server_running(int instance)
 {
-	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
+	const std::string file_lock_path = get_file_lock_path(instance);
 	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {

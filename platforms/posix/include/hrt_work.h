@@ -44,6 +44,7 @@ extern px4_sem_t _hrt_work_lock;
 extern struct wqueue_s g_hrt_work;
 
 void hrt_work_queue_init(void);
+void hrt_work_queue_fini(void);
 int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t usdelay);
 void hrt_work_cancel(struct work_s *work);
 

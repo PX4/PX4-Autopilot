@@ -90,6 +90,7 @@ void WorkItem::Deinit()
 		px4::WorkQueue *wq_temp = _wq;
 		_wq = nullptr;
 
+		printf("Deinit xoxo\n");
 		// remove any queued work
 		wq_temp->Remove(this);
 

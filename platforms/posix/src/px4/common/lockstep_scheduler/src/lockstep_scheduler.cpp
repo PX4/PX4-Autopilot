@@ -106,7 +106,7 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 		std::lock_guard<std::mutex> lock_timed_waits(_timed_waits_mutex);
 
 		// The time has already passed.
-		if (time_us <= _time_us) {
+		if (time_us <= _time_us || _time_us == 0) {
 			return ETIMEDOUT;
 		}
 

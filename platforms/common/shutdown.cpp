@@ -35,11 +35,14 @@
  * @file shutdown.cpp
  * Implementation of the API declared in px4_shutdown.h.
  */
+#define DEBUG_BUILD
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/px4_work_queue/WorkItemSingleShot.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <drivers/drv_hrt.h>
 
@@ -59,7 +62,12 @@
 #include <sys/boardctl.h>
 #endif
 
+#ifdef __PX4_POSIX
+#include "board_ctrl.h"
+#endif
+
 using namespace time_literals;
+
 
 static pthread_mutex_t shutdown_mutex =
 	PTHREAD_MUTEX_INITIALIZER; // protects access to shutdown_hooks & shutdown_lock_counter
@@ -102,7 +110,6 @@ int px4_shutdown_unlock()
 
 #if defined(CONFIG_SCHED_WORKQUEUE) || (!defined(CONFIG_BUILD_FLAT) && defined(CONFIG_LIBC_USRWORK))
 
-static struct work_s shutdown_work = {};
 static uint16_t shutdown_counter = 0; ///< count how many times the shutdown worker was executed
 
 #define SHUTDOWN_ARG_IN_PROGRESS (1<<0)
@@ -117,6 +124,101 @@ static shutdown_hook_t shutdown_hooks[max_shutdown_hooks] = {};
 static hrt_abstime shutdown_time_us = 0;
 static constexpr hrt_abstime shutdown_timeout_us =
 	5_s; ///< force shutdown after this time if modules do not respond in time
+
+
+class SingleShotScheduledOwned : public px4::ScheduledWorkItem
+{
+public:
+	typedef  void (*Callback)();
+
+	SingleShotScheduledOwned(Callback cb, const char *task_name, const px4::wq_config_t &conf ) : px4::ScheduledWorkItem(task_name, conf), _cb(cb){}
+
+	void Run() override {
+
+		_cb();
+		delete this;
+
+	}
+	static void RunIn(Callback cb, size_t delay_usec, const char *task_name, const px4::wq_config_t &conf){
+		(new SingleShotScheduledOwned(cb, task_name, conf))->ScheduleDelayed(delay_usec);
+	}
+	private:
+	Callback _cb;
+
+};
+
+
+void px4_shutdown_worker(){
+	PX4_INFO("Start workier");
+	PX4_INFO("shutdown worker (%i)", shutdown_counter);
+	bool done = true;
+
+	pthread_mutex_lock(&shutdown_mutex);
+
+	for (int i = 0; i < max_shutdown_hooks; ++i) {
+		if (shutdown_hooks[i]) {
+			if (!shutdown_hooks[i]()) {
+				done = false;
+			}
+		}
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+	const bool delay_elapsed = (now > shutdown_time_us);
+
+	if (delay_elapsed && ((done && shutdown_lock_counter == 0) || (now > (shutdown_time_us + shutdown_timeout_us)))) {
+		PX4_INFO("Enter reboot >> %d\n", shutdown_args);
+		if (shutdown_args & SHUTDOWN_ARG_REBOOT) {
+#if defined(CONFIG_BOARDCTL_RESET)
+			PX4_INFO_RAW("Reboot NOW.");
+
+			if (shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER) {
+				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_BOOTLOADER);
+
+			} else if (shutdown_args & SHUTDOWN_ARG_TO_ISP) {
+				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_ISP);
+
+			} else {
+				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_REQUEST);
+			}
+
+#elif defined(__PX4_POSIX)
+			Board::instance()->shutdown(true);
+#else
+			PX4_PANIC("board reset not available");
+#endif
+
+		} else {
+#if defined(BOARD_HAS_POWER_CONTROL)
+			PX4_INFO_RAW("Powering off NOW.");
+#if defined(CONFIG_BOARDCTL_POWEROFF)
+			boardctl(BOARDIOC_POWEROFF, 0);
+#elif defined(__PX4_POSIX)
+			Board::instance()->shutdown(false);
+#else
+			board_power_off(0);
+#endif
+#elif defined(__PX4_POSIX)
+			// simply exit on posix if real shutdown (poweroff) not available
+			PX4_INFO_RAW("Exiting NOW.");
+			system_exit(0);
+#else
+			PX4_PANIC("board shutdown not available");
+#endif
+		}
+
+		pthread_mutex_unlock(&shutdown_mutex); // must NEVER come here
+
+	} else {
+		pthread_mutex_unlock(&shutdown_mutex);
+ 
+		SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 10'000, "shutdown", px4::wq_configurations::lp_default);
+	}
+
+
+};
+
+
 
 int px4_register_shutdown_hook(shutdown_hook_t hook)
 {
@@ -154,69 +256,8 @@ int px4_unregister_shutdown_hook(shutdown_hook_t hook)
  * work queue callback method to shutdown.
  * @param arg unused
  */
-static void shutdown_worker(void *arg)
-{
-	PX4_DEBUG("shutdown worker (%i)", shutdown_counter);
-	bool done = true;
 
-	pthread_mutex_lock(&shutdown_mutex);
-
-	for (int i = 0; i < max_shutdown_hooks; ++i) {
-		if (shutdown_hooks[i]) {
-			if (!shutdown_hooks[i]()) {
-				done = false;
-			}
-		}
-	}
-
-	const hrt_abstime now = hrt_absolute_time();
-	const bool delay_elapsed = (now > shutdown_time_us);
-
-	if (delay_elapsed && ((done && shutdown_lock_counter == 0) || (now > (shutdown_time_us + shutdown_timeout_us)))) {
-		if (shutdown_args & SHUTDOWN_ARG_REBOOT) {
-#if defined(CONFIG_BOARDCTL_RESET)
-			PX4_INFO_RAW("Reboot NOW.");
-
-			if (shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER) {
-				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_BOOTLOADER);
-
-			} else if (shutdown_args & SHUTDOWN_ARG_TO_ISP) {
-				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_ISP);
-
-			} else {
-				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_REQUEST);
-			}
-
-#else
-			PX4_PANIC("board reset not available");
-#endif
-
-		} else {
-#if defined(BOARD_HAS_POWER_CONTROL)
-			PX4_INFO_RAW("Powering off NOW.");
-#if defined(CONFIG_BOARDCTL_POWEROFF)
-			boardctl(BOARDIOC_POWEROFF, 0);
-#else
-			board_power_off(0);
-#endif
-#elif defined(__PX4_POSIX)
-			// simply exit on posix if real shutdown (poweroff) not available
-			PX4_INFO_RAW("Exiting NOW.");
-			system_exit(0);
-#else
-			PX4_PANIC("board shutdown not available");
-#endif
-		}
-
-		pthread_mutex_unlock(&shutdown_mutex); // must NEVER come here
-
-	} else {
-		pthread_mutex_unlock(&shutdown_mutex);
-		work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, USEC2TICK(10000));
-	}
-}
-
-#if defined(CONFIG_BOARDCTL_RESET)
+#if defined(CONFIG_BOARD_REBOOT)
 int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 {
 	pthread_mutex_lock(&shutdown_mutex);
@@ -241,15 +282,16 @@ int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 		shutdown_time_us += delay_us;
 	}
 
-	work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, 1);
+	SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 1, "shutdown", px4::wq_configurations::lp_default);
 	pthread_mutex_unlock(&shutdown_mutex);
 	return 0;
 }
-#endif // CONFIG_BOARDCTL_RESET
+#endif // CONFIG_BOARD_REBOOT
 
 #if defined(BOARD_HAS_POWER_CONTROL) || defined(__PX4_POSIX)
 int px4_shutdown_request(uint32_t delay_us)
 {
+	PX4_INFO("Send request shutdown");
 	pthread_mutex_lock(&shutdown_mutex);
 
 	if (shutdown_args & SHUTDOWN_ARG_IN_PROGRESS) {
@@ -265,7 +307,7 @@ int px4_shutdown_request(uint32_t delay_us)
 		shutdown_time_us += delay_us;
 	}
 
-	work_queue(HPWORK, &shutdown_work, (worker_t)&shutdown_worker, nullptr, 1);
+	SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 1, "shutdown", px4::wq_configurations::lp_default);
 	pthread_mutex_unlock(&shutdown_mutex);
 	return 0;
 }

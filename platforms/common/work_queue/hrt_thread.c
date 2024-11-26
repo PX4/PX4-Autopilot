@@ -51,6 +51,7 @@
 #include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include "hrt_work.h"
+#include <assert.h>
 
 #include <string.h>
 
@@ -73,6 +74,7 @@ struct wqueue_s g_hrt_work;
  * Private Variables
  ****************************************************************************/
 px4_sem_t _hrt_work_lock;
+volatile bool _hrt_stop;
 
 /****************************************************************************
  * Private Functions
@@ -226,6 +228,7 @@ static void hrt_work_process(void)
 	 * the time elapses or until we are awakened by a signal.
 	 */
 	hrt_work_unlock();
+	PX4_INFO("No more work, ret here");
 
 	/* might sleep less if a signal received and new item was queued */
 	//PX4_INFO("Sleeping for %u usec", next);
@@ -261,7 +264,7 @@ static int work_hrtthread(int argc, char *argv[])
 {
 	/* Loop forever */
 
-	for (;;) {
+	while (!_hrt_stop){
 		/* First, perform garbage collection.  This cleans-up memory de-allocations
 		 * that were queued because they could not be freed in that execution
 		 * context (for example, if the memory was freed from an interrupt handler).
@@ -282,9 +285,17 @@ static int work_hrtthread(int argc, char *argv[])
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+void hrt_work_queue_fini(void)
+{
+	_hrt_stop = true;
+	while(px4_task_is_running("wkr_hrt")){
+		px4_usleep(10);
+	}
+}
 
 void hrt_work_queue_init(void)
 {
+	_hrt_stop = false;
 	px4_sem_init(&_hrt_work_lock, 0, 1);
 	memset(&g_hrt_work, 0, sizeof(g_hrt_work));
 

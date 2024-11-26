@@ -1625,6 +1625,7 @@ int simulator_mavlink_main(int argc, char *argv[])
 			PX4_WARN("Simulator already started");
 			return 0;
 		}
+		PX4_INFO("START MAVLINK");
 
 		g_sim_task = px4_task_spawn_cmd("simulator_mavlink",
 						SCHED_DEFAULT,

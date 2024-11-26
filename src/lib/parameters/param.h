@@ -87,6 +87,7 @@ typedef uint16_t	param_t;
  * Initialize the param backend. Call this on startup before calling any other methods.
  */
 __EXPORT void		param_init(void);
+__EXPORT void		param_fini(void);
 
 /**
  * Look up a parameter by name.

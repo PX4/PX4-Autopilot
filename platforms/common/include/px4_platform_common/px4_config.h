@@ -55,3 +55,9 @@
 
 /* PX4 board kconfig symbols */
 #include <px4_boardconfig.h>
+
+
+#if !defined(CONFIG_BOARD_REBOOT) && defined(CONFIG_BOARDCTL_RESET)
+#define CONFIG_BOARD_REBOOT 1
+#endif
+

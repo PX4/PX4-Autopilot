@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#define DEBUG_BUILD
 #include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
@@ -40,6 +41,7 @@
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
 #include <drivers/drv_hrt.h>
+
 
 namespace px4
 {
@@ -104,6 +106,7 @@ void WorkQueue::Detach(WorkItem *item)
 	work_lock();
 
 	_work_items.remove(item);
+	PX4_DEBUG(" Removing >> %d\n", int(_work_items.size()));
 
 	if (_work_items.size() == 0) {
 		// shutdown, no active WorkItems

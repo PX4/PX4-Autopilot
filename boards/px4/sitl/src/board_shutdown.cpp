@@ -50,7 +50,6 @@ int board_register_power_state_notification_cb(power_button_state_notification_t
 
 int board_power_off(int status)
 {
-	printf("Exiting NOW.\n");
 	fflush(stdout);
 	system_exit(0);
 	return 0;

@@ -51,6 +51,7 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/bitmask.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -113,6 +114,7 @@ static inline SensorSource operator &(A lhs, B rhs)
 	       );
 }
 
+//class SimulatorMavlink : public ModuleBase<SimulatorMavlink>, public ModuleParams
 class SimulatorMavlink : public ModuleParams
 {
 public:

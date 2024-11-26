@@ -77,7 +77,6 @@ struct work_s {
  *   Initialize the work queues.
  *
  ****************************************************************************/
-void work_queues_init(void);
 
 /****************************************************************************
  * Name: work_queue
@@ -108,7 +107,6 @@ void work_queues_init(void);
  *
  ****************************************************************************/
 
-int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_t delay);
 
 /****************************************************************************
  * Name: work_cancel
@@ -127,7 +125,6 @@ int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_
  *
  ****************************************************************************/
 
-int work_cancel(int qid, struct work_s *work);
 
 uint32_t clock_systimer(void);
 

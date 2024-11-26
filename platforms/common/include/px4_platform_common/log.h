@@ -56,6 +56,7 @@ __BEGIN_DECLS
  * initialize the orb logging. Logging to console still works without or before calling this.
  */
 __EXPORT extern void px4_log_initialize(void);
+__EXPORT extern void px4_log_finalize(void);
 
 __END_DECLS
 

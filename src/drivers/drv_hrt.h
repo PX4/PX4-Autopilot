@@ -243,6 +243,7 @@ __EXPORT extern void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay);
  * Initialise the HRT.
  */
 __EXPORT extern void	hrt_init(void);
+__EXPORT extern void	hrt_fini(void);
 
 /*
  * Initialise the HRT ioctl (user mode access to HRT).
