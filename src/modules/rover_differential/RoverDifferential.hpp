@@ -51,6 +51,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/rover_differential_setpoint.h>
+#include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/offboard_control_mode.h>
 
 // Standard libraries
 #include <matrix/matrix/math.hpp>
@@ -105,6 +107,8 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 
 	// uORB Publications
 	uORB::Publication<rover_differential_setpoint_s> _rover_differential_setpoint_pub{ORB_ID(rover_differential_setpoint)};
@@ -133,6 +137,8 @@ private:
 		(ParamFloat<px4::params::RD_MAX_YAW_RATE>)  _param_rd_max_yaw_rate,
 		(ParamFloat<px4::params::RD_MAX_THR_YAW_R>) _param_rd_max_thr_yaw_r,
 		(ParamFloat<px4::params::RD_MAX_SPEED>)     _param_rd_max_speed,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
+		(ParamFloat<px4::params::RD_TRANS_TRN_DRV>) _param_rd_trans_trn_drv,
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad
 	)
 };

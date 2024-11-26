@@ -196,6 +196,71 @@ void RoverDifferential::Run()
 		_rover_differential_guidance.computeGuidance(_vehicle_yaw, _vehicle_forward_speed, _nav_state);
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: {
+			if (_trajectory_setpoint_sub.updated()) {
+				offboard_control_mode_s offboard_control_mode{};
+				_offboard_control_mode_sub.copy(&offboard_control_mode);
+
+				trajectory_setpoint_s trajectory_setpoint{};
+				_trajectory_setpoint_sub.copy(&trajectory_setpoint);
+
+
+				rover_differential_setpoint_s rover_differential_setpoint{};
+				rover_differential_setpoint.timestamp = timestamp;
+				rover_differential_setpoint.forward_speed_setpoint = NAN;
+				rover_differential_setpoint.forward_speed_setpoint_normalized = NAN;
+				rover_differential_setpoint.yaw_rate_setpoint = NAN;
+				rover_differential_setpoint.speed_diff_setpoint_normalized = NAN;
+				rover_differential_setpoint.yaw_setpoint = NAN;
+
+				// Translate trajectory setpoint to rover setpoints
+				if (offboard_control_mode.position) {
+					const Vector2f target_waypoint_ned(trajectory_setpoint.position[0], trajectory_setpoint.position[1]);
+
+					if (target_waypoint_ned.isAllFinite()) {
+						const float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
+
+						if (distance_to_target > _param_nav_acc_rad.get()) {
+							rover_differential_setpoint.yaw_setpoint = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned, _curr_pos_ned,
+									_curr_pos_ned, _param_rd_max_speed.get());
+
+							if (_param_rd_max_speed.get() > FLT_EPSILON) {
+								rover_differential_setpoint.forward_speed_setpoint = _param_rd_max_speed.get();
+
+							} else {
+								rover_differential_setpoint.forward_speed_setpoint_normalized = 1.f;
+							}
+
+						}
+
+					}
+
+				} else if (offboard_control_mode.velocity) {
+					const Vector2f velocity_in_local_frame(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
+
+					if (velocity_in_local_frame.isAllFinite()) {
+						rover_differential_setpoint.yaw_setpoint = atan2f(velocity_in_local_frame(1), velocity_in_local_frame(0));
+
+						if (fabsf(rover_differential_setpoint.yaw_setpoint - _vehicle_yaw) < _param_rd_trans_trn_drv.get()) {
+							rover_differential_setpoint.forward_speed_setpoint = _param_rd_max_speed.get() > FLT_EPSILON ? math::constrain(
+										velocity_in_local_frame.norm(), -_param_rd_max_speed.get(), _param_rd_max_speed.get()) : velocity_in_local_frame.norm();
+
+						} else {
+							rover_differential_setpoint.forward_speed_setpoint = 0.f;
+						}
+					}
+
+				} else if (offboard_control_mode.attitude && PX4_ISFINITE(trajectory_setpoint.yaw)) {
+					rover_differential_setpoint.yaw_setpoint = trajectory_setpoint.yaw;
+
+				} else if (offboard_control_mode.body_rate && PX4_ISFINITE(trajectory_setpoint.yawspeed)) {
+					rover_differential_setpoint.yaw_rate_setpoint = trajectory_setpoint.yawspeed;
+				}
+
+				_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
+			}
+		} break;
+
 	default: // Unimplemented nav states will stop the rover
 		_rover_differential_control.resetControllers();
 		_yaw_ctl = false;
