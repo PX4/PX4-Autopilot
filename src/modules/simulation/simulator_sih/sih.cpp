@@ -508,15 +508,27 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 
 	// IMU
 	const Dcmf R_E2B(_q_E.inversed());
+	Vector3f accel_noise;
+	Vector3f gyro_noise;
+
+	if (_T_B.longerThan(FLT_EPSILON)) {
+		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
+		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
+
+	} else {
+		// Lower noise when not armed
+		accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
+		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
+	}
 
 	Vector3f specific_force_B = R_E2B * _specific_force_E;
-	Vector3f acc = specific_force_B + noiseGauss3f(0.5f, 1.7f, 1.4f);
+	Vector3f accel = specific_force_B + accel_noise;
 
 	const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
-	Vector3f gyro = _w_B + earth_spin_rate_B + noiseGauss3f(0.14f, 0.07f, 0.03f);
+	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
 
 	// update IMU every iteration
-	_px4_accel.update(time_now_us, acc(0), acc(1), acc(2));
+	_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
 	_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
 }
 
