@@ -66,6 +66,7 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/geo/geo.h>
+#include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -163,11 +164,10 @@ private:
 	void generate_fw_aerodynamics();
 	void generate_ts_aerodynamics();
 	void sensor_step();
-	float computeGravity(double lat);
+	static float computeGravity(double lat);
 
 	void ecefToNed();
-	static matrix::Vector3d llaToEcef(double lat, double lon, double alt);
-	matrix::Dcmf computeRotEcefToNed(const double lat, const double lon, const double alt);
+	static matrix::Dcmf computeRotEcefToNed(const LatLonAlt &lla);
 
 	struct Wgs84 {
 		static constexpr double equatorial_radius = 6378137.0;
@@ -207,9 +207,7 @@ private:
 	matrix::Quatf       _q{};             // quaternion attitude in local navigation frame
 	matrix::Vector3f    _w_B{};           // body rates in body frame [rad/s]
 
-	double              _lat{0.0};
-	double              _lon{0.0};
-	double              _alt{0.0};
+	LatLonAlt _lla{};
 
 	// Quantities in Earth-centered-Earth-fixed coordinates
 	matrix::Vector3f    _Fa_E{};          // aerodynamic force in ECEF frame [N]
