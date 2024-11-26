@@ -2368,15 +2368,15 @@ void FixedwingPositionControl::control_backtransition_heading_hold()
 		true_airspeed = _performance_model.getCalibratedTrimAirspeed() * _eas2tas;
 	}
 
-	Vector2f airspeed_vector = Vector2f(cosf(_local_pos.heading), sinf(_local_pos.heading)) * true_airspeed;
-	Vector2f ground_speed = airspeed_vector + _wind_vel;
+	const Vector2f airspeed_vector = Vector2f(cosf(_local_pos.heading), sinf(_local_pos.heading)) * true_airspeed;
+	const Vector2f ground_speed = airspeed_vector;
 
 	_npfg.setAirspeedNom(_performance_model.getCalibratedTrimAirspeed() * _eas2tas);
 	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
 	Vector2f virtual_target_point = Vector2f(cosf(_backtrans_heading), sinf(_backtrans_heading)) * HDG_HOLD_DIST_NEXT;
 
-	navigateLine(Vector2f(0.f, 0.f), virtual_target_point, Vector2f(0.f, 0.f), ground_speed, _wind_vel);
+	navigateLine(Vector2f(0.f, 0.f), virtual_target_point, Vector2f(0.f, 0.f), ground_speed, Vector2f(0.f, 0.f));
 
 	const float roll_body = getCorrectedNpfgRollSetpoint();
 
