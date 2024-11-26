@@ -99,13 +99,34 @@ void RPMCapture::Run()
 		return;
 	}
 
+	hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime period = _hrt_timestamp - _hrt_timestamp_prev;
+
 	pwm_input_s pwm_input{};
-	pwm_input.timestamp = hrt_absolute_time();
-	pwm_input.period = _hrt_timestamp - _hrt_timestamp_prev;
+	pwm_input.timestamp = now;
+	pwm_input.period = period;
 	pwm_input.error_count = _error_count;
 	_hrt_timestamp_prev = _hrt_timestamp;
 	_value_processed.store(true);
 	_pwm_input_pub.publish(pwm_input);
+
+	float rpm_raw{0.f};
+
+	if ((1 < period) && (period < 1_s)) {
+		// 1'000'000 / [us] -> pulses per second * 60 -> pulses per minute
+		rpm_raw = 60.f * 1e6f / (static_cast<float>(period) * 1.f);
+	}
+
+	const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 0.01f, 1.f);
+	_timestamp_last_update = now;
+	_rpm_filter.setParameters(dt, 0.5f);
+	_rpm_filter.update(rpm_raw);
+
+	rpm_s rpm{};
+	rpm.timestamp = now;
+	rpm.rpm_raw = rpm_raw;
+	rpm.rpm_estimate = _rpm_filter.getState();
+	_rpm_pub.publish(rpm);
 }
 
 int RPMCapture::gpio_interrupt_callback(int irq, void *context, void *arg)

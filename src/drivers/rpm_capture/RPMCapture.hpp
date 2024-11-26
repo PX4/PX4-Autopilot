@@ -34,12 +34,14 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <px4_arch/micro_hal.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/pwm_input.h>
+#include <uORB/topics/rpm.h>
 
 using namespace time_literals;
 
@@ -71,9 +73,13 @@ private:
 	int _channel{-1};
 	uint32_t _rpm_capture_gpio{0};
 	uORB::Publication<pwm_input_s>	_pwm_input_pub{ORB_ID(pwm_input)};
+	uORB::Publication<rpm_s>	_rpm_pub{ORB_ID(rpm)};
 
 	hrt_abstime _hrt_timestamp{0};
 	hrt_abstime _hrt_timestamp_prev{0};
 	uint32_t _error_count{0};
 	px4::atomic<bool> _value_processed{true};
+
+	hrt_abstime _timestamp_last_update{0}; ///< to caluclate dt
+	AlphaFilter<float> _rpm_filter;
 };
