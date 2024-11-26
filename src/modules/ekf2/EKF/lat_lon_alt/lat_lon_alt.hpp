@@ -54,6 +54,10 @@ public:
 		_altitude = altitude_m;
 	}
 
+
+	static LatLonAlt fromEcef(const matrix::Vector3d &p_ecef);
+	matrix::Vector3d toEcef() const;
+
 	void setZero() { _latitude_rad = 0.0; _longitude_rad = 0.0; _altitude = 0.f; }
 
 	double latitude_deg() const { return math::degrees(latitude_rad()); }
@@ -104,7 +108,8 @@ private:
 	struct Wgs84 {
 		static constexpr double equatorial_radius = 6378137.0;
 		static constexpr double eccentricity = 0.0818191908425;
-		static constexpr double meridian_radius_of_curvature_numerator = equatorial_radius * (1.0 - eccentricity *eccentricity);
+		static constexpr double eccentricity2 = eccentricity * eccentricity;
+		static constexpr double meridian_radius_of_curvature_numerator = equatorial_radius * (1.0 - eccentricity2);
 	};
 
 	double _latitude_rad{0.0};

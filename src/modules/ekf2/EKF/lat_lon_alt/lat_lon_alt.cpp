@@ -34,7 +34,51 @@
 #include "lat_lon_alt.hpp"
 
 using matrix::Vector3f;
+using matrix::Vector3d;
 using matrix::Vector2d;
+
+LatLonAlt LatLonAlt::fromEcef(const Vector3d &p_ecef)
+{
+	// Convert position using Borkowski closed-form exact solution
+	// P. D. Groves, "Principles of GNSS, inertial, and multisensor integrated navigation systems, 2nd edition (appendix C)
+	const double k1 = sqrt(1 - Wgs84::eccentricity2) * std::abs(p_ecef(2));
+	const double k2 = Wgs84::eccentricity2 * Wgs84::equatorial_radius;
+	const double beta = sqrt(p_ecef(0) * p_ecef(0) + p_ecef(1) * p_ecef(1));
+	const double E = (k1 - k2) / beta;
+	const double F = (k1 + k2) / beta;
+
+	const double P = 4.0 / 3.0 * (E * F + 1);
+	const double Q = 2 * (E * E - F * F);
+	const double D = P * P * P + Q * Q;
+	const double V = pow(sqrt(D) - Q, 1.0 / 3.0) - pow(sqrt(D) + Q, 1.0 / 3.0);
+	const double G = 0.5 * (sqrt(E * E + V) + E);
+	const double T = sqrt(G * G + (F - V * G) / (2 * G - E)) - G;
+
+	const double lon = atan2(p_ecef(1), p_ecef(0));
+	const double lat = matrix::sign(p_ecef(2)) * atan((1.0 - T * T) / (2.0 * T * sqrt(1.0 - Wgs84::eccentricity2)));
+	const double alt = (beta - Wgs84::equatorial_radius * T) * cos(lat) +
+			   (p_ecef(2) - matrix::sign(p_ecef(2)) * Wgs84::equatorial_radius * sqrt(1.0 - Wgs84::eccentricity2)) * sin(lat);
+
+	LatLonAlt lla;
+	lla.setLatLonRad(lat, lon);
+	lla.setAltitude(static_cast<float>(alt));
+	return lla;
+}
+
+Vector3d LatLonAlt::toEcef() const
+{
+	const double cos_lat = cos(_latitude_rad);
+	const double sin_lat = sin(_latitude_rad);
+	const double cos_lon = cos(_longitude_rad);
+	const double sin_lon = sin(_longitude_rad);
+
+	const double r_e = Wgs84::equatorial_radius / sqrt(1.0 - std::pow(Wgs84::eccentricity * sin_lat, 2.0));
+	const double r_total = r_e + static_cast<double>(_altitude);
+
+	return Vector3d(r_total * cos_lat * cos_lon,
+			r_total * cos_lat * sin_lon,
+			((1.0 - Wgs84::eccentricity2) * r_total) * sin_lat);
+}
 
 Vector3f LatLonAlt::computeAngularRateNavFrame(const Vector3f &v_ned) const
 {
