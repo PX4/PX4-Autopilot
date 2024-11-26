@@ -50,6 +50,7 @@ public:
 	void resetDerivative() { _last_feedback = NAN; };
 private:
 	void updateIntegral(float error, const float dt);
+	float updateDerivative(float feedback, const float dt);
 
 	float _setpoint{0.f}; ///< current setpoint to track
 	float _integral{0.f}; ///< integral state

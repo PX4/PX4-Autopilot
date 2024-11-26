@@ -44,8 +44,7 @@ void PID::setGains(const float P, const float I, const float D)
 float PID::update(const float feedback, const float dt, const bool update_integral)
 {
 	const float error = _setpoint - feedback;
-	const float feedback_change = std::isfinite(_last_feedback) ? (feedback - _last_feedback) / dt : 0.f;
-	const float output = (_gain_proportional * error) + _integral + (_gain_derivative * feedback_change);
+	const float output = (_gain_proportional * error) + _integral + (_gain_derivative * updateDerivative(feedback, dt));
 
 	if (update_integral) {
 		updateIntegral(error, dt);
@@ -62,4 +61,15 @@ void PID::updateIntegral(float error, const float dt)
 	if (std::isfinite(integral_new)) {
 		_integral = math::constrain(integral_new, -_limit_integral, _limit_integral);
 	}
+}
+
+float PID::updateDerivative(float feedback, const float dt)
+{
+	float feedback_change = 0.f;
+
+	if ((dt > FLT_EPSILON) && std::isfinite(_last_feedback)) {
+		feedback_change = (feedback - _last_feedback) / dt;
+	}
+
+	return feedback_change;
 }
