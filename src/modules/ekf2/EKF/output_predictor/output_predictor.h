@@ -37,9 +37,9 @@
 #include <matrix/math.hpp>
 
 #include "../RingBuffer.h"
-#include "../lat_lon_alt/lat_lon_alt.hpp"
 
 #include <lib/geo/geo.h>
+#include <lib/lat_lon_alt/lat_lon_alt.hpp>
 
 class OutputPredictor
 {
