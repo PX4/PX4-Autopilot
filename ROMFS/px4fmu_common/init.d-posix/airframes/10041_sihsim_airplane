@@ -49,3 +49,5 @@ param set-default PWM_MAIN_FUNC1 201
 param set-default PWM_MAIN_FUNC2 202
 param set-default PWM_MAIN_FUNC3 203
 param set-default PWM_MAIN_FUNC4 101
+
+param set-default EKF2_GPS_DELAY 0
