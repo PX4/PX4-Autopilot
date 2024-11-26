@@ -445,7 +445,11 @@ void Sih::equations_of_motion(const float dt)
 	_specific_force_E = acceleration_E - gravity_acceleration_E;
 
 	_v_E_dot = acceleration_E + coriolis_acceleration_E;
-	_v_N_dot = _R_N2E.transpose() * _v_E_dot; //TODO: add transport rate
+
+	// add fictitious transport rate acceleration as the local navigation frame rotates
+	// to stay tangent to the ellipsoid
+	const Vector3f transport_rate = -_lla.computeAngularRateNavFrame(_v_N).cross(_v_N);
+	_v_N_dot = _R_N2E.transpose() * _v_E_dot + transport_rate;
 
 	// forward Euler velocity intergation
 	Vector3f v_E_prev = _v_E;
