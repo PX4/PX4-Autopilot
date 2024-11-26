@@ -125,5 +125,6 @@ TEST(PIDTest, InteralOpenLoop)
 	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, true), -.05f);
 	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, true), -.05f);
 	pid.resetIntegral();
+	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, true), 0.f);
 	EXPECT_FLOAT_EQ(pid.update(0.f, 0.1f, true), -.01f);
 }
