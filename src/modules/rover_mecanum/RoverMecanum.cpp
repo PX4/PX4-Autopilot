@@ -283,6 +283,7 @@ void RoverMecanum::updateSubscriptions()
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
+		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
 		Vector3f velocity_in_local_frame(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 		Vector3f velocity_in_body_frame = _vehicle_attitude_quaternion.rotateVectorInverse(velocity_in_local_frame);
 		// Apply threshold to the velocity measurement to cut off measurement noise when standing still
