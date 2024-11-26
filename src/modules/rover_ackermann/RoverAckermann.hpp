@@ -50,7 +50,8 @@
 #include <uORB/topics/rover_ackermann_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
-
+#include <uORB/topics/trajectory_setpoint.h>
+#include <uORB/topics/offboard_control_mode.h>
 
 // Standard library includes
 #include <math.h>
@@ -108,6 +109,8 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 
 	// uORB publications
 	uORB::Publication<rover_ackermann_setpoint_s> _rover_ackermann_setpoint_pub{ORB_ID(rover_ackermann_setpoint)};
@@ -138,7 +141,8 @@ private:
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_steer_angle,
 		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
 		(ParamFloat<px4::params::RA_MAX_LAT_ACCEL>) _param_ra_max_lat_accel,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max,
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad
 
 	)
 

@@ -151,6 +151,49 @@ void RoverAckermann::Run()
 		_ackermann_guidance.computeGuidance(_vehicle_forward_speed, _vehicle_yaw, _nav_state, _armed);
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: {
+			if (_trajectory_setpoint_sub.updated()) {
+				offboard_control_mode_s offboard_control_mode{};
+				_offboard_control_mode_sub.copy(&offboard_control_mode);
+
+				trajectory_setpoint_s trajectory_setpoint{};
+				_trajectory_setpoint_sub.copy(&trajectory_setpoint);
+
+
+				rover_ackermann_setpoint_s rover_ackermann_setpoint{};
+				rover_ackermann_setpoint.timestamp =  timestamp;
+				rover_ackermann_setpoint.forward_speed_setpoint =  NAN;
+				rover_ackermann_setpoint.forward_speed_setpoint_normalized =  NAN;
+				rover_ackermann_setpoint.steering_setpoint = NAN;
+				rover_ackermann_setpoint.steering_setpoint_normalized = NAN;
+				rover_ackermann_setpoint.lateral_acceleration_setpoint = NAN;
+
+				// Translate trajectory setpoint to rover setpoints
+				if (offboard_control_mode.position) {
+					const Vector2f target_waypoint_ned(trajectory_setpoint.position[0], trajectory_setpoint.position[1]);
+
+					if (target_waypoint_ned.isAllFinite()) {
+						const float distance_to_target = (target_waypoint_ned - _curr_pos_ned).norm();
+
+						if (distance_to_target > _param_nav_acc_rad.get()) {
+							rover_ackermann_setpoint.forward_speed_setpoint = _param_ra_max_speed.get();
+							const float steering_setpoint = _ackermann_guidance.calcDesiredSteering(_posctl_pure_pursuit,
+											target_waypoint_ned, _pos_ctl_start_position_ned, _curr_pos_ned, _param_ra_wheel_base.get(),
+											rover_ackermann_setpoint.forward_speed_setpoint, _vehicle_yaw, _param_ra_max_steer_angle.get(), _armed);
+							rover_ackermann_setpoint.lateral_acceleration_setpoint = powf(_vehicle_forward_speed,
+									2.f) * tanf(steering_setpoint) / _param_ra_wheel_base.get();
+
+						}
+
+					}
+
+				}
+
+				_rover_ackermann_setpoint_pub.publish(rover_ackermann_setpoint);
+			}
+		} break;
+
+
 	default: // Unimplemented nav states will stop the rover
 		rover_ackermann_setpoint_s rover_ackermann_setpoint{};
 		rover_ackermann_setpoint.timestamp =  timestamp;
