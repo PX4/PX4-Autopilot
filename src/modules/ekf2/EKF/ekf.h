@@ -66,8 +66,6 @@
 # include "aid_sources/aux_global_position/aux_global_position.hpp"
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
-#include "lat_lon_alt/lat_lon_alt.hpp"
-
 enum class Likelihood { LOW, MEDIUM, HIGH };
 class ExternalVisionVel;
 

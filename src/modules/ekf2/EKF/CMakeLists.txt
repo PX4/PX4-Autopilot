@@ -33,7 +33,6 @@
 
 add_subdirectory(bias_estimator)
 add_subdirectory(output_predictor)
-add_subdirectory(lat_lon_alt)
 
 set(EKF_LIBS)
 set(EKF_SRCS)
