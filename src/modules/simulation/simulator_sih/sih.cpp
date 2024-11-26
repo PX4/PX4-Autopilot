@@ -250,12 +250,12 @@ void Sih::parameters_updated()
 		_lpos_ref_alt = _sih_h0.get();
 
 		// Reset earth position, velocity and attitude
-		_lat = radians(static_cast<double>(_sih_lat0.get()));
-		_lon = radians(static_cast<double>(_sih_lon0.get()));
-		_alt = static_cast<double>(_lpos_ref_alt);
-		_p_E = llaToEcef(_lat, _lon, _alt);
+		_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
+		_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
+		_lla.setAltitude(_lpos_ref_alt);
+		_p_E = _lla.toEcef();
 
-		const Dcmf R_E2N = computeRotEcefToNed(_lat, _lon, _alt);
+		const Dcmf R_E2N = computeRotEcefToNed(_lla);
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
 
@@ -343,11 +343,12 @@ void Sih::generate_force_and_torques()
 void Sih::generate_fw_aerodynamics()
 {
 	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
-	_wing_l.update_aero(v_B, _w_B, _alt, -_u[0]*FLAP_MAX);
-	_wing_r.update_aero(v_B, _w_B, _alt, _u[0]*FLAP_MAX);
-	_tailplane.update_aero(v_B, _w_B, _alt, -_u[1]*FLAP_MAX, _T_MAX * _u[3]);
-	_fin.update_aero(v_B, _w_B, _alt, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
-	_fuselage.update_aero(v_B, _w_B, _alt);
+	const float &alt = _lla.altitude();
+	_wing_l.update_aero(v_B, _w_B, alt, -_u[0]*FLAP_MAX);
+	_wing_r.update_aero(v_B, _w_B, alt, _u[0]*FLAP_MAX);
+	_tailplane.update_aero(v_B, _w_B, alt, -_u[1]*FLAP_MAX, _T_MAX * _u[3]);
+	_fin.update_aero(v_B, _w_B, alt, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
+	_fuselage.update_aero(v_B, _w_B, alt);
 
 	// sum of aerodynamic forces
 	const Vector3f Fa_B = _wing_l.get_Fa() + _wing_r.get_Fa() + _tailplane.get_Fa() + _fin.get_Fa() + _fuselage.get_Fa() -
@@ -392,14 +393,15 @@ float Sih::computeGravity(const double lat)
 {
 	// Somigliana formula for gravitational acceleration
 	const double sin_lat = sin(lat);
-	const double g = Wgs84::gravity_equator * (1.0 + 0.001931851353 * sin_lat * sin_lat) / sqrt(
-				 1.0 - Wgs84::eccentricity2 * sin_lat * sin_lat);
+	const double g = LatLonAlt::Wgs84::gravity_equator * (1.0 + 0.001931851353 * sin_lat * sin_lat) / sqrt(
+				 1.0 - LatLonAlt::Wgs84::eccentricity2 * sin_lat * sin_lat);
 	return static_cast<float>(g);
 }
 
 void Sih::equations_of_motion(const float dt)
 {
-	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * computeGravity(_lat); // gravity along the Down axis
+	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * computeGravity(
+			_lla.latitude_rad()); // gravity along the Down axis
 	const Vector3f coriolis_acceleration_E = -2.f * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE).cross(_v_E);
 
 	const Vector3f weight_E = _MASS * gravity_acceleration_E;
@@ -409,7 +411,7 @@ void Sih::equations_of_motion(const float dt)
 	const float force_down = Vector3f(_R_N2E.transpose() * sum_of_forces_E)(2);
 	Vector3f ground_force_E;
 
-	if ((static_cast<float>(_alt) - _lpos_ref_alt) < 0.f && force_down > 0.f) {
+	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
 		if (_vehicle == VehicleType::MC || _vehicle == VehicleType::TS) {
 			ground_force_E = -sum_of_forces_E;
 
@@ -461,32 +463,15 @@ void Sih::equations_of_motion(const float dt)
 
 	ecefToNed();
 
-	_lpos_ref.project(degrees(_lat), degrees(_lon), _lpos(0), _lpos(1));
-	_lpos(2) = -(static_cast<float>(_alt) - _lpos_ref_alt);
+	_lpos_ref.project(_lla.latitude_deg(), _lla.longitude_deg(), _lpos(0), _lpos(1));
+	_lpos(2) = -(_lla.altitude() - _lpos_ref_alt);
 }
 
 void Sih::ecefToNed()
 {
-	// Convert position using Borkowski closed-form exact solution
-	const double k1 = sqrt(1 - Wgs84::eccentricity2) * std::abs(_p_E(2));
-	const double k2 = Wgs84::eccentricity2 * Wgs84::equatorial_radius;
-	const double beta = sqrt(_p_E(0) * _p_E(0) + _p_E(1) * _p_E(1));
-	const double E = (k1 - k2) / beta;
-	const double F = (k1 + k2) / beta;
+	_lla = LatLonAlt::fromEcef(_p_E);
 
-	const double P = 4.0 / 3.0 * (E * F + 1);
-	const double Q = 2 * (E * E - F * F);
-	const double D = P * P * P + Q * Q;
-	const double V = pow(sqrt(D) - Q, 1.0 / 3.0) - pow(sqrt(D) + Q, 1.0 / 3.0);
-	const double G = 0.5 * (sqrt(E * E + V) + E);
-	const double T = sqrt(G * G + (F - V * G) / (2 * G - E)) - G;
-
-	_lon = atan2(_p_E(1), _p_E(0));
-	_lat = sign(_p_E(2)) * atan((1 - T * T) / (2 * T * sqrt(1 - Wgs84::eccentricity2)));
-	_alt = (beta - Wgs84::equatorial_radius * T) * cos(_lat) +
-	       (_p_E(2) - sign(_p_E(2)) * Wgs84::equatorial_radius * sqrt(1 - Wgs84::eccentricity2)) * sin(_lat);
-
-	const Dcmf C_SE = computeRotEcefToNed(_lat, _lon, _alt);
+	const Dcmf C_SE = computeRotEcefToNed(_lla);
 	_R_N2E = C_SE.transpose();
 
 	// Transform velocity to NED frame
@@ -495,27 +480,13 @@ void Sih::ecefToNed()
 	_q.normalize();
 }
 
-Vector3d Sih::llaToEcef(const double lat, const double lon, const double alt)
-{
-	const double r_e = Wgs84::equatorial_radius / sqrt(1 - std::pow(Wgs84::eccentricity * sin(lat), 2));
-
-	const double cos_lat = cos(lat);
-	const double sin_lat = sin(lat);
-	const double cos_lon = cos(lon);
-	const double sin_lon = sin(lon);
-
-	return Vector3d((r_e + alt) * cos_lat * cos_lon,
-			(r_e + alt) * cos_lat * sin_lon,
-			((1.0 - Wgs84::eccentricity2) * r_e + alt) * sin_lat);
-}
-
-Dcmf Sih::computeRotEcefToNed(const double lat, const double lon, const double alt)
+Dcmf Sih::computeRotEcefToNed(const LatLonAlt &lla)
 {
 	// Calculate the ECEF to NED coordinate transformation matrix
-	const double cos_lat = cos(lat);
-	const double sin_lat = sin(lat);
-	const double cos_lon = cos(lon);
-	const double sin_lon = sin(lon);
+	const double cos_lat = cos(lla.latitude_rad());
+	const double sin_lat = sin(lla.latitude_rad());
+	const double cos_lon = cos(lla.longitude_rad());
+	const double sin_lon = sin(lla.longitude_rad());
 
 	const float val[] = {(float)(-sin_lat * cos_lon), (float)(-sin_lat * sin_lon), (float)cos_lat,
 			     (float) - sin_lon, (float)cos_lon, 0.f,
@@ -657,9 +628,9 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		// publish global position groundtruth
 		vehicle_global_position_s global_position{};
 		global_position.timestamp_sample = time_now_us;
-		global_position.lat = degrees(_lat);
-		global_position.lon = degrees(_lon);
-		global_position.alt = _alt;
+		global_position.lat = _lla.latitude_deg();
+		global_position.lon = _lla.longitude_deg();
+		global_position.alt = _lla.altitude();
 		global_position.alt_ellipsoid = global_position.alt;
 		global_position.terrain_alt = -_lpos(2);
 		global_position.timestamp = hrt_absolute_time();
