@@ -1265,6 +1265,14 @@ void EKF2::SendEvents()
 
 		_ekf.clear_information_events();
 	}
+
+	if (_ekf.control_status_flags().yaw_align && !_ekf.control_status_prev_flags().yaw_align) {
+		/* EVENT
+		 * @group ekf2
+		 */
+		events::send<int32_t>(events::ID("ekf2_yaw_align"), events::Log::Debug,
+				      "EKF2({1}): yaw aligned", _instance);
+	}
 }
 
 void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
