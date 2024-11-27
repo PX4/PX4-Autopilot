@@ -122,6 +122,7 @@ void RPMCapture::Run()
 	} else {
 		// Timeout for no interrupts
 		_period = 0;
+		ScheduleDelayed(RPM_PULSE_TIMEOUT);
 	}
 
 	float rpm_raw{0.f};
