@@ -714,8 +714,10 @@ void GZBridge::navSatCallback(const gz::msgs::NavSat &nav_sat)
 		vehicle_global_position_s global_position_groundtruth{};
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 		global_position_groundtruth.timestamp_sample = time_us;
+		global_position_groundtruth.timestamp = time_us;
 #else
 		global_position_groundtruth.timestamp_sample = hrt_absolute_time();
+		global_position_groundtruth.timestamp = hrt_absolute_time();
 #endif
 		global_position_groundtruth.lat = nav_sat.latitude_deg();
 		global_position_groundtruth.lon = nav_sat.longitude_deg();

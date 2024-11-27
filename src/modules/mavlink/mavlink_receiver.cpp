@@ -2349,6 +2349,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 			// Publish GPS groundtruth
 			vehicle_global_position_s hil_global_position_groundtruth{};
 			hil_global_position_groundtruth.timestamp_sample = hrt_absolute_time();
+			hil_global_position_groundtruth.timestamp = hrt_absolute_time();
 			hil_global_position_groundtruth.lat = hil_gps.lat / 1e7;
 			hil_global_position_groundtruth.lon = hil_gps.lon / 1e7;
 			hil_global_position_groundtruth.alt = hil_gps.alt / 1e3f;
