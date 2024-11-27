@@ -68,6 +68,8 @@ public:
 	static void stop();
 
 private:
+	static constexpr hrt_abstime RPM_PULSE_TIMEOUT = 1_s;
+
 	void Run() override;
 
 	int _channel{-1};
