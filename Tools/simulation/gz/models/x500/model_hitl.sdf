@@ -7,6 +7,7 @@
     <plugin filename="libmavlink_hitl_gazebosim.so" name="mavlink_interface::GazeboMavlinkInterface">
       <robotNamespace/>
       <imuSubTopic>/link/base_link/sensor/imu_sensor/imu</imuSubTopic>
+      <gpsSubTopic>/link/base_link/sensor/navsat_sensor/navsat</gpsSubTopic>
       <poseSubTopic>/pose/info</poseSubTopic>
       <mavlink_addr>192.168.0.3</mavlink_addr>
       <mavlink_udp_local_port>14542</mavlink_udp_local_port>

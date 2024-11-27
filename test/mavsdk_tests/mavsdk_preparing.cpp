@@ -119,6 +119,8 @@ int main(int argc, char **argv)
 
 	if (command_set_param == command) {
 		//TODO: For some reason when we set the new value it sometimes takes several attempts to change a parameter.
+		//The reason is the bug of mavsdk lib.
+		//When we set one parameter many times, sometimes the lib sends not the new but the previous value.
 		int attempt = 1;
 		const int max_attemp = 5;
 		const auto param_name = "SYS_AUTOSTART";
@@ -137,6 +139,8 @@ int main(int argc, char **argv)
 			auto res = param.get_param_int(param_name);
 
 			if (res.first == Param::Result::Success && res.second == param_value) {
+				//For some reason, if we reboot device immediately after changing of parameter, it will not be saved.
+				std::this_thread::sleep_for(3s);
 				break;
 			}
 

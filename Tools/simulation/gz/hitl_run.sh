@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #example for run
-#./Tools/simulation/gz/hitl_run.sh x500/model_hitl.sdf
+#./Tools/simulation/gz/hitl_run.sh ssrc_holybro_x500/model_hitl.sdf
 
 MODEL_PATH=$1
 

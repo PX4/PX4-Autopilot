@@ -54,9 +54,9 @@ class Runner:
 
         if self.name == "mavsdk_tests":
             if self.env["HIL_MODE"] == "hitl":
-                delay = 10
+                delay = 30
                 print("Waiting ", delay, " seconds for connection to be established...  ")
-                time.sleep(10)
+                time.sleep(delay)
                 print("Running test...")
         atexit.register(self.stop)
 

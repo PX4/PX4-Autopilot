@@ -316,7 +316,6 @@ class Tester:
 
         if (res):
             print("The device has successfully rebooted")
-            time.sleep(15)
         else:
             print("Reboot failed")
             exit(-1)
