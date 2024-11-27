@@ -200,7 +200,7 @@ void PCF8583::RunImpl()
 
 	// publish data to uorb
 	rpm_s msg{};
-	msg.indicated_frequency_rpm = indicated_rpm;
+	msg.rpm_estimate = indicated_rpm;
 	msg.estimated_accurancy_rpm = estimated_accurancy;
 	msg.timestamp = hrt_absolute_time();
 	_rpm_pub.publish(msg);
