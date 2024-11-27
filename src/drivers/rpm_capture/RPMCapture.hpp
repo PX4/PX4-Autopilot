@@ -39,7 +39,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/pwm_input.h>
 #include <uORB/topics/rpm.h>
 
@@ -72,8 +72,8 @@ private:
 
 	int _channel{-1};
 	uint32_t _rpm_capture_gpio{0};
-	uORB::Publication<pwm_input_s>	_pwm_input_pub{ORB_ID(pwm_input)};
-	uORB::Publication<rpm_s>	_rpm_pub{ORB_ID(rpm)};
+	uORB::Publication<pwm_input_s> _pwm_input_pub{ORB_ID(pwm_input)};
+	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
 	hrt_abstime _hrt_timestamp{0};
 	hrt_abstime _hrt_timestamp_prev{0};

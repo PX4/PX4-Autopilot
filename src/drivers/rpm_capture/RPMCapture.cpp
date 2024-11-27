@@ -90,6 +90,7 @@ bool RPMCapture::init()
 		success = true;
 	}
 
+	success = success && _rpm_pub.advertise();
 	return success;
 }
 
