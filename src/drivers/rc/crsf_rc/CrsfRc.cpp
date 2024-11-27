@@ -195,7 +195,7 @@ void CrsfRc::Run()
 			uint8_t cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
 			if (!_is_singlewire && !_armed) {
-				if ((int)vcmd.param1 == 1) {
+				if ((int)vcmd.param1 == vehicle_command_s::RC_TYPE_CRSF) {
 					// CRSF binding command
 					if (BindCRSF()) {
 						cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
