@@ -43,6 +43,7 @@ RPMCapture::RPMCapture() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_pwm_input_pub.advertise();
+	ScheduleOnInterval(1_s);
 }
 
 RPMCapture::~RPMCapture()
@@ -100,21 +101,27 @@ void RPMCapture::Run()
 	}
 
 	hrt_abstime now = hrt_absolute_time();
-	const hrt_abstime period = _hrt_timestamp - _hrt_timestamp_prev;
 
-	pwm_input_s pwm_input{};
-	pwm_input.timestamp = now;
-	pwm_input.period = period;
-	pwm_input.error_count = _error_count;
-	_hrt_timestamp_prev = _hrt_timestamp;
-	_value_processed.store(true);
-	_pwm_input_pub.publish(pwm_input);
+	if (!_value_processed.load()) {
+		_period = _hrt_timestamp - _hrt_timestamp_prev;
+		_hrt_timestamp_prev = _hrt_timestamp;
+		_value_processed.store(true);
+
+		pwm_input_s pwm_input{};
+		pwm_input.timestamp = now;
+		pwm_input.period = _period;
+		pwm_input.error_count = _error_count;
+		_pwm_input_pub.publish(pwm_input);
+
+	} else if (now > _hrt_timestamp_prev + 1_s) {
+		_period = 0;
+	}
 
 	float rpm_raw{0.f};
 
-	if ((1 < period) && (period < 1_s)) {
+	if ((1 < _period) && (_period < 1_s)) {
 		// 1'000'000 / [us] -> pulses per second * 60 -> pulses per minute
-		rpm_raw = 60.f * 1e6f / (static_cast<float>(period) * 1.f);
+		rpm_raw = 60.f * 1e6f / (static_cast<float>(_period) * 1.f);
 	}
 
 	const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 0.01f, 1.f);
