@@ -43,7 +43,7 @@ RPMCapture::RPMCapture() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_pwm_input_pub.advertise();
-	ScheduleOnInterval(1_s);
+	ScheduleNow();
 }
 
 RPMCapture::~RPMCapture()
@@ -104,6 +104,7 @@ void RPMCapture::Run()
 	hrt_abstime now = hrt_absolute_time();
 
 	if (!_value_processed.load()) {
+		// There was an interrupt
 		_period = _hrt_timestamp - _hrt_timestamp_prev;
 		_hrt_timestamp_prev = _hrt_timestamp;
 		_value_processed.store(true);
@@ -114,15 +115,23 @@ void RPMCapture::Run()
 		pwm_input.error_count = _error_count;
 		_pwm_input_pub.publish(pwm_input);
 
-	} else if (now > _hrt_timestamp_prev + 1_s) {
+		// Schedule for next timeout
+		ScheduleClear();
+		ScheduleDelayed(RPM_PULSE_TIMEOUT);
+
+	} else {
+		// Timeout for no interrupts
 		_period = 0;
 	}
 
 	float rpm_raw{0.f};
 
-	if ((1 < _period) && (_period < 1_s)) {
+	if ((1 < _period) && (_period < RPM_PULSE_TIMEOUT)) {
 		// 1'000'000 / [us] -> pulses per second * 60 -> pulses per minute
 		rpm_raw = 60.f * 1e6f / (static_cast<float>(_period) * 1.f);
+
+	} else {
+		_rpm_filter.reset(rpm_raw);
 	}
 
 	const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 0.01f, 1.f);
