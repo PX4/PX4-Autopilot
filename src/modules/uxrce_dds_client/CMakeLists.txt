@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-if(${CMAKE_VERSION} VERSION_LESS "3.11")
+if(${CMAKE_VERSION} VERSION_LESS_EQUAL "3.15")
 	message(WARNING "skipping uxrce_dds_client, Micro-XRCE-DDS-Client needs to be fixed to work with CMAKE_VERSION ${CMAKE_VERSION}")
 
 else()
