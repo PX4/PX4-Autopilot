@@ -603,34 +603,28 @@ int px4_at24c_initialize(FAR struct i2c_master_s *dev,
 		priv->perf_errors = perf_alloc(PC_COUNT, "[at24c] eeprom errors");
 	}
 
-	/* attempt to read to validate device is present */
-	unsigned char buf[5];
-	uint8_t addrbuf[2] = {0, 0};
+	/* attempt to read last page to validate device is present */
 
-	struct i2c_msg_s msgv[2] = {
-		{
-			.frequency = 400000,
-			.addr = priv->addr,
-			.flags = 0,
-			.buffer = &addrbuf[0],
-			.length = sizeof(addrbuf),
-		},
-		{
-			.frequency = 400000,
-			.addr = priv->addr,
-			.flags = I2C_M_READ,
-			.buffer = &buf[0],
-			.length = sizeof(buf),
-		}
-	};
+	uint8_t buf[AT24XX_PAGESIZE];
+	int ret = at24c_bread((FAR struct mtd_dev_s *)priv,
+			      AT24XX_NPAGES - 1,
+			      1,
+			      buf);
 
-	BOARD_EEPROM_WP_CTRL(true);
+	if (ret != 1) {
+		ferr("Read failed, mass erase, ret %d\n", ret);
 
-	perf_begin(priv->perf_transfers);
-	int ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
-	perf_end(priv->perf_transfers);
+		at24c_eraseall(&g_at24c[number_of_instances]);
 
-	if (ret < 0) {
+		/* Try to read again */
+
+		ret = at24c_bread((FAR struct mtd_dev_s *)priv,
+				  AT24XX_NPAGES - 1,
+				  1,
+				  buf);
+	}
+
+	if (ret != 1) {
 		perf_free(priv->perf_transfers);
 		perf_free(priv->perf_resets_retries);
 		perf_free(priv->perf_errors);
@@ -639,7 +633,7 @@ int px4_at24c_initialize(FAR struct i2c_master_s *dev,
 		priv->perf_resets_retries = NULL;
 		priv->perf_errors = NULL;
 
-		return ret;
+		return -1;
 	}
 
 	*mtd_dev = (FAR struct mtd_dev_s *)priv;
