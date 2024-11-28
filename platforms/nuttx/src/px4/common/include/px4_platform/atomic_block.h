@@ -33,9 +33,12 @@
 
 #pragma once
 
+#include <nuttx/config.h>
+
 #include <stdint.h>
 
 #include <nuttx/irq.h>
+#include <nuttx/spinlock.h>
 
 #include <px4_platform_common/sem.h>
 
@@ -54,6 +57,9 @@ private:
 		px4_sem_t _lock;
 		irqstate_t _irqlock;
 	};
+#ifdef CONFIG_SMP
+	spinlock_t _spinlock;
+#endif
 };
 
 }

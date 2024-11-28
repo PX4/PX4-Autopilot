@@ -39,6 +39,9 @@ namespace px4
 atomic_block::atomic_block(void)
 {
 	_irqlock = 0;
+#ifdef CONFIG_SMP
+	_spinlock = SP_UNLOCKED;
+#endif
 }
 
 atomic_block::~atomic_block(void)
@@ -48,12 +51,20 @@ atomic_block::~atomic_block(void)
 
 void atomic_block::start(void)
 {
+#ifdef CONFIG_SMP
+	_irqlock = spin_lock_irqsave_wo_note(&_spinlock);
+#else
 	_irqlock = enter_critical_section();
+#endif
 }
 
 void atomic_block::finish(void)
 {
+#ifdef CONFIG_SMP
+	spin_unlock_irqrestore_wo_note(&_spinlock, _irqlock);
+#else
 	leave_critical_section(_irqlock);
+#endif
 }
 
 }
