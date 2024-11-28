@@ -345,12 +345,10 @@ TEST_F(EkfHeightFusionTest, baroRefAllHgtFailReset)
 	// Also check the reset counters to make sure the reset logic triggered
 	reset_logging_checker.capturePostResetState();
 
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+
 	// The velocity does not reset as baro only provides height measurement
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(0));
-
-	// The height resets twice in a row as the baro innovation is not corrected after a height
-	// reset and triggers a new reset at the next iteration
-	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(2));
 }
 
 TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
