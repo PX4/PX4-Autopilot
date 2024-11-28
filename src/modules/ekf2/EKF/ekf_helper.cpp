@@ -1131,6 +1131,21 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 	return true;
 }
 
+void Ekf::resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const
+{
+	status.time_last_fuse = _time_delayed_us;
+
+	status.innovation = 0.f;
+	status.innovation_filtered = 0.f;
+	status.innovation_variance = status.observation_variance;
+
+	status.test_ratio = 0.f;
+	status.test_ratio_filtered = 0.f;
+
+	status.innovation_rejected = false;
+	status.fused = true;
+}
+
 void Ekf::updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t &timestamp_sample,
 				const float &observation, const float &observation_variance,
 				const float &innovation, const float &innovation_variance,

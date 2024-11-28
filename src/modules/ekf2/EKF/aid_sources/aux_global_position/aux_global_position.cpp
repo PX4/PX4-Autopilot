@@ -112,6 +112,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 					// Try to initialize using measurement
 					if (ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, pos_var,
 								      sq(sample.epv))) {
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 						ekf.enableControlStatusAuxGpos();
 						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 						_state = State::active;
