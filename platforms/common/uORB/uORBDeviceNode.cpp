@@ -59,6 +59,9 @@ uORB::DeviceNode::~DeviceNode()
 {
 	free(_data);
 
+	// We own _devname, hence unregister must happen before we free it here
+	this->deinit();
+
 	const char *devname = get_devname();
 
 	if (devname) {

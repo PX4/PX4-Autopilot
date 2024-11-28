@@ -63,9 +63,7 @@ CDev::~CDev()
 {
 	PX4_DEBUG("CDev::~CDev");
 
-	if (_registered) {
-		unregister_driver(_devname);
-	}
+	deinit();
 
 	if (_pollset) {
 		delete[](_pollset);
@@ -113,6 +111,14 @@ CDev::unregister_class_devname(const char *class_devname, unsigned class_instanc
 	char name[32];
 	snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
 	return unregister_driver(name);
+}
+
+void CDev::deinit()
+{
+	if (_registered) {
+		unregister_driver(_devname);
+		_registered = false;
+	}
 }
 
 int

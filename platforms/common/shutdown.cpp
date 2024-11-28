@@ -163,10 +163,10 @@ void px4_shutdown_worker(){
 			}
 		}
 	}
-	PX4_INFO("Done running hook");
 
 	const hrt_abstime now = hrt_absolute_time();
 	const bool delay_elapsed = (now > shutdown_time_us);
+	PX4_INFO("Done running hook, %d %lu %lu done=%d", delay_elapsed, now, shutdown_time_us, done);
 
 	if (delay_elapsed && ((done && shutdown_lock_counter == 0) || (now > (shutdown_time_us + shutdown_timeout_us)))) {
 		PX4_INFO("Enter reboot >> %d\n", shutdown_args);
@@ -235,6 +235,7 @@ int px4_register_shutdown_hook(shutdown_hook_t hook)
 		}
 	}
 
+	PX4_INFO("register shutdown hook failed");
 	pthread_mutex_unlock(&shutdown_mutex);
 	return -ENOMEM;
 }

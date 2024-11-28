@@ -203,7 +203,7 @@ private:
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
 
 	bool _home_has_land_approach;			///< Flag if the home position has a land approach defined
-	bool _one_rally_point_has_land_approach;	///< Flag if a rally point has a land approach defined
+	bool _one_rally_point_has_land_approach{false};	///< Flag if a rally point has a land approach defined
 
 	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
 	DatamanState _error_state{DatamanState::UpdateRequestWait};

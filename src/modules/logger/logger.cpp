@@ -927,6 +927,7 @@ void Logger::run()
 			while (px4_sem_wait(&_timer_callback_data.semaphore) != 0) {}
 		}
 	}
+	PX4_INFO("Logger really stopping");
 
 	px4_lockstep_unregister_component(_lockstep_component);
 

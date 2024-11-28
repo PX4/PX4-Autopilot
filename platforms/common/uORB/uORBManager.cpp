@@ -430,7 +430,6 @@ void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance
 
 	if (device_master != nullptr) {
 		node = device_master->getDeviceNode(get_orb_meta(orb_id), instance);
-		if (orb_id == ORB_ID::tune_control)
 
 		if (node) {
 			node->add_internal_subscriber();
@@ -454,7 +453,7 @@ bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &genera
 		return false;
 	}
 
-	if (only_if_updated && !static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(generation)) {
+	if (only_if_updated && static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(generation) == 0) {
 		return false;
 	}
 

@@ -79,6 +79,7 @@ void MagBiasEstimator::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
+		return;
 	}
 
 	if (_vehicle_status_sub.updated()) {

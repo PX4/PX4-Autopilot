@@ -40,7 +40,8 @@ namespace px4
 ScheduledWorkItem::~ScheduledWorkItem()
 {
 	if (_call.arg != nullptr) {
-		ScheduleClear();
+		hrt_cancel(&_call);
+		WorkItem::Deinit();
 	}
 }
 

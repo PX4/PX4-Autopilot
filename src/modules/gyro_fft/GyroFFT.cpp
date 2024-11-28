@@ -437,7 +437,7 @@ void GyroFFT::FindPeaks(const hrt_abstime &timestamp_sample, int axis, q15_t *ff
 	float bin_mag_sum = 0;
 
 	// FFT output buffer is ordered [real[0], imag[0], real[1], imag[1], real[2], imag[2] ... real[(N/2)-1], imag[(N/2)-1]
-	for (uint16_t fft_index = 2; fft_index < _imu_gyro_fft_len; fft_index += 2) {
+	for (uint16_t fft_index = 2; fft_index < _imu_gyro_fft_len * 2; fft_index += 2) {
 
 		const float real = fft_outupt_buffer[fft_index];
 		const float imag = fft_outupt_buffer[fft_index + 1];

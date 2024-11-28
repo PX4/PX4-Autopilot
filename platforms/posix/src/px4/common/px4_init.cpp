@@ -42,6 +42,7 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/events.h>
 #include <set>
 #include <uORB/uORB.h>
 
@@ -87,7 +88,6 @@ int px4_platform_init(void) {
 }
 
 int px4_platform_fini(void) {
-  param_fini();
 
   px4_show_tasks();
   for (auto &x : ModuleManager::get_modules()) {
@@ -118,6 +118,8 @@ int px4_platform_fini(void) {
   PX4_INFO("Quitting HRT");
   px4_show_tasks();
   PX4_INFO("Quitting HRT");
+  param_fini();
+
   hrt_fini();
   hrt_work_queue_fini();
 
@@ -135,16 +137,18 @@ int px4_platform_fini(void) {
   px4_log_finalize();
   uorb_stop();
 	ModuleManager::cleanup();;
-	px4_show_files();
-	px4_cleanup();
-  PX4_INFO("px4_fini done");
-  // param_init();
 
   while(true){
 		int task_count =px4_running_task_count();
 		if (task_count == 0) break;
 		system_usleep(10);
-}
+	}
+	px4_show_files();
+	px4_cleanup();
+	events::reset_events();
+  PX4_INFO("px4_fini done");
+  // param_init();
+
 
   return PX4_OK;
 }

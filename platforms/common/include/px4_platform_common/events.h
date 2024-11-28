@@ -94,6 +94,7 @@ constexpr unsigned sizeofArguments(const T &t, const Args &... args)
  * publish/send an event
  */
 void send(event_s &event);
+void reset_events();
 
 /**
  * Generate event ID from an event name

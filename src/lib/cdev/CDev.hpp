@@ -76,6 +76,7 @@ public:
 	virtual ~CDev();
 
 	virtual int	init();
+	void	deinit();
 
 	/**
 	 * Handle an open of the device.

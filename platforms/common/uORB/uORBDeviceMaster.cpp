@@ -52,6 +52,7 @@ uORB::DeviceMaster::DeviceMaster()
 
 uORB::DeviceMaster::~DeviceMaster()
 {
+	this->_node_list.clear();
 	px4_sem_destroy(&_lock);
 }
 

@@ -9,12 +9,15 @@
 #include <utility>
 
 #define PX4_TRACER
+#define t_assert(CONTENT)                                                                          \
+  do {                                                                                             \
+    if (!(CONTENT)) Tracer::get()->proc_assert(#CONTENT);                                          \
+  } while (0)
 
 template <typename F, std::size_t... Indices, typename... Args>
 void FunctionImpl(F &&f, std::index_sequence<Indices...>, Args &&...args) {
   (f(Indices, std::forward<Args>(args)), ...);
 }
-
 
 template <typename F, typename... Args, typename... ArgsRes>
 std::tuple<ArgsRes...> Function(F &&f, Args &&...args) {
@@ -44,47 +47,49 @@ public:
     conf = json::parse(ifs);
   }
 
-  template <typename... Args> bool check_entry(const json::array_t &tb, Args&&... args) {
-  auto result= std::make_tuple([](auto &&x){return false; }(args)...);
+  template <typename... Args> bool check_entry(const json::array_t &tb, Args &&...args) {
+    auto result = std::make_tuple([](auto &&x) { return false; }(args)...);
 
-  [&]<auto... Is>(std::index_sequence<Is...>) {
-    ([&]() { std::get<Is>(result) = 
+    [&]<auto... Is>(std::index_sequence<Is...>) {
+      (
+        [&]() {
+          std::get<Is>(result) =
 
-		 [&]() {
-      if (tb.size() <= Is) return true;
-      auto v = tb[Is];
-      if (v.is_array()) {
-        auto varray = v.template get<std::vector<std::remove_reference_t<Args>>>();
-        if (varray.size() == 0) return true;
-        for (auto x : varray) {
-          if (x == args) return true;
-        }
-        return false;
-      } else {
-        auto x = v.template get<std::remove_reference_t<Args>>();
-        // std::cout << "Trying " <<x << " against " << arg << std::endl;
-        return x == args;
-      }
-			}();
-		 
-		 }(), ...);
-  }(std::index_sequence_for<Args...>{});
+            [&]() {
+              if (tb.size() <= Is) return true;
+              auto v = tb[Is];
+              if (v.is_array()) {
+                auto varray = v.template get<std::vector<std::remove_reference_t<Args>>>();
+                if (varray.size() == 0) return true;
+                for (auto x : varray) {
+                  if (x == args) return true;
+                }
+                return false;
+              } else {
+                auto x = v.template get<std::remove_reference_t<Args>>();
+                // std::cout << "Trying " <<x << " against " << arg << std::endl;
+                return x == args;
+              }
+            }();
+        }(),
+        ...);
+    }(std::index_sequence_for<Args...>{});
     return std::apply([](auto &&...tmp) { return (... && tmp); }, result);
   }
 
-  template <typename... Args> bool filter(const std::string &opname, Args&&... args) {
-		if (conf.count(opname) == 0) return false;
-    auto tb = conf[opname].template get<json::array_t>();
+  template <typename... Args> bool filter(const std::string &opname, Args &&...args) {
+    if (conf.count(opname) == 0) return false;
+    auto tb = conf["trace"][opname].template get<json::array_t>();
     return std::any_of(tb.begin(), tb.end(), [&](auto &&e) {
       return this->template check_entry<Args...>(e.template get<json::array_t>(), args...);
     });
   }
 
-  template <typename... Args> void maybe_dump(Args&&... args) {
+  template <typename... Args> void maybe_dump(Args &&...args) {
     if (filter(args...)) dump(args...);
   }
 
-  template <typename... Args> void dump(const std::string &op, Args&&... args) {
+  template <typename... Args> void dump(const std::string &op, Args &&...args) {
 
     auto bt = std::stacktrace::current();
     json j = { { "op", op },
@@ -95,6 +100,16 @@ public:
     const std::lock_guard<std::mutex> lock(mutex);
     ofs << sx << "\n+++++++\n";
     ofs.flush();
+  }
+
+  void proc_assert(const std::string &desc) {
+    this->dump("Assert failed ", desc);
+
+    if (conf["assert"].value("fail", false)) {
+      std::cerr << "Assert failed " << desc << std::endl;
+      std::cerr << std::to_string(std::stacktrace::current()) << std::endl;
+      std::abort();
+    }
   }
 
 private:

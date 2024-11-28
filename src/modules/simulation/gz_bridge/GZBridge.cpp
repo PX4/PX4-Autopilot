@@ -1003,6 +1003,7 @@ void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::m
 
 void GZBridge::Run()
 {
+	assert(0);
 	if (should_exit()) {
 		PX4_INFO("Gz bridge quit");
 		ScheduleClear();

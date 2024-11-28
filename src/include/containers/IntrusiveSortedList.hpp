@@ -40,6 +40,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <cassert>
 
 template<class T>
 class IntrusiveSortedListNode
@@ -55,6 +56,9 @@ template<class T>
 class IntrusiveSortedList
 {
 public:
+	~IntrusiveSortedList(){
+		assert(this->size() == 0);
+	}
 
 	void add(T newNode)
 	{

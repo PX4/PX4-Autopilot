@@ -114,10 +114,13 @@ void LoadMon::Run()
 #if defined (__PX4_LINUX)
 		fclose(_proc_fd);
 #endif
+		// exit and cleanup delete object
+		perf_end(_cycle_perf);
 		exit_and_cleanup();
 	}
+	else
+		perf_end(_cycle_perf);
 
-	perf_end(_cycle_perf);
 }
 
 void LoadMon::cpuload()

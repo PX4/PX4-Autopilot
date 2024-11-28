@@ -75,6 +75,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	} else {
 		exit_and_cleanup();
+		return;
 	}
 
 	_flaps_setpoint_pub.advertise();

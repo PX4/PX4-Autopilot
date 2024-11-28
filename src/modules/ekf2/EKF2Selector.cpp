@@ -64,8 +64,6 @@ void EKF2Selector::Stop()
 		_instance[i].estimator_status_sub.unregisterCallback();
 	}
 
-	while(!ScheduleClearSafe())
-		px4_usleep(10);
 }
 
 void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance)

@@ -95,7 +95,6 @@ protected:
 	 * Remove work item from the runnable queue, if it's there
 	 */
 	void ScheduleClear();
-	bool ScheduleClearSafe();
 protected:
 
 	void RunPreamble()
@@ -110,7 +109,6 @@ protected:
 	}
 
 	friend void WorkQueue::Run();
-	friend bool WorkQueue::RemoveSafe(WorkItem *);
 	virtual void Run() = 0;
 
 	/**
@@ -131,7 +129,6 @@ protected:
 	hrt_abstime	_time_first_run{0};
 	const char 	*_item_name;
 	uint32_t	_run_count{0};
-	px4::atomic_bool		_is_running{false};
 
 private:
 

@@ -61,10 +61,10 @@ public:
 
 	bool Attach(WorkItem *item);
 	void Detach(WorkItem *item);
+	void Deinit(WorkItem *item);
 
 	void Add(WorkItem *item);
 	void Remove(WorkItem *item);
-	bool RemoveSafe(WorkItem *item);
 
 	void Clear();
 
@@ -95,6 +95,7 @@ private:
 	px4_sem_t _qlock;
 #endif
 
+	WorkItem* _current_work_item;
 	IntrusiveQueue<WorkItem *>	_q;
 	px4_sem_t			_process_lock;
 	px4_sem_t			_exit_lock;
