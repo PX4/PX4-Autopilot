@@ -14,18 +14,19 @@
 #include <systemlib/px4_macros.h>
 
 struct ModuleEntry {
-  std::string name;
-  int (*stop_command)();
-  bool (*is_running)();
-  void (*request_stop)();
+	std::string name;
+	int (*stop_command)();
+	bool (*is_running)();
+	void (*request_stop)();
 };
 
-class ModuleManager {
+class ModuleManager
+{
 public:
-  static void register_module(const ModuleEntry &entry);
-  static std::vector<std::string> get_running();
-  static void cleanup();
-  static const std::vector<ModuleEntry> &get_modules();
-  static const ModuleEntry* get_module(const std::string &name);
+	static void register_module(const ModuleEntry &entry);
+	static std::vector<std::string> get_running();
+	static void cleanup();
+	static const std::vector<ModuleEntry> &get_modules();
+	static const ModuleEntry *get_module(const std::string &name);
 };
 

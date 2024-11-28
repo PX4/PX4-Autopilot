@@ -95,7 +95,7 @@ private:
 	px4_sem_t _qlock;
 #endif
 
-	WorkItem* _current_work_item;
+	WorkItem *_current_work_item;
 	IntrusiveQueue<WorkItem *>	_q;
 	px4_sem_t			_process_lock;
 	px4_sem_t			_exit_lock;

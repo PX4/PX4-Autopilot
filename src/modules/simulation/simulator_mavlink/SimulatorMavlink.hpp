@@ -123,7 +123,7 @@ public:
 		UDP
 	};
 
-	static SimulatorMavlink* instantiate(int argc, char *argv[]);
+	static SimulatorMavlink *instantiate(int argc, char *argv[]);
 
 	void set_ip(InternetProtocol ip) { _ip = ip; }
 	void set_port(unsigned port) { _port = port; }

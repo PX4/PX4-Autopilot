@@ -47,7 +47,7 @@
 namespace px4
 {
 
-static thread_local const wq_config_t* _thread_config = nullptr;
+static thread_local const wq_config_t *_thread_config = nullptr;
 WorkQueue::WorkQueue(const wq_config_t &config) :
 	_config(config)
 {
@@ -161,12 +161,14 @@ void WorkQueue::SignalWorkerThread()
 void WorkQueue::Deinit(WorkItem *item)
 {
 
-	if (_thread_config == &this->_config){
+	if (_thread_config == &this->_config) {
 
 		this->Remove(item);
 		this->Detach(item);
+
 	} else {
 		work_lock();
+
 		if (_current_work_item != item) {
 			_q.remove(item);
 			work_unlock();
@@ -174,20 +176,22 @@ void WorkQueue::Deinit(WorkItem *item)
 			return;
 		}
 
-		/* 
+		/*
 			 Only tricky bit:
 			 Calling DeInit() from another thread and the target workitem is currently being ran
 			 We wait until it's not being ran
 			 */
-		while(true){
+		while (true) {
 			work_unlock();
 			px4_usleep(10);
 			work_lock();
-			if (_current_work_item  != item) break;
+
+			if (_current_work_item  != item) { break; }
 		}
+
 		_q.remove(item);
-			work_unlock();
-			this->Detach(item);
+		work_unlock();
+		this->Detach(item);
 
 	}
 
@@ -217,6 +221,7 @@ void WorkQueue::Clear()
 void WorkQueue::Run()
 {
 	_thread_config = &this->_config;
+
 	while (!should_exit()) {
 		// loop as the wait may be interrupted by a signal
 		do {} while (px4_sem_wait(&_process_lock) != 0);
@@ -228,12 +233,12 @@ void WorkQueue::Run()
 			WorkItem *work = _q.pop();
 
 			_current_work_item = work;
-				work_unlock(); // unlock work queue to run (item may requeue itself)
-				work->RunPreamble();
-				work->Run();
-				// Note: after Run() we cannot access work anymore, as it might have been deleted
-				work_lock(); // re-lock
-				_current_work_item = nullptr;
+			work_unlock(); // unlock work queue to run (item may requeue itself)
+			work->RunPreamble();
+			work->Run();
+			// Note: after Run() we cannot access work anymore, as it might have been deleted
+			work_lock(); // re-lock
+			_current_work_item = nullptr;
 		}
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -277,6 +282,7 @@ void WorkQueue::print_status(bool last)
 
 		item->print_run_status();
 	}
+
 	work_unlock();
 }
 

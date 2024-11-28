@@ -89,7 +89,9 @@ void WorkItem::Deinit()
 		_wq->Deinit(this);
 		_wq = nullptr;
 	}
+
 	return;
+
 	// remove any currently queued work
 	if (_wq != nullptr) {
 		// prevent additional insertions

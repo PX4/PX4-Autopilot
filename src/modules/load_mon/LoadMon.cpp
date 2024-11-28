@@ -117,9 +117,10 @@ void LoadMon::Run()
 		// exit and cleanup delete object
 		perf_end(_cycle_perf);
 		exit_and_cleanup();
-	}
-	else
+
+	} else {
 		perf_end(_cycle_perf);
+	}
 
 }
 

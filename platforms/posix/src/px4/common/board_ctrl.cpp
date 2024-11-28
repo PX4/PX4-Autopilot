@@ -107,30 +107,32 @@ static volatile bool _received_sigint = false;
 
 static void sig_int_handler(int sig_num) { Board::instance()->handle_sigint(); }
 
-static void register_sig_handler() {
-  // SIGINT
-  struct sigaction sig_int {};
-  sig_int.sa_handler = sig_int_handler;
-  sig_int.sa_flags = 1; // not SA_RESTART!
+static void register_sig_handler()
+{
+	// SIGINT
+	struct sigaction sig_int {};
+	sig_int.sa_handler = sig_int_handler;
+	sig_int.sa_flags = 1; // not SA_RESTART!
 
-  // SIGPIPE
-  // We want to ignore if a PIPE has been closed.
-  struct sigaction sig_pipe {};
-  sig_pipe.sa_handler = SIG_IGN;
+	// SIGPIPE
+	// We want to ignore if a PIPE has been closed.
+	struct sigaction sig_pipe {};
+	sig_pipe.sa_handler = SIG_IGN;
 
 #ifdef __PX4_CYGWIN
-  // Do not catch SIGINT on Cygwin such that the process gets killed
-  // TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
-  (void)sig_int; // this variable is unused
+	// Do not catch SIGINT on Cygwin such that the process gets killed
+	// TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
+	(void)sig_int; // this variable is unused
 #else
-  sigaction(SIGINT, &sig_int, nullptr);
+	sigaction(SIGINT, &sig_int, nullptr);
 #endif
 
-  sigaction(SIGTERM, &sig_int, nullptr);
-  sigaction(SIGPIPE, &sig_pipe, nullptr);
+	sigaction(SIGTERM, &sig_int, nullptr);
+	sigaction(SIGPIPE, &sig_pipe, nullptr);
 }
 
-namespace px4 {
+namespace px4
+{
 void init_once();
 }
 
@@ -138,198 +140,216 @@ static void sig_int_handler(int sig_num);
 
 static void register_sig_handler();
 static int run_startup_script(const std::string &commands_file,
-                              const std::string &absolute_binary_path, int instance) {
-  std::string shell_command("/bin/sh ");
+			      const std::string &absolute_binary_path, int instance)
+{
+	std::string shell_command("/bin/sh ");
 
-  shell_command += commands_file + ' ' + std::to_string(instance);
+	shell_command += commands_file + ' ' + std::to_string(instance);
 
-  // Update the PATH variable to include the absolute_binary_path
-  // (required for the px4-alias.sh script and px4-* commands).
-  // They must be within the same directory as the px4 binary
-  const char *path_variable = "PATH";
-  std::string updated_path = absolute_binary_path;
-  const char *path = getenv(path_variable);
+	// Update the PATH variable to include the absolute_binary_path
+	// (required for the px4-alias.sh script and px4-* commands).
+	// They must be within the same directory as the px4 binary
+	const char *path_variable = "PATH";
+	std::string updated_path = absolute_binary_path;
+	const char *path = getenv(path_variable);
 
-  if (path) {
-    std::string spath = path;
+	if (path) {
+		std::string spath = path;
 
-    // Check if absolute_binary_path already in PATH
-    bool already_in_path = false;
-    std::size_t current, previous = 0;
-    current = spath.find(':');
+		// Check if absolute_binary_path already in PATH
+		bool already_in_path = false;
+		std::size_t current, previous = 0;
+		current = spath.find(':');
 
-    while (current != std::string::npos) {
-      if (spath.substr(previous, current - previous) == absolute_binary_path) {
-        already_in_path = true;
-      }
+		while (current != std::string::npos) {
+			if (spath.substr(previous, current - previous) == absolute_binary_path) {
+				already_in_path = true;
+			}
 
-      previous = current + 1;
-      current = spath.find(':', previous);
-    }
+			previous = current + 1;
+			current = spath.find(':', previous);
+		}
 
-    if (spath.substr(previous, current - previous) == absolute_binary_path) {
-      already_in_path = true;
-    }
+		if (spath.substr(previous, current - previous) == absolute_binary_path) {
+			already_in_path = true;
+		}
 
-    if (!already_in_path) {
-      // Prepend to path to prioritize PX4 commands over potentially already installed PX4 commands.
-      updated_path = updated_path + ":" + path;
-      setenv(path_variable, updated_path.c_str(), 1);
-    }
-  }
+		if (!already_in_path) {
+			// Prepend to path to prioritize PX4 commands over potentially already installed PX4 commands.
+			updated_path = updated_path + ":" + path;
+			setenv(path_variable, updated_path.c_str(), 1);
+		}
+	}
 
-  PX4_INFO("startup script: %s", shell_command.c_str());
+	PX4_INFO("startup script: %s", shell_command.c_str());
 
-  int ret = 0;
+	int ret = 0;
 
-  if (!shell_command.empty()) {
-    ret = system(shell_command.c_str());
+	if (!shell_command.empty()) {
+		ret = system(shell_command.c_str());
 
-    if (ret == 0) {
-      PX4_INFO("Startup script returned successfully");
+		if (ret == 0) {
+			PX4_INFO("Startup script returned successfully");
 
-    } else {
-      PX4_ERR("Startup script returned with return value: %d", ret);
-    }
+		} else {
+			PX4_ERR("Startup script returned with return value: %d", ret);
+		}
 
-  } else {
-    PX4_INFO("Startup script empty");
-  }
+	} else {
+		PX4_INFO("Startup script empty");
+	}
 
-  return ret;
+	return ret;
 }
 
 void px4_terminate() { px4_platform_fini(); }
 
-Board *Board::instance() {
-  static Board _inst;
-  return &_inst;
+Board *Board::instance()
+{
+	static Board _inst;
+	return &_inst;
 }
 
-void Board::shutdown(bool reset) {
-  _reset_req = reset;
-  _shutdown_seen = true;
-  PX4_INFO("shutdown request ");
-  if (!_received_sigint) pthread_kill(main_thread, SIGINT);
+void Board::shutdown(bool reset)
+{
+	_reset_req = reset;
+	_shutdown_seen = true;
+	PX4_INFO("shutdown request ");
+
+	if (!_received_sigint) { pthread_kill(main_thread, SIGINT); }
 }
 
-void Board::handle_sigint() {
-  _received_sigint = true;
-  PX4_INFO("Sigint ");
-  lockstep_start();
+void Board::handle_sigint()
+{
+	_received_sigint = true;
+	PX4_INFO("Sigint ");
+	lockstep_start();
 
-  px4_daemon::Pxh::stop();
-  PX4_INFO("Sigint stop");
+	px4_daemon::Pxh::stop();
+	PX4_INFO("Sigint stop");
 }
 
-void Board::run() {
-  main_thread = pthread_self();
-  register_sig_handler();
-  while (true) {
-    this->run_once();
-    if (!_reset_req) break;
-  }
+void Board::run()
+{
+	main_thread = pthread_self();
+	register_sig_handler();
+
+	while (true) {
+		this->run_once();
+
+		if (!_reset_req) { break; }
+	}
 }
 
-void wait_to_exit() {
-  while (!_shutdown_seen) {
-    // needs to be a regular sleep not dependent on lockstep (not px4_usleep)
-    usleep(100000);
-  }
+void wait_to_exit()
+{
+	while (!_shutdown_seen) {
+		// needs to be a regular sleep not dependent on lockstep (not px4_usleep)
+		usleep(100000);
+	}
 }
 
-int Board::run_once() {
+int Board::run_once()
+{
 
-  _received_sigint = false;
-  px4_daemon::Server server(parameters.server_instance);
-  server.start();
+	_received_sigint = false;
+	px4_daemon::Server server(parameters.server_instance);
+	server.start();
 
-  PX4_INFO("Initting");
-  px4::init_once();
-  px4::init(parameters.argc, parameters.argv, "px4");
-  _shutdown_seen = false;
-  _reset_req = false;
+	PX4_INFO("Initting");
+	px4::init_once();
+	px4::init(parameters.argc, parameters.argv, "px4");
+	_shutdown_seen = false;
+	_reset_req = false;
 
-  PX4_INFO("start startup script");
-  auto ret = run_startup_script(parameters.commands_file, parameters.absolute_binary_paths,
-                                parameters.server_instance);
+	PX4_INFO("start startup script");
+	auto ret = run_startup_script(parameters.commands_file, parameters.absolute_binary_paths,
+				      parameters.server_instance);
 
-  PX4_INFO("Ret run startup >> %d %d\n", _shutdown_seen, ret);
+	PX4_INFO("Ret run startup >> %d %d\n", _shutdown_seen, ret);
 
-  if (ret == 0 && !_shutdown_seen) {
-    // We now block here until we need to exit.
-    if (parameters.pxh_off) {
-      wait_to_exit();
+	if (ret == 0 && !_shutdown_seen) {
+		// We now block here until we need to exit.
+		if (parameters.pxh_off) {
+			wait_to_exit();
 
-    } else {
-      px4_daemon::Pxh pxh;
-      pxh.run_pxh();
-      pxh.stop();
-    }
-  }
+		} else {
+			px4_daemon::Pxh pxh;
+			pxh.run_pxh();
+			pxh.stop();
+		}
+	}
 
-  printf("=========== OFF MAIN LOOP >> %d", _reset_req);
-  if (!_shutdown_seen) {
-    PX4_INFO("Interrupt - requesting shutdown");
-    this->shutdown(false);
-    // initial ctrl
-    // noreturn
-  }
+	printf("=========== OFF MAIN LOOP >> %d", _reset_req);
 
-  PX4_INFO("Waiting for exit");
-  fflush(stdout);
-  printf("\nPX4 Exiting... xoxo\n");
-  fflush(stdout);
-  wait_to_exit();
-  PX4_INFO("Done exit");
+	if (!_shutdown_seen) {
+		PX4_INFO("Interrupt - requesting shutdown");
+		this->shutdown(false);
+		// initial ctrl
+		// noreturn
+	}
 
-  px4_terminate();
-  lockstep_cleanup();
-  sleep(1);
-  return PX4_OK;
+	PX4_INFO("Waiting for exit");
+	fflush(stdout);
+	printf("\nPX4 Exiting... xoxo\n");
+	fflush(stdout);
+	wait_to_exit();
+	PX4_INFO("Done exit");
+
+	px4_terminate();
+	lockstep_cleanup();
+	sleep(1);
+	return PX4_OK;
 }
 
 bool _lockstep_exit_req;
 
-void Board::lockstep_cleanup() {
-  _lockstep_exit_req = true;
+void Board::lockstep_cleanup()
+{
+	_lockstep_exit_req = true;
 	px4_lockstep_notify_startup();
-  if (lockstep_thread != nullptr) {
-    lockstep_thread->join();
-    lockstep_thread = nullptr;
-  }
+
+	if (lockstep_thread != nullptr) {
+		lockstep_thread->join();
+		lockstep_thread = nullptr;
+	}
 }
 
-void Board::lockstep_threadfunc() {
+void Board::lockstep_threadfunc()
+{
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	PX4_INFO("On lockstep thread");
-  struct timespec ts;
-  hrt_abstime last_time_mon;
-  hrt_abstime last_time_sys;
-  px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-  last_time_mon = ts_to_abstime(&ts);
-  px4_clock_gettime(CLOCK_REALTIME, &ts);
-  last_time_sys = ts_to_abstime(&ts);
+	struct timespec ts;
+	hrt_abstime last_time_mon;
+	hrt_abstime last_time_sys;
+	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+	last_time_mon = ts_to_abstime(&ts);
+	px4_clock_gettime(CLOCK_REALTIME, &ts);
+	last_time_sys = ts_to_abstime(&ts);
 
-  using namespace time_literals;
-  while (!_lockstep_exit_req) {
-    usleep(10);
-    px4_clock_gettime(CLOCK_REALTIME, &ts);
-    hrt_abstime cur_time_sys = std::max(last_time_sys + 10_us, ts_to_abstime(&ts));
+	using namespace time_literals;
 
-    last_time_mon += cur_time_sys - last_time_sys;
-    last_time_sys = cur_time_sys;
-    abstime_to_ts(&ts, last_time_mon);
-    px4_lockstep_settime_shutdown(&ts);
-  }
+	while (!_lockstep_exit_req) {
+		usleep(10);
+		px4_clock_gettime(CLOCK_REALTIME, &ts);
+		hrt_abstime cur_time_sys = std::max(last_time_sys + 10_us, ts_to_abstime(&ts));
+
+		last_time_mon += cur_time_sys - last_time_sys;
+		last_time_sys = cur_time_sys;
+		abstime_to_ts(&ts, last_time_mon);
+		px4_lockstep_settime_shutdown(&ts);
+	}
 
 #endif
 }
-void Board::lockstep_start() {
+void Board::lockstep_start()
+{
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-  if (lockstep_thread != nullptr) return;
-  _lockstep_exit_req = false;
+
+	if (lockstep_thread != nullptr) { return; }
+
+	_lockstep_exit_req = false;
 	px4_lockstep_notify_shutdown();
-  lockstep_thread = new std::thread(&Board::lockstep_threadfunc, this);
+	lockstep_thread = new std::thread(&Board::lockstep_threadfunc, this);
 #endif
 }

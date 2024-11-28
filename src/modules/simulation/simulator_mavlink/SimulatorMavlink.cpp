@@ -1109,7 +1109,8 @@ void SimulatorMavlink::run()
 		PX4_INFO("Waiting for simulator to connect on UDP port %u", _port);
 
 		while (true) {
-			if (should_exit()) return;
+			if (should_exit()) { return; }
+
 			// Once we receive something, we're most probably good and can carry on.
 			int len = ::recvfrom(_fd, _buf, sizeof(_buf), 0,
 					     (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
@@ -1129,7 +1130,8 @@ void SimulatorMavlink::run()
 		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
-			if (should_exit()) return;
+			if (should_exit()) { return; }
+
 			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 				PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
 				return;
@@ -1560,10 +1562,11 @@ int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *di
 	return PX4_OK;
 }
 
-SimulatorMavlink* SimulatorMavlink::instantiate(int argc, char *argv[])
+SimulatorMavlink *SimulatorMavlink::instantiate(int argc, char *argv[])
 {
 	SimulatorMavlink *instance = new SimulatorMavlink();
-	if (!instance) return nullptr;
+
+	if (!instance) { return nullptr; }
 
 	if (argc == 5 && strcmp(argv[3], "-u") == 0) {
 		instance->set_ip(InternetProtocol::UDP);
@@ -1590,10 +1593,11 @@ SimulatorMavlink* SimulatorMavlink::instantiate(int argc, char *argv[])
 		instance->set_hostname(argv[4]);
 		instance->set_port(atoi(argv[5]));
 	}
+
 	return instance;
 }
 
-int SimulatorMavlink::print_usage(const char *reason) 
+int SimulatorMavlink::print_usage(const char *reason)
 {
 	PX4_INFO("Usage: simulator_mavlink {start -[spt] [-u udp_port / -c tcp_port] |stop|status}");
 	PX4_INFO("Start simulator:     simulator_mavlink start");
@@ -1604,24 +1608,27 @@ int SimulatorMavlink::print_usage(const char *reason)
 	return 0;
 }
 
-int SimulatorMavlink::task_spawn(int argc, char *argv[]) {
+int SimulatorMavlink::task_spawn(int argc, char *argv[])
+{
 
-		PX4_INFO("START MAVLINK");
+	PX4_INFO("START MAVLINK");
 
-		_task_id = px4_task_spawn_cmd("simulator_mavlink",
-						SCHED_DEFAULT,
-						SCHED_PRIORITY_MAX,
-						1500,
-						&run_trampoline,
-						argv);
-		while (true) {
-			if (SimulatorMavlink::get_instance() && SimulatorMavlink::get_instance()->has_initialized()) {
-				break;
-			}
+	_task_id = px4_task_spawn_cmd("simulator_mavlink",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX,
+				      1500,
+				      &run_trampoline,
+				      argv);
 
-			system_usleep(100);
+	while (true) {
+		if (SimulatorMavlink::get_instance() && SimulatorMavlink::get_instance()->has_initialized()) {
+			break;
 		}
-		return PX4_OK;
+
+		system_usleep(100);
+	}
+
+	return PX4_OK;
 
 }
 

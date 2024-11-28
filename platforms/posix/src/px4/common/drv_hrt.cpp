@@ -338,9 +338,9 @@ hrt_call_reschedule()
 	// Remove the existing expiry and update with the new expiry
 	hrt_work_cancel(&_hrt_work);
 
-	if (_hrt_enable  || next != nullptr)
-	{
+	if (_hrt_enable  || next != nullptr) {
 		hrt_work_queue(&_hrt_work, &hrt_tim_isr, nullptr, delay);
+
 	} else {
 		PX4_INFO("not rescheduling hrt since disable requested");
 
@@ -560,11 +560,13 @@ void px4_lockstep_wait_for_components()
 	lockstep_scheduler.components().wait_for_components();
 }
 
-void px4_lockstep_notify_startup() {
+void px4_lockstep_notify_startup()
+{
 	lockstep_scheduler.notify_startup();
 }
 
-void px4_lockstep_notify_shutdown() {
+void px4_lockstep_notify_shutdown()
+{
 	lockstep_scheduler.notify_shutdown();
 }
 int px4_lockstep_settime_shutdown(const struct timespec *ts)

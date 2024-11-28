@@ -121,7 +121,8 @@ public:
 
 	typedef ModuleBase<T> TBase;
 
-	ModuleBase() : _task_should_exit{false} {
+	ModuleBase() : _task_should_exit{false}
+	{
 		static_assert(std::is_base_of<ModuleBase<T>, T>::value, "Should be class T: ModuleBase<T>{...}");
 	}
 	virtual ~ModuleBase() {}
@@ -136,11 +137,12 @@ public:
 	static int main(int argc, char *argv[])
 	{
 		ModuleManager::register_module(ModuleEntry {
-				.name = argv[0],
-				.stop_command = &stop_command,
-				.is_running = &is_running,
-				.request_stop = &static_request_stop,
-				});
+			.name = argv[0],
+			.stop_command = &stop_command,
+			.is_running = &is_running,
+			.request_stop = &static_request_stop,
+		});
+
 		if (argc <= 1 ||
 		    strcmp(argv[1], "-h")    == 0 ||
 		    strcmp(argv[1], "help")  == 0 ||
@@ -296,10 +298,11 @@ public:
 				object->request_stop();
 			}
 		}
+
 		unlock_module();
 
 	}
-			
+
 	/**
 	 * @brief Handle 'command status': check if running and call print_status() if it is
 	 * @return Returns 0 iff successful, -1 otherwise.
@@ -357,8 +360,9 @@ protected:
 	virtual void request_stop()
 	{
 		_task_should_exit.store(true);
-		if (std::is_base_of<px4::WorkItem, T>::value){
-			px4::WorkItem *wi = dynamic_cast<px4::WorkItem*>((T*)this);
+
+		if (std::is_base_of<px4::WorkItem, T>::value) {
+			px4::WorkItem *wi = dynamic_cast<px4::WorkItem *>((T *)this);
 			assert(wi != nullptr);
 			wi->ScheduleNow();
 		}

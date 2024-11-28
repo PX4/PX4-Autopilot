@@ -93,35 +93,37 @@
 #endif
 
 struct BoardParameters {
-  int argc;
-  char **argv;
-  int server_instance;
-  bool pxh_off;
-  std::string commands_file;
-  std::string absolute_binary_paths;
+	int argc;
+	char **argv;
+	int server_instance;
+	bool pxh_off;
+	std::string commands_file;
+	std::string absolute_binary_paths;
 };
 
-class Board {
+class Board
+{
 private:
-  Board() {}
+	Board() {}
 
 public:
-  static Board *instance();
-  static void init(const BoardParameters &parameters) {
-    auto x = instance();
-    x->parameters = parameters;
-  }
-  bool _reset_req = false;
+	static Board *instance();
+	static void init(const BoardParameters &parameters)
+	{
+		auto x = instance();
+		x->parameters = parameters;
+	}
+	bool _reset_req = false;
 
-  BoardParameters parameters;
+	BoardParameters parameters;
 
-  void shutdown(bool reset);
-  void run();
-  void handle_sigint();
-  int run_once();
+	void shutdown(bool reset);
+	void run();
+	void handle_sigint();
+	int run_once();
 private:
-  void lockstep_cleanup();
-  void lockstep_threadfunc();
-  void lockstep_start();
+	void lockstep_cleanup();
+	void lockstep_threadfunc();
+	void lockstep_start();
 };
 

@@ -44,7 +44,8 @@ static uint16_t event_sequence{events::initial_event_sequence};
 
 namespace events
 {
-void reset_events() {
+void reset_events()
+{
 	orb_event_pub = nullptr;
 	event_sequence = events::initial_event_sequence;
 

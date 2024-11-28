@@ -263,7 +263,7 @@ static int work_hrtthread(int argc, char *argv[])
 {
 	/* Loop forever */
 
-	while (!_hrt_stop){
+	while (!_hrt_stop) {
 		/* First, perform garbage collection.  This cleans-up memory de-allocations
 		 * that were queued because they could not be freed in that execution
 		 * context (for example, if the memory was freed from an interrupt handler).
@@ -287,7 +287,8 @@ static int work_hrtthread(int argc, char *argv[])
 void hrt_work_queue_fini(void)
 {
 	_hrt_stop = true;
-	while(px4_task_is_running("wkr_hrt")){
+
+	while (px4_task_is_running("wkr_hrt")) {
 		px4_usleep(10);
 	}
 }

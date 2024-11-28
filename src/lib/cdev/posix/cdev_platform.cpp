@@ -462,26 +462,32 @@ extern "C" {
 		for (const auto &dev : devmap) {
 			if (dev) {
 				PX4_INFO_RAW("   %s", dev->name);
-				if (dev->cdev!=nullptr) dev->cdev->print_status();
+
+				if (dev->cdev != nullptr) { dev->cdev->print_status(); }
+
 				PX4_INFO_RAW("\n");
 			}
 		}
+
 		PX4_INFO("++++ FILES");
-		for (int i =0 ; i< PX4_MAX_FD; ++i){
+
+		for (int i = 0 ; i < PX4_MAX_FD; ++i) {
 			const auto &file = filemap[i];
+
 			if (file.cdev) {
-				PX4_INFO("   fd=%d %s", i ,file.cdev->get_devname());
+				PX4_INFO("   fd=%d %s", i, file.cdev->get_devname());
 			}
 		}
 
 		pthread_mutex_unlock(&devmutex);
 	}
 
-void		px4_cleanup() {
+	void		px4_cleanup()
+	{
 		pthread_mutex_lock(&devmutex);
 
 		for (auto &dev : devmap) {
-			if (dev){
+			if (dev) {
 				delete dev;
 				dev = nullptr;
 
@@ -492,6 +498,6 @@ void		px4_cleanup() {
 
 		pthread_mutex_unlock(&devmutex);
 
-}
+	}
 
 } // extern "C"

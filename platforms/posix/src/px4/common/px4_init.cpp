@@ -48,107 +48,118 @@
 
 #if defined(CONFIG_MODULES_MUORB_APPS)
 extern "C" {
-int muorb_init();
+	int muorb_init();
 }
 #endif
 
 #define PX4_CRITICAL(v)                                                                            \
-  {                                                                                                \
-    int ret = v;                                                                                   \
-    if (ret != PX4_OK) PX4_PANIC(#v "failed > %d", ret);                                           \
-  }
+	{                                                                                                \
+		int ret = v;                                                                                   \
+		if (ret != PX4_OK) PX4_PANIC(#v "failed > %d", ret);                                           \
+	}
 
-int px4_platform_init(void) {
-  hrt_init();
+int px4_platform_init(void)
+{
+	hrt_init();
 
-  PX4_INFO("Ici");
-  PX4_CRITICAL(px4::WorkQueueManagerStart());
+	PX4_INFO("Ici");
+	PX4_CRITICAL(px4::WorkQueueManagerStart());
 
 // MUORB has slightly different startup requirements
 #if defined(CONFIG_MODULES_MUORB_APPS)
-  // Put sleeper in here to allow wq to finish initializing before param_init is called
-  usleep(10000);
+	// Put sleeper in here to allow wq to finish initializing before param_init is called
+	usleep(10000);
 
-  uorb_start();
+	uorb_start();
 
-  muorb_init();
+	muorb_init();
 
-  // Give muorb some time to setup the DSP
-  usleep(100000);
+	// Give muorb some time to setup the DSP
+	usleep(100000);
 
-  param_init();
+	param_init();
 #else
 
-  uorb_start();
-  px4_log_initialize();
-  param_init();
+	uorb_start();
+	px4_log_initialize();
+	param_init();
 #endif
 
-  return PX4_OK;
+	return PX4_OK;
 }
 
-int px4_platform_fini(void) {
+int px4_platform_fini(void)
+{
 
-  px4_show_tasks();
-  for (auto &x : ModuleManager::get_modules()) {
-      PX4_INFO("Requesting stop for %s", x.name.c_str());
-      x.request_stop();
-  }
+	px4_show_tasks();
 
-  while (true) {
-    bool seen = false;
-    PX4_INFO("");
-    for (auto &x : ModuleManager::get_modules()) {
-      if (x.is_running()) {
-        PX4_INFO("Still running module %s", x.name.c_str());
-        seen = true;
-      }
-    }
-    px4::WorkQueueManagerStatus();
-    if (!seen) break;
-    sleep(3);
-  }
-	//Finally, delete stuff
-    for (auto &x : ModuleManager::get_modules()) {
-      if (x.stop_command()) {
-				PX4_PANIC("Command was stopped but stop_command returns %s", x.name.c_str());
-      }
+	for (auto &x : ModuleManager::get_modules()) {
+		PX4_INFO("Requesting stop for %s", x.name.c_str());
+		x.request_stop();
+	}
+
+	while (true) {
+		bool seen = false;
+		PX4_INFO("");
+
+		for (auto &x : ModuleManager::get_modules()) {
+			if (x.is_running()) {
+				PX4_INFO("Still running module %s", x.name.c_str());
+				seen = true;
+			}
 		}
 
-  PX4_INFO("Quitting HRT");
-  px4_show_tasks();
-  PX4_INFO("Quitting HRT");
-  param_fini();
+		px4::WorkQueueManagerStatus();
 
-  hrt_fini();
-  hrt_work_queue_fini();
+		if (!seen) { break; }
 
-  PX4_INFO("Done stoping modules");
+		sleep(3);
+	}
 
-  px4_show_tasks();
+	//Finally, delete stuff
+	for (auto &x : ModuleManager::get_modules()) {
+		if (x.stop_command()) {
+			PX4_PANIC("Command was stopped but stop_command returns %s", x.name.c_str());
+		}
+	}
 
-  PX4_INFO("Work queue stop");
-  auto ret = px4::WorkQueueManagerStop();
-  PX4_INFO("Work queue stop done");
-  sleep(1);
-  px4_show_tasks();
+	PX4_INFO("Quitting HRT");
+	px4_show_tasks();
+	PX4_INFO("Quitting HRT");
+	param_fini();
 
-  PX4_INFO("WQ STOP >> %d", ret);
-  px4_log_finalize();
-  uorb_stop();
+	hrt_fini();
+	hrt_work_queue_fini();
+
+	PX4_INFO("Done stoping modules");
+
+	px4_show_tasks();
+
+	PX4_INFO("Work queue stop");
+	auto ret = px4::WorkQueueManagerStop();
+	PX4_INFO("Work queue stop done");
+	sleep(1);
+	px4_show_tasks();
+
+	PX4_INFO("WQ STOP >> %d", ret);
+	px4_log_finalize();
+	uorb_stop();
 	ModuleManager::cleanup();;
 
-  while(true){
-		int task_count =px4_running_task_count();
-		if (task_count == 0) break;
+	while (true) {
+		int task_count = px4_running_task_count();
+
+		if (task_count == 0) { break; }
+
 		system_usleep(10);
 	}
+
 	px4_show_files();
 	px4_cleanup();
 	events::reset_events();
-  PX4_INFO("px4_fini done");
-  // param_init();
+	PX4_INFO("px4_fini done");
+	// param_init();
 
 
-  return PX4_OK;
+	return PX4_OK;
 }

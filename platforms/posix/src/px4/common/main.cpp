@@ -346,8 +346,8 @@ int main(int argc, char **argv)
 		}
 
 		set_cpu_scaling();
-		BoardParameters params {.argc=argc, .argv=argv, .server_instance=instance, .pxh_off=pxh_off,
-			.commands_file=commands_file, .absolute_binary_paths = absolute_binary_path};
+		BoardParameters params {.argc = argc, .argv = argv, .server_instance = instance, .pxh_off = pxh_off,
+					.commands_file = commands_file, .absolute_binary_paths = absolute_binary_path};
 		Board::init(params);
 		Board::instance()->run();
 
@@ -504,7 +504,8 @@ void print_usage()
 	printf("        e.g.: px4-commander status\n");
 }
 
-std::string get_file_lock_path(int instance){
+std::string get_file_lock_path(int instance)
+{
 	return std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
 }
 

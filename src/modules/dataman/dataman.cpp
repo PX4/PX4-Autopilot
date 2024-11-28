@@ -835,8 +835,9 @@ start()
 
 	/* start the worker thread with low priority for disk IO */
 	_task_id = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
-			       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
-			       nullptr);
+				      PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
+				      nullptr);
+
 	if (_task_id < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");

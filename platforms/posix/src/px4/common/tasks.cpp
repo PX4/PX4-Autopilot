@@ -422,14 +422,16 @@ const char *px4_get_taskname()
 	return prog_name;
 }
 
-int px4_running_task_count(void) {
+int px4_running_task_count(void)
+{
 
 	int count = 0;
 
 	for (int idx = 0; idx < PX4_MAX_TASKS; idx++) {
-		if (taskmap[idx].isused)  ++ count;
+		if (taskmap[idx].isused) { ++ count; }
 
 	}
+
 	return count;
 
 

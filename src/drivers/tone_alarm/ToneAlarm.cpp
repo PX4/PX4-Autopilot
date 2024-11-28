@@ -78,6 +78,7 @@ void ToneAlarm::InterruptStopNote(void *arg)
 void ToneAlarm::Run()
 {
 	PX4_INFO("Tone run");
+
 	// Check if circuit breaker is enabled.
 	if (!_circuit_break_initialized) {
 		if (circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY)) {
@@ -88,6 +89,7 @@ void ToneAlarm::Run()
 	}
 
 	PX4_INFO("Tone Now check exit %d", should_exit());
+
 	if (should_exit()) {
 		_tune_control_sub.unregisterCallback();
 		exit_and_cleanup();
@@ -234,6 +236,7 @@ void ToneAlarm::Run()
 	if (!Scheduled() && _tune_control_sub.updated()) {
 		ScheduleDelayed(_tunes.get_maximum_update_interval());
 	}
+
 	PX4_INFO("Done now %d", Scheduled());
 }
 

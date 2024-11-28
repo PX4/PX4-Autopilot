@@ -412,6 +412,7 @@ int
 WorkQueueManagerStop()
 {
 	PX4_INFO("Shutting down manager");
+
 	if (!_wq_manager_should_exit.load()) {
 
 		// error can't shutdown until all WorkItems are removed/stopped

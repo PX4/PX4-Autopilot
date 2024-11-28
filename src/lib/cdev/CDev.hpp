@@ -169,7 +169,8 @@ public:
 	 * @return the file system string of the device handle
 	 */
 	const char	*get_devname() const { return _devname; }
-	void print_status() {
+	void print_status()
+	{
 		PX4_INFO_RAW(" dev=%s, registered=%d, oc=%d", _devname, _registered, _open_count);
 
 	}

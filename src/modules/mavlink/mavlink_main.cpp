@@ -3266,7 +3266,8 @@ Mavlink::set_boot_complete()
 
 }
 
-int Mavlink::stop_and_delete(){
+int Mavlink::stop_and_delete()
+{
 
 	request_stop();
 	int iterations = 0;

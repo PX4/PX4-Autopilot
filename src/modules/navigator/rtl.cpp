@@ -63,7 +63,8 @@ RTL::RTL(Navigator *navigator) :
 }
 
 
-RTL::~RTL(){
+RTL::~RTL()
+{
 
 	if (_rtl_mission_type_handle) {
 		_rtl_mission_type_handle->run(false);

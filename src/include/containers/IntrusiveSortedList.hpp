@@ -56,7 +56,8 @@ template<class T>
 class IntrusiveSortedList
 {
 public:
-	~IntrusiveSortedList(){
+	~IntrusiveSortedList()
+	{
 		assert(this->size() == 0);
 	}
 

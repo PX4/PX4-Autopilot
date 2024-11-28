@@ -130,24 +130,28 @@ class SingleShotScheduledOwned : public px4::ScheduledWorkItem
 public:
 	typedef  void (*Callback)();
 
-	SingleShotScheduledOwned(Callback cb, const char *task_name, const px4::wq_config_t &conf ) : px4::ScheduledWorkItem(task_name, conf), _cb(cb){}
+	SingleShotScheduledOwned(Callback cb, const char *task_name,
+				 const px4::wq_config_t &conf) : px4::ScheduledWorkItem(task_name, conf), _cb(cb) {}
 
-	void Run() override {
+	void Run() override
+	{
 
 		_cb();
 		delete this;
 
 	}
-	static void RunIn(Callback cb, size_t delay_usec, const char *task_name, const px4::wq_config_t &conf){
+	static void RunIn(Callback cb, size_t delay_usec, const char *task_name, const px4::wq_config_t &conf)
+	{
 		(new SingleShotScheduledOwned(cb, task_name, conf))->ScheduleDelayed(delay_usec);
 	}
-	private:
+private:
 	Callback _cb;
 
 };
 
 
-void px4_shutdown_worker(){
+void px4_shutdown_worker()
+{
 	PX4_INFO("Start workier");
 	PX4_INFO("shutdown worker (%i)", shutdown_counter);
 	bool done = true;
@@ -169,6 +173,7 @@ void px4_shutdown_worker(){
 
 	if (delay_elapsed && ((done && shutdown_lock_counter == 0) || (now > (shutdown_time_us + shutdown_timeout_us)))) {
 		PX4_INFO("Enter reboot >> %d\n", shutdown_args);
+
 		if (shutdown_args & SHUTDOWN_ARG_REBOOT) {
 #if defined(CONFIG_BOARDCTL_RESET)
 			PX4_INFO_RAW("Reboot NOW.");
@@ -212,7 +217,7 @@ void px4_shutdown_worker(){
 
 	} else {
 		pthread_mutex_unlock(&shutdown_mutex);
- 
+
 		PX4_INFO("Repush shutdown");
 		SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 10'000, "shutdown", px4::wq_configurations::hp_default);
 	}
