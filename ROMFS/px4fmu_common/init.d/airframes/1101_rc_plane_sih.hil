@@ -18,22 +18,19 @@ param set UAVCAN_ENABLE 0
 param set-default CA_AIRFRAME 1
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_ROTOR0_PX 0.3
-param set-default CA_SV_CS_COUNT 4
-param set-default CA_SV_CS0_TRQ_R 0.5
-param set-default CA_SV_CS0_TYPE 2
+param set-default CA_SV_CS_COUNT 3
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 1
 param set-default CA_SV_CS1_TRQ_P 1
 param set-default CA_SV_CS1_TYPE 3
 param set-default CA_SV_CS2_TRQ_Y 1
 param set-default CA_SV_CS2_TYPE 4
-param set-default CA_SV_CS3_TYPE 10
 
-param set-default HIL_ACT_REV 2
-param set-default HIL_ACT_FUNC1 201
-param set-default HIL_ACT_FUNC2 202
-param set-default HIL_ACT_FUNC3 203
-param set-default HIL_ACT_FUNC4 101
-param set-default HIL_ACT_FUNC5 204
-param set-default HIL_ACT_FUNC6 400
+param set HIL_ACT_REV 1
+param set HIL_ACT_FUNC1 201
+param set HIL_ACT_FUNC2 202
+param set HIL_ACT_FUNC3 203
+param set HIL_ACT_FUNC4 101
 
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
 param set-default SYS_HITL 2
