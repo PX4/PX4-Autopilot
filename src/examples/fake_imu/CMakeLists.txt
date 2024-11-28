@@ -35,7 +35,7 @@ px4_add_module(
 	MODULE modules__fake_imu
 	MAIN fake_imu
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL_SPEED}
+		${MAX_CUSTOM_OPT_LEVEL_SPACE}
 	SRCS
 		FakeImu.cpp
 		FakeImu.hpp

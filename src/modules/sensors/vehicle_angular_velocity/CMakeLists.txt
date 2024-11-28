@@ -38,7 +38,7 @@ px4_add_library(vehicle_angular_velocity
 
 target_compile_options(vehicle_angular_velocity
 	PRIVATE
-		${MAX_CUSTOM_OPT_LEVEL_SPEED}
+		${MAX_CUSTOM_OPT_LEVEL_SPACE}
 		#-DDEBUG_BUILD
 )
 
