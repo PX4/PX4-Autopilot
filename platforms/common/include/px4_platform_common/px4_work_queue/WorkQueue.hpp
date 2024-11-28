@@ -89,8 +89,14 @@ private:
 #ifdef __PX4_NUTTX
 	// In NuttX work can be enqueued from an ISR
 #ifdef CONFIG_BUILD_FLAT
+#ifdef CONFIG_SMP
+	void work_lock() { _flags = spin_lock_irqsave_notrace(&_spinlock); }
+	void work_unlock() { spin_unlock_irqrestore_notrace(&_spinlock, _flags); }
+	spinlock_t _spinlock;
+#else
 	void work_lock() { _flags = enter_critical_section(); }
 	void work_unlock() { leave_critical_section(_flags); }
+#endif
 	irqstate_t _flags;
 #else
 	// For non-flat targets, work is enqueued by user threads as well
