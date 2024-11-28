@@ -101,6 +101,7 @@ function(px4_add_common_flags)
 
 			-Qunused-arguments
 
+      -Wno-vla-cxx-extension
 			-Wno-c99-designator
 			-Wno-unknown-warning-option
 			-Wno-unused-const-variable

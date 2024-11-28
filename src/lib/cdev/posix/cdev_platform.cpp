@@ -241,9 +241,6 @@ extern "C" {
 			return -1;
 		}
 
-		Tracer::get()->maybe_dump("open_file", std::string(path), i, flags); 
-
-
 		return i;
 	}
 

@@ -155,7 +155,6 @@ void Sih::lockstep_loop()
 					    current_wall_time_us - pre_compute_wall_time_us + sleep_time));
 		usleep(sleep_time);
 	}
-	PX4_INFO("Quitting SIH");
 }
 #endif
 

@@ -55,7 +55,6 @@
 #if defined(BOARD_ENABLE_LOG_HISTORY)
 static LogHistory g_log_history;
 #endif
-std::atomic<int> idx=  {0};
 
 static orb_advert_t orb_log_message_pub = nullptr;
 
@@ -117,7 +116,6 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 #endif // PX4_LOG_COLORIZED_OUTPUT
 
 		pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), __px4__log_level_fmt, __px4_log_level_str[level]);
-		pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), "%04d", idx++);
 
 #if defined(PX4_LOG_COLORIZED_OUTPUT)
 

@@ -35,7 +35,6 @@
  * @file shutdown.cpp
  * Implementation of the API declared in px4_shutdown.h.
  */
-#define DEBUG_BUILD
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/workqueue.h>

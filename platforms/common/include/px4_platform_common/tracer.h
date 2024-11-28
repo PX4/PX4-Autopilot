@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef _EXTENSION_TRACER
 #include "nlohmann/json.hpp"
 #include <fstream>
 #include <iostream>
@@ -116,3 +117,5 @@ private:
   json conf;
   std::ofstream ofs;
 };
+
+#endif

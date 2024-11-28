@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-#define DEBUG_BUILD
 #include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
@@ -199,7 +198,6 @@ void WorkQueue::Remove(WorkItem *item)
 	work_lock();
 	// Only allow queue removal from running thread
 	// Otherwise concurrency issues run amock
-	t_assert(_thread_config == &this->_config);
 	_q.remove(item);
 	work_unlock();
 }

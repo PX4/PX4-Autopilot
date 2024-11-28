@@ -17,7 +17,6 @@
 extern "C" {
 
 ${builtin_apps_decl_string}
-//int shutdown_main(int argc, char *argv[]);
 int list_tasks_main(int argc, char *argv[]);
 int list_files_main(int argc, char *argv[]);
 int sleep_main(int argc, char *argv[]);
@@ -40,12 +39,6 @@ void list_builtins(apps_map_type &apps)
 		printf("  %s\n", it->first.c_str());
 	}
 }
-
-//int shutdown_main(int argc, char *argv[])
-//{
-//	printf("Exiting NOW.\n");
-//	system_exit(0);
-//}
 
 int list_tasks_main(int argc, char *argv[])
 {

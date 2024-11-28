@@ -87,13 +87,11 @@ FindWorkQueueByName(const char *name)
 WorkQueue *
 WorkQueueFindOrCreate(const wq_config_t &new_wq)
 {
-	PX4_INFO("Find or create %s %d", new_wq.name, _wq_manager_running.load());
 	if (!_wq_manager_running.load()) {
 		PX4_ERR("not running");
 		return nullptr;
 	}
 
-	PX4_INFO("Find or create %s", new_wq.name);
 	// search list for existing work queue
 	WorkQueue *wq = FindWorkQueueByName(new_wq.name);
 
@@ -118,7 +116,6 @@ WorkQueueFindOrCreate(const wq_config_t &new_wq)
 			PX4_ERR("failed to create %s", new_wq.name);
 		}
 	}
-	PX4_INFO("Done Find or create %s", new_wq.name);
 
 	return wq;
 }
@@ -239,7 +236,6 @@ WorkQueueRunner(void *context)
 	_wq_manager_wqs_list->add(&wq);
 
 	wq.Run();
-	PX4_INFO("Shutdown worker queue");
 
 	// remove from work queue list
 	_wq_manager_wqs_list->remove(&wq);
@@ -261,7 +257,6 @@ WorkQueueRunner(int argc, char *argv[])
 static int
 WorkQueueManagerRun(int, char **)
 {
-	PX4_INFO("Running manager");
 	_wq_manager_wqs_list = new BlockingList<WorkQueue *>();
 	_wq_manager_create_queue = new BlockingQueue<const wq_config_t *, 1>();
 	_wq_manager_running.store(true);
@@ -369,7 +364,6 @@ WorkQueueManagerRun(int, char **)
 	}
 
 	_wq_manager_running.store(false);
-	PX4_INFO("done Running manager");
 
 	return 0;
 }
@@ -377,7 +371,6 @@ WorkQueueManagerRun(int, char **)
 int
 WorkQueueManagerStart()
 {
-	PX4_INFO("Starting wq manager %d %d", _wq_manager_should_exit.load(), _wq_manager_running.load());
 	if (_wq_manager_should_exit.load() && !_wq_manager_running.load()) {
 
 		_wq_manager_should_exit.store(false);
@@ -412,7 +405,6 @@ WorkQueueManagerStart()
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("manager OK");
 	return PX4_OK;
 }
 

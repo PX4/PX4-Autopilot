@@ -64,6 +64,7 @@ MissionBase::MissionBase(Navigator *navigator, int32_t dataman_cache_size_signed
 	_mission.mission_id = 0;
 	_mission.geofence_id = 0;
 	_mission.safe_points_id = 0;
+	_mission.timestamp = 0;
 
 	_mission_pub.advertise();
 }

@@ -122,7 +122,7 @@ public:
 	typedef ModuleBase<T> TBase;
 
 	ModuleBase() : _task_should_exit{false} {
-		static_assert(std::is_base_of<ModuleBase<T>, T>::value);
+		static_assert(std::is_base_of<ModuleBase<T>, T>::value, "Should be class T: ModuleBase<T>{...}");
 	}
 	virtual ~ModuleBase() {}
 
@@ -197,7 +197,6 @@ public:
 			PX4_ERR("failed to instantiate object");
 			ret = -1;
 		}
-		PX4_INFO("Finish trampoline %s", argv[0]);
 
 		exit_and_cleanup();
 

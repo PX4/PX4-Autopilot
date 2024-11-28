@@ -506,7 +506,6 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 	 * known to the system.  We can't advertise/subscribe such a thing.
 	 */
 	if (nullptr == meta) {
-	PX4_ERR("no meta");
 		errno = ENOENT;
 		return PX4_ERROR;
 	}
