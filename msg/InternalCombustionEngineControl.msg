@@ -1,5 +1,8 @@
 uint64 timestamp        		# time since system start (microseconds)
 
 bool ignition_on          		# activate/deactivate ignition
+float32 throttle_control		# [0,1] - Motor should idle with 0
 float32 choke_control			# [0,1]
 float32 starter_engine_control		# [0,1]
+
+uint8 user_request			# user intent for on/off/keep

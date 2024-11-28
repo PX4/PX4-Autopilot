@@ -57,15 +57,16 @@ public:
 		// map [0, 1] to [-1, 1] which is the interface for non-motor PWM channels
 		if (_topic.update(&internal_combustion_engine_control)) {
 			_data[0] = internal_combustion_engine_control.ignition_on * 2.f - 1.f;
-			_data[1] = internal_combustion_engine_control.choke_control * 2.f - 1.f;
-			_data[2] = internal_combustion_engine_control.starter_engine_control * 2.f - 1.f;
+			_data[1] = internal_combustion_engine_control.throttle_control * 2.f - 1.f;
+			_data[2] = internal_combustion_engine_control.choke_control * 2.f - 1.f;
+			_data[3] = internal_combustion_engine_control.starter_engine_control * 2.f - 1.f;
 		}
 	}
 
 	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::IC_Engine_Ignition]; }
 
 private:
-	static constexpr int num_data_points = 3;
+	static constexpr int num_data_points = 4;
 
 	void resetAllToDisarmedValue()
 	{

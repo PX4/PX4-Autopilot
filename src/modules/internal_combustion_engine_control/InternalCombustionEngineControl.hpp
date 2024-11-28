@@ -46,7 +46,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/rpm.h>
-
+#include <uORB/topics/actuator_motors.h>
 
 namespace internal_combustion_engine_control
 {
@@ -78,6 +78,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
+	uORB::Subscription _actuator_motors{ORB_ID(actuator_motors)};
 
 	uORB::Publication<internal_combustion_engine_control_s> _internal_combustion_engine_control_pub{ORB_ID(internal_combustion_engine_control)};
 	uORB::Publication<internal_combustion_engine_status_s> _internal_combustion_engine_status_pub{ORB_ID(internal_combustion_engine_status)};
@@ -103,7 +104,7 @@ private:
 
 	bool isEngineRunning();
 	void instantiateEngineStart();
-	void controlEngineRunning(internal_combustion_engine_control_s &ice_control);
+	void controlEngineRunning(internal_combustion_engine_control_s &ice_control, float throttle_in);
 	void controlEngineStop(internal_combustion_engine_control_s &ice_control);
 	void controlEngineStartup(internal_combustion_engine_control_s &ice_control);
 	void controlEngineFault(internal_combustion_engine_control_s &ice_control);
@@ -114,7 +115,9 @@ private:
 		(ParamFloat<px4::params::ICE_STARTING_DUR>) _param_ice_starting_dur,
 		(ParamFloat<px4::params::ICE_MIN_RUN_RPM>) _param_ice_min_run_rpm,
 		(ParamInt<px4::params::ICE_STRT_RETRY>) _param_ice_strt_retry,
-		(ParamInt<px4::params::ICE_RETRY_FAULT>) _param_ice_retry_fault
+		(ParamInt<px4::params::ICE_RETRY_FAULT>) _param_ice_retry_fault,
+		(ParamFloat<px4::params::ICE_STRT_THR>) _param_ice_strt_thr,
+		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke
 	)
 };
 

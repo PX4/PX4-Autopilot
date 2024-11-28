@@ -91,13 +91,18 @@ void InternalCombustionEngineControl::Run()
 		updateParams();
 	}
 
-	UserOnOffRequest user_request = UserOnOffRequest::Keep;
+	UserOnOffRequest user_request = UserOnOffRequest::Keep; // todo: keep is not yet doing anything
 
 	manual_control_setpoint_s manual_control_setpoint;
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
 	vehicle_status_s vehicle_status;
-	_vehicle_status_sub.update(&vehicle_status);
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	actuator_motors_s actuator_motors;
+	_actuator_motors.copy(&actuator_motors);
+
+	const float throttle_in = actuator_motors.control[0];
 
 	switch (_param_ice_on_source.get()) {
 	case 0:
@@ -157,7 +162,7 @@ void InternalCombustionEngineControl::Run()
 		} else {
 			if (isEngineRunning()) {
 				_state = State::Running;
-				controlEngineRunning(ice_control);
+				controlEngineRunning(ice_control, throttle_in);
 				PX4_WARN("ICE: Starting finished");
 
 			} else {
@@ -176,7 +181,7 @@ void InternalCombustionEngineControl::Run()
 
 	case State::Running:
 
-		controlEngineRunning(ice_control);
+		controlEngineRunning(ice_control, throttle_in);
 
 		if (user_request == UserOnOffRequest::Off) {
 			_state = State::Stopped;
@@ -217,6 +222,7 @@ void InternalCombustionEngineControl::Run()
 	const hrt_abstime now = hrt_absolute_time();
 
 	ice_control.timestamp = now;
+	ice_control.user_request = static_cast<uint8_t>(user_request);
 	_internal_combustion_engine_control_pub.publish(ice_control);
 
 	internal_combustion_engine_status_s ice_status;
@@ -254,11 +260,13 @@ void InternalCombustionEngineControl::instantiateEngineStart()
 	_state_start_time = hrt_absolute_time();
 }
 
-void InternalCombustionEngineControl::controlEngineRunning(internal_combustion_engine_control_s &ice_control)
+void InternalCombustionEngineControl::controlEngineRunning(internal_combustion_engine_control_s &ice_control,
+		float throttle_in)
 {
 	ice_control.ignition_on = true;
 	ice_control.choke_control = 0.f;
 	ice_control.starter_engine_control = 0.f;
+	ice_control.throttle_control = throttle_in;
 
 	engine_tried_to_restart = false;
 }
@@ -266,8 +274,9 @@ void InternalCombustionEngineControl::controlEngineRunning(internal_combustion_e
 void InternalCombustionEngineControl::controlEngineStop(internal_combustion_engine_control_s &ice_control)
 {
 	ice_control.ignition_on = false;
-	ice_control.choke_control = 0.f;
+	ice_control.choke_control = _param_ice_stop_choke.get() ? 1.f : 0.f;
 	ice_control.starter_engine_control = 0.f;
+	ice_control.throttle_control = 0.f;
 
 	_starting_retry_cycle = 0;
 	engine_tried_to_restart = false;
@@ -278,6 +287,7 @@ void InternalCombustionEngineControl::controlEngineFault(internal_combustion_eng
 	ice_control.ignition_on = false;
 	ice_control.choke_control = 0.f;
 	ice_control.starter_engine_control = 0.f;
+	ice_control.throttle_control = 0.f;
 }
 
 void InternalCombustionEngineControl::controlEngineStartup(internal_combustion_engine_control_s &ice_control)
@@ -290,12 +300,14 @@ void InternalCombustionEngineControl::controlEngineStartup(internal_combustion_e
 		ice_control.ignition_on = true;
 		ice_control.choke_control = 1.f;
 		ice_control.starter_engine_control = 1.f;
+		ice_control.throttle_control = _param_ice_strt_thr.get();
 
 	} else if (hrt_elapsed_time(&_state_start_time) < choke_duration + starter_duration) {
 		// starting engine
 		ice_control.ignition_on = true;
 		ice_control.choke_control = 0.f;
 		ice_control.starter_engine_control = 1.f;
+		ice_control.throttle_control = _param_ice_strt_thr.get();
 
 	} else {
 		// reset timer to restart procedure if engine is not running
