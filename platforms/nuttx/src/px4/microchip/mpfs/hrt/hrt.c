@@ -213,21 +213,6 @@ hrt_absolute_time(void)
 }
 
 /**
- * Compare a time value with the current time as atomic operation
- */
-hrt_abstime
-hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
-{
-	irqstate_t flags = spin_lock_irqsave_wo_note(&g_hrt_lock);
-
-	hrt_abstime delta = hrt_absolute_time() - *then;
-
-	spin_unlock_irqrestore_wo_note(&g_hrt_lock, flags);
-
-	return delta;
-}
-
-/**
  * Store the absolute time in an interrupt-safe fashion
  */
 void
