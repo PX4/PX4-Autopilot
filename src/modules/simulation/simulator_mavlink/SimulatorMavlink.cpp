@@ -68,9 +68,6 @@ const unsigned mode_flag_custom = 1;
 
 using namespace time_literals;
 
-static px4_task_t g_sim_task = -1;
-
-SimulatorMavlink *SimulatorMavlink::_instance = nullptr;
 
 static constexpr vehicle_odometry_s vehicle_odometry_empty {
 	.timestamp = 0,
@@ -989,7 +986,7 @@ void SimulatorMavlink::send_mavlink_message(const mavlink_message_t &aMsg)
 
 void *SimulatorMavlink::sending_trampoline(void * /*unused*/)
 {
-	_instance->send();
+	SimulatorMavlink::get_instance()->send();
 	return nullptr;
 }
 
@@ -1112,6 +1109,7 @@ void SimulatorMavlink::run()
 		PX4_INFO("Waiting for simulator to connect on UDP port %u", _port);
 
 		while (true) {
+			if (should_exit()) return;
 			// Once we receive something, we're most probably good and can carry on.
 			int len = ::recvfrom(_fd, _buf, sizeof(_buf), 0,
 					     (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
@@ -1131,6 +1129,7 @@ void SimulatorMavlink::run()
 		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
+			if (should_exit()) return;
 			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 				PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
 				return;
@@ -1188,7 +1187,7 @@ void SimulatorMavlink::run()
 	// Request HIL_STATE_QUATERNION for ground truth.
 	request_hil_state_quaternion();
 
-	while (true) {
+	while (!should_exit()) {
 
 		// wait for new mavlink messages to arrive
 		int pret = ::poll(&fds[0], fd_count, 1000);
@@ -1561,49 +1560,40 @@ int SimulatorMavlink::publish_distance_topic(const mavlink_distance_sensor_t *di
 	return PX4_OK;
 }
 
-int SimulatorMavlink::start(int argc, char *argv[])
+SimulatorMavlink* SimulatorMavlink::instantiate(int argc, char *argv[])
 {
-	_instance = new SimulatorMavlink();
+	SimulatorMavlink *instance = new SimulatorMavlink();
+	if (!instance) return nullptr;
 
-	if (_instance) {
-
-		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
-			_instance->set_ip(InternetProtocol::UDP);
-			_instance->set_port(atoi(argv[4]));
-		}
-
-		if (argc == 5 && strcmp(argv[3], "-c") == 0) {
-			_instance->set_ip(InternetProtocol::TCP);
-			_instance->set_port(atoi(argv[4]));
-		}
-
-		if (argc == 6 && strcmp(argv[3], "-t") == 0) {
-			PX4_INFO("using TCP on remote host %s port %s", argv[4], argv[5]);
-			PX4_WARN("Please ensure port %s is not blocked by a firewall.", argv[5]);
-			_instance->set_ip(InternetProtocol::TCP);
-			_instance->set_tcp_remote_ipaddr(argv[4]);
-			_instance->set_port(atoi(argv[5]));
-		}
-
-		if (argc == 6 && strcmp(argv[3], "-h") == 0) {
-			PX4_INFO("using TCP on remote host %s port %s", argv[4], argv[5]);
-			PX4_WARN("Please ensure port %s is not blocked by a firewall.", argv[5]);
-			_instance->set_ip(InternetProtocol::TCP);
-			_instance->set_hostname(argv[4]);
-			_instance->set_port(atoi(argv[5]));
-		}
-
-		_instance->run();
-
-		return 0;
-
-	} else {
-		PX4_WARN("creation failed");
-		return 1;
+	if (argc == 5 && strcmp(argv[3], "-u") == 0) {
+		instance->set_ip(InternetProtocol::UDP);
+		instance->set_port(atoi(argv[4]));
 	}
+
+	if (argc == 5 && strcmp(argv[3], "-c") == 0) {
+		instance->set_ip(InternetProtocol::TCP);
+		instance->set_port(atoi(argv[4]));
+	}
+
+	if (argc == 6 && strcmp(argv[3], "-t") == 0) {
+		PX4_INFO("using TCP on remote host %s port %s", argv[4], argv[5]);
+		PX4_WARN("Please ensure port %s is not blocked by a firewall.", argv[5]);
+		instance->set_ip(InternetProtocol::TCP);
+		instance->set_tcp_remote_ipaddr(argv[4]);
+		instance->set_port(atoi(argv[5]));
+	}
+
+	if (argc == 6 && strcmp(argv[3], "-h") == 0) {
+		PX4_INFO("using TCP on remote host %s port %s", argv[4], argv[5]);
+		PX4_WARN("Please ensure port %s is not blocked by a firewall.", argv[5]);
+		instance->set_ip(InternetProtocol::TCP);
+		instance->set_hostname(argv[4]);
+		instance->set_port(atoi(argv[5]));
+	}
+	return instance;
 }
 
-static void usage()
+int SimulatorMavlink::print_usage(const char *reason) 
 {
 	PX4_INFO("Usage: simulator_mavlink {start -[spt] [-u udp_port / -c tcp_port] |stop|status}");
 	PX4_INFO("Start simulator:     simulator_mavlink start");
@@ -1611,6 +1601,33 @@ static void usage()
 	PX4_INFO("Connect using TCP: simulator_mavlink start -c tcp_port");
 	PX4_INFO("Connect to a remote server using TCP: simulator_mavlink start -t ip_addr tcp_port");
 	PX4_INFO("Connect to a remote server via hostname using TCP: simulator_mavlink start -h hostname tcp_port");
+	return 0;
+}
+
+int SimulatorMavlink::task_spawn(int argc, char *argv[]) {
+
+		PX4_INFO("START MAVLINK");
+
+		_task_id = px4_task_spawn_cmd("simulator_mavlink",
+						SCHED_DEFAULT,
+						SCHED_PRIORITY_MAX,
+						1500,
+						&run_trampoline,
+						argv);
+		while (true) {
+			if (SimulatorMavlink::get_instance() && SimulatorMavlink::get_instance()->has_initialized()) {
+				break;
+			}
+
+			system_usleep(100);
+		}
+		return PX4_OK;
+
+}
+
+int SimulatorMavlink::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
 }
 
 __BEGIN_DECLS
@@ -1619,58 +1636,5 @@ __END_DECLS
 
 int simulator_mavlink_main(int argc, char *argv[])
 {
-	if (argc > 1 && strcmp(argv[1], "start") == 0) {
-
-		if (g_sim_task >= 0) {
-			PX4_WARN("Simulator already started");
-			return 0;
-		}
-		PX4_INFO("START MAVLINK");
-
-		g_sim_task = px4_task_spawn_cmd("simulator_mavlink",
-						SCHED_DEFAULT,
-						SCHED_PRIORITY_MAX,
-						1500,
-						SimulatorMavlink::start,
-						argv);
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-
-		// We want to prevent the rest of the startup script from running until time
-		// is initialized by the HIL_SENSOR messages from the simulator.
-		while (true) {
-			if (SimulatorMavlink::getInstance() && SimulatorMavlink::getInstance()->has_initialized()) {
-				break;
-			}
-
-			system_usleep(100);
-		}
-
-#endif
-
-	} else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
-		if (g_sim_task < 0) {
-			PX4_WARN("Simulator not running");
-			return 1;
-
-		} else {
-			px4_task_delete(g_sim_task);
-			g_sim_task = -1;
-		}
-
-	} else if (argc == 2 && strcmp(argv[1], "status") == 0) {
-		if (g_sim_task < 0) {
-			PX4_WARN("Simulator not running");
-			return 1;
-
-		} else {
-			PX4_INFO("running");
-		}
-
-	} else {
-		usage();
-		return 1;
-	}
-
-	return 0;
+	return SimulatorMavlink::main(argc, argv);
 }

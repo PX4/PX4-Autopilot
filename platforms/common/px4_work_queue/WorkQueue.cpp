@@ -46,6 +46,7 @@
 namespace px4
 {
 
+static thread_local const wq_config_t* _thread_config = nullptr;
 WorkQueue::WorkQueue(const wq_config_t &config) :
 	_config(config)
 {
@@ -106,7 +107,6 @@ void WorkQueue::Detach(WorkItem *item)
 	work_lock();
 
 	_work_items.remove(item);
-	PX4_DEBUG(" Removing >> %d\n", int(_work_items.size()));
 
 	if (_work_items.size() == 0) {
 		// shutdown, no active WorkItems
@@ -163,6 +163,19 @@ void WorkQueue::Remove(WorkItem *item)
 	work_unlock();
 }
 
+bool WorkQueue::RemoveSafe(WorkItem *item)
+{
+	work_lock();
+	if (_thread_config == &_config || !item->_is_running.load())
+	_q.remove(item);
+	else {
+		work_unlock();
+		return false;
+	}
+	work_unlock();
+	return true;
+}
+
 void WorkQueue::Clear()
 {
 	work_lock();
@@ -176,6 +189,7 @@ void WorkQueue::Clear()
 
 void WorkQueue::Run()
 {
+	_thread_config = &this->_config;
 	while (!should_exit()) {
 		// loop as the wait may be interrupted by a signal
 		do {} while (px4_sem_wait(&_process_lock) != 0);
@@ -186,11 +200,13 @@ void WorkQueue::Run()
 		while (!_q.empty()) {
 			WorkItem *work = _q.pop();
 
+			work->_is_running.store(true);
 			work_unlock(); // unlock work queue to run (item may requeue itself)
 			work->RunPreamble();
 			work->Run();
 			// Note: after Run() we cannot access work anymore, as it might have been deleted
 			work_lock(); // re-lock
+			work->_is_running.store(false);
 		}
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)

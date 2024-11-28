@@ -68,6 +68,7 @@ GZBridge::~GZBridge()
 
 int GZBridge::init()
 {
+	sleep(5);
 	if (!_model_sim.empty()) {
 
 		// service call to create model
@@ -907,7 +908,7 @@ bool GZBridge::callEntityFactoryService(const std::string &service, const gz::ms
 		}
 
 	} else {
-		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		PX4_ERR("Service EntityFactory call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
 		return false;
 	}
 
@@ -930,7 +931,7 @@ bool GZBridge::callSceneInfoMsgService(const std::string &service)
 		}
 
 	} else {
-		PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+		PX4_ERR("Service SceneInfo call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
 		return false;
 	}
 
@@ -1003,6 +1004,7 @@ void GZBridge::rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::m
 void GZBridge::Run()
 {
 	if (should_exit()) {
+		PX4_INFO("Gz bridge quit");
 		ScheduleClear();
 
 		_mixing_interface_esc.stop();

@@ -46,6 +46,8 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/module_manager.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+
 #include <systemlib/px4_macros.h>
 
 #ifdef __cplusplus
@@ -116,7 +118,12 @@ template<class T>
 class ModuleBase
 {
 public:
-	ModuleBase() : _task_should_exit{false} {}
+
+	typedef ModuleBase<T> TBase;
+
+	ModuleBase() : _task_should_exit{false} {
+		static_assert(std::is_base_of<ModuleBase<T>, T>::value);
+	}
 	virtual ~ModuleBase() {}
 
 	/**
@@ -190,6 +197,7 @@ public:
 			PX4_ERR("failed to instantiate object");
 			ret = -1;
 		}
+		PX4_INFO("Finish trampoline %s", argv[0]);
 
 		exit_and_cleanup();
 
@@ -247,7 +255,7 @@ public:
 					px4_usleep(10000); // 10 ms
 					lock_module();
 
-					if (++i > 500 && _task_id != -1) { // wait at most 5 sec
+					if (++i > 500 && _task_id != -1 && _object.load() != nullptr) { // wait at most 5 sec
 						PX4_ERR("timeout, forcing stop");
 
 						if (_task_id != task_id_is_work_queue) {
@@ -350,6 +358,11 @@ protected:
 	virtual void request_stop()
 	{
 		_task_should_exit.store(true);
+		if (std::is_base_of<px4::WorkItem, T>::value){
+			px4::WorkItem *wi = dynamic_cast<px4::WorkItem*>((T*)this);
+			assert(wi != nullptr);
+			wi->ScheduleNow();
+		}
 	}
 
 	/**

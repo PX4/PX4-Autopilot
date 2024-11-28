@@ -296,3 +296,6 @@ void arm_auth_init(orb_advert_t *mav_log_pub, uint8_t *sys_id)
 	command_ack_sub = orb_subscribe(ORB_ID(vehicle_command_ack));
 	mavlink_log_pub = mav_log_pub;
 }
+void arm_auth_deinit(){
+	orb_unsubscribe(command_ack_sub);
+}

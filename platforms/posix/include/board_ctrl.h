@@ -117,6 +117,11 @@ public:
 
   void shutdown(bool reset);
   void run();
+  void handle_sigint();
   int run_once();
+private:
+  void lockstep_cleanup();
+  void lockstep_threadfunc();
+  void lockstep_start();
 };
 

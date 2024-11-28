@@ -4,6 +4,9 @@
 class ModuleManagerImpl {
 public:
   void register_module(const ModuleEntry &entry) {
+    if (by_name.count(entry.name) > 0) {
+      return;
+    }
     modules.push_back(entry);
     by_name[entry.name] = entry;
   }
@@ -18,6 +21,10 @@ ModuleManagerImpl g_module;
 void ModuleManager::register_module(const ModuleEntry &entry) { g_module.register_module(entry); }
 
 std::vector<std::string> ModuleManager::get_running() { return {}; }
+void ModuleManager::cleanup() {
+  g_module.modules.clear();
+  g_module.by_name.clear();
+}
 
 const std::vector<ModuleEntry> &ModuleManager::get_modules() { return g_module.modules; }
 

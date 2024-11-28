@@ -377,7 +377,7 @@ WorkQueueManagerRun(int, char **)
 int
 WorkQueueManagerStart()
 {
-	PX4_INFO("Starting wq manager");
+	PX4_INFO("Starting wq manager %d %d", _wq_manager_should_exit.load(), _wq_manager_running.load());
 	if (_wq_manager_should_exit.load() && !_wq_manager_running.load()) {
 
 		_wq_manager_should_exit.store(false);

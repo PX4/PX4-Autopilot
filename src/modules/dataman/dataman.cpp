@@ -47,6 +47,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module_manager.h>
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -148,6 +149,7 @@ static uint8_t dataman_clients_count = 1;
 
 static perf_counter_t _dm_read_perf{nullptr};
 static perf_counter_t _dm_write_perf{nullptr};
+static px4_task_t _task_id = -1;
 
 /* The data manager store file handle and file name */
 static const char *default_device_path = PX4_STORAGEDIR "/dataman";
@@ -816,6 +818,8 @@ end:
 
 	perf_free(_dm_write_perf);
 	_dm_write_perf = nullptr;
+	_task_id = -1;
+	PX4_INFO("Dataman exit");
 
 	return 0;
 }
@@ -830,12 +834,14 @@ start()
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if (px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
+	_task_id = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
 			       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
-			       nullptr) < 0) {
+			       nullptr);
+	if (_task_id < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
-		return -1;
+		_task_id = -1;
+		return -errno;
 	}
 
 	/* wait for the thread to actually initialize */
@@ -858,7 +864,7 @@ status()
 }
 
 static void
-stop()
+request_stop()
 {
 	/* Tell the worker task to shut down */
 	g_task_should_exit = true;
@@ -902,9 +908,26 @@ static int backend_check()
 	return 0;
 }
 
+static int stop_command(){
+
+	request_stop();
+	while(_task_id != -1){
+		px4_usleep(10);
+	}
+		free(k_data_manager_device_path);
+		k_data_manager_device_path = nullptr;
+	return PX4_OK;
+}
+
 int
 dataman_main(int argc, char *argv[])
 {
+	ModuleManager::register_module(ModuleEntry {
+			.name = argv[0],
+			.stop_command = &stop_command,
+			.is_running = &is_running,
+			.request_stop = &request_stop,
+			});
 	if (argc < 2) {
 		usage();
 		return -1;
@@ -975,9 +998,7 @@ dataman_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		stop();
-		free(k_data_manager_device_path);
-		k_data_manager_device_path = nullptr;
+		stop_command();
 
 	} else if (!strcmp(argv[1], "status")) {
 		status();

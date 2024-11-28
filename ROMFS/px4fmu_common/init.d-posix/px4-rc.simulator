@@ -1,5 +1,4 @@
 #!/bin/sh
-\set -ex
 # shellcheck disable=SC2154
 
 # Simulator IMU data provided at 250 Hz

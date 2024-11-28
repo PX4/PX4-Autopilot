@@ -64,6 +64,7 @@ public:
 
 	void Add(WorkItem *item);
 	void Remove(WorkItem *item);
+	bool RemoveSafe(WorkItem *item);
 
 	void Clear();
 

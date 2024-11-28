@@ -42,6 +42,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common//log.h>
 
 #ifdef __PX4_NUTTX
 #include "nuttx/cdev_platform.hpp"
@@ -167,6 +168,10 @@ public:
 	 * @return the file system string of the device handle
 	 */
 	const char	*get_devname() const { return _devname; }
+	void print_status() {
+		PX4_INFO_RAW(" dev=%s, registered=%d, oc=%d", _devname, _registered, _open_count);
+
+	}
 
 protected:
 	/**

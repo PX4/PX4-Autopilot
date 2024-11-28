@@ -1959,6 +1959,7 @@ void Commander::run()
 			px4_usleep(COMMANDER_MONITORING_INTERVAL);
 		}
 	}
+	arm_auth_deinit();
 
 	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_OFF);
 

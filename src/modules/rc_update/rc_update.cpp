@@ -341,7 +341,9 @@ RCUpdate::map_flight_modes_buttons()
 
 void RCUpdate::Run()
 {
+		PX4_INFO("exit rc update");
 	if (should_exit()) {
+		PX4_INFO("exit rc update");
 		_input_rc_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;

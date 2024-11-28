@@ -228,7 +228,6 @@ static void hrt_work_process(void)
 	 * the time elapses or until we are awakened by a signal.
 	 */
 	hrt_work_unlock();
-	PX4_INFO("No more work, ret here");
 
 	/* might sleep less if a signal received and new item was queued */
 	//PX4_INFO("Sleeping for %u usec", next);

@@ -256,6 +256,9 @@ __EXPORT extern int px4_lockstep_register_component(void);
 __EXPORT extern void px4_lockstep_unregister_component(int component);
 __EXPORT extern void px4_lockstep_progress(int component);
 __EXPORT extern void px4_lockstep_wait_for_components(void);
+__EXPORT extern void px4_lockstep_notify_shutdown(void);
+__EXPORT extern void px4_lockstep_notify_startup(void);
+__EXPORT int px4_lockstep_settime_shutdown(const struct timespec *ts);
 
 #else
 static inline int px4_lockstep_register_component(void) { return 0; }

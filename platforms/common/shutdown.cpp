@@ -154,6 +154,7 @@ void px4_shutdown_worker(){
 	bool done = true;
 
 	pthread_mutex_lock(&shutdown_mutex);
+	PX4_INFO("shutdown worker == got lock(%i) ", shutdown_counter);
 
 	for (int i = 0; i < max_shutdown_hooks; ++i) {
 		if (shutdown_hooks[i]) {
@@ -162,6 +163,7 @@ void px4_shutdown_worker(){
 			}
 		}
 	}
+	PX4_INFO("Done running hook");
 
 	const hrt_abstime now = hrt_absolute_time();
 	const bool delay_elapsed = (now > shutdown_time_us);
@@ -212,7 +214,8 @@ void px4_shutdown_worker(){
 	} else {
 		pthread_mutex_unlock(&shutdown_mutex);
  
-		SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 10'000, "shutdown", px4::wq_configurations::lp_default);
+		PX4_INFO("Repush shutdown");
+		SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 10'000, "shutdown", px4::wq_configurations::hp_default);
 	}
 
 
@@ -282,8 +285,8 @@ int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 		shutdown_time_us += delay_us;
 	}
 
-	SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 1, "shutdown", px4::wq_configurations::lp_default);
 	pthread_mutex_unlock(&shutdown_mutex);
+	SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 1, "shutdown", px4::wq_configurations::hp_default);
 	return 0;
 }
 #endif // CONFIG_BOARD_REBOOT
@@ -293,8 +296,10 @@ int px4_shutdown_request(uint32_t delay_us)
 {
 	PX4_INFO("Send request shutdown");
 	pthread_mutex_lock(&shutdown_mutex);
+	PX4_INFO("Got lock %d ", shutdown_args);
 
 	if (shutdown_args & SHUTDOWN_ARG_IN_PROGRESS) {
+		PX4_INFO("Already in progress");
 		pthread_mutex_unlock(&shutdown_mutex);
 		return 0;
 	}
@@ -307,8 +312,9 @@ int px4_shutdown_request(uint32_t delay_us)
 		shutdown_time_us += delay_us;
 	}
 
-	SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 1, "shutdown", px4::wq_configurations::lp_default);
 	pthread_mutex_unlock(&shutdown_mutex);
+	SingleShotScheduledOwned::RunIn(px4_shutdown_worker, 1, "shutdown", px4::wq_configurations::hp_default);
+	PX4_INFO("Finish1");
 	return 0;
 }
 #endif // BOARD_HAS_POWER_CONTROL

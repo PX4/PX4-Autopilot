@@ -127,6 +127,7 @@ public:
 	static int		start(int argc, char *argv[]);
 
 	bool running() const { return _task_running.load(); }
+	int stop_and_delete();
 	bool should_exit() const { return _task_should_exit.load(); }
 	void request_stop()
 	{

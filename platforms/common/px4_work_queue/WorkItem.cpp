@@ -90,7 +90,6 @@ void WorkItem::Deinit()
 		px4::WorkQueue *wq_temp = _wq;
 		_wq = nullptr;
 
-		printf("Deinit xoxo\n");
 		// remove any queued work
 		wq_temp->Remove(this);
 
@@ -103,6 +102,14 @@ void WorkItem::ScheduleClear()
 	if (_wq != nullptr) {
 		_wq->Remove(this);
 	}
+}
+
+bool WorkItem::ScheduleClearSafe()
+{
+	if (_wq != nullptr) {
+		return _wq->RemoveSafe(this);
+	}
+	return true;
 }
 
 float WorkItem::elapsed_time() const

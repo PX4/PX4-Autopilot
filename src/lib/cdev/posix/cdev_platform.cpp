@@ -39,6 +39,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/tracer.h>
 
 #include <stdlib.h>
 
@@ -178,7 +179,7 @@ extern "C" {
 
 	int px4_open(const char *path, int flags, ...)
 	{
-		PX4_DEBUG("px4_open");
+		PX4_DEBUG("px4_open %s", path);
 		cdev::CDev *dev = getDev(path);
 		int ret = 0;
 		int i;
@@ -240,7 +241,9 @@ extern "C" {
 			return -1;
 		}
 
-		PX4_DEBUG("px4_open fd = %d", i);
+		Tracer::get()->maybe_dump("open_file", std::string(path), i, flags); 
+
+
 		return i;
 	}
 
@@ -277,7 +280,7 @@ extern "C" {
 		cdev::CDev *dev = getFile(fd);
 
 		if (dev) {
-			PX4_DEBUG("px4_read fd = %d", fd);
+			//PX4_DEBUG("px4_read fd = %d", fd);
 			ret = dev->read(&filemap[fd], (char *)buffer, buflen);
 
 		} else {
@@ -314,7 +317,7 @@ extern "C" {
 
 	int px4_ioctl(int fd, int cmd, unsigned long arg)
 	{
-		PX4_DEBUG("px4_ioctl fd = %d", fd);
+		//PX4_DEBUG("px4_ioctl fd = %d", fd);
 		int ret = 0;
 
 		cdev::CDev *dev = getFile(fd);
@@ -352,7 +355,7 @@ extern "C" {
 
 #endif
 
-		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
+		//PX4_DEBUG("Called px4_poll timeout = %d", timeout);
 
 		px4_sem_init(&sem, 0, 0);
 
@@ -371,7 +374,7 @@ extern "C" {
 
 			// If fd is valid
 			if (dev) {
-				PX4_DEBUG("%s: px4_poll: CDev->poll(setup) %d", thread_name, fds[i].fd);
+				//PX4_DEBUG("%s: px4_poll: CDev->poll(setup) %d", thread_name, fds[i].fd);
 				ret = dev->poll(&filemap[fds[i].fd], &fds[i], true);
 
 				if (ret < 0) {
@@ -420,7 +423,7 @@ extern "C" {
 
 				// If fd is valid
 				if (dev) {
-					PX4_DEBUG("%s: px4_poll: CDev->poll(teardown) %d", thread_name, fds[i].fd);
+					//PX4_DEBUG("%s: px4_poll: CDev->poll(teardown) %d", thread_name, fds[i].fd);
 					ret = dev->poll(&filemap[fds[i].fd], &fds[i], false);
 
 					if (ret < 0) {
@@ -461,11 +464,37 @@ extern "C" {
 
 		for (const auto &dev : devmap) {
 			if (dev) {
-				PX4_INFO_RAW("   %s\n", dev->name);
+				PX4_INFO_RAW("   %s", dev->name);
+				if (dev->cdev!=nullptr) dev->cdev->print_status();
+				PX4_INFO_RAW("\n");
+			}
+		}
+		PX4_INFO("++++ FILES");
+		for (int i =0 ; i< PX4_MAX_FD; ++i){
+			const auto &file = filemap[i];
+			if (file.cdev) {
+				PX4_INFO("   fd=%d %s", i ,file.cdev->get_devname());
 			}
 		}
 
 		pthread_mutex_unlock(&devmutex);
 	}
+
+void		px4_cleanup() {
+		pthread_mutex_lock(&devmutex);
+
+		for (auto &dev : devmap) {
+			if (dev){
+				delete dev;
+				dev = nullptr;
+
+
+			}
+
+		}
+
+		pthread_mutex_unlock(&devmutex);
+
+}
 
 } // extern "C"

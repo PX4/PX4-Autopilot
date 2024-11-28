@@ -39,6 +39,8 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
+#include <uORB/topics/tune_control.h>
+#include <uORB/topics/uORBTopics.hpp>
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
 #include <px4_platform/board_ctrl.h>
@@ -428,6 +430,7 @@ void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance
 
 	if (device_master != nullptr) {
 		node = device_master->getDeviceNode(get_orb_meta(orb_id), instance);
+		if (orb_id == ORB_ID::tune_control)
 
 		if (node) {
 			node->add_internal_subscriber();
@@ -504,6 +507,7 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 	 * known to the system.  We can't advertise/subscribe such a thing.
 	 */
 	if (nullptr == meta) {
+	PX4_ERR("no meta");
 		errno = ENOENT;
 		return PX4_ERROR;
 	}

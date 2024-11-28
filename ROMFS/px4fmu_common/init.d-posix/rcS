@@ -232,7 +232,7 @@ fi
 #user defined params for instances can be in PATH
 . px4-rc.params
 
-#dataman start
+dataman start
 
 # only start the simulator if not in replay mode, as both control the lockstep time
 if ! replay tryapplyparams
@@ -240,4 +240,117 @@ then
 	. px4-rc.simulator
 fi
 
-shutdown
+load_mon start
+
+if param compare SIM_BAT_ENABLE 1
+then
+	battery_simulator start
+fi
+
+tone_alarm start
+rc_update start
+manual_control start
+sensors start
+commander start
+
+#
+# state estimator selection
+if param compare -s EKF2_EN 1
+then
+	ekf2 start &
+fi
+
+if param compare -s LPE_EN 1
+then
+	local_position_estimator start
+fi
+
+if param compare -s ATT_EN 1
+then
+	attitude_estimator_q start
+fi
+
+if ! pwm_out_sim start -m sim
+then
+	tune_control play error
+fi
+
+#
+# Configure vehicle type specific parameters.
+# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
+. ${R}etc/init.d/rc.vehicle_setup
+
+navigator start
+
+# Try to start the UXRCE-DDS Client with UDP transport if module exists
+uxrce_dds_ns=""
+if [ "$px4_instance" -ne "0" ]
+then
+	# for multi intances setup, add namespace prefix
+	uxrce_dds_ns="-n px4_$px4_instance"
+fi
+if [ -n "$PX4_UXRCE_DDS_NS" ]
+then
+	# Override namespace if environment variable is defined
+	uxrce_dds_ns="-n $PX4_UXRCE_DDS_NS"
+fi
+if [ -n "$ROS_DOMAIN_ID" ]
+then
+	# Match UXRCE_DDS_DOM_ID with ROS_DOMAIN_ID, if defined
+	param set UXRCE_DDS_DOM_ID $ROS_DOMAIN_ID
+else
+	param set UXRCE_DDS_DOM_ID 0
+fi
+uxrce_dds_port=8888
+if [ -n "$PX4_UXRCE_DDS_PORT" ]
+then
+	# Override port if environment variable is defined
+	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
+fi
+
+uxrce_dds_client start -t udp -h 127.0.0.1 -p $uxrce_dds_port $uxrce_dds_ns
+
+if param greater -s MNT_MODE_IN -1
+then
+	gimbal start
+fi
+
+if param greater -s TRIG_MODE 0
+then
+	camera_trigger start
+	camera_feedback start
+fi
+
+if param compare -s IMU_GYRO_FFT_EN 1
+then
+	gyro_fft start
+fi
+
+if param compare -s IMU_GYRO_CAL_EN 1
+then
+	gyro_calibration start
+fi
+
+# Payload deliverer module if gripper is enabled
+if param compare -s PD_GRIPPER_EN 1
+then
+	payload_deliverer start
+fi
+
+#user defined mavlink streams for instances can be in PATH
+. px4-rc.mavlink
+
+# execute autostart post script if any
+[ -e "$autostart_file".post ] && . "$autostart_file".post
+
+# Run script to start logging
+if param compare -s EKF2_EN 1
+then
+	set LOGGER_ARGS "-p ekf2_timestamps"
+else
+	set LOGGER_ARGS "-p vehicle_attitude"
+fi
+. ${R}etc/init.d/rc.logging
+
+mavlink boot_complete
+replay trystart

@@ -55,6 +55,7 @@
 #include <lib/version/version.h>
 
 #include <px4_platform_common/events.h>
+#include <px4_platform_common/module_manager.h>
 
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
@@ -3110,30 +3111,7 @@ Mavlink::stop_command(int argc, char *argv[])
 
 		if (inst != nullptr) {
 			/* set flag to stop thread and wait for all threads to finish */
-			if (inst->running() && !inst->should_exit()) {
-				int iterations = 0;
-
-				while ((iterations < 1000) && inst->running()) {
-					inst->request_stop();
-					iterations++;
-					px4_usleep(1000);
-				}
-
-				if (inst->running()) {
-					PX4_ERR("unable to stop instance %d", inst->get_instance_id());
-					return PX4_ERROR;
-				}
-
-				LockGuard lg{mavlink_module_mutex};
-
-				for (int mavlink_instance = 0; mavlink_instance < MAVLINK_COMM_NUM_BUFFERS; mavlink_instance++) {
-					if (mavlink_module_instances[mavlink_instance] == inst) {
-						delete inst;
-						mavlink_module_instances[mavlink_instance] = nullptr;
-						return PX4_OK;
-					}
-				}
-			}
+			return inst->stop_and_delete();
 
 			return PX4_ERROR;
 		}
@@ -3288,6 +3266,26 @@ Mavlink::set_boot_complete()
 
 }
 
+int Mavlink::stop_and_delete(){
+
+	request_stop();
+	int iterations = 0;
+
+	while ((iterations < 1000) && running()) {
+		iterations++;
+		px4_usleep(1000);
+	}
+
+	if (running()) {
+		PX4_ERR("unable to stop instance %d", get_instance_id());
+		return PX4_ERROR;
+	}
+
+	LockGuard lg{mavlink_module_mutex};
+	delete this;
+	return PX4_OK;
+}
+
 static void usage()
 {
 
@@ -3370,8 +3368,60 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 
 }
 
+
+static bool is_running(){
+	LockGuard lg{mavlink_module_mutex};
+
+	bool found  = false;
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst != nullptr) found |= inst->running();
+	}
+	return found;
+}
+
+static void request_stop(){
+
+	LockGuard lg{mavlink_module_mutex};
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst != nullptr) inst->request_stop();
+	}
+
+}
+
+static int stop_command(){
+
+	request_stop();
+
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst != nullptr) inst->stop_and_delete();
+	}
+	for (Mavlink *inst : mavlink_module_instances) {
+		if (inst != nullptr) 
+		{
+			int ret =inst->stop_and_delete();
+			if (ret!=PX4_OK) {
+				PX4_ERR("Failed to stop a mavlink instance");
+
+				return ret;
+			}
+		}
+
+	}
+	return PX4_OK;
+}
+
+
+
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[])
 {
+	ModuleManager::register_module(ModuleEntry {
+			.name = argv[0],
+			.stop_command = &stop_command,
+			.is_running = &is_running,
+			.request_stop = &request_stop,
+			});
+
 	if (argc < 2) {
 		usage();
 		return 1;

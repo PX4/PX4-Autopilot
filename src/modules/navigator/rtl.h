@@ -68,7 +68,7 @@ class RTL : public NavigatorMode, public ModuleParams
 public:
 	RTL(Navigator *navigator);
 
-	~RTL() = default;
+	~RTL();
 
 	enum class RtlType {
 		NONE,

@@ -82,16 +82,18 @@
 #include <board_ctrl.h>
 #include <drivers/drv_hrt.h>
 #include <errno.h>
+#include <hrt_work.h>
 #include <parameters/param.h>
 #include <pthread.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/init.h>
+#include <px4_platform_common/shutdown.h>
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/workqueue.h>
-#include <hrt_work.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <thread>
 #include <unistd.h>
 
 #ifndef PATH_MAX
@@ -99,18 +101,17 @@
 #endif
 
 pthread_t main_thread;
+std::thread *lockstep_thread = nullptr;
 static volatile bool _shutdown_seen = false;
+static volatile bool _received_sigint = false;
 
-static void sig_int_handler(int sig_num) {
-  puts("ON SIGINT");
-  px4_daemon::Pxh::stop();
-}
+static void sig_int_handler(int sig_num) { Board::instance()->handle_sigint(); }
 
 static void register_sig_handler() {
   // SIGINT
   struct sigaction sig_int {};
   sig_int.sa_handler = sig_int_handler;
-  sig_int.sa_flags = 0; // not SA_RESTART!
+  sig_int.sa_flags = 1; // not SA_RESTART!
 
   // SIGPIPE
   // We want to ignore if a PIPE has been closed.
@@ -198,11 +199,7 @@ static int run_startup_script(const std::string &commands_file,
   return ret;
 }
 
-void px4_terminate() {
-
-  px4_platform_fini();
-
-}
+void px4_terminate() { px4_platform_fini(); }
 
 Board *Board::instance() {
   static Board _inst;
@@ -213,7 +210,16 @@ void Board::shutdown(bool reset) {
   _reset_req = reset;
   _shutdown_seen = true;
   PX4_INFO("shutdown request ");
-  pthread_kill(main_thread, SIGINT);
+  if (!_received_sigint) pthread_kill(main_thread, SIGINT);
+}
+
+void Board::handle_sigint() {
+  _received_sigint = true;
+  PX4_INFO("Sigint ");
+  lockstep_start();
+
+  px4_daemon::Pxh::stop();
+  PX4_INFO("Sigint stop");
 }
 
 void Board::run() {
@@ -224,6 +230,7 @@ void Board::run() {
     if (!_reset_req) break;
   }
 }
+
 void wait_to_exit() {
   while (!_shutdown_seen) {
     // needs to be a regular sleep not dependent on lockstep (not px4_usleep)
@@ -233,21 +240,21 @@ void wait_to_exit() {
 
 int Board::run_once() {
 
+  _received_sigint = false;
   px4_daemon::Server server(parameters.server_instance);
   server.start();
 
+  PX4_INFO("Initting");
   px4::init_once();
   px4::init(parameters.argc, parameters.argv, "px4");
   _shutdown_seen = false;
   _reset_req = false;
 
+  PX4_INFO("start startup script");
   auto ret = run_startup_script(parameters.commands_file, parameters.absolute_binary_paths,
                                 parameters.server_instance);
 
-  PX4_INFO("Ret run startup >> %d\n", _shutdown_seen);
-  if (ret != 0) {
-    return PX4_ERROR;
-  }
+  PX4_INFO("Ret run startup >> %d %d\n", _shutdown_seen, ret);
 
   if (ret == 0 && !_shutdown_seen) {
     // We now block here until we need to exit.
@@ -264,20 +271,65 @@ int Board::run_once() {
   printf("=========== OFF MAIN LOOP >> %d", _reset_req);
   if (!_shutdown_seen) {
     PX4_INFO("Interrupt - requesting shutdown");
+    this->shutdown(false);
     // initial ctrl
-    std::string cmd("shutdown");
-    px4_daemon::Pxh::process_line(cmd, true);
     // noreturn
   }
 
   PX4_INFO("Waiting for exit");
   fflush(stdout);
-  printf("\nPX4 Exiting...\n");
+  printf("\nPX4 Exiting... xoxo\n");
   fflush(stdout);
   wait_to_exit();
+  PX4_INFO("Done exit");
 
   px4_terminate();
+  lockstep_cleanup();
   sleep(1);
   return PX4_OK;
 }
 
+bool _lockstep_exit_req;
+
+void Board::lockstep_cleanup() {
+  _lockstep_exit_req = true;
+	px4_lockstep_notify_startup();
+  if (lockstep_thread != nullptr) {
+    lockstep_thread->join();
+    lockstep_thread = nullptr;
+  }
+}
+
+void Board::lockstep_threadfunc() {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	PX4_INFO("On lockstep thread");
+  struct timespec ts;
+  hrt_abstime last_time_mon;
+  hrt_abstime last_time_sys;
+  px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+  last_time_mon = ts_to_abstime(&ts);
+  px4_clock_gettime(CLOCK_REALTIME, &ts);
+  last_time_sys = ts_to_abstime(&ts);
+
+  using namespace time_literals;
+  while (!_lockstep_exit_req) {
+    usleep(10);
+    px4_clock_gettime(CLOCK_REALTIME, &ts);
+    hrt_abstime cur_time_sys = std::max(last_time_sys + 10_us, ts_to_abstime(&ts));
+
+    last_time_mon += cur_time_sys - last_time_sys;
+    last_time_sys = cur_time_sys;
+    abstime_to_ts(&ts, last_time_mon);
+    px4_lockstep_settime_shutdown(&ts);
+  }
+
+#endif
+}
+void Board::lockstep_start() {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+  if (lockstep_thread != nullptr) return;
+  _lockstep_exit_req = false;
+	px4_lockstep_notify_shutdown();
+  lockstep_thread = new std::thread(&Board::lockstep_threadfunc, this);
+#endif
+}

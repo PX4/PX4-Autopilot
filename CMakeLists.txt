@@ -189,6 +189,7 @@ endif()
 
 include(px4_config)
 include(kconfig)
+message(STATUS "PX4 build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
@@ -309,6 +310,11 @@ if(${PX4_PLATFORM} STREQUAL "posix")
 
 	if(CMAKE_BUILD_TYPE MATCHES "Coverage")
 		include(coverage)
+	endif()
+
+	if(CMAKE_BUILD_TYPE MATCHES "Debug")
+	set(CMAKE_CXX_STANDARD 23)
+	link_libraries(-lstdc++exp)
 	endif()
 
 	include(sanitizers)

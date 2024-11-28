@@ -121,6 +121,7 @@ __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
 __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, unsigned int nfds, int timeout);
 __EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT px4_task_t	px4_getpid(void);
+__EXPORT void		px4_cleanup(void);
 
 __END_DECLS
 #else

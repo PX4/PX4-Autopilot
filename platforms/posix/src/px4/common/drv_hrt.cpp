@@ -559,4 +559,18 @@ void px4_lockstep_wait_for_components()
 {
 	lockstep_scheduler.components().wait_for_components();
 }
+
+void px4_lockstep_notify_startup() {
+	lockstep_scheduler.notify_startup();
+}
+
+void px4_lockstep_notify_shutdown() {
+	lockstep_scheduler.notify_shutdown();
+}
+int px4_lockstep_settime_shutdown(const struct timespec *ts)
+{
+	lockstep_scheduler.set_absolute_time(ts_to_abstime(ts), true);
+	return 0;
+}
+
 #endif

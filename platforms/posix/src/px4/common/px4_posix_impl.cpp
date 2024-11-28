@@ -69,10 +69,12 @@ void init_once()
 {
 	_shell_task_id = pthread_self();
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	px4_lockstep_notify_startup();
+#endif
 
 	PX4_INFO("Run init");
 	px4_platform_init();
-	//work_queues_init();
 
 	hrt_work_queue_init();
 }

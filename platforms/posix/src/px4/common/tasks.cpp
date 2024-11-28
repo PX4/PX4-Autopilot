@@ -422,6 +422,19 @@ const char *px4_get_taskname()
 	return prog_name;
 }
 
+int px4_running_task_count(void) {
+
+	int count = 0;
+
+	for (int idx = 0; idx < PX4_MAX_TASKS; idx++) {
+		if (taskmap[idx].isused)  ++ count;
+
+	}
+	return count;
+
+
+}
+
 int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv = -1;

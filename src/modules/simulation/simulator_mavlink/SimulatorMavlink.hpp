@@ -114,18 +114,16 @@ static inline SensorSource operator &(A lhs, B rhs)
 	       );
 }
 
-//class SimulatorMavlink : public ModuleBase<SimulatorMavlink>, public ModuleParams
-class SimulatorMavlink : public ModuleParams
+class SimulatorMavlink : public ModuleBase<SimulatorMavlink>, public ModuleParams
 {
 public:
-	static SimulatorMavlink *getInstance() { return _instance; }
 
 	enum class InternetProtocol {
 		TCP,
 		UDP
 	};
 
-	static int start(int argc, char *argv[]);
+	static SimulatorMavlink* instantiate(int argc, char *argv[]);
 
 	void set_ip(InternetProtocol ip) { _ip = ip; }
 	void set_port(unsigned port) { _port = port; }
@@ -136,7 +134,12 @@ public:
 	bool has_initialized() { return _has_initialized.load(); }
 #endif
 
-private:
+	void run() override;
+	static int print_usage(const char *reason = nullptr);
+	static int custom_command(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
 	SimulatorMavlink();
 
 	~SimulatorMavlink()
@@ -155,15 +158,13 @@ private:
 			delete _sensor_gps_pubs[i];
 		}
 
-		_instance = nullptr;
 	}
 
+private:
 
 	void check_failure_injections();
 
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
-
-	static SimulatorMavlink *_instance;
 
 	// simulated sensor instances
 	static constexpr uint8_t ACCEL_COUNT_MAX = 3;
@@ -221,7 +222,6 @@ private:
 	hrt_abstime _last_sim_timestamp{0};
 	hrt_abstime _last_sitl_timestamp{0};
 
-	void run();
 
 	void handle_message(const mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);

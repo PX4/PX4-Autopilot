@@ -62,6 +62,17 @@ RTL::RTL(Navigator *navigator) :
 	_rtl_direct.initialize();
 }
 
+
+RTL::~RTL(){
+
+	if (_rtl_mission_type_handle) {
+		_rtl_mission_type_handle->run(false);
+		delete _rtl_mission_type_handle;
+
+	}
+
+}
+
 void RTL::updateDatamanCache()
 {
 	bool success;

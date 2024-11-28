@@ -182,6 +182,7 @@ __EXPORT bool px4_task_is_running(const char *taskname);
 #ifdef __PX4_POSIX
 /** set process (and thread) options */
 __EXPORT int px4_prctl(int option, const char *arg2, px4_task_t pid);
+__EXPORT int px4_running_task_count(void);
 #endif
 
 /** return the name of the current task */

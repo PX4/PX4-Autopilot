@@ -49,14 +49,17 @@ public:
 	LockstepScheduler(bool no_cleanup_on_destroy = false) : _components(no_cleanup_on_destroy) {}
 	~LockstepScheduler();
 
-	void set_absolute_time(uint64_t time_us);
+	void set_absolute_time(uint64_t time_us, bool from_shutdown=false);
 	inline uint64_t get_absolute_time() const { return _time_us; }
 	int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *lock, uint64_t time_us);
 	int usleep_until(uint64_t timed_us);
+	void notify_startup();
+	void notify_shutdown();
 
 	LockstepComponents &components() { return _components; }
 
 private:
+	bool _shutdown_lockstep = false;
 	struct TimedWait {
 		~TimedWait()
 		{

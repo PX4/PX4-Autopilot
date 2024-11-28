@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <px4_platform_common/events.h>
+#include <px4_platform_common/module_manager.h>
 #include "EKF2.hpp"
 
 using namespace time_literals;
@@ -436,7 +437,8 @@ void EKF2::Run()
 	if (should_exit()) {
 		_sensor_combined_sub.unregisterCallback();
 		_vehicle_imu_sub.unregisterCallback();
-
+		_objects[_instance].store(nullptr);
+		delete this;
 		return;
 	}
 
@@ -2938,8 +2940,57 @@ timestamps from the sensor topics.
 	return 0;
 }
 
+
+static bool is_running(){
+		EKF2::lock_module();
+		bool has_running = false;
+		for (int i = 0; i < EKF2_MAX_INSTANCES; i++) 
+			has_running |=  _objects[i].load() != nullptr;
+		EKF2::unlock_module();
+		return has_running;
+
+
+}
+
+static void request_stop(){
+
+		EKF2::lock_module();
+		for (int i = 0; i < EKF2_MAX_INSTANCES; i++) 
+		{
+			EKF2 *obj = _objects[i].load();
+			if (obj != nullptr) obj->request_stop();
+		}
+
+
+		EKF2::unlock_module();
+
+}
+
+static int stop_command(){
+
+	request_stop();
+	EKF2::lock_module();
+
+	if (_ekf2_selector.load() != nullptr) 
+	{
+		delete _ekf2_selector.load();
+		_ekf2_selector.store(nullptr);
+	}
+	EKF2::unlock_module();
+	return PX4_OK;
+
+}
+
+
+
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 {
+	ModuleManager::register_module(ModuleEntry {
+			.name = argv[0],
+			.stop_command = &stop_command,
+			.is_running = &is_running,
+			.request_stop = &request_stop,
+			});
 	if (argc <= 1 || strcmp(argv[1], "-h") == 0) {
 		return EKF2::print_usage();
 	}

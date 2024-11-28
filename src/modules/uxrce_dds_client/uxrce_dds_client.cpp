@@ -530,6 +530,7 @@ void UxrceddsClient::run()
 	while (!should_exit()) {
 		while (!should_exit()) {
 			if (!init()) {
+				if (!should_exit()) break;
 				px4_usleep(1'000'000);
 				PX4_ERR("init failed, will retry now");
 				continue;
@@ -537,6 +538,8 @@ void UxrceddsClient::run()
 
 			if (!setup_session(&session)) {
 				delete_session(&session);
+				if (!should_exit()) break;
+				PX4_INFO("Start sleep delete");
 				px4_usleep(1'000'000);
 				PX4_ERR("session setup failed, will retry now");
 				continue;
