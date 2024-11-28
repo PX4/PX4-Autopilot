@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm45686
 	MAIN icm45686
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
+		${MAX_CUSTOM_OPT_LEVEL_SPACE}
 		#-DDEBUG_BUILD
 	SRCS
 		icm45686_main.cpp

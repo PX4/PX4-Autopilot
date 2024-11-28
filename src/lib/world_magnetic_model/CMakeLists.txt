@@ -53,7 +53,7 @@ add_library(world_magnetic_model
 	geo_magnetic_tables.hpp
 )
 add_dependencies(world_magnetic_model prebuild_targets)
-target_compile_options(world_magnetic_model PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(world_magnetic_model PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 if(BUILD_TESTING)
 	px4_add_unit_gtest(SRC test_geo_lookup.cpp LINKLIBS world_magnetic_model)

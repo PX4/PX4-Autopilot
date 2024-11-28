@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
+add_compile_options(${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
@@ -157,7 +157,7 @@ add_custom_target(parameters_header DEPENDS px4_parameters.hpp)
 set(SRCS)
 
 list(APPEND SRCS
-	parameters.cpp 
+	parameters.cpp
 	atomic_transaction.cpp
 	autosave.cpp
 )

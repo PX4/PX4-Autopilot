@@ -37,7 +37,7 @@ px4_add_module(
 	PRIORITY "SCHED_PRIORITY_MAX-30"
 	STACK_MAIN 2500
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
+		${MAX_CUSTOM_OPT_LEVEL_SPEED}
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		logged_topics.cpp

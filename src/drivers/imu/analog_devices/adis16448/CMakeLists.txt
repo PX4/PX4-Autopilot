@@ -35,7 +35,7 @@ px4_add_module(
 	MODULE drivers__imu__analog_devices__adis16448
 	MAIN adis16448
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
+		${MAX_CUSTOM_OPT_LEVEL_SPACE}
 		#-DDEBUG_BUILD
 	SRCS
 		ADIS16448.cpp

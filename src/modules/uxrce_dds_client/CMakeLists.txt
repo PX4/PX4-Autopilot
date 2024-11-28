@@ -138,7 +138,7 @@ else()
 		COMPILE_FLAGS
 			#-O0
 			# -DDEBUG_BUILD
-			${MAX_CUSTOM_OPT_LEVEL}
+			${MAX_CUSTOM_OPT_LEVEL_SPEED}
 		SRCS
 			${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 			uxrce_dds_client.cpp

@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__iim42652
 	MAIN iim42652
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
+		${MAX_CUSTOM_OPT_LEVEL_SPACE}
 		#-DDEBUG_BUILD
 	SRCS
 		iim42652_main.cpp

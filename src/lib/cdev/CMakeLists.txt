@@ -49,7 +49,7 @@ px4_add_library(cdev
 	CDev.hpp
 	${SRCS_PLATFORM}
 )
-target_compile_options(cdev PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(cdev PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 if (${PX4_PLATFORM} STREQUAL "nuttx")
 	target_link_libraries(cdev PRIVATE nuttx_fs) # register/unregister driver

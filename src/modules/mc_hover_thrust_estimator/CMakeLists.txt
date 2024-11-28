@@ -40,7 +40,7 @@ px4_add_module(
 	MODULE modules__mc_hover_thrust_estimator
 	MAIN mc_hover_thrust_estimator
 	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
+		${MAX_CUSTOM_OPT_LEVEL_SPEED}
 	SRCS
 		MulticopterHoverThrustEstimator.cpp
 		MulticopterHoverThrustEstimator.hpp

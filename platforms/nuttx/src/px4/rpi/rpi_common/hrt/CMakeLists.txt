@@ -36,6 +36,6 @@ px4_add_library(arch_hrt
 )
 target_compile_options(arch_hrt
 	PRIVATE
-		${MAX_CUSTOM_OPT_LEVEL}
+		${MAX_CUSTOM_OPT_LEVEL_SPEED}
 		-Wno-cast-align # TODO: fix and enable
 )

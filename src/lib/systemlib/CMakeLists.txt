@@ -47,4 +47,4 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 endif()
 
 px4_add_library(systemlib ${SRCS})
-target_compile_options(systemlib PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(systemlib PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})

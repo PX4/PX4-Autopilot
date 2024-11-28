@@ -36,4 +36,4 @@ add_library(crc STATIC EXCLUDE_FROM_ALL
 	crc.h
 )
 add_dependencies(crc prebuild_targets)
-target_compile_options(crc PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(crc PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})

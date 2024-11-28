@@ -51,7 +51,7 @@ if(gz-transport_FOUND)
 		MODULE modules__simulation__gz_bridge
 		MAIN gz_bridge
 		COMPILE_FLAGS
-			${MAX_CUSTOM_OPT_LEVEL}
+			${MAX_CUSTOM_OPT_LEVEL_SPEED}
 		SRCS
 			GZBridge.cpp
 			GZBridge.hpp

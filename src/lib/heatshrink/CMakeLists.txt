@@ -38,5 +38,5 @@ px4_add_library(heatshrink
 )
 
 target_compile_options(heatshrink PRIVATE
-	${MAX_CUSTOM_OPT_LEVEL}
+	${MAX_CUSTOM_OPT_LEVEL_SPEED}
 	-DHEATSHRINK_DYNAMIC_ALLOC=0)

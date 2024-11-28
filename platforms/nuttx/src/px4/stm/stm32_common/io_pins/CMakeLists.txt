@@ -37,6 +37,6 @@ px4_add_library(arch_io_pins
 	pwm_servo.c
 	pwm_trigger.c
 )
-target_compile_options(arch_io_pins PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(arch_io_pins PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 target_link_libraries(arch_io_pins PRIVATE drivers_board) # timer_io_channels

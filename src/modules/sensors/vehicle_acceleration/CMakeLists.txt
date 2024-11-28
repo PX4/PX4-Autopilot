@@ -36,7 +36,7 @@ px4_add_library(vehicle_acceleration
 	VehicleAcceleration.hpp
 )
 
-target_compile_options(vehicle_acceleration PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(vehicle_acceleration PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 target_link_libraries(vehicle_acceleration
 	PRIVATE

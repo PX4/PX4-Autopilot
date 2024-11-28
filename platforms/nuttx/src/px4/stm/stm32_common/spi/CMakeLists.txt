@@ -34,6 +34,6 @@
 px4_add_library(arch_spi
 	spi.cpp
 )
-target_compile_options(arch_spi PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(arch_spi PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 target_link_libraries (arch_spi PRIVATE drivers_board) # px4_spi_buses

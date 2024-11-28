@@ -38,6 +38,6 @@ add_library(lat_lon_alt
 
 add_dependencies(lat_lon_alt prebuild_targets)
 target_include_directories(lat_lon_alt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_options(lat_lon_alt PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(lat_lon_alt PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 px4_add_unit_gtest(SRC test_lat_lon_alt.cpp LINKLIBS lat_lon_alt geo)

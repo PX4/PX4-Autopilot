@@ -80,7 +80,7 @@ if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 		${SRCS_KERNEL}
 		)
 	target_link_libraries(uORB_kernel PRIVATE cdev uorb_msgs nuttx_mm heatshrink)
-	target_compile_options(uORB_kernel PRIVATE ${MAX_CUSTOM_OPT_LEVEL} -D__KERNEL__)
+	target_compile_options(uORB_kernel PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED} -D__KERNEL__)
 
 	# User side library in nuttx kernel/protected build
 	px4_add_library(uORB
@@ -106,7 +106,7 @@ else()
 endif()
 
 target_link_libraries(uORB PRIVATE uorb_msgs heatshrink)
-target_compile_options(uORB PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(uORB PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 if(PX4_TESTING)
 	add_subdirectory(uORB_tests)

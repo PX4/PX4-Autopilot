@@ -38,7 +38,7 @@ px4_add_library(vehicle_imu
 
 target_compile_options(vehicle_imu
 	PRIVATE
-		${MAX_CUSTOM_OPT_LEVEL}
+		${MAX_CUSTOM_OPT_LEVEL_SPEED}
 		#-DDEBUG_BUILD
 )
 

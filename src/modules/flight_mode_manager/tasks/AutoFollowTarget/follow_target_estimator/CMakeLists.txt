@@ -35,7 +35,7 @@ px4_add_library(follow_target_estimator
 	TargetEstimator.cpp
 )
 
-target_compile_options(follow_target_estimator PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_compile_options(follow_target_estimator PRIVATE ${MAX_CUSTOM_OPT_LEVEL_SPEED})
 
 target_link_libraries(follow_target_estimator
 	PRIVATE
