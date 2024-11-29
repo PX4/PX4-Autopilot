@@ -148,7 +148,7 @@ void InternalCombustionEngineControl::Run()
 			_state = State::Starting;
 			instantiateEngineStart();
 			controlEngineStartup(ice_control);
-			PX4_WARN("ICE: Starting");
+			PX4_INFO("ICE: Starting");
 		}
 
 		break;
@@ -158,13 +158,13 @@ void InternalCombustionEngineControl::Run()
 		if (user_request == UserOnOffRequest::Off) {
 			_state = State::Stopped;
 			controlEngineStop(ice_control);
-			PX4_WARN("ICE: Abort");
+			PX4_INFO("ICE: Abort");
 
 		} else {
 			if (isEngineRunning()) {
 				_state = State::Running;
 				controlEngineRunning(ice_control, throttle_in);
-				PX4_WARN("ICE: Starting finished");
+				PX4_INFO("ICE: Starting finished");
 
 			} else {
 				controlEngineStartup(ice_control);
@@ -186,7 +186,7 @@ void InternalCombustionEngineControl::Run()
 
 		if (user_request == UserOnOffRequest::Off) {
 			_state = State::Stopped;
-			PX4_WARN("ICE: Stop");
+			PX4_INFO("ICE: Stop");
 
 		} else {
 			if (!isEngineRunning()) {
@@ -203,14 +203,14 @@ void InternalCombustionEngineControl::Run()
 		if (user_request == UserOnOffRequest::Off) {
 			_state = State::Stopped;
 			controlEngineStop(ice_control);
-			PX4_WARN("ICE: Stop");
+			PX4_INFO("ICE: Stop");
 
 		} else {
 			if (_param_ice_retry_fault.get() && !engine_tried_to_restart) {
 				_state = State::Starting;
 				instantiateEngineStart();
 				controlEngineStartup(ice_control);
-				PX4_WARN("ICE: Restarting");
+				PX4_INFO("ICE: Restarting");
 
 			} else {
 				controlEngineFault(ice_control);
@@ -326,7 +326,7 @@ void InternalCombustionEngineControl::controlEngineStartup(internal_combustion_e
 		// reset timer to restart procedure if engine is not running
 		_state_start_time = hrt_absolute_time();
 		_starting_retry_cycle++;
-		PX4_WARN("ICE: Retry %i finished", _starting_retry_cycle);
+		PX4_INFO("ICE: Retry %i finished", _starting_retry_cycle);
 	}
 }
 
