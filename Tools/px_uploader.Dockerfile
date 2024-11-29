@@ -5,7 +5,7 @@ ARG SALUKI_FILE_INFO_JSON=saluki_file_info.json
 ARG PX4_EXPORT_DIR
 ENV PX4_EXPORT_DIR=$PX4_EXPORT_DIR
 
-COPY $saluki_fpga_directory /firmware/fpga
+COPY $saluki_fpga_directory /firmware/combine
 COPY $SALUKI_FILE_INFO_JSON /$SALUKI_FILE_INFO_JSON
 WORKDIR /firmware
 

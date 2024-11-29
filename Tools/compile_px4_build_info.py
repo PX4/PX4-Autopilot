@@ -45,7 +45,17 @@ print(px4_json_data)
 # read fpga json file
 with open(fpga_json_file, 'r') as f:
   fpga_json_data = json.load(f)
+  # add fpga-files array to files array
   fpga_json_data['files'] = fpga_json_data.pop('fpga-files')
+  # add bl-files array to files array
+  fpga_json_data['files'].extend(fpga_json_data.pop('bl-files'))
+  # add sha field to fpga_sha
+  fpga_json_data['fpga_sha'] = fpga_json_data.pop('sha', '')
+  # add build_url field to fpga_build_url
+  fpga_json_data['fpga_build_url'] = fpga_json_data.pop('build_url', '')
+  # add reponame field to fpga_reponame
+  fpga_json_data['fpga_reponame'] = fpga_json_data.pop('reponame', '')
+
   print("{}: fpga json data".format(sys.argv[0], file))
   print(json.dumps(fpga_json_data, indent=4, sort_keys=True))
 

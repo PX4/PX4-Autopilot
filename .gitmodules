@@ -112,3 +112,6 @@
 [submodule "src/drivers/imx9_keystore"]
 	path = src/drivers/imx9_keystore
 	url = git@github.com:tiiuae/imx9_keystore.git
+[submodule "Tools/packaging"]
+	path = Tools/saluki_packaging
+	url = git@github.com:tiiuae/saluki_low_level_sw_build.git

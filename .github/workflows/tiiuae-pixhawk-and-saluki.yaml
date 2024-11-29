@@ -153,7 +153,9 @@ jobs:
     name: upload px4fwupdater to docker registry
     runs-on: ubuntu-latest
     env:
-      FPGA_DIR: fpga
+      BUILD_DIR: combine
+      FPGA_DIR: combine/fpga
+      BOOTLOADER_DIR: combine/bootloader
     needs:
       - px4fwupdater
       - variables
@@ -162,6 +164,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: px4-firmware
+          submodules: recursive
+          token: ${{ secrets.GH_REPO_TOKEN }}
           fetch-depth: 0
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -193,14 +197,46 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: fetch fpga files
         run: |
+          set -eux
+
+          pip install check-jsonschema
+
           echo "fetching fpga files from ${{ env.saluki_fpga_repo }}"
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v2_fpga_version }} saluki_v2 ${{ env.FPGA_DIR }}/saluki-v2
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v3_fpga_version }} saluki_v3 ${{ env.FPGA_DIR }}/saluki-v3
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_pi_fpga_version }} saluki_pi ${{ env.FPGA_DIR }}/saluki-pi
           px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_fmu2_fpga_version }} saluki_fmu2 ${{ env.FPGA_DIR }}/saluki-fmu2
 
-          # combine fpga json files to one file
-          python px4-firmware/Tools/collect_json_files.py ${{ env.FPGA_DIR }} ${{ env.FPGA_DIR }}/fpga-file-info.json
+          echo "find out bootloader version from fpga files"
+          saluki_v2_bootloader_container=$(jq -r '.["fpga-files"][] | select(.type | contains("fpga_job")).bootloader_container' ${{ env.FPGA_DIR }}/saluki-v2/saluki_file_info.json)
+          saluki_v3_bootloader_container=$(jq -r '.["fpga-files"][] | select(.type | contains("fpga_job")).bootloader_container' ${{ env.FPGA_DIR }}/saluki-v3/saluki_file_info.json)
+          saluki_pi_bootloader_container=$(jq -r '.["fpga-files"][] | select(.type | contains("fpga_job")).bootloader_container' ${{ env.FPGA_DIR }}/saluki-pi/saluki_file_info.json)
+          saluki_fmu2_bootloader_container=$(jq -r '.["fpga-files"][] | select(.type | contains("fpga_job")).bootloader_container' ${{ env.FPGA_DIR }}/saluki-fmu2/saluki_file_info.json)
+
+          echo "fetch bootloader files"
+          if [[ -n "${saluki_v2_bootloader_container}" ]]; then
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_v2_bootloader_container} saluki-v2 ${{ env.BOOTLOADER_DIR }}/saluki-v2
+            # fetch custom signer bootloader
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_v2_bootloader_container} saluki-v2_custom ${{ env.BOOTLOADER_DIR }}/saluki-v2_custom
+          fi
+          if [[ -n "${saluki_v3_bootloader_container}" ]]; then
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_v3_bootloader_container} saluki-v3 ${{ env.BOOTLOADER_DIR }}/saluki-v3
+            # fetch custom signer bootloader
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_v3_bootloader_container} saluki-v3_custom ${{ env.BOOTLOADER_DIR }}/saluki-v3_custom
+          fi
+          if [[ -n "${saluki_pi_bootloader_container}" ]]; then
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_pi_bootloader_container} saluki-pi ${{ env.BOOTLOADER_DIR }}/saluki-pi
+            # fetch custom signer bootloader
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_pi_bootloader_container} saluki-pi_custom ${{ env.BOOTLOADER_DIR }}/saluki-pi_custom
+          fi
+          if [[ -n "${saluki_fmu2_bootloader_container}" ]]; then
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_fmu2_bootloader_container} saluki-fmu2 ${{ env.BOOTLOADER_DIR }}/saluki-fmu2
+            # fetch custom signer bootloader
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_fmu2_bootloader_container} saluki-fmu2_custom ${{ env.BOOTLOADER_DIR }}/saluki-fmu2_custom
+          fi
+
+          # combine fpga+BL json files to one file
+          python px4-firmware/Tools/collect_json_files.py ${{ env.BUILD_DIR }} ${{ env.BUILD_DIR }}/fpga-file-info.json
 
           # generate saluki file info json with project basic info
           # fetched info from git so has to be ran inside the repo
@@ -209,7 +245,10 @@ jobs:
           popd
 
           # combine saluki file info json with fpga json and px4 json files to one file
-          python px4-firmware/Tools/compile_px4_build_info.py saluki_file_info.json bin ${{ env.FPGA_DIR }}/fpga-file-info.json build_basic_info.json
+          python px4-firmware/Tools/compile_px4_build_info.py saluki_file_info.json bin ${{ env.BUILD_DIR }}/fpga-file-info.json build_basic_info.json
+
+          # check saluki_file_info.json is valid json
+          check-jsonschema --schemafile px4-firmware/Tools/saluki_packaging/saluki_file_info-schema.json saluki_file_info.json
 
       - name: Firmware flasher - Build and push
         uses: docker/build-push-action@v5
@@ -222,7 +261,7 @@ jobs:
           tags: ${{ steps.containermeta.outputs.tags }}
           labels: ${{ steps.containermeta.outputs.labels }}
           build-args: |
-            "saluki_fpga_directory=${{ env.FPGA_DIR }}"
+            "saluki_fpga_directory=${{ env.BUILD_DIR }}"
       - name: Build overview
         run: |
           echo "### Build overview:" >> $GITHUB_STEP_SUMMARY

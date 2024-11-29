@@ -34,6 +34,9 @@ build_info["reponame"]=${repo}
 build_info["sha"]=${sha}
 build_info["px4_firmware_sha"]=${px4_sha}
 build_info["build_url"]=${build_url}
+build_info["px4_build_url"]=${build_url}
+build_info["px4_reponame"]=${repo}
+build_info["px4_sha"]=${sha}
 
 # loop thru associative array and print key value pairs
 json_info="{"

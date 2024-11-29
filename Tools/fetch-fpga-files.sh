@@ -1,4 +1,4 @@
-set -eu
+#!/bin/bash -eu
 
 # input parameters:
 # 1: repo url
@@ -35,8 +35,10 @@ else
 	echo "using info from ${fileinfo_json_out}"
 	# find out info from json
 	# files to be used from fileinfo_json files[] -> filename
-	# product=$(echo ${product}|sed 's/_/-/g')
-	filename=$(jq '.files[] | select(.hw=="'${product}'").filename' ${fileinfo_json_out}|sed 's/"//g')
+	#product=$(echo ${product}|sed 's/_/-/g')
+	filename=$(jq -r '.files[] | select(.hw=="'${product}'").filename' ${fileinfo_json_out})
+
+  echo "filet: ${filename}"
 
   tmp_reponame=$(jq '.reponame' ${fileinfo_json_out})
   tmp_sha=$(jq '.sha' ${fileinfo_json_out})

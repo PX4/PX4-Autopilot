@@ -30,16 +30,21 @@ for file in json_files:
     with open(file, 'r') as f:
         data = json.load(f)
 
-        # files array has to be merged separately
+        # fpga-files array has to be merged separately
         fpga_files_tmp_data = json_data.get("fpga-files", []) + data.get("fpga-files", [])
 
-        # WORKAROUND: different naming schemes used in different repos
-        # fpga and bootloader uses for example saluki_pi (underscore)
-        # px4 uses saluki-pi (dash)
         # replace all saluki_ with saluki- in fpga-files[].hw
         for fpga_file in fpga_files_tmp_data:
             if fpga_file.get("hw").startswith("saluki_"):
                 fpga_file["hw"] = fpga_file["hw"].replace("saluki_", "saluki-")
+
+        # bootloader-files array has to be merged separately
+        bl_files_tmp_data = json_data.get("bl-files", []) + data.get("bl-files", [])
+
+        # replace all saluki_ with saluki- in bl-files[].hw
+        for bl_file in bl_files_tmp_data:
+            if bl_file.get("hw").startswith("saluki_"):
+                bl_file["hw"] = bl_file["hw"].replace("saluki_", "saluki-")
 
         # combine all json data into one
         json_data = {**json_data, **data}
@@ -47,6 +52,8 @@ for file in json_files:
         # add fpga-files from temporary merged array
         json_data["fpga-files"] = fpga_files_tmp_data
 
+        # add fpga-files from temporary merged array
+        json_data["bl-files"] = bl_files_tmp_data
 
 print( "{}: this is the combined json data".format(sys.argv[0]))
 print (json.dumps(json_data, indent=4, sort_keys=True))
