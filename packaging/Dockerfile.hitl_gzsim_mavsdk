@@ -1,0 +1,91 @@
+FROM docker.io/ros:humble-ros-base as builder
+
+# Install build dependencies
+RUN apt update
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y \
+	git \
+	curl \
+	lsb-release \
+	gnupg \
+	astyle \
+	build-essential \
+	cmake \
+	cppcheck \
+	file \
+	g++ \
+	gcc \
+	gdb \
+	git \
+	lcov \
+	libfuse2 \
+	libxml2-dev \
+	libxml2-utils \
+	make \
+	ninja-build \
+	python3 \
+	python3-dev \
+	python3-pip \
+	python3-setuptools \
+	python3-wheel \
+	rsync \
+	shellcheck \
+	unzip \
+	ros-humble-fastrtps \
+	ros-humble-rmw-fastrtps-cpp \
+	fastddsgen \
+	wget \
+	libboost-filesystem-dev
+
+RUN curl http://packages.osrfoundation.org/gazebo.key | apt-key add -
+RUN sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+
+RUN wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+
+RUN apt update
+RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y \
+	gz-harmonic
+
+RUN wget --no-check-certificate  https://github.com/mavlink/MAVSDK/releases/download/v1.3.1/libmavsdk-dev_1.3.1_ubuntu20.04_amd64.deb && \
+dpkg -i libmavsdk-dev_1.3.1_ubuntu20.04_amd64.deb && \
+rm libmavsdk-dev_1.3.1_ubuntu20.04_amd64.deb
+
+# Copy source from host
+COPY px4-firmware px4-firmware
+RUN python3 -m pip install -r px4-firmware/Tools/setup/requirements.txt
+RUN cp px4-firmware/packaging/build_px4_hitl_gzsim_mavsdk.sh ./build.sh
+RUN ./build.sh
+
+
+FROM ghcr.io/tiiuae/gz-sim-server:sha-954fefc
+
+RUN apt update
+RUN apt install -y \
+	curl \
+	wget \
+	lsb-release \
+	gnupg \
+	python3 \
+	python3-dev \
+	python3-pip \
+	python3-setuptools \
+	python3-wheel \
+	libboost-filesystem-dev
+
+RUN wget --no-check-certificate  https://github.com/mavlink/MAVSDK/releases/download/v1.3.1/libmavsdk-dev_1.3.1_ubuntu20.04_amd64.deb && \
+dpkg -i libmavsdk-dev_1.3.1_ubuntu20.04_amd64.deb && \
+rm libmavsdk-dev_1.3.1_ubuntu20.04_amd64.deb
+
+COPY px4-firmware/packaging/entrypoint_hitl_gzsim_mavsdk.sh /px4-firmware/entrypoint.sh
+COPY px4-firmware/Tools/setup/requirements.txt /px4-firmware/Tools/setup/requirements.txt
+RUN python3 -m pip install -r /px4-firmware/Tools/setup/requirements.txt
+
+WORKDIR /px4-firmware
+
+COPY --from=builder /px4-firmware/build/px4_sitl_default /px4-firmware/build/px4_sitl_default
+COPY --from=builder /px4-firmware/test/mavsdk_tests /px4-firmware/test/mavsdk_tests
+COPY --from=builder /px4-firmware/Tools/simulation/gz /px4-firmware/Tools/simulation/gz
+
+ENTRYPOINT [ "/px4-firmware/entrypoint.sh" ]
+
+CMD [ "echo", "Available scripts for run: ./Tools/simulation/gz/hitl_run.sh and test/mavsdk_tests/mavsdk_test_runner.py" ]
