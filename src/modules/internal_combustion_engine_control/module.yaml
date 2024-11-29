@@ -95,3 +95,16 @@ parameters:
           long: TBD
         type: boolean
         default: false
+
+      ICE_THR_SLEW:
+        description:
+          short: Throttle slew rate
+          long: |
+              Maximum rate of change of throttle value per second.
+        type: float
+        unit: 1/s
+        min: 0
+        max: 1
+        decimal: 2
+        increment: 0.01
+        default: 0.5

@@ -89,6 +89,7 @@ void InternalCombustionEngineControl::Run()
 
 		// update parameters from storage
 		updateParams();
+		_throttle_control_slew_rate.setSlewRate(_param_ice_thr_slew.get());
 	}
 
 	UserOnOffRequest user_request = UserOnOffRequest::Keep; // todo: keep is not yet doing anything
@@ -220,6 +221,18 @@ void InternalCombustionEngineControl::Run()
 	}
 
 	const hrt_abstime now = hrt_absolute_time();
+
+	const float control_interval = math::constrain(static_cast<float>((now - _last_time_run) * 1e-6f), 0.01f, 0.1f);
+
+	_last_time_run = now;
+
+	// slew rate limit throttle control if it's finite, otherwise just pass it through (0 throttle = NAN = disarmed)
+	if (PX4_ISFINITE(ice_control.throttle_control)) {
+		ice_control.throttle_control  = _throttle_control_slew_rate.update(ice_control.throttle_control, control_interval);
+
+	} else {
+		_throttle_control_slew_rate.setForcedValue(0.f);
+	}
 
 	ice_control.timestamp = now;
 	ice_control.user_request = static_cast<uint8_t>(user_request);

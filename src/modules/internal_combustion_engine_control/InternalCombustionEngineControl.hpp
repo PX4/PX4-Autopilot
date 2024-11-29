@@ -48,6 +48,8 @@
 #include <uORB/topics/rpm.h>
 #include <uORB/topics/actuator_motors.h>
 
+#include <lib/slew_rate/SlewRate.hpp>
+
 namespace internal_combustion_engine_control
 {
 
@@ -99,8 +101,11 @@ private:
 	};
 
 	hrt_abstime _state_start_time{0};
+	hrt_abstime _last_time_run{0};
 	int _starting_retry_cycle{0};
 	bool engine_tried_to_restart{false};
+
+	SlewRate<float> _throttle_control_slew_rate;
 
 	bool isEngineRunning();
 	void instantiateEngineStart();
@@ -117,7 +122,8 @@ private:
 		(ParamInt<px4::params::ICE_STRT_RETRY>) _param_ice_strt_retry,
 		(ParamInt<px4::params::ICE_RETRY_FAULT>) _param_ice_retry_fault,
 		(ParamFloat<px4::params::ICE_STRT_THR>) _param_ice_strt_thr,
-		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke
+		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke,
+		(ParamFloat<px4::params::ICE_THR_SLEW>) _param_ice_thr_slew
 	)
 };
 

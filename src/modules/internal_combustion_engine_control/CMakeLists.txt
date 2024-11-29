@@ -42,4 +42,5 @@ px4_add_module(
 		module.yaml
 	DEPENDS
 		px4_work_queue
+		SlewRate
 )
