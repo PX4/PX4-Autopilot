@@ -35,6 +35,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <px4_arch/micro_hal.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -85,4 +86,5 @@ private:
 
 	hrt_abstime _timestamp_last_update{0}; ///< to caluclate dt
 	AlphaFilter<float> _rpm_filter;
+	MedianFilter<float, 5> _rpm_median_filter;
 };
