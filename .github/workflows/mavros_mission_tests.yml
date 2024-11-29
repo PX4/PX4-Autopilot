@@ -88,7 +88,7 @@ jobs:
       run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
     - name: Upload px4 coredump
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coredump
         path: px4.core
@@ -103,21 +103,21 @@ jobs:
 
     - name: Upload px4 binary
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: binary
         path: build/px4_sitl_default/bin/px4
 
     - name: Store PX4 log
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: px4_log
         path: ~/.ros/log/*/*.ulg
 
     - name: Store ROS log
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ros_log
         path: ~/.ros/**/rostest-*.log
