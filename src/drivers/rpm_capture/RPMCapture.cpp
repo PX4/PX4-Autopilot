@@ -138,7 +138,7 @@ void RPMCapture::Run()
 	const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 0.01f, 1.f);
 	_timestamp_last_update = now;
 	_rpm_filter.setParameters(dt, 0.5f);
-	_rpm_filter.update(rpm_raw);
+	_rpm_filter.update(_rpm_median_filter.apply(rpm_raw));
 
 	rpm_s rpm{};
 	rpm.timestamp = now;
