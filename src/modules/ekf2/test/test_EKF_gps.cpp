@@ -107,7 +107,7 @@ TEST_F(EkfGpsTest, gpsFixLoss)
 	// THEN: after dead-reconing for a couple of seconds, the local position gets invalidated
 	_sensor_simulator.runSeconds(6);
 	EXPECT_TRUE(_ekf->control_status_flags().inertial_dead_reckoning);
-	EXPECT_FALSE(_ekf->local_position_is_valid());
+	EXPECT_FALSE(_ekf->isLocalHorizontalPositionValid());
 
 	// The control logic takes a bit more time to deactivate the GNSS fusion completely
 	_sensor_simulator.runSeconds(5);
@@ -164,7 +164,7 @@ TEST_F(EkfGpsTest, resetToGpsPosition)
 
 	// AND: simulate jump in position
 	_sensor_simulator.startGps();
-	const Vector3f simulated_position_change(2.0f, -1.0f, 0.f);
+	const Vector3f simulated_position_change(20.0f, -1.0f, 0.f);
 	_sensor_simulator._gps.stepHorizontalPositionByMeters(
 		Vector2f(simulated_position_change));
 	_sensor_simulator.runSeconds(6);

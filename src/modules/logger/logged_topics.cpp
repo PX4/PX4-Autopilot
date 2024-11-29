@@ -104,6 +104,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_optional_topic("rover_ackermann_guidance_status", 100);
+	add_optional_topic("rover_ackermann_setpoint", 100);
 	add_optional_topic("rover_ackermann_status", 100);
 	add_optional_topic("rover_differential_guidance_status", 100);
 	add_optional_topic("rover_differential_setpoint", 100);

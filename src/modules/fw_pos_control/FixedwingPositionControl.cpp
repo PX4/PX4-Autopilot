@@ -690,6 +690,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 	FW_POSCTRL_MODE commanded_position_control_mode = _control_mode_current;
 
 	_skipping_takeoff_detection = false;
+	const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
 	if (_control_mode.flag_control_offboard_enabled && _position_setpoint_current_valid
 	    && _control_mode.flag_control_position_enabled) {
@@ -711,7 +712,6 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
 		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
-		const bool doing_backtransition = _vehicle_status.in_transition_mode && !_vehicle_status.in_transition_to_fw;
 
 		if (doing_backtransition) {
 			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
@@ -764,8 +764,12 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 			_time_in_fixed_bank_loiter = now;
 		}
 
-		if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
-		    && !_vehicle_status.in_transition_mode) {
+		if (doing_backtransition) {
+			// we handle loss of position control during backtransition as a special case
+			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
+
+		} else if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
+			   && !_vehicle_status.in_transition_mode) {
 			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
 				// Need to init because last loop iteration was in a different mode
 				events::send(events::ID("fixedwing_position_control_fb_loiter"), events::Log::Critical,
@@ -961,7 +965,9 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
 	const float yaw_body = 0.f;
 
-	if (_landed) {
+	// Special case: if z or vz estimate is invalid we cannot control height anymore. To prevent a
+	// "climb-away" we set the thrust to MIN in that case.
+	if (_landed || !_local_pos.z_valid || !_local_pos.v_z_valid) {
 		_att_sp.thrust_body[0] = _param_fw_thr_min.get();
 
 	} else {
@@ -1000,7 +1006,11 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 	const float roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
 	const float yaw_body = 0.f;
 
-	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
+	// Special case: if vz estimate is invalid we cannot control height rate anymore. To prevent a
+	// "climb-away" we set the thrust to MIN in that case.
+	_att_sp.thrust_body[0] = (_landed
+				  || !_local_pos.v_z_valid) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
+
 	const float pitch_body = get_tecs_pitch();
 	const Quatf attitude_setpoint(Eulerf(roll_body, pitch_body, yaw_body));
 	attitude_setpoint.copyTo(_att_sp.q_d);
@@ -2366,9 +2376,13 @@ void FixedwingPositionControl::control_backtransition(const float control_interv
 		_lpos_where_backtrans_started = curr_pos_local;
 	}
 
-	navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+	float roll_body{0.0f};
 
-	float roll_body = getCorrectedNpfgRollSetpoint();
+	if (_control_mode.flag_control_position_enabled) {
+		navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+		roll_body = getCorrectedNpfgRollSetpoint();
+	}
+
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw

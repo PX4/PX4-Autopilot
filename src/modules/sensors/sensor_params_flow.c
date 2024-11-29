@@ -111,3 +111,13 @@ PARAM_DEFINE_FLOAT(SENS_FLOW_MAXR, 8.f);
  *
  */
 PARAM_DEFINE_FLOAT(SENS_FLOW_RATE, 70.0f);
+
+/**
+ * Optical flow scale factor
+ *
+ * @min 0.5
+ * @max 1.5
+ * @decimal 2
+ * @group Sensors
+ */
+PARAM_DEFINE_FLOAT(SENS_FLOW_SCALE, 1.f);

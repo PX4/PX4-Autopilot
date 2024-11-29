@@ -54,6 +54,7 @@
 #define MMC5983MA_CTRL_REG1_SW_RESET     (1 << 7)
 
 extern device::Device *MMC5983MA_I2C_interface(const I2CSPIDriverConfig &config);
+extern device::Device *MMC5983MA_SPI_interface(const I2CSPIDriverConfig &config);
 
 class MMC5983MA : public I2CSPIDriver<MMC5983MA>
 {

@@ -68,16 +68,27 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 
 	snprintf(param_name, sizeof(param_name), "BAT%d_I_CHANNEL", index);
 	_analog_param_handles.i_channel = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_I_OVERWRITE", index);
+	_analog_param_handles.i_overwrite = param_find(param_name);
 }
 
 void
 AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw)
 {
 	const float voltage_v = voltage_raw * _analog_params.v_div;
-	const float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
-
 	const bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			       (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
+	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
+
+	// Overwrite the measured current if current overwrite is defined and vehicle is unarmed
+	if (_analog_params.i_overwrite > 0) {
+		updateTopics();
+
+		if (_arming_state == vehicle_status_s::ARMING_STATE_DISARMED) {
+			current_a = _analog_params.i_overwrite;
+		}
+	}
 
 	Battery::setConnected(connected);
 	Battery::updateVoltage(voltage_v);
@@ -123,7 +134,17 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
 	param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
 	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
+	param_get(_analog_param_handles.i_overwrite, &_analog_params.i_overwrite);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 
 	Battery::updateParams();
+}
+
+void AnalogBattery::updateTopics()
+{
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_arming_state = vehicle_status.arming_state;
+	}
 }

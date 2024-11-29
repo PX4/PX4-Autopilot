@@ -1074,6 +1074,21 @@ Mavlink::send_autopilot_capabilities()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_FENCE;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_RALLY;
+
+
+		{
+			param_t param_handle = param_find_no_notification("MNT_MODE_IN");
+			int32_t mnt_mode_in = 0;
+
+			if (mnt_mode_in != PARAM_INVALID) {
+				param_get(param_handle, &mnt_mode_in);
+
+				if (mnt_mode_in == 4) {
+					msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMPONENT_IMPLEMENTS_GIMBAL_MANAGER;
+				}
+			}
+		}
+
 		msg.flight_sw_version = px4_firmware_version();
 		msg.middleware_sw_version = px4_firmware_version();
 		msg.os_sw_version = px4_os_version();
@@ -1405,7 +1420,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("COLLISION", unlimited_rate);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("DISTANCE_SENSOR", 0.5f);
 		configure_stream_local("EFI_STATUS", 2.0f);
@@ -1481,7 +1495,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("COLLISION", unlimited_rate);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("EFI_STATUS", 2.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
@@ -1560,7 +1573,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("COLLISION", unlimited_rate);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
@@ -1646,7 +1658,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("COLLISION", unlimited_rate);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("EFI_STATUS", 10.0f);
 		configure_stream_local("ESC_INFO", 10.0f);
@@ -1749,7 +1760,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("AVAILABLE_MODES", 0.3f);
 		configure_stream_local("BATTERY_STATUS", 0.5f);
 		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
-		configure_stream_local("COLLISION", unlimited_rate);
 		configure_stream_local("CURRENT_MODE", 0.5f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);

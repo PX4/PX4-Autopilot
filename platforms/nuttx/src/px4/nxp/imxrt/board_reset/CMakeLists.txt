@@ -35,7 +35,9 @@ px4_add_library(arch_board_reset
 	board_reset.cpp
 )
 
+if (CONFIG_ARCH_FAMILY_IMXRT117x)
 target_link_libraries(arch_board_reset PRIVATE arch_board_romapi)
+endif()
 
 # up_systemreset
 if (NOT DEFINED CONFIG_BUILD_FLAT)

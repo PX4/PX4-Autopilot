@@ -2,10 +2,6 @@
 	path = src/modules/mavlink/mavlink
 	url = https://github.com/mavlink/mavlink.git
 	branch = master
-[submodule "src/drivers/uavcan/libuavcan"]
-	path = src/drivers/uavcan/libuavcan
-	url = https://github.com/dronecan/libuavcan.git
-	branch = main
 [submodule "Tools/simulation/jmavsim/jMAVSim"]
 	path = Tools/simulation/jmavsim/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
@@ -87,3 +83,9 @@
 	path = src/drivers/actuators/vertiq_io/iq-module-communication-cpp
 	url = https://github.com/PX4/iq-module-communication-cpp.git
 	branch = master
+[submodule "src/drivers/uavcan/libdronecan/dsdl"]
+	path = src/drivers/uavcan/libdronecan/dsdl
+	url = https://github.com/PX4/DSDL.git
+[submodule "src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan"]
+	path = src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan
+	url = https://github.com/dronecan/pydronecan

@@ -186,6 +186,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_fmu-v6x_default
+    ark_fpv_bootloader:
+      short: ark_fpv_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_fpv_bootloader
+    ark_fpv_default:
+      short: ark_fpv_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_fpv_default
     ark_pi6x_bootloader:
       short: ark_pi6x_bootloader
       buildType: MinSizeRel
@@ -296,6 +306,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: micoair_h743_default
+    micoair_h743-aio_bootloader:
+      short: micoair_h743-aio_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-aio_bootloader
+    micoair_h743-aio_default:
+      short: micoair_h743-aio
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-aio_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel
@@ -346,6 +366,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_mr-canhubk3_fmu
+    nxp_tropic-community_default:
+      short: nxp_tropic-community_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_tropic-community_default
     raspberrypi_pico_default:
       short: raspberrypi_pico
       buildType: MinSizeRel

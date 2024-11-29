@@ -75,6 +75,10 @@ static constexpr const char *battery_fault_reason_str(battery_fault_reason_t bat
 void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
+		// Reset related failsafe flags otherwise failures from before disabling the check cause failsafes without reported reason
+		reporter.failsafeFlags().battery_unhealthy = false;
+		reporter.failsafeFlags().battery_low_remaining_time = false;
+		reporter.failsafeFlags().battery_warning = battery_status_s::BATTERY_WARNING_NONE;
 		return;
 	}
 

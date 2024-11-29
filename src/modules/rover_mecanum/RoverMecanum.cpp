@@ -160,6 +160,19 @@ void RoverMecanum::Run()
 				rover_mecanum_setpoint.yaw_rate_setpoint_normalized = NAN;
 				rover_mecanum_setpoint.yaw_setpoint = NAN;
 
+				// Reset cruise control if the manual input changes
+				if (_yaw_ctl && (!(fabsf(manual_control_setpoint.throttle - _prev_throttle) > STICK_DEADZONE)
+						 || !(fabsf(manual_control_setpoint.roll - _prev_roll) > STICK_DEADZONE))) {
+					_yaw_ctl = false;
+					_prev_throttle = manual_control_setpoint.throttle;
+					_prev_roll = manual_control_setpoint.roll;
+
+				} else if (!_yaw_ctl) {
+					_prev_throttle = manual_control_setpoint.throttle;
+					_prev_roll = manual_control_setpoint.roll;
+				}
+
+
 				if (fabsf(rover_mecanum_setpoint.yaw_rate_setpoint) > FLT_EPSILON
 				    || (fabsf(rover_mecanum_setpoint.forward_speed_setpoint) < FLT_EPSILON
 					&& fabsf(rover_mecanum_setpoint.lateral_speed_setpoint) < FLT_EPSILON)) { // Closed loop yaw rate control
@@ -168,12 +181,30 @@ void RoverMecanum::Run()
 					rover_mecanum_setpoint.yaw_setpoint = NAN;
 					_yaw_ctl = false;
 
-				} else { // Closed loop yaw control // TODO: Add cruise control
+				} else { // Cruise control
+					const Vector3f velocity = Vector3f(rover_mecanum_setpoint.forward_speed_setpoint,
+									   rover_mecanum_setpoint.lateral_speed_setpoint, 0.f);
+					const float desired_velocity_magnitude = velocity.norm();
+
 					if (!_yaw_ctl) {
 						_desired_yaw = _vehicle_yaw;
 						_yaw_ctl = true;
+						_pos_ctl_start_position_ned = _curr_pos_ned;
+						const Vector3f pos_ctl_course_direction_local = _vehicle_attitude_quaternion.rotateVector(velocity.normalized());
+						_pos_ctl_course_direction = Vector2f(pos_ctl_course_direction_local(0), pos_ctl_course_direction_local(1));
+
 					}
 
+					// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
+					const float vector_scaling = sqrtf(powf(_param_pp_lookahd_max.get(),
+										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceOnLineSegment();
+					const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + vector_scaling * _pos_ctl_course_direction;
+					const float desired_heading = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned, _pos_ctl_start_position_ned,
+								      _curr_pos_ned, desired_velocity_magnitude);
+					const float heading_error = matrix::wrap_pi(desired_heading - _vehicle_yaw);
+					const Vector2f desired_velocity = desired_velocity_magnitude * Vector2f(cosf(heading_error), sinf(heading_error));
+					rover_mecanum_setpoint.forward_speed_setpoint = desired_velocity(0);
+					rover_mecanum_setpoint.lateral_speed_setpoint = desired_velocity(1);
 					rover_mecanum_setpoint.yaw_setpoint = _desired_yaw;
 					rover_mecanum_setpoint.yaw_rate_setpoint = NAN;
 				}

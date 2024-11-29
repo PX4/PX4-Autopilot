@@ -327,9 +327,9 @@ void Sih::generate_fw_aerodynamics()
 {
 	_v_B = _C_IB.transpose() * _v_I; 	// velocity in body frame [m/s]
 	float altitude = _H0 - _p_I(2);
-	_wing_l.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
-	_wing_r.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
-	_tailplane.update_aero(_v_B, _w_B, altitude, _u[1]*FLAP_MAX, _T_MAX * _u[3]);
+	_wing_l.update_aero(_v_B, _w_B, altitude, -_u[0]*FLAP_MAX);
+	_wing_r.update_aero(_v_B, _w_B, altitude, _u[0]*FLAP_MAX);
+	_tailplane.update_aero(_v_B, _w_B, altitude, -_u[1]*FLAP_MAX, _T_MAX * _u[3]);
 	_fin.update_aero(_v_B, _w_B, altitude, _u[2]*FLAP_MAX, _T_MAX * _u[3]);
 	_fuselage.update_aero(_v_B, _w_B, altitude);
 
@@ -409,11 +409,9 @@ void Sih::equations_of_motion(const float dt)
 			// integration: Euler forward
 			_p_I = _p_I + _p_I_dot * dt;
 			_v_I = _v_I + _v_I_dot * dt;
-			Eulerf RPY = Eulerf(_q);
-			RPY(0) = 0.0f;	// no roll
-			RPY(1) = radians(0.0f); // pitch slightly up if needed to get some lift
-			_q = Quatf(RPY);
-			_w_B.setZero();
+			_q = _q * _dq;
+			_q.normalize();
+			_w_B = constrain(_w_B + _w_B_dot * dt, -6.0f * M_PI_F, 6.0f * M_PI_F);
 			_grounded = true;
 		}
 
@@ -450,8 +448,7 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	// TODO: send differential pressure instead?
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
-	// airspeed sensor is mounted along the negative Z axis since the vehicle is a tailsitter
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, -_v_B(2) + generate_wgn() * 0.2f);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, _v_B.norm() + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.air_temperature_celsius = NAN;
 	airspeed.confidence = 0.7f;

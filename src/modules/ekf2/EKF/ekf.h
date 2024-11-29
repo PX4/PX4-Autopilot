@@ -66,6 +66,8 @@
 # include "aid_sources/aux_global_position/aux_global_position.hpp"
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 
+#include "lat_lon_alt/lat_lon_alt.hpp"
+
 enum class Likelihood { LOW, MEDIUM, HIGH };
 class ExternalVisionVel;
 
@@ -102,8 +104,8 @@ public:
 	bool isTerrainEstimateValid() const { return _terrain_valid; }
 
 	// get the estimated terrain vertical position relative to the NED origin
-	float getTerrainVertPos() const { return _state.terrain; };
-	float getHagl() const { return _state.terrain - _state.pos(2); }
+	float getTerrainVertPos() const { return _state.terrain + getEkfGlobalOriginAltitude(); };
+	float getHagl() const { return _state.terrain + _gpos.altitude(); }
 
 	// get the terrain variance
 	float getTerrainVariance() const { return P(State::terrain.idx, State::terrain.idx); }
@@ -192,8 +194,8 @@ public:
 	bool checkLatLonValidity(double latitude, double longitude);
 	bool checkAltitudeValidity(float altitude);
 	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = NAN, float epv = NAN);
-	bool setEkfGlobalOriginFromCurrentPos(double latitude, double longitude, float altitude, float eph = NAN,
-					      float epv = NAN);
+	bool resetGlobalPositionTo(double latitude, double longitude, float altitude, float eph = NAN,
+				   float epv = NAN);
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const;
@@ -217,16 +219,17 @@ public:
 	void resetAccelBias();
 	void resetAccelBiasCov();
 
-	// return true if the global position estimate is valid
-	// return true if the origin is set we are not doing unconstrained free inertial navigation
-	// and have not started using synthetic position observations to constrain drift
-	bool global_position_is_valid() const
+	bool isGlobalHorizontalPositionValid() const
 	{
-		return (_pos_ref.isInitialized() && local_position_is_valid());
+		return _local_origin_lat_lon.isInitialized() && isLocalHorizontalPositionValid();
 	}
 
-	// return true if the local position estimate is valid
-	bool local_position_is_valid() const
+	bool isGlobalVerticalPositionValid() const
+	{
+		return PX4_ISFINITE(_local_origin_alt) && isLocalVerticalPositionValid();
+	}
+
+	bool isLocalHorizontalPositionValid() const
 	{
 		return !_horizontal_deadreckon_time_exceeded;
 	}
@@ -371,8 +374,6 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	void collect_gps(const gnssSample &gps);
-
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 
@@ -469,6 +470,8 @@ private:
 
 	StateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
+	LatLonAlt _gpos{0.0, 0.0, 0.f};
+
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
 
 	uint64_t _time_last_horizontal_aiding{0}; ///< amount of time we have been doing inertial only deadreckoning (uSec)
@@ -482,9 +485,10 @@ private:
 	uint64_t _time_last_heading_fuse{0};
 	uint64_t _time_last_terrain_fuse{0};
 
-	Vector3f _last_known_pos{};		///< last known local position vector (m)
+	LatLonAlt _last_known_gpos{};
 
-	Vector3f _earth_rate_NED{};	///< earth rotation vector (NED) in rad/s
+	Vector3f _earth_rate_NED{}; ///< earth rotation vector (NED) in rad/s
+	double _earth_rate_lat_ref_rad{0.0}; ///< latitude at which the earth rate was evaluated (radians)
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 
@@ -641,11 +645,11 @@ private:
 		P.slice<S.dof, S.dof>(S.idx, S.idx) = cov;
 	}
 
-	bool setLatLonOrigin(double latitude, double longitude, float eph = NAN);
-	bool setAltOrigin(float altitude, float epv = NAN);
+	bool setLatLonOrigin(double latitude, double longitude, float hpos_var = NAN);
+	bool setAltOrigin(float altitude, float vpos_var = NAN);
 
-	bool setLatLonOriginFromCurrentPos(double latitude, double longitude, float eph = NAN);
-	bool setAltOriginFromCurrentPos(float altitude, float epv = NAN);
+	bool resetLatLonTo(double latitude, double longitude, float hpos_var = NAN);
+	bool initialiseAltitudeTo(float altitude, float vpos_var = NAN);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
@@ -707,14 +711,22 @@ private:
 
 	void resetHorizontalPositionToLastKnown();
 
-	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
-	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
+	void resetHorizontalPositionTo(const double &new_latitude, const double &new_longitude,
+				       const Vector2f &new_horz_pos_var);
+	void resetHorizontalPositionTo(const double &new_latitude, const double &new_longitude, const float pos_var = NAN) { resetHorizontalPositionTo(new_latitude, new_longitude, Vector2f(pos_var, pos_var)); }
+	void resetHorizontalPositionTo(const Vector2f &new_pos, const Vector2f &new_horz_pos_var);
+
+	Vector2f getLocalHorizontalPosition() const;
+
+	Vector2f computeDeltaHorizontalPosition(const double &new_latitude, const double &new_longitude) const;
+	void updateHorizontalPositionResetStatus(const Vector2f &delta);
 
 	void resetWindTo(const Vector2f &wind, const Vector2f &wind_var);
 
 	bool isHeightResetRequired() const;
 
-	void resetVerticalPositionTo(float new_vert_pos, float new_vert_pos_var = NAN);
+	void resetAltitudeTo(float new_altitude, float new_vert_pos_var = NAN);
+	void updateVerticalPositionResetStatus(const float delta_z);
 
 	void resetVerticalVelocityToZero();
 
@@ -736,6 +748,7 @@ private:
 	void controlTerrainFakeFusion();
 
 	void updateTerrainValidity();
+	void updateTerrainResetStatus(const float delta_z);
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
@@ -828,6 +841,7 @@ private:
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient,
 			       bool reset, estimator_aid_source2d_s &aid_src);
+
 	void stopEvPosFusion();
 	void stopEvHgtFusion();
 	void stopEvVelFusion();
@@ -1045,9 +1059,9 @@ private:
 	}
 
 	// helper used for populating and filtering estimator aid source struct for logging
-	template <typename T, typename S>
+	template <typename T, typename S, typename D>
 	void updateAidSourceStatus(T &status, const uint64_t &timestamp_sample,
-				   const S &observation, const S &observation_variance,
+				   const D &observation, const S &observation_variance,
 				   const S &innovation, const S &innovation_variance,
 				   float innovation_gate = 1.f) const
 	{
@@ -1102,7 +1116,7 @@ private:
 
 			status.test_ratio[i] = test_ratio;
 
-			status.observation[i] = observation(i);
+			status.observation[i] = static_cast<double>(observation(i));
 			status.observation_variance[i] = observation_variance(i);
 
 			status.innovation[i] = innovation(i);

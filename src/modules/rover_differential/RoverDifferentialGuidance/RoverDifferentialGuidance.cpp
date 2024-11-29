@@ -91,9 +91,9 @@ void RoverDifferentialGuidance::computeGuidance(const float vehicle_yaw, const f
 			desired_forward_speed = _max_forward_speed;
 
 			if (_waypoint_transition_angle < M_PI_F - _param_rd_trans_drv_trn.get()) {
-				if (_param_rd_max_jerk.get() > FLT_EPSILON && _param_rd_max_accel.get() > FLT_EPSILON) {
+				if (_param_rd_max_jerk.get() > FLT_EPSILON && _param_rd_max_decel.get() > FLT_EPSILON) {
 					desired_forward_speed = math::trajectory::computeMaxSpeedFromDistance(_param_rd_max_jerk.get(),
-								_param_rd_max_accel.get(), distance_to_curr_wp, 0.0f);
+								_param_rd_max_decel.get(), distance_to_curr_wp, 0.0f);
 					desired_forward_speed = math::constrain(desired_forward_speed, -_max_forward_speed, _max_forward_speed);
 				}
 			}
@@ -130,7 +130,7 @@ void RoverDifferentialGuidance::computeGuidance(const float vehicle_yaw, const f
 	rover_differential_setpoint.forward_speed_setpoint = desired_forward_speed;
 	rover_differential_setpoint.forward_speed_setpoint_normalized = NAN;
 	rover_differential_setpoint.yaw_rate_setpoint = NAN;
-	rover_differential_setpoint.yaw_rate_setpoint_normalized = NAN;
+	rover_differential_setpoint.speed_diff_setpoint_normalized = NAN;
 	rover_differential_setpoint.yaw_setpoint = desired_yaw;
 	_rover_differential_setpoint_pub.publish(rover_differential_setpoint);
 }

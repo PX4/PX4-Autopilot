@@ -39,29 +39,35 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/slew_rate/SlewRate.hpp>
+#include <lib/pure_pursuit/PurePursuit.hpp>
 
 // uORB includes
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_motors.h>
-#include <uORB/topics/actuator_servos.h>
-#include <uORB/topics/rover_ackermann_status.h>
+#include <uORB/topics/rover_ackermann_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 
 // Standard library includes
 #include <math.h>
+#include <matrix/matrix/math.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 // Local includes
 #include "RoverAckermannGuidance/RoverAckermannGuidance.hpp"
-using motor_setpoint_struct = RoverAckermannGuidance::motor_setpoint;
+#include "RoverAckermannControl/RoverAckermannControl.hpp"
 
 using namespace time_literals;
+
+// Constants
+static constexpr float STICK_DEADZONE =
+	0.1f; // [0, 1] Percentage of stick input range that will be interpreted as zero around the stick centered value
+static constexpr float SPEED_THRESHOLD =
+	0.1f; // [m/s] The minimum threshold for the speed measurement not to be interpreted as zero
 
 class RoverAckermann : public ModuleBase<RoverAckermann>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -96,49 +102,44 @@ private:
 	 */
 	void updateSubscriptions();
 
-	/**
-	 * @brief Apply slew rates to motor setpoints.
-	 * @param motor_setpoint Normalized steering and throttle setpoints.
-	 * @param dt Time since last update [s].
-	 * @return Motor setpoint with applied slew rates.
-	 */
-	motor_setpoint_struct applySlewRates(motor_setpoint_struct motor_setpoint, float dt);
-
-	/**
-	 * @brief Publish motor setpoints to ActuatorMotors/ActuatorServos and logging values to RoverAckermannStatus.
-	 * @param motor_setpoint_with_slew_rate Normalized motor_setpoint with applied slew rates.
-	 */
-	void publishMotorSetpoints(motor_setpoint_struct motor_setpoint_with_slew_rates);
-
 	// uORB subscriptions
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	// uORB publications
-	uORB::PublicationMulti<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
-	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
-	uORB::Publication<rover_ackermann_status_s> _rover_ackermann_status_pub{ORB_ID(rover_ackermann_status)};
+	uORB::Publication<rover_ackermann_setpoint_s> _rover_ackermann_setpoint_pub{ORB_ID(rover_ackermann_setpoint)};
 
 	// Class instances
 	RoverAckermannGuidance _ackermann_guidance{this};
+	RoverAckermannControl _ackermann_control{this};
+	PurePursuit _posctl_pure_pursuit{this}; // Pure pursuit library
 
 	// Variables
+	matrix::Quatf _vehicle_attitude_quaternion{};
 	int _nav_state{0};
-	motor_setpoint_struct _motor_setpoint;
-	hrt_abstime _timestamp{0};
-	float _actual_speed{0.f};
-	SlewRate<float> _steering_with_rate_limit{0.f};
-	SlewRate<float> _throttle_with_accel_limit{0.f};
+	float _vehicle_forward_speed{0.f};
+	float _vehicle_yaw{0.f};
 	bool _armed{false};
+	bool _course_control{false};
+	Vector2f _pos_ctl_course_direction{};
+	Vector2f _pos_ctl_start_position_ned{};
+	Vector2f _curr_pos_ned{};
+	float _vehicle_lateral_acceleration{0.f};
+	AlphaFilter<float> _ax_filter;
+	AlphaFilter<float> _ay_filter;
+	AlphaFilter<float> _az_filter;
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_R_REV>) _param_r_rev,
+		(ParamFloat<px4::params::RA_WHEEL_BASE>) _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>) _param_ra_max_steer_angle,
 		(ParamFloat<px4::params::RA_MAX_SPEED>) _param_ra_max_speed,
-		(ParamFloat<px4::params::RA_MAX_ACCEL>) _param_ra_max_accel,
-		(ParamFloat<px4::params::RA_MAX_STR_RATE>) _param_ra_max_steering_rate
+		(ParamFloat<px4::params::RA_MAX_LAT_ACCEL>) _param_ra_max_lat_accel,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>) _param_pp_lookahd_max
+
 	)
+
 };

@@ -7,7 +7,7 @@ uint32 device_id
 
 uint64 time_last_fuse
 
-float32[2] observation
+float64[2] observation
 float32[2] observation_variance
 
 float32[2] innovation

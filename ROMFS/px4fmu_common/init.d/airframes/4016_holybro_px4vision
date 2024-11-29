@@ -67,7 +67,6 @@ param set-default MPC_Z_VEL_P_ACC 5
 param set-default MPC_Z_VEL_I_ACC 3
 param set-default MPC_LAND_ALT1 3
 param set-default MPC_LAND_ALT2 1
-param set-default MPC_POS_MODE 3
 param set-default CP_GO_NO_DATA 1
 
 # Navigator Parameters

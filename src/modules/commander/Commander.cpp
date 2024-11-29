@@ -594,7 +594,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			return TRANSITION_DENIED;
 		}
 
-		_health_and_arming_checks.update();
+		_health_and_arming_checks.update(false, true);
 
 		if (!_health_and_arming_checks.canArm(_vehicle_status.nav_state)) {
 			tune_negative(true);
@@ -716,6 +716,8 @@ Commander::Commander() :
 	}
 
 	updateParameters();
+
+	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
 }
 
 Commander::~Commander()
@@ -1970,7 +1972,7 @@ void Commander::checkForMissionUpdate()
 	if (_mission_result_sub.updated()) {
 		const mission_result_s &mission_result = _mission_result_sub.get();
 
-		const auto prev_mission_mission_id = mission_result.mission_id;
+		const uint32_t prev_mission_mission_id = mission_result.mission_id;
 		_mission_result_sub.update();
 
 		// if mission_result is valid for the current mission
@@ -2155,9 +2157,10 @@ void Commander::vtolStatusUpdate()
 	if (_vtol_vehicle_status_sub.update(&_vtol_vehicle_status) && is_vtol(_vehicle_status)) {
 
 		// Check if there has been any change while updating the flags (transition = rotary wing status)
-		const auto new_vehicle_type = _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ?
-					      vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
-					      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		const uint8_t new_vehicle_type =
+			_vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ?
+			vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
+			vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 		if (new_vehicle_type != _vehicle_status.vehicle_type) {
 			_vehicle_status.vehicle_type = new_vehicle_type;
@@ -2798,8 +2801,8 @@ void Commander::dataLinkCheck()
 					_open_drone_id_system_lost = false;
 
 					if (_datalink_last_heartbeat_open_drone_id_system != 0) {
-						mavlink_log_info(&_mavlink_log_pub, "OpenDroneID system regained\t");
-						events::send(events::ID("commander_open_drone_id_regained"), events::Log::Info, "OpenDroneID system regained");
+						mavlink_log_info(&_mavlink_log_pub, "Remote ID system regained\t");
+						events::send(events::ID("commander_open_drone_id_regained"), events::Log::Info, "Remote ID system regained");
 					}
 				}
 
@@ -2860,11 +2863,11 @@ void Commander::dataLinkCheck()
 		_status_changed = true;
 	}
 
-	// OpenDroneID system
+	// Remote ID system
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_open_drone_id_system) > 3_s)
 	    && !_open_drone_id_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "OpenDroneID system lost");
-		events::send(events::ID("commander_open_drone_id_lost"), events::Log::Critical, "OpenDroneID system lost");
+		mavlink_log_critical(&_mavlink_log_pub, "Remote ID system lost");
+		events::send(events::ID("commander_remote_id_lost"), events::Log::Critical, "Remote ID system lost");
 		_vehicle_status.open_drone_id_system_present = false;
 		_vehicle_status.open_drone_id_system_healthy = false;
 		_open_drone_id_system_lost = true;
@@ -2997,6 +3000,20 @@ void Commander::send_parachute_command()
 	vcmd_pub.publish(vcmd);
 
 	set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
+}
+
+void Commander::onFailsafeNotifyUserTrampoline(void *arg)
+{
+	Commander *commander = static_cast<Commander *>(arg);
+	commander->onFailsafeNotifyUser();
+}
+
+void Commander::onFailsafeNotifyUser()
+{
+	// If we are about to inform about a failsafe, we need to ensure any pending health report is sent out first,
+	// as the failsafe message might reference that. This is only needed in case the report is currently rate-limited,
+	// i.e. it had a recent previous change already.
+	_health_and_arming_checks.reportIfUnreportedDifferences();
 }
 
 int Commander::print_usage(const char *reason)
