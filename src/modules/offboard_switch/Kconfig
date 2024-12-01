@@ -1,0 +1,12 @@
+menuconfig MODULES_OFFBOARD_SWITCH
+	bool "offboard_switch"
+	default n
+	---help---
+		Enable support for fw_att_control
+
+menuconfig USER_MODULES_OFFBOARD_SWITCH
+	bool "fw_rate_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED
+	---help---
+		Put offboard_switch in userspace memory
