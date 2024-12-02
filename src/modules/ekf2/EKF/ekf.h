@@ -191,9 +191,9 @@ public:
 	void getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
 	bool checkLatLonValidity(double latitude, double longitude);
 	bool checkAltitudeValidity(float altitude);
-	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = NAN, float epv = NAN);
-	bool resetGlobalPositionTo(double latitude, double longitude, float altitude, float eph = NAN,
-				   float epv = NAN);
+	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float hpos_var = NAN, float vpos_var = NAN);
+	bool resetGlobalPositionTo(double latitude, double longitude, float altitude, float hpos_var = NAN,
+				   float vpos_var = NAN);
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const;

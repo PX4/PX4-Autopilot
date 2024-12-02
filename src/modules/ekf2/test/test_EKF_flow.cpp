@@ -383,7 +383,7 @@ TEST_F(EkfFlowTest, deadReckoning)
 	const float altitude_new  = 1500.0;
 	const float eph = 50.f;
 	const float epv = 10.f;
-	_ekf->setEkfGlobalOrigin(latitude_new, longitude_new, altitude_new, eph, epv);
+	_ekf->setEkfGlobalOrigin(latitude_new, longitude_new, altitude_new, eph * eph, epv * epv);
 
 	const Vector3f lpos_after_reset = _ekf->getPosition();
 
