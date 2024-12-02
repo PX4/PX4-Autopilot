@@ -30,28 +30,41 @@ param set-default CA_ROTOR4_AZ 0.0
 param set-default CA_ROTOR4_PX 0.2
 
 # HITL PWM functions
-param set-default HIL_ACT_FUNC1 101
-param set-default HIL_ACT_MIN1 10
-param set-default HIL_ACT_MAX1 1500
-param set-default HIL_ACT_FUNC2 102
-param set-default HIL_ACT_MIN2 10
-param set-default HIL_ACT_MAX2 1500
-param set-default HIL_ACT_FUNC3 103
-param set-default HIL_ACT_MIN3 10
-param set-default HIL_ACT_MAX3 1500
-param set-default HIL_ACT_FUNC4 104
-param set-default HIL_ACT_MIN4 10
-param set-default HIL_ACT_MAX4 1500
-param set-default HIL_ACT_FUNC5 105
-param set-default HIL_ACT_MIN5 0
-param set-default HIL_ACT_MAX5 3500
-param set-default HIL_ACT_FUNC6 201
-param set-default HIL_ACT_DIS6 500
-param set-default HIL_ACT_FUNC7 202
-param set-default HIL_ACT_DIS7 500
-param set-default HIL_ACT_FUNC8 203
-param set-default HIL_ACT_DIS8 500
+param set PWM_MAIN_FUNC1 101
+param set PWM_MAIN_FUNC2 102
+param set PWM_MAIN_FUNC3 103
+param set PWM_MAIN_FUNC4 104
+param set PWM_MAIN_FUNC5 105
+param set PWM_MAIN_FUNC6 201
+param set PWM_MAIN_FUNC7 202
+param set PWM_MAIN_FUNC8 203
 
+param set PWM_MAIN_MIN1 10
+param set PWM_MAIN_MIN2 10
+param set PWM_MAIN_MIN3 10
+param set PWM_MAIN_MIN4 10
+param set PWM_MAIN_MIN5 0
+param set PWM_MAIN_MIN6 0
+param set PWM_MAIN_MIN7 0
+param set PWM_MAIN_MIN8 0
+
+param set PWM_MAIN_MAX1 1500
+param set PWM_MAIN_MAX2 1500
+param set PWM_MAIN_MAX3 1500
+param set PWM_MAIN_MAX4 1500
+param set PWM_MAIN_MAX5 3500
+param set PWM_MAIN_MAX6 1000
+param set PWM_MAIN_MAX7 1000
+param set PWM_MAIN_MAX8 1000
+
+param set PWM_MAIN_DIS1 0
+param set PWM_MAIN_DIS2 0
+param set PWM_MAIN_DIS3 0
+param set PWM_MAIN_DIS4 0
+param set PWM_MAIN_DIS5 0
+param set PWM_MAIN_DIS6 500
+param set PWM_MAIN_DIS7 500
+param set PWM_MAIN_DIS8 500
 
 param set-default ASPD_PRIMARY 1
 

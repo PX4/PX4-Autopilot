@@ -79,8 +79,16 @@ private:
 
 		for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; ++i) {
 			char param_name[17];
-			snprintf(param_name, sizeof(param_name), "%s_%s%d", "HIL_ACT", "FUNC", i + 1);
-			param_get(param_find(param_name), &_output_functions[i]);
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
+			param_t param_handle = param_find(param_name);
+
+			if (param_handle == PARAM_INVALID) {
+				_output_functions[i] = 0;
+				continue;
+
+			} else {
+				param_get(param_handle, &_output_functions[i]);
+			}
 		}
 	}
 

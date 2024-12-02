@@ -355,11 +355,6 @@ else
 	#
 	if param greater SYS_HITL 0
 	then
-		if ! pwm_out_sim start -m hil
-		then
-			tune_control play error
-		fi
-
 		sensors start -h
 		commander start -h
 		# disable GPS

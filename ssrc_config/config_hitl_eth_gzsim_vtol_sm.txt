@@ -28,148 +28,46 @@ param set COM_RC_IN_MODE 1
 # EKF2
 param set EKF2_MULTI_IMU 1
 
+# Bypass some ESC checks
+param set FD_ACT_EN 0
+param set FD_ACT_MOT_TOUT 500
+param set FD_ESCS_EN 0
+
 ####################################
 # specific vtol HITL configuration
 ####################################
 
 # HITL PWM functions
-param set HIL_ACT_FUNC1 101
-param set HIL_ACT_MIN1 10
-param set HIL_ACT_MAX1 1500
-param set HIL_ACT_FUNC2 102
-param set HIL_ACT_MIN2 10
-param set HIL_ACT_MAX2 1500
-param set HIL_ACT_FUNC3 103
-param set HIL_ACT_MIN3 10
-param set HIL_ACT_MAX3 1500
-param set HIL_ACT_FUNC4 104
-param set HIL_ACT_MIN4 10
-param set HIL_ACT_MAX4 1500
-param set HIL_ACT_FUNC5 201
-param set HIL_ACT_DIS5 500
-param set HIL_ACT_FUNC6 202
-param set HIL_ACT_DIS6 500
-param set HIL_ACT_FUNC7 203
-param set HIL_ACT_DIS7 500
-param set HIL_ACT_FUNC8 204
-param set HIL_ACT_DIS8 500
-param set HIL_ACT_FUNC9 205
-param set HIL_ACT_DIS9 500
-param set HIL_ACT_FUNC10 105
-param set HIL_ACT_MIN10 0
-param set HIL_ACT_MAX10 3500
+# TODO: adapt gz model to remove custom HITL min, max and disarmed limit
+param set PWM_MAIN_MIN1 10
+param set PWM_MAIN_MIN2 10
+param set PWM_MAIN_MIN3 10
+param set PWM_MAIN_MIN4 10
+param set PWM_MAIN_MIN5 0
+param set PWM_MAIN_MIN6 0
+param set PWM_MAIN_MIN7 0
+param set PWM_MAIN_MIN8 0
+param set PWM_MAIN_MIN9 0
+param set PWM_MAIN_MIN10 0
 
-# Control allocator parameters
-param set CA_AIRFRAME 2
-param set CA_ROTOR_COUNT 5
-param set CA_ROTOR0_PX 0.37
-param set CA_ROTOR0_PY 0.42
-param set CA_ROTOR1_PX -0.41
-param set CA_ROTOR1_PY -0.42
-param set CA_ROTOR2_PX 0.37
-param set CA_ROTOR2_PY -0.42
-param set CA_ROTOR2_KM -0.05
-param set CA_ROTOR3_PX -0.41
-param set CA_ROTOR3_PY 0.42
-param set CA_ROTOR3_KM -0.05
-param set CA_ROTOR4_AX 1.0
-param set CA_ROTOR4_AZ 0.0
-param set CA_ROTOR4_PX 0.0
-param set CA_ROTOR4_KM 0.05
+param set PWM_MAIN_MAX1 1500
+param set PWM_MAIN_MAX2 1500
+param set PWM_MAIN_MAX3 1500
+param set PWM_MAIN_MAX4 1500
+param set PWM_MAIN_MAX5 1000
+param set PWM_MAIN_MAX6 1000
+param set PWM_MAIN_MAX7 1000
+param set PWM_MAIN_MAX8 1000
+param set PWM_MAIN_MAX9 1000
+param set PWM_MAIN_MAX10 3500
 
-param set CA_SV_CS_COUNT 5
-param set CA_SV_CS0_TYPE 1
-param set CA_SV_CS0_TRQ_R -0.5
-param set CA_SV_CS1_TYPE 2
-param set CA_SV_CS1_TRQ_R 0.5
-param set CA_SV_CS2_TYPE 3
-param set CA_SV_CS2_TRQ_P 1.0
-param set CA_SV_CS2_TRIM 0.1
-param set CA_SV_CS3_TYPE 3
-param set CA_SV_CS3_TRQ_P 1.0
-param set CA_SV_CS3_TRIM 0.1
-param set CA_SV_CS4_TYPE 4
-param set CA_SV_CS4_TRQ_Y 1.0
-
-# Fixed wing specific
-param set FW_RR_IMAX 0.4000
-param set FW_YR_IMAX 0.4000
-
-param set FW_YR_P 0.2
-param set FW_YR_I 0.01
-
-param set FW_RR_FF 0.5
-param set FW_RR_P 0.05
-param set FW_RR_I 0.1
-param set FW_RR_IMAX 0.4
-
-param set FW_R_LIM 50.0
-param set FW_R_RMAX 70.0
-param set FW_R_TC 0.4
-
-param set FW_PR_FF 0.5
-param set FW_PR_I 0.1
-param set FW_PR_IMAX 0.4
-
-param set FW_P_LIM_MAX 30.0
-param set FW_P_LIM_MIN -30.0
-
-# Airspeed parameters
-param set ASPD_PRIMARY 1
-param set FW_AIRSPD_MAX 25.0
-param set FW_AIRSPD_MIN 15.0
-param set FW_AIRSPD_STALL 12.0
-param set FW_AIRSPD_TRIM 18.0
-
-# VTOL specific
-# VTOL type
-param set VT_TYPE 2
-
-# Airspeed at which we can start blending both fw and mc controls.
-param set VT_ARSP_BLEND 8.0
-
-# Airspeed at which we can switch to fw mode
-param set VT_ARSP_TRANS 14.0
-
-# Back-transition duration
-param set VT_B_TRANS_DUR 10.0
-param set VT_B_TRANS_RAMP 3.0
-
-# Transition duration
-param set VT_F_TRANS_DUR 6.0
-param set VT_F_TRANS_THR 1.0
-
-# VTOL takeoff
-param set MIS_TAKEOFF_ALT 10.0
-param set VTO_LOITER_ALT 10.0
-
-param set MC_AIRMODE 0
-param set MC_ROLLRATE_P 0.14
-param set MC_ROLLRATE_I 0.2
-param set MC_PITCHRATE_P 0.14
-param set MC_PITCHRATE_I 0.2
-param set MC_YAW_P 2.0
-param set MC_YAW_WEIGHT 0.5
-param set MC_YAWRATE_P 0.2
-param set MC_YAWRATE_I 0.1
-param set MC_YAWRATE_MAX 120.0
-
-param set MPC_XY_P 0.95
-param set MPC_XY_VEL_P_ACC 1.8
-param set MPC_XY_VEL_I_ACC 0.4
-param set MPC_XY_VEL_D_ACC 0.2
-param set MPC_YAW_MODE 4
-
-param set NAV_ACC_RAD 10.0
-
-# QuadChute altitude (transition to quad mode as a failsafe)
-param set VT_FW_MIN_ALT 5.0
-
-# QuadChute angle limits
-param set VT_FW_QC_P 35
-param set VT_FW_QC_R 60
-
-# Others
-param set FD_ACT_EN 0
-param set FD_ACT_MOT_TOUT 500
-param set FD_ESCS_EN 0
+param set PWM_MAIN_DIS1 0
+param set PWM_MAIN_DIS2 0
+param set PWM_MAIN_DIS3 0
+param set PWM_MAIN_DIS4 0
+param set PWM_MAIN_DIS5 500
+param set PWM_MAIN_DIS6 500
+param set PWM_MAIN_DIS7 500
+param set PWM_MAIN_DIS8 500
+param set PWM_MAIN_DIS9 500
+param set PWM_MAIN_DIS10 0

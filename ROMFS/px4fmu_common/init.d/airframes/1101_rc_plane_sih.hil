@@ -27,13 +27,13 @@ param set-default CA_SV_CS2_TRQ_Y 1.0
 param set-default CA_SV_CS2_TYPE 4
 param set-default CA_SV_CS3_TYPE 10
 
-param set-default HIL_ACT_REV 2
-param set-default HIL_ACT_FUNC1 201
-param set-default HIL_ACT_FUNC2 202
-param set-default HIL_ACT_FUNC3 203
-param set-default HIL_ACT_FUNC4 101
-param set-default HIL_ACT_FUNC5 204
-param set-default HIL_ACT_FUNC6 400
+param set-default PWM_MAIN_REV 2
+param set-default PWM_MAIN_FUNC1 201
+param set-default PWM_MAIN_FUNC2 202
+param set-default PWM_MAIN_FUNC3 203
+param set-default PWM_MAIN_FUNC4 101
+param set-default PWM_MAIN_FUNC5 204
+param set-default PWM_MAIN_FUNC6 400
 
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
 param set-default SYS_HITL 2

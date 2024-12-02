@@ -21,13 +21,21 @@ param set-default CA_SV_CS1_TRQ_P 0.5
 param set-default CA_SV_CS1_TRQ_R 0.5
 
 # HITL PWM functions
-param set-default HIL_ACT_FUNC1 201
-param set-default HIL_ACT_DIS1 500
-param set-default HIL_ACT_FUNC2 202
-param set-default HIL_ACT_DIS2 500
-param set-default HIL_ACT_FUNC4 101
-param set-default HIL_ACT_MIN4 150
-param set-default HIL_ACT_MAX4 1000
+param set PWM_MAIN_FUNC1 201
+param set PWM_MAIN_FUNC2 202
+param set PWM_MAIN_FUNC4 101
+
+param set PWM_MAIN_MIN1 0
+param set PWM_MAIN_MIN2 0
+param set PWM_MAIN_MIN4 150
+
+param set PWM_MAIN_MAX1 1000
+param set PWM_MAIN_MAX2 1000
+param set PWM_MAIN_MAX4 3000
+
+param set PWM_MAIN_DIS1 500
+param set PWM_MAIN_DIS2 500
+param set PWM_MAIN_DIS4 0
 
 # Airspeed parameters
 param set-default ASPD_PRIMARY 1
