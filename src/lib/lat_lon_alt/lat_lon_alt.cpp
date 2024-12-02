@@ -77,7 +77,7 @@ Vector3d LatLonAlt::toEcef() const
 
 	return Vector3d(r_total * cos_lat * cos_lon,
 			r_total * cos_lat * sin_lon,
-			((1.0 - Wgs84::eccentricity2) * r_total) * sin_lat);
+			((1.0 - Wgs84::eccentricity2) * r_e + static_cast<double>(_altitude)) * sin_lat);
 }
 
 Vector3f LatLonAlt::computeAngularRateNavFrame(const Vector3f &v_ned) const
