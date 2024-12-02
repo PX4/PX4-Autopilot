@@ -105,3 +105,17 @@ TEST(TestLatLonAlt, subLatLonAlt)
 	EXPECT_NEAR(delta_pos(1), delta_pos_true(1), 1e-2);
 	EXPECT_EQ(delta_pos(2), delta_pos_true(2));
 }
+
+TEST(TestLatLonAlt, fromAndToECEF)
+{
+	for (double lat = -M_PI; lat < M_PI; lat += M_PI / 4.0) {
+		for (double lon = -M_PI; lon < M_PI; lon += M_PI / 4.0) {
+			for (float alt = -500.f; alt < 8000.f; alt += 500.f) {
+				LatLonAlt lla(lat, lon, alt);
+
+				LatLonAlt res = LatLonAlt::fromEcef(lla.toEcef());
+				EXPECT_TRUE(!(lla - res).longerThan(10e-6f)) << "lat: " << lat << ", lon: " << lon << ", alt: " << alt;
+			}
+		}
+	}
+}
