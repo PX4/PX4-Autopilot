@@ -240,7 +240,9 @@ public:
 	const matrix::Quatf &getQuaternion() const { return _output_predictor.getQuaternion(); }
 	float getUnaidedYaw() const { return _output_predictor.getUnaidedYaw(); }
 	Vector3f getVelocity() const { return _output_predictor.getVelocity(); }
-	const Vector3f &getVelocityDerivative() const { return _output_predictor.getVelocityDerivative(); }
+
+	// get the mean velocity derivative in earth frame since last call
+	Vector3f getVelocityDerivative() { return _output_predictor.getVelocityDerivative(); }
 	float getVerticalPositionDerivative() const { return _output_predictor.getVerticalPositionDerivative(); }
 	Vector3f getPosition() const;
 	LatLonAlt getLatLonAlt() const { return _output_predictor.getLatLonAlt(); }
