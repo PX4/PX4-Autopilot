@@ -226,17 +226,15 @@ int GZBridge::init()
 		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
 	}
 
-#if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
-	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
-					"/link/airspeed_link/sensor/air_speed/air_speed";
+	std::string airspeed_topic = "/world/" + _world_name + "/model/" + _model_name +
+				     "/link/airspeed_link/sensor/air_speed/air_speed";
 
-	if (!_node.Subscribe(airpressure_topic, &GZBridge::airspeedCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", airpressure_topic.c_str());
+	if (!_node.Subscribe(airspeed_topic, &GZBridge::airspeedCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", airspeed_topic.c_str());
 		return PX4_ERROR;
 	}
 
-#endif
 	// Air pressure: /world/$WORLD/model/$MODEL/link/base_link/sensor/air_pressure_sensor/air_pressure
 	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
 					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
@@ -449,8 +447,8 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-#if 0
-void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
+
+void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -475,7 +473,6 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 
 	pthread_mutex_unlock(&_node_mutex);
 }
-#endif
 
 void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 {
