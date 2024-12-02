@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_HPS167
+	bool "hps167"
+	default n
+	---help---
+		Enable support for hps167
