@@ -182,7 +182,7 @@ parameters:
           long: |
             Maximum decelaration is used to limit the deceleration of the rover.
             Set to -1 to disable, causing the rover to decelerate as fast as possible.
-            Caution: This disables the slow down effect in auto modes.
+            Caution: Disabling the deceleration limit also disables the slow down effect in auto modes.
         type: float
         unit: m/s^2
         min: -1
