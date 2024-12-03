@@ -56,9 +56,9 @@
 
 enum SF_SERIAL_STATE {
 	STATE_UNINIT = 0,
-	STATE_SEND_PRODUCT_NAME = 1,
-	STATE_SEND_UPDATE_RATE = 2,
-	STATE_SEND_DISTANCE_DATA = 3,
+	STATE_ACK_PRODUCT_NAME = 1,
+	STATE_ACK_UPDATE_RATE = 2,
+	STATE_ACK_DISTANCE_OUTPUT = 3,
 	STATE_SEND_STREAM = 4,
 };
 
@@ -80,8 +80,8 @@ public:
 
 	int				init();
 	void				print_info();
-	void				sf45_request_handle(uint8_t *value);
-	void				sf45_send(uint8_t msg_id, bool r_w, int *data, uint8_t data_len);
+	void				sf45_get_and_handle_request(const int payload_length, const SF_SERIAL_CMD msg_id);
+	void				sf45_send(uint8_t msg_id, bool r_w, int32_t *data, uint8_t data_len);
 	uint16_t			sf45_format_crc(uint16_t crc, uint8_t data_value);
 	void				sf45_process_replies(float *data);
 	uint8_t				sf45_convert_angle(const int16_t yaw);
@@ -104,30 +104,26 @@ private:
 
 
 	char 				_port[20] {};
-	int				_interval{10000};
+	int				_interval{2000};
 	bool				_collect_phase{false};
 	int 				_fd{-1};
 	uint8_t				_linebuf[SF45_MAX_PAYLOAD] {};
-	unsigned			_linebuf_size{0};
-	hrt_abstime			_last_read{0};
+	int				_linebuf_size{0};
 
 	// SF45/B uses a binary protocol to include header,flags
 	// message ID, payload, and checksum
 	bool				_is_sf45{false};
-	bool				_init_complete{false};
-	bool				_sensor_ready{false};
-	uint8_t				_sensor_state{0};
+	SF_SERIAL_STATE			_sensor_state{STATE_UNINIT};
 	int				_baud_rate{0};
-	int				_product_name[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	int				_stream_data{0};
-	int32_t				_update_rate{1};
-	int				_data_output{0};
+	int32_t				_product_name[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	int32_t				_stream_data{0};
+	int32_t				_update_rate{0};
+	int32_t				_data_output{0};
 	const uint8_t			_start_of_frame{0xAA};
 	uint16_t			_data_bytes_recv{0};
 	uint8_t				_parsed_state{0};
 	bool				_sop_valid{false};
 	uint16_t			_calc_crc{0};
-	uint8_t				_num_retries{0};
 	int32_t				_yaw_cfg{0};
 	int32_t				_orient_cfg{0};
 	uint8_t				_previous_bin{0};
@@ -135,9 +131,7 @@ private:
 
 	// end of SF45/B data members
 
-	unsigned			_consecutive_fail_count;
-
+	hrt_abstime			_last_received_time{0};
 	perf_counter_t			_sample_perf;
 	perf_counter_t			_comms_errors;
-
 };
