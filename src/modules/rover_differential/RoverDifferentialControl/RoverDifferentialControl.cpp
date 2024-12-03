@@ -105,7 +105,7 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 					_param_rd_max_thr_yaw_r.get(), _max_yaw_accel, _param_rd_wheel_track.get(), dt, _yaw_rate_with_accel_limit,
 					_pid_yaw_rate, false);
 
-	} else { // Use normalized setpoint
+	} else if (PX4_ISFINITE(_rover_differential_setpoint.speed_diff_setpoint_normalized)) { // Use normalized setpoint
 		speed_diff_normalized = calcNormalizedSpeedDiff(_rover_differential_setpoint.speed_diff_setpoint_normalized,
 					vehicle_yaw_rate,
 					_param_rd_max_thr_yaw_r.get(), _max_yaw_accel, _param_rd_wheel_track.get(), dt, _yaw_rate_with_accel_limit,

@@ -65,7 +65,7 @@
  * 	   PP_LOOKAHD_GAIN = 1.f
  * 	   PP_LOOKAHD_MAX = 10.f
  * 	   PP_LOOKAHD_MIN = 1.f
- * 	This way passing the vehicle_speed in calcDesiredHeading function is equivalent to passing
+ * 	This way passing the vehicle_speed in calcTargetBearing function is equivalent to passing
  * 	the lookahead distance.
  *
 ******************************************************************/
@@ -91,12 +91,9 @@ TEST_F(PurePursuitTest, InvalidSpeed)
 	const Vector2f curr_wp_ned(10.f, 10.f);
 	const Vector2f prev_wp_ned(0.f, 0.f);
 	const Vector2f curr_pos_ned(10.f, 0.f);
-	// Negative speed
-	const float desired_heading1 = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned, -1.f);
 	// NaN speed
-	const float desired_heading2 = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned, NAN);
+	const float desired_heading1 = pure_pursuit.calcTargetBearing(curr_wp_ned, prev_wp_ned, curr_pos_ned, NAN);
 	EXPECT_FALSE(PX4_ISFINITE(desired_heading1));
-	EXPECT_FALSE(PX4_ISFINITE(desired_heading2));
 }
 
 TEST_F(PurePursuitTest, InvalidWaypoints)
@@ -111,14 +108,14 @@ TEST_F(PurePursuitTest, InvalidWaypoints)
 	const Vector2f curr_pos_ned(10.f, 0.f);
 	const float lookahead_distance{5.f};
 	// Prev WP is NAN
-	const float desired_heading1 = pure_pursuit.calcDesiredHeading(curr_wp_ned, Vector2f(NAN, NAN), curr_pos_ned,
+	const float desired_heading1 = pure_pursuit.calcTargetBearing(curr_wp_ned, Vector2f(NAN, NAN), curr_pos_ned,
 				       lookahead_distance);
 	// Curr WP is NAN
-	const float desired_heading2 = pure_pursuit.calcDesiredHeading(Vector2f(NAN, NAN), prev_wp_ned, curr_pos_ned,
+	const float desired_heading2 = pure_pursuit.calcTargetBearing(Vector2f(NAN, NAN), prev_wp_ned, curr_pos_ned,
 				       lookahead_distance);
 
 	// Curr Pos is NAN
-	const float desired_heading3 = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, Vector2f(NAN, NAN),
+	const float desired_heading3 = pure_pursuit.calcTargetBearing(curr_wp_ned, prev_wp_ned, Vector2f(NAN, NAN),
 				       lookahead_distance);
 	EXPECT_FALSE(PX4_ISFINITE(desired_heading1));
 	EXPECT_FALSE(PX4_ISFINITE(desired_heading2));
@@ -133,17 +130,30 @@ TEST_F(PurePursuitTest, OutOfLookahead)
 	//  	  /
 	//	 /
 	//	P
-	const float desired_heading1 = pure_pursuit.calcDesiredHeading(Vector2f(10.f, 10.f), Vector2f(0.f, 0.f), Vector2f(10.f,
-				       0.f),
-				       lookahead_distance);
+	const float desired_heading1 = pure_pursuit.calcTargetBearing(Vector2f(10.f, 10.f), Vector2f(0.f, 0.f), Vector2f(10.f,
+				       0.f), lookahead_distance);
 	//	    V
 	//
 	//	P ----- C
-	const float desired_heading2 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(10.f,
-				       10.f),
-				       lookahead_distance);
-	EXPECT_NEAR(desired_heading1, M_PI_2_F + M_PI_4_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
-	EXPECT_NEAR(desired_heading2, M_PI_F, FLT_EPSILON); 		 // Fallback: Bearing to closest point on path
+	const float desired_heading2 = pure_pursuit.calcTargetBearing(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(10.f,
+				       10.f), lookahead_distance);
+
+	// //   V
+	// //
+	// //	     P ----- C
+	const float desired_heading3 = pure_pursuit.calcTargetBearing(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(10.f,
+				       -10.f), lookahead_distance);
+
+	// //                 V
+	// //
+	// //	P ----- C
+	const float desired_heading4 = pure_pursuit.calcTargetBearing(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(10.f,
+				       30.f), lookahead_distance);
+
+	EXPECT_NEAR(desired_heading1, M_PI_2_F + M_PI_4_F, FLT_EPSILON);    // Fallback: Bearing to closest point on path
+	EXPECT_NEAR(desired_heading2, -M_PI_F, FLT_EPSILON); 		    // Fallback: Bearing to closest point on path
+	EXPECT_NEAR(desired_heading3, M_PI_2_F + M_PI_4_F, FLT_EPSILON);    // Fallback: Bearing to previous waypoint
+	EXPECT_NEAR(desired_heading4, -(M_PI_2_F + M_PI_4_F), FLT_EPSILON); // Fallback: Bearing to current waypoint
 }
 
 TEST_F(PurePursuitTest, WaypointOverlap)
@@ -154,17 +164,15 @@ TEST_F(PurePursuitTest, WaypointOverlap)
 	//
 	//
 	//	V
-	const float desired_heading1 = pure_pursuit.calcDesiredHeading(Vector2f(10.f, 10.f), Vector2f(10.f, 10.f), Vector2f(0.f,
-				       0.f),
-				       lookahead_distance);
+	const float desired_heading1 = pure_pursuit.calcTargetBearing(Vector2f(10.f, 10.f), Vector2f(10.f, 10.f), Vector2f(0.f,
+				       0.f), lookahead_distance);
 	//	    V
 	//
 	//
 	//
 	//	C/P
-	const float desired_heading2 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 0.f), Vector2f(0.f, 0.f), Vector2f(10.f,
-				       10.f),
-				       lookahead_distance);
+	const float desired_heading2 = pure_pursuit.calcTargetBearing(Vector2f(0.f, 0.f), Vector2f(0.f, 0.f), Vector2f(10.f,
+				       10.f), lookahead_distance);
 	EXPECT_NEAR(desired_heading1, M_PI_4_F, FLT_EPSILON); 		    // Fallback: Bearing to closest point on path
 	EXPECT_NEAR(desired_heading2, -(M_PI_4_F + M_PI_2_F), FLT_EPSILON); // Fallback: Bearing to closest point on path
 }
@@ -173,29 +181,25 @@ TEST_F(PurePursuitTest, CurrAndPrevSameNorthCoordinate)
 {
 	const float lookahead_distance{5.f};
 	//	P -- V -- C
-	const float desired_heading1 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(0.f,
-				       10.f),
-				       lookahead_distance);
+	const float desired_heading1 = pure_pursuit.calcTargetBearing(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(0.f,
+				       10.f), lookahead_distance);
 
 	//	     V
 	//	P ------ C
-	const float desired_heading2 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f),
-				       Vector2f(5.f / sqrtf(2.f), 10.f),
-				       lookahead_distance);
+	const float desired_heading2 = pure_pursuit.calcTargetBearing(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f),
+				       Vector2f(5.f / sqrtf(2.f), 10.f), lookahead_distance);
 	//	     V
 	//	C ------ P
-	const float desired_heading3 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 0.f), Vector2f(0.f, 20.f),
-				       Vector2f(5.f / sqrtf(2.f), 10.f),
-				       lookahead_distance);
+	const float desired_heading3 = pure_pursuit.calcTargetBearing(Vector2f(0.f, 0.f), Vector2f(0.f, 20.f),
+				       Vector2f(5.f / sqrtf(2.f), 10.f), lookahead_distance);
 	//	     V
 	//
 	//	P ------ C
-	const float desired_heading4 = pure_pursuit.calcDesiredHeading(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(10.f,
-				       10.f),
-				       lookahead_distance);
+	const float desired_heading4 = pure_pursuit.calcTargetBearing(Vector2f(0.f, 20.f), Vector2f(0.f, 0.f), Vector2f(10.f,
+				       10.f), lookahead_distance);
 
 	EXPECT_NEAR(desired_heading1, M_PI_2_F, FLT_EPSILON);
 	EXPECT_NEAR(desired_heading2, M_PI_2_F + M_PI_4_F, FLT_EPSILON);
 	EXPECT_NEAR(desired_heading3, -(M_PI_2_F + M_PI_4_F), FLT_EPSILON);
-	EXPECT_NEAR(desired_heading4, M_PI_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
+	EXPECT_NEAR(desired_heading4, -M_PI_F, FLT_EPSILON); // Fallback: Bearing to closest point on path
 }

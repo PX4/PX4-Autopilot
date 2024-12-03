@@ -209,9 +209,9 @@ void RoverMecanum::Run()
 
 					// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
 					const float vector_scaling = sqrtf(powf(_param_pp_lookahd_max.get(),
-										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceOnLineSegment();
+										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceAlongPath();
 					const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + vector_scaling * _pos_ctl_course_direction;
-					const float desired_heading = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned, _pos_ctl_start_position_ned,
+					const float desired_heading = _posctl_pure_pursuit.calcTargetBearing(target_waypoint_ned, _pos_ctl_start_position_ned,
 								      _curr_pos_ned, desired_velocity_magnitude);
 					const float heading_error = matrix::wrap_pi(desired_heading - _vehicle_yaw);
 					const Vector2f desired_velocity = desired_velocity_magnitude * Vector2f(cosf(heading_error), sinf(heading_error));

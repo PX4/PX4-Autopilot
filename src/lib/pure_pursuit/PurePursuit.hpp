@@ -35,6 +35,8 @@
 
 #include <matrix/math.hpp>
 #include <px4_platform_common/module_params.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/pure_pursuit.h>
 
 using namespace matrix;
 
@@ -84,33 +86,46 @@ public:
 	PurePursuit(ModuleParams *parent);
 	~PurePursuit() = default;
 
+
 	/**
-	 * @brief Return heading towards the intersection point between a circle with a radius of
-	 * vehicle_speed * PP_LOOKAHD_GAIN around the vehicle and an extended line segment from the previous to the current waypoint.
-	 * Exceptions:
-	 * 	Will return heading towards the current waypoint if it is closer to the vehicle than the lookahead or if the waypoints overlap.
-	 * 	Will return heading towards the closest point on the path if there are no intersection points (crosstrack error bigger than lookahead).
-	 * 	Will return NAN if input is invalid.
+	 * @brief Calculate and return the target bearing using the pure pursuit path following logic and publish pure pursuit logging message.
 	 * @param curr_wp_ned North/East coordinates of current waypoint in NED frame [m].
 	 * @param prev_wp_ned North/East coordinates of previous waypoint in NED frame [m].
 	 * @param curr_pos_ned North/East coordinates of current position of the vehicle in NED frame [m].
 	 * @param vehicle_speed Vehicle speed [m/s].
-	 * @param PP_LOOKAHD_GAIN Tuning parameter [-]
-	 * @param PP_LOOKAHD_MAX Maximum lookahead distance [m]
-	 * @param PP_LOOKAHD_MIN Minimum lookahead distance [m]
+	 * @return Bearing towards the intersection point [rad]
 	 */
-	float calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
-				 float vehicle_speed);
+	float updatePurePursuit(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
+				float vehicle_speed);
+
+	/**
+	 * @brief Return bearing towards the intersection point between a circle with a radius of
+	 * abs(vehicle_speed) * PP_LOOKAHD_GAIN around the vehicle and a line segment from the previous to the current waypoint.
+	 * Exceptions:
+	 * 	Return bearing towards the current waypoint if it is closer to the vehicle than the lookahead or if the waypoints overlap.
+	 * 	Return bearing towards the closest point on the path if there are no intersection points (crosstrack error bigger than lookahead).
+	 * 	Return NAN if input is invalid.
+	 * @param curr_wp_ned North/East coordinates of current waypoint in NED frame [m].
+	 * @param prev_wp_ned North/East coordinates of previous waypoint in NED frame [m].
+	 * @param curr_pos_ned North/East coordinates of current position of the vehicle in NED frame [m].
+	 * @param vehicle_speed Vehicle speed [m/s].
+	 * @return Bearing towards the intersection point [rad].
+	 */
+	float calcTargetBearing(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned,
+				float vehicle_speed);
 
 	float getLookaheadDistance() {return _lookahead_distance;};
-	float getCrosstrackError() {return _curr_pos_to_path.norm();};
-	float getDistanceOnLineSegment() {return _distance_on_line_segment.norm();};
+	float getDistanceAlongPath() {return _distance_along_path.norm();};
+	float getCrosstrackError() {return _crosstrack_error;};
 
 protected:
 	/**
 	 * @brief Update the parameters of the module.
 	 */
 	void updateParams() override;
+
+	// uORB Publication
+	uORB::Publication<pure_pursuit_s> _pure_pursuit_pub{ORB_ID(pure_pursuit)};
 
 	struct {
 		param_t lookahead_gain;
@@ -124,7 +139,14 @@ protected:
 		float lookahead_min{1.f};
 	} _params{};
 private:
-	float _lookahead_distance{0.f}; // Radius of the circle around the vehicle
-	Vector2f _distance_on_line_segment{}; // Projection of prev_wp_to_curr_pos onto prev_wp_to_curr_wp
-	Vector2f _curr_pos_to_path{}; // Shortest vector from the current position to the path
+	/**
+	 * @brief Publish pure pursuit message
+	 */
+	void publishPurePursuit();
+
+	float _target_bearing{NAN};
+	float _lookahead_distance{NAN}; // Radius of the circle around the vehicle
+	float _crosstrack_error{NAN}; // Shortest distance from the current position to the path (Positiv: right of path, Negativ: left of path)
+	Vector2f _curr_pos_to_curr_wp{};
+	Vector2f _distance_along_path{}; // Projection of prev_wp_to_curr_pos onto prev_wp_to_curr_wp
 };

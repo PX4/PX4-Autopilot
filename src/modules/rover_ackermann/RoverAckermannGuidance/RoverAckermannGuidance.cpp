@@ -157,26 +157,29 @@ void RoverAckermannGuidance::updateWaypointsAndAcceptanceRadius()
 	_position_setpoint_triplet_sub.copy(&position_setpoint_triplet);
 
 	// Global waypoint coordinates
-	_prev_wp = _curr_pos.isAllFinite() ? _curr_pos : Vector2d(0, 0); // Fallback if previous waypoint is invalid
-	_curr_wp = _curr_pos.isAllFinite() ? _curr_pos : Vector2d(0, 0); // Fallback if current waypoint is invalid
-	_next_wp = _home_position.isAllFinite() ? _home_position : Vector2d(0, 0); // Enables corner slow down with RTL
-
 	if (position_setpoint_triplet.current.valid && PX4_ISFINITE(position_setpoint_triplet.current.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
 		_curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
 
+	} else {
+		_curr_wp = _curr_pos;
 	}
+
 
 	if (position_setpoint_triplet.previous.valid && PX4_ISFINITE(position_setpoint_triplet.previous.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.previous.lon)) {
 		_prev_wp = Vector2d(position_setpoint_triplet.previous.lat, position_setpoint_triplet.previous.lon);
 
+	} else {
+		_prev_wp = _curr_pos;
 	}
 
 	if (position_setpoint_triplet.next.valid && PX4_ISFINITE(position_setpoint_triplet.next.lat)
 	    && PX4_ISFINITE(position_setpoint_triplet.next.lon)) {
 		_next_wp = Vector2d(position_setpoint_triplet.next.lat, position_setpoint_triplet.next.lon);
 
+	} else {
+		_next_wp = _home_position;
 	}
 
 	// NED waypoint coordinates
@@ -281,7 +284,7 @@ float RoverAckermannGuidance::calcDesiredSteering(PurePursuit &pure_pursuit, con
 		const Vector2f &prev_wp_ned, const Vector2f &curr_pos_ned, const float wheel_base, const float desired_speed,
 		const float vehicle_yaw, const float max_steering, const bool armed)
 {
-	const float desired_heading = pure_pursuit.calcDesiredHeading(curr_wp_ned, prev_wp_ned, curr_pos_ned,
+	const float desired_heading = pure_pursuit.updatePurePursuit(curr_wp_ned, prev_wp_ned, curr_pos_ned,
 				      desired_speed);
 	const float lookahead_distance = pure_pursuit.getLookaheadDistance();
 	const float heading_error = matrix::wrap_pi(desired_heading - vehicle_yaw);

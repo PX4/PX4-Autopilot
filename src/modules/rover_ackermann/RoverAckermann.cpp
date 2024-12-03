@@ -129,7 +129,7 @@ void RoverAckermann::Run()
 
 					// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
 					const float vector_scaling = sqrtf(powf(_param_pp_lookahd_max.get(),
-										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceOnLineSegment();
+										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceAlongPath();
 					const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(
 							rover_ackermann_setpoint.forward_speed_setpoint) *
 									     vector_scaling * _pos_ctl_course_direction;

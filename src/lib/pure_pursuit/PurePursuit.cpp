@@ -40,6 +40,7 @@ PurePursuit::PurePursuit(ModuleParams *parent) : ModuleParams(parent)
 	_param_handles.lookahead_gain = param_find("PP_LOOKAHD_GAIN");
 	_param_handles.lookahead_max = param_find("PP_LOOKAHD_MAX");
 	_param_handles.lookahead_min = param_find("PP_LOOKAHD_MIN");
+	_pure_pursuit_pub.advertise();
 	updateParams();
 }
 
@@ -53,43 +54,85 @@ void PurePursuit::updateParams()
 
 }
 
-float PurePursuit::calcDesiredHeading(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
-				      const Vector2f &curr_pos_ned,
-				      const float vehicle_speed)
+float PurePursuit::updatePurePursuit(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
+				     const Vector2f &curr_pos_ned, const float vehicle_speed)
+{
+	_target_bearing = calcTargetBearing(curr_wp_ned, prev_wp_ned, curr_pos_ned, vehicle_speed);
+
+	if (PX4_ISFINITE(_target_bearing)) {
+		publishPurePursuit();
+	}
+
+	return _target_bearing;
+}
+
+float PurePursuit::calcTargetBearing(const Vector2f &curr_wp_ned, const Vector2f &prev_wp_ned,
+				     const Vector2f &curr_pos_ned, const float vehicle_speed)
 {
 	// Check input validity
-	if (!curr_wp_ned.isAllFinite() || !curr_pos_ned.isAllFinite() || vehicle_speed < -FLT_EPSILON
-	    || !PX4_ISFINITE(vehicle_speed) || !prev_wp_ned.isAllFinite()) {
+	if (!curr_wp_ned.isAllFinite() || !curr_pos_ned.isAllFinite() || !PX4_ISFINITE(vehicle_speed)
+	    || !prev_wp_ned.isAllFinite()) {
 		return NAN;
 	}
 
-	_lookahead_distance = math::constrain(_params.lookahead_gain * vehicle_speed,
-					      _params.lookahead_min, _params.lookahead_max);
-
 	// Pure pursuit
-	const Vector2f curr_pos_to_curr_wp = curr_wp_ned - curr_pos_ned;
+	_lookahead_distance = math::constrain(_params.lookahead_gain * fabsf(vehicle_speed),
+					      _params.lookahead_min, _params.lookahead_max);
+	_curr_pos_to_curr_wp = curr_wp_ned - curr_pos_ned;
 	const Vector2f prev_wp_to_curr_wp = curr_wp_ned - prev_wp_ned;
-
-	if (curr_pos_to_curr_wp.norm() < _lookahead_distance
-	    || prev_wp_to_curr_wp.norm() <
-	    FLT_EPSILON) { // Target current waypoint if closer to it than lookahead or waypoints overlap
-		return atan2f(curr_pos_to_curr_wp(1), curr_pos_to_curr_wp(0));
-	}
-
 	const Vector2f prev_wp_to_curr_pos = curr_pos_ned - prev_wp_ned;
 	const Vector2f prev_wp_to_curr_wp_u = prev_wp_to_curr_wp.unit_or_zero();
-	_distance_on_line_segment = (prev_wp_to_curr_pos * prev_wp_to_curr_wp_u) * prev_wp_to_curr_wp_u;
-	_curr_pos_to_path = _distance_on_line_segment - prev_wp_to_curr_pos;
+	_distance_along_path = (prev_wp_to_curr_pos * prev_wp_to_curr_wp_u) *
+			       prev_wp_to_curr_wp_u; // Projection of prev_wp_to_curr_pos onto prev_wp_to_curr_wp
+	const Vector2f curr_pos_to_path = _distance_along_path -
+					  prev_wp_to_curr_pos; // Shortest vector from the current position to the path
+	_crosstrack_error = sign(prev_wp_to_curr_wp(1) * curr_pos_to_path(
+					 0) - prev_wp_to_curr_wp(0) * curr_pos_to_path(1)) * curr_pos_to_path.norm();
 
-	if (_curr_pos_to_path.norm() > _lookahead_distance) { // Target closest point on path if there is no intersection point
-		return atan2f(_curr_pos_to_path(1), _curr_pos_to_path(0));
+	if (_curr_pos_to_curr_wp.norm() < _lookahead_distance
+	    || prev_wp_to_curr_wp.norm() <
+	    FLT_EPSILON) { // Target current waypoint if closer to it than lookahead or waypoints overlap
+		return matrix::wrap_pi(atan2f(_curr_pos_to_curr_wp(1), _curr_pos_to_curr_wp(0)));
+
+	} else {
+
+		if (fabsf(_crosstrack_error) > _lookahead_distance) { // Path segment is outside of lookahead (No intersection point)
+			const Vector2f prev_wp_to_closest_point_on_path = curr_pos_to_path + prev_wp_to_curr_pos;
+			const Vector2f curr_wp_to_closest_point_on_path = curr_pos_to_path - _curr_pos_to_curr_wp;
+
+			if (prev_wp_to_closest_point_on_path * prev_wp_to_curr_wp <
+			    FLT_EPSILON) { // Target previous waypoint if closest point is on the the extended path segment "behind" previous waypoint
+				return matrix::wrap_pi(atan2f(-prev_wp_to_curr_pos(1), -prev_wp_to_curr_pos(0)));
+
+			} else if (curr_wp_to_closest_point_on_path * prev_wp_to_curr_wp >
+				   FLT_EPSILON) { // Target current waypoint if closest point is on the extended path segment "ahead" of current waypoint
+				return matrix::wrap_pi(atan2f(_curr_pos_to_curr_wp(1), _curr_pos_to_curr_wp(0)));
+
+			} else { // Target closest point on path
+				return matrix::wrap_pi(atan2f(curr_pos_to_path(1), curr_pos_to_path(0)));
+			}
+
+
+		} else {
+			const float line_extension = sqrt(powf(_lookahead_distance, 2.f) - powf(curr_pos_to_path.norm(),
+							  2.f)); // Length of the vector from the endpoint of distance_on_line_segment to the intersection point
+			const Vector2f prev_wp_to_intersection_point = _distance_along_path + line_extension *
+					prev_wp_to_curr_wp_u;
+			const Vector2f curr_pos_to_intersection_point = prev_wp_to_intersection_point - prev_wp_to_curr_pos;
+			return matrix::wrap_pi(atan2f(curr_pos_to_intersection_point(1), curr_pos_to_intersection_point(0)));
+		}
+
 	}
 
-	const float line_extension = sqrt(powf(_lookahead_distance, 2.f) - powf(_curr_pos_to_path.norm(),
-					  2.f)); // Length of the vector from the endpoint of _distance_on_line_segment to the intersection point
-	const Vector2f prev_wp_to_intersection_point = _distance_on_line_segment + line_extension *
-			prev_wp_to_curr_wp_u;
-	const Vector2f curr_pos_to_intersection_point = prev_wp_to_intersection_point - prev_wp_to_curr_pos;
-	return atan2f(curr_pos_to_intersection_point(1), curr_pos_to_intersection_point(0));
+}
 
+void PurePursuit::publishPurePursuit()
+{
+	pure_pursuit_s pure_pursuit{};
+	pure_pursuit.timestamp = hrt_absolute_time();
+	pure_pursuit.target_bearing = _target_bearing;
+	pure_pursuit.lookahead_distance = _lookahead_distance;
+	pure_pursuit.crosstrack_error = _crosstrack_error;
+	pure_pursuit.distance_to_waypoint = _curr_pos_to_curr_wp.norm();
+	_pure_pursuit_pub.publish(pure_pursuit);
 }

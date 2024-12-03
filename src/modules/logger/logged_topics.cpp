@@ -99,6 +99,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("parameter_update");
 	add_topic("position_controller_status", 500);
 	add_topic("position_controller_landing_status", 100);
+	add_optional_topic("pure_pursuit", 100);
 	add_topic("goto_setpoint", 200);
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");

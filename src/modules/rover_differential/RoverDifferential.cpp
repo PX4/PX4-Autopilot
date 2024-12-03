@@ -173,12 +173,12 @@ void RoverDifferential::Run()
 
 					// Construct a 'target waypoint' for course control s.t. it is never within the maximum lookahead of the rover
 					const float vector_scaling = sqrtf(powf(_param_pp_lookahd_max.get(),
-										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceOnLineSegment();
+										2) + powf(_posctl_pure_pursuit.getCrosstrackError(), 2)) + _posctl_pure_pursuit.getDistanceAlongPath();
 					const Vector2f target_waypoint_ned = _pos_ctl_start_position_ned + sign(
 							rover_differential_setpoint.forward_speed_setpoint) *
 									     vector_scaling * _pos_ctl_course_direction;
 					// Calculate yaw setpoint
-					const float yaw_setpoint = _posctl_pure_pursuit.calcDesiredHeading(target_waypoint_ned,
+					const float yaw_setpoint = _posctl_pure_pursuit.calcTargetBearing(target_waypoint_ned,
 								   _pos_ctl_start_position_ned, _curr_pos_ned, fabsf(_vehicle_forward_speed));
 					rover_differential_setpoint.yaw_setpoint = sign(rover_differential_setpoint.forward_speed_setpoint) >= 0 ?
 							yaw_setpoint : matrix::wrap_pi(M_PI_F + yaw_setpoint); // Flip yaw setpoint when driving backwards

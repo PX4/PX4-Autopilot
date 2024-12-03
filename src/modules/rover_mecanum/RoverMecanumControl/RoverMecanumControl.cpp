@@ -111,7 +111,7 @@ void RoverMecanumControl::computeMotorCommands(const float vehicle_yaw, const fl
 					_pid_yaw_rate, false);
 		_rover_mecanum_status.adjusted_yaw_rate_setpoint = _yaw_rate_with_accel_limit.getState();
 
-	} else { // Use normalized setpoint
+	} else if (PX4_ISFINITE(_rover_mecanum_setpoint.speed_diff_setpoint_normalized)) { // Use normalized setpoint
 		speed_diff_normalized = calcNormalizedSpeedDiff(_rover_mecanum_setpoint.speed_diff_setpoint_normalized,
 					vehicle_yaw_rate,
 					_param_rm_max_thr_yaw_r.get(), _max_yaw_accel, _param_rm_wheel_track.get(), dt, _yaw_rate_with_accel_limit,

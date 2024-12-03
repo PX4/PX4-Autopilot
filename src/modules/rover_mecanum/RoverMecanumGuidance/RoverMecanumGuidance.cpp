@@ -72,7 +72,7 @@ void RoverMecanumGuidance::computeGuidance(const float yaw, const int nav_state)
 
 
 	// Calculate heading error
-	const float desired_heading = _pure_pursuit.calcDesiredHeading(_curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
+	const float desired_heading = _pure_pursuit.updatePurePursuit(_curr_wp_ned, _prev_wp_ned, _curr_pos_ned,
 				      desired_velocity_magnitude);
 	const float heading_error = matrix::wrap_pi(desired_heading - yaw);
 
@@ -163,7 +163,7 @@ void RoverMecanumGuidance::updateWaypoints()
 		_curr_wp = Vector2d(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon);
 
 	} else {
-		_curr_wp = Vector2d(0, 0);
+		_curr_wp = _curr_pos;
 	}
 
 	if (position_setpoint_triplet.previous.valid && PX4_ISFINITE(position_setpoint_triplet.previous.lat)
