@@ -211,6 +211,7 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 {
 	int startblock = 0;
 	uint8_t buf[AT24XX_PAGESIZE + 2];
+	int tries;
 
 	struct i2c_msg_s msgv[1] = {
 		{
@@ -235,9 +236,15 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 		buf[1] = offset & 0xff;
 		buf[0] = (offset >> 8) & 0xff;
 
+		tries = 10;
+
 		while (I2C_TRANSFER(priv->dev, &msgv[0], 1) < 0) {
 			fwarn("erase stall\n");
 			px4_usleep(10000);
+
+			if (--tries == 0) {
+				return -ENODEV;
+			}
 		}
 	}
 
