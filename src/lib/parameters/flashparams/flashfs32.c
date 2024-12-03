@@ -1126,7 +1126,7 @@ int parameter_flashfs_init(sector_descriptor_t *fconfig, uint8_t *buffer, uint16
 	/*  No paramaters */
 
 	if (pf == NULL) {
-		// Parameters can't be found, assume sector is corrupt
+		// Parameters can't be found, assume sector is corrupt or empty
 		rv = parameter_flashfs_erase();
 	}
 
