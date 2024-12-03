@@ -32,7 +32,7 @@ parameters:
                   12: 5000hz
               reboot_required: true
               num_instances: 1
-              default: 1
+              default: 5
 
           SF45_ORIENT_CFG:
               description:
