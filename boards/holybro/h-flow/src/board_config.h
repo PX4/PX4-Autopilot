@@ -68,6 +68,10 @@
 // TODO figure out
 #define GPIO_GETNODEINFO_JUMPER 0 //(GPIO_BOOT_CONFIG & ~GPIO_EXTI)
 
+// CAN termination set by param, available from RC02
+#define GPIO_CAN1_TERMINATION /* PA12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN12)
+#define GPIO_CAN_TERM                    GPIO_CAN1_TERMINATION
+
 #define FLASH_BASED_PARAMS
 
 /* High-resolution timer */
