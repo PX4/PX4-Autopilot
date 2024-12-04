@@ -2369,7 +2369,7 @@ void FixedwingPositionControl::control_backtransition_heading_hold()
 	}
 
 	const Vector2f airspeed_vector = Vector2f(cosf(_local_pos.heading), sinf(_local_pos.heading)) * true_airspeed;
-	const Vector2f ground_speed = airspeed_vector;
+	const Vector2f &ground_speed = airspeed_vector;
 
 	_npfg.setAirspeedNom(_performance_model.getCalibratedTrimAirspeed() * _eas2tas);
 	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
