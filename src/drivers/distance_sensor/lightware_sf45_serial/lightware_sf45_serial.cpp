@@ -645,17 +645,21 @@ void SF45LaserSerial::sf45_process_replies(float &distance_m)
 				break;
 			}
 
-			// Convert to meters for rangefinder update
-			distance_m = raw_distance * SF45_SCALE_FACTOR;
 
-			Quatf quaternion(Eulerf{0, 0, sf45_wrap_360(scaled_yaw)*M_DEG_TO_RAD_F});
-			float q[4];
+			if (raw_distance < 65436) { // Discard invalid readings
+				// Convert to meters for rangefinder update
+				distance_m = raw_distance * SF45_SCALE_FACTOR;
 
-			for (int i = 0; i < 4; i++) {
-				q[i] = quaternion(i);
+				Quatf quaternion(Eulerf{0, 0, sf45_wrap_360(scaled_yaw)*M_DEG_TO_RAD_F});
+				float q[4];
+
+				for (int i = 0; i < 4; i++) {
+					q[i] = quaternion(i);
+				}
+
+				_px4_rangefinder.update(hrt_absolute_time(), distance_m, -1, q);
 			}
 
-			_px4_rangefinder.update(hrt_absolute_time(), distance_m, -1, q);
 			break;
 		}
 
