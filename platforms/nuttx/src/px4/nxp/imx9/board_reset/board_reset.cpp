@@ -53,15 +53,9 @@ static void board_reset_enter_bootloader()
 
 static void board_reset_enter_bootloader_and_continue_boot()
 {
-	/* Reset by triggering WDOG */
+	/* Reset the whole SoC */
 
-	/* TODO */
-
-	_alert("WDOG reset Not implemented\n");
-
-	/* Wait for the reset */
-
-	for (; ;);
+	up_systemreset();
 }
 
 static void board_reset_enter_app()
