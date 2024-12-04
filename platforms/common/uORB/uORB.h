@@ -283,6 +283,7 @@ const char *orb_get_c_type(unsigned char short_type);
  */
 void orb_print_message_internal(const struct orb_metadata *meta, const void *data, bool print_topic_name);
 
+const struct orb_metadata *orb_get_meta(orb_id_size_t id);
 
 __END_DECLS
 

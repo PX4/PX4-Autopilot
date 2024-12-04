@@ -465,3 +465,16 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 		format_idx = end_field_idx + 1;
 	}
 }
+
+const struct orb_metadata *orb_get_meta(orb_id_size_t id)
+{
+	if (id < orb_topics_count()) {
+		const orb_metadata *const *topics = orb_get_topics();
+		const struct orb_metadata *meta = topics[id];
+		PX4_INFO("orb_get_meta: meta; %p, meta.id: %u, meta.o_size: %u, meta.o_size_padding %u",
+			 meta, meta->o_id, meta->o_size, meta->o_size_no_padding);
+		return meta;
+	}
+
+	return nullptr;
+}
