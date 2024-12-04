@@ -8,6 +8,10 @@ on:
     branches:
       - '*'
 
+env:
+  MIN_FLASH_POS_DIFF_FOR_COMMENT: 50
+  MIN_FLASH_NEG_DIFF_FOR_COMMENT: -50
+
 jobs:
   analyze_flash:
     name: Analyzing ${{ matrix.target }}
@@ -18,8 +22,10 @@ jobs:
       matrix:
         target: [px4_fmu-v5x, px4_fmu-v6x]
     outputs:
-      px4_fmu-v5x: ${{ steps.gen-output.outputs.output_px4_fmu-v5x }}
-      px4_fmu-v6x: ${{ steps.gen-output.outputs.output_px4_fmu-v6x }}
+      px4_fmu-v5x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v5x-bloaty-output }}
+      px4_fmu-v5x-bloaty-summary-map: ${{ steps.gen-output.outputs.px4_fmu-v5x-bloaty-summary-map }}
+      px4_fmu-v6x-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-output }}
+      px4_fmu-v6x-bloaty-summary-map: ${{ steps.gen-output.outputs.px4_fmu-v6x-bloaty-summary-map }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,10 +36,22 @@ jobs:
         run: git config --system --add safe.directory '*'
 
       - name: Build Target
-        run: make ${{ matrix.target }}
+        # Use special flash-analysis target if present. Otherwise fall back to the default target.
+        run: |
+          if make list_config_targets | grep ${{ matrix.target }}_flash-analysis; then
+            make ${{ matrix.target }}_flash-analysis
+          else
+            make ${{ matrix.target }}
+          fi
 
       - name: Store the ELF with the change
-        run: cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./with-change.elf
+        # Use special flash-analysis target if present. Otherwise fall back to the default target.
+        run: |
+          if make list_config_targets | grep ${{ matrix.target }}_flash-analysis; then
+            cp ./build/${{ matrix.target }}_flash-analysis/${{ matrix.target }}_flash-analysis.elf ./with-change.elf
+          else
+            cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./with-change.elf
+          fi
 
       - name: Clean previous build
         run: |
@@ -52,30 +70,49 @@ jobs:
         run: make submodulesupdate
 
       - name: Build
-        run: make ${{ matrix.target }}
+        # Use special flash-analysis target if present. Otherwise fall back to the default target.
+        run: |
+          if make list_config_targets | grep ${{ matrix.target }}_flash-analysis; then
+            make ${{ matrix.target }}_flash-analysis
+          else
+            make ${{ matrix.target }}
+          fi
 
       - name: Store the ELF before the change
-        run: cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./before-change.elf
+        # Use special flash-analysis target if present. Otherwise fall back to the default target.
+        run: |
+          if make list_config_targets | grep ${{ matrix.target }}_flash-analysis; then
+            cp ./build/${{ matrix.target }}_flash-analysis/${{ matrix.target }}_flash-analysis.elf ./before-change.elf
+          else
+            cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./before-change.elf
+          fi
 
       - name: bloaty-action
-        uses: carlosperate/bloaty-action@v1.1.0
+        uses: PX4/bloaty-action@v1.0.0
         id: bloaty-step
         with:
-          bloaty-args: -d sections,compileunits -n 0 ./with-change.elf -- ./before-change.elf
+          bloaty-file-args: ./with-change.elf -- ./before-change.elf
+          bloaty-additional-args: -d sections,compileunits -s vm -n 20
           output-to-summary: true
 
       - name: Generate output
         id: gen-output
         run: |
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          echo "output_${{ matrix.target }}<<$EOF" >> $GITHUB_OUTPUT
+          echo "${{ matrix.target }}-bloaty-output<<$EOF" >> $GITHUB_OUTPUT
           echo "${{ steps.bloaty-step.outputs.bloaty-output-encoded }}" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+          echo "${{ matrix.target }}-bloaty-summary-map<<$EOF" >> $GITHUB_OUTPUT
+          echo '${{ steps.bloaty-step.outputs.bloaty-summary-map }}' >> $GITHUB_OUTPUT
           echo "$EOF" >> $GITHUB_OUTPUT
 
   post_pr_comment:
     name: Publish Results
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [analyze_flash]
+    env:
+      V5X-SUMMARY-MAP: ${{ needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-summary-map }}
+      V6X-SUMMARY-MAP: ${{ needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map }}
     if: ${{ github.event.pull_request }}
     steps:
       - name: Find Comment
@@ -92,25 +129,32 @@ jobs:
           echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_OUTPUT
 
       - name: Create or update comment
+        # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
+        if: |
+          steps.fc.outputs.comment-id != '' ||
+          fromJSON(fromJSON(env.V5X-SUMMARY-MAP).vm-absolute) >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
+          fromJSON(fromJSON(env.V5X-SUMMARY-MAP).vm-absolute) <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
+          fromJSON(fromJSON(env.V6X-SUMMARY-MAP).vm-absolute) >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
+          fromJSON(fromJSON(env.V6X-SUMMARY-MAP).vm-absolute) <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## FLASH Analysis
+            ## 🔎 FLASH Analysis
             <details>
-              <summary>px4_fmu-v5x</summary>
+              <summary>px4_fmu-v5x [Total VM Diff: ${{ fromJSON(env.V5X-SUMMARY-MAP).vm-absolute }} byte (${{ fromJSON(env.V5X-SUMMARY-MAP).vm-percentage }} %)]</summary>
 
               ```
-              ${{ needs.analyze_flash.outputs.px4_fmu-v5x }}
+              ${{ needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-output }}
               ```
             </details>
 
             <details>
-              <summary>px4_fmu-v6x</summary>
+              <summary>px4_fmu-v6x [Total VM Diff: ${{ fromJSON(env.V6X-SUMMARY-MAP).vm-absolute }} byte (${{ fromJSON(env.V6X-SUMMARY-MAP).vm-percentage }} %)]</summary>
 
               ```
-              ${{ needs.analyze_flash.outputs.px4_fmu-v6x }}
+              ${{ needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-output }}
               ```
             </details>
 
