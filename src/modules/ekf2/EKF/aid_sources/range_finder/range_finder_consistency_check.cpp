@@ -39,7 +39,7 @@
 
 using namespace matrix;
 
-void RangeFinderConsistencyCheck::initMiniKF(float var_z, float var_terrain, float z, float dist_bottom)
+void RangeFinderConsistencyCheck::init(float var_z, float var_terrain, float z, float dist_bottom)
 {
 	_R.setZero();
 	_A.setIdentity();
@@ -54,7 +54,7 @@ void RangeFinderConsistencyCheck::initMiniKF(float var_z, float var_terrain, flo
 	_state = KinematicState::UNKNOWN;
 }
 
-void RangeFinderConsistencyCheck::UpdateMiniKF(float z, float z_var, float vz, float vz_var, float dist_bottom,
+void RangeFinderConsistencyCheck::update(float z, float z_var, float vz, float vz_var, float dist_bottom,
 		float dist_bottom_var, uint64_t time_us)
 {
 	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
@@ -112,6 +112,8 @@ void RangeFinderConsistencyCheck::UpdateMiniKF(float z, float z_var, float vz, f
 			_state = KinematicState::INCONSISTENT;
 		}
 
+	} else {
+		_test_ratio_lpf.update(test_ratio);
 	}
 }
 
@@ -125,8 +127,8 @@ void RangeFinderConsistencyCheck::run(const float z, const float vz,
 	if (!_initialized || current_posD_reset_count != _last_posD_reset_count) {
 		_last_posD_reset_count = current_posD_reset_count;
 		const float terrain_var = P(estimator::State::terrain.idx, estimator::State::terrain.idx);
-		initMiniKF(z_var, terrain_var, z, dist_bottom);
+		init(z_var, terrain_var, z, dist_bottom);
 	}
 
-	UpdateMiniKF(z, z_var, vz, vz_var, dist_bottom, dist_bottom_var, time_us);
+	update(z, z_var, vz, vz_var, dist_bottom, dist_bottom_var, time_us);
 }

@@ -80,7 +80,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 					if (horizontal_motion) {
 						if (_rng_consistency_check.isRunning()) {
-							_rng_consistency_check.stopMiniKF();
+							_rng_consistency_check.stop();
 						}
 
 					} else if (vertical_motion) {
@@ -103,7 +103,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					_range_sensor.setValidity(true); // bypass the checks
 
 				} else {
-					_rng_consistency_check.stopMiniKF();
+					_rng_consistency_check.stop();
 				}
 			}
 		}
