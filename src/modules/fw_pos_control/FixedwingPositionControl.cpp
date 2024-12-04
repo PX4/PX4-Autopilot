@@ -2368,6 +2368,7 @@ void FixedwingPositionControl::control_backtransition_heading_hold()
 		true_airspeed = _performance_model.getCalibratedTrimAirspeed() * _eas2tas;
 	}
 
+	// we can achieve heading control by setting airspeed and groundspeed vector equal
 	const Vector2f airspeed_vector = Vector2f(cosf(_local_pos.heading), sinf(_local_pos.heading)) * true_airspeed;
 	const Vector2f &ground_speed = airspeed_vector;
 
