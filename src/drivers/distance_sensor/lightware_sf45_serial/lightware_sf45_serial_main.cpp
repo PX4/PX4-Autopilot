@@ -102,7 +102,6 @@ static int usage()
 
 Serial bus driver for the Lightware SF45/b Laser rangefinder.
 
-Setup/usage information: https://docs.px4.io/main/en/sensor/rangefinders.html
 
 ### Examples
 
