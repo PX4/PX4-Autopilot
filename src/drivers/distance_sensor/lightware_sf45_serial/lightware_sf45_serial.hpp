@@ -50,7 +50,6 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/obstacle_distance.h>
-#include <uORB/topics/distance_sensor.h>
 
 #include "sf45_commands.h"
 
@@ -62,6 +61,15 @@ enum SF_SERIAL_STATE {
 	STATE_SEND_STREAM = 4,
 };
 
+enum SF45_PARSED_STATE {
+	START = 0,
+	FLG_LOW,
+	FLG_HIGH,
+	ID,
+	DATA,
+	CRC_LOW,
+	CRC_HIGH
+};
 
 enum SensorOrientation {	  // Direction the sensor faces from MAV_SENSOR_ORIENTATION enum
 	ROTATION_FORWARD_FACING = 0,  // MAV_SENSOR_ROTATION_NONE
@@ -71,6 +79,7 @@ enum SensorOrientation {	  // Direction the sensor faces from MAV_SENSOR_ORIENTA
 	ROTATION_UPWARD_FACING = 24,  // MAV_SENSOR_ROTATION_PITCH_90
 	ROTATION_DOWNWARD_FACING = 25 // MAV_SENSOR_ROTATION_PITCH_270
 };
+
 using namespace time_literals;
 class SF45LaserSerial : public px4::ScheduledWorkItem
 {
@@ -88,9 +97,12 @@ public:
 	float				sf45_wrap_360(float f);
 
 private:
-	obstacle_distance_s 			_obstacle_map_msg{};
+	obstacle_distance_s 			_obstacle_distance{};
 	uORB::Publication<obstacle_distance_s>	_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
-	static constexpr int BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(obstacle_distance_s::distances[0]);
+	static constexpr uint8_t 	BIN_COUNT = sizeof(obstacle_distance_s::distances) / sizeof(
+				obstacle_distance_s::distances[0]);
+	static constexpr uint64_t 	SF45_MEAS_TIMEOUT{100_ms};
+	static constexpr float 		SF45_SCALE_FACTOR = 0.01f;
 
 	void				start();
 	void				stop();
@@ -99,6 +111,7 @@ private:
 	int				collect();
 	bool				_crc_valid{false};
 
+	void 				_handle_missed_bins(uint8_t current_bin, uint8_t previous_bin, uint16_t measurement, hrt_abstime now);
 	void 				_publish_obstacle_msg(hrt_abstime now);
 	uint64_t			_data_timestamps[BIN_COUNT];
 
