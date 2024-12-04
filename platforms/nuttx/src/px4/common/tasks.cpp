@@ -59,6 +59,7 @@
 #include <stdbool.h>
 #include <spawn.h>
 #include <libgen.h>
+#include <fcntl.h>
 
 #include <builtin/builtin.h>
 
@@ -100,7 +101,15 @@ const char *px4_get_taskname(void)
 int px4_exec(const char *appname, char *const *argv, const char *redirfile, int oflags)
 {
 #ifdef CONFIG_BUILTIN
-	return exec_builtin(appname, argv, NULL, redirfile, oflags);
+	const struct nsh_param_s param = {
+		.fd_in = -1,
+		.fd_out = -1,
+		.oflags_in = O_RDONLY,
+		.oflags_out = oflags,
+		.file_in = NULL,
+		.file_out = redirfile,
+	};
+	return exec_builtin(appname, argv, &param);
 #else
 	char path[CONFIG_PATH_MAX];
 	posix_spawn_file_actions_t file_actions;
