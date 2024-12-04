@@ -29,7 +29,9 @@ RUN mkdir -p /tools
 ENV RUSTUP_HOME /opt/rust
 ENV CARGO_HOME /opt/rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path
-RUN /opt/rust/bin/rustup target add riscv64gc-unknown-none-elf
+RUN /opt/rust/bin/rustup target add riscv64gc-unknown-none-elf aarch64-unknown-none
+
+RUN /opt/rust/bin/cargo install bindgen-cli
 
 RUN curl -LOs https://static.dev.sifive.com/dev-tools/freedom-tools/v2020.12/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz && \
     tar xf riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz -C /tools && \
@@ -43,4 +45,4 @@ RUN curl -LOs https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/bi
     tar xvf arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-elf.tar.xz -C /tools && \
     rm -f arm-gnu-toolchain-13.2.rel1-x86_64-aarch64-none-elf.tar.xz
 
-ENV PATH=/tools/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-elf/bin:/tools/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin:/tools/gcc-arm-none-eabi-9-2019-q4-major/bin/:$PATH
+ENV PATH=/tools/arm-gnu-toolchain-13.2.Rel1-x86_64-aarch64-none-elf/bin:/tools/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin:/tools/gcc-arm-none-eabi-9-2019-q4-major/bin/:/opt/rust/bin:$PATH
