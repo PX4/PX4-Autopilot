@@ -271,6 +271,8 @@ extern uint8_t orb_get_queue_size(const struct orb_metadata *meta);
  */
 void orb_print_message_internal(const struct orb_metadata *meta, const void *data, bool print_topic_name);
 
+const struct orb_metadata *orb_get_meta(orb_id_size_t id);
+
 __END_DECLS
 
 /* Diverse uORB header defines */ //XXX: move to better location

@@ -449,3 +449,14 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 		}
 	}
 }
+
+const struct orb_metadata *orb_get_meta(orb_id_size_t id)
+{
+	if (id < orb_topics_count()) {
+		const orb_metadata *const *topics = orb_get_topics();
+		const struct orb_metadata *meta = topics[id];
+		return meta;
+	}
+
+	return nullptr;
+}
