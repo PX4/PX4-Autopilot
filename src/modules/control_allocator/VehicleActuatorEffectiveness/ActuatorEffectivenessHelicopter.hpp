@@ -122,7 +122,6 @@ private:
 		param_t spoolup_time;
 		param_t linearize_servos;
 		param_t max_servo_throw;
-		param_t inverse_max_servo_throw;
 	};
 	ParamHandles _param_handles{};
 
