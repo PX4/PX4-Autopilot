@@ -1185,7 +1185,6 @@ mixer:
                     - label: 'Min/max servo throw in degrees'
                       name: CA_MAX_SVO_THROW
 
-
             12: # Helicopter (Coaxial)
                 actuators:
                   - actuator_type: 'motor'
