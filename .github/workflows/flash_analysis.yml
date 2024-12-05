@@ -48,9 +48,9 @@ jobs:
         # Use special flash-analysis target if present. Otherwise fall back to the default target.
         run: |
           if make list_config_targets | grep ${{ matrix.target }}_flash-analysis; then
-            cp ./build/${{ matrix.target }}_flash-analysis/${{ matrix.target }}_flash-analysis.elf ./with-change.elf
+            cp ./build/${{ matrix.target }}_flash-analysis/*.elf ./with-change.elf
           else
-            cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./with-change.elf
+            cp ./build/${{ matrix.target }}_default/*.elf ./with-change.elf
           fi
 
       - name: Clean previous build
@@ -82,9 +82,9 @@ jobs:
         # Use special flash-analysis target if present. Otherwise fall back to the default target.
         run: |
           if make list_config_targets | grep ${{ matrix.target }}_flash-analysis; then
-            cp ./build/${{ matrix.target }}_flash-analysis/${{ matrix.target }}_flash-analysis.elf ./before-change.elf
+            cp ./build/${{ matrix.target }}_flash-analysis/*.elf ./before-change.elf
           else
-            cp ./build/${{ matrix.target }}_default/${{ matrix.target }}_default.elf ./before-change.elf
+            cp ./build/${{ matrix.target }}_default/*.elf ./before-change.elf
           fi
 
       - name: bloaty-action
@@ -111,8 +111,10 @@ jobs:
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [analyze_flash]
     env:
-      V5X-SUMMARY-MAP: ${{ needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-summary-map }}
-      V6X-SUMMARY-MAP: ${{ needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map }}
+      V5X-SUMMARY-MAP-ABS: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-summary-map).vm-absolute) }}
+      V5X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-summary-map).vm-percentage) }}
+      V6X-SUMMARY-MAP-ABS: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map).vm-absolute) }}
+      V6X-SUMMARY-MAP-PERC: ${{ fromJSON(fromJSON(needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-summary-map).vm-percentage) }}
     if: ${{ github.event.pull_request }}
     steps:
       - name: Find Comment
@@ -132,10 +134,10 @@ jobs:
         # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
         if: |
           steps.fc.outputs.comment-id != '' ||
-          fromJSON(fromJSON(env.V5X-SUMMARY-MAP).vm-absolute) >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          fromJSON(fromJSON(env.V5X-SUMMARY-MAP).vm-absolute) <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
-          fromJSON(fromJSON(env.V6X-SUMMARY-MAP).vm-absolute) >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
-          fromJSON(fromJSON(env.V6X-SUMMARY-MAP).vm-absolute) <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
+          env.V5X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
+          env.V5X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT) ||
+          env.V6X-SUMMARY-MAP-ABS >= fromJSON(env.MIN_FLASH_POS_DIFF_FOR_COMMENT) ||
+          env.V6X-SUMMARY-MAP-ABS <= fromJSON(env.MIN_FLASH_NEG_DIFF_FOR_COMMENT)
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
@@ -143,7 +145,7 @@ jobs:
           body: |
             ## 🔎 FLASH Analysis
             <details>
-              <summary>px4_fmu-v5x [Total VM Diff: ${{ fromJSON(env.V5X-SUMMARY-MAP).vm-absolute }} byte (${{ fromJSON(env.V5X-SUMMARY-MAP).vm-percentage }} %)]</summary>
+              <summary>px4_fmu-v5x [Total VM Diff: ${{ env.V5X-SUMMARY-MAP-ABS }} byte (${{ env.V5X-SUMMARY-MAP-PERC}} %)]</summary>
 
               ```
               ${{ needs.analyze_flash.outputs.px4_fmu-v5x-bloaty-output }}
@@ -151,7 +153,7 @@ jobs:
             </details>
 
             <details>
-              <summary>px4_fmu-v6x [Total VM Diff: ${{ fromJSON(env.V6X-SUMMARY-MAP).vm-absolute }} byte (${{ fromJSON(env.V6X-SUMMARY-MAP).vm-percentage }} %)]</summary>
+              <summary>px4_fmu-v6x [Total VM Diff: ${{ env.V6X-SUMMARY-MAP-ABS }} byte (${{ env.V6X-SUMMARY-MAP-PERC }} %)]</summary>
 
               ```
               ${{ needs.analyze_flash.outputs.px4_fmu-v6x-bloaty-output }}
