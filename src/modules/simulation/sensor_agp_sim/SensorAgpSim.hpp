@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <lib/lat_lon_alt/lat_lon_alt.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -64,10 +65,20 @@ public:
 	bool init();
 
 private:
+	enum class FailureMode : int32_t {
+		Stuck = (1 << 0),
+		Drift = (1 << 1)
+	};
+
 	void Run() override;
 
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
+
+	LatLonAlt _measured_lla{};
+	matrix::Vector3f _position_bias{};
+
+	uint64_t _time_last_update{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
@@ -77,6 +88,6 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
+		(ParamInt<px4::params::SIM_AGP_FAIL>) _param_sim_agp_fail
 	)
 };
