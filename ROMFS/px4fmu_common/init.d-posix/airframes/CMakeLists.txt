@@ -49,6 +49,7 @@ px4_add_romfs_files(
 	1022_gazebo-classic_uuv_bluerov2_heavy
 	1030_gazebo-classic_plane
 	1031_gazebo-classic_plane_cam
+	1031_gazebo-classic_plane_cam.post
 	1032_gazebo-classic_plane_catapult
 	1033_jsbsim_rascal
 	1034_flightgear_rascal-electric
