@@ -92,7 +92,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 					events::Log::Error, "Airspeed too high", airspeed_validated.calibrated_airspeed_m_s, arming_max_airspeed_allowed);
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high - check airspeed calibration");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high");
 			}
 		}
 

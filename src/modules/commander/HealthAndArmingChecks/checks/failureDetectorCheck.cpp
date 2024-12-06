@@ -90,7 +90,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 					    events::Log::Critical, "Failure triggered by external system");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Failure triggered by external system");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Failure caused by external system");
 		}
 	}
 
