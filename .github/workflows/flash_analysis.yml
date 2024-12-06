@@ -36,13 +36,7 @@ jobs:
         run: git config --system --add safe.directory '*'
 
       - name: Build Target
-        # Use special flash-analysis target if present. Otherwise fall back to the default target.
-        run: |
-          if make list_config_targets | grep ${{ matrix.target }}_flash-analysis; then
-            make ${{ matrix.target }}_flash-analysis
-          else
-            make ${{ matrix.target }}
-          fi
+        run: make ${{ matrix.target }}_flash-analysis
 
       - name: Store the ELF with the change
         run: cp ./build/**/*.elf ./with-change.elf
@@ -52,9 +46,10 @@ jobs:
           make clean
           make distclean
 
-      - name: If it's a PR checkout the base commit
+      - name: If it's a PR checkout the base branch
         if: ${{ github.event.pull_request }}
-        run: git checkout ${{ github.event.pull_request.base.sha }}
+        # As checkout creates a merge commit (merging the base branch into the PR branch), the base branch is the base for a diff of the PR changes.
+        run: git checkout ${{ github.event.pull_request.base.ref }}
 
       - name: If it's a push checkout the previous commit
         if: github.event_name == 'push'
@@ -64,13 +59,7 @@ jobs:
         run: make submodulesupdate
 
       - name: Build
-        # Use special flash-analysis target if present. Otherwise fall back to the default target.
-        run: |
-          if make list_config_targets | grep ${{ matrix.target }}_flash-analysis; then
-            make ${{ matrix.target }}_flash-analysis
-          else
-            make ${{ matrix.target }}
-          fi
+        run: make ${{ matrix.target }}_flash-analysis
 
       - name: Store the ELF before the change
         run: cp ./build/**/*.elf ./before-change.elf
