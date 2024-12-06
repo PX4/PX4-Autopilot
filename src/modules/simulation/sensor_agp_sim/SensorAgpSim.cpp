@@ -107,9 +107,27 @@ void SensorAgpSim::Run()
 		vehicle_global_position_s gpos{};
 		_vehicle_global_position_sub.copy(&gpos);
 
-		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
-		double altitude = (double)(gpos.alt + (generate_wgn() * 0.5f));
+		const uint64_t now = gpos.timestamp;
+		const float dt = (now - _time_last_update) * 1e-6f;
+		_time_last_update = now;
+
+		if (!(_param_sim_agp_fail.get() & static_cast<int32_t>(FailureMode::Stuck))) {
+			_measured_lla = LatLonAlt(gpos.lat, gpos.lon, gpos.alt_ellipsoid);
+		}
+
+		if (_param_sim_agp_fail.get() & static_cast<int32_t>(FailureMode::Drift)) {
+			_position_bias += Vector3f(1.5f, -5.f, 0.f) * dt;
+			_measured_lla += _position_bias;
+
+		} else {
+			_position_bias.zero();
+		}
+
+		const double latitude = _measured_lla.latitude_deg() + math::degrees((double)generate_wgn() * 2.0 /
+					CONSTANTS_RADIUS_OF_EARTH);
+		const double longitude = _measured_lla.longitude_deg() + math::degrees((double)generate_wgn() * 2.0 /
+					 CONSTANTS_RADIUS_OF_EARTH);
+		const double altitude = (double)(_measured_lla.altitude() + (generate_wgn() * 0.5f));
 
 		vehicle_global_position_s sample{};
 
@@ -120,8 +138,8 @@ void SensorAgpSim::Run()
 		sample.lat_lon_valid = true;
 		sample.alt_ellipsoid = altitude;
 		sample.alt_valid = true;
-		sample.eph = 0.9f;
-		sample.epv = 1.78f;
+		sample.eph = 20.f;
+		sample.epv = 5.f;
 
 		sample.timestamp = hrt_absolute_time();
 		_aux_global_position_pub.publish(sample);

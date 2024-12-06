@@ -41,3 +41,17 @@
  * @value 1 Enabled
   */
 PARAM_DEFINE_INT32(SENS_EN_AGPSIM, 0);
+
+/**
+ * AGP failure mode
+ *
+ * Stuck: freeze the measurement to the current location
+ * Drift: add a linearly growing bias to the sensor data
+ *
+ * @group Simulator
+ * @min 0
+ * @max 3
+ * @bit 0 Stuck
+ * @bit 1 Drift
+ */
+PARAM_DEFINE_INT32(SIM_AGP_FAIL, 0);
