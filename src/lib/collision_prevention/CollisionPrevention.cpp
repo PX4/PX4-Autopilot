@@ -393,18 +393,32 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 
 	// discard values below min range
 	if (distance_reading > distance_sensor.min_distance) {
-		float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, _obstacle_map_body_frame.angle_offset);
+
+		Vector2f sensor_unit_vector = _getSensorUnitVector(distance_sensor);
+
+		// Extract roll and pitch from vehicle attitude quaternion
+		Eulerf euler_vehicle(vehicle_attitude);
+		float roll  = euler_vehicle.phi();
+		float pitch = euler_vehicle.theta();
+
+	        // Construct rotation matrix for roll and pitch
+		matrix::Dcmf rotation_matrix(matrix::Eulerf(roll, pitch, 0.0f));
+
+		// Apply rotation matrix to sensor unit vector
+		Vector3f sensor_unit_vector_3d(sensor_unit_vector(0), sensor_unit_vector(1), 0.0f);
+		Vector3f rotated_vector = rotation_matrix * sensor_unit_vector_3d;
+		Vector2f rotated_sensor_unit_vector(rotated_vector(0), rotated_vector(1));
+
+		// Scaling factor as dot product of vectors
+		float sensor_dist_scale = sensor_unit_vector.dot(rotated_sensor_unit_vector);
+
+        	float sensor_yaw_body_rad = atan2f(sensor_unit_vector(1), sensor_unit_vector(0));
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
 		// calculate the field of view boundary bin indices
 		int lower_bound = (int)round((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 
-
-		// rotate vehicle attitude into the sensor body frame
-		Quatf attitude_sensor_frame = vehicle_attitude;
-		attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
-		float sensor_dist_scale = cosf(Eulerf(attitude_sensor_frame).theta()); // verify
 
 		if (distance_reading < distance_sensor.max_distance) {
 			distance_reading = distance_reading * sensor_dist_scale;
@@ -424,6 +438,55 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		}
 	}
 }
+
+
+
+matrix::Vector2f
+CollisionPrevention::_getSensorUnitVector(const distance_sensor_s &distance_sensor) const
+{
+    if (distance_sensor.orientation == distance_sensor_s::ROTATION_CUSTOM) {
+        return _getUnitVectorFromQuaternion(distance_sensor.q);
+    } else {
+        return _getUnitVectorFromOrientation(distance_sensor.orientation);
+    }
+}
+
+matrix::Vector2f
+CollisionPrevention::_getUnitVectorFromOrientation(uint8_t orientation) const
+{
+    switch (orientation) {
+        case distance_sensor_s::ROTATION_FORWARD_FACING:
+            return Vector2f(1.0f, 0.0f);
+        case distance_sensor_s::ROTATION_RIGHT_FACING:
+            return Vector2f(0.0f, 1.0f);
+        case distance_sensor_s::ROTATION_BACKWARD_FACING:
+            return Vector2f(-1.0f, 0.0f);
+        case distance_sensor_s::ROTATION_LEFT_FACING:
+            return Vector2f(0.0f, -1.0f);
+        case distance_sensor_s::ROTATION_YAW_45:
+            return Vector2f(cosf(M_PI_4), sinf(M_PI_4));
+        case distance_sensor_s::ROTATION_YAW_135:
+            return Vector2f(-cosf(M_PI_4), sinf(M_PI_4));
+        case distance_sensor_s::ROTATION_YAW_225:
+            return Vector2f(-cosf(M_PI_4), -sinf(M_PI_4));
+        case distance_sensor_s::ROTATION_YAW_315:
+            return Vector2f(cosf(M_PI_4), -sinf(M_PI_4));
+        default:
+            return Vector2f(1.0f, 0.0f); // Default to forward-facing
+    }
+}
+
+matrix::Vector2f
+CollisionPrevention::_getUnitVectorFromQuaternion(const float q[4]) const
+{
+    Quatf quaternion(q[0], q[1], q[2], q[3]);
+    Vector3f custom_vector(1.0f, 0.0f, 0.0f); // Default orientation
+
+    quaternion.rotate(custom_vector); // Rotate default orientation by custom orientation
+
+    return Vector2f(custom_vector(0), custom_vector(1)).unit_or_zero(); // Constrain to XY plane and normalize
+}
+
 
 void
 CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad)
