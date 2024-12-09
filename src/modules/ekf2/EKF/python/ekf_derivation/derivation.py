@@ -721,6 +721,22 @@ def compute_gravity_z_innov_var_and_h(
 
     return (innov_var, H.T)
 
+def range_validation_filter() -> sf.matrix:
+
+    z = sf.Symbol("z")
+    dist_bottom = sf.Symbol("dist_bottom")
+    terrain = dist_bottom - z
+    state = sf.V2.symbolic("state")
+    state_indices = {"z": 0, "dist_bottom": 1}
+    state[state_indices["z"]] = z
+    state[state_indices["dist_bottom"]] = dist_bottom
+
+    H = sf.M22()
+    H[0, :] = sf.V1(z).jacobian(state, tangent_space=False)
+    H[1, :] = sf.V1(terrain).jacobian(state, tangent_space=False)
+
+    return H
+
 print("Derive EKF2 equations...")
 generate_px4_function(predict_covariance, output_names=None)
 
@@ -752,5 +768,6 @@ generate_px4_function(compute_gravity_z_innov_var_and_h, output_names=["innov_va
 generate_px4_function(compute_body_vel_innov_var_h, output_names=["innov_var", "Hx", "Hy", "Hz"])
 generate_px4_function(compute_body_vel_y_innov_var, output_names=["innov_var"])
 generate_px4_function(compute_body_vel_z_innov_var, output_names=["innov_var"])
+generate_px4_function(range_validation_filter, output_names=["H"])
 
 generate_px4_state(State, tangent_idx)

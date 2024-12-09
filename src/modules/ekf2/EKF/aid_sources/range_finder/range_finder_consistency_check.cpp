@@ -36,6 +36,7 @@
  */
 
 #include <aid_sources/range_finder/range_finder_consistency_check.hpp>
+#include "ekf_derivation/generated/range_validation_filter.h"
 
 using namespace matrix;
 
@@ -44,11 +45,10 @@ void RangeFinderConsistencyCheck::init(float var_z, float var_terrain, float z, 
 	_R.setZero();
 	_A.setIdentity();
 	float p[4] = {var_z, 0.f, 0.f, var_terrain};
-	_P = Matrix<float, 2, 2>(p);
-	float h[4] = {1.f, 0.f, -1.f, 1.f};
-	_H = Matrix<float, 2, 2>(h);
-	_x(0) = z;
-	_x(1) = z + dist_bottom;
+	_P = Matrix<float, RangeFilter::size, RangeFilter::size>(p);
+	sym::RangeValidationFilter(&_H);
+	_x(RangeFilter::z.idx) = z;
+	_x(RangeFilter::terrain.idx) = z + dist_bottom;
 	_initialized = true;
 	_sample_count = 0;
 	_state = KinematicState::UNKNOWN;
@@ -70,41 +70,43 @@ void RangeFinderConsistencyCheck::update(float z, float z_var, float vz, float v
 
 	_time_last_update_us = time_us;
 
-	_R(0, 0) = z_var;
-	_R(1, 1) = dist_bottom_var;
+	_R(RangeFilter::z.idx, RangeFilter::z.idx) = z_var;
+	_R(RangeFilter::terrain.idx, RangeFilter::terrain.idx) = dist_bottom_var;
 
 	SquareMatrix<float, 2> Q;
-	const float process_noise = 0.001f;
-	Q(0, 0) = dt * dt * vz_var + process_noise;
-	Q(1, 1) = process_noise;
-	_x(0) += dt * vz;
+	Q(RangeFilter::z.idx, RangeFilter::z.idx) = dt * dt * vz_var + 0.001f;
+	Q(RangeFilter::terrain.idx, RangeFilter::terrain.idx) = terrain_process_noise;
+
+	_x(RangeFilter::z.idx) += dt * vz;
 	_P = _A * _P * _A.transpose() + Q;
 
 	const Vector2f measurements(z, dist_bottom);
 	const Vector2f y = measurements - _H * _x;
 	const Matrix2f S = _H * _P * _H.transpose() + _R;
-	float test_ratio = fminf(abs(sq(y(1)) / (sq(_gate) * S(1, 1))), 2.f);
+	const float normalized_residual = (y.transpose() * S.I() * y)(0, 0);
+	float test_ratio = fminf(normalized_residual / sq(_gate), 2.f);
 
 	Matrix2f K = _P * _H.transpose() * S.I();
 
-	K(0, 0) = 1.f;
-	K(0, 1) = 0.f;
+	K(RangeFilter::z.idx, RangeFilter::z.idx) = 1.f;
+	K(RangeFilter::z.idx, RangeFilter::terrain.idx) = 0.f;
 
 	if (test_ratio > 1.f) {
-		K(1, 0) = 0.f;
-		K(1, 1) = 0.f;
+		K(RangeFilter::terrain.idx, RangeFilter::z.idx) = 0.f;
+		K(RangeFilter::terrain.idx, RangeFilter::terrain.idx) = 0.f;
 	}
 
 	_x = _x + K * y;
 	_P = _P - K * _H * _P;
 	_P = 0.5f * (_P + _P.transpose()); // Ensure symmetry
+	_innov = y(RangeFilter::terrain.idx);
+	_innov_var = S(RangeFilter::terrain.idx, RangeFilter::terrain.idx);
 
-	_innov = y(1);
-	_innov_var = S(1, 1);
+	_test_ratio_lpf.update(sign(_innov) * test_ratio);
 
 	if (_sample_count++ > _min_nr_of_samples) {
 
-		if (_test_ratio_lpf.update(test_ratio) < 1.f) {
+		if (abs(_test_ratio_lpf.getState()) < 1.f) {
 			_state = KinematicState::CONSISTENT;
 
 		} else {
@@ -112,8 +114,6 @@ void RangeFinderConsistencyCheck::update(float z, float z_var, float vz, float v
 			_state = KinematicState::INCONSISTENT;
 		}
 
-	} else {
-		_test_ratio_lpf.update(test_ratio);
 	}
 }
 

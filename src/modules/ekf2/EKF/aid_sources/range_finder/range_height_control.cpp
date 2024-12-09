@@ -69,27 +69,13 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				const float dist_var = getRngVar();
 				_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
 
-				if (_control_status.flags.fixed_wing) {
-					_rng_consistency_check.setFixedWing(true, 2.0f * _params.range_kin_consistency_gate);
-					_rng_consistency_check.run(_state.pos(2), _state.vel(2), P, _range_sensor.getRange(), dist_var, imu_sample.time_us);
+				const bool updated_horizontal_motion = (sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f));
 
-				} else {
-					_rng_consistency_check.setFixedWing(false, _params.range_kin_consistency_gate);
-					const bool horizontal_motion = (sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f));
-					const bool vertical_motion = sq(_state.vel(2)) > fmaxf(P(State::vel.idx + 2, State::vel.idx + 2), 0.1f);
-
-					if (horizontal_motion) {
-						if (_rng_consistency_check.isRunning()) {
-							_rng_consistency_check.stop();
-						}
-
-					} else if (vertical_motion) {
-						_rng_consistency_check.run(_state.pos(2), _state.vel(2), P, _range_sensor.getRange(), dist_var, imu_sample.time_us);
-
-					} else {
-						_rng_consistency_check.setNotMoving();
-					}
+				if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion) {
+					_rng_consistency_check.reset();
 				}
+				_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
+				_rng_consistency_check.run(_gpos.altitude(), _state.vel(2), P, _range_sensor.getRange(), dist_var, imu_sample.time_us);
 			}
 
 		} else {
@@ -103,7 +89,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					_range_sensor.setValidity(true); // bypass the checks
 
 				} else {
-					_rng_consistency_check.stop();
+					_rng_consistency_check.reset();
 				}
 			}
 		}
@@ -228,7 +214,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				}
 
 			} else {
-				ECL_WARN("stopping %s fusion, continuing conditions failing", HGT_SRC_NAME);
+				ECL_WARN("stoppPing %s fusion, continuing conditions failing", HGT_SRC_NAME);
 				stopRngHgtFusion();
 				stopRngTerrFusion();
 			}
