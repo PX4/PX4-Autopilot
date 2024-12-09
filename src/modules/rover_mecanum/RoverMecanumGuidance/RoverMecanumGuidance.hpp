@@ -46,7 +46,6 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/rover_mecanum_guidance_status.h>
 #include <uORB/topics/rover_mecanum_setpoint.h>
 
 // Standard libraries
@@ -105,7 +104,6 @@ private:
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 
 	// uORB publications
-	uORB::Publication<rover_mecanum_guidance_status_s> _rover_mecanum_guidance_status_pub{ORB_ID(rover_mecanum_guidance_status)};
 	uORB::Publication<rover_mecanum_setpoint_s> _rover_mecanum_setpoint_pub{ORB_ID(rover_mecanum_setpoint)};
 
 	// Variables

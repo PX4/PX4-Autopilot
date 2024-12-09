@@ -40,7 +40,6 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_ackermann_guidance_status.h>
 #include <uORB/topics/rover_ackermann_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -167,9 +166,7 @@ private:
 
 	// uORB publications
 	uORB::Publication<rover_ackermann_setpoint_s> _rover_ackermann_setpoint_pub{ORB_ID(rover_ackermann_setpoint)};
-	uORB::Publication<rover_ackermann_guidance_status_s> _rover_ackermann_guidance_status_pub{ORB_ID(rover_ackermann_guidance_status)};
 	uORB::Publication<position_controller_status_s>	_position_controller_status_pub{ORB_ID(position_controller_status)};
-	rover_ackermann_guidance_status_s _rover_ackermann_guidance_status{};
 
 	// Class instances
 	MapProjection _global_ned_proj_ref{}; // Transform global to NED coordinates

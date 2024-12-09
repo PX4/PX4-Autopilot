@@ -46,7 +46,6 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/rover_differential_guidance_status.h>
 #include <uORB/topics/rover_differential_setpoint.h>
 
 // Standard libraries
@@ -114,7 +113,6 @@ private:
 
 	// uORB publications
 	uORB::Publication<rover_differential_setpoint_s> _rover_differential_setpoint_pub{ORB_ID(rover_differential_setpoint)};
-	uORB::Publication<rover_differential_guidance_status_s> _rover_differential_guidance_status_pub{ORB_ID(rover_differential_guidance_status)};
 
 	// Variables
 	MapProjection _global_ned_proj_ref{}; // Transform global to ned coordinates.

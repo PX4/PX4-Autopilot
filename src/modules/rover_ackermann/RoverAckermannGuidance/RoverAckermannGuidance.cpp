@@ -40,7 +40,6 @@ using namespace time_literals;
 
 RoverAckermannGuidance::RoverAckermannGuidance(ModuleParams *parent) : ModuleParams(parent)
 {
-	_rover_ackermann_guidance_status_pub.advertise();
 	updateParams();
 }
 
@@ -90,14 +89,9 @@ void RoverAckermannGuidance::computeGuidance(const float vehicle_forward_speed,
 
 	}
 
-	// Publish ackermann controller status (logging)
-	hrt_abstime timestamp = hrt_absolute_time();
-	_rover_ackermann_guidance_status.timestamp = timestamp;
-	_rover_ackermann_guidance_status_pub.publish(_rover_ackermann_guidance_status);
-
 	// Publish speed and steering setpoints
 	rover_ackermann_setpoint_s rover_ackermann_setpoint{};
-	rover_ackermann_setpoint.timestamp = timestamp;
+	rover_ackermann_setpoint.timestamp = hrt_absolute_time();
 	rover_ackermann_setpoint.forward_speed_setpoint = _desired_speed;
 	rover_ackermann_setpoint.forward_speed_setpoint_normalized = NAN;
 	rover_ackermann_setpoint.steering_setpoint = NAN;
@@ -288,10 +282,6 @@ float RoverAckermannGuidance::calcDesiredSteering(PurePursuit &pure_pursuit, con
 				      desired_speed);
 	const float lookahead_distance = pure_pursuit.getLookaheadDistance();
 	const float heading_error = matrix::wrap_pi(desired_heading - vehicle_yaw);
-	// For logging
-	_rover_ackermann_guidance_status.lookahead_distance = lookahead_distance;
-	_rover_ackermann_guidance_status.heading_error = (heading_error * 180.f) / (M_PI_F);
-
 	float desired_steering{0.f};
 
 	if (!armed) {
