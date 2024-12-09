@@ -123,7 +123,8 @@ private:
 		(ParamInt<px4::params::ICE_RETRY_FAULT>) _param_ice_retry_fault,
 		(ParamFloat<px4::params::ICE_STRT_THR>) _param_ice_strt_thr,
 		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke,
-		(ParamFloat<px4::params::ICE_THR_SLEW>) _param_ice_thr_slew
+		(ParamFloat<px4::params::ICE_THR_SLEW>) _param_ice_thr_slew,
+		(ParamFloat<px4::params::ICE_IGN_DELAY>) _param_ice_ign_delay
 	)
 };
 

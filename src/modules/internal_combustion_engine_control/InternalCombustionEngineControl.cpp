@@ -305,24 +305,28 @@ void InternalCombustionEngineControl::controlEngineFault(internal_combustion_eng
 
 void InternalCombustionEngineControl::controlEngineStartup(internal_combustion_engine_control_s &ice_control)
 {
-	const float choke_duration = _param_ice_choke_st_dur.get() * 1_s; // todo make cold/hot start dependent
-	const float starter_duration = _param_ice_starting_dur.get() * 1_s;
+	float ignition_delay = 0.f;
+	float choke_duration = 0.f;
+	const float starter_duration = _param_ice_starting_dur.get();
 
-	if (hrt_elapsed_time(&_state_start_time) < choke_duration) {
-		// choking engine to pump fuel
-		ice_control.ignition_on = true;
-		ice_control.choke_control = 1.f;
-		ice_control.starter_engine_control = 1.f;
-		ice_control.throttle_control = _param_ice_strt_thr.get();
+	const hrt_abstime now = hrt_absolute_time();
 
-	} else if (hrt_elapsed_time(&_state_start_time) < choke_duration + starter_duration) {
-		// starting engine
-		ice_control.ignition_on = true;
-		ice_control.choke_control = 0.f;
-		ice_control.starter_engine_control = 1.f;
-		ice_control.throttle_control = _param_ice_strt_thr.get();
+	if (_starting_retry_cycle == 0) {
+		ignition_delay = math::max(_param_ice_ign_delay.get(), 0.f);
 
-	} else {
+		if (_param_ice_choke_st_dur.get() > FLT_EPSILON) {
+			choke_duration = _param_ice_choke_st_dur.get() + ignition_delay;
+		}
+	}
+
+	ice_control.ignition_on = true;
+	ice_control.throttle_control = _param_ice_strt_thr.get();
+	ice_control.choke_control = now < _state_start_time + (choke_duration * 1_s) ? 1.f : 0.f;
+	ice_control.starter_engine_control = now > _state_start_time + (ignition_delay * 1_s) ? 1.f : 0.f;
+
+	const hrt_abstime cycle_timeout_duration = (ignition_delay + choke_duration + starter_duration) * 1_s;
+
+	if (now > _state_start_time + cycle_timeout_duration) {
 		// reset timer to restart procedure if engine is not running
 		_state_start_time = hrt_absolute_time();
 		_starting_retry_cycle++;

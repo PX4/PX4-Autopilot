@@ -108,3 +108,15 @@ parameters:
         decimal: 2
         increment: 0.01
         default: 0.5
+
+      ICE_IGN_DELAY:
+        description:
+          short: Cold-start delay after ignition before engaging starter
+          long: TBD
+        type: float
+        unit: s
+        min: 0
+        max: 10
+        decimal: 1
+        increment: 0.1
+        default: 1
