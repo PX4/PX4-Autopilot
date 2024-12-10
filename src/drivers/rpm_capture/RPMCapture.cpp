@@ -40,7 +40,8 @@
 #include <systemlib/mavlink_log.h>
 
 RPMCapture::RPMCapture() :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	ModuleParams(nullptr)
 {
 	_pwm_input_pub.advertise();
 	ScheduleNow();
@@ -58,8 +59,8 @@ bool RPMCapture::init()
 {
 	bool success = false;
 
-	param_get(param_find("RPM_PULSES_PER_REV"), &_pulses_per_revolution);
-	_min_pulse_period_us = static_cast<uint32_t>(60.f * 1e6f / static_cast<float>(RPM_MAX_VALUE * _pulses_per_revolution));
+	_min_pulse_period_us = static_cast<uint32_t>(60.f * 1e6f / static_cast<float>(RPM_MAX_VALUE *
+			       _param_rpm_puls_per_rev.get()));
 
 	for (unsigned i = 0; i < 16; ++i) {
 		char param_name[17];
@@ -135,7 +136,7 @@ void RPMCapture::Run()
 
 		if (_period < RPM_PULSE_TIMEOUT) {
 			// 1'000'000 / [us] -> pulses per second * 60 -> pulses per minute
-			rpm_raw = 60.f * 1e6f / static_cast<float>(_pulses_per_revolution * _period);
+			rpm_raw = 60.f * 1e6f / static_cast<float>(_param_rpm_puls_per_rev.get() * _period);
 		}
 
 		const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 0.01f, 1.f);
