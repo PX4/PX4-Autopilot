@@ -119,16 +119,14 @@ void RPMCapture::Run()
 		pwm_input.error_count = _error_count;
 		_pwm_input_pub.publish(pwm_input);
 
-		// Schedule for next timeout
-		ScheduleClear();
-		ScheduleDelayed(RPM_PULSE_TIMEOUT);
+		ScheduleClear(); // Do not run on previously scheduled timeout
 
 	} else {
 		// Timeout for no interrupts
 		_period = UINT32_MAX;
-		ScheduleDelayed(RPM_PULSE_TIMEOUT);
 	}
 
+	ScheduleDelayed(RPM_PULSE_TIMEOUT); // Schule a new timeout
 
 	if (_period > _min_pulse_period_us) {
 		// Only update if the period is above the min pulse period threshold
