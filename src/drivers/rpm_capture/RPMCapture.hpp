@@ -70,11 +70,14 @@ public:
 
 private:
 	static constexpr hrt_abstime RPM_PULSE_TIMEOUT = 1_s;
+	static constexpr uint32_t RPM_MAX_VALUE = 15000;
 
 	void Run() override;
 
 	int _channel{-1};
 	uint32_t _rpm_capture_gpio{0};
+	uint32_t _pulses_per_revolution{1};
+	uint32_t _min_pulse_period_us{1};	///< [us] minimum pulse period
 	uORB::Publication<pwm_input_s> _pwm_input_pub{ORB_ID(pwm_input)};
 	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
