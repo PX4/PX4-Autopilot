@@ -41,3 +41,15 @@
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(RPM_CAP_ENABLE, 0);
+
+/**
+ * RPM Pulses per Revolution
+ *
+ * Number of pulses per revolution for the RPM sensor.
+ *
+ * @group System
+ * @min 1
+ * @max 50
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(RPM_PULSES_PER_REV, 1);
