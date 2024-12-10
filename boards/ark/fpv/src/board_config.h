@@ -177,6 +177,7 @@
 #define BOARD_BATTERY1_V_DIV	 (21.0f) // (20k + 1k) / 1k = 21
 
 #define ADC_SCALED_PAYLOAD_SENSE ADC_SCALED_12V_CHANNEL
+#define ADC_PAYLOAD_V_FULL_SCALE (12.0f)
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
