@@ -188,6 +188,8 @@ public:
 
 	Rotation rotation{ROTATION_NONE}; ///< sensor rotation (MAV_SENSOR_ROTATION_* or distance_sensor_s::ROTATION_*)
 
+	// float q[4] {}; ///< rotation quaternion if rotation is ROTATION_CUSTOM
+
 	int custom1{0}; ///< driver-specific custom argument
 	int custom2{0}; ///< driver-specific custom argument
 	void *custom_data{nullptr}; ///< driver-specific custom argument

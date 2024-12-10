@@ -798,6 +798,8 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 			pose_orientation.y(),
 			pose_orientation.z());
 
+	// gz::math::Quaterniond q_sensor(0.9238795, 0, 0, 0.3826834);
+
 	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
 	const gz::math::Quaterniond q_down(0, 1, 0, 0);
 
@@ -809,6 +811,10 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 
 	} else {
 		distance_sensor.orientation = distance_sensor_s::ROTATION_CUSTOM;
+		distance_sensor.q[0] = q_sensor.W();
+		distance_sensor.q[1] = q_sensor.X();
+		distance_sensor.q[2] = q_sensor.Y();
+		distance_sensor.q[3] = q_sensor.Z();
 	}
 
 	_distance_sensor_pub.publish(distance_sensor);

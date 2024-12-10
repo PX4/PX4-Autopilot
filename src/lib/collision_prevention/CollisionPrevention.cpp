@@ -405,12 +405,12 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		matrix::Dcmf rotation_matrix(matrix::Eulerf(roll, pitch, 0.0f));
 
 		// Apply rotation matrix to sensor unit vector
-		Vector3f sensor_unit_vector_3d(sensor_unit_vector(0), sensor_unit_vector(1), 0.0f);
+		Vector3f sensor_unit_vector_3d(sensor_unit_vector(0), sensor_unit_vector(1), 0.0f); // add z dimension
 		Vector3f rotated_vector = rotation_matrix * sensor_unit_vector_3d;
 		Vector2f rotated_sensor_unit_vector(rotated_vector(0), rotated_vector(1));
 
 		// Scaling factor as dot product of vectors
-		float sensor_dist_scale = sensor_unit_vector.dot(rotated_sensor_unit_vector);
+		float sensor_dist_scale = sensor_unit_vector.dot(rotated_sensor_unit_vector); // finds projection of rotated_sensor_unit_vector onto sensor_unit_vector
 
         	float sensor_yaw_body_rad = atan2f(sensor_unit_vector(1), sensor_unit_vector(0));
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
