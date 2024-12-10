@@ -80,7 +80,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_noaid_noise(_params->pos_noaid_noise),
 #if defined(CONFIG_EKF2_GNSS)
 	_param_ekf2_gps_ctrl(_params->gnss_ctrl),
-	_param_ekf2_gps_delay(_params->gps_delay_ms),
 	_param_ekf2_gps_pos_x(_params->gps_pos_body(0)),
 	_param_ekf2_gps_pos_y(_params->gps_pos_body(1)),
 	_param_ekf2_gps_pos_z(_params->gps_pos_body(2)),
@@ -908,14 +907,6 @@ void EKF2::VerifyParams()
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_GNSS)
-
-	if (_param_ekf2_gps_delay.get() > delay_max) {
-		delay_max = _param_ekf2_gps_delay.get();
-	}
-
-#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
@@ -2418,7 +2409,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		const float altitude_ellipsoid = static_cast<float>(vehicle_gps_position.altitude_ellipsoid_m);
 
 		gnssSample gnss_sample{
-			.time_us = vehicle_gps_position.timestamp,
+			.time_us = vehicle_gps_position.timestamp_sample,
 			.lat = vehicle_gps_position.latitude_deg,
 			.lon = vehicle_gps_position.longitude_deg,
 			.alt = altitude_amsl,
