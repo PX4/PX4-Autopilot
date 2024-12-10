@@ -83,7 +83,7 @@ private:
 
 	hrt_abstime _hrt_timestamp{0};
 	hrt_abstime _hrt_timestamp_prev{0};
-	uint32_t _period{0};
+	uint32_t _period{UINT32_MAX};
 	uint32_t _error_count{0};
 	px4::atomic<bool> _value_processed{true};
 

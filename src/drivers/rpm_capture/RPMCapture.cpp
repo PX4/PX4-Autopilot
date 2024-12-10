@@ -125,7 +125,7 @@ void RPMCapture::Run()
 
 	} else {
 		// Timeout for no interrupts
-		_period = 0;
+		_period = UINT32_MAX;
 		ScheduleDelayed(RPM_PULSE_TIMEOUT);
 	}
 
