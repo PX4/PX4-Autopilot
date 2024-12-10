@@ -85,7 +85,7 @@ private:
 	hrt_abstime _hrt_timestamp_prev{0};
 	uint32_t _period{UINT32_MAX};
 	uint32_t _error_count{0};
-	px4::atomic<bool> _value_processed{true};
+	px4::atomic<bool> _interrupt_happened{false};
 
 	hrt_abstime _timestamp_last_update{0}; ///< to caluclate dt
 	AlphaFilter<float> _rpm_filter;
