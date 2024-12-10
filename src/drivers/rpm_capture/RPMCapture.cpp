@@ -59,9 +59,6 @@ bool RPMCapture::init()
 {
 	bool success = false;
 
-	_min_pulse_period_us = static_cast<uint32_t>(60.f * 1e6f / static_cast<float>(RPM_MAX_VALUE *
-			       _param_rpm_puls_per_rev.get()));
-
 	for (unsigned i = 0; i < 16; ++i) {
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
@@ -127,28 +124,26 @@ void RPMCapture::Run()
 	}
 
 	ScheduleDelayed(RPM_PULSE_TIMEOUT); // Schule a new timeout
+	float rpm_raw{0.f};
 
-	if (_period > _min_pulse_period_us) {
-		// Only update if the period is above the min pulse period threshold
-		float rpm_raw{0.f};
+	if (_period < RPM_PULSE_TIMEOUT) {
+		// 1'000'000 / [us] -> pulses per second * 60 -> pulses per minute
+		rpm_raw = 60.f * 1e6f / static_cast<float>(_param_rpm_puls_per_rev.get() * _period);
+	}
 
-		if (_period < RPM_PULSE_TIMEOUT) {
-			// 1'000'000 / [us] -> pulses per second * 60 -> pulses per minute
-			rpm_raw = 60.f * 1e6f / static_cast<float>(_param_rpm_puls_per_rev.get() * _period);
-		}
-
+	if (rpm_raw < RPM_MAX_VALUE) {
+		// Don't update RPM filter with outliers
 		const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 0.01f, 1.f);
 		_timestamp_last_update = now;
 		_rpm_filter.setParameters(dt, 0.5f);
 		_rpm_filter.update(_rpm_median_filter.apply(rpm_raw));
-
-		rpm_s rpm{};
-		rpm.timestamp = now;
-		rpm.rpm_raw = rpm_raw;
-		rpm.rpm_estimate = _rpm_filter.getState();
-		_rpm_pub.publish(rpm);
 	}
 
+	rpm_s rpm{};
+	rpm.timestamp = now;
+	rpm.rpm_raw = rpm_raw;
+	rpm.rpm_estimate = _rpm_filter.getState();
+	_rpm_pub.publish(rpm);
 }
 
 int RPMCapture::gpio_interrupt_callback(int irq, void *context, void *arg)
