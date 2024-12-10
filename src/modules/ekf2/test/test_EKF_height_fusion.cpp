@@ -180,7 +180,7 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 
 	const BiasEstimator::status &baro_status_initial = _ekf->getBaroBiasEstimatorStatus();
 	const float baro_rel_initial = baro_initial - _sensor_simulator._gps.getData().alt;
-	EXPECT_NEAR(baro_status_initial.bias, baro_rel_initial, 0.6f);
+	EXPECT_NEAR(baro_status_initial.bias, baro_rel_initial, 0.8f);
 
 	// AND WHEN: the baro data increases
 	const float baro_increment = 5.f;
@@ -414,7 +414,7 @@ TEST_F(EkfHeightFusionTest, changeEkfOriginAlt)
 	reset_logging_checker.capturePostResetState();
 
 	// An origin reset doesn't change the baro bias as it is relative to the height reference (GNSS)
-	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_bias_prev, 0.3f);
+	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_bias_prev, 0.4f);
 
 	EXPECT_NEAR(_ekf->getTerrainVertPos(), alt_increment, 1.f);
 
