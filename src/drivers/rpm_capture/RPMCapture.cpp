@@ -107,11 +107,11 @@ void RPMCapture::Run()
 
 	hrt_abstime now = hrt_absolute_time();
 
-	if (!_value_processed.load()) {
+	if (_interrupt_happened.load()) {
 		// There was an interrupt
 		_period = _hrt_timestamp - _hrt_timestamp_prev;
 		_hrt_timestamp_prev = _hrt_timestamp;
-		_value_processed.store(true);
+		_interrupt_happened.store(false);
 
 		pwm_input_s pwm_input{};
 		pwm_input.timestamp = now;
@@ -157,12 +157,12 @@ int RPMCapture::gpio_interrupt_callback(int irq, void *context, void *arg)
 {
 	RPMCapture *instance = static_cast<RPMCapture *>(arg);
 
-	if (!instance->_value_processed.load()) {
+	if (instance->_interrupt_happened.load()) {
 		++instance->_error_count;
 	}
 
 	instance->_hrt_timestamp = hrt_absolute_time();
-	instance->_value_processed.store(false);
+	instance->_interrupt_happened.store(true);
 	instance->ScheduleNow();
 
 	return PX4_OK;
