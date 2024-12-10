@@ -111,6 +111,8 @@ static inline bool isAdvanced(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL: return false;
 
+	case vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW: return false;
+
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL1: return false;
 
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL2: return false;
