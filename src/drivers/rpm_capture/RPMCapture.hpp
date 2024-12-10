@@ -38,6 +38,7 @@
 #include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <px4_arch/micro_hal.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -46,7 +47,7 @@
 
 using namespace time_literals;
 
-class RPMCapture : public ModuleBase<RPMCapture>, public px4::ScheduledWorkItem
+class RPMCapture : public ModuleBase<RPMCapture>, public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
 	RPMCapture();
@@ -76,7 +77,6 @@ private:
 
 	int _channel{-1};
 	uint32_t _rpm_capture_gpio{0};
-	uint32_t _pulses_per_revolution{1};
 	uint32_t _min_pulse_period_us{1};	///< [us] minimum pulse period
 	uORB::Publication<pwm_input_s> _pwm_input_pub{ORB_ID(pwm_input)};
 	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
@@ -90,4 +90,8 @@ private:
 	hrt_abstime _timestamp_last_update{0}; ///< to caluclate dt
 	AlphaFilter<float> _rpm_filter;
 	MedianFilter<float, 5> _rpm_median_filter;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RPM_PULS_PER_REV>) _param_rpm_puls_per_rev
+	)
 };
