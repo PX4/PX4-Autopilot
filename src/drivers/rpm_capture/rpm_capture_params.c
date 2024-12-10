@@ -43,13 +43,13 @@
 PARAM_DEFINE_INT32(RPM_CAP_ENABLE, 0);
 
 /**
- * RPM Pulses per Revolution
+ * Voltage pulses per revolution
  *
- * Number of pulses per revolution for the RPM sensor.
+ * Number of voltage pulses per one rotor revolution on the capturing pin.
  *
  * @group System
  * @min 1
  * @max 50
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(RPM_PULSES_PER_REV, 1);
+PARAM_DEFINE_INT32(RPM_PULS_PER_REV, 1);
