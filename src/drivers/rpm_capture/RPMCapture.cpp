@@ -129,6 +129,9 @@ void RPMCapture::Run()
 	if (_period < RPM_PULSE_TIMEOUT) {
 		// 1'000'000 / [us] -> pulses per second * 60 -> pulses per minute
 		rpm_raw = 60.f * 1e6f / static_cast<float>(_param_rpm_puls_per_rev.get() * _period);
+
+	} else {
+		_rpm_filter.reset(rpm_raw);
 	}
 
 	if (rpm_raw < RPM_MAX_VALUE) {
