@@ -134,9 +134,12 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 {
 	_saturation_flags = {};
 
+	const float spoolup_progress = throttleSpoolupProgress();
+	_rpm_control.setSpoolupProgress(spoolup_progress);
+
 	// throttle/collective pitch curve
-	const float throttle = math::interpolateN(-control_sp(ControlAxis::THRUST_Z),
-			       _geometry.throttle_curve) * throttleSpoolupProgress();
+	const float throttle = (math::interpolateN(-control_sp(ControlAxis::THRUST_Z),
+				_geometry.throttle_curve) + _rpm_control.getActuatorCorrection()) * spoolup_progress;
 	const float collective_pitch = math::interpolateN(-control_sp(ControlAxis::THRUST_Z), _geometry.pitch_curve);
 
 	// actuator mapping

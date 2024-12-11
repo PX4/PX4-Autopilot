@@ -193,6 +193,7 @@ set(msg_files
 	RoverMecanumSetpoint.msg
 	RoverMecanumStatus.msg
 	Rpm.msg
+	RpmControlStatus.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg

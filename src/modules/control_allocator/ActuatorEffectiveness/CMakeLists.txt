@@ -62,6 +62,7 @@ px4_add_library(ActuatorEffectiveness
 	ActuatorEffectivenessTailsitterVTOL.hpp
 	ActuatorEffectivenessRoverAckermann.hpp
 	ActuatorEffectivenessRoverAckermann.cpp
+	RpmControl.hpp
 )
 
 target_compile_options(ActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
@@ -69,6 +70,7 @@ target_include_directories(ActuatorEffectiveness PUBLIC ${CMAKE_CURRENT_SOURCE_D
 target_link_libraries(ActuatorEffectiveness
 	PRIVATE
 		mathlib
+		PID
 )
 
 px4_add_functional_gtest(SRC ActuatorEffectivenessHelicopterTest.cpp LINKLIBS ActuatorEffectiveness)
