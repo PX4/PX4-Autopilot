@@ -308,6 +308,9 @@ BMP388::get_measurement_time()
 		case BMP3_OVERSAMPLING_8X:
 			meas_time_us = 22500;
 			break;
+
+		default: // handle unsupported / impossible cases to make compiler happy
+			break;
 		}
 
 	} else if (osr_t == BMP3_OVERSAMPLING_2X) {
@@ -318,6 +321,9 @@ BMP388::get_measurement_time()
 
 		case BMP3_OVERSAMPLING_32X:
 			meas_time_us = 68900;
+			break;
+
+		default: // handle unsupported / impossible cases to make compiler happy
 			break;
 		}
 	}
