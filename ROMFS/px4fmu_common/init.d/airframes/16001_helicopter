@@ -11,7 +11,6 @@
 
 . ${R}etc/init.d/rc.heli_defaults
 
-
 # Disable PID gains for initial setup. These should be enabled after setting the FF gain.
 # P is expected to be lower than FF.
 param set-default MC_ROLLRATE_P 0

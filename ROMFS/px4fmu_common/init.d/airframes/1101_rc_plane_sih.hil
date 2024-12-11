@@ -12,7 +12,6 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
-
 param set UAVCAN_ENABLE 0
 
 param set-default CA_AIRFRAME 1
