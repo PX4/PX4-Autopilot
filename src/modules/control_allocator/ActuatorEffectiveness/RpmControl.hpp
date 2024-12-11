@@ -73,12 +73,12 @@ public:
 	float getActuatorCorrection()
 	{
 		if (_rpm_sub.updated()) {
-			rpm_s rpm_input{};
+			rpm_s rpm{};
 
-			if (_rpm_sub.copy(&rpm_input)) {
-				_rpm_estimate = rpm_input.rpm_estimate;
-				_rpm_raw = rpm_input.rpm_raw;
-				_timestamp_last_rpm_measurement = rpm_input.timestamp;
+			if (_rpm_sub.copy(&rpm)) {
+				_rpm_estimate = rpm.rpm_estimate;
+				_rpm_raw = rpm.rpm_raw;
+				_timestamp_last_rpm_measurement = rpm.timestamp;
 			}
 		}
 
