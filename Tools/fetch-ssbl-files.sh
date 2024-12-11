@@ -46,7 +46,6 @@ else
 	echo "using info from ${FILEINFO_JSON_OUT}"
 	# find out if the 2 stage bootloader files are available
 	# files should have stage defined: fileinfo_json files[] -> stage
-	PRODUCT=$(echo ${PRODUCT}|sed 's/_/-/g')
 	filename=$(jq '.files[] | select(.hw=="'${PRODUCT}'" and .stage=="ssbl").filename' ${FILEINFO_JSON_OUT}|sed 's/"//g')
 
     tmp_bl_reponame=$(jq '.reponame' ${FILEINFO_JSON_OUT})
