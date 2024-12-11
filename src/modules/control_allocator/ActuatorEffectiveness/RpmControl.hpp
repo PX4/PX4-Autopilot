@@ -72,33 +72,24 @@ public:
 
 	float getActuatorCorrection()
 	{
-		if (_pwm_input_sub.updated()) {
-			pwm_input_s pwm_input{};
+		if (_rpm_sub.updated()) {
+			rpm_s rpm_input{};
 
-			if (_pwm_input_sub.copy(&pwm_input)) {
-				if ((1 < pwm_input.period) && (pwm_input.period < 1_s)) {
-					// 1'000'000 / [us] -> pulses per second * 60 -> pulses per minute
-					_rpm_raw = 60.f * 1e6f / (static_cast<float>(pwm_input.period) * 1.f);
-
-				} else {
-					_rpm_raw = 0;
-				}
-
-				_timestamp_last_rpm_measurement = pwm_input.timestamp;
+			if (_rpm_sub.copy(&rpm_input)) {
+				_rpm_estimate = rpm_input.rpm_estimate;
+				_rpm_raw = rpm_input.rpm_raw;
+				_timestamp_last_rpm_measurement = rpm_input.timestamp;
 			}
 		}
 
-		hrt_abstime now = hrt_absolute_time();
-		const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 0.01f, 1.f);
-		_timestamp_last_update = now;
+		hrt_abstime current_time = hrt_absolute_time();
+		const float dt = math::constrain((current_time - _timestamp_last_update) * 1e-6f, 1e-3f, 1.f);
+		_timestamp_last_update = current_time;
 
-		_rpm_filter.setParameters(dt, 0.5f);
-		_rpm_filter.update(_rpm_raw);
+		const bool rpm_measurement_timeout = (current_time - _timestamp_last_rpm_measurement) < 1_s;
+		const bool no_excessive_rpm = _rpm_estimate < RPM_MAX_VALUE;
 
-		const bool no_rpm_pulse_timeout = now < (_timestamp_last_rpm_measurement + 1_s);
-		const bool no_excessive_rpm = _rpm_filter.getState() < 1800.f;
-
-		if (no_rpm_pulse_timeout && no_excessive_rpm) {
+		if (rpm_measurement_timeout && no_excessive_rpm) {
 			const float gain_scale = math::max((_spoolup_progress - .8f) * 5.f, 0.f) * 1e-3f;
 			_pid.setGains(_param_ca_heli_rpm_p.get() * gain_scale, _param_ca_heli_rpm_i.get() * gain_scale, 0.f);
 
@@ -109,38 +100,30 @@ public:
 		_pid.setOutputLimit(.5f);
 		_pid.setIntegralLimit(.5f);
 
-		float output = _pid.update(_rpm_filter.getState(), dt, true);
+		float output = _pid.update(_rpm_estimate, dt, true);
 
 		rpm_control_status_s rpm_control_status{};
 		rpm_control_status.rpm_raw = _rpm_raw;
-		rpm_control_status.rpm_estimate = _rpm_filter.getState();
+		rpm_control_status.rpm_estimate = _rpm_estimate;;
 		rpm_control_status.rpm_setpoint = _param_ca_heli_rpm_sp.get();
 		rpm_control_status.output = output;
 		rpm_control_status.timestamp = hrt_absolute_time();
 		_rpm_control_status_pub.publish(rpm_control_status);
 
-		// Publish estimated rpm for MAVLink -> UI in ground station
-		rpm_s rpm{
-			.timestamp = hrt_absolute_time(),
-			.indicated_frequency_rpm = _rpm_filter.getState() // scale up to 10'000rpm
-		};
-
-		_rpm_pub.publish(rpm);
-
 		return output;
 	}
 
 private:
-	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
+	static constexpr float RPM_MAX_VALUE = 1800.f;
+	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
 	uORB::Publication<rpm_control_status_s> _rpm_control_status_pub{ORB_ID(rpm_control_status)};
-	uORB::Publication<rpm_s> _rpm_pub {ORB_ID::rpm};
 
+	float _rpm_estimate{0.f};
 	float _rpm_raw{0.f};
 	float _spoolup_progress{0.f};
-	AlphaFilter<float> _rpm_filter;
 	PID _pid;
-	hrt_abstime _timestamp_last_update{0};
 	hrt_abstime _timestamp_last_rpm_measurement{0};
+	hrt_abstime _timestamp_last_update{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CA_HELI_RPM_SP>) _param_ca_heli_rpm_sp,
