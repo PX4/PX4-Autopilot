@@ -50,7 +50,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/pwm_input.h>
 #include <uORB/topics/rpm.h>
-#include <uORB/topics/rpm_control_status.h>
 
 using namespace time_literals;
 
@@ -77,7 +76,6 @@ public:
 
 			if (_rpm_sub.copy(&rpm)) {
 				_rpm_estimate = rpm.rpm_estimate;
-				_rpm_raw = rpm.rpm_raw;
 				_timestamp_last_rpm_measurement = rpm.timestamp;
 			}
 		}
@@ -102,24 +100,14 @@ public:
 
 		float output = _pid.update(_rpm_estimate, dt, true);
 
-		rpm_control_status_s rpm_control_status{};
-		rpm_control_status.rpm_raw = _rpm_raw;
-		rpm_control_status.rpm_estimate = _rpm_estimate;;
-		rpm_control_status.rpm_setpoint = _param_ca_heli_rpm_sp.get();
-		rpm_control_status.output = output;
-		rpm_control_status.timestamp = hrt_absolute_time();
-		_rpm_control_status_pub.publish(rpm_control_status);
-
 		return output;
 	}
 
 private:
 	static constexpr float RPM_MAX_VALUE = 1800.f;
 	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
-	uORB::Publication<rpm_control_status_s> _rpm_control_status_pub{ORB_ID(rpm_control_status)};
 
 	float _rpm_estimate{0.f};
-	float _rpm_raw{0.f};
 	float _spoolup_progress{0.f};
 	PID _pid;
 	hrt_abstime _timestamp_last_rpm_measurement{0};
