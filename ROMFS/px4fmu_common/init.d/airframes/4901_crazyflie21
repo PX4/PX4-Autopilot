@@ -18,7 +18,6 @@
 #
 . ${R}etc/init.d/rc.mc_defaults
 
-
 param set-default SYS_HAS_MAG 0
 param set-default EKF2_OF_CTRL 1
 param set-default EKF2_GPS_CTRL 0
@@ -84,7 +83,6 @@ param set-default PWM_MAIN_MAX2 255
 param set-default PWM_MAIN_MAX3 255
 
 param set-default SENS_FLOW_MINRNG 0.05
-
 
 syslink start
 mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
