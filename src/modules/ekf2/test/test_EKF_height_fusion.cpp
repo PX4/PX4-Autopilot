@@ -208,6 +208,32 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	EXPECT_NEAR(_ekf->aid_src_rng_hgt().innovation, 0.f, 0.2f);
 }
 
+TEST_F(EkfHeightFusionTest, gpsRefNoAltFusion)
+{
+	// GIVEN: GNSS alt reference but not selected as an aiding source
+	_ekf_wrapper.setGpsHeightRef();
+	_ekf_wrapper.enableBaroHeightFusion();
+	_ekf_wrapper.disableGpsHeightFusion();
+	_ekf_wrapper.enableRangeHeightFusion();
+	_sensor_simulator.runSeconds(1);
+
+	EXPECT_TRUE(_ekf->getHeightSensorRef() == HeightSensor::BARO); // Fallback to baro as GNSS alt is disabled
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingExternalVisionHeightFusion());
+
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
+
+	// THEN: the altitude estimate is initialised using GNSS altitude
+	EXPECT_NEAR(_ekf->getLatLonAlt().altitude(), _sensor_simulator._gps.getData().alt, 1.f);
+	// We cannot check the value of the bias estimate as the status is only updatad when the bias estimator is
+	// active. Since the estimator had a baro fallback, the baro bias estimate is not actively updated.
+	// EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, _sensor_simulator._baro.getData() - _sensor_simulator._gps.getData().alt, 0.2f);
+}
+
 TEST_F(EkfHeightFusionTest, baroRefFailOver)
 {
 	// GIVEN: baro reference with GPS and range height fusion
