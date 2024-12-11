@@ -405,7 +405,7 @@ bool ADIS16470::DataReadyInterruptConfigure()
 	}
 
 	// Setup data ready on falling edge
-	return px4_arch_gpiosetevent(_drdy_gpio, false, true, false, &DataReadyInterruptCallback, this) == 0;
+	return px4_arch_gpiosetevent(_drdy_gpio, false, true, true, &DataReadyInterruptCallback, this) == 0;
 }
 
 bool ADIS16470::DataReadyInterruptDisable()
