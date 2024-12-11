@@ -41,6 +41,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/manual_control_switches.h>
 
+#include "RpmControl.hpp"
+
 class ActuatorEffectivenessHelicopter : public ModuleParams, public ActuatorEffectiveness
 {
 public:
@@ -131,4 +133,6 @@ private:
 	bool _main_motor_engaged{true};
 
 	const ActuatorType _tail_actuator_type;
+
+	RpmControl _rpm_control{this};
 };
