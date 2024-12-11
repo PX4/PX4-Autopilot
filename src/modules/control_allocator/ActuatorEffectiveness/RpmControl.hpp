@@ -82,11 +82,11 @@ public:
 			}
 		}
 
-		hrt_abstime current_time = hrt_absolute_time();
-		const float dt = math::constrain((current_time - _timestamp_last_update) * 1e-6f, 1e-3f, 1.f);
-		_timestamp_last_update = current_time;
+		hrt_abstime now = hrt_absolute_time();
+		const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 1e-3f, 1.f);
+		_timestamp_last_update = now;
 
-		const bool rpm_measurement_timeout = (current_time - _timestamp_last_rpm_measurement) < 1_s;
+		const bool rpm_measurement_timeout = (now - _timestamp_last_rpm_measurement) < 1_s;
 		const bool no_excessive_rpm = _rpm_estimate < RPM_MAX_VALUE;
 
 		if (rpm_measurement_timeout && no_excessive_rpm) {
