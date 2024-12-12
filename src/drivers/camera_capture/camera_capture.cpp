@@ -81,7 +81,7 @@ CameraCapture::CameraCapture() :
 		int32_t function;
 
 		if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-			if (function == 2032) { // Camera_Capture
+			if (function == 2032) { // Camera_Capture see mixer_module/output_functions.yaml parameter metadata definition
 				_capture_channel = i;
 			}
 		}
