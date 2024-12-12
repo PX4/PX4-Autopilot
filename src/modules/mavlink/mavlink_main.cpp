@@ -672,6 +672,7 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 			configure_stream("HIL_STATE_QUATERNION", 25.0f); // ground truth to display the SIH
 			// stream attitude also as quaternion for correct display
 			configure_stream("ATTITUDE_QUATERNION", 20.0f);
+
 		} else {
 			configure_stream("HIL_STATE_QUATERNION", 0.0f);
 		}
