@@ -73,7 +73,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			return;
 		}
 
-		estimator_aid_source2d_s aid_src{};
+		estimator_aid_source2d_s &aid_src = _aid_src_aux_global_position;
 		const LatLonAlt position(sample.latitude, sample.longitude, sample.altitude_amsl);
 		const Vector2f innovation = (ekf.getLatLonAlt() - position).xy(); // altitude measurements are not used
 
