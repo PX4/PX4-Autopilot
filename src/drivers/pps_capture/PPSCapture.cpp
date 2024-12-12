@@ -70,7 +70,7 @@ bool PPSCapture::init()
 		int32_t function;
 
 		if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-			if (function == 2064) { // PPS_Input
+			if (function == 2064) { // PPS_Input see mixer_module/output_functions.yaml parameter metadata definition
 				_channel = i;
 			}
 		}
