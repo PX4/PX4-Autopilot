@@ -51,7 +51,7 @@ void CameraInterface::get_pins()
 		int32_t function;
 
 		if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-			if (function == 2000) { // Camera_Trigger
+			if (function == 2000) { // Camera_Trigger see mixer_module/output_functions.yaml parameter metadata definition
 				_pins[pin_index++] = i;
 			}
 		}

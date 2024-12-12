@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2024 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -66,7 +66,7 @@ bool RPMCapture::init()
 		int32_t function;
 
 		if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
-			if (function == 2070) { // RPM_Input
+			if (function == 2070) { // RPM_Input see mixer_module/output_functions.yaml parameter metadata definition
 				_channel = i;
 			}
 		}
