@@ -92,6 +92,7 @@ private:
 		uint8_t lat_lon_reset_counter{};
 	};
 
+	estimator_aid_source2d_s _aid_src_aux_global_position{};
 	RingBuffer<AuxGlobalPositionSample> _aux_global_position_buffer{20}; // TODO: size with _obs_buffer_length and actual publication rate
 	uint64_t _time_last_buffer_push{0};
 
