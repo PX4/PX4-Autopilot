@@ -77,7 +77,7 @@ bool RPMCapture::init()
 		return false;
 	}
 
-	int ret = io_timer_allocate_channel(_channel, IOTimerChanMode_Other); // TODO: add IOTimerChanMode_RPM
+	int ret = io_timer_allocate_channel(_channel, IOTimerChanMode_RPM);
 
 	if (ret != PX4_OK) {
 		PX4_ERR("gpio alloc failed (%i) for RPM at channel (%d)", ret, _channel);
