@@ -104,6 +104,14 @@ void GZGimbal::gimbalIMUCallback(const gz::msgs::IMU &IMU_data)
 					   IMU_data.orientation().z());
 	_q_gimbal = q_FLU_to_FRD * q_gimbal_FLU * q_FLU_to_FRD.inversed();
 
+	matrix::Vector3f rate = q_FLU_to_FRD.rotateVector(matrix::Vector3f(IMU_data.angular_velocity().x(),
+				IMU_data.angular_velocity().y(),
+				IMU_data.angular_velocity().z()));
+
+	_gimbal_rate[0] = rate(0);
+	_gimbal_rate[1] = rate(1);
+	_gimbal_rate[2] = rate(2);
+
 	pthread_mutex_unlock(&_node_mutex);
 }
 
