@@ -47,11 +47,10 @@ enum class StandardMode : uint8_t {
 	ORBIT = 2,
 	CRUISE = 3,
 	ALTITUDE_HOLD = 4,
-	RETURN_HOME = 5,
-	SAFE_RECOVERY = 6,
-	MISSION = 7,
-	LAND = 8,
-	TAKEOFF = 9,
+	SAFE_RECOVERY = 5,
+	MISSION = 6,
+	LAND = 7,
+	TAKEOFF = 8,
 };
 
 /**
@@ -60,7 +59,7 @@ enum class StandardMode : uint8_t {
 static inline StandardMode getStandardModeFromNavState(uint8_t nav_state, uint8_t vehicle_type, bool is_vtol)
 {
 	switch (nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: return StandardMode::RETURN_HOME;
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: return StandardMode::SAFE_RECOVERY;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION: return StandardMode::MISSION;
 
@@ -105,7 +104,7 @@ static inline StandardMode getStandardModeFromNavState(uint8_t nav_state, uint8_
 static inline uint8_t getNavStateFromStandardMode(StandardMode mode, uint8_t vehicle_type, bool is_vtol)
 {
 	switch (mode) {
-	case StandardMode::RETURN_HOME: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+	case StandardMode::SAFE_RECOVERY: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 	case StandardMode::MISSION: return vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 
