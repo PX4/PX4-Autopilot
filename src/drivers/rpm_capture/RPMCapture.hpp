@@ -72,6 +72,7 @@ public:
 private:
 	static constexpr hrt_abstime RPM_PULSE_TIMEOUT = 1_s;
 	static constexpr float RPM_MAX_VALUE = 50e3f;
+	static constexpr float RPM_FILTER_TIME_CONSTANT = .5f;
 
 	void Run() override;
 
