@@ -394,31 +394,27 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 	// discard values below min range
 	if (distance_reading > distance_sensor.min_distance) {
 
-		Vector2f sensor_unit_vector = _getSensorUnitVector(distance_sensor);
-
-		// Extract roll and pitch from vehicle attitude quaternion
+		// get drone attitude in rad
 		Eulerf euler_vehicle(vehicle_attitude);
 		float roll  = euler_vehicle.phi();
 		float pitch = euler_vehicle.theta();
 
-	        // Construct rotation matrix for roll and pitch
-		matrix::Dcmf rotation_matrix(matrix::Eulerf(roll, pitch, 0.0f));
 
-		// Apply rotation matrix to sensor unit vector
-		Vector3f sensor_unit_vector_3d(sensor_unit_vector(0), sensor_unit_vector(1), 0.0f); // add z dimension
-		Vector3f rotated_vector = rotation_matrix * sensor_unit_vector_3d;
-		Vector2f rotated_sensor_unit_vector(rotated_vector(0), rotated_vector(1));
-
-		// Scaling factor as dot product of vectors
-		float sensor_dist_scale = sensor_unit_vector.dot(rotated_sensor_unit_vector); // finds projection of rotated_sensor_unit_vector onto sensor_unit_vector
-
-        	float sensor_yaw_body_rad = atan2f(sensor_unit_vector(1), sensor_unit_vector(0));
+        	float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, _obstacle_map_body_frame.angle_offset);
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
 		// calculate the field of view boundary bin indices
 		int lower_bound = (int)round((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 
+		// unit vector of sensor orientation
+		Vector2f sensor_unit_vector = Vector2f(cosf(sensor_yaw_body_rad), sinf(sensor_yaw_body_rad)).unit_or_zero();
+
+		// rotate sensor unit vector into vehicle body frame
+		Vector2f rotated_sensor_unit_vector = _rotatePointByPitchAndRoll(sensor_unit_vector, pitch, roll);
+
+		// dot product to find projection of rotated_sensor_unit_vector onto sensor_unit_vector
+		float sensor_dist_scale = rotated_sensor_unit_vector.dot(sensor_unit_vector);
 
 		if (distance_reading < distance_sensor.max_distance) {
 			distance_reading = distance_reading * sensor_dist_scale;
@@ -440,51 +436,44 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 }
 
 
-
-matrix::Vector2f
-CollisionPrevention::_getSensorUnitVector(const distance_sensor_s &distance_sensor) const
+// Function to rotate a 2D point by pitch and roll
+matrix::Vector2f CollisionPrevention::_rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll)
 {
-    if (distance_sensor.orientation == distance_sensor_s::ROTATION_CUSTOM) {
-        return _getUnitVectorFromQuaternion(distance_sensor.q);
-    } else {
-        return _getUnitVectorFromOrientation(distance_sensor.orientation);
-    }
-}
+    // Construct the rotation matrix for pitch
+    matrix::Matrix3f R_pitch;
+    R_pitch(0, 0) = cosf(pitch);
+    R_pitch(0, 1) = 0.0f;
+    R_pitch(0, 2) = sinf(pitch);
+    R_pitch(1, 0) = 0.0f;
+    R_pitch(1, 1) = 1.0f;
+    R_pitch(1, 2) = 0.0f;
+    R_pitch(2, 0) = -sinf(pitch);
+    R_pitch(2, 1) = 0.0f;
+    R_pitch(2, 2) = cosf(pitch);
 
-matrix::Vector2f
-CollisionPrevention::_getUnitVectorFromOrientation(uint8_t orientation) const
-{
-    switch (orientation) {
-        case distance_sensor_s::ROTATION_FORWARD_FACING:
-            return Vector2f(1.0f, 0.0f);
-        case distance_sensor_s::ROTATION_RIGHT_FACING:
-            return Vector2f(0.0f, 1.0f);
-        case distance_sensor_s::ROTATION_BACKWARD_FACING:
-            return Vector2f(-1.0f, 0.0f);
-        case distance_sensor_s::ROTATION_LEFT_FACING:
-            return Vector2f(0.0f, -1.0f);
-        case distance_sensor_s::ROTATION_YAW_45:
-            return Vector2f(cosf(M_PI_4), sinf(M_PI_4));
-        case distance_sensor_s::ROTATION_YAW_135:
-            return Vector2f(-cosf(M_PI_4), sinf(M_PI_4));
-        case distance_sensor_s::ROTATION_YAW_225:
-            return Vector2f(-cosf(M_PI_4), -sinf(M_PI_4));
-        case distance_sensor_s::ROTATION_YAW_315:
-            return Vector2f(cosf(M_PI_4), -sinf(M_PI_4));
-        default:
-            return Vector2f(1.0f, 0.0f); // Default to forward-facing
-    }
-}
+    // Construct the rotation matrix for roll
+    matrix::Matrix3f R_roll;
+    R_roll(0, 0) = 1.0f;
+    R_roll(0, 1) = 0.0f;
+    R_roll(0, 2) = 0.0f;
+    R_roll(1, 0) = 0.0f;
+    R_roll(1, 1) = cosf(roll);
+    R_roll(1, 2) = -sinf(roll);
+    R_roll(2, 0) = 0.0f;
+    R_roll(2, 1) = sinf(roll);
+    R_roll(2, 2) = cosf(roll);
 
-matrix::Vector2f
-CollisionPrevention::_getUnitVectorFromQuaternion(const float q[4]) const
-{
-    Quatf quaternion(q[0], q[1], q[2], q[3]);
-    Vector3f custom_vector(1.0f, 0.0f, 0.0f); // Default orientation
+    // Combine the rotation matrices
+    matrix::Matrix3f R = R_pitch * R_roll;
 
-    quaternion.rotate(custom_vector); // Rotate default orientation by custom orientation
+    // Convert the 2D point to a 3D point (assuming z = 0)
+    matrix::Vector3f point_3d(point(0), point(1), 0.0f);
 
-    return Vector2f(custom_vector(0), custom_vector(1)).unit_or_zero(); // Constrain to XY plane and normalize
+    // Apply the combined rotation matrix to the 3D point
+    matrix::Vector3f rotated_point_3d = R * point_3d;
+
+    // Project the rotated 3D point back to 2D
+    return matrix::Vector2f(rotated_point_3d(0), rotated_point_3d(1));
 }
 
 

@@ -211,27 +211,13 @@ private:
 	float _sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset) const;
 
 
-
-	/**
-	 * Gets the 2D unit vector of the sensor in the body frame
-	 * @param distance_sensor, distance sensor message
-	 */
-	matrix::Vector2f _getSensorUnitVector(const distance_sensor_s &distance_sensor) const;
-
-
-
-	/**
-	 * Get the unit vector from a quaternion
-	 * @param q, quaternion representing the sensor orientation
-	 */
-	matrix::Vector2f _getUnitVectorFromQuaternion(const float q[4]) const;
-
-
-	/**
-	 * Get the unit vector from an orientation
-	 * @param orientation, enum representing the sensor orientation
-	 */
-	matrix::Vector2f _getUnitVectorFromOrientation(uint8_t orientation) const;
+	// /**
+	//  * Rotate a point by pitch and roll
+	//  * @param point, Vector2f to be rotated
+	//  * @param pitch, vehicle pitch in radians
+	//  * @param roll,  vehicle roll in radians
+	//  */
+	matrix::Vector2f _rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll);
 
 
 	/**
