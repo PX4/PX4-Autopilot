@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "camera_interface.h"
+#include <drivers/drv_pwm_output.h>
 #include <px4_platform_common/log.h>
 #include <board_config.h>
 
@@ -44,7 +45,7 @@ void CameraInterface::get_pins()
 
 	unsigned pin_index = 0;
 
-	for (unsigned i = 0; i < 16 && pin_index < arraySize(_pins); ++i) {
+	for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS && pin_index < arraySize(_pins); ++i) {
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
 		param_t function_handle = param_find(param_name);
