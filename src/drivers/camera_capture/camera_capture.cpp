@@ -71,7 +71,7 @@ CameraCapture::CameraCapture() :
 	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
 	param_get(_p_camera_capture_edge, &_camera_capture_edge);
 
-	for (unsigned i = 0; i < 16 && _capture_channel == -1; ++i) {
+	for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS && _capture_channel == -1; ++i) {
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
 		param_t function_handle = param_find(param_name);

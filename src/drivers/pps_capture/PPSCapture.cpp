@@ -63,7 +63,7 @@ bool PPSCapture::init()
 {
 	bool success = false;
 
-	for (unsigned i = 0; i < 16; ++i) {
+	for (unsigned i = 0; i < PWM_OUTPUT_MAX_CHANNELS; ++i) {
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
 		param_t function_handle = param_find(param_name);
