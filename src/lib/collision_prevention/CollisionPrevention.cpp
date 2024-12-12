@@ -439,37 +439,13 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 // Function to rotate a 2D point by pitch and roll
 matrix::Vector2f CollisionPrevention::_rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll)
 {
-    // Construct the rotation matrix for pitch
-    matrix::Matrix3f R_pitch;
-    R_pitch(0, 0) = cosf(pitch);
-    R_pitch(0, 1) = 0.0f;
-    R_pitch(0, 2) = sinf(pitch);
-    R_pitch(1, 0) = 0.0f;
-    R_pitch(1, 1) = 1.0f;
-    R_pitch(1, 2) = 0.0f;
-    R_pitch(2, 0) = -sinf(pitch);
-    R_pitch(2, 1) = 0.0f;
-    R_pitch(2, 2) = cosf(pitch);
-
-    // Construct the rotation matrix for roll
-    matrix::Matrix3f R_roll;
-    R_roll(0, 0) = 1.0f;
-    R_roll(0, 1) = 0.0f;
-    R_roll(0, 2) = 0.0f;
-    R_roll(1, 0) = 0.0f;
-    R_roll(1, 1) = cosf(roll);
-    R_roll(1, 2) = -sinf(roll);
-    R_roll(2, 0) = 0.0f;
-    R_roll(2, 1) = sinf(roll);
-    R_roll(2, 2) = cosf(roll);
-
-    // Combine the rotation matrices
-    matrix::Matrix3f R = R_pitch * R_roll;
+    // Construct the DCM for pitch and roll using Euler angles
+    matrix::Dcmf R(matrix::Eulerf(pitch, roll, 0.0f));
 
     // Convert the 2D point to a 3D point (assuming z = 0)
     matrix::Vector3f point_3d(point(0), point(1), 0.0f);
 
-    // Apply the combined rotation matrix to the 3D point
+    // Apply the combined DCM to the 3D point
     matrix::Vector3f rotated_point_3d = R * point_3d;
 
     // Project the rotated 3D point back to 2D

@@ -211,12 +211,6 @@ private:
 	float _sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset) const;
 
 
-	// /**
-	//  * Rotate a point by pitch and roll
-	//  * @param point, Vector2f to be rotated
-	//  * @param pitch, vehicle pitch in radians
-	//  * @param roll,  vehicle roll in radians
-	//  */
 	matrix::Vector2f _rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll);
 
 
