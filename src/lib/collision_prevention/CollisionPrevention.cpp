@@ -440,7 +440,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 matrix::Vector2f CollisionPrevention::_rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll)
 {
     // Construct the DCM for pitch and roll using Euler angles
-    matrix::Dcmf R(matrix::Eulerf(pitch, roll, 0.0f));
+    matrix::Dcmf R(matrix::Eulerf(roll, pitch, 0.0f));
 
     // Convert the 2D point to a 3D point (assuming z = 0)
     matrix::Vector3f point_3d(point(0), point(1), 0.0f);
