@@ -40,10 +40,8 @@
 
 #include <px4_platform_common/log.h>
 
-__EXPORT int eulernav_bahrs_main(int argc, char *argv[]);
-
-int eulernav_bahrs_main(int argc, char *argv[])
+extern "C" __EXPORT int eulernav_bahrs_main(int argc, char *argv[])
 {
-	PX4_INFO("Hello Sky!");
+	PX4_INFO("This is an EULER-NAV Baro-Inertial AHRS driver!");
 	return OK;
 }
