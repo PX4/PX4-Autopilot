@@ -69,6 +69,8 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 
+#include "fw_trim/FwTrim.hpp"
+
 using matrix::Eulerf;
 using matrix::Quatf;
 
@@ -170,13 +172,6 @@ private:
 
 		(ParamBool<px4::params::FW_BAT_SCALE_EN>) _param_fw_bat_scale_en,
 
-		(ParamFloat<px4::params::FW_DTRIM_P_VMAX>) _param_fw_dtrim_p_vmax,
-		(ParamFloat<px4::params::FW_DTRIM_P_VMIN>) _param_fw_dtrim_p_vmin,
-		(ParamFloat<px4::params::FW_DTRIM_R_VMAX>) _param_fw_dtrim_r_vmax,
-		(ParamFloat<px4::params::FW_DTRIM_R_VMIN>) _param_fw_dtrim_r_vmin,
-		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
-		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
-
 		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
 		(ParamFloat<px4::params::FW_MAN_R_SC>) _param_fw_man_r_sc,
 		(ParamFloat<px4::params::FW_MAN_Y_SC>) _param_fw_man_y_sc,
@@ -200,14 +195,13 @@ private:
 		(ParamFloat<px4::params::FW_YR_P>) _param_fw_yr_p,
 		(ParamFloat<px4::params::FW_YR_D>) _param_fw_yr_d,
 
-		(ParamFloat<px4::params::TRIM_PITCH>) _param_trim_pitch,
-		(ParamFloat<px4::params::TRIM_ROLL>) _param_trim_roll,
-		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw,
-
 		(ParamInt<px4::params::FW_SPOILERS_MAN>) _param_fw_spoilers_man
 	)
 
 	RateControl _rate_control; ///< class for rate control calculations
+
+	FwTrim _trim{this};
+	SlewRate<matrix::Vector3f> _trim_slew{}; ///< prevents large trim changes
 
 	void updateActuatorControlsStatus(float dt);
 
@@ -215,6 +209,8 @@ private:
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
+
+	void		save_params();
 
 	void		vehicle_manual_poll();
 	void		vehicle_land_detected_poll();
