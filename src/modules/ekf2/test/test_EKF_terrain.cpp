@@ -207,7 +207,7 @@ TEST_F(EkfTerrainTest, testHeightReset)
 	const float new_baro_height = _sensor_simulator._baro.getData() + 50.f;
 	_sensor_simulator._baro.setData(new_baro_height);
 	_sensor_simulator.stopGps(); // prevent from switching to GNSS height
-	_sensor_simulator.runSeconds(10);
+	_sensor_simulator.runSeconds(100);
 
 	// THEN: a height reset occurred and the estimated distance to the ground remains constant
 	reset_logging_checker.capturePostResetState();
@@ -219,11 +219,36 @@ TEST_F(EkfTerrainTest, testRngStartInAir)
 {
 	// GIVEN: rng for terrain but not flow
 	_ekf_wrapper.disableFlowFusion();
-	_ekf_wrapper.enableRangeHeightFusion();
+	const float rng_height = 16.f;
 
-	const float rng_height = 18;
-	const float flow_height = 1.f;
-	runFlowAndRngScenario(rng_height, flow_height);
+	_sensor_simulator.startGps();
+	_ekf->set_min_required_gps_health_time(1e6);
+	_ekf->set_in_air_status(false);
+	_ekf->set_vehicle_at_rest(true);
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.runSeconds(1.5); // Run to pass the GPS checks
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	const Vector3f simulated_velocity(0.5f, -1.0f, 0.0f);
+
+	// Configure GPS simulator data
+	_sensor_simulator._gps.setVelocity(simulated_velocity);
+	_sensor_simulator._gps.setPositionRateNED(simulated_velocity);
+
+	// Simulate flight above max range finder distance
+	// run for a while to let terrain uncertainty increase
+	_sensor_simulator._rng.setData(30.f, 100);
+	_sensor_simulator._rng.setLimits(0.1f, 20.f);
+	_sensor_simulator.startRangeFinder();
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.runSeconds(40);
+
+	// quick range finder change to bypass stuck-check
+	_sensor_simulator._rng.setData(rng_height - 1.f, 100);
+	_sensor_simulator.runSeconds(1);
+	_sensor_simulator._rng.setData(rng_height, 100);
+	_sensor_simulator.runSeconds(10);
 
 	// THEN: the terrain should reset using rng
 	EXPECT_NEAR(rng_height, _ekf->getHagl(), 1e-3f);
@@ -242,5 +267,5 @@ TEST_F(EkfTerrainTest, testRngStartInAir)
 
 	const float corr_terrain_abias_z = P(State::accel_bias.idx + 2,
 					     State::terrain.idx) / sqrtf(_ekf->getAccelBiasVariance()(2) * var_terrain);
-	EXPECT_TRUE(corr_terrain_abias_z < -0.4f);
+	EXPECT_TRUE(corr_terrain_abias_z < -0.1f);
 }

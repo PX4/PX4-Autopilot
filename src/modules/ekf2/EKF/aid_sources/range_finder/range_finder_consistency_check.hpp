@@ -56,26 +56,19 @@ public:
 		UNKNOWN = 2
 	};
 
-	float getTestRatioLpf() const { return _test_ratio_lpf.getState(); }
-	float getInnov() const { return _innov; }
-	float getInnovVar() const { return _innov_var; }
-
+	float getTestRatioLpf() const { return _initialized ? _test_ratio_lpf.getState() : 0.f; }
+	float getInnov() const { return _initialized ? _innov : 0.f; }
+	float getInnovVar() const { return _initialized ? _innov_var : 0.f; }
 	bool isKinematicallyConsistent() const { return _state == KinematicState::CONSISTENT; }
-	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT || _fixed_wing; }
+	bool isNotKinematicallyInconsistent() const { return _state != KinematicState::INCONSISTENT; }
+	void setGate(const float gate) { _gate = gate; }
+	void run(const float &z, const float &vz, const matrix::SquareMatrix<float, estimator::State::size> &P,
+		 const float &dist_bottom, const float &dist_bottom_var, uint64_t time_us);
 	void reset()
 	{
-		if (_initialized) {
-			if (_state == KinematicState::CONSISTENT) {
-				_state = KinematicState::UNKNOWN;
-			}
-
-			_initialized = false;
-		}
+		_state = (_initialized && _state == KinematicState::CONSISTENT) ? KinematicState::UNKNOWN : _state;
+		_initialized = false;
 	}
-	int getConsistencyState() const { return static_cast<int>(_state); }
-
-	void run(const float z, const float vz, const matrix::SquareMatrix<float, estimator::State::size> P,
-		 const float dist_bottom, const float dist_bottom_var, uint64_t time_us);
 
 	uint8_t current_posD_reset_count{0};
 	float terrain_process_noise{0.0f};
@@ -83,25 +76,20 @@ public:
 
 private:
 
-	void update(float z, float z_var, float vz, float vz_var, float dist_bottom, float dist_bottom_var,
-		    uint64_t time_us);
-	void init(float var_z, float var_terrain, float z, float dist_bottom);
-	matrix::SquareMatrix<float, 2> _R{};
+	void update(const float &z, const float &z_var, const float &vz, const float &vz_var, const float &dist_bottom,
+		    const float &dist_bottom_var, const uint64_t &time_us);
+	void init(const float &z, const float &z_var, const float &dist_bottom, const float &dist_bottom_var);
 	matrix::SquareMatrix<float, 2> _P{};
-	matrix::SquareMatrix<float, 2> _A{};
 	matrix::SquareMatrix<float, 2> _H{};
 	matrix::Vector2f _x{};
 	bool _initialized{false};
-	float _innov{};
-	float _innov_var{};
+	float _innov{0.f};
+	float _innov_var{0.f};
 	uint64_t _time_last_update_us{0};
-	float _dist_bottom_prev{};
-	AlphaFilter<float> _test_ratio_lpf{0.3};
+	AlphaFilter<float> _test_ratio_lpf{};
 	float _gate{1.f};
-	int _sample_count{0};
 	KinematicState _state{KinematicState::UNKNOWN};
-	int _min_nr_of_samples{0};
-	bool _fixed_wing{false};
+	float _t_since_first_sample{0.f};
 	uint8_t _last_posD_reset_count{0};
 };
 
