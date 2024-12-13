@@ -814,7 +814,7 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 	} else if (q_sensor.Equal(q_down, 0.03)) {
 		distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
-	}else if (q_sensor.Equal(q_left, 0.03)) {
+	} else if (q_sensor.Equal(q_left, 0.03)) {
 		distance_sensor.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
 
 	} else {

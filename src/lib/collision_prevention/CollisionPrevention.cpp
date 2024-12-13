@@ -400,7 +400,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		float pitch = euler_vehicle.theta();
 
 
-        	float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, _obstacle_map_body_frame.angle_offset);
+		float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, _obstacle_map_body_frame.angle_offset);
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
 		// calculate the field of view boundary bin indices
@@ -439,17 +439,17 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 // Function to rotate a 2D point by pitch and roll
 matrix::Vector2f CollisionPrevention::_rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll)
 {
-    // Construct the DCM for pitch and roll using Euler angles
-    matrix::Dcmf R(matrix::Eulerf(roll, pitch, 0.0f));
+	// Construct the DCM for pitch and roll using Euler angles
+	matrix::Dcmf R(matrix::Eulerf(roll, pitch, 0.0f));
 
-    // Convert the 2D point to a 3D point (assuming z = 0)
-    matrix::Vector3f point_3d(point(0), point(1), 0.0f);
+	// Convert the 2D point to a 3D point (assuming z = 0)
+	matrix::Vector3f point_3d(point(0), point(1), 0.0f);
 
-    // Apply the combined DCM to the 3D point
-    matrix::Vector3f rotated_point_3d = R * point_3d;
+	// Apply the combined DCM to the 3D point
+	matrix::Vector3f rotated_point_3d = R * point_3d;
 
-    // Project the rotated 3D point back to 2D
-    return matrix::Vector2f(rotated_point_3d(0), rotated_point_3d(1));
+	// Project the rotated 3D point back to 2D
+	return matrix::Vector2f(rotated_point_3d(0), rotated_point_3d(1));
 }
 
 
