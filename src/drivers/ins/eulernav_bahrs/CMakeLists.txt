@@ -32,8 +32,8 @@
 ############################################################################
 px4_add_module(
 	MODULE drivers__ins__eulerav_bahrs
-	MAIN eulernav_bahrs_main
+	MAIN eulernav_bahrs
 	SRCS
-		eulernav_bahrs_main.cpp
+		eulernav_bahrs_main.c
 	DEPENDS
 	)
