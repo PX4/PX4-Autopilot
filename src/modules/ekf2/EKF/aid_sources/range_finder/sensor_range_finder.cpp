@@ -164,6 +164,9 @@ void SensorRangeFinder::updateFogCheck(const float dist_bottom, const uint64_t t
 		}
 
 		_prev_median_dist = median_dist;
+
+	} else {
+		_prev_median_dist = dist_bottom;
 	}
 }
 

@@ -40,94 +40,114 @@
 
 using namespace matrix;
 
-void RangeFinderConsistencyCheck::init(float var_z, float var_terrain, float z, float dist_bottom)
+void RangeFinderConsistencyCheck::init(const float &z, const float &z_var, const float &dist_bottom,
+				       const float &dist_bottom_var)
 {
-	_R.setZero();
-	_A.setIdentity();
-	float p[4] = {var_z, 0.f, 0.f, var_terrain};
+	float p[4] = {z_var, 0.f, 0.f, z_var + dist_bottom_var};
 	_P = Matrix<float, RangeFilter::size, RangeFilter::size>(p);
 	sym::RangeValidationFilter(&_H);
 	_x(RangeFilter::z.idx) = z;
-	_x(RangeFilter::terrain.idx) = z + dist_bottom;
+	_x(RangeFilter::terrain.idx) = z - dist_bottom;
 	_initialized = true;
-	_sample_count = 0;
-	_state = KinematicState::UNKNOWN;
+	_state = _test_ratio_lpf.getState() < 1.f ? KinematicState::UNKNOWN : KinematicState::INCONSISTENT;
+	_test_ratio_lpf.reset(2.f);
+	_t_since_first_sample = 0.f;
+	_test_ratio_lpf.setAlpha(0.2f);
 }
 
-void RangeFinderConsistencyCheck::update(float z, float z_var, float vz, float vz_var, float dist_bottom,
-		float dist_bottom_var, uint64_t time_us)
+void RangeFinderConsistencyCheck::update(const float &z, const float &z_var, const float &vz, const float &vz_var,
+		const float &dist_bottom, const float &dist_bottom_var, const uint64_t &time_us)
 {
 	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
 
 	if (_time_last_update_us == 0 || dt > 1.f) {
 		_time_last_update_us = time_us;
+		init(z, z_var, dist_bottom, dist_bottom_var);
 		return;
-	}
-
-	if (_min_nr_of_samples == 0) {
-		_min_nr_of_samples = (int)(1.f / dt);
 	}
 
 	_time_last_update_us = time_us;
 
-	_R(RangeFilter::z.idx, RangeFilter::z.idx) = z_var;
-	_R(RangeFilter::terrain.idx, RangeFilter::terrain.idx) = dist_bottom_var;
-
-	SquareMatrix<float, 2> Q;
-	Q(RangeFilter::z.idx, RangeFilter::z.idx) = dt * dt * vz_var + 0.001f;
-	Q(RangeFilter::terrain.idx, RangeFilter::terrain.idx) = terrain_process_noise;
-
-	_x(RangeFilter::z.idx) += dt * vz;
-	_P = _A * _P * _A.transpose() + Q;
+	_x(RangeFilter::z.idx) -= dt * vz;
+	_P(0, 0) += dt * dt * vz_var + 0.001f;
+	_P(1, 1) += terrain_process_noise;
 
 	const Vector2f measurements(z, dist_bottom);
-	const Vector2f y = measurements - _H * _x;
-	const Matrix2f S = _H * _P * _H.transpose() + _R;
-	const float normalized_residual = (y.transpose() * S.I() * y)(0, 0);
-	float test_ratio = fminf(normalized_residual / sq(_gate), 2.f);
 
-	Matrix2f K = _P * _H.transpose() * S.I();
+	Vector2f Kv{1.f, 0.f};
+	Vector2f test_ratio{0.f, 0.f};
+	Vector2f R{z_var, dist_bottom_var};
+	Vector2f y;
 
-	K(RangeFilter::z.idx, RangeFilter::z.idx) = 1.f;
-	K(RangeFilter::z.idx, RangeFilter::terrain.idx) = 0.f;
+	for (int i = 0; i < 2 ; i++) {
+		y = measurements - _H * _x;
+		Vector2f H = _H.row(i);
+		_innov_var = (H.transpose() * _P * H + R(i))(0, 0);
+		Kv(RangeFilter::terrain.idx) = _P(RangeFilter::terrain.idx, i) / _innov_var;
 
-	if (test_ratio > 1.f) {
-		K(RangeFilter::terrain.idx, RangeFilter::z.idx) = 0.f;
-		K(RangeFilter::terrain.idx, RangeFilter::terrain.idx) = 0.f;
+		Vector2f PH = _P.row(i);
+
+		for (int u = 0; u < RangeFilter::size; u++) {
+			for (int v = 0; v < RangeFilter::size; v++) {
+				_P(u, v) -= Kv(u) * PH(v);
+			}
+		}
+
+		PH = _P.col(i);
+
+		for (int u = 0; u < RangeFilter::size; u++) {
+			for (int v = 0; v <= u; v++) {
+				_P(u, v) = _P(u, v) - PH(u) * Kv(v) + Kv(u) * R(i) * Kv(v);
+				_P(v, u) = _P(u, v);
+			}
+		}
+
+		test_ratio(i) = fminf(sq(y(i)) / sq(_gate), 4.f);
+
+		if (i == (int)RangeFilter::z.idx && test_ratio(1) > 1.f) {
+			Kv(1) = 0.f;
+		}
+
+		_x = _x + Kv * y;
 	}
 
-	_x = _x + K * y;
-	_P = _P - K * _H * _P;
-	_P = 0.5f * (_P + _P.transpose()); // Ensure symmetry
 	_innov = y(RangeFilter::terrain.idx);
-	_innov_var = S(RangeFilter::terrain.idx, RangeFilter::terrain.idx);
+	_test_ratio_lpf.update(sign(_innov) * test_ratio(1));
 
-	_test_ratio_lpf.update(sign(_innov) * test_ratio);
-
-	if (_sample_count++ > _min_nr_of_samples) {
+	// start the consistency check after 1s
+	if (_t_since_first_sample + dt > 1.0f) {
+		_t_since_first_sample = 2.0f;
 
 		if (abs(_test_ratio_lpf.getState()) < 1.f) {
-			_state = KinematicState::CONSISTENT;
+			const bool vertical_motion = sq(vz) > fmaxf(vz_var, 0.1f);
+
+			if (!horizontal_motion && vertical_motion) {
+				_state = KinematicState::CONSISTENT;
+
+			} else {
+				_state = KinematicState::UNKNOWN;
+			}
 
 		} else {
-			_sample_count = 0;
+			_t_since_first_sample = 0.f;
 			_state = KinematicState::INCONSISTENT;
 		}
 
+	} else {
+		_t_since_first_sample += dt;
 	}
 }
 
-void RangeFinderConsistencyCheck::run(const float z, const float vz,
-				      const matrix::SquareMatrix<float, estimator::State::size> P,
-				      const float dist_bottom, const float dist_bottom_var, uint64_t time_us)
+void RangeFinderConsistencyCheck::run(const float &z, const float &vz,
+				      const matrix::SquareMatrix<float, estimator::State::size> &P,
+				      const float &dist_bottom, const float &dist_bottom_var, uint64_t time_us)
 {
 	const float z_var = P(estimator::State::pos.idx + 2, estimator::State::pos.idx + 2);
 	const float vz_var = P(estimator::State::vel.idx + 2, estimator::State::vel.idx + 2);
 
 	if (!_initialized || current_posD_reset_count != _last_posD_reset_count) {
 		_last_posD_reset_count = current_posD_reset_count;
-		const float terrain_var = P(estimator::State::terrain.idx, estimator::State::terrain.idx);
-		init(z_var, terrain_var, z, dist_bottom);
+		init(z, z_var, dist_bottom, dist_bottom_var);
 	}
 
 	update(z, z_var, vz, vz_var, dist_bottom, dist_bottom_var, time_us);
