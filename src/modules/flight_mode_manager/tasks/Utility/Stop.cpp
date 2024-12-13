@@ -67,7 +67,7 @@ void Stop::getConstraints(vehicle_constraints_s &constraints)
 		_position_smoothing.setMaxAccelerationXY(CONSTANTS_ONE_G);
 		_position_smoothing.setMaxAccelerationZ(2 * CONSTANTS_ONE_G);
 		_position_smoothing.setMaxJerk(CONSTANTS_ONE_G);
-		_position_smoothing.setMaxJerkZ(10.f * CONSTANTS_ONE_G); // Jerk in Z direction is only limited by motor inertia.
+		_position_smoothing.setMaxJerkZ(CONSTANTS_ONE_G);
 	}
 }
 
@@ -76,10 +76,12 @@ Stop::initialize(const Vector3f &acceleration, const Vector3f &velocity, const V
 		 const float &deltatime)
 {
 	if (velocity.isAllNan() || position.isAllNan() || acceleration.isAllNan()) {
-		PX4_ERR("Initialize stop with valid values");
+		PX4_ERR("Initialized stop with invalid values");
 	}
 
 	_isActive = true;
+	_wasActive = false;
+
 	_position_smoothing.reset(acceleration, velocity, position);
 	update(acceleration, velocity, position, deltatime);
 }
@@ -93,7 +95,9 @@ Stop::update(const Vector3f &acceleration, const Vector3f &velocity, const Vecto
 	} else if (_position_smoothing.getCurrentVelocityZ() < 0.01f
 		   && _position_smoothing.getCurrentVelocityZ() > -0.01f
 		   && !_position_smoothing.getCurrentVelocityXY().longerThan(0.01f)) {
+		// deactivate when the vehicle has come to a full stop
 		_isActive = false;
+		_wasActive = true;
 		_stop_position = position;
 	}
 
@@ -117,9 +121,14 @@ Stop::update(const Vector3f &acceleration, const Vector3f &velocity, const Vecto
 bool
 Stop::checkMaxVelocityLimit(const Vector3f &velocity, const float &factor)
 {
-	const bool exceeded_vel_z = fabsf(velocity(2)) > math::max(_param_mpc_z_vel_max_dn.get(),
-				    _param_mpc_z_vel_max_up.get());
+	const bool exceeded_vel_z = velocity(2) > (factor * _param_mpc_z_vel_max_dn.get())
+				    || velocity(2) < -(factor * _param_mpc_z_vel_max_up.get());
+
 	const bool exceeded_vel_xy = velocity.xy().norm() > _param_mpc_xy_vel_max.get();
+
+	if ((exceeded_vel_xy || exceeded_vel_z)) {
+		PX4_DEBUG("exceeded_vel_xy: %d, exceeded_vel_z: %d", exceeded_vel_xy, exceeded_vel_z);
+	}
 
 	return (exceeded_vel_xy || exceeded_vel_z);
 }

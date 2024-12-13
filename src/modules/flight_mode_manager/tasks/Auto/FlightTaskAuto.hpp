@@ -52,6 +52,7 @@
 #include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
 #include "StickYaw.hpp"
+#include "Stop.hpp"
 
 // TODO: make this switchable in the board config, like a module
 #if CONSTRAINED_FLASH
@@ -157,8 +158,8 @@ protected:
 	matrix::Vector3f _land_position;
 	float _land_heading;
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
-	bool _is_emergency_braking_active{false};
 	bool _want_takeoff{false};
+	Stop _stop{this};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,

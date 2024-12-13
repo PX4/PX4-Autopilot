@@ -49,10 +49,6 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
 
-	// Set setpoints equal current state.
-	_velocity_setpoint = _velocity;
-	_position_setpoint = _position;
-
 	Vector3f vel_prev{last_setpoint.velocity};
 	Vector3f pos_prev{last_setpoint.position};
 	Vector3f accel_prev{last_setpoint.acceleration};
@@ -70,9 +66,18 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 
 	_position_smoothing.reset(accel_prev, vel_prev, pos_prev);
 
+	if (_stop.checkMaxVelocityLimit(vel_prev, 1.3f)) {
+		PX4_WARN("Exceeded velocity limits, stopping vehicle");
+		_stop.initialize(accel_prev, vel_prev, pos_prev, _deltatime);
+		_jerk_setpoint = _stop.getJerkSetpoint();
+		_acceleration_setpoint = _stop.getAccelerationSetpoint();
+		_velocity_setpoint = _stop.getVelocitySetpoint();
+		_position_setpoint = _stop.getPositionSetpoint();
+	}
+
+
 	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
 	_updateTrajConstraints();
-	_is_emergency_braking_active = false;
 	_time_last_cruise_speed_override = 0;
 
 	return ret;
@@ -172,25 +177,50 @@ bool FlightTaskAuto::update()
 
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == int32_t(yaw_mode::towards_waypoint_yaw_first)
 					       && !_yaw_sp_aligned;
-	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
+
+
 	_updateTrajConstraints();
-	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
-	_position_smoothing.generateSetpoints(
-		_position,
-		waypoints,
-		_velocity_setpoint,
-		_deltatime,
-		force_zero_velocity_setpoint,
-		smoothed_setpoints
-	);
 
-	_jerk_setpoint = smoothed_setpoints.jerk;
-	_acceleration_setpoint = smoothed_setpoints.acceleration;
-	_velocity_setpoint = smoothed_setpoints.velocity;
-	_position_setpoint = smoothed_setpoints.position;
+	if (_stop.isActive()) {
+		_stop.update(_acceleration_setpoint, _velocity_setpoint, _position, _deltatime);
+		_jerk_setpoint = _stop.getJerkSetpoint();
+		_acceleration_setpoint = _stop.getAccelerationSetpoint();
+		_velocity_setpoint = _stop.getVelocitySetpoint();
+		_position_setpoint = _stop.getPositionSetpoint();
 
-	_unsmoothed_velocity_setpoint = smoothed_setpoints.unsmoothed_velocity;
-	_want_takeoff = smoothed_setpoints.unsmoothed_velocity(2) < -0.3f;
+
+		_unsmoothed_velocity_setpoint = _stop.getUnsmoothedVelocity();
+		_yaw_setpoint = _stop.getYaw();
+
+	} else if (_stop.wasActive()) {
+		_position_smoothing.reset(_acceleration_setpoint, _velocity, _position);
+
+		// Modifying the triplet outside of the navigatior is not ideal, but this is to catch an edge case.
+		_triplet_prev_wp = _position;
+
+	} else {
+		// Generate setpoints
+		PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
+		_position_smoothing.generateSetpoints(
+			_position,
+			waypoints,
+			_velocity_setpoint,
+			_deltatime,
+			should_wait_for_yaw_align,
+			smoothed_setpoints
+		);
+
+
+		_jerk_setpoint = smoothed_setpoints.jerk;
+		_acceleration_setpoint = smoothed_setpoints.acceleration;
+		_velocity_setpoint = smoothed_setpoints.velocity;
+		_position_setpoint = smoothed_setpoints.position;
+
+		_unsmoothed_velocity_setpoint = smoothed_setpoints.unsmoothed_velocity;
+
+	}
+
+	_want_takeoff = _unsmoothed_velocity_setpoint(2) < -0.3f;
 
 	if (!PX4_ISFINITE(_yaw_setpoint) && !PX4_ISFINITE(_yawspeed_setpoint)) {
 		// no valid heading -> generate heading in this flight task
@@ -749,26 +779,12 @@ void FlightTaskAuto::_ekfResetHandlerHeading(float delta_psi)
 
 void FlightTaskAuto::_checkEmergencyBraking()
 {
-	if (!_is_emergency_braking_active) {
+	if (!_stop.isActive()
+	    && _stop.checkMaxVelocityLimit(_velocity_setpoint,
+					   1.3f)) { // the Factor 1.3 is taken over from the original PR (https://github.com/PX4/PX4-Autopilot/pull/18740)
 		// activate emergency braking if significantly outside of velocity bounds
-		const float factor = 1.3f;
-		const bool is_vertical_speed_exceeded = _position_smoothing.getCurrentVelocityZ() >
-							(factor * _param_mpc_z_vel_max_dn.get())
-							|| _position_smoothing.getCurrentVelocityZ() < -(factor * _param_mpc_z_vel_max_up.get());
-		const bool is_horizontal_speed_exceeded = _position_smoothing.getCurrentVelocityXY().longerThan(
-					factor * _param_mpc_xy_vel_max.get());
-
-		if (is_vertical_speed_exceeded || is_horizontal_speed_exceeded) {
-			_is_emergency_braking_active = true;
-		}
-
-	} else {
-		// deactivate emergency braking when the vehicle has come to a full stop
-		if (_position_smoothing.getCurrentVelocityZ() < 0.01f
-		    && _position_smoothing.getCurrentVelocityZ() > -0.01f
-		    && !_position_smoothing.getCurrentVelocityXY().longerThan(0.01f)) {
-			_is_emergency_braking_active = false;
-		}
+		_stop.initialize(_acceleration_setpoint, _velocity_setpoint, _position, _deltatime);
+		_stop.setYaw(_yaw);
 	}
 }
 
@@ -818,18 +834,8 @@ void FlightTaskAuto::_updateTrajConstraints()
 	_constraints.speed_up = 1.2f * _param_mpc_xy_vel_max.get();
 	_constraints.speed_xy = 1.2f * _param_mpc_xy_vel_max.get();
 
-	if (_is_emergency_braking_active) {
-		// When initializing with large velocity, allow 1g of
-		// acceleration in 1s on all axes for fast braking
-		_position_smoothing.setMaxAcceleration({CONSTANTS_ONE_G, CONSTANTS_ONE_G, CONSTANTS_ONE_G});
-		_position_smoothing.setMaxJerk(CONSTANTS_ONE_G);
-
-		// If the current velocity is beyond the usual constraints, tell
-		// the controller to exceptionally increase its saturations to avoid
-		// cutting out the feedforward
-		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_down);
-		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_up);
-		_constraints.speed_xy = math::max(_position_smoothing.getCurrentVelocityXY().norm(), _constraints.speed_xy);
+	if (_stop.isActive()) {
+		_stop.getConstraints(_constraints);
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();

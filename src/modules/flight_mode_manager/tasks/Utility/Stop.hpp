@@ -77,7 +77,16 @@ public:
 	Vector3f getUnsmoothedVelocity() const 		{ return _unsmoothed_velocity; }
 	Vector3f getStopPosition() const 		{ return _stop_position; }
 
+	void setYaw(float yaw) 				{ _yaw_setpoint = yaw; }
+	float getYaw() const 				{ return _yaw_setpoint; }
+
 	bool isActive() const {return _isActive;};
+	bool wasActive()
+	{
+		bool curr_state = _wasActive;
+		_wasActive = false;
+		return curr_state;
+	};
 private:
 
 	PositionSmoothing _position_smoothing;
@@ -85,12 +94,14 @@ private:
 	Vector3f _stop_position;
 	bool _exceeded_max_vel{false}; // true if we exceed the maximum velcoity of the auto flight task.
 	bool _isActive{false};		// true if the condition for braking is still valid
+	bool _wasActive{false};		// true if the condition for braking was valid in the previous iteration
 
 	Vector3f _jerk_setpoint;
 	Vector3f _acceleration_setpoint;
 	Vector3f _velocity_setpoint;
 	Vector3f _position_setpoint;
 	Vector3f _unsmoothed_velocity;
+	float 	 _yaw_setpoint{NAN};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) 	_param_mpc_acc_down_max,
