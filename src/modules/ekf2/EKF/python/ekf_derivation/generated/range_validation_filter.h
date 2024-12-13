@@ -35,8 +35,8 @@ void RangeValidationFilter(matrix::Matrix<Scalar, 2, 2>* const H = nullptr) {
     _h.setZero();
 
     _h(0, 0) = 1;
-    _h(1, 0) = -1;
-    _h(1, 1) = 1;
+    _h(1, 0) = 1;
+    _h(1, 1) = -1;
   }
 }  // NOLINT(readability/fn_size)
 

@@ -56,6 +56,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
 		_range_sensor.setMaxFogDistance(_params.rng_fog);
+		_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
 
 		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
 
@@ -69,11 +70,13 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				const float dist_var = getRngVar();
 				_rng_consistency_check.current_posD_reset_count = get_posD_reset_count();
 
-				const bool updated_horizontal_motion = (sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f));
+				const bool updated_horizontal_motion = sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f);
 
-				if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion) {
+				if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion
+				    && _rng_consistency_check.isNotKinematicallyInconsistent()) {
 					_rng_consistency_check.reset();
 				}
+
 				_rng_consistency_check.horizontal_motion = updated_horizontal_motion;
 				_rng_consistency_check.run(_gpos.altitude(), _state.vel(2), P, _range_sensor.getRange(), dist_var, imu_sample.time_us);
 			}
@@ -94,8 +97,9 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			}
 		}
 
-		_control_status.flags.rng_kin_consistent = _rng_consistency_check.getConsistencyState() == 1;
-		_control_status.flags.rng_kin_unknown = _rng_consistency_check.getConsistencyState() == 2;
+		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
+		_control_status.flags.rng_kin_unknown = !_rng_consistency_check.isKinematicallyConsistent()
+							&& _rng_consistency_check.isNotKinematicallyInconsistent();
 
 	} else {
 		return;
@@ -228,7 +232,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					}
 
 				} else {
-					if (aid_src.innovation_rejected) {
+					if (aid_src.innovation_rejected && _rng_consistency_check.isKinematicallyConsistent()) {
 						resetTerrainToRng(aid_src);
 						resetAidSourceStatusZeroInnovation(aid_src);
 					}

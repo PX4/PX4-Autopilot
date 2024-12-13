@@ -721,19 +721,17 @@ def compute_gravity_z_innov_var_and_h(
 
     return (innov_var, H.T)
 
-def range_validation_filter() -> sf.matrix:
+def range_validation_filter() -> sf.Matrix:
 
-    z = sf.Symbol("z")
-    dist_bottom = sf.Symbol("dist_bottom")
-    terrain = dist_bottom - z
-    state = sf.V2.symbolic("state")
-    state_indices = {"z": 0, "dist_bottom": 1}
-    state[state_indices["z"]] = z
-    state[state_indices["dist_bottom"]] = dist_bottom
+    state = Values(
+        z=sf.Symbol("z"),
+        terrain=sf.Symbol("terrain")
+    )
+    dist_bottom = state["z"] - state["terrain"]
 
     H = sf.M22()
-    H[0, :] = sf.V1(z).jacobian(state, tangent_space=False)
-    H[1, :] = sf.V1(terrain).jacobian(state, tangent_space=False)
+    H[0, :] = sf.V1(state["z"]).jacobian(state.to_storage(), tangent_space=False)
+    H[1, :] = sf.V1(dist_bottom).jacobian(state.to_storage(), tangent_space=False)
 
     return H
 
