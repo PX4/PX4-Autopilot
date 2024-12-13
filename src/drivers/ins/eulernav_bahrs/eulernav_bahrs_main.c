@@ -42,7 +42,7 @@
 
 __EXPORT int eulernav_bahrs_main(int argc, char *argv[]);
 
-int eulernav_main(int argc, char *argv[])
+int eulernav_bahrs_main(int argc, char *argv[])
 {
 	PX4_INFO("Hello Sky!");
 	return OK;
