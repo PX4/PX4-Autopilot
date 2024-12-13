@@ -87,16 +87,19 @@ public:
 			const float tmp2 = b * b / (4.f * a * a);
 
 			for (int i = 0; i < num_values; ++i) {
+
 				float control = values[i];
 
-				if (control > 0.f) {
-					values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
+				if (PX4_ISFINITE(control)) {
+					if (control > 0.f) {
+						values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
 
-				} else if (control < -0.f) {
-					values[i] =  tmp1 - sqrtf(tmp2 - (control / a));
+					} else if (control < -0.f) {
+						values[i] =  tmp1 - sqrtf(tmp2 - (control / a));
 
-				} else {
-					values[i] = 0.f;
+					} else {
+						values[i] = 0.f;
+					}
 				}
 			}
 		}
