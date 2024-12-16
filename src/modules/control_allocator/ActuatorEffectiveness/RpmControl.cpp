@@ -37,47 +37,45 @@
 
 using namespace time_literals;
 
-RpmControl::RpmControl(ModuleParams *parent) : ModuleParams(parent) {};
+RpmControl::RpmControl(ModuleParams *parent) : ModuleParams(parent)
+{
+	_pid.setOutputLimit(PID_OUTPUT_LIMIT);
+	_pid.setIntegralLimit(PID_OUTPUT_LIMIT);
+};
 
 void RpmControl::setSpoolupProgress(float spoolup_progress)
 {
 	_spoolup_progress = spoolup_progress;
 	_pid.setSetpoint(_spoolup_progress * _param_ca_heli_rpm_sp.get());
 
-	if (_spoolup_progress < .8f) {
+	if (_spoolup_progress < SPOOLUP_PROGRESS_WITH_CONTROLLER_ENGAGED) {
 		_pid.resetIntegral();
 	}
 }
 
 float RpmControl::getActuatorCorrection()
 {
+	hrt_abstime now = hrt_absolute_time();
+
+	// RPM measurement update
 	if (_rpm_sub.updated()) {
 		rpm_s rpm{};
 
 		if (_rpm_sub.copy(&rpm)) {
-			_rpm_estimate = rpm.rpm_estimate;
-			_timestamp_last_rpm_measurement = rpm.timestamp;
+			const float dt = math::min((now - _timestamp_last_measurement) * 1e-6f, 1.f);
+			_timestamp_last_measurement = rpm.timestamp;
+
+			const float gain_scale = math::interpolate(_spoolup_progress, .8f, 1.f, 0.f, 1e-3f);
+			_pid.setGains(_param_ca_heli_rpm_p.get() * gain_scale, _param_ca_heli_rpm_i.get() * gain_scale, 0.f);
+			_actuator_correction = _pid.update(rpm.rpm_estimate, dt, true);
 		}
 	}
 
-	hrt_abstime now = hrt_absolute_time();
-	const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 1e-3f, 1.f);
-	_timestamp_last_update = now;
-
-	const bool rpm_measurement_timeout = (now - _timestamp_last_rpm_measurement) < 1_s;
-
-	if (rpm_measurement_timeout) {
-		const float gain_scale = math::max((_spoolup_progress - .8f) * 5.f, 0.f) * 1e-3f;
-		_pid.setGains(_param_ca_heli_rpm_p.get() * gain_scale, _param_ca_heli_rpm_i.get() * gain_scale, 0.f);
-
-	} else {
-		_pid.setGains(0.f, 0.f, 0.f);
+	// Timeout
+	if (now > _timestamp_last_measurement + 1_s) {
+		_pid.resetIntegral();
+		_actuator_correction = 0.f;
 	}
 
-	_pid.setOutputLimit(.5f);
-	_pid.setIntegralLimit(.5f);
-
-	float output = _pid.update(_rpm_estimate, dt, true);
-
-	return output;
+	return _actuator_correction;
 }
