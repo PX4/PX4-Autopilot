@@ -407,10 +407,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		int lower_bound = (int)round((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 
-		// unit vector of sensor orientation
 		Vector2f sensor_unit_vector = Vector2f(cosf(sensor_yaw_body_rad), sinf(sensor_yaw_body_rad)).unit_or_zero();
-
-		// rotate sensor unit vector into vehicle body frame
 		Vector2f rotated_sensor_unit_vector = _rotatePointByPitchAndRoll(sensor_unit_vector, pitch, roll);
 
 		// dot product to find projection of rotated_sensor_unit_vector onto sensor_unit_vector
@@ -436,7 +433,6 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 }
 
 
-// Function to rotate a 2D point by pitch and roll
 matrix::Vector2f CollisionPrevention::_rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll)
 {
 	// Construct the DCM for pitch and roll using Euler angles
