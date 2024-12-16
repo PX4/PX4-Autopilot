@@ -714,7 +714,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
 
 		if (doing_backtransition) {
-			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
+			_control_mode_current = FW_POSCTRL_MODE_TRANSITION_TO_HOVER_LINE_FOLLOW;
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
@@ -766,7 +766,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		if (doing_backtransition) {
 			// we handle loss of position control during backtransition as a special case
-			_control_mode_current = FW_POSCTRL_MODE_TRANSITON;
+			_control_mode_current = FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD;
 
 		} else if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
 			   && !_vehicle_status.in_transition_mode) {
@@ -2356,18 +2356,49 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	attitude_setpoint.copyTo(_att_sp.q_d);
 }
 
-void FixedwingPositionControl::control_backtransition(const float control_interval, const Vector2f &ground_speed,
+void FixedwingPositionControl::control_backtransition_heading_hold()
+{
+	if (!PX4_ISFINITE(_backtrans_heading)) {
+		_backtrans_heading = _local_pos.heading;
+	}
+
+	float true_airspeed = _airspeed_eas * _eas2tas;
+
+	if (!_airspeed_valid) {
+		true_airspeed = _performance_model.getCalibratedTrimAirspeed() * _eas2tas;
+	}
+
+	// we can achieve heading control by setting airspeed and groundspeed vector equal
+	const Vector2f airspeed_vector = Vector2f(cosf(_local_pos.heading), sinf(_local_pos.heading)) * true_airspeed;
+	const Vector2f &ground_speed = airspeed_vector;
+
+	_npfg.setAirspeedNom(_performance_model.getCalibratedTrimAirspeed() * _eas2tas);
+	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
+
+	Vector2f virtual_target_point = Vector2f(cosf(_backtrans_heading), sinf(_backtrans_heading)) * HDG_HOLD_DIST_NEXT;
+
+	navigateLine(Vector2f(0.f, 0.f), virtual_target_point, Vector2f(0.f, 0.f), ground_speed, Vector2f(0.f, 0.f));
+
+	const float roll_body = getCorrectedNpfgRollSetpoint();
+
+	const float yaw_body = _backtrans_heading;
+
+	// these values are overriden by transition logic
+	_att_sp.thrust_body[0] = _param_fw_thr_min.get();
+	const float pitch_body = 0.0f;
+
+	const Quatf attitude_setpoint(Eulerf(roll_body, pitch_body, yaw_body));
+	attitude_setpoint.copyTo(_att_sp.q_d);
+
+}
+
+void FixedwingPositionControl::control_backtransition_line_follow(const Vector2f &ground_speed,
 		const position_setpoint_s &pos_sp_curr)
 {
-	const bool is_low_height = checkLowHeightConditions();
-
-	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
-				_performance_model.getMinimumCalibratedAirspeed(getLoadFactor()), ground_speed);
-
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+	_npfg.setAirspeedNom(_performance_model.getCalibratedTrimAirspeed() * _eas2tas);
 	_npfg.setAirspeedMax(_performance_model.getMaximumCalibratedAirspeed() * _eas2tas);
 
 	// Set the position where the backtransition started the first ime we pass through here.
@@ -2376,30 +2407,14 @@ void FixedwingPositionControl::control_backtransition(const float control_interv
 		_lpos_where_backtrans_started = curr_pos_local;
 	}
 
-	float roll_body{0.0f};
+	navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+	const float roll_body = getCorrectedNpfgRollSetpoint();
 
-	if (_control_mode.flag_control_position_enabled) {
-		navigateLine(_lpos_where_backtrans_started, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
-		roll_body = getCorrectedNpfgRollSetpoint();
-	}
+	const float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
-	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
-
-	float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
-
-	tecs_update_pitch_throttle(control_interval,
-				   pos_sp_curr.alt,
-				   target_airspeed,
-				   radians(_param_fw_p_lim_min.get()),
-				   radians(_param_fw_p_lim_max.get()),
-				   _param_fw_thr_min.get(),
-				   _param_fw_thr_max.get(),
-				   _param_sinkrate_target.get(),
-				   _param_climbrate_target.get(),
-				   is_low_height);
-
-	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
-	const float pitch_body = get_tecs_pitch();
+	// these values are overriden by transition logic
+	_att_sp.thrust_body[0] = _param_fw_thr_min.get();
+	const float pitch_body = 0.0f;
 
 	const Quatf attitude_setpoint(Eulerf(roll_body, pitch_body, yaw_body));
 	attitude_setpoint.copyTo(_att_sp.q_d);
@@ -2607,6 +2622,7 @@ FixedwingPositionControl::Run()
 			if (!_vehicle_status.in_transition_mode) {
 				// reset position of backtransition start if not in transition
 				_lpos_where_backtrans_started = Vector2f(NAN, NAN);
+				_backtrans_heading = NAN;
 			}
 		}
 
@@ -2703,8 +2719,13 @@ FixedwingPositionControl::Run()
 				break;
 			}
 
-		case FW_POSCTRL_MODE_TRANSITON: {
-				control_backtransition(control_interval, ground_speed, _pos_sp_triplet.current);
+		case FW_POSCTRL_MODE_TRANSITION_TO_HOVER_LINE_FOLLOW: {
+				control_backtransition_line_follow(ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD: {
+				control_backtransition_heading_hold();
 				break;
 			}
 		}
