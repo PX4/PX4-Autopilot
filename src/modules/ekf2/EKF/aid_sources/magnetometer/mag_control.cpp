@@ -482,7 +482,7 @@ void Ekf::checkMagHeadingConsistency(const magSample &mag_sample)
 		// Check if there has been enough change in horizontal velocity to make yaw observable
 		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
 
-		if (using_ne_aiding && (_accel_lpf_NE.norm() > _params.mag_acc_gate)) {
+		if (using_ne_aiding && (_accel_horiz_lpf.getState().longerThan(_params.mag_acc_gate))) {
 			// yaw angle must be observable to consider consistency
 			_control_status.flags.mag_heading_consistent = true;
 		}
