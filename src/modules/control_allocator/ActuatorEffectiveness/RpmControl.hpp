@@ -85,9 +85,8 @@ public:
 		_timestamp_last_update = now;
 
 		const bool rpm_measurement_timeout = (now - _timestamp_last_rpm_measurement) < 1_s;
-		const bool no_excessive_rpm = _rpm_estimate < RPM_MAX_VALUE;
 
-		if (rpm_measurement_timeout && no_excessive_rpm) {
+		if (rpm_measurement_timeout) {
 			const float gain_scale = math::max((_spoolup_progress - .8f) * 5.f, 0.f) * 1e-3f;
 			_pid.setGains(_param_ca_heli_rpm_p.get() * gain_scale, _param_ca_heli_rpm_i.get() * gain_scale, 0.f);
 
@@ -104,7 +103,6 @@ public:
 	}
 
 private:
-	static constexpr float RPM_MAX_VALUE = 1800.f;
 	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
 
 	float _rpm_estimate{0.f};
