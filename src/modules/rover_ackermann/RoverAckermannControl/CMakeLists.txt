@@ -35,5 +35,5 @@ px4_add_library(RoverAckermannControl
 	RoverAckermannControl.cpp
 )
 
-target_link_libraries(RoverAckermannControl PUBLIC pid)
+target_link_libraries(RoverAckermannControl PUBLIC PID)
 target_include_directories(RoverAckermannControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

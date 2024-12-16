@@ -43,7 +43,7 @@ fi
 
 # install git pre-commit hook
 HOOK_FILE="$DIR/../../.git/hooks/pre-commit"
-if [ ! -f $HOOK_FILE ] && [ "$CI" != "true" ]; then
+if [ ! -f $HOOK_FILE ] && [ "$CI" != "true" ] && [ $- == *i* ]; then
 	echo ""
 	echo -e "\033[31mNinja tip: add a git pre-commit hook to automatically check code style\033[0m"
 	echo -e "Would you like to install one now? (\033[94mcp ./Tools/astyle/pre-commit .git/hooks/pre-commit\033[0m): [y/\033[1mN\033[0m]"

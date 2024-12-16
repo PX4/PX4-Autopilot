@@ -115,13 +115,6 @@ Navigator::Navigator() :
 	_distance_sensor_mode_change_request_pub.get().request_on_off = distance_sensor_mode_change_request_s::REQUEST_OFF;
 	_distance_sensor_mode_change_request_pub.update();
 
-	// Update the timeout used in mission_block (which can't hold it's own parameters)
-	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
-
-	_adsb_conflict.set_conflict_detection_params(_param_nav_traff_a_hor_ct.get(),
-			_param_nav_traff_a_ver.get(),
-			_param_nav_traff_collision_time.get(), _param_nav_traff_avoid.get());
-
 	reset_triplets();
 }
 
@@ -149,7 +142,10 @@ void Navigator::params_update()
 		param_get(_handle_mpc_acc_hor, &_param_mpc_acc_hor);
 	}
 
-	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+	_mission.set_command_timeout(_param_mis_command_tout.get());
+	_adsb_conflict.set_conflict_detection_params(_param_nav_traff_a_hor_ct.get(),
+			_param_nav_traff_a_ver.get(),
+			_param_nav_traff_collision_time.get(), _param_nav_traff_avoid.get());
 }
 
 void Navigator::run()
@@ -1267,9 +1263,7 @@ void Navigator::run_fake_traffic()
 
 void Navigator::check_traffic()
 {
-
 	if (_traffic_sub.updated()) {
-
 		_traffic_sub.copy(&_adsb_conflict._transponder_report);
 
 		uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
@@ -1288,7 +1282,6 @@ void Navigator::check_traffic()
 	}
 
 	_adsb_conflict.remove_expired_conflicts();
-
 }
 
 bool Navigator::abort_landing()
