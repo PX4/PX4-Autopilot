@@ -59,13 +59,14 @@ public:
 	float getActuatorCorrection();
 
 private:
-	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
+	static constexpr float SPOOLUP_PROGRESS_WITH_CONTROLLER_ENGAGED = .8f; // [0,1]
+	static constexpr float PID_OUTPUT_LIMIT = .5f; // [0,1]
 
-	float _rpm_estimate{0.f};
-	float _spoolup_progress{0.f};
+	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
 	PID _pid;
-	hrt_abstime _timestamp_last_rpm_measurement{0};
-	hrt_abstime _timestamp_last_update{0};
+	float _spoolup_progress{0.f}; // [0,1]
+	hrt_abstime _timestamp_last_measurement{0}; // for dt and timeout
+	float _actuator_correction{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CA_HELI_RPM_SP>) _param_ca_heli_rpm_sp,
