@@ -44,7 +44,7 @@
 
 #include "ekf.h"
 
-#include <ekf_derivation/generated/compute_airspeed_h_and_k.h>
+#include <ekf_derivation/generated/compute_airspeed_h.h>
 #include <ekf_derivation/generated/compute_airspeed_innov_and_innov_var.h>
 #include <ekf_derivation/generated/compute_wind_init_and_cov_from_airspeed.h>
 
@@ -204,10 +204,8 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 
 	_fault_status.flags.bad_airspeed = false;
 
-	VectorState H; // Observation jacobian
-	VectorState K; // Kalman gain vector
-
-	sym::ComputeAirspeedHAndK(_state.vector(), P, innov_var, FLT_EPSILON, &H, &K);
+	const VectorState H = sym::ComputeAirspeedH(_state.vector(), FLT_EPSILON);
+	VectorState K = P * H / aid_src.innovation_variance;
 
 	if (update_wind_only) {
 		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
