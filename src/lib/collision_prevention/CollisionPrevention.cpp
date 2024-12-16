@@ -394,12 +394,6 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 	// discard values below min range
 	if (distance_reading > distance_sensor.min_distance) {
 
-		// get drone attitude in rad
-		Eulerf euler_vehicle(vehicle_attitude);
-		float roll  = euler_vehicle.phi();
-		float pitch = euler_vehicle.theta();
-
-
 		float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, _obstacle_map_body_frame.angle_offset);
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
@@ -407,11 +401,17 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		int lower_bound = (int)round((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 
-		Vector2f sensor_unit_vector = Vector2f(cosf(sensor_yaw_body_rad), sinf(sensor_yaw_body_rad)).unit_or_zero();
-		Vector2f rotated_sensor_unit_vector = _rotatePointByPitchAndRoll(sensor_unit_vector, pitch, roll);
+		Quatf q_vehicle_attitude = Quatf(vehicle_attitude);
+		Quatf q_sensor           = Quatf(Eulerf(0.0f, 0.0f, sensor_yaw_body_rad));
 
-		// dot product to find projection of rotated_sensor_unit_vector onto sensor_unit_vector
-		float sensor_dist_scale = rotated_sensor_unit_vector.dot(sensor_unit_vector);
+		matrix::Vector3f forward_vector(1.0f, 0.0f, 0.0f);
+
+		Quatf q_sensor_rotation = q_vehicle_attitude * q_sensor;
+
+		matrix::Vector3f rotated_sensor_vector = q_sensor_rotation.rotateVector(forward_vector);
+		matrix::Vector2f rotated_sensor_vector_xy(rotated_sensor_vector(0), rotated_sensor_vector(1));
+
+		float sensor_dist_scale = rotated_sensor_vector_xy.norm();
 
 		if (distance_reading < distance_sensor.max_distance) {
 			distance_reading = distance_reading * sensor_dist_scale;
@@ -432,21 +432,6 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 	}
 }
 
-
-matrix::Vector2f CollisionPrevention::_rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll)
-{
-	// Construct the DCM for pitch and roll using Euler angles
-	matrix::Dcmf R(matrix::Eulerf(roll, pitch, 0.0f));
-
-	// Convert the 2D point to a 3D point (assuming z = 0)
-	matrix::Vector3f point_3d(point(0), point(1), 0.0f);
-
-	// Apply the combined DCM to the 3D point
-	matrix::Vector3f rotated_point_3d = R * point_3d;
-
-	// Project the rotated 3D point back to 2D
-	return matrix::Vector2f(rotated_point_3d(0), rotated_point_3d(1));
-}
 
 
 void

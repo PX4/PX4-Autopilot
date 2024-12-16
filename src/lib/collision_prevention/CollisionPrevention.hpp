@@ -210,10 +210,6 @@ private:
 	 */
 	float _sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset) const;
 
-
-	matrix::Vector2f _rotatePointByPitchAndRoll(const matrix::Vector2f &point, float pitch, float roll);
-
-
 	/**
 	 * Computes collision free setpoints
 	 * @param setpoint, setpoint before collision prevention intervention
