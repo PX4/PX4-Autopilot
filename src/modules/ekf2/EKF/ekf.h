@@ -490,8 +490,13 @@ private:
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 
-	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
-	float _height_rate_lpf{0.0f};
+	static constexpr float _kAccelHorizLpfTimeConstant = 1.f;
+	AlphaFilter<Vector2f> _accel_horiz_lpf{_kAccelHorizLpfTimeConstant}; ///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
+
+#if defined(CONFIG_EKF2_WIND)
+	static constexpr float _kHeightRateLpfTimeConstant = 10.f;
+	AlphaFilter<float> _height_rate_lpf{_kHeightRateLpfTimeConstant};
+#endif // CONFIG_EKF2_WIND
 
 	SquareMatrixState P{};	///< state covariance matrix
 
