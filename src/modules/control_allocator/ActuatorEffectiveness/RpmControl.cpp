@@ -31,45 +31,53 @@
  *
  ****************************************************************************/
 
-/**
- * @file RpmControl.hpp
- *
- * Control rpm of a helicopter rotor.
- * Input: PWM input pulse period from an rpm sensor
- * Output: Duty cycle command for the ESC
- *
- * @author Matthias Grob <maetugr@gmail.com>
- */
+#include "RpmControl.hpp"
 
-#pragma once
+#include <drivers/drv_hrt.h>
 
-#include <lib/pid/PID.hpp>
-#include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/rpm.h>
+using namespace time_literals;
 
-class RpmControl : public ModuleParams
+RpmControl::RpmControl(ModuleParams *parent) : ModuleParams(parent) {};
+
+void RpmControl::setSpoolupProgress(float spoolup_progress)
 {
-public:
-	RpmControl(ModuleParams *parent);
-	~RpmControl() = default;
+	_spoolup_progress = spoolup_progress;
+	_pid.setSetpoint(_spoolup_progress * _param_ca_heli_rpm_sp.get());
 
-	void setSpoolupProgress(float spoolup_progress);
-	float getActuatorCorrection();
+	if (_spoolup_progress < .8f) {
+		_pid.resetIntegral();
+	}
+}
 
-private:
-	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
+float RpmControl::getActuatorCorrection()
+{
+	if (_rpm_sub.updated()) {
+		rpm_s rpm{};
 
-	float _rpm_estimate{0.f};
-	float _spoolup_progress{0.f};
-	PID _pid;
-	hrt_abstime _timestamp_last_rpm_measurement{0};
-	hrt_abstime _timestamp_last_update{0};
+		if (_rpm_sub.copy(&rpm)) {
+			_rpm_estimate = rpm.rpm_estimate;
+			_timestamp_last_rpm_measurement = rpm.timestamp;
+		}
+	}
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::CA_HELI_RPM_SP>) _param_ca_heli_rpm_sp,
-		(ParamFloat<px4::params::CA_HELI_RPM_P>) _param_ca_heli_rpm_p,
-		(ParamFloat<px4::params::CA_HELI_RPM_I>) _param_ca_heli_rpm_i
-	)
-};
+	hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain((now - _timestamp_last_update) * 1e-6f, 1e-3f, 1.f);
+	_timestamp_last_update = now;
+
+	const bool rpm_measurement_timeout = (now - _timestamp_last_rpm_measurement) < 1_s;
+
+	if (rpm_measurement_timeout) {
+		const float gain_scale = math::max((_spoolup_progress - .8f) * 5.f, 0.f) * 1e-3f;
+		_pid.setGains(_param_ca_heli_rpm_p.get() * gain_scale, _param_ca_heli_rpm_i.get() * gain_scale, 0.f);
+
+	} else {
+		_pid.setGains(0.f, 0.f, 0.f);
+	}
+
+	_pid.setOutputLimit(.5f);
+	_pid.setIntegralLimit(.5f);
+
+	float output = _pid.update(_rpm_estimate, dt, true);
+
+	return output;
+}
