@@ -390,16 +390,18 @@ void OutputPredictor::applyCorrectionToOutputBuffer(const Vector3f &vel_correcti
 	_output_new = _output_buffer.get_newest();
 }
 
-matrix::Vector3f OutputPredictor::getVelocityDerivative()
+matrix::Vector3f OutputPredictor::getVelocityDerivative() const
 {
-	matrix::Vector3f vel_deriv(0.f, 0.f, 0.f);
-
 	if (_delta_vel_dt > FLT_EPSILON) {
-		vel_deriv = _delta_vel_sum / _delta_vel_dt;
-	}
+		return _delta_vel_sum / _delta_vel_dt;
 
+	} else {
+		return matrix::Vector3f(0.f, 0.f, 0.f);
+	}
+}
+
+void OutputPredictor::resetVelocityDerivativeAccumulation()
+{
 	_delta_vel_dt = 0.f;
 	_delta_vel_sum.setZero();
-
-	return vel_deriv;
 }

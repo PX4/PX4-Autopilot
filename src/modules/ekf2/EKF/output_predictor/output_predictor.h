@@ -101,8 +101,11 @@ public:
 	// get the velocity of the body frame origin in local NED earth frame
 	matrix::Vector3f getVelocity() const { return _output_new.vel - _vel_imu_rel_body_ned; }
 
-	// get the mean velocity derivative in earth frame since last call
-	matrix::Vector3f getVelocityDerivative();
+	// get the mean velocity derivative in earth frame since reset (see `resetVelocityDerivativeAccumulation()`)
+	matrix::Vector3f getVelocityDerivative() const;
+
+	// reset the velocity derivative accumulation
+	void resetVelocityDerivativeAccumulation();
 
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
 	float getVerticalPositionDerivative() const { return _output_vert_new.vert_vel - _vel_imu_rel_body_ned(2); }

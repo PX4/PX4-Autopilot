@@ -241,8 +241,9 @@ public:
 	float getUnaidedYaw() const { return _output_predictor.getUnaidedYaw(); }
 	Vector3f getVelocity() const { return _output_predictor.getVelocity(); }
 
-	// get the mean velocity derivative in earth frame since last call
-	Vector3f getVelocityDerivative() { return _output_predictor.getVelocityDerivative(); }
+	// get the mean velocity derivative in earth frame since last reset (see `resetVelocityDerivativeAccumulation()`)
+	Vector3f getVelocityDerivative() const { return _output_predictor.getVelocityDerivative(); }
+	void resetVelocityDerivativeAccumulation() { return _output_predictor.resetVelocityDerivativeAccumulation(); }
 	float getVerticalPositionDerivative() const { return _output_predictor.getVerticalPositionDerivative(); }
 	Vector3f getPosition() const;
 	LatLonAlt getLatLonAlt() const { return _output_predictor.getLatLonAlt(); }
