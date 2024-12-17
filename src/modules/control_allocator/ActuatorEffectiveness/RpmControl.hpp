@@ -63,6 +63,7 @@ private:
 	static constexpr float PID_OUTPUT_LIMIT = .5f; // [0,1]
 
 	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
+	bool _rpm_invalid{true};
 	PID _pid;
 	float _spoolup_progress{0.f}; // [0,1]
 	hrt_abstime _timestamp_last_measurement{0}; // for dt and timeout
