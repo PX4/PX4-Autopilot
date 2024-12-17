@@ -879,11 +879,9 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 		if (vehicle_command.source_system == control_data.sysid_primary_control &&
 		    vehicle_command.source_component == control_data.compid_primary_control) {
 
-			const matrix::Eulerf euler(0.0f, math::radians(vehicle_command.param1),
-						   math::radians(vehicle_command.param2));
+			const matrix::Eulerf euler(0.0f, vehicle_command.param1, vehicle_command.param2);
 			const matrix::Quatf q(euler);
-			const matrix::Vector3f angular_velocity(NAN, math::radians(vehicle_command.param3),
-								math::radians(vehicle_command.param4));
+			const matrix::Vector3f angular_velocity(NAN, vehicle_command.param3, vehicle_command.param4);
 			const uint32_t flags = vehicle_command.param5;
 
 			// TODO: support gimbal device id for multiple gimbals
