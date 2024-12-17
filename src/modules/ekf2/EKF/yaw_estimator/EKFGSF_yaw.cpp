@@ -175,8 +175,7 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 	// generate attitude solution using simple complementary filter for the selected model
 	const Vector3f ang_rate = delta_ang / fmaxf(delta_ang_dt, 0.001f) - _ahrs_ekf_gsf[model_index].gyro_bias;
 
-	const Dcmf R_to_body = _ahrs_ekf_gsf[model_index].R.transpose();
-	const Vector3f gravity_direction_bf = R_to_body.col(2);
+	const Vector3f gravity_direction_bf = _ahrs_ekf_gsf[model_index].q.inversed().dcm_z();
 
 	const float ahrs_accel_norm = _ahrs_accel.norm();
 
@@ -217,8 +216,9 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 	const Vector3f delta_angle_corrected = delta_ang
 					       + (tilt_correction - _ahrs_ekf_gsf[model_index].gyro_bias) * delta_ang_dt;
 
-	// Apply delta angle to rotation matrix
-	_ahrs_ekf_gsf[model_index].R = ahrsPredictRotMat(_ahrs_ekf_gsf[model_index].R, delta_angle_corrected);
+	// Apply delta angle to attitude
+	const Quatf dq(AxisAnglef{delta_angle_corrected});
+	_ahrs_ekf_gsf[model_index].q = (_ahrs_ekf_gsf[model_index].q * dq).normalized();
 }
 
 void EKFGSF_yaw::ahrsAlignTilt(const Vector3f &delta_vel)
@@ -228,28 +228,11 @@ void EKFGSF_yaw::ahrsAlignTilt(const Vector3f &delta_vel)
 	// 1) Yaw angle is zero - yaw is aligned later for each model when velocity fusion commences.
 	// 2) The vehicle is not accelerating so all of the measured acceleration is due to gravity.
 
-	// Calculate earth frame Down axis unit vector rotated into body frame
-	const Vector3f down_in_bf = -delta_vel.normalized();
-
-	// Calculate earth frame North axis unit vector rotated into body frame, orthogonal to 'down_in_bf'
-	const Vector3f i_vec_bf(1.f, 0.f, 0.f);
-	Vector3f north_in_bf = i_vec_bf - down_in_bf * (i_vec_bf.dot(down_in_bf));
-	north_in_bf.normalize();
-
-	// Calculate earth frame East axis unit vector rotated into body frame, orthogonal to 'down_in_bf' and 'north_in_bf'
-	const Vector3f east_in_bf = down_in_bf % north_in_bf;
-
-	// Each column in a rotation matrix from earth frame to body frame represents the projection of the
-	// corresponding earth frame unit vector rotated into the body frame, eg 'north_in_bf' would be the first column.
-	// We need the rotation matrix from body frame to earth frame so the earth frame unit vectors rotated into body
-	// frame are copied into corresponding rows instead.
-	Dcmf R;
-	R.setRow(0, north_in_bf);
-	R.setRow(1, east_in_bf);
-	R.setRow(2, down_in_bf);
+	// The tilt is simply the rotation between the measured gravity and the vertical axis
+	Quatf q(delta_vel, Vector3f(0.f, 0.f, -1.f));
 
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-		_ahrs_ekf_gsf[model_index].R = R;
+		_ahrs_ekf_gsf[model_index].q = q;
 	}
 }
 
@@ -257,10 +240,9 @@ void EKFGSF_yaw::ahrsAlignYaw()
 {
 	// Align yaw angle for each model
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-
 		const float yaw = wrap_pi(_ekf_gsf[model_index].X(2));
-		const Dcmf R = _ahrs_ekf_gsf[model_index].R;
-		_ahrs_ekf_gsf[model_index].R = updateYawInRotMat(yaw, R);
+		const Dcmf R(_ahrs_ekf_gsf[model_index].q);
+		_ahrs_ekf_gsf[model_index].q = Quatf(updateYawInRotMat(yaw, R));
 	}
 }
 
@@ -275,16 +257,18 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 		return;
 	}
 
+	const Dcmf R(_ahrs_ekf_gsf[model_index].q);
+
 	// Calculate the yaw state using a projection onto the horizontal that avoids gimbal lock
-	_ekf_gsf[model_index].X(2) = getEulerYaw(_ahrs_ekf_gsf[model_index].R);
+	_ekf_gsf[model_index].X(2) = getEulerYaw(R);
 
 	// calculate delta velocity in a horizontal front-right frame
-	const Vector3f del_vel_NED = _ahrs_ekf_gsf[model_index].R * delta_vel;
+	const Vector3f del_vel_NED = R * delta_vel;
 	const float cos_yaw = cosf(_ekf_gsf[model_index].X(2));
 	const float sin_yaw = sinf(_ekf_gsf[model_index].X(2));
 	const float dvx =   del_vel_NED(0) * cos_yaw + del_vel_NED(1) * sin_yaw;
 	const float dvy = - del_vel_NED(0) * sin_yaw + del_vel_NED(1) * cos_yaw;
-	const float daz = Vector3f(_ahrs_ekf_gsf[model_index].R * delta_ang)(2);
+	const float daz = Vector3f(R * delta_ang)(2);
 
 	// delta velocity process noise double if we're not in air
 	const float accel_noise = in_air ? _accel_noise : 2.f * _accel_noise;
@@ -319,8 +303,7 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, co
 	const float vel_obs_var = sq(fmaxf(vel_accuracy, 0.01f));
 
 	// calculate velocity observation innovations
-	_ekf_gsf[model_index].innov(0) = _ekf_gsf[model_index].X(0) - vel_NE(0);
-	_ekf_gsf[model_index].innov(1) = _ekf_gsf[model_index].X(1) - vel_NE(1);
+	_ekf_gsf[model_index].innov = _ekf_gsf[model_index].X.xy() - vel_NE;
 
 	matrix::Matrix<float, 3, 2> K;
 	matrix::SquareMatrix<float, 3> P_new;
@@ -367,20 +350,10 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, co
 	_ekf_gsf[model_index].X.xy() += delta_state.xy();
 	_ekf_gsf[model_index].X(2) = wrap_pi(_ekf_gsf[model_index].X(2) + yawDelta);
 
-	// apply the change in yaw angle to the AHRS
-	// take advantage of sparseness in the yaw rotation matrix
-	const float cosYaw = cosf(yawDelta);
-	const float sinYaw = sinf(yawDelta);
-	const float R_prev00 = _ahrs_ekf_gsf[model_index].R(0, 0);
-	const float R_prev01 = _ahrs_ekf_gsf[model_index].R(0, 1);
-	const float R_prev02 = _ahrs_ekf_gsf[model_index].R(0, 2);
-
-	_ahrs_ekf_gsf[model_index].R(0, 0) = R_prev00 * cosYaw - _ahrs_ekf_gsf[model_index].R(1, 0) * sinYaw;
-	_ahrs_ekf_gsf[model_index].R(0, 1) = R_prev01 * cosYaw - _ahrs_ekf_gsf[model_index].R(1, 1) * sinYaw;
-	_ahrs_ekf_gsf[model_index].R(0, 2) = R_prev02 * cosYaw - _ahrs_ekf_gsf[model_index].R(1, 2) * sinYaw;
-	_ahrs_ekf_gsf[model_index].R(1, 0) = R_prev00 * sinYaw + _ahrs_ekf_gsf[model_index].R(1, 0) * cosYaw;
-	_ahrs_ekf_gsf[model_index].R(1, 1) = R_prev01 * sinYaw + _ahrs_ekf_gsf[model_index].R(1, 1) * cosYaw;
-	_ahrs_ekf_gsf[model_index].R(1, 2) = R_prev02 * sinYaw + _ahrs_ekf_gsf[model_index].R(1, 2) * cosYaw;
+	// Apply the change in yaw angle to the AHRS using left multiplication to rotate
+	// the attitude around the earth Down axis
+	const Quatf dq(cosf(yawDelta / 2.f), 0.f, 0.f, sinf(yawDelta / 2.f));
+	_ahrs_ekf_gsf[model_index].q = (dq * _ahrs_ekf_gsf[model_index].q).normalized();
 
 	return true;
 }
@@ -455,31 +428,4 @@ float EKFGSF_yaw::ahrsCalcAccelGain() const
 
 	const float delta_accel_g = (ahrs_accel_norm - CONSTANTS_ONE_G) / CONSTANTS_ONE_G;
 	return _tilt_gain * sq(1.f - math::min(attenuation * fabsf(delta_accel_g), 1.f));
-}
-
-Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
-{
-	Matrix3f ret = R;
-	ret(0, 0) += R(0, 1) * g(2) - R(0, 2) * g(1);
-	ret(0, 1) += R(0, 2) * g(0) - R(0, 0) * g(2);
-	ret(0, 2) += R(0, 0) * g(1) - R(0, 1) * g(0);
-	ret(1, 0) += R(1, 1) * g(2) - R(1, 2) * g(1);
-	ret(1, 1) += R(1, 2) * g(0) - R(1, 0) * g(2);
-	ret(1, 2) += R(1, 0) * g(1) - R(1, 1) * g(0);
-	ret(2, 0) += R(2, 1) * g(2) - R(2, 2) * g(1);
-	ret(2, 1) += R(2, 2) * g(0) - R(2, 0) * g(2);
-	ret(2, 2) += R(2, 0) * g(1) - R(2, 1) * g(0);
-
-	// Renormalise rows
-	for (uint8_t r = 0; r < 3; r++) {
-		const float rowLengthSq = ret.row(r).norm_squared();
-
-		if (rowLengthSq > FLT_EPSILON) {
-			// Use linear approximation for inverse sqrt taking advantage of the row length being close to 1.0
-			const float rowLengthInv = 1.5f - 0.5f * rowLengthSq;
-			ret.row(r) *= rowLengthInv;
-		}
-	}
-
-	return ret;
 }
