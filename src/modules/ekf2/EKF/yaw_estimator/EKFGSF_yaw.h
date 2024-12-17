@@ -94,8 +94,8 @@ private:
 	float _true_airspeed{NAN};	// true airspeed used for centripetal accel compensation (m/s)
 
 	struct {
-		matrix::Dcmf R{matrix::eye<float, 3>()}; // matrix that rotates a vector from body to earth frame
-		matrix::Vector3f gyro_bias{};            // gyro bias learned and used by the quaternion calculation
+		matrix::Quatf q{};            // attitude: rotates a vector from body to earth frame
+		matrix::Vector3f gyro_bias{}; // gyro bias learned and used by the quaternion calculation
 	} _ahrs_ekf_gsf[N_MODELS_EKFGSF] {};
 
 	bool _ahrs_ekf_gsf_tilt_aligned{false};  // true the initial tilt alignment has been calculated
@@ -112,9 +112,6 @@ private:
 
 	// align all AHRS yaw orientations to initial values
 	void ahrsAlignYaw();
-
-	// Efficient propagation of a delta angle in body frame applied to the body to earth frame rotation matrix
-	matrix::Matrix3f ahrsPredictRotMat(const matrix::Matrix3f &R, const matrix::Vector3f &g);
 
 	// Declarations used by a bank of N_MODELS_EKFGSF EKFs
 
