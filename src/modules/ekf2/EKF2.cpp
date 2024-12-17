@@ -1016,7 +1016,7 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 {
 	if (_ekf.attitude_valid()) {
 		// generate vehicle attitude quaternion data
-		vehicle_attitude_s att;
+		vehicle_attitude_s att{};
 		att.timestamp_sample = timestamp;
 		_ekf.getQuaternion().copyTo(att.q);
 
@@ -1654,7 +1654,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample)
 {
 	// generate vehicle odometry data
-	vehicle_odometry_s odom;
+	vehicle_odometry_s odom{};
 	odom.timestamp_sample = imu_sample.time_us;
 
 	// position
@@ -1765,7 +1765,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 void EKF2::PublishStates(const hrt_abstime &timestamp)
 {
 	// publish estimator states
-	estimator_states_s states;
+	estimator_states_s states{};
 	states.timestamp_sample = _ekf.time_delayed_us();
 	const auto state_vector = _ekf.state().vector();
 	state_vector.copyTo(states.states);
@@ -1966,7 +1966,7 @@ void EKF2::PublishYawEstimatorStatus(const hrt_abstime &timestamp)
 	static_assert(sizeof(yaw_estimator_status_s::yaw) / sizeof(float) == N_MODELS_EKFGSF,
 		      "yaw_estimator_status_s::yaw wrong size");
 
-	yaw_estimator_status_s yaw_est_test_data;
+	yaw_estimator_status_s yaw_est_test_data{};
 
 	if (_ekf.getDataEKFGSF(&yaw_est_test_data.yaw_composite, &yaw_est_test_data.yaw_variance,
 			       yaw_est_test_data.yaw,
