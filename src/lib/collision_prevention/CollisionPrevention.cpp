@@ -402,7 +402,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 
 		Quatf q_vehicle_attitude = Quatf(vehicle_attitude);
-		Quatf q_sensor           = Quatf(Eulerf(0.0f, 0.0f, sensor_yaw_body_rad));
+		Quatf q_sensor           = Quatf(cosf(sensor_yaw_body_rad / 2.f), 0.f, 0.f, sinf(sensor_yaw_body_rad / 2.f));
 
 		matrix::Vector3f forward_vector(1.0f, 0.0f, 0.0f);
 
