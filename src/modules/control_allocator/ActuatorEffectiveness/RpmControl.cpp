@@ -68,11 +68,15 @@ float RpmControl::getActuatorCorrection()
 			const float gain_scale = math::interpolate(_spoolup_progress, .8f, 1.f, 0.f, 1e-3f);
 			_pid.setGains(_param_ca_heli_rpm_p.get() * gain_scale, _param_ca_heli_rpm_i.get() * gain_scale, 0.f);
 			_actuator_correction = _pid.update(rpm.rpm_estimate, dt, true);
+
+			_rpm_invalid = rpm.rpm_estimate < 1.f;
 		}
 	}
 
 	// Timeout
-	if (now > _timestamp_last_measurement + 1_s) {
+	const bool timeout = now > _timestamp_last_measurement + 1_s;
+
+	if (_rpm_invalid || timeout) {
 		_pid.resetIntegral();
 		_actuator_correction = 0.f;
 	}
