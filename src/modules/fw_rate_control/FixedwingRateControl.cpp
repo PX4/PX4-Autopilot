@@ -348,6 +348,8 @@ void FixedwingRateControl::Run()
 				_rates_sp_sub.update(&_rates_sp);
 
 				Vector3f body_rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
+				const Vector3f feedforward_setpoint = Vector3f(_rates_sp.body_rates_ff[0], _rates_sp.body_rates_ff[1],
+								      _rates_sp.body_rates_ff[2]);
 
 				// Tailsitter: rotate setpoint from hover to fixed-wing frame (controller is in fixed-wing frame, interface in hover)
 				if (_vehicle_status.is_vtol_tailsitter) {
@@ -359,7 +361,7 @@ void FixedwingRateControl::Run()
 						_landed);
 
 				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
-				const Vector3f feedforward = gain_ff.emult(body_rates_setpoint) * _airspeed_scaling;
+				const Vector3f feedforward = gain_ff.emult(body_rates_setpoint) * _airspeed_scaling + feedforward_setpoint;
 
 				Vector3f control_u = angular_acceleration_setpoint * _airspeed_scaling * _airspeed_scaling + feedforward;
 
