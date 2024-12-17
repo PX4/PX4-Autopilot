@@ -96,11 +96,15 @@ static void board_reset_enter_bootloader_and_continue_boot()
 
 static int board_reset_enter_app(FAR void *arg)
 {
-	uintptr_t hartid = riscv_mhartid();
+	uintptr_t hartid;
 
 	/* Mask local interrupts */
 
 	up_irq_save();
+
+	/* It is now safe to read and hold hartid locally (CPU cannot change) */
+
+	hartid = riscv_mhartid();
 
 #ifdef CONFIG_SMP
 	/* Notify that this CPU is paused */
