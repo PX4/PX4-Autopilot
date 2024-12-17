@@ -104,7 +104,6 @@ public:
 	// get the mean velocity derivative in earth frame since reset (see `resetVelocityDerivativeAccumulation()`)
 	matrix::Vector3f getVelocityDerivative() const;
 
-	// reset the velocity derivative accumulation
 	void resetVelocityDerivativeAccumulation();
 
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
