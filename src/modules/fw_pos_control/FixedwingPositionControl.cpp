@@ -1456,6 +1456,11 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 	navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed, _wind_vel, curvature);
 
 	float roll_body = getCorrectedNpfgRollSetpoint();
+	float roll_rate_ff{0.0}; ///TODO: Get roll rate FF from new NPFG formulation
+
+	const matrix::Vector3f feedforward_rate{roll_rate_ff, 0.0, 0.0};
+	feedforward_rate.copyTo(_att_sp.body_rates_ff);
+
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	float yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
