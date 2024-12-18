@@ -36,6 +36,7 @@
 #include <lib/mixer_module/mixer_module.hpp>
 
 #include <gz/transport.hh>
+#include <px4_platform_common/module_params.h>
 
 // GZBridge mixing class for Servos.
 // It is separate from GZBridge to have separate WorkItems and therefore allowing independent scheduling
@@ -67,10 +68,45 @@ private:
 
 	void Run() override;
 
+	/**
+	 * @brief Get maximum configured angle of servo.
+	 * @param index: servo index
+	 * @return angle_max [rad]
+	 */
+	float get_servo_angle_max(const size_t index);
+
+	/**
+	 * @brief Get minimum configured angle of servo.
+	 * @param index: servo index
+	 * @return angle_min [rad]
+	 */
+	float get_servo_angle_min(const size_t index);
+
 	gz::transport::Node &_node;
 	pthread_mutex_t &_node_mutex;
 
 	MixingOutput _mixing_output{"SIM_GZ_SV", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	std::vector<gz::transport::Node::Publisher> _servos_pub;
+	std::vector<double> _angle_min_rad;
+	std::vector<double> _angular_range_rad;
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA1>) _servo_max_angle_1,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA1>) _servo_min_angle_1,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA2>) _servo_max_angle_2,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA2>) _servo_min_angle_2,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA3>) _servo_max_angle_3,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA3>) _servo_min_angle_3,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA4>) _servo_max_angle_4,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA4>) _servo_min_angle_4,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA5>) _servo_max_angle_5,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA5>) _servo_min_angle_5,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA6>) _servo_max_angle_6,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA6>) _servo_min_angle_6,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA7>) _servo_max_angle_7,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA7>) _servo_min_angle_7,
+		(ParamFloat<px4::params::SIM_GZ_SV_MAXA8>) _servo_max_angle_8,
+		(ParamFloat<px4::params::SIM_GZ_SV_MINA8>) _servo_min_angle_8
+	)
 };
