@@ -53,15 +53,21 @@ PPSCapture::PPSCapture() :
 
 PPSCapture::~PPSCapture()
 {
+#ifndef GPIO_PPS_INPUT
+
 	if (_channel >= 0) {
 		io_timer_unallocate_channel(_channel);
-		px4_arch_gpiosetevent(_pps_capture_gpio, false, false, false, nullptr, nullptr);
 	}
+
+#endif
+	px4_arch_gpiosetevent(_pps_capture_gpio, false, false, false, nullptr, nullptr);
 }
 
 bool PPSCapture::init()
 {
 	bool success = false;
+
+#ifndef GPIO_PPS_INPUT
 
 	for (unsigned i = 0; i < 16; ++i) {
 		char param_name[17];
@@ -97,6 +103,10 @@ bool PPSCapture::init()
 	}
 
 	_pps_capture_gpio = PX4_MAKE_GPIO_EXTI(io_timer_channel_get_as_pwm_input(_channel));
+#else
+	_pps_capture_gpio = PX4_MAKE_GPIO_EXTI(GPIO_PPS_INPUT);
+#endif
+
 	int ret_val = px4_arch_gpiosetevent(_pps_capture_gpio, true, false, true, &PPSCapture::gpio_interrupt_callback, this);
 
 	if (ret_val == PX4_OK) {
