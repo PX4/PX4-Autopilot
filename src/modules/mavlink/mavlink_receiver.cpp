@@ -3063,7 +3063,7 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	gimbal_information.yaw_max = gimbal_device_info_msg.yaw_max;
 	gimbal_information.yaw_min = gimbal_device_info_msg.yaw_min;
 
-	gimbal_information.gimbal_device_compid = msg->compid;
+	gimbal_information.gimbal_device_id = msg->compid;
 
 	_gimbal_device_information_pub.publish(gimbal_information);
 }

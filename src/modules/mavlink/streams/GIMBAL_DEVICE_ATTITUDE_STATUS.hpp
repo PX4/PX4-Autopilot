@@ -94,6 +94,11 @@ private:
 
 			msg.failure_flags = gimbal_device_attitude_status.failure_flags;
 
+			msg.delta_yaw = gimbal_device_attitude_status.delta_yaw;
+			msg.delta_yaw_velocity = gimbal_device_attitude_status.delta_yaw_velocity;
+
+			msg.gimbal_device_id = gimbal_device_attitude_status.gimbal_device_id;
+
 			mavlink_msg_gimbal_device_attitude_status_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
