@@ -109,7 +109,7 @@ public:
 
 	void remove_icao_address_from_conflict_list(int traffic_index);
 
-	void add_icao_address_from_conflict_list(uint32_t icao_address);
+	void add_icao_address_from_conflict_list(uint32_t icao_address, hrt_abstime now);
 
 	void get_traffic_state(hrt_abstime now);
 
@@ -129,8 +129,7 @@ public:
 			  float hor_velocity, float ver_velocity, int emitter_type, uint32_t icao_address, double lat_uav, double lon_uav,
 			  float &alt_uav);
 
-	void run_fake_traffic(double &lat_uav, double &lon_uav,
-			      float &alt_uav);
+	void run_fake_traffic(double &lat_uav, double &lon_uav, float &alt_uav);
 
 	void remove_expired_conflicts();
 
