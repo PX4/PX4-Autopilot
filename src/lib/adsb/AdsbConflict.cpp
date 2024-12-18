@@ -111,9 +111,9 @@ void AdsbConflict::remove_icao_address_from_conflict_list(int traffic_index)
 	PX4_INFO("icao_address removed. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
 }
 
-void AdsbConflict::add_icao_address_from_conflict_list(uint32_t icao_address)
+void AdsbConflict::add_icao_address_from_conflict_list(uint32_t icao_address, hrt_abstime now)
 {
-	_traffic_buffer.timestamp.push_back(hrt_absolute_time());
+	_traffic_buffer.timestamp.push_back(now);
 	_traffic_buffer.icao_address.push_back(icao_address);
 	PX4_INFO("icao_address added. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
 }
@@ -133,7 +133,7 @@ void AdsbConflict::get_traffic_state(hrt_abstime now)
 	}
 
 	if (new_traffic && _conflict_detected && !_traffic_buffer_full) {
-		add_icao_address_from_conflict_list(_transponder_report.icao_address);
+		add_icao_address_from_conflict_list(_transponder_report.icao_address, now);
 		_traffic_state = TRAFFIC_STATE::ADD_CONFLICT;
 
 	} else if (new_traffic && _conflict_detected && _traffic_buffer_full) {
