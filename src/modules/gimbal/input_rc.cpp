@@ -130,9 +130,11 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 
 		if (_parameters.mnt_rc_in_mode == 0) {
 			// We scale manual input from roll -180..180, pitch -90..90, yaw, -180..180 degrees.
-			matrix::Eulerf euler(new_aux_values[0] * math::radians(180.f),
+			// We use 179.99 instead of 180 so to avoid that the conversion between quaternions and Euler representation
+			// (when new_aux_value = 1) gives the equivalent angle (e.g., -180 instead of 180).
+			matrix::Eulerf euler(new_aux_values[0] * math::radians(179.99f),
 					     new_aux_values[1] * math::radians(90.f),
-					     new_aux_values[2] * math::radians(180.f));
+					     new_aux_values[2] * math::radians(179.99f));
 
 			matrix::Quatf q(euler);
 			q.copyTo(control_data.type_data.angle.q);

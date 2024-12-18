@@ -3063,7 +3063,12 @@ MavlinkReceiver::handle_message_gimbal_device_information(mavlink_message_t *msg
 	gimbal_information.yaw_max = gimbal_device_info_msg.yaw_max;
 	gimbal_information.yaw_min = gimbal_device_info_msg.yaw_min;
 
-	gimbal_information.gimbal_device_id = msg->compid;
+	if (gimbal_device_info_msg.gimbal_device_id == 0) {
+		gimbal_information.gimbal_device_id = msg->compid;
+
+	} else {
+		gimbal_information.gimbal_device_id = gimbal_device_info_msg.gimbal_device_id;
+	}
 
 	_gimbal_device_information_pub.publish(gimbal_information);
 }
@@ -3090,6 +3095,7 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.failure_flags = gimbal_device_attitude_status_msg.failure_flags;
 
 	gimbal_attitude_status.received_from_mavlink = true;
+	gimbal_attitude_status.gimbal_device_id = gimbal_device_attitude_status_msg.gimbal_device_id;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
 }
