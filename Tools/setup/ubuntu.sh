@@ -179,17 +179,6 @@ if [[ $INSTALL_SIM == "true" ]]; then
 			gazebo_classic_version=11
 			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
 		fi
-	elif [[ "${UBUNTU_RELEASE}" == "21.3" ]]; then
-		echo "Gazebo (Garden) will be installed"
-		echo "Earlier versions will be removed"
-		# Add Gazebo binary repository
-		sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
-		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable jammy main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-
-		sudo apt-get update -y --quiet
-
-		# Install Gazebo
-		gazebo_packages="gz-garden"
 	else
 		# Expects Ubuntu 22.04 > by default
 		echo "Gazebo (Harmonic) will be installed"

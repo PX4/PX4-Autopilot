@@ -52,7 +52,8 @@ class AlphaFilter
 {
 public:
 	AlphaFilter() = default;
-	explicit AlphaFilter(float alpha) : _alpha(alpha) {}
+	explicit AlphaFilter(float sample_interval, float time_constant) { setParameters(sample_interval, time_constant); }
+	explicit AlphaFilter(float time_constant) : _time_constant(time_constant) {};
 
 	~AlphaFilter() = default;
 
@@ -71,6 +72,8 @@ public:
 		if (denominator > FLT_EPSILON) {
 			setAlpha(sample_interval / denominator);
 		}
+
+		_time_constant = time_constant;
 	}
 
 	bool setCutoffFreq(float sample_freq, float cutoff_freq)
@@ -82,8 +85,7 @@ public:
 			return false;
 		}
 
-		setParameters(1.f / sample_freq, 1.f / (2.f * M_PI_F * cutoff_freq));
-		_cutoff_freq = cutoff_freq;
+		setParameters(1.f / sample_freq, 1.f / (M_TWOPI_F * cutoff_freq));
 		return true;
 	}
 
@@ -112,14 +114,19 @@ public:
 		return _filter_state;
 	}
 
+	const T update(const T &sample, float dt)
+	{
+		setParameters(dt, _time_constant);
+		return update(sample);
+	}
+
 	const T &getState() const { return _filter_state; }
-	float getCutoffFreq() const { return _cutoff_freq; }
+	float getCutoffFreq() const { return 1.f / (M_TWOPI_F * _time_constant); }
 
 protected:
 	T updateCalculation(const T &sample);
 
-
-	float _cutoff_freq{0.f};
+	float _time_constant{0.f};
 	float _alpha{0.f};
 	T _filter_state{};
 };

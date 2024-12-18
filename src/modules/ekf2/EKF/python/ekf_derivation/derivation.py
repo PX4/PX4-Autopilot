@@ -268,10 +268,8 @@ def compute_airspeed_innov_and_innov_var(
 
     return (innov, innov_var)
 
-def compute_airspeed_h_and_k(
+def compute_airspeed_h(
         state: VState,
-        P: MTangent,
-        innov_var: sf.Scalar,
         epsilon: sf.Scalar
 ) -> (VTangent, VTangent):
 
@@ -281,9 +279,7 @@ def compute_airspeed_h_and_k(
     airspeed_pred = vel_rel.norm(epsilon=epsilon)
     H = jacobian_chain_rule(airspeed_pred, state)
 
-    K = P * H.T / sf.Max(innov_var, epsilon)
-
-    return (H.T, K)
+    return H.T
 
 def compute_wind_init_and_cov_from_airspeed(
         v_local: sf.V3,
@@ -739,7 +735,7 @@ if not args.disable_mag:
     generate_px4_function(compute_mag_z_innov_var_and_h, output_names=["innov_var", "H"])
 
 if not args.disable_wind:
-    generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
+    generate_px4_function(compute_airspeed_h, output_names=None)
     generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
     generate_px4_function(compute_drag_x_innov_var_and_h, output_names=["innov_var", "Hx"])
     generate_px4_function(compute_drag_y_innov_var_and_h, output_names=["innov_var", "Hy"])

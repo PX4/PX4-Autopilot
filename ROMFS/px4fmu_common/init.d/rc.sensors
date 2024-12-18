@@ -211,6 +211,13 @@ then
 	spl06 -X -a 0x77 start
 fi
 
+# SPA06 sensor external I2C
+if param compare -s SENS_EN_SPA06 1
+then
+	spa06 -X start
+	spa06 -X -a 0x77 start
+fi
+
 # PCF8583 counter (RPM sensor)
 if param compare -s SENS_EN_PCF8583 1
 then

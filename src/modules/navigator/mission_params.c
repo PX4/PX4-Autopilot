@@ -133,17 +133,6 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
 
 /**
- * Timeout for a successful payload deployment acknowledgement
- *
- * @unit s
- * @min 0
- * @decimal 1
- * @increment 1
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);
-
-/**
  * Landing abort min altitude
  *
  * Minimum altitude above landing point that the vehicle will climb to after an aborted landing.
@@ -155,3 +144,21 @@ PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_LND_ABRT_ALT, 30);
+
+/**
+ * Timeout to allow the payload to execute the mission command
+ *
+ * Ensure:
+ *   gripper: NAV_CMD_DO_GRIPPER
+ *     has released before continuing mission.
+ *   winch: CMD_DO_WINCH
+ *     has delivered before continuing mission.
+ *   gimbal: CMD_DO_GIMBAL_MANAGER_PITCHYAW
+ *     has reached the commanded orientation before beginning to take pictures.
+ *
+ * @unit s
+ * @min 0
+ * @decimal 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_COMMAND_TOUT, 0.f);

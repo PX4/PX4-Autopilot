@@ -85,12 +85,19 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 		}
 
 		// determine if we should use height aiding
+		const bool common_conditions_passing = measurement_valid
+						       && _local_origin_lat_lon.isInitialized()
+						       && _gps_checks_passed;
+
 		const bool continuing_conditions_passing = (_params.gnss_ctrl & static_cast<int32_t>(GnssCtrl::VPOS))
-				&& measurement_valid
-				&& _local_origin_lat_lon.isInitialized()
-				&& _gps_checks_passed;
+				&& common_conditions_passing;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
+				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
+
+		const bool altitude_initialisation_conditions_passing = common_conditions_passing
+				&& !PX4_ISFINITE(_local_origin_alt)
+				&& _params.height_sensor_ref == static_cast<int32_t>(HeightSensor::GNSS)
 				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 		if (_control_status.flags.gps_hgt) {
@@ -107,6 +114,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 					_information_events.flags.reset_hgt_to_gps = true;
 					resetAltitudeTo(measurement, measurement_var);
 					bias_est.setBias(-_gpos.altitude() + measurement);
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 					aid_src.time_last_fuse = _time_delayed_us;
 
@@ -131,6 +139,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 					initialiseAltitudeTo(measurement, measurement_var);
 					bias_est.reset();
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 				} else {
 					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);
@@ -140,6 +149,15 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 				aid_src.time_last_fuse = _time_delayed_us;
 				bias_est.setFusionActive();
 				_control_status.flags.gps_hgt = true;
+
+			} if (altitude_initialisation_conditions_passing) {
+
+				// Do not start GNSS altitude aiding, but use measurement
+				// to initialize altitude and bias of other height sensors
+				_information_events.flags.reset_hgt_to_gps = true;
+
+				initialiseAltitudeTo(measurement, measurement_var);
+				bias_est.reset();
 			}
 		}
 

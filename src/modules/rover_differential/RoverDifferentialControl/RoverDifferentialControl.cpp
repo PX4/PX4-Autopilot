@@ -116,6 +116,20 @@ void RoverDifferentialControl::computeMotorCommands(const float vehicle_yaw, con
 	float forward_speed_normalized{0.f};
 
 	if (PX4_ISFINITE(_rover_differential_setpoint.forward_speed_setpoint)) {
+		if (_param_rd_max_thr_spd.get() > FLT_EPSILON) {
+
+			forward_speed_normalized = math::interpolate<float>(_rover_differential_setpoint.forward_speed_setpoint,
+						   -_param_rd_max_thr_spd.get(), _param_rd_max_thr_spd.get(), -1.f, 1.f);
+
+			if (fabsf(forward_speed_normalized) > 1.f -
+			    fabsf(speed_diff_normalized)) { // Adjust forward speed setpoint if it is infeasible due to the desired speed difference of the left/right wheels
+				_rover_differential_setpoint.forward_speed_setpoint = sign(_rover_differential_setpoint.forward_speed_setpoint) *
+						math::interpolate<float>(1.f - fabsf(speed_diff_normalized), -1.f, 1.f,
+								-_param_rd_max_thr_spd.get(), _param_rd_max_thr_spd.get());
+			}
+		}
+
+
 		forward_speed_normalized = calcNormalizedSpeedSetpoint(_rover_differential_setpoint.forward_speed_setpoint,
 					   vehicle_forward_speed, _param_rd_max_thr_spd.get(), _forward_speed_setpoint_with_accel_limit, _pid_throttle,
 					   _param_rd_max_accel.get(), _param_rd_max_decel.get(), dt, false);

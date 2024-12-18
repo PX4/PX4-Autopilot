@@ -5,25 +5,40 @@ on: push
 jobs:
   unit_tests:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
     env:
       GIT_COMMITTER_EMAIL: bot@px4.io
       GIT_COMMITTER_NAME: PX4BuildBot
     steps:
-    - uses: actions/checkout@v2.3.1
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: main test updates change indication files
-      run: make tests TESTFILTER=EKF
+
+    - name: main test
+      uses: addnab/docker-run-action@v3
+      with:
+        image: px4io/px4-dev-base-focal:2021-09-08
+        options: -v ${{ github.workspace }}:/workspace
+        run: |
+          cd /workspace
+          git config --global --add safe.directory /workspace
+          make tests TESTFILTER=EKF
+
     - name: Check if there exists diff and save result in variable
-      run: echo "CHANGE_INDICATED=$(git diff --exit-code --output=/dev/null || echo $?)" >> $GITHUB_ENV
+      id: diff-check
+      run: echo "CHANGE_INDICATED=$(git diff --exit-code --output=/dev/null || echo $?)" >> $GITHUB_OUTPUT
       working-directory: src/modules/ekf2/test/change_indication
+
     - name: auto-commit any changes to change indication
       uses: stefanzweifel/git-auto-commit-action@v4
       with:
-        commit_message: '[AUTO COMMIT] update change indication'
+        file_pattern: 'src/modules/ekf2/test/change_indication/*.csv'
         commit_user_name: ${GIT_COMMITTER_NAME}
         commit_user_email: ${GIT_COMMITTER_EMAIL}
-    - if: ${{env.CHANGE_INDICATED}}
-      name: if there is a functional change, fail check
+        commit_message: |
+          '[AUTO COMMIT] update change indication'
+
+          See .github/workflopws/ekf_update_change_indicator.yml for more details
+
+    - name: if there is a functional change, fail check
+      if: ${{ steps.diff-check.outputs.CHANGE_INDICATED }}
       run: exit 1

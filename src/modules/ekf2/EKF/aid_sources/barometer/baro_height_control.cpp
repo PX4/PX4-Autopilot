@@ -133,6 +133,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					_information_events.flags.reset_hgt_to_baro = true;
 					resetAltitudeTo(_baro_lpf.getState() - bias_est.getBias(), measurement_var);
 					bias_est.setBias(-_gpos.altitude() + _baro_lpf.getState());
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 					// reset vertical velocity if no valid sources available
 					if (!isVerticalVelocityAidingActive()) {
@@ -165,6 +166,7 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 					_information_events.flags.reset_hgt_to_baro = true;
 					initialiseAltitudeTo(measurement, measurement_var);
 					bias_est.reset();
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 				} else {
 					ECL_INFO("starting %s height fusion", HGT_SRC_NAME);

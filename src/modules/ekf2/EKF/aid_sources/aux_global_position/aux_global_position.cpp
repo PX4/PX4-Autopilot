@@ -73,7 +73,7 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 			return;
 		}
 
-		estimator_aid_source2d_s aid_src{};
+		estimator_aid_source2d_s &aid_src = _aid_src_aux_global_position;
 		const LatLonAlt position(sample.latitude, sample.longitude, sample.altitude_amsl);
 		const Vector2f innovation = (ekf.getLatLonAlt() - position).xy(); // altitude measurements are not used
 
@@ -110,8 +110,9 @@ void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed
 
 				} else {
 					// Try to initialize using measurement
-					if (ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, sample.eph,
-								      sample.epv)) {
+					if (ekf.resetGlobalPositionTo(sample.latitude, sample.longitude, sample.altitude_amsl, pos_var,
+								      sq(sample.epv))) {
+						ekf.resetAidSourceStatusZeroInnovation(aid_src);
 						ekf.enableControlStatusAuxGpos();
 						_reset_counters.lat_lon = sample.lat_lon_reset_counter;
 						_state = State::active;
