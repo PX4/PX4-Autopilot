@@ -102,7 +102,7 @@ public:
 		//filter the roll and pitch of the quaternion before setting it
 		//also estimate roll and pitch speed before setting
 		const float max_time_diff = 0.1f; //seconds
-		const float min_time_diff = 0.0002f; //seconds
+		const float min_time_diff = 0.00001f; //seconds
 
 		hrt_abstime time_now = hrt_absolute_time();
 
