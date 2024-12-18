@@ -126,17 +126,19 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.set_traffic_buffer(used_buffer);
 
 	bool conflict_detected  = false;
+	hrt_abstime now = 0_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 00001;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
 
 	conflict_detected  = true;
+	now = 1_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 9876;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
@@ -144,9 +146,10 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.set_traffic_buffer(empty_buffer);
 
 	conflict_detected  = true;
+	now = 0_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 9876;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
@@ -154,25 +157,28 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.set_traffic_buffer(full_buffer);
 
 	conflict_detected  = true;
+	now = 1_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 7777;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::BUFFER_FULL);
 
 	conflict_detected  = false;
+	now = 2_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 7777;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
 
 	conflict_detected  = false;
+	now = 3_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
@@ -180,9 +186,10 @@ TEST_F(AdsbConflictTest, trafficAlerts)
 	adsb_conflict.set_traffic_buffer(used_buffer);
 
 	conflict_detected  = false;
+	now = 0_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
@@ -235,17 +242,19 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	adsb_conflict.set_traffic_buffer(used_buffer);
 
 	bool conflict_detected  = true;
+	hrt_abstime now = 200_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMIND_CONFLICT);
 
 	conflict_detected  = true;
+	now = 201_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
@@ -253,33 +262,37 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	adsb_conflict.set_traffic_buffer(full_buffer);
 
 	conflict_detected  = true;
+	now = 400_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMIND_CONFLICT);
 
 	conflict_detected  = true;
+	now = 401_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::NO_CONFLICT);
 
 	conflict_detected  = false;
+	now = 600_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 8685;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::REMOVE_OLD_CONFLICT);
 
 	conflict_detected  = true;
+	now = 700_s;
 	adsb_conflict.set_conflict(conflict_detected);
 	adsb_conflict._transponder_report.icao_address = 7777;
-	adsb_conflict.get_traffic_state();
+	adsb_conflict.get_traffic_state(now);
 
 	printf("adsb_conflict._traffic_state %d \n", adsb_conflict._traffic_state);
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
