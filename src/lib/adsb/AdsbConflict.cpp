@@ -183,7 +183,8 @@ bool AdsbConflict::handle_traffic_conflict()
 			take_action = send_traffic_warning((int)(math::degrees(_transponder_report.heading) + 180.f),
 							   (int)fabsf(_crosstrack_error.distance), _transponder_report.flags,
 							   _transponder_report.callsign,
-							   _transponder_report.icao_address);
+							   _transponder_report.icao_address,
+							   now);
 		}
 		break;
 
@@ -233,7 +234,7 @@ void AdsbConflict::set_conflict_detection_params(float crosstrack_separation, fl
 
 
 bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
-					char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address)
+					char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address, hrt_abstime now)
 {
 
 	switch (_conflict_detection_params.traffic_avoidance_mode) {
@@ -250,7 +251,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 			}
 
 
-			_last_traffic_warning_time = hrt_absolute_time();
+			_last_traffic_warning_time = now;
 
 			break;
 		}
@@ -277,7 +278,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}",
 					icao_address, traffic_seperation, traffic_direction);
 
-			_last_traffic_warning_time = hrt_absolute_time();
+			_last_traffic_warning_time = now;
 
 			break;
 		}
@@ -293,7 +294,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, returning home",
 					icao_address, traffic_seperation, traffic_direction);
 
-			_last_traffic_warning_time = hrt_absolute_time();
+			_last_traffic_warning_time = now;
 
 			return true;
 
@@ -311,7 +312,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, landing",
 					icao_address, traffic_seperation, traffic_direction);
 
-			_last_traffic_warning_time = hrt_absolute_time();
+			_last_traffic_warning_time = now;
 
 			return true;
 
@@ -330,7 +331,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 					"Traffic alert - ICAO Address {1}! Separation Distance {2}, Heading {3}, holding position",
 					icao_address, traffic_seperation, traffic_direction);
 
-			_last_traffic_warning_time = hrt_absolute_time();
+			_last_traffic_warning_time = now;
 
 
 			return true;
