@@ -473,28 +473,49 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_status(const ControlData &cont
 
 void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData &control_data)
 {
-	// TODO: Take gimbal_device_information into account.
+	gimbal_device_information_s gimbal_device_info;
 
-	gimbal_manager_information_s gimbal_manager_info;
-	gimbal_manager_info.timestamp = hrt_absolute_time();
+	if (_gimbal_device_information_sub.update(&gimbal_device_info) && _parameters.mnt_mode_out == MNT_MODE_OUT_MAVLINK_V2) {
+		gimbal_manager_information_s gimbal_manager_info;
+		gimbal_manager_info.timestamp = hrt_absolute_time();
 
-	gimbal_manager_info.cap_flags =
-		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_NEUTRAL |
-		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_LOCK |
-		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_AXIS |
-		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_LOCK |
-		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_AXIS |
-		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_LOCK |
-		gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_GLOBAL;
+		gimbal_manager_info.cap_flags = gimbal_device_info.cap_flags;
 
-	gimbal_manager_info.pitch_max = M_PI_F / 2;
-	gimbal_manager_info.pitch_min = -M_PI_F / 2;
-	gimbal_manager_info.yaw_max = M_PI_F;
-	gimbal_manager_info.yaw_min = -M_PI_F;
+		gimbal_manager_info.roll_max = gimbal_device_info.roll_max;
+		gimbal_manager_info.roll_min = gimbal_device_info.roll_min;
+		gimbal_manager_info.pitch_max = gimbal_device_info.pitch_max;
+		gimbal_manager_info.pitch_min = gimbal_device_info.pitch_min;
+		gimbal_manager_info.yaw_max = gimbal_device_info.yaw_max;
+		gimbal_manager_info.yaw_min = gimbal_device_info.yaw_min;
 
-	gimbal_manager_info.gimbal_device_id = control_data.device_compid;
+		gimbal_manager_info.gimbal_device_id = control_data.device_compid;
 
-	_gimbal_manager_info_pub.publish(gimbal_manager_info);
+		_gimbal_manager_info_pub.publish(gimbal_manager_info);
+
+	} else if (_parameters.mnt_mode_out == MNT_MODE_OUT_AUX) {
+		// since we have a non-Mavlink gimbal device, the gimbal manager itself has to act as the gimbal device
+		gimbal_manager_information_s gimbal_manager_info;
+		gimbal_manager_info.timestamp = hrt_absolute_time();
+
+		gimbal_manager_info.cap_flags =
+			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_NEUTRAL |
+			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_ROLL_LOCK |
+			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_AXIS |
+			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_PITCH_LOCK |
+			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_AXIS |
+			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_HAS_YAW_LOCK |
+			gimbal_manager_information_s::GIMBAL_MANAGER_CAP_FLAGS_CAN_POINT_LOCATION_GLOBAL;
+
+		gimbal_manager_info.pitch_max = _parameters.mnt_range_pitch;
+		gimbal_manager_info.pitch_min = -_parameters.mnt_range_pitch;
+		gimbal_manager_info.yaw_max = _parameters.mnt_range_yaw;
+		gimbal_manager_info.yaw_min = -_parameters.mnt_range_yaw;
+
+		gimbal_manager_info.gimbal_device_id = control_data.device_compid;
+
+		_gimbal_manager_info_pub.publish(gimbal_manager_info);
+	}
+
 }
 
 InputMavlinkGimbalV2::UpdateResult
