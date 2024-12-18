@@ -118,9 +118,8 @@ void AdsbConflict::add_icao_address_from_conflict_list(uint32_t icao_address)
 	PX4_INFO("icao_address added. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
 }
 
-void AdsbConflict::get_traffic_state()
+void AdsbConflict::get_traffic_state(hrt_abstime now)
 {
-
 	const int traffic_index = find_icao_address_in_conflict_list(_transponder_report.icao_address);
 
 	const bool old_conflict = (traffic_index >= 0);
@@ -130,7 +129,7 @@ void AdsbConflict::get_traffic_state()
 	bool old_conflict_warning_expired = false;
 
 	if (old_conflict && _conflict_detected) {
-		old_conflict_warning_expired = (hrt_elapsed_time(&_traffic_buffer.timestamp[traffic_index]) > CONFLICT_WARNING_TIMEOUT);
+		old_conflict_warning_expired = now > _traffic_buffer.timestamp[traffic_index] + CONFLICT_WARNING_TIMEOUT;
 	}
 
 	if (new_traffic && _conflict_detected && !_traffic_buffer_full) {
@@ -142,7 +141,7 @@ void AdsbConflict::get_traffic_state()
 
 	} else if (old_conflict && _conflict_detected
 		   && old_conflict_warning_expired) {
-		_traffic_buffer.timestamp[traffic_index] = hrt_absolute_time();
+		_traffic_buffer.timestamp[traffic_index] = now;
 		_traffic_state = TRAFFIC_STATE::REMIND_CONFLICT;
 
 	} else if (old_conflict && !_conflict_detected) {
@@ -152,7 +151,6 @@ void AdsbConflict::get_traffic_state()
 	} else {
 		_traffic_state = TRAFFIC_STATE::NO_CONFLICT;
 	}
-
 }
 
 void AdsbConflict::remove_expired_conflicts()
@@ -172,8 +170,9 @@ void AdsbConflict::remove_expired_conflicts()
 
 bool AdsbConflict::handle_traffic_conflict()
 {
+	const hrt_abstime now = hrt_absolute_time();
 
-	get_traffic_state();
+	get_traffic_state(now);
 
 	bool take_action = false;
 
@@ -192,7 +191,7 @@ bool AdsbConflict::handle_traffic_conflict()
 			events::send<uint32_t>(events::ID("navigator_traffic_resolved"), events::Log::Notice,
 					       "Traffic Conflict Resolved {1}!",
 					       _transponder_report.icao_address);
-			_last_traffic_warning_time = hrt_absolute_time();
+			_last_traffic_warning_time = now;
 		}
 		break;
 
@@ -201,7 +200,7 @@ bool AdsbConflict::handle_traffic_conflict()
 			if ((_traffic_state_previous != TRAFFIC_STATE::BUFFER_FULL)
 			    && (hrt_elapsed_time(&_last_buffer_full_warning_time) > TRAFFIC_WARNING_TIMESTEP)) {
 				events::send(events::ID("buffer_full"), events::Log::Notice, "Too much traffic! Showing all messages from now on");
-				_last_buffer_full_warning_time = hrt_absolute_time();
+				_last_buffer_full_warning_time = now;
 			}
 
 			//disable conflict warnings when buffer is full
