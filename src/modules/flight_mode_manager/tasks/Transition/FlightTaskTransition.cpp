@@ -120,8 +120,12 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 		if (dist_to_target_in_moving_direction > FLT_EPSILON) {
 			// Backtransition target point is ahead of the vehicle, compute the desired deceleration
 			deceleration_setpoint = velocity_xy.norm_squared() / (2.f * dist_to_target_in_moving_direction);
-			deceleration_setpoint = math::min(deceleration_setpoint, 2.f * _param_vt_b_dec_mss);
+
+		} else {
+			deceleration_setpoint = 2.f * _param_vt_b_dec_mss;
 		}
+
+		deceleration_setpoint = math::min(deceleration_setpoint, 2.f * _param_vt_b_dec_mss);
 	}
 
 	// Pitch up to reach a negative accel_in_flight_direction otherwise we decelerate too slow
