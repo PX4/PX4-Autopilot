@@ -118,7 +118,7 @@ public:
 
 
 	bool send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
-				  char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address);
+				  char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address, hrt_abstime now);
 
 	transponder_report_s _transponder_report{};
 
