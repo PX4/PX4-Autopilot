@@ -153,8 +153,6 @@ fi
 
 param set-default BAT1_N_CELLS 4
 
-param set-default CBRK_SUPPLY_CHK 894281
-
 # disable check, no CPU load reported on posix yet
 param set-default COM_CPU_MAX -1
 param set-default COM_RAM_MAX -1
