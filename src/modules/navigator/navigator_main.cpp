@@ -52,7 +52,6 @@
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
-#include <lib/adsb/AdsbConflict.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -143,9 +142,11 @@ void Navigator::params_update()
 	}
 
 	_mission.set_command_timeout(_param_mis_command_tout.get());
+#if CONFIG_NAVIGATOR_ADSB
 	_adsb_conflict.set_conflict_detection_params(_param_nav_traff_a_hor_ct.get(),
 			_param_nav_traff_a_ver.get(),
 			_param_nav_traff_collision_time.get(), _param_nav_traff_avoid.get());
+#endif // CONFIG_NAVIGATOR_ADSB
 }
 
 void Navigator::run()
@@ -752,8 +753,10 @@ void Navigator::run()
 			}
 		}
 
+#if CONFIG_NAVIGATOR_ADSB
 		/* Check for traffic */
 		check_traffic();
+#endif // CONFIG_NAVIGATOR_ADSB
 
 		/* Check geofence violation */
 		geofence_breach_check();
@@ -1222,6 +1225,7 @@ void Navigator::load_fence_from_file(const char *filename)
 	_geofence.loadFromFile(filename);
 }
 
+#if CONFIG_NAVIGATOR_ADSB
 void Navigator::take_traffic_conflict_action()
 {
 
@@ -1251,12 +1255,10 @@ void Navigator::take_traffic_conflict_action()
 
 		}
 	}
-
 }
 
 void Navigator::run_fake_traffic()
 {
-
 	_adsb_conflict.run_fake_traffic(get_global_position()->lat, get_global_position()->lon,
 					get_global_position()->alt);
 }
@@ -1283,6 +1285,7 @@ void Navigator::check_traffic()
 
 	_adsb_conflict.remove_expired_conflicts();
 }
+#endif // CONFIG_NAVIGATOR_ADSB
 
 bool Navigator::abort_landing()
 {
@@ -1325,11 +1328,14 @@ int Navigator::custom_command(int argc, char *argv[])
 		get_instance()->load_fence_from_file(GEOFENCE_FILENAME);
 		return 0;
 
+#if CONFIG_NAVIGATOR_ADSB
+
 	} else if (!strcmp(argv[0], "fake_traffic")) {
 
 		get_instance()->run_fake_traffic();
 
 		return 0;
+#endif // CONFIG_NAVIGATOR_ADSB
 	}
 
 	return print_usage("unknown command");
