@@ -59,6 +59,7 @@
 
 #include <lib/adsb/AdsbConflict.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
@@ -240,6 +241,12 @@ public:
 	 */
 	void set_cruising_throttle(float throttle = NAN) { _mission_throttle = throttle; }
 
+	bool update_and_get_terrain_alt_exceeded_state(bool exceeded, hrt_abstime now)
+	{
+		_max_terrain_alt_exceeded_hyst.set_state_and_update(exceeded, now);
+		return _max_terrain_alt_exceeded_hyst.get_state();
+	}
+
 	/**
 	 * Get if the yaw acceptance is required at the current mission item
 	 *
@@ -385,6 +392,7 @@ private:
 
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
 
+	systemlib::Hysteresis _max_terrain_alt_exceeded_hyst{false};
 
 	// update subscriptions
 	void params_update();
