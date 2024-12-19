@@ -43,7 +43,7 @@
 
 extern "C" __EXPORT int eulernav_bahrs_main(int argc, char *argv[])
 {
-	PX4_INFO("This is an EULER-NAV Baro-Inertial AHRS driver!");
+	PX4_INFO("Starting EULER-NAV BAHRS driver...");
 	EulerNavDriver::main(argc, argv);
 	return OK;
 }
