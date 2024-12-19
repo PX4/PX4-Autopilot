@@ -33,6 +33,9 @@ private:
 	static constexpr int SERIAL_READ_BUFFER_SIZE{128};
 	static constexpr int MIN_BYTES_TO_READ{16};
 	static constexpr int SERIAL_READ_TIMEOUT_MS{5};
+	static constexpr int DATA_BUFFER_SIZE{512};
+
+	void processDataBuffer();
 
 	device::Serial _serial_port;
 	Ringbuffer _data_buffer;
