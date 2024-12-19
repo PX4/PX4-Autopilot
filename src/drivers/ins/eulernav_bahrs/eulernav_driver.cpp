@@ -13,7 +13,7 @@ EulerNavDriver::EulerNavDriver(const char* device_name) :
 	}
 	else
 	{
-		PX4_INFO("Failed to open serial port");
+		PX4_ERR("Failed to open serial port");
 		_is_initialized = false;
 	}
 }
@@ -31,17 +31,14 @@ int EulerNavDriver::task_spawn(int argc, char *argv[])
 	int task_id = px4_task_spawn_cmd("bahrs", SCHED_DEFAULT, SCHED_PRIORITY_FAST_DRIVER,
 					 _task_stack_size, (px4_main_t)&run_trampoline, argv);
 
-	PX4_INFO("Task spawn.");
-
 	if (task_id < 0)
 	{
 		_task_id = -1;
-		PX4_INFO("Task spawn failed.");
+		PX4_ERR("Failed to spawn task.");
 	}
 	else
 	{
 		_task_id = task_id;
-		PX4_INFO("Task spawn succeeded.");
 	}
 
 	return (_task_id < 0) ? 1 : 0;
@@ -52,8 +49,6 @@ EulerNavDriver* EulerNavDriver::instantiate(int argc, char *argv[])
 	int option_index = 1;
 	const char* option_arg{nullptr};
 	const char* device_name{nullptr};
-
-	PX4_INFO("Task instantiate.");
 
 	while (true)
 	{

@@ -23,6 +23,7 @@ public:
 	/// @brief Required by ModuleBase
 	static int print_usage(const char *reason = nullptr);
 
+	/// @brief The main loop of the task.
 	void run() final;
 
 private:
