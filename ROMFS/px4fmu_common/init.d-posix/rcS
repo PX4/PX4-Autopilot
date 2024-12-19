@@ -247,6 +247,8 @@ then
 	battery_simulator start
 fi
 
+system_power_simulator start
+
 tone_alarm start
 rc_update start
 manual_control start
