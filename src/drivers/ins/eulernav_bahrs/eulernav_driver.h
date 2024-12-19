@@ -3,6 +3,8 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/Serial.hpp>
+#include <Ringbuffer.hpp>
+#include <containers/Array.hpp>
 
 class EulerNavDriver : public ModuleBase<EulerNavDriver>
 {
@@ -27,8 +29,15 @@ public:
 	void run() final;
 
 private:
-	static constexpr int _task_stack_size{2048};
+	static constexpr int TASK_STACK_SIZE{2048};
+	static constexpr int SERIAL_READ_BUFFER_SIZE{128};
+	static constexpr int MIN_BYTES_TO_READ{16};
+	static constexpr int SERIAL_READ_TIMEOUT_MS{5};
+
 	device::Serial _serial_port;
+	Ringbuffer _data_buffer;
+	px4::Array<uint8_t, SERIAL_READ_BUFFER_SIZE> _serial_read_buffer;
+
 	bool _is_initialized{false};
 };
 

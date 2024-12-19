@@ -38,4 +38,5 @@ px4_add_module(
 		eulernav_driver.cpp
 		eulernav_driver.h
 	DEPENDS
+		ringbuffer
 	)
