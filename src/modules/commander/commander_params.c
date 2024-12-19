@@ -935,7 +935,7 @@ PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
  *
  * Action the system takes when the estimated position has an accuracy below the specified threshold.
  * See COM_POS_LOW_EPH to set the failsafe threshold.
- * The failsafe action is only executed if the vehicle is in auto mission or auto loiter mode,
+ * The failsafe action is only executed if the vehicle is in Mission, Loiter or Manual Position mode
  * otherwise it is only a warning.
  *
  * @group Commander

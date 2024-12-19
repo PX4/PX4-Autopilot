@@ -514,7 +514,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	// trigger Low Position Accuracy Failsafe (only in auto mission and auto loiter)
 	if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
-	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER ||
+	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL) {
 		CHECK_FAILSAFE(status_flags, local_position_accuracy_low, fromPosLowActParam(_param_com_pos_low_act.get()));
 	}
 
