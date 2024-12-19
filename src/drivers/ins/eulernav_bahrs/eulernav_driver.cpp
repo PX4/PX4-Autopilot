@@ -29,7 +29,7 @@ EulerNavDriver::~EulerNavDriver()
 int EulerNavDriver::task_spawn(int argc, char *argv[])
 {
 	int task_id = px4_task_spawn_cmd("bahrs", SCHED_DEFAULT, SCHED_PRIORITY_FAST_DRIVER,
-					 _task_stack_size, (px4_main_t)&run_trampoline, argv);
+					 TASK_STACK_SIZE, (px4_main_t)&run_trampoline, argv);
 
 	if (task_id < 0)
 	{
@@ -88,5 +88,13 @@ void EulerNavDriver::run()
 	{
 		px4_usleep(1000000);
 		PX4_INFO("Running the EulerNavDriver::run...");
+
+		// The declaration of readAtLeast() suggests that the timeout is in microseconds,
+		// but it seems to be a bug, as readAtLeast() forwards the value to another method
+		// that expects milliseconds.
+		const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer.begin(), _serial_read_buffer.capacity(),
+			                                       MIN_BYTES_TO_READ, SERIAL_READ_TIMEOUT_MS)};
+
+		(void)bytes_read;
 	}
 }
