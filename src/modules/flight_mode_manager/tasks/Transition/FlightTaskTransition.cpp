@@ -104,7 +104,8 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 {
 	const Vector2f position_xy{_position};
 	const Vector2f velocity_xy{_velocity};
-	const Vector2f velocity_xy_direction = velocity_xy.unit_or_zero();
+	const Vector2f velocity_xy_direction =
+		velocity_xy.unit_or_zero(); // Zero when velocity invalid Vector2f(NAN, NAN).unit_or_zero() == Vector2f(0.f, 0.f)
 
 	float deceleration_setpoint = _param_vt_b_dec_mss;
 
@@ -130,7 +131,7 @@ float FlightTaskTransition::computeBackTranstionPitchSetpoint()
 
 	// Pitch up to reach a negative accel_in_flight_direction otherwise we decelerate too slow
 	const Vector2f acceleration_xy{_sub_vehicle_local_position.get().ax, _sub_vehicle_local_position.get().ay};
-	const float deceleration = -acceleration_xy.dot(velocity_xy_direction);
+	const float deceleration = -acceleration_xy.dot(velocity_xy_direction); // Zero when velocity invalid
 	const float deceleration_error = deceleration_setpoint - deceleration;
 
 	// Update back-transition deceleration error integrator
