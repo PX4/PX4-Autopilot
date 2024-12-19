@@ -284,7 +284,8 @@ if (CONFIG_BUILD_KERNEL)
 		# Build module.a into module.elf
 		set(BIN px4-${MAIN}.elf)
 		add_executable(${BIN} ${PX4_SOURCE_DIR}/platforms/nuttx/src/px4/common/process/main.cpp)
-		set_target_properties(${BIN} PROPERTIES OUTPUT_NAME ${BIN})
+		set_target_properties(${BIN} PROPERTIES OUTPUT_NAME ${MAIN})
+		set_target_properties(${BIN} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR}/bin)
 		add_dependencies(${BIN} nuttx_crt0 ${module})
 		target_compile_options(${BIN} PRIVATE -Dentry=${MAIN}_main)
 
@@ -328,19 +329,11 @@ if (CONFIG_BUILD_KERNEL)
 		# The individual module deps are FUBAR, so this cannot be done
 		#target_link_libraries(${BIN} PRIVATE ${module})
 		target_link_libraries(${BIN} INTERFACE perf nuttx_c)
+
 		# Some global deps are also FUBAR, so this must be done
 		target_link_libraries(px4_platform board_bus_info)
 
-		# Install the executable to /bin
-		add_custom_target(${BIN}_install
-			COMMAND mkdir -p ${PX4_BINARY_DIR}/bin
-			COMMAND install -D ${PX4_BINARY_DIR}/${BIN} -t ${PX4_BINARY_DIR}/bin
-			COMMAND mv ${PX4_BINARY_DIR}/bin/${BIN} ${PX4_BINARY_DIR}/bin/${MAIN}
-			COMMAND rm -f ${PX4_BINARY_DIR}/${BIN}
-			DEPENDS ${BIN}
-		)
-
-		list(APPEND px4_bins ${BIN}_install)
+		list(APPEND px4_bins ${BIN})
 	endforeach()
 
 	# Create the /bin ROMFS
