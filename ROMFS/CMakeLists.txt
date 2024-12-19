@@ -142,15 +142,16 @@ set(extras_dependencies)
 
 # sysinit script for kernel mode
 if(CONFIG_BUILD_KERNEL)
-	add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rc.sysinit
+	add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rc.sysinit rc.sysinit.stamp
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BINARY_DIR}/NuttX/rc.sysinit ${romfs_gen_root_dir}/init.d/rc.sysinit
+		COMMAND ${CMAKE_COMMAND} -E touch rc.sysinit.stamp
 		DEPENDS
 			${PX4_BINARY_DIR}/NuttX/rc.sysinit
 			romfs_copy.stamp
 		COMMENT "ROMFS: copying rc.sysinit"
 	)
 	list(APPEND extras_dependencies
-		${romfs_gen_root_dir}/init.d/rc.sysinit
+		rc.sysinit.stamp
 	)
 endif()
 
