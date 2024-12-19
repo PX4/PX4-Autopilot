@@ -32,16 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file px4_simple_app.c
- * Minimal application example for PX4 autopilot
+ * @file eulernav_bahrs_main.cpp
+ * A driver module for EULER-NAV Baro-Inertial AHRS.
  *
- * @author Example User <mail@example.com>
+ * @author Fedor Baklanov <fedor.baklanov@euler-nav.com>
  */
 
 #include <px4_platform_common/log.h>
+#include "eulernav_driver.h"
 
 extern "C" __EXPORT int eulernav_bahrs_main(int argc, char *argv[])
 {
 	PX4_INFO("This is an EULER-NAV Baro-Inertial AHRS driver!");
+	EulerNavDriver::main(argc, argv);
 	return OK;
 }
