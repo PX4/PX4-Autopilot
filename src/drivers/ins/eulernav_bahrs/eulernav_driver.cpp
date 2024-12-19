@@ -1,8 +1,9 @@
 #include "eulernav_driver.h"
 #include <px4_platform_common/getopt.h>
 
-EulerNavDriver::EulerNavDriver(const char* device_name) :
-	_serial_port{device_name, 115200, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled}
+EulerNavDriver::EulerNavDriver(const char* device_name)
+	: _serial_port{device_name, 115200, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled}
+	, _data_buffer{}
 {
 	_serial_port.open();
 
@@ -16,6 +17,15 @@ EulerNavDriver::EulerNavDriver(const char* device_name) :
 		PX4_ERR("Failed to open serial port");
 		_is_initialized = false;
 	}
+
+	if (_is_initialized)
+	{
+		if (false == _data_buffer.allocate(DATA_BUFFER_SIZE))
+		{
+			PX4_ERR("Failed to allocate data buffer");
+			_is_initialized = false;
+		}
+	}
 }
 
 EulerNavDriver::~EulerNavDriver()
@@ -24,6 +34,8 @@ EulerNavDriver::~EulerNavDriver()
 	{
 		_serial_port.close();
 	}
+
+	_data_buffer.deallocate();
 }
 
 int EulerNavDriver::task_spawn(int argc, char *argv[])
@@ -95,6 +107,18 @@ void EulerNavDriver::run()
 		const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer.begin(), _serial_read_buffer.capacity(),
 			                                       MIN_BYTES_TO_READ, SERIAL_READ_TIMEOUT_MS)};
 
-		(void)bytes_read;
+		if (bytes_read > 0)
+		{
+			if (false == _data_buffer.push_back(_serial_read_buffer.begin(), _serial_read_buffer.size()))
+			{
+				PX4_ERR("No space in data buffer");
+			}
+		}
+
+		processDataBuffer();
 	}
+}
+
+void EulerNavDriver::processDataBuffer()
+{
 }
