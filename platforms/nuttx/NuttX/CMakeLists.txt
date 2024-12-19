@@ -268,7 +268,7 @@ if (CONFIG_BUILD_KERNEL)
 
 	get_property(CRT0_OBJ TARGET nuttx_crt0 PROPERTY IMPORTED_OBJECTS)
 
-	add_custom_target(nuttx_app_bins
+	add_custom_command(OUTPUT nuttx_install.stamp
 		COMMAND mkdir -p ${PX4_BINARY_DIR}/bin
 		COMMAND make -C ${NUTTX_SRC_DIR}/apps install --no-print-directory --silent
 			ARCHCRT0OBJ="${CRT0_OBJ}"
@@ -276,9 +276,11 @@ if (CONFIG_BUILD_KERNEL)
 			TOPDIR="${NUTTX_DIR}"
 			ELFLDNAME="${LDSCRIPT}"
 			USERLIBS="${userlibs}" > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_apps_install.log
+		COMMAND touch nuttx_install.stamp
 		BYPRODUCTS ${PX4_BINARY_DIR}/bin/nsh
 		DEPENDS ${nuttx_userlibs} nuttx_startup
 	)
+	add_custom_target(nuttx_app_bins DEPENDS nuttx_install.stamp)
 endif()
 
 ###############################################################################
