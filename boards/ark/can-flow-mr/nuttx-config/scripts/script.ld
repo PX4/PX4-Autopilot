@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* The STM32F412 has 512Kb of FLASH beginning at address 0x0800:0000 and
+/* The STM32F412 has 1M of FLASH beginning at address 0x0800:0000 and
  * 256Kb of SRAM. SRAM is split up into three blocks:
  *
  * 1) 112Kb of SRAM beginning at address 0x2000:0000
@@ -50,7 +50,7 @@
 
 MEMORY
 {
-    flash (rx)   : ORIGIN = 0x08010000, LENGTH = 448K
+    flash (rx)   : ORIGIN = 0x08010000, LENGTH = 928K
     sram (rwx)   : ORIGIN = 0x20000000, LENGTH = 192K
 }
 
