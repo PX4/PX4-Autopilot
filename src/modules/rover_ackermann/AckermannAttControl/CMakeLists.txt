@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2024 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2025 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(RoverAckermannGuidance
-	RoverAckermannGuidance.cpp
+px4_add_library(AckermannAttControl
+	AckermannAttControl.cpp
 )
 
-target_include_directories(RoverAckermannGuidance PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(AckermannAttControl PUBLIC PID)
+target_include_directories(AckermannAttControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
