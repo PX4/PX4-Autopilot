@@ -570,7 +570,7 @@ extern "C" __EXPORT int lightware_laser_i2c_main(int argc, char *argv[])
 	int ch;
 	using ThisDriver = LightwareLaser;
 	BusCLIArguments cli{true, false};
-	cli.rotation = (Rotation)distance_sensor_s::ROTATION_FORWARD_FACING;
+	cli.rotation = (Rotation)distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = LIGHTWARE_LASER_BASEADDR;
 
