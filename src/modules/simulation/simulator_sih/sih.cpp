@@ -340,14 +340,15 @@ void Sih::generate_force_and_torques()
 		// _Ma_B = -_KDW * _w_B;   // first order angular damper
 
 	} else if (_vehicle == VehicleType::SVTOL) {
-		_T_B = Vector3f(_T_MAX * 2 * _u[8], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
+
+		_T_B = Vector3f(_T_MAX * 2 * _u[7], 0.0f, -_T_MAX * (+_u[0] + _u[1] + _u[2] + _u[3]));
 		_Mt_B = Vector3f(_L_ROLL * _T_MAX * (-_u[0] + _u[1] + _u[2] - _u[3]),
 				 _L_PITCH * _T_MAX * (+_u[0] - _u[1] + _u[2] - _u[3]),
 				 _Q_MAX * (+_u[0] + _u[1] - _u[2] - _u[3]));
 
 		// thrust 0 because it is already contained in _T_B. in
 		// equations_of_motion they are all summed into sum_of_forces_E
-		generate_fw_aerodynamics(_u[4], _u[6], _u[7], 0);
+		generate_fw_aerodynamics(_u[4], _u[5], _u[6], 0);
 	}
 }
 
