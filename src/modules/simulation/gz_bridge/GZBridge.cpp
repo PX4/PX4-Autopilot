@@ -798,10 +798,6 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 			pose_orientation.y(),
 			pose_orientation.z());
 
-	// gz::math::Quaterniond q_sensor(0.9238795, 0, 0, 0.3826834); // 45 degree
-
-	// gz::math::Quaterniond q_sensor(0.7071068, 0, 0, -0.7071068); // -90 degree
-
 	const gz::math::Quaterniond q_left(0.7071068, 0, 0, -0.7071068);
 
 	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
