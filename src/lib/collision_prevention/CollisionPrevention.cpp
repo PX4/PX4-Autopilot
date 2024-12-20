@@ -403,12 +403,12 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		const Quatf q_vehicle_attitude(vehicle_attitude);
 		const Quatf q_sensor(Quatf(cosf(sensor_yaw_body_rad / 2.f), 0.f, 0.f, sinf(sensor_yaw_body_rad / 2.f)));
 
-		matrix::Vector3f forward_vector(1.0f, 0.0f, 0.0f);
+		const Vector3f forward_vector(1.0f, 0.0f, 0.0f);
 
-		Quatf q_sensor_rotation = q_vehicle_attitude * q_sensor;
+		const Quatf q_sensor_rotation = q_vehicle_attitude * q_sensor;
 
-		matrix::Vector3f rotated_sensor_vector = q_sensor_rotation.rotateVector(forward_vector);
-		matrix::Vector2f rotated_sensor_vector_xy(rotated_sensor_vector(0), rotated_sensor_vector(1));
+		const Vector3f rotated_sensor_vector = q_sensor_rotation.rotateVector(forward_vector);
+		const Vector2f rotated_sensor_vector_xy(rotated_sensor_vector(0), rotated_sensor_vector(1));
 
 		float sensor_dist_scale = rotated_sensor_vector_xy.norm();
 
