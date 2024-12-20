@@ -102,11 +102,11 @@ private:
 #endif
 
 #ifdef BOARD_BATTERY_ADC_VOLTAGE_FILTER_S
-	AlphaFilter<float> _voltage_filter;
+	AlphaFilter<float> _voltage_filter {BOARD_BATTERY_ADC_VOLTAGE_FILTER_S};
 #endif
 
 #ifdef BOARD_BATTERY_ADC_CURRENT_FILTER_S
-	AlphaFilter<float> _current_filter;
+	AlphaFilter<float> _current_filter {BOARD_BATTERY_ADC_CURRENT_FILTER_S};
 #endif
 
 	void updateTopics();
