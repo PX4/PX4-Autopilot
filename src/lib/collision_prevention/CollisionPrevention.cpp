@@ -408,9 +408,8 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		const Quatf q_sensor_rotation = q_vehicle_attitude * q_sensor;
 
 		const Vector3f rotated_sensor_vector = q_sensor_rotation.rotateVector(forward_vector);
-		const Vector2f rotated_sensor_vector_xy(rotated_sensor_vector(0), rotated_sensor_vector(1));
 
-		float sensor_dist_scale = rotated_sensor_vector_xy.norm();
+		const float sensor_dist_scale = rotated_sensor_vector.xy().norm();
 
 		if (distance_reading < distance_sensor.max_distance) {
 			distance_reading = distance_reading * sensor_dist_scale;
