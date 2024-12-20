@@ -393,7 +393,6 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 
 	// discard values below min range
 	if (distance_reading > distance_sensor.min_distance) {
-
 		float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, _obstacle_map_body_frame.angle_offset);
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
 
@@ -401,7 +400,7 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		int lower_bound = (int)round((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 
-		const Quatf q_vehicle_attitude(Quatf(vehicle_attitude));
+		const Quatf q_vehicle_attitude(vehicle_attitude);
 		const Quatf q_sensor(Quatf(cosf(sensor_yaw_body_rad / 2.f), 0.f, 0.f, sinf(sensor_yaw_body_rad / 2.f)));
 
 		matrix::Vector3f forward_vector(1.0f, 0.0f, 0.0f);
