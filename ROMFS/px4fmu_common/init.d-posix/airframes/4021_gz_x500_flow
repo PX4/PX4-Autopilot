@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# @name Gazebo x500 lidar down
+#
+# @type Quadrotor
+#
+
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500_flow}
+
+. ${R}etc/init.d-posix/airframes/4001_gz_x500
+
+param set-default EKF2_RNG_A_VMAX 3
+
+echo "disabling Sim GPS sats"
+param set-default SYS_HAS_GPS 0
+param set-default SIM_GPS_USED 0
+
+param set-default SDLOG_PROFILE 251
+

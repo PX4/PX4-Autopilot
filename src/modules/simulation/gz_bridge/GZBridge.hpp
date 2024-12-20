@@ -57,6 +57,7 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -113,6 +114,7 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &msg);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg);
 	void laserScanCallback(const gz::msgs::LaserScan &msg);
+	void cameraCallback(const gz::msgs::Image &image_msg);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 
@@ -134,6 +136,7 @@ private:
 	uORB::PublicationMulti<sensor_accel_s>        _sensor_accel_pub{ORB_ID(sensor_accel)};
 	uORB::PublicationMulti<sensor_gyro_s>         _sensor_gyro_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<vehicle_odometry_s>    _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+	uORB::PublicationMulti<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};
