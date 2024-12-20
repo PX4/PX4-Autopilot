@@ -55,6 +55,7 @@
 
 #include <stm32.h>
 #include "board_config.h"
+#include "led.h"
 #include <stm32_uart.h>
 
 #include <arch/board/board.h>
@@ -66,16 +67,11 @@
 #include <systemlib/px4_macros.h>
 
 #include <px4_platform_common/init.h>
+#include <px4_platform/gpio.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>
 #endif
-
-__BEGIN_DECLS
-extern void led_init(void);
-extern void led_on(int led);
-extern void led_off(int led);
-__END_DECLS
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -91,12 +87,9 @@ __EXPORT void stm32_boardinitialize(void)
 {
 	watchdog_init();
 
-	// Configure CAN interface
-	stm32_configgpio(GPIO_CAN1_RX);
-	stm32_configgpio(GPIO_CAN1_TX);
-
-	stm32_configgpio(GPIO_CAN1_SILENT_S0);
-	stm32_configgpio(GPIO_CAN1_TERMINATION);
+	/* configure pins */
+	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	// Configure SPI all interfaces GPIO & enable power.
 	stm32_spiinitialize();
@@ -131,9 +124,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	px4_platform_init();
 
-	// Configure LEDs.
-	board_autoled_initialize();
-
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
 		{2, 16 * 1024, 0x08008000},
@@ -149,11 +139,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif // FLASH_BASED_PARAMS
-
-	/* initial LED state */
-	drv_led_start();
-	led_off(LED_RED);
-	led_on(LED_BLUE);
 
 	/* Configure the HW based on the manifest */
 	//px4_platform_configure();

@@ -53,9 +53,10 @@
 /* Boot config */
 #define GPIO_BOOT_CONFIG      /* PC15 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN15|GPIO_EXTI)
 
-/* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
-#define GPIO_nLED_RED          /* PB3  */ (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN3)
-#define GPIO_nLED_BLUE         /* PA8  */ (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN8)
+/* LEDs are driven with open drain to support Anode to 5V or 3.3V */
+#define GPIO_TIM1_CH1         /* PA8  */ (GPIO_TIM1_CH1_1|GPIO_OPENDRAIN|GPIO_SPEED_2MHz)
+#define GPIO_TIM1_CH2         /* PA9  */ (GPIO_TIM1_CH2_1|GPIO_OPENDRAIN|GPIO_SPEED_2MHz)
+#define GPIO_TIM1_CH3         /* PA10 */ (GPIO_TIM1_CH3_1|GPIO_OPENDRAIN|GPIO_SPEED_2MHz)
 
 #define BROADCOM_AFBR_S50_S2PI_SPI_BUS 2
 #define BROADCOM_AFBR_S50_S2PI_CS   /* PB12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN12)
@@ -64,17 +65,24 @@
 #define BROADCOM_AFBR_S50_S2PI_MOSI /* PB15 */  GPIO_SPI2_MOSI_1
 #define BROADCOM_AFBR_S50_S2PI_MISO /* PB14 */  GPIO_SPI2_MISO_1
 
-#define BOARD_HAS_CONTROL_STATUS_LEDS      1
-#define BOARD_OVERLOAD_LED     LED_RED
-#define BOARD_ARMED_STATE_LED  LED_BLUE
-
 #define FLASH_BASED_PARAMS
 
 /* High-resolution timer */
 #define HRT_TIMER                    3  /* use timer 3 for the HRT */
 #define HRT_TIMER_CHANNEL            4  /* use capture/compare channel 4 */
 
+#define PX4_GPIO_INIT_LIST { \
+		GPIO_BOOT_CONFIG,                 \
+		GPIO_CAN1_TX,                     \
+		GPIO_CAN1_RX,                     \
+		GPIO_CAN1_SILENT_S0,              \
+		GPIO_CAN1_TERMINATION,            \
+	}
+
 __BEGIN_DECLS
+
+#define BOARD_HAS_N_S_RGB_LED       1
+#define BOARD_MAX_LEDS              BOARD_HAS_N_S_RGB_LED
 
 #ifndef __ASSEMBLY__
 

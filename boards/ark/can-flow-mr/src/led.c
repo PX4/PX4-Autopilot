@@ -34,82 +34,91 @@
 /**
  * @file led.c
  *
- * board LED backend.
+ * LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>
 
 #include <stdbool.h>
 
-#include "stm32.h"
+#include "chip.h"
+#include "stm32_gpio.h"
 #include "board_config.h"
 
+#include <nuttx/board.h>
 #include <arch/board/board.h>
 
-/*
- * Ideally we'd be able to get these from up_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
-__BEGIN_DECLS
-extern void led_init(void);
-extern void bootloader_led_on(int led);
-extern void bootloader_led_off(int led);
-extern void led_on(int led);
-extern void led_off(int led);
-extern void led_toggle(int led);
-__END_DECLS
+#include "led.h"
 
-#  define xlat(p) (p)
-static uint32_t g_ledmap[] = {
-	GPIO_nLED_BLUE,
-	GPIO_nLED_RED,
-};
+#define TMR_BASE        STM32_TIM1_BASE
+#define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN
+#define TMR_REG(o)      (TMR_BASE+(o))
 
-__EXPORT void led_init(void)
+void rgb_led(int r, int g, int b, int freqs)
 {
-	/* Configure LED GPIOs for output */
-	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
-		stm32_configgpio(g_ledmap[l]);
+
+	long fosc = TMR_FREQUENCY;
+	long prescale = 2048;
+	long p1s = fosc / prescale;
+	long p0p5s  = p1s / 2;
+	uint16_t val;
+	static bool once = 0;
+
+	if (!once) {
+		once = 1;
+
+		/* Enabel Clock to Block */
+		modifyreg32(STM32_RCC_APB2ENR, 0, RCC_APB2ENR_TIM1EN);
+
+		/* Reload */
+
+		val = getreg16(TMR_REG(STM32_BTIM_EGR_OFFSET));
+		val |= ATIM_EGR_UG;
+		putreg16(val, TMR_REG(STM32_BTIM_EGR_OFFSET));
+
+		/* Set Prescaler STM32_TIM_SETCLOCK */
+
+		putreg16(prescale, TMR_REG(STM32_BTIM_PSC_OFFSET));
+
+		/* Enable STM32_TIM_SETMODE*/
+
+		putreg16(ATIM_CR1_CEN | ATIM_CR1_ARPE, TMR_REG(STM32_BTIM_CR1_OFFSET));
+
+
+		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC1M_SHIFT) | ATIM_CCMR1_OC1PE |
+			 (ATIM_CCMR_MODE_PWM1 << ATIM_CCMR1_OC2M_SHIFT) | ATIM_CCMR1_OC2PE, TMR_REG(STM32_GTIM_CCMR1_OFFSET));
+		putreg16((ATIM_CCMR_MODE_PWM1 << ATIM_CCMR2_OC3M_SHIFT) | ATIM_CCMR2_OC3PE, TMR_REG(STM32_GTIM_CCMR2_OFFSET));
+		putreg16(ATIM_CCER_CC3E | ATIM_CCER_CC3P |
+			 ATIM_CCER_CC2E | ATIM_CCER_CC2P |
+			 ATIM_CCER_CC1E | ATIM_CCER_CC1P, TMR_REG(STM32_GTIM_CCER_OFFSET));
+
+
+		stm32_configgpio(GPIO_TIM1_CH1);
+		stm32_configgpio(GPIO_TIM1_CH2);
+		stm32_configgpio(GPIO_TIM1_CH3);
+
+		/* master output enable = on */
+		putreg16(ATIM_BDTR_MOE, (TMR_REG(STM32_ATIM_BDTR_OFFSET)));
 	}
-}
 
-__EXPORT void bootloader_led_on(int led)
-{
-	/* Pull Down to switch on */
-	stm32_gpiowrite(led, false);
-}
+	long p  = freqs == 0 ? p1s : p1s / freqs;
+	putreg32(p, TMR_REG(STM32_BTIM_ARR_OFFSET));
 
-__EXPORT void bootloader_led_off(int led)
-{
-	/* Pull Up to switch on */
-	stm32_gpiowrite(led, true);
-}
+	p  = freqs == 0 ? p1s + 1 : p0p5s / freqs;
 
-static void phy_set_led(int led, bool state)
-{
-	/* Pull Down to switch on */
-	stm32_gpiowrite(g_ledmap[led], !state);
-}
+	putreg32((r * p) / 255, TMR_REG(STM32_GTIM_CCR1_OFFSET));
+	putreg32((g * p) / 255, TMR_REG(STM32_GTIM_CCR2_OFFSET));
+	putreg32((b * p) / 255, TMR_REG(STM32_GTIM_CCR3_OFFSET));
 
-static bool phy_get_led(int led)
-{
-	return !stm32_gpioread(g_ledmap[led]);
-}
+	val = getreg16(TMR_REG(STM32_BTIM_CR1_OFFSET));
 
-__EXPORT void led_on(int led)
-{
-	phy_set_led(xlat(led), true);
-}
+	if (freqs == 0) {
+		val &= ~ATIM_CR1_CEN;
 
-__EXPORT void led_off(int led)
-{
-	phy_set_led(xlat(led), false);
-}
+	} else {
+		val |= ATIM_CR1_CEN;
+	}
 
-__EXPORT void led_toggle(int led)
-{
-	phy_set_led(xlat(led), !phy_get_led(xlat(led)));
+	putreg16(val, TMR_REG(STM32_BTIM_CR1_OFFSET));
+
 }
