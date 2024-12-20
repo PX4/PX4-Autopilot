@@ -232,6 +232,14 @@ void ADIS16470::RunImpl()
 				ScheduleDelayed(SAMPLE_INTERVAL_US * 2);
 			}
 
+			int16_t accel_x;
+			int16_t accel_y;
+			int16_t accel_z;
+
+			int16_t gyro_x;
+			int16_t gyro_y;
+			int16_t gyro_z;
+
 			bool success = false;
 
 			struct BurstRead {
@@ -300,26 +308,23 @@ void ADIS16470::RunImpl()
 				_px4_gyro.set_temperature(temperature);
 
 
-				int16_t accel_x = buffer.X_ACCL_OUT;
-				int16_t accel_y = buffer.Y_ACCL_OUT;
-				int16_t accel_z = buffer.Z_ACCL_OUT;
+				accel_x = buffer.X_ACCL_OUT;
+				accel_y = buffer.Y_ACCL_OUT;
+				accel_z = buffer.Z_ACCL_OUT;
 
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
 				accel_y = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
 				accel_z = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
 
-				_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
+				gyro_x = buffer.X_GYRO_OUT;
+				gyro_y = buffer.Y_GYRO_OUT;
+				gyro_z = buffer.Z_GYRO_OUT;
 
-
-				int16_t gyro_x = buffer.X_GYRO_OUT;
-				int16_t gyro_y = buffer.Y_GYRO_OUT;
-				int16_t gyro_z = buffer.Z_GYRO_OUT;
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
 				gyro_y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
 				gyro_z = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
-				_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
 
 				success = true;
 
@@ -351,7 +356,16 @@ void ADIS16470::RunImpl()
 					// register check failed, force reset
 					perf_count(_bad_register_perf);
 					Reset();
+					return;
 				}
+
+			}
+
+			if (success) {
+				// Publish data if there was no errors
+
+				_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
+				_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
 			}
 		}
 
