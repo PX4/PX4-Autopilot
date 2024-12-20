@@ -1145,8 +1145,13 @@ float Navigator::get_altitude_acceptance_radius()
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
-		if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp)
-		    && pos_ctrl_status.altitude_acceptance > alt_acceptance_radius) {
+		const position_setpoint_s &curr_sp = get_position_setpoint_triplet()->current;
+
+		if (PX4_ISFINITE(curr_sp.alt_acceptance_radius) && curr_sp.alt_acceptance_radius > FLT_EPSILON) {
+			alt_acceptance_radius = curr_sp.alt_acceptance_radius;
+
+		} else if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp)
+			   && pos_ctrl_status.altitude_acceptance > alt_acceptance_radius) {
 			alt_acceptance_radius = pos_ctrl_status.altitude_acceptance;
 		}
 
