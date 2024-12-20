@@ -62,6 +62,7 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/sensor_optical_flow.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
@@ -116,6 +117,7 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
+	void cameraCallback(const gz::msgs::Image &image_msg);
 
 	/**
 	 * @brief Call Entityfactory service
@@ -181,6 +183,8 @@ private:
 	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
 	uORB::PublicationMulti<sensor_gyro_s>  _sensor_gyro_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<vehicle_odometry_s> _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+
+	uORB::PublicationMulti<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
 	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
