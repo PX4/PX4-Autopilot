@@ -43,6 +43,8 @@
 #include <iostream>
 #include <string>
 
+#include "camera/gz_camera.hpp"
+
 GZBridge::GZBridge(const char *world, const char *name, const char *model,
 		   const char *pose_str) :
 	ModuleParams(nullptr),
@@ -253,6 +255,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// Camera:
+	std::string camera_topic = "/camera";
+
+	if (!_node.Subscribe(camera_topic, &GZBridge::cameraCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", camera_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -275,6 +285,53 @@ int GZBridge::init()
 
 	ScheduleNow();
 	return OK;
+}
+
+void GZBridge::cameraCallback(const gz::msgs::Image &image_msg)
+{
+	float flow_x = 0;
+	float flow_y = 0;
+	int integration_time = 0;
+	int quality = calculate_flow(image_msg, hrt_absolute_time(), integration_time, flow_x, flow_y);
+
+	if (quality <= 0) {
+		quality = 0;
+	}
+
+	// Construct SensorOpticalFlow message
+	sensor_optical_flow_s msg = {};
+
+	msg.pixel_flow[0] = flow_x;
+	msg.pixel_flow[1] = flow_y;
+	msg.quality = quality;
+	msg.integration_timespan_us = integration_time;
+	// msg.integration_timespan_us = {1000000 / 30};  // 30 fps;
+
+	// Static data
+	msg.timestamp = hrt_absolute_time();
+	msg.timestamp_sample = msg.timestamp;
+	device::Device::DeviceId id;
+	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	id.devid_s.bus = 0;
+	id.devid_s.address = 0;
+	id.devid_s.devtype = DRV_FLOW_DEVTYPE_SIM;
+	msg.device_id = id.devid;
+
+	// values taken from PAW3902
+	msg.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
+	msg.max_flow_rate = 7.4f;
+	msg.min_ground_distance = 0.08f;
+	msg.max_ground_distance = 30;
+	msg.error_count = 0;
+
+	// No delta angle
+	// No distance
+
+	// This means that delta angle will come from vehicle gyro
+	// Distance will come from vehicle distance sensor
+
+	// Must publish even if quality is zero to initialize flow fusion
+	_optical_flow_pub.publish(msg);
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])
