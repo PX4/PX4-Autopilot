@@ -102,11 +102,13 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 
 		// Calculate the horizontal and vertical drift velocity components and limit to 10x the threshold
 		const Vector3f vel_limit(_params.req_hdrift, _params.req_hdrift, _params.req_vdrift);
-		Vector3f pos_derived(delta_pos_n, delta_pos_e, (_gps_alt_prev - gps.alt));
-		pos_derived = matrix::constrain(pos_derived / dt, -10.0f * vel_limit, 10.0f * vel_limit);
+		Vector3f delta_pos(delta_pos_n, delta_pos_e, (_gps_alt_prev - gps.alt));
 
 		// Apply a low pass filter
-		_gps_pos_deriv_filt = pos_derived * filter_coef + _gps_pos_deriv_filt * (1.0f - filter_coef);
+		_gps_pos_deriv_filt = delta_pos / dt * filter_coef + _gps_pos_deriv_filt * (1.0f - filter_coef);
+
+		// Apply anti-windup to the state instead of the input to avoid generating a bias on asymmetric signals
+		_gps_pos_deriv_filt = matrix::constrain(_gps_pos_deriv_filt, -10.0f * vel_limit, 10.0f * vel_limit);
 
 		// hdrift: calculate the horizontal drift speed and fail if too high
 		_gps_horizontal_position_drift_rate_m_s = Vector2f(_gps_pos_deriv_filt.xy()).norm();
