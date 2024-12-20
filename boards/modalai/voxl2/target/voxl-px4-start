@@ -79,10 +79,14 @@ qshell icp101xx start -I -b 5
 
 # Auto detect the magnetometer. If one or both of these devices
 # are not connected it will fail but not cause any harm.
+# Rotation 10 = ROLL_180_YAW_90
 /bin/echo "Looking for qmc5883l magnetometer"
 qshell qmc5883l start -R 10 -X -b 1
 /bin/echo "Looking for ist8310 magnetometer"
 qshell ist8310 start -R 10 -X -b 1
+/bin/echo "Looking for ist8308 magnetometer"
+# Rotation 12 = PITCH_180
+qshell ist8308 start -R 12 -X -b 1
 
 # GPS and magnetometer
 if [ "$GPS" != "NONE" ]; then
