@@ -102,9 +102,13 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
-	add_optional_topic("rover_ackermann_guidance_status", 100);
-	add_optional_topic("rover_ackermann_setpoint", 100);
-	add_optional_topic("rover_ackermann_status", 100);
+	add_optional_topic("rover_attitude_setpoint", 100);
+	add_optional_topic("rover_attitude_status", 100);
+	add_optional_topic("rover_velocity_status", 100);
+	add_optional_topic("rover_rate_setpoint", 100);
+	add_optional_topic("rover_rate_status", 100);
+	add_optional_topic("rover_steering_setpoint", 100);
+	add_optional_topic("rover_throttle_setpoint", 100);
 	add_optional_topic("rover_differential_guidance_status", 100);
 	add_optional_topic("rover_differential_setpoint", 100);
 	add_optional_topic("rover_differential_status", 100);
