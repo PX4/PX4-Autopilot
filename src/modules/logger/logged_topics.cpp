@@ -314,8 +314,11 @@ void LoggedTopics::add_thermal_calibration_topics()
 
 void LoggedTopics::add_sensor_comparison_topics()
 {
-	add_topic_multi("sensor_accel", 100, 4);
-	add_topic_multi("sensor_baro", 100, 4);
+	add_topic_multi("sensor_accel");
+	add_topic_multi("sensor_baro");
+	add_topic_multi("distance_sensor");
+	add_topic_multi("sensor_optical_flow");
+
 	add_topic_multi("sensor_gyro", 100, 4);
 	add_topic_multi("sensor_mag", 100, 4);
 }
