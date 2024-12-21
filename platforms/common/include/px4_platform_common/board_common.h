@@ -156,8 +156,13 @@
 #if BOARD_NUMBER_BRICKS == 0
 /* allow SITL to disable all bricks */
 #elif BOARD_NUMBER_BRICKS == 1
-#  define BOARD_BATT_V_LIST       {ADC_BATTERY_VOLTAGE_CHANNEL}
-#  define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
+#  if  defined(BOARD_NUMBER_DIGITAL_BRICKS)
+#    define BOARD_BATT_V_LIST       {-1}
+#    define BOARD_BATT_I_LIST       {-1}
+#  else
+#    define BOARD_BATT_V_LIST       {ADC_BATTERY_VOLTAGE_CHANNEL}
+#    define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
+#  endif
 #  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK_VALID}
 #elif BOARD_NUMBER_BRICKS == 2
 #  if  defined(BOARD_NUMBER_DIGITAL_BRICKS)

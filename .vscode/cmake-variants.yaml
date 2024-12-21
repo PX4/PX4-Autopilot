@@ -401,6 +401,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_mr-canhubk3_fmu
+    nxp_mr-tropic_default:
+      short: nxp_mr-tropic_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_mr-tropic_default
     nxp_tropic-community_default:
       short: nxp_tropic-community_default
       buildType: MinSizeRel
