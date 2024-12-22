@@ -1,5 +1,6 @@
 #include "eulernav_driver.h"
 #include <px4_platform_common/getopt.h>
+#include "CSerialProtocol.h"
 
 EulerNavDriver::EulerNavDriver(const char* device_name)
 	: _serial_port{device_name, 115200, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled}
@@ -121,4 +122,29 @@ void EulerNavDriver::run()
 
 void EulerNavDriver::processDataBuffer()
 {
+	static_assert(MIN_MESSAGE_LENGTH >= (sizeof(CSerialProtocol::SMessageHeader) + sizeof(CSerialProtocol::CrcType_t)));
+
+	// We start from the first element and search for a message header. We remove
+	// bytes from the buffer until a header is found. Then we parse the found message
+	// and remove the corresponding data bytes. If a full message has not been received
+	// yet, we leave the message bytes in the buffer and wait for more data to arrive.
+
+	while (_data_buffer.space_used() >= MIN_MESSAGE_LENGTH)
+	{
+		uint8_t sync_byte{0U};
+
+		_data_buffer.pop_front(&sync_byte, 1);
+
+		if (CSerialProtocol::uMarker1_ == sync_byte)
+		{
+			sync_byte = 0U;
+			_data_buffer.pop_front(&sync_byte, 1);
+
+			if (CSerialProtocol::uMarker2_ == sync_byte)
+			{
+
+			}
+		}
+	}
+
 }

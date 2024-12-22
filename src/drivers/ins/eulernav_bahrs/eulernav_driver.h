@@ -35,11 +35,15 @@ private:
 	static constexpr int SERIAL_READ_TIMEOUT_MS{5};
 	static constexpr int DATA_BUFFER_SIZE{512};
 
+	// Min length of a valid message. 5 bytes header + 4 bytes CRC + padding to 12 (multiple of 32 bit words)
+	static constexpr int MIN_MESSAGE_LENGTH{12};
+
 	void processDataBuffer();
 
 	device::Serial _serial_port;
 	Ringbuffer _data_buffer;
 	px4::Array<uint8_t, SERIAL_READ_BUFFER_SIZE> _serial_read_buffer;
+	px4::Array<uint8_t, 32> _message_storage;
 
 	bool _is_initialized{false};
 };

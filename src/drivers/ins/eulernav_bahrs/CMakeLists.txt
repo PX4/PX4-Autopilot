@@ -33,6 +33,8 @@
 px4_add_module(
 	MODULE drivers__ins__eulerav_bahrs
 	MAIN eulernav_bahrs
+	INCLUDES
+		bahrs
 	SRCS
 		eulernav_bahrs_main.cpp
 		eulernav_driver.cpp
