@@ -15,11 +15,7 @@
 
 set INA_CONFIGURED no
 
-if param compare -s ADC_ADS1115_EN 1
-then
-	ads1115 start -X
-fi
-
+board_adc start
 
 if param compare SENS_EN_INA226 1
 then

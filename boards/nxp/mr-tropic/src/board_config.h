@@ -112,9 +112,21 @@
 
 #define GPIO_DRDY_OFF_SPI4_DRDY7_EXTERNAL1   _PIN_OFF(GPIO_SPI4_DRDY7_EXTERNAL1)
 
-/* HW has to large of R termination on ADC todo:change when HW value is chosen */
+#define ADC_IOMUX (IOMUX_CMOS_INPUT | IOMUX_PULL_NONE | IOMUX_DRIVE_HIZ)
 
-//#define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
+#define ADC1_CH(n)                  (n)
+#define ADC1_GPIO(n, p)             (GPIO_PORT1 | GPIO_PIN##p | ADC_IOMUX) //
+
+/* Define GPIO pins used as ADC N.B. Channel numbers are for reference, */
+
+#define PX4_ADC_GPIO  \
+	/* ADC_5V_RAIL_SENSE       GPIO_AD_B1_11 GPIO1 Pin 27 */  ADC1_GPIO(0,  27)
+
+/* Define Channel numbers must match above GPIO pin IN(n)*/
+
+#define ADC_5V_RAIL_SENSE        /* GPIO_AD_B1_11 GPIO1 Pin 27 */  ADC1_CH(0)
+
+#define ADC_CHANNELS 	         (1 << ADC_5V_RAIL_SENSE)
 
 /* Power supply control and monitoring GPIOs */
 
@@ -214,13 +226,7 @@
 #define BOARD_NUMBER_BRICKS 1
 #define BOARD_NUMBER_DIGITAL_BRICKS     1
 
-/* Use USB2 VBUS 4.7V comparator for valid check */
-static inline int board_read_usb2_vbus_state(void)
-{
-	return (getreg32(IMXRT_USB_ANALOG_USB2_VBUS_DETECT_STAT) & USB_ANALOG_USB_VBUS_DETECT_STAT_VBUS_VALID) ? 0 : 1;
-}
-
-#define BOARD_ADC_BRICK_VALID   (board_read_usb2_vbus_state() == 0)
+#define BOARD_ADC_BRICK_VALID   1
 
 #define BOARD_ADC_USB_CONNECTED (board_read_VBUS_state() == 0)
 
