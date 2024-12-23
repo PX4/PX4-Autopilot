@@ -301,6 +301,11 @@ CONFIG:
       buildType: MiniSizeRel
       settings:
         CONFIG: matek_gnss-m9n-f4_default
+    micoair_h743_bootloader:
+      short: micoair_h743_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743_bootloader
     micoair_h743_default:
       short: micoair_h743
       buildType: MinSizeRel
@@ -316,6 +321,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: micoair_h743-aio_default
+    micoair_h743-v2_bootloader:
+      short: micoair_h743-v2_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-v2_bootloader
+    micoair_h743-v2_default:
+      short: micoair_h743-v2
+      buildType: MinSizeRel
+      settings:
+        CONFIG: micoair_h743-v2_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel
