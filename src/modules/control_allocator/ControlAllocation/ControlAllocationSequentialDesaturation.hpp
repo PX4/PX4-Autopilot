@@ -119,8 +119,7 @@ private:
 	 *
 	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
 	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
-	 * Thrust can be reduced to unsaturate the upper side, if MC_REDUCE_THRUST is true.
-	 * If MC_REDUCE_THRUST is false, then thrust will not be reduced.
+	 * Thrust can be reduced to unsaturate the upper side.
 	 *
 	 * @see mixYaw() for the exact yaw behavior.
 	 */
@@ -135,7 +134,7 @@ private:
 	 * in order to allow some yaw control on the upper end. On the lower end thrust will never
 	 * be increased, but yaw is decreased as much as required.
 	 *
-	 * If MC_REDUCE_THRUST is false, then thrust is not allowed to be decreased for yaw.
+	 * If MC_REDUCE_THRUST is false, then thrust will not be sacrificed for yaw.
 	 */
 	void mixYaw();
 
