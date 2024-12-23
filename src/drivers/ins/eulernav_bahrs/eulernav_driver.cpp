@@ -132,19 +132,72 @@ void EulerNavDriver::processDataBuffer()
 	while (_data_buffer.space_used() >= MIN_MESSAGE_LENGTH)
 	{
 		uint8_t sync_byte{0U};
+		uint16_t protocol_ver{0U};
+		uint8_t message_code{0U};
+		bool error{false};
 
-		_data_buffer.pop_front(&sync_byte, 1);
-
-		if (CSerialProtocol::uMarker1_ == sync_byte)
+		if (0 == _data_buffer.pop_front(&sync_byte, 1))
 		{
-			sync_byte = 0U;
-			_data_buffer.pop_front(&sync_byte, 1);
+			error = true;
+		}
 
-			if (CSerialProtocol::uMarker2_ == sync_byte)
+		if (false == error)
+		{
+			if (CSerialProtocol::uMarker1_ == sync_byte)
 			{
+				sync_byte = 0U;
 
+				if (0 == _data_buffer.pop_front(&sync_byte, 1))
+				{
+					error = true;
+				}
+
+				if (false == error)
+				{
+					if (CSerialProtocol::uMarker2_ == sync_byte)
+					{
+						error = retrieveProtocolVersionAndMessageType(_data_buffer, protocol_ver, message_code);
+					}
+				}
+			}
+		}
+
+		if (false == error)
+		{
+			switch (static_cast<CSerialProtocol::EMessageIds>(message_code))
+			{
+			case CSerialProtocol::EMessageIds::eInertialData:
+				break;
+			case CSerialProtocol::EMessageIds::eNavigationData:
+				break;
+			default:
+				break;
 			}
 		}
 	}
 
+}
+
+bool EulerNavDriver::retrieveProtocolVersionAndMessageType(Ringbuffer& buffer, uint16_t& protocol_ver, uint8_t& message_code)
+{
+	bool status{true};
+	auto bytes_to_pop{sizeof(protocol_ver)};
+
+	// Note: BAHRS uses little endian
+	if (bytes_to_pop != buffer.pop_front(reinterpret_cast<uint8_t*>(&protocol_ver), bytes_to_pop))
+	{
+		status = false;
+	}
+
+	if (status)
+	{
+		bytes_to_pop = 1;
+
+		if (bytes_to_pop != buffer.pop_front(&message_code, bytes_to_pop))
+		{
+			status = false;
+		}
+	}
+
+	return status;
 }
