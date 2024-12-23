@@ -40,6 +40,8 @@ private:
 
 	void processDataBuffer();
 
+	static bool retrieveProtocolVersionAndMessageType(Ringbuffer& buffer, uint16_t& protocol_ver, uint8_t& message_code);
+
 	device::Serial _serial_port;
 	Ringbuffer _data_buffer;
 	px4::Array<uint8_t, SERIAL_READ_BUFFER_SIZE> _serial_read_buffer;
