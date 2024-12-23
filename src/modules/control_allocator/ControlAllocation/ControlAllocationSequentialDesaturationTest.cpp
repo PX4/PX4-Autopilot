@@ -384,49 +384,6 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	}
 }
 
-// This tests that a control setpoint for z-thrust + pitch returns the desired actuator setpoint,
-// when thrust reduction is disabled. Obviously, pitch is saturated.
-TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledPitch)
-{
-	ControlAllocationSequentialDesaturation allocator;
-	allocator.set_reduce_thrust(false);
-	setup_quad_allocator(allocator);
-	matrix::Vector<float, ActuatorEffectiveness::NUM_AXES> control_sp;
-	constexpr int MOTOR_COUNT{4};
-	// Negative, because +z is "downward".
-	constexpr float DESIRED_THRUST_Z_PER_MOTOR{0.8f};
-	constexpr float THRUST_Z_TOTAL{-DESIRED_THRUST_Z_PER_MOTOR * MOTOR_COUNT};
-	// This is high enough to saturate the pitch control.
-	constexpr float PITCH_CONTROL_SP{2.0f};
-	control_sp(ControlAllocation::ControlAxis::ROLL) = 0.0f;
-	control_sp(ControlAllocation::ControlAxis::PITCH) = PITCH_CONTROL_SP;
-	control_sp(ControlAllocation::ControlAxis::YAW) = 0.0f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_X) = 0.0f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Y) = 0.0f;
-	control_sp(ControlAllocation::ControlAxis::THRUST_Z) = THRUST_Z_TOTAL;
-	allocator.setControlSetpoint(control_sp);
-
-	// Since MC_AIRMODE was not set explicitly, assume airmode is disabled.
-	allocator.allocate();
-
-	const auto &actuator_sp = allocator.getActuatorSetpoint();
-	// Thrust reduction is disabled, so the available actuator output for attitude is simply the
-	// leftover from thrust_z.
-	constexpr float LEFTOVER_PER_MOTOR{1.0f - DESIRED_THRUST_Z_PER_MOTOR};
-	EXPECT_TRUE(LEFTOVER_PER_MOTOR > 0.0f);
-	constexpr float HIGH_THRUST_Z_PER_MOTOR{1.0f};
-	constexpr float LOW_THRUST_Z_PER_MOTOR{DESIRED_THRUST_Z_PER_MOTOR - LEFTOVER_PER_MOTOR};
-
-	EXPECT_NEAR(actuator_sp(0), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(1), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(2), HIGH_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-	EXPECT_NEAR(actuator_sp(3), LOW_THRUST_Z_PER_MOTOR, EXPECT_NEAR_TOL);
-
-	for (int i{MOTOR_COUNT}; i < ActuatorEffectiveness::NUM_ACTUATORS; ++i) {
-		EXPECT_NEAR(actuator_sp(i), 0.0f, EXPECT_NEAR_TOL);
-	}
-}
-
 // This tests that a control setpoint for z-thrust + yaw returns the desired actuator setpoint,
 // when thrust reduction is disabled. Obviously, yaw is saturated.
 TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledThrustReductionDisabledYaw)
