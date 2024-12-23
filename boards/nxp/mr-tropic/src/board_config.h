@@ -197,7 +197,16 @@
 #define SAFETY_IOMUX      (IOMUX_CMOS_OUTPUT | IOMUX_PULL_NONE | IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_SLOW)
 #define SAFETY_SW_IOMUX   (IOMUX_CMOS_INPUT  | IOMUX_PULL_UP_22K | IOMUX_DRIVE_HIZ)
 
-// TODO GPS LED GPIO_nSAFETY_SWITCH_LED_OUT
+/* Safety Switch is HW version dependent on having an PX4IO
+ * So we init to a benign state with the _INIT definition
+ * and provide the the non _INIT one for the driver to make a run time
+ * decision to use it.
+ */
+#define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* EMC_39 */ (GPIO_PORT3 | GPIO_PIN25 | GPIO_INPUT  | SAFETY_INIT_IOMUX)
+#define GPIO_nSAFETY_SWITCH_LED_OUT        /* EMC_39 */ (GPIO_PORT3 | GPIO_PIN25 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | SAFETY_IOMUX)
+
+/* Enable the FMU to control it if there is no px4io fixme:This should be BOARD_SAFETY_LED(__ontrue) */
+#define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
 
 #define GPIO_SAFETY_SWITCH_IN              /* GPIO_B0_12 GPIO2_IO12 */ (GPIO_PORT2 | GPIO_PIN12 | GPIO_INPUT | SAFETY_SW_IOMUX)
 /* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */

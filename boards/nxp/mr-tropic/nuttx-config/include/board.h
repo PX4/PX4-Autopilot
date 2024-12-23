@@ -164,6 +164,11 @@
 #define PIN_USDHC1_CMD      (GPIO_USDHC1_CMD_1   | USDHC1_CMD_IOMUX)   /* GPIO_SD_B0_00 */
 #define PIN_USDHC1_CD       (PIN_USDHC1_D3)
 
+/* #define PIN_USDHC1_CD       (GPIO_USDHC1_CD_3    | USDHC1_CD_IOMUX)
+ *  CD_B Pin works fine but somehow the driver has a timing issue with
+ *  Thus use D3 instead
+ */
+
 /* Ideal 400Khz for initial inquiry.
  *  Given input clock 198 Mhz.
  *   386.71875 KHz =  198 Mhz / (256 * 2)
