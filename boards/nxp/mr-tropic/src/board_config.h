@@ -168,7 +168,7 @@
 #define TONE_ALARM_TIMER        3  /* FlexPWM 3 */
 #define TONE_ALARM_CHANNEL      1  /* GPIO_EMC_31 PWM3_PWMA01 */
 
-#define GPIO_BUZZER_1           /* GPIO_EMC_31  GPIO4_IO31  */ (GPIO_PORT1 | GPIO_PIN23  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
+#define GPIO_BUZZER_1           /* GPIO_EMC_31  GPIO4_IO31  */ (GPIO_PORT4 | GPIO_PIN31  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GENERAL_OUTPUT_IOMUX)
 
 #define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
 #define GPIO_TONE_ALARM         (GPIO_FLEXPWM3_PWMA01_1 | GENERAL_OUTPUT_IOMUX)
@@ -182,7 +182,7 @@
 #define HRT_TIMER               1  /* use GPT1 for the HRT */
 #define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
-#define RC_SERIAL_PORT                  "/dev/ttyS4"
+#define RC_SERIAL_PORT                  "/dev/ttyS5"
 #define RC_SERIAL_SINGLEWIRE            1 // Suport Single wire wiring
 #define RC_SERIAL_SWAP_RXTX             1 // Set Swap (but not supported in HW) to use Single wire
 #define RC_SERIAL_SWAP_USING_SINGLEWIRE 1 // Set to use Single wire swap as HW does not support swap
