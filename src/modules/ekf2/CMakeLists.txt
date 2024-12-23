@@ -277,6 +277,7 @@ px4_add_module(
 		world_magnetic_model
 
 		${EKF_LIBS}
+		lat_lon_alt
 		bias_estimator
 		output_predictor
 	UNITY_BUILD

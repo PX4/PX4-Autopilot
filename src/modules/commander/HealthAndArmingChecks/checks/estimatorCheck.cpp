@@ -813,7 +813,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 
 
 	// altitude
-	failsafe_flags.local_altitude_invalid = !lpos.z_valid || (now > lpos.timestamp + (_param_com_pos_fs_delay.get() * 1_s));
+	failsafe_flags.local_altitude_invalid = !lpos.z_valid || (now > lpos.timestamp + 1_s);
 
 
 	// attitude
@@ -864,7 +864,7 @@ bool EstimatorChecks::checkPosVelValidity(const hrt_abstime &now, const bool dat
 		const bool was_valid) const
 {
 	bool valid = was_valid;
-	const bool data_stale = (now > data_timestamp_us + _param_com_pos_fs_delay.get() * 1_s) || (data_timestamp_us == 0);
+	const bool data_stale = (now > data_timestamp_us + 1_s) || (data_timestamp_us == 0);
 	const float req_accuracy = (was_valid ? required_accuracy * 2.5f : required_accuracy);
 	const bool level_check_pass = data_valid && !data_stale && (data_accuracy < req_accuracy);
 

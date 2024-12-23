@@ -165,6 +165,17 @@ public:
 	bool getDeferFailsafes() const { return _defer_failsafes; }
 	bool failsafeDeferred() const { return _failsafe_defer_started != 0; }
 
+	using UserCallback = void(*)(void *);
+
+	/**
+	 * Register a callback that is called before notifying the user.
+	 */
+	void setOnNotifyUserCallback(UserCallback callback, void *arg)
+	{
+		_on_notify_user_cb = callback;
+		_on_notify_user_arg = arg;
+	}
+
 protected:
 	enum class UserTakeoverAllowed {
 		Always, ///< allow takeover (immediately)
@@ -277,6 +288,9 @@ private:
 	bool _duplicate_reported_once{false};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
+
+	UserCallback _on_notify_user_cb{nullptr};
+	void *_on_notify_user_arg{nullptr};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamFloat<px4::params::COM_FAIL_ACT_T>) 	_param_com_fail_act_t

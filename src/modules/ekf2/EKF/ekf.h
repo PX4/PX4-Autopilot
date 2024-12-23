@@ -102,8 +102,8 @@ public:
 	bool isTerrainEstimateValid() const { return _terrain_valid; }
 
 	// get the estimated terrain vertical position relative to the NED origin
-	float getTerrainVertPos() const { return _state.terrain; };
-	float getHagl() const { return _state.terrain - _state.pos(2); }
+	float getTerrainVertPos() const { return _state.terrain + getEkfGlobalOriginAltitude(); };
+	float getHagl() const { return _state.terrain + _gpos.altitude(); }
 
 	// get the terrain variance
 	float getTerrainVariance() const { return P(State::terrain.idx, State::terrain.idx); }
@@ -191,9 +191,9 @@ public:
 	void getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
 	bool checkLatLonValidity(double latitude, double longitude);
 	bool checkAltitudeValidity(float altitude);
-	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float eph = NAN, float epv = NAN);
-	bool setEkfGlobalOriginFromCurrentPos(double latitude, double longitude, float altitude, float eph = NAN,
-					      float epv = NAN);
+	bool setEkfGlobalOrigin(double latitude, double longitude, float altitude, float hpos_var = NAN, float vpos_var = NAN);
+	bool resetGlobalPositionTo(double latitude, double longitude, float altitude, float hpos_var = NAN,
+				   float vpos_var = NAN);
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const;
@@ -217,17 +217,14 @@ public:
 	void resetAccelBias();
 	void resetAccelBiasCov();
 
-	// return true if the global position estimate is valid
-	// return true if the origin is set we are not doing unconstrained free inertial navigation
-	// and have not started using synthetic position observations to constrain drift
 	bool isGlobalHorizontalPositionValid() const
 	{
-		return _pos_ref.isInitialized() && isLocalHorizontalPositionValid();
+		return _local_origin_lat_lon.isInitialized() && isLocalHorizontalPositionValid();
 	}
 
 	bool isGlobalVerticalPositionValid() const
 	{
-		return _pos_ref.isInitialized() && isLocalVerticalPositionValid();
+		return PX4_ISFINITE(_local_origin_alt) && isLocalVerticalPositionValid();
 	}
 
 	bool isLocalHorizontalPositionValid() const
@@ -375,8 +372,6 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	void collect_gps(const gnssSample &gps);
-
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 
@@ -473,6 +468,8 @@ private:
 
 	StateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
+	LatLonAlt _gpos{0.0, 0.0, 0.f};
+
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
 
 	uint64_t _time_last_horizontal_aiding{0}; ///< amount of time we have been doing inertial only deadreckoning (uSec)
@@ -486,14 +483,20 @@ private:
 	uint64_t _time_last_heading_fuse{0};
 	uint64_t _time_last_terrain_fuse{0};
 
-	Vector3f _last_known_pos{};		///< last known local position vector (m)
+	LatLonAlt _last_known_gpos{};
 
-	Vector3f _earth_rate_NED{};	///< earth rotation vector (NED) in rad/s
+	Vector3f _earth_rate_NED{}; ///< earth rotation vector (NED) in rad/s
+	double _earth_rate_lat_ref_rad{0.0}; ///< latitude at which the earth rate was evaluated (radians)
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 
-	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
-	float _height_rate_lpf{0.0f};
+	static constexpr float _kAccelHorizLpfTimeConstant = 1.f;
+	AlphaFilter<Vector2f> _accel_horiz_lpf{_kAccelHorizLpfTimeConstant}; ///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
+
+#if defined(CONFIG_EKF2_WIND)
+	static constexpr float _kHeightRateLpfTimeConstant = 10.f;
+	AlphaFilter<float> _height_rate_lpf{_kHeightRateLpfTimeConstant};
+#endif // CONFIG_EKF2_WIND
 
 	SquareMatrixState P{};	///< state covariance matrix
 
@@ -520,7 +523,7 @@ private:
 	Vector3f _ref_body_rate{};
 
 	Vector2f _flow_vel_body{};                      ///< velocity from corrected flow measurement (body frame)(m/s)
-	AlphaFilter<Vector2f> _flow_vel_body_lpf{0.1f}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
+	AlphaFilter<Vector2f> _flow_vel_body_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
 	uint32_t _flow_counter{0};                      ///< number of flow samples read for initialization
 
 	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
@@ -585,14 +588,15 @@ private:
 
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
-	AlphaFilter<Vector3f> _accel_lpf{0.1f};	///< filtered accelerometer measurement used to align tilt (m/s/s)
-	AlphaFilter<Vector3f> _gyro_lpf{0.1f};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
+	static constexpr float _kSensorLpfTimeConstant = 0.09f;
+	AlphaFilter<Vector3f> _accel_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered accelerometer measurement used to align tilt (m/s/s)
+	AlphaFilter<Vector3f> _gyro_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	estimator_aid_source1d_s _aid_src_baro_hgt {};
 
 	// Variables used to perform in flight resets and switch between height sources
-	AlphaFilter<float> _baro_lpf{0.1f};	///< filtered barometric height measurement (m)
+	AlphaFilter<float> _baro_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered barometric height measurement (m)
 	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
 
 	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
@@ -602,12 +606,12 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// used by magnetometer fusion mode selection
-	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
+	AlphaFilter<float> _mag_heading_innov_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};
 	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
 	estimator_aid_source3d_s _aid_src_mag{};
 
-	AlphaFilter<Vector3f> _mag_lpf{0.1f};	///< filtered magnetometer measurement for instant reset (Gauss)
+	AlphaFilter<Vector3f> _mag_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 
 	// Variables used to control activation of post takeoff functionality
@@ -645,11 +649,11 @@ private:
 		P.slice<S.dof, S.dof>(S.idx, S.idx) = cov;
 	}
 
-	bool setLatLonOrigin(double latitude, double longitude, float eph = NAN);
-	bool setAltOrigin(float altitude, float epv = NAN);
+	bool setLatLonOrigin(double latitude, double longitude, float hpos_var = NAN);
+	bool setAltOrigin(float altitude, float vpos_var = NAN);
 
-	bool setLatLonOriginFromCurrentPos(double latitude, double longitude, float eph = NAN);
-	bool setAltOriginFromCurrentPos(float altitude, float epv = NAN);
+	bool resetLatLonTo(double latitude, double longitude, float hpos_var = NAN);
+	bool initialiseAltitudeTo(float altitude, float vpos_var = NAN);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
@@ -711,14 +715,22 @@ private:
 
 	void resetHorizontalPositionToLastKnown();
 
-	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
-	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
+	void resetHorizontalPositionTo(const double &new_latitude, const double &new_longitude,
+				       const Vector2f &new_horz_pos_var);
+	void resetHorizontalPositionTo(const double &new_latitude, const double &new_longitude, const float pos_var = NAN) { resetHorizontalPositionTo(new_latitude, new_longitude, Vector2f(pos_var, pos_var)); }
+	void resetHorizontalPositionTo(const Vector2f &new_pos, const Vector2f &new_horz_pos_var);
+
+	Vector2f getLocalHorizontalPosition() const;
+
+	Vector2f computeDeltaHorizontalPosition(const double &new_latitude, const double &new_longitude) const;
+	void updateHorizontalPositionResetStatus(const Vector2f &delta);
 
 	void resetWindTo(const Vector2f &wind, const Vector2f &wind_var);
 
 	bool isHeightResetRequired() const;
 
-	void resetVerticalPositionTo(float new_vert_pos, float new_vert_pos_var = NAN);
+	void resetAltitudeTo(float new_altitude, float new_vert_pos_var = NAN);
+	void updateVerticalPositionResetStatus(const float delta_z);
 
 	void resetVerticalVelocityToZero();
 
@@ -740,6 +752,7 @@ private:
 	void controlTerrainFakeFusion();
 
 	void updateTerrainValidity();
+	void updateTerrainResetStatus(const float delta_z);
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
@@ -832,6 +845,7 @@ private:
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient,
 			       bool reset, estimator_aid_source2d_s &aid_src);
+
 	void stopEvPosFusion();
 	void stopEvHgtFusion();
 	void stopEvVelFusion();
@@ -1003,25 +1017,13 @@ private:
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	HeightBiasEstimator _ev_hgt_b_est {HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{PositionSensor::EV, _position_sensor_ref};
-	AlphaFilter<Quatf> _ev_q_error_filt{0.001f};
+	static constexpr float _kQuatErrorLpfTimeConstant = 10.f;
+	AlphaFilter<Quatf> _ev_q_error_filt{_dt_ekf_avg, _kQuatErrorLpfTimeConstant};
 	bool _ev_q_error_initialized{false};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	// state was reset to aid source, keep observation and update all other fields appropriately (zero innovation, etc)
-	void resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const
-	{
-		status.time_last_fuse = _time_delayed_us;
-
-		status.innovation = 0.f;
-		status.innovation_filtered = 0.f;
-		status.innovation_variance = status.observation_variance;
-
-		status.test_ratio = 0.f;
-		status.test_ratio_filtered = 0.f;
-
-		status.innovation_rejected = false;
-		status.fused = true;
-	}
+	void resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const;
 
 	// helper used for populating and filtering estimator aid source struct for logging
 	void updateAidSourceStatus(estimator_aid_source1d_s &status, const uint64_t &timestamp_sample,
@@ -1049,9 +1051,9 @@ private:
 	}
 
 	// helper used for populating and filtering estimator aid source struct for logging
-	template <typename T, typename S>
+	template <typename T, typename S, typename D>
 	void updateAidSourceStatus(T &status, const uint64_t &timestamp_sample,
-				   const S &observation, const S &observation_variance,
+				   const D &observation, const S &observation_variance,
 				   const S &innovation, const S &innovation_variance,
 				   float innovation_gate = 1.f) const
 	{
@@ -1106,7 +1108,7 @@ private:
 
 			status.test_ratio[i] = test_ratio;
 
-			status.observation[i] = observation(i);
+			status.observation[i] = static_cast<double>(observation(i));
 			status.observation_variance[i] = observation_variance(i);
 
 			status.innovation[i] = innovation(i);

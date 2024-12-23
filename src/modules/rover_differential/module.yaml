@@ -191,17 +191,6 @@ parameters:
         decimal: 2
         default: 2
 
-      RD_MISS_SPD_DEF:
-        description:
-          short: Default forward speed for the rover during auto modes
-        type: float
-        unit: m/s
-        min: 0
-        max: 100
-        increment: 0.01
-        decimal: 2
-        default: 1
-
       RD_TRANS_TRN_DRV:
         description:
             short: Yaw error threshhold to switch from spot turning to driving
@@ -228,3 +217,19 @@ parameters:
         increment: 0.01
         decimal: 3
         default: 0.174533
+
+      RD_MISS_SPD_GAIN:
+        description:
+          short: Tuning parameter for the speed reduction during waypoint transition
+          long: |
+            The waypoint transition speed is calculated as:
+            Transition_speed = Maximum_speed * (1 - normalized_transition_angle * RM_MISS_VEL_GAIN)
+            The normalized transition angle is the angle between the line segment from prev-curr WP and curr-next WP
+            interpolated from [0, 180] -> [0, 1].
+            Higher value -> More speed reduction during waypoint transitions.
+        type: float
+        min: 0.05
+        max: 100
+        increment: 0.01
+        decimal: 2
+        default: 1

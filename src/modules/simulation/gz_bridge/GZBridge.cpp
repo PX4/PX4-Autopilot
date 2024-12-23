@@ -226,17 +226,15 @@ int GZBridge::init()
 		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
 	}
 
-#if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
-	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
-					"/link/airspeed_link/sensor/air_speed/air_speed";
+	std::string airspeed_topic = "/world/" + _world_name + "/model/" + _model_name +
+				     "/link/airspeed_link/sensor/air_speed/air_speed";
 
-	if (!_node.Subscribe(airpressure_topic, &GZBridge::airspeedCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", airpressure_topic.c_str());
+	if (!_node.Subscribe(airspeed_topic, &GZBridge::airspeedCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", airspeed_topic.c_str());
 		return PX4_ERROR;
 	}
 
-#endif
 	// Air pressure: /world/$WORLD/model/$MODEL/link/base_link/sensor/air_pressure_sensor/air_pressure
 	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
 					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
@@ -267,6 +265,11 @@ int GZBridge::init()
 
 	if (!_mixing_interface_wheel.init(_model_name)) {
 		PX4_ERR("failed to init motor output");
+		return PX4_ERROR;
+	}
+
+	if (!_gimbal.init(_world_name, _model_name)) {
+		PX4_ERR("failed to init gimbal");
 		return PX4_ERROR;
 	}
 
@@ -449,8 +452,8 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-#if 0
-void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
+
+void GZBridge::airspeedCallback(const gz::msgs::AirSpeed &air_speed)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -475,7 +478,6 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 
 	pthread_mutex_unlock(&_node_mutex);
 }
-#endif
 
 void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 {
@@ -798,7 +800,10 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 			pose_orientation.y(),
 			pose_orientation.z());
 
+	const gz::math::Quaterniond q_left(0.7071068, 0, 0, -0.7071068);
+
 	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
+
 	const gz::math::Quaterniond q_down(0, 1, 0, 0);
 
 	if (q_sensor.Equal(q_front, 0.03)) {
@@ -807,8 +812,15 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 	} else if (q_sensor.Equal(q_down, 0.03)) {
 		distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
+	} else if (q_sensor.Equal(q_left, 0.03)) {
+		distance_sensor.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+
 	} else {
 		distance_sensor.orientation = distance_sensor_s::ROTATION_CUSTOM;
+		distance_sensor.q[0] = q_sensor.W();
+		distance_sensor.q[1] = q_sensor.X();
+		distance_sensor.q[2] = q_sensor.Y();
+		distance_sensor.q[3] = q_sensor.Z();
 	}
 
 	_distance_sensor_pub.publish(distance_sensor);
@@ -816,7 +828,7 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 
 void GZBridge::laserScanCallback(const gz::msgs::LaserScan &scan)
 {
-	static constexpr int SECTOR_SIZE_DEG = 10; // PX4 Collision Prevention only has 36 sectors of 10 degrees each
+	static constexpr int SECTOR_SIZE_DEG = 5; // PX4 Collision Prevention uses 5 degree sectors
 
 	double angle_min_deg = scan.angle_min() * 180 / M_PI;
 	double angle_step_deg = scan.angle_step() * 180 / M_PI;
@@ -1008,6 +1020,7 @@ void GZBridge::Run()
 		_mixing_interface_esc.stop();
 		_mixing_interface_servo.stop();
 		_mixing_interface_wheel.stop();
+		_gimbal.stop();
 
 		exit_and_cleanup();
 		return;
@@ -1024,6 +1037,7 @@ void GZBridge::Run()
 		_mixing_interface_esc.updateParams();
 		_mixing_interface_servo.updateParams();
 		_mixing_interface_wheel.updateParams();
+		_gimbal.updateParams();
 	}
 
 	ScheduleDelayed(10_ms);

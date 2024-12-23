@@ -47,7 +47,6 @@ list(APPEND flight_tasks_all
 	ManualAltitude
 	ManualAltitudeSmoothVel
 	ManualPosition
-	ManualPositionSmoothVel
 	Transition
 )
 
