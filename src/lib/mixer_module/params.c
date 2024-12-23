@@ -30,6 +30,7 @@ PARAM_DEFINE_INT32(MC_AIRMODE, 0);
  *
  * If false, Z-thrust is never sacrificed for yaw actuation.
  * If true, default behavior. Z-thrust is reduced to make room yaw actuation when saturated.
+ * Only applies when airmode is disabled.
  *
  * @boolean
  * @group Mixer Output

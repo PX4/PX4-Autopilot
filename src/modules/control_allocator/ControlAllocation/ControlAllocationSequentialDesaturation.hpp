@@ -120,7 +120,6 @@ private:
 	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
 	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
 	 * Thrust can be reduced to unsaturate the upper side.
-	 *
 	 * @see mixYaw() for the exact yaw behavior.
 	 */
 	void mixAirmodeDisabled();
@@ -140,7 +139,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,  ///< air-mode
-		// If false, thrust is never reduced to increase attitude control,
+		// If false, thrust is never sacrificed for yaw actuation,
 		// and MINIMUM_YAW_MARGIN has no effect.
 		// Only applies when airmode is disabled.
 		(ParamBool<px4::params::MC_REDUCE_THRUST>) _param_mc_reduce_thrust

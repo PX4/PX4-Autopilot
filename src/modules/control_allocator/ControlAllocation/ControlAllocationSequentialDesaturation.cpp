@@ -192,10 +192,8 @@ ControlAllocationSequentialDesaturation::mixAirmodeDisabled()
 		pitch(i) = _mix(i, ControlAxis::PITCH);
 	}
 
-	if (_param_mc_reduce_thrust.get()) {
-		// only reduce thrust
-		desaturateActuators(_actuator_sp, thrust_z, true);
-	}
+	// only reduce thrust
+	desaturateActuators(_actuator_sp, thrust_z, true);
 
 	// Reduce roll/pitch acceleration if needed to unsaturate
 	desaturateActuators(_actuator_sp, roll);
