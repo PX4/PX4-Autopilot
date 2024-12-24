@@ -1,0 +1,6 @@
+menuconfig MODULES_SIMULATION_GZ_PLUGIN
+	bool "gz_plugin"
+	default n
+	depends on PLATFORM_POSIX
+	---help---
+		Enable support for gz_plugin

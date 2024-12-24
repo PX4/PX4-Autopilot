@@ -16,10 +16,13 @@ int calculate_flow(const gz::msgs::Image &image_msg, uint64_t sim_time, int &int
 {
 	if (!_optical_flow) {
 		float hfov = 1.74;
-		int output_rate = 30;
+		int output_rate = 30; // TODO: calculate it
 		int image_width = image_msg.width();
 		int image_height = image_msg.height();
 		float focal_length = (image_width / 2.0f) / tan(hfov / 2.0f);
+
+		printf("width %d\n", image_width);
+		printf("height %d\n", image_height);
 
 		_optical_flow = new OpticalFlowOpenCV(focal_length, focal_length, output_rate, image_width, image_height);
 	}

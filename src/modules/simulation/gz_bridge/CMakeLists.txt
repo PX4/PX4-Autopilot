@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-add_subdirectory(camera)
+# add_subdirectory(camera)
 
 # Find the gz_Transport library
 # Look for GZ Ionic or Harmonic
@@ -68,7 +68,7 @@ if(gz-transport_FOUND)
 		DEPENDS
 			mixer_module
 			px4_work_queue
-			gz_camera
+			# gz_camera
 			${GZ_TRANSPORT_LIB}
 		MODULE_CONFIG
 			module.yaml
