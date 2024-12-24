@@ -50,29 +50,6 @@ const struct flexspi_nor_config_s g_flash_config = {
 			[0 + 1] = FLEXSPI_LUT_SEQ(DUMMY_SDR, FLEXSPI_4PAD, 0x06,
 						  READ_SDR, FLEXSPI_4PAD, 0x04),
 
-			/* Read Status Register-1 */
-			[4 * 1 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x05,
-						      READ_SDR, FLEXSPI_1PAD, 0x04),
-
-			/* Write Status Register-1 */
-			[4 * 3 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x01, STOP, FLEXSPI_1PAD, 0x0),
-
-			/* Sector Erase (4KB) */
-			[4 * 5 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x20,
-						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
-
-			/* Block Erase (64KB) */
-			[4 * 8 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0xd8,
-						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
-
-			/* Page Program */
-			[4 * 9 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x02,
-						      RADDR_SDR, FLEXSPI_1PAD, 0x18),
-			[4 * 9 + 1] = FLEXSPI_LUT_SEQ(WRITE_SDR, FLEXSPI_1PAD, 0x04,
-						      STOP, FLEXSPI_1PAD, 0x0),
-
-			/* Chip Erase */
-			[4 * 11 + 0] =  FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x60, STOP, FLEXSPI_1PAD, 0x0),
 		},
 	},
 

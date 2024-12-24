@@ -43,12 +43,13 @@
 #ifdef CONFIG_IMXRT_FLEXSPI
 
 
-#define NOR_USED_SECTORS  0x0040U /* 64 * 4KB = 256KB */
-
-#define NOR_TOTAL_SECTORS 0x0400U
+#define NOR_USED_SECTORS  (0x20U)   /* 32 * 4KB = 128KB */
+#define NOR_TOTAL_SECTORS (0x0400U)
+#define NOR_PAGE_SIZE     (0x0100U) /* 256 bytes */
+#define NOR_SECTOR_SIZE   (0x1000U) /* 4KB */
 #define NOR_START_SECTOR  (NOR_TOTAL_SECTORS - NOR_USED_SECTORS)
-#define NOR_PAGE_SIZE     0x0100U /* 256 bytes */
-#define NOR_SECTOR_SIZE   0x1000U /* 4KB */
+#define NOR_START_PAGE    ((NOR_START_SECTOR * NOR_SECTOR_SIZE) / NOR_PAGE_SIZE)
+#define NOR_STORAGE_ADDR  (IMXRT_FLEX2CIPHER_BASE + NOR_START_SECTOR * NOR_SECTOR_SIZE)
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -58,10 +59,77 @@ enum {
 	READ_FAST = 0,
 	READ_STATUS_REG = 1,
 	WRITE_STATUS_REG = 3,
+	WRITE_ENABLE = 4,
 	SECTOR_ERASE_4K = 5,
-	SECTOR_ERASE_64K = 8,
+	READ_FAST_QUAD_OUTPUT = 6,
+	PAGE_PROGRAM_QUAD_INPUT = 7,
 	PAGE_PROGRAM = 9,
 	CHIP_ERASE = 11,
+};
+
+static const uint32_t g_flexspi_nor_lut[][4] = {
+	[READ_FAST] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0xeb,
+				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_4PAD, 0x18),
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_DUMMY_SDR, FLEXSPI_4PAD, 0x06,
+				FLEXSPI_COMMAND_READ_SDR,  FLEXSPI_4PAD, 0x04),
+	},
+
+	[READ_STATUS_REG] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x05,
+				FLEXSPI_COMMAND_READ_SDR,  FLEXSPI_1PAD, 0x04),
+	},
+
+	[WRITE_STATUS_REG] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x01,
+				FLEXSPI_COMMAND_WRITE_SDR, FLEXSPI_1PAD, 0x04),
+	},
+
+	[WRITE_ENABLE] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x06,
+				FLEXSPI_COMMAND_STOP,      FLEXSPI_1PAD, 0),
+	},
+
+	[SECTOR_ERASE_4K] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x20,
+				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_1PAD, 0x18),
+	},
+
+	[CHIP_ERASE] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0xc7,
+				FLEXSPI_COMMAND_STOP,      FLEXSPI_1PAD, 0),
+	},
+
+	[PAGE_PROGRAM] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x02,
+				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_1PAD, 0x18),
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_WRITE_SDR, FLEXSPI_1PAD, 0x04,
+				FLEXSPI_COMMAND_STOP,  FLEXSPI_1PAD, 0x0),
+	},
+
+	[READ_FAST_QUAD_OUTPUT] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x6b,
+				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_1PAD, 0x18),
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_DUMMY_SDR, FLEXSPI_4PAD, 0x08,
+				FLEXSPI_COMMAND_READ_SDR,  FLEXSPI_4PAD, 0x04),
+	},
+
+	[PAGE_PROGRAM_QUAD_INPUT] =
+	{
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_SDR,       FLEXSPI_1PAD, 0x32,
+				FLEXSPI_COMMAND_RADDR_SDR, FLEXSPI_1PAD, 0x18),
+		FLEXSPI_LUT_SEQ(FLEXSPI_COMMAND_WRITE_SDR, FLEXSPI_4PAD, 0x04,
+				FLEXSPI_COMMAND_STOP,      FLEXSPI_1PAD, 0),
+	},
+
 };
 
 /****************************************************************************
@@ -141,7 +209,7 @@ static struct imxrt_flexspi_storage_dev_s g_flexspi_nor = {
 		.name   = "imxrt_flexspi_storage"
 	},
 	.flexspi = (void *)0,
-	.ahb_base = (uint8_t *) IMXRT_FLEX2CIPHER_BASE,
+	.ahb_base = (uint8_t *) NOR_STORAGE_ADDR,
 	.port = FLEXSPI_PORT_A1,
 	.config = &g_flexspi_device_config
 };
@@ -205,7 +273,6 @@ static int imxrt_flexspi_nor_write_status(
 static int imxrt_flexspi_storage_write_enable(
 	const struct imxrt_flexspi_storage_dev_s *dev)
 {
-#if 0
 	int stat;
 
 	struct flexspi_transfer_s transfer = {
@@ -224,7 +291,6 @@ static int imxrt_flexspi_storage_write_enable(
 		return -EIO;
 	}
 
-#endif
 	return 0;
 }
 
@@ -293,7 +359,7 @@ static int imxrt_flexspi_storage_page_program(
 		.port = dev->port,
 		.cmd_type = FLEXSPI_WRITE,
 		.seq_number = 1,
-		.seq_index = PAGE_PROGRAM,
+		.seq_index = PAGE_PROGRAM_QUAD_INPUT,
 		.data = (uint32_t *) buffer,
 		.data_size = len,
 	};
@@ -412,7 +478,7 @@ static ssize_t imxrt_flexspi_storage_bwrite(struct mtd_dev_s *dev,
 	struct imxrt_flexspi_storage_dev_s *priv =
 		(struct imxrt_flexspi_storage_dev_s *)dev;
 	size_t len = nblocks * NOR_PAGE_SIZE;
-	off_t offset = startblock * NOR_PAGE_SIZE;
+	off_t offset = (startblock + NOR_START_PAGE) * NOR_PAGE_SIZE;
 	uint8_t *src = (uint8_t *) buffer;
 #ifdef CONFIG_ARMV7M_DCACHE
 	uint8_t *dst = priv->ahb_base + startblock * NOR_PAGE_SIZE;
@@ -421,15 +487,23 @@ static ssize_t imxrt_flexspi_storage_bwrite(struct mtd_dev_s *dev,
 
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
+	FLEXSPI_CONFIGURE_PREFETCH(priv->flexspi, false);
+
+	irqstate_t flags = enter_critical_section();
+
 	while (len) {
 		i = MIN(NOR_PAGE_SIZE, len);
 		imxrt_flexspi_storage_write_enable(priv);
 		imxrt_flexspi_storage_page_program(priv, offset, src, i);
 		imxrt_flexspi_storage_wait_bus_busy(priv);
-		FLEXSPI_SOFTWARE_RESET(priv->flexspi);
 		offset += i;
+		src += i;
 		len -= i;
 	}
+
+	FLEXSPI_CONFIGURE_PREFETCH(priv->flexspi, true);
+
+	leave_critical_section(flags);
 
 #ifdef CONFIG_ARMV7M_DCACHE
 	up_invalidate_dcache((uintptr_t)dst,
@@ -450,7 +524,13 @@ static int imxrt_flexspi_storage_erase(struct mtd_dev_s *dev,
 	uint8_t *dst = priv->ahb_base + startblock * NOR_SECTOR_SIZE;
 #endif
 
+	startblock += NOR_START_SECTOR;
+
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
+
+	FLEXSPI_CONFIGURE_PREFETCH(priv->flexspi, false);
+
+	irqstate_t flags = enter_critical_section();
 
 	while (blocksleft-- > 0) {
 		/* Erase each sector */
@@ -458,9 +538,12 @@ static int imxrt_flexspi_storage_erase(struct mtd_dev_s *dev,
 		imxrt_flexspi_storage_write_enable(priv);
 		imxrt_flexspi_storage_erase_sector(priv, startblock * NOR_SECTOR_SIZE);
 		imxrt_flexspi_storage_wait_bus_busy(priv);
-		FLEXSPI_SOFTWARE_RESET(priv->flexspi);
 		startblock++;
 	}
+
+	FLEXSPI_CONFIGURE_PREFETCH(priv->flexspi, true);
+
+	leave_critical_section(flags);
 
 #ifdef CONFIG_ARMV7M_DCACHE
 	up_invalidate_dcache((uintptr_t)dst,
@@ -515,7 +598,7 @@ static int imxrt_flexspi_storage_ioctl(struct mtd_dev_s *dev,
 			if (info != NULL) {
 				info->numsectors  = (NOR_USED_SECTORS * NOR_SECTOR_SIZE) / NOR_PAGE_SIZE;
 				info->sectorsize  = NOR_PAGE_SIZE;
-				info->startsector = NOR_START_SECTOR;
+				info->startsector = 0;
 				info->parent[0]   = '\0';
 				ret               = OK;
 			}
@@ -528,7 +611,6 @@ static int imxrt_flexspi_storage_ioctl(struct mtd_dev_s *dev,
 			imxrt_flexspi_storage_write_enable(priv);
 			imxrt_flexspi_storage_erase_chip(priv);
 			imxrt_flexspi_storage_wait_bus_busy(priv);
-			FLEXSPI_SOFTWARE_RESET(priv->flexspi);
 			ret               = OK;
 		}
 		break;
@@ -585,6 +667,11 @@ int imxrt_flexspi_storage_initialize(void)
 		ret = OK;
 	}
 
+	FLEXSPI_UPDATE_LUT(g_flexspi_nor.flexspi,
+			   0,
+			   (const uint32_t *)g_flexspi_nor_lut,
+			   sizeof(g_flexspi_nor_lut) / 4);
+
 	/* Register the MTD driver so that it can be accessed from the
 	 * VFS.
 	 */
@@ -600,7 +687,7 @@ int imxrt_flexspi_storage_initialize(void)
 
 	/* Mount the LittleFS file system */
 
-	ret = nx_mount("/dev/nor", "/mnt/lfs", "littlefs", 0,
+	ret = nx_mount("/dev/nor", "/fs/nor", "littlefs", 0,
 		       "autoformat");
 
 	if (ret < 0) {
