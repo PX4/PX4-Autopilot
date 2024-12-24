@@ -14,5 +14,7 @@ param set-default EKF2_RNG_A_VMAX 3
 echo "disabling Sim GPS"
 param set-default SYS_HAS_GPS 0
 param set-default SIM_GPS_USED 0
+param set-default EKF2_GPS_CTRL 0
+
 param set-default SDLOG_PROFILE 251
 

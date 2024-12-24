@@ -1,0 +1,41 @@
+// msgs/optical_flow.proto
+syntax = "proto3";
+package sensor_msgs.msgs;
+
+message OpticalFlow {
+  // Timestamp (microseconds, since system start)
+  int64 time_usec = 1;
+
+  // Sensor ID
+  float sensor_id = 2;
+
+  // Integration time
+  int32 integration_time_us = 3;
+
+  // Integrated x-axis flow (rad)
+  float integrated_x = 4;
+
+  // Integrated y-axis flow (rad)
+  float integrated_y = 5;
+
+  // Integrated x-axis gyro rate (rad)
+  float integrated_xgyro = 6;
+
+  // Integrated y-axis gyro rate (rad)
+  float integrated_ygyro = 7;
+
+  // Integrated z-axis gyro rate (rad)
+  float integrated_zgyro = 8;
+
+  // Temperature (degrees C)
+  float temperature = 9;
+
+  // Quality of optical flow measurement (0: bad, 255: maximum quality)
+  float quality = 10;
+
+  // Time since last measurement (microseconds)
+  int32 time_delta_distance_us = 11;
+
+  // Distance to ground (meters)
+  float distance = 12;
+}
