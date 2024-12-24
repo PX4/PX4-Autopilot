@@ -125,6 +125,8 @@
 *(.text.imxrt_flexspi_read_blocking)
 *(.text.imxrt_flexspi_check_and_clear_error)
 *(.text.imxrt_flexspi_get_bus_idle_status)
+*(.text.imxrt_flexspi_configure_prefetch)
+*(.text.imxrt_flexspi_configure_prefetch_private)
 *(.text.imxrt_flexspi_storage_write_enable)
 *(.text.imxrt_flexspi_storage_wait_bus_busy)
 *(.text.imxrt_flexspi_storage_read_status)

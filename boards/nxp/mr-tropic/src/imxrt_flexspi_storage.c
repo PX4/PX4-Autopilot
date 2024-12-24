@@ -42,6 +42,9 @@
 
 #ifdef CONFIG_IMXRT_FLEXSPI
 
+/* Used sectors must be multiple of the flash block size
+ * i.e. W25Q32JV has a block size of 64KB
+*/
 
 #define NOR_USED_SECTORS  (0x20U)   /* 32 * 4KB = 128KB */
 #define NOR_TOTAL_SECTORS (0x0400U)
@@ -243,33 +246,6 @@ static int imxrt_flexspi_storage_read_status(
 	return 0;
 }
 
-#if 0
-static int imxrt_flexspi_nor_write_status(
-	const struct imxrt_flexspi_storage_dev_s *dev,
-	uint32_t *status)
-{
-	int stat;
-
-	struct flexspi_transfer_s transfer = {
-		.device_address = 0,
-		.port = dev->port,
-		.cmd_type = FLEXSPI_WRITE,
-		.seq_number = 1,
-		.seq_index = WRITE_STATUS_REG,
-		.data = status,
-		.data_size = 1,
-	};
-
-	stat = FLEXSPI_TRANSFER(dev->flexspi, &transfer);
-
-	if (stat != 0) {
-		return -EIO;
-	}
-
-	return 0;
-}
-#endif
-
 static int imxrt_flexspi_storage_write_enable(
 	const struct imxrt_flexspi_storage_dev_s *dev)
 {
@@ -322,28 +298,8 @@ static int imxrt_flexspi_storage_erase_sector(
 static int imxrt_flexspi_storage_erase_chip(
 	const struct imxrt_flexspi_storage_dev_s *dev)
 {
-#if 0
-	int stat;
-
-	struct flexspi_transfer_s transfer = {
-		.device_address = 0,
-		.port = dev->port,
-		.cmd_type = FLEXSPI_COMMAND,
-		.seq_number = 1,
-		.seq_index = CHIP_ERASE,
-		.data = NULL,
-		.data_size = 0,
-	};
-
-	stat = FLEXSPI_TRANSFER(dev->flexspi, &transfer);
-
-	if (stat != 0) {
-		return -EIO;
-	}
-
-#endif
-	printf("WARNING TRYING TO ERASE THE WHOLE CHIP!!!!\n");
-	return 0;
+	/* We can't erase the chip we're executing from */
+	return -EINVAL;
 }
 
 static int imxrt_flexspi_storage_page_program(
@@ -395,39 +351,6 @@ static ssize_t imxrt_flexspi_storage_read(struct mtd_dev_s *dev,
 		size_t nbytes,
 		uint8_t *buffer)
 {
-
-#ifdef IP_READ
-	struct imxrt_flexspi_storage_dev_s *priv =
-		(struct imxrt_flexspi_storage_dev_s *)dev;
-	int stat;
-	size_t remaining = nbytes;
-
-	struct flexspi_transfer_s transfer = {
-		.port = priv->port,
-		.cmd_type = FLEXSPI_READ,
-		.seq_number = 1,
-		.seq_index = READ_FAST,
-	};
-
-	while (remaining > 0) {
-		transfer.device_address = offset;
-		transfer.data = buffer;
-		transfer.data_size = MIN(128, remaining);
-
-		stat = FLEXSPI_TRANSFER(priv->flexspi, &transfer);
-
-		if (stat != 0) {
-			return -EIO;
-		}
-
-		remaining -= transfer.data_size;
-		buffer += transfer.data_size;
-		offset += transfer.data_size;
-	}
-
-	return 0;
-
-#else
 	struct imxrt_flexspi_storage_dev_s *priv =
 		(struct imxrt_flexspi_storage_dev_s *)dev;
 	uint8_t *src;
@@ -444,7 +367,6 @@ static ssize_t imxrt_flexspi_storage_read(struct mtd_dev_s *dev,
 
 	finfo("return nbytes: %d\n", (int)nbytes);
 	return (ssize_t)nbytes;
-#endif
 }
 
 static ssize_t imxrt_flexspi_storage_bread(struct mtd_dev_s *dev,
@@ -613,18 +535,6 @@ static int imxrt_flexspi_storage_ioctl(struct mtd_dev_s *dev,
 			imxrt_flexspi_storage_wait_bus_busy(priv);
 			ret               = OK;
 		}
-		break;
-
-	case MTDIOC_PROTECT:
-
-		/* TODO */
-
-		break;
-
-	case MTDIOC_UNPROTECT:
-
-		/* TODO */
-
 		break;
 
 	default:
