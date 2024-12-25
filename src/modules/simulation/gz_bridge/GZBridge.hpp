@@ -117,7 +117,9 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan);
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
-	// void cameraCallback(const gz::msgs::Image &image_msg);
+
+	// TODO: change to sensor_msgs::msgs::OpticalFlow
+	void opticalFlowCallback(const gz::msgs::Image &image_msg);
 
 	/**
 	 * @brief Call Entityfactory service
