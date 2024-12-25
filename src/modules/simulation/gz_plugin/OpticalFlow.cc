@@ -41,6 +41,8 @@ bool OpticalFlow::Load(const sdf::Sensor &_sdf)
 
 void OpticalFlow::OnImage(const gz::msgs::Image &_msg)
 {
+	// gzdbg << "OpticalFlow::OnImage" << std::endl;
+
 	cv::Mat frame;
 
 	if (_msg.pixel_format_type() == gz::msgs::PixelFormatType::RGB_INT8) {
@@ -96,6 +98,8 @@ void OpticalFlow::OnImage(const gz::msgs::Image &_msg)
 
 bool OpticalFlow::Update(const std::chrono::steady_clock::duration &_now)
 {
+	// gzdbg << "OpticalFlow::Update" << std::endl;
+
 	auto currentTime = std::chrono::steady_clock::now();
 	auto deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - this->lastUpdateTime);
 
