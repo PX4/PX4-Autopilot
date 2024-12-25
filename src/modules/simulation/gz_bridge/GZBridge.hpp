@@ -114,7 +114,6 @@ private:
 	void navSatCallback(const gz::msgs::NavSat &msg);
 	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg);
 	void laserScanCallback(const gz::msgs::LaserScan &msg);
-	void cameraCallback(const gz::msgs::Image &image_msg);
 
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 

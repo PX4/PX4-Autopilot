@@ -1,0 +1,23 @@
+// msgs/optical_flow.proto
+syntax = "proto3";
+package sensor_msgs.msgs;
+
+message OpticalFlow {
+	// Timestamp (microseconds, since system start)
+	int64 time_usec = 1;
+
+	// Integration time
+	int32 integration_time_us = 3;
+
+	// Integrated x-axis flow (rad)
+	float integrated_x = 4;
+
+	// Integrated y-axis flow (rad)
+	float integrated_y = 5;
+
+	// Quality of optical flow measurement (0: bad, 255: maximum quality)
+	float quality = 10;
+
+	// Time since last measurement (microseconds)
+	int32 time_delta_distance_us = 11;
+}
