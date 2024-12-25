@@ -13,8 +13,8 @@ find_package(Protobuf REQUIRED)
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS optical_flow.proto)
 
 add_library(${PROJECT_NAME} SHARED
-    OpticalFlow.cc
-    OpticalFlowSystem.cc
+    OpticalFlow.cpp
+    OpticalFlowSystem.cpp
     ${PROTO_SRCS}
     ${PROTO_HDRS}
 )

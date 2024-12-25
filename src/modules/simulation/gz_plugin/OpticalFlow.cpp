@@ -1,9 +1,8 @@
-// OpticalFlow.cc
 #include <gz/common/Console.hh>
 #include <gz/msgs/Utility.hh>
 #include <gz/sensors/Util.hh>
 
-#include "OpticalFlow.hh"
+#include "OpticalFlow.hpp"
 #include "optical_flow.pb.h"
 
 using namespace custom;
