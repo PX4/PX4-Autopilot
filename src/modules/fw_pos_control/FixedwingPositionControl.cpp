@@ -487,8 +487,6 @@ FixedwingPositionControl::status_publish()
 	pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_current_latitude, _current_longitude,
 				  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-	pos_ctrl_status.yaw_acceptance = NAN;
-
 	pos_ctrl_status.timestamp = hrt_absolute_time();
 
 	pos_ctrl_status.type = _position_sp_type;
