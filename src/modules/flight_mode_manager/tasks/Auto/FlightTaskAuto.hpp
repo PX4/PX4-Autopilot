@@ -53,13 +53,6 @@
 #include "StickAccelerationXY.hpp"
 #include "StickYaw.hpp"
 
-// TODO: make this switchable in the board config, like a module
-#if CONSTRAINED_FLASH
-#include <lib/avoidance/ObstacleAvoidance_dummy.hpp>
-#else
-#include <lib/avoidance/ObstacleAvoidance.hpp>
-#endif
-
 /**
  * This enum has to agree with position_setpoint_s type definition
  * The only reason for not using the struct position_setpoint is because
@@ -147,8 +140,6 @@ protected:
 	AlphaFilter<float> _yawspeed_filter;
 	bool _yaw_sp_aligned{false};
 
-	ObstacleAvoidance _obstacle_avoidance{this}; /**< class adjusting setpoints according to external avoidance module's input */
-
 	PositionSmoothing _position_smoothing;
 	Vector3f _unsmoothed_velocity_setpoint;
 	Sticks _sticks{this};
@@ -165,7 +156,6 @@ protected:
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
-					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
 					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
 					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight

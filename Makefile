@@ -404,7 +404,7 @@ check_newlines:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
