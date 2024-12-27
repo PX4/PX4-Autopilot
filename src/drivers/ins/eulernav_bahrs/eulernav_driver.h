@@ -5,6 +5,7 @@
 #include <px4_platform_common/Serial.hpp>
 #include <Ringbuffer.hpp>
 #include <containers/Array.hpp>
+#include "CSerialProtocol.h"
 
 class EulerNavDriver : public ModuleBase<EulerNavDriver>
 {
@@ -42,10 +43,14 @@ private:
 
 	static bool retrieveProtocolVersionAndMessageType(Ringbuffer& buffer, uint16_t& protocol_ver, uint8_t& message_code);
 
+	static int getMessageLength(CSerialProtocol::EMessageIds messsage_id);
+
+	static uint32_t crc32(const uint32_t* buf, size_t len);
+
 	device::Serial _serial_port;
 	Ringbuffer _data_buffer;
 	px4::Array<uint8_t, SERIAL_READ_BUFFER_SIZE> _serial_read_buffer;
-	px4::Array<uint8_t, 32> _message_storage;
+	px4::Array<uint32_t, 8> _message_storage;
 
 	bool _is_initialized{false};
 };
