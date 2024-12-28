@@ -49,8 +49,8 @@ private:
 
 	device::Serial _serial_port;
 	Ringbuffer _data_buffer;
-	px4::Array<uint8_t, SERIAL_READ_BUFFER_SIZE> _serial_read_buffer;
-	px4::Array<uint32_t, 8> _message_storage;
+	uint8_t _serial_read_buffer[SERIAL_READ_BUFFER_SIZE];
+	uint32_t _message_storage[8];
 
 	bool _is_initialized{false};
 };
