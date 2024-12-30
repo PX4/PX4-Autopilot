@@ -78,9 +78,6 @@ param set-default BAT2_CAPACITY 22000
 # Enable LL40LS in i2c
 param set-default SENS_EN_LL40LS 2
 
-# Low priority for internal magnetometer
-param set-default CAL_MAG0_PRIO 25
-
 # LEDs on TELEMETRY 1
 param set-default SER_TEL1_BAUD 57600
 param set-default MAV_1_CONFIG 101
