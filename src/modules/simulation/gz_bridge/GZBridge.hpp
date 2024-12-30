@@ -78,6 +78,7 @@
 #include <gz/msgs/laserscan.pb.h>
 #include <gz/msgs/stringmsg.pb.h>
 #include <gz/msgs/scene.pb.h>
+#include <optical_flow.pb.h>
 
 using namespace time_literals;
 

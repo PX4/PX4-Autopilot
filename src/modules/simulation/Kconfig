@@ -12,6 +12,8 @@ menu "Simulation"
         select MODULES_SIMULATION_SYSTEM_POWER_SIMULATOR
         select MODULES_SIMULATION_SIMULATOR_MAVLINK
         select MODULES_SIMULATION_SIMULATOR_SIH
+        select MODULES_SIMULATION_GZ_MSG
+        select MODULES_SIMULATION_GZ_PLUGIN
         ---help---
             Enable default set of simulation modules
     rsource "*/Kconfig"

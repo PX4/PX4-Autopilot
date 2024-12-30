@@ -71,6 +71,9 @@ if(gz-transport_FOUND)
 			module.yaml
 	)
 
+	# TODO: this doesn't feel right
+	target_link_libraries(modules__simulation__gz_bridge PUBLIC gz_px4_messages)
+
 	px4_add_git_submodule(TARGET git_gz PATH "${PX4_SOURCE_DIR}/Tools/simulation/gz")
 	include(ExternalProject)
 	ExternalProject_Add(gz
