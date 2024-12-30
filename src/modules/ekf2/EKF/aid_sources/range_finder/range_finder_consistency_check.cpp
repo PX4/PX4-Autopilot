@@ -43,13 +43,13 @@ using namespace matrix;
 void RangeFinderConsistencyCheck::init(const float &z, const float &z_var, const float &dist_bottom,
 				       const float &dist_bottom_var)
 {
-	float p[4] = {z_var, 0.f, 0.f, z_var + dist_bottom_var};
-	_P = Matrix<float, RangeFilter::size, RangeFilter::size>(p);
-	sym::RangeValidationFilter(&_H);
+	float p[4] = {z_var, z_var, z_var, z_var + dist_bottom_var};
+	_P = SquareMatrix<float, RangeFilter::size>(p);
+	_H = sym::RangeValidationFilter<float>();
 	_x(RangeFilter::z.idx) = z;
 	_x(RangeFilter::terrain.idx) = z - dist_bottom;
 	_initialized = true;
-	_state = _test_ratio_lpf.getState() < 1.f ? KinematicState::UNKNOWN : KinematicState::INCONSISTENT;
+	_state = KinematicState::UNKNOWN;
 	_test_ratio_lpf.reset(2.f);
 	_t_since_first_sample = 0.f;
 	_test_ratio_lpf.setAlpha(0.2f);
