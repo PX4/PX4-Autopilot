@@ -76,6 +76,7 @@
 #include <gz/msgs/laserscan.pb.h>
 #include <gz/msgs/stringmsg.pb.h>
 #include <gz/msgs/scene.pb.h>
+#include <optical_flow.pb.h>
 
 using namespace time_literals;
 
@@ -119,7 +120,7 @@ private:
 	void laserScanCallback(const gz::msgs::LaserScan &scan);
 
 	// TODO: change to sensor_msgs::msgs::OpticalFlow
-	void opticalFlowCallback(const gz::msgs::Image &image_msg);
+	void opticalFlowCallback(const sensor_msgs::msgs::OpticalFlow &image_msg);
 
 	/**
 	 * @brief Call Entityfactory service

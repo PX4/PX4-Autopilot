@@ -280,29 +280,20 @@ int GZBridge::init()
 }
 
 // TODO: change to sensor_msgs::msgs::OpticalFlow
-void GZBridge::opticalFlowCallback(const gz::msgs::Image &image_msg)
+void GZBridge::opticalFlowCallback(const sensor_msgs::msgs::OpticalFlow &flow)
 {
-	// float flow_x = 0;
-	// float flow_y = 0;
-	// int integration_time = 0;
-	// int quality = calculate_flow(image_msg, hrt_absolute_time(), integration_time, flow_x, flow_y);
-
-	// if (quality <= 0) {
-	// 	quality = 0;
-	// }
 
 	// Construct SensorOpticalFlow message
 	sensor_optical_flow_s msg = {};
 
-	// msg.pixel_flow[0] = flow_x;
-	// msg.pixel_flow[1] = flow_y;
-	// msg.quality = quality;
-	// msg.integration_timespan_us = integration_time;
-	// msg.integration_timespan_us = {1000000 / 30};  // 30 fps;
+	msg.timestamp = hrt_absolute_time();
+	msg.timestamp_sample = flow.time_usec();
+	msg.pixel_flow[0] = flow.integrated_x();
+	msg.pixel_flow[1] = flow.integrated_y();
+	msg.quality = flow.quality();
+	msg.integration_timespan_us = flow.integration_time_us();
 
 	// Static data
-	msg.timestamp = hrt_absolute_time();
-	msg.timestamp_sample = msg.timestamp;
 	device::Device::DeviceId id;
 	id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
 	id.devid_s.bus = 0;
@@ -313,8 +304,9 @@ void GZBridge::opticalFlowCallback(const gz::msgs::Image &image_msg)
 	// values taken from PAW3902
 	msg.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
 	msg.max_flow_rate = 7.4f;
-	msg.min_ground_distance = 0.08f;
-	msg.max_ground_distance = 30;
+	// msg.min_ground_distance = 0.08f;
+	msg.min_ground_distance = 0.f;
+	msg.max_ground_distance = 30.f;
 	msg.error_count = 0;
 
 	// No delta angle
