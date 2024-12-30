@@ -63,10 +63,6 @@ RtlDirect::RtlDirect(Navigator *navigator) :
 
 void RtlDirect::on_inactivation()
 {
-	if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
-	}
-
 	_rtl_state = RTLState::IDLE;
 }
 
@@ -108,14 +104,6 @@ void RtlDirect::on_active()
 		//check for terrain collision and update altitude if needed
 		// note: it may trigger multiple times during a RTL, as every time the altitude set is reset
 		updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
-	}
-
-	if (_rtl_state == RTLState::LAND && _param_rtl_pld_md.get() > 0) {
-		// Need to update the position and type on the current setpoint triplet.
-		_navigator->get_precland()->on_active();
-
-	} else if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
 	}
 }
 

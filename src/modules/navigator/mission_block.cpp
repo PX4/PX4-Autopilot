@@ -55,6 +55,32 @@
 
 using matrix::wrap_pi;
 
+
+static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
+				 const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
+				 const double param6 = static_cast<double>(NAN), const float param7 = NAN)
+{
+	vehicle_command_s vcmd{};
+	vcmd.command = cmd;
+	vcmd.param1 = param1;
+	vcmd.param2 = param2;
+	vcmd.param3 = param3;
+	vcmd.param4 = param4;
+	vcmd.param5 = param5;
+	vcmd.param6 = param6;
+	vcmd.param7 = param7;
+
+	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
+	vcmd.source_system = vehicle_status_sub.get().system_id;
+	vcmd.target_system = vehicle_status_sub.get().system_id;
+	vcmd.source_component = vehicle_status_sub.get().component_id;
+	vcmd.target_component = vehicle_status_sub.get().component_id;
+
+	uORB::Publication<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	vcmd.timestamp = hrt_absolute_time();
+	return vcmd_pub.publish(vcmd);
+}
+
 MissionBlock::MissionBlock(Navigator *navigator, uint8_t navigator_state_id) :
 	NavigatorMode(navigator, navigator_state_id)
 {
@@ -976,12 +1002,16 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 {
 	if (_mission_item.land_precision == 1) {
 		_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
-		_navigator->get_precland()->on_activation();
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+				     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
 
-	} else { //_mission_item.land_precision == 2
+	} else if(_mission_item.land_precision == 2){
 		_navigator->get_precland()->set_mode(PrecLandMode::Required);
-		_navigator->get_precland()->on_activation();
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+				     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
 	}
+
+
 }
 
 void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(mission_item_s mission_item)
