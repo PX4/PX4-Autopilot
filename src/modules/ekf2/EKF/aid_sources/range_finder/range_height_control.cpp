@@ -72,8 +72,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 				const bool updated_horizontal_motion = sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f);
 
-				if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion
-				    && _rng_consistency_check.isNotKinematicallyInconsistent()) {
+				if (!updated_horizontal_motion && _rng_consistency_check.horizontal_motion) {
 					_rng_consistency_check.reset();
 				}
 

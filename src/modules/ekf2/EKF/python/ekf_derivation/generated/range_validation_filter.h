@@ -18,10 +18,10 @@ namespace sym {
  * Args:
  *
  * Outputs:
- *     H: Matrix22
+ *     res: Matrix22
  */
 template <typename Scalar>
-void RangeValidationFilter(matrix::Matrix<Scalar, 2, 2>* const H = nullptr) {
+matrix::Matrix<Scalar, 2, 2> RangeValidationFilter() {
   // Total ops: 0
 
   // Input arrays
@@ -29,15 +29,15 @@ void RangeValidationFilter(matrix::Matrix<Scalar, 2, 2>* const H = nullptr) {
   // Intermediate terms (0)
 
   // Output terms (1)
-  if (H != nullptr) {
-    matrix::Matrix<Scalar, 2, 2>& _h = (*H);
+  matrix::Matrix<Scalar, 2, 2> _res;
 
-    _h.setZero();
+  _res.setZero();
 
-    _h(0, 0) = 1;
-    _h(1, 0) = 1;
-    _h(1, 1) = -1;
-  }
+  _res(0, 0) = 1;
+  _res(1, 0) = 1;
+  _res(1, 1) = -1;
+
+  return _res;
 }  // NOLINT(readability/fn_size)
 
 // NOLINTNEXTLINE(readability/fn_size)
