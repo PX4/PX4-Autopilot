@@ -45,6 +45,8 @@ private:
     const double blur_sigma{1.5};
     const float scale_factor{0.5};  // Scale image down for performance
 
+    bool flow_updated{false};
+
     // Previous points for optical flow
     std::vector<cv::Point2f> prev_points;
     bool flow_initialized{false};

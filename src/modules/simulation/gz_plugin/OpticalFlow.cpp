@@ -72,13 +72,14 @@ void OpticalFlow::OnImage(const gz::msgs::Image &_msg)
     }
 
     // Preprocess image
-    cv::GaussianBlur(frame, frame, this->blur_size, this->blur_sigma);
+    // cv::GaussianBlur(frame, frame, this->blur_size, this->blur_sigma);
 
-    // Scale down for performance
-    cv::Mat scaled_frame;
-    cv::resize(frame, scaled_frame, cv::Size(), this->scale_factor, this->scale_factor);
+    // // Scale down for performance
+    // cv::Mat scaled_frame;
+    // cv::resize(frame, scaled_frame, cv::Size(), this->scale_factor, this->scale_factor);
 
-    ProcessFlow(scaled_frame);
+    // ProcessFlow(scaled_frame);
+    ProcessFlow(frame);
 }
 
 void OpticalFlow::ProcessFlow(const cv::Mat &current_frame)
@@ -132,8 +133,10 @@ void OpticalFlow::ProcessFlow(const cv::Mat &current_frame)
     mean_flow = mean_flow * (1.0f / good_new.size());
 
     // Convert to radians using FOV and resolution
-    double rad_per_pixel_x = horizontal_fov / (current_frame.cols / double(scale_factor));
-    double rad_per_pixel_y = vertical_fov / (current_frame.rows / double(scale_factor));
+    // double rad_per_pixel_x = horizontal_fov / (current_frame.cols / double(scale_factor));
+    // double rad_per_pixel_y = vertical_fov / (current_frame.rows / double(scale_factor));
+    double rad_per_pixel_x = horizontal_fov / current_frame.cols;
+    double rad_per_pixel_y = vertical_fov / current_frame.rows;
 
     integrated_x = (double)mean_flow.x * rad_per_pixel_x;
     integrated_y = (double)mean_flow.y * rad_per_pixel_y;
@@ -170,10 +173,16 @@ void OpticalFlow::ProcessFlow(const cv::Mat &current_frame)
     // Update state for next iteration
     current_frame.copyTo(prevFrame);
     prev_points = good_new;  // Use current good points for next iteration
+
+    flow_updated = true;
 }
 
 bool OpticalFlow::Update(const std::chrono::steady_clock::duration &_now)
 {
+	if (!flow_updated) {
+		return true;
+	}
+
     auto currentTime = std::chrono::steady_clock::now();
     auto deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(
         currentTime - this->lastUpdateTime);
@@ -189,6 +198,7 @@ bool OpticalFlow::Update(const std::chrono::steady_clock::duration &_now)
         gzwarn << "Failed to publish optical flow message" << std::endl;
     }
 
+    flow_updated = false;
     this->lastUpdateTime = currentTime;
     return true;
 }
