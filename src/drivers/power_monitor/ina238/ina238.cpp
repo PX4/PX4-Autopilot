@@ -96,14 +96,19 @@ int INA238::read(uint8_t address, uint16_t &data)
 {
 	// read desired little-endian value via I2C
 	uint16_t received_bytes;
-	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
+	int ret = PX4_ERROR;
 
-	if (ret == PX4_OK) {
-		data = swap16(received_bytes);
+	for (size_t i = 0; i < 3; i++) {
+		ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
 
-	} else {
-		perf_count(_comms_errors);
-		PX4_DEBUG("i2c::transfer returned %d", ret);
+		if (ret == PX4_OK) {
+			data = swap16(received_bytes);
+			break;
+
+		} else {
+			perf_count(_comms_errors);
+			PX4_DEBUG("i2c::transfer returned %d", ret);
+		}
 	}
 
 	return ret;
@@ -231,6 +236,12 @@ int INA238::collect()
 	success = success && (RegisterRead(Register::CURRENT, (uint16_t &)current) == PX4_OK);
 	success = success && (RegisterRead(Register::DIETEMP, (uint16_t &)temperature) == PX4_OK);
 
+	if (success) {
+		_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
+		_battery.updateCurrent(static_cast<float>(current * _current_lsb));
+		_battery.updateTemperature(static_cast<float>(temperature * INA238_TSCALE));
+	}
+
 	if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
 		// check configuration registers periodically or immediately following any failure
 		if (RegisterCheck(_register_cfg[_checked_register])) {
@@ -245,15 +256,8 @@ int INA238::collect()
 		}
 	}
 
-	if (!success) {
-		PX4_DEBUG("error reading from sensor");
-		bus_voltage = current = 0;
-	}
-
 	_battery.setConnected(success);
-	_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
-	_battery.updateCurrent(static_cast<float>(current * _current_lsb));
-	_battery.updateTemperature(static_cast<float>(temperature * INA238_TSCALE));
+
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 	perf_end(_sample_perf);
@@ -262,6 +266,8 @@ int INA238::collect()
 		return PX4_OK;
 
 	} else {
+		PX4_DEBUG("error reading from sensor");
+
 		return PX4_ERROR;
 	}
 }
