@@ -41,9 +41,13 @@ private:
 
 	void processDataBuffer();
 
+	static bool findNextMessageHeader(Ringbuffer& buffer);
+
 	static bool retrieveProtocolVersionAndMessageType(Ringbuffer& buffer, uint16_t& protocol_ver, uint8_t& message_code);
 
-	static int getMessageLength(CSerialProtocol::EMessageIds messsage_id);
+	static void decodeMessageAndPublishData(const uint8_t* data, CSerialProtocol::EMessageIds messsage_id);
+
+	static int32_t getMessageLength(CSerialProtocol::EMessageIds messsage_id);
 
 	static uint32_t crc32(const uint32_t* buf, size_t len);
 
@@ -51,6 +55,9 @@ private:
 	Ringbuffer _data_buffer;
 	uint8_t _serial_read_buffer[SERIAL_READ_BUFFER_SIZE];
 	uint32_t _message_storage[8];
+	bool _next_message_detected{false};
+	uint16_t _next_message_protocol_version{0U};
+	uint8_t _next_message_code{0U};
 
 	bool _is_initialized{false};
 };
