@@ -400,11 +400,15 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 		int lower_bound = (int)round((sensor_yaw_body_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 		int upper_bound = (int)round((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) / BIN_SIZE);
 
+		const Quatf q_sensor(Quatf(cosf(sensor_yaw_body_rad / 2.f), 0.f, 0.f, sinf(sensor_yaw_body_rad / 2.f)));
 
-		// rotate vehicle attitude into the sensor body frame
-		Quatf attitude_sensor_frame = vehicle_attitude;
-		attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
-		float sensor_dist_scale = cosf(Eulerf(attitude_sensor_frame).theta()); // verify
+		const Vector3f forward_vector(1.0f, 0.0f, 0.0f);
+
+		const Quatf q_sensor_rotation = vehicle_attitude * q_sensor;
+
+		const Vector3f rotated_sensor_vector = q_sensor_rotation.rotateVector(forward_vector);
+
+		const float sensor_dist_scale = rotated_sensor_vector.xy().norm();
 
 		if (distance_reading < distance_sensor.max_distance) {
 			distance_reading = distance_reading * sensor_dist_scale;

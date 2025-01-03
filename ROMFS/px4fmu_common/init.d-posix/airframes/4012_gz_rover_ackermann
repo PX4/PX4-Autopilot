@@ -47,5 +47,8 @@ param set-default SIM_GZ_WH_MAX1 200
 param set-default SIM_GZ_WH_DIS1 100
 
 # Steering
+param set-default SIM_GZ_SV_MAXA1 30
+param set-default SIM_GZ_SV_MINA1 -30
+param set-default CA_SV_CS_COUNT 1
 param set-default SIM_GZ_SV_FUNC1 201
 param set-default SIM_GZ_SV_REV 1

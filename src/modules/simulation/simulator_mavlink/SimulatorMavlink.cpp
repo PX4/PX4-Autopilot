@@ -388,14 +388,12 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_RAW_RPM:
-		mavlink_raw_rpm_t rpm;
-		mavlink_msg_raw_rpm_decode(msg, &rpm);
-		rpm_s rpmmsg{};
-		rpmmsg.timestamp = hrt_absolute_time();
-		rpmmsg.indicated_frequency_rpm = rpm.frequency;
-		rpmmsg.estimated_accurancy_rpm = 0;
-
-		_rpm_pub.publish(rpmmsg);
+		mavlink_raw_rpm_t rpm_mavlink;
+		mavlink_msg_raw_rpm_decode(msg, &rpm_mavlink);
+		rpm_s rpm_uorb{};
+		rpm_uorb.timestamp = hrt_absolute_time();
+		rpm_uorb.rpm_estimate = rpm_mavlink.frequency;
+		_rpm_pub.publish(rpm_uorb);
 		break;
 	}
 }

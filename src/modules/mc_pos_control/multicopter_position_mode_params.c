@@ -35,12 +35,12 @@
  * Position/Altitude mode variant
  *
  * The supported sub-modes are:
- * - "Direct velocity":
+ * Direct velocity:
  *   Sticks directly map to velocity setpoints without smoothing.
  *   Also applies to vertical direction and Altitude mode.
  *   Useful for velocity control tuning.
- *  - "Acceleration based":
- *  Sticks map to acceleration and there's a virtual brake drag
+ * Acceleration based:
+ *   Sticks map to acceleration and there's a virtual brake drag
  *
  * @value 0 Direct velocity
  * @value 4 Acceleration based
@@ -114,9 +114,8 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.f);
 /**
  * Maximum horizontal and vertical jerk in Position/Altitude mode
  *
- * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
- * A lower value leads to smoother motions but limits agility
- * (how fast it can change directions or break).
+ * Limit the maximum jerk (acceleration change) of the vehicle.
+ * A lower value leads to smoother motions but limits agility.
  *
  * Setting this to the maximum value essentially disables the limit.
  *
