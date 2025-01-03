@@ -85,7 +85,7 @@ LogWriterFile::~LogWriterFile()
 }
 
 #if defined(PX4_CRYPTO)
-bool LogWriterFile::init_logfile_encryption(const char *filename)
+bool LogWriterFile::init_logfile_encryption(const LogType type)
 {
 	if (_algorithm == CRYPTO_NONE) {
 		_min_blocksize = 1;
@@ -148,16 +148,16 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 
 	rsa_crypto.close();
 
-	// Write the encrypted key to the disk
-	int key_fd = ::open((const char *)filename, O_CREAT | O_WRONLY | O_DIRECT | O_SYNC, PX4_O_MODE_666);
+	// Write the encrypted key to the beginning of the opened log file
+	int key_fd = _buffers[(int)type].fd();
 
 	if (key_fd < 0) {
-		PX4_ERR("Can't open key file, errno: %d", errno);
+		PX4_ERR("Log file not open for storing the key, errno: %d", errno);
 		free(key);
 		return false;
 	}
 
-	// write the header to the combined key exchange & cipherdata file
+	// write header and key to the beginning of the log file
 	struct ulog_key_header_s keyfile_header = {
 		.magic = {'U', 'L', 'o', 'g', 'E', 'n', 'c'},
 		.hdr_ver = 1,
@@ -168,20 +168,14 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 		.initdata_size = (uint16_t)nonce_size
 	};
 
-	size_t hdr_sz = ::write(key_fd, (uint8_t *)&keyfile_header, sizeof(keyfile_header));
-	size_t written = 0;
-
-	if (hdr_sz == sizeof(keyfile_header)) {
-		// Header write succeeded, write the  key
-		written = ::write(key_fd, key, key_size + nonce_size);
-	}
+	size_t written = ::write(key_fd, (uint8_t *)&keyfile_header, sizeof(keyfile_header));
+	written += ::write(key_fd, key, key_size + nonce_size);
 
 	// Free temporary memory allocations
 	free(key);
-	::close(key_fd);
 
 	// Check that writing to the disk succeeded
-	if (written != key_size + nonce_size) {
+	if (written != sizeof(keyfile_header) + key_size + nonce_size) {
 		PX4_ERR("Writing the encryption key to disk fail");
 		return false;
 	}
@@ -217,18 +211,21 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 		}
 	}
 
-#if PX4_CRYPTO
-	bool enc_init = init_logfile_encryption(filename);
+	if (_buffers[(int)type].start_log(filename)) {
 
-	if (!enc_init) {
-		PX4_ERR("Failed to start encrypted logging");
-		_crypto.close();
-		return;
-	}
+#if PX4_CRYPTO
+		bool enc_init = init_logfile_encryption(type);
+
+		if (!enc_init) {
+			PX4_ERR("Failed to start encrypted logging");
+			_crypto.close();
+			_buffers[(int)type]._should_run = false;
+			_buffers[(int)type].close_file();
+			return;
+		}
 
 #endif
 
-	if (_buffers[(int)type].start_log(filename)) {
 		PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
 		notify();
 	}
@@ -630,11 +627,7 @@ size_t LogWriterFile::LogFileBuffer::get_read_ptr(void **ptr, bool *is_part)
 
 bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 {
-#if defined(PX4_CRYPTO)
-	_fd = ::open(filename, O_APPEND | O_WRONLY, PX4_O_MODE_666);
-#else
 	_fd = ::open(filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
-#endif
 
 	if (_fd < 0) {
 		PX4_ERR("Can't open log file %s, errno: %d", filename, errno);
