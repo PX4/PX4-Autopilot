@@ -58,7 +58,6 @@ jobs:
             type=ref,event=branch,value=${{ steps.px4-tag.outputs.tag }},priority=700
             type=ref,event=branch,suffix=-{{date 'YYYY-MM-DD'}},priority=600
             type=ref,event=branch,suffix=,priority=500
-            type=ref,event=pr
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

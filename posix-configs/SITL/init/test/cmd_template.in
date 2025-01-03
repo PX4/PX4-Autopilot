@@ -15,7 +15,7 @@ pwm_out_sim start
 
 ver all
 
-mavlink start -x -u 14556 -r 2000000 -p
+mavlink start -x -u 14556 -r 2000000
 mavlink boot_complete
 
 @cmd_name@ start

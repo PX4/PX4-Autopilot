@@ -115,6 +115,10 @@ void OutputRC::_stream_device_attitude_status()
 	q.copyTo(attitude_status.q);
 
 	attitude_status.failure_flags = 0;
+
+	// If the output is RC, then we signal this by referring to compid 1.
+	attitude_status.gimbal_device_id = 1;
+
 	_attitude_status_pub.publish(attitude_status);
 }
 

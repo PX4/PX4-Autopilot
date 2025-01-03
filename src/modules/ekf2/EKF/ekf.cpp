@@ -272,15 +272,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// constrain states
 	_state.vel = matrix::constrain(_state.vel, -_params.velocity_limit, _params.velocity_limit);
 
-
-	// calculate a filtered horizontal acceleration with a 1 sec time constant
-	// this are used for manoeuvre detection elsewhere
-	const float alpha = 1.0f - imu_delayed.delta_vel_dt;
-	_accel_lpf_NE = _accel_lpf_NE * alpha + corrected_delta_vel_ef.xy();
-
-	// Calculate low pass filtered height rate
-	float alpha_height_rate_lpf = 0.1f * imu_delayed.delta_vel_dt; // 10 seconds time constant
-	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
+	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
+	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt, imu_delayed.delta_vel_dt);
 }
 
 bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const double longitude, const float altitude,

@@ -354,6 +354,11 @@ else
 	then
 		pps_capture start
 	fi
+	# RPM capture driver
+	if param greater -s RPM_CAP_ENABLE 0
+	then
+		rpm_capture start
+	fi
 	# Camera capture driver
 	if param greater -s CAM_CAP_FBACK 0
 	then

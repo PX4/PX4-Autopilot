@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+param set-default BAT1_A_PER_V 40
+param set-default BAT1_N_CELLS 4
+param set-default BAT1_V_CHARGED 4.2
+param set-default BAT1_V_DIV 21.12
+param set-default BAT1_V_EMPTY 3.2
+
+param set-default SYS_HAS_MAG 1
+param set-default PWM_MAIN_TIM0 -4
+param set-default RC_INPUT_PROTO -1
+
+param set-default MAV_2_CONFIG 104
+param set-default SER_TEL4_BAUD 115200
+
+param set-default IMU_GYRO_CUTOFF 80
+param set-default SYS_AUTOSTART 4001
+param set-default MC_PITCHRATE_K 0.4
+param set-default MC_ROLLRATE_K 0.35
+param set-default MC_YAWRATE_K 1.2
+param set-default MC_YAWRATE_MAX 360
+param set-default MAV_TYPE 2
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+param set-default CBRK_SUPPLY_CHK 894281

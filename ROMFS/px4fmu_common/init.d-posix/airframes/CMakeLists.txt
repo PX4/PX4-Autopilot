@@ -91,6 +91,8 @@ px4_add_romfs_files(
 	4016_gz_x500_lidar_down
 	4017_gz_x500_lidar_front
 	4018_gz_quadtailsitter
+	4019_gz_x500_gimbal
+	4020_gz_tiltrotor
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
