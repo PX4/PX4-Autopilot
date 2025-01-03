@@ -932,7 +932,7 @@ bool GZBridge::callSceneInfoMsgService(const std::string &service)
 	gz::msgs::Empty req;
 	gz::msgs::Scene rep;
 
-	if (_node.Request(service, req, 1000, rep, result)) {
+	if (_node.Request(service, req, 3000, rep, result)) {
 		if (!result) {
 			PX4_ERR("Scene Info service call failed.");
 			return false;
@@ -955,7 +955,7 @@ bool GZBridge::callStringMsgService(const std::string &service, const gz::msgs::
 
 	gz::msgs::Boolean rep;
 
-	if (_node.Request(service, req, 1000, rep, result)) {
+	if (_node.Request(service, req, 3000, rep, result)) {
 		if (!rep.data() || !result) {
 			PX4_ERR("String service call failed");
 			return false;
@@ -977,7 +977,7 @@ bool GZBridge::callVector3dService(const std::string &service, const gz::msgs::V
 
 	gz::msgs::Boolean rep;
 
-	if (_node.Request(service, req, 1000, rep, result)) {
+	if (_node.Request(service, req, 3000, rep, result)) {
 		if (!rep.data() || !result) {
 			PX4_ERR("String service call failed");
 			return false;
