@@ -224,7 +224,7 @@ private:
 	pthread_cond_t		_cv;
 	pthread_t _thread = 0;
 #if defined(PX4_CRYPTO)
-	bool init_logfile_encryption(const char *filename);
+	bool init_logfile_encryption(const LogType type);
 	PX4Crypto _crypto;
 	int _min_blocksize;
 	px4_crypto_algorithm_t _algorithm;
