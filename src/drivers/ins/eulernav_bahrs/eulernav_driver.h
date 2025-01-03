@@ -30,11 +30,19 @@ public:
 	void run() final;
 
 private:
+	struct Statistics
+	{
+		uint32_t _total_bytes_read{0U};
+		uint32_t _inertial_message_counter{0U};
+		uint32_t _navigation_message_counter{0U};
+	};
+
 	static constexpr int TASK_STACK_SIZE{2048};
 	static constexpr int SERIAL_READ_BUFFER_SIZE{128};
 	static constexpr int MIN_BYTES_TO_READ{16};
-	static constexpr int SERIAL_READ_TIMEOUT_MS{5};
+	static constexpr int SERIAL_READ_TIMEOUT_US{5000};
 	static constexpr int DATA_BUFFER_SIZE{512};
+	static constexpr hrt_abstime STATISTICS_PRINT_PERIOD{5000000U};
 
 	// Min length of a valid message. 5 bytes header + 4 bytes CRC + padding to 12 (multiple of 32 bit words)
 	static constexpr int MIN_MESSAGE_LENGTH{12};
@@ -45,7 +53,7 @@ private:
 
 	static bool retrieveProtocolVersionAndMessageType(Ringbuffer& buffer, uint16_t& protocol_ver, uint8_t& message_code);
 
-	static void decodeMessageAndPublishData(const uint8_t* data, CSerialProtocol::EMessageIds messsage_id);
+	void decodeMessageAndPublishData(const uint8_t* data, CSerialProtocol::EMessageIds messsage_id);
 
 	static int32_t getMessageLength(CSerialProtocol::EMessageIds messsage_id);
 
@@ -58,6 +66,7 @@ private:
 	bool _next_message_detected{false};
 	uint16_t _next_message_protocol_version{0U};
 	uint8_t _next_message_code{0U};
+	Statistics _statistics{};
 
 	bool _is_initialized{false};
 };
