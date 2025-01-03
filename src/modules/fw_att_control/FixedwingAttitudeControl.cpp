@@ -321,22 +321,22 @@ void FixedwingAttitudeControl::Run()
 			/* Run attitude controllers */
 
 			if (_vcontrol_mode.flag_control_attitude_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
-				const Eulerf setpoint(Quatf(_att_sp.q_d));
-				const float roll_body = setpoint.phi();
-				const float pitch_body = setpoint.theta();
+				const Quatf q_sp(_att_sp.q_d);
 
-				if (PX4_ISFINITE(roll_body) && PX4_ISFINITE(pitch_body)) {
+				if (q_sp.isAllFinite()) {
+					const Eulerf euler_sp(q_sp);
+					const float roll_sp = euler_sp.phi();
+					const float pitch_sp = euler_sp.theta();
 
-					_roll_ctrl.control_roll(roll_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+					_roll_ctrl.control_roll(roll_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 								euler_angles.theta());
-					_pitch_ctrl.control_pitch(pitch_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+					_pitch_ctrl.control_pitch(pitch_sp, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 								  euler_angles.theta());
-					_yaw_ctrl.control_yaw(roll_body, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+					_yaw_ctrl.control_yaw(roll_sp, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 							      euler_angles.theta(), get_airspeed_constrained());
 
 					if (wheel_control) {
-						Eulerf attitude_setpoint(Quatf(_att_sp.q_d));
-						_wheel_ctrl.control_attitude(attitude_setpoint.psi(), euler_angles.psi());
+						_wheel_ctrl.control_attitude(euler_sp.psi(), euler_angles.psi());
 
 					} else {
 						_wheel_ctrl.reset_integrator();
