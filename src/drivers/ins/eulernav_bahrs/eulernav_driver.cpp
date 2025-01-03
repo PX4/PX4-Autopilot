@@ -96,16 +96,16 @@ int EulerNavDriver::print_usage(const char *reason)
 
 void EulerNavDriver::run()
 {
+	const auto start_time{hrt_absolute_time()};
+	auto time_of_previous_statistics_print{start_time};
+
 	while(false == should_exit())
 	{
-		px4_usleep(1000000);
-		PX4_INFO("Running the EulerNavDriver::run...");
-
-		// The declaration of readAtLeast() suggests that the timeout is in microseconds,
-		// but it seems to be a bug, as readAtLeast() forwards the value to another method
-		// that expects milliseconds.
+#ifndef EULERNAV_BAHRS_PARSER_DEBUG
 		const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer, sizeof(_serial_read_buffer),
-			                                       MIN_BYTES_TO_READ, SERIAL_READ_TIMEOUT_MS)};
+			                                       MIN_BYTES_TO_READ, SERIAL_READ_TIMEOUT_US)};
+
+		_statistics._total_bytes_read += bytes_read;
 
 		if (bytes_read > 0)
 		{
@@ -114,8 +114,7 @@ void EulerNavDriver::run()
 				PX4_ERR("No space in data buffer");
 			}
 		}
-
-#ifdef EULERNAV_BAHRS_PARSER_DEBUG
+#else
 		static int counter = 0;
 
 		if (counter < 6)
@@ -152,6 +151,13 @@ void EulerNavDriver::run()
 #endif // EULERNAV_BAHRS_PARSER_DEBUG
 
 		processDataBuffer();
+
+		if (hrt_elapsed_time(&time_of_previous_statistics_print) >= STATISTICS_PRINT_PERIOD)
+		{
+			PX4_INFO("Elapsed time: %llu [us]. Total bytes received: %lu.\n", hrt_elapsed_time(&start_time), _statistics._total_bytes_read);
+			PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n", _statistics._inertial_message_counter, _statistics._navigation_message_counter);
+			time_of_previous_statistics_print = hrt_absolute_time();
+		}
 	}
 }
 
@@ -177,12 +183,15 @@ void EulerNavDriver::processDataBuffer()
 
 		if (_next_message_detected)
 		{
+			static_assert(sizeof(CSerialProtocol::SMessageHeader) < MIN_MESSAGE_LENGTH);
+
 			const EMessageIds message_id{static_cast<EMessageIds>(_next_message_code)};
 			const int32_t message_length{getMessageLength(message_id)};
 
-			if (message_length < 0)
+			if ((message_length < 0) || (message_length < MIN_MESSAGE_LENGTH) ||
+			    (message_length > static_cast<int32_t>(sizeof(_message_storage))) || ((message_length % sizeof(uint32_t)) != 0U))
 			{
-				// The message is unknown or not supported
+				// The message is unknown, not supported, or does not fit into the temporary storage.
 				_next_message_detected = false;
 			}
 
@@ -190,19 +199,10 @@ void EulerNavDriver::processDataBuffer()
 			{
 				const int32_t bytes_to_retrieve{message_length - static_cast<int32_t>(sizeof(CSerialProtocol::SMessageHeader))};
 
-				if (bytes_to_retrieve < 0)
-				{
-					PX4_ERR("Message length is less than the message header length for the protocol version %u, message code %u.\n", _next_message_protocol_version, _next_message_code);
-					_next_message_detected = false;
-				}
-				else if ((bytes_to_retrieve + static_cast<int32_t>(sizeof(CSerialProtocol::SMessageHeader))) > static_cast<int32_t>(sizeof(_message_storage)))
-				{
-					PX4_ERR("Protocol version %u, message code %u: message storage is too small.\n", _next_message_protocol_version, _next_message_code);
-					_next_message_detected = false;
-				}
-				else if (static_cast<int32_t>(_data_buffer.space_used()) < bytes_to_retrieve)
+				if (static_cast<int32_t>(_data_buffer.space_used()) < bytes_to_retrieve)
 				{
 					// Do nothing and wait for more bytes to arrive.
+					break;
 				}
 				else
 				{
@@ -217,24 +217,17 @@ void EulerNavDriver::processDataBuffer()
 
 					if (static_cast<size_t>(bytes_to_retrieve) == _data_buffer.pop_front(bytes + sizeof(CSerialProtocol::SMessageHeader), bytes_to_retrieve))
 					{
-						if ((message_length % sizeof(uint32_t)) != 0U)
+						const uint32_t message_length_in_words{message_length / sizeof(uint32_t)};
+						const uint32_t actual_crc{crc32(_message_storage, message_length_in_words - 1)};
+						const uint32_t expected_crc = _message_storage[message_length_in_words - 1];
+
+						if (expected_crc != actual_crc)
 						{
-							PX4_ERR("Protocol version %u, message code %u: message length is not a multiple of 32 bit words.\n", _next_message_protocol_version, _next_message_code);
+							PX4_INFO("Protocol version %u, message code %u: CRC failed.\n", _next_message_protocol_version, _next_message_code);
 						}
 						else
 						{
-							const uint32_t message_length_in_words{message_length / sizeof(uint32_t)};
-							const uint32_t actual_crc{crc32(_message_storage, message_length_in_words - 1)};
-							const uint32_t expected_crc = _message_storage[message_length_in_words - 1];
-
-							if (expected_crc != actual_crc)
-							{
-								PX4_INFO("Protocol version %u, message code %u: CRC failed.\n", _next_message_protocol_version, _next_message_code);
-							}
-							else
-							{
-								decodeMessageAndPublishData(bytes, message_id);
-							}
+							decodeMessageAndPublishData(bytes, message_id);
 						}
 					}
 
@@ -303,22 +296,17 @@ bool EulerNavDriver::retrieveProtocolVersionAndMessageType(Ringbuffer& buffer, u
 
 void EulerNavDriver::decodeMessageAndPublishData(const uint8_t* data, CSerialProtocol::EMessageIds messsage_id)
 {
-	static uint32_t inertial_message_counter{0U};
-	static uint32_t navigation_message_counter{0U};
-
 	switch (messsage_id)
 	{
 	case CSerialProtocol::EMessageIds::eInertialData:
-		++inertial_message_counter;
+		++_statistics._inertial_message_counter;
 		break;
 	case CSerialProtocol::EMessageIds::eNavigationData:
-		++navigation_message_counter;
+		++_statistics._navigation_message_counter;
 		break;
 	default:
 		break;
 	}
-
-	PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n", inertial_message_counter, navigation_message_counter);
 }
 
 int32_t EulerNavDriver::getMessageLength(CSerialProtocol::EMessageIds messsage_id)
