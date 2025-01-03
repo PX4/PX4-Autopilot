@@ -214,9 +214,6 @@ void FixedwingAttitudeControl::Run()
 			_last_run = time_now_us;
 		}
 
-		vehicle_angular_velocity_s angular_velocity{};
-		_vehicle_rates_sub.copy(&angular_velocity);
-
 		if (_vehicle_status.is_vtol_tailsitter) {
 			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 			 *
@@ -394,10 +391,13 @@ void FixedwingAttitudeControl::Run()
 				wheel_u = _manual_control_setpoint.yaw;
 
 			} else {
+				vehicle_angular_velocity_s angular_velocity{};
+				_vehicle_rates_sub.copy(&angular_velocity);
+
 				// XXX: yaw_sp_move_rate here is an abuse -- used to ferry manual yaw inputs from
 				// position controller during auto modes _manual_control_setpoint.r gets passed
 				// whenever nudging is enabled, otherwise zero
-				const float wheel_controller_output = _wheel_ctrl.control_bodyrate(dt, euler_angles.psi(), _groundspeed,
+				const float wheel_controller_output = _wheel_ctrl.control_bodyrate(dt, angular_velocity.xyz[2], _groundspeed,
 								      groundspeed_scale);
 				wheel_u = wheel_control ? wheel_controller_output +  _att_sp.yaw_sp_move_rate : 0.f;
 			}
