@@ -76,10 +76,28 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 void
 AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw)
 {
-	const float voltage_v = voltage_raw * _analog_params.v_div;
+	float voltage_v = voltage_raw * _analog_params.v_div;
 	const bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			       (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
+
+#if defined(BOARD_BATTERY_ADC_VOLTAGE_FILTER_S) || defined(BOARD_BATTERY_ADC_CURRENT_FILTER_S)
+
+	if (_last_timestamp == 0) {
+		_last_timestamp = timestamp;
+	}
+
+	const float dt = (timestamp - _last_timestamp) / 1e6f;
+	_last_timestamp = timestamp;
+#endif
+
+#ifdef BOARD_BATTERY_ADC_VOLTAGE_FILTER_S
+	voltage_v = _voltage_filter.update(fmaxf(voltage_v, 0.f), dt);
+#endif
+
+#ifdef BOARD_BATTERY_ADC_CURRENT_FILTER_S
+	current_a = _current_filter.update(fmaxf(current_a, 0.f), dt);
+#endif
 
 	// Overwrite the measured current if current overwrite is defined and vehicle is unarmed
 	if (_analog_params.i_overwrite > 0) {
