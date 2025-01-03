@@ -101,8 +101,10 @@ public:
 	// get the velocity of the body frame origin in local NED earth frame
 	matrix::Vector3f getVelocity() const { return _output_new.vel - _vel_imu_rel_body_ned; }
 
-	// get the velocity derivative in earth frame
-	const matrix::Vector3f &getVelocityDerivative() const { return _vel_deriv; }
+	// get the mean velocity derivative in earth frame since reset (see `resetVelocityDerivativeAccumulation()`)
+	matrix::Vector3f getVelocityDerivative() const;
+
+	void resetVelocityDerivativeAccumulation();
 
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
 	float getVerticalPositionDerivative() const { return _output_vert_new.vert_vel - _vel_imu_rel_body_ned(2); }
@@ -178,7 +180,8 @@ private:
 	outputVert _output_vert_new{};		// vertical filter output on the non-delayed time horizon
 	matrix::Matrix3f _R_to_earth_now{};		// rotation matrix from body to earth frame at current time
 	matrix::Vector3f _vel_imu_rel_body_ned{};		// velocity of IMU relative to body origin in NED earth frame
-	matrix::Vector3f _vel_deriv{};		// velocity derivative at the IMU in NED earth frame (m/s/s)
+	matrix::Vector3f _delta_vel_sum{};	// accumulation of delta velocity at the IMU in NED earth frame (m/s/s)
+	float _delta_vel_dt{};			// duration of delta velocity integration (s)
 
 	// output predictor states
 	matrix::Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
