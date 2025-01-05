@@ -47,6 +47,10 @@ private:
 	// Min length of a valid message. 5 bytes header + 4 bytes CRC + padding to 12 (multiple of 32 bit words)
 	static constexpr int MIN_MESSAGE_LENGTH{12};
 
+	void initialize();
+
+	void deinitialize();
+
 	void processDataBuffer();
 
 	static bool findNextMessageHeader(Ringbuffer& buffer);

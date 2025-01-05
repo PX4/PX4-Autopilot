@@ -5,37 +5,12 @@ EulerNavDriver::EulerNavDriver(const char* device_name)
 	: _serial_port{device_name, 115200, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled}
 	, _data_buffer{}
 {
-	_serial_port.open();
-
-	if (_serial_port.isOpen())
-	{
-		PX4_INFO("Serial port opened successfully.");
-		_is_initialized = true;
-	}
-	else
-	{
-		PX4_ERR("Failed to open serial port");
-		_is_initialized = false;
-	}
-
-	if (_is_initialized)
-	{
-		if (false == _data_buffer.allocate(DATA_BUFFER_SIZE))
-		{
-			PX4_ERR("Failed to allocate data buffer");
-			_is_initialized = false;
-		}
-	}
+	initialize();
 }
 
 EulerNavDriver::~EulerNavDriver()
 {
-	if (_serial_port.isOpen())
-	{
-		_serial_port.close();
-	}
-
-	_data_buffer.deallocate();
+	deinitialize();
 }
 
 int EulerNavDriver::task_spawn(int argc, char *argv[])
@@ -101,64 +76,80 @@ void EulerNavDriver::run()
 
 	while(false == should_exit())
 	{
-#ifndef EULERNAV_BAHRS_PARSER_DEBUG
-		const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer, sizeof(_serial_read_buffer),
-			                                       MIN_BYTES_TO_READ, SERIAL_READ_TIMEOUT_US)};
-
-		_statistics._total_bytes_read += bytes_read;
-
-		if (bytes_read > 0)
+		if (_is_initialized)
 		{
-			if (false == _data_buffer.push_back(_serial_read_buffer, bytes_read))
+			const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer, sizeof(_serial_read_buffer),
+								       MIN_BYTES_TO_READ, SERIAL_READ_TIMEOUT_US)};
+
+			_statistics._total_bytes_read += bytes_read;
+
+			if (bytes_read > 0)
 			{
-				PX4_ERR("No space in data buffer");
+				if (false == _data_buffer.push_back(_serial_read_buffer, bytes_read))
+				{
+					PX4_ERR("No space in data buffer");
+				}
+			}
+
+			processDataBuffer();
+
+			if (hrt_elapsed_time(&time_of_previous_statistics_print) >= STATISTICS_PRINT_PERIOD)
+			{
+				PX4_INFO("Elapsed time: %llu [us]. Total bytes received: %lu.\n", hrt_elapsed_time(&start_time), _statistics._total_bytes_read);
+				PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n", _statistics._inertial_message_counter, _statistics._navigation_message_counter);
+				time_of_previous_statistics_print = hrt_absolute_time();
 			}
 		}
-#else
-		static int counter = 0;
-
-		if (counter < 6)
+		else
 		{
-			uint8_t test_data_part_1[] = { 0x05, 0xce, 0xF0, 0x00, 0xab, 0xcd, 0x12,  // Rubbish
-				0x4e, 0x45, 0x02, 0x00, 0x01, 0x34, 0xce, 0xff, 0xd3, 0xff, 0x70, 0xe6, 0x05, 0x00, 0xfa, 0xff, 0x00, 0x00, 0x3f, 0x00, 0x32, 0x7d, 0x13, 0x65, // Inertial message
-				0x4e, 0x45, 0x02, 0x00, 0x02, 0x9a, 0xb0, 0x22, 0xfe, 0xff, 0x3b, 0x00, 0xa3, 0xff, 0x30, 0xc8, 0x1f, 0x00, 0x00, 0x00, 0x82, 0x98, 0xa3, 0x42, // Navigation message
-				0x4e, 0x45, 0x02, 0x00, 0x01, 0x35, 0xce, 0xff, 0xe2, 0xff // Inertial message part 1
-			};
-
-			uint8_t test_data_part_2[] = { 0x65, 0xe6, 0x00, 0x00, 0xf9, 0xff, 0x00, 0x00, 0x3f, 0x00, 0x1d, 0x14, 0xf1, 0xf0, // Inertial message part 2
-				0x4e, 0x45, 0x02, 0x00, 0x01, 0x36, 0xcf, 0xff, 0xda, 0xff, 0x6e, 0xe6, 0x00, 0x00, 0xf8, 0xff, 0x00, 0x00, 0x3f, 0x00, 0x9f, 0x1b, 0x2b, 0xd1, // Inertial message
-				0x00, 0x4e, 0xcd, 0x34, 0x77, 0x86, 0xFF // Rubbish
-			};
-
-			uint8_t* data_to_push{nullptr};
-			size_t byte_count_to_push{0U};
-
-			if (counter % 2 == 0)
-			{
-				data_to_push = test_data_part_1;
-				byte_count_to_push = sizeof(test_data_part_1);
-			}
-			else
-			{
-				data_to_push = test_data_part_2;
-				byte_count_to_push = sizeof(test_data_part_2);
-			}
-
-			_data_buffer.push_back(data_to_push, byte_count_to_push);
-			printf("Data buffer size: %d\n", _data_buffer.space_used());
-			++counter;
-		}
-#endif // EULERNAV_BAHRS_PARSER_DEBUG
-
-		processDataBuffer();
-
-		if (hrt_elapsed_time(&time_of_previous_statistics_print) >= STATISTICS_PRINT_PERIOD)
-		{
-			PX4_INFO("Elapsed time: %llu [us]. Total bytes received: %lu.\n", hrt_elapsed_time(&start_time), _statistics._total_bytes_read);
-			PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n", _statistics._inertial_message_counter, _statistics._navigation_message_counter);
-			time_of_previous_statistics_print = hrt_absolute_time();
+			deinitialize();
+			px4_usleep(1000000);
+			initialize();
 		}
 	}
+}
+
+void EulerNavDriver::initialize()
+{
+	if (false == _is_initialized)
+	{
+		_serial_port.open();
+
+		if (_serial_port.isOpen())
+		{
+			PX4_INFO("Serial port opened successfully.");
+			_is_initialized = true;
+		}
+		else
+		{
+			PX4_ERR("Failed to open serial port");
+		}
+
+		if (_is_initialized)
+		{
+			if (false == _data_buffer.allocate(DATA_BUFFER_SIZE))
+			{
+				PX4_ERR("Failed to allocate data buffer");
+				_is_initialized = false;
+			}
+		}
+
+		if (false == _is_initialized)
+		{
+			deinitialize();
+		}
+	}
+}
+
+void EulerNavDriver::deinitialize()
+{
+	if (_serial_port.isOpen())
+	{
+		_serial_port.close();
+	}
+
+	_data_buffer.deallocate();
+	_is_initialized = false;
 }
 
 void EulerNavDriver::processDataBuffer()
