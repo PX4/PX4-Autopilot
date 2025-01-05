@@ -194,34 +194,34 @@ void EulerNavDriver::processDataBuffer()
 
 	while (_data_buffer.space_used() >= Config::MIN_MESSAGE_LENGTH)
 	{
-		if (false == _next_message_detected)
+		if (false == _next_message_info._is_detected)
 		{
-			_next_message_detected = findNextMessageHeader(_data_buffer);
+			_next_message_info._is_detected = findNextMessageHeader(_data_buffer);
 
-			if (_next_message_detected)
+			if (_next_message_info._is_detected)
 			{
-				if (false == retrieveProtocolVersionAndMessageType(_data_buffer, _next_message_protocol_version, _next_message_code))
+				if (false == retrieveProtocolVersionAndMessageType(_data_buffer, _next_message_info._protocol_version, _next_message_info._message_code))
 				{
-					_next_message_detected = false;
+					_next_message_info._is_detected = false;
 				}
 			}
 		}
 
-		if (_next_message_detected)
+		if (_next_message_info._is_detected)
 		{
 			static_assert(sizeof(CSerialProtocol::SMessageHeader) < Config::MIN_MESSAGE_LENGTH);
 
-			const EMessageIds message_id{static_cast<EMessageIds>(_next_message_code)};
+			const EMessageIds message_id{static_cast<EMessageIds>(_next_message_info._message_code)};
 			const int32_t message_length{getMessageLength(message_id)};
 
 			if ((message_length < 0) || (message_length < Config::MIN_MESSAGE_LENGTH) ||
 			    (message_length > static_cast<int32_t>(sizeof(_message_storage))) || ((message_length % sizeof(uint32_t)) != 0U))
 			{
 				// The message is unknown, not supported, or does not fit into the temporary storage.
-				_next_message_detected = false;
+				_next_message_info._is_detected = false;
 			}
 
-			if (_next_message_detected)
+			if (_next_message_info._is_detected)
 			{
 				const int32_t bytes_to_retrieve{message_length - static_cast<int32_t>(sizeof(CSerialProtocol::SMessageHeader))};
 
@@ -237,9 +237,9 @@ void EulerNavDriver::processDataBuffer()
 
 					bytes[0] = CSerialProtocol::uMarker1_;
 					bytes[1] = CSerialProtocol::uMarker2_;
-					bytes[2] = reinterpret_cast<uint8_t*>(&_next_message_protocol_version)[0];
-					bytes[3] = reinterpret_cast<uint8_t*>(&_next_message_protocol_version)[1];
-					bytes[4] = _next_message_code;
+					bytes[2] = reinterpret_cast<uint8_t*>(&_next_message_info._protocol_version)[0];
+					bytes[3] = reinterpret_cast<uint8_t*>(&_next_message_info._protocol_version)[1];
+					bytes[4] = _next_message_info._message_code;
 
 					if (static_cast<size_t>(bytes_to_retrieve) == _data_buffer.pop_front(bytes + sizeof(CSerialProtocol::SMessageHeader), bytes_to_retrieve))
 					{
@@ -257,7 +257,7 @@ void EulerNavDriver::processDataBuffer()
 						}
 					}
 
-					_next_message_detected = false;
+					_next_message_info._is_detected = false;
 				}
 			}
 
