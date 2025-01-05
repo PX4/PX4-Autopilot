@@ -102,6 +102,7 @@ int EulerNavDriver::print_status()
 		PX4_INFO("Total bytes received: %lu.\n", _statistics._total_bytes_received);
 		PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n",
 			_statistics._inertial_message_counter, _statistics._navigation_message_counter);
+		PX4_INFO("Failed CRC count: %lu.\n", _statistics._crc_failures);
 
 	}
 	else
