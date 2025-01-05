@@ -65,6 +65,14 @@ private:
 		static constexpr int32_t MIN_MESSAGE_LENGTH{12};
 	};
 
+	class NextMessageInfo
+	{
+	public:
+		bool _is_detected{false};
+		uint16_t _protocol_version{0U};
+		uint8_t _message_code{0U};
+	};
+
 	void initialize();
 
 	void deinitialize();
@@ -85,9 +93,7 @@ private:
 	Ringbuffer _data_buffer;
 	uint8_t _serial_read_buffer[Config::SERIAL_READ_BUFFER_SIZE];
 	uint32_t _message_storage[8];
-	bool _next_message_detected{false};
-	uint16_t _next_message_protocol_version{0U};
-	uint8_t _next_message_code{0U};
+	NextMessageInfo _next_message_info{};
 	Statistics _statistics{};
 	bool _is_initialized{false};
 };
