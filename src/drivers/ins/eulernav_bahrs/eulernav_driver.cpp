@@ -16,7 +16,7 @@ EulerNavDriver::~EulerNavDriver()
 int EulerNavDriver::task_spawn(int argc, char *argv[])
 {
 	int task_id = px4_task_spawn_cmd("bahrs", SCHED_DEFAULT, SCHED_PRIORITY_FAST_DRIVER,
-					 TASK_STACK_SIZE, (px4_main_t)&run_trampoline, argv);
+					 Config::TASK_STACK_SIZE, (px4_main_t)&run_trampoline, argv);
 
 	if (task_id < 0)
 	{
@@ -121,7 +121,7 @@ void EulerNavDriver::run()
 		if (_is_initialized)
 		{
 			const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer, sizeof(_serial_read_buffer),
-								       MIN_BYTES_TO_READ, SERIAL_READ_TIMEOUT_US)};
+								       Config::MIN_BYTES_TO_READ, Config::SERIAL_READ_TIMEOUT_US)};
 
 			_statistics._total_bytes_received += bytes_read;
 
@@ -162,7 +162,7 @@ void EulerNavDriver::initialize()
 
 		if (_is_initialized)
 		{
-			if (false == _data_buffer.allocate(DATA_BUFFER_SIZE))
+			if (false == _data_buffer.allocate(Config::DATA_BUFFER_SIZE))
 			{
 				PX4_ERR("Failed to allocate data buffer");
 				_is_initialized = false;
@@ -189,10 +189,10 @@ void EulerNavDriver::deinitialize()
 
 void EulerNavDriver::processDataBuffer()
 {
-	static_assert(MIN_MESSAGE_LENGTH >= (sizeof(CSerialProtocol::SMessageHeader) + sizeof(CSerialProtocol::CrcType_t)));
+	static_assert(Config::MIN_MESSAGE_LENGTH >= (sizeof(CSerialProtocol::SMessageHeader) + sizeof(CSerialProtocol::CrcType_t)));
 	using EMessageIds = CSerialProtocol::EMessageIds;
 
-	while (_data_buffer.space_used() >= MIN_MESSAGE_LENGTH)
+	while (_data_buffer.space_used() >= Config::MIN_MESSAGE_LENGTH)
 	{
 		if (false == _next_message_detected)
 		{
@@ -209,12 +209,12 @@ void EulerNavDriver::processDataBuffer()
 
 		if (_next_message_detected)
 		{
-			static_assert(sizeof(CSerialProtocol::SMessageHeader) < MIN_MESSAGE_LENGTH);
+			static_assert(sizeof(CSerialProtocol::SMessageHeader) < Config::MIN_MESSAGE_LENGTH);
 
 			const EMessageIds message_id{static_cast<EMessageIds>(_next_message_code)};
 			const int32_t message_length{getMessageLength(message_id)};
 
-			if ((message_length < 0) || (message_length < MIN_MESSAGE_LENGTH) ||
+			if ((message_length < 0) || (message_length < Config::MIN_MESSAGE_LENGTH) ||
 			    (message_length > static_cast<int32_t>(sizeof(_message_storage))) || ((message_length % sizeof(uint32_t)) != 0U))
 			{
 				// The message is unknown, not supported, or does not fit into the temporary storage.
