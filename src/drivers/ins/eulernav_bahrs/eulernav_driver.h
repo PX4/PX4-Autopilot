@@ -26,15 +26,21 @@ public:
 	/// @brief Required by ModuleBase
 	static int print_usage(const char *reason = nullptr);
 
+	/// @brief Overload of the method from the ModuleBase
+	int print_status() final;
+
 	/// @brief The main loop of the task.
 	void run() final;
 
 private:
-	struct Statistics
+	class Statistics
 	{
-		uint32_t _total_bytes_read{0U};
+	public:
+		uint32_t _total_bytes_received{0U};
 		uint32_t _inertial_message_counter{0U};
 		uint32_t _navigation_message_counter{0U};
+		uint32_t _crc_failures{0U};
+		hrt_abstime _start_time{0U};
 	};
 
 	static constexpr int TASK_STACK_SIZE{2048};
@@ -42,7 +48,6 @@ private:
 	static constexpr int MIN_BYTES_TO_READ{16};
 	static constexpr int SERIAL_READ_TIMEOUT_US{5000};
 	static constexpr int DATA_BUFFER_SIZE{512};
-	static constexpr hrt_abstime STATISTICS_PRINT_PERIOD{5000000U};
 
 	// Min length of a valid message. 5 bytes header + 4 bytes CRC + padding to 12 (multiple of 32 bit words)
 	static constexpr int MIN_MESSAGE_LENGTH{12};
@@ -71,7 +76,6 @@ private:
 	uint16_t _next_message_protocol_version{0U};
 	uint8_t _next_message_code{0U};
 	Statistics _statistics{};
-
 	bool _is_initialized{false};
 };
 

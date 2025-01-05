@@ -66,13 +66,55 @@ int EulerNavDriver::custom_command(int argc, char *argv[])
 
 int EulerNavDriver::print_usage(const char *reason)
 {
-	return 0;
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Serial bus driver for the EULER-NAV Baro-Inertial AHRS.
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+$ eulernav_bahrs start -d /dev/ttyS1
+Stop driver
+$ eulernav_bahrs stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("eulernav_bahrs", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("ins");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print driver status");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+
+	return PX4_OK;
+}
+
+int EulerNavDriver::print_status()
+{
+	if (_is_initialized)
+	{
+		PX4_INFO("Elapsed time: %llu [us].\n", hrt_elapsed_time(&_statistics._start_time));
+		PX4_INFO("Total bytes received: %lu.\n", _statistics._total_bytes_received);
+		PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n",
+			_statistics._inertial_message_counter, _statistics._navigation_message_counter);
+
+	}
+	else
+	{
+		PX4_INFO("Initialization failed. The driver is not running.\n");
+	}
+
+	return PX4_OK;
 }
 
 void EulerNavDriver::run()
 {
-	const auto start_time{hrt_absolute_time()};
-	auto time_of_previous_statistics_print{start_time};
+	_statistics._start_time = hrt_absolute_time();
 
 	while(false == should_exit())
 	{
@@ -81,7 +123,7 @@ void EulerNavDriver::run()
 			const auto bytes_read{_serial_port.readAtLeast(_serial_read_buffer, sizeof(_serial_read_buffer),
 								       MIN_BYTES_TO_READ, SERIAL_READ_TIMEOUT_US)};
 
-			_statistics._total_bytes_read += bytes_read;
+			_statistics._total_bytes_received += bytes_read;
 
 			if (bytes_read > 0)
 			{
@@ -92,13 +134,6 @@ void EulerNavDriver::run()
 			}
 
 			processDataBuffer();
-
-			if (hrt_elapsed_time(&time_of_previous_statistics_print) >= STATISTICS_PRINT_PERIOD)
-			{
-				PX4_INFO("Elapsed time: %llu [us]. Total bytes received: %lu.\n", hrt_elapsed_time(&start_time), _statistics._total_bytes_read);
-				PX4_INFO("Inertial messages received: %lu. Navigation messages received: %lu.\n", _statistics._inertial_message_counter, _statistics._navigation_message_counter);
-				time_of_previous_statistics_print = hrt_absolute_time();
-			}
 		}
 		else
 		{
@@ -214,7 +249,7 @@ void EulerNavDriver::processDataBuffer()
 
 						if (expected_crc != actual_crc)
 						{
-							PX4_INFO("Protocol version %u, message code %u: CRC failed.\n", _next_message_protocol_version, _next_message_code);
+							++_statistics._crc_failures;
 						}
 						else
 						{
