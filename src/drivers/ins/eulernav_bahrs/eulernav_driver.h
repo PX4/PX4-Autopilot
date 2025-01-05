@@ -43,14 +43,27 @@ private:
 		hrt_abstime _start_time{0U};
 	};
 
-	static constexpr int TASK_STACK_SIZE{2048};
-	static constexpr int SERIAL_READ_BUFFER_SIZE{128};
-	static constexpr int MIN_BYTES_TO_READ{16};
-	static constexpr int SERIAL_READ_TIMEOUT_US{5000};
-	static constexpr int DATA_BUFFER_SIZE{512};
+	class Config
+	{
+	public:
+		/// Driver task stack size
+		static constexpr uint32_t TASK_STACK_SIZE{2048};
 
-	// Min length of a valid message. 5 bytes header + 4 bytes CRC + padding to 12 (multiple of 32 bit words)
-	static constexpr int MIN_MESSAGE_LENGTH{12};
+		/// Buffer size for serial port read operations
+		static constexpr uint32_t SERIAL_READ_BUFFER_SIZE{128};
+
+		/// Minimum number of bytes to wait for when reading from a serial port
+		static constexpr uint32_t MIN_BYTES_TO_READ{16};
+
+		/// A timeout for serial port read operation
+		static constexpr uint32_t SERIAL_READ_TIMEOUT_US{5000};
+
+		/// Size of a ring buffer for storing RX data stream
+		static constexpr uint32_t DATA_BUFFER_SIZE{512};
+
+		/// Min length of a valid message. 5 bytes header + 4 bytes CRC + padding to 12 (multiple of 32 bit words)
+		static constexpr int32_t MIN_MESSAGE_LENGTH{12};
+	};
 
 	void initialize();
 
@@ -70,7 +83,7 @@ private:
 
 	device::Serial _serial_port;
 	Ringbuffer _data_buffer;
-	uint8_t _serial_read_buffer[SERIAL_READ_BUFFER_SIZE];
+	uint8_t _serial_read_buffer[Config::SERIAL_READ_BUFFER_SIZE];
 	uint32_t _message_storage[8];
 	bool _next_message_detected{false};
 	uint16_t _next_message_protocol_version{0U};
