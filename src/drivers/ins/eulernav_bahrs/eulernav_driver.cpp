@@ -2,8 +2,10 @@
 #include <px4_platform_common/getopt.h>
 
 EulerNavDriver::EulerNavDriver(const char* device_name)
-	: _serial_port{device_name, 115200, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled}
+	: ModuleParams{nullptr}
+	, _serial_port{device_name, 115200, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled}
 	, _data_buffer{}
+	, _attitude_pub(ORB_ID(vehicle_attitude))
 {
 	initialize();
 }
@@ -174,6 +176,14 @@ void EulerNavDriver::initialize()
 		{
 			deinitialize();
 		}
+		else
+		{
+			// Disable EKF2
+			const int32_t value{0};
+			param_set(param_find("EKF2_EN"), &value);
+			_attitude_pub.advertise();
+		}
+
 	}
 }
 
