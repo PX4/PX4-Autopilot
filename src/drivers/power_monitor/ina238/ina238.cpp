@@ -98,7 +98,7 @@ int INA238::read(uint8_t address, uint16_t &data)
 	uint16_t received_bytes;
 	int ret = PX4_ERROR;
 
-	for (size_t i = 0; i < 3; i++) {
+	for (size_t i = 0; i < 6; i++) {
 		ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
 
 		if (ret == PX4_OK) {
@@ -240,6 +240,10 @@ int INA238::collect()
 		_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
 		_battery.updateCurrent(static_cast<float>(current * _current_lsb));
 		_battery.updateTemperature(static_cast<float>(temperature * INA238_TSCALE));
+
+		_battery.setConnected(success);
+
+		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 	}
 
 	if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
@@ -253,12 +257,12 @@ int INA238::collect()
 			PX4_DEBUG("register check failed");
 			perf_count(_bad_register_perf);
 			success = false;
+
+			_battery.setConnected(success);
+
+			_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 		}
 	}
-
-	_battery.setConnected(success);
-
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 	perf_end(_sample_perf);
 
