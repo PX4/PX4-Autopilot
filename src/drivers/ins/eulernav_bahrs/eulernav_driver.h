@@ -1,13 +1,15 @@
 #pragma once
 
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/Serial.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/vehicle_attitude.h>
 #include <Ringbuffer.hpp>
 #include <containers/Array.hpp>
 #include "CSerialProtocol.h"
 
-class EulerNavDriver : public ModuleBase<EulerNavDriver>
+class EulerNavDriver : public ModuleBase<EulerNavDriver>, public ModuleParams
 {
 public:
 	/// @brief Class constructor
@@ -114,6 +116,8 @@ private:
 	/// @return CRC value
 	static uint32_t crc32(const uint32_t* buf, size_t len);
 
+	using VehicleAttitude = px4::msg::VehicleAttitude;
+
 	device::Serial _serial_port; ///< Serial port object to read data from
 	Ringbuffer _data_buffer; ///< A buffer for RX data stream
 	uint8_t _serial_read_buffer[Config::SERIAL_READ_BUFFER_SIZE]; ///< A buffer for serial port read operation
@@ -121,5 +125,6 @@ private:
 	NextMessageInfo _next_message_info{}; ///< Attributes of the next message detected in the data buffer
 	Statistics _statistics{}; ///< Driver performance indicators
 	bool _is_initialized{false}; ///< Initialization flag
+	uORB::PublicationMulti<VehicleAttitude> _attitude_pub;
 };
 
