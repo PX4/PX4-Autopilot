@@ -11,11 +11,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-clang:2021-09-08
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
-        token: ${{secrets.ACCESS_TOKEN}}
+        fetch-depth: 0
 
-    - name: make clang-tidy-quiet
-      run: make clang-tidy-quiet
+    - name: Testing (clang-tidy-quiet)
+      uses: addnab/docker-run-action@v3
+      with:
+        image: px4io/px4-dev-clang:2021-09-08
+        options: -v ${{ github.workspace }}:/workspace
+        run: |
+          cd /workspace
+          git config --global --add safe.directory /workspace
+          make clang-tidy-quiet

@@ -692,7 +692,8 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 	const bool local_position_valid_but_low_accuracy = !reporter.failsafeFlags().local_position_invalid
 			&& (_param_com_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_low_eph.get());
 
-	if (!reporter.failsafeFlags().local_position_accuracy_low && local_position_valid_but_low_accuracy) {
+	if (!reporter.failsafeFlags().local_position_accuracy_low && local_position_valid_but_low_accuracy
+	    && _param_com_pos_low_act.get()) {
 
 		// only report if armed
 		if (context.isArmed()) {
@@ -700,14 +701,15 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 			 * @description Local position estimate valid but has low accuracy. Warn user.
 			 *
 			 * <profile name="dev">
-			 * This check can be configured via <param>COM_POS_LOW_EPH</param> parameter.
+			 * This check can be configured via <param>COM_POS_LOW_EPH</param> and <param>COM_POS_LOW_ACT</param> parameters.
 			 * </profile>
 			 */
-			events::send(events::ID("check_estimator_low_position_accuracy"), {events::Log::Error, events::LogInternal::Info},
-				     "Local position estimate has low accuracy");
+			reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
+						    events::ID("check_estimator_low_position_accuracy"),
+						    events::Log::Error, "Position estimate has low accuracy");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_warning(reporter.mavlink_log_pub(), "Local position estimate has low accuracy\t");
+				mavlink_log_warning(reporter.mavlink_log_pub(), "Position estimate has low accuracy\t");
 			}
 		}
 	}
@@ -811,7 +813,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 
 
 	// altitude
-	failsafe_flags.local_altitude_invalid = !lpos.z_valid || (now > lpos.timestamp + (_param_com_pos_fs_delay.get() * 1_s));
+	failsafe_flags.local_altitude_invalid = !lpos.z_valid || (now > lpos.timestamp + 1_s);
 
 
 	// attitude
@@ -862,7 +864,7 @@ bool EstimatorChecks::checkPosVelValidity(const hrt_abstime &now, const bool dat
 		const bool was_valid) const
 {
 	bool valid = was_valid;
-	const bool data_stale = (now > data_timestamp_us + _param_com_pos_fs_delay.get() * 1_s) || (data_timestamp_us == 0);
+	const bool data_stale = (now > data_timestamp_us + 1_s) || (data_timestamp_us == 0);
 	const float req_accuracy = (was_valid ? required_accuracy * 2.5f : required_accuracy);
 	const bool level_check_pass = data_valid && !data_stale && (data_accuracy < req_accuracy);
 

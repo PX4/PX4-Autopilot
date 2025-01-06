@@ -46,10 +46,10 @@
 
 static constexpr int32_t DEFAULT_MISSION_FAST_REVERSE_CACHE_SIZE = 5;
 
-RtlMissionFastReverse::RtlMissionFastReverse(Navigator *navigator) :
+RtlMissionFastReverse::RtlMissionFastReverse(Navigator *navigator, mission_s mission) :
 	RtlBase(navigator, -DEFAULT_MISSION_FAST_REVERSE_CACHE_SIZE)
 {
-
+	_mission = mission;
 }
 
 void RtlMissionFastReverse::on_inactive()
@@ -155,6 +155,13 @@ void RtlMissionFastReverse::setActiveMissionItems()
 		}
 
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
+				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
+				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+
+		if (mc_landing_after_transition) {
+			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
+		}
 	}
 
 	issue_command(_mission_item);

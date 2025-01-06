@@ -260,7 +260,8 @@ private:
 		FW_POSCTRL_MODE_AUTO_PATH,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
-		FW_POSCTRL_MODE_TRANSITON,
+		FW_POSCTRL_MODE_TRANSITION_TO_HOVER_LINE_FOLLOW,
+		FW_POSCTRL_MODE_TRANSITION_TO_HOVER_HEADING_HOLD,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
 
@@ -409,6 +410,7 @@ private:
 	// VTOL / TRANSITION
 	bool _is_vtol_tailsitter{false};
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
+	float _backtrans_heading{NAN};	// used to lock the initial heading for backtransition with no position control
 
 	// ESTIMATOR RESET COUNTERS
 	uint8_t _xy_reset_counter{0};
@@ -708,14 +710,19 @@ private:
 	void control_manual_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
 
 	/**
+	 * @brief Holds the initial heading during the course of a transition to hover. Used when there is no local
+	 * position to do line following.
+	 */
+	void control_backtransition_heading_hold();
+
+	/**
 	 * @brief Controls flying towards a transition waypoint and then transitioning to MC mode.
 	 *
-	 * @param control_interval Time since last position control call [s]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_backtransition(const float control_interval, const Vector2f &ground_speed,
-				    const position_setpoint_s &pos_sp_curr);
+	void control_backtransition_line_follow(const Vector2f &ground_speed,
+						const position_setpoint_s &pos_sp_curr);
 
 	float get_tecs_pitch();
 	float get_tecs_thrust();

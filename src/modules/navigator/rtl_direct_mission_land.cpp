@@ -215,8 +215,14 @@ void RtlDirectMissionLand::setActiveMissionItems()
 
 		// prevent lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
 		// is not achieved.
-		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && MissionBase::isLanding()
-		    && _mission_item.nav_cmd == NAV_CMD_WAYPOINT) {
+		const bool fw_on_mission_landing = _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+						   && isLanding() &&
+						   _mission_item.nav_cmd == NAV_CMD_WAYPOINT;
+		const bool mc_landing_after_transition = _vehicle_status_sub.get().vehicle_type ==
+				vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && _vehicle_status_sub.get().is_vtol &&
+				new_work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
+
+		if (fw_on_mission_landing || mc_landing_after_transition) {
 			pos_sp_triplet->current.alt_acceptance_radius = FLT_MAX;
 		}
 	}
@@ -239,6 +245,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 {
 	_rtl_time_estimator.update();
+	_rtl_time_estimator.setVehicleType(_vehicle_status_sub.get().vehicle_type);
 	_rtl_time_estimator.reset();
 
 	if (_mission.count > 0 && hasMissionLandStart()) {
@@ -247,7 +254,7 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 
 		if (isActive()) {
 			start_item_index = math::max(_mission.current_seq, _mission.land_start_index);
-			is_in_climbing_submode = _needs_climbing;
+			is_in_climbing_submode = _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
 		} else {
 			start_item_index = _mission.land_start_index;
@@ -305,7 +312,12 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
 
 							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat,
+									 next_position_mission_item.lon);
+
+							if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+								hor_dist = math::max(0.f, hor_dist - next_position_mission_item.loiter_radius);
+							}
 
 							_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
 
@@ -321,7 +333,12 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
 
 							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+									 hor_position_at_calculation_point(1), next_position_mission_item.lat,
+									 next_position_mission_item.lon);
+
+							if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+								hor_dist = math::max(0.f, hor_dist - next_position_mission_item.loiter_radius);
+							}
 
 							_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
 
@@ -339,13 +356,12 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
 										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
 
-							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+							const float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									       hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
 
 							// For fixed wing, add diagonal line
 							if ((_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
 							    && (!_vehicle_status_sub.get().is_vtol)) {
-
 
 								_rtl_time_estimator.addDistance(hor_dist, direction,
 												get_absolute_altitude_for_item(next_position_mission_item) - altitude_at_calculation_point);
@@ -354,8 +370,12 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 								// For VTOL, Rotary, go there horizontally first, then land
 								_rtl_time_estimator.addDistance(hor_dist, direction, 0.f);
 
-								_rtl_time_estimator.addDescendMCLand(get_absolute_altitude_for_item(next_position_mission_item) -
-												     altitude_at_calculation_point);
+								if (_vehicle_status_sub.get().is_vtol) {
+									_rtl_time_estimator.setVehicleType(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+								}
+
+								_rtl_time_estimator.addVertDistance(get_absolute_altitude_for_item(next_position_mission_item) -
+												    altitude_at_calculation_point);
 							}
 
 							break;
@@ -367,8 +387,8 @@ rtl_time_estimate_s RtlDirectMissionLand::calc_rtl_time_estimate()
 							get_vector_to_next_waypoint(hor_position_at_calculation_point(0), hor_position_at_calculation_point(1),
 										    next_position_mission_item.lat, next_position_mission_item.lon, &direction(0), &direction(1));
 
-							float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
-									 hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
+							const float hor_dist = get_distance_to_next_waypoint(hor_position_at_calculation_point(0),
+									       hor_position_at_calculation_point(1), next_position_mission_item.lat, next_position_mission_item.lon);
 
 							_rtl_time_estimator.addDistance(hor_dist, direction,
 											get_absolute_altitude_for_item(next_position_mission_item) - altitude_at_calculation_point);

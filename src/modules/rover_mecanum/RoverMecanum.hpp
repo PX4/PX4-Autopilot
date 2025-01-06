@@ -39,6 +39,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/pure_pursuit/PurePursuit.hpp>
 
 // uORB includes
 #include <uORB/Publication.hpp>
@@ -52,7 +53,7 @@
 #include <uORB/topics/rover_mecanum_setpoint.h>
 
 // Standard libraries
-#include <lib/pid/pid.h>
+#include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
 
 // Local includes
@@ -112,6 +113,7 @@ private:
 	// Instances
 	RoverMecanumGuidance _rover_mecanum_guidance{this};
 	RoverMecanumControl _rover_mecanum_control{this};
+	PurePursuit _posctl_pure_pursuit{this}; // Pure pursuit library
 
 	// Variables
 	matrix::Quatf _vehicle_attitude_quaternion{};
@@ -123,11 +125,18 @@ private:
 	int _nav_state{0};
 	bool _yaw_ctl{false}; // Indicates if the rover is doing yaw or yaw rate control in position mode
 	float _desired_yaw{0.f}; // Yaw setpoint for position mode
+	Vector2f _pos_ctl_start_position_ned{};
+	Vector2f _pos_ctl_course_direction{};
+	Vector2f _curr_pos_ned{};
+	float _prev_throttle{0.f};
+	float _prev_roll{0.f};
 	bool _armed{false};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RM_MAX_SPEED>) _param_rm_max_speed,
-		(ParamFloat<px4::params::RM_MAN_YAW_SCALE>) _param_rm_man_yaw_scale,
-		(ParamFloat<px4::params::RM_MAX_YAW_RATE>) _param_rm_max_yaw_rate
+		(ParamFloat<px4::params::RM_MAX_SPEED>)    _param_rm_max_speed,
+		(ParamFloat<px4::params::RM_WHEEL_TRACK>)   _param_rm_wheel_track,
+		(ParamFloat<px4::params::RM_MAX_THR_YAW_R>) _param_rm_max_thr_yaw_r,
+		(ParamFloat<px4::params::RM_MAX_YAW_RATE>)  _param_rm_max_yaw_rate,
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
 	)
 };

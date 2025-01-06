@@ -139,6 +139,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected) {
 						resetTerrainToRng(aid_src);
+						resetAidSourceStatusZeroInnovation(aid_src);
 					}
 
 				} else if (do_range_aid) {
@@ -148,8 +149,9 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					_height_sensor_ref = HeightSensor::RANGE;
 
 					_information_events.flags.reset_hgt_to_rng = true;
-					resetVerticalPositionTo(-aid_src.observation, aid_src.observation_variance);
+					resetAltitudeTo(aid_src.observation, aid_src.observation_variance);
 					_state.terrain = 0.f;
+					resetAidSourceStatusZeroInnovation(aid_src);
 					_control_status.flags.rng_hgt = true;
 					stopRngTerrFusion();
 
@@ -163,6 +165,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 					if (!_control_status.flags.opt_flow_terrain && aid_src.innovation_rejected) {
 						resetTerrainToRng(aid_src);
+						resetAidSourceStatusZeroInnovation(aid_src);
 					}
 				}
 			}
@@ -180,7 +183,8 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 					ECL_WARN("%s height fusion reset required, all height sources failing", HGT_SRC_NAME);
 
 					_information_events.flags.reset_hgt_to_rng = true;
-					resetVerticalPositionTo(-(aid_src.observation - _state.terrain));
+					resetAltitudeTo(aid_src.observation - _state.terrain);
+					resetAidSourceStatusZeroInnovation(aid_src);
 
 					// reset vertical velocity if no valid sources available
 					if (!isVerticalVelocityAidingActive()) {
@@ -198,6 +202,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 
 					} else {
 						resetTerrainToRng(aid_src);
+						resetAidSourceStatusZeroInnovation(aid_src);
 					}
 				}
 
@@ -218,6 +223,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 				} else {
 					if (aid_src.innovation_rejected) {
 						resetTerrainToRng(aid_src);
+						resetAidSourceStatusZeroInnovation(aid_src);
 					}
 
 					_control_status.flags.rng_terrain = true;

@@ -62,3 +62,4 @@ px4_add_unit_gtest(SRC test_EKF_yaw_estimator.cpp LINKLIBS ecl_EKF ecl_sensor_si
 px4_add_unit_gtest(SRC test_EKF_yaw_fusion_generated.cpp LINKLIBS ecl_EKF ecl_test_helper)
 px4_add_unit_gtest(SRC test_SensorRangeFinder.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
 px4_add_unit_gtest(SRC test_EKF_drag_fusion.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_grounded.cpp LINKLIBS ecl_EKF ecl_sensor_sim)

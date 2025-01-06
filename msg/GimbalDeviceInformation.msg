@@ -33,4 +33,4 @@ float32 pitch_max # [rad]
 float32 yaw_min # [rad]
 float32 yaw_max # [rad]
 
-uint8 gimbal_device_compid
+uint8 gimbal_device_id

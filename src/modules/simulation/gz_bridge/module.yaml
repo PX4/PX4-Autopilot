@@ -1,3 +1,6 @@
+__max_num_servos: &max_num_servos 8
+__max_num_tilts: &max_num_tilts 4
+
 module_name: SIM_GZ
 actuator_output:
   show_subgroups_if: 'SIM_GZ_EN>=1'
@@ -15,7 +18,7 @@ actuator_output:
         min: { min: 0, max: 1000, default: 0 }
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
-      num_channels: 8
+      num_channels: *max_num_servos
     - param_prefix: SIM_GZ_SV
       group_label: 'Servos'
       channel_label: 'Servo'
@@ -24,7 +27,7 @@ actuator_output:
         min: { min: 0, max: 1000, default: 0 }
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
-      num_channels: 8
+      num_channels: *max_num_servos
     - param_prefix: SIM_GZ_WH
       group_label: 'Wheels'
       channel_label: 'Wheels'
@@ -34,3 +37,35 @@ actuator_output:
         max: { min: 0, max: 200, default: 200 }
         failsafe: { min: 0, max: 200 }
       num_channels: 4
+
+parameters:
+    - group: Geometry
+      definitions:
+        SIM_GZ_SV_MAXA${i}:
+            description:
+                short: Servo ${i} Angle at Maximum
+                long: |
+                  Defines the angle when the servo is at the maximum.
+                  Currently only supported in gz simulation and must be coherent with .sdf file and CA_SV_TL{n}_MAXA.
+            type: float
+            decimal: 0
+            unit: 'deg'
+            num_instances: *max_num_servos
+            instance_start: 1
+            min: -180.0
+            max: 180.0
+            default: 45.0
+        SIM_GZ_SV_MINA${i}:
+            description:
+                short: Servo ${i} Angle at Minimum
+                long: |
+                  Defines the angle when the servo is at the minimum.
+                  Currently only supported in gz simulation and must be coherent with .sdf file and CA_SV_TL{n}_MINA.
+            type: float
+            decimal: 0
+            unit: 'deg'
+            num_instances: *max_num_servos
+            instance_start: 1
+            min: -180.0
+            max: 180.0
+            default: -45.0

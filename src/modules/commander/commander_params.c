@@ -513,19 +513,6 @@ PARAM_DEFINE_INT32(COM_ARM_AUTH_MET, 0);
 PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
 
 /**
- * Loss of position failsafe activation delay.
- *
- * This sets number of seconds that the position checks need to be failed before the failsafe will activate.
- * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5 and 10 should be used.
- *
- * @unit s
- * @group Commander
- * @min 1
- * @max 100
- */
-PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
-
-/**
  * Horizontal position error threshold.
  *
  * This is the horizontal position error (EPH) threshold that will trigger a failsafe.
@@ -928,13 +915,11 @@ PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
 PARAM_DEFINE_INT32(COM_WIND_MAX_ACT, 0);
 
 /**
- * EPH threshold for RTL
+ * Low position accuracy failsafe threshold
  *
- * Specify the threshold for triggering a warning for low local position accuracy. Additionally triggers
- * a RTL if currently in Mission or Loiter mode.
- * Local position has to be still declared valid, which is most of all depending on COM_POS_FS_EPH.
- * Use this feature on systems with dead-reckoning capabilites (e.g. fixed-wing vehicles with airspeed sensor)
- * to improve the user notification and failure mitigation when flying in GNSS-denied areas.
+ * This triggers the action specified in COM_POS_LOW_ACT if the estimated position accuracy is below this threshold.
+ * Local position has to be still declared valid, which requires some kind of velocity aiding or large dead-reckoning time (EKF2_NOAID_TOUT),
+ * and a high failsafe threshold (COM_POS_FS_EPH).
  *
  * Set to -1 to disable.
  *
@@ -944,6 +929,26 @@ PARAM_DEFINE_INT32(COM_WIND_MAX_ACT, 0);
  * @unit m
  */
 PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
+
+/**
+ * Low position accuracy action
+ *
+ * Action the system takes when the estimated position has an accuracy below the specified threshold.
+ * See COM_POS_LOW_EPH to set the failsafe threshold.
+ * The failsafe action is only executed if the vehicle is in auto mission or auto loiter mode,
+ * otherwise it is only a warning.
+ *
+ * @group Commander
+ *
+ * @value 0 None
+ * @value 1 Warning
+ * @value 2 Hold
+ * @value 3 Return
+ * @value 4 Terminate
+ * @value 5 Land
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_POS_LOW_ACT, 3);
 
 /**
  * Flag to allow arming

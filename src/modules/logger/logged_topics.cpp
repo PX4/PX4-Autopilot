@@ -104,6 +104,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_optional_topic("rover_ackermann_guidance_status", 100);
+	add_optional_topic("rover_ackermann_setpoint", 100);
 	add_optional_topic("rover_ackermann_status", 100);
 	add_optional_topic("rover_differential_guidance_status", 100);
 	add_optional_topic("rover_differential_setpoint", 100);
@@ -322,7 +323,9 @@ void LoggedTopics::add_sensor_comparison_topics()
 void LoggedTopics::add_vision_and_avoidance_topics()
 {
 	add_topic("collision_constraints");
+	add_topic_multi("distance_sensor");
 	add_topic("obstacle_distance_fused");
+	add_topic("obstacle_distance");
 	add_topic("vehicle_mocap_odometry", 30);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);

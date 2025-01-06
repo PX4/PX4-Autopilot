@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(RoverAckermannGuidance)
+add_subdirectory(RoverAckermannControl)
 
 px4_add_module(
 	MODULE modules__rover_ackermann
@@ -41,6 +42,7 @@ px4_add_module(
 		RoverAckermann.hpp
 	DEPENDS
 		RoverAckermannGuidance
+		RoverAckermannControl
 		px4_work_queue
 		SlewRate
 		pure_pursuit

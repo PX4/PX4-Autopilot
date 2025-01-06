@@ -181,9 +181,11 @@ private:
 
 	int _last_payload_tx_rate{}; ///< in B/s
 	int _last_payload_rx_rate{}; ///< in B/s
-	bool _connected{false};
 
+	bool _connected{false};
+	bool _session_created{false};
 	bool _timesync_converged{false};
+	bool _subs_initialized{false};
 
 	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
 

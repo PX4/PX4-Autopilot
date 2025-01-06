@@ -90,12 +90,7 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 			if (global_origin_valid()
 			    && (origin_newer_than_last_mag || (isLocalHorizontalPositionValid() && isTimedOut(_wmm_mag_time_last_checked, 10e6)))
 			   ) {
-				// position of local NED origin in GPS / WGS84 frame
-				double latitude_deg;
-				double longitude_deg;
-				global_origin().reproject(_state.pos(0), _state.pos(1), latitude_deg, longitude_deg);
-
-				if (updateWorldMagneticModel(latitude_deg, longitude_deg)) {
+				if (updateWorldMagneticModel(_gpos.latitude_deg(), _gpos.longitude_deg())) {
 					wmm_updated = true;
 				}
 
@@ -368,7 +363,7 @@ bool Ekf::checkHaglYawResetReq() const
 		// Check if height has increased sufficiently to be away from ground magnetic anomalies
 		// and request a yaw reset if not already requested.
 		static constexpr float mag_anomalies_max_hagl = 1.5f;
-		const bool above_mag_anomalies = (getTerrainVPos() - _state.pos(2)) > mag_anomalies_max_hagl;
+		const bool above_mag_anomalies = (getTerrainVPos() + _gpos.altitude()) > mag_anomalies_max_hagl;
 		return above_mag_anomalies;
 	}
 
@@ -487,7 +482,7 @@ void Ekf::checkMagHeadingConsistency(const magSample &mag_sample)
 		// Check if there has been enough change in horizontal velocity to make yaw observable
 		const bool using_ne_aiding = _control_status.flags.gps || _control_status.flags.aux_gpos;
 
-		if (using_ne_aiding && (_accel_lpf_NE.norm() > _params.mag_acc_gate)) {
+		if (using_ne_aiding && (_accel_horiz_lpf.getState().longerThan(_params.mag_acc_gate))) {
 			// yaw angle must be observable to consider consistency
 			_control_status.flags.mag_heading_consistent = true;
 		}

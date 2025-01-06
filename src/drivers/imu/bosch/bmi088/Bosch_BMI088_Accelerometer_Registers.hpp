@@ -72,6 +72,7 @@ enum class Register : uint8_t {
 	FIFO_CONFIG_1      = 0x49,
 
 	INT1_IO_CONF       = 0x53,
+	INT2_IO_CONF       = 0x54,
 
 	INT1_INT2_MAP_DATA = 0x58,
 
@@ -113,8 +114,16 @@ enum FIFO_CONFIG_1_BIT : uint8_t {
 enum INT1_IO_CONF_BIT : uint8_t {
 	int1_in  = Bit4,
 	int1_out = Bit3,
-
+	int1_od  = Bit2,
 	int1_lvl = Bit1,
+};
+
+// INT2_IO_CONF
+enum INT2_IO_CONF_BIT : uint8_t {
+	int2_io	 = Bit4,
+	int2_out = Bit3,
+	int2_od  = Bit2,
+	int2_lvl = Bit1,
 };
 
 // INT1_INT2_MAP_DATA

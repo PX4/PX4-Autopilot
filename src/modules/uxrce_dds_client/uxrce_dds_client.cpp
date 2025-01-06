@@ -222,6 +222,7 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 	}
 
 	if (!got_response) {
+		PX4_ERR("got no ping from agent");
 		return false;
 	}
 
@@ -240,6 +241,8 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 		PX4_ERR("uxr_create_session failed");
 		return false;
 	}
+
+	_session_created = true;
 
 	// Streams
 	// Reliable for setup, afterwards best-effort to send the data (important: need to create all 4 streams)
@@ -351,6 +354,7 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 		}
 
 		if (sync_timeouts > TIMESYNC_MAX_TIMEOUTS) {
+			PX4_ERR("timeout during time synchronization");
 			return false;
 		}
 
@@ -378,10 +382,18 @@ bool UxrceddsClient::setup_session(uxrSession *session)
 void UxrceddsClient::delete_session(uxrSession *session)
 {
 	delete_repliers();
-	uxr_delete_session_retries(session, _connected ? 1 : 0);
+
+	if (_session_created) {
+		uxr_delete_session_retries(session, _connected ? 1 : 0);
+		_session_created = false;
+	}
+
+	if (_subs_initialized) {
+		_subs->reset();
+		_subs_initialized = false;
+	}
 
 	_last_payload_tx_rate = 0;
-	_subs->reset();
 	_timesync.reset_filter();
 }
 
@@ -549,6 +561,7 @@ void UxrceddsClient::run()
 		int poll_error_counter = 0;
 
 		_subs->init();
+		_subs_initialized = true;
 
 		while (!should_exit() && _connected) {
 			perf_begin(_loop_perf);

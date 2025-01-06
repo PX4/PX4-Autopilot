@@ -108,30 +108,11 @@ public:
 	static bool item_contains_marker(const mission_item_s &item);
 
 	/**
-	 * @brief Set the payload deployment successful flag object
+	 * Set the item_has_timeout() command timeout
 	 *
-	 * Function is accessed in Navigator (navigator_main.cpp) to flag when a successful
-	 * payload deployment ack command has been received. Which in turn allows the mission item
-	 * to continue to the next in the 'is_mission_item_reached_or_completed' function below
+	 * @param timeout Timeout in seconds
 	 */
-	void set_payload_depolyment_successful_flag(bool payload_deploy_result)
-	{
-		_payload_deploy_ack_successful = payload_deploy_result;
-	}
-
-	/**
-	 * @brief Set the payload deployment timeout
-	 *
-	 * Accessed in Navigator to set the appropriate timeout to wait for while waiting for a successful
-	 * payload delivery acknowledgement. If the payload deployment takes longer than timeout, mission will
-	 * continue into the next item automatically.
-	 *
-	 * @param timeout_s Timeout in seconds
-	 */
-	void set_payload_deployment_timeout(const float timeout_s)
-	{
-		_payload_deploy_timeout_s = timeout_s;
-	}
+	void set_command_timeout(const float timeout) { _command_timeout = timeout; }
 
 	/**
 	 * Copies position from setpoint if valid, otherwise copies current position
@@ -183,7 +164,7 @@ protected:
 	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item);
 
 	void setLoiterItemFromCurrentPosition(struct mission_item_s *item);
-	void setLoiterItemFromCurrentPositionWithBreaking(struct mission_item_s *item);
+	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
 
 	void setLoiterItemCommonFields(struct mission_item_s *item);
 
@@ -247,12 +228,10 @@ protected:
 
 	hrt_abstime _time_wp_reached{0};
 
-	/* Payload Deploy internal states are used by two NAV_CMDs: DO_WINCH and DO_GRIPPER */
-	bool _payload_deploy_ack_successful{false};	// Flag to keep track of whether we received an acknowledgement for a successful payload deployment
-	hrt_abstime _payload_deployed_time{0};		// Last payload deployment start time to handle timeouts
-	float _payload_deploy_timeout_s{0.0f};		// Timeout for payload deployment in Mission class, to prevent endless loop if successful deployment ack is never received
+	// Mission items that have a timeout to allow the payload e.g. gripper, winch, gimbal executing the command see item_has_timeout()
+	hrt_abstime _timestamp_command_timeout{0}; ///< Timestamp when the current item_has_timeout() command was started
+	float _command_timeout{0.f}; ///< Time in seconds any item_has_timeout() command should be waited for before continuing the mission
 
 private:
 	void updateMaxHaglFailsafe();
-
 };

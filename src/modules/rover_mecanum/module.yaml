@@ -4,19 +4,6 @@ parameters:
   - group: Rover Mecanum
     definitions:
 
-      RM_MAN_YAW_SCALE:
-        description:
-          short: Manual yaw rate scale
-          long: |
-            In Manual mode the setpoint for the yaw rate received from the control stick
-            is scaled by this value.
-        type: float
-        min: 0.01
-        max: 1
-        increment: 0.01
-        decimal: 2
-        default: 1
-
       RM_WHEEL_TRACK:
         description:
           short: Wheel track
@@ -41,6 +28,22 @@ parameters:
         increment: 0.01
         decimal: 2
         default: 90
+
+      RM_MAX_YAW_ACCEL:
+        description:
+          short: Maximum allowed yaw acceleration for the rover
+          long: |
+            This parameter is used to cap desired yaw acceleration. This is used to adjust incoming yaw rate setpoints
+            to a feasible yaw rate setpoint based on the physical limitation on how fast the yaw rate can change.
+            This leads to a smooth setpoint trajectory for the closed loop yaw rate controller to track.
+            Set to -1 to disable.
+        type: float
+        unit: deg/s^2
+        min: -1
+        max: 1000
+        increment: 0.01
+        decimal: 2
+        default: -1
 
       RM_MAX_THR_YAW_R:
         description:
@@ -173,16 +176,20 @@ parameters:
         decimal: 2
         default: 0.5
 
-      RM_MISS_SPD_DEF:
+      RM_MAX_DECEL:
         description:
-          short: Default rover speed during a mission
+          short: Maximum deceleration
+          long: |
+            Maximum decelaration is used to limit the deceleration of the rover.
+            Set to -1 to disable, causing the rover to decelerate as fast as possible.
+            Caution: Disabling the deceleration limit also disables the slow down effect in auto modes.
         type: float
-        unit: m/s
-        min: 0
+        unit: m/s^2
+        min: -1
         max: 100
         increment: 0.01
         decimal: 2
-        default: 1
+        default: -1
 
       RM_MISS_VEL_GAIN:
         description:

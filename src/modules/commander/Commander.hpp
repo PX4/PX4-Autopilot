@@ -44,7 +44,6 @@
 #include "UserModeIntention.hpp"
 #include "worker_thread.hpp"
 
-#include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -199,6 +198,9 @@ private:
 	void handleCommandsFromModeExecutors();
 
 	void modeManagementUpdate();
+
+	static void onFailsafeNotifyUserTrampoline(void *arg);
+	void onFailsafeNotifyUser();
 
 	enum class PrearmedMode {
 		DISABLED = 0,
