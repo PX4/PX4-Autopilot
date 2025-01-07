@@ -14,7 +14,7 @@
 #include <gz/sim/EntityComponentManager.hh>
 #include <gz/sim/Util.hh>
 
-#include "OpticalFlow.hpp"
+#include "OpticalFlowSensor.hpp"
 #include "OpticalFlowSystem.hpp"
 
 using namespace custom;

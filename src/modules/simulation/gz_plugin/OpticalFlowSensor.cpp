@@ -2,7 +2,7 @@
 #include <gz/msgs/Utility.hh>
 #include <gz/sensors/Util.hh>
 
-#include "OpticalFlow.hpp"
+#include "OpticalFlowSensor.hpp"
 #include "optical_flow.pb.h"
 
 using namespace custom;

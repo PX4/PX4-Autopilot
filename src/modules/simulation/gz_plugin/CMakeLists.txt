@@ -26,7 +26,7 @@ set(OpticalFlow_INCLUDE_DIRS ${install_dir}/include)
 set(OpticalFlow_LIBS ${install_dir}/lib/libOpticalFlow.so)
 
 add_library(${PROJECT_NAME} SHARED
-    OpticalFlow.cpp
+    OpticalFlowSensor.cpp
     OpticalFlowSystem.cpp
 )
 
