@@ -1,4 +1,4 @@
-menuconfig MODULES_SIMULATION_GZ_PLUGIN
+menuconfig MODULES_SIMULATION_GZ_PLUGINS
 	bool "gz_plugin"
 	default n
 	depends on PLATFORM_POSIX
