@@ -65,7 +65,6 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 	_param_handles.yaw_throttle_scale = param_find("CA_HELI_YAW_TH_S");
 	_param_handles.yaw_ccw = param_find("CA_HELI_YAW_CCW");
 	_param_handles.spoolup_time = param_find("COM_SPOOLUP_TIME");
-	_param_handles.linearize_servos = param_find("CA_LIN_SERVO");
 	_param_handles.max_servo_throw = param_find("CA_MAX_SVO_THROW");
 
 	updateParams();
@@ -103,14 +102,20 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	int32_t yaw_ccw = 0;
 	param_get(_param_handles.yaw_ccw, &yaw_ccw);
 	_geometry.yaw_sign = (yaw_ccw == 1) ? -1.f : 1.f;
-	int32_t linearize_servos = 0;
-	param_get(_param_handles.linearize_servos, &linearize_servos);
-	_geometry.linearize_servos = (linearize_servos != 0);
 	float max_servo_throw_deg = 0.f;
 	param_get(_param_handles.max_servo_throw, &max_servo_throw_deg);
-	const float max_servo_throw = math::radians(max_servo_throw_deg);
-	_geometry.max_servo_height = sinf(max_servo_throw);
-	_geometry.inverse_max_servo_throw = 1.f / max_servo_throw;
+
+	if (max_servo_throw_deg > 0.f){
+		const float max_servo_throw = math::radians(max_servo_throw_deg);
+		_geometry.max_servo_height = sinf(max_servo_throw);
+		_geometry.inverse_max_servo_throw = 1.f / max_servo_throw;
+		_geometry.linearize_servos = 1;
+	}  else {
+		// handle any undefined behaviour
+    		_geometry.max_servo_height = 0.f;
+    		_geometry.inverse_max_servo_throw = 0.f;
+		_geometry.linearize_servos = 0;
+	}
 }
 
 bool ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configuration,

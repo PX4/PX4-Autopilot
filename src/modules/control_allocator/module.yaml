@@ -564,25 +564,18 @@ parameters:
           min: 0
           max: 10
           default: 0.0
-        CA_LIN_SERVO:
-          description:
-            short: linearize servo output
-            long: |
-              Linearize the servo's mechanical output attached to a 4-servos swashplate. Requires setting the servo range of motion using CA_MAX_SVO_THROW.
-          type: boolean
-          default: 0
         CA_MAX_SVO_THROW:
           description:
-            short: Defines max/min throw of servo.
+            short:  Defines max/min throw of servo for linearization. Set to zero to disable.
             long: |
-              Defines min/max throw of servo when linearizing servo output. Only used when CA_LIN_SERVO is enabled.
+              Defines min/max throw of servo. Used to linearize mechanical output of servo attached to a 4-servo swashplate. Setting to zero to disables feature.
           type: float
           decimal: 3
           unit: deg
           increment: 0.1
-          min: 5
+          min: 0
           max: 75
-          default: 50.0
+          default: 0.0
 
         # Others
         CA_FAILURE_MODE:
@@ -1147,8 +1140,6 @@ mixer:
                         name: CA_HELI_YAW_CCW
                       - label: 'Throttle spoolup time'
                         name: COM_SPOOLUP_TIME
-                      - label: 'Linearize servos'
-                        name: CA_LIN_SERVO
                       - label: 'Min/max servo throw in degrees'
                         name: CA_MAX_SVO_THROW
 
@@ -1180,8 +1171,6 @@ mixer:
                       name: CA_HELI_YAW_CCW
                     - label: 'Throttle spoolup time'
                       name: COM_SPOOLUP_TIME
-                    - label: 'Linearize servos'
-                      name: CA_LIN_SERVO
                     - label: 'Min/max servo throw in degrees'
                       name: CA_MAX_SVO_THROW
 

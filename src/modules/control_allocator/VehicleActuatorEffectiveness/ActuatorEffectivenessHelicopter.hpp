@@ -120,7 +120,6 @@ private:
 		param_t yaw_throttle_scale;
 		param_t yaw_ccw;
 		param_t spoolup_time;
-		param_t linearize_servos;
 		param_t max_servo_throw;
 	};
 	ParamHandles _param_handles{};
