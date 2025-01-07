@@ -78,7 +78,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 			}
 
 		} else {
-			// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
+			// If we are supposed to be using range finder data but have bad range measurements
 			// and are on the ground, then synthesise a measurement at the expected on ground value
 			if (!_control_status.flags.in_air
 			    && _range_sensor.isRegularlySendingData()
