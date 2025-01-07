@@ -1140,8 +1140,6 @@ mixer:
                         name: CA_HELI_YAW_CCW
                       - label: 'Throttle spoolup time'
                         name: COM_SPOOLUP_TIME
-                      - label: 'Min/max servo throw in degrees'
-                        name: CA_MAX_SVO_THROW
 
             11: # Helicopter (tail Servo)
               actuators:
@@ -1171,8 +1169,6 @@ mixer:
                       name: CA_HELI_YAW_CCW
                     - label: 'Throttle spoolup time'
                       name: COM_SPOOLUP_TIME
-                    - label: 'Min/max servo throw in degrees'
-                      name: CA_MAX_SVO_THROW
 
             12: # Helicopter (Coaxial)
                 actuators:
