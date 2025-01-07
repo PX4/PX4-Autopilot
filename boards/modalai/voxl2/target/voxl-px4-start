@@ -65,28 +65,6 @@ param select /data/px4/param/parameters
 # Load in all of the parameters that have been saved in the file
 param load
 
-if [ "$ARTIFACT_MODE" == "ENABLE" ]; then
-	# Do not start the logger module if we are in artifact mode. Logging
-	# produces a log artifact. If there are currently any saved logs make
-	# sure to delete them now.
-	# Also remove the data manager file that may have saved GPS waypoint information
-	# in it.
-	# Use shred to remove all files so that they cannot be recovered.
-	# shred should be effective on the /data partition since it has this configuration:
-	# /dev/sda8 /data ext4 rw,nosuid,nodev,noatime,discard,noauto_da_alloc,data=ordered 0 0
-	/usr/bin/find /data/px4/log -name "*.ulg" -exec /usr/bin/shred -u -n 7 {} \;
-	/bin/rm -fR /data/px4/log
-	/usr/bin/shred -u -n 7 /data/px4/dataman
-    /bin/echo "Artifact mode has been enabled"
-else
-	# Start logging and use timestamps for log files when possible.
-	# Add the "-e" option to start logging immediately. Default is
-	# to log only when armed. Caution must be used with the "-e" option
-	# because if power is removed without stopping the logger gracefully then
-	# the log file may be corrupted.
-	logger start -t
-fi
-
 # IMU (accelerometer / gyroscope)
 if [ "$PLATFORM" == "M0104" ]; then
     /bin/echo "Starting IMU driver with rotation 12"
@@ -227,6 +205,7 @@ fi
 qshell manual_control start
 qshell control_allocator start
 qshell load_mon start
+qshell temperature_compensation start
 
 # Only start the rc_update module if an actual RC driver
 # is publishing input_rc topics. Otherwise for external RC
@@ -296,3 +275,28 @@ for i in "${EXTRA_STEPS[@]}"
 do
 	$i
 done
+
+if [ "$ARTIFACT_MODE" == "ENABLE" ]; then
+	# Do not start the logger module if we are in artifact mode. Logging
+	# produces a log artifact. If there are currently any saved logs make
+	# sure to delete them now.
+	# Also remove the data manager file that may have saved GPS waypoint information
+	# in it.
+	# Use shred to remove all files so that they cannot be recovered.
+	# shred should be effective on the /data partition since it has this configuration:
+	# /dev/sda8 /data ext4 rw,nosuid,nodev,noatime,discard,noauto_da_alloc,data=ordered 0 0
+	/usr/bin/find /data/px4/log -name "*.ulg" -exec /usr/bin/shred -u -n 7 {} \;
+	/bin/rm -fR /data/px4/log
+	/usr/bin/shred -u -n 7 /data/px4/dataman
+    /bin/echo "Artifact mode has been enabled"
+else
+	# Start logging and use timestamps for log files when possible.
+	# Add the "-e" option to start logging immediately. Default is
+	# to log only when armed. Caution must be used with the "-e" option
+	# because if power is removed without stopping the logger gracefully then
+	# the log file may be corrupted.
+	# This is done as the last step because any topics marked as optional will only
+	# be logged if they have been advertised when this is started. By starting it last it
+	# makes sure to see those advertisements as the other modules are starting before it.
+	logger start -t
+fi
