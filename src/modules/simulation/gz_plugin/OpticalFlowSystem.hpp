@@ -21,6 +21,6 @@ public:
 private:
 	void RemoveSensorEntities(const gz::sim::EntityComponentManager &_ecm);
 
-	std::unordered_map<gz::sim::Entity, std::shared_ptr<OpticalFlow>> entitySensorMap;
+	std::unordered_map<gz::sim::Entity, std::shared_ptr<OpticalFlowSensor>> entitySensorMap;
 };
 } // end namespace custom

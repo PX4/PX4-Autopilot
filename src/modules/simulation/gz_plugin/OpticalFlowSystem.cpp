@@ -37,7 +37,7 @@ void OpticalFlowSystem::PreUpdate(const gz::sim::UpdateInfo &, gz::sim::EntityCo
 		}
 
 		gz::sensors::SensorFactory sensorFactory;
-		auto sensor = sensorFactory.CreateSensor<custom::OpticalFlow>(data);
+		auto sensor = sensorFactory.CreateSensor<custom::OpticalFlowSensor>(data);
 
 		if (sensor == nullptr) {
 			gzerr << "Failed to create optical flow sensor [" << sensorScopedName << "]" << std::endl;

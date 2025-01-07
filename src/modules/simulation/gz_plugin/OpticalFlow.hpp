@@ -8,10 +8,13 @@
 #include <opencv2/opencv.hpp>
 #include <numeric>
 #include <vector>
+#include <memory>
+
+#include "flow_opencv.hpp"
 
 namespace custom
 {
-class OpticalFlow : public gz::sensors::Sensor
+class OpticalFlowSensor : public gz::sensors::Sensor
 {
 public:
     virtual bool Load(const sdf::Sensor &_sdf) override;
@@ -19,36 +22,23 @@ public:
 
 private:
     void OnImage(const gz::msgs::Image &_msg);
-    void ProcessFlow(const cv::Mat &current_frame);
 
-    cv::Mat prevFrame;
-    gz::transport::Node node;
-    gz::transport::Node::Publisher pub;
+    gz::transport::Node _node;
+    gz::transport::Node::Publisher _publisher;
 
-    // Camera parameters
-    double horizontal_fov{0.79};  // Default FOV in radians
-    double vertical_fov{0.6};    // Default FOV in radians
+    // Flow
+    std::shared_ptr<OpticalFlowOpenCV> _optical_flow {nullptr};
+    float _flow_x {0.0f};
+    float _flow_y {0.0f};
+    int _integration_time_us;
 
-    // Flow computation parameters
-    const int max_corners{100};
-    const double quality_level{0.3};
-    const double min_distance{7.0};
+    // Camera
+    double _horizontal_fov {0.0};
+    double _vertical_fov {0.0};
 
-    // Flow state
-    double integrated_x{0.0};
-    double integrated_y{0.0};
-    double quality{0.0};
-    std::chrono::steady_clock::time_point lastUpdateTime;
-
-    // Image processing parameters
-    const cv::Size blur_size{5, 5};
-    const double blur_sigma{1.5};
-    const float scale_factor{0.5};  // Scale image down for performance
-
-    bool flow_updated{false};
-
-    // Previous points for optical flow
-    std::vector<cv::Point2f> prev_points;
-    bool flow_initialized{false};
+    cv::Mat _last_image_gray;
+    uint32_t _last_image_timestamp {0};
+    bool _new_image_available {false};
 };
+
 } // end namespace custom
