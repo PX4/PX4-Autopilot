@@ -705,11 +705,12 @@ UavcanNode::Run()
 
 		if (can_init_res < 0) {
 			PX4_ERR("CAN driver init failed %i", can_init_res);
+
+		} else {
+			_instance->init(node_id, can->driver.updateEvent());
+
+			_node_init = true;
 		}
-
-		_instance->init(node_id, can->driver.updateEvent());
-
-		_node_init = true;
 	}
 
 	pthread_mutex_lock(&_node_mutex);
