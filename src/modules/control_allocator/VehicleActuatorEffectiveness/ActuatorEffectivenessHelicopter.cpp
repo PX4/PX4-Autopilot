@@ -106,12 +106,13 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	param_get(_param_handles.max_servo_throw, &max_servo_throw_deg);
 
 	if (max_servo_throw_deg > 0.f){
+		//linearization feature enabled
 		const float max_servo_throw = math::radians(max_servo_throw_deg);
 		_geometry.max_servo_height = sinf(max_servo_throw);
 		_geometry.inverse_max_servo_throw = 1.f / max_servo_throw;
 		_geometry.linearize_servos = 1;
 	}  else {
-		// handle any undefined behaviour
+		// handle any undefined behaviour if disabled
     		_geometry.max_servo_height = 0.f;
     		_geometry.inverse_max_servo_throw = 0.f;
 		_geometry.linearize_servos = 0;
@@ -183,7 +184,7 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 				- control_sp(ControlAxis::ROLL) * roll_coeff
 				+ _geometry.swash_plate_servos[i].trim;
 
-		// Apply linearzsation to the actuator setpoint if enabled
+		// Apply linearization to the actuator setpoint if enabled
 		if (_geometry.linearize_servos) {
 			actuator_sp(_first_swash_plate_servo_index + i) = getLinearServoOutput(actuator_sp(_first_swash_plate_servo_index + i));
 		}
