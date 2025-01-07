@@ -370,7 +370,7 @@ int TemperatureCompensation::update_offsets_gyro(int topic_instance, float tempe
 	calc_thermal_offsets_3D(_parameters.gyro_cal_data[mapping], temperature, offsets);
 
 	// Check if temperature delta is large enough to warrant a new publication
-	if (fabsf(temperature - _gyro_data.last_temperature[topic_instance]) > 1.0f) {
+	if (fabsf(temperature - _gyro_data.last_temperature[topic_instance]) > 0.1f) {
 		_gyro_data.last_temperature[topic_instance] = temperature;
 		return 2;
 	}
