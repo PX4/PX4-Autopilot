@@ -90,6 +90,10 @@ set(msg_files
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	FuelTankStatus.msg
+	FixedWingLateralSetpoint.msg
+	FixedWingLongitudinalSetpoint.msg
+	FixedWingLateralGuidanceStatus.msg
+	FixedWingLateralStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
@@ -120,10 +124,12 @@ set(msg_files
 	LandingGearWheel.msg
 	LandingTargetInnovations.msg
 	LandingTargetPose.msg
+	LateralControlConfiguration.msg
 	LaunchDetectionStatus.msg
 	LedControl.msg
 	LoggerStatus.msg
 	LogMessage.msg
+	LongitudinalControlConfiguration.msg
 	MagnetometerBiasEstimate.msg
 	MagWorkerData.msg
 	ManualControlSwitches.msg
@@ -137,7 +143,6 @@ set(msg_files
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
 	NormalizedUnsignedSetpoint.msg
-	NpfgStatus.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
 	OnboardComputerStatus.msg
