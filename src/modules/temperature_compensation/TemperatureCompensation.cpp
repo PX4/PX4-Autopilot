@@ -396,7 +396,7 @@ int TemperatureCompensation::update_offsets_accel(int topic_instance, float temp
 	calc_thermal_offsets_3D(_parameters.accel_cal_data[mapping], temperature, offsets);
 
 	// Check if temperature delta is large enough to warrant a new publication
-	if (fabsf(temperature - _accel_data.last_temperature[topic_instance]) > 1.0f) {
+	if (fabsf(temperature - _accel_data.last_temperature[topic_instance]) > 0.1f) {
 		_accel_data.last_temperature[topic_instance] = temperature;
 		return 2;
 	}
@@ -422,7 +422,7 @@ int TemperatureCompensation::update_offsets_baro(int topic_instance, float tempe
 	calc_thermal_offsets_1D(_parameters.baro_cal_data[mapping], temperature, *offsets);
 
 	// Check if temperature delta is large enough to warrant a new publication
-	if (fabsf(temperature - _baro_data.last_temperature[topic_instance]) > 1.0f) {
+	if (fabsf(temperature - _baro_data.last_temperature[topic_instance]) > 0.1f) {
 		_baro_data.last_temperature[topic_instance] = temperature;
 		return 2;
 	}
