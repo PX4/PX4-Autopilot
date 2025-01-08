@@ -32,8 +32,12 @@
 ############################################################################
 
 px4_add_library(npfg
-	npfg.cpp
-	npfg.hpp
+	DirectionalGuidance.cpp
+	CourseToAirspeedRefMapper.cpp
+	AirspeedReferenceController.cpp
+	DirectionalGuidance.hpp
+	CourseToAirspeedRefMapper.hpp
+	AirspeedReferenceController.hpp
 )
 
 target_link_libraries(npfg PRIVATE geo)
