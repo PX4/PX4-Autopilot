@@ -75,6 +75,7 @@ private:
 	float _velocity_xy_filtered{0.0f};
 	float _velocity_z_filtered{0.0f};
 	float _xy_accel_filtered{0.0f};
+	float _velocity_rot_filtered{0.0f};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
@@ -82,6 +83,7 @@ private:
 		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd,
 		(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>) _param_lndfw_vel_xy_max,
 		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max,
+		(ParamFloat<px4::params::LNDFW_ROT_MAX>)    _param_lndfw_rot_max,
 		(ParamFloat<px4::params::LNDFW_TRIG_TIME>)  _param_lndfw_trig_time
 	);
 };
