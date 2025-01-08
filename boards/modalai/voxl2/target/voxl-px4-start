@@ -77,6 +77,8 @@ fi
 # Start Invensense ICP 101xx barometer built on to VOXL 2
 qshell icp101xx start -I -b 5
 
+qshell temperature_compensation start
+
 # Auto detect the magnetometer. If one or both of these devices
 # are not connected it will fail but not cause any harm.
 # Rotation 10 = ROLL_180_YAW_90
@@ -209,7 +211,6 @@ fi
 qshell manual_control start
 qshell control_allocator start
 qshell load_mon start
-qshell temperature_compensation start
 
 # Only start the rc_update module if an actual RC driver
 # is publishing input_rc topics. Otherwise for external RC
