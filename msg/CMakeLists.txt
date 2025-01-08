@@ -92,6 +92,8 @@ set(msg_files
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
 	FuelTankStatus.msg
+	FwLateralControlSetpoint.msg
+	FwLongitudinalControlSetpoint.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
@@ -121,10 +123,12 @@ set(msg_files
 	LandingGearWheel.msg
 	LandingTargetInnovations.msg
 	LandingTargetPose.msg
+		LateralControlLimits.msg
 	LaunchDetectionStatus.msg
 	LedControl.msg
 	LoggerStatus.msg
 	LogMessage.msg
+	LongitudinalControlLimits.msg
 	MagnetometerBiasEstimate.msg
 	MagWorkerData.msg
 	ManualControlSwitches.msg
