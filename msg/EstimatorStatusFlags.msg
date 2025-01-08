@@ -13,9 +13,9 @@ bool cs_mag_3d                #  5 - true if 3-axis magnetometer measurement fus
 bool cs_mag_dec               #  6 - true if synthetic magnetic declination measurements fusion is intended
 bool cs_in_air                #  7 - true when the vehicle is airborne
 bool cs_wind                  #  8 - true when wind velocity is being estimated
-bool cs_baro_hgt              #  9 - true when baro height is being fused as a primary height reference
-bool cs_rng_hgt               # 10 - true when range finder height is being fused as a primary height reference
-bool cs_gps_hgt               # 11 - true when GPS height is being fused as a primary height reference
+bool cs_baro_hgt              #  9 - true when baro data is being fused
+bool cs_rng_hgt               # 10 - true when range finder data is being fused for height aiding
+bool cs_gps_hgt               # 11 - true when GPS altitude is being fused
 bool cs_ev_pos                # 12 - true when local position data fusion from external vision is intended
 bool cs_ev_yaw                # 13 - true when yaw data from external vision measurements fusion is intended
 bool cs_ev_hgt                # 14 - true when height data from external vision measurements is being fused

@@ -110,7 +110,7 @@ void RtlDirect::on_active()
 		updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
 	}
 
-	if (_rtl_state == RTLState::LAND && _param_rtl_pld_md.get() > 0) {
+	if (_rtl_state == RTLState::LAND && _mission_item.land_precision > 0) {
 		// Need to update the position and type on the current setpoint triplet.
 		_navigator->get_precland()->on_active();
 
@@ -355,6 +355,7 @@ void RtlDirect::set_rtl_item()
 			pos_yaw_sp.alt = loiter_altitude;
 			pos_yaw_sp.yaw = !_param_wv_en.get() ? _destination.yaw : NAN; // set final yaw if weather vane is disabled
 
+			altitude_acceptance_radius = FLT_MAX;
 			setMoveToPositionMissionItem(_mission_item, pos_yaw_sp);
 			_navigator->reset_position_setpoint(pos_sp_triplet->previous);
 
@@ -368,7 +369,9 @@ void RtlDirect::set_rtl_item()
 
 			_mission_item.land_precision = _param_rtl_pld_md.get();
 
-			startPrecLand(_mission_item.land_precision);
+			if (_mission_item.land_precision > 0) {
+				startPrecLand(_mission_item.land_precision);
+			}
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
 			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "RTL: land at destination");

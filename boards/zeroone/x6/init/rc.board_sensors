@@ -149,6 +149,9 @@ rm3100 -I -b 4 start
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
 
+# Internal compass
+ist8310 start -I -a 0x0E -R 12
+
 # Possible internal Baro
 if param compare SENS_INT_BARO_EN 1
 then

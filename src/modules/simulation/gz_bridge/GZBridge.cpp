@@ -800,7 +800,10 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 			pose_orientation.y(),
 			pose_orientation.z());
 
+	const gz::math::Quaterniond q_left(0.7071068, 0, 0, -0.7071068);
+
 	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
+
 	const gz::math::Quaterniond q_down(0, 1, 0, 0);
 
 	if (q_sensor.Equal(q_front, 0.03)) {
@@ -809,8 +812,15 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &scan)
 	} else if (q_sensor.Equal(q_down, 0.03)) {
 		distance_sensor.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
+	} else if (q_sensor.Equal(q_left, 0.03)) {
+		distance_sensor.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+
 	} else {
 		distance_sensor.orientation = distance_sensor_s::ROTATION_CUSTOM;
+		distance_sensor.q[0] = q_sensor.W();
+		distance_sensor.q[1] = q_sensor.X();
+		distance_sensor.q[2] = q_sensor.Y();
+		distance_sensor.q[3] = q_sensor.Z();
 	}
 
 	_distance_sensor_pub.publish(distance_sensor);
