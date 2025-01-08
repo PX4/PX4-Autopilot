@@ -445,10 +445,6 @@ menu "Zenoh publishers/subscribers"
 		bool "normalized_unsigned_setpoint"
 		default n
 
-	config ZENOH_PUBSUB_NPFG_STATUS
-		bool "npfg_status"
-		default n
-
 	config ZENOH_PUBSUB_OBSTACLE_DISTANCE
 		bool "obstacle_distance"
 		default n

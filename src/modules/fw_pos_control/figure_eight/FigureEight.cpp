@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,11 +48,10 @@ static constexpr bool SOUTH_CIRCLE_IS_COUNTER_CLOCKWISE{true};
 static constexpr float DEFAULT_MAJOR_TO_MINOR_AXIS_RATIO{2.5f};
 static constexpr float MINIMAL_FEASIBLE_MAJOR_TO_MINOR_AXIS_RATIO{2.0f};
 
-FigureEight::FigureEight(NPFG &npfg, matrix::Vector2f &wind_vel, float &eas2tas) :
+FigureEight::FigureEight(DirectionalGuidance &npfg, matrix::Vector2f &wind_vel) :
 	ModuleParams(nullptr),
-	_npfg(npfg),
-	_wind_vel(wind_vel),
-	_eas2tas(eas2tas)
+	_directional_guidance(npfg),
+	_wind_vel(wind_vel)
 {
 
 }
@@ -64,8 +63,9 @@ void FigureEight::resetPattern()
 	_pos_passed_circle_center_along_major_axis = false;
 }
 
-void FigureEight::updateSetpoint(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-				 const FigureEightPatternParameters &parameters, float target_airspeed)
+DirectionalGuidanceOutput FigureEight::updateSetpoint(const matrix::Vector2f &curr_pos_local,
+		const matrix::Vector2f &ground_speed,
+		const FigureEightPatternParameters &parameters)
 {
 	// Sanitize inputs
 	FigureEightPatternParameters valid_parameters{sanitizeParameters(parameters)};
@@ -81,7 +81,7 @@ void FigureEight::updateSetpoint(const matrix::Vector2f &curr_pos_local, const m
 	updateSegment(curr_pos_local, valid_parameters,  pattern_points);
 
 	// Apply control logic based on segment
-	applyControl(curr_pos_local, ground_speed, valid_parameters, target_airspeed, pattern_points);
+	return applyControl(curr_pos_local, ground_speed, valid_parameters, pattern_points);
 }
 
 FigureEight::FigureEightPatternParameters FigureEight::sanitizeParameters(const FigureEightPatternParameters
@@ -118,7 +118,8 @@ void FigureEight::initializePattern(const matrix::Vector2f &curr_pos_local, cons
 		const bool north_is_closer = north_center_to_pos_local.norm() < south_center_to_pos_local.norm();
 
 		// Get the normalized switch distance.
-		float switch_distance_normalized = _npfg.switchDistance(FLT_MAX) * NORMALIZED_MAJOR_RADIUS / parameters.loiter_radius;
+		float switch_distance_normalized = _directional_guidance.switchDistance(FLT_MAX) * NORMALIZED_MAJOR_RADIUS /
+						   parameters.loiter_radius;
 
 		//Far away from current figure of eight. Fly towards closer circle
 
@@ -194,7 +195,8 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 	calculatePositionToCenterNormalizedRotated(center_to_pos_local, curr_pos_local, parameters);
 
 	// Get the normalized switch distance.
-	float switch_distance_normalized = _npfg.switchDistance(FLT_MAX) * NORMALIZED_MAJOR_RADIUS / parameters.loiter_radius;
+	float switch_distance_normalized = _directional_guidance.switchDistance(FLT_MAX) * NORMALIZED_MAJOR_RADIUS /
+					   parameters.loiter_radius;
 
 	// Update segment if segment exit condition has been reached
 	switch (_current_segment) {
@@ -275,56 +277,60 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 	}
 }
 
-void FigureEight::applyControl(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			       const FigureEightPatternParameters &parameters, float target_airspeed,
-			       const FigureEightPatternPoints &pattern_points)
+DirectionalGuidanceOutput FigureEight::applyControl(const matrix::Vector2f &curr_pos_local,
+		const matrix::Vector2f &ground_speed,
+		const FigureEightPatternParameters &parameters,
+		const FigureEightPatternPoints &pattern_points)
 {
 	Vector2f center_to_pos_local;
 	calculatePositionToCenterNormalizedRotated(center_to_pos_local, curr_pos_local, parameters);
 
 	switch (_current_segment) {
 	case FigureEightSegment::SEGMENT_CIRCLE_NORTH: {
-			applyCircle(NORTH_CIRCLE_IS_COUNTER_CLOCKWISE, pattern_points.normalized_north_circle_offset, curr_pos_local,
-				    ground_speed, parameters, target_airspeed);
+			return applyCircle(NORTH_CIRCLE_IS_COUNTER_CLOCKWISE, pattern_points.normalized_north_circle_offset, curr_pos_local,
+					   ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_NORTHEAST_SOUTHWEST: {
 			// Follow path from north-east to south-west
-			applyLine(pattern_points.normalized_north_exit_offset, pattern_points.normalized_south_entry_offset, curr_pos_local,
-				  ground_speed, parameters, target_airspeed);
+			return applyLine(pattern_points.normalized_north_exit_offset, pattern_points.normalized_south_entry_offset,
+					 curr_pos_local,
+					 ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_CIRCLE_SOUTH: {
-			applyCircle(SOUTH_CIRCLE_IS_COUNTER_CLOCKWISE, pattern_points.normalized_south_circle_offset, curr_pos_local,
-				    ground_speed, parameters, target_airspeed);
+			return applyCircle(SOUTH_CIRCLE_IS_COUNTER_CLOCKWISE, pattern_points.normalized_south_circle_offset, curr_pos_local,
+					   ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_SOUTHEAST_NORTHWEST: {
 			// follow path from south-east to north-west
-			applyLine(pattern_points.normalized_south_exit_offset, pattern_points.normalized_north_entry_offset, curr_pos_local,
-				  ground_speed, parameters, target_airspeed);
+			return applyLine(pattern_points.normalized_south_exit_offset, pattern_points.normalized_north_entry_offset,
+					 curr_pos_local,
+					 ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_POINT_SOUTHWEST: {
 			// Follow path from current position to south-west
-			applyLine(center_to_pos_local, pattern_points.normalized_south_entry_offset, curr_pos_local,
-				  ground_speed, parameters, target_airspeed);
+			return applyLine(center_to_pos_local, pattern_points.normalized_south_entry_offset, curr_pos_local,
+					 ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_POINT_NORTHWEST: {
 			// Follow path from current position to north-west
-			applyLine(center_to_pos_local, pattern_points.normalized_north_entry_offset, curr_pos_local,
-				  ground_speed, parameters, target_airspeed);
+			return applyLine(center_to_pos_local, pattern_points.normalized_north_entry_offset, curr_pos_local,
+					 ground_speed, parameters);
 		}
 		break;
 
 	case FigureEightSegment::SEGMENT_UNDEFINED:
 	default:
+		return DirectionalGuidanceOutput{};
 		break;
 	}
 }
@@ -356,9 +362,10 @@ float FigureEight::calculateRotationAngle(const FigureEightPatternParameters &pa
 	return yaw_rotation;
 }
 
-void FigureEight::applyCircle(bool loiter_direction_counter_clockwise, const matrix::Vector2f &normalized_circle_offset,
-			      const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-			      const FigureEightPatternParameters &parameters, float target_airspeed)
+DirectionalGuidanceOutput FigureEight::applyCircle(bool loiter_direction_counter_clockwise,
+		const matrix::Vector2f &normalized_circle_offset,
+		const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+		const FigureEightPatternParameters &parameters)
 {
 	const float loiter_direction_multiplier = loiter_direction_counter_clockwise ? -1.f : 1.f;
 
@@ -366,8 +373,6 @@ void FigureEight::applyCircle(bool loiter_direction_counter_clockwise, const mat
 	Vector2f circle_offset_rotated = Dcm2f(calculateRotationAngle(parameters)) * circle_offset;
 	Vector2f circle_center = parameters.center_pos_local + circle_offset_rotated;
 
-	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 
 	const Vector2f vector_center_to_vehicle = curr_pos_local - circle_center;
 	const float dist_to_center = vector_center_to_vehicle.norm();
@@ -392,16 +397,14 @@ void FigureEight::applyCircle(bool loiter_direction_counter_clockwise, const mat
 	float path_curvature = loiter_direction_multiplier / parameters.loiter_minor_radius;
 	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
 	_closest_point_on_path = unit_vec_center_to_closest_pt * parameters.loiter_minor_radius + circle_center;
-	_npfg.guideToPath(curr_pos_local, ground_speed, _wind_vel, unit_path_tangent,
-			  _closest_point_on_path, path_curvature);
+	return _directional_guidance.guideToPath(curr_pos_local, ground_speed, _wind_vel, unit_path_tangent,
+			_closest_point_on_path, path_curvature);
 
-	_roll_setpoint = _npfg.getRollSetpoint();
-	_indicated_airspeed_setpoint = _npfg.getAirspeedRef() / _eas2tas;
 }
 
-void FigureEight::applyLine(const matrix::Vector2f &normalized_line_start_offset,
-			    const matrix::Vector2f &normalized_line_end_offset, const matrix::Vector2f &curr_pos_local,
-			    const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters, float target_airspeed)
+DirectionalGuidanceOutput FigureEight::applyLine(const matrix::Vector2f &normalized_line_start_offset,
+		const matrix::Vector2f &normalized_line_end_offset, const matrix::Vector2f &curr_pos_local,
+		const matrix::Vector2f &ground_speed, const FigureEightPatternParameters &parameters)
 {
 	const Dcm2f rotation_matrix(calculateRotationAngle(parameters));
 
@@ -414,15 +417,12 @@ void FigureEight::applyLine(const matrix::Vector2f &normalized_line_start_offset
 	const Vector2f end_offset_rotated = rotation_matrix * end_offset;
 	const Vector2f line_segment_end_position = parameters.center_pos_local + end_offset_rotated;
 
-	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
-	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 	const Vector2f path_tangent = line_segment_end_position - line_segment_start_position;
 	const Vector2f unit_path_tangent = path_tangent.normalized();
 	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
 	const Vector2f vector_A_to_vehicle = curr_pos_local - line_segment_start_position;
 	_closest_point_on_path = line_segment_start_position + vector_A_to_vehicle.dot(unit_path_tangent) * unit_path_tangent;
-	_npfg.guideToPath(curr_pos_local, ground_speed, _wind_vel, path_tangent.normalized(), line_segment_start_position,
-			  0.0f);
-	_roll_setpoint = _npfg.getRollSetpoint();
-	_indicated_airspeed_setpoint = _npfg.getAirspeedRef() / _eas2tas;
+	return _directional_guidance.guideToPath(curr_pos_local, ground_speed, _wind_vel, path_tangent.normalized(),
+			line_segment_start_position,
+			0.0f);
 }
