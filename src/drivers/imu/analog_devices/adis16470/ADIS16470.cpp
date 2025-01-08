@@ -465,6 +465,7 @@ uint16_t ADIS16470::RegisterRead(Register reg)
 	uint16_t cmd[1];
 	cmd[0] = (static_cast<uint16_t>(reg) << 8);
 
+	px4_udelay(1);
 	transferhword(cmd, nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
 	transferhword(nullptr, cmd, 1);
@@ -480,6 +481,7 @@ void ADIS16470::RegisterWrite(Register reg, uint16_t value)
 	cmd[0] = (((static_cast<uint16_t>(reg))     | DIR_WRITE) << 8) | ((0x00FF & value));
 	cmd[1] = (((static_cast<uint16_t>(reg) + 1) | DIR_WRITE) << 8) | ((0xFF00 & value) >> 8);
 
+	px4_udelay(1);
 	transferhword(cmd, nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
 	transferhword(cmd + 1, nullptr, 1);
