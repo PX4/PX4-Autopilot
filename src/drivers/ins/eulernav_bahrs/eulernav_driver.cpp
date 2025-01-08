@@ -1,11 +1,17 @@
 #include "eulernav_driver.h"
 #include <px4_platform_common/getopt.h>
+#include <drivers/drv_sensor.h>
+#include <matrix/Quaternion.hpp>
+#include <matrix/Euler.hpp>
 
 EulerNavDriver::EulerNavDriver(const char* device_name)
 	: ModuleParams{nullptr}
 	, _serial_port{device_name, 115200, ByteSize::EightBits, Parity::None, StopBits::One, FlowControl::Disabled}
 	, _data_buffer{}
+	, _px4_accel{DRV_INS_DEVTYPE_BAHRS}
+	, _px4_gyro{DRV_INS_DEVTYPE_BAHRS}
 	, _attitude_pub(ORB_ID(vehicle_attitude))
+	, _sensor_selection_pub{ORB_ID(sensor_selection)}
 {
 	initialize();
 }
@@ -118,6 +124,12 @@ int EulerNavDriver::print_status()
 void EulerNavDriver::run()
 {
 	_statistics._start_time = hrt_absolute_time();
+	SensorSelection sensor_selection{};
+
+	sensor_selection.timestamp = hrt_absolute_time();
+	sensor_selection.accel_device_id = DRV_INS_DEVTYPE_BAHRS;
+	sensor_selection.gyro_device_id = DRV_INS_DEVTYPE_BAHRS;
+	_sensor_selection_pub.publish(sensor_selection);
 
 	while(false == should_exit())
 	{
@@ -178,9 +190,9 @@ void EulerNavDriver::initialize()
 		}
 		else
 		{
-			// Disable EKF2
 			const int32_t value{0};
-			param_set(param_find("EKF2_EN"), &value);
+			param_set(param_find("EKF2_EN"), &value); // Disable EKF2
+			param_set(param_find("SENS_IMU_MODE"), &value); // Let EULER-NAV driver handle sensor selection
 			_attitude_pub.advertise();
 		}
 
@@ -336,10 +348,78 @@ void EulerNavDriver::decodeMessageAndPublishData(const uint8_t* data, CSerialPro
 	switch (messsage_id)
 	{
 	case CSerialProtocol::EMessageIds::eInertialData:
-		++_statistics._inertial_message_counter;
+		{
+			const CSerialProtocol::SInertialDataMessage* imu_msg{reinterpret_cast<const CSerialProtocol::SInertialDataMessage*>(data)};
+
+			if (nullptr != imu_msg)
+			{
+				const auto& imu_data{imu_msg->oInertialData_};
+				const bool accel_valid{((imu_data.uValidity_ & BIT_VALID_SPECIFIC_FORCE_X) > 0) &&
+							((imu_data.uValidity_ & BIT_VALID_SPECIFIC_FORCE_Y) > 0) &&
+							((imu_data.uValidity_ & BIT_VALID_SPECIFIC_FORCE_Z) > 0)};
+
+				const bool gyro_valid{((imu_data.uValidity_ & BIT_VALID_ANGULAR_RATE_X) > 0) &&
+							((imu_data.uValidity_ & BIT_VALID_ANGULAR_RATE_Y) > 0) &&
+							((imu_data.uValidity_ & BIT_VALID_ANGULAR_RATE_Z) > 0)};
+
+				const auto time = hrt_absolute_time();
+
+				if (accel_valid)
+				{
+					const float accel_x{CSerialProtocol::skfSpecificForceScale_ * static_cast<float>(imu_data.iSpecificForceX_)};
+					const float accel_y{CSerialProtocol::skfSpecificForceScale_ * static_cast<float>(imu_data.iSpecificForceY_)};
+					const float accel_z{CSerialProtocol::skfSpecificForceScale_ * static_cast<float>(imu_data.iSpecificForceZ_)};
+
+					_px4_accel.update(time, accel_x, accel_y, accel_z);
+				}
+
+				if (gyro_valid)
+				{
+					const float gyro_x{CSerialProtocol::skfAngularRateScale_ * static_cast<float>(imu_data.iAngularRateX_)};
+					const float gyro_y{CSerialProtocol::skfAngularRateScale_ * static_cast<float>(imu_data.iAngularRateY_)};
+					const float gyro_z{CSerialProtocol::skfAngularRateScale_ * static_cast<float>(imu_data.iAngularRateZ_)};
+
+					_px4_gyro.update(time, gyro_x, gyro_y, gyro_z);
+				}
+
+				++_statistics._inertial_message_counter;
+			}
+		}
 		break;
 	case CSerialProtocol::EMessageIds::eNavigationData:
-		++_statistics._navigation_message_counter;
+		{
+			const CSerialProtocol::SNavigationDataMessage* nav_msg{reinterpret_cast<const CSerialProtocol::SNavigationDataMessage*>(data)};
+
+			if (nullptr != nav_msg)
+			{
+				const auto& nav_data{nav_msg->oNavigationData_};
+				const bool roll_valid{(nav_data.uValidity_ & BIT_VALID_ROLL) > 0};
+				const bool pitch_valid{(nav_data.uValidity_ & BIT_VALID_PITCH) > 0};
+				const bool yaw_valid{(nav_data.uValidity_ & BIT_VALID_MAGNETIC_HEADING) > 0};
+
+				if (roll_valid && pitch_valid && yaw_valid)
+				{
+					const float roll{CSerialProtocol::skfAngleScale_ * static_cast<float>(nav_data.iRoll_)};
+					const float pitch{CSerialProtocol::skfAngleScale_ * static_cast<float>(nav_data.iPitch_)};
+					const float yaw{CSerialProtocol::skfAngleScale_ * static_cast<float>(nav_data.uMagneticHeading_)};
+
+					const matrix::Quaternionf quat{matrix::Eulerf{roll, pitch, yaw}};
+					VehicleAttitude attitude{};
+
+					attitude.q[0] = quat(0);
+					attitude.q[1] = quat(1);
+					attitude.q[2] = quat(2);
+					attitude.q[3] = quat(3);
+
+					attitude.timestamp = hrt_absolute_time();
+					attitude.timestamp_sample = attitude.timestamp;
+
+					_attitude_pub.publish(attitude);
+				}
+
+				++_statistics._navigation_message_counter;
+			}
+		}
 		break;
 	default:
 		break;

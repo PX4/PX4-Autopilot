@@ -17,6 +17,12 @@
 #define BIT_VALID_ROLL             (0x04)
 #define BIT_VALID_PITCH            (0x08)
 #define BIT_VALID_MAGNETIC_HEADING (0x10)
+#define BIT_VALID_SPECIFIC_FORCE_X (0x01)
+#define BIT_VALID_SPECIFIC_FORCE_Y (0x02)
+#define BIT_VALID_SPECIFIC_FORCE_Z (0x04)
+#define BIT_VALID_ANGULAR_RATE_X   (0x08)
+#define BIT_VALID_ANGULAR_RATE_Y   (0x10)
+#define BIT_VALID_ANGULAR_RATE_Z   (0x20)
 
 /**
  * @brief The class that describes and implements the BAHRS serial protocol.
