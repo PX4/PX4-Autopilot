@@ -352,7 +352,8 @@ void Sih::generate_force_and_torques()
 	}
 }
 
-void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float throttle_cmd)
+void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd,
+				   const float throttle_cmd)
 {
 	const Vector3f v_B = _q_E.rotateVectorInverse(_v_E);
 	const float &alt = _lla.altitude();
