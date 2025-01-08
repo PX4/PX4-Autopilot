@@ -137,34 +137,37 @@ void ADIS16470::RunImpl()
 		_reset_timestamp = now;
 		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
-		ScheduleDelayed(193_ms); // 193 ms Software Reset Recovery Time
+		// 193 ms Software Reset Recovery Time + 20 ms measured delay for register write to take effect
+		ScheduleDelayed(193_ms + 20_ms);
 		break;
 
 	case STATE::WAIT_FOR_RESET:
 
-		if (_self_test_passed) {
-			if ((RegisterRead(Register::PROD_ID) == Product_identification)) {
+		if ((RegisterRead(Register::PROD_ID) != Product_identification)) {
+			// RESET not complete
+			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
+				PX4_DEBUG("Reset failed, retrying");
+				_state = STATE::RESET;
+
+			} else {
+				PX4_DEBUG("Reset not complete, check again in 100 ms");
+			}
+
+			ScheduleDelayed(100_ms);
+
+		} else {
+			if (_self_test_passed) {
 				// if reset succeeded then configure
 				_state = STATE::CONFIGURE;
 				ScheduleNow();
 
 			} else {
-				// RESET not complete
-				if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
-					PX4_DEBUG("Reset failed, retrying");
-					_state = STATE::RESET;
-					ScheduleDelayed(100_ms);
+				RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Sensor_self_test);
+				_state = STATE::SELF_TEST_CHECK;
 
-				} else {
-					PX4_DEBUG("Reset not complete, check again in 100 ms");
-					ScheduleDelayed(100_ms);
-				}
+				// Self Test Time + measured delay for register write to take effect
+				ScheduleDelayed(14_ms + 10_ms);
 			}
-
-		} else {
-			RegisterWrite(Register::GLOB_CMD, GLOB_CMD_BIT::Sensor_self_test);
-			_state = STATE::SELF_TEST_CHECK;
-			ScheduleDelayed(14_ms); // Self Test Time
 		}
 
 		break;
@@ -175,13 +178,15 @@ void ADIS16470::RunImpl()
 
 			if (DIAG_STAT != 0) {
 				PX4_ERR("DIAG_STAT: %#X", DIAG_STAT);
+				_state = STATE::RESET;
 
 			} else {
 				PX4_DEBUG("self test passed");
 				_self_test_passed = true;
-				_state = STATE::RESET;
-				ScheduleNow();
+				_state = STATE::CONFIGURE;
 			}
+
+			ScheduleNow();
 		}
 		break;
 
@@ -381,6 +386,9 @@ bool ADIS16470::Configure()
 	for (const auto &reg_cfg : _register_cfg) {
 		RegisterSetAndClearBits(reg_cfg.reg, reg_cfg.set_bits, reg_cfg.clear_bits);
 	}
+
+	// wait for register set to get into use
+	px4_udelay(100);
 
 	// now check that all are configured
 	bool success = true;
